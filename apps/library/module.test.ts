@@ -80,7 +80,6 @@ describe("makeModule", () => {
     description: "Summary",
     dataShape: null,
     defaultData: null,
-    order: 0,
     xs: { component: () => createElement("div", null, "summary"), w: 2, h: 2 },
   });
 
@@ -88,8 +87,6 @@ describe("makeModule", () => {
     expect(catalog.def).toEqual({
       moduleId: "summary",
       moduleLabel: "Summary",
-      label: "Summary",
-      order: 0,
       data: null,
       xs: { w: 2, h: 2 },
       sm: { w: 2, h: 2 },

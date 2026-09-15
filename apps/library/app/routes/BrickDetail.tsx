@@ -46,7 +46,7 @@ export default function BrickDetail() {
   const BrickComponent = brick.component;
   const brickData = brickDef.data;
   const entry = resolveBrickBreakpoint(brickDef, breakpoint);
-  const AppearanceForm = BrickComponent.form?.form;
+  const OptionsForm = BrickComponent.options?.form;
   let inheritedBreakpoint = "xs";
   if (breakpoint === "xl" && brickDef.lg) inheritedBreakpoint = "lg";
   else if ((breakpoint === "xl" || breakpoint === "lg") && brickDef.sm) inheritedBreakpoint = "sm";
@@ -57,7 +57,7 @@ export default function BrickDetail() {
         <Link to={`/modules/${encodeURIComponent(moduleId)}`}>{module.label}</Link>
       </Outline.Title>
       <div
-        className={`overflow-auto bg-white py-6 ${(entry.gridItem?.w ?? brick.def[breakpoint].w) === 8 ? "" : "px-4"}`}
+        className={`overflow-auto py-6 ${(entry.gridItem?.w ?? brick.def[breakpoint].w) === 8 ? "" : "px-4"}`}
       >
         <BrickPreviewFrame
           w={entry.gridItem?.w ?? brick.def[breakpoint].w}
@@ -67,7 +67,7 @@ export default function BrickDetail() {
             <BrickComponent
               breakpoint={breakpoint}
               data={brickData}
-              appearanceOptions={entry.appearanceOptions}
+              options={entry.options}
             />
           </div>
         </BrickPreviewFrame>
@@ -91,7 +91,7 @@ export default function BrickDetail() {
                 [brickId]: { ...state.bricksById[brickId], data: decodedData }}}));
           }}
         />
-        <Outline.Title>Appearance options</Outline.Title>
+        <Outline.Title>Options</Outline.Title>
         <div className="flex flex-wrap gap-2 px-4 py-4">
           {breakpoint !== "xs" && (
             <Button
@@ -124,11 +124,11 @@ export default function BrickDetail() {
             {entry.gridItem === null ? "Show brick" : "Hide brick"}
           </Button>
         </div>
-        {AppearanceForm && (
-          <AppearanceForm
-            value={entry.appearanceOptions}
+        {OptionsForm && (
+          <OptionsForm
+            value={entry.options}
             onChange={(value) => {
-              useGridStore.getState().setAppearanceOptions(brickId, breakpoint, value);
+              useGridStore.getState().setOptions(brickId, breakpoint, value);
             }}
           />
         )}

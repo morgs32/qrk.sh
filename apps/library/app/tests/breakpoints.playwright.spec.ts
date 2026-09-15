@@ -5,8 +5,8 @@ test("group breakpoints follow the shared grid container at every boundary", asy
   await page.goto("/");
   await page.getByRole("toolbar", { name: "Grid controls" }).getByRole("button", { name: "Bricks", exact: true }).click();
   await expect(page.getByRole("dialog", { name: "Bricks", exact: true })).toBeVisible();
-  const group = page.locator('[data-module-entry="github"]');
-  const preview = group.locator('[data-module-representative="github/profile"]');
+  const group = page.locator('[data-module-entry="github-profile"]');
+  const preview = group.locator('[data-module-representative="github-profile"]');
   const responsive = preview.locator('[data-slot="card"]');
 
   for (const [width, breakpoint] of [
@@ -37,7 +37,7 @@ test("group breakpoints follow the shared grid container at every boundary", asy
 });
 
 test("standalone slider retains the profile through responsive presentations", async ({ page }) => {
-  await page.goto("/bricks/github/profile");
+  await page.goto("/bricks/github-profile");
   const preview = page.getByTestId("brick-preview");
   for (const [unit, breakpoint] of [
     [40, "xs"],
@@ -57,13 +57,13 @@ test("standalone slider retains the profile through responsive presentations", a
 test("placed bricks respond to presets and keep their data and positions", async ({ page }) => {
   await page.setViewportSize({ width: 3400, height: 1000 });
   await page.goto("/modules/github-profile");
-  const source = page.locator('[data-module-brick="github/profile"]');
+  const source = page.locator('[data-module-brick="github-profile"]');
   await expect(source.locator('[data-slot="card"]')).toHaveCSS("padding-top", "12px");
   const grid = page.getByLabel("Brick grid", { exact: true });
   await source.dragTo(grid.locator(".react-grid-layout"), {
     targetPosition: { x: 20, y: 200 },
   });
-  const placed = grid.locator('[data-brick="github/profile"]');
+  const placed = grid.locator('[data-brick="github-profile"]');
   await expect(placed).toHaveCount(1);
   const original = await placed.evaluate((element) => ({
     id: element.getAttribute("data-brick-id"),
@@ -97,7 +97,7 @@ test("placed bricks respond to presets and keep their data and positions", async
   }
   expect(await node?.evaluate((element) => element.isConnected)).toBe(true);
   await page.getByRole("button", { name: "375px grid width", exact: true }).click();
-  await placed.getByRole("link", { name: "Edit brick", exact: true }).click();
+  await placed.dblclick();
   await expect(page.getByTestId("selected-brick-preview").locator('[data-slot="card"]')).toHaveCSS(
     "padding-top",
     "8px",
@@ -113,7 +113,7 @@ test("lg and xl overrides persist and restore nearest smaller inheritance", asyn
     targetPosition: { x: 20, y: 20 },
   });
   const placed = grid.locator("[data-brick-id]");
-  await placed.getByRole("link", { name: "Edit brick", exact: true }).click();
+  await placed.dblclick();
   await page.getByRole("button", { name: "1024px grid width", exact: true }).click();
   await expect(page.getByRole("button", { name: "Inherit from xs", exact: true })).toBeDisabled();
   await page.getByRole("button", { name: "Left", exact: true }).click();

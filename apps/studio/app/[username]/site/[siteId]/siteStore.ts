@@ -7,6 +7,9 @@ export const useSiteStore = create<{
     readonly description: string;
     readonly slug: string | null;
     readonly userId: string | null;
+    readonly logoUrl: string;
+    readonly faviconLightUrl: string;
+    readonly faviconDarkUrl: string;
   } | null;
   readonly initializeSite: (site: {
     readonly id: string;
@@ -14,9 +17,15 @@ export const useSiteStore = create<{
     readonly description: string | null;
     readonly slug: string | null;
     readonly userId: string | null;
+    readonly logoUrl: string | null;
+    readonly faviconLightUrl: string | null;
+    readonly faviconDarkUrl: string | null;
   }) => void;
   readonly setName: (name: string) => void;
   readonly setDescription: (description: string) => void;
+  readonly setLogoUrl: (logoUrl: string) => void;
+  readonly setFaviconLightUrl: (faviconLightUrl: string) => void;
+  readonly setFaviconDarkUrl: (faviconDarkUrl: string) => void;
 }>()((set) => ({
   site: null,
   initializeSite: (site) => {
@@ -27,6 +36,9 @@ export const useSiteStore = create<{
         description: site.description ?? "",
         slug: site.slug,
         userId: site.userId,
+        logoUrl: site.logoUrl ?? "",
+        faviconLightUrl: site.faviconLightUrl ?? "",
+        faviconDarkUrl: site.faviconDarkUrl ?? "",
       },
     });
   },
@@ -54,6 +66,48 @@ export const useSiteStore = create<{
         site: {
           ...state.site,
           description,
+        },
+      };
+    });
+  },
+  setLogoUrl: (logoUrl) => {
+    set((state) => {
+      if (state.site === null) {
+        return state;
+      }
+
+      return {
+        site: {
+          ...state.site,
+          logoUrl,
+        },
+      };
+    });
+  },
+  setFaviconLightUrl: (faviconLightUrl) => {
+    set((state) => {
+      if (state.site === null) {
+        return state;
+      }
+
+      return {
+        site: {
+          ...state.site,
+          faviconLightUrl,
+        },
+      };
+    });
+  },
+  setFaviconDarkUrl: (faviconDarkUrl) => {
+    set((state) => {
+      if (state.site === null) {
+        return state;
+      }
+
+      return {
+        site: {
+          ...state.site,
+          faviconDarkUrl,
         },
       };
     });

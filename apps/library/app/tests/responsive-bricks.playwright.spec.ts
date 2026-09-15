@@ -79,7 +79,7 @@ test("independent Figma options, shared content, hidden inheritance and fresh pe
   }, firstId);
   await expect(first).toContainText("First content");
   await expect(second).toContainText("Figma Thumbnail");
-  await first.getByRole("link", { name: "Edit brick", exact: true }).click();
+  await first.dblclick();
   await page.getByRole("button", { name: "640px grid width" }).click();
   await expect(first.locator("img")).toHaveCSS("object-position", "0% 50%");
   await page.getByRole("button", { name: "Bottom", exact: true }).click();
@@ -103,7 +103,7 @@ test("independent Figma options, shared content, hidden inheritance and fresh pe
   await page.getByRole("button", { name: "1024px grid width" }).click();
   await expect(first).toHaveCount(0);
   const saved = await page.evaluate(() =>
-    JSON.parse(localStorage.getItem("qrk-bricks-sandbox-responsive-bricks-v3") ?? "{}"),
+    JSON.parse(localStorage.getItem("qrk-bricks-sandbox-responsive-bricks-v4") ?? "{}"),
   );
   expect(saved.state).not.toHaveProperty("layout");
   for (const brick of Object.values(saved.state.bricksById)) {
@@ -115,15 +115,15 @@ test("independent Figma options, shared content, hidden inheritance and fresh pe
   }
   expect(saved.state.bricksById[firstId!].data.title).toBe("First content");
   expect(saved.state.bricksById[secondId!].data.title).toBe("Figma Thumbnail");
-  expect(saved.state.bricksById[firstId!].xs.appearanceOptions).toEqual({
+  expect(saved.state.bricksById[firstId!].xs.options).toEqual({
     imagePosition: "left",
   });
-  expect(saved.state.bricksById[firstId!].sm.appearanceOptions).toEqual({
+  expect(saved.state.bricksById[firstId!].sm.options).toEqual({
     imagePosition: "bottom",
   });
   expect(saved.state.bricksById[firstId!].lg.gridItem).toBeNull();
   expect(saved.state.bricksById[firstId!].xl.gridItem).not.toBeNull();
-  expect(saved.state.bricksById[secondId!].xs.appearanceOptions).toEqual({
+  expect(saved.state.bricksById[secondId!].xs.options).toEqual({
     imagePosition: "right",
   });
   expect(scraperRequests).toBe(0);
@@ -192,7 +192,7 @@ test("removing an override restores whole-entry inheritance", async ({ page }) =
   });
   const placed = grid.locator("[data-brick-id]");
   const brickId = await placed.getAttribute("data-brick-id");
-  await placed.getByRole("link", { name: "Edit brick", exact: true }).click();
+  await placed.dblclick();
   await expect(page.getByRole("button", { name: /Inherit from/ })).toHaveCount(0);
   await page.getByRole("button", { name: "640px grid width" }).click();
   await expect(page.getByRole("button", { name: "Inherit from xs" })).toBeDisabled();
@@ -207,7 +207,7 @@ test("removing an override restores whole-entry inheritance", async ({ page }) =
   await page.reload();
   await expect(placed.locator("img")).toHaveCSS("object-position", "0% 50%");
   const saved = await page.evaluate(() =>
-    JSON.parse(localStorage.getItem("qrk-bricks-sandbox-responsive-bricks-v3") ?? "{}"),
+    JSON.parse(localStorage.getItem("qrk-bricks-sandbox-responsive-bricks-v4") ?? "{}"),
   );
   expect(saved.state.bricksById[brickId!]).not.toHaveProperty("lg");
   expect(saved.state.bricksById[brickId!].sm.gridItem).toEqual(
@@ -247,14 +247,14 @@ test("group configuration ends with the current brick definition", async ({ page
     "Figma",
     "Figma Thumbnail",
     "Configuration",
-    "Appearance options",
+    "Options",
     "Brick Definition",
   ]);
   const viewFormContainer = pane.getByRole("group", { name: "Image position" }).locator("..");
   await expect(viewFormContainer).toHaveCSS("padding-left", "16px");
   await expect(viewFormContainer).toHaveCSS("padding-top", "20px");
   await expect(viewFormContainer).toHaveCSS("padding-bottom", "20px");
-  const viewHeading = pane.getByRole("heading", { name: "Appearance options", exact: true });
+  const viewHeading = pane.getByRole("heading", { name: "Options", exact: true });
   await viewHeading.scrollIntoViewIfNeeded();
   const viewHeadingBox = await viewHeading.boundingBox();
   const legend = await pane.locator("legend").boundingBox();

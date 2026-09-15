@@ -40,7 +40,7 @@ export function GitHubRepoCard({ size = "sm" }: { size?: "xs" | "sm" }) {
 
   if (isLoading) {
     return (
-      <Card className="h-full min-h-0 w-full gap-0 overflow-hidden rounded-none border border-zinc-200 bg-white py-0 shadow-none">
+      <Card className="h-full min-h-0 w-full gap-0 overflow-hidden rounded-none border-0 bg-white py-0 shadow-none">
         <CardContent className={size === "xs" ? "flex h-full flex-col p-3" : "p-4"}>
           <div
             className={
@@ -72,7 +72,7 @@ export function GitHubRepoCard({ size = "sm" }: { size?: "xs" | "sm" }) {
 
   if (!data || data.name === undefined) {
     return (
-      <Card className="h-full min-h-0 w-full gap-0 overflow-hidden rounded-none border border-zinc-200 bg-white py-0 shadow-none">
+      <Card className="h-full min-h-0 w-full gap-0 overflow-hidden rounded-none border-0 bg-white py-0 shadow-none">
         <CardContent className={size === "xs" ? "p-3" : "p-4"}>
           <p className={size === "xs" ? "text-xs text-zinc-500" : "text-zinc-500"}>
             Repository not found
@@ -83,7 +83,7 @@ export function GitHubRepoCard({ size = "sm" }: { size?: "xs" | "sm" }) {
   }
 
   return (
-    <Card className="h-full min-h-0 w-full gap-0 overflow-hidden rounded-none border border-zinc-200 bg-white py-0 shadow-none transition-colors hover:border-zinc-300">
+    <Card className="h-full min-h-0 w-full gap-0 overflow-hidden rounded-none border-0 bg-white py-0 shadow-none">
       <a
         href={data.html_url}
         target="_blank"

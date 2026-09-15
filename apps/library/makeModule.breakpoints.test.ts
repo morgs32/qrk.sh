@@ -22,15 +22,13 @@ describe("makeModule", () => {
       defaultData: { label: "Default" },
       id: "summary",
       label: "Summary",
-      order: 3,
       xs: { component: Xs, w: 4, h: 2 },
     });
     expectTypeOf(view.def.moduleId).toEqualTypeOf<"summary">();
     expect(view.def).toMatchObject({
       moduleId: "summary",
-      label: "Summary",
+      moduleLabel: "Summary",
       xs: { w: 4, h: 2 },
-      order: 3,
     });
     for (const breakpoint of ["xs", "sm", "lg", "xl"] satisfies Array<"xs" | "sm" | "lg" | "xl">) {
       expect(view.def[breakpoint]).toEqual({ w: 4, h: 2 });
@@ -50,7 +48,6 @@ describe("makeModule", () => {
           defaultData: { label: "Default" },
           id: id,
           label: "Summary",
-          order: 0,
           xs: { component: Xs, w: 4, h: 2 },
         }),
       ).toThrow("makeModule: id must be kebab-case");
@@ -64,7 +61,6 @@ describe("makeModule", () => {
       defaultData: { label: "Default" },
       id: "test",
       label: "Test",
-      order: 0,
       xs: { component: Xs, w: 4, h: 4 },
       lg: { component: Lg, w: 8, h: 2 },
     });
@@ -87,7 +83,6 @@ describe("makeModule", () => {
       defaultData: { label: "Default" },
       id: "test",
       label: "Test",
-      order: 0,
       xs: { component: Xs, w: 4, h: 4 },
       sm: { component: Lg, w: 4, h: 4 },
       lg: { component: Xs, w: 4, h: 4 },
@@ -109,7 +104,6 @@ describe("makeModule", () => {
         defaultData: { label: "Default" },
         id: "test",
         label: "Test",
-        order: 0,
         lg: { component: () => null, w: 4, h: 4 },
       });
       makeModule({
@@ -118,7 +112,6 @@ describe("makeModule", () => {
         defaultData: { label: "Default" },
         id: "test",
         label: "Test",
-        order: 0,
         xs: { component: Xs, w: 4, h: 4 },
         lg: {
           // @ts-expect-error Every presentation must accept the base presentation's data.
@@ -136,7 +129,6 @@ it("selects xl and otherwise inherits lg", () => {
   const base = {
     id: "large",
     label: "Large",
-    order: 0,
     xs: { component: Xs, w: 4, h: 4 },
     lg: { component: Lg, w: 4, h: 4 },
   };

@@ -1,4 +1,5 @@
 import { figmaThumbnail } from "./modules/figmaThumbnail/figmaThumbnail";
+import { githubActivity } from "./modules/githubActivity/githubActivity";
 import { githubProfile } from "./modules/githubProfile/githubProfile";
 import { githubRepo } from "./modules/githubRepo/githubRepo";
 import { icon } from "./modules/icon/icon";
@@ -14,6 +15,7 @@ import type { IModule } from "./types";
 export const modulesHash: Record<string, IModule> = {
   icon,
   swatch,
+  "github-activity": githubActivity,
   "github-profile": githubProfile,
   "github-repo": githubRepo,
   "figma-thumbnail": figmaThumbnail,

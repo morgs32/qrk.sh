@@ -16,7 +16,7 @@ import { createPageV1 as createPage } from "./aggregates/user/contracts/createPa
 import { createSiteV2 as createSite } from "./aggregates/user/contracts/createSite/CreateSiteV2";
 import { gridV1 as Grid } from "./aggregates/user/models/grid/GridV1";
 import { brickV2 as Brick } from "./aggregates/user/models/brick/BrickV2";
-import { siteV1 as Site } from "./aggregates/user/models/site/SiteV1";
+import { siteV2 as Site } from "./aggregates/user/models/site/SiteV2";
 import { userV1 as User } from "./aggregates/user/models/user/UserV1";
 import { userFrontend } from "./aggregates/user/userFrontend";
 
@@ -106,11 +106,14 @@ describe("site and page creation contracts", () => {
       expect(siteRows[0]).toEqual(
         expect.objectContaining({
           id: staged.success.payload.id,
-          version: "1.0.0",
+          version: "2.0.0",
           userId,
           slug: null,
           name: null,
           description: null,
+          logoUrl: null,
+          faviconLightUrl: null,
+          faviconDarkUrl: null,
         }),
       );
 
@@ -399,6 +402,9 @@ describe("user frontend creation guards", () => {
           slug: null,
           name: null,
           description: null,
+          logoUrl: null,
+          faviconLightUrl: null,
+          faviconDarkUrl: null,
         })
         .run();
 
@@ -439,6 +445,117 @@ describe("user frontend creation guards", () => {
           status: 403,
         });
       }
+    }).pipe(Effect.scoped),
+  );
+
+  it.effect("updates site settings for the owning authenticated user", () =>
+    Effect.gen(function* () {
+      const userId = "usr_update_site_settings";
+      const now = DateTime.toDateUtc(yield* DateTime.now);
+      const dbConfig = makeResourceDbConfig({
+        models: userFrontend.models,
+        otherTables: sessionRepoTables,
+      });
+      const { schema } = dbConfig;
+      const db = yield* makeProvisionedInMemoryWasmSqliteDb({ dbConfig }).pipe(
+        Effect.provide(AsyncLive),
+      );
+
+      db.insert(dbConfig.schema.user)
+        .values({
+          id: userId,
+          modelName: User.modelName,
+          version: User.version,
+          createdAt: now,
+          updatedAt: now,
+          clerkUserId: "update_site_settings_user",
+          username: null,
+          displayName: null,
+        })
+        .run();
+
+      const sessionId = "sesn_update_site_settings";
+      const runtime = yield* Effect.acquireRelease(
+        Effect.sync(() => ManagedRuntime.make(Layer.mergeAll(NanoIdFactory, UlidMonotonicFactory))),
+        (runtime) => runtime.disposeEffect,
+      );
+      const guards = yield* initializeGuards(userFrontend);
+      const session = makeAggregateSession({
+        runtime,
+        guards,
+        frontend: userFrontend,
+        sessionId,
+      });
+      session.store.setState({
+        ...session.store.getState(),
+        sessionId,
+        aggregateId: "acct_update_site_settings_user",
+        aggregateName: userFrontend.aggregateName,
+        authentication: {
+          aggregateId: "acct_update_site_settings_user",
+          clerkUserId: "update_site_settings_user",
+        },
+        systemId: "sys_update_site_settings",
+        frontendName: userFrontend.name,
+        aggregateFrontendLockKey: "update-site-settings-lock-key",
+        db,
+        schema,
+        models: userFrontend.models,
+        isInitialized: true,
+        aggregateIndex: 0,
+        userIndex: 0,
+        pushIndex: 0,
+        sessionStatus: "current",
+        backupState: { status: "ready", failure: null },
+      });
+
+      const staged = session.executeCommand({
+        contractName: "createSite",
+        payload: { id: "sit_update_site_settings", userId },
+      });
+      expect(staged._tag).toBe("Success");
+      if (staged._tag === "Failure") {
+        throw new Error(staged.failure.message);
+      }
+
+      const updated = session.executeCommand({
+        contractName: "updateSiteSettings",
+        payload: {
+          id: staged.success.payload.id,
+          name: "Rainey",
+          description: "A site",
+          logoUrl: "https://pub.test.r2.dev/logo.png",
+          faviconLightUrl: "https://pub.test.r2.dev/favicon-light.png",
+          faviconDarkUrl: "https://pub.test.r2.dev/favicon-dark.png",
+        },
+      });
+      expect(updated._tag).toBe("Success");
+      if (updated._tag === "Failure") {
+        throw new Error(updated.failure.message);
+      }
+
+      expect(updated.success.contractVersion).toBe("1.0.0");
+      expect(updated.success.payload).toMatchObject({
+        id: staged.success.payload.id,
+        name: "Rainey",
+        description: "A site",
+        logoUrl: "https://pub.test.r2.dev/logo.png",
+        faviconLightUrl: "https://pub.test.r2.dev/favicon-light.png",
+        faviconDarkUrl: "https://pub.test.r2.dev/favicon-dark.png",
+      });
+
+      const siteRows = db.select().from(dbConfig.schema.site).all();
+      expect(siteRows).toHaveLength(1);
+      expect(siteRows[0]).toEqual(
+        expect.objectContaining({
+          id: staged.success.payload.id,
+          name: "Rainey",
+          description: "A site",
+          logoUrl: "https://pub.test.r2.dev/logo.png",
+          faviconLightUrl: "https://pub.test.r2.dev/favicon-light.png",
+          faviconDarkUrl: "https://pub.test.r2.dev/favicon-dark.png",
+        }),
+      );
     }).pipe(Effect.scoped),
   );
 });

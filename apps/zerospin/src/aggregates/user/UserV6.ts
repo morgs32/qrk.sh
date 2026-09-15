@@ -18,7 +18,7 @@ import { updateGridV2 as updateGrid } from "./contracts/updateGrid/UpdateGridV2"
 import { brickV2 as Brick } from "./models/brick/BrickV2";
 import { gridV1 as Grid } from "./models/grid/GridV1";
 import { pageV1 as Page } from "./models/page/PageV1";
-import { siteV1 as Site } from "./models/site/SiteV1";
+import { siteV2 as Site } from "./models/site/SiteV2";
 import { userV1 as User } from "./models/user/UserV1";
 import { user } from "./user";
 

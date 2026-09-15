@@ -43,14 +43,8 @@ test("configures only the selected brick and persists its data", async ({ page }
       return { _tag: "Right", right: undefined };
     };
   });
-  await page
-    .locator('[data-brick-id="second"]')
-    .getByRole("link", { name: "Edit brick", exact: true })
-    .click();
-  await page
-    .locator('[data-brick-id="first"]')
-    .getByRole("link", { name: "Edit brick", exact: true })
-    .click();
+  await page.locator('[data-brick-id="second"]').dblclick();
+  await page.locator('[data-brick-id="first"]').dblclick();
   await page.getByLabel("URL", { exact: true }).fill("https://github.com/configured");
   await page.getByRole("button", { name: "Submit", exact: true }).click();
   await expect(page.getByTestId("selected-brick-preview")).toContainText("configured");

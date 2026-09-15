@@ -24,7 +24,6 @@ describe("form configuration", () => {
           return null;
         },
       }),
-      order: 0,
       xs: { component: () => null, w: 1, h: 1 },
     });
     const configuration = module.configuration;

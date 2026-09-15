@@ -4,7 +4,6 @@ import { Schema } from "effect";
 import { makeFetcherConfiguration } from "../../makeFetcherConfiguration";
 import { makeModule } from "../../makeModule";
 
-import { GitHubProfileCalendar } from "./GitHubProfileCalendar";
 import { GitHubProfileStats } from "./GitHubProfileStats";
 
 export const githubProfile = makeModule({
@@ -87,6 +86,4 @@ export const githubProfile = makeModule({
 
       return { date: date.toISOString().slice(0, 10), count, level };
     })},
-  order: 0,
-  xs: { component: GitHubProfileStats, w: 4, h: 4 },
-  lg: { component: GitHubProfileCalendar, w: 4, h: 4 }});
+  xs: { component: GitHubProfileStats, w: 4, h: 4 }});

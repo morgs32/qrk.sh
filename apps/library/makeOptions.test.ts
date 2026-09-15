@@ -4,11 +4,11 @@ import { primitives } from "@zerospin/schema";
 import { renderToStaticMarkup } from "react-dom/server";
 import { expect, expectTypeOf, it, vi } from "vitest";
 
-import { makeAppearanceForm } from "./makeAppearanceForm";
+import { makeOptions } from "./makeOptions";
 import { makeModule } from "./makeModule";
 
 it("infers defaults and form values and rejects invalid updates before publication", () => {
-  const form = makeAppearanceForm({
+  const form = makeOptions({
     shape: {
       alignment: primitives.enum({
         values: ["left", "right"],
@@ -35,23 +35,22 @@ it("infers defaults and form values and rejects invalid updates before publicati
     description: "Test",
     dataShape: null,
     defaultData: null,
-    order: 0,
-    form,
+    options: form,
     xs: {
       component: (props: {
         breakpoint: "xs" | "sm" | "lg" | "xl";
-        appearanceOptions?: { alignment: string };
-      }) => createElement("span", null, props.appearanceOptions?.alignment),
+        options?: { alignment: string };
+      }) => createElement("span", null, props.options?.alignment),
       w: 4,
       h: 4,
     },
   });
-  expect(View.form).toBe(form);
+  expect(View.options).toBe(form);
   expect(
     renderToStaticMarkup(
       createElement(View, {
         breakpoint: "lg",
-        appearanceOptions: { alignment: "right" },
+        options: { alignment: "right" },
       }),
     ),
   ).toBe("<span>right</span>");
@@ -59,7 +58,7 @@ it("infers defaults and form values and rejects invalid updates before publicati
 });
 
 it("generates labeled boolean switches and fills missing defaults without replacing false", () => {
-  const form = makeAppearanceForm({
+  const form = makeOptions({
     shape: {
       cardView: primitives.boolean({ defaultValue: false }),
       show_title: primitives.boolean({ defaultValue: true }),
@@ -81,24 +80,24 @@ it("generates labeled boolean switches and fills missing defaults without replac
 
 it("requires a custom form for unsupported automatic shapes", () => {
   expect(() =>
-    makeAppearanceForm({
+    makeOptions({
       shape: { title: primitives.text({ defaultValue: "" }) },
     }),
   ).toThrow("title requires a custom form");
   expect(() =>
-    makeAppearanceForm({
+    makeOptions({
       shape: {
         enabled: primitives.boolean({ nullable: true, defaultValue: false }),
       },
     }),
   ).toThrow("enabled requires a custom form");
-  expect(() => makeAppearanceForm({ shape: { enabled: primitives.boolean() } })).toThrow(
+  expect(() => makeOptions({ shape: { enabled: primitives.boolean() } })).toThrow(
     "enabled requires a custom form",
   );
 });
 
 it("uses an explicit boolean form instead of generated switches", () => {
-  const form = makeAppearanceForm({
+  const form = makeOptions({
     shape: { cardView: primitives.boolean({ defaultValue: false }) },
     form: ({ value }) => createElement("span", null, String(value.cardView)),
   });

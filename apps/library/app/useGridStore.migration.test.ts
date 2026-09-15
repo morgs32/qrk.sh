@@ -14,10 +14,10 @@ for (const [oldWidth, newWidth] of [
   [1536, 1440],
 ]) {
   it(`removes obsolete overrides and maps the ${oldWidth}px preset and resets old brick drafts`, async () => {
-    const key = "qrk-bricks-sandbox-responsive-bricks-v3";
+    const key = "qrk-bricks-sandbox-responsive-bricks-v4";
     const entry = {
       gridItem: { i: "kept", x: 0, y: 0, w: 4, h: 4 },
-      appearanceOptions: { imagePosition: "left" }};
+      options: { imagePosition: "left" }};
     const brick = {
       registryId: "thumbnail",
       viewId: "4x4",
@@ -47,7 +47,7 @@ for (const [oldWidth, newWidth] of [
     expect(useGridStore.getState().selectedWidth).toBe(newWidth);
     const saved = JSON.parse(savedItems.get(key)!);
     expect(saved.state.bricksById).toEqual({});
-    expect(saved.version).toBe(3);
+    expect(saved.version).toBe(4);
     expect(saved.state.selectedWidth).toBe(newWidth);
   });
 }

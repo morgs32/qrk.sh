@@ -8,5 +8,4 @@ export const image = makeModule({
   id: "image",
   label: "Image",
   description: "An editorial image preview.",
-  order: 0,
   xs: { component: ImageDefaultPromo, w: 4, h: 4 }});

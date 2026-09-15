@@ -1,5 +1,6 @@
 import { modulesHash } from "@qrk.sh/library";
 import { useBrickBreakpoint } from "@qrk.sh/library/BrickBreakpointProvider";
+import { BrickPreviewFrame } from "@qrk.sh/library/BrickPreviewFrame";
 import { ArrowLeft } from "lucide-react";
 import { Tabs } from "radix-ui";
 import { href, Link, useParams } from "react-router";
@@ -9,12 +10,8 @@ import { MetadataField } from "../[username]/site/[siteId]/page/[pageId]/BrickGr
 
 import { BRICK_DRAG_MIME, useBrickDrawerStore } from "@/components/home/useBrickDrawerStore";
 
-/** Bottom drawer is ~half viewport; previews cap at half of that (quarter screen). */
-const PREVIEW_MAX_HEIGHT = "25vh";
-const PREVIEW_GRID_COLS = 8;
-
 export default function BrickGroupRoute() {
-  const { breakpoint, gridWidth } = useBrickBreakpoint();
+  const { breakpoint } = useBrickBreakpoint();
   const params = useParams();
   const { username, siteId, pageId } = params;
   if (!username || !siteId || !pageId) throw new Error("Missing editor route params");
@@ -42,8 +39,6 @@ export default function BrickGroupRoute() {
   const BrickComponent = module.component;
   const w = module.def[breakpoint].w;
   const h = module.def[breakpoint].h;
-  const fullW = Math.round((gridWidth / PREVIEW_GRID_COLS) * w);
-  const fullH = Math.round((gridWidth / PREVIEW_GRID_COLS) * h);
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto pb-6">
@@ -74,7 +69,7 @@ export default function BrickGroupRoute() {
           <Tabs.Root value={`${module.def.moduleId}-preview`}>
             <div className="flex items-baseline justify-between gap-4 px-6">
               <div>
-                <h2 className="m-0 text-2xl font-semibold">{module.def.label}</h2>
+                <h2 className="m-0 text-2xl font-semibold">{module.def.moduleLabel}</h2>
                 <p className="mb-0 mt-1 text-sm text-zinc-500">{module.description}</p>
               </div>
               <div className="flex shrink-0 items-baseline gap-2">
@@ -86,7 +81,7 @@ export default function BrickGroupRoute() {
                     value={`${module.def.moduleId}-preview`}
                     className="cursor-pointer border-0 bg-transparent p-0 text-sm font-medium text-zinc-950"
                   >
-                    {module.def.label}
+                    {module.def.moduleLabel}
                   </Tabs.Trigger>
                 </Tabs.List>
               </div>
@@ -94,13 +89,7 @@ export default function BrickGroupRoute() {
             <Tabs.Content value={`${module.def.moduleId}-preview`}>
               <div className="mt-6 overflow-auto">
                 <div className={w === 8 ? undefined : "ml-6"}>
-                  <div
-                    className="shrink-0"
-                    style={{
-                      width: `min(${fullW}px, calc(${w} * ${PREVIEW_MAX_HEIGHT} / ${h}))`,
-                      height: `min(${fullH}px, ${PREVIEW_MAX_HEIGHT})`,
-                    }}
-                  >
+                  <BrickPreviewFrame w={w} h={h}>
                     <div
                       className="size-full qrk-bricks cursor-grab overflow-hidden active:cursor-grabbing"
                       data-brick-full-view={module.def.moduleId}
@@ -108,9 +97,7 @@ export default function BrickGroupRoute() {
                       data-brick-drawer-module-id={module.def.moduleId}
                       draggable
                       onDragStart={(event) => {
-                        useBrickDrawerStore
-                          .getState()
-                          .registerActiveBrickDragGridShape(w, h);
+                        useBrickDrawerStore.getState().registerActiveBrickDragGridShape(w, h);
                         event.dataTransfer.setData(BRICK_DRAG_MIME, JSON.stringify(module.def));
                         event.dataTransfer.effectAllowed = "copy";
                         event.dataTransfer.setData("text/plain", module.def.moduleId);
@@ -121,7 +108,7 @@ export default function BrickGroupRoute() {
                     >
                       <BrickComponent breakpoint={breakpoint} data={module.defaultData} />
                     </div>
-                  </div>
+                  </BrickPreviewFrame>
                 </div>
               </div>
             </Tabs.Content>

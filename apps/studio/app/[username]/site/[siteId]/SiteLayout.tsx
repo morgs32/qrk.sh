@@ -52,6 +52,9 @@ export default function PageLayout() {
       description: site.description,
       slug: site.slug,
       userId: site.userId,
+      logoUrl: site.logoUrl,
+      faviconLightUrl: site.faviconLightUrl,
+      faviconDarkUrl: site.faviconDarkUrl,
     });
   }
 

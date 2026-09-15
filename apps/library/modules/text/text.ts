@@ -30,5 +30,4 @@ export const text = makeModule({
       createElement(TextEditorControl, {
         value: data.content,
         onChange: (content) => onChange({ content })})}),
-  order: 1,
   xs: { component: TextDefaultBody, w: 4, h: 4 }});

@@ -81,7 +81,7 @@ export function BrickDetail() {
                 className="mb-1 mt-2 text-4xl font-semibold tracking-tight"
                 data-testid="brick-detail-title"
               >
-                {brick.def.label}
+                {brick.def.moduleLabel}
               </h1>
               <p className="mt-0 font-mono text-sm text-muted-foreground">{brick.def.moduleId}</p>
             </div>

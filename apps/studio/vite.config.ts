@@ -89,6 +89,9 @@ export default defineConfig(({ mode }) => {
           env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ??
           "",
       ),
+      "process.env.NEXT_PUBLIC_API_URL": JSON.stringify(
+        process.env.NEXT_PUBLIC_API_URL ?? env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8787",
+      ),
     },
     optimizeDeps: {
       entries: [

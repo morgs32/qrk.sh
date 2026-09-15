@@ -1,11 +1,11 @@
 import { primitives } from "@zerospin/schema";
 
-import { makeAppearanceForm } from "../../makeAppearanceForm";
 import { makeFetcherConfiguration } from "../../makeFetcherConfiguration";
 import { makeModule } from "../../makeModule";
+import { makeOptions } from "../../makeOptions";
 
 import defaultThumbnailUrl from "./dot-pattern-789x450.png";
-import { FigmaAppearanceForm } from "./FigmaAppearanceForm";
+import { FigmaOptionsForm } from "./FigmaOptionsForm";
 import { FigmaThumbnailFooter } from "./FigmaThumbnailFooter";
 import { FigmaThumbnailHeader } from "./FigmaThumbnailHeader";
 
@@ -35,12 +35,11 @@ export const figmaThumbnail = makeModule({
     thumbnail_url: defaultThumbnailUrl,
     thumbnail_width: 789,
     thumbnail_height: 450},
-  order: 0,
-  form: makeAppearanceForm({
+  options: makeOptions({
     shape: {
       imagePosition: primitives.enum({
         values: ["center", "left", "right", "top", "bottom"],
-        defaultValue: "center"})},
-    form: FigmaAppearanceForm}),
+        defaultValue: "left"})},
+    form: FigmaOptionsForm}),
   xs: { component: FigmaThumbnailHeader, w: 4, h: 4 },
   sm: { component: FigmaThumbnailFooter, w: 4, h: 4 }});

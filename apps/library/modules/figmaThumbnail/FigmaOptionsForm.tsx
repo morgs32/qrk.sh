@@ -1,6 +1,6 @@
 import { Button } from "../../components/ui/button";
 
-export function FigmaAppearanceForm(props: {
+export function FigmaOptionsForm(props: {
   value: { imagePosition: "center" | "left" | "right" | "top" | "bottom" };
   onChange: (value: { imagePosition: "center" | "left" | "right" | "top" | "bottom" }) => void;
 }) {

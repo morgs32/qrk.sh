@@ -2,7 +2,7 @@ import type { IDb, IResourceDbConfig } from "@zerospin/core/drizzle/types";
 import type { InferCommandPayload } from "@zerospin/core/models/types";
 import { makeContractVersion, primitives, ZerospinError } from "@zerospin/sdk/browser";
 import { Effect } from "effect";
-import { siteV1 as Site } from "../../models/site/SiteV1";
+import { siteV2 as Site } from "../../models/site/SiteV2";
 import { userV1 as User } from "../../models/user/UserV1";
 
 import { createSite } from "./createSite";
@@ -82,6 +82,9 @@ export const createSiteV2 = makeContractVersion(createSite, {
           slug,
           name,
           description,
+          logoUrl: null,
+          faviconLightUrl: null,
+          faviconDarkUrl: null,
         },
       }),
     });

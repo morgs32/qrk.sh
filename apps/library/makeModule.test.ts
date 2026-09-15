@@ -19,7 +19,6 @@ describe("makeModule data contracts", () => {
         description: "Test",
         dataShape: null,
         defaultData: null,
-        order: 0,
         xs: { component: () => null, w: 1, h: 1 },
       }),
     ).toThrow("makeModule: id must be kebab-case");
@@ -32,7 +31,6 @@ describe("makeModule data contracts", () => {
       id: "static",
       label: "Static",
       description: "A static content.",
-      order: 0,
       xs: { component: () => null, w: 1, h: 1 },
     });
 
@@ -109,7 +107,6 @@ describe("makeModule data contracts", () => {
       defaultData: {
         result: "Chicago",
       },
-      order: 0,
       xs: { component: (props: { data: { result: string } }) => props.data.result, w: 1, h: 1 },
     });
 
@@ -175,7 +172,6 @@ describe("makeModule data contracts", () => {
         login: "default-profile",
         providerField: "default-provider-value",
       },
-      order: 0,
       xs: {
         component: (props: { data: { login: string } }) => {
           return props.data.login;
@@ -232,7 +228,6 @@ describe("makeModule data contracts", () => {
           login: primitives.text(),
         },
         defaultData: JSON.parse('{"login":42}'),
-        order: 0,
         xs: {
           component: (props: { data: { login: string } }) => {
             return props.data.login;
@@ -266,7 +261,6 @@ describe("makeModule data contracts", () => {
       defaultData: {
         login: "default-profile",
       },
-      order: 0,
       xs: {
         component: (props: { data: { login: string } }) => {
           return props.data.login;
@@ -330,7 +324,6 @@ describe("makeModule data contracts", () => {
       defaultData: {
         login: "default-profile",
       },
-      order: 0,
       xs: {
         component: (props: { data: { login: string } }) => {
           return props.data.login;
@@ -386,7 +379,6 @@ describe("makeModule data contracts", () => {
       defaultData: {
         login: "default-profile",
       },
-      order: 0,
       xs: {
         component: (props: { data: { login: string } }) => {
           return props.data.login;
@@ -422,7 +414,6 @@ describe("makeModule data contracts", () => {
       description: "Data is available but unused.",
       dataShape: { name: primitives.text() },
       defaultData: { name: "Default" },
-      order: 0,
       xs: { component: () => null, w: 1, h: 1 },
     });
     expect(content.defaultData).toEqual({ name: "Default" });
@@ -436,7 +427,6 @@ describe("makeModule data contracts", () => {
         id: "static",
         label: "Static",
         description: "Static",
-        order: 0,
         xs: { component: () => null, w: 1, h: 1 },
       });
       // @ts-expect-error a null schema requires a null default
@@ -446,7 +436,6 @@ describe("makeModule data contracts", () => {
         description: "Static",
         dataShape: null,
         defaultData: {},
-        order: 0,
         xs: { component: () => null, w: 1, h: 1 },
       });
       // @ts-expect-error a schema requires a non-null default
@@ -456,7 +445,6 @@ describe("makeModule data contracts", () => {
         description: "Data",
         dataShape: { name: primitives.text() },
         defaultData: null,
-        order: 0,
         xs: { component: () => null, w: 1, h: 1 },
       });
       makeModule({
@@ -466,7 +454,6 @@ describe("makeModule data contracts", () => {
         dataShape: { name: primitives.text() },
         // @ts-expect-error defaults must match the schema
         defaultData: { name: 42 },
-        order: 0,
         xs: { component: () => null, w: 1, h: 1 },
       });
       makeModule({
@@ -475,7 +462,6 @@ describe("makeModule data contracts", () => {
         description: "Data",
         dataShape: { name: primitives.text() },
         defaultData: { name: "Default" },
-        order: 0,
         // @ts-expect-error component data must match the schema
         xs: { component: (props: { data: { name: number } }) => props.data.name, w: 1, h: 1 },
       });

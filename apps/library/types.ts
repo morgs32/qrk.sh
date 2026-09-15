@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 
 import type { IShape } from "@zerospin/schema";
 
-import type { makeAppearanceForm } from "./makeAppearanceForm";
+import type { makeOptions } from "./makeOptions";
 import type { IFetcherConfiguration } from "./makeFetcherConfiguration";
 import type { IFormConfiguration } from "./makeFormConfiguration";
 
@@ -15,10 +15,6 @@ export type IBrickDef<MODULE extends string = string> = {
   xl: { w: number; h: number };
   /** Kebab-case module slug (for example `icon`, `github-profile`, or `figma-thumbnail`). */
   moduleId: MODULE;
-  /** Display label for this module. */
-  label: string;
-  /** Lower sorts earlier in the drawer. */
-  order: number;
 };
 
 /** A library module: data, configuration, and one responsive presentation. */
@@ -69,8 +65,8 @@ export type IModuleBrick = {
   component: {
     bivarianceHack(props: {
       data?: unknown;
-      appearanceOptions?: unknown;
+      options?: unknown;
       breakpoint: "xs" | "sm" | "lg" | "xl";
     }): ReactNode;
-  }["bivarianceHack"] & { form?: ReturnType<typeof makeAppearanceForm> };
+  }["bivarianceHack"] & { options?: ReturnType<typeof makeOptions> };
 };

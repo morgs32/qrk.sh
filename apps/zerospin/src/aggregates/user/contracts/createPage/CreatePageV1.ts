@@ -3,7 +3,7 @@ import type { InferCommandPayload } from "@zerospin/core/models/types";
 import { makeContractVersion, primitives, ZerospinError } from "@zerospin/sdk/browser";
 import { Effect } from "effect";
 import { pageV1 as Page } from "../../models/page/PageV1";
-import { siteV1 as Site } from "../../models/site/SiteV1";
+import { siteV2 as Site } from "../../models/site/SiteV2";
 import { userV1 as User } from "../../models/user/UserV1";
 
 import { createPage } from "./createPage";

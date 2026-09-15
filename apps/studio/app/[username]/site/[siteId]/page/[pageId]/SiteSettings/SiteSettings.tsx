@@ -1,17 +1,20 @@
 "use client";
 
+import { useAuth } from "@clerk/react";
+import { useSession } from "@zerospin/react";
+import { ZerospinError } from "@zerospin/sdk/browser";
 import { Schema } from "effect";
 import { Globe, X } from "lucide-react";
-import { useNavigate } from "react-router";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import { href, useNavigate } from "react-router";
+import { toast } from "sonner";
 import useSWR from "swr";
 
+import { useSiteStore } from "../../../siteStore";
 import { CopyButton } from "./CopyButton";
 import { SiteCard } from "./SiteCard";
-import { href } from "react-router";
-import { useSiteStore } from "../../../siteStore";
 
-import { useZerospinUserInitializedState } from "@/components/ZerospinUser";
+import { useZerospinUserInitializedState, ZerospinUser } from "@/components/ZerospinUser";
 import { Button } from "@/components/ui/button";
 import { FieldLabel } from "@/components/ui/field-label";
 import { Input } from "@/components/ui/input";
@@ -26,22 +29,81 @@ const ParamsSchema = Schema.Struct({
   pageId: Schema.String,
 });
 
-function pickSerializableSite(site: { name: string; description: string }) {
+const IMAGE_ACCEPT = "image/png,image/jpeg,image/webp,image/svg+xml";
+
+function pickSerializableSite(site: {
+  name: string;
+  description: string;
+  logoUrl: string;
+  faviconLightUrl: string;
+  faviconDarkUrl: string;
+}) {
   return {
     name: site.name,
     description: site.description,
+    logoUrl: site.logoUrl,
+    faviconLightUrl: site.faviconLightUrl,
+    faviconDarkUrl: site.faviconDarkUrl,
   };
+}
+
+function emptyToNull(value: string): string | null {
+  return value.length > 0 ? value : null;
+}
+
+async function uploadSiteImage(props: {
+  file: File;
+  siteId: string;
+  sessionToken: string;
+}): Promise<{ url: string }> {
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
+  if (!apiBaseUrl) {
+    throw new Error("NEXT_PUBLIC_API_URL is required");
+  }
+
+  const formData = new FormData();
+  formData.set("file", props.file);
+  formData.set("siteId", props.siteId);
+
+  const response = await fetch(`${apiBaseUrl.replace(/\/$/, "")}/upload`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${props.sessionToken}`,
+    },
+    body: formData,
+  });
+
+  const body = (await response.json().catch(() => null)) as {
+    url?: string;
+    message?: string;
+    code?: string;
+  } | null;
+
+  if (!response.ok || body === null || typeof body.url !== "string") {
+    throw new Error(body?.message ?? `Upload failed (${response.status})`);
+  }
+
+  return { url: body.url };
 }
 
 export function SiteSettings() {
   const params = useValidatedParams(ParamsSchema);
   const navigate = useNavigate();
   const username = useUsername();
+  const { getToken } = useAuth();
+  const session = useSession(ZerospinUser);
   const siteId = params.siteId;
   const { db } = useZerospinUserInitializedState();
   const siteDraft = useSiteStore((state) => state.site);
   const setName = useSiteStore((state) => state.setName);
   const setDescription = useSiteStore((state) => state.setDescription);
+  const setLogoUrl = useSiteStore((state) => state.setLogoUrl);
+  const setFaviconLightUrl = useSiteStore((state) => state.setFaviconLightUrl);
+  const setFaviconDarkUrl = useSiteStore((state) => state.setFaviconDarkUrl);
+  const logoInputRef = useRef<HTMLInputElement>(null);
+  const faviconLightInputRef = useRef<HTMLInputElement>(null);
+  const faviconDarkInputRef = useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const [baselineState, setBaselineState] = useState(() => {
     const site = db.query.site
       .findFirst({
@@ -56,6 +118,9 @@ export function SiteSettings() {
       baseline: {
         name: site.name ?? "",
         description: site.description ?? "",
+        logoUrl: site.logoUrl ?? "",
+        faviconLightUrl: site.faviconLightUrl ?? "",
+        faviconDarkUrl: site.faviconDarkUrl ?? "",
       },
     };
   });
@@ -75,6 +140,9 @@ export function SiteSettings() {
       baseline: {
         name: site.name ?? "",
         description: site.description ?? "",
+        logoUrl: site.logoUrl ?? "",
+        faviconLightUrl: site.faviconLightUrl ?? "",
+        faviconDarkUrl: site.faviconDarkUrl ?? "",
       },
     });
   }
@@ -105,7 +173,40 @@ export function SiteSettings() {
 
   const baseline = baselineState.baseline;
   const draft = pickSerializableSite(siteDraft);
-  const isDirty = draft.name !== baseline.name || draft.description !== baseline.description;
+  const isDirty =
+    draft.name !== baseline.name ||
+    draft.description !== baseline.description ||
+    draft.logoUrl !== baseline.logoUrl ||
+    draft.faviconLightUrl !== baseline.faviconLightUrl ||
+    draft.faviconDarkUrl !== baseline.faviconDarkUrl;
+
+  const runUpload = async (props: {
+    file: File | undefined;
+    onUrl: (url: string) => void;
+  }) => {
+    if (props.file === undefined) {
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const sessionToken = await getToken();
+      if (sessionToken === null) {
+        toast.error("Sign in to upload images");
+        return;
+      }
+      const result = await uploadSiteImage({
+        file: props.file,
+        siteId: params.siteId,
+        sessionToken,
+      });
+      props.onUrl(result.url);
+    } catch (cause) {
+      toast.error(cause instanceof Error ? cause.message : "Upload failed");
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   return (
     <div className="w-full">
@@ -118,6 +219,29 @@ export function SiteSettings() {
               type="button"
               size="sm"
               onClick={() => {
+                const state = session.store.getState();
+                if (!state.isInitialized) {
+                  toast.error("Your session is not ready");
+                  return;
+                }
+
+                const result = session.executeCommand({
+                  contractName: "updateSiteSettings",
+                  payload: {
+                    id: params.siteId,
+                    name: emptyToNull(draft.name),
+                    description: emptyToNull(draft.description),
+                    logoUrl: emptyToNull(draft.logoUrl),
+                    faviconLightUrl: emptyToNull(draft.faviconLightUrl),
+                    faviconDarkUrl: emptyToNull(draft.faviconDarkUrl),
+                  },
+                });
+
+                if (result._tag === "Failure") {
+                  toast.error(new ZerospinError(result.failure).message);
+                  return;
+                }
+
                 setBaselineState({
                   siteId: params.siteId,
                   baseline: structuredClone(draft),
@@ -140,6 +264,9 @@ export function SiteSettings() {
               if (isDirty) {
                 setName(baseline.name);
                 setDescription(baseline.description);
+                setLogoUrl(baseline.logoUrl);
+                setFaviconLightUrl(baseline.faviconLightUrl);
+                setFaviconDarkUrl(baseline.faviconDarkUrl);
               }
               navigate(href("/:username/site/:siteId/page/:pageId", { ...params }));
             }}
@@ -155,11 +282,35 @@ export function SiteSettings() {
           <div className="flex min-w-0 flex-col gap-4">
             <FieldLabel description="PNG or SVG; height up to 48px recommended">Logo</FieldLabel>
             <div className="flex flex-col items-start gap-4">
-              <Button type="button" variant="outline">
+              <input
+                ref={logoInputRef}
+                type="file"
+                accept={IMAGE_ACCEPT}
+                className="hidden"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  event.target.value = "";
+                  void runUpload({ file, onUrl: setLogoUrl });
+                }}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                disabled={isUploading}
+                onClick={() => logoInputRef.current?.click()}
+              >
                 Upload
               </Button>
               <div className="relative flex w-full max-w-[375px] min-h-16 items-center justify-center overflow-hidden rounded-md border bg-muted">
-                <span className="text-sm text-muted-foreground">Logo</span>
+                {draft.logoUrl.length > 0 ? (
+                  <img
+                    src={draft.logoUrl}
+                    alt="Site logo"
+                    className="max-h-12 w-auto object-contain"
+                  />
+                ) : (
+                  <span className="text-sm text-muted-foreground">Logo</span>
+                )}
               </div>
             </div>
           </div>
@@ -169,12 +320,37 @@ export function SiteSettings() {
             <div className="flex flex-wrap justify-start gap-4">
               <div className="flex flex-col items-start gap-2">
                 <span className="text-xs text-muted-foreground">Light</span>
-                <Button type="button" size="sm" variant="outline">
+                <input
+                  ref={faviconLightInputRef}
+                  type="file"
+                  accept={IMAGE_ACCEPT}
+                  className="hidden"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    event.target.value = "";
+                    void runUpload({ file, onUrl: setFaviconLightUrl });
+                  }}
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={isUploading}
+                  onClick={() => faviconLightInputRef.current?.click()}
+                >
                   Upload
                 </Button>
                 <div className="flex w-36 flex-col overflow-hidden rounded-md border bg-muted/30">
                   <div className="flex items-center gap-1 border-b bg-background px-2 py-1.5">
-                    <div className="size-4 shrink-0 rounded-sm bg-muted" />
+                    {draft.faviconLightUrl.length > 0 ? (
+                      <img
+                        src={draft.faviconLightUrl}
+                        alt="Light favicon"
+                        className="size-4 shrink-0 rounded-sm object-cover"
+                      />
+                    ) : (
+                      <div className="size-4 shrink-0 rounded-sm bg-muted" />
+                    )}
                     <div className="h-2 min-w-0 flex-1 rounded bg-muted/80" />
                   </div>
                   <div className="h-16 bg-background" />
@@ -182,12 +358,37 @@ export function SiteSettings() {
               </div>
               <div className="flex flex-col items-start gap-2">
                 <span className="text-xs text-muted-foreground">Dark</span>
-                <Button type="button" size="sm" variant="outline">
+                <input
+                  ref={faviconDarkInputRef}
+                  type="file"
+                  accept={IMAGE_ACCEPT}
+                  className="hidden"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    event.target.value = "";
+                    void runUpload({ file, onUrl: setFaviconDarkUrl });
+                  }}
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={isUploading}
+                  onClick={() => faviconDarkInputRef.current?.click()}
+                >
                   Upload
                 </Button>
                 <div className="flex w-36 flex-col overflow-hidden rounded-md border bg-muted/30">
                   <div className="flex items-center gap-1 border-b bg-zinc-900 px-2 py-1.5">
-                    <div className="size-4 shrink-0 rounded-sm bg-zinc-700" />
+                    {draft.faviconDarkUrl.length > 0 ? (
+                      <img
+                        src={draft.faviconDarkUrl}
+                        alt="Dark favicon"
+                        className="size-4 shrink-0 rounded-sm object-cover"
+                      />
+                    ) : (
+                      <div className="size-4 shrink-0 rounded-sm bg-zinc-700" />
+                    )}
                     <div className="h-2 min-w-0 flex-1 rounded bg-zinc-600" />
                   </div>
                   <div className="h-16 bg-zinc-950" />
@@ -256,7 +457,12 @@ export function SiteSettings() {
 
         <div className="flex flex-col gap-2">
           <FieldLabel>Preview</FieldLabel>
-          <SiteCard title={siteDraft.name} url={publishedUrlDisplay} publishedAt="Mar 30" />
+          <SiteCard
+            title={siteDraft.name}
+            url={publishedUrlDisplay}
+            publishedAt="Mar 30"
+            logoSrc={draft.logoUrl.length > 0 ? draft.logoUrl : undefined}
+          />
         </div>
 
         <div className="space-y-6">

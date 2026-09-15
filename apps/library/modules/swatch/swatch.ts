@@ -32,5 +32,4 @@ export const swatch = makeModule({
   id: "swatch",
   label: "Swatch",
   description: "Solid color fields for visual rhythm.",
-  order: 1,
   xs: { component: SwatchDefaultFill, w: 2, h: 2 }});

@@ -49,7 +49,7 @@ export function SandboxGrid() {
       }}
       aria-label="Brick grid"
       style={dragging ? { overflow: "visible" } : undefined}
-      className="min-h-screen bg-white lg:sticky lg:top-0 lg:h-screen lg:self-start lg:overflow-y-auto"
+      className="min-h-screen bg-black lg:sticky lg:top-0 lg:h-screen lg:self-start lg:overflow-y-auto"
     >
       {outsideBrickId && (
         <div
@@ -200,9 +200,7 @@ export function SandboxGrid() {
                       <BrickComponent
                         breakpoint={breakpoint}
                         data={brickDef.data}
-                        appearanceOptions={
-                          resolveBrickBreakpoint(brickDef, breakpoint).appearanceOptions
-                        }
+                        options={resolveBrickBreakpoint(brickDef, breakpoint).options}
                       />
                     </div>
                   </div>

@@ -25,19 +25,33 @@ for (const [width, height] of [
   [1440, 2],
 ]) {
   test(`repo previews, drag placeholder, and placement agree at ${width}px`, async ({ page }) => {
+    const viewportHeight = 1100;
+    const maxPreviewH = viewportHeight * 0.25;
+    const fullW = Math.round((width / 8) * 4);
+    const fullH = Math.round((width / 8) * height);
+    const expectedH = Math.min(fullH, maxPreviewH);
+    const expectedW = Math.min(fullW, (4 * maxPreviewH) / height);
+
     await page.goto("/");
     await page.getByRole("toolbar", { name: "Grid controls" }).getByRole("button", { name: "Bricks", exact: true }).click();
     await expect(page.getByRole("dialog", { name: "Bricks", exact: true })).toBeVisible();
     await page.getByRole("button", { name: `${width}px grid width`, exact: true }).click();
-    const group = page.locator('[data-module-entry="github"]');
-    await group.getByRole("button", { name: "Repo", exact: true }).click();
-    const representative = group.locator('[data-module-representative="github/repo"]');
-    await expect(representative).toHaveCSS("width", `${Math.round((width / 8) * 4)}px`);
-    await expect(representative).toHaveCSS("height", `${Math.round((width / 8) * height)}px`);
-    await representative.getByRole("link", { name: "Configure module" }).click();
-    const source = page.locator('[data-module-brick="github/repo"]');
-    await expect(source).toHaveCSS("width", `${Math.round((width / 8) * 4)}px`);
-    await expect(source).toHaveCSS("height", `${Math.round((width / 8) * height)}px`);
+    const group = page.locator('[data-module-entry="github-repo"]');
+    const representative = group.locator('[data-module-representative="github-repo"]');
+    await expect
+      .poll(async () => {
+        const box = await representative.boundingBox();
+        return box ? Math.abs(box.width - expectedW) + Math.abs(box.height - expectedH) : Infinity;
+      })
+      .toBeLessThanOrEqual(1);
+    await group.locator('[data-module-link="github-repo"]').click();
+    const source = page.locator('[data-module-brick="github-repo"]');
+    await expect
+      .poll(async () => {
+        const box = await source.boundingBox();
+        return box ? Math.abs(box.width - expectedW) + Math.abs(box.height - expectedH) : Infinity;
+      })
+      .toBeLessThanOrEqual(1);
     const grid = page.getByLabel("Brick grid", { exact: true }).locator(".react-grid-layout");
     await grid.evaluate((element) => {
       // Capture the external dropping item before native drop replaces it with a placed brick.
@@ -64,10 +78,10 @@ for (const [width, height] of [
       "data-observed-placeholder-height",
       `${Math.round((width / 8) * height)}px`,
     );
-    const placed = grid.locator('[data-brick="github/repo"]');
+    const placed = grid.locator('[data-brick="github-repo"]');
     await expect(placed).toHaveAttribute("data-grid-w", "4");
     await expect(placed).toHaveAttribute("data-grid-h", String(height));
-    await placed.getByRole("link", { name: "Edit brick", exact: true }).click();
+    await placed.dblclick();
     await expect(page.getByTestId("selected-brick-preview")).toHaveCSS(
       "height",
       `${Math.round((width / 8) * height)}px`,
@@ -87,8 +101,8 @@ for (const [width, height] of [
 test("XS truncates text and anchors compact stats below the description", async ({ page }) => {
   await page.goto("/modules/github-repo");
   await page.getByRole("button", { name: "375px grid width", exact: true }).click();
-  const source = page.locator('[data-module-brick="github/repo"]');
-  await expect(source).toHaveCSS("height", "281px");
+  const source = page.locator('[data-module-brick="github-repo"]');
+  await expect(source).toHaveCSS("height", "275px");
   const title = source.getByRole("heading", { name: repo.name });
   const description = source.getByText(repo.description, { exact: true });
   await expect(title).toHaveCSS("font-size", "14px");
@@ -126,7 +140,7 @@ test("XS preserves missing description and optional stats", async ({ page }) => 
   );
   await page.goto("/modules/github-repo");
   await page.getByRole("button", { name: "375px grid width", exact: true }).click();
-  const source = page.locator('[data-module-brick="github/repo"]');
+  const source = page.locator('[data-module-brick="github-repo"]');
   await expect(source.getByText("No description provided")).toBeVisible();
   await expect(source.locator(".lucide-git-fork")).toHaveCount(0);
   await expect(source.getByText("TypeScript")).toHaveCount(0);
@@ -144,12 +158,12 @@ test("XS loading and missing repository states stay inside the card", async ({ p
   });
   await page.goto("/modules/github-repo");
   await page.getByRole("button", { name: "375px grid width", exact: true }).click();
-  const source = page.locator('[data-module-brick="github/repo"]');
+  const source = page.locator('[data-module-brick="github-repo"]');
   await expect(source.locator(".animate-pulse")).toBeVisible();
   release();
   await expect(source.getByText("Repository not found")).toBeVisible();
   await expect(source.getByText("Repository not found")).toHaveCSS("font-size", "12px");
-  await expect(source).toHaveCSS("height", "281px");
+  await expect(source).toHaveCSS("height", "275px");
 });
 
 test("standalone repo preview follows its simulated grid breakpoint", async ({ page }) => {

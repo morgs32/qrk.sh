@@ -1,7 +1,7 @@
 import { makeSystem } from "@zerospin/sdk";
-import { userV6 } from "./aggregates/user/UserV6";
+import { userV7 } from "./aggregates/user/UserV7";
 
 export const system = makeSystem({
   name: "qrk-sh",
-  aggregates: { user: [userV6] },
+  aggregates: { user: [userV7] },
 });

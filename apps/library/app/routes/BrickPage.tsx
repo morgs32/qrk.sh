@@ -52,7 +52,11 @@ export default function BrickPage() {
               >
                 <div className="overflow-auto">
                   <div ref={containerRef} style={{ width: gridWidth }}>
-                    <BrickPreviewFrame w={brick.def[breakpoint].w} h={brick.def[breakpoint].h}>
+                    <BrickPreviewFrame
+                      w={brick.def[breakpoint].w}
+                      h={brick.def[breakpoint].h}
+                      maxHeightQuarterViewport={false}
+                    >
                       <div className="size-full overflow-hidden" data-testid="brick-preview">
                         <BrickComponent breakpoint={breakpoint} data={module.defaultData} />
                       </div>
@@ -65,7 +69,7 @@ export default function BrickPage() {
                 <p className="mb-2 text-xs font-medium uppercase tracking-[0.16em] text-zinc-500">
                   Brick module
                 </p>
-                <h1 className="m-0 text-2xl font-semibold">{brick.def.label}</h1>
+                <h1 className="m-0 text-2xl font-semibold">{brick.def.moduleLabel}</h1>
                 <dl className="grid grid-cols-[7rem_1fr] gap-x-3 gap-y-2 text-sm">
                   <dt className="text-zinc-500">Module</dt>
                   <dd className="m-0 font-mono">{brick.def.moduleId}</dd>

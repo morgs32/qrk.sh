@@ -6,7 +6,8 @@ for (const [moduleId, w, h] of [
   ["link", 4, 2],
 ] satisfies Array<[string, number, number]>) {
   test(`${moduleId} module preview matches placed dimensions`, async ({ page }) => {
-    await page.setViewportSize({ width: 3000, height: 1100 });
+    const viewportHeight = 1100;
+    await page.setViewportSize({ width: 3000, height: viewportHeight });
     await page.goto(`/modules/${moduleId}`);
     const source = page.locator(`[data-module-brick="${moduleId}"]`);
     const grid = page.getByLabel("Brick grid", { exact: true });
@@ -17,24 +18,29 @@ for (const [moduleId, w, h] of [
     await expect(placed).toHaveCount(1);
     for (const width of [375, 640, 1024, 1440]) {
       await page.getByRole("button", { name: `${width}px grid width`, exact: true }).click();
-      await expect(source).toHaveCSS("width", `${Math.round((width / 8) * w)}px`);
-      await expect(source).toHaveCSS("height", `${Math.round((width / 8) * h)}px`);
+      const fullW = Math.round((width / 8) * w);
+      const fullH = Math.round((width / 8) * h);
+      const maxH = viewportHeight * 0.25;
+      const expectedH = Math.min(fullH, maxH);
+      const expectedW = Math.min(fullW, (w * maxH) / h);
+      await expect(source).toHaveCSS("width", `${Math.round(expectedW)}px`);
+      await expect(source).toHaveCSS("height", `${Math.round(expectedH)}px`);
       // The grid can trim a pixel at positioned edges to prevent seams.
       await expect
         .poll(async () => {
           const bounds = await placed.boundingBox();
-          return Math.abs((bounds?.width ?? 0) - Math.round((width / 8) * w));
+          return Math.abs((bounds?.width ?? 0) - fullW);
         })
         .toBeLessThanOrEqual(1);
       await expect
         .poll(async () => {
           const bounds = await placed.boundingBox();
-          return Math.abs((bounds?.height ?? 0) - Math.round((width / 8) * h));
+          return Math.abs((bounds?.height ?? 0) - fullH);
         })
         .toBeLessThanOrEqual(1);
     }
     await page.getByRole("button", { name: "375px grid width", exact: true }).click();
-    await placed.getByRole("link", { name: "Edit brick", exact: true }).click();
+    await placed.dblclick();
     await expect(page.getByTestId("selected-brick-preview")).toHaveCSS(
       "width",
       `${Math.round((375 / 8) * w)}px`,
@@ -46,8 +52,9 @@ for (const [moduleId, w, h] of [
   });
 }
 
-test("module filmstrip scrolls horizontally rather than shrinking previews", async ({ page }) => {
-  await page.setViewportSize({ width: 1600, height: 900 });
+test("module filmstrip caps preview height at 25vh and scrolls horizontally", async ({ page }) => {
+  const viewportHeight = 900;
+  await page.setViewportSize({ width: 1600, height: viewportHeight });
   await page.goto("/");
   const toolbar = page.getByRole("toolbar", { name: "Grid controls" });
   const drawer = page.getByRole("dialog", { name: "Bricks", exact: true });
@@ -58,15 +65,13 @@ test("module filmstrip scrolls horizontally rather than shrinking previews", asy
   const github = filmstrip.locator('[data-module-entry="github-profile"]');
   const preview = github.locator('[data-module-representative="github-profile"]');
 
-  // Selected grid width at 1600 is 1440 → profile w=4 → 720px preview.
-  // Column is w-max so it does not clip the preview; the filmstrip scrolls instead.
-  await expect(preview).toHaveCSS("width", "720px");
+  // Selected grid width at 1600 is 1440 → profile 4×4 would be 720px, but height caps at 25vh.
+  const capped = Math.round(viewportHeight * 0.25);
+  await expect(preview).toHaveCSS("height", `${capped}px`);
+  await expect(preview).toHaveCSS("width", `${capped}px`);
   expect(
     await filmstrip.evaluate((element) => element.scrollWidth > element.clientWidth),
   ).toBe(true);
-  expect(
-    await github.evaluate((element) => element.getBoundingClientRect().width),
-  ).toBeGreaterThanOrEqual(720);
 
   // Trackpads send vertical deltas; the filmstrip must map those to scrollLeft.
   await github.hover();

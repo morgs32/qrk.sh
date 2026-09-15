@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-import type { IModule, IModuleBrick } from "@qrk.sh/library";
+import type { IModule } from "@qrk.sh/library";
 import { useBrickBreakpoint } from "@qrk.sh/library/BrickBreakpointProvider";
 import type { EmblaCarouselType } from "embla-carousel";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -53,17 +53,10 @@ function watchFocusIgnoreDrawerChrome(_emblaApi: EmblaCarouselType, event: Focus
   return !drawerCarouselInteractionShouldSkipEmbla(event.target);
 }
 
-function defaultBrickSort(a: IModuleBrick, b: IModuleBrick): number {
-  return a.def.order - b.def.order;
-}
-
-export function BrickCarousel(props: {
-  module: IModule;
-  brickSortFn?: (a: IModuleBrick, b: IModuleBrick) => number;
-}) {
+export function BrickCarousel(props: { module: IModule }) {
   const { breakpoint } = useBrickBreakpoint();
-  const { module, brickSortFn = defaultBrickSort } = props;
-  const bricks = useMemo(() => [module].sort(brickSortFn), [module, brickSortFn]);
+  const { module } = props;
+  const bricks = useMemo(() => [module], [module]);
 
   if (bricks.length <= 0) {
     throw new BrickCarouselNoBricksError(module.id);
@@ -97,7 +90,7 @@ export function BrickCarousel(props: {
             <div className="min-w-0 truncate text-sm font-semibold">{module.label}</div>
             <BrickCarouselNav api={carouselApi} bricks={bricks} />
             <div className="min-w-0 justify-self-end text-right text-sm font-medium tabular-nums text-muted-foreground">
-              {bricks[selectedIndex]?.def.label}
+              {bricks[selectedIndex]?.def.moduleLabel}
             </div>
           </div>
         </div>

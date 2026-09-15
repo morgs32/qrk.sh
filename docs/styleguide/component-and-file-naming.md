@@ -41,7 +41,7 @@ Keep [BrickPreview.tsx](../../apps/studio/app/[username]/site/[siteId]/page/[pag
 
 - **Bad**: `export type BrickPreviewProps` in `BrickGroup.tsx` and `import { BrickPreviewProps } from './BrickGroup'` in `BrickPreview.tsx` (parent owns types for a child it does not implement).
 
-- **Good**: annotate the preview’s props inline on `BrickPreview` with **`{ brick: IModuleBrick }`**. Group rows are built with **`makeModule`** (data, configuration, dimensions, appearance form, and responsive presentations). Drawer drag uses native **`DataTransfer`** ([`BRICK_DRAG_MIME` / `useBrickDrawerStore`](../../apps/studio/components/home/useBrickDrawerStore.ts)); [sitePageDraftStore.ts](../../apps/studio/app/[username]/site/[siteId]/sitePageDraftStore.ts) persists only serializable page draft data, including each page’s `layout`, without React components. [siteStore.ts](../../apps/studio/app/[username]/site/[siteId]/siteStore.ts) holds the non-persisted current-site draft seeded from the DB site row.
+- **Good**: annotate the preview’s props inline on `BrickPreview` with **`{ brick: IModuleBrick }`**. Group rows are built with **`makeModule`** (data, configuration, dimensions, options form, and responsive presentations). Drawer drag uses native **`DataTransfer`** ([`BRICK_DRAG_MIME` / `useBrickDrawerStore`](../../apps/studio/components/home/useBrickDrawerStore.ts)); [sitePageDraftStore.ts](../../apps/studio/app/[username]/site/[siteId]/sitePageDraftStore.ts) persists only serializable page draft data, including each page’s `layout`, without React components. [siteStore.ts](../../apps/studio/app/[username]/site/[siteId]/siteStore.ts) holds the non-persisted current-site draft seeded from the DB site row.
 
 **Same idea for small factories**: if only one function consumes the shape, **inline the object type on the function**—do **not** export `MakeBrickGroupProps`-style types unless a second module genuinely needs to reference that exact type.
 
@@ -49,7 +49,7 @@ Keep [BrickPreview.tsx](../../apps/studio/app/[username]/site/[siteId]/page/[pag
 
 - **Bad**: ad hoc **`typeId`** strings on every group row, or passing full brick objects (including **`component`**) into Zustand for external drag.
 
-- **Good**: `IModuleBrickDef` contains serializable module identity, initial dimensions, label, order, and data. `makeModule` produces `def` (including `moduleId` / `moduleLabel`) and a responsive `component`.
+- **Good**: `IModuleBrickDef` contains serializable module identity, initial dimensions, and data. `makeModule` produces `def` (including `moduleId` / `moduleLabel`) and a responsive `component`.
 
 ### Module and brick identity
 
@@ -77,7 +77,7 @@ schemas, and provider scrape modules) stay under `apps/library/scraper/`.
 
 ### Factory arguments
 
-Factories take one `props` object with an inline shape. `makeModule` owns `id`, `label`, `description`, `dataShape`, `defaultData`, optional `configuration`, `order`, optional `form`, required `xs`, and optional `sm`, `lg`, `xl`. Each breakpoint is `{ component, w, h }`; omitted breakpoints inherit the nearest smaller complete entry. Catalog `def` stores the resolved dimensions at `def[breakpoint]`, without React components. Previews, drag placeholders, and new placements use those dimensions; saved placement sizes remain authoritative. See [makeModule.tsx](../../apps/library/makeModule.tsx).
+Factories take one `props` object with an inline shape. `makeModule` owns `id`, `label`, `description`, `dataShape`, `defaultData`, optional `configuration`, optional `options`, required `xs`, and optional `sm`, `lg`, `xl`. Each breakpoint is `{ component, w, h }`; omitted breakpoints inherit the nearest smaller complete entry. Catalog `def` stores the resolved dimensions at `def[breakpoint]`, without React components. Previews, drag placeholders, and new placements use those dimensions; saved placement sizes remain authoritative. See [makeModule.tsx](../../apps/library/makeModule.tsx).
 
 `makeModule` owns `id`, `label`, `description`, and writes `moduleId` / `moduleLabel` onto `def`.
 
@@ -159,8 +159,9 @@ The homepage grid is the product **Grid**; avoid a redundant **Portfolio** prefi
 ### Outline layout
 
 `Outline` owns the navigation block and equal top and bottom padding (`py-3`).
-In the group, group labels use `Outline.Title sticky`, pinning
-each heading to the scroll pane's top through its group options and preview; contents
+It is for library configuration and brick-detail panels, not the bricks drawer
+(studio or library). Sticky section labels use `Outline.Title sticky`, pinning
+each heading to the scroll pane's top through its options and preview; contents
 and views occupy the first and second list levels.
 `Outline.List` owns vertical padding (`py-2`), hierarchy depth,
 and numbering without horizontal padding or margins. Items stay full width
@@ -246,15 +247,21 @@ truncates overflowing profile values with ellipses.
 ### Preview dimensions
 
 `BrickPreviewFrame` takes inline `w`, `h`, and `children` props. It reads the
-measured grid width from `useBrickBreakpoint` and computes width and height as
-`Math.round(gridWidth / 8 * w)` and `Math.round(gridWidth / 8 * h)`.
-Previews therefore follow the selected grid width rather than their containing
-pane. Wide previews scroll within narrower panes instead of shrinking.
+measured grid width from `useBrickBreakpoint` and sizes as
+`Math.round(gridWidth / 8 * w)` by `Math.round(gridWidth / 8 * h)`, then caps
+height at **25vh** (quarter screen ≈ half of the half-height drawer) while
+preserving aspect ratio via `min(fullW, w × 25vh / h)` by `min(fullH, 25vh)`.
+Standalone slider pages pass `maxHeightQuarterViewport={false}` to keep exact
+grid-unit sizing. Previews therefore follow the selected grid width rather than
+their containing pane when they fit under the height cap. Wide uncapped
+standalone previews scroll within narrower panes instead of shrinking.
 Presentation components receive the same active breakpoint. Placed bricks retain
 the grid's own dimensions, including its one-pixel edge rounding.
-All group, configuration, detail, carousel, and standalone previews use this
-frame. Placed-detail previews use resolved breakpoint dimensions; the standalone
-slider sets the simulated full grid width measured by its provider.
+All group, configuration, detail, and drawer list previews use this frame.
+Carousel slides in the site editor use the same 25vh rule with a `50vw`-based
+site-half unit instead of measured `gridWidth`. Placed-detail previews use
+resolved breakpoint dimensions; the standalone slider sets the simulated full
+grid width measured by its provider.
 Import the frame directly or through `@qrk.sh/library/BrickPreviewFrame`.
 
 ### Presentation template names
@@ -272,13 +279,13 @@ that catalog needs those templates.
 
 ### Responsive sandbox placed bricks
 
-The sandbox persists `bricksById` under `qrk-bricks-sandbox-responsive-bricks-v2`.
+The sandbox persists `bricksById` under `qrk-bricks-sandbox-responsive-bricks-v4`.
 It starts empty and neither reads nor migrates older grid keys. Hydration removes
 obsolete `md` and `2xl` entries, preserving the four retained entries and shared
 content. Saved 768px and 1536px presets become 640px and 1440px respectively. Each placed brick
 stores `groupId`, `catalogId`, shared `data`, required `xs`, and
 optional `sm`, `lg`, and `xl` entries. Each entry contains `gridItem` (the grid
-library's `LayoutItem`, or `null` to hide) and `appearanceOptions`. Omitted entries
+library's `LayoutItem`, or `null` to hide) and `options`. Omitted entries
 inherit the entire nearest smaller entry, including hidden status. Editing an
 inherited entry first copies its placement and options. The placed-brick editor's
 “Inherit from” button removes the active breakpoint override and names the nearest
@@ -289,10 +296,10 @@ array is persisted. Drag, resize, and rearrangements update the active entry. Re
 The group panel does not include a placed-brick list. In brick configuration,
 Show restores a smaller visible placement or uses group dimensions at the next available position.
 
-`makeModule` accepts optional `form: makeAppearanceForm({ shape, form })` alongside
+`makeModule` accepts optional `options: makeOptions({ shape, form })` alongside
 its presentations. The shape infers form values and supplies validated defaults.
 The form receives `value` and `onChange`; updates validate before publication and
-never invoke a content fetcher. Appearance controls appear below catalog configuration.
+never invoke a content fetcher. Options controls appear below catalog configuration.
 The custom `form` may be omitted for shapes containing only non-nullable booleans
 with boolean defaults. Those shapes generate labeled switches in a `px-4 py-5`
 container; camelCase and separator-delimited names become readable labels.
@@ -303,7 +310,7 @@ fields.
 Bricks render without an optional card wrapper and fill their grid footprint.
 The grid retains its edit icon, excluded from drag initiation. Entire brick surfaces are draggable; rendered content disables pointer events and text selection. Group and configuration previews also drag from their whole surface. There are no grip buttons or interaction toggles. Detail previews omit grid controls.
 Presentations receive shared `data`, the active `breakpoint`, and resolved
-`appearanceOptions`; their presentation fallback remains independent of entry
+`options`; their presentation fallback remains independent of entry
 inheritance. Group drops copy the preview options into `xs`, and also into
 an explicit active entry when dropped above `xs`. Figma's thumbnail presentations
 support Center, Left, Right, Top, and Bottom image positions (default Center).

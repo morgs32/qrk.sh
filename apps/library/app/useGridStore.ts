@@ -15,27 +15,21 @@ export const useGridStore = create<{
       moduleId: string;
 
       data: unknown;
-      xs: { gridItem: LayoutItem | null; appearanceOptions: unknown };
-    } & Partial<
-      Record<"sm" | "lg" | "xl", { gridItem: LayoutItem | null; appearanceOptions: unknown }>
-    >
+      xs: { gridItem: LayoutItem | null; options: unknown };
+    } & Partial<Record<"sm" | "lg" | "xl", { gridItem: LayoutItem | null; options: unknown }>>
   >;
-  activeBrickDrag: (IModuleBrickDef & { appearanceOptions?: unknown }) | null;
+  activeBrickDrag: (IModuleBrickDef & { options?: unknown }) | null;
   hasHydrated: boolean;
   selectedWidth: number | null;
   setLayout: (layout: Layout, breakpoint: "xs" | "sm" | "lg" | "xl") => void;
   addBrick: (
     brickId: string,
-    brickDef: IModuleBrickDef & { appearanceOptions?: unknown },
+    brickDef: IModuleBrickDef & { options?: unknown },
     layout: Layout,
     breakpoint: "xs" | "sm" | "lg" | "xl",
   ) => void;
-  setActiveBrickDrag: (brickDef: (IModuleBrickDef & { appearanceOptions?: unknown }) | null) => void;
-  setAppearanceOptions: (
-    brickId: string,
-    breakpoint: "xs" | "sm" | "lg" | "xl",
-    value: unknown,
-  ) => void;
+  setActiveBrickDrag: (brickDef: (IModuleBrickDef & { options?: unknown }) | null) => void;
+  setOptions: (brickId: string, breakpoint: "xs" | "sm" | "lg" | "xl", value: unknown) => void;
   setVisible: (brickId: string, breakpoint: "xs" | "sm" | "lg" | "xl", visible: boolean) => void;
   setHasHydrated: (hasHydrated: boolean) => void;
 }>()(
@@ -77,9 +71,9 @@ export const useGridStore = create<{
         const gridItem = layout.find((item) => item.i === brickId);
         if (!gridItem) return;
         const module = modulesHash[brickDef.moduleId];
-        const appearanceOptions = module?.component.form
-          ? module.component.form.decode(
-              brickDef.appearanceOptions ?? module.component.form.defaultValue,
+        const options = module?.component.options
+          ? module.component.options.decode(
+              brickDef.options ?? module.component.options.defaultValue,
             )
           : {};
         set((state) => ({
@@ -91,14 +85,14 @@ export const useGridStore = create<{
               data: structuredClone(brickDef.data),
               xs: {
                 gridItem: { ...gridItem },
-                appearanceOptions: structuredClone(appearanceOptions),
+                options: structuredClone(options),
               },
               ...(breakpoint === "xs"
                 ? {}
                 : {
                     [breakpoint]: {
                       gridItem: { ...gridItem },
-                      appearanceOptions: structuredClone(appearanceOptions),
+                      options: structuredClone(options),
                     },
                   }),
             },
@@ -106,13 +100,13 @@ export const useGridStore = create<{
         }));
         useGridStore.getState().setLayout(layout, breakpoint);
       },
-      setAppearanceOptions: (brickId, breakpoint, value) => {
+      setOptions: (brickId, breakpoint, value) => {
         set((state) => {
           const brick = state.bricksById[brickId];
           if (!brick) return state;
-          const form = modulesHash[brick.moduleId]?.component.form;
-          if (!form) return state;
-          const appearanceOptions = form.decode(value);
+          const optionsConfig = modulesHash[brick.moduleId]?.component.options;
+          if (!optionsConfig) return state;
+          const options = optionsConfig.decode(value);
           const entry = structuredClone(resolveBrickBreakpoint(brick, breakpoint));
           return {
             bricksById: {
@@ -121,7 +115,7 @@ export const useGridStore = create<{
                 ...brick,
                 [breakpoint]: {
                   ...entry,
-                  appearanceOptions: structuredClone(appearanceOptions),
+                  options: structuredClone(options),
                 },
               },
             },
@@ -197,8 +191,8 @@ export const useGridStore = create<{
       },
     }),
     {
-      name: "qrk-bricks-sandbox-responsive-bricks-v3",
-      version: 3,
+      name: "qrk-bricks-sandbox-responsive-bricks-v4",
+      version: 4,
       migrate: (persistedState) => {
         const selectedWidth =
           persistedState !== null &&

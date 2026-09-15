@@ -15,18 +15,18 @@ export function LinkDefaultCard(props: {
   return (
     <BrickFrame backgroundClassName="bg-white" textClassName="text-zinc-950">
       <a
-        className="block h-full w-full p-3 text-inherit no-underline"
+        className="block h-full w-full text-inherit no-underline"
         data-link-card="default"
         href={props.data.url.length > 0 ? props.data.url : undefined}
         rel="noopener noreferrer"
         target="_blank"
       >
-        <div className="flex h-full w-full min-h-0 gap-4 overflow-hidden rounded-2xl border border-sky-200 bg-sky-50 p-4 shadow-sm">
-          <div className="flex min-w-0 flex-1 flex-col justify-center">
+        <div className="flex h-full w-full min-h-0 gap-4 overflow-hidden bg-sky-50">
+          <div className="flex min-w-0 flex-1 flex-col justify-start p-4">
             {props.data.iconUrl.length > 0 ? (
               <Image
                 alt=""
-                className="mb-3 h-10 w-10 shrink-0 rounded-lg object-cover shadow-sm"
+                className="mb-3 h-10 w-10 shrink-0 rounded-lg object-cover"
                 height={40}
                 layout="constrained"
                 onError={(event) => {
@@ -43,7 +43,7 @@ export function LinkDefaultCard(props: {
           </div>
 
           {props.data.imageUrl.length > 0 ? (
-            <div className="relative h-full w-[44%] shrink-0 overflow-hidden rounded-xl bg-zinc-200">
+            <div className="relative h-full w-[44%] shrink-0 overflow-hidden bg-zinc-200">
               <Image
                 alt=""
                 className="absolute inset-0 h-full w-full object-cover"

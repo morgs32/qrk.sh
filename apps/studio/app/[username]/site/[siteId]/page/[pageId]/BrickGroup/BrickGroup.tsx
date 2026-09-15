@@ -2,6 +2,7 @@
 
 import { modulesHash } from "@qrk.sh/library";
 import { useBrickBreakpoint } from "@qrk.sh/library/BrickBreakpointProvider";
+import { BrickPreviewFrame } from "@qrk.sh/library/BrickPreviewFrame";
 import { Schema } from "effect";
 import { X } from "lucide-react";
 import { Link } from "react-router";
@@ -10,7 +11,6 @@ import { href } from "react-router";
 
 import { BRICK_DRAG_MIME, useBrickDrawerStore } from "@/components/home/useBrickDrawerStore";
 import { Button } from "@/components/ui/button";
-import { Outline } from "@/components/home/outline/Outline";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 
 const ParamsSchema = Schema.Struct({
@@ -19,12 +19,8 @@ const ParamsSchema = Schema.Struct({
   pageId: Schema.String,
 });
 
-/** Bottom drawer is ~half viewport; list previews cap at half of that (quarter screen). */
-const PREVIEW_MAX_HEIGHT = "25vh";
-const PREVIEW_GRID_COLS = 8;
-
 export function BrickGroup() {
-  const { breakpoint, gridWidth } = useBrickBreakpoint();
+  const { breakpoint } = useBrickBreakpoint();
   const params = useValidatedParams(ParamsSchema);
   const navigate = useNavigate();
   const modules = Object.values(modulesHash);
@@ -55,19 +51,17 @@ export function BrickGroup() {
 
       <div
         aria-label="Brick modules"
-        className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-white pb-16 font-mono text-sm leading-5 text-zinc-900"
+        className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-zinc-100 pb-16 font-mono text-sm leading-5 text-zinc-900"
       >
         {modules.map((module) => {
           const selectedBrick = module;
           const BrickComponent = selectedBrick.component;
           const w = selectedBrick.def[breakpoint].w;
           const h = selectedBrick.def[breakpoint].h;
-          const fullW = Math.round((gridWidth / PREVIEW_GRID_COLS) * w);
-          const fullH = Math.round((gridWidth / PREVIEW_GRID_COLS) * h);
 
           return (
             <section key={module.id} data-module-entry={module.id}>
-              <Outline.Title sticky>
+              <h2 className="m-0 shrink-0 sticky top-0 z-10 bg-zinc-100 px-4 py-4 text-sm font-normal">
                 <Link
                   to={href("/:username/site/:siteId/page/:pageId/brick-group/:groupName", {
                     ...params,
@@ -77,25 +71,10 @@ export function BrickGroup() {
                 >
                   {module.label}
                 </Link>
-              </Outline.Title>
-              <Outline>
-                <Outline.List padded={false} spaced>
-                  <Outline.Item>
-                    <Outline.Label>
-                      <span className="text-zinc-950">{module.label}</span>
-                    </Outline.Label>
-                  </Outline.Item>
-                </Outline.List>
-              </Outline>
-              <div className="overflow-auto bg-white py-6">
+              </h2>
+              <div className="overflow-auto py-6">
                 <div className={w === 8 ? undefined : "px-4"}>
-                  <div
-                    className="shrink-0"
-                    style={{
-                      width: `min(${fullW}px, calc(${w} * ${PREVIEW_MAX_HEIGHT} / ${h}))`,
-                      height: `min(${fullH}px, ${PREVIEW_MAX_HEIGHT})`,
-                    }}
-                  >
+                  <BrickPreviewFrame w={w} h={h}>
                     <div
                       className="size-full qrk-bricks cursor-grab overflow-hidden active:cursor-grabbing"
                       data-module-representative={selectedBrick.def.moduleId}
@@ -117,7 +96,7 @@ export function BrickGroup() {
                     >
                       <BrickComponent breakpoint={breakpoint} data={module.defaultData} />
                     </div>
-                  </div>
+                  </BrickPreviewFrame>
                 </div>
               </div>
             </section>

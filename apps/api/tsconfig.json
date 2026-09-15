@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "lib": ["ES2024", "DOM"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "noEmit": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "types": ["node", "@cloudflare/vitest-pool-workers"]
+  },
+  "include": ["*.ts", "*.d.ts"],
+  "exclude": ["node_modules", ".wrangler", "vitest.*.config.ts"]
+}

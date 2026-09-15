@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { makeEffectSchema, type InferDecodedRow, type IShape } from "@zerospin/schema";
 import { Schema } from "effect";
 
-import type { makeAppearanceForm } from "./makeAppearanceForm";
+import type { makeOptions } from "./makeOptions";
 import type { makeFetcherConfiguration } from "./makeFetcherConfiguration";
 import type { IFormConfiguration } from "./makeFormConfiguration";
 import type { IJsonValue } from "./scraper/types.public";
@@ -19,8 +19,7 @@ export function makeModule<
     id: MODULE;
     label: string;
     description: string;
-    order: number;
-    form?: ReturnType<typeof makeAppearanceForm>;
+    options?: ReturnType<typeof makeOptions>;
     xs: { component: (props: PROPS) => ReactNode; w: number; h: number };
     sm?: { component: (props: NoInfer<PROPS>) => ReactNode; w: number; h: number };
     lg?: { component: (props: NoInfer<PROPS>) => ReactNode; w: number; h: number };
@@ -68,18 +67,18 @@ export function makeModule<
   function Brick(
     propsForBrick: NoInfer<PROPS> & {
       breakpoint: "xs" | "sm" | "lg" | "xl";
-      appearanceOptions?: unknown;
+      options?: unknown;
     },
   ) {
     const Presentation = presentations[propsForBrick.breakpoint].component;
     return (
       <Presentation
         {...propsForBrick}
-        appearanceOptions={propsForBrick.appearanceOptions ?? props.form?.defaultValue ?? {}}
+        options={propsForBrick.options ?? props.options?.defaultValue ?? {}}
       />
     );
   }
-  Brick.form = props.form;
+  Brick.options = props.options;
   const def = {
     moduleId: props.id,
     moduleLabel: props.label,
@@ -87,8 +86,6 @@ export function makeModule<
     sm: { w: sm.w, h: sm.h },
     lg: { w: lg.w, h: lg.h },
     xl: { w: xl.w, h: xl.h },
-    label: props.label,
-    order: props.order,
     data: null as unknown};
   if (props.dataShape === null) {
     return {

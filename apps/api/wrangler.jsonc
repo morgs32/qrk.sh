@@ -1,0 +1,17 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "qrk-api",
+  "main": "./Worker.ts",
+  "compatibility_date": "2026-05-14",
+  "compatibility_flags": ["nodejs_compat"],
+  "r2_buckets": [
+    {
+      "binding": "QRKSH",
+      "bucket_name": "qrksh",
+    },
+  ],
+  "vars": {
+    "R2_PUBLIC_BASE_URL": "https://pub-035bc706d2f54303ac87db6c777f7273.r2.dev",
+    "CLERK_AUTHORIZED_PARTY": "http://127.0.0.1:3001",
+  },
+}

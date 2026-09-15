@@ -4,7 +4,7 @@ import { BrickFrame } from "../../BrickFrame";
 
 export function FigmaThumbnailHeader(props: {
   breakpoint: "xs" | "sm" | "lg" | "xl";
-  appearanceOptions?: { imagePosition: string };
+  options?: { imagePosition: string };
   data: {
     title: string;
     url: string;
@@ -35,7 +35,7 @@ export function FigmaThumbnailHeader(props: {
               key={props.data.thumbnail_url}
               alt={`${props.data.title} Figma thumbnail`}
               className="absolute inset-x-0 bottom-0 top-[20.25%] h-[79.75%] w-full object-cover object-center data-[image-position=left]:object-left data-[image-position=right]:object-right data-[image-position=top]:object-top data-[image-position=bottom]:object-bottom"
-              data-image-position={props.appearanceOptions?.imagePosition ?? "center"}
+              data-image-position={props.options?.imagePosition ?? "left"}
               data-figma-thumbnail="thumbnail"
               height={props.data.thumbnail_height ?? 450}
               layout="fullWidth"

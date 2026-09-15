@@ -3,10 +3,8 @@ import type { LayoutItem } from "react-grid-layout";
 /** Inherit one complete entry, including an explicitly hidden placement. */
 export function resolveBrickBreakpoint(
   brick: {
-    xs: { gridItem: LayoutItem | null; appearanceOptions: unknown };
-  } & Partial<
-    Record<"sm" | "lg" | "xl", { gridItem: LayoutItem | null; appearanceOptions: unknown }>
-  >,
+    xs: { gridItem: LayoutItem | null; options: unknown };
+  } & Partial<Record<"sm" | "lg" | "xl", { gridItem: LayoutItem | null; options: unknown }>>,
   breakpoint: "xs" | "sm" | "lg" | "xl",
 ) {
   if (breakpoint === "xl" && brick.xl) return brick.xl;

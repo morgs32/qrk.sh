@@ -11,7 +11,7 @@ import { updateGridV2 as updateGrid } from "./aggregates/user/contracts/updateGr
 import { gridV1 as Grid } from "./aggregates/user/models/grid/GridV1";
 import { brickV2 as Brick } from "./aggregates/user/models/brick/BrickV2";
 import { pageV1 as Page } from "./aggregates/user/models/page/PageV1";
-import { siteV1 as Site } from "./aggregates/user/models/site/SiteV1";
+import { siteV2 as Site } from "./aggregates/user/models/site/SiteV2";
 import { userV1 as User } from "./aggregates/user/models/user/UserV1";
 import { userFrontend } from "./aggregates/user/userFrontend";
 
@@ -376,6 +376,9 @@ describe("user frontend Grid guards", () => {
           slug: "guard-site",
           name: "Guard site",
           description: null,
+          logoUrl: null,
+          faviconLightUrl: null,
+          faviconDarkUrl: null,
         })
         .run();
       db.insert(dbConfig.schema.page)

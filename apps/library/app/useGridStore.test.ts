@@ -30,7 +30,7 @@ describe("responsive placed bricks", () => {
           repo: {
             moduleId: "github-repo",
             data: null,
-            xs: { gridItem: null, appearanceOptions: {} },
+            xs: { gridItem: null, options: {} },
           },
         },
       });
@@ -46,25 +46,25 @@ describe("responsive placed bricks", () => {
   it("copies drops and options independently while sharing each brick's content", () => {
     const store = useGridStore.getState();
     const options = { imagePosition: "left" };
-    store.addBrick("first", { ...def, appearanceOptions: options }, [first], "lg");
-    store.addBrick("second", { ...def, appearanceOptions: options }, [first, second], "xs");
+    store.addBrick("first", { ...def, options: options }, [first], "lg");
+    store.addBrick("second", { ...def, options: options }, [first, second], "xs");
     options.imagePosition = "right";
-    store.setAppearanceOptions("first", "xl", { imagePosition: "top" });
+    store.setOptions("first", "xl", { imagePosition: "top" });
     const bricks = useGridStore.getState().bricksById;
-    expect(bricks.first.xs.appearanceOptions).toEqual({
+    expect(bricks.first.xs.options).toEqual({
       imagePosition: "left",
     });
     expect(bricks.first.lg).toEqual(bricks.first.xs);
     expect(bricks.first.lg).not.toBe(bricks.first.xs);
-    expect(bricks.first.lg?.appearanceOptions).not.toBe(bricks.first.xs.appearanceOptions);
+    expect(bricks.first.lg?.options).not.toBe(bricks.first.xs.options);
     expect(bricks.first.xl?.gridItem).not.toBe(bricks.first.lg?.gridItem);
-    expect(bricks.second.xs.appearanceOptions).toEqual({
+    expect(bricks.second.xs.options).toEqual({
       imagePosition: "left",
     });
     expect(bricks.first.xl).not.toHaveProperty("data");
     expect(bricks.first.data).toEqual(def.data);
     expect(bricks.first.data).not.toBe(bricks.second.data);
-    expect(() => store.setAppearanceOptions("first", "sm", { imagePosition: "invalid" })).toThrow();
+    expect(() => store.setOptions("first", "sm", { imagePosition: "invalid" })).toThrow();
     expect(useGridStore.getState().bricksById).toBe(bricks);
   });
   it("writes moves, resize and rearrangements only to the edited breakpoint", () => {
@@ -89,14 +89,14 @@ describe("responsive placed bricks", () => {
     const store = useGridStore.getState();
     store.addBrick("first", def, [first], "xs");
     store.setVisible("first", "sm", false);
-    store.setAppearanceOptions("first", "lg", { imagePosition: "bottom" });
+    store.setOptions("first", "lg", { imagePosition: "bottom" });
     expect(
       resolveBrickBreakpoint(useGridStore.getState().bricksById.first, "xl").gridItem,
     ).toBeNull();
     store.setVisible("first", "xl", true);
     const brick = useGridStore.getState().bricksById.first;
     expect(brick.xl?.gridItem).toEqual(first);
-    expect(brick.xl?.appearanceOptions).toEqual({ imagePosition: "bottom" });
+    expect(brick.xl?.options).toEqual({ imagePosition: "bottom" });
     expect(brick.sm?.gridItem).toBeNull();
     store.setVisible("first", "xs", false);
     store.setVisible("first", "xs", true);
@@ -109,19 +109,19 @@ it("keeps lg and xl overrides independent and restores inheritance after removal
   const def = modulesHash['figma-thumbnail'].def;
   const placement = { i: "large", x: 0, y: 0, w: 4, h: 4 };
   store.addBrick("large", def, [placement], "sm");
-  store.setAppearanceOptions("large", "lg", { imagePosition: "left" });
+  store.setOptions("large", "lg", { imagePosition: "left" });
   store.setLayout([{ ...placement, x: 4 }], "lg");
   store.setVisible("large", "lg", false);
   expect(
     resolveBrickBreakpoint(useGridStore.getState().bricksById.large, "xl").gridItem,
   ).toBeNull();
   store.setVisible("large", "xl", true);
-  store.setAppearanceOptions("large", "xl", { imagePosition: "right" });
+  store.setOptions("large", "xl", { imagePosition: "right" });
   let brick = useGridStore.getState().bricksById.large;
   expect(brick["xl"]?.gridItem).toEqual(placement);
   expect(brick.lg?.gridItem).toBeNull();
-  expect(brick.lg?.appearanceOptions).toEqual({ imagePosition: "left" });
-  expect(brick["xl"]?.appearanceOptions).toEqual({ imagePosition: "right" });
+  expect(brick.lg?.options).toEqual({ imagePosition: "left" });
+  expect(brick["xl"]?.options).toEqual({ imagePosition: "right" });
   const inherited = { ...brick };
   delete inherited["xl"];
   useGridStore.setState({ bricksById: { large: inherited } });

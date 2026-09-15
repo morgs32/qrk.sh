@@ -9,6 +9,5 @@ export const githubRepo = makeModule({
   id: "github-repo",
   label: "GitHub Repo",
   description: "A GitHub repository card.",
-  order: 1,
   xs: { component: GitHubRepoStack, w: 4, h: 6 },
   sm: { component: GitHubRepoCompact, w: 4, h: 2 }});

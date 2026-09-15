@@ -11,7 +11,7 @@ import { Schema } from "effect";
 import { Switch } from "./components/ui/switch";
 
 /** View-only controls validate complete values without invoking a content fetcher. */
-export function makeAppearanceForm<const SHAPE extends IShape>(props: {
+export function makeOptions<const SHAPE extends IShape>(props: {
   shape: SHAPE;
   form?: (props: {
     value: InferDecodedRow<SHAPE>;
@@ -29,7 +29,7 @@ export function makeAppearanceForm<const SHAPE extends IShape>(props: {
         typeof descriptor.defaultValue !== "boolean")
     ) {
       throw new Error(
-        `makeAppearanceForm: ${name} requires a custom form; automatic controls require non-nullable booleans with boolean defaults`,
+        `makeOptions: ${name} requires a custom form; automatic controls require non-nullable booleans with boolean defaults`,
       );
     }
     defaults[name] = "defaultValue" in descriptor ? descriptor.defaultValue : undefined;

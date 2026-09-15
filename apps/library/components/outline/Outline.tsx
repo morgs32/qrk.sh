@@ -12,7 +12,7 @@ import { OutlineItem } from "./OutlineItem";
  */
 export function Outline({ children }: { children: ReactNode }) {
   return (
-    <section aria-label="Outline" className="bg-white py-3">
+    <section aria-label="Outline" className="py-3">
       {children}
     </section>
   );

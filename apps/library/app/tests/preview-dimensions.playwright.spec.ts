@@ -1,19 +1,19 @@
 import { expect, test } from "@playwright/test";
 
-for (const [group, catalog, w, h] of [
-  ["swatch", "default", 2, 2],
-  ["github", "profile", 4, 4],
-  ["link", "default", 4, 2],
-] satisfies Array<[string, string, number, number]>) {
-  test(`${group} catalog preview matches placed dimensions`, async ({ page }) => {
+for (const [moduleId, w, h] of [
+  ["swatch", 2, 2],
+  ["github-profile", 4, 4],
+  ["link", 4, 2],
+] satisfies Array<[string, number, number]>) {
+  test(`${moduleId} module preview matches placed dimensions`, async ({ page }) => {
     await page.setViewportSize({ width: 3000, height: 1100 });
-    await page.goto(`/groups/${group}?catalog=${catalog}`);
-    const source = page.locator(`[data-catalog-brick="${group}/${catalog}"]`);
+    await page.goto(`/modules/${moduleId}`);
+    const source = page.locator(`[data-module-brick="${moduleId}"]`);
     const grid = page.getByLabel("Brick grid", { exact: true });
     await source.dragTo(grid.locator(".react-grid-layout"), {
       targetPosition: { x: 20, y: 200 },
     });
-    const placed = grid.locator(`[data-brick="${group}/${catalog}"]`);
+    const placed = grid.locator(`[data-brick="${moduleId}"]`);
     await expect(placed).toHaveCount(1);
     for (const width of [375, 640, 1024, 1440]) {
       await page.getByRole("button", { name: `${width}px grid width`, exact: true }).click();
@@ -46,7 +46,7 @@ for (const [group, catalog, w, h] of [
   });
 }
 
-test("group filmstrip scrolls horizontally rather than shrinking previews", async ({ page }) => {
+test("module filmstrip scrolls horizontally rather than shrinking previews", async ({ page }) => {
   await page.setViewportSize({ width: 1600, height: 900 });
   await page.goto("/");
   const toolbar = page.getByRole("toolbar", { name: "Grid controls" });
@@ -54,9 +54,9 @@ test("group filmstrip scrolls horizontally rather than shrinking previews", asyn
   await toolbar.getByRole("button", { name: "Bricks", exact: true }).click();
   await expect(drawer).toBeVisible();
 
-  const filmstrip = drawer.getByLabel("Brick groups");
-  const github = filmstrip.locator('[data-group-entry="github"]');
-  const preview = github.locator('[data-group-representative="github/profile"]');
+  const filmstrip = drawer.getByLabel("Brick modules");
+  const github = filmstrip.locator('[data-module-entry="github-profile"]');
+  const preview = github.locator('[data-module-representative="github-profile"]');
 
   // Selected grid width at 1600 is 1440 → profile w=4 → 720px preview.
   await expect(preview).toHaveCSS("width", "720px");
@@ -69,7 +69,7 @@ test("group filmstrip scrolls horizontally rather than shrinking previews", asyn
 });
 
 test("standalone slider sizes the shared frame", async ({ page }) => {
-  await page.goto("/bricks/github/profile");
+  await page.goto("/bricks/github-profile");
   const preview = page.getByTestId("brick-preview");
   for (const unit of [40, 80, 128]) {
     await page.getByLabel("Grid unit:", { exact: false }).fill(String(unit));

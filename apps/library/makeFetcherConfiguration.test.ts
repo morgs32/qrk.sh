@@ -5,15 +5,15 @@ import { makeFetcherConfiguration } from "./makeFetcherConfiguration";
 import { ScraperApi } from "./scraper/ScraperApi";
 
 describe("makeFetcherConfiguration", () => {
-  it("decodes catalog options independently of a content definition and forwards the publishing callback", async () => {
-    const receivedCatalogOptions: Array<{ hash: string }> = [];
+  it("decodes module options independently of a content definition and forwards the publishing callback", async () => {
+    const receivedModuleOptions: Array<{ hash: string }> = [];
     const fetcher = makeFetcherConfiguration({
-      catalogOptionsShape: {
+      moduleOptionsShape: {
         hash: primitives.text({ defaultValue: "asterisk" }),
       },
-      fetcher: async ({ catalogOptions, setData }) => {
-        receivedCatalogOptions.push(catalogOptions);
-        setData({ svg: catalogOptions.hash, providerField: true });
+      fetcher: async ({ moduleOptions, setData }) => {
+        receivedModuleOptions.push(moduleOptions);
+        setData({ svg: moduleOptions.hash, providerField: true });
         return { _tag: "Right", right: undefined };
       },
     });
@@ -21,50 +21,50 @@ describe("makeFetcherConfiguration", () => {
     const setData = vi.fn();
     expect(fetcher.configurationType).toBe("fetcher");
 
-    await expect(fetcher.fetcher({ api, setData, catalogOptions: {} })).resolves.toEqual({
+    await expect(fetcher.fetcher({ api, setData, moduleOptions: {} })).resolves.toEqual({
       _tag: "Right",
       right: undefined,
     });
     await expect(
-      fetcher.fetcher({ api, setData, catalogOptions: { hash: 42 } }),
+      fetcher.fetcher({ api, setData, moduleOptions: { hash: 42 } }),
     ).rejects.toBeDefined();
     await expect(
       fetcher.fetcher({
         api,
         setData,
-        catalogOptions: { hash: "icon", unexpected: true },
+        moduleOptions: { hash: "icon", unexpected: true },
       }),
     ).rejects.toBeDefined();
     expect(setData).toHaveBeenCalledExactlyOnceWith({
       svg: "asterisk",
       providerField: true,
     });
-    expect(receivedCatalogOptions).toEqual([{ hash: "asterisk" }]);
+    expect(receivedModuleOptions).toEqual([{ hash: "asterisk" }]);
   });
-  it("requires a fetcher and accepts one typed whole-catalog-options form", () => {
+  it("requires a fetcher and accepts one typed whole-module-options form", () => {
     expectTypeOf(() => {
       // @ts-expect-error a fetcher is required
-      makeFetcherConfiguration({ catalogOptionsShape: {} });
+      makeFetcherConfiguration({ moduleOptionsShape: {} });
       makeFetcherConfiguration({
-        catalogOptionsShape: {
+        moduleOptionsShape: {
           query: primitives.text({ defaultValue: "Chicago" }),
         },
-        catalogOptionsForm: {
+        moduleOptionsForm: {
           // @ts-expect-error a field map is not a component
           query: () => null,
         },
         fetcher: async () => ({ _tag: "Right", right: undefined }),
       });
       makeFetcherConfiguration({
-        catalogOptionsShape: {
+        moduleOptionsShape: {
           query: primitives.text({ defaultValue: "Chicago" }),
           zoom: primitives.integer({ defaultValue: 14 }),
         },
-        catalogOptionsForm: ({ value, onChange }) => {
+        moduleOptionsForm: ({ value, onChange }) => {
           expectTypeOf(value.query).toEqualTypeOf<string>();
           expectTypeOf(value.zoom).toEqualTypeOf<number>();
           onChange({ query: value.query, zoom: value.zoom });
-          // @ts-expect-error changes replace the complete catalog options
+          // @ts-expect-error changes replace the complete module options
           onChange({ query: value.query });
           return null;
         },

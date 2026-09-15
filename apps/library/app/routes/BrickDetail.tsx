@@ -6,10 +6,9 @@ import { Link, useParams } from "react-router";
 
 import { useBrickBreakpoint } from "../../BrickBreakpointProvider";
 import { BrickPreviewFrame } from "../../BrickPreviewFrame";
-import { groupsHash } from "../../groupsHash";
+import { modulesHash } from "../../modulesHash";
 import { Outline } from "../../components/outline/Outline";
 import { Button } from "../../components/ui/button";
-import { GroupOutline } from "../../components/outline/GroupOutline";
 import { Configuration } from "../Configuration";
 import { resolveBrickBreakpoint } from "../resolveBrickBreakpoint";
 import { useGridStore } from "../useGridStore";
@@ -17,30 +16,29 @@ import { useGridStore } from "../useGridStore";
 export default function BrickDetail() {
   const { breakpoint } = useBrickBreakpoint();
   const params = useParams();
-  if (!params.groupName || !params.brickId) throw new Response("Not found", { status: 404 });
-  const { groupName, brickId } = params;
+  if (!params.moduleId || !params.brickId) throw new Response("Not found", { status: 404 });
+  const { moduleId, brickId } = params;
   const hasHydrated = useGridStore((state) => state.hasHydrated);
   const brickDef = useGridStore((state) => state.bricksById[brickId]);
-  const group = brickDef?.groupId === groupName ? groupsHash[brickDef.groupId] : undefined;
-  const catalog = group?.catalogs[brickDef?.catalogId ?? ""];
-  const brick = catalog;
+  const module = brickDef?.moduleId === moduleId ? modulesHash[brickDef.moduleId] : undefined;
+  const brick = module;
 
   if (!hasHydrated) {
     return <div className="px-6 pt-6 text-sm text-zinc-500">Loading brick…</div>;
   }
 
-  if (!brick || !group || !catalog || !brickDef) {
+  if (!brick || !module || !brickDef) {
     return (
       <div className="px-6 pt-6" data-testid="brick-not-found">
         <Link
-          to={`/groups/${encodeURIComponent(groupName)}`}
+          to={`/modules/${encodeURIComponent(moduleId)}`}
           className="inline-flex items-center gap-2 text-sm"
         >
           <ArrowLeft aria-hidden className="size-4" />
-          <span>Back to group</span>
+          <span>Back to module</span>
         </Link>
         <h1 className="mb-2 mt-8 text-4xl font-semibold tracking-tight">Brick not found</h1>
-        <p className="mt-0 text-zinc-600">This brick ID is not stored for the requested group.</p>
+        <p className="mt-0 text-zinc-600">This brick ID is not stored for the requested module.</p>
       </div>
     );
   }
@@ -56,20 +54,8 @@ export default function BrickDetail() {
   return (
     <section data-testid="brick-detail-pane">
       <Outline.Title>
-        <Link to={`/groups/${encodeURIComponent(groupName)}`}>{group.label}</Link>
+        <Link to={`/modules/${encodeURIComponent(moduleId)}`}>{module.label}</Link>
       </Outline.Title>
-      <GroupOutline
-        group={group}
-        renderCatalog={(name, label) => (
-          <Link
-            to={`/groups/${encodeURIComponent(groupName)}?catalog=${encodeURIComponent(name)}`}
-            aria-current={name === brick.def.catalogId ? "true" : undefined}
-            className="underline aria-[current=true]:no-underline"
-          >
-            {label}
-          </Link>
-        )}
-      />
       <div
         className={`overflow-auto bg-white py-6 ${(entry.gridItem?.w ?? brick.def[breakpoint].w) === 8 ? "" : "px-4"}`}
       >
@@ -90,22 +76,19 @@ export default function BrickDetail() {
         <Configuration
           key={brickId}
           showData={false}
-          catalog={catalog}
+          module={module}
           data={brickData}
           setData={(data) => {
             const DataSchema =
-              catalog.dataShape === null
+              module.dataShape === null
                 ? Schema.Null
-                : Schema.toType(makeEffectSchema(catalog.dataShape));
+                : Schema.toType(makeEffectSchema(module.dataShape));
             const decodedData = Schema.decodeUnknownSync(DataSchema)(data, {
-              onExcessProperty: "preserve",
-            });
+              onExcessProperty: "preserve"});
             useGridStore.setState((state) => ({
               bricksById: {
                 ...state.bricksById,
-                [brickId]: { ...state.bricksById[brickId], data: decodedData },
-              },
-            }));
+                [brickId]: { ...state.bricksById[brickId], data: decodedData }}}));
           }}
         />
         <Outline.Title>Appearance options</Outline.Title>
@@ -124,9 +107,7 @@ export default function BrickDetail() {
                   return {
                     bricksById: {
                       ...state.bricksById,
-                      [brickId]: inheritedBrick,
-                    },
-                  };
+                      [brickId]: inheritedBrick}};
                 });
               }}
             >
@@ -152,7 +133,7 @@ export default function BrickDetail() {
           />
         )}
         <Outline.Title>Brick Definition</Outline.Title>
-        <div className="overflow-auto bg-white px-2 py-4" data-testid="catalog-data-result">
+        <div className="overflow-auto bg-white px-2 py-4" data-testid="module-data-result">
           <JsonView
             shouldExpandNode={collapseAllNested}
             data={brickDef}

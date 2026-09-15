@@ -5,15 +5,15 @@ test("configures only the selected brick and persists its data", async ({ page }
   await page.getByRole("toolbar", { name: "Grid controls" }).getByRole("button", { name: "Bricks", exact: true }).click();
   await expect(page.getByRole("dialog", { name: "Bricks", exact: true })).toBeVisible();
   await page.evaluate(async () => {
-    const groupPath = performance
+    const modulePath = performance
       .getEntriesByType("resource")
-      .filter((entry) => new URL(entry.name).pathname === "/groupsHash.ts")
+      .filter((entry) => new URL(entry.name).pathname === "/modulesHash.ts")
       .at(-1)?.name;
-    if (!groupPath) throw new Error("Group module was not loaded");
+    if (!modulePath) throw new Error("Module was not loaded");
     const storePath = "/app/useGridStore.ts";
-    const { groupsHash } = await import(groupPath);
+    const { modulesHash } = await import(modulePath);
     const { useGridStore } = await import(storePath);
-    const brick = groupsHash.github.catalogs.profile;
+    const brick = modulesHash['github-profile'];
     const layout = [
       { i: "first", x: 0, y: 0, w: 4, h: 4 },
       { i: "second", x: 4, y: 0, w: 4, h: 4 },
@@ -28,16 +28,16 @@ test("configures only the selected brick and persists its data", async ({ page }
       );
     useGridStore.getState().addBrick("second", brick.def, layout, "xs");
   });
-  await page.goto("/groups/github/brick/first");
+  await page.goto("/modules/github-profile/brick/first");
   await expect(page.getByTestId("selected-brick-preview")).toContainText("selected");
   await page.evaluate(async () => {
-    const groupPath = performance
+    const modulePath = performance
       .getEntriesByType("resource")
-      .filter((entry) => new URL(entry.name).pathname === "/groupsHash.ts")
+      .filter((entry) => new URL(entry.name).pathname === "/modulesHash.ts")
       .at(-1)?.name;
-    if (!groupPath) throw new Error("Group module was not loaded");
-    const { groupsHash } = await import(groupPath);
-    const content = groupsHash.github.catalogs.profile;
+    if (!modulePath) throw new Error("Module was not loaded");
+    const { modulesHash } = await import(modulePath);
+    const content = modulesHash['github-profile'];
     content.configuration.fetcher = async ({ setData }: { setData: (data: unknown) => void }) => {
       setData({ ...content.defaultData, login: "configured" });
       return { _tag: "Right", right: undefined };
@@ -63,20 +63,20 @@ test("configures only the selected brick and persists its data", async ({ page }
 });
 
 test("drops configured icon snapshots and restores them after reload", async ({ page }) => {
-  await page.goto("/groups/icon?catalog=default");
-  await expect(page.locator("[data-catalog-brick]")).toBeVisible();
+  await page.goto("/modules/icon");
+  await expect(page.locator("[data-module-brick]")).toBeVisible();
   await page.evaluate(async () => {
     const storePath = performance
       .getEntriesByType("resource")
-      .find((entry) => new URL(entry.name).pathname === "/app/useCatalogData.ts")?.name;
+      .find((entry) => new URL(entry.name).pathname === "/app/useModuleData.ts")?.name;
     if (!storePath) throw new Error("Content data module was not loaded");
-    const { useCatalogDataStore } = await import(storePath);
-    useCatalogDataStore.getState().setCatalogData("icon", "default", {
+    const { useModuleDataStore } = await import(storePath);
+    useModuleDataStore.getState().setCatalogData("icon", "default", {
       name: "First icon",
       svg: '<svg xmlns="http://www.w3.org/2000/svg"><circle r="10"/></svg>',
     });
   });
-  const preview = page.locator("[data-catalog-brick]");
+  const preview = page.locator("[data-module-brick]");
   const grid = page.getByLabel("Brick grid");
   await expect(preview.locator('img[alt="First icon"]')).toBeVisible();
   await preview
@@ -88,10 +88,10 @@ test("drops configured icon snapshots and restores them after reload", async ({ 
   await page.evaluate(async () => {
     const storePath = performance
       .getEntriesByType("resource")
-      .find((entry) => new URL(entry.name).pathname === "/app/useCatalogData.ts")?.name;
+      .find((entry) => new URL(entry.name).pathname === "/app/useModuleData.ts")?.name;
     if (!storePath) throw new Error("Content data module was not loaded");
-    const { useCatalogDataStore } = await import(storePath);
-    useCatalogDataStore.getState().setCatalogData("icon", "default", {
+    const { useModuleDataStore } = await import(storePath);
+    useModuleDataStore.getState().setCatalogData("icon", "default", {
       name: "Second icon",
       svg: '<svg xmlns="http://www.w3.org/2000/svg"><rect width="10" height="10"/></svg>',
     });
@@ -108,7 +108,7 @@ test("drops configured icon snapshots and restores them after reload", async ({ 
   await expect(grid.getByRole("img", { name: "First icon" })).toBeVisible();
   await expect(grid.getByRole("img", { name: "Second icon" })).toBeVisible();
   const saved = await page.evaluate(() =>
-    JSON.parse(localStorage.getItem("qrk-bricks-sandbox-responsive-bricks-v2") ?? "{}"),
+    JSON.parse(localStorage.getItem("qrk-bricks-sandbox-responsive-bricks-v3") ?? "{}"),
   );
   expect(saved.state).not.toHaveProperty("dataByBrickId");
   expect(Object.values(saved.state.bricksById)).toEqual(
@@ -126,13 +126,13 @@ test("drops configured icon snapshots and restores them after reload", async ({ 
 test("starts fresh without migrating or deleting the old saved grid", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(async () => {
-    const groupPath = performance
+    const modulePath = performance
       .getEntriesByType("resource")
-      .filter((entry) => new URL(entry.name).pathname === "/groupsHash.ts")
+      .filter((entry) => new URL(entry.name).pathname === "/modulesHash.ts")
       .at(-1)?.name;
-    if (!groupPath) throw new Error("Group module was not loaded");
-    const { groupsHash } = await import(groupPath);
-    const { data, ...legacyDef } = groupsHash.icon.catalogs.default.def;
+    if (!modulePath) throw new Error("Module was not loaded");
+    const { modulesHash } = await import(modulePath);
+    const { data, ...legacyDef } = modulesHash.icon.def;
     localStorage.setItem(
       "qrk-bricks-sandbox-single-grid",
       JSON.stringify({

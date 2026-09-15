@@ -75,8 +75,12 @@ const pageProviderOwnerKey = Symbol.for('@zerospin/react/page-provider-owner');
 export function makeZerospinApp<SYSTEM, APP_SERVICES = never>(props: {
   systemName: SYSTEM extends { name: infer NAME extends string } ? NAME : never;
   layer: Layer.Layer<APP_SERVICES | PublishableKey | ZerospinApiUrl, IAnyError>;
+  devtools?: {
+    load?: boolean;
+    defaultOpen?: boolean;
+  };
 }) {
-  const { systemName, layer: applicationLayer } = props;
+  const { systemName, layer: applicationLayer, devtools } = props;
   const AppContext = createContext<{
     runtime: ISessionProviderRuntime<APP_SERVICES>;
     scope: Scope.Closeable;
@@ -194,7 +198,10 @@ export function makeZerospinApp<SYSTEM, APP_SERVICES = never>(props: {
       <AppContext.Provider value={app}>
         <ZerospinProviderContext.Provider value={context}>
           {children}
-          <ZerospinDevtoolsLoader />
+          <ZerospinDevtoolsLoader
+            load={devtools?.load === true}
+            defaultOpen={devtools?.defaultOpen === true}
+          />
         </ZerospinProviderContext.Provider>
       </AppContext.Provider>
     );

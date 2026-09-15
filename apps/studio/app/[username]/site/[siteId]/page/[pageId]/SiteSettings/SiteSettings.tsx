@@ -4,7 +4,7 @@ import { useUser } from "@clerk/react";
 import { Schema } from "effect";
 import { Globe, X } from "lucide-react";
 import { useNavigate } from "react-router";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import useSWR from "swr";
 
 import { CopyButton } from "./CopyButton";
@@ -13,6 +13,7 @@ import { href } from "react-router";
 import { useSiteStore } from "../../../siteStore";
 
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -34,7 +35,12 @@ export function SiteSettings() {
   const siteDraft = useSiteStore((state) =>
     user === null || user === undefined ? undefined : state.owners[user.id]?.sites[params.siteId],
   );
+  const setSiteName = useSiteStore((state) => state.setSiteName);
   const setSiteDescription = useSiteStore((state) => state.setSiteDescription);
+
+  useEffect(() => {
+    console.log("siteStore", useSiteStore.getState());
+  }, []);
 
   const publishedUrl = useMemo(() => {
     const pathname = `/${encodeURIComponent(username)}/${encodeURIComponent(siteId)}`;
@@ -80,6 +86,15 @@ export function SiteSettings() {
       </header>
 
       <div className="space-y-8 px-4 py-6">
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="site-name-and-wordmark">Site name and wordmark</Label>
+          <Input
+            id="site-name-and-wordmark"
+            value={siteDraft.name}
+            onChange={(event) => setSiteName(user.id, params.siteId, event.target.value)}
+          />
+        </div>
+
         <div className="space-y-3">
           <h2 className="text-lg font-semibold">Published URL</h2>
           <TooltipProvider delayDuration={0}>

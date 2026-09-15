@@ -1,2 +1,2 @@
-export { groupsHash } from "./groupsHash";
-export type { IBrick, IGroup, IGroupBrick, IGroupBrickDef } from "./types";
+export { modulesHash } from "./modulesHash";
+export type { IBrick, IModule, IModuleBrick, IModuleBrickDef } from "./types";

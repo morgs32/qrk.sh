@@ -10,7 +10,7 @@
   },
   "include": [
     "scraper/**/*.ts",
-    "groups/**/catalogs/**/*Repo.ts",
+    "modules/**/[A-Z]*Repo.ts",
     "cloudflare-test.d.ts",
     "worker-configuration.d.ts"
   ]

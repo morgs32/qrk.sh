@@ -5,7 +5,7 @@ import GridLayout, { verticalCompactor } from "react-grid-layout";
 import { Link } from "react-router";
 
 import { useBrickBreakpoint } from "../BrickBreakpointProvider";
-import { groupsHash } from "../groupsHash";
+import { modulesHash } from "../modulesHash";
 import { Button } from "../components/ui/button";
 
 import { resolveBrickBreakpoint } from "./resolveBrickBreakpoint";
@@ -68,8 +68,7 @@ export function SandboxGrid() {
           layout={layout.map((item) => ({
             ...item,
             isDraggable: true,
-            isResizable: true,
-          }))}
+            isResizable: true}))}
           autoSize
           className="grid-layout min-h-screen"
           compactor={verticalCompactor}
@@ -78,14 +77,12 @@ export function SandboxGrid() {
             rowHeight,
             margin: [0, 0],
             containerPadding: [0, 0],
-            maxRows: Number.POSITIVE_INFINITY,
-          }}
+            maxRows: Number.POSITIVE_INFINITY}}
           dragConfig={{
             enabled: true,
             cancel: ".brick-edit-handle",
             bounded: false,
-            threshold: 3,
-          }}
+            threshold: 3}}
           onResizeStop={(nextLayout) => setLayout(nextLayout, breakpoint)}
           dropConfig={{
             enabled: true,
@@ -96,8 +93,7 @@ export function SandboxGrid() {
               }
 
               return { w: activeBrickDrag[breakpoint].w, h: activeBrickDrag[breakpoint].h };
-            },
-          }}
+            }}}
           onDrop={(nextLayout, item) => {
             if (!item || !activeBrickDrag) {
               return;
@@ -113,8 +109,7 @@ export function SandboxGrid() {
                 ...layoutItem,
                 i: brickId,
                 w: activeBrickDrag[breakpoint].w,
-                h: activeBrickDrag[breakpoint].h,
-              };
+                h: activeBrickDrag[breakpoint].h};
             });
             addBrick(brickId, activeBrickDrag, gridLayoutWithDroppedBrick, breakpoint);
             setActiveBrickDrag(null);
@@ -161,8 +156,7 @@ export function SandboxGrid() {
                 const remainingBricks = { ...state.bricksById };
                 delete remainingBricks[item.i];
                 return {
-                  bricksById: remainingBricks,
-                };
+                  bricksById: remainingBricks};
               });
               setLayout(
                 verticalCompactor.compact(
@@ -180,8 +174,7 @@ export function SandboxGrid() {
         >
           {layout.map((layoutItem) => {
             const brickDef = bricksById[layoutItem.i];
-            const group = brickDef ? groupsHash[brickDef.groupId] : undefined;
-            const catalog = group?.catalogs[brickDef.catalogId];
+            const catalog = brickDef ? modulesHash[brickDef.moduleId] : undefined;
             const brick = catalog;
 
             if (brick) {
@@ -192,7 +185,7 @@ export function SandboxGrid() {
                   key={layoutItem.i}
                   style={{ opacity: outsideBrickId === layoutItem.i ? 0.4 : 1 }}
                   className="brick-drag-surface size-full"
-                  data-brick={`${brick.def.groupId}/${brick.def.catalogId}`}
+                  data-brick={brick.def.moduleId}
                   data-brick-id={layoutItem.i}
                   data-grid-x={layoutItem.x}
                   data-grid-y={layoutItem.y}
@@ -212,7 +205,7 @@ export function SandboxGrid() {
                     <Button asChild variant="ghost" size="icon" className="brick-edit-handle">
                       <Link
                         aria-label="Edit brick"
-                        to={`/groups/${encodeURIComponent(brickDef.groupId)}/brick/${encodeURIComponent(layoutItem.i)}`}
+                        to={`/modules/${encodeURIComponent(brickDef.moduleId)}/brick/${encodeURIComponent(layoutItem.i)}`}
                       >
                         <Pencil aria-hidden className="size-4" />
                       </Link>

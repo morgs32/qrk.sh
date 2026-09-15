@@ -3,8 +3,8 @@ import type { Layout, LayoutItem } from "react-grid-layout";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-import { groupsHash } from "../groupsHash";
-import type { IGroupBrickDef } from "../types";
+import { modulesHash } from "../modulesHash";
+import type { IModuleBrickDef } from "../types";
 
 import { resolveBrickBreakpoint } from "./resolveBrickBreakpoint";
 
@@ -12,8 +12,7 @@ export const useGridStore = create<{
   bricksById: Record<
     string,
     {
-      groupId: string;
-      catalogId: string;
+      moduleId: string;
 
       data: unknown;
       xs: { gridItem: LayoutItem | null; appearanceOptions: unknown };
@@ -21,17 +20,17 @@ export const useGridStore = create<{
       Record<"sm" | "lg" | "xl", { gridItem: LayoutItem | null; appearanceOptions: unknown }>
     >
   >;
-  activeBrickDrag: (IGroupBrickDef & { appearanceOptions?: unknown }) | null;
+  activeBrickDrag: (IModuleBrickDef & { appearanceOptions?: unknown }) | null;
   hasHydrated: boolean;
   selectedWidth: number | null;
   setLayout: (layout: Layout, breakpoint: "xs" | "sm" | "lg" | "xl") => void;
   addBrick: (
     brickId: string,
-    brickDef: IGroupBrickDef & { appearanceOptions?: unknown },
+    brickDef: IModuleBrickDef & { appearanceOptions?: unknown },
     layout: Layout,
     breakpoint: "xs" | "sm" | "lg" | "xl",
   ) => void;
-  setActiveBrickDrag: (brickDef: (IGroupBrickDef & { appearanceOptions?: unknown }) | null) => void;
+  setActiveBrickDrag: (brickDef: (IModuleBrickDef & { appearanceOptions?: unknown }) | null) => void;
   setAppearanceOptions: (
     brickId: string,
     breakpoint: "xs" | "sm" | "lg" | "xl",
@@ -77,18 +76,17 @@ export const useGridStore = create<{
       addBrick: (brickId, brickDef, layout, breakpoint) => {
         const gridItem = layout.find((item) => item.i === brickId);
         if (!gridItem) return;
-        const group = groupsHash[brickDef.groupId]?.catalogs[brickDef.catalogId];
-        const appearanceOptions = group?.component.form
-          ? group.component.form.decode(
-              brickDef.appearanceOptions ?? group.component.form.defaultValue,
+        const module = modulesHash[brickDef.moduleId];
+        const appearanceOptions = module?.component.form
+          ? module.component.form.decode(
+              brickDef.appearanceOptions ?? module.component.form.defaultValue,
             )
           : {};
         set((state) => ({
           bricksById: {
             ...state.bricksById,
             [brickId]: {
-              groupId: brickDef.groupId,
-              catalogId: brickDef.catalogId,
+              moduleId: brickDef.moduleId,
 
               data: structuredClone(brickDef.data),
               xs: {
@@ -112,7 +110,7 @@ export const useGridStore = create<{
         set((state) => {
           const brick = state.bricksById[brickId];
           if (!brick) return state;
-          const form = groupsHash[brick.groupId]?.catalogs[brick.catalogId]?.component.form;
+          const form = modulesHash[brick.moduleId]?.component.form;
           if (!form) return state;
           const appearanceOptions = form.decode(value);
           const entry = structuredClone(resolveBrickBreakpoint(brick, breakpoint));
@@ -152,8 +150,8 @@ export const useGridStore = create<{
             if (placement) {
               entry.gridItem = { ...placement, i: brickId };
             } else {
-              const group = groupsHash[brick.groupId]?.catalogs[brick.catalogId];
-              if (!group) return state;
+              const module = modulesHash[brick.moduleId];
+              if (!module) return state;
               let y = 0;
               for (const other of Object.values(state.bricksById)) {
                 const item = resolveBrickBreakpoint(other, breakpoint).gridItem;
@@ -163,8 +161,8 @@ export const useGridStore = create<{
                 i: brickId,
                 x: 0,
                 y,
-                w: group.def[breakpoint].w,
-                h: group.def[breakpoint].h,
+                w: module.def[breakpoint].w,
+                h: module.def[breakpoint].h,
               };
             }
           }
@@ -199,8 +197,8 @@ export const useGridStore = create<{
       },
     }),
     {
-      name: "qrk-bricks-sandbox-responsive-bricks-v2",
-      version: 2,
+      name: "qrk-bricks-sandbox-responsive-bricks-v3",
+      version: 3,
       migrate: (persistedState) => {
         const selectedWidth =
           persistedState !== null &&

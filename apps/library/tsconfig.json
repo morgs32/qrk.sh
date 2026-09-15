@@ -13,5 +13,14 @@
     "types": ["vite/client", "node"]
   },
   "include": ["**/*.ts", "**/*.tsx", "worker-configuration.d.ts"],
-  "exclude": [".react-router", "scraper/**", "dist", "build", "node_modules", "test-results"]
+  "exclude": [
+    ".react-router",
+    "scraper/**",
+    "dist",
+    "build",
+    "node_modules",
+    "test-results",
+    "vitest.worker.config.ts",
+    "vitest.live.config.ts"
+  ]
 }

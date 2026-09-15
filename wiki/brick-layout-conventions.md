@@ -1,24 +1,23 @@
 # Brick presentation templates
 
-Name presentation components `<Group><Catalog><Template>` and use matching
+Name presentation components `<Module><Template>` and use matching
 PascalCase filenames.
 
-- **Group** — PascalCase of the `makeGroup` `id` (for example `GitHub`, `Figma`)
-- **Catalog** — PascalCase of the `makeCatalog` `id` (for example `Profile`, `Thumbnail`)
+- **Module** — PascalCase of the `makeModule` `id` (for example `GitHubProfile`, `FigmaThumbnail`)
 - **Template** — a layout-role id that describes what differs in markup (not a
   breakpoint suffix, not a grid size like `4x4`)
 
 Helpers such as `*Card`, `*Activity`, `*Graphic`, forms, lookups, and `*Repo`
 are not presentations and keep their own names.
 
-Select complete presentations once in the catalog definition. `makeCatalog`
+Select complete presentations once in the module definition. `makeModule`
 still keys responsive slots by breakpoint (`xs` required; `sm`, `lg`, and `xl`
 optional). Each slot is `{ component, w, h }`. An omitted breakpoint inherits
 the nearest smaller complete entry:
 
 ```tsx
-makeCatalog({
-  id: "profile",
+makeModule({
+  id: "github-profile",
   // …
   xs: { component: GitHubProfileStats, w: 4, h: 4 },
   lg: { component: GitHubProfileCalendar, w: 4, h: 4 },
@@ -29,7 +28,7 @@ In this example, `sm` inherits `GitHubProfileStats` and `xl` inherits
 `GitHubProfileCalendar`. Grid container thresholds are 640px (`sm`), 1024px
 (`lg`), and 1280px (`xl`); `xs` covers smaller widths.
 
-`makeCatalog` uses the incoming `breakpoint` prop and forwards the same props
+`makeModule` uses the incoming `breakpoint` prop and forwards the same props
 to the selected React component. It performs no measurement and owns no
 context. Data props are inferred from `xs`; other presentations must accept
 those props. Render each presentation as a React component so hooks remain

@@ -99,7 +99,15 @@ export default defineConfig(({ mode }) => {
         "app/**/SiteLayout.tsx",
         "app/**/EditorLayout.tsx",
       ],
-      include: ["react", "react-dom/client", "framer-motion", "zustand/react"],
+      include: [
+        "react",
+        "react-dom/client",
+        "framer-motion",
+        "zustand/react",
+        // Same as shopping: DevTools lazy-imports react-router cookie deps.
+        "@zerospin/devtools > react-router > cookie",
+        "@zerospin/devtools > react-router > set-cookie-parser",
+      ],
       force: process.env.COLD_DEV === "1",
     },
   };

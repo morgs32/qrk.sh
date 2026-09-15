@@ -3,7 +3,7 @@
 import { useRef } from "react";
 
 import { useUser } from "@clerk/react";
-import { groupsHash } from "@qrk.sh/library";
+import { modulesHash } from "@qrk.sh/library";
 import { useBrickBreakpoint } from "@qrk.sh/library/BrickBreakpointProvider";
 import { Schema } from "effect";
 import GridLayout, { verticalCompactor } from "react-grid-layout";
@@ -83,7 +83,7 @@ export function Grid() {
             );
             useBrickDrawerStore.getState().unregisterActiveBrickDragGridShape();
             if (!item || !brickDef) return;
-            const brick = groupsHash[brickDef.groupId]?.catalogs[brickDef.catalogId];
+            const brick = modulesHash[brickDef.moduleId];
             if (!brick) return;
             const brickId = crypto.randomUUID();
             const droppedLayout = nextLayout.map((layoutItem) =>
@@ -130,7 +130,7 @@ export function Grid() {
           {layout.map((layoutItem) => {
             const brickDef = pageGrid?.bricksById[layoutItem.i];
             const content = brickDef
-              ? groupsHash[brickDef.groupId]?.catalogs[brickDef.catalogId]
+              ? modulesHash[brickDef.moduleId]
               : undefined;
             const brick = brickDef ? content : undefined;
             if (!brick) {
@@ -147,8 +147,7 @@ export function Grid() {
               <div
                 key={layoutItem.i}
                 className="qrk-bricks size-full cursor-grab overflow-hidden active:cursor-grabbing"
-                data-brick-group-name={brick.def.groupId}
-                data-brick-catalog={brick.def.catalogId}
+                data-brick-module-id={brick.def.moduleId}
                 data-brick-id={layoutItem.i}
                 onClick={() => {
                   if (suppressBrickClickRef.current) return;

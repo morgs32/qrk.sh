@@ -5,8 +5,8 @@ test("group breakpoints follow the shared grid container at every boundary", asy
   await page.goto("/");
   await page.getByRole("toolbar", { name: "Grid controls" }).getByRole("button", { name: "Bricks", exact: true }).click();
   await expect(page.getByRole("dialog", { name: "Bricks", exact: true })).toBeVisible();
-  const group = page.locator('[data-group-entry="github"]');
-  const preview = group.locator('[data-group-representative="github/profile"]');
+  const group = page.locator('[data-module-entry="github"]');
+  const preview = group.locator('[data-module-representative="github/profile"]');
   const responsive = preview.locator('[data-slot="card"]');
 
   for (const [width, breakpoint] of [
@@ -56,8 +56,8 @@ test("standalone slider retains the profile through responsive presentations", a
 
 test("placed bricks respond to presets and keep their data and positions", async ({ page }) => {
   await page.setViewportSize({ width: 3400, height: 1000 });
-  await page.goto("/groups/github?catalog=profile");
-  const source = page.locator('[data-catalog-brick="github/profile"]');
+  await page.goto("/modules/github-profile");
+  const source = page.locator('[data-module-brick="github/profile"]');
   await expect(source.locator('[data-slot="card"]')).toHaveCSS("padding-top", "12px");
   const grid = page.getByLabel("Brick grid", { exact: true });
   await source.dragTo(grid.locator(".react-grid-layout"), {
@@ -106,10 +106,10 @@ test("placed bricks respond to presets and keep their data and positions", async
 
 test("lg and xl overrides persist and restore nearest smaller inheritance", async ({ page }) => {
   await page.setViewportSize({ width: 3400, height: 1100 });
-  await page.goto("/groups/figma");
+  await page.goto("/modules/figma-thumbnail");
   await page.getByRole("button", { name: "375px grid width", exact: true }).click();
   const grid = page.getByLabel("Brick grid").locator(".react-grid-layout");
-  await page.locator("[data-catalog-brick]").dragTo(grid, {
+  await page.locator("[data-module-brick]").dragTo(grid, {
     targetPosition: { x: 20, y: 20 },
   });
   const placed = grid.locator("[data-brick-id]");

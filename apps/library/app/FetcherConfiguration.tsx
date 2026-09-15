@@ -14,34 +14,33 @@ import { Input } from "../components/ui/input";
 
 export function FetcherConfiguration(props: {
   configuration: IFetcherConfiguration;
-  groupId: string | undefined;
+  moduleId: string | undefined;
   data: unknown;
   showData?: boolean;
   setData: (data: unknown) => void;
 }) {
   const {
-    catalogOptionsShape,
-    catalogOptionsForm: CatalogOptionsForm,
-    fetcher: fetchData,
-  } = props.configuration;
-  const [catalogOptionsValues, setCatalogOptionsValues] = useState<Record<string, unknown>>(() => {
-    const initialCatalogOptionsValues: Record<string, unknown> = {};
+    moduleOptionsShape,
+    moduleOptionsForm: ModuleOptionsForm,
+    fetcher: fetchData} = props.configuration;
+  const [moduleOptionsValues, setModuleOptionsValues] = useState<Record<string, unknown>>(() => {
+    const initialModuleOptionsValues: Record<string, unknown> = {};
 
-    // Initialize the complete catalog options from the declared field defaults.
-    for (const [fieldName, descriptor] of Object.entries(catalogOptionsShape)) {
-      initialCatalogOptionsValues[fieldName] =
+    // Initialize the complete module options from the declared field defaults.
+    for (const [fieldName, descriptor] of Object.entries(moduleOptionsShape)) {
+      initialModuleOptionsValues[fieldName] =
         "defaultValue" in descriptor ? descriptor.defaultValue : undefined;
     }
-    return initialCatalogOptionsValues;
+    return initialModuleOptionsValues;
   });
-  const currentCatalogOptions = useRef(catalogOptionsValues);
+  const currentModuleOptions = useRef(moduleOptionsValues);
   const generation = useRef(0);
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [dataError, setDataError] = useState<IScrapeError>();
   const [requestError, setRequestError] = useState<string>();
-  const hasUnsupportedCatalogOptions =
-    CatalogOptionsForm === undefined &&
-    Object.entries(catalogOptionsShape).some(
+  const hasUnsupportedModuleOptions =
+    ModuleOptionsForm === undefined &&
+    Object.entries(moduleOptionsShape).some(
       ([, descriptor]) =>
         descriptor.kind !== PrimitiveKind.Text ||
         descriptor.nullable !== false ||
@@ -56,25 +55,24 @@ export function FetcherConfiguration(props: {
     [],
   );
 
-  async function onCatalogOptionsChange(catalogOptions: Record<string, unknown>) {
-    // Snapshot the next complete catalog options synchronously, including batched changes.
-    currentCatalogOptions.current = catalogOptions;
-    setCatalogOptionsValues(catalogOptions);
+  async function onModuleOptionsChange(moduleOptions: Record<string, unknown>) {
+    // Snapshot the next complete module options synchronously, including batched changes.
+    currentModuleOptions.current = moduleOptions;
+    setModuleOptionsValues(moduleOptions);
     const requestGeneration = ++generation.current;
     setDataError(undefined);
     setRequestError(undefined);
 
-    if (hasUnsupportedCatalogOptions) return;
+    if (hasUnsupportedModuleOptions) return;
     setIsLoadingData(true);
     try {
       using api = newSyncRpcSession<ScraperApi>("/scraper-rpc");
       const result = await fetchData({
         api,
-        catalogOptions,
+        moduleOptions,
         setData: (data) => {
           if (generation.current === requestGeneration) props.setData(data);
-        },
-      });
+        }});
       if (generation.current === requestGeneration && result._tag === "Left") {
         setDataError(result.left);
       }
@@ -91,7 +89,7 @@ export function FetcherConfiguration(props: {
     <div>
       <Outline.Title>Configuration</Outline.Title>
       {props.showData !== false && (
-        <div className="overflow-auto bg-zinc-100 px-2 py-4" data-testid="catalog-data-result">
+        <div className="overflow-auto bg-zinc-100 px-2 py-4" data-testid="module-data-result">
           <JsonView
             shouldExpandNode={collapseAllNested}
             data={{ data: props.data }}
@@ -102,15 +100,15 @@ export function FetcherConfiguration(props: {
 
       <div className="px-4 py-5">
         <form className="space-y-5" onSubmit={(event) => event.preventDefault()}>
-          {CatalogOptionsForm !== undefined ? (
-            <CatalogOptionsForm
-              value={catalogOptionsValues}
+          {ModuleOptionsForm !== undefined ? (
+            <ModuleOptionsForm
+              value={moduleOptionsValues}
               onChange={(value) => {
-                void onCatalogOptionsChange(value);
+                void onModuleOptionsChange(value);
               }}
             />
           ) : (
-            Object.entries(catalogOptionsShape).map(([fieldName, descriptor]) => {
+            Object.entries(moduleOptionsShape).map(([fieldName, descriptor]) => {
               if (
                 descriptor.kind !== PrimitiveKind.Text ||
                 descriptor.nullable !== false ||
@@ -119,11 +117,11 @@ export function FetcherConfiguration(props: {
                 return (
                   <p
                     className="m-0 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800"
-                    data-testid={`unsupported-catalog-options-${fieldName}`}
+                    data-testid={`unsupported-module-options-${fieldName}`}
                     key={fieldName}
                     role="alert"
                   >
-                    Unsupported catalog options field &quot;{fieldName}
+                    Unsupported module options field &quot;{fieldName}
                     &quot;: only non-null text primitives with string defaults are supported.
                   </p>
                 );
@@ -133,34 +131,33 @@ export function FetcherConfiguration(props: {
                 <div className="flex flex-col items-start gap-2" key={fieldName}>
                   <label
                     className="block text-sm font-medium"
-                    htmlFor={`catalog-options-${fieldName}`}
+                    htmlFor={`module-options-${fieldName}`}
                   >
                     {fieldName === "url" ? "URL" : fieldName}
                   </label>
                   <Input
                     className="mb-1"
-                    id={`catalog-options-${fieldName}`}
+                    id={`module-options-${fieldName}`}
                     name={fieldName}
                     onChange={(event) => {
-                      const catalogOptions = {
-                        ...currentCatalogOptions.current,
-                        [fieldName]: event.target.value,
-                      };
-                      currentCatalogOptions.current = catalogOptions;
-                      setCatalogOptionsValues(catalogOptions);
+                      const moduleOptions = {
+                        ...currentModuleOptions.current,
+                        [fieldName]: event.target.value};
+                      currentModuleOptions.current = moduleOptions;
+                      setModuleOptionsValues(moduleOptions);
                     }}
                     type="text"
                     value={
-                      typeof catalogOptionsValues[fieldName] === "string"
-                        ? catalogOptionsValues[fieldName]
+                      typeof moduleOptionsValues[fieldName] === "string"
+                        ? moduleOptionsValues[fieldName]
                         : descriptor.defaultValue
                     }
                   />
                   <Button
                     type="button"
-                    disabled={isLoadingData || hasUnsupportedCatalogOptions}
+                    disabled={isLoadingData || hasUnsupportedModuleOptions}
                     onClick={() => {
-                      void onCatalogOptionsChange(currentCatalogOptions.current);
+                      void onModuleOptionsChange(currentModuleOptions.current);
                     }}
                   >
                     Submit
@@ -176,7 +173,7 @@ export function FetcherConfiguration(props: {
         {dataError !== undefined ? (
           <div
             className="mt-5 rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-800"
-            data-testid="catalog-data-error"
+            data-testid="module-data-error"
             role="alert"
           >
             <p className="m-0 font-mono font-semibold">{dataError.code}</p>
@@ -187,7 +184,7 @@ export function FetcherConfiguration(props: {
         {requestError !== undefined ? (
           <div
             className="mt-5 rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-800"
-            data-testid="catalog-request-error"
+            data-testid="module-request-error"
             role="alert"
           >
             {requestError}

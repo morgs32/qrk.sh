@@ -6,14 +6,14 @@ test("resets legacy brick drafts while retaining width and unrelated storage", a
   await page.goto("/");
   await page.evaluate(() => {
     localStorage.setItem(
-      "qrk-bricks-sandbox-responsive-bricks-v2",
+      "qrk-bricks-sandbox-responsive-bricks-v3",
       JSON.stringify({
         version: 0,
         state: {
           selectedWidth: 640,
           bricksById: {
             old: {
-              catalogId: "github",
+              moduleId: "github",
               contentId: "profile",
               viewId: "4x4",
               xs: {
@@ -31,10 +31,10 @@ test("resets legacy brick drafts while retaining width and unrelated storage", a
   await expect(page.getByLabel("Brick grid").locator(".react-grid-layout")).toBeVisible();
   await expect(page.getByLabel("Brick grid").locator("[data-brick-id]")).toHaveCount(0);
   const saved = await page.evaluate(() => ({
-    workbench: JSON.parse(localStorage.getItem("qrk-bricks-sandbox-responsive-bricks-v2")!),
+    workbench: JSON.parse(localStorage.getItem("qrk-bricks-sandbox-responsive-bricks-v3")!),
     site: localStorage.getItem("qrk-site-editor-drafts-v2"),
   }));
-  expect(saved.workbench.version).toBe(2);
+  expect(saved.workbench.version).toBe(3);
   expect(saved.workbench.state.bricksById).toEqual({});
   expect(saved.workbench.state.selectedWidth).toBe(640);
   expect(saved.site).toBe("preserved-site-draft");

@@ -1,6 +1,6 @@
 "use client";
 import { useUser } from "@clerk/react";
-import { groupsHash } from "@qrk.sh/library";
+import { modulesHash } from "@qrk.sh/library";
 import { useBrickBreakpoint } from "@qrk.sh/library/BrickBreakpointProvider";
 import { BrickPreviewFrame } from "@qrk.sh/library/BrickPreviewFrame";
 import { Schema } from "effect";
@@ -32,9 +32,7 @@ export function BrickDetail() {
   const placement = useBrickDrawerStore((state) =>
     state.pageGrids[pageKey]?.layout.find((item) => item.i === params.brickId),
   );
-  const group = brickDef ? groupsHash[brickDef.groupId] : undefined;
-  const content = brickDef ? group?.catalogs[brickDef.catalogId] : undefined;
-  const brick = brickDef ? content : undefined;
+  const brick = brickDef ? modulesHash[brickDef.moduleId] : undefined;
   const BrickComponent = brick?.component;
 
   return (
@@ -58,7 +56,7 @@ export function BrickDetail() {
         {!brick || !BrickComponent ? (
           <div className="px-6 pt-6" data-testid="brick-not-found">
             <Link to={href("/:username/site/:siteId/page/:pageId/brick-group", params)}>
-              All groups
+              All modules
             </Link>
             <h1 className="mb-2 mt-8 text-4xl font-semibold tracking-tight">Brick not found</h1>
             <p className="text-muted-foreground">
@@ -71,12 +69,12 @@ export function BrickDetail() {
               <Link
                 to={href("/:username/site/:siteId/page/:pageId/brick-group/:groupName", {
                   ...params,
-                  groupName: brick.def.groupId,
+                  groupName: brick.def.moduleId,
                 })}
                 className="inline-flex items-center gap-2 text-sm"
               >
                 <ArrowLeft aria-hidden className="size-4" />
-                <span>Back to {brick.def.groupLabel}</span>
+                <span>Back to {brick.def.moduleLabel}</span>
               </Link>
               <p className="mb-0 mt-8 text-sm text-muted-foreground">Brick detail</p>
               <h1
@@ -85,9 +83,7 @@ export function BrickDetail() {
               >
                 {brick.def.label}
               </h1>
-              <p className="mt-0 font-mono text-sm text-muted-foreground">
-                {brick.def.groupId}/{brick.def.catalogId}
-              </p>
+              <p className="mt-0 font-mono text-sm text-muted-foreground">{brick.def.moduleId}</p>
             </div>
             <div className="mt-8 overflow-auto">
               <BrickPreviewFrame
@@ -98,7 +94,7 @@ export function BrickDetail() {
                   className="size-full qrk-bricks overflow-hidden"
                   data-testid="selected-brick-preview"
                 >
-                  <BrickComponent breakpoint={breakpoint} data={content?.defaultData} />
+                  <BrickComponent breakpoint={breakpoint} data={brick.defaultData} />
                 </div>
               </BrickPreviewFrame>
             </div>

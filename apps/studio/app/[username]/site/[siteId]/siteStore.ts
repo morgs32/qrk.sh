@@ -37,6 +37,7 @@ interface IOwnerDraft {
 interface ISiteStoreState {
   readonly owners: Readonly<Record<string, IOwnerDraft>>;
   readonly initializePageDraft: (identityKey: string, siteId: string, pageId: string) => void;
+  readonly setSiteName: (identityKey: string, siteId: string, name: string) => void;
   readonly setSiteDescription: (identityKey: string, siteId: string, description: string) => void;
   readonly setPageTitle: (
     identityKey: string,
@@ -238,6 +239,31 @@ export const useSiteStore = create<ISiteStoreState>()(
                         },
                       },
                     },
+                  },
+                },
+              },
+            },
+          };
+        });
+      },
+      setSiteName: (identityKey, siteId, name) => {
+        set((state) => {
+          const ownerDraft = state.owners[identityKey];
+          const siteDraft = ownerDraft?.sites[siteId];
+
+          if (ownerDraft === undefined || siteDraft === undefined) {
+            return state;
+          }
+
+          return {
+            owners: {
+              ...state.owners,
+              [identityKey]: {
+                sites: {
+                  ...ownerDraft.sites,
+                  [siteId]: {
+                    ...siteDraft,
+                    name,
                   },
                 },
               },

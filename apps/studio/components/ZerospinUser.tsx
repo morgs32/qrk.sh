@@ -36,6 +36,10 @@ const sessionLayer = Layer.mergeAll(
 export const ZerospinApp = makeZerospinApp<typeof system>({
   systemName: "qrk-sh",
   layer: sessionLayer,
+  devtools: {
+    load: import.meta.env.DEV,
+    defaultOpen: false,
+  },
 });
 
 export const ZerospinUser = ZerospinApp.makeFrontend(userFrontend);

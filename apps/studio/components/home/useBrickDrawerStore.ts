@@ -1,4 +1,4 @@
-import type { IGroupBrickDef } from "@qrk.sh/library";
+import type { IModuleBrickDef } from "@qrk.sh/library";
 import { Result, Schema } from "effect";
 import type { Layout } from "react-grid-layout";
 import { create } from "zustand";
@@ -6,7 +6,7 @@ import { create } from "zustand";
 export const BRICK_DRAG_MIME = "application/x-qrk-brick-def";
 
 type BrickDrawerDragState = {
-  pageGrids: Record<string, { layout: Layout; bricksById: Record<string, IGroupBrickDef> }>;
+  pageGrids: Record<string, { layout: Layout; bricksById: Record<string, IModuleBrickDef> }>;
   activeBrickDragGridShape: { w: number; h: number } | null;
   registerActiveBrickDragGridShape: (w: number, h: number) => void;
   unregisterActiveBrickDragGridShape: () => void;
@@ -29,23 +29,21 @@ export function getActiveBrickDragGridShape(): { w: number; h: number } | null {
 
 const BrickDragDefFromJsonStringSchema = Schema.fromJsonString(
   Schema.Struct({
-    groupId: Schema.String,
-    groupLabel: Schema.String,
+    moduleId: Schema.String,
+    moduleLabel: Schema.String,
     label: Schema.String,
-    catalogId: Schema.String,
-
     order: Schema.Number,
     xs: Schema.Struct({ w: Schema.Number, h: Schema.Number }),
     sm: Schema.Struct({ w: Schema.Number, h: Schema.Number }),
     lg: Schema.Struct({ w: Schema.Number, h: Schema.Number }),
     xl: Schema.Struct({ w: Schema.Number, h: Schema.Number }),
     data: Schema.Unknown,
-  }) satisfies Schema.Schema<IGroupBrickDef>,
+  }) satisfies Schema.Schema<IModuleBrickDef>,
 );
 
 export function parseBrickDefFromDataTransfer(
   dataTransfer: DataTransfer | null,
-): IGroupBrickDef | null {
+): IModuleBrickDef | null {
   if (!dataTransfer) {
     return null;
   }

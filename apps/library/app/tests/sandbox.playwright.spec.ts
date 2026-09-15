@@ -4,7 +4,7 @@ test("shares one persisted grid across the root, group, and detail routes", asyn
   await page.goto("/");
   await page.evaluate(() => {
     window.localStorage.removeItem("qrk-bricks-sandbox-grid");
-    window.localStorage.removeItem("qrk-bricks-sandbox-responsive-bricks-v2");
+    window.localStorage.removeItem("qrk-bricks-sandbox-responsive-bricks-v3");
   });
   await page.reload();
   await page.waitForLoadState("networkidle");
@@ -14,19 +14,19 @@ test("shares one persisted grid across the root, group, and detail routes", asyn
   await toolbar.getByRole("button", { name: "Bricks", exact: true }).click();
   await expect(drawer).toBeVisible();
 
-  await expect(drawer.locator("[data-group-link]")).toHaveCount(10);
-  await expect(drawer.locator("[data-group-entry]")).toHaveCount(10);
-  await expect(drawer.locator("[data-group-representative]")).toHaveCount(10);
-  await expect(drawer.getByLabel("Brick groups")).toBeVisible();
+  await expect(drawer.locator("[data-module-link]")).toHaveCount(10);
+  await expect(drawer.locator("[data-module-entry]")).toHaveCount(10);
+  await expect(drawer.locator("[data-module-representative]")).toHaveCount(10);
+  await expect(drawer.getByLabel("Brick modules")).toBeVisible();
   await expect(
     drawer
-      .locator('[data-group-entry="github"]')
-      .locator('[data-group-representative="github/profile"]')
+      .locator('[data-module-entry="github"]')
+      .locator('[data-module-representative="github/profile"]')
       .getByText("@morgs32"),
   ).toBeVisible();
 
-  const swatchGroup = drawer.locator('[data-group-entry="swatch"]');
-  await swatchGroup.scrollIntoViewIfNeeded();
+  const swatchModule = drawer.locator('[data-module-entry="swatch"]');
+  await swatchModule.scrollIntoViewIfNeeded();
 
   const rootGrid = page.getByLabel("Brick grid");
   await expect(rootGrid).toBeVisible();
@@ -36,10 +36,10 @@ test("shares one persisted grid across the root, group, and detail routes", asyn
   const rootGridLayout = rootGrid.locator(".react-grid-layout");
 
   await drawer
-    .locator('[data-group-representative="swatch/default"]')
+    .locator('[data-module-representative="swatch/default"]')
     .dragTo(rootGridLayout, { targetPosition: { x: 20, y: 20 } });
   await drawer
-    .locator('[data-group-representative="icon/default"]')
+    .locator('[data-module-representative="icon/default"]')
     .dragTo(rootGridLayout, { targetPosition: { x: 180, y: 20 } });
 
   const swatchBrick = page.locator('[data-brick="swatch/default"]');
@@ -74,11 +74,11 @@ test("shares one persisted grid across the root, group, and detail routes", asyn
 
   await toolbar.getByRole("button", { name: "Bricks", exact: true }).click();
   await expect(drawer).toBeVisible();
-  await drawer.locator('[data-group-link="swatch"]').click();
+  await drawer.locator('[data-module-link="swatch"]').click();
   await page.waitForLoadState("networkidle");
   expect(await persistentGridElement?.evaluate((element) => element.isConnected)).toBe(true);
-  await expect(drawer.locator("[data-catalog-brick]")).toHaveCount(1);
-  await expect(drawer.locator('[data-catalog-brick="swatch/default"]')).toBeVisible();
+  await expect(drawer.locator("[data-module-brick]")).toHaveCount(1);
+  await expect(drawer.locator('[data-module-brick="swatch/default"]')).toBeVisible();
 
   const groupGrid = page.getByLabel("Brick grid");
   await expect(groupGrid.getByTestId(/grid-fixture-/)).toHaveCount(0);
@@ -93,7 +93,7 @@ test("shares one persisted grid across the root, group, and detail routes", asyn
   await expect(swatchBrick).toBeVisible();
   await expect(iconBrick).toBeVisible();
   await expect(drawer).toBeVisible();
-  await drawer.locator('[data-group-link="swatch"]').click();
+  await drawer.locator('[data-module-link="swatch"]').click();
 
   const swatchBrickId = await swatchBrick.getAttribute("data-brick-id");
   expect(swatchBrickId).not.toBeNull();
@@ -114,11 +114,11 @@ test("shares one persisted grid across the root, group, and detail routes", asyn
   await expect(restoredSwatchBrick).toHaveAttribute("data-grid-x", movedGridX ?? "");
   await expect(restoredSwatchBrick).toHaveAttribute("data-grid-y", movedGridY ?? "");
 
-  await page.goto("/groups/swatch/brick/missing-brick");
+  await page.goto("/modules/swatch/brick/missing-brick");
   await expect(page.getByTestId("brick-not-found")).toBeVisible();
   await expect(page.getByLabel("Brick grid")).toBeVisible();
 
-  await page.goto(`/groups/icon/brick/${swatchBrickId}`);
+  await page.goto(`/modules/icon/brick/${swatchBrickId}`);
   await expect(page.getByTestId("brick-not-found")).toBeVisible();
   await expect(page.locator('[data-brick="swatch/default"]')).toBeVisible();
   await expect(page.locator('[data-brick="icon/default"]')).toBeVisible();
@@ -159,9 +159,9 @@ test("renders default GitHub profile data in the direct preview", async ({ page 
 });
 
 test("loads a selected Google place into the Map preview", async ({ page }) => {
-  await page.goto("/groups/map/place");
+  await page.goto("/modules/map-place");
 
-  const mapPreview = page.locator('[data-catalog-brick="map/place"]');
+  const mapPreview = page.locator('[data-module-brick="map/place"]');
   await expect(
     mapPreview.locator('[data-map-place-id="ChIJ7cv00DwsDogRAMDACa2m4K8"]'),
   ).toBeVisible();
@@ -179,7 +179,7 @@ test("loads a selected Google place into the Map preview", async ({ page }) => {
   await placeLookup.press("Enter");
   await expect(page.getByRole("listbox")).toHaveCount(0);
 
-  const result = page.getByTestId("catalog-data-result");
+  const result = page.getByTestId("module-data-result");
   await expect(result).toContainText('name:"Millennium Park"');
   await expect(result).toContainText("latitude:");
   await expect(result).toContainText("longitude:");
@@ -193,8 +193,8 @@ test("loads a selected Google place into the Map preview", async ({ page }) => {
 
 test("searches Streamline and loads the selected SVG into every Icon preview", async ({ page }) => {
   test.setTimeout(60_000);
-  await page.goto("/groups/icon/default");
-  const previewImage = page.locator("[data-catalog-brick] img");
+  await page.goto("/modules/icon");
+  const previewImage = page.locator("[data-module-brick] img");
   await expect(previewImage).toBeVisible();
   const initialSource = await previewImage.getAttribute("src");
   if (initialSource === null) throw new Error("Expected an initial icon image");
@@ -210,19 +210,19 @@ test("searches Streamline and loads the selected SVG into every Icon preview", a
   await (await svgResponse).finished();
   await expect(page.getByRole("status")).toHaveCount(0);
   const errors = await page
-    .locator('[data-testid="catalog-data-error"], [data-testid="catalog-request-error"]')
+    .locator('[data-testid="module-data-error"], [data-testid="module-request-error"]')
     .allTextContents();
   expect(errors).toEqual([]);
   await expect(firstIcon).toHaveAttribute("aria-selected", "true");
   await expect(page.getByRole("button", { name: "Get data" })).toHaveCount(0);
 
-  const result = page.getByTestId("catalog-data-result");
+  const result = page.getByTestId("module-data-result");
   await expect(result).toContainText("ico_");
   await expect(result).toContainText("<svg");
   await expect(previewImage).not.toHaveAttribute("src", initialSource);
   const selectedSource = await previewImage.getAttribute("src");
   if (selectedSource === null) throw new Error("Expected the selected icon image");
-  await expect(page.getByTestId("catalog-data-error")).toHaveCount(0);
+  await expect(page.getByTestId("module-data-error")).toHaveCount(0);
 
   await expect(previewImage).toHaveAttribute("src", selectedSource);
 });
@@ -233,8 +233,8 @@ test("renders the Map brick through preview, group, Grid, and detail boundaries"
   await page.goto("/bricks/map/place");
   await expect(page.getByTestId("brick-preview").locator(".mapboxgl-canvas")).toBeVisible();
 
-  await page.goto("/groups/map");
-  const groupMap = page.locator('[data-catalog-brick="map/place"]');
+  await page.goto("/modules/map-place");
+  const groupMap = page.locator('[data-module-brick="map/place"]');
   await expect(groupMap.locator(".mapboxgl-canvas")).toBeVisible();
 
   const grid = page.getByLabel("Brick grid").locator(".react-grid-layout");
@@ -250,7 +250,7 @@ test("renders the Map brick through preview, group, Grid, and detail boundaries"
 });
 
 test("renders one Figma thumbnail content", async ({ page }) => {
-  await page.goto("/groups/figma");
+  await page.goto("/modules/figma-thumbnail");
   await expect(page.getByRole("link", { name: "Thumbnail", exact: true })).toBeVisible();
   const card = page.locator('[data-figma-card="thumbnail"]');
   await expect(card).toBeVisible();
@@ -265,7 +265,7 @@ test("renders the GitHub profile responsive presentation", async ({ page }) => {
 });
 
 test("authors Text group content as Tiptap JSON", async ({ page }) => {
-  await page.goto("/groups/text/default");
+  await page.goto("/modules/text");
   await page.waitForLoadState("networkidle");
 
   const editor = page.getByLabel("Text content");
@@ -276,37 +276,37 @@ test("authors Text group content as Tiptap JSON", async ({ page }) => {
   await editor.selectText();
   await page.getByRole("button", { name: "Bold" }).click();
 
-  const catalogOptions = page.getByTestId("catalog-data-result");
-  await expect(catalogOptions).toContainText("Hello from Tiptap");
-  await expect(catalogOptions).toContainText("bold");
+  const moduleOptions = page.getByTestId("module-data-result");
+  await expect(moduleOptions).toContainText("Hello from Tiptap");
+  await expect(moduleOptions).toContainText("bold");
 });
 
 test("shows one catalog configuration directly from the group", async ({ page }) => {
-  await page.goto("/groups/github");
-  const pane = page.getByTestId("catalog-configuration-pane");
+  await page.goto("/modules/github-profile");
+  const pane = page.getByTestId("module-configuration-pane");
   await expect(pane).toBeVisible();
   await expect(page.getByLabel("Brick grid")).toHaveCount(1);
   await expect(page.getByText("Catalog name", { exact: true })).toBeVisible();
   await expect(page.getByText("View", { exact: true })).toHaveCount(0);
-  await expect(page.locator('[data-catalog-brick="github/profile"]')).toContainText("@morgs32");
+  await expect(page.locator('[data-module-brick="github/profile"]')).toContainText("@morgs32");
   await expect(page.getByLabel("URL", { exact: true })).toHaveValue("https://github.com/morgs32");
 });
 
 test("updates the GitHub profile preview and retains the last success after an error", async ({
   page,
 }) => {
-  await page.goto("/groups/github/profile");
+  await page.goto("/modules/github-profile");
   await page.waitForLoadState("networkidle");
 
   const urlInput = page.getByLabel("url");
   await expect(urlInput).toHaveValue("https://github.com/morgs32");
   await urlInput.fill("https://github.com/octocat");
 
-  const result = page.getByTestId("catalog-data-result");
+  const result = page.getByTestId("module-data-result");
   await expect(result).toBeVisible();
   await expect(result).toContainText('login:"octocat"');
   await expect(
-    page.locator('[data-catalog-brick="github/profile"]').getByText("@octocat"),
+    page.locator('[data-module-brick="github/profile"]').getByText("@octocat"),
   ).toBeVisible();
 
   await result.getByText('"octocat"', { exact: true }).dblclick();
@@ -314,25 +314,25 @@ test("updates the GitHub profile preview and retains the last success after an e
   await result.getByRole("textbox").press("Enter");
   await expect(result).toContainText('login:"edited-fetched"');
   await expect(
-    page.locator('[data-catalog-brick="github/profile"]').getByText("@edited-fetched"),
+    page.locator('[data-module-brick="github/profile"]').getByText("@edited-fetched"),
   ).toBeVisible();
 
   await page.getByLabel("url").fill("https://github.com/topics/effect");
 
-  const error = page.getByTestId("catalog-data-error");
+  const error = page.getByTestId("module-data-error");
   await expect(error).toBeVisible();
   await expect(error).toContainText("invalid-scrape-request");
   await expect(error).toContainText("GitHub scrapes require https://github.com/<login>");
   await expect(result).toContainText('login:"edited-fetched"');
   await expect(
-    page.locator('[data-catalog-brick="github/profile"]').getByText("@edited-fetched"),
+    page.locator('[data-module-brick="github/profile"]').getByText("@edited-fetched"),
   ).toBeVisible();
 });
 
 test("renders one responsive presentation on a catalog page", async ({ page }) => {
-  await page.goto("/groups/swatch/default");
+  await page.goto("/modules/swatch");
   await expect(page.getByText("View", { exact: true })).toHaveCount(0);
-  await expect(page.locator('[data-catalog-brick="swatch/default"]')).toHaveCount(1);
+  await expect(page.locator('[data-module-brick="swatch/default"]')).toHaveCount(1);
 });
 
 test("resizes the preview proportionally and switches canvas theme", async ({ page }) => {
@@ -361,8 +361,8 @@ test("resizes the preview proportionally and switches canvas theme", async ({ pa
 });
 
 test("shows explicit not-found states", async ({ page }) => {
-  await page.goto("/groups/not-a-group");
-  await expect(page.getByTestId("group-not-found")).toBeVisible();
+  await page.goto("/modules/not-a-module");
+  await expect(page.getByTestId("module-not-found")).toBeVisible();
 
   await page.goto("/bricks/swatch/not-a-catalog");
   await expect(page.getByTestId("brick-not-found")).toBeVisible();

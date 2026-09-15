@@ -44,10 +44,18 @@ function ZerospinDevtoolsMountConfirmation(props: { onMounted: () => void }) {
   return null;
 }
 
-export function ZerospinDevtoolsLoader() {
+export function ZerospinDevtoolsLoader(props: {
+  load?: boolean;
+  defaultOpen?: boolean;
+}) {
+  const { load = false, defaultOpen = false } = props;
   const [LoadedZerospinDevtools, setLoadedZerospinDevtools] =
-    useState<ComponentType | null>(null);
-  const loadedZerospinDevtoolsRef = useRef<ComponentType | null>(null);
+    useState<ComponentType<{ config?: { defaultOpen?: boolean } }> | null>(
+      null,
+    );
+  const loadedZerospinDevtoolsRef = useRef<ComponentType<{
+    config?: { defaultOpen?: boolean };
+  }> | null>(null);
   const isMountedRef = useRef(false);
   const resolveMountRef = useRef<(() => void) | null>(null);
   const rejectMountRef = useRef<((error: unknown) => void) | null>(null);
@@ -94,6 +102,11 @@ export function ZerospinDevtoolsLoader() {
     const devtools = { open: zerospinDevtoolsController.open };
     zerospinNamespace.devtools = devtools;
 
+    // Eager mount keeps the floating trigger available without a console open().
+    if (load) {
+      void loadZerospinDevtools();
+    }
+
     return () => {
       isMountedRef.current = false;
       unregisterLoader();
@@ -116,11 +129,11 @@ export function ZerospinDevtoolsLoader() {
         }
       }
     };
-  }, [loadZerospinDevtools]);
+  }, [load, loadZerospinDevtools]);
 
   return LoadedZerospinDevtools === null ? null : (
     <ZerospinDevtoolsMountBoundary onError={handleZerospinDevtoolsMountError}>
-      <LoadedZerospinDevtools />
+      <LoadedZerospinDevtools config={{ defaultOpen }} />
       <ZerospinDevtoolsMountConfirmation
         onMounted={handleZerospinDevtoolsMounted}
       />

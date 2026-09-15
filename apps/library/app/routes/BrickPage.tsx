@@ -5,25 +5,23 @@ import {
   Link,
   useParams,
   type LoaderFunctionArgs,
-  useRouteError,
-} from "react-router";
+  useRouteError} from "react-router";
 
 import { BrickBreakpointProvider } from "../../BrickBreakpointProvider";
 import { BrickPreviewFrame } from "../../BrickPreviewFrame";
-import { groupsHash } from "../../groupsHash";
+import { modulesHash } from "../../modulesHash";
 
 export function loader({ params }: LoaderFunctionArgs) {
-  if (!params.groupName || !params.catalog) throw new Response("Not found", { status: 404 });
-  if (!groupsHash[params.groupName]?.catalogs[params.catalog])
-    throw new Response("Not found", { status: 404 });
+  if (!params.moduleId) throw new Response("Not found", { status: 404 });
+  if (!modulesHash[params.moduleId]) throw new Response("Not found", { status: 404 });
   return null;
 }
 
 export default function BrickPage() {
   const params = useParams();
-  if (!params.groupName || !params.catalog) throw new Response("Not found", { status: 404 });
-  const catalog = groupsHash[params.groupName]?.catalogs[params.catalog];
-  const brick = catalog;
+  if (!params.moduleId) throw new Response("Not found", { status: 404 });
+  const module = modulesHash[params.moduleId];
+  const brick = module;
 
   if (!brick) {
     throw new Response("Not found", { status: 404 });
@@ -38,8 +36,8 @@ export default function BrickPage() {
       {({ containerRef, breakpoint }) => (
         <main className="min-h-screen">
           <div className="mx-auto max-w-7xl p-6">
-            <Link to={`/groups/${encodeURIComponent(brick.def.groupId)}`} className="text-sm">
-              Back to {brick.def.groupLabel}
+            <Link to={`/modules/${encodeURIComponent(brick.def.moduleId)}`} className="text-sm">
+              Back to {brick.def.moduleLabel}
             </Link>
 
             <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
@@ -56,7 +54,7 @@ export default function BrickPage() {
                   <div ref={containerRef} style={{ width: gridWidth }}>
                     <BrickPreviewFrame w={brick.def[breakpoint].w} h={brick.def[breakpoint].h}>
                       <div className="size-full overflow-hidden" data-testid="brick-preview">
-                        <BrickComponent breakpoint={breakpoint} data={catalog.defaultData} />
+                        <BrickComponent breakpoint={breakpoint} data={module.defaultData} />
                       </div>
                     </BrickPreviewFrame>
                   </div>
@@ -65,14 +63,12 @@ export default function BrickPage() {
 
               <aside className="rounded-xl border border-zinc-300 bg-white p-5">
                 <p className="mb-2 text-xs font-medium uppercase tracking-[0.16em] text-zinc-500">
-                  Brick catalog
+                  Brick module
                 </p>
                 <h1 className="m-0 text-2xl font-semibold">{brick.def.label}</h1>
                 <dl className="grid grid-cols-[7rem_1fr] gap-x-3 gap-y-2 text-sm">
-                  <dt className="text-zinc-500">Group</dt>
-                  <dd className="m-0 font-mono">{brick.def.groupId}</dd>
-                  <dt className="text-zinc-500">Catalog</dt>
-                  <dd className="m-0 font-mono">{brick.def.catalogId}</dd>
+                  <dt className="text-zinc-500">Module</dt>
+                  <dd className="m-0 font-mono">{brick.def.moduleId}</dd>
                   <dt className="text-zinc-500">Width</dt>
                   <dd className="m-0">{brick.def[breakpoint].w}</dd>
                   <dt className="text-zinc-500">Height</dt>
@@ -115,8 +111,8 @@ export function ErrorBoundary() {
     <main className="min-h-screen" data-testid="brick-not-found">
       <div className="mx-auto max-w-3xl p-6">
         <h1>Brick not found</h1>
-        <p>The requested group and catalog are not registered in the group.</p>
-        <Link to="/">Return to all groups</Link>
+        <p>The requested module is not registered in the library.</p>
+        <Link to="/">Return to all modules</Link>
       </div>
     </main>
   );

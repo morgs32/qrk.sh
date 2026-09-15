@@ -20,62 +20,39 @@ export default [
           {
             index: true,
             lazy: async () => {
-              const { default: GroupsPage } = await import("./routes/GroupsPage");
-              return { Component: GroupsPage };
-            },
-          },
+              const { default: ModulesPage } = await import("./routes/ModulesPage");
+              return { Component: ModulesPage };
+            }},
           {
-            path: "groups/:groupName",
+            path: "modules/:moduleId",
             lazy: async () => {
               const {
-                default: GroupPage,
+                default: ModulePage,
                 loader,
-                ErrorBoundary,
-              } = await import("./routes/GroupPage");
-              return { Component: GroupPage, loader, ErrorBoundary };
+                ErrorBoundary} = await import("./routes/ModulePage");
+              return { Component: ModulePage, loader, ErrorBoundary };
             },
             children: [
               {
                 index: true,
                 lazy: async () => {
-                  const { default: CatalogConfiguration, ErrorBoundary } =
-                    await import("./routes/CatalogConfiguration");
-                  return { Component: CatalogConfiguration, ErrorBoundary };
-                },
-              },
-              {
-                path: ":catalogName",
-                lazy: async () => {
-                  const {
-                    default: CatalogConfiguration,
-                    loader,
-                    ErrorBoundary,
-                  } = await import("./routes/CatalogConfiguration");
-                  return {
-                    Component: CatalogConfiguration,
-                    loader,
-                    ErrorBoundary,
-                  };
-                },
-              },
+                  const { default: ModuleConfiguration, ErrorBoundary } =
+                    await import("./routes/ModuleConfiguration");
+                  return { Component: ModuleConfiguration, ErrorBoundary };
+                }},
               {
                 path: "brick/:brickId",
                 lazy: async () => {
                   const { default: BrickDetail } = await import("./routes/BrickDetail");
                   return { Component: BrickDetail };
-                },
-              },
-            ],
-          },
-        ],
-      },
+                }},
+            ]},
+        ]},
       {
-        path: "bricks/:groupName/:catalog",
+        path: "bricks/:moduleId",
         lazy: async () => {
           const { default: BrickPage, loader, ErrorBoundary } = await import("./routes/BrickPage");
           return { Component: BrickPage, loader, ErrorBoundary };
-        },
-      },
-    ],
-  },
+        }},
+    ]},
 ] satisfies RouteObject[];

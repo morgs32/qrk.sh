@@ -5,14 +5,13 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, expectTypeOf, it, vi } from "vite-plus/test";
 
 import { Configuration } from "./app/Configuration";
-import { makeGroup } from "./makeGroup";
 import { makeFormConfiguration } from "./makeFormConfiguration";
-import { makeCatalog } from "./makeCatalog";
+import { makeModule } from "./makeModule";
 
 describe("form configuration", () => {
-  it("preserves a typed data form through content and group creation", () => {
+  it("preserves a typed data form through module creation", () => {
     const dataShape = { text: primitives.text() };
-    const content = makeCatalog({
+    const module = makeModule({
       id: "default",
       label: "Default",
       description: "Editable text",
@@ -28,18 +27,12 @@ describe("form configuration", () => {
       order: 0,
       xs: { component: () => null, w: 1, h: 1 },
     });
-    const group = makeGroup({
-      id: "test",
-      label: "Test",
-      description: "Test",
-      catalogs: { default: content },
-    });
-    const configuration = group.catalogs.default?.configuration;
+    const configuration = module.configuration;
     if (configuration?.configurationType !== "form") throw new Error("Expected form");
     const onChange = vi.fn();
     const html = renderToStaticMarkup(
       createElement(Configuration, {
-        catalog: group.catalogs.default,
+        module,
         data: { text: "Rendered" },
         setData: onChange,
       }),

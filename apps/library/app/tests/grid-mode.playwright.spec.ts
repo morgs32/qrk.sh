@@ -8,7 +8,7 @@ test("whole bricks move while the edit icon opens inspection", async ({ page }) 
   await expect(page.getByRole("group", { name: "Grid mode" })).toHaveCount(0);
   const grid = page.getByLabel("Brick grid");
   const canvas = grid.locator(".react-grid-layout");
-  const source = drawer.locator('[data-group-representative="swatch/default"]');
+  const source = drawer.locator('[data-module-representative="swatch/default"]');
   await source.dragTo(canvas, { targetPosition: { x: 20, y: 20 } });
   const brick = grid.locator("[data-brick-id]").first();
   await expect(brick).toBeVisible();
@@ -28,7 +28,7 @@ test("whole bricks move while the edit icon opens inspection", async ({ page }) 
   const moved = await brick.getAttribute("data-grid-x");
   await brick.getByRole("link").focus();
   await page.keyboard.press("Enter");
-  await expect(page).toHaveURL(new RegExp(`/groups/swatch/brick/${id}$`));
+  await expect(page).toHaveURL(new RegExp(`/modules/swatch/brick/${id}$`));
   await page.reload();
   await expect(brick).toHaveAttribute("data-grid-x", moved ?? "");
   await expect(brick.getByRole("link")).toBeVisible();

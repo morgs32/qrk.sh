@@ -33,7 +33,7 @@ Prefer **one primary React component per file** (matching the PascalCase file na
 
 ### Good vs bad: BrickGroup carousel slides (one panel per brick)
 
-The brick group drawer uses shadcn `Carousel` (Embla) **per group**. Each brick is **one slide**: a bordered panel (`basis-full` on `CarouselItem`) with the draggable preview slot sized in CSS as **`calc(def[breakpoint].w * 50vw / 8)`** by **`calc(def[breakpoint].h * 50vw / 8)`**, i.e. half the viewport (site workspace `w-1/2`) divided into eight columns—the same column count [Grid.tsx](../../apps/studio/app/[username]/site/[siteId]/page/[pageId]/Grid.tsx) uses (`GRID_COLS`). The grid itself still sizes cells from **measured** container width divided by column count (`rowHeight`), so previews can differ slightly (scrollbar, sub-pixel).
+The brick group drawer uses shadcn `Carousel` (Embla) **per module**. Each brick is **one slide**: a bordered panel (`basis-full` on `CarouselItem`) with the draggable preview slot sized in CSS as **`calc(def[breakpoint].w * 50vw / 8)`** by **`calc(def[breakpoint].h * 50vw / 8)`**, i.e. half the viewport (site workspace `w-1/2`) divided into eight columns—the same column count [Grid.tsx](../../apps/studio/app/[username]/site/[siteId]/page/[pageId]/Grid.tsx) uses (`GRID_COLS`). The grid itself still sizes cells from **measured** container width divided by column count (`rowHeight`), so previews can differ slightly (scrollbar, sub-pixel).
 
 ### Good vs bad: `BrickPreview` props (inline types, no cross-file props export)
 
@@ -41,70 +41,65 @@ Keep [BrickPreview.tsx](../../apps/studio/app/[username]/site/[siteId]/page/[pag
 
 - **Bad**: `export type BrickPreviewProps` in `BrickGroup.tsx` and `import { BrickPreviewProps } from './BrickGroup'` in `BrickPreview.tsx` (parent owns types for a child it does not implement).
 
-- **Good**: annotate the preview’s props inline on `BrickPreview` with **`{ brick: IGroupBrick }`**. Group rows are built with **`makeCatalog`** (data, configuration, dimensions, appearance form, and responsive presentations) and **`makeGroup`** (**`catalogs[catalog]`**). Drawer drag uses native **`DataTransfer`** ([`BRICK_DRAG_MIME` / `useBrickDrawerStore`](../../apps/studio/components/home/useBrickDrawerStore.ts)); [siteStore.ts](../../apps/studio/app/[username]/site/[siteId]/siteStore.ts) persists only serializable site and page draft data, including each page’s `layout`, without React components.
+- **Good**: annotate the preview’s props inline on `BrickPreview` with **`{ brick: IModuleBrick }`**. Group rows are built with **`makeModule`** (data, configuration, dimensions, appearance form, and responsive presentations). Drawer drag uses native **`DataTransfer`** ([`BRICK_DRAG_MIME` / `useBrickDrawerStore`](../../apps/studio/components/home/useBrickDrawerStore.ts)); [siteStore.ts](../../apps/studio/app/[username]/site/[siteId]/siteStore.ts) persists only serializable site and page draft data, including each page’s `layout`, without React components.
 
 **Same idea for small factories**: if only one function consumes the shape, **inline the object type on the function**—do **not** export `MakeBrickGroupProps`-style types unless a second module genuinely needs to reference that exact type.
 
-### Good vs bad: brick group types (`IBrick`, `IGroupBrick`, `IGroupBrickDef`)
+### Good vs bad: brick module types (`IBrick`, `IModuleBrick`, `IModuleBrickDef`)
 
 - **Bad**: ad hoc **`typeId`** strings on every group row, or passing full brick objects (including **`component`**) into Zustand for external drag.
 
-- **Good**: `IGroupBrickDef` contains serializable group and catalog identity, initial dimensions, label, order, and data. `makeCatalog` produces `def` and a responsive `component`; `makeGroup` adds group scope and verifies each catalog key matches `def.catalogId`.
+- **Good**: `IModuleBrickDef` contains serializable module identity, initial dimensions, label, order, and data. `makeModule` produces `def` (including `moduleId` / `moduleLabel`) and a responsive `component`.
 
-### Catalog and brick identity
+### Module and brick identity
 
-A **catalog** connects data and configuration to one responsive presentation within a group, such as GitHub `profile` or `repo`. A **brick** is a placed instance with its own `brickId`. Group entries are identified by `(group.id, catalogId)`, independently of dimensions. There is no view collection or view identity.
+A **module** connects data and configuration to one responsive presentation, such as `github-profile` or `figma-thumbnail`. A **brick** is a placed instance with its own `brickId`. Modules are identified by `moduleId`, independently of dimensions. There is no group or catalog nesting.
 
-Use kebab-case catalog identifiers. Site drawer selectors expose `data-brick-drawer-group-name` and `data-brick-drawer-catalog`; placed wrappers expose `data-brick-group-name`, `data-brick-catalog`, and `data-brick-id`.
+Use kebab-case module identifiers. Site drawer selectors expose `data-brick-drawer-module-id`; placed wrappers expose `data-brick-module-id` and `data-brick-id`.
 
-### Catalog folders under each group
+### Module folders
 
-Presentations, catalog forms, catalog-only helpers, catalog-owned `*Repo`
-Durable Objects, and catalog assets live under
-`apps/library/groups/<group-id>/catalogs/<catalog-id>/`, where `<group-id>` and
-`<catalog-id>` match the kebab-case `makeGroup` / `makeCatalog` `id` values
-(for example `github`/`profile`, `figma`/`thumbnail`, `icon`/`default`).
-The group assembler (camelCase filename matching its export, e.g. `githubGroup.ts`)
-and any colocated group tests stay at the group root and import from those catalog
-folders. Do not add `index.ts` barrels under `catalogs/` or a catalog folder.
+Presentations, forms, helpers, module-owned `*Repo` Durable Objects, and assets live under
+`apps/library/modules/<camelCaseModule>/`, where the folder name matches the export
+(for example `figmaThumbnail`, `githubProfile`, `icon`). The assembler file at the folder root
+(e.g. `figmaThumbnail.ts`) calls `makeModule` and imports colocated presentations. Do not add
+`index.ts` barrels under a module folder.
 
-`scraper/Worker.ts` remains the Wrangler entry and re-exports each catalog
+`scraper/Worker.ts` remains the Wrangler entry and re-exports each module
 `*Repo` class. Shared scrape helpers (`BrowserHost`, URL normalizers, encodeRpc,
 schemas, and provider scrape modules) stay under `apps/library/scraper/`.
 
-- **Bad**: flat `groups/github/GitHubProfileStats.tsx` next to
-  `githubGroup.ts` and `GitHubRepoStack.tsx`.
-- **Good**: `groups/github/catalogs/profile/GitHubProfileStats.tsx` and
-  `groups/github/catalogs/repo/GitHubRepoStack.tsx`, with
-  `githubGroup.ts` at the group root importing each path.
-- **Good**: `groups/instagram/catalogs/default/InstagramRepo.ts` next to that
-  catalog's presentations; `scraper/Worker.ts` imports and re-exports it.
+- **Bad**: nesting former catalogs under a group folder again.
+- **Good**: `modules/githubProfile/GitHubProfileStats.tsx` and
+  `modules/githubRepo/GitHubRepoStack.tsx`, each with its own assembler.
+- **Good**: `modules/instagram/InstagramRepo.ts` next to that
+  module's presentations; `scraper/Worker.ts` imports and re-exports it.
 
 ### Factory arguments
 
-Factories take one `props` object with an inline shape. `makeCatalog` owns `id`, `label`, `description`, `dataShape`, `defaultData`, optional `configuration`, `order`, optional `form`, required `xs`, and optional `sm`, `lg`, `xl`. Each breakpoint is `{ component, w, h }`; omitted breakpoints inherit the nearest smaller complete entry. Catalog `def` stores the resolved dimensions at `def[breakpoint]`, without React components. Previews, drag placeholders, and new placements use those dimensions; saved placement sizes remain authoritative. See [makeCatalog.tsx](../../apps/library/makeCatalog.tsx) and [makeGroup.ts](../../apps/library/makeGroup.ts).
+Factories take one `props` object with an inline shape. `makeModule` owns `id`, `label`, `description`, `dataShape`, `defaultData`, optional `configuration`, `order`, optional `form`, required `xs`, and optional `sm`, `lg`, `xl`. Each breakpoint is `{ component, w, h }`; omitted breakpoints inherit the nearest smaller complete entry. Catalog `def` stores the resolved dimensions at `def[breakpoint]`, without React components. Previews, drag placeholders, and new placements use those dimensions; saved placement sizes remain authoritative. See [makeModule.tsx](../../apps/library/makeModule.tsx).
 
-`makeGroup` owns `id`, `label`, `description`, and `catalogs`. It writes `groupId` and `groupLabel` onto each catalog `def`, and each catalog `def` stores its slug as `catalogId`.
+`makeModule` owns `id`, `label`, `description`, and writes `moduleId` / `moduleLabel` onto `def`.
 
-Data-backed catalogs configure requests with `makeFetcherConfiguration({ catalogOptionsShape, catalogOptionsForm, fetcher })`
+Data-backed catalogs configure requests with `makeFetcherConfiguration({ moduleOptionsShape, moduleOptionsForm, fetcher })`
 from [makeFetcherConfiguration.ts](../../apps/library/makeFetcherConfiguration.ts), passed as the catalog's `configuration`.
-The factory supplies `configurationType: "fetcher"` and validates catalog options before invoking its
-required `fetcher` callback. `catalogOptionsForm` is one optional component receiving the complete decoded
-catalog options as `{ value, onChange }`; `onChange` replaces the whole catalog options. `IFetcherConfiguration` is defined in that factory module. The callback receives
-`{ api, catalogOptions, setData }`, publishes data through `setData`, and returns `IRpcEither<void>`
+The factory supplies `configurationType: "fetcher"` and validates module options before invoking its
+required `fetcher` callback. `moduleOptionsForm` is one optional component receiving the complete decoded
+module options as `{ value, onChange }`; `onChange` replaces the whole module options. `IFetcherConfiguration` is defined in that factory module. The callback receives
+`{ api, moduleOptions, setData }`, publishes data through `setData`, and returns `IRpcEither<void>`
 for success or typed failure. The catalog retains `dataShape` and validates `defaultData`.
-Configuration forms read `configuration.catalogOptionsShape` and `configuration.catalogOptionsForm`;
-catalogs do not expose top-level catalog options fields or `getData`.
+Configuration forms read `configuration.moduleOptionsShape` and `configuration.moduleOptionsForm`;
+catalogs do not expose top-level module options fields or `getData`.
 
 The workbench's [Configuration.tsx](../../apps/library/app/Configuration.tsx) switches on
-`configurationType`. A custom catalog options form runs the fetcher on `onChange`, using the complete
-updated catalog options. Without a custom form, generated text controls use explicit Submit buttons.
+`configurationType`. A custom module options form runs the fetcher on `onChange`, using the complete
+updated module options. Without a custom form, generated text controls use explicit Submit buttons.
 Neither form fetches initially. Each request owns a scraper RPC session;
 superseded and unmounted requests cannot publish data or errors. Control-internal searches remain
-independent of catalog options changes, including Streamline's SWR search.
+independent of module options changes, including Streamline's SWR search.
 
-[useCatalogData.ts](../../apps/library/app/useCatalogData.ts) provides
-`[catalogData, setCatalogData]` backed by in-memory Zustand state per group/catalog. Its setter validates against the decoded `dataShape`, preserving provider fields, before replacing
+[useModuleData.ts](../../apps/library/app/useModuleData.ts) provides
+`[moduleData, setModuleData]` backed by in-memory Zustand state per module/catalog. Its setter validates against the decoded `dataShape`, preserving provider fields, before replacing
 stored data. Invalid writes leave state unchanged. The configuration page preview and JSON display use
 stored data or `defaultData`; loading and errors retain the last valid data. Navigation retains values,
 while reload clears them. Other group previews and persisted Grid bricks continue using their existing
@@ -119,17 +114,17 @@ Local-only forms use `makeFormConfiguration`.
 
 Do **not** add `apps/studio/components/home/bricks/index.ts` (or similar) that only re-exports symbols from sibling modules. Name each file after its **primary export** and import that path directly.
 
-- **Bad**: `import { homepageBricks, groupsHash } from "./bricks"` or `@/components/home/bricks` when `./bricks` is a re-export barrel.
+- **Bad**: `import { homepageBricks, modulesHash } from "./bricks"` or `@/components/home/bricks` when `./bricks` is a re-export barrel.
 
-- **Good**: import `groupsHash` from its defining module and resolve a component directly through `group.catalogs[catalog]`; import specific groups from their modules under `groups/`.
+- **Good**: import `modulesHash` from its defining module and resolve a component directly through `modulesHash[moduleId]`; import specific groups from their modules under `modules/`.
 
-### Good vs bad: `IGroup` + `BrickCarousel` — don’t add `FromGroup` on shared UI
+### Good vs bad: `IModule` + `BrickCarousel` — don’t add `FromGroup` on shared UI
 
-Do **not** add a second exported wrapper on the shared carousel that imports **`groupsHash`** and takes **`group.id`**: that couples every import site to a parallel API and drags group knowledge into **`components/home`**.
+Do **not** add a second exported wrapper on the shared carousel that imports **`modulesHash`** and takes **`group.id`**: that couples every import site to a parallel API and drags group knowledge into **`components/home`**.
 
-- **Bad**: `BrickCarouselFromGroup` (or similar) exported from [BrickCarousel.tsx](../../apps/studio/app/[username]/site/[siteId]/page/[pageId]/BrickCarousel/BrickCarousel.tsx) — thin pass-through: `groupsHash[groupId]` → **`BrickCarousel`**.
+- **Bad**: `BrickCarouselFromGroup` (or similar) exported from [BrickCarousel.tsx](../../apps/studio/app/[username]/site/[siteId]/page/[pageId]/BrickCarousel/BrickCarousel.tsx) — thin pass-through: `modulesHash[groupId]` → **`BrickCarousel`**.
 
-- **Good**: [BrickCarousel.tsx](../../apps/studio/app/[username]/site/[siteId]/page/[pageId]/BrickCarousel/BrickCarousel.tsx) accepts **`group: IGroup`** (and optional **`brickSortFn`**) only. Resolve **`groupsHash[groupId]`** in the route’s client `page.tsx` next to the site workspace and pass **`group`** into **`BrickCarousel`**; keep **`groupsHash`** out of the shared carousel module.
+- **Good**: [BrickCarousel.tsx](../../apps/studio/app/[username]/site/[siteId]/page/[pageId]/BrickCarousel/BrickCarousel.tsx) accepts **`group: IModule`** (and optional **`brickSortFn`**) only. Resolve **`modulesHash[groupId]`** in the route’s client `page.tsx` next to the site workspace and pass **`group`** into **`BrickCarousel`**; keep **`modulesHash`** out of the shared carousel module.
 
 ### Good vs bad: brick-group route — keep one-off logic in `page.tsx`
 
@@ -268,11 +263,11 @@ Follow [brick presentation conventions](../../wiki/brick-layout-conventions.md):
 `<Group><Catalog><Template>`, for example `GitHubProfileStats` and
 `GitHubProfileCalendar`, with matching filenames. **Template** is a layout-role
 id (not `Xs`/`Sm`/`Lg`, not a grid size). Select presentations with
-`makeCatalog` breakpoint slots (`xs` required; omitted slots inherit the
+`makeModule` breakpoint slots (`xs` required; omitted slots inherit the
 nearest smaller entry).
 
 For wide profile layouts, use `GitHubProfileActivityHero` and
-`GitHubProfileStatsRow` in matching files; wire them through `makeCatalog` when
+`GitHubProfileStatsRow` in matching files; wire them through `makeModule` when
 that catalog needs those templates.
 
 ### Responsive sandbox placed bricks
@@ -294,7 +289,7 @@ array is persisted. Drag, resize, and rearrangements update the active entry. Re
 The group panel does not include a placed-brick list. In brick configuration,
 Show restores a smaller visible placement or uses group dimensions at the next available position.
 
-`makeCatalog` accepts optional `form: makeAppearanceForm({ shape, form })` alongside
+`makeModule` accepts optional `form: makeAppearanceForm({ shape, form })` alongside
 its presentations. The shape infers form values and supplies validated defaults.
 The form receives `value` and `onChange`; updates validate before publication and
 never invoke a content fetcher. Appearance controls appear below catalog configuration.
@@ -313,4 +308,4 @@ inheritance. Group drops copy the preview options into `xs`, and also into
 an explicit active entry when dropped above `xs`. Figma's thumbnail presentations
 support Center, Left, Right, Top, and Bottom image positions (default Center).
 Group descriptors use `id` and `catalogId` (`def.groupId` / `def.catalogId`); site grid placement arrays are unchanged.
-Catalog configuration inputs are named `catalogOptions` and remain form-local. They are not persisted, copied on drop, or restored from a brick. `data` remains the resulting shared content.
+Catalog configuration inputs are named `moduleOptions` and remain form-local. They are not persisted, copied on drop, or restored from a brick. `data` remains the resulting shared content.

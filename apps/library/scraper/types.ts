@@ -86,23 +86,23 @@ export interface IScraperEnv {
   BROWSER: BrowserWorker;
   BROWSER_HOST: DurableObjectNamespace<import("./BrowserHost").BrowserHost>;
   INSTAGRAM_REPO: DurableObjectNamespace<
-    import("../groups/instagram/catalogs/default/InstagramRepo").InstagramRepo
+    import("../modules/instagram/InstagramRepo").InstagramRepo
   >;
   GITHUB_REPO: DurableObjectNamespace<
-    import("../groups/github/catalogs/profile/GitHubRepo").GitHubRepo
+    import("../modules/githubProfile/GitHubRepo").GitHubRepo
   >;
   FIGMA_REPO: DurableObjectNamespace<
-    import("../groups/figma/catalogs/thumbnail/FigmaRepo").FigmaRepo
+    import("../modules/figmaThumbnail/FigmaRepo").FigmaRepo
   >;
   GOOGLE_PLACES_REPO: DurableObjectNamespace<
-    import("../groups/map/catalogs/place/GooglePlacesRepo").GooglePlacesRepo
+    import("../modules/mapPlace/GooglePlacesRepo").GooglePlacesRepo
   >;
-  LINK_REPO: DurableObjectNamespace<import("../groups/link/catalogs/default/LinkRepo").LinkRepo>;
+  LINK_REPO: DurableObjectNamespace<import("../modules/link/LinkRepo").LinkRepo>;
   TIKTOK_REPO: DurableObjectNamespace<
-    import("../groups/tiktok/catalogs/default/TikTokRepo").TikTokRepo
+    import("../modules/tiktok/TikTokRepo").TikTokRepo
   >;
   STREAMLINE_REPO: DurableObjectNamespace<
-    import("../groups/icon/catalogs/default/StreamlineRepo").StreamlineRepo
+    import("../modules/icon/StreamlineRepo").StreamlineRepo
   >;
   GITHUB_TOKEN: string;
   FIGMA_TOKEN: string;

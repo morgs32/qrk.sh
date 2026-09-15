@@ -29,13 +29,13 @@ for (const [width, height] of [
     await page.getByRole("toolbar", { name: "Grid controls" }).getByRole("button", { name: "Bricks", exact: true }).click();
     await expect(page.getByRole("dialog", { name: "Bricks", exact: true })).toBeVisible();
     await page.getByRole("button", { name: `${width}px grid width`, exact: true }).click();
-    const group = page.locator('[data-group-entry="github"]');
+    const group = page.locator('[data-module-entry="github"]');
     await group.getByRole("button", { name: "Repo", exact: true }).click();
-    const representative = group.locator('[data-group-representative="github/repo"]');
+    const representative = group.locator('[data-module-representative="github/repo"]');
     await expect(representative).toHaveCSS("width", `${Math.round((width / 8) * 4)}px`);
     await expect(representative).toHaveCSS("height", `${Math.round((width / 8) * height)}px`);
-    await representative.getByRole("link", { name: "Configure catalog" }).click();
-    const source = page.locator('[data-catalog-brick="github/repo"]');
+    await representative.getByRole("link", { name: "Configure module" }).click();
+    const source = page.locator('[data-module-brick="github/repo"]');
     await expect(source).toHaveCSS("width", `${Math.round((width / 8) * 4)}px`);
     await expect(source).toHaveCSS("height", `${Math.round((width / 8) * height)}px`);
     const grid = page.getByLabel("Brick grid", { exact: true }).locator(".react-grid-layout");
@@ -85,9 +85,9 @@ for (const [width, height] of [
 }
 
 test("XS truncates text and anchors compact stats below the description", async ({ page }) => {
-  await page.goto("/groups/github?catalog=repo");
+  await page.goto("/modules/github-repo");
   await page.getByRole("button", { name: "375px grid width", exact: true }).click();
-  const source = page.locator('[data-catalog-brick="github/repo"]');
+  const source = page.locator('[data-module-brick="github/repo"]');
   await expect(source).toHaveCSS("height", "281px");
   const title = source.getByRole("heading", { name: repo.name });
   const description = source.getByText(repo.description, { exact: true });
@@ -124,9 +124,9 @@ test("XS preserves missing description and optional stats", async ({ page }) => 
   await page.route("https://api.github.com/repos/morgs32/ink-steps", (route) =>
     route.fulfill({ json: { ...repo, description: null, forks_count: 0, language: null } }),
   );
-  await page.goto("/groups/github?catalog=repo");
+  await page.goto("/modules/github-repo");
   await page.getByRole("button", { name: "375px grid width", exact: true }).click();
-  const source = page.locator('[data-catalog-brick="github/repo"]');
+  const source = page.locator('[data-module-brick="github/repo"]');
   await expect(source.getByText("No description provided")).toBeVisible();
   await expect(source.locator(".lucide-git-fork")).toHaveCount(0);
   await expect(source.getByText("TypeScript")).toHaveCount(0);
@@ -142,9 +142,9 @@ test("XS loading and missing repository states stay inside the card", async ({ p
     await pending;
     await route.fulfill({ status: 404, json: { message: "Not Found" } });
   });
-  await page.goto("/groups/github?catalog=repo");
+  await page.goto("/modules/github-repo");
   await page.getByRole("button", { name: "375px grid width", exact: true }).click();
-  const source = page.locator('[data-catalog-brick="github/repo"]');
+  const source = page.locator('[data-module-brick="github/repo"]');
   await expect(source.locator(".animate-pulse")).toBeVisible();
   release();
   await expect(source.getByText("Repository not found")).toBeVisible();

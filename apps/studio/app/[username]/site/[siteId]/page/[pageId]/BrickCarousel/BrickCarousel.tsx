@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-import type { IGroup, IGroupBrick } from "@qrk.sh/library";
+import type { IModule, IModuleBrick } from "@qrk.sh/library";
 import { useBrickBreakpoint } from "@qrk.sh/library/BrickBreakpointProvider";
 import type { EmblaCarouselType } from "embla-carousel";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -43,23 +43,20 @@ function watchFocusIgnoreDrawerChrome(_emblaApi: EmblaCarouselType, event: Focus
   return !drawerCarouselInteractionShouldSkipEmbla(event.target);
 }
 
-function defaultBrickSort(a: IGroupBrick, b: IGroupBrick): number {
+function defaultBrickSort(a: IModuleBrick, b: IModuleBrick): number {
   return a.def.order - b.def.order;
 }
 
 export function BrickCarousel(props: {
-  group: IGroup;
-  brickSortFn?: (a: IGroupBrick, b: IGroupBrick) => number;
+  module: IModule;
+  brickSortFn?: (a: IModuleBrick, b: IModuleBrick) => number;
 }) {
   const { breakpoint } = useBrickBreakpoint();
-  const { group, brickSortFn = defaultBrickSort } = props;
-  const bricks = useMemo(
-    () => Object.values(group.catalogs).sort(brickSortFn),
-    [group, brickSortFn],
-  );
+  const { module, brickSortFn = defaultBrickSort } = props;
+  const bricks = useMemo(() => [module].sort(brickSortFn), [module, brickSortFn]);
 
   if (bricks.length <= 0) {
-    throw new BrickCarouselNoBricksError(group.id);
+    throw new BrickCarouselNoBricksError(module.id);
   }
 
   const maxH = Math.max(...bricks.map((b) => b.def[breakpoint].h));
@@ -87,7 +84,7 @@ export function BrickCarousel(props: {
       <div className="sticky top-0 z-[11]">
         <div className="bg-muted/80 px-6 py-2.5 backdrop-blur-sm dark:bg-muted/50">
           <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3">
-            <div className="min-w-0 truncate text-sm font-semibold">{group.label}</div>
+            <div className="min-w-0 truncate text-sm font-semibold">{module.label}</div>
             <BrickCarouselNav api={carouselApi} bricks={bricks} />
             <div className="min-w-0 justify-self-end text-right text-sm font-medium tabular-nums text-muted-foreground">
               {bricks[selectedIndex]?.def.label}
@@ -131,7 +128,7 @@ export function BrickCarousel(props: {
         >
           {bricks.map((brick) => (
             <CarouselItem
-              key={`${brick.def.catalogId}`}
+              key={`${brick.def.moduleId}`}
               data-brick-drawer-slide-grid-h={brick.def[breakpoint].h}
               className="relative flex h-full min-h-0 flex-col items-center justify-center"
               style={{

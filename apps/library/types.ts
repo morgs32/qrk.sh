@@ -6,71 +6,65 @@ import type { makeAppearanceForm } from "./makeAppearanceForm";
 import type { IFetcherConfiguration } from "./makeFetcherConfiguration";
 import type { IFormConfiguration } from "./makeFormConfiguration";
 
-/** A catalog definition (no group scope). */
-export type IBrickDef<CATALOG extends string = string> = {
+/** A module definition (serializable identity and dimensions). */
+export type IBrickDef<MODULE extends string = string> = {
   /** Resolved initial dimensions, inheriting the nearest smaller presentation. */
   xs: { w: number; h: number };
   sm: { w: number; h: number };
   lg: { w: number; h: number };
   xl: { w: number; h: number };
-  /** Kebab-case catalog slug (for example `default`, `profile`, or `repo`). */
-  catalogId: CATALOG;
-  /** Display label for this catalog. */
+  /** Kebab-case module slug (for example `icon`, `github-profile`, or `figma-thumbnail`). */
+  moduleId: MODULE;
+  /** Display label for this module. */
   label: string;
-  /** Lower sorts earlier in the drawer carousel within a group. */
+  /** Lower sorts earlier in the drawer. */
   order: number;
 };
 
-export type IGroup = {
-  /** Kebab-case group id, unique across the homepage group. */
+/** A library module: data, configuration, and one responsive presentation. */
+export type IModule = {
+  /** Kebab-case module id, unique across the library. */
   id: string;
   label: string;
   description: string;
-  catalogs: Record<
-    string,
-    | {
-        label: string;
-        description: string;
-        configuration?: never;
-        dataShape: null;
-        defaultData: null;
-        def: IGroupBrickDef;
-        component: IGroupBrick["component"];
-      }
-    | {
-        label: string;
-        description: string;
-        configuration?: IFormConfiguration | IFetcherConfiguration;
-        dataShape: IShape;
-        defaultData: unknown;
-        def: IGroupBrickDef;
-        component: IGroupBrick["component"];
-      }
-  >;
-};
+} & (
+  | {
+      configuration?: never;
+      dataShape: null;
+      defaultData: null;
+      def: IModuleBrickDef;
+      component: IModuleBrick["component"];
+    }
+  | {
+      configuration?: IFormConfiguration | IFetcherConfiguration;
+      dataShape: IShape;
+      defaultData: unknown;
+      def: IModuleBrickDef;
+      component: IModuleBrick["component"];
+    }
+);
 
-/** Serializable group row: group + catalog, no React component. */
-export type IGroupBrickDef = IBrickDef & {
-  groupId: string;
-  groupLabel: string;
-  /** Default group data or the configured data of a placed brick. */
+/** Serializable module row: module identity, no React component. */
+export type IModuleBrickDef = IBrickDef & {
+  moduleLabel: string;
+  /** Default module data or the configured data of a placed brick. */
   data: unknown;
 };
 
 export type IBrick<
-  CATALOG extends string = string,
+  MODULE extends string = string,
   COMPONENT extends (props: never) => ReactNode = (props: never) => ReactNode,
 > = {
-  def: IBrickDef<CATALOG>;
+  def: IBrickDef<MODULE>;
   component: COMPONENT;
 };
 
-export type IGroupBrick = {
-  def: IGroupBrickDef;
+export type IModuleBrick = {
+  def: IModuleBrickDef;
   /**
-   * The group erases each catalog's concrete data type after makeCatalog has
-   * checked it. Render boundaries can supply defaultData directly; components
-   * without a data contract ignore the prop.
+   * makeModule erases each module's concrete data type after checking it.
+   * Render boundaries can supply defaultData directly; components without a
+   * data contract ignore the prop.
    */
   component: {
     bivarianceHack(props: {

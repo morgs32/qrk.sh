@@ -5,7 +5,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { expect, expectTypeOf, it, vi } from "vitest";
 
 import { makeAppearanceForm } from "./makeAppearanceForm";
-import { makeCatalog } from "./makeCatalog";
+import { makeModule } from "./makeModule";
 
 it("infers defaults and form values and rejects invalid updates before publication", () => {
   const form = makeAppearanceForm({
@@ -29,7 +29,7 @@ it("infers defaults and form values and rejects invalid updates before publicati
     renderToStaticMarkup(createElement(form.form, { value: form.defaultValue, onChange })),
   ).toBe("<span>left</span>");
   expect(onChange).toHaveBeenCalledExactlyOnceWith({ alignment: "right" });
-  const { component: View } = makeCatalog({
+  const { component: View } = makeModule({
     id: "test",
     label: "Test",
     description: "Test",

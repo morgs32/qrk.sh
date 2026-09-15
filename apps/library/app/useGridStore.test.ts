@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { groupsHash } from "../groupsHash";
+import { modulesHash } from "../modulesHash";
 
 import { resolveBrickBreakpoint } from "./resolveBrickBreakpoint";
 import { useGridStore } from "./useGridStore";
@@ -9,7 +9,7 @@ beforeEach(() => useGridStore.setState({ bricksById: {} }));
 
 describe("responsive placed bricks", () => {
   it("keeps saved repo sizes authoritative when defaults differ across breakpoints", () => {
-    const def = groupsHash.github.catalogs.repo.def;
+    const def = modulesHash['github-repo'].def;
     const store = useGridStore.getState();
     const placement = { i: "repo", x: 0, y: 0, ...def.xs };
     store.addBrick("repo", def, [placement], "xs");
@@ -24,12 +24,11 @@ describe("responsive placed bricks", () => {
 
   it("uses the current catalog dimensions when showing a repo without a saved visible placement", () => {
     for (const breakpoint of ["xs", "sm", "lg", "xl"] satisfies Array<"xs" | "sm" | "lg" | "xl">) {
-      const def = groupsHash.github.catalogs.repo.def;
+      const def = modulesHash['github-repo'].def;
       useGridStore.setState({
         bricksById: {
           repo: {
-            groupId: "github",
-            catalogId: "repo",
+            moduleId: "github-repo",
             data: null,
             xs: { gridItem: null, appearanceOptions: {} },
           },
@@ -41,7 +40,7 @@ describe("responsive placed bricks", () => {
       ).toEqual({ i: "repo", x: 0, y: 0, ...def[breakpoint] });
     }
   });
-  const def = groupsHash.figma.catalogs.thumbnail.def;
+  const def = modulesHash['figma-thumbnail'].def;
   const first = { i: "first", x: 0, y: 0, w: 4, h: 4 };
   const second = { i: "second", x: 4, y: 0, w: 4, h: 4 };
   it("copies drops and options independently while sharing each brick's content", () => {
@@ -107,7 +106,7 @@ describe("responsive placed bricks", () => {
 
 it("keeps lg and xl overrides independent and restores inheritance after removal", () => {
   const store = useGridStore.getState();
-  const def = groupsHash.figma.catalogs.thumbnail.def;
+  const def = modulesHash['figma-thumbnail'].def;
   const placement = { i: "large", x: 0, y: 0, w: 4, h: 4 };
   store.addBrick("large", def, [placement], "sm");
   store.setAppearanceOptions("large", "lg", { imagePosition: "left" });

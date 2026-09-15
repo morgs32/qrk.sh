@@ -27,8 +27,8 @@ Mapbox token is explicitly included in the browser build.
 
 `wrangler.jsonc` retains the `bricks` Worker identity, browser binding, Durable
 Object bindings, and migrations. Local cache data lives under `.wrangler/state`.
-The scraper implementation and its tests live in `scraper`, with catalog-owned
-`*Repo` Durable Objects under `groups/<group-id>/catalogs/<catalog-id>/`. Client imports
+The scraper implementation and its tests live in `scraper`, with module-owned
+`*Repo` Durable Objects under `modules/<moduleFolder>/`. Client imports
 use the existing `*.public.d.ts` contracts so Worker implementation types do not
 become part of the brick library's public declarations. Linktree scraping lives
 in the separate `@qrk.sh/scraper` Worker (`apps/scraper`).
@@ -55,20 +55,20 @@ existing opt-in live scraper suite.
 `build` produces the reusable brick library in `dist`, including its public
 scraper declarations. Neither build deploys the app.
 
-## Catalogs and interaction
+## Modules and interaction
 
-Groups expose `catalogs[catalog]`. `makeCatalog` combines data and configuration
-with responsive presentations and an optional appearance form. Each breakpoint entry is
-`{ component, w, h }`; `xs` is required. Omitted `sm`, `lg`, and `xl` entries inherit
+`modulesHash` exposes each library module by kebab-case id. `makeModule` combines data and
+configuration with responsive presentations and an optional appearance form. Each breakpoint
+entry is `{ component, w, h }`; `xs` is required. Omitted `sm`, `lg`, and `xl` entries inherit
 the nearest smaller entry, including both its component and initial dimensions.
-Catalog definitions expose resolved `xs`/`sm`/`lg`/`xl` dimensions for previews and
-new placements. Saved placement dimensions take precedence over catalog defaults.
+Module definitions expose resolved `xs`/`sm`/`lg`/`xl` dimensions for previews and
+new placements. Saved placement dimensions take precedence over module defaults.
 Appearance settings, layout, and visibility retain their separate breakpoint inheritance.
 
 Placed bricks drag from their entire surface and resize using the grid library's default
 bottom-right handle. Rendered content ignores pointer events; the edit icon remains clickable.
-Group and configuration previews also drag from their entire surface.
+Module and configuration previews also drag from their entire surface.
 
-The Group → Catalog terminology cutover uses persistence version 2. Older workbench
+The modules flatten cutover uses persistence version 3. Older workbench
 brick drafts reset on hydration while preserving the selected grid width. The site
 editor also resets older drafts when it hydrates.

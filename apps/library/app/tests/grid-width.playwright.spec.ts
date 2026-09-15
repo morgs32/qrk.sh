@@ -32,7 +32,7 @@ test("limits presets to available width and preserves width through navigation a
 
   await toolbar.getByRole("button", { name: "Bricks", exact: true }).click();
   await expect(drawer).toBeVisible();
-  await drawer.locator('[data-group-link="swatch"]').click();
+  await drawer.locator('[data-module-link="swatch"]').click();
   await expect(page).toHaveURL(/groups\/swatch$/);
   await expect(grid).toHaveCSS("width", "375px");
   await toolbar.getByRole("button", { name: "Reset grid layout" }).click();
@@ -82,7 +82,7 @@ for (const width of [375, 768, 1600]) {
     await expect(drawer).toHaveCSS("height", "450px");
     await expect(drawer).toHaveCSS("width", `${width}px`);
     await drawer
-      .locator('[data-group-representative="icon/default"]')
+      .locator('[data-module-representative="icon/default"]')
       .dragTo(page.getByLabel("Brick grid").locator(".react-grid-layout"), {
         targetPosition: { x: 20, y: 20 },
       });
@@ -90,7 +90,7 @@ for (const width of [375, 768, 1600]) {
       page.getByLabel("Brick grid").locator('[data-brick="icon/default"]'),
     ).toBeVisible();
     await expect(drawer).toBeVisible();
-    await drawer.locator('[data-group-link="swatch"]').click();
+    await drawer.locator('[data-module-link="swatch"]').click();
     await expect(page).toHaveURL(/groups\/swatch$/);
     await toolbar.getByRole("button", { name: "Reset grid layout" }).click();
     await expect(page.getByLabel("Brick grid").locator("[data-brick-id]")).toHaveCount(0);

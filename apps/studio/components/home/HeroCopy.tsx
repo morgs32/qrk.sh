@@ -51,7 +51,7 @@ export function HeroCopy() {
       editorProps: {
         attributes: {
           class:
-            "hero-article focus:outline-none [&_h1]:text-[clamp(4rem,15vw,10rem)] [&_h1]:font-bold [&_h1]:leading-none [&_h1]:tracking-tight [&_p]:mt-6 [&_p]:max-w-xs [&_p]:text-sm [&_p]:leading-relaxed [&_p]:text-muted-foreground",
+            "hero-article focus:outline-none [&_h1]:text-[clamp(4rem,15vw,10rem)] [&_h1]:font-bold [&_h1]:leading-[1.05] [&_h1]:tracking-tight [&_p]:mt-6 [&_p]:max-w-xs [&_p]:text-sm [&_p]:leading-relaxed [&_p]:text-muted-foreground",
         },
       },
     },
@@ -63,7 +63,7 @@ export function HeroCopy() {
   }
 
   return (
-    <div className="absolute left-0 top-16 flex h-[calc(100vh-4rem)] w-1/2 flex-col justify-center bg-background px-6">
+    <div className="min-h-full w-full bg-background px-6 py-16">
       <EditorContent editor={editor} />
     </div>
   );

@@ -5,10 +5,10 @@ import { makeGroup } from "../../makeGroup";
 import { makeFetcherConfiguration } from "../../makeFetcherConfiguration";
 import { makeCatalog } from "../../makeCatalog";
 
-import { GitHubProfileSquareLg } from "./GitHubProfileSquareLg";
-import { GitHubProfileSquareXs } from "./GitHubProfileSquareXs";
-import { GitHubRepoSm } from "./GitHubRepoSm";
-import { GitHubRepoXs } from "./GitHubRepoXs";
+import { GitHubProfileSquareLg } from "./catalogs/profile/GitHubProfileSquareLg";
+import { GitHubProfileSquareXs } from "./catalogs/profile/GitHubProfileSquareXs";
+import { GitHubRepoSm } from "./catalogs/repo/GitHubRepoSm";
+import { GitHubRepoXs } from "./catalogs/repo/GitHubRepoXs";
 
 export const githubGroup = makeGroup({
   groupName: "github",

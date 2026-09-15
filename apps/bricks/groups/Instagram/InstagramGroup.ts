@@ -4,7 +4,7 @@ import { makeGroup } from "../../makeGroup";
 import { makeFetcherConfiguration } from "../../makeFetcherConfiguration";
 import { makeCatalog } from "../../makeCatalog";
 
-import { InstagramDefault4x4 } from "./InstagramDefault4x4";
+import { InstagramDefault4x4 } from "./catalogs/default/InstagramDefault4x4";
 
 export const instagramGroup = makeGroup({
   groupName: "instagram",

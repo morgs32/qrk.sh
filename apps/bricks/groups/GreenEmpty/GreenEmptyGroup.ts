@@ -7,7 +7,7 @@ import { makeGroup } from "../../makeGroup";
 import { makeFormConfiguration } from "../../makeFormConfiguration";
 import { makeCatalog } from "../../makeCatalog";
 
-import { GreenEmpty1x1 } from "./GreenEmpty1x1";
+import { GreenEmpty1x1 } from "./catalogs/default/GreenEmpty1x1";
 
 const dataShape = { color: primitives.text() };
 

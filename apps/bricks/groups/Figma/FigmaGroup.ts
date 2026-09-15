@@ -5,10 +5,10 @@ import { makeGroup } from "../../makeGroup";
 import { makeFetcherConfiguration } from "../../makeFetcherConfiguration";
 import { makeCatalog } from "../../makeCatalog";
 
-import defaultThumbnailUrl from "./dot-pattern-789x450.png";
-import { FigmaAppearanceForm } from "./FigmaAppearanceForm";
-import { FigmaThumbnailSquareSm } from "./FigmaThumbnailSquareSm";
-import { FigmaThumbnailSquareXs } from "./FigmaThumbnailSquareXs";
+import defaultThumbnailUrl from "./catalogs/thumbnail/dot-pattern-789x450.png";
+import { FigmaAppearanceForm } from "./catalogs/thumbnail/FigmaAppearanceForm";
+import { FigmaThumbnailSquareSm } from "./catalogs/thumbnail/FigmaThumbnailSquareSm";
+import { FigmaThumbnailSquareXs } from "./catalogs/thumbnail/FigmaThumbnailSquareXs";
 
 export const figmaGroup = makeGroup({
   groupName: "figma",

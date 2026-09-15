@@ -1,7 +1,7 @@
 import { makeGroup } from "../../makeGroup";
 import { makeCatalog } from "../../makeCatalog";
 
-import { ImagePromo4x4 } from "./ImagePromo4x4";
+import { ImagePromo4x4 } from "./catalogs/default/ImagePromo4x4";
 
 export const imageGroup = makeGroup({
   groupName: "image",

@@ -11,8 +11,8 @@
   "dependencies": {
     "@tanstack/react-router": "1.170.36",
     "framer-motion": "13.2.0",
-    "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react": "19.2.7",
+    "react-dom": "19.2.7"
   },
   "devDependencies": {
     "vite": "8.3.0",

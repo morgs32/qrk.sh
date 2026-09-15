@@ -66,7 +66,13 @@ export default defineConfig(({ mode }) => {
       },
       react(),
     ],
-    resolve: { alias: { "@": fileURLToPath(new URL(".", import.meta.url)) } },
+    resolve: {
+      alias: { "@": fileURLToPath(new URL(".", import.meta.url)) },
+      // Defense-in-depth: root pnpm overrides pin react/react-dom to 19.2.7.
+      // Without dedupe, a nested peer (e.g. zustand under @zerospin/react) can
+      // still prebundle a second React and break useLiveQuery's useCallback.
+      dedupe: ["react", "react-dom"],
+    },
     // Keep the public contract explicit; never replace process.env as a whole.
     define: {
       "process.env.PUBLIC_MAPBOX_TOKEN": JSON.stringify(mapboxToken),
@@ -93,7 +99,7 @@ export default defineConfig(({ mode }) => {
         "app/**/SiteLayout.tsx",
         "app/**/EditorLayout.tsx",
       ],
-      include: ["react-dom/client", "framer-motion"],
+      include: ["react", "react-dom/client", "framer-motion", "zustand/react"],
       force: process.env.COLD_DEV === "1",
     },
   };

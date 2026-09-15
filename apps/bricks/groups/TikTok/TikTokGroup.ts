@@ -4,7 +4,7 @@ import { makeGroup } from "../../makeGroup";
 import { makeFetcherConfiguration } from "../../makeFetcherConfiguration";
 import { makeCatalog } from "../../makeCatalog";
 
-import { TikTokDefault4x4 } from "./TikTokDefault4x4";
+import { TikTokDefault4x4 } from "./catalogs/default/TikTokDefault4x4";
 
 export const tikTokGroup = makeGroup({
   groupName: "tiktok",

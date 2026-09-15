@@ -4,7 +4,7 @@ import { makeGroup } from "../../makeGroup";
 import { makeFetcherConfiguration } from "../../makeFetcherConfiguration";
 import { makeCatalog } from "../../makeCatalog";
 
-import { Link4x2 } from "./Link4x2";
+import { Link4x2 } from "./catalogs/default/Link4x2";
 
 export const linkGroup = makeGroup({
   groupName: "link",

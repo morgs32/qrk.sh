@@ -6,8 +6,8 @@ import { makeGroup } from "../../makeGroup";
 import { makeFetcherConfiguration } from "../../makeFetcherConfiguration";
 import { makeCatalog } from "../../makeCatalog";
 
-import { GooglePlaceLookup } from "./GooglePlaceLookup";
-import { MapPlace4x4 } from "./MapPlace4x4";
+import { GooglePlaceLookup } from "./catalogs/place/GooglePlaceLookup";
+import { MapPlace4x4 } from "./catalogs/place/MapPlace4x4";
 
 export const mapGroup = makeGroup({
   groupName: "map",

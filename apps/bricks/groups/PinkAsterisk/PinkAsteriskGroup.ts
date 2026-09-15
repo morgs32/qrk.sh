@@ -6,8 +6,8 @@ import { makeGroup } from "../../makeGroup";
 import { makeFetcherConfiguration } from "../../makeFetcherConfiguration";
 import { makeCatalog } from "../../makeCatalog";
 
-import { PinkAsterisk1x1 } from "./PinkAsterisk1x1";
-import { StreamlineIconLookup } from "./StreamlineIconLookup";
+import { PinkAsterisk1x1 } from "./catalogs/default/PinkAsterisk1x1";
+import { StreamlineIconLookup } from "./catalogs/default/StreamlineIconLookup";
 
 export const iconGroup = makeGroup({
   groupName: "icon",

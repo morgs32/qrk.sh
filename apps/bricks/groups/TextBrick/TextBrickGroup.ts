@@ -8,8 +8,8 @@ import { makeGroup } from "../../makeGroup";
 import { makeFormConfiguration } from "../../makeFormConfiguration";
 import { makeCatalog } from "../../makeCatalog";
 
-import { TextBrick2x2 } from "./TextBrick2x2";
-import { TextEditorControl } from "./TextEditorControl";
+import { TextBrick2x2 } from "./catalogs/default/TextBrick2x2";
+import { TextEditorControl } from "./catalogs/default/TextEditorControl";
 
 const dataShape = {
   content: primitives.json({

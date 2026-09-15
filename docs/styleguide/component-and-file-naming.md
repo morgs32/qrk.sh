@@ -57,6 +57,21 @@ A **catalog** connects data and configuration to one responsive presentation wit
 
 Use kebab-case catalog identifiers. Site drawer selectors expose `data-brick-drawer-group-name` and `data-brick-drawer-catalog`; placed wrappers expose `data-brick-group-name`, `data-brick-catalog`, and `data-brick-id`.
 
+### Catalog folders under each group
+
+Presentations, catalog forms, catalog-only helpers, and catalog assets live under
+`apps/bricks/groups/<Group>/catalogs/<catalog>/`, where `<catalog>` matches the
+kebab-case catalog id (for example `profile`, `repo`, `thumbnail`, `default`).
+The group assembler (`*Group.ts`) and any colocated group tests stay at the group
+root and import from those catalog folders. Do not add `index.ts` barrels under
+`catalogs/` or a catalog folder.
+
+- **Bad**: flat `groups/GitHubCards/GitHubProfileSquareXs.tsx` next to
+  `GitHubProfileGroup.ts` and `GitHubRepoXs.tsx`.
+- **Good**: `groups/GitHubCards/catalogs/profile/GitHubProfileSquareXs.tsx` and
+  `groups/GitHubCards/catalogs/repo/GitHubRepoXs.tsx`, with
+  `GitHubProfileGroup.ts` at the group root importing each path.
+
 ### Factory arguments
 
 Factories take one `props` object with an inline shape. `makeCatalog` owns `catalog`, `catalogName`, `catalogDescription`, `dataShape`, `defaultData`, optional `configuration`, `order`, optional `form`, required `xs`, and optional `sm`, `lg`, `xl`. Each breakpoint is `{ component, w, h }`; omitted breakpoints inherit the nearest smaller complete entry. Catalog `def` stores the resolved dimensions at `def[breakpoint]`, without React components. Previews, drag placeholders, and new placements use those dimensions; saved placement sizes remain authoritative. See [makeCatalog.tsx](../../apps/bricks/makeCatalog.tsx) and [makeGroup.ts](../../apps/bricks/makeGroup.ts).

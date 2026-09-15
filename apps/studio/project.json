@@ -1,0 +1,30 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "@qrk.sh/studio",
+  "targets": {
+    "dev": {
+      "continuous": true,
+      "dependsOn": [
+        "^lib",
+        {
+          "projects": ["@qrk.sh/web"],
+          "target": "dev"
+        },
+        {
+          "projects": ["@qrk.sh/zerospin"],
+          "target": "dev"
+        }
+      ]
+    },
+    "build": {
+      "dependsOn": ["^lib"]
+    },
+    "typecheck": {
+      "command": "pnpm run tsc",
+      "options": {
+        "cwd": "apps/studio"
+      },
+      "dependsOn": ["^lib"]
+    }
+  }
+}

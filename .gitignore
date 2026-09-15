@@ -27,7 +27,7 @@ playwright/.cache/
 
 # next.js
 .next/
-apps/app/public/__zerospin/
+apps/studio/public/__zerospin/
 out/
 
 # production

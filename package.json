@@ -1,7 +1,7 @@
 {
   "private": true,
   "scripts": {
-    "dev": "nx run @qrk.sh/app:dev"
+    "dev": "nx run @qrk.sh/studio:dev"
   },
   "devDependencies": {
     "effect": "rc",

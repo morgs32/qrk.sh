@@ -8,5 +8,5 @@
     "strict": true,
     "types": ["node", "@cloudflare/vitest-pool-workers"]
   },
-  "include": ["src/scraper/**/*.ts", "cloudflare-test.d.ts", "worker-configuration.d.ts"]
+  "include": ["scraper/**/*.ts", "cloudflare-test.d.ts", "worker-configuration.d.ts"]
 }

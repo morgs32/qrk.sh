@@ -27,7 +27,7 @@ Mapbox token is explicitly included in the browser build.
 
 `wrangler.jsonc` retains the `scraper` Worker identity, browser binding, Durable
 Object bindings, and migrations. Local cache data lives under `.wrangler/state`.
-The scraper implementation and its tests live in `src/scraper`. Client imports
+The scraper implementation and its tests live in `scraper`. Client imports
 use the existing `*.public.d.ts` contracts so Worker implementation types do not
 become part of the brick library's public declarations.
 

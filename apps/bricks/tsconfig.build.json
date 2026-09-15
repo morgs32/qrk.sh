@@ -7,8 +7,19 @@
     "emitDeclarationOnly": true,
     "noEmit": false,
     "outDir": "dist",
-    "rootDir": "src"
+    "rootDir": "."
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx"],
-  "exclude": ["src/app/**", "src/**/*.test.ts", "src/**/*.test.tsx", "src/scraper/**"]
+  "include": ["**/*.ts", "**/*.tsx"],
+  "exclude": [
+    "app/**",
+    "scraper/**",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "vite*.ts",
+    "vitest*.ts",
+    "dist",
+    "build",
+    "node_modules",
+    "test-results"
+  ]
 }

@@ -40,7 +40,7 @@ export default defineConfig({
     }),
   ],
   test: {
-    include: ["src/scraper/**/*.live.spec.ts"],
+    include: ["scraper/**/*.live.spec.ts"],
     isolate: true,
     maxWorkers: 1,
     testTimeout: 120_000,

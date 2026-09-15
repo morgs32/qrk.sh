@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/nx/schemas/nx-schema.json",
   "defaultBase": "main",
-  "defaultProject": "@qrk.sh/app",
+  "defaultProject": "@qrk.sh/studio",
   "plugins": ["nx/plugins/package-json"],
   "analytics": false,
   "targetDefaults": {

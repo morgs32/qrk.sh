@@ -21,9 +21,9 @@ export default defineConfig(({ mode }) => {
     build: {
       lib: {
         entry: {
-          index: "src/index.ts",
-          BrickPreviewFrame: "src/BrickPreviewFrame.tsx",
-          BrickBreakpointProvider: "src/BrickBreakpointProvider.tsx",
+          index: "index.ts",
+          BrickPreviewFrame: "BrickPreviewFrame.tsx",
+          BrickBreakpointProvider: "BrickBreakpointProvider.tsx",
         },
         formats: ["es"],
         fileName: (_format, entryName) => `${entryName}.js`,

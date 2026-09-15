@@ -3,7 +3,7 @@
 Two Next.js apps with App Router:
 
 - `apps/web` owns the public homepage at `/` and the `/sign-in`, `/sign-up`, and `/replace` routes.
-- `apps/app` owns dashboards at `/:username`, published sites, and site workspaces under `/:username/site`.
+- `apps/studio` owns dashboards at `/:username`, published sites, and site workspaces under `/:username/site`.
 
 ## Features
 
@@ -11,7 +11,7 @@ Two Next.js apps with App Router:
 
 ## Brick group identity
 
-Brick groups are defined under `apps/bricks/src/groups/`.
+Brick groups are defined under `apps/bricks/groups/`.
 
 1. **`groupName`** identifies a group; **`catalog`** identifies a data/configuration and responsive presentation definition within it.
 2. **`(groupName, catalog)`** uniquely identifies a group brick, independently of dimensions. Views are no longer a separate selection.
@@ -57,13 +57,13 @@ More detail and test patterns: [docs/styleguide/component-and-file-naming.md](do
 To run the dashboard and site app instead:
 
 ```bash
-pnpm nx run @qrk.sh/app:dev
+pnpm nx run @qrk.sh/studio:dev
 ```
 
 ### Production server
 
-Build and start either app with its package name: `@qrk.sh/web` for the homepage or `@qrk.sh/app` for the dashboard and site app.
+Build and start either app with its package name: `@qrk.sh/web` for the homepage or `@qrk.sh/studio` for the dashboard and site app.
 
 ## Deployment
 
-Deploy both Next.js apps and route `/`, `/sign-in(.*)`, `/sign-up(.*)`, and `/replace` to `@qrk.sh/web`; route the remaining application paths to `@qrk.sh/app`.
+Deploy both Next.js apps and route `/`, `/sign-in(.*)`, `/sign-up(.*)`, and `/replace` to `@qrk.sh/web`; route the remaining application paths to `@qrk.sh/studio`.

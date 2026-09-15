@@ -3,7 +3,7 @@
 // Runtime types generated with workerd@1.20260507.1 2026-05-14 nodejs_compat
 declare namespace Cloudflare {
 	interface GlobalProps {
-		mainModule: typeof import("./src/scraper/Worker");
+		mainModule: typeof import("./scraper/Worker");
 		durableNamespaces: "BrowserHost" | "LinktreeRepo" | "BeaconsRepo" | "InstagramRepo" | "GitHubRepo" | "TikTokRepo" | "YouTubeRepo" | "TruthSocialRepo" | "FigmaRepo" | "GooglePlacesRepo" | "LinkRepo" | "StreamlineRepo";
 	}
 	interface Env {
@@ -13,18 +13,18 @@ declare namespace Cloudflare {
 		GOOGLE_PLACES_API_KEY: string;
 		FIGMA_TOKEN: string;
 		STREAMLINE_API_KEY: string;
-		BROWSER_HOST: DurableObjectNamespace<import("./src/scraper/Worker").BrowserHost>;
-		LINKTREE_REPO: DurableObjectNamespace<import("./src/scraper/Worker").LinktreeRepo>;
-		BEACONS_REPO: DurableObjectNamespace<import("./src/scraper/Worker").BeaconsRepo>;
-		INSTAGRAM_REPO: DurableObjectNamespace<import("./src/scraper/Worker").InstagramRepo>;
-		GITHUB_REPO: DurableObjectNamespace<import("./src/scraper/Worker").GitHubRepo>;
-		FIGMA_REPO: DurableObjectNamespace<import("./src/scraper/Worker").FigmaRepo>;
-		GOOGLE_PLACES_REPO: DurableObjectNamespace<import("./src/scraper/Worker").GooglePlacesRepo>;
-		LINK_REPO: DurableObjectNamespace<import("./src/scraper/Worker").LinkRepo>;
-		STREAMLINE_REPO: DurableObjectNamespace<import("./src/scraper/Worker").StreamlineRepo>;
-		TIKTOK_REPO: DurableObjectNamespace<import("./src/scraper/Worker").TikTokRepo>;
-		YOUTUBE_REPO: DurableObjectNamespace<import("./src/scraper/Worker").YouTubeRepo>;
-		TRUTH_SOCIAL_REPO: DurableObjectNamespace<import("./src/scraper/Worker").TruthSocialRepo>;
+		BROWSER_HOST: DurableObjectNamespace<import("./scraper/Worker").BrowserHost>;
+		LINKTREE_REPO: DurableObjectNamespace<import("./scraper/Worker").LinktreeRepo>;
+		BEACONS_REPO: DurableObjectNamespace<import("./scraper/Worker").BeaconsRepo>;
+		INSTAGRAM_REPO: DurableObjectNamespace<import("./scraper/Worker").InstagramRepo>;
+		GITHUB_REPO: DurableObjectNamespace<import("./scraper/Worker").GitHubRepo>;
+		FIGMA_REPO: DurableObjectNamespace<import("./scraper/Worker").FigmaRepo>;
+		GOOGLE_PLACES_REPO: DurableObjectNamespace<import("./scraper/Worker").GooglePlacesRepo>;
+		LINK_REPO: DurableObjectNamespace<import("./scraper/Worker").LinkRepo>;
+		STREAMLINE_REPO: DurableObjectNamespace<import("./scraper/Worker").StreamlineRepo>;
+		TIKTOK_REPO: DurableObjectNamespace<import("./scraper/Worker").TikTokRepo>;
+		YOUTUBE_REPO: DurableObjectNamespace<import("./scraper/Worker").YouTubeRepo>;
+		TRUTH_SOCIAL_REPO: DurableObjectNamespace<import("./scraper/Worker").TruthSocialRepo>;
 	}
 }
 interface Env extends Cloudflare.Env {}

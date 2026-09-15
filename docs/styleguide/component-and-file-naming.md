@@ -10,11 +10,11 @@ Use these rules for **repo-authored React components** that are **not** shadcn a
 ### Good vs bad: component file naming (PascalCase)
 
 - **Bad**: file name doesn’t match component name
-  - `apps/app/components/home/portfolio-grid.tsx`
+  - `apps/studio/components/home/portfolio-grid.tsx`
   - `export function Grid() { ... }`
 
 - **Good**: file name matches component name
-  - `apps/app/components/home/Grid.tsx`
+  - `apps/studio/components/home/Grid.tsx`
   - `export function Grid() { ... }`
 
 ### Good vs bad: one file per component
@@ -23,25 +23,25 @@ Prefer **one primary React component per file** (matching the PascalCase file na
 
 - **Bad**: `BrickGroup.tsx` defines both `BrickGroup` and a multi-markup helper like `BrickCarouselNav` in the same module.
 
-- **Good**: Under [BrickCarousel/](../../apps/app/app/[username]/site/[siteId]/page/[pageId]/BrickCarousel/), [BrickCarouselNav.tsx](../../apps/app/app/[username]/site/[siteId]/page/[pageId]/BrickCarousel/BrickCarouselNav.tsx) exports `BrickCarouselNav` and [BrickPreview.tsx](../../apps/app/app/[username]/site/[siteId]/page/[pageId]/BrickCarousel/BrickPreview.tsx) exports `BrickPreview`; [BrickCarousel.tsx](../../apps/app/app/[username]/site/[siteId]/page/[pageId]/BrickCarousel/BrickCarousel.tsx) imports them. Keep **`data-brick-carousel-nav`** (and similar hooks into parent behavior like `watchDrag`) documented by colocation: the nav file owns the markup; the parent may still reference those attributes in drag guards.
+- **Good**: Under [BrickCarousel/](../../apps/studio/app/[username]/site/[siteId]/page/[pageId]/BrickCarousel/), [BrickCarouselNav.tsx](../../apps/studio/app/[username]/site/[siteId]/page/[pageId]/BrickCarousel/BrickCarouselNav.tsx) exports `BrickCarouselNav` and [BrickPreview.tsx](../../apps/studio/app/[username]/site/[siteId]/page/[pageId]/BrickCarousel/BrickPreview.tsx) exports `BrickPreview`; [BrickCarousel.tsx](../../apps/studio/app/[username]/site/[siteId]/page/[pageId]/BrickCarousel/BrickCarousel.tsx) imports them. Keep **`data-brick-carousel-nav`** (and similar hooks into parent behavior like `watchDrag`) documented by colocation: the nav file owns the markup; the parent may still reference those attributes in drag guards.
 
 ### Exceptions (this rule does not apply)
 
 - **shadcn/ui components**: anything under either app’s `components/ui/**` directory keeps shadcn’s conventions.
-- **React Router entry files**: `apps/app/app/main.tsx`, `apps/app/app/routes.ts`, `apps/bricks/src/app/main.tsx`, and `apps/bricks/src/app/routes.ts` use entry/configuration names. Root components are `App.tsx` and `RootLayout.tsx`. Route components use PascalCase filenames; single-use route logic stays in its route module. Data Mode does not generate `.react-router/types/**`.
+- **React Router entry files**: `apps/studio/app/main.tsx`, `apps/studio/app/routes.ts`, `apps/bricks/app/main.tsx`, and `apps/bricks/app/routes.ts` use entry/configuration names. Root components are `App.tsx` and `RootLayout.tsx`. Route components use PascalCase filenames; single-use route logic stays in its route module. Data Mode does not generate `.react-router/types/**`.
 - **Next.js special files**: framework-reserved files under either app’s `app/**` directory keep their required names (for example `page.tsx`, `layout.tsx`, `loading.tsx`, `error.tsx`, `not-found.tsx`, `route.ts`).
 
 ### Good vs bad: BrickGroup carousel slides (one panel per brick)
 
-The brick group drawer uses shadcn `Carousel` (Embla) **per group**. Each brick is **one slide**: a bordered panel (`basis-full` on `CarouselItem`) with the draggable preview slot sized in CSS as **`calc(def[breakpoint].w * 50vw / 8)`** by **`calc(def[breakpoint].h * 50vw / 8)`**, i.e. half the viewport (site workspace `w-1/2`) divided into eight columns—the same column count [Grid.tsx](../../apps/app/app/[username]/site/[siteId]/page/[pageId]/Grid.tsx) uses (`GRID_COLS`). The grid itself still sizes cells from **measured** container width divided by column count (`rowHeight`), so previews can differ slightly (scrollbar, sub-pixel).
+The brick group drawer uses shadcn `Carousel` (Embla) **per group**. Each brick is **one slide**: a bordered panel (`basis-full` on `CarouselItem`) with the draggable preview slot sized in CSS as **`calc(def[breakpoint].w * 50vw / 8)`** by **`calc(def[breakpoint].h * 50vw / 8)`**, i.e. half the viewport (site workspace `w-1/2`) divided into eight columns—the same column count [Grid.tsx](../../apps/studio/app/[username]/site/[siteId]/page/[pageId]/Grid.tsx) uses (`GRID_COLS`). The grid itself still sizes cells from **measured** container width divided by column count (`rowHeight`), so previews can differ slightly (scrollbar, sub-pixel).
 
 ### Good vs bad: `BrickPreview` props (inline types, no cross-file props export)
 
-Keep [BrickPreview.tsx](../../apps/app/app/[username]/site/[siteId]/page/[pageId]/BrickCarousel/BrickPreview.tsx) decoupled from [BrickGroup.tsx](../../apps/app/app/[username]/site/[siteId]/page/[pageId]/BrickGroup/BrickGroup.tsx): **do not** export a `BrickPreviewProps` type from the parent only so the child can import it—that creates an awkward dependency and extra churn for a small props API.
+Keep [BrickPreview.tsx](../../apps/studio/app/[username]/site/[siteId]/page/[pageId]/BrickCarousel/BrickPreview.tsx) decoupled from [BrickGroup.tsx](../../apps/studio/app/[username]/site/[siteId]/page/[pageId]/BrickGroup/BrickGroup.tsx): **do not** export a `BrickPreviewProps` type from the parent only so the child can import it—that creates an awkward dependency and extra churn for a small props API.
 
 - **Bad**: `export type BrickPreviewProps` in `BrickGroup.tsx` and `import { BrickPreviewProps } from './BrickGroup'` in `BrickPreview.tsx` (parent owns types for a child it does not implement).
 
-- **Good**: annotate the preview’s props inline on `BrickPreview` with **`{ brick: IGroupBrick }`**. Group rows are built with **`makeCatalog`** (data, configuration, dimensions, appearance form, and responsive presentations) and **`makeGroup`** (**`catalogs[catalog]`**). Drawer drag uses native **`DataTransfer`** ([`BRICK_DRAG_MIME` / `useBrickDrawerStore`](../../apps/app/components/home/useBrickDrawerStore.ts)); [siteStore.ts](../../apps/app/app/[username]/site/[siteId]/siteStore.ts) persists only serializable site and page draft data, including each page’s `layout`, without React components.
+- **Good**: annotate the preview’s props inline on `BrickPreview` with **`{ brick: IGroupBrick }`**. Group rows are built with **`makeCatalog`** (data, configuration, dimensions, appearance form, and responsive presentations) and **`makeGroup`** (**`catalogs[catalog]`**). Drawer drag uses native **`DataTransfer`** ([`BRICK_DRAG_MIME` / `useBrickDrawerStore`](../../apps/studio/components/home/useBrickDrawerStore.ts)); [siteStore.ts](../../apps/studio/app/[username]/site/[siteId]/siteStore.ts) persists only serializable site and page draft data, including each page’s `layout`, without React components.
 
 **Same idea for small factories**: if only one function consumes the shape, **inline the object type on the function**—do **not** export `MakeBrickGroupProps`-style types unless a second module genuinely needs to reference that exact type.
 
@@ -59,10 +59,10 @@ Use kebab-case catalog identifiers. Site drawer selectors expose `data-brick-dra
 
 ### Factory arguments
 
-Factories take one `props` object with an inline shape. `makeCatalog` owns `catalog`, `catalogName`, `catalogDescription`, `dataShape`, `defaultData`, optional `configuration`, `order`, optional `form`, required `xs`, and optional `sm`, `lg`, `xl`. Each breakpoint is `{ component, w, h }`; omitted breakpoints inherit the nearest smaller complete entry. Catalog `def` stores the resolved dimensions at `def[breakpoint]`, without React components. Previews, drag placeholders, and new placements use those dimensions; saved placement sizes remain authoritative. See [makeCatalog.tsx](../../apps/bricks/src/makeCatalog.tsx) and [makeGroup.ts](../../apps/bricks/src/makeGroup.ts).
+Factories take one `props` object with an inline shape. `makeCatalog` owns `catalog`, `catalogName`, `catalogDescription`, `dataShape`, `defaultData`, optional `configuration`, `order`, optional `form`, required `xs`, and optional `sm`, `lg`, `xl`. Each breakpoint is `{ component, w, h }`; omitted breakpoints inherit the nearest smaller complete entry. Catalog `def` stores the resolved dimensions at `def[breakpoint]`, without React components. Previews, drag placeholders, and new placements use those dimensions; saved placement sizes remain authoritative. See [makeCatalog.tsx](../../apps/bricks/makeCatalog.tsx) and [makeGroup.ts](../../apps/bricks/makeGroup.ts).
 
 Data-backed catalogs configure requests with `makeFetcherConfiguration({ catalogOptionsShape, catalogOptionsForm, fetcher })`
-from [makeFetcherConfiguration.ts](../../apps/bricks/src/makeFetcherConfiguration.ts), passed as the catalog's `configuration`.
+from [makeFetcherConfiguration.ts](../../apps/bricks/makeFetcherConfiguration.ts), passed as the catalog's `configuration`.
 The factory supplies `configurationType: "fetcher"` and validates catalog options before invoking its
 required `fetcher` callback. `catalogOptionsForm` is one optional component receiving the complete decoded
 catalog options as `{ value, onChange }`; `onChange` replaces the whole catalog options. `IFetcherConfiguration` is defined in that factory module. The callback receives
@@ -71,14 +71,14 @@ for success or typed failure. The catalog retains `dataShape` and validates `def
 Configuration forms read `configuration.catalogOptionsShape` and `configuration.catalogOptionsForm`;
 catalogs do not expose top-level catalog options fields or `getData`.
 
-The workbench's [Configuration.tsx](../../apps/bricks/src/app/Configuration.tsx) switches on
+The workbench's [Configuration.tsx](../../apps/bricks/app/Configuration.tsx) switches on
 `configurationType`. A custom catalog options form runs the fetcher on `onChange`, using the complete
 updated catalog options. Without a custom form, generated text controls use explicit Submit buttons.
 Neither form fetches initially. Each request owns a scraper RPC session;
 superseded and unmounted requests cannot publish data or errors. Control-internal searches remain
 independent of catalog options changes, including Streamline's SWR search.
 
-[useCatalogData.ts](../../apps/bricks/src/app/useCatalogData.ts) provides
+[useCatalogData.ts](../../apps/bricks/app/useCatalogData.ts) provides
 `[catalogData, setCatalogData]` backed by in-memory Zustand state per group/catalog. Its setter validates against the decoded `dataShape`, preserving provider fields, before replacing
 stored data. Invalid writes leave state unchanged. The configuration page preview and JSON display use
 stored data or `defaultData`; loading and errors retain the last valid data. Navigation retains values,
@@ -92,7 +92,7 @@ Local-only forms use `makeFormConfiguration`.
 
 ### Good vs bad: no barrel `index.ts` under homepage bricks
 
-Do **not** add `apps/app/components/home/bricks/index.ts` (or similar) that only re-exports symbols from sibling modules. Name each file after its **primary export** and import that path directly.
+Do **not** add `apps/studio/components/home/bricks/index.ts` (or similar) that only re-exports symbols from sibling modules. Name each file after its **primary export** and import that path directly.
 
 - **Bad**: `import { homepageBricks, groupsHash } from "./bricks"` or `@/components/home/bricks` when `./bricks` is a re-export barrel.
 
@@ -102,13 +102,13 @@ Do **not** add `apps/app/components/home/bricks/index.ts` (or similar) that only
 
 Do **not** add a second exported wrapper on the shared carousel that imports **`groupsHash`** and takes **`groupName`**: that couples every import site to a parallel API and drags group knowledge into **`components/home`**.
 
-- **Bad**: `BrickCarouselFromGroup` (or similar) exported from [BrickCarousel.tsx](../../apps/app/app/[username]/site/[siteId]/page/[pageId]/BrickCarousel/BrickCarousel.tsx) — thin pass-through: `groupsHash[groupName]` → **`BrickCarousel`**.
+- **Bad**: `BrickCarouselFromGroup` (or similar) exported from [BrickCarousel.tsx](../../apps/studio/app/[username]/site/[siteId]/page/[pageId]/BrickCarousel/BrickCarousel.tsx) — thin pass-through: `groupsHash[groupName]` → **`BrickCarousel`**.
 
-- **Good**: [BrickCarousel.tsx](../../apps/app/app/[username]/site/[siteId]/page/[pageId]/BrickCarousel/BrickCarousel.tsx) accepts **`group: IGroup`** (and optional **`brickSortFn`**) only. Resolve **`groupsHash[groupName]`** in the route’s client `page.tsx` next to the site workspace and pass **`group`** into **`BrickCarousel`**; keep **`groupsHash`** out of the shared carousel module.
+- **Good**: [BrickCarousel.tsx](../../apps/studio/app/[username]/site/[siteId]/page/[pageId]/BrickCarousel/BrickCarousel.tsx) accepts **`group: IGroup`** (and optional **`brickSortFn`**) only. Resolve **`groupsHash[groupName]`** in the route’s client `page.tsx` next to the site workspace and pass **`group`** into **`BrickCarousel`**; keep **`groupsHash`** out of the shared carousel module.
 
 ### Good vs bad: brick-group route — keep one-off logic in `page.tsx`
 
-**Prefer consolidating** behavior for route-local group pages under `apps/app/app/[username]/site/[siteId]/page/[pageId]/` in those route files. Do **not** add a **separate module** whose **only** consumer is that single `page.tsx` (extra imports and folder noise for no reuse).
+**Prefer consolidating** behavior for route-local group pages under `apps/studio/app/[username]/site/[siteId]/page/[pageId]/` in those route files. Do **not** add a **separate module** whose **only** consumer is that single `page.tsx` (extra imports and folder noise for no reuse).
 
 - **Bad**: `BrickGroupFoo.tsx` (or `FooHelper.ts`) next to the page — a thin wrapper or helper used **only** once by that `page.tsx`.
 
@@ -130,7 +130,7 @@ The homepage grid is the product **Grid**; avoid a redundant **Portfolio** prefi
 
 - **Bad**: `portfolio-grid-store.ts`, `usePortfolioGridStore`, `PortfolioGridSeed`, `portfolioGridSeed`, `PortfolioBrickInstance`, test ids like `portfolio-grid-layout`, and a layout class name tied to “portfolio” when the surface is the generic home grid.
 
-- **Good**: `apps/app/lib/stores/grid-store.ts`, `useGridStore`, `IGridSeed`, `gridSeed`, `IBrickInstance`, `data-testid="grid-layout"`, and a scoped layout class such as `grid` (see [apps/app/app/globals.css](../../apps/app/app/globals.css) placeholder styling).
+- **Good**: `apps/studio/lib/stores/grid-store.ts`, `useGridStore`, `IGridSeed`, `gridSeed`, `IBrickInstance`, `data-testid="grid-layout"`, and a scoped layout class such as `grid` (see [apps/studio/app/globals.css](../../apps/studio/app/globals.css) placeholder styling).
 
 - **Bad**: `basis-auto` with many small bricks in one viewport row when the product goal is “one brick, one panel” at a time; or shrinking bricks with `scale-75` when previews should read at full drawer size.
 
@@ -161,7 +161,7 @@ Use `Rows sticky` when the whole group should stick within its scroll container.
 Spacing is explicit in the composition rather than inferred from descendant DOM.
 
 The group, CatalogConfiguration, and BrickDetail pages share
-[`GroupOutline`](../../apps/bricks/src/app/GroupOutline.tsx) for catalog choices.
+[`GroupOutline`](../../apps/bricks/components/outline/GroupOutline.tsx) for catalog choices.
 It owns the white `Outline` surface, equal 0.75rem vertical padding, and spaced catalog entries.
 Each page supplies `renderCatalog`: root buttons select the local preview; links select
 `?catalog=...`. Standalone previews use `/bricks/:groupName/:catalog`.
@@ -191,12 +191,6 @@ of the preview; disable choices that exceed it. Start with the largest fitting
 preset and fall back to the largest fitting preset if a resize makes the selection
 too large. Below 375px, hide the preview and show its minimum-width requirement. Width selection lasts across sandbox route
 navigation and reload, and is independent of Reset's grid state changes.
-
-The centered grid preview and its white backdrop transition width over `200ms ease`.
-During the preview's width transition, grid items and grid height follow measured
-geometry without their own transitions; normal grid animations resume when it ends
-or is canceled. Reduced-motion preferences disable the wrapper and backdrop
-transitions. Brick presentations still switch at the measured breakpoint thresholds.
 
 ### Responsive brick breakpoints
 

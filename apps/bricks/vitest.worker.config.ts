@@ -24,7 +24,7 @@ export default defineConfig({
     }),
   ],
   test: {
-    include: ["src/scraper/**/*.e2e.spec.ts"],
+    include: ["scraper/**/*.e2e.spec.ts"],
     isolate: true,
     maxWorkers: 1,
     testTimeout: 120_000,

@@ -34,4 +34,4 @@ export const link = makeModule({
     imageUrl:
       "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=800&q=80",
     iconUrl: "https://www.apple.com/favicon.ico"},
-  xs: { component: LinkDefaultCard, w: 4, h: 2 }});
+  sm: { component: LinkDefaultCard, w: 4, h: 2 }});

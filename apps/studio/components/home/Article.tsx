@@ -91,6 +91,14 @@ export function Article() {
       immediatelyRender: false,
       onUpdate: ({ editor: updatedEditor }) => {
         const json = updatedEditor.getJSON();
+        setArticle(json);
+
+        const state = session.store.getState();
+        if (!state.isInitialized) {
+          toast.error("Your session is not ready");
+          return;
+        }
+
         const article = Schema.decodeUnknownSync(
           Schema.Struct({
             type: Schema.Literal("doc"),
@@ -100,13 +108,6 @@ export function Article() {
             text: Schema.optional(Schema.String),
           }),
         )(json);
-        setArticle(article);
-
-        const state = session.store.getState();
-        if (!state.isInitialized) {
-          toast.error("Your session is not ready");
-          return;
-        }
 
         const result = session.executeCommand({
           contractName: "updatePageArticle",

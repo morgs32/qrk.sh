@@ -1,5 +1,6 @@
 import { Schema } from "effect";
 import { create } from "zustand";
+import type { JSONContent } from "@tiptap/react";
 
 const ArticleDocSchema = Schema.Struct({
   type: Schema.Literal("doc"),
@@ -9,8 +10,8 @@ const ArticleDocSchema = Schema.Struct({
   text: Schema.optional(Schema.String),
 });
 
-const seedArticle = {
-  type: "doc" as const,
+const seedArticle: JSONContent = {
+  type: "doc",
   content: [
     {
       type: "heading",
@@ -29,15 +30,14 @@ const seedArticle = {
   ],
 };
 
-function normalizeArticle(article: unknown) {
+function normalizeArticle(article: unknown): JSONContent {
   if (article === null || article === undefined) {
     return seedArticle;
   }
 
-  const value =
-    typeof article === "string" ? (JSON.parse(article) as unknown) : article;
-
-  return Schema.decodeUnknownSync(ArticleDocSchema)(value);
+  const value = typeof article === "string" ? JSON.parse(article) : article;
+  const decoded = Schema.decodeUnknownSync(ArticleDocSchema)(value);
+  return JSON.parse(JSON.stringify(decoded));
 }
 
 export const usePageStore = create<{
@@ -48,13 +48,7 @@ export const usePageStore = create<{
     readonly title: string;
     readonly description: string;
     readonly pageType: "split-scroll" | "shared-scroll";
-    readonly article: {
-      readonly type: "doc";
-      readonly content?: ReadonlyArray<unknown>;
-      readonly attrs?: unknown;
-      readonly marks?: ReadonlyArray<unknown>;
-      readonly text?: string;
-    };
+    readonly article: JSONContent;
   } | null;
   readonly initializePage: (page: {
     readonly id: string;
@@ -67,13 +61,7 @@ export const usePageStore = create<{
   }) => void;
   readonly setTitle: (title: string) => void;
   readonly setDescription: (description: string) => void;
-  readonly setArticle: (article: {
-    readonly type: "doc";
-    readonly content?: ReadonlyArray<unknown>;
-    readonly attrs?: unknown;
-    readonly marks?: ReadonlyArray<unknown>;
-    readonly text?: string;
-  }) => void;
+  readonly setArticle: (article: JSONContent) => void;
 }>()((set) => ({
   page: null,
   initializePage: (page) => {

@@ -5,7 +5,7 @@ import { ActivityCalendar } from "react-activity-calendar";
 import { BrickFrame } from "../../BrickFrame";
 
 export function GitHubActivityCalendar(props: {
-  breakpoint: "xs" | "sm" | "lg" | "xl";
+  breakpoint: "sm" | "md" | "lg" | "xl";
   data: {
     contributions: Array<{
       date: string;

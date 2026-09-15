@@ -32,4 +32,4 @@ export const swatch = makeModule({
   id: "swatch",
   label: "Swatch",
   description: "Solid color fields for visual rhythm.",
-  xs: { component: SwatchDefaultFill, w: 2, h: 2 }});
+  sm: { component: SwatchDefaultFill, w: 2, h: 2 }});

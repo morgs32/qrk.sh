@@ -9,8 +9,8 @@ import type { IFormConfiguration } from "./makeFormConfiguration";
 /** A module definition (serializable identity and dimensions). */
 export type IBrickDef<MODULE extends string = string> = {
   /** Resolved initial dimensions, inheriting the nearest smaller presentation. */
-  xs: { w: number; h: number };
   sm: { w: number; h: number };
+  md: { w: number; h: number };
   lg: { w: number; h: number };
   xl: { w: number; h: number };
   /** Kebab-case module slug (for example `icon`, `github-profile`, or `figma-thumbnail`). */
@@ -66,7 +66,7 @@ export type IModuleBrick = {
     bivarianceHack(props: {
       data?: unknown;
       options?: unknown;
-      breakpoint: "xs" | "sm" | "lg" | "xl";
+      breakpoint: "sm" | "md" | "lg" | "xl";
     }): ReactNode;
   }["bivarianceHack"] & { options?: ReturnType<typeof makeOptions> };
 };

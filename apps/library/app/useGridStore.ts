@@ -15,22 +15,22 @@ export const useGridStore = create<{
       moduleId: string;
 
       data: unknown;
-      xs: { gridItem: LayoutItem | null; options: unknown };
-    } & Partial<Record<"sm" | "lg" | "xl", { gridItem: LayoutItem | null; options: unknown }>>
+      sm: { gridItem: LayoutItem | null; options: unknown };
+    } & Partial<Record<"md" | "lg" | "xl", { gridItem: LayoutItem | null; options: unknown }>>
   >;
   activeBrickDrag: (IModuleBrickDef & { options?: unknown }) | null;
   hasHydrated: boolean;
   selectedWidth: number | null;
-  setLayout: (layout: Layout, breakpoint: "xs" | "sm" | "lg" | "xl") => void;
+  setLayout: (layout: Layout, breakpoint: "sm" | "md" | "lg" | "xl") => void;
   addBrick: (
     brickId: string,
     brickDef: IModuleBrickDef & { options?: unknown },
     layout: Layout,
-    breakpoint: "xs" | "sm" | "lg" | "xl",
+    breakpoint: "sm" | "md" | "lg" | "xl",
   ) => void;
   setActiveBrickDrag: (brickDef: (IModuleBrickDef & { options?: unknown }) | null) => void;
-  setOptions: (brickId: string, breakpoint: "xs" | "sm" | "lg" | "xl", value: unknown) => void;
-  setVisible: (brickId: string, breakpoint: "xs" | "sm" | "lg" | "xl", visible: boolean) => void;
+  setOptions: (brickId: string, breakpoint: "sm" | "md" | "lg" | "xl", value: unknown) => void;
+  setVisible: (brickId: string, breakpoint: "sm" | "md" | "lg" | "xl", visible: boolean) => void;
   setHasHydrated: (hasHydrated: boolean) => void;
 }>()(
   persist(
@@ -83,11 +83,11 @@ export const useGridStore = create<{
               moduleId: brickDef.moduleId,
 
               data: structuredClone(brickDef.data),
-              xs: {
+              sm: {
                 gridItem: { ...gridItem },
                 options: structuredClone(options),
               },
-              ...(breakpoint === "xs"
+              ...(breakpoint === "sm"
                 ? {}
                 : {
                     [breakpoint]: {
@@ -134,11 +134,11 @@ export const useGridStore = create<{
             // Search explicit smaller entries, skipping hidden entries.
             const smaller =
               breakpoint === "xl"
-                ? [brick.lg, brick.sm, brick.xs]
+                ? [brick.lg, brick.md, brick.sm]
                 : breakpoint === "lg"
-                  ? [brick.sm, brick.xs]
-                  : breakpoint === "sm"
-                    ? [brick.xs]
+                  ? [brick.md, brick.sm]
+                  : breakpoint === "md"
+                    ? [brick.sm]
                     : [];
             const placement = smaller.find((candidate) => candidate?.gridItem)?.gridItem;
             if (placement) {

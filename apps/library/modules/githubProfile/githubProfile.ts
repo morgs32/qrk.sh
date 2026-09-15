@@ -66,6 +66,6 @@ export const githubProfile = makeModule({
     updated_at: "2026-07-15T15:27:35Z",
     login: "morgs32",
   },
-  xs: { component: GitHubProfileStats, w: 4, h: 4 },
-  sm: { component: GitHubProfileStats, w: 4, h: 3 },
+  sm: { component: GitHubProfileStats, w: 4, h: 4 },
+  md: { component: GitHubProfileStats, w: 4, h: 3 },
 });

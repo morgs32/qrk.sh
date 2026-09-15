@@ -38,4 +38,4 @@ export const mapPlace = makeModule({
     address: "Chicago, IL, USA",
     latitude: 41.8781136,
     longitude: -87.6297982},
-  xs: { component: MapPlaceCanvas, w: 4, h: 4 }});
+  sm: { component: MapPlaceCanvas, w: 4, h: 4 }});

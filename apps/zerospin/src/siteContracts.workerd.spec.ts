@@ -794,12 +794,8 @@ describe("user frontend creation guards", () => {
 
       const pageRows = db.select().from(dbConfig.schema.page).all();
       expect(pageRows).toHaveLength(1);
-      expect(pageRows[0]).toEqual(
-        expect.objectContaining({
-          id: stagedPage.success.payload.id,
-          article,
-        }),
-      );
+      expect(pageRows[0]?.id).toBe(stagedPage.success.payload.id);
+      expect(JSON.parse(String(pageRows[0]?.article))).toEqual(article);
     }).pipe(Effect.scoped),
   );
 });

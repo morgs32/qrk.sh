@@ -20,8 +20,8 @@ export function makeModule<
     label: string;
     description: string;
     options?: ReturnType<typeof makeOptions>;
-    xs: { component: (props: PROPS) => ReactNode; w: number; h: number };
-    sm?: { component: (props: NoInfer<PROPS>) => ReactNode; w: number; h: number };
+    sm: { component: (props: PROPS) => ReactNode; w: number; h: number };
+    md?: { component: (props: NoInfer<PROPS>) => ReactNode; w: number; h: number };
     lg?: { component: (props: NoInfer<PROPS>) => ReactNode; w: number; h: number };
     xl?: { component: (props: NoInfer<PROPS>) => ReactNode; w: number; h: number };
   } & (
@@ -29,9 +29,9 @@ export function makeModule<
         dataShape: null;
         defaultData: null;
         configuration?: never;
-        xs: {
+        sm: {
           component: (props: {
-            breakpoint: "xs" | "sm" | "lg" | "xl";
+            breakpoint: "sm" | "md" | "lg" | "xl";
             options?: unknown;
           }) => ReactNode;
           w: number;
@@ -44,10 +44,10 @@ export function makeModule<
         configuration?:
           | ReturnType<typeof makeFetcherConfiguration<MODULE_OPTIONS_SHAPE>>
           | IFormConfiguration<InferDecodedRow<DATA_SHAPE>>;
-        xs: {
+        sm: {
           component: (props: {
             data: InferDecodedRow<DATA_SHAPE>;
-            breakpoint: "xs" | "sm" | "lg" | "xl";
+            breakpoint: "sm" | "md" | "lg" | "xl";
           }) => ReactNode;
           w: number;
           h: number;
@@ -60,16 +60,16 @@ export function makeModule<
   }
 
   // Resolve complete entries once so the renderer and serialized dimensions agree.
-  const xs = props.xs;
-  const sm = props.sm ?? xs;
-  const lg = props.lg ?? sm;
+  const sm = props.sm;
+  const md = props.md ?? sm;
+  const lg = props.lg ?? md;
   const xl = props.xl ?? lg;
-  const presentations = { xs, sm, lg, xl };
+  const presentations = { sm, md, lg, xl };
 
   /** Omitted breakpoints inherit the nearest smaller component and dimensions. */
   function Brick(
     propsForBrick: NoInfer<PROPS> & {
-      breakpoint: "xs" | "sm" | "lg" | "xl";
+      breakpoint: "sm" | "md" | "lg" | "xl";
       options?: unknown;
     },
   ) {
@@ -85,8 +85,8 @@ export function makeModule<
   const def = {
     moduleId: props.id,
     moduleLabel: props.label,
-    xs: { w: xs.w, h: xs.h },
     sm: { w: sm.w, h: sm.h },
+    md: { w: md.w, h: md.h },
     lg: { w: lg.w, h: lg.h },
     xl: { w: xl.w, h: xl.h },
     data: null as unknown};

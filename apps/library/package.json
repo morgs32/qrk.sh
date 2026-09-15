@@ -14,10 +14,15 @@
       "types": "./dist/BrickBreakpointProvider.d.ts",
       "import": "./dist/BrickBreakpointProvider.js"
     },
+    "./breakpoints": {
+      "types": "./dist/breakpoints.d.ts",
+      "import": "./dist/breakpoints.js"
+    },
     "./BrickPreviewFrame": {
       "types": "./dist/BrickPreviewFrame.d.ts",
       "import": "./dist/BrickPreviewFrame.js"
     },
+
     "./styles.css": "./dist/styles.css"
   },
   "scripts": {

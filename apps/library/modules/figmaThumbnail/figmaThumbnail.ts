@@ -41,5 +41,5 @@ export const figmaThumbnail = makeModule({
         values: ["center", "left", "right", "top", "bottom"],
         defaultValue: "left"})},
     form: FigmaOptionsForm}),
-  xs: { component: FigmaThumbnailHeader, w: 4, h: 4 },
-  sm: { component: FigmaThumbnailFooter, w: 4, h: 4 }});
+  sm: { component: FigmaThumbnailHeader, w: 4, h: 4 },
+  md: { component: FigmaThumbnailFooter, w: 4, h: 4 }});

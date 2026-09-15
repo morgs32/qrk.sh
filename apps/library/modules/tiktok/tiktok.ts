@@ -23,4 +23,4 @@ export const tiktok = makeModule({
     username: primitives.text()},
   defaultData: {
     username: "theonion"},
-  xs: { component: TikTokDefaultEmbed, w: 4, h: 4 }});
+  sm: { component: TikTokDefaultEmbed, w: 4, h: 4 }});

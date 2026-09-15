@@ -3,7 +3,7 @@ import { Image } from "@unpic/react";
 import { BrickFrame } from "../../BrickFrame";
 
 export function FigmaThumbnailHeader(props: {
-  breakpoint: "xs" | "sm" | "lg" | "xl";
+  breakpoint: "sm" | "md" | "lg" | "xl";
   options?: { imagePosition: string };
   data: {
     title: string;

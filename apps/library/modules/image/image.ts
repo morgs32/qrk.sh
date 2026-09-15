@@ -20,5 +20,5 @@ export const image = makeModule({
     },
     form: ImageOptionsForm,
   }),
-  xs: { component: ImageDefaultPromo, w: 4, h: 4 },
+  sm: { component: ImageDefaultPromo, w: 4, h: 4 },
 });

@@ -1,29 +1,17 @@
 import { RpcTarget } from "capnweb";
 
 import type {
-  IBeaconsScrapePayload,
   IFigmaFilePreviewPayload,
   IGitHubScrapePayload,
   IGooglePlaceDetails,
   IGooglePlaceSuggestion,
   IInstagramScrapePayload,
   ILinkPreview,
-  ILinktreeScrapePayload,
   IRpcEither,
   ITikTokScrapePayload,
-  ITruthSocialScrapePayload,
-  IYouTubeScrapePayload,
 } from "./types.public";
 
 export declare class ScraperApi extends RpcTarget {
-  linktreeRepo(): RpcTarget & {
-    scrape(url: string): Promise<IRpcEither<ILinktreeScrapePayload>>;
-  };
-
-  beaconsRepo(): RpcTarget & {
-    scrape(url: string): Promise<IRpcEither<IBeaconsScrapePayload>>;
-  };
-
   instagramRepo(): RpcTarget & {
     scrape(url: string): Promise<IRpcEither<IInstagramScrapePayload>>;
   };
@@ -47,14 +35,6 @@ export declare class ScraperApi extends RpcTarget {
 
   tiktokRepo(): RpcTarget & {
     scrape(url: string): Promise<IRpcEither<ITikTokScrapePayload>>;
-  };
-
-  youtubeRepo(): RpcTarget & {
-    scrape(url: string): Promise<IRpcEither<IYouTubeScrapePayload>>;
-  };
-
-  truthSocialRepo(): RpcTarget & {
-    scrape(url: string): Promise<IRpcEither<ITruthSocialScrapePayload>>;
   };
 
   streamlineRepo(): RpcTarget & {

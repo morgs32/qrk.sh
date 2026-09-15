@@ -192,7 +192,7 @@ export function SandboxGrid() {
                   key={layoutItem.i}
                   style={{ opacity: outsideBrickId === layoutItem.i ? 0.4 : 1 }}
                   className="brick-drag-surface size-full"
-                  data-brick={`${brick.def.groupName}/${brick.def.catalog}`}
+                  data-brick={`${brick.def.groupId}/${brick.def.catalogId}`}
                   data-brick-id={layoutItem.i}
                   data-grid-x={layoutItem.x}
                   data-grid-y={layoutItem.y}

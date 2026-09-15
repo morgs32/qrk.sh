@@ -1,0 +1,15 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "@qrk.sh/scraper",
+  "targets": {
+    "tsc": {
+      "dependsOn": ["^lib"]
+    },
+    "test:workerd": {
+      "dependsOn": ["^lib"]
+    },
+    "test:live": {
+      "dependsOn": ["^lib"]
+    }
+  }
+}

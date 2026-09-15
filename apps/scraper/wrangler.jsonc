@@ -1,0 +1,21 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "scraper",
+  "main": "./Worker.ts",
+  "compatibility_date": "2026-05-14",
+  "compatibility_flags": ["nodejs_compat"],
+  "browser": { "binding": "BROWSER" },
+  "durable_objects": {
+    "bindings": [
+      { "name": "BROWSER_HOST", "class_name": "BrowserHost" },
+      { "name": "LINKTREE_REPO", "class_name": "LinktreeRepo" }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_classes": ["BrowserHost"],
+      "new_sqlite_classes": ["LinktreeRepo"]
+    }
+  ]
+}

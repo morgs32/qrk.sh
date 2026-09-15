@@ -25,11 +25,13 @@ Put local settings in `apps/bricks/.env.local`:
 The Cloudflare plugin loads the private settings as Worker bindings. Only the
 Mapbox token is explicitly included in the browser build.
 
-`wrangler.jsonc` retains the `scraper` Worker identity, browser binding, Durable
+`wrangler.jsonc` retains the `bricks` Worker identity, browser binding, Durable
 Object bindings, and migrations. Local cache data lives under `.wrangler/state`.
-The scraper implementation and its tests live in `scraper`. Client imports
+The scraper implementation and its tests live in `scraper`, with catalog-owned
+`*Repo` Durable Objects under `groups/<group-id>/catalogs/<catalog-id>/`. Client imports
 use the existing `*.public.d.ts` contracts so Worker implementation types do not
-become part of the brick library's public declarations.
+become part of the brick library's public declarations. Linktree scraping lives
+in the separate `@qrk.sh/scraper` Worker (`apps/scraper`).
 
 ## Checks and builds
 

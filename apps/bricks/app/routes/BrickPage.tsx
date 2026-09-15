@@ -38,7 +38,7 @@ export default function BrickPage() {
       {({ containerRef, breakpoint }) => (
         <main className="min-h-screen">
           <div className="mx-auto max-w-7xl p-6">
-            <Link to={`/groups/${encodeURIComponent(brick.def.groupName)}`} className="text-sm">
+            <Link to={`/groups/${encodeURIComponent(brick.def.groupId)}`} className="text-sm">
               Back to {brick.def.groupLabel}
             </Link>
 
@@ -70,9 +70,9 @@ export default function BrickPage() {
                 <h1 className="m-0 text-2xl font-semibold">{brick.def.label}</h1>
                 <dl className="grid grid-cols-[7rem_1fr] gap-x-3 gap-y-2 text-sm">
                   <dt className="text-zinc-500">Group</dt>
-                  <dd className="m-0 font-mono">{brick.def.groupName}</dd>
+                  <dd className="m-0 font-mono">{brick.def.groupId}</dd>
                   <dt className="text-zinc-500">Catalog</dt>
-                  <dd className="m-0 font-mono">{brick.def.catalog}</dd>
+                  <dd className="m-0 font-mono">{brick.def.catalogId}</dd>
                   <dt className="text-zinc-500">Width</dt>
                   <dd className="m-0">{brick.def[breakpoint].w}</dd>
                   <dt className="text-zinc-500">Height</dt>

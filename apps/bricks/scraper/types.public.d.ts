@@ -6,26 +6,6 @@ export type IJsonValue =
   | ReadonlyArray<null | boolean | number | string | object>
   | Readonly<{ [key: string]: null | boolean | number | string | object }>;
 
-export type ILinktreeScrapePayload = Readonly<{
-  props: Readonly<{
-    pageProps: Readonly<{
-      account: Readonly<{
-        username: string;
-        [key: string]: IJsonValue;
-      }>;
-      [key: string]: IJsonValue;
-    }>;
-    [key: string]: IJsonValue;
-  }>;
-  [key: string]: IJsonValue;
-}>;
-
-export type IBeaconsScrapePayload = Readonly<{
-  username: string;
-  source: "embedded" | "rendered";
-  data: IJsonValue;
-}>;
-
 export type IInstagramScrapePayload = Readonly<{
   username: string;
   profileImageUrl: string;
@@ -77,17 +57,6 @@ export type IGooglePlaceDetails = Readonly<{
 export type ITikTokScrapePayload = Readonly<{
   username: string;
   data: IJsonValue;
-}>;
-
-export type IYouTubeScrapePayload = Readonly<{
-  handle: string;
-  data: IJsonValue;
-}>;
-
-export type ITruthSocialScrapePayload = Readonly<{
-  username: string;
-  acct: string;
-  [key: string]: IJsonValue;
 }>;
 
 export type IScrapeError = Readonly<{

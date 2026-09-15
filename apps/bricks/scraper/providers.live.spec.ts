@@ -21,28 +21,6 @@ const getRight = <RIGHT>(either: IRpcEither<RIGHT>): RIGHT => {
   return either.right;
 };
 
-it.skipIf(process.env.SCRAPER_LIVE_LINKTREE_URL === undefined)(
-  "scrapes a live Linktree profile",
-  async () => {
-    const url = process.env.SCRAPER_LIVE_LINKTREE_URL;
-    if (url === undefined) throw new Error("SCRAPER_LIVE_LINKTREE_URL is required");
-    using api = newSyncRpcSession<ScraperApi>(RPC_URL);
-    expect(getRight(await api.linktreeRepo().scrape(url))).toHaveProperty(
-      "props.pageProps.account.username",
-    );
-  },
-);
-
-it.skipIf(process.env.SCRAPER_LIVE_BEACONS_URL === undefined)(
-  "scrapes a live Beacons profile",
-  async () => {
-    const url = process.env.SCRAPER_LIVE_BEACONS_URL;
-    if (url === undefined) throw new Error("SCRAPER_LIVE_BEACONS_URL is required");
-    using api = newSyncRpcSession<ScraperApi>(RPC_URL);
-    expect(getRight(await api.beaconsRepo().scrape(url))).toHaveProperty("username");
-  },
-);
-
 it.skipIf(
   process.env.SCRAPER_LIVE_INSTAGRAM_URL === undefined ||
     process.env.SCRAPER_LIVE_INSTAGRAM_URL === "missing-live-instagram-url",
@@ -60,26 +38,6 @@ it.skipIf(process.env.SCRAPER_LIVE_TIKTOK_URL === undefined)(
     if (url === undefined) throw new Error("SCRAPER_LIVE_TIKTOK_URL is required");
     using api = newSyncRpcSession<ScraperApi>(RPC_URL);
     expect(getRight(await api.tiktokRepo().scrape(url))).toHaveProperty("username");
-  },
-);
-
-it.skipIf(process.env.SCRAPER_LIVE_YOUTUBE_URL === undefined)(
-  "scrapes a live YouTube channel",
-  async () => {
-    const url = process.env.SCRAPER_LIVE_YOUTUBE_URL;
-    if (url === undefined) throw new Error("SCRAPER_LIVE_YOUTUBE_URL is required");
-    using api = newSyncRpcSession<ScraperApi>(RPC_URL);
-    expect(getRight(await api.youtubeRepo().scrape(url))).toHaveProperty("handle");
-  },
-);
-
-it.skipIf(process.env.SCRAPER_LIVE_TRUTH_SOCIAL_URL === undefined)(
-  "scrapes a live Truth Social profile",
-  async () => {
-    const url = process.env.SCRAPER_LIVE_TRUTH_SOCIAL_URL;
-    if (url === undefined) throw new Error("SCRAPER_LIVE_TRUTH_SOCIAL_URL is required");
-    using api = newSyncRpcSession<ScraperApi>(RPC_URL);
-    expect(getRight(await api.truthSocialRepo().scrape(url))).toHaveProperty("username");
   },
 );
 

@@ -6,21 +6,13 @@ import { beforeEach, describe, expect, vi } from "vite-plus/test";
 
 import type { ScraperApi } from "./ScraperApi.public";
 import {
-  beaconsFixture,
   gitHubFixture,
   instagramFixture,
-  linktreeFixtureJson,
   tikTokFixture,
-  truthSocialFixture,
-  youTubeFixture,
 } from "./providerFixtures";
-import { parseBeaconsPayload } from "./scrapeBeacons";
 import { parseInstagramPayload } from "./scrapeInstagram";
 import { parseGitHubPayload } from "./scrapeGitHub";
-import { parseLinktreePayload } from "./scrapeLinktree";
 import { parseTikTokPayload } from "./scrapeTikTok";
-import { parseTruthSocialPayload } from "./scrapeTruthSocial";
-import { parseYouTubePayload } from "./scrapeYouTube";
 import type { IRpcEither } from "./types";
 
 const launchMock = vi.hoisted(() => vi.fn());
@@ -49,16 +41,6 @@ describe("origin-specific scraper repositories", () => {
   it.effect("retains each complete provider fixture behind its named payload contract", () =>
     Effect.gen(function* () {
       expect(
-        yield* parseLinktreePayload({ json: linktreeFixtureJson, username: "miguelangeles" }),
-      ).toMatchObject({
-        props: {
-          pageProps: { account: { username: "miguelangeles" }, links: [{ title: "Example" }] },
-        },
-      });
-      expect(yield* parseBeaconsPayload({ payload: beaconsFixture, username: "creator" })).toEqual(
-        beaconsFixture,
-      );
-      expect(
         yield* parseInstagramPayload({ payload: instagramFixture, username: "creator" }),
       ).toEqual(instagramFixture);
       expect(yield* parseGitHubPayload({ payload: gitHubFixture, login: "octocat" })).toEqual(
@@ -67,26 +49,10 @@ describe("origin-specific scraper repositories", () => {
       expect(yield* parseTikTokPayload({ payload: tikTokFixture, username: "creator" })).toEqual(
         tikTokFixture,
       );
-      expect(yield* parseYouTubePayload({ payload: youTubeFixture, handle: "creator" })).toEqual(
-        youTubeFixture,
-      );
-      expect(
-        yield* parseTruthSocialPayload({ payload: truthSocialFixture, username: "creator" }),
-      ).toEqual(truthSocialFixture);
     }),
   );
 
   it("returns typed invalid-URL failures from every explicit repo accessor", async () => {
-    using linktreeApi = newSyncRpcSession<ScraperApi>(RPC_URL);
-    expect(await linktreeApi.linktreeRepo().scrape("https://example.com/profile")).toMatchObject({
-      _tag: "Left",
-      left: { code: "invalid-scrape-request" },
-    });
-    using beaconsApi = newSyncRpcSession<ScraperApi>(RPC_URL);
-    expect(await beaconsApi.beaconsRepo().scrape("https://creator.beacons.ai")).toMatchObject({
-      _tag: "Left",
-      left: { code: "invalid-scrape-request" },
-    });
     using instagramApi = newSyncRpcSession<ScraperApi>(RPC_URL);
     expect(
       await instagramApi.instagramRepo().scrape("https://instagram.com/creator"),
@@ -100,17 +66,9 @@ describe("origin-specific scraper repositories", () => {
       _tag: "Left",
       left: { code: "invalid-scrape-request" },
     });
-    using youTubeApi = newSyncRpcSession<ScraperApi>(RPC_URL);
-    expect(
-      await youTubeApi.youtubeRepo().scrape("https://www.youtube.com/channel/123"),
-    ).toMatchObject({ _tag: "Left", left: { code: "invalid-scrape-request" } });
-    using truthSocialApi = newSyncRpcSession<ScraperApi>(RPC_URL);
-    expect(
-      await truthSocialApi.truthSocialRepo().scrape("https://truthsocial.com/@creator/posts/1"),
-    ).toMatchObject({ _tag: "Left", left: { code: "invalid-scrape-request" } });
   });
 
-  it("scrapes and caches all five browser origins through one lazy BrowserHost", async () => {
+  it("scrapes and caches browser origins through one lazy BrowserHost", async () => {
     let browserDisconnected: (() => void) | undefined;
     const browser = {
       connected: true,
@@ -120,12 +78,8 @@ describe("origin-specific scraper repositories", () => {
           goto: vi.fn(async (url: string) => {
             currentUrl = url;
           }),
-          $eval: vi.fn(async (selector: string) => {
-            if (currentUrl.includes("linktr.ee")) return linktreeFixtureJson;
-            if (currentUrl.includes("beacons.ai")) return JSON.stringify(beaconsFixture.data);
+          $eval: vi.fn(async () => {
             if (currentUrl.includes("tiktok.com")) return JSON.stringify(tikTokFixture.data);
-            if (currentUrl.includes("youtube.com") && selector === "link[rel='canonical']")
-              return currentUrl;
             return null;
           }),
           $$eval: vi.fn(async () => [JSON.stringify(instagramFixture)]),
@@ -147,7 +101,7 @@ describe("origin-specific scraper repositories", () => {
                 }),
               });
             }
-            return youTubeFixture.data;
+            return {};
           }),
           close: vi.fn(async () => undefined),
         };
@@ -158,15 +112,6 @@ describe("origin-specific scraper repositories", () => {
       }),
     };
     launchMock.mockResolvedValue(browser);
-    using linktreeApi = newSyncRpcSession<ScraperApi>(RPC_URL);
-    const linktree = getRight(
-      await linktreeApi.linktreeRepo().scrape("https://linktr.ee/miguelangeles/?source=test"),
-    );
-    expect(linktree.props.pageProps.account.username).toBe("miguelangeles");
-    using beaconsApi = newSyncRpcSession<ScraperApi>(RPC_URL);
-    expect(
-      getRight(await beaconsApi.beaconsRepo().scrape("https://beacons.ai/creator/?source=test")),
-    ).toMatchObject({ username: "creator", source: "embedded" });
     using instagramApi = newSyncRpcSession<ScraperApi>(RPC_URL);
     expect(
       getRight(
@@ -177,24 +122,10 @@ describe("origin-specific scraper repositories", () => {
     expect(
       getRight(await tikTokApi.tiktokRepo().scrape("https://www.tiktok.com/@creator/?source=test")),
     ).toMatchObject({ username: "creator" });
-    using youTubeApi = newSyncRpcSession<ScraperApi>(RPC_URL);
-    expect(
-      getRight(
-        await youTubeApi.youtubeRepo().scrape("https://www.youtube.com/@creator/?source=test"),
-      ),
-    ).toMatchObject({ handle: "creator" });
 
     expect(launchMock).toHaveBeenCalledTimes(1);
-    expect(browser.newPage).toHaveBeenCalledTimes(5);
+    expect(browser.newPage).toHaveBeenCalledTimes(2);
 
-    using cachedLinktreeApi = newSyncRpcSession<ScraperApi>(RPC_URL);
-    expect(
-      getRight(await cachedLinktreeApi.linktreeRepo().scrape("https://linktr.ee/miguelangeles")),
-    ).toMatchObject({ props: { pageProps: { account: { username: "miguelangeles" } } } });
-    using cachedBeaconsApi = newSyncRpcSession<ScraperApi>(RPC_URL);
-    expect(
-      getRight(await cachedBeaconsApi.beaconsRepo().scrape("https://beacons.ai/creator")),
-    ).toMatchObject({ username: "creator" });
     using cachedInstagramApi = newSyncRpcSession<ScraperApi>(RPC_URL);
     expect(
       getRight(
@@ -205,11 +136,7 @@ describe("origin-specific scraper repositories", () => {
     expect(
       getRight(await cachedTikTokApi.tiktokRepo().scrape("https://www.tiktok.com/@creator")),
     ).toMatchObject({ username: "creator" });
-    using cachedYouTubeApi = newSyncRpcSession<ScraperApi>(RPC_URL);
-    expect(
-      getRight(await cachedYouTubeApi.youtubeRepo().scrape("https://www.youtube.com/@creator")),
-    ).toMatchObject({ handle: "creator" });
-    expect(browser.newPage).toHaveBeenCalledTimes(5);
+    expect(browser.newPage).toHaveBeenCalledTimes(2);
     let secondBrowserDisconnected: (() => void) | undefined;
     const secondBrowser = {
       connected: true,
@@ -220,9 +147,9 @@ describe("origin-specific scraper repositories", () => {
             currentUrl = url;
           }),
           $eval: vi.fn(async () =>
-            currentUrl.includes("linktr.ee")
+            currentUrl.includes("tiktok.com")
               ? JSON.stringify({
-                  props: { pageProps: { account: { username: "browser-reconnected" } } },
+                  UserModule: { users: { reconnected: { uniqueId: "reconnected" } } },
                 })
               : null,
           ),
@@ -243,8 +170,8 @@ describe("origin-specific scraper repositories", () => {
     launchMock.mockResolvedValue(secondBrowser);
     using reconnectedApi = newSyncRpcSession<ScraperApi>(RPC_URL);
     expect(
-      getRight(await reconnectedApi.linktreeRepo().scrape("https://linktr.ee/browser-reconnected")),
-    ).toMatchObject({ props: { pageProps: { account: { username: "browser-reconnected" } } } });
+      getRight(await reconnectedApi.tiktokRepo().scrape("https://www.tiktok.com/@reconnected")),
+    ).toMatchObject({ username: "reconnected" });
 
     expect(launchMock).toHaveBeenCalledTimes(2);
     expect(secondBrowser.newPage).toHaveBeenCalledTimes(1);
@@ -575,37 +502,4 @@ describe("origin-specific scraper repositories", () => {
     expect(contributionCalls).toBe(2);
   });
 
-  it("scrapes and caches Truth Social directly without BrowserHost", async () => {
-    let upstreamCalls = 0;
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-        const url = input instanceof Request ? input.url : String(input);
-        if (url === "https://truthsocial.com/api/v1/accounts/lookup?acct=direct-origin") {
-          upstreamCalls += 1;
-          return new Response(
-            JSON.stringify({
-              ...truthSocialFixture,
-              username: "direct-origin",
-              acct: "direct-origin",
-            }),
-            { status: 200 },
-          );
-        }
-        return SELF.fetch(input, init);
-      }),
-    );
-    using api = newSyncRpcSession<ScraperApi>(RPC_URL);
-    expect(
-      getRight(
-        await api.truthSocialRepo().scrape("https://truthsocial.com/@direct-origin/?source=test"),
-      ),
-    ).toMatchObject({ username: "direct-origin" });
-    using cachedApi = newSyncRpcSession<ScraperApi>(RPC_URL);
-    expect(
-      getRight(await cachedApi.truthSocialRepo().scrape("https://truthsocial.com/@direct-origin")),
-    ).toMatchObject({ username: "direct-origin" });
-    expect(upstreamCalls).toBe(1);
-    expect(launchMock).not.toHaveBeenCalled();
-  });
 });

@@ -8,14 +8,14 @@ import type { IFormConfiguration } from "./makeFormConfiguration";
 import type { IGroup, IBrick } from "./types";
 
 export function makeGroup(props: {
-  groupName: string;
-  groupLabel: string;
-  groupDescription: string;
+  id: string;
+  label: string;
+  description: string;
   catalogs: Record<
     string,
     | {
-        catalogName: string;
-        catalogDescription: string;
+        label: string;
+        description: string;
         configuration?: never;
         dataShape: null;
         defaultData: null;
@@ -23,8 +23,8 @@ export function makeGroup(props: {
         component: (props: never) => ReactNode;
       }
     | {
-        catalogName: string;
-        catalogDescription: string;
+        label: string;
+        description: string;
         configuration?: IFormConfiguration | IFetcherConfiguration;
         dataShape: IShape;
         defaultData: unknown;
@@ -33,29 +33,29 @@ export function makeGroup(props: {
       }
   >;
 }): IGroup {
-  const { groupName, groupLabel, groupDescription, catalogs: rawContents } = props;
+  const { id, label, description, catalogs: rawContents } = props;
 
   const catalogs = mapValues(rawContents, (catalog, key) => {
-    if (key !== catalog.def.catalog) {
+    if (key !== catalog.def.catalogId) {
       throw new Error(
-        `makeGroup: catalog key ${JSON.stringify(key)} must match catalog ${JSON.stringify(catalog.def.catalog)}`,
+        `makeGroup: catalog key ${JSON.stringify(key)} must match catalog ${JSON.stringify(catalog.def.catalogId)}`,
       );
     }
     return {
       ...catalog,
       def: {
         ...catalog.def,
-        groupName,
-        groupLabel,
+        groupId: id,
+        groupLabel: label,
         data: catalog.defaultData,
       },
     };
   });
 
   return {
-    groupName,
-    groupLabel,
-    groupDescription,
+    id,
+    label,
+    description,
     catalogs,
   };
 }

@@ -13,9 +13,9 @@ describe("form configuration", () => {
   it("preserves a typed data form through content and group creation", () => {
     const dataShape = { text: primitives.text() };
     const content = makeCatalog({
-      catalog: "default",
-      catalogName: "Default",
-      catalogDescription: "Editable text",
+      id: "default",
+      label: "Default",
+      description: "Editable text",
       dataShape,
       defaultData: { text: "Before" },
       configuration: makeFormConfiguration<typeof dataShape>({
@@ -29,9 +29,9 @@ describe("form configuration", () => {
       xs: { component: () => null, w: 1, h: 1 },
     });
     const group = makeGroup({
-      groupName: "test",
-      groupLabel: "Test",
-      groupDescription: "Test",
+      id: "test",
+      label: "Test",
+      description: "Test",
       catalogs: { default: content },
     });
     const configuration = group.catalogs.default?.configuration;

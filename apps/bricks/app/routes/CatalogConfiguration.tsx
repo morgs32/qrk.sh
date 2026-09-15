@@ -59,7 +59,7 @@ export default function CatalogConfiguration() {
   return (
     <section data-testid="catalog-configuration-pane">
       <Outline.Title>
-        <Link to={`/groups/${encodeURIComponent(groupName)}`}>{group.groupLabel}</Link>
+        <Link to={`/groups/${encodeURIComponent(groupName)}`}>{group.label}</Link>
       </Outline.Title>
       <GroupOutline
         group={group}
@@ -76,14 +76,14 @@ export default function CatalogConfiguration() {
       <div className="px-4">
         <TableData
           entries={[
-            { label: "Group name", value: group.groupLabel },
-            { label: "Group ID", value: group.groupName },
-            { label: "Group description", value: group.groupDescription },
-            { label: "Catalog name", value: catalog.catalogName },
+            { label: "Group name", value: group.label },
+            { label: "Group ID", value: group.id },
+            { label: "Group description", value: group.description },
+            { label: "Catalog name", value: catalog.label },
             { label: "Catalog ID", value: catalogName },
             {
               label: "Catalog description",
-              value: catalog.catalogDescription,
+              value: catalog.description,
             },
           ]}
         />
@@ -112,7 +112,7 @@ export default function CatalogConfiguration() {
                   );
                 }
                 event.dataTransfer.effectAllowed = "copy";
-                event.dataTransfer.setData("text/plain", brick.def.catalog);
+                event.dataTransfer.setData("text/plain", brick.def.catalogId);
               }}
               onDragEnd={() => setActiveBrickDrag(null)}
             >

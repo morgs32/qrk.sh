@@ -20,16 +20,16 @@ describe("brick group identity", () => {
     const kebabCase = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
     for (const group of Object.values(groupsHash)) {
-      expect(kebabCase.test(group.groupName)).toBe(true);
-      expect(groupNames.has(group.groupName)).toBe(false);
-      groupNames.add(group.groupName);
+      expect(kebabCase.test(group.id)).toBe(true);
+      expect(groupNames.has(group.id)).toBe(false);
+      groupNames.add(group.id);
 
       for (const [catalogName, content] of Object.entries(group.catalogs)) {
         expect(kebabCase.test(catalogName)).toBe(true);
-        expect(content.catalogDescription.trim()).not.toBe("");
+        expect(content.description.trim()).not.toBe("");
 
-        expect(content.def.catalog).toBe(catalogName);
-        expect(group.catalogs[content.def.catalog]).toBe(content);
+        expect(content.def.catalogId).toBe(catalogName);
+        expect(group.catalogs[content.def.catalogId]).toBe(content);
         expect(content).not.toHaveProperty("views");
         expect(content.def).not.toHaveProperty("view");
       }
@@ -41,9 +41,9 @@ describe("brick group identity", () => {
   it("uses default for groups with one content content", () => {
     for (const group of Object.values(groupsHash)) {
       if (
-        group.groupName === "github" ||
-        group.groupName === "figma" ||
-        group.groupName === "map"
+        group.id === "github" ||
+        group.id === "figma" ||
+        group.id === "map"
       ) {
         continue;
       }
@@ -109,7 +109,7 @@ describe("brick group identity", () => {
     const textGroup = groupsHash.text;
     const defaultContent = textGroup.catalogs.default;
 
-    expect(textGroup.groupLabel).toBe("Text");
+    expect(textGroup.label).toBe("Text");
     if (defaultContent.configuration?.configurationType !== "form") {
       throw new Error("Expected form configuration");
     }
@@ -125,9 +125,9 @@ describe("brick group identity", () => {
 
 it("validates catalog keys and keeps identity independent of dimensions", () => {
   const catalog = makeCatalog({
-    catalog: "summary",
-    catalogName: "Summary",
-    catalogDescription: "Test catalog",
+    id: "summary",
+    label: "Summary",
+    description: "Test catalog",
     dataShape: null,
     defaultData: null,
 
@@ -136,22 +136,22 @@ it("validates catalog keys and keeps identity independent of dimensions", () => 
   });
   expect(() =>
     makeGroup({
-      groupName: "test",
-      groupLabel: "Test",
-      groupDescription: "Test",
+      id: "test",
+      label: "Test",
+      description: "Test",
       catalogs: { wrong: catalog },
     }),
   ).toThrow('catalog key "wrong" must match catalog "summary"');
   const group = makeGroup({
-    groupName: "test",
-    groupLabel: "Test",
-    groupDescription: "Test",
+    id: "test",
+    label: "Test",
+    description: "Test",
     catalogs: { summary: catalog },
   });
   expect(group.catalogs.summary.def).toEqual({
-    groupName: "test",
+    groupId: "test",
     groupLabel: "Test",
-    catalog: "summary",
+    catalogId: "summary",
     label: "Summary",
     xs: { w: 4, h: 2 },
     sm: { w: 4, h: 2 },

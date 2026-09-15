@@ -59,7 +59,7 @@ export function BrickCarousel(props: {
   );
 
   if (bricks.length <= 0) {
-    throw new BrickCarouselNoBricksError(group.groupName);
+    throw new BrickCarouselNoBricksError(group.id);
   }
 
   const maxH = Math.max(...bricks.map((b) => b.def[breakpoint].h));
@@ -87,7 +87,7 @@ export function BrickCarousel(props: {
       <div className="sticky top-0 z-[11]">
         <div className="bg-muted/80 px-6 py-2.5 backdrop-blur-sm dark:bg-muted/50">
           <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3">
-            <div className="min-w-0 truncate text-sm font-semibold">{group.groupLabel}</div>
+            <div className="min-w-0 truncate text-sm font-semibold">{group.label}</div>
             <BrickCarouselNav api={carouselApi} bricks={bricks} />
             <div className="min-w-0 justify-self-end text-right text-sm font-medium tabular-nums text-muted-foreground">
               {bricks[selectedIndex]?.def.label}
@@ -131,7 +131,7 @@ export function BrickCarousel(props: {
         >
           {bricks.map((brick) => (
             <CarouselItem
-              key={`${brick.def.catalog}`}
+              key={`${brick.def.catalogId}`}
               data-brick-drawer-slide-grid-h={brick.def[breakpoint].h}
               className="relative flex h-full min-h-0 flex-col items-center justify-center"
               style={{

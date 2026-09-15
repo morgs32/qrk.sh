@@ -30,8 +30,8 @@
     "test": "vp test run --config vitest.config.ts",
     "test:e2e": "playwright test --config app/playwright.config.ts",
     "build:app": "vp build --config vite.workbench.config.ts",
-    "test:workerd": "vp test run --config vitest.worker.config.ts",
-    "test:live": "SCRAPER_LIVE_TESTS=1 vp test run --config vitest.live.config.ts",
+    "test:workerd": "vitest run --config vitest.worker.config.ts",
+    "test:live": "SCRAPER_LIVE_TESTS=1 vitest run --config vitest.live.config.ts",
     "types": "wrangler types ./worker-configuration.d.ts",
     "tsc:worker": "tsc -p tsconfig.worker.json"
   },

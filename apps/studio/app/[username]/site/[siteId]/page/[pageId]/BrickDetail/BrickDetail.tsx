@@ -32,8 +32,8 @@ export function BrickDetail() {
   const placement = useBrickDrawerStore((state) =>
     state.pageGrids[pageKey]?.layout.find((item) => item.i === params.brickId),
   );
-  const group = brickDef ? groupsHash[brickDef.groupName] : undefined;
-  const content = brickDef ? group?.catalogs[brickDef.catalog] : undefined;
+  const group = brickDef ? groupsHash[brickDef.groupId] : undefined;
+  const content = brickDef ? group?.catalogs[brickDef.catalogId] : undefined;
   const brick = brickDef ? content : undefined;
   const BrickComponent = brick?.component;
 
@@ -71,7 +71,7 @@ export function BrickDetail() {
               <Link
                 to={href("/:username/site/:siteId/page/:pageId/brick-group/:groupName", {
                   ...params,
-                  groupName: brick.def.groupName,
+                  groupName: brick.def.groupId,
                 })}
                 className="inline-flex items-center gap-2 text-sm"
               >
@@ -86,7 +86,7 @@ export function BrickDetail() {
                 {brick.def.label}
               </h1>
               <p className="mt-0 font-mono text-sm text-muted-foreground">
-                {brick.def.groupName}/{brick.def.catalog}
+                {brick.def.groupId}/{brick.def.catalogId}
               </p>
             </div>
             <div className="mt-8 overflow-auto">

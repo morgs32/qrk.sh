@@ -16,9 +16,9 @@ export function makeCatalog<
   PROPS extends object,
 >(
   props: {
-    catalog: CATALOG;
-    catalogName: string;
-    catalogDescription: string;
+    id: CATALOG;
+    label: string;
+    description: string;
     order: number;
     form?: ReturnType<typeof makeAppearanceForm>;
     xs: { component: (props: PROPS) => ReactNode; w: number; h: number };
@@ -53,10 +53,8 @@ export function makeCatalog<
       }
   ),
 ) {
-  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(props.catalog)) {
-    throw new Error(
-      `makeCatalog: catalog must be kebab-case; got ${JSON.stringify(props.catalog)}`,
-    );
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(props.id)) {
+    throw new Error(`makeCatalog: id must be kebab-case; got ${JSON.stringify(props.id)}`);
   }
 
   // Resolve complete entries once so the renderer and serialized dimensions agree.
@@ -83,18 +81,18 @@ export function makeCatalog<
   }
   Brick.form = props.form;
   const def = {
-    catalog: props.catalog,
+    catalogId: props.id,
     xs: { w: xs.w, h: xs.h },
     sm: { w: sm.w, h: sm.h },
     lg: { w: lg.w, h: lg.h },
     xl: { w: xl.w, h: xl.h },
-    label: props.catalogName,
+    label: props.label,
     order: props.order,
   };
   if (props.dataShape === null) {
     return {
-      catalogName: props.catalogName,
-      catalogDescription: props.catalogDescription,
+      label: props.label,
+      description: props.description,
       dataShape: null,
       defaultData: null,
       configuration: undefined,
@@ -107,8 +105,8 @@ export function makeCatalog<
     { onExcessProperty: "preserve" },
   );
   return {
-    catalogName: props.catalogName,
-    catalogDescription: props.catalogDescription,
+    label: props.label,
+    description: props.description,
     dataShape: props.dataShape,
     defaultData,
     configuration: props.configuration,

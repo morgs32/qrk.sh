@@ -14,7 +14,7 @@ import { Input } from "../components/ui/input";
 
 export function FetcherConfiguration(props: {
   configuration: IFetcherConfiguration;
-  groupName: string | undefined;
+  groupId: string | undefined;
   data: unknown;
   showData?: boolean;
   setData: (data: unknown) => void;

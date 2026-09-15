@@ -17,11 +17,14 @@ describe("Streamline repository", () => {
     const upstreamFetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = input instanceof Request ? input.url : String(input);
 
-      if (url.startsWith("https://public-api.streamlinehq.com/v1/search/global")) {
+      if (
+        url.startsWith(
+          "https://public-api.streamlinehq.com/v1/search/family/material-symbols-sharp-line",
+        )
+      ) {
         upstreamRequests += 1;
         const parsedUrl = new URL(url);
         expect(parsedUrl.searchParams.get("productType")).toBe("icons");
-        expect(parsedUrl.searchParams.get("productTier")).toBe("free");
         expect(parsedUrl.searchParams.get("query")).toBe("home");
         expect(parsedUrl.searchParams.get("offset")).toBe("24");
         expect(parsedUrl.searchParams.get("limit")).toBe("24");

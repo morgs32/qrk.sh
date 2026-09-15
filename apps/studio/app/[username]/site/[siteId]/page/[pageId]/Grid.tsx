@@ -83,7 +83,7 @@ export function Grid() {
             );
             useBrickDrawerStore.getState().unregisterActiveBrickDragGridShape();
             if (!item || !brickDef) return;
-            const brick = groupsHash[brickDef.groupName]?.catalogs[brickDef.catalog];
+            const brick = groupsHash[brickDef.groupId]?.catalogs[brickDef.catalogId];
             if (!brick) return;
             const brickId = crypto.randomUUID();
             const droppedLayout = nextLayout.map((layoutItem) =>
@@ -130,7 +130,7 @@ export function Grid() {
           {layout.map((layoutItem) => {
             const brickDef = pageGrid?.bricksById[layoutItem.i];
             const content = brickDef
-              ? groupsHash[brickDef.groupName]?.catalogs[brickDef.catalog]
+              ? groupsHash[brickDef.groupId]?.catalogs[brickDef.catalogId]
               : undefined;
             const brick = brickDef ? content : undefined;
             if (!brick) {
@@ -147,8 +147,8 @@ export function Grid() {
               <div
                 key={layoutItem.i}
                 className="qrk-bricks size-full cursor-grab overflow-hidden active:cursor-grabbing"
-                data-brick-group-name={brick.def.groupName}
-                data-brick-catalog={brick.def.catalog}
+                data-brick-group-name={brick.def.groupId}
+                data-brick-catalog={brick.def.catalogId}
                 data-brick-id={layoutItem.i}
                 onClick={() => {
                   if (suppressBrickClickRef.current) return;

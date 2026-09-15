@@ -12,13 +12,13 @@ test("selects, drags, and restores distinct catalogs with identical dimensions",
         const fixtureContent = groupsHash.swatch.catalogs.default;
         const fixtureBrick = fixtureContent;
         groupsHash.swatch.catalogs.summary = {
-          ...fixtureContent, catalogName: "Summary",
-          def: { ...fixtureBrick.def, catalog: "summary", label: "Summary" },
+          ...fixtureContent, label: "Summary",
+          def: { ...fixtureBrick.def, catalogId: "summary", label: "Summary" },
           component: () => "Summary fixture content",
         };
         groupsHash.swatch.catalogs.activity = {
-          ...fixtureContent, catalogName: "Activity",
-          def: { ...fixtureBrick.def, catalog: "activity", label: "Activity" },
+          ...fixtureContent, label: "Activity",
+          def: { ...fixtureBrick.def, catalogId: "activity", label: "Activity" },
           component: () => "Activity fixture content",
         };
       `,

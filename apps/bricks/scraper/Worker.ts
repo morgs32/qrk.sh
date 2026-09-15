@@ -1,33 +1,25 @@
 import { newWorkersRpcResponse } from "capnweb";
 
-import { BeaconsRepo } from "./BeaconsRepo";
 import { BrowserHost } from "./BrowserHost";
-import { GitHubRepo } from "./GitHubRepo";
-import { FigmaRepo } from "./FigmaRepo";
-import { GooglePlacesRepo } from "./GooglePlacesRepo";
-import { InstagramRepo } from "./InstagramRepo";
-import { LinktreeRepo } from "./LinktreeRepo";
-import { LinkRepo } from "./LinkRepo";
+import { FigmaRepo } from "../groups/figma/catalogs/thumbnail/FigmaRepo";
+import { GitHubRepo } from "../groups/github/catalogs/profile/GitHubRepo";
+import { GooglePlacesRepo } from "../groups/map/catalogs/place/GooglePlacesRepo";
+import { InstagramRepo } from "../groups/instagram/catalogs/default/InstagramRepo";
+import { LinkRepo } from "../groups/link/catalogs/default/LinkRepo";
 import { ScraperApi } from "./ScraperApi";
-import { StreamlineRepo } from "./StreamlineRepo";
-import { TikTokRepo } from "./TikTokRepo";
-import { TruthSocialRepo } from "./TruthSocialRepo";
+import { StreamlineRepo } from "../groups/icon/catalogs/default/StreamlineRepo";
+import { TikTokRepo } from "../groups/tiktok/catalogs/default/TikTokRepo";
 import type { IScraperEnv } from "./types";
-import { YouTubeRepo } from "./YouTubeRepo";
 
 export {
-  BeaconsRepo,
   BrowserHost,
   FigmaRepo,
   GitHubRepo,
   GooglePlacesRepo,
   InstagramRepo,
-  LinktreeRepo,
   LinkRepo,
   StreamlineRepo,
   TikTokRepo,
-  TruthSocialRepo,
-  YouTubeRepo,
 };
 
 // oxlint-disable-next-line import/no-default-export -- Cloudflare Worker entrypoint.

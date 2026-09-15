@@ -17,7 +17,7 @@ export default function BrickGroupRoute() {
   if (!username || !siteId || !pageId) throw new Error("Missing editor route params");
   const { groupName } = params;
 
-  const group = Object.values(groupsHash).find((candidate) => candidate.groupName === groupName);
+  const group = Object.values(groupsHash).find((candidate) => candidate.id === groupName);
 
   if (!group) {
     return (
@@ -53,37 +53,37 @@ export default function BrickGroupRoute() {
           <span>All groups</span>
         </Link>
         <dl className="mt-5 grid max-w-[500px] grid-cols-2 gap-x-6 gap-y-3 text-sm">
-          <MetadataField label="Group name">{group.groupLabel}</MetadataField>
+          <MetadataField label="Group name">{group.label}</MetadataField>
           <MetadataField label="Group ID" className="text-right">
-            <CodeText>{group.groupName}</CodeText>
+            <CodeText>{group.id}</CodeText>
           </MetadataField>
           <MetadataField label="Group description" className="col-span-2">
-            {group.groupDescription}
+            {group.description}
           </MetadataField>
         </dl>
       </div>
       <div className="mt-8 flex flex-col gap-10">
         {bricks.map((brick) => {
           const BrickComponent = brick.component;
-          const content = group.catalogs[brick.def.catalog];
+          const content = group.catalogs[brick.def.catalogId];
 
           return (
-            <section key={`${brick.def.catalog}`}>
-              <Tabs.Root value={`${brick.def.catalog}-preview`}>
+            <section key={`${brick.def.catalogId}`}>
+              <Tabs.Root value={`${brick.def.catalogId}-preview`}>
                 <div className="flex items-baseline justify-between gap-4 px-6">
                   <div>
-                    <h2 className="m-0 text-2xl font-semibold">{brick.def.catalog}</h2>
+                    <h2 className="m-0 text-2xl font-semibold">{brick.def.catalogId}</h2>
                     <p className="mb-0 mt-1 text-sm text-zinc-500">
-                      {group.catalogs[brick.def.catalog]?.catalogDescription}
+                      {group.catalogs[brick.def.catalogId]?.description}
                     </p>
                   </div>
                   <div className="flex shrink-0 items-baseline gap-2">
                     <Tabs.List
                       className="flex gap-2 text-sm"
-                      aria-label={`${brick.def.catalog} preview`}
+                      aria-label={`${brick.def.catalogId} preview`}
                     >
                       <Tabs.Trigger
-                        value={`${brick.def.catalog}-preview`}
+                        value={`${brick.def.catalogId}-preview`}
                         className="cursor-pointer border-0 bg-transparent p-0 text-sm font-medium text-zinc-950"
                       >
                         {brick.def.label}
@@ -91,16 +91,16 @@ export default function BrickGroupRoute() {
                     </Tabs.List>
                   </div>
                 </div>
-                <Tabs.Content value={`${brick.def.catalog}-preview`}>
+                <Tabs.Content value={`${brick.def.catalogId}-preview`}>
                   <div className="mt-6 overflow-auto">
                     <div className={brick.def[breakpoint].w === 8 ? undefined : "ml-6"}>
                       <BrickPreviewFrame w={brick.def[breakpoint].w} h={brick.def[breakpoint].h}>
                         <div
                           className="size-full qrk-bricks cursor-grab overflow-hidden active:cursor-grabbing"
-                          data-brick-full-view={`${brick.def.groupName}/${brick.def.catalog}`}
+                          data-brick-full-view={`${brick.def.groupId}/${brick.def.catalogId}`}
                           data-brick-drawer-brick-slot
-                          data-brick-drawer-group-name={brick.def.groupName}
-                          data-brick-drawer-catalog={brick.def.catalog}
+                          data-brick-drawer-group-name={brick.def.groupId}
+                          data-brick-drawer-catalog={brick.def.catalogId}
                           draggable
                           onDragStart={(event) => {
                             useBrickDrawerStore
@@ -111,7 +111,7 @@ export default function BrickGroupRoute() {
                               );
                             event.dataTransfer.setData(BRICK_DRAG_MIME, JSON.stringify(brick.def));
                             event.dataTransfer.effectAllowed = "copy";
-                            event.dataTransfer.setData("text/plain", brick.def.catalog);
+                            event.dataTransfer.setData("text/plain", brick.def.catalogId);
                           }}
                           onDragEnd={() => {
                             useBrickDrawerStore.getState().unregisterActiveBrickDragGridShape();

@@ -8,26 +8,6 @@ export type IJsonValue =
   | ReadonlyArray<null | boolean | number | string | object>
   | Readonly<{ [key: string]: null | boolean | number | string | object }>;
 
-export type ILinktreeScrapePayload = Readonly<{
-  props: Readonly<{
-    pageProps: Readonly<{
-      account: Readonly<{
-        username: string;
-        [key: string]: IJsonValue;
-      }>;
-      [key: string]: IJsonValue;
-    }>;
-    [key: string]: IJsonValue;
-  }>;
-  [key: string]: IJsonValue;
-}>;
-
-export type IBeaconsScrapePayload = Readonly<{
-  username: string;
-  source: "embedded" | "rendered";
-  data: IJsonValue;
-}>;
-
 export type IInstagramScrapePayload = Readonly<{
   username: string;
   profileImageUrl: string;
@@ -81,17 +61,6 @@ export type ITikTokScrapePayload = Readonly<{
   data: IJsonValue;
 }>;
 
-export type IYouTubeScrapePayload = Readonly<{
-  handle: string;
-  data: IJsonValue;
-}>;
-
-export type ITruthSocialScrapePayload = Readonly<{
-  username: string;
-  acct: string;
-  [key: string]: IJsonValue;
-}>;
-
 export type IScrapeError = Readonly<{
   code:
     | "invalid-scrape-request"
@@ -116,17 +85,25 @@ export type IRpcEither<RIGHT> =
 export interface IScraperEnv {
   BROWSER: BrowserWorker;
   BROWSER_HOST: DurableObjectNamespace<import("./BrowserHost").BrowserHost>;
-  LINKTREE_REPO: DurableObjectNamespace<import("./LinktreeRepo").LinktreeRepo>;
-  BEACONS_REPO: DurableObjectNamespace<import("./BeaconsRepo").BeaconsRepo>;
-  INSTAGRAM_REPO: DurableObjectNamespace<import("./InstagramRepo").InstagramRepo>;
-  GITHUB_REPO: DurableObjectNamespace<import("./GitHubRepo").GitHubRepo>;
-  FIGMA_REPO: DurableObjectNamespace<import("./FigmaRepo").FigmaRepo>;
-  GOOGLE_PLACES_REPO: DurableObjectNamespace<import("./GooglePlacesRepo").GooglePlacesRepo>;
-  LINK_REPO: DurableObjectNamespace<import("./LinkRepo").LinkRepo>;
-  TIKTOK_REPO: DurableObjectNamespace<import("./TikTokRepo").TikTokRepo>;
-  YOUTUBE_REPO: DurableObjectNamespace<import("./YouTubeRepo").YouTubeRepo>;
-  TRUTH_SOCIAL_REPO: DurableObjectNamespace<import("./TruthSocialRepo").TruthSocialRepo>;
-  STREAMLINE_REPO: DurableObjectNamespace<import("./StreamlineRepo").StreamlineRepo>;
+  INSTAGRAM_REPO: DurableObjectNamespace<
+    import("../groups/instagram/catalogs/default/InstagramRepo").InstagramRepo
+  >;
+  GITHUB_REPO: DurableObjectNamespace<
+    import("../groups/github/catalogs/profile/GitHubRepo").GitHubRepo
+  >;
+  FIGMA_REPO: DurableObjectNamespace<
+    import("../groups/figma/catalogs/thumbnail/FigmaRepo").FigmaRepo
+  >;
+  GOOGLE_PLACES_REPO: DurableObjectNamespace<
+    import("../groups/map/catalogs/place/GooglePlacesRepo").GooglePlacesRepo
+  >;
+  LINK_REPO: DurableObjectNamespace<import("../groups/link/catalogs/default/LinkRepo").LinkRepo>;
+  TIKTOK_REPO: DurableObjectNamespace<
+    import("../groups/tiktok/catalogs/default/TikTokRepo").TikTokRepo
+  >;
+  STREAMLINE_REPO: DurableObjectNamespace<
+    import("../groups/icon/catalogs/default/StreamlineRepo").StreamlineRepo
+  >;
   GITHUB_TOKEN: string;
   FIGMA_TOKEN: string;
   GOOGLE_PLACES_API_KEY: string;

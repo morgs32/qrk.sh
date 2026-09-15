@@ -99,7 +99,7 @@ export function BrickCarouselNav(props: {
               const active = i === selected;
               return (
                 <div
-                  key={`${brick.def.catalog}`}
+                  key={`${brick.def.catalogId}`}
                   className="flex min-w-0 shrink-0 items-center justify-center"
                 >
                   <button

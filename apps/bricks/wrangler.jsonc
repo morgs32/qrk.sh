@@ -1,6 +1,6 @@
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",
-  "name": "scraper",
+  "name": "bricks",
   "main": "./scraper/Worker.ts",
   "compatibility_date": "2026-05-14",
   "compatibility_flags": ["nodejs_compat"],
@@ -12,16 +12,12 @@
   "durable_objects": {
     "bindings": [
       { "name": "BROWSER_HOST", "class_name": "BrowserHost" },
-      { "name": "LINKTREE_REPO", "class_name": "LinktreeRepo" },
-      { "name": "BEACONS_REPO", "class_name": "BeaconsRepo" },
       { "name": "INSTAGRAM_REPO", "class_name": "InstagramRepo" },
       { "name": "GITHUB_REPO", "class_name": "GitHubRepo" },
       { "name": "FIGMA_REPO", "class_name": "FigmaRepo" },
       { "name": "GOOGLE_PLACES_REPO", "class_name": "GooglePlacesRepo" },
       { "name": "LINK_REPO", "class_name": "LinkRepo" },
       { "name": "TIKTOK_REPO", "class_name": "TikTokRepo" },
-      { "name": "YOUTUBE_REPO", "class_name": "YouTubeRepo" },
-      { "name": "TRUTH_SOCIAL_REPO", "class_name": "TruthSocialRepo" },
       { "name": "STREAMLINE_REPO", "class_name": "StreamlineRepo" },
     ],
   },
@@ -56,6 +52,10 @@
     {
       "tag": "v6",
       "new_classes": ["StreamlineRepo"],
+    },
+    {
+      "tag": "v7",
+      "deleted_classes": ["BeaconsRepo", "YouTubeRepo", "TruthSocialRepo", "LinktreeRepo"],
     },
   ],
 }

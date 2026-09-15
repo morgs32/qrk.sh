@@ -28,18 +28,18 @@ export default function GroupsPage() {
           }
 
           const [firstCatalogName, firstCatalog] = firstCatalogEntry;
-          const selectedCatalogName = selectedCatalogs[group.groupName] ?? firstCatalogName;
+          const selectedCatalogName = selectedCatalogs[group.id] ?? firstCatalogName;
           const selectedCatalog = group.catalogs[selectedCatalogName] ?? firstCatalog;
           const { def, component: BrickComponent } = selectedCatalog;
 
           return (
-            <div key={group.groupName} data-group-entry={group.groupName}>
+            <div key={group.id} data-group-entry={group.id}>
               <Outline.Title sticky>
                 <Link
-                  to={`/groups/${encodeURIComponent(group.groupName)}`}
-                  data-group-link={group.groupName}
+                  to={`/groups/${encodeURIComponent(group.id)}`}
+                  data-group-link={group.id}
                 >
-                  {group.groupLabel}
+                  {group.label}
                 </Link>
               </Outline.Title>
               <GroupOutline
@@ -51,7 +51,7 @@ export default function GroupsPage() {
                     onClick={() => {
                       setSelectedCatalogs((current) => ({
                         ...current,
-                        [group.groupName]: catalogName,
+                        [group.id]: catalogName,
                       }));
                     }}
                     className="h-auto rounded-none p-0 font-normal leading-inherit text-zinc-500 underline aria-pressed:text-zinc-950 aria-pressed:no-underline"
@@ -66,7 +66,7 @@ export default function GroupsPage() {
                     <DraggableBrick
                       brickDef={def}
                       className="size-full qrk-bricks overflow-hidden"
-                      data-group-representative={`${def.groupName}/${def.catalog}`}
+                      data-group-representative={`${def.groupId}/${def.catalogId}`}
                     >
                       <div className="brick-drag-content size-full">
                         <BrickComponent breakpoint={breakpoint} data={def.data} />
@@ -74,7 +74,7 @@ export default function GroupsPage() {
                       <Button asChild variant="ghost" size="icon" className="brick-edit-handle">
                         <Link
                           aria-label="Configure catalog"
-                          to={`/groups/${encodeURIComponent(def.groupName)}?catalog=${encodeURIComponent(def.catalog)}`}
+                          to={`/groups/${encodeURIComponent(def.groupId)}?catalog=${encodeURIComponent(def.catalogId)}`}
                         >
                           <Pencil aria-hidden className="size-4" />
                         </Link>

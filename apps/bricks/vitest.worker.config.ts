@@ -19,7 +19,7 @@ export default defineConfig({
         },
       },
       wrangler: {
-        configPath: path.join(packageRoot, "wrangler.jsonc"),
+        configPath: path.join(packageRoot, "wrangler.test.jsonc"),
       },
     }),
   ],

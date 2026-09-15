@@ -36,7 +36,7 @@ export default defineConfig({
             process.env.SCRAPER_LIVE_INSTAGRAM_URL ?? "missing-live-instagram-url",
         },
       },
-      wrangler: { configPath: path.join(packageRoot, "wrangler.jsonc") },
+      wrangler: { configPath: path.join(packageRoot, "wrangler.test.jsonc") },
     }),
   ],
   test: {

@@ -92,10 +92,10 @@ Use **`Schema.parseJson`** when the value you decode is a **string** containing 
 ```ts
 const BrickDragDefFromJsonStringSchema = Schema.parseJson(
   Schema.Struct({
-    groupName: Schema.String,
+    groupId: Schema.String,
     groupLabel: Schema.String,
     label: Schema.String,
-    catalog: Schema.String,
+    catalogId: Schema.String,
     order: Schema.Number,
     xs: Schema.Struct({ w: Schema.Number, h: Schema.Number }),
     sm: Schema.Struct({ w: Schema.Number, h: Schema.Number }),

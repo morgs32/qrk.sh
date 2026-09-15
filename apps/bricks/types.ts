@@ -14,7 +14,7 @@ export type IBrickDef<CATALOG extends string = string> = {
   lg: { w: number; h: number };
   xl: { w: number; h: number };
   /** Kebab-case catalog slug (for example `default`, `profile`, or `repo`). */
-  catalog: CATALOG;
+  catalogId: CATALOG;
   /** Display label for this catalog. */
   label: string;
   /** Lower sorts earlier in the drawer carousel within a group. */
@@ -23,14 +23,14 @@ export type IBrickDef<CATALOG extends string = string> = {
 
 export type IGroup = {
   /** Kebab-case group id, unique across the homepage group. */
-  groupName: string;
-  groupLabel: string;
-  groupDescription: string;
+  id: string;
+  label: string;
+  description: string;
   catalogs: Record<
     string,
     | {
-        catalogName: string;
-        catalogDescription: string;
+        label: string;
+        description: string;
         configuration?: never;
         dataShape: null;
         defaultData: null;
@@ -38,8 +38,8 @@ export type IGroup = {
         component: IGroupBrick["component"];
       }
     | {
-        catalogName: string;
-        catalogDescription: string;
+        label: string;
+        description: string;
         configuration?: IFormConfiguration | IFetcherConfiguration;
         dataShape: IShape;
         defaultData: unknown;
@@ -51,7 +51,7 @@ export type IGroup = {
 
 /** Serializable group row: group + catalog, no React component. */
 export type IGroupBrickDef = IBrickDef & {
-  groupName: string;
+  groupId: string;
   groupLabel: string;
   /** Default group data or the configured data of a placed brick. */
   data: unknown;

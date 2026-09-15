@@ -35,7 +35,7 @@ export function DraggableBrick({
           );
         }
         event.dataTransfer.effectAllowed = "copy";
-        event.dataTransfer.setData("text/plain", brickDef.catalog);
+        event.dataTransfer.setData("text/plain", brickDef.catalogId);
       }}
       onDragEnd={() => {
         setActiveBrickDrag(null);

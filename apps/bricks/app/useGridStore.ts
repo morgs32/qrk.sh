@@ -77,7 +77,7 @@ export const useGridStore = create<{
       addBrick: (brickId, brickDef, layout, breakpoint) => {
         const gridItem = layout.find((item) => item.i === brickId);
         if (!gridItem) return;
-        const group = groupsHash[brickDef.groupName]?.catalogs[brickDef.catalog];
+        const group = groupsHash[brickDef.groupId]?.catalogs[brickDef.catalogId];
         const appearanceOptions = group?.component.form
           ? group.component.form.decode(
               brickDef.appearanceOptions ?? group.component.form.defaultValue,
@@ -87,8 +87,8 @@ export const useGridStore = create<{
           bricksById: {
             ...state.bricksById,
             [brickId]: {
-              groupId: brickDef.groupName,
-              catalogId: brickDef.catalog,
+              groupId: brickDef.groupId,
+              catalogId: brickDef.catalogId,
 
               data: structuredClone(brickDef.data),
               xs: {

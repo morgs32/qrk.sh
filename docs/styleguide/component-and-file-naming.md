@@ -49,32 +49,42 @@ Keep [BrickPreview.tsx](../../apps/studio/app/[username]/site/[siteId]/page/[pag
 
 - **Bad**: ad hoc **`typeId`** strings on every group row, or passing full brick objects (including **`component`**) into Zustand for external drag.
 
-- **Good**: `IGroupBrickDef` contains serializable group and catalog identity, initial dimensions, label, order, and data. `makeCatalog` produces `def` and a responsive `component`; `makeGroup` adds group scope and verifies each catalog key matches `def.catalog`.
+- **Good**: `IGroupBrickDef` contains serializable group and catalog identity, initial dimensions, label, order, and data. `makeCatalog` produces `def` and a responsive `component`; `makeGroup` adds group scope and verifies each catalog key matches `def.catalogId`.
 
 ### Catalog and brick identity
 
-A **catalog** connects data and configuration to one responsive presentation within a group, such as GitHub `profile` or `repo`. A **brick** is a placed instance with its own `brickId`. Group entries are identified by `(groupName, catalog)`, independently of dimensions. There is no view collection or view identity.
+A **catalog** connects data and configuration to one responsive presentation within a group, such as GitHub `profile` or `repo`. A **brick** is a placed instance with its own `brickId`. Group entries are identified by `(group.id, catalogId)`, independently of dimensions. There is no view collection or view identity.
 
 Use kebab-case catalog identifiers. Site drawer selectors expose `data-brick-drawer-group-name` and `data-brick-drawer-catalog`; placed wrappers expose `data-brick-group-name`, `data-brick-catalog`, and `data-brick-id`.
 
 ### Catalog folders under each group
 
-Presentations, catalog forms, catalog-only helpers, and catalog assets live under
-`apps/bricks/groups/<Group>/catalogs/<catalog>/`, where `<catalog>` matches the
-kebab-case catalog id (for example `profile`, `repo`, `thumbnail`, `default`).
-The group assembler (`*Group.ts`) and any colocated group tests stay at the group
-root and import from those catalog folders. Do not add `index.ts` barrels under
-`catalogs/` or a catalog folder.
+Presentations, catalog forms, catalog-only helpers, catalog-owned `*Repo`
+Durable Objects, and catalog assets live under
+`apps/bricks/groups/<group-id>/catalogs/<catalog-id>/`, where `<group-id>` and
+`<catalog-id>` match the kebab-case `makeGroup` / `makeCatalog` `id` values
+(for example `github`/`profile`, `figma`/`thumbnail`, `icon`/`default`).
+The group assembler (camelCase filename matching its export, e.g. `githubGroup.ts`)
+and any colocated group tests stay at the group root and import from those catalog
+folders. Do not add `index.ts` barrels under `catalogs/` or a catalog folder.
 
-- **Bad**: flat `groups/GitHubCards/GitHubProfileSquareXs.tsx` next to
-  `GitHubProfileGroup.ts` and `GitHubRepoXs.tsx`.
-- **Good**: `groups/GitHubCards/catalogs/profile/GitHubProfileSquareXs.tsx` and
-  `groups/GitHubCards/catalogs/repo/GitHubRepoXs.tsx`, with
-  `GitHubProfileGroup.ts` at the group root importing each path.
+`scraper/Worker.ts` remains the Wrangler entry and re-exports each catalog
+`*Repo` class. Shared scrape helpers (`BrowserHost`, URL normalizers, encodeRpc,
+schemas, and provider scrape modules) stay under `apps/bricks/scraper/`.
+
+- **Bad**: flat `groups/github/GitHubProfileSquareXs.tsx` next to
+  `githubGroup.ts` and `GitHubRepoXs.tsx`.
+- **Good**: `groups/github/catalogs/profile/GitHubProfileSquareXs.tsx` and
+  `groups/github/catalogs/repo/GitHubRepoXs.tsx`, with
+  `githubGroup.ts` at the group root importing each path.
+- **Good**: `groups/instagram/catalogs/default/InstagramRepo.ts` next to that
+  catalog's presentations; `scraper/Worker.ts` imports and re-exports it.
 
 ### Factory arguments
 
-Factories take one `props` object with an inline shape. `makeCatalog` owns `catalog`, `catalogName`, `catalogDescription`, `dataShape`, `defaultData`, optional `configuration`, `order`, optional `form`, required `xs`, and optional `sm`, `lg`, `xl`. Each breakpoint is `{ component, w, h }`; omitted breakpoints inherit the nearest smaller complete entry. Catalog `def` stores the resolved dimensions at `def[breakpoint]`, without React components. Previews, drag placeholders, and new placements use those dimensions; saved placement sizes remain authoritative. See [makeCatalog.tsx](../../apps/bricks/makeCatalog.tsx) and [makeGroup.ts](../../apps/bricks/makeGroup.ts).
+Factories take one `props` object with an inline shape. `makeCatalog` owns `id`, `label`, `description`, `dataShape`, `defaultData`, optional `configuration`, `order`, optional `form`, required `xs`, and optional `sm`, `lg`, `xl`. Each breakpoint is `{ component, w, h }`; omitted breakpoints inherit the nearest smaller complete entry. Catalog `def` stores the resolved dimensions at `def[breakpoint]`, without React components. Previews, drag placeholders, and new placements use those dimensions; saved placement sizes remain authoritative. See [makeCatalog.tsx](../../apps/bricks/makeCatalog.tsx) and [makeGroup.ts](../../apps/bricks/makeGroup.ts).
+
+`makeGroup` owns `id`, `label`, `description`, and `catalogs`. It writes `groupId` and `groupLabel` onto each catalog `def`, and each catalog `def` stores its slug as `catalogId`.
 
 Data-backed catalogs configure requests with `makeFetcherConfiguration({ catalogOptionsShape, catalogOptionsForm, fetcher })`
 from [makeFetcherConfiguration.ts](../../apps/bricks/makeFetcherConfiguration.ts), passed as the catalog's `configuration`.
@@ -115,11 +125,11 @@ Do **not** add `apps/studio/components/home/bricks/index.ts` (or similar) that o
 
 ### Good vs bad: `IGroup` + `BrickCarousel` — don’t add `FromGroup` on shared UI
 
-Do **not** add a second exported wrapper on the shared carousel that imports **`groupsHash`** and takes **`groupName`**: that couples every import site to a parallel API and drags group knowledge into **`components/home`**.
+Do **not** add a second exported wrapper on the shared carousel that imports **`groupsHash`** and takes **`group.id`**: that couples every import site to a parallel API and drags group knowledge into **`components/home`**.
 
-- **Bad**: `BrickCarouselFromGroup` (or similar) exported from [BrickCarousel.tsx](../../apps/studio/app/[username]/site/[siteId]/page/[pageId]/BrickCarousel/BrickCarousel.tsx) — thin pass-through: `groupsHash[groupName]` → **`BrickCarousel`**.
+- **Bad**: `BrickCarouselFromGroup` (or similar) exported from [BrickCarousel.tsx](../../apps/studio/app/[username]/site/[siteId]/page/[pageId]/BrickCarousel/BrickCarousel.tsx) — thin pass-through: `groupsHash[groupId]` → **`BrickCarousel`**.
 
-- **Good**: [BrickCarousel.tsx](../../apps/studio/app/[username]/site/[siteId]/page/[pageId]/BrickCarousel/BrickCarousel.tsx) accepts **`group: IGroup`** (and optional **`brickSortFn`**) only. Resolve **`groupsHash[groupName]`** in the route’s client `page.tsx` next to the site workspace and pass **`group`** into **`BrickCarousel`**; keep **`groupsHash`** out of the shared carousel module.
+- **Good**: [BrickCarousel.tsx](../../apps/studio/app/[username]/site/[siteId]/page/[pageId]/BrickCarousel/BrickCarousel.tsx) accepts **`group: IGroup`** (and optional **`brickSortFn`**) only. Resolve **`groupsHash[groupId]`** in the route’s client `page.tsx` next to the site workspace and pass **`group`** into **`BrickCarousel`**; keep **`groupsHash`** out of the shared carousel module.
 
 ### Good vs bad: brick-group route — keep one-off logic in `page.tsx`
 
@@ -183,8 +193,8 @@ Each page supplies `renderCatalog`: root buttons select the local preview; links
 
 ### Group and catalog cutover and saved state
 
-Workbench definitions and drag payloads use `groupName` and `catalog`. Persisted workbench
-bricks use `groupId` and `catalogId`, without a view identifier. Storage version 2 resets
+Workbench definitions and drag payloads use `groupId` and `catalogId` (aligned with
+persisted workbench bricks), without a view identifier. Storage version 2 resets
 old brick drafts under `qrk-bricks-sandbox-responsive-bricks-v2` while retaining the selected
 width. Site editor persistence version 2 also resets older drafts under
 `qrk-site-editor-drafts-v2`. Backend brick records and grid payloads use `groupId`
@@ -296,5 +306,5 @@ Presentations receive shared `data`, the active `breakpoint`, and resolved
 inheritance. Group drops copy the preview options into `xs`, and also into
 an explicit active entry when dropped above `xs`. Figma's thumbnail presentations
 support Center, Left, Right, Top, and Bottom image positions (default Center).
-Group descriptors use `groupName` and `catalog`; site grid placement arrays are unchanged.
+Group descriptors use `id` and `catalogId` (`def.groupId` / `def.catalogId`); site grid placement arrays are unchanged.
 Catalog configuration inputs are named `catalogOptions` and remain form-local. They are not persisted, copied on drop, or restored from a brick. `data` remains the resulting shared content.

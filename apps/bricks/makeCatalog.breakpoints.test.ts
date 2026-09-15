@@ -17,17 +17,17 @@ function Lg(props: Parameters<typeof Xs>[0]) {
 describe("makeCatalog", () => {
   it("validates view IDs and retains metadata independently of dimensions", () => {
     const view = makeCatalog({
-      catalogDescription: "Test",
+      description: "Test",
       dataShape: { label: primitives.text() },
       defaultData: { label: "Default" },
-      catalog: "summary",
-      catalogName: "Summary",
+      id: "summary",
+      label: "Summary",
       order: 3,
       xs: { component: Xs, w: 4, h: 2 },
     });
-    expectTypeOf(view.def.catalog).toEqualTypeOf<"summary">();
+    expectTypeOf(view.def.catalogId).toEqualTypeOf<"summary">();
     expect(view.def).toMatchObject({
-      catalog: "summary",
+      catalogId: "summary",
       label: "Summary",
       xs: { w: 4, h: 2 },
       order: 3,
@@ -45,25 +45,25 @@ describe("makeCatalog", () => {
     for (const id of ["", "Summary", "two words", "-summary", "summary-"]) {
       expect(() =>
         makeCatalog({
-          catalogDescription: "Test",
+          description: "Test",
           dataShape: { label: primitives.text() },
           defaultData: { label: "Default" },
-          catalog: id,
-          catalogName: "Summary",
+          id: id,
+          label: "Summary",
           order: 0,
           xs: { component: Xs, w: 4, h: 2 },
         }),
-      ).toThrow("makeCatalog: catalog must be kebab-case");
+      ).toThrow("makeCatalog: id must be kebab-case");
     }
   });
 
   it("inherits omitted breakpoints and forwards props to hook-using components", () => {
     const { component: View, def } = makeCatalog({
-      catalogDescription: "Test",
+      description: "Test",
       dataShape: { label: primitives.text() },
       defaultData: { label: "Default" },
-      catalog: "test",
-      catalogName: "Test",
+      id: "test",
+      label: "Test",
       order: 0,
       xs: { component: Xs, w: 4, h: 4 },
       lg: { component: Lg, w: 8, h: 2 },
@@ -82,11 +82,11 @@ describe("makeCatalog", () => {
 
   it("selects explicit sm and lg overrides", () => {
     const { component: View } = makeCatalog({
-      catalogDescription: "Test",
+      description: "Test",
       dataShape: { label: primitives.text() },
       defaultData: { label: "Default" },
-      catalog: "test",
-      catalogName: "Test",
+      id: "test",
+      label: "Test",
       order: 0,
       xs: { component: Xs, w: 4, h: 4 },
       sm: { component: Lg, w: 4, h: 4 },
@@ -104,20 +104,20 @@ describe("makeCatalog", () => {
     expectTypeOf(() => {
       // @ts-expect-error xs is the required base presentation.
       makeCatalog({
-        catalogDescription: "Test",
+        description: "Test",
         dataShape: { label: primitives.text() },
         defaultData: { label: "Default" },
-        catalog: "test",
-        catalogName: "Test",
+        id: "test",
+        label: "Test",
         order: 0,
         lg: { component: () => null, w: 4, h: 4 },
       });
       makeCatalog({
-        catalogDescription: "Test",
+        description: "Test",
         dataShape: { label: primitives.text() },
         defaultData: { label: "Default" },
-        catalog: "test",
-        catalogName: "Test",
+        id: "test",
+        label: "Test",
         order: 0,
         xs: { component: Xs, w: 4, h: 4 },
         lg: {
@@ -134,20 +134,20 @@ describe("makeCatalog", () => {
 
 it("selects xl and otherwise inherits lg", () => {
   const base = {
-    catalog: "large",
-    catalogName: "Large",
+    id: "large",
+    label: "Large",
     order: 0,
     xs: { component: Xs, w: 4, h: 4 },
     lg: { component: Lg, w: 4, h: 4 },
   };
   const inherited = makeCatalog({
     ...base,
-    catalogDescription: "Test",
+    description: "Test",
     dataShape: { label: primitives.text() },
     defaultData: { label: "Default" },
   });
   const xl = makeCatalog({
-    catalogDescription: "Test",
+    description: "Test",
     dataShape: { label: primitives.text() },
     defaultData: { label: "Default" },
     ...base,

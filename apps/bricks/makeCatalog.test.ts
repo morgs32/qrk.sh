@@ -1,9 +1,9 @@
 import { primitives } from "@zerospin/schema";
 import { describe, expect, expectTypeOf, it, vi } from "vite-plus/test";
 
-import { githubGroup } from "./groups/GitHubCards/GitHubProfileGroup";
-import { mapGroup } from "./groups/Map/MapGroup";
-import { textBrickGroup } from "./groups/TextBrick/TextBrickGroup";
+import { githubGroup } from "./groups/github/githubGroup";
+import { mapGroup } from "./groups/map/mapGroup";
+import { textBrickGroup } from "./groups/text/textBrickGroup";
 import { makeFetcherConfiguration } from "./makeFetcherConfiguration";
 import { makeCatalog } from "./makeCatalog";
 import { ScraperApi } from "./scraper/ScraperApi";
@@ -13,24 +13,24 @@ describe("makeCatalog data contracts", () => {
   it("validates the enclosing content identity", () => {
     expect(() =>
       makeCatalog({
-        catalog: "Invalid Content",
-        catalogName: "Invalid",
-        catalogDescription: "Test",
+        id: "Invalid Content",
+        label: "Invalid",
+        description: "Test",
         dataShape: null,
         defaultData: null,
         order: 0,
         xs: { component: () => null, w: 1, h: 1 },
       }),
-    ).toThrow("makeCatalog: catalog must be kebab-case");
+    ).toThrow("makeCatalog: id must be kebab-case");
   });
 
   it("uses explicit nulls for a static content", () => {
     const content = makeCatalog({
       dataShape: null,
       defaultData: null,
-      catalog: "static",
-      catalogName: "Static",
-      catalogDescription: "A static content.",
+      id: "static",
+      label: "Static",
+      description: "A static content.",
       order: 0,
       xs: { component: () => null, w: 1, h: 1 },
     });
@@ -81,9 +81,9 @@ describe("makeCatalog data contracts", () => {
 
   it("infers custom renderer values from their decoded primitive fields", () => {
     const content = makeCatalog({
-      catalog: "typed-controls",
-      catalogName: "Typed-controls",
-      catalogDescription: "Typed custom controls.",
+      id: "typed-controls",
+      label: "Typed-controls",
+      description: "Typed custom controls.",
       configuration: makeFetcherConfiguration({
         catalogOptionsShape: {
           query: primitives.text({ defaultValue: "Chicago" }),
@@ -151,9 +151,9 @@ describe("makeCatalog data contracts", () => {
   it("decodes requests and publishes provider data through the supplied setter", async () => {
     const receivedCatalogOptions: Array<{ url: string }> = [];
     const content = makeCatalog({
-      catalog: "profile",
-      catalogName: "Profile",
-      catalogDescription: "A data-backed profile.",
+      id: "profile",
+      label: "Profile",
+      description: "A data-backed profile.",
       configuration: makeFetcherConfiguration({
         catalogOptionsShape: {
           url: primitives.text(),
@@ -214,9 +214,9 @@ describe("makeCatalog data contracts", () => {
   it("throws while constructing a content with invalid default data", () => {
     expect(() =>
       makeCatalog({
-        catalog: "profile",
-        catalogName: "Profile",
-        catalogDescription: "A data-backed profile.",
+        id: "profile",
+        label: "Profile",
+        description: "A data-backed profile.",
         configuration: makeFetcherConfiguration({
           catalogOptionsShape: {
             url: primitives.text(),
@@ -246,9 +246,9 @@ describe("makeCatalog data contracts", () => {
   it("rejects missing, invalid, and excess catalog options before invoking the callback", async () => {
     const receivedCatalogOptions: Array<{ url: string }> = [];
     const content = makeCatalog({
-      catalog: "profile",
-      catalogName: "Profile",
-      catalogDescription: "A data-backed profile.",
+      id: "profile",
+      label: "Profile",
+      description: "A data-backed profile.",
       configuration: makeFetcherConfiguration({
         catalogOptionsShape: {
           url: primitives.text(),
@@ -310,9 +310,9 @@ describe("makeCatalog data contracts", () => {
 
   it("propagates validation failures from the supplied setter", async () => {
     const content = makeCatalog({
-      catalog: "profile",
-      catalogName: "Profile",
-      catalogDescription: "A data-backed profile.",
+      id: "profile",
+      label: "Profile",
+      description: "A data-backed profile.",
       configuration: makeFetcherConfiguration({
         catalogOptionsShape: {
           url: primitives.text(),
@@ -367,9 +367,9 @@ describe("makeCatalog data contracts", () => {
       retryable: false,
     };
     const content = makeCatalog({
-      catalog: "profile",
-      catalogName: "Profile",
-      catalogDescription: "A data-backed profile.",
+      id: "profile",
+      label: "Profile",
+      description: "A data-backed profile.",
       configuration: makeFetcherConfiguration({
         catalogOptionsShape: {
           url: primitives.text(),
@@ -416,9 +416,9 @@ describe("makeCatalog data contracts", () => {
 
   it("allows data components to ignore the data argument", () => {
     const content = makeCatalog({
-      catalog: "default",
-      catalogName: "Default",
-      catalogDescription: "Data is available but unused.",
+      id: "default",
+      label: "Default",
+      description: "Data is available but unused.",
       dataShape: { name: primitives.text() },
       defaultData: { name: "Default" },
       order: 0,
@@ -432,17 +432,17 @@ describe("makeCatalog data contracts", () => {
     expectTypeOf(() => {
       // @ts-expect-error both data fields are required
       makeCatalog({
-        catalog: "static",
-        catalogName: "Static",
-        catalogDescription: "Static",
+        id: "static",
+        label: "Static",
+        description: "Static",
         order: 0,
         xs: { component: () => null, w: 1, h: 1 },
       });
       // @ts-expect-error a null schema requires a null default
       makeCatalog({
-        catalog: "static",
-        catalogName: "Static",
-        catalogDescription: "Static",
+        id: "static",
+        label: "Static",
+        description: "Static",
         dataShape: null,
         defaultData: {},
         order: 0,
@@ -450,18 +450,18 @@ describe("makeCatalog data contracts", () => {
       });
       // @ts-expect-error a schema requires a non-null default
       makeCatalog({
-        catalog: "data",
-        catalogName: "Data",
-        catalogDescription: "Data",
+        id: "data",
+        label: "Data",
+        description: "Data",
         dataShape: { name: primitives.text() },
         defaultData: null,
         order: 0,
         xs: { component: () => null, w: 1, h: 1 },
       });
       makeCatalog({
-        catalog: "data",
-        catalogName: "Data",
-        catalogDescription: "Data",
+        id: "data",
+        label: "Data",
+        description: "Data",
         dataShape: { name: primitives.text() },
         // @ts-expect-error defaults must match the schema
         defaultData: { name: 42 },
@@ -469,9 +469,9 @@ describe("makeCatalog data contracts", () => {
         xs: { component: () => null, w: 1, h: 1 },
       });
       makeCatalog({
-        catalog: "data",
-        catalogName: "Data",
-        catalogDescription: "Data",
+        id: "data",
+        label: "Data",
+        description: "Data",
         dataShape: { name: primitives.text() },
         defaultData: { name: "Default" },
         order: 0,

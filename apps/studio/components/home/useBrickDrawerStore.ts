@@ -29,10 +29,10 @@ export function getActiveBrickDragGridShape(): { w: number; h: number } | null {
 
 const BrickDragDefFromJsonStringSchema = Schema.fromJsonString(
   Schema.Struct({
-    groupName: Schema.String,
+    groupId: Schema.String,
     groupLabel: Schema.String,
     label: Schema.String,
-    catalog: Schema.String,
+    catalogId: Schema.String,
 
     order: Schema.Number,
     xs: Schema.Struct({ w: Schema.Number, h: Schema.Number }),

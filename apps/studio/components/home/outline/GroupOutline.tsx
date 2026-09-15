@@ -15,7 +15,7 @@ export function GroupOutline({
       <Outline.List padded={false} spaced>
         {Object.entries(group.catalogs).map(([catalogName, catalog]) => (
           <Outline.Item key={catalogName}>
-            <Outline.Label>{renderCatalog(catalogName, catalog.catalogName)}</Outline.Label>
+            <Outline.Label>{renderCatalog(catalogName, catalog.label)}</Outline.Label>
           </Outline.Item>
         ))}
       </Outline.List>

@@ -30,9 +30,9 @@ it("infers defaults and form values and rejects invalid updates before publicati
   ).toBe("<span>left</span>");
   expect(onChange).toHaveBeenCalledExactlyOnceWith({ alignment: "right" });
   const { component: View } = makeCatalog({
-    catalog: "test",
-    catalogName: "Test",
-    catalogDescription: "Test",
+    id: "test",
+    label: "Test",
+    description: "Test",
     dataShape: null,
     defaultData: null,
     order: 0,

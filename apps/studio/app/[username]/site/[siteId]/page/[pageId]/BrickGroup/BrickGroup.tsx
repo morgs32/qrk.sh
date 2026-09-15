@@ -66,22 +66,22 @@ export function BrickGroup() {
           }
 
           const [firstCatalogName, firstCatalog] = firstCatalogEntry;
-          const selectedCatalogName = selectedCatalogs[group.groupName] ?? firstCatalogName;
+          const selectedCatalogName = selectedCatalogs[group.id] ?? firstCatalogName;
           const selectedCatalog = group.catalogs[selectedCatalogName] ?? firstCatalog;
           const selectedBrick = selectedCatalog;
           const BrickComponent = selectedBrick.component;
 
           return (
-            <section key={group.groupName} data-group-entry={group.groupName}>
+            <section key={group.id} data-group-entry={group.id}>
               <Outline.Title sticky>
                 <Link
                   to={href("/:username/site/:siteId/page/:pageId/brick-group/:groupName", {
                     ...params,
-                    groupName: group.groupName,
+                    groupName: group.id,
                   })}
-                  data-group-link={group.groupName}
+                  data-group-link={group.id}
                 >
-                  {group.groupLabel}
+                  {group.label}
                 </Link>
               </Outline.Title>
               <GroupOutline
@@ -93,7 +93,7 @@ export function BrickGroup() {
                     onClick={() => {
                       setSelectedCatalogs((current) => ({
                         ...current,
-                        [group.groupName]: catalogName,
+                        [group.id]: catalogName,
                       }));
                     }}
                     className="h-auto rounded-none p-0 font-normal leading-inherit text-zinc-500 underline aria-pressed:text-zinc-950 aria-pressed:no-underline"
@@ -110,10 +110,10 @@ export function BrickGroup() {
                   >
                     <div
                       className="size-full qrk-bricks cursor-grab overflow-hidden active:cursor-grabbing"
-                      data-group-representative={`${selectedBrick.def.groupName}/${selectedBrick.def.catalog}`}
+                      data-group-representative={`${selectedBrick.def.groupId}/${selectedBrick.def.catalogId}`}
                       data-brick-drawer-brick-slot
-                      data-brick-drawer-group-name={selectedBrick.def.groupName}
-                      data-brick-drawer-catalog={selectedBrick.def.catalog}
+                      data-brick-drawer-group-name={selectedBrick.def.groupId}
+                      data-brick-drawer-catalog={selectedBrick.def.catalogId}
                       draggable
                       onDragStart={(event) => {
                         useBrickDrawerStore
@@ -127,7 +127,7 @@ export function BrickGroup() {
                           JSON.stringify(selectedBrick.def),
                         );
                         event.dataTransfer.effectAllowed = "copy";
-                        event.dataTransfer.setData("text/plain", selectedBrick.def.catalog);
+                        event.dataTransfer.setData("text/plain", selectedBrick.def.catalogId);
                       }}
                       onDragEnd={() => {
                         useBrickDrawerStore.getState().unregisterActiveBrickDragGridShape();

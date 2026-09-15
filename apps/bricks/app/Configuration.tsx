@@ -52,7 +52,7 @@ export function Configuration(props: {
       return (
         <FetcherConfiguration
           configuration={configuration}
-          groupName={props.catalog.def.groupName}
+          groupId={props.catalog.def.groupId}
           showData={props.showData}
           data={props.data}
           setData={props.setData}

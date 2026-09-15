@@ -46,7 +46,7 @@ export function BrickPreview({ brick }: { brick: IGroupBrick }) {
   }, [breakpoint]);
 
   const BrickComponent = brick.component;
-  const content = groupsHash[brick.def.groupName]?.catalogs[brick.def.catalog];
+  const content = groupsHash[brick.def.groupId]?.catalogs[brick.def.catalogId];
 
   return (
     <div className="drawer-brick-preview flex h-full min-h-0 w-full flex-1 flex-col items-start justify-center overflow-x-auto touch-manipulation">
@@ -54,8 +54,8 @@ export function BrickPreview({ brick }: { brick: IGroupBrick }) {
         <div
           ref={slotRef}
           data-brick-drawer-brick-slot
-          data-brick-drawer-group-name={brick.def.groupName}
-          data-brick-drawer-catalog={brick.def.catalog}
+          data-brick-drawer-group-name={brick.def.groupId}
+          data-brick-drawer-catalog={brick.def.catalogId}
           draggable
           tabIndex={0}
           className="size-full shrink-0 cursor-grab overflow-hidden bg-background/80 outline-none ring-1 ring-border/60 active:cursor-grabbing focus-visible:ring-2 focus-visible:ring-ring"

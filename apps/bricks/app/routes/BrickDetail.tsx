@@ -56,14 +56,14 @@ export default function BrickDetail() {
   return (
     <section data-testid="brick-detail-pane">
       <Outline.Title>
-        <Link to={`/groups/${encodeURIComponent(groupName)}`}>{group.groupLabel}</Link>
+        <Link to={`/groups/${encodeURIComponent(groupName)}`}>{group.label}</Link>
       </Outline.Title>
       <GroupOutline
         group={group}
         renderCatalog={(name, label) => (
           <Link
             to={`/groups/${encodeURIComponent(groupName)}?catalog=${encodeURIComponent(name)}`}
-            aria-current={name === brick.def.catalog ? "true" : undefined}
+            aria-current={name === brick.def.catalogId ? "true" : undefined}
             className="underline aria-[current=true]:no-underline"
           >
             {label}

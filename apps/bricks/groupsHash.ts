@@ -1,13 +1,13 @@
-import { figmaGroup } from "./groups/Figma/FigmaGroup";
-import { githubGroup } from "./groups/GitHubCards/GitHubProfileGroup";
-import { imageGroup } from "./groups/Image/ImageGroup";
-import { instagramGroup } from "./groups/Instagram/InstagramGroup";
-import { linkGroup } from "./groups/Link/LinkGroup";
-import { mapGroup } from "./groups/Map/MapGroup";
-import { swatchGroup } from "./groups/GreenEmpty/GreenEmptyGroup";
-import { iconGroup } from "./groups/PinkAsterisk/PinkAsteriskGroup";
-import { textBrickGroup } from "./groups/TextBrick/TextBrickGroup";
-import { tikTokGroup } from "./groups/TikTok/TikTokGroup";
+import { figmaGroup } from "./groups/figma/figmaGroup";
+import { githubGroup } from "./groups/github/githubGroup";
+import { imageGroup } from "./groups/image/imageGroup";
+import { instagramGroup } from "./groups/instagram/instagramGroup";
+import { linkGroup } from "./groups/link/linkGroup";
+import { mapGroup } from "./groups/map/mapGroup";
+import { swatchGroup } from "./groups/swatch/swatchGroup";
+import { iconGroup } from "./groups/icon/iconGroup";
+import { textBrickGroup } from "./groups/text/textBrickGroup";
+import { tikTokGroup } from "./groups/tiktok/tikTokGroup";
 import type { IGroup } from "./types";
 
 export const groupsHash: Record<string, IGroup> = {

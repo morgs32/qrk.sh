@@ -9,14 +9,6 @@ export class ScraperApi extends RpcTarget {
     super();
   }
 
-  linktreeRepo() {
-    return this.workerEnv.LINKTREE_REPO.getByName(GLOBAL_REPO_NAME);
-  }
-
-  beaconsRepo() {
-    return this.workerEnv.BEACONS_REPO.getByName(GLOBAL_REPO_NAME);
-  }
-
   instagramRepo() {
     return this.workerEnv.INSTAGRAM_REPO.getByName(GLOBAL_REPO_NAME);
   }
@@ -39,14 +31,6 @@ export class ScraperApi extends RpcTarget {
 
   tiktokRepo() {
     return this.workerEnv.TIKTOK_REPO.getByName(GLOBAL_REPO_NAME);
-  }
-
-  youtubeRepo() {
-    return this.workerEnv.YOUTUBE_REPO.getByName(GLOBAL_REPO_NAME);
-  }
-
-  truthSocialRepo() {
-    return this.workerEnv.TRUTH_SOCIAL_REPO.getByName(GLOBAL_REPO_NAME);
   }
 
   streamlineRepo() {

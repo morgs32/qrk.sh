@@ -1,39 +1,44 @@
 import { verticalCompactor } from "react-grid-layout";
-import type { ICatalogBrickDef } from "../types";
 import type { Layout, LayoutItem } from "react-grid-layout";
 import { create } from "zustand";
-import { catalogsHash } from "../catalogsHash";
-import { resolveBrickBreakpoint } from "./resolveBrickBreakpoint";
 import { persist } from "zustand/middleware";
+
+import { catalogsHash } from "../catalogsHash";
+import type { ICatalogBrickDef } from "../types";
+
+import { resolveBrickBreakpoint } from "./resolveBrickBreakpoint";
 
 export const useGridStore = create<{
   bricksById: Record<
     string,
     {
       catalogId: string;
-      contentId: string;
-      viewId: string;
+      registryId: string;
+
       data: unknown;
-      xs: { gridItem: LayoutItem | null; viewOptions: unknown };
+      xs: { gridItem: LayoutItem | null; appearanceOptions: unknown };
     } & Partial<
-      Record<
-        "sm" | "lg" | "xl",
-        { gridItem: LayoutItem | null; viewOptions: unknown }
-      >
+      Record<"sm" | "lg" | "xl", { gridItem: LayoutItem | null; appearanceOptions: unknown }>
     >
   >;
-  activeBrickDrag: (ICatalogBrickDef & { viewOptions?: unknown }) | null;
+  activeBrickDrag: (ICatalogBrickDef & { appearanceOptions?: unknown }) | null;
   hasHydrated: boolean;
   selectedWidth: number | null;
   setLayout: (layout: Layout, breakpoint: "xs" | "sm" | "lg" | "xl") => void;
   addBrick: (
     brickId: string,
-    brickDef: ICatalogBrickDef & { viewOptions?: unknown },
+    brickDef: ICatalogBrickDef & { appearanceOptions?: unknown },
     layout: Layout,
     breakpoint: "xs" | "sm" | "lg" | "xl",
   ) => void;
-  setActiveBrickDrag: (brickDef: (ICatalogBrickDef & { viewOptions?: unknown }) | null) => void;
-  setViewOptions: (brickId: string, breakpoint: "xs" | "sm" | "lg" | "xl", value: unknown) => void;
+  setActiveBrickDrag: (
+    brickDef: (ICatalogBrickDef & { appearanceOptions?: unknown }) | null,
+  ) => void;
+  setAppearanceOptions: (
+    brickId: string,
+    breakpoint: "xs" | "sm" | "lg" | "xl",
+    value: unknown,
+  ) => void;
   setVisible: (brickId: string, breakpoint: "xs" | "sm" | "lg" | "xl", visible: boolean) => void;
   setHasHydrated: (hasHydrated: boolean) => void;
 }>()(
@@ -62,7 +67,10 @@ export const useGridStore = create<{
               continue;
             bricksById[gridItem.i] = {
               ...brick,
-              [breakpoint]: { ...structuredClone(resolved), gridItem: { ...gridItem } },
+              [breakpoint]: {
+                ...structuredClone(resolved),
+                gridItem: { ...gridItem },
+              },
             };
           }
           return { bricksById };
@@ -71,13 +79,10 @@ export const useGridStore = create<{
       addBrick: (brickId, brickDef, layout, breakpoint) => {
         const gridItem = layout.find((item) => item.i === brickId);
         if (!gridItem) return;
-        const catalog =
-          catalogsHash[brickDef.catalogName]?.contents[brickDef.content]?.views[
-            brickDef.view
-          ];
-        const viewOptions = catalog?.component.form
+        const catalog = catalogsHash[brickDef.catalogName]?.registries[brickDef.registry];
+        const appearanceOptions = catalog?.component.form
           ? catalog.component.form.decode(
-              brickDef.viewOptions ?? catalog.component.form.defaultValue,
+              brickDef.appearanceOptions ?? catalog.component.form.defaultValue,
             )
           : {};
         set((state) => ({
@@ -85,19 +90,19 @@ export const useGridStore = create<{
             ...state.bricksById,
             [brickId]: {
               catalogId: brickDef.catalogName,
-              contentId: brickDef.content,
-              viewId: brickDef.view,
+              registryId: brickDef.registry,
+
               data: structuredClone(brickDef.data),
               xs: {
                 gridItem: { ...gridItem },
-                viewOptions: structuredClone(viewOptions),
+                appearanceOptions: structuredClone(appearanceOptions),
               },
               ...(breakpoint === "xs"
                 ? {}
                 : {
                     [breakpoint]: {
                       gridItem: { ...gridItem },
-                      viewOptions: structuredClone(viewOptions),
+                      appearanceOptions: structuredClone(appearanceOptions),
                     },
                   }),
             },
@@ -105,22 +110,23 @@ export const useGridStore = create<{
         }));
         useGridStore.getState().setLayout(layout, breakpoint);
       },
-      setViewOptions: (brickId, breakpoint, value) => {
+      setAppearanceOptions: (brickId, breakpoint, value) => {
         set((state) => {
           const brick = state.bricksById[brickId];
           if (!brick) return state;
-          const form =
-            catalogsHash[brick.catalogId]?.contents[brick.contentId]?.views[brick.viewId]
-              ?.component.form;
+          const form = catalogsHash[brick.catalogId]?.registries[brick.registryId]?.component.form;
           if (!form) return state;
-          const viewOptions = form.decode(value);
+          const appearanceOptions = form.decode(value);
           const entry = structuredClone(resolveBrickBreakpoint(brick, breakpoint));
           return {
             bricksById: {
               ...state.bricksById,
               [brickId]: {
                 ...brick,
-                [breakpoint]: { ...entry, viewOptions: structuredClone(viewOptions) },
+                [breakpoint]: {
+                  ...entry,
+                  appearanceOptions: structuredClone(appearanceOptions),
+                },
               },
             },
           };
@@ -148,18 +154,26 @@ export const useGridStore = create<{
             if (placement) {
               entry.gridItem = { ...placement, i: brickId };
             } else {
-              const catalog =
-                catalogsHash[brick.catalogId]?.contents[brick.contentId]?.views[brick.viewId];
+              const catalog = catalogsHash[brick.catalogId]?.registries[brick.registryId];
               if (!catalog) return state;
               let y = 0;
               for (const other of Object.values(state.bricksById)) {
                 const item = resolveBrickBreakpoint(other, breakpoint).gridItem;
                 if (item) y = Math.max(y, item.y + item.h);
               }
-              entry.gridItem = { i: brickId, x: 0, y, w: catalog.def.w, h: catalog.def.h };
+              entry.gridItem = {
+                i: brickId,
+                x: 0,
+                y,
+                w: catalog.def.w,
+                h: catalog.def.h,
+              };
             }
           }
-          const bricksById = { ...state.bricksById, [brickId]: { ...brick, [breakpoint]: entry } };
+          const bricksById = {
+            ...state.bricksById,
+            [brickId]: { ...brick, [breakpoint]: entry },
+          };
           const layout = Object.values(bricksById).flatMap((placed) => {
             const item = resolveBrickBreakpoint(placed, breakpoint).gridItem;
             return item ? [{ ...item }] : [];
@@ -170,7 +184,10 @@ export const useGridStore = create<{
             if (resolved.gridItem?.x === item.x && resolved.gridItem?.y === item.y) continue;
             bricksById[item.i] = {
               ...placed,
-              [breakpoint]: { ...structuredClone(resolved), gridItem: { ...item } },
+              [breakpoint]: {
+                ...structuredClone(resolved),
+                gridItem: { ...item },
+              },
             };
           }
           return { bricksById };
@@ -185,6 +202,17 @@ export const useGridStore = create<{
     }),
     {
       name: "qrk-bricks-sandbox-responsive-bricks-v2",
+      version: 1,
+      migrate: (persistedState) => {
+        const selectedWidth =
+          persistedState !== null &&
+          typeof persistedState === "object" &&
+          "selectedWidth" in persistedState &&
+          typeof persistedState.selectedWidth === "number"
+            ? persistedState.selectedWidth
+            : null;
+        return { bricksById: {}, selectedWidth };
+      },
       partialize: (state) => ({
         bricksById: state.bricksById,
         selectedWidth: state.selectedWidth,
@@ -194,26 +222,6 @@ export const useGridStore = create<{
         const state = stateAfterHydration ?? stateBeforeHydration;
         if (state.selectedWidth === 768) state.selectedWidth = 640;
         if (state.selectedWidth === 1536) state.selectedWidth = 1440;
-        // Upgrade existing entries without resetting placements or materializing inheritance.
-        for (const brick of Object.values(state.bricksById)) {
-          if ("md" in brick) delete brick.md;
-          if ("2xl" in brick) delete brick["2xl"];
-          for (const entry of [brick.xs, brick.sm, brick.lg, brick.xl]) {
-            if (!entry) continue;
-            if ("frame" in entry) delete entry.frame;
-            if (
-              brick.catalogId === "github" &&
-              brick.contentId === "profile" &&
-              brick.viewId === "4x4" &&
-              typeof entry.viewOptions === "object" &&
-              entry.viewOptions !== null &&
-              "cardView" in entry.viewOptions
-            ) {
-              delete entry.viewOptions.cardView;
-            }
-          }
-        }
-        // This update also persists the upgraded entries under the existing storage key.
         state.setHasHydrated(true);
       },
     },

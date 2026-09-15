@@ -4,14 +4,8 @@ test("catalog breakpoints follow the shared grid container at every boundary", a
   await page.setViewportSize({ width: 1280, height: 1000 });
   await page.goto("/");
   const catalog = page.locator('[data-catalog-entry="github"]');
-  await catalog.getByRole("button", { name: "4×2", exact: true }).first().click();
-  const preview = catalog.locator('[data-catalog-representative="github/profile/4x2"]');
-  const responsive = preview.locator("[data-brick-breakpoint]");
-  const activity = preview.locator("[data-github-profile-activity]");
-  const cells = activity.locator("rect[data-date]");
-  await expect(cells).not.toHaveCount(0);
-  const contributionCount = await cells.count();
-  const firstCell = await cells.first().elementHandle();
+  const preview = catalog.locator('[data-catalog-representative="github/profile"]');
+  const responsive = preview.locator('[data-slot="card"]');
 
   for (const [width, breakpoint] of [
     [639, "xs"],
@@ -32,88 +26,42 @@ test("catalog breakpoints follow the shared grid container at every boundary", a
       .evaluate((element, width) => {
         element.style.width = `${width}px`;
       }, width);
-    await expect(responsive).toHaveAttribute("data-brick-breakpoint", breakpoint);
-    await expect(cells).toHaveCount(contributionCount);
-    await expect(cells.first()).toHaveAttribute("width", breakpoint === "xs" ? "2" : "9");
-    await expect(activity.locator("text")).toHaveCount(breakpoint === "xs" ? 0 : 15);
-    await expect(activity.locator("footer")).toHaveCount(breakpoint === "xs" ? 0 : 1);
+    await expect(responsive).toHaveCSS(
+      "padding-top",
+      breakpoint === "xs" || breakpoint === "sm" ? "8px" : "12px",
+    );
+    await expect(preview.getByText("@morgs32")).toBeVisible();
   }
-  expect(await firstCell?.evaluate((element) => element.isConnected)).toBe(true);
 });
 
-test("standalone slider updates the compact view without losing contributions", async ({
-  page,
-}) => {
-  await page.goto("/bricks/github/profile/4x2");
+test("standalone slider retains the profile through responsive presentations", async ({ page }) => {
+  await page.goto("/bricks/github/profile");
   const preview = page.getByTestId("brick-preview");
-  const slider = page.getByLabel("Grid unit:", { exact: false });
-  const activity = preview.locator("[data-github-profile-activity]");
-  const cells = activity.locator("rect[data-date]");
-  await expect(preview.locator("[data-brick-breakpoint]")).toHaveAttribute(
-    "data-brick-breakpoint",
-    "sm",
-  );
-  const count = await cells.count();
-  await slider.fill("40");
-  await expect(preview.locator("[data-brick-breakpoint]")).toHaveAttribute(
-    "data-brick-breakpoint",
-    "xs",
-  );
-  await expect(preview.getByText("@morgs32")).toBeVisible();
-  await expect(cells.first()).toHaveAttribute("rx", "0");
-  await expect(cells.first()).toHaveCSS("stroke", "none");
-  const brickBounds = await preview.boundingBox();
-  const activityBounds = await activity.boundingBox();
-  const calendarBounds = await activity.locator("svg").boundingBox();
-  expect(activityBounds?.width).toBe(brickBounds?.width);
-  expect((activityBounds?.y ?? 0) + (activityBounds?.height ?? 0)).toBe(
-    (brickBounds?.y ?? 0) + (brickBounds?.height ?? 0),
-  );
-  expect((calendarBounds?.y ?? 0) + (calendarBounds?.height ?? 0)).toBe(
-    (brickBounds?.y ?? 0) + (brickBounds?.height ?? 0),
-  );
-  const dayBounds = await cells.evaluateAll((elements) =>
-    elements.slice(0, 2).map((element) => {
-      const bounds = element.getBoundingClientRect();
-      return { top: bounds.top, bottom: bounds.bottom, width: bounds.width, height: bounds.height };
-    }),
-  );
-  expect(dayBounds[0].width).toBe(dayBounds[0].height);
-  expect(dayBounds[1].top - dayBounds[0].bottom).toBeCloseTo(1, 4);
-  await expect(activity).toHaveCSS("mask-image", "none");
-  await expect(preview.locator("[data-brick-breakpoint]")).toHaveCSS("padding", "0px");
-  await expect(cells).toHaveCount(count);
-  await slider.fill("128");
-  await expect(preview.locator("[data-brick-breakpoint]")).toHaveAttribute(
-    "data-brick-breakpoint",
-    "lg",
-  );
-  await slider.fill("160");
-  await expect(preview.locator("[data-brick-breakpoint]")).toHaveAttribute("data-brick-breakpoint", "xl");
-  await slider.fill("192");
-  await expect(preview.locator("[data-brick-breakpoint]")).toHaveAttribute("data-brick-breakpoint", "xl");
-  await expect(preview.getByText("@morgs32")).toBeVisible();
-  await page.goto("/bricks/github/profile/4x4");
-  await page.getByLabel("Grid unit:", { exact: false }).fill("40");
-  await expect(page.getByTestId("brick-preview").getByText("@morgs32")).toBeVisible();
-  await expect(
-    page.getByTestId("brick-preview").locator("rect[data-date]").first(),
-  ).toHaveAttribute("width", "9");
+  for (const [unit, breakpoint] of [
+    [40, "xs"],
+    [80, "sm"],
+    [128, "lg"],
+    [160, "xl"],
+  ]) {
+    await page.getByLabel("Grid unit:", { exact: false }).fill(String(unit));
+    await expect(preview.locator('[data-slot="card"]')).toHaveCSS(
+      "padding-top",
+      breakpoint === "xs" || breakpoint === "sm" ? "8px" : "12px",
+    );
+    await expect(preview.getByText("@morgs32")).toBeVisible();
+  }
 });
 
 test("placed bricks respond to presets and keep their data and positions", async ({ page }) => {
   await page.setViewportSize({ width: 3400, height: 1000 });
-  await page.goto("/catalogs/github?content=profile&view=4x2");
-  const source = page.locator('[data-content-view-brick="github/profile/4x2"]');
-  await expect(source.locator("[data-brick-breakpoint]")).toHaveAttribute(
-    "data-brick-breakpoint",
-    "xl",
-  );
+  await page.goto("/catalogs/github?registry=profile");
+  const source = page.locator('[data-registry-brick="github/profile"]');
+  await expect(source.locator('[data-slot="card"]')).toHaveCSS("padding-top", "12px");
   const grid = page.getByLabel("Brick grid", { exact: true });
-  await source.locator(".brick-drag-handle").dragTo(grid.locator(".react-grid-layout"), {
+  await source.dragTo(grid.locator(".react-grid-layout"), {
     targetPosition: { x: 20, y: 200 },
   });
-  const placed = grid.locator('[data-brick="github/profile/4x2"]');
+  const placed = grid.locator('[data-brick="github/profile"]');
   await expect(placed).toHaveCount(1);
   const original = await placed.evaluate((element) => ({
     id: element.getAttribute("data-brick-id"),
@@ -121,7 +69,6 @@ test("placed bricks respond to presets and keep their data and positions", async
     y: element.getAttribute("data-grid-y"),
   }));
   const node = await placed.elementHandle();
-  const contributionCount = await placed.locator("rect[data-date]").count();
   for (const [width, breakpoint] of [
     [375, "xs"],
     [640, "sm"],
@@ -129,15 +76,15 @@ test("placed bricks respond to presets and keep their data and positions", async
     [1440, "xl"],
   ] satisfies Array<[number, string]>) {
     await page.getByRole("button", { name: `${width}px grid width`, exact: true }).click();
-    await expect(placed.locator("[data-brick-breakpoint]")).toHaveAttribute(
-      "data-brick-breakpoint",
-      breakpoint,
+    await expect(placed.locator('[data-slot="card"]')).toHaveCSS(
+      "padding-top",
+      breakpoint === "xs" || breakpoint === "sm" ? "8px" : "12px",
     );
-    await expect(source.locator("[data-brick-breakpoint]")).toHaveAttribute(
-      "data-brick-breakpoint",
-      breakpoint,
+    await expect(source.locator('[data-slot="card"]')).toHaveCSS(
+      "padding-top",
+      breakpoint === "xs" || breakpoint === "sm" ? "8px" : "12px",
     );
-    await expect(placed.locator("rect[data-date]")).toHaveCount(contributionCount);
+    await expect(placed.getByText("@morgs32")).toBeVisible();
     expect(
       await placed.evaluate((element) => ({
         id: element.getAttribute("data-brick-id"),
@@ -148,10 +95,11 @@ test("placed bricks respond to presets and keep their data and positions", async
   }
   expect(await node?.evaluate((element) => element.isConnected)).toBe(true);
   await page.getByRole("button", { name: "375px grid width", exact: true }).click();
-  await placed.getByRole("link").click();
-  await expect(
-    page.getByTestId("selected-brick-preview").locator("[data-brick-breakpoint]"),
-  ).toHaveAttribute("data-brick-breakpoint", "xs");
+  await placed.getByRole("link", { name: "Edit brick", exact: true }).click();
+  await expect(page.getByTestId("selected-brick-preview").locator('[data-slot="card"]')).toHaveCSS(
+    "padding-top",
+    "8px",
+  );
 });
 
 test("lg and xl overrides persist and restore nearest smaller inheritance", async ({ page }) => {
@@ -159,7 +107,7 @@ test("lg and xl overrides persist and restore nearest smaller inheritance", asyn
   await page.goto("/catalogs/figma");
   await page.getByRole("button", { name: "375px grid width", exact: true }).click();
   const grid = page.getByLabel("Brick grid").locator(".react-grid-layout");
-  await page.locator("[data-content-view-brick] .brick-drag-handle").dragTo(grid, {
+  await page.locator("[data-registry-brick]").dragTo(grid, {
     targetPosition: { x: 20, y: 20 },
   });
   const placed = grid.locator("[data-brick-id]");

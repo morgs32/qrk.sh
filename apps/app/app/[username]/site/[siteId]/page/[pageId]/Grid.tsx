@@ -1,22 +1,22 @@
 "use client";
 
-import { useBrickBreakpoint } from "@qrk.sh/bricks/BrickBreakpointProvider";
-
 import { useRef } from "react";
-import { href, useNavigate } from "react-router";
+
+import { useUser } from "@clerk/react";
 import { catalogsHash } from "@qrk.sh/bricks";
+import { useBrickBreakpoint } from "@qrk.sh/bricks/BrickBreakpointProvider";
+import { Schema } from "effect";
+import GridLayout, { verticalCompactor } from "react-grid-layout";
+import { href, useNavigate } from "react-router";
+
+import { useSiteStore } from "../../siteStore";
+
 import {
   getActiveBrickDragGridShape,
   parseBrickDefFromDataTransfer,
   useBrickDrawerStore,
 } from "@/components/home/useBrickDrawerStore";
-import { useUser } from "@clerk/react";
-import { Schema } from "effect";
-import GridLayout, { verticalCompactor } from "react-grid-layout";
-
 import { useValidatedParams } from "@/hooks/useValidatedParams";
-
-import { useSiteStore } from "../../siteStore";
 
 const GRID_COLS = 8;
 
@@ -83,8 +83,7 @@ export function Grid() {
             );
             useBrickDrawerStore.getState().unregisterActiveBrickDragGridShape();
             if (!item || !brickDef) return;
-            const brick =
-              catalogsHash[brickDef.catalogName]?.contents[brickDef.content]?.views[brickDef.view];
+            const brick = catalogsHash[brickDef.catalogName]?.registries[brickDef.registry];
             if (!brick) return;
             const brickId = crypto.randomUUID();
             const droppedLayout = nextLayout.map((layoutItem) =>
@@ -97,7 +96,10 @@ export function Grid() {
                 ...state.pageGrids,
                 [pageKey]: {
                   layout: droppedLayout,
-                  bricksById: { ...state.pageGrids[pageKey]?.bricksById, [brickId]: brick.def },
+                  bricksById: {
+                    ...state.pageGrids[pageKey]?.bricksById,
+                    [brickId]: brick.def,
+                  },
                 },
               },
             }));
@@ -123,9 +125,9 @@ export function Grid() {
           {layout.map((layoutItem) => {
             const brickDef = pageGrid?.bricksById[layoutItem.i];
             const content = brickDef
-              ? catalogsHash[brickDef.catalogName]?.contents[brickDef.content]
+              ? catalogsHash[brickDef.catalogName]?.registries[brickDef.registry]
               : undefined;
-            const brick = brickDef ? content?.views[brickDef.view] : undefined;
+            const brick = brickDef ? content : undefined;
             if (!brick) {
               return (
                 <div
@@ -141,8 +143,7 @@ export function Grid() {
                 key={layoutItem.i}
                 className="qrk-bricks size-full cursor-grab overflow-hidden active:cursor-grabbing"
                 data-brick-catalog-name={brick.def.catalogName}
-                data-brick-content={brick.def.content}
-                data-brick-view={brick.def.view}
+                data-brick-registry={brick.def.registry}
                 data-brick-id={layoutItem.i}
                 onClick={() => {
                   if (suppressBrickClickRef.current) return;

@@ -1,18 +1,17 @@
-import { collapseAllNested, defaultStyles, JsonView } from "react-json-view-lite";
-import { CatalogOutline } from "../CatalogOutline";
-import { Button } from "../../ui/button";
-import { resolveBrickBreakpoint } from "../resolveBrickBreakpoint";
-import { BrickPreviewFrame } from "../../BrickPreviewFrame";
-import { useBrickBreakpoint } from "../../BrickBreakpointProvider";
-import { catalogsHash } from "../../catalogsHash";
-import { Link, useParams } from "react-router";
-import { ArrowLeft } from "lucide-react";
 import { makeEffectSchema } from "@zerospin/schema";
 import { Schema } from "effect";
-import { Configuration } from "../Configuration";
+import { ArrowLeft } from "lucide-react";
+import { collapseAllNested, defaultStyles, JsonView } from "react-json-view-lite";
+import { Link, useParams } from "react-router";
 
+import { useBrickBreakpoint } from "../../BrickBreakpointProvider";
+import { BrickPreviewFrame } from "../../BrickPreviewFrame";
+import { catalogsHash } from "../../catalogsHash";
 import { Outline } from "../../Outline";
-
+import { Button } from "../../ui/button";
+import { CatalogOutline } from "../CatalogOutline";
+import { Configuration } from "../Configuration";
+import { resolveBrickBreakpoint } from "../resolveBrickBreakpoint";
 import { useGridStore } from "../useGridStore";
 
 export default function BrickDetail() {
@@ -24,14 +23,14 @@ export default function BrickDetail() {
   const brickDef = useGridStore((state) => state.bricksById[brickId]);
   const catalog =
     brickDef?.catalogId === catalogName ? catalogsHash[brickDef.catalogId] : undefined;
-  const content = catalog?.contents[brickDef?.contentId ?? ""];
-  const brick = content?.views[brickDef?.viewId ?? ""];
+  const registry = catalog?.registries[brickDef?.registryId ?? ""];
+  const brick = registry;
 
   if (!hasHydrated) {
     return <div className="px-6 pt-6 text-sm text-zinc-500">Loading brick…</div>;
   }
 
-  if (!brick || !catalog || !content || !brickDef) {
+  if (!brick || !catalog || !registry || !brickDef) {
     return (
       <div className="px-6 pt-6" data-testid="brick-not-found">
         <Link
@@ -50,7 +49,7 @@ export default function BrickDetail() {
   const BrickComponent = brick.component;
   const brickData = brickDef.data;
   const entry = resolveBrickBreakpoint(brickDef, breakpoint);
-  const ViewForm = BrickComponent.form?.form;
+  const AppearanceForm = BrickComponent.form?.form;
   let inheritedBreakpoint = "xs";
   if (breakpoint === "xl" && brickDef.lg) inheritedBreakpoint = "lg";
   else if ((breakpoint === "xl" || breakpoint === "lg") && brickDef.sm) inheritedBreakpoint = "sm";
@@ -62,25 +61,14 @@ export default function BrickDetail() {
       </Outline.Title>
       <CatalogOutline
         catalog={catalog}
-        renderContent={(name, label) => (
+        renderRegistry={(name, label) => (
           <Link
-            to={`/catalogs/${encodeURIComponent(catalogName)}?content=${encodeURIComponent(name)}`}
-            aria-current={name === brick.def.content ? "true" : undefined}
+            to={`/catalogs/${encodeURIComponent(catalogName)}?registry=${encodeURIComponent(name)}`}
+            aria-current={name === brick.def.registry ? "true" : undefined}
             className="underline aria-[current=true]:no-underline"
           >
             {label}
           </Link>
-        )}
-        renderView={(name, view, label) => (
-          <span
-            aria-current={
-              name === brick.def.content && view === brick.def.view ? "true" : undefined
-            }
-            aria-disabled={name !== brick.def.content || view !== brick.def.view}
-            className="text-zinc-400 aria-[current=true]:font-semibold aria-[current=true]:text-zinc-900"
-          >
-            {label}
-          </span>
         )}
       />
       <div
@@ -94,7 +82,7 @@ export default function BrickDetail() {
             <BrickComponent
               breakpoint={breakpoint}
               data={brickData}
-              viewOptions={entry.viewOptions}
+              appearanceOptions={entry.appearanceOptions}
             />
           </div>
         </BrickPreviewFrame>
@@ -103,13 +91,13 @@ export default function BrickDetail() {
         <Configuration
           key={brickId}
           showData={false}
-          content={content}
+          registry={registry}
           data={brickData}
           setData={(data) => {
             const DataSchema =
-              content.dataShape === null
+              registry.dataShape === null
                 ? Schema.Null
-                : Schema.toType(makeEffectSchema(content.dataShape));
+                : Schema.toType(makeEffectSchema(registry.dataShape));
             const decodedData = Schema.decodeUnknownSync(DataSchema)(data, {
               onExcessProperty: "preserve",
             });
@@ -121,7 +109,7 @@ export default function BrickDetail() {
             }));
           }}
         />
-        <Outline.Title>View options</Outline.Title>
+        <Outline.Title>Appearance options</Outline.Title>
         <div className="flex flex-wrap gap-2 px-4 py-4">
           {breakpoint !== "xs" && (
             <Button
@@ -134,7 +122,12 @@ export default function BrickDetail() {
                   if (!currentBrick) return state;
                   const inheritedBrick = { ...currentBrick };
                   delete inheritedBrick[breakpoint];
-                  return { bricksById: { ...state.bricksById, [brickId]: inheritedBrick } };
+                  return {
+                    bricksById: {
+                      ...state.bricksById,
+                      [brickId]: inheritedBrick,
+                    },
+                  };
                 });
               }}
             >
@@ -151,16 +144,16 @@ export default function BrickDetail() {
             {entry.gridItem === null ? "Show brick" : "Hide brick"}
           </Button>
         </div>
-        {ViewForm && (
-          <ViewForm
-            value={entry.viewOptions}
+        {AppearanceForm && (
+          <AppearanceForm
+            value={entry.appearanceOptions}
             onChange={(value) => {
-              useGridStore.getState().setViewOptions(brickId, breakpoint, value);
+              useGridStore.getState().setAppearanceOptions(brickId, breakpoint, value);
             }}
           />
         )}
         <Outline.Title>Brick Definition</Outline.Title>
-        <div className="overflow-auto bg-white px-2 py-4" data-testid="content-data-result">
+        <div className="overflow-auto bg-white px-2 py-4" data-testid="registry-data-result">
           <JsonView
             shouldExpandNode={collapseAllNested}
             data={brickDef}

@@ -1,17 +1,19 @@
 import { primitives } from "@zerospin/schema";
 import { describe, expect, expectTypeOf, it, vi } from "vite-plus/test";
-import { ScraperApi } from "./scraper/ScraperApi";
 
 import { makeFetcherConfiguration } from "./makeFetcherConfiguration";
+import { ScraperApi } from "./scraper/ScraperApi";
 
 describe("makeFetcherConfiguration", () => {
-  it("decodes content options independently of a content definition and forwards the publishing callback", async () => {
-    const receivedContentOptions: Array<{ hash: string }> = [];
+  it("decodes registry options independently of a content definition and forwards the publishing callback", async () => {
+    const receivedRegistryOptions: Array<{ hash: string }> = [];
     const fetcher = makeFetcherConfiguration({
-      contentOptionsShape: { hash: primitives.text({ defaultValue: "asterisk" }) },
-      fetcher: async ({ contentOptions, setData }) => {
-        receivedContentOptions.push(contentOptions);
-        setData({ svg: contentOptions.hash, providerField: true });
+      registryOptionsShape: {
+        hash: primitives.text({ defaultValue: "asterisk" }),
+      },
+      fetcher: async ({ registryOptions, setData }) => {
+        receivedRegistryOptions.push(registryOptions);
+        setData({ svg: registryOptions.hash, providerField: true });
         return { _tag: "Right", right: undefined };
       },
     });
@@ -19,41 +21,50 @@ describe("makeFetcherConfiguration", () => {
     const setData = vi.fn();
     expect(fetcher.configurationType).toBe("fetcher");
 
-    await expect(fetcher.fetcher({ api, setData, contentOptions: {} })).resolves.toEqual({
+    await expect(fetcher.fetcher({ api, setData, registryOptions: {} })).resolves.toEqual({
       _tag: "Right",
       right: undefined,
     });
     await expect(
-      fetcher.fetcher({ api, setData, contentOptions: { hash: 42 } }),
+      fetcher.fetcher({ api, setData, registryOptions: { hash: 42 } }),
     ).rejects.toBeDefined();
     await expect(
-      fetcher.fetcher({ api, setData, contentOptions: { hash: "icon", unexpected: true } }),
+      fetcher.fetcher({
+        api,
+        setData,
+        registryOptions: { hash: "icon", unexpected: true },
+      }),
     ).rejects.toBeDefined();
-    expect(setData).toHaveBeenCalledExactlyOnceWith({ svg: "asterisk", providerField: true });
-    expect(receivedContentOptions).toEqual([{ hash: "asterisk" }]);
+    expect(setData).toHaveBeenCalledExactlyOnceWith({
+      svg: "asterisk",
+      providerField: true,
+    });
+    expect(receivedRegistryOptions).toEqual([{ hash: "asterisk" }]);
   });
-  it("requires a fetcher and accepts one typed whole-content-options form", () => {
+  it("requires a fetcher and accepts one typed whole-registry-options form", () => {
     expectTypeOf(() => {
       // @ts-expect-error a fetcher is required
-      makeFetcherConfiguration({ contentOptionsShape: {} });
+      makeFetcherConfiguration({ registryOptionsShape: {} });
       makeFetcherConfiguration({
-        contentOptionsShape: { query: primitives.text({ defaultValue: "Chicago" }) },
-        contentOptionsForm: {
+        registryOptionsShape: {
+          query: primitives.text({ defaultValue: "Chicago" }),
+        },
+        registryOptionsForm: {
           // @ts-expect-error a field map is not a component
           query: () => null,
         },
         fetcher: async () => ({ _tag: "Right", right: undefined }),
       });
       makeFetcherConfiguration({
-        contentOptionsShape: {
+        registryOptionsShape: {
           query: primitives.text({ defaultValue: "Chicago" }),
           zoom: primitives.integer({ defaultValue: 14 }),
         },
-        contentOptionsForm: ({ value, onChange }) => {
+        registryOptionsForm: ({ value, onChange }) => {
           expectTypeOf(value.query).toEqualTypeOf<string>();
           expectTypeOf(value.zoom).toEqualTypeOf<number>();
           onChange({ query: value.query, zoom: value.zoom });
-          // @ts-expect-error changes replace the complete content options
+          // @ts-expect-error changes replace the complete registry options
           onChange({ query: value.query });
           return null;
         },

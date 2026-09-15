@@ -1,9 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { EmblaCarouselType } from "embla-carousel";
+
 import type { ICatalog, ICatalogBrick } from "@qrk.sh/bricks";
+import type { EmblaCarouselType } from "embla-carousel";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+
+import { BrickCarouselNoBricksError } from "./BrickCarouselError";
+import { BrickCarouselNav } from "./BrickCarouselNav";
+import { BrickPreview } from "./BrickPreview";
+
 import {
   type CarouselApi,
   Carousel,
@@ -11,9 +17,6 @@ import {
   CarouselItem,
 } from "@/components/ui/carousel";
 import { SoftButton } from "@/components/ui/soft-button";
-import { BrickCarouselNoBricksError } from "./BrickCarouselError";
-import { BrickCarouselNav } from "./BrickCarouselNav";
-import { BrickPreview } from "./BrickPreview";
 
 /** Same as `BrickPreview` / site grid: half viewport ÷ 8 columns. */
 const PREVIEW_GRID_COLS = 8;
@@ -49,10 +52,7 @@ export function BrickCarousel(props: {
 }) {
   const { catalog, brickSortFn = defaultBrickSort } = props;
   const bricks = useMemo(
-    () =>
-      Object.values(catalog.contents)
-        .flatMap((content) => Object.values(content.views))
-        .sort(brickSortFn),
+    () => Object.values(catalog.registries).sort(brickSortFn),
     [catalog, brickSortFn],
   );
 
@@ -129,7 +129,7 @@ export function BrickCarousel(props: {
         >
           {bricks.map((brick) => (
             <CarouselItem
-              key={`${brick.def.content}/${brick.def.view}`}
+              key={`${brick.def.registry}`}
               data-brick-drawer-slide-grid-h={brick.def.h}
               className="relative flex h-full min-h-0 flex-col items-center justify-center"
               style={{

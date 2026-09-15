@@ -75,12 +75,12 @@ for (const width of [375, 768]) {
     await expect(drawer).toHaveCSS("width", `${width}px`);
     // Use a real catalog drag into the uncovered grid; no modal overlay can intercept it.
     await drawer
-      .locator('[data-catalog-representative="icon/default/2x2"] .brick-drag-handle')
+      .locator('[data-catalog-representative="icon/default"]')
       .dragTo(page.getByLabel("Brick grid").locator(".react-grid-layout"), {
         targetPosition: { x: 20, y: 20 },
       });
     await expect(
-      page.getByLabel("Brick grid").locator('[data-brick="icon/default/2x2"]'),
+      page.getByLabel("Brick grid").locator('[data-brick="icon/default"]'),
     ).toBeVisible();
     await expect(drawer).toBeVisible();
     await drawer.locator('[data-catalog-link="swatch"]').click();

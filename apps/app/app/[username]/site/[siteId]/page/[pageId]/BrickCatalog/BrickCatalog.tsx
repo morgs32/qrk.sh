@@ -1,21 +1,19 @@
 "use client";
-import { BrickPreviewFrame } from "@qrk.sh/bricks/BrickPreviewFrame";
-
-import { useBrickBreakpoint } from "@qrk.sh/bricks/BrickBreakpointProvider";
-
-import { Schema } from "effect";
 import { useState } from "react";
-import { Tabs } from "radix-ui";
+
 import { catalogsHash } from "@qrk.sh/bricks";
-import { Link } from "react-router";
-import { BRICK_DRAG_MIME, useBrickDrawerStore } from "@/components/home/useBrickDrawerStore";
+import { useBrickBreakpoint } from "@qrk.sh/bricks/BrickBreakpointProvider";
+import { BrickPreviewFrame } from "@qrk.sh/bricks/BrickPreviewFrame";
+import { Schema } from "effect";
 import { X } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Tabs } from "radix-ui";
+import { Link } from "react-router";
 import { useNavigate } from "react-router";
-
-import { useValidatedParams } from "@/hooks/useValidatedParams";
-
 import { href } from "react-router";
+
+import { BRICK_DRAG_MIME, useBrickDrawerStore } from "@/components/home/useBrickDrawerStore";
+import { Button } from "@/components/ui/button";
+import { useValidatedParams } from "@/hooks/useValidatedParams";
 
 const ParamsSchema = Schema.Struct({
   username: Schema.String,
@@ -28,8 +26,7 @@ export function BrickCatalog() {
   const params = useValidatedParams(ParamsSchema);
   const navigate = useNavigate();
   const catalogs = Object.values(catalogsHash);
-  const [selectedContents, setSelectedContents] = useState<Record<string, string>>({});
-  const [selectedViews, setSelectedViews] = useState<Record<string, string>>({});
+  const [selectedRegistries, setSelectedRegistries] = useState<Record<string, string>>({});
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
@@ -60,26 +57,17 @@ export function BrickCatalog() {
         className="min-h-0 flex-1 overflow-y-auto pt-8 pb-6 flex flex-col gap-10"
       >
         {catalogs.map((catalog) => {
-          const contents = Object.entries(catalog.contents);
-          const firstContentEntry = contents[0];
+          const registries = Object.entries(catalog.registries);
+          const firstRegistryEntry = registries[0];
 
-          if (!firstContentEntry) {
+          if (!firstRegistryEntry) {
             return null;
           }
 
-          const [firstContentName, firstContent] = firstContentEntry;
-          const selectedContentName = selectedContents[catalog.catalogName] ?? firstContentName;
-          const selectedContent = catalog.contents[selectedContentName] ?? firstContent;
-          const views = Object.entries(selectedContent.views);
-          const firstView = views[0];
-
-          if (!firstView) {
-            return null;
-          }
-
-          const [firstViewName, firstBrick] = firstView;
-          const selectedViewName = selectedViews[catalog.catalogName] || firstViewName;
-          const selectedBrick = selectedContent.views[selectedViewName] ?? firstBrick;
+          const [firstRegistryName, firstRegistry] = firstRegistryEntry;
+          const selectedRegistryName = selectedRegistries[catalog.catalogName] ?? firstRegistryName;
+          const selectedRegistry = catalog.registries[selectedRegistryName] ?? firstRegistry;
+          const selectedBrick = selectedRegistry;
           const BrickComponent = selectedBrick.component;
 
           return (
@@ -90,64 +78,27 @@ export function BrickCatalog() {
                   <p className="mt-1 mb-0 text-sm text-zinc-500">{catalog.catalogDescription}</p>
                 </div>
                 <div className="flex shrink-0 flex-col items-end gap-1 text-sm">
-                  <Tabs.Root value={selectedContentName}>
+                  <Tabs.Root value={selectedRegistryName}>
                     <Tabs.List
-                      aria-label={`${catalog.catalogLabel} contents`}
+                      aria-label={`${catalog.catalogLabel} registries`}
                       className="flex gap-2"
                     >
-                      {contents.map(([contentName]) => (
+                      {registries.map(([registryName]) => (
                         <Tabs.Trigger
-                          key={contentName}
-                          value={contentName}
+                          key={registryName}
+                          value={registryName}
                           onClick={() => {
-                            setSelectedContents((current) => ({
+                            setSelectedRegistries((current) => ({
                               ...current,
-                              [catalog.catalogName]: contentName,
-                            }));
-                            setSelectedViews((current) => ({
-                              ...current,
-                              [catalog.catalogName]: "",
+                              [catalog.catalogName]: registryName,
                             }));
                           }}
                           className="cursor-pointer border-0 bg-transparent p-0 text-zinc-500 underline underline-offset-2 data-[state=active]:font-medium data-[state=active]:text-zinc-950 data-[state=active]:no-underline"
                         >
-                          {contentName[0].toUpperCase() + contentName.slice(1)}
+                          {registryName[0].toUpperCase() + registryName.slice(1)}
                         </Tabs.Trigger>
                       ))}
                     </Tabs.List>
-                  </Tabs.Root>
-                  <Tabs.Root value={selectedViewName}>
-                    <div className="flex items-baseline gap-2">
-                      <Tabs.List
-                        aria-label={`${catalog.catalogLabel} views`}
-                        className="flex gap-2"
-                      >
-                        {views.map(([viewName, brick]) => (
-                          <Tabs.Trigger
-                            key={viewName}
-                            value={viewName}
-                            onClick={() => {
-                              setSelectedViews((current) => ({
-                                ...current,
-                                [catalog.catalogName]: viewName,
-                              }));
-                            }}
-                            className="cursor-pointer border-0 bg-transparent p-0 text-zinc-500 underline underline-offset-2 data-[state=active]:font-medium data-[state=active]:text-zinc-950 data-[state=active]:no-underline"
-                          >
-                            {brick.def.label}
-                          </Tabs.Trigger>
-                        ))}
-                      </Tabs.List>
-                      <Link
-                        to={href(
-                          "/:username/site/:siteId/page/:pageId/brick-catalog/:catalogName",
-                          { ...params, catalogName: catalog.catalogName },
-                        )}
-                        data-catalog-link={catalog.catalogName}
-                      >
-                        View all
-                      </Link>
-                    </div>
                   </Tabs.Root>
                 </div>
               </div>
@@ -156,11 +107,10 @@ export function BrickCatalog() {
                   <BrickPreviewFrame w={selectedBrick.def.w} h={selectedBrick.def.h}>
                     <div
                       className="size-full qrk-bricks cursor-grab overflow-hidden active:cursor-grabbing"
-                      data-catalog-representative={`${selectedBrick.def.catalogName}/${selectedBrick.def.content}/${selectedBrick.def.view}`}
+                      data-catalog-representative={`${selectedBrick.def.catalogName}/${selectedBrick.def.registry}`}
                       data-brick-drawer-brick-slot
                       data-brick-drawer-catalog-name={selectedBrick.def.catalogName}
-                      data-brick-drawer-content={selectedBrick.def.content}
-                      data-brick-drawer-view={selectedBrick.def.view}
+                      data-brick-drawer-registry={selectedBrick.def.registry}
                       draggable
                       onDragStart={(event) => {
                         useBrickDrawerStore
@@ -174,13 +124,13 @@ export function BrickCatalog() {
                           JSON.stringify(selectedBrick.def),
                         );
                         event.dataTransfer.effectAllowed = "copy";
-                        event.dataTransfer.setData("text/plain", selectedBrick.def.view);
+                        event.dataTransfer.setData("text/plain", selectedBrick.def.registry);
                       }}
                       onDragEnd={() => {
                         useBrickDrawerStore.getState().unregisterActiveBrickDragGridShape();
                       }}
                     >
-                      <BrickComponent breakpoint={breakpoint} data={selectedContent.defaultData} />
+                      <BrickComponent breakpoint={breakpoint} data={selectedRegistry.defaultData} />
                     </div>
                   </BrickPreviewFrame>
                 </div>

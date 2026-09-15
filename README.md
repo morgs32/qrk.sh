@@ -13,9 +13,9 @@ Two Next.js apps with App Router:
 
 The grid / brick drawer catalog is defined under `packages/bricks/src/catalogs/`.
 
-1. **`catalogName`** identifies a catalog; **`content`** identifies a content definition within it; **`view`** identifies a presentation within that content definition.
-2. **`(catalogName, content, view)`** uniquely identifies a catalog brick. Drawer and grid selectors expose these fields separately.
-3. Placed bricks retain their own **`brickId`**. Backend records and command inputs use **`catalogId`**, **`contentId`**, and **`viewId`**.
+1. **`catalogName`** identifies a catalog; **`registry`** identifies a data/configuration and responsive presentation definition within it.
+2. **`(catalogName, registry)`** uniquely identifies a catalog brick, independently of dimensions. Views are no longer a separate selection.
+3. Placed bricks retain their own **`brickId`**. Workbench bricks store **`catalogId`** and **`registryId`**. Existing backend command/model versions retain their historical schema.
 
 This is a hard terminology cutover: old backend state requires an explicitly authorized reset before reuse. Model and contract versions remain unchanged. Old browser storage is ignored and left untouched; the sandbox uses `qrk-bricks-sandbox-responsive-bricks-v2`, and editor drafts use `qrk-site-editor-drafts-v2`.
 

@@ -28,9 +28,7 @@ test.describe("BrickDetail route", () => {
 
     const grid = page.locator(".grid-layout");
     const brick = grid
-      .locator(
-        '[data-brick-catalog-name="swatch"][data-brick-content="default"][data-brick-view="4x4"]',
-      )
+      .locator('[data-brick-catalog-name="swatch"][data-brick-registry="default"]')
       .first();
     await expect(brick).toBeVisible({ timeout: 90_000 });
     await brick.scrollIntoViewIfNeeded();
@@ -62,7 +60,9 @@ test.describe("BrickDetail route", () => {
   test("Back from brick detail opens catalog at brick-catalog", async ({ page }) => {
     await page.goto(`${pageBase}/brick/swatch--12`, { waitUntil: "load" });
 
-    await expect(page.getByTestId("brick-detail-title")).toBeVisible({ timeout: 90_000 });
+    await expect(page.getByTestId("brick-detail-title")).toBeVisible({
+      timeout: 90_000,
+    });
     await page.getByRole("button", { name: "Back to brick catalog" }).click();
 
     await expect.poll(() => new URL(page.url()).pathname).toBe(`${pageBase}/brick-catalog`);
@@ -72,7 +72,9 @@ test.describe("BrickDetail route", () => {
   test("closing brick drawer returns to site root", async ({ page }) => {
     await page.goto(`${pageBase}/brick/swatch--12`, { waitUntil: "load" });
 
-    await expect(page.getByTestId("brick-detail-title")).toBeVisible({ timeout: 90_000 });
+    await expect(page.getByTestId("brick-detail-title")).toBeVisible({
+      timeout: 90_000,
+    });
     await page.getByRole("button", { name: "Close drawer" }).click();
 
     await expect.poll(() => new URL(page.url()).pathname).toBe(pageBase);

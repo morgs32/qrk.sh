@@ -1,18 +1,16 @@
 "use client";
-import { BrickPreviewFrame } from "@qrk.sh/bricks/BrickPreviewFrame";
-
-import { useBrickBreakpoint } from "@qrk.sh/bricks/BrickBreakpointProvider";
-
-import { Schema } from "effect";
 import { useUser } from "@clerk/react";
 import { catalogsHash } from "@qrk.sh/bricks";
-import { useBrickDrawerStore } from "@/components/home/useBrickDrawerStore";
-import { Link } from "react-router";
+import { useBrickBreakpoint } from "@qrk.sh/bricks/BrickBreakpointProvider";
+import { BrickPreviewFrame } from "@qrk.sh/bricks/BrickPreviewFrame";
+import { Schema } from "effect";
 import { ArrowLeft, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Link } from "react-router";
 import { href } from "react-router";
 import { useNavigate } from "react-router";
 
+import { useBrickDrawerStore } from "@/components/home/useBrickDrawerStore";
+import { Button } from "@/components/ui/button";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 
 const ParamsSchema = Schema.Struct({
@@ -32,8 +30,8 @@ export function BrickDetail() {
     (state) => state.pageGrids[pageKey]?.bricksById[params.brickId],
   );
   const catalog = brickDef ? catalogsHash[brickDef.catalogName] : undefined;
-  const content = brickDef ? catalog?.contents[brickDef.content] : undefined;
-  const brick = brickDef ? content?.views[brickDef.view] : undefined;
+  const content = brickDef ? catalog?.registries[brickDef.registry] : undefined;
+  const brick = brickDef ? content : undefined;
   const BrickComponent = brick?.component;
 
   return (
@@ -85,7 +83,7 @@ export function BrickDetail() {
                 {brick.def.label}
               </h1>
               <p className="mt-0 font-mono text-sm text-muted-foreground">
-                {brick.def.catalogName}/{brick.def.content}/{brick.def.view}
+                {brick.def.catalogName}/{brick.def.registry}
               </p>
             </div>
             <div className="mt-8 overflow-auto">

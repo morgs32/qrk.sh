@@ -1,46 +1,36 @@
-import { CatalogOutline } from "../CatalogOutline";
-import { BrickPreviewFrame } from "../../BrickPreviewFrame";
-import { useBrickBreakpoint } from "../../BrickBreakpointProvider";
-import { catalogsHash } from "../../catalogsHash";
-import { Link } from "react-router";
 import { useState } from "react";
-import { Pencil } from "lucide-react";
 
+import { Pencil } from "lucide-react";
+import { Link } from "react-router";
+
+import { useBrickBreakpoint } from "../../BrickBreakpointProvider";
+import { BrickPreviewFrame } from "../../BrickPreviewFrame";
+import { catalogsHash } from "../../catalogsHash";
 import { Outline } from "../../Outline";
 import { Button } from "../../ui/button";
+import { CatalogOutline } from "../CatalogOutline";
 import { DraggableBrick } from "../DraggableBrick";
 
 export default function CatalogsPage() {
   const { breakpoint } = useBrickBreakpoint();
   const catalogs = Object.values(catalogsHash);
-  const [selectedContents, setSelectedContents] = useState<Record<string, string>>({});
-  const [selectedViews, setSelectedViews] = useState<Record<string, string>>({});
+  const [selectedRegistries, setSelectedRegistries] = useState<Record<string, string>>({});
 
   return (
     <div aria-label="Brick catalogs" className="flex h-full min-h-0 flex-col overflow-hidden">
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-16">
         {catalogs.map((catalog) => {
-          const contents = Object.entries(catalog.contents);
-          const firstContentEntry = contents[0];
+          const registries = Object.entries(catalog.registries);
+          const firstRegistryEntry = registries[0];
 
-          if (!firstContentEntry) {
+          if (!firstRegistryEntry) {
             return null;
           }
 
-          const [firstContentName, firstContent] = firstContentEntry;
-          const selectedContentName = selectedContents[catalog.catalogName] ?? firstContentName;
-          const selectedContent = catalog.contents[selectedContentName] ?? firstContent;
-          const views = Object.entries(selectedContent.views);
-          const firstView = views[0];
-
-          if (!firstView) {
-            return null;
-          }
-
-          const [firstViewName, firstBrick] = firstView;
-          const selectedViewName = selectedViews[catalog.catalogName] || firstViewName;
-          const { def, component: BrickComponent } =
-            selectedContent.views[selectedViewName] ?? firstBrick;
+          const [firstRegistryName, firstRegistry] = firstRegistryEntry;
+          const selectedRegistryName = selectedRegistries[catalog.catalogName] ?? firstRegistryName;
+          const selectedRegistry = catalog.registries[selectedRegistryName] ?? firstRegistry;
+          const { def, component: BrickComponent } = selectedRegistry;
 
           return (
             <div key={catalog.catalogName} data-catalog-entry={catalog.catalogName}>
@@ -54,39 +44,14 @@ export default function CatalogsPage() {
               </Outline.Title>
               <CatalogOutline
                 catalog={catalog}
-                renderContent={(contentName, label) => (
+                renderRegistry={(registryName, label) => (
                   <Button
                     variant="link"
-                    aria-pressed={selectedContentName === contentName}
+                    aria-pressed={selectedRegistryName === registryName}
                     onClick={() => {
-                      setSelectedContents((current) => ({
+                      setSelectedRegistries((current) => ({
                         ...current,
-                        [catalog.catalogName]: contentName,
-                      }));
-                      setSelectedViews((current) => ({
-                        ...current,
-                        [catalog.catalogName]: "",
-                      }));
-                    }}
-                    className="h-auto rounded-none p-0 font-normal leading-inherit text-zinc-500 underline aria-pressed:text-zinc-950 aria-pressed:no-underline"
-                  >
-                    {label}
-                  </Button>
-                )}
-                renderView={(contentName, viewName, label) => (
-                  <Button
-                    variant="link"
-                    aria-pressed={
-                      selectedContentName === contentName && selectedViewName === viewName
-                    }
-                    onClick={() => {
-                      setSelectedContents((current) => ({
-                        ...current,
-                        [catalog.catalogName]: contentName,
-                      }));
-                      setSelectedViews((current) => ({
-                        ...current,
-                        [catalog.catalogName]: viewName,
+                        [catalog.catalogName]: registryName,
                       }));
                     }}
                     className="h-auto rounded-none p-0 font-normal leading-inherit text-zinc-500 underline aria-pressed:text-zinc-950 aria-pressed:no-underline"
@@ -101,13 +66,15 @@ export default function CatalogsPage() {
                     <DraggableBrick
                       brickDef={def}
                       className="size-full qrk-bricks overflow-hidden"
-                      data-catalog-representative={`${def.catalogName}/${def.content}/${def.view}`}
+                      data-catalog-representative={`${def.catalogName}/${def.registry}`}
                     >
-                      <BrickComponent breakpoint={breakpoint} data={def.data} />
+                      <div className="brick-drag-content size-full">
+                        <BrickComponent breakpoint={breakpoint} data={def.data} />
+                      </div>
                       <Button asChild variant="ghost" size="icon" className="brick-edit-handle">
                         <Link
-                          aria-label="Configure view"
-                          to={`/catalogs/${encodeURIComponent(def.catalogName)}?content=${encodeURIComponent(def.content)}&view=${encodeURIComponent(def.view)}`}
+                          aria-label="Configure registry"
+                          to={`/catalogs/${encodeURIComponent(def.catalogName)}?registry=${encodeURIComponent(def.registry)}`}
                         >
                           <Pencil aria-hidden className="size-4" />
                         </Link>

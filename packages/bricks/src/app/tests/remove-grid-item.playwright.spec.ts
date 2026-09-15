@@ -4,9 +4,9 @@ test("items follow the pointer outside, can return, and persist removal on relea
   page,
 }) => {
   await page.goto("/catalogs/swatch");
-  const preview = page.locator("[data-content-view-brick]");
+  const preview = page.locator("[data-registry-brick]");
   await preview
-    .locator(".brick-drag-handle")
+
     .dragTo(page.getByLabel("Brick grid").locator(".react-grid-layout"), {
       targetPosition: { x: 20, y: 20 },
     });
@@ -16,7 +16,7 @@ test("items follow the pointer outside, can return, and persist removal on relea
   const bounds = await grid.boundingBox();
   const start = await item.boundingBox();
   if (!bounds || !start) throw new Error("Missing grid bounds");
-  const handle = await item.locator(".brick-drag-handle").boundingBox();
+  const handle = await item.boundingBox();
   if (!handle) throw new Error("Missing drag handle");
   const startX = handle.x + handle.width / 2;
   const startY = handle.y + handle.height / 2;

@@ -2,20 +2,19 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 
 const pageBase = "/e2e/site/e2e/page/home";
 
-function drawerBrickPreviewSlot(page: Page, catalogName: string, content: string, view: string) {
+function drawerBrickPreviewSlot(page: Page, catalogName: string, registry: string) {
   return page.locator(
-    `[data-brick-drawer-brick-slot][data-brick-drawer-catalog-name="${catalogName}"][data-brick-drawer-content="${content}"][data-brick-drawer-view="${view}"]`,
+    `[data-brick-drawer-brick-slot][data-brick-drawer-catalog-name="${catalogName}"][data-brick-drawer-registry="${registry}"]`,
   );
 }
 
 function gridLocateByBrickIdentity(
   grid: Locator,
   catalogName: string,
-  content: string,
-  view: string,
+  registry: string,
 ) {
   return grid.locator(
-    `[data-brick-catalog-name="${catalogName}"][data-brick-content="${content}"][data-brick-view="${view}"]`,
+    `[data-brick-catalog-name="${catalogName}"][data-brick-registry="${registry}"]`,
   );
 }
 
@@ -41,7 +40,7 @@ test.describe("Site grid drag", () => {
 
     const layout = page.getByTestId("grid-layout");
     const grid = page.locator(".grid-layout");
-    const brick = gridLocateByBrickIdentity(grid, "swatch", "default", "4x4").first();
+    const brick = gridLocateByBrickIdentity(grid, "swatch", "default").first();
     await expect(brick).toBeVisible({ timeout: 90_000 });
     await expect(layout).toBeVisible();
     await expect(grid).toBeVisible();
@@ -92,12 +91,12 @@ test.describe("Site grid drag", () => {
     const grid = page.locator(".grid-layout");
     await expect(grid).toBeVisible({ timeout: 90_000 });
 
-    const newBricks = gridLocateByBrickIdentity(grid, "swatch", "default", "2x2");
+    const newBricks = gridLocateByBrickIdentity(grid, "swatch", "default");
     await expect(newBricks).toHaveCount(0);
 
     await expect(page.getByLabel("Workspace drawer")).toBeVisible();
 
-    const slot = drawerBrickPreviewSlot(page, "swatch", "default", "2x2").first();
+    const slot = drawerBrickPreviewSlot(page, "swatch", "default").first();
     await expect(slot).toBeVisible();
 
     const gridBox = await grid.boundingBox();
@@ -122,12 +121,12 @@ test.describe("Site grid drag", () => {
     const grid = page.locator(".grid-layout");
     await expect(grid).toBeVisible({ timeout: 90_000 });
 
-    const bricks = gridLocateByBrickIdentity(grid, "swatch", "default", "2x2");
+    const bricks = gridLocateByBrickIdentity(grid, "swatch", "default");
     await expect(bricks).toHaveCount(0);
 
     await expect(page.getByLabel("Workspace drawer")).toBeVisible();
 
-    const slot = drawerBrickPreviewSlot(page, "swatch", "default", "2x2").first();
+    const slot = drawerBrickPreviewSlot(page, "swatch", "default").first();
     await expect(slot).toBeVisible();
 
     await slot.dragTo(page.getByLabel("Search bricks"), {
@@ -149,7 +148,7 @@ test.describe("Site grid drag", () => {
     const grid = page.locator(".grid-layout");
     await expect(grid).toBeVisible();
 
-    const workRows = gridLocateByBrickIdentity(grid, "text", "default", "8x2");
+    const workRows = gridLocateByBrickIdentity(grid, "text", "default");
     await expect(workRows).toHaveCount(46);
 
     const sampleRow = workRows.first();
@@ -166,14 +165,14 @@ test.describe("Site grid drag", () => {
     const grid = page.locator(".grid-layout");
     await expect(grid).toBeVisible({ timeout: 90_000 });
 
-    const text4x4Bricks = gridLocateByBrickIdentity(grid, "text", "default", "4x4");
+    const text4x4Bricks = gridLocateByBrickIdentity(grid, "text", "default");
     await expect(text4x4Bricks).toHaveCount(0);
 
     await expect(page.getByLabel("Workspace drawer")).toBeVisible();
     await page.getByLabel("Search bricks").fill("Text brick");
     await expect(page.getByText("Text brick").first()).toBeVisible();
 
-    const slot = drawerBrickPreviewSlot(page, "text", "default", "4x4").first();
+    const slot = drawerBrickPreviewSlot(page, "text", "default").first();
     await expect(slot).toBeVisible();
 
     const gridBox = await grid.boundingBox();

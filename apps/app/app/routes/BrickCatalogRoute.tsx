@@ -1,12 +1,13 @@
-import { BrickPreviewFrame } from "@qrk.sh/bricks/BrickPreviewFrame";
-import { useBrickBreakpoint } from "@qrk.sh/bricks/BrickBreakpointProvider";
 import { catalogsHash } from "@qrk.sh/bricks";
+import { useBrickBreakpoint } from "@qrk.sh/bricks/BrickBreakpointProvider";
+import { BrickPreviewFrame } from "@qrk.sh/bricks/BrickPreviewFrame";
+import { ArrowLeft } from "lucide-react";
 import { Tabs } from "radix-ui";
 import { href, Link, useParams } from "react-router";
-import { ArrowLeft } from "lucide-react";
 
 import { CodeText } from "../[username]/site/[siteId]/page/[pageId]/BrickCatalog/CodeText";
 import { MetadataField } from "../[username]/site/[siteId]/page/[pageId]/BrickCatalog/MetadataField";
+
 import { BRICK_DRAG_MIME, useBrickDrawerStore } from "@/components/home/useBrickDrawerStore";
 
 export default function BrickCatalogRoute() {
@@ -37,7 +38,7 @@ export default function BrickCatalogRoute() {
     );
   }
 
-  const bricks = Object.values(catalog.contents).flatMap((content) => Object.values(content.views));
+  const bricks = Object.values(catalog.registries);
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto pb-6">
@@ -66,25 +67,25 @@ export default function BrickCatalogRoute() {
       <div className="mt-8 flex flex-col gap-10">
         {bricks.map((brick) => {
           const BrickComponent = brick.component;
-          const content = catalog.contents[brick.def.content];
+          const content = catalog.registries[brick.def.registry];
 
           return (
-            <section key={`${brick.def.content}/${brick.def.view}`}>
-              <Tabs.Root value={`${brick.def.content}--${brick.def.view}-preview`}>
+            <section key={`${brick.def.registry}`}>
+              <Tabs.Root value={`${brick.def.registry}-preview`}>
                 <div className="flex items-baseline justify-between gap-4 px-6">
                   <div>
-                    <h2 className="m-0 text-2xl font-semibold">{brick.def.content}</h2>
+                    <h2 className="m-0 text-2xl font-semibold">{brick.def.registry}</h2>
                     <p className="mb-0 mt-1 text-sm text-zinc-500">
-                      {catalog.contents[brick.def.content]?.contentDescription}
+                      {catalog.registries[brick.def.registry]?.registryDescription}
                     </p>
                   </div>
                   <div className="flex shrink-0 items-baseline gap-2">
                     <Tabs.List
                       className="flex gap-2 text-sm"
-                      aria-label={`${brick.def.view} preview`}
+                      aria-label={`${brick.def.registry} preview`}
                     >
                       <Tabs.Trigger
-                        value={`${brick.def.content}--${brick.def.view}-preview`}
+                        value={`${brick.def.registry}-preview`}
                         className="cursor-pointer border-0 bg-transparent p-0 text-sm font-medium text-zinc-950"
                       >
                         {brick.def.label}
@@ -92,17 +93,16 @@ export default function BrickCatalogRoute() {
                     </Tabs.List>
                   </div>
                 </div>
-                <Tabs.Content value={`${brick.def.content}--${brick.def.view}-preview`}>
+                <Tabs.Content value={`${brick.def.registry}-preview`}>
                   <div className="mt-6 overflow-auto">
                     <div className={brick.def.w === 8 ? undefined : "ml-6"}>
                       <BrickPreviewFrame w={brick.def.w} h={brick.def.h}>
                         <div
                           className="size-full qrk-bricks cursor-grab overflow-hidden active:cursor-grabbing"
-                          data-brick-full-view={`${brick.def.catalogName}/${brick.def.content}/${brick.def.view}`}
+                          data-brick-full-view={`${brick.def.catalogName}/${brick.def.registry}`}
                           data-brick-drawer-brick-slot
                           data-brick-drawer-catalog-name={brick.def.catalogName}
-                          data-brick-drawer-content={brick.def.content}
-                          data-brick-drawer-view={brick.def.view}
+                          data-brick-drawer-registry={brick.def.registry}
                           draggable
                           onDragStart={(event) => {
                             useBrickDrawerStore
@@ -110,7 +110,7 @@ export default function BrickCatalogRoute() {
                               .registerActiveBrickDragGridShape(brick.def.w, brick.def.h);
                             event.dataTransfer.setData(BRICK_DRAG_MIME, JSON.stringify(brick.def));
                             event.dataTransfer.effectAllowed = "copy";
-                            event.dataTransfer.setData("text/plain", brick.def.view);
+                            event.dataTransfer.setData("text/plain", brick.def.registry);
                           }}
                           onDragEnd={() => {
                             useBrickDrawerStore.getState().unregisterActiveBrickDragGridShape();

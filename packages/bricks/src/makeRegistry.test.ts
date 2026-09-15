@@ -1,101 +1,72 @@
-import { makeFetcherConfiguration } from "./makeFetcherConfiguration";
 import { primitives } from "@zerospin/schema";
-import { textBrickCatalog } from "./catalogs/TextBrick/TextBrickCatalog";
 import { describe, expect, expectTypeOf, it, vi } from "vite-plus/test";
-import { ScraperApi } from "./scraper/ScraperApi";
-import type { IScrapeError } from "./scraper/types.public";
 
 import { githubCatalog } from "./catalogs/GitHubCards/GitHubProfileCatalog";
 import { mapCatalog } from "./catalogs/Map/MapCatalog";
-import { makeContent } from "./makeContent";
-import { makeView } from "./makeView";
+import { textBrickCatalog } from "./catalogs/TextBrick/TextBrickCatalog";
+import { makeFetcherConfiguration } from "./makeFetcherConfiguration";
+import { makeRegistry } from "./makeRegistry";
+import { ScraperApi } from "./scraper/ScraperApi";
+import type { IScrapeError } from "./scraper/types.public";
 
-describe("makeContent data contracts", () => {
-  it("rejects mismatched view keys at runtime", () => {
-    const view = makeView({
-      id: "activity",
-      label: "Activity",
-      w: 4,
-      h: 2,
-      order: 0,
-      xs: () => null,
-    });
-    expect(() =>
-      makeContent({
-        content: "default",
-        contentName: "Default",
-        contentDescription: "Test",
-        dataShape: null,
-        defaultData: null,
-        views: {
-          // @ts-expect-error Exercise the runtime guard for untyped callers.
-          summary: view,
-        },
-      }),
-    ).toThrow('makeContent: view key "summary" must match id "activity"');
-  });
-
+describe("makeRegistry data contracts", () => {
   it("validates the enclosing content identity", () => {
     expect(() =>
-      makeContent({
-        content: "Invalid Content",
-        contentName: "Invalid",
-        contentDescription: "Test",
+      makeRegistry({
+        registry: "Invalid Content",
+        registryName: "Invalid",
+        registryDescription: "Test",
         dataShape: null,
         defaultData: null,
-        views: {},
+        w: 1,
+        h: 1,
+        order: 0,
+        xs: () => null,
       }),
-    ).toThrow("makeContent: content must be kebab-case");
+    ).toThrow("makeRegistry: registry must be kebab-case");
   });
 
   it("uses explicit nulls for a static content", () => {
-    const content = makeContent({
+    const content = makeRegistry({
       dataShape: null,
       defaultData: null,
-      content: "static",
-      contentName: "Static",
-      contentDescription: "A static content.",
-      views: {
-        "1x1": {
-          id: "1x1",
-          w: 1,
-          h: 1,
-          label: "1×1",
-          order: 0,
-
-          component: () => null,
-        },
-      },
+      registry: "static",
+      registryName: "Static",
+      registryDescription: "A static content.",
+      w: 1,
+      h: 1,
+      order: 0,
+      xs: () => null,
     });
 
-    expect("contentOptionsShape" in content).toBe(false);
-    expect("contentOptionsForm" in content).toBe(false);
+    expect("registryOptionsShape" in content).toBe(false);
+    expect("registryOptionsForm" in content).toBe(false);
     expect(content.dataShape).toBeNull();
     expect(content.defaultData).toBeNull();
     expect("getData" in content).toBe(false);
-    expect("contentOptions" in content).toBe(false);
+    expect("registryOptions" in content).toBe(false);
 
-    expect("contentOptionsShape" in githubCatalog.contents.repo).toBe(false);
-    expect("contentOptionsForm" in githubCatalog.contents.repo).toBe(false);
-    expect(githubCatalog.contents.repo.dataShape).toBeNull();
-    expect(githubCatalog.contents.repo.defaultData).toBeNull();
-    expect("getData" in githubCatalog.contents.repo).toBe(false);
+    expect("registryOptionsShape" in githubCatalog.registries.repo).toBe(false);
+    expect("registryOptionsForm" in githubCatalog.registries.repo).toBe(false);
+    expect(githubCatalog.registries.repo.dataShape).toBeNull();
+    expect(githubCatalog.registries.repo.defaultData).toBeNull();
+    expect("getData" in githubCatalog.registries.repo).toBe(false);
   });
 
-  it("preserves typed custom contentOptions controls through the catalog", () => {
-    const placeContent = mapCatalog.contents.place;
+  it("preserves typed custom registryOptions controls through the catalog", () => {
+    const placeContent = mapCatalog.registries.place;
 
     if (placeContent?.configuration?.configurationType !== "fetcher") {
       throw new Error("Expected fetcher configuration");
     }
-    expect(placeContent?.configuration?.contentOptionsShape?.googlePlaceId).toMatchObject({
+    expect(placeContent?.configuration?.registryOptionsShape?.googlePlaceId).toMatchObject({
       kind: "text",
       nullable: false,
       defaultValue: "ChIJ7cv00DwsDogRAMDACa2m4K8",
     });
-    expect(placeContent?.configuration?.contentOptionsForm).toBeTypeOf("function");
-    expect(placeContent).not.toHaveProperty("contentOptionsShape");
-    expect(placeContent).not.toHaveProperty("contentOptionsForm");
+    expect(placeContent?.configuration?.registryOptionsForm).toBeTypeOf("function");
+    expect(placeContent).not.toHaveProperty("registryOptionsShape");
+    expect(placeContent).not.toHaveProperty("registryOptionsForm");
     expect(placeContent).not.toHaveProperty("getData");
     expect(placeContent?.defaultData).toMatchObject({
       googlePlaceId: "ChIJ7cv00DwsDogRAMDACa2m4K8",
@@ -106,30 +77,32 @@ describe("makeContent data contracts", () => {
   });
 
   it("uses a data form for locally authored text", () => {
-    const content = textBrickCatalog.contents.default;
+    const content = textBrickCatalog.registries.default;
     expect(content.configuration?.configurationType).toBe("form");
     expect(content.defaultData).toEqual({ content: null });
     expect(content.dataShape?.content.kind).toBe("json");
   });
 
   it("infers custom renderer values from their decoded primitive fields", () => {
-    const content = makeContent({
-      content: "typed-controls",
-      contentName: "Typed-controls",
-      contentDescription: "Typed custom controls.",
+    const content = makeRegistry({
+      registry: "typed-controls",
+      registryName: "Typed-controls",
+      registryDescription: "Typed custom controls.",
       configuration: makeFetcherConfiguration({
-        contentOptionsShape: {
+        registryOptionsShape: {
           query: primitives.text({ defaultValue: "Chicago" }),
           zoom: primitives.integer({ defaultValue: 14 }),
         },
-        contentOptionsForm: ({ value, onChange }) => {
+        registryOptionsForm: ({ value, onChange }) => {
           expectTypeOf(value.query).toEqualTypeOf<string>();
           expectTypeOf(value.zoom).toEqualTypeOf<number>();
           onChange(value);
           return null;
         },
-        fetcher: async ({ contentOptions, setData }) => {
-          setData({ result: `${contentOptions.query}:${contentOptions.zoom}` });
+        fetcher: async ({ registryOptions, setData }) => {
+          setData({
+            result: `${registryOptions.query}:${registryOptions.zoom}`,
+          });
           return { _tag: "Right", right: undefined };
         },
       }),
@@ -139,32 +112,25 @@ describe("makeContent data contracts", () => {
       defaultData: {
         result: "Chicago",
       },
-      views: {
-        "1x1": {
-          id: "1x1",
-          w: 1,
-          h: 1,
-          label: "1×1",
-          order: 0,
-
-          component: (props: { data: { result: string } }) => props.data.result,
-        },
-      },
+      w: 1,
+      h: 1,
+      order: 0,
+      xs: (props: { data: { result: string } }) => props.data.result,
     });
 
     if (content.configuration?.configurationType !== "fetcher") {
       throw new Error("Expected fetcher configuration");
     }
-    expect(content.configuration?.contentOptionsForm).toBeTypeOf("function");
+    expect(content.configuration?.registryOptionsForm).toBeTypeOf("function");
   });
 
   it("preserves the GitHub profile request, response, default, and callback contract", () => {
-    const profileContent = githubCatalog.contents.profile;
+    const profileContent = githubCatalog.registries.profile;
 
     if (profileContent?.configuration?.configurationType !== "fetcher") {
       throw new Error("Expected fetcher configuration");
     }
-    expect(profileContent?.configuration?.contentOptionsShape?.url).toMatchObject({
+    expect(profileContent?.configuration?.registryOptionsShape?.url).toMatchObject({
       kind: "text",
       nullable: false,
       defaultValue: "https://github.com/morgs32",
@@ -189,18 +155,21 @@ describe("makeContent data contracts", () => {
   });
 
   it("decodes requests and publishes provider data through the supplied setter", async () => {
-    const receivedContentOptions: Array<{ url: string }> = [];
-    const content = makeContent({
-      content: "profile",
-      contentName: "Profile",
-      contentDescription: "A data-backed profile.",
+    const receivedRegistryOptions: Array<{ url: string }> = [];
+    const content = makeRegistry({
+      registry: "profile",
+      registryName: "Profile",
+      registryDescription: "A data-backed profile.",
       configuration: makeFetcherConfiguration({
-        contentOptionsShape: {
+        registryOptionsShape: {
           url: primitives.text(),
         },
-        fetcher: async ({ contentOptions, setData }) => {
-          receivedContentOptions.push(contentOptions);
-          setData({ login: contentOptions.url, providerField: "loaded-provider-value" });
+        fetcher: async ({ registryOptions, setData }) => {
+          receivedRegistryOptions.push(registryOptions);
+          setData({
+            login: registryOptions.url,
+            providerField: "loaded-provider-value",
+          });
           return { _tag: "Right", right: undefined };
         },
       }),
@@ -211,18 +180,11 @@ describe("makeContent data contracts", () => {
         login: "default-profile",
         providerField: "default-provider-value",
       },
-      views: {
-        "1x1": {
-          id: "1x1",
-          w: 1,
-          h: 1,
-          label: "1×1",
-          order: 0,
-
-          component: (props: { data: { login: string } }) => {
-            return props.data.login;
-          },
-        },
+      w: 1,
+      h: 1,
+      order: 0,
+      xs: (props: { data: { login: string } }) => {
+        return props.data.login;
       },
     });
     if (
@@ -239,7 +201,7 @@ describe("makeContent data contracts", () => {
       content.configuration.fetcher({
         api,
         setData,
-        contentOptions: { url: "https://github.com/morgs32" },
+        registryOptions: { url: "https://github.com/morgs32" },
       }),
     ).resolves.toEqual({
       _tag: "Right",
@@ -250,21 +212,21 @@ describe("makeContent data contracts", () => {
       providerField: "loaded-provider-value",
     });
     expect(content.configuration.configurationType).toBe("fetcher");
-    expect(receivedContentOptions).toEqual([{ url: "https://github.com/morgs32" }]);
+    expect(receivedRegistryOptions).toEqual([{ url: "https://github.com/morgs32" }]);
   });
 
   it("throws while constructing a content with invalid default data", () => {
     expect(() =>
-      makeContent({
-        content: "profile",
-        contentName: "Profile",
-        contentDescription: "A data-backed profile.",
+      makeRegistry({
+        registry: "profile",
+        registryName: "Profile",
+        registryDescription: "A data-backed profile.",
         configuration: makeFetcherConfiguration({
-          contentOptionsShape: {
+          registryOptionsShape: {
             url: primitives.text(),
           },
-          fetcher: async ({ contentOptions, setData }) => {
-            void contentOptions;
+          fetcher: async ({ registryOptions, setData }) => {
+            void registryOptions;
             setData({ login: "morgs32" });
             return { _tag: "Right", right: undefined };
           },
@@ -273,36 +235,29 @@ describe("makeContent data contracts", () => {
           login: primitives.text(),
         },
         defaultData: JSON.parse('{"login":42}'),
-        views: {
-          "1x1": {
-            id: "1x1",
-            w: 1,
-            h: 1,
-            label: "1×1",
-            order: 0,
-
-            component: (props: { data: { login: string } }) => {
-              return props.data.login;
-            },
-          },
+        w: 1,
+        h: 1,
+        order: 0,
+        xs: (props: { data: { login: string } }) => {
+          return props.data.login;
         },
       }),
     ).toThrow();
   });
 
-  it("rejects missing, invalid, and excess content options before invoking the callback", async () => {
-    const receivedContentOptions: Array<{ url: string }> = [];
-    const content = makeContent({
-      content: "profile",
-      contentName: "Profile",
-      contentDescription: "A data-backed profile.",
+  it("rejects missing, invalid, and excess registry options before invoking the callback", async () => {
+    const receivedRegistryOptions: Array<{ url: string }> = [];
+    const content = makeRegistry({
+      registry: "profile",
+      registryName: "Profile",
+      registryDescription: "A data-backed profile.",
       configuration: makeFetcherConfiguration({
-        contentOptionsShape: {
+        registryOptionsShape: {
           url: primitives.text(),
         },
-        fetcher: async ({ contentOptions, setData }) => {
-          receivedContentOptions.push(contentOptions);
-          setData({ login: contentOptions.url });
+        fetcher: async ({ registryOptions, setData }) => {
+          receivedRegistryOptions.push(registryOptions);
+          setData({ login: registryOptions.url });
           return { _tag: "Right", right: undefined };
         },
       }),
@@ -312,18 +267,11 @@ describe("makeContent data contracts", () => {
       defaultData: {
         login: "default-profile",
       },
-      views: {
-        "1x1": {
-          id: "1x1",
-          w: 1,
-          h: 1,
-          label: "1×1",
-          order: 0,
-
-          component: (props: { data: { login: string } }) => {
-            return props.data.login;
-          },
-        },
+      w: 1,
+      h: 1,
+      order: 0,
+      xs: (props: { data: { login: string } }) => {
+        return props.data.login;
       },
     });
     if (
@@ -337,40 +285,40 @@ describe("makeContent data contracts", () => {
     const setData = vi.fn();
 
     await expect(
-      content.configuration.fetcher({ api, setData, contentOptions: {} }),
+      content.configuration.fetcher({ api, setData, registryOptions: {} }),
     ).rejects.toBeDefined();
     await expect(
       content.configuration.fetcher({
         api,
         setData,
-        contentOptions: { url: 42 },
+        registryOptions: { url: 42 },
       }),
     ).rejects.toBeDefined();
     await expect(
       content.configuration.fetcher({
         api,
         setData,
-        contentOptions: {
+        registryOptions: {
           url: "https://github.com/morgs32",
           unexpected: true,
         },
       }),
     ).rejects.toBeDefined();
-    expect(receivedContentOptions).toEqual([]);
+    expect(receivedRegistryOptions).toEqual([]);
     expect(setData).not.toHaveBeenCalled();
   });
 
   it("propagates validation failures from the supplied setter", async () => {
-    const content = makeContent({
-      content: "profile",
-      contentName: "Profile",
-      contentDescription: "A data-backed profile.",
+    const content = makeRegistry({
+      registry: "profile",
+      registryName: "Profile",
+      registryDescription: "A data-backed profile.",
       configuration: makeFetcherConfiguration({
-        contentOptionsShape: {
+        registryOptionsShape: {
           url: primitives.text(),
         },
-        fetcher: async ({ contentOptions, setData }) => {
-          void contentOptions;
+        fetcher: async ({ registryOptions, setData }) => {
+          void registryOptions;
           setData({ login: 42 });
           return { _tag: "Right", right: undefined };
         },
@@ -381,18 +329,11 @@ describe("makeContent data contracts", () => {
       defaultData: {
         login: "default-profile",
       },
-      views: {
-        "1x1": {
-          id: "1x1",
-          w: 1,
-          h: 1,
-          label: "1×1",
-          order: 0,
-
-          component: (props: { data: { login: string } }) => {
-            return props.data.login;
-          },
-        },
+      w: 1,
+      h: 1,
+      order: 0,
+      xs: (props: { data: { login: string } }) => {
+        return props.data.login;
       },
     });
     if (
@@ -411,7 +352,7 @@ describe("makeContent data contracts", () => {
       content.configuration.fetcher({
         api,
         setData,
-        contentOptions: { url: "https://github.com/morgs32" },
+        registryOptions: { url: "https://github.com/morgs32" },
       }),
     ).rejects.toThrow("Invalid content data");
     expect(setData).toHaveBeenCalledExactlyOnceWith({ login: 42 });
@@ -423,16 +364,16 @@ describe("makeContent data contracts", () => {
       message: "GitHub authentication or access failed with HTTP 401",
       retryable: false,
     };
-    const content = makeContent({
-      content: "profile",
-      contentName: "Profile",
-      contentDescription: "A data-backed profile.",
+    const content = makeRegistry({
+      registry: "profile",
+      registryName: "Profile",
+      registryDescription: "A data-backed profile.",
       configuration: makeFetcherConfiguration({
-        contentOptionsShape: {
+        registryOptionsShape: {
           url: primitives.text(),
         },
-        fetcher: async ({ contentOptions }) => {
-          void contentOptions;
+        fetcher: async ({ registryOptions }) => {
+          void registryOptions;
           return { _tag: "Left", left: providerError };
         },
       }),
@@ -442,18 +383,11 @@ describe("makeContent data contracts", () => {
       defaultData: {
         login: "default-profile",
       },
-      views: {
-        "1x1": {
-          id: "1x1",
-          w: 1,
-          h: 1,
-          label: "1×1",
-          order: 0,
-
-          component: (props: { data: { login: string } }) => {
-            return props.data.login;
-          },
-        },
+      w: 1,
+      h: 1,
+      order: 0,
+      xs: (props: { data: { login: string } }) => {
+        return props.data.login;
       },
     });
     if (
@@ -470,29 +404,23 @@ describe("makeContent data contracts", () => {
       content.configuration.fetcher({
         api,
         setData,
-        contentOptions: { url: "https://github.com/morgs32" },
+        registryOptions: { url: "https://github.com/morgs32" },
       }),
     ).resolves.toEqual({ _tag: "Left", left: providerError });
     expect(setData).not.toHaveBeenCalled();
   });
 
   it("allows data components to ignore the data argument", () => {
-    const content = makeContent({
-      content: "default",
-      contentName: "Default",
-      contentDescription: "Data is available but unused.",
+    const content = makeRegistry({
+      registry: "default",
+      registryName: "Default",
+      registryDescription: "Data is available but unused.",
       dataShape: { name: primitives.text() },
       defaultData: { name: "Default" },
-      views: {
-        "1x1": {
-          id: "1x1",
-          w: 1,
-          h: 1,
-          label: "1×1",
-          order: 0,
-          component: () => null,
-        },
-      },
+      w: 1,
+      h: 1,
+      order: 0,
+      xs: () => null,
     });
     expect(content.defaultData).toEqual({ name: "Default" });
   });
@@ -501,56 +429,62 @@ describe("makeContent data contracts", () => {
     // Invalid declarations are compile-time assertions, not runtime inputs.
     expectTypeOf(() => {
       // @ts-expect-error both data fields are required
-      makeContent({
-        content: "static",
-        contentName: "Static",
-        contentDescription: "Static",
-        views: {},
+      makeRegistry({
+        registry: "static",
+        registryName: "Static",
+        registryDescription: "Static",
+        w: 1,
+        h: 1,
+        order: 0,
+        xs: () => null,
       });
       // @ts-expect-error a null schema requires a null default
-      makeContent({
-        content: "static",
-        contentName: "Static",
-        contentDescription: "Static",
+      makeRegistry({
+        registry: "static",
+        registryName: "Static",
+        registryDescription: "Static",
         dataShape: null,
         defaultData: {},
-        views: {},
+        w: 1,
+        h: 1,
+        order: 0,
+        xs: () => null,
       });
       // @ts-expect-error a schema requires a non-null default
-      makeContent({
-        content: "data",
-        contentName: "Data",
-        contentDescription: "Data",
+      makeRegistry({
+        registry: "data",
+        registryName: "Data",
+        registryDescription: "Data",
         dataShape: { name: primitives.text() },
         defaultData: null,
-        views: {},
+        w: 1,
+        h: 1,
+        order: 0,
+        xs: () => null,
       });
-      makeContent({
-        content: "data",
-        contentName: "Data",
-        contentDescription: "Data",
+      makeRegistry({
+        registry: "data",
+        registryName: "Data",
+        registryDescription: "Data",
         dataShape: { name: primitives.text() },
         // @ts-expect-error defaults must match the schema
         defaultData: { name: 42 },
-        views: {},
+        w: 1,
+        h: 1,
+        order: 0,
+        xs: () => null,
       });
-      makeContent({
-        content: "data",
-        contentName: "Data",
-        contentDescription: "Data",
+      makeRegistry({
+        registry: "data",
+        registryName: "Data",
+        registryDescription: "Data",
         dataShape: { name: primitives.text() },
         defaultData: { name: "Default" },
-        views: {
-          "1x1": {
-            id: "1x1",
-            w: 1,
-            h: 1,
-            label: "1×1",
-            order: 0,
-            // @ts-expect-error component data must match the schema
-            component: (props: { data: { name: number } }) => props.data.name,
-          },
-        },
+        w: 1,
+        h: 1,
+        order: 0,
+        // @ts-expect-error component data must match the schema
+        xs: (props: { data: { name: number } }) => props.data.name,
       });
     }).toBeFunction();
   });

@@ -1,6 +1,8 @@
 import { createElement } from "react";
-import type { RouteObject } from "react-router";
+
 import { ZerospinRouteErrorBoundary } from "@zerospin/error-boundary/ZerospinRouteErrorBoundary";
+import type { RouteObject } from "react-router";
+
 import RootLayout from "./RootLayout";
 
 export default [
@@ -36,20 +38,24 @@ export default [
               {
                 index: true,
                 lazy: async () => {
-                  const { default: ContentConfiguration, ErrorBoundary } =
-                    await import("./routes/ContentConfiguration");
-                  return { Component: ContentConfiguration, ErrorBoundary };
+                  const { default: RegistryConfiguration, ErrorBoundary } =
+                    await import("./routes/RegistryConfiguration");
+                  return { Component: RegistryConfiguration, ErrorBoundary };
                 },
               },
               {
-                path: ":contentName",
+                path: ":registryName",
                 lazy: async () => {
                   const {
-                    default: ContentConfiguration,
+                    default: RegistryConfiguration,
                     loader,
                     ErrorBoundary,
-                  } = await import("./routes/ContentConfiguration");
-                  return { Component: ContentConfiguration, loader, ErrorBoundary };
+                  } = await import("./routes/RegistryConfiguration");
+                  return {
+                    Component: RegistryConfiguration,
+                    loader,
+                    ErrorBoundary,
+                  };
                 },
               },
               {
@@ -64,7 +70,7 @@ export default [
         ],
       },
       {
-        path: "bricks/:catalogName/:content/:view",
+        path: "bricks/:catalogName/:registry",
         lazy: async () => {
           const { default: BrickPage, loader, ErrorBoundary } = await import("./routes/BrickPage");
           return { Component: BrickPage, loader, ErrorBoundary };

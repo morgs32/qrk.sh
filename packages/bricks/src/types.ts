@@ -1,18 +1,18 @@
-import type { makeViewForm } from "./makeViewForm";
-import type { IFormConfiguration } from "./makeFormConfiguration";
-import type { IFetcherConfiguration } from "./makeFetcherConfiguration";
-import type { IShape } from "@zerospin/schema";
 import type { ReactNode } from "react";
 
-/** A view within one content definition (no catalog scope). */
-export type IBrickDef<CONTENT extends string = string, VIEW extends string = string> = {
+import type { IShape } from "@zerospin/schema";
+
+import type { makeAppearanceForm } from "./makeAppearanceForm";
+import type { IFetcherConfiguration } from "./makeFetcherConfiguration";
+import type { IFormConfiguration } from "./makeFormConfiguration";
+
+/** A registry definition (no catalog scope). */
+export type IBrickDef<REGISTRY extends string = string> = {
   w: number;
   h: number;
-  /** Kebab-case content definition slug (for example `default`, `profile`, or `repo`). */
-  content: CONTENT;
-  /** Kebab-case view slug (for example `2x2`, `4x4`, or `8x2`). */
-  view: VIEW;
-  /** Display label for this view. */
+  /** Kebab-case registry slug (for example `default`, `profile`, or `repo`). */
+  registry: REGISTRY;
+  /** Display label for this registry. */
   label: string;
   /** Lower sorts earlier in the drawer carousel within a catalog. */
   order: number;
@@ -23,28 +23,30 @@ export type ICatalog = {
   catalogName: string;
   catalogLabel: string;
   catalogDescription: string;
-  contents: Record<
+  registries: Record<
     string,
     | {
-        contentName: string;
-        contentDescription: string;
+        registryName: string;
+        registryDescription: string;
         configuration?: never;
         dataShape: null;
         defaultData: null;
-        views: Record<string, ICatalogBrick>;
+        def: ICatalogBrickDef;
+        component: ICatalogBrick["component"];
       }
     | {
-        contentName: string;
-        contentDescription: string;
+        registryName: string;
+        registryDescription: string;
         configuration?: IFormConfiguration | IFetcherConfiguration;
         dataShape: IShape;
         defaultData: unknown;
-        views: Record<string, ICatalogBrick>;
+        def: ICatalogBrickDef;
+        component: ICatalogBrick["component"];
       }
   >;
 };
 
-/** Serializable catalog row: catalog + content definition + view, no React component. */
+/** Serializable catalog row: catalog + registry, no React component. */
 export type ICatalogBrickDef = IBrickDef & {
   catalogName: string;
   catalogLabel: string;
@@ -53,26 +55,25 @@ export type ICatalogBrickDef = IBrickDef & {
 };
 
 export type IBrick<
-  CONTENT extends string = string,
-  VIEW extends string = string,
+  REGISTRY extends string = string,
   COMPONENT extends (props: never) => ReactNode = (props: never) => ReactNode,
 > = {
-  def: IBrickDef<CONTENT, VIEW>;
+  def: IBrickDef<REGISTRY>;
   component: COMPONENT;
 };
 
 export type ICatalogBrick = {
   def: ICatalogBrickDef;
   /**
-   * The catalog erases each content's concrete data type after makeContent has
+   * The catalog erases each registry's concrete data type after makeRegistry has
    * checked it. Render boundaries can supply defaultData directly; components
    * without a data contract ignore the prop.
    */
   component: {
     bivarianceHack(props: {
       data?: unknown;
-      viewOptions?: unknown;
+      appearanceOptions?: unknown;
       breakpoint: "xs" | "sm" | "lg" | "xl";
     }): ReactNode;
-  }["bivarianceHack"] & { form?: ReturnType<typeof makeViewForm> };
+  }["bivarianceHack"] & { form?: ReturnType<typeof makeAppearanceForm> };
 };

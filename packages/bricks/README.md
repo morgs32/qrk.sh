@@ -52,3 +52,17 @@ existing opt-in live scraper suite.
 `build:app` produces the combined app in `build/client` and `build/scraper`.
 `build` produces the reusable brick library in `dist`, including its public
 scraper declarations. Neither build deploys the app.
+
+## Registries and interaction
+
+Catalogs expose `registries[registry]`. `makeRegistry` combines data and configuration
+with one responsive presentation, initial dimensions, and optional appearance form.
+`xs` is required; `sm`, `lg`, and `xl` inherit the nearest smaller presentation.
+Appearance settings, layout, and visibility retain their separate breakpoint inheritance.
+
+Placed bricks drag from their entire surface and resize using the grid library's default
+bottom-right handle. Rendered content ignores pointer events; the edit icon remains clickable.
+Catalog and configuration previews also drag from their entire surface.
+
+The registry cutover resets old workbench brick drafts on hydration while preserving the
+selected grid width. Site editor drafts are not reset.

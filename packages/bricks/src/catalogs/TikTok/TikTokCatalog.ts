@@ -1,26 +1,28 @@
-import { makeFetcherConfiguration } from "../../makeFetcherConfiguration";
 import { primitives } from "@zerospin/schema";
 
 import { makeCatalog } from "../../makeCatalog";
-import { makeView } from "../../makeView";
-import { makeContent } from "../../makeContent";
+import { makeFetcherConfiguration } from "../../makeFetcherConfiguration";
+import { makeRegistry } from "../../makeRegistry";
+
 import { TikTokDefault4x4 } from "./TikTokDefault4x4";
 
 export const tikTokCatalog = makeCatalog({
   catalogName: "tiktok",
   catalogLabel: "TikTok",
   catalogDescription: "TikTok's official creator profile embed with recent videos.",
-  contents: {
-    default: makeContent({
-      content: "default",
-      contentName: "Default",
-      contentDescription: "TikTok's tokenless creator profile embed.",
+  registries: {
+    default: makeRegistry({
+      registry: "default",
+      registryName: "Default",
+      registryDescription: "TikTok's tokenless creator profile embed.",
       configuration: makeFetcherConfiguration({
-        contentOptionsShape: {
-          url: primitives.text({ defaultValue: "https://www.tiktok.com/@theonion" }),
+        registryOptionsShape: {
+          url: primitives.text({
+            defaultValue: "https://www.tiktok.com/@theonion",
+          }),
         },
-        fetcher: async ({ api, contentOptions, setData }) => {
-          const result = await api.tiktokRepo().scrape(contentOptions.url);
+        fetcher: async ({ api, registryOptions, setData }) => {
+          const result = await api.tiktokRepo().scrape(registryOptions.url);
           if (result._tag === "Left") return result;
           setData(result.right);
           return { _tag: "Right", right: undefined };
@@ -32,16 +34,10 @@ export const tikTokCatalog = makeCatalog({
       defaultData: {
         username: "theonion",
       },
-      views: {
-        "4x4": makeView({
-          id: "4x4",
-          w: 4,
-          h: 4,
-          label: "4×4",
-          order: 0,
-          xs: TikTokDefault4x4,
-        }),
-      },
+      w: 4,
+      h: 4,
+      order: 0,
+      xs: TikTokDefault4x4,
     }),
   },
 });

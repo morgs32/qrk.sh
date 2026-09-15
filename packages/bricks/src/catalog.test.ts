@@ -1,12 +1,11 @@
 import { createElement } from "react";
+
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vite-plus/test";
 
-import { makeView } from "./makeView";
-import { makeContent } from "./makeContent";
-import { makeCatalog } from "./makeCatalog";
-
 import { catalogsHash } from "./catalogsHash";
+import { makeCatalog } from "./makeCatalog";
+import { makeRegistry } from "./makeRegistry";
 
 describe("brick catalog identity", () => {
   it("registers unique kebab-case catalog, content, and view identities", () => {
@@ -18,16 +17,14 @@ describe("brick catalog identity", () => {
       expect(catalogNames.has(catalog.catalogName)).toBe(false);
       catalogNames.add(catalog.catalogName);
 
-      for (const [contentName, content] of Object.entries(catalog.contents)) {
-        expect(kebabCase.test(contentName)).toBe(true);
-        expect(content.contentDescription.trim()).not.toBe("");
+      for (const [registryName, content] of Object.entries(catalog.registries)) {
+        expect(kebabCase.test(registryName)).toBe(true);
+        expect(content.registryDescription.trim()).not.toBe("");
 
-        for (const [viewName, brick] of Object.entries(content.views)) {
-          expect(kebabCase.test(viewName)).toBe(true);
-          expect(brick.def.content).toBe(contentName);
-          expect(brick.def.view).toBe(viewName);
-          expect(catalog.contents[brick.def.content]?.views[brick.def.view]).toBe(brick);
-        }
+        expect(content.def.registry).toBe(registryName);
+        expect(catalog.registries[content.def.registry]).toBe(content);
+        expect(content).not.toHaveProperty("views");
+        expect(content.def).not.toHaveProperty("view");
       }
     }
 
@@ -44,31 +41,32 @@ describe("brick catalog identity", () => {
         continue;
       }
 
-      expect(Object.keys(catalog.contents)).toEqual(["default"]);
+      expect(Object.keys(catalog.registries)).toEqual(["default"]);
     }
   });
 
   it("registers one data-backed Figma thumbnail content", () => {
     const catalog = catalogsHash.figma;
-    expect(Object.keys(catalog.contents)).toEqual(["thumbnail"]);
-    const thumbnail = catalog.contents.thumbnail;
-    expect(Object.keys(thumbnail.views)).toEqual(["4x4"]);
-    expect(thumbnail.views["4x4"].def).toMatchObject({ w: 4, h: 4 });
+    expect(Object.keys(catalog.registries)).toEqual(["thumbnail"]);
+    const thumbnail = catalog.registries.thumbnail;
+    expect(thumbnail.def).toMatchObject({ w: 4, h: 4 });
     expect(thumbnail.configuration?.configurationType).toBe("fetcher");
     expect(thumbnail.dataShape).toHaveProperty("thumbnail_url");
-    expect(thumbnail.defaultData).toMatchObject({ title: "Figma Thumbnail", url: "" });
+    expect(thumbnail.defaultData).toMatchObject({
+      title: "Figma Thumbnail",
+      url: "",
+    });
   });
 
   it("registers the data-backed Link default 4x2 content", () => {
     const linkCatalog = catalogsHash.link;
-    const defaultContent = linkCatalog.contents.default;
+    const defaultContent = linkCatalog.registries.default;
 
-    expect(Object.keys(linkCatalog.contents)).toEqual(["default"]);
-    expect(Object.keys(defaultContent.views)).toEqual(["4x2"]);
+    expect(Object.keys(linkCatalog.registries)).toEqual(["default"]);
     if (defaultContent.configuration?.configurationType !== "fetcher") {
       throw new Error("Expected fetcher configuration");
     }
-    expect(defaultContent.configuration?.contentOptionsShape).toHaveProperty("url");
+    expect(defaultContent.configuration?.registryOptionsShape).toHaveProperty("url");
     expect(defaultContent.dataShape).toMatchObject({
       url: { kind: "text" },
       title: { kind: "text" },
@@ -86,25 +84,25 @@ describe("brick catalog identity", () => {
 
   it("registers the tokenless TikTok creator embed", () => {
     const tikTokCatalog = catalogsHash.tiktok;
-    const defaultContent = tikTokCatalog.contents.default;
+    const defaultContent = tikTokCatalog.registries.default;
 
-    expect(Object.keys(tikTokCatalog.contents)).toEqual(["default"]);
-    expect(Object.keys(defaultContent.views)).toEqual(["4x4"]);
+    expect(Object.keys(tikTokCatalog.registries)).toEqual(["default"]);
     if (defaultContent.configuration?.configurationType !== "fetcher") {
       throw new Error("Expected fetcher configuration");
     }
-    expect(defaultContent.configuration?.contentOptionsShape).toHaveProperty("url");
-    expect(defaultContent.dataShape).toMatchObject({ username: { kind: "text" } });
+    expect(defaultContent.configuration?.registryOptionsShape).toHaveProperty("url");
+    expect(defaultContent.dataShape).toMatchObject({
+      username: { kind: "text" },
+    });
     expect(defaultContent.defaultData).toEqual({ username: "theonion" });
     expect(defaultContent.configuration?.fetcher).toBeTypeOf("function");
   });
 
   it("registers locally authored Tiptap JSON for the Text catalog", () => {
     const textCatalog = catalogsHash.text;
-    const defaultContent = textCatalog.contents.default;
+    const defaultContent = textCatalog.registries.default;
 
     expect(textCatalog.catalogLabel).toBe("Text");
-    expect(Object.keys(defaultContent.views)).toEqual(["4x4", "8x2"]);
     if (defaultContent.configuration?.configurationType !== "form") {
       throw new Error("Expected form configuration");
     }
@@ -118,58 +116,43 @@ describe("brick catalog identity", () => {
   });
 });
 
-it("keeps views with identical dimensions independently addressable", () => {
-  const first = makeView({
-    id: "summary",
-    label: "Summary",
+it("validates registry keys and keeps identity independent of dimensions", () => {
+  const registry = makeRegistry({
+    registry: "summary",
+    registryName: "Summary",
+    registryDescription: "Test registry",
+    dataShape: null,
+    defaultData: null,
     w: 4,
     h: 2,
     order: 0,
     xs: () => "Summary content",
   });
-  const second = makeView({
-    id: "activity",
-    label: "Activity",
-    w: 4,
-    h: 2,
-    order: 1,
-    xs: () => "Activity content",
-  });
+  expect(() =>
+    makeCatalog({
+      catalogName: "test",
+      catalogLabel: "Test",
+      catalogDescription: "Test",
+      registries: { wrong: registry },
+    }),
+  ).toThrow('registry key "wrong" must match registry "summary"');
   const catalog = makeCatalog({
-    catalogName: "view-test",
-    catalogLabel: "View test",
-    catalogDescription: "Test views",
-    contents: {
-      default: makeContent({
-        content: "default",
-        contentName: "Default",
-        contentDescription: "Test content",
-        dataShape: null,
-        defaultData: null,
-        views: { summary: first, activity: second },
-      }),
-    },
+    catalogName: "test",
+    catalogLabel: "Test",
+    catalogDescription: "Test",
+    registries: { summary: registry },
   });
-  const views = catalog.contents.default.views;
-  expect(Object.keys(views)).toEqual(["summary", "activity"]);
-  expect(views.summary.def).toEqual({
-    catalogName: "view-test",
-    catalogLabel: "View test",
-    content: "default",
-    view: "summary",
+  expect(catalog.registries.summary.def).toEqual({
+    catalogName: "test",
+    catalogLabel: "Test",
+    registry: "summary",
     label: "Summary",
     w: 4,
     h: 2,
     order: 0,
     data: null,
   });
-  expect(views.activity.def).toMatchObject({ view: "activity", label: "Activity", w: 4, h: 2 });
-  expect(views.summary.component).toBe(first.component);
-  expect(views.activity.component).toBe(second.component);
-  expect(renderToStaticMarkup(createElement(first.component, { breakpoint: "xs" }))).toBe(
-    "Summary content",
-  );
-  expect(renderToStaticMarkup(createElement(second.component, { breakpoint: "xs" }))).toBe(
-    "Activity content",
-  );
+  expect(
+    renderToStaticMarkup(createElement(catalog.registries.summary.component, { breakpoint: "xs" })),
+  ).toBe("Summary content");
 });

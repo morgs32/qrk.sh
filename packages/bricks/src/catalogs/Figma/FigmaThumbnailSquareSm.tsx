@@ -3,7 +3,7 @@ import { Image } from "@unpic/react";
 import { BrickFrame } from "../../BrickFrame";
 
 export function FigmaThumbnailSquareSm(props: {
-  viewOptions?: { imagePosition: string };
+  appearanceOptions?: { imagePosition: string };
   data: {
     title: string;
     url: string;
@@ -34,7 +34,7 @@ export function FigmaThumbnailSquareSm(props: {
               key={props.data.thumbnail_url}
               alt={`${props.data.title} Figma thumbnail`}
               className="absolute inset-0 bottom-[27%] h-[73%] w-full object-cover object-center data-[image-position=left]:object-left data-[image-position=right]:object-right data-[image-position=top]:object-top data-[image-position=bottom]:object-bottom"
-              data-image-position={props.viewOptions?.imagePosition ?? "center"}
+              data-image-position={props.appearanceOptions?.imagePosition ?? "center"}
               data-figma-thumbnail="thumbnail"
               height={props.data.thumbnail_height ?? 450}
               layout="fullWidth"

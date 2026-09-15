@@ -1,7 +1,7 @@
+import type { ICatalogBrickDef } from "@qrk.sh/bricks";
 import { Result, Schema } from "effect";
 import type { Layout } from "react-grid-layout";
 import { create } from "zustand";
-import type { ICatalogBrickDef } from "@qrk.sh/bricks";
 
 export const BRICK_DRAG_MIME = "application/x-qrk-brick-def";
 
@@ -32,8 +32,8 @@ const BrickDragDefFromJsonStringSchema = Schema.fromJsonString(
     catalogName: Schema.String,
     catalogLabel: Schema.String,
     label: Schema.String,
-    content: Schema.String,
-    view: Schema.String,
+    registry: Schema.String,
+
     order: Schema.Number,
     w: Schema.Number,
     h: Schema.Number,

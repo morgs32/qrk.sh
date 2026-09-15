@@ -1,29 +1,23 @@
 import { makeCatalog } from "../../makeCatalog";
-import { makeContent } from "../../makeContent";
-import { makeView } from "../../makeView";
+import { makeRegistry } from "../../makeRegistry";
+
 import { ImagePromo4x4 } from "./ImagePromo4x4";
 
 export const imageCatalog = makeCatalog({
   catalogName: "image",
   catalogLabel: "Image",
   catalogDescription: "An editorial image preview.",
-  contents: {
-    default: makeContent({
+  registries: {
+    default: makeRegistry({
       dataShape: null,
       defaultData: null,
-      content: "default",
-      contentName: "Default",
-      contentDescription: "An editorial image preview.",
-      views: {
-        "4x4": makeView({
-          id: "4x4",
-          w: 4,
-          h: 4,
-          label: "4×4",
-          order: 0,
-          xs: ImagePromo4x4,
-        }),
-      },
+      registry: "default",
+      registryName: "Default",
+      registryDescription: "An editorial image preview.",
+      w: 4,
+      h: 4,
+      order: 0,
+      xs: ImagePromo4x4,
     }),
   },
 });

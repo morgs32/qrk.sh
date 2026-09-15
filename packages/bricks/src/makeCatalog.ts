@@ -1,71 +1,54 @@
-import type { IFormConfiguration } from "./makeFormConfiguration";
-import type { IFetcherConfiguration } from "./makeFetcherConfiguration";
-import { mapValues } from "es-toolkit/object";
-import type { IShape } from "@zerospin/schema";
 import type { ReactNode } from "react";
 
+import type { IShape } from "@zerospin/schema";
+import { mapValues } from "es-toolkit/object";
+
+import type { IFetcherConfiguration } from "./makeFetcherConfiguration";
+import type { IFormConfiguration } from "./makeFormConfiguration";
 import type { ICatalog, IBrick } from "./types";
 
 export function makeCatalog(props: {
   catalogName: string;
   catalogLabel: string;
   catalogDescription: string;
-  contents: Record<
+  registries: Record<
     string,
     | {
-        contentName: string;
-        contentDescription: string;
+        registryName: string;
+        registryDescription: string;
         configuration?: never;
         dataShape: null;
         defaultData: null;
-        views: Record<string, IBrick<string, string, (props: never) => ReactNode>>;
+        def: IBrick["def"];
+        component: (props: never) => ReactNode;
       }
     | {
-        contentName: string;
-        contentDescription: string;
+        registryName: string;
+        registryDescription: string;
         configuration?: IFormConfiguration | IFetcherConfiguration;
         dataShape: IShape;
         defaultData: unknown;
-        views: Record<string, IBrick<string, string, (props: never) => ReactNode>>;
+        def: IBrick["def"];
+        component: (props: never) => ReactNode;
       }
   >;
 }): ICatalog {
-  const { catalogName, catalogLabel, catalogDescription, contents: rawContents } = props;
+  const { catalogName, catalogLabel, catalogDescription, registries: rawContents } = props;
 
-  const contents = mapValues(rawContents, (rawContent) => {
-    const views = mapValues(rawContent.views, (brick) => {
-      return {
-        def: {
-          catalogName,
-          catalogLabel,
-          content: brick.def.content,
-          view: brick.def.view,
-          w: brick.def.w,
-          h: brick.def.h,
-          label: brick.def.label,
-          order: brick.def.order,
-          data: rawContent.defaultData,
-        },
-        component: brick.component,
-      };
-    });
-
-    if (rawContent.dataShape !== null) {
-      return {
-        contentName: rawContent.contentName,
-        contentDescription: rawContent.contentDescription,
-        configuration: rawContent.configuration,
-        dataShape: rawContent.dataShape,
-        defaultData: rawContent.defaultData,
-        views,
-      };
+  const registries = mapValues(rawContents, (registry, key) => {
+    if (key !== registry.def.registry) {
+      throw new Error(
+        `makeCatalog: registry key ${JSON.stringify(key)} must match registry ${JSON.stringify(registry.def.registry)}`,
+      );
     }
     return {
-      contentName: rawContent.contentName,
-      contentDescription: rawContent.contentDescription,
-      dataShape: rawContent.dataShape,
-      defaultData: rawContent.defaultData,
-      views,
+      ...registry,
+      def: {
+        ...registry.def,
+        catalogName,
+        catalogLabel,
+        data: registry.defaultData,
+      },
     };
   });
 
@@ -73,6 +56,6 @@ export function makeCatalog(props: {
     catalogName,
     catalogLabel,
     catalogDescription,
-    contents,
+    registries,
   };
 }

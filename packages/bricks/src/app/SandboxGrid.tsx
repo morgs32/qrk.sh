@@ -1,12 +1,14 @@
-import { Link } from "react-router";
-import { resolveBrickBreakpoint } from "./resolveBrickBreakpoint";
-import { useBrickBreakpoint } from "../BrickBreakpointProvider";
-import { GripHorizontal, Pencil } from "lucide-react";
-import { Button } from "../ui/button";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { catalogsHash } from "../catalogsHash";
-import GridLayout, { verticalCompactor } from "react-grid-layout";
 
+import { Pencil } from "lucide-react";
+import GridLayout, { verticalCompactor } from "react-grid-layout";
+import { Link } from "react-router";
+
+import { useBrickBreakpoint } from "../BrickBreakpointProvider";
+import { catalogsHash } from "../catalogsHash";
+import { Button } from "../ui/button";
+
+import { resolveBrickBreakpoint } from "./resolveBrickBreakpoint";
 import { useGridStore } from "./useGridStore";
 
 export function SandboxGrid() {
@@ -63,7 +65,11 @@ export function SandboxGrid() {
           width={gridWidth}
           style={dragging ? { transform: `translateY(-${dragScrollTopRef.current}px)` } : undefined}
           // Dropped items carry isDraggable, which overrides dragConfig.enabled.
-          layout={layout.map((item) => ({ ...item, isDraggable: true }))}
+          layout={layout.map((item) => ({
+            ...item,
+            isDraggable: true,
+            isResizable: true,
+          }))}
           autoSize
           className="grid-layout min-h-screen"
           compactor={verticalCompactor}
@@ -74,8 +80,13 @@ export function SandboxGrid() {
             containerPadding: [0, 0],
             maxRows: Number.POSITIVE_INFINITY,
           }}
-          dragConfig={{ enabled: true, handle: ".brick-drag-handle", bounded: false, threshold: 3 }}
-          resizeConfig={{ enabled: false, handles: [] }}
+          dragConfig={{
+            enabled: true,
+            cancel: ".brick-edit-handle",
+            bounded: false,
+            threshold: 3,
+          }}
+          onResizeStop={(nextLayout) => setLayout(nextLayout, breakpoint)}
           dropConfig={{
             enabled: true,
             defaultItem: { w: 2, h: 2 },
@@ -170,8 +181,8 @@ export function SandboxGrid() {
           {layout.map((layoutItem) => {
             const brickDef = bricksById[layoutItem.i];
             const catalog = brickDef ? catalogsHash[brickDef.catalogId] : undefined;
-            const content = catalog?.contents[brickDef.contentId];
-            const brick = content?.views[brickDef.viewId];
+            const registry = catalog?.registries[brickDef.registryId];
+            const brick = registry;
 
             if (brick) {
               const BrickComponent = brick.component;
@@ -181,7 +192,7 @@ export function SandboxGrid() {
                   key={layoutItem.i}
                   style={{ opacity: outsideBrickId === layoutItem.i ? 0.4 : 1 }}
                   className="brick-drag-surface size-full"
-                  data-brick={`${brick.def.catalogName}/${brick.def.content}/${brick.def.view}`}
+                  data-brick={`${brick.def.catalogName}/${brick.def.registry}`}
                   data-brick-id={layoutItem.i}
                   data-grid-x={layoutItem.x}
                   data-grid-y={layoutItem.y}
@@ -193,7 +204,9 @@ export function SandboxGrid() {
                       <BrickComponent
                         breakpoint={breakpoint}
                         data={brickDef.data}
-                        viewOptions={resolveBrickBreakpoint(brickDef, breakpoint).viewOptions}
+                        appearanceOptions={
+                          resolveBrickBreakpoint(brickDef, breakpoint).appearanceOptions
+                        }
                       />
                     </div>
                     <Button asChild variant="ghost" size="icon" className="brick-edit-handle">
@@ -203,19 +216,6 @@ export function SandboxGrid() {
                       >
                         <Pencil aria-hidden className="size-4" />
                       </Link>
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="brick-drag-handle"
-                      aria-label="Drag brick"
-                      onClick={(event) => {
-                        event.preventDefault();
-                        event.stopPropagation();
-                      }}
-                    >
-                      <GripHorizontal aria-hidden className="size-4" />
                     </Button>
                   </div>
                 </div>

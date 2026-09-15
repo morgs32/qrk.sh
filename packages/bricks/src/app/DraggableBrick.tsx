@@ -1,7 +1,6 @@
-import { GripHorizontal } from "lucide-react";
-import { Button } from "../ui/button";
-import type { ICatalogBrickDef } from "../types";
 import type { ComponentProps } from "react";
+
+import type { ICatalogBrickDef } from "../types";
 
 import { useGridStore } from "./useGridStore";
 
@@ -16,39 +15,33 @@ export function DraggableBrick({
   const setActiveBrickDrag = useGridStore((state) => state.setActiveBrickDrag);
 
   return (
-    <div {...props} className={`brick-drag-surface ${className ?? ""}`}>
-      <div className="brick-drag-content size-full select-none">{children}</div>
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon"
-        className="brick-drag-handle"
-        aria-label="Drag brick"
-        draggable
-        onDragStart={(event) => {
-          setActiveBrickDrag(structuredClone(brickDef));
-          const surface = event.currentTarget.parentElement;
-          if (surface) {
-            const bounds = surface.getBoundingClientRect();
-            event.dataTransfer.setDragImage(
-              surface,
-              event.clientX - bounds.left,
-              event.clientY - bounds.top,
-            );
-          }
-          event.dataTransfer.effectAllowed = "copy";
-          event.dataTransfer.setData("text/plain", brickDef.view);
-        }}
-        onDragEnd={() => {
-          setActiveBrickDrag(null);
-        }}
-        onClick={(event) => {
+    <div
+      {...props}
+      className={`brick-drag-surface ${className ?? ""}`}
+      draggable
+      onDragStart={(event) => {
+        if (event.target instanceof Element && event.target.closest(".brick-edit-handle")) {
           event.preventDefault();
-          event.stopPropagation();
-        }}
-      >
-        <GripHorizontal aria-hidden className="size-4" />
-      </Button>
+          return;
+        }
+        setActiveBrickDrag(structuredClone(brickDef));
+        const surface = event.currentTarget;
+        if (surface) {
+          const bounds = surface.getBoundingClientRect();
+          event.dataTransfer.setDragImage(
+            surface,
+            event.clientX - bounds.left,
+            event.clientY - bounds.top,
+          );
+        }
+        event.dataTransfer.effectAllowed = "copy";
+        event.dataTransfer.setData("text/plain", brickDef.registry);
+      }}
+      onDragEnd={() => {
+        setActiveBrickDrag(null);
+      }}
+    >
+      {children}
     </div>
   );
 }

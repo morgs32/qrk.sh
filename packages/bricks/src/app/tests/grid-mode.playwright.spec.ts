@@ -1,18 +1,16 @@
 import { expect, test } from "@playwright/test";
 
-test("corner handles move bricks while their bodies open inspection", async ({ page }) => {
+test("whole bricks move while the edit icon opens inspection", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("group", { name: "Grid mode" })).toHaveCount(0);
   const grid = page.getByLabel("Brick grid");
   const canvas = grid.locator(".react-grid-layout");
-  const source = page.locator('[data-catalog-representative="swatch/default/2x2"]');
+  const source = page.locator('[data-catalog-representative="swatch/default"]');
   await source.dragTo(canvas, { targetPosition: { x: 20, y: 20 } });
-  await expect(grid.locator("[data-brick-id]")).toHaveCount(0);
-  await source.locator(".brick-drag-handle").dragTo(canvas, { targetPosition: { x: 20, y: 20 } });
   const brick = grid.locator("[data-brick-id]").first();
   await expect(brick).toBeVisible();
   const id = await brick.getAttribute("data-brick-id");
-  const handle = brick.getByRole("button", { name: "Drag brick" });
+  const handle = brick;
   await handle.click();
   await expect(page).toHaveURL(/\/$/);
   const before = await brick.getAttribute("data-grid-x");

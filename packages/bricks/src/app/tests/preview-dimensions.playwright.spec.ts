@@ -1,20 +1,19 @@
 import { expect, test } from "@playwright/test";
 
-for (const [catalog, content, view, w, h] of [
-  ["swatch", "default", "2x2", 2, 2],
-  ["github", "profile", "4x2", 4, 2],
-  ["swatch", "default", "4x4", 4, 4],
-  ["swatch", "default", "8x2", 8, 2],
-] satisfies Array<[string, string, string, number, number]>) {
-  test(`${catalog} ${view} preview matches placed dimensions`, async ({ page }) => {
+for (const [catalog, registry, w, h] of [
+  ["swatch", "default", 2, 2],
+  ["github", "profile", 4, 4],
+  ["link", "default", 4, 2],
+] satisfies Array<[string, string, number, number]>) {
+  test(`${catalog} registry preview matches placed dimensions`, async ({ page }) => {
     await page.setViewportSize({ width: 3000, height: 1100 });
-    await page.goto(`/catalogs/${catalog}?content=${content}&view=${view}`);
-    const source = page.locator(`[data-content-view-brick="${catalog}/${content}/${view}"]`);
+    await page.goto(`/catalogs/${catalog}?registry=${registry}`);
+    const source = page.locator(`[data-registry-brick="${catalog}/${registry}"]`);
     const grid = page.getByLabel("Brick grid", { exact: true });
-    await source.locator(".brick-drag-handle").dragTo(grid.locator(".react-grid-layout"), {
+    await source.dragTo(grid.locator(".react-grid-layout"), {
       targetPosition: { x: 20, y: 200 },
     });
-    const placed = grid.locator(`[data-brick="${catalog}/${content}/${view}"]`);
+    const placed = grid.locator(`[data-brick="${catalog}/${registry}"]`);
     await expect(placed).toHaveCount(1);
     for (const width of [375, 640, 1024, 1440]) {
       await page.getByRole("button", { name: `${width}px grid width`, exact: true }).click();
@@ -35,7 +34,7 @@ for (const [catalog, content, view, w, h] of [
         .toBeLessThanOrEqual(1);
     }
     await page.getByRole("button", { name: "375px grid width", exact: true }).click();
-    await placed.getByRole("link").click();
+    await placed.getByRole("link", { name: "Edit brick", exact: true }).click();
     await expect(page.getByTestId("selected-brick-preview")).toHaveCSS(
       "width",
       `${Math.round((375 / 8) * w)}px`,
@@ -47,32 +46,31 @@ for (const [catalog, content, view, w, h] of [
   });
 }
 
-test("wide catalog previews scroll rather than shrinking", async ({ page }) => {
+test("catalog previews scroll rather than shrinking", async ({ page }) => {
   await page.setViewportSize({ width: 3000, height: 1000 });
   await page.goto("/");
-  const swatch = page.locator('[data-catalog-entry="swatch"]');
-  await swatch.getByRole("button", { name: "8×2", exact: true }).click();
-  const preview = swatch.locator('[data-catalog-representative="swatch/default/8x2"]');
-  await expect(preview).toHaveCSS("width", "1440px");
+  const swatch = page.locator('[data-catalog-entry="github"]');
+  const preview = swatch.locator('[data-catalog-representative="github/profile"]');
+  await expect(preview).toHaveCSS("width", "720px");
   await page.getByLabel("Bricks panel").evaluate((element) => {
     element.style.width = "400px";
   });
-  await expect(preview).toHaveCSS("width", "1440px");
+  await expect(preview).toHaveCSS("width", "720px");
   expect(
     await swatch
-      .locator(".overflow-auto")
+      .locator(":scope > .overflow-auto")
       .evaluate((element) => element.scrollWidth > element.clientWidth),
   ).toBe(true);
   await page.setViewportSize({ width: 1600, height: 1000 });
-  await expect(preview).toHaveCSS("width", "640px");
+  await expect(preview).toHaveCSS("width", "320px");
 });
 
 test("standalone slider sizes the shared frame", async ({ page }) => {
-  await page.goto("/bricks/github/profile/4x2");
+  await page.goto("/bricks/github/profile");
   const preview = page.getByTestId("brick-preview");
   for (const unit of [40, 80, 128]) {
     await page.getByLabel("Grid unit:", { exact: false }).fill(String(unit));
     await expect(preview).toHaveCSS("width", `${unit * 4}px`);
-    await expect(preview).toHaveCSS("height", `${unit * 2}px`);
+    await expect(preview).toHaveCSS("height", `${unit * 4}px`);
   }
 });

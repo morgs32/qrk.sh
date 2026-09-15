@@ -1,31 +1,29 @@
-import { makeFetcherConfiguration } from "../../makeFetcherConfiguration";
 import { primitives } from "@zerospin/schema";
 import { Schema } from "effect";
 
 import { makeCatalog } from "../../makeCatalog";
-import { makeContent } from "../../makeContent";
-import { GitHubProfileWideXs } from "./GitHubProfileWideXs";
-import { GitHubProfileWideSm } from "./GitHubProfileWideSm";
-import { makeView } from "../../makeView";
-import { GitHubProfileSquareXs } from "./GitHubProfileSquareXs";
+import { makeFetcherConfiguration } from "../../makeFetcherConfiguration";
+import { makeRegistry } from "../../makeRegistry";
+
 import { GitHubProfileSquareLg } from "./GitHubProfileSquareLg";
+import { GitHubProfileSquareXs } from "./GitHubProfileSquareXs";
 import { GitHubRepo4x2 } from "./GitHubRepo4x2";
 
 export const githubCatalog = makeCatalog({
   catalogName: "github",
   catalogLabel: "GitHub",
   catalogDescription: "Profile and repository cards from GitHub.",
-  contents: {
-    profile: makeContent({
-      content: "profile",
-      contentName: "Profile",
-      contentDescription: "A GitHub profile card.",
+  registries: {
+    profile: makeRegistry({
+      registry: "profile",
+      registryName: "Profile",
+      registryDescription: "A GitHub profile card.",
       configuration: makeFetcherConfiguration({
-        contentOptionsShape: {
+        registryOptionsShape: {
           url: primitives.text({ defaultValue: "https://github.com/morgs32" }),
         },
-        fetcher: async ({ api, contentOptions, setData }) => {
-          const result = await api.githubRepo().getProfile(contentOptions.url);
+        fetcher: async ({ api, registryOptions, setData }) => {
+          const result = await api.githubRepo().getProfile(registryOptions.url);
           if (result._tag === "Left") return result;
           setData(result.right);
           return { _tag: "Right", right: undefined };
@@ -102,43 +100,22 @@ export const githubCatalog = makeCatalog({
           return { date: date.toISOString().slice(0, 10), count, level };
         }),
       },
-      views: {
-        "4x4": makeView({
-          id: "4x4",
-          w: 4,
-          h: 4,
-          label: "4×4",
-          order: 0,
-          xs: GitHubProfileSquareXs,
-          lg: GitHubProfileSquareLg,
-        }),
-        "4x2": makeView({
-          id: "4x2",
-          w: 4,
-          h: 2,
-          label: "4×2",
-          order: 1,
-          xs: GitHubProfileWideXs,
-          sm: GitHubProfileWideSm,
-        }),
-      },
+      w: 4,
+      h: 4,
+      order: 0,
+      xs: GitHubProfileSquareXs,
+      lg: GitHubProfileSquareLg,
     }),
-    repo: makeContent({
+    repo: makeRegistry({
       dataShape: null,
       defaultData: null,
-      content: "repo",
-      contentName: "Repo",
-      contentDescription: "A GitHub repository card.",
-      views: {
-        "4x2": makeView({
-          id: "4x2",
-          w: 4,
-          h: 2,
-          label: "4×2",
-          order: 1,
-          xs: GitHubRepo4x2,
-        }),
-      },
+      registry: "repo",
+      registryName: "Repo",
+      registryDescription: "A GitHub repository card.",
+      w: 4,
+      h: 2,
+      order: 1,
+      xs: GitHubRepo4x2,
     }),
   },
 });

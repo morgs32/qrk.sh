@@ -3,8 +3,8 @@ import { describe, expect, it } from "vite-plus/test";
 import { textBrickCatalog } from "./TextBrickCatalog";
 
 describe("Text catalog", () => {
-  it("uses a local Tiptap JSON contentOptions control", () => {
-    const defaultContent = textBrickCatalog.contents.default;
+  it("uses a local Tiptap JSON registryOptions control", () => {
+    const defaultContent = textBrickCatalog.registries.default;
 
     expect(textBrickCatalog.catalogName).toBe("text");
     expect(textBrickCatalog.catalogLabel).toBe("Text");

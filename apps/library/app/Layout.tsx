@@ -164,7 +164,7 @@ function LayoutBody(props: { children: ReactNode }) {
                 </div>
                 <div className="min-h-0 flex-1 overflow-hidden">
                   <div className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden">
-                    <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto">
+                    <div className="min-h-0 min-w-0 flex-1 overflow-y-auto">
                       {children}
                     </div>
                   </div>

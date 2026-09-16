@@ -1,6 +1,6 @@
 import { Button } from "../../components/ui/button";
 
-export function FigmaOptionsForm(props: {
+export function FigmaBreakpointOptionsForm(props: {
   value: { imagePosition: "center" | "left" | "right" | "top" | "bottom" };
   onChange: (value: { imagePosition: "center" | "left" | "right" | "top" | "bottom" }) => void;
 }) {

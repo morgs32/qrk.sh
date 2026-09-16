@@ -1,4 +1,7 @@
+import { useState } from "react";
+
 import { createFileRoute, notFound } from "@tanstack/react-router";
+import { newSyncRpcSession } from "@zerospin/core/utils/newSyncRpcSession";
 import { makeEffectSchema } from "@zerospin/schema";
 import { Schema } from "effect";
 import { collapseAllNested, defaultStyles, JsonView } from "react-json-view-lite";
@@ -6,12 +9,14 @@ import { collapseAllNested, defaultStyles, JsonView } from "react-json-view-lite
 import { OrderedSection } from "@qrk.sh/web/library/OrderedDoc";
 
 import { useBrickBreakpoint } from "../../../../lib/BrickBreakpointProvider";
-import { BrickPreview } from "../../../../lib/BrickPreview";
 import { modulesHash } from "../../../../lib/modulesHash";
 import { Button } from "../../../../components/ui/button";
+import { Input } from "../../../../components/ui/input";
 import { Configuration } from "../../../Configuration";
 import { resolveBrickBreakpoint } from "../../../../lib/resolveBrickBreakpoint";
 import { useBricksStore, useBricksStoreApi } from "../../../../lib/BrickStoreProvider";
+import type { LibraryApi } from "../../../../worker/LibraryApi.public";
+import type { IScrapeError } from "../../../../worker/types.public";
 
 export const Route = createFileRoute("/modules/$moduleId/$brickId")({
   component: BrickDetail,
@@ -25,6 +30,10 @@ function BrickDetail() {
   const brickDef = useBricksStore((state) => state.bricksById[brickId]);
   const brickModule = brickDef?.moduleId === moduleId ? modulesHash[brickDef.moduleId] : undefined;
   const brick = brickModule;
+  const [generatePrompt, setGeneratePrompt] = useState("");
+  const [isGeneratingSpec, setIsGeneratingSpec] = useState(false);
+  const [generateError, setGenerateError] = useState<IScrapeError>();
+  const [generateRequestError, setGenerateRequestError] = useState<string>();
 
   if (!hasHydrated) {
     return <li>Loading brick…</li>;
@@ -37,24 +46,71 @@ function BrickDetail() {
   const BrickComponent = brick.component;
   const brickData = brickDef.data;
   const entry = resolveBrickBreakpoint(brickDef, breakpoint);
-  const OptionsForm = BrickComponent.options?.form;
+  const BreakpointOptionsForm = BrickComponent.breakpointOptions?.form;
   let inheritedBreakpoint = "sm";
   if (breakpoint === "xl" && brickDef.lg) inheritedBreakpoint = "lg";
   else if ((breakpoint === "xl" || breakpoint === "lg") && brickDef.md) inheritedBreakpoint = "md";
-
   return (
     <>
-      <OrderedSection data-testid="brick-detail-pane" headingClassName="shrink-0" label="Preview">
-        <div className="mt-5 overflow-auto py-6">
-          <BrickPreview
-            w={entry.gridItem?.w ?? brick.def[breakpoint].w}
-            h={entry.gridItem?.h ?? brick.def[breakpoint].h}
-          >
-            <div className="size-full qrk-bricks" data-testid="selected-brick-preview">
-              <BrickComponent breakpoint={breakpoint} data={brickData} options={entry.options} />
-            </div>
-          </BrickPreview>
-        </div>
+      <OrderedSection data-testid="brick-detail-pane" headingClassName="shrink-0 py-4" label="Generate spec">
+        <form
+          className="flex flex-col items-start gap-2 py-5"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void (async () => {
+              setIsGeneratingSpec(true);
+              setGenerateError(undefined);
+              setGenerateRequestError(undefined);
+              try {
+                using api = newSyncRpcSession<LibraryApi>("/rpc");
+                const currentSpec = entry.spec ?? brickModule.defaultSpec;
+                const result = await api.generateSpec(
+                  moduleId,
+                  generatePrompt,
+                  brickData,
+                  currentSpec,
+                );
+                if (result._tag === "Left") {
+                  setGenerateError(result.left);
+                  return;
+                }
+                bricksStore.getState().setSpec(brickId, breakpoint, result.right);
+              } catch (cause) {
+                setGenerateRequestError(cause instanceof Error ? cause.message : String(cause));
+              } finally {
+                setIsGeneratingSpec(false);
+              }
+            })();
+          }}
+        >
+          <label className="block font-medium" htmlFor="generate-spec-prompt">
+            Prompt
+          </label>
+          <Input
+            id="generate-spec-prompt"
+            name="prompt"
+            onChange={(event) => {
+              setGeneratePrompt(event.target.value);
+            }}
+            type="text"
+            value={generatePrompt}
+          />
+          <Button disabled={isGeneratingSpec} type="submit">
+            Generate
+          </Button>
+        </form>
+        {isGeneratingSpec ? <p role="status">Generating spec…</p> : null}
+        {generateError !== undefined ? (
+          <div className="rounded-md border border-red-200 bg-red-50 p-4" role="alert">
+            <p className="m-0 font-mono">{generateError.code}</p>
+            <p className="mb-0 mt-2">{generateError.message}</p>
+          </div>
+        ) : null}
+        {generateRequestError !== undefined ? (
+          <div className="rounded-md border border-red-200 bg-red-50 p-4" role="alert">
+            {generateRequestError}
+          </div>
+        ) : null}
       </OrderedSection>
       {brickModule.configuration ? (
         <OrderedSection className="mt-10" headingClassName="shrink-0 py-4" label="Configuration">
@@ -116,11 +172,11 @@ function BrickDetail() {
             {entry.gridItem === null ? "Show brick" : "Hide brick"}
           </Button>
         </div>
-        {OptionsForm && (
-          <OptionsForm
-            value={entry.options}
+        {BreakpointOptionsForm && (
+          <BreakpointOptionsForm
+            value={entry.breakpointOptions}
             onChange={(value) => {
-              bricksStore.getState().setOptions(brickId, breakpoint, value);
+              bricksStore.getState().setBreakpointOptions(brickId, breakpoint, value);
             }}
           />
         )}

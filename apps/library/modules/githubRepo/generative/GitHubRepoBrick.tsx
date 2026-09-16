@@ -34,9 +34,10 @@ const fetcher = async (url: string) => {
 /** Client-fetch brick wrapper: SWR → StateProvider → Renderer. */
 export function GitHubRepoBrick(props: {
   data: unknown;
-  options: unknown;
+  breakpointOptions: unknown;
   breakpoint: "sm" | "md" | "lg" | "xl";
   defaultSpec: Spec;
+  spec?: Spec;
   registry: ComponentRegistry;
 }) {
   const { data, isLoading } = useSWR(
@@ -68,7 +69,7 @@ export function GitHubRepoBrick(props: {
     <StateProvider initialState={data}>
       <VisibilityProvider>
         <ActionProvider handlers={{}}>
-          <Renderer spec={props.defaultSpec} registry={props.registry} />
+          <Renderer spec={props.spec ?? props.defaultSpec} registry={props.registry} />
         </ActionProvider>
       </VisibilityProvider>
     </StateProvider>

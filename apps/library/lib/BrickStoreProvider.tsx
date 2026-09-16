@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 
+import type { Spec } from "@json-render/core";
 import { verticalCompactor } from "react-grid-layout";
 import type { Layout, LayoutItem } from "react-grid-layout";
 import { create, useStore } from "zustand";
@@ -16,8 +17,10 @@ function createBricksStore(initialState?: {
     {
       moduleId: string;
       data: unknown;
-      sm: { gridItem: LayoutItem | null; options: unknown };
-    } & Partial<Record<"md" | "lg" | "xl", { gridItem: LayoutItem | null; options: unknown }>>
+      sm: { gridItem: LayoutItem | null; breakpointOptions: unknown; spec?: Spec };
+    } & Partial<
+      Record<"md" | "lg" | "xl", { gridItem: LayoutItem | null; breakpointOptions: unknown; spec?: Spec }>
+    >
   >;
   selectedWidth?: number | null;
 }) {
@@ -27,21 +30,24 @@ function createBricksStore(initialState?: {
       {
         moduleId: string;
         data: unknown;
-        sm: { gridItem: LayoutItem | null; options: unknown };
-      } & Partial<Record<"md" | "lg" | "xl", { gridItem: LayoutItem | null; options: unknown }>>
+        sm: { gridItem: LayoutItem | null; breakpointOptions: unknown; spec?: Spec };
+      } & Partial<
+        Record<"md" | "lg" | "xl", { gridItem: LayoutItem | null; breakpointOptions: unknown; spec?: Spec }>
+      >
     >;
-    activeBrickDrag: (IModuleBrickDef & { options?: unknown }) | null;
+    activeBrickDrag: (IModuleBrickDef & { breakpointOptions?: unknown }) | null;
     hasHydrated: boolean;
     selectedWidth: number | null;
     setLayout: (layout: Layout, breakpoint: "sm" | "md" | "lg" | "xl") => void;
     addBrick: (
       brickId: string,
-      brickDef: IModuleBrickDef & { options?: unknown },
+      brickDef: IModuleBrickDef & { breakpointOptions?: unknown },
       layout: Layout,
       breakpoint: "sm" | "md" | "lg" | "xl",
     ) => void;
-    setActiveBrickDrag: (brickDef: (IModuleBrickDef & { options?: unknown }) | null) => void;
-    setOptions: (brickId: string, breakpoint: "sm" | "md" | "lg" | "xl", value: unknown) => void;
+    setActiveBrickDrag: (brickDef: (IModuleBrickDef & { breakpointOptions?: unknown }) | null) => void;
+    setBreakpointOptions: (brickId: string, breakpoint: "sm" | "md" | "lg" | "xl", value: unknown) => void;
+    setSpec: (brickId: string, breakpoint: "sm" | "md" | "lg" | "xl", spec: Spec) => void;
     setVisible: (brickId: string, breakpoint: "sm" | "md" | "lg" | "xl", visible: boolean) => void;
     setHasHydrated: (hasHydrated: boolean) => void;
   }>()((set, get) => ({
@@ -81,9 +87,9 @@ function createBricksStore(initialState?: {
       const gridItem = layout.find((item) => item.i === brickId);
       if (!gridItem) return;
       const brickModule = modulesHash[brickDef.moduleId];
-      const options = brickModule?.component.options
-        ? brickModule.component.options.decode(
-            brickDef.options ?? brickModule.component.options.defaultValue,
+      const breakpointOptions = brickModule?.component.breakpointOptions
+        ? brickModule.component.breakpointOptions.decode(
+            brickDef.breakpointOptions ?? brickModule.component.breakpointOptions.defaultValue,
           )
         : {};
       set((state) => ({
@@ -94,14 +100,14 @@ function createBricksStore(initialState?: {
             data: structuredClone(brickDef.data),
             sm: {
               gridItem: { ...gridItem },
-              options: structuredClone(options),
+              breakpointOptions: structuredClone(breakpointOptions),
             },
             ...(breakpoint === "sm"
               ? {}
               : {
                   [breakpoint]: {
                     gridItem: { ...gridItem },
-                    options: structuredClone(options),
+                    breakpointOptions: structuredClone(breakpointOptions),
                   },
                 }),
           },
@@ -109,13 +115,13 @@ function createBricksStore(initialState?: {
       }));
       get().setLayout(layout, breakpoint);
     },
-    setOptions: (brickId, breakpoint, value) => {
+    setBreakpointOptions: (brickId, breakpoint, value) => {
       set((state) => {
         const brick = state.bricksById[brickId];
         if (!brick) return state;
-        const optionsConfig = modulesHash[brick.moduleId]?.component.options;
-        if (!optionsConfig) return state;
-        const options = optionsConfig.decode(value);
+        const breakpointOptionsConfig = modulesHash[brick.moduleId]?.component.breakpointOptions;
+        if (!breakpointOptionsConfig) return state;
+        const breakpointOptions = breakpointOptionsConfig.decode(value);
         const entry = structuredClone(resolveBrickBreakpoint(brick, breakpoint));
         return {
           bricksById: {
@@ -124,7 +130,26 @@ function createBricksStore(initialState?: {
               ...brick,
               [breakpoint]: {
                 ...entry,
-                options: structuredClone(options),
+                breakpointOptions: structuredClone(breakpointOptions),
+              },
+            },
+          },
+        };
+      });
+    },
+    setSpec: (brickId, breakpoint, spec) => {
+      set((state) => {
+        const brick = state.bricksById[brickId];
+        if (!brick) return state;
+        const entry = structuredClone(resolveBrickBreakpoint(brick, breakpoint));
+        return {
+          bricksById: {
+            ...state.bricksById,
+            [brickId]: {
+              ...brick,
+              [breakpoint]: {
+                ...entry,
+                spec: structuredClone(spec),
               },
             },
           },

@@ -26,7 +26,7 @@ const DOT_ALIGN: Record<ImagePosition, string> = {
   "bottom-right": "items-end justify-end",
 };
 
-export function ImageOptionsForm(props: {
+export function ImageBreakpointOptionsForm(props: {
   value: { imagePosition: ImagePosition };
   onChange: (value: { imagePosition: ImagePosition }) => void;
 }) {

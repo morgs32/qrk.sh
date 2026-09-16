@@ -7,11 +7,11 @@ import { Effect, Schema } from "effect";
 import type { LibraryApi } from "../worker/LibraryApi.public";
 import type { IRpcEither } from "../worker/types.public";
 
-/** Runtime configuration contract after the factory has decoded its moduleOptions. */
+/** Runtime configuration contract after the factory has decoded its payload. */
 export interface IFetcherConfiguration {
   configurationType: "fetcher";
-  moduleOptionsShape: IShape;
-  moduleOptionsForm?: {
+  payloadShape: IShape;
+  payloadForm?: {
     bivarianceHack(props: {
       value: Record<string, unknown>;
       onChange: {
@@ -21,55 +21,58 @@ export interface IFetcherConfiguration {
   }["bivarianceHack"];
   fetcher: (props: {
     api: ReturnType<typeof newSyncRpcSession<LibraryApi>>;
-    moduleOptions: unknown;
+    payload: unknown;
     setData: (data: unknown) => void;
   }) => Promise<IRpcEither<void>>;
 }
 
-/** Owns request configuration and decodes module options before calling the provider. */
-export function makeFetcherConfiguration<const MODULE_OPTIONS_SHAPE extends IShape>(props: {
-  moduleOptionsShape: MODULE_OPTIONS_SHAPE;
-  moduleOptionsForm?: (props: {
-    value: InferDecodedRow<MODULE_OPTIONS_SHAPE>;
-    onChange: (value: InferDecodedRow<MODULE_OPTIONS_SHAPE>) => void;
+/** Owns request configuration and decodes payload before calling the provider. */
+export function makeFetcherConfiguration<const PAYLOAD_SHAPE extends IShape>(props: {
+  payloadShape: PAYLOAD_SHAPE;
+  payloadForm?: (props: {
+    value: InferDecodedRow<PAYLOAD_SHAPE>;
+    onChange: (value: InferDecodedRow<PAYLOAD_SHAPE>) => void;
   }) => ReactNode;
   fetcher: (props: {
     api: ReturnType<typeof newSyncRpcSession<LibraryApi>>;
-    moduleOptions: InferDecodedRow<MODULE_OPTIONS_SHAPE>;
+    payload: InferDecodedRow<PAYLOAD_SHAPE>;
     setData: (data: unknown) => void;
   }) => Promise<IRpcEither<void>>;
 }): {
   configurationType: "fetcher";
-  moduleOptionsShape: MODULE_OPTIONS_SHAPE;
-  moduleOptionsForm?: (props: {
-    value: InferDecodedRow<MODULE_OPTIONS_SHAPE>;
-    onChange: (value: InferDecodedRow<MODULE_OPTIONS_SHAPE>) => void;
+  payloadShape: PAYLOAD_SHAPE;
+  payloadForm?: (props: {
+    value: InferDecodedRow<PAYLOAD_SHAPE>;
+    onChange: (value: InferDecodedRow<PAYLOAD_SHAPE>) => void;
   }) => ReactNode;
   fetcher: (props: {
     api: ReturnType<typeof newSyncRpcSession<LibraryApi>>;
-    moduleOptions: unknown;
+    payload: unknown;
     setData: (data: unknown) => void;
   }) => Promise<IRpcEither<void>>;
 } {
   const fetcher = props.fetcher;
-  const moduleOptionsSchema = makeEffectSchema(props.moduleOptionsShape);
+  const payloadSchema = makeEffectSchema(props.payloadShape);
 
   return {
     configurationType: "fetcher",
-    moduleOptionsShape: props.moduleOptionsShape,
-    moduleOptionsForm: props.moduleOptionsForm,
+    payloadShape: props.payloadShape,
+    payloadForm: props.payloadForm,
     fetcher: async (request: {
       api: ReturnType<typeof newSyncRpcSession<LibraryApi>>;
-      moduleOptions: unknown;
+      payload: unknown;
       setData: (data: unknown) => void;
     }) => {
-      const moduleOptions = await Effect.runPromise(
-        Schema.decodeUnknownEffect(moduleOptionsSchema)(request.moduleOptions, {
-          onExcessProperty: "error"}),
+      const payload = await Effect.runPromise(
+        Schema.decodeUnknownEffect(payloadSchema)(request.payload, {
+          onExcessProperty: "error",
+        }),
       );
       return fetcher({
         api: request.api,
-        moduleOptions,
-        setData: request.setData});
-    }};
+        payload,
+        setData: request.setData,
+      });
+    },
+  };
 }

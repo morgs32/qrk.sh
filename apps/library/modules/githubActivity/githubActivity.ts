@@ -14,11 +14,11 @@ export const githubActivity = makeModule({
   defaultSpec,
   registry,
   configuration: makeFetcherConfiguration({
-    moduleOptionsShape: {
+    payloadShape: {
       url: primitives.text({ defaultValue: "https://github.com/morgs32" }),
     },
-    fetcher: async ({ api, moduleOptions, setData }) => {
-      const result = await api.githubBackend().getProfile(moduleOptions.url);
+    fetcher: async ({ api, payload, setData }) => {
+      const result = await api.githubBackend().getProfile(payload.url);
       if (result._tag === "Left") return result;
       if (!Array.isArray(result.right.contributions)) {
         return {

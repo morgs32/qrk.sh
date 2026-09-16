@@ -67,11 +67,11 @@ export function BrickDetail() {
                 className="inline-flex items-center gap-2 text-sm"
               >
                 <ArrowLeft aria-hidden className="size-4" />
-                <span>Back to {brick.def.moduleLabel}</span>
+                <span>Back to {brick.label}</span>
               </Link>
               <p className="mb-0 mt-8 text-sm text-muted-foreground">Brick detail</p>
               <h1 className="mb-1 mt-2 text-4xl tracking-tight" data-testid="brick-detail-title">
-                {brick.def.moduleLabel}
+                {brick.label}
               </h1>
               <p className="mt-0 font-mono text-sm text-muted-foreground">{brick.def.moduleId}</p>
             </div>
@@ -87,7 +87,8 @@ export function BrickDetail() {
                   <BrickComponent
                     breakpoint={breakpoint}
                     data={brickPlacement.data}
-                    options={entry.options}
+                    breakpointOptions={entry.breakpointOptions}
+                    spec={entry.spec ?? brick.defaultSpec}
                   />
                 </div>
               </BrickPreview>

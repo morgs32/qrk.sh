@@ -13,13 +13,13 @@ export const link = makeModule({
   defaultSpec,
   registry,
   configuration: makeFetcherConfiguration({
-    moduleOptionsShape: {
+    payloadShape: {
       url: primitives.text({
         defaultValue: "https://apps.apple.com/us/app/apple-store/id375380948",
       }),
     },
-    fetcher: async ({ api, moduleOptions, setData }) => {
-      const result = await api.linkBackend().getPreview(moduleOptions.url);
+    fetcher: async ({ api, payload, setData }) => {
+      const result = await api.linkBackend().getPreview(payload.url);
       if (result._tag === "Left") return result;
       setData(result.right);
       return { _tag: "Right", right: undefined };

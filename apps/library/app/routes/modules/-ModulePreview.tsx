@@ -27,22 +27,36 @@ export function ModulePreview(props: {
         </Link>
       </h2>
       <div className="pb-16">
-        <BrickPreview
-          breakpoint={breakpoint}
-          measure={<BrickComponent breakpoint={breakpoint} data={def.data} />}
-          w={def[breakpoint].w}
-          h={def[breakpoint].h}
-        >
-          <DraggableBrick
-            brickDef={def}
-            className="size-full qrk-bricks overflow-hidden"
-            data-module-representative={def.moduleId}
+        {brickModule.measurable ? (
+          <BrickPreview
+            breakpoint={breakpoint}
+            measure={<BrickComponent breakpoint={breakpoint} data={def.data} />}
+            w={def[breakpoint].w}
+            h={def[breakpoint].h}
           >
-            <div className="brick-drag-content size-full">
-              <BrickComponent breakpoint={breakpoint} data={def.data} />
-            </div>
-          </DraggableBrick>
-        </BrickPreview>
+            <DraggableBrick
+              brickDef={def}
+              className="size-full qrk-bricks overflow-hidden"
+              data-module-representative={def.moduleId}
+            >
+              <div className="brick-drag-content size-full">
+                <BrickComponent breakpoint={breakpoint} data={def.data} />
+              </div>
+            </DraggableBrick>
+          </BrickPreview>
+        ) : (
+          <BrickPreview w={def[breakpoint].w} h={def[breakpoint].h}>
+            <DraggableBrick
+              brickDef={def}
+              className="size-full qrk-bricks overflow-hidden"
+              data-module-representative={def.moduleId}
+            >
+              <div className="brick-drag-content size-full">
+                <BrickComponent breakpoint={breakpoint} data={def.data} />
+              </div>
+            </DraggableBrick>
+          </BrickPreview>
+        )}
       </div>
     </div>
   );

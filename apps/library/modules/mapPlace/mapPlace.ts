@@ -13,21 +13,22 @@ export const mapPlace = makeModule({
   id: "map-place",
   label: "Map Place",
   description: "A map centered on one selected place.",
+  measurable: false,
   defaultSpec,
   registry,
   configuration: makeFetcherConfiguration({
-    moduleOptionsShape: {
+    payloadShape: {
       googlePlaceId: primitives.text({
         defaultValue: "ChIJ7cv00DwsDogRAMDACa2m4K8",
       }),
     },
-    moduleOptionsForm: ({ value, onChange }) =>
+    payloadForm: ({ value, onChange }) =>
       createElement(GooglePlaceLookup, {
         value: value.googlePlaceId,
         onChange: (googlePlaceId) => onChange({ googlePlaceId }),
       }),
-    fetcher: async ({ api, moduleOptions, setData }) => {
-      const result = await api.googlePlacesBackend().getPlace(moduleOptions.googlePlaceId);
+    fetcher: async ({ api, payload, setData }) => {
+      const result = await api.googlePlacesBackend().getPlace(payload.googlePlaceId);
       if (result._tag === "Left") return result;
       setData(result.right);
       return { _tag: "Right", right: undefined };

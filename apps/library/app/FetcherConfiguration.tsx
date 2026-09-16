@@ -19,28 +19,28 @@ export function FetcherConfiguration(props: {
   setData: (data: unknown) => void;
 }) {
   const {
-    moduleOptionsShape,
-    moduleOptionsForm: ModuleOptionsForm,
+    payloadShape,
+    payloadForm: PayloadForm,
     fetcher: fetchData,
   } = props.configuration;
-  const [moduleOptionsValues, setModuleOptionsValues] = useState<Record<string, unknown>>(() => {
-    const initialModuleOptionsValues: Record<string, unknown> = {};
+  const [payloadValues, setPayloadValues] = useState<Record<string, unknown>>(() => {
+    const initialPayloadValues: Record<string, unknown> = {};
 
-    // Initialize the complete module options from the declared field defaults.
-    for (const [fieldName, descriptor] of Object.entries(moduleOptionsShape)) {
-      initialModuleOptionsValues[fieldName] =
+    // Initialize the complete payload from the declared field defaults.
+    for (const [fieldName, descriptor] of Object.entries(payloadShape)) {
+      initialPayloadValues[fieldName] =
         "defaultValue" in descriptor ? descriptor.defaultValue : undefined;
     }
-    return initialModuleOptionsValues;
+    return initialPayloadValues;
   });
-  const currentModuleOptions = useRef(moduleOptionsValues);
+  const currentPayload = useRef(payloadValues);
   const generation = useRef(0);
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [dataError, setDataError] = useState<IScrapeError>();
   const [requestError, setRequestError] = useState<string>();
-  const hasUnsupportedModuleOptions =
-    ModuleOptionsForm === undefined &&
-    Object.entries(moduleOptionsShape).some(
+  const hasUnsupportedPayload =
+    PayloadForm === undefined &&
+    Object.entries(payloadShape).some(
       ([, descriptor]) =>
         descriptor.kind !== PrimitiveKind.Text ||
         descriptor.nullable !== false ||
@@ -55,21 +55,21 @@ export function FetcherConfiguration(props: {
     [],
   );
 
-  async function onModuleOptionsChange(moduleOptions: Record<string, unknown>) {
-    // Snapshot the next complete module options synchronously, including batched changes.
-    currentModuleOptions.current = moduleOptions;
-    setModuleOptionsValues(moduleOptions);
+  async function onPayloadChange(payload: Record<string, unknown>) {
+    // Snapshot the next complete payload synchronously, including batched changes.
+    currentPayload.current = payload;
+    setPayloadValues(payload);
     const requestGeneration = ++generation.current;
     setDataError(undefined);
     setRequestError(undefined);
 
-    if (hasUnsupportedModuleOptions) return;
+    if (hasUnsupportedPayload) return;
     setIsLoadingData(true);
     try {
       using api = newSyncRpcSession<LibraryApi>("/rpc");
       const result = await fetchData({
         api,
-        moduleOptions,
+        payload,
         setData: (data) => {
           if (generation.current === requestGeneration) props.setData(data);
         },
@@ -100,15 +100,15 @@ export function FetcherConfiguration(props: {
 
       <div className="py-5">
         <form className="space-y-5" onSubmit={(event) => event.preventDefault()}>
-          {ModuleOptionsForm !== undefined ? (
-            <ModuleOptionsForm
-              value={moduleOptionsValues}
+          {PayloadForm !== undefined ? (
+            <PayloadForm
+              value={payloadValues}
               onChange={(value) => {
-                void onModuleOptionsChange(value);
+                void onPayloadChange(value);
               }}
             />
           ) : (
-            Object.entries(moduleOptionsShape).map(([fieldName, descriptor]) => {
+            Object.entries(payloadShape).map(([fieldName, descriptor]) => {
               if (
                 descriptor.kind !== PrimitiveKind.Text ||
                 descriptor.nullable !== false ||
@@ -117,11 +117,11 @@ export function FetcherConfiguration(props: {
                 return (
                   <p
                     className="m-0 rounded-md border border-red-200 bg-red-50 p-3"
-                    data-testid={`unsupported-module-options-${fieldName}`}
+                    data-testid={`unsupported-payload-${fieldName}`}
                     key={fieldName}
                     role="alert"
                   >
-                    Unsupported module options field &quot;{fieldName}
+                    Unsupported payload field &quot;{fieldName}
                     &quot;: only non-null text primitives with string defaults are supported.
                   </p>
                 );
@@ -129,33 +129,33 @@ export function FetcherConfiguration(props: {
 
               return (
                 <div className="flex flex-col items-start gap-2" key={fieldName}>
-                  <label className="block font-medium" htmlFor={`module-options-${fieldName}`}>
+                  <label className="block font-medium" htmlFor={`payload-${fieldName}`}>
                     {fieldName === "url" ? "URL" : fieldName}
                   </label>
                   <Input
                     className="mb-1"
-                    id={`module-options-${fieldName}`}
+                    id={`payload-${fieldName}`}
                     name={fieldName}
                     onChange={(event) => {
-                      const moduleOptions = {
-                        ...currentModuleOptions.current,
+                      const payload = {
+                        ...currentPayload.current,
                         [fieldName]: event.target.value,
                       };
-                      currentModuleOptions.current = moduleOptions;
-                      setModuleOptionsValues(moduleOptions);
+                      currentPayload.current = payload;
+                      setPayloadValues(payload);
                     }}
                     type="text"
                     value={
-                      typeof moduleOptionsValues[fieldName] === "string"
-                        ? moduleOptionsValues[fieldName]
+                      typeof payloadValues[fieldName] === "string"
+                        ? payloadValues[fieldName]
                         : descriptor.defaultValue
                     }
                   />
                   <Button
                     type="button"
-                    disabled={isLoadingData || hasUnsupportedModuleOptions}
+                    disabled={isLoadingData || hasUnsupportedPayload}
                     onClick={() => {
-                      void onModuleOptionsChange(currentModuleOptions.current);
+                      void onPayloadChange(currentPayload.current);
                     }}
                   >
                     Submit

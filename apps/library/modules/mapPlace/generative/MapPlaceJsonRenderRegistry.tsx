@@ -18,7 +18,8 @@ function MapCanvas(props: {
   const mapContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (mapContainerRef.current === null) {
+    const container = mapContainerRef.current;
+    if (container === null) {
       return;
     }
 
@@ -28,7 +29,7 @@ function MapCanvas(props: {
 
     mapboxgl.accessToken = MAPBOX_TOKEN;
     const map = new mapboxgl.Map({
-      container: mapContainerRef.current,
+      container,
       style: "mapbox://styles/mapbox/streets-v12",
       center: [props.longitude, props.latitude],
       zoom: 14,
@@ -42,19 +43,28 @@ function MapCanvas(props: {
       .addTo(map);
     marker.getElement().dataset.mapMarkerPlaceId = props.googlePlaceId;
 
+    const resizeObserver = new ResizeObserver(() => {
+      map.resize();
+    });
+    resizeObserver.observe(container);
+    map.resize();
+
     return () => {
+      resizeObserver.disconnect();
       marker.remove();
       map.remove();
     };
   }, [props.googlePlaceId, props.latitude, props.longitude]);
 
   return (
-    <div
-      aria-label={`Map of ${props.name}`}
-      className="h-full w-full overflow-hidden bg-muted"
-      data-map-place-id={props.googlePlaceId}
-      ref={mapContainerRef}
-    />
+    <div className="absolute inset-0 overflow-hidden bg-muted">
+      <div
+        aria-label={`Map of ${props.name}`}
+        className="size-full"
+        data-map-place-id={props.googlePlaceId}
+        ref={mapContainerRef}
+      />
+    </div>
   );
 }
 

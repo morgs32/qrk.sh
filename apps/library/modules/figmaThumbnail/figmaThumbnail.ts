@@ -2,10 +2,10 @@ import { primitives } from "@zerospin/schema";
 
 import { makeFetcherConfiguration } from "../../make/makeFetcherConfiguration";
 import { makeModule } from "../../make/makeModule";
-import { makeOptions } from "../../make/makeOptions";
+import { makeBreakpointOptions } from "../../make/makeBreakpointOptions";
 
 import defaultThumbnailUrl from "./dot-pattern-789x450.png";
-import { FigmaOptionsForm } from "./FigmaOptionsForm";
+import { FigmaBreakpointOptionsForm } from "./FigmaBreakpointOptionsForm";
 import { defaultSpec } from "./generative/defaultSpec";
 import { registry } from "./generative/FigmaThumbnailJsonRenderRegistry";
 
@@ -16,13 +16,13 @@ export const figmaThumbnail = makeModule({
   defaultSpec,
   registry,
   configuration: makeFetcherConfiguration({
-    moduleOptionsShape: {
+    payloadShape: {
       url: primitives.text({
         defaultValue: "",
       }),
     },
-    fetcher: async ({ api, moduleOptions, setData }) => {
-      const result = await api.figmaBackend().getThumbnail(moduleOptions.url);
+    fetcher: async ({ api, payload, setData }) => {
+      const result = await api.figmaBackend().getThumbnail(payload.url);
       if (result._tag === "Left") return result;
       setData(result.right);
       return { _tag: "Right", right: undefined };
@@ -42,14 +42,14 @@ export const figmaThumbnail = makeModule({
     thumbnail_width: 789,
     thumbnail_height: 450,
   },
-  options: makeOptions({
+  breakpointOptions: makeBreakpointOptions({
     shape: {
       imagePosition: primitives.enum({
         values: ["center", "left", "right", "top", "bottom"],
         defaultValue: "left",
       }),
     },
-    form: FigmaOptionsForm,
+    form: FigmaBreakpointOptionsForm,
   }),
   sm: { w: 4, h: 4 },
   md: { w: 4, h: 4 },

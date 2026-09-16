@@ -12,20 +12,24 @@ import { makeEffectSchema, type InferDecodedRow, type IShape } from "@zerospin/s
 import { Schema } from "effect";
 
 import { BrickFrame } from "../components/brick/BrickFrame";
-import type { makeOptions } from "./makeOptions";
+import type { makeBreakpointOptions } from "./makeBreakpointOptions";
 import type { makeFetcherConfiguration } from "./makeFetcherConfiguration";
 import type { IFormConfiguration } from "./makeFormConfiguration";
 import type { IJsonValue } from "../worker/types.public";
 
-function mergeBrickState(data: unknown, options: unknown): Record<string, unknown> {
+function mergeBrickState(data: unknown, breakpointOptions: unknown): Record<string, unknown> {
   const state: Record<string, unknown> = {};
   if (data !== null && typeof data === "object" && !Array.isArray(data)) {
     for (const [key, value] of Object.entries(data)) {
       state[key] = value;
     }
   }
-  if (options !== null && typeof options === "object" && !Array.isArray(options)) {
-    for (const [key, value] of Object.entries(options)) {
+  if (
+    breakpointOptions !== null &&
+    typeof breakpointOptions === "object" &&
+    !Array.isArray(breakpointOptions)
+  ) {
+    for (const [key, value] of Object.entries(breakpointOptions)) {
       state[key] = value;
     }
   }
@@ -35,7 +39,7 @@ function mergeBrickState(data: unknown, options: unknown): Record<string, unknow
 /** Bind catalog presentation (defaultSpec + registry) to one responsive brick. */
 export function makeModule<
   const MODULE extends string,
-  const MODULE_OPTIONS_SHAPE extends IShape,
+  const PAYLOAD_SHAPE extends IShape,
   const DATA_SHAPE extends IShape,
 >(
   props: {
@@ -44,11 +48,16 @@ export function makeModule<
     description: string;
     defaultSpec: Spec;
     registry: ComponentRegistry;
-    options?: ReturnType<typeof makeOptions>;
+    breakpointOptions?: ReturnType<typeof makeBreakpointOptions>;
     sm: { w: number; h: number };
     md?: { w: number; h: number };
     lg?: { w: number; h: number };
     xl?: { w: number; h: number };
+    /**
+     * When true (default), library module-list previews may grow to intrinsic
+     * content size. Set false for modules that should keep declared grid size.
+     */
+    measurable?: boolean;
     /**
      * Optional brick body when the default Renderer path is not enough
      * (e.g. client-side fetch before StateProvider). Must still render via
@@ -56,9 +65,10 @@ export function makeModule<
      */
     brick?: (props: {
       data: unknown;
-      options: unknown;
+      breakpointOptions: unknown;
       breakpoint: "sm" | "md" | "lg" | "xl";
       defaultSpec: Spec;
+      spec?: Spec;
       registry: ComponentRegistry;
     }) => ReactNode;
   } & (
@@ -71,7 +81,7 @@ export function makeModule<
         dataShape: DATA_SHAPE;
         defaultData: InferDecodedRow<DATA_SHAPE> & Readonly<Record<string, IJsonValue>>;
         configuration?:
-          | ReturnType<typeof makeFetcherConfiguration<MODULE_OPTIONS_SHAPE>>
+          | ReturnType<typeof makeFetcherConfiguration<PAYLOAD_SHAPE>>
           | IFormConfiguration<InferDecodedRow<DATA_SHAPE>>;
       }
   ),
@@ -87,43 +97,47 @@ export function makeModule<
   const defaultSpec = props.defaultSpec;
   const registry = props.registry;
   const customBrick = props.brick;
+  const measurable = props.measurable ?? true;
 
   function Brick(propsForBrick: {
     data?: unknown;
     breakpoint: "sm" | "md" | "lg" | "xl";
-    options?: unknown;
+    breakpointOptions?: unknown;
+    spec?: Spec;
   }) {
-    const options = propsForBrick.options ?? props.options?.defaultValue ?? {};
+    const breakpointOptions =
+      propsForBrick.breakpointOptions ?? props.breakpointOptions?.defaultValue ?? {};
+    const spec = propsForBrick.spec ?? defaultSpec;
     if (customBrick !== undefined) {
       return (
         <BrickFrame>
           {customBrick({
             data: propsForBrick.data,
-            options,
+            breakpointOptions,
             breakpoint: propsForBrick.breakpoint,
             defaultSpec,
+            spec,
             registry,
           })}
         </BrickFrame>
       );
     }
-    const initialState = mergeBrickState(propsForBrick.data, options);
+    const initialState = mergeBrickState(propsForBrick.data, breakpointOptions);
     return (
       <BrickFrame>
         <StateProvider initialState={initialState}>
           <VisibilityProvider>
             <ActionProvider handlers={{}}>
-              <Renderer spec={defaultSpec} registry={registry} />
+              <Renderer spec={spec} registry={registry} />
             </ActionProvider>
           </VisibilityProvider>
         </StateProvider>
       </BrickFrame>
     );
   }
-  Brick.options = props.options;
+  Brick.breakpointOptions = props.breakpointOptions;
   const def = {
     moduleId: props.id,
-    moduleLabel: props.label,
     sm: { w: sm.w, h: sm.h },
     md: { w: md.w, h: md.h },
     lg: { w: lg.w, h: lg.h },
@@ -135,6 +149,7 @@ export function makeModule<
       id: props.id,
       label: props.label,
       description: props.description,
+      measurable,
       dataShape: null,
       defaultData: null,
       defaultSpec,
@@ -155,6 +170,7 @@ export function makeModule<
     id: props.id,
     label: props.label,
     description: props.description,
+    measurable,
     dataShape: props.dataShape,
     defaultData,
     defaultSpec,

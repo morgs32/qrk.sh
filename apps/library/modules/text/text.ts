@@ -35,6 +35,7 @@ export const text = makeModule({
   id: "text",
   label: "Text",
   description: "Rich text content authored with Tiptap.",
+  measurable: false,
   defaultSpec,
   registry,
   configuration: makeFormConfiguration<typeof dataShape>({

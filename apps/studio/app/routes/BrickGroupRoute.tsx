@@ -71,7 +71,7 @@ export default function BrickGroupRoute() {
           <Tabs.Root value={`${brickModule.def.moduleId}-preview`}>
             <div className="flex items-baseline justify-between gap-4 px-6">
               <div>
-                <h2 className="m-0 text-2xl">{brickModule.def.moduleLabel}</h2>
+                <h2 className="m-0 text-2xl">{brickModule.label}</h2>
                 <p className="mb-0 mt-1 text-sm text-zinc-500">{brickModule.description}</p>
               </div>
               <div className="flex shrink-0 items-baseline gap-2">
@@ -83,7 +83,7 @@ export default function BrickGroupRoute() {
                     value={`${brickModule.def.moduleId}-preview`}
                     className="cursor-pointer border-0 bg-transparent p-0 text-sm font-medium text-zinc-950"
                   >
-                    {brickModule.def.moduleLabel}
+                    {brickModule.label}
                   </Tabs.Trigger>
                 </Tabs.List>
               </div>

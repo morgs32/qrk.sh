@@ -4,7 +4,7 @@ import type { Catalog, Spec } from "@json-render/core";
 import type { ComponentRegistry } from "@json-render/react";
 import type { IShape } from "@zerospin/schema";
 
-import type { makeOptions } from "../make/makeOptions";
+import type { makeBreakpointOptions } from "../make/makeBreakpointOptions";
 import type { IFetcherConfiguration } from "../make/makeFetcherConfiguration";
 import type { IFormConfiguration } from "../make/makeFormConfiguration";
 
@@ -25,6 +25,11 @@ export type IModule = {
   id: string;
   label: string;
   description: string;
+  /**
+   * When true, library module-list previews may grow to intrinsic content size.
+   * When false, previews use the declared breakpoint grid size only.
+   */
+  measurable: boolean;
   catalog: Catalog;
   defaultSpec: Spec;
   registry: ComponentRegistry;
@@ -47,7 +52,6 @@ export type IModule = {
 
 /** Serializable module row: module identity, no React component. */
 export type IModuleBrickDef = IBrickDef & {
-  moduleLabel: string;
   /** Default module data or the configured data of a placed brick. */
   data: unknown;
 };
@@ -70,8 +74,9 @@ export type IModuleBrick = {
   component: {
     bivarianceHack(props: {
       data?: unknown;
-      options?: unknown;
+      breakpointOptions?: unknown;
+      spec?: Spec;
       breakpoint: "sm" | "md" | "lg" | "xl";
     }): ReactNode;
-  }["bivarianceHack"] & { options?: ReturnType<typeof makeOptions> };
+  }["bivarianceHack"] & { breakpointOptions?: ReturnType<typeof makeBreakpointOptions> };
 };

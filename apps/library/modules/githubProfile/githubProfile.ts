@@ -13,11 +13,11 @@ export const githubProfile = makeModule({
   defaultSpec,
   registry,
   configuration: makeFetcherConfiguration({
-    moduleOptionsShape: {
+    payloadShape: {
       url: primitives.text({ defaultValue: "https://github.com/morgs32" }),
     },
-    fetcher: async ({ api, moduleOptions, setData }) => {
-      const result = await api.githubBackend().getProfile(moduleOptions.url);
+    fetcher: async ({ api, payload, setData }) => {
+      const result = await api.githubBackend().getProfile(payload.url);
       if (result._tag === "Left") return result;
       setData(result.right);
       return { _tag: "Right", right: undefined };

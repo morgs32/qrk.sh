@@ -13,13 +13,13 @@ export const instagram = makeModule({
   defaultSpec,
   registry,
   configuration: makeFetcherConfiguration({
-    moduleOptionsShape: {
+    payloadShape: {
       url: primitives.text({
         defaultValue: "https://www.instagram.com/theonion/",
       }),
     },
-    fetcher: async ({ api, moduleOptions, setData }) => {
-      const result = await api.instagramBackend().scrape(moduleOptions.url);
+    fetcher: async ({ api, payload, setData }) => {
+      const result = await api.instagramBackend().scrape(payload.url);
       if (result._tag === "Left") return result;
       setData(result.right);
       return { _tag: "Right", right: undefined };

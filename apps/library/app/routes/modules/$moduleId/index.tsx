@@ -28,21 +28,39 @@ export const Route = createFileRoute("/modules/$moduleId/")({
 const nestedListClassName =
   "mt-10 list-outside marker:font-mono marker:text-neutral-400 pl-[29px] max-[480px]:pl-8 list-[lower-alpha]";
 
-function UnconstrainedBrickPreview({ children }: { children: ReactNode }) {
+/** Smallest integer grid units whose pixel size is ≥ intrinsicPx. */
+function minGridUnits(gridItemWidth: number, intrinsicPx: number): number {
+  if (intrinsicPx <= 0) return 1;
+  return Math.max(1, Math.ceil(intrinsicPx / gridItemWidth));
+}
+
+function UnconstrainedBrickPreview({
+  children,
+  onSizeChange,
+}: {
+  children: ReactNode;
+  onSizeChange: (size: { widthPx: number; heightPx: number }) => void;
+}) {
   const [sizeLabel, setSizeLabel] = useState<string>();
-  const rootRef = useCallback<RefCallback<HTMLDivElement>>((element) => {
-    if (!element) return;
+  const rootRef = useCallback<RefCallback<HTMLDivElement>>(
+    (element) => {
+      if (!element) return;
 
-    const updateSize = () => {
-      const bounds = element.getBoundingClientRect();
-      setSizeLabel(`${Math.round(bounds.width)}×${Math.round(bounds.height)}px`);
-    };
+      const updateSize = () => {
+        const bounds = element.getBoundingClientRect();
+        const widthPx = Math.round(bounds.width);
+        const heightPx = Math.round(bounds.height);
+        setSizeLabel(`${widthPx}×${heightPx}px`);
+        onSizeChange({ widthPx, heightPx });
+      };
 
-    updateSize();
-    const observer = new ResizeObserver(updateSize);
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, []);
+      updateSize();
+      const observer = new ResizeObserver(updateSize);
+      observer.observe(element);
+      return () => observer.disconnect();
+    },
+    [onSizeChange],
+  );
 
   return (
     <div>
@@ -60,10 +78,92 @@ function UnconstrainedBrickPreview({ children }: { children: ReactNode }) {
   );
 }
 
+function BreakpointPreviewRow({
+  entry,
+  moduleId,
+  brick,
+  moduleData,
+  options,
+  BrickComponent,
+}: {
+  entry: (typeof BREAKPOINTS)[number];
+  moduleId: string;
+  brick: NonNullable<(typeof modulesHash)[string]>;
+  moduleData: unknown;
+  options: unknown;
+  BrickComponent: NonNullable<(typeof modulesHash)[string]>["component"];
+}) {
+  const setActiveBrickDrag = useGridStore((state) => state.setActiveBrickDrag);
+  const [intrinsicSize, setIntrinsicSize] = useState<{ widthPx: number; heightPx: number }>();
+  const onSizeChange = useCallback((size: { widthPx: number; heightPx: number }) => {
+    setIntrinsicSize((current) => {
+      if (current?.widthPx === size.widthPx && current?.heightPx === size.heightPx) {
+        return current;
+      }
+      return size;
+    });
+  }, []);
+
+  const w = intrinsicSize ? minGridUnits(entry.gridItemWidth, intrinsicSize.widthPx) : 1;
+  const h = intrinsicSize ? minGridUnits(entry.gridItemWidth, intrinsicSize.heightPx) : 1;
+
+  return (
+    <>
+      <OrderedBodyHeading className="shrink-0 py-2">{entry.id}</OrderedBodyHeading>
+      <div className="flex items-start gap-4">
+        <div className="min-w-0">
+          <p className="m-0 mb-2 font-mono text-neutral-500">gridItem</p>
+          <BrickPreview gridWidth={entry.previewWidth} w={w} h={h}>
+            <div
+              className="size-full qrk-bricks brick-drag-surface overflow-hidden"
+              data-module-brick={moduleId}
+              data-testid="brick-preview"
+              draggable
+              onDragStart={(event) => {
+                setActiveBrickDrag({
+                  ...brick.def,
+                  data: structuredClone(moduleData),
+                  ...(options !== undefined ? { options: structuredClone(options) } : {}),
+                });
+                const surface = event.currentTarget;
+                if (surface) {
+                  const bounds = surface.getBoundingClientRect();
+                  event.dataTransfer.setDragImage(
+                    surface,
+                    event.clientX - bounds.left,
+                    event.clientY - bounds.top,
+                  );
+                }
+                event.dataTransfer.effectAllowed = "copy";
+                event.dataTransfer.setData("text/plain", brick.def.moduleId);
+              }}
+              onDragEnd={() => setActiveBrickDrag(null)}
+            >
+              <div className="brick-drag-content size-full select-none">
+                <BrickComponent breakpoint={entry.id} data={moduleData} options={options} />
+              </div>
+            </div>
+          </BrickPreview>
+          {intrinsicSize !== undefined ? (
+            <p className="m-0 pt-2 font-mono text-neutral-500">
+              w={w} h={h}
+            </p>
+          ) : null}
+        </div>
+        <div className="min-w-0">
+          <p className="m-0 mb-2 font-mono text-neutral-500">intrinsic</p>
+          <UnconstrainedBrickPreview onSizeChange={onSizeChange}>
+            <BrickComponent breakpoint={entry.id} data={moduleData} options={options} />
+          </UnconstrainedBrickPreview>
+        </div>
+      </div>
+    </>
+  );
+}
+
 function ModuleDetail() {
   const [optionsByModule, setOptionsByModule] = useState<Record<string, unknown>>({});
   const { moduleId } = Route.useParams();
-  const setActiveBrickDrag = useGridStore((state) => state.setActiveBrickDrag);
   const brickModule = modulesHash[moduleId];
 
   if (!brickModule) {
@@ -101,62 +201,14 @@ function ModuleDetail() {
         <ol className={nestedListClassName}>
           {BREAKPOINTS.map((entry, index) => (
             <li className={index === 0 ? undefined : "mt-10"} key={entry.id}>
-              <OrderedBodyHeading className="shrink-0 py-2">{entry.id}</OrderedBodyHeading>
-              <div className="flex items-start gap-4">
-                <div className="min-w-0">
-                  <p className="m-0 mb-2 font-mono text-neutral-500">gridItem</p>
-                  <BrickPreview
-                    gridWidth={entry.previewWidth}
-                    w={brick.def[entry.id].w}
-                    h={brick.def[entry.id].h}
-                  >
-                    <div
-                      className="size-full qrk-bricks brick-drag-surface overflow-hidden"
-                      data-module-brick={moduleId}
-                      data-testid="brick-preview"
-                      draggable
-                      onDragStart={(event) => {
-                        setActiveBrickDrag({
-                          ...brick.def,
-                          data: structuredClone(moduleData),
-                          ...(options !== undefined
-                            ? { options: structuredClone(options) }
-                            : {}),
-                        });
-                        const surface = event.currentTarget;
-                        if (surface) {
-                          const bounds = surface.getBoundingClientRect();
-                          event.dataTransfer.setDragImage(
-                            surface,
-                            event.clientX - bounds.left,
-                            event.clientY - bounds.top,
-                          );
-                        }
-                        event.dataTransfer.effectAllowed = "copy";
-                        event.dataTransfer.setData("text/plain", brick.def.moduleId);
-                      }}
-                      onDragEnd={() => setActiveBrickDrag(null)}
-                    >
-                      <div className="brick-drag-content size-full select-none">
-                        <BrickComponent
-                          breakpoint={entry.id}
-                          data={moduleData}
-                          options={options}
-                        />
-                      </div>
-                    </div>
-                  </BrickPreview>
-                  <p className="m-0 pt-2 font-mono text-neutral-500">
-                    w={brick.def[entry.id].w} h={brick.def[entry.id].h}
-                  </p>
-                </div>
-                <div className="min-w-0">
-                  <p className="m-0 mb-2 font-mono text-neutral-500">intrinsic</p>
-                  <UnconstrainedBrickPreview>
-                    <BrickComponent breakpoint={entry.id} data={moduleData} options={options} />
-                  </UnconstrainedBrickPreview>
-                </div>
-              </div>
+              <BreakpointPreviewRow
+                BrickComponent={BrickComponent}
+                brick={brick}
+                entry={entry}
+                moduleData={moduleData}
+                moduleId={moduleId}
+                options={options}
+              />
             </li>
           ))}
         </ol>

@@ -9,13 +9,15 @@ import { imageJsonRenderCatalog } from "./ImageJsonRenderCatalog";
 
 function ImageCard(props: { children?: ReactNode }) {
   return (
-    <div className="flex h-full w-full min-h-0 flex-col overflow-hidden">{props.children}</div>
+    <div className="flex h-full w-full min-h-0 min-w-[200px] flex-col overflow-hidden">
+      {props.children}
+    </div>
   );
 }
 
 function ImageCover(props: { imageUrl: string; title: string }) {
   return (
-    <div className="relative min-h-0 flex-1 overflow-hidden">
+    <div className="relative min-h-0 flex-1 basis-[200px] overflow-hidden">
       <UnpicImage
         src={props.imageUrl}
         alt={props.title}

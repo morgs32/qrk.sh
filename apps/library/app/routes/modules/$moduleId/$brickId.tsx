@@ -25,7 +25,7 @@ function BrickDetail() {
   const brick = brickModule;
 
   if (!hasHydrated) {
-    return <div className="px-6 pt-6">Loading brick…</div>;
+    return <li>Loading brick…</li>;
   }
 
   if (!brick || !brickModule || !brickDef) {
@@ -41,20 +41,23 @@ function BrickDetail() {
   else if ((breakpoint === "xl" || breakpoint === "lg") && brickDef.md) inheritedBreakpoint = "md";
 
   return (
-    <section data-testid="brick-detail-pane">
-      <div
-        className={`overflow-auto py-6 ${(entry.gridItem?.w ?? brick.def[breakpoint].w) === 8 ? "" : "px-4"}`}
-      >
-        <BrickPreview
-          w={entry.gridItem?.w ?? brick.def[breakpoint].w}
-          h={entry.gridItem?.h ?? brick.def[breakpoint].h}
+    <>
+      <li data-testid="brick-detail-pane">
+        <h2 className="m-0 shrink-0 font-normal">Preview</h2>
+        <div
+          className={`mt-5 overflow-auto py-6 ${(entry.gridItem?.w ?? brick.def[breakpoint].w) === 8 ? "" : "px-4"}`}
         >
-          <div className="size-full qrk-bricks" data-testid="selected-brick-preview">
-            <BrickComponent breakpoint={breakpoint} data={brickData} options={entry.options} />
-          </div>
-        </BrickPreview>
-      </div>
-      <div className="pb-6">
+          <BrickPreview
+            w={entry.gridItem?.w ?? brick.def[breakpoint].w}
+            h={entry.gridItem?.h ?? brick.def[breakpoint].h}
+          >
+            <div className="size-full qrk-bricks" data-testid="selected-brick-preview">
+              <BrickComponent breakpoint={breakpoint} data={brickData} options={entry.options} />
+            </div>
+          </BrickPreview>
+        </div>
+      </li>
+      <li className="mt-10">
         <Configuration
           key={brickId}
           showData={false}
@@ -76,6 +79,8 @@ function BrickDetail() {
             }));
           }}
         />
+      </li>
+      <li className="mt-10">
         <h2 className="m-0 shrink-0 px-4 py-4 font-normal">Options</h2>
         <div className="flex flex-wrap gap-2 px-4 py-4">
           {breakpoint !== "sm" && (
@@ -119,6 +124,8 @@ function BrickDetail() {
             }}
           />
         )}
+      </li>
+      <li className="mt-10">
         <h2 className="m-0 shrink-0 px-4 py-4 font-normal">Brick Definition</h2>
         <div className="overflow-auto bg-white px-2 py-4" data-testid="module-data-result">
           <JsonView
@@ -127,7 +134,7 @@ function BrickDetail() {
             style={{ ...defaultStyles, container: "bg-white" }}
           />
         </div>
-      </div>
-    </section>
+      </li>
+    </>
   );
 }

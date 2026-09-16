@@ -22,9 +22,7 @@ function ModulePage() {
       </aside>
       <div className="min-w-0 flex-1">
         <OrderedBody>
-          <li>
-            <Outlet key={`${location.pathname}${location.searchStr}`} />
-          </li>
+          <Outlet key={`${location.pathname}${location.searchStr}`} />
         </OrderedBody>
       </div>
     </div>

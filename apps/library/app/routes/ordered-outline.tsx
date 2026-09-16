@@ -8,7 +8,7 @@ export const Route = createFileRoute("/ordered-outline")({
 
 export default function OrderedOutlinePage() {
   return (
-    <main className="ordered-outline-page">
+    <main className="min-h-screen bg-[#f7f7f7] px-7 py-6 font-mono text-base leading-[1.25] tracking-[-0.02em]">
       <OrderedOutline />
     </main>
   );

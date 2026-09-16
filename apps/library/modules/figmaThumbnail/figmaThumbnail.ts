@@ -6,8 +6,7 @@ import { makeOptions } from "../../make/makeOptions";
 
 import defaultThumbnailUrl from "./dot-pattern-789x450.png";
 import { FigmaOptionsForm } from "./FigmaOptionsForm";
-import { FigmaThumbnailFooter } from "./FigmaThumbnailFooter/FigmaThumbnailFooter";
-import { FigmaThumbnailHeader } from "./FigmaThumbnailHeader/FigmaThumbnailHeader";
+import { FigmaThumbnail } from "./FigmaThumbnail/FigmaThumbnail";
 
 export const figmaThumbnail = makeModule({
   id: "figma-thumbnail",
@@ -41,6 +40,6 @@ export const figmaThumbnail = makeModule({
         values: ["center", "left", "right", "top", "bottom"],
         defaultValue: "left"})},
     form: FigmaOptionsForm}),
-  sm: { component: FigmaThumbnailHeader, w: 4, h: 4 },
-  md: { component: FigmaThumbnailFooter, w: 4, h: 4 },
-  lg: { component: FigmaThumbnailFooter, w: 3, h: 3 }});
+  sm: { component: FigmaThumbnail, w: 4, h: 4 },
+  md: { component: FigmaThumbnail, w: 4, h: 4 },
+  lg: { component: FigmaThumbnail, w: 3, h: 3 }});

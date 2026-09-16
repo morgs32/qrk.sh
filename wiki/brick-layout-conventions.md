@@ -48,8 +48,7 @@ templates `GitHubProfileActivityHero` and `GitHubProfileStatsRow` keep activity
 markup distinct from the square templates. Shared chart markup lives in the
 helper `GitHubProfileActivity`, not in a presentation filename.
 
-The Figma thumbnail catalog uses `FigmaThumbnailHeader` (title bar above the
-preview) and `FigmaThumbnailFooter` (brand bar below the preview); `lg` and
-`xl` inherit `Footer`. Its appearance form edits per-breakpoint
-`imagePosition`, which each presentation applies directly to its image's
+The Figma thumbnail catalog uses `FigmaThumbnail` (preview with brand bar
+below) at every breakpoint. Its appearance form edits per-breakpoint
+`imagePosition`, which the presentation applies directly to its image's
 `object-position`. These options do not change grid dimensions.

@@ -126,24 +126,36 @@ export function OrderedBody({
             <Switch checked={showAnchors} onCheckedChange={(checked) => setShowAnchors(checked)} />
           </label>
         </div>
-        <SectionHeading index="A" showListDecorator={showListDecorator} showAnchors={showAnchors}>
-          API Overview
-        </SectionHeading>
         <ol
-          className={`mt-10 list-outside pl-[29px] marker:font-mono marker:text-neutral-400 max-[480px]:pl-8 ${
-            showListDecorator ? "list-[lower-alpha]" : "list-none"
+          className={`list-outside marker:font-mono marker:text-neutral-400 ${
+            showListDecorator
+              ? "list-[upper-alpha] pl-[29px] max-[480px]:pl-8"
+              : "list-none pl-0"
           }`}
         >
           <li>
-            <SchemaSection showListDecorator={showListDecorator} showAnchors={showAnchors} />
-          </li>
-          <li className="mt-10">
-            <RegionsSection showListDecorator={showListDecorator} showAnchors={showAnchors} />
-          </li>
-          <li className="mt-[76px]">
             <SectionHeading showListDecorator={showListDecorator} showAnchors={showAnchors}>
-              Authentication
+              API Overview
             </SectionHeading>
+            <ol
+              className={`mt-10 list-outside marker:font-mono marker:text-neutral-400 ${
+                showListDecorator
+                  ? "list-[lower-alpha] pl-[29px] max-[480px]:pl-8"
+                  : "list-none pl-0"
+              }`}
+            >
+              <li>
+                <SchemaSection showListDecorator={showListDecorator} showAnchors={showAnchors} />
+              </li>
+              <li className="mt-10">
+                <RegionsSection showListDecorator={showListDecorator} showAnchors={showAnchors} />
+              </li>
+              <li className="mt-[76px]">
+                <SectionHeading showListDecorator={showListDecorator} showAnchors={showAnchors}>
+                  Authentication
+                </SectionHeading>
+              </li>
+            </ol>
           </li>
         </ol>
       </div>

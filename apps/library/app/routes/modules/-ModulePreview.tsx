@@ -27,7 +27,10 @@ export function ModulePreview(props: {
         </Link>
       </h2>
       <div className="pb-16">
-        <BrickPreview w={def[breakpoint].w} h={def[breakpoint].h}>
+        <BrickPreview
+          breakpoint={breakpoint}
+          measure={<BrickComponent breakpoint={breakpoint} data={def.data} />}
+        >
           <DraggableBrick
             brickDef={def}
             className="size-full qrk-bricks overflow-hidden"

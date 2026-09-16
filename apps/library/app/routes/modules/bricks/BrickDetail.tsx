@@ -4,13 +4,13 @@ import { ArrowLeft } from "lucide-react";
 import { collapseAllNested, defaultStyles, JsonView } from "react-json-view-lite";
 import { Link, useParams } from "react-router";
 
-import { useBrickBreakpoint } from "../../components/brick/BrickBreakpointProvider";
-import { BrickPreviewFrame } from "../../components/brick/BrickPreviewFrame";
-import { modulesHash } from "../../modulesHash";
-import { Button } from "../../components/ui/button";
-import { Configuration } from "../Configuration";
-import { resolveBrickBreakpoint } from "../resolveBrickBreakpoint";
-import { useGridStore } from "../useGridStore";
+import { useBrickBreakpoint } from "../../../../components/brick/BrickBreakpointProvider";
+import { BrickPreviewFrame } from "../../../../components/brick/BrickPreviewFrame";
+import { modulesHash } from "../../../../modulesHash";
+import { Button } from "../../../../components/ui/button";
+import { Configuration } from "../../../Configuration";
+import { resolveBrickBreakpoint } from "../../../resolveBrickBreakpoint";
+import { useGridStore } from "../../../useGridStore";
 
 export default function BrickDetail() {
   const { breakpoint } = useBrickBreakpoint();

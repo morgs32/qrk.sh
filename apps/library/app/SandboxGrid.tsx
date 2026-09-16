@@ -191,7 +191,7 @@ export function SandboxGrid() {
                   data-grid-h={layoutItem.h}
                   onDoubleClick={() => {
                     navigate(
-                      `/modules/${encodeURIComponent(brickDef.moduleId)}/brick/${encodeURIComponent(layoutItem.i)}`,
+                      `/modules/${encodeURIComponent(brickDef.moduleId)}/bricks/${encodeURIComponent(layoutItem.i)}`,
                     );
                   }}
                 >

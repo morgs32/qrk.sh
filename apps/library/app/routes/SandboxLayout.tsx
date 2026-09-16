@@ -1,6 +1,6 @@
 import { BrickBreakpointProvider } from "../../components/brick/BrickBreakpointProvider";
 import { useState } from "react";
-import { Outlet, Link, useLocation } from "react-router";
+import { Outlet, Link, useLocation, useNavigate } from "react-router";
 import { RotateCcw, X } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Drawer, DrawerClose, DrawerContent, DrawerTitle, DrawerTrigger } from "../../components/ui/drawer";
@@ -11,6 +11,7 @@ import { useGridStore } from "../useGridStore";
 
 export default function SandboxLayout() {
   const location = useLocation();
+  const navigate = useNavigate();
   const persistedWidth = useGridStore((state) => state.selectedWidth);
   const [drawerOpen, setDrawerOpen] = useState(
     () => location.pathname !== "/" || location.search.length > 0,
@@ -18,7 +19,7 @@ export default function SandboxLayout() {
   const [drawerOpenForLocationKey, setDrawerOpenForLocationKey] = useState(location.key);
   if (location.key !== drawerOpenForLocationKey) {
     setDrawerOpenForLocationKey(location.key);
-    // Nested group/catalog routes render inside the drawer Outlet; open it so deep links are visible.
+    // Nested /modules routes render inside the drawer Outlet; open it so deep links are visible.
     if (location.pathname !== "/" || location.search.length > 0) {
       setDrawerOpen(true);
     }
@@ -35,7 +36,16 @@ export default function SandboxLayout() {
   return (
     <BrickBreakpointProvider persistedWidth={persistedWidth}>
       {({ regionRef, availableWidth, selectedWidth }) => (
-        <Drawer open={drawerOpen} onOpenChange={setDrawerOpen} modal={false}>
+        <Drawer
+          open={drawerOpen}
+          modal={false}
+          onOpenChange={(open) => {
+            setDrawerOpen(open);
+            if (open && location.pathname === "/") {
+              navigate("/modules");
+            }
+          }}
+        >
           <main className="min-h-screen">
             <DrawerContent
               aria-describedby={undefined}
@@ -45,7 +55,7 @@ export default function SandboxLayout() {
             >
               <DrawerTitle className="sr-only not-typeset m-0">Bricks</DrawerTitle>
               <div className="flex shrink-0 items-center justify-between gap-4 border-b border-border/60 px-4 py-2.5">
-                <Link to="/" className="font-semibold">
+                <Link to="/modules" className="font-semibold">
                   Bricks
                 </Link>
                 <DrawerClose asChild>

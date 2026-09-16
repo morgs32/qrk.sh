@@ -18,40 +18,46 @@ export default [
         },
         children: [
           {
-            index: true,
-            lazy: async () => {
-              const { default: ModulesPage } = await import("./routes/ModulesPage");
-              return { Component: ModulesPage };
-            }},
-          {
-            path: "modules/:moduleId",
-            lazy: async () => {
-              const {
-                default: ModulePage,
-                loader,
-                ErrorBoundary} = await import("./routes/ModulePage");
-              return { Component: ModulePage, loader, ErrorBoundary };
-            },
+            path: "modules",
             children: [
               {
                 index: true,
                 lazy: async () => {
-                  const { default: ModuleConfiguration, ErrorBoundary } =
-                    await import("./routes/ModuleConfiguration");
-                  return { Component: ModuleConfiguration, ErrorBoundary };
+                  const { default: ModulesPage } = await import("./routes/modules/ModulesPage");
+                  return { Component: ModulesPage };
                 }},
               {
-                path: "brick/:brickId",
+                path: ":moduleId",
                 lazy: async () => {
-                  const { default: BrickDetail } = await import("./routes/BrickDetail");
-                  return { Component: BrickDetail };
-                }},
+                  const {
+                    default: ModulePage,
+                    loader,
+                    ErrorBoundary} = await import("./routes/modules/ModulePage");
+                  return { Component: ModulePage, loader, ErrorBoundary };
+                },
+                children: [
+                  {
+                    index: true,
+                    lazy: async () => {
+                      const { default: ModuleDetail, ErrorBoundary } =
+                        await import("./routes/modules/ModuleDetail");
+                      return { Component: ModuleDetail, ErrorBoundary };
+                    }},
+                  {
+                    path: "bricks/:brickId",
+                    lazy: async () => {
+                      const { default: BrickDetail } =
+                        await import("./routes/modules/bricks/BrickDetail");
+                      return { Component: BrickDetail };
+                    }},
+                ]},
             ]},
         ]},
       {
         path: "bricks/:moduleId",
         lazy: async () => {
-          const { default: BrickPage, loader, ErrorBoundary } = await import("./routes/BrickPage");
+          const { default: BrickPage, loader, ErrorBoundary } =
+            await import("./routes/bricks/BrickPage");
           return { Component: BrickPage, loader, ErrorBoundary };
         }},
     ]},

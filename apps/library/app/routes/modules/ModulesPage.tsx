@@ -1,9 +1,9 @@
 import { Link } from "react-router";
 
-import { useBrickBreakpoint } from "../../components/brick/BrickBreakpointProvider";
-import { BrickPreviewFrame } from "../../components/brick/BrickPreviewFrame";
-import { modulesHash } from "../../modulesHash";
-import { DraggableBrick } from "../DraggableBrick";
+import { useBrickBreakpoint } from "../../../components/brick/BrickBreakpointProvider";
+import { BrickPreviewFrame } from "../../../components/brick/BrickPreviewFrame";
+import { modulesHash } from "../../../modulesHash";
+import { DraggableBrick } from "../../DraggableBrick";
 
 export default function ModulesPage() {
   const { breakpoint } = useBrickBreakpoint();

@@ -2,7 +2,7 @@
 title: Library sandbox brick preview and drop
 updated: 2026-09-15
 sources:
-  - path: apps/library/app/routes/ModulesPage.tsx
+  - path: apps/library/app/routes/modules/ModulesPage.tsx
     sha: 47dfc8dfbefda0f64cd3f45025a02b037bfd6328
     lines: 10-45
   - path: apps/library/components/brick/BrickPreviewFrame.tsx
@@ -24,11 +24,11 @@ sources:
 
 # Library sandbox brick preview and drop
 
-Workbench `/` lists every [`IModule`](../../../apps/library/types.ts) from [`modulesHash`](../../../apps/library/modulesHash.ts), sizes a preview, and copies a def into [`useGridStore`](../../../apps/library/app/useGridStore.ts) on native drag. [`SandboxGrid`](../../../apps/library/app/SandboxGrid.tsx) sizes the drop placeholder from that store and calls `addBrick`. Identity lookup is [`BrickModule`](../BrickModule.md).
+Workbench `/modules` lists every [`IModule`](../../../apps/library/types.ts) from [`modulesHash`](../../../apps/library/modulesHash.ts), sizes a preview, and copies a def into [`useGridStore`](../../../apps/library/app/useGridStore.ts) on native drag. [`SandboxGrid`](../../../apps/library/app/SandboxGrid.tsx) sizes the drop placeholder from that store and calls `addBrick`. Identity lookup is [`BrickModule`](../BrickModule.md).
 
 ## Trigger
 
-1. [`SandboxLayout`](../../../apps/library/app/routes/SandboxLayout.tsx) renders the drawer `Outlet` (index [`ModulesPage`](../../../apps/library/app/routes/ModulesPage.tsx)) beside [`SandboxGrid`](../../../apps/library/app/SandboxGrid.tsx).
+1. [`SandboxLayout`](../../../apps/library/app/routes/SandboxLayout.tsx) renders the drawer `Outlet` (`/modules` [`ModulesPage`](../../../apps/library/app/routes/modules/ModulesPage.tsx)) beside [`SandboxGrid`](../../../apps/library/app/SandboxGrid.tsx).
 2. The user drags a filmstrip preview onto the grid.
 
 ```mermaid
@@ -67,14 +67,14 @@ sequenceDiagram
 ## Annotated workflow steps
 
 1. The filmstrip reads the hash as an array of modules.
-   - [`ModulesPage.tsx:10-17`](../../../apps/library/app/routes/ModulesPage.tsx#L10-L17) — `Object.values(modulesHash)` then `modules.map((brickModule) => ...)`. (`apps/library/app/routes/ModulesPage.tsx:10-17`)
+   - [`ModulesPage.tsx:10-17`](../../../apps/library/app/routes/modules/ModulesPage.tsx#L10-L17) — `Object.values(modulesHash)` then `modules.map((brickModule) => ...)`. (`apps/library/app/routes/modules/ModulesPage.tsx:10-17`)
 2. Each entry is a full `IModule` (`def`, `component`, `defaultData`).
    - [`modulesHash.ts:14-26`](../../../apps/library/modulesHash.ts#L14-L26) — kebab keys to assembler results. (`apps/library/modulesHash.ts:14-26`)
 3. Preview size is `round(gridWidth / 8 * w)` by `round(gridWidth / 8 * h)`.
-   - [`ModulesPage.tsx:36`](../../../apps/library/app/routes/ModulesPage.tsx#L36) — `BrickPreviewFrame w={def[breakpoint].w} h={def[breakpoint].h}`. (`apps/library/app/routes/ModulesPage.tsx:36`)
+   - [`ModulesPage.tsx:36`](../../../apps/library/app/routes/modules/ModulesPage.tsx#L36) — `BrickPreviewFrame w={def[breakpoint].w} h={def[breakpoint].h}`. (`apps/library/app/routes/modules/ModulesPage.tsx:36`)
    - [`BrickPreviewFrame.tsx:13-16`](../../../apps/library/components/brick/BrickPreviewFrame.tsx#L13-L16) — whole-pixel width/height from `useBrickBreakpoint().gridWidth`. (`apps/library/components/brick/BrickPreviewFrame.tsx:13-16`)
 4. The preview surface is a native drag source carrying `brickModule.def`.
-   - [`ModulesPage.tsx:37-43`](../../../apps/library/app/routes/ModulesPage.tsx#L37-L43) — `DraggableBrick brickDef={def}` wrapping `BrickComponent` with `data={def.data}`. (`apps/library/app/routes/ModulesPage.tsx:37-43`)
+   - [`ModulesPage.tsx:37-43`](../../../apps/library/app/routes/modules/ModulesPage.tsx#L37-L43) — `DraggableBrick brickDef={def}` wrapping `BrickComponent` with `data={def.data}`. (`apps/library/app/routes/modules/ModulesPage.tsx:37-43`)
 5. Drag start clones the def into Zustand and sets `text/plain` to `moduleId`.
    - [`DraggableBrick.tsx:22-35`](../../../apps/library/app/DraggableBrick.tsx#L22-L35) — `setActiveBrickDrag(structuredClone(brickDef))`, drag image, `effectAllowed = "copy"`. (`apps/library/app/DraggableBrick.tsx:22-35`)
 6. Grid drop-over reads the in-flight def at the measured breakpoint.

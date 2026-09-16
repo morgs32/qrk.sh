@@ -25,7 +25,7 @@ export function ErrorBoundary() {
     <main className="mx-auto max-w-3xl p-6" data-testid="module-not-found">
       <h1>Module not found</h1>
       <p>The requested module id is not registered in the library.</p>
-      <Link to="/">Return to all modules</Link>
+      <Link to="/modules">Return to all modules</Link>
     </main>
   );
 }

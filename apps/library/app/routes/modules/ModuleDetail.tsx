@@ -9,14 +9,14 @@ import {
   type LoaderFunctionArgs,
   useRouteError} from "react-router";
 
-import { useBrickBreakpoint } from "../../components/brick/BrickBreakpointProvider";
-import { BrickPreviewFrame } from "../../components/brick/BrickPreviewFrame";
-import { modulesHash } from "../../modulesHash";
-import { GitHubProfileJsonRenderCompare } from "../../modules/githubProfile/generative/GitHubProfileJsonRenderCompare";
-import { TableData } from "../TableData";
-import { Configuration } from "../Configuration";
-import { useGridStore } from "../useGridStore";
-import { useModuleData } from "../useModuleData";
+import { useBrickBreakpoint } from "../../../components/brick/BrickBreakpointProvider";
+import { BrickPreviewFrame } from "../../../components/brick/BrickPreviewFrame";
+import { modulesHash } from "../../../modulesHash";
+import { GitHubProfileJsonRenderCompare } from "../../../modules/githubProfile/generative/GitHubProfileJsonRenderCompare";
+import { TableData } from "../../TableData";
+import { Configuration } from "../../Configuration";
+import { useGridStore } from "../../useGridStore";
+import { useModuleData } from "../../useModuleData";
 
 export function loader({ params }: LoaderFunctionArgs) {
   if (!params.moduleId) throw new Response("Not found", { status: 404 });
@@ -24,7 +24,7 @@ export function loader({ params }: LoaderFunctionArgs) {
   return null;
 }
 
-export default function ModuleConfiguration() {
+export default function ModuleDetail() {
   const [optionsByModule, setOptionsByModule] = useState<Record<string, unknown>>({});
   const { breakpoint } = useBrickBreakpoint();
   const params = useParams();
@@ -193,7 +193,7 @@ export function ErrorBoundary() {
 
   return (
     <div className="px-6 pt-6" data-testid="module-not-found">
-      <Link to="/" className="inline-flex items-center gap-2">
+      <Link to="/modules" className="inline-flex items-center gap-2">
         <ArrowLeft aria-hidden className="size-4" />
         <span>Back to modules</span>
       </Link>

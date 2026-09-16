@@ -15,7 +15,7 @@ export function FigmaThumbnail(props: {
 }) {
   return (
     <div className="flex h-full w-full min-h-0 min-w-[200px] flex-col overflow-hidden">
-      <div className="relative min-h-[200px] min-w-[200px] flex-1 overflow-hidden">
+      <div className="relative min-h-0 flex-1 basis-[200px] overflow-hidden">
         <div
           className="absolute inset-0 bg-[linear-gradient(to_right,#e4e4e7_1px,transparent_1px),linear-gradient(to_bottom,#e4e4e7_1px,transparent_1px)] bg-[size:20px_20px]"
           data-figma-fallback="thumbnail"

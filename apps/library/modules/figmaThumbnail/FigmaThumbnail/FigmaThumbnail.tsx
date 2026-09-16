@@ -14,8 +14,8 @@ export function FigmaThumbnail(props: {
   };
 }) {
   return (
-    <div className="flex h-full w-full min-h-0 flex-col overflow-hidden">
-      <div className="relative min-h-0 flex-1 overflow-hidden">
+    <div className="flex h-full w-full min-h-0 min-w-[200px] flex-col overflow-hidden">
+      <div className="relative min-h-[200px] min-w-[200px] flex-1 overflow-hidden">
         <div
           className="absolute inset-0 bg-[linear-gradient(to_right,#e4e4e7_1px,transparent_1px),linear-gradient(to_bottom,#e4e4e7_1px,transparent_1px)] bg-[size:20px_20px]"
           data-figma-fallback="thumbnail"
@@ -27,7 +27,7 @@ export function FigmaThumbnail(props: {
           <Image
             key={props.data.thumbnail_url}
             alt={`${props.data.title} Figma thumbnail`}
-            className="absolute inset-0 size-full min-h-[200px] min-w-[200px] object-cover object-center data-[image-position=left]:object-left data-[image-position=right]:object-right data-[image-position=top]:object-top data-[image-position=bottom]:object-bottom"
+            className="absolute inset-0 size-full object-cover object-center data-[image-position=left]:object-left data-[image-position=right]:object-right data-[image-position=top]:object-top data-[image-position=bottom]:object-bottom"
             data-image-position={props.options?.imagePosition ?? "left"}
             data-figma-thumbnail="thumbnail"
             height={props.data.thumbnail_height ?? 450}

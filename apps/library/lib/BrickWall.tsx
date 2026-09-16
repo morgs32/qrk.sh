@@ -1,15 +1,15 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import GridLayout, { verticalCompactor } from "react-grid-layout";
-import { useNavigate } from "@tanstack/react-router";
 
 import { useBrickBreakpoint } from "./BrickBreakpointProvider";
 import { modulesHash } from "./modulesHash";
 import { resolveBrickBreakpoint } from "./resolveBrickBreakpoint";
 import { useGridStore } from "./useGridStore";
 
-export function BrickWall() {
-  const navigate = useNavigate();
+export function BrickWall(props: {
+  onBrickActivate?: (args: { moduleId: string; brickId: string }) => void;
+}) {
   const containerRef = useRef<HTMLElement>(null);
   const { gridWidth, breakpoint, containerRef: observeGrid } = useBrickBreakpoint();
   const [dragging, setDragging] = useState(false);
@@ -189,9 +189,9 @@ export function BrickWall() {
                   data-grid-w={layoutItem.w}
                   data-grid-h={layoutItem.h}
                   onDoubleClick={() => {
-                    void navigate({
-                      to: "/modules/$moduleId/$brickId",
-                      params: { moduleId: brickDef.moduleId, brickId: layoutItem.i },
+                    props.onBrickActivate?.({
+                      moduleId: brickDef.moduleId,
+                      brickId: layoutItem.i,
                     });
                   }}
                 >

@@ -113,7 +113,14 @@ export function SandboxLayout(props: { children: ReactNode }) {
                 className="mx-auto"
                 style={{ width: selectedWidth ?? BREAKPOINTS[0].previewWidth }}
               >
-                <BrickWall />
+                <BrickWall
+                  onBrickActivate={({ moduleId, brickId }) => {
+                    void navigate({
+                      to: "/modules/$moduleId/$brickId",
+                      params: { moduleId, brickId },
+                    });
+                  }}
+                />
               </div>
             </div>
             <div className="pointer-events-none fixed inset-x-0 top-3 z-80 flex justify-center px-2 lg:bottom-6 lg:top-auto">

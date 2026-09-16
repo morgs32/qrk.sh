@@ -33,7 +33,6 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         external: [
           "@radix-ui/react-slot",
-          "@tanstack/react-router",
           "@tiptap/react",
           "@unpic/react",
           "@zerospin/schema",

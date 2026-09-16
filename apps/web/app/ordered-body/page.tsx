@@ -1,6 +1,6 @@
-import { useState, type ReactNode } from "react";
+"use client";
 
-import { Switch } from "./ui/switch";
+import { useState, type ReactNode } from "react";
 
 const regions = ["ap-southeast-2", "us-east-1", "us-east-2", "us-west-2", "eu-west-1"];
 
@@ -118,18 +118,10 @@ function RegionsSection({
   );
 }
 
-export function OrderedBody({
-  showListDecorator: initialShowListDecorator = true,
-  showAnchors: initialShowAnchors = true,
-  leftAligned: initialLeftAligned = false,
-}: {
-  showListDecorator?: boolean;
-  showAnchors?: boolean;
-  leftAligned?: boolean;
-}) {
-  const [showListDecorator, setShowListDecorator] = useState(initialShowListDecorator);
-  const [showAnchors, setShowAnchors] = useState(initialShowAnchors);
-  const [leftAligned, setLeftAligned] = useState(initialLeftAligned);
+export default function OrderedBodyPage() {
+  const [showListDecorator, setShowListDecorator] = useState(true);
+  const [showAnchors, setShowAnchors] = useState(true);
+  const [leftAligned, setLeftAligned] = useState(false);
 
   const outerListPadding = showListDecorator ? "pl-[29px] max-[480px]:pl-8" : "pl-0";
 
@@ -143,18 +135,27 @@ export function OrderedBody({
         <div className="mb-6 flex flex-wrap justify-end gap-x-4 gap-y-3">
           <label className="inline-flex cursor-pointer select-none items-center gap-[9px] text-xs text-neutral-500">
             <span>Show list decorator</span>
-            <Switch
+            <input
+              type="checkbox"
               checked={showListDecorator}
-              onCheckedChange={(checked) => setShowListDecorator(checked)}
+              onChange={(event) => setShowListDecorator(event.target.checked)}
             />
           </label>
           <label className="inline-flex cursor-pointer select-none items-center gap-[9px] text-xs text-neutral-500">
             <span>Show anchors</span>
-            <Switch checked={showAnchors} onCheckedChange={(checked) => setShowAnchors(checked)} />
+            <input
+              type="checkbox"
+              checked={showAnchors}
+              onChange={(event) => setShowAnchors(event.target.checked)}
+            />
           </label>
           <label className="inline-flex cursor-pointer select-none items-center gap-[9px] text-xs text-neutral-500">
             <span>Left aligned</span>
-            <Switch checked={leftAligned} onCheckedChange={(checked) => setLeftAligned(checked)} />
+            <input
+              type="checkbox"
+              checked={leftAligned}
+              onChange={(event) => setLeftAligned(event.target.checked)}
+            />
           </label>
         </div>
         <ol

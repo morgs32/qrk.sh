@@ -2,7 +2,7 @@
 
 Two Next.js apps with App Router:
 
-- `apps/web` owns the public homepage at `/` and the `/sign-in`, `/sign-up`, and `/replace` routes.
+- `apps/web` owns the public homepage at `/` and the `/sign-in`, `/sign-up`, `/replace`, `/ordered-body`, and `/ordered-outline` routes.
 - `apps/studio` owns dashboards at `/:username`, published sites, and site workspaces under `/:username/site`.
 
 ## Features
@@ -66,4 +66,5 @@ Build and start either app with its package name: `@qrk.sh/web` for the homepage
 
 ## Deployment
 
-Deploy both Next.js apps and route `/`, `/sign-in(.*)`, `/sign-up(.*)`, and `/replace` to `@qrk.sh/web`; route the remaining application paths to `@qrk.sh/studio`.
+Deploy both Next.js apps and route `/`, `/sign-in(.*)`, `/sign-up(.*)`, `/replace`, `/ordered-body`, and `/ordered-outline` to `@qrk.sh/web`; route the remaining application paths to `@qrk.sh/studio`.
+

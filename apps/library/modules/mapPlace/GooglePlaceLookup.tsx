@@ -3,7 +3,7 @@
 import { newSyncRpcSession } from "@zerospin/core/utils/newSyncRpcSession";
 import { Loader2, MapPin, Search, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { ScraperApi } from "../../worker/ScraperApi.public";
+import type { LibraryApi } from "../../worker/LibraryApi.public";
 import type { IGooglePlaceSuggestion } from "../../worker/types.public";
 
 import { Input } from "../../components/ui/input";
@@ -33,7 +33,7 @@ export function GooglePlaceLookup(props: { value: string; onChange: (value: stri
     setLookupError(undefined);
 
     try {
-      using api = newSyncRpcSession<ScraperApi>("/rpc");
+      using api = newSyncRpcSession<LibraryApi>("/rpc");
       const result = await api.googlePlacesBackend().autocomplete(normalizedInput);
 
       if (result._tag === "Left") {
@@ -65,7 +65,7 @@ export function GooglePlaceLookup(props: { value: string; onChange: (value: stri
 
     void (async () => {
       try {
-        using api = newSyncRpcSession<ScraperApi>("/rpc");
+        using api = newSyncRpcSession<LibraryApi>("/rpc");
         const result = await api.googlePlacesBackend().getPlace(props.value);
 
         if (isCancelled) {

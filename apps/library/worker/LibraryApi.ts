@@ -1,10 +1,11 @@
 import { RpcTarget } from "capnweb";
 
+import { generateSpec } from "./generateSpec";
 import type { IScraperEnv } from "./types";
 
 const GLOBAL_BACKEND_NAME = "global";
 
-export class ScraperApi extends RpcTarget {
+export class LibraryApi extends RpcTarget {
   constructor(private readonly workerEnv: IScraperEnv) {
     super();
   }
@@ -31,5 +32,14 @@ export class ScraperApi extends RpcTarget {
 
   streamlineBackend() {
     return this.workerEnv.STREAMLINE_BACKEND.getByName(GLOBAL_BACKEND_NAME);
+  }
+
+  generateSpec(moduleId: string, prompt: string, data: unknown) {
+    return generateSpec({
+      env: this.workerEnv,
+      moduleId,
+      prompt,
+      data,
+    });
   }
 }

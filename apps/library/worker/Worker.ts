@@ -8,7 +8,7 @@ import { GooglePlacesBackend } from "../modules/mapPlace/GooglePlacesBackend";
 import { InstagramBackend } from "../modules/instagram/InstagramBackend";
 import { LinkBackend } from "../modules/link/LinkBackend";
 import { handleLibraryUpload, LibraryUploadHttpError } from "./handleLibraryUpload";
-import { ScraperApi } from "./ScraperApi";
+import { LibraryApi } from "./LibraryApi";
 import { StreamlineBackend } from "../modules/swatchAndIcon/StreamlineBackend";
 import type { IScraperEnv } from "./types";
 
@@ -92,7 +92,7 @@ async function handleRequest(request: Request, env: IScraperEnv): Promise<Respon
     }
   }
 
-  return newWorkersRpcResponse(request, new ScraperApi(env));
+  return newWorkersRpcResponse(request, new LibraryApi(env));
 }
 
 // oxlint-disable-next-line import/no-default-export -- Cloudflare Worker entrypoint.

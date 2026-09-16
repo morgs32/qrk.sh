@@ -19,8 +19,9 @@ This command runs locally and does not deploy anything.
 Put local settings in `apps/library/.env.local`:
 
 - `PUBLIC_MAPBOX_TOKEN` is required for the workbench and is exposed to the browser.
-- `GITHUB_TOKEN`, `FIGMA_TOKEN`, `GOOGLE_PLACES_API_KEY`, and `STREAMLINE_API_KEY`
-  are private Worker credentials for their respective providers.
+- `GITHUB_TOKEN`, `FIGMA_TOKEN`, `GOOGLE_PLACES_API_KEY`, `STREAMLINE_API_KEY`,
+  and `OPENAI_API_KEY` are private Worker credentials for their respective
+  providers.
 
 The Cloudflare plugin loads the private settings as Worker bindings. Only the
 Mapbox token is explicitly included in the browser build.

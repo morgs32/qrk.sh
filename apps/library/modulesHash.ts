@@ -1,3 +1,5 @@
+import { backendLibrary, type IBackendLibrary } from "./backendLibrary";
+import { makeFrontendLibrary } from "./make/makeFrontendLibrary";
 import { figmaThumbnail } from "./modules/figmaThumbnail/figmaThumbnail";
 import { githubActivity } from "./modules/githubActivity/githubActivity";
 import { githubProfile } from "./modules/githubProfile/githubProfile";
@@ -8,9 +10,8 @@ import { link } from "./modules/link/link";
 import { mapPlace } from "./modules/mapPlace/mapPlace";
 import { swatchAndIcon } from "./modules/swatchAndIcon/swatchAndIcon";
 import { text } from "./modules/text/text";
-import type { IModule } from "./types";
 
-export const modulesHash: Record<string, IModule> = {
+export const modulesHash = makeFrontendLibrary<IBackendLibrary>(backendLibrary, {
   "swatch-and-icon": swatchAndIcon,
   "github-activity": githubActivity,
   "github-profile": githubProfile,
@@ -21,4 +22,4 @@ export const modulesHash: Record<string, IModule> = {
   link,
   "map-place": mapPlace,
   text,
-};
+});

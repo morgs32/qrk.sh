@@ -1,3 +1,4 @@
+import type { Spec } from "@json-render/core";
 import { RpcTarget } from "capnweb";
 
 import type {
@@ -10,7 +11,7 @@ import type {
   IRpcEither,
 } from "./types.public";
 
-export declare class ScraperApi extends RpcTarget {
+export declare class LibraryApi extends RpcTarget {
   instagramBackend(): RpcTarget & {
     scrape(url: string): Promise<IRpcEither<IInstagramScrapePayload>>;
   };
@@ -57,4 +58,10 @@ export declare class ScraperApi extends RpcTarget {
     >;
     getSvg(hash: string): Promise<IRpcEither<{ hash: string; name: string; svg: string }>>;
   };
+
+  generateSpec(
+    moduleId: string,
+    prompt: string,
+    data: unknown,
+  ): Promise<IRpcEither<Spec>>;
 }

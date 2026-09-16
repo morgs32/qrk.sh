@@ -3,7 +3,7 @@ import { primitives } from "@zerospin/schema";
 import { makeFetcherConfiguration } from "../../make/makeFetcherConfiguration";
 import { makeModule } from "../../make/makeModule";
 
-import { GitHubProfile } from "./GitHubProfile";
+import { GitHubProfile } from "./components/GitHubProfile";
 
 export const githubProfile = makeModule({
   id: "github-profile",

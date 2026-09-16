@@ -6,7 +6,7 @@ import "react-json-view-lite/dist/index.css";
 import { collapseAllNested, defaultStyles, JsonView } from "react-json-view-lite";
 
 import type { IFetcherConfiguration } from "../make/makeFetcherConfiguration";
-import type { ScraperApi } from "../worker/ScraperApi.public";
+import type { LibraryApi } from "../worker/LibraryApi.public";
 import type { IScrapeError } from "../worker/types.public";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -66,7 +66,7 @@ export function FetcherConfiguration(props: {
     if (hasUnsupportedModuleOptions) return;
     setIsLoadingData(true);
     try {
-      using api = newSyncRpcSession<ScraperApi>("/rpc");
+      using api = newSyncRpcSession<LibraryApi>("/rpc");
       const result = await fetchData({
         api,
         moduleOptions,

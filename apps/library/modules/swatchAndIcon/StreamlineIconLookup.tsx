@@ -4,7 +4,7 @@ import { newSyncRpcSession } from "@zerospin/core/utils/newSyncRpcSession";
 import { Image } from "@unpic/react";
 import { Check, Loader2, Search } from "lucide-react";
 import { useEffect, useState } from "react";
-import type { ScraperApi } from "../../worker/ScraperApi.public";
+import type { LibraryApi } from "../../worker/LibraryApi.public";
 import useSWRInfinite from "swr/infinite";
 
 import { Button } from "../../components/ui/button";
@@ -64,7 +64,7 @@ export function StreamlineIconLookup(props: { value: string; onChange: (value: s
       ];
     },
     async ([, searchQuery, offset, limit]: [string, string, number, number]) => {
-      using api = newSyncRpcSession<ScraperApi>("/rpc");
+      using api = newSyncRpcSession<LibraryApi>("/rpc");
       const result = await api.streamlineBackend().search(searchQuery, offset, limit);
 
       if (result._tag === "Left") {

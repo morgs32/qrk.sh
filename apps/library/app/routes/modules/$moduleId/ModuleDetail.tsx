@@ -1,12 +1,18 @@
 import { useState } from "react";
 
+import { newSyncRpcSession } from "@zerospin/core/utils/newSyncRpcSession";
+import type { Spec } from "@json-render/core";
 import { collapseAllNested, defaultStyles, JsonView } from "react-json-view-lite";
 import { useParams, type LoaderFunctionArgs } from "react-router";
 
 import { useBrickBreakpoint } from "../../../../components/brick/BrickBreakpointProvider";
 import { BrickPreviewFrame } from "../../../../components/brick/BrickPreviewFrame";
+import { Button } from "../../../../components/ui/button";
+import { Input } from "../../../../components/ui/input";
 import { modulesHash } from "../../../../modulesHash";
 import { GitHubProfileJsonRenderCompare } from "../../../../modules/githubProfile/generative/GitHubProfileJsonRenderCompare";
+import type { LibraryApi } from "../../../../worker/LibraryApi.public";
+import type { IScrapeError } from "../../../../worker/types.public";
 import { TableData } from "../../../TableData";
 import { Configuration } from "../../../Configuration";
 import { useGridStore } from "../../../useGridStore";
@@ -32,6 +38,11 @@ export default function ModuleDetail() {
   }
 
   const [moduleData, setModuleData] = useModuleData(moduleId);
+  const [generatePrompt, setGeneratePrompt] = useState("");
+  const [generatedSpec, setGeneratedSpec] = useState<Spec>();
+  const [isGeneratingSpec, setIsGeneratingSpec] = useState(false);
+  const [generateError, setGenerateError] = useState<IScrapeError>();
+  const [generateRequestError, setGenerateRequestError] = useState<string>();
   const brick = brickModule;
   const BrickComponent = brick.component;
   const optionsConfig = BrickComponent.options;
@@ -93,7 +104,7 @@ export default function ModuleDetail() {
                 aspectRatio: `${brick.def[breakpoint].w} / ${brick.def[breakpoint].h}`,
               }}
             >
-              <GitHubProfileJsonRenderCompare data={moduleData} />
+              <GitHubProfileJsonRenderCompare data={moduleData} spec={generatedSpec} />
             </div>
           </div>
         ) : (
@@ -133,6 +144,69 @@ export default function ModuleDetail() {
         )}
       </div>
       <div className="pb-6">
+        {brickModule.catalog !== undefined ? (
+          <div className="px-4 pb-6">
+            <h2 className="m-0 shrink-0 bg-zinc-100 px-4 py-4 font-normal">Generate spec</h2>
+            <form
+              className="flex flex-col items-start gap-2 py-5"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void (async () => {
+                  setIsGeneratingSpec(true);
+                  setGenerateError(undefined);
+                  setGenerateRequestError(undefined);
+                  try {
+                    using api = newSyncRpcSession<LibraryApi>("/rpc");
+                    const result = await api.generateSpec(moduleId, generatePrompt, moduleData);
+                    if (result._tag === "Left") {
+                      setGenerateError(result.left);
+                      return;
+                    }
+                    setGeneratedSpec(result.right);
+                  } catch (cause) {
+                    setGenerateRequestError(cause instanceof Error ? cause.message : String(cause));
+                  } finally {
+                    setIsGeneratingSpec(false);
+                  }
+                })();
+              }}
+            >
+              <label className="block font-medium" htmlFor="generate-spec-prompt">
+                Prompt
+              </label>
+              <Input
+                id="generate-spec-prompt"
+                name="prompt"
+                onChange={(event) => {
+                  setGeneratePrompt(event.target.value);
+                }}
+                type="text"
+                value={generatePrompt}
+              />
+              <Button disabled={isGeneratingSpec} type="submit">
+                Generate
+              </Button>
+            </form>
+            {isGeneratingSpec ? <p role="status">Generating spec…</p> : null}
+            {generateError !== undefined ? (
+              <div
+                className="rounded-md border border-red-200 bg-red-50 p-4"
+                role="alert"
+              >
+                <p className="m-0 font-mono">{generateError.code}</p>
+                <p className="mb-0 mt-2">{generateError.message}</p>
+              </div>
+            ) : null}
+            {generateRequestError !== undefined ? (
+              <div
+                className="rounded-md border border-red-200 bg-red-50 p-4"
+                role="alert"
+              >
+                {generateRequestError}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
         <Configuration
           brickModule={brickModule}
           data={moduleData}

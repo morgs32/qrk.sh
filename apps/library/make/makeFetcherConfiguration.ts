@@ -4,7 +4,7 @@ import type { newSyncRpcSession } from "@zerospin/core/utils/newSyncRpcSession";
 import { makeEffectSchema, type InferDecodedRow, type IShape } from "@zerospin/schema";
 import { Effect, Schema } from "effect";
 
-import type { ScraperApi } from "../worker/ScraperApi.public";
+import type { LibraryApi } from "../worker/LibraryApi.public";
 import type { IRpcEither } from "../worker/types.public";
 
 /** Runtime configuration contract after the factory has decoded its moduleOptions. */
@@ -20,7 +20,7 @@ export interface IFetcherConfiguration {
     }): ReactNode;
   }["bivarianceHack"];
   fetcher: (props: {
-    api: ReturnType<typeof newSyncRpcSession<ScraperApi>>;
+    api: ReturnType<typeof newSyncRpcSession<LibraryApi>>;
     moduleOptions: unknown;
     setData: (data: unknown) => void;
   }) => Promise<IRpcEither<void>>;
@@ -34,7 +34,7 @@ export function makeFetcherConfiguration<const MODULE_OPTIONS_SHAPE extends ISha
     onChange: (value: InferDecodedRow<MODULE_OPTIONS_SHAPE>) => void;
   }) => ReactNode;
   fetcher: (props: {
-    api: ReturnType<typeof newSyncRpcSession<ScraperApi>>;
+    api: ReturnType<typeof newSyncRpcSession<LibraryApi>>;
     moduleOptions: InferDecodedRow<MODULE_OPTIONS_SHAPE>;
     setData: (data: unknown) => void;
   }) => Promise<IRpcEither<void>>;
@@ -46,7 +46,7 @@ export function makeFetcherConfiguration<const MODULE_OPTIONS_SHAPE extends ISha
     onChange: (value: InferDecodedRow<MODULE_OPTIONS_SHAPE>) => void;
   }) => ReactNode;
   fetcher: (props: {
-    api: ReturnType<typeof newSyncRpcSession<ScraperApi>>;
+    api: ReturnType<typeof newSyncRpcSession<LibraryApi>>;
     moduleOptions: unknown;
     setData: (data: unknown) => void;
   }) => Promise<IRpcEither<void>>;
@@ -59,7 +59,7 @@ export function makeFetcherConfiguration<const MODULE_OPTIONS_SHAPE extends ISha
     moduleOptionsShape: props.moduleOptionsShape,
     moduleOptionsForm: props.moduleOptionsForm,
     fetcher: async (request: {
-      api: ReturnType<typeof newSyncRpcSession<ScraperApi>>;
+      api: ReturnType<typeof newSyncRpcSession<LibraryApi>>;
       moduleOptions: unknown;
       setData: (data: unknown) => void;
     }) => {

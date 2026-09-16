@@ -66,7 +66,11 @@ export type IScrapeError = Readonly<{
     | "link-unavailable"
     | "place-unavailable"
     | "provider-configuration-error"
-    | "scrape-transient-failure";
+    | "scrape-transient-failure"
+    | "invalid-generate-request"
+    | "catalog-unavailable"
+    | "invalid-generated-spec"
+    | "generate-failed";
   message: string;
   retryable?: boolean;
 }>;

@@ -1,7 +1,8 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useBrickBreakpoint } from "./BrickBreakpointProvider";
+
+import { useBrickGridWidth } from "./BrickBreakpointProvider";
 
 const PREVIEW_GRID_COLS = 8;
 
@@ -9,8 +10,9 @@ export function BrickPreview(props: {
   w: number;
   h: number;
   children: ReactNode;
+  gridWidth?: number;
 }) {
-  const { gridWidth } = useBrickBreakpoint();
+  const gridWidth = useBrickGridWidth(props.gridWidth);
   // Match react-grid-layout's whole-pixel item dimensions.
   const fullW = Math.round((gridWidth / PREVIEW_GRID_COLS) * props.w);
   const fullH = Math.round((gridWidth / PREVIEW_GRID_COLS) * props.h);

@@ -14,6 +14,14 @@ const BrickBreakpointContext = createContext<{
   selectedWidth: number | null;
 } | null>(null);
 
+/** Resolve grid width from an explicit override or the ambient provider. */
+export function useBrickGridWidth(explicitGridWidth?: number) {
+  const value = useContext(BrickBreakpointContext);
+  if (explicitGridWidth !== undefined) return explicitGridWidth;
+  if (!value) throw new Error("useBrickGridWidth requires BrickBreakpointProvider or an explicit width");
+  return value.gridWidth;
+}
+
 export function BrickBreakpointProvider({
   children,
   persistedWidth = null,

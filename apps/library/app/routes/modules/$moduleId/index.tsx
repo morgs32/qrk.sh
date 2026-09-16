@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
+import type { ReactNode, RefCallback } from "react";
 
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { newSyncRpcSession } from "@zerospin/core/utils/newSyncRpcSession";
 import type { Spec } from "@json-render/core";
 import { collapseAllNested, defaultStyles, JsonView } from "react-json-view-lite";
 
-import { BrickBreakpointProvider } from "../../../../lib/BrickBreakpointProvider";
 import { BrickPreview } from "../../../../lib/BrickPreview";
 import { BREAKPOINTS } from "../../../../lib/breakpoints";
 import { Button } from "../../../../components/ui/button";
@@ -25,6 +25,38 @@ export const Route = createFileRoute("/modules/$moduleId/")({
 
 const nestedListClassName =
   "mt-10 list-outside marker:font-mono marker:text-neutral-400 pl-[29px] max-[480px]:pl-8 list-[lower-alpha]";
+
+function UnconstrainedBrickPreview({ children }: { children: ReactNode }) {
+  const [sizeLabel, setSizeLabel] = useState<string>();
+  const rootRef = useCallback<RefCallback<HTMLDivElement>>((element) => {
+    if (!element) return;
+
+    const updateSize = () => {
+      const bounds = element.getBoundingClientRect();
+      setSizeLabel(`${Math.round(bounds.width)}×${Math.round(bounds.height)}px`);
+    };
+
+    updateSize();
+    const observer = new ResizeObserver(updateSize);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div>
+      <div
+        ref={rootRef}
+        className="qrk-bricks shadow-[0_8px_28px_rgb(0_0_0/0.06),0_1px_6px_rgb(0_0_0/0.04)]"
+        style={{ float: "left", width: "max-content" }}
+      >
+        {children}
+      </div>
+      {sizeLabel !== undefined ? (
+        <p className="m-0 clear-both pt-2 font-mono text-neutral-500">{sizeLabel}</p>
+      ) : null}
+    </div>
+  );
+}
 
 function ModuleDetail() {
   const [optionsByModule, setOptionsByModule] = useState<Record<string, unknown>>({});
@@ -66,52 +98,62 @@ function ModuleDetail() {
         <ol className={nestedListClassName}>
           {BREAKPOINTS.map((entry, index) => (
             <li className={index === 0 ? undefined : "mt-10"} key={entry.id}>
-              <BrickBreakpointProvider>
-                {({ containerRef }) => (
-                  <>
-                    <h2 className="m-0 shrink-0 py-2 font-normal">{entry.id}</h2>
-                    <div ref={containerRef} style={{ width: entry.previewWidth }}>
-                      <BrickPreview w={brick.def[entry.id].w} h={brick.def[entry.id].h}>
-                        <div
-                          className="size-full qrk-bricks brick-drag-surface overflow-hidden"
-                          data-module-brick={moduleId}
-                          data-testid="brick-preview"
-                          draggable
-                          onDragStart={(event) => {
-                            setActiveBrickDrag({
-                              ...brick.def,
-                              data: structuredClone(moduleData),
-                              ...(options !== undefined
-                                ? { options: structuredClone(options) }
-                                : {}),
-                            });
-                            const surface = event.currentTarget;
-                            if (surface) {
-                              const bounds = surface.getBoundingClientRect();
-                              event.dataTransfer.setDragImage(
-                                surface,
-                                event.clientX - bounds.left,
-                                event.clientY - bounds.top,
-                              );
-                            }
-                            event.dataTransfer.effectAllowed = "copy";
-                            event.dataTransfer.setData("text/plain", brick.def.moduleId);
-                          }}
-                          onDragEnd={() => setActiveBrickDrag(null)}
-                        >
-                          <div className="brick-drag-content size-full select-none">
-                            <BrickComponent
-                              breakpoint={entry.id}
-                              data={moduleData}
-                              options={options}
-                            />
-                          </div>
-                        </div>
-                      </BrickPreview>
+              <h2 className="m-0 shrink-0 py-2 font-normal">{entry.id}</h2>
+              <div className="flex items-start gap-4">
+                <div className="min-w-0">
+                  <p className="m-0 mb-2 font-mono text-neutral-500">gridItem</p>
+                  <BrickPreview
+                    gridWidth={entry.previewWidth}
+                    w={brick.def[entry.id].w}
+                    h={brick.def[entry.id].h}
+                  >
+                    <div
+                      className="size-full qrk-bricks brick-drag-surface overflow-hidden"
+                      data-module-brick={moduleId}
+                      data-testid="brick-preview"
+                      draggable
+                      onDragStart={(event) => {
+                        setActiveBrickDrag({
+                          ...brick.def,
+                          data: structuredClone(moduleData),
+                          ...(options !== undefined
+                            ? { options: structuredClone(options) }
+                            : {}),
+                        });
+                        const surface = event.currentTarget;
+                        if (surface) {
+                          const bounds = surface.getBoundingClientRect();
+                          event.dataTransfer.setDragImage(
+                            surface,
+                            event.clientX - bounds.left,
+                            event.clientY - bounds.top,
+                          );
+                        }
+                        event.dataTransfer.effectAllowed = "copy";
+                        event.dataTransfer.setData("text/plain", brick.def.moduleId);
+                      }}
+                      onDragEnd={() => setActiveBrickDrag(null)}
+                    >
+                      <div className="brick-drag-content size-full select-none">
+                        <BrickComponent
+                          breakpoint={entry.id}
+                          data={moduleData}
+                          options={options}
+                        />
+                      </div>
                     </div>
-                  </>
-                )}
-              </BrickBreakpointProvider>
+                  </BrickPreview>
+                  <p className="m-0 pt-2 font-mono text-neutral-500">
+                    w={brick.def[entry.id].w} h={brick.def[entry.id].h}
+                  </p>
+                </div>
+                <div className="min-w-0">
+                  <p className="m-0 mb-2 font-mono text-neutral-500">intrinsic</p>
+                  <UnconstrainedBrickPreview>
+                    <BrickComponent breakpoint={entry.id} data={moduleData} options={options} />
+                  </UnconstrainedBrickPreview>
+                </div>
+              </div>
             </li>
           ))}
         </ol>

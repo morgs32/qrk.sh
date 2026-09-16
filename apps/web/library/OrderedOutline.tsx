@@ -47,7 +47,7 @@ export function OrderedOutline() {
             <ListItem key={section.label} tone={section.tone} level={1}>
               {section.label}
               {children !== undefined && (
-                <ol className="mt-5 list-none p-0 pl-5 [counter-reset:item]">
+                <ol className="list-none p-0 pl-5 [counter-reset:item]">
                   {children.map((child) => (
                     <ListItem key={child.label} tone={child.tone} level={2}>
                       {child.label}

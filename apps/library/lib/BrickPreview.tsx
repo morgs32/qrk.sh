@@ -25,6 +25,10 @@ export function BrickPreview(
     | {
         breakpoint: (typeof BREAKPOINTS)[number]["id"];
         measure: ReactNode;
+        /** Module setting; used when larger than the measured size. */
+        w: number;
+        /** Module setting; used when larger than the measured size. */
+        h: number;
         children: ReactNode;
         gridWidth?: number;
       },
@@ -58,20 +62,22 @@ export function BrickPreview(
 
   let w: number;
   let h: number;
-  if ("w" in props) {
-    w = props.w;
-    h = props.h;
-  } else {
+  if ("measure" in props) {
     const breakpointEntry = BREAKPOINTS.find((row) => row.id === props.breakpoint);
     if (!breakpointEntry) {
       throw new Error(`Unknown breakpoint: ${props.breakpoint}`);
     }
-    w = intrinsicSize
+    const measuredW = intrinsicSize
       ? minGridUnits(breakpointEntry.gridItemWidth, intrinsicSize.widthPx)
       : 1;
-    h = intrinsicSize
+    const measuredH = intrinsicSize
       ? minGridUnits(breakpointEntry.gridItemWidth, intrinsicSize.heightPx)
       : 1;
+    w = Math.max(measuredW, props.w);
+    h = Math.max(measuredH, props.h);
+  } else {
+    w = props.w;
+    h = props.h;
   }
 
   // Match react-grid-layout's whole-pixel item dimensions.

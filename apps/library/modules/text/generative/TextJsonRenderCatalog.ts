@@ -1,4 +1,4 @@
-import { defineCatalog, DynamicStringSchema } from "@json-render/core";
+import { defineCatalog } from "@json-render/core";
 import { schema } from "@json-render/react/schema";
 import { z } from "zod";
 
@@ -9,11 +9,10 @@ export const textJsonRenderCatalog = defineCatalog(schema, {
     ...layoutCatalogComponents,
     TextBrick: {
       props: z.object({
-        title: DynamicStringSchema,
-        category: DynamicStringSchema,
+        content: z.unknown().nullable().optional(),
       }),
       description:
-        "Sample text brick presentation banner. Bind title/category or use literals for the sample chrome.",
+        "Read-only TipTap document. Bind content from module data ($state /content).",
     },
   },
   actions: {},

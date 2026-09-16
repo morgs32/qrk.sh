@@ -30,6 +30,8 @@ export function ModulePreview(props: {
         <BrickPreview
           breakpoint={breakpoint}
           measure={<BrickComponent breakpoint={breakpoint} data={def.data} />}
+          w={def[breakpoint].w}
+          h={def[breakpoint].h}
         >
           <DraggableBrick
             brickDef={def}

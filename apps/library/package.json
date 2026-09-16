@@ -30,6 +30,10 @@
       "types": "./dist/lib/GridStore.d.ts",
       "import": "./dist/GridStore.js"
     },
+    "./TiptapDocSchema": {
+      "types": "./dist/lib/TiptapDocSchema.d.ts",
+      "import": "./dist/TiptapDocSchema.js"
+    },
     "./bricks.css": "./dist/bricks.css"
   },
   "scripts": {

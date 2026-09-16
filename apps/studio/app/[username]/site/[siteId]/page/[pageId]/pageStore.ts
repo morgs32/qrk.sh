@@ -1,14 +1,7 @@
 import { Schema } from "effect";
 import { create } from "zustand";
 import type { JSONContent } from "@tiptap/react";
-
-const ArticleDocSchema = Schema.Struct({
-  type: Schema.Literal("doc"),
-  content: Schema.optional(Schema.Array(Schema.Unknown)),
-  attrs: Schema.optional(Schema.Unknown),
-  marks: Schema.optional(Schema.Array(Schema.Unknown)),
-  text: Schema.optional(Schema.String),
-});
+import { TiptapDocSchema } from "@qrk.sh/library/TiptapDocSchema";
 
 const seedArticle: JSONContent = {
   type: "doc",
@@ -36,7 +29,7 @@ function normalizeArticle(article: unknown): JSONContent {
   }
 
   const value = typeof article === "string" ? JSON.parse(article) : article;
-  const decoded = Schema.decodeUnknownSync(ArticleDocSchema)(value);
+  const decoded = Schema.decodeUnknownSync(TiptapDocSchema)(value);
   return JSON.parse(JSON.stringify(decoded));
 }
 

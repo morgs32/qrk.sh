@@ -6,8 +6,7 @@ export const defaultSpec: Spec = {
     "brick-1": {
       type: "TextBrick",
       props: {
-        title: "Text brick",
-        category: "Sample",
+        content: { $state: "/content" },
       },
     },
   },

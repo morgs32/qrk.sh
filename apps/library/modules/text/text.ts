@@ -4,6 +4,7 @@ import type { JSONContent } from "@tiptap/react";
 import { primitives } from "@zerospin/schema";
 import { Schema } from "effect";
 
+import { TiptapDocSchema } from "../../lib/TiptapDocSchema";
 import { makeFormConfiguration } from "../../make/makeFormConfiguration";
 import { makeModule } from "../../make/makeModule";
 
@@ -15,12 +16,18 @@ const dataShape = {
   content: primitives.json({
     nullable: true,
     defaultValue: null,
-    schema: Schema.declare(
-      (input): input is JSONContent =>
-        typeof input === "object" && input !== null && "type" in input && input.type === "doc",
-    ),
+    schema: TiptapDocSchema,
   }),
 };
+
+function tipTapDocumentFromData(
+  content: Schema.Schema.Type<typeof TiptapDocSchema> | null,
+): JSONContent | null {
+  if (content === null) {
+    return null;
+  }
+  return JSON.parse(JSON.stringify(content));
+}
 
 export const text = makeModule({
   dataShape,
@@ -33,8 +40,9 @@ export const text = makeModule({
   configuration: makeFormConfiguration<typeof dataShape>({
     form: ({ data, onChange }) =>
       createElement(TextEditorControl, {
-        value: data.content,
-        onChange: (content) => onChange({ content }),
+        value: tipTapDocumentFromData(data.content),
+        onChange: (content) =>
+          onChange({ content: Schema.decodeUnknownSync(TiptapDocSchema)(content) }),
       }),
   }),
   sm: { w: 4, h: 4 },

@@ -1,25 +1,18 @@
 import type { IDb, IResourceDbConfig } from "@zerospin/core/drizzle/types";
 import type { InferCommandPayload } from "@zerospin/core/models/types";
 import { makeContractVersion, primitives, ZerospinError } from "@zerospin/sdk/browser";
-import { Effect, Schema } from "effect";
+import { TiptapDocSchema } from "@qrk.sh/library/TiptapDocSchema";
+import { Effect } from "effect";
 import { pageV2 as Page } from "../../models/page/PageV2";
 import { siteV2 as Site } from "../../models/site/SiteV2";
 import { userV1 as User } from "../../models/user/UserV1";
 
 import { updatePageArticle } from "./updatePageArticle";
 
-const ArticleDocSchema = Schema.Struct({
-  type: Schema.Literal("doc"),
-  content: Schema.optional(Schema.Array(Schema.Unknown)),
-  attrs: Schema.optional(Schema.Unknown),
-  marks: Schema.optional(Schema.Array(Schema.Unknown)),
-  text: Schema.optional(Schema.String),
-});
-
 const updatePageArticlePayload = {
   id: primitives.foreignKey({ abbreviation: Page.abbreviation }),
   article: primitives.json({
-    schema: ArticleDocSchema,
+    schema: TiptapDocSchema,
   }),
 };
 

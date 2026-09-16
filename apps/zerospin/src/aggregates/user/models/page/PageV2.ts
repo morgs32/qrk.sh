@@ -1,17 +1,9 @@
 import { makeModelVersion, primitives } from "@zerospin/sdk/browser";
-import { Schema } from "effect";
+import { TiptapDocSchema } from "@qrk.sh/library/TiptapDocSchema";
 
 import { siteV2 as Site } from "../site/SiteV2";
 
 import { page } from "./page";
-
-const ArticleDocSchema = Schema.Struct({
-  type: Schema.Literal("doc"),
-  content: Schema.optional(Schema.Array(Schema.Unknown)),
-  attrs: Schema.optional(Schema.Unknown),
-  marks: Schema.optional(Schema.Array(Schema.Unknown)),
-  text: Schema.optional(Schema.String),
-});
 
 export const pageV2 = makeModelVersion(page, {
   attributes: {
@@ -35,7 +27,7 @@ export const pageV2 = makeModelVersion(page, {
     article: primitives.json({
       nullable: true,
       defaultValue: null,
-      schema: ArticleDocSchema,
+      schema: TiptapDocSchema,
     }),
   },
   indexes: [],

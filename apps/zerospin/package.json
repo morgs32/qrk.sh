@@ -10,14 +10,15 @@
   },
   "dependencies": {
     "@clerk/backend": "^3.8.5",
+    "@qrk.sh/library": "workspace:*",
+    "@remix-run/route-pattern": "^0.22.1",
     "@zerospin/core": "workspace:*",
     "@zerospin/error": "workspace:*",
     "@zerospin/schema": "workspace:*",
     "@zerospin/sdk": "workspace:*",
     "capnweb": "^0.12.0",
     "effect": "rc",
-    "system-worker": "workspace:*",
-    "@remix-run/route-pattern": "^0.22.1"
+    "system-worker": "workspace:*"
   },
   "devDependencies": {
     "@effect/vitest": "rc",
@@ -25,9 +26,9 @@
     "@zerospin/cli": "workspace:*",
     "@zerospin/dev-worker": "workspace:*",
     "cloudflare": "^6.1.0",
+    "config": "workspace:*",
     "drizzle-orm": "1.0.0-rc.4",
     "oxlint": "^1.59.0",
-    "config": "workspace:*",
     "typescript": "^6.0.2",
     "vitest": "^4.1.5",
     "wrangler": "^4.127.1"

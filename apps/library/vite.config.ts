@@ -27,6 +27,7 @@ export default defineConfig(({ mode }) => {
           breakpoints: "lib/breakpoints.ts",
           BrickWall: "lib/BrickWall.tsx",
           GridStore: "lib/GridStore.ts",
+          TiptapDocSchema: "lib/TiptapDocSchema.ts",
         },
         formats: ["es"],
         fileName: (_format, entryName) => `${entryName}.js`,

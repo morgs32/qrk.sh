@@ -28,29 +28,29 @@ function InstagramPostGrid(props: {
   postImageUrl4: string;
 }) {
   return (
-    <div className="relative min-h-0 flex-1 overflow-hidden bg-zinc-200">
+    <div className="relative min-h-[200px] min-w-[200px] flex-1 overflow-hidden bg-zinc-200">
       <div className="absolute inset-0 grid grid-cols-2 grid-rows-2 gap-px">
         <Image
           alt={`Latest post from @${props.username}`}
-          className="size-full min-h-0 object-cover"
+          className="size-full min-h-[200px] min-w-[200px] object-cover"
           layout="fullWidth"
           src={props.postImageUrl1}
         />
         <Image
           alt={`Latest post from @${props.username}`}
-          className="size-full min-h-0 object-cover"
+          className="size-full min-h-[200px] min-w-[200px] object-cover"
           layout="fullWidth"
           src={props.postImageUrl2}
         />
         <Image
           alt={`Latest post from @${props.username}`}
-          className="size-full min-h-0 object-cover"
+          className="size-full min-h-[200px] min-w-[200px] object-cover"
           layout="fullWidth"
           src={props.postImageUrl3}
         />
         <Image
           alt={`Latest post from @${props.username}`}
-          className="size-full min-h-0 object-cover"
+          className="size-full min-h-[200px] min-w-[200px] object-cover"
           layout="fullWidth"
           src={props.postImageUrl4}
         />

@@ -20,20 +20,9 @@ export function buildGitHubProfileSpec(data: {
         children: ["body-1", "footer-1"],
       },
       "header-1": {
-        type: "ProfileHeader",
-        props: {},
-        children: ["avatar-1", "login-1"],
-      },
-      "avatar-1": {
-        type: "Avatar",
+        type: "AvatarAndUsername",
         props: {
           avatar_url: data.avatar_url,
-          login: data.login,
-        },
-      },
-      "login-1": {
-        type: "Login",
-        props: {
           login: data.login,
         },
       },

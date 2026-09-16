@@ -3,14 +3,12 @@
 import { BrickBody } from "../../../components/brick/BrickBody";
 import { BrickFooter } from "../../../components/brick/BrickFooter";
 import { BrickShell } from "../../../components/brick/BrickShell";
-import { Avatar } from "./components/Avatar";
+import { AvatarAndUsername } from "./components/AvatarAndUsername";
 import { Bio } from "./components/Bio";
 import { Blog } from "./components/Blog";
 import { Followers } from "./components/Followers";
 import { Following } from "./components/Following";
 import { Location } from "./components/Location";
-import { Login } from "./components/Login";
-import { ProfileHeader } from "./components/ProfileHeader";
 import { PublicRepos } from "./components/PublicRepos";
 
 export function GitHubProfile(props: {
@@ -32,10 +30,7 @@ export function GitHubProfile(props: {
   return (
     <BrickShell>
       <BrickBody>
-        <ProfileHeader>
-          <Avatar avatar_url={user.avatar_url} login={user.login} />
-          <Login login={user.login} />
-        </ProfileHeader>
+        <AvatarAndUsername avatar_url={user.avatar_url} login={user.login} />
         <Bio bio={user.bio} />
         <Location location={user.location} />
         <Blog blog={user.blog} />

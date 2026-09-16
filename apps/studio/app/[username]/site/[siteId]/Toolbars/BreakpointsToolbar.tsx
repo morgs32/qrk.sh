@@ -1,6 +1,7 @@
 "use client";
 
 import { BREAKPOINTS } from "@qrk.sh/library/breakpoints";
+import { useBrickBreakpoint } from "@qrk.sh/library/BrickBreakpointProvider";
 import { Schema } from "effect";
 import { motion, useReducedMotion } from "framer-motion";
 import { X } from "lucide-react";
@@ -28,14 +29,8 @@ export function BreakpointsToolbar() {
   const reducedMotion = useReducedMotion();
   const params = useValidatedParams(ParamsSchema);
   const navigate = useNavigate();
-  const availableWidth = useBreakpointsPreviewStore((state) => state.availableWidth);
-  const savedWidth = useBreakpointsPreviewStore((state) => state.selectedWidth);
+  const { availableWidth, selectedWidth } = useBrickBreakpoint();
   const setSelectedWidth = useBreakpointsPreviewStore((state) => state.setSelectedWidth);
-  const previewWidths = BREAKPOINTS.map((row) => row.previewWidth);
-  const selectedWidth =
-    savedWidth !== null && savedWidth <= availableWidth
-      ? savedWidth
-      : ([...previewWidths].reverse().find((preset) => preset <= availableWidth) ?? null);
 
   return (
     <div className="pointer-events-none fixed bottom-6 left-1/2 z-30 -translate-x-1/2 md:left-[25%]">

@@ -1,5 +1,5 @@
 import { BrickBreakpointProvider } from "../../components/brick/BrickBreakpointProvider";
-import { useLayoutEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { Outlet, Link, useLocation } from "react-router";
 import { RotateCcw, X } from "lucide-react";
 import { Button } from "../../components/ui/button";
@@ -11,14 +11,7 @@ import { useGridStore } from "../useGridStore";
 
 export default function SandboxLayout() {
   const location = useLocation();
-  const gridRegionRef = useRef<HTMLDivElement>(null);
-  const [availableWidth, setAvailableWidth] = useState(0);
-  const savedWidth = useGridStore((state) => state.selectedWidth);
-  const previewWidths = BREAKPOINTS.map((row) => row.previewWidth);
-  const selectedWidth =
-    savedWidth !== null && savedWidth <= availableWidth
-      ? savedWidth
-      : ([...previewWidths].reverse().find((preset) => preset <= availableWidth) ?? null);
+  const persistedWidth = useGridStore((state) => state.selectedWidth);
   const [drawerOpen, setDrawerOpen] = useState(
     () => location.pathname !== "/" || location.search.length > 0,
   );
@@ -31,22 +24,6 @@ export default function SandboxLayout() {
     }
   }
 
-  useLayoutEffect(() => {
-    const region = gridRegionRef.current;
-    if (!region) return;
-
-    // Measure the region, not the narrowed preview, so larger fitting choices stay enabled.
-    const observer = new ResizeObserver(() => {
-      const width = region.getBoundingClientRect().width;
-      setAvailableWidth(width);
-    });
-    observer.observe(region);
-
-    return () => {
-      observer.disconnect();
-    };
-  }, []);
-
   const groups = (
     <div className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden">
       <div data-vaul-no-drag className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto bg-zinc-100">
@@ -56,18 +33,18 @@ export default function SandboxLayout() {
   );
 
   return (
-    <BrickBreakpointProvider>
-      {() => (
+    <BrickBreakpointProvider persistedWidth={persistedWidth}>
+      {({ regionRef, availableWidth, selectedWidth }) => (
         <Drawer open={drawerOpen} onOpenChange={setDrawerOpen} modal={false}>
           <main className="min-h-screen">
             <DrawerContent
               aria-describedby={undefined}
-              className="qrk-bricks typeset typeset-brick inset-x-0 bottom-0 z-60 h-[50dvh] rounded-none border-t border-zinc-300 bg-white"
+              className="not-typeset inset-x-0 bottom-0 z-60 h-[50dvh] rounded-none border-t border-zinc-300 bg-white p-0"
               onInteractOutside={(event) => event.preventDefault()}
               onOpenAutoFocus={(event) => event.preventDefault()}
             >
-              <DrawerTitle className="sr-only">Bricks</DrawerTitle>
-              <div className="flex shrink-0 items-center justify-between gap-4 border-b border-border/60 px-4 py-3">
+              <DrawerTitle className="sr-only not-typeset m-0">Bricks</DrawerTitle>
+              <div className="flex shrink-0 items-center justify-between gap-4 border-b border-border/60 px-4 py-2.5">
                 <Link to="/" className="font-semibold">
                   Bricks
                 </Link>
@@ -86,7 +63,7 @@ export default function SandboxLayout() {
               <div className="min-h-0 flex-1 overflow-hidden">{groups}</div>
             </DrawerContent>
             <div
-              ref={gridRegionRef}
+              ref={regionRef}
               data-testid="grid-region"
               className="relative min-w-0 pt-14"
             >

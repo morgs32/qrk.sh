@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useRef } from "react";
+import { useRef } from "react";
 
 import { useUser } from "@clerk/react";
 import { modulesHash } from "@qrk.sh/library";
@@ -11,7 +11,6 @@ import GridLayout, { verticalCompactor } from "react-grid-layout";
 import { href, useLocation, useNavigate } from "react-router";
 
 import { useSitePageDraftStore } from "../../sitePageDraftStore";
-import { useBreakpointsPreviewStore } from "../../Toolbars/useBreakpointsPreviewStore";
 
 import {
   getActiveBrickDragGridShape,
@@ -29,13 +28,13 @@ const ParamsSchema = Schema.Struct({
 });
 
 export function Grid() {
-  const { containerRef, gridWidth, breakpoint } = useBrickBreakpoint();
+  const { containerRef, regionRef, gridWidth, breakpoint, availableWidth, selectedWidth } =
+    useBrickBreakpoint();
   const params = useValidatedParams(ParamsSchema);
   const { user } = useUser();
   const navigate = useNavigate();
   const location = useLocation();
   const isBreakpointsRoute = /\/breakpoints\/?$/.test(location.pathname);
-  const gridRegionRef = useRef<HTMLDivElement>(null);
   const suppressBrickClickRef = useRef(false);
   const pageKey = JSON.stringify([user?.id, params.siteId, params.pageId]);
   const pageGrid = useBrickDrawerStore((state) => state.pageGrids[pageKey]);
@@ -45,33 +44,6 @@ export function Grid() {
       : state.owners[user.id]?.sites[params.siteId]?.pages[params.pageId]?.layout,
   );
   const layout = pageGrid?.layout ?? draftLayout;
-  const availableWidth = useBreakpointsPreviewStore((state) => state.availableWidth);
-  const savedWidth = useBreakpointsPreviewStore((state) => state.selectedWidth);
-  const setAvailableWidth = useBreakpointsPreviewStore((state) => state.setAvailableWidth);
-  const previewWidths = BREAKPOINTS.map((row) => row.previewWidth);
-  const selectedWidth =
-    savedWidth !== null && savedWidth <= availableWidth
-      ? savedWidth
-      : ([...previewWidths].reverse().find((preset) => preset <= availableWidth) ?? null);
-
-  useLayoutEffect(() => {
-    if (!isBreakpointsRoute) {
-      setAvailableWidth(0);
-      return;
-    }
-    const region = gridRegionRef.current;
-    if (!region) return;
-
-    // Measure the region, not the narrowed preview, so larger fitting choices stay enabled.
-    const observer = new ResizeObserver(() => {
-      const width = region.getBoundingClientRect().width;
-      setAvailableWidth(width);
-    });
-    observer.observe(region);
-    return () => {
-      observer.disconnect();
-    };
-  }, [isBreakpointsRoute, setAvailableWidth]);
 
   const rowHeight = gridWidth / GRID_COLS;
 
@@ -200,7 +172,7 @@ export function Grid() {
 
   if (isBreakpointsRoute) {
     return (
-      <div ref={gridRegionRef} className="min-h-full w-full" data-testid="grid-region">
+      <div ref={regionRef} className="min-h-full w-full" data-testid="grid-region">
         {availableWidth > 0 && availableWidth < BREAKPOINTS[0].previewWidth ? (
           <p className="p-4 text-sm" role="status">
             At least {BREAKPOINTS[0].previewWidth}px is needed to preview the grid.

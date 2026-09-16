@@ -246,16 +246,6 @@ html body[data-scroll-locked] {
   opacity: 1;
 }
 
-/* Document rhythm for the studio page article TipTap editor. */
-.typeset-article {
-  --typeset-font-body: var(--font-sans);
-  --typeset-font-heading: var(--font-sans);
-  --typeset-font-mono: var(--font-mono);
-  --typeset-size: 14px;
-  --typeset-leading: 1.6;
-  --typeset-flow: 1.25em;
-}
-
 /* Tiptap placeholder */
 .tiptap p.is-editor-empty:first-child::before {
   color: var(--muted-foreground);

@@ -40,7 +40,7 @@ export function LinkDefaultCard(props: {
         </div>
 
         {props.data.imageUrl.length > 0 ? (
-          <div className="not-typeset relative h-full w-[44%] shrink-0 overflow-hidden bg-zinc-200">
+          <div className="relative h-full w-[44%] shrink-0 overflow-hidden bg-zinc-200">
             <Image
               alt=""
               className="absolute inset-0 h-full w-full object-cover"

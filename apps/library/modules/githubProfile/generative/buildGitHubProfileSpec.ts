@@ -17,7 +17,12 @@ export function buildGitHubProfileSpec(data: {
       "card-1": {
         type: "ProfileCard",
         props: {},
-        children: ["avatar-1", "identity-1", "bio-1", "meta-1", "stats-1"],
+        children: ["header-1", "body-1", "footer-1"],
+      },
+      "header-1": {
+        type: "ProfileHeader",
+        props: {},
+        children: ["avatar-1", "login-1"],
       },
       "avatar-1": {
         type: "Avatar",
@@ -26,12 +31,16 @@ export function buildGitHubProfileSpec(data: {
           login: data.login,
         },
       },
-      "identity-1": {
-        type: "Identity",
+      "login-1": {
+        type: "Login",
         props: {
-          name: data.name,
           login: data.login,
         },
+      },
+      "body-1": {
+        type: "ProfileBody",
+        props: {},
+        children: ["bio-1", "location-1", "blog-1"],
       },
       "bio-1": {
         type: "Bio",
@@ -39,19 +48,39 @@ export function buildGitHubProfileSpec(data: {
           bio: data.bio,
         },
       },
-      "meta-1": {
-        type: "MetaRow",
+      "location-1": {
+        type: "Location",
         props: {
           location: data.location,
+        },
+      },
+      "blog-1": {
+        type: "Blog",
+        props: {
           blog: data.blog,
         },
       },
-      "stats-1": {
-        type: "StatsRow",
+      "footer-1": {
+        type: "ProfileFooter",
+        props: {},
+        children: ["followers-1", "following-1", "public-repos-1"],
+      },
+      "followers-1": {
+        type: "Followers",
+        props: {
+          followers: data.followers,
+        },
+      },
+      "following-1": {
+        type: "Following",
+        props: {
+          following: data.following,
+        },
+      },
+      "public-repos-1": {
+        type: "PublicRepos",
         props: {
           public_repos: data.public_repos,
-          followers: data.followers,
-          following: data.following,
         },
       },
     },

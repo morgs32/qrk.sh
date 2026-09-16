@@ -1,55 +1,41 @@
-import { createElement } from "react";
-
 import { ZerospinRouteErrorBoundary } from "@zerospin/error-boundary/ZerospinRouteErrorBoundary";
 import type { RouteObject } from "react-router";
 
 import RootLayout from "./RootLayout";
+import SandboxLayout from "./routes/Layout";
+import BrickPage, { loader as brickPageLoader } from "./routes/bricks/$moduleId/BrickPage";
+import ModulesPage from "./routes/modules/ModulesPage";
+import BrickDetail from "./routes/modules/$moduleId/$brickId/BrickDetail";
+import ModuleDetail from "./routes/modules/$moduleId/ModuleDetail";
+import ModulePage, { loader as modulePageLoader } from "./routes/modules/$moduleId/ModulePage";
 
 export default [
   {
-    hydrateFallbackElement: createElement("p", { role: "status" }, "Loading sandbox…"),
     Component: RootLayout,
     ErrorBoundary: ZerospinRouteErrorBoundary,
     children: [
       {
-        lazy: async () => {
-          const { default: SandboxLayout } = await import("./routes/Layout");
-          return { Component: SandboxLayout };
-        },
+        Component: SandboxLayout,
         children: [
           {
             path: "modules",
             children: [
               {
                 index: true,
-                lazy: async () => {
-                  const { default: ModulesPage } = await import("./routes/modules/ModulesPage");
-                  return { Component: ModulesPage };
-                },
+                Component: ModulesPage,
               },
               {
                 path: ":moduleId",
-                lazy: async () => {
-                  const { default: ModulePage, loader } =
-                    await import("./routes/modules/$moduleId/ModulePage");
-                  return { Component: ModulePage, loader };
-                },
+                Component: ModulePage,
+                loader: modulePageLoader,
                 children: [
                   {
                     index: true,
-                    lazy: async () => {
-                      const { default: ModuleDetail } =
-                        await import("./routes/modules/$moduleId/ModuleDetail");
-                      return { Component: ModuleDetail };
-                    },
+                    Component: ModuleDetail,
                   },
                   {
                     path: ":brickId",
-                    lazy: async () => {
-                      const { default: BrickDetail } =
-                        await import("./routes/modules/$moduleId/$brickId/BrickDetail");
-                      return { Component: BrickDetail };
-                    },
+                    Component: BrickDetail,
                   },
                 ],
               },
@@ -59,11 +45,8 @@ export default [
       },
       {
         path: "bricks/:moduleId",
-        lazy: async () => {
-          const { default: BrickPage, loader } =
-            await import("./routes/bricks/$moduleId/BrickPage");
-          return { Component: BrickPage, loader };
-        },
+        Component: BrickPage,
+        loader: brickPageLoader,
       },
     ],
   },

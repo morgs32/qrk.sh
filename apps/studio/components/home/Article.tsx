@@ -160,7 +160,7 @@ export function Article() {
     <EditorContext.Provider value={{ editor }}>
       <div className="flex min-h-full w-full flex-col bg-background">
         <ArticleToolbar editor={editor} inRequiredHeading={inRequiredHeading} />
-        <div className="typeset typeset-article w-full px-6 py-16">
+        <div className="w-full px-6 py-16">
           <EditorContent editor={editor} />
         </div>
       </div>

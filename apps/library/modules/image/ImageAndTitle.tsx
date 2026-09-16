@@ -11,7 +11,7 @@ export function ImageAndTitle(props: {
 }) {
   return (
     <div className="flex h-full w-full min-h-0 flex-col overflow-hidden">
-      <div className="not-typeset relative min-h-0 flex-1 overflow-hidden">
+      <div className="relative min-h-0 flex-1 overflow-hidden">
         <Image
           src={props.data.imageUrl}
           alt={props.data.title}

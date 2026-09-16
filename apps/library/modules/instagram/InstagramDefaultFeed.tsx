@@ -19,7 +19,7 @@ export function InstagramDefaultFeed(props: {
       target="_blank"
     >
       <div className="relative h-full w-full overflow-hidden">
-        <div className="not-typeset absolute inset-x-0 top-0 bottom-[20.25%] grid grid-cols-2 grid-rows-2 gap-px overflow-hidden bg-zinc-200">
+        <div className="absolute inset-x-0 top-0 bottom-[20.25%] grid grid-cols-2 grid-rows-2 gap-px overflow-hidden bg-zinc-200">
           <Image
             alt={`Latest post from @${props.data.username}`}
             className="size-full min-h-0 object-cover"

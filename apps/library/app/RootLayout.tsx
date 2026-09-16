@@ -4,7 +4,7 @@ import "./globals.css";
 
 export default function RootLayout() {
   return (
-    <div className="qrk-bricks typeset typeset-brick min-h-screen">
+    <div className="qrk-bricks min-h-screen">
       <Outlet />
       <ScrollRestoration />
     </div>

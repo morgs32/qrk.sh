@@ -9,6 +9,21 @@ export const githubProfileJsonRenderCatalog = defineCatalog(schema, {
       slots: ["default"],
       description: "Slotted shell for composing a GitHub profile layout.",
     },
+    ProfileHeader: {
+      props: z.object({}),
+      slots: ["default"],
+      description: "Avatar and login row.",
+    },
+    ProfileBody: {
+      props: z.object({}),
+      slots: ["default"],
+      description: "Scrollable body for bio, location, and blog lines.",
+    },
+    ProfileFooter: {
+      props: z.object({}),
+      slots: ["default"],
+      description: "Footer row for follower, following, and repository counts.",
+    },
     Avatar: {
       props: z.object({
         avatar_url: z.string(),
@@ -16,12 +31,11 @@ export const githubProfileJsonRenderCatalog = defineCatalog(schema, {
       }),
       description: "User avatar image with initials fallback.",
     },
-    Identity: {
+    Login: {
       props: z.object({
-        name: z.string().nullable(),
         login: z.string(),
       }),
-      description: "Display name and @login.",
+      description: "@login handle.",
     },
     Bio: {
       props: z.object({
@@ -29,20 +43,35 @@ export const githubProfileJsonRenderCatalog = defineCatalog(schema, {
       }),
       description: "Profile bio text.",
     },
-    MetaRow: {
+    Location: {
       props: z.object({
         location: z.string().nullable(),
+      }),
+      description: "Profile location line.",
+    },
+    Blog: {
+      props: z.object({
         blog: z.string(),
       }),
-      description: "Location and blog/link row.",
+      description: "Profile blog/link line.",
     },
-    StatsRow: {
+    Followers: {
       props: z.object({
-        public_repos: z.number().int(),
         followers: z.number().int(),
+      }),
+      description: "Follower count.",
+    },
+    Following: {
+      props: z.object({
         following: z.number().int(),
       }),
-      description: "Repository, follower, and following counts.",
+      description: "Following count.",
+    },
+    PublicRepos: {
+      props: z.object({
+        public_repos: z.number().int(),
+      }),
+      description: "Public repository count.",
     },
   },
   actions: {},

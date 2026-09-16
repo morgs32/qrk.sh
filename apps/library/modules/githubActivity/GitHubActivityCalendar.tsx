@@ -16,7 +16,7 @@ export function GitHubActivityCalendar(props: {
     <div
       data-github-activity
       data-brick-breakpoint={props.breakpoint}
-      className="not-typeset flex h-full w-full items-center overflow-x-auto px-3 py-2 [&_[class$=legend-colors]]:ml-0!"
+      className="flex h-full w-full items-center overflow-x-auto px-3 py-2 [&_[class$=legend-colors]]:ml-0!"
       style={{
         maskImage: "linear-gradient(to right, black calc(100% - 20px), transparent)",
       }}

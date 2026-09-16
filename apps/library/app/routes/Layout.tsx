@@ -65,11 +65,11 @@ export default function Layout() {
           <main className="min-h-screen">
             <DrawerContent
               aria-describedby={undefined}
-              className="not-typeset inset-x-0 bottom-0 z-60 h-[50dvh] rounded-none border-t border-zinc-300 bg-white p-0"
+              className="inset-x-0 bottom-0 z-60 h-[50dvh] rounded-none border-t border-zinc-300 bg-white p-0"
               onInteractOutside={(event) => event.preventDefault()}
               onOpenAutoFocus={(event) => event.preventDefault()}
             >
-              <DrawerTitle className="sr-only not-typeset m-0">{drawerTitle}</DrawerTitle>
+              <DrawerTitle className="sr-only m-0">{drawerTitle}</DrawerTitle>
               <div className="flex shrink-0 items-center justify-between gap-4 border-b border-border/60 px-4 py-2.5">
                 <nav aria-label="Drawer breadcrumbs" className="flex min-w-0 items-center gap-2">
                   <Link to="/modules">Bricks</Link>

@@ -6,7 +6,7 @@ export function SwatchAndIconColor(props: {
 }) {
   return (
     <div
-      className="not-typeset flex h-full w-full items-center justify-center"
+      className="flex h-full w-full items-center justify-center"
       style={{ backgroundColor: props.color }}
     >
       {props.children}

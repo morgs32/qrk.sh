@@ -103,12 +103,20 @@ function RegionsSection({
 export function OrderedBody({
   showListDecorator: initialShowListDecorator = true,
   showAnchors: initialShowAnchors = true,
+  leftAligned: initialLeftAligned = false,
 }: {
   showListDecorator?: boolean;
   showAnchors?: boolean;
+  leftAligned?: boolean;
 }) {
   const [showListDecorator, setShowListDecorator] = useState(initialShowListDecorator);
   const [showAnchors, setShowAnchors] = useState(initialShowAnchors);
+  const [leftAligned, setLeftAligned] = useState(initialLeftAligned);
+
+  const outerListPadding = showListDecorator ? "pl-[29px] max-[480px]:pl-8" : "pl-0";
+
+  const nestedListPadding =
+    showListDecorator || !leftAligned ? "pl-[29px] max-[480px]:pl-8" : "pl-0";
 
   return (
     <main className="min-h-screen bg-[#f5f5f5] px-6 pt-7 pb-14 font-mono text-[15px] leading-[1.28] text-[#171717] max-[480px]:px-[23px] max-[480px]:pt-2 max-[480px]:pb-10 max-[480px]:text-sm md:px-10 md:pb-[72px]">
@@ -125,12 +133,14 @@ export function OrderedBody({
             <span>Show anchors</span>
             <Switch checked={showAnchors} onCheckedChange={(checked) => setShowAnchors(checked)} />
           </label>
+          <label className="inline-flex cursor-pointer select-none items-center gap-[9px] text-xs text-neutral-500">
+            <span>Left aligned</span>
+            <Switch checked={leftAligned} onCheckedChange={(checked) => setLeftAligned(checked)} />
+          </label>
         </div>
         <ol
-          className={`list-outside marker:font-mono marker:text-neutral-400 ${
-            showListDecorator
-              ? "list-[upper-alpha] pl-[29px] max-[480px]:pl-8"
-              : "list-none pl-0"
+          className={`list-outside marker:font-mono marker:text-neutral-400 ${outerListPadding} ${
+            showListDecorator ? "list-[upper-alpha]" : "list-none"
           }`}
         >
           <li>
@@ -138,10 +148,8 @@ export function OrderedBody({
               API Overview
             </SectionHeading>
             <ol
-              className={`mt-10 list-outside marker:font-mono marker:text-neutral-400 ${
-                showListDecorator
-                  ? "list-[lower-alpha] pl-[29px] max-[480px]:pl-8"
-                  : "list-none pl-0"
+              className={`mt-10 list-outside marker:font-mono marker:text-neutral-400 ${nestedListPadding} ${
+                showListDecorator ? "list-[lower-alpha]" : "list-none"
               }`}
             >
               <li>

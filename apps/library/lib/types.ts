@@ -30,14 +30,14 @@ export type IModule = {
   registry: ComponentRegistry;
 } & (
   | {
-      configuration?: never;
+      configuration: null;
       dataShape: null;
       defaultData: null;
       def: IModuleBrickDef;
       component: IModuleBrick["component"];
     }
   | {
-      configuration?: IFormConfiguration | IFetcherConfiguration;
+      configuration: null | IFormConfiguration | IFetcherConfiguration;
       dataShape: IShape;
       defaultData: unknown;
       def: IModuleBrickDef;

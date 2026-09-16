@@ -1,6 +1,9 @@
+"use client";
+
 import type { ReactNode } from "react";
 
 import { followOrderedBodyHash, orderedBodyHeadingId } from "./OrderedBody";
+import { useOrderedDocSections, type OrderedDocSection } from "./OrderedDoc";
 
 const listItemBaseClassName =
   "relative whitespace-nowrap [counter-increment:item] before:absolute before:right-[calc(100%+0.65rem)] before:text-neutral-400";
@@ -21,46 +24,53 @@ function ListItem(props: { children: ReactNode; tone: string; level: 1 | 2 | 3 }
   );
 }
 
-export function OrderedOutline(props: {
-  sections: Array<{
-    label: string;
-    tone: string;
-    children?: Array<{ label: string; tone: string }>;
-  }>;
+function OutlineSections(props: {
+  sections: Array<OrderedDocSection>;
 }) {
   return (
+    <ol className="m-0 list-none p-0 [counter-reset:item]">
+      {props.sections.map((section) => {
+        const children = section.children;
+        return (
+          <ListItem key={section.label} tone={section.tone} level={1}>
+            <a
+              className="text-inherit no-underline"
+              href={`#${orderedBodyHeadingId(section.label)}`}
+              onClick={followOrderedBodyHash}
+            >
+              {section.label}
+            </a>
+            {children !== undefined && children.length > 0 ? (
+              <ol className="list-none p-0 pl-5 [counter-reset:item]">
+                {children.map((child) => (
+                  <ListItem key={child.label} tone={child.tone} level={2}>
+                    <a
+                      className="text-inherit no-underline"
+                      href={`#${orderedBodyHeadingId(child.label)}`}
+                      onClick={followOrderedBodyHash}
+                    >
+                      {child.label}
+                    </a>
+                  </ListItem>
+                ))}
+              </ol>
+            ) : null}
+          </ListItem>
+        );
+      })}
+    </ol>
+  );
+}
+
+export function OrderedOutline(props: {
+  sections?: Array<OrderedDocSection>;
+}) {
+  const registeredSections = useOrderedDocSections();
+  const sections = props.sections ?? registeredSections;
+
+  return (
     <nav aria-label="Documentation sections" className="ml-5">
-      <ol className="m-0 list-none p-0 [counter-reset:item]">
-        {props.sections.map((section) => {
-          const children = section.children;
-          return (
-            <ListItem key={section.label} tone={section.tone} level={1}>
-              <a
-                className="text-inherit no-underline"
-                href={`#${orderedBodyHeadingId(section.label)}`}
-                onClick={followOrderedBodyHash}
-              >
-                {section.label}
-              </a>
-              {children !== undefined && (
-                <ol className="list-none p-0 pl-5 [counter-reset:item]">
-                  {children.map((child) => (
-                    <ListItem key={child.label} tone={child.tone} level={2}>
-                      <a
-                        className="text-inherit no-underline"
-                        href={`#${orderedBodyHeadingId(child.label)}`}
-                        onClick={followOrderedBodyHash}
-                      >
-                        {child.label}
-                      </a>
-                    </ListItem>
-                  ))}
-                </ol>
-              )}
-            </ListItem>
-          );
-        })}
-      </ol>
+      <OutlineSections sections={sections} />
     </nav>
   );
 }

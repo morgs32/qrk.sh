@@ -139,7 +139,7 @@ export function makeModule<
       defaultData: null,
       defaultSpec,
       registry,
-      configuration: undefined,
+      configuration: null,
       def: {
         ...def,
         data: null,
@@ -159,7 +159,7 @@ export function makeModule<
     defaultData,
     defaultSpec,
     registry,
-    configuration: props.configuration,
+    configuration: props.configuration ?? null,
     def: {
       ...def,
       data: defaultData,

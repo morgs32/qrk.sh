@@ -3,7 +3,7 @@ import { makeEffectSchema } from "@zerospin/schema";
 import { Schema } from "effect";
 import { collapseAllNested, defaultStyles, JsonView } from "react-json-view-lite";
 
-import { OrderedBodyHeading } from "@qrk.sh/web/library/OrderedBody";
+import { OrderedSection } from "@qrk.sh/web/library/OrderedDoc";
 
 import { useBrickBreakpoint } from "../../../../lib/BrickBreakpointProvider";
 import { BrickPreview } from "../../../../lib/BrickPreview";
@@ -44,11 +44,8 @@ function BrickDetail() {
 
   return (
     <>
-      <li data-testid="brick-detail-pane">
-        <OrderedBodyHeading className="shrink-0">Preview</OrderedBodyHeading>
-        <div
-          className="mt-5 overflow-auto py-6"
-        >
+      <OrderedSection data-testid="brick-detail-pane" headingClassName="shrink-0" label="Preview">
+        <div className="mt-5 overflow-auto py-6">
           <BrickPreview
             w={entry.gridItem?.w ?? brick.def[breakpoint].w}
             h={entry.gridItem?.h ?? brick.def[breakpoint].h}
@@ -58,9 +55,9 @@ function BrickDetail() {
             </div>
           </BrickPreview>
         </div>
-      </li>
-      {brickModule.configuration !== undefined ? (
-        <li className="mt-10">
+      </OrderedSection>
+      {brickModule.configuration ? (
+        <OrderedSection className="mt-10" headingClassName="shrink-0 py-4" label="Configuration">
           <Configuration
             key={brickId}
             showData={false}
@@ -82,10 +79,9 @@ function BrickDetail() {
               }));
             }}
           />
-        </li>
+        </OrderedSection>
       ) : null}
-      <li className="mt-10">
-        <OrderedBodyHeading className="shrink-0 py-4">Options</OrderedBodyHeading>
+      <OrderedSection className="mt-10" headingClassName="shrink-0 py-4" label="Options">
         <div className="flex flex-wrap gap-2 py-4">
           {breakpoint !== "sm" && (
             <Button
@@ -128,9 +124,8 @@ function BrickDetail() {
             }}
           />
         )}
-      </li>
-      <li className="mt-10">
-        <OrderedBodyHeading className="shrink-0 py-4">Brick Definition</OrderedBodyHeading>
+      </OrderedSection>
+      <OrderedSection className="mt-10" headingClassName="shrink-0 py-4" label="Brick Definition">
         <div className="overflow-auto bg-white py-4" data-testid="module-data-result">
           <JsonView
             shouldExpandNode={collapseAllNested}
@@ -138,7 +133,7 @@ function BrickDetail() {
             style={{ ...defaultStyles, container: "bg-white" }}
           />
         </div>
-      </li>
+      </OrderedSection>
     </>
   );
 }

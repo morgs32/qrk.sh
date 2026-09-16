@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 
-import { OrderedBodyHeading } from "@qrk.sh/web/library/OrderedBody";
 import { newSyncRpcSession } from "@zerospin/core/utils/newSyncRpcSession";
 import { PrimitiveKind } from "@zerospin/schema";
 import "react-json-view-lite/dist/index.css";
@@ -89,7 +88,6 @@ export function FetcherConfiguration(props: {
 
   return (
     <div>
-      <OrderedBodyHeading className="shrink-0 py-4">Configuration</OrderedBodyHeading>
       {props.showData !== false && (
         <div className="overflow-auto bg-white py-4" data-testid="module-data-result">
           <JsonView

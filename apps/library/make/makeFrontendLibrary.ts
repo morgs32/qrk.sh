@@ -50,7 +50,7 @@ export function makeFrontendLibrary<
         defaultSpec: backendEntry.defaultSpec,
         dataShape: null,
         defaultData: null,
-        configuration: undefined,
+        configuration: null,
       };
     } else {
       result[moduleId] = {

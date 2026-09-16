@@ -4,6 +4,7 @@
   "exports": {
     "./library/Drawer": "./library/Drawer.tsx",
     "./library/OrderedBody": "./library/OrderedBody.tsx",
+    "./library/OrderedDoc": "./library/OrderedDoc.tsx",
     "./library/OrderedOutline": "./library/OrderedOutline.tsx"
   },
   "scripts": {

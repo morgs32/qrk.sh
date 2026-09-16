@@ -6,7 +6,7 @@ import { newSyncRpcSession } from "@zerospin/core/utils/newSyncRpcSession";
 import type { Spec } from "@json-render/core";
 import { collapseAllNested, defaultStyles, JsonView } from "react-json-view-lite";
 
-import { OrderedBodyHeading } from "@qrk.sh/web/library/OrderedBody";
+import { OrderedSection } from "@qrk.sh/web/library/OrderedDoc";
 
 import { BrickPreview } from "../../../../lib/BrickPreview";
 import { BREAKPOINTS } from "../../../../lib/breakpoints";
@@ -85,6 +85,7 @@ function BreakpointPreviewRow({
   moduleData,
   options,
   BrickComponent,
+  className,
 }: {
   entry: (typeof BREAKPOINTS)[number];
   moduleId: string;
@@ -92,6 +93,7 @@ function BreakpointPreviewRow({
   moduleData: unknown;
   options: unknown;
   BrickComponent: NonNullable<(typeof modulesHash)[string]>["component"];
+  className?: string;
 }) {
   const setActiveBrickDrag = useBricksStore((state) => state.setActiveBrickDrag);
   const [intrinsicSize, setIntrinsicSize] = useState<{ widthPx: number; heightPx: number }>();
@@ -108,8 +110,7 @@ function BreakpointPreviewRow({
   const h = intrinsicSize ? minGridUnits(entry.gridItemWidth, intrinsicSize.heightPx) : 1;
 
   return (
-    <>
-      <OrderedBodyHeading className="shrink-0 py-2">{entry.id}</OrderedBodyHeading>
+    <OrderedSection className={className} headingClassName="shrink-0 py-2" label={entry.id}>
       <div className="flex items-start gap-4">
         <div className="min-w-0">
           <p className="m-0 mb-2 font-mono text-neutral-500">gridItem</p>
@@ -157,7 +158,7 @@ function BreakpointPreviewRow({
           </UnconstrainedBrickPreview>
         </div>
       </div>
-    </>
+    </OrderedSection>
   );
 }
 
@@ -185,8 +186,7 @@ function ModuleDetail() {
 
   return (
     <>
-      <li data-testid="module-configuration-pane">
-        <OrderedBodyHeading className="shrink-0">Module</OrderedBodyHeading>
+      <OrderedSection data-testid="module-configuration-pane" headingClassName="shrink-0" label="Module">
         <div className="mt-5">
           <TableData
             entries={[
@@ -195,26 +195,24 @@ function ModuleDetail() {
             ]}
           />
         </div>
-      </li>
-      <li className="mt-10">
-        <OrderedBodyHeading className="shrink-0">Previews</OrderedBodyHeading>
+      </OrderedSection>
+      <OrderedSection className="mt-10" headingClassName="shrink-0" label="Previews">
         <ol className={nestedListClassName}>
           {BREAKPOINTS.map((entry, index) => (
-            <li className={index === 0 ? undefined : "mt-10"} key={entry.id}>
-              <BreakpointPreviewRow
-                BrickComponent={BrickComponent}
-                brick={brick}
-                entry={entry}
-                moduleData={moduleData}
-                moduleId={moduleId}
-                options={options}
-              />
-            </li>
+            <BreakpointPreviewRow
+              BrickComponent={BrickComponent}
+              brick={brick}
+              entry={entry}
+              key={entry.id}
+              moduleData={moduleData}
+              moduleId={moduleId}
+              options={options}
+              className={index === 0 ? undefined : "mt-10"}
+            />
           ))}
         </ol>
-      </li>
-      <li className="mt-10">
-        <OrderedBodyHeading className="shrink-0 py-4">Generate spec</OrderedBodyHeading>
+      </OrderedSection>
+      <OrderedSection className="mt-10" headingClassName="shrink-0 py-4" label="Generate spec">
         <form
           className="flex flex-col items-start gap-2 py-5"
           onSubmit={(event) => {
@@ -284,20 +282,19 @@ function ModuleDetail() {
             </div>
           </BrickPreview>
         </div>
-      </li>
-      {brickModule.configuration !== undefined ? (
-        <li className="mt-10">
+      </OrderedSection>
+      {brickModule.configuration ? (
+        <OrderedSection className="mt-10" headingClassName="shrink-0 py-4" label="Configuration">
           <Configuration
             brickModule={brickModule}
             data={moduleData}
             setData={setModuleData}
             showData={false}
           />
-        </li>
+        </OrderedSection>
       ) : null}
       {OptionsForm ? (
-        <li className="mt-10">
-          <OrderedBodyHeading className="shrink-0 py-4">Options</OrderedBodyHeading>
+        <OrderedSection className="mt-10" headingClassName="shrink-0 py-4" label="Options">
           <OptionsForm
             value={options}
             onChange={(value) => {
@@ -307,10 +304,9 @@ function ModuleDetail() {
               }));
             }}
           />
-        </li>
+        </OrderedSection>
       ) : null}
-      <li className="mt-10">
-        <OrderedBodyHeading className="shrink-0 py-4">Brick Definition</OrderedBodyHeading>
+      <OrderedSection className="mt-10" headingClassName="shrink-0 py-4" label="Brick Definition">
         <div className="overflow-auto bg-white py-4" data-testid="module-data-result">
           <JsonView
             shouldExpandNode={collapseAllNested}
@@ -322,7 +318,7 @@ function ModuleDetail() {
             style={{ ...defaultStyles, container: "bg-white" }}
           />
         </div>
-      </li>
+      </OrderedSection>
     </>
   );
 }

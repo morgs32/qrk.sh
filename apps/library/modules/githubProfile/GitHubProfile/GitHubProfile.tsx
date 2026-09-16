@@ -3,6 +3,8 @@
 import { BrickBody } from "../../../components/brick/BrickBody";
 import { BrickFooter } from "../../../components/brick/BrickFooter";
 import { BrickShell } from "../../../components/brick/BrickShell";
+import { Column } from "../../../components/Column";
+import { Row } from "../../../components/Row";
 import { AvatarAndUsername } from "./components/AvatarAndUsername";
 import { Bio } from "./components/Bio";
 import { Blog } from "./components/Blog";
@@ -30,16 +32,20 @@ export function GitHubProfile(props: {
   return (
     <BrickShell>
       <BrickBody>
-        <AvatarAndUsername avatar_url={user.avatar_url} login={user.login} />
-        <Bio bio={user.bio} />
-        <Location location={user.location} />
-        <Blog blog={user.blog} />
+        <Column gap={2}>
+          <AvatarAndUsername avatar_url={user.avatar_url} login={user.login} />
+          <Bio bio={user.bio} />
+          <Location location={user.location} />
+          <Blog blog={user.blog} />
+        </Column>
       </BrickBody>
 
-      <BrickFooter className="justify-end gap-4">
-        <Followers followers={user.followers} />
-        <Following following={user.following} />
-        <PublicRepos public_repos={user.public_repos} />
+      <BrickFooter>
+        <Row className="w-full" gap={2} justifyContent="flex-end">
+          <Followers followers={user.followers} />
+          <Following following={user.following} />
+          <PublicRepos public_repos={user.public_repos} />
+        </Row>
       </BrickFooter>
     </BrickShell>
   );

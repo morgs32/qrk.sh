@@ -34,6 +34,33 @@ export const githubProfileJsonRenderCatalog = defineCatalog(schema, {
       description:
         "Pinned bottom band (mt-auto). Put content here when the user asks for the bottom of the card. Accepts any children (identity, stats, or other leaves); not reserved for counts.",
     },
+    Column: {
+      props: z.object({
+        gap: z.union([z.literal(2), z.literal(4)]),
+        justifyContent: z
+          .enum(["flex-start", "flex-end", "center", "space-between", "space-around", "space-evenly"])
+          .optional(),
+        alignItems: z.enum(["flex-start", "flex-end", "center", "stretch", "baseline"]).optional(),
+        flexWrap: z.enum(["nowrap", "wrap", "wrap-reverse"]).optional(),
+      }),
+      slots: ["default"],
+      description:
+        "Vertical flex stack. gap must be 2 or 4. Put inside BrickBody with gap 2 for profile lines stacked top-to-bottom.",
+    },
+    Row: {
+      props: z.object({
+        gap: z.union([z.literal(2), z.literal(4)]),
+        justifyContent: z
+          .enum(["flex-start", "flex-end", "center", "space-between", "space-around", "space-evenly"])
+          .optional(),
+        alignItems: z.enum(["flex-start", "flex-end", "center", "stretch", "baseline"]).optional(),
+        flexWrap: z.enum(["nowrap", "wrap", "wrap-reverse"]).optional(),
+        className: z.string().optional(),
+      }),
+      slots: ["default"],
+      description:
+        'Horizontal flex cluster. gap must be 2 or 4. Put inside BrickFooter with gap 2, justifyContent "flex-end", and className "w-full" to pin counts to the right.',
+    },
     Bio: {
       props: z.object({
         bio: z.union([DynamicStringSchema, z.null()]),

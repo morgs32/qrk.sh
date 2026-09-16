@@ -19,6 +19,13 @@ export function buildGitHubProfileSpec(): Spec {
       "body-1": {
         type: "BrickBody",
         props: {},
+        children: ["body-column-1"],
+      },
+      "body-column-1": {
+        type: "Column",
+        props: {
+          gap: 2,
+        },
         children: ["header-1", "bio-1", "location-1", "blog-1"],
       },
       "bio-1": {
@@ -42,6 +49,15 @@ export function buildGitHubProfileSpec(): Spec {
       "footer-1": {
         type: "BrickFooter",
         props: {},
+        children: ["footer-row-1"],
+      },
+      "footer-row-1": {
+        type: "Row",
+        props: {
+          gap: 2,
+          justifyContent: "flex-end",
+          className: "w-full",
+        },
         children: ["followers-1", "following-1", "public-repos-1"],
       },
       "followers-1": {

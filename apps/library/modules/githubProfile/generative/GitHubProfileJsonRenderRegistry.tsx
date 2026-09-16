@@ -3,6 +3,8 @@ import { defineRegistry } from "@json-render/react";
 import { BrickBody } from "../../../components/brick/BrickBody";
 import { BrickFooter } from "../../../components/brick/BrickFooter";
 import { BrickShell } from "../../../components/brick/BrickShell";
+import { Column } from "../../../components/Column";
+import { Row } from "../../../components/Row";
 import { AvatarAndUsername } from "../GitHubProfile/components/AvatarAndUsername";
 import { Bio } from "../GitHubProfile/components/Bio";
 import { Blog } from "../GitHubProfile/components/Blog";
@@ -23,6 +25,27 @@ export const { registry } = defineRegistry(githubProfileJsonRenderCatalog, {
     ),
     BrickBody: ({ children }) => <BrickBody>{children}</BrickBody>,
     BrickFooter: ({ children }) => <BrickFooter>{children}</BrickFooter>,
+    Column: ({ children, props }) => (
+      <Column
+        gap={props.gap}
+        justifyContent={props.justifyContent}
+        alignItems={props.alignItems}
+        flexWrap={props.flexWrap}
+      >
+        {children}
+      </Column>
+    ),
+    Row: ({ children, props }) => (
+      <Row
+        className={props.className}
+        gap={props.gap}
+        justifyContent={props.justifyContent}
+        alignItems={props.alignItems}
+        flexWrap={props.flexWrap}
+      >
+        {children}
+      </Row>
+    ),
     Bio: ({ props }) => (
       <Bio bio={typeof props.bio === "string" || props.bio === null ? props.bio : null} />
     ),

@@ -4,8 +4,8 @@ import { makeEffectSchema } from "@zerospin/schema";
 import { ActionProvider, Renderer, StateProvider, VisibilityProvider } from "@json-render/react";
 import { Schema } from "effect";
 
-import { buildGitHubProfileSpec } from "./buildGitHubProfileSpec";
-import { githubProfile } from "./githubProfile";
+import { buildGitHubProfileSpec } from "../buildGitHubProfileSpec";
+import { githubProfile } from "../githubProfile";
 import { registry } from "./GitHubProfileJsonRenderRegistry";
 
 export function GitHubProfileJsonRenderCompare(props: { data: unknown }) {

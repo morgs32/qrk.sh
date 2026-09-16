@@ -10,7 +10,7 @@
   },
   "include": [
     "worker/**/*.ts",
-    "modules/**/[A-Z]*Repo.ts",
+    "modules/**/[A-Z]*Backend.ts",
     "worker-configuration.d.ts"
   ],
   "exclude": ["worker/**/*.e2e.spec.ts", "node_modules"]

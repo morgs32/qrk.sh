@@ -12,8 +12,7 @@ import {
 import { useBrickBreakpoint } from "../../components/brick/BrickBreakpointProvider";
 import { BrickPreviewFrame } from "../../components/brick/BrickPreviewFrame";
 import { modulesHash } from "../../modulesHash";
-import { Outline } from "../../components/outline/Outline";
-import { GitHubProfileJsonRenderCompare } from "../../modules/githubProfile/GitHubProfileJsonRenderCompare";
+import { GitHubProfileJsonRenderCompare } from "../../modules/githubProfile/generative/GitHubProfileJsonRenderCompare";
 import { TableData } from "../TableData";
 import { Configuration } from "../Configuration";
 import { useGridStore } from "../useGridStore";
@@ -47,9 +46,9 @@ export default function ModuleConfiguration() {
 
   return (
     <section data-testid="module-configuration-pane">
-      <Outline.Title sticky>
+      <h2 className="m-0 shrink-0 bg-zinc-100 px-4 py-4 font-normal sticky top-0 z-10">
         <Link to={`/modules/${encodeURIComponent(moduleId)}`}>{brickModule.label}</Link>
-      </Outline.Title>
+      </h2>
       <div className="px-4">
         <TableData
           entries={[
@@ -160,7 +159,7 @@ export default function ModuleConfiguration() {
         />
         {OptionsForm && (
           <>
-            <Outline.Title>Options</Outline.Title>
+            <h2 className="m-0 shrink-0 bg-zinc-100 px-4 py-4 font-normal">Options</h2>
             <OptionsForm
               value={options}
               onChange={(value) => {
@@ -171,7 +170,7 @@ export default function ModuleConfiguration() {
             />
           </>
         )}
-        <Outline.Title>Brick Definition</Outline.Title>
+        <h2 className="m-0 shrink-0 bg-zinc-100 px-4 py-4 font-normal">Brick Definition</h2>
         <div className="overflow-auto bg-white px-2 py-4" data-testid="module-data-result">
           <JsonView
             shouldExpandNode={collapseAllNested}

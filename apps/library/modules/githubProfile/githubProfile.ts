@@ -3,7 +3,7 @@ import { primitives } from "@zerospin/schema";
 import { makeFetcherConfiguration } from "../../make/makeFetcherConfiguration";
 import { makeModule } from "../../make/makeModule";
 
-import { GitHubProfileStats } from "./GitHubProfileStats";
+import { GitHubProfile } from "./components/GitHubProfile";
 
 export const githubProfile = makeModule({
   id: "github-profile",
@@ -14,7 +14,7 @@ export const githubProfile = makeModule({
       url: primitives.text({ defaultValue: "https://github.com/morgs32" }),
     },
     fetcher: async ({ api, moduleOptions, setData }) => {
-      const result = await api.githubRepo().getProfile(moduleOptions.url);
+      const result = await api.githubBackend().getProfile(moduleOptions.url);
       if (result._tag === "Left") return result;
       setData(result.right);
       return { _tag: "Right", right: undefined };
@@ -66,7 +66,7 @@ export const githubProfile = makeModule({
     updated_at: "2026-07-15T15:27:35Z",
     login: "morgs32",
   },
-  sm: { component: GitHubProfileStats, w: 4, h: 4 },
-  md: { component: GitHubProfileStats, w: 4, h: 3 },
-  lg: { component: GitHubProfileStats, w: 2, h: 2 },
+  sm: { component: GitHubProfile, w: 4, h: 4 },
+  md: { component: GitHubProfile, w: 4, h: 3 },
+  lg: { component: GitHubProfile, w: 2, h: 2 },
 });

@@ -23,7 +23,7 @@ const StreamlineIconResponse = Schema.Struct({
   hash: Schema.String,
   name: Schema.String});
 
-export class StreamlineRepo extends DurableObject<IScraperEnv> {
+export class StreamlineBackend extends DurableObject<IScraperEnv> {
   async search(
     query: string,
     offset: number,

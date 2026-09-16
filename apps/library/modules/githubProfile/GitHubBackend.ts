@@ -6,21 +6,21 @@ import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { Effect } from "effect";
 
 import { encodeRpc } from "../../worker/encodeRpc";
-import { ScrapeError } from "../../worker/ScrapeError";
-import { scrapeFigma } from "../../worker/scrapeFigma";
-import type { IFigmaFilePreviewPayload, IRpcEither, IScraperEnv } from "../../worker/types";
+import { normalizeGitHubUrl } from "../../worker/normalizeGitHubUrl";
+import { scrapeGitHub } from "../../worker/scrapeGitHub";
+import type { IGitHubScrapePayload, IRpcEither, IScraperEnv } from "../../worker/types";
 
-const CACHE_TTL_MS = 60 * 60 * 1_000;
+const CACHE_TTL_MS = 24 * 60 * 60 * 1_000;
 
-const figmaCache = sqliteTable("figma_cache", {
+const gitHubCache = sqliteTable("github_cache", {
   url: text("url").primaryKey(),
-  payload: text("payload", { mode: "json" }).$type<IFigmaFilePreviewPayload>().notNull(),
+  payload: text("payload", { mode: "json" }).$type<IGitHubScrapePayload>().notNull(),
   refreshedAt: integer("refreshed_at").notNull(),
   expiresAt: integer("expires_at").notNull()});
 
-const figmaMigrations = {
-  "20260718000000_create_figma_cache.sql": `
-CREATE TABLE figma_cache (
+const gitHubMigrations = {
+  "20260717000000_create_github_cache.sql": `
+CREATE TABLE github_cache (
   url TEXT PRIMARY KEY NOT NULL,
   payload TEXT NOT NULL,
   refreshed_at INTEGER NOT NULL,
@@ -28,87 +28,51 @@ CREATE TABLE figma_cache (
 );
 `};
 
-export class FigmaRepo extends DurableObject<IScraperEnv> {
+export class GitHubBackend extends DurableObject<IScraperEnv> {
   readonly #db;
-  readonly #inFlightScrapes = new Map<string, Promise<IRpcEither<IFigmaFilePreviewPayload>>>();
+  readonly #inFlightScrapes = new Map<string, Promise<IRpcEither<IGitHubScrapePayload>>>();
 
   constructor(ctx: DurableObjectState, env: IScraperEnv) {
     super(ctx, env);
     this.#db = drizzle(ctx.storage);
     ctx.blockConcurrencyWhile(async () => {
-      migrate(this.#db, { migrations: figmaMigrations });
+      migrate(this.#db, { migrations: gitHubMigrations });
     });
   }
 
-  async getThumbnail(url: string): Promise<IRpcEither<IFigmaFilePreviewPayload>> {
-    const normalized = await Effect.runPromise(
-      Effect.gen(function* () {
-        const parsed = yield* Effect.try({
-          try: () => new URL(url),
-          catch: () =>
-            new ScrapeError({
-              code: "invalid-scrape-request",
-              message: "Figma file URL must be valid"})});
-
-        const pathSegments = parsed.pathname.split("/");
-        const inputType = pathSegments[1];
-        const fileKey = pathSegments[2];
-        const hasSupportedHost =
-          parsed.hostname === "figma.com" || parsed.hostname === "www.figma.com";
-        const hasSupportedType =
-          inputType === "design" ||
-          inputType === "file" ||
-          inputType === "board" ||
-          inputType === "slides" ||
-          inputType === "deck" ||
-          inputType === "proto";
-
-        if (
-          parsed.protocol !== "https:" ||
-          !hasSupportedHost ||
-          !hasSupportedType ||
-          fileKey === undefined ||
-          !/^[a-zA-Z0-9]{22,128}$/.test(fileKey)
-        ) {
-          return yield* new ScrapeError({
-            code: "invalid-scrape-request",
-            message:
-              "Figma requests require a supported https://figma.com/<file-type>/<file-key> URL"});
-        }
-
-        const canonicalType =
-          inputType === "deck" ? "slides" : inputType === "file" ? "design" : inputType;
-        return `https://www.figma.com/${canonicalType}/${fileKey}`;
-      }).pipe(encodeRpc),
-    );
-
+  async getProfile(url: string): Promise<IRpcEither<IGitHubScrapePayload>> {
+    const normalized = await Effect.runPromise(normalizeGitHubUrl(url).pipe(encodeRpc));
     if (normalized._tag === "Left") return normalized;
     const canonicalUrl = normalized.right;
-    const cached = this.#db.select().from(figmaCache).where(eq(figmaCache.url, canonicalUrl)).get();
-
-    if (cached !== undefined && cached.expiresAt > Date.now()) {
+    const cached = this.#db
+      .select()
+      .from(gitHubCache)
+      .where(eq(gitHubCache.url, canonicalUrl))
+      .get();
+    const cachedHasContributions =
+      cached !== undefined && Array.isArray(cached.payload.contributions);
+    if (cachedHasContributions && cached.expiresAt > Date.now()) {
       return { _tag: "Right", right: cached.payload };
     }
 
     const existingScrape = this.#inFlightScrapes.get(canonicalUrl);
-
-    if (cached !== undefined) {
+    if (cachedHasContributions) {
       if (existingScrape === undefined) {
         const refreshPromise = Effect.runPromise(
-          scrapeFigma({ url, token: this.env.FIGMA_TOKEN }).pipe(encodeRpc),
+          scrapeGitHub({ url: canonicalUrl, token: this.env.GITHUB_TOKEN }).pipe(encodeRpc),
         )
           .then((result) => {
             if (result._tag === "Right") {
               const refreshedAt = Date.now();
               this.#db
-                .insert(figmaCache)
+                .insert(gitHubCache)
                 .values({
                   url: canonicalUrl,
                   payload: result.right,
                   refreshedAt,
                   expiresAt: refreshedAt + CACHE_TTL_MS})
                 .onConflictDoUpdate({
-                  target: figmaCache.url,
+                  target: gitHubCache.url,
                   set: {
                     payload: result.right,
                     refreshedAt,
@@ -118,69 +82,61 @@ export class FigmaRepo extends DurableObject<IScraperEnv> {
             return result;
           })
           .catch(
-            (cause): IRpcEither<IFigmaFilePreviewPayload> => ({
+            (cause): IRpcEither<IGitHubScrapePayload> => ({
               _tag: "Left",
               left: {
                 code: "scrape-persistence-failed",
-                message: `Figma refresh failed: ${String(cause)}`}}),
+                message: `GitHub refresh failed: ${String(cause)}`}}),
           );
-
         this.#inFlightScrapes.set(canonicalUrl, refreshPromise);
         this.ctx.waitUntil(
           refreshPromise
             .then((result) => {
-              if (result._tag === "Left") {
+              if (result._tag === "Left")
                 console.error(
                   JSON.stringify({
                     event: "scraper-background-refresh-failed",
-                    repo: "FigmaRepo",
+                    backend: "GitHubBackend",
                     url: canonicalUrl,
                     error: result.left}),
                 );
-              }
             })
             .finally(() => {
               this.#inFlightScrapes.delete(canonicalUrl);
             }),
         );
       }
-
       return { _tag: "Right", right: cached.payload };
     }
 
     if (existingScrape !== undefined) return existingScrape;
-
     const scrapePromise = Effect.runPromise(
-      scrapeFigma({ url, token: this.env.FIGMA_TOKEN }).pipe(encodeRpc),
+      scrapeGitHub({ url: canonicalUrl, token: this.env.GITHUB_TOKEN }).pipe(encodeRpc),
     )
       .then((result) => {
         if (result._tag === "Right") {
           const refreshedAt = Date.now();
           this.#db
-            .insert(figmaCache)
+            .insert(gitHubCache)
             .values({
               url: canonicalUrl,
               payload: result.right,
               refreshedAt,
               expiresAt: refreshedAt + CACHE_TTL_MS})
             .onConflictDoUpdate({
-              target: figmaCache.url,
-              set: {
-                payload: result.right,
-                refreshedAt,
-                expiresAt: refreshedAt + CACHE_TTL_MS}})
+              target: gitHubCache.url,
+              set: { payload: result.right, refreshedAt, expiresAt: refreshedAt + CACHE_TTL_MS }})
             .run();
         }
         return result;
       })
       .catch(
-        (cause): IRpcEither<IFigmaFilePreviewPayload> => ({
+        (cause): IRpcEither<IGitHubScrapePayload> => ({
           _tag: "Left",
           left: {
             code: "scrape-persistence-failed",
-            message: `Figma scrape failed: ${String(cause)}`}}),
+            message: `GitHub scrape failed: ${String(cause)}`}}),
       );
-
     this.#inFlightScrapes.set(canonicalUrl, scrapePromise);
     try {
       return await scrapePromise;

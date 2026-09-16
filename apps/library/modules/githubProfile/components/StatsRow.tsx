@@ -1,6 +1,6 @@
 import { BookOpen, UserPlus, Users } from "lucide-react";
 
-import { brickMetaIconClass } from "../../components/brick/brickTokens";
+import { brickMetaIconClass } from "../../../components/brick/brickTokens";
 
 export function StatsRow(props: { public_repos: number; followers: number; following: number }) {
   return (

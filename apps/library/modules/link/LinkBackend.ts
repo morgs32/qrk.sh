@@ -44,7 +44,7 @@ CREATE TABLE link_preview_cache (
 );
 `};
 
-export class LinkRepo extends DurableObject<IScraperEnv> {
+export class LinkBackend extends DurableObject<IScraperEnv> {
   readonly #db;
   readonly #inFlightPreviews = new Map<string, Promise<IRpcEither<ILinkPreview>>>();
 
@@ -300,7 +300,7 @@ export class LinkRepo extends DurableObject<IScraperEnv> {
               console.error(
                 JSON.stringify({
                   event: "scraper-background-refresh-failed",
-                  repo: "LinkRepo",
+                  backend: "LinkBackend",
                   url: canonicalUrl,
                   error: result.left}),
               );

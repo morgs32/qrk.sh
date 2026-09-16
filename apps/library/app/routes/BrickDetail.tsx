@@ -7,7 +7,6 @@ import { Link, useParams } from "react-router";
 import { useBrickBreakpoint } from "../../components/brick/BrickBreakpointProvider";
 import { BrickPreviewFrame } from "../../components/brick/BrickPreviewFrame";
 import { modulesHash } from "../../modulesHash";
-import { Outline } from "../../components/outline/Outline";
 import { Button } from "../../components/ui/button";
 import { Configuration } from "../Configuration";
 import { resolveBrickBreakpoint } from "../resolveBrickBreakpoint";
@@ -54,9 +53,9 @@ export default function BrickDetail() {
 
   return (
     <section data-testid="brick-detail-pane">
-      <Outline.Title sticky>
+      <h2 className="m-0 shrink-0 bg-zinc-100 px-4 py-4 font-normal sticky top-0 z-10">
         <Link to={`/modules/${encodeURIComponent(moduleId)}`}>{brickModule.label}</Link>
-      </Outline.Title>
+      </h2>
       <div
         className={`overflow-auto py-6 ${(entry.gridItem?.w ?? brick.def[breakpoint].w) === 8 ? "" : "px-4"}`}
       >
@@ -92,7 +91,7 @@ export default function BrickDetail() {
                 [brickId]: { ...state.bricksById[brickId], data: decodedData }}}));
           }}
         />
-        <Outline.Title>Options</Outline.Title>
+        <h2 className="m-0 shrink-0 bg-zinc-100 px-4 py-4 font-normal">Options</h2>
         <div className="flex flex-wrap gap-2 px-4 py-4">
           {breakpoint !== "sm" && (
             <Button
@@ -133,7 +132,7 @@ export default function BrickDetail() {
             }}
           />
         )}
-        <Outline.Title>Brick Definition</Outline.Title>
+        <h2 className="m-0 shrink-0 bg-zinc-100 px-4 py-4 font-normal">Brick Definition</h2>
         <div className="overflow-auto bg-white px-2 py-4" data-testid="module-data-result">
           <JsonView
             shouldExpandNode={collapseAllNested}

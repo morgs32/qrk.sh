@@ -50,7 +50,7 @@ CREATE TABLE google_places_cache (
 );
 `};
 
-export class GooglePlacesRepo extends DurableObject<IScraperEnv> {
+export class GooglePlacesBackend extends DurableObject<IScraperEnv> {
   readonly #db;
   readonly #inFlightPlaceRequests = new Map<string, Promise<IRpcEither<IGooglePlaceDetails>>>();
 
@@ -253,7 +253,7 @@ export class GooglePlacesRepo extends DurableObject<IScraperEnv> {
               console.error(
                 JSON.stringify({
                   event: "scraper-background-refresh-failed",
-                  repo: "GooglePlacesRepo",
+                  backend: "GooglePlacesBackend",
                   googlePlaceId: normalizedGooglePlaceId,
                   error: result.left}),
               );

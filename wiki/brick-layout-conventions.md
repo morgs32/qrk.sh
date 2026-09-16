@@ -7,7 +7,7 @@ PascalCase filenames.
 - **Template** — a layout-role id that describes what differs in markup (not a
   breakpoint suffix, not a grid size like `4x4`)
 
-Helpers such as `*Card`, `*Activity`, `*Graphic`, forms, lookups, and `*Repo`
+Helpers such as `*Card`, `*Activity`, `*Graphic`, forms, lookups, and `*Backend`
 are not presentations and keep their own names.
 
 Select complete presentations once in the module definition. `makeModule`
@@ -19,12 +19,12 @@ the nearest smaller complete entry:
 makeModule({
   id: "github-profile",
   // …
-  sm: { component: GitHubProfileStats, w: 4, h: 4 },
+  sm: { component: GitHubProfile, w: 4, h: 4 },
   lg: { component: GitHubProfileCalendar, w: 4, h: 4 },
 });
 ```
 
-In this example, `md` inherits `GitHubProfileStats` and `xl` inherits
+In this example, `md` inherits `GitHubProfile` and `xl` inherits
 `GitHubProfileCalendar`. Grid container thresholds are 640px (`md`), 1024px
 (`lg`), and 1280px (`xl`); `sm` covers smaller widths. Shared defs live in
 `apps/library/breakpoints.ts`.
@@ -40,7 +40,7 @@ conditions throughout it. Ordinary data-dependent rendering is still
 appropriate. Template names describe layout role; catalog dimensions, schemas,
 and persisted configuration do not change when you rename a presentation.
 
-The GitHub profile catalog uses `GitHubProfileStats` (avatar, bio, and
+The GitHub profile catalog uses `GitHubProfile` (avatar, bio, and
 icon/count statistics without a contribution calendar) and
 `GitHubProfileCalendar` (same card with contribution activity). Sibling wide
 templates `GitHubProfileActivityHero` and `GitHubProfileStatsRow` keep activity

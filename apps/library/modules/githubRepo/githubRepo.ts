@@ -1,7 +1,6 @@
 import { makeModule } from "../../make/makeModule";
 
-import { GitHubRepoCompact } from "./GitHubRepoCompact";
-import { GitHubRepoStack } from "./GitHubRepoStack";
+import { GitHubRepo } from "./components/GitHubRepo";
 
 export const githubRepo = makeModule({
   dataShape: null,
@@ -9,6 +8,7 @@ export const githubRepo = makeModule({
   id: "github-repo",
   label: "GitHub Repo",
   description: "A GitHub repository card.",
-  sm: { component: GitHubRepoStack, w: 4, h: 4 },
-  md: { component: GitHubRepoCompact, w: 4, h: 2 },
-  lg: { component: GitHubRepoCompact, w: 2, h: 2 }});
+  sm: { component: GitHubRepo, w: 4, h: 4 },
+  md: { component: GitHubRepo, w: 4, h: 2 },
+  lg: { component: GitHubRepo, w: 2, h: 2 },
+});

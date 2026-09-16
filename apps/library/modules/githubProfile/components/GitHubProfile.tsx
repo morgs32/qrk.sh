@@ -4,12 +4,12 @@ import { Image } from "@unpic/react";
 import { useState } from "react";
 import { BookOpen, Link as LinkIcon, MapPin, Quote, UserPlus, Users } from "lucide-react";
 
-import { BrickBody } from "../../components/brick/BrickBody";
-import { BrickFooter } from "../../components/brick/BrickFooter";
-import { BrickShell } from "../../components/brick/BrickShell";
-import { brickMetaIconClass } from "../../components/brick/brickTokens";
+import { BrickBody } from "../../../components/brick/BrickBody";
+import { BrickFooter } from "../../../components/brick/BrickFooter";
+import { BrickShell } from "../../../components/brick/BrickShell";
+import { brickMetaIconClass } from "../../../components/brick/brickTokens";
 
-export function GitHubProfileStats(props: {
+export function GitHubProfile(props: {
   breakpoint: "sm" | "md" | "lg" | "xl";
   data: {
     login: string;
@@ -31,7 +31,7 @@ export function GitHubProfileStats(props: {
 
   return (
     <BrickShell>
-      <div className="flex shrink-0 flex-col items-start gap-1">
+      <div className="flex min-w-0 shrink-0 items-center gap-2">
         {avatarFailed || !avatarSrc ? (
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-200 font-medium">
             {avatarFallback}
@@ -46,10 +46,7 @@ export function GitHubProfileStats(props: {
             onError={() => setAvatarFailed(true)}
           />
         )}
-
-        <div className="min-w-0 w-full">
-          <p className="truncate">@{user.login}</p>
-        </div>
+        <p className="min-w-0 truncate">@{user.login}</p>
       </div>
 
       <BrickBody>

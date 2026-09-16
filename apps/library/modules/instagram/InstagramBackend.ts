@@ -30,7 +30,7 @@ CREATE TABLE instagram_cache (
 );
 `};
 
-export class InstagramRepo extends DurableObject<IScraperEnv> {
+export class InstagramBackend extends DurableObject<IScraperEnv> {
   readonly #db;
   readonly #inFlightScrapes = new Map<string, Promise<IRpcEither<IInstagramScrapePayload>>>();
 
@@ -66,7 +66,7 @@ export class InstagramRepo extends DurableObject<IScraperEnv> {
         }).catch((cause): IRpcEither<IInstagramScrapePayload> => ({ _tag: "Left", left: { code: "scrape-persistence-failed", message: `Instagram refresh failed: ${String(cause)}` } }));
         this.#inFlightScrapes.set(canonicalUrl, refreshPromise);
         this.ctx.waitUntil(refreshPromise.then(result => {
-          if (result._tag === "Left") console.error(JSON.stringify({ event: "scraper-background-refresh-failed", repo: "InstagramRepo", url: canonicalUrl, error: result.left }));
+          if (result._tag === "Left") console.error(JSON.stringify({ event: "scraper-background-refresh-failed", backend: "InstagramBackend", url: canonicalUrl, error: result.left }));
         }).finally(() => {
           this.#inFlightScrapes.delete(canonicalUrl);
         }));

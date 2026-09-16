@@ -22,7 +22,7 @@ export const swatchAndIcon = makeModule({
         value: value.hash,
         onChange: (hash) => onChange({ hash })}),
     fetcher: async ({ api, moduleOptions, setData }) => {
-      const result = await api.streamlineRepo().getSvg(moduleOptions.hash);
+      const result = await api.streamlineBackend().getSvg(moduleOptions.hash);
       if (result._tag === "Left") return result;
       setData(result.right);
       return { _tag: "Right", right: undefined };

@@ -1,6 +1,6 @@
 import { Link as LinkIcon, MapPin } from "lucide-react";
 
-import { brickMetaIconClass } from "../../components/brick/brickTokens";
+import { brickMetaIconClass } from "../../../components/brick/brickTokens";
 
 export function MetaRow(props: { location: string | null; blog: string }) {
   const hasLocation = Boolean(props.location);

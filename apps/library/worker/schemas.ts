@@ -3,18 +3,8 @@ import { Schema } from "effect";
 import type {
   IGitHubScrapePayload,
   IInstagramScrapePayload,
-  IJsonValue,
   ILinkPreview,
-  ITikTokScrapePayload,
 } from "./types";
-
-const JsonValueSchema = Schema.declare((input: unknown): input is IJsonValue => {
-  try {
-    return JSON.stringify(input) !== undefined;
-  } catch {
-    return false;
-  }
-});
 
 export const InstagramPayloadSchema = Schema.Struct({
   username: Schema.String,
@@ -55,8 +45,3 @@ export const FigmaFilePreviewPayloadSchema = Schema.Struct({
   thumbnail_width: Schema.optional(Schema.NullOr(Schema.Int)),
   thumbnail_height: Schema.optional(Schema.NullOr(Schema.Int)),
 });
-
-export const TikTokPayloadSchema = Schema.Struct({
-  username: Schema.String,
-  data: JsonValueSchema,
-}) satisfies Schema.Schema<ITikTokScrapePayload>;

@@ -59,20 +59,24 @@ Use kebab-case module identifiers. Site drawer selectors expose `data-brick-draw
 
 ### Module folders
 
-Presentations, forms, helpers, module-owned `*Repo` Durable Objects, and assets live under
+Presentations, forms, helpers, module-owned `*Backend` Durable Objects, and assets live under
 `apps/library/modules/<camelCaseModule>/`, where the folder name matches the export
 (for example `figmaThumbnail`, `githubProfile`, `icon`). The assembler file at the folder root
 (e.g. `figmaThumbnail.ts`) calls `makeModule` and imports colocated presentations. Do not add
 `index.ts` barrels under a module folder.
 
 `worker/Worker.ts` remains the Wrangler entry and re-exports each module
-`*Repo` class. Shared scrape helpers (`BrowserHost`, URL normalizers, encodeRpc,
+`*Backend` class. Shared scrape helpers (`BrowserHost`, URL normalizers, encodeRpc,
 schemas, and provider scrape modules) stay under `apps/library/worker/`.
 
 - **Bad**: nesting former catalogs under a group folder again.
-- **Good**: `modules/githubProfile/GitHubProfileStats.tsx` and
-  `modules/githubRepo/GitHubRepoStack.tsx`, each with its own assembler.
-- **Good**: `modules/instagram/InstagramRepo.ts` next to that
+- **Good**: `modules/githubProfile/components/GitHubProfile.tsx` and
+  `modules/githubRepo/components/GitHubRepo.tsx`, each with its own assembler.
+  Do not colocate a PascalCase presentation next to a camelCase assembler of the
+  same name (`GitHubRepo.tsx` beside `githubRepo.ts`); on a case-insensitive
+  filesystem `import { GitHubRepo } from "./GitHubRepo"` resolves to the
+  assembler and fails with a missing named export.
+- **Good**: `modules/instagram/InstagramBackend.ts` next to that
   module's presentations; `worker/Worker.ts` imports and re-exports it.
 
 ### Brick chrome (inset and type)
@@ -87,7 +91,7 @@ Shared brick Typeset, `.qrk-bricks` tokens, and brick interaction CSS live in [`
 Presentations must not add card chrome (fills, borders, radii, shadows on the brick surface). Content geometry (e.g. avatar circles) and intentional fills (e.g. SwatchAndIcon color) are allowed.
 
 - **Bad**: each module inventing its own card padding (`p-3` vs `p-4`) so footer meta does not line up across bricks; wrapping presentations in `BrickFrame`; white card shells with borders/radii; ad hoc `text-sm` / `font-semibold` on titles.
-- **Good**: `GitHubProfileStats` and `GitHubRepoCard` both use `BrickShell` + `BrickFooter` and shared tokens; titles are `h2`/`h3`; `makeModule` supplies `BrickFrame` + Typeset once.
+- **Good**: `GitHubProfile` and `GitHubRepo` both use `BrickShell` + `BrickFooter` and shared tokens; titles are `h2`/`h3`; `makeModule` supplies `BrickFrame` + Typeset once.
 
 ### Factory arguments
 
@@ -170,36 +174,11 @@ The homepage grid is the product **Grid**; avoid a redundant **Portfolio** prefi
 
 - **Good**: `CarouselItem` with `basis-full shrink-0 grow-0` (plus `pl-*` / `-ml-*` spacing on content), inner panel wrapper for border/padding, and the brick slot matching full width/height in px—no transform scaling.
 
-### Outline layout
+### Pane section titles
 
-`Outline` owns the navigation block and equal top and bottom padding (`py-3`).
-It is for library configuration and brick-detail panels, not the bricks drawer
-(studio or library). Sticky section labels use `Outline.Title sticky`, pinning
-each heading to the scroll pane's top through its options and preview; contents
-and views occupy the first and second list levels.
-`Outline.List` owns vertical padding (`py-2`), hierarchy depth,
-and numbering without horizontal padding or margins. Items stay full width
-and tightly spaced, with no added gaps or vertical padding. Put every item
-heading or choice control inside `Outline.Label`; the label
-owns its marker and depth-based indentation, including when sticky, but adds
-no vertical padding. Lists default to vertical padding. Use `padded={false}` inside a section whose
-edge padding must stand alone, and `spaced` for 0.5rem gaps between list items.
-
-Previews and other item content remain full width at every depth. Do not cancel
-list indentation in route CSS or add compensating margins to content. Scroll
-containers determine sticky boundaries independently of hierarchy depth.
-
-Wrap a navigation group in `Outline.Rows` before its content.
-`Rows` owns the gray background and 0.5rem bottom padding, independent of depth.
-Nested lists remain compact; previews and other content sit outside the group.
-Use `Rows sticky` when the whole group should stick within its scroll container.
-Spacing is explicit in the composition rather than inferred from descendant DOM.
-
-The group, CatalogConfiguration, and BrickDetail pages share
-[`GroupOutline`](../../apps/library/components/outline/GroupOutline.tsx) for catalog choices.
-It owns the white `Outline` surface, equal 0.75rem vertical padding, and spaced catalog entries.
-Each page supplies `renderCatalog`: root buttons select the local preview; links select
-`?catalog=...`. Standalone previews use `/bricks/:groupName/:catalog`.
+Library module configuration and brick-detail panes use an `h2` for each
+section heading. Add `sticky top-0 z-10` when that heading should pin to the
+scroll pane's top.
 
 ### Group and catalog cutover and saved state
 
@@ -243,8 +222,9 @@ through context. In the editor, `EditorLayout` provides context to the grid, dra
 and toolbars; its ref measures `Grid` itself. Group,
 carousel, and detail previews use that shared page-grid breakpoint regardless of
 their own widths. In the sandbox, the ref measures `SandboxGrid` itself, so width presets and scrollbar changes update the grid and previews together.
-The standalone preview has its own provider measuring the simulated full grid
-width (grid-unit slider multiplied by eight).
+The standalone `/bricks/:moduleId` page renders one preview per breakpoint.
+Each preview has its own provider measuring that breakpoint's
+`previewWidth` as the simulated full grid.
 
 Consumers use `useBrickBreakpoint` and pass the value through the existing brick
 `breakpoint` prop. A provider is required; its initial value is `sm` until measured.
@@ -271,14 +251,14 @@ bricks retain the grid's own dimensions, including its one-pixel edge rounding.
 All group, configuration, detail, and drawer list previews use this frame.
 Carousel slides in the site editor use the same grid-unit sizing with a
 `50vw`-based site-half unit instead of measured `gridWidth`. Placed-detail
-previews use resolved breakpoint dimensions; the standalone slider sets the
-simulated full grid width measured by its provider.
+previews use resolved breakpoint dimensions. The standalone brick page sizes
+each preview from that breakpoint's `previewWidth`.
 Import the frame from `apps/library/components/brick/BrickPreviewFrame.tsx` or through `@qrk.sh/library/BrickPreviewFrame`.
 
 ### Presentation template names
 
 Follow [brick presentation conventions](../../wiki/brick-layout-conventions.md):
-`<Group><Catalog><Template>`, for example `GitHubProfileStats` and
+`<Group><Catalog><Template>`, for example `GitHubProfile` and
 `GitHubProfileCalendar`, with matching filenames. **Template** is a layout-role
 id (not `Sm`/`Md`/`Lg`, not a grid size). Select presentations with
 `makeModule` breakpoint slots (`sm` required; omitted slots inherit the

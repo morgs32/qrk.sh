@@ -34,7 +34,7 @@ export function GooglePlaceLookup(props: { value: string; onChange: (value: stri
 
     try {
       using api = newSyncRpcSession<ScraperApi>("/rpc");
-      const result = await api.googlePlacesRepo().autocomplete(normalizedInput);
+      const result = await api.googlePlacesBackend().autocomplete(normalizedInput);
 
       if (result._tag === "Left") {
         setSuggestions([]);
@@ -66,7 +66,7 @@ export function GooglePlaceLookup(props: { value: string; onChange: (value: stri
     void (async () => {
       try {
         using api = newSyncRpcSession<ScraperApi>("/rpc");
-        const result = await api.googlePlacesRepo().getPlace(props.value);
+        const result = await api.googlePlacesBackend().getPlace(props.value);
 
         if (isCancelled) {
           return;

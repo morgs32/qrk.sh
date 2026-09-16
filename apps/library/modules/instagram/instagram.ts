@@ -14,7 +14,7 @@ export const instagram = makeModule({
       url: primitives.text({
         defaultValue: "https://www.instagram.com/theonion/"})},
     fetcher: async ({ api, moduleOptions, setData }) => {
-      const result = await api.instagramRepo().scrape(moduleOptions.url);
+      const result = await api.instagramBackend().scrape(moduleOptions.url);
       if (result._tag === "Left") return result;
       setData(result.right);
       return { _tag: "Right", right: undefined };

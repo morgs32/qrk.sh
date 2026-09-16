@@ -8,36 +8,31 @@ import type {
   IInstagramScrapePayload,
   ILinkPreview,
   IRpcEither,
-  ITikTokScrapePayload,
 } from "./types.public";
 
 export declare class ScraperApi extends RpcTarget {
-  instagramRepo(): RpcTarget & {
+  instagramBackend(): RpcTarget & {
     scrape(url: string): Promise<IRpcEither<IInstagramScrapePayload>>;
   };
 
-  githubRepo(): RpcTarget & {
+  githubBackend(): RpcTarget & {
     getProfile(url: string): Promise<IRpcEither<IGitHubScrapePayload>>;
   };
 
-  figmaRepo(): RpcTarget & {
+  figmaBackend(): RpcTarget & {
     getThumbnail(url: string): Promise<IRpcEither<IFigmaFilePreviewPayload>>;
   };
 
-  googlePlacesRepo(): RpcTarget & {
+  googlePlacesBackend(): RpcTarget & {
     autocomplete(query: string): Promise<IRpcEither<ReadonlyArray<IGooglePlaceSuggestion>>>;
     getPlace(googlePlaceId: string): Promise<IRpcEither<IGooglePlaceDetails>>;
   };
 
-  linkRepo(): RpcTarget & {
+  linkBackend(): RpcTarget & {
     getPreview(url: string): Promise<IRpcEither<ILinkPreview>>;
   };
 
-  tiktokRepo(): RpcTarget & {
-    scrape(url: string): Promise<IRpcEither<ITikTokScrapePayload>>;
-  };
-
-  streamlineRepo(): RpcTarget & {
+  streamlineBackend(): RpcTarget & {
     search(
       query: string,
       offset: number,

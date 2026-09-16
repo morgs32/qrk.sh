@@ -1,6 +1,6 @@
 import { Quote } from "lucide-react";
 
-import { brickMetaIconClass } from "../../components/brick/brickTokens";
+import { brickMetaIconClass } from "../../../components/brick/brickTokens";
 
 export function Bio(props: { bio: string | null }) {
   if (!props.bio) {

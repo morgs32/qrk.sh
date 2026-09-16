@@ -14,7 +14,7 @@ export const link = makeModule({
       url: primitives.text({
         defaultValue: "https://apps.apple.com/us/app/apple-store/id375380948"})},
     fetcher: async ({ api, moduleOptions, setData }) => {
-      const result = await api.linkRepo().getPreview(moduleOptions.url);
+      const result = await api.linkBackend().getPreview(moduleOptions.url);
       if (result._tag === "Left") return result;
       setData(result.right);
       return { _tag: "Right", right: undefined };

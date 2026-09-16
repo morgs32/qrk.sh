@@ -65,7 +65,7 @@ export function StreamlineIconLookup(props: { value: string; onChange: (value: s
     },
     async ([, searchQuery, offset, limit]: [string, string, number, number]) => {
       using api = newSyncRpcSession<ScraperApi>("/rpc");
-      const result = await api.streamlineRepo().search(searchQuery, offset, limit);
+      const result = await api.streamlineBackend().search(searchQuery, offset, limit);
 
       if (result._tag === "Left") {
         throw new Error(result.left.message);

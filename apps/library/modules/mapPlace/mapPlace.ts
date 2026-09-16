@@ -21,7 +21,7 @@ export const mapPlace = makeModule({
         value: value.googlePlaceId,
         onChange: (googlePlaceId) => onChange({ googlePlaceId })}),
     fetcher: async ({ api, moduleOptions, setData }) => {
-      const result = await api.googlePlacesRepo().getPlace(moduleOptions.googlePlaceId);
+      const result = await api.googlePlacesBackend().getPlace(moduleOptions.googlePlaceId);
       if (result._tag === "Left") return result;
       setData(result.right);
       return { _tag: "Right", right: undefined };

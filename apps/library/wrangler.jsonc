@@ -21,13 +21,12 @@
   "durable_objects": {
     "bindings": [
       { "name": "BROWSER_HOST", "class_name": "BrowserHost" },
-      { "name": "INSTAGRAM_REPO", "class_name": "InstagramRepo" },
-      { "name": "GITHUB_REPO", "class_name": "GitHubRepo" },
-      { "name": "FIGMA_REPO", "class_name": "FigmaRepo" },
-      { "name": "GOOGLE_PLACES_REPO", "class_name": "GooglePlacesRepo" },
-      { "name": "LINK_REPO", "class_name": "LinkRepo" },
-      { "name": "TIKTOK_REPO", "class_name": "TikTokRepo" },
-      { "name": "STREAMLINE_REPO", "class_name": "StreamlineRepo" },
+      { "name": "INSTAGRAM_BACKEND", "class_name": "InstagramBackend" },
+      { "name": "GITHUB_BACKEND", "class_name": "GitHubBackend" },
+      { "name": "FIGMA_BACKEND", "class_name": "FigmaBackend" },
+      { "name": "GOOGLE_PLACES_BACKEND", "class_name": "GooglePlacesBackend" },
+      { "name": "LINK_BACKEND", "class_name": "LinkBackend" },
+      { "name": "STREAMLINE_BACKEND", "class_name": "StreamlineBackend" },
     ],
   },
   "migrations": [
@@ -42,6 +41,22 @@
         "GooglePlacesRepo",
         "LinkRepo",
       ],
+    },
+    {
+      "tag": "v2",
+      "renamed_classes": [
+        { "from": "StreamlineRepo", "to": "StreamlineBackend" },
+        { "from": "InstagramRepo", "to": "InstagramBackend" },
+        { "from": "GitHubRepo", "to": "GitHubBackend" },
+        { "from": "TikTokRepo", "to": "TikTokBackend" },
+        { "from": "FigmaRepo", "to": "FigmaBackend" },
+        { "from": "GooglePlacesRepo", "to": "GooglePlacesBackend" },
+        { "from": "LinkRepo", "to": "LinkBackend" },
+      ],
+    },
+    {
+      "tag": "v3",
+      "deleted_classes": ["TikTokBackend"],
     },
   ],
 }

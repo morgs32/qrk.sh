@@ -28,7 +28,7 @@ Mapbox token is explicitly included in the browser build.
 `wrangler.jsonc` retains the `library` Worker identity, browser binding, Durable
 Object bindings, and migrations. Local cache data lives under `.wrangler/state`.
 The Worker implementation and its tests live in `worker`, with module-owned
-`*Repo` Durable Objects under `modules/<moduleFolder>/`. Client imports
+`*Backend` Durable Objects under `modules/<moduleFolder>/`. Client imports
 use the existing `*.public.d.ts` contracts so Worker implementation types do not
 become part of the brick library's public declarations. Linktree scraping lives
 in the separate `@qrk.sh/scraper` Worker (`apps/scraper`).

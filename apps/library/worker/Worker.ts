@@ -2,26 +2,24 @@ import { handleR2Asset } from "@qrk.sh/r2-assets";
 import { newWorkersRpcResponse } from "capnweb";
 
 import { BrowserHost } from "./BrowserHost";
-import { FigmaRepo } from "../modules/figmaThumbnail/FigmaRepo";
-import { GitHubRepo } from "../modules/githubProfile/GitHubRepo";
-import { GooglePlacesRepo } from "../modules/mapPlace/GooglePlacesRepo";
-import { InstagramRepo } from "../modules/instagram/InstagramRepo";
-import { LinkRepo } from "../modules/link/LinkRepo";
+import { FigmaBackend } from "../modules/figmaThumbnail/FigmaBackend";
+import { GitHubBackend } from "../modules/githubProfile/GitHubBackend";
+import { GooglePlacesBackend } from "../modules/mapPlace/GooglePlacesBackend";
+import { InstagramBackend } from "../modules/instagram/InstagramBackend";
+import { LinkBackend } from "../modules/link/LinkBackend";
 import { handleLibraryUpload, LibraryUploadHttpError } from "./handleLibraryUpload";
 import { ScraperApi } from "./ScraperApi";
-import { StreamlineRepo } from "../modules/swatchAndIcon/StreamlineRepo";
-import { TikTokRepo } from "../modules/tiktok/TikTokRepo";
+import { StreamlineBackend } from "../modules/swatchAndIcon/StreamlineBackend";
 import type { IScraperEnv } from "./types";
 
 export {
   BrowserHost,
-  FigmaRepo,
-  GitHubRepo,
-  GooglePlacesRepo,
-  InstagramRepo,
-  LinkRepo,
-  StreamlineRepo,
-  TikTokRepo,
+  FigmaBackend,
+  GitHubBackend,
+  GooglePlacesBackend,
+  InstagramBackend,
+  LinkBackend,
+  StreamlineBackend,
 };
 
 const LIBRARY_ALLOWED_ORIGINS: readonly string[] = [

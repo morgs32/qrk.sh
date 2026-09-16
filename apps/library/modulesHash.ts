@@ -8,7 +8,6 @@ import { link } from "./modules/link/link";
 import { mapPlace } from "./modules/mapPlace/mapPlace";
 import { swatchAndIcon } from "./modules/swatchAndIcon/swatchAndIcon";
 import { text } from "./modules/text/text";
-import { tiktok } from "./modules/tiktok/tiktok";
 import type { IModule } from "./types";
 
 export const modulesHash: Record<string, IModule> = {
@@ -22,5 +21,4 @@ export const modulesHash: Record<string, IModule> = {
   link,
   "map-place": mapPlace,
   text,
-  tiktok,
 };

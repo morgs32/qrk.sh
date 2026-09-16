@@ -54,11 +54,6 @@ export type IGooglePlaceDetails = Readonly<{
   longitude: number;
 }>;
 
-export type ITikTokScrapePayload = Readonly<{
-  username: string;
-  data: IJsonValue;
-}>;
-
 export type IScrapeError = Readonly<{
   code:
     | "invalid-scrape-request"

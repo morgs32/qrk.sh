@@ -15,7 +15,7 @@ export const githubActivity = makeModule({
       url: primitives.text({ defaultValue: "https://github.com/morgs32" }),
     },
     fetcher: async ({ api, moduleOptions, setData }) => {
-      const result = await api.githubRepo().getProfile(moduleOptions.url);
+      const result = await api.githubBackend().getProfile(moduleOptions.url);
       if (result._tag === "Left") return result;
       if (!Array.isArray(result.right.contributions)) {
         return {

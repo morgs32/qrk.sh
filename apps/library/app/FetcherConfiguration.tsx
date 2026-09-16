@@ -6,7 +6,6 @@ import "react-json-view-lite/dist/index.css";
 import { collapseAllNested, defaultStyles, JsonView } from "react-json-view-lite";
 
 import type { IFetcherConfiguration } from "../make/makeFetcherConfiguration";
-import { Outline } from "../components/outline/Outline";
 import type { ScraperApi } from "../worker/ScraperApi.public";
 import type { IScrapeError } from "../worker/types.public";
 import { Button } from "../components/ui/button";
@@ -87,7 +86,7 @@ export function FetcherConfiguration(props: {
 
   return (
     <div>
-      <Outline.Title>Configuration</Outline.Title>
+      <h2 className="m-0 shrink-0 bg-zinc-100 px-4 py-4 font-normal">Configuration</h2>
       {props.showData !== false && (
         <div className="overflow-auto bg-zinc-100 px-2 py-4" data-testid="module-data-result">
           <JsonView

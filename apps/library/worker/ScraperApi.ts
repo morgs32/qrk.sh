@@ -2,38 +2,34 @@ import { RpcTarget } from "capnweb";
 
 import type { IScraperEnv } from "./types";
 
-const GLOBAL_REPO_NAME = "global";
+const GLOBAL_BACKEND_NAME = "global";
 
 export class ScraperApi extends RpcTarget {
   constructor(private readonly workerEnv: IScraperEnv) {
     super();
   }
 
-  instagramRepo() {
-    return this.workerEnv.INSTAGRAM_REPO.getByName(GLOBAL_REPO_NAME);
+  instagramBackend() {
+    return this.workerEnv.INSTAGRAM_BACKEND.getByName(GLOBAL_BACKEND_NAME);
   }
 
-  githubRepo() {
-    return this.workerEnv.GITHUB_REPO.getByName(GLOBAL_REPO_NAME);
+  githubBackend() {
+    return this.workerEnv.GITHUB_BACKEND.getByName(GLOBAL_BACKEND_NAME);
   }
 
-  figmaRepo() {
-    return this.workerEnv.FIGMA_REPO.getByName(GLOBAL_REPO_NAME);
+  figmaBackend() {
+    return this.workerEnv.FIGMA_BACKEND.getByName(GLOBAL_BACKEND_NAME);
   }
 
-  googlePlacesRepo() {
-    return this.workerEnv.GOOGLE_PLACES_REPO.getByName(GLOBAL_REPO_NAME);
+  googlePlacesBackend() {
+    return this.workerEnv.GOOGLE_PLACES_BACKEND.getByName(GLOBAL_BACKEND_NAME);
   }
 
-  linkRepo() {
-    return this.workerEnv.LINK_REPO.getByName(GLOBAL_REPO_NAME);
+  linkBackend() {
+    return this.workerEnv.LINK_BACKEND.getByName(GLOBAL_BACKEND_NAME);
   }
 
-  tiktokRepo() {
-    return this.workerEnv.TIKTOK_REPO.getByName(GLOBAL_REPO_NAME);
-  }
-
-  streamlineRepo() {
-    return this.workerEnv.STREAMLINE_REPO.getByName(GLOBAL_REPO_NAME);
+  streamlineBackend() {
+    return this.workerEnv.STREAMLINE_BACKEND.getByName(GLOBAL_BACKEND_NAME);
   }
 }

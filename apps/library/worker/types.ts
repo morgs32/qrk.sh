@@ -56,11 +56,6 @@ export type IGooglePlaceDetails = Readonly<{
   longitude: number;
 }>;
 
-export type ITikTokScrapePayload = Readonly<{
-  username: string;
-  data: IJsonValue;
-}>;
-
 export type IScrapeError = Readonly<{
   code:
     | "invalid-scrape-request"
@@ -85,24 +80,23 @@ export type IRpcEither<RIGHT> =
 export interface IScraperEnv {
   BROWSER: BrowserWorker;
   BROWSER_HOST: DurableObjectNamespace<import("./BrowserHost").BrowserHost>;
-  INSTAGRAM_REPO: DurableObjectNamespace<
-    import("../modules/instagram/InstagramRepo").InstagramRepo
+  INSTAGRAM_BACKEND: DurableObjectNamespace<
+    import("../modules/instagram/InstagramBackend").InstagramBackend
   >;
-  GITHUB_REPO: DurableObjectNamespace<
-    import("../modules/githubProfile/GitHubRepo").GitHubRepo
+  GITHUB_BACKEND: DurableObjectNamespace<
+    import("../modules/githubProfile/GitHubBackend").GitHubBackend
   >;
-  FIGMA_REPO: DurableObjectNamespace<
-    import("../modules/figmaThumbnail/FigmaRepo").FigmaRepo
+  FIGMA_BACKEND: DurableObjectNamespace<
+    import("../modules/figmaThumbnail/FigmaBackend").FigmaBackend
   >;
-  GOOGLE_PLACES_REPO: DurableObjectNamespace<
-    import("../modules/mapPlace/GooglePlacesRepo").GooglePlacesRepo
+  GOOGLE_PLACES_BACKEND: DurableObjectNamespace<
+    import("../modules/mapPlace/GooglePlacesBackend").GooglePlacesBackend
   >;
-  LINK_REPO: DurableObjectNamespace<import("../modules/link/LinkRepo").LinkRepo>;
-  TIKTOK_REPO: DurableObjectNamespace<
-    import("../modules/tiktok/TikTokRepo").TikTokRepo
+  LINK_BACKEND: DurableObjectNamespace<
+    import("../modules/link/LinkBackend").LinkBackend
   >;
-  STREAMLINE_REPO: DurableObjectNamespace<
-    import("../modules/swatchAndIcon/StreamlineRepo").StreamlineRepo
+  STREAMLINE_BACKEND: DurableObjectNamespace<
+    import("../modules/swatchAndIcon/StreamlineBackend").StreamlineBackend
   >;
   ASSETS: R2Bucket;
   R2_PUBLIC_BASE_URL: string;

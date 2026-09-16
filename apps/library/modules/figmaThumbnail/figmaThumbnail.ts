@@ -18,7 +18,7 @@ export const figmaThumbnail = makeModule({
       url: primitives.text({
         defaultValue: ""})},
     fetcher: async ({ api, moduleOptions, setData }) => {
-      const result = await api.figmaRepo().getThumbnail(moduleOptions.url);
+      const result = await api.figmaBackend().getThumbnail(moduleOptions.url);
       if (result._tag === "Left") return result;
       setData(result.right);
       return { _tag: "Right", right: undefined };

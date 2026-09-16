@@ -1,12 +1,12 @@
 import { defineRegistry } from "@json-render/react";
 
-import { Avatar } from "./Avatar";
-import { Bio } from "./Bio";
+import { Avatar } from "../components/Avatar";
+import { Bio } from "../components/Bio";
+import { Identity } from "../components/Identity";
+import { MetaRow } from "../components/MetaRow";
+import { ProfileCard } from "../components/ProfileCard";
+import { StatsRow } from "../components/StatsRow";
 import { githubProfileJsonRenderCatalog } from "./GitHubProfileJsonRenderCatalog";
-import { Identity } from "./Identity";
-import { MetaRow } from "./MetaRow";
-import { ProfileCard } from "./ProfileCard";
-import { StatsRow } from "./StatsRow";
 
 export const { registry } = defineRegistry(githubProfileJsonRenderCatalog, {
   components: {

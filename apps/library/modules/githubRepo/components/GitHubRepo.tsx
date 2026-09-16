@@ -3,11 +3,11 @@
 import useSWR from "swr";
 import { Schema } from "effect";
 import { GitFork, Star } from "lucide-react";
-import { cn } from "cn";
 
-import { BrickFooter } from "../../components/brick/BrickFooter";
-import { BrickShell } from "../../components/brick/BrickShell";
-import { brickMetaIconClass } from "../../components/brick/brickTokens";
+import { BrickBody } from "../../../components/brick/BrickBody";
+import { BrickFooter } from "../../../components/brick/BrickFooter";
+import { BrickShell } from "../../../components/brick/BrickShell";
+import { brickMetaIconClass } from "../../../components/brick/brickTokens";
 
 const GITHUB_REPO_OWNER = "morgs32";
 const GITHUB_REPO_NAME = "ink-steps";
@@ -36,7 +36,33 @@ const fetcher = async (url: string) => {
   return Schema.decodeUnknownSync(RepoDataSchema)(data, { onExcessProperty: "ignore" });
 };
 
-export function GitHubRepoCard({ size = "sm" }: { size?: "xs" | "sm" }) {
+const LANGUAGE_DOT_COLOR: Record<string, string> = {
+  TypeScript: "#3178c6",
+  JavaScript: "#f1e05a",
+  Python: "#3572A5",
+  Rust: "#dea584",
+  Go: "#00ADD8",
+  Shell: "#89e051",
+  HTML: "#e34c26",
+  CSS: "#563d7c",
+  Java: "#b07219",
+  Ruby: "#701516",
+  PHP: "#4F5D95",
+  "C++": "#f34b7d",
+  C: "#555555",
+  "C#": "#178600",
+  Swift: "#ffac45",
+  Kotlin: "#A97BFF",
+  Dart: "#00B4AB",
+  Vue: "#41b883",
+  Svelte: "#ff3e00",
+  SCSS: "#c6538c",
+  Less: "#1d365d",
+  Makefile: "#427819",
+  Dockerfile: "#384d54",
+};
+
+export function GitHubRepo() {
   const { data, isLoading } = useSWR<RepoData>(
     `https://api.github.com/repos/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}`,
     fetcher,
@@ -45,28 +71,10 @@ export function GitHubRepoCard({ size = "sm" }: { size?: "xs" | "sm" }) {
   if (isLoading) {
     return (
       <BrickShell className="min-w-0">
-        <div
-          className={
-            size === "xs" ? "flex h-full animate-pulse flex-col gap-2" : "animate-pulse space-y-3"
-          }
-        >
-          <div
-            className={
-              size === "xs" ? "h-3 w-1/2 rounded bg-zinc-200" : "h-5 w-1/2 rounded bg-zinc-200"
-            }
-          />
-          <div
-            className={
-              size === "xs" ? "h-2.5 w-3/4 rounded bg-zinc-200" : "h-4 w-3/4 rounded bg-zinc-200"
-            }
-          />
-          <div
-            className={
-              size === "xs"
-                ? "mt-auto h-3 w-1/4 rounded bg-zinc-200"
-                : "mt-4 h-4 w-1/4 rounded bg-zinc-200"
-            }
-          />
+        <div className="animate-pulse space-y-3">
+          <div className="h-5 w-1/2 rounded bg-zinc-200" />
+          <div className="h-4 w-3/4 rounded bg-zinc-200" />
+          <div className="mt-4 h-4 w-1/4 rounded bg-zinc-200" />
         </div>
       </BrickShell>
     );
@@ -80,26 +88,21 @@ export function GitHubRepoCard({ size = "sm" }: { size?: "xs" | "sm" }) {
     );
   }
 
+  const description = data.description?.trim();
+
   return (
     <BrickShell className="min-w-0">
-      <h3 className="min-w-0 shrink-0 break-words">
-        <a
-          href={data.html_url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="hover:underline"
-        >
-          {data.name}
-        </a>
-      </h3>
+      <h3 className="min-w-0 shrink-0 break-words [margin-block-end:0]">{data.name}</h3>
 
-      <p
-        className={cn("min-w-0 break-words", size === "xs" ? "shrink-0" : "min-h-0 flex-1")}
-      >
-        {data.description || "No description provided"}
-      </p>
+      {description ? (
+        <BrickBody>
+          <p className="min-w-0 [margin-block-start:0] [overflow-wrap:anywhere]">{description}</p>
+        </BrickBody>
+      ) : (
+        <div className="min-h-0 flex-1" />
+      )}
 
-      <BrickFooter className={size === "xs" ? "min-w-0 gap-2" : "gap-4"}>
+      <BrickFooter className="gap-4">
         <div className="flex shrink-0 items-center gap-1">
           <Star className={brickMetaIconClass} />
           <span>{data.stargazers_count}</span>
@@ -112,7 +115,12 @@ export function GitHubRepoCard({ size = "sm" }: { size?: "xs" | "sm" }) {
         )}
         {data.language && (
           <div className="flex min-w-0 items-center gap-1">
-            <span className="size-2 shrink-0 rounded-full bg-yellow-400" />
+            <span
+              className="size-2 shrink-0 rounded-full"
+              style={{
+                backgroundColor: LANGUAGE_DOT_COLOR[data.language] ?? "#8b8b8b",
+              }}
+            />
             <span className="truncate">{data.language}</span>
           </div>
         )}

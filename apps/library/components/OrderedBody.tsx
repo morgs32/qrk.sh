@@ -10,7 +10,7 @@ function SectionHeading({
   showListDecorator,
   showAnchors,
 }: {
-  index: string;
+  index?: string;
   children: ReactNode;
   showListDecorator: boolean;
   showAnchors: boolean;
@@ -21,7 +21,7 @@ function SectionHeading({
         showListDecorator ? "" : " text-neutral-400"
       }`}
     >
-      {showListDecorator ? <span className="text-neutral-400">{index}.</span> : null}
+      {showListDecorator && index ? <span className="text-neutral-400">{index}.</span> : null}
       <span>{children}</span>
       {showAnchors ? (
         <span className="-ml-0.5 text-neutral-400" aria-hidden="true">
@@ -40,8 +40,8 @@ function SchemaSection({
   showAnchors: boolean;
 }) {
   return (
-    <section className="mt-10 ml-4 md:ml-[29px] max-[480px]:ml-0">
-      <SectionHeading index="a" showListDecorator={showListDecorator} showAnchors={showAnchors}>
+    <>
+      <SectionHeading showListDecorator={showListDecorator} showAnchors={showAnchors}>
         GraphQL schema
       </SectionHeading>
       <p className="mt-5 mb-0 max-w-[680px]">The FRAGMENT API is a GraphQL API. The GraphQL schema is hosted at:</p>
@@ -59,7 +59,7 @@ function SchemaSection({
         </a>
         .
       </p>
-    </section>
+    </>
   );
 }
 
@@ -71,8 +71,8 @@ function RegionsSection({
   showAnchors: boolean;
 }) {
   return (
-    <section className="mt-10 ml-4 md:ml-[29px] max-[480px]:ml-0">
-      <SectionHeading index="b" showListDecorator={showListDecorator} showAnchors={showAnchors}>
+    <>
+      <SectionHeading showListDecorator={showListDecorator} showAnchors={showAnchors}>
         Regions
       </SectionHeading>
       <p className="mt-5 mb-0 max-w-[680px]">The FRAGMENT API is available in the following AWS regions:</p>
@@ -96,7 +96,7 @@ function RegionsSection({
         </a>{" "}
         if you don&apos;t see your desired AWS region.
       </p>
-    </section>
+    </>
   );
 }
 
@@ -129,13 +129,23 @@ export function OrderedBody({
         <SectionHeading index="A" showListDecorator={showListDecorator} showAnchors={showAnchors}>
           API Overview
         </SectionHeading>
-        <SchemaSection showListDecorator={showListDecorator} showAnchors={showAnchors} />
-        <RegionsSection showListDecorator={showListDecorator} showAnchors={showAnchors} />
-        <section className="mt-[76px] ml-4 md:ml-[29px] max-[480px]:ml-0">
-          <SectionHeading index="c" showListDecorator={showListDecorator} showAnchors={showAnchors}>
-            Authentication
-          </SectionHeading>
-        </section>
+        <ol
+          className={`mt-10 list-outside pl-[29px] marker:font-mono marker:text-neutral-400 max-[480px]:pl-8 ${
+            showListDecorator ? "list-[lower-alpha]" : "list-none"
+          }`}
+        >
+          <li>
+            <SchemaSection showListDecorator={showListDecorator} showAnchors={showAnchors} />
+          </li>
+          <li className="mt-10">
+            <RegionsSection showListDecorator={showListDecorator} showAnchors={showAnchors} />
+          </li>
+          <li className="mt-[76px]">
+            <SectionHeading showListDecorator={showListDecorator} showAnchors={showAnchors}>
+              Authentication
+            </SectionHeading>
+          </li>
+        </ol>
       </div>
     </main>
   );

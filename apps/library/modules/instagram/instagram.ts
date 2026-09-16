@@ -3,22 +3,28 @@ import { primitives } from "@zerospin/schema";
 import { makeFetcherConfiguration } from "../../make/makeFetcherConfiguration";
 import { makeModule } from "../../make/makeModule";
 
-import { Instagram } from "./Instagram/Instagram";
+import { defaultSpec } from "./generative/defaultSpec";
+import { registry } from "./generative/InstagramJsonRenderRegistry";
 
 export const instagram = makeModule({
   id: "instagram",
   label: "Instagram",
   description: "A public Instagram profile and its latest posts.",
+  defaultSpec,
+  registry,
   configuration: makeFetcherConfiguration({
     moduleOptionsShape: {
       url: primitives.text({
-        defaultValue: "https://www.instagram.com/theonion/"})},
+        defaultValue: "https://www.instagram.com/theonion/",
+      }),
+    },
     fetcher: async ({ api, moduleOptions, setData }) => {
       const result = await api.instagramBackend().scrape(moduleOptions.url);
       if (result._tag === "Left") return result;
       setData(result.right);
       return { _tag: "Right", right: undefined };
-    }}),
+    },
+  }),
   dataShape: {
     username: primitives.text(),
     profileImageUrl: primitives.text(),
@@ -26,7 +32,8 @@ export const instagram = makeModule({
     postImageUrl1: primitives.text(),
     postImageUrl2: primitives.text(),
     postImageUrl3: primitives.text(),
-    postImageUrl4: primitives.text()},
+    postImageUrl4: primitives.text(),
+  },
   defaultData: {
     username: "theonion",
     profileImageUrl:
@@ -39,6 +46,8 @@ export const instagram = makeModule({
     postImageUrl3:
       "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=800&q=80",
     postImageUrl4:
-      "https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=800&q=80"},
-  sm: { component: Instagram, w: 6, h: 4 },
-  lg: { component: Instagram, w: 3, h: 3 }});
+      "https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=800&q=80",
+  },
+  sm: { w: 6, h: 4 },
+  lg: { w: 3, h: 3 },
+});

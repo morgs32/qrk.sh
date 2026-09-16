@@ -1,17 +1,20 @@
-import type { Catalog } from "@json-render/core";
+import type { Catalog, Spec } from "@json-render/core";
 
 import type { IModule } from "../lib/types";
 
-/** Attach backend catalogs onto frontend modules. Every backend key must be present. */
+/** Attach backend catalogs and defaultSpecs onto frontend modules. Every backend key must be present. */
 export function makeFrontendLibrary<
   BACKEND extends {
     readonly [moduleId: string]: {
       readonly catalog: Catalog;
+      readonly defaultSpec: Spec;
     };
   },
 >(
   backend: BACKEND,
-  modules: { [K in keyof BACKEND]: IModule } & { [moduleId: string]: IModule },
+  modules: { [K in keyof BACKEND]: Omit<IModule, "catalog"> } & {
+    [moduleId: string]: Omit<IModule, "catalog">;
+  },
 ): Record<string, IModule> {
   for (const moduleId of Object.keys(backend)) {
     const brickModule = modules[moduleId];
@@ -34,17 +37,30 @@ export function makeFrontendLibrary<
         `makeFrontendLibrary: module id ${JSON.stringify(brickModule.id)} does not match key ${JSON.stringify(moduleId)}`,
       );
     }
-    if (moduleId === "github-profile") {
+    const backendEntry = backend[moduleId as keyof BACKEND];
+    if (backendEntry === undefined) {
+      throw new Error(
+        `makeFrontendLibrary: missing backend entry for module ${JSON.stringify(moduleId)}`,
+      );
+    }
+    if (brickModule.dataShape === null) {
       result[moduleId] = {
         ...brickModule,
-        catalog: backend["github-profile"].catalog,
+        catalog: backendEntry.catalog,
+        defaultSpec: backendEntry.defaultSpec,
+        dataShape: null,
+        defaultData: null,
+        configuration: undefined,
       };
-      continue;
+    } else {
+      result[moduleId] = {
+        ...brickModule,
+        catalog: backendEntry.catalog,
+        defaultSpec: backendEntry.defaultSpec,
+        dataShape: brickModule.dataShape,
+        defaultData: brickModule.defaultData,
+      };
     }
-    result[moduleId] = {
-      ...brickModule,
-      catalog: undefined,
-    };
   }
   return result;
 }

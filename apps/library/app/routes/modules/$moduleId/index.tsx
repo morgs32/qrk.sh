@@ -12,8 +12,8 @@ import { BrickPreview } from "../../../../lib/BrickPreview";
 import { BREAKPOINTS } from "../../../../lib/breakpoints";
 import { Button } from "../../../../components/ui/button";
 import { Input } from "../../../../components/ui/input";
+import { ModuleSpecPreview } from "../../../../lib/ModuleSpecPreview";
 import { modulesHash } from "../../../../lib/modulesHash";
-import { GitHubProfileJsonRenderCompare } from "../../../../modules/githubProfile/generative/GitHubProfileJsonRenderCompare";
 import type { LibraryApi } from "../../../../worker/LibraryApi.public";
 import type { IScrapeError } from "../../../../worker/types.public";
 import { TableData } from "../../../TableData";
@@ -81,6 +81,7 @@ function ModuleDetail() {
   const optionsConfig = BrickComponent.options;
   const options = optionsByModule[moduleId] ?? optionsConfig?.defaultValue;
   const OptionsForm = optionsConfig?.form;
+  const previewSpec = generatedSpec ?? brickModule.defaultSpec;
 
   return (
     <>
@@ -160,72 +161,78 @@ function ModuleDetail() {
           ))}
         </ol>
       </li>
-      {brickModule.catalog !== undefined ? (
-        <li className="mt-10">
-          <OrderedBodyHeading className="shrink-0 px-4 py-4">Generate spec</OrderedBodyHeading>
-          <form
-            className="flex flex-col items-start gap-2 px-4 py-5"
-            onSubmit={(event) => {
-              event.preventDefault();
-              void (async () => {
-                setIsGeneratingSpec(true);
-                setGenerateError(undefined);
-                setGenerateRequestError(undefined);
-                try {
-                  using api = newSyncRpcSession<LibraryApi>("/rpc");
-                  const result = await api.generateSpec(moduleId, generatePrompt, moduleData);
-                  if (result._tag === "Left") {
-                    setGenerateError(result.left);
-                    return;
-                  }
-                  setGeneratedSpec(result.right);
-                } catch (cause) {
-                  setGenerateRequestError(cause instanceof Error ? cause.message : String(cause));
-                } finally {
-                  setIsGeneratingSpec(false);
+      <li className="mt-10">
+        <OrderedBodyHeading className="shrink-0 py-4">Generate spec</OrderedBodyHeading>
+        <form
+          className="flex flex-col items-start gap-2 py-5"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void (async () => {
+              setIsGeneratingSpec(true);
+              setGenerateError(undefined);
+              setGenerateRequestError(undefined);
+              try {
+                using api = newSyncRpcSession<LibraryApi>("/rpc");
+                const result = await api.generateSpec(
+                  moduleId,
+                  generatePrompt,
+                  moduleData,
+                  generatedSpec ?? brickModule.defaultSpec,
+                );
+                if (result._tag === "Left") {
+                  setGenerateError(result.left);
+                  return;
                 }
-              })();
+                setGeneratedSpec(result.right);
+              } catch (cause) {
+                setGenerateRequestError(cause instanceof Error ? cause.message : String(cause));
+              } finally {
+                setIsGeneratingSpec(false);
+              }
+            })();
+          }}
+        >
+          <label className="block font-medium" htmlFor="generate-spec-prompt">
+            Prompt
+          </label>
+          <Input
+            id="generate-spec-prompt"
+            name="prompt"
+            onChange={(event) => {
+              setGeneratePrompt(event.target.value);
             }}
-          >
-            <label className="block font-medium" htmlFor="generate-spec-prompt">
-              Prompt
-            </label>
-            <Input
-              id="generate-spec-prompt"
-              name="prompt"
-              onChange={(event) => {
-                setGeneratePrompt(event.target.value);
-              }}
-              type="text"
-              value={generatePrompt}
-            />
-            <Button disabled={isGeneratingSpec} type="submit">
-              Generate
-            </Button>
-          </form>
-          {isGeneratingSpec ? <p role="status">Generating spec…</p> : null}
-          {generateError !== undefined ? (
-            <div className="rounded-md border border-red-200 bg-red-50 p-4" role="alert">
-              <p className="m-0 font-mono">{generateError.code}</p>
-              <p className="mb-0 mt-2">{generateError.message}</p>
+            type="text"
+            value={generatePrompt}
+          />
+          <Button disabled={isGeneratingSpec} type="submit">
+            Generate
+          </Button>
+        </form>
+        {isGeneratingSpec ? <p role="status">Generating spec…</p> : null}
+        {generateError !== undefined ? (
+          <div className="rounded-md border border-red-200 bg-red-50 p-4" role="alert">
+            <p className="m-0 font-mono">{generateError.code}</p>
+            <p className="mb-0 mt-2">{generateError.message}</p>
+          </div>
+        ) : null}
+        {generateRequestError !== undefined ? (
+          <div className="rounded-md border border-red-200 bg-red-50 p-4" role="alert">
+            {generateRequestError}
+          </div>
+        ) : null}
+        <div className="mt-8">
+          <BrickPreview w={brick.def.sm.w} h={brick.def.sm.h}>
+            <div className="size-full qrk-bricks overflow-hidden">
+              <ModuleSpecPreview
+                data={moduleData}
+                options={options}
+                registry={brickModule.registry}
+                spec={previewSpec}
+              />
             </div>
-          ) : null}
-          {generateRequestError !== undefined ? (
-            <div className="rounded-md border border-red-200 bg-red-50 p-4" role="alert">
-              {generateRequestError}
-            </div>
-          ) : null}
-          {moduleId === "github-profile" ? (
-            <div className="mt-8 px-4">
-              <BrickPreview w={brick.def.sm.w} h={brick.def.sm.h}>
-                <div className="size-full qrk-bricks overflow-hidden">
-                  <GitHubProfileJsonRenderCompare data={moduleData} spec={generatedSpec} />
-                </div>
-              </BrickPreview>
-            </div>
-          ) : null}
-        </li>
-      ) : null}
+          </BrickPreview>
+        </div>
+      </li>
       <li className="mt-10">
         <Configuration
           brickModule={brickModule}
@@ -236,7 +243,7 @@ function ModuleDetail() {
       </li>
       {OptionsForm ? (
         <li className="mt-10">
-          <OrderedBodyHeading className="shrink-0 px-4 py-4">Options</OrderedBodyHeading>
+          <OrderedBodyHeading className="shrink-0 py-4">Options</OrderedBodyHeading>
           <OptionsForm
             value={options}
             onChange={(value) => {
@@ -249,7 +256,7 @@ function ModuleDetail() {
         </li>
       ) : null}
       <li className="mt-10">
-        <OrderedBodyHeading className="shrink-0 px-4 py-4">Brick Definition</OrderedBodyHeading>
+        <OrderedBodyHeading className="shrink-0 py-4">Brick Definition</OrderedBodyHeading>
         <div className="overflow-auto bg-white px-2 py-4" data-testid="module-data-result">
           <JsonView
             shouldExpandNode={collapseAllNested}

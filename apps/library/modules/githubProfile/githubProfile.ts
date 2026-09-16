@@ -3,12 +3,15 @@ import { primitives } from "@zerospin/schema";
 import { makeFetcherConfiguration } from "../../make/makeFetcherConfiguration";
 import { makeModule } from "../../make/makeModule";
 
-import { GitHubProfile } from "./GitHubProfile/GitHubProfile";
+import { defaultSpec } from "./generative/defaultSpec";
+import { registry } from "./generative/GitHubProfileJsonRenderRegistry";
 
 export const githubProfile = makeModule({
   id: "github-profile",
   label: "GitHub Profile",
   description: "A GitHub profile card.",
+  defaultSpec,
+  registry,
   configuration: makeFetcherConfiguration({
     moduleOptionsShape: {
       url: primitives.text({ defaultValue: "https://github.com/morgs32" }),
@@ -66,7 +69,7 @@ export const githubProfile = makeModule({
     updated_at: "2026-07-15T15:27:35Z",
     login: "morgs32",
   },
-  sm: { component: GitHubProfile, w: 4, h: 4 },
-  md: { component: GitHubProfile, w: 4, h: 3 },
-  lg: { component: GitHubProfile, w: 2, h: 2 },
+  sm: { w: 4, h: 4 },
+  md: { w: 4, h: 3 },
+  lg: { w: 2, h: 2 },
 });

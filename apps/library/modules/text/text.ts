@@ -7,7 +7,8 @@ import { Schema } from "effect";
 import { makeFormConfiguration } from "../../make/makeFormConfiguration";
 import { makeModule } from "../../make/makeModule";
 
-import { Text } from "./Text/Text";
+import { defaultSpec } from "./generative/defaultSpec";
+import { registry } from "./generative/TextJsonRenderRegistry";
 import { TextEditorControl } from "./TextEditorControl";
 
 const dataShape = {
@@ -17,7 +18,9 @@ const dataShape = {
     schema: Schema.declare(
       (input): input is JSONContent =>
         typeof input === "object" && input !== null && "type" in input && input.type === "doc",
-    )})};
+    ),
+  }),
+};
 
 export const text = makeModule({
   dataShape,
@@ -25,9 +28,14 @@ export const text = makeModule({
   id: "text",
   label: "Text",
   description: "Rich text content authored with Tiptap.",
+  defaultSpec,
+  registry,
   configuration: makeFormConfiguration<typeof dataShape>({
     form: ({ data, onChange }) =>
       createElement(TextEditorControl, {
         value: data.content,
-        onChange: (content) => onChange({ content })})}),
-  sm: { component: Text, w: 4, h: 4 }});
+        onChange: (content) => onChange({ content }),
+      }),
+  }),
+  sm: { w: 4, h: 4 },
+});

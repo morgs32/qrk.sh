@@ -4,12 +4,15 @@ import { Schema } from "effect";
 import { makeFetcherConfiguration } from "../../make/makeFetcherConfiguration";
 import { makeModule } from "../../make/makeModule";
 
-import { GitHubActivity } from "./GitHubActivity/GitHubActivity";
+import { defaultSpec } from "./generative/defaultSpec";
+import { registry } from "./generative/GitHubActivityJsonRenderRegistry";
 
 export const githubActivity = makeModule({
   id: "github-activity",
   label: "GitHub Activity",
   description: "A GitHub contribution activity calendar.",
+  defaultSpec,
+  registry,
   configuration: makeFetcherConfiguration({
     moduleOptionsShape: {
       url: primitives.text({ defaultValue: "https://github.com/morgs32" }),
@@ -59,7 +62,7 @@ export const githubActivity = makeModule({
       return { date: date.toISOString().slice(0, 10), count, level };
     }),
   },
-  sm: { component: GitHubActivity, w: 4, h: 3 },
-  md: { component: GitHubActivity, w: 4, h: 2 },
-  lg: { component: GitHubActivity, w: 4, h: 1 },
+  sm: { w: 4, h: 3 },
+  md: { w: 4, h: 2 },
+  lg: { w: 4, h: 1 },
 });

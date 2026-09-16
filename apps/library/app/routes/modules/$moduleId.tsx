@@ -41,9 +41,7 @@ function ModulePage() {
       tone: "active",
       children: BREAKPOINTS.map((entry) => ({ label: entry.id, tone: "active" })),
     });
-    if (brickModule.catalog !== undefined) {
-      sections.push({ label: "Generate spec", tone: "active" });
-    }
+    sections.push({ label: "Generate spec", tone: "active" });
     sections.push({ label: "Configuration", tone: "active" });
     if (brickModule.component.options?.form !== undefined) {
       sections.push({ label: "Options", tone: "active" });

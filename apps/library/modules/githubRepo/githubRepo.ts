@@ -1,6 +1,8 @@
 import { makeModule } from "../../make/makeModule";
 
-import { GitHubRepo } from "./GitHubRepo/GitHubRepo";
+import { defaultSpec } from "./generative/defaultSpec";
+import { GitHubRepoBrick } from "./generative/GitHubRepoBrick";
+import { registry } from "./generative/GitHubRepoJsonRenderRegistry";
 
 export const githubRepo = makeModule({
   dataShape: null,
@@ -8,7 +10,10 @@ export const githubRepo = makeModule({
   id: "github-repo",
   label: "GitHub Repo",
   description: "A GitHub repository card.",
-  sm: { component: GitHubRepo, w: 4, h: 4 },
-  md: { component: GitHubRepo, w: 4, h: 2 },
-  lg: { component: GitHubRepo, w: 2, h: 2 },
+  defaultSpec,
+  registry,
+  brick: GitHubRepoBrick,
+  sm: { w: 4, h: 4 },
+  md: { w: 4, h: 2 },
+  lg: { w: 2, h: 2 },
 });

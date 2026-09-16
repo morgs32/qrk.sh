@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
-import type { Catalog } from "@json-render/core";
+import type { Catalog, Spec } from "@json-render/core";
+import type { ComponentRegistry } from "@json-render/react";
 import type { IShape } from "@zerospin/schema";
 
 import type { makeOptions } from "../make/makeOptions";
@@ -24,7 +25,9 @@ export type IModule = {
   id: string;
   label: string;
   description: string;
-  catalog?: Catalog;
+  catalog: Catalog;
+  defaultSpec: Spec;
+  registry: ComponentRegistry;
 } & (
   | {
       configuration?: never;

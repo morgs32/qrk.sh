@@ -1,4 +1,5 @@
 import { RpcTarget } from "capnweb";
+import type { Spec } from "@json-render/core";
 
 import { generateSpec } from "./generateSpec";
 import type { IScraperEnv } from "./types";
@@ -34,12 +35,13 @@ export class LibraryApi extends RpcTarget {
     return this.workerEnv.STREAMLINE_BACKEND.getByName(GLOBAL_BACKEND_NAME);
   }
 
-  generateSpec(moduleId: string, prompt: string, data: unknown) {
+  generateSpec(moduleId: string, prompt: string, data: unknown, currentSpec?: Spec | null) {
     return generateSpec({
       env: this.workerEnv,
       moduleId,
       prompt,
       data,
+      currentSpec,
     });
   }
 }

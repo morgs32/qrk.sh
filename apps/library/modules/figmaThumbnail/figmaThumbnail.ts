@@ -6,40 +6,52 @@ import { makeOptions } from "../../make/makeOptions";
 
 import defaultThumbnailUrl from "./dot-pattern-789x450.png";
 import { FigmaOptionsForm } from "./FigmaOptionsForm";
-import { FigmaThumbnail } from "./FigmaThumbnail/FigmaThumbnail";
+import { defaultSpec } from "./generative/defaultSpec";
+import { registry } from "./generative/FigmaThumbnailJsonRenderRegistry";
 
 export const figmaThumbnail = makeModule({
   id: "figma-thumbnail",
   label: "Figma Thumbnail",
   description: "The thumbnail of a Figma file, board, slides deck, or prototype.",
+  defaultSpec,
+  registry,
   configuration: makeFetcherConfiguration({
     moduleOptionsShape: {
       url: primitives.text({
-        defaultValue: ""})},
+        defaultValue: "",
+      }),
+    },
     fetcher: async ({ api, moduleOptions, setData }) => {
       const result = await api.figmaBackend().getThumbnail(moduleOptions.url);
       if (result._tag === "Left") return result;
       setData(result.right);
       return { _tag: "Right", right: undefined };
-    }}),
+    },
+  }),
   dataShape: {
     title: primitives.text(),
     url: primitives.text(),
     thumbnail_url: primitives.text({ nullable: true }),
     thumbnail_width: primitives.integer({ nullable: true }),
-    thumbnail_height: primitives.integer({ nullable: true })},
+    thumbnail_height: primitives.integer({ nullable: true }),
+  },
   defaultData: {
     title: "Figma Thumbnail",
     url: "",
     thumbnail_url: defaultThumbnailUrl,
     thumbnail_width: 789,
-    thumbnail_height: 450},
+    thumbnail_height: 450,
+  },
   options: makeOptions({
     shape: {
       imagePosition: primitives.enum({
         values: ["center", "left", "right", "top", "bottom"],
-        defaultValue: "left"})},
-    form: FigmaOptionsForm}),
-  sm: { component: FigmaThumbnail, w: 4, h: 4 },
-  md: { component: FigmaThumbnail, w: 4, h: 4 },
-  lg: { component: FigmaThumbnail, w: 3, h: 3 }});
+        defaultValue: "left",
+      }),
+    },
+    form: FigmaOptionsForm,
+  }),
+  sm: { w: 4, h: 4 },
+  md: { w: 4, h: 4 },
+  lg: { w: 3, h: 3 },
+});

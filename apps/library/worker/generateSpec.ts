@@ -10,9 +10,9 @@ import type { IRpcEither, IScraperEnv } from "./types";
 
 const GENERATE_MODEL = "gpt-5.6-luna";
 
-function catalogForModuleId(moduleId: string) {
-  if (moduleId === "github-profile") {
-    return backendLibrary["github-profile"].catalog;
+function backendEntryForModuleId(moduleId: string) {
+  if (moduleId in backendLibrary) {
+    return backendLibrary[moduleId as keyof typeof backendLibrary];
   }
   return undefined;
 }
@@ -75,6 +75,7 @@ export async function generateSpec(props: {
   moduleId: string;
   prompt: string;
   data: unknown;
+  currentSpec?: Spec | null;
 }): Promise<IRpcEither<Spec>> {
   const trimmedPrompt = props.prompt.trim();
   if (trimmedPrompt === "") {
@@ -87,8 +88,8 @@ export async function generateSpec(props: {
     };
   }
 
-  const catalog = catalogForModuleId(props.moduleId);
-  if (catalog === undefined) {
+  const entry = backendEntryForModuleId(props.moduleId);
+  if (entry === undefined) {
     return {
       _tag: "Left",
       left: {
@@ -109,11 +110,16 @@ export async function generateSpec(props: {
     };
   }
 
+  const currentSpec = isNonEmptySpec(props.currentSpec)
+    ? props.currentSpec
+    : entry.defaultSpec;
+
   try {
-    const system = catalog.prompt({ mode: "standalone" });
+    const system = entry.catalog.prompt({ mode: "standalone" });
     const user = buildUserPrompt({
       prompt: trimmedPrompt,
       state: stateFromData(props.data),
+      currentSpec,
     });
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -151,7 +157,7 @@ export async function generateSpec(props: {
       };
     }
     const spec = specFromModelText(contentFromChatCompletion(responseBody));
-    const validated = catalog.validate(spec);
+    const validated = entry.catalog.validate(spec);
     if (
       !validated.success ||
       validated.data === undefined ||

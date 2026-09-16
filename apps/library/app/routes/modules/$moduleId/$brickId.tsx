@@ -3,15 +3,15 @@ import { makeEffectSchema } from "@zerospin/schema";
 import { Schema } from "effect";
 import { collapseAllNested, defaultStyles, JsonView } from "react-json-view-lite";
 
-import { useBrickBreakpoint } from "../../../../../components/brick/BrickBreakpointProvider";
-import { BrickPreviewFrame } from "../../../../../components/brick/BrickPreviewFrame";
-import { modulesHash } from "../../../../../modulesHash";
-import { Button } from "../../../../../components/ui/button";
-import { Configuration } from "../../../../Configuration";
-import { resolveBrickBreakpoint } from "../../../../resolveBrickBreakpoint";
-import { useGridStore } from "../../../../useGridStore";
+import { useBrickBreakpoint } from "../../../../components/brick/BrickBreakpointProvider";
+import { BrickPreviewFrame } from "../../../../components/brick/BrickPreviewFrame";
+import { modulesHash } from "../../../../modulesHash";
+import { Button } from "../../../../components/ui/button";
+import { Configuration } from "../../../Configuration";
+import { resolveBrickBreakpoint } from "../../../resolveBrickBreakpoint";
+import { useGridStore } from "../../../useGridStore";
 
-export const Route = createFileRoute("/_sandbox/modules/$moduleId/$brickId")({
+export const Route = createFileRoute("/modules/$moduleId/$brickId")({
   component: BrickDetail,
 });
 

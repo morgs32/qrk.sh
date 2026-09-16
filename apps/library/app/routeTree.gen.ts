@@ -9,18 +9,24 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as SandboxRouteImport } from './routes/_sandbox'
+import { Route as IndexRouteImport } from './routes/index'
+import { Route as ModulesRouteImport } from './routes/modules'
 import { Route as OrderedBodyRouteImport } from './routes/ordered-body'
 import { Route as OrderedOutlineRouteImport } from './routes/ordered-outline'
-import { Route as SandboxIndexRouteImport } from './routes/_sandbox/index'
 import { Route as BricksModuleIdRouteImport } from './routes/bricks/$moduleId'
-import { Route as SandboxModulesIndexRouteImport } from './routes/_sandbox/modules/index'
-import { Route as SandboxModulesModuleIdRouteImport } from './routes/_sandbox/modules/$moduleId'
-import { Route as SandboxModulesModuleIdIndexRouteImport } from './routes/_sandbox/modules/$moduleId/index'
-import { Route as SandboxModulesModuleIdBrickIdRouteImport } from './routes/_sandbox/modules/$moduleId/$brickId'
+import { Route as ModulesIndexRouteImport } from './routes/modules/index'
+import { Route as ModulesModuleIdRouteImport } from './routes/modules/$moduleId'
+import { Route as ModulesModuleIdIndexRouteImport } from './routes/modules/$moduleId/index'
+import { Route as ModulesModuleIdBrickIdRouteImport } from './routes/modules/$moduleId/$brickId'
 
-const SandboxRoute = SandboxRouteImport.update({
-  id: '/_sandbox',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ModulesRoute = ModulesRouteImport.update({
+  id: '/modules',
+  path: '/modules',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OrderedBodyRoute = OrderedBodyRouteImport.update({
@@ -33,74 +39,69 @@ const OrderedOutlineRoute = OrderedOutlineRouteImport.update({
   path: '/ordered-outline',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SandboxIndexRoute = SandboxIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => SandboxRoute,
-} as any)
 const BricksModuleIdRoute = BricksModuleIdRouteImport.update({
   id: '/bricks/$moduleId',
   path: '/bricks/$moduleId',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SandboxModulesIndexRoute = SandboxModulesIndexRouteImport.update({
-  id: '/modules/',
-  path: '/modules/',
-  getParentRoute: () => SandboxRoute,
+const ModulesIndexRoute = ModulesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ModulesRoute,
 } as any)
-const SandboxModulesModuleIdRoute = SandboxModulesModuleIdRouteImport.update({
-  id: '/modules/$moduleId',
-  path: '/modules/$moduleId',
-  getParentRoute: () => SandboxRoute,
+const ModulesModuleIdRoute = ModulesModuleIdRouteImport.update({
+  id: '/$moduleId',
+  path: '/$moduleId',
+  getParentRoute: () => ModulesRoute,
 } as any)
-const SandboxModulesModuleIdIndexRoute =
-  SandboxModulesModuleIdIndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => SandboxModulesModuleIdRoute,
-  } as any)
-const SandboxModulesModuleIdBrickIdRoute =
-  SandboxModulesModuleIdBrickIdRouteImport.update({
-    id: '/$brickId',
-    path: '/$brickId',
-    getParentRoute: () => SandboxModulesModuleIdRoute,
-  } as any)
+const ModulesModuleIdIndexRoute = ModulesModuleIdIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ModulesModuleIdRoute,
+} as any)
+const ModulesModuleIdBrickIdRoute = ModulesModuleIdBrickIdRouteImport.update({
+  id: '/$brickId',
+  path: '/$brickId',
+  getParentRoute: () => ModulesModuleIdRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof SandboxIndexRoute
+  '/': typeof IndexRoute
+  '/modules': typeof ModulesRouteWithChildren
   '/ordered-body': typeof OrderedBodyRoute
   '/ordered-outline': typeof OrderedOutlineRoute
   '/bricks/$moduleId': typeof BricksModuleIdRoute
-  '/modules/$moduleId': typeof SandboxModulesModuleIdRouteWithChildren
-  '/modules/': typeof SandboxModulesIndexRoute
-  '/modules/$moduleId/$brickId': typeof SandboxModulesModuleIdBrickIdRoute
-  '/modules/$moduleId/': typeof SandboxModulesModuleIdIndexRoute
+  '/modules/$moduleId': typeof ModulesModuleIdRouteWithChildren
+  '/modules/': typeof ModulesIndexRoute
+  '/modules/$moduleId/$brickId': typeof ModulesModuleIdBrickIdRoute
+  '/modules/$moduleId/': typeof ModulesModuleIdIndexRoute
 }
 export interface FileRoutesByTo {
+  '/': typeof IndexRoute
   '/ordered-body': typeof OrderedBodyRoute
   '/ordered-outline': typeof OrderedOutlineRoute
   '/bricks/$moduleId': typeof BricksModuleIdRoute
-  '/': typeof SandboxIndexRoute
-  '/modules': typeof SandboxModulesIndexRoute
-  '/modules/$moduleId/$brickId': typeof SandboxModulesModuleIdBrickIdRoute
-  '/modules/$moduleId': typeof SandboxModulesModuleIdIndexRoute
+  '/modules': typeof ModulesIndexRoute
+  '/modules/$moduleId/$brickId': typeof ModulesModuleIdBrickIdRoute
+  '/modules/$moduleId': typeof ModulesModuleIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/_sandbox': typeof SandboxRouteWithChildren
+  '/': typeof IndexRoute
+  '/modules': typeof ModulesRouteWithChildren
   '/ordered-body': typeof OrderedBodyRoute
   '/ordered-outline': typeof OrderedOutlineRoute
   '/bricks/$moduleId': typeof BricksModuleIdRoute
-  '/_sandbox/': typeof SandboxIndexRoute
-  '/_sandbox/modules/$moduleId': typeof SandboxModulesModuleIdRouteWithChildren
-  '/_sandbox/modules/': typeof SandboxModulesIndexRoute
-  '/_sandbox/modules/$moduleId/$brickId': typeof SandboxModulesModuleIdBrickIdRoute
-  '/_sandbox/modules/$moduleId/': typeof SandboxModulesModuleIdIndexRoute
+  '/modules/$moduleId': typeof ModulesModuleIdRouteWithChildren
+  '/modules/': typeof ModulesIndexRoute
+  '/modules/$moduleId/$brickId': typeof ModulesModuleIdBrickIdRoute
+  '/modules/$moduleId/': typeof ModulesModuleIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/modules'
     | '/ordered-body'
     | '/ordered-outline'
     | '/bricks/$moduleId'
@@ -110,28 +111,29 @@ export interface FileRouteTypes {
     | '/modules/$moduleId/'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/'
     | '/ordered-body'
     | '/ordered-outline'
     | '/bricks/$moduleId'
-    | '/'
     | '/modules'
     | '/modules/$moduleId/$brickId'
     | '/modules/$moduleId'
   id:
     | '__root__'
-    | '/_sandbox'
+    | '/'
+    | '/modules'
     | '/ordered-body'
     | '/ordered-outline'
     | '/bricks/$moduleId'
-    | '/_sandbox/'
-    | '/_sandbox/modules/$moduleId'
-    | '/_sandbox/modules/'
-    | '/_sandbox/modules/$moduleId/$brickId'
-    | '/_sandbox/modules/$moduleId/'
+    | '/modules/$moduleId'
+    | '/modules/'
+    | '/modules/$moduleId/$brickId'
+    | '/modules/$moduleId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  SandboxRoute: typeof SandboxRouteWithChildren
+  IndexRoute: typeof IndexRoute
+  ModulesRoute: typeof ModulesRouteWithChildren
   OrderedBodyRoute: typeof OrderedBodyRoute
   OrderedOutlineRoute: typeof OrderedOutlineRoute
   BricksModuleIdRoute: typeof BricksModuleIdRoute
@@ -139,11 +141,18 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/_sandbox': {
-      id: '/_sandbox'
-      path: ''
+    '/': {
+      id: '/'
+      path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof SandboxRouteImport
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/modules': {
+      id: '/modules'
+      path: '/modules'
+      fullPath: '/modules'
+      preLoaderRoute: typeof ModulesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/ordered-body': {
@@ -160,13 +169,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrderedOutlineRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_sandbox/': {
-      id: '/_sandbox/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof SandboxIndexRouteImport
-      parentRoute: typeof SandboxRoute
-    }
     '/bricks/$moduleId': {
       id: '/bricks/$moduleId'
       path: '/bricks/$moduleId'
@@ -174,70 +176,67 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BricksModuleIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_sandbox/modules/': {
-      id: '/_sandbox/modules/'
-      path: '/modules'
+    '/modules/': {
+      id: '/modules/'
+      path: '/'
       fullPath: '/modules/'
-      preLoaderRoute: typeof SandboxModulesIndexRouteImport
-      parentRoute: typeof SandboxRoute
+      preLoaderRoute: typeof ModulesIndexRouteImport
+      parentRoute: typeof ModulesRoute
     }
-    '/_sandbox/modules/$moduleId': {
-      id: '/_sandbox/modules/$moduleId'
-      path: '/modules/$moduleId'
+    '/modules/$moduleId': {
+      id: '/modules/$moduleId'
+      path: '/$moduleId'
       fullPath: '/modules/$moduleId'
-      preLoaderRoute: typeof SandboxModulesModuleIdRouteImport
-      parentRoute: typeof SandboxRoute
+      preLoaderRoute: typeof ModulesModuleIdRouteImport
+      parentRoute: typeof ModulesRoute
     }
-    '/_sandbox/modules/$moduleId/': {
-      id: '/_sandbox/modules/$moduleId/'
+    '/modules/$moduleId/': {
+      id: '/modules/$moduleId/'
       path: '/'
       fullPath: '/modules/$moduleId/'
-      preLoaderRoute: typeof SandboxModulesModuleIdIndexRouteImport
-      parentRoute: typeof SandboxModulesModuleIdRoute
+      preLoaderRoute: typeof ModulesModuleIdIndexRouteImport
+      parentRoute: typeof ModulesModuleIdRoute
     }
-    '/_sandbox/modules/$moduleId/$brickId': {
-      id: '/_sandbox/modules/$moduleId/$brickId'
+    '/modules/$moduleId/$brickId': {
+      id: '/modules/$moduleId/$brickId'
       path: '/$brickId'
       fullPath: '/modules/$moduleId/$brickId'
-      preLoaderRoute: typeof SandboxModulesModuleIdBrickIdRouteImport
-      parentRoute: typeof SandboxModulesModuleIdRoute
+      preLoaderRoute: typeof ModulesModuleIdBrickIdRouteImport
+      parentRoute: typeof ModulesModuleIdRoute
     }
   }
 }
 
-interface SandboxModulesModuleIdRouteChildren {
-  SandboxModulesModuleIdBrickIdRoute: typeof SandboxModulesModuleIdBrickIdRoute
-  SandboxModulesModuleIdIndexRoute: typeof SandboxModulesModuleIdIndexRoute
+interface ModulesModuleIdRouteChildren {
+  ModulesModuleIdBrickIdRoute: typeof ModulesModuleIdBrickIdRoute
+  ModulesModuleIdIndexRoute: typeof ModulesModuleIdIndexRoute
 }
 
-const SandboxModulesModuleIdRouteChildren: SandboxModulesModuleIdRouteChildren =
-  {
-    SandboxModulesModuleIdBrickIdRoute: SandboxModulesModuleIdBrickIdRoute,
-    SandboxModulesModuleIdIndexRoute: SandboxModulesModuleIdIndexRoute,
-  }
-
-const SandboxModulesModuleIdRouteWithChildren =
-  SandboxModulesModuleIdRoute._addFileChildren(
-    SandboxModulesModuleIdRouteChildren,
-  )
-
-interface SandboxRouteChildren {
-  SandboxIndexRoute: typeof SandboxIndexRoute
-  SandboxModulesModuleIdRoute: typeof SandboxModulesModuleIdRouteWithChildren
-  SandboxModulesIndexRoute: typeof SandboxModulesIndexRoute
+const ModulesModuleIdRouteChildren: ModulesModuleIdRouteChildren = {
+  ModulesModuleIdBrickIdRoute: ModulesModuleIdBrickIdRoute,
+  ModulesModuleIdIndexRoute: ModulesModuleIdIndexRoute,
 }
 
-const SandboxRouteChildren: SandboxRouteChildren = {
-  SandboxIndexRoute: SandboxIndexRoute,
-  SandboxModulesModuleIdRoute: SandboxModulesModuleIdRouteWithChildren,
-  SandboxModulesIndexRoute: SandboxModulesIndexRoute,
+const ModulesModuleIdRouteWithChildren = ModulesModuleIdRoute._addFileChildren(
+  ModulesModuleIdRouteChildren,
+)
+
+interface ModulesRouteChildren {
+  ModulesModuleIdRoute: typeof ModulesModuleIdRouteWithChildren
+  ModulesIndexRoute: typeof ModulesIndexRoute
 }
 
-const SandboxRouteWithChildren =
-  SandboxRoute._addFileChildren(SandboxRouteChildren)
+const ModulesRouteChildren: ModulesRouteChildren = {
+  ModulesModuleIdRoute: ModulesModuleIdRouteWithChildren,
+  ModulesIndexRoute: ModulesIndexRoute,
+}
+
+const ModulesRouteWithChildren =
+  ModulesRoute._addFileChildren(ModulesRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
-  SandboxRoute: SandboxRouteWithChildren,
+  IndexRoute: IndexRoute,
+  ModulesRoute: ModulesRouteWithChildren,
   OrderedBodyRoute: OrderedBodyRoute,
   OrderedOutlineRoute: OrderedOutlineRoute,
   BricksModuleIdRoute: BricksModuleIdRoute,

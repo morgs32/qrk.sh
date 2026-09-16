@@ -1,11 +1,11 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
 
-import { useBrickBreakpoint } from "../../../../components/brick/BrickBreakpointProvider";
-import { BrickPreviewFrame } from "../../../../components/brick/BrickPreviewFrame";
-import { modulesHash } from "../../../../modulesHash";
-import { DraggableBrick } from "../../../DraggableBrick";
+import { useBrickBreakpoint } from "../../../components/brick/BrickBreakpointProvider";
+import { BrickPreviewFrame } from "../../../components/brick/BrickPreviewFrame";
+import { modulesHash } from "../../../modulesHash";
+import { DraggableBrick } from "../../DraggableBrick";
 
-export const Route = createFileRoute("/_sandbox/modules/")({
+export const Route = createFileRoute("/modules/")({
   component: ModulesPage,
 });
 

@@ -1,33 +1,23 @@
-import { useState } from "react";
-import {
-  Link,
-  Outlet,
-  createFileRoute,
-  useLocation,
-  useNavigate,
-  useParams,
-} from "@tanstack/react-router";
+import { useState, type ReactNode } from "react";
+import { Link, useLocation, useNavigate, useParams } from "@tanstack/react-router";
 import { RotateCcw, X } from "lucide-react";
 
-import { BrickBreakpointProvider } from "../../components/brick/BrickBreakpointProvider";
-import { Button } from "../../components/ui/button";
+import { BrickBreakpointProvider } from "../components/brick/BrickBreakpointProvider";
+import { Button } from "../components/ui/button";
 import {
   Drawer,
   DrawerClose,
   DrawerContent,
   DrawerTitle,
   DrawerTrigger,
-} from "../../components/ui/drawer";
-import { BREAKPOINTS } from "../../breakpoints";
-import { modulesHash } from "../../modulesHash";
-import { SandboxGrid } from "../SandboxGrid";
-import { useGridStore } from "../useGridStore";
+} from "../components/ui/drawer";
+import { BREAKPOINTS } from "../breakpoints";
+import { modulesHash } from "../modulesHash";
+import { SandboxGrid } from "./SandboxGrid";
+import { useGridStore } from "./useGridStore";
 
-export const Route = createFileRoute("/_sandbox")({
-  component: Layout,
-});
-
-function Layout() {
+export function SandboxLayout(props: { children: ReactNode }) {
+  const { children } = props;
   const location = useLocation();
   const navigate = useNavigate();
   const params = useParams({ strict: false });
@@ -54,7 +44,7 @@ function Layout() {
         data-vaul-no-drag
         className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto bg-zinc-100"
       >
-        <Outlet />
+        {children}
       </div>
     </div>
   );
@@ -89,11 +79,7 @@ function Layout() {
                         /
                       </span>
                       {brickId !== undefined ? (
-                        <Link
-                          to="/modules/$moduleId"
-                          params={{ moduleId }}
-                          className="truncate"
-                        >
+                        <Link to="/modules/$moduleId" params={{ moduleId }} className="truncate">
                           {moduleLabel}
                         </Link>
                       ) : (

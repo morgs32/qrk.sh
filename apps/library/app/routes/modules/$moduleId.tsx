@@ -1,8 +1,8 @@
 import { Outlet, createFileRoute, notFound, useLocation } from "@tanstack/react-router";
 
-import { modulesHash } from "../../../../modulesHash";
+import { modulesHash } from "../../../modulesHash";
 
-export const Route = createFileRoute("/_sandbox/modules/$moduleId")({
+export const Route = createFileRoute("/modules/$moduleId")({
   beforeLoad: ({ params }) => {
     if (modulesHash[params.moduleId] === undefined) {
       throw notFound();
@@ -13,5 +13,5 @@ export const Route = createFileRoute("/_sandbox/modules/$moduleId")({
 
 function ModulePage() {
   const location = useLocation();
-  return <Outlet key={location.pathname + location.search} />;
+  return <Outlet key={`${location.pathname}${location.searchStr}`} />;
 }

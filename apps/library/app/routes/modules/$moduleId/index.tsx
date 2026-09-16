@@ -5,20 +5,20 @@ import { newSyncRpcSession } from "@zerospin/core/utils/newSyncRpcSession";
 import type { Spec } from "@json-render/core";
 import { collapseAllNested, defaultStyles, JsonView } from "react-json-view-lite";
 
-import { useBrickBreakpoint } from "../../../../../components/brick/BrickBreakpointProvider";
-import { BrickPreviewFrame } from "../../../../../components/brick/BrickPreviewFrame";
-import { Button } from "../../../../../components/ui/button";
-import { Input } from "../../../../../components/ui/input";
-import { modulesHash } from "../../../../../modulesHash";
-import { GitHubProfileJsonRenderCompare } from "../../../../../modules/githubProfile/generative/GitHubProfileJsonRenderCompare";
-import type { LibraryApi } from "../../../../../worker/LibraryApi.public";
-import type { IScrapeError } from "../../../../../worker/types.public";
-import { TableData } from "../../../../TableData";
-import { Configuration } from "../../../../Configuration";
-import { useGridStore } from "../../../../useGridStore";
-import { useModuleData } from "../../../../useModuleData";
+import { useBrickBreakpoint } from "../../../../components/brick/BrickBreakpointProvider";
+import { BrickPreviewFrame } from "../../../../components/brick/BrickPreviewFrame";
+import { Button } from "../../../../components/ui/button";
+import { Input } from "../../../../components/ui/input";
+import { modulesHash } from "../../../../modulesHash";
+import { GitHubProfileJsonRenderCompare } from "../../../../modules/githubProfile/generative/GitHubProfileJsonRenderCompare";
+import type { LibraryApi } from "../../../../worker/LibraryApi.public";
+import type { IScrapeError } from "../../../../worker/types.public";
+import { TableData } from "../../../TableData";
+import { Configuration } from "../../../Configuration";
+import { useGridStore } from "../../../useGridStore";
+import { useModuleData } from "../../../useModuleData";
 
-export const Route = createFileRoute("/_sandbox/modules/$moduleId/")({
+export const Route = createFileRoute("/modules/$moduleId/")({
   component: ModuleDetail,
 });
 

@@ -1,5 +1,8 @@
 import { defineRegistry } from "@json-render/react";
 
+import { BrickBody } from "../../../components/brick/BrickBody";
+import { BrickFooter } from "../../../components/brick/BrickFooter";
+import { BrickShell } from "../../../components/brick/BrickShell";
 import { Avatar } from "../GitHubProfile/components/Avatar";
 import { Bio } from "../GitHubProfile/components/Bio";
 import { Blog } from "../GitHubProfile/components/Blog";
@@ -7,19 +10,18 @@ import { Followers } from "../GitHubProfile/components/Followers";
 import { Following } from "../GitHubProfile/components/Following";
 import { Location } from "../GitHubProfile/components/Location";
 import { Login } from "../GitHubProfile/components/Login";
-import { ProfileBody } from "../GitHubProfile/components/ProfileBody";
-import { ProfileCard } from "../GitHubProfile/components/ProfileCard";
-import { ProfileFooter } from "../GitHubProfile/components/ProfileFooter";
 import { ProfileHeader } from "../GitHubProfile/components/ProfileHeader";
 import { PublicRepos } from "../GitHubProfile/components/PublicRepos";
 import { githubProfileJsonRenderCatalog } from "./GitHubProfileJsonRenderCatalog";
 
 export const { registry } = defineRegistry(githubProfileJsonRenderCatalog, {
   components: {
-    ProfileCard: ({ children }) => <ProfileCard>{children}</ProfileCard>,
+    BrickShell: ({ children }) => <BrickShell>{children}</BrickShell>,
     ProfileHeader: ({ children }) => <ProfileHeader>{children}</ProfileHeader>,
-    ProfileBody: ({ children }) => <ProfileBody>{children}</ProfileBody>,
-    ProfileFooter: ({ children }) => <ProfileFooter>{children}</ProfileFooter>,
+    BrickBody: ({ children }) => <BrickBody>{children}</BrickBody>,
+    BrickFooter: ({ children }) => (
+      <BrickFooter className="justify-end gap-4">{children}</BrickFooter>
+    ),
     Avatar: ({ props }) => <Avatar avatar_url={props.avatar_url} login={props.login} />,
     Login: ({ props }) => <Login login={props.login} />,
     Bio: ({ props }) => <Bio bio={props.bio} />,

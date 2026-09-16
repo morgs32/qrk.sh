@@ -3,6 +3,8 @@ import { makeEffectSchema } from "@zerospin/schema";
 import { Schema } from "effect";
 import { collapseAllNested, defaultStyles, JsonView } from "react-json-view-lite";
 
+import { OrderedBodyHeading } from "@qrk.sh/web/library/OrderedBody";
+
 import { useBrickBreakpoint } from "../../../../lib/BrickBreakpointProvider";
 import { BrickPreview } from "../../../../lib/BrickPreview";
 import { modulesHash } from "../../../../lib/modulesHash";
@@ -43,7 +45,7 @@ function BrickDetail() {
   return (
     <>
       <li data-testid="brick-detail-pane">
-        <h2 className="m-0 shrink-0 font-normal">Preview</h2>
+        <OrderedBodyHeading className="shrink-0">Preview</OrderedBodyHeading>
         <div
           className={`mt-5 overflow-auto py-6 ${(entry.gridItem?.w ?? brick.def[breakpoint].w) === 8 ? "" : "px-4"}`}
         >
@@ -81,7 +83,7 @@ function BrickDetail() {
         />
       </li>
       <li className="mt-10">
-        <h2 className="m-0 shrink-0 px-4 py-4 font-normal">Options</h2>
+        <OrderedBodyHeading className="shrink-0 px-4 py-4">Options</OrderedBodyHeading>
         <div className="flex flex-wrap gap-2 px-4 py-4">
           {breakpoint !== "sm" && (
             <Button
@@ -126,7 +128,7 @@ function BrickDetail() {
         )}
       </li>
       <li className="mt-10">
-        <h2 className="m-0 shrink-0 px-4 py-4 font-normal">Brick Definition</h2>
+        <OrderedBodyHeading className="shrink-0 px-4 py-4">Brick Definition</OrderedBodyHeading>
         <div className="overflow-auto bg-white px-2 py-4" data-testid="module-data-result">
           <JsonView
             shouldExpandNode={collapseAllNested}

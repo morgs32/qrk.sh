@@ -6,6 +6,8 @@ import { newSyncRpcSession } from "@zerospin/core/utils/newSyncRpcSession";
 import type { Spec } from "@json-render/core";
 import { collapseAllNested, defaultStyles, JsonView } from "react-json-view-lite";
 
+import { OrderedBodyHeading } from "@qrk.sh/web/library/OrderedBody";
+
 import { BrickPreview } from "../../../../lib/BrickPreview";
 import { BREAKPOINTS } from "../../../../lib/breakpoints";
 import { Button } from "../../../../components/ui/button";
@@ -83,7 +85,7 @@ function ModuleDetail() {
   return (
     <>
       <li data-testid="module-configuration-pane">
-        <h2 className="m-0 shrink-0 font-normal">Module</h2>
+        <OrderedBodyHeading className="shrink-0">Module</OrderedBodyHeading>
         <div className="mt-5">
           <TableData
             entries={[
@@ -94,11 +96,11 @@ function ModuleDetail() {
         </div>
       </li>
       <li className="mt-10">
-        <h2 className="m-0 shrink-0 font-normal">Previews</h2>
+        <OrderedBodyHeading className="shrink-0">Previews</OrderedBodyHeading>
         <ol className={nestedListClassName}>
           {BREAKPOINTS.map((entry, index) => (
             <li className={index === 0 ? undefined : "mt-10"} key={entry.id}>
-              <h2 className="m-0 shrink-0 py-2 font-normal">{entry.id}</h2>
+              <OrderedBodyHeading className="shrink-0 py-2">{entry.id}</OrderedBodyHeading>
               <div className="flex items-start gap-4">
                 <div className="min-w-0">
                   <p className="m-0 mb-2 font-mono text-neutral-500">gridItem</p>
@@ -160,7 +162,7 @@ function ModuleDetail() {
       </li>
       {brickModule.catalog !== undefined ? (
         <li className="mt-10">
-          <h2 className="m-0 shrink-0 px-4 py-4 font-normal">Generate spec</h2>
+          <OrderedBodyHeading className="shrink-0 px-4 py-4">Generate spec</OrderedBodyHeading>
           <form
             className="flex flex-col items-start gap-2 px-4 py-5"
             onSubmit={(event) => {
@@ -215,7 +217,11 @@ function ModuleDetail() {
           ) : null}
           {moduleId === "github-profile" ? (
             <div className="mt-8 px-4">
-              <GitHubProfileJsonRenderCompare data={moduleData} spec={generatedSpec} />
+              <BrickPreview w={brick.def.sm.w} h={brick.def.sm.h}>
+                <div className="size-full qrk-bricks overflow-hidden">
+                  <GitHubProfileJsonRenderCompare data={moduleData} spec={generatedSpec} />
+                </div>
+              </BrickPreview>
             </div>
           ) : null}
         </li>
@@ -230,7 +236,7 @@ function ModuleDetail() {
       </li>
       {OptionsForm ? (
         <li className="mt-10">
-          <h2 className="m-0 shrink-0 px-4 py-4 font-normal">Options</h2>
+          <OrderedBodyHeading className="shrink-0 px-4 py-4">Options</OrderedBodyHeading>
           <OptionsForm
             value={options}
             onChange={(value) => {
@@ -243,7 +249,7 @@ function ModuleDetail() {
         </li>
       ) : null}
       <li className="mt-10">
-        <h2 className="m-0 shrink-0 px-4 py-4 font-normal">Brick Definition</h2>
+        <OrderedBodyHeading className="shrink-0 px-4 py-4">Brick Definition</OrderedBodyHeading>
         <div className="overflow-auto bg-white px-2 py-4" data-testid="module-data-result">
           <JsonView
             shouldExpandNode={collapseAllNested}

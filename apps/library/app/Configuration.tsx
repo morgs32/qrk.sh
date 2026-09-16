@@ -1,3 +1,4 @@
+import { OrderedBodyHeading } from "@qrk.sh/web/library/OrderedBody";
 import { collapseAllNested, defaultStyles, JsonView } from "react-json-view-lite";
 import "react-json-view-lite/dist/index.css";
 import type { IModule } from "../lib/types";
@@ -14,7 +15,7 @@ export function Configuration(props: {
   if (configuration === undefined) {
     return (
       <div>
-        <h2 className="m-0 shrink-0 px-4 py-4 font-normal">Configuration</h2>
+        <OrderedBodyHeading className="shrink-0 px-4 py-4">Configuration</OrderedBodyHeading>
         {props.showData !== false && (
           <div className="overflow-auto bg-white px-2 py-4">
             <JsonView
@@ -32,7 +33,7 @@ export function Configuration(props: {
     case "form":
       return (
         <div>
-          <h2 className="m-0 shrink-0 px-4 py-4 font-normal">Configuration</h2>
+          <OrderedBodyHeading className="shrink-0 px-4 py-4">Configuration</OrderedBodyHeading>
           {props.showData !== false && (
             <div className="overflow-auto bg-white px-2 py-4" data-testid="module-data-result">
               <JsonView

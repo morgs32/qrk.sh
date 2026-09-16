@@ -4,7 +4,7 @@ import { z } from "zod";
 
 export const githubProfileJsonRenderCatalog = defineCatalog(schema, {
   components: {
-    ProfileCard: {
+    BrickShell: {
       props: z.object({}),
       slots: ["default"],
       description: "Slotted shell for composing a GitHub profile layout.",
@@ -14,12 +14,12 @@ export const githubProfileJsonRenderCatalog = defineCatalog(schema, {
       slots: ["default"],
       description: "Avatar and login row.",
     },
-    ProfileBody: {
+    BrickBody: {
       props: z.object({}),
       slots: ["default"],
       description: "Scrollable body for the header row plus bio, location, and blog lines.",
     },
-    ProfileFooter: {
+    BrickFooter: {
       props: z.object({}),
       slots: ["default"],
       description: "Footer row for follower, following, and repository counts.",

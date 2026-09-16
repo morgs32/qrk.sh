@@ -1,22 +1,6 @@
 import type { ReactNode } from "react";
 
-const sections = [
-  { label: "Module", tone: "active" },
-  {
-    label: "Previews",
-    tone: "active",
-    children: [
-      { label: "sm", tone: "active" },
-      { label: "md", tone: "active" },
-      { label: "lg", tone: "active" },
-      { label: "xl", tone: "active" },
-    ],
-  },
-  { label: "Generate spec", tone: "active" },
-  { label: "Configuration", tone: "active" },
-  { label: "Options", tone: "active" },
-  { label: "Brick definition", tone: "active" },
-];
+import { followOrderedBodyHash, orderedBodyHeadingId } from "./OrderedBody";
 
 const listItemBaseClassName =
   "relative whitespace-nowrap [counter-increment:item] before:absolute before:right-[calc(100%+0.65rem)] before:text-neutral-400";
@@ -37,20 +21,38 @@ function ListItem(props: { children: ReactNode; tone: string; level: 1 | 2 | 3 }
   );
 }
 
-export function OrderedOutline() {
+export function OrderedOutline(props: {
+  sections: Array<{
+    label: string;
+    tone: string;
+    children?: Array<{ label: string; tone: string }>;
+  }>;
+}) {
   return (
     <nav aria-label="Documentation sections" className="ml-5">
       <ol className="m-0 list-none p-0 [counter-reset:item]">
-        {sections.map((section) => {
-          const children = "children" in section ? section.children : undefined;
+        {props.sections.map((section) => {
+          const children = section.children;
           return (
             <ListItem key={section.label} tone={section.tone} level={1}>
-              {section.label}
+              <a
+                className="text-inherit no-underline"
+                href={`#${orderedBodyHeadingId(section.label)}`}
+                onClick={followOrderedBodyHash}
+              >
+                {section.label}
+              </a>
               {children !== undefined && (
                 <ol className="list-none p-0 pl-5 [counter-reset:item]">
                   {children.map((child) => (
                     <ListItem key={child.label} tone={child.tone} level={2}>
-                      {child.label}
+                      <a
+                        className="text-inherit no-underline"
+                        href={`#${orderedBodyHeadingId(child.label)}`}
+                        onClick={followOrderedBodyHash}
+                      >
+                        {child.label}
+                      </a>
                     </ListItem>
                   ))}
                 </ol>

@@ -15,15 +15,15 @@ function ImageCard(props: { children?: ReactNode }) {
   );
 }
 
-function ImageCover(props: { imageUrl: string; title: string }) {
+function ImageCover(props: { imageUrl: string; title: string; imagePosition: string }) {
   return (
     <div className="relative min-h-0 flex-1 basis-[200px] overflow-hidden">
       <UnpicImage
         src={props.imageUrl}
         alt={props.title}
-        className="absolute inset-0 size-full object-cover"
+        className="absolute inset-0 size-full object-cover object-center data-[image-position=top-left]:object-left-top data-[image-position=top-center]:object-top data-[image-position=top-right]:object-right-top data-[image-position=center-left]:object-left data-[image-position=center-right]:object-right data-[image-position=bottom-left]:object-left-bottom data-[image-position=bottom-center]:object-bottom data-[image-position=bottom-right]:object-right-bottom"
+        data-image-position={props.imagePosition}
         layout="fullWidth"
-        height={800}
         sizes="(max-width: 768px) 100vw, 50vw"
       />
     </div>
@@ -38,6 +38,7 @@ export const { registry } = defineRegistry(imageJsonRenderCatalog, {
       <ImageCover
         imageUrl={typeof props.imageUrl === "string" ? props.imageUrl : ""}
         title={typeof props.title === "string" ? props.title : ""}
+        imagePosition={typeof props.imagePosition === "string" ? props.imagePosition : "center"}
       />
     ),
     MediaFooter: ({ children, props }) => (

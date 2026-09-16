@@ -125,6 +125,14 @@ function LayoutBody(props: { children: ReactNode }) {
                         ) : (
                           <span className="truncate">{moduleLabel}</span>
                         )}
+                        {brickId !== undefined ? (
+                          <>
+                            <span aria-hidden className="text-muted-foreground">
+                              /
+                            </span>
+                            <span className="truncate">{`~${brickId.slice(-5)}`}</span>
+                          </>
+                        ) : null}
                       </>
                     ) : null}
                   </nav>

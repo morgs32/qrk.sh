@@ -17,9 +17,10 @@ export const imageJsonRenderCatalog = defineCatalog(schema, {
       props: z.object({
         imageUrl: DynamicStringSchema,
         title: DynamicStringSchema,
+        imagePosition: DynamicStringSchema,
       }),
       description:
-        'Cover image band. Bind imageUrl with { "$state": "/imageUrl" } and title with { "$state": "/title" } for alt text.',
+        'Cover image band. Bind imageUrl with { "$state": "/imageUrl" }, title with { "$state": "/title" }, and imagePosition with { "$state": "/imagePosition" }.',
     },
     MediaFooter: {
       props: z.object({

@@ -194,12 +194,12 @@ export function ErrorBoundary() {
 
   return (
     <div className="px-6 pt-6" data-testid="module-not-found">
-      <Link to="/" className="inline-flex items-center gap-2 text-sm">
+      <Link to="/" className="inline-flex items-center gap-2">
         <ArrowLeft aria-hidden className="size-4" />
         <span>Back to modules</span>
       </Link>
       <h1 className="mb-2 mt-8 text-4xl font-semibold tracking-tight">Module not found</h1>
-      <p className="mt-0 text-zinc-600">This module is not registered in the library.</p>
+      <p className="mt-0">This module is not registered in the library.</p>
     </div>
   );
 }

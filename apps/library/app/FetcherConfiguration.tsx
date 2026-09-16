@@ -116,7 +116,7 @@ export function FetcherConfiguration(props: {
               ) {
                 return (
                   <p
-                    className="m-0 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800"
+                    className="m-0 rounded-md border border-red-200 bg-red-50 p-3"
                     data-testid={`unsupported-module-options-${fieldName}`}
                     key={fieldName}
                     role="alert"
@@ -130,7 +130,7 @@ export function FetcherConfiguration(props: {
               return (
                 <div className="flex flex-col items-start gap-2" key={fieldName}>
                   <label
-                    className="block text-sm font-medium"
+                    className="block font-medium"
                     htmlFor={`module-options-${fieldName}`}
                   >
                     {fieldName === "url" ? "URL" : fieldName}
@@ -172,7 +172,7 @@ export function FetcherConfiguration(props: {
 
         {dataError !== undefined ? (
           <div
-            className="mt-5 rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-800"
+            className="mt-5 rounded-md border border-red-200 bg-red-50 p-4"
             data-testid="module-data-error"
             role="alert"
           >
@@ -183,7 +183,7 @@ export function FetcherConfiguration(props: {
 
         {requestError !== undefined ? (
           <div
-            className="mt-5 rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-800"
+            className="mt-5 rounded-md border border-red-200 bg-red-50 p-4"
             data-testid="module-request-error"
             role="alert"
           >

@@ -36,7 +36,7 @@ export default function BrickPage() {
       {({ containerRef, breakpoint }) => (
         <main className="min-h-screen">
           <div className="mx-auto max-w-7xl p-6">
-            <Link to={`/modules/${encodeURIComponent(brick.def.moduleId)}`} className="text-sm">
+            <Link to={`/modules/${encodeURIComponent(brick.def.moduleId)}`}>
               Back to {brick.def.moduleLabel}
             </Link>
 
@@ -65,20 +65,20 @@ export default function BrickPage() {
               </section>
 
               <aside className="rounded-xl border border-zinc-300 bg-white p-5">
-                <p className="mb-2 text-xs font-medium uppercase tracking-[0.16em] text-zinc-500">
+                <p className="mb-2 font-medium uppercase tracking-[0.16em]">
                   Brick module
                 </p>
                 <h1 className="m-0 text-2xl font-semibold">{brick.def.moduleLabel}</h1>
-                <dl className="grid grid-cols-[7rem_1fr] gap-x-3 gap-y-2 text-sm">
-                  <dt className="text-zinc-500">Module</dt>
+                <dl className="grid grid-cols-[7rem_1fr] gap-x-3 gap-y-2">
+                  <dt>Module</dt>
                   <dd className="m-0 font-mono">{brick.def.moduleId}</dd>
-                  <dt className="text-zinc-500">Width</dt>
+                  <dt>Width</dt>
                   <dd className="m-0">{brick.def[breakpoint].w}</dd>
-                  <dt className="text-zinc-500">Height</dt>
+                  <dt>Height</dt>
                   <dd className="m-0">{brick.def[breakpoint].h}</dd>
                 </dl>
 
-                <label className="mt-6 block text-sm font-medium" htmlFor="grid-unit">
+                <label className="mt-6 block font-medium" htmlFor="grid-unit">
                   Grid unit: <output>{gridUnitPx}px</output>
                 </label>
                 <input
@@ -93,7 +93,7 @@ export default function BrickPage() {
 
                 <button
                   type="button"
-                  className="mt-5 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm font-medium"
+                  className="mt-5 w-full rounded-md border border-zinc-300 px-3 py-2 font-medium"
                   onClick={() => setIsDark((current) => !current)}
                 >
                   Use {isDark ? "light" : "dark"} canvas

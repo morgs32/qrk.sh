@@ -7,7 +7,7 @@ import { BookOpen, Link as LinkIcon, MapPin, Quote, UserPlus, Users } from "luci
 import { BrickBody } from "../../components/brick/BrickBody";
 import { BrickFooter } from "../../components/brick/BrickFooter";
 import { BrickShell } from "../../components/brick/BrickShell";
-import { brickMetaIconClass, brickMutedClass } from "../../components/brick/brickTokens";
+import { brickMetaIconClass } from "../../components/brick/brickTokens";
 
 export function GitHubProfileStats(props: {
   breakpoint: "sm" | "md" | "lg" | "xl";
@@ -48,11 +48,11 @@ export function GitHubProfileStats(props: {
         )}
 
         <div className="min-w-0 w-full">
-          <p className={`${brickMutedClass} truncate`}>@{user.login}</p>
+          <p className="truncate">@{user.login}</p>
         </div>
       </div>
 
-      <BrickBody className={brickMutedClass}>
+      <BrickBody>
         {user.bio && (
           <div className="flex items-center gap-1">
             <Quote className={brickMetaIconClass} />

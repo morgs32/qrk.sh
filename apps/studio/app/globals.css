@@ -1,9 +1,11 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "react-grid-layout/css/styles.css";
-@import "@qrk.sh/library/styles.css";
+@import "@qrk.sh/library/bricks.css";
 @import "./tiptap/styles/_variables.scss";
 @import "./tiptap/styles/_keyframe-animations.scss";
+
+@source "../../library/**/*.{ts,tsx}";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -242,6 +244,16 @@ html body[data-scroll-locked] {
 .grid-layout .react-grid-placeholder {
   background: color-mix(in oklch, var(--destructive) 45%, transparent);
   opacity: 1;
+}
+
+/* Document rhythm for the studio page article TipTap editor. */
+.typeset-article {
+  --typeset-font-body: var(--font-sans);
+  --typeset-font-heading: var(--font-sans);
+  --typeset-font-mono: var(--font-mono);
+  --typeset-size: 14px;
+  --typeset-leading: 1.6;
+  --typeset-flow: 1.25em;
 }
 
 /* Tiptap placeholder */

@@ -54,7 +54,7 @@ export function SandboxGrid() {
       {outsideBrickId && (
         <div
           role="status"
-          className="pointer-events-none fixed right-4 top-4 z-80 rounded bg-zinc-900 px-3 py-2 text-sm text-white"
+          className="pointer-events-none fixed right-4 top-4 z-80 rounded bg-zinc-900 px-3 py-2"
         >
           Release to remove
         </div>

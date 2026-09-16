@@ -1,8 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { Schema } from "effect";
 import { toast } from "sonner";
-import { href, Link, useNavigate } from "react-router";
+import { href, Link } from "react-router";
 import { useLiveQuery, useSession } from "@zerospin/react";
 import { ZerospinError } from "@zerospin/sdk/browser";
 
@@ -10,6 +11,15 @@ import { siteV2 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site
 import { pageV2 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV2";
 
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { ZerospinUser } from "@/components/ZerospinUser";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 
@@ -21,8 +31,9 @@ const ParamsSchema = Schema.Struct({
 
 export default function UsernameDashboardPage() {
   const { username } = useValidatedParams(ParamsSchema);
-  const navigate = useNavigate();
   const session = useSession(ZerospinUser);
+  const [createSiteOpen, setCreateSiteOpen] = useState(false);
+  const [siteName, setSiteName] = useState("");
   const { data: user, error } = useLiveQuery(ZerospinUser, {
     query: (db) => {
       const state = session.store.getState();
@@ -55,49 +66,95 @@ export default function UsernameDashboardPage() {
               <Button
                 type="button"
                 onClick={() => {
-                  const state = session.store.getState();
-                  if (!state.isInitialized) {
-                    toast.error("Your session is not ready");
-                    return;
-                  }
-                  const siteResult = session.executeCommand({
-                    contractName: "createSite",
-                    payload: {
-                      id: session.makeId(Site),
-                      userId: user.id,
-                    },
-                  });
-                  if (siteResult._tag === "Failure") {
-                    toast.error(new ZerospinError(siteResult.failure).message);
-                    return;
-                  }
-
-                  const siteId = siteResult.success.payload.id;
-                  const pageResult = session.executeCommand({
-                    contractName: "createPage",
-                    payload: {
-                      id: session.makeId(Page),
-                      siteId,
-                      slug: "home",
-                      pageType: "split-scroll",
-                    },
-                  });
-                  if (pageResult._tag === "Failure") {
-                    toast.error(new ZerospinError(pageResult.failure).message);
-                    return;
-                  }
-
-                  navigate(
-                    href("/:username/site/:siteId/page/:pageId", {
-                      username,
-                      siteId,
-                      pageId: pageResult.success.payload.id,
-                    }),
-                  );
+                  setCreateSiteOpen(true);
                 }}
               >
                 Create site
               </Button>
+              <Dialog
+                open={createSiteOpen}
+                onOpenChange={(open) => {
+                  setCreateSiteOpen(open);
+                  if (!open) {
+                    setSiteName("");
+                  }
+                }}
+              >
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Create site</DialogTitle>
+                  </DialogHeader>
+                  <form
+                    className="flex flex-col gap-4"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      const name = siteName.trim();
+                      if (name === "") {
+                        toast.error("Name is required");
+                        return;
+                      }
+                      const state = session.store.getState();
+                      if (!state.isInitialized) {
+                        toast.error("Your session is not ready");
+                        return;
+                      }
+                      const siteResult = session.executeCommand({
+                        contractName: "createSite",
+                        payload: {
+                          id: session.makeId(Site),
+                          userId: user.id,
+                          name,
+                        },
+                      });
+                      if (siteResult._tag === "Failure") {
+                        toast.error(new ZerospinError(siteResult.failure).message);
+                        return;
+                      }
+
+                      const siteId = siteResult.success.payload.id;
+                      const pageResult = session.executeCommand({
+                        contractName: "createPage",
+                        payload: {
+                          id: session.makeId(Page),
+                          siteId,
+                          slug: "home",
+                          pageType: "split-scroll",
+                        },
+                      });
+                      if (pageResult._tag === "Failure") {
+                        toast.error(new ZerospinError(pageResult.failure).message);
+                        return;
+                      }
+
+                      setSiteName("");
+                      setCreateSiteOpen(false);
+                    }}
+                  >
+                    <div className="flex flex-col gap-2">
+                      <label htmlFor="create-site-name" className="text-sm font-medium">
+                        Name
+                      </label>
+                      <Input
+                        id="create-site-name"
+                        name="name"
+                        value={siteName}
+                        onChange={(event) => {
+                          setSiteName(event.target.value);
+                        }}
+                        autoFocus
+                      />
+                    </div>
+                    <DialogFooter>
+                      <DialogClose asChild>
+                        <Button type="button" variant="outline">
+                          Cancel
+                        </Button>
+                      </DialogClose>
+                      <Button type="submit">Create site</Button>
+                    </DialogFooter>
+                  </form>
+                </DialogContent>
+              </Dialog>
             </div>
           </div>
           {user.sites.length > 0 ? (

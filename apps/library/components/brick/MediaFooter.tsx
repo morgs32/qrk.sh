@@ -30,7 +30,7 @@ export function MediaFooter(props: {
       {showText ? (
         <div className="min-w-0">
           {props.overline !== undefined && props.overline !== "" ? (
-            <p className="m-0 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500">
+            <p className="m-0 font-semibold uppercase tracking-[0.18em]">
               {props.overline}
             </p>
           ) : null}

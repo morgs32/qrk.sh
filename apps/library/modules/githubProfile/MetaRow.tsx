@@ -1,6 +1,6 @@
 import { Link as LinkIcon, MapPin } from "lucide-react";
 
-import { brickMetaIconClass, brickMutedClass } from "../../components/brick/brickTokens";
+import { brickMetaIconClass } from "../../components/brick/brickTokens";
 
 export function MetaRow(props: { location: string | null; blog: string }) {
   const hasLocation = Boolean(props.location);
@@ -11,10 +11,7 @@ export function MetaRow(props: { location: string | null; blog: string }) {
   }
 
   return (
-    <div
-      data-github-profile-json-render="MetaRow"
-      className={`flex flex-col gap-1 ${brickMutedClass}`}
-    >
+    <div data-github-profile-json-render="MetaRow" className="flex flex-col gap-1">
       {hasLocation ? (
         <div className="flex items-center gap-1">
           <MapPin className={brickMetaIconClass} />

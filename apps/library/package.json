@@ -23,11 +23,11 @@
       "import": "./dist/BrickPreviewFrame.js"
     },
 
-    "./styles.css": "./dist/styles.css"
+    "./bricks.css": "./dist/bricks.css"
   },
   "scripts": {
     "dev": "vp dev --config vite.workbench.config.ts --host 127.0.0.1 --port 4100 --strictPort",
-    "build": "vp build && tailwindcss -i styles.css -o dist/styles.css --minify && mkdir -p dist/worker && cp worker/*.public.d.ts dist/worker/ && tsc -p tsconfig.build.json --emitDeclarationOnly",
+    "build": "vp build && cp bricks.css dist/ && mkdir -p dist/worker && cp worker/*.public.d.ts dist/worker/ && tsc -p tsconfig.build.json --emitDeclarationOnly",
     "tsc": "tsc --noEmit",
     "lint": "oxlint .",
     "format": "oxfmt .",

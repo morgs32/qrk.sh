@@ -23,7 +23,7 @@ const seedArticle: JSONContent = {
       content: [
         {
           type: "text",
-          text: "We are a Sydney-based design studio specialising in branding and wayfinding.",
+          text: "Got something to say?",
         },
       ],
     },

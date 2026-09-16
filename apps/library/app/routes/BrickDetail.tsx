@@ -25,7 +25,7 @@ export default function BrickDetail() {
   const brick = brickModule;
 
   if (!hasHydrated) {
-    return <div className="px-6 pt-6 text-sm text-zinc-500">Loading brick…</div>;
+    return <div className="px-6 pt-6">Loading brick…</div>;
   }
 
   if (!brick || !brickModule || !brickDef) {
@@ -33,13 +33,13 @@ export default function BrickDetail() {
       <div className="px-6 pt-6" data-testid="brick-not-found">
         <Link
           to={`/modules/${encodeURIComponent(moduleId)}`}
-          className="inline-flex items-center gap-2 text-sm"
+          className="inline-flex items-center gap-2"
         >
           <ArrowLeft aria-hidden className="size-4" />
           <span>Back to module</span>
         </Link>
         <h1 className="mb-2 mt-8 text-4xl font-semibold tracking-tight">Brick not found</h1>
-        <p className="mt-0 text-zinc-600">This brick ID is not stored for the requested module.</p>
+        <p className="mt-0">This brick ID is not stored for the requested module.</p>
       </div>
     );
   }

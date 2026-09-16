@@ -1,0 +1,72 @@
+@import url("https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Space+Mono:wght@400;700&display=swap");
+@import "tailwindcss";
+@import "@qrk.sh/library/bricks.css";
+@import "react-grid-layout/css/styles.css";
+@source "../**/*.{ts,tsx}";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-sans: "Space Mono", monospace;
+  --font-mono: "Space Mono", monospace;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: #f4f4f5;
+}
+
+a {
+  text-decoration: underline;
+}
+
+.sandbox-wordmark {
+  color: inherit;
+  font-family: "Silkscreen", sans-serif;
+  text-decoration: none;
+}
+
+/* Keep every brick's content below drag/resize chrome. */
+.brick-drag-surface {
+  position: relative;
+  isolation: isolate;
+  cursor: grab;
+}
+
+.brick-drag-content {
+  position: relative;
+  z-index: 0;
+  pointer-events: none;
+  user-select: none;
+}
+.brick-drag-content * {
+  pointer-events: none;
+}
+.brick-drag-surface:active {
+  cursor: grabbing;
+}

@@ -20,13 +20,13 @@ export function TableOfContentsTree() {
   return (
     <section
       aria-label="Table of contents"
-      className="qrk-bricks w-full min-w-0 bg-zinc-50 p-4 font-mono text-sm leading-5 text-zinc-900"
+      className="qrk-bricks w-full min-w-0 bg-zinc-50 p-4 font-mono"
     >
-      <h2 className="mb-1 text-sm font-normal text-zinc-400">Contents</h2>
+      <h2 className="mb-1 font-normal">Contents</h2>
       <ol className="m-0 list-none border-x border-t border-zinc-300 p-0">
         {entries.map((entry) => (
           <li key={entry.id} className="flex min-w-0 border-b border-zinc-300 bg-zinc-100/70 px-1">
-            <span aria-hidden="true" className="shrink-0 whitespace-pre text-zinc-400">
+            <span aria-hidden="true" className="shrink-0 whitespace-pre">
               {entry.section ? `${entry.section} ` : `   ${entry.branch}`}
             </span>
             <span className="min-w-0 break-words">{entry.label}</span>

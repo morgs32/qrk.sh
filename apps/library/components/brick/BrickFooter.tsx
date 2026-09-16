@@ -1,8 +1,6 @@
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
 import { cn } from "cn";
 
-import { brickMutedClass } from "./brickTokens";
-
 export function BrickFooter({
   children,
   className,
@@ -12,10 +10,7 @@ export function BrickFooter({
   className?: string;
 } & Omit<ComponentPropsWithoutRef<"div">, "children" | "className">) {
   return (
-    <div
-      {...props}
-      className={cn("mt-auto flex shrink-0 items-center", brickMutedClass, className)}
-    >
+    <div {...props} className={cn("mt-auto flex shrink-0 items-center", className)}>
       {children}
     </div>
   );

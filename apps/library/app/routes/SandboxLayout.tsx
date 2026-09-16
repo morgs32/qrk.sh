@@ -48,7 +48,7 @@ export default function SandboxLayout() {
   }, []);
 
   const groups = (
-    <div className="qrk-bricks flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden font-mono text-sm leading-5 text-zinc-900">
+    <div className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden">
       <div data-vaul-no-drag className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto bg-zinc-100">
         <Outlet />
       </div>
@@ -62,13 +62,13 @@ export default function SandboxLayout() {
           <main className="min-h-screen">
             <DrawerContent
               aria-describedby={undefined}
-              className="qrk-bricks inset-x-0 bottom-0 z-60 h-[50dvh] rounded-none border-t border-zinc-300 bg-white"
+              className="qrk-bricks typeset typeset-brick inset-x-0 bottom-0 z-60 h-[50dvh] rounded-none border-t border-zinc-300 bg-white"
               onInteractOutside={(event) => event.preventDefault()}
               onOpenAutoFocus={(event) => event.preventDefault()}
             >
               <DrawerTitle className="sr-only">Bricks</DrawerTitle>
               <div className="flex shrink-0 items-center justify-between gap-4 border-b border-border/60 px-4 py-3">
-                <Link to="/" className="text-sm font-semibold">
+                <Link to="/" className="font-semibold">
                   Bricks
                 </Link>
                 <DrawerClose asChild>
@@ -91,7 +91,7 @@ export default function SandboxLayout() {
               className="relative min-w-0 pt-14"
             >
               {availableWidth > 0 && availableWidth < BREAKPOINTS[0].previewWidth && (
-                <p className="p-4 text-sm" role="status">
+                <p className="p-4" role="status">
                   At least {BREAKPOINTS[0].previewWidth}px is needed to preview the grid.
                 </p>
               )}
@@ -114,7 +114,7 @@ export default function SandboxLayout() {
                     type="button"
                     variant={drawerOpen ? "secondary" : "ghost"}
                     size="sm"
-                    className="h-8 px-2 text-xs"
+                    className="h-8 px-2"
                     aria-expanded={drawerOpen}
                   >
                     Bricks
@@ -143,7 +143,7 @@ export default function SandboxLayout() {
                     type="button"
                     variant={selectedWidth === row.previewWidth ? "secondary" : "ghost"}
                     size="sm"
-                    className="h-8 px-2 text-xs"
+                    className="h-8 px-2"
                     aria-label={`${row.previewWidth}px grid width`}
                     aria-pressed={selectedWidth === row.previewWidth}
                     disabled={row.previewWidth > availableWidth}

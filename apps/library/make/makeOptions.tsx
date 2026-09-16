@@ -68,7 +68,7 @@ export function makeOptions<const SHAPE extends IShape>(props: {
                 .toLowerCase();
               const label = words.charAt(0).toUpperCase() + words.slice(1);
               return (
-                <label key={name} className="flex items-center gap-3 text-sm">
+                <label key={name} className="flex items-center gap-3">
                   <Switch
                     aria-label={label}
                     checked={decodedValue[name] === true}

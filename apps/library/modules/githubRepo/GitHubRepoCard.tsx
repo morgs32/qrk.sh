@@ -7,7 +7,7 @@ import { cn } from "cn";
 
 import { BrickFooter } from "../../components/brick/BrickFooter";
 import { BrickShell } from "../../components/brick/BrickShell";
-import { brickMetaIconClass, brickMutedClass } from "../../components/brick/brickTokens";
+import { brickMetaIconClass } from "../../components/brick/brickTokens";
 
 const GITHUB_REPO_OWNER = "morgs32";
 const GITHUB_REPO_NAME = "ink-steps";
@@ -75,7 +75,7 @@ export function GitHubRepoCard({ size = "sm" }: { size?: "xs" | "sm" }) {
   if (!data || data.name === undefined) {
     return (
       <BrickShell className="min-w-0">
-        <p className={brickMutedClass}>Repository not found</p>
+        <p>Repository not found</p>
       </BrickShell>
     );
   }
@@ -94,11 +94,7 @@ export function GitHubRepoCard({ size = "sm" }: { size?: "xs" | "sm" }) {
       </h3>
 
       <p
-        className={cn(
-          "min-w-0 break-words",
-          brickMutedClass,
-          size === "xs" ? "shrink-0" : "min-h-0 flex-1",
-        )}
+        className={cn("min-w-0 break-words", size === "xs" ? "shrink-0" : "min-h-0 flex-1")}
       >
         {data.description || "No description provided"}
       </p>

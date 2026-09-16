@@ -34,7 +34,7 @@ export function TextEditorControl(props: {
     editorProps: {
       attributes: {
         "aria-label": "Text content",
-        class: "typeset typeset-article min-h-48 px-4 py-3 outline-none",
+        class: "min-h-48 px-4 py-3 outline-none",
       },
     },
     onUpdate: ({ editor: updatedEditor }) => {

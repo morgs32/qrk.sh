@@ -21,9 +21,9 @@ export default function ModulesPage() {
           <div
             key={brickModule.id}
             data-module-entry={brickModule.id}
-            className="flex h-full min-h-0 w-max shrink-0 flex-col overflow-y-auto overscroll-y-contain border-r border-zinc-200 pb-16"
+            className="flex h-full min-h-0 w-max shrink-0 flex-col overflow-y-auto overscroll-y-contain border-r border-zinc-200"
           >
-            <h2 className="m-0 shrink-0 sticky top-0 z-10 bg-zinc-100 px-4 py-4 text-sm font-normal">
+            <h2 className="m-0 shrink-0 sticky top-0 z-10 bg-zinc-100 px-4 py-4 font-normal">
               <Link
                 to={`/modules/${encodeURIComponent(brickModule.id)}`}
                 data-module-link={brickModule.id}
@@ -31,7 +31,7 @@ export default function ModulesPage() {
                 {brickModule.label}
               </Link>
             </h2>
-            <div className="overflow-auto py-6">
+            <div className="overflow-auto pt-6 pb-16">
               <div className={def[breakpoint].w === 8 ? undefined : "px-4"}>
                 <BrickPreviewFrame w={def[breakpoint].w} h={def[breakpoint].h}>
                   <DraggableBrick

@@ -25,8 +25,8 @@ export default defineConfig(({ mode }) => {
     resolve: {
       alias: [
         {
-          find: "@qrk.sh/library/styles.css",
-          replacement: fileURLToPath(new URL("./styles.css", import.meta.url)),
+          find: "@qrk.sh/library/bricks.css",
+          replacement: fileURLToPath(new URL("./bricks.css", import.meta.url)),
         },
         {
           find: "@qrk.sh/library",

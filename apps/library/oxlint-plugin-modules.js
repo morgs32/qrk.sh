@@ -79,7 +79,7 @@ function reportFontClassnames(context, node, value) {
   }
   context.report({
     node,
-    message: `Font size and font color classnames are not allowed in modules/** (${classnames.join(", ")}). Use Typeset / semantic tags (and brickMutedClass for muted meta).`,
+    message: `Font size and font color classnames are not allowed in modules/** (${classnames.join(", ")}). Use Typeset / semantic tags.`,
   });
 }
 

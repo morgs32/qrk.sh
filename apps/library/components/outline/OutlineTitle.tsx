@@ -9,7 +9,7 @@ export function OutlineTitle({
 }) {
   return (
     <h2
-      className={`m-0 shrink-0 bg-zinc-100 px-4 py-4 text-sm font-normal ${sticky ? "sticky top-0 z-10" : ""}`}
+      className={`m-0 shrink-0 bg-zinc-100 px-4 py-4 font-normal ${sticky ? "sticky top-0 z-10" : ""}`}
     >
       {children}
     </h2>

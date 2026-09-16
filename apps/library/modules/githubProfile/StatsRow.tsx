@@ -1,10 +1,10 @@
 import { BookOpen, UserPlus, Users } from "lucide-react";
 
-import { brickMetaIconClass, brickMutedClass } from "../../components/brick/brickTokens";
+import { brickMetaIconClass } from "../../components/brick/brickTokens";
 
 export function StatsRow(props: { public_repos: number; followers: number; following: number }) {
   return (
-    <div data-github-profile-json-render="StatsRow" className={`flex gap-4 ${brickMutedClass}`}>
+    <div data-github-profile-json-render="StatsRow" className="flex gap-4">
       <div
         className="flex min-w-0 items-center gap-1"
         title="Followers"

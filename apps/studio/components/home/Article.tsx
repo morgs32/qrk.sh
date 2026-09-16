@@ -138,7 +138,7 @@ export function Article() {
           autocapitalize: "off",
           "aria-label": "Article content",
           class:
-            "hero-article simple-editor focus:outline-none [&_h1:first-child]:text-[clamp(4rem,15vw,10rem)] [&_h1:first-child]:font-bold [&_h1:first-child]:leading-[1.05] [&_h1:first-child]:tracking-tight [&_h1:first-child]:mt-0 [&_p]:mt-6 [&_p]:max-w-xs [&_p]:text-sm [&_p]:leading-relaxed [&_p]:text-muted-foreground",
+            "hero-article simple-editor focus:outline-none [&_h1:first-child]:text-[clamp(4rem,15vw,10rem)] [&_h1:first-child]:font-bold [&_h1:first-child]:leading-[1.05] [&_h1:first-child]:tracking-tight [&_h1:first-child]:mt-0 [&_p]:max-w-xs [&_p]:text-muted-foreground",
         },
       },
     },
@@ -160,7 +160,7 @@ export function Article() {
     <EditorContext.Provider value={{ editor }}>
       <div className="flex min-h-full w-full flex-col bg-background">
         <ArticleToolbar editor={editor} inRequiredHeading={inRequiredHeading} />
-        <div className="w-full px-6 py-16">
+        <div className="typeset typeset-article w-full px-6 py-16">
           <EditorContent editor={editor} />
         </div>
       </div>

@@ -75,7 +75,7 @@ function BrickDetail() {
             }));
           }}
         />
-        <h2 className="m-0 shrink-0 bg-zinc-100 px-4 py-4 font-normal">Options</h2>
+        <h2 className="m-0 shrink-0 px-4 py-4 font-normal">Options</h2>
         <div className="flex flex-wrap gap-2 px-4 py-4">
           {breakpoint !== "sm" && (
             <Button
@@ -118,7 +118,7 @@ function BrickDetail() {
             }}
           />
         )}
-        <h2 className="m-0 shrink-0 bg-zinc-100 px-4 py-4 font-normal">Brick Definition</h2>
+        <h2 className="m-0 shrink-0 px-4 py-4 font-normal">Brick Definition</h2>
         <div className="overflow-auto bg-white px-2 py-4" data-testid="module-data-result">
           <JsonView
             shouldExpandNode={collapseAllNested}

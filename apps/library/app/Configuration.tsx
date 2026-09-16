@@ -14,13 +14,13 @@ export function Configuration(props: {
   if (configuration === undefined) {
     return (
       <div>
-        <h2 className="m-0 shrink-0 bg-zinc-100 px-4 py-4 font-normal">Configuration</h2>
+        <h2 className="m-0 shrink-0 px-4 py-4 font-normal">Configuration</h2>
         {props.showData !== false && (
-          <div className="overflow-auto bg-zinc-100 px-2 py-4">
+          <div className="overflow-auto bg-white px-2 py-4">
             <JsonView
               shouldExpandNode={collapseAllNested}
               data={{ data: props.data }}
-              style={{ ...defaultStyles, container: "bg-zinc-100" }}
+              style={{ ...defaultStyles, container: "bg-white" }}
             />
           </div>
         )}
@@ -32,13 +32,13 @@ export function Configuration(props: {
     case "form":
       return (
         <div>
-          <h2 className="m-0 shrink-0 bg-zinc-100 px-4 py-4 font-normal">Configuration</h2>
+          <h2 className="m-0 shrink-0 px-4 py-4 font-normal">Configuration</h2>
           {props.showData !== false && (
-            <div className="overflow-auto bg-zinc-100 px-2 py-4" data-testid="module-data-result">
+            <div className="overflow-auto bg-white px-2 py-4" data-testid="module-data-result">
               <JsonView
                 shouldExpandNode={collapseAllNested}
                 data={{ data: props.data }}
-                style={{ ...defaultStyles, container: "bg-zinc-100" }}
+                style={{ ...defaultStyles, container: "bg-white" }}
               />
             </div>
           )}

@@ -142,7 +142,7 @@ function ModuleDetail() {
       <div className="pb-6">
         {brickModule.catalog !== undefined ? (
           <div className="px-4 pb-6">
-            <h2 className="m-0 shrink-0 bg-zinc-100 px-4 py-4 font-normal">Generate spec</h2>
+            <h2 className="m-0 shrink-0 px-4 py-4 font-normal">Generate spec</h2>
             <form
               className="flex flex-col items-start gap-2 py-5"
               onSubmit={(event) => {
@@ -211,7 +211,7 @@ function ModuleDetail() {
         />
         {OptionsForm && (
           <>
-            <h2 className="m-0 shrink-0 bg-zinc-100 px-4 py-4 font-normal">Options</h2>
+            <h2 className="m-0 shrink-0 px-4 py-4 font-normal">Options</h2>
             <OptionsForm
               value={options}
               onChange={(value) => {
@@ -223,7 +223,7 @@ function ModuleDetail() {
             />
           </>
         )}
-        <h2 className="m-0 shrink-0 bg-zinc-100 px-4 py-4 font-normal">Brick Definition</h2>
+        <h2 className="m-0 shrink-0 px-4 py-4 font-normal">Brick Definition</h2>
         <div className="overflow-auto bg-white px-2 py-4" data-testid="module-data-result">
           <JsonView
             shouldExpandNode={collapseAllNested}

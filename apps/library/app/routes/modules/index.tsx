@@ -27,7 +27,7 @@ function ModulesPage() {
             data-module-entry={brickModule.id}
             className="flex h-full min-h-0 w-max shrink-0 flex-col overflow-y-auto overscroll-y-contain border-r border-zinc-200"
           >
-            <h2 className="m-0 shrink-0 sticky top-0 z-10 bg-zinc-100 px-4 py-4 font-normal">
+            <h2 className="m-0 shrink-0 sticky top-0 z-10 bg-white px-4 py-4 font-normal">
               <Link
                 to="/modules/$moduleId"
                 params={{ moduleId: brickModule.id }}

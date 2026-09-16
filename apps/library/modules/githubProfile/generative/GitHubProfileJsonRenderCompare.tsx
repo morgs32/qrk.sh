@@ -20,23 +20,11 @@ export function GitHubProfileJsonRenderCompare(props: { data: unknown; spec?: Sp
     onExcessProperty: "preserve",
   });
 
-  const spec =
-    props.spec ??
-    buildGitHubProfileSpec({
-      login: data.login,
-      avatar_url: data.avatar_url,
-      name: data.name,
-      bio: data.bio,
-      location: data.location,
-      blog: data.blog,
-      public_repos: data.public_repos,
-      followers: data.followers,
-      following: data.following,
-    });
+  const spec = props.spec ?? buildGitHubProfileSpec();
 
   return (
     <div className="size-full overflow-hidden" data-github-profile-json-render-compare>
-      <StateProvider initialState={{}}>
+      <StateProvider initialState={data}>
         <VisibilityProvider>
           <ActionProvider handlers={{}}>
             <Renderer spec={spec} registry={registry} />

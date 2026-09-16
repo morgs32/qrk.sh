@@ -1,12 +1,12 @@
 import { Outlet } from "react-router";
-import { RightDrawer } from "../[username]/site/[siteId]/Drawers/RightDrawer";
+import { Drawer } from "@qrk.sh/web/library/Drawer";
 
 export const handle = { drawer: "right" };
 
 export default function RightDrawerLayout() {
   return (
-    <RightDrawer>
+    <Drawer side="right" aria-label="Compose drawer">
       <Outlet />
-    </RightDrawer>
+    </Drawer>
   );
 }

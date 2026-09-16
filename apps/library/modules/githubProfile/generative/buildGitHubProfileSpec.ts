@@ -1,16 +1,6 @@
 import type { Spec } from "@json-render/core";
 
-export function buildGitHubProfileSpec(data: {
-  login: string;
-  avatar_url: string;
-  name: string | null;
-  bio: string | null;
-  location: string | null;
-  blog: string;
-  public_repos: number;
-  followers: number;
-  following: number;
-}): Spec {
+export function buildGitHubProfileSpec(): Spec {
   return {
     root: "card-1",
     elements: {
@@ -22,8 +12,8 @@ export function buildGitHubProfileSpec(data: {
       "header-1": {
         type: "AvatarAndUsername",
         props: {
-          avatar_url: data.avatar_url,
-          login: data.login,
+          avatar_url: { $state: "/avatar_url" },
+          login: { $state: "/login" },
         },
       },
       "body-1": {
@@ -34,19 +24,19 @@ export function buildGitHubProfileSpec(data: {
       "bio-1": {
         type: "Bio",
         props: {
-          bio: data.bio,
+          bio: { $state: "/bio" },
         },
       },
       "location-1": {
         type: "Location",
         props: {
-          location: data.location,
+          location: { $state: "/location" },
         },
       },
       "blog-1": {
         type: "Blog",
         props: {
-          blog: data.blog,
+          blog: { $state: "/blog" },
         },
       },
       "footer-1": {
@@ -57,19 +47,19 @@ export function buildGitHubProfileSpec(data: {
       "followers-1": {
         type: "Followers",
         props: {
-          followers: data.followers,
+          followers: { $state: "/followers" },
         },
       },
       "following-1": {
         type: "Following",
         props: {
-          following: data.following,
+          following: { $state: "/following" },
         },
       },
       "public-repos-1": {
         type: "PublicRepos",
         props: {
-          public_repos: data.public_repos,
+          public_repos: { $state: "/public_repos" },
         },
       },
     },

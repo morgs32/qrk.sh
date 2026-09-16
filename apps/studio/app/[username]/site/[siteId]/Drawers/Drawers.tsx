@@ -1,6 +1,5 @@
-import { Fragment } from "react";
-import { AnimatePresence } from "framer-motion";
 import { useMatches, useOutlet } from "react-router";
+import { DrawerPresence } from "@qrk.sh/web/library/Drawer";
 
 export function Drawers() {
   const outlet = useOutlet();
@@ -18,9 +17,5 @@ export function Drawers() {
       : "page";
 
   // Retain the matched route element and its params until this group's exit finishes.
-  return (
-    <AnimatePresence mode="sync">
-      <Fragment key={group}>{outlet}</Fragment>
-    </AnimatePresence>
-  );
+  return <DrawerPresence group={group}>{outlet}</DrawerPresence>;
 }

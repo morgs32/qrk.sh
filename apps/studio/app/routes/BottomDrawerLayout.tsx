@@ -1,12 +1,12 @@
 import { Outlet } from "react-router";
-import { BottomDrawer } from "../[username]/site/[siteId]/Drawers/BottomDrawer";
+import { Drawer } from "@qrk.sh/web/library/Drawer";
 
 export const handle = { drawer: "bottom" };
 
 export default function BottomDrawerLayout() {
   return (
-    <BottomDrawer>
+    <Drawer side="bottom">
       <Outlet />
-    </BottomDrawer>
+    </Drawer>
   );
 }

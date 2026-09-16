@@ -1,12 +1,12 @@
 import { Outlet } from "react-router";
-import { LeftDrawer } from "../[username]/site/[siteId]/Drawers/LeftDrawer";
+import { Drawer } from "@qrk.sh/web/library/Drawer";
 
 export const handle = { drawer: "left" };
 
 export default function LeftDrawerLayout() {
   return (
-    <LeftDrawer>
+    <Drawer side="left">
       <Outlet />
-    </LeftDrawer>
+    </Drawer>
   );
 }

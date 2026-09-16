@@ -1,4 +1,8 @@
-import { defineCatalog } from "@json-render/core";
+import {
+  defineCatalog,
+  DynamicNumberSchema,
+  DynamicStringSchema,
+} from "@json-render/core";
 import { schema } from "@json-render/react/schema";
 import { z } from "zod";
 
@@ -12,11 +16,11 @@ export const githubProfileJsonRenderCatalog = defineCatalog(schema, {
     },
     AvatarAndUsername: {
       props: z.object({
-        avatar_url: z.string(),
-        login: z.string(),
+        avatar_url: DynamicStringSchema,
+        login: DynamicStringSchema,
       }),
       description:
-        "Includes Avatar and Login. Horizontal cluster (avatar next to @login). May live in BrickBody or BrickFooter; no implied parent.",
+        'Horizontal cluster (avatar next to @login). Bind avatar_url with { "$state": "/avatar_url" } and login with { "$state": "/login" }. Do not invent empty literals. May live in BrickBody or BrickFooter; no implied parent.',
     },
     BrickBody: {
       props: z.object({}),
@@ -32,39 +36,45 @@ export const githubProfileJsonRenderCatalog = defineCatalog(schema, {
     },
     Bio: {
       props: z.object({
-        bio: z.string().nullable(),
+        bio: z.union([DynamicStringSchema, z.null()]),
       }),
-      description: "Profile bio text. No implied parent.",
+      description:
+        'Profile bio text. Bind bio with { "$state": "/bio" }. Do not invent empty literals. No implied parent.',
     },
     Location: {
       props: z.object({
-        location: z.string().nullable(),
+        location: z.union([DynamicStringSchema, z.null()]),
       }),
-      description: "Profile location line. No implied parent.",
+      description:
+        'Profile location line. Bind location with { "$state": "/location" }. Do not invent empty literals. No implied parent.',
     },
     Blog: {
       props: z.object({
-        blog: z.string(),
+        blog: DynamicStringSchema,
       }),
-      description: "Profile blog/link line. No implied parent.",
+      description:
+        'Profile blog/link line. Bind blog with { "$state": "/blog" }. Do not invent empty literals. No implied parent.',
     },
     Followers: {
       props: z.object({
-        followers: z.number().int(),
+        followers: DynamicNumberSchema,
       }),
-      description: "Follower count. No implied parent.",
+      description:
+        'Follower count. Bind followers with { "$state": "/followers" }. Do not invent empty literals. No implied parent.',
     },
     Following: {
       props: z.object({
-        following: z.number().int(),
+        following: DynamicNumberSchema,
       }),
-      description: "Following count. No implied parent.",
+      description:
+        'Following count. Bind following with { "$state": "/following" }. Do not invent empty literals. No implied parent.',
     },
     PublicRepos: {
       props: z.object({
-        public_repos: z.number().int(),
+        public_repos: DynamicNumberSchema,
       }),
-      description: "Public repository count. No implied parent.",
+      description:
+        'Public repository count. Bind public_repos with { "$state": "/public_repos" }. Do not invent empty literals. No implied parent.',
     },
   },
   actions: {},

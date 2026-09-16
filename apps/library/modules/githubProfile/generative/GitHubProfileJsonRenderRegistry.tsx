@@ -16,15 +16,34 @@ export const { registry } = defineRegistry(githubProfileJsonRenderCatalog, {
   components: {
     BrickShell: ({ children }) => <BrickShell>{children}</BrickShell>,
     AvatarAndUsername: ({ props }) => (
-      <AvatarAndUsername avatar_url={props.avatar_url} login={props.login} />
+      <AvatarAndUsername
+        avatar_url={typeof props.avatar_url === "string" ? props.avatar_url : ""}
+        login={typeof props.login === "string" ? props.login : ""}
+      />
     ),
     BrickBody: ({ children }) => <BrickBody>{children}</BrickBody>,
     BrickFooter: ({ children }) => <BrickFooter>{children}</BrickFooter>,
-    Bio: ({ props }) => <Bio bio={props.bio} />,
-    Location: ({ props }) => <Location location={props.location} />,
-    Blog: ({ props }) => <Blog blog={props.blog} />,
-    Followers: ({ props }) => <Followers followers={props.followers} />,
-    Following: ({ props }) => <Following following={props.following} />,
-    PublicRepos: ({ props }) => <PublicRepos public_repos={props.public_repos} />,
+    Bio: ({ props }) => (
+      <Bio bio={typeof props.bio === "string" || props.bio === null ? props.bio : null} />
+    ),
+    Location: ({ props }) => (
+      <Location
+        location={
+          typeof props.location === "string" || props.location === null ? props.location : null
+        }
+      />
+    ),
+    Blog: ({ props }) => <Blog blog={typeof props.blog === "string" ? props.blog : ""} />,
+    Followers: ({ props }) => (
+      <Followers followers={typeof props.followers === "number" ? props.followers : 0} />
+    ),
+    Following: ({ props }) => (
+      <Following following={typeof props.following === "number" ? props.following : 0} />
+    ),
+    PublicRepos: ({ props }) => (
+      <PublicRepos
+        public_repos={typeof props.public_repos === "number" ? props.public_repos : 0}
+      />
+    ),
   },
 });

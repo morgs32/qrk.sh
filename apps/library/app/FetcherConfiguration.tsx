@@ -21,7 +21,8 @@ export function FetcherConfiguration(props: {
   const {
     moduleOptionsShape,
     moduleOptionsForm: ModuleOptionsForm,
-    fetcher: fetchData} = props.configuration;
+    fetcher: fetchData,
+  } = props.configuration;
   const [moduleOptionsValues, setModuleOptionsValues] = useState<Record<string, unknown>>(() => {
     const initialModuleOptionsValues: Record<string, unknown> = {};
 
@@ -71,7 +72,8 @@ export function FetcherConfiguration(props: {
         moduleOptions,
         setData: (data) => {
           if (generation.current === requestGeneration) props.setData(data);
-        }});
+        },
+      });
       if (generation.current === requestGeneration && result._tag === "Left") {
         setDataError(result.left);
       }
@@ -128,10 +130,7 @@ export function FetcherConfiguration(props: {
 
               return (
                 <div className="flex flex-col items-start gap-2" key={fieldName}>
-                  <label
-                    className="block font-medium"
-                    htmlFor={`module-options-${fieldName}`}
-                  >
+                  <label className="block font-medium" htmlFor={`module-options-${fieldName}`}>
                     {fieldName === "url" ? "URL" : fieldName}
                   </label>
                   <Input
@@ -141,7 +140,8 @@ export function FetcherConfiguration(props: {
                     onChange={(event) => {
                       const moduleOptions = {
                         ...currentModuleOptions.current,
-                        [fieldName]: event.target.value};
+                        [fieldName]: event.target.value,
+                      };
                       currentModuleOptions.current = moduleOptions;
                       setModuleOptionsValues(moduleOptions);
                     }}
@@ -175,7 +175,7 @@ export function FetcherConfiguration(props: {
             data-testid="module-data-error"
             role="alert"
           >
-            <p className="m-0 font-mono font-semibold">{dataError.code}</p>
+            <p className="m-0 font-mono">{dataError.code}</p>
             <p className="mb-0 mt-2">{dataError.message}</p>
           </div>
         ) : null}

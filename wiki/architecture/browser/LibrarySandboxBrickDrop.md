@@ -28,7 +28,7 @@ Workbench `/modules` lists every [`IModule`](../../../apps/library/types.ts) fro
 
 ## Trigger
 
-1. [`SandboxLayout`](../../../apps/library/app/routes/SandboxLayout.tsx) renders the drawer `Outlet` (`/modules` [`ModulesPage`](../../../apps/library/app/routes/modules/ModulesPage.tsx)) beside [`SandboxGrid`](../../../apps/library/app/SandboxGrid.tsx).
+1. [`Layout`](../../../apps/library/app/routes/Layout.tsx) renders the drawer `Outlet` (`/modules` [`ModulesPage`](../../../apps/library/app/routes/modules/ModulesPage.tsx)) beside [`SandboxGrid`](../../../apps/library/app/SandboxGrid.tsx).
 2. The user drags a filmstrip preview onto the grid.
 
 ```mermaid

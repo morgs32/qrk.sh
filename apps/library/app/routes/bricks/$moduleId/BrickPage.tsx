@@ -1,14 +1,9 @@
-import {
-  isRouteErrorResponse,
-  Link,
-  useParams,
-  type LoaderFunctionArgs,
-  useRouteError} from "react-router";
+import { Link, useParams, type LoaderFunctionArgs } from "react-router";
 
-import { BrickBreakpointProvider } from "../../../components/brick/BrickBreakpointProvider";
-import { BrickPreviewFrame } from "../../../components/brick/BrickPreviewFrame";
-import { BREAKPOINTS } from "../../../breakpoints";
-import { modulesHash } from "../../../modulesHash";
+import { BrickBreakpointProvider } from "../../../../components/brick/BrickBreakpointProvider";
+import { BrickPreviewFrame } from "../../../../components/brick/BrickPreviewFrame";
+import { BREAKPOINTS } from "../../../../breakpoints";
+import { modulesHash } from "../../../../modulesHash";
 
 export function loader({ params }: LoaderFunctionArgs) {
   if (!params.moduleId) throw new Response("Not found", { status: 404 });
@@ -52,20 +47,6 @@ export default function BrickPage() {
             )}
           </BrickBreakpointProvider>
         ))}
-      </div>
-    </main>
-  );
-}
-
-export function ErrorBoundary() {
-  const error = useRouteError();
-  if (!isRouteErrorResponse(error) || error.status !== 404) throw error;
-  return (
-    <main className="min-h-screen" data-testid="brick-not-found">
-      <div className="mx-auto max-w-3xl p-6">
-        <h1>Brick not found</h1>
-        <p>The requested module is not registered in the library.</p>
-        <Link to="/modules">Return to all modules</Link>
       </div>
     </main>
   );

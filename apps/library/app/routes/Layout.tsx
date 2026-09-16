@@ -1,17 +1,30 @@
 import { BrickBreakpointProvider } from "../../components/brick/BrickBreakpointProvider";
 import { useState } from "react";
-import { Outlet, Link, useLocation, useNavigate } from "react-router";
+import { Outlet, Link, useLocation, useNavigate, useParams } from "react-router";
 import { RotateCcw, X } from "lucide-react";
 import { Button } from "../../components/ui/button";
-import { Drawer, DrawerClose, DrawerContent, DrawerTitle, DrawerTrigger } from "../../components/ui/drawer";
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerTitle,
+  DrawerTrigger,
+} from "../../components/ui/drawer";
 
 import { BREAKPOINTS } from "../../breakpoints";
+import { modulesHash } from "../../modulesHash";
 import { SandboxGrid } from "../SandboxGrid";
 import { useGridStore } from "../useGridStore";
 
-export default function SandboxLayout() {
+export default function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
+  const params = useParams();
+  const moduleId = params.moduleId;
+  const brickId = params.brickId;
+  const moduleLabel = moduleId ? modulesHash[moduleId]?.label : undefined;
+  const drawerTitle =
+    moduleLabel !== undefined ? `Bricks / ${moduleLabel}` : "Bricks";
   const persistedWidth = useGridStore((state) => state.selectedWidth);
   const [drawerOpen, setDrawerOpen] = useState(
     () => location.pathname !== "/" || location.search.length > 0,
@@ -27,7 +40,10 @@ export default function SandboxLayout() {
 
   const groups = (
     <div className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden">
-      <div data-vaul-no-drag className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto bg-zinc-100">
+      <div
+        data-vaul-no-drag
+        className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto bg-zinc-100"
+      >
         <Outlet />
       </div>
     </div>
@@ -53,11 +69,28 @@ export default function SandboxLayout() {
               onInteractOutside={(event) => event.preventDefault()}
               onOpenAutoFocus={(event) => event.preventDefault()}
             >
-              <DrawerTitle className="sr-only not-typeset m-0">Bricks</DrawerTitle>
+              <DrawerTitle className="sr-only not-typeset m-0">{drawerTitle}</DrawerTitle>
               <div className="flex shrink-0 items-center justify-between gap-4 border-b border-border/60 px-4 py-2.5">
-                <Link to="/modules" className="font-semibold">
-                  Bricks
-                </Link>
+                <nav aria-label="Drawer breadcrumbs" className="flex min-w-0 items-center gap-2">
+                  <Link to="/modules">Bricks</Link>
+                  {moduleLabel !== undefined && moduleId !== undefined ? (
+                    <>
+                      <span aria-hidden className="text-muted-foreground">
+                        /
+                      </span>
+                      {brickId !== undefined ? (
+                        <Link
+                          to={`/modules/${encodeURIComponent(moduleId)}`}
+                          className="truncate"
+                        >
+                          {moduleLabel}
+                        </Link>
+                      ) : (
+                        <span className="truncate">{moduleLabel}</span>
+                      )}
+                    </>
+                  ) : null}
+                </nav>
                 <DrawerClose asChild>
                   <Button
                     type="button"
@@ -72,11 +105,7 @@ export default function SandboxLayout() {
               </div>
               <div className="min-h-0 flex-1 overflow-hidden">{groups}</div>
             </DrawerContent>
-            <div
-              ref={regionRef}
-              data-testid="grid-region"
-              className="relative min-w-0 pt-14"
-            >
+            <div ref={regionRef} data-testid="grid-region" className="relative min-w-0 pt-14">
               {availableWidth > 0 && availableWidth < BREAKPOINTS[0].previewWidth && (
                 <p className="p-4" role="status">
                   At least {BREAKPOINTS[0].previewWidth}px is needed to preview the grid.

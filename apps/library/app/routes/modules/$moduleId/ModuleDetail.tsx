@@ -1,22 +1,16 @@
 import { useState } from "react";
 
-import { ArrowLeft } from "lucide-react";
 import { collapseAllNested, defaultStyles, JsonView } from "react-json-view-lite";
-import {
-  isRouteErrorResponse,
-  Link,
-  useParams,
-  type LoaderFunctionArgs,
-  useRouteError} from "react-router";
+import { useParams, type LoaderFunctionArgs } from "react-router";
 
-import { useBrickBreakpoint } from "../../../components/brick/BrickBreakpointProvider";
-import { BrickPreviewFrame } from "../../../components/brick/BrickPreviewFrame";
-import { modulesHash } from "../../../modulesHash";
-import { GitHubProfileJsonRenderCompare } from "../../../modules/githubProfile/generative/GitHubProfileJsonRenderCompare";
-import { TableData } from "../../TableData";
-import { Configuration } from "../../Configuration";
-import { useGridStore } from "../../useGridStore";
-import { useModuleData } from "../../useModuleData";
+import { useBrickBreakpoint } from "../../../../components/brick/BrickBreakpointProvider";
+import { BrickPreviewFrame } from "../../../../components/brick/BrickPreviewFrame";
+import { modulesHash } from "../../../../modulesHash";
+import { GitHubProfileJsonRenderCompare } from "../../../../modules/githubProfile/generative/GitHubProfileJsonRenderCompare";
+import { TableData } from "../../../TableData";
+import { Configuration } from "../../../Configuration";
+import { useGridStore } from "../../../useGridStore";
+import { useModuleData } from "../../../useModuleData";
 
 export function loader({ params }: LoaderFunctionArgs) {
   if (!params.moduleId) throw new Response("Not found", { status: 404 });
@@ -46,13 +40,9 @@ export default function ModuleDetail() {
 
   return (
     <section data-testid="module-configuration-pane">
-      <h2 className="m-0 shrink-0 bg-zinc-100 px-4 py-4 font-normal sticky top-0 z-10">
-        <Link to={`/modules/${encodeURIComponent(moduleId)}`}>{brickModule.label}</Link>
-      </h2>
       <div className="px-4">
         <TableData
           entries={[
-            { label: "Module name", value: brickModule.label },
             { label: "Module ID", value: brickModule.id },
             { label: "Module description", value: brickModule.description },
           ]}
@@ -93,11 +83,7 @@ export default function ModuleDetail() {
                 onDragEnd={() => setActiveBrickDrag(null)}
               >
                 <div className="brick-drag-content size-full select-none">
-                  <BrickComponent
-                    breakpoint={breakpoint}
-                    data={moduleData}
-                    options={options}
-                  />
+                  <BrickComponent breakpoint={breakpoint} data={moduleData} options={options} />
                 </div>
               </div>
             </div>
@@ -139,11 +125,7 @@ export default function ModuleDetail() {
                 onDragEnd={() => setActiveBrickDrag(null)}
               >
                 <div className="brick-drag-content size-full select-none">
-                  <BrickComponent
-                    breakpoint={breakpoint}
-                    data={moduleData}
-                    options={options}
-                  />
+                  <BrickComponent breakpoint={breakpoint} data={moduleData} options={options} />
                 </div>
               </div>
             </BrickPreviewFrame>
@@ -165,7 +147,8 @@ export default function ModuleDetail() {
               onChange={(value) => {
                 setOptionsByModule((current) => ({
                   ...current,
-                  [moduleId]: value}));
+                  [moduleId]: value,
+                }));
               }}
             />
           </>
@@ -184,21 +167,5 @@ export default function ModuleDetail() {
         </div>
       </div>
     </section>
-  );
-}
-
-export function ErrorBoundary() {
-  const error = useRouteError();
-  if (!isRouteErrorResponse(error) || error.status !== 404) throw error;
-
-  return (
-    <div className="px-6 pt-6" data-testid="module-not-found">
-      <Link to="/modules" className="inline-flex items-center gap-2">
-        <ArrowLeft aria-hidden className="size-4" />
-        <span>Back to modules</span>
-      </Link>
-      <h1 className="mb-2 mt-8 text-4xl font-semibold tracking-tight">Module not found</h1>
-      <p className="mt-0">This module is not registered in the library.</p>
-    </div>
   );
 }

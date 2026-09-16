@@ -30,7 +30,7 @@ export function BrickGroup() {
       <div className="flex shrink-0 flex-col gap-4 border-b border-border/60 bg-background/95 px-6 pb-5 pt-6 backdrop-blur-sm">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1">
-            <div className="text-sm font-semibold">Bricks</div>
+            <div className="text-sm">Bricks</div>
             <div className="text-xs text-muted-foreground">
               Browse bricks by module. Drag a brick onto your page.
             </div>

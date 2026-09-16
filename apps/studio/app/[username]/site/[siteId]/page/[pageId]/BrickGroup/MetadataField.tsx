@@ -6,7 +6,7 @@ export function MetadataField(props: { label: string; children: ReactNode; class
   return (
     <div className={className}>
       <dt className="text-xs font-light text-zinc-500">{label}</dt>
-      <dd className="mt-1 font-semibold text-zinc-950">{children}</dd>
+      <dd className="mt-1 text-zinc-950">{children}</dd>
     </div>
   );
 }

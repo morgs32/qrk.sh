@@ -24,7 +24,7 @@ export function Compose() {
       <div className="flex shrink-0 flex-col gap-4 border-b border-border/60 bg-background/95 px-6 pb-5 pt-6 backdrop-blur-sm">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1">
-            <div className="text-sm font-semibold">Compose</div>
+            <div className="text-sm">Compose</div>
             <div className="text-xs text-muted-foreground">
               Rich text blocks with formatting. Content is kept in the site draft.
             </div>

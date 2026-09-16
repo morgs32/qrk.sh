@@ -13,7 +13,7 @@ export default [
     children: [
       {
         lazy: async () => {
-          const { default: SandboxLayout } = await import("./routes/SandboxLayout");
+          const { default: SandboxLayout } = await import("./routes/Layout");
           return { Component: SandboxLayout };
         },
         children: [
@@ -25,40 +25,46 @@ export default [
                 lazy: async () => {
                   const { default: ModulesPage } = await import("./routes/modules/ModulesPage");
                   return { Component: ModulesPage };
-                }},
+                },
+              },
               {
                 path: ":moduleId",
                 lazy: async () => {
-                  const {
-                    default: ModulePage,
-                    loader,
-                    ErrorBoundary} = await import("./routes/modules/ModulePage");
-                  return { Component: ModulePage, loader, ErrorBoundary };
+                  const { default: ModulePage, loader } =
+                    await import("./routes/modules/$moduleId/ModulePage");
+                  return { Component: ModulePage, loader };
                 },
                 children: [
                   {
                     index: true,
                     lazy: async () => {
-                      const { default: ModuleDetail, ErrorBoundary } =
-                        await import("./routes/modules/ModuleDetail");
-                      return { Component: ModuleDetail, ErrorBoundary };
-                    }},
+                      const { default: ModuleDetail } =
+                        await import("./routes/modules/$moduleId/ModuleDetail");
+                      return { Component: ModuleDetail };
+                    },
+                  },
                   {
-                    path: "bricks/:brickId",
+                    path: ":brickId",
                     lazy: async () => {
                       const { default: BrickDetail } =
-                        await import("./routes/modules/bricks/BrickDetail");
+                        await import("./routes/modules/$moduleId/$brickId/BrickDetail");
                       return { Component: BrickDetail };
-                    }},
-                ]},
-            ]},
-        ]},
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
       {
         path: "bricks/:moduleId",
         lazy: async () => {
-          const { default: BrickPage, loader, ErrorBoundary } =
-            await import("./routes/bricks/BrickPage");
-          return { Component: BrickPage, loader, ErrorBoundary };
-        }},
-    ]},
+          const { default: BrickPage, loader } =
+            await import("./routes/bricks/$moduleId/BrickPage");
+          return { Component: BrickPage, loader };
+        },
+      },
+    ],
+  },
 ] satisfies RouteObject[];

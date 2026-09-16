@@ -97,7 +97,7 @@ export function PageSettings() {
     <div className="w-full">
       <header className="sticky top-0 z-10 flex w-full items-center gap-2 border-b border-border bg-muted/95 px-4 py-2.5 backdrop-blur-sm">
         <FileText className="size-5 shrink-0 text-foreground" strokeWidth={2} aria-hidden />
-        <h1 className="min-w-0 flex-1 text-base font-semibold tracking-tight">Page Settings</h1>
+        <h1 className="min-w-0 flex-1 text-base tracking-tight">Page Settings</h1>
         <div className="flex shrink-0 items-center gap-1">
           {isDirty ? (
             <Button

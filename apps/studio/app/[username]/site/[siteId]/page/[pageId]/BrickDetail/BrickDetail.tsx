@@ -58,7 +58,7 @@ export function BrickDetail() {
             <Link to={href("/:username/site/:siteId/page/:pageId/brick-group", params)}>
               All modules
             </Link>
-            <h1 className="mb-2 mt-8 text-4xl font-semibold tracking-tight">Brick not found</h1>
+            <h1 className="mb-2 mt-8 text-4xl tracking-tight">Brick not found</h1>
             <p className="text-muted-foreground">
               This brick is not available in this page's current session.
             </p>
@@ -77,10 +77,7 @@ export function BrickDetail() {
                 <span>Back to {brick.def.moduleLabel}</span>
               </Link>
               <p className="mb-0 mt-8 text-sm text-muted-foreground">Brick detail</p>
-              <h1
-                className="mb-1 mt-2 text-4xl font-semibold tracking-tight"
-                data-testid="brick-detail-title"
-              >
+              <h1 className="mb-1 mt-2 text-4xl tracking-tight" data-testid="brick-detail-title">
                 {brick.def.moduleLabel}
               </h1>
               <p className="mt-0 font-mono text-sm text-muted-foreground">{brick.def.moduleId}</p>

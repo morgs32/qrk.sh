@@ -52,11 +52,11 @@ function ModulePage() {
   }
 
   return (
-    <div className="flex flex-col gap-8 p-6 lg:flex-row lg:gap-10 lg:p-8">
-      <aside className="hidden shrink-0 self-start lg:sticky lg:top-0 lg:block">
+    <div className="flex flex-col gap-8 px-6 lg:flex-row lg:gap-10 lg:px-8">
+      <aside className="hidden shrink-0 self-start pt-6 lg:sticky lg:top-0 lg:block lg:pt-8">
         <OrderedOutline sections={sections} />
       </aside>
-      <div className="min-w-0 flex-1">
+      <div className="min-w-0 flex-1 py-6 lg:py-8">
         <OrderedBody showAnchors>
           <Outlet key={`${location.pathname}${location.searchStr}`} />
         </OrderedBody>

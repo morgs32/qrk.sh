@@ -25,9 +25,10 @@ makeModule({
 ```
 
 In this example, `md` inherits `GitHubProfile` and `xl` inherits
-`GitHubProfileCalendar`. Grid container thresholds are 640px (`md`), 1024px
-(`lg`), and 1280px (`xl`); `sm` covers smaller widths. Shared defs live in
-`apps/library/breakpoints.ts`.
+`GitHubProfileCalendar`. Grid container thresholds are 720px (`md`), 1080px
+(`lg`), and 1440px (`xl`); `sm` covers smaller widths. Preview widths are
+360 / 720 / 1080 / 1440 so one column is 45 / 90 / 135 / 180 on the 8-col
+grid. Shared defs live in `apps/library/breakpoints.ts`.
 
 `makeModule` uses the incoming `breakpoint` prop and forwards the same props
 to the selected React component. It performs no measurement and owns no

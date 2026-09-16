@@ -210,7 +210,11 @@ export const useGridStore = create<{
       skipHydration: true,
       onRehydrateStorage: (stateBeforeHydration) => (stateAfterHydration) => {
         const state = stateAfterHydration ?? stateBeforeHydration;
-        if (state.selectedWidth === 768) state.selectedWidth = 640;
+        if (state.selectedWidth === 375) state.selectedWidth = 360;
+        if (state.selectedWidth === 640 || state.selectedWidth === 768) state.selectedWidth = 720;
+        if (state.selectedWidth === 1024 || state.selectedWidth === 1280) {
+          state.selectedWidth = 1080;
+        }
         if (state.selectedWidth === 1536) state.selectedWidth = 1440;
         state.setHasHydrated(true);
       },

@@ -5,17 +5,17 @@ import { newSyncRpcSession } from "@zerospin/core/utils/newSyncRpcSession";
 import type { Spec } from "@json-render/core";
 import { collapseAllNested, defaultStyles, JsonView } from "react-json-view-lite";
 
-import { useBrickBreakpoint } from "../../../../components/brick/BrickBreakpointProvider";
-import { BrickPreviewFrame } from "../../../../components/brick/BrickPreviewFrame";
+import { useBrickBreakpoint } from "../../../../lib/BrickBreakpointProvider";
+import { BrickPreview } from "../../../../lib/BrickPreview";
 import { Button } from "../../../../components/ui/button";
 import { Input } from "../../../../components/ui/input";
-import { modulesHash } from "../../../../modulesHash";
+import { modulesHash } from "../../../../lib/modulesHash";
 import { GitHubProfileJsonRenderCompare } from "../../../../modules/githubProfile/generative/GitHubProfileJsonRenderCompare";
 import type { LibraryApi } from "../../../../worker/LibraryApi.public";
 import type { IScrapeError } from "../../../../worker/types.public";
 import { TableData } from "../../../TableData";
 import { Configuration } from "../../../Configuration";
-import { useGridStore } from "../../../useGridStore";
+import { useGridStore } from "../../../../lib/useGridStore";
 import { useModuleData } from "../../../useModuleData";
 
 export const Route = createFileRoute("/modules/$moduleId/")({
@@ -105,7 +105,7 @@ function ModuleDetail() {
           </div>
         ) : (
           <div className={brick.def[breakpoint].w === 8 ? undefined : "px-4"}>
-            <BrickPreviewFrame w={brick.def[breakpoint].w} h={brick.def[breakpoint].h}>
+            <BrickPreview w={brick.def[breakpoint].w} h={brick.def[breakpoint].h}>
               <div
                 className="size-full qrk-bricks brick-drag-surface overflow-hidden"
                 data-module-brick={moduleId}
@@ -135,7 +135,7 @@ function ModuleDetail() {
                   <BrickComponent breakpoint={breakpoint} data={moduleData} options={options} />
                 </div>
               </div>
-            </BrickPreviewFrame>
+            </BrickPreview>
           </div>
         )}
       </div>

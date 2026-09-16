@@ -1,8 +1,7 @@
 import type { ComponentProps } from "react";
 
-import type { IModuleBrickDef } from "../types";
-
-import { useGridStore } from "./useGridStore";
+import type { IModuleBrickDef } from "../lib/types";
+import { useGridStore } from "../lib/useGridStore";
 
 export function DraggableBrick({
   brickDef,

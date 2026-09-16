@@ -1,9 +1,9 @@
 import { Link, createFileRoute, notFound } from "@tanstack/react-router";
 
-import { BrickBreakpointProvider } from "../../../components/brick/BrickBreakpointProvider";
-import { BrickPreviewFrame } from "../../../components/brick/BrickPreviewFrame";
-import { BREAKPOINTS } from "../../../breakpoints";
-import { modulesHash } from "../../../modulesHash";
+import { BrickBreakpointProvider } from "../../../lib/BrickBreakpointProvider";
+import { BrickPreview } from "../../../lib/BrickPreview";
+import { BREAKPOINTS } from "../../../lib/breakpoints";
+import { modulesHash } from "../../../lib/modulesHash";
 
 export const Route = createFileRoute("/bricks/$moduleId")({
   beforeLoad: ({ params }) => {
@@ -37,11 +37,11 @@ function BrickPage() {
                 <h2>{entry.id}</h2>
                 <div className="overflow-auto">
                   <div ref={containerRef} style={{ width: entry.previewWidth }}>
-                    <BrickPreviewFrame w={brick.def[entry.id].w} h={brick.def[entry.id].h}>
+                    <BrickPreview w={brick.def[entry.id].w} h={brick.def[entry.id].h}>
                       <div className="size-full overflow-hidden" data-testid="brick-preview">
                         <BrickComponent breakpoint={entry.id} data={brickModule.defaultData} />
                       </div>
-                    </BrickPreviewFrame>
+                    </BrickPreview>
                   </div>
                 </div>
               </section>

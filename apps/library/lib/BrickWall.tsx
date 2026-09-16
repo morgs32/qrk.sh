@@ -3,13 +3,12 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import GridLayout, { verticalCompactor } from "react-grid-layout";
 import { useNavigate } from "@tanstack/react-router";
 
-import { useBrickBreakpoint } from "../components/brick/BrickBreakpointProvider";
-import { modulesHash } from "../modulesHash";
-
+import { useBrickBreakpoint } from "./BrickBreakpointProvider";
+import { modulesHash } from "./modulesHash";
 import { resolveBrickBreakpoint } from "./resolveBrickBreakpoint";
 import { useGridStore } from "./useGridStore";
 
-export function SandboxGrid() {
+export function BrickWall() {
   const navigate = useNavigate();
   const containerRef = useRef<HTMLElement>(null);
   const { gridWidth, breakpoint, containerRef: observeGrid } = useBrickBreakpoint();

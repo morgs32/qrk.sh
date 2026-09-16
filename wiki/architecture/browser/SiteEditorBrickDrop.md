@@ -11,23 +11,17 @@ sources:
   - path: apps/studio/app/[username]/site/[siteId]/page/[pageId]/Grid.tsx
     sha: 42e29fef52321fab77115f71c2191d86ebb925fb
     lines: 107-193
-  - path: apps/studio/app/[username]/site/[siteId]/page/[pageId]/BrickCarousel/BrickPreview.tsx
-    sha: 7a3124a24044c90b7611c64b5cae7dc192591e89
-    lines: 19-63
-  - path: apps/studio/app/[username]/site/[siteId]/page/[pageId]/BrickCarousel/BrickCarousel.tsx
-    sha: aa61dfc90cff7e6d7cce575deb39a0628171a44e
-    lines: 54-57
-  - path: apps/library/modulesHash.ts
+  - path: apps/library/lib/modulesHash.ts
     sha: 442bd44d274457668ba04522c2f6038e9f0f000e
     lines: 14-26
-  - path: apps/library/components/brick/BrickPreviewFrame.tsx
+  - path: apps/library/lib/BrickPreview.tsx
     sha: 76058457d5bafd25784c185bde7b68f1f1caa590
     lines: 8-16
 ---
 
 # Site editor brick preview and drop
 
-The site-editor bricks drawer lists [`modulesHash`](../../../apps/library/modulesHash.ts) and starts a native drag with [`BRICK_DRAG_MIME`](../../../apps/studio/components/home/useBrickDrawerStore.ts). [`Grid`](../../../apps/studio/app/[username]/site/[siteId]/page/[pageId]/Grid.tsx) sizes the placeholder from Zustand (custom MIME is often blank during `dragover`) and on drop decodes the def, looks up `modulesHash[moduleId]`, and writes `pageGrids`. Catalog lookup is [`BrickModule`](../BrickModule.md).
+The site-editor bricks drawer lists [`modulesHash`](../../../apps/library/lib/modulesHash.ts) and starts a native drag with [`BRICK_DRAG_MIME`](../../../apps/studio/components/home/useBrickDrawerStore.ts). [`Grid`](../../../apps/studio/app/[username]/site/[siteId]/page/[pageId]/Grid.tsx) sizes the placeholder from Zustand (custom MIME is often blank during `dragover`) and on drop decodes the def, looks up `modulesHash[moduleId]`, and writes `pageGrids`. Catalog lookup is [`BrickModule`](../BrickModule.md).
 
 ## Trigger
 
@@ -38,7 +32,7 @@ The site-editor bricks drawer lists [`modulesHash`](../../../apps/library/module
 sequenceDiagram
   participant BrickGroup
   participant modulesHash
-  participant BrickPreviewFrame
+  participant BrickPreview
   participant useBrickDrawerStore
   participant DataTransfer
   participant Grid
@@ -48,7 +42,7 @@ sequenceDiagram
   autonumber 2
   modulesHash-->>BrickGroup: IModule[]
   autonumber 3
-  BrickGroup->>BrickPreviewFrame: BrickPreviewFrame(...)
+  BrickGroup->>BrickPreview: BrickPreview(...)
   autonumber 4
   BrickGroup->>useBrickDrawerStore: registerActiveBrickDragGridShape(...)
   autonumber 5
@@ -77,22 +71,21 @@ sequenceDiagram
 ## Annotated workflow steps
 
 1. The drawer enumerates every library module.
-   - [`BrickGroup.tsx:26-56`](../../../apps/studio/app/[username]/site/[siteId]/page/[pageId]/BrickGroup/BrickGroup.tsx#L26-L56) — `Object.values(modulesHash)` then `modules.map((brickModule) => ...)`. (`apps/studio/app/[username]/site/[siteId]/page/[pageId]/BrickGroup/BrickGroup.tsx:26-56`)
+   - [`BrickGroup.tsx:26-56`](../../../apps/studio/app/[username]/site/[siteId]/page/[pageId]/BrickGroup/BrickGroup.tsx#L26-56) — `Object.values(modulesHash)` then `modules.map((brickModule) => ...)`. (`apps/studio/app/[username]/site/[siteId]/page/[pageId]/BrickGroup/BrickGroup.tsx:26-56`)
 2. Each row is an `IModule` (`def`, `component`, `defaultData`).
-   - [`modulesHash.ts:14-26`](../../../apps/library/modulesHash.ts#L14-L26) — kebab keys imported by `@qrk.sh/library`. (`apps/library/modulesHash.ts:14-26`)
+   - [`modulesHash.ts:14-26`](../../../apps/library/lib/modulesHash.ts#L14-L26) — kebab keys imported by `@qrk.sh/library`. (`apps/library/lib/modulesHash.ts:14-26`)
 3. Preview size uses measured `gridWidth` and `brickModule.def[breakpoint]`.
-   - [`BrickGroup.tsx:59-77`](../../../apps/studio/app/[username]/site/[siteId]/page/[pageId]/BrickGroup/BrickGroup.tsx#L59-L77) — `w`/`h` from `selectedBrick.def[breakpoint]`, then `BrickPreviewFrame`. (`apps/studio/app/[username]/site/[siteId]/page/[pageId]/BrickGroup/BrickGroup.tsx:59-77`)
-   - [`BrickPreviewFrame.tsx:13-16`](../../../apps/library/components/brick/BrickPreviewFrame.tsx#L13-L16) — `round(gridWidth / 8 * w|h)`. (`apps/library/components/brick/BrickPreviewFrame.tsx:13-16`)
+   - [`BrickGroup.tsx:59-77`](../../../apps/studio/app/[username]/site/[siteId]/page/[pageId]/BrickGroup/BrickGroup.tsx#L59-77) — `w`/`h` from `selectedBrick.def[breakpoint]`, then `BrickPreview`. (`apps/studio/app/[username]/site/[siteId]/page/[pageId]/BrickGroup/BrickGroup.tsx:59-77`)
+   - [`BrickPreview.tsx:13-16`](../../../apps/library/lib/BrickPreview.tsx#L13-16) — `round(gridWidth / 8 * w|h)`. (`apps/library/lib/BrickPreview.tsx:13-16`)
 4. Drag start registers breakpoint `w`/`h` for drop-over (custom MIME is often empty until drop).
    - [`BrickGroup.tsx:84-85`](../../../apps/studio/app/[username]/site/[siteId]/page/[pageId]/BrickGroup/BrickGroup.tsx#L84-L85) — `registerActiveBrickDragGridShape(w, h)`. (`apps/studio/app/[username]/site/[siteId]/page/[pageId]/BrickGroup/BrickGroup.tsx:84-85`)
    - [`useBrickDrawerStore.ts:18-27`](../../../apps/studio/components/home/useBrickDrawerStore.ts#L18-L27) — store setter and `getActiveBrickDragGridShape()`. (`apps/studio/components/home/useBrickDrawerStore.ts:18-27`)
 5. The same handler writes `application/x-qrk-brick-def` JSON of `selectedBrick.def`.
    - [`BrickGroup.tsx:86-91`](../../../apps/studio/app/[username]/site/[siteId]/page/[pageId]/BrickGroup/BrickGroup.tsx#L86-L91) — `setData(BRICK_DRAG_MIME, JSON.stringify(selectedBrick.def))`. (`apps/studio/app/[username]/site/[siteId]/page/[pageId]/BrickGroup/BrickGroup.tsx:86-91`)
-   - [`BrickPreview.tsx:25-37`](../../../apps/studio/app/[username]/site/[siteId]/page/[pageId]/BrickCarousel/BrickPreview.tsx#L25-L37) — carousel slot native `dragstart` writes the same MIME from `brick.def` (used when [`BrickCarousel`](../../../apps/studio/app/[username]/site/[siteId]/page/[pageId]/BrickCarousel/BrickCarousel.tsx) mounts a preview). (`apps/studio/app/[username]/site/[siteId]/page/[pageId]/BrickCarousel/BrickPreview.tsx:25-37`)
 6. Grid drop-over reads the registered shape, not `getData`.
-   - [`Grid.tsx:107-110`](../../../apps/studio/app/[username]/site/[siteId]/page/[pageId]/Grid.tsx#L107-L110) — `onDragOver: () => getActiveBrickDragGridShape() ?? false`. (`apps/studio/app/[username]/site/[siteId]/page/[pageId]/Grid.tsx:107-110`)
+   - [`Grid.tsx:107-110`](../../../apps/studio/app/[username]/site/[siteId]/page/[pageId]/Grid.tsx#L107-110) — `onDragOver: () => getActiveBrickDragGridShape() ?? false`. (`apps/studio/app/[username]/site/[siteId]/page/[pageId]/Grid.tsx:107-110`)
 7. A missing registration disables the placeholder (`false`).
-   - [`useBrickDrawerStore.ts:26-27`](../../../apps/studio/components/home/useBrickDrawerStore.ts#L26-L27) — `getActiveBrickDragGridShape` returns the stored `{ w, h }` or `null`. (`apps/studio/components/home/useBrickDrawerStore.ts:26-27`)
+   - [`useBrickDrawerStore.ts:26-27`](../../../apps/studio/components/home/useBrickDrawerStore.ts#L26-27) — `getActiveBrickDragGridShape` returns the stored `{ w, h }` or `null`. (`apps/studio/components/home/useBrickDrawerStore.ts:26-27`)
 8. Drop decodes the MIME payload as `IModuleBrickDef`.
    - [`Grid.tsx:112-117`](../../../apps/studio/app/[username]/site/[siteId]/page/[pageId]/Grid.tsx#L112-L117) — `parseBrickDefFromDataTransfer` then `unregisterActiveBrickDragGridShape()`. (`apps/studio/app/[username]/site/[siteId]/page/[pageId]/Grid.tsx:112-117`)
    - [`useBrickDrawerStore.ts:42-56`](../../../apps/studio/components/home/useBrickDrawerStore.ts#L42-L56) — `Schema.decodeUnknownResult`; failure returns `null`. (`apps/studio/components/home/useBrickDrawerStore.ts:42-56`)
@@ -107,4 +100,3 @@ sequenceDiagram
 13. The grid stores layout plus `brick.def` under a new `brickId`.
     - [`Grid.tsx:120-142`](../../../apps/studio/app/[username]/site/[siteId]/page/[pageId]/Grid.tsx#L120-L142) — `crypto.randomUUID()`, size from `brick.def[breakpoint]`, `pageGrids[pageKey]`. (`apps/studio/app/[username]/site/[siteId]/page/[pageId]/Grid.tsx:120-142`)
     - [`Grid.tsx:162-192`](../../../apps/studio/app/[username]/site/[siteId]/page/[pageId]/Grid.tsx#L162-L192) — placed cells resolve `modulesHash[brickDef.moduleId]` again to render `BrickComponent`. (`apps/studio/app/[username]/site/[siteId]/page/[pageId]/Grid.tsx:162-192`)
-    - [`BrickCarousel.tsx:54-57`](../../../apps/studio/app/[username]/site/[siteId]/page/[pageId]/BrickCarousel/BrickCarousel.tsx#L54-L57) — carousel takes a resolved `brickModule: IModule`; it does not import `modulesHash`. (`apps/studio/app/[username]/site/[siteId]/page/[pageId]/BrickCarousel/BrickCarousel.tsx:54-57`)

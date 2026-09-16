@@ -2,7 +2,7 @@
 
 import { modulesHash } from "@qrk.sh/library";
 import { useBrickBreakpoint } from "@qrk.sh/library/BrickBreakpointProvider";
-import { BrickPreviewFrame } from "@qrk.sh/library/BrickPreviewFrame";
+import { BrickPreview } from "@qrk.sh/library/BrickPreview";
 import { Schema } from "effect";
 import { X } from "lucide-react";
 import { Link } from "react-router";
@@ -74,7 +74,7 @@ export function BrickGroup() {
               </h2>
               <div className="overflow-auto py-6">
                 <div className={w === 8 ? undefined : "px-4"}>
-                  <BrickPreviewFrame w={w} h={h}>
+                  <BrickPreview w={w} h={h}>
                     <div
                       className="size-full qrk-bricks cursor-grab overflow-hidden active:cursor-grabbing"
                       data-module-representative={selectedBrick.def.moduleId}
@@ -96,7 +96,7 @@ export function BrickGroup() {
                     >
                       <BrickComponent breakpoint={breakpoint} data={brickModule.defaultData} />
                     </div>
-                  </BrickPreviewFrame>
+                  </BrickPreview>
                 </div>
               </div>
             </section>

@@ -30,7 +30,7 @@ export default defineConfig(({ mode }) => {
         },
         {
           find: "@qrk.sh/library",
-          replacement: fileURLToPath(new URL("./index.ts", import.meta.url)),
+          replacement: fileURLToPath(new URL("./lib/index.ts", import.meta.url)),
         },
       ],
     },

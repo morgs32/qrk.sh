@@ -2,7 +2,7 @@
 import { useUser } from "@clerk/react";
 import { modulesHash } from "@qrk.sh/library";
 import { useBrickBreakpoint } from "@qrk.sh/library/BrickBreakpointProvider";
-import { BrickPreviewFrame } from "@qrk.sh/library/BrickPreviewFrame";
+import { BrickPreview } from "@qrk.sh/library/BrickPreview";
 import { Schema } from "effect";
 import { ArrowLeft, X } from "lucide-react";
 import { Link } from "react-router";
@@ -83,7 +83,7 @@ export function BrickDetail() {
               <p className="mt-0 font-mono text-sm text-muted-foreground">{brick.def.moduleId}</p>
             </div>
             <div className="mt-8 overflow-auto">
-              <BrickPreviewFrame
+              <BrickPreview
                 w={placement?.w ?? brick.def[breakpoint].w}
                 h={placement?.h ?? brick.def[breakpoint].h}
               >
@@ -93,7 +93,7 @@ export function BrickDetail() {
                 >
                   <BrickComponent breakpoint={breakpoint} data={brick.defaultData} />
                 </div>
-              </BrickPreviewFrame>
+              </BrickPreview>
             </div>
           </section>
         )}

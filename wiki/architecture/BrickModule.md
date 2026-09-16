@@ -8,10 +8,10 @@ sources:
   - path: apps/library/modules/githubProfile/githubProfile.ts
     sha: 6e959d85905b847000f4dd90574aae218979ac77
     lines: 8-12
-  - path: apps/library/modulesHash.ts
+  - path: apps/library/lib/modulesHash.ts
     sha: 442bd44d274457668ba04522c2f6038e9f0f000e
     lines: 14-26
-  - path: apps/library/index.ts
+  - path: apps/library/lib/index.ts
     sha: 94d29bc207e39f4349bc17ae475d6e44db06e437
     lines: 1-2
   - path: apps/library/app/routes.ts
@@ -32,19 +32,19 @@ sources:
   - path: apps/library/brick/BrickFrame.tsx
     sha: 43c36f4c3f235497faa08a562d7009cc6b777819
     lines: 3-8
-  - path: apps/library/types.ts
+  - path: apps/library/lib/types.ts
     sha: 7b15b631f6c944bbe1e8ff2c6419d9e0c20e7fea
     lines: 20-41
 ---
 
 # Brick module identity and lookup
 
-Each assembler calls [`makeModule`](../../apps/library/make/makeModule.tsx). The result is an [`IModule`](../../apps/library/types.ts) keyed in [`modulesHash`](../../apps/library/modulesHash.ts). Routes bind that value as `brickModule`. Preview and drag are [`LibrarySandboxBrickDrop`](./browser/LibrarySandboxBrickDrop.md) and [`SiteEditorBrickDrop`](./browser/SiteEditorBrickDrop.md).
+Each assembler calls [`makeModule`](../../apps/library/make/makeModule.tsx). The result is an [`IModule`](../../apps/library/lib/types.ts) keyed in [`modulesHash`](../../apps/library/lib/modulesHash.ts). Routes bind that value as `brickModule`. Preview and drag are [`LibrarySandboxBrickDrop`](./browser/LibrarySandboxBrickDrop.md) and [`SiteEditorBrickDrop`](./browser/SiteEditorBrickDrop.md).
 
 ## Trigger
 
-1. The library bundle evaluates each `modules/<camelCase>/` assembler, then [`modulesHash.ts`](../../apps/library/modulesHash.ts).
-2. [`@qrk.sh/library`](../../apps/library/index.ts) re-exports `modulesHash` for studio.
+1. The library bundle evaluates each `modules/<camelCase>/` assembler, then [`modulesHash.ts`](../../apps/library/lib/modulesHash.ts).
+2. [`@qrk.sh/library`](../../apps/library/lib/index.ts) re-exports `modulesHash` for studio.
 3. Workbench navigation hits [`routes.ts`](../../apps/library/app/routes.ts) `modules`, `modules/:moduleId`, `modules/:moduleId/:brickId`, or `bricks/:moduleId`.
 4. Studio group detail hits [`BrickGroupRoute`](../../apps/studio/app/routes/BrickGroupRoute.tsx) with `groupName`.
 
@@ -92,8 +92,8 @@ sequenceDiagram
    - [`makeModule.tsx:59-68`](../../apps/library/make/makeModule.tsx#L59-L68) — kebab-case `id` check and `sm`/`md`/`lg`/`xl` resolution. (`apps/library/make/makeModule.tsx:59-68`)
    - [`makeModule.tsx:96-123`](../../apps/library/make/makeModule.tsx#L96-L123) — null vs shaped return including `def` and `Brick`. (`apps/library/make/makeModule.tsx:96-123`)
 3. The hash is a `Record<string, IModule>` keyed by kebab `id`.
-   - [`modulesHash.ts:14-26`](../../apps/library/modulesHash.ts#L14-L26) — `"github-profile": githubProfile` and the other assemblers. (`apps/library/modulesHash.ts:14-26`)
-   - [`index.ts:1-2`](../../apps/library/index.ts#L1-L2) — package export of `modulesHash` and `IModule`. (`apps/library/index.ts:1-2`)
+   - [`modulesHash.ts:14-26`](../../apps/library/lib/modulesHash.ts#L14-L26) — `"github-profile": githubProfile` and the other assemblers. (`apps/library/lib/modulesHash.ts:14-26`)
+   - [`index.ts:1-2`](../../apps/library/lib/index.ts#L1-L2) — package export of `modulesHash` and `IModule`. (`apps/library/lib/index.ts:1-2`)
 4. The module parent loader admits only registered `params.moduleId`.
    - [`routes.ts:21-58`](../../apps/library/app/routes.ts#L21-L58) — `path: "modules"` with nested `:moduleId` lazy `ModulePage` plus nested `ModuleDetail` and `:brickId`. (`apps/library/app/routes.ts:21-58`)
    - [`ModulePage.tsx:10-13`](../../apps/library/app/routes/modules/$moduleId/ModulePage.tsx#L10-L13) — 404 when `params.moduleId` is missing or not in `modulesHash`. (`apps/library/app/routes/modules/$moduleId/ModulePage.tsx:10-13`)

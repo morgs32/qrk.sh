@@ -1,6 +1,6 @@
 import { collapseAllNested, defaultStyles, JsonView } from "react-json-view-lite";
 import "react-json-view-lite/dist/index.css";
-import type { IModule } from "../types";
+import type { IModule } from "../lib/types";
 
 import { FetcherConfiguration } from "./FetcherConfiguration";
 

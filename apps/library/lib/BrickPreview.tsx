@@ -5,7 +5,7 @@ import { useBrickBreakpoint } from "./BrickBreakpointProvider";
 
 const PREVIEW_GRID_COLS = 8;
 
-export function BrickPreviewFrame(props: {
+export function BrickPreview(props: {
   w: number;
   h: number;
   children: ReactNode;
@@ -16,7 +16,7 @@ export function BrickPreviewFrame(props: {
   const fullH = Math.round((gridWidth / PREVIEW_GRID_COLS) * props.h);
   return (
     <div
-      className="shrink-0"
+      className="shrink-0 shadow-md"
       style={{
         width: fullW,
         height: fullH,

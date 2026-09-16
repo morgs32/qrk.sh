@@ -7,20 +7,24 @@
   "type": "module",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
+      "types": "./dist/lib/index.d.ts",
       "import": "./dist/index.js"
     },
     "./BrickBreakpointProvider": {
-      "types": "./dist/components/brick/BrickBreakpointProvider.d.ts",
+      "types": "./dist/lib/BrickBreakpointProvider.d.ts",
       "import": "./dist/BrickBreakpointProvider.js"
     },
     "./breakpoints": {
-      "types": "./dist/breakpoints.d.ts",
+      "types": "./dist/lib/breakpoints.d.ts",
       "import": "./dist/breakpoints.js"
     },
-    "./BrickPreviewFrame": {
-      "types": "./dist/components/brick/BrickPreviewFrame.d.ts",
-      "import": "./dist/BrickPreviewFrame.js"
+    "./BrickPreview": {
+      "types": "./dist/lib/BrickPreview.d.ts",
+      "import": "./dist/BrickPreview.js"
+    },
+    "./BrickWall": {
+      "types": "./dist/lib/BrickWall.d.ts",
+      "import": "./dist/BrickWall.js"
     },
     "./bricks.css": "./dist/bricks.css"
   },

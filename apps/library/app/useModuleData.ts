@@ -4,7 +4,7 @@ import { makeEffectSchema } from "@zerospin/schema";
 import { Schema } from "effect";
 import { create } from "zustand";
 
-import { modulesHash } from "../modulesHash";
+import { modulesHash } from "../lib/modulesHash";
 
 export const useModuleDataStore = create<{
   dataByModule: Record<string, unknown>;

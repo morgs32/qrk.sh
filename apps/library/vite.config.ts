@@ -21,10 +21,11 @@ export default defineConfig(({ mode }) => {
     build: {
       lib: {
         entry: {
-          index: "index.ts",
-          BrickPreviewFrame: "components/brick/BrickPreviewFrame.tsx",
-          BrickBreakpointProvider: "components/brick/BrickBreakpointProvider.tsx",
-          breakpoints: "breakpoints.ts",
+          index: "lib/index.ts",
+          BrickPreview: "lib/BrickPreview.tsx",
+          BrickBreakpointProvider: "lib/BrickBreakpointProvider.tsx",
+          breakpoints: "lib/breakpoints.ts",
+          BrickWall: "lib/BrickWall.tsx",
         },
         formats: ["es"],
         fileName: (_format, entryName) => `${entryName}.js`,
@@ -32,6 +33,7 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         external: [
           "@radix-ui/react-slot",
+          "@tanstack/react-router",
           "@tiptap/react",
           "@unpic/react",
           "@zerospin/schema",
@@ -44,8 +46,10 @@ export default defineConfig(({ mode }) => {
           "react",
           "react-activity-calendar",
           "react-dom",
+          "react-grid-layout",
           "react/jsx-runtime",
           /^swr(?:\/|$)/,
+          /^zustand(?:\/|$)/,
         ],
       },
     },

@@ -1,6 +1,6 @@
 import { modulesHash } from "@qrk.sh/library";
 import { useBrickBreakpoint } from "@qrk.sh/library/BrickBreakpointProvider";
-import { BrickPreviewFrame } from "@qrk.sh/library/BrickPreviewFrame";
+import { BrickPreview } from "@qrk.sh/library/BrickPreview";
 import { ArrowLeft } from "lucide-react";
 import { Tabs } from "radix-ui";
 import { href, Link, useParams } from "react-router";
@@ -89,7 +89,7 @@ export default function BrickGroupRoute() {
             <Tabs.Content value={`${brickModule.def.moduleId}-preview`}>
               <div className="mt-6 overflow-auto">
                 <div className={w === 8 ? undefined : "ml-6"}>
-                  <BrickPreviewFrame w={w} h={h}>
+                  <BrickPreview w={w} h={h}>
                     <div
                       className="size-full qrk-bricks cursor-grab overflow-hidden active:cursor-grabbing"
                       data-brick-full-view={brickModule.def.moduleId}
@@ -111,7 +111,7 @@ export default function BrickGroupRoute() {
                     >
                       <BrickComponent breakpoint={breakpoint} data={brickModule.defaultData} />
                     </div>
-                  </BrickPreviewFrame>
+                  </BrickPreview>
                 </div>
               </div>
             </Tabs.Content>

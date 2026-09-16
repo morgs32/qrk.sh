@@ -1,8 +1,8 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
 
-import { useBrickBreakpoint } from "../../../components/brick/BrickBreakpointProvider";
-import { BrickPreviewFrame } from "../../../components/brick/BrickPreviewFrame";
-import { modulesHash } from "../../../modulesHash";
+import { useBrickBreakpoint } from "../../../lib/BrickBreakpointProvider";
+import { BrickPreview } from "../../../lib/BrickPreview";
+import { modulesHash } from "../../../lib/modulesHash";
 import { DraggableBrick } from "../../DraggableBrick";
 
 export const Route = createFileRoute("/modules/")({
@@ -38,7 +38,7 @@ function ModulesPage() {
             </h2>
             <div className="overflow-auto pt-6 pb-16">
               <div className={def[breakpoint].w === 8 ? undefined : "px-4"}>
-                <BrickPreviewFrame w={def[breakpoint].w} h={def[breakpoint].h}>
+                <BrickPreview w={def[breakpoint].w} h={def[breakpoint].h}>
                   <DraggableBrick
                     brickDef={def}
                     className="size-full qrk-bricks overflow-hidden"
@@ -48,7 +48,7 @@ function ModulesPage() {
                       <BrickComponent breakpoint={breakpoint} data={def.data} />
                     </div>
                   </DraggableBrick>
-                </BrickPreviewFrame>
+                </BrickPreview>
               </div>
             </div>
           </div>

@@ -1,6 +1,6 @@
 import { Outlet, createFileRoute, notFound, useLocation } from "@tanstack/react-router";
 
-import { modulesHash } from "../../../modulesHash";
+import { modulesHash } from "../../../lib/modulesHash";
 
 export const Route = createFileRoute("/modules/$moduleId")({
   beforeLoad: ({ params }) => {

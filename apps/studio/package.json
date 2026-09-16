@@ -58,8 +58,6 @@
     "clsx": "^2.1.1",
     "cn": "^0.3.0",
     "effect": "rc",
-    "embla-carousel": "^8.6.0",
-    "embla-carousel-react": "^8.6.0",
     "es-toolkit": "^1.45.1",
     "framer-motion": "13.2.0",
     "frimousse": "^0.3.0",

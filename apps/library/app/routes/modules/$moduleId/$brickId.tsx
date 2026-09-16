@@ -3,13 +3,13 @@ import { makeEffectSchema } from "@zerospin/schema";
 import { Schema } from "effect";
 import { collapseAllNested, defaultStyles, JsonView } from "react-json-view-lite";
 
-import { useBrickBreakpoint } from "../../../../components/brick/BrickBreakpointProvider";
-import { BrickPreviewFrame } from "../../../../components/brick/BrickPreviewFrame";
-import { modulesHash } from "../../../../modulesHash";
+import { useBrickBreakpoint } from "../../../../lib/BrickBreakpointProvider";
+import { BrickPreview } from "../../../../lib/BrickPreview";
+import { modulesHash } from "../../../../lib/modulesHash";
 import { Button } from "../../../../components/ui/button";
 import { Configuration } from "../../../Configuration";
-import { resolveBrickBreakpoint } from "../../../resolveBrickBreakpoint";
-import { useGridStore } from "../../../useGridStore";
+import { resolveBrickBreakpoint } from "../../../../lib/resolveBrickBreakpoint";
+import { useGridStore } from "../../../../lib/useGridStore";
 
 export const Route = createFileRoute("/modules/$moduleId/$brickId")({
   component: BrickDetail,
@@ -44,14 +44,14 @@ function BrickDetail() {
       <div
         className={`overflow-auto py-6 ${(entry.gridItem?.w ?? brick.def[breakpoint].w) === 8 ? "" : "px-4"}`}
       >
-        <BrickPreviewFrame
+        <BrickPreview
           w={entry.gridItem?.w ?? brick.def[breakpoint].w}
           h={entry.gridItem?.h ?? brick.def[breakpoint].h}
         >
           <div className="size-full qrk-bricks" data-testid="selected-brick-preview">
             <BrickComponent breakpoint={breakpoint} data={brickData} options={entry.options} />
           </div>
-        </BrickPreviewFrame>
+        </BrickPreview>
       </div>
       <div className="pb-6">
         <Configuration

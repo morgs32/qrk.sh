@@ -2,7 +2,6 @@ import { useState, type ReactNode } from "react";
 import { Link, useLocation, useNavigate, useParams } from "@tanstack/react-router";
 import { RotateCcw, X } from "lucide-react";
 
-import { BrickBreakpointProvider } from "../components/brick/BrickBreakpointProvider";
 import { Button } from "../components/ui/button";
 import {
   Drawer,
@@ -11,10 +10,11 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "../components/ui/drawer";
-import { BREAKPOINTS } from "../breakpoints";
-import { modulesHash } from "../modulesHash";
-import { SandboxGrid } from "./SandboxGrid";
-import { useGridStore } from "./useGridStore";
+import { BrickBreakpointProvider } from "../lib/BrickBreakpointProvider";
+import { BrickWall } from "../lib/BrickWall";
+import { BREAKPOINTS } from "../lib/breakpoints";
+import { modulesHash } from "../lib/modulesHash";
+import { useGridStore } from "../lib/useGridStore";
 
 export function SandboxLayout(props: { children: ReactNode }) {
   const { children } = props;
@@ -113,7 +113,7 @@ export function SandboxLayout(props: { children: ReactNode }) {
                 className="mx-auto"
                 style={{ width: selectedWidth ?? BREAKPOINTS[0].previewWidth }}
               >
-                <SandboxGrid />
+                <BrickWall />
               </div>
             </div>
             <div className="pointer-events-none fixed inset-x-0 top-3 z-80 flex justify-center px-2 lg:bottom-6 lg:top-auto">

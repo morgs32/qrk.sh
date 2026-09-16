@@ -1,6 +1,6 @@
 import type { Catalog } from "@json-render/core";
 
-import type { IModule } from "../types";
+import type { IModule } from "../lib/types";
 
 /** Attach backend catalogs onto frontend modules. Every backend key must be present. */
 export function makeFrontendLibrary<

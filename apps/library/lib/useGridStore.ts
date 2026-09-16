@@ -3,8 +3,8 @@ import type { Layout, LayoutItem } from "react-grid-layout";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-import { modulesHash } from "../modulesHash";
-import type { IModuleBrickDef } from "../types";
+import { modulesHash } from "./modulesHash";
+import type { IModuleBrickDef } from "./types";
 
 import { resolveBrickBreakpoint } from "./resolveBrickBreakpoint";
 

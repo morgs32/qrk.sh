@@ -21,7 +21,7 @@ function ModulePage() {
         <OrderedOutline />
       </aside>
       <div className="min-w-0 flex-1">
-        <OrderedBody>
+        <OrderedBody showAnchors>
           <Outlet key={`${location.pathname}${location.searchStr}`} />
         </OrderedBody>
       </div>

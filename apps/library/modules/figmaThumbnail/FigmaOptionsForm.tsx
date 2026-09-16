@@ -5,7 +5,7 @@ export function FigmaOptionsForm(props: {
   onChange: (value: { imagePosition: "center" | "left" | "right" | "top" | "bottom" }) => void;
 }) {
   return (
-    <div className="px-4 py-5">
+    <div className="py-5">
       <fieldset>
         <legend className="mb-2">Image position</legend>
         {(

@@ -15,9 +15,9 @@ export function Configuration(props: {
   if (configuration === undefined) {
     return (
       <div>
-        <OrderedBodyHeading className="shrink-0 px-4 py-4">Configuration</OrderedBodyHeading>
+        <OrderedBodyHeading className="shrink-0 py-4">Configuration</OrderedBodyHeading>
         {props.showData !== false && (
-          <div className="overflow-auto bg-white px-2 py-4">
+          <div className="overflow-auto bg-white py-4">
             <JsonView
               shouldExpandNode={collapseAllNested}
               data={{ data: props.data }}
@@ -33,9 +33,9 @@ export function Configuration(props: {
     case "form":
       return (
         <div>
-          <OrderedBodyHeading className="shrink-0 px-4 py-4">Configuration</OrderedBodyHeading>
+          <OrderedBodyHeading className="shrink-0 py-4">Configuration</OrderedBodyHeading>
           {props.showData !== false && (
-            <div className="overflow-auto bg-white px-2 py-4" data-testid="module-data-result">
+            <div className="overflow-auto bg-white py-4" data-testid="module-data-result">
               <JsonView
                 shouldExpandNode={collapseAllNested}
                 data={{ data: props.data }}
@@ -43,7 +43,7 @@ export function Configuration(props: {
               />
             </div>
           )}
-          <div className="px-4 py-5">
+          <div className="py-5">
             {configuration.form({ data: props.data, onChange: props.setData })}
           </div>
         </div>

@@ -5,7 +5,7 @@ export function SwatchAndIconColorForm(props: {
   onChange: (value: { color: string }) => void;
 }) {
   return (
-    <div className="space-y-4 px-4 py-5">
+    <div className="space-y-4 py-5">
       <HexColorPicker
         color={props.value.color}
         onChange={(color) => props.onChange({ color })}

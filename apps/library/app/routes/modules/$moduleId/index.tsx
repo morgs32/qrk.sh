@@ -257,7 +257,7 @@ function ModuleDetail() {
       ) : null}
       <li className="mt-10">
         <OrderedBodyHeading className="shrink-0 py-4">Brick Definition</OrderedBodyHeading>
-        <div className="overflow-auto bg-white px-2 py-4" data-testid="module-data-result">
+        <div className="overflow-auto bg-white py-4" data-testid="module-data-result">
           <JsonView
             shouldExpandNode={collapseAllNested}
             data={{

@@ -89,9 +89,9 @@ export function FetcherConfiguration(props: {
 
   return (
     <div>
-      <OrderedBodyHeading className="shrink-0 px-4 py-4">Configuration</OrderedBodyHeading>
+      <OrderedBodyHeading className="shrink-0 py-4">Configuration</OrderedBodyHeading>
       {props.showData !== false && (
-        <div className="overflow-auto bg-white px-2 py-4" data-testid="module-data-result">
+        <div className="overflow-auto bg-white py-4" data-testid="module-data-result">
           <JsonView
             shouldExpandNode={collapseAllNested}
             data={{ data: props.data }}
@@ -100,7 +100,7 @@ export function FetcherConfiguration(props: {
         </div>
       )}
 
-      <div className="px-4 py-5">
+      <div className="py-5">
         <form className="space-y-5" onSubmit={(event) => event.preventDefault()}>
           {ModuleOptionsForm !== undefined ? (
             <ModuleOptionsForm

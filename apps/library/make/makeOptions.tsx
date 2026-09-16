@@ -60,7 +60,7 @@ export function makeOptions<const SHAPE extends IShape>(props: {
       });
       if (Form === undefined) {
         return (
-          <div className="space-y-3 px-4 py-5">
+          <div className="space-y-3 py-5">
             {Object.keys(props.shape).map((name) => {
               const words = name
                 .replace(/([a-z0-9])([A-Z])/g, "$1 $2")

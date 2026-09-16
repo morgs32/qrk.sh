@@ -1,17 +1,17 @@
 "use client";
 
-import { Avatar } from "./Avatar";
-import { Bio } from "./Bio";
-import { Blog } from "./Blog";
-import { Followers } from "./Followers";
-import { Following } from "./Following";
-import { Location } from "./Location";
-import { Login } from "./Login";
-import { ProfileBody } from "./ProfileBody";
-import { ProfileCard } from "./ProfileCard";
-import { ProfileFooter } from "./ProfileFooter";
-import { ProfileHeader } from "./ProfileHeader";
-import { PublicRepos } from "./PublicRepos";
+import { Avatar } from "./components/Avatar";
+import { Bio } from "./components/Bio";
+import { Blog } from "./components/Blog";
+import { Followers } from "./components/Followers";
+import { Following } from "./components/Following";
+import { Location } from "./components/Location";
+import { Login } from "./components/Login";
+import { ProfileBody } from "./components/ProfileBody";
+import { ProfileCard } from "./components/ProfileCard";
+import { ProfileFooter } from "./components/ProfileFooter";
+import { ProfileHeader } from "./components/ProfileHeader";
+import { PublicRepos } from "./components/PublicRepos";
 
 export function GitHubProfile(props: {
   breakpoint: "sm" | "md" | "lg" | "xl";

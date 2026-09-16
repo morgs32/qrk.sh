@@ -1,7 +1,15 @@
-import { BrickBreakpointProvider } from "../../components/brick/BrickBreakpointProvider";
 import { useState } from "react";
-import { Outlet, Link, useLocation, useNavigate, useParams } from "react-router";
+import {
+  Link,
+  Outlet,
+  createFileRoute,
+  useLocation,
+  useNavigate,
+  useParams,
+} from "@tanstack/react-router";
 import { RotateCcw, X } from "lucide-react";
+
+import { BrickBreakpointProvider } from "../../components/brick/BrickBreakpointProvider";
 import { Button } from "../../components/ui/button";
 import {
   Drawer,
@@ -10,30 +18,32 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "../../components/ui/drawer";
-
 import { BREAKPOINTS } from "../../breakpoints";
 import { modulesHash } from "../../modulesHash";
 import { SandboxGrid } from "../SandboxGrid";
 import { useGridStore } from "../useGridStore";
 
-export default function Layout() {
+export const Route = createFileRoute("/_sandbox")({
+  component: Layout,
+});
+
+function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
-  const params = useParams();
+  const params = useParams({ strict: false });
   const moduleId = params.moduleId;
   const brickId = params.brickId;
   const moduleLabel = moduleId ? modulesHash[moduleId]?.label : undefined;
-  const drawerTitle =
-    moduleLabel !== undefined ? `Bricks / ${moduleLabel}` : "Bricks";
+  const drawerTitle = moduleLabel !== undefined ? `Bricks / ${moduleLabel}` : "Bricks";
   const persistedWidth = useGridStore((state) => state.selectedWidth);
+  const locationKey = `${location.pathname}${location.searchStr}`;
   const [drawerOpen, setDrawerOpen] = useState(
-    () => location.pathname !== "/" || location.search.length > 0,
+    () => location.pathname !== "/" || location.searchStr.length > 0,
   );
-  const [drawerOpenForLocationKey, setDrawerOpenForLocationKey] = useState(location.key);
-  if (location.key !== drawerOpenForLocationKey) {
-    setDrawerOpenForLocationKey(location.key);
-    // Nested /modules routes render inside the drawer Outlet; open it so deep links are visible.
-    if (location.pathname !== "/" || location.search.length > 0) {
+  const [drawerOpenForLocationKey, setDrawerOpenForLocationKey] = useState(locationKey);
+  if (locationKey !== drawerOpenForLocationKey) {
+    setDrawerOpenForLocationKey(locationKey);
+    if (location.pathname !== "/" || location.searchStr.length > 0) {
       setDrawerOpen(true);
     }
   }
@@ -58,7 +68,7 @@ export default function Layout() {
           onOpenChange={(open) => {
             setDrawerOpen(open);
             if (open && location.pathname === "/") {
-              navigate("/modules");
+              void navigate({ to: "/modules" });
             }
           }}
         >
@@ -80,7 +90,8 @@ export default function Layout() {
                       </span>
                       {brickId !== undefined ? (
                         <Link
-                          to={`/modules/${encodeURIComponent(moduleId)}`}
+                          to="/modules/$moduleId"
+                          params={{ moduleId }}
                           className="truncate"
                         >
                           {moduleLabel}

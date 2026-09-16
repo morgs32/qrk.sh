@@ -1,11 +1,15 @@
-import { Link } from "react-router";
+import { Link, createFileRoute } from "@tanstack/react-router";
 
-import { useBrickBreakpoint } from "../../../components/brick/BrickBreakpointProvider";
-import { BrickPreviewFrame } from "../../../components/brick/BrickPreviewFrame";
-import { modulesHash } from "../../../modulesHash";
-import { DraggableBrick } from "../../DraggableBrick";
+import { useBrickBreakpoint } from "../../../../components/brick/BrickBreakpointProvider";
+import { BrickPreviewFrame } from "../../../../components/brick/BrickPreviewFrame";
+import { modulesHash } from "../../../../modulesHash";
+import { DraggableBrick } from "../../../DraggableBrick";
 
-export default function ModulesPage() {
+export const Route = createFileRoute("/_sandbox/modules/")({
+  component: ModulesPage,
+});
+
+function ModulesPage() {
   const { breakpoint } = useBrickBreakpoint();
   const modules = Object.values(modulesHash);
 
@@ -25,7 +29,8 @@ export default function ModulesPage() {
           >
             <h2 className="m-0 shrink-0 sticky top-0 z-10 bg-zinc-100 px-4 py-4 font-normal">
               <Link
-                to={`/modules/${encodeURIComponent(brickModule.id)}`}
+                to="/modules/$moduleId"
+                params={{ moduleId: brickModule.id }}
                 data-module-link={brickModule.id}
               >
                 {brickModule.label}

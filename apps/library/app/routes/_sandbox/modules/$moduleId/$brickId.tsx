@@ -1,7 +1,7 @@
+import { createFileRoute, notFound } from "@tanstack/react-router";
 import { makeEffectSchema } from "@zerospin/schema";
 import { Schema } from "effect";
 import { collapseAllNested, defaultStyles, JsonView } from "react-json-view-lite";
-import { useParams } from "react-router";
 
 import { useBrickBreakpoint } from "../../../../../components/brick/BrickBreakpointProvider";
 import { BrickPreviewFrame } from "../../../../../components/brick/BrickPreviewFrame";
@@ -11,11 +11,13 @@ import { Configuration } from "../../../../Configuration";
 import { resolveBrickBreakpoint } from "../../../../resolveBrickBreakpoint";
 import { useGridStore } from "../../../../useGridStore";
 
-export default function BrickDetail() {
+export const Route = createFileRoute("/_sandbox/modules/$moduleId/$brickId")({
+  component: BrickDetail,
+});
+
+function BrickDetail() {
   const { breakpoint } = useBrickBreakpoint();
-  const params = useParams();
-  if (!params.moduleId || !params.brickId) throw new Response("Not found", { status: 404 });
-  const { moduleId, brickId } = params;
+  const { moduleId, brickId } = Route.useParams();
   const hasHydrated = useGridStore((state) => state.hasHydrated);
   const brickDef = useGridStore((state) => state.bricksById[brickId]);
   const brickModule = brickDef?.moduleId === moduleId ? modulesHash[brickDef.moduleId] : undefined;
@@ -26,7 +28,7 @@ export default function BrickDetail() {
   }
 
   if (!brick || !brickModule || !brickDef) {
-    throw new Response("Not found", { status: 404 });
+    throw notFound();
   }
 
   const BrickComponent = brick.component;

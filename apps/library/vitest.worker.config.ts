@@ -11,7 +11,7 @@ export default defineConfig({
   plugins: [
     cloudflareTest({
       wrangler: {
-        configPath: path.join(packageRoot, "wrangler.jsonc"),
+        configPath: path.join(packageRoot, "wrangler.vitest.jsonc"),
       },
       miniflare: {
         bindings: {

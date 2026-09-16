@@ -1,11 +1,12 @@
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",
   "name": "library",
-  "main": "./app/server.ts",
+  "main": "./worker/Worker.ts",
   "compatibility_date": "2026-05-14",
   "compatibility_flags": ["nodejs_compat"],
   "assets": {
-    "run_worker_first": ["/rpc", "/upload", "/assets/*"]
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/rpc", "/upload", "/assets/*"],
   },
   "r2_buckets": [
     {

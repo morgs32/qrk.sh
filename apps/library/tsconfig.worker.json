@@ -9,6 +9,7 @@
     "types": ["node"]
   },
   "include": [
+    "app/server.ts",
     "worker/**/*.ts",
     "modules/**/[A-Z]*Backend.ts",
     "worker-configuration.d.ts"

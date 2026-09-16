@@ -1,40 +1,36 @@
 import { useState } from "react";
 
+import { createFileRoute, notFound } from "@tanstack/react-router";
 import { newSyncRpcSession } from "@zerospin/core/utils/newSyncRpcSession";
 import type { Spec } from "@json-render/core";
 import { collapseAllNested, defaultStyles, JsonView } from "react-json-view-lite";
-import { useParams, type LoaderFunctionArgs } from "react-router";
 
-import { useBrickBreakpoint } from "../../../../components/brick/BrickBreakpointProvider";
-import { BrickPreviewFrame } from "../../../../components/brick/BrickPreviewFrame";
-import { Button } from "../../../../components/ui/button";
-import { Input } from "../../../../components/ui/input";
-import { modulesHash } from "../../../../modulesHash";
-import { GitHubProfileJsonRenderCompare } from "../../../../modules/githubProfile/generative/GitHubProfileJsonRenderCompare";
-import type { LibraryApi } from "../../../../worker/LibraryApi.public";
-import type { IScrapeError } from "../../../../worker/types.public";
-import { TableData } from "../../../TableData";
-import { Configuration } from "../../../Configuration";
-import { useGridStore } from "../../../useGridStore";
-import { useModuleData } from "../../../useModuleData";
+import { useBrickBreakpoint } from "../../../../../components/brick/BrickBreakpointProvider";
+import { BrickPreviewFrame } from "../../../../../components/brick/BrickPreviewFrame";
+import { Button } from "../../../../../components/ui/button";
+import { Input } from "../../../../../components/ui/input";
+import { modulesHash } from "../../../../../modulesHash";
+import { GitHubProfileJsonRenderCompare } from "../../../../../modules/githubProfile/generative/GitHubProfileJsonRenderCompare";
+import type { LibraryApi } from "../../../../../worker/LibraryApi.public";
+import type { IScrapeError } from "../../../../../worker/types.public";
+import { TableData } from "../../../../TableData";
+import { Configuration } from "../../../../Configuration";
+import { useGridStore } from "../../../../useGridStore";
+import { useModuleData } from "../../../../useModuleData";
 
-export function loader({ params }: LoaderFunctionArgs) {
-  if (!params.moduleId) throw new Response("Not found", { status: 404 });
-  if (!modulesHash[params.moduleId]) throw new Response("Not found", { status: 404 });
-  return null;
-}
+export const Route = createFileRoute("/_sandbox/modules/$moduleId/")({
+  component: ModuleDetail,
+});
 
-export default function ModuleDetail() {
+function ModuleDetail() {
   const [optionsByModule, setOptionsByModule] = useState<Record<string, unknown>>({});
   const { breakpoint } = useBrickBreakpoint();
-  const params = useParams();
-  if (!params.moduleId) throw new Response("Not found", { status: 404 });
-  const { moduleId } = params;
+  const { moduleId } = Route.useParams();
   const setActiveBrickDrag = useGridStore((state) => state.setActiveBrickDrag);
   const brickModule = modulesHash[moduleId];
 
   if (!brickModule) {
-    throw new Response("Not found", { status: 404 });
+    throw notFound();
   }
 
   const [moduleData, setModuleData] = useModuleData(moduleId);

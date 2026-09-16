@@ -49,7 +49,7 @@ function jsonResponse(request: Request, body: unknown, status: number): Response
   return new Response(JSON.stringify(body), { status, headers });
 }
 
-async function handleRequest(request: Request, env: IScraperEnv): Promise<Response> {
+export async function handleRequest(request: Request, env: IScraperEnv): Promise<Response> {
   const url = new URL(request.url);
 
   if (request.method === "OPTIONS") {

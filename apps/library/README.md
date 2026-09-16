@@ -1,8 +1,9 @@
 # Library
 
-The brick library, React workbench, and scraper backend share this package.
-Vite+ runs the frontend and Cloudflare Worker together through
-`@cloudflare/vite-plugin`.
+The brick library, TanStack Start workbench, and scraper backend share this package.
+Vite+ runs TanStack Start and the Cloudflare Worker together through
+`@cloudflare/vite-plugin`, following the
+[Cloudflare TanStack Start guide](https://developers.cloudflare.com/workers/framework-guides/web-apps/tanstack-start/).
 
 From the repository root:
 
@@ -46,7 +47,7 @@ pnpm nx run @qrk.sh/library:build
 `tsc` checks both browser and Worker code. Library tests are intentionally not
 maintained for now (see root `AGENTS.md`).
 
-`build:app` produces the combined app in `build/client` and `build/worker`.
+`build:app` produces the TanStack Start Worker app via the Cloudflare Vite plugin.
 `build` produces the reusable brick library in `dist`, including its public
 Worker/RPC declarations. Neither build deploys the app.
 

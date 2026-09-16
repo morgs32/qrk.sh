@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import GridLayout, { verticalCompactor } from "react-grid-layout";
-import { useNavigate } from "react-router";
+import { useNavigate } from "@tanstack/react-router";
 
 import { useBrickBreakpoint } from "../components/brick/BrickBreakpointProvider";
 import { modulesHash } from "../modulesHash";
@@ -190,9 +190,10 @@ export function SandboxGrid() {
                   data-grid-w={layoutItem.w}
                   data-grid-h={layoutItem.h}
                   onDoubleClick={() => {
-                    navigate(
-                      `/modules/${encodeURIComponent(brickDef.moduleId)}/${encodeURIComponent(layoutItem.i)}`,
-                    );
+                    void navigate({
+                      to: "/modules/$moduleId/$brickId",
+                      params: { moduleId: brickDef.moduleId, brickId: layoutItem.i },
+                    });
                   }}
                 >
                   <div className="relative size-full">

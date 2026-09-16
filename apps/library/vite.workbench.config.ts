@@ -2,6 +2,7 @@ import { fileURLToPath, URL } from "node:url";
 
 import { cloudflare } from "@cloudflare/vite-plugin";
 import tailwindcss from "@tailwindcss/vite";
+import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig, loadEnv } from "vite-plus";
 
@@ -17,7 +18,6 @@ export default defineConfig(({ mode }) => {
 
   return {
     root: packageRoot,
-    build: { outDir: "build" },
     envDir: packageRoot,
     define: {
       "import.meta.env.PUBLIC_MAPBOX_TOKEN": JSON.stringify(mapboxToken),
@@ -34,6 +34,16 @@ export default defineConfig(({ mode }) => {
         },
       ],
     },
-    plugins: [tailwindcss(), react(), cloudflare()],
+    plugins: [
+      tailwindcss(),
+      cloudflare({ viteEnvironment: { name: "ssr" } }),
+      tanstackStart({ srcDirectory: "app" }),
+      react(),
+    ],
+    server: {
+      host: "127.0.0.1",
+      port: 4100,
+      strictPort: true,
+    },
   };
 });

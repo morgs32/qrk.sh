@@ -1,30 +1,31 @@
-import { Link, useParams, type LoaderFunctionArgs } from "react-router";
+import { Link, createFileRoute, notFound } from "@tanstack/react-router";
 
-import { BrickBreakpointProvider } from "../../../../components/brick/BrickBreakpointProvider";
-import { BrickPreviewFrame } from "../../../../components/brick/BrickPreviewFrame";
-import { BREAKPOINTS } from "../../../../breakpoints";
-import { modulesHash } from "../../../../modulesHash";
+import { BrickBreakpointProvider } from "../../../components/brick/BrickBreakpointProvider";
+import { BrickPreviewFrame } from "../../../components/brick/BrickPreviewFrame";
+import { BREAKPOINTS } from "../../../breakpoints";
+import { modulesHash } from "../../../modulesHash";
 
-export function loader({ params }: LoaderFunctionArgs) {
-  if (!params.moduleId) throw new Response("Not found", { status: 404 });
-  if (!modulesHash[params.moduleId]) throw new Response("Not found", { status: 404 });
-  return null;
-}
+export const Route = createFileRoute("/bricks/$moduleId")({
+  beforeLoad: ({ params }) => {
+    if (modulesHash[params.moduleId] === undefined) {
+      throw notFound();
+    }
+  },
+  component: BrickPage,
+});
 
-export default function BrickPage() {
-  const params = useParams();
-  if (!params.moduleId) throw new Response("Not found", { status: 404 });
-  const brickModule = modulesHash[params.moduleId];
-  const brick = brickModule;
-
-  if (!brick) {
-    throw new Response("Not found", { status: 404 });
+function BrickPage() {
+  const { moduleId } = Route.useParams();
+  const brickModule = modulesHash[moduleId];
+  if (brickModule === undefined) {
+    throw notFound();
   }
+  const brick = brickModule;
   const BrickComponent = brick.component;
 
   return (
     <main className="min-h-screen p-6">
-      <Link to={`/modules/${encodeURIComponent(brick.def.moduleId)}`}>
+      <Link to="/modules/$moduleId" params={{ moduleId: brick.def.moduleId }}>
         Back to {brick.def.moduleLabel}
       </Link>
       <h1 className="mt-6">{brick.def.moduleLabel}</h1>

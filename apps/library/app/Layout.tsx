@@ -9,55 +9,70 @@ import { BrickWall } from "../lib/BrickWall";
 import { BREAKPOINTS } from "../lib/breakpoints";
 import { modulesHash } from "../lib/modulesHash";
 import {
-  GridStoreProvider,
-  sandboxGridStore,
-  useGridStore,
-  useGridStoreApi,
-} from "../lib/useGridStore";
-import { useStoreLocalStorage } from "../lib/useStoreLocalStorage";
+  BrickStoreProvider,
+  useBricksStore,
+  useBricksStoreApi,
+} from "../lib/BrickStoreProvider";
 
-const SANDBOX_GRID_STORAGE_NAME = "qrk-bricks-sandbox-responsive-bricks-v5";
+const LIBRARY_BRICKS_STORAGE_NAME = "qrk-bricks-sandbox-responsive-bricks-v5";
+const LIBRARY_BRICKS_STORAGE_VERSION = 5;
 
-function partializeSandboxGrid(state: ReturnType<typeof sandboxGridStore.getState>) {
-  return {
-    bricksById: state.bricksById,
-    selectedWidth: state.selectedWidth,
-  };
+function readLibraryBricksState() {
+  try {
+    const raw = localStorage.getItem(LIBRARY_BRICKS_STORAGE_NAME);
+    if (raw === null) return undefined;
+    const parsed: unknown = JSON.parse(raw);
+    const persistedState =
+      parsed !== null && typeof parsed === "object" && "state" in parsed ? parsed.state : parsed;
+    if (persistedState === null || typeof persistedState !== "object") return undefined;
+    const selectedWidth =
+      "selectedWidth" in persistedState &&
+      (typeof persistedState.selectedWidth === "number" || persistedState.selectedWidth === null)
+        ? persistedState.selectedWidth
+        : null;
+    if (
+      !("bricksById" in persistedState) ||
+      persistedState.bricksById === null ||
+      typeof persistedState.bricksById !== "object"
+    ) {
+      return { bricksById: {}, selectedWidth };
+    }
+    return {
+      bricksById: persistedState.bricksById,
+      selectedWidth,
+    };
+  } catch {
+    return undefined;
+  }
 }
 
-function migrateSandboxGrid(persisted: unknown) {
-  const selectedWidth =
-    persisted !== null &&
-    typeof persisted === "object" &&
-    "selectedWidth" in persisted &&
-    typeof persisted.selectedWidth === "number"
-      ? persisted.selectedWidth
-      : null;
-  return { bricksById: {}, selectedWidth };
-}
-
-function afterRehydrateSandboxGrid(state: ReturnType<typeof sandboxGridStore.getState>) {
-  let selectedWidth = state.selectedWidth;
-  if (selectedWidth === 375) selectedWidth = 360;
-  if (selectedWidth === 640 || selectedWidth === 768) selectedWidth = 720;
-  if (selectedWidth === 1024 || selectedWidth === 1280) selectedWidth = 1080;
-  if (selectedWidth === 1536) selectedWidth = 1440;
-  sandboxGridStore.setState({ selectedWidth, hasHydrated: true });
+function writeLibraryBricksState(state: {
+  bricksById: Record<string, unknown>;
+  selectedWidth: number | null;
+}) {
+  try {
+    localStorage.setItem(
+      LIBRARY_BRICKS_STORAGE_NAME,
+      JSON.stringify({
+        state: {
+          bricksById: state.bricksById,
+          selectedWidth: state.selectedWidth,
+        },
+        version: LIBRARY_BRICKS_STORAGE_VERSION,
+      }),
+    );
+  } catch {
+    // Ignore quota / private-mode write failures.
+  }
 }
 
 export function Layout(props: { children: ReactNode }) {
-  useStoreLocalStorage(sandboxGridStore, {
-    name: SANDBOX_GRID_STORAGE_NAME,
-    version: 5,
-    partialize: partializeSandboxGrid,
-    migrate: migrateSandboxGrid,
-    onAfterRehydrate: afterRehydrateSandboxGrid,
-  });
+  const [initialState] = useState(readLibraryBricksState);
 
   return (
-    <GridStoreProvider store={sandboxGridStore}>
+    <BrickStoreProvider initialState={initialState} onChange={writeLibraryBricksState}>
       <LayoutBody>{props.children}</LayoutBody>
-    </GridStoreProvider>
+    </BrickStoreProvider>
   );
 }
 
@@ -66,12 +81,12 @@ function LayoutBody(props: { children: ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
   const params = useParams({ strict: false });
-  const gridStore = useGridStoreApi();
+  const bricksStore = useBricksStoreApi();
   const moduleId = params.moduleId;
   const brickId = params.brickId;
   const moduleLabel = moduleId ? modulesHash[moduleId]?.label : undefined;
   const drawerTitle = moduleLabel !== undefined ? `Bricks / ${moduleLabel}` : "Bricks";
-  const persistedWidth = useGridStore((state) => state.selectedWidth);
+  const persistedWidth = useBricksStore((state) => state.selectedWidth);
   const locationKey = `${location.pathname}${location.searchStr}`;
   const [drawerOpen, setDrawerOpen] = useState(
     () => location.pathname !== "/" || location.searchStr.length > 0,
@@ -208,7 +223,7 @@ function LayoutBody(props: { children: ReactNode }) {
                 aria-label="Reset grid layout"
                 title="Reset grid layout"
                 onClick={() => {
-                  gridStore.setState({
+                  bricksStore.setState({
                     bricksById: {},
                     activeBrickDrag: null,
                   });
@@ -227,7 +242,7 @@ function LayoutBody(props: { children: ReactNode }) {
                   aria-label={`${row.previewWidth}px grid width`}
                   aria-pressed={selectedWidth === row.previewWidth}
                   disabled={row.previewWidth > availableWidth}
-                  onClick={() => gridStore.setState({ selectedWidth: row.previewWidth })}
+                  onClick={() => bricksStore.setState({ selectedWidth: row.previewWidth })}
                 >
                   {row.previewWidth}
                 </Button>

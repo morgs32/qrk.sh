@@ -2,7 +2,7 @@
 
 import { useUser } from "@clerk/react";
 import { BrickBreakpointProvider } from "@qrk.sh/library/BrickBreakpointProvider";
-import { GridStoreProvider } from "@qrk.sh/library/GridStore";
+import { BrickStoreProvider } from "@qrk.sh/library/GridStore";
 import { Schema } from "effect";
 
 import { Drawers } from "../../Drawers/Drawers";
@@ -10,7 +10,6 @@ import { Toolbars } from "../../Toolbars/Toolbars";
 import { useBreakpointsPreviewStore } from "../../Toolbars/useBreakpointsPreviewStore";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 
-import { getPageGridStore } from "./getPageGridStore";
 import { MainColumns } from "./MainColumns";
 
 const ParamsSchema = Schema.Struct({
@@ -27,16 +26,13 @@ export default function SitePage() {
     return null;
   }
 
-  const pageKey = JSON.stringify([user.id, params.siteId, params.pageId]);
-  const gridStore = getPageGridStore(pageKey);
-
   return (
     <BrickBreakpointProvider persistedWidth={persistedWidth}>
-      <GridStoreProvider store={gridStore}>
+      <BrickStoreProvider key={`${user.id}:${params.siteId}:${params.pageId}`}>
         <MainColumns />
         <Drawers />
         <Toolbars />
-      </GridStoreProvider>
+      </BrickStoreProvider>
     </BrickBreakpointProvider>
   );
 }

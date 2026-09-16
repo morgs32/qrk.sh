@@ -2,7 +2,7 @@
 import { modulesHash } from "@qrk.sh/library";
 import { useBrickBreakpoint } from "@qrk.sh/library/BrickBreakpointProvider";
 import { BrickPreview } from "@qrk.sh/library/BrickPreview";
-import { resolveBrickBreakpoint, useGridStore } from "@qrk.sh/library/GridStore";
+import { resolveBrickBreakpoint, useBricksStore } from "@qrk.sh/library/GridStore";
 import { Schema } from "effect";
 import { ArrowLeft, X } from "lucide-react";
 import { Link } from "react-router";
@@ -23,7 +23,7 @@ export function BrickDetail() {
   const { breakpoint } = useBrickBreakpoint();
   const navigate = useNavigate();
   const params = useValidatedParams(ParamsSchema);
-  const brickPlacement = useGridStore((state) => state.bricksById[params.brickId]);
+  const brickPlacement = useBricksStore((state) => state.bricksById[params.brickId]);
   const brick = brickPlacement ? modulesHash[brickPlacement.moduleId] : undefined;
   const BrickComponent = brick?.component;
   const entry = brickPlacement ? resolveBrickBreakpoint(brickPlacement, breakpoint) : undefined;

@@ -14,9 +14,9 @@ sources:
   - path: apps/library/lib/BrickWall.tsx
     sha: 1fa785cfe1cb7f79e6896044255f72018f5fc229
     lines: 85-114
-  - path: apps/library/lib/useGridStore.ts
+  - path: apps/library/lib/BrickStoreProvider.tsx
     sha: 32294bf4c1c211e0043618a73cd20f43762bf778
-    lines: 70-102
+    lines: 80-111
   - path: apps/library/lib/modulesHash.ts
     sha: 442bd44d274457668ba04522c2f6038e9f0f000e
     lines: 14-26
@@ -24,7 +24,7 @@ sources:
 
 # Library sandbox brick preview and drop
 
-Workbench `/modules` lists every [`IModule`](../../../apps/library/lib/types.ts) from [`modulesHash`](../../../apps/library/lib/modulesHash.ts), sizes a preview, and copies a def into [`useGridStore`](../../../apps/library/lib/useGridStore.ts) on native drag. [`BrickWall`](../../../apps/library/lib/BrickWall.tsx) sizes the drop placeholder from that store and calls `addBrick`. Identity lookup is [`BrickModule`](../BrickModule.md).
+Workbench `/modules` lists every [`IModule`](../../../apps/library/lib/types.ts) from [`modulesHash`](../../../apps/library/lib/modulesHash.ts), sizes a preview, and copies a def into [`useBricksStore`](../../../apps/library/lib/BrickStoreProvider.tsx) on native drag. [`BrickWall`](../../../apps/library/lib/BrickWall.tsx) sizes the drop placeholder from that store and calls `addBrick`. Identity lookup is [`BrickModule`](../BrickModule.md).
 
 ## Trigger
 
@@ -37,7 +37,7 @@ sequenceDiagram
   participant modulesHash
   participant BrickPreview
   participant DraggableBrick
-  participant useGridStore
+  participant bricksStore
   participant BrickWall
 
   autonumber 1
@@ -49,19 +49,19 @@ sequenceDiagram
   autonumber 4
   ModulesPage->>DraggableBrick: DraggableBrick(...)
   autonumber 5
-  DraggableBrick->>useGridStore: setActiveBrickDrag(...)
+  DraggableBrick->>bricksStore: setActiveBrickDrag(...)
   autonumber 6
-  BrickWall->>useGridStore: activeBrickDrag[breakpoint]
+  BrickWall->>bricksStore: activeBrickDrag[breakpoint]
   autonumber 7
-  useGridStore-->>BrickWall: w, h
+  bricksStore-->>BrickWall: w, h
   autonumber 8
-  BrickWall->>useGridStore: addBrick(...)
+  BrickWall->>bricksStore: addBrick(...)
   autonumber 9
-  useGridStore->>modulesHash: modulesHash[brickDef.moduleId]
+  bricksStore->>modulesHash: modulesHash[brickDef.moduleId]
   autonumber 10
-  modulesHash-->>useGridStore: brickModule
+  modulesHash-->>bricksStore: brickModule
   autonumber 11
-  useGridStore-->>BrickWall: bricksById updated
+  bricksStore-->>BrickWall: bricksById updated
 ```
 
 ## Annotated workflow steps
@@ -84,8 +84,8 @@ sequenceDiagram
 8. Drop allocates a brick id and calls `addBrick`.
    - [`BrickWall.tsx:95-113`](../../../apps/library/lib/BrickWall.tsx#L95-L113) — `crypto.randomUUID()`, rewrite dropped `i`/`w`/`h`, `addBrick(...)`, then `setActiveBrickDrag(null)`. (`apps/library/lib/BrickWall.tsx:95-113`)
 9. Persist looks up the module again for options defaults.
-   - [`useGridStore.ts:70-78`](../../../apps/library/lib/useGridStore.ts#L70-L78) — `brickModule = modulesHash[brickDef.moduleId]` then `brickModule?.component.options.decode(...)`. (`apps/library/lib/useGridStore.ts:70-78`)
+   - [`BrickStoreProvider.tsx:83-88`](../../../apps/library/lib/BrickStoreProvider.tsx#L83-L88) — `brickModule = modulesHash[brickDef.moduleId]` then `brickModule?.component.options.decode(...)`. (`apps/library/lib/BrickStoreProvider.tsx:83-88`)
 10. Missing hash yields empty options `{}`.
-    - [`useGridStore.ts:74-78`](../../../apps/library/lib/useGridStore.ts#L74-L78) — optional chain; no options config becomes `{}`. (`apps/library/lib/useGridStore.ts:74-78`)
+    - [`BrickStoreProvider.tsx:84-88`](../../../apps/library/lib/BrickStoreProvider.tsx#L84-L88) — optional chain; no options config becomes `{}`. (`apps/library/lib/BrickStoreProvider.tsx:84-88`)
 11. The store writes `bricksById[brickId]` (`moduleId`, `data`, `sm` placement, optional explicit breakpoint) and runs `setLayout`.
-    - [`useGridStore.ts:79-101`](../../../apps/library/lib/useGridStore.ts#L79-L101) — `set` of the placed brick then `useGridStore.getState().setLayout(layout, breakpoint)`. (`apps/library/lib/useGridStore.ts:79-101`)
+    - [`BrickStoreProvider.tsx:89-110`](../../../apps/library/lib/BrickStoreProvider.tsx#L89-L110) — `set` of the placed brick then `get().setLayout(layout, breakpoint)`. (`apps/library/lib/BrickStoreProvider.tsx:89-110`)

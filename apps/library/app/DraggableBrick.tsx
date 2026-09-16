@@ -1,7 +1,7 @@
 import type { ComponentProps } from "react";
 
 import type { IModuleBrickDef } from "../lib/types";
-import { useGridStore } from "../lib/useGridStore";
+import { useBricksStore } from "../lib/BrickStoreProvider";
 
 export function DraggableBrick({
   brickDef,
@@ -11,7 +11,7 @@ export function DraggableBrick({
 }: {
   brickDef: IModuleBrickDef;
 } & Omit<ComponentProps<"div">, "draggable" | "onDragStart" | "onDragEnd">) {
-  const setActiveBrickDrag = useGridStore((state) => state.setActiveBrickDrag);
+  const setActiveBrickDrag = useBricksStore((state) => state.setActiveBrickDrag);
 
   return (
     <div

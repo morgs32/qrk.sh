@@ -1,9 +1,6 @@
 export {
-  createGridStore,
-  GridStoreProvider,
-  sandboxGridStore,
-  useGridStore,
-  useGridStoreApi,
-} from "./useGridStore";
-export { useStoreLocalStorage } from "./useStoreLocalStorage";
+  BrickStoreProvider,
+  useBricksStore,
+  useBricksStoreApi,
+} from "./BrickStoreProvider";
 export { resolveBrickBreakpoint } from "./resolveBrickBreakpoint";

@@ -11,7 +11,7 @@ import { modulesHash } from "../../../../lib/modulesHash";
 import { Button } from "../../../../components/ui/button";
 import { Configuration } from "../../../Configuration";
 import { resolveBrickBreakpoint } from "../../../../lib/resolveBrickBreakpoint";
-import { useGridStore, useGridStoreApi } from "../../../../lib/useGridStore";
+import { useBricksStore, useBricksStoreApi } from "../../../../lib/BrickStoreProvider";
 
 export const Route = createFileRoute("/modules/$moduleId/$brickId")({
   component: BrickDetail,
@@ -20,9 +20,9 @@ export const Route = createFileRoute("/modules/$moduleId/$brickId")({
 function BrickDetail() {
   const { breakpoint } = useBrickBreakpoint();
   const { moduleId, brickId } = Route.useParams();
-  const gridStore = useGridStoreApi();
-  const hasHydrated = useGridStore((state) => state.hasHydrated);
-  const brickDef = useGridStore((state) => state.bricksById[brickId]);
+  const bricksStore = useBricksStoreApi();
+  const hasHydrated = useBricksStore((state) => state.hasHydrated);
+  const brickDef = useBricksStore((state) => state.bricksById[brickId]);
   const brickModule = brickDef?.moduleId === moduleId ? modulesHash[brickDef.moduleId] : undefined;
   const brick = brickModule;
 
@@ -59,29 +59,31 @@ function BrickDetail() {
           </BrickPreview>
         </div>
       </li>
-      <li className="mt-10">
-        <Configuration
-          key={brickId}
-          showData={false}
-          brickModule={brickModule}
-          data={brickData}
-          setData={(data) => {
-            const DataSchema =
-              brickModule.dataShape === null
-                ? Schema.Null
-                : Schema.toType(makeEffectSchema(brickModule.dataShape));
-            const decodedData = Schema.decodeUnknownSync(DataSchema)(data, {
-              onExcessProperty: "preserve",
-            });
-            gridStore.setState((state) => ({
-              bricksById: {
-                ...state.bricksById,
-                [brickId]: { ...state.bricksById[brickId], data: decodedData },
-              },
-            }));
-          }}
-        />
-      </li>
+      {brickModule.configuration !== undefined ? (
+        <li className="mt-10">
+          <Configuration
+            key={brickId}
+            showData={false}
+            brickModule={brickModule}
+            data={brickData}
+            setData={(data) => {
+              const DataSchema =
+                brickModule.dataShape === null
+                  ? Schema.Null
+                  : Schema.toType(makeEffectSchema(brickModule.dataShape));
+              const decodedData = Schema.decodeUnknownSync(DataSchema)(data, {
+                onExcessProperty: "preserve",
+              });
+              bricksStore.setState((state) => ({
+                bricksById: {
+                  ...state.bricksById,
+                  [brickId]: { ...state.bricksById[brickId], data: decodedData },
+                },
+              }));
+            }}
+          />
+        </li>
+      ) : null}
       <li className="mt-10">
         <OrderedBodyHeading className="shrink-0 py-4">Options</OrderedBodyHeading>
         <div className="flex flex-wrap gap-2 py-4">
@@ -91,7 +93,7 @@ function BrickDetail() {
               variant="outline"
               disabled={brickDef[breakpoint] === undefined}
               onClick={() => {
-                gridStore.setState((state) => {
+                bricksStore.setState((state) => {
                   const currentBrick = state.bricksById[brickId];
                   if (!currentBrick) return state;
                   const inheritedBrick = { ...currentBrick };
@@ -112,7 +114,7 @@ function BrickDetail() {
             type="button"
             aria-pressed={entry.gridItem !== null}
             onClick={() =>
-              gridStore.getState().setVisible(brickId, breakpoint, entry.gridItem === null)
+              bricksStore.getState().setVisible(brickId, breakpoint, entry.gridItem === null)
             }
           >
             {entry.gridItem === null ? "Show brick" : "Hide brick"}
@@ -122,7 +124,7 @@ function BrickDetail() {
           <OptionsForm
             value={entry.options}
             onChange={(value) => {
-              gridStore.getState().setOptions(brickId, breakpoint, value);
+              bricksStore.getState().setOptions(brickId, breakpoint, value);
             }}
           />
         )}

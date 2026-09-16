@@ -18,7 +18,7 @@ import type { LibraryApi } from "../../../../worker/LibraryApi.public";
 import type { IScrapeError } from "../../../../worker/types.public";
 import { TableData } from "../../../TableData";
 import { Configuration } from "../../../Configuration";
-import { useGridStore } from "../../../../lib/useGridStore";
+import { useBricksStore } from "../../../../lib/BrickStoreProvider";
 import { useModuleData } from "../../../useModuleData";
 
 export const Route = createFileRoute("/modules/$moduleId/")({
@@ -93,7 +93,7 @@ function BreakpointPreviewRow({
   options: unknown;
   BrickComponent: NonNullable<(typeof modulesHash)[string]>["component"];
 }) {
-  const setActiveBrickDrag = useGridStore((state) => state.setActiveBrickDrag);
+  const setActiveBrickDrag = useBricksStore((state) => state.setActiveBrickDrag);
   const [intrinsicSize, setIntrinsicSize] = useState<{ widthPx: number; heightPx: number }>();
   const onSizeChange = useCallback((size: { widthPx: number; heightPx: number }) => {
     setIntrinsicSize((current) => {
@@ -285,14 +285,16 @@ function ModuleDetail() {
           </BrickPreview>
         </div>
       </li>
-      <li className="mt-10">
-        <Configuration
-          brickModule={brickModule}
-          data={moduleData}
-          setData={setModuleData}
-          showData={false}
-        />
-      </li>
+      {brickModule.configuration !== undefined ? (
+        <li className="mt-10">
+          <Configuration
+            brickModule={brickModule}
+            data={moduleData}
+            setData={setModuleData}
+            showData={false}
+          />
+        </li>
+      ) : null}
       {OptionsForm ? (
         <li className="mt-10">
           <OrderedBodyHeading className="shrink-0 py-4">Options</OrderedBodyHeading>

@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 
 import { verticalCompactor } from "react-grid-layout";
 import type { Layout, LayoutItem } from "react-grid-layout";
@@ -10,8 +10,17 @@ import { modulesHash } from "./modulesHash";
 import type { IModuleBrickDef } from "./types";
 import { resolveBrickBreakpoint } from "./resolveBrickBreakpoint";
 
-export function createGridStore(options?: { hasHydrated?: boolean }) {
-  const initialHasHydrated = options?.hasHydrated ?? true;
+function createBricksStore(initialState?: {
+  bricksById?: Record<
+    string,
+    {
+      moduleId: string;
+      data: unknown;
+      sm: { gridItem: LayoutItem | null; options: unknown };
+    } & Partial<Record<"md" | "lg" | "xl", { gridItem: LayoutItem | null; options: unknown }>>
+  >;
+  selectedWidth?: number | null;
+}) {
   return create<{
     bricksById: Record<
       string,
@@ -36,10 +45,10 @@ export function createGridStore(options?: { hasHydrated?: boolean }) {
     setVisible: (brickId: string, breakpoint: "sm" | "md" | "lg" | "xl", visible: boolean) => void;
     setHasHydrated: (hasHydrated: boolean) => void;
   }>()((set, get) => ({
-    bricksById: {},
+    bricksById: initialState?.bricksById ?? {},
     activeBrickDrag: null,
-    hasHydrated: initialHasHydrated,
-    selectedWidth: null,
+    hasHydrated: true,
+    selectedWidth: initialState?.selectedWidth ?? null,
     setLayout: (layout, breakpoint) => {
       set((state) => {
         const bricksById = { ...state.bricksById };
@@ -192,27 +201,42 @@ export function createGridStore(options?: { hasHydrated?: boolean }) {
   }));
 }
 
-const GridStoreContext = createContext<ReturnType<typeof createGridStore> | null>(null);
+const BricksStoreContext = createContext<ReturnType<typeof createBricksStore> | null>(null);
 
-export function GridStoreProvider(props: {
-  store: ReturnType<typeof createGridStore>;
+export function BrickStoreProvider(props: {
   children: ReactNode;
+  initialState?: Parameters<typeof createBricksStore>[0];
+  onChange?: (state: {
+    bricksById: ReturnType<ReturnType<typeof createBricksStore>["getState"]>["bricksById"];
+    selectedWidth: number | null;
+  }) => void;
 }) {
-  return <GridStoreContext value={props.store}>{props.children}</GridStoreContext>;
+  const [bricksStore] = useState(() => createBricksStore(props.initialState));
+
+  useEffect(() => {
+    if (props.onChange === undefined) return;
+    const onChange = props.onChange;
+    return bricksStore.subscribe((state) => {
+      onChange({
+        bricksById: state.bricksById,
+        selectedWidth: state.selectedWidth,
+      });
+    });
+  }, [bricksStore, props.onChange]);
+
+  return <BricksStoreContext value={bricksStore}>{props.children}</BricksStoreContext>;
 }
 
-export function useGridStoreApi() {
-  const store = useContext(GridStoreContext);
+export function useBricksStoreApi() {
+  const store = useContext(BricksStoreContext);
   if (!store) {
-    throw new Error("useGridStoreApi requires GridStoreProvider");
+    throw new Error("useBricksStoreApi requires BrickStoreProvider");
   }
   return store;
 }
 
-export function useGridStore<T>(
-  selector: (state: ReturnType<ReturnType<typeof createGridStore>["getState"]>) => T,
+export function useBricksStore<T>(
+  selector: (state: ReturnType<ReturnType<typeof createBricksStore>["getState"]>) => T,
 ): T {
-  return useStore(useGridStoreApi(), selector);
+  return useStore(useBricksStoreApi(), selector);
 }
-
-export const sandboxGridStore = createGridStore({ hasHydrated: false });

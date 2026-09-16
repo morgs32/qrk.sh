@@ -5,23 +5,23 @@ import GridLayout, { verticalCompactor } from "react-grid-layout";
 import { useBrickBreakpoint } from "./BrickBreakpointProvider";
 import { modulesHash } from "./modulesHash";
 import { resolveBrickBreakpoint } from "./resolveBrickBreakpoint";
-import { useGridStore, useGridStoreApi } from "./useGridStore";
+import { useBricksStore, useBricksStoreApi } from "./BrickStoreProvider";
 
 export function BrickWall(props: {
   onBrickActivate?: (args: { moduleId: string; brickId: string }) => void;
 }) {
-  const gridStore = useGridStoreApi();
+  const bricksStore = useBricksStoreApi();
   const containerRef = useRef<HTMLElement>(null);
   const { gridWidth, breakpoint, containerRef: observeGrid } = useBrickBreakpoint();
   const [dragging, setDragging] = useState(false);
   const [outsideBrickId, setOutsideBrickId] = useState<string | null>(null);
   const [dragScrollTop, setDragScrollTop] = useState(0);
-  const bricksById = useGridStore((state) => state.bricksById);
-  const activeBrickDrag = useGridStore((state) => state.activeBrickDrag);
-  const hasHydrated = useGridStore((state) => state.hasHydrated);
-  const setLayout = useGridStore((state) => state.setLayout);
-  const addBrick = useGridStore((state) => state.addBrick);
-  const setActiveBrickDrag = useGridStore((state) => state.setActiveBrickDrag);
+  const bricksById = useBricksStore((state) => state.bricksById);
+  const activeBrickDrag = useBricksStore((state) => state.activeBrickDrag);
+  const hasHydrated = useBricksStore((state) => state.hasHydrated);
+  const setLayout = useBricksStore((state) => state.setLayout);
+  const addBrick = useBricksStore((state) => state.addBrick);
+  const setActiveBrickDrag = useBricksStore((state) => state.setActiveBrickDrag);
   useLayoutEffect(() => {
     if (!dragging && containerRef.current) {
       containerRef.current.scrollTop = dragScrollTop;
@@ -143,7 +143,7 @@ export function BrickWall(props: {
                 pointer.clientY < bounds.top ||
                 pointer.clientY > bounds.bottom);
             if (outside && item) {
-              gridStore.setState((state) => {
+              bricksStore.setState((state) => {
                 const remainingBricks = { ...state.bricksById };
                 delete remainingBricks[item.i];
                 return {

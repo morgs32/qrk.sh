@@ -31,7 +31,9 @@ function ModulePage() {
   }> = [];
   if (isBrickPage) {
     sections.push({ label: "Preview", tone: "active" });
-    sections.push({ label: "Configuration", tone: "active" });
+    if (brickModule.configuration !== undefined) {
+      sections.push({ label: "Configuration", tone: "active" });
+    }
     sections.push({ label: "Options", tone: "active" });
     sections.push({ label: "Brick Definition", tone: "active" });
   } else {
@@ -42,7 +44,9 @@ function ModulePage() {
       children: BREAKPOINTS.map((entry) => ({ label: entry.id, tone: "active" })),
     });
     sections.push({ label: "Generate spec", tone: "active" });
-    sections.push({ label: "Configuration", tone: "active" });
+    if (brickModule.configuration !== undefined) {
+      sections.push({ label: "Configuration", tone: "active" });
+    }
     if (brickModule.component.options?.form !== undefined) {
       sections.push({ label: "Options", tone: "active" });
     }

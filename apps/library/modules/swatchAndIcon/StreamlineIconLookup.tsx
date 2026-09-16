@@ -86,7 +86,7 @@ export function StreamlineIconLookup(props: { value: string; onChange: (value: s
       <div className="relative">
         <Search
           aria-hidden
-          className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
+          className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2"
         />
         <Input
           aria-label="Search icons"
@@ -102,14 +102,14 @@ export function StreamlineIconLookup(props: { value: string; onChange: (value: s
       </div>
 
       {props.value.length > 0 ? (
-        <p className="m-0 truncate text-xs text-muted-foreground">
+        <p className="m-0 truncate">
           Selected: <span className="font-mono">{props.value}</span>
         </p>
       ) : null}
 
       {error instanceof Error ? (
         <p
-          className="m-0 rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive"
+          className="m-0 rounded-md border border-destructive/30 bg-destructive/5 p-3"
           role="alert"
         >
           {error.message}
@@ -117,11 +117,11 @@ export function StreamlineIconLookup(props: { value: string; onChange: (value: s
       ) : null}
 
       {debouncedQuery.length < 2 ? (
-        <p className="m-0 py-4 text-center text-sm text-muted-foreground">
+        <p className="m-0 py-4 text-center">
           Enter at least two characters to search.
         </p>
       ) : isLoading ? (
-        <div className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground">
+        <div className="flex items-center justify-center gap-2 py-6">
           <Loader2 aria-hidden className="size-4 animate-spin" />
           Searching Streamline...
         </div>
@@ -159,7 +159,7 @@ export function StreamlineIconLookup(props: { value: string; onChange: (value: s
                     width={96}
                   />
                   {props.value === icon.hash ? (
-                    <span className="absolute right-1 top-1 rounded-full bg-primary p-0.5 text-primary-foreground">
+                    <span className="absolute right-1 top-1 rounded-full bg-primary p-0.5">
                       <Check aria-hidden className="size-3" />
                     </span>
                   ) : null}
@@ -191,12 +191,12 @@ export function StreamlineIconLookup(props: { value: string; onChange: (value: s
           ) : null}
         </>
       ) : error === undefined ? (
-        <p className="m-0 py-4 text-center text-sm text-muted-foreground">
+        <p className="m-0 py-4 text-center">
           No icons found for &ldquo;{debouncedQuery}&rdquo;.
         </p>
       ) : null}
 
-      <p className="m-0 text-right text-xs text-muted-foreground/60">Powered by Streamline</p>
+      <p className="m-0 text-right">Powered by Streamline</p>
     </div>
   );
 }

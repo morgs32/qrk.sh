@@ -11,7 +11,7 @@
       "import": "./dist/index.js"
     },
     "./BrickBreakpointProvider": {
-      "types": "./dist/BrickBreakpointProvider.d.ts",
+      "types": "./dist/components/brick/BrickBreakpointProvider.d.ts",
       "import": "./dist/BrickBreakpointProvider.js"
     },
     "./breakpoints": {
@@ -19,7 +19,7 @@
       "import": "./dist/breakpoints.js"
     },
     "./BrickPreviewFrame": {
-      "types": "./dist/BrickPreviewFrame.d.ts",
+      "types": "./dist/components/brick/BrickPreviewFrame.d.ts",
       "import": "./dist/BrickPreviewFrame.js"
     },
 

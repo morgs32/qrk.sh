@@ -1,6 +1,6 @@
 import { Image } from "@unpic/react";
 
-import { MediaFooter } from "../../MediaFooter";
+import { MediaFooter } from "../../components/brick/MediaFooter";
 
 export function FigmaThumbnailFooter(props: {
   options?: { imagePosition: string };
@@ -14,7 +14,7 @@ export function FigmaThumbnailFooter(props: {
 }) {
   return (
     <a
-      className="flex h-full w-full flex-col text-inherit no-underline"
+      className="flex h-full w-full flex-col no-underline"
       data-figma-card="thumbnail"
       href={props.data.url.length > 0 ? props.data.url : undefined}
       rel="noopener noreferrer"

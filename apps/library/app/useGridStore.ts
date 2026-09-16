@@ -70,10 +70,10 @@ export const useGridStore = create<{
       addBrick: (brickId, brickDef, layout, breakpoint) => {
         const gridItem = layout.find((item) => item.i === brickId);
         if (!gridItem) return;
-        const module = modulesHash[brickDef.moduleId];
-        const options = module?.component.options
-          ? module.component.options.decode(
-              brickDef.options ?? module.component.options.defaultValue,
+        const brickModule = modulesHash[brickDef.moduleId];
+        const options = brickModule?.component.options
+          ? brickModule.component.options.decode(
+              brickDef.options ?? brickModule.component.options.defaultValue,
             )
           : {};
         set((state) => ({
@@ -144,8 +144,8 @@ export const useGridStore = create<{
             if (placement) {
               entry.gridItem = { ...placement, i: brickId };
             } else {
-              const module = modulesHash[brick.moduleId];
-              if (!module) return state;
+              const brickModule = modulesHash[brick.moduleId];
+              if (!brickModule) return state;
               let y = 0;
               for (const other of Object.values(state.bricksById)) {
                 const item = resolveBrickBreakpoint(other, breakpoint).gridItem;
@@ -155,8 +155,8 @@ export const useGridStore = create<{
                 i: brickId,
                 x: 0,
                 y,
-                w: module.def[breakpoint].w,
-                h: module.def[breakpoint].h,
+                w: brickModule.def[breakpoint].w,
+                h: brickModule.def[breakpoint].h,
               };
             }
           }

@@ -1,6 +1,6 @@
 import { primitives } from "@zerospin/schema";
 
-import { makeModule } from "../../makeModule";
+import { makeModule } from "../../make/makeModule";
 
 import { ImageAndTitle } from "./ImageAndTitle";
 

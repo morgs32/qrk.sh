@@ -139,9 +139,9 @@ export function GooglePlaceLookup(props: { value: string; onChange: (value: stri
       <div className="relative">
         <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-2.5">
           {isLoadingSuggestions || isLoadingInitialPlace ? (
-            <Loader2 className="size-3.5 animate-spin text-muted-foreground" aria-hidden />
+            <Loader2 className="size-3.5 animate-spin" aria-hidden />
           ) : (
-            <Search className="size-3.5 text-muted-foreground" aria-hidden />
+            <Search className="size-3.5" aria-hidden />
           )}
         </div>
         <Input
@@ -211,7 +211,7 @@ export function GooglePlaceLookup(props: { value: string; onChange: (value: stri
         {query.length > 0 ? (
           <button
             aria-label="Clear place search"
-            className="absolute inset-y-0 right-0 flex items-center pr-2.5 text-muted-foreground transition-colors hover:text-foreground"
+            className="absolute inset-y-0 right-0 flex items-center pr-2.5"
             onClick={() => {
               setQuery("");
               setSuggestions([]);
@@ -235,7 +235,7 @@ export function GooglePlaceLookup(props: { value: string; onChange: (value: stri
           role="listbox"
         >
           {lookupError !== undefined ? (
-            <p className="m-0 px-3 py-4 text-sm text-destructive" role="alert">
+            <p className="m-0 px-3 py-4" role="alert">
               {lookupError}
             </p>
           ) : suggestions.length > 0 ? (
@@ -246,7 +246,7 @@ export function GooglePlaceLookup(props: { value: string; onChange: (value: stri
                   className={cn(
                     "flex cursor-pointer items-start gap-2 rounded-sm px-3 py-2 transition-colors",
                     index === activeIndex
-                      ? "bg-accent text-accent-foreground"
+                      ? "bg-accent"
                       : "hover:bg-accent/50",
                   )}
                   id={`google-place-option-${index}`}
@@ -265,11 +265,11 @@ export function GooglePlaceLookup(props: { value: string; onChange: (value: stri
                   }}
                   role="option"
                 >
-                  <MapPin className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+                  <MapPin className="mt-0.5 size-3.5 shrink-0" aria-hidden />
                   <div className="min-w-0 flex-1">
-                    <p className="m-0 truncate text-sm font-medium">{suggestion.mainText}</p>
+                    <p className="m-0 truncate font-medium">{suggestion.mainText}</p>
                     {suggestion.secondaryText.length > 0 ? (
-                      <p className="m-0 mt-0.5 truncate text-xs text-muted-foreground">
+                      <p className="m-0 mt-0.5 truncate">
                         {suggestion.secondaryText}
                       </p>
                     ) : null}
@@ -278,11 +278,11 @@ export function GooglePlaceLookup(props: { value: string; onChange: (value: stri
               ))}
             </ul>
           ) : !isLoadingSuggestions && query.trim().length >= 2 ? (
-            <p className="m-0 px-3 py-4 text-center text-sm text-muted-foreground">
+            <p className="m-0 px-3 py-4 text-center">
               No places found for &ldquo;{query}&rdquo;
             </p>
           ) : null}
-          <p className="m-0 border-t border-border px-3 py-1.5 text-right text-xs text-muted-foreground/60">
+          <p className="m-0 border-t border-border px-3 py-1.5 text-right">
             Powered by Google Places
           </p>
         </div>

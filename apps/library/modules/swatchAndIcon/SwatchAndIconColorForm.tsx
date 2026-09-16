@@ -16,7 +16,7 @@ export function SwatchAndIconColorForm(props: {
         onChange={(color) => props.onChange({ color })}
         prefixed
         aria-label="Hex color"
-        className="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+        className="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1"
       />
     </div>
   );

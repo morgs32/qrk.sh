@@ -1,8 +1,8 @@
 import { primitives } from "@zerospin/schema";
 import { Schema } from "effect";
 
-import { makeFetcherConfiguration } from "../../makeFetcherConfiguration";
-import { makeModule } from "../../makeModule";
+import { makeFetcherConfiguration } from "../../make/makeFetcherConfiguration";
+import { makeModule } from "../../make/makeModule";
 
 import { GitHubActivityCalendar } from "./GitHubActivityCalendar";
 

@@ -14,8 +14,8 @@ export function TextBrickPresentation({ title, category, w, h }: TextBrickPresen
         isWide ? "px-4 py-2" : "p-4"
       }`}
     >
-      <div className={`font-medium ${isWide ? "text-sm" : "text-base"}`}>{title}</div>
-      <div className={`text-muted-foreground ${isWide ? "text-xs" : "text-sm"}`}>{category}</div>
+      <div className="font-medium">{title}</div>
+      <div>{category}</div>
     </div>
   );
 }

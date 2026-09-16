@@ -1,8 +1,8 @@
 import { primitives } from "@zerospin/schema";
 
-import { makeFetcherConfiguration } from "../../makeFetcherConfiguration";
-import { makeModule } from "../../makeModule";
-import { makeOptions } from "../../makeOptions";
+import { makeFetcherConfiguration } from "../../make/makeFetcherConfiguration";
+import { makeModule } from "../../make/makeModule";
+import { makeOptions } from "../../make/makeOptions";
 
 import defaultThumbnailUrl from "./dot-pattern-789x450.png";
 import { FigmaOptionsForm } from "./FigmaOptionsForm";

@@ -35,7 +35,7 @@ export function TextEditorControl(props: {
       attributes: {
         "aria-label": "Text content",
         class:
-          "min-h-48 px-4 py-3 text-sm leading-6 outline-none [&_blockquote]:border-l-2 [&_blockquote]:border-border [&_blockquote]:pl-4 [&_h1]:text-2xl [&_h1]:font-semibold [&_h2]:text-xl [&_h2]:font-semibold [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:my-2 [&_pre]:overflow-x-auto [&_pre]:rounded-md [&_pre]:bg-muted [&_pre]:p-3 [&_ul]:list-disc [&_ul]:pl-6"}},
+          "min-h-48 px-4 py-3 leading-6 outline-none [&_blockquote]:border-l-2 [&_blockquote]:border-border [&_blockquote]:pl-4 [&_h1]:font-semibold [&_h2]:font-semibold [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:my-2 [&_pre]:overflow-x-auto [&_pre]:rounded-md [&_pre]:bg-muted [&_pre]:p-3 [&_ul]:list-disc [&_ul]:pl-6"}},
     onUpdate: ({ editor: updatedEditor }) => {
       const document = updatedEditor.getJSON();
       props.onChange(document);

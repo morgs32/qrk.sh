@@ -5,7 +5,7 @@ import { PrimitiveKind } from "@zerospin/schema";
 import "react-json-view-lite/dist/index.css";
 import { collapseAllNested, defaultStyles, JsonView } from "react-json-view-lite";
 
-import type { IFetcherConfiguration } from "../makeFetcherConfiguration";
+import type { IFetcherConfiguration } from "../make/makeFetcherConfiguration";
 import { Outline } from "../components/outline/Outline";
 import type { ScraperApi } from "../worker/ScraperApi.public";
 import type { IScrapeError } from "../worker/types.public";

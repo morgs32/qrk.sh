@@ -7,8 +7,8 @@ import {
   type LoaderFunctionArgs,
   useRouteError} from "react-router";
 
-import { BrickBreakpointProvider } from "../../BrickBreakpointProvider";
-import { BrickPreviewFrame } from "../../BrickPreviewFrame";
+import { BrickBreakpointProvider } from "../../components/brick/BrickBreakpointProvider";
+import { BrickPreviewFrame } from "../../components/brick/BrickPreviewFrame";
 import { modulesHash } from "../../modulesHash";
 
 export function loader({ params }: LoaderFunctionArgs) {
@@ -20,8 +20,8 @@ export function loader({ params }: LoaderFunctionArgs) {
 export default function BrickPage() {
   const params = useParams();
   if (!params.moduleId) throw new Response("Not found", { status: 404 });
-  const module = modulesHash[params.moduleId];
-  const brick = module;
+  const brickModule = modulesHash[params.moduleId];
+  const brick = brickModule;
 
   if (!brick) {
     throw new Response("Not found", { status: 404 });
@@ -57,7 +57,7 @@ export default function BrickPage() {
                       h={brick.def[breakpoint].h}
                     >
                       <div className="size-full overflow-hidden" data-testid="brick-preview">
-                        <BrickComponent breakpoint={breakpoint} data={module.defaultData} />
+                        <BrickComponent breakpoint={breakpoint} data={brickModule.defaultData} />
                       </div>
                     </BrickPreviewFrame>
                   </div>

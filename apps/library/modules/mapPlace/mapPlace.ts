@@ -2,8 +2,8 @@ import { createElement } from "react";
 
 import { primitives } from "@zerospin/schema";
 
-import { makeFetcherConfiguration } from "../../makeFetcherConfiguration";
-import { makeModule } from "../../makeModule";
+import { makeFetcherConfiguration } from "../../make/makeFetcherConfiguration";
+import { makeModule } from "../../make/makeModule";
 
 import { GooglePlaceLookup } from "./GooglePlaceLookup";
 import { MapPlaceCanvas } from "./MapPlaceCanvas";

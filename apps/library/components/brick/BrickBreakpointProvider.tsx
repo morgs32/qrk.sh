@@ -3,7 +3,7 @@
 import { createContext, useCallback, useContext, useState } from "react";
 import type { ContextType, ReactNode, RefCallback } from "react";
 
-import { BREAKPOINTS, resolveBreakpoint } from "./breakpoints";
+import { BREAKPOINTS, resolveBreakpoint } from "../../breakpoints";
 
 const BrickBreakpointContext = createContext<{
   gridWidth: number;

@@ -4,8 +4,8 @@ import { ArrowLeft } from "lucide-react";
 import { collapseAllNested, defaultStyles, JsonView } from "react-json-view-lite";
 import { Link, useParams } from "react-router";
 
-import { useBrickBreakpoint } from "../../BrickBreakpointProvider";
-import { BrickPreviewFrame } from "../../BrickPreviewFrame";
+import { useBrickBreakpoint } from "../../components/brick/BrickBreakpointProvider";
+import { BrickPreviewFrame } from "../../components/brick/BrickPreviewFrame";
 import { modulesHash } from "../../modulesHash";
 import { Outline } from "../../components/outline/Outline";
 import { Button } from "../../components/ui/button";
@@ -20,14 +20,15 @@ export default function BrickDetail() {
   const { moduleId, brickId } = params;
   const hasHydrated = useGridStore((state) => state.hasHydrated);
   const brickDef = useGridStore((state) => state.bricksById[brickId]);
-  const module = brickDef?.moduleId === moduleId ? modulesHash[brickDef.moduleId] : undefined;
-  const brick = module;
+  const brickModule =
+    brickDef?.moduleId === moduleId ? modulesHash[brickDef.moduleId] : undefined;
+  const brick = brickModule;
 
   if (!hasHydrated) {
     return <div className="px-6 pt-6 text-sm text-zinc-500">Loading brick…</div>;
   }
 
-  if (!brick || !module || !brickDef) {
+  if (!brick || !brickModule || !brickDef) {
     return (
       <div className="px-6 pt-6" data-testid="brick-not-found">
         <Link
@@ -54,7 +55,7 @@ export default function BrickDetail() {
   return (
     <section data-testid="brick-detail-pane">
       <Outline.Title sticky>
-        <Link to={`/modules/${encodeURIComponent(moduleId)}`}>{module.label}</Link>
+        <Link to={`/modules/${encodeURIComponent(moduleId)}`}>{brickModule.label}</Link>
       </Outline.Title>
       <div
         className={`overflow-auto py-6 ${(entry.gridItem?.w ?? brick.def[breakpoint].w) === 8 ? "" : "px-4"}`}
@@ -76,13 +77,13 @@ export default function BrickDetail() {
         <Configuration
           key={brickId}
           showData={false}
-          module={module}
+          brickModule={brickModule}
           data={brickData}
           setData={(data) => {
             const DataSchema =
-              module.dataShape === null
+              brickModule.dataShape === null
                 ? Schema.Null
-                : Schema.toType(makeEffectSchema(module.dataShape));
+                : Schema.toType(makeEffectSchema(brickModule.dataShape));
             const decodedData = Schema.decodeUnknownSync(DataSchema)(data, {
               onExcessProperty: "preserve"});
             useGridStore.setState((state) => ({

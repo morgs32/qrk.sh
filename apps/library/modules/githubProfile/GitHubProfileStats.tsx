@@ -4,10 +4,10 @@ import { Image } from "@unpic/react";
 import { useState } from "react";
 import { BookOpen, Link as LinkIcon, MapPin, Quote, UserPlus, Users } from "lucide-react";
 
-import { BrickBody } from "../../BrickBody";
-import { BrickFooter } from "../../BrickFooter";
-import { BrickShell } from "../../BrickShell";
-import { brickMetaIconClass, brickMutedClass } from "../../brickTokens";
+import { BrickBody } from "../../components/brick/BrickBody";
+import { BrickFooter } from "../../components/brick/BrickFooter";
+import { BrickShell } from "../../components/brick/BrickShell";
+import { brickMetaIconClass, brickMutedClass } from "../../components/brick/brickTokens";
 
 export function GitHubProfileStats(props: {
   breakpoint: "sm" | "md" | "lg" | "xl";
@@ -33,7 +33,7 @@ export function GitHubProfileStats(props: {
     <BrickShell>
       <div className="flex shrink-0 flex-col items-start gap-1">
         {avatarFailed || !avatarSrc ? (
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-200 text-xs font-medium text-zinc-900">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-200 font-medium">
             {avatarFallback}
           </div>
         ) : (
@@ -70,7 +70,7 @@ export function GitHubProfileStats(props: {
             href={user.blog.startsWith("http") ? user.blog : `https://${user.blog}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex cursor-pointer items-center gap-1 transition-colors hover:text-blue-600"
+            className="flex cursor-pointer items-center gap-1"
           >
             <LinkIcon className={brickMetaIconClass} />
             <span className="truncate">{user.blog.replace(/^https?:\/\//, "")}</span>

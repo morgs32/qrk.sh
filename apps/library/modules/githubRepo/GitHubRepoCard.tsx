@@ -5,13 +5,9 @@ import { Schema } from "effect";
 import { GitFork, Star } from "lucide-react";
 import { cn } from "cn";
 
-import { BrickFooter } from "../../BrickFooter";
-import { BrickShell } from "../../BrickShell";
-import {
-  brickMetaIconClass,
-  brickMutedClass,
-  brickTitleClass,
-} from "../../brickTokens";
+import { BrickFooter } from "../../components/brick/BrickFooter";
+import { BrickShell } from "../../components/brick/BrickShell";
+import { brickMetaIconClass, brickMutedClass, brickTitleClass } from "../../components/brick/brickTokens";
 
 const GITHUB_REPO_OWNER = "morgs32";
 const GITHUB_REPO_NAME = "ink-steps";
@@ -86,13 +82,7 @@ export function GitHubRepoCard({ size = "sm" }: { size?: "xs" | "sm" }) {
 
   return (
     <BrickShell className="min-w-0">
-      <h3
-        className={cn(
-          "min-w-0 shrink-0 break-words",
-          brickTitleClass,
-          size === "sm" && "text-lg",
-        )}
-      >
+      <h3 className={cn("min-w-0 shrink-0 break-words", brickTitleClass)}>
         <a
           href={data.html_url}
           target="_blank"
@@ -107,7 +97,7 @@ export function GitHubRepoCard({ size = "sm" }: { size?: "xs" | "sm" }) {
         className={cn(
           "min-w-0 break-words",
           brickMutedClass,
-          size === "xs" ? "shrink-0" : "min-h-0 flex-1 text-sm",
+          size === "xs" ? "shrink-0" : "min-h-0 flex-1",
         )}
       >
         {data.description || "No description provided"}

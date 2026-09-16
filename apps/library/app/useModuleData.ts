@@ -12,12 +12,14 @@ export const useModuleDataStore = create<{
 }>((set) => ({
   dataByModule: {},
   setModuleData: (moduleId, data) => {
-    const module = modulesHash[moduleId];
-    if (module === undefined) throw new Error("Module not found");
+    const brickModule = modulesHash[moduleId];
+    if (brickModule === undefined) throw new Error("Module not found");
 
     // Decode before changing state: failed writes leave the last preview intact.
     const DataSchema =
-      module.dataShape === null ? Schema.Null : Schema.toType(makeEffectSchema(module.dataShape));
+      brickModule.dataShape === null
+        ? Schema.Null
+        : Schema.toType(makeEffectSchema(brickModule.dataShape));
     const decodedData = Schema.decodeUnknownSync(DataSchema)(data, {
       onExcessProperty: "preserve"});
     set((state) => ({

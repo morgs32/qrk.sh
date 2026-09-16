@@ -84,7 +84,7 @@ export function GitHubAchievementsCard() {
   return (
     <Card className="h-full min-h-0 w-full gap-2 overflow-hidden rounded-none border-0 py-3 shadow-none">
       <CardHeader className="shrink-0 px-4 pb-2 pt-0">
-        <CardTitle className="text-lg font-semibold text-zinc-950">Achievements</CardTitle>
+        <CardTitle className="font-semibold">Achievements</CardTitle>
       </CardHeader>
 
       <CardContent className="min-h-0 flex-1 overflow-auto px-4 pb-4">

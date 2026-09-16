@@ -46,7 +46,7 @@ export function GitHubLanguagesCard() {
 
   if (isLoading) {
     return (
-      <Card className="h-full min-h-0 w-full gap-0 overflow-hidden rounded-none border-0 py-0 text-zinc-950 shadow-none">
+      <Card className="h-full min-h-0 w-full gap-0 overflow-hidden rounded-none border-0 py-0 shadow-none">
         <CardContent className="p-3">
           <div className="flex items-center gap-3">
             <div className="h-20 w-20 animate-pulse rounded-full bg-zinc-200" />
@@ -63,9 +63,9 @@ export function GitHubLanguagesCard() {
 
   if (error || !data) {
     return (
-      <Card className="h-full min-h-0 w-full gap-0 overflow-hidden rounded-none border-0 py-0 text-zinc-950 shadow-none">
+      <Card className="h-full min-h-0 w-full gap-0 overflow-hidden rounded-none border-0 py-0 shadow-none">
         <CardContent className="p-3">
-          <p className="text-xs text-zinc-500">Failed to load languages</p>
+          <p>Failed to load languages</p>
         </CardContent>
       </Card>
     );
@@ -93,14 +93,15 @@ export function GitHubLanguagesCard() {
       ? [...mainLanguages, { name: "Others", bytes: 0, percentage: othersPercentage }]
       : mainLanguages;
 
-  let cumulativePercentage = 0;
-  const segments = displayLanguages.map((lang) => {
-    const start = cumulativePercentage;
-    cumulativePercentage += lang.percentage;
+  const segments = displayLanguages.map((lang, index) => {
+    const start = displayLanguages
+      .slice(0, index)
+      .reduce((sum, previous) => sum + previous.percentage, 0);
     return {
       ...lang,
       start,
-      end: cumulativePercentage};
+      end: start + lang.percentage,
+    };
   });
 
   const size = 72;
@@ -109,7 +110,7 @@ export function GitHubLanguagesCard() {
   const circumference = 2 * Math.PI * radius;
 
   return (
-    <Card className="h-full min-h-0 w-full gap-0 overflow-hidden rounded-none border-0 py-0 text-zinc-950 shadow-none">
+    <Card className="h-full min-h-0 w-full gap-0 overflow-hidden rounded-none border-0 py-0 shadow-none">
       <CardContent className="min-h-0 flex-1 overflow-auto p-3">
         <div className="flex items-center gap-3">
           <div className="relative shrink-0">
@@ -137,15 +138,15 @@ export function GitHubLanguagesCard() {
 
           <div className="grid min-w-0 flex-1 grid-cols-1 gap-1">
             {displayLanguages.map((lang) => (
-              <div key={lang.name} className="flex items-center justify-between text-xs">
+              <div key={lang.name} className="flex items-center justify-between">
                 <div className="flex min-w-0 items-center gap-1.5">
                   <span
                     className="h-2.5 w-2.5 shrink-0 rounded-sm"
                     style={{ backgroundColor: getLanguageColor(lang.name) }}
                   />
-                  <span className="truncate text-zinc-900">{lang.name}</span>
+                  <span className="truncate">{lang.name}</span>
                 </div>
-                <span className="shrink-0 tabular-nums text-zinc-500">{lang.percentage}%</span>
+                <span className="shrink-0 tabular-nums">{lang.percentage}%</span>
               </div>
             ))}
           </div>

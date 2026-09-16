@@ -51,13 +51,13 @@ function watchFocusIgnoreDrawerChrome(_emblaApi: EmblaCarouselType, event: Focus
   return !drawerCarouselInteractionShouldSkipEmbla(event.target);
 }
 
-export function BrickCarousel(props: { module: IModule }) {
+export function BrickCarousel(props: { brickModule: IModule }) {
   const { breakpoint } = useBrickBreakpoint();
-  const { module } = props;
-  const bricks = useMemo(() => [module], [module]);
+  const { brickModule } = props;
+  const bricks = useMemo(() => [brickModule], [brickModule]);
 
   if (bricks.length <= 0) {
-    throw new BrickCarouselNoBricksError(module.id);
+    throw new BrickCarouselNoBricksError(brickModule.id);
   }
 
   const maxH = Math.max(...bricks.map((b) => b.def[breakpoint].h));
@@ -85,7 +85,7 @@ export function BrickCarousel(props: { module: IModule }) {
       <div className="sticky top-0 z-[11]">
         <div className="bg-muted/80 px-6 py-2.5 backdrop-blur-sm dark:bg-muted/50">
           <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3">
-            <div className="min-w-0 truncate text-sm font-semibold">{module.label}</div>
+            <div className="min-w-0 truncate text-sm font-semibold">{brickModule.label}</div>
             <BrickCarouselNav api={carouselApi} bricks={bricks} />
             <div className="min-w-0 justify-self-end text-right text-sm font-medium tabular-nums text-muted-foreground">
               {bricks[selectedIndex]?.def.moduleLabel}

@@ -1,6 +1,6 @@
 import { Link as LinkIcon, MapPin } from "lucide-react";
 
-import { brickMetaIconClass, brickMutedClass } from "../../brickTokens";
+import { brickMetaIconClass, brickMutedClass } from "../../components/brick/brickTokens";
 
 export function MetaRow(props: { location: string | null; blog: string }) {
   const hasLocation = Boolean(props.location);
@@ -26,7 +26,7 @@ export function MetaRow(props: { location: string | null; blog: string }) {
           href={props.blog.startsWith("http") ? props.blog : `https://${props.blog}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex cursor-pointer items-center gap-1 transition-colors hover:text-blue-600"
+          className="flex cursor-pointer items-center gap-1"
         >
           <LinkIcon className={brickMetaIconClass} />
           <span className="truncate">{props.blog.replace(/^https?:\/\//, "")}</span>

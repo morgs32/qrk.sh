@@ -4,8 +4,8 @@ import type { newSyncRpcSession } from "@zerospin/core/utils/newSyncRpcSession";
 import { makeEffectSchema, type InferDecodedRow, type IShape } from "@zerospin/schema";
 import { Effect, Schema } from "effect";
 
-import type { ScraperApi } from "./worker/ScraperApi.public";
-import type { IRpcEither } from "./worker/types.public";
+import type { ScraperApi } from "../worker/ScraperApi.public";
+import type { IRpcEither } from "../worker/types.public";
 
 /** Runtime configuration contract after the factory has decoded its moduleOptions. */
 export interface IFetcherConfiguration {

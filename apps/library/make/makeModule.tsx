@@ -3,11 +3,11 @@ import type { ReactNode } from "react";
 import { makeEffectSchema, type InferDecodedRow, type IShape } from "@zerospin/schema";
 import { Schema } from "effect";
 
-import { BrickFrame } from "./BrickFrame";
+import { BrickFrame } from "../components/brick/BrickFrame";
 import type { makeOptions } from "./makeOptions";
 import type { makeFetcherConfiguration } from "./makeFetcherConfiguration";
 import type { IFormConfiguration } from "./makeFormConfiguration";
-import type { IJsonValue } from "./worker/types.public";
+import type { IJsonValue } from "../worker/types.public";
 
 /** Bind data and configuration to one responsive brick presentation. */
 export function makeModule<
@@ -92,7 +92,8 @@ export function makeModule<
     md: { w: md.w, h: md.h },
     lg: { w: lg.w, h: lg.h },
     xl: { w: xl.w, h: xl.h },
-    data: null as unknown};
+    data: null as unknown,
+  };
   if (props.dataShape === null) {
     return {
       id: props.id,
@@ -103,8 +104,10 @@ export function makeModule<
       configuration: undefined,
       def: {
         ...def,
-        data: null},
-      component: Brick};
+        data: null,
+      },
+      component: Brick,
+    };
   }
   const defaultData = Schema.decodeUnknownSync(Schema.toType(makeEffectSchema(props.dataShape)))(
     props.defaultData,
@@ -119,6 +122,8 @@ export function makeModule<
     configuration: props.configuration,
     def: {
       ...def,
-      data: defaultData},
-    component: Brick};
+      data: defaultData,
+    },
+    component: Brick,
+  };
 }

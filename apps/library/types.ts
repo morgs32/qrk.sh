@@ -2,9 +2,9 @@ import type { ReactNode } from "react";
 
 import type { IShape } from "@zerospin/schema";
 
-import type { makeOptions } from "./makeOptions";
-import type { IFetcherConfiguration } from "./makeFetcherConfiguration";
-import type { IFormConfiguration } from "./makeFormConfiguration";
+import type { makeOptions } from "./make/makeOptions";
+import type { IFetcherConfiguration } from "./make/makeFetcherConfiguration";
+import type { IFormConfiguration } from "./make/makeFormConfiguration";
 
 /** A module definition (serializable identity and dimensions). */
 export type IBrickDef<MODULE extends string = string> = {

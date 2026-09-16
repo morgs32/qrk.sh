@@ -6,12 +6,12 @@ import type { IModule } from "../types";
 import { FetcherConfiguration } from "./FetcherConfiguration";
 
 export function Configuration(props: {
-  module: IModule;
+  brickModule: IModule;
   data: unknown;
   showData?: boolean;
   setData: (data: unknown) => void;
 }) {
-  const configuration = props.module.configuration;
+  const configuration = props.brickModule.configuration;
   if (configuration === undefined) {
     return (
       <div>
@@ -52,7 +52,7 @@ export function Configuration(props: {
       return (
         <FetcherConfiguration
           configuration={configuration}
-          moduleId={props.module.def.moduleId}
+          moduleId={props.brickModule.def.moduleId}
           showData={props.showData}
           data={props.data}
           setData={props.setData}

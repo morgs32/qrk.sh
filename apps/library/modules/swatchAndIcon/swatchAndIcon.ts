@@ -2,9 +2,9 @@ import { createElement } from "react";
 
 import { primitives } from "@zerospin/schema";
 
-import { makeFetcherConfiguration } from "../../makeFetcherConfiguration";
-import { makeModule } from "../../makeModule";
-import { makeOptions } from "../../makeOptions";
+import { makeFetcherConfiguration } from "../../make/makeFetcherConfiguration";
+import { makeModule } from "../../make/makeModule";
+import { makeOptions } from "../../make/makeOptions";
 
 import { StreamlineIconLookup } from "./StreamlineIconLookup";
 import { SwatchAndIconColorForm } from "./SwatchAndIconColorForm";

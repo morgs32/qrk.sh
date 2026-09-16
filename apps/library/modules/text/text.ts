@@ -4,8 +4,8 @@ import type { JSONContent } from "@tiptap/react";
 import { primitives } from "@zerospin/schema";
 import { Schema } from "effect";
 
-import { makeFormConfiguration } from "../../makeFormConfiguration";
-import { makeModule } from "../../makeModule";
+import { makeFormConfiguration } from "../../make/makeFormConfiguration";
+import { makeModule } from "../../make/makeModule";
 
 import { TextDefaultBody } from "./TextDefaultBody";
 import { TextEditorControl } from "./TextEditorControl";

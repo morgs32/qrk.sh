@@ -3,7 +3,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import GridLayout, { verticalCompactor } from "react-grid-layout";
 import { useNavigate } from "react-router";
 
-import { useBrickBreakpoint } from "../BrickBreakpointProvider";
+import { useBrickBreakpoint } from "../components/brick/BrickBreakpointProvider";
 import { modulesHash } from "../modulesHash";
 
 import { resolveBrickBreakpoint } from "./resolveBrickBreakpoint";
@@ -15,7 +15,7 @@ export function SandboxGrid() {
   const { gridWidth, breakpoint, containerRef: observeGrid } = useBrickBreakpoint();
   const [dragging, setDragging] = useState(false);
   const [outsideBrickId, setOutsideBrickId] = useState<string | null>(null);
-  const dragScrollTopRef = useRef(0);
+  const [dragScrollTop, setDragScrollTop] = useState(0);
   const bricksById = useGridStore((state) => state.bricksById);
   const activeBrickDrag = useGridStore((state) => state.activeBrickDrag);
   const hasHydrated = useGridStore((state) => state.hasHydrated);
@@ -31,9 +31,9 @@ export function SandboxGrid() {
 
   useLayoutEffect(() => {
     if (!dragging && containerRef.current) {
-      containerRef.current.scrollTop = dragScrollTopRef.current;
+      containerRef.current.scrollTop = dragScrollTop;
     }
-  }, [dragging, containerRef]);
+  }, [dragging, dragScrollTop]);
 
   const layout = Object.values(bricksById).flatMap((brick) => {
     const entry = resolveBrickBreakpoint(brick, breakpoint);
@@ -62,7 +62,7 @@ export function SandboxGrid() {
       {gridWidth > 0 && hasHydrated && (
         <GridLayout
           width={gridWidth}
-          style={dragging ? { transform: `translateY(-${dragScrollTopRef.current}px)` } : undefined}
+          style={dragging ? { transform: `translateY(-${dragScrollTop}px)` } : undefined}
           // Dropped items carry isDraggable, which overrides dragConfig.enabled.
           layout={layout.map((item) => ({
             ...item,
@@ -113,7 +113,7 @@ export function SandboxGrid() {
             setActiveBrickDrag(null);
           }}
           onDragStart={() => {
-            dragScrollTopRef.current = containerRef.current?.scrollTop ?? 0;
+            setDragScrollTop(containerRef.current?.scrollTop ?? 0);
             setDragging(true);
           }}
           onDrag={(_nextLayout, _oldItem, item, _placeholder, event) => {

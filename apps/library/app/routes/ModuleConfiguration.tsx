@@ -9,8 +9,8 @@ import {
   type LoaderFunctionArgs,
   useRouteError} from "react-router";
 
-import { useBrickBreakpoint } from "../../BrickBreakpointProvider";
-import { BrickPreviewFrame } from "../../BrickPreviewFrame";
+import { useBrickBreakpoint } from "../../components/brick/BrickBreakpointProvider";
+import { BrickPreviewFrame } from "../../components/brick/BrickPreviewFrame";
 import { modulesHash } from "../../modulesHash";
 import { Outline } from "../../components/outline/Outline";
 import { GitHubProfileJsonRenderCompare } from "../../modules/githubProfile/GitHubProfileJsonRenderCompare";
@@ -32,14 +32,14 @@ export default function ModuleConfiguration() {
   if (!params.moduleId) throw new Response("Not found", { status: 404 });
   const { moduleId } = params;
   const setActiveBrickDrag = useGridStore((state) => state.setActiveBrickDrag);
-  const module = modulesHash[moduleId];
+  const brickModule = modulesHash[moduleId];
 
-  if (!module) {
+  if (!brickModule) {
     throw new Response("Not found", { status: 404 });
   }
 
   const [moduleData, setModuleData] = useModuleData(moduleId);
-  const brick = module;
+  const brick = brickModule;
   const BrickComponent = brick.component;
   const optionsConfig = BrickComponent.options;
   const options = optionsByModule[moduleId] ?? optionsConfig?.defaultValue;
@@ -48,14 +48,14 @@ export default function ModuleConfiguration() {
   return (
     <section data-testid="module-configuration-pane">
       <Outline.Title sticky>
-        <Link to={`/modules/${encodeURIComponent(moduleId)}`}>{module.label}</Link>
+        <Link to={`/modules/${encodeURIComponent(moduleId)}`}>{brickModule.label}</Link>
       </Outline.Title>
       <div className="px-4">
         <TableData
           entries={[
-            { label: "Module name", value: module.label },
-            { label: "Module ID", value: module.id },
-            { label: "Module description", value: module.description },
+            { label: "Module name", value: brickModule.label },
+            { label: "Module ID", value: brickModule.id },
+            { label: "Module description", value: brickModule.description },
           ]}
         />
       </div>
@@ -153,7 +153,7 @@ export default function ModuleConfiguration() {
       </div>
       <div className="pb-6">
         <Configuration
-          module={module}
+          brickModule={brickModule}
           data={moduleData}
           setData={setModuleData}
           showData={false}

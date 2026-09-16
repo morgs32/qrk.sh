@@ -53,23 +53,23 @@ export function BrickGroup() {
         aria-label="Brick modules"
         className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-zinc-100 pb-16 font-mono text-sm leading-5 text-zinc-900"
       >
-        {modules.map((module) => {
-          const selectedBrick = module;
+        {modules.map((brickModule) => {
+          const selectedBrick = brickModule;
           const BrickComponent = selectedBrick.component;
           const w = selectedBrick.def[breakpoint].w;
           const h = selectedBrick.def[breakpoint].h;
 
           return (
-            <section key={module.id} data-module-entry={module.id}>
+            <section key={brickModule.id} data-module-entry={brickModule.id}>
               <h2 className="m-0 shrink-0 sticky top-0 z-10 bg-zinc-100 px-4 py-4 text-sm font-normal">
                 <Link
                   to={href("/:username/site/:siteId/page/:pageId/brick-group/:groupName", {
                     ...params,
-                    groupName: module.id,
+                    groupName: brickModule.id,
                   })}
-                  data-module-link={module.id}
+                  data-module-link={brickModule.id}
                 >
-                  {module.label}
+                  {brickModule.label}
                 </Link>
               </h2>
               <div className="overflow-auto py-6">
@@ -94,7 +94,7 @@ export function BrickGroup() {
                         useBrickDrawerStore.getState().unregisterActiveBrickDragGridShape();
                       }}
                     >
-                      <BrickComponent breakpoint={breakpoint} data={module.defaultData} />
+                      <BrickComponent breakpoint={breakpoint} data={brickModule.defaultData} />
                     </div>
                   </BrickPreviewFrame>
                 </div>

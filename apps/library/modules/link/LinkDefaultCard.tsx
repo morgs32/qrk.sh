@@ -12,7 +12,7 @@ export function LinkDefaultCard(props: {
 }) {
   return (
     <a
-      className="block h-full w-full text-inherit no-underline"
+      className="block h-full w-full no-underline"
       data-link-card="default"
       href={props.data.url.length > 0 ? props.data.url : undefined}
       rel="noopener noreferrer"
@@ -33,10 +33,10 @@ export function LinkDefaultCard(props: {
               width={40}
             />
           ) : null}
-          <h2 className="m-0 line-clamp-3 text-base font-medium leading-snug">
+          <h2 className="m-0 line-clamp-3 font-medium leading-snug">
             {props.data.title}
           </h2>
-          <p className="m-0 mt-1 truncate text-sm text-zinc-500">{props.data.siteName}</p>
+          <p className="m-0 mt-1 truncate">{props.data.siteName}</p>
         </div>
 
         {props.data.imageUrl.length > 0 ? (

@@ -13,7 +13,7 @@ export function InstagramDefaultFeed(props: {
 }) {
   return (
     <a
-      className="block h-full w-full text-inherit no-underline"
+      className="block h-full w-full no-underline"
       href={`https://www.instagram.com/${props.data.username}/`}
       rel="noopener noreferrer"
       target="_blank"
@@ -58,15 +58,15 @@ export function InstagramDefaultFeed(props: {
             />
           </div>
           <div className="min-w-0 flex-1">
-            <h2 className="m-0 truncate text-xs font-semibold leading-tight">
+            <h2 className="m-0 truncate font-semibold leading-tight">
               @{props.data.username}
             </h2>
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            <span className="text-[10px] font-medium text-zinc-500">
+            <span className="font-medium">
               {props.data.followersText}
             </span>
-            <span className="bg-[#4295ed] px-2 py-0.5 text-[10px] font-medium text-white">
+            <span className="bg-[#4295ed] px-2 py-0.5 font-medium">
               Follow me
             </span>
           </div>

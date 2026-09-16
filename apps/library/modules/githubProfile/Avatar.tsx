@@ -12,7 +12,7 @@ export function Avatar(props: { avatar_url: string; login: string }) {
     return (
       <div
         data-github-profile-json-render="Avatar"
-        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-200 text-xs font-medium text-zinc-900"
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-200 font-medium"
       >
         {avatarFallback}
       </div>

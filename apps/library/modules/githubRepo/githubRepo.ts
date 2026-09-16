@@ -1,4 +1,4 @@
-import { makeModule } from "../../makeModule";
+import { makeModule } from "../../make/makeModule";
 
 import { GitHubRepoCompact } from "./GitHubRepoCompact";
 import { GitHubRepoStack } from "./GitHubRepoStack";

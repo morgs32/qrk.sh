@@ -1,6 +1,6 @@
 import { Image } from "@unpic/react";
 
-import { MediaFooter } from "../../MediaFooter";
+import { MediaFooter } from "../../components/brick/MediaFooter";
 
 export function ImageAndTitle(props: {
   breakpoint: "sm" | "md" | "lg" | "xl";

@@ -77,7 +77,7 @@ schemas, and provider scrape modules) stay under `apps/library/worker/`.
 
 ### Brick chrome (inset and type)
 
-Shared brick padding and typography live in library root next to `BrickFrame`. Import each file directly (no barrel).
+Shared brick padding and typography live in `apps/library/components/brick/` next to `BrickFrame`. Import each file directly (no barrel).
 
 - **`BrickFrame`** — owned by `makeModule`’s `Brick` renderer (not by presentations). Fill sizing, `qrk-bricks`, and nested SVG `user-select: none` (`[&_svg]:select-none`). No background or text-color props.
 - **`BrickShell` / `BrickBody` / `BrickFooter`** — inset flex column, scrollable middle, and `mt-auto` meta row. Shells compose **inside** the framed presentation.
@@ -91,12 +91,12 @@ Presentations must not add card chrome (fills, borders, radii, shadows on the br
 
 ### Factory arguments
 
-Factories take one `props` object with an inline shape. `makeModule` owns `id`, `label`, `description`, `dataShape`, `defaultData`, optional `configuration`, optional `options`, required `sm`, and optional `md`, `lg`, `xl`. Each breakpoint is `{ component, w, h }`; omitted breakpoints inherit the nearest smaller complete entry. Catalog `def` stores the resolved dimensions at `def[breakpoint]`, without React components. Previews, drag placeholders, and new placements use those dimensions; saved placement sizes remain authoritative. See [makeModule.tsx](../../apps/library/makeModule.tsx).
+Factories take one `props` object with an inline shape. `makeModule` owns `id`, `label`, `description`, `dataShape`, `defaultData`, optional `configuration`, optional `options`, required `sm`, and optional `md`, `lg`, `xl`. Each breakpoint is `{ component, w, h }`; omitted breakpoints inherit the nearest smaller complete entry. Catalog `def` stores the resolved dimensions at `def[breakpoint]`, without React components. Previews, drag placeholders, and new placements use those dimensions; saved placement sizes remain authoritative. See [makeModule.tsx](../../apps/library/make/makeModule.tsx).
 
 `makeModule` owns `id`, `label`, `description`, and writes `moduleId` / `moduleLabel` onto `def`.
 
 Data-backed catalogs configure requests with `makeFetcherConfiguration({ moduleOptionsShape, moduleOptionsForm, fetcher })`
-from [makeFetcherConfiguration.ts](../../apps/library/makeFetcherConfiguration.ts), passed as the catalog's `configuration`.
+from [makeFetcherConfiguration.ts](../../apps/library/make/makeFetcherConfiguration.ts), passed as the catalog's `configuration`.
 The factory supplies `configurationType: "fetcher"` and validates module options before invoking its
 required `fetcher` callback. `moduleOptionsForm` is one optional component receiving the complete decoded
 module options as `{ value, onChange }`; `onChange` replaces the whole module options. `IFetcherConfiguration` is defined in that factory module. The callback receives
@@ -138,7 +138,7 @@ Do **not** add a second exported wrapper on the shared carousel that imports **`
 
 - **Bad**: `BrickCarouselFromGroup` (or similar) exported from [BrickCarousel.tsx](../../apps/studio/app/[username]/site/[siteId]/page/[pageId]/BrickCarousel/BrickCarousel.tsx) — thin pass-through: `modulesHash[groupId]` → **`BrickCarousel`**.
 
-- **Good**: [BrickCarousel.tsx](../../apps/studio/app/[username]/site/[siteId]/page/[pageId]/BrickCarousel/BrickCarousel.tsx) accepts **`group: IModule`** (and optional **`brickSortFn`**) only. Resolve **`modulesHash[groupId]`** in the route’s client `page.tsx` next to the site workspace and pass **`group`** into **`BrickCarousel`**; keep **`modulesHash`** out of the shared carousel module.
+- **Good**: [BrickCarousel.tsx](../../apps/studio/app/[username]/site/[siteId]/page/[pageId]/BrickCarousel/BrickCarousel.tsx) accepts **`brickModule: IModule`** (and optional **`brickSortFn`**) only. Resolve **`modulesHash[groupId]`** in the route’s client `page.tsx` next to the site workspace and pass **`brickModule`** into **`BrickCarousel`**; keep **`modulesHash`** out of the shared carousel module.
 
 ### Good vs bad: brick-group route — keep one-off logic in `page.tsx`
 
@@ -273,7 +273,7 @@ Carousel slides in the site editor use the same grid-unit sizing with a
 `50vw`-based site-half unit instead of measured `gridWidth`. Placed-detail
 previews use resolved breakpoint dimensions; the standalone slider sets the
 simulated full grid width measured by its provider.
-Import the frame directly or through `@qrk.sh/library/BrickPreviewFrame`.
+Import the frame from `apps/library/components/brick/BrickPreviewFrame.tsx` or through `@qrk.sh/library/BrickPreviewFrame`.
 
 ### Presentation template names
 

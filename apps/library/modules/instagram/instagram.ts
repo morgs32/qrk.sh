@@ -1,7 +1,7 @@
 import { primitives } from "@zerospin/schema";
 
-import { makeFetcherConfiguration } from "../../makeFetcherConfiguration";
-import { makeModule } from "../../makeModule";
+import { makeFetcherConfiguration } from "../../make/makeFetcherConfiguration";
+import { makeModule } from "../../make/makeModule";
 
 import { InstagramDefaultFeed } from "./InstagramDefaultFeed";
 

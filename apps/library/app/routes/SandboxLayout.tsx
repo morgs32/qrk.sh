@@ -1,4 +1,4 @@
-import { BrickBreakpointProvider } from "../../BrickBreakpointProvider";
+import { BrickBreakpointProvider } from "../../components/brick/BrickBreakpointProvider";
 import { useLayoutEffect, useRef, useState } from "react";
 import { Outlet, Link, useLocation } from "react-router";
 import { RotateCcw, X } from "lucide-react";
@@ -19,7 +19,17 @@ export default function SandboxLayout() {
     savedWidth !== null && savedWidth <= availableWidth
       ? savedWidth
       : ([...previewWidths].reverse().find((preset) => preset <= availableWidth) ?? null);
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(
+    () => location.pathname !== "/" || location.search.length > 0,
+  );
+  const [drawerOpenForLocationKey, setDrawerOpenForLocationKey] = useState(location.key);
+  if (location.key !== drawerOpenForLocationKey) {
+    setDrawerOpenForLocationKey(location.key);
+    // Nested group/catalog routes render inside the drawer Outlet; open it so deep links are visible.
+    if (location.pathname !== "/" || location.search.length > 0) {
+      setDrawerOpen(true);
+    }
+  }
 
   useLayoutEffect(() => {
     const region = gridRegionRef.current;
@@ -36,13 +46,6 @@ export default function SandboxLayout() {
       observer.disconnect();
     };
   }, []);
-
-  // Nested group/catalog routes render inside the drawer Outlet; open it so deep links are visible.
-  useLayoutEffect(() => {
-    if (location.pathname !== "/" || location.search.length > 0) {
-      setDrawerOpen(true);
-    }
-  }, [location.pathname, location.search]);
 
   const groups = (
     <div className="qrk-bricks flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden font-mono text-sm leading-5 text-zinc-900">

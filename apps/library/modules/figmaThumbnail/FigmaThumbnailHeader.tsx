@@ -13,7 +13,7 @@ export function FigmaThumbnailHeader(props: {
 }) {
   return (
     <a
-      className="block h-full w-full text-inherit no-underline"
+      className="block h-full w-full no-underline"
       data-figma-card="thumbnail"
       href={props.data.url.length > 0 ? props.data.url : undefined}
       rel="noopener noreferrer"
@@ -52,7 +52,7 @@ export function FigmaThumbnailHeader(props: {
             <path d="M6 24h6v6a6 6 0 1 1-6-6Z" fill="#0ACF83" />
           </svg>
           <div className="min-w-0">
-            <h2 className="m-0 truncate text-xs font-semibold leading-tight">
+            <h2 className="m-0 truncate font-semibold leading-tight">
               {props.data.title}
             </h2>
           </div>

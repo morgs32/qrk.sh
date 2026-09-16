@@ -8,7 +8,7 @@ import {
 } from "@zerospin/schema";
 import { Schema } from "effect";
 
-import { Switch } from "./components/ui/switch";
+import { Switch } from "../components/ui/switch";
 
 /** View-only controls validate complete values without invoking a content fetcher. */
 export function makeOptions<const SHAPE extends IShape>(props: {

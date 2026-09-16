@@ -44,17 +44,25 @@ function SchemaSection({
       <SectionHeading showListDecorator={showListDecorator} showAnchors={showAnchors}>
         GraphQL schema
       </SectionHeading>
-      <p className="mt-5 mb-0 max-w-[680px]">The FRAGMENT API is a GraphQL API. The GraphQL schema is hosted at:</p>
+      <p className="mt-5 mb-0 max-w-[680px]">
+        The FRAGMENT API is a GraphQL API. The GraphQL schema is hosted at:
+      </p>
       <div className="mt-5 bg-white p-5 leading-[1.45] max-[480px]:px-[18px]">
         <div className="mb-4 text-neutral-400">GraphQL schema URL</div>
-        <a className="no-underline max-[480px]:break-all" href="https://api.fragment.dev/schema.graphql">
+        <a
+          className="no-underline max-[480px]:break-all"
+          href="https://api.fragment.dev/schema.graphql"
+        >
           https://api.fragment.dev/schema.graphql
         </a>
       </div>
       <p className="mt-5 mb-0 max-w-[680px]">
-        Provide this schema to a GraphQL codegen tool to generate a typed client in any language. A list of clients is
-        available on the{" "}
-        <a className="underline underline-offset-2" href="https://graphql.org/community/tools-and-libraries/">
+        Provide this schema to a GraphQL codegen tool to generate a typed client in any language. A
+        list of clients is available on the{" "}
+        <a
+          className="underline underline-offset-2"
+          href="https://graphql.org/community/tools-and-libraries/"
+        >
           GraphQL website
         </a>
         .
@@ -66,17 +74,27 @@ function SchemaSection({
 function RegionsSection({
   showListDecorator,
   showAnchors,
+  leftAligned,
 }: {
   showListDecorator: boolean;
   showAnchors: boolean;
+  leftAligned: boolean;
 }) {
   return (
     <>
       <SectionHeading showListDecorator={showListDecorator} showAnchors={showAnchors}>
         Regions
       </SectionHeading>
-      <p className="mt-5 mb-0 max-w-[680px]">The FRAGMENT API is available in the following AWS regions:</p>
-      <ul className="mt-5 mb-0 pl-[35px] max-[480px]:pl-4">
+      <p className="mt-5 mb-0 max-w-[680px]">
+        The FRAGMENT API is available in the following AWS regions:
+      </p>
+      <ul
+        className={`mt-5 mb-0 ${
+          leftAligned
+            ? "pl-[29px] max-[480px]:pl-8 -ml-[29px] max-[480px]:-ml-8"
+            : "pl-[35px] max-[480px]:pl-4"
+        }`}
+      >
         {regions.map((region) => (
           <li className="pl-0.5 max-[480px]:pl-0" key={region}>
             <code className="bg-white px-1 py-px text-neutral-400">{region}</code>
@@ -115,8 +133,9 @@ export function OrderedBody({
 
   const outerListPadding = showListDecorator ? "pl-[29px] max-[480px]:pl-8" : "pl-0";
 
-  const nestedListPadding =
-    showListDecorator || !leftAligned ? "pl-[29px] max-[480px]:pl-8" : "pl-0";
+  const nestedListPadding = leftAligned
+    ? "pl-[29px] max-[480px]:pl-8 -ml-[29px] max-[480px]:-ml-8"
+    : "pl-[29px] max-[480px]:pl-8";
 
   return (
     <main className="min-h-screen bg-[#f5f5f5] px-6 pt-7 pb-14 font-mono text-[15px] leading-[1.28] text-[#171717] max-[480px]:px-[23px] max-[480px]:pt-2 max-[480px]:pb-10 max-[480px]:text-sm md:px-10 md:pb-[72px]">
@@ -156,7 +175,11 @@ export function OrderedBody({
                 <SchemaSection showListDecorator={showListDecorator} showAnchors={showAnchors} />
               </li>
               <li className="mt-10">
-                <RegionsSection showListDecorator={showListDecorator} showAnchors={showAnchors} />
+                <RegionsSection
+                  showListDecorator={showListDecorator}
+                  showAnchors={showAnchors}
+                  leftAligned={leftAligned}
+                />
               </li>
               <li className="mt-[76px]">
                 <SectionHeading showListDecorator={showListDecorator} showAnchors={showAnchors}>

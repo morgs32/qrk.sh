@@ -14,13 +14,65 @@ import { BrickBreakpointProvider } from "../lib/BrickBreakpointProvider";
 import { BrickWall } from "../lib/BrickWall";
 import { BREAKPOINTS } from "../lib/breakpoints";
 import { modulesHash } from "../lib/modulesHash";
-import { useGridStore } from "../lib/useGridStore";
+import {
+  GridStoreProvider,
+  sandboxGridStore,
+  useGridStore,
+  useGridStoreApi,
+} from "../lib/useGridStore";
+import { useStoreLocalStorage } from "../lib/useStoreLocalStorage";
 
-export function SandboxLayout(props: { children: ReactNode }) {
+const SANDBOX_GRID_STORAGE_NAME = "qrk-bricks-sandbox-responsive-bricks-v5";
+
+function partializeSandboxGrid(state: ReturnType<typeof sandboxGridStore.getState>) {
+  return {
+    bricksById: state.bricksById,
+    selectedWidth: state.selectedWidth,
+  };
+}
+
+function migrateSandboxGrid(persisted: unknown) {
+  const selectedWidth =
+    persisted !== null &&
+    typeof persisted === "object" &&
+    "selectedWidth" in persisted &&
+    typeof persisted.selectedWidth === "number"
+      ? persisted.selectedWidth
+      : null;
+  return { bricksById: {}, selectedWidth };
+}
+
+function afterRehydrateSandboxGrid(state: ReturnType<typeof sandboxGridStore.getState>) {
+  let selectedWidth = state.selectedWidth;
+  if (selectedWidth === 375) selectedWidth = 360;
+  if (selectedWidth === 640 || selectedWidth === 768) selectedWidth = 720;
+  if (selectedWidth === 1024 || selectedWidth === 1280) selectedWidth = 1080;
+  if (selectedWidth === 1536) selectedWidth = 1440;
+  sandboxGridStore.setState({ selectedWidth, hasHydrated: true });
+}
+
+export function Layout(props: { children: ReactNode }) {
+  useStoreLocalStorage(sandboxGridStore, {
+    name: SANDBOX_GRID_STORAGE_NAME,
+    version: 5,
+    partialize: partializeSandboxGrid,
+    migrate: migrateSandboxGrid,
+    onAfterRehydrate: afterRehydrateSandboxGrid,
+  });
+
+  return (
+    <GridStoreProvider store={sandboxGridStore}>
+      <LayoutBody>{props.children}</LayoutBody>
+    </GridStoreProvider>
+  );
+}
+
+function LayoutBody(props: { children: ReactNode }) {
   const { children } = props;
   const location = useLocation();
   const navigate = useNavigate();
   const params = useParams({ strict: false });
+  const gridStore = useGridStoreApi();
   const moduleId = params.moduleId;
   const brickId = params.brickId;
   const moduleLabel = moduleId ? modulesHash[moduleId]?.label : undefined;
@@ -148,7 +200,7 @@ export function SandboxLayout(props: { children: ReactNode }) {
                   aria-label="Reset grid layout"
                   title="Reset grid layout"
                   onClick={() => {
-                    useGridStore.setState({
+                    gridStore.setState({
                       bricksById: {},
                       activeBrickDrag: null,
                     });
@@ -167,7 +219,7 @@ export function SandboxLayout(props: { children: ReactNode }) {
                     aria-label={`${row.previewWidth}px grid width`}
                     aria-pressed={selectedWidth === row.previewWidth}
                     disabled={row.previewWidth > availableWidth}
-                    onClick={() => useGridStore.setState({ selectedWidth: row.previewWidth })}
+                    onClick={() => gridStore.setState({ selectedWidth: row.previewWidth })}
                   >
                     {row.previewWidth}
                   </Button>

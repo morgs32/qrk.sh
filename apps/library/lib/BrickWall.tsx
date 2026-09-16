@@ -1,15 +1,16 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 
 import GridLayout, { verticalCompactor } from "react-grid-layout";
 
 import { useBrickBreakpoint } from "./BrickBreakpointProvider";
 import { modulesHash } from "./modulesHash";
 import { resolveBrickBreakpoint } from "./resolveBrickBreakpoint";
-import { useGridStore } from "./useGridStore";
+import { useGridStore, useGridStoreApi } from "./useGridStore";
 
 export function BrickWall(props: {
   onBrickActivate?: (args: { moduleId: string; brickId: string }) => void;
 }) {
+  const gridStore = useGridStoreApi();
   const containerRef = useRef<HTMLElement>(null);
   const { gridWidth, breakpoint, containerRef: observeGrid } = useBrickBreakpoint();
   const [dragging, setDragging] = useState(false);
@@ -21,13 +22,6 @@ export function BrickWall(props: {
   const setLayout = useGridStore((state) => state.setLayout);
   const addBrick = useGridStore((state) => state.addBrick);
   const setActiveBrickDrag = useGridStore((state) => state.setActiveBrickDrag);
-
-  useEffect(() => {
-    if (!useGridStore.persist.hasHydrated()) {
-      void useGridStore.persist.rehydrate();
-    }
-  }, []);
-
   useLayoutEffect(() => {
     if (!dragging && containerRef.current) {
       containerRef.current.scrollTop = dragScrollTop;
@@ -149,7 +143,7 @@ export function BrickWall(props: {
                 pointer.clientY < bounds.top ||
                 pointer.clientY > bounds.bottom);
             if (outside && item) {
-              useGridStore.setState((state) => {
+              gridStore.setState((state) => {
                 const remainingBricks = { ...state.bricksById };
                 delete remainingBricks[item.i];
                 return {

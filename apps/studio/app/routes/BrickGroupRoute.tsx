@@ -8,11 +8,13 @@ import { href, Link, useParams } from "react-router";
 import { CodeText } from "../[username]/site/[siteId]/page/[pageId]/BrickGroup/CodeText";
 import { MetadataField } from "../[username]/site/[siteId]/page/[pageId]/BrickGroup/MetadataField";
 
-import { BRICK_DRAG_MIME, useBrickDrawerStore } from "@/components/home/useBrickDrawerStore";
+import { BRICK_DRAG_MIME } from "@/components/home/useBrickDrawerStore";
+import { useGridStoreApi } from "@qrk.sh/library/GridStore";
 
 export default function BrickGroupRoute() {
   const { breakpoint } = useBrickBreakpoint();
   const params = useParams();
+  const gridStore = useGridStoreApi();
   const { username, siteId, pageId } = params;
   if (!username || !siteId || !pageId) throw new Error("Missing editor route params");
   const { groupName } = params;
@@ -97,7 +99,7 @@ export default function BrickGroupRoute() {
                       data-brick-drawer-module-id={brickModule.def.moduleId}
                       draggable
                       onDragStart={(event) => {
-                        useBrickDrawerStore.getState().registerActiveBrickDragGridShape(w, h);
+                        gridStore.getState().setActiveBrickDrag(structuredClone(brickModule.def));
                         event.dataTransfer.setData(
                           BRICK_DRAG_MIME,
                           JSON.stringify(brickModule.def),
@@ -106,7 +108,7 @@ export default function BrickGroupRoute() {
                         event.dataTransfer.setData("text/plain", brickModule.def.moduleId);
                       }}
                       onDragEnd={() => {
-                        useBrickDrawerStore.getState().unregisterActiveBrickDragGridShape();
+                        gridStore.getState().setActiveBrickDrag(null);
                       }}
                     >
                       <BrickComponent breakpoint={breakpoint} data={brickModule.defaultData} />

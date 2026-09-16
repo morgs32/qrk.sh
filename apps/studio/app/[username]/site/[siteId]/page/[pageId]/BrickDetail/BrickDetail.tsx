@@ -1,15 +1,14 @@
 "use client";
-import { useUser } from "@clerk/react";
 import { modulesHash } from "@qrk.sh/library";
 import { useBrickBreakpoint } from "@qrk.sh/library/BrickBreakpointProvider";
 import { BrickPreview } from "@qrk.sh/library/BrickPreview";
+import { resolveBrickBreakpoint, useGridStore } from "@qrk.sh/library/GridStore";
 import { Schema } from "effect";
 import { ArrowLeft, X } from "lucide-react";
 import { Link } from "react-router";
 import { href } from "react-router";
 import { useNavigate } from "react-router";
 
-import { useBrickDrawerStore } from "@/components/home/useBrickDrawerStore";
 import { Button } from "@/components/ui/button";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 
@@ -24,16 +23,10 @@ export function BrickDetail() {
   const { breakpoint } = useBrickBreakpoint();
   const navigate = useNavigate();
   const params = useValidatedParams(ParamsSchema);
-  const { user } = useUser();
-  const pageKey = JSON.stringify([user?.id, params.siteId, params.pageId]);
-  const brickDef = useBrickDrawerStore(
-    (state) => state.pageGrids[pageKey]?.bricksById[params.brickId],
-  );
-  const placement = useBrickDrawerStore((state) =>
-    state.pageGrids[pageKey]?.layout.find((item) => item.i === params.brickId),
-  );
-  const brick = brickDef ? modulesHash[brickDef.moduleId] : undefined;
+  const brickPlacement = useGridStore((state) => state.bricksById[params.brickId]);
+  const brick = brickPlacement ? modulesHash[brickPlacement.moduleId] : undefined;
   const BrickComponent = brick?.component;
+  const entry = brickPlacement ? resolveBrickBreakpoint(brickPlacement, breakpoint) : undefined;
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
@@ -53,7 +46,7 @@ export function BrickDetail() {
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto pb-6">
-        {!brick || !BrickComponent ? (
+        {!brick || !BrickComponent || !brickPlacement || !entry ? (
           <div className="px-6 pt-6" data-testid="brick-not-found">
             <Link to={href("/:username/site/:siteId/page/:pageId/brick-group", params)}>
               All modules
@@ -84,14 +77,18 @@ export function BrickDetail() {
             </div>
             <div className="mt-8 overflow-auto">
               <BrickPreview
-                w={placement?.w ?? brick.def[breakpoint].w}
-                h={placement?.h ?? brick.def[breakpoint].h}
+                w={entry.gridItem?.w ?? brick.def[breakpoint].w}
+                h={entry.gridItem?.h ?? brick.def[breakpoint].h}
               >
                 <div
                   className="size-full qrk-bricks overflow-hidden"
                   data-testid="selected-brick-preview"
                 >
-                  <BrickComponent breakpoint={breakpoint} data={brick.defaultData} />
+                  <BrickComponent
+                    breakpoint={breakpoint}
+                    data={brickPlacement.data}
+                    options={entry.options}
+                  />
                 </div>
               </BrickPreview>
             </div>

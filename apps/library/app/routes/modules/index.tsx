@@ -1,9 +1,8 @@
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 
 import { useBrickBreakpoint } from "../../../lib/BrickBreakpointProvider";
-import { BrickPreview } from "../../../lib/BrickPreview";
 import { modulesHash } from "../../../lib/modulesHash";
-import { DraggableBrick } from "../../DraggableBrick";
+import { ModulePreview } from "./-ModulePreview";
 
 export const Route = createFileRoute("/modules/")({
   component: ModulesPage,
@@ -18,42 +17,13 @@ function ModulesPage() {
       aria-label="Brick modules"
       className="flex h-full min-h-0 w-full min-w-0 flex-row gap-0 overflow-x-auto overflow-y-hidden overscroll-x-contain touch-pan-x touch-pan-y"
     >
-      {modules.map((brickModule) => {
-        const { def, component: BrickComponent } = brickModule;
-
-        return (
-          <div
-            key={brickModule.id}
-            data-module-entry={brickModule.id}
-            className="flex h-full min-h-0 w-max shrink-0 flex-col overflow-y-auto overscroll-y-contain border-r border-zinc-200"
-          >
-            <h2 className="m-0 shrink-0 sticky top-0 z-10 bg-white px-4 py-4 font-normal">
-              <Link
-                to="/modules/$moduleId"
-                params={{ moduleId: brickModule.id }}
-                data-module-link={brickModule.id}
-              >
-                {brickModule.label}
-              </Link>
-            </h2>
-            <div className="overflow-auto pt-6 pb-16">
-              <div className={def[breakpoint].w === 8 ? undefined : "px-4"}>
-                <BrickPreview w={def[breakpoint].w} h={def[breakpoint].h}>
-                  <DraggableBrick
-                    brickDef={def}
-                    className="size-full qrk-bricks overflow-hidden"
-                    data-module-representative={def.moduleId}
-                  >
-                    <div className="brick-drag-content size-full">
-                      <BrickComponent breakpoint={breakpoint} data={def.data} />
-                    </div>
-                  </DraggableBrick>
-                </BrickPreview>
-              </div>
-            </div>
-          </div>
-        );
-      })}
+      {modules.map((brickModule) => (
+        <ModulePreview
+          key={brickModule.id}
+          brickModule={brickModule}
+          breakpoint={breakpoint}
+        />
+      ))}
     </div>
   );
 }

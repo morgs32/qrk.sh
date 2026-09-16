@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 
 import { HeadContent, Outlet, Scripts, createRootRoute } from "@tanstack/react-router";
 
+import { Layout } from "../Layout";
 import { TanStackRouteErrorBoundary } from "../TanStackRouteErrorBoundary";
 import "../globals.css";
 
@@ -33,7 +34,9 @@ function RootComponent() {
   return (
     <RootDocument>
       <div className="qrk-bricks min-h-screen">
-        <Outlet />
+        <Layout>
+          <Outlet />
+        </Layout>
       </div>
     </RootDocument>
   );

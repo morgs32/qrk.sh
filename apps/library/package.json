@@ -26,6 +26,10 @@
       "types": "./dist/lib/BrickWall.d.ts",
       "import": "./dist/BrickWall.js"
     },
+    "./GridStore": {
+      "types": "./dist/lib/GridStore.d.ts",
+      "import": "./dist/GridStore.js"
+    },
     "./bricks.css": "./dist/bricks.css"
   },
   "scripts": {

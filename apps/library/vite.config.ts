@@ -26,6 +26,7 @@ export default defineConfig(({ mode }) => {
           BrickBreakpointProvider: "lib/BrickBreakpointProvider.tsx",
           breakpoints: "lib/breakpoints.ts",
           BrickWall: "lib/BrickWall.tsx",
+          GridStore: "lib/GridStore.ts",
         },
         formats: ["es"],
         fileName: (_format, entryName) => `${entryName}.js`,

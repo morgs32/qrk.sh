@@ -9,7 +9,8 @@ import { Link } from "react-router";
 import { useNavigate } from "react-router";
 import { href } from "react-router";
 
-import { BRICK_DRAG_MIME, useBrickDrawerStore } from "@/components/home/useBrickDrawerStore";
+import { BRICK_DRAG_MIME } from "@/components/home/useBrickDrawerStore";
+import { useGridStoreApi } from "@qrk.sh/library/GridStore";
 import { Button } from "@/components/ui/button";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 
@@ -23,6 +24,7 @@ export function BrickGroup() {
   const { breakpoint } = useBrickBreakpoint();
   const params = useValidatedParams(ParamsSchema);
   const navigate = useNavigate();
+  const gridStore = useGridStoreApi();
   const modules = Object.values(modulesHash);
 
   return (
@@ -82,7 +84,7 @@ export function BrickGroup() {
                       data-brick-drawer-module-id={selectedBrick.def.moduleId}
                       draggable
                       onDragStart={(event) => {
-                        useBrickDrawerStore.getState().registerActiveBrickDragGridShape(w, h);
+                        gridStore.getState().setActiveBrickDrag(structuredClone(selectedBrick.def));
                         event.dataTransfer.setData(
                           BRICK_DRAG_MIME,
                           JSON.stringify(selectedBrick.def),
@@ -91,7 +93,7 @@ export function BrickGroup() {
                         event.dataTransfer.setData("text/plain", selectedBrick.def.moduleId);
                       }}
                       onDragEnd={() => {
-                        useBrickDrawerStore.getState().unregisterActiveBrickDragGridShape();
+                        gridStore.getState().setActiveBrickDrag(null);
                       }}
                     >
                       <BrickComponent breakpoint={breakpoint} data={brickModule.defaultData} />

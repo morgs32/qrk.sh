@@ -1,6 +1,6 @@
 import { Users } from "lucide-react";
 
-import { brickMetaIconClass } from "../../../components/brick/brickTokens";
+import { brickMetaIconClass } from "../../../../components/brick/brickTokens";
 
 export function Followers(props: { followers: number }) {
   return (

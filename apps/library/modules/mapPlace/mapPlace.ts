@@ -6,7 +6,7 @@ import { makeFetcherConfiguration } from "../../make/makeFetcherConfiguration";
 import { makeModule } from "../../make/makeModule";
 
 import { GooglePlaceLookup } from "./GooglePlaceLookup";
-import { MapPlaceCanvas } from "./MapPlaceCanvas";
+import { MapPlace } from "./MapPlace/MapPlace";
 
 export const mapPlace = makeModule({
   id: "map-place",
@@ -38,4 +38,4 @@ export const mapPlace = makeModule({
     address: "Chicago, IL, USA",
     latitude: 41.8781136,
     longitude: -87.6297982},
-  sm: { component: MapPlaceCanvas, w: 4, h: 4 }});
+  sm: { component: MapPlace, w: 4, h: 4 }});

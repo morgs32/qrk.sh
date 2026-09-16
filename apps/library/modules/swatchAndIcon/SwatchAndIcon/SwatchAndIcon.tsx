@@ -1,7 +1,7 @@
-import { IconSvgGraphic } from "./IconSvgGraphic";
-import { SwatchAndIconColor } from "./SwatchAndIconColor";
+import { IconSvgGraphic } from "./components/IconSvgGraphic";
+import { SwatchAndIconColor } from "./components/SwatchAndIconColor";
 
-export function SwatchAndIconGlyph(props: {
+export function SwatchAndIcon(props: {
   breakpoint: "sm" | "md" | "lg" | "xl";
   options?: { color: string };
   data: { name: string; svg: string };

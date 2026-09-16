@@ -1,6 +1,6 @@
 import { MapPin } from "lucide-react";
 
-import { brickMetaIconClass } from "../../../components/brick/brickTokens";
+import { brickMetaIconClass } from "../../../../components/brick/brickTokens";
 
 export function Location(props: { location: string | null }) {
   if (!props.location) {

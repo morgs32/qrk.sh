@@ -2,7 +2,7 @@
 
 import { ActivityCalendar } from "react-activity-calendar";
 
-export function GitHubActivityCalendar(props: {
+export function GitHubActivity(props: {
   breakpoint: "sm" | "md" | "lg" | "xl";
   data: {
     contributions: Array<{

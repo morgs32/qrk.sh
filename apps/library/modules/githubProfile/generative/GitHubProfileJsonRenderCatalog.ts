@@ -17,7 +17,7 @@ export const githubProfileJsonRenderCatalog = defineCatalog(schema, {
     ProfileBody: {
       props: z.object({}),
       slots: ["default"],
-      description: "Scrollable body for bio, location, and blog lines.",
+      description: "Scrollable body for the header row plus bio, location, and blog lines.",
     },
     ProfileFooter: {
       props: z.object({}),

@@ -1,6 +1,10 @@
 {
   "name": "@qrk.sh/web",
   "private": true,
+  "exports": {
+    "./library/OrderedBody": "./library/OrderedBody.tsx",
+    "./library/OrderedOutline": "./library/OrderedOutline.tsx"
+  },
   "scripts": {
     "dev": "next dev --turbopack --port 3000",
     "build": "next build",

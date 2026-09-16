@@ -16,7 +16,7 @@ export function BrickPreview(props: {
   const fullH = Math.round((gridWidth / PREVIEW_GRID_COLS) * props.h);
   return (
     <div
-      className="shrink-0 shadow-[0_0_12px_rgb(0_0_0/0.18),0_0_3px_rgb(0_0_0/0.12)]"
+      className="shrink-0 shadow-[0_8px_28px_rgb(0_0_0/0.06),0_1px_6px_rgb(0_0_0/0.04)]"
       style={{
         width: fullW,
         height: fullH,

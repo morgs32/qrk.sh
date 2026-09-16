@@ -3,7 +3,7 @@ import { primitives } from "@zerospin/schema";
 import { makeFetcherConfiguration } from "../../make/makeFetcherConfiguration";
 import { makeModule } from "../../make/makeModule";
 
-import { InstagramDefaultFeed } from "./InstagramDefaultFeed";
+import { Instagram } from "./Instagram/Instagram";
 
 export const instagram = makeModule({
   id: "instagram",
@@ -40,5 +40,5 @@ export const instagram = makeModule({
       "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=800&q=80",
     postImageUrl4:
       "https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=800&q=80"},
-  sm: { component: InstagramDefaultFeed, w: 6, h: 4 },
-  lg: { component: InstagramDefaultFeed, w: 3, h: 3 }});
+  sm: { component: Instagram, w: 6, h: 4 },
+  lg: { component: Instagram, w: 3, h: 3 }});

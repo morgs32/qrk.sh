@@ -92,15 +92,12 @@ export function GitHubRepo() {
 
   return (
     <BrickShell className="min-w-0">
-      <h3 className="min-w-0 shrink-0 break-words [margin-block-end:0]">{data.name}</h3>
-
-      {description ? (
-        <BrickBody>
+      <BrickBody>
+        <h3 className="min-w-0 shrink-0 break-words [margin-block-end:0]">{data.name}</h3>
+        {description ? (
           <p className="min-w-0 [margin-block-start:0] [overflow-wrap:anywhere]">{description}</p>
-        </BrickBody>
-      ) : (
-        <div className="min-h-0 flex-1" />
-      )}
+        ) : null}
+      </BrickBody>
 
       <BrickFooter className="gap-4">
         <div className="flex shrink-0 items-center gap-1">

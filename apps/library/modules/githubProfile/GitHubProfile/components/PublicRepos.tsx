@@ -1,6 +1,6 @@
 import { BookOpen } from "lucide-react";
 
-import { brickMetaIconClass } from "../../../components/brick/brickTokens";
+import { brickMetaIconClass } from "../../../../components/brick/brickTokens";
 
 export function PublicRepos(props: { public_repos: number }) {
   return (

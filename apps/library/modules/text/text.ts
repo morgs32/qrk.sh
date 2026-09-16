@@ -7,7 +7,7 @@ import { Schema } from "effect";
 import { makeFormConfiguration } from "../../make/makeFormConfiguration";
 import { makeModule } from "../../make/makeModule";
 
-import { TextDefaultBody } from "./TextDefaultBody";
+import { Text } from "./Text/Text";
 import { TextEditorControl } from "./TextEditorControl";
 
 const dataShape = {
@@ -30,4 +30,4 @@ export const text = makeModule({
       createElement(TextEditorControl, {
         value: data.content,
         onChange: (content) => onChange({ content })})}),
-  sm: { component: TextDefaultBody, w: 4, h: 4 }});
+  sm: { component: Text, w: 4, h: 4 }});

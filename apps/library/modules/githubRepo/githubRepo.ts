@@ -1,6 +1,6 @@
 import { makeModule } from "../../make/makeModule";
 
-import { GitHubRepo } from "./components/GitHubRepo";
+import { GitHubRepo } from "./GitHubRepo/GitHubRepo";
 
 export const githubRepo = makeModule({
   dataShape: null,

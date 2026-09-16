@@ -4,7 +4,7 @@ import { Schema } from "effect";
 import { makeFetcherConfiguration } from "../../make/makeFetcherConfiguration";
 import { makeModule } from "../../make/makeModule";
 
-import { GitHubActivityCalendar } from "./GitHubActivityCalendar";
+import { GitHubActivity } from "./GitHubActivity/GitHubActivity";
 
 export const githubActivity = makeModule({
   id: "github-activity",
@@ -59,7 +59,7 @@ export const githubActivity = makeModule({
       return { date: date.toISOString().slice(0, 10), count, level };
     }),
   },
-  sm: { component: GitHubActivityCalendar, w: 4, h: 3 },
-  md: { component: GitHubActivityCalendar, w: 4, h: 2 },
-  lg: { component: GitHubActivityCalendar, w: 4, h: 1 },
+  sm: { component: GitHubActivity, w: 4, h: 3 },
+  md: { component: GitHubActivity, w: 4, h: 2 },
+  lg: { component: GitHubActivity, w: 4, h: 1 },
 });

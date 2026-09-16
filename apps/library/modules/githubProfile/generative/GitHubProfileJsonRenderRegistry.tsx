@@ -1,17 +1,17 @@
 import { defineRegistry } from "@json-render/react";
 
-import { Avatar } from "../components/Avatar";
-import { Bio } from "../components/Bio";
-import { Blog } from "../components/Blog";
-import { Followers } from "../components/Followers";
-import { Following } from "../components/Following";
-import { Location } from "../components/Location";
-import { Login } from "../components/Login";
-import { ProfileBody } from "../components/ProfileBody";
-import { ProfileCard } from "../components/ProfileCard";
-import { ProfileFooter } from "../components/ProfileFooter";
-import { ProfileHeader } from "../components/ProfileHeader";
-import { PublicRepos } from "../components/PublicRepos";
+import { Avatar } from "../GitHubProfile/components/Avatar";
+import { Bio } from "../GitHubProfile/components/Bio";
+import { Blog } from "../GitHubProfile/components/Blog";
+import { Followers } from "../GitHubProfile/components/Followers";
+import { Following } from "../GitHubProfile/components/Following";
+import { Location } from "../GitHubProfile/components/Location";
+import { Login } from "../GitHubProfile/components/Login";
+import { ProfileBody } from "../GitHubProfile/components/ProfileBody";
+import { ProfileCard } from "../GitHubProfile/components/ProfileCard";
+import { ProfileFooter } from "../GitHubProfile/components/ProfileFooter";
+import { ProfileHeader } from "../GitHubProfile/components/ProfileHeader";
+import { PublicRepos } from "../GitHubProfile/components/PublicRepos";
 import { githubProfileJsonRenderCatalog } from "./GitHubProfileJsonRenderCatalog";
 
 export const { registry } = defineRegistry(githubProfileJsonRenderCatalog, {

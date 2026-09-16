@@ -1,6 +1,6 @@
 import { Link as LinkIcon } from "lucide-react";
 
-import { brickMetaIconClass } from "../../../components/brick/brickTokens";
+import { brickMetaIconClass } from "../../../../components/brick/brickTokens";
 
 export function Blog(props: { blog: string }) {
   if (!props.blog) {

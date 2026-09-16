@@ -1,6 +1,8 @@
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
 import { cn } from "cn";
 
+import { brickInsetClass } from "./brickTokens";
+
 export function BrickBody({
   children,
   className,
@@ -12,7 +14,11 @@ export function BrickBody({
   return (
     <div
       {...props}
-      className={cn("flex min-h-0 flex-1 flex-col gap-2 overflow-auto", className)}
+      className={cn(
+        "flex min-h-0 flex-1 flex-col gap-2 overflow-auto",
+        brickInsetClass,
+        className,
+      )}
     >
       {children}
     </div>

@@ -1,6 +1,6 @@
 import { UserPlus } from "lucide-react";
 
-import { brickMetaIconClass } from "../../../components/brick/brickTokens";
+import { brickMetaIconClass } from "../../../../components/brick/brickTokens";
 
 export function Following(props: { following: number }) {
   return (

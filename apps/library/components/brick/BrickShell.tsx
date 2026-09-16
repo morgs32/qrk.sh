@@ -1,7 +1,7 @@
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
 import { cn } from "cn";
 
-import { brickInsetClass, brickStackGapClass } from "./brickTokens";
+import { brickStackGapClass } from "./brickTokens";
 
 export function BrickShell({
   children,
@@ -16,7 +16,6 @@ export function BrickShell({
       {...props}
       className={cn(
         "flex h-full min-h-0 w-full flex-col overflow-hidden",
-        brickInsetClass,
         brickStackGapClass,
         className,
       )}

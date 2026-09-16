@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-import { BrickFooter } from "../../../components/brick/BrickFooter";
+import { BrickFooter } from "../../../../components/brick/BrickFooter";
 
 export function ProfileFooter(props: { children?: ReactNode }) {
   return (

@@ -8,7 +8,7 @@ import { makeOptions } from "../../make/makeOptions";
 
 import { StreamlineIconLookup } from "./StreamlineIconLookup";
 import { SwatchAndIconColorForm } from "./SwatchAndIconColorForm";
-import { SwatchAndIconGlyph } from "./SwatchAndIconGlyph";
+import { SwatchAndIcon } from "./SwatchAndIcon/SwatchAndIcon";
 
 export const swatchAndIcon = makeModule({
   id: "swatch-and-icon",
@@ -37,4 +37,4 @@ export const swatchAndIcon = makeModule({
     shape: {
       color: primitives.text({ defaultValue: "#4A7C59" })},
     form: SwatchAndIconColorForm}),
-  sm: { component: SwatchAndIconGlyph, w: 2, h: 2 }});
+  sm: { component: SwatchAndIcon, w: 2, h: 2 }});

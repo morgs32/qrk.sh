@@ -4,9 +4,10 @@ import { Image } from "@unpic/react";
 export function MediaFooter(props: {
   iconUrl?: string;
   icon?: ReactNode;
-  heading?: string;
+  heading?: ReactNode;
   /** Small label above the heading (e.g. "Figma"). */
   overline?: string;
+  children?: ReactNode;
 }) {
   const showIcon = props.icon !== undefined || props.iconUrl !== undefined;
   const showText = props.overline !== undefined || props.heading !== undefined;
@@ -28,14 +29,17 @@ export function MediaFooter(props: {
         ) : null
       ) : null}
       {showText ? (
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           {props.overline !== undefined && props.overline !== "" ? (
-            <p className="m-0 uppercase tracking-[0.18em]">{props.overline}</p>
+            <small className="m-0 uppercase tracking-[0.18em]">{props.overline}</small>
           ) : null}
           {props.heading !== undefined && props.heading !== "" ? (
             <h2 className="m-0 truncate">{props.heading}</h2>
           ) : null}
         </div>
+      ) : null}
+      {props.children !== undefined ? (
+        <div className="ml-auto flex shrink-0 items-center gap-2">{props.children}</div>
       ) : null}
     </div>
   );

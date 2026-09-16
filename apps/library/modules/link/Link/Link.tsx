@@ -1,6 +1,6 @@
 import { Image } from "@unpic/react";
 
-export function LinkDefaultCard(props: {
+export function Link(props: {
   data: {
     url: string;
     title: string;

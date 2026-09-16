@@ -3,7 +3,7 @@ import { primitives } from "@zerospin/schema";
 import { makeFetcherConfiguration } from "../../make/makeFetcherConfiguration";
 import { makeModule } from "../../make/makeModule";
 
-import { LinkDefaultCard } from "./LinkDefaultCard";
+import { Link } from "./Link/Link";
 
 export const link = makeModule({
   id: "link",
@@ -34,4 +34,4 @@ export const link = makeModule({
     imageUrl:
       "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=800&q=80",
     iconUrl: "https://www.apple.com/favicon.ico"},
-  sm: { component: LinkDefaultCard, w: 4, h: 2 }});
+  sm: { component: Link, w: 4, h: 2 }});

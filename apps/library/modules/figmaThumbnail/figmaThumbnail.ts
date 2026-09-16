@@ -6,8 +6,8 @@ import { makeOptions } from "../../make/makeOptions";
 
 import defaultThumbnailUrl from "./dot-pattern-789x450.png";
 import { FigmaOptionsForm } from "./FigmaOptionsForm";
-import { FigmaThumbnailFooter } from "./FigmaThumbnailFooter";
-import { FigmaThumbnailHeader } from "./FigmaThumbnailHeader";
+import { FigmaThumbnailFooter } from "./FigmaThumbnailFooter/FigmaThumbnailFooter";
+import { FigmaThumbnailHeader } from "./FigmaThumbnailHeader/FigmaThumbnailHeader";
 
 export const figmaThumbnail = makeModule({
   id: "figma-thumbnail",

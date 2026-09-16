@@ -55,54 +55,51 @@ function ModuleDetail() {
           ]}
         />
       </div>
-      <div className="overflow-auto py-6">
+      <div className="px-4 py-6">
         <div className="flex flex-col gap-8">
           {BREAKPOINTS.map((entry) => (
             <BrickBreakpointProvider key={entry.id}>
               {({ containerRef }) => (
                 <section>
-                  <h2 className="m-0 shrink-0 px-4 py-2 font-normal">{entry.id}</h2>
-                  <div className="overflow-auto">
-                    <div ref={containerRef} style={{ width: entry.previewWidth }}>
-                      <BrickPreview w={brick.def[entry.id].w} h={brick.def[entry.id].h}>
-                        <div
-                          className="size-full qrk-bricks brick-drag-surface overflow-hidden"
-                          data-module-brick={moduleId}
-                          data-testid="brick-preview"
-                          style={{ clipPath: "inset(0)" }}
-                          draggable
-                          onDragStart={(event) => {
-                            setActiveBrickDrag({
-                              ...brick.def,
-                              data: structuredClone(moduleData),
-                              ...(options !== undefined
-                                ? { options: structuredClone(options) }
-                                : {}),
-                            });
-                            const surface = event.currentTarget;
-                            if (surface) {
-                              const bounds = surface.getBoundingClientRect();
-                              event.dataTransfer.setDragImage(
-                                surface,
-                                event.clientX - bounds.left,
-                                event.clientY - bounds.top,
-                              );
-                            }
-                            event.dataTransfer.effectAllowed = "copy";
-                            event.dataTransfer.setData("text/plain", brick.def.moduleId);
-                          }}
-                          onDragEnd={() => setActiveBrickDrag(null)}
-                        >
-                          <div className="brick-drag-content size-full select-none">
-                            <BrickComponent
-                              breakpoint={entry.id}
-                              data={moduleData}
-                              options={options}
-                            />
-                          </div>
+                  <h2 className="m-0 shrink-0 py-2 font-normal">{entry.id}</h2>
+                  <div ref={containerRef} style={{ width: entry.previewWidth }}>
+                    <BrickPreview w={brick.def[entry.id].w} h={brick.def[entry.id].h}>
+                      <div
+                        className="size-full qrk-bricks brick-drag-surface overflow-hidden"
+                        data-module-brick={moduleId}
+                        data-testid="brick-preview"
+                        draggable
+                        onDragStart={(event) => {
+                          setActiveBrickDrag({
+                            ...brick.def,
+                            data: structuredClone(moduleData),
+                            ...(options !== undefined
+                              ? { options: structuredClone(options) }
+                              : {}),
+                          });
+                          const surface = event.currentTarget;
+                          if (surface) {
+                            const bounds = surface.getBoundingClientRect();
+                            event.dataTransfer.setDragImage(
+                              surface,
+                              event.clientX - bounds.left,
+                              event.clientY - bounds.top,
+                            );
+                          }
+                          event.dataTransfer.effectAllowed = "copy";
+                          event.dataTransfer.setData("text/plain", brick.def.moduleId);
+                        }}
+                        onDragEnd={() => setActiveBrickDrag(null)}
+                      >
+                        <div className="brick-drag-content size-full select-none">
+                          <BrickComponent
+                            breakpoint={entry.id}
+                            data={moduleData}
+                            options={options}
+                          />
                         </div>
-                      </BrickPreview>
-                    </div>
+                      </div>
+                    </BrickPreview>
                   </div>
                 </section>
               )}
@@ -110,7 +107,7 @@ function ModuleDetail() {
           ))}
         </div>
         {moduleId === "github-profile" ? (
-          <div className="mt-8 px-4">
+          <div className="mt-8">
             <GitHubProfileJsonRenderCompare data={moduleData} spec={generatedSpec} />
           </div>
         ) : null}

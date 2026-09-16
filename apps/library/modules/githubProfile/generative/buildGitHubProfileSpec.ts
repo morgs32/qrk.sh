@@ -17,7 +17,7 @@ export function buildGitHubProfileSpec(data: {
       "card-1": {
         type: "ProfileCard",
         props: {},
-        children: ["header-1", "body-1", "footer-1"],
+        children: ["body-1", "footer-1"],
       },
       "header-1": {
         type: "ProfileHeader",
@@ -40,7 +40,7 @@ export function buildGitHubProfileSpec(data: {
       "body-1": {
         type: "ProfileBody",
         props: {},
-        children: ["bio-1", "location-1", "blog-1"],
+        children: ["header-1", "bio-1", "location-1", "blog-1"],
       },
       "bio-1": {
         type: "Bio",

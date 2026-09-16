@@ -2,6 +2,8 @@
 
 import { useState, type ReactNode } from "react";
 
+import { OrderedBody } from "../../library/OrderedBody";
+
 const regions = ["ap-southeast-2", "us-east-1", "us-east-2", "us-west-2", "eu-west-1"];
 
 function SectionHeading({
@@ -123,8 +125,6 @@ export default function OrderedBodyPage() {
   const [showAnchors, setShowAnchors] = useState(true);
   const [leftAligned, setLeftAligned] = useState(false);
 
-  const outerListPadding = showListDecorator ? "pl-[29px] max-[480px]:pl-8" : "pl-0";
-
   const nestedListPadding = leftAligned
     ? "pl-[29px] max-[480px]:pl-8 -ml-[29px] max-[480px]:-ml-8"
     : "pl-[29px] max-[480px]:pl-8";
@@ -158,11 +158,7 @@ export default function OrderedBodyPage() {
             />
           </label>
         </div>
-        <ol
-          className={`list-outside marker:font-mono marker:text-neutral-400 ${outerListPadding} ${
-            showListDecorator ? "list-[upper-alpha]" : "list-none"
-          }`}
-        >
+        <OrderedBody showListDecorator={showListDecorator}>
           <li>
             <SectionHeading showListDecorator={showListDecorator} showAnchors={showAnchors}>
               API Overview
@@ -189,7 +185,7 @@ export default function OrderedBodyPage() {
               </li>
             </ol>
           </li>
-        </ol>
+        </OrderedBody>
       </div>
     </main>
   );

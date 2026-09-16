@@ -11,7 +11,7 @@ export function StatsRow(props: { public_repos: number; followers: number; follo
         aria-label={`${props.followers} followers`}
       >
         <Users className={brickMetaIconClass} aria-hidden="true" />
-        <span className="truncate font-medium">{props.followers}</span>
+        <span className="truncate">{props.followers}</span>
       </div>
       <div
         className="flex min-w-0 items-center gap-1"
@@ -19,7 +19,7 @@ export function StatsRow(props: { public_repos: number; followers: number; follo
         aria-label={`${props.following} following`}
       >
         <UserPlus className={brickMetaIconClass} aria-hidden="true" />
-        <span className="truncate font-medium">{props.following}</span>
+        <span className="truncate">{props.following}</span>
       </div>
       <div
         className="flex min-w-0 items-center gap-1"
@@ -27,7 +27,7 @@ export function StatsRow(props: { public_repos: number; followers: number; follo
         aria-label={`${props.public_repos} repositories`}
       >
         <BookOpen className={brickMetaIconClass} aria-hidden="true" />
-        <span className="truncate font-medium">{props.public_repos}</span>
+        <span className="truncate">{props.public_repos}</span>
       </div>
     </div>
   );

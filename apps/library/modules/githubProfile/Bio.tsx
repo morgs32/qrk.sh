@@ -13,7 +13,7 @@ export function Bio(props: { bio: string | null }) {
       className={`flex items-center gap-1 ${brickMutedClass}`}
     >
       <Quote className={brickMetaIconClass} />
-      <span className="truncate">{props.bio}</span>
+      <p className="m-0 truncate">{props.bio}</p>
     </div>
   );
 }

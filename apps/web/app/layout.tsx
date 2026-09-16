@@ -12,8 +12,8 @@ const spaceMono = Space_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Platforms Starter Kit",
-  description: "Next.js app.",
+  title: "QRK.SH",
+  description: "Loud and proud, right? Right.",
 };
 
 export default function RootLayout({

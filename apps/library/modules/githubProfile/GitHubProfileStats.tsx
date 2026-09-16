@@ -85,7 +85,7 @@ export function GitHubProfileStats(props: {
           aria-label={`${user.followers} followers`}
         >
           <Users className={brickMetaIconClass} aria-hidden="true" />
-          <span className="truncate font-medium">{user.followers}</span>
+          <span className="truncate">{user.followers}</span>
         </div>
         <div
           className="flex min-w-0 items-center gap-1"
@@ -93,7 +93,7 @@ export function GitHubProfileStats(props: {
           aria-label={`${user.following} following`}
         >
           <UserPlus className={brickMetaIconClass} aria-hidden="true" />
-          <span className="truncate font-medium">{user.following}</span>
+          <span className="truncate">{user.following}</span>
         </div>
         <div
           className="flex min-w-0 items-center gap-1"
@@ -101,7 +101,7 @@ export function GitHubProfileStats(props: {
           aria-label={`${user.public_repos} repositories`}
         >
           <BookOpen className={brickMetaIconClass} aria-hidden="true" />
-          <span className="truncate font-medium">{user.public_repos}</span>
+          <span className="truncate">{user.public_repos}</span>
         </div>
       </BrickFooter>
     </BrickShell>

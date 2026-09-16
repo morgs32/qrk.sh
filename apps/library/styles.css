@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./typeset.css";
 @import "mapbox-gl/dist/mapbox-gl.css";
 @source "./**/*.{ts,tsx}";
 
@@ -61,6 +62,30 @@
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.552 0.016 285.938);
+}
+
+/* Compact card rhythm: BrickShell gap owns spacing; Typeset owns type scale. */
+.typeset-brick {
+  --typeset-font-body: var(--font-sans);
+  --typeset-font-heading: var(--font-sans);
+  --typeset-font-mono: var(--font-mono);
+  --typeset-size: 12px;
+  --typeset-leading: 1.4;
+  --typeset-flow: 0;
+}
+
+.typeset-brick :where(h1 + *, h2 + *, h3 + *, h4 + *, h5 + *, h6 + *) {
+  margin-block-start: 0;
+}
+
+/* Document rhythm for TipTap / markdown inside or outside BrickFrame. */
+.typeset-article {
+  --typeset-font-body: var(--font-sans);
+  --typeset-font-heading: var(--font-sans);
+  --typeset-font-mono: var(--font-mono);
+  --typeset-size: 14px;
+  --typeset-leading: 1.6;
+  --typeset-flow: 1.25em;
 }
 
 /* Group previews and placed Grid bricks reserve pointer movement for their

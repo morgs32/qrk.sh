@@ -49,7 +49,7 @@ export function MapPlaceCanvas(props: {
   return (
     <div
       aria-label={`Map of ${props.data.name}`}
-      className="h-full w-full overflow-hidden bg-muted"
+      className="not-typeset h-full w-full overflow-hidden bg-muted"
       data-map-place-id={props.data.googlePlaceId}
       ref={mapContainerRef}
     />

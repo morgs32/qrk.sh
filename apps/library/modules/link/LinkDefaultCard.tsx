@@ -33,14 +33,14 @@ export function LinkDefaultCard(props: {
               width={40}
             />
           ) : null}
-          <h2 className="m-0 line-clamp-3 font-medium leading-snug">
+          <h2 className="m-0 line-clamp-3">
             {props.data.title}
           </h2>
           <p className="m-0 mt-1 truncate">{props.data.siteName}</p>
         </div>
 
         {props.data.imageUrl.length > 0 ? (
-          <div className="relative h-full w-[44%] shrink-0 overflow-hidden bg-zinc-200">
+          <div className="not-typeset relative h-full w-[44%] shrink-0 overflow-hidden bg-zinc-200">
             <Image
               alt=""
               className="absolute inset-0 h-full w-full object-cover"

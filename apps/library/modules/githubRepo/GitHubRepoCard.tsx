@@ -7,7 +7,7 @@ import { cn } from "cn";
 
 import { BrickFooter } from "../../components/brick/BrickFooter";
 import { BrickShell } from "../../components/brick/BrickShell";
-import { brickMetaIconClass, brickMutedClass, brickTitleClass } from "../../components/brick/brickTokens";
+import { brickMetaIconClass, brickMutedClass } from "../../components/brick/brickTokens";
 
 const GITHUB_REPO_OWNER = "morgs32";
 const GITHUB_REPO_NAME = "ink-steps";
@@ -82,7 +82,7 @@ export function GitHubRepoCard({ size = "sm" }: { size?: "xs" | "sm" }) {
 
   return (
     <BrickShell className="min-w-0">
-      <h3 className={cn("min-w-0 shrink-0 break-words", brickTitleClass)}>
+      <h3 className="min-w-0 shrink-0 break-words">
         <a
           href={data.html_url}
           target="_blank"

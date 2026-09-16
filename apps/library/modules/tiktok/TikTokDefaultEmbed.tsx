@@ -12,7 +12,7 @@ export function TikTokDefaultEmbed(props: { data: { username: string } }) {
   }, [props.data.username]);
 
   return (
-    <div className="h-full w-full overflow-auto p-2">
+    <div className="not-typeset h-full w-full overflow-auto p-2">
       <blockquote
         cite={`https://www.tiktok.com/@${props.data.username}`}
         className="tiktok-embed m-0 h-full min-w-0 max-w-none"

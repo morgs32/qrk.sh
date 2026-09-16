@@ -21,7 +21,7 @@ export function FigmaThumbnailHeader(props: {
     >
       <div className="relative h-full w-full overflow-hidden">
         <div
-          className="absolute inset-x-0 top-0 bottom-[20.25%] bg-[linear-gradient(to_right,#e4e4e7_1px,transparent_1px),linear-gradient(to_bottom,#e4e4e7_1px,transparent_1px)] bg-[size:20px_20px]"
+          className="not-typeset absolute inset-x-0 top-0 bottom-[20.25%] bg-[linear-gradient(to_right,#e4e4e7_1px,transparent_1px),linear-gradient(to_bottom,#e4e4e7_1px,transparent_1px)] bg-[size:20px_20px]"
           data-figma-fallback="thumbnail"
         >
           <div className="absolute left-[18%] top-[18%] h-[48%] w-[64%] bg-violet-100" />
@@ -52,7 +52,7 @@ export function FigmaThumbnailHeader(props: {
             <path d="M6 24h6v6a6 6 0 1 1-6-6Z" fill="#0ACF83" />
           </svg>
           <div className="min-w-0">
-            <h2 className="m-0 truncate font-semibold leading-tight">
+            <h2 className="m-0 truncate">
               {props.data.title}
             </h2>
           </div>

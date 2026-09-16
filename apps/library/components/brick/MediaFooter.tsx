@@ -35,7 +35,7 @@ export function MediaFooter(props: {
             </p>
           ) : null}
           {props.heading !== undefined && props.heading !== "" ? (
-            <h2 className="m-0 truncate text-lg font-semibold leading-tight">{props.heading}</h2>
+            <h2 className="m-0 truncate">{props.heading}</h2>
           ) : null}
         </div>
       ) : null}

@@ -77,17 +77,17 @@ schemas, and provider scrape modules) stay under `apps/library/worker/`.
 
 ### Brick chrome (inset and type)
 
-Shared brick padding and typography live in `apps/library/components/brick/` next to `BrickFrame`. Import each file directly (no barrel).
+Shared brick padding and Typeset live in `apps/library/components/brick/` next to `BrickFrame`, with owned [`typeset.css`](../../apps/library/typeset.css) imported from [`styles.css`](../../apps/library/styles.css). Import each file directly (no barrel).
 
-- **`BrickFrame`** — owned by `makeModule`’s `Brick` renderer (not by presentations). Fill sizing, `qrk-bricks`, and nested SVG `user-select: none` (`[&_svg]:select-none`). No background or text-color props.
+- **`BrickFrame`** — owned by `makeModule`’s `Brick` renderer (not by presentations). Fill sizing, `qrk-bricks`, `typeset typeset-brick`, and nested SVG `user-select: none` (`[&_svg]:select-none`). No background or text-color props. Typeset owns body size, leading, and heading scale; `--typeset-flow` is `0` so `BrickShell` gap owns card spacing.
 - **`BrickShell` / `BrickBody` / `BrickFooter`** — inset flex column, scrollable middle, and `mt-auto` meta row. Shells compose **inside** the framed presentation.
 - **`MediaFooter`** — bottom strip for **Thumbnail** layouts (optional `icon` / `iconUrl`, `heading`, `overline`; content-sized with `p-4`). Distinct from `BrickFooter` (stats/meta row inside a Stats shell). No card border or fill.
-- **`brickTokens.ts`** — class-string constants (`brickInsetClass`, `brickMutedClass`, `brickTitleClass`, …). Prefer these over ad hoc `p-2` / `text-xs` / `text-zinc-500` in brick presentations and json-render registry pieces. Oxlint errors on font size and font color `text-*` classnames under `modules/**`.
+- **`brickTokens.ts`** — inset/gap/icon and muted meta (`brickInsetClass`, `brickMutedClass`, `brickMetaIconClass`). Prefer these over ad hoc `p-2` / `text-zinc-500` in brick presentations. Do **not** put font-size or title color on module markup; use semantic tags (`h2`/`h3`/`p`) under Typeset. Oxlint errors on font size and font color `text-*` classnames under `modules/**`. Media / map / chart / calendar roots use `not-typeset`. TipTap and document content use `typeset typeset-article` for real block flow.
 
 Presentations must not add card chrome (fills, borders, radii, shadows on the brick surface). Content geometry (e.g. avatar circles) and intentional fills (e.g. SwatchAndIcon color) are allowed.
 
-- **Bad**: each module inventing its own card padding (`p-3` vs `p-4`) so footer meta does not line up across bricks; wrapping presentations in `BrickFrame`; white card shells with borders/radii.
-- **Good**: `GitHubProfileStats` and `GitHubRepoCard` both use `BrickShell` + `BrickFooter` and shared tokens; `makeModule` supplies `BrickFrame` once.
+- **Bad**: each module inventing its own card padding (`p-3` vs `p-4`) so footer meta does not line up across bricks; wrapping presentations in `BrickFrame`; white card shells with borders/radii; ad hoc `text-sm` / `font-semibold` on titles.
+- **Good**: `GitHubProfileStats` and `GitHubRepoCard` both use `BrickShell` + `BrickFooter` and shared tokens; titles are `h2`/`h3`; `makeModule` supplies `BrickFrame` + Typeset once.
 
 ### Factory arguments
 

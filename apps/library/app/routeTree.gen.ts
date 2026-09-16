@@ -11,9 +11,6 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ModulesRouteImport } from './routes/modules'
-import { Route as OrderedBodyRouteImport } from './routes/ordered-body'
-import { Route as OrderedOutlineRouteImport } from './routes/ordered-outline'
-import { Route as BricksModuleIdRouteImport } from './routes/bricks/$moduleId'
 import { Route as ModulesIndexRouteImport } from './routes/modules/index'
 import { Route as ModulesModuleIdRouteImport } from './routes/modules/$moduleId'
 import { Route as ModulesModuleIdIndexRouteImport } from './routes/modules/$moduleId/index'
@@ -27,21 +24,6 @@ const IndexRoute = IndexRouteImport.update({
 const ModulesRoute = ModulesRouteImport.update({
   id: '/modules',
   path: '/modules',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const OrderedBodyRoute = OrderedBodyRouteImport.update({
-  id: '/ordered-body',
-  path: '/ordered-body',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const OrderedOutlineRoute = OrderedOutlineRouteImport.update({
-  id: '/ordered-outline',
-  path: '/ordered-outline',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BricksModuleIdRoute = BricksModuleIdRouteImport.update({
-  id: '/bricks/$moduleId',
-  path: '/bricks/$moduleId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ModulesIndexRoute = ModulesIndexRouteImport.update({
@@ -68,9 +50,6 @@ const ModulesModuleIdBrickIdRoute = ModulesModuleIdBrickIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/modules': typeof ModulesRouteWithChildren
-  '/ordered-body': typeof OrderedBodyRoute
-  '/ordered-outline': typeof OrderedOutlineRoute
-  '/bricks/$moduleId': typeof BricksModuleIdRoute
   '/modules/$moduleId': typeof ModulesModuleIdRouteWithChildren
   '/modules/': typeof ModulesIndexRoute
   '/modules/$moduleId/$brickId': typeof ModulesModuleIdBrickIdRoute
@@ -78,9 +57,6 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/ordered-body': typeof OrderedBodyRoute
-  '/ordered-outline': typeof OrderedOutlineRoute
-  '/bricks/$moduleId': typeof BricksModuleIdRoute
   '/modules': typeof ModulesIndexRoute
   '/modules/$moduleId/$brickId': typeof ModulesModuleIdBrickIdRoute
   '/modules/$moduleId': typeof ModulesModuleIdIndexRoute
@@ -89,9 +65,6 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/modules': typeof ModulesRouteWithChildren
-  '/ordered-body': typeof OrderedBodyRoute
-  '/ordered-outline': typeof OrderedOutlineRoute
-  '/bricks/$moduleId': typeof BricksModuleIdRoute
   '/modules/$moduleId': typeof ModulesModuleIdRouteWithChildren
   '/modules/': typeof ModulesIndexRoute
   '/modules/$moduleId/$brickId': typeof ModulesModuleIdBrickIdRoute
@@ -102,29 +75,16 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/modules'
-    | '/ordered-body'
-    | '/ordered-outline'
-    | '/bricks/$moduleId'
     | '/modules/$moduleId'
     | '/modules/'
     | '/modules/$moduleId/$brickId'
     | '/modules/$moduleId/'
   fileRoutesByTo: FileRoutesByTo
-  to:
-    | '/'
-    | '/ordered-body'
-    | '/ordered-outline'
-    | '/bricks/$moduleId'
-    | '/modules'
-    | '/modules/$moduleId/$brickId'
-    | '/modules/$moduleId'
+  to: '/' | '/modules' | '/modules/$moduleId/$brickId' | '/modules/$moduleId'
   id:
     | '__root__'
     | '/'
     | '/modules'
-    | '/ordered-body'
-    | '/ordered-outline'
-    | '/bricks/$moduleId'
     | '/modules/$moduleId'
     | '/modules/'
     | '/modules/$moduleId/$brickId'
@@ -134,9 +94,6 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ModulesRoute: typeof ModulesRouteWithChildren
-  OrderedBodyRoute: typeof OrderedBodyRoute
-  OrderedOutlineRoute: typeof OrderedOutlineRoute
-  BricksModuleIdRoute: typeof BricksModuleIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -153,27 +110,6 @@ declare module '@tanstack/react-router' {
       path: '/modules'
       fullPath: '/modules'
       preLoaderRoute: typeof ModulesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/ordered-body': {
-      id: '/ordered-body'
-      path: '/ordered-body'
-      fullPath: '/ordered-body'
-      preLoaderRoute: typeof OrderedBodyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/ordered-outline': {
-      id: '/ordered-outline'
-      path: '/ordered-outline'
-      fullPath: '/ordered-outline'
-      preLoaderRoute: typeof OrderedOutlineRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/bricks/$moduleId': {
-      id: '/bricks/$moduleId'
-      path: '/bricks/$moduleId'
-      fullPath: '/bricks/$moduleId'
-      preLoaderRoute: typeof BricksModuleIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/modules/': {
@@ -237,9 +173,6 @@ const ModulesRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ModulesRoute: ModulesRouteWithChildren,
-  OrderedBodyRoute: OrderedBodyRoute,
-  OrderedOutlineRoute: OrderedOutlineRoute,
-  BricksModuleIdRoute: BricksModuleIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

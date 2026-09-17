@@ -1,12 +1,12 @@
 ---
 title: Architecture
-updated: 2026-09-15
+updated: 2026-09-16
 ---
 
 # Architecture
 
 Brick module identity, preview, and drag/drop.
 
-- [`BrickModule.md`](./BrickModule.md) — `makeModule`, `modulesHash`, and `brickModule` lookup.
+- [`BrickModule.md`](./BrickModule.md) — `defineModule`, `makeFrontend`, `modulesHash`, and `brickModule` lookup.
 - [`browser/LibrarySandboxBrickDrop.md`](./browser/LibrarySandboxBrickDrop.md) — workbench filmstrip preview and drop onto `BrickWall`.
 - [`browser/SiteEditorBrickDrop.md`](./browser/SiteEditorBrickDrop.md) — site-editor drawer preview and drop onto `Grid`.

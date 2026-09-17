@@ -53,13 +53,13 @@ Worker/RPC declarations. Neither build deploys the app.
 
 ## Modules and interaction
 
-`modulesHash` exposes each library module by kebab-case id. `makeModule` combines data and
-configuration with responsive presentations and an optional appearance form. Each breakpoint
-entry is `{ component, w, h }`; `xs` is required. Omitted `sm`, `lg`, and `xl` entries inherit
-the nearest smaller entry, including both its component and initial dimensions.
-Module definitions expose resolved `xs`/`sm`/`lg`/`xl` dimensions for previews and
-new placements. Saved placement dimensions take precedence over module defaults.
-Appearance settings, layout, and visibility retain their separate breakpoint inheritance.
+`modulesHash` exposes each library module by kebab-case id. `defineModule` owns
+catalog, data, and nested breakpoint contracts (`sm` required; `md`/`lg`/`xl`
+inherit missing `w`/`h`/`measurable`/`defaultSpec`/`options.shape` from the
+nearest smaller slot). `makeFrontend` attaches the json-render registry, data
+forms, and option forms. Option shapes replace as a whole; omitted shapes
+inherit. Spec generation uses the client-selected spec (saved spec, else the
+active breakpoint’s `defaultSpec`).
 
 Placed bricks drag from their entire surface and resize using the grid library's default
 bottom-right handle. Rendered content ignores pointer events; the edit icon remains clickable.

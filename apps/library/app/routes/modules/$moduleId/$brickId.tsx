@@ -43,10 +43,9 @@ function BrickDetail() {
     throw notFound();
   }
 
-  const BrickComponent = brick.component;
   const brickData = brickDef.data;
   const entry = resolveBrickBreakpoint(brickDef, breakpoint);
-  const BreakpointOptionsForm = BrickComponent.breakpointOptions?.form;
+  const BreakpointOptionsForm = brickModule.breakpoints[breakpoint].options?.form;
   let inheritedBreakpoint = "sm";
   if (breakpoint === "xl" && brickDef.lg) inheritedBreakpoint = "lg";
   else if ((breakpoint === "xl" || breakpoint === "lg") && brickDef.md) inheritedBreakpoint = "md";
@@ -63,7 +62,7 @@ function BrickDetail() {
               setGenerateRequestError(undefined);
               try {
                 using api = newSyncRpcSession<LibraryApi>("/rpc");
-                const currentSpec = entry.spec ?? brickModule.defaultSpec;
+                const currentSpec = entry.spec ?? brickModule.breakpoints[breakpoint].defaultSpec;
                 const result = await api.generateSpec(
                   moduleId,
                   generatePrompt,
@@ -112,7 +111,7 @@ function BrickDetail() {
           </div>
         ) : null}
       </OrderedSection>
-      {brickModule.configuration ? (
+      {brickModule.data !== null && brickModule.data.dataType !== "static" ? (
         <OrderedSection className="mt-10" headingClassName="shrink-0 py-4" label="Configuration">
           <Configuration
             key={brickId}

@@ -108,9 +108,10 @@ function BreakpointPreviewRow({
   }, []);
 
   const declared = brick.def[entry.id];
+  const measurable = brick.breakpoints[entry.id].measurable;
   let w: number;
   let h: number;
-  if (brick.measurable) {
+  if (measurable) {
     w = intrinsicSize ? minGridUnits(entry.gridItemWidth, intrinsicSize.widthPx) : 1;
     h = intrinsicSize ? minGridUnits(entry.gridItemWidth, intrinsicSize.heightPx) : 1;
   } else {
@@ -161,7 +162,7 @@ function BreakpointPreviewRow({
                 </div>
               </div>
             </BrickPreview>
-            {!brick.measurable || intrinsicSize !== undefined ? (
+            {!measurable || intrinsicSize !== undefined ? (
               <p className="m-0 pt-2 font-mono text-neutral-500">
                 w={w} h={h}
               </p>
@@ -170,7 +171,7 @@ function BreakpointPreviewRow({
           <div>
             <p className="m-0 mb-2 font-mono text-neutral-500">intrinsic</p>
             <UnconstrainedBrickPreview
-              onSizeChange={brick.measurable ? onSizeChange : undefined}
+              onSizeChange={measurable ? onSizeChange : undefined}
             >
               <BrickComponent
                 breakpoint={entry.id}
@@ -187,7 +188,7 @@ function BreakpointPreviewRow({
 
 function ModuleDetail() {
   const [breakpointOptionsByModule, setBreakpointOptionsByModule] = useState<
-    Record<string, unknown>
+    Record<string, Partial<Record<"sm" | "md" | "lg" | "xl", unknown>>>
   >({});
   const { moduleId } = Route.useParams();
   const brickModule = modulesHash[moduleId];
@@ -204,11 +205,21 @@ function ModuleDetail() {
   const [generateRequestError, setGenerateRequestError] = useState<string>();
   const brick = brickModule;
   const BrickComponent = brick.component;
-  const breakpointOptionsConfig = BrickComponent.breakpointOptions;
-  const breakpointOptions =
-    breakpointOptionsByModule[moduleId] ?? breakpointOptionsConfig?.defaultValue;
-  const BreakpointOptionsForm = breakpointOptionsConfig?.form;
-  const previewSpec = generatedSpec ?? brickModule.defaultSpec;
+  function canonicalOptionsBreakpoint(breakpoint: "sm" | "md" | "lg" | "xl") {
+    const options = brick.breakpoints[breakpoint].options;
+    if (options === undefined) return undefined;
+    if (brick.breakpoints.sm.options === options) return "sm";
+    if (brick.breakpoints.md.options === options) return "md";
+    if (brick.breakpoints.lg.options === options) return "lg";
+    return "xl";
+  }
+  function optionsValue(breakpoint: "sm" | "md" | "lg" | "xl") {
+    const canonical = canonicalOptionsBreakpoint(breakpoint);
+    if (canonical === undefined) return undefined;
+    const config = brick.breakpoints[canonical].options;
+    return breakpointOptionsByModule[moduleId]?.[canonical] ?? config?.defaultValue;
+  }
+  const previewSpec = generatedSpec ?? brickModule.breakpoints.sm.defaultSpec;
 
   return (
     <>
@@ -232,7 +243,7 @@ function ModuleDetail() {
               key={entry.id}
               moduleData={moduleData}
               moduleId={moduleId}
-              breakpointOptions={breakpointOptions}
+              breakpointOptions={optionsValue(entry.id)}
               className={index === 0 ? undefined : "mt-10"}
             />
           ))}
@@ -253,7 +264,7 @@ function ModuleDetail() {
                   moduleId,
                   generatePrompt,
                   moduleData,
-                  generatedSpec ?? brickModule.defaultSpec,
+                  generatedSpec ?? brickModule.breakpoints.sm.defaultSpec,
                 );
                 if (result._tag === "Left") {
                   setGenerateError(result.left);
@@ -301,7 +312,7 @@ function ModuleDetail() {
             <div className="size-full qrk-bricks overflow-hidden">
               <ModuleSpecPreview
                 data={moduleData}
-                breakpointOptions={breakpointOptions}
+                breakpointOptions={optionsValue("sm")}
                 registry={brickModule.registry}
                 spec={previewSpec}
               />
@@ -309,7 +320,7 @@ function ModuleDetail() {
           </BrickPreview>
         </div>
       </OrderedSection>
-      {brickModule.configuration ? (
+      {brickModule.data !== null && brickModule.data.dataType !== "static" ? (
         <OrderedSection className="mt-10" headingClassName="shrink-0 py-4" label="Configuration">
           <Configuration
             brickModule={brickModule}
@@ -319,19 +330,33 @@ function ModuleDetail() {
           />
         </OrderedSection>
       ) : null}
-      {BreakpointOptionsForm ? (
-        <OrderedSection className="mt-10" headingClassName="shrink-0 py-4" label="Options">
-          <BreakpointOptionsForm
-            value={breakpointOptions}
-            onChange={(value) => {
-              setBreakpointOptionsByModule((current) => ({
-                ...current,
-                [moduleId]: value,
-              }));
-            }}
-          />
-        </OrderedSection>
-      ) : null}
+      {(["sm", "md", "lg", "xl"] as const).map((breakpoint) => {
+        if (canonicalOptionsBreakpoint(breakpoint) !== breakpoint) return null;
+        const options = brick.breakpoints[breakpoint].options;
+        const BreakpointOptionsForm = options?.form;
+        if (BreakpointOptionsForm === undefined) return null;
+        return (
+          <OrderedSection
+            className="mt-10"
+            headingClassName="shrink-0 py-4"
+            key={breakpoint}
+            label={breakpoint === "sm" ? "Options" : `Options (${breakpoint})`}
+          >
+            <BreakpointOptionsForm
+              value={optionsValue(breakpoint)}
+              onChange={(value) => {
+                setBreakpointOptionsByModule((current) => ({
+                  ...current,
+                  [moduleId]: {
+                    ...current[moduleId],
+                    [breakpoint]: value,
+                  },
+                }));
+              }}
+            />
+          </OrderedSection>
+        );
+      })}
       <OrderedSection className="mt-10" headingClassName="shrink-0 py-4" label="Brick Definition">
         <div className="overflow-auto bg-white py-4" data-testid="module-data-result">
           <JsonView
@@ -339,7 +364,7 @@ function ModuleDetail() {
             data={{
               ...brick.def,
               data: moduleData,
-              ...(breakpointOptions !== undefined ? { breakpointOptions } : {}),
+              ...(optionsValue("sm") !== undefined ? { breakpointOptions: optionsValue("sm") } : {}),
             }}
             style={{ ...defaultStyles, container: "bg-white" }}
           />

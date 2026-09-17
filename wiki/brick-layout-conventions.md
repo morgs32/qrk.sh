@@ -3,38 +3,38 @@
 Name presentation components `<Module><Template>` and use matching
 PascalCase filenames.
 
-- **Module** — PascalCase of the `makeModule` `id` (for example `GitHubProfile`, `FigmaThumbnail`)
+- **Module** — PascalCase of the `defineModule` `id` (for example `GitHubProfile`, `FigmaThumbnail`)
 - **Template** — a layout-role id that describes what differs in markup (not a
   breakpoint suffix, not a grid size like `4x4`)
 
 Helpers such as `*Card`, `*Activity`, `*Graphic`, forms, lookups, and `*Backend`
 are not presentations and keep their own names.
 
-Select complete presentations once in the module definition. `makeModule`
+Select complete presentations once in the module definition. `defineModule`
 still keys responsive slots by breakpoint (`sm` required; `md`, `lg`, and `xl`
-optional). Each slot is `{ component, w, h }`. An omitted breakpoint inherits
+optional). Each slot is `{ w, h, measurable?, defaultSpec, options? }`. An omitted breakpoint inherits
 the nearest smaller complete entry:
 
-```tsx
-makeModule({
+```ts
+defineModule({
   id: "github-profile",
   // …
-  sm: { component: GitHubProfile, w: 4, h: 4 },
-  lg: { component: GitHubProfileCalendar, w: 4, h: 4 },
+  breakpoints: {
+    sm: { w: 4, h: 4, defaultSpec },
+    lg: { w: 2, h: 2 },
+  },
 });
 ```
 
-In this example, `md` inherits `GitHubProfile` and `xl` inherits
-`GitHubProfileCalendar`. Grid container thresholds are 720px (`md`), 1080px
+In this example, `md` inherits `sm` and `xl` inherits `lg`. Grid container thresholds are 720px (`md`), 1080px
 (`lg`), and 1440px (`xl`); `sm` covers smaller widths. Preview widths are
 360 / 720 / 1080 / 1440 so one column is 45 / 90 / 135 / 180 on the 8-col
 grid. Shared defs live in `apps/library/lib/breakpoints.ts`.
 
-`makeModule` uses the incoming `breakpoint` prop and forwards the same props
-to the selected React component. It performs no measurement and owns no
-context. Data props are inferred from `sm`; other presentations must accept
-those props. Render each presentation as a React component so hooks remain
-valid. Switching component types remounts their local state.
+`makeFrontend` uses the incoming `breakpoint` prop and the stock Renderer path.
+It performs no measurement and owns no context. Data props are inferred from the
+module data contract. Render each json-render leaf as a React component so hooks remain
+valid. Switching specs remounts json-render local state.
 
 Keep each presentation's markup explicit rather than scattering breakpoint
 conditions throughout it. Ordinary data-dependent rendering is still

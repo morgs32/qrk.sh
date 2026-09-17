@@ -198,7 +198,8 @@ export function BrickWall(props: {
                           resolveBrickBreakpoint(brickDef, breakpoint).breakpointOptions
                         }
                         spec={
-                          resolveBrickBreakpoint(brickDef, breakpoint).spec ?? brick.defaultSpec
+                          resolveBrickBreakpoint(brickDef, breakpoint).spec ??
+                          brick.breakpoints[breakpoint].defaultSpec
                         }
                       />
                     </div>

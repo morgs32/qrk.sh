@@ -10,7 +10,7 @@ export function ModulePreview(props: {
   breakpoint: (typeof BREAKPOINTS)[number]["id"];
 }) {
   const { brickModule, breakpoint } = props;
-  const { def, component: BrickComponent } = brickModule;
+  const { def, component: BrickComponent, breakpoints } = brickModule;
 
   return (
     <div
@@ -27,7 +27,7 @@ export function ModulePreview(props: {
         </Link>
       </h2>
       <div className="pb-16">
-        {brickModule.measurable ? (
+        {breakpoints[breakpoint].measurable ? (
           <BrickPreview
             breakpoint={breakpoint}
             measure={<BrickComponent breakpoint={breakpoint} data={def.data} />}

@@ -4,9 +4,10 @@ import type { Catalog, Spec } from "@json-render/core";
 import type { ComponentRegistry } from "@json-render/react";
 import type { IShape } from "@zerospin/schema";
 
-import type { makeBreakpointOptions } from "../make/makeBreakpointOptions";
-import type { IFetcherConfiguration } from "../make/makeFetcherConfiguration";
-import type { IFormConfiguration } from "../make/makeFormConfiguration";
+import type { makeBreakpointOptionShape } from "../make/breakpointOptions";
+import type { makeData } from "../make/makeData";
+import type { makeDataFetcher } from "../make/makeDataFetcher";
+import type { makeDataForm } from "../make/makeDataForm";
 
 /** A module definition (serializable identity and dimensions). */
 export type IBrickDef<MODULE extends string = string> = {
@@ -19,34 +20,74 @@ export type IBrickDef<MODULE extends string = string> = {
   moduleId: MODULE;
 };
 
-/** A library module: data, configuration, and one responsive presentation. */
+/** A library module: data, nested breakpoints, and stock Renderer chrome. */
 export type IModule = {
   /** Kebab-case module id, unique across the library. */
   id: string;
   label: string;
   description: string;
-  /**
-   * When true, library module-list previews may grow to intrinsic content size.
-   * When false, previews use the declared breakpoint grid size only.
-   */
-  measurable: boolean;
   catalog: Catalog;
-  defaultSpec: Spec;
   registry: ComponentRegistry;
+  breakpoints: {
+    sm: {
+      w: number;
+      h: number;
+      measurable: boolean;
+      defaultSpec: Spec;
+      options?: ReturnType<typeof makeBreakpointOptionShape> & {
+        form?: (props: { value: unknown; onChange: (value: unknown) => void }) => ReactNode;
+      };
+    };
+    md: {
+      w: number;
+      h: number;
+      measurable: boolean;
+      defaultSpec: Spec;
+      options?: ReturnType<typeof makeBreakpointOptionShape> & {
+        form?: (props: { value: unknown; onChange: (value: unknown) => void }) => ReactNode;
+      };
+    };
+    lg: {
+      w: number;
+      h: number;
+      measurable: boolean;
+      defaultSpec: Spec;
+      options?: ReturnType<typeof makeBreakpointOptionShape> & {
+        form?: (props: { value: unknown; onChange: (value: unknown) => void }) => ReactNode;
+      };
+    };
+    xl: {
+      w: number;
+      h: number;
+      measurable: boolean;
+      defaultSpec: Spec;
+      options?: ReturnType<typeof makeBreakpointOptionShape> & {
+        form?: (props: { value: unknown; onChange: (value: unknown) => void }) => ReactNode;
+      };
+    };
+  };
+  def: IModuleBrickDef;
+  component: IModuleBrick["component"];
 } & (
   | {
-      configuration: null;
+      data: null;
       dataShape: null;
       defaultData: null;
-      def: IModuleBrickDef;
-      component: IModuleBrick["component"];
     }
   | {
-      configuration: null | IFormConfiguration | IFetcherConfiguration;
+      data:
+        | ReturnType<typeof makeData>
+        | (ReturnType<typeof makeDataForm> & {
+            form?: (props: { data: unknown; onChange: (data: unknown) => void }) => ReactNode;
+          })
+        | (ReturnType<typeof makeDataFetcher> & {
+            payloadForm?: (props: {
+              value: Record<string, unknown>;
+              onChange: (value: Record<string, unknown>) => void;
+            }) => ReactNode;
+          });
       dataShape: IShape;
       defaultData: unknown;
-      def: IModuleBrickDef;
-      component: IModuleBrick["component"];
     }
 );
 
@@ -67,7 +108,7 @@ export type IBrick<
 export type IModuleBrick = {
   def: IModuleBrickDef;
   /**
-   * makeModule erases each module's concrete data type after checking it.
+   * makeFrontend erases each module's concrete data type after checking it.
    * Render boundaries can supply defaultData directly; components without a
    * data contract ignore the prop.
    */
@@ -78,5 +119,5 @@ export type IModuleBrick = {
       spec?: Spec;
       breakpoint: "sm" | "md" | "lg" | "xl";
     }): ReactNode;
-  }["bivarianceHack"] & { breakpointOptions?: ReturnType<typeof makeBreakpointOptions> };
+  }["bivarianceHack"];
 };

@@ -23,6 +23,14 @@ export type IGitHubScrapePayload = Readonly<{
   [key: string]: IJsonValue;
 }>;
 
+export type IGitHubRepoPayload = Readonly<{
+  name: string;
+  description: string | null;
+  stargazers_count: number;
+  forks_count: number;
+  language: string | null;
+}>;
+
 export type ILinkPreview = Readonly<{
   url: string;
   title: string;
@@ -62,6 +70,7 @@ export type IScrapeError = Readonly<{
     | "scrape-persistence-failed"
     | "unsupported-page-shape"
     | "profile-unavailable"
+    | "repo-unavailable"
     | "profile-identity-mismatch"
     | "file-unavailable"
     | "file-type-mismatch"

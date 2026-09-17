@@ -3,6 +3,7 @@ import { RpcTarget } from "capnweb";
 
 import type {
   IFigmaFilePreviewPayload,
+  IGitHubRepoPayload,
   IGitHubScrapePayload,
   IGooglePlaceDetails,
   IGooglePlaceSuggestion,
@@ -18,6 +19,7 @@ export declare class LibraryApi extends RpcTarget {
 
   githubBackend(): RpcTarget & {
     getProfile(url: string): Promise<IRpcEither<IGitHubScrapePayload>>;
+    getRepo(url: string): Promise<IRpcEither<IGitHubRepoPayload>>;
   };
 
   figmaBackend(): RpcTarget & {
@@ -63,6 +65,6 @@ export declare class LibraryApi extends RpcTarget {
     moduleId: string,
     prompt: string,
     data: unknown,
-    currentSpec?: Spec | null,
+    currentSpec: Spec,
   ): Promise<IRpcEither<Spec>>;
 }

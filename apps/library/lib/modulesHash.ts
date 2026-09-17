@@ -1,25 +1,25 @@
 import { backendLibrary, type IBackendLibrary } from "../backendLibrary";
 import { makeFrontendLibrary } from "../make/makeFrontendLibrary";
-import { figmaThumbnail } from "../modules/figmaThumbnail/figmaThumbnail";
-import { githubActivity } from "../modules/githubActivity/githubActivity";
-import { githubProfile } from "../modules/githubProfile/githubProfile";
-import { githubRepo } from "../modules/githubRepo/githubRepo";
-import { image } from "../modules/image/image";
-import { instagram } from "../modules/instagram/instagram";
-import { link } from "../modules/link/link";
-import { mapPlace } from "../modules/mapPlace/mapPlace";
-import { swatchAndIcon } from "../modules/swatchAndIcon/swatchAndIcon";
-import { text } from "../modules/text/text";
+import { figmaThumbnailFrontend } from "../modules/figmaThumbnail/figmaThumbnailFrontend";
+import { githubActivityFrontend } from "../modules/githubActivity/githubActivityFrontend";
+import { githubProfileFrontend } from "../modules/githubProfile/githubProfileFrontend";
+import { githubRepoFrontend } from "../modules/githubRepo/githubRepoFrontend";
+import { imageFrontend } from "../modules/image/imageFrontend";
+import { instagramFrontend } from "../modules/instagram/instagramFrontend";
+import { linkFrontend } from "../modules/link/linkFrontend";
+import { mapPlaceFrontend } from "../modules/mapPlace/mapPlaceFrontend";
+import { swatchAndIconFrontend } from "../modules/swatchAndIcon/swatchAndIconFrontend";
+import { textFrontend } from "../modules/text/textFrontend";
 
 export const modulesHash = makeFrontendLibrary<IBackendLibrary>(backendLibrary, {
-  "swatch-and-icon": swatchAndIcon,
-  "github-activity": githubActivity,
-  "github-profile": githubProfile,
-  "github-repo": githubRepo,
-  "figma-thumbnail": figmaThumbnail,
-  image,
-  instagram,
-  link,
-  "map-place": mapPlace,
-  text,
+  "swatch-and-icon": swatchAndIconFrontend,
+  "github-activity": githubActivityFrontend,
+  "github-profile": githubProfileFrontend,
+  "github-repo": githubRepoFrontend,
+  "figma-thumbnail": figmaThumbnailFrontend,
+  image: imageFrontend,
+  instagram: instagramFrontend,
+  link: linkFrontend,
+  "map-place": mapPlaceFrontend,
+  text: textFrontend,
 });

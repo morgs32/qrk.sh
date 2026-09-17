@@ -1,16 +1,10 @@
-import { createElement } from "react";
-
-import type { JSONContent } from "@tiptap/react";
 import { primitives } from "@zerospin/schema";
-import { Schema } from "effect";
 
 import { TiptapDocSchema } from "../../lib/TiptapDocSchema";
-import { makeFormConfiguration } from "../../make/makeFormConfiguration";
-import { makeModule } from "../../make/makeModule";
-
+import { defineModule } from "../../make/defineModule";
+import { makeDataForm } from "../../make/makeDataForm";
 import { defaultSpec } from "./generative/defaultSpec";
-import { registry } from "./generative/TextJsonRenderRegistry";
-import { TextEditorControl } from "./TextEditorControl";
+import { textJsonRenderCatalog } from "./generative/TextJsonRenderCatalog";
 
 const dataShape = {
   content: primitives.json({
@@ -20,31 +14,16 @@ const dataShape = {
   }),
 };
 
-function tipTapDocumentFromData(
-  content: Schema.Schema.Type<typeof TiptapDocSchema> | null,
-): JSONContent | null {
-  if (content === null) {
-    return null;
-  }
-  return JSON.parse(JSON.stringify(content));
-}
-
-export const text = makeModule({
-  dataShape,
-  defaultData: { content: null },
+export const text = defineModule({
   id: "text",
   label: "Text",
   description: "Rich text content authored with Tiptap.",
-  measurable: false,
-  defaultSpec,
-  registry,
-  configuration: makeFormConfiguration<typeof dataShape>({
-    form: ({ data, onChange }) =>
-      createElement(TextEditorControl, {
-        value: tipTapDocumentFromData(data.content),
-        onChange: (content) =>
-          onChange({ content: Schema.decodeUnknownSync(TiptapDocSchema)(content) }),
-      }),
+  catalog: textJsonRenderCatalog,
+  data: makeDataForm({
+    dataShape,
+    defaultData: { content: null },
   }),
-  sm: { w: 4, h: 4 },
+  breakpoints: {
+    sm: { w: 4, h: 4, measurable: false, defaultSpec },
+  },
 });

@@ -1,18 +1,16 @@
 import { primitives } from "@zerospin/schema";
 
-import { makeFetcherConfiguration } from "../../make/makeFetcherConfiguration";
-import { makeModule } from "../../make/makeModule";
-
+import { defineModule } from "../../make/defineModule";
+import { makeDataFetcher } from "../../make/makeDataFetcher";
 import { defaultSpec } from "./generative/defaultSpec";
-import { registry } from "./generative/GitHubProfileJsonRenderRegistry";
+import { githubProfileJsonRenderCatalog } from "./generative/GitHubProfileJsonRenderCatalog";
 
-export const githubProfile = makeModule({
+export const githubProfile = defineModule({
   id: "github-profile",
   label: "GitHub Profile",
   description: "A GitHub profile card.",
-  defaultSpec,
-  registry,
-  configuration: makeFetcherConfiguration({
+  catalog: githubProfileJsonRenderCatalog,
+  data: makeDataFetcher({
     payloadShape: {
       url: primitives.text({ defaultValue: "https://github.com/morgs32" }),
     },
@@ -22,54 +20,56 @@ export const githubProfile = makeModule({
       setData(result.right);
       return { _tag: "Right", right: undefined };
     },
+    dataShape: {
+      login: primitives.text(),
+      avatar_url: primitives.text(),
+      name: primitives.text({ nullable: true }),
+      bio: primitives.text({ nullable: true }),
+      location: primitives.text({ nullable: true }),
+      blog: primitives.text(),
+      public_repos: primitives.integer(),
+      followers: primitives.integer(),
+      following: primitives.integer(),
+    },
+    defaultData: {
+      id: 1364795,
+      node_id: "MDQ6VXNlcjEzNjQ3OTU=",
+      avatar_url: "https://avatars.githubusercontent.com/u/1364795?v=4",
+      gravatar_id: "",
+      url: "https://api.github.com/users/morgs32",
+      html_url: "https://github.com/morgs32",
+      followers_url: "https://api.github.com/users/morgs32/followers",
+      following_url: "https://api.github.com/users/morgs32/following{/other_user}",
+      gists_url: "https://api.github.com/users/morgs32/gists{/gist_id}",
+      starred_url: "https://api.github.com/users/morgs32/starred{/owner}{/repo}",
+      subscriptions_url: "https://api.github.com/users/morgs32/subscriptions",
+      organizations_url: "https://api.github.com/users/morgs32/orgs",
+      repos_url: "https://api.github.com/users/morgs32/repos",
+      events_url: "https://api.github.com/users/morgs32/events{/privacy}",
+      received_events_url: "https://api.github.com/users/morgs32/received_events",
+      type: "User",
+      user_view_type: "public",
+      site_admin: false,
+      name: "Morgan Intrator",
+      company: "@stackshirts ",
+      blog: "http://www.morganatwork.com",
+      location: "Charlottesville, VA",
+      email: null,
+      hireable: null,
+      bio: "Last action hero",
+      twitter_username: null,
+      public_repos: 31,
+      public_gists: 1,
+      followers: 40,
+      following: 143,
+      created_at: "2012-01-21T20:20:09Z",
+      updated_at: "2026-07-15T15:27:35Z",
+      login: "morgs32",
+    },
   }),
-  dataShape: {
-    login: primitives.text(),
-    avatar_url: primitives.text(),
-    name: primitives.text({ nullable: true }),
-    bio: primitives.text({ nullable: true }),
-    location: primitives.text({ nullable: true }),
-    blog: primitives.text(),
-    public_repos: primitives.integer(),
-    followers: primitives.integer(),
-    following: primitives.integer(),
+  breakpoints: {
+    sm: { w: 4, h: 4, defaultSpec },
+    md: { w: 4, h: 3 },
+    lg: { w: 2, h: 2 },
   },
-  defaultData: {
-    id: 1364795,
-    node_id: "MDQ6VXNlcjEzNjQ3OTU=",
-    avatar_url: "https://avatars.githubusercontent.com/u/1364795?v=4",
-    gravatar_id: "",
-    url: "https://api.github.com/users/morgs32",
-    html_url: "https://github.com/morgs32",
-    followers_url: "https://api.github.com/users/morgs32/followers",
-    following_url: "https://api.github.com/users/morgs32/following{/other_user}",
-    gists_url: "https://api.github.com/users/morgs32/gists{/gist_id}",
-    starred_url: "https://api.github.com/users/morgs32/starred{/owner}{/repo}",
-    subscriptions_url: "https://api.github.com/users/morgs32/subscriptions",
-    organizations_url: "https://api.github.com/users/morgs32/orgs",
-    repos_url: "https://api.github.com/users/morgs32/repos",
-    events_url: "https://api.github.com/users/morgs32/events{/privacy}",
-    received_events_url: "https://api.github.com/users/morgs32/received_events",
-    type: "User",
-    user_view_type: "public",
-    site_admin: false,
-    name: "Morgan Intrator",
-    company: "@stackshirts ",
-    blog: "http://www.morganatwork.com",
-    location: "Charlottesville, VA",
-    email: null,
-    hireable: null,
-    bio: "Last action hero",
-    twitter_username: null,
-    public_repos: 31,
-    public_gists: 1,
-    followers: 40,
-    following: 143,
-    created_at: "2012-01-21T20:20:09Z",
-    updated_at: "2026-07-15T15:27:35Z",
-    login: "morgs32",
-  },
-  sm: { w: 4, h: 4 },
-  md: { w: 4, h: 3 },
-  lg: { w: 2, h: 2 },
 });

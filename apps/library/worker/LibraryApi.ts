@@ -35,7 +35,7 @@ export class LibraryApi extends RpcTarget {
     return this.workerEnv.STREAMLINE_BACKEND.getByName(GLOBAL_BACKEND_NAME);
   }
 
-  generateSpec(moduleId: string, prompt: string, data: unknown, currentSpec?: Spec | null) {
+  generateSpec(moduleId: string, prompt: string, data: unknown, currentSpec: Spec) {
     return generateSpec({
       env: this.workerEnv,
       moduleId,

@@ -1,18 +1,16 @@
 import { primitives } from "@zerospin/schema";
 
-import { makeFetcherConfiguration } from "../../make/makeFetcherConfiguration";
-import { makeModule } from "../../make/makeModule";
-
+import { defineModule } from "../../make/defineModule";
+import { makeDataFetcher } from "../../make/makeDataFetcher";
 import { defaultSpec } from "./generative/defaultSpec";
-import { registry } from "./generative/LinkJsonRenderRegistry";
+import { linkJsonRenderCatalog } from "./generative/LinkJsonRenderCatalog";
 
-export const link = makeModule({
+export const link = defineModule({
   id: "link",
   label: "Link",
   description: "Rich link previews from JSON-LD and Open Graph metadata.",
-  defaultSpec,
-  registry,
-  configuration: makeFetcherConfiguration({
+  catalog: linkJsonRenderCatalog,
+  data: makeDataFetcher({
     payloadShape: {
       url: primitives.text({
         defaultValue: "https://apps.apple.com/us/app/apple-store/id375380948",
@@ -24,23 +22,25 @@ export const link = makeModule({
       setData(result.right);
       return { _tag: "Right", right: undefined };
     },
+    dataShape: {
+      url: primitives.text(),
+      title: primitives.text(),
+      description: primitives.text(),
+      siteName: primitives.text(),
+      imageUrl: primitives.text(),
+      iconUrl: primitives.text(),
+    },
+    defaultData: {
+      url: "https://apps.apple.com/",
+      title: "Celebrate our birthday & get Pro free for one year",
+      description: "",
+      siteName: "apps.apple.com",
+      imageUrl:
+        "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=800&q=80",
+      iconUrl: "https://www.apple.com/favicon.ico",
+    },
   }),
-  dataShape: {
-    url: primitives.text(),
-    title: primitives.text(),
-    description: primitives.text(),
-    siteName: primitives.text(),
-    imageUrl: primitives.text(),
-    iconUrl: primitives.text(),
+  breakpoints: {
+    sm: { w: 4, h: 2, defaultSpec },
   },
-  defaultData: {
-    url: "https://apps.apple.com/",
-    title: "Celebrate our birthday & get Pro free for one year",
-    description: "",
-    siteName: "apps.apple.com",
-    imageUrl:
-      "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=800&q=80",
-    iconUrl: "https://www.apple.com/favicon.ico",
-  },
-  sm: { w: 4, h: 2 },
 });

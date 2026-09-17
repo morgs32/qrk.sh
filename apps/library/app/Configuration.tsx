@@ -10,13 +10,16 @@ export function Configuration(props: {
   showData?: boolean;
   setData: (data: unknown) => void;
 }) {
-  const configuration = props.brickModule.configuration;
-  if (!configuration) {
+  const data = props.brickModule.data;
+  if (data === null || data.dataType === "static") {
     return null;
   }
 
-  switch (configuration.configurationType) {
+  switch (data.dataType) {
     case "form":
+      if (data.form === undefined) {
+        return null;
+      }
       return (
         <div>
           {props.showData !== false && (
@@ -29,14 +32,14 @@ export function Configuration(props: {
             </div>
           )}
           <div className="py-5">
-            {configuration.form({ data: props.data, onChange: props.setData })}
+            {data.form({ data: props.data, onChange: props.setData })}
           </div>
         </div>
       );
     case "fetcher":
       return (
         <FetcherConfiguration
-          configuration={configuration}
+          configuration={data}
           moduleId={props.brickModule.def.moduleId}
           showData={props.showData}
           data={props.data}

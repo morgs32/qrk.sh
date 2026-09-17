@@ -1,19 +1,16 @@
-import type { Catalog, Spec } from "@json-render/core";
-
 import type { IModule } from "../lib/types";
 
-/** Attach backend catalogs and defaultSpecs onto frontend modules. Every backend key must be present. */
+/** Attach frontend modules onto a backend map. Every backend key must be present. */
 export function makeFrontendLibrary<
   BACKEND extends {
     readonly [moduleId: string]: {
-      readonly catalog: Catalog;
-      readonly defaultSpec: Spec;
+      readonly id: string;
     };
   },
 >(
   backend: BACKEND,
-  modules: { [K in keyof BACKEND]: Omit<IModule, "catalog"> } & {
-    [moduleId: string]: Omit<IModule, "catalog">;
+  modules: { [K in keyof BACKEND]: IModule } & {
+    [moduleId: string]: IModule;
   },
 ): Record<string, IModule> {
   for (const moduleId of Object.keys(backend)) {
@@ -37,30 +34,12 @@ export function makeFrontendLibrary<
         `makeFrontendLibrary: module id ${JSON.stringify(brickModule.id)} does not match key ${JSON.stringify(moduleId)}`,
       );
     }
-    const backendEntry = backend[moduleId as keyof BACKEND];
-    if (backendEntry === undefined) {
+    if (backend[moduleId as keyof BACKEND] === undefined) {
       throw new Error(
         `makeFrontendLibrary: missing backend entry for module ${JSON.stringify(moduleId)}`,
       );
     }
-    if (brickModule.dataShape === null) {
-      result[moduleId] = {
-        ...brickModule,
-        catalog: backendEntry.catalog,
-        defaultSpec: backendEntry.defaultSpec,
-        dataShape: null,
-        defaultData: null,
-        configuration: null,
-      };
-    } else {
-      result[moduleId] = {
-        ...brickModule,
-        catalog: backendEntry.catalog,
-        defaultSpec: backendEntry.defaultSpec,
-        dataShape: brickModule.dataShape,
-        defaultData: brickModule.defaultData,
-      };
-    }
+    result[moduleId] = brickModule;
   }
   return result;
 }

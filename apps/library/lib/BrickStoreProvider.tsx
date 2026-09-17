@@ -87,11 +87,15 @@ function createBricksStore(initialState?: {
       const gridItem = layout.find((item) => item.i === brickId);
       if (!gridItem) return;
       const brickModule = modulesHash[brickDef.moduleId];
-      const breakpointOptions = brickModule?.component.breakpointOptions
-        ? brickModule.component.breakpointOptions.decode(
-            brickDef.breakpointOptions ?? brickModule.component.breakpointOptions.defaultValue,
-          )
+      const dropOptions = brickModule?.breakpoints[breakpoint].options;
+      const smOptions = brickModule?.breakpoints.sm.options;
+      const smBreakpointOptions = smOptions
+        ? smOptions.decode(breakpoint === "sm" ? brickDef.breakpointOptions : undefined)
         : {};
+      const dropBreakpointOptions =
+        dropOptions === undefined
+          ? {}
+          : dropOptions.decode(brickDef.breakpointOptions);
       set((state) => ({
         bricksById: {
           ...state.bricksById,
@@ -100,14 +104,14 @@ function createBricksStore(initialState?: {
             data: structuredClone(brickDef.data),
             sm: {
               gridItem: { ...gridItem },
-              breakpointOptions: structuredClone(breakpointOptions),
+              breakpointOptions: structuredClone(smBreakpointOptions),
             },
             ...(breakpoint === "sm"
               ? {}
               : {
                   [breakpoint]: {
                     gridItem: { ...gridItem },
-                    breakpointOptions: structuredClone(breakpointOptions),
+                    breakpointOptions: structuredClone(dropBreakpointOptions),
                   },
                 }),
           },
@@ -119,7 +123,7 @@ function createBricksStore(initialState?: {
       set((state) => {
         const brick = state.bricksById[brickId];
         if (!brick) return state;
-        const breakpointOptionsConfig = modulesHash[brick.moduleId]?.component.breakpointOptions;
+        const breakpointOptionsConfig = modulesHash[brick.moduleId]?.breakpoints[breakpoint].options;
         if (!breakpointOptionsConfig) return state;
         const breakpointOptions = breakpointOptionsConfig.decode(value);
         const entry = structuredClone(resolveBrickBreakpoint(brick, breakpoint));

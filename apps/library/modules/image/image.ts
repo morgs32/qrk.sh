@@ -1,46 +1,50 @@
 import { primitives } from "@zerospin/schema";
 
-import { makeModule } from "../../make/makeModule";
-import { makeBreakpointOptions } from "../../make/makeBreakpointOptions";
-
+import { defineModule } from "../../make/defineModule";
+import { makeData } from "../../make/makeData";
 import { defaultSpec } from "./generative/defaultSpec";
-import { registry } from "./generative/ImageJsonRenderRegistry";
-import { ImageBreakpointOptionsForm } from "./ImageBreakpointOptionsForm";
+import { imageJsonRenderCatalog } from "./generative/ImageJsonRenderCatalog";
 
-export const image = makeModule({
+export const image = defineModule({
   id: "image",
   label: "Image",
   description: "An editorial image preview.",
-  defaultSpec,
-  registry,
-  dataShape: {
-    imageUrl: primitives.text(),
-    title: primitives.text(),
-  },
-  defaultData: {
-    imageUrl:
-      "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=800&q=80",
-    title: "White Bay Power Station",
-  },
-  breakpointOptions: makeBreakpointOptions({
-    shape: {
-      imagePosition: primitives.enum({
-        values: [
-          "top-left",
-          "top-center",
-          "top-right",
-          "center-left",
-          "center",
-          "center-right",
-          "bottom-left",
-          "bottom-center",
-          "bottom-right",
-        ],
-        defaultValue: "center",
-      }),
+  catalog: imageJsonRenderCatalog,
+  data: makeData({
+    dataShape: {
+      imageUrl: primitives.text(),
+      title: primitives.text(),
     },
-    form: ImageBreakpointOptionsForm,
+    defaultData: {
+      imageUrl:
+        "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=800&q=80",
+      title: "White Bay Power Station",
+    },
   }),
-  sm: { w: 4, h: 4 },
-  lg: { w: 3, h: 3 },
+  breakpoints: {
+    sm: {
+      w: 4,
+      h: 4,
+      defaultSpec,
+      options: {
+        shape: {
+          imagePosition: primitives.enum({
+            values: [
+              "top-left",
+              "top-center",
+              "top-right",
+              "center-left",
+              "center",
+              "center-right",
+              "bottom-left",
+              "bottom-center",
+              "bottom-right",
+            ],
+            defaultValue: "center",
+          }),
+        },
+      },
+    },
+    lg: { w: 3, h: 3 },
+  },
 });

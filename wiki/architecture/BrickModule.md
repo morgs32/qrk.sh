@@ -2,42 +2,51 @@
 title: Brick module identity and lookup
 updated: 2026-09-16
 sources:
-  - path: apps/library/make/makeModule.tsx
-    sha: 76159eb8003f789f1ba2c9c29367decb88945552
-    lines: 13-124
+  - path: apps/library/make/defineModule.ts
+    sha: 9b7c7b34333d6037795525808da09d08929ebb03
+    lines: 87-103
   - path: apps/library/modules/githubProfile/githubProfile.ts
-    sha: 6e959d85905b847000f4dd90574aae218979ac77
+    sha: 5e5ceb560101344bd665c082188d538365fd5863
     lines: 8-12
+  - path: apps/library/modules/githubProfile/githubProfileFrontend.tsx
+    sha: 27bb9f712ceebfa618f8455baa497b5a312fcf9f
+    lines: 5-7
   - path: apps/library/lib/modulesHash.ts
-    sha: 442bd44d274457668ba04522c2f6038e9f0f000e
-    lines: 14-26
+    sha: a57983f91c3abc1a356ecc1162900ef4cfcc8490
+    lines: 14-25
+  - path: apps/library/backendLibrary.ts
+    sha: afb22bcba1d72b5fd6ce55c070ad908c23a69367
+    lines: 13-24
   - path: apps/library/lib/index.ts
     sha: 94d29bc207e39f4349bc17ae475d6e44db06e437
     lines: 1-2
   - path: apps/library/app/routes/modules/$moduleId.tsx
-    sha: 49a411f8d6f581614b646d77dafd3f2fcfa2f157
-    lines: 5-11
+    sha: e3da537e9753b6e6271e7526532197e084090cc8
+    lines: 8-12
   - path: apps/library/app/routes/modules/$moduleId/index.tsx
-    sha: 29312bdefd07b571d590de20fdfa941325e4d742
-    lines: 28-34
+    sha: ec39cb40d475faf32cb58ee62f0413ee8bfb19dc
+    lines: 193-197
   - path: apps/studio/app/routes/BrickGroupRoute.tsx
-    sha: 26de45ecdee9f8a42c69fd7b8c12f87dd68c238a
-    lines: 20-41
-  - path: apps/library/brick/BrickFrame.tsx
-    sha: 43c36f4c3f235497faa08a562d7009cc6b777819
+    sha: 456fae9a57db96e14092d608f9f981697d139e33
+    lines: 22-22
+  - path: apps/library/components/brick/BrickFrame.tsx
+    sha: 608eb9ada2c3e68607ded020e5b46c631ccca6ef
     lines: 3-8
   - path: apps/library/lib/types.ts
-    sha: 7b15b631f6c944bbe1e8ff2c6419d9e0c20e7fea
-    lines: 20-41
+    sha: 20381cf451b93fe99a9c78afafd7845ae9a65857
+    lines: 23-41
+  - path: apps/library/make/makeFrontend.tsx
+    sha: a51db8efed37afe75bcb918270516c8050eade7f
+    lines: 365-384
 ---
 
 # Brick module identity and lookup
 
-Each assembler calls [`makeModule`](../../apps/library/make/makeModule.tsx). The result is an [`IModule`](../../apps/library/lib/types.ts) keyed in [`modulesHash`](../../apps/library/lib/modulesHash.ts). Routes bind that value as `brickModule`. Preview and drag are [`LibrarySandboxBrickDrop`](./browser/LibrarySandboxBrickDrop.md) and [`SiteEditorBrickDrop`](./browser/SiteEditorBrickDrop.md).
+Each assembler calls [`defineModule`](../../apps/library/make/defineModule.ts) for the worker-safe contract and [`makeFrontend`](../../apps/library/make/makeFrontend.tsx) for registry/forms. [`makeBackendLibrary`](../../apps/library/backendLibrary.ts) keys the contracts by id. [`modulesHash`](../../apps/library/lib/modulesHash.ts) is the matching `makeFrontend` map. Routes bind that value as `brickModule`. Preview and drag are [`LibrarySandboxBrickDrop`](./browser/LibrarySandboxBrickDrop.md) and [`SiteEditorBrickDrop`](./browser/SiteEditorBrickDrop.md).
 
 ## Trigger
 
-1. The library bundle evaluates each `modules/<camelCase>/` assembler, then [`modulesHash.ts`](../../apps/library/lib/modulesHash.ts).
+1. The library bundle evaluates each `modules/<camelCase>/` definition, then [`backendLibrary.ts`](../../apps/library/backendLibrary.ts) and [`modulesHash.ts`](../../apps/library/lib/modulesHash.ts).
 2. [`@qrk.sh/library`](../../apps/library/lib/index.ts) re-exports `modulesHash` for studio.
 3. Workbench navigation hits TanStack file routes under `modules`, `modules/:moduleId`, and `modules/:moduleId/:brickId`.
 4. Studio group detail hits [`BrickGroupRoute`](../../apps/studio/app/routes/BrickGroupRoute.tsx) with `groupName`.
@@ -45,66 +54,74 @@ Each assembler calls [`makeModule`](../../apps/library/make/makeModule.tsx). The
 ```mermaid
 sequenceDiagram
   participant githubProfile
-  participant makeModule
+  participant defineModule
+  participant makeFrontend
   participant modulesHash
   participant ModulePage_loader as ModulePage.loader
   participant ModuleDetail
   participant Brick
 
   autonumber 1
-  githubProfile->>makeModule: makeModule(...)
+  githubProfile->>defineModule: defineModule(...)
   autonumber 2
-  makeModule-->>githubProfile: IModule
+  defineModule-->>githubProfile: contract
   autonumber 3
-  modulesHash->>modulesHash: modulesHash["github-profile"] = githubProfile
+  githubProfile->>makeFrontend: makeFrontend(githubProfile, { registry })
   autonumber 4
+  makeFrontend-->>githubProfile: IModule
+  autonumber 5
+  modulesHash->>modulesHash: modulesHash["github-profile"] = githubProfileFrontend
+  autonumber 6
   ModulePage_loader->>modulesHash: modulesHash[params.moduleId]
   alt missing id or hash miss
-    autonumber 5
+    autonumber 7
     modulesHash-->>ModulePage_loader: undefined
-    autonumber 6
+    autonumber 8
     ModulePage_loader-->>ModulePage_loader: 404 Response
   else present
-    autonumber 7
-    modulesHash-->>ModulePage_loader: IModule
-    autonumber 8
-    ModuleDetail->>modulesHash: modulesHash[moduleId]
     autonumber 9
-    modulesHash-->>ModuleDetail: brickModule
+    modulesHash-->>ModulePage_loader: IModule
     autonumber 10
-    ModuleDetail->>Brick: brickModule.component(...)
+    ModuleDetail->>modulesHash: modulesHash[moduleId]
     autonumber 11
-    Brick->>Brick: BrickFrame wrap
+    modulesHash-->>ModuleDetail: brickModule
+    autonumber 12
+    ModuleDetail->>Brick: brickModule.component(...)
+    autonumber 13
+    Brick->>Brick: BrickFrame wrap + Renderer
   end
 ```
 
 ## Annotated workflow steps
 
-1. An assembler passes kebab-case `id`, presentations, and data/configuration into the factory.
-   - [`githubProfile.ts:8-12`](../../apps/library/modules/githubProfile/githubProfile.ts#L8-L12) — `githubProfile` is `makeModule({ id: "github-profile", ... })`. (`apps/library/modules/githubProfile/githubProfile.ts:8-12`)
-2. The factory rejects non-kebab ids, fills omitted breakpoints from the nearest smaller slot, builds serializable `def`, decodes `defaultData` when `dataShape` is set, and returns `id` / `component` (`Brick`).
-   - [`makeModule.tsx:59-68`](../../apps/library/make/makeModule.tsx#L59-L68) — kebab-case `id` check and `sm`/`md`/`lg`/`xl` resolution. (`apps/library/make/makeModule.tsx:59-68`)
-   - [`makeModule.tsx:96-123`](../../apps/library/make/makeModule.tsx#L96-L123) — null vs shaped return including `def` and `Brick`. (`apps/library/make/makeModule.tsx:96-123`)
-3. The hash is a `Record<string, IModule>` keyed by kebab `id`.
-   - [`modulesHash.ts:14-26`](../../apps/library/lib/modulesHash.ts#L14-L26) — `"github-profile": githubProfile` and the other assemblers. (`apps/library/lib/modulesHash.ts:14-26`)
+1. An assembler passes kebab-case `id`, catalog, data discriminant, and nested breakpoints into `defineModule`.
+   - [`githubProfile.ts:8-12`](../../apps/library/modules/githubProfile/githubProfile.ts#L8-L12) — `githubProfile` is `defineModule({ id: "github-profile", ... })`. (`apps/library/modules/githubProfile/githubProfile.ts:8-12`)
+2. The factory rejects non-kebab ids and fills omitted breakpoints from the nearest smaller slot.
+   - [`defineModule.ts:87-103`](../../apps/library/make/defineModule.ts#L87-L103) — kebab-case `id` check and `sm`/`md`/`lg`/`xl` resolution. (`apps/library/make/defineModule.ts:87-103`)
+3. `makeFrontend` attaches the registry and stock Renderer brick.
+   - [`githubProfileFrontend.tsx:5-7`](../../apps/library/modules/githubProfile/githubProfileFrontend.tsx#L5-L7) — `makeFrontend(githubProfile, { registry })`. (`apps/library/modules/githubProfile/githubProfileFrontend.tsx:5-7`)
+4. The returned value is an [`IModule`](../../apps/library/lib/types.ts) with `component`.
+   - [`types.ts:23-41`](../../apps/library/lib/types.ts#L23-L41) — `IModule` identity, catalog, registry, nested breakpoints. (`apps/library/lib/types.ts:23-41`)
+5. The hash is a `Record<string, IModule>` keyed by kebab `id`, checked against the backend map.
+   - [`modulesHash.ts:14-25`](../../apps/library/lib/modulesHash.ts#L14-L25) — `"github-profile": githubProfileFrontend` and the other assemblers. (`apps/library/lib/modulesHash.ts:14-25`)
+   - [`backendLibrary.ts:13-24`](../../apps/library/backendLibrary.ts#L13-L24) — `defineModule` results keyed by id. (`apps/library/backendLibrary.ts:13-24`)
    - [`index.ts:1-2`](../../apps/library/lib/index.ts#L1-L2) — package export of `modulesHash` and `IModule`. (`apps/library/lib/index.ts:1-2`)
-4. The module parent `beforeLoad` admits only registered `params.moduleId`.
-   - [`$moduleId.tsx:5-11`](../../apps/library/app/routes/modules/$moduleId.tsx#L5-L11) — 404 when `params.moduleId` is not in `modulesHash`. (`apps/library/app/routes/modules/$moduleId.tsx:5-11`)
-5. A miss on that lookup is `undefined`.
-   - [`$moduleId.tsx:7-8`](../../apps/library/app/routes/modules/$moduleId.tsx#L7-L8) — `if (modulesHash[params.moduleId] === undefined)`. (`apps/library/app/routes/modules/$moduleId.tsx:7-8`)
-6. The parent throws `notFound()`.
-   - [`$moduleId.tsx:8-8`](../../apps/library/app/routes/modules/$moduleId.tsx#L8) — `throw notFound()`. (`apps/library/app/routes/modules/$moduleId.tsx:8`)
-7. A hit means the child index route renders.
+6. The module parent `beforeLoad` admits only registered `params.moduleId`.
+   - [`$moduleId.tsx:8-12`](../../apps/library/app/routes/modules/$moduleId.tsx#L8-L12) — 404 when `params.moduleId` is not in `modulesHash`. (`apps/library/app/routes/modules/$moduleId.tsx:8-12`)
+7. A miss on that lookup is `undefined`.
+   - [`$moduleId.tsx:10-11`](../../apps/library/app/routes/modules/$moduleId.tsx#L10-L11) — `if (modulesHash[params.moduleId] === undefined)`. (`apps/library/app/routes/modules/$moduleId.tsx:10-11`)
+8. The parent throws `notFound()`.
+   - [`$moduleId.tsx:11-11`](../../apps/library/app/routes/modules/$moduleId.tsx#L11) — `throw notFound()`. (`apps/library/app/routes/modules/$moduleId.tsx:11`)
+9. A hit means the child index route renders.
    - [`$moduleId.tsx:14-16`](../../apps/library/app/routes/modules/$moduleId.tsx#L14-L16) — parent renders `<Outlet />`. (`apps/library/app/routes/modules/$moduleId.tsx:14-16`)
-8. The module detail pane looks up the same key as `brickModule`.
-   - [`index.tsx:28-34`](../../apps/library/app/routes/modules/$moduleId/index.tsx#L28-L34) — `brickModule = modulesHash[moduleId]`, then pane 404 on miss. (`apps/library/app/routes/modules/$moduleId/index.tsx:28-34`)
-   - [`index.tsx:58-110`](../../apps/library/app/routes/modules/$moduleId/index.tsx#L58-L110) — stacked sm/md/lg/xl gallery binds `brickModule.component` with live `moduleData`. (`apps/library/app/routes/modules/$moduleId/index.tsx:58-110`)
-   - [`BrickGroupRoute.tsx:20-22`](../../apps/studio/app/routes/BrickGroupRoute.tsx#L20-L22) — studio detail uses `Object.values(modulesHash).find((candidate) => candidate.id === groupName)` as `brickModule`. (`apps/studio/app/routes/BrickGroupRoute.tsx:20-22`)
-9. The hash returns that `IModule`.
-   - [`index.tsx:30`](../../apps/library/app/routes/modules/$moduleId/index.tsx#L30) — `const brickModule = modulesHash[moduleId]`. (`apps/library/app/routes/modules/$moduleId/index.tsx:30`)
-10. Render uses `brickModule.component` as `Brick`.
-    - [`index.tsx:42-43`](../../apps/library/app/routes/modules/$moduleId/index.tsx#L42-L43) — `const brick = brickModule` then `BrickComponent = brick.component`. (`apps/library/app/routes/modules/$moduleId/index.tsx:42-43`)
-    - [`BrickGroupRoute.tsx:39-41`](../../apps/studio/app/routes/BrickGroupRoute.tsx#L39-L41) — `BrickComponent = brickModule.component` and `def[breakpoint]` size. (`apps/studio/app/routes/BrickGroupRoute.tsx:39-41`)
-11. `Brick` selects the breakpoint presentation and wraps it in `BrickFrame`.
-    - [`makeModule.tsx:71-85`](../../apps/library/make/makeModule.tsx#L71-L85) — `presentations[breakpoint].component` inside `BrickFrame`. (`apps/library/make/makeModule.tsx:71-85`)
-    - [`BrickFrame.tsx:3-8`](../../apps/library/brick/BrickFrame.tsx#L3-L8) — `qrk-bricks` fill wrapper. (`apps/library/brick/BrickFrame.tsx:3-8`)
+10. The module detail pane looks up the same key as `brickModule`.
+    - [`index.tsx:193-197`](../../apps/library/app/routes/modules/$moduleId/index.tsx#L193-L197) — `brickModule = modulesHash[moduleId]`, then pane 404 on miss. (`apps/library/app/routes/modules/$moduleId/index.tsx:193-197`)
+    - [`BrickGroupRoute.tsx:22-22`](../../apps/studio/app/routes/BrickGroupRoute.tsx#L22) — studio detail uses `Object.values(modulesHash).find((candidate) => candidate.id === groupName)` as `brickModule`. (`apps/studio/app/routes/BrickGroupRoute.tsx:22`)
+11. The hash returns that `IModule`.
+    - [`index.tsx:194`](../../apps/library/app/routes/modules/$moduleId/index.tsx#L194) — `const brickModule = modulesHash[moduleId]`. (`apps/library/app/routes/modules/$moduleId/index.tsx:194`)
+12. Render uses `brickModule.component` as `Brick`.
+    - [`index.tsx:207-208`](../../apps/library/app/routes/modules/$moduleId/index.tsx#L207-L208) — `const brick = brickModule` then `BrickComponent = brick.component`. (`apps/library/app/routes/modules/$moduleId/index.tsx:207-208`)
+    - [`BrickGroupRoute.tsx:41-43`](../../apps/studio/app/routes/BrickGroupRoute.tsx#L41-L43) — `BrickComponent = brickModule.component` and `def[breakpoint]` size. (`apps/studio/app/routes/BrickGroupRoute.tsx:41-43`)
+13. `Brick` selects the breakpoint spec/options and wraps Renderer in `BrickFrame`.
+    - [`makeFrontend.tsx:365-384`](../../apps/library/make/makeFrontend.tsx#L365-L384) — resolved breakpoint `defaultSpec` and options decode inside `BrickFrame`. (`apps/library/make/makeFrontend.tsx:365-384`)
+    - [`BrickFrame.tsx:3-8`](../../apps/library/components/brick/BrickFrame.tsx#L3-L8) — `qrk-bricks` fill wrapper. (`apps/library/components/brick/BrickFrame.tsx:3-8`)

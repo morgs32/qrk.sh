@@ -1,21 +1,16 @@
 import { primitives } from "@zerospin/schema";
 
-import { makeFetcherConfiguration } from "../../make/makeFetcherConfiguration";
-import { makeModule } from "../../make/makeModule";
-import { makeBreakpointOptions } from "../../make/makeBreakpointOptions";
-
-import defaultThumbnailUrl from "./dot-pattern-789x450.png";
-import { FigmaBreakpointOptionsForm } from "./FigmaBreakpointOptionsForm";
+import { defineModule } from "../../make/defineModule";
+import { makeDataFetcher } from "../../make/makeDataFetcher";
+import { figmaThumbnailJsonRenderCatalog } from "./generative/FigmaThumbnailJsonRenderCatalog";
 import { defaultSpec } from "./generative/defaultSpec";
-import { registry } from "./generative/FigmaThumbnailJsonRenderRegistry";
 
-export const figmaThumbnail = makeModule({
+export const figmaThumbnail = defineModule({
   id: "figma-thumbnail",
   label: "Figma Thumbnail",
   description: "The thumbnail of a Figma file, board, slides deck, or prototype.",
-  defaultSpec,
-  registry,
-  configuration: makeFetcherConfiguration({
+  catalog: figmaThumbnailJsonRenderCatalog,
+  data: makeDataFetcher({
     payloadShape: {
       url: primitives.text({
         defaultValue: "",
@@ -27,31 +22,36 @@ export const figmaThumbnail = makeModule({
       setData(result.right);
       return { _tag: "Right", right: undefined };
     },
-  }),
-  dataShape: {
-    title: primitives.text(),
-    url: primitives.text(),
-    thumbnail_url: primitives.text({ nullable: true }),
-    thumbnail_width: primitives.integer({ nullable: true }),
-    thumbnail_height: primitives.integer({ nullable: true }),
-  },
-  defaultData: {
-    title: "Figma Thumbnail",
-    url: "",
-    thumbnail_url: defaultThumbnailUrl,
-    thumbnail_width: 789,
-    thumbnail_height: 450,
-  },
-  breakpointOptions: makeBreakpointOptions({
-    shape: {
-      imagePosition: primitives.enum({
-        values: ["center", "left", "right", "top", "bottom"],
-        defaultValue: "left",
-      }),
+    dataShape: {
+      title: primitives.text(),
+      url: primitives.text(),
+      thumbnail_url: primitives.text({ nullable: true }),
+      thumbnail_width: primitives.integer({ nullable: true }),
+      thumbnail_height: primitives.integer({ nullable: true }),
     },
-    form: FigmaBreakpointOptionsForm,
+    defaultData: {
+      title: "Figma Thumbnail",
+      url: "",
+      thumbnail_url: null,
+      thumbnail_width: 789,
+      thumbnail_height: 450,
+    },
   }),
-  sm: { w: 4, h: 4 },
-  md: { w: 4, h: 4 },
-  lg: { w: 3, h: 3 },
+  breakpoints: {
+    sm: {
+      w: 4,
+      h: 4,
+      defaultSpec,
+      options: {
+        shape: {
+          imagePosition: primitives.enum({
+            values: ["center", "left", "right", "top", "bottom"],
+            defaultValue: "left",
+          }),
+        },
+      },
+    },
+    md: { w: 4, h: 4 },
+    lg: { w: 3, h: 3 },
+  },
 });

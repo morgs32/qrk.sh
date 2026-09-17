@@ -75,7 +75,7 @@ export async function generateSpec(props: {
   moduleId: string;
   prompt: string;
   data: unknown;
-  currentSpec?: Spec | null;
+  currentSpec: Spec;
 }): Promise<IRpcEither<Spec>> {
   const trimmedPrompt = props.prompt.trim();
   if (trimmedPrompt === "") {
@@ -110,9 +110,17 @@ export async function generateSpec(props: {
     };
   }
 
-  const currentSpec = isNonEmptySpec(props.currentSpec)
-    ? props.currentSpec
-    : entry.defaultSpec;
+  if (!isNonEmptySpec(props.currentSpec)) {
+    return {
+      _tag: "Left",
+      left: {
+        code: "invalid-generate-request",
+        message: "currentSpec is required.",
+      },
+    };
+  }
+
+  const currentSpec = props.currentSpec;
 
   try {
     const system = entry.catalog.prompt({ mode: "standalone" });

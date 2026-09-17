@@ -6,9 +6,11 @@ import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { Effect } from "effect";
 
 import { encodeRpc } from "../../worker/encodeRpc";
+import { fetchGitHubRepo } from "../../worker/fetchGitHubRepo";
 import { normalizeGitHubUrl } from "../../worker/normalizeGitHubUrl";
+import { normalizeGitHubRepoUrl } from "../../worker/normalizeGitHubRepoUrl";
 import { scrapeGitHub } from "../../worker/scrapeGitHub";
-import type { IGitHubScrapePayload, IRpcEither, IScraperEnv } from "../../worker/types";
+import type { IGitHubRepoPayload, IGitHubScrapePayload, IRpcEither, IScraperEnv } from "../../worker/types";
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1_000;
 
@@ -143,5 +145,17 @@ export class GitHubBackend extends DurableObject<IScraperEnv> {
     } finally {
       this.#inFlightScrapes.delete(canonicalUrl);
     }
+  }
+
+  async getRepo(url: string): Promise<IRpcEither<IGitHubRepoPayload>> {
+    const normalized = await Effect.runPromise(normalizeGitHubRepoUrl(url).pipe(encodeRpc));
+    if (normalized._tag === "Left") return normalized;
+    return Effect.runPromise(
+      fetchGitHubRepo({
+        owner: normalized.right.owner,
+        repo: normalized.right.repo,
+        token: this.env.GITHUB_TOKEN,
+      }).pipe(encodeRpc),
+    );
   }
 }

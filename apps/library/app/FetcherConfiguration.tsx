@@ -5,14 +5,14 @@ import { PrimitiveKind } from "@zerospin/schema";
 import "react-json-view-lite/dist/index.css";
 import { collapseAllNested, defaultStyles, JsonView } from "react-json-view-lite";
 
-import type { IFetcherConfiguration } from "../make/makeFetcherConfiguration";
+import type { IModule } from "../lib/types";
 import type { LibraryApi } from "../worker/LibraryApi.public";
 import type { IScrapeError } from "../worker/types.public";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 
 export function FetcherConfiguration(props: {
-  configuration: IFetcherConfiguration;
+  configuration: Extract<IModule["data"], { dataType: "fetcher" }>;
   moduleId: string | undefined;
   data: unknown;
   showData?: boolean;

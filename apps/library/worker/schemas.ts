@@ -1,6 +1,7 @@
 import { Schema } from "effect";
 
 import type {
+  IGitHubRepoPayload,
   IGitHubScrapePayload,
   IInstagramScrapePayload,
   ILinkPreview,
@@ -28,6 +29,14 @@ export const GitHubPayloadSchema = Schema.Struct({
     ),
   ),
 }) satisfies Schema.Schema<IGitHubScrapePayload>;
+
+export const GitHubRepoPayloadSchema = Schema.Struct({
+  name: Schema.String,
+  description: Schema.NullOr(Schema.String),
+  stargazers_count: Schema.Number,
+  forks_count: Schema.Number,
+  language: Schema.NullOr(Schema.String),
+}) satisfies Schema.Schema<IGitHubRepoPayload>;
 
 export const LinkPreviewSchema = Schema.Struct({
   url: Schema.String,

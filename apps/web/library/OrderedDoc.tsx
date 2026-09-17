@@ -3,8 +3,8 @@
 import {
   createContext,
   useContext,
-  useEffect,
   useId,
+  useLayoutEffect,
   useRef,
   useSyncExternalStore,
   type ReactNode,
@@ -37,6 +37,14 @@ const OrderedDocStoreContext = createContext<OrderedDocStore | null>(null);
 const OrderedSectionParentContext = createContext<string | null>(null);
 
 const emptySections: Array<OrderedDocSection> = [];
+
+function subscribeNoop() {
+  return () => {};
+}
+
+function getEmptySections() {
+  return emptySections;
+}
 
 function buildSectionTree(entries: Map<string, OrderedDocEntry>): Array<OrderedDocSection> {
   const byParent = new Map<string | null, Array<OrderedDocEntry>>();
@@ -150,13 +158,9 @@ export function OrderedDoc(props: { children: ReactNode }) {
 export function useOrderedDocSections(): Array<OrderedDocSection> {
   const store = useContext(OrderedDocStoreContext);
   return useSyncExternalStore(
-    store === null
-      ? () => {
-          return () => {};
-        }
-      : store.subscribe,
-    store === null ? () => emptySections : store.getSnapshot,
-    () => emptySections,
+    store === null ? subscribeNoop : store.subscribe,
+    store === null ? getEmptySections : store.getSnapshot,
+    store === null ? getEmptySections : store.getSnapshot,
   );
 }
 
@@ -173,18 +177,15 @@ export function OrderedSection(props: {
   const id = useId();
   const tone = props.tone ?? "active";
 
-  if (store !== null) {
-    store.register(id, parentId, props.label, tone);
-  }
-
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (store === null) {
       return;
     }
+    store.register(id, parentId, props.label, tone);
     return () => {
       store.unregister(id);
     };
-  }, [store, id]);
+  }, [store, id, parentId, props.label, tone]);
 
   return (
     <OrderedSectionParentContext value={id}>

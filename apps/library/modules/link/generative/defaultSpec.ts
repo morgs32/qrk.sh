@@ -5,14 +5,13 @@ export const defaultSpec: Spec = {
   elements: {
     "card-1": {
       type: "LinkCard",
-      props: {
-        url: { $state: "/url" },
-      },
+      props: {},
       children: ["copy-1", "hero-1"],
     },
     "copy-1": {
       type: "LinkCopy",
       props: {
+        url: { $state: "/url" },
         title: { $state: "/title" },
         siteName: { $state: "/siteName" },
         iconUrl: { $state: "/iconUrl" },

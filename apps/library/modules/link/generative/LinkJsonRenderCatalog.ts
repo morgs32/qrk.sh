@@ -8,21 +8,19 @@ export const linkJsonRenderCatalog = defineCatalog(schema, {
   components: {
     ...layoutCatalogComponents,
     LinkCard: {
-      props: z.object({
-        url: DynamicStringSchema,
-      }),
+      props: z.object({}),
       slots: ["default"],
-      description:
-        'Linked rich-preview card shell. Bind url with { "$state": "/url" } for the href.',
+      description: "Rich-preview card layout shell. Holds LinkCopy and LinkHeroImage.",
     },
     LinkCopy: {
       props: z.object({
+        url: DynamicStringSchema,
         title: DynamicStringSchema,
         siteName: DynamicStringSchema,
         iconUrl: DynamicStringSchema,
       }),
       description:
-        "Left copy column: optional favicon, title, site name. Bind title/siteName/iconUrl from state.",
+        'Left copy column and sole link. Bind url with { "$state": "/url" } for the href. Bind title/siteName/iconUrl from state.',
     },
     LinkHeroImage: {
       props: z.object({

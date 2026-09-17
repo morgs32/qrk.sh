@@ -2,25 +2,27 @@ import type { ReactNode } from "react";
 
 import { Image } from "@unpic/react";
 
-export function LinkCard(props: { url: string; children?: ReactNode }) {
+export function LinkCard(props: { children?: ReactNode }) {
+  return (
+    <div className="flex h-full w-full min-h-0 gap-4 overflow-hidden bg-sky-50">
+      {props.children}
+    </div>
+  );
+}
+
+export function LinkCopy(props: {
+  url: string;
+  title: string;
+  siteName: string;
+  iconUrl: string;
+}) {
   return (
     <a
-      className="block h-full w-full no-underline"
-      data-link-card="default"
+      className="flex min-w-0 flex-1 flex-col justify-start p-4 no-underline"
       href={props.url.length > 0 ? props.url : undefined}
       rel="noopener noreferrer"
       target="_blank"
     >
-      <div className="flex h-full w-full min-h-0 gap-4 overflow-hidden bg-sky-50">
-        {props.children}
-      </div>
-    </a>
-  );
-}
-
-export function LinkCopy(props: { title: string; siteName: string; iconUrl: string }) {
-  return (
-    <div className="flex min-w-0 flex-1 flex-col justify-start p-4">
       {props.iconUrl.length > 0 ? (
         <Image
           alt=""
@@ -36,7 +38,7 @@ export function LinkCopy(props: { title: string; siteName: string; iconUrl: stri
       ) : null}
       <h2 className="m-0 line-clamp-3">{props.title}</h2>
       <p className="m-0 mt-1 truncate">{props.siteName}</p>
-    </div>
+    </a>
   );
 }
 
@@ -71,11 +73,12 @@ export function LinkBrick(props: {
   breakpointOptions: unknown;
 }) {
   return (
-    <LinkCard url={props.data.url}>
+    <LinkCard>
       <LinkCopy
         iconUrl={props.data.iconUrl}
         siteName={props.data.siteName}
         title={props.data.title}
+        url={props.data.url}
       />
       <LinkHeroImage imageUrl={props.data.imageUrl} />
     </LinkCard>

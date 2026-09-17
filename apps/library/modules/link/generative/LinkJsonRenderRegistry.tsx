@@ -11,11 +11,10 @@ import { linkJsonRenderCatalog } from "./LinkJsonRenderCatalog";
 export const { registry } = defineRegistry(linkJsonRenderCatalog, {
   components: {
     ...layoutRegistryComponents,
-    LinkCard: ({ children, props }) => (
-      <LinkCardLeaf url={typeof props.url === "string" ? props.url : ""}>{children}</LinkCardLeaf>
-    ),
+    LinkCard: ({ children }) => <LinkCardLeaf>{children}</LinkCardLeaf>,
     LinkCopy: ({ props }) => (
       <LinkCopyLeaf
+        url={typeof props.url === "string" ? props.url : ""}
         title={typeof props.title === "string" ? props.title : ""}
         siteName={typeof props.siteName === "string" ? props.siteName : ""}
         iconUrl={typeof props.iconUrl === "string" ? props.iconUrl : ""}

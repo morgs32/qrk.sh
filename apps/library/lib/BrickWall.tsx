@@ -16,6 +16,7 @@ export function BrickWall(props: {
   const [dragging, setDragging] = useState(false);
   const [outsideBrickId, setOutsideBrickId] = useState<string | null>(null);
   const [dragScrollTop, setDragScrollTop] = useState(0);
+  const [bottomDrawerPadding, setBottomDrawerPadding] = useState(0);
   const bricksById = useBricksStore((state) => state.bricksById);
   const activeBrickDrag = useBricksStore((state) => state.activeBrickDrag);
   const hasHydrated = useBricksStore((state) => state.hasHydrated);
@@ -27,6 +28,48 @@ export function BrickWall(props: {
       containerRef.current.scrollTop = dragScrollTop;
     }
   }, [dragging, dragScrollTop]);
+
+  useLayoutEffect(() => {
+    let observedDrawer: Element | null = null;
+
+    function applyDrawerPadding(drawer: Element | null) {
+      if (drawer === null) {
+        setBottomDrawerPadding(0);
+        return;
+      }
+      setBottomDrawerPadding(drawer.getBoundingClientRect().height + 40);
+    }
+
+    const resizeObserver = new ResizeObserver(() => {
+      applyDrawerPadding(observedDrawer);
+    });
+
+    function syncBottomDrawer() {
+      const drawer = document.querySelector('[data-drawer="bottom"]');
+      if (drawer === observedDrawer) {
+        return;
+      }
+      if (observedDrawer !== null) {
+        resizeObserver.unobserve(observedDrawer);
+      }
+      observedDrawer = drawer;
+      if (drawer === null) {
+        applyDrawerPadding(null);
+        return;
+      }
+      resizeObserver.observe(drawer);
+      applyDrawerPadding(drawer);
+    }
+
+    syncBottomDrawer();
+    const mutationObserver = new MutationObserver(syncBottomDrawer);
+    mutationObserver.observe(document.body, { childList: true, subtree: true });
+
+    return () => {
+      mutationObserver.disconnect();
+      resizeObserver.disconnect();
+    };
+  }, []);
 
   const layout = Object.values(bricksById).flatMap((brick) => {
     const entry = resolveBrickBreakpoint(brick, breakpoint);
@@ -41,8 +84,11 @@ export function BrickWall(props: {
         return observeGrid(element);
       }}
       aria-label="Brick grid"
-      style={dragging ? { overflow: "visible" } : undefined}
-      className="min-h-screen bg-black lg:sticky lg:top-0 lg:h-screen lg:self-start lg:overflow-y-auto"
+      style={{
+        ...(dragging ? { overflow: "visible" as const } : undefined),
+        paddingBottom: bottomDrawerPadding,
+      }}
+      className="h-[calc(100dvh-3.5rem)] overflow-y-auto bg-black lg:sticky lg:top-0 lg:self-start"
     >
       {outsideBrickId && (
         <div
@@ -63,7 +109,7 @@ export function BrickWall(props: {
             isResizable: true,
           }))}
           autoSize
-          className="grid-layout min-h-screen"
+          className="grid-layout min-h-[calc(100dvh-3.5rem)]"
           compactor={verticalCompactor}
           gridConfig={{
             cols: 8,

@@ -5,21 +5,40 @@ import { cn } from "cn";
 
 const OrderedBodyAnchorsContext = createContext(false);
 
+const hangingCounterClassName =
+  "[counter-reset:item] [&>li]:[counter-increment:item] [&>li>h2]:relative [&>li>h2]:before:absolute [&>li>h2]:before:right-[calc(100%+0.65rem)] [&>li>h2]:before:top-1/2 [&>li>h2]:before:-translate-y-1/2 [&>li>h2]:before:text-neutral-400";
+
+const levelCounterClassName = {
+  1: "[&>li>h2]:before:[content:counter(item,decimal)]",
+  2: "[&>li>h2]:before:[content:counter(item,upper-alpha)]",
+};
+
 export function OrderedBody(props: {
   children: ReactNode;
   showListDecorator?: boolean;
   showAnchors?: boolean;
+  level?: 1 | 2;
+  className?: string;
 }) {
-  const { children, showListDecorator = true, showAnchors = false } = props;
+  const inheritedShowAnchors = useContext(OrderedBodyAnchorsContext);
+  const {
+    children,
+    showListDecorator = true,
+    showAnchors = inheritedShowAnchors,
+    level = 1,
+    className,
+  } = props;
 
   return (
     <OrderedBodyAnchorsContext value={showAnchors}>
       <ol
         className={cn(
           "list-none",
+          level === 2 && "mt-10",
           showListDecorator ? "pl-[29px] max-[480px]:pl-8" : "pl-0",
-          showListDecorator &&
-            "[counter-reset:item] [&>li]:[counter-increment:item] [&>li>h2]:relative [&>li>h2]:before:absolute [&>li>h2]:before:right-[calc(100%+0.65rem)] [&>li>h2]:before:top-1/2 [&>li>h2]:before:-translate-y-1/2 [&>li>h2]:before:text-neutral-400 [&>li>h2]:before:[content:counter(item,decimal)]",
+          showListDecorator && hangingCounterClassName,
+          showListDecorator && levelCounterClassName[level],
+          className,
         )}
       >
         {children}

@@ -12,30 +12,30 @@ export function LinkCard(props: { children?: ReactNode }) {
 
 export function LinkCopy(props: { url: string; title: string; siteName: string; iconUrl: string }) {
   return (
-    <div className="flex min-w-0 flex-1 flex-col justify-start p-4">
-      {props.iconUrl.length > 0 ? (
-        <Image
-          alt=""
-          className="mb-3 h-10 w-10 shrink-0 object-cover"
-          height={40}
-          layout="constrained"
-          onError={(event) => {
-            event.currentTarget.style.display = "none";
-          }}
-          src={props.iconUrl}
-          width={40}
-        />
-      ) : null}
-      <a
-        className="no-underline"
-        href={props.url.length > 0 ? props.url : undefined}
-        rel="noopener noreferrer"
-        target="_blank"
-      >
-        <small className="m-0 mt-1 truncate">{props.siteName}</small>
-        <h2 className="m-0 line-clamp-3">{props.title}</h2>
-      </a>
-    </div>
+    <a
+      className="flex min-w-0 flex-1 flex-col justify-start p-4"
+      href={props.url.length > 0 ? props.url : undefined}
+      rel="noopener noreferrer"
+      target="_blank"
+    >
+      <span className="flex min-w-0 items-center gap-3">
+        {props.iconUrl.length > 0 ? (
+          <Image
+            alt=""
+            className="size-8 shrink-0 object-contain"
+            height={32}
+            layout="constrained"
+            onError={(event) => {
+              event.currentTarget.style.display = "none";
+            }}
+            src={props.iconUrl}
+            width={32}
+          />
+        ) : null}
+        <small className="m-0 min-w-0 truncate">{props.siteName}</small>
+      </span>
+      <h2 className="m-0 line-clamp-3">{props.title}</h2>
+    </a>
   );
 }
 

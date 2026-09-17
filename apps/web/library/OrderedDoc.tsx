@@ -9,6 +9,7 @@ import {
   useSyncExternalStore,
   type ReactNode,
 } from "react";
+import { cn } from "cn";
 
 import { OrderedBodyHeading } from "./OrderedBody";
 
@@ -190,7 +191,9 @@ export function OrderedSection(props: {
   return (
     <OrderedSectionParentContext value={id}>
       <li className={props.className} data-testid={props["data-testid"]}>
-        <OrderedBodyHeading className={props.headingClassName}>{props.label}</OrderedBodyHeading>
+        <OrderedBodyHeading className={cn("shrink-0", props.headingClassName)}>
+          {props.label}
+        </OrderedBodyHeading>
         {props.children}
       </li>
     </OrderedSectionParentContext>

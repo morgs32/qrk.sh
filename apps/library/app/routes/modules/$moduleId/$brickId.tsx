@@ -46,6 +46,8 @@ function BrickDetail() {
   const brickData = brickDef.data;
   const entry = resolveBrickBreakpoint(brickDef, breakpoint);
   const hasJsonRender = brickModule.catalog !== undefined && brickModule.registry !== undefined;
+  const hasConfig =
+    brickModule.data !== null && brickModule.data.dataType !== "static";
   const BreakpointOptionsForm = brickModule.breakpoints[breakpoint].options?.form;
   let inheritedBreakpoint = "sm";
   if (breakpoint === "xl" && brickDef.lg) inheritedBreakpoint = "lg";
@@ -53,11 +55,7 @@ function BrickDetail() {
   return (
     <>
       {hasJsonRender ? (
-        <OrderedSection
-          data-testid="brick-detail-pane"
-          headingClassName="shrink-0"
-          label="Generate spec"
-        >
+        <OrderedSection data-testid="brick-detail-pane" label="Generate spec">
           <form
             className="flex flex-col items-start gap-2 py-5"
             onSubmit={(event) => {
@@ -119,12 +117,8 @@ function BrickDetail() {
           ) : null}
         </OrderedSection>
       ) : null}
-      {brickModule.data !== null && brickModule.data.dataType !== "static" ? (
-        <OrderedSection
-          className={hasJsonRender ? "mt-10" : undefined}
-          headingClassName={hasJsonRender ? "shrink-0 py-4" : "shrink-0"}
-          label="Configuration"
-        >
+      {hasConfig ? (
+        <OrderedSection className={hasJsonRender ? "mt-10" : undefined} label="Configuration">
           <Configuration
             key={brickId}
             showData={false}
@@ -148,7 +142,10 @@ function BrickDetail() {
           />
         </OrderedSection>
       ) : null}
-      <OrderedSection className="mt-10" headingClassName="shrink-0 py-4" label="Options">
+      <OrderedSection
+        className={hasJsonRender || hasConfig ? "mt-10" : undefined}
+        label="Options"
+      >
         <div className="flex flex-wrap gap-2 py-4">
           {breakpoint !== "sm" && (
             <Button
@@ -192,7 +189,7 @@ function BrickDetail() {
           />
         )}
       </OrderedSection>
-      <OrderedSection className="mt-10" headingClassName="shrink-0 py-4" label="Brick Definition">
+      <OrderedSection className="mt-10" label="Brick Definition">
         <div className="overflow-auto bg-white py-4" data-testid="module-data-result">
           <JsonView
             shouldExpandNode={collapseAllNested}

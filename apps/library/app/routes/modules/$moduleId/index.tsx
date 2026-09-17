@@ -6,6 +6,7 @@ import { newSyncRpcSession } from "@zerospin/core/utils/newSyncRpcSession";
 import type { Spec } from "@json-render/core";
 import { collapseAllNested, defaultStyles, JsonView } from "react-json-view-lite";
 
+import { OrderedBody } from "@qrk.sh/web/library/OrderedBody";
 import { OrderedSection } from "@qrk.sh/web/library/OrderedDoc";
 
 import { BrickPreview } from "../../../../lib/BrickPreview";
@@ -23,9 +24,6 @@ import { useModuleData } from "../../../useModuleData";
 export const Route = createFileRoute("/modules/$moduleId/")({
   component: ModuleDetail,
 });
-
-const nestedListClassName =
-  "mt-4 list-none pl-[29px] max-[480px]:pl-8 [counter-reset:item] [&>li]:[counter-increment:item] [&>li>h2]:relative [&>li>h2]:before:absolute [&>li>h2]:before:right-[calc(100%+0.65rem)] [&>li>h2]:before:top-1/2 [&>li>h2]:before:-translate-y-1/2 [&>li>h2]:before:text-neutral-400 [&>li>h2]:before:[content:counter(item,upper-alpha)]";
 
 /** Smallest integer grid units whose pixel size is ≥ intrinsicPx. */
 function minGridUnits(gridItemWidth: number, intrinsicPx: number): number {
@@ -183,7 +181,7 @@ function BreakpointPreviewRow({
   );
 
   return (
-    <OrderedSection className={className} headingClassName="shrink-0 py-2" label={entry.id}>
+    <OrderedSection className={className} label={entry.id}>
       <div className="overflow-x-auto px-4 py-8">
         <div className="flex w-max items-start gap-4">
           <div>
@@ -277,11 +275,7 @@ function ModuleDetail() {
 
   return (
     <>
-      <OrderedSection
-        data-testid="module-configuration-pane"
-        headingClassName="shrink-0"
-        label="Module"
-      >
+      <OrderedSection data-testid="module-configuration-pane" label="Module">
         <div className="mt-5">
           <TableData
             entries={[
@@ -292,9 +286,9 @@ function ModuleDetail() {
         </div>
       </OrderedSection>
       {hasJsonRender ? (
-        <OrderedSection className="mt-10" headingClassName="shrink-0" label="Generative Previews">
-          <ol className={nestedListClassName}>
-            <OrderedSection headingClassName="shrink-0" label="Generate spec input">
+        <OrderedSection className="mt-10" label="Generative Previews">
+          <OrderedBody level={2}>
+            <OrderedSection label="Generate spec input">
               <form
                 className="flex flex-col items-start gap-2 py-5"
                 onSubmit={(event) => {
@@ -378,11 +372,11 @@ function ModuleDetail() {
                 spec={generatedSpec ?? brick.breakpoints[entry.id].defaultSpec}
               />
             ))}
-          </ol>
+          </OrderedBody>
         </OrderedSection>
       ) : null}
-      <OrderedSection className="mt-10" headingClassName="shrink-0" label="Component Previews">
-        <ol className={nestedListClassName}>
+      <OrderedSection className="mt-10" label="Component Previews">
+        <OrderedBody level={2}>
           {BREAKPOINTS.map((entry, index) => (
             <BreakpointPreviewRow
               BrickComponent={BrickComponent}
@@ -395,10 +389,10 @@ function ModuleDetail() {
               className={index === 0 ? undefined : "mt-10"}
             />
           ))}
-        </ol>
+        </OrderedBody>
       </OrderedSection>
       {brickModule.data !== null && brickModule.data.dataType !== "static" ? (
-        <OrderedSection className="mt-10" headingClassName="shrink-0 py-4" label="Configuration">
+        <OrderedSection className="mt-10" label="Configuration">
           <Configuration
             brickModule={brickModule}
             data={moduleData}
@@ -415,7 +409,6 @@ function ModuleDetail() {
         return (
           <OrderedSection
             className="mt-10"
-            headingClassName="shrink-0 py-4"
             key={breakpoint}
             label={breakpoint === "sm" ? "Options" : `Options (${breakpoint})`}
           >
@@ -434,7 +427,7 @@ function ModuleDetail() {
           </OrderedSection>
         );
       })}
-      <OrderedSection className="mt-10" headingClassName="shrink-0 py-4" label="Brick Definition">
+      <OrderedSection className="mt-10" label="Brick Definition">
         <div className="overflow-auto bg-white py-4" data-testid="module-data-result">
           <JsonView
             shouldExpandNode={collapseAllNested}

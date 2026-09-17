@@ -125,9 +125,9 @@ export default function OrderedBodyPage() {
   const [showAnchors, setShowAnchors] = useState(true);
   const [leftAligned, setLeftAligned] = useState(false);
 
-  const nestedListPadding = leftAligned
-    ? "pl-[29px] max-[480px]:pl-8 -ml-[29px] max-[480px]:-ml-8"
-    : "pl-[29px] max-[480px]:pl-8";
+  const nestedListClassName = leftAligned
+    ? "max-[480px]:-ml-8 -ml-[29px]"
+    : undefined;
 
   return (
     <main className="min-h-screen bg-[#f5f5f5] px-6 pt-7 pb-14 font-mono text-[15px] leading-[1.28] text-[#171717] max-[480px]:px-[23px] max-[480px]:pt-2 max-[480px]:pb-10 max-[480px]:text-sm md:px-10 md:pb-[72px]">
@@ -158,17 +158,15 @@ export default function OrderedBodyPage() {
             />
           </label>
         </div>
-        <OrderedBody showListDecorator={showListDecorator}>
+        <OrderedBody showListDecorator={showListDecorator} showAnchors={showAnchors}>
           <li>
             <SectionHeading showListDecorator={showListDecorator} showAnchors={showAnchors}>
               API Overview
             </SectionHeading>
-            <ol
-              className={`mt-4 list-none ${nestedListPadding} ${
-                showListDecorator
-                  ? "[counter-reset:item] [&>li]:[counter-increment:item] [&>li>h2]:relative [&>li>h2]:before:absolute [&>li>h2]:before:right-[calc(100%+0.65rem)] [&>li>h2]:before:top-1/2 [&>li>h2]:before:-translate-y-1/2 [&>li>h2]:before:text-neutral-400 [&>li>h2]:before:[content:counter(item,upper-alpha)]"
-                  : ""
-              }`}
+            <OrderedBody
+              className={nestedListClassName}
+              level={2}
+              showListDecorator={showListDecorator}
             >
               <li>
                 <SchemaSection showListDecorator={showListDecorator} showAnchors={showAnchors} />
@@ -185,7 +183,7 @@ export default function OrderedBodyPage() {
                   Authentication
                 </SectionHeading>
               </li>
-            </ol>
+            </OrderedBody>
           </li>
         </OrderedBody>
       </div>

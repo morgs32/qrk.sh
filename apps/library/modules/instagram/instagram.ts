@@ -1,15 +1,33 @@
 import { primitives } from "@zerospin/schema";
 
+import {
+  brickBodyComponent,
+  brickFooterComponent,
+  brickShellComponent,
+  columnComponent,
+  rowComponent,
+} from "../../lib/jsonRender/layoutComponents";
 import { defineModule } from "../../make/defineModule";
 import { makeDataFetcher } from "../../make/makeDataFetcher";
 import { defaultSpec } from "./generative/defaultSpec";
-import { instagramJsonRenderCatalog } from "./generative/InstagramJsonRenderCatalog";
+import { instagramCardComponent } from "./generative/InstagramCardComponent";
+import { instagramMediaFooterComponent } from "./generative/InstagramMediaFooterComponent";
+import { instagramPostGridComponent } from "./generative/InstagramPostGridComponent";
 
 export const instagram = defineModule({
   id: "instagram",
   label: "Instagram",
   description: "A public Instagram profile and its latest posts.",
-  catalog: instagramJsonRenderCatalog,
+  components: {
+    BrickShell: brickShellComponent,
+    BrickBody: brickBodyComponent,
+    BrickFooter: brickFooterComponent,
+    Column: columnComponent,
+    Row: rowComponent,
+    InstagramCard: instagramCardComponent,
+    InstagramPostGrid: instagramPostGridComponent,
+    InstagramMediaFooter: instagramMediaFooterComponent,
+  },
   data: makeDataFetcher({
     payloadShape: {
       url: primitives.text({

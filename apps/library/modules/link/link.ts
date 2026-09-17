@@ -1,15 +1,33 @@
 import { primitives } from "@zerospin/schema";
 
+import {
+  brickBodyComponent,
+  brickFooterComponent,
+  brickShellComponent,
+  columnComponent,
+  rowComponent,
+} from "../../lib/jsonRender/layoutComponents";
 import { defineModule } from "../../make/defineModule";
 import { makeDataFetcher } from "../../make/makeDataFetcher";
 import { defaultSpec } from "./generative/defaultSpec";
-import { linkJsonRenderCatalog } from "./generative/LinkJsonRenderCatalog";
+import { linkCardComponent } from "./generative/LinkCardComponent";
+import { linkCopyComponent } from "./generative/LinkCopyComponent";
+import { linkHeroImageComponent } from "./generative/LinkHeroImageComponent";
 
 export const link = defineModule({
   id: "link",
   label: "Link",
   description: "Rich link previews from JSON-LD and Open Graph metadata.",
-  catalog: linkJsonRenderCatalog,
+  components: {
+    BrickShell: brickShellComponent,
+    BrickBody: brickBodyComponent,
+    BrickFooter: brickFooterComponent,
+    Column: columnComponent,
+    Row: rowComponent,
+    LinkCard: linkCardComponent,
+    LinkCopy: linkCopyComponent,
+    LinkHeroImage: linkHeroImageComponent,
+  },
   data: makeDataFetcher({
     payloadShape: {
       url: primitives.text({

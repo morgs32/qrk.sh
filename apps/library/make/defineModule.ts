@@ -1,10 +1,18 @@
-import type { Catalog, Spec } from "@json-render/core";
-import type { IShape } from "@zerospin/schema";
+import { defineCatalog, type Catalog, type Spec } from "@json-render/core";
+import { schema } from "@json-render/react/schema";
+import { primitives, type IShape } from "@zerospin/schema";
+import { descriptorToZod, makeZodSchema } from "@zerospin/zod";
+import { mapValues } from "es-toolkit";
 
 import { makeBreakpointOptionShape } from "./breakpointOptions";
+import type { defineComponent } from "./defineComponent";
 import type { makeData } from "./makeData";
 import type { makeDataFetcher } from "./makeDataFetcher";
 import type { makeDataForm } from "./makeDataForm";
+
+const stateRefSchema = makeZodSchema({
+  $state: primitives.text(),
+});
 
 function assertKebabCaseId(id: string) {
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(id)) {
@@ -65,7 +73,48 @@ function defSize(w: number | undefined, h: number | undefined) {
   };
 }
 
-/** Worker-safe module contract: optional catalog, data discriminant, nested breakpoints. */
+function makeCatalogFromComponents(components: Record<
+  string,
+  ReturnType<typeof defineComponent>
+>): Catalog {
+  for (const [key, component] of Object.entries(components)) {
+    if (key !== component.type) {
+      throw new Error(
+        `defineModule: components key ${JSON.stringify(key)} must equal type ${JSON.stringify(component.type)}`,
+      );
+    }
+  }
+
+  const catalogComponents = mapValues(components, component => {
+    const dynamicProps = makeZodSchema({}).extend(
+      mapValues(component.props, descriptor => {
+        const dynamicField = descriptorToZod(descriptor).or(stateRefSchema);
+        if (
+          descriptor !== undefined &&
+          typeof descriptor === "object" &&
+          "nullable" in descriptor &&
+          descriptor.nullable === true
+        ) {
+          return dynamicField.optional();
+        }
+        return dynamicField;
+      }),
+    );
+
+    return {
+      props: dynamicProps,
+      ...(component.slots === undefined ? {} : { slots: [...component.slots] }),
+      ...(component.description === undefined ? {} : { description: component.description }),
+    };
+  });
+
+  return defineCatalog(schema, {
+    components: catalogComponents,
+    actions: {},
+  });
+}
+
+/** Worker-safe module contract: components→catalog, data discriminant, nested breakpoints. */
 export function defineModule<
   const MODULE extends string,
   const DATA extends
@@ -77,7 +126,7 @@ export function defineModule<
   id: MODULE;
   label: string;
   description: string;
-  catalog?: Catalog;
+  components: Record<string, ReturnType<typeof defineComponent>>;
   data: DATA;
   breakpoints: {
     sm: {
@@ -108,18 +157,7 @@ export function defineModule<
 }) {
   assertKebabCaseId(props.id);
 
-  if (props.catalog === undefined) {
-    const hasDefaultSpec =
-      props.breakpoints.sm.defaultSpec !== undefined ||
-      props.breakpoints.md?.defaultSpec !== undefined ||
-      props.breakpoints.lg?.defaultSpec !== undefined ||
-      props.breakpoints.xl?.defaultSpec !== undefined;
-    if (hasDefaultSpec) {
-      throw new Error(
-        `defineModule: defaultSpec requires catalog; got ${JSON.stringify(props.id)}`,
-      );
-    }
-  }
+  const catalog = makeCatalogFromComponents(props.components);
 
   const smInput = props.breakpoints.sm;
   assertBothOrNeitherWh({
@@ -160,39 +198,14 @@ export function defineModule<
   };
 
   if (props.data === null) {
-    if (props.catalog === undefined) {
-      return {
-        id: props.id,
-        label: props.label,
-        description: props.description,
-        data: null,
-        dataShape: null,
-        defaultData: null,
-        breakpoints,
-        def,
-      };
-    }
     return {
       id: props.id,
       label: props.label,
       description: props.description,
-      catalog: props.catalog,
+      catalog,
       data: null,
       dataShape: null,
       defaultData: null,
-      breakpoints,
-      def,
-    };
-  }
-
-  if (props.catalog === undefined) {
-    return {
-      id: props.id,
-      label: props.label,
-      description: props.description,
-      data: props.data,
-      dataShape: props.data.dataShape,
-      defaultData: props.data.defaultData,
       breakpoints,
       def,
     };
@@ -202,7 +215,7 @@ export function defineModule<
     id: props.id,
     label: props.label,
     description: props.description,
-    catalog: props.catalog,
+    catalog,
     data: props.data,
     dataShape: props.data.dataShape,
     defaultData: props.data.defaultData,

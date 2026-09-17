@@ -4,12 +4,12 @@ import { defineRegistry } from "@json-render/react";
 
 import { layoutRegistryComponents } from "../../../lib/jsonRender/layoutRegistryComponents";
 import { ActivityCalendarView } from "../ActivityCalendar";
-import { githubActivityJsonRenderCatalog } from "./GitHubActivityJsonRenderCatalog";
+import { githubActivity } from "../githubActivity";
 
-export const { registry } = defineRegistry(githubActivityJsonRenderCatalog, {
+export const { registry } = defineRegistry(githubActivity.catalog, {
   components: {
     ...layoutRegistryComponents,
-    ActivityCalendar: ({ props }) => (
+    ActivityCalendar: ({ props }: { props: Record<string, unknown> }) => (
       <ActivityCalendarView
         contributions={Array.isArray(props.contributions) ? props.contributions : []}
       />

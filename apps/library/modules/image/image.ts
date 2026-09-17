@@ -1,15 +1,33 @@
 import { primitives } from "@zerospin/schema";
 
+import {
+  brickBodyComponent,
+  brickFooterComponent,
+  brickShellComponent,
+  columnComponent,
+  rowComponent,
+} from "../../lib/jsonRender/layoutComponents";
 import { defineModule } from "../../make/defineModule";
 import { makeData } from "../../make/makeData";
 import { defaultSpec } from "./generative/defaultSpec";
-import { imageJsonRenderCatalog } from "./generative/ImageJsonRenderCatalog";
+import { imageCardComponent } from "./generative/ImageCardComponent";
+import { imageCoverComponent } from "./generative/ImageCoverComponent";
+import { mediaFooterComponent } from "./generative/MediaFooterComponent";
 
 export const image = defineModule({
   id: "image",
   label: "Image",
   description: "An editorial image preview.",
-  catalog: imageJsonRenderCatalog,
+  components: {
+    BrickShell: brickShellComponent,
+    BrickBody: brickBodyComponent,
+    BrickFooter: brickFooterComponent,
+    Column: columnComponent,
+    Row: rowComponent,
+    ImageCard: imageCardComponent,
+    ImageCover: imageCoverComponent,
+    MediaFooter: mediaFooterComponent,
+  },
   data: makeData({
     dataShape: {
       imageUrl: primitives.text(),

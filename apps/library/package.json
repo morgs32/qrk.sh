@@ -67,6 +67,7 @@
     "@zerospin/core": "workspace:*",
     "@zerospin/error": "workspace:*",
     "@zerospin/schema": "workspace:*",
+    "@zerospin/zod": "workspace:*",
     "capnweb": "^0.12.0",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.3.0",

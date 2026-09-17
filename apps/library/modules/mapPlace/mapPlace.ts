@@ -1,15 +1,29 @@
 import { primitives } from "@zerospin/schema";
 
+import {
+  brickBodyComponent,
+  brickFooterComponent,
+  brickShellComponent,
+  columnComponent,
+  rowComponent,
+} from "../../lib/jsonRender/layoutComponents";
 import { defineModule } from "../../make/defineModule";
 import { makeDataFetcher } from "../../make/makeDataFetcher";
 import { defaultSpec } from "./generative/defaultSpec";
-import { mapPlaceJsonRenderCatalog } from "./generative/MapPlaceJsonRenderCatalog";
+import { mapCanvasComponent } from "./generative/MapCanvasComponent";
 
 export const mapPlace = defineModule({
   id: "map-place",
   label: "Map Place",
   description: "A map centered on one selected place.",
-  catalog: mapPlaceJsonRenderCatalog,
+  components: {
+    BrickShell: brickShellComponent,
+    BrickBody: brickBodyComponent,
+    BrickFooter: brickFooterComponent,
+    Column: columnComponent,
+    Row: rowComponent,
+    MapCanvas: mapCanvasComponent,
+  },
   data: makeDataFetcher({
     payloadShape: {
       googlePlaceId: primitives.text({

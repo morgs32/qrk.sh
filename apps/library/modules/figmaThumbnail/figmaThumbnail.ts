@@ -1,15 +1,33 @@
 import { primitives } from "@zerospin/schema";
 
+import {
+  brickBodyComponent,
+  brickFooterComponent,
+  brickShellComponent,
+  columnComponent,
+  rowComponent,
+} from "../../lib/jsonRender/layoutComponents";
 import { defineModule } from "../../make/defineModule";
 import { makeDataFetcher } from "../../make/makeDataFetcher";
-import { figmaThumbnailJsonRenderCatalog } from "./generative/FigmaThumbnailJsonRenderCatalog";
 import { defaultSpec } from "./generative/defaultSpec";
+import { figmaCardComponent } from "./generative/FigmaCardComponent";
+import { figmaMediaFooterComponent } from "./generative/FigmaMediaFooterComponent";
+import { figmaThumbnailBandComponent } from "./generative/FigmaThumbnailBandComponent";
 
 export const figmaThumbnail = defineModule({
   id: "figma-thumbnail",
   label: "Figma Thumbnail",
   description: "The thumbnail of a Figma file, board, slides deck, or prototype.",
-  catalog: figmaThumbnailJsonRenderCatalog,
+  components: {
+    BrickShell: brickShellComponent,
+    BrickBody: brickBodyComponent,
+    BrickFooter: brickFooterComponent,
+    Column: columnComponent,
+    Row: rowComponent,
+    FigmaCard: figmaCardComponent,
+    FigmaThumbnailBand: figmaThumbnailBandComponent,
+    FigmaMediaFooter: figmaMediaFooterComponent,
+  },
   data: makeDataFetcher({
     payloadShape: {
       url: primitives.text({

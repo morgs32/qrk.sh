@@ -1,15 +1,37 @@
 import { primitives } from "@zerospin/schema";
 
+import {
+  brickBodyComponent,
+  brickFooterComponent,
+  brickShellComponent,
+  columnComponent,
+  rowComponent,
+} from "../../lib/jsonRender/layoutComponents";
 import { defineModule } from "../../make/defineModule";
 import { makeDataFetcher } from "../../make/makeDataFetcher";
 import { defaultSpec } from "./generative/defaultSpec";
-import { githubRepoJsonRenderCatalog } from "./generative/GitHubRepoJsonRenderCatalog";
+import { repoDescriptionComponent } from "./generative/RepoDescriptionComponent";
+import { repoForksComponent } from "./generative/RepoForksComponent";
+import { repoLanguageComponent } from "./generative/RepoLanguageComponent";
+import { repoNameComponent } from "./generative/RepoNameComponent";
+import { repoStarsComponent } from "./generative/RepoStarsComponent";
 
 export const githubRepo = defineModule({
   id: "github-repo",
   label: "GitHub Repo",
   description: "A GitHub repository card.",
-  catalog: githubRepoJsonRenderCatalog,
+  components: {
+    BrickShell: brickShellComponent,
+    BrickBody: brickBodyComponent,
+    BrickFooter: brickFooterComponent,
+    Column: columnComponent,
+    Row: rowComponent,
+    RepoName: repoNameComponent,
+    RepoDescription: repoDescriptionComponent,
+    RepoStars: repoStarsComponent,
+    RepoForks: repoForksComponent,
+    RepoLanguage: repoLanguageComponent,
+  },
   data: makeDataFetcher({
     payloadShape: {
       url: primitives.text({ defaultValue: "https://github.com/morgs32/ink-steps" }),

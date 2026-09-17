@@ -1,15 +1,31 @@
 import { primitives } from "@zerospin/schema";
 
+import {
+  brickBodyComponent,
+  brickFooterComponent,
+  brickShellComponent,
+  columnComponent,
+  rowComponent,
+} from "../../lib/jsonRender/layoutComponents";
 import { defineModule } from "../../make/defineModule";
 import { makeDataFetcher } from "../../make/makeDataFetcher";
-import { swatchAndIconJsonRenderCatalog } from "./generative/SwatchAndIconJsonRenderCatalog";
 import { defaultSpec } from "./generative/defaultSpec";
+import { iconSvgGraphicComponent } from "./generative/IconSvgGraphicComponent";
+import { swatchAndIconColorComponent } from "./generative/SwatchAndIconColorComponent";
 
 export const swatchAndIcon = defineModule({
   id: "swatch-and-icon",
   label: "Swatch and Icon",
   description: "Solid color fields with optional graphic icons for visual rhythm.",
-  catalog: swatchAndIconJsonRenderCatalog,
+  components: {
+    BrickShell: brickShellComponent,
+    BrickBody: brickBodyComponent,
+    BrickFooter: brickFooterComponent,
+    Column: columnComponent,
+    Row: rowComponent,
+    SwatchAndIconColor: swatchAndIconColorComponent,
+    IconSvgGraphic: iconSvgGraphicComponent,
+  },
   data: makeDataFetcher({
     payloadShape: {
       hash: primitives.text({ defaultValue: "" }),

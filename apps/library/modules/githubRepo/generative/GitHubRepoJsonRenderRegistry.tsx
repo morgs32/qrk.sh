@@ -1,7 +1,9 @@
+import type { ReactNode } from "react";
+
 import { defineRegistry } from "@json-render/react";
 
-import { layoutRegistryComponents } from "../../../lib/jsonRender/layoutRegistryComponents";
 import { BrickShell } from "../../../components/brick/BrickShell";
+import { layoutRegistryComponents } from "../../../lib/jsonRender/layoutRegistryComponents";
 import {
   RepoDescription as RepoDescriptionLeaf,
   RepoForks as RepoForksLeaf,
@@ -9,16 +11,18 @@ import {
   RepoName as RepoNameLeaf,
   RepoStars as RepoStarsLeaf,
 } from "../GitHubRepo/GitHubRepo";
-import { githubRepoJsonRenderCatalog } from "./GitHubRepoJsonRenderCatalog";
+import { githubRepo } from "../githubRepo";
 
-export const { registry } = defineRegistry(githubRepoJsonRenderCatalog, {
+export const { registry } = defineRegistry(githubRepo.catalog, {
   components: {
     ...layoutRegistryComponents,
-    BrickShell: ({ children }) => <BrickShell className="min-w-0">{children}</BrickShell>,
-    RepoName: ({ props }) => (
+    BrickShell: ({ children }: { children?: ReactNode }) => (
+      <BrickShell className="min-w-0">{children}</BrickShell>
+    ),
+    RepoName: ({ props }: { props: Record<string, unknown> }) => (
       <RepoNameLeaf name={typeof props.name === "string" ? props.name : ""} />
     ),
-    RepoDescription: ({ props }) => (
+    RepoDescription: ({ props }: { props: Record<string, unknown> }) => (
       <RepoDescriptionLeaf
         description={
           typeof props.description === "string" || props.description === null
@@ -27,15 +31,15 @@ export const { registry } = defineRegistry(githubRepoJsonRenderCatalog, {
         }
       />
     ),
-    RepoStars: ({ props }) => (
+    RepoStars: ({ props }: { props: Record<string, unknown> }) => (
       <RepoStarsLeaf
         stargazers_count={typeof props.stargazers_count === "number" ? props.stargazers_count : 0}
       />
     ),
-    RepoForks: ({ props }) => (
+    RepoForks: ({ props }: { props: Record<string, unknown> }) => (
       <RepoForksLeaf forks_count={typeof props.forks_count === "number" ? props.forks_count : 0} />
     ),
-    RepoLanguage: ({ props }) => (
+    RepoLanguage: ({ props }: { props: Record<string, unknown> }) => (
       <RepoLanguageLeaf
         language={
           typeof props.language === "string" || props.language === null ? props.language : null

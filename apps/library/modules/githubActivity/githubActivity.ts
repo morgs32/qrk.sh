@@ -1,16 +1,30 @@
 import { primitives } from "@zerospin/schema";
 import { Schema } from "effect";
 
+import {
+  brickBodyComponent,
+  brickFooterComponent,
+  brickShellComponent,
+  columnComponent,
+  rowComponent,
+} from "../../lib/jsonRender/layoutComponents";
 import { defineModule } from "../../make/defineModule";
 import { makeDataFetcher } from "../../make/makeDataFetcher";
+import { activityCalendarComponent } from "./generative/ActivityCalendarComponent";
 import { defaultSpec } from "./generative/defaultSpec";
-import { githubActivityJsonRenderCatalog } from "./generative/GitHubActivityJsonRenderCatalog";
 
 export const githubActivity = defineModule({
   id: "github-activity",
   label: "GitHub Activity",
   description: "A GitHub contribution activity calendar.",
-  catalog: githubActivityJsonRenderCatalog,
+  components: {
+    BrickShell: brickShellComponent,
+    BrickBody: brickBodyComponent,
+    BrickFooter: brickFooterComponent,
+    Column: columnComponent,
+    Row: rowComponent,
+    ActivityCalendar: activityCalendarComponent,
+  },
   data: makeDataFetcher({
     payloadShape: {
       url: primitives.text({ defaultValue: "https://github.com/morgs32" }),

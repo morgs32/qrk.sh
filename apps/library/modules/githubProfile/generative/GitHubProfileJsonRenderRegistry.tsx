@@ -8,35 +8,37 @@ import { Followers } from "../GitHubProfile/components/Followers";
 import { Following } from "../GitHubProfile/components/Following";
 import { Location } from "../GitHubProfile/components/Location";
 import { PublicRepos } from "../GitHubProfile/components/PublicRepos";
-import { githubProfileJsonRenderCatalog } from "./GitHubProfileJsonRenderCatalog";
+import { githubProfile } from "../githubProfile";
 
-export const { registry } = defineRegistry(githubProfileJsonRenderCatalog, {
+export const { registry } = defineRegistry(githubProfile.catalog, {
   components: {
     ...layoutRegistryComponents,
-    AvatarAndUsername: ({ props }) => (
+    AvatarAndUsername: ({ props }: { props: Record<string, unknown> }) => (
       <AvatarAndUsername
         avatar_url={typeof props.avatar_url === "string" ? props.avatar_url : ""}
         login={typeof props.login === "string" ? props.login : ""}
       />
     ),
-    Bio: ({ props }) => (
+    Bio: ({ props }: { props: Record<string, unknown> }) => (
       <Bio bio={typeof props.bio === "string" || props.bio === null ? props.bio : null} />
     ),
-    Location: ({ props }) => (
+    Location: ({ props }: { props: Record<string, unknown> }) => (
       <Location
         location={
           typeof props.location === "string" || props.location === null ? props.location : null
         }
       />
     ),
-    Blog: ({ props }) => <Blog blog={typeof props.blog === "string" ? props.blog : ""} />,
-    Followers: ({ props }) => (
+    Blog: ({ props }: { props: Record<string, unknown> }) => (
+      <Blog blog={typeof props.blog === "string" ? props.blog : ""} />
+    ),
+    Followers: ({ props }: { props: Record<string, unknown> }) => (
       <Followers followers={typeof props.followers === "number" ? props.followers : 0} />
     ),
-    Following: ({ props }) => (
+    Following: ({ props }: { props: Record<string, unknown> }) => (
       <Following following={typeof props.following === "number" ? props.following : 0} />
     ),
-    PublicRepos: ({ props }) => (
+    PublicRepos: ({ props }: { props: Record<string, unknown> }) => (
       <PublicRepos
         public_repos={typeof props.public_repos === "number" ? props.public_repos : 0}
       />

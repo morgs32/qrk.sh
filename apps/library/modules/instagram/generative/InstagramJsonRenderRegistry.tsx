@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 import { defineRegistry } from "@json-render/react";
 
 import { layoutRegistryComponents } from "../../../lib/jsonRender/layoutRegistryComponents";
@@ -6,17 +8,23 @@ import {
   InstagramMediaFooter as InstagramMediaFooterLeaf,
   InstagramPostGrid as InstagramPostGridLeaf,
 } from "../InstagramBrick";
-import { instagramJsonRenderCatalog } from "./InstagramJsonRenderCatalog";
+import { instagram } from "../instagram";
 
-export const { registry } = defineRegistry(instagramJsonRenderCatalog, {
+export const { registry } = defineRegistry(instagram.catalog, {
   components: {
     ...layoutRegistryComponents,
-    InstagramCard: ({ children, props }) => (
+    InstagramCard: ({
+      children,
+      props,
+    }: {
+      children?: ReactNode;
+      props: Record<string, unknown>;
+    }) => (
       <InstagramCardLeaf username={typeof props.username === "string" ? props.username : ""}>
         {children}
       </InstagramCardLeaf>
     ),
-    InstagramPostGrid: ({ props }) => (
+    InstagramPostGrid: ({ props }: { props: Record<string, unknown> }) => (
       <InstagramPostGridLeaf
         username={typeof props.username === "string" ? props.username : ""}
         postImageUrl1={typeof props.postImageUrl1 === "string" ? props.postImageUrl1 : ""}
@@ -25,7 +33,7 @@ export const { registry } = defineRegistry(instagramJsonRenderCatalog, {
         postImageUrl4={typeof props.postImageUrl4 === "string" ? props.postImageUrl4 : ""}
       />
     ),
-    InstagramMediaFooter: ({ props }) => (
+    InstagramMediaFooter: ({ props }: { props: Record<string, unknown> }) => (
       <InstagramMediaFooterLeaf
         username={typeof props.username === "string" ? props.username : ""}
         followersText={typeof props.followersText === "string" ? props.followersText : ""}

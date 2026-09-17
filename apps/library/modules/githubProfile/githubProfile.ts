@@ -1,15 +1,41 @@
 import { primitives } from "@zerospin/schema";
 
+import {
+  brickBodyComponent,
+  brickFooterComponent,
+  brickShellComponent,
+  columnComponent,
+  rowComponent,
+} from "../../lib/jsonRender/layoutComponents";
 import { defineModule } from "../../make/defineModule";
 import { makeDataFetcher } from "../../make/makeDataFetcher";
+import { avatarAndUsernameComponent } from "./generative/AvatarAndUsernameComponent";
+import { bioComponent } from "./generative/BioComponent";
+import { blogComponent } from "./generative/BlogComponent";
 import { defaultSpec } from "./generative/defaultSpec";
-import { githubProfileJsonRenderCatalog } from "./generative/GitHubProfileJsonRenderCatalog";
+import { followersComponent } from "./generative/FollowersComponent";
+import { followingComponent } from "./generative/FollowingComponent";
+import { locationComponent } from "./generative/LocationComponent";
+import { publicReposComponent } from "./generative/PublicReposComponent";
 
 export const githubProfile = defineModule({
   id: "github-profile",
   label: "GitHub Profile",
   description: "A GitHub profile card.",
-  catalog: githubProfileJsonRenderCatalog,
+  components: {
+    BrickShell: brickShellComponent,
+    BrickBody: brickBodyComponent,
+    BrickFooter: brickFooterComponent,
+    Column: columnComponent,
+    Row: rowComponent,
+    AvatarAndUsername: avatarAndUsernameComponent,
+    Bio: bioComponent,
+    Location: locationComponent,
+    Blog: blogComponent,
+    Followers: followersComponent,
+    Following: followingComponent,
+    PublicRepos: publicReposComponent,
+  },
   data: makeDataFetcher({
     payloadShape: {
       url: primitives.text({ defaultValue: "https://github.com/morgs32" }),

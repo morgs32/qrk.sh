@@ -1,22 +1,32 @@
+import type { ReactNode } from "react";
+
 import { defineRegistry } from "@json-render/react";
 
 import { MediaFooter } from "../../../components/brick/MediaFooter";
 import { layoutRegistryComponents } from "../../../lib/jsonRender/layoutRegistryComponents";
 import { ImageCard as ImageCardLeaf, ImageCover as ImageCoverLeaf } from "../ImageBrick";
-import { imageJsonRenderCatalog } from "./ImageJsonRenderCatalog";
+import { image } from "../image";
 
-export const { registry } = defineRegistry(imageJsonRenderCatalog, {
+export const { registry } = defineRegistry(image.catalog, {
   components: {
     ...layoutRegistryComponents,
-    ImageCard: ({ children }) => <ImageCardLeaf>{children}</ImageCardLeaf>,
-    ImageCover: ({ props }) => (
+    ImageCard: ({ children }: { children?: ReactNode }) => (
+      <ImageCardLeaf>{children}</ImageCardLeaf>
+    ),
+    ImageCover: ({ props }: { props: Record<string, unknown> }) => (
       <ImageCoverLeaf
         imageUrl={typeof props.imageUrl === "string" ? props.imageUrl : ""}
         title={typeof props.title === "string" ? props.title : ""}
         imagePosition={typeof props.imagePosition === "string" ? props.imagePosition : "center"}
       />
     ),
-    MediaFooter: ({ children, props }) => (
+    MediaFooter: ({
+      children,
+      props,
+    }: {
+      children?: ReactNode;
+      props: Record<string, unknown>;
+    }) => (
       <MediaFooter
         overline={typeof props.overline === "string" ? props.overline : undefined}
         heading={typeof props.heading === "string" ? props.heading : undefined}

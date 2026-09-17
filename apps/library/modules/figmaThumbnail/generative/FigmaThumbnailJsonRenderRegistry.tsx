@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 import { defineRegistry } from "@json-render/react";
 
 import { layoutRegistryComponents } from "../../../lib/jsonRender/layoutRegistryComponents";
@@ -6,13 +8,15 @@ import {
   FigmaMediaFooter as FigmaMediaFooterLeaf,
   FigmaThumbnailBand as FigmaThumbnailBandLeaf,
 } from "../FigmaThumbnailBrick";
-import { figmaThumbnailJsonRenderCatalog } from "./FigmaThumbnailJsonRenderCatalog";
+import { figmaThumbnail } from "../figmaThumbnail";
 
-export const { registry } = defineRegistry(figmaThumbnailJsonRenderCatalog, {
+export const { registry } = defineRegistry(figmaThumbnail.catalog, {
   components: {
     ...layoutRegistryComponents,
-    FigmaCard: ({ children }) => <FigmaCardLeaf>{children}</FigmaCardLeaf>,
-    FigmaThumbnailBand: ({ props }) => (
+    FigmaCard: ({ children }: { children?: ReactNode }) => (
+      <FigmaCardLeaf>{children}</FigmaCardLeaf>
+    ),
+    FigmaThumbnailBand: ({ props }: { props: Record<string, unknown> }) => (
       <FigmaThumbnailBandLeaf
         title={typeof props.title === "string" ? props.title : ""}
         thumbnail_url={
@@ -33,7 +37,7 @@ export const { registry } = defineRegistry(figmaThumbnailJsonRenderCatalog, {
         imagePosition={typeof props.imagePosition === "string" ? props.imagePosition : "left"}
       />
     ),
-    FigmaMediaFooter: ({ props }) => (
+    FigmaMediaFooter: ({ props }: { props: Record<string, unknown> }) => (
       <FigmaMediaFooterLeaf
         title={typeof props.title === "string" ? props.title : ""}
         url={typeof props.url === "string" ? props.url : ""}

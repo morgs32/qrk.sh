@@ -4,12 +4,12 @@ import { defineRegistry } from "@json-render/react";
 
 import { layoutRegistryComponents } from "../../../lib/jsonRender/layoutRegistryComponents";
 import { MapCanvas as MapCanvasLeaf } from "../MapPlaceBrick";
-import { mapPlaceJsonRenderCatalog } from "./MapPlaceJsonRenderCatalog";
+import { mapPlace } from "../mapPlace";
 
-export const { registry } = defineRegistry(mapPlaceJsonRenderCatalog, {
+export const { registry } = defineRegistry(mapPlace.catalog, {
   components: {
     ...layoutRegistryComponents,
-    MapCanvas: ({ props }) => (
+    MapCanvas: ({ props }: { props: Record<string, unknown> }) => (
       <MapCanvasLeaf
         googlePlaceId={typeof props.googlePlaceId === "string" ? props.googlePlaceId : ""}
         name={typeof props.name === "string" ? props.name : ""}

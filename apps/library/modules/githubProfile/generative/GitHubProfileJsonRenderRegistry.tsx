@@ -8,9 +8,9 @@ import { Followers } from "../GitHubProfile/components/Followers";
 import { Following } from "../GitHubProfile/components/Following";
 import { Location } from "../GitHubProfile/components/Location";
 import { PublicRepos } from "../GitHubProfile/components/PublicRepos";
-import { githubProfile } from "../githubProfile";
+import { githubProfileV1 } from "../githubProfileV1";
 
-export const { registry } = defineRegistry(githubProfile.catalog, {
+export const { registry } = defineRegistry(githubProfileV1.catalog, {
   components: {
     ...layoutRegistryComponents,
     AvatarAndUsername: ({ props }: { props: Record<string, unknown> }) => (

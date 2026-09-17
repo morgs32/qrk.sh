@@ -4,9 +4,9 @@ import { makeFrontend } from "../../make/makeFrontend";
 import { registry } from "./generative/MapPlaceJsonRenderRegistry";
 import { GooglePlaceLookup } from "./GooglePlaceLookup";
 import { MapPlaceBrick } from "./MapPlaceBrick";
-import { mapPlace } from "./mapPlace";
+import { mapPlaceV1 } from "./mapPlaceV1";
 
-export const mapPlaceFrontend = makeFrontend(mapPlace, {
+export const mapPlaceFrontend = makeFrontend(mapPlaceV1, {
   registry,
   component: MapPlaceBrick,
   data: {

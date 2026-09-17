@@ -8,9 +8,9 @@ import {
   FigmaMediaFooter as FigmaMediaFooterLeaf,
   FigmaThumbnailBand as FigmaThumbnailBandLeaf,
 } from "../FigmaThumbnailBrick";
-import { figmaThumbnail } from "../figmaThumbnail";
+import { figmaThumbnailV1 } from "../figmaThumbnailV1";
 
-export const { registry } = defineRegistry(figmaThumbnail.catalog, {
+export const { registry } = defineRegistry(figmaThumbnailV1.catalog, {
   components: {
     ...layoutRegistryComponents,
     FigmaCard: ({ children }: { children?: ReactNode }) => (

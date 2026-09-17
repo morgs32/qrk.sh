@@ -8,7 +8,7 @@ import { makeFrontend } from "../../make/makeFrontend";
 import { registry } from "./generative/TextJsonRenderRegistry";
 import { TextBrick } from "./TextBrick";
 import { TextEditorControl } from "./TextEditorControl";
-import { text } from "./text";
+import { textV1 } from "./textV1";
 
 function tipTapDocumentFromData(
   content: Schema.Schema.Type<typeof TiptapDocSchema> | null,
@@ -19,7 +19,7 @@ function tipTapDocumentFromData(
   return JSON.parse(JSON.stringify(content));
 }
 
-export const textFrontend = makeFrontend(text, {
+export const textFrontend = makeFrontend(textV1, {
   registry,
   component: TextBrick,
   data: {

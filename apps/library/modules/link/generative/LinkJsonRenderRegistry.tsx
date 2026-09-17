@@ -8,9 +8,9 @@ import {
   LinkCopy as LinkCopyLeaf,
   LinkHeroImage as LinkHeroImageLeaf,
 } from "../LinkBrick";
-import { link } from "../link";
+import { linkV1 } from "../linkV1";
 
-export const { registry } = defineRegistry(link.catalog, {
+export const { registry } = defineRegistry(linkV1.catalog, {
   components: {
     ...layoutRegistryComponents,
     LinkCard: ({ children }: { children?: ReactNode }) => <LinkCardLeaf>{children}</LinkCardLeaf>,

@@ -5,9 +5,9 @@ import { registry } from "./generative/SwatchAndIconJsonRenderRegistry";
 import { StreamlineIconLookup } from "./StreamlineIconLookup";
 import { SwatchAndIconBrick } from "./SwatchAndIconBrick";
 import { SwatchAndIconColorForm } from "./SwatchAndIconColorForm";
-import { swatchAndIcon } from "./swatchAndIcon";
+import { swatchAndIconV1 } from "./swatchAndIconV1";
 
-export const swatchAndIconFrontend = makeFrontend(swatchAndIcon, {
+export const swatchAndIconFrontend = makeFrontend(swatchAndIconV1, {
   registry,
   component: SwatchAndIconBrick,
   data: {

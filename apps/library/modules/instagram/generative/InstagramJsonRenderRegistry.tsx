@@ -8,9 +8,9 @@ import {
   InstagramMediaFooter as InstagramMediaFooterLeaf,
   InstagramPostGrid as InstagramPostGridLeaf,
 } from "../InstagramBrick";
-import { instagram } from "../instagram";
+import { instagramV1 } from "../instagramV1";
 
-export const { registry } = defineRegistry(instagram.catalog, {
+export const { registry } = defineRegistry(instagramV1.catalog, {
   components: {
     ...layoutRegistryComponents,
     InstagramCard: ({

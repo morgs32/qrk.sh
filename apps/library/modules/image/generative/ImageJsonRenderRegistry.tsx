@@ -5,9 +5,9 @@ import { defineRegistry } from "@json-render/react";
 import { MediaFooter } from "../../../components/brick/MediaFooter";
 import { layoutRegistryComponents } from "../../../lib/jsonRender/layoutRegistryComponents";
 import { ImageCard as ImageCardLeaf, ImageCover as ImageCoverLeaf } from "../ImageBrick";
-import { image } from "../image";
+import { imageV1 } from "../imageV1";
 
-export const { registry } = defineRegistry(image.catalog, {
+export const { registry } = defineRegistry(imageV1.catalog, {
   components: {
     ...layoutRegistryComponents,
     ImageCard: ({ children }: { children?: ReactNode }) => (

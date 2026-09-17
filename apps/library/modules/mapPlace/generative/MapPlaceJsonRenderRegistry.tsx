@@ -4,9 +4,9 @@ import { defineRegistry } from "@json-render/react";
 
 import { layoutRegistryComponents } from "../../../lib/jsonRender/layoutRegistryComponents";
 import { MapCanvas as MapCanvasLeaf } from "../MapPlaceBrick";
-import { mapPlace } from "../mapPlace";
+import { mapPlaceV1 } from "../mapPlaceV1";
 
-export const { registry } = defineRegistry(mapPlace.catalog, {
+export const { registry } = defineRegistry(mapPlaceV1.catalog, {
   components: {
     ...layoutRegistryComponents,
     MapCanvas: ({ props }: { props: Record<string, unknown> }) => (

@@ -2,9 +2,9 @@ import { makeFrontend } from "../../make/makeFrontend";
 import { ImageBreakpointOptionsForm } from "./ImageBreakpointOptionsForm";
 import { ImageBrick } from "./ImageBrick";
 import { registry } from "./generative/ImageJsonRenderRegistry";
-import { image } from "./image";
+import { imageV1 } from "./imageV1";
 
-export const imageFrontend = makeFrontend(image, {
+export const imageFrontend = makeFrontend(imageV1, {
   registry,
   component: ImageBrick,
   breakpoints: {

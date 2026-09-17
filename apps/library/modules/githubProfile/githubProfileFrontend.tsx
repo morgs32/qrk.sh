@@ -1,9 +1,9 @@
 import { makeFrontend } from "../../make/makeFrontend";
 import { registry } from "./generative/GitHubProfileJsonRenderRegistry";
 import { GitHubProfile } from "./GitHubProfile/GitHubProfile";
-import { githubProfile } from "./githubProfile";
+import { githubProfileV1 } from "./githubProfileV1";
 
-export const githubProfileFrontend = makeFrontend(githubProfile, {
+export const githubProfileFrontend = makeFrontend(githubProfileV1, {
   registry,
   component: GitHubProfile,
 });

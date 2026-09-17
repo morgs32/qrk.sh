@@ -1,4 +1,4 @@
-/** Worker-safe library entries: `defineModule` results keyed by id. */
+/** Worker-safe library entries: `makeModuleVersion` results keyed by id. */
 export function makeBackendLibrary<
   const ENTRIES extends {
     readonly [moduleId: string]: {

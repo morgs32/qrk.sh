@@ -11,9 +11,9 @@ import {
   RepoName as RepoNameLeaf,
   RepoStars as RepoStarsLeaf,
 } from "../GitHubRepo/GitHubRepo";
-import { githubRepo } from "../githubRepo";
+import { githubRepoV1 } from "../githubRepoV1";
 
-export const { registry } = defineRegistry(githubRepo.catalog, {
+export const { registry } = defineRegistry(githubRepoV1.catalog, {
   components: {
     ...layoutRegistryComponents,
     BrickShell: ({ children }: { children?: ReactNode }) => (

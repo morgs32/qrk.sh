@@ -5,9 +5,9 @@ import { defineRegistry } from "@json-render/react";
 import { layoutRegistryComponents } from "../../../lib/jsonRender/layoutRegistryComponents";
 import { IconSvgGraphic } from "../SwatchAndIcon/components/IconSvgGraphic";
 import { SwatchAndIconColor } from "../SwatchAndIcon/components/SwatchAndIconColor";
-import { swatchAndIcon } from "../swatchAndIcon";
+import { swatchAndIconV1 } from "../swatchAndIconV1";
 
-export const { registry } = defineRegistry(swatchAndIcon.catalog, {
+export const { registry } = defineRegistry(swatchAndIconV1.catalog, {
   components: {
     ...layoutRegistryComponents,
     SwatchAndIconColor: ({

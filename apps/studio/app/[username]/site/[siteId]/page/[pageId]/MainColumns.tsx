@@ -32,7 +32,7 @@ export function MainColumns() {
         <div className="min-h-0 overflow-y-auto">
           <Article />
         </div>
-        <div data-site-right-scroll className="min-h-0 overflow-y-auto">
+        <div data-site-right-scroll data-brick-scroll-root="" className="min-h-0 overflow-y-auto">
           <Grid />
         </div>
       </div>
@@ -40,7 +40,7 @@ export function MainColumns() {
   }
 
   return (
-    <div data-site-right-scroll className="h-full overflow-y-auto">
+    <div data-site-right-scroll data-brick-scroll-root="" className="h-full overflow-y-auto">
       <div className="grid min-h-full grid-cols-2">
         <div className="min-h-0">
           <Article />

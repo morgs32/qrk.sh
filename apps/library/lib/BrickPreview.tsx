@@ -3,15 +3,21 @@
 import { useCallback, useState } from "react";
 import type { ReactNode, RefCallback } from "react";
 
-import { useBrickGridWidth } from "./BrickBreakpointProvider";
+import { useBrickBreakpoint } from "./BrickBreakpointProvider";
 import { BREAKPOINTS } from "./breakpoints";
-
-const PREVIEW_GRID_COLS = 8;
 
 /** Smallest integer grid units whose pixel size is ≥ intrinsicPx. */
 function minGridUnits(gridItemWidth: number, intrinsicPx: number): number {
   if (intrinsicPx <= 0) return 1;
   return Math.max(1, Math.ceil(intrinsicPx / gridItemWidth));
+}
+
+function resolveGridItemWidth(breakpointId: (typeof BREAKPOINTS)[number]["id"]) {
+  const breakpointEntry = BREAKPOINTS.find((row) => row.id === breakpointId);
+  if (!breakpointEntry) {
+    throw new Error(`Unknown breakpoint: ${breakpointId}`);
+  }
+  return breakpointEntry.gridItemWidth;
 }
 
 export function BrickPreview(
@@ -20,7 +26,7 @@ export function BrickPreview(
         w: number;
         h: number;
         children: ReactNode;
-        gridWidth?: number;
+        breakpoint?: (typeof BREAKPOINTS)[number]["id"];
       }
     | {
         breakpoint: (typeof BREAKPOINTS)[number]["id"];
@@ -30,10 +36,14 @@ export function BrickPreview(
         /** Module setting; used when larger than the measured size. */
         h: number;
         children: ReactNode;
-        gridWidth?: number;
       },
 ) {
-  const gridWidth = useBrickGridWidth(props.gridWidth);
+  const ambient = useBrickBreakpoint();
+  const breakpointId =
+    "breakpoint" in props && props.breakpoint !== undefined
+      ? props.breakpoint
+      : ambient.breakpoint;
+  const gridItemWidth = resolveGridItemWidth(breakpointId);
   const [intrinsicSize, setIntrinsicSize] = useState<{
     widthPx: number;
     heightPx: number;
@@ -63,16 +73,8 @@ export function BrickPreview(
   let w: number;
   let h: number;
   if ("measure" in props) {
-    const breakpointEntry = BREAKPOINTS.find((row) => row.id === props.breakpoint);
-    if (!breakpointEntry) {
-      throw new Error(`Unknown breakpoint: ${props.breakpoint}`);
-    }
-    const measuredW = intrinsicSize
-      ? minGridUnits(breakpointEntry.gridItemWidth, intrinsicSize.widthPx)
-      : 1;
-    const measuredH = intrinsicSize
-      ? minGridUnits(breakpointEntry.gridItemWidth, intrinsicSize.heightPx)
-      : 1;
+    const measuredW = intrinsicSize ? minGridUnits(gridItemWidth, intrinsicSize.widthPx) : 1;
+    const measuredH = intrinsicSize ? minGridUnits(gridItemWidth, intrinsicSize.heightPx) : 1;
     w = Math.max(measuredW, props.w);
     h = Math.max(measuredH, props.h);
   } else {
@@ -80,9 +82,9 @@ export function BrickPreview(
     h = props.h;
   }
 
-  // Match react-grid-layout's whole-pixel item dimensions.
-  const fullW = Math.round((gridWidth / PREVIEW_GRID_COLS) * w);
-  const fullH = Math.round((gridWidth / PREVIEW_GRID_COLS) * h);
+  // Same cell math as BREAKPOINTS.gridItemWidth (previewWidth / 8).
+  const fullW = Math.round(gridItemWidth * w);
+  const fullH = Math.round(gridItemWidth * h);
 
   return (
     <div

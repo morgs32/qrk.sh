@@ -70,9 +70,9 @@ sequenceDiagram
    - [`ModulesPage.tsx:10-17`](../../../apps/library/app/routes/modules/ModulesPage.tsx#L10-L17) — `Object.values(modulesHash)` then `modules.map((brickModule) => ...)`. (`apps/library/app/routes/modules/ModulesPage.tsx:10-17`)
 2. Each entry is a full `IModule` (`def`, `component`, `defaultData`).
    - [`modulesHash.ts:14-26`](../../../apps/library/lib/modulesHash.ts#L14-L26) — kebab keys to assembler results. (`apps/library/lib/modulesHash.ts:14-26`)
-3. Preview size is `round(gridWidth / 8 * w)` by `round(gridWidth / 8 * h)`.
-   - [`ModulesPage.tsx:36`](../../../apps/library/app/routes/modules/ModulesPage.tsx#L36) — `BrickPreview w={def[breakpoint].w} h={def[breakpoint].h}`. (`apps/library/app/routes/modules/ModulesPage.tsx:36`)
-   - [`BrickPreview.tsx:13-16`](../../../apps/library/lib/BrickPreview.tsx#L13-L16) — whole-pixel width/height from `useBrickBreakpoint().gridWidth`. (`apps/library/lib/BrickPreview.tsx:13-16`)
+3. Preview size is `w * gridItemWidth` by `h * gridItemWidth` for the active `BREAKPOINTS` row.
+   - [`-ModulePreview.tsx`](../../../apps/library/app/routes/modules/-ModulePreview.tsx) — `BrickPreview breakpoint={breakpoint} w={def[breakpoint].w} h={def[breakpoint].h}`.
+   - [`BrickPreview.tsx`](../../../apps/library/lib/BrickPreview.tsx) — whole-pixel width/height from `BREAKPOINTS[].gridItemWidth`.
 4. The preview surface is a native drag source carrying `brickModule.def`.
    - [`ModulesPage.tsx:37-43`](../../../apps/library/app/routes/modules/ModulesPage.tsx#L37-L43) — `DraggableBrick brickDef={def}` wrapping `BrickComponent` with `data={def.data}`. (`apps/library/app/routes/modules/ModulesPage.tsx:37-43`)
 5. Drag start clones the def into Zustand and sets `text/plain` to `moduleId`.

@@ -74,9 +74,9 @@ sequenceDiagram
    - [`BrickGroup.tsx:26-56`](../../../apps/studio/app/[username]/site/[siteId]/page/[pageId]/BrickGroup/BrickGroup.tsx#L26-56) — `Object.values(modulesHash)` then `modules.map((brickModule) => ...)`. (`apps/studio/app/[username]/site/[siteId]/page/[pageId]/BrickGroup/BrickGroup.tsx:26-56`)
 2. Each row is an `IModule` (`def`, `component`, `defaultData`).
    - [`modulesHash.ts:14-26`](../../../apps/library/lib/modulesHash.ts#L14-L26) — kebab keys imported by `@qrk.sh/library`. (`apps/library/lib/modulesHash.ts:14-26`)
-3. Preview size uses measured `gridWidth` and `brickModule.def[breakpoint]`.
+3. Preview size uses `BREAKPOINTS[].gridItemWidth` and `brickModule.def[breakpoint]`.
    - [`BrickGroup.tsx:59-77`](../../../apps/studio/app/[username]/site/[siteId]/page/[pageId]/BrickGroup/BrickGroup.tsx#L59-77) — `w`/`h` from `selectedBrick.def[breakpoint]`, then `BrickPreview`. (`apps/studio/app/[username]/site/[siteId]/page/[pageId]/BrickGroup/BrickGroup.tsx:59-77`)
-   - [`BrickPreview.tsx:13-16`](../../../apps/library/lib/BrickPreview.tsx#L13-16) — `round(gridWidth / 8 * w|h)`. (`apps/library/lib/BrickPreview.tsx:13-16`)
+   - [`BrickPreview.tsx`](../../../apps/library/lib/BrickPreview.tsx) — `gridItemWidth * w|h`.
 4. Drag start registers breakpoint `w`/`h` for drop-over (custom MIME is often empty until drop).
    - [`BrickGroup.tsx:84-85`](../../../apps/studio/app/[username]/site/[siteId]/page/[pageId]/BrickGroup/BrickGroup.tsx#L84-L85) — `registerActiveBrickDragGridShape(w, h)`. (`apps/studio/app/[username]/site/[siteId]/page/[pageId]/BrickGroup/BrickGroup.tsx:84-85`)
    - [`useBrickDrawerStore.ts:18-27`](../../../apps/studio/components/home/useBrickDrawerStore.ts#L18-L27) — store setter and `getActiveBrickDragGridShape()`. (`apps/studio/components/home/useBrickDrawerStore.ts:18-27`)

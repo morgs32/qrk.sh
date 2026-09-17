@@ -1,7 +1,8 @@
 import { useState, type ReactNode } from "react";
 import { Link, useLocation, useNavigate, useParams } from "@tanstack/react-router";
 import { RotateCcw, X } from "lucide-react";
-import { Drawer, DrawerPresence } from "@qrk.sh/web/library/Drawer";
+import { cn } from "cn";
+import { Drawer } from "@qrk.sh/web/library/Drawer";
 
 import { Button } from "../components/ui/button";
 import { BrickBreakpointProvider } from "../lib/BrickBreakpointProvider";
@@ -113,13 +114,47 @@ function LayoutBody(props: { children: ReactNode }) {
   return (
     <BrickBreakpointProvider persistedWidth={persistedWidth}>
       {({ regionRef, availableWidth, selectedWidth }) => (
-        <main className="min-h-screen">
-          <DrawerPresence group={drawerOpen ? "bricks" : "closed"}>
+        <main
+          className={cn(
+            "grid h-dvh overflow-hidden transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0,0,0.2,1)] motion-reduce:transition-none",
+            drawerOpen
+              ? "grid-rows-[minmax(0,1fr)_50dvh]"
+              : "grid-rows-[minmax(0,1fr)_0fr]",
+          )}
+        >
+          <div
+            ref={regionRef}
+            data-testid="grid-region"
+            data-brick-scroll-root=""
+            className="relative min-h-0 min-w-0 overflow-y-auto pt-14"
+          >
+            {availableWidth > 0 && availableWidth < BREAKPOINTS[0].previewWidth && (
+              <p className="p-4" role="status">
+                At least {BREAKPOINTS[0].previewWidth}px is needed to preview the grid.
+              </p>
+            )}
+            <div
+              hidden={selectedWidth === null}
+              className="mx-auto"
+              style={{ width: selectedWidth ?? BREAKPOINTS[0].previewWidth }}
+            >
+              <BrickWall
+                onBrickActivate={({ moduleId, brickId }) => {
+                  void navigate({
+                    to: "/modules/$moduleId/$brickId",
+                    params: { moduleId, brickId },
+                  });
+                }}
+              />
+            </div>
+          </div>
+          <div className="min-h-0 overflow-hidden">
             {drawerOpen ? (
               <Drawer
                 side="bottom"
+                layoutMode="flow"
                 aria-label={drawerTitle}
-                className="top-auto z-60 h-[50dvh] border-zinc-300 bg-white"
+                className="border-zinc-300 bg-white"
               >
                 <div className="flex shrink-0 items-center justify-between gap-4 border-b border-border/60 px-4 py-2.5">
                   <nav aria-label="Drawer breadcrumbs" className="flex min-w-0 items-center gap-2">
@@ -171,27 +206,6 @@ function LayoutBody(props: { children: ReactNode }) {
                 </div>
               </Drawer>
             ) : null}
-          </DrawerPresence>
-          <div ref={regionRef} data-testid="grid-region" className="relative min-w-0 pt-14">
-            {availableWidth > 0 && availableWidth < BREAKPOINTS[0].previewWidth && (
-              <p className="p-4" role="status">
-                At least {BREAKPOINTS[0].previewWidth}px is needed to preview the grid.
-              </p>
-            )}
-            <div
-              hidden={selectedWidth === null}
-              className="mx-auto"
-              style={{ width: selectedWidth ?? BREAKPOINTS[0].previewWidth }}
-            >
-              <BrickWall
-                onBrickActivate={({ moduleId, brickId }) => {
-                  void navigate({
-                    to: "/modules/$moduleId/$brickId",
-                    params: { moduleId, brickId },
-                  });
-                }}
-              />
-            </div>
           </div>
           <div className="pointer-events-none fixed inset-x-0 top-3 z-80 flex justify-center px-2 lg:bottom-6 lg:top-auto">
             <div

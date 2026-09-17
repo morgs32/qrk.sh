@@ -10,7 +10,7 @@ export function ModulePreview(props: {
   breakpoint: (typeof BREAKPOINTS)[number]["id"];
 }) {
   const { brickModule, breakpoint } = props;
-  const { def, component: BrickComponent, breakpoints } = brickModule;
+  const { def, component: BrickComponent } = brickModule;
 
   return (
     <div
@@ -27,36 +27,17 @@ export function ModulePreview(props: {
         </Link>
       </h2>
       <div className="pb-16">
-        {breakpoints[breakpoint].measurable ? (
-          <BrickPreview
-            breakpoint={breakpoint}
-            measure={<BrickComponent breakpoint={breakpoint} data={def.data} />}
-            w={def[breakpoint].w}
-            h={def[breakpoint].h}
+        <BrickPreview breakpoint={breakpoint} w={def[breakpoint].w} h={def[breakpoint].h}>
+          <DraggableBrick
+            brickDef={def}
+            className="size-full qrk-bricks overflow-hidden"
+            data-module-representative={def.moduleId}
           >
-            <DraggableBrick
-              brickDef={def}
-              className="size-full qrk-bricks overflow-hidden"
-              data-module-representative={def.moduleId}
-            >
-              <div className="brick-drag-content size-full">
-                <BrickComponent breakpoint={breakpoint} data={def.data} />
-              </div>
-            </DraggableBrick>
-          </BrickPreview>
-        ) : (
-          <BrickPreview w={def[breakpoint].w} h={def[breakpoint].h}>
-            <DraggableBrick
-              brickDef={def}
-              className="size-full qrk-bricks overflow-hidden"
-              data-module-representative={def.moduleId}
-            >
-              <div className="brick-drag-content size-full">
-                <BrickComponent breakpoint={breakpoint} data={def.data} />
-              </div>
-            </DraggableBrick>
-          </BrickPreview>
-        )}
+            <div className="brick-drag-content size-full">
+              <BrickComponent breakpoint={breakpoint} data={def.data} />
+            </div>
+          </DraggableBrick>
+        </BrickPreview>
       </div>
     </div>
   );

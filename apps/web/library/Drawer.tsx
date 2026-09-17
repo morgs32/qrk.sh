@@ -39,11 +39,13 @@ export function Drawer(props: {
   side: "left" | "right" | "bottom";
   children: ReactNode;
   className?: string;
+  layoutMode?: "overlay" | "flow";
   "aria-label"?: string;
 }) {
-  const { side, children, className } = props;
+  const { side, children, className, layoutMode = "overlay" } = props;
   const reducedMotion = useReducedMotion();
-  const motionProps = sideMotion[side];
+  const isFlow = layoutMode === "flow";
+  const motionProps = isFlow ? undefined : sideMotion[side];
 
   return (
     <motion.div
@@ -52,11 +54,16 @@ export function Drawer(props: {
       role="dialog"
       aria-label={props["aria-label"]}
       aria-hidden={false}
-      initial={motionProps.initial}
-      animate={motionProps.animate}
-      exit={motionProps.exit}
+      initial={motionProps?.initial}
+      animate={motionProps?.animate}
+      exit={motionProps?.exit}
       transition={reducedMotion ? { duration: 0 } : drawerTransition}
-      className={cn(sideClassName[side], className)}
+      className={cn(
+        sideClassName[side],
+        isFlow &&
+          "relative inset-auto top-auto z-60 h-full max-md:w-full shadow-none md:h-full",
+        className,
+      )}
     >
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">{children}</div>
     </motion.div>

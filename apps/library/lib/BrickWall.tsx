@@ -12,11 +12,11 @@ export function BrickWall(props: {
 }) {
   const bricksStore = useBricksStoreApi();
   const containerRef = useRef<HTMLElement>(null);
+  const scrollRootRef = useRef<HTMLElement | null>(null);
   const { gridWidth, breakpoint, containerRef: observeGrid } = useBrickBreakpoint();
   const [dragging, setDragging] = useState(false);
   const [outsideBrickId, setOutsideBrickId] = useState<string | null>(null);
   const [dragScrollTop, setDragScrollTop] = useState(0);
-  const [bottomDrawerPadding, setBottomDrawerPadding] = useState(0);
   const bricksById = useBricksStore((state) => state.bricksById);
   const activeBrickDrag = useBricksStore((state) => state.activeBrickDrag);
   const hasHydrated = useBricksStore((state) => state.hasHydrated);
@@ -24,52 +24,11 @@ export function BrickWall(props: {
   const addBrick = useBricksStore((state) => state.addBrick);
   const setActiveBrickDrag = useBricksStore((state) => state.setActiveBrickDrag);
   useLayoutEffect(() => {
-    if (!dragging && containerRef.current) {
-      containerRef.current.scrollTop = dragScrollTop;
+    if (!dragging && scrollRootRef.current) {
+      scrollRootRef.current.scrollTop = dragScrollTop;
+      scrollRootRef.current.style.overflow = "";
     }
   }, [dragging, dragScrollTop]);
-
-  useLayoutEffect(() => {
-    let observedDrawer: Element | null = null;
-
-    function applyDrawerPadding(drawer: Element | null) {
-      if (drawer === null) {
-        setBottomDrawerPadding(0);
-        return;
-      }
-      setBottomDrawerPadding(drawer.getBoundingClientRect().height + 40);
-    }
-
-    const resizeObserver = new ResizeObserver(() => {
-      applyDrawerPadding(observedDrawer);
-    });
-
-    function syncBottomDrawer() {
-      const drawer = document.querySelector('[data-drawer="bottom"]');
-      if (drawer === observedDrawer) {
-        return;
-      }
-      if (observedDrawer !== null) {
-        resizeObserver.unobserve(observedDrawer);
-      }
-      observedDrawer = drawer;
-      if (drawer === null) {
-        applyDrawerPadding(null);
-        return;
-      }
-      resizeObserver.observe(drawer);
-      applyDrawerPadding(drawer);
-    }
-
-    syncBottomDrawer();
-    const mutationObserver = new MutationObserver(syncBottomDrawer);
-    mutationObserver.observe(document.body, { childList: true, subtree: true });
-
-    return () => {
-      mutationObserver.disconnect();
-      resizeObserver.disconnect();
-    };
-  }, []);
 
   const layout = Object.values(bricksById).flatMap((brick) => {
     const entry = resolveBrickBreakpoint(brick, breakpoint);
@@ -84,16 +43,12 @@ export function BrickWall(props: {
         return observeGrid(element);
       }}
       aria-label="Brick grid"
-      style={{
-        ...(dragging ? { overflow: "visible" as const } : undefined),
-        paddingBottom: bottomDrawerPadding,
-      }}
-      className="h-[calc(100dvh-3.5rem)] overflow-y-auto bg-black lg:sticky lg:top-0 lg:self-start"
+      className="bg-black"
     >
       {outsideBrickId && (
         <div
           role="status"
-          className="pointer-events-none fixed right-4 top-4 z-80 rounded bg-zinc-900 px-3 py-2"
+          className="pointer-events-none fixed right-4 top-4 z-80 rounded bg-zinc-900 px-3 py-2 text-sm text-zinc-100"
         >
           Release to remove
         </div>
@@ -157,7 +112,12 @@ export function BrickWall(props: {
             setActiveBrickDrag(null);
           }}
           onDragStart={() => {
-            setDragScrollTop(containerRef.current?.scrollTop ?? 0);
+            const scrollRoot = containerRef.current?.closest("[data-brick-scroll-root]");
+            scrollRootRef.current = scrollRoot instanceof HTMLElement ? scrollRoot : null;
+            setDragScrollTop(scrollRootRef.current?.scrollTop ?? 0);
+            if (scrollRootRef.current) {
+              scrollRootRef.current.style.overflow = "visible";
+            }
             setDragging(true);
           }}
           onDrag={(_nextLayout, _oldItem, item, _placeholder, event) => {

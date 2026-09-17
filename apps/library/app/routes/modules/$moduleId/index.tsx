@@ -132,7 +132,7 @@ function BreakpointPreviewRow({
         <div className="flex w-max items-start gap-4">
           <div>
             <p className="m-0 mb-2 font-mono text-neutral-500">gridItem</p>
-            <BrickPreview gridWidth={entry.previewWidth} w={w} h={h}>
+            <BrickPreview breakpoint={entry.id} w={w} h={h}>
               <div
                 className="size-full qrk-bricks brick-drag-surface overflow-hidden"
                 data-module-brick={moduleId}

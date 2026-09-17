@@ -7,7 +7,7 @@ import { Schema } from "effect";
 
 import { Drawers } from "../../Drawers/Drawers";
 import { Toolbars } from "../../Toolbars/Toolbars";
-import { useBreakpointsPreviewStore } from "../../Toolbars/useBreakpointsPreviewStore";
+import { useStudioUIStore } from "../../Toolbars/useStudioUIStore";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 
 import { MainColumns } from "./MainColumns";
@@ -18,7 +18,7 @@ const ParamsSchema = Schema.Struct({
 });
 
 export default function SitePage() {
-  const persistedWidth = useBreakpointsPreviewStore((state) => state.selectedWidth);
+  const persistedWidth = useStudioUIStore((state) => state.selectedWidth);
   const params = useValidatedParams(ParamsSchema);
   const { user } = useUser();
 

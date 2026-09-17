@@ -11,7 +11,7 @@ import { useValidatedParams } from "@/hooks/useValidatedParams";
 
 import { BottomToolbar, ToolbarSeparator } from "./BottomToolbar";
 import { ToolbarButton } from "./ToolbarButton";
-import { useBreakpointsPreviewStore } from "./useBreakpointsPreviewStore";
+import { useStudioUIStore } from "./useStudioUIStore";
 
 const ParamsSchema = Schema.Struct({
   username: Schema.String,
@@ -30,7 +30,7 @@ export function BreakpointsToolbar() {
   const params = useValidatedParams(ParamsSchema);
   const navigate = useNavigate();
   const { availableWidth, selectedWidth } = useBrickBreakpoint();
-  const setSelectedWidth = useBreakpointsPreviewStore((state) => state.setSelectedWidth);
+  const setSelectedWidth = useStudioUIStore((state) => state.setSelectedWidth);
 
   return (
     <div className="pointer-events-none fixed bottom-6 left-1/2 z-30 -translate-x-1/2 md:left-[25%]">

@@ -17,15 +17,9 @@ function createBricksStore(initialState?: {
     {
       moduleId: string;
       data: unknown;
-      sm: { gridItem: LayoutItem | null; breakpointOptions: unknown; spec?: Spec };
-    } & Partial<
-      Record<
-        "md" | "lg" | "xl",
-        { gridItem: LayoutItem | null; breakpointOptions: unknown; spec?: Spec }
-      >
-    >
+      sm: { gridItem: LayoutItem | null; spec: Spec };
+    } & Partial<Record<"md" | "lg" | "xl", { gridItem: LayoutItem | null; spec: Spec }>>
   >;
-  selectedWidth?: number | null;
 }) {
   return create<{
     bricksById: Record<
@@ -33,32 +27,19 @@ function createBricksStore(initialState?: {
       {
         moduleId: string;
         data: unknown;
-        sm: { gridItem: LayoutItem | null; breakpointOptions: unknown; spec?: Spec };
-      } & Partial<
-        Record<
-          "md" | "lg" | "xl",
-          { gridItem: LayoutItem | null; breakpointOptions: unknown; spec?: Spec }
-        >
-      >
+        sm: { gridItem: LayoutItem | null; spec: Spec };
+      } & Partial<Record<"md" | "lg" | "xl", { gridItem: LayoutItem | null; spec: Spec }>>
     >;
-    activeBrickDrag: (IModuleBrickDef & { breakpointOptions?: unknown; spec?: Spec }) | null;
+    activeBrickDrag: (IModuleBrickDef & { spec: Spec }) | null;
     hasHydrated: boolean;
-    selectedWidth: number | null;
     setLayout: (layout: Layout, breakpoint: "sm" | "md" | "lg" | "xl") => void;
     addBrick: (
       brickId: string,
-      brickDef: IModuleBrickDef & { breakpointOptions?: unknown; spec?: Spec },
+      brickDef: IModuleBrickDef & { spec: Spec },
       layout: Layout,
       breakpoint: "sm" | "md" | "lg" | "xl",
     ) => void;
-    setActiveBrickDrag: (
-      brickDef: (IModuleBrickDef & { breakpointOptions?: unknown; spec?: Spec }) | null,
-    ) => void;
-    setBreakpointOptions: (
-      brickId: string,
-      breakpoint: "sm" | "md" | "lg" | "xl",
-      value: unknown,
-    ) => void;
+    setActiveBrickDrag: (brickDef: (IModuleBrickDef & { spec: Spec }) | null) => void;
     setSpec: (brickId: string, breakpoint: "sm" | "md" | "lg" | "xl", spec: Spec) => void;
     setVisible: (
       brickId: string,
@@ -71,9 +52,8 @@ function createBricksStore(initialState?: {
     bricksById: initialState?.bricksById ?? {},
     activeBrickDrag: null,
     hasHydrated: true,
-    selectedWidth: initialState?.selectedWidth ?? null,
     setLayout: (layout, breakpoint) => {
-      set((state) => {
+      set(state => {
         const bricksById = { ...state.bricksById };
         for (const gridItem of layout) {
           const brick = bricksById[gridItem.i];
@@ -101,17 +81,11 @@ function createBricksStore(initialState?: {
       });
     },
     addBrick: (brickId, brickDef, layout, breakpoint) => {
-      const gridItem = layout.find((item) => item.i === brickId);
+      const gridItem = layout.find(item => item.i === brickId);
       if (!gridItem) return;
       const brickModule = modulesHash[brickDef.moduleId];
-      const dropOptions = brickModule?.breakpoints[breakpoint].options;
-      const smOptions = brickModule?.breakpoints.sm.options;
-      const smBreakpointOptions = smOptions
-        ? smOptions.decode(breakpoint === "sm" ? brickDef.breakpointOptions : undefined)
-        : {};
-      const dropBreakpointOptions =
-        dropOptions === undefined ? {} : dropOptions.decode(brickDef.breakpointOptions);
-      set((state) => {
+      const spec = structuredClone(brickDef.spec);
+      set(state => {
         let smGridItem: LayoutItem;
         if (breakpoint === "sm") {
           smGridItem = { ...gridItem };
@@ -140,18 +114,14 @@ function createBricksStore(initialState?: {
               data: structuredClone(brickDef.data),
               sm: {
                 gridItem: smGridItem,
-                breakpointOptions: structuredClone(smBreakpointOptions),
-                ...(brickDef.spec === undefined ? {} : { spec: structuredClone(brickDef.spec) }),
+                spec: structuredClone(spec),
               },
               ...(breakpoint === "sm"
                 ? {}
                 : {
                     [breakpoint]: {
                       gridItem: { ...gridItem },
-                      breakpointOptions: structuredClone(dropBreakpointOptions),
-                      ...(brickDef.spec === undefined
-                        ? {}
-                        : { spec: structuredClone(brickDef.spec) }),
+                      spec: structuredClone(spec),
                     },
                   }),
             },
@@ -160,31 +130,8 @@ function createBricksStore(initialState?: {
       });
       get().setLayout(layout, breakpoint);
     },
-    setBreakpointOptions: (brickId, breakpoint, value) => {
-      set((state) => {
-        const brick = state.bricksById[brickId];
-        if (!brick) return state;
-        const breakpointOptionsConfig =
-          modulesHash[brick.moduleId]?.breakpoints[breakpoint].options;
-        if (!breakpointOptionsConfig) return state;
-        const breakpointOptions = breakpointOptionsConfig.decode(value);
-        const entry = structuredClone(resolveBrickBreakpoint(brick, breakpoint));
-        return {
-          bricksById: {
-            ...state.bricksById,
-            [brickId]: {
-              ...brick,
-              [breakpoint]: {
-                ...entry,
-                breakpointOptions: structuredClone(breakpointOptions),
-              },
-            },
-          },
-        };
-      });
-    },
     setSpec: (brickId, breakpoint, spec) => {
-      set((state) => {
+      set(state => {
         const brick = state.bricksById[brickId];
         if (!brick) return state;
         const entry = structuredClone(resolveBrickBreakpoint(brick, breakpoint));
@@ -203,7 +150,7 @@ function createBricksStore(initialState?: {
       });
     },
     setVisible: (brickId, breakpoint, visible, gridSize) => {
-      set((state) => {
+      set(state => {
         const brick = state.bricksById[brickId];
         if (!brick) return state;
         const entry = structuredClone(resolveBrickBreakpoint(brick, breakpoint));
@@ -220,7 +167,7 @@ function createBricksStore(initialState?: {
                 : breakpoint === "md"
                   ? [brick.sm]
                   : [];
-          const placement = smaller.find((candidate) => candidate?.gridItem)?.gridItem;
+          const placement = smaller.find(candidate => candidate?.gridItem)?.gridItem;
           const brickModule = modulesHash[brick.moduleId];
           if (!brickModule) return state;
           const declaredW = brickModule.def[breakpoint].w;
@@ -263,7 +210,7 @@ function createBricksStore(initialState?: {
           ...state.bricksById,
           [brickId]: { ...brick, [breakpoint]: entry },
         };
-        const layout = Object.values(bricksById).flatMap((placed) => {
+        const layout = Object.values(bricksById).flatMap(placed => {
           const item = resolveBrickBreakpoint(placed, breakpoint).gridItem;
           return item ? [{ ...item }] : [];
         });
@@ -282,10 +229,10 @@ function createBricksStore(initialState?: {
         return { bricksById };
       });
     },
-    setActiveBrickDrag: (brickDef) => {
+    setActiveBrickDrag: brickDef => {
       set({ activeBrickDrag: brickDef });
     },
-    setHasHydrated: (hasHydrated) => {
+    setHasHydrated: hasHydrated => {
       set({ hasHydrated });
     },
   }));
@@ -298,7 +245,6 @@ export function BrickStoreProvider(props: {
   initialState?: Parameters<typeof createBricksStore>[0];
   onChange?: (state: {
     bricksById: ReturnType<ReturnType<typeof createBricksStore>["getState"]>["bricksById"];
-    selectedWidth: number | null;
   }) => void;
 }) {
   const [bricksStore] = useState(() => createBricksStore(props.initialState));
@@ -306,10 +252,9 @@ export function BrickStoreProvider(props: {
   useEffect(() => {
     if (props.onChange === undefined) return;
     const onChange = props.onChange;
-    return bricksStore.subscribe((state) => {
+    return bricksStore.subscribe(state => {
       onChange({
         bricksById: state.bricksById,
-        selectedWidth: state.selectedWidth,
       });
     });
   }, [bricksStore, props.onChange]);

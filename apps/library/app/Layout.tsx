@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Link, useLocation, useNavigate, useParams } from "@tanstack/react-router";
 import { RotateCcw, X } from "lucide-react";
 import { cn } from "cn";
@@ -11,14 +11,14 @@ import { BREAKPOINTS } from "../lib/breakpoints";
 import { modulesHash } from "../lib/modulesHash";
 import {
   BrickStoreProvider,
-  useBricksStore,
   useBricksStoreApi,
 } from "../lib/BrickStoreProvider";
+import { useLibraryUIStore } from "../lib/useLibraryUIStore";
 
 const LIBRARY_BRICKS_STORAGE_NAME = "qrk-bricks-sandbox-responsive-bricks-v5";
 const LIBRARY_BRICKS_STORAGE_VERSION = 5;
 
-function readLibraryBricksState() {
+function readLibraryPersistedState() {
   try {
     const raw = localStorage.getItem(LIBRARY_BRICKS_STORAGE_NAME);
     if (raw === null) return undefined;
@@ -47,7 +47,7 @@ function readLibraryBricksState() {
   }
 }
 
-function writeLibraryBricksState(state: {
+function writeLibraryPersistedState(state: {
   bricksById: Record<string, unknown>;
   selectedWidth: number | null;
 }) {
@@ -68,10 +68,25 @@ function writeLibraryBricksState(state: {
 }
 
 export function Layout(props: { children: ReactNode }) {
-  const [initialState] = useState(readLibraryBricksState);
+  const [initialBricksState] = useState(() => {
+    const persisted = readLibraryPersistedState();
+    if (persisted !== undefined) {
+      useLibraryUIStore.setState({ selectedWidth: persisted.selectedWidth });
+      return { bricksById: persisted.bricksById };
+    }
+    return undefined;
+  });
 
   return (
-    <BrickStoreProvider initialState={initialState} onChange={writeLibraryBricksState}>
+    <BrickStoreProvider
+      initialState={initialBricksState}
+      onChange={(state) => {
+        writeLibraryPersistedState({
+          bricksById: state.bricksById,
+          selectedWidth: useLibraryUIStore.getState().selectedWidth,
+        });
+      }}
+    >
       <LayoutBody>{props.children}</LayoutBody>
     </BrickStoreProvider>
   );
@@ -87,7 +102,8 @@ function LayoutBody(props: { children: ReactNode }) {
   const brickId = params.brickId;
   const moduleLabel = moduleId ? modulesHash[moduleId]?.label : undefined;
   const drawerTitle = moduleLabel !== undefined ? `Bricks / ${moduleLabel}` : "Bricks";
-  const persistedWidth = useBricksStore((state) => state.selectedWidth);
+  const persistedWidth = useLibraryUIStore((state) => state.selectedWidth);
+  const setSelectedWidth = useLibraryUIStore((state) => state.setSelectedWidth);
   const locationKey = `${location.pathname}${location.searchStr}`;
   const [drawerOpen, setDrawerOpen] = useState(
     () => location.pathname !== "/" || location.searchStr.length > 0,
@@ -99,6 +115,15 @@ function LayoutBody(props: { children: ReactNode }) {
       setDrawerOpen(true);
     }
   }
+
+  useEffect(() => {
+    return useLibraryUIStore.subscribe((state) => {
+      writeLibraryPersistedState({
+        bricksById: bricksStore.getState().bricksById,
+        selectedWidth: state.selectedWidth,
+      });
+    });
+  }, [bricksStore]);
 
   function openDrawer() {
     setDrawerOpen(true);
@@ -258,7 +283,7 @@ function LayoutBody(props: { children: ReactNode }) {
                   aria-label={`${row.previewWidth}px grid width`}
                   aria-pressed={selectedWidth === row.previewWidth}
                   disabled={row.previewWidth > availableWidth}
-                  onClick={() => bricksStore.setState({ selectedWidth: row.previewWidth })}
+                  onClick={() => setSelectedWidth(row.previewWidth)}
                 >
                   {row.previewWidth}
                 </Button>

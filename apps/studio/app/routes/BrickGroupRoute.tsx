@@ -1,6 +1,9 @@
+import { useCallback, useState } from "react";
+
 import { modulesHash } from "@qrk.sh/library";
 import { useBrickBreakpoint } from "@qrk.sh/library/BrickBreakpointProvider";
 import { BrickPreview } from "@qrk.sh/library/BrickPreview";
+import type { IModuleBrickDef } from "@qrk.sh/library";
 import { ArrowLeft } from "lucide-react";
 import { Tabs } from "radix-ui";
 import { href, Link, useParams } from "react-router";
@@ -38,9 +41,67 @@ export default function BrickGroupRoute() {
     );
   }
 
+  return (
+    <BrickGroupRouteBody
+      brickModule={brickModule}
+      breakpoint={breakpoint}
+      bricksStore={bricksStore}
+      pageId={pageId}
+      siteId={siteId}
+      username={username}
+    />
+  );
+}
+
+function BrickGroupRouteBody(props: {
+  brickModule: (typeof modulesHash)[string];
+  breakpoint: "sm" | "md" | "lg" | "xl";
+  bricksStore: ReturnType<typeof useBricksStoreApi>;
+  username: string;
+  siteId: string;
+  pageId: string;
+}) {
+  const { brickModule, breakpoint, bricksStore, username, siteId, pageId } = props;
   const BrickComponent = brickModule.component;
-  const w = brickModule.def[breakpoint].w;
-  const h = brickModule.def[breakpoint].h;
+  const declared = brickModule.def[breakpoint];
+  const declaredW = declared.w;
+  const declaredH = declared.h;
+  const hasDeclaredSize = declaredW !== undefined && declaredH !== undefined;
+  const [measuredUnits, setMeasuredUnits] = useState<{ w: number; h: number }>();
+  const onGridUnits = useCallback((size: { w: number; h: number }) => {
+    setMeasuredUnits((current) => {
+      if (current?.w === size.w && current?.h === size.h) return current;
+      return size;
+    });
+  }, []);
+
+  const w = hasDeclaredSize ? declaredW : (measuredUnits?.w ?? 1);
+  const h = hasDeclaredSize ? declaredH : (measuredUnits?.h ?? 1);
+  const brickDefForDrag: IModuleBrickDef = {
+    ...brickModule.def,
+    [breakpoint]: { w, h },
+  };
+
+  const surface = (
+    <div
+      className="size-full qrk-bricks cursor-grab overflow-hidden active:cursor-grabbing"
+      data-brick-full-view={brickModule.def.moduleId}
+      data-brick-drawer-brick-slot
+      data-brick-drawer-module-id={brickModule.def.moduleId}
+      draggable
+      onDragStart={(event) => {
+        bricksStore.getState().setActiveBrickDrag(structuredClone(brickDefForDrag));
+        event.dataTransfer.setData(BRICK_DRAG_MIME, JSON.stringify(brickDefForDrag));
+        event.dataTransfer.effectAllowed = "copy";
+        event.dataTransfer.setData("text/plain", brickModule.def.moduleId);
+      }}
+      onDragEnd={() => {
+        bricksStore.getState().setActiveBrickDrag(null);
+      }}
+    >
+      <BrickComponent breakpoint={breakpoint} data={brickModule.defaultData} />
+    </div>
+  );
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto pb-6">
@@ -91,29 +152,21 @@ export default function BrickGroupRoute() {
             <Tabs.Content value={`${brickModule.def.moduleId}-preview`}>
               <div className="mt-6 overflow-auto">
                 <div className={w === 8 ? undefined : "ml-6"}>
-                  <BrickPreview w={w} h={h}>
-                    <div
-                      className="size-full qrk-bricks cursor-grab overflow-hidden active:cursor-grabbing"
-                      data-brick-full-view={brickModule.def.moduleId}
-                      data-brick-drawer-brick-slot
-                      data-brick-drawer-module-id={brickModule.def.moduleId}
-                      draggable
-                      onDragStart={(event) => {
-                        bricksStore.getState().setActiveBrickDrag(structuredClone(brickModule.def));
-                        event.dataTransfer.setData(
-                          BRICK_DRAG_MIME,
-                          JSON.stringify(brickModule.def),
-                        );
-                        event.dataTransfer.effectAllowed = "copy";
-                        event.dataTransfer.setData("text/plain", brickModule.def.moduleId);
-                      }}
-                      onDragEnd={() => {
-                        bricksStore.getState().setActiveBrickDrag(null);
-                      }}
+                  {hasDeclaredSize ? (
+                    <BrickPreview w={declaredW} h={declaredH}>
+                      {surface}
+                    </BrickPreview>
+                  ) : (
+                    <BrickPreview
+                      breakpoint={breakpoint}
+                      measure={
+                        <BrickComponent breakpoint={breakpoint} data={brickModule.defaultData} />
+                      }
+                      onGridUnits={onGridUnits}
                     >
-                      <BrickComponent breakpoint={breakpoint} data={brickModule.defaultData} />
-                    </div>
-                  </BrickPreview>
+                      {surface}
+                    </BrickPreview>
+                  )}
                 </div>
               </div>
             </Tabs.Content>

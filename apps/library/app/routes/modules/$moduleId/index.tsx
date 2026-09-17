@@ -25,7 +25,7 @@ export const Route = createFileRoute("/modules/$moduleId/")({
 });
 
 const nestedListClassName =
-  "mt-10 list-outside marker:font-mono marker:text-neutral-400 pl-[29px] max-[480px]:pl-8 list-[lower-alpha]";
+  "mt-4 list-none pl-[29px] max-[480px]:pl-8 [counter-reset:item] [&>li]:[counter-increment:item] [&>li>h2]:relative [&>li>h2]:before:absolute [&>li>h2]:before:right-[calc(100%+0.65rem)] [&>li>h2]:before:top-1/2 [&>li>h2]:before:-translate-y-1/2 [&>li>h2]:before:text-neutral-400 [&>li>h2]:before:[content:counter(item,upper-alpha)]";
 
 /** Smallest integer grid units whose pixel size is ≥ intrinsicPx. */
 function minGridUnits(gridItemWidth: number, intrinsicPx: number): number {
@@ -115,16 +115,72 @@ function BreakpointPreviewRow({
   }
 
   const declared = brick.def[entry.id];
+  const declaredW = declared.w;
+  const declaredH = declared.h;
   const measurable = brick.breakpoints[entry.id].measurable;
-  let w: number;
-  let h: number;
-  if (measurable) {
-    w = intrinsicSize ? minGridUnits(entry.gridItemWidth, intrinsicSize.widthPx) : 1;
-    h = intrinsicSize ? minGridUnits(entry.gridItemWidth, intrinsicSize.heightPx) : 1;
-  } else {
-    w = declared.w;
-    h = declared.h;
-  }
+  const hasDeclaredSize = declaredW !== undefined && declaredH !== undefined;
+  const [gridUnits, setGridUnits] = useState<{ w: number; h: number }>();
+  const onGridUnits = useCallback((size: { w: number; h: number }) => {
+    setGridUnits((current) => {
+      if (current?.w === size.w && current?.h === size.h) return current;
+      return size;
+    });
+  }, []);
+  const measuredW = intrinsicSize
+    ? minGridUnits(entry.gridItemWidth, intrinsicSize.widthPx)
+    : undefined;
+  const measuredH = intrinsicSize
+    ? minGridUnits(entry.gridItemWidth, intrinsicSize.heightPx)
+    : undefined;
+  const dragW = hasDeclaredSize
+    ? declaredW
+    : (gridUnits?.w ?? measuredW ?? 1);
+  const dragH = hasDeclaredSize
+    ? declaredH
+    : (gridUnits?.h ?? measuredH ?? 1);
+
+  const previewSurface = (
+    <div
+      className="size-full qrk-bricks brick-drag-surface overflow-hidden"
+      data-module-brick={moduleId}
+      data-testid="brick-preview"
+      draggable
+      onDragStart={(event) => {
+        setActiveBrickDrag({
+          ...brick.def,
+          [entry.id]: { w: dragW, h: dragH },
+          data: structuredClone(moduleData),
+          ...(breakpointOptions !== undefined
+            ? { breakpointOptions: structuredClone(breakpointOptions) }
+            : {}),
+          ...(attachSpecOnDrag && spec !== undefined
+            ? { spec: structuredClone(spec) }
+            : {}),
+        });
+        const surface = event.currentTarget;
+        if (surface) {
+          const bounds = surface.getBoundingClientRect();
+          event.dataTransfer.setDragImage(
+            surface,
+            event.clientX - bounds.left,
+            event.clientY - bounds.top,
+          );
+        }
+        event.dataTransfer.effectAllowed = "copy";
+        event.dataTransfer.setData("text/plain", brick.def.moduleId);
+      }}
+      onDragEnd={() => setActiveBrickDrag(null)}
+    >
+      <div className="brick-drag-content size-full select-none">
+        <BrickComponent
+          breakpoint={entry.id}
+          data={moduleData}
+          breakpointOptions={breakpointOptions}
+          spec={spec}
+        />
+      </div>
+    </div>
+  );
 
   return (
     <OrderedSection className={className} headingClassName="shrink-0 py-2" label={entry.id}>
@@ -132,50 +188,33 @@ function BreakpointPreviewRow({
         <div className="flex w-max items-start gap-4">
           <div>
             <p className="m-0 mb-2 font-mono text-neutral-500">gridItem</p>
-            <BrickPreview breakpoint={entry.id} w={w} h={h}>
-              <div
-                className="size-full qrk-bricks brick-drag-surface overflow-hidden"
-                data-module-brick={moduleId}
-                data-testid="brick-preview"
-                draggable
-                onDragStart={(event) => {
-                  setActiveBrickDrag({
-                    ...brick.def,
-                    data: structuredClone(moduleData),
-                    ...(breakpointOptions !== undefined
-                      ? { breakpointOptions: structuredClone(breakpointOptions) }
-                      : {}),
-                    ...(attachSpecOnDrag && spec !== undefined
-                      ? { spec: structuredClone(spec) }
-                      : {}),
-                  });
-                  const surface = event.currentTarget;
-                  if (surface) {
-                    const bounds = surface.getBoundingClientRect();
-                    event.dataTransfer.setDragImage(
-                      surface,
-                      event.clientX - bounds.left,
-                      event.clientY - bounds.top,
-                    );
-                  }
-                  event.dataTransfer.effectAllowed = "copy";
-                  event.dataTransfer.setData("text/plain", brick.def.moduleId);
-                }}
-                onDragEnd={() => setActiveBrickDrag(null)}
-              >
-                <div className="brick-drag-content size-full select-none">
+            {hasDeclaredSize ? (
+              <BrickPreview breakpoint={entry.id} w={declaredW} h={declaredH}>
+                {previewSurface}
+              </BrickPreview>
+            ) : (
+              <BrickPreview
+                breakpoint={entry.id}
+                measure={
                   <BrickComponent
                     breakpoint={entry.id}
                     data={moduleData}
                     breakpointOptions={breakpointOptions}
                     spec={spec}
                   />
-                </div>
-              </div>
-            </BrickPreview>
-            {!measurable || intrinsicSize !== undefined ? (
+                }
+                onGridUnits={onGridUnits}
+              >
+                {previewSurface}
+              </BrickPreview>
+            )}
+            {hasDeclaredSize ? (
               <p className="m-0 pt-2 font-mono text-neutral-500">
-                w={w} h={h}
+                w={declaredW} h={declaredH}
+              </p>
+            ) : gridUnits !== undefined ? (
+              <p className="m-0 pt-2 font-mono text-neutral-500">
+                w={gridUnits.w} h={gridUnits.h}
               </p>
             ) : null}
           </div>
@@ -189,6 +228,11 @@ function BreakpointPreviewRow({
                 spec={spec}
               />
             </UnconstrainedBrickPreview>
+            {measurable && measuredW !== undefined && measuredH !== undefined ? (
+              <p className="m-0 pt-2 font-mono text-neutral-500">
+                w={measuredW} h={measuredH}
+              </p>
+            ) : null}
           </div>
         </div>
       </div>
@@ -250,7 +294,7 @@ function ModuleDetail() {
       {hasJsonRender ? (
         <OrderedSection className="mt-10" headingClassName="shrink-0" label="Generative Previews">
           <ol className={nestedListClassName}>
-            <OrderedSection headingClassName="shrink-0 py-4" label="Generate spec input">
+            <OrderedSection headingClassName="shrink-0" label="Generate spec input">
               <form
                 className="flex flex-col items-start gap-2 py-5"
                 onSubmit={(event) => {

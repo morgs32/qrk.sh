@@ -77,8 +77,8 @@ export function BrickDetail() {
             </div>
             <div className="mt-8 overflow-auto">
               <BrickPreview
-                w={entry.gridItem?.w ?? brick.def[breakpoint].w}
-                h={entry.gridItem?.h ?? brick.def[breakpoint].h}
+                w={entry.gridItem?.w ?? brick.def[breakpoint].w ?? 1}
+                h={entry.gridItem?.h ?? brick.def[breakpoint].h ?? 1}
               >
                 <div
                   className="size-full qrk-bricks overflow-hidden"

@@ -55,7 +55,7 @@ function BrickDetail() {
       {hasJsonRender ? (
         <OrderedSection
           data-testid="brick-detail-pane"
-          headingClassName="shrink-0 py-4"
+          headingClassName="shrink-0"
           label="Generate spec"
         >
           <form
@@ -120,7 +120,11 @@ function BrickDetail() {
         </OrderedSection>
       ) : null}
       {brickModule.data !== null && brickModule.data.dataType !== "static" ? (
-        <OrderedSection className="mt-10" headingClassName="shrink-0 py-4" label="Configuration">
+        <OrderedSection
+          className={hasJsonRender ? "mt-10" : undefined}
+          headingClassName={hasJsonRender ? "shrink-0 py-4" : "shrink-0"}
+          label="Configuration"
+        >
           <Configuration
             key={brickId}
             showData={false}

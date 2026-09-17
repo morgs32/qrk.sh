@@ -111,7 +111,9 @@ function createBricksStore(initialState?: {
         if (breakpoint === "sm") {
           smGridItem = { ...gridItem };
         } else {
-          const smSize = brickModule?.def.sm ?? { w: gridItem.w, h: gridItem.h };
+          const smDeclared = brickModule?.def.sm;
+          const smW = smDeclared?.w ?? gridItem.w;
+          const smH = smDeclared?.h ?? gridItem.h;
           let y = 0;
           for (const other of Object.values(state.bricksById)) {
             const item = other.sm.gridItem;
@@ -121,8 +123,8 @@ function createBricksStore(initialState?: {
             i: brickId,
             x: 0,
             y,
-            w: smSize.w,
-            h: smSize.h,
+            w: smW,
+            h: smH,
           };
         }
         return {
@@ -228,8 +230,8 @@ function createBricksStore(initialState?: {
               i: brickId,
               x: 0,
               y,
-              w: brickModule.def[breakpoint].w,
-              h: brickModule.def[breakpoint].h,
+              w: brickModule.def[breakpoint].w ?? 1,
+              h: brickModule.def[breakpoint].h ?? 1,
             };
           }
         }

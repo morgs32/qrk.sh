@@ -164,8 +164,10 @@ export default function OrderedBodyPage() {
               API Overview
             </SectionHeading>
             <ol
-              className={`mt-10 list-outside marker:font-mono marker:text-neutral-400 ${nestedListPadding} ${
-                showListDecorator ? "list-[lower-alpha]" : "list-none"
+              className={`mt-4 list-none ${nestedListPadding} ${
+                showListDecorator
+                  ? "[counter-reset:item] [&>li]:[counter-increment:item] [&>li>h2]:relative [&>li>h2]:before:absolute [&>li>h2]:before:right-[calc(100%+0.65rem)] [&>li>h2]:before:top-1/2 [&>li>h2]:before:-translate-y-1/2 [&>li>h2]:before:text-neutral-400 [&>li>h2]:before:[content:counter(item,upper-alpha)]"
+                  : ""
               }`}
             >
               <li>

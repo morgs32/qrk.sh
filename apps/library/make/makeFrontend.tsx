@@ -193,29 +193,29 @@ export function makeFrontend<
     defaultData: unknown;
     breakpoints: {
       sm: {
-        w: number;
-        h: number;
+        w?: number;
+        h?: number;
         measurable: boolean;
         defaultSpec?: Spec;
         options?: ReturnType<typeof makeBreakpointOptionShape>;
       };
       md: {
-        w: number;
-        h: number;
+        w?: number;
+        h?: number;
         measurable: boolean;
         defaultSpec?: Spec;
         options?: ReturnType<typeof makeBreakpointOptionShape>;
       };
       lg: {
-        w: number;
-        h: number;
+        w?: number;
+        h?: number;
         measurable: boolean;
         defaultSpec?: Spec;
         options?: ReturnType<typeof makeBreakpointOptionShape>;
       };
       xl: {
-        w: number;
-        h: number;
+        w?: number;
+        h?: number;
         measurable: boolean;
         defaultSpec?: Spec;
         options?: ReturnType<typeof makeBreakpointOptionShape>;
@@ -223,10 +223,10 @@ export function makeFrontend<
     };
     def: {
       moduleId: string;
-      sm: { w: number; h: number };
-      md: { w: number; h: number };
-      lg: { w: number; h: number };
-      xl: { w: number; h: number };
+      sm: { w?: number; h?: number };
+      md: { w?: number; h?: number };
+      lg: { w?: number; h?: number };
+      xl: { w?: number; h?: number };
       data: unknown;
     };
   },

@@ -11,11 +11,11 @@ import type { makeDataForm } from "../make/makeDataForm";
 
 /** A module definition (serializable identity and dimensions). */
 export type IBrickDef<MODULE extends string = string> = {
-  /** Resolved initial dimensions, inheriting the nearest smaller presentation. */
-  sm: { w: number; h: number };
-  md: { w: number; h: number };
-  lg: { w: number; h: number };
-  xl: { w: number; h: number };
+  /** Resolved initial dimensions, inheriting the nearest smaller presentation. Omitted when sized from intrinsic measure. */
+  sm: { w?: number; h?: number };
+  md: { w?: number; h?: number };
+  lg: { w?: number; h?: number };
+  xl: { w?: number; h?: number };
   /** Kebab-case module slug (for example `icon`, `github-profile`, or `figma-thumbnail`). */
   moduleId: MODULE;
 };
@@ -30,8 +30,8 @@ export type IModule = {
   registry?: ComponentRegistry;
   breakpoints: {
     sm: {
-      w: number;
-      h: number;
+      w?: number;
+      h?: number;
       measurable: boolean;
       defaultSpec?: Spec;
       options?: ReturnType<typeof makeBreakpointOptionShape> & {
@@ -39,8 +39,8 @@ export type IModule = {
       };
     };
     md: {
-      w: number;
-      h: number;
+      w?: number;
+      h?: number;
       measurable: boolean;
       defaultSpec?: Spec;
       options?: ReturnType<typeof makeBreakpointOptionShape> & {
@@ -48,8 +48,8 @@ export type IModule = {
       };
     };
     lg: {
-      w: number;
-      h: number;
+      w?: number;
+      h?: number;
       measurable: boolean;
       defaultSpec?: Spec;
       options?: ReturnType<typeof makeBreakpointOptionShape> & {
@@ -57,8 +57,8 @@ export type IModule = {
       };
     };
     xl: {
-      w: number;
-      h: number;
+      w?: number;
+      h?: number;
       measurable: boolean;
       defaultSpec?: Spec;
       options?: ReturnType<typeof makeBreakpointOptionShape> & {

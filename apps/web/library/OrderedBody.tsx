@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, type MouseEvent, type ReactNode } from "react";
+import { cn } from "cn";
 
 const OrderedBodyAnchorsContext = createContext(false);
 
@@ -10,14 +11,16 @@ export function OrderedBody(props: {
   showAnchors?: boolean;
 }) {
   const { children, showListDecorator = true, showAnchors = false } = props;
-  const outerListPadding = showListDecorator ? "pl-[29px] max-[480px]:pl-8" : "pl-0";
 
   return (
     <OrderedBodyAnchorsContext value={showAnchors}>
       <ol
-        className={`list-outside marker:font-mono marker:text-neutral-400 ${outerListPadding} ${
-          showListDecorator ? "list-[upper-alpha]" : "list-none"
-        }`}
+        className={cn(
+          "list-none",
+          showListDecorator ? "pl-[29px] max-[480px]:pl-8" : "pl-0",
+          showListDecorator &&
+            "[counter-reset:item] [&>li]:[counter-increment:item] [&>li>h2]:relative [&>li>h2]:before:absolute [&>li>h2]:before:right-[calc(100%+0.65rem)] [&>li>h2]:before:top-1/2 [&>li>h2]:before:-translate-y-1/2 [&>li>h2]:before:text-neutral-400 [&>li>h2]:before:[content:counter(item,decimal)]",
+        )}
       >
         {children}
       </ol>
@@ -45,7 +48,7 @@ export function OrderedBodyHeading(props: { children: string; className?: string
 
   return (
     <h2
-      className={`m-0 flex scroll-mt-4 items-baseline gap-[9px] font-normal ${props.className ?? ""}`}
+      className={cn("m-0 flex scroll-mt-4 items-baseline gap-[9px] font-normal", props.className)}
       id={id}
     >
       <span>{props.children}</span>

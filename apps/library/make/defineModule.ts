@@ -12,6 +12,20 @@ function assertKebabCaseId(id: string) {
   }
 }
 
+function assertBothOrNeitherWh(props: {
+  moduleId: string;
+  breakpoint: string;
+  w: number | undefined;
+  h: number | undefined;
+}) {
+  const hasW = props.w !== undefined;
+  const hasH = props.h !== undefined;
+  if (hasW === hasH) return;
+  throw new Error(
+    `defineModule: ${props.breakpoint} must provide both w and h or neither; got ${JSON.stringify(props.moduleId)}`,
+  );
+}
+
 function resolveBreakpoint(
   own:
     | {
@@ -23,8 +37,8 @@ function resolveBreakpoint(
       }
     | undefined,
   inherited: {
-    w: number;
-    h: number;
+    w: number | undefined;
+    h: number | undefined;
     measurable: boolean;
     defaultSpec: Spec | undefined;
     options: ReturnType<typeof makeBreakpointOptionShape> | undefined;
@@ -36,12 +50,22 @@ function resolveBreakpoint(
         ? undefined
         : makeBreakpointOptionShape(own.options.shape)
       : inherited.options;
+  const w = own?.w ?? inherited.w;
+  const h = own?.h ?? inherited.h;
+  const sizeOmitted = w === undefined && h === undefined;
   return {
-    w: own?.w ?? inherited.w,
-    h: own?.h ?? inherited.h,
-    measurable: own?.measurable ?? inherited.measurable,
+    w,
+    h,
+    measurable: sizeOmitted ? true : (own?.measurable ?? inherited.measurable),
     defaultSpec: own?.defaultSpec ?? inherited.defaultSpec,
     options,
+  };
+}
+
+function defSize(w: number | undefined, h: number | undefined) {
+  return {
+    ...(w === undefined ? {} : { w }),
+    ...(h === undefined ? {} : { h }),
   };
 }
 
@@ -61,8 +85,8 @@ export function defineModule<
   data: DATA;
   breakpoints: {
     sm: {
-      w: number;
-      h: number;
+      w?: number;
+      h?: number;
       measurable?: boolean;
       defaultSpec?: Spec;
       options?: { shape: IShape };
@@ -106,10 +130,28 @@ export function defineModule<
   }
 
   const smInput = props.breakpoints.sm;
+  assertBothOrNeitherWh({
+    moduleId: props.id,
+    breakpoint: "sm",
+    w: smInput.w,
+    h: smInput.h,
+  });
+  for (const breakpoint of ["md", "lg", "xl"] as const) {
+    const entry = props.breakpoints[breakpoint];
+    if (entry === undefined) continue;
+    assertBothOrNeitherWh({
+      moduleId: props.id,
+      breakpoint,
+      w: entry.w,
+      h: entry.h,
+    });
+  }
+
+  const smSizeOmitted = smInput.w === undefined && smInput.h === undefined;
   const sm = {
     w: smInput.w,
     h: smInput.h,
-    measurable: smInput.measurable ?? true,
+    measurable: smSizeOmitted ? true : (smInput.measurable ?? true),
     defaultSpec: smInput.defaultSpec,
     options:
       smInput.options === undefined ? undefined : makeBreakpointOptionShape(smInput.options.shape),
@@ -120,10 +162,10 @@ export function defineModule<
   const breakpoints = { sm, md, lg, xl };
   const def = {
     moduleId: props.id,
-    sm: { w: sm.w, h: sm.h },
-    md: { w: md.w, h: md.h },
-    lg: { w: lg.w, h: lg.h },
-    xl: { w: xl.w, h: xl.h },
+    sm: defSize(sm.w, sm.h),
+    md: defSize(md.w, md.h),
+    lg: defSize(lg.w, lg.h),
+    xl: defSize(xl.w, xl.h),
     data: (props.data === null ? null : props.data.defaultData) as unknown,
   };
 

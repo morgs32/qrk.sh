@@ -1,13 +1,13 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { ReactNode, RefCallback } from "react";
 
 import { useBrickBreakpoint } from "./BrickBreakpointProvider";
 import { BREAKPOINTS } from "./breakpoints";
 
 /** Smallest integer grid units whose pixel size is ≥ intrinsicPx. */
-function minGridUnits(gridItemWidth: number, intrinsicPx: number): number {
+export function minGridUnits(gridItemWidth: number, intrinsicPx: number): number {
   if (intrinsicPx <= 0) return 1;
   return Math.max(1, Math.ceil(intrinsicPx / gridItemWidth));
 }
@@ -31,11 +31,8 @@ export function BrickPreview(
     | {
         breakpoint: (typeof BREAKPOINTS)[number]["id"];
         measure: ReactNode;
-        /** Module setting; used when larger than the measured size. */
-        w: number;
-        /** Module setting; used when larger than the measured size. */
-        h: number;
         children: ReactNode;
+        onGridUnits?: (size: { w: number; h: number }) => void;
       },
 ) {
   const ambient = useBrickBreakpoint();
@@ -73,14 +70,18 @@ export function BrickPreview(
   let w: number;
   let h: number;
   if ("measure" in props) {
-    const measuredW = intrinsicSize ? minGridUnits(gridItemWidth, intrinsicSize.widthPx) : 1;
-    const measuredH = intrinsicSize ? minGridUnits(gridItemWidth, intrinsicSize.heightPx) : 1;
-    w = Math.max(measuredW, props.w);
-    h = Math.max(measuredH, props.h);
+    w = intrinsicSize ? minGridUnits(gridItemWidth, intrinsicSize.widthPx) : 1;
+    h = intrinsicSize ? minGridUnits(gridItemWidth, intrinsicSize.heightPx) : 1;
   } else {
     w = props.w;
     h = props.h;
   }
+
+  const onGridUnits = "measure" in props ? props.onGridUnits : undefined;
+  useEffect(() => {
+    if (onGridUnits === undefined) return;
+    onGridUnits({ w, h });
+  }, [onGridUnits, w, h]);
 
   // Same cell math as BREAKPOINTS.gridItemWidth (previewWidth / 8).
   const fullW = Math.round(gridItemWidth * w);

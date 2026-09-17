@@ -114,98 +114,100 @@ function LayoutBody(props: { children: ReactNode }) {
   return (
     <BrickBreakpointProvider persistedWidth={persistedWidth}>
       {({ regionRef, availableWidth, selectedWidth }) => (
-        <main
-          className={cn(
-            "grid h-dvh overflow-hidden transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0,0,0.2,1)] motion-reduce:transition-none",
-            drawerOpen
-              ? "grid-rows-[minmax(0,1fr)_50dvh]"
-              : "grid-rows-[minmax(0,1fr)_0fr]",
-          )}
-        >
+        <main className="relative h-dvh overflow-hidden">
           <div
-            ref={regionRef}
-            data-testid="grid-region"
-            data-brick-scroll-root=""
-            className="relative min-h-0 min-w-0 overflow-y-auto pt-14"
-          >
-            {availableWidth > 0 && availableWidth < BREAKPOINTS[0].previewWidth && (
-              <p className="p-4" role="status">
-                At least {BREAKPOINTS[0].previewWidth}px is needed to preview the grid.
-              </p>
+            className={cn(
+              "grid h-full overflow-hidden transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0,0,0.2,1)] motion-reduce:transition-none",
+              drawerOpen
+                ? "grid-rows-[minmax(0,1fr)_50dvh]"
+                : "grid-rows-[minmax(0,1fr)_0dvh]",
             )}
+          >
             <div
-              hidden={selectedWidth === null}
-              className="mx-auto"
-              style={{ width: selectedWidth ?? BREAKPOINTS[0].previewWidth }}
+              ref={regionRef}
+              data-testid="grid-region"
+              data-brick-scroll-root=""
+              className="relative min-h-0 min-w-0 overflow-y-auto pt-14"
             >
-              <BrickWall
-                onBrickActivate={({ moduleId, brickId }) => {
-                  void navigate({
-                    to: "/modules/$moduleId/$brickId",
-                    params: { moduleId, brickId },
-                  });
-                }}
-              />
-            </div>
-          </div>
-          <div className="min-h-0 overflow-hidden">
-            {drawerOpen ? (
-              <Drawer
-                side="bottom"
-                layoutMode="flow"
-                aria-label={drawerTitle}
-                className="border-zinc-300 bg-white"
+              {availableWidth > 0 && availableWidth < BREAKPOINTS[0].previewWidth && (
+                <p className="p-4" role="status">
+                  At least {BREAKPOINTS[0].previewWidth}px is needed to preview the grid.
+                </p>
+              )}
+              <div
+                hidden={selectedWidth === null}
+                className="mx-auto"
+                style={{ width: selectedWidth ?? BREAKPOINTS[0].previewWidth }}
               >
-                <div className="flex shrink-0 items-center justify-between gap-4 border-b border-border/60 px-4 py-2.5">
-                  <nav aria-label="Drawer breadcrumbs" className="flex min-w-0 items-center gap-2">
-                    <Link to="/modules">Bricks</Link>
-                    {moduleLabel !== undefined && moduleId !== undefined ? (
-                      <>
-                        <span aria-hidden className="text-muted-foreground">
-                          /
-                        </span>
-                        {brickId !== undefined ? (
-                          <Link
-                            to="/modules/$moduleId"
-                            params={{ moduleId }}
-                            className="truncate"
-                          >
-                            {moduleLabel}
-                          </Link>
-                        ) : (
-                          <span className="truncate">{moduleLabel}</span>
-                        )}
-                        {brickId !== undefined ? (
-                          <>
-                            <span aria-hidden className="text-muted-foreground">
-                              /
-                            </span>
-                            <span className="truncate">{`~${brickId.slice(-5)}`}</span>
-                          </>
-                        ) : null}
-                      </>
-                    ) : null}
-                  </nav>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="cursor-pointer"
-                    aria-label="Close drawer"
-                    onClick={closeDrawer}
-                  >
-                    <X aria-hidden />
-                  </Button>
-                </div>
-                <div className="min-h-0 flex-1 overflow-hidden">
-                  <div className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden">
-                    <div className="min-h-0 min-w-0 flex-1 overflow-y-auto">
-                      {children}
+                <BrickWall
+                  onBrickActivate={({ moduleId, brickId }) => {
+                    void navigate({
+                      to: "/modules/$moduleId/$brickId",
+                      params: { moduleId, brickId },
+                    });
+                  }}
+                />
+              </div>
+            </div>
+            <div className="min-h-0 overflow-hidden">
+              {drawerOpen ? (
+                <Drawer
+                  side="bottom"
+                  layoutMode="flow"
+                  aria-label={drawerTitle}
+                  className="border-zinc-300 bg-white"
+                >
+                  <div className="flex shrink-0 items-center justify-between gap-4 border-b border-border/60 px-4 py-2.5">
+                    <nav aria-label="Drawer breadcrumbs" className="flex min-w-0 items-center gap-2">
+                      <Link to="/modules">Bricks</Link>
+                      {moduleLabel !== undefined && moduleId !== undefined ? (
+                        <>
+                          <span aria-hidden className="text-muted-foreground">
+                            /
+                          </span>
+                          {brickId !== undefined ? (
+                            <Link
+                              to="/modules/$moduleId"
+                              params={{ moduleId }}
+                              className="truncate"
+                            >
+                              {moduleLabel}
+                            </Link>
+                          ) : (
+                            <span className="truncate">{moduleLabel}</span>
+                          )}
+                          {brickId !== undefined ? (
+                            <>
+                              <span aria-hidden className="text-muted-foreground">
+                                /
+                              </span>
+                              <span className="truncate">{`~${brickId.slice(-5)}`}</span>
+                            </>
+                          ) : null}
+                        </>
+                      ) : null}
+                    </nav>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="cursor-pointer"
+                      aria-label="Close drawer"
+                      onClick={closeDrawer}
+                    >
+                      <X aria-hidden />
+                    </Button>
+                  </div>
+                  <div className="min-h-0 flex-1 overflow-hidden">
+                    <div className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden">
+                      <div className="min-h-0 min-w-0 flex-1 overflow-y-auto">
+                        {children}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </Drawer>
-            ) : null}
+                </Drawer>
+              ) : null}
+            </div>
           </div>
           <div className="pointer-events-none fixed inset-x-0 top-3 z-80 flex justify-center px-2 lg:bottom-6 lg:top-auto">
             <div

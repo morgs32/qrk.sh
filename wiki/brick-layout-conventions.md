@@ -12,8 +12,11 @@ are not presentations and keep their own names.
 
 Select complete presentations once in the module definition. `defineModule`
 still keys responsive slots by breakpoint (`sm` required; `md`, `lg`, and `xl`
-optional). Each slot is `{ w, h, measurable?, defaultSpec, options? }`. An omitted breakpoint inherits
-the nearest smaller complete entry:
+optional). Each slot is `{ w?, h?, measurable?, defaultSpec, options? }`. Provide
+both `w` and `h` or neither. When omitted, every surface (filmstrip, module-page
+gridItem, drag placeholder, wall drop) sizes from unconstrained intrinsic px as
+`ceil(px / that breakpoint’s gridItemWidth)` (min 1), and `measurable` is forced
+true. An omitted breakpoint inherits the nearest smaller complete entry:
 
 ```ts
 defineModule({
@@ -26,7 +29,15 @@ defineModule({
 });
 ```
 
-In this example, `md` inherits `sm` and `xl` inherits `lg`. Grid container thresholds are 720px (`md`), 1080px
+Link-style modules can omit size entirely:
+
+```ts
+breakpoints: {
+  sm: { defaultSpec },
+},
+```
+
+In the first example, `md` inherits `sm` and `xl` inherits `lg`. Grid container thresholds are 720px (`md`), 1080px
 (`lg`), and 1440px (`xl`); `sm` covers smaller widths. Preview widths are
 360 / 720 / 1080 / 1440 so one column is 45 / 90 / 135 / 180 on the 8-col
 grid. Shared defs live in `apps/library/lib/breakpoints.ts`.

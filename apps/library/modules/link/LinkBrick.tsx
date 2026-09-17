@@ -10,19 +10,9 @@ export function LinkCard(props: { children?: ReactNode }) {
   );
 }
 
-export function LinkCopy(props: {
-  url: string;
-  title: string;
-  siteName: string;
-  iconUrl: string;
-}) {
+export function LinkCopy(props: { url: string; title: string; siteName: string; iconUrl: string }) {
   return (
-    <a
-      className="flex min-w-0 flex-1 flex-col justify-start p-4 no-underline"
-      href={props.url.length > 0 ? props.url : undefined}
-      rel="noopener noreferrer"
-      target="_blank"
-    >
+    <div className="flex min-w-0 flex-1 flex-col justify-start p-4">
       {props.iconUrl.length > 0 ? (
         <Image
           alt=""
@@ -36,9 +26,16 @@ export function LinkCopy(props: {
           width={40}
         />
       ) : null}
-      <h2 className="m-0 line-clamp-3">{props.title}</h2>
-      <p className="m-0 mt-1 truncate">{props.siteName}</p>
-    </a>
+      <a
+        className="no-underline"
+        href={props.url.length > 0 ? props.url : undefined}
+        rel="noopener noreferrer"
+        target="_blank"
+      >
+        <small className="m-0 mt-1 truncate">{props.siteName}</small>
+        <h2 className="m-0 line-clamp-3">{props.title}</h2>
+      </a>
+    </div>
   );
 }
 

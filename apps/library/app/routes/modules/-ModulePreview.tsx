@@ -1,8 +1,10 @@
+import { useCallback, useState } from "react";
 import { Link } from "@tanstack/react-router";
 
 import { BrickPreview } from "../../../lib/BrickPreview";
 import { BREAKPOINTS } from "../../../lib/breakpoints";
 import { modulesHash } from "../../../lib/modulesHash";
+import type { IModuleBrickDef } from "../../../lib/types";
 import { DraggableBrick } from "../../DraggableBrick";
 
 export function ModulePreview(props: {
@@ -11,6 +13,38 @@ export function ModulePreview(props: {
 }) {
   const { brickModule, breakpoint } = props;
   const { def, component: BrickComponent } = brickModule;
+  const declared = def[breakpoint];
+  const declaredW = declared.w;
+  const declaredH = declared.h;
+  const hasDeclaredSize = declaredW !== undefined && declaredH !== undefined;
+  const [measuredUnits, setMeasuredUnits] = useState<{ w: number; h: number }>();
+  const onGridUnits = useCallback((size: { w: number; h: number }) => {
+    setMeasuredUnits((current) => {
+      if (current?.w === size.w && current?.h === size.h) return current;
+      return size;
+    });
+  }, []);
+
+  const brickDefForDrag: IModuleBrickDef = {
+    ...def,
+    [breakpoint]: hasDeclaredSize
+      ? { w: declaredW, h: declaredH }
+      : measuredUnits !== undefined
+        ? { w: measuredUnits.w, h: measuredUnits.h }
+        : { w: 1, h: 1 },
+  };
+
+  const previewBody = (
+    <DraggableBrick
+      brickDef={brickDefForDrag}
+      className="size-full qrk-bricks overflow-hidden"
+      data-module-representative={def.moduleId}
+    >
+      <div className="brick-drag-content size-full">
+        <BrickComponent breakpoint={breakpoint} data={def.data} />
+      </div>
+    </DraggableBrick>
+  );
 
   return (
     <div
@@ -27,17 +61,19 @@ export function ModulePreview(props: {
         </Link>
       </h2>
       <div className="pb-16">
-        <BrickPreview breakpoint={breakpoint} w={def[breakpoint].w} h={def[breakpoint].h}>
-          <DraggableBrick
-            brickDef={def}
-            className="size-full qrk-bricks overflow-hidden"
-            data-module-representative={def.moduleId}
+        {hasDeclaredSize ? (
+          <BrickPreview breakpoint={breakpoint} w={declaredW} h={declaredH}>
+            {previewBody}
+          </BrickPreview>
+        ) : (
+          <BrickPreview
+            breakpoint={breakpoint}
+            measure={<BrickComponent breakpoint={breakpoint} data={def.data} />}
+            onGridUnits={onGridUnits}
           >
-            <div className="brick-drag-content size-full">
-              <BrickComponent breakpoint={breakpoint} data={def.data} />
-            </div>
-          </DraggableBrick>
-        </BrickPreview>
+            {previewBody}
+          </BrickPreview>
+        )}
       </div>
     </div>
   );

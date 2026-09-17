@@ -33,7 +33,7 @@ export const link = defineModule({
     defaultData: {
       url: "https://apps.apple.com/",
       title: "Celebrate our birthday & get Pro free for one year",
-      description: "",
+      description: "Hmm a brief description of the link",
       siteName: "apps.apple.com",
       imageUrl:
         "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=800&q=80",
@@ -41,6 +41,8 @@ export const link = defineModule({
     },
   }),
   breakpoints: {
-    sm: { w: 4, h: 2, defaultSpec },
+    sm: {
+      defaultSpec,
+    },
   },
 });

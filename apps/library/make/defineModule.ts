@@ -12,19 +12,24 @@ function assertKebabCaseId(id: string) {
   }
 }
 
-function resolveBreakpoint(own: {
-  w?: number;
-  h?: number;
-  measurable?: boolean;
-  defaultSpec?: Spec;
-  options?: { shape: IShape };
-} | undefined, inherited: {
-  w: number;
-  h: number;
-  measurable: boolean;
-  defaultSpec: Spec;
-  options: ReturnType<typeof makeBreakpointOptionShape> | undefined;
-}) {
+function resolveBreakpoint(
+  own:
+    | {
+        w?: number;
+        h?: number;
+        measurable?: boolean;
+        defaultSpec?: Spec;
+        options?: { shape: IShape };
+      }
+    | undefined,
+  inherited: {
+    w: number;
+    h: number;
+    measurable: boolean;
+    defaultSpec: Spec | undefined;
+    options: ReturnType<typeof makeBreakpointOptionShape> | undefined;
+  },
+) {
   const options =
     own !== undefined && Object.prototype.hasOwnProperty.call(own, "options")
       ? own.options === undefined
@@ -40,7 +45,7 @@ function resolveBreakpoint(own: {
   };
 }
 
-/** Worker-safe module contract: catalog, data discriminant, nested breakpoints. */
+/** Worker-safe module contract: optional catalog, data discriminant, nested breakpoints. */
 export function defineModule<
   const MODULE extends string,
   const DATA extends
@@ -52,14 +57,14 @@ export function defineModule<
   id: MODULE;
   label: string;
   description: string;
-  catalog: Catalog;
+  catalog?: Catalog;
   data: DATA;
   breakpoints: {
     sm: {
       w: number;
       h: number;
       measurable?: boolean;
-      defaultSpec: Spec;
+      defaultSpec?: Spec;
       options?: { shape: IShape };
     };
     md?: {
@@ -87,6 +92,19 @@ export function defineModule<
 }) {
   assertKebabCaseId(props.id);
 
+  if (props.catalog === undefined) {
+    const hasDefaultSpec =
+      props.breakpoints.sm.defaultSpec !== undefined ||
+      props.breakpoints.md?.defaultSpec !== undefined ||
+      props.breakpoints.lg?.defaultSpec !== undefined ||
+      props.breakpoints.xl?.defaultSpec !== undefined;
+    if (hasDefaultSpec) {
+      throw new Error(
+        `defineModule: defaultSpec requires catalog; got ${JSON.stringify(props.id)}`,
+      );
+    }
+  }
+
   const smInput = props.breakpoints.sm;
   const sm = {
     w: smInput.w,
@@ -94,14 +112,34 @@ export function defineModule<
     measurable: smInput.measurable ?? true,
     defaultSpec: smInput.defaultSpec,
     options:
-      smInput.options === undefined
-        ? undefined
-        : makeBreakpointOptionShape(smInput.options.shape),
+      smInput.options === undefined ? undefined : makeBreakpointOptionShape(smInput.options.shape),
   };
   const md = resolveBreakpoint(props.breakpoints.md, sm);
   const lg = resolveBreakpoint(props.breakpoints.lg, md);
   const xl = resolveBreakpoint(props.breakpoints.xl, lg);
+  const breakpoints = { sm, md, lg, xl };
+  const def = {
+    moduleId: props.id,
+    sm: { w: sm.w, h: sm.h },
+    md: { w: md.w, h: md.h },
+    lg: { w: lg.w, h: lg.h },
+    xl: { w: xl.w, h: xl.h },
+    data: (props.data === null ? null : props.data.defaultData) as unknown,
+  };
+
   if (props.data === null) {
+    if (props.catalog === undefined) {
+      return {
+        id: props.id,
+        label: props.label,
+        description: props.description,
+        data: null,
+        dataShape: null,
+        defaultData: null,
+        breakpoints,
+        def,
+      };
+    }
     return {
       id: props.id,
       label: props.label,
@@ -110,15 +148,21 @@ export function defineModule<
       data: null,
       dataShape: null,
       defaultData: null,
-      breakpoints: { sm, md, lg, xl },
-      def: {
-        moduleId: props.id,
-        sm: { w: sm.w, h: sm.h },
-        md: { w: md.w, h: md.h },
-        lg: { w: lg.w, h: lg.h },
-        xl: { w: xl.w, h: xl.h },
-        data: null as unknown,
-      },
+      breakpoints,
+      def,
+    };
+  }
+
+  if (props.catalog === undefined) {
+    return {
+      id: props.id,
+      label: props.label,
+      description: props.description,
+      data: props.data,
+      dataShape: props.data.dataShape,
+      defaultData: props.data.defaultData,
+      breakpoints,
+      def,
     };
   }
 
@@ -130,14 +174,7 @@ export function defineModule<
     data: props.data,
     dataShape: props.data.dataShape,
     defaultData: props.data.defaultData,
-    breakpoints: { sm, md, lg, xl },
-    def: {
-      moduleId: props.id,
-      sm: { w: sm.w, h: sm.h },
-      md: { w: md.w, h: md.h },
-      lg: { w: lg.w, h: lg.h },
-      xl: { w: xl.w, h: xl.h },
-      data: props.data.defaultData as unknown,
-    },
+    breakpoints,
+    def,
   };
 }

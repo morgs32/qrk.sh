@@ -19,7 +19,10 @@ function createBricksStore(initialState?: {
       data: unknown;
       sm: { gridItem: LayoutItem | null; breakpointOptions: unknown; spec?: Spec };
     } & Partial<
-      Record<"md" | "lg" | "xl", { gridItem: LayoutItem | null; breakpointOptions: unknown; spec?: Spec }>
+      Record<
+        "md" | "lg" | "xl",
+        { gridItem: LayoutItem | null; breakpointOptions: unknown; spec?: Spec }
+      >
     >
   >;
   selectedWidth?: number | null;
@@ -32,21 +35,30 @@ function createBricksStore(initialState?: {
         data: unknown;
         sm: { gridItem: LayoutItem | null; breakpointOptions: unknown; spec?: Spec };
       } & Partial<
-        Record<"md" | "lg" | "xl", { gridItem: LayoutItem | null; breakpointOptions: unknown; spec?: Spec }>
+        Record<
+          "md" | "lg" | "xl",
+          { gridItem: LayoutItem | null; breakpointOptions: unknown; spec?: Spec }
+        >
       >
     >;
-    activeBrickDrag: (IModuleBrickDef & { breakpointOptions?: unknown }) | null;
+    activeBrickDrag: (IModuleBrickDef & { breakpointOptions?: unknown; spec?: Spec }) | null;
     hasHydrated: boolean;
     selectedWidth: number | null;
     setLayout: (layout: Layout, breakpoint: "sm" | "md" | "lg" | "xl") => void;
     addBrick: (
       brickId: string,
-      brickDef: IModuleBrickDef & { breakpointOptions?: unknown },
+      brickDef: IModuleBrickDef & { breakpointOptions?: unknown; spec?: Spec },
       layout: Layout,
       breakpoint: "sm" | "md" | "lg" | "xl",
     ) => void;
-    setActiveBrickDrag: (brickDef: (IModuleBrickDef & { breakpointOptions?: unknown }) | null) => void;
-    setBreakpointOptions: (brickId: string, breakpoint: "sm" | "md" | "lg" | "xl", value: unknown) => void;
+    setActiveBrickDrag: (
+      brickDef: (IModuleBrickDef & { breakpointOptions?: unknown; spec?: Spec }) | null,
+    ) => void;
+    setBreakpointOptions: (
+      brickId: string,
+      breakpoint: "sm" | "md" | "lg" | "xl",
+      value: unknown,
+    ) => void;
     setSpec: (brickId: string, breakpoint: "sm" | "md" | "lg" | "xl", spec: Spec) => void;
     setVisible: (brickId: string, breakpoint: "sm" | "md" | "lg" | "xl", visible: boolean) => void;
     setHasHydrated: (hasHydrated: boolean) => void;
@@ -93,37 +105,60 @@ function createBricksStore(initialState?: {
         ? smOptions.decode(breakpoint === "sm" ? brickDef.breakpointOptions : undefined)
         : {};
       const dropBreakpointOptions =
-        dropOptions === undefined
-          ? {}
-          : dropOptions.decode(brickDef.breakpointOptions);
-      set((state) => ({
-        bricksById: {
-          ...state.bricksById,
-          [brickId]: {
-            moduleId: brickDef.moduleId,
-            data: structuredClone(brickDef.data),
-            sm: {
-              gridItem: { ...gridItem },
-              breakpointOptions: structuredClone(smBreakpointOptions),
+        dropOptions === undefined ? {} : dropOptions.decode(brickDef.breakpointOptions);
+      set((state) => {
+        let smGridItem: LayoutItem;
+        if (breakpoint === "sm") {
+          smGridItem = { ...gridItem };
+        } else {
+          const smSize = brickModule?.def.sm ?? { w: gridItem.w, h: gridItem.h };
+          let y = 0;
+          for (const other of Object.values(state.bricksById)) {
+            const item = other.sm.gridItem;
+            if (item) y = Math.max(y, item.y + item.h);
+          }
+          smGridItem = {
+            i: brickId,
+            x: 0,
+            y,
+            w: smSize.w,
+            h: smSize.h,
+          };
+        }
+        return {
+          bricksById: {
+            ...state.bricksById,
+            [brickId]: {
+              moduleId: brickDef.moduleId,
+              data: structuredClone(brickDef.data),
+              sm: {
+                gridItem: smGridItem,
+                breakpointOptions: structuredClone(smBreakpointOptions),
+                ...(brickDef.spec === undefined ? {} : { spec: structuredClone(brickDef.spec) }),
+              },
+              ...(breakpoint === "sm"
+                ? {}
+                : {
+                    [breakpoint]: {
+                      gridItem: { ...gridItem },
+                      breakpointOptions: structuredClone(dropBreakpointOptions),
+                      ...(brickDef.spec === undefined
+                        ? {}
+                        : { spec: structuredClone(brickDef.spec) }),
+                    },
+                  }),
             },
-            ...(breakpoint === "sm"
-              ? {}
-              : {
-                  [breakpoint]: {
-                    gridItem: { ...gridItem },
-                    breakpointOptions: structuredClone(dropBreakpointOptions),
-                  },
-                }),
           },
-        },
-      }));
+        };
+      });
       get().setLayout(layout, breakpoint);
     },
     setBreakpointOptions: (brickId, breakpoint, value) => {
       set((state) => {
         const brick = state.bricksById[brickId];
         if (!brick) return state;
-        const breakpointOptionsConfig = modulesHash[brick.moduleId]?.breakpoints[breakpoint].options;
+        const breakpointOptionsConfig =
+          modulesHash[brick.moduleId]?.breakpoints[breakpoint].options;
         if (!breakpointOptionsConfig) return state;
         const breakpointOptions = breakpointOptionsConfig.decode(value);
         const entry = structuredClone(resolveBrickBreakpoint(brick, breakpoint));

@@ -45,72 +45,80 @@ function BrickDetail() {
 
   const brickData = brickDef.data;
   const entry = resolveBrickBreakpoint(brickDef, breakpoint);
+  const hasJsonRender = brickModule.catalog !== undefined && brickModule.registry !== undefined;
   const BreakpointOptionsForm = brickModule.breakpoints[breakpoint].options?.form;
   let inheritedBreakpoint = "sm";
   if (breakpoint === "xl" && brickDef.lg) inheritedBreakpoint = "lg";
   else if ((breakpoint === "xl" || breakpoint === "lg") && brickDef.md) inheritedBreakpoint = "md";
   return (
     <>
-      <OrderedSection data-testid="brick-detail-pane" headingClassName="shrink-0 py-4" label="Generate spec">
-        <form
-          className="flex flex-col items-start gap-2 py-5"
-          onSubmit={(event) => {
-            event.preventDefault();
-            void (async () => {
-              setIsGeneratingSpec(true);
-              setGenerateError(undefined);
-              setGenerateRequestError(undefined);
-              try {
-                using api = newSyncRpcSession<LibraryApi>("/rpc");
-                const currentSpec = entry.spec ?? brickModule.breakpoints[breakpoint].defaultSpec;
-                const result = await api.generateSpec(
-                  moduleId,
-                  generatePrompt,
-                  brickData,
-                  currentSpec,
-                );
-                if (result._tag === "Left") {
-                  setGenerateError(result.left);
-                  return;
-                }
-                bricksStore.getState().setSpec(brickId, breakpoint, result.right);
-              } catch (cause) {
-                setGenerateRequestError(cause instanceof Error ? cause.message : String(cause));
-              } finally {
-                setIsGeneratingSpec(false);
-              }
-            })();
-          }}
+      {hasJsonRender ? (
+        <OrderedSection
+          data-testid="brick-detail-pane"
+          headingClassName="shrink-0 py-4"
+          label="Generate spec"
         >
-          <label className="block font-medium" htmlFor="generate-spec-prompt">
-            Prompt
-          </label>
-          <Input
-            id="generate-spec-prompt"
-            name="prompt"
-            onChange={(event) => {
-              setGeneratePrompt(event.target.value);
+          <form
+            className="flex flex-col items-start gap-2 py-5"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void (async () => {
+                setIsGeneratingSpec(true);
+                setGenerateError(undefined);
+                setGenerateRequestError(undefined);
+                try {
+                  using api = newSyncRpcSession<LibraryApi>("/rpc");
+                  const currentSpec =
+                    entry.spec ?? brickModule.breakpoints[breakpoint].defaultSpec ?? null;
+                  const result = await api.generateSpec(
+                    moduleId,
+                    generatePrompt,
+                    brickData,
+                    currentSpec,
+                  );
+                  if (result._tag === "Left") {
+                    setGenerateError(result.left);
+                    return;
+                  }
+                  bricksStore.getState().setSpec(brickId, breakpoint, result.right);
+                } catch (cause) {
+                  setGenerateRequestError(cause instanceof Error ? cause.message : String(cause));
+                } finally {
+                  setIsGeneratingSpec(false);
+                }
+              })();
             }}
-            type="text"
-            value={generatePrompt}
-          />
-          <Button disabled={isGeneratingSpec} type="submit">
-            Generate
-          </Button>
-        </form>
-        {isGeneratingSpec ? <p role="status">Generating spec…</p> : null}
-        {generateError !== undefined ? (
-          <div className="rounded-md border border-red-200 bg-red-50 p-4" role="alert">
-            <p className="m-0 font-mono">{generateError.code}</p>
-            <p className="mb-0 mt-2">{generateError.message}</p>
-          </div>
-        ) : null}
-        {generateRequestError !== undefined ? (
-          <div className="rounded-md border border-red-200 bg-red-50 p-4" role="alert">
-            {generateRequestError}
-          </div>
-        ) : null}
-      </OrderedSection>
+          >
+            <label className="block font-medium" htmlFor="generate-spec-prompt">
+              Prompt
+            </label>
+            <Input
+              id="generate-spec-prompt"
+              name="prompt"
+              onChange={(event) => {
+                setGeneratePrompt(event.target.value);
+              }}
+              type="text"
+              value={generatePrompt}
+            />
+            <Button disabled={isGeneratingSpec} type="submit">
+              Generate
+            </Button>
+          </form>
+          {isGeneratingSpec ? <p role="status">Generating spec…</p> : null}
+          {generateError !== undefined ? (
+            <div className="rounded-md border border-red-200 bg-red-50 p-4" role="alert">
+              <p className="m-0 font-mono">{generateError.code}</p>
+              <p className="mb-0 mt-2">{generateError.message}</p>
+            </div>
+          ) : null}
+          {generateRequestError !== undefined ? (
+            <div className="rounded-md border border-red-200 bg-red-50 p-4" role="alert">
+              {generateRequestError}
+            </div>
+          ) : null}
+        </OrderedSection>
+      ) : null}
       {brickModule.data !== null && brickModule.data.dataType !== "static" ? (
         <OrderedSection className="mt-10" headingClassName="shrink-0 py-4" label="Configuration">
           <Configuration

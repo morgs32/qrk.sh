@@ -88,7 +88,7 @@ export function BrickDetail() {
                     breakpoint={breakpoint}
                     data={brickPlacement.data}
                     breakpointOptions={entry.breakpointOptions}
-                    spec={entry.spec ?? brick.breakpoints[breakpoint].defaultSpec}
+                    spec={entry.spec}
                   />
                 </div>
               </BrickPreview>

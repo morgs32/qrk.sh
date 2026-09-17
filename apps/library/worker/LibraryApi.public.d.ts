@@ -65,6 +65,6 @@ export declare class LibraryApi extends RpcTarget {
     moduleId: string,
     prompt: string,
     data: unknown,
-    currentSpec: Spec,
+    currentSpec: Spec | null,
   ): Promise<IRpcEither<Spec>>;
 }

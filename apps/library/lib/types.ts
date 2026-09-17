@@ -20,20 +20,20 @@ export type IBrickDef<MODULE extends string = string> = {
   moduleId: MODULE;
 };
 
-/** A library module: data, nested breakpoints, and stock Renderer chrome. */
+/** A library module: data, nested breakpoints, authored component, optional json-render. */
 export type IModule = {
   /** Kebab-case module id, unique across the library. */
   id: string;
   label: string;
   description: string;
-  catalog: Catalog;
-  registry: ComponentRegistry;
+  catalog?: Catalog;
+  registry?: ComponentRegistry;
   breakpoints: {
     sm: {
       w: number;
       h: number;
       measurable: boolean;
-      defaultSpec: Spec;
+      defaultSpec?: Spec;
       options?: ReturnType<typeof makeBreakpointOptionShape> & {
         form?: (props: { value: unknown; onChange: (value: unknown) => void }) => ReactNode;
       };
@@ -42,7 +42,7 @@ export type IModule = {
       w: number;
       h: number;
       measurable: boolean;
-      defaultSpec: Spec;
+      defaultSpec?: Spec;
       options?: ReturnType<typeof makeBreakpointOptionShape> & {
         form?: (props: { value: unknown; onChange: (value: unknown) => void }) => ReactNode;
       };
@@ -51,7 +51,7 @@ export type IModule = {
       w: number;
       h: number;
       measurable: boolean;
-      defaultSpec: Spec;
+      defaultSpec?: Spec;
       options?: ReturnType<typeof makeBreakpointOptionShape> & {
         form?: (props: { value: unknown; onChange: (value: unknown) => void }) => ReactNode;
       };
@@ -60,7 +60,7 @@ export type IModule = {
       w: number;
       h: number;
       measurable: boolean;
-      defaultSpec: Spec;
+      defaultSpec?: Spec;
       options?: ReturnType<typeof makeBreakpointOptionShape> & {
         form?: (props: { value: unknown; onChange: (value: unknown) => void }) => ReactNode;
       };

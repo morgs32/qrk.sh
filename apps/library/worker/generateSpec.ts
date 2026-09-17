@@ -1,9 +1,4 @@
-import {
-  buildUserPrompt,
-  compileSpecStream,
-  isNonEmptySpec,
-  type Spec,
-} from "@json-render/core";
+import { buildUserPrompt, compileSpecStream, isNonEmptySpec, type Spec } from "@json-render/core";
 
 import { backendLibrary } from "../backendLibrary";
 import type { IRpcEither, IScraperEnv } from "./types";
@@ -56,12 +51,7 @@ function specFromModelText(text: string): unknown {
   const body = fenceMatch === null ? trimmed : fenceMatch[1].trim();
   try {
     const parsed: unknown = JSON.parse(body);
-    if (
-      parsed !== null &&
-      typeof parsed === "object" &&
-      "root" in parsed &&
-      "elements" in parsed
-    ) {
+    if (parsed !== null && typeof parsed === "object" && "root" in parsed && "elements" in parsed) {
       return parsed;
     }
   } catch {
@@ -75,7 +65,7 @@ export async function generateSpec(props: {
   moduleId: string;
   prompt: string;
   data: unknown;
-  currentSpec: Spec;
+  currentSpec: Spec | null;
 }): Promise<IRpcEither<Spec>> {
   const trimmedPrompt = props.prompt.trim();
   if (trimmedPrompt === "") {
@@ -89,7 +79,7 @@ export async function generateSpec(props: {
   }
 
   const entry = backendEntryForModuleId(props.moduleId);
-  if (entry === undefined) {
+  if (entry === undefined || entry.catalog === undefined) {
     return {
       _tag: "Left",
       left: {
@@ -110,20 +100,21 @@ export async function generateSpec(props: {
     };
   }
 
-  if (!isNonEmptySpec(props.currentSpec)) {
+  if (props.currentSpec !== null && !isNonEmptySpec(props.currentSpec)) {
     return {
       _tag: "Left",
       left: {
         code: "invalid-generate-request",
-        message: "currentSpec is required.",
+        message: "currentSpec must be a non-empty spec or null.",
       },
     };
   }
 
   const currentSpec = props.currentSpec;
+  const catalog = entry.catalog;
 
   try {
-    const system = entry.catalog.prompt({ mode: "standalone" });
+    const system = catalog.prompt({ mode: "standalone" });
     const user = buildUserPrompt({
       prompt: trimmedPrompt,
       state: stateFromData(props.data),
@@ -165,12 +156,8 @@ export async function generateSpec(props: {
       };
     }
     const spec = specFromModelText(contentFromChatCompletion(responseBody));
-    const validated = entry.catalog.validate(spec);
-    if (
-      !validated.success ||
-      validated.data === undefined ||
-      !isNonEmptySpec(validated.data)
-    ) {
+    const validated = catalog.validate(spec);
+    if (!validated.success || validated.data === undefined || !isNonEmptySpec(validated.data)) {
       return {
         _tag: "Left",
         left: {

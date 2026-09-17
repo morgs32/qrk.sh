@@ -187,7 +187,7 @@ export function makeFrontend<
     id: string;
     label: string;
     description: string;
-    catalog: Catalog;
+    catalog?: Catalog;
     data: unknown;
     dataShape: IShape | null;
     defaultData: unknown;
@@ -196,28 +196,28 @@ export function makeFrontend<
         w: number;
         h: number;
         measurable: boolean;
-        defaultSpec: Spec;
+        defaultSpec?: Spec;
         options?: ReturnType<typeof makeBreakpointOptionShape>;
       };
       md: {
         w: number;
         h: number;
         measurable: boolean;
-        defaultSpec: Spec;
+        defaultSpec?: Spec;
         options?: ReturnType<typeof makeBreakpointOptionShape>;
       };
       lg: {
         w: number;
         h: number;
         measurable: boolean;
-        defaultSpec: Spec;
+        defaultSpec?: Spec;
         options?: ReturnType<typeof makeBreakpointOptionShape>;
       };
       xl: {
         w: number;
         h: number;
         measurable: boolean;
-        defaultSpec: Spec;
+        defaultSpec?: Spec;
         options?: ReturnType<typeof makeBreakpointOptionShape>;
       };
     };
@@ -233,69 +233,84 @@ export function makeFrontend<
 >(
   module: MODULE,
   frontend: {
-    registry: ComponentRegistry;
-  } & (MODULE extends { data: { dataType: "form"; dataShape: infer DATA_SHAPE extends IShape } }
-    ? {
-        data: {
-          form: (props: {
-            data: InferDecodedRow<DATA_SHAPE>;
-            onChange: (data: InferDecodedRow<DATA_SHAPE>) => void;
-          }) => ReactNode;
-        };
-      }
-    : MODULE extends { data: { dataType: "fetcher"; payloadShape: infer PAYLOAD_SHAPE extends IShape } }
+    component: {
+      bivarianceHack(props: { data: unknown; breakpointOptions: unknown }): ReactNode;
+    }["bivarianceHack"];
+  } & (MODULE extends { catalog: Catalog }
+    ? { registry: ComponentRegistry }
+    : { registry?: never }) &
+    (MODULE extends { data: { dataType: "form"; dataShape: infer DATA_SHAPE extends IShape } }
       ? {
-          data?: {
-            payloadForm?: (props: {
-              value: InferDecodedRow<PAYLOAD_SHAPE>;
-              onChange: (value: InferDecodedRow<PAYLOAD_SHAPE>) => void;
+          data: {
+            form: (props: {
+              data: InferDecodedRow<DATA_SHAPE>;
+              onChange: (data: InferDecodedRow<DATA_SHAPE>) => void;
             }) => ReactNode;
           };
         }
-      : { data?: never }) & {
-    breakpoints?: {
-      sm?: {
-        options?: {
-          form: {
-            bivarianceHack(props: {
-              value: InferDecodedRow<IShape>;
-              onChange: { bivarianceHack(value: InferDecodedRow<IShape>): void }["bivarianceHack"];
-            }): ReactNode;
-          }["bivarianceHack"];
+      : MODULE extends {
+            data: { dataType: "fetcher"; payloadShape: infer PAYLOAD_SHAPE extends IShape };
+          }
+        ? {
+            data?: {
+              payloadForm?: (props: {
+                value: InferDecodedRow<PAYLOAD_SHAPE>;
+                onChange: (value: InferDecodedRow<PAYLOAD_SHAPE>) => void;
+              }) => ReactNode;
+            };
+          }
+        : { data?: never }) & {
+      breakpoints?: {
+        sm?: {
+          options?: {
+            form: {
+              bivarianceHack(props: {
+                value: InferDecodedRow<IShape>;
+                onChange: {
+                  bivarianceHack(value: InferDecodedRow<IShape>): void;
+                }["bivarianceHack"];
+              }): ReactNode;
+            }["bivarianceHack"];
+          };
+        };
+        md?: {
+          options?: {
+            form: {
+              bivarianceHack(props: {
+                value: InferDecodedRow<IShape>;
+                onChange: {
+                  bivarianceHack(value: InferDecodedRow<IShape>): void;
+                }["bivarianceHack"];
+              }): ReactNode;
+            }["bivarianceHack"];
+          };
+        };
+        lg?: {
+          options?: {
+            form: {
+              bivarianceHack(props: {
+                value: InferDecodedRow<IShape>;
+                onChange: {
+                  bivarianceHack(value: InferDecodedRow<IShape>): void;
+                }["bivarianceHack"];
+              }): ReactNode;
+            }["bivarianceHack"];
+          };
+        };
+        xl?: {
+          options?: {
+            form: {
+              bivarianceHack(props: {
+                value: InferDecodedRow<IShape>;
+                onChange: {
+                  bivarianceHack(value: InferDecodedRow<IShape>): void;
+                }["bivarianceHack"];
+              }): ReactNode;
+            }["bivarianceHack"];
+          };
         };
       };
-      md?: {
-        options?: {
-          form: {
-            bivarianceHack(props: {
-              value: InferDecodedRow<IShape>;
-              onChange: { bivarianceHack(value: InferDecodedRow<IShape>): void }["bivarianceHack"];
-            }): ReactNode;
-          }["bivarianceHack"];
-        };
-      };
-      lg?: {
-        options?: {
-          form: {
-            bivarianceHack(props: {
-              value: InferDecodedRow<IShape>;
-              onChange: { bivarianceHack(value: InferDecodedRow<IShape>): void }["bivarianceHack"];
-            }): ReactNode;
-          }["bivarianceHack"];
-        };
-      };
-      xl?: {
-        options?: {
-          form: {
-            bivarianceHack(props: {
-              value: InferDecodedRow<IShape>;
-              onChange: { bivarianceHack(value: InferDecodedRow<IShape>): void }["bivarianceHack"];
-            }): ReactNode;
-          }["bivarianceHack"];
-        };
-      };
-    };
-  },
+    },
 ) {
   const smForm = resolveOptionsForm({
     moduleId: module.id,
@@ -360,7 +375,15 @@ export function makeFrontend<
             }
           : module.data;
 
-  const registry = frontend.registry;
+  const registry = "registry" in frontend ? frontend.registry : undefined;
+  if (module.catalog !== undefined && registry === undefined) {
+    throw new Error(`makeFrontend: ${JSON.stringify(module.id)} has catalog and requires registry`);
+  }
+  if (module.catalog === undefined && registry !== undefined) {
+    throw new Error(`makeFrontend: ${JSON.stringify(module.id)} has no catalog; omit registry`);
+  }
+
+  const Authored = frontend.component;
 
   function Brick(propsForBrick: {
     data?: unknown;
@@ -373,17 +396,26 @@ export function makeFrontend<
       resolved.options === undefined
         ? (propsForBrick.breakpointOptions ?? {})
         : resolved.options.decode(propsForBrick.breakpointOptions);
-    const spec = propsForBrick.spec ?? resolved.defaultSpec;
-    const initialState = mergeBrickState(propsForBrick.data, breakpointOptions);
+    if (propsForBrick.spec !== undefined) {
+      if (registry === undefined) {
+        throw new Error(`makeFrontend: ${JSON.stringify(module.id)} Renderer requires registry`);
+      }
+      const initialState = mergeBrickState(propsForBrick.data, breakpointOptions);
+      return (
+        <BrickFrame>
+          <StateProvider initialState={initialState}>
+            <VisibilityProvider>
+              <ActionProvider handlers={{}}>
+                <Renderer spec={propsForBrick.spec} registry={registry} />
+              </ActionProvider>
+            </VisibilityProvider>
+          </StateProvider>
+        </BrickFrame>
+      );
+    }
     return (
       <BrickFrame>
-        <StateProvider initialState={initialState}>
-          <VisibilityProvider>
-            <ActionProvider handlers={{}}>
-              <Renderer spec={spec} registry={registry} />
-            </ActionProvider>
-          </VisibilityProvider>
-        </StateProvider>
+        <Authored data={propsForBrick.data} breakpointOptions={breakpointOptions} />
       </BrickFrame>
     );
   }
@@ -394,12 +426,24 @@ export function makeFrontend<
       data: null,
       dataShape: null,
       defaultData: null,
-      registry,
+      ...(registry === undefined ? {} : { registry }),
       breakpoints: {
-        sm: { ...module.breakpoints.sm, options: attachForm(module.breakpoints.sm.options, smForm) },
-        md: { ...module.breakpoints.md, options: attachForm(module.breakpoints.md.options, mdForm) },
-        lg: { ...module.breakpoints.lg, options: attachForm(module.breakpoints.lg.options, lgForm) },
-        xl: { ...module.breakpoints.xl, options: attachForm(module.breakpoints.xl.options, xlForm) },
+        sm: {
+          ...module.breakpoints.sm,
+          options: attachForm(module.breakpoints.sm.options, smForm),
+        },
+        md: {
+          ...module.breakpoints.md,
+          options: attachForm(module.breakpoints.md.options, mdForm),
+        },
+        lg: {
+          ...module.breakpoints.lg,
+          options: attachForm(module.breakpoints.lg.options, lgForm),
+        },
+        xl: {
+          ...module.breakpoints.xl,
+          options: attachForm(module.breakpoints.xl.options, xlForm),
+        },
       },
       component: Brick,
     };
@@ -410,7 +454,7 @@ export function makeFrontend<
     data,
     dataShape: module.dataShape,
     defaultData: module.defaultData,
-    registry,
+    ...(registry === undefined ? {} : { registry }),
     breakpoints: {
       sm: { ...module.breakpoints.sm, options: attachForm(module.breakpoints.sm.options, smForm) },
       md: { ...module.breakpoints.md, options: attachForm(module.breakpoints.md.options, mdForm) },

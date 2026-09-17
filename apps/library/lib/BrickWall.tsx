@@ -60,7 +60,8 @@ export function BrickWall(props: {
           layout={layout.map((item) => ({
             ...item,
             isDraggable: true,
-            isResizable: true}))}
+            isResizable: true,
+          }))}
           autoSize
           className="grid-layout min-h-screen"
           compactor={verticalCompactor}
@@ -69,11 +70,13 @@ export function BrickWall(props: {
             rowHeight,
             margin: [0, 0],
             containerPadding: [0, 0],
-            maxRows: Number.POSITIVE_INFINITY}}
+            maxRows: Number.POSITIVE_INFINITY,
+          }}
           dragConfig={{
             enabled: true,
             bounded: false,
-            threshold: 3}}
+            threshold: 3,
+          }}
           onResizeStop={(nextLayout) => setLayout(nextLayout, breakpoint)}
           dropConfig={{
             enabled: true,
@@ -84,7 +87,8 @@ export function BrickWall(props: {
               }
 
               return { w: activeBrickDrag[breakpoint].w, h: activeBrickDrag[breakpoint].h };
-            }}}
+            },
+          }}
           onDrop={(nextLayout, item) => {
             if (!item || !activeBrickDrag) {
               return;
@@ -100,7 +104,8 @@ export function BrickWall(props: {
                 ...layoutItem,
                 i: brickId,
                 w: activeBrickDrag[breakpoint].w,
-                h: activeBrickDrag[breakpoint].h};
+                h: activeBrickDrag[breakpoint].h,
+              };
             });
             addBrick(brickId, activeBrickDrag, gridLayoutWithDroppedBrick, breakpoint);
             setActiveBrickDrag(null);
@@ -147,7 +152,8 @@ export function BrickWall(props: {
                 const remainingBricks = { ...state.bricksById };
                 delete remainingBricks[item.i];
                 return {
-                  bricksById: remainingBricks};
+                  bricksById: remainingBricks,
+                };
               });
               setLayout(
                 verticalCompactor.compact(
@@ -197,10 +203,7 @@ export function BrickWall(props: {
                         breakpointOptions={
                           resolveBrickBreakpoint(brickDef, breakpoint).breakpointOptions
                         }
-                        spec={
-                          resolveBrickBreakpoint(brickDef, breakpoint).spec ??
-                          brick.breakpoints[breakpoint].defaultSpec
-                        }
+                        spec={resolveBrickBreakpoint(brickDef, breakpoint).spec}
                       />
                     </div>
                   </div>

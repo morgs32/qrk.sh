@@ -97,6 +97,7 @@ export function makeModuleVersion<
     description,
     version: props.version,
     catalog,
+    components: props.components,
     stateShape: props.stateShape,
     defaultState,
     def,

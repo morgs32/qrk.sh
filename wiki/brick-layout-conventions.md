@@ -17,6 +17,11 @@ breakpoints. A module owns identity, catalog, `stateShape`, `defaultState`, one
 `defaultSpec`, and a React brick. Grid sizing is never part of the module
 definition.
 
+A Zerospin module model row (`makeModuleModelVersion`) persists `state` plus
+one json-render `Spec` column per viewport (`sm` / `md` / `lg` / `xl`). Those
+columns are Spec only — not `gridItem` or `isVisible`. Grid placement remains
+wall-store-only.
+
 Placed bricks in the wall store own viewport layout explicitly:
 
 ```ts

@@ -1,0 +1,18 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "kitesurf-measure",
+  "main": "./src/Worker.ts",
+  "compatibility_date": "2026-05-14",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/measure"],
+  },
+  "vars": {
+    // Cloudflare account id for Browser Rendering REST calls.
+    "CLOUDFLARE_ACCOUNT_ID": "",
+    // Public origin Kitesurf navigates to (deployed example). Local /measure
+    // compares against this origin's /render page, not localhost.
+    "PUBLIC_EXAMPLE_ORIGIN": "",
+  },
+}

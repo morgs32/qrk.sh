@@ -1,0 +1,40 @@
+{
+  "name": "@qrk.sh/kitesurf-measure",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 4320 --strictPort",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1 --port 4320 --strictPort",
+    "typecheck": "tsc --noEmit",
+    "lint": "oxlint .",
+    "format": "oxfmt .",
+    "deploy": "wrangler deploy",
+    "types": "wrangler types ./worker-configuration.d.ts"
+  },
+  "dependencies": {
+    "@qrk.sh/library": "workspace:*",
+    "react": "19.2.7",
+    "react-dom": "19.2.7"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "1.54.9",
+    "@tailwindcss/vite": "4.3.3",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "6.0.3",
+    "oxfmt": "^0.44.0",
+    "oxlint": "^1.59.0",
+    "tailwindcss": "4.3.3",
+    "typescript": "^6.0.2",
+    "vite": "^8.0.11",
+    "wrangler": "4.131.2"
+  },
+  "nx": {
+    "targets": {
+      "dev": {
+        "continuous": true
+      }
+    }
+  }
+}

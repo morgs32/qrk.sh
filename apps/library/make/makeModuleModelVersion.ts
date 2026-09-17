@@ -1,24 +1,32 @@
-import { makeModelVersion } from "@zerospin/core/models/makeModel";
+import { makeModel, makeModelVersion } from "@zerospin/core/models/makeModel";
 import { makeEffectSchema, primitives, type IShape } from "@zerospin/schema";
 import { Schema } from "effect";
 
 import type { defineComponent } from "./defineComponent";
 import { makeComponentSpecSchema } from "./makeComponentSpecSchema";
 
+type KebabToCamelCase<S extends string> = S extends `${infer Head}-${infer Rest}`
+  ? `${Head}${Capitalize<KebabToCamelCase<Rest>>}`
+  : S;
+
 /** Zerospin model version for a library module: shared state plus per-breakpoint Spec columns. */
 export function makeModuleModelVersion<
-  MODEL_NAME extends string,
+  MODULE extends string,
   ABBREVIATION extends string,
   const VERSION extends string,
   STATE_SHAPE extends IShape,
->(
-  model: Readonly<{ name: MODEL_NAME; abbreviation: ABBREVIATION }>,
-  module: {
-    version: VERSION;
-    stateShape: STATE_SHAPE;
-    components: Record<string, ReturnType<typeof defineComponent>>;
-  },
-) {
+>(module: {
+  id: MODULE;
+  abbreviation: ABBREVIATION;
+  version: VERSION;
+  stateShape: STATE_SHAPE;
+  components: Record<string, ReturnType<typeof defineComponent>>;
+}) {
+  const name = module.id.replace(/-([a-z0-9])/g, (_match, char: string) =>
+    char.toUpperCase(),
+  ) as KebabToCamelCase<MODULE>;
+  const model = makeModel({ name, abbreviation: module.abbreviation });
+
   const [firstElementSchema, ...restElementSchemas] = Object.values(module.components).map(
     component => makeComponentSpecSchema(component),
   );

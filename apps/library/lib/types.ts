@@ -14,6 +14,8 @@ export type IBrickDef<MODULE extends string = string> = {
 export type IModule = {
   /** Kebab-case module id, unique across the library. */
   id: string;
+  /** Zerospin model abbreviation (for example `ghp`). */
+  abbreviation: string;
   label: string;
   description: string;
   catalog?: Catalog;

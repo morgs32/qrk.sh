@@ -1,16 +1,16 @@
 ---
 title: Brick module identity and lookup
-updated: 2026-09-16
+updated: 2026-09-17
 sources:
   - path: apps/library/make/defineModule.ts
-    sha: 9b7c7b34333d6037795525808da09d08929ebb03
-    lines: 87-103
+    sha: c2bcb482f69168cd7671fcc520a19b176a1739a3
+    lines: 7-21
   - path: apps/library/modules/githubProfile/githubProfile.ts
-    sha: 5e5ceb560101344bd665c082188d538365fd5863
-    lines: 8-12
+    sha: 670b49bddf14ce386ef1cefe900b32a1175212fd
+    lines: 3-8
   - path: apps/library/modules/githubProfile/githubProfileFrontend.tsx
     sha: 27bb9f712ceebfa618f8455baa497b5a312fcf9f
-    lines: 5-7
+    lines: 7-11
   - path: apps/library/lib/modulesHash.ts
     sha: a57983f91c3abc1a356ecc1162900ef4cfcc8490
     lines: 14-25
@@ -33,11 +33,11 @@ sources:
     sha: 608eb9ada2c3e68607ded020e5b46c631ccca6ef
     lines: 3-8
   - path: apps/library/lib/types.ts
-    sha: 20381cf451b93fe99a9c78afafd7845ae9a65857
-    lines: 23-41
+    sha: 32db2cab47c9e341e6356d5f3c902fc7017d792b
+    lines: 14-28
   - path: apps/library/make/makeFrontend.tsx
-    sha: a51db8efed37afe75bcb918270516c8050eade7f
-    lines: 365-384
+    sha: 7a934ee786ad9e6e6994beeb877cffc3b5f961fe
+    lines: 26-49
 ---
 
 # Brick module identity and lookup
@@ -94,14 +94,14 @@ sequenceDiagram
 
 ## Annotated workflow steps
 
-1. An assembler passes kebab-case `id`, catalog, data discriminant, and nested breakpoints into `defineModule`.
-   - [`githubProfile.ts:8-12`](../../apps/library/modules/githubProfile/githubProfile.ts#L8-L12) — `githubProfile` is `defineModule({ id: "github-profile", ... })`. (`apps/library/modules/githubProfile/githubProfile.ts:8-12`)
-2. The factory rejects non-kebab ids and fills omitted breakpoints from the nearest smaller slot.
-   - [`defineModule.ts:87-103`](../../apps/library/make/defineModule.ts#L87-L103) — kebab-case `id` check and `sm`/`md`/`lg`/`xl` resolution. (`apps/library/make/defineModule.ts:87-103`)
+1. An assembler passes kebab-case `id`, Zerospin `abbreviation`, `label`, and `description` into `defineModule`.
+   - [`githubProfile.ts:3-8`](../../apps/library/modules/githubProfile/githubProfile.ts#L3-L8) — `githubProfile` is `defineModule({ id: "github-profile", abbreviation: "ghp", ... })`. (`apps/library/modules/githubProfile/githubProfile.ts:3-8`)
+2. The factory rejects non-kebab ids and returns the identity fields including `abbreviation`.
+   - [`defineModule.ts:7-21`](../../apps/library/make/defineModule.ts#L7-L21) — kebab-case `id` check and identity return. (`apps/library/make/defineModule.ts:7-21`)
 3. `makeFrontend` attaches the registry and stock Renderer brick.
-   - [`githubProfileFrontend.tsx:5-7`](../../apps/library/modules/githubProfile/githubProfileFrontend.tsx#L5-L7) — `makeFrontend(githubProfile, { registry })`. (`apps/library/modules/githubProfile/githubProfileFrontend.tsx:5-7`)
+   - [`githubProfileFrontend.tsx:7-11`](../../apps/library/modules/githubProfile/githubProfileFrontend.tsx#L7-L11) — `makeFrontend(githubProfileV1, { registry })`. (`apps/library/modules/githubProfile/githubProfileFrontend.tsx:7-11`)
 4. The returned value is an [`IModule`](../../apps/library/lib/types.ts) with `component`.
-   - [`types.ts:23-41`](../../apps/library/lib/types.ts#L23-L41) — `IModule` identity, catalog, registry, nested breakpoints. (`apps/library/lib/types.ts:23-41`)
+   - [`types.ts:14-28`](../../apps/library/lib/types.ts#L14-L28) — `IModule` identity including `abbreviation`, catalog, registry. (`apps/library/lib/types.ts:14-28`)
 5. The hash is a `Record<string, IModule>` keyed by kebab `id`, checked against the backend map.
    - [`modulesHash.ts:14-25`](../../apps/library/lib/modulesHash.ts#L14-L25) — `"github-profile": githubProfileFrontend` and the other assemblers. (`apps/library/lib/modulesHash.ts:14-25`)
    - [`backendLibrary.ts:13-24`](../../apps/library/backendLibrary.ts#L13-L24) — `defineModule` results keyed by id. (`apps/library/backendLibrary.ts:13-24`)

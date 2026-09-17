@@ -26,6 +26,7 @@ function initialStateFromDocument(state: unknown): Record<string, unknown> {
 export function makeFrontend<
   MODULE extends {
     id: string;
+    abbreviation: string;
     label: string;
     description: string;
     catalog?: Catalog;

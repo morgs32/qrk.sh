@@ -4,15 +4,17 @@ function assertKebabCaseId(id: string) {
   }
 }
 
-/** Module identity: stable kebab id, label, and description. */
-export function defineModule<const MODULE extends string>(props: {
+/** Module identity: stable kebab id, Zerospin abbreviation, label, and description. */
+export function defineModule<const MODULE extends string, const ABBREVIATION extends string>(props: {
   id: MODULE;
+  abbreviation: ABBREVIATION;
   label: string;
   description: string;
 }) {
   assertKebabCaseId(props.id);
   return {
     id: props.id,
+    abbreviation: props.abbreviation,
     label: props.label,
     description: props.description,
   };

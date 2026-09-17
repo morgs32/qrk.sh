@@ -65,11 +65,13 @@ function makeCatalogFromComponents(
 /** Versioned module snapshot: components→catalog, state document. */
 export function makeModuleVersion<
   const MODULE extends string,
+  const ABBREVIATION extends string,
   const VERSION extends string,
   const STATE_SHAPE extends IShape,
 >(
   identity: Readonly<{
     id: MODULE;
+    abbreviation: ABBREVIATION;
     label: string;
     description: string;
   }>,
@@ -80,7 +82,7 @@ export function makeModuleVersion<
     defaultState: InferDecodedRow<STATE_SHAPE> & Readonly<Record<string, IJsonValue>>;
   },
 ) {
-  const { id, label, description } = defineModule(identity);
+  const { id, abbreviation, label, description } = defineModule(identity);
   assertSemVer(props.version);
 
   const catalog = makeCatalogFromComponents(props.components);
@@ -93,6 +95,7 @@ export function makeModuleVersion<
 
   return {
     id,
+    abbreviation,
     label,
     description,
     version: props.version,

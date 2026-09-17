@@ -1,17 +1,13 @@
-import { defineCatalog, type Catalog, type Spec } from "@json-render/core";
+import { defineCatalog, type Catalog } from "@json-render/core";
 import { schema } from "@json-render/react/schema";
 import { primitives, type InferDecodedRow, type IShape } from "@zerospin/schema";
 import { descriptorToZod, makeZodSchema } from "@zerospin/zod";
 import { mapValues } from "es-toolkit";
 
 import type { IJsonValue } from "../worker/types.public";
-import { makeBreakpointOptionShape } from "./breakpointOptions";
 import { decodeDefaultData } from "./decodeDefaultData";
 import type { defineComponent } from "./defineComponent";
 import { defineModule } from "./defineModule";
-import type { makeData } from "./makeData";
-import type { makeDataFetcher } from "./makeDataFetcher";
-import type { makeDataForm } from "./makeDataForm";
 
 const stateRefSchema = makeZodSchema({
   $state: primitives.text(),
@@ -41,34 +37,12 @@ function assertBothOrNeitherWh(props: {
 }
 
 function resolveBreakpoint(
-  own:
-    | {
-        w?: number;
-        h?: number;
-        defaultSpec?: Spec;
-        options?: { shape: IShape };
-      }
-    | undefined,
-  inherited: {
-    w: number | undefined;
-    h: number | undefined;
-    defaultSpec: Spec | undefined;
-    options: ReturnType<typeof makeBreakpointOptionShape> | undefined;
-  },
+  own: { w?: number; h?: number } | undefined,
+  inherited: { w: number | undefined; h: number | undefined },
 ) {
-  const options =
-    own !== undefined && Object.prototype.hasOwnProperty.call(own, "options")
-      ? own.options === undefined
-        ? undefined
-        : makeBreakpointOptionShape(own.options.shape)
-      : inherited.options;
-  const w = own?.w ?? inherited.w;
-  const h = own?.h ?? inherited.h;
   return {
-    w,
-    h,
-    defaultSpec: own?.defaultSpec ?? inherited.defaultSpec,
-    options,
+    w: own?.w ?? inherited.w,
+    h: own?.h ?? inherited.h,
   };
 }
 
@@ -119,16 +93,11 @@ function makeCatalogFromComponents(
   });
 }
 
-/** Versioned module snapshot: components→catalog, data discriminant, nested breakpoints. */
+/** Versioned module snapshot: components→catalog, state document, nested breakpoints. */
 export function makeModuleVersion<
   const MODULE extends string,
   const VERSION extends string,
   const STATE_SHAPE extends IShape,
-  const DATA extends
-    | null
-    | ReturnType<typeof makeData>
-    | ReturnType<typeof makeDataForm>
-    | ReturnType<typeof makeDataFetcher>,
 >(
   identity: Readonly<{
     id: MODULE;
@@ -138,34 +107,13 @@ export function makeModuleVersion<
   props: {
     version: VERSION;
     components: Record<string, ReturnType<typeof defineComponent>>;
-    data: DATA;
     stateShape: STATE_SHAPE;
     defaultState: InferDecodedRow<STATE_SHAPE> & Readonly<Record<string, IJsonValue>>;
     breakpoints: {
-      sm: {
-        w?: number;
-        h?: number;
-        defaultSpec?: Spec;
-        options?: { shape: IShape };
-      };
-      md?: {
-        w?: number;
-        h?: number;
-        defaultSpec?: Spec;
-        options?: { shape: IShape };
-      };
-      lg?: {
-        w?: number;
-        h?: number;
-        defaultSpec?: Spec;
-        options?: { shape: IShape };
-      };
-      xl?: {
-        w?: number;
-        h?: number;
-        defaultSpec?: Spec;
-        options?: { shape: IShape };
-      };
+      sm: { w?: number; h?: number };
+      md?: { w?: number; h?: number };
+      lg?: { w?: number; h?: number };
+      xl?: { w?: number; h?: number };
     };
   },
 ) {
@@ -193,13 +141,7 @@ export function makeModuleVersion<
     });
   }
 
-  const sm = {
-    w: smInput.w,
-    h: smInput.h,
-    defaultSpec: smInput.defaultSpec,
-    options:
-      smInput.options === undefined ? undefined : makeBreakpointOptionShape(smInput.options.shape),
-  };
+  const sm = { w: smInput.w, h: smInput.h };
   const md = resolveBreakpoint(props.breakpoints.md, sm);
   const lg = resolveBreakpoint(props.breakpoints.lg, md);
   const xl = resolveBreakpoint(props.breakpoints.xl, lg);
@@ -210,25 +152,8 @@ export function makeModuleVersion<
     md: defSize(md.w, md.h),
     lg: defSize(lg.w, lg.h),
     xl: defSize(xl.w, xl.h),
-    data: defaultState as unknown,
+    state: defaultState as unknown,
   };
-
-  if (props.data === null) {
-    return {
-      id,
-      label,
-      description,
-      version: props.version,
-      catalog,
-      data: null,
-      dataShape: null,
-      defaultData: null,
-      stateShape: props.stateShape,
-      defaultState,
-      breakpoints,
-      def,
-    };
-  }
 
   return {
     id,
@@ -236,9 +161,6 @@ export function makeModuleVersion<
     description,
     version: props.version,
     catalog,
-    data: props.data,
-    dataShape: props.data.dataShape,
-    defaultData: props.data.defaultData,
     stateShape: props.stateShape,
     defaultState,
     breakpoints,

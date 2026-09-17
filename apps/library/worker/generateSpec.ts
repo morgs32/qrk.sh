@@ -12,15 +12,15 @@ function backendEntryForModuleId(moduleId: string) {
   return undefined;
 }
 
-function stateFromData(data: unknown): Record<string, unknown> {
-  if (data !== null && typeof data === "object" && !Array.isArray(data)) {
-    const state: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(data)) {
-      state[key] = value;
+function initialStateFromDocument(state: unknown): Record<string, unknown> {
+  if (state !== null && typeof state === "object" && !Array.isArray(state)) {
+    const initialState: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(state)) {
+      initialState[key] = value;
     }
-    return state;
+    return initialState;
   }
-  return { value: data };
+  return { value: state };
 }
 
 function contentFromChatCompletion(body: unknown): string {
@@ -64,7 +64,7 @@ export async function generateSpec(props: {
   env: IScraperEnv;
   moduleId: string;
   prompt: string;
-  data: unknown;
+  state: unknown;
   currentSpec: Spec | null;
 }): Promise<IRpcEither<Spec>> {
   const trimmedPrompt = props.prompt.trim();
@@ -117,7 +117,7 @@ export async function generateSpec(props: {
     const system = catalog.prompt({ mode: "standalone" });
     const user = buildUserPrompt({
       prompt: trimmedPrompt,
-      state: stateFromData(props.data),
+      state: initialStateFromDocument(props.state),
       currentSpec,
     });
     const response = await fetch("https://api.openai.com/v1/chat/completions", {

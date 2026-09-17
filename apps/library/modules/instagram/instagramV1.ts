@@ -1,12 +1,3 @@
-/*
-fetcher: async ({ api, payload, setData }) => {
-  const result = await api.instagramBackend().scrape(payload.url);
-  if (result._tag === "Left") return result;
-  setData(result.right);
-  return { _tag: "Right", right: undefined };
-},
-*/
-
 import { makeEffectSchema, primitives } from "@zerospin/schema";
 
 import {
@@ -16,9 +7,7 @@ import {
   columnComponent,
   rowComponent,
 } from "../../lib/jsonRender/layoutComponents";
-import { makeDataFetcher } from "../../make/makeDataFetcher";
 import { makeModuleVersion } from "../../make/makeModuleVersion";
-import { defaultSpec } from "./generative/defaultSpec";
 import { instagramCardComponent } from "./generative/InstagramCardComponent";
 import { instagramMediaFooterComponent } from "./generative/InstagramMediaFooterComponent";
 import { instagramPostGridComponent } from "./generative/InstagramPostGridComponent";
@@ -66,11 +55,6 @@ export const instagramV1 = makeModuleVersion(instagram, {
     InstagramPostGrid: instagramPostGridComponent,
     InstagramMediaFooter: instagramMediaFooterComponent,
   },
-  data: makeDataFetcher({
-    payloadShape,
-    dataShape,
-    defaultData,
-  }),
   stateShape: {
     payload: primitives.json({ schema: makeEffectSchema(payloadShape) }),
     data: primitives.json({ schema: makeEffectSchema(dataShape) }),
@@ -80,6 +64,6 @@ export const instagramV1 = makeModuleVersion(instagram, {
     data: defaultData,
   },
   breakpoints: {
-    sm: { defaultSpec },
+    sm: {},
   },
 });

@@ -4,7 +4,6 @@ import GridLayout, { verticalCompactor } from "react-grid-layout";
 
 import { useBrickBreakpoint } from "./BrickBreakpointProvider";
 import { modulesHash } from "./modulesHash";
-import { resolveBrickBreakpoint } from "./resolveBrickBreakpoint";
 import { useBricksStore, useBricksStoreApi } from "./BrickStoreProvider";
 
 export function BrickWall(props: {
@@ -31,7 +30,7 @@ export function BrickWall(props: {
   }, [dragging, dragScrollTop]);
 
   const layout = Object.values(bricksById).flatMap((brick) => {
-    const entry = resolveBrickBreakpoint(brick, breakpoint);
+    const entry = brick[breakpoint];
     return entry.gridItem === null ? [] : [{ ...entry.gridItem }];
   });
   const rowHeight = gridWidth / 8;
@@ -203,11 +202,8 @@ export function BrickWall(props: {
                     <div className="brick-drag-content size-full">
                       <BrickComponent
                         breakpoint={breakpoint}
-                        data={brickDef.data}
-                        breakpointOptions={
-                          resolveBrickBreakpoint(brickDef, breakpoint).breakpointOptions
-                        }
-                        spec={resolveBrickBreakpoint(brickDef, breakpoint).spec}
+                        state={brickDef.state}
+                        spec={brickDef[breakpoint].spec}
                       />
                     </div>
                   </div>

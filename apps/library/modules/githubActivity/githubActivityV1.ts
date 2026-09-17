@@ -1,21 +1,3 @@
-/*
-fetcher: async ({ api, payload, setData }) => {
-  const result = await api.githubBackend().getProfile(payload.url);
-  if (result._tag === "Left") return result;
-  if (!Array.isArray(result.right.contributions)) {
-    return {
-      _tag: "Left",
-      left: {
-        code: "unsupported-page-shape",
-        message: "GitHub profile response did not include contributions",
-      },
-    };
-  }
-  setData({ contributions: result.right.contributions });
-  return { _tag: "Right", right: undefined };
-},
-*/
-
 import { makeEffectSchema, primitives } from "@zerospin/schema";
 import { Schema } from "effect";
 
@@ -26,10 +8,8 @@ import {
   columnComponent,
   rowComponent,
 } from "../../lib/jsonRender/layoutComponents";
-import { makeDataFetcher } from "../../make/makeDataFetcher";
 import { makeModuleVersion } from "../../make/makeModuleVersion";
 import { activityCalendarComponent } from "./generative/ActivityCalendarComponent";
-import { defaultSpec } from "./generative/defaultSpec";
 import { githubActivity } from "./githubActivity";
 
 const payloadShape = {
@@ -77,11 +57,6 @@ export const githubActivityV1 = makeModuleVersion(githubActivity, {
     Row: rowComponent,
     ActivityCalendar: activityCalendarComponent,
   },
-  data: makeDataFetcher({
-    payloadShape,
-    dataShape,
-    defaultData,
-  }),
   stateShape: {
     payload: primitives.json({ schema: makeEffectSchema(payloadShape) }),
     data: primitives.json({ schema: makeEffectSchema(dataShape) }),
@@ -91,6 +66,6 @@ export const githubActivityV1 = makeModuleVersion(githubActivity, {
     data: defaultData,
   },
   breakpoints: {
-    sm: { defaultSpec },
+    sm: {},
   },
 });

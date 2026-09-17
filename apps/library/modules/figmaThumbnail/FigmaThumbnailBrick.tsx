@@ -77,32 +77,27 @@ export function FigmaMediaFooter(props: { title: string; url: string }) {
 }
 
 export function FigmaThumbnailBrick(props: {
-  data: {
-    title: string;
-    url: string;
-    thumbnail_url: string | null;
-    thumbnail_width: number | null;
-    thumbnail_height: number | null;
+  state: {
+    payload: { url: string };
+    data: {
+      title: string;
+      url: string;
+      thumbnail_url: string | null;
+      thumbnail_width: number | null;
+      thumbnail_height: number | null;
+    };
   };
-  breakpointOptions: unknown;
 }) {
-  const imagePosition =
-    props.breakpointOptions !== null &&
-    typeof props.breakpointOptions === "object" &&
-    "imagePosition" in props.breakpointOptions &&
-    typeof props.breakpointOptions.imagePosition === "string"
-      ? props.breakpointOptions.imagePosition
-      : "left";
   return (
     <FigmaCard>
       <FigmaThumbnailBand
-        imagePosition={imagePosition}
-        thumbnail_height={props.data.thumbnail_height}
-        thumbnail_url={props.data.thumbnail_url}
-        thumbnail_width={props.data.thumbnail_width}
-        title={props.data.title}
+        imagePosition="left"
+        thumbnail_height={props.state.data.thumbnail_height}
+        thumbnail_url={props.state.data.thumbnail_url}
+        thumbnail_width={props.state.data.thumbnail_width}
+        title={props.state.data.title}
       />
-      <FigmaMediaFooter title={props.data.title} url={props.data.url} />
+      <FigmaMediaFooter title={props.state.data.title} url={props.state.data.url} />
     </FigmaCard>
   );
 }

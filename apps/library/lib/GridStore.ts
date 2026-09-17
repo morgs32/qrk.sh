@@ -3,4 +3,3 @@ export {
   useBricksStore,
   useBricksStoreApi,
 } from "./BrickStoreProvider";
-export { resolveBrickBreakpoint } from "./resolveBrickBreakpoint";

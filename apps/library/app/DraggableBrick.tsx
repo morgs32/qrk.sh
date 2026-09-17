@@ -1,5 +1,7 @@
 import type { ComponentProps } from "react";
 
+import type { Spec } from "@json-render/core";
+
 import type { IModuleBrickDef } from "../lib/types";
 import { useBricksStore } from "../lib/BrickStoreProvider";
 
@@ -9,16 +11,16 @@ export function DraggableBrick({
   className,
   ...props
 }: {
-  brickDef: IModuleBrickDef;
+  brickDef: IModuleBrickDef & { spec: Spec };
 } & Omit<ComponentProps<"div">, "draggable" | "onDragStart" | "onDragEnd">) {
-  const setActiveBrickDrag = useBricksStore((state) => state.setActiveBrickDrag);
+  const setActiveBrickDrag = useBricksStore(state => state.setActiveBrickDrag);
 
   return (
     <div
       {...props}
       className={`brick-drag-surface ${className ?? ""}`}
       draggable
-      onDragStart={(event) => {
+      onDragStart={event => {
         setActiveBrickDrag(structuredClone(brickDef));
         const surface = event.currentTarget;
         if (surface) {

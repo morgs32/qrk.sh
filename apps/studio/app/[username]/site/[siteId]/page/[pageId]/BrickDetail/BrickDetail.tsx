@@ -2,7 +2,7 @@
 import { modulesHash } from "@qrk.sh/library";
 import { useBrickBreakpoint } from "@qrk.sh/library/BrickBreakpointProvider";
 import { BrickPreview } from "@qrk.sh/library/BrickPreview";
-import { resolveBrickBreakpoint, useBricksStore } from "@qrk.sh/library/GridStore";
+import { useBricksStore } from "@qrk.sh/library/GridStore";
 import { Schema } from "effect";
 import { ArrowLeft, X } from "lucide-react";
 import { Link } from "react-router";
@@ -26,7 +26,7 @@ export function BrickDetail() {
   const brickPlacement = useBricksStore((state) => state.bricksById[params.brickId]);
   const brick = brickPlacement ? modulesHash[brickPlacement.moduleId] : undefined;
   const BrickComponent = brick?.component;
-  const entry = brickPlacement ? resolveBrickBreakpoint(brickPlacement, breakpoint) : undefined;
+  const entry = brickPlacement ? brickPlacement[breakpoint] : undefined;
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">

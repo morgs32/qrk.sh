@@ -12,33 +12,38 @@ import { Location } from "./components/Location";
 import { PublicRepos } from "./components/PublicRepos";
 
 export function GitHubProfile(props: {
-  data: {
-    avatar_url: string;
-    login: string;
-    bio: string | null;
-    location: string | null;
-    blog: string;
-    followers: number;
-    following: number;
-    public_repos: number;
+  state: {
+    payload: { url: string };
+    data: {
+      avatar_url: string;
+      login: string;
+      bio: string | null;
+      location: string | null;
+      blog: string;
+      followers: number;
+      following: number;
+      public_repos: number;
+    };
   };
-  breakpointOptions: unknown;
 }) {
   return (
     <BrickShell>
       <BrickBody>
         <Column gap={2}>
-          <AvatarAndUsername avatar_url={props.data.avatar_url} login={props.data.login} />
-          <Bio bio={props.data.bio} />
-          <Location location={props.data.location} />
-          <Blog blog={props.data.blog} />
+          <AvatarAndUsername
+            avatar_url={props.state.data.avatar_url}
+            login={props.state.data.login}
+          />
+          <Bio bio={props.state.data.bio} />
+          <Location location={props.state.data.location} />
+          <Blog blog={props.state.data.blog} />
         </Column>
       </BrickBody>
       <BrickFooter>
         <Row className="w-full" gap={2} justifyContent="flex-end">
-          <Followers followers={props.data.followers} />
-          <Following following={props.data.following} />
-          <PublicRepos public_repos={props.data.public_repos} />
+          <Followers followers={props.state.data.followers} />
+          <Following following={props.state.data.following} />
+          <PublicRepos public_repos={props.state.data.public_repos} />
         </Row>
       </BrickFooter>
     </BrickShell>

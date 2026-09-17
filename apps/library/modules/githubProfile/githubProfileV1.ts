@@ -1,12 +1,3 @@
-/*
-fetcher: async ({ api, payload, setData }) => {
-  const result = await api.githubBackend().getProfile(payload.url);
-  if (result._tag === "Left") return result;
-  setData(result.right);
-  return { _tag: "Right", right: undefined };
-},
-*/
-
 import { makeEffectSchema, primitives } from "@zerospin/schema";
 
 import {
@@ -16,12 +7,10 @@ import {
   columnComponent,
   rowComponent,
 } from "../../lib/jsonRender/layoutComponents";
-import { makeDataFetcher } from "../../make/makeDataFetcher";
 import { makeModuleVersion } from "../../make/makeModuleVersion";
 import { avatarAndUsernameComponent } from "./generative/AvatarAndUsernameComponent";
 import { bioComponent } from "./generative/BioComponent";
 import { blogComponent } from "./generative/BlogComponent";
-import { defaultSpec } from "./generative/defaultSpec";
 import { followersComponent } from "./generative/FollowersComponent";
 import { followingComponent } from "./generative/FollowingComponent";
 import { locationComponent } from "./generative/LocationComponent";
@@ -96,11 +85,6 @@ export const githubProfileV1 = makeModuleVersion(githubProfile, {
     Following: followingComponent,
     PublicRepos: publicReposComponent,
   },
-  data: makeDataFetcher({
-    payloadShape,
-    dataShape,
-    defaultData,
-  }),
   stateShape: {
     payload: primitives.json({ schema: makeEffectSchema(payloadShape) }),
     data: primitives.json({ schema: makeEffectSchema(dataShape) }),
@@ -110,6 +94,6 @@ export const githubProfileV1 = makeModuleVersion(githubProfile, {
     data: defaultData,
   },
   breakpoints: {
-    sm: { defaultSpec },
+    sm: {},
   },
 });

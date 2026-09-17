@@ -2,19 +2,14 @@ import { IconSvgGraphic } from "./SwatchAndIcon/components/IconSvgGraphic";
 import { SwatchAndIconColor } from "./SwatchAndIcon/components/SwatchAndIconColor";
 
 export function SwatchAndIconBrick(props: {
-  data: { name: string; svg: string };
-  breakpointOptions: unknown;
+  state: {
+    payload: { hash: string };
+    data: { name: string; svg: string };
+  };
 }) {
-  const color =
-    props.breakpointOptions !== null &&
-    typeof props.breakpointOptions === "object" &&
-    "color" in props.breakpointOptions &&
-    typeof props.breakpointOptions.color === "string"
-      ? props.breakpointOptions.color
-      : "#4A7C59";
   return (
-    <SwatchAndIconColor color={color}>
-      <IconSvgGraphic data={{ name: props.data.name, svg: props.data.svg }} />
+    <SwatchAndIconColor color="#4A7C59">
+      <IconSvgGraphic data={{ name: props.state.data.name, svg: props.state.data.svg }} />
     </SwatchAndIconColor>
   );
 }

@@ -8,9 +8,7 @@ import {
   columnComponent,
   rowComponent,
 } from "../../lib/jsonRender/layoutComponents";
-import { makeDataForm } from "../../make/makeDataForm";
 import { makeModuleVersion } from "../../make/makeModuleVersion";
-import { defaultSpec } from "./generative/defaultSpec";
 import { textBrickComponent } from "./generative/TextBrickComponent";
 import { text } from "./text";
 
@@ -32,13 +30,9 @@ export const textV1 = makeModuleVersion(text, {
     Row: rowComponent,
     TextBrick: textBrickComponent,
   },
-  data: makeDataForm({
-    dataShape,
-    defaultData: { content: null },
-  }),
   stateShape: dataShape,
   defaultState: { content: null },
   breakpoints: {
-    sm: { w: 4, h: 4, defaultSpec },
+    sm: { w: 4, h: 4 },
   },
 });

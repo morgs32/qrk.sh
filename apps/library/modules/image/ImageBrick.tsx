@@ -28,24 +28,16 @@ export function ImageCover(props: { imageUrl: string; title: string; imagePositi
 }
 
 export function ImageBrick(props: {
-  data: { imageUrl: string; title: string };
-  breakpointOptions: unknown;
+  state: { imageUrl: string; title: string };
 }) {
-  const imagePosition =
-    props.breakpointOptions !== null &&
-    typeof props.breakpointOptions === "object" &&
-    "imagePosition" in props.breakpointOptions &&
-    typeof props.breakpointOptions.imagePosition === "string"
-      ? props.breakpointOptions.imagePosition
-      : "center";
   return (
     <ImageCard>
       <ImageCover
-        imagePosition={imagePosition}
-        imageUrl={props.data.imageUrl}
-        title={props.data.title}
+        imagePosition="center"
+        imageUrl={props.state.imageUrl}
+        title={props.state.title}
       />
-      <MediaFooter heading={props.data.title} />
+      <MediaFooter heading={props.state.title} />
     </ImageCard>
   );
 }

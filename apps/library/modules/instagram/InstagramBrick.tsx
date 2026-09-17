@@ -80,28 +80,30 @@ export function InstagramMediaFooter(props: { username: string; followersText: s
 }
 
 export function InstagramBrick(props: {
-  data: {
-    username: string;
-    postImageUrl1: string;
-    postImageUrl2: string;
-    postImageUrl3: string;
-    postImageUrl4: string;
-    followersText: string;
+  state: {
+    payload: { url: string };
+    data: {
+      username: string;
+      postImageUrl1: string;
+      postImageUrl2: string;
+      postImageUrl3: string;
+      postImageUrl4: string;
+      followersText: string;
+    };
   };
-  breakpointOptions: unknown;
 }) {
   return (
-    <InstagramCard username={props.data.username}>
+    <InstagramCard username={props.state.data.username}>
       <InstagramPostGrid
-        postImageUrl1={props.data.postImageUrl1}
-        postImageUrl2={props.data.postImageUrl2}
-        postImageUrl3={props.data.postImageUrl3}
-        postImageUrl4={props.data.postImageUrl4}
-        username={props.data.username}
+        postImageUrl1={props.state.data.postImageUrl1}
+        postImageUrl2={props.state.data.postImageUrl2}
+        postImageUrl3={props.state.data.postImageUrl3}
+        postImageUrl4={props.state.data.postImageUrl4}
+        username={props.state.data.username}
       />
       <InstagramMediaFooter
-        followersText={props.data.followersText}
-        username={props.data.username}
+        followersText={props.state.data.followersText}
+        username={props.state.data.username}
       />
     </InstagramCard>
   );

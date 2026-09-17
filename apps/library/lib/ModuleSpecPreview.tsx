@@ -9,33 +9,24 @@ import {
   type ComponentRegistry,
 } from "@json-render/react";
 
-function mergeBrickState(data: unknown, breakpointOptions: unknown): Record<string, unknown> {
-  const state: Record<string, unknown> = {};
-  if (data !== null && typeof data === "object" && !Array.isArray(data)) {
-    for (const [key, value] of Object.entries(data)) {
-      state[key] = value;
+function initialStateFromDocument(state: unknown): Record<string, unknown> {
+  if (state !== null && typeof state === "object" && !Array.isArray(state)) {
+    const initialState: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(state)) {
+      initialState[key] = value;
     }
+    return initialState;
   }
-  if (
-    breakpointOptions !== null &&
-    typeof breakpointOptions === "object" &&
-    !Array.isArray(breakpointOptions)
-  ) {
-    for (const [key, value] of Object.entries(breakpointOptions)) {
-      state[key] = value;
-    }
-  }
-  return state;
+  return {};
 }
 
-/** Preview a module json-render spec against current data/breakpointOptions state. */
+/** Preview a module json-render spec against current brick state. */
 export function ModuleSpecPreview(props: {
-  data: unknown;
-  breakpointOptions?: unknown;
+  state: unknown;
   spec: Spec;
   registry: ComponentRegistry;
 }) {
-  const initialState = mergeBrickState(props.data, props.breakpointOptions);
+  const initialState = initialStateFromDocument(props.state);
 
   return (
     <div className="size-full overflow-hidden" data-module-spec-preview>

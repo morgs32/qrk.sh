@@ -63,20 +63,22 @@ export function MapCanvas(props: {
 }
 
 export function MapPlaceBrick(props: {
-  data: {
-    googlePlaceId: string;
-    name: string;
-    latitude: number;
-    longitude: number;
+  state: {
+    payload: { googlePlaceId: string };
+    data: {
+      googlePlaceId: string;
+      name: string;
+      latitude: number;
+      longitude: number;
+    };
   };
-  breakpointOptions: unknown;
 }) {
   return (
     <MapCanvas
-      googlePlaceId={props.data.googlePlaceId}
-      latitude={props.data.latitude}
-      longitude={props.data.longitude}
-      name={props.data.name}
+      googlePlaceId={props.state.data.googlePlaceId}
+      latitude={props.state.data.latitude}
+      longitude={props.state.data.longitude}
+      name={props.state.data.name}
     />
   );
 }

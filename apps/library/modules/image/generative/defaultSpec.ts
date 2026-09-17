@@ -13,7 +13,7 @@ export const defaultSpec: Spec = {
       props: {
         imageUrl: { $state: "/imageUrl" },
         title: { $state: "/title" },
-        imagePosition: { $state: "/imagePosition" },
+        imagePosition: "center",
       },
     },
     "footer-1": {

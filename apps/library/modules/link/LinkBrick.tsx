@@ -62,24 +62,26 @@ export function LinkHeroImage(props: { imageUrl: string }) {
 }
 
 export function LinkBrick(props: {
-  data: {
-    url: string;
-    title: string;
-    siteName: string;
-    iconUrl: string;
-    imageUrl: string;
+  state: {
+    payload: { url: string };
+    data: {
+      url: string;
+      title: string;
+      siteName: string;
+      iconUrl: string;
+      imageUrl: string;
+    };
   };
-  breakpointOptions: unknown;
 }) {
   return (
     <LinkCard>
       <LinkCopy
-        iconUrl={props.data.iconUrl}
-        siteName={props.data.siteName}
-        title={props.data.title}
-        url={props.data.url}
+        iconUrl={props.state.data.iconUrl}
+        siteName={props.state.data.siteName}
+        title={props.state.data.title}
+        url={props.state.data.url}
       />
-      <LinkHeroImage imageUrl={props.data.imageUrl} />
+      <LinkHeroImage imageUrl={props.state.data.imageUrl} />
     </LinkCard>
   );
 }

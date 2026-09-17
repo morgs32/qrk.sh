@@ -9,16 +9,14 @@ import { create, useStore } from "zustand";
 
 import { modulesHash } from "./modulesHash";
 import type { IModuleBrickDef } from "./types";
-import { resolveBrickBreakpoint } from "./resolveBrickBreakpoint";
 
 function createBricksStore(initialState?: {
   bricksById?: Record<
     string,
     {
       moduleId: string;
-      data: unknown;
-      sm: { gridItem: LayoutItem | null; spec: Spec };
-    } & Partial<Record<"md" | "lg" | "xl", { gridItem: LayoutItem | null; spec: Spec }>>
+      state: unknown;
+    } & Record<"sm" | "md" | "lg" | "xl", { gridItem: LayoutItem | null; spec: Spec }>
   >;
 }) {
   return create<{
@@ -26,9 +24,8 @@ function createBricksStore(initialState?: {
       string,
       {
         moduleId: string;
-        data: unknown;
-        sm: { gridItem: LayoutItem | null; spec: Spec };
-      } & Partial<Record<"md" | "lg" | "xl", { gridItem: LayoutItem | null; spec: Spec }>>
+        state: unknown;
+      } & Record<"sm" | "md" | "lg" | "xl", { gridItem: LayoutItem | null; spec: Spec }>
     >;
     activeBrickDrag: (IModuleBrickDef & { spec: Spec }) | null;
     hasHydrated: boolean;
@@ -54,14 +51,13 @@ function createBricksStore(initialState?: {
     hasHydrated: true,
     setLayout: (layout, breakpoint) => {
       set(state => {
-        const bricksById = { ...state.bricksById };
+        const nextBricksById = { ...state.bricksById };
         for (const gridItem of layout) {
-          const brick = bricksById[gridItem.i];
+          const brick = nextBricksById[gridItem.i];
           if (!brick) continue;
-          const resolved = resolveBrickBreakpoint(brick, breakpoint);
-          // Mounting or switching widths must not materialize inherited entries.
-          if (resolved.gridItem === null) continue;
-          const previous = resolved.gridItem;
+          const entry = brick[breakpoint];
+          if (entry.gridItem === null) continue;
+          const previous = entry.gridItem;
           if (
             previous.x === gridItem.x &&
             previous.y === gridItem.y &&
@@ -69,15 +65,15 @@ function createBricksStore(initialState?: {
             previous.h === gridItem.h
           )
             continue;
-          bricksById[gridItem.i] = {
+          nextBricksById[gridItem.i] = {
             ...brick,
             [breakpoint]: {
-              ...structuredClone(resolved),
+              ...structuredClone(entry),
               gridItem: { ...gridItem },
             },
           };
         }
-        return { bricksById };
+        return { bricksById: nextBricksById };
       });
     },
     addBrick: (brickId, brickDef, layout, breakpoint) => {
@@ -106,24 +102,19 @@ function createBricksStore(initialState?: {
             h: smH,
           };
         }
+        const mdGridItem = { ...gridItem };
+        const lgGridItem = { ...gridItem };
+        const xlGridItem = { ...gridItem };
         return {
           bricksById: {
             ...state.bricksById,
             [brickId]: {
               moduleId: brickDef.moduleId,
-              data: structuredClone(brickDef.data),
-              sm: {
-                gridItem: smGridItem,
-                spec: structuredClone(spec),
-              },
-              ...(breakpoint === "sm"
-                ? {}
-                : {
-                    [breakpoint]: {
-                      gridItem: { ...gridItem },
-                      spec: structuredClone(spec),
-                    },
-                  }),
+              state: structuredClone(brickDef.state),
+              sm: { gridItem: smGridItem, spec: structuredClone(spec) },
+              md: { gridItem: mdGridItem, spec: structuredClone(spec) },
+              lg: { gridItem: lgGridItem, spec: structuredClone(spec) },
+              xl: { gridItem: xlGridItem, spec: structuredClone(spec) },
             },
           },
         };
@@ -134,7 +125,7 @@ function createBricksStore(initialState?: {
       set(state => {
         const brick = state.bricksById[brickId];
         if (!brick) return state;
-        const entry = structuredClone(resolveBrickBreakpoint(brick, breakpoint));
+        const entry = structuredClone(brick[breakpoint]);
         return {
           bricksById: {
             ...state.bricksById,
@@ -153,12 +144,12 @@ function createBricksStore(initialState?: {
       set(state => {
         const brick = state.bricksById[brickId];
         if (!brick) return state;
-        const entry = structuredClone(resolveBrickBreakpoint(brick, breakpoint));
+        const entry = structuredClone(brick[breakpoint]);
         if (visible === (entry.gridItem !== null)) return state;
         if (!visible) {
           entry.gridItem = null;
         } else {
-          // Search explicit smaller entries, skipping hidden entries.
+          // Search smaller entries for an x/y seed, skipping hidden placements.
           const smaller =
             breakpoint === "xl"
               ? [brick.lg, brick.md, brick.sm]
@@ -167,7 +158,7 @@ function createBricksStore(initialState?: {
                 : breakpoint === "md"
                   ? [brick.sm]
                   : [];
-          const placement = smaller.find(candidate => candidate?.gridItem)?.gridItem;
+          const placement = smaller.find(candidate => candidate.gridItem)?.gridItem;
           const brickModule = modulesHash[brick.moduleId];
           if (!brickModule) return state;
           const declaredW = brickModule.def[breakpoint].w;
@@ -179,7 +170,7 @@ function createBricksStore(initialState?: {
             } else {
               let y = 0;
               for (const other of Object.values(state.bricksById)) {
-                const item = resolveBrickBreakpoint(other, breakpoint).gridItem;
+                const item = other[breakpoint].gridItem;
                 if (item) y = Math.max(y, item.y + item.h);
               }
               entry.gridItem = {
@@ -194,7 +185,7 @@ function createBricksStore(initialState?: {
             if (gridSize === undefined) return state;
             let y = 0;
             for (const other of Object.values(state.bricksById)) {
-              const item = resolveBrickBreakpoint(other, breakpoint).gridItem;
+              const item = other[breakpoint].gridItem;
               if (item) y = Math.max(y, item.y + item.h);
             }
             entry.gridItem = {
@@ -206,19 +197,19 @@ function createBricksStore(initialState?: {
             };
           }
         }
-        const bricksById = {
+        const nextBricksById = {
           ...state.bricksById,
           [brickId]: { ...brick, [breakpoint]: entry },
         };
-        const layout = Object.values(bricksById).flatMap(placed => {
-          const item = resolveBrickBreakpoint(placed, breakpoint).gridItem;
+        const layout = Object.values(nextBricksById).flatMap(placed => {
+          const item = placed[breakpoint].gridItem;
           return item ? [{ ...item }] : [];
         });
         for (const item of verticalCompactor.compact(layout, 8)) {
-          const placed = bricksById[item.i];
-          const resolved = resolveBrickBreakpoint(placed, breakpoint);
+          const placed = nextBricksById[item.i];
+          const resolved = placed[breakpoint];
           if (resolved.gridItem?.x === item.x && resolved.gridItem?.y === item.y) continue;
-          bricksById[item.i] = {
+          nextBricksById[item.i] = {
             ...placed,
             [breakpoint]: {
               ...structuredClone(resolved),
@@ -226,7 +217,7 @@ function createBricksStore(initialState?: {
             },
           };
         }
-        return { bricksById };
+        return { bricksById: nextBricksById };
       });
     },
     setActiveBrickDrag: brickDef => {

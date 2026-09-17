@@ -15,8 +15,8 @@ import {
 } from "../lib/BrickStoreProvider";
 import { useLibraryUIStore } from "../lib/useLibraryUIStore";
 
-const LIBRARY_BRICKS_STORAGE_NAME = "qrk-bricks-sandbox-responsive-bricks-v5";
-const LIBRARY_BRICKS_STORAGE_VERSION = 5;
+const LIBRARY_BRICKS_STORAGE_NAME = "qrk-bricks-sandbox-responsive-bricks-v6";
+const LIBRARY_BRICKS_STORAGE_VERSION = 6;
 
 function readLibraryPersistedState() {
   try {

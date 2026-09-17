@@ -83,26 +83,28 @@ export function RepoLanguage(props: { language: string | null }) {
 }
 
 export function GitHubRepo(props: {
-  data: {
-    name: string;
-    description: string | null;
-    stargazers_count: number;
-    forks_count: number;
-    language: string | null;
+  state: {
+    payload: { url: string };
+    data: {
+      name: string;
+      description: string | null;
+      stargazers_count: number;
+      forks_count: number;
+      language: string | null;
+    };
   };
-  breakpointOptions: unknown;
 }) {
   return (
     <BrickShell className="min-w-0">
       <BrickBody>
-        <RepoName name={props.data.name} />
-        <RepoDescription description={props.data.description} />
+        <RepoName name={props.state.data.name} />
+        <RepoDescription description={props.state.data.description} />
       </BrickBody>
       <BrickFooter>
         <Row className="w-full" gap={4}>
-          <RepoStars stargazers_count={props.data.stargazers_count} />
-          <RepoForks forks_count={props.data.forks_count} />
-          <RepoLanguage language={props.data.language} />
+          <RepoStars stargazers_count={props.state.data.stargazers_count} />
+          <RepoForks forks_count={props.state.data.forks_count} />
+          <RepoLanguage language={props.state.data.language} />
         </Row>
       </BrickFooter>
     </BrickShell>

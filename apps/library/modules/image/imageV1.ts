@@ -7,9 +7,7 @@ import {
   columnComponent,
   rowComponent,
 } from "../../lib/jsonRender/layoutComponents";
-import { makeData } from "../../make/makeData";
 import { makeModuleVersion } from "../../make/makeModuleVersion";
-import { defaultSpec } from "./generative/defaultSpec";
 import { imageCardComponent } from "./generative/ImageCardComponent";
 import { imageCoverComponent } from "./generative/ImageCoverComponent";
 import { mediaFooterComponent } from "./generative/MediaFooterComponent";
@@ -38,33 +36,9 @@ export const imageV1 = makeModuleVersion(image, {
     ImageCover: imageCoverComponent,
     MediaFooter: mediaFooterComponent,
   },
-  data: makeData({
-    dataShape,
-    defaultData,
-  }),
   stateShape: dataShape,
   defaultState: defaultData,
   breakpoints: {
-    sm: {
-      defaultSpec,
-      options: {
-        shape: {
-          imagePosition: primitives.enum({
-            values: [
-              "top-left",
-              "top-center",
-              "top-right",
-              "center-left",
-              "center",
-              "center-right",
-              "bottom-left",
-              "bottom-center",
-              "bottom-right",
-            ],
-            defaultValue: "center",
-          }),
-        },
-      },
-    },
+    sm: {},
   },
 });

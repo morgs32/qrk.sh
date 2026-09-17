@@ -15,7 +15,7 @@ export const defaultSpec: Spec = {
         thumbnail_url: { $state: "/data/thumbnail_url" },
         thumbnail_width: { $state: "/data/thumbnail_width" },
         thumbnail_height: { $state: "/data/thumbnail_height" },
-        imagePosition: { $state: "/imagePosition" },
+        imagePosition: "left",
       },
     },
     "footer-1": {

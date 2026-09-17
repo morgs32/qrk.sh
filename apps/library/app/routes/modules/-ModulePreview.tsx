@@ -2,6 +2,8 @@ import { useCallback, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { cn } from "cn";
 
+import type { Spec } from "@json-render/core";
+
 import { BrickPreview } from "../../../lib/BrickPreview";
 import { BREAKPOINTS } from "../../../lib/breakpoints";
 import { modulesHash } from "../../../lib/modulesHash";
@@ -13,26 +15,27 @@ export function ModulePreview(props: {
   breakpoint: (typeof BREAKPOINTS)[number]["id"];
 }) {
   const { brickModule, breakpoint } = props;
-  const { def, component: BrickComponent } = brickModule;
+  const { def, component: BrickComponent, defaultSpec } = brickModule;
   const declared = def[breakpoint];
   const declaredW = declared.w;
   const declaredH = declared.h;
   const hasDeclaredSize = declaredW !== undefined && declaredH !== undefined;
   const [measuredUnits, setMeasuredUnits] = useState<{ w: number; h: number }>();
   const onGridUnits = useCallback((size: { w: number; h: number }) => {
-    setMeasuredUnits((current) => {
+    setMeasuredUnits(current => {
       if (current?.w === size.w && current?.h === size.h) return current;
       return size;
     });
   }, []);
 
-  const brickDefForDrag: IModuleBrickDef = {
+  const brickDefForDrag: IModuleBrickDef & { spec: Spec } = {
     ...def,
     [breakpoint]: hasDeclaredSize
       ? { w: declaredW, h: declaredH }
       : measuredUnits !== undefined
         ? { w: measuredUnits.w, h: measuredUnits.h }
         : { w: 1, h: 1 },
+    spec: structuredClone(defaultSpec),
   };
   const gridW = hasDeclaredSize ? declaredW : measuredUnits?.w;
   const exceedsWallWidth = gridW !== undefined && gridW > 8;
@@ -44,7 +47,7 @@ export function ModulePreview(props: {
       data-module-representative={def.moduleId}
     >
       <div className="brick-drag-content size-full">
-        <BrickComponent breakpoint={breakpoint} data={def.data} />
+        <BrickComponent breakpoint={breakpoint} state={def.state} spec={defaultSpec} />
       </div>
     </DraggableBrick>
   );
@@ -54,9 +57,7 @@ export function ModulePreview(props: {
       data-module-entry={brickModule.id}
       className={cn(
         "flex h-full min-h-0 w-max shrink-0 flex-col overflow-y-auto overscroll-y-contain px-8",
-        exceedsWallWidth
-          ? "border border-red-200 bg-red-50"
-          : "border-r border-zinc-200",
+        exceedsWallWidth ? "border border-red-200 bg-red-50" : "border-r border-zinc-200",
       )}
     >
       <h2 className="m-0 shrink-0 py-4 font-normal">
@@ -76,7 +77,9 @@ export function ModulePreview(props: {
         ) : (
           <BrickPreview
             breakpoint={breakpoint}
-            measure={<BrickComponent breakpoint={breakpoint} data={def.data} />}
+            measure={
+              <BrickComponent breakpoint={breakpoint} state={def.state} spec={defaultSpec} />
+            }
             onGridUnits={onGridUnits}
           >
             {previewBody}

@@ -1,12 +1,3 @@
-/*
-fetcher: async ({ api, payload, setData }) => {
-  const result = await api.figmaBackend().getThumbnail(payload.url);
-  if (result._tag === "Left") return result;
-  setData(result.right);
-  return { _tag: "Right", right: undefined };
-},
-*/
-
 import { makeEffectSchema, primitives } from "@zerospin/schema";
 
 import {
@@ -16,10 +7,8 @@ import {
   columnComponent,
   rowComponent,
 } from "../../lib/jsonRender/layoutComponents";
-import { makeDataFetcher } from "../../make/makeDataFetcher";
 import { makeModuleVersion } from "../../make/makeModuleVersion";
 import { figmaThumbnail } from "./figmaThumbnail";
-import { defaultSpec } from "./generative/defaultSpec";
 import { figmaCardComponent } from "./generative/FigmaCardComponent";
 import { figmaMediaFooterComponent } from "./generative/FigmaMediaFooterComponent";
 import { figmaThumbnailBandComponent } from "./generative/FigmaThumbnailBandComponent";
@@ -58,11 +47,6 @@ export const figmaThumbnailV1 = makeModuleVersion(figmaThumbnail, {
     FigmaThumbnailBand: figmaThumbnailBandComponent,
     FigmaMediaFooter: figmaMediaFooterComponent,
   },
-  data: makeDataFetcher({
-    payloadShape,
-    dataShape,
-    defaultData,
-  }),
   stateShape: {
     payload: primitives.json({ schema: makeEffectSchema(payloadShape) }),
     data: primitives.json({ schema: makeEffectSchema(dataShape) }),
@@ -72,16 +56,6 @@ export const figmaThumbnailV1 = makeModuleVersion(figmaThumbnail, {
     data: defaultData,
   },
   breakpoints: {
-    sm: {
-      defaultSpec,
-      options: {
-        shape: {
-          imagePosition: primitives.enum({
-            values: ["center", "left", "right", "top", "bottom"],
-            defaultValue: "left",
-          }),
-        },
-      },
-    },
+    sm: {},
   },
 });

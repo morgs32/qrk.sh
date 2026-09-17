@@ -34,14 +34,16 @@ export function ActivityCalendarView(props: {
 }
 
 export function ActivityCalendar(props: {
-  data: {
-    contributions: Array<{
-      date: string;
-      count: number;
-      level: 0 | 1 | 2 | 3 | 4;
-    }>;
+  state: {
+    payload: { url: string };
+    data: {
+      contributions: Array<{
+        date: string;
+        count: number;
+        level: 0 | 1 | 2 | 3 | 4;
+      }>;
+    };
   };
-  breakpointOptions: unknown;
 }) {
-  return <ActivityCalendarView contributions={props.data.contributions} />;
+  return <ActivityCalendarView contributions={props.state.data.contributions} />;
 }

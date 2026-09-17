@@ -4,6 +4,7 @@ import type { ReactNode, RefCallback } from "react";
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { newSyncRpcSession } from "@zerospin/core/utils/newSyncRpcSession";
 import type { Spec } from "@json-render/core";
+import { cn } from "cn";
 import { collapseAllNested, defaultStyles, JsonView } from "react-json-view-lite";
 
 import { OrderedBody } from "@qrk.sh/web/library/OrderedBody";
@@ -115,7 +116,6 @@ function BreakpointPreviewRow({
   const declared = brick.def[entry.id];
   const declaredW = declared.w;
   const declaredH = declared.h;
-  const measurable = brick.breakpoints[entry.id].measurable;
   const hasDeclaredSize = declaredW !== undefined && declaredH !== undefined;
   const [gridUnits, setGridUnits] = useState<{ w: number; h: number }>();
   const onGridUnits = useCallback((size: { w: number; h: number }) => {
@@ -136,6 +136,8 @@ function BreakpointPreviewRow({
   const dragH = hasDeclaredSize
     ? declaredH
     : (gridUnits?.h ?? measuredH ?? 1);
+  const gridW = hasDeclaredSize ? declaredW : gridUnits?.w;
+  const exceedsWallWidth = gridW !== undefined && gridW > 8;
 
   const previewSurface = (
     <div
@@ -181,7 +183,13 @@ function BreakpointPreviewRow({
   );
 
   return (
-    <OrderedSection className={className} label={entry.id}>
+    <OrderedSection
+      className={cn(
+        className,
+        exceedsWallWidth && "rounded-md border border-red-200 bg-red-50",
+      )}
+      label={entry.id}
+    >
       <div className="overflow-x-auto px-4 py-8">
         <div className="flex w-max items-start gap-4">
           <div>
@@ -218,7 +226,7 @@ function BreakpointPreviewRow({
           </div>
           <div>
             <p className="m-0 mb-2 font-mono text-neutral-500">intrinsic</p>
-            <UnconstrainedBrickPreview onSizeChange={measurable ? onSizeChange : undefined}>
+            <UnconstrainedBrickPreview onSizeChange={!hasDeclaredSize ? onSizeChange : undefined}>
               <BrickComponent
                 breakpoint={entry.id}
                 data={moduleData}
@@ -226,7 +234,7 @@ function BreakpointPreviewRow({
                 spec={spec}
               />
             </UnconstrainedBrickPreview>
-            {measurable && measuredW !== undefined && measuredH !== undefined ? (
+            {!hasDeclaredSize && measuredW !== undefined && measuredH !== undefined ? (
               <p className="m-0 pt-2 font-mono text-neutral-500">
                 w={measuredW} h={measuredH}
               </p>

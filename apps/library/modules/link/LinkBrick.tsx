@@ -13,28 +13,34 @@ export function LinkCard(props: { children?: ReactNode }) {
 export function LinkCopy(props: { url: string; title: string; siteName: string; iconUrl: string }) {
   return (
     <a
-      className="flex min-w-0 flex-1 flex-col justify-start p-4"
+      className="flex min-w-0 flex-1 flex-col gap-4 p-4"
       href={props.url.length > 0 ? props.url : undefined}
       rel="noopener noreferrer"
+      style={{ textDecorationLine: "none" }}
       target="_blank"
     >
-      <span className="flex min-w-0 items-center gap-3">
+      <span className="flex min-w-0 items-center gap-2">
         {props.iconUrl.length > 0 ? (
           <Image
             alt=""
-            className="size-8 shrink-0 object-contain"
-            height={32}
+            className="size-4 shrink-0 rounded-sm object-contain"
+            height={16}
             layout="constrained"
             onError={(event) => {
               event.currentTarget.style.display = "none";
             }}
             src={props.iconUrl}
-            width={32}
+            width={16}
           />
         ) : null}
-        <small className="m-0 min-w-0 truncate">{props.siteName}</small>
+        <small className="m-0 min-w-0 truncate text-xs text-muted-foreground">{props.siteName}</small>
       </span>
-      <h2 className="m-0 line-clamp-3">{props.title}</h2>
+      <h2
+        className="m-0 line-clamp-3 leading-normal"
+        style={{ textDecorationLine: "underline", textUnderlineOffset: "0.2em" }}
+      >
+        {props.title}
+      </h2>
     </a>
   );
 }
@@ -44,7 +50,7 @@ export function LinkHeroImage(props: { imageUrl: string }) {
     return null;
   }
   return (
-    <div className="relative h-full w-[44%] shrink-0 overflow-hidden bg-zinc-200">
+    <div className="relative w-[44%] min-w-[200px] shrink-0 overflow-hidden bg-zinc-200">
       <Image
         alt=""
         className="absolute inset-0 h-full w-full object-cover"

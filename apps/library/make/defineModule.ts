@@ -31,7 +31,6 @@ function resolveBreakpoint(
     | {
         w?: number;
         h?: number;
-        measurable?: boolean;
         defaultSpec?: Spec;
         options?: { shape: IShape };
       }
@@ -39,7 +38,6 @@ function resolveBreakpoint(
   inherited: {
     w: number | undefined;
     h: number | undefined;
-    measurable: boolean;
     defaultSpec: Spec | undefined;
     options: ReturnType<typeof makeBreakpointOptionShape> | undefined;
   },
@@ -52,11 +50,9 @@ function resolveBreakpoint(
       : inherited.options;
   const w = own?.w ?? inherited.w;
   const h = own?.h ?? inherited.h;
-  const sizeOmitted = w === undefined && h === undefined;
   return {
     w,
     h,
-    measurable: sizeOmitted ? true : (own?.measurable ?? inherited.measurable),
     defaultSpec: own?.defaultSpec ?? inherited.defaultSpec,
     options,
   };
@@ -87,28 +83,24 @@ export function defineModule<
     sm: {
       w?: number;
       h?: number;
-      measurable?: boolean;
       defaultSpec?: Spec;
       options?: { shape: IShape };
     };
     md?: {
       w?: number;
       h?: number;
-      measurable?: boolean;
       defaultSpec?: Spec;
       options?: { shape: IShape };
     };
     lg?: {
       w?: number;
       h?: number;
-      measurable?: boolean;
       defaultSpec?: Spec;
       options?: { shape: IShape };
     };
     xl?: {
       w?: number;
       h?: number;
-      measurable?: boolean;
       defaultSpec?: Spec;
       options?: { shape: IShape };
     };
@@ -147,11 +139,9 @@ export function defineModule<
     });
   }
 
-  const smSizeOmitted = smInput.w === undefined && smInput.h === undefined;
   const sm = {
     w: smInput.w,
     h: smInput.h,
-    measurable: smSizeOmitted ? true : (smInput.measurable ?? true),
     defaultSpec: smInput.defaultSpec,
     options:
       smInput.options === undefined ? undefined : makeBreakpointOptionShape(smInput.options.shape),

@@ -104,8 +104,6 @@ export function BrickWall(props: {
               return {
                 ...layoutItem,
                 i: brickId,
-                w: activeBrickDrag[breakpoint].w ?? 1,
-                h: activeBrickDrag[breakpoint].h ?? 1,
               };
             });
             addBrick(brickId, activeBrickDrag, gridLayoutWithDroppedBrick, breakpoint);

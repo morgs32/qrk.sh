@@ -12,24 +12,37 @@ are not presentations and keep their own names.
 
 Select complete presentations once in the module definition. `defineModule`
 still keys responsive slots by breakpoint (`sm` required; `md`, `lg`, and `xl`
-optional). Each slot is `{ w?, h?, measurable?, defaultSpec, options? }`. Provide
-both `w` and `h` or neither. When omitted, every surface (filmstrip, module-page
-gridItem, drag placeholder, wall drop) sizes from unconstrained intrinsic px as
-`ceil(px / that breakpoint’s gridItemWidth)` (min 1), and `measurable` is forced
-true. An omitted breakpoint inherits the nearest smaller complete entry:
+optional). Each slot is `{ w?, h?, defaultSpec, options? }`. Provide both `w`
+and `h` or neither. Omitted dimensions inherit from the nearest smaller
+breakpoint. Omitting dimensions in a larger breakpoint does not clear an
+inherited declared size.
+
+After inheritance, resolved `w`/`h` presence is the size contract:
+
+- Both absent: every surface (filmstrip, module-page gridItem, drag placeholder,
+  wall drop) sizes from unconstrained intrinsic px as
+  `ceil(px / that breakpoint’s gridItemWidth)` (min 1).
+- Both present: use that declared grid size; do not measure for gridItem or
+  drag sizing.
+
+Keep optional `w`/`h` on the API. Intrinsic pixel and derived grid sizes stay
+available even when they exceed the wall width; React Grid Layout owns wall
+bounds correction.
+
+GitHub profile omits declared dimensions and is sized from measurement:
 
 ```ts
 defineModule({
   id: "github-profile",
   // …
   breakpoints: {
-    sm: { w: 4, h: 4, defaultSpec },
-    lg: { w: 2, h: 2 },
+    sm: { defaultSpec },
   },
 });
 ```
 
-Link-style modules can omit size entirely:
+Text and map-place retain declared `sm: { w: 4, h: 4, defaultSpec }` because
+their presentations need a containing cell. Link-style modules also omit size:
 
 ```ts
 breakpoints: {
@@ -37,7 +50,9 @@ breakpoints: {
 },
 ```
 
-In the first example, `md` inherits `sm` and `xl` inherits `lg`. Grid container thresholds are 720px (`md`), 1080px
+In the GitHub profile example, `md`, `lg`, and `xl` inherit `sm` (no declared
+dimensions). Text and map-place inherit `4×4` at every larger breakpoint. Grid
+container thresholds are 720px (`md`), 1080px
 (`lg`), and 1440px (`xl`); `sm` covers smaller widths. Preview widths are
 360 / 720 / 1080 / 1440 so one column is 45 / 90 / 135 / 180 on the 8-col
 grid. Shared defs live in `apps/library/lib/breakpoints.ts`.

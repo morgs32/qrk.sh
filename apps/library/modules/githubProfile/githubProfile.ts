@@ -68,8 +68,6 @@ export const githubProfile = defineModule({
     },
   }),
   breakpoints: {
-    sm: { w: 4, h: 4, defaultSpec },
-    md: { w: 4, h: 3 },
-    lg: { w: 2, h: 2 },
+    sm: { defaultSpec },
   },
 });

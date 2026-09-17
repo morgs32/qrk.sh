@@ -31,9 +31,6 @@ export const swatchAndIcon = defineModule({
   }),
   breakpoints: {
     sm: {
-      w: 2,
-      h: 2,
-      measurable: true,
       defaultSpec,
       options: { shape: { color: primitives.text({ defaultValue: "#4A7C59" }) } },
     },

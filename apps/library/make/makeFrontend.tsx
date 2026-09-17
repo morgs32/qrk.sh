@@ -195,28 +195,24 @@ export function makeFrontend<
       sm: {
         w?: number;
         h?: number;
-        measurable: boolean;
         defaultSpec?: Spec;
         options?: ReturnType<typeof makeBreakpointOptionShape>;
       };
       md: {
         w?: number;
         h?: number;
-        measurable: boolean;
         defaultSpec?: Spec;
         options?: ReturnType<typeof makeBreakpointOptionShape>;
       };
       lg: {
         w?: number;
         h?: number;
-        measurable: boolean;
         defaultSpec?: Spec;
         options?: ReturnType<typeof makeBreakpointOptionShape>;
       };
       xl: {
         w?: number;
         h?: number;
-        measurable: boolean;
         defaultSpec?: Spec;
         options?: ReturnType<typeof makeBreakpointOptionShape>;
       };

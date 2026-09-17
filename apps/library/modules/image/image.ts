@@ -23,8 +23,6 @@ export const image = defineModule({
   }),
   breakpoints: {
     sm: {
-      w: 4,
-      h: 4,
       defaultSpec,
       options: {
         shape: {
@@ -45,6 +43,5 @@ export const image = defineModule({
         },
       },
     },
-    lg: { w: 3, h: 3 },
   },
 });

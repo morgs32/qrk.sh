@@ -38,6 +38,6 @@ export const mapPlace = defineModule({
     },
   }),
   breakpoints: {
-    sm: { w: 4, h: 4, measurable: false, defaultSpec },
+    sm: { w: 4, h: 4, defaultSpec },
   },
 });

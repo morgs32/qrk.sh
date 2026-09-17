@@ -80,8 +80,9 @@ export function BrickPreview(
   const onGridUnits = "measure" in props ? props.onGridUnits : undefined;
   useEffect(() => {
     if (onGridUnits === undefined) return;
+    if (intrinsicSize === undefined) return;
     onGridUnits({ w, h });
-  }, [onGridUnits, w, h]);
+  }, [onGridUnits, w, h, intrinsicSize]);
 
   // Same cell math as BREAKPOINTS.gridItemWidth (previewWidth / 8).
   const fullW = Math.round(gridItemWidth * w);

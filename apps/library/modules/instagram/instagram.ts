@@ -47,7 +47,6 @@ export const instagram = defineModule({
     },
   }),
   breakpoints: {
-    sm: { w: 6, h: 4, defaultSpec },
-    lg: { w: 3, h: 3 },
+    sm: { defaultSpec },
   },
 });

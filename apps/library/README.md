@@ -55,7 +55,7 @@ Worker/RPC declarations. Neither build deploys the app.
 
 `modulesHash` exposes each library module by kebab-case id. `defineModule` owns
 catalog, data, and nested breakpoint contracts (`sm` required; `md`/`lg`/`xl`
-inherit missing `w`/`h`/`measurable`/`defaultSpec`/`options.shape` from the
+inherit missing `w`/`h`/`defaultSpec`/`options.shape` from the
 nearest smaller slot). `makeFrontend` attaches the json-render registry, data
 forms, and option forms. Option shapes replace as a whole; omitted shapes
 inherit. Spec generation uses the client-selected spec (saved spec, else the

@@ -32,7 +32,6 @@ export type IModule = {
     sm: {
       w?: number;
       h?: number;
-      measurable: boolean;
       defaultSpec?: Spec;
       options?: ReturnType<typeof makeBreakpointOptionShape> & {
         form?: (props: { value: unknown; onChange: (value: unknown) => void }) => ReactNode;
@@ -41,7 +40,6 @@ export type IModule = {
     md: {
       w?: number;
       h?: number;
-      measurable: boolean;
       defaultSpec?: Spec;
       options?: ReturnType<typeof makeBreakpointOptionShape> & {
         form?: (props: { value: unknown; onChange: (value: unknown) => void }) => ReactNode;
@@ -50,7 +48,6 @@ export type IModule = {
     lg: {
       w?: number;
       h?: number;
-      measurable: boolean;
       defaultSpec?: Spec;
       options?: ReturnType<typeof makeBreakpointOptionShape> & {
         form?: (props: { value: unknown; onChange: (value: unknown) => void }) => ReactNode;
@@ -59,7 +56,6 @@ export type IModule = {
     xl: {
       w?: number;
       h?: number;
-      measurable: boolean;
       defaultSpec?: Spec;
       options?: ReturnType<typeof makeBreakpointOptionShape> & {
         form?: (props: { value: unknown; onChange: (value: unknown) => void }) => ReactNode;

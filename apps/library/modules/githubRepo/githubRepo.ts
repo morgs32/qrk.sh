@@ -36,8 +36,6 @@ export const githubRepo = defineModule({
     },
   }),
   breakpoints: {
-    sm: { w: 4, h: 4, defaultSpec },
-    md: { w: 4, h: 2 },
-    lg: { w: 2, h: 2 },
+    sm: { defaultSpec },
   },
 });

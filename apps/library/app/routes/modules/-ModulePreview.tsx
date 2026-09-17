@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
 import { Link } from "@tanstack/react-router";
+import { cn } from "cn";
 
 import { BrickPreview } from "../../../lib/BrickPreview";
 import { BREAKPOINTS } from "../../../lib/breakpoints";
@@ -33,6 +34,8 @@ export function ModulePreview(props: {
         ? { w: measuredUnits.w, h: measuredUnits.h }
         : { w: 1, h: 1 },
   };
+  const gridW = hasDeclaredSize ? declaredW : measuredUnits?.w;
+  const exceedsWallWidth = gridW !== undefined && gridW > 8;
 
   const previewBody = (
     <DraggableBrick
@@ -49,7 +52,12 @@ export function ModulePreview(props: {
   return (
     <div
       data-module-entry={brickModule.id}
-      className="flex h-full min-h-0 w-max shrink-0 flex-col overflow-y-auto overscroll-y-contain border-r border-zinc-200 px-8"
+      className={cn(
+        "flex h-full min-h-0 w-max shrink-0 flex-col overflow-y-auto overscroll-y-contain px-8",
+        exceedsWallWidth
+          ? "border border-red-200 bg-red-50"
+          : "border-r border-zinc-200",
+      )}
     >
       <h2 className="m-0 shrink-0 py-4 font-normal">
         <Link

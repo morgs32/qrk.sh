@@ -61,8 +61,6 @@ export const githubActivity = defineModule({
     },
   }),
   breakpoints: {
-    sm: { w: 4, h: 3, defaultSpec },
-    md: { w: 4, h: 2 },
-    lg: { w: 4, h: 1 },
+    sm: { defaultSpec },
   },
 });

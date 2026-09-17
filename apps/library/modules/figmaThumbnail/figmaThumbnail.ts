@@ -39,8 +39,6 @@ export const figmaThumbnail = defineModule({
   }),
   breakpoints: {
     sm: {
-      w: 4,
-      h: 4,
       defaultSpec,
       options: {
         shape: {
@@ -51,7 +49,5 @@ export const figmaThumbnail = defineModule({
         },
       },
     },
-    md: { w: 4, h: 4 },
-    lg: { w: 3, h: 3 },
   },
 });

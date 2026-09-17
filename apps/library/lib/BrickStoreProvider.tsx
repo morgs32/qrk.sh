@@ -60,7 +60,12 @@ function createBricksStore(initialState?: {
       value: unknown,
     ) => void;
     setSpec: (brickId: string, breakpoint: "sm" | "md" | "lg" | "xl", spec: Spec) => void;
-    setVisible: (brickId: string, breakpoint: "sm" | "md" | "lg" | "xl", visible: boolean) => void;
+    setVisible: (
+      brickId: string,
+      breakpoint: "sm" | "md" | "lg" | "xl",
+      visible: boolean,
+      gridSize?: { w: number; h: number },
+    ) => void;
     setHasHydrated: (hasHydrated: boolean) => void;
   }>()((set, get) => ({
     bricksById: initialState?.bricksById ?? {},
@@ -197,7 +202,7 @@ function createBricksStore(initialState?: {
         };
       });
     },
-    setVisible: (brickId, breakpoint, visible) => {
+    setVisible: (brickId, breakpoint, visible, gridSize) => {
       set((state) => {
         const brick = state.bricksById[brickId];
         if (!brick) return state;
@@ -216,11 +221,30 @@ function createBricksStore(initialState?: {
                   ? [brick.sm]
                   : [];
           const placement = smaller.find((candidate) => candidate?.gridItem)?.gridItem;
-          if (placement) {
-            entry.gridItem = { ...placement, i: brickId };
+          const brickModule = modulesHash[brick.moduleId];
+          if (!brickModule) return state;
+          const declaredW = brickModule.def[breakpoint].w;
+          const declaredH = brickModule.def[breakpoint].h;
+          const hasDeclaredSize = declaredW !== undefined && declaredH !== undefined;
+          if (hasDeclaredSize) {
+            if (placement) {
+              entry.gridItem = { ...placement, i: brickId };
+            } else {
+              let y = 0;
+              for (const other of Object.values(state.bricksById)) {
+                const item = resolveBrickBreakpoint(other, breakpoint).gridItem;
+                if (item) y = Math.max(y, item.y + item.h);
+              }
+              entry.gridItem = {
+                i: brickId,
+                x: 0,
+                y,
+                w: declaredW,
+                h: declaredH,
+              };
+            }
           } else {
-            const brickModule = modulesHash[brick.moduleId];
-            if (!brickModule) return state;
+            if (gridSize === undefined) return state;
             let y = 0;
             for (const other of Object.values(state.bricksById)) {
               const item = resolveBrickBreakpoint(other, breakpoint).gridItem;
@@ -228,10 +252,10 @@ function createBricksStore(initialState?: {
             }
             entry.gridItem = {
               i: brickId,
-              x: 0,
-              y,
-              w: brickModule.def[breakpoint].w ?? 1,
-              h: brickModule.def[breakpoint].h ?? 1,
+              x: placement?.x ?? 0,
+              y: placement?.y ?? y,
+              w: gridSize.w,
+              h: gridSize.h,
             };
           }
         }

@@ -24,6 +24,6 @@ export const text = defineModule({
     defaultData: { content: null },
   }),
   breakpoints: {
-    sm: { w: 4, h: 4, measurable: false, defaultSpec },
+    sm: { w: 4, h: 4, defaultSpec },
   },
 });

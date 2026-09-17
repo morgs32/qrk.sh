@@ -1,4 +1,13 @@
-import { primitives } from "@zerospin/schema";
+/*
+fetcher: async ({ api, payload, setData }) => {
+  const result = await api.figmaBackend().getThumbnail(payload.url);
+  if (result._tag === "Left") return result;
+  setData(result.right);
+  return { _tag: "Right", right: undefined };
+},
+*/
+
+import { makeEffectSchema, primitives } from "@zerospin/schema";
 
 import {
   brickBodyComponent,
@@ -15,6 +24,28 @@ import { figmaCardComponent } from "./generative/FigmaCardComponent";
 import { figmaMediaFooterComponent } from "./generative/FigmaMediaFooterComponent";
 import { figmaThumbnailBandComponent } from "./generative/FigmaThumbnailBandComponent";
 
+const payloadShape = {
+  url: primitives.text({
+    defaultValue: "",
+  }),
+};
+
+const dataShape = {
+  title: primitives.text(),
+  url: primitives.text(),
+  thumbnail_url: primitives.text({ nullable: true }),
+  thumbnail_width: primitives.integer({ nullable: true }),
+  thumbnail_height: primitives.integer({ nullable: true }),
+};
+
+const defaultData = {
+  title: "Figma Thumbnail",
+  url: "",
+  thumbnail_url: null,
+  thumbnail_width: 789,
+  thumbnail_height: 450,
+};
+
 export const figmaThumbnailV1 = makeModuleVersion(figmaThumbnail, {
   version: "1.0.0",
   components: {
@@ -28,32 +59,18 @@ export const figmaThumbnailV1 = makeModuleVersion(figmaThumbnail, {
     FigmaMediaFooter: figmaMediaFooterComponent,
   },
   data: makeDataFetcher({
-    payloadShape: {
-      url: primitives.text({
-        defaultValue: "",
-      }),
-    },
-    fetcher: async ({ api, payload, setData }) => {
-      const result = await api.figmaBackend().getThumbnail(payload.url);
-      if (result._tag === "Left") return result;
-      setData(result.right);
-      return { _tag: "Right", right: undefined };
-    },
-    dataShape: {
-      title: primitives.text(),
-      url: primitives.text(),
-      thumbnail_url: primitives.text({ nullable: true }),
-      thumbnail_width: primitives.integer({ nullable: true }),
-      thumbnail_height: primitives.integer({ nullable: true }),
-    },
-    defaultData: {
-      title: "Figma Thumbnail",
-      url: "",
-      thumbnail_url: null,
-      thumbnail_width: 789,
-      thumbnail_height: 450,
-    },
+    payloadShape,
+    dataShape,
+    defaultData,
   }),
+  stateShape: {
+    payload: primitives.json({ schema: makeEffectSchema(payloadShape) }),
+    data: primitives.json({ schema: makeEffectSchema(dataShape) }),
+  },
+  defaultState: {
+    payload: { url: "" },
+    data: defaultData,
+  },
   breakpoints: {
     sm: {
       defaultSpec,

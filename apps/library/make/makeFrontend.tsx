@@ -191,6 +191,8 @@ export function makeFrontend<
     data: unknown;
     dataShape: IShape | null;
     defaultData: unknown;
+    stateShape: IShape;
+    defaultState: unknown;
     breakpoints: {
       sm: {
         w?: number;
@@ -422,6 +424,8 @@ export function makeFrontend<
       data: null,
       dataShape: null,
       defaultData: null,
+      stateShape: module.stateShape,
+      defaultState: module.defaultState,
       ...(registry === undefined ? {} : { registry }),
       breakpoints: {
         sm: {
@@ -450,6 +454,8 @@ export function makeFrontend<
     data,
     dataShape: module.dataShape,
     defaultData: module.defaultData,
+    stateShape: module.stateShape,
+    defaultState: module.defaultState,
     ...(registry === undefined ? {} : { registry }),
     breakpoints: {
       sm: { ...module.breakpoints.sm, options: attachForm(module.breakpoints.sm.options, smForm) },

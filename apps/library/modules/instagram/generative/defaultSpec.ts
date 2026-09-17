@@ -6,25 +6,25 @@ export const defaultSpec: Spec = {
     "card-1": {
       type: "InstagramCard",
       props: {
-        username: { $state: "/username" },
+        username: { $state: "/data/username" },
       },
       children: ["grid-1", "footer-1"],
     },
     "grid-1": {
       type: "InstagramPostGrid",
       props: {
-        username: { $state: "/username" },
-        postImageUrl1: { $state: "/postImageUrl1" },
-        postImageUrl2: { $state: "/postImageUrl2" },
-        postImageUrl3: { $state: "/postImageUrl3" },
-        postImageUrl4: { $state: "/postImageUrl4" },
+        username: { $state: "/data/username" },
+        postImageUrl1: { $state: "/data/postImageUrl1" },
+        postImageUrl2: { $state: "/data/postImageUrl2" },
+        postImageUrl3: { $state: "/data/postImageUrl3" },
+        postImageUrl4: { $state: "/data/postImageUrl4" },
       },
     },
     "footer-1": {
       type: "InstagramMediaFooter",
       props: {
-        username: { $state: "/username" },
-        followersText: { $state: "/followersText" },
+        username: { $state: "/data/username" },
+        followersText: { $state: "/data/followersText" },
       },
     },
   },

@@ -13,8 +13,8 @@ export const defaultSpec: Spec = {
     "icon-1": {
       type: "IconSvgGraphic",
       props: {
-        name: { $state: "/name" },
-        svg: { $state: "/svg" },
+        name: { $state: "/data/name" },
+        svg: { $state: "/data/svg" },
       },
     },
   },

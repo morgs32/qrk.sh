@@ -64,6 +64,8 @@ export type IModule = {
   };
   def: IModuleBrickDef;
   component: IModuleBrick["component"];
+  stateShape: IShape;
+  defaultState: unknown;
 } & (
   | {
       data: null;

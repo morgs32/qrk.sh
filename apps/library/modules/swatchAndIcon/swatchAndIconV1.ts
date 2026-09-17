@@ -1,4 +1,13 @@
-import { primitives } from "@zerospin/schema";
+/*
+fetcher: async ({ api, payload, setData }) => {
+  const result = await api.streamlineBackend().getSvg(payload.hash);
+  if (result._tag === "Left") return result;
+  setData(result.right);
+  return { _tag: "Right", right: undefined };
+},
+*/
+
+import { makeEffectSchema, primitives } from "@zerospin/schema";
 
 import {
   brickBodyComponent,
@@ -14,6 +23,20 @@ import { iconSvgGraphicComponent } from "./generative/IconSvgGraphicComponent";
 import { swatchAndIconColorComponent } from "./generative/SwatchAndIconColorComponent";
 import { swatchAndIcon } from "./swatchAndIcon";
 
+const payloadShape = {
+  hash: primitives.text({ defaultValue: "" }),
+};
+
+const dataShape = {
+  name: primitives.text(),
+  svg: primitives.text(),
+};
+
+const defaultData = {
+  name: "Asterisk",
+  svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path d="M50 20v60M20 35l60 30M20 65l60-30" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="8"/></svg>',
+};
+
 export const swatchAndIconV1 = makeModuleVersion(swatchAndIcon, {
   version: "1.0.0",
   components: {
@@ -26,24 +49,18 @@ export const swatchAndIconV1 = makeModuleVersion(swatchAndIcon, {
     IconSvgGraphic: iconSvgGraphicComponent,
   },
   data: makeDataFetcher({
-    payloadShape: {
-      hash: primitives.text({ defaultValue: "" }),
-    },
-    fetcher: async ({ api, payload, setData }) => {
-      const result = await api.streamlineBackend().getSvg(payload.hash);
-      if (result._tag === "Left") return result;
-      setData(result.right);
-      return { _tag: "Right", right: undefined };
-    },
-    dataShape: {
-      name: primitives.text(),
-      svg: primitives.text(),
-    },
-    defaultData: {
-      name: "Asterisk",
-      svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path d="M50 20v60M20 35l60 30M20 65l60-30" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="8"/></svg>',
-    },
+    payloadShape,
+    dataShape,
+    defaultData,
   }),
+  stateShape: {
+    payload: primitives.json({ schema: makeEffectSchema(payloadShape) }),
+    data: primitives.json({ schema: makeEffectSchema(dataShape) }),
+  },
+  defaultState: {
+    payload: { hash: "" },
+    data: defaultData,
+  },
   breakpoints: {
     sm: {
       defaultSpec,

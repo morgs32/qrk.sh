@@ -16,13 +16,13 @@ export const defaultSpec: Spec = {
     "name-1": {
       type: "RepoName",
       props: {
-        name: { $state: "/name" },
+        name: { $state: "/data/name" },
       },
     },
     "description-1": {
       type: "RepoDescription",
       props: {
-        description: { $state: "/description" },
+        description: { $state: "/data/description" },
       },
     },
     "footer-1": {
@@ -41,19 +41,19 @@ export const defaultSpec: Spec = {
     "stars-1": {
       type: "RepoStars",
       props: {
-        stargazers_count: { $state: "/stargazers_count" },
+        stargazers_count: { $state: "/data/stargazers_count" },
       },
     },
     "forks-1": {
       type: "RepoForks",
       props: {
-        forks_count: { $state: "/forks_count" },
+        forks_count: { $state: "/data/forks_count" },
       },
     },
     "language-1": {
       type: "RepoLanguage",
       props: {
-        language: { $state: "/language" },
+        language: { $state: "/data/language" },
       },
     },
   },

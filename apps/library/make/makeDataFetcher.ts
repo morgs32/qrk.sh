@@ -14,7 +14,7 @@ export function makeDataFetcher<
   payloadShape: PAYLOAD_SHAPE;
   dataShape: DATA_SHAPE;
   defaultData: InferDecodedRow<DATA_SHAPE> & Readonly<Record<string, IJsonValue>>;
-  fetcher: (props: {
+  fetcher?: (props: {
     api: ReturnType<typeof newSyncRpcSession<LibraryApi>>;
     payload: InferDecodedRow<PAYLOAD_SHAPE>;
     setData: (data: unknown) => void;
@@ -33,6 +33,9 @@ export function makeDataFetcher<
       payload: unknown;
       setData: (data: unknown) => void;
     }) => {
+      if (fetcher === undefined) {
+        return { _tag: "Right" as const, right: undefined };
+      }
       const payload = await Effect.runPromise(
         Schema.decodeUnknownEffect(payloadSchema)(request.payload, {
           onExcessProperty: "error",

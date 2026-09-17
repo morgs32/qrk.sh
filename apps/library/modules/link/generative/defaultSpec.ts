@@ -11,16 +11,16 @@ export const defaultSpec: Spec = {
     "copy-1": {
       type: "LinkCopy",
       props: {
-        url: { $state: "/url" },
-        title: { $state: "/title" },
-        siteName: { $state: "/siteName" },
-        iconUrl: { $state: "/iconUrl" },
+        url: { $state: "/data/url" },
+        title: { $state: "/data/title" },
+        siteName: { $state: "/data/siteName" },
+        iconUrl: { $state: "/data/iconUrl" },
       },
     },
     "hero-1": {
       type: "LinkHeroImage",
       props: {
-        imageUrl: { $state: "/imageUrl" },
+        imageUrl: { $state: "/data/imageUrl" },
       },
     },
   },

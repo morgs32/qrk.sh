@@ -11,8 +11,8 @@ export const defaultSpec: Spec = {
     "header-1": {
       type: "AvatarAndUsername",
       props: {
-        avatar_url: { $state: "/avatar_url" },
-        login: { $state: "/login" },
+        avatar_url: { $state: "/data/avatar_url" },
+        login: { $state: "/data/login" },
       },
     },
     "body-1": {
@@ -30,19 +30,19 @@ export const defaultSpec: Spec = {
     "bio-1": {
       type: "Bio",
       props: {
-        bio: { $state: "/bio" },
+        bio: { $state: "/data/bio" },
       },
     },
     "location-1": {
       type: "Location",
       props: {
-        location: { $state: "/location" },
+        location: { $state: "/data/location" },
       },
     },
     "blog-1": {
       type: "Blog",
       props: {
-        blog: { $state: "/blog" },
+        blog: { $state: "/data/blog" },
       },
     },
     "footer-1": {
@@ -62,19 +62,19 @@ export const defaultSpec: Spec = {
     "followers-1": {
       type: "Followers",
       props: {
-        followers: { $state: "/followers" },
+        followers: { $state: "/data/followers" },
       },
     },
     "following-1": {
       type: "Following",
       props: {
-        following: { $state: "/following" },
+        following: { $state: "/data/following" },
       },
     },
     "public-repos-1": {
       type: "PublicRepos",
       props: {
-        public_repos: { $state: "/public_repos" },
+        public_repos: { $state: "/data/public_repos" },
       },
     },
   },

@@ -11,18 +11,18 @@ export const defaultSpec: Spec = {
     "band-1": {
       type: "FigmaThumbnailBand",
       props: {
-        title: { $state: "/title" },
-        thumbnail_url: { $state: "/thumbnail_url" },
-        thumbnail_width: { $state: "/thumbnail_width" },
-        thumbnail_height: { $state: "/thumbnail_height" },
+        title: { $state: "/data/title" },
+        thumbnail_url: { $state: "/data/thumbnail_url" },
+        thumbnail_width: { $state: "/data/thumbnail_width" },
+        thumbnail_height: { $state: "/data/thumbnail_height" },
         imagePosition: { $state: "/imagePosition" },
       },
     },
     "footer-1": {
       type: "FigmaMediaFooter",
       props: {
-        title: { $state: "/title" },
-        url: { $state: "/url" },
+        title: { $state: "/data/title" },
+        url: { $state: "/data/url" },
       },
     },
   },

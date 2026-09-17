@@ -6,10 +6,10 @@ export const defaultSpec: Spec = {
     "map-1": {
       type: "MapCanvas",
       props: {
-        googlePlaceId: { $state: "/googlePlaceId" },
-        name: { $state: "/name" },
-        latitude: { $state: "/latitude" },
-        longitude: { $state: "/longitude" },
+        googlePlaceId: { $state: "/data/googlePlaceId" },
+        name: { $state: "/data/name" },
+        latitude: { $state: "/data/latitude" },
+        longitude: { $state: "/data/longitude" },
       },
     },
   },

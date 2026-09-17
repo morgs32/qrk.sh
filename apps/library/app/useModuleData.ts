@@ -16,24 +16,25 @@ export const useModuleDataStore = create<{
     if (brickModule === undefined) throw new Error("Module not found");
 
     // Decode before changing state: failed writes leave the last preview intact.
-    const DataSchema =
-      brickModule.dataShape === null
-        ? Schema.Null
-        : Schema.toType(makeEffectSchema(brickModule.dataShape));
-    const decodedData = Schema.decodeUnknownSync(DataSchema)(data, {
-      onExcessProperty: "preserve"});
-    set((state) => ({
+    const StateSchema = Schema.toType(makeEffectSchema(brickModule.stateShape));
+    const decodedData = Schema.decodeUnknownSync(StateSchema)(data, {
+      onExcessProperty: "preserve",
+    });
+    set(state => ({
       dataByModule: {
         ...state.dataByModule,
-        [moduleId]: decodedData}}));
-  }}));
+        [moduleId]: decodedData,
+      },
+    }));
+  },
+}));
 
 export function useModuleData(moduleId: string): [unknown, (data: unknown) => void] {
-  const moduleData = useModuleDataStore((state) => {
+  const moduleData = useModuleDataStore(state => {
     if (Object.hasOwn(state.dataByModule, moduleId)) {
       return state.dataByModule[moduleId];
     }
-    return modulesHash[moduleId]?.defaultData;
+    return modulesHash[moduleId]?.defaultState;
   });
   const setModuleData = useCallback(
     (data: unknown) => {

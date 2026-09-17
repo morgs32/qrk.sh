@@ -15,6 +15,17 @@ import { imageCoverComponent } from "./generative/ImageCoverComponent";
 import { mediaFooterComponent } from "./generative/MediaFooterComponent";
 import { image } from "./image";
 
+const dataShape = {
+  imageUrl: primitives.text(),
+  title: primitives.text(),
+};
+
+const defaultData = {
+  imageUrl:
+    "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=800&q=80",
+  title: "White Bay Power Station",
+};
+
 export const imageV1 = makeModuleVersion(image, {
   version: "1.0.0",
   components: {
@@ -28,16 +39,11 @@ export const imageV1 = makeModuleVersion(image, {
     MediaFooter: mediaFooterComponent,
   },
   data: makeData({
-    dataShape: {
-      imageUrl: primitives.text(),
-      title: primitives.text(),
-    },
-    defaultData: {
-      imageUrl:
-        "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=800&q=80",
-      title: "White Bay Power Station",
-    },
+    dataShape,
+    defaultData,
   }),
+  stateShape: dataShape,
+  defaultState: defaultData,
   breakpoints: {
     sm: {
       defaultSpec,

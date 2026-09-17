@@ -36,6 +36,8 @@ export const textV1 = makeModuleVersion(text, {
     dataShape,
     defaultData: { content: null },
   }),
+  stateShape: dataShape,
+  defaultState: { content: null },
   breakpoints: {
     sm: { w: 4, h: 4, defaultSpec },
   },

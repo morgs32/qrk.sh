@@ -1,4 +1,13 @@
-import { primitives } from "@zerospin/schema";
+/*
+fetcher: async ({ api, payload, setData }) => {
+  const result = await api.githubBackend().getRepo(payload.url);
+  if (result._tag === "Left") return result;
+  setData(result.right);
+  return { _tag: "Right", right: undefined };
+},
+*/
+
+import { makeEffectSchema, primitives } from "@zerospin/schema";
 
 import {
   brickBodyComponent,
@@ -17,6 +26,26 @@ import { repoNameComponent } from "./generative/RepoNameComponent";
 import { repoStarsComponent } from "./generative/RepoStarsComponent";
 import { githubRepo } from "./githubRepo";
 
+const payloadShape = {
+  url: primitives.text({ defaultValue: "https://github.com/morgs32/ink-steps" }),
+};
+
+const dataShape = {
+  name: primitives.text(),
+  description: primitives.text({ nullable: true }),
+  stargazers_count: primitives.integer(),
+  forks_count: primitives.integer(),
+  language: primitives.text({ nullable: true }),
+};
+
+const defaultData = {
+  name: "ink-steps",
+  description: "A sample GitHub repository card.",
+  stargazers_count: 12,
+  forks_count: 3,
+  language: "TypeScript",
+};
+
 export const githubRepoV1 = makeModuleVersion(githubRepo, {
   version: "1.0.0",
   components: {
@@ -32,30 +61,18 @@ export const githubRepoV1 = makeModuleVersion(githubRepo, {
     RepoLanguage: repoLanguageComponent,
   },
   data: makeDataFetcher({
-    payloadShape: {
-      url: primitives.text({ defaultValue: "https://github.com/morgs32/ink-steps" }),
-    },
-    fetcher: async ({ api, payload, setData }) => {
-      const result = await api.githubBackend().getRepo(payload.url);
-      if (result._tag === "Left") return result;
-      setData(result.right);
-      return { _tag: "Right", right: undefined };
-    },
-    dataShape: {
-      name: primitives.text(),
-      description: primitives.text({ nullable: true }),
-      stargazers_count: primitives.integer(),
-      forks_count: primitives.integer(),
-      language: primitives.text({ nullable: true }),
-    },
-    defaultData: {
-      name: "ink-steps",
-      description: "A sample GitHub repository card.",
-      stargazers_count: 12,
-      forks_count: 3,
-      language: "TypeScript",
-    },
+    payloadShape,
+    dataShape,
+    defaultData,
   }),
+  stateShape: {
+    payload: primitives.json({ schema: makeEffectSchema(payloadShape) }),
+    data: primitives.json({ schema: makeEffectSchema(dataShape) }),
+  },
+  defaultState: {
+    payload: { url: "https://github.com/morgs32/ink-steps" },
+    data: defaultData,
+  },
   breakpoints: {
     sm: { defaultSpec },
   },

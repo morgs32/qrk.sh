@@ -1,4 +1,13 @@
-import { primitives } from "@zerospin/schema";
+/*
+fetcher: async ({ api, payload, setData }) => {
+  const result = await api.linkBackend().getPreview(payload.url);
+  if (result._tag === "Left") return result;
+  setData(result.right);
+  return { _tag: "Right", right: undefined };
+},
+*/
+
+import { makeEffectSchema, primitives } from "@zerospin/schema";
 
 import {
   brickBodyComponent,
@@ -15,6 +24,31 @@ import { linkCopyComponent } from "./generative/LinkCopyComponent";
 import { linkHeroImageComponent } from "./generative/LinkHeroImageComponent";
 import { link } from "./link";
 
+const payloadShape = {
+  url: primitives.text({
+    defaultValue: "https://apps.apple.com/us/app/apple-store/id375380948",
+  }),
+};
+
+const dataShape = {
+  url: primitives.text(),
+  title: primitives.text(),
+  description: primitives.text(),
+  siteName: primitives.text(),
+  imageUrl: primitives.text(),
+  iconUrl: primitives.text(),
+};
+
+const defaultData = {
+  url: "https://apps.apple.com/",
+  title: "Celebrate our birthday & get Pro free for one year",
+  description: "Hmm a brief description of the link",
+  siteName: "apps.apple.com",
+  imageUrl:
+    "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=800&q=80",
+  iconUrl: "https://www.apple.com/favicon.ico",
+};
+
 export const linkV1 = makeModuleVersion(link, {
   version: "1.0.0",
   components: {
@@ -28,35 +62,18 @@ export const linkV1 = makeModuleVersion(link, {
     LinkHeroImage: linkHeroImageComponent,
   },
   data: makeDataFetcher({
-    payloadShape: {
-      url: primitives.text({
-        defaultValue: "https://apps.apple.com/us/app/apple-store/id375380948",
-      }),
-    },
-    fetcher: async ({ api, payload, setData }) => {
-      const result = await api.linkBackend().getPreview(payload.url);
-      if (result._tag === "Left") return result;
-      setData(result.right);
-      return { _tag: "Right", right: undefined };
-    },
-    dataShape: {
-      url: primitives.text(),
-      title: primitives.text(),
-      description: primitives.text(),
-      siteName: primitives.text(),
-      imageUrl: primitives.text(),
-      iconUrl: primitives.text(),
-    },
-    defaultData: {
-      url: "https://apps.apple.com/",
-      title: "Celebrate our birthday & get Pro free for one year",
-      description: "Hmm a brief description of the link",
-      siteName: "apps.apple.com",
-      imageUrl:
-        "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=800&q=80",
-      iconUrl: "https://www.apple.com/favicon.ico",
-    },
+    payloadShape,
+    dataShape,
+    defaultData,
   }),
+  stateShape: {
+    payload: primitives.json({ schema: makeEffectSchema(payloadShape) }),
+    data: primitives.json({ schema: makeEffectSchema(dataShape) }),
+  },
+  defaultState: {
+    payload: { url: "https://apps.apple.com/us/app/apple-store/id375380948" },
+    data: defaultData,
+  },
   breakpoints: {
     sm: {
       defaultSpec,

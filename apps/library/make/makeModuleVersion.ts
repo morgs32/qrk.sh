@@ -1,10 +1,12 @@
 import { defineCatalog, type Catalog, type Spec } from "@json-render/core";
 import { schema } from "@json-render/react/schema";
-import { primitives, type IShape } from "@zerospin/schema";
+import { primitives, type InferDecodedRow, type IShape } from "@zerospin/schema";
 import { descriptorToZod, makeZodSchema } from "@zerospin/zod";
 import { mapValues } from "es-toolkit";
 
+import type { IJsonValue } from "../worker/types.public";
 import { makeBreakpointOptionShape } from "./breakpointOptions";
+import { decodeDefaultData } from "./decodeDefaultData";
 import type { defineComponent } from "./defineComponent";
 import { defineModule } from "./defineModule";
 import type { makeData } from "./makeData";
@@ -121,6 +123,7 @@ function makeCatalogFromComponents(
 export function makeModuleVersion<
   const MODULE extends string,
   const VERSION extends string,
+  const STATE_SHAPE extends IShape,
   const DATA extends
     | null
     | ReturnType<typeof makeData>
@@ -136,6 +139,8 @@ export function makeModuleVersion<
     version: VERSION;
     components: Record<string, ReturnType<typeof defineComponent>>;
     data: DATA;
+    stateShape: STATE_SHAPE;
+    defaultState: InferDecodedRow<STATE_SHAPE> & Readonly<Record<string, IJsonValue>>;
     breakpoints: {
       sm: {
         w?: number;
@@ -168,6 +173,7 @@ export function makeModuleVersion<
   assertSemVer(props.version);
 
   const catalog = makeCatalogFromComponents(props.components);
+  const defaultState = decodeDefaultData(props.stateShape, props.defaultState);
 
   const smInput = props.breakpoints.sm;
   assertBothOrNeitherWh({
@@ -204,7 +210,7 @@ export function makeModuleVersion<
     md: defSize(md.w, md.h),
     lg: defSize(lg.w, lg.h),
     xl: defSize(xl.w, xl.h),
-    data: (props.data === null ? null : props.data.defaultData) as unknown,
+    data: defaultState as unknown,
   };
 
   if (props.data === null) {
@@ -217,6 +223,8 @@ export function makeModuleVersion<
       data: null,
       dataShape: null,
       defaultData: null,
+      stateShape: props.stateShape,
+      defaultState,
       breakpoints,
       def,
     };
@@ -231,6 +239,8 @@ export function makeModuleVersion<
     data: props.data,
     dataShape: props.data.dataShape,
     defaultData: props.data.defaultData,
+    stateShape: props.stateShape,
+    defaultState,
     breakpoints,
     def,
   };

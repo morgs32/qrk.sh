@@ -6,7 +6,7 @@ export const defaultSpec: Spec = {
     "calendar-1": {
       type: "ActivityCalendar",
       props: {
-        contributions: { $state: "/contributions" },
+        contributions: { $state: "/data/contributions" },
       },
     },
   },

@@ -15,7 +15,7 @@ export function BrickShell({
     <div
       {...props}
       className={cn(
-        "flex h-full min-h-0 w-full flex-col overflow-hidden",
+        "@container flex h-full min-h-0 w-full flex-col overflow-hidden",
         brickStackGapClass,
         className,
       )}

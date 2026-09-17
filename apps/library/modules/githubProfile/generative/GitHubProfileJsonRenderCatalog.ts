@@ -1,8 +1,4 @@
-import {
-  defineCatalog,
-  DynamicNumberSchema,
-  DynamicStringSchema,
-} from "@json-render/core";
+import { defineCatalog, DynamicNumberSchema, DynamicStringSchema } from "@json-render/core";
 import { schema } from "@json-render/react/schema";
 import { z } from "zod";
 

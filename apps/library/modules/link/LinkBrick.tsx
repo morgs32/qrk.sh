@@ -2,6 +2,8 @@ import type { ReactNode } from "react";
 
 import { Image } from "@unpic/react";
 
+import { Link } from "../../components/Link";
+
 export function LinkCard(props: { children?: ReactNode }) {
   return (
     <div className="flex h-full w-full min-h-0 gap-4 overflow-hidden bg-sky-50">
@@ -11,14 +13,9 @@ export function LinkCard(props: { children?: ReactNode }) {
 }
 
 export function LinkCopy(props: { url: string; title: string; siteName: string; iconUrl: string }) {
+  const href = props.url.length > 0 ? props.url : undefined;
   return (
-    <a
-      className="flex min-w-0 flex-1 flex-col gap-4 p-4"
-      href={props.url.length > 0 ? props.url : undefined}
-      rel="noopener noreferrer"
-      style={{ textDecorationLine: "none" }}
-      target="_blank"
-    >
+    <div className="flex min-w-0 flex-1 flex-col gap-4 p-4">
       <span className="flex min-w-0 items-center gap-2">
         {props.iconUrl.length > 0 ? (
           <Image
@@ -33,15 +30,14 @@ export function LinkCopy(props: { url: string; title: string; siteName: string; 
             width={16}
           />
         ) : null}
-        <small className="m-0 min-w-0 truncate text-xs text-muted-foreground">{props.siteName}</small>
+        <Link className="min-w-0" href={href}>
+          <small className="m-0 min-w-0 truncate">{props.siteName}</small>
+        </Link>
       </span>
-      <h2
-        className="m-0 line-clamp-3 leading-normal"
-        style={{ textDecorationLine: "underline", textUnderlineOffset: "0.2em" }}
-      >
-        {props.title}
+      <h2 className="m-0 line-clamp-3 leading-normal">
+        <Link href={href}>{props.title}</Link>
       </h2>
-    </a>
+    </div>
   );
 }
 

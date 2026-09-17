@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
 
 import { modulesHash } from "@qrk.sh/library";
-import { useBrickBreakpoint } from "@qrk.sh/library/BrickBreakpointProvider";
+import { useWallViewport } from "@qrk.sh/library/WallViewportProvider";
 import { BrickPreview } from "@qrk.sh/library/BrickPreview";
 import type { IModuleBrickDef } from "@qrk.sh/library";
 import { ArrowLeft } from "lucide-react";
@@ -15,7 +15,8 @@ import { BRICK_DRAG_MIME } from "@/components/home/useBrickDrawerStore";
 import { useBricksStoreApi } from "@qrk.sh/library/GridStore";
 
 export default function BrickGroupRoute() {
-  const { breakpoint } = useBrickBreakpoint();
+  const { activeBreakpoint } = useWallViewport();
+  const breakpoint = activeBreakpoint ?? "sm";
   const params = useParams();
   const bricksStore = useBricksStoreApi();
   const { username, siteId, pageId } = params;

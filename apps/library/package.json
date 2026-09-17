@@ -10,9 +10,9 @@
       "types": "./dist/lib/index.d.ts",
       "import": "./dist/index.js"
     },
-    "./BrickBreakpointProvider": {
-      "types": "./dist/lib/BrickBreakpointProvider.d.ts",
-      "import": "./dist/BrickBreakpointProvider.js"
+    "./WallViewportProvider": {
+      "types": "./dist/lib/WallViewportProvider.d.ts",
+      "import": "./dist/WallViewportProvider.js"
     },
     "./breakpoints": {
       "types": "./dist/lib/breakpoints.d.ts",

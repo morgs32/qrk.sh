@@ -2,17 +2,18 @@ import { useLayoutEffect, useRef, useState } from "react";
 
 import GridLayout, { verticalCompactor } from "react-grid-layout";
 
-import { useBrickBreakpoint } from "./BrickBreakpointProvider";
 import { modulesHash } from "./modulesHash";
 import { useBricksStore, useBricksStoreApi } from "./BrickStoreProvider";
 
 export function BrickWall(props: {
+  breakpoint: "sm" | "md" | "lg" | "xl";
+  gridWidth: number;
   onBrickActivate?: (args: { moduleId: string; brickId: string }) => void;
 }) {
+  const { breakpoint, gridWidth } = props;
   const bricksStore = useBricksStoreApi();
   const containerRef = useRef<HTMLElement>(null);
   const scrollRootRef = useRef<HTMLElement | null>(null);
-  const { gridWidth, breakpoint, containerRef: observeGrid } = useBrickBreakpoint();
   const [dragging, setDragging] = useState(false);
   const [outsideBrickId, setOutsideBrickId] = useState<string | null>(null);
   const [dragScrollTop, setDragScrollTop] = useState(0);
@@ -36,14 +37,7 @@ export function BrickWall(props: {
   const rowHeight = gridWidth / 8;
 
   return (
-    <section
-      ref={(element) => {
-        containerRef.current = element;
-        return observeGrid(element);
-      }}
-      aria-label="Brick grid"
-      className="bg-black"
-    >
+    <section ref={containerRef} aria-label="Brick grid" className="bg-black">
       {outsideBrickId && (
         <div
           role="status"

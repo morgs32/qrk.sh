@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import type { ReactNode, RefCallback } from "react";
 
-import { useBrickBreakpoint } from "./BrickBreakpointProvider";
 import { BREAKPOINTS } from "./breakpoints";
+import { useWallViewport } from "./WallViewportProvider";
 
 /** Smallest integer grid units whose pixel size is ≥ intrinsicPx. */
 export function minGridUnits(gridItemWidth: number, intrinsicPx: number): number {
@@ -35,11 +35,11 @@ export function BrickPreview(
         onGridUnits?: (size: { w: number; h: number }) => void;
       },
 ) {
-  const ambient = useBrickBreakpoint();
+  const { activeBreakpoint } = useWallViewport();
   const breakpointId =
     "breakpoint" in props && props.breakpoint !== undefined
       ? props.breakpoint
-      : ambient.breakpoint;
+      : (activeBreakpoint ?? "sm");
   const gridItemWidth = resolveGridItemWidth(breakpointId);
   const [intrinsicSize, setIntrinsicSize] = useState<{
     widthPx: number;

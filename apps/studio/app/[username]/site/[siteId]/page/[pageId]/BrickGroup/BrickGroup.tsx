@@ -3,7 +3,7 @@
 import { useCallback, useState } from "react";
 
 import { modulesHash } from "@qrk.sh/library";
-import { useBrickBreakpoint } from "@qrk.sh/library/BrickBreakpointProvider";
+import { useWallViewport } from "@qrk.sh/library/WallViewportProvider";
 import { BrickPreview } from "@qrk.sh/library/BrickPreview";
 import type { IModuleBrickDef } from "@qrk.sh/library";
 import { Schema } from "effect";
@@ -106,7 +106,8 @@ function BrickGroupModulePreview(props: {
 }
 
 export function BrickGroup() {
-  const { breakpoint } = useBrickBreakpoint();
+  const { activeBreakpoint } = useWallViewport();
+  const breakpoint = activeBreakpoint ?? "sm";
   const params = useValidatedParams(ParamsSchema);
   const navigate = useNavigate();
   const modules = Object.values(modulesHash);

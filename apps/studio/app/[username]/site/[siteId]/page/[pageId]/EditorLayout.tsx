@@ -1,13 +1,12 @@
 "use client";
 
 import { useUser } from "@clerk/react";
-import { BrickBreakpointProvider } from "@qrk.sh/library/BrickBreakpointProvider";
 import { BrickStoreProvider } from "@qrk.sh/library/GridStore";
+import { WallViewportProvider } from "@qrk.sh/library/WallViewportProvider";
 import { Schema } from "effect";
 
 import { Drawers } from "../../Drawers/Drawers";
 import { Toolbars } from "../../Toolbars/Toolbars";
-import { useStudioUIStore } from "../../Toolbars/useStudioUIStore";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 
 import { MainColumns } from "./MainColumns";
@@ -18,7 +17,6 @@ const ParamsSchema = Schema.Struct({
 });
 
 export default function SitePage() {
-  const persistedWidth = useStudioUIStore((state) => state.selectedWidth);
   const params = useValidatedParams(ParamsSchema);
   const { user } = useUser();
 
@@ -27,12 +25,12 @@ export default function SitePage() {
   }
 
   return (
-    <BrickBreakpointProvider persistedWidth={persistedWidth}>
+    <WallViewportProvider>
       <BrickStoreProvider key={`${user.id}:${params.siteId}:${params.pageId}`}>
         <MainColumns />
         <Drawers />
         <Toolbars />
       </BrickStoreProvider>
-    </BrickBreakpointProvider>
+    </WallViewportProvider>
   );
 }

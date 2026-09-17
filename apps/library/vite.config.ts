@@ -23,7 +23,7 @@ export default defineConfig(({ mode }) => {
         entry: {
           index: "lib/index.ts",
           BrickPreview: "lib/BrickPreview.tsx",
-          BrickBreakpointProvider: "lib/BrickBreakpointProvider.tsx",
+          WallViewportProvider: "lib/WallViewportProvider.tsx",
           breakpoints: "lib/breakpoints.ts",
           BrickWall: "lib/BrickWall.tsx",
           GridStore: "lib/GridStore.ts",

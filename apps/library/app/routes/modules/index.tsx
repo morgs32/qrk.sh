@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { useBrickBreakpoint } from "../../../lib/BrickBreakpointProvider";
 import { modulesHash } from "../../../lib/modulesHash";
+import { useWallViewport } from "../../../lib/WallViewportProvider";
 import { ModulePreview } from "./-ModulePreview";
 
 export const Route = createFileRoute("/modules/")({
@@ -9,7 +9,8 @@ export const Route = createFileRoute("/modules/")({
 });
 
 function ModulesPage() {
-  const { breakpoint } = useBrickBreakpoint();
+  const { activeBreakpoint } = useWallViewport();
+  const breakpoint = activeBreakpoint ?? "sm";
   const modules = Object.values(modulesHash);
 
   return (

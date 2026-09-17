@@ -6,11 +6,11 @@ import { collapseAllNested, defaultStyles, JsonView } from "react-json-view-lite
 
 import { OrderedSection } from "@qrk.sh/web/library/OrderedDoc";
 
-import { useBrickBreakpoint } from "../../../../lib/BrickBreakpointProvider";
 import { modulesHash } from "../../../../lib/modulesHash";
 import { Button } from "../../../../components/ui/button";
 import { Input } from "../../../../components/ui/input";
 import { useBricksStore, useBricksStoreApi } from "../../../../lib/BrickStoreProvider";
+import { useWallViewport } from "../../../../lib/WallViewportProvider";
 import type { LibraryApi } from "../../../../worker/LibraryApi.public";
 import type { IScrapeError } from "../../../../worker/types.public";
 
@@ -19,7 +19,8 @@ export const Route = createFileRoute("/modules/$moduleId/$brickId")({
 });
 
 function BrickDetail() {
-  const { breakpoint } = useBrickBreakpoint();
+  const { activeBreakpoint } = useWallViewport();
+  const breakpoint = activeBreakpoint ?? "sm";
   const { moduleId, brickId } = Route.useParams();
   const bricksStore = useBricksStoreApi();
   const hasHydrated = useBricksStore(state => state.hasHydrated);

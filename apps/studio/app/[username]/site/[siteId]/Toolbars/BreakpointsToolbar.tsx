@@ -1,7 +1,7 @@
 "use client";
 
 import { BREAKPOINTS } from "@qrk.sh/library/breakpoints";
-import { useBrickBreakpoint } from "@qrk.sh/library/BrickBreakpointProvider";
+import { useWallViewport } from "@qrk.sh/library/WallViewportProvider";
 import { Schema } from "effect";
 import { motion, useReducedMotion } from "framer-motion";
 import { X } from "lucide-react";
@@ -11,7 +11,6 @@ import { useValidatedParams } from "@/hooks/useValidatedParams";
 
 import { BottomToolbar, ToolbarSeparator } from "./BottomToolbar";
 import { ToolbarButton } from "./ToolbarButton";
-import { useStudioUIStore } from "./useStudioUIStore";
 
 const ParamsSchema = Schema.Struct({
   username: Schema.String,
@@ -29,8 +28,7 @@ export function BreakpointsToolbar() {
   const reducedMotion = useReducedMotion();
   const params = useValidatedParams(ParamsSchema);
   const navigate = useNavigate();
-  const { availableWidth, selectedWidth } = useBrickBreakpoint();
-  const setSelectedWidth = useStudioUIStore((state) => state.setSelectedWidth);
+  const { availableWidth, activeBreakpoint, setSelectedBreakpoint } = useWallViewport();
 
   return (
     <div className="pointer-events-none fixed bottom-6 left-1/2 z-30 -translate-x-1/2 md:left-[25%]">
@@ -49,11 +47,11 @@ export function BreakpointsToolbar() {
                 key={row.id}
                 tooltip={`${row.id} (${row.previewWidth}px)`}
                 aria-label={`${row.id} preview width`}
-                aria-pressed={selectedWidth === row.previewWidth}
+                aria-pressed={activeBreakpoint === row.id}
                 disabled={row.previewWidth > availableWidth}
-                onClick={() => setSelectedWidth(row.previewWidth)}
+                onClick={() => setSelectedBreakpoint(row.id)}
                 className={
-                  selectedWidth === row.previewWidth
+                  activeBreakpoint === row.id
                     ? "h-7 px-2 text-[13px] font-normal text-foreground"
                     : "h-7 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
                 }

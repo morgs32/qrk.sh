@@ -1,6 +1,6 @@
 "use client";
 import { modulesHash } from "@qrk.sh/library";
-import { useBrickBreakpoint } from "@qrk.sh/library/BrickBreakpointProvider";
+import { useWallViewport } from "@qrk.sh/library/WallViewportProvider";
 import { BrickPreview } from "@qrk.sh/library/BrickPreview";
 import { useBricksStore } from "@qrk.sh/library/GridStore";
 import { Schema } from "effect";
@@ -20,7 +20,8 @@ const ParamsSchema = Schema.Struct({
 });
 
 export function BrickDetail() {
-  const { breakpoint } = useBrickBreakpoint();
+  const { activeBreakpoint } = useWallViewport();
+  const breakpoint = activeBreakpoint ?? "sm";
   const navigate = useNavigate();
   const params = useValidatedParams(ParamsSchema);
   const brickPlacement = useBricksStore((state) => state.bricksById[params.brickId]);

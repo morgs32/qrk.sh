@@ -16,10 +16,6 @@ export function ModulePreview(props: {
 }) {
   const { brickModule, breakpoint } = props;
   const { def, component: BrickComponent, defaultSpec } = brickModule;
-  const declared = def[breakpoint];
-  const declaredW = declared.w;
-  const declaredH = declared.h;
-  const hasDeclaredSize = declaredW !== undefined && declaredH !== undefined;
   const [measuredUnits, setMeasuredUnits] = useState<{ w: number; h: number }>();
   const onGridUnits = useCallback((size: { w: number; h: number }) => {
     setMeasuredUnits(current => {
@@ -28,17 +24,15 @@ export function ModulePreview(props: {
     });
   }, []);
 
-  const brickDefForDrag: IModuleBrickDef & { spec: Spec } = {
+  const dragW = measuredUnits?.w ?? 1;
+  const dragH = measuredUnits?.h ?? 1;
+  const brickDefForDrag: IModuleBrickDef & { spec: Spec; w: number; h: number } = {
     ...def,
-    [breakpoint]: hasDeclaredSize
-      ? { w: declaredW, h: declaredH }
-      : measuredUnits !== undefined
-        ? { w: measuredUnits.w, h: measuredUnits.h }
-        : { w: 1, h: 1 },
+    w: dragW,
+    h: dragH,
     spec: structuredClone(defaultSpec),
   };
-  const gridW = hasDeclaredSize ? declaredW : measuredUnits?.w;
-  const exceedsWallWidth = gridW !== undefined && gridW > 8;
+  const exceedsWallWidth = measuredUnits !== undefined && measuredUnits.w > 8;
 
   const previewBody = (
     <DraggableBrick
@@ -70,21 +64,13 @@ export function ModulePreview(props: {
         </Link>
       </h2>
       <div className="pb-16">
-        {hasDeclaredSize ? (
-          <BrickPreview breakpoint={breakpoint} w={declaredW} h={declaredH}>
-            {previewBody}
-          </BrickPreview>
-        ) : (
-          <BrickPreview
-            breakpoint={breakpoint}
-            measure={
-              <BrickComponent breakpoint={breakpoint} state={def.state} spec={defaultSpec} />
-            }
-            onGridUnits={onGridUnits}
-          >
-            {previewBody}
-          </BrickPreview>
-        )}
+        <BrickPreview
+          breakpoint={breakpoint}
+          measure={<BrickComponent breakpoint={breakpoint} state={def.state} spec={defaultSpec} />}
+          onGridUnits={onGridUnits}
+        >
+          {previewBody}
+        </BrickPreview>
       </div>
     </div>
   );

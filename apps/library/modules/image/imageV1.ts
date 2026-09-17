@@ -38,7 +38,4 @@ export const imageV1 = makeModuleVersion(image, {
   },
   stateShape: dataShape,
   defaultState: defaultData,
-  breakpoints: {
-    sm: {},
-  },
 });

@@ -93,7 +93,4 @@ export const githubProfileV1 = makeModuleVersion(githubProfile, {
     payload: { url: "https://github.com/morgs32" },
     data: defaultData,
   },
-  breakpoints: {
-    sm: {},
-  },
 });

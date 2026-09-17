@@ -55,7 +55,4 @@ export const figmaThumbnailV1 = makeModuleVersion(figmaThumbnail, {
     payload: { url: "" },
     data: defaultData,
   },
-  breakpoints: {
-    sm: {},
-  },
 });

@@ -104,10 +104,6 @@ function BreakpointPreviewRow({
     });
   }, []);
 
-  const declared = brick.def[entry.id];
-  const declaredW = declared.w;
-  const declaredH = declared.h;
-  const hasDeclaredSize = declaredW !== undefined && declaredH !== undefined;
   const [gridUnits, setGridUnits] = useState<{ w: number; h: number }>();
   const onGridUnits = useCallback((size: { w: number; h: number }) => {
     setGridUnits(current => {
@@ -121,10 +117,9 @@ function BreakpointPreviewRow({
   const measuredH = intrinsicSize
     ? minGridUnits(entry.gridItemWidth, intrinsicSize.heightPx)
     : undefined;
-  const dragW = hasDeclaredSize ? declaredW : (gridUnits?.w ?? measuredW ?? 1);
-  const dragH = hasDeclaredSize ? declaredH : (gridUnits?.h ?? measuredH ?? 1);
-  const gridW = hasDeclaredSize ? declaredW : gridUnits?.w;
-  const exceedsWallWidth = gridW !== undefined && gridW > 8;
+  const dragW = gridUnits?.w ?? measuredW ?? 1;
+  const dragH = gridUnits?.h ?? measuredH ?? 1;
+  const exceedsWallWidth = gridUnits !== undefined && gridUnits.w > 8;
 
   const previewSurface = (
     <div
@@ -135,7 +130,8 @@ function BreakpointPreviewRow({
       onDragStart={event => {
         setActiveBrickDrag({
           ...brick.def,
-          [entry.id]: { w: dragW, h: dragH },
+          w: dragW,
+          h: dragH,
           state: structuredClone(moduleState),
           spec: structuredClone(spec),
         });
@@ -168,26 +164,14 @@ function BreakpointPreviewRow({
         <div className="flex w-max items-start gap-4">
           <div>
             <p className="m-0 mb-2 font-mono text-neutral-500">gridItem</p>
-            {hasDeclaredSize ? (
-              <BrickPreview breakpoint={entry.id} w={declaredW} h={declaredH}>
-                {previewSurface}
-              </BrickPreview>
-            ) : (
-              <BrickPreview
-                breakpoint={entry.id}
-                measure={
-                  <BrickComponent breakpoint={entry.id} state={moduleState} spec={spec} />
-                }
-                onGridUnits={onGridUnits}
-              >
-                {previewSurface}
-              </BrickPreview>
-            )}
-            {hasDeclaredSize ? (
-              <p className="m-0 pt-2 font-mono text-neutral-500">
-                w={declaredW} h={declaredH}
-              </p>
-            ) : gridUnits !== undefined ? (
+            <BrickPreview
+              breakpoint={entry.id}
+              measure={<BrickComponent breakpoint={entry.id} state={moduleState} spec={spec} />}
+              onGridUnits={onGridUnits}
+            >
+              {previewSurface}
+            </BrickPreview>
+            {gridUnits !== undefined ? (
               <p className="m-0 pt-2 font-mono text-neutral-500">
                 w={gridUnits.w} h={gridUnits.h}
               </p>
@@ -195,10 +179,10 @@ function BreakpointPreviewRow({
           </div>
           <div>
             <p className="m-0 mb-2 font-mono text-neutral-500">intrinsic</p>
-            <UnconstrainedBrickPreview onSizeChange={!hasDeclaredSize ? onSizeChange : undefined}>
+            <UnconstrainedBrickPreview onSizeChange={onSizeChange}>
               <BrickComponent breakpoint={entry.id} state={moduleState} spec={spec} />
             </UnconstrainedBrickPreview>
-            {!hasDeclaredSize && measuredW !== undefined && measuredH !== undefined ? (
+            {measuredW !== undefined && measuredH !== undefined ? (
               <p className="m-0 pt-2 font-mono text-neutral-500">
                 w={measuredW} h={measuredH}
               </p>

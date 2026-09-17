@@ -31,7 +31,7 @@ export function BrickWall(props: {
 
   const layout = Object.values(bricksById).flatMap((brick) => {
     const entry = brick[breakpoint];
-    return entry.gridItem === null ? [] : [{ ...entry.gridItem }];
+    return entry.isVisible ? [{ ...entry.gridItem }] : [];
   });
   const rowHeight = gridWidth / 8;
 
@@ -86,7 +86,7 @@ export function BrickWall(props: {
                 return false;
               }
 
-              return { w: activeBrickDrag[breakpoint].w ?? 1, h: activeBrickDrag[breakpoint].h ?? 1 };
+              return { w: activeBrickDrag.w, h: activeBrickDrag.h };
             },
           }}
           onDrop={(nextLayout, item) => {

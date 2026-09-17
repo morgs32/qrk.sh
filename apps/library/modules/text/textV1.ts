@@ -32,7 +32,4 @@ export const textV1 = makeModuleVersion(text, {
   },
   stateShape: dataShape,
   defaultState: { content: null },
-  breakpoints: {
-    sm: { w: 4, h: 4 },
-  },
 });

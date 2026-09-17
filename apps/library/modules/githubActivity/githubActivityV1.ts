@@ -65,7 +65,4 @@ export const githubActivityV1 = makeModuleVersion(githubActivity, {
     payload: { url: "https://github.com/morgs32" },
     data: defaultData,
   },
-  breakpoints: {
-    sm: {},
-  },
 });

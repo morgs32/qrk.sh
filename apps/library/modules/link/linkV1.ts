@@ -58,7 +58,4 @@ export const linkV1 = makeModuleVersion(link, {
     payload: { url: "https://apps.apple.com/us/app/apple-store/id375380948" },
     data: defaultData,
   },
-  breakpoints: {
-    sm: {},
-  },
 });

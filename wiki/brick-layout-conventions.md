@@ -10,52 +10,53 @@ PascalCase filenames.
 Helpers such as `*Card`, `*Activity`, `*Graphic`, forms, lookups, and `*Backend`
 are not presentations and keep their own names.
 
-Select complete presentations once in the module definition. `defineModule`
-still keys responsive slots by breakpoint (`sm` required; `md`, `lg`, and `xl`
-optional). Each slot is `{ w?, h?, defaultSpec, options? }`. Provide both `w`
-and `h` or neither. Omitted dimensions inherit from the nearest smaller
-breakpoint. Omitting dimensions in a larger breakpoint does not clear an
-inherited declared size.
+## Modules vs placed bricks
 
-After inheritance, resolved `w`/`h` presence is the size contract:
+Module versions (`makeModuleVersion` + `makeFrontend`) do **not** declare
+breakpoints. A module owns identity, catalog, `stateShape`, `defaultState`, one
+`defaultSpec`, and a React brick. Grid sizing is never part of the module
+definition.
 
-- Both absent: every surface (filmstrip, module-page gridItem, drag placeholder,
-  wall drop) sizes from unconstrained intrinsic px as
-  `ceil(px / that breakpoint’s gridItemWidth)` (min 1).
-- Both present: use that declared grid size; do not measure for gridItem or
-  drag sizing.
-
-Keep optional `w`/`h` on the API. Intrinsic pixel and derived grid sizes stay
-available even when they exceed the wall width; React Grid Layout owns wall
-bounds correction.
-
-GitHub profile omits declared dimensions and is sized from measurement:
+Placed bricks in the wall store own viewport layout explicitly:
 
 ```ts
-defineModule({
-  id: "github-profile",
-  // …
-  breakpoints: {
-    sm: { defaultSpec },
-  },
-});
+{
+  moduleId: string
+  state: unknown
+  sm: { spec: Spec; gridItem: LayoutItem; isVisible: boolean }
+  md: { spec: Spec; gridItem: LayoutItem; isVisible: boolean }
+  lg: { spec: Spec; gridItem: LayoutItem; isVisible: boolean }
+  xl: { spec: Spec; gridItem: LayoutItem; isVisible: boolean }
+}
 ```
 
-Text and map-place retain declared `sm: { w: 4, h: 4, defaultSpec }` because
-their presentations need a containing cell. Link-style modules also omit size:
+Each of `sm` / `md` / `lg` / `xl` always has a `spec` and a `gridItem`.
+`isVisible` is the hide bit; the wall includes a layout item only when
+`isVisible` is true. There is no cascade from a smaller breakpoint and no
+declared module size to inherit.
 
-```ts
-breakpoints: {
-  sm: { defaultSpec },
-},
-```
+On drop, the wall copies the dropped `gridItem` and clones the module
+`defaultSpec` onto all four breakpoints with `isVisible: true`. Later
+`setSpec` edits one breakpoint only. `setVisible` flips `isVisible` only.
 
-In the GitHub profile example, `md`, `lg`, and `xl` inherit `sm` (no declared
-dimensions). Text and map-place inherit `4×4` at every larger breakpoint. Grid
-container thresholds are 720px (`md`), 1080px
-(`lg`), and 1440px (`xl`); `sm` covers smaller widths. Preview widths are
-360 / 720 / 1080 / 1440 so one column is 45 / 90 / 135 / 180 on the 8-col
-grid. Shared defs live in `apps/library/lib/breakpoints.ts`.
+## Measurement
+
+Filmstrip, module-page previews, and drag payloads always size from unconstrained
+intrinsic px as `ceil(px / that breakpoint’s gridItemWidth)` (min 1). Drag
+payloads carry measured `w` / `h` next to `spec`, not on the module `def`.
+
+Intrinsic pixel and derived grid sizes stay available even when they exceed the
+wall width; React Grid Layout owns wall bounds correction.
+
+## Viewport breakpoints
+
+Grid container thresholds are 720px (`md`), 1080px (`lg`), and 1440px (`xl`);
+`sm` covers smaller widths. Preview widths are 360 / 720 / 1080 / 1440 so one
+column is 45 / 90 / 135 / 180 on the 8-col grid. Shared viewport defs live in
+`apps/library/lib/breakpoints.ts`. That file resolves wall width to a viewport
+id; it is not module inheritance.
+
+## Frontend render
 
 `makeFrontend` uses the incoming `breakpoint` prop and the stock Renderer path.
 It performs no measurement and owns no context. Data props are inferred from the
@@ -75,6 +76,5 @@ markup distinct from the square templates. Shared chart markup lives in the
 helper `GitHubProfileActivity`, not in a presentation filename.
 
 The Figma thumbnail catalog uses `FigmaThumbnail` (preview with brand bar
-below) at every breakpoint. Its appearance form edits per-breakpoint
-`imagePosition`, which the presentation applies directly to its image's
-`object-position`. These options do not change grid dimensions.
+below). Appearance is driven by the placed brick's per-viewport `spec`, not by
+module-declared breakpoint options.

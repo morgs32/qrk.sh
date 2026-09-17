@@ -11,7 +11,7 @@ export function DraggableBrick({
   className,
   ...props
 }: {
-  brickDef: IModuleBrickDef & { spec: Spec };
+  brickDef: IModuleBrickDef & { spec: Spec; w: number; h: number };
 } & Omit<ComponentProps<"div">, "draggable" | "onDragStart" | "onDragEnd">) {
   const setActiveBrickDrag = useBricksStore(state => state.setActiveBrickDrag);
 

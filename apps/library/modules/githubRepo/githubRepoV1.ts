@@ -57,7 +57,4 @@ export const githubRepoV1 = makeModuleVersion(githubRepo, {
     payload: { url: "https://github.com/morgs32/ink-steps" },
     data: defaultData,
   },
-  breakpoints: {
-    sm: {},
-  },
 });

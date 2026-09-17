@@ -31,18 +31,8 @@ export function makeFrontend<
     catalog?: Catalog;
     stateShape: IShape;
     defaultState: unknown;
-    breakpoints: {
-      sm: { w?: number; h?: number };
-      md: { w?: number; h?: number };
-      lg: { w?: number; h?: number };
-      xl: { w?: number; h?: number };
-    };
     def: {
       moduleId: string;
-      sm: { w?: number; h?: number };
-      md: { w?: number; h?: number };
-      lg: { w?: number; h?: number };
-      xl: { w?: number; h?: number };
       state: unknown;
     };
   },
@@ -100,7 +90,6 @@ export function makeFrontend<
     defaultState: module.defaultState,
     defaultSpec,
     ...(registry === undefined ? {} : { registry }),
-    breakpoints: module.breakpoints,
     component: Brick,
   };
 }

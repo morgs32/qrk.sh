@@ -4,18 +4,13 @@ import type { Catalog, Spec } from "@json-render/core";
 import type { ComponentRegistry } from "@json-render/react";
 import type { IShape } from "@zerospin/schema";
 
-/** A module definition (serializable identity and dimensions). */
+/** A module definition (serializable identity). */
 export type IBrickDef<MODULE extends string = string> = {
-  /** Per-breakpoint initial dimensions. Omitted when sized from intrinsic measure. */
-  sm: { w?: number; h?: number };
-  md: { w?: number; h?: number };
-  lg: { w?: number; h?: number };
-  xl: { w?: number; h?: number };
   /** Kebab-case module slug (for example `icon`, `github-profile`, or `figma-thumbnail`). */
   moduleId: MODULE;
 };
 
-/** A library module: state document, nested breakpoints, authored component, optional json-render. */
+/** A library module: state document, authored component, optional json-render. */
 export type IModule = {
   /** Kebab-case module id, unique across the library. */
   id: string;
@@ -24,12 +19,6 @@ export type IModule = {
   catalog?: Catalog;
   registry?: ComponentRegistry;
   defaultSpec: Spec;
-  breakpoints: {
-    sm: { w?: number; h?: number };
-    md: { w?: number; h?: number };
-    lg: { w?: number; h?: number };
-    xl: { w?: number; h?: number };
-  };
   def: IModuleBrickDef;
   component: IModuleBrick["component"];
   stateShape: IShape;

@@ -51,7 +51,4 @@ export const mapPlaceV1 = makeModuleVersion(mapPlace, {
     payload: { googlePlaceId: "ChIJ7cv00DwsDogRAMDACa2m4K8" },
     data: defaultData,
   },
-  breakpoints: {
-    sm: { w: 4, h: 4 },
-  },
 });

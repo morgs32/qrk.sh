@@ -45,7 +45,4 @@ export const swatchAndIconV1 = makeModuleVersion(swatchAndIcon, {
     payload: { hash: "" },
     data: defaultData,
   },
-  breakpoints: {
-    sm: {},
-  },
 });

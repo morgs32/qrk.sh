@@ -63,7 +63,4 @@ export const instagramV1 = makeModuleVersion(instagram, {
     payload: { url: "https://www.instagram.com/theonion/" },
     data: defaultData,
   },
-  breakpoints: {
-    sm: {},
-  },
 });

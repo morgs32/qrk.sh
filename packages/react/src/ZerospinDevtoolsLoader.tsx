@@ -5,10 +5,9 @@ import {
   useCallback,
   useEffect,
   useRef,
-  useState,
-  type ComponentType,
   type ReactNode,
 } from 'react';
+import { createRoot, type Root } from 'react-dom/client';
 
 import { zerospinDevtoolsController } from '@zerospin/devtools/zerospinDevtoolsController';
 
@@ -44,28 +43,25 @@ function ZerospinDevtoolsMountConfirmation(props: { onMounted: () => void }) {
   return null;
 }
 
-export function ZerospinDevtoolsLoader() {
-  const [LoadedZerospinDevtools, setLoadedZerospinDevtools] =
-    useState<ComponentType | null>(null);
-  const loadedZerospinDevtoolsRef = useRef<ComponentType | null>(null);
+export function ZerospinDevtoolsLoader(props: {
+  load?: boolean;
+  defaultOpen?: boolean;
+}) {
+  const { load = false, defaultOpen = false } = props;
+  const loadPromiseRef = useRef<Promise<void> | null>(null);
   const isMountedRef = useRef(false);
+  const hostRef = useRef<HTMLDivElement | null>(null);
+  const rootRef = useRef<Root | null>(null);
   const resolveMountRef = useRef<(() => void) | null>(null);
   const rejectMountRef = useRef<((error: unknown) => void) | null>(null);
+  const defaultOpenRef = useRef(defaultOpen);
+  defaultOpenRef.current = defaultOpen;
 
-  const loadZerospinDevtools = useCallback(async () => {
-    if (loadedZerospinDevtoolsRef.current !== null) return;
-    const loadedModule = await import('@zerospin/devtools/ZerospinDevtools');
-    if (!isMountedRef.current) {
-      throw new Error(
-        'ZerospinApp.Provider unmounted before Zerospin DevTools finished loading.',
-      );
-    }
-    loadedZerospinDevtoolsRef.current = loadedModule.ZerospinDevtools;
-    await new Promise<void>((resolve, reject) => {
-      resolveMountRef.current = resolve;
-      rejectMountRef.current = reject;
-      setLoadedZerospinDevtools(() => loadedModule.ZerospinDevtools);
-    });
+  const tearDownShell = useCallback(() => {
+    rootRef.current?.unmount();
+    rootRef.current = null;
+    hostRef.current?.remove();
+    hostRef.current = null;
   }, []);
 
   const handleZerospinDevtoolsMounted = useCallback(() => {
@@ -75,14 +71,80 @@ export function ZerospinDevtoolsLoader() {
     resolve?.();
   }, []);
 
-  const handleZerospinDevtoolsMountError = useCallback((error: unknown) => {
-    const reject = rejectMountRef.current;
-    resolveMountRef.current = null;
-    rejectMountRef.current = null;
-    loadedZerospinDevtoolsRef.current = null;
-    setLoadedZerospinDevtools(null);
-    reject?.(error);
-  }, []);
+  const handleZerospinDevtoolsMountError = useCallback(
+    (error: unknown) => {
+      const reject = rejectMountRef.current;
+      resolveMountRef.current = null;
+      rejectMountRef.current = null;
+      loadPromiseRef.current = null;
+      tearDownShell();
+      reject?.(error);
+    },
+    [tearDownShell],
+  );
+
+  const loadZerospinDevtools = useCallback(() => {
+    // Strict Mode re-runs effects on one instance. Share one in-flight load so a
+    // cleanup-rejected attempt cannot leave a resolved load with no shell.
+    if (loadPromiseRef.current !== null) {
+      return loadPromiseRef.current;
+    }
+
+    const loadPromise = (async () => {
+      const loadedModule = await import('@zerospin/devtools/ZerospinDevtools');
+      if (!isMountedRef.current) {
+        throw new Error(
+          'ZerospinApp.Provider unmounted before Zerospin DevTools finished loading.',
+        );
+      }
+
+      // Mount outside the app tree so MemoryRouter is not nested under the host
+      // app's RouterProvider / BrowserRouter.
+      await new Promise<void>((resolve, reject) => {
+        resolveMountRef.current = resolve;
+        rejectMountRef.current = reject;
+
+        tearDownShell();
+
+        const host = document.createElement('div');
+        host.setAttribute('data-zerospin-devtools-host', '');
+        document.body.appendChild(host);
+        hostRef.current = host;
+
+        const root = createRoot(host);
+        rootRef.current = root;
+        root.render(
+          <ZerospinDevtoolsMountBoundary
+            onError={handleZerospinDevtoolsMountError}
+          >
+            <loadedModule.ZerospinDevtools
+              config={{ defaultOpen: defaultOpenRef.current }}
+            />
+            <ZerospinDevtoolsMountConfirmation
+              onMounted={handleZerospinDevtoolsMounted}
+            />
+          </ZerospinDevtoolsMountBoundary>,
+        );
+      });
+    })();
+
+    loadPromiseRef.current = loadPromise;
+    void loadPromise.then(
+      () => undefined,
+      () => {
+        if (loadPromiseRef.current === loadPromise) {
+          loadPromiseRef.current = null;
+        }
+        tearDownShell();
+      },
+    );
+
+    return loadPromise;
+  }, [
+    handleZerospinDevtoolsMountError,
+    handleZerospinDevtoolsMounted,
+    tearDownShell,
+  ]);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -94,9 +156,17 @@ export function ZerospinDevtoolsLoader() {
     const devtools = { open: zerospinDevtoolsController.open };
     zerospinNamespace.devtools = devtools;
 
+    // Eager mount keeps the floating trigger available without a console open().
+    if (load) {
+      void loadZerospinDevtools().catch(error => {
+        console.error('Failed to load Zerospin DevTools', error);
+      });
+    }
+
     return () => {
       isMountedRef.current = false;
       unregisterLoader();
+      loadPromiseRef.current = null;
       const reject = rejectMountRef.current;
       resolveMountRef.current = null;
       rejectMountRef.current = null;
@@ -105,6 +175,7 @@ export function ZerospinDevtoolsLoader() {
           'ZerospinApp.Provider unmounted before Zerospin DevTools finished mounting.',
         ),
       );
+      tearDownShell();
       if (
         window.zerospin === zerospinNamespace &&
         zerospinNamespace.devtools === devtools
@@ -116,14 +187,7 @@ export function ZerospinDevtoolsLoader() {
         }
       }
     };
-  }, [loadZerospinDevtools]);
+  }, [load, loadZerospinDevtools, tearDownShell]);
 
-  return LoadedZerospinDevtools === null ? null : (
-    <ZerospinDevtoolsMountBoundary onError={handleZerospinDevtoolsMountError}>
-      <LoadedZerospinDevtools />
-      <ZerospinDevtoolsMountConfirmation
-        onMounted={handleZerospinDevtoolsMounted}
-      />
-    </ZerospinDevtoolsMountBoundary>
-  );
+  return null;
 }

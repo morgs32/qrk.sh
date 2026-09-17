@@ -59,6 +59,9 @@
       "path": "./packages/schema"
     },
     {
+      "path": "./packages/zod"
+    },
+    {
       "path": "./packages/error-boundary"
     }
   ]

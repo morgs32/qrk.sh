@@ -1,0 +1,10 @@
+{
+  "extends": ["../../.oxlintrc.json"],
+  "globals": {
+    "describe": "readonly",
+    "expect": "readonly",
+    "it": "readonly",
+    "process": "readonly",
+    "vi": "readonly"
+  }
+}

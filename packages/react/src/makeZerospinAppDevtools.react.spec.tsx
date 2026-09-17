@@ -228,6 +228,35 @@ describe('makeZerospinApp main-thread frontend bootstrap', () => {
     expect(fakeDevtools.shellOpens).toBe(1);
   });
 
+  it('eagerly loads DevTools when makeZerospinApp({ devtools: { load: true } })', async () => {
+    const EagerZerospinApp = makeZerospinApp<typeof system>({
+      systemName: 'system-worker',
+      layer: sessionRuntimeLayer,
+      devtools: {
+        load: true,
+        defaultOpen: false,
+      },
+    });
+
+    await act(async () => {
+      root.render(
+        <StrictMode>
+          <EagerZerospinApp.Provider>
+            <div>Application</div>
+          </EagerZerospinApp.Provider>
+        </StrictMode>,
+      );
+    });
+
+    expect(container.textContent).toContain('Application');
+    await vi.waitFor(() => {
+      expect(
+        document.querySelector('section[aria-label="Zerospin DevTools"]'),
+      ).not.toBeNull();
+    });
+    expect(fakeDevtools.shellOpens).toBe(0);
+  });
+
   it('opens a directly mounted shell without lazily mounting another', async () => {
     await act(async () => {
       root.render(

@@ -4,13 +4,13 @@ import { describe, expect, it } from 'vitest';
 
 import { makePrefixedIncrementalIdFactory } from '../test-utils/makePrefixedIncrementalIdFactory.ts';
 
-import { defineCommand } from './Command.ts';
+import { defineContract } from './defineContract.ts';
 import { encodePayload } from './encodePayload.ts';
-import { makeContractVersion } from './makeVersion.ts';
+import { makeContractVersion } from './makeContractVersion.ts';
 import { validatePayload } from './validatePayload.ts';
 
 describe('contract payload utilities', () => {
-  const contract = makeContractVersion(defineCommand('doThing'), {
+  const contract = makeContractVersion(defineContract('doThing'), {
     payload: {
       name: primitives.text(),
       count: primitives.integer(),
@@ -30,7 +30,7 @@ describe('contract payload utilities', () => {
   });
 
   it('validates a decoded JSON field without requiring a pre-encoded string', async () => {
-    const jsonContract = makeContractVersion(defineCommand('useJson'), {
+    const jsonContract = makeContractVersion(defineContract('useJson'), {
       payload: {
         data: primitives.json({
           schema: Schema.Struct({ value: Schema.String }),

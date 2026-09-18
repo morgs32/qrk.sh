@@ -14,7 +14,8 @@ describe('service frontend lock', () => {
   it.effect('omits owner identity and hashes the exact selection', () =>
     Effect.gen(function* () {
       const left = makeFrontendController({
-        authentication: authenticationFixtureFrontend.authentication,
+        authenticationSchema:
+          authenticationFixtureFrontend.authentication.authenticationSchema,
         systemName: 'shopping',
         serviceVersion: '1.0.0',
         serviceName: 'catalog',
@@ -22,7 +23,8 @@ describe('service frontend lock', () => {
         models: {},
       });
       const right = makeFrontendController({
-        authentication: authenticationFixtureFrontend.authentication,
+        authenticationSchema:
+          authenticationFixtureFrontend.authentication.authenticationSchema,
         systemName: 'shopping',
         serviceVersion: '1.0.0',
         serviceName: 'inventory',
@@ -39,7 +41,7 @@ describe('service frontend lock', () => {
       expect(leftLock).toEqual(rightLock);
       expect(leftKey).toBe(rightKey);
       expect(leftKey).toBe(
-        '21c0724422a3ddac1dd941993f5ebf7d7e58e2850c44192f2e6f1d4f4637aa22',
+        '38a18e726583e147821a00884ca3d2cb69e73e96e31e7b5d6834ed2f83a6744f',
       );
       expect(leftLock).not.toHaveProperty('kind');
       expect(leftLock).not.toHaveProperty('ownerName');

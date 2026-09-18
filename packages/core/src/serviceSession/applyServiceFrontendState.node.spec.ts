@@ -8,7 +8,8 @@ import { AsyncLive } from '../async/AsyncLive.ts';
 import { makeResourceDbConfig } from '../drizzle/makeDbConfig.ts';
 import { makeProvisionedInMemoryWasmSqliteDb } from '../drizzle/makeProvisionedInMemoryWasmSqliteDb.ts';
 import { makeFrontendController } from '../frontendController/makeFrontendController.ts';
-import { makeModel, makeModelVersion } from '../models/makeModel.ts';
+import { defineModel } from '../models/defineModel.ts';
+import { makeModelVersion } from '../models/makeModelVersion.ts';
 import { makePrefixedIncrementalIdFactory } from '../test-utils/makePrefixedIncrementalIdFactory.ts';
 import { ErrorLayer } from '../utils/ErrorLayer.ts';
 
@@ -16,7 +17,7 @@ import { applyServiceFrontendState } from './applyServiceFrontendState.ts';
 import { serviceSessionRepoTables } from './serviceSessionRepoTables.ts';
 
 const Category = makeModelVersion(
-  makeModel({ name: 'category', abbreviation: 'cat' }),
+  defineModel({ name: 'category', abbreviation: 'cat' }),
   {
     attributes: {
       name: primitives.text(),
@@ -27,7 +28,7 @@ const Category = makeModelVersion(
 );
 
 const Product = makeModelVersion(
-  makeModel({ name: 'product', abbreviation: 'prd' }),
+  defineModel({ name: 'product', abbreviation: 'prd' }),
   {
     attributes: {
       categoryId: primitives.ref({
@@ -48,7 +49,7 @@ const models = {
 };
 
 const frontend = makeFrontendController({
-  authentication: authenticationFixtureFrontend.authentication,
+  authenticationSchema: authenticationFixtureFrontend.authentication.authenticationSchema,
   systemName: 'shop',
   serviceVersion: '1.0.0',
   serviceName: 'catalog',

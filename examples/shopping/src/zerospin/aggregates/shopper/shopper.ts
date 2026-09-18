@@ -1,3 +1,3 @@
 import * as sdk from '@zerospin/sdk';
 
-export const shopper = sdk.makeAggregate({ name: 'shopper' });
+export const shopper = sdk.defineAggregate({ name: 'shopper' });

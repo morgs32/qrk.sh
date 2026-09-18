@@ -1,16 +1,15 @@
-export { defineCommand } from '@zerospin/core/contracts/Command';
+export { defineContract } from '@zerospin/core/contracts/defineContract';
+export { defineModel } from '@zerospin/core/models/defineModel';
 export {
-  makeModel,
   makeModelVersion,
   upgradeModelVersion,
-} from '@zerospin/core/models/makeModel';
+} from '@zerospin/core/models/makeModelVersion';
 export {
   makeContractVersion,
   upgradeContractVersion,
-} from '@zerospin/core/contracts/makeVersion';
+} from '@zerospin/core/contracts/makeContractVersion';
 export { makeReplica } from '@zerospin/core/models/makeReplica';
 export { makeSelection } from '@zerospin/core/models/makeSelection';
-export { makeFrontendController } from '@zerospin/core/frontendController/makeFrontendController';
 export { makeId } from '@zerospin/core/models/makeId';
 export { prefixId } from '@zerospin/core/models/prefixId';
 export { makeAggregateId } from '@zerospin/core/utils/makeAggregateId';
@@ -23,7 +22,7 @@ export {
   type IAnyError,
   type IZerospinError,
 } from '@zerospin/error';
-export type { Command } from '@zerospin/core/contracts/Command';
+export type { Command } from '@zerospin/core/contracts/defineContract';
 export type {
   IContractBinding,
   IAnyContractBindings,

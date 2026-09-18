@@ -10,15 +10,16 @@ import {
   system,
   UserModel,
 } from '../fixtures/system.ts';
-import { makeModel, makeModelVersion } from '../models/makeModel.ts';
+import { defineModel } from '../models/defineModel.ts';
+import { makeModelVersion } from '../models/makeModelVersion.ts';
 import { makeReplica } from '../models/makeReplica.ts';
 import { makePrefixedIncrementalIdFactory } from '../test-utils/makePrefixedIncrementalIdFactory.ts';
 
-import { defineCommand } from './Command.ts';
+import { defineContract } from './defineContract.ts';
 import { makeMutations } from './makeMutations.ts';
-import { makeContractVersion } from './makeVersion.ts';
+import { makeContractVersion } from './makeContractVersion.ts';
 
-const ServiceProductModel = makeModel({
+const ServiceProductModel = defineModel({
   name: 'serviceProduct',
   abbreviation: 'sprd',
 });
@@ -35,7 +36,7 @@ const ServiceProductReplica = makeReplica({
 });
 
 const createServiceProduct = makeContractVersion(
-  defineCommand('createServiceProduct'),
+  defineContract('createServiceProduct'),
   {
     payload: {
       id: primitives.foreignKey({
@@ -56,7 +57,7 @@ const createServiceProduct = makeContractVersion(
 );
 
 const replicateServiceProduct = makeContractVersion(
-  defineCommand('replicateServiceProduct'),
+  defineContract('replicateServiceProduct'),
   {
     payload: {
       product: primitives.json({ schema: ServiceProduct.resourceSchema }),
@@ -77,7 +78,7 @@ describe('makeMutations', () => {
       () =>
         Effect.gen(function* () {
           const contract = makeContractVersion(
-            defineCommand('createOwnedProduct'),
+            defineContract('createOwnedProduct'),
             {
               payload: {},
               models: { serviceProduct: ServiceProduct },
@@ -203,7 +204,7 @@ describe('makeMutations', () => {
     it.effect('normalizes a single mutation object', () =>
       Effect.gen(function* () {
         const createSingleList = makeContractVersion(
-          defineCommand('createSingleList'),
+          defineContract('createSingleList'),
           {
             payload: createList.payload,
             models: { list: List },
@@ -246,7 +247,7 @@ describe('makeMutations', () => {
     it.effect('preserves Schema.Tuple mutation declaration order', () =>
       Effect.gen(function* () {
         const tupleContract = makeContractVersion(
-          defineCommand('replaceListsInTupleOrder'),
+          defineContract('replaceListsInTupleOrder'),
           {
             payload: {
               firstId: primitives.foreignKey({
@@ -306,7 +307,7 @@ describe('makeMutations', () => {
     it.effect('preserves Schema.Array mutation declaration order', () =>
       Effect.gen(function* () {
         const arrayContract = makeContractVersion(
-          defineCommand('deleteListsInArrayOrder'),
+          defineContract('deleteListsInArrayOrder'),
           {
             payload: {
               firstId: primitives.foreignKey({
@@ -353,7 +354,7 @@ describe('makeMutations', () => {
       () =>
         Effect.gen(function* () {
           const invalidOutputContract = makeContractVersion(
-            defineCommand('invalidCreateOutput'),
+            defineContract('invalidCreateOutput'),
             {
               payload: {
                 id: primitives.foreignKey({
@@ -391,7 +392,7 @@ describe('makeMutations', () => {
 
     it.effect('flattens a mutations-null contract to no mutations', () =>
       Effect.gen(function* () {
-        const nullContract = makeContractVersion(defineCommand('readList'), {
+        const nullContract = makeContractVersion(defineContract('readList'), {
           payload: {
             id: primitives.foreignKey({
               abbreviation: ListModel.abbreviation,
@@ -450,7 +451,7 @@ describe('makeMutations', () => {
     it.effect('rejects ordinary mutations on replica models', () =>
       Effect.gen(function* () {
         const createServiceProductReplica = makeContractVersion(
-          defineCommand('createServiceProduct'),
+          defineContract('createServiceProduct'),
           {
             payload: createServiceProduct.payload,
             models: { serviceProductReplica: ServiceProductReplica },

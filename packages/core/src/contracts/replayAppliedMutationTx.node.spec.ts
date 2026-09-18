@@ -9,7 +9,8 @@ import { makeResourceDbConfig } from '../drizzle/makeDbConfig.ts';
 import { makeProvisionedInMemorySqljsDb } from '../drizzle/makeProvisionedInMemorySqljsDb.ts';
 import { makeTx } from '../drizzle/makeTx.ts';
 import type { IDbConfig, ITx } from '../drizzle/types.ts';
-import { makeModel, makeModelVersion } from '../models/makeModel.ts';
+import { defineModel } from '../models/defineModel.ts';
+import { makeModelVersion } from '../models/makeModelVersion.ts';
 import { makeReplica } from '../models/makeReplica.ts';
 
 import { encodeAppliedMutation } from './encodeAppliedMutation.ts';
@@ -24,7 +25,7 @@ describe('replayAppliedMutationTx', () => {
   it.effect('replays an exact model version and preserves provenance', () =>
     Effect.gen(function* () {
       const SourceTodo = makeModelVersion(
-        makeModel({ name: 'todo', abbreviation: 'todo' }),
+        defineModel({ name: 'todo', abbreviation: 'todo' }),
         {
           version: '1.0.0',
           attributes: { title: primitives.text() },
@@ -32,7 +33,7 @@ describe('replayAppliedMutationTx', () => {
         },
       );
       const DestinationTodo = makeModelVersion(
-        makeModel({ name: 'todo', abbreviation: 'todo' }),
+        defineModel({ name: 'todo', abbreviation: 'todo' }),
         {
           version: '1.0.0',
           attributes: { title: primitives.text() },
@@ -105,7 +106,7 @@ describe('replayAppliedMutationTx', () => {
   it.effect('replays an exact replica model version', () =>
     Effect.gen(function* () {
       const SourceTodo = makeModelVersion(
-        makeModel({ name: 'todo', abbreviation: 'todo' }),
+        defineModel({ name: 'todo', abbreviation: 'todo' }),
         {
           version: '1.0.0',
           attributes: { title: primitives.text() },
@@ -118,7 +119,7 @@ describe('replayAppliedMutationTx', () => {
         serviceName: 'todos',
       });
       const DestinationTodo = makeModelVersion(
-        makeModel({ name: 'todo', abbreviation: 'todo' }),
+        defineModel({ name: 'todo', abbreviation: 'todo' }),
         {
           version: '1.0.0',
           attributes: { title: primitives.text() },
@@ -223,7 +224,7 @@ describe('replayAppliedMutationTx', () => {
   it.effect('rejects unavailable model versions and malformed operations', () =>
     Effect.gen(function* () {
       const Todo = makeModelVersion(
-        makeModel({ name: 'todo', abbreviation: 'todo' }),
+        defineModel({ name: 'todo', abbreviation: 'todo' }),
         {
           version: '1.0.0',
           attributes: { title: primitives.text() },

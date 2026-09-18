@@ -7,10 +7,7 @@ export const AggregateFrontendLockSchema = Schema.Struct({
   systemName: Schema.String,
   frontendName: Schema.String,
   authentication: Schema.Struct({
-    signatureJsonSchema: Schema.Unknown,
     authenticationJsonSchema: Schema.Unknown,
-    selectionJsonSchema: Schema.Unknown,
-    pattern: Schema.String,
   }),
   models: Schema.Record(
     Schema.String,
@@ -97,16 +94,9 @@ export const makeAggregateFrontendLock = (props: {
     systemName: frontend.systemName,
     frontendName: frontend.name,
     authentication: {
-      signatureJsonSchema: Schema.toJsonSchemaDocument(
-        frontend.authentication.signatureSchema,
-      ),
       authenticationJsonSchema: Schema.toJsonSchemaDocument(
         frontend.authentication.authenticationSchema,
       ),
-      selectionJsonSchema: Schema.toJsonSchemaDocument(
-        frontend.authentication.selectionSchema,
-      ),
-      pattern: frontend.authentication.pattern.source,
     },
     models,
     contracts,

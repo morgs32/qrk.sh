@@ -5,13 +5,14 @@ import {
 import { primitives } from '@zerospin/schema';
 import { assert, type Equals } from 'tsafe';
 
-import { makeModel, makeModelVersion } from '../models/makeModel.ts';
+import { defineModel } from '../models/defineModel.ts';
+import { makeModelVersion } from '../models/makeModelVersion.ts';
 import { makeService } from '../service/makeService.ts';
 
 import { makeFrontendController } from './makeFrontendController.ts';
 import type { IServiceFrontend } from './types.ts';
 
-const product = makeModel({ name: 'product', abbreviation: 'prd' });
+const product = defineModel({ name: 'product', abbreviation: 'prd' });
 const productV1 = makeModelVersion(product, {
   version: '1.0.0',
   attributes: { label: primitives.text() },
@@ -23,14 +24,15 @@ const productV2 = makeModelVersion(product, {
   indexes: [],
 });
 const appV1 = makeService({
-  authentication: authenticationFixtureOwner.authentication,
+  ...authenticationFixtureOwner.authentication,
   name: 'app',
   version: '1.0.0',
   models: { product: productV1 },
   contracts: {},
 });
 const frontend = makeFrontendController({
-  authentication: authenticationFixtureFrontend.authentication,
+  authenticationSchema:
+    authenticationFixtureFrontend.authentication.authenticationSchema,
   serviceVersion: '1.0.0',
   systemName: 'shopping',
   serviceName: 'app',
@@ -44,7 +46,8 @@ assert<Equals<typeof frontend.serviceName, 'app'>>();
 assert<Equals<typeof frontend.models.product, typeof productV1>>();
 
 makeFrontendController({
-  authentication: authenticationFixtureFrontend.authentication,
+  authenticationSchema:
+    authenticationFixtureFrontend.authentication.authenticationSchema,
   serviceVersion: '1.0.0',
   systemName: 'shopping',
   serviceName: 'app',
@@ -53,7 +56,8 @@ makeFrontendController({
 }) satisfies IServiceFrontend<typeof appV1>;
 
 const wrongName = makeFrontendController({
-  authentication: authenticationFixtureFrontend.authentication,
+  authenticationSchema:
+    authenticationFixtureFrontend.authentication.authenticationSchema,
   serviceVersion: '1.0.0',
   systemName: 'shopping',
   name: 'catalog',
@@ -63,7 +67,8 @@ const wrongName = makeFrontendController({
 // @ts-expect-error The service name must match.
 wrongName satisfies IServiceFrontend<typeof appV1>;
 const wrongModels = makeFrontendController({
-  authentication: authenticationFixtureFrontend.authentication,
+  authenticationSchema:
+    authenticationFixtureFrontend.authentication.authenticationSchema,
   serviceVersion: '1.0.0',
   systemName: 'shopping',
   serviceName: 'app',
@@ -73,7 +78,7 @@ const wrongModels = makeFrontendController({
 // @ts-expect-error The model definition must match the service.
 wrongModels satisfies IServiceFrontend<typeof appV1>;
 const other = makeModelVersion(
-  makeModel({ name: 'other', abbreviation: 'oth' }),
+  defineModel({ name: 'other', abbreviation: 'oth' }),
   {
     version: '1.0.0',
     attributes: { label: primitives.text() },
@@ -81,7 +86,8 @@ const other = makeModelVersion(
   },
 );
 const extraModels = makeFrontendController({
-  authentication: authenticationFixtureFrontend.authentication,
+  authenticationSchema:
+    authenticationFixtureFrontend.authentication.authenticationSchema,
   serviceVersion: '1.0.0',
   systemName: 'shopping',
   serviceName: 'app',
@@ -92,7 +98,8 @@ const extraModels = makeFrontendController({
 extraModels satisfies IServiceFrontend<typeof appV1>;
 
 const wrongVersion = makeFrontendController({
-  authentication: authenticationFixtureFrontend.authentication,
+  authenticationSchema:
+    authenticationFixtureFrontend.authentication.authenticationSchema,
   systemName: 'shopping',
   serviceName: 'app',
   serviceVersion: '2.0.0',

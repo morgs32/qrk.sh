@@ -2,12 +2,13 @@ import { primitives } from '@zerospin/schema';
 import { assert, type Equals } from 'tsafe';
 import { describe, expect, it } from 'vitest';
 
-import { makeModel, makeModelVersion } from './makeModel.ts';
+import { defineModel } from './defineModel.ts';
+import { makeModelVersion } from './makeModelVersion.ts';
 import { makeRelations } from './makeRelations.ts';
 import { makeReplica } from './makeReplica.ts';
 
 const User = makeModelVersion(
-  makeModel({ name: 'user', abbreviation: 'usr' }),
+  defineModel({ name: 'user', abbreviation: 'usr' }),
   {
     attributes: {
       name: primitives.text(),
@@ -18,7 +19,7 @@ const User = makeModelVersion(
 );
 
 const List = makeModelVersion(
-  makeModel({ name: 'list', abbreviation: 'lst' }),
+  defineModel({ name: 'list', abbreviation: 'lst' }),
   {
     attributes: {
       name: primitives.text(),
@@ -34,7 +35,7 @@ const List = makeModelVersion(
 );
 
 const Item = makeModelVersion(
-  makeModel({ name: 'item', abbreviation: 'itm' }),
+  defineModel({ name: 'item', abbreviation: 'itm' }),
   {
     attributes: {
       listId: primitives.ref({
@@ -55,7 +56,7 @@ const models = {
 };
 
 const ProductSource = makeModelVersion(
-  makeModel({ name: 'product', abbreviation: 'prd' }),
+  defineModel({ name: 'product', abbreviation: 'prd' }),
   {
     attributes: {
       name: primitives.text(),
@@ -66,7 +67,7 @@ const ProductSource = makeModelVersion(
 );
 
 const CartItemSource = makeModelVersion(
-  makeModel({ name: 'cartItem', abbreviation: 'cit' }),
+  defineModel({ name: 'cartItem', abbreviation: 'cit' }),
   {
     attributes: {
       productId: primitives.ref({
@@ -181,7 +182,7 @@ describe('makeRelations', () => {
 
   it('rejects same-name source tables that are not the exact replica source', () => {
     const UnrelatedProductSource = makeModelVersion(
-      makeModel({ name: 'product', abbreviation: 'prd' }),
+      defineModel({ name: 'product', abbreviation: 'prd' }),
       {
         attributes: {
           name: primitives.text(),
@@ -191,7 +192,7 @@ describe('makeRelations', () => {
       },
     );
     const UnrelatedCartItemSource = makeModelVersion(
-      makeModel({ name: 'cartItem', abbreviation: 'cit' }),
+      defineModel({ name: 'cartItem', abbreviation: 'cit' }),
       {
         attributes: {
           productId: primitives.ref({

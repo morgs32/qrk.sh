@@ -21,7 +21,8 @@ import { systemWorkerAbbreviations } from '../systemWorkerAbbreviations.js';
 
 import { appendLogRow } from './appendLogRow/appendLogRow.js';
 import { appendTelemetryBatch } from './appendTelemetryBatch/appendTelemetryBatch.js';
-import { beginAuthenticationAttempt } from './beginAuthenticationAttempt/beginAuthenticationAttempt.js';
+import { beginAggregateAuthenticationAttempt } from './beginAggregateAuthenticationAttempt/beginAggregateAuthenticationAttempt.js';
+import { beginServiceAuthenticationAttempt } from './beginServiceAuthenticationAttempt/beginServiceAuthenticationAttempt.js';
 import { completeAuthenticationAttempt } from './completeAuthenticationAttempt/completeAuthenticationAttempt.js';
 import { getSystemLogRows } from './getSystemLogRows/getSystemLogRows.js';
 import { systemLogRepoDbConfig } from './systemLogRepoDbConfig.js';
@@ -40,11 +41,26 @@ export class SystemLogRepo extends makeFixedDORepo({
 }) {
   static override readonly fixedDORepoConfig = systemLogFixedDORepoConfig;
 
-  async beginAuthenticationAttempt(
-    props: Omit<Parameters<typeof beginAuthenticationAttempt>[0], 'db'>,
+  async beginAggregateAuthenticationAttempt(
+    props: Omit<
+      Parameters<typeof beginAggregateAuthenticationAttempt>[0],
+      'db'
+    >,
   ) {
     return managedRuntime.runPromise(
-      beginAuthenticationAttempt({ ...props, db: this.db }).pipe(encodeRpc),
+      beginAggregateAuthenticationAttempt({ ...props, db: this.db }).pipe(
+        encodeRpc,
+      ),
+    );
+  }
+
+  async beginServiceAuthenticationAttempt(
+    props: Omit<Parameters<typeof beginServiceAuthenticationAttempt>[0], 'db'>,
+  ) {
+    return managedRuntime.runPromise(
+      beginServiceAuthenticationAttempt({ ...props, db: this.db }).pipe(
+        encodeRpc,
+      ),
     );
   }
 

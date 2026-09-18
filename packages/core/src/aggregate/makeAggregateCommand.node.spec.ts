@@ -3,8 +3,8 @@ import { primitives } from '@zerospin/schema';
 import { Effect, Layer } from 'effect';
 import { describe, expect } from 'vitest';
 
-import { defineCommand } from '../contracts/Command.ts';
-import { makeContractVersion } from '../contracts/makeVersion.ts';
+import { defineContract } from '../contracts/defineContract.ts';
+import { makeContractVersion } from '../contracts/makeContractVersion.ts';
 import { makePrefixedIncrementalIdFactory } from '../test-utils/makePrefixedIncrementalIdFactory.ts';
 import { TraceLoggerLayer } from '../test-utils/TraceLoggerLayer.ts';
 import { ErrorLayer } from '../utils/ErrorLayer.ts';
@@ -12,7 +12,7 @@ import { makeAggregateId } from '../utils/makeAggregateId.ts';
 
 import { makeAggregateCommand } from './makeAggregateCommand.ts';
 
-const renameUser = makeContractVersion(defineCommand('renameUser'), {
+const renameUser = makeContractVersion(defineContract('renameUser'), {
   version: '1.0.0',
   payload: { name: primitives.text() },
 });

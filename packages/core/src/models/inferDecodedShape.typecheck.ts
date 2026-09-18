@@ -1,10 +1,11 @@
 import { primitives, type InferDecodedRow } from '@zerospin/schema';
 import { assert, type Equals } from 'tsafe';
 
-import { makeModel, makeModelVersion } from './makeModel.ts';
+import { defineModel } from './defineModel.ts';
+import { makeModelVersion } from './makeModelVersion.ts';
 import type { InferCommandPayload, InferPayloadInput } from './types.ts';
 
-const WidgetModel = makeModel({ name: 'widget', abbreviation: 'wdg' });
+const WidgetModel = defineModel({ name: 'widget', abbreviation: 'wdg' });
 
 const _Widget = makeModelVersion(WidgetModel, {
   attributes: {

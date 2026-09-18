@@ -19,12 +19,7 @@ import { productV1 } from '@/zerospin/services/app/models/product/ProductV1';
 import { system } from '@/zerospin/system';
 
 const WebV2 = makeFrontendController({
-  authentication: {
-    signatureSchema: shopperV2.authentication.signatureSchema,
-    authenticationSchema: shopperV2.authentication.authenticationSchema,
-    selectionSchema: shopperV2.authentication.selectionSchema,
-    pattern: shopperV2.authentication.pattern,
-  },
+  authenticationSchema: shopperV2.authentication.authenticationSchema,
   guardLayer: shopperV2.guardLayer,
   systemName: 'shopping',
   aggregateName: shopperV2.name,
@@ -128,17 +123,18 @@ describe('basicFlow1: static shopping system workerd flow', () => {
           );
 
           const frontendApi = yield* makeAsync(() =>
-            gatewayApi.getAggregateFrontendApi({
-              publishableKey: 'pk_test',
-              systemName: system.name,
-
-              signature: { clerkUserId },
-
-              aggregateName: WebV2.aggregateName,
-              aggregateVersion: WebV2.aggregateVersion,
-              frontendName: WebV2.name,
-              aggregateFrontendLock: shopperAggregateFrontendLock,
-            }),
+            gatewayApi
+              .aggregate({
+                publishableKey: 'pk_test',
+                systemName: system.name,
+                name: WebV2.aggregateName,
+                version: WebV2.aggregateVersion,
+              })
+              .authenticate({ signature: { clerkUserId } })
+              .authorize({
+                frontendName: WebV2.name,
+                aggregateFrontendLock: shopperAggregateFrontendLock,
+              }),
           );
           const state = yield* makeAsync(() =>
             frontendApi.getState({
@@ -152,15 +148,18 @@ describe('basicFlow1: static shopping system workerd flow', () => {
           const repeated = yield* Effect.all(
             [0, 1, 2].map(() =>
               makeAsync(async () => {
-                const api = await gatewayApi.getAggregateFrontendApi({
-                  publishableKey: 'pk_test',
-                  systemName: system.name,
-                  signature: { clerkUserId },
-                  aggregateName: WebV2.aggregateName,
-                  aggregateVersion: WebV2.aggregateVersion,
-                  frontendName: WebV2.name,
-                  aggregateFrontendLock: shopperAggregateFrontendLock,
-                });
+                const api = await gatewayApi
+                  .aggregate({
+                    publishableKey: 'pk_test',
+                    systemName: system.name,
+                    name: WebV2.aggregateName,
+                    version: WebV2.aggregateVersion,
+                  })
+                  .authenticate({ signature: { clerkUserId } })
+                  .authorize({
+                    frontendName: WebV2.name,
+                    aggregateFrontendLock: shopperAggregateFrontendLock,
+                  });
                 return api.getState({
                   traceContext: null,
                   args: [{ outstandingCommandIds: [] }],

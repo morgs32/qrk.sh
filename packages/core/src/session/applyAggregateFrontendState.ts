@@ -56,9 +56,18 @@ export const applyAggregateFrontendState = Effect.fn(
     }),
   );
 
+  const encodedAuthentication = yield* Schema.encodeEffect(
+    frontend.authentication.authenticationSchema,
+  )(frontendState.authentication).pipe(
+    mapParseError({
+      code: 'frontend-authentication-invalid',
+      prefix: 'Invalid frontend state authentication',
+    }),
+  );
+
   if (
     frontendState.aggregateId !== aggregateId ||
-    !isEqual(frontendState.authentication, authentication) ||
+    !isEqual(encodedAuthentication, authentication) ||
     frontendState.systemId !== systemId ||
     frontendState.aggregateName !== frontend.aggregateName ||
     frontendState.frontendName !== frontend.name ||

@@ -17,18 +17,6 @@ export function resolveSystemService(props: {
   )(service);
 
   Schema.decodeUnknownSync(
-    Schema.Record(
-      Schema.String,
-      Schema.Struct({
-        controller: Schema.Struct({
-          systemName: Schema.Literal(name),
-        }),
-      }),
-    ),
-    { onExcessProperty: 'ignore' },
-  )(service.frontends);
-
-  Schema.decodeUnknownSync(
     Schema.Unknown.check(
       Schema.makeFilter(() => {
         for (const [modelName, model] of Object.entries(service.models)) {

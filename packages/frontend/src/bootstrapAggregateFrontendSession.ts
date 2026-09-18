@@ -34,6 +34,7 @@ import type {
 } from '@zerospin/core/session/types';
 import type { ISystemId } from '@zerospin/core/system/types';
 import {
+  mapParseError,
   ZerospinError,
   type IAnyError,
   type IAnyErrorJson,
@@ -198,7 +199,14 @@ export const bootstrapAggregateFrontendSession = Effect.fn(
   }).pipe(Effect.result);
   if (Result.isSuccess(initial)) {
     systemId = initial.success.systemId;
-    authentication = initial.success.authentication;
+    authentication = yield* Schema.encodeEffect(
+      frontend.authentication.authenticationSchema,
+    )(initial.success.authentication).pipe(
+      mapParseError({
+        code: 'frontend-authentication-invalid',
+        prefix: 'Invalid decoded authentication',
+      }),
+    );
     aggregateId = initial.success.aggregateId;
     const authenticationKeys = new Set<string>();
     const authenticationValues: unknown[] = [authentication];
@@ -621,9 +629,17 @@ export const bootstrapAggregateFrontendSession = Effect.fn(
                   frontendName: frontend.name,
                   aggregateFrontendLock,
                 });
+                const recoveredAuthentication = yield* Schema.encodeEffect(
+                  frontend.authentication.authenticationSchema,
+                )(recoveryState.authentication).pipe(
+                  mapParseError({
+                    code: 'frontend-authentication-invalid',
+                    prefix: 'Invalid recovered authentication',
+                  }),
+                );
                 const authenticationKeys = new Set<string>();
                 const authenticationValues: unknown[] = [
-                  recoveryState.authentication,
+                  recoveredAuthentication,
                 ];
                 while (authenticationValues.length > 0) {
                   const value = authenticationValues.pop();
@@ -642,7 +658,7 @@ export const bootstrapAggregateFrontendSession = Effect.fn(
                       'SHA-256',
                       new TextEncoder().encode(
                         JSON.stringify(
-                          recoveryState.authentication,
+                          recoveredAuthentication,
                           [...authenticationKeys].sort(),
                         ),
                       ),
@@ -665,7 +681,7 @@ export const bootstrapAggregateFrontendSession = Effect.fn(
                       'Current authentication belongs to a different backup',
                   });
                 }
-                authentication = recoveryState.authentication;
+                authentication = recoveredAuthentication;
                 const ticket = yield* createAggregateFrontendWebSocketTicket({
                   aggregateVersion: props.aggregateVersion,
                   apiUrl,
@@ -1427,7 +1443,14 @@ export const bootstrapAggregateFrontendSession = Effect.fn(
   // The controls read the current ownership period each time; mounted callers retain them.
   return {
     systemId,
-    authentication,
+    authentication: yield* Schema.decodeUnknownEffect(
+      frontend.authentication.authenticationSchema,
+    )(authentication).pipe(
+      mapParseError({
+        code: 'frontend-authentication-invalid',
+        prefix: 'Invalid persisted authentication',
+      }),
+    ),
     aggregateFrontendLockKey,
     executeAggregateFrontendCommand: ({ command }) =>
       Effect.gen(function* () {

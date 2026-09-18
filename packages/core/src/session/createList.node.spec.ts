@@ -8,8 +8,8 @@ import { Effect, Exit, Layer, ManagedRuntime, Result, Scope } from 'effect';
 import { afterAll, describe, expect } from 'vitest';
 
 import { AsyncLive } from '../async/AsyncLive.ts';
-import { defineCommand } from '../contracts/Command.ts';
-import { makeContractVersion } from '../contracts/makeVersion.ts';
+import { defineContract } from '../contracts/defineContract.ts';
+import { makeContractVersion } from '../contracts/makeContractVersion.ts';
 import { makeResourceDbConfig } from '../drizzle/makeDbConfig.ts';
 import { makeProvisionedInMemoryWasmSqliteDb } from '../drizzle/makeProvisionedInMemoryWasmSqliteDb.ts';
 import {
@@ -57,7 +57,7 @@ const TestLayer = Layer.mergeAll(
 
 const now = new Date('2026-01-01T00:00:00.000Z');
 
-const rejectList = makeContractVersion(defineCommand('rejectList'), {
+const rejectList = makeContractVersion(defineContract('rejectList'), {
   payload: {
     id: primitives.foreignKey({ abbreviation: ListModel.abbreviation }),
     name: List.propertiesShape.name,
@@ -74,7 +74,7 @@ const rejectList = makeContractVersion(defineCommand('rejectList'), {
 });
 
 const rejectingFrontend = makeFrontendController({
-  authentication: authenticationFixtureFrontend.authentication,
+  authenticationSchema: authenticationFixtureFrontend.authentication.authenticationSchema,
   aggregateVersion: '1.0.0',
   contracts: { rejectList: { contract: rejectList } },
   aggregateName: main.aggregateName,

@@ -3,7 +3,8 @@ import { primitives } from '@zerospin/schema';
 import { Effect, Schema } from 'effect';
 
 import { User } from '../fixtures/system.ts';
-import { makeModel, makeModelVersion } from '../models/makeModel.ts';
+import { defineModel } from '../models/defineModel.ts';
+import { makeModelVersion } from '../models/makeModelVersion.ts';
 import { prefixId } from '../models/prefixId.ts';
 
 import { makeModelMutations } from './makeModelMutations.ts';
@@ -46,7 +47,7 @@ describe('createMutation', () => {
 it.effect('creates a mutation with decoded JSON attributes', () =>
   Effect.gen(function* () {
     const member = makeModelVersion(
-      makeModel({ name: 'member', abbreviation: 'mem' }),
+      defineModel({ name: 'member', abbreviation: 'mem' }),
       {
         version: '1.0.0',
         indexes: [],

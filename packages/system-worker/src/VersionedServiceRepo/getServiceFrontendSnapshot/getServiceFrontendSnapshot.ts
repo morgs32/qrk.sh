@@ -44,13 +44,6 @@ export const getServiceFrontendSnapshot = Effect.fn(
     recordKind: 'listed versions',
   });
 
-  // 2 — require the requested service.frontends binding
-  yield* getByKeyOrThrow({
-    record: service.frontends,
-    key: frontendName,
-    recordKind: `frontends owned by service ${serviceName}`,
-  });
-
   // 3 — validate each persisted row as EncodedResourceSchema
   const resources: IEncodedResourceShape[] = [];
   for (const model of Object.values(service.models)) {

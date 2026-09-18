@@ -52,7 +52,7 @@ Keyword → pattern file routing. Code shows good; `@bad` JSDoc tags document an
 | Keywords                                 | File                                                   |
 | ---------------------------------------- | ------------------------------------------------------ |
 | Effect.all program                       | `contracts/contract-program-effect-all.ts`             |
-| makeVersion mutation only                | `contracts/make-contract-mutation-only-return.ts`      |
+| makeContractVersion mutation only        | `contracts/make-contract-mutation-only-return.ts`      |
 | registry model scope, contract mutations | `contracts/contract-mutations-stay-in-owner-models.ts` |
 | IEncodedCommand boundary                 | `contracts/iencoded-command-at-boundary-only.ts`       |
 | omit program payload-only                | `contracts/omit-program-not-dummy-yields.ts`           |

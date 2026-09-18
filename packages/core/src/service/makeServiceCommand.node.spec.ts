@@ -3,9 +3,10 @@ import { primitives } from '@zerospin/schema';
 import { Effect, Layer } from 'effect';
 import { describe, expect } from 'vitest';
 
-import { defineCommand } from '../contracts/Command.ts';
-import { makeContractVersion } from '../contracts/makeVersion.ts';
-import { makeModel, makeModelVersion } from '../models/makeModel.ts';
+import { defineContract } from '../contracts/defineContract.ts';
+import { makeContractVersion } from '../contracts/makeContractVersion.ts';
+import { defineModel } from '../models/defineModel.ts';
+import { makeModelVersion } from '../models/makeModelVersion.ts';
 import { prefixId } from '../models/prefixId.ts';
 import { makePrefixedIncrementalIdFactory } from '../test-utils/makePrefixedIncrementalIdFactory.ts';
 import { TraceLoggerLayer } from '../test-utils/TraceLoggerLayer.ts';
@@ -13,7 +14,7 @@ import { ErrorLayer } from '../utils/ErrorLayer.ts';
 
 import { makeServiceCommand } from './makeServiceCommand.ts';
 
-const ProductModel = makeModel({ name: 'product', abbreviation: 'prd' });
+const ProductModel = defineModel({ name: 'product', abbreviation: 'prd' });
 
 const Product = makeModelVersion(ProductModel, {
   attributes: {
@@ -24,7 +25,7 @@ const Product = makeModelVersion(ProductModel, {
   version: '1.0.0',
 });
 
-const createProduct = makeContractVersion(defineCommand('createProduct'), {
+const createProduct = makeContractVersion(defineContract('createProduct'), {
   payload: {
     id: primitives.foreignKey({ abbreviation: ProductModel.abbreviation }),
     name: primitives.text(),

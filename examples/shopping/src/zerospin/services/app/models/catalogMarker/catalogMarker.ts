@@ -4,7 +4,7 @@ import * as sdk from '@zerospin/sdk/browser';
 // workerd acceptance flow mutates it to prove an irrelevant service change
 // advances the source serviceIndex without allocating a finalized frontend
 // index.
-export const catalogMarker = sdk.makeModel({
+export const catalogMarker = sdk.defineModel({
   name: 'catalogMarker',
   abbreviation: 'cmk',
 });

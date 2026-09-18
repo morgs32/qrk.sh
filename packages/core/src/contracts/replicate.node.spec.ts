@@ -8,7 +8,8 @@ import { makeResourceDbConfig } from '../drizzle/makeDbConfig.ts';
 import { makeProvisionedInMemorySqljsDb } from '../drizzle/makeProvisionedInMemorySqljsDb.ts';
 import { makeTx } from '../drizzle/makeTx.ts';
 import type { IDbConfig, ITx } from '../drizzle/types.ts';
-import { makeModel, makeModelVersion } from '../models/makeModel.ts';
+import { defineModel } from '../models/defineModel.ts';
+import { makeModelVersion } from '../models/makeModelVersion.ts';
 import { makeReplica } from '../models/makeReplica.ts';
 import { requireVersion as requireModelVersion } from '../models/requireVersion.ts';
 import type { IModelReplica } from '../models/types.ts';
@@ -20,7 +21,7 @@ import { encodeAppliedMutation } from './encodeAppliedMutation.ts';
 import { makeModelMutations } from './makeModelMutations.ts';
 
 const SourceUser = makeModelVersion(
-  makeModel({ name: 'user', abbreviation: 'usr' }),
+  defineModel({ name: 'user', abbreviation: 'usr' }),
   {
     attributes: {
       userId: primitives.foreignKey({ abbreviation: 'uid', unique: true }),

@@ -1,8 +1,8 @@
 import { RoutePattern } from '@remix-run/route-pattern';
-import { makeAggregate } from '@zerospin/core/aggregate/makeAggregate';
-import { makeAggregateVersion } from '@zerospin/core/aggregate/makeVersion';
-import { defineCommand } from '@zerospin/core/contracts/Command';
-import { makeContractVersion } from '@zerospin/core/contracts/makeVersion';
+import { defineAggregate } from '@zerospin/core/aggregate/defineAggregate';
+import { makeAggregateVersion } from '@zerospin/core/aggregate/makeAggregateVersion';
+import { defineContract } from '@zerospin/core/contracts/defineContract';
+import { makeContractVersion } from '@zerospin/core/contracts/makeContractVersion';
 import type { InferCommand } from '@zerospin/core/contracts/types';
 import type { IDb, IResourceDbConfig } from '@zerospin/core/drizzle/types';
 /*
@@ -12,8 +12,9 @@ import type { IDb, IResourceDbConfig } from '@zerospin/core/drizzle/types';
  */
 import { getFrontendDbModels } from '@zerospin/core/frontendController/getFrontendDbModels';
 import { makeFrontendController } from '@zerospin/core/frontendController/makeFrontendController';
-import { makeModelIdSchema } from '@zerospin/core/models/makeIdSchema';
-import { makeModel, makeModelVersion } from '@zerospin/core/models/makeModel';
+import { defineModel } from '@zerospin/core/models/defineModel';
+import { makeModelIdSchema } from '@zerospin/core/models/makeModelIdSchema';
+import { makeModelVersion } from '@zerospin/core/models/makeModelVersion';
 import { makeReplica } from '@zerospin/core/models/makeReplica';
 import { makeSelection } from '@zerospin/core/models/makeSelection';
 import type { IAggregateId } from '@zerospin/core/models/types';
@@ -24,7 +25,7 @@ import { mapParseError, ZerospinError } from '@zerospin/error';
 import { primitives } from '@zerospin/schema';
 import { Effect, Schema } from 'effect';
 
-const UserModel = makeModel({ name: 'user', abbreviation: 'usr' });
+const UserModel = defineModel({ name: 'user', abbreviation: 'usr' });
 
 const User = makeModelVersion(UserModel, {
   attributes: {
@@ -35,7 +36,7 @@ const User = makeModelVersion(UserModel, {
 });
 
 const Account = makeModelVersion(
-  makeModel({ name: 'account', abbreviation: 'acct' }),
+  defineModel({ name: 'account', abbreviation: 'acct' }),
   {
     attributes: {
       name: primitives.text(),
@@ -45,7 +46,7 @@ const Account = makeModelVersion(
   },
 );
 
-const ListModel = makeModel({ name: 'list', abbreviation: 'lst' });
+const ListModel = defineModel({ name: 'list', abbreviation: 'lst' });
 
 const List = makeModelVersion(ListModel, {
   attributes: {
@@ -60,7 +61,7 @@ const List = makeModelVersion(ListModel, {
   version: '1.0.0',
 });
 
-const ItemModel = makeModel({ name: 'item', abbreviation: 'tsk' });
+const ItemModel = defineModel({ name: 'item', abbreviation: 'tsk' });
 
 const Item = makeModelVersion(ItemModel, {
   attributes: {
@@ -75,7 +76,7 @@ const Item = makeModelVersion(ItemModel, {
   version: '1.0.0',
 });
 
-const ProductModel = makeModel({ name: 'product', abbreviation: 'prd' });
+const ProductModel = defineModel({ name: 'product', abbreviation: 'prd' });
 
 const Product = makeModelVersion(ProductModel, {
   attributes: {
@@ -91,7 +92,7 @@ const ProductReplica = makeReplica({
   serviceName: 'app',
 });
 
-const StockModel = makeModel({ name: 'stock', abbreviation: 'stk' });
+const StockModel = defineModel({ name: 'stock', abbreviation: 'stk' });
 
 const Stock = makeModelVersion(StockModel, {
   attributes: {
@@ -108,7 +109,7 @@ const StockReplica = makeReplica({
 });
 
 const Preference = makeModelVersion(
-  makeModel({ name: 'preference', abbreviation: 'pref' }),
+  defineModel({ name: 'preference', abbreviation: 'pref' }),
   {
     attributes: {
       settings: primitives.json({
@@ -121,7 +122,7 @@ const Preference = makeModelVersion(
 );
 
 const CatalogSettings = makeModelVersion(
-  makeModel({ name: 'catalogSettings', abbreviation: 'scfg' }),
+  defineModel({ name: 'catalogSettings', abbreviation: 'scfg' }),
   {
     attributes: {
       settings: primitives.json({
@@ -133,7 +134,7 @@ const CatalogSettings = makeModelVersion(
   },
 );
 
-const createUser = makeContractVersion(defineCommand('createUser'), {
+const createUser = makeContractVersion(defineContract('createUser'), {
   payload: {
     id: primitives.foreignKey({ abbreviation: UserModel.abbreviation }),
     name: primitives.text(),
@@ -158,7 +159,7 @@ const createUser = makeContractVersion(defineCommand('createUser'), {
   version: '1.0.0',
 });
 
-export const createList = makeContractVersion(defineCommand('createList'), {
+export const createList = makeContractVersion(defineContract('createList'), {
   /*
    * Exercises contract guard rejection before a fixture list mutation is accepted.
    *
@@ -206,7 +207,7 @@ export const createList = makeContractVersion(defineCommand('createList'), {
   version: '1.0.0',
 });
 
-const createItem = makeContractVersion(defineCommand('createItem'), {
+const createItem = makeContractVersion(defineContract('createItem'), {
   payload: {
     id: primitives.foreignKey({ abbreviation: ItemModel.abbreviation }),
     listId: primitives.foreignKey({ abbreviation: ListModel.abbreviation }),
@@ -238,7 +239,7 @@ const createItem = makeContractVersion(defineCommand('createItem'), {
   version: '1.0.0',
 });
 
-export const updateList = makeContractVersion(defineCommand('updateList'), {
+export const updateList = makeContractVersion(defineContract('updateList'), {
   /*
    * Exercises contract guard reads and delayed completion against fixture list state.
    *
@@ -317,7 +318,7 @@ export const updateList = makeContractVersion(defineCommand('updateList'), {
   version: '1.0.0',
 });
 
-export const renameList = makeContractVersion(defineCommand('renameList'), {
+export const renameList = makeContractVersion(defineContract('renameList'), {
   payload: {
     id: primitives.foreignKey({ abbreviation: ListModel.abbreviation }),
     name: primitives.text(),
@@ -341,7 +342,7 @@ export const renameList = makeContractVersion(defineCommand('renameList'), {
   version: '1.1.0',
 });
 
-const createProduct = makeContractVersion(defineCommand('createProduct'), {
+const createProduct = makeContractVersion(defineContract('createProduct'), {
   payload: {
     id: primitives.foreignKey({ abbreviation: ProductModel.abbreviation }),
     name: primitives.text(),
@@ -369,7 +370,7 @@ const createProduct = makeContractVersion(defineCommand('createProduct'), {
   version: '1.0.0',
 });
 
-const updateProduct = makeContractVersion(defineCommand('updateProduct'), {
+const updateProduct = makeContractVersion(defineContract('updateProduct'), {
   payload: {
     id: primitives.foreignKey({ abbreviation: ProductModel.abbreviation }),
     name: primitives.text(),
@@ -397,7 +398,7 @@ const updateProduct = makeContractVersion(defineCommand('updateProduct'), {
   version: '1.1.0',
 });
 
-const deleteProduct = makeContractVersion(defineCommand('deleteProduct'), {
+const deleteProduct = makeContractVersion(defineContract('deleteProduct'), {
   payload: {
     id: primitives.foreignKey({ abbreviation: ProductModel.abbreviation }),
   },
@@ -419,7 +420,7 @@ const deleteProduct = makeContractVersion(defineCommand('deleteProduct'), {
 });
 
 const replicateProduct = makeContractVersion(
-  defineCommand('replicateProduct'),
+  defineContract('replicateProduct'),
   {
     payload: {
       product: primitives.json({ schema: Product.resourceSchema }),
@@ -441,7 +442,7 @@ const replicateProduct = makeContractVersion(
 );
 
 const createListAndReplicateProduct = makeContractVersion(
-  defineCommand('createListAndReplicateProduct'),
+  defineContract('createListAndReplicateProduct'),
   {
     payload: {
       id: primitives.foreignKey({ abbreviation: ListModel.abbreviation }),
@@ -472,7 +473,7 @@ const createListAndReplicateProduct = makeContractVersion(
   },
 );
 
-const createStock = makeContractVersion(defineCommand('createStock'), {
+const createStock = makeContractVersion(defineContract('createStock'), {
   payload: {
     id: primitives.foreignKey({ abbreviation: StockModel.abbreviation }),
     quantity: primitives.integer(),
@@ -495,7 +496,7 @@ const createStock = makeContractVersion(defineCommand('createStock'), {
   version: '1.0.0',
 });
 
-const updateStock = makeContractVersion(defineCommand('updateStock'), {
+const updateStock = makeContractVersion(defineContract('updateStock'), {
   payload: {
     id: primitives.foreignKey({ abbreviation: StockModel.abbreviation }),
     quantity: primitives.integer(),
@@ -519,7 +520,7 @@ const updateStock = makeContractVersion(defineCommand('updateStock'), {
 });
 
 const replicateProductAndStock = makeContractVersion(
-  defineCommand('replicateProductAndStock'),
+  defineContract('replicateProductAndStock'),
   {
     payload: {
       product: primitives.json({ schema: Product.resourceSchema }),
@@ -542,7 +543,7 @@ const replicateProductAndStock = makeContractVersion(
   },
 );
 
-export const moveItem = makeContractVersion(defineCommand('moveItem'), {
+export const moveItem = makeContractVersion(defineContract('moveItem'), {
   payload: {
     id: primitives.foreignKey({ abbreviation: ItemModel.abbreviation }),
     prevListId: primitives.foreignKey({
@@ -577,7 +578,7 @@ export const moveItem = makeContractVersion(defineCommand('moveItem'), {
   version: '1.0.0',
 });
 
-export const deleteList = makeContractVersion(defineCommand('deleteList'), {
+export const deleteList = makeContractVersion(defineContract('deleteList'), {
   payload: {
     id: primitives.foreignKey({ abbreviation: ListModel.abbreviation }),
   },
@@ -604,18 +605,10 @@ export const deleteList = makeContractVersion(defineCommand('deleteList'), {
 });
 
 export const main = makeFrontendController({
-  authentication: {
-    signatureSchema: Schema.Struct({
-      userId: Schema.String,
-      aggregateId: Schema.String,
-    }),
-    authenticationSchema: Schema.Struct({
-      aggregateId: Schema.String,
-      userId: Schema.String,
-    }),
-    selectionSchema: Schema.Struct({ userId: Schema.String }),
-    pattern: RoutePattern.parse('/:userId'),
-  },
+  authenticationSchema: Schema.Struct({
+    aggregateId: Schema.String,
+    userId: Schema.String,
+  }),
   aggregateVersion: '1.0.0',
   contracts: {
     createList: {
@@ -650,13 +643,8 @@ export const main = makeFrontendController({
 
 export const mainModels = getFrontendDbModels(main);
 
-const products = makeFrontendController({
-  authentication: {
-    signatureSchema: Schema.Struct({ userId: Schema.String }),
-    authenticationSchema: Schema.Struct({ userId: Schema.String }),
-    selectionSchema: Schema.Struct({ userId: Schema.String }),
-    pattern: RoutePattern.parse('/:userId'),
-  },
+export const products = makeFrontendController({
+  authenticationSchema: Schema.Struct({ userId: Schema.String }),
   systemName: 'system-worker',
   serviceVersion: '1.0.0',
   serviceName: 'app',
@@ -665,13 +653,11 @@ const products = makeFrontendController({
 });
 
 const app = makeService({
-  authentication: {
-    signatureSchema: Schema.Struct({ userId: Schema.String }),
-    authenticationSchema: Schema.Struct({ userId: Schema.String }),
-    selectionSchema: Schema.Struct({ userId: Schema.String }),
-    pattern: RoutePattern.parse('/:userId'),
-    authenticate: ({ signature }) => Effect.succeed(signature),
-  },
+  signatureSchema: Schema.Struct({ userId: Schema.String }),
+  authenticationSchema: Schema.Struct({ userId: Schema.String }),
+  selectionSchema: Schema.Struct({ userId: Schema.String }),
+  pattern: RoutePattern.parse('/:userId'),
+  authenticate: ({ signature }) => Effect.succeed(signature),
   name: 'app',
   version: '1.0.0',
   /*
@@ -681,7 +667,7 @@ const app = makeService({
    * 2. Exercise the products read.
    */
   authorize: (props: {
-    frontendName: 'products';
+    frontendName: string;
     authentication: Readonly<Record<string, unknown>>;
     db: Readonly<
       Pick<
@@ -752,45 +738,35 @@ const app = makeService({
       }),
     },
   },
-  frontends: {
-    products: {
-      controller: products,
-    },
-  },
 });
 const inventory = makeService({
-  authentication: {
-    signatureSchema: Schema.Struct({ userId: Schema.String }),
-    authenticationSchema: Schema.Struct({ userId: Schema.String }),
-    selectionSchema: Schema.Struct({ userId: Schema.String }),
-    pattern: RoutePattern.parse('/:userId'),
-    authenticate: ({ signature }) => Effect.succeed(signature),
-  },
+  signatureSchema: Schema.Struct({ userId: Schema.String }),
+  authenticationSchema: Schema.Struct({ userId: Schema.String }),
+  selectionSchema: Schema.Struct({ userId: Schema.String }),
+  pattern: RoutePattern.parse('/:userId'),
+  authenticate: ({ signature }) => Effect.succeed(signature),
   name: 'inventory',
   version: '1.0.0',
   models: { stock: Stock },
   contracts: { createStock, updateStock },
   queries: {},
-  frontends: {},
 });
 
 export const system = makeSystem({
   aggregates: {
     notes: ['0.8.0', '0.9.0', '1.0.0'].map(version =>
-      makeAggregateVersion(makeAggregate({ name: 'notes' }), {
-        authentication: {
-          signatureSchema: Schema.Struct({
-            userId: Schema.String,
-            aggregateId: Schema.String,
-          }),
-          authenticationSchema: Schema.Struct({
-            aggregateId: Schema.String,
-            userId: Schema.String,
-          }),
-          selectionSchema: Schema.Struct({ userId: Schema.String }),
-          pattern: RoutePattern.parse('/:userId'),
-          authenticate: ({ signature }) => Effect.succeed(signature),
-        },
+      makeAggregateVersion(defineAggregate({ name: 'notes' }), {
+        signatureSchema: Schema.Struct({
+          userId: Schema.String,
+          aggregateId: Schema.String,
+        }),
+        authenticationSchema: Schema.Struct({
+          aggregateId: Schema.String,
+          userId: Schema.String,
+        }),
+        selectionSchema: Schema.Struct({ userId: Schema.String }),
+        pattern: RoutePattern.parse('/:userId'),
+        authenticate: ({ signature }) => Effect.succeed(signature),
         version,
         services: {},
         models: { user: User, preference: Preference },
@@ -802,20 +778,18 @@ export const system = makeSystem({
       }),
     ),
     user: [
-      makeAggregateVersion(makeAggregate({ name: 'user' }), {
-        authentication: {
-          signatureSchema: Schema.Struct({
-            userId: Schema.String,
-            aggregateId: Schema.String,
-          }),
-          authenticationSchema: Schema.Struct({
-            aggregateId: Schema.String,
-            userId: Schema.String,
-          }),
-          selectionSchema: Schema.Struct({ userId: Schema.String }),
-          pattern: RoutePattern.parse('/:userId'),
-          authenticate: ({ signature }) => Effect.succeed(signature),
-        },
+      makeAggregateVersion(defineAggregate({ name: 'user' }), {
+        signatureSchema: Schema.Struct({
+          userId: Schema.String,
+          aggregateId: Schema.String,
+        }),
+        authenticationSchema: Schema.Struct({
+          aggregateId: Schema.String,
+          userId: Schema.String,
+        }),
+        selectionSchema: Schema.Struct({ userId: Schema.String }),
+        pattern: RoutePattern.parse('/:userId'),
+        authenticate: ({ signature }) => Effect.succeed(signature),
         services: { app, inventory },
 
         version: '1.0.0',

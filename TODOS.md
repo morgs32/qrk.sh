@@ -1,5 +1,8 @@
 # Todos
 
+- Verify that transport preserves decoded application values across every supported RPC boundary, including signatures and authentication claims. Application-facing APIs should use decoded types; test round trips for supported non-JSON values and explicitly identify unsupported values. Check persistence and hashing separately from transport.
+- Rename `encodeRpc` to reflect that it wraps success values and serializes failures rather than schema-encoding successful RPC payloads; update its callers and paired terminology.
+- Decide whether `guardLayer` should remain authored on both aggregate versions and aggregate frontends when admission, execution, and frontend guards are designed; preserve current behavior during the authentication/frontend authoring cutover.
 - Decide whether aggregate-version invalidation should also prevent pull-based catch-up. Explicit VAR execution can pull retained history while AC excludes invalidated destinations from pushes. VAR alarms no longer subscribe to AC.
 - Audit the other fanout owners and subscribers for correct delivery, durable acknowledgement, and failure/resume logic; verify queue/subscriber `RpcTarget` getters, `.receive(rows)` delivery, and matching `IFanoutRepo<NAME, SUBSCRIBER>` / `IFanoutSubscriberRepo<QUEUE>` implementations.
 - Consider giving every guard its own failure props on the command, and possibly its own result props, for visibility into each guard's outcome.
@@ -54,13 +57,14 @@ the measurements below predate that extraction.
 |        160 | [`bootstrapAggregateFrontendSession.ts`](./packages/frontend/src/bootstrapAggregateFrontendSession.ts)                                  |
 |        135 | [`SelectionVersionedAggregateRepo/catchup.ts`](./packages/system-worker/src/SelectionVersionedAggregateRepo/catchup/catchup.ts) |
 |        125 | [`primitiveMaps.ts`](./packages/schema/src/primitiveMaps.ts)                                                                            |
-|        112 | [`makeModel.ts`](./packages/core/src/models/makeModel.ts)                                                                               |
+|         53 | [`defineModel.ts`](./packages/core/src/models/defineModel.ts)                                                                               |
+|        589 | [`makeModelVersion.ts`](./packages/core/src/models/makeModelVersion.ts)                                                                     |
 |        110 | [`VersionedAggregateRepo/execute.ts`](./packages/system-worker/src/VersionedAggregateRepo/execute/execute.ts)                           |
 |        106 | [`prepareReplayAppliedMutation.ts`](./packages/core/src/contracts/prepareReplayAppliedMutation.ts)                                      |
 |        103 | [`bootstrapServiceFrontendSession.ts`](./packages/frontend/src/bootstrapServiceFrontendSession.ts)                                      |
-|         93 | [`makeDrizzleRelations.ts`](./packages/core/src/drizzle/makeDrizzleRelations.ts)                                                        |
+|         93 | [`makeDrizzleRelationsFromTables.ts`](./packages/core/src/drizzle/makeDrizzleRelationsFromTables.ts)                                                        |
 |         92 | [`encodeAppliedMutation.ts`](./packages/core/src/contracts/encodeAppliedMutation.ts)                                                    |
-|         89 | [`makeVersion.ts`](./packages/core/src/contracts/makeVersion.ts)                                                                        |
+|        629 | [`makeContractVersion.ts`](./packages/core/src/contracts/makeContractVersion.ts)                                                            |
 |         88 | [`applyAggregateFrontendCommand.ts`](./packages/core/src/session/applyAggregateFrontendCommand.ts)                                      |
 |         86 | [`makeLiveQuery.ts`](./packages/live-query/src/makeLiveQuery.ts)                                                                        |
 |         84 | [`SessionsLogsRoute.tsx`](./packages/devtools/src/sessions/sessions/sessionId/logs/SessionsLogsRoute.tsx)                               |

@@ -4,7 +4,7 @@ import { Effect, Schema } from 'effect';
 
 import type { IDbConfig, ITx } from '../drizzle/types.ts';
 import { upsertHelper } from '../drizzle/upsertHelper.ts';
-import { Model } from '../models/makeModel.ts';
+import { Model } from '../models/defineModel.ts';
 
 import { applyMutationTx } from './applyMutationTx.ts';
 import { getResourceRow } from './getResourceRow.ts';

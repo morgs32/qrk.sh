@@ -1,17 +1,14 @@
-import {
-  main as authenticationFixtureFrontend,
-  userAggregate as authenticationFixtureOwner,
-} from '@zerospin/core/fixtures/system';
+import { userAggregate as authenticationFixtureOwner } from '@zerospin/core/fixtures/system';
 import { primitives } from '@zerospin/schema';
 import { Effect, Schema } from 'effect';
 import { describe, expect, it } from 'vitest';
 
-import { makeAggregate } from '../aggregate/makeAggregate.ts';
-import { makeAggregateVersion } from '../aggregate/makeVersion.ts';
-import { defineCommand } from '../contracts/Command.ts';
-import { makeContractVersion } from '../contracts/makeVersion.ts';
-import { makeFrontendController } from '../frontendController/makeFrontendController.ts';
-import { makeModel, makeModelVersion } from '../models/makeModel.ts';
+import { defineAggregate } from '../aggregate/defineAggregate.ts';
+import { makeAggregateVersion } from '../aggregate/makeAggregateVersion.ts';
+import { defineContract } from '../contracts/defineContract.ts';
+import { makeContractVersion } from '../contracts/makeContractVersion.ts';
+import { defineModel } from '../models/defineModel.ts';
+import { makeModelVersion } from '../models/makeModelVersion.ts';
 import { makeSelection } from '../models/makeSelection.ts';
 import { makeService } from '../service/makeService.ts';
 
@@ -19,7 +16,7 @@ import { makeSystem } from './makeSystem.ts';
 import { makeSystemSpec } from './makeSystemSpec.ts';
 import { SystemSpecSchema } from './SystemSpecSchema.ts';
 
-const ItemModel = makeModel({ name: 'item', abbreviation: 'itm' });
+const ItemModel = defineModel({ name: 'item', abbreviation: 'itm' });
 
 const Item = makeModelVersion(ItemModel, {
   attributes: { quantity: primitives.integer() },
@@ -27,7 +24,7 @@ const Item = makeModelVersion(ItemModel, {
   version: '1.0.0',
 });
 
-const addItem = makeContractVersion(defineCommand('addItem'), {
+const addItem = makeContractVersion(defineContract('addItem'), {
   payload: {
     id: primitives.foreignKey({ abbreviation: ItemModel.abbreviation }),
     quantity: primitives.integer(),
@@ -50,8 +47,8 @@ describe('makeSystemSpec', () => {
 
       aggregates: {
         shopper: [
-          makeAggregateVersion(makeAggregate({ name: 'shopper' }), {
-            authentication: authenticationFixtureOwner.authentication,
+          makeAggregateVersion(defineAggregate({ name: 'shopper' }), {
+            ...authenticationFixtureOwner.authentication,
             version: '2.0.0',
             authorize: () => Effect.void,
             models: { item: Item },
@@ -65,24 +62,12 @@ describe('makeSystemSpec', () => {
       services: {
         catalog: [
           makeService({
-            authentication: authenticationFixtureOwner.authentication,
+            ...authenticationFixtureOwner.authentication,
             name: 'catalog',
             version: '1.0.0',
             authorize: () => Effect.void,
             models: {},
             contracts: {},
-            frontends: {
-              browse: {
-                controller: makeFrontendController({
-                  authentication: authenticationFixtureFrontend.authentication,
-                  systemName: 'shopping',
-                  serviceVersion: '1.0.0',
-                  serviceName: 'catalog',
-                  name: 'browse',
-                  models: {},
-                }),
-              },
-            },
           }),
         ],
       },
@@ -329,81 +314,6 @@ describe('makeSystemSpec', () => {
                 },
               },
               "contracts": {},
-              "frontends": {
-                "browse": {
-                  "contracts": {},
-                  "controller": {
-                    "contracts": {},
-                    "kind": "service",
-                    "modelNames": [],
-                    "models": {},
-                    "name": "browse",
-                    "serviceFrontendLock": {
-                      "authentication": {
-                        "authenticationJsonSchema": {
-                          "definitions": {},
-                          "dialect": "draft-2020-12",
-                          "schema": {
-                            "additionalProperties": false,
-                            "properties": {
-                              "aggregateId": {
-                                "type": "string",
-                              },
-                              "userId": {
-                                "type": "string",
-                              },
-                            },
-                            "required": [
-                              "aggregateId",
-                              "userId",
-                            ],
-                            "type": "object",
-                          },
-                        },
-                        "pattern": "/:userId",
-                        "selectionJsonSchema": {
-                          "definitions": {},
-                          "dialect": "draft-2020-12",
-                          "schema": {
-                            "additionalProperties": false,
-                            "properties": {
-                              "userId": {
-                                "type": "string",
-                              },
-                            },
-                            "required": [
-                              "userId",
-                            ],
-                            "type": "object",
-                          },
-                        },
-                        "signatureJsonSchema": {
-                          "definitions": {},
-                          "dialect": "draft-2020-12",
-                          "schema": {
-                            "additionalProperties": false,
-                            "properties": {
-                              "userId": {},
-                            },
-                            "required": [
-                              "userId",
-                            ],
-                            "type": "object",
-                          },
-                        },
-                      },
-                      "frontendName": "browse",
-                      "models": {},
-                      "systemName": "shopping",
-                    },
-                    "serviceName": "catalog",
-                    "serviceVersion": "1.0.0",
-                    "systemName": "shopping",
-                  },
-                  "models": {},
-                  "name": "browse",
-                },
-              },
               "models": {},
               "name": "catalog",
               "queries": {},
@@ -418,7 +328,7 @@ describe('makeSystemSpec', () => {
 });
 
 it('decodes primitive payload specs without stripping nested JSON Schema', () => {
-  const command = makeContractVersion(defineCommand('configure'), {
+  const command = makeContractVersion(defineContract('configure'), {
     version: '1.0.0',
     models: { item: Item },
     payload: {
@@ -434,8 +344,8 @@ it('decodes primitive payload specs without stripping nested JSON Schema', () =>
     services: {},
     aggregates: {
       shopper: [
-        makeAggregateVersion(makeAggregate({ name: 'shopper' }), {
-          authentication: authenticationFixtureOwner.authentication,
+        makeAggregateVersion(defineAggregate({ name: 'shopper' }), {
+          ...authenticationFixtureOwner.authentication,
           version: '1.0.0',
           authorize: () => Effect.void,
           models: {},

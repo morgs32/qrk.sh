@@ -5,6 +5,7 @@ import type { IAggregateFrontendSyncState } from '@zerospin/core/session/types';
 import type { ISystemId } from '@zerospin/core/system/types';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import { encodeRpc } from '@zerospin/core/utils/encodeRpc';
+import { getByKeyOrThrow } from '@zerospin/core/utils/getByKeyOrThrow';
 import {
   mapParseError,
   type IAnyErrorJson,
@@ -17,6 +18,7 @@ import {
   type IRpcRequest,
   type ISpanLinkRecord,
 } from '@zerospin/logger';
+import config from 'config';
 import { Effect, Result, Schema } from 'effect';
 import { isEqual } from 'es-toolkit';
 
@@ -113,21 +115,40 @@ export const getState = Effect.fn('AggregateFrontendApi.getState')(
       }),
     ).pipe(
       Effect.flatMap(decodeRpc),
-      Effect.map(({ selectionPath: _selectionPath, ...state }) => ({
-        ...state,
-        authentication: authResults.authentication,
-        resolutions: state.resolutions.filter(
-          entry =>
-            isEqual(entry.command.authentication, authResults.authentication) &&
-            entry.command.frontendName === authResults.frontendName,
-        ),
-        resources: state.resources.filter(resource =>
-          Object.hasOwn(
-            authResults.aggregateFrontendLock.models,
-            resource.modelName,
-          ),
-        ),
-      })),
+      Effect.flatMap(({ selectionPath: _selectionPath, ...state }) =>
+        Effect.gen(function* () {
+          const aggregate = yield* getByKeyOrThrow({
+            record: config.system.aggregates[authResults.aggregateName] ?? {},
+            key: authResults.aggregateVersion,
+            recordKind: 'aggregate versions',
+          });
+          const authentication = yield* Schema.decodeUnknownEffect(
+            aggregate.authentication.authenticationSchema,
+          )(authResults.authentication).pipe(
+            mapParseError({
+              code: 'frontend-authentication-invalid',
+              prefix: 'Invalid saved authentication',
+            }),
+          );
+          return {
+            ...state,
+            authentication,
+            resolutions: state.resolutions.filter(
+              entry =>
+                isEqual(
+                  entry.command.authentication,
+                  authResults.authentication,
+                ) && entry.command.frontendName === authResults.frontendName,
+            ),
+            resources: state.resources.filter(resource =>
+              Object.hasOwn(
+                authResults.aggregateFrontendLock.models,
+                resource.modelName,
+              ),
+            ),
+          };
+        }),
+      ),
       Effect.withSpan('AggregateFrontendApi.getState', { root: true }),
       Effect.provide(makeTelemetryLayer(collector)),
       Effect.result,

@@ -17,7 +17,7 @@ import { Effect, Schema, Struct } from 'effect';
 import { pick } from 'es-toolkit';
 
 import type { IDbConfig, ITx } from '../drizzle/types.ts';
-import { Model } from '../models/makeModel.ts';
+import { Model } from '../models/defineModel.ts';
 import type { IModel, InferAttributesSchema } from '../models/types.ts';
 
 import { getResourceRow } from './getResourceRow.ts';

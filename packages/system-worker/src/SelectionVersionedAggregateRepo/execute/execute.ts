@@ -7,7 +7,7 @@ import {
 import { prepareReplayAppliedMutation } from '@zerospin/core/contracts/prepareReplayAppliedMutation';
 import type { IAnyMutation } from '@zerospin/core/contracts/types';
 import type { IDb } from '@zerospin/core/drizzle/types';
-import { Model } from '@zerospin/core/models/makeModel';
+import { Model } from '@zerospin/core/models/defineModel';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import { getByKeyOrThrow } from '@zerospin/core/utils/getByKeyOrThrow';
 import { mapParseError, ZerospinError, type IAnyError } from '@zerospin/error';

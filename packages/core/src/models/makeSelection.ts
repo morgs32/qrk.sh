@@ -26,7 +26,7 @@ import type { UnionToIntersection } from 'type-fest';
 
 import type { IDb } from '../drizzle/types.ts';
 
-import { Model } from './makeModel.ts';
+import { Model } from './defineModel.ts';
 import type { IAnyModels, IModel, InferProperties } from './types.ts';
 
 type InferPropertiesShape<MODEL extends IModel> = InferProperties<

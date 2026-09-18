@@ -2,9 +2,10 @@ import { main as authenticationFixtureFrontend } from '@zerospin/core/fixtures/s
 import { primitives } from '@zerospin/schema';
 import { describe, expect, it } from 'vitest';
 
-import { defineCommand } from '../contracts/Command.ts';
-import { makeContractVersion } from '../contracts/makeVersion.ts';
-import { makeModel, makeModelVersion } from '../models/makeModel.ts';
+import { defineContract } from '../contracts/defineContract.ts';
+import { makeContractVersion } from '../contracts/makeContractVersion.ts';
+import { defineModel } from '../models/defineModel.ts';
+import { makeModelVersion } from '../models/makeModelVersion.ts';
 
 import { makeFrontendController } from './makeFrontendController.ts';
 import { makeFrontendControllerSpec } from './makeFrontendControllerSpec.ts';
@@ -12,7 +13,8 @@ import { makeFrontendControllerSpec } from './makeFrontendControllerSpec.ts';
 describe('makeFrontendControllerSpec', () => {
   it('serializes an aggregate frontend controller without frontend SemVer', () => {
     const controller = makeFrontendController({
-      authentication: authenticationFixtureFrontend.authentication,
+      authenticationSchema:
+        authenticationFixtureFrontend.authentication.authenticationSchema,
       aggregateVersion: '1.0.0',
       systemName: 'test-system',
       aggregateName: 'user',
@@ -40,7 +42,8 @@ describe('makeFrontendControllerSpec', () => {
 
   it('serializes a service frontend controller through the same spec shape', () => {
     const controller = makeFrontendController({
-      authentication: authenticationFixtureFrontend.authentication,
+      authenticationSchema:
+        authenticationFixtureFrontend.authentication.authenticationSchema,
       systemName: 'test-system',
       serviceVersion: '1.0.0',
       serviceName: 'catalog',
@@ -67,20 +70,21 @@ describe('makeFrontendControllerSpec', () => {
 
   it('generates models, contracts, primitive descriptors, and locks', () => {
     const Product = makeModelVersion(
-      makeModel({ name: 'product', abbreviation: 'prd' }),
+      defineModel({ name: 'product', abbreviation: 'prd' }),
       {
         attributes: { name: primitives.text() },
         indexes: [{ name: 'product_name_idx', columns: ['name'] }],
         version: '1.0.0',
       },
     );
-    const renameProduct = makeContractVersion(defineCommand('renameProduct'), {
+    const renameProduct = makeContractVersion(defineContract('renameProduct'), {
       version: '1.0.0',
       payload: { name: primitives.text() },
       models: { product: Product },
     });
     const controller = makeFrontendController({
-      authentication: authenticationFixtureFrontend.authentication,
+      authenticationSchema:
+        authenticationFixtureFrontend.authentication.authenticationSchema,
       aggregateVersion: '1.0.0',
       systemName: 'test-system',
       aggregateName: 'catalog',
@@ -102,5 +106,32 @@ describe('makeFrontendControllerSpec', () => {
     expect(JSON.parse(JSON.stringify(spec))).toEqual(spec);
     expect(model?.indexes[0]).not.toBe(Product.indexes[0]);
     expect(model?.indexes[0]?.columns).not.toBe(Product.indexes[0]?.columns);
+  });
+
+  it('locks only the aggregate claims schema', () => {
+    const controller = makeFrontendController({
+      aggregateVersion: '1.0.0',
+      systemName: 'test-system',
+      aggregateName: 'open',
+      name: 'web',
+      models: {},
+      contracts: {},
+    });
+    const { aggregateFrontendLock } = makeFrontendControllerSpec(controller);
+    expect(Object.keys(aggregateFrontendLock.authentication)).toEqual([
+      'authenticationJsonSchema',
+    ]);
+
+    expect(
+      aggregateFrontendLock.authentication.authenticationJsonSchema,
+    ).toEqual(
+      expect.objectContaining({
+        schema: expect.objectContaining({
+          properties: expect.objectContaining({
+            aggregateId: expect.anything(),
+          }),
+        }),
+      }),
+    );
   });
 });

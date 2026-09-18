@@ -227,9 +227,9 @@ External tables, schema objects, and opaque defaults retain their identity;
 - [`makeTable.ts`](../../packages/schema/src/makeTable.ts) — constructs the table-owned graph after self-reference resolution.
 - [`primitives.ts`](../../packages/schema/src/primitives.ts) — checks the target is a Table instance before inspecting its primary key.
 - [`makeTable.node.spec.ts`](../../packages/schema/src/makeTable.node.spec.ts) — verifies ownership, self-reference identity, and rejection of structural targets.
-- [`AuthenticationSchema.ts`](../../packages/core/src/authentication/AuthenticationSchema.ts) — validates owner and frontend authentication descriptors and reversible selection patterns.
-- [`makeModel.ts`](../../packages/core/src/models/makeModel.ts) — resolves the Model-owned table, then attaches owned descriptors, shapes, indexes, and the table object.
-- [`makeModel.ts`](../../packages/core/src/models/makeModel.ts) — builds the serializable model spec.
+- [`AuthenticationSchema.ts`](../../packages/core/src/authentication/AuthenticationSchema.ts) — validates aggregate and service authentication declarations and reversible selection patterns.
+- [`makeModelVersion.ts`](../../packages/core/src/models/makeModelVersion.ts) — resolves the Model-owned table, then attaches owned descriptors, shapes, indexes, and the table object.
+- [`makeModelVersion.ts`](../../packages/core/src/models/makeModelVersion.ts) — builds the serializable model spec.
 
 The authoring factories produce canonical instances of
 `Model`, `Contract`, `ServiceFrontendController`,
@@ -239,16 +239,16 @@ The authoring factories produce canonical instances of
 after construction. The `Service` and `Aggregate` constructors stay private to
 their factory modules.
 
-- [`makeModel.ts`](../../packages/core/src/models/makeModel.ts) — stores replica provenance in a module-private `WeakMap` outside the instance.
-- [`makeModel.ts`](../../packages/core/src/models/makeModel.ts) — declares inherited non-enumerable getters, one-shot `markReplica`, and `Model.isReplica`.
-- [`makeModel.ts`](../../packages/core/src/models/makeModel.ts) — constructs the canonical `Model` instance.
+- [`defineModel.ts`](../../packages/core/src/models/defineModel.ts) — stores replica provenance in a module-private `WeakMap` outside the instance.
+- [`defineModel.ts`](../../packages/core/src/models/defineModel.ts) — declares inherited non-enumerable getters, one-shot `markReplica`, and `Model.isReplica`.
+- [`makeModelVersion.ts`](../../packages/core/src/models/makeModelVersion.ts) — constructs the canonical `Model` instance.
 - [`makeReplica.ts`](../../packages/core/src/models/makeReplica.ts) — accepts only a canonical source `Model` and rejects nested replicas.
 - [`makeReplica.ts`](../../packages/core/src/models/makeReplica.ts) — constructs the replica through `makeModelVersion`, then registers exact source and service name after the instance exists.
-- [`makeFrontendController.ts`](../../packages/core/src/frontendController/makeFrontendController.ts) — declares the two owner-specific frontend-controller classes.
-- [`makeFrontendController.ts`](../../packages/core/src/frontendController/makeFrontendController.ts) — snapshots service-frontend registries and returns a `ServiceFrontendController`.
+- [`makeFrontendController.ts`](../../packages/core/src/frontendController/makeFrontendController.ts) — declares the aggregate and service frontend-controller classes.
+- [`makeFrontendController.ts`](../../packages/core/src/frontendController/makeFrontendController.ts) — snapshots the selected service frontend models and returns a `ServiceFrontendController`.
 - [`makeFrontendController.ts`](../../packages/core/src/frontendController/makeFrontendController.ts) — snapshots aggregate-frontend bindings and returns an `AggregateFrontendController`.
 - [`makeService.ts`](../../packages/core/src/service/makeService.ts) — keeps `Service` private while exposing its internal canonical-instance schema.
-- [`makeVersion.ts`](../../packages/core/src/aggregate/makeVersion.ts) — keeps `Aggregate` private while exposing its internal canonical-instance schema.
+- [`makeAggregateVersion.ts`](../../packages/core/src/aggregate/makeAggregateVersion.ts) — keeps `Aggregate` private while exposing its internal canonical-instance schema.
 
 Aggregate frontend controllers declare `aggregateName`, `aggregateVersion`, and
 `name`; service controllers declare `serviceName`, `serviceVersion`, and `name`. The browser
@@ -275,18 +275,18 @@ Neither factory takes `systemName` as an owner-level prop.
 
 - [`makeService.ts`](../../packages/core/src/service/makeService.ts) — constructs the decoded service registries it owns.
 - [`makeService.ts`](../../packages/core/src/service/makeService.ts) — constructs the canonical `Service`.
-- [`makeVersion.ts`](../../packages/core/src/aggregate/makeVersion.ts) — constructs the decoded aggregate registries it owns.
-- [`makeVersion.ts`](../../packages/core/src/aggregate/makeVersion.ts) — constructs the canonical `Aggregate`.
+- [`makeAggregateVersion.ts`](../../packages/core/src/aggregate/makeAggregateVersion.ts) — constructs the decoded aggregate registries it owns.
+- [`makeAggregateVersion.ts`](../../packages/core/src/aggregate/makeAggregateVersion.ts) — constructs the canonical `Aggregate`.
 - [`authorization.node.spec.ts`](../../packages/core/src/aggregate/authorization.node.spec.ts) — verifies optional authorization, supplied failures, and upgrade inheritance, replacement, and removal.
 - [`authorizeAggregateFrontend.ts`](../../packages/system-worker/src/VersionedAggregateRepo/authorizeAggregateFrontend/authorizeAggregateFrontend.ts) — skips omitted checks and runs supplied authorization against owner-local model queries.
 
-Declare a shared identity with `makeAggregate({ name: 'shopper' })`, which
+Declare a shared identity with `defineAggregate({ name: 'shopper' })`, which
 returns a `{ name, layer }` object with `Layer.empty` when no layer is supplied.
 Pass `layer: Layer.mergeAll(...)` on this identity to provide guard services
 shared by every version. Construct each version with
 `makeAggregateVersion(shopper, props)`; the version props do not repeat the name.
 
-- [`makeAggregate.ts`](../../packages/core/src/aggregate/makeAggregate.ts) — validates the name and optional layer and constructs the shared identity.
+- [`defineAggregate.ts`](../../packages/core/src/aggregate/defineAggregate.ts) — validates the name and optional layer and constructs the shared identity.
 - [`index.ts`](../../packages/sdk/src/index.ts) — explicitly exports server authoring functions.
 
 Each aggregate owns one exact SemVer version and its service-version pins.
@@ -303,8 +303,8 @@ through `makeAggregateVersion` validation again. Earlier instances remain unchan
 Effect lane with `aggregate-version-unsupported` for any other version.
 Services also own one exact version. Register older service definitions explicitly in `makeSystem`; service definitions and specs contain no `historicalDefinitions`. `requireVersion(service, version)` returns the same definition for an exact match and fails in the Effect lane otherwise.
 
-- [`makeVersion.ts`](../../packages/core/src/aggregate/makeVersion.ts) — validates independent aggregate definitions and merges upgrades.
-- [`makeVersion.ts`](../../packages/core/src/aggregate/makeVersion.ts) — infers inherited and replaced bindings and removes null-marked entries from the resulting types.
+- [`makeAggregateVersion.ts`](../../packages/core/src/aggregate/makeAggregateVersion.ts) — validates independent aggregate definitions and merges upgrades.
+- [`makeAggregateVersion.ts`](../../packages/core/src/aggregate/makeAggregateVersion.ts) — infers inherited and replaced bindings and removes null-marked entries from the resulting types.
 - [`requireVersion.ts`](../../packages/core/src/service/requireVersion.ts) — checks the exact service version without reconstructing historical snapshots.
 - [`makeCommand.ts`](../../packages/core/src/makeCommand.ts) — exposes `makeCommand(service, { contractName, payload })` with the selected contract’s payload type and service metadata.
 - [`makeSystemSpec.ts`](../../packages/core/src/system/makeSystemSpec.ts) — serializes each registered service definition without history arrays.
@@ -349,19 +349,19 @@ is unchanged. Aggregate frontend bindings contain only `{ contract }` and
 reject binding-level guards. Aggregate bindings retain their separate optional
 guard. Service command registries contain contracts directly.
 
-- [`makeVersion.ts`](../../packages/core/src/contracts/makeVersion.ts) — validates and stores contract guards, including explicitly authored upgrade guards.
+- [`makeContractVersion.ts`](../../packages/core/src/contracts/makeContractVersion.ts) — validates and stores contract guards, including explicitly authored upgrade guards.
 - [`types.ts`](../../packages/core/src/contracts/types.ts) — types contract guards and aggregate bindings.
 - [`makeFrontendController.ts`](../../packages/core/src/frontendController/makeFrontendController.ts) — rejects frontend binding guards.
 - [`addToCartV2.ts`](../../examples/shopping/src/zerospin/aggregates/shopper/contracts/addToCart/addToCartV2.ts) — explicitly reuses the cart existence check.
 
-`makeAggregate`, `makeService`, and aggregate `makeFrontendController`
+`defineAggregate`, `makeService`, and aggregate `makeFrontendController`
 accept optional local layers. Aggregate versions inherit their identity's layer.
 Local layers may require application services; sibling local layers do not supply
 one another. Application factories validate the remaining guard requirements and
 local-layer inputs, including explicitly registered older service definitions. Layers and
 initialized guards are executable configuration, excluded from specs and locks.
 
-- [`makeVersion.ts`](../../packages/core/src/aggregate/makeVersion.ts) — retains the identity layer and authored guard bindings without instance operations.
+- [`makeAggregateVersion.ts`](../../packages/core/src/aggregate/makeAggregateVersion.ts) — retains the identity layer and authored guard bindings without instance operations.
 - [`initializeGuards.ts`](../../packages/core/src/aggregate/initializeGuards.ts) — exposes `initializeGuards(aggregate)`, initializing binding guards followed by contract guards against the aggregate layer.
 - [`initializeGuards.ts`](../../packages/core/src/service/initializeGuards.ts) — exposes `initializeGuards(service)`, binding the selected definition’s contract guards to its local layer.
 - [`makeFrontendController.ts`](../../packages/core/src/frontendController/makeFrontendController.ts) — initializes frontend contract guards; service frontends have no command guards.
@@ -379,14 +379,14 @@ arguments to every guard call.
 - [`ownerLayers.node.spec.ts`](../../packages/core/src/guards/ownerLayers.node.spec.ts) — verifies sibling isolation and application dependencies captured before a local override.
 
 `makeZerospinApp<typeof system, AppServices>({ systemName, layer })` binds
-application infrastructure to a type-only system reference. `App.makeFrontend(controller)`
-checks the selected owner/version, authentication descriptor, model and contract
+application infrastructure to a type-only system reference. `App.makeAggregateFrontend(props)` and `App.makeServiceFrontend(props)`
+check the selected aggregate or service/version, authentication descriptor, model and contract
 subsets, and remaining service requirements. It returns a React component that
 also carries the exact controller and models for `useSession(Frontend)` and
 `useLiveQuery(Frontend, ...)`.
 
 - [`makeZerospinApp.tsx`](../../packages/react/src/makeZerospinApp.tsx) — checks compatibility at frontend binding and keeps framework and application service requirements distinct.
-- [`makeFrontendCompatibility.typecheck.ts`](../../packages/react/src/makeFrontendCompatibility.typecheck.ts) — verifies concrete owner/version compatibility and rejects unknown or incompatible selections.
+- [`makeFrontendCompatibility.typecheck.ts`](../../packages/react/src/makeFrontendCompatibility.typecheck.ts) — verifies concrete aggregate/service version compatibility and rejects unknown or incompatible selections.
 - [`makeZerospinApp.typecheck.tsx`](../../packages/react/src/makeZerospinApp.typecheck.tsx) — verifies exact selector inference, signatures, and application service requirements.
 
 Each mounted app Provider owns one managed runtime, with application services
@@ -407,7 +407,7 @@ acquisition. Mock Providers retain their existing independent resource ownership
 
 - [`makeZerospinApp.tsx`](../../packages/react/src/makeZerospinApp.tsx) — owns app resources, per-frontend initialization, readiness, identity checks, and ordered teardown.
 - [`makeAggregateSession.ts`](../../packages/core/src/session/makeAggregateSession.ts) — executes commands through the borrowed runtime and initialized frontend context.
-- [`mock.ts`](../../packages/react/src/mock.ts) — accepts frontend component selectors and owns its mock runtime, layers, and database without live transports.
+- [`ZerospinMockProvider.tsx`](../../packages/react/src/ZerospinMockProvider.tsx) — accepts frontend component selectors and owns its mock runtime, layers, and database without live transports.
 
 Server command batches acquire `makeSystem` application services and then the
 selected aggregate or service layer before entering a synchronous transaction.
@@ -457,7 +457,7 @@ one-shot. Because every canonical Model inherits `sourceModel`, the `in`
 operator is not a valid discriminator. Canonical metadata is deliberately
 absent from own keys, object spread, and JSON serialization.
 
-- [`makeModel.ts`](../../packages/core/src/models/makeModel.ts) — registers one-shot provenance and discriminates replicas from the WeakMap, not own fields.
+- [`defineModel.ts`](../../packages/core/src/models/defineModel.ts) — registers one-shot provenance and discriminates replicas from the WeakMap, not own fields.
 - [`makeReplica.node.spec.ts`](../../packages/core/src/models/makeReplica.node.spec.ts) — verifies direct getters, non-enumerability, assignment resistance, one-shot registration, canonical discrimination, and spread/JSON omission.
 
 SelectionVAR replays against the exact version's canonical aggregate models and uses
@@ -691,7 +691,7 @@ models' prefixes are accepted.
 
 ## Model mutation versions
 
-`makeModel({ name, abbreviation })` declares an identity with literal
+`defineModel({ name, abbreviation })` declares an identity with literal
 name and abbreviation types. `makeModelVersion(model, props)` supplies its
 attributes, indexes, and version separately.
 `primitives.foreignKey({ abbreviation: model.abbreviation })` declares a caller-supplied
@@ -701,9 +701,10 @@ validate prefixed IDs without creating SQL relations; `primitives.ref` owns conc
 table relations.
 
 - [`primitiveMaps.ts`](../../packages/schema/src/primitiveMaps.ts) — decodes required prefixed IDs and maps foreign-key primitives to text columns.
-- [`makeVersion.ts`](../../packages/core/src/contracts/makeVersion.ts) — admits foreign-key payload descriptors and rejects raw table primary keys.
+- [`makeContractVersion.ts`](../../packages/core/src/contracts/makeContractVersion.ts) — admits foreign-key payload descriptors and rejects raw table primary keys.
 - [`index.ts`](../../packages/sdk/src/browser/index.ts) — explicitly exports shared model authoring functions.
-- [`makeModel.ts`](../../packages/core/src/models/makeModel.ts) — validates and snapshots the identity and constructs each version.
+- [`defineModel.ts`](../../packages/core/src/models/defineModel.ts) — validates and snapshots the model identity.
+- [`makeModelVersion.ts`](../../packages/core/src/models/makeModelVersion.ts) — constructs each model version.
 
 Model definitions carry identity, attributes, indexes, tables, schemas, and their
 spec; library operations are exposed through the `models` namespace.
@@ -739,29 +740,29 @@ bindings. Contract specs include the resolved model specs under `models`, includ
 models that a particular execution does not mutate. System inspection specs carry
 those same model specs.
 
-- [`makeVersion.ts`](../../packages/core/src/contracts/makeVersion.ts) — snapshots model maps, binds programs, resolves upgrade patches, and emits model specs.
+- [`makeContractVersion.ts`](../../packages/core/src/contracts/makeContractVersion.ts) — snapshots model maps, binds programs, resolves upgrade patches, and emits model specs.
 - [`makeSystemSpec.ts`](../../packages/core/src/system/makeSystemSpec.ts) — includes contract model specs for aggregates and services.
 
 Frontend model locks must match the controller's model version exactly. Resource
 encoding validates that exact version and does not adapt historical resources.
 
 - [`makeFrontendControllerSpec.ts`](../../packages/core/src/frontendController/makeFrontendControllerSpec.ts) — builds model locks from the exact controller definitions.
-- [`adaptFrontendResource.ts`](../../packages/system-worker/src/StaticSystem/adaptFrontendResource/adaptFrontendResource.ts) — Validates and encodes the selected model resource.
+- [`adaptAggregateFrontendResource.ts`](../../packages/system-worker/src/StaticSystem/adaptAggregateFrontendResource/adaptAggregateFrontendResource.ts) — Validates and encodes the selected model resource.
 
-- [`makeVersion.ts`](../../packages/core/src/contracts/makeVersion.ts) — Infers the program result and rejects obsolete declaration properties.
+- [`makeContractVersion.ts`](../../packages/core/src/contracts/makeContractVersion.ts) — Infers the program result and rejects obsolete declaration properties.
 - [`makeMutations.ts`](../../packages/core/src/contracts/makeMutations.ts) — Flattens the program result in return order and checks model ownership.
 - [`prepareReplayAppliedMutation.ts`](../../packages/core/src/contracts/prepareReplayAppliedMutation.ts) — Uses operation codecs and model constructors during replay.
 
 ## Contract upgrades
 
-`defineCommand(name)` declares a nominal Effect-branded command name,
+`defineContract(name)` declares a nominal Effect-branded command name,
 retaining its string literal type and its unchanged runtime string value.
 `makeContractVersion(command, props)` authors one contract version using that
 identity; payload, guard, and program inference remain specific to the version.
 
-- [`Command.ts`](../../packages/core/src/contracts/Command.ts) — preserves the literal name using Effect's nominal brand constructor.
+- [`defineContract.ts`](../../packages/core/src/contracts/defineContract.ts) — preserves the literal name using Effect's nominal brand constructor.
 - [`index.ts`](../../packages/sdk/src/browser/index.ts) — exposes branded command declaration and contract authoring; payload operations remain internal.
-- [`makeVersion.ts`](../../packages/core/src/contracts/makeVersion.ts) — requires the branded name separately from the version definition.
+- [`makeContractVersion.ts`](../../packages/core/src/contracts/makeContractVersion.ts) — requires the branded name separately from the version definition.
 
 `upgradeContractVersion(previous, props)` inherits omitted
 payload fields, adds or replaces descriptors, and removes fields marked `null`.
@@ -787,7 +788,7 @@ Sessions validate and execute that same version, preserving its payload and vers
 in the encoded command; React has no separate contract-version selection. Contract specs describe their own
 version, with no historical-definition arrays.
 
-- [`makeVersion.ts`](../../packages/core/src/contracts/makeVersion.ts) — infers upgrade payloads and mutations and exposes authored adapters and adjacent definitions.
+- [`makeContractVersion.ts`](../../packages/core/src/contracts/makeContractVersion.ts) — infers upgrade payloads and mutations and exposes authored adapters and adjacent definitions.
 - [`types.ts`](../../packages/core/src/contracts/types.ts) — describes authored contract content, payload histories, and historical guard requirements.
 - [`getVersion.ts`](../../packages/core/src/contracts/getVersion.ts) — walks `previous` links and requires an exact ancestor version.
 - [`validatePayload.ts`](../../packages/core/src/contracts/validatePayload.ts) — validates authored input and decoded JSON fields using the requested ancestor's payload schema.
@@ -797,7 +798,7 @@ version, with no historical-definition arrays.
 - [`makeAggregateSession.ts`](../../packages/core/src/session/makeAggregateSession.ts) — uses the bound contract version for validation, guards, and optimistic execution.
 - [`makeFrontendControllerSpec.ts`](../../packages/core/src/frontendController/makeFrontendControllerSpec.ts) — derives contract locks directly from controller bindings.
 - [`validateAggregateFrontendLock.ts`](../../packages/system-worker/src/StaticSystem/validateAggregateFrontendLock/validateAggregateFrontendLock.ts) — validates the requested ancestor's payload schema.
-- [`makeVersion.node.spec.ts`](../../packages/core/src/contracts/makeVersion.node.spec.ts) — verifies both directions, generated identities, adapter failures, and default frontend bindings.
+- [`makeContractVersion.node.spec.ts`](../../packages/core/src/contracts/makeContractVersion.node.spec.ts) — verifies both directions, generated identities, adapter failures, and default frontend bindings.
 
 ## Owner authentication and selection
 
@@ -805,20 +806,20 @@ Every aggregate and service version declares `{ signatureSchema, authenticationS
 
 - [`AuthenticationSchema.ts`](../../packages/core/src/authentication/AuthenticationSchema.ts) — validates schemas and the library-parsed route tokens.
 - [`types.ts`](../../packages/core/src/authentication/types.ts) — constrains selected fields, inferred claims, and literal pattern parameters.
-- [`makeSystemSpec.ts`](../../packages/core/src/system/makeSystemSpec.ts) — serializes each owner's authentication descriptors in its version specification.
+- [`makeSystemSpec.ts`](../../packages/core/src/system/makeSystemSpec.ts) — serializes aggregate and service authentication descriptors in its version specification.
 
-Authorization and guards receive full decoded claims. Selections receive only `selectionSchema` fields reconstructed from the replica path. Aggregate authenticators may await exact-owner trusted provisioning commands with `authentication: null`. `guardLayer({ db, authentication })` binds lazy application services to each command transaction while preserving static layers.
+Authorization and guards receive full decoded claims. Selections receive only `selectionSchema` fields reconstructed from the replica path. Aggregate authenticators may await trusted provisioning for the selected aggregate commands with `authentication: null`. `guardLayer({ db, authentication })` binds lazy application services to each command transaction while preserving static layers.
 
-- [`authenticate.ts`](../../packages/system-worker/src/authenticate/authenticate.ts) — validates full claims, derives selected fields, awaits provisioning, and durably audits attempts.
+- [`authenticateAggregate.ts`](../../packages/system-worker/src/authenticateAggregate/authenticateAggregate.ts) — validates full claims, derives selected fields, awaits provisioning, and durably audits attempts.
 - [`executeTx.ts`](../../packages/system-worker/src/SelectionVersionedAggregateRepo/execute/executeTx.ts) — reconstructs recipient selection inputs independently of command authentication.
 - [`initializeGuards.ts`](../../packages/core/src/guards/initializeGuards.ts) — acquires static layers once and dynamic layers inside each synchronous guard execution.
 - [`CurrentUser.ts`](../../examples/shopping/src/zerospin/aggregates/shopper/CurrentUser.ts) — declares Shopping's lazy authenticated User lookup.
 
-Frontend controllers declare the signature, full authentication, and selection schemas plus the route pattern. Compatibility locks include their serialized descriptions. `Frontend.generateSignature` supplies that mounted frontend's current signer; authentication determines aggregate IDs. Browser sessions retain typed full claims, and backup keys include their canonical encoded hash.
+Frontend controllers retain only the authentication claims schema. Compatibility locks include its serialized JSON schema; signature and selection schemas and patterns remain on aggregate and service versions. `Frontend.generateSignature` supplies that mounted frontend's current signer; authentication determines aggregate IDs. Browser sessions retain typed full claims, and backup keys include their canonical encoded hash.
 
 - [`makeFrontendController.ts`](../../packages/core/src/frontendController/makeFrontendController.ts) — retains frontend authentication declarations.
 - [`makeAggregateFrontendLock.ts`](../../packages/core/src/frontendController/makeAggregateFrontendLock.ts) — includes authentication in the frontend lock.
-- [`makeZerospinApp.tsx`](../../packages/react/src/makeZerospinApp.tsx) — validates and encodes each frontend's signature independently.
+- [`makeZerospinApp.tsx`](../../packages/react/src/makeZerospinApp.tsx) — passes each frontend's decoded signature to its aggregate or service authenticator.
 - [Authentication workflow](./browser/Authentication.md) — describes audit, admission, selection partitions, and offline lookup.
 
 Mutation replay requires the exact registered model name and version. Aggregate and service definitions do not accept mutation adapter registries.

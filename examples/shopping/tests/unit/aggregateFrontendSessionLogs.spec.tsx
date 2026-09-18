@@ -78,7 +78,7 @@ describe('aggregate frontend session logs integration', () => {
     });
     Reflect.set(env, 'SYSTEM_LOG_REPO', {
       getByName: () => ({
-        beginAuthenticationAttempt: async () =>
+        beginAggregateAuthenticationAttempt: async () =>
           encodeSuccess({ attemptId: 'aat_logs' }),
         completeAuthenticationAttempt: async () => encodeSuccess(undefined),
         appendTelemetryBatch: async (props: { batch: ITelemetryBatch }) => {
@@ -100,15 +100,17 @@ describe('aggregate frontend session logs integration', () => {
     const gatewayApi = new GatewayApi({
       runtime,
     });
-    const aggregateFrontendApi = await gatewayApi.getAggregateFrontendApi({
-      publishableKey: 'pk_logs',
-      systemName: WebV2.systemName,
-
-      signature: { clerkUserId: 'user_logs' },
-
-      aggregateName: WebV2.aggregateName,
+    const aggregateFrontendApi = await (
+      await (
+        await gatewayApi.aggregate({
+          publishableKey: 'pk_logs',
+          systemName: WebV2.systemName,
+          name: WebV2.aggregateName,
+          version: WebV2.aggregateVersion,
+        })
+      ).authenticate({ signature: { clerkUserId: 'user_logs' } })
+    ).authorize({
       frontendName: WebV2.name,
-      aggregateVersion: WebV2.aggregateVersion,
       aggregateFrontendLock: frontendSpec.aggregateFrontendLock,
     });
     const session = Effect.runSync(

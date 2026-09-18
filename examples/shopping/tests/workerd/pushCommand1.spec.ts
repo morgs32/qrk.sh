@@ -10,7 +10,7 @@ import { makeAggregateFrontendLockKey } from '@zerospin/core/frontendController/
 import { makeFrontendController } from '@zerospin/core/frontendController/makeFrontendController';
 import { makeFrontendControllerSpec } from '@zerospin/core/frontendController/makeFrontendControllerSpec';
 import { makeId } from '@zerospin/core/models/makeId';
-import { makeModelIdSchema } from '@zerospin/core/models/makeIdSchema';
+import { makeModelIdSchema } from '@zerospin/core/models/makeModelIdSchema';
 import { applyAggregateFrontendState } from '@zerospin/core/session/applyAggregateFrontendState';
 import { makeAggregateSession } from '@zerospin/core/session/makeAggregateSession';
 import { sessionCommandJournalDrizzleSchema } from '@zerospin/core/session/sessionCommandShape';
@@ -32,12 +32,7 @@ import { userV1 } from '@/zerospin/aggregates/shopper/models/user/UserV1';
 import { shopperV2 } from '@/zerospin/aggregates/shopper/ShopperV2';
 import { system } from '@/zerospin/system';
 const WebV2 = makeFrontendController({
-  authentication: {
-    signatureSchema: shopperV2.authentication.signatureSchema,
-    authenticationSchema: shopperV2.authentication.authenticationSchema,
-    selectionSchema: shopperV2.authentication.selectionSchema,
-    pattern: shopperV2.authentication.pattern,
-  },
+  authenticationSchema: shopperV2.authentication.authenticationSchema,
   guardLayer: shopperV2.guardLayer,
   systemName: 'shopping',
   aggregateName: shopperV2.name,
@@ -88,17 +83,18 @@ describe('pushCommand1: static frontend command push', () => {
             gateway => Effect.sync(() => gateway[Symbol.dispose]()),
           );
           const frontendApi = yield* makeAsync(() =>
-            gatewayApi.getAggregateFrontendApi({
-              publishableKey: 'pk_test',
-              systemName: system.name,
-
-              signature: { clerkUserId: E2E_CLERK_USER_ID_1 },
-
-              aggregateName: WebV2.aggregateName,
-              aggregateVersion: WebV2.aggregateVersion,
-              frontendName: WebV2.name,
-              aggregateFrontendLock: shopperAggregateFrontendLock,
-            }),
+            gatewayApi
+              .aggregate({
+                publishableKey: 'pk_test',
+                systemName: system.name,
+                name: WebV2.aggregateName,
+                version: WebV2.aggregateVersion,
+              })
+              .authenticate({ signature: { clerkUserId: E2E_CLERK_USER_ID_1 } })
+              .authorize({
+                frontendName: WebV2.name,
+                aggregateFrontendLock: shopperAggregateFrontendLock,
+              }),
           );
 
           const state = yield* makeAsync(() =>

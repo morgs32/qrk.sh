@@ -59,16 +59,9 @@ export const validateAggregateFrontendLock = Effect.fn(
 
   if (
     !isEqual(aggregateFrontendLock.authentication, {
-      signatureJsonSchema: Schema.toJsonSchemaDocument(
-        aggregate.authentication.signatureSchema,
-      ),
       authenticationJsonSchema: Schema.toJsonSchemaDocument(
         aggregate.authentication.authenticationSchema,
       ),
-      selectionJsonSchema: Schema.toJsonSchemaDocument(
-        aggregate.authentication.selectionSchema,
-      ),
-      pattern: aggregate.authentication.pattern.source,
     })
   ) {
     return yield* new ZerospinError({

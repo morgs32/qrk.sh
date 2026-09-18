@@ -6,10 +6,11 @@ import { primitives } from '@zerospin/schema';
 import { Effect, Schema } from 'effect';
 import { describe, expect, it } from 'vitest';
 
-import { makeAggregate } from '../../aggregate/makeAggregate.ts';
-import { makeAggregateVersion } from '../../aggregate/makeVersion.ts';
+import { defineAggregate } from '../../aggregate/defineAggregate.ts';
+import { makeAggregateVersion } from '../../aggregate/makeAggregateVersion.ts';
 import { makeFrontendController } from '../../frontendController/makeFrontendController.ts';
-import { makeModel, makeModelVersion } from '../../models/makeModel.ts';
+import { defineModel } from '../../models/defineModel.ts';
+import { makeModelVersion } from '../../models/makeModelVersion.ts';
 import { makeReplica } from '../../models/makeReplica.ts';
 import { makeSelection } from '../../models/makeSelection.ts';
 import { makeService } from '../../service/makeService.ts';
@@ -27,7 +28,7 @@ describe('makeSystem', () => {
   it('enforces authoritative service ownership and exact aggregate replica bindings', () => {
     // 1 — Build the identities used by both the accepted and rejected graphs.
     const ProductSource = makeModelVersion(
-      makeModel({ name: 'product', abbreviation: 'prd' }),
+      defineModel({ name: 'product', abbreviation: 'prd' }),
       {
         attributes: { name: primitives.text() },
         indexes: [],
@@ -39,16 +40,9 @@ describe('makeSystem', () => {
       modelVersion: ProductSource.version,
       serviceName: 'catalog',
     });
-    const serviceController = makeFrontendController({
-      authentication: authenticationFixtureFrontend.authentication,
-      systemName: 'replica-system',
-      serviceVersion: '1.0.0',
-      serviceName: 'catalog',
-      name: 'browse',
-      models: { product: ProductSource },
-    });
     const _aggregateController = makeFrontendController({
-      authentication: authenticationFixtureFrontend.authentication,
+      authenticationSchema:
+        authenticationFixtureFrontend.authentication.authenticationSchema,
       aggregateVersion: '1.0.0',
       systemName: 'replica-system',
       aggregateName: 'account',
@@ -58,12 +52,11 @@ describe('makeSystem', () => {
     });
 
     const catalog = makeService({
-      authentication: authenticationFixtureOwner.authentication,
+      ...authenticationFixtureOwner.authentication,
       name: 'catalog',
       version: '1.0.0',
       models: { product: ProductSource },
       contracts: {},
-      frontends: {},
     });
 
     // 2 — The service owns the source while the aggregate uses its exact replica.
@@ -72,8 +65,8 @@ describe('makeSystem', () => {
 
       aggregates: {
         account: [
-          makeAggregateVersion(makeAggregate({ name: 'account' }), {
-            authentication: authenticationFixtureOwner.authentication,
+          makeAggregateVersion(defineAggregate({ name: 'account' }), {
+            ...authenticationFixtureOwner.authentication,
             services: { catalog },
 
             version: '1.0.0',
@@ -92,13 +85,12 @@ describe('makeSystem', () => {
       services: {
         catalog: [
           makeService({
-            authentication: authenticationFixtureOwner.authentication,
+            ...authenticationFixtureOwner.authentication,
             name: 'catalog',
             version: '1.0.0',
             authorize: () => Effect.void,
             models: { product: ProductSource },
             contracts: {},
-            frontends: { browse: { controller: serviceController } },
           }),
         ],
       },
@@ -118,22 +110,20 @@ describe('makeSystem', () => {
         services: {
           catalog: [
             makeService({
-              authentication: authenticationFixtureOwner.authentication,
+              ...authenticationFixtureOwner.authentication,
               name: 'catalog',
               version: '1.0.0',
               models: { product: ProductSource },
               contracts: {},
-              frontends: {},
             }),
           ],
           inventory: [
             makeService({
-              authentication: authenticationFixtureOwner.authentication,
+              ...authenticationFixtureOwner.authentication,
               name: 'inventory',
               version: '1.0.0',
               models: { product: ProductSource },
               contracts: {},
-              frontends: {},
             }),
           ],
         },
@@ -146,8 +136,8 @@ describe('makeSystem', () => {
 
         aggregates: {
           account: [
-            makeAggregateVersion(makeAggregate({ name: 'account' }), {
-              authentication: authenticationFixtureOwner.authentication,
+            makeAggregateVersion(defineAggregate({ name: 'account' }), {
+              ...authenticationFixtureOwner.authentication,
               services: { catalog },
 
               version: '1.0.0',
@@ -165,12 +155,11 @@ describe('makeSystem', () => {
         services: {
           catalog: [
             makeService({
-              authentication: authenticationFixtureOwner.authentication,
+              ...authenticationFixtureOwner.authentication,
               name: 'catalog',
               version: '1.0.0',
               models: { product: ProductSource },
               contracts: {},
-              frontends: {},
             }),
           ],
         },
@@ -179,7 +168,7 @@ describe('makeSystem', () => {
 
     // 4 — Aggregate replicas must preserve the exact system service source identity.
     const OtherProductSource = makeModelVersion(
-      makeModel({ name: 'product', abbreviation: 'prd' }),
+      defineModel({ name: 'product', abbreviation: 'prd' }),
       {
         attributes: { name: primitives.text() },
         indexes: [],
@@ -204,8 +193,8 @@ describe('makeSystem', () => {
 
           aggregates: {
             account: [
-              makeAggregateVersion(makeAggregate({ name: 'account' }), {
-                authentication: authenticationFixtureOwner.authentication,
+              makeAggregateVersion(defineAggregate({ name: 'account' }), {
+                ...authenticationFixtureOwner.authentication,
                 services: { catalog },
 
                 version: '1.0.0',
@@ -223,12 +212,11 @@ describe('makeSystem', () => {
           services: {
             catalog: [
               makeService({
-                authentication: authenticationFixtureOwner.authentication,
+                ...authenticationFixtureOwner.authentication,
                 name: 'catalog',
                 version: '1.0.0',
                 models: { product: ProductSource },
                 contracts: {},
-                frontends: {},
               }),
             ],
           },
@@ -239,7 +227,7 @@ describe('makeSystem', () => {
 
   it('validates each replica against its pinned service snapshot', () => {
     const Product = makeModelVersion(
-      makeModel({ name: 'product', abbreviation: 'prd' }),
+      defineModel({ name: 'product', abbreviation: 'prd' }),
       {
         version: '2.0.0',
         attributes: { name: primitives.text(), description: primitives.text() },
@@ -252,12 +240,11 @@ describe('makeSystem', () => {
       modelVersion: '2.0.0',
     });
     const catalog = makeService({
-      authentication: authenticationFixtureOwner.authentication,
+      ...authenticationFixtureOwner.authentication,
       name: 'catalog',
       version: '5.0.0',
       models: { product: Product },
       contracts: {},
-      frontends: {},
     });
     const system = makeSystem({
       name: 'pinned-replicas',
@@ -265,8 +252,8 @@ describe('makeSystem', () => {
       services: { catalog: [catalog] },
       aggregates: {
         shopper: [
-          makeAggregateVersion(makeAggregate({ name: 'shopper' }), {
-            authentication: authenticationFixtureOwner.authentication,
+          makeAggregateVersion(defineAggregate({ name: 'shopper' }), {
+            ...authenticationFixtureOwner.authentication,
             version: '2.0.0',
             services: { catalog },
             models: { product: ProductReplica },
@@ -297,12 +284,11 @@ describe('makeSystem', () => {
       {
         services: {
           catalog: makeService({
-            authentication: authenticationFixtureOwner.authentication,
+            ...authenticationFixtureOwner.authentication,
             name: 'catalog',
             version: '9.0.0',
             models: { product: Product },
             contracts: {},
-            frontends: {},
           }),
         },
         expected: /must replicate the exact source model "catalog.product"/,
@@ -310,12 +296,11 @@ describe('makeSystem', () => {
       {
         services: {
           catalog: makeService({
-            authentication: authenticationFixtureOwner.authentication,
+            ...authenticationFixtureOwner.authentication,
             name: 'catalog',
             version: '4.0.0',
             models: {},
             contracts: {},
-            frontends: {},
           }),
         },
         expected: /must replicate the exact source model "catalog.product"/,
@@ -324,12 +309,11 @@ describe('makeSystem', () => {
         services: {
           catalog,
           missing: makeService({
-            authentication: authenticationFixtureOwner.authentication,
+            ...authenticationFixtureOwner.authentication,
             name: 'missing',
             version: '1.0.0',
             models: {},
             contracts: {},
-            frontends: {},
           }),
         },
         expected: /references missing service "missing"/,
@@ -342,8 +326,8 @@ describe('makeSystem', () => {
           services: { catalog: [catalog] },
           aggregates: {
             shopper: [
-              makeAggregateVersion(makeAggregate({ name: 'shopper' }), {
-                authentication: authenticationFixtureOwner.authentication,
+              makeAggregateVersion(defineAggregate({ name: 'shopper' }), {
+                ...authenticationFixtureOwner.authentication,
                 version: '1.0.0',
                 services: rejected.services,
                 models: { product: ProductReplica },

@@ -1,36 +1,25 @@
-import {
-  main as authenticationFixtureFrontend,
-  userAggregate as authenticationFixtureOwner,
-} from '@zerospin/core/fixtures/system';
+import { userAggregate as authenticationFixtureOwner } from '@zerospin/core/fixtures/system';
 import { primitives } from '@zerospin/schema';
 import { Effect, Schema } from 'effect';
 import { assert, type Equals } from 'tsafe';
 
-import { makeFrontendController } from '../frontendController/makeFrontendController.ts';
-import { makeModel, makeModelVersion } from '../models/makeModel.ts';
+import { defineModel } from '../models/defineModel.ts';
+import { makeModelVersion } from '../models/makeModelVersion.ts';
 import { makeReplica } from '../models/makeReplica.ts';
 
 import { makeService } from './makeService.ts';
 import { requireVersion as requireServiceVersion } from './requireVersion.ts';
 
 const Product = makeModelVersion(
-  makeModel({ name: 'product', abbreviation: 'prd' }),
+  defineModel({ name: 'product', abbreviation: 'prd' }),
   {
     attributes: { name: primitives.text() },
     indexes: [],
     version: '1.0.0',
   },
 );
-const controller = makeFrontendController({
-  authentication: authenticationFixtureFrontend.authentication,
-  systemName: 'shopping',
-  serviceVersion: '1.0.0',
-  serviceName: 'catalog',
-  name: 'browse',
-  models: { product: Product },
-});
 const catalog = makeService({
-  authentication: authenticationFixtureOwner.authentication,
+  ...authenticationFixtureOwner.authentication,
   name: 'catalog',
   version: '1.0.0',
   models: { product: Product },
@@ -41,7 +30,6 @@ const catalog = makeService({
       query: () => Effect.succeed([] as string[]),
     },
   },
-  frontends: { browse: { controller } },
   authorize: () => Effect.void,
 });
 
@@ -51,7 +39,7 @@ assert<Equals<typeof catalog.models.product, typeof Product>>();
 assert<Equals<typeof catalog.queries.products.kind, 'service'>>();
 assert<Equals<typeof catalog.queries.products.name, 'products'>>();
 assert<Equals<typeof catalog.queries.products.serviceName, 'catalog'>>();
-assert<Equals<typeof catalog.frontends.browse.name, 'browse'>>();
+
 void requireServiceVersion(catalog, catalog.version);
 
 // @ts-expect-error service definitions are immutable after construction
@@ -60,27 +48,23 @@ catalog.name = 'catalog';
 catalog.models.product = Product;
 // @ts-expect-error resolved service queries are immutable after construction
 catalog.queries.products.name = 'products';
-// @ts-expect-error resolved service frontend models are immutable after construction
-catalog.frontends.browse.models.product = Product;
+// @ts-expect-error Service frontend registries are no longer authored.
+void catalog.frontends;
 
-// @ts-expect-error a service with frontends requires authorization
 makeService({
-  authentication: authenticationFixtureOwner.authentication,
+  ...authenticationFixtureOwner.authentication,
   name: 'catalog',
   version: '1.0.0',
   models: { product: Product },
   contracts: {},
-  frontends: { browse: { controller } },
 });
 
 makeService({
-  authentication: authenticationFixtureOwner.authentication,
+  ...authenticationFixtureOwner.authentication,
   name: 'catalog',
   version: '1.0.0',
   models: { product: Product },
   contracts: {},
-  frontends: {},
-  // @ts-expect-error a service without frontends must omit authorization
   authorize: () => Effect.void,
 });
 
@@ -90,7 +74,7 @@ const ProductReplica = makeReplica({
   serviceName: 'catalog',
 });
 makeService({
-  authentication: authenticationFixtureOwner.authentication,
+  ...authenticationFixtureOwner.authentication,
   name: 'catalog',
   version: '1.0.0',
   models: {
@@ -98,34 +82,10 @@ makeService({
     product: ProductReplica,
   },
   contracts: {},
-  frontends: {},
-});
-
-const wrongFrontendName = makeFrontendController({
-  authentication: authenticationFixtureFrontend.authentication,
-  systemName: 'shopping',
-  serviceVersion: '1.0.0',
-  serviceName: 'catalog',
-  name: 'other',
-  models: { product: Product },
-});
-makeService({
-  authentication: authenticationFixtureOwner.authentication,
-  name: 'catalog',
-  version: '1.0.0',
-  models: { product: Product },
-  contracts: {},
-  frontends: {
-    browse: {
-      // @ts-expect-error the binding key must equal controller.name
-      controller: wrongFrontendName,
-    },
-  },
-  authorize: () => Effect.void,
 });
 
 const VersionedProduct = makeModelVersion(
-  makeModel({ name: 'versionedProduct', abbreviation: 'vpd' }),
+  defineModel({ name: 'versionedProduct', abbreviation: 'vpd' }),
   {
     attributes: { amount: primitives.integer() },
     indexes: [],
@@ -133,12 +93,11 @@ const VersionedProduct = makeModelVersion(
   },
 );
 const versionedCatalog = makeService({
-  authentication: authenticationFixtureOwner.authentication,
+  ...authenticationFixtureOwner.authentication,
   name: 'catalog',
   version: '1.0.0',
   models: { versionedProduct: VersionedProduct },
   contracts: {},
-  frontends: {},
 });
 
 // @ts-expect-error Mutation adapters are not part of authored definitions.

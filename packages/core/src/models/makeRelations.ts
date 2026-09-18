@@ -2,7 +2,7 @@ import { PrimitiveKind } from '@zerospin/schema';
 import { mapValues } from 'es-toolkit';
 import invariant from 'tiny-invariant';
 
-import { Model } from './makeModel.ts';
+import { Model } from './defineModel.ts';
 import type {
   IAnyConnectRelation,
   IModel,

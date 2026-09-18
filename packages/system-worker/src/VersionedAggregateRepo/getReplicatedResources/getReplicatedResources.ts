@@ -6,7 +6,7 @@ import {
 } from '@zerospin/core/contracts/CommandSchema';
 import type { IAnyMutation } from '@zerospin/core/contracts/types';
 import type { IDb } from '@zerospin/core/drizzle/types';
-import { Model } from '@zerospin/core/models/makeModel';
+import { Model } from '@zerospin/core/models/defineModel';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import {
   mapParseError,

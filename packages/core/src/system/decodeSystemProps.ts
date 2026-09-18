@@ -1,6 +1,6 @@
 import { Layer, Schema } from 'effect';
 
-import { AggregateSchema } from '../aggregate/makeVersion.ts';
+import { AggregateSchema } from '../aggregate/makeAggregateVersion.ts';
 import { ServiceSchema } from '../service/makeService.ts';
 
 const SystemPropsSchema = Schema.Struct({

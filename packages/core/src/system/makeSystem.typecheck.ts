@@ -2,15 +2,15 @@ import { userAggregate as authenticationFixtureOwner } from '@zerospin/core/fixt
 import { Effect, Schema } from 'effect';
 import { assert, type Equals } from 'tsafe';
 
-import { makeAggregate } from '../aggregate/makeAggregate.ts';
-import { makeAggregateVersion } from '../aggregate/makeVersion.ts';
+import { defineAggregate } from '../aggregate/defineAggregate.ts';
+import { makeAggregateVersion } from '../aggregate/makeAggregateVersion.ts';
 import { makeService } from '../service/makeService.ts';
 
 import { makeSystem } from './makeSystem.ts';
 import { makeSystemSpec } from './makeSystemSpec.ts';
 
 const catalog = makeService({
-  authentication: authenticationFixtureOwner.authentication,
+  ...authenticationFixtureOwner.authentication,
   name: 'catalog',
   version: '1.0.0',
   models: {},
@@ -21,10 +21,9 @@ const catalog = makeService({
       query: () => Effect.succeed([] as string[]),
     },
   },
-  frontends: {},
 });
-const user = makeAggregateVersion(makeAggregate({ name: 'user' }), {
-  authentication: authenticationFixtureOwner.authentication,
+const user = makeAggregateVersion(defineAggregate({ name: 'user' }), {
+  ...authenticationFixtureOwner.authentication,
   version: '1.0.0',
   models: {},
   contracts: {},

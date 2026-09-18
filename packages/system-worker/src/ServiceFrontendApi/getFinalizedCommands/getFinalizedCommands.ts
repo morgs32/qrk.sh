@@ -1,6 +1,7 @@
 import { makeAsync } from '@zerospin/core/async/makeAsync';
 import type { IEncodedCommand } from '@zerospin/core/contracts/types';
 import type { ServiceFrontendLockSchema } from '@zerospin/core/frontendController/makeServiceFrontendLock';
+import { filterServiceFrontendCommand } from '@zerospin/core/serviceSession/filterServiceFrontendCommand';
 import type { IServiceFrontendFinalizedCommand } from '@zerospin/core/serviceSession/types';
 import type { ISystemId } from '@zerospin/core/system/types';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
@@ -131,7 +132,18 @@ export const getFinalizedCommands = Effect.fn(
   return {
     result: yield* Result.match(settled, {
       onFailure: error => encodeRpc(Effect.fail(error)),
-      onSuccess: value => encodeRpc(Effect.succeed(value)),
+      onSuccess: value =>
+        encodeRpc(
+          Effect.succeed({
+            ...value,
+            commands: value.commands.map(command =>
+              filterServiceFrontendCommand(
+                command,
+                authResults.serviceFrontendLock.models,
+              ),
+            ),
+          }),
+        ),
     }),
     link: null,
   };

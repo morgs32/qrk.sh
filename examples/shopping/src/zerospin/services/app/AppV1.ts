@@ -11,35 +11,14 @@ import { catalogMarkerV1 } from './models/catalogMarker/CatalogMarkerV1';
 import { productV1 } from './models/product/ProductV1';
 
 export const appV1 = sdk.makeService({
-  authentication: {
-    signatureSchema: Schema.Struct({ clerkUserId: ClerkUserIdSchema }),
-    authenticationSchema: Schema.Struct({ clerkUserId: ClerkUserIdSchema }),
-    selectionSchema: Schema.Struct({ clerkUserId: ClerkUserIdSchema }),
-    pattern: RoutePattern.parse('/:clerkUserId'),
-    authenticate: ({ signature }) => Effect.succeed(signature),
-  },
+  signatureSchema: Schema.Struct({ clerkUserId: ClerkUserIdSchema }),
+  authenticationSchema: Schema.Struct({ clerkUserId: ClerkUserIdSchema }),
+  selectionSchema: Schema.Struct({ clerkUserId: ClerkUserIdSchema }),
+  pattern: RoutePattern.parse('/:clerkUserId'),
+  authenticate: ({ signature }) => Effect.succeed(signature),
   name: 'app',
   version: '1.0.0',
   authorize: () => Effect.void,
-  frontends: {
-    appFrontend: {
-      controller: sdk.makeFrontendController({
-        authentication: {
-          signatureSchema: Schema.Struct({ clerkUserId: ClerkUserIdSchema }),
-          authenticationSchema: Schema.Struct({
-            clerkUserId: ClerkUserIdSchema,
-          }),
-          selectionSchema: Schema.Struct({ clerkUserId: ClerkUserIdSchema }),
-          pattern: RoutePattern.parse('/:clerkUserId'),
-        },
-        systemName: 'shopping',
-        serviceName: 'app',
-        serviceVersion: '1.0.0',
-        name: 'appFrontend',
-        models: { product: productV1 },
-      }),
-    },
-  },
   models: {
     catalogMarker: catalogMarkerV1,
     product: productV1,

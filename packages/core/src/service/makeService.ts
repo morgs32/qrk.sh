@@ -2,23 +2,16 @@ import type { RoutePattern } from '@remix-run/route-pattern';
 import type { IAnyError } from '@zerospin/error';
 import type { ITypeError } from '@zerospin/schema';
 import { Layer, Schema, type Effect } from 'effect';
-import { isEqual, mapValues } from 'es-toolkit';
+import { mapValues } from 'es-toolkit';
 import '@zerospin/server-only';
 
 import { AuthenticationSchema } from '../authentication/AuthenticationSchema.ts';
-import type { IAuthentication } from '../authentication/types.ts';
-import { Contract } from '../contracts/makeVersion.ts';
+import type { IServiceAuthentication } from '../authentication/types.ts';
+import { Contract } from '../contracts/makeContractVersion.ts';
 import type { IAnyContracts } from '../contracts/types.ts';
-import type {
-  IFrontendModelBindings,
-  IServiceAuthorization,
-  IServiceFrontendBinding,
-  IServiceFrontendBindingProps,
-} from '../frontendBinding/types.ts';
-import { ServiceFrontendController } from '../frontendController/makeFrontendController.ts';
-import type { IAnyServiceFrontendController } from '../frontendController/types.ts';
+import type { IServiceAuthorization } from '../frontendBinding/types.ts';
 import { assertValidModels } from '../models/assertValidModels.ts';
-import { Model } from '../models/makeModel.ts';
+import { Model } from '../models/defineModel.ts';
 import type {
   IAnyModels,
   IAssertValidModels,
@@ -51,19 +44,21 @@ const CanonicalContractSchema = Schema.declare(
   (input: unknown): input is IAnyContracts[string] => input instanceof Contract,
 );
 
-const CanonicalServiceFrontendControllerSchema = Schema.declare(
-  (input: unknown): input is IAnyServiceFrontendController =>
-    input instanceof ServiceFrontendController,
-);
-
 const serviceSemVerPattern =
   /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/;
 
+const AuthenticationDeclarationSchema = AuthenticationSchema.mapFields(
+  fields => ({ ...fields, authenticate: FunctionSchema }),
+  { unsafePreserveChecks: true },
+);
+
 const ServicePropsSchema = Schema.Struct({
-  authentication: AuthenticationSchema.mapFields(
-    fields => ({ ...fields, authenticate: FunctionSchema }),
-    { unsafePreserveChecks: true },
-  ),
+  signatureSchema: AuthenticationDeclarationSchema.fields.signatureSchema,
+  authenticationSchema:
+    AuthenticationDeclarationSchema.fields.authenticationSchema,
+  selectionSchema: AuthenticationDeclarationSchema.fields.selectionSchema,
+  pattern: AuthenticationDeclarationSchema.fields.pattern,
+  authenticate: AuthenticationDeclarationSchema.fields.authenticate,
   layer: Schema.optionalKey(
     Schema.declare(
       (input: unknown): input is Layer.Layer<never, IAnyError, unknown> =>
@@ -101,81 +96,8 @@ const ServicePropsSchema = Schema.Struct({
       }),
     ),
   ),
-  frontends: Schema.optionalKey(
-    Schema.Record(
-      Schema.String,
-      Schema.Struct({
-        controller: CanonicalServiceFrontendControllerSchema,
-        models: Schema.optionalKey(Schema.Record(Schema.String, Schema.String)),
-        projectionAdapters: Schema.optionalKey(
-          Schema.Record(Schema.String, FunctionSchema),
-        ),
-      }),
-    ),
-  ),
   authorize: Schema.optionalKey(FunctionSchema),
 });
-
-type IServiceFrontendBindingInput = {
-  controller: IAnyServiceFrontendController;
-  models?: Record<string, string>;
-  projectionAdapters?: Record<string, unknown>;
-};
-
-type IModelBindingsAt<
-  BINDING,
-  FRONTEND_MODELS extends IAnyModels,
-  SOURCE_MODELS extends IAnyModels,
-> = BINDING extends {
-  models: infer MODEL_BINDINGS extends IFrontendModelBindings<
-    FRONTEND_MODELS,
-    SOURCE_MODELS
-  >;
-}
-  ? MODEL_BINDINGS
-  : undefined;
-
-type IValidateServiceFrontends<
-  SERVICE_NAME extends string,
-  MODELS extends IAnyModels,
-  BINDINGS extends Record<string, IServiceFrontendBindingInput>,
-  CONTROLLERS extends Record<string, IAnyServiceFrontendController>,
-> = {
-  [FRONTEND_NAME in keyof BINDINGS &
-    keyof CONTROLLERS &
-    string]: BINDINGS[FRONTEND_NAME] &
-    IServiceFrontendBindingProps<
-      MODELS,
-      CONTROLLERS[FRONTEND_NAME],
-      IModelBindingsAt<
-        BINDINGS[FRONTEND_NAME],
-        CONTROLLERS[FRONTEND_NAME]['models'],
-        MODELS
-      >
-    > & {
-      controller: CONTROLLERS[FRONTEND_NAME] & {
-        serviceName: SERVICE_NAME;
-        name: FRONTEND_NAME;
-      };
-    };
-};
-
-type IResolvedServiceFrontends<
-  MODELS extends IAnyModels,
-  FRONTENDS extends Record<string, IServiceFrontendBindingInput>,
-> = {
-  [FRONTEND_NAME in keyof FRONTENDS &
-    string]: FRONTENDS[FRONTEND_NAME] extends {
-    controller: infer CONTROLLER extends IAnyServiceFrontendController;
-  }
-    ? IServiceFrontendBinding<
-        FRONTEND_NAME,
-        MODELS,
-        CONTROLLER,
-        IModelBindingsAt<FRONTENDS[FRONTEND_NAME], CONTROLLER['models'], MODELS>
-      >
-    : never;
-};
 
 type IResolvedServiceQueries<
   SERVICE_NAME extends string,
@@ -210,16 +132,8 @@ export function makeService<
   const CONTRACTS extends IAnyContracts,
   const VERSION extends string,
   const QUERIES extends Record<string, IServiceQuery<MODELS>> = {},
-  const FRONTENDS extends Record<string, IServiceFrontendBindingInput> = {},
-  AUTHORIZE extends IServiceAuthorization<
-    IResolvedServiceFrontends<MODELS, FRONTENDS>,
-    MODELS,
-    never
-  > = IServiceAuthorization<
-    IResolvedServiceFrontends<MODELS, FRONTENDS>,
-    MODELS,
-    never
-  >,
+  AUTHORIZE extends IServiceAuthorization<MODELS, never> =
+    IServiceAuthorization<MODELS, never>,
   LAYER_SERVICES = never,
   LAYER_REQUIREMENTS = never,
   SIGNATURE extends Schema.Codec<unknown, unknown> = Schema.Codec<
@@ -233,98 +147,64 @@ export function makeService<
     Readonly<Record<string, Schema.Codec<unknown, unknown>>>
   > = Schema.Struct<Readonly<Record<string, Schema.Codec<unknown, unknown>>>>,
   const PATTERN extends string = string,
->(
-  props: {
-    name: NAME;
-    version: VERSION;
-    authentication: IAuthentication<
-      SIGNATURE,
-      AUTHENTICATION,
-      SELECTION,
-      PATTERN
-    > & {
-      pattern: RoutePattern<PATTERN> &
-        (string extends PATTERN ? never : unknown);
+>(props: {
+  name: NAME;
+  version: VERSION;
+  signatureSchema: SIGNATURE;
+  authenticationSchema: AUTHENTICATION;
+  selectionSchema: SELECTION;
+  pattern: RoutePattern<PATTERN> & (string extends PATTERN ? never : unknown);
+  authenticate: IServiceAuthentication<
+    SIGNATURE,
+    AUTHENTICATION,
+    SELECTION,
+    PATTERN
+  >['authenticate'];
+  models: MODELS &
+    IAssertValidModels<MODELS> & {
+      [MODEL_NAME in keyof MODELS]: MODELS[MODEL_NAME] extends IModelReplica
+        ? ITypeError<`Service "${NAME}" must register the authoritative source model, not replica "${MODELS[MODEL_NAME]['modelName']}"`>
+        : MODELS[MODEL_NAME];
     };
-    models: MODELS &
-      IAssertValidModels<MODELS> & {
-        [MODEL_NAME in keyof MODELS]: MODELS[MODEL_NAME] extends IModelReplica
-          ? ITypeError<`Service "${NAME}" must register the authoritative source model, not replica "${MODELS[MODEL_NAME]['modelName']}"`>
-          : MODELS[MODEL_NAME];
-      };
-    contracts: CONTRACTS;
-    queries?: QUERIES;
-    frontends?: FRONTENDS &
-      IValidateServiceFrontends<
-        NAME,
-        MODELS,
-        NoInfer<FRONTENDS>,
-        {
-          [FRONTEND_NAME in keyof NoInfer<FRONTENDS> &
-            string]: NoInfer<FRONTENDS>[FRONTEND_NAME]['controller'];
-        }
-      >;
-    layer?: Layer.Layer<LAYER_SERVICES, IAnyError, LAYER_REQUIREMENTS>;
-  } & ([keyof FRONTENDS] extends [never]
-    ? {
-        authorize?: never;
-      }
-    : {
-        authorize: IServiceAuthorization<
-          IResolvedServiceFrontends<MODELS, FRONTENDS>,
-          MODELS,
-          never,
-          AUTHENTICATION['Type']
-        >;
-      }),
-): IService<
+  contracts: CONTRACTS;
+  queries?: QUERIES;
+  layer?: Layer.Layer<LAYER_SERVICES, IAnyError, LAYER_REQUIREMENTS>;
+  authorize?: IServiceAuthorization<MODELS, never, AUTHENTICATION['Type']>;
+}): IService<
   NAME,
   MODELS,
   CONTRACTS,
   IResolvedServiceQueries<NAME, MODELS, QUERIES>,
-  IResolvedServiceFrontends<MODELS, FRONTENDS>,
   AUTHORIZE,
   VERSION,
   LAYER_SERVICES,
   LAYER_REQUIREMENTS,
   Effect.Services<ReturnType<NonNullable<CONTRACTS[keyof CONTRACTS]['guard']>>>,
-  IAuthentication<SIGNATURE, AUTHENTICATION, SELECTION, PATTERN>
+  IServiceAuthentication<SIGNATURE, AUTHENTICATION, SELECTION, PATTERN>
 >;
 
 export function makeService(props: unknown): unknown {
   const decoded = Schema.decodeUnknownSync(ServicePropsSchema, {
     onExcessProperty: 'error',
   })(props);
+  const authentication = Schema.decodeUnknownSync(
+    AuthenticationDeclarationSchema,
+    { onExcessProperty: 'error' },
+  )({
+    signatureSchema: decoded.signatureSchema,
+    authenticationSchema: decoded.authenticationSchema,
+    selectionSchema: decoded.selectionSchema,
+    pattern: decoded.pattern,
+    authenticate: decoded.authenticate,
+  });
   const {
     name,
     version,
     models,
     contracts,
     queries: queryInputs = {},
-    frontends: frontendInputs = {},
     authorize,
   } = decoded;
-
-  const hasFrontends = Object.keys(frontendInputs).length > 0;
-  Schema.decodeUnknownSync(
-    Schema.Struct({
-      authorize: Schema.Union([FunctionSchema, Schema.Undefined]),
-    }).check(
-      Schema.makeFilter(decodedAuthorization => {
-        if (!hasFrontends && decodedAuthorization.authorize !== undefined) {
-          return `must omit authorize when it has no frontends`;
-        }
-        if (
-          hasFrontends &&
-          typeof decodedAuthorization.authorize !== 'function'
-        ) {
-          return `authorize must be a function when the service has frontends`;
-        }
-        return true;
-      }),
-    ),
-    { onExcessProperty: 'error' },
-  )({ authorize });
 
   assertValidModels({
     models,
@@ -355,130 +235,17 @@ export function makeService(props: unknown): unknown {
     serviceName: name,
   }));
 
-  const frontends = mapValues(frontendInputs, (binding, frontendKey) => {
-    const frontendName = String(frontendKey);
-    const {
-      controller,
-      models: authoredModelBindings,
-      projectionAdapters = {},
-    } = binding;
-
-    Schema.decodeUnknownSync(
-      Schema.Struct({
-        kind: Schema.Literal('service'),
-        serviceName: Schema.Literal(name),
-        name: Schema.Literal(frontendName),
-      }),
-      { onExcessProperty: 'ignore' },
-    )(controller);
-
-    const resolvedModelBindings: Record<string, string> = {};
-    if (authoredModelBindings === undefined) {
-      for (const modelKey of Object.keys(controller.models)) {
-        if (models[modelKey] !== undefined) {
-          resolvedModelBindings[modelKey] = modelKey;
-        }
-      }
-    } else {
-      Object.assign(resolvedModelBindings, authoredModelBindings);
-    }
-
-    const bindingModels: Record<string, IModel> = {};
-    const usedSourceModelKeys = new Set<string>();
-    Schema.decodeUnknownSync(
-      Schema.Record(Schema.String, Schema.String).check(
-        Schema.makeFilter((decodedBindings: Record<string, string>) => {
-          for (const [frontendModelKey, sourceModelKey] of Object.entries(
-            decodedBindings,
-          )) {
-            if (controller.models[frontendModelKey] === undefined) {
-              return {
-                path: [frontendModelKey],
-                issue: `is not a frontend model`,
-              };
-            }
-            if (models[sourceModelKey] === undefined) {
-              return {
-                path: [frontendModelKey],
-                issue: `references missing service model "${sourceModelKey}"`,
-              };
-            }
-            if (usedSourceModelKeys.has(sourceModelKey)) {
-              return `must not bind service model "${sourceModelKey}" more than once`;
-            }
-            usedSourceModelKeys.add(sourceModelKey);
-          }
-          return true;
-        }),
-      ),
-      { onExcessProperty: 'error' },
-    )(resolvedModelBindings);
-
-    for (const [frontendModelKey, sourceModelKey] of Object.entries(
-      resolvedModelBindings,
-    )) {
-      const sourceModel = models[sourceModelKey];
-      if (sourceModel !== undefined) {
-        bindingModels[frontendModelKey] = sourceModel;
-      }
-    }
-
-    Schema.decodeUnknownSync(
-      Schema.Record(Schema.String, CanonicalModelSchema).check(
-        Schema.makeFilter((decodedBindingModels: Record<string, IModel>) => {
-          for (const [frontendModelKey, sourceModel] of Object.entries(
-            decodedBindingModels,
-          )) {
-            const frontendModel = controller.models[frontendModelKey];
-            if (frontendModel === undefined) {
-              continue;
-            }
-            const diverges = sourceModel.modelName !== frontendModel.modelName;
-            const hasAdapter = frontendModelKey in projectionAdapters;
-            if (!diverges && !isEqual(sourceModel.spec, frontendModel.spec)) {
-              return {
-                path: [frontendModelKey],
-                issue: `must exactly match service model "${sourceModel.modelName}" when no projection adapter is allowed`,
-              };
-            }
-            if (diverges && !hasAdapter) {
-              return `projectionAdapters.${frontendModelKey} is required when source modelName "${sourceModel.modelName}" differs from frontend modelName "${frontendModel.modelName}"`;
-            }
-            if (!diverges && hasAdapter) {
-              return `projectionAdapters.${frontendModelKey} must not be set when source and frontend modelName both equal "${frontendModel.modelName}"`;
-            }
-          }
-          for (const adapterKey of Object.keys(projectionAdapters)) {
-            if (decodedBindingModels[adapterKey] === undefined) {
-              return `projectionAdapters.${adapterKey} has no matching binding model`;
-            }
-          }
-          return true;
-        }),
-      ),
-      { onExcessProperty: 'error' },
-    )(bindingModels);
-
-    return {
-      name: frontendName,
-      controller,
-      models: bindingModels,
-      projectionAdapters,
-    };
-  });
-
   const fields = {
     layer: decoded.layer ?? Layer.empty,
-    authentication: decoded.authentication,
+    authentication,
     name,
     version,
     models,
     contracts,
     queries,
-    frontends,
   };
   return Object.assign(
     new Service(),
-    hasFrontends ? { ...fields, authorize } : fields,
+    authorize === undefined ? fields : { ...fields, authorize },
   ) as IAnyService;
 }

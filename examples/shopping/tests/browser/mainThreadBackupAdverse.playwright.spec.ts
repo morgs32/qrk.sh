@@ -6,6 +6,7 @@ import { acquireBackupWorker } from '@zerospin/backup-worker';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/makeDbConfig';
 import { makeProvisionedInMemoryWasmSqliteDb } from '@zerospin/core/drizzle/makeProvisionedInMemoryWasmSqliteDb';
+import { aggregateFrontendProps } from '@zerospin/core/fixtures/frontendProps';
 import { PublishableKey } from '@zerospin/core/services/PublishableKey';
 import { ZerospinApiUrl } from '@zerospin/core/services/ZerospinApiUrl';
 import { sessionCommandJournalDrizzleSchema } from '@zerospin/core/session/sessionCommandShape';
@@ -71,8 +72,15 @@ const adverseRuntimeLayer = Layer.mergeAll(
 const AdverseZerospinApp = makeZerospinApp<
   typeof import('@/zerospin/system').system
 >({ systemName: 'shopping', layer: adverseRuntimeLayer });
+const guardLayer = WebV2.guardLayer;
+if (guardLayer === undefined) {
+  throw new Error('Shopping requires its frontend guard layer');
+}
 const AdverseZerospinAppShopperFrontend =
-  AdverseZerospinApp.makeFrontend(WebV2);
+  AdverseZerospinApp.makeAggregateFrontend({
+    ...aggregateFrontendProps(WebV2),
+    guardLayer,
+  });
 
 function AdverseSessionProbe(props: {
   onSession(

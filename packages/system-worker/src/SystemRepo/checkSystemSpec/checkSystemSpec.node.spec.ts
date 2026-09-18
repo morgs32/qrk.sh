@@ -38,7 +38,6 @@ const service = {
   models: {},
   contracts: {},
   queries: {},
-  frontends: {},
 };
 const spec: ISystemSpec = {
   systemName: 'test',

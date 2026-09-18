@@ -1,3 +1,3 @@
 import * as sdk from '@zerospin/sdk/browser';
 
-export const removeFromCart = sdk.defineCommand('removeFromCart');
+export const removeFromCart = sdk.defineContract('removeFromCart');

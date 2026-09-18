@@ -2,7 +2,7 @@ import { applyAggregateMutationTx } from '@zerospin/core/contracts/applyAggregat
 import { ServiceExecutionEntrySchema } from '@zerospin/core/contracts/CommandSchema';
 import { prepareReplayAppliedMutation } from '@zerospin/core/contracts/prepareReplayAppliedMutation';
 import { makeTx } from '@zerospin/core/drizzle/makeTx';
-import { Model } from '@zerospin/core/models/makeModel';
+import { Model } from '@zerospin/core/models/defineModel';
 import { mapParseError, ZerospinError } from '@zerospin/error';
 import type config from 'config';
 import { eq } from 'drizzle-orm';

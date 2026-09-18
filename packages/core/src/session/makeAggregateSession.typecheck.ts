@@ -90,7 +90,7 @@ makeAggregateSession({
   runtime: guardTestRuntime,
 });
 const localFrontend = makeFrontendController({
-  authentication: authenticationFixtureFrontend.authentication,
+  authenticationSchema: authenticationFixtureFrontend.authentication.authenticationSchema,
   systemName: 'test',
   aggregateName: 'account',
   aggregateVersion: '1.0.0',

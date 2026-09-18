@@ -19,7 +19,7 @@ import type {
 
 import type { ICreateMutation } from './createMutation.ts';
 import type { IDeleteMutation } from './deleteMutation.ts';
-import type { IMutations, InferContractProgram } from './makeVersion.ts';
+import type { IMutations, InferContractProgram } from './makeContractVersion.ts';
 import type { IMoveMutation } from './moveMutation.ts';
 import type { IReplicateMutation } from './replicate.ts';
 import type { IUpdateMutation } from './updateMutation.ts';

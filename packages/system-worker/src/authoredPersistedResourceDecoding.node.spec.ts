@@ -4,8 +4,8 @@ import { Effect } from 'effect';
 import { describe, expect } from 'vitest';
 
 import { system } from './fixtures/system.js';
-import { projectServiceFrontendResource } from './FrontendVersionedServiceRepo/projectServiceFrontendResource/projectServiceFrontendResource.js';
-import { adaptFrontendResource } from './StaticSystem/adaptFrontendResource/adaptFrontendResource.js';
+import { adaptAggregateFrontendResource } from './StaticSystem/adaptAggregateFrontendResource/adaptAggregateFrontendResource.js';
+import { adaptServiceFrontendResource } from './StaticSystem/adaptServiceFrontendResource/adaptServiceFrontendResource.js';
 
 describe('authored persisted resource decoding', () => {
   it.effect('decodes a hybrid aggregate row using the exact locked model', () =>
@@ -13,12 +13,9 @@ describe('authored persisted resource decoding', () => {
       const model = system.aggregates.user['1.0.0']!.models.preference;
       const createdAt = new Date('2026-01-01T00:00:00.000Z');
       const updatedAt = new Date('2026-01-02T00:00:00.000Z');
-      const projected = yield* adaptFrontendResource({
-        owner: {
-          kind: 'aggregate',
-          aggregateName: 'user',
-          aggregateVersion: '1.0.0',
-        },
+      const projected = yield* adaptAggregateFrontendResource({
+        aggregateName: 'user',
+        aggregateVersion: '1.0.0',
         frontendName: 'main',
         modelName: model.modelName,
         modelVersion: model.version,
@@ -53,10 +50,11 @@ describe('authored persisted resource decoding', () => {
         const model = system.services.app['1.0.0']!.models.catalogSettings;
         const createdAt = new Date('2026-02-01T00:00:00.000Z');
         const updatedAt = new Date('2026-02-02T00:00:00.000Z');
-        const projected = yield* projectServiceFrontendResource({
+        const projected = yield* adaptServiceFrontendResource({
           serviceName: 'app',
           serviceVersion: '1.0.0',
           frontendName: 'products',
+          modelVersion: model.version,
           modelName: model.modelName,
           resource: {
             id: prefixId(model, 'service-projection'),
@@ -89,12 +87,9 @@ describe('authored persisted resource decoding', () => {
         const model = system.aggregates.user['1.0.0']!.models.preference;
         const createdAt = new Date('2026-03-01T00:00:00.000Z');
         const updatedAt = new Date('2026-03-02T00:00:00.000Z');
-        const adapted = yield* adaptFrontendResource({
-          owner: {
-            kind: 'aggregate',
-            aggregateName: 'user',
-            aggregateVersion: '1.0.0',
-          },
+        const adapted = yield* adaptAggregateFrontendResource({
+          aggregateName: 'user',
+          aggregateVersion: '1.0.0',
           frontendName: 'main',
           modelName: model.modelName,
           modelVersion: '1.0.0',

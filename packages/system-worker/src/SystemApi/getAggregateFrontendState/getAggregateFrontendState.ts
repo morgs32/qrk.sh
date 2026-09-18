@@ -10,7 +10,7 @@ import { env } from 'cloudflare:workers';
 import { Effect, Schema, type Context } from 'effect';
 
 import { SelectionVersionedAggregateRepo } from '../../SelectionVersionedAggregateRepo/SelectionVersionedAggregateRepo.js';
-import { adaptFrontendResource } from '../../StaticSystem/adaptFrontendResource/adaptFrontendResource.js';
+import { adaptAggregateFrontendResource } from '../../StaticSystem/adaptAggregateFrontendResource/adaptAggregateFrontendResource.js';
 import { SelectedAggregateFrontendLockSchema } from '../../StaticSystem/frontendSpecSchemas.js';
 import { validateAggregateFrontendLock } from '../../StaticSystem/validateAggregateFrontendLock/validateAggregateFrontendLock.js';
 import {
@@ -142,12 +142,9 @@ export const getAggregateFrontendState = Effect.fn(
           if (requestedModel === undefined) {
             continue;
           }
-          const adaptedUnknown = yield* adaptFrontendResource({
-            owner: {
-              kind: 'aggregate',
-              aggregateVersion,
-              aggregateName,
-            },
+          const adaptedUnknown = yield* adaptAggregateFrontendResource({
+            aggregateVersion,
+            aggregateName,
             frontendName,
             modelName: resource.modelName,
             modelVersion: requestedModel.version,

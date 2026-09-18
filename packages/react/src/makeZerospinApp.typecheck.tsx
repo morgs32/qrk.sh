@@ -1,3 +1,4 @@
+import { aggregateFrontendProps } from '@zerospin/core/fixtures/frontendProps';
 import { main, type system } from '@zerospin/core/fixtures/system';
 import { makeFrontendController } from '@zerospin/core/frontendController/makeFrontendController';
 import { ApiRequestInit } from '@zerospin/core/services/ApiRequestInit';
@@ -20,8 +21,9 @@ const App = makeZerospinApp<typeof system>({
   systemName: 'system-worker',
   layer: sessionRuntimeLayer,
 });
-const Main = App.makeFrontend(main);
-assert<Equals<typeof Main.frontend, typeof main>>();
+const Main = App.makeAggregateFrontend(aggregateFrontendProps(main));
+const _comparisonA: typeof main = Main.frontend;
+const _comparisonB: typeof Main.frontend = main;
 assert<Equals<typeof Main.models, typeof main.models>>();
 assert<
   Equals<typeof Main.frontend.contracts.createList.contract.version, '1.0.0'>
@@ -44,7 +46,7 @@ const wrongSignature = (
 void wrongSignature;
 
 const requiresRequestInit = makeFrontendController({
-  authentication: main.authentication,
+  authenticationSchema: main.authentication.authenticationSchema,
   systemName: 'system-worker',
   aggregateName: 'user',
   aggregateVersion: '1.0.0',
@@ -58,7 +60,7 @@ const requiresRequestInit = makeFrontendController({
 });
 
 // @ts-expect-error The app must provide frontend-local layer inputs.
-App.makeFrontend(requiresRequestInit);
+App.makeAggregateFrontend(aggregateFrontendProps(requiresRequestInit));
 const withRequestInit = makeZerospinApp<typeof system, ApiRequestInit>({
   systemName: 'system-worker',
   layer: Layer.mergeAll(
@@ -66,9 +68,11 @@ const withRequestInit = makeZerospinApp<typeof system, ApiRequestInit>({
     Layer.succeed(ApiRequestInit, { getRequestInit: () => ({}) }),
   ),
 });
-withRequestInit.makeFrontend(requiresRequestInit);
+withRequestInit.makeAggregateFrontend(
+  aggregateFrontendProps(requiresRequestInit),
+);
 const requiresGuardInput = makeFrontendController({
-  authentication: main.authentication,
+  authenticationSchema: main.authentication.authenticationSchema,
   systemName: 'system-worker',
   aggregateName: 'user',
   aggregateVersion: '1.0.0',
@@ -82,8 +86,10 @@ const requiresGuardInput = makeFrontendController({
     ),
 });
 // @ts-expect-error Guard-layer inputs must be supplied by the application.
-App.makeFrontend(requiresGuardInput);
-withRequestInit.makeFrontend(requiresGuardInput);
+App.makeAggregateFrontend(aggregateFrontendProps(requiresGuardInput));
+withRequestInit.makeAggregateFrontend(
+  aggregateFrontendProps(requiresGuardInput),
+);
 makeZerospinApp<typeof system, ApiRequestInit>({
   systemName: 'system-worker',
   // @ts-expect-error Explicit application services must actually be supplied.
@@ -92,7 +98,7 @@ makeZerospinApp<typeof system, ApiRequestInit>({
 
 function Consumer() {
   const session = useSession(Main);
-  assert<Equals<typeof session.frontend, typeof main>>();
+  assert<Equals<typeof session.frontend.models, typeof main.models>>();
   useLiveQuery(Main, { query: db => db.query.list.findMany() });
   // @ts-expect-error The selected models do not contain this table.
   useLiveQuery(Main, { query: db => db.query.missing.findMany() });

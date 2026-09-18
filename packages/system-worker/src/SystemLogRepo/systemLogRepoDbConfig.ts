@@ -149,9 +149,10 @@ export const systemLogRepoDbConfig = makeDbConfig({
       name: 'authenticationAttempts',
       shape: {
         attemptId: primitives.primaryKey({ abbreviation: 'aat' }),
-        ownerKind: primitives.enum({ values: ['aggregate', 'service'] }),
-        ownerName: primitives.text(),
-        ownerVersion: primitives.text(),
+        aggregateName: primitives.text({ nullable: true }),
+        aggregateVersion: primitives.text({ nullable: true }),
+        serviceName: primitives.text({ nullable: true }),
+        serviceVersion: primitives.text({ nullable: true }),
         startedAt: primitives.date(),
         completedAt: primitives.date({ nullable: true }),
         status: primitives.enum({

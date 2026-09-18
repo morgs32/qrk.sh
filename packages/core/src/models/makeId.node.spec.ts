@@ -4,10 +4,11 @@ import { assert, type Equals } from 'tsafe';
 import { describe, expect, it, vi } from 'vitest';
 
 import { makeId } from './makeId.ts';
-import { makeModel, makeModelVersion } from './makeModel.ts';
+import { defineModel } from './defineModel.ts';
+import { makeModelVersion } from './makeModelVersion.ts';
 
 const Product = makeModelVersion(
-  makeModel({ name: 'product', abbreviation: 'prod' }),
+  defineModel({ name: 'product', abbreviation: 'prod' }),
   { version: '1.0.0', attributes: {}, indexes: [] },
 );
 

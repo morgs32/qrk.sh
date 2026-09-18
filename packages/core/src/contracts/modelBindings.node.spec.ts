@@ -2,21 +2,18 @@ import { CuidFactory, primitives } from '@zerospin/schema';
 import { Effect } from 'effect';
 import { describe, expect, it } from 'vitest';
 
-import {
-  makeModel,
-  makeModelVersion,
-  upgradeModelVersion,
-} from '../models/makeModel.ts';
+import { defineModel } from '../models/defineModel.ts';
+import { makeModelVersion, upgradeModelVersion } from '../models/makeModelVersion.ts';
 import { makeReplica } from '../models/makeReplica.ts';
 import { prefixId } from '../models/prefixId.ts';
 
-import { defineCommand } from './Command.ts';
+import { defineContract } from './defineContract.ts';
 import { makeModelMutations } from './makeModelMutations.ts';
 import { makeMutations } from './makeMutations.ts';
-import { makeContractVersion, upgradeContractVersion } from './makeVersion.ts';
+import { makeContractVersion, upgradeContractVersion } from './makeContractVersion.ts';
 
 const CartV1 = makeModelVersion(
-  makeModel({ name: 'cart', abbreviation: 'crt' }),
+  defineModel({ name: 'cart', abbreviation: 'crt' }),
   {
     attributes: { quantity: primitives.integer() },
     indexes: [],
@@ -31,7 +28,7 @@ const CartV2 = upgradeModelVersion(CartV1, {
 describe('contract model bindings', () => {
   it('binds the declared version and snapshots the map and serializable specs', async () => {
     const declarations = { cart: CartV1 };
-    const contract = makeContractVersion(defineCommand('createCart'), {
+    const contract = makeContractVersion(defineContract('createCart'), {
       payload: {},
       version: '1.0.0',
       models: declarations,
@@ -57,7 +54,7 @@ describe('contract model bindings', () => {
   });
 
   it('inherits, replaces, adds and removes bindings without changing earlier versions', async () => {
-    const v1 = makeContractVersion(defineCommand('changeCart'), {
+    const v1 = makeContractVersion(defineContract('changeCart'), {
       payload: {},
       version: '1.0.0',
       models: { cart: CartV1, removed: CartV1 },
@@ -131,7 +128,7 @@ describe('contract model bindings', () => {
   });
 
   it('supplies an empty map and rejects non-model declarations', async () => {
-    const empty = makeContractVersion(defineCommand('empty'), {
+    const empty = makeContractVersion(defineContract('empty'), {
       payload: {},
       version: '1.0.0',
       program: ({ models }) => {
@@ -144,7 +141,7 @@ describe('contract model bindings', () => {
     );
     expect(empty.spec.models).toEqual({});
     expect(() =>
-      makeContractVersion(defineCommand('invalid'), {
+      makeContractVersion(defineContract('invalid'), {
         payload: {},
         version: '1.0.0',
         // @ts-expect-error Runtime rejects structural copies too.
@@ -154,7 +151,7 @@ describe('contract model bindings', () => {
   });
 
   it('preserves mutation validation and model scope validation during execution', async () => {
-    const contract = makeContractVersion(defineCommand('createCart'), {
+    const contract = makeContractVersion(defineContract('createCart'), {
       payload: {},
       version: '1.0.0',
       models: { cart: CartV1 },
@@ -226,7 +223,7 @@ describe('contract model bindings', () => {
       createdAt: new Date(),
       updatedAt: new Date(),
     };
-    const contract = makeContractVersion(defineCommand('replicateCart'), {
+    const contract = makeContractVersion(defineContract('replicateCart'), {
       payload: {},
       version: '1.0.0',
       models: { cart: replica },

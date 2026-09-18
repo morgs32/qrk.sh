@@ -2,21 +2,21 @@ import { applyMutationTx } from '@zerospin/core/contracts/applyMutationTx';
 import { ServiceExecutionEntrySchema } from '@zerospin/core/contracts/CommandSchema';
 import { prepareReplayAppliedMutation } from '@zerospin/core/contracts/prepareReplayAppliedMutation';
 import { makeTx } from '@zerospin/core/drizzle/makeTx';
-import type { IAnyServiceFrontendBinding } from '@zerospin/core/frontendBinding/types';
 import { EncodedResourceSchema } from '@zerospin/core/models/EncodedResourceSchema';
+import { encodeResource } from '@zerospin/core/models/encodeResource';
 import type { IEncodedResourceShape } from '@zerospin/core/models/types';
 import type { IAnyService } from '@zerospin/core/service/types';
 import { ServiceFrontendFinalizedCommandSchema } from '@zerospin/core/serviceSession/ServiceFrontendCommandSchema';
 import { mapParseError, ZerospinError } from '@zerospin/error';
+import { makeEffectSchema } from '@zerospin/schema';
 import { eq } from 'drizzle-orm';
-import { Schema } from 'effect';
+import { Effect, Schema } from 'effect';
 
 import type { versionedServiceChainDbConfig } from '../../VersionedServiceChain/versionedServiceChainDbConfig.js';
 import {
   FrontendVersionedServiceRepoDb,
   frontendVersionedServiceRepoDbConfig,
 } from '../frontendVersionedServiceRepoDbConfig.js';
-import { projectServiceFrontendResource } from '../projectServiceFrontendResource/projectServiceFrontendResource.js';
 
 /** Replay a service result page and commit projected resources, output, and source progress together. */
 export const executeTx = makeTx(
@@ -25,7 +25,6 @@ export const executeTx = makeTx(
 )(function* (props: {
   rows: readonly (typeof versionedServiceChainDbConfig.schema.commands.$inferSelect)[];
   service: IAnyService;
-  frontend: IAnyServiceFrontendBinding;
   key: {
     systemId: string;
     serviceName: string;
@@ -34,7 +33,7 @@ export const executeTx = makeTx(
     frontendName: string;
   };
 }) {
-  const { service, frontend, key } = props;
+  const { service, key } = props;
 
   const tx = yield* FrontendVersionedServiceRepoDb.Tx;
   const head = tx
@@ -121,19 +120,28 @@ export const executeTx = makeTx(
       }
     }
     const nextGraph: IEncodedResourceShape[] = [];
-    for (const model of Object.values(frontend.models)) {
+    for (const model of Object.values(service.models)) {
       for (const row of tx.select().from(model.drizzleSchema).all()) {
-        const projected = yield* projectServiceFrontendResource({
-          ...key,
-          modelName: model.modelName,
-          resource: row,
-        });
-        const resource = yield* Schema.decodeUnknownEffect(
-          EncodedResourceSchema,
-        )(projected.resource).pipe(
+        const currentResource = yield* Schema.decodeUnknownEffect(
+          makeEffectSchema(model.propertiesShape),
+        )(row).pipe(
+          Effect.flatMap(resource =>
+            Schema.decodeUnknownEffect(Schema.toType(model.resourceSchema))(
+              resource,
+            ),
+          ),
           mapParseError({
             code: 'service-replica-projection-invalid',
             prefix: 'Invalid projected service resource',
+          }),
+        );
+        const encoded = yield* encodeResource(model, currentResource);
+        const resource = yield* Schema.decodeUnknownEffect(
+          EncodedResourceSchema,
+        )(encoded).pipe(
+          mapParseError({
+            code: 'service-replica-projection-invalid',
+            prefix: 'Invalid encoded service resource',
           }),
         );
         nextGraph.push(resource);

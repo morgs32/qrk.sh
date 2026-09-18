@@ -1,0 +1,410 @@
+import {
+  PrimitiveKind,
+  type IAnyTable,
+  type IAnyTables,
+} from '@zerospin/schema';
+import {
+  defineRelations,
+  type AnyRelation,
+  type AnyRelations,
+  type RelationsBuilder,
+  type RelationsBuilderColumnBase,
+} from 'drizzle-orm';
+
+import type { IAnyModels } from '../models/types.ts';
+
+import { makeDrizzleSchemasRecordFromTables } from './makeDrizzleSchemasRecordFromTables.ts';
+import type { IDrizzleRelationsFromModels } from './types.ts';
+
+/**
+ * Derives and validates all Drizzle relations from one concrete table graph.
+ *
+ * 1. Register table identities and unique physical names.
+ * 2. Locate the single primary key available on each table.
+ * 3. Validate refs and reserve forward and inverse relation names.
+ * 4. Reject cycles across the validated cross-table ref graph.
+ * 5. Build matching forward and inverse Drizzle relations.
+ */
+export function makeDrizzleRelationsFromTables<TABLES extends IAnyTables>(
+  tables: TABLES,
+  physicalTableNames?: Partial<Record<keyof TABLES & string, string>>,
+  tableAliases?: ReadonlyMap<unknown, IAnyTable>,
+): IDrizzleRelationsFromModels<IAnyModels, TABLES>;
+export function makeDrizzleRelationsFromTables<TABLES extends IAnyTables>(
+  tables: TABLES,
+  physicalTableNames: Partial<Record<keyof TABLES & string, string>> = {},
+  tableAliases: ReadonlyMap<unknown, IAnyTable> = new Map(),
+): AnyRelations {
+  const tableKeys: (keyof TABLES & string)[] = [];
+  const tableKeyByObject = new Map<IAnyTable, keyof TABLES & string>();
+  const tableKeyByName = new Map<string, keyof TABLES & string>();
+  const primaryKeyColumnByTableKey = new Map<keyof TABLES & string, string>();
+  const relationNamesByTableKey = new Map<keyof TABLES & string, Set<string>>();
+  const targetsBySourceTableKey = new Map<
+    keyof TABLES & string,
+    Set<keyof TABLES & string>
+  >();
+
+  for (const tableKey in tables) {
+    if (Object.hasOwn(tables, tableKey)) {
+      tableKeys.push(tableKey);
+    }
+  }
+
+  // 1 — Register every table object and physical table name. Relation targets
+  // resolve by concrete object identity; record keys do not excuse duplicates.
+  for (const tableKey of tableKeys) {
+    const table = tables[tableKey];
+    if (table === undefined) {
+      continue;
+    }
+    const physicalTableName = physicalTableNames[tableKey] ?? table.name;
+    const priorTableKey = tableKeyByName.get(physicalTableName);
+    if (priorTableKey !== undefined) {
+      throw new Error(
+        `makeDrizzleRelationsFromTables: duplicate physical table name "${physicalTableName}" at keys "${priorTableKey}" and "${tableKey}"`,
+      );
+    }
+    tableKeyByObject.set(table, tableKey);
+    tableKeyByName.set(physicalTableName, tableKey);
+    relationNamesByTableKey.set(tableKey, new Set());
+    targetsBySourceTableKey.set(tableKey, new Set());
+  }
+
+  // 2 — Inspect every column. Zero primary keys remain valid until referenced;
+  // multiple primary keys are invalid for this database configuration.
+  for (const tableKey of tableKeys) {
+    const table = tables[tableKey];
+    if (table === undefined) {
+      continue;
+    }
+    let primaryKeyColumnName: string | undefined;
+    for (const [columnName, descriptor] of Object.entries(table.shape)) {
+      if (
+        descriptor.kind !== PrimitiveKind.PrimaryKey &&
+        !(descriptor.kind === PrimitiveKind.Integer && descriptor.primaryKey)
+      ) {
+        continue;
+      }
+      if (primaryKeyColumnName !== undefined) {
+        throw new Error(
+          `makeDrizzleRelationsFromTables: table "${table.name}" has multiple primary keys`,
+        );
+      }
+      primaryKeyColumnName = columnName;
+    }
+    if (primaryKeyColumnName !== undefined) {
+      primaryKeyColumnByTableKey.set(tableKey, primaryKeyColumnName);
+    }
+  }
+
+  // 3 — Validate target identity and key metadata for every ref, then reserve
+  // its forward and inverse names on the source and target tables.
+  for (const sourceTableKey of tableKeys) {
+    const sourceTable = tables[sourceTableKey];
+    if (sourceTable === undefined) {
+      continue;
+    }
+    for (const [sourceColumnName, descriptor] of Object.entries(
+      sourceTable.shape,
+    )) {
+      if (descriptor.kind !== PrimitiveKind.Ref) {
+        continue;
+      }
+
+      const targetTableKey = tableKeyByObject.get(
+        tableAliases.get(descriptor.table) ?? descriptor.table,
+      );
+      if (targetTableKey === undefined) {
+        throw new Error(
+          `makeDrizzleRelationsFromTables: ref "${sourceTable.name}.${sourceColumnName}" targets table "${descriptor.targetTableName}" outside this database`,
+        );
+      }
+      const targetTable = tables[targetTableKey];
+      if (targetTable === undefined) {
+        throw new Error(
+          `makeDrizzleRelationsFromTables: ref "${sourceTable.name}.${sourceColumnName}" has a missing target table`,
+        );
+      }
+      const targetPrimaryKeyColumnName =
+        primaryKeyColumnByTableKey.get(targetTableKey);
+      if (targetPrimaryKeyColumnName === undefined) {
+        throw new Error(
+          `makeDrizzleRelationsFromTables: ref "${sourceTable.name}.${sourceColumnName}" target table "${targetTable.name}" must have one primary key`,
+        );
+      }
+      const targetPrimaryKeyDescriptor =
+        targetTable.shape[targetPrimaryKeyColumnName];
+      const targetKeyMetadataMatches =
+        targetPrimaryKeyDescriptor?.kind === PrimitiveKind.PrimaryKey
+          ? descriptor.targetKind === undefined &&
+            descriptor.abbreviation === targetPrimaryKeyDescriptor.abbreviation
+          : targetPrimaryKeyDescriptor?.kind === PrimitiveKind.Integer &&
+            targetPrimaryKeyDescriptor.primaryKey === true &&
+            descriptor.targetKind === PrimitiveKind.Integer &&
+            descriptor.abbreviation === '';
+      if (
+        descriptor.targetTableName !== targetTable.name ||
+        descriptor.targetColumnName !== targetPrimaryKeyColumnName ||
+        !targetKeyMetadataMatches
+      ) {
+        throw new Error(
+          `makeDrizzleRelationsFromTables: ref "${sourceTable.name}.${sourceColumnName}" has invalid target key metadata`,
+        );
+      }
+
+      const sourceRelationNames = relationNamesByTableKey.get(sourceTableKey);
+      const targetRelationNames = relationNamesByTableKey.get(targetTableKey);
+      if (
+        sourceRelationNames === undefined ||
+        targetRelationNames === undefined
+      ) {
+        throw new Error(
+          `makeDrizzleRelationsFromTables: relation registry is missing for "${sourceTable.name}.${sourceColumnName}"`,
+        );
+      }
+      if (sourceRelationNames.has(descriptor.relation)) {
+        throw new Error(
+          `makeDrizzleRelationsFromTables: duplicate relation name "${sourceTable.name}.${descriptor.relation}"`,
+        );
+      }
+      sourceRelationNames.add(descriptor.relation);
+      if (targetRelationNames.has(descriptor.inverse)) {
+        throw new Error(
+          `makeDrizzleRelationsFromTables: duplicate relation name "${targetTable.name}.${descriptor.inverse}"`,
+        );
+      }
+      targetRelationNames.add(descriptor.inverse);
+
+      const targets = targetsBySourceTableKey.get(sourceTableKey);
+      if (targets === undefined) {
+        throw new Error(
+          `makeDrizzleRelationsFromTables: target registry is missing for table "${sourceTable.name}"`,
+        );
+      }
+      // A self ref is resolved within one table and is valid Drizzle relation
+      // metadata. Only cross-table edges participate in cycle detection.
+      if (targetTableKey !== sourceTableKey) {
+        targets.add(targetTableKey);
+      }
+    }
+  }
+
+  // 4 — Traverse validated cross-table edges depth-first; re-entering a table
+  // that is still visiting proves a cycle. Self refs remain valid metadata.
+  const visitingTableKeys = new Set<keyof TABLES & string>();
+  const visitedTableKeys = new Set<keyof TABLES & string>();
+  for (const tableKey of tableKeys) {
+    if (visitedTableKeys.has(tableKey)) {
+      continue;
+    }
+
+    const traversalStack: Array<{
+      tableKey: keyof TABLES & string;
+      expanded: boolean;
+    }> = [{ tableKey, expanded: false }];
+
+    while (traversalStack.length > 0) {
+      const current = traversalStack.pop();
+      if (current === undefined) {
+        continue;
+      }
+      if (current.expanded) {
+        visitingTableKeys.delete(current.tableKey);
+        visitedTableKeys.add(current.tableKey);
+        continue;
+      }
+      if (visitedTableKeys.has(current.tableKey)) {
+        continue;
+      }
+      if (visitingTableKeys.has(current.tableKey)) {
+        const table = tables[current.tableKey];
+        throw new Error(
+          `makeDrizzleRelationsFromTables: cyclic ref graph at table "${table?.name ?? current.tableKey}"`,
+        );
+      }
+
+      visitingTableKeys.add(current.tableKey);
+      traversalStack.push({ tableKey: current.tableKey, expanded: true });
+
+      const targetTableKeys = targetsBySourceTableKey.get(current.tableKey);
+      if (targetTableKeys === undefined) {
+        continue;
+      }
+      for (const targetTableKey of targetTableKeys) {
+        traversalStack.push({ tableKey: targetTableKey, expanded: false });
+      }
+    }
+  }
+
+  const schema = makeDrizzleSchemasRecordFromTables(
+    tables,
+    physicalTableNames,
+    tableAliases,
+  );
+
+  // 5 — Construct one forward and one inverse relation per ref. Unique refs
+  // produce inverse one relations; all other refs produce inverse many relations.
+  return defineRelations(schema, (builder: RelationsBuilder<typeof schema>) => {
+    const result: Record<string, Record<string, AnyRelation>> = {};
+    for (const tableKey of tableKeys) {
+      result[tableKey] = {};
+    }
+
+    for (const sourceTableKey of tableKeys) {
+      const sourceTable = tables[sourceTableKey];
+      if (sourceTable === undefined) {
+        continue;
+      }
+      for (const [sourceColumnName, descriptor] of Object.entries(
+        sourceTable.shape,
+      )) {
+        if (descriptor.kind !== PrimitiveKind.Ref) {
+          continue;
+        }
+        const targetTableKey = tableKeyByObject.get(
+          tableAliases.get(descriptor.table) ?? descriptor.table,
+        );
+        if (targetTableKey === undefined) {
+          throw new Error(
+            `makeDrizzleRelationsFromTables: missing target table while building "${sourceTable.name}.${descriptor.relation}"`,
+          );
+        }
+        const targetPrimaryKeyColumnName =
+          primaryKeyColumnByTableKey.get(targetTableKey);
+        if (targetPrimaryKeyColumnName === undefined) {
+          throw new Error(
+            `makeDrizzleRelationsFromTables: missing target primary key while building "${sourceTable.name}.${descriptor.relation}"`,
+          );
+        }
+
+        const forwardRelationPath = `${sourceTableKey}.${descriptor.relation}`;
+        const sourceColumns = builder[sourceTableKey] as never as
+          | Record<string, RelationsBuilderColumnBase | undefined>
+          | undefined;
+        if (sourceColumns === undefined) {
+          throw new Error(
+            `makeDrizzleRelationsFromTables: missing schema table "${sourceTableKey}" while building "${forwardRelationPath}"`,
+          );
+        }
+        const targetColumns = builder[targetTableKey] as never as
+          | Record<string, RelationsBuilderColumnBase | undefined>
+          | undefined;
+        if (targetColumns === undefined) {
+          throw new Error(
+            `makeDrizzleRelationsFromTables: missing schema table "${targetTableKey}" while building "${forwardRelationPath}"`,
+          );
+        }
+        const sourceColumn = sourceColumns[sourceColumnName];
+        if (sourceColumn === undefined) {
+          throw new Error(
+            `makeDrizzleRelationsFromTables: missing column "${sourceColumnName}" on "${sourceTableKey}" while building "${forwardRelationPath}"`,
+          );
+        }
+        const targetPrimaryKeyColumn =
+          targetColumns[targetPrimaryKeyColumnName];
+        if (targetPrimaryKeyColumn === undefined) {
+          throw new Error(
+            `makeDrizzleRelationsFromTables: missing column "${targetPrimaryKeyColumnName}" on "${targetTableKey}" while building "${forwardRelationPath}"`,
+          );
+        }
+
+        const forwardOne = builder.one[targetTableKey] as
+          | ((config: {
+              from?:
+                | RelationsBuilderColumnBase
+                | readonly [
+                    RelationsBuilderColumnBase,
+                    ...RelationsBuilderColumnBase[],
+                  ];
+              to?:
+                | RelationsBuilderColumnBase
+                | readonly [
+                    RelationsBuilderColumnBase,
+                    ...RelationsBuilderColumnBase[],
+                  ];
+              optional?: boolean;
+            }) => AnyRelation)
+          | undefined;
+        if (forwardOne === undefined) {
+          throw new Error(
+            `makeDrizzleRelationsFromTables: missing one() helper for target "${targetTableKey}" while building "${forwardRelationPath}"`,
+          );
+        }
+        const sourceRelations = result[sourceTableKey];
+        if (sourceRelations === undefined) {
+          throw new Error(
+            `makeDrizzleRelationsFromTables: missing relation result for table "${sourceTableKey}"`,
+          );
+        }
+        sourceRelations[descriptor.relation] = forwardOne({
+          from: sourceColumn,
+          to: targetPrimaryKeyColumn,
+          optional: descriptor.nullable,
+        });
+
+        const inverseRelationPath = `${targetTableKey}.${descriptor.inverse}`;
+        const inverseRelationFactory =
+          descriptor.unique === true
+            ? (builder.one[sourceTableKey] as
+                | ((config: {
+                    from?:
+                      | RelationsBuilderColumnBase
+                      | readonly [
+                          RelationsBuilderColumnBase,
+                          ...RelationsBuilderColumnBase[],
+                        ];
+                    to?:
+                      | RelationsBuilderColumnBase
+                      | readonly [
+                          RelationsBuilderColumnBase,
+                          ...RelationsBuilderColumnBase[],
+                        ];
+                    optional?: boolean;
+                  }) => AnyRelation)
+                | undefined)
+            : (builder.many[sourceTableKey] as
+                | ((config: {
+                    from?:
+                      | RelationsBuilderColumnBase
+                      | readonly [
+                          RelationsBuilderColumnBase,
+                          ...RelationsBuilderColumnBase[],
+                        ];
+                    to?:
+                      | RelationsBuilderColumnBase
+                      | readonly [
+                          RelationsBuilderColumnBase,
+                          ...RelationsBuilderColumnBase[],
+                        ];
+                    optional?: boolean;
+                  }) => AnyRelation)
+                | undefined);
+        if (inverseRelationFactory === undefined) {
+          throw new Error(
+            `makeDrizzleRelationsFromTables: missing ${descriptor.unique === true ? 'one' : 'many'}() helper for target "${sourceTableKey}" while building "${inverseRelationPath}"`,
+          );
+        }
+        const targetRelations = result[targetTableKey];
+        if (targetRelations === undefined) {
+          throw new Error(
+            `makeDrizzleRelationsFromTables: missing relation result for table "${targetTableKey}"`,
+          );
+        }
+        targetRelations[descriptor.inverse] =
+          descriptor.unique === true
+            ? inverseRelationFactory({
+                from: targetPrimaryKeyColumn,
+                to: sourceColumn,
+                optional: true,
+              })
+            : inverseRelationFactory({
+                from: targetPrimaryKeyColumn,
+                to: sourceColumn,
+              });
+      }
+    }
+
+    return result;
+  });
+}

@@ -10,7 +10,8 @@ import { makeProvisionedInMemorySqljsDb } from '../drizzle/makeProvisionedInMemo
 import { makeTx } from '../drizzle/makeTx.ts';
 import type { IDbConfig, ITx } from '../drizzle/types.ts';
 import { Item, List, mainModels, User } from '../fixtures/system.ts';
-import { makeModel, makeModelVersion } from '../models/makeModel.ts';
+import { defineModel } from '../models/defineModel.ts';
+import { makeModelVersion } from '../models/makeModelVersion.ts';
 
 import { applyMutationInverseTx } from './applyMutationInverseTx.ts';
 import { applyMutationTx } from './applyMutationTx.ts';
@@ -22,7 +23,7 @@ const testItemId = 'tsk_pushedinv001' as const;
 const now = new Date('2020-01-01T00:00:00.000Z');
 const appliedAt = new Date('2020-01-02T00:00:00.000Z');
 const Product = makeModelVersion(
-  makeModel({ name: 'product', abbreviation: 'prd' }),
+  defineModel({ name: 'product', abbreviation: 'prd' }),
   {
     attributes: { name: primitives.text() },
     indexes: [],

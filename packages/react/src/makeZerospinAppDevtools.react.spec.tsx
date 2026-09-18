@@ -1,6 +1,10 @@
 import { act, StrictMode, useLayoutEffect } from 'react';
 
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
+import {
+  aggregateFrontendProps,
+  serviceFrontendProps,
+} from '@zerospin/core/fixtures/frontendProps';
 import { main, userAggregate } from '@zerospin/core/fixtures/system';
 import { makeFrontendController } from '@zerospin/core/frontendController/makeFrontendController';
 import { makeService } from '@zerospin/core/service/makeService';
@@ -50,7 +54,7 @@ const EmptyZerospinApp = makeZerospinApp<typeof system>({
 });
 
 const serviceFrontend = makeFrontendController({
-  authentication: main.authentication,
+  authenticationSchema: main.authentication.authenticationSchema,
   systemName: 'system-worker',
   serviceVersion: '1.0.0',
   serviceName: 'catalog',
@@ -66,7 +70,7 @@ const system = makeSystem({
       makeService({
         name: 'catalog',
         version: '1.0.0',
-        authentication: userAggregate.authentication,
+        ...userAggregate.authentication,
         models: {},
         contracts: {},
       }),
@@ -78,9 +82,12 @@ const LifecycleZerospinApp = makeZerospinApp<typeof system>({
   systemName: 'system-worker',
   layer: sessionRuntimeLayer,
 });
-const LifecycleZerospinAppMain = LifecycleZerospinApp.makeFrontend(main);
-const LifecycleZerospinAppProducts =
-  LifecycleZerospinApp.makeFrontend(serviceFrontend);
+const LifecycleZerospinAppMain = LifecycleZerospinApp.makeAggregateFrontend(
+  aggregateFrontendProps(main),
+);
+const LifecycleZerospinAppProducts = LifecycleZerospinApp.makeServiceFrontend(
+  serviceFrontendProps(serviceFrontend),
+);
 
 const fakeDevtools = vi.hoisted(() => ({
   moduleLoads: 0,
@@ -159,15 +166,10 @@ describe('makeZerospinApp main-thread frontend bootstrap', () => {
     container.remove();
   });
 
-  it('retains authored definitions and rejects a mismatched frontend system', () => {
-    expect(LifecycleZerospinAppMain.frontend).toBe(main);
-    expect(LifecycleZerospinAppMain.models).toBe(main.models);
-    expect(() =>
-      LifecycleZerospinApp.makeFrontend(
-        // @ts-expect-error Exercise the runtime boundary for untyped callers.
-        { ...main, systemName: 'wrong-system' },
-      ),
-    ).toThrow('belongs to system');
+  it('constructs a frontend with the app system and exact selections', () => {
+    expect(LifecycleZerospinAppMain.frontend.systemName).toBe('system-worker');
+    expect(LifecycleZerospinAppMain.models).toEqual(main.models);
+    expect(LifecycleZerospinAppMain.frontend.contracts).toEqual(main.contracts);
   });
 
   it('rejects a different Effect layer prototype before acquiring storage', async () => {
@@ -275,18 +277,16 @@ describe('makeZerospinApp main-thread frontend bootstrap', () => {
     expect(fakeDevtools.shellOpens).toBe(1);
   });
 
-  it('uses a frontend-owned schema and encodes its signature for the worker', async () => {
+  it('passes a decoded signature from the selected service schema to the worker', async () => {
     const numericService = makeService({
       name: 'catalog',
       version: '1.0.0',
       models: {},
       contracts: {},
-      authentication: {
-        ...userAggregate.authentication,
-        signatureSchema: Schema.NumberFromString,
-        authenticate: () =>
-          Effect.succeed({ aggregateId: 'acct_1', userId: 'usr_1' }),
-      },
+      ...userAggregate.authentication,
+      signatureSchema: Schema.NumberFromString,
+      authenticate: () =>
+        Effect.succeed({ aggregateId: 'acct_1', userId: 'usr_1' }),
     });
     const numericSystem = makeSystem({
       name: 'system-worker',
@@ -297,19 +297,13 @@ describe('makeZerospinApp main-thread frontend bootstrap', () => {
       systemName: 'system-worker',
       layer: sessionRuntimeLayer,
     });
-    const AppProducts = App.makeFrontend(
-      makeFrontendController({
-        systemName: 'system-worker',
-        serviceName: 'catalog',
-        serviceVersion: '1.0.0',
-        name: 'products',
-        models: {},
-        authentication: {
-          ...serviceFrontend.authentication,
-          signatureSchema: Schema.NumberFromString,
-        },
-      }),
-    );
+    const AppProducts = App.makeServiceFrontend({
+      serviceName: 'catalog',
+      serviceVersion: '1.0.0',
+      name: 'products',
+      models: {},
+      authenticationSchema: serviceFrontend.authentication.authenticationSchema,
+    });
     await act(async () => {
       root.render(
         <App.Provider>
@@ -320,10 +314,10 @@ describe('makeZerospinApp main-thread frontend bootstrap', () => {
       );
     });
     const request = bootstrapServiceFrontendSessionMock.mock.calls[0]?.[0];
-    expect(request.session.frontend.authentication.signatureSchema).toBe(
-      Schema.NumberFromString,
-    );
-    expect(await request.generateSignature()).toEqual(encodeSuccess('42'));
+    expect(Object.keys(request.session.frontend.authentication)).toEqual([
+      'authenticationSchema',
+    ]);
+    expect(await request.generateSignature()).toEqual(encodeSuccess(42));
 
     await act(async () => {
       root.render(
@@ -385,7 +379,7 @@ describe('makeZerospinApp main-thread frontend bootstrap', () => {
       }),
     );
     const left = makeFrontendController({
-      authentication: main.authentication,
+      authenticationSchema: main.authentication.authenticationSchema,
       systemName: 'system-worker',
       aggregateName: 'user',
       aggregateVersion: '1.0.0',
@@ -395,7 +389,7 @@ describe('makeZerospinApp main-thread frontend bootstrap', () => {
       layer: localLayer,
     });
     const right = makeFrontendController({
-      authentication: main.authentication,
+      authenticationSchema: main.authentication.authenticationSchema,
       systemName: 'system-worker',
       aggregateName: 'user',
       aggregateVersion: '1.0.0',
@@ -408,8 +402,8 @@ describe('makeZerospinApp main-thread frontend bootstrap', () => {
       systemName: 'system-worker',
       layer: appLayer,
     });
-    const AppLeft = App.makeFrontend(left);
-    const AppRight = App.makeFrontend(right);
+    const AppLeft = App.makeAggregateFrontend(aggregateFrontendProps(left));
+    const AppRight = App.makeAggregateFrontend(aggregateFrontendProps(right));
     await act(async () =>
       root.render(
         <App.Provider>
@@ -547,7 +541,7 @@ describe('makeZerospinApp main-thread frontend bootstrap', () => {
       }),
     );
     const frontend = makeFrontendController({
-      authentication: main.authentication,
+      authenticationSchema: main.authentication.authenticationSchema,
       systemName: 'system-worker',
       aggregateName: 'user',
       aggregateVersion: '1.0.0',
@@ -575,7 +569,9 @@ describe('makeZerospinApp main-thread frontend bootstrap', () => {
         ),
       ),
     });
-    const AppDelayed = App.makeFrontend(frontend);
+    const AppDelayed = App.makeAggregateFrontend(
+      aggregateFrontendProps(frontend),
+    );
     await act(async () =>
       root.render(
         <App.Provider>
@@ -939,10 +935,12 @@ describe('makeZerospinApp main-thread frontend bootstrap', () => {
     }
   });
   it('starts siblings independently and delays nested frontends until their parent is ready', async () => {
-    const Sibling = LifecycleZerospinApp.makeFrontend({
-      ...serviceFrontend,
-      name: 'sibling',
-    });
+    const Sibling = LifecycleZerospinApp.makeServiceFrontend(
+      serviceFrontendProps({
+        ...serviceFrontend,
+        name: 'sibling',
+      }),
+    );
     const ready = Promise.withResolvers<void>();
     const aggregate =
       bootstrapAggregateFrontendSessionMock.getMockImplementation();
@@ -1108,7 +1106,9 @@ describe('makeZerospinApp main-thread frontend bootstrap', () => {
   });
 
   it('rejects duplicate frontend names even when constructed by separate factory calls', async () => {
-    const Duplicate = LifecycleZerospinApp.makeFrontend(main);
+    const Duplicate = LifecycleZerospinApp.makeAggregateFrontend(
+      aggregateFrontendProps(main),
+    );
     await expect(
       act(async () =>
         root.render(

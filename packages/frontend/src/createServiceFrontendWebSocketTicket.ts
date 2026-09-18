@@ -46,15 +46,18 @@ export const createServiceFrontendWebSocketTicket = Effect.fn(
     Effect.flatMap(decodeRpc),
   );
   const gatewayApi = newSyncRpcSession<GatewayApi>(apiUrl);
-  const frontendApi = gatewayApi.getServiceFrontendApi({
-    serviceVersion: props.serviceVersion,
-    publishableKey,
-    systemName,
-    signature,
-    serviceName,
-    frontendName,
-    serviceFrontendLock,
-  });
+  const frontendApi = gatewayApi
+    .service({
+      publishableKey: publishableKey,
+      systemName: systemName,
+      name: serviceName,
+      version: props.serviceVersion,
+    })
+    .authenticate({ signature: signature })
+    .authorize({
+      frontendName: frontendName,
+      serviceFrontendLock: serviceFrontendLock,
+    });
   return yield* makeTraceableApiTarget(frontendApi)
     .createWebSocketTicket({ serviceVersion: props.serviceVersion })
     .pipe(

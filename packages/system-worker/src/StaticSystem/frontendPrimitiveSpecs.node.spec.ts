@@ -15,11 +15,13 @@ import { validateAggregateFrontendLock } from './validateAggregateFrontendLock/v
 import { validateServiceFrontendLock } from './validateServiceFrontendLock/validateServiceFrontendLock.ts';
 
 const fixtures = await vi.hoisted(async () => {
-  const { makeModel, makeModelVersion } =
-    await import('@zerospin/core/models/makeModel');
-  const { defineCommand } = await import('@zerospin/core/contracts/Command');
+  const { defineModel } = await import('@zerospin/core/models/defineModel');
+  const { makeModelVersion } =
+    await import('@zerospin/core/models/makeModelVersion');
+  const { defineContract } =
+    await import('@zerospin/core/contracts/defineContract');
   const { makeContractVersion } =
-    await import('@zerospin/core/contracts/makeVersion');
+    await import('@zerospin/core/contracts/makeContractVersion');
   const { makeFrontendController } =
     await import('@zerospin/core/frontendController/makeFrontendController');
   const { primitives } = await import('@zerospin/schema');
@@ -32,7 +34,7 @@ const fixtures = await vi.hoisted(async () => {
     pattern: RoutePattern.parse('/public'),
   };
   const item = makeModelVersion(
-    makeModel({ name: 'item', abbreviation: 'itm' }),
+    defineModel({ name: 'item', abbreviation: 'itm' }),
     {
       version: '1.0.0',
       indexes: [],
@@ -47,7 +49,7 @@ const fixtures = await vi.hoisted(async () => {
       },
     },
   );
-  const update = makeContractVersion(defineCommand('update'), {
+  const update = makeContractVersion(defineContract('update'), {
     models: { item },
     version: '1.0.0',
     payload: {
@@ -58,7 +60,7 @@ const fixtures = await vi.hoisted(async () => {
     },
   });
   const aggregateController = makeFrontendController({
-    authentication,
+    authenticationSchema: authentication.authenticationSchema,
     systemName: 'test',
     aggregateName: 'shopper',
     aggregateVersion: '1.0.0',
@@ -67,7 +69,7 @@ const fixtures = await vi.hoisted(async () => {
     contracts: { update: { contract: update } },
   });
   const serviceController = makeFrontendController({
-    authentication,
+    authenticationSchema: authentication.authenticationSchema,
     systemName: 'test',
     serviceVersion: '1.0.0',
     serviceName: 'catalog',
@@ -92,7 +94,7 @@ const fixtures = await vi.hoisted(async () => {
         catalog: {
           '1.0.0': {
             authentication,
-            frontends: { web: { controller: serviceController } },
+            models: serviceController.models,
           },
         },
       },

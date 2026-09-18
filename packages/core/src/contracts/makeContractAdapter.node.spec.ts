@@ -1,14 +1,14 @@
 import { Effect } from 'effect';
 import { describe, expect, it } from 'vitest';
 
-import { defineCommand } from './Command.ts';
+import { defineContract } from './defineContract.ts';
 import {
   identityContractAdapt,
   makeContractAdapter,
 } from './makeContractAdapter.ts';
-import { makeContractVersion } from './makeVersion.ts';
+import { makeContractVersion } from './makeContractVersion.ts';
 
-const contract = makeContractVersion(defineCommand('createItem'), {
+const contract = makeContractVersion(defineContract('createItem'), {
   version: '1.0.0',
   payload: {},
 });

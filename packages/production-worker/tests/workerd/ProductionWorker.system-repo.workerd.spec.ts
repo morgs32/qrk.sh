@@ -4,7 +4,7 @@ import { newWebSocketRpcSession } from 'capnweb';
 import { reset, SELF } from 'cloudflare:test';
 import config from 'config';
 import { Effect } from 'effect';
-
+import { products } from 'system-worker/fixtures/system';
 import type { GatewayApi } from 'system-worker/GatewayApi/GatewayApi';
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -56,18 +56,20 @@ describe('ProductionWorker static Gateway', () => {
       traceContext: null,
     });
     await Effect.runPromise(decodeRpc(accepted.result));
-    using serviceFrontendApi = await gatewayApi.getServiceFrontendApi({
-      publishableKey: 'pk_live_production_test',
-      systemName: system.name,
-
-      signature: { userId: 'usr_production_socket' },
-      frontendName: 'products',
-      serviceFrontendLock: makeServiceFrontendLock({
-        frontend: system.services.app['1.0.0'].frontends.products.controller,
-      }),
-      serviceName: 'app',
-      serviceVersion: '1.0.0',
-    });
+    using serviceFrontendApi = await gatewayApi
+      .service({
+        publishableKey: 'pk_live_production_test',
+        systemName: system.name,
+        name: 'app',
+        version: '1.0.0',
+      })
+      .authenticate({ signature: { userId: 'usr_production_socket' } })
+      .authorize({
+        frontendName: 'products',
+        serviceFrontendLock: makeServiceFrontendLock({
+          frontend: products,
+        }),
+      });
     const stateEnvelope = await serviceFrontendApi.getState({
       args: [],
       traceContext: null,

@@ -24,7 +24,7 @@ import {
   type ISpanRecord,
 } from '@zerospin/logger';
 import { CuidFactory } from '@zerospin/schema';
-import { Effect, Exit, Layer, ManagedRuntime, Scope } from 'effect';
+import { Effect, Exit, Layer, ManagedRuntime, Schema, Scope } from 'effect';
 import { afterAll, describe, expect } from 'vitest';
 
 import { initializeGuards as initializeFrontendGuards } from '../frontendController/initializeGuards.ts';
@@ -43,7 +43,7 @@ Effect.runSync(
 afterAll(() => Effect.runPromise(Scope.close(sessionScope, Exit.void)));
 
 const frontend = makeFrontendController({
-  authentication: main.authentication,
+  authenticationSchema: main.authentication.authenticationSchema,
   aggregateVersion: '1.0.0',
   contracts: {},
   models: {},
@@ -505,4 +505,112 @@ describe('renewable execution identity', () => {
       deps.db.select().from(sessionCommandJournalDrizzleSchema).all(),
     ).toEqual(retainedJournal);
   });
+});
+
+it('persists creation-time encoded claims when the current decoded authentication changes', async () => {
+  const deps = await makeInitializedSessionDeps();
+  const authenticationSchema = Schema.Struct({
+    userId: Schema.String,
+    aggregateId: Schema.String,
+    issuedAt: Schema.DateFromString,
+    level: Schema.NumberFromString,
+  });
+  const authentication = {
+    userId: 'usr_1',
+    aggregateId: 'acct_1',
+    issuedAt: new Date('2026-09-18T12:00:00Z'),
+    level: 42,
+  };
+  const dated = makeFrontendController({
+    systemName: main.systemName,
+    aggregateName: main.aggregateName,
+    aggregateVersion: main.aggregateVersion,
+    name: main.name,
+    models: main.models,
+    contracts: main.contracts,
+    authenticationSchema,
+    guardLayer: ({ authentication: claims }) => {
+      expect(claims?.issuedAt).toBeInstanceOf(Date);
+      expect(typeof claims?.level).toBe('number');
+      return Layer.empty;
+    },
+  });
+  const session = Effect.runSync(
+    Effect.map(initializeFrontendGuards(dated), guards =>
+      makeAggregateSession({
+        runtime: guardTestRuntime,
+        guards,
+        frontend: dated,
+        sessionId: 'sesn_claims082',
+      }),
+    ).pipe(Effect.provideService(Scope.Scope, sessionScope)),
+  );
+  session.store.setState({
+    sessionId: session.sessionId,
+    aggregateId: 'acct_1',
+    aggregateName: dated.aggregateName,
+    authentication,
+    systemId: 'sys_test',
+    frontendName: dated.name,
+    aggregateFrontendLockKey: 'aggregate-lock-key',
+    db: deps.db,
+    schema: deps.schema,
+    models: mainModels,
+    isInitialized: true,
+    aggregateIndex: 0,
+    userIndex: 0,
+    pushIndex: 0,
+    sessionStatus: 'current',
+    backupState: { status: 'ready', failure: null },
+  });
+  deps.db
+    .insert(deps.schema.user)
+    .values({
+      id: 'usr_1',
+      modelName: User.modelName,
+      createdAt: new Date(0),
+      updatedAt: new Date(0),
+      version: User.version,
+      name: 'User',
+    })
+    .run();
+  const first = await Effect.runPromise(
+    decodeRpc(
+      session.executeCommand({
+        contractName: 'createList',
+        payload: { id: 'lst_claims082', name: 'First', userId: 'usr_1' },
+      }),
+    ),
+  );
+  const original = deps.db
+    .select()
+    .from(sessionCommandJournalDrizzleSchema)
+    .all();
+  const encoded = Schema.encodeSync(authenticationSchema)(authentication);
+  expect(first.authentication).toEqual(encoded);
+  expect(original[0]?.authentication).toEqual(JSON.stringify(encoded));
+  session.store.setState({
+    authentication: {
+      ...authentication,
+      issuedAt: new Date('2026-09-19T12:00:00Z'),
+      level: 43,
+    },
+  });
+  const later = await Effect.runPromise(
+    decodeRpc(
+      session.executeCommand({
+        contractName: 'createList',
+        payload: { id: 'lst_later082', name: 'Later', userId: 'usr_1' },
+      }),
+    ),
+  );
+  expect(later.authentication).toEqual({
+    ...encoded,
+    issuedAt: '2026-09-19T12:00:00.000Z',
+    level: '43',
+  });
+  expect(
+    deps.db.select().from(sessionCommandJournalDrizzleSchema).all()[0],
+  ).toEqual(original[0]);
+  expect(first.authentication).toEqual(encoded);
 });

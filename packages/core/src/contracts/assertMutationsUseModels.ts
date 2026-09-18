@@ -2,10 +2,10 @@ import { ZerospinError, type IAnyError } from '@zerospin/error';
 import type { ITypeError } from '@zerospin/schema';
 import { Effect } from 'effect';
 
-import { Model } from '../models/makeModel.ts';
+import { Model } from '../models/defineModel.ts';
 import type { IAnyModels, IModel, IModelReplica } from '../models/types.ts';
 
-import type { MutationValues } from './makeVersion.ts';
+import type { MutationValues } from './makeContractVersion.ts';
 import type { IAnyContracts, IAnyMutation, IContract } from './types.ts';
 
 type InferContractMutations<CONTRACT extends IContract> = Effect.Success<

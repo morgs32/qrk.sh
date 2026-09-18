@@ -1,10 +1,11 @@
 import { RoutePattern } from '@remix-run/route-pattern';
 import { createHref } from '@remix-run/route-pattern/href';
 import type { IFrontendControllerSpec } from '@zerospin/core/frontendController/types';
+import { SessionCommandSchema } from '@zerospin/core/session/AggregateFrontendCommandSchema';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import { encodeSuccess } from '@zerospin/core/utils/encodeSuccess';
 import { ZerospinError } from '@zerospin/error';
-import { Effect, Result } from 'effect';
+import { Effect, Result, Schema } from 'effect';
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { makeSystemRuntime } from '../makeSystemRuntime.js';
@@ -48,10 +49,7 @@ vi.mock('cloudflare:workers', () => ({
 
 const aggregateFrontendLock = {
   authentication: {
-    signatureJsonSchema: {},
     authenticationJsonSchema: {},
-    selectionJsonSchema: {},
-    pattern: '/public',
   },
   systemName: 'shopping',
   frontendName: 'web',
@@ -144,6 +142,58 @@ describe('AggregateFrontendApi', () => {
       );
     }
     expect(getVersionedServiceRepoByName).not.toHaveBeenCalled();
+    expect(appendTelemetryBatch).not.toHaveBeenCalled();
+  });
+
+  it('rejects a pending occurrence created under different claims without rewriting it', async () => {
+    const originalClaims = {
+      userId: 'user_1',
+      aggregateId: 'acct_1',
+      issuedAt: '2026-09-18T12:00:00.000Z',
+      level: '42',
+    };
+    const command = Schema.decodeUnknownSync(SessionCommandSchema)({
+      id: 'cmd_claims082',
+      commandName: 'createList',
+      payload: '{}',
+      contractVersion: '1.0.0',
+      aggregateId: 'acct_1',
+      aggregateName: 'user',
+      systemName: 'shopping',
+      sessionId: 'sesn_claims082',
+      sessionIndex: 1,
+      authentication: originalClaims,
+      frontendName: 'web',
+      pushIndex: null,
+      chainedAt: '2026-09-18T12:00:00.000Z',
+      delta: { inserted: [], updated: [], deleted: [], mutations: [] },
+      failedAt: null,
+      failure: null,
+    });
+    const api = new AggregateFrontendApi({
+      authResults: {
+        authentication: { ...originalClaims, level: '43' },
+        aggregateId: 'acct_1',
+        aggregateName: 'user',
+        aggregateVersion: '1.0.0',
+        selectionPath: createHref(RoutePattern.parse('/:userId'), {
+          userId: 'user_1',
+        }),
+        frontendName: 'web',
+        aggregateFrontendLock,
+        systemId: 'sys_1',
+      },
+      runtime,
+    });
+    const envelope = await api.pushCommand({
+      args: [{ command }],
+      traceContext: null,
+    });
+    expect(envelope.result).toMatchObject({
+      _tag: 'Failure',
+      failure: { code: 'aggregate-frontend-command-target-mismatch' },
+    });
+    expect(command.authentication).toEqual(originalClaims);
     expect(appendTelemetryBatch).not.toHaveBeenCalled();
   });
 

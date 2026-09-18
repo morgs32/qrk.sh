@@ -1,7 +1,8 @@
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/makeDbConfig';
 import { makeProvisionedInMemoryWasmSqliteDb } from '@zerospin/core/drizzle/makeProvisionedInMemoryWasmSqliteDb';
-import { makeModel, makeModelVersion } from '@zerospin/core/models/makeModel';
+import { defineModel } from '@zerospin/core/models/defineModel';
+import { makeModelVersion } from '@zerospin/core/models/makeModelVersion';
 import { primitives } from '@zerospin/schema';
 import { eq, sql } from 'drizzle-orm';
 import { Effect } from 'effect';
@@ -10,7 +11,7 @@ import { describe, expect, it } from 'vitest';
 import { makeLiveQuery } from './makeLiveQuery.js';
 
 const User = makeModelVersion(
-  makeModel({ name: 'user', abbreviation: 'usr' }),
+  defineModel({ name: 'user', abbreviation: 'usr' }),
   {
     attributes: {
       name: primitives.text(),
@@ -21,7 +22,7 @@ const User = makeModelVersion(
 );
 
 const Product = makeModelVersion(
-  makeModel({ name: 'product', abbreviation: 'prd' }),
+  defineModel({ name: 'product', abbreviation: 'prd' }),
   {
     attributes: {
       name: primitives.text(),

@@ -34,12 +34,7 @@ export const execute = Effect.fn('FrontendVersionedServiceRepo.execute')(
       key: key.serviceVersion,
       recordKind: 'listed versions',
     });
-    const frontend = yield* getByKeyOrThrow({
-      record: service.frontends,
-      key: key.frontendName,
-      recordKind: 'service frontends',
-    });
-    yield* executeTx({ rows: props.rows, service, frontend, key }).pipe(
+    yield* executeTx({ rows: props.rows, service, key }).pipe(
       Effect.provideService(FrontendVersionedServiceRepoDb, db),
     );
   },

@@ -1,11 +1,12 @@
 import { primitives } from '@zerospin/schema';
 
-import { defineCommand } from '../contracts/Command.ts';
-import { makeContractVersion } from '../contracts/makeVersion.ts';
+import { defineContract } from '../contracts/defineContract.ts';
+import { makeContractVersion } from '../contracts/makeContractVersion.ts';
 
-import { makeModel, makeModelVersion } from './makeModel.ts';
+import { defineModel } from './defineModel.ts';
+import { makeModelVersion } from './makeModelVersion.ts';
 
-const UserModel = makeModel({ name: 'user', abbreviation: 'usr' });
+const UserModel = defineModel({ name: 'user', abbreviation: 'usr' });
 
 const User = makeModelVersion(UserModel, {
   attributes: {
@@ -21,7 +22,7 @@ primitives.foreignKey({
   autogenerate: true,
 });
 
-makeContractVersion(defineCommand('rawPrimaryKeyPayload'), {
+makeContractVersion(defineContract('rawPrimaryKeyPayload'), {
   payload: {
     // @ts-expect-error CoreTypeError — raw table primary keys are not payload descriptors
     id: primitives.primaryKey({ abbreviation: 'raw' }),
@@ -30,7 +31,7 @@ makeContractVersion(defineCommand('rawPrimaryKeyPayload'), {
   version: '1.0.0',
 });
 
-makeContractVersion(defineCommand('refPayload'), {
+makeContractVersion(defineContract('refPayload'), {
   payload: {
     // @ts-expect-error CoreTypeError — refs belong to persisted table/model shapes
     userId: primitives.ref({

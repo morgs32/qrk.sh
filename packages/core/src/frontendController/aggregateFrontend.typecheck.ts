@@ -5,16 +5,17 @@ import {
 import { primitives } from '@zerospin/schema';
 import { assert, type Equals } from 'tsafe';
 
-import { makeAggregate } from '../aggregate/makeAggregate.ts';
-import { makeAggregateVersion } from '../aggregate/makeVersion.ts';
-import { defineCommand } from '../contracts/Command.ts';
-import { makeContractVersion } from '../contracts/makeVersion.ts';
-import { makeModel, makeModelVersion } from '../models/makeModel.ts';
+import { defineAggregate } from '../aggregate/defineAggregate.ts';
+import { makeAggregateVersion } from '../aggregate/makeAggregateVersion.ts';
+import { defineContract } from '../contracts/defineContract.ts';
+import { makeContractVersion } from '../contracts/makeContractVersion.ts';
+import { defineModel } from '../models/defineModel.ts';
+import { makeModelVersion } from '../models/makeModelVersion.ts';
 
 import { makeFrontendController } from './makeFrontendController.ts';
 import type { IAggregateFrontend } from './types.ts';
 
-const item = makeModel({ name: 'item', abbreviation: 'itm' });
+const item = defineModel({ name: 'item', abbreviation: 'itm' });
 const itemV1 = makeModelVersion(item, {
   version: '1.0.0',
   attributes: { label: primitives.text() },
@@ -25,7 +26,7 @@ const itemV2 = makeModelVersion(item, {
   attributes: { label: primitives.text() },
   indexes: [],
 });
-const inspect = defineCommand('inspect');
+const inspect = defineContract('inspect');
 const inspectV1 = makeContractVersion(inspect, {
   version: '1.0.0',
   payload: {},
@@ -34,8 +35,8 @@ const inspectV2 = makeContractVersion(inspect, {
   version: '2.0.0',
   payload: {},
 });
-const shopperV1 = makeAggregateVersion(makeAggregate({ name: 'shopper' }), {
-  authentication: authenticationFixtureOwner.authentication,
+const shopperV1 = makeAggregateVersion(defineAggregate({ name: 'shopper' }), {
+  ...authenticationFixtureOwner.authentication,
   version: '1.0.0',
   models: { item: itemV1 },
   contracts: { inspect: { contract: inspectV1 } },
@@ -43,7 +44,8 @@ const shopperV1 = makeAggregateVersion(makeAggregate({ name: 'shopper' }), {
 });
 
 const frontend = makeFrontendController({
-  authentication: authenticationFixtureFrontend.authentication,
+  authenticationSchema:
+    authenticationFixtureFrontend.authentication.authenticationSchema,
   systemName: 'shopping',
   aggregateName: 'shopper',
   aggregateVersion: '1.0.0',
@@ -58,7 +60,8 @@ assert<Equals<typeof frontend.models.item, typeof itemV1>>();
 assert<Equals<typeof frontend.contracts.inspect.contract, typeof inspectV1>>();
 
 makeFrontendController({
-  authentication: authenticationFixtureFrontend.authentication,
+  authenticationSchema:
+    authenticationFixtureFrontend.authentication.authenticationSchema,
   systemName: 'shopping',
   aggregateName: 'shopper',
   aggregateVersion: '1.0.0',
@@ -71,7 +74,7 @@ const wrongName = makeFrontendController({
   systemName: frontend.systemName,
   aggregateVersion: frontend.aggregateVersion,
   name: frontend.name,
-  authentication: frontend.authentication,
+  authenticationSchema: frontend.authentication.authenticationSchema,
   models: frontend.models,
   contracts: frontend.contracts,
   aggregateName: 'other',
@@ -82,7 +85,7 @@ const wrongVersion = makeFrontendController({
   systemName: frontend.systemName,
   aggregateName: frontend.aggregateName,
   name: frontend.name,
-  authentication: frontend.authentication,
+  authenticationSchema: frontend.authentication.authenticationSchema,
   models: frontend.models,
   contracts: frontend.contracts,
   aggregateVersion: '2.0.0',
@@ -94,7 +97,7 @@ const wrongModels = makeFrontendController({
   aggregateName: frontend.aggregateName,
   aggregateVersion: frontend.aggregateVersion,
   name: frontend.name,
-  authentication: frontend.authentication,
+  authenticationSchema: frontend.authentication.authenticationSchema,
   contracts: frontend.contracts,
   models: { item: itemV2 },
 });
@@ -105,7 +108,7 @@ const wrongContracts = makeFrontendController({
   aggregateName: frontend.aggregateName,
   aggregateVersion: frontend.aggregateVersion,
   name: frontend.name,
-  authentication: frontend.authentication,
+  authenticationSchema: frontend.authentication.authenticationSchema,
   models: frontend.models,
   contracts: { inspect: { contract: inspectV2 } },
 });
@@ -113,7 +116,7 @@ const wrongContracts = makeFrontendController({
 wrongContracts satisfies IAggregateFrontend<typeof shopperV1>;
 
 const other = makeModelVersion(
-  makeModel({ name: 'other', abbreviation: 'oth' }),
+  defineModel({ name: 'other', abbreviation: 'oth' }),
   {
     version: '1.0.0',
     attributes: { label: primitives.text() },
@@ -125,7 +128,7 @@ const extraModels = makeFrontendController({
   aggregateName: frontend.aggregateName,
   aggregateVersion: frontend.aggregateVersion,
   name: frontend.name,
-  authentication: frontend.authentication,
+  authenticationSchema: frontend.authentication.authenticationSchema,
   contracts: frontend.contracts,
   models: { item: itemV1, other },
 });

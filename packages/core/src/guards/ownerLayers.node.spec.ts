@@ -18,14 +18,14 @@ import {
 import { afterAll, describe, expect, it } from 'vitest';
 
 import { initializeGuards as initializeAggregateGuards } from '../aggregate/initializeGuards.ts';
-import { makeAggregate } from '../aggregate/makeAggregate.ts';
+import { defineAggregate } from '../aggregate/defineAggregate.ts';
 import {
   makeAggregateVersion,
   upgradeAggregateVersion,
-} from '../aggregate/makeVersion.ts';
+} from '../aggregate/makeAggregateVersion.ts';
 import { AsyncLive } from '../async/AsyncLive.ts';
-import { defineCommand } from '../contracts/Command.ts';
-import { makeContractVersion } from '../contracts/makeVersion.ts';
+import { defineContract } from '../contracts/defineContract.ts';
+import { makeContractVersion } from '../contracts/makeContractVersion.ts';
 import { makeResourceDbConfig } from '../drizzle/makeDbConfig.ts';
 import { makeProvisionedInMemoryWasmSqliteDb } from '../drizzle/makeProvisionedInMemoryWasmSqliteDb.ts';
 import { initializeGuards as initializeFrontendGuards } from '../frontendController/initializeGuards.ts';
@@ -44,7 +44,7 @@ const guardTestRuntime = ManagedRuntime.make(
   Layer.mergeAll(NanoIdFactory, UlidMonotonicFactory),
 );
 
-const identity = defineCommand('inspect');
+const identity = defineContract('inspect');
 const inspect = makeContractVersion(identity, {
   version: '1.0.0',
   payload: {},
@@ -54,7 +54,7 @@ const inspect = makeContractVersion(identity, {
 describe('owner guard layers', () => {
   it('initializes aggregate guards in order and releases their local layer', async () => {
     const events: string[] = [];
-    const contract = makeContractVersion(defineCommand('check'), {
+    const contract = makeContractVersion(defineContract('check'), {
       version: '1.0.0',
       payload: {},
       guard: () =>
@@ -64,7 +64,7 @@ describe('owner guard layers', () => {
         }),
     });
     const aggregate = makeAggregateVersion(
-      makeAggregate({
+      defineAggregate({
         name: 'account',
         layer: Layer.effect(
           CuidFactory,
@@ -81,7 +81,7 @@ describe('owner guard layers', () => {
         ),
       }),
       {
-        authentication: authenticationFixtureOwner.authentication,
+        ...authenticationFixtureOwner.authentication,
         version: '1.0.0',
         models: {},
         selections: {},
@@ -124,7 +124,7 @@ describe('owner guard layers', () => {
 
   it('initializes service guards once per scope and releases the local layer', async () => {
     const events: string[] = [];
-    const contract = makeContractVersion(defineCommand('check'), {
+    const contract = makeContractVersion(defineContract('check'), {
       version: '1.0.0',
       payload: {},
       guard: () =>
@@ -134,7 +134,7 @@ describe('owner guard layers', () => {
         }),
     });
     const service = makeService({
-      authentication: authenticationFixtureOwner.authentication,
+      ...authenticationFixtureOwner.authentication,
       name: 'catalog',
       version: '1.0.0',
       models: {},
@@ -214,7 +214,7 @@ describe('owner guard layers', () => {
     ).toThrow();
   });
   it('shares the aggregate layer across versions and keeps service layers separate', async () => {
-    const owner = makeAggregate({
+    const owner = defineAggregate({
       name: 'account',
       layer: Layer.mergeAll(
         Layer.succeed(CuidFactory, () => Effect.succeed('aggregate')),
@@ -222,7 +222,7 @@ describe('owner guard layers', () => {
       ),
     });
     const first = makeAggregateVersion(owner, {
-      authentication: authenticationFixtureOwner.authentication,
+      ...authenticationFixtureOwner.authentication,
       version: '1.0.0',
       models: {},
       contracts: {
@@ -235,7 +235,7 @@ describe('owner guard layers', () => {
     });
     const next = upgradeAggregateVersion(first, { version: '2.0.0' });
     const independent = makeAggregateVersion(owner, {
-      authentication: authenticationFixtureOwner.authentication,
+      ...authenticationFixtureOwner.authentication,
       version: '3.0.0',
       models: {},
       contracts: { inspect: { contract: inspect } },
@@ -266,7 +266,7 @@ describe('owner guard layers', () => {
       ]),
     ).toThrow();
     const service = makeService({
-      authentication: authenticationFixtureOwner.authentication,
+      ...authenticationFixtureOwner.authentication,
       name: 'catalog',
       version: '1.0.0',
       models: {},
@@ -309,7 +309,7 @@ describe('owner guard layers', () => {
         }),
     });
     const frontend = makeFrontendController({
-      authentication: authenticationFixtureFrontend.authentication,
+      authenticationSchema: authenticationFixtureFrontend.authentication.authenticationSchema,
       aggregateVersion: '1.0.0',
       systemName: 'test',
       aggregateName: 'account',
@@ -406,7 +406,7 @@ describe('owner guard layers', () => {
 
   it('uses app defaults and sibling-local overrides without replacing captured app dependencies', async () => {
     const observed: string[] = [];
-    const guard = makeContractVersion(defineCommand('check'), {
+    const guard = makeContractVersion(defineContract('check'), {
       version: '1.0.0',
       payload: {},
       guard: () =>
@@ -417,7 +417,7 @@ describe('owner guard layers', () => {
         }),
     });
     const left = makeFrontendController({
-      authentication: authenticationFixtureFrontend.authentication,
+      authenticationSchema: authenticationFixtureFrontend.authentication.authenticationSchema,
       systemName: 'test',
       aggregateName: 'account',
       aggregateVersion: '1.0.0',
@@ -430,7 +430,7 @@ describe('owner guard layers', () => {
       ),
     });
     const right = makeFrontendController({
-      authentication: authenticationFixtureFrontend.authentication,
+      authenticationSchema: authenticationFixtureFrontend.authentication.authenticationSchema,
       systemName: 'test',
       aggregateName: 'account',
       aggregateVersion: '1.0.0',
@@ -473,7 +473,7 @@ describe('owner guard layers', () => {
     });
     let fail = true;
     const frontend = makeFrontendController({
-      authentication: authenticationFixtureFrontend.authentication,
+      authenticationSchema: authenticationFixtureFrontend.authentication.authenticationSchema,
       aggregateVersion: '1.0.0',
       systemName: 'test',
       aggregateName: 'account',

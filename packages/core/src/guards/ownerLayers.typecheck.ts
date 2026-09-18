@@ -4,16 +4,16 @@ import {
 } from '@zerospin/core/fixtures/system';
 import { Effect, Layer, Redacted } from 'effect';
 
-import { makeAggregate } from '../aggregate/makeAggregate.ts';
+import { defineAggregate } from '../aggregate/defineAggregate.ts';
 import {
   makeAggregateVersion,
   upgradeAggregateVersion,
-} from '../aggregate/makeVersion.ts';
-import { defineCommand } from '../contracts/Command.ts';
+} from '../aggregate/makeAggregateVersion.ts';
+import { defineContract } from '../contracts/defineContract.ts';
 import {
   makeContractVersion,
   upgradeContractVersion,
-} from '../contracts/makeVersion.ts';
+} from '../contracts/makeContractVersion.ts';
 import { initializeGuards as initializeFrontendGuards } from '../frontendController/initializeGuards.ts';
 import { makeFrontendController } from '../frontendController/makeFrontendController.ts';
 import { makeService } from '../service/makeService.ts';
@@ -21,14 +21,14 @@ import { PublishableKey } from '../services/PublishableKey.ts';
 import { ZerospinApiUrl } from '../services/ZerospinApiUrl.ts';
 import { makeSystem } from '../system/makeSystem.ts';
 
-const inspect = makeContractVersion(defineCommand('inspect'), {
+const inspect = makeContractVersion(defineContract('inspect'), {
   version: '1.0.0',
   payload: {},
   guard: () => Effect.asVoid(PublishableKey),
 });
-const identity = makeAggregate({ name: 'account' });
+const identity = defineAggregate({ name: 'account' });
 const aggregate = makeAggregateVersion(identity, {
-  authentication: authenticationFixtureOwner.authentication,
+  ...authenticationFixtureOwner.authentication,
   version: '1.0.0',
   models: {},
   contracts: { inspect: { contract: inspect } },
@@ -49,7 +49,7 @@ makeSystem({
 });
 
 const service = makeService({
-  authentication: authenticationFixtureOwner.authentication,
+  ...authenticationFixtureOwner.authentication,
   name: 'catalog',
   version: '1.0.0',
   models: {},
@@ -75,9 +75,9 @@ const local = Layer.effect(
   Effect.map(ZerospinApiUrl, Redacted.make),
 );
 const overridden = makeAggregateVersion(
-  makeAggregate({ name: 'account', layer: local }),
+  defineAggregate({ name: 'account', layer: local }),
   {
-    authentication: authenticationFixtureOwner.authentication,
+    ...authenticationFixtureOwner.authentication,
     version: '1.0.0',
     models: {},
     contracts: { inspect: { contract: inspect } },
@@ -115,7 +115,7 @@ makeSystem({
   aggregates: { account: [next] },
 });
 makeAggregateVersion(identity, {
-  authentication: authenticationFixtureOwner.authentication,
+  ...authenticationFixtureOwner.authentication,
   version: '1.0.0',
   models: {},
   contracts: {},
@@ -127,7 +127,7 @@ makeAggregateVersion(identity, {
 upgradeAggregateVersion(aggregate, { version: '2.0.0', layer: Layer.empty });
 
 const frontend = makeFrontendController({
-  authentication: authenticationFixtureFrontend.authentication,
+  authenticationSchema: authenticationFixtureFrontend.authentication.authenticationSchema,
   systemName: 'test',
   aggregateName: 'account',
   aggregateVersion: '1.0.0',
@@ -153,7 +153,7 @@ const latest = upgradeContractVersion(inspect, {
   program: () => Effect.succeed({}),
 });
 const currentOnly = makeService({
-  authentication: authenticationFixtureOwner.authentication,
+  ...authenticationFixtureOwner.authentication,
   name: 'catalog',
   version: '2.0.0',
   models: {},
@@ -166,7 +166,7 @@ makeSystem({
   services: { catalog: [currentOnly] },
 });
 const previous = makeService({
-  authentication: authenticationFixtureOwner.authentication,
+  ...authenticationFixtureOwner.authentication,
   name: 'catalog',
   version: '1.0.0',
   models: {},
@@ -188,7 +188,7 @@ makeSystem({
 });
 
 const localService = makeService({
-  authentication: authenticationFixtureOwner.authentication,
+  ...authenticationFixtureOwner.authentication,
   name: 'catalog',
   version: '1.0.0',
   models: {},

@@ -51,8 +51,17 @@ export const applyServiceFrontendState = Effect.fn('applyServiceFrontendState')(
       }),
     );
 
+    const encodedAuthentication = yield* Schema.encodeEffect(
+      frontend.authentication.authenticationSchema,
+    )(frontendState.authentication).pipe(
+      mapParseError({
+        code: 'frontend-authentication-invalid',
+        prefix: 'Invalid frontend state authentication',
+      }),
+    );
+
     if (
-      !isEqual(frontendState.authentication, authentication) ||
+      !isEqual(encodedAuthentication, authentication) ||
       frontendState.systemId !== systemId ||
       frontendState.serviceName !== frontend.serviceName ||
       frontendState.frontendName !== frontend.name

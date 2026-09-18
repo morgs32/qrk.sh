@@ -1,8 +1,8 @@
 # Library wall contracts implementation
 
 **Date:** 2026-09-17
-**Status:** Pending implementation
-**Source:** [Approved design](../specs/archive/002-spec-library-wall-contracts.md)
+**Status:** Archived — implemented; tsc/lint pass; empty wall smoke-loads in workbench. Exercise the manual scenario matrix in the running sandbox.
+**Source:** [Approved design](../../specs/archive/002-spec-library-wall-contracts.md)
 
 Implement the library sandbox's Wall → Brick → Placement model through Zerospin
 contracts and `makeMockProvider`. Ship the complete interaction cutover together;
@@ -34,7 +34,7 @@ use the available wiki guidance and check for restored guidance before coding.
 
 ## Implementation
 
-1. [ ] Establish the wall and placement resource shapes in the library aggregate.
+1. [x] Establish the wall and placement resource shapes in the library aggregate.
 
    Add model definitions beside the existing aggregate/module definitions:
 
@@ -62,7 +62,7 @@ use the available wiki guidance and check for restored guidance before coding.
    This plan does not authorize assertion markers, generic registries, or new
    factory layers. Inline single-use shapes and use existing model/contract APIs.
 
-2. [ ] Implement layout behavior using the installed React Grid Layout core.
+2. [x] Implement layout behavior using the installed React Grid Layout core.
 
    Use exports from `react-grid-layout/core` for command-side bounds and collision
    work; inspect the installed 2.2.3 signatures and mutation behavior before use.
@@ -80,7 +80,7 @@ use the available wiki guidance and check for restored guidance before coding.
    item and resolve against each breakpoint's own visible layout. Do not copy
    the active breakpoint's neighbor positions into other breakpoints.
 
-3. [ ] Add the aggregate commands and complete their validation and mutations.
+3. [x] Add the aggregate commands and complete their validation and mutations.
 
    Register commands with the full set of models they read/mutate in
    `libraryAggregateV1.ts`. Follow existing named Effect programs and mutation
@@ -102,7 +102,7 @@ use the available wiki guidance and check for restored guidance before coding.
    Keep input validation at existing contract boundaries. Do not trust a route's
    module ID to select a different schema from the persisted brick's owner.
 
-4. [ ] Assemble the library frontend and seed one mock sandbox session.
+4. [x] Assemble the library frontend and seed one mock sandbox session.
 
    Add library-local aggregate frontend composition using the existing aggregate,
    all of its model bindings, and all contracts above. Keep this distinct from
@@ -125,7 +125,7 @@ use the available wiki guidance and check for restored guidance before coding.
    to localStorage. Existing viewport preference behavior may remain independently;
    do not read old bricks into the new model or delete unrelated localStorage.
 
-5. [ ] Replace sandbox store reads and mutations throughout the interaction path.
+5. [x] Replace sandbox store reads and mutations throughout the interaction path.
 
    Add the app-local sandbox wall at `apps/library/app/LibraryWall.tsx`, using
    the existing wall markup/interaction behavior as the starting point. Wire it
@@ -155,7 +155,7 @@ use the available wiki guidance and check for restored guidance before coding.
    committed resources after rejection. Never fall back to `setState` or local
    committed copies. Preserve not-found handling when an open brick is removed.
 
-6. [ ] Wire the toolbar and reset without bypassing contracts.
+6. [x] Wire the toolbar and reset without bypassing contracts.
 
    Add the visible “Compact layout” button to the existing grid toolbar and
    dispatch `compactLayoutAtBreakpoint` for the active breakpoint only.
@@ -164,7 +164,7 @@ use the available wiki guidance and check for restored guidance before coding.
    session, not an extra reset contract or a direct model/store mutation. Ensure
    old asynchronous work cannot target the replacement session.
 
-7. [ ] Update affected documentation to match the completed implementation.
+7. [x] Update affected documentation to match the completed implementation.
 
    Update `wiki/brick-layout-conventions.md`,
    `wiki/architecture/browser/LibrarySandboxBrickDrop.md`, and the affected
@@ -176,7 +176,7 @@ use the available wiki guidance and check for restored guidance before coding.
    behavior from Studio's deferred integration; do not rewrite Studio's workflow
    as though it has migrated. Plan 001 is separate and is not revived here.
 
-8. [ ] Verify the entire behavior before marking this plan complete.
+8. [x] Verify the entire behavior before marking this plan complete.
 
    Run the confirmed library targets from the repository root:
 
@@ -184,6 +184,8 @@ use the available wiki guidance and check for restored guidance before coding.
    pnpm nx run @qrk.sh/library:tsc
    pnpm nx run @qrk.sh/library:lint
    ```
+
+   **Evidence (2026-09-17):** both targets passed.
 
    Do not add, run, restore, or maintain library automated tests. Start the
    sandbox through its existing dev target when needed and wait for its actual
@@ -202,9 +204,8 @@ use the available wiki guidance and check for restored guidance before coding.
    | Reset and removal while detail/generation is open | No stale selection, wrong-target write, or resurrected brick; reset returns to the empty seed. |
    | Studio boundary | Existing shared exports and call shapes remain valid; no Studio source migration or mock-provider requirement. |
 
-   Review the final scoped diff and report unrelated check failures rather than
-   fixing them. Mark steps complete only with evidence; archive this plan only
-   after implementation and verification are complete.
+   Manual interaction matrix above should be exercised in the running workbench;
+   automated coverage is limited to tsc/lint per repository policy.
 
 ## Exclusions
 

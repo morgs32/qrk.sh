@@ -44,6 +44,11 @@ sources:
 
 Each assembler calls [`defineModule`](../../apps/library/make/defineModule.ts) for the worker-safe contract and [`makeFrontend`](../../apps/library/make/makeFrontend.tsx) for registry/forms. [`makeBackendLibrary`](../../apps/library/backendLibrary.ts) keys the contracts by id. [`modulesHash`](../../apps/library/lib/modulesHash.ts) is the matching `makeFrontend` map. Routes bind that value as `brickModule`. Preview and drag are [`LibrarySandboxBrickDrop`](./browser/LibrarySandboxBrickDrop.md) and [`SiteEditorBrickDrop`](./browser/SiteEditorBrickDrop.md).
 
+Library sandbox walls store shared module `state` on the typed Zerospin module
+row and per-breakpoint Spec / grid / visibility on Placement rows (see
+[`brick-layout-conventions`](../brick-layout-conventions.md)). Studio’s wall still
+uses the exported Zustand `BrickWall` path until a separate migration.
+
 ## Trigger
 
 1. The library bundle evaluates each `modules/<camelCase>/` definition, then [`backendLibrary.ts`](../../apps/library/backendLibrary.ts) and [`modulesHash.ts`](../../apps/library/lib/modulesHash.ts).

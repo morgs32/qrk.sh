@@ -54,17 +54,22 @@ Worker/RPC declarations. Neither build deploys the app.
 ## Modules and interaction
 
 `modulesHash` exposes each library module by kebab-case id. `defineModule` owns
-catalog, data, and nested breakpoint contracts (`sm` required; `md`/`lg`/`xl`
-inherit missing `w`/`h`/`defaultSpec`/`options.shape` from the
-nearest smaller slot). `makeFrontend` attaches the json-render registry, data
-forms, and option forms. Option shapes replace as a whole; omitted shapes
-inherit. Spec generation uses the client-selected spec (saved spec, else the
-active breakpoint’s `defaultSpec`).
+identity, catalog, `stateShape`, and `defaultState`. `makeFrontend` attaches the
+json-render registry and brick React component. Grid sizing is measured at
+preview/drag time (`w` / `h` from intrinsic px ÷ `gridItemWidth`), not declared
+on the module.
+
+The workbench sandbox mounts `makeMockProvider` with one seeded empty wall
+(`wal_sandbox`). Committed layout is Wall → Membership → Placement via aggregate
+contracts (`addBrick`, layout/visibility/remove/compact, per-module state and
+spec-at-breakpoint). Shared state lives on the typed module row; each placement
+stores a complete Spec, grid item, and visibility. The sandbox grid uses
+`noCompactor` (collision resolve without auto-gap-closing); **Compact layout**
+runs an explicit command. Reset remounts the mock session. Viewport preference
+may persist in localStorage; bricks do not.
+
+Studio still imports exported `BrickWall` / `GridStore` (Zustand) and is not on
+the mock-provider path.
 
 Placed bricks drag from their entire surface and resize using the grid library's default
-bottom-right handle. Rendered content ignores pointer events; the edit icon remains clickable.
-Module and configuration previews also drag from their entire surface.
-
-The modules flatten cutover uses persistence version 3. Older workbench
-brick drafts reset on hydration while preserving the selected grid width. The site
-editor also resets older drafts when it hydrates.
+bottom-right handle. Module and configuration previews also drag from their entire surface.

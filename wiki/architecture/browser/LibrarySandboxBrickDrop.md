@@ -1,91 +1,80 @@
 ---
 title: Library sandbox brick preview and drop
-updated: 2026-09-15
+updated: 2026-09-17
 sources:
-  - path: apps/library/app/routes/modules/ModulesPage.tsx
-    sha: 47dfc8dfbefda0f64cd3f45025a02b037bfd6328
-    lines: 10-45
-  - path: apps/library/lib/BrickPreview.tsx
-    sha: 76058457d5bafd25784c185bde7b68f1f1caa590
-    lines: 8-27
+  - path: apps/library/app/Layout.tsx
+    lines: 78-96
+  - path: apps/library/app/LibraryWall.tsx
+    lines: 68-120
   - path: apps/library/app/DraggableBrick.tsx
-    sha: 3f2e301b91179092437ed16551ef32fedfbc5534
-    lines: 7-38
-  - path: apps/library/lib/BrickWall.tsx
-    sha: 1fa785cfe1cb7f79e6896044255f72018f5fc229
-    lines: 85-114
-  - path: apps/library/lib/BrickStoreProvider.tsx
-    sha: 32294bf4c1c211e0043618a73cd20f43762bf778
-    lines: 80-111
+    lines: 7-43
+  - path: apps/library/lib/BrickPreview.tsx
+    lines: 1-40
+  - path: apps/library/aggregates/library/contracts/addBrick/AddBrickContractV1.ts
+    lines: 60-97
   - path: apps/library/lib/modulesHash.ts
-    sha: 442bd44d274457668ba04522c2f6038e9f0f000e
     lines: 14-26
 ---
 
 # Library sandbox brick preview and drop
 
-Workbench `/modules` lists every [`IModule`](../../../apps/library/lib/types.ts) from [`modulesHash`](../../../apps/library/lib/modulesHash.ts), sizes a preview, and copies a def into [`useBricksStore`](../../../apps/library/lib/BrickStoreProvider.tsx) on native drag. [`BrickWall`](../../../apps/library/lib/BrickWall.tsx) sizes the drop placeholder from that store and calls `addBrick`. Identity lookup is [`BrickModule`](../BrickModule.md).
+Workbench filmstrip previews size bricks and copy a drag payload into Zustand
+(`activeBrickDrag` only). [`LibraryWall`](../../../apps/library/app/LibraryWall.tsx)
+reads committed wall data through Zerospin live queries and submits `addBrick`.
+Studio continues to use exported [`BrickWall`](../../../apps/library/lib/BrickWall.tsx)
++ Zustand and is outside this path. Identity lookup is [`BrickModule`](../BrickModule.md).
 
 ## Trigger
 
-1. [`Layout`](../../../apps/library/app/routes/Layout.tsx) renders the drawer `Outlet` (`/modules` [`ModulesPage`](../../../apps/library/app/routes/modules/ModulesPage.tsx)) beside [`BrickWall`](../../../apps/library/lib/BrickWall.tsx).
+1. [`Layout`](../../../apps/library/app/Layout.tsx) mounts `LibrarySandboxProvider`
+   (mock session + seeded empty wall), then the drawer outlet beside `LibraryWall`.
 2. The user drags a filmstrip preview onto the grid.
 
 ```mermaid
 sequenceDiagram
-  participant ModulesPage
+  participant Filmstrip
   participant modulesHash
   participant BrickPreview
   participant DraggableBrick
-  participant bricksStore
-  participant BrickWall
+  participant dragStore
+  participant LibraryWall
+  participant session
 
   autonumber 1
-  ModulesPage->>modulesHash: Object.values(modulesHash)
+  Filmstrip->>modulesHash: Object.values(modulesHash)
   autonumber 2
-  modulesHash-->>ModulesPage: IModule[]
+  modulesHash-->>Filmstrip: IModule[]
   autonumber 3
-  ModulesPage->>BrickPreview: BrickPreview(...)
+  Filmstrip->>BrickPreview: BrickPreview(...)
   autonumber 4
-  ModulesPage->>DraggableBrick: DraggableBrick(...)
+  Filmstrip->>DraggableBrick: DraggableBrick(...)
   autonumber 5
-  DraggableBrick->>bricksStore: setActiveBrickDrag(...)
+  DraggableBrick->>dragStore: setActiveBrickDrag(...)
   autonumber 6
-  BrickWall->>bricksStore: activeBrickDrag[breakpoint]
+  LibraryWall->>dragStore: activeBrickDrag
   autonumber 7
-  bricksStore-->>BrickWall: w, h
+  dragStore-->>LibraryWall: w, h, state, spec
   autonumber 8
-  BrickWall->>bricksStore: addBrick(...)
+  LibraryWall->>session: executeCommand(addBrick)
   autonumber 9
-  bricksStore->>modulesHash: modulesHash[brickDef.moduleId]
-  autonumber 10
-  modulesHash-->>bricksStore: brickModule
-  autonumber 11
-  bricksStore-->>BrickWall: bricksById updated
+  session-->>LibraryWall: Success | Failure
 ```
 
 ## Annotated workflow steps
 
 1. The filmstrip reads the hash as an array of modules.
-   - [`ModulesPage.tsx:10-17`](../../../apps/library/app/routes/modules/ModulesPage.tsx#L10-L17) — `Object.values(modulesHash)` then `modules.map((brickModule) => ...)`. (`apps/library/app/routes/modules/ModulesPage.tsx:10-17`)
-2. Each entry is a full `IModule` (`def`, `component`, `defaultData`).
-   - [`modulesHash.ts:14-26`](../../../apps/library/lib/modulesHash.ts#L14-L26) — kebab keys to assembler results. (`apps/library/lib/modulesHash.ts:14-26`)
-3. Preview size is `w * gridItemWidth` by `h * gridItemWidth` for the active `BREAKPOINTS` row.
-   - [`-ModulePreview.tsx`](../../../apps/library/app/routes/modules/-ModulePreview.tsx) — `BrickPreview breakpoint={breakpoint} w={def[breakpoint].w} h={def[breakpoint].h}`.
+   - [`modulesHash.ts:14-26`](../../../apps/library/lib/modulesHash.ts#L14-L26) — kebab keys to assembler results.
+2. Preview measurement uses unconstrained intrinsic px → grid units via `gridItemWidth`.
    - [`BrickPreview.tsx`](../../../apps/library/lib/BrickPreview.tsx) — whole-pixel width/height from `BREAKPOINTS[].gridItemWidth`.
-4. The preview surface is a native drag source carrying `brickModule.def`.
-   - [`ModulesPage.tsx:37-43`](../../../apps/library/app/routes/modules/ModulesPage.tsx#L37-L43) — `DraggableBrick brickDef={def}` wrapping `BrickComponent` with `data={def.data}`. (`apps/library/app/routes/modules/ModulesPage.tsx:37-43`)
-5. Drag start clones the def into Zustand and sets `text/plain` to `moduleId`.
-   - [`DraggableBrick.tsx:22-35`](../../../apps/library/app/DraggableBrick.tsx#L22-L35) — `setActiveBrickDrag(structuredClone(brickDef))`, drag image, `effectAllowed = "copy"`. (`apps/library/app/DraggableBrick.tsx:22-35`)
-6. Grid drop-over reads the in-flight def at the measured breakpoint.
-   - [`BrickWall.tsx:88-93`](../../../apps/library/lib/BrickWall.tsx#L88-L93) — `onDragOver` returns false without `activeBrickDrag`, else `{ w, h }` from `activeBrickDrag[breakpoint]`. (`apps/library/lib/BrickWall.tsx:88-93`)
-7. Those numbers are the placeholder size.
-   - [`BrickWall.tsx:93`](../../../apps/library/lib/BrickWall.tsx#L93) — `return { w: activeBrickDrag[breakpoint].w, h: activeBrickDrag[breakpoint].h }`. (`apps/library/lib/BrickWall.tsx:93`)
-8. Drop allocates a brick id and calls `addBrick`.
-   - [`BrickWall.tsx:95-113`](../../../apps/library/lib/BrickWall.tsx#L95-L113) — `crypto.randomUUID()`, rewrite dropped `i`/`w`/`h`, `addBrick(...)`, then `setActiveBrickDrag(null)`. (`apps/library/lib/BrickWall.tsx:95-113`)
-9. Persist looks up the module again for options defaults.
-   - [`BrickStoreProvider.tsx:83-88`](../../../apps/library/lib/BrickStoreProvider.tsx#L83-L88) — `brickModule = modulesHash[brickDef.moduleId]` then `brickModule?.component.options.decode(...)`. (`apps/library/lib/BrickStoreProvider.tsx:83-88`)
-10. Missing hash yields empty options `{}`.
-    - [`BrickStoreProvider.tsx:84-88`](../../../apps/library/lib/BrickStoreProvider.tsx#L84-L88) — optional chain; no options config becomes `{}`. (`apps/library/lib/BrickStoreProvider.tsx:84-88`)
-11. The store writes `bricksById[brickId]` (`moduleId`, `data`, `sm` placement, optional explicit breakpoint) and runs `setLayout`.
-    - [`BrickStoreProvider.tsx:89-110`](../../../apps/library/lib/BrickStoreProvider.tsx#L89-L110) — `set` of the placed brick then `get().setLayout(layout, breakpoint)`. (`apps/library/lib/BrickStoreProvider.tsx:89-110`)
+3. Drag start clones `{ moduleId, state, spec, w, h }` into the drag store only.
+   - [`DraggableBrick.tsx:22-35`](../../../apps/library/app/DraggableBrick.tsx#L22-L35) — `setActiveBrickDrag(structuredClone(brickDef))`.
+4. Drop placeholder size comes from the flat drag payload `w` / `h`.
+   - [`LibraryWall.tsx`](../../../apps/library/app/LibraryWall.tsx) — `onDragOver` returns `{ w, h }` from `activeBrickDrag`.
+5. Drop allocates membership and module resource ids, then runs `addBrick`.
+   - [`AddBrickContractV1.ts:60-97`](../../../apps/library/aggregates/library/contracts/addBrick/AddBrickContractV1.ts#L60-L97) — payload includes wall, membership, module row, state/spec, resolved active layout, and other-breakpoint visible layouts.
+6. The command creates one module row, one membership, and four visible placements; neighbors at other breakpoints are collision-resolved without compaction.
+7. Live queries refresh `LibraryWall`; committed Zustand `bricksById` is not used on the sandbox path.
+8. Reset remounts `LibrarySandboxProvider` with a fresh empty-wall seed; viewport preference may persist separately.
+
+Studio’s `BrickWall` / `GridStore` exports and props are unchanged and still
+auto-compact via `verticalCompactor`.

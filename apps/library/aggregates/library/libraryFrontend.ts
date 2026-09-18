@@ -1,7 +1,10 @@
 import { RoutePattern } from "@remix-run/route-pattern";
-import { makeAggregateVersion } from "@zerospin/core/aggregate/makeVersion";
-import { makeSelection } from "@zerospin/core/models/makeSelection";
-import { Effect, Schema } from "effect";
+import { makeFrontendController } from "@zerospin/core/frontendController/makeFrontendController";
+import { PublishableKey } from "@zerospin/core/services/PublishableKey";
+import { ZerospinApiUrl } from "@zerospin/core/services/ZerospinApiUrl";
+import { makeZerospinApp } from "@zerospin/react";
+import { makeMockProvider } from "@zerospin/react/mock";
+import { Layer, Redacted, Schema } from "effect";
 
 import { figmaThumbnailContractV1 } from "../../modules/figmaThumbnail/figmaThumbnailContractV1";
 import { figmaThumbnailModelV1 } from "../../modules/figmaThumbnail/figmaThumbnailModelV1";
@@ -38,7 +41,7 @@ import { compactLayoutAtBreakpointContractV1 } from "./contracts/compactLayoutAt
 import { removeBrickContractV1 } from "./contracts/removeBrick/RemoveBrickContractV1";
 import { setBrickVisibilityAtBreakpointContractV1 } from "./contracts/setBrickVisibilityAtBreakpoint/SetBrickVisibilityAtBreakpointContractV1";
 import { updateLayoutAtBreakpointContractV1 } from "./contracts/updateLayoutAtBreakpoint/UpdateLayoutAtBreakpointContractV1";
-import { library } from "./library";
+import type { librarySystem } from "./librarySystem";
 import { membershipModelV1 } from "./models/membership/membershipModelV1";
 import { placementModelV1 } from "./models/placement/placementModelV1";
 import { wallModelV1 } from "./models/wall/wallModelV1";
@@ -47,21 +50,17 @@ const AggregateIdSchema = Schema.Struct({
   aggregateId: Schema.String,
 });
 
-export const libraryAggregateV1 = makeAggregateVersion(library, {
-  version: "1.0.0",
+const libraryFrontendController = makeFrontendController({
   authentication: {
     signatureSchema: AggregateIdSchema,
     authenticationSchema: AggregateIdSchema,
     selectionSchema: AggregateIdSchema,
     pattern: RoutePattern.parse("/:aggregateId"),
-    authenticate: Effect.fn("libraryAggregateV1.authenticate")(function* ({
-      signature,
-    }: {
-      signature: { aggregateId: string };
-    }) {
-      return yield* Effect.succeed({ aggregateId: signature.aggregateId });
-    }),
   },
+  aggregateVersion: "1.0.0",
+  aggregateName: "library",
+  name: "library",
+  systemName: "library",
   models: {
     wall: wallModelV1,
     membership: membershipModelV1,
@@ -116,19 +115,23 @@ export const libraryAggregateV1 = makeAggregateVersion(library, {
     },
     updateTextSpecAtBreakpoint: { contract: textSpecContractV1 },
   },
-  selections: {
-    wall: makeSelection({ model: wallModelV1 }),
-    membership: makeSelection({ model: membershipModelV1 }),
-    placement: makeSelection({ model: placementModelV1 }),
-    figmaThumbnail: makeSelection({ model: figmaThumbnailModelV1 }),
-    githubActivity: makeSelection({ model: githubActivityModelV1 }),
-    githubProfile: makeSelection({ model: githubProfileModelV1 }),
-    githubRepo: makeSelection({ model: githubRepoModelV1 }),
-    image: makeSelection({ model: imageModelV1 }),
-    instagram: makeSelection({ model: instagramModelV1 }),
-    link: makeSelection({ model: linkModelV1 }),
-    mapPlace: makeSelection({ model: mapPlaceModelV1 }),
-    swatchAndIcon: makeSelection({ model: swatchAndIconModelV1 }),
-    text: makeSelection({ model: textModelV1 }),
-  },
+});
+
+const sessionRuntimeLayer = Layer.mergeAll(
+  Layer.succeed(PublishableKey, Redacted.make("pk_library_sandbox")),
+  Layer.succeed(ZerospinApiUrl, "https://api.library.sandbox.test"),
+);
+
+const LibraryZerospinApp = makeZerospinApp<typeof librarySystem>({
+  systemName: "library",
+  layer: sessionRuntimeLayer,
+});
+
+export const LibraryFrontend = LibraryZerospinApp.makeFrontend(
+  libraryFrontendController,
+);
+
+export const MockLibraryProvider = makeMockProvider({
+  frontend: LibraryFrontend,
+  layer: sessionRuntimeLayer,
 });

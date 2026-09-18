@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation, useNavigate, useParams } from "@tanstack/react-router";
+import { useLiveQuery, useSession } from "@zerospin/react";
 import { RotateCcw, X } from "lucide-react";
 import { cn } from "cn";
 import { Drawer } from "@qrk.sh/web/library/Drawer";
 
+import { LibraryFrontend } from "../aggregates/library/libraryFrontend";
 import { Button } from "../components/ui/button";
-import { BrickWall } from "../lib/BrickWall";
 import { BREAKPOINTS } from "../lib/breakpoints";
 import { modulesHash } from "../lib/modulesHash";
 import {
@@ -17,9 +18,11 @@ import {
   useWallViewportStoreApi,
   WallViewportProvider,
 } from "../lib/WallViewportProvider";
+import { LibrarySandboxProvider, SANDBOX_WALL_ID } from "./LibrarySandboxProvider";
+import { LibraryWall } from "./LibraryWall";
+import { readGridItem } from "./readGridItem";
 
-const LIBRARY_BRICKS_STORAGE_NAME = "qrk-bricks-sandbox-responsive-bricks-v6";
-const LIBRARY_BRICKS_STORAGE_VERSION = 6;
+const LIBRARY_VIEWPORT_STORAGE_NAME = "qrk-bricks-sandbox-viewport-v1";
 
 function readSelectedBreakpoint(persistedState: object): (typeof BREAKPOINTS)[number]["id"] | null {
   if (
@@ -33,58 +36,38 @@ function readSelectedBreakpoint(persistedState: object): (typeof BREAKPOINTS)[nu
     return persistedState.selectedBreakpoint;
   }
 
-  if (
-    "selectedWidth" in persistedState &&
-    (typeof persistedState.selectedWidth === "number" || persistedState.selectedWidth === null)
-  ) {
-    if (persistedState.selectedWidth === null) {
-      return null;
-    }
-    const match = BREAKPOINTS.find((row) => row.previewWidth === persistedState.selectedWidth);
-    return match?.id ?? null;
-  }
-
   return null;
 }
 
-function readLibraryPersistedState() {
+function readLibraryViewportState() {
   try {
-    const raw = localStorage.getItem(LIBRARY_BRICKS_STORAGE_NAME);
+    const raw = localStorage.getItem(LIBRARY_VIEWPORT_STORAGE_NAME);
     if (raw === null) return undefined;
     const parsed: unknown = JSON.parse(raw);
     const persistedState =
-      parsed !== null && typeof parsed === "object" && "state" in parsed ? parsed.state : parsed;
-    if (persistedState === null || typeof persistedState !== "object") return undefined;
-    const selectedBreakpoint = readSelectedBreakpoint(persistedState);
-    if (
-      !("bricksById" in persistedState) ||
-      persistedState.bricksById === null ||
-      typeof persistedState.bricksById !== "object"
-    ) {
-      return { bricksById: {}, selectedBreakpoint };
+      parsed !== null && typeof parsed === "object" && "state" in parsed
+        ? parsed.state
+        : parsed;
+    if (persistedState === null || typeof persistedState !== "object") {
+      return undefined;
     }
-    return {
-      bricksById: persistedState.bricksById,
-      selectedBreakpoint,
-    };
+    return { selectedBreakpoint: readSelectedBreakpoint(persistedState) };
   } catch {
     return undefined;
   }
 }
 
-function writeLibraryPersistedState(state: {
-  bricksById: Record<string, unknown>;
+function writeLibraryViewportState(state: {
   selectedBreakpoint: (typeof BREAKPOINTS)[number]["id"] | null;
 }) {
   try {
     localStorage.setItem(
-      LIBRARY_BRICKS_STORAGE_NAME,
+      LIBRARY_VIEWPORT_STORAGE_NAME,
       JSON.stringify({
         state: {
-          bricksById: state.bricksById,
           selectedBreakpoint: state.selectedBreakpoint,
         },
-        version: LIBRARY_BRICKS_STORAGE_VERSION,
+        version: 1,
       }),
     );
   } catch {
@@ -93,30 +76,37 @@ function writeLibraryPersistedState(state: {
 }
 
 export function Layout(props: { children: ReactNode }) {
-  const [initialPersisted] = useState(() => readLibraryPersistedState());
+  const [sessionKey, setSessionKey] = useState(0);
 
   return (
-    <BrickStoreProvider
-      initialState={
-        initialPersisted !== undefined ? { bricksById: initialPersisted.bricksById } : undefined
-      }
-    >
-      <WallViewportProvider
-        selectedBreakpoint={initialPersisted?.selectedBreakpoint ?? null}
-      >
-        <LayoutBody>{props.children}</LayoutBody>
-      </WallViewportProvider>
-    </BrickStoreProvider>
+    <LibrarySandboxProvider sessionKey={sessionKey}>
+      <BrickStoreProvider>
+        <WallViewportProvider
+          key={sessionKey}
+          selectedBreakpoint={
+            readLibraryViewportState()?.selectedBreakpoint ?? null
+          }
+        >
+          <LayoutBody onResetSession={() => setSessionKey(key => key + 1)}>
+            {props.children}
+          </LayoutBody>
+        </WallViewportProvider>
+      </BrickStoreProvider>
+    </LibrarySandboxProvider>
   );
 }
 
-function LayoutBody(props: { children: ReactNode }) {
-  const { children } = props;
+function LayoutBody(props: {
+  children: ReactNode;
+  onResetSession: () => void;
+}) {
+  const { children, onResetSession } = props;
   const location = useLocation();
   const navigate = useNavigate();
   const params = useParams({ strict: false });
   const bricksStore = useBricksStoreApi();
   const wallViewportStore = useWallViewportStoreApi();
+  const session = useSession(LibraryFrontend);
   const {
     regionRef,
     availableWidth,
@@ -134,9 +124,20 @@ function LayoutBody(props: { children: ReactNode }) {
   const [drawerOpenForLocationKey, setDrawerOpenForLocationKey] = useState(locationKey);
   const hasMeasuredRef = useRef(false);
   const [wallEnterKey, setWallEnterKey] = useState(0);
+  const [commandError, setCommandError] = useState<string | null>(null);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(() => {
     if (typeof window === "undefined") return true;
     return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  });
+
+  const placementsQuery = useLiveQuery(LibraryFrontend, {
+    query: db => db.query.placement.findMany(),
+  });
+  const membershipsQuery = useLiveQuery(LibraryFrontend, {
+    query: db =>
+      db.query.membership.findMany({
+        where: { wallId: { eq: SANDBOX_WALL_ID } },
+      }),
   });
 
   if (locationKey !== drawerOpenForLocationKey) {
@@ -159,23 +160,20 @@ function LayoutBody(props: { children: ReactNode }) {
       hasMeasuredRef.current = true;
       return;
     }
-    setWallEnterKey((key) => key + 1);
+    setWallEnterKey(key => key + 1);
   }, [activeBreakpoint]);
 
   useEffect(() => {
     function persist() {
-      writeLibraryPersistedState({
-        bricksById: bricksStore.getState().bricksById,
+      writeLibraryViewportState({
         selectedBreakpoint: wallViewportStore.getState().selectedBreakpoint,
       });
     }
-    const unsubscribeBricks = bricksStore.subscribe(persist);
     const unsubscribeViewport = wallViewportStore.subscribe(persist);
     return () => {
-      unsubscribeBricks();
       unsubscribeViewport();
     };
-  }, [bricksStore, wallViewportStore]);
+  }, [wallViewportStore]);
 
   function openDrawer() {
     setDrawerOpen(true);
@@ -188,8 +186,60 @@ function LayoutBody(props: { children: ReactNode }) {
     setDrawerOpen(false);
   }
 
+  function compactActiveLayout() {
+    if (activeBreakpoint === null) {
+      return;
+    }
+    const membershipIds = new Set(
+      (membershipsQuery.data ?? []).map(membership => membership.id),
+    );
+    const visibleLayout = (placementsQuery.data ?? []).flatMap(placement => {
+      if (
+        placement.breakpoint !== activeBreakpoint ||
+        !placement.isVisible ||
+        placement.membershipId === null ||
+        !membershipIds.has(placement.membershipId)
+      ) {
+        return [];
+      }
+      return [readGridItem(placement.gridItem)];
+    });
+    const result = session.executeCommand({
+      contractName: "compactLayoutAtBreakpoint",
+      payload: {
+        wallId: SANDBOX_WALL_ID,
+        breakpoint: activeBreakpoint,
+        visibleLayout,
+      },
+    });
+    if (result._tag === "Failure") {
+      setCommandError(result.failure.message ?? result.failure.code ?? "Compact failed");
+      return;
+    }
+    setCommandError(null);
+  }
+
   return (
     <main className="relative h-dvh overflow-hidden">
+      {commandError !== null ? (
+        <div
+          role="alert"
+          className="pointer-events-auto fixed inset-x-4 top-16 z-90 mx-auto max-w-lg rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-900"
+        >
+          <div className="flex items-start justify-between gap-3">
+            <p className="m-0">{commandError}</p>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-7 shrink-0 px-2"
+              onClick={() => setCommandError(null)}
+            >
+              Dismiss
+            </Button>
+          </div>
+        </div>
+      ) : null}
       <div
         className={cn(
           "grid h-full overflow-hidden transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0,0,0.2,1)] motion-reduce:transition-none",
@@ -209,7 +259,7 @@ function LayoutBody(props: { children: ReactNode }) {
               At least {BREAKPOINTS[0].previewWidth}px is needed to preview the grid.
             </p>
           )}
-          {BREAKPOINTS.map((row) => {
+          {BREAKPOINTS.map(row => {
             const isActive = activeBreakpoint === row.id;
             const shouldAnimate =
               isActive && wallEnterKey > 0 && !prefersReducedMotion;
@@ -225,13 +275,17 @@ function LayoutBody(props: { children: ReactNode }) {
                   key={isActive ? wallEnterKey : "idle"}
                   className={cn(shouldAnimate && "library-wall-enter")}
                 >
-                  <BrickWall
+                  <LibraryWall
                     breakpoint={row.id}
                     gridWidth={row.previewWidth}
-                    onBrickActivate={({ moduleId, brickId }) => {
+                    onCommandError={setCommandError}
+                    onBrickActivate={({ moduleId: activatedModuleId, brickId: activatedBrickId }) => {
                       void navigate({
                         to: "/modules/$moduleId/$brickId",
-                        params: { moduleId, brickId },
+                        params: {
+                          moduleId: activatedModuleId,
+                          brickId: activatedBrickId,
+                        },
                       });
                     }}
                   />
@@ -325,21 +379,35 @@ function LayoutBody(props: { children: ReactNode }) {
           <Button
             type="button"
             variant="ghost"
+            size="sm"
+            className="h-8 px-2"
+            disabled={activeBreakpoint === null}
+            onClick={compactActiveLayout}
+          >
+            Compact layout
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
             size="icon"
             className="size-8"
             aria-label="Reset grid layout"
             title="Reset grid layout"
             onClick={() => {
               bricksStore.setState({
-                bricksById: {},
                 activeBrickDrag: null,
               });
+              setCommandError(null);
+              onResetSession();
+              if (brickId !== undefined) {
+                void navigate({ to: "/modules" });
+              }
             }}
           >
             <RotateCcw aria-hidden />
           </Button>
           <div className="mx-1 h-5 w-px shrink-0 bg-border" aria-hidden />
-          {BREAKPOINTS.map((row) => (
+          {BREAKPOINTS.map(row => (
             <Button
               key={row.id}
               type="button"

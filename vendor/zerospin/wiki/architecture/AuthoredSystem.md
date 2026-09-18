@@ -407,7 +407,7 @@ acquisition. Mock Providers retain their existing independent resource ownership
 
 - [`makeZerospinApp.tsx`](../../packages/react/src/makeZerospinApp.tsx) — owns app resources, per-frontend initialization, readiness, identity checks, and ordered teardown.
 - [`makeAggregateSession.ts`](../../packages/core/src/session/makeAggregateSession.ts) — executes commands through the borrowed runtime and initialized frontend context.
-- [`mock.ts`](../../packages/react/src/mock.ts) — accepts frontend component selectors and owns its mock runtime, layers, and database without live transports.
+- [`ZerospinMockProvider.tsx`](../../packages/react/src/ZerospinMockProvider.tsx) — accepts frontend component selectors and owns its mock runtime, layers, and database without live transports.
 
 Server command batches acquire `makeSystem` application services and then the
 selected aggregate or service layer before entering a synchronous transaction.

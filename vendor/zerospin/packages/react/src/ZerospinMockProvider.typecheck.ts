@@ -5,7 +5,7 @@ import type { IAnyError } from '@zerospin/error';
 import { type Layer } from 'effect';
 
 import { makeZerospinApp } from './makeZerospinApp';
-import { makeMockProvider } from './mock';
+import { ZerospinMockProvider } from './ZerospinMockProvider';
 
 declare const sessionRuntimeLayer: Layer.Layer<
   PublishableKey | ZerospinApiUrl,
@@ -17,13 +17,11 @@ const ZerospinApp = makeZerospinApp<typeof system>({
   layer: sessionRuntimeLayer,
 });
 const Main = ZerospinApp.makeFrontend(main);
-const MockMainProvider = makeMockProvider({
-  frontend: Main,
-  layer: sessionRuntimeLayer,
-});
 const fixtureDate = new Date('2026-01-01T00:00:00.000Z');
 
-MockMainProvider({
+ZerospinMockProvider({
+  frontend: Main,
+  layer: sessionRuntimeLayer,
   children: null,
   authentication: { userId: 'user_1', aggregateId: 'acct_1' },
   resources: {
@@ -51,12 +49,16 @@ MockMainProvider({
   },
 });
 
-MockMainProvider({
+ZerospinMockProvider({
+  frontend: Main,
+  layer: sessionRuntimeLayer,
   children: null,
   authentication: { userId: 'user_1', aggregateId: 'acct_1' },
 });
 
-MockMainProvider({
+ZerospinMockProvider({
+  frontend: Main,
+  layer: sessionRuntimeLayer,
   children: null,
   authentication: { userId: 'user_1', aggregateId: 'acct_1' },
   resources: {
@@ -65,7 +67,9 @@ MockMainProvider({
   },
 });
 
-MockMainProvider({
+ZerospinMockProvider({
+  frontend: Main,
+  layer: sessionRuntimeLayer,
   children: null,
   authentication: { userId: 'user_1', aggregateId: 'acct_1' },
   resources: {
@@ -83,18 +87,24 @@ MockMainProvider({
   },
 });
 
-MockMainProvider({
+ZerospinMockProvider({
+  frontend: Main,
+  layer: sessionRuntimeLayer,
   children: null,
   // @ts-expect-error Full authentication requires an aggregateId.
   authentication: { userId: 'user_1' },
 });
 
-MockMainProvider({
+ZerospinMockProvider({
+  frontend: Main,
+  layer: sessionRuntimeLayer,
   children: null,
   authentication: { userId: 'user_1', aggregateId: 'acct_1' },
 });
 
-MockMainProvider({
+ZerospinMockProvider({
+  frontend: Main,
+  layer: sessionRuntimeLayer,
   children: null,
   // @ts-expect-error Authentication fields retain their declared types.
   authentication: { userId: 123, aggregateId: 'acct_1' },

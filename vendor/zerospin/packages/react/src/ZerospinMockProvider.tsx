@@ -1,5 +1,13 @@
 'use client';
-import { createElement, useEffect, useRef, type ReactNode } from 'react';
+import 'client-only';
+import {
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type ContextType,
+  type ReactNode,
+} from 'react';
 
 import type { Async } from '@zerospin/core/async/Async';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
@@ -32,7 +40,6 @@ import {
   type CuidFactory,
 } from '@zerospin/schema';
 import { Effect, Exit, Layer, ManagedRuntime, Schema, Scope } from 'effect';
-import useSWRImmutable from 'swr/immutable';
 
 import { makeBrowserSession } from './makeBrowserSession';
 import { ZerospinProviderContext } from './ZerospinProviderContext';
@@ -43,9 +50,9 @@ import { ZerospinProviderContext } from './ZerospinProviderContext';
  * 3. Open, provision, and seed one in-memory WASM SQLite database.
  * 4. Publish initialized state only while the provider is still mounted.
  * 5. Close the database exactly once on failure, late completion, or unmount.
- * 6. Render the supplied frontend selector through the session registry.
+ * 6. Render latest children through the session registry after publication.
  */
-export function makeMockProvider<
+export function ZerospinMockProvider<
   APP_SERVICES,
   FRONTEND extends IAnyAggregateFrontendController<
     unknown,
@@ -65,42 +72,52 @@ export function makeMockProvider<
     models: MODELS;
   }>;
   layer: Layer.Layer<APP_SERVICES | PublishableKey | ZerospinApiUrl, IAnyError>;
+  children: ReactNode;
+  authentication: FRONTEND['authentication']['authenticationSchema']['Type'];
+  resources?: Partial<{
+    [K in keyof MODELS]: readonly InferResource<MODELS[K]>[];
+  }>;
 }) {
-  const { frontend: selector, layer: applicationLayer } = props;
+  const { children } = props;
+  const fixtureRef = useRef({
+    frontend: props.frontend,
+    layer: props.layer,
+    authentication: props.authentication,
+    resources: props.resources,
+  });
+  const isUnmountedRef = useRef(false);
+  const releaseMockSessionRef = useRef<Effect.Effect<
+    void,
+    never,
+    never
+  > | null>(null);
+  const [initialized, setInitialized] =
+    useState<ContextType<typeof ZerospinProviderContext>>(null);
+  const [initializationError, setInitializationError] = useState<unknown>(null);
+  const isClient = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
 
-  return function MockProvider(providerProps: {
-    children: ReactNode;
-    authentication: FRONTEND['authentication']['authenticationSchema']['Type'];
-    resources?: Partial<{
-      [K in keyof MODELS]: readonly InferResource<MODELS[K]>[];
-    }>;
-  }) {
-    const { children } = providerProps;
-    const initializationPropsRef = useRef(providerProps);
-    const isUnmountedRef = useRef(false);
-    const releaseMockSessionRef = useRef<Effect.Effect<
-      void,
-      never,
-      never
-    > | null>(null);
+  useEffect(() => {
+    isUnmountedRef.current = false;
+    const selector = fixtureRef.current.frontend;
+    const applicationLayer = fixtureRef.current.layer;
+    const initializationProps = fixtureRef.current;
 
-    // 2 — the mock keeps the normal browser-session hook surface, but creates
-    // no queue, websocket, backup worker, RPC, or DevTools entry.
-    // 3 — build the guard layer and database before publishing the session.
-    const { data: initialized, error: initializationError } = useSWRImmutable(
-      initializationPropsRef,
-      async () => {
-        const scope = Scope.makeUnsafe();
-        const sessionRuntime = ManagedRuntime.make(
-          Layer.mergeAll(
-            NanoIdFactory,
-            UlidMonotonicFactory,
-            AsyncLive,
-            applicationLayer,
-          ),
-        );
-        const initializationProps = initializationPropsRef.current;
-        return sessionRuntime
+    void (async () => {
+      const scope = Scope.makeUnsafe();
+      const sessionRuntime = ManagedRuntime.make(
+        Layer.mergeAll(
+          NanoIdFactory,
+          UlidMonotonicFactory,
+          AsyncLive,
+          applicationLayer,
+        ),
+      );
+      try {
+        const data = await sessionRuntime
           .runPromise(
             Effect.gen(function* () {
               const sessionId = yield* makeIdFromAbbreviation({
@@ -243,95 +260,91 @@ export function makeMockProvider<
               ),
             );
             throw error;
-          })
-          .then(data => {
-            const coreSession = data.coreSession;
-            // 4 — a provider removed while WASM initializes owns no published
-            // session; close its completed database immediately.
-            if (isUnmountedRef.current) {
-              Effect.runFork(data.releaseMockSession);
-              return null;
-            }
-
-            releaseMockSessionRef.current = data.releaseMockSession;
-            coreSession.store.setState({
-              aggregateId: data.aggregateId,
-              aggregateName: selector.frontend.aggregateName,
-              authentication: Schema.decodeUnknownSync(
-                selector.frontend.authentication.authenticationSchema,
-              )(data.authentication),
-              db: data.db,
-              aggregateIndex: 0,
-              userIndex: 0,
-              pushIndex: 0,
-              frontendName: selector.frontend.name,
-              aggregateFrontendLockKey: data.aggregateFrontendLockKey,
-              isInitialized: true,
-              models: data.models,
-              schema: data.schema,
-              sessionId: coreSession.sessionId,
-              systemId: data.systemId,
-              sessionStatus: 'current',
-              backupState: {
-                status: 'ready',
-                failure: null,
-              },
-            });
-            const session = makeBrowserSession({ session: coreSession });
-            return {
-              sessions: new Map([
-                [
-                  selector,
-                  {
-                    session,
-                    subscribe: (onStoreChange: () => void) =>
-                      coreSession.store.subscribe(onStoreChange),
-                    getState: () => coreSession.store.getState(),
-                    getLiveQueryDb: () =>
-                      getInitializedStateOrThrow({ session: coreSession }).db,
-                  },
-                ],
-              ]),
-              sessionRuntime,
-            };
           });
-      },
-      {
-        shouldRetryOnError: false,
-      },
-    );
 
-    useEffect(() => {
-      isUnmountedRef.current = false;
-
-      return () => {
-        isUnmountedRef.current = true;
-        const releaseMockSession = releaseMockSessionRef.current;
-        if (releaseMockSession !== null) {
-          releaseMockSessionRef.current = null;
-          // 5 — child live-query effects release in this unmount pass before
-          // the single SQLite close runs in the following microtask.
-          queueMicrotask(() => {
-            Effect.runFork(releaseMockSession);
-          });
+        const coreSession = data.coreSession;
+        // 4 — a provider removed while WASM initializes owns no published
+        // session; close its completed database immediately.
+        if (isUnmountedRef.current) {
+          Effect.runFork(data.releaseMockSession);
+          return;
         }
-      };
-    }, []);
 
-    if (initializationError) {
-      throw initializationError;
-    }
+        releaseMockSessionRef.current = data.releaseMockSession;
+        coreSession.store.setState({
+          aggregateId: data.aggregateId,
+          aggregateName: selector.frontend.aggregateName,
+          authentication: Schema.decodeUnknownSync(
+            selector.frontend.authentication.authenticationSchema,
+          )(data.authentication),
+          db: data.db,
+          aggregateIndex: 0,
+          userIndex: 0,
+          pushIndex: 0,
+          frontendName: selector.frontend.name,
+          aggregateFrontendLockKey: data.aggregateFrontendLockKey,
+          isInitialized: true,
+          models: data.models,
+          schema: data.schema,
+          sessionId: coreSession.sessionId,
+          systemId: data.systemId,
+          sessionStatus: 'current',
+          backupState: {
+            status: 'ready',
+            failure: null,
+          },
+        });
+        const session = makeBrowserSession({ session: coreSession });
+        setInitialized({
+          sessions: new Map([
+            [
+              selector,
+              {
+                session,
+                subscribe: (onStoreChange: () => void) =>
+                  coreSession.store.subscribe(onStoreChange),
+                getState: () => coreSession.store.getState(),
+                getLiveQueryDb: () =>
+                  getInitializedStateOrThrow({ session: coreSession }).db,
+              },
+            ],
+          ]),
+          sessionRuntime,
+        });
+      } catch (error) {
+        if (!isUnmountedRef.current) {
+          setInitializationError(error);
+        }
+      }
+    })();
 
-    if (!initialized) {
-      return null;
-    }
+    return () => {
+      isUnmountedRef.current = true;
+      const releaseMockSession = releaseMockSessionRef.current;
+      if (releaseMockSession !== null) {
+        releaseMockSessionRef.current = null;
+        // 5 — child live-query effects release in this unmount pass before
+        // the single SQLite close runs in the following microtask.
+        queueMicrotask(() => {
+          Effect.runFork(releaseMockSession);
+        });
+      }
+    };
+  }, []);
 
-    // 6 — existing hooks consume the same session-registry shape as the
-    // production Provider; unsupported remote work fails at its signature seam.
-    return createElement(
-      ZerospinProviderContext.Provider,
-      { value: initialized },
-      children,
-    );
-  };
+  if (initializationError) {
+    throw initializationError;
+  }
+
+  if (!isClient || initialized === null) {
+    return null;
+  }
+
+  // 6 — existing hooks consume the same session-registry shape as the
+  // production Provider; unsupported remote work fails at its signature seam.
+  return (
+    <ZerospinProviderContext.Provider value={initialized}>
+      {children}
+    </ZerospinProviderContext.Provider>
+  );
 }

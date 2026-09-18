@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation, useNavigate, useParams } from "@tanstack/react-router";
 import { useLiveQuery, useSession } from "@zerospin/react";
+import { motion, useAnimationControls, useReducedMotion } from "framer-motion";
 import { RotateCcw, X } from "lucide-react";
 import { cn } from "cn";
 import { Drawer } from "@qrk.sh/web/library/Drawer";
@@ -23,6 +24,11 @@ import { LibraryWall } from "./LibraryWall";
 import { readGridItem } from "./readGridItem";
 
 const LIBRARY_VIEWPORT_STORAGE_NAME = "qrk-bricks-sandbox-viewport-v1";
+
+const wallSlideTransition = {
+  duration: 0.3,
+  ease: [0, 0, 0.2, 1] as const,
+};
 
 function readSelectedBreakpoint(persistedState: object): (typeof BREAKPOINTS)[number]["id"] | null {
   if (
@@ -75,6 +81,106 @@ function writeLibraryViewportState(state: {
   }
 }
 
+function breakpointIndex(id: (typeof BREAKPOINTS)[number]["id"]) {
+  return BREAKPOINTS.findIndex(row => row.id === id);
+}
+
+function LibraryWallPane(props: {
+  children: ReactNode;
+  previewWidth: number;
+  isActive: boolean;
+  isOutgoing: boolean;
+  isOnStage: boolean;
+  isTransitioning: boolean;
+  direction: 1 | -1 | 0;
+  reducedMotion: boolean;
+  onOutgoingComplete: () => void;
+}) {
+  const {
+    children,
+    previewWidth,
+    isActive,
+    isOutgoing,
+    isOnStage,
+    isTransitioning,
+    direction,
+    reducedMotion,
+    onOutgoingComplete,
+  } = props;
+  const controls = useAnimationControls();
+  const onOutgoingCompleteRef = useRef(onOutgoingComplete);
+  useEffect(() => {
+    onOutgoingCompleteRef.current = onOutgoingComplete;
+  });
+
+  useLayoutEffect(() => {
+    let cancelled = false;
+
+    async function run() {
+      if (!isOnStage) {
+        await controls.set({ x: 0 });
+        return;
+      }
+
+      if (reducedMotion || direction === 0 || !isTransitioning) {
+        await controls.set({ x: 0 });
+        if (isOutgoing && !cancelled) {
+          onOutgoingCompleteRef.current();
+        }
+        return;
+      }
+
+      if (isOutgoing) {
+        const exitX = direction === 1 ? "-100%" : "100%";
+        await controls.start({ x: exitX, transition: wallSlideTransition });
+        if (!cancelled) {
+          onOutgoingCompleteRef.current();
+        }
+        return;
+      }
+
+      if (isActive) {
+        const enterX = direction === 1 ? "100%" : "-100%";
+        await controls.set({ x: enterX });
+        if (cancelled) {
+          return;
+        }
+        await controls.start({ x: 0, transition: wallSlideTransition });
+      }
+    }
+
+    void run();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    controls,
+    direction,
+    isActive,
+    isOnStage,
+    isOutgoing,
+    isTransitioning,
+    reducedMotion,
+  ]);
+
+  return (
+    <motion.div
+      animate={controls}
+      hidden={!isOnStage}
+      inert={!isActive}
+      className={cn(
+        isOutgoing && "absolute inset-x-0 top-0",
+        isActive && "relative w-full",
+      )}
+    >
+      <div className="mx-auto" style={{ width: previewWidth }}>
+        {children}
+      </div>
+    </motion.div>
+  );
+}
+
 export function Layout(props: { children: ReactNode }) {
   const [sessionKey, setSessionKey] = useState(0);
 
@@ -113,6 +219,7 @@ function LayoutBody(props: {
     activeBreakpoint,
     setSelectedBreakpoint,
   } = useWallViewport();
+  const reducedMotion = useReducedMotion() ?? false;
   const moduleId = params.moduleId;
   const brickId = params.brickId;
   const moduleLabel = moduleId ? modulesHash[moduleId]?.label : undefined;
@@ -123,12 +230,12 @@ function LayoutBody(props: {
   );
   const [drawerOpenForLocationKey, setDrawerOpenForLocationKey] = useState(locationKey);
   const hasMeasuredRef = useRef(false);
-  const [wallEnterKey, setWallEnterKey] = useState(0);
+  const previousBreakpointRef = useRef<(typeof BREAKPOINTS)[number]["id"] | null>(null);
+  const [fromBreakpoint, setFromBreakpoint] = useState<
+    (typeof BREAKPOINTS)[number]["id"] | null
+  >(null);
+  const [direction, setDirection] = useState<1 | -1 | 0>(0);
   const [commandError, setCommandError] = useState<string | null>(null);
-  const [prefersReducedMotion, setPrefersReducedMotion] = useState(() => {
-    if (typeof window === "undefined") return true;
-    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  });
 
   const placementsQuery = useLiveQuery(LibraryFrontend, {
     query: db => db.query.placement.findMany(),
@@ -148,19 +255,23 @@ function LayoutBody(props: {
   }
 
   useEffect(() => {
-    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const onChange = () => setPrefersReducedMotion(media.matches);
-    media.addEventListener("change", onChange);
-    return () => media.removeEventListener("change", onChange);
-  }, []);
-
-  useEffect(() => {
-    if (activeBreakpoint === null) return;
-    if (!hasMeasuredRef.current) {
-      hasMeasuredRef.current = true;
+    if (activeBreakpoint === null) {
       return;
     }
-    setWallEnterKey(key => key + 1);
+    if (!hasMeasuredRef.current) {
+      hasMeasuredRef.current = true;
+      previousBreakpointRef.current = activeBreakpoint;
+      return;
+    }
+    const previous = previousBreakpointRef.current;
+    previousBreakpointRef.current = activeBreakpoint;
+    if (previous === null || previous === activeBreakpoint) {
+      return;
+    }
+    const previousIndex = breakpointIndex(previous);
+    const nextIndex = breakpointIndex(activeBreakpoint);
+    setFromBreakpoint(previous);
+    setDirection(nextIndex > previousIndex ? 1 : -1);
   }, [activeBreakpoint]);
 
   useEffect(() => {
@@ -252,34 +363,41 @@ function LayoutBody(props: {
           ref={regionRef}
           data-testid="grid-region"
           data-brick-scroll-root=""
-          className="relative min-h-0 min-w-0 overflow-y-auto pt-14"
+          className="relative min-h-0 min-w-0 overflow-x-hidden overflow-y-auto pt-14"
         >
           {availableWidth > 0 && availableWidth < BREAKPOINTS[0].previewWidth && (
             <p className="p-4" role="status">
               At least {BREAKPOINTS[0].previewWidth}px is needed to preview the grid.
             </p>
           )}
-          {BREAKPOINTS.map(row => {
-            const isActive = activeBreakpoint === row.id;
-            const shouldAnimate =
-              isActive && wallEnterKey > 0 && !prefersReducedMotion;
-            return (
-              <div
-                key={row.id}
-                hidden={!isActive}
-                inert={!isActive}
-                className="mx-auto"
-                style={{ width: row.previewWidth }}
-              >
-                <div
-                  key={isActive ? wallEnterKey : "idle"}
-                  className={cn(shouldAnimate && "library-wall-enter")}
+          <div className="relative">
+            {BREAKPOINTS.map(row => {
+              const isActive = activeBreakpoint === row.id;
+              const isOutgoing = fromBreakpoint === row.id;
+              const isOnStage = isActive || isOutgoing;
+              const isTransitioning = fromBreakpoint !== null;
+              return (
+                <LibraryWallPane
+                  key={row.id}
+                  previewWidth={row.previewWidth}
+                  isActive={isActive}
+                  isOutgoing={isOutgoing}
+                  isOnStage={isOnStage}
+                  isTransitioning={isTransitioning}
+                  direction={direction}
+                  reducedMotion={reducedMotion}
+                  onOutgoingComplete={() => {
+                    setFromBreakpoint(current => (current === row.id ? null : current));
+                  }}
                 >
                   <LibraryWall
                     breakpoint={row.id}
                     gridWidth={row.previewWidth}
                     onCommandError={setCommandError}
-                    onBrickActivate={({ moduleId: activatedModuleId, brickId: activatedBrickId }) => {
+                    onBrickActivate={({
+                      moduleId: activatedModuleId,
+                      brickId: activatedBrickId,
+                    }) => {
                       void navigate({
                         to: "/modules/$moduleId/$brickId",
                         params: {
@@ -289,10 +407,10 @@ function LayoutBody(props: {
                       });
                     }}
                   />
-                </div>
-              </div>
-            );
-          })}
+                </LibraryWallPane>
+              );
+            })}
+          </div>
         </div>
         <div className="min-h-0 overflow-hidden">
           {drawerOpen ? (
@@ -424,21 +542,6 @@ function LayoutBody(props: {
           ))}
         </div>
       </div>
-      <style>{`
-        @keyframes library-wall-enter {
-          from {
-            opacity: 0;
-            transform: translateY(8px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        .library-wall-enter {
-          animation: library-wall-enter 200ms ease-out;
-        }
-      `}</style>
     </main>
   );
 }

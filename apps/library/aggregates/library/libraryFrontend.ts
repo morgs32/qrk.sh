@@ -3,7 +3,6 @@ import { makeFrontendController } from "@zerospin/core/frontendController/makeFr
 import { PublishableKey } from "@zerospin/core/services/PublishableKey";
 import { ZerospinApiUrl } from "@zerospin/core/services/ZerospinApiUrl";
 import { makeZerospinApp } from "@zerospin/react";
-import { makeMockProvider } from "@zerospin/react/mock";
 import { Layer, Redacted, Schema } from "effect";
 
 import { figmaThumbnailContractV1 } from "../../modules/figmaThumbnail/figmaThumbnailContractV1";
@@ -117,7 +116,7 @@ const libraryFrontendController = makeFrontendController({
   },
 });
 
-const sessionRuntimeLayer = Layer.mergeAll(
+export const sessionRuntimeLayer = Layer.mergeAll(
   Layer.succeed(PublishableKey, Redacted.make("pk_library_sandbox")),
   Layer.succeed(ZerospinApiUrl, "https://api.library.sandbox.test"),
 );
@@ -130,8 +129,3 @@ const LibraryZerospinApp = makeZerospinApp<typeof librarySystem>({
 export const LibraryFrontend = LibraryZerospinApp.makeFrontend(
   libraryFrontendController,
 );
-
-export const MockLibraryProvider = makeMockProvider({
-  frontend: LibraryFrontend,
-  layer: sessionRuntimeLayer,
-});

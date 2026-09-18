@@ -159,7 +159,7 @@ partial acquisition, late completion after unmount, and normal unmount.
 - [`initializeGuards.ts`](../../../packages/core/src/guards/initializeGuards.ts) — acquires and binds a fresh local context before exposing guard execution.
 - [`makeAggregateSession.ts`](../../../packages/core/src/session/makeAggregateSession.ts) — uses the borrowed runtime and initialized guards, rejecting commands after release.
 - [`makeZerospinApp.tsx`](../../../packages/react/src/makeZerospinApp.tsx) — retains a runtime per Provider and closes session scopes before runtime disposal.
-- [`mock.ts`](../../../packages/react/src/mock.ts) — owns application, layer, and database resources for the mount.
+- [`ZerospinMockProvider.tsx`](../../../packages/react/src/ZerospinMockProvider.tsx) — owns application, layer, and database resources for the mount.
 - [`makeZerospinAppDevtools.react.spec.tsx`](../../../packages/react/src/makeZerospinAppDevtools.react.spec.tsx) — verifies sharing, remount isolation, publication gating, replacement, and cleanup after partial initialization failure.
 
 ## Service sessions

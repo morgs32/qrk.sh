@@ -59,7 +59,7 @@ json-render registry and brick React component. Grid sizing is measured at
 preview/drag time (`w` / `h` from intrinsic px ÷ `gridItemWidth`), not declared
 on the module.
 
-The workbench sandbox mounts `makeMockProvider` with one seeded empty wall
+The workbench sandbox mounts `ZerospinMockProvider` with one seeded empty wall
 (`wal_sandbox`). Committed layout is Wall → Membership → Placement via aggregate
 contracts (`addBrick`, layout/visibility/remove/compact, per-module state and
 spec-at-breakpoint). Shared state lives on the typed module row; each placement

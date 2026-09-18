@@ -21,7 +21,7 @@ A Zerospin module model row (`makeModuleModelVersion`) persists shared typed
 `state` only. Complete json-render Specs, grid items, and visibility live on
 **Placement** rows (one per brick × breakpoint).
 
-Library sandbox ownership (contracts via `makeMockProvider`):
+Library sandbox ownership (contracts via `ZerospinMockProvider`):
 
 ```text
 Wall → Membership (brick) → Placement [sm, md, lg, xl]

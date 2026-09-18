@@ -29,7 +29,7 @@ import { assert, type Equals } from 'tsafe';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { makeZerospinApp } from './makeZerospinApp';
-import { makeMockProvider } from './mock';
+import { ZerospinMockProvider } from './ZerospinMockProvider';
 import { useInitializedStateOrThrow } from './useInitializedStateOrThrow';
 import { useLiveQuery } from './useLiveQuery';
 import { useSession } from './useSession';
@@ -85,10 +85,6 @@ const ZerospinMain = makeZerospinApp<
   typeof import('@zerospin/core/fixtures/system').system
 >({ systemName: 'system-worker', layer: sessionRuntimeLayer });
 const ZerospinMainMain = ZerospinMain.makeFrontend(main);
-const MockMainProvider = makeMockProvider({
-  frontend: ZerospinMainMain,
-  layer: sessionRuntimeLayer,
-});
 const fixtureDate = new Date('2026-01-01T00:00:00.000Z');
 const JsonDocument = makeModelVersion(
   makeModel({ name: 'document', abbreviation: 'doc' }),
@@ -137,12 +133,8 @@ const ZerospinJsonFixture = makeZerospinApp<typeof jsonSystem>({
   layer: sessionRuntimeLayer,
 });
 const ZerospinJsonFixtureMain = ZerospinJsonFixture.makeFrontend(jsonFrontend);
-const MockJsonFixtureProvider = makeMockProvider({
-  frontend: ZerospinJsonFixtureMain,
-  layer: sessionRuntimeLayer,
-});
 
-describe('makeMockProvider', () => {
+describe('ZerospinMockProvider', () => {
   let container: HTMLDivElement;
   let root: Root;
   let didUnmount: boolean;
@@ -199,27 +191,28 @@ describe('makeMockProvider', () => {
         }),
       ),
     });
-    const Mock = makeMockProvider({
-      frontend: { frontend, models: frontend.models },
-      layer: Layer.mergeAll(
-        sessionRuntimeLayer,
-        Layer.effect(
-          CuidFactory,
-          Effect.acquireRelease(
-            Effect.succeed(() => Effect.succeed('application')),
-            () =>
-              Effect.sync(() => {
-                events.push('release-app');
-              }),
-          ),
-        ),
-      ),
-    });
     await expect(
       act(async () =>
         root.render(
           // @ts-expect-error Intentionally omit authentication to exercise runtime validation.
-          <Mock>Never published</Mock>,
+          <ZerospinMockProvider
+            frontend={{ frontend, models: frontend.models }}
+            layer={Layer.mergeAll(
+              sessionRuntimeLayer,
+              Layer.effect(
+                CuidFactory,
+                Effect.acquireRelease(
+                  Effect.succeed(() => Effect.succeed('application')),
+                  () =>
+                    Effect.sync(() => {
+                      events.push('release-app');
+                    }),
+                ),
+              ),
+            )}
+          >
+            Never published
+          </ZerospinMockProvider>,
         ),
       ),
     ).rejects.toThrow('Invalid mock authentication');
@@ -276,7 +269,9 @@ describe('makeMockProvider', () => {
 
     act(() => {
       root.render(
-        <MockMainProvider
+        <ZerospinMockProvider
+          frontend={ZerospinMainMain}
+          layer={sessionRuntimeLayer}
           authentication={{ userId: 'user_1', aggregateId: 'acct_1' }}
           resources={{
             user: [
@@ -303,7 +298,7 @@ describe('makeMockProvider', () => {
           }}
         >
           <Probe />
-        </MockMainProvider>,
+        </ZerospinMockProvider>,
       );
     });
 
@@ -367,11 +362,13 @@ describe('makeMockProvider', () => {
 
     await act(async () => {
       root.render(
-        <MockMainProvider
+        <ZerospinMockProvider
+          frontend={ZerospinMainMain}
+          layer={sessionRuntimeLayer}
           authentication={{ userId: 'user_1', aggregateId: 'acct_1' }}
         >
           <EmptyModelsProbe />
-        </MockMainProvider>,
+        </ZerospinMockProvider>,
       );
       await Promise.resolve();
     });
@@ -402,7 +399,9 @@ describe('makeMockProvider', () => {
 
     await act(async () => {
       root.render(
-        <MockJsonFixtureProvider
+        <ZerospinMockProvider
+          frontend={ZerospinJsonFixtureMain}
+          layer={sessionRuntimeLayer}
           authentication={{ userId: 'user_1', aggregateId: 'acct_1' }}
           resources={{
             document: [
@@ -420,7 +419,7 @@ describe('makeMockProvider', () => {
           }}
         >
           <JsonFixtureProbe />
-        </MockJsonFixtureProvider>,
+        </ZerospinMockProvider>,
       );
       await Promise.resolve();
     });
@@ -492,7 +491,9 @@ describe('makeMockProvider', () => {
 
     await act(async () => {
       root.render(
-        <MockMainProvider
+        <ZerospinMockProvider
+          frontend={ZerospinMainMain}
+          layer={sessionRuntimeLayer}
           authentication={{ userId: 'user_1', aggregateId: 'acct_1' }}
           resources={{
             user: [
@@ -508,7 +509,7 @@ describe('makeMockProvider', () => {
           }}
         >
           <StagingProbe />
-        </MockMainProvider>,
+        </ZerospinMockProvider>,
       );
       await Promise.resolve();
     });
@@ -550,7 +551,9 @@ describe('makeMockProvider', () => {
 
     await act(async () => {
       root.render(
-        <MockMainProvider
+        <ZerospinMockProvider
+          frontend={ZerospinMainMain}
+          layer={sessionRuntimeLayer}
           authentication={{ userId: 'user_1', aggregateId: 'acct_1' }}
           resources={{
             user: [
@@ -566,7 +569,7 @@ describe('makeMockProvider', () => {
           }}
         >
           <IdentityProbe />
-        </MockMainProvider>,
+        </ZerospinMockProvider>,
       );
       await Promise.resolve();
     });
@@ -582,7 +585,9 @@ describe('makeMockProvider', () => {
 
     await act(async () => {
       root.render(
-        <MockMainProvider
+        <ZerospinMockProvider
+          frontend={ZerospinMainMain}
+          layer={sessionRuntimeLayer}
           authentication={{ userId: 'user_2', aggregateId: 'acct_2' }}
           resources={{
             user: [
@@ -598,7 +603,7 @@ describe('makeMockProvider', () => {
           }}
         >
           <IdentityProbe />
-        </MockMainProvider>,
+        </ZerospinMockProvider>,
       );
       await Promise.resolve();
     });
@@ -611,8 +616,10 @@ describe('makeMockProvider', () => {
 
     await act(async () => {
       root.render(
-        <MockMainProvider
+        <ZerospinMockProvider
           key="reset"
+          frontend={ZerospinMainMain}
+          layer={sessionRuntimeLayer}
           authentication={{ userId: 'user_2', aggregateId: 'acct_2' }}
           resources={{
             user: [
@@ -628,7 +635,7 @@ describe('makeMockProvider', () => {
           }}
         >
           <IdentityProbe />
-        </MockMainProvider>,
+        </ZerospinMockProvider>,
       );
       await Promise.resolve();
     });
@@ -658,7 +665,9 @@ describe('makeMockProvider', () => {
   it('closes the database exactly once when fixture initialization fails after open', async () => {
     await act(async () => {
       root.render(
-        <MockMainProvider
+        <ZerospinMockProvider
+          frontend={ZerospinMainMain}
+          layer={sessionRuntimeLayer}
           authentication={{ userId: 'user_1', aggregateId: 'acct_1' }}
           resources={{
             user: [
@@ -682,7 +691,7 @@ describe('makeMockProvider', () => {
           }}
         >
           <div data-testid="must-not-render" />
-        </MockMainProvider>,
+        </ZerospinMockProvider>,
       );
       await Promise.resolve();
     });
@@ -711,11 +720,13 @@ describe('makeMockProvider', () => {
 
     act(() => {
       root.render(
-        <MockMainProvider
+        <ZerospinMockProvider
+          frontend={ZerospinMainMain}
+          layer={sessionRuntimeLayer}
           authentication={{ userId: 'user_1', aggregateId: 'acct_1' }}
         >
           <div data-testid="late-child" />
-        </MockMainProvider>,
+        </ZerospinMockProvider>,
       );
     });
 
@@ -740,5 +751,64 @@ describe('makeMockProvider', () => {
       expect(sqliteCloseBoundary).toHaveBeenCalledTimes(1);
     });
     expect(container.querySelector('[data-testid="late-child"]')).toBeNull();
+  });
+
+  it('completes init with a nested children tree without RangeError or hash failures', async () => {
+    const NestedProbe = () => {
+      const state = useInitializedStateOrThrow(ZerospinMainMain);
+      return (
+        <output data-testid="nested-ready" data-aggregate-id={state.aggregateId}>
+          nested-ready
+        </output>
+      );
+    };
+
+    await act(async () => {
+      root.render(
+        <ZerospinMockProvider
+          frontend={ZerospinMainMain}
+          layer={sessionRuntimeLayer}
+          authentication={{ userId: 'user_1', aggregateId: 'acct_1' }}
+        >
+          <div>
+            <section>
+              <article>
+                <header>
+                  <h1>Nested mock children</h1>
+                </header>
+                <p>Regression for hashing React children during mock init.</p>
+                <ul>
+                  {Array.from({ length: 24 }, (_, index) => (
+                    <li key={index}>
+                      <span>Item {index}</span>
+                      <button type="button" onClick={() => undefined}>
+                        Action {index}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+                <NestedProbe />
+              </article>
+            </section>
+          </div>
+        </ZerospinMockProvider>,
+      );
+      await Promise.resolve();
+    });
+
+    await vi.waitFor(
+      () => {
+        expect(uncaughtErrors).toEqual([]);
+        const output = container.querySelector('[data-testid="nested-ready"]');
+        expect(output?.getAttribute('data-aggregate-id')).toBe('acct_1');
+        expect(output?.textContent).toBe('nested-ready');
+      },
+      { timeout: 10_000 },
+    );
+    expect(
+      uncaughtErrors.some(
+        error => error instanceof RangeError || String(error).includes('hash'),
+      ),
+    ).toBe(false);
   });
 });

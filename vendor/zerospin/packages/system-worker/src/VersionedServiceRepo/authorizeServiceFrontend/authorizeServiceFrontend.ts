@@ -40,19 +40,9 @@ export const authorizeServiceFrontend = Effect.fn(
     recordKind: 'listed versions',
   });
 
-  // 2 — require frontendName in service.frontends
-  yield* getByKeyOrThrow({
-    record: service.frontends,
-    key: frontendName,
-    recordKind: `frontends owned by service ${serviceName}`,
-  });
-
-  // 3 — return service-authorization-required when missing
+  // 2 — omitted authorization allows access after authentication and lock validation
   if (typeof service.authorize !== 'function') {
-    return yield* new ZerospinError({
-      code: 'service-authorization-required',
-      message: `Service ${serviceName} has a frontend but no authorizer`,
-    });
+    return;
   }
 
   // 4 — reject missing model queries and copy only service.models entries

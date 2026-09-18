@@ -3,16 +3,16 @@ import { ZerospinError } from '@zerospin/error';
 import { Effect, Schema } from 'effect';
 import { describe, expect, it } from 'vitest';
 
-import { makeAggregate } from './makeAggregate.ts';
+import { defineAggregate } from './defineAggregate.ts';
 import {
   makeAggregateVersion,
   upgradeAggregateVersion,
-} from './makeVersion.ts';
+} from './makeAggregateVersion.ts';
 
 describe('aggregate authorization', () => {
   it('allows omission of authorization and preserves supplied checks and failures', async () => {
-    const aggregate = makeAggregateVersion(makeAggregate({ name: 'open' }), {
-      authentication: authenticationFixtureOwner.authentication,
+    const aggregate = makeAggregateVersion(defineAggregate({ name: 'open' }), {
+      ...authenticationFixtureOwner.authentication,
       version: '1.0.0',
       models: {},
       contracts: {},
@@ -22,9 +22,9 @@ describe('aggregate authorization', () => {
     const rejection = new ZerospinError({ code: 'denied', message: 'Denied' });
     const authorize = () => Effect.fail(rejection);
     const restricted = makeAggregateVersion(
-      makeAggregate({ name: 'restricted' }),
+      defineAggregate({ name: 'restricted' }),
       {
-        authentication: authenticationFixtureOwner.authentication,
+        ...authenticationFixtureOwner.authentication,
         version: '1.0.0',
         models: {},
         contracts: {},
@@ -38,8 +38,8 @@ describe('aggregate authorization', () => {
     }
     expect(await Effect.runPromise(Effect.flip(authorize()))).toBe(rejection);
     expect(() =>
-      makeAggregateVersion(makeAggregate({ name: 'invalid' }), {
-        authentication: authenticationFixtureOwner.authentication,
+      makeAggregateVersion(defineAggregate({ name: 'invalid' }), {
+        ...authenticationFixtureOwner.authentication,
         version: '1.0.0',
         models: {},
         contracts: {},
@@ -51,8 +51,8 @@ describe('aggregate authorization', () => {
   });
 
   it('adds, inherits, replaces, and removes authorization independently', () => {
-    const base = makeAggregateVersion(makeAggregate({ name: 'empty' }), {
-      authentication: authenticationFixtureOwner.authentication,
+    const base = makeAggregateVersion(defineAggregate({ name: 'empty' }), {
+      ...authenticationFixtureOwner.authentication,
       version: '1.0.0',
       models: {},
       contracts: {},

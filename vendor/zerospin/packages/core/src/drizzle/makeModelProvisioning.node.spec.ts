@@ -1,4 +1,5 @@
-import { makeModel, makeModelVersion } from '../models/makeModel.ts';
+import { defineModel } from '../models/defineModel.ts';
+import { makeModelVersion } from '../models/makeModelVersion.ts';
 
 import { prefixId } from '../models/prefixId.ts';
 import { it } from '@effect/vitest';
@@ -20,7 +21,7 @@ const namePropertySchema = primitives.text();
 const TinyJsonRowSchema = Schema.Struct({ x: Schema.String });
 
 const User = makeModelVersion(
-  makeModel({ name: 'user', abbreviation: 'usr' }),
+  defineModel({ name: 'user', abbreviation: 'usr' }),
   {
     attributes: {
       name: namePropertySchema,
@@ -31,7 +32,7 @@ const User = makeModelVersion(
 );
 
 const Item = makeModelVersion(
-  makeModel({ name: 'item', abbreviation: 'tsk' }),
+  defineModel({ name: 'item', abbreviation: 'tsk' }),
   {
     attributes: {
       enabledDefault: primitives.boolean({ defaultValue: true }),
@@ -80,7 +81,7 @@ const itemDrizzleSchema = makeResourceDbConfig({
   models: { user: User, item: Item },
 }).schema.item;
 
-describe('makeTableProvisioningSQL (models from makeModel)', () => {
+describe('makeTableProvisioningSQL (models from defineModel)', () => {
   it('provisioningSQL contains CREATE TABLE for the model table name', () => {
     expect(makeTableProvisioningSQL(User.drizzleSchema)).toContain(
       'CREATE TABLE',

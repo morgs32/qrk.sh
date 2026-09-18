@@ -6,6 +6,7 @@ import type { IServiceFrontendState } from '@zerospin/core/serviceSession/types'
 import type { ISystemId } from '@zerospin/core/system/types';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import { encodeRpc } from '@zerospin/core/utils/encodeRpc';
+import { getByKeyOrThrow } from '@zerospin/core/utils/getByKeyOrThrow';
 import {
   mapParseError,
   ZerospinError,
@@ -20,11 +21,12 @@ import {
   type ISpanLinkRecord,
 } from '@zerospin/logger';
 import { env } from 'cloudflare:workers';
+import config from 'config';
 import { Effect, Result, Schema } from 'effect';
 
 import { FrontendVersionedServiceRepo } from '../../FrontendVersionedServiceRepo/FrontendVersionedServiceRepo.js';
 import { ServiceAdmittedChain } from '../../ServiceAdmittedChain/ServiceAdmittedChain.js';
-import { adaptFrontendResource } from '../../StaticSystem/adaptFrontendResource/adaptFrontendResource.js';
+import { adaptServiceFrontendResource } from '../../StaticSystem/adaptServiceFrontendResource/adaptServiceFrontendResource.js';
 import { SelectedServiceFrontendLockSchema } from '../../StaticSystem/frontendSpecSchemas.js';
 import { validateServiceFrontendLock } from '../../StaticSystem/validateServiceFrontendLock/validateServiceFrontendLock.js';
 import { SystemLogRepo } from '../../SystemLogRepo/SystemLogRepo.js';
@@ -181,12 +183,9 @@ export const getState = Effect.fn('ServiceFrontendApi.getState')(
         if (requestedModel === undefined) {
           continue;
         }
-        const adaptedUnknown = yield* adaptFrontendResource({
-          owner: {
-            kind: 'service',
-            serviceName,
-            serviceVersion: authResults.serviceVersion,
-          },
+        const adaptedUnknown = yield* adaptServiceFrontendResource({
+          serviceName,
+          serviceVersion: authResults.serviceVersion,
           frontendName,
           modelName: resource.modelName,
           modelVersion: requestedModel.version,
@@ -207,11 +206,24 @@ export const getState = Effect.fn('ServiceFrontendApi.getState')(
         resources.push(adapted.resource);
       }
 
+      const service = yield* getByKeyOrThrow({
+        record: config.system.services[serviceName] ?? {},
+        key: serviceVersion,
+        recordKind: 'service versions',
+      });
+      const decodedAuthentication = yield* Schema.decodeUnknownEffect(
+        service.authentication.authenticationSchema,
+      )(authentication).pipe(
+        mapParseError({
+          code: 'frontend-authentication-invalid',
+          prefix: 'Invalid saved authentication',
+        }),
+      );
       // 9 — retain the snapshot cursor and full authentication
       const { selectionPath: _replicaSelectionPath, ...state } = canonicalState;
       return {
         ...state,
-        authentication,
+        authentication: decodedAuthentication,
         resources,
       };
     }).pipe(

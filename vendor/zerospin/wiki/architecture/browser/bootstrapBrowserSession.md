@@ -23,13 +23,13 @@ online initialization path used when no valid baseline can be reused.
 ## Trigger
 
 1. `makeZerospinApp<SYSTEM, APP_SERVICES>` owns the application runtime.
-   `App.makeFrontend(controller)` creates a component/selector bound to that app.
+   `App.makeAggregateFrontend(props)` and `App.makeServiceFrontend(props)` creates a component/selector bound to that app.
    Each mounted frontend supplies its own `generateSignature`, initializes its
    session, and gates its children independently. Sibling mounts can initialize
    concurrently; nested mounts initialize sequentially. The app lazily acquires
    one shared backup connection on the first frontend request and retains it
    until app teardown. Aggregate authentication supplies the aggregate ID.
-   - [`makeFrontendController.ts`](../../../packages/core/src/frontendController/makeFrontendController.ts) — retains exact contract/model definitions and the selected owner version.
+   - [`makeFrontendController.ts`](../../../packages/core/src/frontendController/makeFrontendController.ts) — retains exact contract/model definitions and the selected aggregate or service version.
    - [`makeZerospinApp.tsx`](../../../packages/react/src/makeZerospinApp.tsx) — checks system compatibility, service requirements, app context, and duplicate names; owns per-frontend sessions and lazy app-wide backup acquisition.
 2. Visible startup, focus, and visible page restoration request ownership.
    Hiding an already current frontend retains ownership; hiding during startup

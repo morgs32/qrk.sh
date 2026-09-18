@@ -1,4 +1,3 @@
-import { RoutePattern } from '@remix-run/route-pattern';
 import { makeZerospinApp } from '@zerospin/react';
 import * as sdk from '@zerospin/sdk/browser';
 import { Effect, Layer, Redacted, Schema } from 'effect';
@@ -17,20 +16,51 @@ import {
   ClerkUserIdSchema,
   userV1,
 } from './aggregates/shopper/models/user/UserV1';
-import type { shopperV2 } from './aggregates/shopper/ShopperV2';
-import type { appV1 } from './services/app/AppV1';
 import { productV1 } from './services/app/models/product/ProductV1';
 import type { system } from './system';
 
-const ShopperFrontendV2 = sdk.makeFrontendController({
-  authentication: {
-    signatureSchema: Schema.Struct({ clerkUserId: ClerkUserIdSchema }),
-    authenticationSchema: Schema.Struct({
-      aggregateId: Schema.Literal('acct_1'),
-      clerkUserId: ClerkUserIdSchema,
-    }),
-    selectionSchema: Schema.Struct({ clerkUserId: ClerkUserIdSchema }),
-    pattern: RoutePattern.parse('/:clerkUserId'),
+const zerospinApiUrl = import.meta.env.VITE_ZEROSPIN_API_URL;
+const zerospinPublishableKey = import.meta.env.VITE_ZEROSPIN_PUBLISHABLE_KEY;
+
+if (!zerospinApiUrl) {
+  throw new Error('Set VITE_ZEROSPIN_API_URL for the shopping app.');
+}
+
+if (!zerospinPublishableKey) {
+  throw new Error('Set VITE_ZEROSPIN_PUBLISHABLE_KEY for the shopping app.');
+}
+
+const applicationLayer = Layer.mergeAll(
+  Layer.succeed(sdk.ZerospinApiUrl, zerospinApiUrl),
+  Layer.succeed(sdk.PublishableKey, Redacted.make(zerospinPublishableKey)),
+);
+
+export const ZerospinApp = makeZerospinApp<typeof system>({
+  systemName: 'shopping',
+  layer: applicationLayer,
+});
+
+export const Shopper = ZerospinApp.makeAggregateFrontend({
+  authenticationSchema: Schema.Struct({
+    aggregateId: Schema.Literal('acct_1'),
+    clerkUserId: ClerkUserIdSchema,
+  }),
+  aggregateVersion: '2.0.0',
+  contracts: {
+    addToCart: { contract: addToCartV2 },
+    createCart: { contract: createCartV1 },
+    createUser: { contract: createUserV1 },
+    removeFromCart: { contract: removeFromCartV2 },
+    updateCartItemQuantity: { contract: updateCartItemQuantityV1 },
+    updateUser: { contract: updateUserV1 },
+  },
+  aggregateName: 'shopper',
+  name: 'shopperFrontend',
+  models: {
+    cart: cartV1,
+    cartItem: cartItemV2,
+    product: productReplicaV1,
+    user: userV1,
   },
   guardLayer: ({ db, authentication }) =>
     Layer.succeed(
@@ -56,61 +86,14 @@ const ShopperFrontendV2 = sdk.makeFrontendController({
         return found;
       }),
     ),
-  aggregateVersion: '2.0.0',
-  contracts: {
-    addToCart: { contract: addToCartV2 },
-    createCart: { contract: createCartV1 },
-    createUser: { contract: createUserV1 },
-    removeFromCart: { contract: removeFromCartV2 },
-    updateCartItemQuantity: { contract: updateCartItemQuantityV1 },
-    updateUser: { contract: updateUserV1 },
-  },
-  aggregateName: 'shopper',
-  name: 'shopperFrontend',
-  systemName: 'shopping',
-  models: {
-    cart: cartV1,
-    cartItem: cartItemV2,
-    product: productReplicaV1,
-    user: userV1,
-  },
-}) satisfies sdk.IAggregateFrontend<typeof shopperV2>;
+});
 
-const AppFrontendV1 = sdk.makeFrontendController({
-  authentication: {
-    signatureSchema: Schema.Struct({ clerkUserId: ClerkUserIdSchema }),
-    authenticationSchema: Schema.Struct({ clerkUserId: ClerkUserIdSchema }),
-    selectionSchema: Schema.Struct({ clerkUserId: ClerkUserIdSchema }),
-    pattern: RoutePattern.parse('/:clerkUserId'),
-  },
-  systemName: 'shopping',
+export const Catalog = ZerospinApp.makeServiceFrontend({
+  authenticationSchema: Schema.Struct({ clerkUserId: ClerkUserIdSchema }),
   serviceVersion: '1.0.0',
   serviceName: 'app',
   name: 'appFrontend',
   models: {
     product: productV1,
   },
-}) satisfies sdk.IServiceFrontend<typeof appV1>;
-
-const zerospinApiUrl = import.meta.env.VITE_ZEROSPIN_API_URL;
-const zerospinPublishableKey = import.meta.env.VITE_ZEROSPIN_PUBLISHABLE_KEY;
-
-if (!zerospinApiUrl) {
-  throw new Error('Set VITE_ZEROSPIN_API_URL for the shopping app.');
-}
-
-if (!zerospinPublishableKey) {
-  throw new Error('Set VITE_ZEROSPIN_PUBLISHABLE_KEY for the shopping app.');
-}
-
-const applicationLayer = Layer.mergeAll(
-  Layer.succeed(sdk.ZerospinApiUrl, zerospinApiUrl),
-  Layer.succeed(sdk.PublishableKey, Redacted.make(zerospinPublishableKey)),
-);
-
-export const ZerospinApp = makeZerospinApp<typeof system>({
-  systemName: 'shopping',
-  layer: applicationLayer,
 });
-export const Shopper = ZerospinApp.makeFrontend(ShopperFrontendV2);
-export const Catalog = ZerospinApp.makeFrontend(AppFrontendV1);

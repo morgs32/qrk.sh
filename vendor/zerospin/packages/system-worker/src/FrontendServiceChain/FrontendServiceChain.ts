@@ -2,6 +2,7 @@ import { RoutePattern } from '@remix-run/route-pattern';
 import { createHref } from '@remix-run/route-pattern/href';
 import { createMatcher } from '@remix-run/route-pattern/match';
 import type { ServiceFrontendLockSchema } from '@zerospin/core/frontendController/makeServiceFrontendLock';
+import { filterServiceFrontendCommand } from '@zerospin/core/serviceSession/filterServiceFrontendCommand';
 import type { IServiceFrontendFinalizedCommand } from '@zerospin/core/serviceSession/types';
 import { encodeRpc } from '@zerospin/core/utils/encodeRpc';
 import {
@@ -123,7 +124,10 @@ export class FrontendServiceChain extends makeFixedDORepo({
               connection.send(
                 JSON.stringify({
                   type: 'serviceFrontendCommand',
-                  sync: command,
+                  sync: filterServiceFrontendCommand(
+                    command,
+                    connection.state.serviceFrontendLock.models,
+                  ),
                 }),
               );
             } catch {

@@ -1,8 +1,12 @@
 import { encodedShapeSchema } from '@zerospin/schema';
 import { Schema } from 'effect';
 
-import { AggregateFrontendLockSchema } from '../frontendController/makeAggregateFrontendLock.ts';
-import { ServiceFrontendLockSchema } from '../frontendController/makeServiceFrontendLock.ts';
+const authenticationSchema = Schema.Struct({
+  signatureJsonSchema: Schema.Unknown,
+  authenticationJsonSchema: Schema.Unknown,
+  selectionJsonSchema: Schema.Unknown,
+  pattern: Schema.String,
+});
 
 const indexSchema = Schema.Struct({
   name: Schema.String,
@@ -42,51 +46,6 @@ const contractSchema = Schema.Struct({
   ),
 });
 
-const frontendControllerSchema = Schema.Union([
-  Schema.Struct({
-    kind: Schema.Literal('aggregate'),
-    systemName: Schema.String,
-    aggregateName: Schema.String,
-    aggregateVersion: Schema.String,
-    name: Schema.String,
-    modelNames: Schema.Array(Schema.String),
-    models: Schema.Record(Schema.String, modelSchema),
-    contracts: Schema.Record(Schema.String, contractSchema),
-    aggregateFrontendLock: AggregateFrontendLockSchema,
-  }),
-  Schema.Struct({
-    kind: Schema.Literal('service'),
-    systemName: Schema.String,
-    serviceName: Schema.String,
-    serviceVersion: Schema.String,
-    name: Schema.String,
-    modelNames: Schema.Array(Schema.String),
-    models: Schema.Record(Schema.String, modelSchema),
-    contracts: Schema.Record(Schema.String, contractSchema),
-    serviceFrontendLock: ServiceFrontendLockSchema,
-  }),
-]);
-
-const frontendBindingSchema = Schema.Struct({
-  name: Schema.String,
-  models: Schema.Record(
-    Schema.String,
-    Schema.Struct({
-      modelName: Schema.String,
-      hasProjectionAdapter: Schema.Boolean,
-    }),
-  ),
-  contracts: Schema.Record(
-    Schema.String,
-    Schema.Struct({
-      commandName: Schema.String,
-      version: Schema.String,
-      hasAuthoritativeAdapter: Schema.Boolean,
-    }),
-  ),
-  controller: frontendControllerSchema,
-});
-
 const querySchema = Schema.Struct({
   name: Schema.String,
   serviceName: Schema.String,
@@ -106,7 +65,7 @@ export const SystemSpecSchema = Schema.Struct({
       Schema.Struct({
         name: Schema.String,
         version: Schema.String,
-        authentication: AggregateFrontendLockSchema.fields.authentication,
+        authentication: authenticationSchema,
         services: Schema.Record(Schema.String, Schema.String),
         models: Schema.Record(Schema.String, modelSchema),
         contracts: Schema.Record(Schema.String, contractSchema),
@@ -124,11 +83,10 @@ export const SystemSpecSchema = Schema.Struct({
       Schema.Struct({
         name: Schema.String,
         version: Schema.String,
-        authentication: AggregateFrontendLockSchema.fields.authentication,
+        authentication: authenticationSchema,
         models: Schema.Record(Schema.String, modelSchema),
         contracts: Schema.Record(Schema.String, contractSchema),
         queries: Schema.Record(Schema.String, querySchema),
-        frontends: Schema.Record(Schema.String, frontendBindingSchema),
       }),
     ),
   ),

@@ -1,8 +1,6 @@
 import { Schema } from 'effect';
 import { mapValues } from 'es-toolkit';
 
-import { makeFrontendControllerSpec } from '../frontendController/makeFrontendControllerSpec.ts';
-
 import type { ISystem, ISystemSpec } from './types.ts';
 
 export function makeSystemSpec<
@@ -86,16 +84,6 @@ export function makeSystemSpec<
           name: query.name,
           serviceName: query.serviceName,
           paramsJsonSchema: Schema.toJsonSchemaDocument(query.paramsSchema),
-        })),
-        frontends: mapValues(service.frontends, binding => ({
-          name: binding.name,
-          models: mapValues(binding.models, (model, modelKey) => ({
-            modelName: model.modelName,
-            hasProjectionAdapter:
-              binding.projectionAdapters[modelKey] !== undefined,
-          })),
-          contracts: {},
-          controller: makeFrontendControllerSpec(binding.controller),
         })),
       })),
     ),

@@ -30,10 +30,7 @@ const frontendStateRequest = {
         systemName: 'shopping',
         frontendName: 'web',
         authentication: {
-          signatureJsonSchema: {},
           authenticationJsonSchema: {},
-          selectionJsonSchema: {},
-          pattern: '/',
         },
         models: {},
         contracts: {},

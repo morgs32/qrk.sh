@@ -57,15 +57,18 @@ export const pushAggregateFrontendCommand = Effect.fn(
     Effect.flatMap(decodeRpc),
   );
   const gatewayApi = newSyncRpcSession<GatewayApi>(apiUrl);
-  const frontendApi = gatewayApi.getAggregateFrontendApi({
-    aggregateVersion: props.aggregateVersion,
-    publishableKey,
-    systemName,
-    signature,
-    aggregateName,
-    frontendName,
-    aggregateFrontendLock,
-  });
+  const frontendApi = gatewayApi
+    .aggregate({
+      publishableKey: publishableKey,
+      systemName: systemName,
+      name: aggregateName,
+      version: props.aggregateVersion,
+    })
+    .authenticate({ signature: signature })
+    .authorize({
+      frontendName: frontendName,
+      aggregateFrontendLock: aggregateFrontendLock,
+    });
   return yield* makeTraceableApiTarget(frontendApi)
     .pushCommand({ command })
     .pipe(

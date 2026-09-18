@@ -1,5 +1,9 @@
-import { makeAggregate } from '@zerospin/core/aggregate/makeAggregate';
-import { makeAggregateVersion } from '@zerospin/core/aggregate/makeVersion';
+import { defineAggregate } from '@zerospin/core/aggregate/defineAggregate';
+import { makeAggregateVersion } from '@zerospin/core/aggregate/makeAggregateVersion';
+import {
+  aggregateFrontendProps,
+  serviceFrontendProps,
+} from '@zerospin/core/fixtures/frontendProps';
 import {
   Item,
   List,
@@ -19,29 +23,29 @@ import { assert, type Equals } from 'tsafe';
 import { makeZerospinApp } from './makeZerospinApp';
 
 declare const layer: Layer.Layer<PublishableKey | ZerospinApiUrl, IAnyError>;
-const userV1 = makeAggregateVersion(makeAggregate({ name: 'user' }), {
-  authentication: userAggregate.authentication,
+const userV1 = makeAggregateVersion(defineAggregate({ name: 'user' }), {
+  ...userAggregate.authentication,
   version: '1.0.0',
   models: main.models,
   contracts: main.contracts,
   selections: {},
 });
-const userV2 = makeAggregateVersion(makeAggregate({ name: 'user' }), {
-  authentication: userAggregate.authentication,
+const userV2 = makeAggregateVersion(defineAggregate({ name: 'user' }), {
+  ...userAggregate.authentication,
   version: '2.0.0',
   models: { user: User },
   contracts: {},
   selections: {},
 });
 const catalog = makeService({
-  authentication: userAggregate.authentication,
+  ...userAggregate.authentication,
   name: 'catalog',
   version: '1.0.0',
   models: { user: User, list: List, item: Item },
   contracts: {},
 });
 const catalogV2 = makeService({
-  authentication: userAggregate.authentication,
+  ...userAggregate.authentication,
   name: 'catalog',
   version: '2.0.0',
   models: { user: User },
@@ -67,12 +71,13 @@ const emptyApp = makeZerospinApp<typeof emptySystem>({
   systemName: 'system-worker',
   layer,
 });
-const Main = app.makeFrontend(main);
+const Main = app.makeAggregateFrontend(aggregateFrontendProps(main));
 assert<Equals<typeof app.systemName, 'system-worker'>>();
-assert<Equals<typeof Main.frontend, typeof main>>();
+const selectedDefinition: typeof main = Main.frontend;
+void selectedDefinition;
 assert<Equals<typeof Main.models, typeof main.models>>();
 const subset = makeFrontendController({
-  authentication: main.authentication,
+  authenticationSchema: main.authentication.authenticationSchema,
   systemName: 'system-worker',
   name: 'subset',
   aggregateName: 'user',
@@ -81,7 +86,7 @@ const subset = makeFrontendController({
   contracts: { createList: main.contracts.createList },
 });
 const second = makeFrontendController({
-  authentication: main.authentication,
+  authenticationSchema: main.authentication.authenticationSchema,
   systemName: 'system-worker',
   name: 'second',
   aggregateName: 'user',
@@ -90,7 +95,7 @@ const second = makeFrontendController({
   contracts: {},
 });
 const products = makeFrontendController({
-  authentication: main.authentication,
+  authenticationSchema: main.authentication.authenticationSchema,
   systemName: 'system-worker',
   name: 'products',
   serviceName: 'catalog',
@@ -98,47 +103,70 @@ const products = makeFrontendController({
   models: catalog.models,
 });
 const productsV2 = makeFrontendController({
-  authentication: main.authentication,
+  authenticationSchema: main.authentication.authenticationSchema,
   systemName: 'system-worker',
   name: 'productsV2',
   serviceName: 'catalog',
   serviceVersion: '2.0.0',
   models: { user: User },
 });
-app.makeFrontend(subset);
-app.makeFrontend(second);
-app.makeFrontend(products);
-app.makeFrontend(productsV2);
-app.makeFrontend({ ...products, models: { user: User } });
-// @ts-expect-error Empty registries cannot admit aggregate owners.
-emptyApp.makeFrontend(main);
-// @ts-expect-error Empty registries cannot admit service owners.
-emptyApp.makeFrontend(products);
+app.makeAggregateFrontend(aggregateFrontendProps(subset));
+app.makeAggregateFrontend(aggregateFrontendProps(second));
+app.makeServiceFrontend(serviceFrontendProps(products));
+app.makeServiceFrontend(serviceFrontendProps(productsV2));
+app.makeServiceFrontend(
+  serviceFrontendProps({ ...products, models: { user: User } }),
+);
+// @ts-expect-error Empty registries cannot admit aggregates.
+emptyApp.makeAggregateFrontend(aggregateFrontendProps(main));
+// @ts-expect-error Empty registries cannot admit services.
+emptyApp.makeServiceFrontend(serviceFrontendProps(products));
 makeZerospinApp<typeof system>({
   // @ts-expect-error The app must match the system name.
   systemName: 'other',
   layer,
 });
-// @ts-expect-error Unknown aggregate owner.
-app.makeFrontend({ ...main, aggregateName: 'missing' });
-// @ts-expect-error Unknown service owner.
-app.makeFrontend({ ...products, serviceName: 'missing' });
-// @ts-expect-error Unknown aggregate version.
-app.makeFrontend({ ...main, aggregateVersion: '3.0.0' });
-// @ts-expect-error Unknown service version.
-app.makeFrontend({ ...products, serviceVersion: '3.0.0' });
-// @ts-expect-error Frontend system must match.
-app.makeFrontend({ ...main, systemName: 'other' });
-// @ts-expect-error A model under an existing key must be compatible.
-app.makeFrontend({ ...main, models: { user: Item } });
-app.makeFrontend({
-  ...main,
-  // @ts-expect-error Contract names and definitions must agree.
-  contracts: { createList: main.contracts.createItem },
+app.makeAggregateFrontend(
+  // @ts-expect-error Unknown aggregate.
+  aggregateFrontendProps({ ...main, aggregateName: 'missing' }),
+);
+app.makeServiceFrontend(
+  // @ts-expect-error Unknown service.
+  serviceFrontendProps({ ...products, serviceName: 'missing' }),
+);
+app.makeAggregateFrontend(
+  // @ts-expect-error Unknown aggregate version.
+  aggregateFrontendProps({ ...main, aggregateVersion: '3.0.0' }),
+);
+app.makeServiceFrontend(
+  // @ts-expect-error Unknown service version.
+  serviceFrontendProps({ ...products, serviceVersion: '3.0.0' }),
+);
+app.makeAggregateFrontend({
+  ...aggregateFrontendProps(main),
+  // @ts-expect-error Frontend system must match.
+  systemName: 'other',
 });
-// @ts-expect-error Compatibility is checked against the selected aggregate version.
-app.makeFrontend({ ...main, aggregateVersion: '2.0.0' });
-// @ts-expect-error Compatibility is checked against the selected service version.
-app.makeFrontend({ ...products, serviceVersion: '2.0.0' });
-// @ts-expect-error Service models cannot substitute an incompatible model.
-app.makeFrontend({ ...products, models: { user: Item } });
+app.makeAggregateFrontend(
+  // @ts-expect-error A model under an existing key must be compatible.
+  aggregateFrontendProps({ ...main, models: { user: Item } }),
+);
+app.makeAggregateFrontend(
+  // @ts-expect-error Contract names and definitions must agree.
+  aggregateFrontendProps({
+    ...main,
+    contracts: { createList: main.contracts.createItem },
+  }),
+);
+app.makeAggregateFrontend(
+  // @ts-expect-error Compatibility is checked against the selected aggregate version.
+  aggregateFrontendProps({ ...main, aggregateVersion: '2.0.0' }),
+);
+app.makeServiceFrontend(
+  // @ts-expect-error Compatibility is checked against the selected service version.
+  serviceFrontendProps({ ...products, serviceVersion: '2.0.0' }),
+);
+app.makeServiceFrontend(
+  // @ts-expect-error Service models cannot substitute an incompatible model.
+  serviceFrontendProps({ ...products, models: { user: Item } }),
+);

@@ -8,7 +8,6 @@ import type { Brand, JsonSchema, Layer } from 'effect';
 
 import type { IAnyAggregate, IAnyAggregates } from '../aggregate/types.ts';
 import type { Async } from '../async/Async.ts';
-import type { IFrontendControllerSpec } from '../frontendController/types.ts';
 import type {
   IEncodedResourceShape,
   IModelSpec,
@@ -146,34 +145,6 @@ export type ISystemSpec = Readonly<{
                       Record<string, Readonly<JsonSchema.JsonSchema>>
                     >;
                   }>;
-                }>
-              >
-            >;
-            readonly frontends: Readonly<
-              Record<
-                string,
-                Readonly<{
-                  readonly name: string;
-                  readonly models: Readonly<
-                    Record<
-                      string,
-                      Readonly<{
-                        readonly modelName: string;
-                        readonly hasProjectionAdapter: boolean;
-                      }>
-                    >
-                  >;
-                  readonly contracts: Readonly<
-                    Record<
-                      string,
-                      Readonly<{
-                        readonly commandName: string;
-                        readonly version: string;
-                        readonly hasAuthoritativeAdapter: boolean;
-                      }>
-                    >
-                  >;
-                  readonly controller: IFrontendControllerSpec;
                 }>
               >
             >;

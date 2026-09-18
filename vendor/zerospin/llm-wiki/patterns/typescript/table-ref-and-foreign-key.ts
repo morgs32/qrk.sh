@@ -1,7 +1,8 @@
-import { defineCommand } from '@zerospin/core/contracts/Command';
-import { makeContractVersion } from '@zerospin/core/contracts/makeVersion';
+import { defineContract } from '@zerospin/core/contracts/defineContract';
+import { makeContractVersion } from '@zerospin/core/contracts/makeContractVersion';
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/makeDbConfig';
-import { makeModel, makeModelVersion } from '@zerospin/core/models/makeModel';
+import { defineModel } from '@zerospin/core/models/defineModel';
+import { makeModelVersion } from '@zerospin/core/models/makeModelVersion';
 import { makeTable, primitives } from '@zerospin/schema';
 
 /**
@@ -14,7 +15,7 @@ import { makeTable, primitives } from '@zerospin/schema';
  * @bad Supply every non-nullable payload ID explicitly; payload decoding never generates IDs.
  * @bad Do not build referenced resource tables and other tables as separate database configs; the lazy target resolver requires one complete database graph.
  */
-const UserModel = makeModel({ name: 'user', abbreviation: 'usr' });
+const UserModel = defineModel({ name: 'user', abbreviation: 'usr' });
 
 const User = makeModelVersion(UserModel, {
   attributes: {
@@ -57,7 +58,7 @@ export const userDbConfig = makeResourceDbConfig({
   },
 });
 
-export const createUser = makeContractVersion(defineCommand('createUser'), {
+export const createUser = makeContractVersion(defineContract('createUser'), {
   payload: {
     id: primitives.foreignKey({ abbreviation: UserModel.abbreviation }),
     clerkUserId: primitives.foreignKey({ abbreviation: 'clerkusr' }),
@@ -66,7 +67,7 @@ export const createUser = makeContractVersion(defineCommand('createUser'), {
   version: '1.0.0',
 });
 
-export const renameUser = makeContractVersion(defineCommand('renameUser'), {
+export const renameUser = makeContractVersion(defineContract('renameUser'), {
   payload: {
     id: primitives.foreignKey({ abbreviation: UserModel.abbreviation }),
     name: primitives.text(),

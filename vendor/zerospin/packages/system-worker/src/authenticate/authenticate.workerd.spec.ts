@@ -8,20 +8,19 @@ import {
 import { Effect, Result } from 'effect';
 import { describe, expect, it } from 'vitest';
 
+import { authenticateAggregate } from '../authenticateAggregate/authenticateAggregate.ts';
+import { authenticateService } from '../authenticateService/authenticateService.ts';
 import { SelectionVersionedAggregateRepo } from '../SelectionVersionedAggregateRepo/SelectionVersionedAggregateRepo.js';
 import { SystemLogRepo } from '../SystemLogRepo/SystemLogRepo.js';
 
-import { authenticate } from './authenticate.ts';
-
-describe('owner authentication in Workers', () => {
+describe('aggregate and service authentication in Workers', () => {
   it.each(['usr_authentication', 'snow/雪?%#\\', 'a b'])(
     'authenticates and durably audits %s',
     async userId => {
       const result = await Effect.runPromise(
-        authenticate({
-          ownerKind: 'aggregate',
-          ownerName: 'notes',
-          ownerVersion: '1.0.0',
+        authenticateAggregate({
+          aggregateName: 'notes',
+          aggregateVersion: '1.0.0',
           signature: { userId, aggregateId: 'acct_authentication' },
         }).pipe(Effect.provide(AsyncLive)),
       );
@@ -46,6 +45,8 @@ describe('owner authentication in Workers', () => {
       );
       expect(JSON.stringify(rows)).toContain(result.authenticationHash);
       expect(JSON.stringify(rows)).toContain('succeeded');
+      expect(JSON.stringify(rows)).toContain('"aggregateName":"notes"');
+      expect(JSON.stringify(rows)).not.toContain('ownerKind');
     },
   );
 
@@ -66,10 +67,9 @@ describe('owner authentication in Workers', () => {
     'rejects $code and records sanitized failures',
     async ({ signature, code }) => {
       const result = await Effect.runPromise(
-        authenticate({
-          ownerKind: 'aggregate',
-          ownerName: 'notes',
-          ownerVersion: '1.0.0',
+        authenticateAggregate({
+          aggregateName: 'notes',
+          aggregateVersion: '1.0.0',
           signature,
         }).pipe(Effect.provide(AsyncLive), Effect.result),
       );
@@ -98,15 +98,31 @@ describe('owner authentication in Workers', () => {
 
   it('keeps service authentication independent of aggregate IDs', async () => {
     const result = await Effect.runPromise(
-      authenticate({
-        ownerKind: 'service',
-        ownerName: 'app',
-        ownerVersion: '1.0.0',
+      authenticateService({
+        serviceName: 'app',
+        serviceVersion: '1.0.0',
         signature: { userId: 'usr_service' },
       }).pipe(Effect.provide(AsyncLive)),
     );
     expect(result.authentication).toEqual({ userId: 'usr_service' });
     expect(result.selectionPath).toBe('/usr_service');
+    const log = await Effect.runPromise(
+      SystemLogRepo.getRepo({ key: { systemId: env.ZEROSPIN_SYSTEM_ID } }),
+    );
+    const row = await runInDurableObject(log, (_instance, state) =>
+      state.storage.sql
+        .exec(
+          'SELECT aggregateName, aggregateVersion, serviceName, serviceVersion, status FROM authenticationAttempts ORDER BY rowid DESC LIMIT 1',
+        )
+        .one(),
+    );
+    expect(row).toEqual({
+      aggregateName: null,
+      aggregateVersion: null,
+      serviceName: 'app',
+      serviceVersion: '1.0.0',
+      status: 'succeeded',
+    });
   });
 });
 
@@ -130,10 +146,9 @@ it.each(['begin', 'complete'])(
     });
     try {
       const result = await Effect.runPromise(
-        authenticate({
-          ownerKind: 'aggregate',
-          ownerName: 'notes',
-          ownerVersion: '1.0.0',
+        authenticateAggregate({
+          aggregateName: 'notes',
+          aggregateVersion: '1.0.0',
           signature: { userId: 'audit-fault', aggregateId: 'acct_fault' },
         }).pipe(Effect.provide(AsyncLive), Effect.result),
       );
@@ -170,10 +185,9 @@ it('retains an unfinished attempt across cold activation without claims or signa
   );
   const { attemptId } = await Effect.runPromise(
     Effect.promise(() =>
-      log.beginAuthenticationAttempt({
-        ownerKind: 'aggregate',
-        ownerName: 'notes',
-        ownerVersion: '1.0.0',
+      log.beginAggregateAuthenticationAttempt({
+        aggregateName: 'notes',
+        aggregateVersion: '1.0.0',
       }),
     ).pipe(Effect.flatMap(decodeRpc)),
   );
@@ -216,3 +230,31 @@ it.each(['missing-leading-slash', '/usr%2fnoncanonical', '//usr', '/%ZZ', '/'])(
     );
   },
 );
+
+it('durably audits service authentication with service coordinates only', async () => {
+  const result = await Effect.runPromise(
+    authenticateService({
+      serviceName: 'app',
+      serviceVersion: '1.0.0',
+      signature: { userId: 'usr_service_audit' },
+    }).pipe(Effect.provide(AsyncLive)),
+  );
+  const log = await Effect.runPromise(
+    SystemLogRepo.getRepo({ key: { systemId: env.ZEROSPIN_SYSTEM_ID } }),
+  );
+  const row = await runInDurableObject(log, (_instance, state) =>
+    state.storage.sql
+      .exec(
+        "SELECT aggregateName, aggregateVersion, serviceName, serviceVersion, status, authenticationHash FROM authenticationAttempts WHERE serviceName = 'app' ORDER BY rowid DESC LIMIT 1",
+      )
+      .one(),
+  );
+  expect(row).toEqual({
+    aggregateName: null,
+    aggregateVersion: null,
+    serviceName: 'app',
+    serviceVersion: '1.0.0',
+    status: 'succeeded',
+    authenticationHash: result.authenticationHash,
+  });
+});

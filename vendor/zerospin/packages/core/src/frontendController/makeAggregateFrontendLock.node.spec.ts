@@ -4,9 +4,10 @@ import { primitives } from '@zerospin/schema';
 import { Effect, Schema } from 'effect';
 import { describe, expect } from 'vitest';
 
-import { defineCommand } from '../contracts/Command.ts';
-import { makeContractVersion } from '../contracts/makeVersion.ts';
-import { makeModel, makeModelVersion } from '../models/makeModel.ts';
+import { defineContract } from '../contracts/defineContract.ts';
+import { makeContractVersion } from '../contracts/makeContractVersion.ts';
+import { defineModel } from '../models/defineModel.ts';
+import { makeModelVersion } from '../models/makeModelVersion.ts';
 
 import {
   AggregateFrontendLockSchema,
@@ -16,7 +17,7 @@ import { makeAggregateFrontendLockKey } from './makeAggregateFrontendLockKey.ts'
 import { makeFrontendController } from './makeFrontendController.ts';
 
 const Item = makeModelVersion(
-  makeModel({ name: 'item', abbreviation: 'itm' }),
+  defineModel({ name: 'item', abbreviation: 'itm' }),
   {
     attributes: { title: primitives.text() },
     indexes: [],
@@ -25,7 +26,7 @@ const Item = makeModelVersion(
 );
 
 const List = makeModelVersion(
-  makeModel({ name: 'list', abbreviation: 'lst' }),
+  defineModel({ name: 'list', abbreviation: 'lst' }),
   {
     attributes: { name: primitives.text() },
     indexes: [],
@@ -33,12 +34,12 @@ const List = makeModelVersion(
   },
 );
 
-const renameItem = makeContractVersion(defineCommand('renameItem'), {
+const renameItem = makeContractVersion(defineContract('renameItem'), {
   version: '2.0.0',
   payload: { title: primitives.text() },
 });
 
-const createList = makeContractVersion(defineCommand('createList'), {
+const createList = makeContractVersion(defineContract('createList'), {
   version: '1.0.0',
   payload: { name: primitives.text() },
 });
@@ -49,7 +50,8 @@ describe('aggregate frontend lock', () => {
     () =>
       Effect.gen(function* () {
         const left = makeFrontendController({
-          authentication: authenticationFixtureFrontend.authentication,
+          authenticationSchema:
+            authenticationFixtureFrontend.authentication.authenticationSchema,
           aggregateVersion: '1.0.0',
           systemName: 'shopping',
           aggregateName: 'shopper',
@@ -61,7 +63,8 @@ describe('aggregate frontend lock', () => {
           },
         });
         const right = makeFrontendController({
-          authentication: authenticationFixtureFrontend.authentication,
+          authenticationSchema:
+            authenticationFixtureFrontend.authentication.authenticationSchema,
           aggregateVersion: '1.0.0',
           systemName: 'shopping',
           aggregateName: 'customer',
@@ -94,7 +97,7 @@ describe('aggregate frontend lock', () => {
         });
         expect(leftKey).toBe(rightKey);
         expect(leftKey).toBe(
-          '86c92d519ec18a25794d79276e5e3c6de4c065482eccc284e933b0a4d67450aa',
+          '26beb6fbd2c04af1eeea0def5e89b97d1180925bf552368e01dcde6e0938f3fd',
         );
         expect(leftLock).not.toHaveProperty('version');
       }),
@@ -103,7 +106,8 @@ describe('aggregate frontend lock', () => {
   it.effect('changes the key when an exact selected definition changes', () =>
     Effect.gen(function* () {
       const baseline = makeFrontendController({
-        authentication: authenticationFixtureFrontend.authentication,
+        authenticationSchema:
+          authenticationFixtureFrontend.authentication.authenticationSchema,
         aggregateVersion: '1.0.0',
         systemName: 'shopping',
         aggregateName: 'shopper',
@@ -112,7 +116,7 @@ describe('aggregate frontend lock', () => {
         contracts: { renameItem: { contract: renameItem } },
       });
       const ChangedItem = makeModelVersion(
-        makeModel({ name: 'item', abbreviation: 'itm' }),
+        defineModel({ name: 'item', abbreviation: 'itm' }),
         {
           attributes: { title: primitives.integer() },
           indexes: [],
@@ -120,7 +124,8 @@ describe('aggregate frontend lock', () => {
         },
       );
       const changed = makeFrontendController({
-        authentication: authenticationFixtureFrontend.authentication,
+        authenticationSchema:
+          authenticationFixtureFrontend.authentication.authenticationSchema,
         aggregateVersion: '1.0.0',
         systemName: 'shopping',
         aggregateName: 'shopper',

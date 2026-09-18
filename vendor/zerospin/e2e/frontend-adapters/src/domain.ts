@@ -1,11 +1,12 @@
-import { defineCommand } from '@zerospin/core/contracts/Command';
-import { makeContractVersion } from '@zerospin/core/contracts/makeVersion';
-import { makeModel, makeModelVersion } from '@zerospin/core/models/makeModel';
+import { defineContract } from '@zerospin/core/contracts/defineContract';
+import { makeContractVersion } from '@zerospin/core/contracts/makeContractVersion';
+import { defineModel } from '@zerospin/core/models/defineModel';
+import { makeModelVersion } from '@zerospin/core/models/makeModelVersion';
 import { primitives } from '@zerospin/schema';
 import { Effect } from 'effect';
 
 export const SourceItem = makeModelVersion(
-  makeModel({ name: 'sourceItem', abbreviation: 'sitm' }),
+  defineModel({ name: 'sourceItem', abbreviation: 'sitm' }),
   {
     attributes: {
       userId: primitives.foreignKey({ abbreviation: 'uid' }),
@@ -17,7 +18,7 @@ export const SourceItem = makeModelVersion(
 );
 
 export const createSourceItem = makeContractVersion(
-  defineCommand('createSourceItem'),
+  defineContract('createSourceItem'),
   {
     payload: {
       id: primitives.foreignKey({ abbreviation: SourceItem.abbreviation }),
@@ -40,7 +41,7 @@ export const createSourceItem = makeContractVersion(
 );
 
 export const updateSourceItemQuantity = makeContractVersion(
-  defineCommand('updateSourceItemQuantity'),
+  defineContract('updateSourceItemQuantity'),
   {
     payload: {
       id: primitives.foreignKey({ abbreviation: SourceItem.abbreviation }),
@@ -59,7 +60,7 @@ export const updateSourceItemQuantity = makeContractVersion(
 );
 
 export const deleteSourceItem = makeContractVersion(
-  defineCommand('deleteSourceItem'),
+  defineContract('deleteSourceItem'),
   {
     payload: {
       id: primitives.foreignKey({ abbreviation: SourceItem.abbreviation }),

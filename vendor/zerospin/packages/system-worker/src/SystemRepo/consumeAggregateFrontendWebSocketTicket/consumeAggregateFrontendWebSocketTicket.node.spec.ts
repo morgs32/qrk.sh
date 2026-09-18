@@ -38,10 +38,7 @@ describe('SystemRepo.consumeAggregateFrontendWebSocketTicket', () => {
           frontendName: 'main',
           aggregateFrontendLock: {
             authentication: {
-              signatureJsonSchema: {},
               authenticationJsonSchema: {},
-              selectionJsonSchema: {},
-              pattern: '/public',
             },
             systemName: 'shopping',
             frontendName: 'main',

@@ -1,16 +1,15 @@
-export { defineCommand } from '@zerospin/core/contracts/Command';
+export { defineContract } from '@zerospin/core/contracts/defineContract';
+export { defineModel } from '@zerospin/core/models/defineModel';
 export {
-  makeModel,
   makeModelVersion,
   upgradeModelVersion,
-} from '@zerospin/core/models/makeModel';
+} from '@zerospin/core/models/makeModelVersion';
 export {
   makeContractVersion,
   upgradeContractVersion,
-} from '@zerospin/core/contracts/makeVersion';
+} from '@zerospin/core/contracts/makeContractVersion';
 export { makeReplica } from '@zerospin/core/models/makeReplica';
 export { makeSelection } from '@zerospin/core/models/makeSelection';
-export { makeFrontendController } from '@zerospin/core/frontendController/makeFrontendController';
 export { makeId } from '@zerospin/core/models/makeId';
 export { prefixId } from '@zerospin/core/models/prefixId';
 export { makeAggregateId } from '@zerospin/core/utils/makeAggregateId';
@@ -23,7 +22,7 @@ export {
   type IAnyError,
   type IZerospinError,
 } from '@zerospin/error';
-export type { Command } from '@zerospin/core/contracts/Command';
+export type { Command } from '@zerospin/core/contracts/defineContract';
 export type {
   IContractBinding,
   IAnyContractBindings,
@@ -43,11 +42,11 @@ export type {
 } from '@zerospin/core/models/types';
 export type { ISystemId, ISystemConfig } from '@zerospin/core/system/types';
 export type { IDb, IResourceDbConfig } from '@zerospin/core/drizzle/types';
-export { makeAggregate } from '@zerospin/core/aggregate/makeAggregate';
+export { defineAggregate } from '@zerospin/core/aggregate/defineAggregate';
 export {
   makeAggregateVersion,
   upgradeAggregateVersion,
-} from '@zerospin/core/aggregate/makeVersion';
+} from '@zerospin/core/aggregate/makeAggregateVersion';
 export { makeService } from '@zerospin/core/service/makeService';
 export { makeSystem } from '@zerospin/core/system/makeSystem';
 export { makeSystemConfig } from '@zerospin/core/system/makeSystemConfig';

@@ -4,7 +4,8 @@ import { Effect, Schema } from 'effect';
 import { describe, expect } from 'vitest';
 
 import { User } from '../fixtures/system.ts';
-import { makeModel, makeModelVersion } from '../models/makeModel.ts';
+import { defineModel } from '../models/defineModel.ts';
+import { makeModelVersion } from '../models/makeModelVersion.ts';
 import { prefixId } from '../models/prefixId.ts';
 
 import { decodeAppliedMutation } from './decodeAppliedMutation.ts';
@@ -156,7 +157,7 @@ describe('encodeAppliedMutation + decodeAppliedMutation', () => {
     () =>
       Effect.gen(function* () {
         const VersionedUser = makeModelVersion(
-          makeModel({ name: 'versionedUser', abbreviation: 'vusr' }),
+          defineModel({ name: 'versionedUser', abbreviation: 'vusr' }),
           {
             attributes: {
               name: primitives.text(),

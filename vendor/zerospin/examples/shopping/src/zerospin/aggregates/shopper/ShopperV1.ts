@@ -21,15 +21,14 @@ import {
 import { shopper } from './shopper';
 
 export const shopperV1 = sdk.makeAggregateVersion(shopper, {
-  authentication: {
-    signatureSchema: Schema.Struct({ clerkUserId: ClerkUserIdSchema }),
-    authenticationSchema: Schema.Struct({
-      aggregateId: Schema.Literal('acct_1'),
-      clerkUserId: ClerkUserIdSchema,
-    }),
-    selectionSchema: Schema.Struct({ clerkUserId: ClerkUserIdSchema }),
-    pattern: RoutePattern.parse('/:clerkUserId'),
-    authenticate: ({ signature, executeCommand }) =>
+  signatureSchema: Schema.Struct({ clerkUserId: ClerkUserIdSchema }),
+  authenticationSchema: Schema.Struct({
+    aggregateId: Schema.Literal('acct_1'),
+    clerkUserId: ClerkUserIdSchema,
+  }),
+  selectionSchema: Schema.Struct({ clerkUserId: ClerkUserIdSchema }),
+  pattern: RoutePattern.parse('/:clerkUserId'),
+  authenticate: ({ signature, executeCommand }) =>
       Effect.gen(function* () {
         const result = yield* executeCommand({
           aggregateId: 'acct_1',
@@ -50,7 +49,6 @@ export const shopperV1 = sdk.makeAggregateVersion(shopper, {
           clerkUserId: signature.clerkUserId,
         } satisfies { aggregateId: 'acct_1'; clerkUserId: IClerkUserId };
       }),
-  },
   guardLayer: ({ db, authentication }) =>
     Layer.succeed(
       CurrentUser,

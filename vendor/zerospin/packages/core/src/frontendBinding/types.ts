@@ -202,21 +202,16 @@ export type IResolvedContracts<
 };
 
 export type IServiceAuthorization<
-  FRONTENDS extends Record<string, IAnyServiceFrontendBinding>,
   MODELS extends IAnyModels,
   AUTHORIZATION_CONTEXT = never,
   AUTHENTICATION = Readonly<Record<string, unknown>>,
-> = (
-  props: {
-    [FRONTEND_NAME in keyof FRONTENDS & string]: {
-      frontendName: FRONTEND_NAME;
-      authentication: AUTHENTICATION;
-      db: Readonly<
-        Pick<IDb<IResourceDbConfig<MODELS, Record<never, never>>>, 'query'>
-      >;
-    };
-  }[keyof FRONTENDS & string],
-) => Effect.Effect<void, IAnyError, AUTHORIZATION_CONTEXT>;
+> = (props: {
+  frontendName: string;
+  authentication: AUTHENTICATION;
+  db: Readonly<
+    Pick<IDb<IResourceDbConfig<MODELS, Record<never, never>>>, 'query'>
+  >;
+}) => Effect.Effect<void, IAnyError, AUTHORIZATION_CONTEXT>;
 
 export type IAggregateFrontendBindingProps<
   AGGREGATE_MODELS extends IAnyModels,

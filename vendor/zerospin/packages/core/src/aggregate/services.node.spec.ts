@@ -1,24 +1,25 @@
 import { userAggregate as authenticationFixtureOwner } from '@zerospin/core/fixtures/system';
+import { ZerospinError } from '@zerospin/error';
 import { Schema } from 'effect';
 import { describe, expect, it } from 'vitest';
 
 import { makeService } from '../service/makeService.ts';
 
-import { makeAggregate } from './makeAggregate.ts';
+import { defineAggregate } from './defineAggregate.ts';
 import {
   makeAggregateVersion,
   upgradeAggregateVersion,
-} from './makeVersion.ts';
+} from './makeAggregateVersion.ts';
 
 const AppV1 = makeService({
-  authentication: authenticationFixtureOwner.authentication,
+  ...authenticationFixtureOwner.authentication,
   name: 'app',
   version: '1.0.0',
   models: {},
   contracts: {},
 });
-const V1 = makeAggregateVersion(makeAggregate({ name: 'shopper' }), {
-  authentication: authenticationFixtureOwner.authentication,
+const V1 = makeAggregateVersion(defineAggregate({ name: 'shopper' }), {
+  ...authenticationFixtureOwner.authentication,
   version: '1.0.0',
   models: {},
   contracts: {},
@@ -31,12 +32,11 @@ describe('aggregate service definitions', () => {
   it('derives pins from service definitions and replaces them through upgrades', () => {
     expect(V1.services).toEqual({ app: AppV1.version });
     const AppV2 = makeService({
-      authentication: authenticationFixtureOwner.authentication,
+      ...authenticationFixtureOwner.authentication,
       name: 'app',
       version: '2.0.0',
       models: {},
       contracts: {},
-      frontends: {},
     });
     const upgraded = upgradeAggregateVersion(V2, {
       version: '3.0.0',
@@ -57,7 +57,13 @@ describe('aggregate service definitions', () => {
         version: '2.0.0',
         services: { wrong: AppV1 },
       }),
-    ).toThrow('must match service name');
+    ).toThrow(ZerospinError);
+    expect(() =>
+      upgradeAggregateVersion(V1, {
+        version: '2.0.0',
+        services: { wrong: AppV1 },
+      }),
+    ).toThrow('aggregate-service-key-mismatch');
     expect(() =>
       upgradeAggregateVersion(V1, {
         version: '2.0.0',
@@ -95,8 +101,8 @@ describe('aggregate service definitions', () => {
 
   it('rejects version strings when first authoring an aggregate', () => {
     expect(() =>
-      makeAggregateVersion(makeAggregate({ name: 'invalid' }), {
-        authentication: authenticationFixtureOwner.authentication,
+      makeAggregateVersion(defineAggregate({ name: 'invalid' }), {
+        ...authenticationFixtureOwner.authentication,
         version: '1.0.0',
         models: {},
         contracts: {},

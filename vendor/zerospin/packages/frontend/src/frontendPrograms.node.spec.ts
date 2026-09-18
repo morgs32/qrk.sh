@@ -39,7 +39,7 @@ afterAll(() => Effect.runPromise(Scope.close(sessionScope, Exit.void)));
 
 const getStateLeaf = vi.hoisted(() => vi.fn());
 const createWebSocketTicketLeaf = vi.hoisted(() => vi.fn());
-const getAggregateFrontendApiLeaf = vi.hoisted(() => vi.fn());
+const authorizeAggregateLeaf = vi.hoisted(() => vi.fn());
 const disposeGatewayLeaf = vi.hoisted(() => vi.fn());
 const newSyncRpcSessionLeaf = vi.hoisted(() => vi.fn());
 
@@ -56,10 +56,7 @@ const aggregateFrontendLock = {
   systemName: 'shopping',
   frontendName: 'web',
   authentication: {
-    signatureJsonSchema: {},
     authenticationJsonSchema: {},
-    selectionJsonSchema: {},
-    pattern: '/:userId',
   },
   models: {},
   contracts: {},
@@ -80,14 +77,16 @@ describe('@zerospin/frontend programs', () => {
   beforeEach(() => {
     getStateLeaf.mockReset();
     createWebSocketTicketLeaf.mockReset();
-    getAggregateFrontendApiLeaf.mockReset();
+    authorizeAggregateLeaf.mockReset();
     disposeGatewayLeaf.mockReset();
     newSyncRpcSessionLeaf.mockReset();
     generateSignature.mockReset();
     generateSignature.mockResolvedValue(encodeSuccess({ userId: 'user_1' }));
-    getAggregateFrontendApiLeaf.mockReturnValue(mockFrontendApi);
+    authorizeAggregateLeaf.mockReturnValue(mockFrontendApi);
     newSyncRpcSessionLeaf.mockReturnValue({
-      getAggregateFrontendApi: getAggregateFrontendApiLeaf,
+      aggregate: () => ({
+        authenticate: () => ({ authorize: authorizeAggregateLeaf }),
+      }),
       [Symbol.dispose]: disposeGatewayLeaf,
     });
   });
@@ -133,7 +132,7 @@ describe('@zerospin/frontend programs', () => {
       expect(second.ticket).toBe('gen_1.raw-ticket-two');
       expect(createWebSocketTicketLeaf).toHaveBeenCalledTimes(2);
       expect(newSyncRpcSessionLeaf).toHaveBeenCalledTimes(2);
-      expect(getAggregateFrontendApiLeaf).toHaveBeenCalledTimes(2);
+      expect(authorizeAggregateLeaf).toHaveBeenCalledTimes(2);
       expect(disposeGatewayLeaf).toHaveBeenCalledTimes(2);
     });
 
@@ -254,7 +253,12 @@ describe('aggregate frontend snapshot and socket recovery', () => {
   it('resumes independent frontend positions and accepts duplicate buffered delivery across reconnect', async () => {
     const state = {
       aggregateId: 'acct_1',
-      authentication: { userId: 'user_1', aggregateId: 'acct_1' },
+      authentication: {
+        userId: 'user_1',
+        aggregateId: 'acct_1',
+        issuedAt: new Date('2026-09-18T12:00:00Z'),
+        level: 42,
+      },
       systemId: 'sys_1',
       aggregateName: 'user',
       aggregateVersion: '1.0.0',
@@ -268,7 +272,9 @@ describe('aggregate frontend snapshot and socket recovery', () => {
     createWebSocketTicketLeaf.mockReset();
     disposeGatewayLeaf.mockReset();
     newSyncRpcSessionLeaf.mockReturnValue({
-      getAggregateFrontendApi: () => mockFrontendApi,
+      aggregate: () => ({
+        authenticate: () => ({ authorize: () => mockFrontendApi }),
+      }),
       [Symbol.dispose]: disposeGatewayLeaf,
     });
     generateSignature.mockResolvedValue(encodeSuccess({ userId: 'user_1' }));
@@ -349,7 +355,12 @@ describe('aggregate frontend snapshot and socket recovery', () => {
     );
     const overwriteDb = vi.fn(() => Effect.void);
     const frontend = makeFrontendController({
-      authentication: authenticationFixtureFrontend.authentication,
+      authenticationSchema: Schema.Struct({
+        userId: Schema.String,
+        aggregateId: Schema.String,
+        issuedAt: Schema.DateFromString,
+        level: Schema.NumberFromString,
+      }),
       aggregateVersion: '1.0.0',
       systemName: 'shopping',
       aggregateName: 'user',
@@ -412,6 +423,9 @@ describe('aggregate frontend snapshot and socket recovery', () => {
               userIndex: 9,
               sessionStatus: 'current',
             });
+            expect(session.store.getState().authentication).toEqual(
+              state.authentication,
+            );
             expect(overwriteDb).toHaveBeenCalledTimes(2);
           }),
         ).pipe(Effect.provide(TestLayer)),
@@ -429,8 +443,12 @@ describe('frontend startup without a reusable backup', () => {
       getStateLeaf.mockReset();
       createWebSocketTicketLeaf.mockReset();
       newSyncRpcSessionLeaf.mockReturnValue({
-        getAggregateFrontendApi: () => mockFrontendApi,
-        getServiceFrontendApi: () => mockFrontendApi,
+        aggregate: () => ({
+          authenticate: () => ({ authorize: () => mockFrontendApi }),
+        }),
+        service: () => ({
+          authenticate: () => ({ authorize: () => mockFrontendApi }),
+        }),
         [Symbol.dispose]: disposeGatewayLeaf,
       });
       generateSignature.mockResolvedValue(encodeSuccess({ userId: 'user_1' }));
@@ -515,7 +533,9 @@ describe('frontend startup without a reusable backup', () => {
             Effect.gen(function* () {
               if (kind === 'aggregate') {
                 const frontend = makeFrontendController({
-                  authentication: authenticationFixtureFrontend.authentication,
+                  authenticationSchema:
+                    authenticationFixtureFrontend.authentication
+                      .authenticationSchema,
                   aggregateVersion: '1.0.0',
                   systemName: 'shopping',
                   aggregateName: 'user',
@@ -536,7 +556,9 @@ describe('frontend startup without a reusable backup', () => {
                 });
               }
               const frontend = makeFrontendController({
-                authentication: authenticationFixtureFrontend.authentication,
+                authenticationSchema:
+                  authenticationFixtureFrontend.authentication
+                    .authenticationSchema,
                 serviceVersion: '1.0.0',
                 systemName: 'shopping',
                 serviceName: 'catalog',
@@ -574,3 +596,228 @@ describe('frontend startup without a reusable backup', () => {
     },
   );
 });
+
+it.each(['aggregate', 'service'])(
+  'encodes transformed %s claims before hashing and reopens decoded SQLite claims offline',
+  async kind => {
+    const authenticationSchema = Schema.Struct({
+      aggregateId: Schema.String,
+      issuedAt: Schema.DateFromString,
+      level: Schema.NumberFromString,
+    });
+    const authentication = {
+      aggregateId: 'acct_1',
+      issuedAt: new Date('2026-09-18T12:00:00.000Z'),
+      level: 42,
+    };
+    const state = {
+      authentication,
+      systemId,
+      frontendName: 'web',
+      resources: [],
+      ...(kind === 'aggregate'
+        ? {
+            aggregateId,
+            aggregateName: 'user',
+            aggregateVersion: '1.0.0',
+            aggregateIndex: 0,
+            userIndex: 0,
+            resolutions: [],
+          }
+        : { serviceName: 'catalog', serviceVersion: '1.0.0', serviceIndex: 0 }),
+    };
+    getStateLeaf.mockReset();
+    getStateLeaf.mockResolvedValue({
+      result: encodeSuccess(state),
+      link: null,
+    });
+    createWebSocketTicketLeaf.mockResolvedValue({
+      result: encodeSuccess({ ticket: 'ticket' }),
+      link: null,
+    });
+    newSyncRpcSessionLeaf.mockReturnValue({
+      aggregate: () => ({
+        authenticate: () => ({ authorize: () => mockFrontendApi }),
+      }),
+      service: () => ({
+        authenticate: () => ({ authorize: () => mockFrontendApi }),
+      }),
+      [Symbol.dispose]: disposeGatewayLeaf,
+    });
+    generateSignature.mockResolvedValue(encodeSuccess({}));
+    const storage = new Map<string, string>();
+    const events = new EventTarget();
+    vi.stubGlobal('localStorage', {
+      getItem: (key: string) => storage.get(key) ?? null,
+      setItem: (key: string, value: string) => storage.set(key, value),
+    });
+    vi.stubGlobal('addEventListener', events.addEventListener.bind(events));
+    vi.stubGlobal(
+      'removeEventListener',
+      events.removeEventListener.bind(events),
+    );
+    vi.stubGlobal(
+      'document',
+      Object.assign(new EventTarget(), { visibilityState: 'visible' }),
+    );
+    vi.stubGlobal(
+      'WebSocket',
+      class {
+        onopen: (() => void) | null = null;
+        onmessage: ((event: { data: string }) => void) | null = null;
+        constructor() {
+          queueMicrotask(() => this.onopen?.());
+        }
+        send() {
+          queueMicrotask(() =>
+            this.onmessage?.({
+              data: JSON.stringify({
+                type: 'replay-complete',
+                ...(kind === 'aggregate'
+                  ? { userIndex: 0 }
+                  : { serviceIndex: 0 }),
+              }),
+            }),
+          );
+        }
+        close() {
+          this.onopen = null;
+          this.onmessage = null;
+        }
+      },
+    );
+    let snapshot: Uint8Array | null = null;
+    const keys: string[] = [];
+    const backupWorker: IBackupWorker = {
+      onDisconnect: () => () => {},
+      acquireDb: ({ backupKey }) =>
+        Effect.sync(() => {
+          keys.push(backupKey);
+          return {
+            status: 'acquired',
+            snapshot,
+            db: {
+              overwriteDb: props =>
+                Effect.sync(() => {
+                  snapshot = props.snapshot.slice();
+                }),
+              applyStatements: () => Effect.void,
+              exportSnapshot: () => Effect.succeed(snapshot),
+              dispose: () => Effect.void,
+            },
+          };
+        }),
+    };
+    const boot = () =>
+      Effect.scoped(
+        Effect.gen(function* () {
+          const props = {
+            apiUrl: 'https://claims.test',
+            publishableKey: 'pk_test',
+            systemName: 'shopping',
+            generateSignature,
+            backupWorker,
+          };
+          if (kind === 'aggregate') {
+            const frontend = makeFrontendController({
+              systemName: 'shopping',
+              aggregateName: 'user',
+              aggregateVersion: '1.0.0',
+              name: 'web',
+              models: {},
+              contracts: {},
+              authenticationSchema,
+            });
+            const guards = yield* initializeFrontendGuards(frontend);
+            const session = makeAggregateSession({
+              frontend,
+              guards,
+              runtime: guardTestRuntime,
+              sessionId: 'sesn_dates082',
+            });
+            const result = yield* bootstrapAggregateFrontendSession({
+              ...props,
+              aggregateVersion: '1.0.0',
+              session,
+            }).pipe(
+              Effect.onError(() =>
+                Effect.sync(() =>
+                  expect(session.store.getState().isInitialized).toBe(false),
+                ),
+              ),
+            );
+            expect(session.store.getState().authentication).toEqual(
+              authentication,
+            );
+            return result.authentication;
+          }
+          const frontend = makeFrontendController({
+            systemName: 'shopping',
+            serviceName: 'catalog',
+            serviceVersion: '1.0.0',
+            name: 'web',
+            models: {},
+            authenticationSchema,
+          });
+          const session = makeServiceSession({
+            frontend,
+            models: frontend.models,
+            sessionId: 'sesn_dates082',
+          });
+          const result = yield* bootstrapServiceFrontendSession({
+            ...props,
+            serviceVersion: '1.0.0',
+            session,
+          }).pipe(
+            Effect.onError(() =>
+              Effect.sync(() =>
+                expect(session.store.getState().isInitialized).toBe(false),
+              ),
+            ),
+          );
+          expect(session.store.getState().authentication).toEqual(
+            authentication,
+          );
+          return result.authentication;
+        }),
+      ).pipe(Effect.provide(TestLayer));
+    try {
+      expect(await Effect.runPromise(boot())).toEqual(authentication);
+      expect(snapshot).not.toBeNull();
+      const encoded = Schema.encodeSync(authenticationSchema)(authentication);
+      const canonical = JSON.stringify(encoded, Object.keys(encoded).sort());
+      const hash = Array.from(
+        new Uint8Array(
+          await crypto.subtle.digest(
+            'SHA-256',
+            new TextEncoder().encode(canonical),
+          ),
+        ),
+        byte => byte.toString(16).padStart(2, '0'),
+      ).join('');
+      expect(keys[0]).toContain(hash);
+      getStateLeaf.mockResolvedValue({
+        result: encodeFailure(new ZerospinError({ code: 'async-failed' })),
+        link: null,
+      });
+      expect(await Effect.runPromise(boot())).toEqual(authentication);
+      expect(keys[1]).toBe(keys[0]);
+      if (snapshot === null) throw new Error('Missing SQLite backup');
+      const intact: Uint8Array = snapshot;
+      const needle = new TextEncoder().encode('"level":"42"');
+      const offset = intact.findIndex((_, index) =>
+        needle.every((byte, n) => intact[index + n] === byte),
+      );
+      expect(offset).toBeGreaterThanOrEqual(0);
+      for (const replacement of ['43', 'xx']) {
+        snapshot = intact.slice();
+        snapshot.set(new TextEncoder().encode(replacement), offset + 9);
+        await expect(Effect.runPromise(boot())).rejects.toMatchObject({
+          code: 'browser-persistence-reset-required',
+        });
+      }
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  },
+);

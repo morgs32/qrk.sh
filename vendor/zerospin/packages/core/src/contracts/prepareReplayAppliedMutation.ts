@@ -1,8 +1,8 @@
 import { ZerospinError, type IAnyError } from '@zerospin/error';
 import { Effect, Schema } from 'effect';
 
-import { makeModelIdSchema } from '../models/makeIdSchema.ts';
-import { Model } from '../models/makeModel.ts';
+import { makeModelIdSchema } from '../models/makeModelIdSchema.ts';
+import { Model } from '../models/defineModel.ts';
 import type { IAnyModels } from '../models/types.ts';
 
 import { makeOperationJsonSchema } from './encodeAppliedMutation.ts';

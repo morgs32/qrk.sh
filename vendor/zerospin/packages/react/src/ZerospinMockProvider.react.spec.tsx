@@ -1,8 +1,9 @@
 import { act, useEffect, useState } from 'react';
 
-import { makeAggregate } from '@zerospin/core/aggregate/makeAggregate';
-import { makeAggregateVersion } from '@zerospin/core/aggregate/makeVersion';
+import { defineAggregate } from '@zerospin/core/aggregate/defineAggregate';
+import { makeAggregateVersion } from '@zerospin/core/aggregate/makeAggregateVersion';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
+import { aggregateFrontendProps } from '@zerospin/core/fixtures/frontendProps';
 import {
   List,
   main,
@@ -10,7 +11,8 @@ import {
   userAggregate,
 } from '@zerospin/core/fixtures/system';
 import { makeFrontendController } from '@zerospin/core/frontendController/makeFrontendController';
-import { makeModel, makeModelVersion } from '@zerospin/core/models/makeModel';
+import { defineModel } from '@zerospin/core/models/defineModel';
+import { makeModelVersion } from '@zerospin/core/models/makeModelVersion';
 import { makeSelection } from '@zerospin/core/models/makeSelection';
 import { PublishableKey } from '@zerospin/core/services/PublishableKey';
 import { ZerospinApiUrl } from '@zerospin/core/services/ZerospinApiUrl';
@@ -29,10 +31,10 @@ import { assert, type Equals } from 'tsafe';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { makeZerospinApp } from './makeZerospinApp';
-import { ZerospinMockProvider } from './ZerospinMockProvider';
 import { useInitializedStateOrThrow } from './useInitializedStateOrThrow';
 import { useLiveQuery } from './useLiveQuery';
 import { useSession } from './useSession';
+import { ZerospinMockProvider } from './ZerospinMockProvider';
 
 const sqliteCloseBoundary = vi.hoisted(() => vi.fn());
 const sqliteInitialization = vi.hoisted(() => ({
@@ -84,10 +86,12 @@ const sessionRuntimeLayer = Layer.mergeAll(
 const ZerospinMain = makeZerospinApp<
   typeof import('@zerospin/core/fixtures/system').system
 >({ systemName: 'system-worker', layer: sessionRuntimeLayer });
-const ZerospinMainMain = ZerospinMain.makeFrontend(main);
+const ZerospinMainMain = ZerospinMain.makeAggregateFrontend(
+  aggregateFrontendProps(main),
+);
 const fixtureDate = new Date('2026-01-01T00:00:00.000Z');
 const JsonDocument = makeModelVersion(
-  makeModel({ name: 'document', abbreviation: 'doc' }),
+  defineModel({ name: 'document', abbreviation: 'doc' }),
   {
     attributes: {
       metadata: primitives.json({
@@ -100,8 +104,13 @@ const JsonDocument = makeModelVersion(
     version: '1.0.0',
   },
 );
+const jsonClaims = Schema.Struct({
+  aggregateId: Schema.String,
+  userId: Schema.String,
+  issuedAt: Schema.DateFromString,
+});
 const jsonFrontend = makeFrontendController({
-  authentication: main.authentication,
+  authenticationSchema: jsonClaims,
   aggregateVersion: '1.0.0',
   contracts: {},
   models: {
@@ -116,8 +125,15 @@ const jsonSystem = makeSystem({
   services: {},
   aggregates: {
     user: [
-      makeAggregateVersion(makeAggregate({ name: 'user' }), {
-        authentication: userAggregate.authentication,
+      makeAggregateVersion(defineAggregate({ name: 'user' }), {
+        ...userAggregate.authentication,
+        authenticationSchema: jsonClaims,
+        authenticate: ({ signature }) =>
+          Effect.succeed({
+            aggregateId: 'acct_1',
+            userId: signature.userId,
+            issuedAt: fixtureDate,
+          }),
         version: '1.0.0',
         models: jsonFrontend.models,
         contracts: {},
@@ -132,7 +148,9 @@ const ZerospinJsonFixture = makeZerospinApp<typeof jsonSystem>({
   systemName: 'mock-json-fixture-test',
   layer: sessionRuntimeLayer,
 });
-const ZerospinJsonFixtureMain = ZerospinJsonFixture.makeFrontend(jsonFrontend);
+const ZerospinJsonFixtureMain = ZerospinJsonFixture.makeAggregateFrontend(
+  aggregateFrontendProps(jsonFrontend),
+);
 
 describe('ZerospinMockProvider', () => {
   let container: HTMLDivElement;
@@ -169,7 +187,7 @@ describe('ZerospinMockProvider', () => {
   it('releases local and application services when initialization fails before publication', async () => {
     const events: string[] = [];
     const frontend = makeFrontendController({
-      authentication: main.authentication,
+      authenticationSchema: main.authentication.authenticationSchema,
       systemName: 'mock-lifecycle',
       aggregateName: 'account',
       aggregateVersion: '1.0.0',
@@ -386,6 +404,12 @@ describe('ZerospinMockProvider', () => {
 
   it('encodes a decoded JSON fixture for the real Drizzle row', async () => {
     const JsonFixtureProbe = () => {
+      const session = useSession(ZerospinJsonFixtureMain);
+      const state = session.store.getState();
+      if (state.isInitialized) {
+        expect(state.authentication.issuedAt).toBeInstanceOf(Date);
+        expect(state.authentication.issuedAt).toEqual(fixtureDate);
+      }
       const documents = useLiveQuery(ZerospinJsonFixtureMain, {
         query: db => db.query.document.findMany(),
       });
@@ -402,7 +426,11 @@ describe('ZerospinMockProvider', () => {
         <ZerospinMockProvider
           frontend={ZerospinJsonFixtureMain}
           layer={sessionRuntimeLayer}
-          authentication={{ userId: 'user_1', aggregateId: 'acct_1' }}
+          authentication={{
+            userId: 'user_1',
+            aggregateId: 'acct_1',
+            issuedAt: fixtureDate,
+          }}
           resources={{
             document: [
               {
@@ -757,7 +785,10 @@ describe('ZerospinMockProvider', () => {
     const NestedProbe = () => {
       const state = useInitializedStateOrThrow(ZerospinMainMain);
       return (
-        <output data-testid="nested-ready" data-aggregate-id={state.aggregateId}>
+        <output
+          data-testid="nested-ready"
+          data-aggregate-id={state.aggregateId}
+        >
           nested-ready
         </output>
       );

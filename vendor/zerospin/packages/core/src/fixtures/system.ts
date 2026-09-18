@@ -3,20 +3,21 @@ import { mapParseError, ZerospinError } from '@zerospin/error';
 import { primitives } from '@zerospin/schema';
 import { Effect, Schema } from 'effect';
 
-import { makeAggregate } from '../aggregate/makeAggregate.ts';
-import { makeAggregateVersion } from '../aggregate/makeVersion.ts';
-import { defineCommand } from '../contracts/Command.ts';
-import { makeContractVersion } from '../contracts/makeVersion.ts';
+import { defineAggregate } from '../aggregate/defineAggregate.ts';
+import { makeAggregateVersion } from '../aggregate/makeAggregateVersion.ts';
+import { defineContract } from '../contracts/defineContract.ts';
+import { makeContractVersion } from '../contracts/makeContractVersion.ts';
 import type { IDb, IResourceDbConfig } from '../drizzle/types.ts';
 import { getFrontendDbModels } from '../frontendController/getFrontendDbModels.ts';
 import { makeFrontendController } from '../frontendController/makeFrontendController.ts';
-import { makeModelIdSchema } from '../models/makeIdSchema.ts';
-import { makeModel, makeModelVersion } from '../models/makeModel.ts';
+import { makeModelIdSchema } from '../models/makeModelIdSchema.ts';
+import { defineModel } from '../models/defineModel.ts';
+import { makeModelVersion } from '../models/makeModelVersion.ts';
 import { makeSelection } from '../models/makeSelection.ts';
 import type { IAggregateId } from '../models/types.ts';
 import { makeSystem } from '../system/makeSystem.ts';
 
-export const UserModel = makeModel({
+export const UserModel = defineModel({
   name: 'user',
   abbreviation: 'usr',
 });
@@ -30,7 +31,7 @@ export const User = makeModelVersion(UserModel, {
 });
 
 export const Account = makeModelVersion(
-  makeModel({ name: 'account', abbreviation: 'acct' }),
+  defineModel({ name: 'account', abbreviation: 'acct' }),
   {
     attributes: {
       name: primitives.text(),
@@ -40,7 +41,7 @@ export const Account = makeModelVersion(
   },
 );
 
-export const ListModel = makeModel({
+export const ListModel = defineModel({
   name: 'list',
   abbreviation: 'lst',
 });
@@ -58,7 +59,7 @@ export const List = makeModelVersion(ListModel, {
   version: '1.0.0',
 });
 
-export const ItemModel = makeModel({
+export const ItemModel = defineModel({
   name: 'item',
   abbreviation: 'tsk',
 });
@@ -76,7 +77,7 @@ export const Item = makeModelVersion(ItemModel, {
   version: '1.0.0',
 });
 
-export const createList = makeContractVersion(defineCommand('createList'), {
+export const createList = makeContractVersion(defineContract('createList'), {
   guard: ({ payload }: { payload: { name: string } }) =>
     Effect.gen(function* () {
       if (payload.name === 'invalid-name') {
@@ -109,7 +110,7 @@ export const createList = makeContractVersion(defineCommand('createList'), {
   version: '1.0.0',
 });
 
-export const createItem = makeContractVersion(defineCommand('createItem'), {
+export const createItem = makeContractVersion(defineContract('createItem'), {
   payload: {
     id: primitives.foreignKey({ abbreviation: ItemModel.abbreviation }),
     listId: primitives.foreignKey({ abbreviation: ListModel.abbreviation }),
@@ -132,7 +133,7 @@ export const createItem = makeContractVersion(defineCommand('createItem'), {
   version: '1.0.0',
 });
 
-export const updateList = makeContractVersion(defineCommand('updateList'), {
+export const updateList = makeContractVersion(defineContract('updateList'), {
   payload: {
     id: primitives.foreignKey({ abbreviation: ListModel.abbreviation }),
     name: primitives.text(),
@@ -152,7 +153,7 @@ export const updateList = makeContractVersion(defineCommand('updateList'), {
   version: '1.0.0',
 });
 
-export const deleteList = makeContractVersion(defineCommand('deleteList'), {
+export const deleteList = makeContractVersion(defineContract('deleteList'), {
   payload: {
     id: primitives.foreignKey({ abbreviation: ListModel.abbreviation }),
   },
@@ -179,15 +180,10 @@ export const main = makeFrontendController({
     updateList: { contract: updateList },
     deleteList: { contract: deleteList },
   },
-  authentication: {
-    signatureSchema,
-    authenticationSchema: Schema.Struct({
-      aggregateId: Schema.String,
-      userId: Schema.String,
-    }),
-    selectionSchema: Schema.Struct({ userId: Schema.String }),
-    pattern: RoutePattern.parse('/:userId'),
-  },
+  authenticationSchema: Schema.Struct({
+    aggregateId: Schema.String,
+    userId: Schema.String,
+  }),
   aggregateName: 'user',
   name: 'main',
   systemName: 'system-worker',
@@ -205,19 +201,17 @@ export const system = makeSystem({
   services: {},
   aggregates: {
     user: [
-      makeAggregateVersion(makeAggregate({ name: 'user' }), {
+      makeAggregateVersion(defineAggregate({ name: 'user' }), {
         version: '1.0.0',
-        authentication: {
-          signatureSchema,
-          authenticationSchema: Schema.Struct({
-            aggregateId: Schema.String,
-            userId: Schema.String,
-          }),
-          selectionSchema: Schema.Struct({ userId: Schema.String }),
-          pattern: RoutePattern.parse('/:userId'),
-          authenticate: ({ signature }) =>
-            Effect.succeed({ aggregateId: 'acct_1', userId: signature.userId }),
-        },
+        signatureSchema,
+        authenticationSchema: Schema.Struct({
+          aggregateId: Schema.String,
+          userId: Schema.String,
+        }),
+        selectionSchema: Schema.Struct({ userId: Schema.String }),
+        pattern: RoutePattern.parse('/:userId'),
+        authenticate: ({ signature }) =>
+          Effect.succeed({ aggregateId: 'acct_1', userId: signature.userId }),
         authorize: (props: {
           authentication: Readonly<Record<string, unknown>>;
           aggregateId: IAggregateId;

@@ -2,7 +2,7 @@ import { mapParseError, ZerospinError } from '@zerospin/error';
 import { makeEffectSchema } from '@zerospin/schema';
 import { Effect, Schema } from 'effect';
 
-import { Model } from '../models/makeModel.ts';
+import { Model } from '../models/defineModel.ts';
 import type { IModel } from '../models/types.ts';
 
 import type { IModelMutations } from './types.ts';

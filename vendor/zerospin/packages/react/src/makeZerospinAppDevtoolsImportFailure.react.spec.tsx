@@ -93,7 +93,7 @@ describe('makeZerospinApp Provider DevTools dynamic import failure', () => {
 
     expect(fakeImport.attempts).toBe(2);
     expect(
-      container.querySelector('[aria-label="Zerospin DevTools"]'),
+      document.querySelector('[aria-label="Zerospin DevTools"]'),
     ).not.toBeNull();
   });
 });

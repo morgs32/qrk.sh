@@ -6,17 +6,16 @@ import * as browser from './browser/index.js';
 
 import * as sdk from './index.js';
 
-const command = sdk.defineCommand('rename');
+const command = sdk.defineContract('rename');
 const contract = sdk.makeContractVersion(command, {
   version: '1.0.0',
   payload: { name: sdk.primitives.text() },
 });
 const aggregate = sdk.makeAggregateVersion(
-  sdk.makeAggregate({ name: 'shopper' }),
+  sdk.defineAggregate({ name: 'shopper' }),
   {
     version: '1.0.0',
-    authentication: {
-      signatureSchema: Schema.Struct({ userId: Schema.String }),
+          signatureSchema: Schema.Struct({ userId: Schema.String }),
       authenticationSchema: Schema.Struct({
         aggregateId: Schema.Literal('acct_test'),
         userId: Schema.String,
@@ -28,15 +27,13 @@ const aggregate = sdk.makeAggregateVersion(
           aggregateId: 'acct_test',
           userId: signature.userId,
         } satisfies { aggregateId: 'acct_test'; userId: string }),
-    },
     models: {},
     contracts: { rename: { contract } },
     selections: {},
   },
 );
 const service = sdk.makeService({
-  authentication: {
-    signatureSchema: Schema.Struct({ userId: Schema.String }),
+      signatureSchema: Schema.Struct({ userId: Schema.String }),
     authenticationSchema: Schema.Struct({
       aggregateId: Schema.Literal('acct_test'),
       userId: Schema.String,
@@ -48,7 +45,6 @@ const service = sdk.makeService({
         aggregateId: 'acct_test',
         userId: signature.userId,
       } satisfies { aggregateId: 'acct_test'; userId: string }),
-  },
   name: 'catalog',
   version: '1.0.0',
   models: {},
@@ -95,7 +91,7 @@ void sdk.makeAggregateSession;
 void sdk.models;
 
 const model = browser.makeModelVersion(
-  browser.makeModel({ name: 'item', abbreviation: 'itm' }),
+  browser.defineModel({ name: 'item', abbreviation: 'itm' }),
   {
     version: '1.0.0',
     attributes: { name: browser.primitives.text() },

@@ -1,7 +1,7 @@
 import type { IAnyError } from '@zerospin/error';
 import { type Effect, type Layer, type Schema, type Scope } from 'effect';
 
-import type { IAuthentication } from '../authentication/types.ts';
+import type { IAggregateAuthentication } from '../authentication/types.ts';
 import type {
   IAnyContractBindings,
   IContractBinding,
@@ -43,7 +43,7 @@ export type IAuthoredAggregate<
   VERSION extends string = string,
   LAYER_SERVICES = never,
   LAYER_REQUIREMENTS = never,
-  AUTHENTICATION extends IAuthentication = IAuthentication,
+  AUTHENTICATION extends IAggregateAuthentication = IAggregateAuthentication,
   GUARD_SERVICES = never,
   GUARD_REQUIREMENTS = never,
 > = {
@@ -121,7 +121,7 @@ export type IAnyAuthoredAggregate<
   /** Type-only owner requirements retained when a system registry erases concrete guards and layers. */
   readonly __initializeRequirements?: INITIALIZE_REQUIREMENTS | Scope.Scope;
   readonly layer: Layer.Layer<LAYER_SERVICES, IAnyError, LAYER_REQUIREMENTS>;
-  readonly authentication: IAuthentication;
+  readonly authentication: IAggregateAuthentication;
   readonly guardLayer?: {
     bivarianceHack(
       props: unknown,
@@ -151,7 +151,7 @@ export type IAggregate<
   VERSION extends string = string,
   LAYER_SERVICES = never,
   LAYER_REQUIREMENTS = never,
-  AUTHENTICATION extends IAuthentication = IAuthentication,
+  AUTHENTICATION extends IAggregateAuthentication = IAggregateAuthentication,
   GUARD_SERVICES = never,
   GUARD_REQUIREMENTS = never,
 > = {
@@ -229,7 +229,7 @@ export type IAnyAggregate<
   /** Type-only owner requirements retained when a system registry erases concrete guards and layers. */
   readonly __initializeRequirements?: INITIALIZE_REQUIREMENTS | Scope.Scope;
   readonly layer: Layer.Layer<LAYER_SERVICES, IAnyError, LAYER_REQUIREMENTS>;
-  readonly authentication: IAuthentication;
+  readonly authentication: IAggregateAuthentication;
   readonly guardLayer?: {
     bivarianceHack(
       props: unknown,

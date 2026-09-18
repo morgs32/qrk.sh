@@ -99,11 +99,9 @@ it('prepares in VAR, publishes per-command output, and recovers terminal results
         frontendName: view.frontendName,
         aggregateFrontendLock: makeAggregateFrontendLock({ frontend: main }),
       };
-      const api = yield* makeAsync(() =>
-        gateway.getAggregateFrontendApi(admission),
-      );
+      const api = yield* makeAsync(() => admitAggregate(gateway, admission));
       const denied = yield* makeAsync(() =>
-        gateway.getAggregateFrontendApi({
+        admitAggregate(gateway, {
           ...admission,
           signature: { userId: 'usr_missing', aggregateId: key.aggregateId },
         }),
@@ -117,7 +115,7 @@ it('prepares in VAR, publishes per-command output, and recovers terminal results
         )).result._tag,
       ).toBe('Failure');
       const readOnly = yield* makeAsync(() =>
-        gateway.getAggregateFrontendApi({
+        admitAggregate(gateway, {
           ...admission,
           aggregateFrontendLock: {
             ...admission.aggregateFrontendLock,
@@ -222,7 +220,7 @@ it('prepares in VAR, publishes per-command output, and recovers terminal results
         contracts: {},
       };
       const narrowApi = yield* makeAsync(() =>
-        gateway.getAggregateFrontendApi({
+        admitAggregate(gateway, {
           ...admission,
           frontendName: 'other',
           aggregateFrontendLock: narrowLock,
@@ -415,3 +413,32 @@ it('publishes subscriber-committed results from its retained alarm after cold ac
     }).pipe(Effect.provide(AsyncLive)),
   );
 });
+
+async function admitAggregate(
+  gateway: GatewayApi,
+  request: {
+    publishableKey: string;
+    systemName: string;
+    aggregateName: string;
+    aggregateVersion: string;
+    signature: unknown;
+    frontendName: string;
+    aggregateFrontendLock: Parameters<
+      Awaited<
+        ReturnType<Awaited<ReturnType<GatewayApi['aggregate']>>['authenticate']>
+      >['authorize']
+    >[0]['aggregateFrontendLock'];
+  },
+) {
+  const aggregate = await gateway.aggregate({
+    publishableKey: request.publishableKey,
+    systemName: request.systemName,
+    name: request.aggregateName,
+    version: request.aggregateVersion,
+  });
+  const access = await aggregate.authenticate({ signature: request.signature });
+  return access.authorize({
+    frontendName: request.frontendName,
+    aggregateFrontendLock: request.aggregateFrontendLock,
+  });
+}

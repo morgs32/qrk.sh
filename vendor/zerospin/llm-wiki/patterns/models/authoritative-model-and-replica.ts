@@ -1,4 +1,5 @@
-import { makeModel, makeModelVersion } from '@zerospin/core/models/makeModel';
+import { defineModel } from '@zerospin/core/models/defineModel';
+import { makeModelVersion } from '@zerospin/core/models/makeModelVersion';
 
 /**
  * Define service-owned data with makeModelVersion, derive aggregate-held copies with
@@ -30,7 +31,7 @@ import { makeModel, makeModelVersion } from '@zerospin/core/models/makeModel';
  * its provenance fields.
  */
 export const Product = makeModelVersion(
-  makeModel({ name: 'product', abbreviation: 'prd' }),
+  defineModel({ name: 'product', abbreviation: 'prd' }),
   {
     attributes: {
       name: primitives.text(),
@@ -56,7 +57,7 @@ const appV1 = makeService({
 
 export const system = makeSystem({
   aggregates: {
-    shopper: makeAggregateVersion(makeAggregate({ name: 'shopper' }), {
+    shopper: makeAggregateVersion(defineAggregate({ name: 'shopper' }), {
       services: { app: appV1 },
       models: {
         product: ProductReplica,
@@ -69,11 +70,11 @@ export const system = makeSystem({
 });
 
 declare const aggregates: {
-  makeAggregate(props: {
+  defineAggregate(props: {
     name: string;
     layer?: unknown;
   }): Readonly<{ name: string; layer: unknown }>;
-  makeVersion(
+  makeAggregateVersion(
     identity: Readonly<{ name: string; layer: unknown }>,
     props: unknown,
   ): unknown;

@@ -7,12 +7,13 @@ import { describe, expect } from 'vitest';
 import { makeResourceDbConfig } from '../drizzle/makeDbConfig.ts';
 import { makeProvisionedInMemoryWasmSqliteDb } from '../drizzle/makeProvisionedInMemoryWasmSqliteDb.ts';
 
-import { makeModel, makeModelVersion, Model } from './makeModel.ts';
+import { defineModel, Model } from './defineModel.ts';
+import { makeModelVersion } from './makeModelVersion.ts';
 import { makeReplica } from './makeReplica.ts';
 import { applySelection, makeSelection } from './makeSelection.ts';
 
 const User = makeModelVersion(
-  makeModel({ name: 'user', abbreviation: 'usr' }),
+  defineModel({ name: 'user', abbreviation: 'usr' }),
   {
     attributes: {
       name: primitives.text({ nullable: true }),
@@ -23,7 +24,7 @@ const User = makeModelVersion(
 );
 
 const Cart = makeModelVersion(
-  makeModel({ name: 'cart', abbreviation: 'crt' }),
+  defineModel({ name: 'cart', abbreviation: 'crt' }),
   {
     attributes: {
       userId: primitives.ref({
@@ -39,7 +40,7 @@ const Cart = makeModelVersion(
 );
 
 const Product = makeModelVersion(
-  makeModel({ name: 'product', abbreviation: 'prd' }),
+  defineModel({ name: 'product', abbreviation: 'prd' }),
   {
     attributes: { name: primitives.text() },
     indexes: [],
@@ -48,7 +49,7 @@ const Product = makeModelVersion(
 );
 
 const CartItem = makeModelVersion(
-  makeModel({ name: 'cartItem', abbreviation: 'cit' }),
+  defineModel({ name: 'cartItem', abbreviation: 'cit' }),
   {
     attributes: {
       cartId: primitives.ref({
@@ -218,7 +219,7 @@ describe('makeSelection', () => {
     () =>
       Effect.gen(function* () {
         const ProductSelectionSource = makeModelVersion(
-          makeModel({
+          defineModel({
             name: 'selectionProduct',
             abbreviation: 'sprd',
           }),
@@ -229,7 +230,7 @@ describe('makeSelection', () => {
           },
         );
         const CartItemSelectionSource = makeModelVersion(
-          makeModel({
+          defineModel({
             name: 'selectionCartItem',
             abbreviation: 'scit',
           }),

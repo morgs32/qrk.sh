@@ -4,16 +4,14 @@ import { makeFrontendControllerSpec } from '@zerospin/core/frontendController/ma
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import { encodeSuccess } from '@zerospin/core/utils/encodeSuccess';
 import { ZerospinError } from '@zerospin/error';
-import config from 'config';
 import { Effect, Result } from 'effect';
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { products } from '../fixtures/system.js';
 import { makeSystemRuntime } from '../makeSystemRuntime.js';
 
 import { ServiceFrontendApi } from './ServiceFrontendApi.js';
 import { ServiceFrontendApiFailure } from './ServiceFrontendApiFailure/ServiceFrontendApiFailure.js';
-
-const { system } = config;
 
 const {
   appendTelemetryBatch,
@@ -54,9 +52,7 @@ vi.mock('cloudflare:workers', () => ({
   exports: {},
 }));
 
-const { serviceFrontendLock } = makeFrontendControllerSpec(
-  system.services.app['1.0.0'].frontends.products.controller,
-);
+const { serviceFrontendLock } = makeFrontendControllerSpec(products);
 const runtime = makeSystemRuntime();
 
 describe('ServiceFrontendApi', () => {

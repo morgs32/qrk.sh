@@ -1,21 +1,28 @@
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
-import type { IAuthentication } from '@zerospin/core/authentication/types';
-import { defineCommand } from '@zerospin/core/contracts/Command';
-import { makeContractVersion } from '@zerospin/core/contracts/makeVersion';
+import type {
+  IAggregateAuthentication,
+  IServiceAuthentication,
+} from '@zerospin/core/authentication/types';
+import { defineContract } from '@zerospin/core/contracts/defineContract';
+import { makeContractVersion } from '@zerospin/core/contracts/makeContractVersion';
 import { encodeFailure } from '@zerospin/core/utils/encodeFailure';
 import { encodeSuccess } from '@zerospin/core/utils/encodeSuccess';
 import { ZerospinError } from '@zerospin/error';
 import { Effect, Fiber, Result, Schema } from 'effect';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { authenticate } from './authenticate.ts';
+import { authenticateAggregate } from '../authenticateAggregate/authenticateAggregate.ts';
+import { authenticateService } from '../authenticateService/authenticateService.ts';
 
-const { authored, begin, complete, execute } = vi.hoisted(() => ({
-  authored: vi.fn<IAuthentication['authenticate']>(),
-  begin: vi.fn(),
-  complete: vi.fn(),
-  execute: vi.fn(),
-}));
+const { authored, serviceAuthored, begin, complete, execute } = vi.hoisted(
+  () => ({
+    authored: vi.fn<IAggregateAuthentication['authenticate']>(),
+    serviceAuthored: vi.fn<IServiceAuthentication['authenticate']>(),
+    begin: vi.fn(),
+    complete: vi.fn(),
+    execute: vi.fn(),
+  }),
+);
 vi.mock('cloudflare:workers', () => ({
   env: { ZEROSPIN_SYSTEM_ID: 'sys_auth_test' },
 }));
@@ -23,7 +30,8 @@ vi.mock('../SystemLogRepo/SystemLogRepo.js', () => ({
   SystemLogRepo: {
     getRepo: () =>
       Effect.succeed({
-        beginAuthenticationAttempt: begin,
+        beginAggregateAuthenticationAttempt: begin,
+        beginServiceAuthenticationAttempt: begin,
         completeAuthenticationAttempt: complete,
       }),
   },
@@ -36,6 +44,16 @@ vi.mock('../AggregateChain/AggregateChain.js', () => ({
 vi.mock('config', async () => {
   const { RoutePattern } = await import('@remix-run/route-pattern');
   const { Schema, Effect } = await import('effect');
+  const { defineAggregate } =
+    await import('@zerospin/core/aggregate/defineAggregate');
+  const { makeAggregateVersion } =
+    await import('@zerospin/core/aggregate/makeAggregateVersion');
+  const open = makeAggregateVersion(defineAggregate({ name: 'open' }), {
+    version: '1.0.0',
+    models: {},
+    contracts: {},
+    selections: {},
+  });
   return {
     default: {
       system: {
@@ -58,13 +76,54 @@ vi.mock('config', async () => {
                 selectionSchema: Schema.Struct({ userId: Schema.String }),
                 pattern: RoutePattern.parse('/:userId'),
                 authenticate: (
-                  props: Parameters<IAuthentication['authenticate']>[0],
+                  props: Parameters<
+                    IAggregateAuthentication['authenticate']
+                  >[0],
                 ) => Effect.suspend(() => authored(props)),
               },
             },
           },
+          dated: {
+            '1.0.0': {
+              contracts: {},
+              authentication: {
+                signatureSchema: Schema.Struct({
+                  aggregateId: Schema.String,
+                  issuedAt: Schema.DateFromString,
+                }),
+                authenticationSchema: Schema.Struct({
+                  aggregateId: Schema.String,
+                  issuedAt: Schema.DateFromString,
+                }),
+                selectionSchema: Schema.Struct({ aggregateId: Schema.String }),
+                pattern: RoutePattern.parse('/:aggregateId'),
+                authenticate: (
+                  props: Parameters<
+                    IAggregateAuthentication['authenticate']
+                  >[0],
+                ) => Effect.suspend(() => authored(props)),
+              },
+            },
+          },
+          open: {
+            '1.0.0': open,
+          },
         },
-        services: {},
+        services: {
+          app: {
+            '1.0.0': {
+              authentication: {
+                signatureSchema: Schema.Struct({ userId: Schema.String }),
+                authenticationSchema: Schema.Struct({ userId: Schema.String }),
+                selectionSchema: Schema.Struct({ userId: Schema.String }),
+                pattern: RoutePattern.parse('/:userId'),
+                authenticate: (
+                  props: Parameters<IServiceAuthentication['authenticate']>[0],
+                ) => Effect.suspend(() => serviceAuthored(props)),
+              },
+            },
+          },
+        },
       },
     },
   };
@@ -72,6 +131,10 @@ vi.mock('config', async () => {
 
 beforeEach(() => {
   authored.mockReset();
+  serviceAuthored.mockReset();
+  serviceAuthored.mockImplementation(({ signature }) =>
+    Effect.succeed(signature),
+  );
   begin.mockReset();
   complete.mockReset();
   execute.mockReset();
@@ -84,16 +147,15 @@ beforeEach(() => {
   complete.mockResolvedValue(encodeSuccess(undefined));
 });
 
-describe('owner authentication admission and audit', () => {
+describe('aggregate and service authentication admission and audit', () => {
   it('shares selection partitions while retaining distinct full claims and hashes', async () => {
     const results = [];
     for (const role of ['reader', 'writer']) {
       results.push(
         await Effect.runPromise(
-          authenticate({
-            ownerKind: 'aggregate',
-            ownerName: 'user',
-            ownerVersion: '1.0.0',
+          authenticateAggregate({
+            aggregateName: 'user',
+            aggregateVersion: '1.0.0',
             signature: { userId: 'same/user', aggregateId: 'acct_one', role },
           }).pipe(Effect.provide(AsyncLive)),
         ),
@@ -104,6 +166,10 @@ describe('owner authentication admission and audit', () => {
     expect(results[0]?.authenticationHash).not.toBe(
       results[1]?.authenticationHash,
     );
+    expect(begin).toHaveBeenCalledWith({
+      aggregateName: 'user',
+      aggregateVersion: '1.0.0',
+    });
     expect(authored).toHaveBeenCalledTimes(2);
     expect(complete).toHaveBeenCalledTimes(2);
     expect(begin.mock.invocationCallOrder[0]).toBeLessThan(
@@ -113,10 +179,9 @@ describe('owner authentication admission and audit', () => {
 
   it('validates signatures after beginning and never audits unvalidated data', async () => {
     const result = await Effect.runPromise(
-      authenticate({
-        ownerKind: 'aggregate',
-        ownerName: 'user',
-        ownerVersion: '1.0.0',
+      authenticateAggregate({
+        aggregateName: 'user',
+        aggregateVersion: '1.0.0',
         signature: { secret: 'do-not-retain' },
       }).pipe(Effect.provide(AsyncLive), Effect.result),
     );
@@ -139,10 +204,9 @@ describe('owner authentication admission and audit', () => {
   it('rejects unsupported authentication output and sanitizes the audit', async () => {
     authored.mockReturnValue(Effect.succeed({ secret: 'invalid-claims' }));
     const result = await Effect.runPromise(
-      authenticate({
-        ownerKind: 'aggregate',
-        ownerName: 'user',
-        ownerVersion: '1.0.0',
+      authenticateAggregate({
+        aggregateName: 'user',
+        aggregateVersion: '1.0.0',
         signature: { userId: 'user', aggregateId: 'acct_one', role: 'reader' },
       }).pipe(Effect.provide(AsyncLive), Effect.result),
     );
@@ -160,10 +224,9 @@ describe('owner authentication admission and audit', () => {
         encodeFailure(new ZerospinError({ code: 'audit-write-failed' })),
       );
       const result = await Effect.runPromise(
-        authenticate({
-          ownerKind: 'aggregate',
-          ownerName: 'user',
-          ownerVersion: '1.0.0',
+        authenticateAggregate({
+          aggregateName: 'user',
+          aggregateVersion: '1.0.0',
           signature: {
             userId: 'user',
             aggregateId: 'acct_one',
@@ -189,10 +252,9 @@ describe('owner authentication admission and audit', () => {
       }),
     );
     const fiber = Effect.runFork(
-      authenticate({
-        ownerKind: 'aggregate',
-        ownerName: 'user',
-        ownerVersion: '1.0.0',
+      authenticateAggregate({
+        aggregateName: 'user',
+        aggregateVersion: '1.0.0',
         signature: { userId: 'user', aggregateId: 'acct_one', role: 'reader' },
       }).pipe(Effect.provide(AsyncLive)),
     );
@@ -202,8 +264,8 @@ describe('owner authentication admission and audit', () => {
     expect(complete).not.toHaveBeenCalled();
   });
 
-  it('rejects provisioning contracts outside the selected owner', async () => {
-    const contract = makeContractVersion(defineCommand('unregistered'), {
+  it('rejects provisioning contracts outside the selected aggregate version', async () => {
+    const contract = makeContractVersion(defineContract('unregistered'), {
       version: '1.0.0',
       payload: {},
     });
@@ -218,17 +280,86 @@ describe('owner authentication admission and audit', () => {
       }),
     );
     const result = await Effect.runPromise(
-      authenticate({
-        ownerKind: 'aggregate',
-        ownerName: 'user',
-        ownerVersion: '1.0.0',
+      authenticateAggregate({
+        aggregateName: 'user',
+        aggregateVersion: '1.0.0',
         signature: { userId: 'user', aggregateId: 'acct_one', role: 'reader' },
       }).pipe(Effect.provide(AsyncLive), Effect.result),
     );
     if (Result.isSuccess(result)) {
-      throw new Error('Expected owner validation failure');
+      throw new Error('Expected aggregate validation failure');
     }
     expect(result.failure.code).toBe('authentication-command-contract-invalid');
     expect(execute).not.toHaveBeenCalled();
   });
+
+  it('does not expose provisioning during service authentication', async () => {
+    const result = await Effect.runPromise(
+      authenticateService({
+        serviceName: 'app',
+        serviceVersion: '1.0.0',
+        signature: { userId: 'usr' },
+      }).pipe(Effect.provide(AsyncLive)),
+    );
+    expect(result.authentication).toEqual({ userId: 'usr' });
+    expect(serviceAuthored).toHaveBeenCalledWith({
+      signature: { userId: 'usr' },
+    });
+    expect(execute).not.toHaveBeenCalled();
+    expect(begin).toHaveBeenCalledWith({
+      serviceName: 'app',
+      serviceVersion: '1.0.0',
+    });
+  });
+
+  it('admits aggregates with omitted authentication with caller-selected aggregateId', async () => {
+    const result = await Effect.runPromise(
+      authenticateAggregate({
+        aggregateName: 'open',
+        aggregateVersion: '1.0.0',
+        signature: { aggregateId: 'acct_open' },
+      }).pipe(Effect.provide(AsyncLive)),
+    );
+    expect(result.authentication).toEqual({ aggregateId: 'acct_open' });
+    expect(result.selection).toEqual({ aggregateId: 'acct_open' });
+    expect(result.selectionPath).toBe('/acct_open');
+    expect(authored).not.toHaveBeenCalled();
+    expect(begin).toHaveBeenCalledOnce();
+    expect(complete).toHaveBeenCalledOnce();
+  });
+});
+
+it('validates decoded signatures and encodes transformed claims for audit and hashing', async () => {
+  const issuedAt = new Date('2026-09-18T12:00:00.000Z');
+  const result = await Effect.runPromise(
+    authenticateAggregate({
+      aggregateName: 'dated',
+      aggregateVersion: '1.0.0',
+      signature: { aggregateId: 'acct_dates', issuedAt },
+    }).pipe(Effect.provide(AsyncLive)),
+  );
+  expect(authored.mock.calls[0]?.[0].signature).toEqual({
+    aggregateId: 'acct_dates',
+    issuedAt,
+  });
+  expect(result.authentication).toEqual({
+    aggregateId: 'acct_dates',
+    issuedAt: issuedAt.toISOString(),
+  });
+  expect(JSON.stringify(complete.mock.calls)).toContain(issuedAt.toISOString());
+  const invalid = await Effect.runPromise(
+    authenticateAggregate({
+      aggregateName: 'dated',
+      aggregateVersion: '1.0.0',
+      signature: {
+        aggregateId: 'acct_dates',
+        issuedAt: issuedAt.toISOString(),
+      },
+    }).pipe(Effect.provide(AsyncLive), Effect.result),
+  );
+  expect(invalid).toMatchObject({
+    _tag: 'Failure',
+    failure: { code: 'authentication-signature-invalid' },
+  });
+  expect(authored).toHaveBeenCalledOnce();
 });

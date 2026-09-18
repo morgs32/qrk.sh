@@ -46,7 +46,7 @@ WebSocket traffic to finalized command chains and SystemLogRepo.
 ## GatewayApi
 
 The Worker-hosted root capability with exactly three public getters:
-`getSystemApi`, `getAggregateFrontendApi`, and `getServiceFrontendApi`.
+`getSystemApi`, `aggregate`, and `service`.
 
 - [`GatewayApi.ts`](../packages/system-worker/src/GatewayApi/GatewayApi.ts) — defines the complete public Gateway surface.
 
@@ -72,7 +72,7 @@ The independently disposable read-only child capability bound to `{ systemId,
 serviceName, userId, frontendName, serviceFrontendLock }` plus the authored
 SystemWorker route. It serves state and WebSocket tickets.
 
-- [`getServiceFrontendApi.ts`](../packages/system-worker/src/GatewayApi/getServiceFrontendApi/getServiceFrontendApi.ts) — authenticates, authorizes, and constructs the exact five-field child binding.
+- [`ServiceAccessApi.authorize`](../packages/system-worker/src/ServiceAccessApi/authorize/authorize.ts) — authorizes verified service access and constructs the frontend capability.
 - [`ServiceFrontendApi.ts`](../packages/system-worker/src/ServiceFrontendApi/ServiceFrontendApi.ts) — exposes state, finalized history, and one-time ticket operations without a push method.
 
 ## command chain
@@ -134,8 +134,8 @@ An authored, signed description of the exact frontend schema and query surface.
 Gateway validates the lock and requires authorization to return the same exact
 target before constructing a frontend capability.
 
-- [`getAggregateFrontendApi.ts`](../packages/system-worker/src/GatewayApi/getAggregateFrontendApi/getAggregateFrontendApi.ts) — decodes the aggregate frontend lock before authentication and authorization.
-- [`getServiceFrontendApi.ts`](../packages/system-worker/src/GatewayApi/getServiceFrontendApi/getServiceFrontendApi.ts) — decodes the service frontend lock.
+- [`AggregateAccessApi.authorize`](../packages/system-worker/src/AggregateAccessApi/authorize/authorize.ts) — decodes the aggregate frontend lock before authorization.
+- [`ServiceAccessApi.authorize`](../packages/system-worker/src/ServiceAccessApi/authorize/authorize.ts) — decodes the service frontend lock.
 
 ## contract binding
 

@@ -1,13 +1,10 @@
 import type { IAnyError } from '@zerospin/error';
 import { type Effect, type Layer, type Schema, type Scope } from 'effect';
 
-import type { IAuthentication } from '../authentication/types.ts';
+import type { IServiceAuthentication } from '../authentication/types.ts';
 import type { IAnyContracts } from '../contracts/types.ts';
 import type { IDb, IResourceDbConfig } from '../drizzle/types.ts';
-import type {
-  IAnyServiceFrontendBinding,
-  IServiceAuthorization,
-} from '../frontendBinding/types.ts';
+import type { IServiceAuthorization } from '../frontendBinding/types.ts';
 import type { IAnyModels } from '../models/types.ts';
 
 export type IServiceQuery<
@@ -65,19 +62,15 @@ export type IService<
     string,
     IAnyServiceQuery
   >,
-  FRONTENDS extends Record<string, IAnyServiceFrontendBinding> = Record<
-    string,
-    IAnyServiceFrontendBinding
-  >,
-  AUTHORIZE extends IServiceAuthorization<FRONTENDS, MODELS, never> =
-    IServiceAuthorization<FRONTENDS, MODELS, never>,
+  AUTHORIZE extends IServiceAuthorization<MODELS, never> =
+    IServiceAuthorization<MODELS, never>,
   VERSION extends string = string,
   LAYER_SERVICES = never,
   LAYER_REQUIREMENTS = unknown,
   GUARD_REQUIREMENTS = Effect.Services<
     ReturnType<NonNullable<CONTRACTS[keyof CONTRACTS]['guard']>>
   >,
-  AUTHENTICATION extends IAuthentication = IAuthentication,
+  AUTHENTICATION extends IServiceAuthentication = IServiceAuthentication,
 > = {
   /** Type-only requirements retained when system registries erase concrete guards and layers. */
   readonly __initializeRequirements?:
@@ -91,10 +84,8 @@ export type IService<
   readonly models: Readonly<MODELS>;
   readonly contracts: Readonly<CONTRACTS>;
   readonly queries: Readonly<QUERIES>;
-  readonly frontends: Readonly<FRONTENDS>;
-} & ([keyof FRONTENDS] extends [never]
-  ? { readonly authorize?: never }
-  : { readonly authorize: AUTHORIZE });
+  readonly authorize?: AUTHORIZE;
+};
 
 export type IAnyService<
   GUARD_REQUIREMENTS = unknown,
@@ -105,13 +96,12 @@ export type IAnyService<
   /** Type-only requirements retained when system registries erase concrete guards and layers. */
   readonly __initializeRequirements?: INITIALIZE_REQUIREMENTS | Scope.Scope;
   readonly layer: Layer.Layer<LAYER_SERVICES, IAnyError, LAYER_REQUIREMENTS>;
-  readonly authentication: IAuthentication;
+  readonly authentication: IServiceAuthentication;
   readonly name: string;
   readonly version: string;
   readonly models: IAnyModels;
   readonly contracts: IAnyContracts<GUARD_REQUIREMENTS>;
   readonly queries: Readonly<Record<string, IAnyServiceQuery>>;
-  readonly frontends: Readonly<Record<string, IAnyServiceFrontendBinding>>;
   readonly authorize?: {
     bivarianceHack(props: unknown): Effect.Effect<void, IAnyError, never>;
   }['bivarianceHack'];

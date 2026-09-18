@@ -2,11 +2,11 @@ import type { IAnyTable, IAnyTables } from '@zerospin/schema';
 import { Brand } from 'effect';
 import { mapValues } from 'es-toolkit';
 
-import { Model } from '../models/makeModel.ts';
+import { Model } from '../models/defineModel.ts';
 import type { IAnyModels } from '../models/types.ts';
 
-import { makeDrizzleRelationsFromTables } from './makeDrizzleRelations.ts';
-import { makeDrizzleSchemasRecordFromTables } from './makeDrizzleSchemas.ts';
+import { makeDrizzleRelationsFromTables } from './makeDrizzleRelationsFromTables.ts';
+import { makeDrizzleSchemasRecordFromTables } from './makeDrizzleSchemasRecordFromTables.ts';
 import type { IDbConfig, IResourceDbConfig } from './types.ts';
 
 export function makeDbConfig<TABLES extends IAnyTables>(props: {
@@ -16,8 +16,9 @@ export function makeDbConfig<TABLES extends IAnyTables>(props: {
 }): IDbConfig<
   ReturnType<typeof makeDrizzleSchemasRecordFromTables<TABLES>>,
   ReturnType<typeof makeDrizzleRelationsFromTables<TABLES>>
-> {  const { physicalTableNames, tableAliases, tables } = props;
-return {
+> {
+  const { physicalTableNames, tableAliases, tables } = props;
+  return {
     schema: makeDrizzleSchemasRecordFromTables(
       tables,
       physicalTableNames,
@@ -47,8 +48,9 @@ export function makeResourceDbConfig<
 export function makeResourceDbConfig<
   MODELS extends IAnyModels,
   OTHER_TABLES extends IAnyTables,
->(props: { models: MODELS; otherTables?: OTHER_TABLES }) {  const { models, otherTables } = props;
-const modelTables: {
+>(props: { models: MODELS; otherTables?: OTHER_TABLES }) {
+  const { models, otherTables } = props;
+  const modelTables: {
     [K in keyof MODELS]: MODELS[K]['table'];
   } = mapValues(models, model => model.table);
   const tableAliases = new Map<unknown, IAnyTable>();

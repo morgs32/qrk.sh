@@ -3,17 +3,18 @@ import type { InferResource } from '@zerospin/core/models/types';
 import { PrimitiveKind, primitives } from '@zerospin/schema';
 import { Effect } from 'effect';
 
-import { defineCommand } from '../contracts/Command.ts';
-import { makeContractVersion } from '../contracts/makeVersion.ts';
+import { defineContract } from '../contracts/defineContract.ts';
+import { makeContractVersion } from '../contracts/makeContractVersion.ts';
 import type { IDb, IResourceDbConfig } from '../drizzle/types.ts';
-import { makeModel, makeModelVersion } from '../models/makeModel.ts';
+import { defineModel } from '../models/defineModel.ts';
+import { makeModelVersion } from '../models/makeModelVersion.ts';
 import { makeReplica } from '../models/makeReplica.ts';
 
 import { makeFrontendController } from './makeFrontendController.ts';
 import { makeFrontendControllerSpec } from './makeFrontendControllerSpec.ts';
 
 const aggregateFrontend = makeFrontendController({
-  authentication: authenticationFixtureFrontend.authentication,
+  authenticationSchema: authenticationFixtureFrontend.authentication.authenticationSchema,
   aggregateVersion: '1.0.0',
   systemName: 'test',
   aggregateName: 'user',
@@ -42,7 +43,7 @@ function assertReadonlyAggregateFrontend(
 void assertReadonlyAggregateFrontend;
 
 const serviceFrontend = makeFrontendController({
-  authentication: authenticationFixtureFrontend.authentication,
+  authenticationSchema: authenticationFixtureFrontend.authentication.authenticationSchema,
   systemName: 'test',
   serviceVersion: '1.0.0',
   serviceName: 'catalog',
@@ -66,7 +67,7 @@ function assertReadonlyServiceFrontend(frontend: typeof serviceFrontend): void {
 void assertReadonlyServiceFrontend;
 
 const ServiceProduct = makeModelVersion(
-  makeModel({ name: 'product', abbreviation: 'prd' }),
+  defineModel({ name: 'product', abbreviation: 'prd' }),
   {
     attributes: { name: primitives.text() },
     indexes: [],
@@ -79,7 +80,7 @@ const AggregateProduct = makeReplica({
   serviceName: 'catalog',
 });
 const productServiceFrontend = makeFrontendController({
-  authentication: authenticationFixtureFrontend.authentication,
+  authenticationSchema: authenticationFixtureFrontend.authentication.authenticationSchema,
   systemName: 'replica-controller-test',
   serviceVersion: '1.0.0',
   serviceName: 'catalog',
@@ -87,7 +88,7 @@ const productServiceFrontend = makeFrontendController({
   models: { product: ServiceProduct },
 });
 const productAggregateFrontend = makeFrontendController({
-  authentication: authenticationFixtureFrontend.authentication,
+  authenticationSchema: authenticationFixtureFrontend.authentication.authenticationSchema,
   aggregateVersion: '1.0.0',
   systemName: 'replica-controller-test',
   aggregateName: 'account',
@@ -104,7 +105,7 @@ void retainedServiceProduct;
 void retainedAggregateProduct;
 
 makeFrontendController({
-  authentication: authenticationFixtureFrontend.authentication,
+  authenticationSchema: authenticationFixtureFrontend.authentication.authenticationSchema,
   systemName: 'replica-controller-test',
   serviceVersion: '1.0.0',
   serviceName: 'catalog',
@@ -116,7 +117,7 @@ makeFrontendController({
 });
 
 makeFrontendController({
-  authentication: authenticationFixtureFrontend.authentication,
+  authenticationSchema: authenticationFixtureFrontend.authentication.authenticationSchema,
   systemName: 'test',
   name: 'invalid',
   models: {},
@@ -125,7 +126,7 @@ makeFrontendController({
 });
 
 makeFrontendController({
-  authentication: authenticationFixtureFrontend.authentication,
+  authenticationSchema: authenticationFixtureFrontend.authentication.authenticationSchema,
   aggregateVersion: '1.0.0',
   systemName: 'test',
   aggregateName: 'user',
@@ -134,7 +135,7 @@ makeFrontendController({
   contracts: {},
 });
 
-const GuardListModel = makeModel({
+const GuardListModel = defineModel({
   name: 'guardList',
   abbreviation: 'gls',
 });
@@ -145,14 +146,14 @@ const GuardList = makeModelVersion(GuardListModel, {
   version: '1.0.0',
 });
 const GuardUser = makeModelVersion(
-  makeModel({ name: 'guardUser', abbreviation: 'gus' }),
+  defineModel({ name: 'guardUser', abbreviation: 'gus' }),
   {
     attributes: { name: primitives.text() },
     indexes: [],
     version: '1.0.0',
   },
 );
-const renameGuardList = makeContractVersion(defineCommand('renameGuardList'), {
+const renameGuardList = makeContractVersion(defineContract('renameGuardList'), {
   payload: {
     id: primitives.foreignKey({ abbreviation: GuardListModel.abbreviation }),
     name: primitives.text(),
@@ -197,7 +198,7 @@ const renameGuardList = makeContractVersion(defineCommand('renameGuardList'), {
   version: '1.0.0',
 });
 const guardedController = makeFrontendController({
-  authentication: authenticationFixtureFrontend.authentication,
+  authenticationSchema: authenticationFixtureFrontend.authentication.authenticationSchema,
   aggregateVersion: '1.0.0',
   systemName: 'guard-type-test',
   aggregateName: 'account',

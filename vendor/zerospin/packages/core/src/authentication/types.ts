@@ -9,8 +9,8 @@ import type { AggregateChainedCommandSchema } from '../contracts/CommandSchema.t
 import type { IContract } from '../contracts/types.ts';
 import type { InferPayloadInput } from '../models/types.ts';
 
-/** Authentication belongs to an owner version; selection claims identify its shared replica. */
-export type IAuthentication<
+/** Authentication schemas and selection identify an aggregate or service replica. */
+export type IAuthenticationSchemas<
   SIGNATURE extends Schema.Codec<unknown, unknown> = Schema.Codec<
     unknown,
     unknown
@@ -50,20 +50,59 @@ export type IAuthentication<
             ? unknown
             : never
           : never);
-  authenticate(props: {
-    signature: Schema.Schema.Type<SIGNATURE>;
-    executeCommand<CONTRACT extends IContract>(props: {
-      aggregateId: string;
-      contract: CONTRACT;
-      payload: InferPayloadInput<CONTRACT['payload']>;
+}>;
+
+export type IAggregateAuthentication<
+  SIGNATURE extends Schema.Codec<unknown, unknown> = Schema.Codec<
+    unknown,
+    unknown
+  >,
+  AUTHENTICATION extends Schema.Struct<
+    Readonly<Record<string, Schema.Codec<unknown, unknown>>>
+  > = Schema.Struct<Readonly<Record<string, Schema.Codec<unknown, unknown>>>>,
+  SELECTION extends Schema.Struct<
+    Readonly<Record<string, Schema.Codec<unknown, unknown>>>
+  > = Schema.Struct<Readonly<Record<string, Schema.Codec<unknown, unknown>>>>,
+  PATTERN extends string = string,
+> = IAuthenticationSchemas<SIGNATURE, AUTHENTICATION, SELECTION, PATTERN> &
+  Readonly<{
+    authenticate(props: {
+      signature: Schema.Schema.Type<SIGNATURE>;
+      executeCommand<CONTRACT extends IContract>(props: {
+        aggregateId: string;
+        contract: CONTRACT;
+        payload: InferPayloadInput<CONTRACT['payload']>;
+      }): Effect.Effect<
+        Schema.Schema.Type<typeof AggregateChainedCommandSchema>,
+        IAnyError,
+        Async | CuidFactory
+      >;
     }): Effect.Effect<
-      Schema.Schema.Type<typeof AggregateChainedCommandSchema>,
+      Schema.Schema.Type<AUTHENTICATION>,
       IAnyError,
       Async | CuidFactory
     >;
-  }): Effect.Effect<
-    Schema.Schema.Type<AUTHENTICATION>,
-    IAnyError,
-    Async | CuidFactory
-  >;
-}>;
+  }>;
+
+export type IServiceAuthentication<
+  SIGNATURE extends Schema.Codec<unknown, unknown> = Schema.Codec<
+    unknown,
+    unknown
+  >,
+  AUTHENTICATION extends Schema.Struct<
+    Readonly<Record<string, Schema.Codec<unknown, unknown>>>
+  > = Schema.Struct<Readonly<Record<string, Schema.Codec<unknown, unknown>>>>,
+  SELECTION extends Schema.Struct<
+    Readonly<Record<string, Schema.Codec<unknown, unknown>>>
+  > = Schema.Struct<Readonly<Record<string, Schema.Codec<unknown, unknown>>>>,
+  PATTERN extends string = string,
+> = IAuthenticationSchemas<SIGNATURE, AUTHENTICATION, SELECTION, PATTERN> &
+  Readonly<{
+    authenticate(props: {
+      signature: Schema.Schema.Type<SIGNATURE>;
+    }): Effect.Effect<
+      Schema.Schema.Type<AUTHENTICATION>,
+      IAnyError,
+      Async | CuidFactory
+    >;
+  }>;

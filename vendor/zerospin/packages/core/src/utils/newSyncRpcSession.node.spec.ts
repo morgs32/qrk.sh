@@ -3,7 +3,7 @@ import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { makeAsync } from '@zerospin/core/async/makeAsync';
 import { type IAnyErrorJson, type IEncodedResult } from '@zerospin/error';
 import { newHttpBatchRpcResponse, RpcTarget } from 'capnweb';
-import { Effect } from 'effect';
+import { Effect, Schema } from 'effect';
 import { http } from 'msw';
 import { setupServer } from 'msw/node';
 import {
@@ -33,7 +33,28 @@ class ApiB extends RpcTarget {
   }
 }
 
+const datedClaims = Schema.Struct({
+  aggregateId: Schema.String,
+  issuedAt: Schema.DateFromString,
+});
+class ClaimsApi extends RpcTarget {
+  authenticate(signature: typeof datedClaims.Type) {
+    const decoded = Schema.decodeUnknownSync(Schema.toType(datedClaims))(
+      signature,
+    );
+    const persisted = Schema.encodeSync(datedClaims)(decoded);
+    return encodeSuccess(
+      Schema.decodeUnknownSync(datedClaims)(
+        JSON.parse(JSON.stringify(persisted)),
+      ),
+    );
+  }
+}
+
 class Apis extends RpcTarget {
+  aggregate() {
+    return new ClaimsApi();
+  }
   getApiA() {
     return new ApiA();
   }
@@ -62,6 +83,21 @@ describe('newSyncRpcSession (MSW + capnweb batch)', () => {
 
   afterAll(() => {
     server.close();
+  });
+
+  it('round trips decoded Date signatures and claims through the HTTP batch codec', async () => {
+    server.use(...apiHandlers);
+    using apis = newSyncRpcSession<Apis>(TEST_RPC_URL);
+    const issuedAt = new Date('2026-09-18T12:00:00.000Z');
+    const claims = await Effect.runPromise(
+      decodeRpc(
+        await apis
+          .aggregate()
+          .authenticate({ aggregateId: 'acct_dates', issuedAt }),
+      ),
+    );
+    expect(claims.issuedAt).toBeInstanceOf(Date);
+    expect(claims).toEqual({ aggregateId: 'acct_dates', issuedAt });
   });
 
   describe('async usage', () => {

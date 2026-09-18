@@ -1,11 +1,12 @@
 import { assert, type Equals } from 'tsafe';
 import { describe, expect, it } from 'vitest';
 
-import { makeModel, makeModelVersion } from './makeModel.ts';
+import { defineModel } from './defineModel.ts';
+import { makeModelVersion } from './makeModelVersion.ts';
 import { prefixId } from './prefixId.ts';
 
 const Product = makeModelVersion(
-  makeModel({ name: 'product', abbreviation: 'prod' }),
+  defineModel({ name: 'product', abbreviation: 'prod' }),
   { version: '1.0.0', attributes: {}, indexes: [] },
 );
 

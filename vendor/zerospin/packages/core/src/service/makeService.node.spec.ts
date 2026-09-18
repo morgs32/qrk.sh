@@ -1,17 +1,14 @@
-import {
-  main as authenticationFixtureFrontend,
-  userAggregate as authenticationFixtureOwner,
-} from '@zerospin/core/fixtures/system';
+import { userAggregate as authenticationFixtureOwner } from '@zerospin/core/fixtures/system';
 import { primitives } from '@zerospin/schema';
 import { Effect, Schema } from 'effect';
 import { assert, type Equals } from 'tsafe';
 import { describe, expect, it } from 'vitest';
 
-import { defineCommand } from '../contracts/Command.ts';
-import { makeContractVersion } from '../contracts/makeVersion.ts';
-import { makeFrontendController } from '../frontendController/makeFrontendController.ts';
+import { defineContract } from '../contracts/defineContract.ts';
+import { makeContractVersion } from '../contracts/makeContractVersion.ts';
 import { makeCommand } from '../makeCommand.ts';
-import { makeModel, makeModelVersion } from '../models/makeModel.ts';
+import { defineModel } from '../models/defineModel.ts';
+import { makeModelVersion } from '../models/makeModelVersion.ts';
 import { makeReplica } from '../models/makeReplica.ts';
 import { makePrefixedIncrementalIdFactory } from '../test-utils/makePrefixedIncrementalIdFactory.ts';
 
@@ -19,7 +16,7 @@ import { makeService } from './makeService.ts';
 import { requireVersion as requireServiceVersion } from './requireVersion.ts';
 
 const Product = makeModelVersion(
-  makeModel({ name: 'product', abbreviation: 'prd' }),
+  defineModel({ name: 'product', abbreviation: 'prd' }),
   {
     attributes: { name: primitives.text() },
     indexes: [],
@@ -27,7 +24,7 @@ const Product = makeModelVersion(
   },
 );
 
-const refreshCatalog = makeContractVersion(defineCommand('refreshCatalog'), {
+const refreshCatalog = makeContractVersion(defineContract('refreshCatalog'), {
   payload: { reason: primitives.text() },
   version: '1.0.0',
 });
@@ -35,7 +32,7 @@ const refreshCatalog = makeContractVersion(defineCommand('refreshCatalog'), {
 describe('makeService', () => {
   it('exposes data-only exact versions and constructs typed commands', () => {
     const service = makeService({
-      authentication: authenticationFixtureOwner.authentication,
+      ...authenticationFixtureOwner.authentication,
       name: 'catalog',
       version: '2.0.0',
       models: {},
@@ -108,7 +105,7 @@ describe('makeService', () => {
   it('rejects removed service history authoring', () => {
     expect(() =>
       makeService({
-        authentication: authenticationFixtureOwner.authentication,
+        ...authenticationFixtureOwner.authentication,
         name: 'catalog',
         version: '2.0.0',
         models: {},
@@ -124,10 +121,9 @@ describe('makeService', () => {
       makeService({
         name: 'empty',
         version: '1.0.0',
-        authentication: authenticationFixtureOwner.authentication,
+        ...authenticationFixtureOwner.authentication,
         models: {},
         contracts: {},
-        frontends: {},
         ...{ mutationAdapters: {} },
       }),
     ).toThrow(Schema.SchemaError);
@@ -142,34 +138,22 @@ describe('makeService', () => {
         query: () => Effect.succeed<string[]>([]),
       },
     };
-    const controller = makeFrontendController({
-      authentication: authenticationFixtureFrontend.authentication,
-      systemName: 'shopping',
-      serviceVersion: '1.0.0',
-      serviceName: 'catalog',
-      name: 'browse',
-      models,
-    });
-    const frontends = { browse: { controller } };
 
     const service = makeService({
-      authentication: authenticationFixtureOwner.authentication,
+      ...authenticationFixtureOwner.authentication,
       name: 'catalog',
       version: '1.0.0',
       models,
       contracts,
       queries,
-      frontends,
       authorize: () => Effect.void,
     });
 
     expect(service).toMatchObject({ name: 'catalog' });
     expect(service.models).not.toBe(models);
     expect(service.contracts).not.toBe(contracts);
-    expect(service.frontends).not.toBe(frontends);
     expect(service.models.product).toBe(Product);
     expect(service.contracts.refreshCatalog).toBe(refreshCatalog);
-    expect(service.frontends.browse.controller).toBe(controller);
     expect(service.queries.products).toMatchObject({
       kind: 'service',
       name: 'products',
@@ -183,38 +167,26 @@ describe('makeService', () => {
     Object.assign(queries, { extra: queries.products });
     const replacementQuery = () => Effect.succeed(['changed']);
     queries.products.query = replacementQuery;
-    Reflect.deleteProperty(frontends, 'browse');
 
     expect(service.models).not.toHaveProperty('extra');
     expect(service.contracts).not.toHaveProperty('extra');
     expect(service.queries).not.toHaveProperty('extra');
     expect(service.queries.products.query).not.toBe(replacementQuery);
-    expect(service.frontends.browse.controller).toBe(controller);
   });
 
   it('rejects structural copies of canonical local leaves', () => {
-    const controller = makeFrontendController({
-      authentication: authenticationFixtureFrontend.authentication,
-      systemName: 'shopping',
-      serviceVersion: '1.0.0',
-      serviceName: 'catalog',
-      name: 'browse',
-      models: { product: Product },
-    });
-
     expect(() =>
       makeService({
-        authentication: authenticationFixtureOwner.authentication,
+        ...authenticationFixtureOwner.authentication,
         name: 'catalog',
         version: '1.0.0',
         models: { product: { ...Product } as typeof Product },
         contracts: { refreshCatalog },
-        frontends: {},
       }),
     ).toThrow(Schema.SchemaError);
     expect(() =>
       makeService({
-        authentication: authenticationFixtureOwner.authentication,
+        ...authenticationFixtureOwner.authentication,
         name: 'catalog',
         version: '1.0.0',
         models: { product: Product },
@@ -223,164 +195,34 @@ describe('makeService', () => {
             ...refreshCatalog,
           } as typeof refreshCatalog,
         },
-        frontends: {},
-      }),
-    ).toThrow(Schema.SchemaError);
-    expect(() =>
-      makeService({
-        authentication: authenticationFixtureOwner.authentication,
-        name: 'catalog',
-        version: '1.0.0',
-        models: { product: Product },
-        contracts: { refreshCatalog },
-        frontends: {
-          browse: {
-            controller: { ...controller } as typeof controller,
-          },
-        },
-        authorize: () => Effect.void,
       }),
     ).toThrow(Schema.SchemaError);
   });
 
-  it('enforces service authorization, authoritative models, and frontend identity', () => {
-    const controller = makeFrontendController({
-      authentication: authenticationFixtureFrontend.authentication,
-      systemName: 'shopping',
-      serviceVersion: '1.0.0',
-      serviceName: 'catalog',
-      name: 'browse',
+  it('allows optional authorization and rejects replica models', () => {
+    const props = {
+      ...authenticationFixtureOwner.authentication,
+      name: 'catalog',
+      version: '1.0.0',
       models: { product: Product },
-    });
-    const wrongNameController = makeFrontendController({
-      authentication: authenticationFixtureFrontend.authentication,
-      systemName: 'shopping',
-      serviceVersion: '1.0.0',
-      serviceName: 'catalog',
-      name: 'other',
-      models: { product: Product },
-    });
-    const ProductReplica = makeReplica({
+      contracts: {},
+    };
+    expect(makeService(props).authorize).toBeUndefined();
+    const authorize = () => Effect.void;
+    expect(makeService({ ...props, authorize }).authorize).toBe(authorize);
+    const replica = makeReplica({
       sourceModel: Product,
       modelVersion: Product.version,
       serviceName: 'catalog',
     });
-
-    expect(() =>
-      // @ts-expect-error service frontends require owner authorization
-      makeService({
-        authentication: authenticationFixtureOwner.authentication,
-        name: 'catalog',
-        version: '1.0.0',
-        models: { product: Product },
-        contracts: {},
-        frontends: { browse: { controller } },
-      }),
-    ).toThrow(/authorize must be a function when the service has frontends/);
     expect(() =>
       makeService({
-        authentication: authenticationFixtureOwner.authentication,
-        name: 'catalog',
-        version: '1.0.0',
-        models: { product: Product },
-        contracts: {},
-        frontends: {},
-        // @ts-expect-error services without frontends must omit authorization
-        authorize: () => Effect.void,
-      }),
-    ).toThrow(/must omit authorize when it has no frontends/);
-    expect(() =>
-      makeService({
-        authentication: authenticationFixtureOwner.authentication,
-        name: 'catalog',
-        version: '1.0.0',
+        ...props,
         models: {
-          // @ts-expect-error services require authoritative source models
-          product: ProductReplica,
+          // @ts-expect-error Services require authoritative source models.
+          product: replica,
         },
-        contracts: {},
-        frontends: {},
       }),
     ).toThrow(/must be the authoritative source model, not a replica/);
-    expect(() =>
-      makeService({
-        authentication: authenticationFixtureOwner.authentication,
-        name: 'catalog',
-        version: '1.0.0',
-        models: { product: Product },
-        contracts: {},
-        frontends: {
-          browse: {
-            // @ts-expect-error the binding key must match controller.name
-            controller: wrongNameController,
-          },
-        },
-        authorize: () => Effect.void,
-      }),
-    ).toThrow(Schema.SchemaError);
-  });
-
-  it('requires projection adapters exactly when frontend model names diverge', () => {
-    const ProductCard = makeModelVersion(
-      makeModel({ name: 'productCard', abbreviation: 'pcd' }),
-      {
-        attributes: { name: primitives.text() },
-        indexes: [],
-        version: '1.0.0',
-      },
-    );
-    const controller = makeFrontendController({
-      authentication: authenticationFixtureFrontend.authentication,
-      systemName: 'shopping',
-      serviceVersion: '1.0.0',
-      serviceName: 'catalog',
-      name: 'browse',
-      models: { productCard: ProductCard },
-    });
-
-    expect(() =>
-      makeService({
-        authentication: authenticationFixtureOwner.authentication,
-        name: 'catalog',
-        version: '1.0.0',
-        models: { product: Product },
-        contracts: {},
-        frontends: {
-          browse: {
-            controller,
-            models: { productCard: 'product' },
-          },
-        },
-        authorize: () => Effect.void,
-      }),
-    ).toThrow(/projectionAdapters.productCard is required/);
-
-    const identityController = makeFrontendController({
-      authentication: authenticationFixtureFrontend.authentication,
-      systemName: 'shopping',
-      serviceVersion: '1.0.0',
-      serviceName: 'catalog',
-      name: 'browse',
-      models: { product: Product },
-    });
-    expect(() =>
-      makeService({
-        authentication: authenticationFixtureOwner.authentication,
-        name: 'catalog',
-        version: '1.0.0',
-        models: { product: Product },
-        contracts: {},
-        frontends: {
-          browse: {
-            controller: identityController,
-            projectionAdapters: {
-              // @ts-expect-error identity-bound frontend models must omit projection adapters
-              product: (resource: unknown) => Effect.succeed(resource),
-            },
-          },
-        },
-        authorize: () => Effect.void,
-      }),
-    ).toThrow(/projectionAdapters.product must not be set/);
   });
 });

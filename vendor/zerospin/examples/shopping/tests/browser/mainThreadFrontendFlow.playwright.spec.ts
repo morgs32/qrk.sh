@@ -3,6 +3,10 @@ import { act, createElement, useEffect } from 'react';
 
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { encodePayload } from '@zerospin/core/contracts/encodePayload';
+import {
+  aggregateFrontendProps,
+  serviceFrontendProps,
+} from '@zerospin/core/fixtures/frontendProps';
 import { prefixId } from '@zerospin/core/models/prefixId';
 import { makeServiceCommand } from '@zerospin/core/service/makeServiceCommand';
 import { PublishableKey } from '@zerospin/core/services/PublishableKey';
@@ -62,8 +66,17 @@ const testRuntimeLayer = Layer.mergeAll(
 const FlowZerospinApp = makeZerospinApp<
   typeof import('@/zerospin/system').system
 >({ systemName: 'shopping', layer: testRuntimeLayer });
-const FlowZerospinAppShopperFrontend = FlowZerospinApp.makeFrontend(WebV2);
-const FlowZerospinAppAppFrontend = FlowZerospinApp.makeFrontend(CatalogV1);
+const guardLayer = WebV2.guardLayer;
+if (guardLayer === undefined) {
+  throw new Error('Shopping requires its frontend guard layer');
+}
+const FlowZerospinAppShopperFrontend = FlowZerospinApp.makeAggregateFrontend({
+  ...aggregateFrontendProps(WebV2),
+  guardLayer,
+});
+const FlowZerospinAppAppFrontend = FlowZerospinApp.makeServiceFrontend(
+  serviceFrontendProps(CatalogV1),
+);
 
 function FlowSessionsProbe(props: {
   onSessions(

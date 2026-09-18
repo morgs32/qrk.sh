@@ -1,3 +1,4 @@
+import { aggregateFrontendProps } from '@zerospin/core/fixtures/frontendProps';
 import { List, main, User, type system } from '@zerospin/core/fixtures/system';
 import type { PublishableKey } from '@zerospin/core/services/PublishableKey';
 import type { ZerospinApiUrl } from '@zerospin/core/services/ZerospinApiUrl';
@@ -16,7 +17,7 @@ const ZerospinApp = makeZerospinApp<typeof system>({
   systemName: 'system-worker',
   layer: sessionRuntimeLayer,
 });
-const Main = ZerospinApp.makeFrontend(main);
+const Main = ZerospinApp.makeAggregateFrontend(aggregateFrontendProps(main));
 const fixtureDate = new Date('2026-01-01T00:00:00.000Z');
 
 ZerospinMockProvider({

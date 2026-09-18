@@ -60,24 +60,25 @@ const observations = vi.hoisted(
 vi.mock('config', async () => {
   const { MonotonicFactory } =
     await import('@zerospin/core/services/MonotonicFactory');
-  const { defineCommand } = await import('@zerospin/core/contracts/Command');
+  const { defineContract } = await import('@zerospin/core/contracts/defineContract');
   const { makeContractVersion, upgradeContractVersion } =
-    await import('@zerospin/core/contracts/makeVersion');
-  const { makeModel, makeModelVersion } =
-    await import('@zerospin/core/models/makeModel');
+    await import('@zerospin/core/contracts/makeContractVersion');
+  const { defineModel } = await import('@zerospin/core/models/defineModel');
+  const { makeModelVersion } =
+    await import('@zerospin/core/models/makeModelVersion');
   const { prefixId } = await import('@zerospin/core/models/prefixId');
   const { primitives, CuidFactory } = await import('@zerospin/schema');
   const { ZerospinError } = await import('@zerospin/error');
   const { Effect, Layer, Schema } = await import('effect');
   const product = makeModelVersion(
-    makeModel({ name: 'product', abbreviation: 'prd' }),
+    defineModel({ name: 'product', abbreviation: 'prd' }),
     {
       version: '1.0.0',
       attributes: { name: primitives.text() },
       indexes: [],
     },
   );
-  const first = makeContractVersion(defineCommand('rename'), {
+  const first = makeContractVersion(defineContract('rename'), {
     version: '1.0.0',
     payload: { name: primitives.text() },
     models: { product },

@@ -1,4 +1,5 @@
-import { makeModel, makeModelVersion } from '../models/makeModel.ts';
+import { defineModel } from '../models/defineModel.ts';
+import { makeModelVersion } from '../models/makeModelVersion.ts';
 
 import { makeTable, primitives } from '@zerospin/schema';
 import { Effect } from 'effect';
@@ -62,7 +63,7 @@ describe('makeResourceDbConfig', () => {
 
   it('queries exact authoritative source-table refs between replicas', async () => {
     const ProductSource = makeModelVersion(
-      makeModel({ name: 'product', abbreviation: 'prd' }),
+      defineModel({ name: 'product', abbreviation: 'prd' }),
       {
         attributes: { name: primitives.text() },
         indexes: [],
@@ -70,7 +71,7 @@ describe('makeResourceDbConfig', () => {
       },
     );
     const CartItemSource = makeModelVersion(
-      makeModel({ name: 'cartItem', abbreviation: 'cit' }),
+      defineModel({ name: 'cartItem', abbreviation: 'cit' }),
       {
         attributes: {
           productId: primitives.ref({

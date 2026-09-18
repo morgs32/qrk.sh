@@ -42,7 +42,7 @@ it('preserves frontend authorization and repeated grants without registration', 
       frontendName: 'main',
       aggregateFrontendLock: makeAggregateFrontendLock({ frontend: main }),
     };
-    const rejected = await gateway.getAggregateFrontendApi(request);
+    const rejected = await admitAggregate(gateway, request);
     expect(rejected).toBeInstanceOf(AggregateFrontendApiFailure);
     // Authorization reads VAR state; granting the capability needs no catalog write.
     const materializer = await runtime.runPromise(
@@ -66,10 +66,10 @@ it('preserves frontend authorization and repeated grants without registration', 
         'Authorized user',
       );
     });
-    expect(await gateway.getAggregateFrontendApi(request)).toBeInstanceOf(
+    expect(await admitAggregate(gateway, request)).toBeInstanceOf(
       AggregateFrontendApi,
     );
-    expect(await gateway.getAggregateFrontendApi(request)).toBeInstanceOf(
+    expect(await admitAggregate(gateway, request)).toBeInstanceOf(
       AggregateFrontendApi,
     );
   } finally {
@@ -344,3 +344,32 @@ it('enrolls an empty AC during activation without opening any VARs', async () =>
     await runtime.dispose();
   }
 });
+
+async function admitAggregate(
+  gateway: GatewayApi,
+  request: {
+    publishableKey: string;
+    systemName: string;
+    aggregateName: string;
+    aggregateVersion: string;
+    signature: unknown;
+    frontendName: string;
+    aggregateFrontendLock: Parameters<
+      Awaited<
+        ReturnType<Awaited<ReturnType<GatewayApi['aggregate']>>['authenticate']>
+      >['authorize']
+    >[0]['aggregateFrontendLock'];
+  },
+) {
+  const aggregate = await gateway.aggregate({
+    publishableKey: request.publishableKey,
+    systemName: request.systemName,
+    name: request.aggregateName,
+    version: request.aggregateVersion,
+  });
+  const access = await aggregate.authenticate({ signature: request.signature });
+  return access.authorize({
+    frontendName: request.frontendName,
+    aggregateFrontendLock: request.aggregateFrontendLock,
+  });
+}

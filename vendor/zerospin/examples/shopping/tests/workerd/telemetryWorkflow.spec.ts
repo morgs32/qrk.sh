@@ -2,7 +2,6 @@ import { describe, it } from '@effect/vitest';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { makeAsync } from '@zerospin/core/async/makeAsync';
 import { encodePayload } from '@zerospin/core/contracts/encodePayload';
-import { makeFrontendController } from '@zerospin/core/frontendController/makeFrontendController';
 import { makeCommand } from '@zerospin/core/makeCommand';
 import { prefixId } from '@zerospin/core/models/prefixId';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
@@ -17,22 +16,6 @@ import { expect } from 'vitest';
 import { userV1 } from '@/zerospin/aggregates/shopper/models/user/UserV1';
 import { shopperV2 } from '@/zerospin/aggregates/shopper/ShopperV2';
 import { system } from '@/zerospin/system';
-
-const WebV2 = makeFrontendController({
-  authentication: {
-    signatureSchema: shopperV2.authentication.signatureSchema,
-    authenticationSchema: shopperV2.authentication.authenticationSchema,
-    selectionSchema: shopperV2.authentication.selectionSchema,
-    pattern: shopperV2.authentication.pattern,
-  },
-  guardLayer: shopperV2.guardLayer,
-  systemName: 'shopping',
-  aggregateName: shopperV2.name,
-  aggregateVersion: shopperV2.version,
-  name: 'web',
-  models: shopperV2.models,
-  contracts: shopperV2.contracts,
-});
 
 const TestLayer = makeWorkerdE2eTestLayer('telemetryWorkflow');
 
@@ -68,7 +51,7 @@ describe('public SystemApi telemetry boundary', () => {
             {
               contractName: 'createUser',
               aggregateId,
-              systemName: WebV2.systemName,
+              systemName: system.name,
               payload: {
                 id: prefixId(userV1, 'user_telemetry'),
                 clerkUserId: 'user_telemetry',
@@ -91,7 +74,7 @@ describe('public SystemApi telemetry boundary', () => {
               traceContext: null,
               args: [
                 {
-                  aggregateVersion: WebV2.aggregateVersion,
+                  aggregateVersion: shopperV2.version,
                   command: encodedCommand,
                 },
               ],

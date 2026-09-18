@@ -1,5 +1,5 @@
-import { defineCommand } from '@zerospin/core/contracts/Command';
-import { makeContractVersion } from '@zerospin/core/contracts/makeVersion';
+import { defineContract } from '@zerospin/core/contracts/defineContract';
+import { makeContractVersion } from '@zerospin/core/contracts/makeContractVersion';
 import { Effect } from 'effect';
 
 /**
@@ -8,7 +8,7 @@ import { Effect } from 'effect';
  * @bad Hide mutations inside `Effect.gen` with bare `yield* createMutation(...)`.
  */
 export const createListContract = makeContractVersion(
-  defineCommand('createList'),
+  defineContract('createList'),
   {
     payloadSchema: CreateListPayloadSchema,
     program: ({ payload }) => {

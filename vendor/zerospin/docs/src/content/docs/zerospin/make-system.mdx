@@ -11,7 +11,7 @@ Import the builders, primitive descriptors, typed error shape, and Effect schema
 
 ```ts
 import * as sdk from '@zerospin/sdk';
-import { makeModelIdSchema } from '@zerospin/core/models/makeIdSchema.js';
+import { makeModelIdSchema } from '@zerospin/core/models/makeModelIdSchema.js';
 import { Effect, Schema } from 'effect';
 ```
 
@@ -21,7 +21,7 @@ Models define the resource types in the system. Each model identity has explicit
 
 ```ts
 export const User = sdk.makeModelVersion(
-  sdk.makeModel({ name: 'user', abbreviation: 'usr' }),
+  sdk.defineModel({ name: 'user', abbreviation: 'usr' }),
   {
     attributes: {
       name: sdk.primitives.text(),
@@ -32,7 +32,7 @@ export const User = sdk.makeModelVersion(
 );
 
 export const List = sdk.makeModelVersion(
-  sdk.makeModel({ name: 'list', abbreviation: 'lst' }),
+  sdk.defineModel({ name: 'list', abbreviation: 'lst' }),
   {
     attributes: {
       name: sdk.primitives.text(),
@@ -48,7 +48,7 @@ export const List = sdk.makeModelVersion(
 );
 
 export const Item = sdk.makeModelVersion(
-  sdk.makeModel({ name: 'item', abbreviation: 'tsk' }),
+  sdk.defineModel({ name: 'item', abbreviation: 'tsk' }),
   {
     attributes: {
       listId: sdk.primitives.ref({
@@ -72,7 +72,7 @@ Contracts define commands. Each contract has a payload shape, declared model ver
 
 ```ts
 export const createList = sdk.makeContractVersion(
-  sdk.defineCommand('createList'),
+  sdk.defineContract('createList'),
   {
     payload: {
       id: sdk.primitives.foreignKey({ abbreviation: List.abbreviation }),
@@ -102,7 +102,7 @@ export const createList = sdk.makeContractVersion(
 
 ```ts
 export const createItem = sdk.makeContractVersion(
-  sdk.defineCommand('createItem'),
+  sdk.defineContract('createItem'),
   {
     payload: {
       id: sdk.primitives.foreignKey({ abbreviation: Item.abbreviation }),
@@ -132,7 +132,7 @@ export const createItem = sdk.makeContractVersion(
 
 ```ts
 export const updateList = sdk.makeContractVersion(
-  sdk.defineCommand('updateList'),
+  sdk.defineContract('updateList'),
   {
     payload: {
       id: sdk.primitives.foreignKey({ abbreviation: List.abbreviation }),
@@ -183,7 +183,7 @@ Authentication produces an `identityKey`, an opaque identity string. `userId` re
 
 ```ts
 export const user = sdk.makeAggregateVersion(
-  sdk.makeAggregate({ name: 'user' }),
+  sdk.defineAggregate({ name: 'user' }),
   {
     version: '1.0.0',
     authorize: ({ identityKey, db }) =>

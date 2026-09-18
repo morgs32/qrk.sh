@@ -1,5 +1,6 @@
 import type { IDb } from '@zerospin/core/drizzle/types';
 import type { ServiceFrontendLockSchema } from '@zerospin/core/frontendController/makeServiceFrontendLock';
+import { filterServiceFrontendCommand } from '@zerospin/core/serviceSession/filterServiceFrontendCommand';
 import { ZerospinError, type IAnyError } from '@zerospin/error';
 import { Effect, Result, Schema } from 'effect';
 import type { Connection, WSMessage } from 'partyserver';
@@ -106,7 +107,10 @@ export const onMessage = Effect.fn('FrontendServiceChain.onMessage')(
             connection.send(
               JSON.stringify({
                 type: 'serviceFrontendCommand',
-                sync: command,
+                sync: filterServiceFrontendCommand(
+                  command,
+                  state.serviceFrontendLock.models,
+                ),
               }),
             ),
           catch: ZerospinError.catch({

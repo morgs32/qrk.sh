@@ -1,3 +1,3 @@
 import * as sdk from '@zerospin/sdk/browser';
 
-export const cart = sdk.makeModel({ name: 'cart', abbreviation: 'crt' });
+export const cart = sdk.defineModel({ name: 'cart', abbreviation: 'crt' });

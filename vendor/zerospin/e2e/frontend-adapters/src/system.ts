@@ -1,6 +1,6 @@
 import { RoutePattern } from '@remix-run/route-pattern';
-import { makeAggregate } from '@zerospin/core/aggregate/makeAggregate';
-import { makeAggregateVersion } from '@zerospin/core/aggregate/makeVersion';
+import { defineAggregate } from '@zerospin/core/aggregate/defineAggregate';
+import { makeAggregateVersion } from '@zerospin/core/aggregate/makeAggregateVersion';
 import { makeSelection } from '@zerospin/core/models/makeSelection';
 import { makeSystem } from '@zerospin/core/system/makeSystem';
 import { Effect, Schema } from 'effect';
@@ -23,9 +23,8 @@ export const system = makeSystem({
   name: 'frontend-adapters',
   aggregates: {
     aggregate: [
-      makeAggregateVersion(makeAggregate({ name: 'aggregate' }), {
-        authentication: {
-          signatureSchema: Schema.Struct({
+      makeAggregateVersion(defineAggregate({ name: 'aggregate' }), {
+                  signatureSchema: Schema.Struct({
             clerkUserId: Schema.String,
             aggregateId: Schema.String,
           }),
@@ -36,7 +35,6 @@ export const system = makeSystem({
           selectionSchema: Schema.Struct({ clerkUserId: Schema.String }),
           pattern: RoutePattern.parse('/:clerkUserId'),
           authenticate: ({ signature }) => Effect.succeed(signature),
-        },
         version: '1.0.0',
         authorize: () => Effect.void,
         models: { sourceItem: SourceItem },

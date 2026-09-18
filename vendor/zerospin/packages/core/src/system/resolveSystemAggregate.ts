@@ -4,7 +4,7 @@ import type {
   IAnyAggregate,
   IAnyAuthoredAggregate,
 } from '../aggregate/types.ts';
-import { Model } from '../models/makeModel.ts';
+import { Model } from '../models/defineModel.ts';
 import type { IModel } from '../models/types.ts';
 import type { IAnyService } from '../service/types.ts';
 

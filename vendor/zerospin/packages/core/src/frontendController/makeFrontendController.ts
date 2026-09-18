@@ -1,16 +1,13 @@
-import type { RoutePattern } from '@remix-run/route-pattern';
 import type { IAnyError } from '@zerospin/error';
 import type { ITypeError } from '@zerospin/schema';
 import { Layer, Schema, SchemaAST } from 'effect';
 
-import { AuthenticationSchema } from '../authentication/AuthenticationSchema.ts';
-import type { IAuthentication } from '../authentication/types.ts';
 import type { AssertContractMutationsInModels } from '../contracts/assertMutationsUseModels.ts';
-import { Contract } from '../contracts/makeVersion.ts';
+import { Contract } from '../contracts/makeContractVersion.ts';
 import type { IAnyContractBindings, IContract } from '../contracts/types.ts';
 import type { IDb, IResourceDbConfig } from '../drizzle/types.ts';
 import { assertValidModels } from '../models/assertValidModels.ts';
-import { Model } from '../models/makeModel.ts';
+import { Model } from '../models/defineModel.ts';
 import type {
   IAnyModels,
   IAssertValidModels,
@@ -35,8 +32,25 @@ const ContractBindingSchema = Schema.Struct({
 
 const ModelsRecordSchema = Schema.Record(Schema.String, CanonicalModelSchema);
 
+const AggregateIdClaimSchema = Schema.Struct({
+  aggregateId: Schema.String,
+});
+
+const ClaimsSchema = Schema.declare(
+  (
+    input: unknown,
+  ): input is Schema.Struct<
+    Readonly<Record<string, Schema.Codec<unknown, unknown>>>
+  > =>
+    Schema.isSchema(input) && 'fields' in input && input.ast._tag === 'Objects',
+);
+
+const defaultAggregateFrontendAuthentication = {
+  authenticationSchema: AggregateIdClaimSchema,
+};
+
 const ServiceFrontendControllerPropsSchema = Schema.Struct({
-  authentication: AuthenticationSchema,
+  authenticationSchema: ClaimsSchema,
   systemName: Schema.String,
   serviceName: Schema.String,
   serviceVersion: Schema.String.check(Schema.isMinLength(1)),
@@ -54,7 +68,7 @@ const ServiceFrontendControllerPropsSchema = Schema.Struct({
 });
 
 const AggregateFrontendControllerPropsSchema = Schema.Struct({
-  authentication: AuthenticationSchema,
+  authenticationSchema: Schema.optionalKey(ClaimsSchema),
   guardLayer: Schema.optionalKey(
     Schema.declare(
       (
@@ -94,30 +108,16 @@ export function makeFrontendController<
   const MODELS extends IAnyModels,
   LAYER_SERVICES = never,
   LAYER_REQUIREMENTS = never,
-  const AUTHENTICATION extends Omit<IAuthentication, 'authenticate'> = Omit<
-    IAuthentication,
-    'authenticate'
-  >,
+  AUTHENTICATION extends Schema.Struct<
+    Readonly<Record<string, Schema.Codec<unknown, unknown>>>
+  > = typeof AggregateIdClaimSchema,
   GUARD_SERVICES = never,
   GUARD_REQUIREMENTS = never,
-  const PATTERN extends string = string,
 >(props: {
   systemName: SYSTEM_NAME;
   aggregateName: AGGREGATE_NAME;
   aggregateVersion: AGGREGATE_VERSION;
-  authentication: AUTHENTICATION &
-    Omit<
-      IAuthentication<
-        AUTHENTICATION['signatureSchema'],
-        AUTHENTICATION['authenticationSchema'],
-        AUTHENTICATION['selectionSchema'],
-        PATTERN
-      >,
-      'authenticate'
-    > & {
-      pattern: RoutePattern<PATTERN> &
-        (string extends PATTERN ? never : unknown);
-    };
+  authenticationSchema?: AUTHENTICATION;
   name: FRONTEND_NAME;
   contracts: CONTRACTS & {
     [K in keyof CONTRACTS &
@@ -137,7 +137,7 @@ export function makeFrontendController<
     db: Readonly<
       Pick<IDb<IResourceDbConfig<MODELS, Record<never, never>>>, 'query'>
     >;
-    authentication: AUTHENTICATION['authenticationSchema']['Type'] | null;
+    authentication: AUTHENTICATION['Type'] | null;
   }) => Layer.Layer<GUARD_SERVICES, IAnyError, GUARD_REQUIREMENTS>;
 }): NoInfer<
   IAggregateFrontendController<
@@ -161,25 +161,14 @@ export function makeFrontendController<
   const SERVICE_VERSION extends string,
   const FRONTEND_NAME extends string,
   MODELS extends IAnyModels,
-  const AUTHENTICATION extends Omit<IAuthentication, 'authenticate'>,
-  const PATTERN extends string = string,
+  AUTHENTICATION extends Schema.Struct<
+    Readonly<Record<string, Schema.Codec<unknown, unknown>>>
+  >,
 >(props: {
   systemName: SYSTEM_NAME;
   serviceName: SERVICE_NAME;
   serviceVersion: SERVICE_VERSION;
-  authentication: AUTHENTICATION &
-    Omit<
-      IAuthentication<
-        AUTHENTICATION['signatureSchema'],
-        AUTHENTICATION['authenticationSchema'],
-        AUTHENTICATION['selectionSchema'],
-        PATTERN
-      >,
-      'authenticate'
-    > & {
-      pattern: RoutePattern<PATTERN> &
-        (string extends PATTERN ? never : unknown);
-    };
+  authenticationSchema: AUTHENTICATION;
   name: FRONTEND_NAME;
   models: MODELS &
     IAssertValidModels<NoInfer<MODELS>> & {
@@ -206,7 +195,9 @@ export function makeFrontendController(
         layer?: Layer.Layer<never, IAnyError, unknown>;
         aggregateName: string;
         aggregateVersion: string;
-        authentication: Omit<IAuthentication, 'authenticate'>;
+        authenticationSchema?: Schema.Struct<
+          Readonly<Record<string, Schema.Codec<unknown, unknown>>>
+        >;
         name: string;
         contracts: IAnyContractBindings;
         models: IAnyModels;
@@ -215,7 +206,9 @@ export function makeFrontendController(
         systemName: string;
         serviceName: string;
         serviceVersion: string;
-        authentication: Omit<IAuthentication, 'authenticate'>;
+        authenticationSchema: Schema.Struct<
+          Readonly<Record<string, Schema.Codec<unknown, unknown>>>
+        >;
         name: string;
         models: IAnyModels;
         contracts?: never;
@@ -235,7 +228,9 @@ export function makeFrontendController(
       context: 'makeFrontendController',
     });
     return Object.assign(new ServiceFrontendController(), {
-      authentication: decodedProps.authentication,
+      authentication: {
+        authenticationSchema: decodedProps.authenticationSchema,
+      },
       systemName: decodedProps.systemName,
       serviceName: decodedProps.serviceName,
       serviceVersion: decodedProps.serviceVersion,
@@ -250,8 +245,13 @@ export function makeFrontendController(
     AggregateFrontendControllerPropsSchema,
     { onExcessProperty: 'error' },
   )(props);
+  const authentication = {
+    authenticationSchema:
+      decodedProps.authenticationSchema ??
+      defaultAggregateFrontendAuthentication.authenticationSchema,
+  };
   const aggregateIdField =
-    decodedProps.authentication.authenticationSchema.fields.aggregateId;
+    authentication.authenticationSchema.fields.aggregateId;
   const aggregateIdAst =
     aggregateIdField === undefined
       ? undefined
@@ -284,8 +284,10 @@ export function makeFrontendController(
 
   return Object.assign(new AggregateFrontendController(), {
     layer: props.layer ?? Layer.empty,
-    authentication: decodedProps.authentication,
-    guardLayer: decodedProps.guardLayer,
+    authentication,
+    ...(decodedProps.guardLayer === undefined
+      ? {}
+      : { guardLayer: decodedProps.guardLayer }),
     systemName: decodedProps.systemName,
     aggregateName: decodedProps.aggregateName,
     aggregateVersion: decodedProps.aggregateVersion,

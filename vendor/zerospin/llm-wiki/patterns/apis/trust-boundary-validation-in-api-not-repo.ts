@@ -8,9 +8,9 @@ import { Effect, Schema } from 'effect';
  * @bad Run `Schema.decodeUnknownEffect` on an aggregate frontend lock inside a repo
  * DO when the GatewayApi capability factory already validated it.
  */
-export const getAggregateFrontendApi = Effect.fn(
-  'GatewayApi.getAggregateFrontendApi',
-)(function* (props: unknown) {
+export const authorize = Effect.fn('AggregateAccessApi.authorize')(function* (
+  props: unknown,
+) {
   const validated = yield* Schema.decodeUnknownEffect(
     AggregateFrontendApiPropsSchema,
   )(props, { onExcessProperty: 'error' }).pipe(

@@ -7,15 +7,14 @@ import * as browser from './browser/index.js';
 import * as sdk from './index.js';
 
 const sharedExports = [
-  'defineCommand',
-  'makeModel',
+  'defineContract',
+  'defineModel',
   'makeModelVersion',
   'upgradeModelVersion',
   'makeContractVersion',
   'upgradeContractVersion',
   'makeReplica',
   'makeSelection',
-  'makeFrontendController',
   'makeId',
   'prefixId',
   'makeAggregateId',
@@ -28,7 +27,7 @@ const sharedExports = [
   'ZEROSPIN_SDK_VERSION',
 ];
 const serverExports = [
-  'makeAggregate',
+  'defineAggregate',
   'makeAggregateVersion',
   'upgradeAggregateVersion',
   'makeService',
@@ -37,12 +36,32 @@ const serverExports = [
   'makeCommand',
 ];
 
-const change = sdk.makeContractVersion(sdk.defineCommand('change'), {
+const change = sdk.makeContractVersion(sdk.defineContract('change'), {
   version: '1.0.0',
   payload: { name: sdk.primitives.text() },
 });
 const service = sdk.makeService({
-  authentication: {
+  signatureSchema: Schema.Struct({ userId: Schema.String }),
+  authenticationSchema: Schema.Struct({
+    aggregateId: Schema.Literal('acct_test'),
+    userId: Schema.String,
+  }),
+  selectionSchema: Schema.Struct({ userId: Schema.String }),
+  pattern: RoutePattern.parse('/:userId'),
+  authenticate: ({ signature }) =>
+    Effect.succeed({
+      aggregateId: 'acct_test',
+      userId: signature.userId,
+    } satisfies { aggregateId: 'acct_test'; userId: string }),
+  name: 'catalog',
+  version: '2.0.0',
+  models: {},
+  contracts: { change },
+});
+const aggregate = sdk.makeAggregateVersion(
+  sdk.defineAggregate({ name: 'shopper' }),
+  {
+    version: '3.0.0',
     signatureSchema: Schema.Struct({ userId: Schema.String }),
     authenticationSchema: Schema.Struct({
       aggregateId: Schema.Literal('acct_test'),
@@ -55,30 +74,6 @@ const service = sdk.makeService({
         aggregateId: 'acct_test',
         userId: signature.userId,
       } satisfies { aggregateId: 'acct_test'; userId: string }),
-  },
-  name: 'catalog',
-  version: '2.0.0',
-  models: {},
-  contracts: { change },
-});
-const aggregate = sdk.makeAggregateVersion(
-  sdk.makeAggregate({ name: 'shopper' }),
-  {
-    version: '3.0.0',
-    authentication: {
-      signatureSchema: Schema.Struct({ userId: Schema.String }),
-      authenticationSchema: Schema.Struct({
-        aggregateId: Schema.Literal('acct_test'),
-        userId: Schema.String,
-      }),
-      selectionSchema: Schema.Struct({ userId: Schema.String }),
-      pattern: RoutePattern.parse('/:userId'),
-      authenticate: ({ signature }) =>
-        Effect.succeed({
-          aggregateId: 'acct_test',
-          userId: signature.userId,
-        } satisfies { aggregateId: 'acct_test'; userId: string }),
-    },
     models: {},
     contracts: { change: { contract: change } },
     selections: {},
@@ -100,7 +95,7 @@ describe('flat SDK authoring', () => {
     });
     try {
       const loaded = await import('./browser/index.js');
-      expect(loaded.defineCommand('browser')).toBe('browser');
+      expect(loaded.defineContract('browser')).toBe('browser');
     } finally {
       vi.doUnmock('@zerospin/server-only');
       vi.resetModules();
@@ -108,7 +103,7 @@ describe('flat SDK authoring', () => {
   });
 
   it('preserves branding, inferred owner metadata, full command shapes and ID generation', () => {
-    const declared = sdk.defineCommand('change');
+    const declared = sdk.defineContract('change');
     expectTypeOf(declared).toEqualTypeOf<sdk.Command<'change'>>();
     const commands = Effect.runSync(
       Effect.all([
@@ -209,7 +204,7 @@ describe('flat SDK authoring', () => {
   });
 
   it('authors and upgrades definitions through the renamed exports', () => {
-    const identity = browser.makeModel({ name: 'item', abbreviation: 'itm' });
+    const identity = browser.defineModel({ name: 'item', abbreviation: 'itm' });
     const first = browser.makeModelVersion(identity, {
       version: '1.0.0',
       attributes: { name: browser.primitives.text() },

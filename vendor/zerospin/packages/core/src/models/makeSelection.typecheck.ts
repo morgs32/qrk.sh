@@ -2,11 +2,12 @@ import { primitives } from '@zerospin/schema';
 
 import type { IDb } from '../drizzle/types.ts';
 
-import { makeModel, makeModelVersion } from './makeModel.ts';
+import { defineModel } from './defineModel.ts';
+import { makeModelVersion } from './makeModelVersion.ts';
 import { applySelection, makeSelection } from './makeSelection.ts';
 
 const User = makeModelVersion(
-  makeModel({ name: 'user', abbreviation: 'usr' }),
+  defineModel({ name: 'user', abbreviation: 'usr' }),
   {
     attributes: {
       name: primitives.text({ nullable: true }),
@@ -17,7 +18,7 @@ const User = makeModelVersion(
 );
 
 const Cart = makeModelVersion(
-  makeModel({ name: 'cart', abbreviation: 'crt' }),
+  defineModel({ name: 'cart', abbreviation: 'crt' }),
   {
     attributes: {
       userId: primitives.ref({
@@ -33,7 +34,7 @@ const Cart = makeModelVersion(
 );
 
 const CartItem = makeModelVersion(
-  makeModel({ name: 'cartItem', abbreviation: 'cit' }),
+  defineModel({ name: 'cartItem', abbreviation: 'cit' }),
   {
     attributes: {
       cartId: primitives.ref({

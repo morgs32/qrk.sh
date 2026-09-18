@@ -5,7 +5,8 @@ import { Effect, Schema } from 'effect';
 import { describe, expect, it } from 'vitest';
 
 import { encodeResource } from './encodeResource.ts';
-import { makeModel, makeModelVersion, Model } from './makeModel.ts';
+import { defineModel, Model } from './defineModel.ts';
+import { makeModelVersion } from './makeModelVersion.ts';
 import { makeReplica } from './makeReplica.ts';
 
 describe('makeReplica', () => {
@@ -20,7 +21,7 @@ describe('makeReplica', () => {
 
   it('creates a client-safe replica with immutable source and service ownership', () => {
     const Product = makeModelVersion(
-      makeModel({ name: 'product', abbreviation: 'prd' }),
+      defineModel({ name: 'product', abbreviation: 'prd' }),
       {
         attributes: { name: primitives.text() },
         indexes: [],
@@ -34,7 +35,7 @@ describe('makeReplica', () => {
     };
     const ProductReplica = makeReplica(replicaProps);
     const CartItem = makeModelVersion(
-      makeModel({ name: 'cartItem', abbreviation: 'cit' }),
+      defineModel({ name: 'cartItem', abbreviation: 'cit' }),
       {
         attributes: {
           productId: primitives.ref({
@@ -140,7 +141,7 @@ describe('makeReplica', () => {
 
   it('preserves deletion and source position when encoding the selected version', async () => {
     const Product = makeModelVersion(
-      makeModel({ name: 'product', abbreviation: 'prd' }),
+      defineModel({ name: 'product', abbreviation: 'prd' }),
       {
         attributes: {
           description: primitives.text(),

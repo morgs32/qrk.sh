@@ -59,16 +59,9 @@ export function makeFrontendControllerSpec(
         systemName: frontendController.systemName,
         frontendName: frontendController.name,
         authentication: {
-          signatureJsonSchema: Schema.toJsonSchemaDocument(
-            frontendController.authentication.signatureSchema,
-          ),
           authenticationJsonSchema: Schema.toJsonSchemaDocument(
             frontendController.authentication.authenticationSchema,
           ),
-          selectionJsonSchema: Schema.toJsonSchemaDocument(
-            frontendController.authentication.selectionSchema,
-          ),
-          pattern: frontendController.authentication.pattern.source,
         },
         models: lockedModels,
       },
@@ -100,16 +93,9 @@ export function makeFrontendControllerSpec(
       systemName: frontendController.systemName,
       frontendName: frontendController.name,
       authentication: {
-        signatureJsonSchema: Schema.toJsonSchemaDocument(
-          frontendController.authentication.signatureSchema,
-        ),
         authenticationJsonSchema: Schema.toJsonSchemaDocument(
           frontendController.authentication.authenticationSchema,
         ),
-        selectionJsonSchema: Schema.toJsonSchemaDocument(
-          frontendController.authentication.selectionSchema,
-        ),
-        pattern: frontendController.authentication.pattern.source,
       },
       models: lockedModels,
       contracts: mapValues(frontendController.contracts, binding => {

@@ -21,6 +21,7 @@ import type {
 } from '@zerospin/core/serviceSession/types';
 import type { ISystemId } from '@zerospin/core/system/types';
 import {
+  mapParseError,
   ZerospinError,
   type IAnyError,
   type IAnyErrorJson,
@@ -190,7 +191,14 @@ export const bootstrapServiceFrontendSession = Effect.fn(
   }).pipe(Effect.result);
   if (Result.isSuccess(initial)) {
     systemId = initial.success.systemId;
-    authentication = initial.success.authentication;
+    authentication = yield* Schema.encodeEffect(
+      frontend.authentication.authenticationSchema,
+    )(initial.success.authentication).pipe(
+      mapParseError({
+        code: 'frontend-authentication-invalid',
+        prefix: 'Invalid decoded authentication',
+      }),
+    );
     const authenticationKeys = new Set<string>();
     const authenticationValues: unknown[] = [authentication];
     while (authenticationValues.length > 0) {
@@ -591,9 +599,17 @@ export const bootstrapServiceFrontendSession = Effect.fn(
                   frontendName: frontend.name,
                   serviceFrontendLock,
                 });
+                const recoveredAuthentication = yield* Schema.encodeEffect(
+                  frontend.authentication.authenticationSchema,
+                )(recoveryState.authentication).pipe(
+                  mapParseError({
+                    code: 'frontend-authentication-invalid',
+                    prefix: 'Invalid recovered authentication',
+                  }),
+                );
                 const authenticationKeys = new Set<string>();
                 const authenticationValues: unknown[] = [
-                  recoveryState.authentication,
+                  recoveredAuthentication,
                 ];
                 while (authenticationValues.length > 0) {
                   const value = authenticationValues.pop();
@@ -612,7 +628,7 @@ export const bootstrapServiceFrontendSession = Effect.fn(
                       'SHA-256',
                       new TextEncoder().encode(
                         JSON.stringify(
-                          recoveryState.authentication,
+                          recoveredAuthentication,
                           [...authenticationKeys].sort(),
                         ),
                       ),
@@ -632,7 +648,7 @@ export const bootstrapServiceFrontendSession = Effect.fn(
                       'Current authentication belongs to a different backup',
                   });
                 }
-                authentication = recoveryState.authentication;
+                authentication = recoveredAuthentication;
                 const ticket = yield* createServiceFrontendWebSocketTicket({
                   serviceVersion: props.serviceVersion,
                   apiUrl,
@@ -1228,5 +1244,15 @@ export const bootstrapServiceFrontendSession = Effect.fn(
       message: 'Authentication was not initialized',
     });
   }
-  return { systemId, authentication };
+  return {
+    systemId,
+    authentication: yield* Schema.decodeUnknownEffect(
+      frontend.authentication.authenticationSchema,
+    )(authentication).pipe(
+      mapParseError({
+        code: 'frontend-authentication-invalid',
+        prefix: 'Invalid persisted authentication',
+      }),
+    ),
+  };
 });

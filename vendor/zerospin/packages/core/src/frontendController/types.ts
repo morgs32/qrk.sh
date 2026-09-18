@@ -1,8 +1,11 @@
 import type { IAnyError } from '@zerospin/error';
 import type { IEncodedShape } from '@zerospin/schema';
-import { type Effect, type Layer, type Scope } from 'effect';
+import { type Effect, type Layer, type Schema, type Scope } from 'effect';
 
-import type { IAuthentication } from '../authentication/types.ts';
+import type {
+  IAggregateAuthentication,
+  IServiceAuthentication,
+} from '../authentication/types.ts';
 import type {
   IAnyContractBindings,
   IAnyContracts,
@@ -19,10 +22,9 @@ export type IAggregateFrontendController<
   AGGREGATE_VERSION extends string = string,
   LAYER_SERVICES = never,
   LAYER_REQUIREMENTS = unknown,
-  AUTHENTICATION extends Omit<IAuthentication, 'authenticate'> = Omit<
-    IAuthentication,
-    'authenticate'
-  >,
+  AUTHENTICATION extends Schema.Struct<
+    Readonly<Record<string, Schema.Codec<unknown, unknown>>>
+  > = Schema.Struct<Readonly<Record<string, Schema.Codec<unknown, unknown>>>>,
   GUARD_SERVICES = never,
   GUARD_REQUIREMENTS = unknown,
 > = Readonly<{
@@ -50,9 +52,7 @@ export type IAggregateFrontendController<
                 'query'
               >
             >;
-            authentication:
-              | AUTHENTICATION['authenticationSchema']['Type']
-              | null;
+            authentication: AUTHENTICATION['Type'] | null;
           },
     ): Layer.Layer<GUARD_SERVICES, IAnyError, GUARD_REQUIREMENTS>;
   }['bivarianceHack'];
@@ -60,7 +60,7 @@ export type IAggregateFrontendController<
   systemName: SYSTEM_NAME;
   aggregateName: AGGREGATE_NAME;
   aggregateVersion: AGGREGATE_VERSION;
-  authentication: AUTHENTICATION;
+  authentication: Readonly<{ authenticationSchema: AUTHENTICATION }>;
   name: FRONTEND_NAME;
   contracts: {
     readonly [COMMAND_NAME in keyof CONTRACTS]: Readonly<{
@@ -77,16 +77,15 @@ export type IServiceFrontendController<
   FRONTEND_NAME extends string = string,
   MODELS extends IAnyModels = IAnyModels,
   SERVICE_VERSION extends string = string,
-  AUTHENTICATION extends Omit<IAuthentication, 'authenticate'> = Omit<
-    IAuthentication,
-    'authenticate'
-  >,
+  AUTHENTICATION extends Schema.Struct<
+    Readonly<Record<string, Schema.Codec<unknown, unknown>>>
+  > = Schema.Struct<Readonly<Record<string, Schema.Codec<unknown, unknown>>>>,
 > = Readonly<{
   kind: 'service';
   systemName: SYSTEM_NAME;
   serviceName: SERVICE_NAME;
   serviceVersion: SERVICE_VERSION;
-  authentication: AUTHENTICATION;
+  authentication: Readonly<{ authenticationSchema: AUTHENTICATION }>;
   name: FRONTEND_NAME;
   contracts: Readonly<Record<never, never>>;
   models: Readonly<MODELS>;
@@ -110,7 +109,11 @@ export type IAnyAggregateFrontendController<
   systemName: string;
   aggregateName: string;
   aggregateVersion: string;
-  authentication: Omit<IAuthentication, 'authenticate'>;
+  authentication: Readonly<{
+    authenticationSchema: Schema.Struct<
+      Readonly<Record<string, Schema.Codec<unknown, unknown>>>
+    >;
+  }>;
   name: string;
   contracts: Readonly<
     Record<
@@ -127,7 +130,11 @@ export type IAnyServiceFrontendController = Readonly<{
   systemName: string;
   serviceName: string;
   serviceVersion: string;
-  authentication: Omit<IAuthentication, 'authenticate'>;
+  authentication: Readonly<{
+    authenticationSchema: Schema.Struct<
+      Readonly<Record<string, Schema.Codec<unknown, unknown>>>
+    >;
+  }>;
   name: string;
   contracts: Readonly<Record<never, never>>;
   models: Readonly<IAnyModels>;
@@ -188,10 +195,7 @@ export type IFrontendControllerSpec = Readonly<{
           systemName: string;
           frontendName: string;
           authentication: Readonly<{
-            signatureJsonSchema: unknown;
             authenticationJsonSchema: unknown;
-            selectionJsonSchema: unknown;
-            pattern: string;
           }>;
           models: Readonly<
             Record<
@@ -232,10 +236,7 @@ export type IFrontendControllerSpec = Readonly<{
           systemName: string;
           frontendName: string;
           authentication: Readonly<{
-            signatureJsonSchema: unknown;
             authenticationJsonSchema: unknown;
-            selectionJsonSchema: unknown;
-            pattern: string;
           }>;
           models: Readonly<
             Record<
@@ -260,7 +261,7 @@ export type IFrontendControllerSpec = Readonly<{
 /** A browser controller exposing a compatible subset of one aggregate version. */
 export type IAggregateFrontend<
   AGGREGATE extends {
-    authentication: IAuthentication;
+    authentication: IAggregateAuthentication;
     name: string;
     version: string;
     models: IAnyModels;
@@ -268,7 +269,9 @@ export type IAggregateFrontend<
   },
 > = Readonly<{
   kind: 'aggregate';
-  authentication: Omit<AGGREGATE['authentication'], 'authenticate'>;
+  authentication: Readonly<{
+    authenticationSchema: AGGREGATE['authentication']['authenticationSchema'];
+  }>;
   systemName: string;
   aggregateName: AGGREGATE['name'];
   aggregateVersion: AGGREGATE['version'];
@@ -294,14 +297,16 @@ export type IAggregateFrontend<
 /** A browser controller exposing a compatible subset of a service's models. */
 export type IServiceFrontend<
   SERVICE extends {
-    authentication: IAuthentication;
+    authentication: IServiceAuthentication;
     name: string;
     version: string;
     models: IAnyModels;
   },
 > = Readonly<{
   kind: 'service';
-  authentication: Omit<SERVICE['authentication'], 'authenticate'>;
+  authentication: Readonly<{
+    authenticationSchema: SERVICE['authentication']['authenticationSchema'];
+  }>;
   systemName: string;
   serviceName: SERVICE['name'];
   serviceVersion: SERVICE['version'];

@@ -16,12 +16,20 @@ import {
 } from '@zerospin/backup-worker';
 import type { Async } from '@zerospin/core/async/Async';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
+import type { AssertContractMutationsInModels } from '@zerospin/core/contracts/assertMutationsUseModels';
+import type { IAnyContractBindings } from '@zerospin/core/contracts/types';
+import type { IDb, IResourceDbConfig } from '@zerospin/core/drizzle/types';
 import { initializeGuards as initializeFrontendGuards } from '@zerospin/core/frontendController/initializeGuards';
+import { makeFrontendController } from '@zerospin/core/frontendController/makeFrontendController';
 import type {
-  IAggregateFrontend,
+  IAnyAggregateFrontendController,
   IAnyFrontendController,
-  IServiceFrontend,
 } from '@zerospin/core/frontendController/types';
+import type {
+  IAnyModels,
+  IAssertValidModels,
+  IModelReplica,
+} from '@zerospin/core/models/types';
 import type { MonotonicFactory } from '@zerospin/core/services/MonotonicFactory';
 import { PublishableKey } from '@zerospin/core/services/PublishableKey';
 import { ZerospinApiUrl } from '@zerospin/core/services/ZerospinApiUrl';
@@ -38,7 +46,11 @@ import { ZerospinError, type IAnyError } from '@zerospin/error';
 import { bootstrapAggregateFrontendSession } from '@zerospin/frontend/bootstrapAggregateFrontendSession';
 import { bootstrapServiceFrontendSession } from '@zerospin/frontend/bootstrapServiceFrontendSession';
 import { makeTelemetryLayer } from '@zerospin/logger';
-import { makeIdFromAbbreviation, type CuidFactory } from '@zerospin/schema';
+import {
+  makeIdFromAbbreviation,
+  type CuidFactory,
+  type ITypeError,
+} from '@zerospin/schema';
 import {
   Cause,
   Effect,
@@ -47,7 +59,6 @@ import {
   Layer,
   ManagedRuntime,
   Redacted,
-  Schema,
   Scope,
 } from 'effect';
 
@@ -208,77 +219,33 @@ export function makeZerospinApp<SYSTEM, APP_SERVICES = never>(props: {
   }
 
   function makeFrontend<
-    const FRONTEND extends IAnyFrontendController<
-      | APP_SERVICES
-      | Async
-      | CuidFactory
-      | MonotonicFactory
-      | PublishableKey
-      | ZerospinApiUrl
-    >,
+    SIGNATURE,
+    const FRONTEND extends IAnyFrontendController,
   >(
-    frontend: FRONTEND &
-      (SYSTEM extends ISystem<
-        infer AGGREGATES,
-        infer SERVICES,
-        infer SYSTEM_NAME,
-        infer _LAYER_SERVICES
-      >
-        ? { systemName: SYSTEM_NAME } & (
-            | ({
-                [NAME in keyof AGGREGATES as string extends NAME
-                  ? never
-                  : NAME]: {
-                  [VERSION in keyof AGGREGATES[NAME] as string extends VERSION
-                    ? never
-                    : VERSION]: IAggregateFrontend<AGGREGATES[NAME][VERSION]>;
-                } extends infer VERSIONS
-                  ? VERSIONS[keyof VERSIONS]
-                  : never;
-              } extends infer OWNERS
-                ? OWNERS[keyof OWNERS]
-                : never)
-            | ({
-                [NAME in keyof SERVICES as string extends NAME
-                  ? never
-                  : NAME]: {
-                  [VERSION in keyof SERVICES[NAME] as string extends VERSION
-                    ? never
-                    : VERSION]: IServiceFrontend<SERVICES[NAME][VERSION]>;
-                } extends infer VERSIONS
-                  ? VERSIONS[keyof VERSIONS]
-                  : never;
-              } extends infer OWNERS
-                ? OWNERS[keyof OWNERS]
-                : never)
-          )
-        : never),
+    definition: FRONTEND,
   ): ((props: {
     children: ReactNode;
-    generateSignature: () => Effect.Effect<
-      Schema.Schema.Type<FRONTEND['authentication']['signatureSchema']>,
-      IAnyError
-    >;
+    generateSignature: () => Effect.Effect<SIGNATURE, IAnyError>;
   }) => ReactNode) &
-    Readonly<{ frontend: FRONTEND; models: FRONTEND['models'] }>;
-  function makeFrontend<
-    const FRONTEND extends IAnyFrontendController<
+    Readonly<{ frontend: FRONTEND; models: FRONTEND['models'] }> {
+    // Input validation retains layer requirements; the mounted implementation
+    // erases the type-only requirement marker while the selector stays exact.
+    let frontend: IAnyFrontendController<
       | APP_SERVICES
       | Async
       | CuidFactory
       | MonotonicFactory
       | PublishableKey
       | ZerospinApiUrl
-    >,
-  >(definition: FRONTEND) {
-    const frontend: IAnyFrontendController<
-      | APP_SERVICES
-      | Async
-      | CuidFactory
-      | MonotonicFactory
-      | PublishableKey
-      | ZerospinApiUrl
-    > = definition;
+    >;
+    if (definition.kind === 'aggregate') {
+      const aggregate: IAnyAggregateFrontendController = definition;
+      const { __initializeRequirements: _requirements, ...runtimeFrontend } =
+        aggregate;
+      frontend = runtimeFrontend;
+    } else {
+      frontend = definition;
+    }
     if (frontend.systemName !== systemName) {
       throw new Error(
         `Frontend "${frontend.name}" belongs to system "${frontend.systemName}", not "${systemName}".`,
@@ -289,10 +256,7 @@ export function makeZerospinApp<SYSTEM, APP_SERVICES = never>(props: {
       generateSignature,
     }: {
       children: ReactNode;
-      generateSignature: () => Effect.Effect<
-        Schema.Schema.Type<FRONTEND['authentication']['signatureSchema']>,
-        IAnyError
-      >;
+      generateSignature: () => Effect.Effect<SIGNATURE, IAnyError>;
     }) {
       const app = useContext(AppContext);
       const parent = useContext(ZerospinProviderContext);
@@ -371,23 +335,7 @@ export function makeZerospinApp<SYSTEM, APP_SERVICES = never>(props: {
                     });
                   }
                   return generateSignature();
-                }).pipe(
-                  Effect.flatMap(
-                    Schema.encodeUnknownEffect(
-                      frontend.authentication.signatureSchema,
-                    ),
-                  ),
-                  Effect.mapError(error =>
-                    ZerospinError.isZerospinError(error)
-                      ? error
-                      : new ZerospinError({
-                          code: 'authentication-signature-invalid',
-                          message:
-                            'Generated authentication signature does not match the selected schema',
-                          cause: ZerospinError.prettyUnknownFailure(error),
-                        }),
-                  ),
-                );
+                });
 
               if (frontend.kind === 'aggregate') {
                 // 4 — validate the aggregate ID; commands fail until bootstrap binds execution.
@@ -631,5 +579,185 @@ export function makeZerospinApp<SYSTEM, APP_SERVICES = never>(props: {
     });
     return selector;
   }
-  return { systemName, makeFrontend, Provider };
+  type Aggregates =
+    SYSTEM extends ISystem<infer A, infer _S, infer _N, infer _R> ? A : never;
+  type Services =
+    SYSTEM extends ISystem<infer _A, infer S, infer _N, infer _R> ? S : never;
+  type AppRequirements =
+    | APP_SERVICES
+    | Async
+    | CuidFactory
+    | MonotonicFactory
+    | PublishableKey
+    | ZerospinApiUrl;
+
+  function makeAggregateFrontend<
+    const NAME extends keyof Aggregates & string,
+    const VERSION extends keyof Aggregates[NAME] & string,
+    const FRONTEND_NAME extends string,
+    const MODELS extends IAnyModels,
+    const CONTRACTS extends IAnyContractBindings,
+    LAYER_SERVICES = never,
+    LAYER_REQUIREMENTS extends AppRequirements = never,
+    GUARD_SERVICES = never,
+    GUARD_REQUIREMENTS extends AppRequirements = never,
+  >(
+    props: {
+      aggregateName: NAME;
+      aggregateVersion: VERSION;
+      name: FRONTEND_NAME;
+      authenticationSchema: Aggregates[NAME][VERSION]['authentication']['authenticationSchema'];
+      models: MODELS &
+        IAssertValidModels<NoInfer<MODELS>> & {
+          [K in keyof MODELS]: K extends keyof Aggregates[NAME][VERSION]['models']
+            ? Aggregates[NAME][VERSION]['models'][K]
+            : never;
+        };
+      contracts: CONTRACTS & {
+        [K in keyof CONTRACTS &
+          string]: K extends CONTRACTS[K]['contract']['commandName']
+          ? CONTRACTS[K] & {
+              contract: AssertContractMutationsInModels<
+                CONTRACTS[K]['contract'],
+                NoInfer<MODELS>
+              >;
+              guard?: never;
+            }
+          : ITypeError<`Bad contract "${K}". The key in contracts should be the commandName`>;
+      } & NoInfer<
+          Partial<{
+            [K in keyof Aggregates[NAME][VERSION]['contracts']]: {
+              contract: Aggregates[NAME][VERSION]['contracts'][K]['contract'];
+            };
+          }> &
+            Record<
+              Exclude<
+                keyof CONTRACTS,
+                keyof Aggregates[NAME][VERSION]['contracts']
+              >,
+              never
+            >
+        >;
+      layer?: Layer.Layer<LAYER_SERVICES, IAnyError, LAYER_REQUIREMENTS>;
+      guardLayer?: (props: {
+        db: Readonly<
+          Pick<
+            IDb<IResourceDbConfig<NoInfer<MODELS>, Record<never, never>>>,
+            'query'
+          >
+        >;
+        authentication: NoInfer<
+          Aggregates[NAME][VERSION]['authentication']['authenticationSchema']['Type']
+        > | null;
+      }) => Layer.Layer<
+        | GUARD_SERVICES
+        | NoInfer<
+            Exclude<
+              Effect.Services<
+                ReturnType<
+                  NonNullable<CONTRACTS[keyof CONTRACTS]['contract']['guard']>
+                >
+              >,
+              AppRequirements | LAYER_SERVICES
+            >
+          >,
+        IAnyError,
+        GUARD_REQUIREMENTS
+      >;
+    } & NoInfer<
+      Exclude<
+        Effect.Services<
+          ReturnType<
+            NonNullable<CONTRACTS[keyof CONTRACTS]['contract']['guard']>
+          >
+        >,
+        AppRequirements | LAYER_SERVICES
+      > extends never
+        ? unknown
+        : { guardLayer: unknown }
+    >,
+  ) {
+    const frontend = makeFrontendController<
+      typeof systemName,
+      NAME,
+      VERSION,
+      FRONTEND_NAME,
+      CONTRACTS,
+      MODELS,
+      LAYER_SERVICES,
+      LAYER_REQUIREMENTS,
+      Aggregates[NAME][VERSION]['authentication']['authenticationSchema'],
+      never,
+      AppRequirements
+    >({ ...props, systemName });
+    const {
+      guardLayer: _guardLayer,
+      __initializeRequirements: _initializationRequirements,
+      ...controller
+    } = frontend;
+    const selected = {
+      ...controller,
+      ...(props.guardLayer === undefined
+        ? {}
+        : { guardLayer: props.guardLayer }),
+    };
+    return makeFrontend<
+      Aggregates[NAME][VERSION]['authentication']['signatureSchema']['Type'],
+      typeof selected & {
+        readonly __initializeRequirements?:
+          | LAYER_REQUIREMENTS
+          | GUARD_REQUIREMENTS
+          | Exclude<
+              Effect.Services<
+                ReturnType<
+                  NonNullable<CONTRACTS[keyof CONTRACTS]['contract']['guard']>
+                >
+              >,
+              LAYER_SERVICES | GUARD_SERVICES
+            >
+          | Scope.Scope;
+      }
+    >(selected);
+  }
+
+  function makeServiceFrontend<
+    const NAME extends keyof Services & string,
+    const VERSION extends keyof Services[NAME] & string,
+    const FRONTEND_NAME extends string,
+    const MODELS extends IAnyModels,
+  >(props: {
+    serviceName: NAME;
+    serviceVersion: VERSION;
+    name: FRONTEND_NAME;
+    authenticationSchema: Services[NAME][VERSION]['authentication']['authenticationSchema'];
+    models: MODELS &
+      IAssertValidModels<NoInfer<MODELS>> & {
+        [K in keyof MODELS]: K extends keyof Services[NAME][VERSION]['models']
+          ? Services[NAME][VERSION]['models'][K]
+          : never;
+      } & {
+        [K in keyof MODELS]: MODELS[K] extends IModelReplica
+          ? ITypeError<`Service frontend model "${MODELS[K]['modelName']}" must be authoritative, not a replica`>
+          : MODELS[K];
+      };
+  }) {
+    const frontend = makeFrontendController<
+      typeof systemName,
+      NAME,
+      VERSION,
+      FRONTEND_NAME,
+      MODELS,
+      Services[NAME][VERSION]['authentication']['authenticationSchema']
+    >({ ...props, systemName });
+    return makeFrontend<
+      Services[NAME][VERSION]['authentication']['signatureSchema']['Type'],
+      typeof frontend
+    >(frontend);
+  }
+  return {
+    systemName,
+    makeAggregateFrontend,
+    makeServiceFrontend,
+    Provider,
+  };
 }

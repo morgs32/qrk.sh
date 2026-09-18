@@ -4,8 +4,8 @@ import { createMatcher } from '@remix-run/route-pattern/match';
 import { Effect, Schema } from 'effect';
 import { describe, expect, it, vi } from 'vitest';
 
-import { makeAggregate } from '../aggregate/makeAggregate.ts';
-import { makeAggregateVersion } from '../aggregate/makeVersion.ts';
+import { defineAggregate } from '../aggregate/defineAggregate.ts';
+import { makeAggregateVersion } from '../aggregate/makeAggregateVersion.ts';
 
 import { AuthenticationSchema } from './AuthenticationSchema.ts';
 
@@ -25,9 +25,10 @@ describe('owner authentication declarations', () => {
     const authenticate = vi.fn(() =>
       Effect.succeed({ aggregateId: 'acct_one', user: 'one', role: 'admin' }),
     );
-    const aggregate = makeAggregateVersion(makeAggregate({ name: 'test' }), {
+    const aggregate = makeAggregateVersion(defineAggregate({ name: 'test' }), {
       version: '1.0.0',
-      authentication: { ...descriptor, authenticate },
+      ...descriptor,
+      authenticate,
       models: {},
       contracts: {},
       selections: {},

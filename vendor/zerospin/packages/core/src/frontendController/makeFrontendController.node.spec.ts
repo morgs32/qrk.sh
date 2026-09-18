@@ -3,9 +3,10 @@ import { primitives } from '@zerospin/schema';
 import { Effect, Schema } from 'effect';
 import { describe, expect, it } from 'vitest';
 
-import { defineCommand } from '../contracts/Command.ts';
-import { makeContractVersion } from '../contracts/makeVersion.ts';
-import { makeModel, makeModelVersion } from '../models/makeModel.ts';
+import { defineContract } from '../contracts/defineContract.ts';
+import { makeContractVersion } from '../contracts/makeContractVersion.ts';
+import { defineModel } from '../models/defineModel.ts';
+import { makeModelVersion } from '../models/makeModelVersion.ts';
 
 import {
   AggregateFrontendController,
@@ -14,7 +15,7 @@ import {
 } from './makeFrontendController.ts';
 
 const Product = makeModelVersion(
-  makeModel({ name: 'product', abbreviation: 'prd' }),
+  defineModel({ name: 'product', abbreviation: 'prd' }),
   {
     attributes: { name: primitives.text() },
     indexes: [],
@@ -25,7 +26,8 @@ const Product = makeModelVersion(
 describe('makeFrontendController', () => {
   it('constructs canonical controller classes and rejects excess props', () => {
     const serviceController = makeFrontendController({
-      authentication: authenticationFixtureFrontend.authentication,
+      authenticationSchema:
+        authenticationFixtureFrontend.authentication.authenticationSchema,
       serviceVersion: '1.0.0',
       systemName: 'test-system',
       serviceName: 'catalog',
@@ -33,7 +35,8 @@ describe('makeFrontendController', () => {
       models: { product: Product },
     });
     const aggregateController = makeFrontendController({
-      authentication: authenticationFixtureFrontend.authentication,
+      authenticationSchema:
+        authenticationFixtureFrontend.authentication.authenticationSchema,
       aggregateVersion: '1.0.0',
       systemName: 'test-system',
       aggregateName: 'account',
@@ -47,7 +50,8 @@ describe('makeFrontendController', () => {
     expect(() =>
       Reflect.apply(makeFrontendController, undefined, [
         {
-          authentication: authenticationFixtureFrontend.authentication,
+          authenticationSchema:
+            authenticationFixtureFrontend.authentication.authenticationSchema,
           ...{
             serviceVersion: '1.0.0',
             systemName: 'test-system',
@@ -62,7 +66,8 @@ describe('makeFrontendController', () => {
     expect(() =>
       Reflect.apply(makeFrontendController, undefined, [
         {
-          authentication: authenticationFixtureFrontend.authentication,
+          authenticationSchema:
+            authenticationFixtureFrontend.authentication.authenticationSchema,
           ...{
             aggregateVersion: '1.0.0',
             systemName: 'test-system',
@@ -79,7 +84,8 @@ describe('makeFrontendController', () => {
 
   it('requires a nonempty service version and retains it on the controller', () => {
     const props = {
-      authentication: authenticationFixtureFrontend.authentication,
+      authenticationSchema:
+        authenticationFixtureFrontend.authentication.authenticationSchema,
       systemName: 'test-system',
       serviceName: 'catalog',
       name: 'browse',
@@ -100,7 +106,8 @@ describe('makeFrontendController', () => {
 
   it('requires an aggregate version and rejects the superseded controller name', () => {
     const props = {
-      authentication: authenticationFixtureFrontend.authentication,
+      authenticationSchema:
+        authenticationFixtureFrontend.authentication.authenticationSchema,
       systemName: 'test-system',
       aggregateName: 'account',
       name: 'web',
@@ -131,10 +138,27 @@ describe('makeFrontendController', () => {
     expect(controller).not.toHaveProperty('frontendName');
   });
 
+  it('defaults omitted aggregate claims to aggregateId', () => {
+    const controller = makeFrontendController({
+      aggregateVersion: '1.0.0',
+      systemName: 'test-system',
+      aggregateName: 'account',
+      name: 'web',
+      models: {},
+      contracts: {},
+    });
+    expect(Object.keys(controller.authentication)).toEqual([
+      'authenticationSchema',
+    ]);
+    expect(
+      Object.keys(controller.authentication.authenticationSchema.fields),
+    ).toEqual(['aggregateId']);
+  });
+
   it('owns registries, model names, and contract bindings', () => {
     const inspectGuard = () => Effect.void;
     const inspectProduct = makeContractVersion(
-      defineCommand('inspectProduct'),
+      defineContract('inspectProduct'),
       {
         version: '1.0.0',
         payload: {},
@@ -147,7 +171,8 @@ describe('makeFrontendController', () => {
     };
     const contracts = { inspectProduct: inspectProductBinding };
     const props = {
-      authentication: authenticationFixtureFrontend.authentication,
+      authenticationSchema:
+        authenticationFixtureFrontend.authentication.authenticationSchema,
       aggregateVersion: '1.0.0',
       systemName: 'test-system',
       aggregateName: 'account',

@@ -1,4 +1,3 @@
-import { makeFrontendControllerSpec } from '@zerospin/core/frontendController/makeFrontendControllerSpec';
 import type { ServiceFrontendLockSchema } from '@zerospin/core/frontendController/makeServiceFrontendLock';
 import { makeServiceFrontendLockKey } from '@zerospin/core/frontendController/makeServiceFrontendLockKey';
 import { ZerospinError } from '@zerospin/error';
@@ -56,16 +55,9 @@ export const validateServiceFrontendLock = Effect.fn(
   }
   if (
     !isEqual(serviceFrontendLock.authentication, {
-      signatureJsonSchema: Schema.toJsonSchemaDocument(
-        service.authentication.signatureSchema,
-      ),
       authenticationJsonSchema: Schema.toJsonSchemaDocument(
         service.authentication.authenticationSchema,
       ),
-      selectionJsonSchema: Schema.toJsonSchemaDocument(
-        service.authentication.selectionSchema,
-      ),
-      pattern: service.authentication.pattern.source,
     })
   ) {
     return yield* new ZerospinError({
@@ -75,30 +67,9 @@ export const validateServiceFrontendLock = Effect.fn(
     });
   }
 
-  const frontendBinding = service.frontends[frontendName];
-  if (frontendBinding === undefined) {
-    return yield* new ZerospinError({
-      code: 'service-frontend-lock-unsupported',
-      message:
-        'The requested service frontend is unavailable in the active System',
-      extra: {
-        target: {
-          serviceName,
-          frontendName,
-        },
-        serviceFrontendLockKey,
-        definitionPath: `services.${serviceName}.frontends.${frontendName}`,
-        reason: 'frontend-missing',
-      },
-    });
-  }
-
-  // 3 — compare kind, systemName, and frontendName with the controller
-  const controller = frontendBinding.controller;
   if (
-    controller.kind !== 'service' ||
-    serviceFrontendLock.systemName !== controller.systemName ||
-    serviceFrontendLock.frontendName !== controller.name
+    serviceFrontendLock.systemName !== system.name ||
+    serviceFrontendLock.frontendName !== frontendName
   ) {
     return yield* new ZerospinError({
       code: 'service-frontend-lock-unsupported',
@@ -116,35 +87,12 @@ export const validateServiceFrontendLock = Effect.fn(
     });
   }
 
-  // 4 — reject missing or additional model selections
   const resolvedModels: Record<string, unknown> = {};
   const selectedSpecModels: Record<string, unknown> = {};
-  if (
-    !isEqual(
-      Object.keys(serviceFrontendLock.models).toSorted(),
-      Object.keys(controller.models).toSorted(),
-    )
-  ) {
-    return yield* new ZerospinError({
-      code: 'service-frontend-lock-unsupported',
-      message: 'The requested frontend model key set is unavailable',
-      extra: {
-        target: {
-          serviceName,
-          frontendName,
-        },
-        serviceFrontendLockKey,
-        definitionPath: 'lock.models',
-        reason: 'selection-key-set-mismatch',
-      },
-    });
-  }
-
-  // 5 — match current or historical version, encoded primitive descriptors, abbreviation, and sorted indexes
   for (const [modelKey, requestedModel] of Object.entries(
     serviceFrontendLock.models,
   )) {
-    const model = controller.models[modelKey];
+    const model = service.models[modelKey];
     if (model === undefined) {
       return yield* new ZerospinError({
         code: 'service-frontend-lock-unsupported',
@@ -218,8 +166,8 @@ export const validateServiceFrontendLock = Effect.fn(
   // 6 — reject any remaining difference from the submitted lock
   const resolvedLock = {
     authentication: serviceFrontendLock.authentication,
-    systemName: controller.systemName,
-    frontendName: controller.name,
+    systemName: system.name,
+    frontendName,
     models: resolvedModels,
   };
   if (!isEqual(resolvedLock, serviceFrontendLock)) {
@@ -239,14 +187,17 @@ export const validateServiceFrontendLock = Effect.fn(
     });
   }
 
-  // 7 — replace model definitions with the checked selections
-  const currentSpec = makeFrontendControllerSpec(controller);
   return {
     serviceFrontendLock: resolvedLock,
     frontendSpec: {
-      ...currentSpec,
+      kind: 'service' as const,
+      systemName: system.name,
+      serviceName,
+      serviceVersion: props.serviceVersion,
+      name: frontendName,
       models: selectedSpecModels,
       modelNames: Object.keys(selectedSpecModels).toSorted(),
+      contracts: {},
       serviceFrontendLock: resolvedLock,
     },
   };

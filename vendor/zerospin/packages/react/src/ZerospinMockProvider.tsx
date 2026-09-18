@@ -227,7 +227,7 @@ export function ZerospinMockProvider<
                   frontendState: {
                     aggregateId,
                     aggregateName: selector.frontend.aggregateName,
-                    authentication,
+                    authentication: initializationProps.authentication,
                     aggregateIndex: 0,
                     userIndex: 0,
                     frontendName: selector.frontend.name,

@@ -34,18 +34,6 @@ export function ModulePreview(props: {
   };
   const exceedsWallWidth = measuredUnits !== undefined && measuredUnits.w > 8;
 
-  const previewBody = (
-    <DraggableBrick
-      brickDef={brickDefForDrag}
-      className="size-full qrk-bricks overflow-hidden"
-      data-module-representative={def.moduleId}
-    >
-      <div className="brick-drag-content size-full">
-        <BrickComponent breakpoint={breakpoint} state={def.state} spec={defaultSpec} />
-      </div>
-    </DraggableBrick>
-  );
-
   return (
     <div
       data-module-entry={brickModule.id}
@@ -69,9 +57,17 @@ export function ModulePreview(props: {
           measure={<BrickComponent breakpoint={breakpoint} state={def.state} spec={defaultSpec} />}
           onGridUnits={onGridUnits}
         >
-          {previewBody}
+          <DraggableBrick
+            brickDef={brickDefForDrag}
+            className="size-full qrk-bricks overflow-hidden"
+            data-module-representative={def.moduleId}
+          >
+            <div className="brick-drag-content size-full">
+              <BrickComponent breakpoint={breakpoint} state={def.state} spec={defaultSpec} />
+            </div>
+          </DraggableBrick>
         </BrickPreview>
       </div>
-    </div>
+    </>
   );
 }

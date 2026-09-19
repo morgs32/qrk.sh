@@ -5,6 +5,7 @@ export { makeBackup } from './makeBackup/makeBackup.js';
 export { makeSession } from './makeSession/makeSession.js';
 export { makeMockSession } from './makeMockSession/makeMockSession.js';
 export { useInitializeSession } from './useInitializeSession/useInitializeSession.js';
+export { useInitializeMockSession } from './useInitializeMockSession/useInitializeMockSession.js';
 export { useLiveQuery } from './useLiveQuery.js';
 export { loadDevtools } from './loadDevtools/loadDevtools.js';
 export { stageCommand } from '@zerospin/core/session/stageCommand';

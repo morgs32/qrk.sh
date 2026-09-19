@@ -11,10 +11,10 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ModulesRouteImport } from './routes/modules'
+import { Route as BricksBrickIdRouteImport } from './routes/bricks/$brickId'
 import { Route as ModulesIndexRouteImport } from './routes/modules/index'
 import { Route as ModulesModuleIdRouteImport } from './routes/modules/$moduleId'
 import { Route as ModulesModuleIdIndexRouteImport } from './routes/modules/$moduleId/index'
-import { Route as ModulesModuleIdBrickIdRouteImport } from './routes/modules/$moduleId/$brickId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -24,6 +24,11 @@ const IndexRoute = IndexRouteImport.update({
 const ModulesRoute = ModulesRouteImport.update({
   id: '/modules',
   path: '/modules',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BricksBrickIdRoute = BricksBrickIdRouteImport.update({
+  id: '/bricks/$brickId',
+  path: '/bricks/$brickId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ModulesIndexRoute = ModulesIndexRouteImport.update({
@@ -41,33 +46,28 @@ const ModulesModuleIdIndexRoute = ModulesModuleIdIndexRouteImport.update({
   path: '/',
   getParentRoute: () => ModulesModuleIdRoute,
 } as any)
-const ModulesModuleIdBrickIdRoute = ModulesModuleIdBrickIdRouteImport.update({
-  id: '/$brickId',
-  path: '/$brickId',
-  getParentRoute: () => ModulesModuleIdRoute,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/modules': typeof ModulesRouteWithChildren
+  '/bricks/$brickId': typeof BricksBrickIdRoute
   '/modules/$moduleId': typeof ModulesModuleIdRouteWithChildren
   '/modules/': typeof ModulesIndexRoute
-  '/modules/$moduleId/$brickId': typeof ModulesModuleIdBrickIdRoute
   '/modules/$moduleId/': typeof ModulesModuleIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/bricks/$brickId': typeof BricksBrickIdRoute
   '/modules': typeof ModulesIndexRoute
-  '/modules/$moduleId/$brickId': typeof ModulesModuleIdBrickIdRoute
   '/modules/$moduleId': typeof ModulesModuleIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/modules': typeof ModulesRouteWithChildren
+  '/bricks/$brickId': typeof BricksBrickIdRoute
   '/modules/$moduleId': typeof ModulesModuleIdRouteWithChildren
   '/modules/': typeof ModulesIndexRoute
-  '/modules/$moduleId/$brickId': typeof ModulesModuleIdBrickIdRoute
   '/modules/$moduleId/': typeof ModulesModuleIdIndexRoute
 }
 export interface FileRouteTypes {
@@ -75,25 +75,26 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/modules'
+    | '/bricks/$brickId'
     | '/modules/$moduleId'
     | '/modules/'
-    | '/modules/$moduleId/$brickId'
     | '/modules/$moduleId/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/modules' | '/modules/$moduleId/$brickId' | '/modules/$moduleId'
+  to: '/' | '/bricks/$brickId' | '/modules' | '/modules/$moduleId'
   id:
     | '__root__'
     | '/'
     | '/modules'
+    | '/bricks/$brickId'
     | '/modules/$moduleId'
     | '/modules/'
-    | '/modules/$moduleId/$brickId'
     | '/modules/$moduleId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ModulesRoute: typeof ModulesRouteWithChildren
+  BricksBrickIdRoute: typeof BricksBrickIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -110,6 +111,13 @@ declare module '@tanstack/react-router' {
       path: '/modules'
       fullPath: '/modules'
       preLoaderRoute: typeof ModulesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/bricks/$brickId': {
+      id: '/bricks/$brickId'
+      path: '/bricks/$brickId'
+      fullPath: '/bricks/$brickId'
+      preLoaderRoute: typeof BricksBrickIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/modules/': {
@@ -133,23 +141,14 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ModulesModuleIdIndexRouteImport
       parentRoute: typeof ModulesModuleIdRoute
     }
-    '/modules/$moduleId/$brickId': {
-      id: '/modules/$moduleId/$brickId'
-      path: '/$brickId'
-      fullPath: '/modules/$moduleId/$brickId'
-      preLoaderRoute: typeof ModulesModuleIdBrickIdRouteImport
-      parentRoute: typeof ModulesModuleIdRoute
-    }
   }
 }
 
 interface ModulesModuleIdRouteChildren {
-  ModulesModuleIdBrickIdRoute: typeof ModulesModuleIdBrickIdRoute
   ModulesModuleIdIndexRoute: typeof ModulesModuleIdIndexRoute
 }
 
 const ModulesModuleIdRouteChildren: ModulesModuleIdRouteChildren = {
-  ModulesModuleIdBrickIdRoute: ModulesModuleIdBrickIdRoute,
   ModulesModuleIdIndexRoute: ModulesModuleIdIndexRoute,
 }
 
@@ -173,6 +172,7 @@ const ModulesRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ModulesRoute: ModulesRouteWithChildren,
+  BricksBrickIdRoute: BricksBrickIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -1,7 +1,5 @@
-import { RoutePattern } from "@remix-run/route-pattern";
 import { Schema } from "effect";
-import { signature } from "../../signature";
-import { makeFrontendController } from "@zerospin/sdk/browser";
+import { makeFrontendController } from "@zerospin/core/frontendController/makeFrontendController";
 
 import { createGridV2 as createGrid } from "./contracts/createGrid/CreateGridV2";
 import { createPageV2 as createPage } from "./contracts/createPage/CreatePageV2";
@@ -18,12 +16,10 @@ import { siteV2 as Site } from "./models/site/SiteV2";
 import { userV1 as User } from "./models/user/UserV1";
 
 export const userFrontend = makeFrontendController({
-  authentication: {
-    signatureSchema: signature,
-    authenticationSchema: Schema.Struct({ aggregateId: Schema.String, clerkUserId: Schema.String }),
-    selectionSchema: Schema.Struct({ clerkUserId: Schema.String }),
-    pattern: RoutePattern.parse("/:clerkUserId"),
-  },
+  authenticationSchema: Schema.Struct({
+    aggregateId: Schema.String,
+    clerkUserId: Schema.String,
+  }),
   contracts: {
     createGrid: { contract: createGrid },
     createPage: { contract: createPage },

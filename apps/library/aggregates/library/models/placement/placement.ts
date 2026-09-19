@@ -1,6 +1,6 @@
-import { makeModel } from "@zerospin/core/models/makeModel";
+import { defineModel } from "@zerospin/core/models/defineModel";
 
-export const placement = makeModel({
+export const placement = defineModel({
   name: "placement",
   abbreviation: "plc",
 });

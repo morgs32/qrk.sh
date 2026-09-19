@@ -1,7 +1,7 @@
 "use client";
 
 import { useUser } from "@clerk/react";
-import { makeModelIdSchema } from "@zerospin/core/models/makeIdSchema";
+import { makeModelIdSchema } from "@zerospin/core/models/makeModelIdSchema";
 import { useLiveQuery } from "@zerospin/react";
 import { Schema } from "effect";
 import { useEffect, useState } from "react";

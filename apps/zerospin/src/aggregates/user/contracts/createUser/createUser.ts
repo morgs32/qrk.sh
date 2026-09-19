@@ -1,3 +1,3 @@
-import { defineCommand } from "@zerospin/sdk/browser";
+import { defineContract } from "@zerospin/sdk/browser";
 
-export const createUser = defineCommand("createUser");
+export const createUser = defineContract("createUser");

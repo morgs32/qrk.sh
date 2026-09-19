@@ -1,3 +1,3 @@
-import { makeAggregate } from "@zerospin/core/aggregate/makeAggregate";
+import { defineAggregate } from "@zerospin/core/aggregate/defineAggregate";
 
-export const library = makeAggregate({ name: "library" });
+export const library = defineAggregate({ name: "library" });

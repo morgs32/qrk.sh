@@ -2,7 +2,6 @@ import { GitFork, Star } from "lucide-react";
 
 import { BrickBody } from "../../../components/brick/BrickBody";
 import { BrickFooter } from "../../../components/brick/BrickFooter";
-import { BrickShell } from "../../../components/brick/BrickShell";
 import { brickMetaIconClass } from "../../../components/brick/brickTokens";
 import { Row } from "../../../components/Row";
 
@@ -95,7 +94,7 @@ export function GitHubRepo(props: {
   };
 }) {
   return (
-    <BrickShell className="min-w-0">
+    <>
       <BrickBody>
         <RepoName name={props.state.data.name} />
         <RepoDescription description={props.state.data.description} />
@@ -107,6 +106,6 @@ export function GitHubRepo(props: {
           <RepoLanguage language={props.state.data.language} />
         </Row>
       </BrickFooter>
-    </BrickShell>
+    </>
   );
 }

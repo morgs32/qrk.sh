@@ -5,11 +5,11 @@ import { cn } from "cn";
 
 import { OrderedSection } from "@qrk.sh/web/library/OrderedDoc";
 
-import { BrickPreview, minGridUnits } from "../../../../lib/BrickPreview";
-import { BREAKPOINTS } from "../../../../lib/breakpoints";
+import { MeasuredBrickWrapper } from "../../../../components/brick/MeasuredBrickWrapper";
+import { GridItemPreview } from "../../../../lib/GridItemPreview";
+import { BREAKPOINTS, minGridUnits } from "../../../../lib/breakpoints";
 import { modulesHash } from "../../../../lib/modulesHash";
 import { useBricksStore } from "../../../../lib/BrickStoreProvider";
-import { UnconstrainedBrickPreview } from "./-UnconstrainedBrickPreview";
 
 export function BreakpointPreviewRow({
   entry,
@@ -28,10 +28,10 @@ export function BreakpointPreviewRow({
   className?: string;
   spec: Spec;
 }) {
-  const setActiveBrickDrag = useBricksStore(state => state.setActiveBrickDrag);
+  const setActiveBrickDrag = useBricksStore((state) => state.setActiveBrickDrag);
   const [intrinsicSize, setIntrinsicSize] = useState<{ widthPx: number; heightPx: number }>();
   const onSizeChange = useCallback((size: { widthPx: number; heightPx: number }) => {
-    setIntrinsicSize(current => {
+    setIntrinsicSize((current) => {
       if (current?.widthPx === size.widthPx && current?.heightPx === size.heightPx) {
         return current;
       }
@@ -39,22 +39,15 @@ export function BreakpointPreviewRow({
     });
   }, []);
 
-  const [gridUnits, setGridUnits] = useState<{ w: number; h: number }>();
-  const onGridUnits = useCallback((size: { w: number; h: number }) => {
-    setGridUnits(current => {
-      if (current?.w === size.w && current?.h === size.h) return current;
-      return size;
-    });
-  }, []);
   const measuredW = intrinsicSize
     ? minGridUnits(entry.gridItemWidth, intrinsicSize.widthPx)
     : undefined;
   const measuredH = intrinsicSize
     ? minGridUnits(entry.gridItemWidth, intrinsicSize.heightPx)
     : undefined;
-  const dragW = gridUnits?.w ?? measuredW ?? 1;
-  const dragH = gridUnits?.h ?? measuredH ?? 1;
-  const exceedsWallWidth = gridUnits !== undefined && gridUnits.w > 8;
+  const dragW = measuredW ?? 1;
+  const dragH = measuredH ?? 1;
+  const exceedsWallWidth = measuredW !== undefined && measuredW > 8;
 
   const previewSurface = (
     <div
@@ -62,7 +55,7 @@ export function BreakpointPreviewRow({
       data-module-brick={moduleId}
       data-testid="brick-preview"
       draggable
-      onDragStart={event => {
+      onDragStart={(event) => {
         setActiveBrickDrag({
           ...brick.def,
           w: dragW,
@@ -99,24 +92,25 @@ export function BreakpointPreviewRow({
         <div className="flex w-max items-start gap-4">
           <div>
             <p className="m-0 mb-2 font-mono text-neutral-500">gridItem</p>
-            <BrickPreview
-              breakpoint={entry.id}
-              measure={<BrickComponent breakpoint={entry.id} state={moduleState} spec={spec} />}
-              onGridUnits={onGridUnits}
-            >
+            <GridItemPreview breakpoint={entry.id} w={dragW} h={dragH}>
               {previewSurface}
-            </BrickPreview>
-            {gridUnits !== undefined ? (
+            </GridItemPreview>
+            {measuredW !== undefined && measuredH !== undefined ? (
               <p className="m-0 pt-2 font-mono text-neutral-500">
-                w={gridUnits.w} h={gridUnits.h}
+                w={measuredW} h={measuredH}
               </p>
             ) : null}
           </div>
           <div>
             <p className="m-0 mb-2 font-mono text-neutral-500">intrinsic</p>
-            <UnconstrainedBrickPreview onSizeChange={onSizeChange}>
+            <MeasuredBrickWrapper onChange={onSizeChange}>
               <BrickComponent breakpoint={entry.id} state={moduleState} spec={spec} />
-            </UnconstrainedBrickPreview>
+            </MeasuredBrickWrapper>
+            {intrinsicSize !== undefined ? (
+              <p className="m-0 pt-2 font-mono text-neutral-500">
+                {intrinsicSize.widthPx}×{intrinsicSize.heightPx}px
+              </p>
+            ) : null}
             {measuredW !== undefined && measuredH !== undefined ? (
               <p className="m-0 pt-2 font-mono text-neutral-500">
                 w={measuredW} h={measuredH}

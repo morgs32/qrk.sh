@@ -2,7 +2,9 @@ import { useCallback, useState } from "react";
 
 import { modulesHash } from "@qrk.sh/library";
 import { useWallViewport } from "@qrk.sh/library/WallViewportProvider";
-import { BrickPreview } from "@qrk.sh/library/BrickPreview";
+import { BREAKPOINTS, minGridUnits } from "@qrk.sh/library/breakpoints";
+import { GridItemPreview } from "@qrk.sh/library/GridItemPreview";
+import { MeasuredBrickWrapper } from "@qrk.sh/library/MeasuredBrickWrapper";
 import type { IModuleBrickDef } from "@qrk.sh/library";
 import { ArrowLeft } from "lucide-react";
 import { Tabs } from "radix-ui";
@@ -69,12 +71,19 @@ function BrickGroupRouteBody(props: {
   const declaredH = declared.h;
   const hasDeclaredSize = declaredW !== undefined && declaredH !== undefined;
   const [measuredUnits, setMeasuredUnits] = useState<{ w: number; h: number }>();
-  const onGridUnits = useCallback((size: { w: number; h: number }) => {
-    setMeasuredUnits((current) => {
-      if (current?.w === size.w && current?.h === size.h) return current;
-      return size;
-    });
-  }, []);
+  const onSizeChange = useCallback(
+    (dimensions: { widthPx: number; heightPx: number }) => {
+      const entry = BREAKPOINTS.find((row) => row.id === breakpoint);
+      if (entry === undefined) return;
+      const nextW = minGridUnits(entry.gridItemWidth, dimensions.widthPx);
+      const nextH = minGridUnits(entry.gridItemWidth, dimensions.heightPx);
+      setMeasuredUnits((current) => {
+        if (current?.w === nextW && current?.h === nextH) return current;
+        return { w: nextW, h: nextH };
+      });
+    },
+    [breakpoint],
+  );
 
   const w = hasDeclaredSize ? declaredW : (measuredUnits?.w ?? 1);
   const h = hasDeclaredSize ? declaredH : (measuredUnits?.h ?? 1);
@@ -152,22 +161,21 @@ function BrickGroupRouteBody(props: {
             </div>
             <Tabs.Content value={`${brickModule.def.moduleId}-preview`}>
               <div className="mt-6 overflow-auto">
-                <div className={w === 8 ? undefined : "ml-6"}>
-                  {hasDeclaredSize ? (
-                    <BrickPreview w={declaredW} h={declaredH}>
-                      {surface}
-                    </BrickPreview>
-                  ) : (
-                    <BrickPreview
-                      breakpoint={breakpoint}
-                      measure={
-                        <BrickComponent breakpoint={breakpoint} data={brickModule.defaultData} />
-                      }
-                      onGridUnits={onGridUnits}
+                <div className={w === 8 ? "relative" : "relative ml-6"}>
+                  {hasDeclaredSize ? null : (
+                    <div
+                      aria-hidden
+                      className="pointer-events-none absolute overflow-hidden"
+                      style={{ width: 0, height: 0 }}
                     >
-                      {surface}
-                    </BrickPreview>
+                      <MeasuredBrickWrapper onChange={onSizeChange}>
+                        <BrickComponent breakpoint={breakpoint} data={brickModule.defaultData} />
+                      </MeasuredBrickWrapper>
+                    </div>
                   )}
+                  <GridItemPreview breakpoint={breakpoint} w={w} h={h}>
+                    {surface}
+                  </GridItemPreview>
                 </div>
               </div>
             </Tabs.Content>

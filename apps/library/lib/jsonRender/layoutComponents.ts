@@ -22,7 +22,7 @@ export const brickShellComponent = defineComponent({
   props: {},
   slots: ["default"],
   description:
-    "Column shell for the card. Children paint top-to-bottom; typically BrickBody then BrickFooter.",
+    "Groups BrickBody then BrickFooter as siblings. No DOM box; the fill or measure wrapper is the flex parent.",
 });
 
 export const brickBodyComponent = defineComponent({

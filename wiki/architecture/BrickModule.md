@@ -25,13 +25,12 @@ sources:
     lines: 8-12
   - path: apps/library/app/routes/modules/$moduleId/index.tsx
     sha: ec39cb40d475faf32cb58ee62f0413ee8bfb19dc
-    lines: 193-197
+    lines: 26-40
   - path: apps/studio/app/routes/BrickGroupRoute.tsx
     sha: 456fae9a57db96e14092d608f9f981697d139e33
     lines: 22-22
-  - path: apps/library/components/brick/BrickFrame.tsx
-    sha: 608eb9ada2c3e68607ded020e5b46c631ccca6ef
-    lines: 3-8
+  - path: apps/library/components/brick/BrickWrapper.tsx
+    lines: 6-26
   - path: apps/library/lib/types.ts
     sha: 32db2cab47c9e341e6356d5f3c902fc7017d792b
     lines: 14-28
@@ -44,16 +43,18 @@ sources:
 
 Each assembler calls [`defineModule`](../../apps/library/make/defineModule.ts) for the worker-safe contract and [`makeFrontend`](../../apps/library/make/makeFrontend.tsx) for registry/forms. [`makeBackendLibrary`](../../apps/library/backendLibrary.ts) keys the contracts by id. [`modulesHash`](../../apps/library/lib/modulesHash.ts) is the matching `makeFrontend` map. Routes bind that value as `brickModule`. Preview and drag are [`LibrarySandboxBrickDrop`](./browser/LibrarySandboxBrickDrop.md) and [`SiteEditorBrickDrop`](./browser/SiteEditorBrickDrop.md).
 
-Library sandbox walls store shared module `state` on the typed Zerospin module
-row and per-breakpoint Spec / grid / visibility on Placement rows (see
-[`brick-layout-conventions`](../brick-layout-conventions.md)). Studio’s wall still
+Library sandbox walls store shared module `state` on the brick row
+and per-breakpoint Spec / grid / visibility on Placement rows. The library
+aggregate is assembled once from `backendLibrary` through
+[`makeLibraryAggregateVersion`](../../apps/library/aggregates/library/makeLibraryAggregateVersion.ts)
+(see [`brick-layout-conventions`](../brick-layout-conventions.md)). Studio’s wall still
 uses the exported Zustand `BrickWall` path until a separate migration.
 
 ## Trigger
 
 1. The library bundle evaluates each `modules/<camelCase>/` definition, then [`backendLibrary.ts`](../../apps/library/backendLibrary.ts) and [`modulesHash.ts`](../../apps/library/lib/modulesHash.ts).
 2. [`@qrk.sh/library`](../../apps/library/lib/index.ts) re-exports `modulesHash` for studio.
-3. Workbench navigation hits TanStack file routes under `modules`, `modules/:moduleId`, and `modules/:moduleId/:brickId`.
+3. Workbench navigation hits TanStack file routes under `modules`, `modules/:moduleId`, and `bricks/:brickId`.
 4. Studio group detail hits [`BrickGroupRoute`](../../apps/studio/app/routes/BrickGroupRoute.tsx) with `groupName`.
 
 ```mermaid
@@ -93,7 +94,7 @@ sequenceDiagram
     autonumber 12
     ModuleDetail->>Brick: brickModule.component(...)
     autonumber 13
-    Brick->>Brick: BrickFrame wrap + Renderer
+    Brick->>Brick: Renderer only; callers wrap BrickWrapper
   end
 ```
 
@@ -120,13 +121,14 @@ sequenceDiagram
 9. A hit means the child index route renders.
    - [`$moduleId.tsx:14-16`](../../apps/library/app/routes/modules/$moduleId.tsx#L14-L16) — parent renders `<Outlet />`. (`apps/library/app/routes/modules/$moduleId.tsx:14-16`)
 10. The module detail pane looks up the same key as `brickModule`.
-    - [`index.tsx:193-197`](../../apps/library/app/routes/modules/$moduleId/index.tsx#L193-L197) — `brickModule = modulesHash[moduleId]`, then pane 404 on miss. (`apps/library/app/routes/modules/$moduleId/index.tsx:193-197`)
-    - [`BrickGroupRoute.tsx:22-22`](../../apps/studio/app/routes/BrickGroupRoute.tsx#L22) — studio detail uses `Object.values(modulesHash).find((candidate) => candidate.id === groupName)` as `brickModule`. (`apps/studio/app/routes/BrickGroupRoute.tsx:22`)
+    - [`index.tsx:26-30`](../../apps/library/app/routes/modules/$moduleId/index.tsx#L26-L30) — `brickModule = modulesHash[moduleId]`, then pane 404 on miss. (`apps/library/app/routes/modules/$moduleId/index.tsx:26-30`)
+    - [`BrickGroupRoute.tsx:28-28`](../../apps/studio/app/routes/BrickGroupRoute.tsx#L28) — studio detail uses `Object.values(modulesHash).find((candidate) => candidate.id === groupName)` as `brickModule`. (`apps/studio/app/routes/BrickGroupRoute.tsx:28`)
 11. The hash returns that `IModule`.
-    - [`index.tsx:194`](../../apps/library/app/routes/modules/$moduleId/index.tsx#L194) — `const brickModule = modulesHash[moduleId]`. (`apps/library/app/routes/modules/$moduleId/index.tsx:194`)
+    - [`index.tsx:27`](../../apps/library/app/routes/modules/$moduleId/index.tsx#L27) — `const brickModule = modulesHash[moduleId]`. (`apps/library/app/routes/modules/$moduleId/index.tsx:27`)
 12. Render uses `brickModule.component` as `Brick`.
-    - [`index.tsx:207-208`](../../apps/library/app/routes/modules/$moduleId/index.tsx#L207-L208) — `const brick = brickModule` then `BrickComponent = brick.component`. (`apps/library/app/routes/modules/$moduleId/index.tsx:207-208`)
-    - [`BrickGroupRoute.tsx:41-43`](../../apps/studio/app/routes/BrickGroupRoute.tsx#L41-L43) — `BrickComponent = brickModule.component` and `def[breakpoint]` size. (`apps/studio/app/routes/BrickGroupRoute.tsx:41-43`)
-13. `Brick` selects the breakpoint spec/options and wraps Renderer in `BrickFrame`.
-    - [`makeFrontend.tsx:365-384`](../../apps/library/make/makeFrontend.tsx#L365-L384) — resolved breakpoint `defaultSpec` and options decode inside `BrickFrame`. (`apps/library/make/makeFrontend.tsx:365-384`)
-    - [`BrickFrame.tsx:3-8`](../../apps/library/components/brick/BrickFrame.tsx#L3-L8) — `qrk-bricks` fill wrapper. (`apps/library/components/brick/BrickFrame.tsx:3-8`)
+    - [`index.tsx:39-40`](../../apps/library/app/routes/modules/$moduleId/index.tsx#L39-L40) — `const brick = brickModule` then `BrickComponent = brick.component`. (`apps/library/app/routes/modules/$moduleId/index.tsx:39-40`)
+    - [`BrickGroupRoute.tsx:68`](../../apps/studio/app/routes/BrickGroupRoute.tsx#L68) — `BrickComponent = brickModule.component`. (`apps/studio/app/routes/BrickGroupRoute.tsx:68`)
+13. `Brick` renders Authored or json-render `Renderer`. Fill vs measure chrome is applied by the caller (`BrickWrapper` / `MeasuredBrickWrapper`). Json-render `BrickShell` is a fragment so Body+Footer are flex children of that wrapper.
+    - [`makeFrontend.tsx:60-77`](../../apps/library/make/makeFrontend.tsx#L60-L77) — no fill wrapper around Authored/`Renderer`. (`apps/library/make/makeFrontend.tsx:60-77`)
+    - [`BrickWrapper.tsx:6-26`](../../apps/library/components/brick/BrickWrapper.tsx#L6-L26) — `qrk-bricks` fill wrapper (`h-full w-full`). (`apps/library/components/brick/BrickWrapper.tsx:6-26`)
+    - [`layoutRegistryComponents.tsx:60`](../../apps/library/lib/jsonRender/layoutRegistryComponents.tsx#L60) — `BrickShell` registry is `<>{children}</>`. (`apps/library/lib/jsonRender/layoutRegistryComponents.tsx:60`)

@@ -1,7 +1,7 @@
 "use client";
 import { modulesHash } from "@qrk.sh/library";
 import { useWallViewport } from "@qrk.sh/library/WallViewportProvider";
-import { BrickPreview } from "@qrk.sh/library/BrickPreview";
+import { GridItemPreview } from "@qrk.sh/library/GridItemPreview";
 import { useBricksStore } from "@qrk.sh/library/GridStore";
 import { Schema } from "effect";
 import { ArrowLeft, X } from "lucide-react";
@@ -77,7 +77,8 @@ export function BrickDetail() {
               <p className="mt-0 font-mono text-sm text-muted-foreground">{brick.def.moduleId}</p>
             </div>
             <div className="mt-8 overflow-auto">
-              <BrickPreview
+              <GridItemPreview
+                breakpoint={breakpoint}
                 w={entry.gridItem?.w ?? brick.def[breakpoint].w ?? 1}
                 h={entry.gridItem?.h ?? brick.def[breakpoint].h ?? 1}
               >
@@ -92,7 +93,7 @@ export function BrickDetail() {
                     spec={entry.spec}
                   />
                 </div>
-              </BrickPreview>
+              </GridItemPreview>
             </div>
           </section>
         )}

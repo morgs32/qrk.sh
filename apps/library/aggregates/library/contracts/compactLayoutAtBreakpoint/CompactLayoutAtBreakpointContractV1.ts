@@ -1,5 +1,5 @@
 import type { IDb } from "@zerospin/core/drizzle/types";
-import { makeContractVersion } from "@zerospin/core/contracts/makeVersion";
+import { makeContractVersion } from "@zerospin/core/contracts/makeContractVersion";
 import type { InferCommandPayload } from "@zerospin/core/models/types";
 import { ZerospinError } from "@zerospin/error";
 import {
@@ -14,8 +14,8 @@ import {
   compactVisibleLayout,
   visibleLayoutError,
 } from "../../layout/resolveVisibleCollisions";
-import { membershipModelV1 } from "../../models/membership/membershipModelV1";
-import { placementModelV1 } from "../../models/placement/placementModelV1";
+import { makeBrickModel } from "../../models/brick/makeBrickModel";
+import { makePlacementModel } from "../../models/placement/placementModelV1";
 import { wallModelV1 } from "../../models/wall/wallModelV1";
 import { compactLayoutAtBreakpoint } from "./compactLayoutAtBreakpoint";
 
@@ -27,24 +27,27 @@ const gridItemSchema = Schema.Struct({
   h: Schema.Number,
 });
 
-const compactLayoutAtBreakpointPayload = {
-  wallId: primitives.foreignKey({ abbreviation: wallModelV1.abbreviation }),
-  breakpoint: primitives.enum({
-    values: ["sm", "md", "lg", "xl"],
-  }),
-  visibleLayout: primitives.json({
-    schema: Schema.Array(gridItemSchema),
-  }),
-};
+export function makeCompactLayoutAtBreakpointContract(props: {
+  wall: typeof wallModelV1;
+  brick: ReturnType<typeof makeBrickModel>;
+  placement: ReturnType<typeof makePlacementModel>;
+}) {
+  const compactLayoutAtBreakpointPayload = {
+    wallId: primitives.foreignKey({ abbreviation: props.wall.abbreviation }),
+    breakpoint: primitives.enum({
+      values: ["sm", "md", "lg", "xl"],
+    }),
+    visibleLayout: primitives.json({
+      schema: Schema.Array(gridItemSchema),
+    }),
+  };
 
-export const compactLayoutAtBreakpointContractV1 = makeContractVersion(
-  compactLayoutAtBreakpoint,
-  {
+  return makeContractVersion(compactLayoutAtBreakpoint, {
     payload: compactLayoutAtBreakpointPayload,
     models: {
-      wall: wallModelV1,
-      membership: membershipModelV1,
-      placement: placementModelV1,
+      wall: props.wall,
+      brick: props.brick,
+      placement: props.placement,
     },
     version: "1.0.0",
     guard: Effect.fn("compactLayoutAtBreakpoint.guard")(function* ({
@@ -69,24 +72,24 @@ export const compactLayoutAtBreakpointContractV1 = makeContractVersion(
         });
       }
 
-      const memberships = db.query.membership
+      const bricks = db.query.brick
         .findMany({
           where: { wallId: { eq: payload.wallId } },
         })
         .sync();
-      const membershipIds = new Set(memberships.map(membership => membership.id));
+      const brickIds = new Set(bricks.map(brickRow => brickRow.id));
 
-      const visibleMembershipIds = new Set<string>();
-      for (const membership of memberships) {
+      const visibleBrickIds = new Set<string>();
+      for (const brickRow of bricks) {
         const placement = db.query.placement
           .findFirst({
             where: {
-              id: { eq: placementIdFor(membership.id, payload.breakpoint) },
+              id: { eq: placementIdFor(brickRow.id, payload.breakpoint) },
             },
           })
           .sync();
         if (placement !== undefined && placement.isVisible) {
-          visibleMembershipIds.add(membership.id);
+          visibleBrickIds.add(brickRow.id);
         }
       }
 
@@ -101,15 +104,15 @@ export const compactLayoutAtBreakpointContractV1 = makeContractVersion(
         }
         layoutIds.add(item.i);
 
-        if (!membershipIds.has(item.i)) {
+        if (!brickIds.has(item.i)) {
           return yield* new ZerospinError({
             code: "compact-layout-item-not-on-wall",
-            message: `visible layout item ${item.i} is not a membership on wall ${payload.wallId}`,
+            message: `visible layout item ${item.i} is not a brick on wall ${payload.wallId}`,
             status: 400,
           });
         }
 
-        if (!visibleMembershipIds.has(item.i)) {
+        if (!visibleBrickIds.has(item.i)) {
           return yield* new ZerospinError({
             code: "compact-layout-item-not-visible",
             message: `visible layout item ${item.i} is not visible at breakpoint ${payload.breakpoint}`,
@@ -118,7 +121,7 @@ export const compactLayoutAtBreakpointContractV1 = makeContractVersion(
         }
       }
 
-      if (layoutIds.size !== visibleMembershipIds.size) {
+      if (layoutIds.size !== visibleBrickIds.size) {
         return yield* new ZerospinError({
           code: "compact-layout-set-mismatch",
           message: `visibleLayout must include exactly the visible placements at breakpoint ${payload.breakpoint}`,
@@ -126,11 +129,11 @@ export const compactLayoutAtBreakpointContractV1 = makeContractVersion(
         });
       }
 
-      for (const membershipId of visibleMembershipIds) {
-        if (!layoutIds.has(membershipId)) {
+      for (const brickId of visibleBrickIds) {
+        if (!layoutIds.has(brickId)) {
           return yield* new ZerospinError({
             code: "compact-layout-set-mismatch",
-            message: `visibleLayout is missing visible membership ${membershipId}`,
+            message: `visibleLayout is missing visible brick ${brickId}`,
             status: 400,
           });
         }
@@ -162,12 +165,12 @@ export const compactLayoutAtBreakpointContractV1 = makeContractVersion(
               attributes: {
                 gridItem: structuredClone(item),
               } as Partial<
-                InferDecodedRow<(typeof placementModelV1)["attributes"]>
+                InferDecodedRow<(typeof props.placement)["attributes"]>
               >,
             }),
           );
         }
         return mutations;
       }),
-  },
-);
+  });
+}

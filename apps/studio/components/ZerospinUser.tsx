@@ -42,7 +42,14 @@ export const ZerospinApp = makeZerospinApp<typeof system>({
   },
 });
 
-export const ZerospinUser = ZerospinApp.makeFrontend(userFrontend);
+export const ZerospinUser = ZerospinApp.makeAggregateFrontend({
+  authenticationSchema: userFrontend.authentication.authenticationSchema,
+  contracts: userFrontend.contracts,
+  aggregateName: "user",
+  name: "web",
+  aggregateVersion: "8.0.0",
+  models: userFrontend.models,
+});
 
 const ZerospinUserInitializedStateContext = createContext<null | {
   readonly db: ReturnType<typeof useZerospinUserInitializedStateFromFrontend>["db"];

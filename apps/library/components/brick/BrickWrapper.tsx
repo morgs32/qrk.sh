@@ -3,7 +3,7 @@ import { cn } from "cn";
 
 import { brickStackGapClass } from "./brickTokens";
 
-export function BrickShell({
+export function BrickWrapper({
   children,
   className,
   ...props
@@ -15,7 +15,8 @@ export function BrickShell({
     <div
       {...props}
       className={cn(
-        "@container flex h-full min-h-0 w-full flex-col overflow-hidden",
+        "qrk-bricks relative flex h-full min-h-0 min-w-0 w-full overflow-hidden bg-white [&_svg]:select-none",
+        "@container flex-col",
         brickStackGapClass,
         className,
       )}

@@ -1,3 +1,3 @@
-import { makeAggregate } from "@zerospin/sdk";
+import { defineAggregate } from "@zerospin/sdk";
 
-export const user = makeAggregate({ name: "user" });
+export const user = defineAggregate({ name: "user" });

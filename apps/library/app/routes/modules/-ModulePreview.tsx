@@ -4,8 +4,9 @@ import { cn } from "cn";
 
 import type { Spec } from "@json-render/core";
 
-import { BrickPreview } from "../../../lib/BrickPreview";
-import { BREAKPOINTS } from "../../../lib/breakpoints";
+import { MeasuredBrickWrapper } from "../../../components/brick/MeasuredBrickWrapper";
+import { GridItemPreview } from "../../../lib/GridItemPreview";
+import { BREAKPOINTS, minGridUnits } from "../../../lib/breakpoints";
 import { modulesHash } from "../../../lib/modulesHash";
 import type { IModuleBrickDef } from "../../../lib/types";
 import { DraggableBrick } from "../../DraggableBrick";
@@ -17,12 +18,19 @@ export function ModulePreview(props: {
   const { brickModule, breakpoint } = props;
   const { def, component: BrickComponent, defaultSpec } = brickModule;
   const [measuredUnits, setMeasuredUnits] = useState<{ w: number; h: number }>();
-  const onGridUnits = useCallback((size: { w: number; h: number }) => {
-    setMeasuredUnits(current => {
-      if (current?.w === size.w && current?.h === size.h) return current;
-      return size;
-    });
-  }, []);
+  const onSizeChange = useCallback(
+    (dimensions: { widthPx: number; heightPx: number }) => {
+      const entry = BREAKPOINTS.find((row) => row.id === breakpoint);
+      if (entry === undefined) return;
+      const w = minGridUnits(entry.gridItemWidth, dimensions.widthPx);
+      const h = minGridUnits(entry.gridItemWidth, dimensions.heightPx);
+      setMeasuredUnits((current) => {
+        if (current?.w === w && current?.h === h) return current;
+        return { w, h };
+      });
+    },
+    [breakpoint],
+  );
 
   const dragW = measuredUnits?.w ?? 1;
   const dragH = measuredUnits?.h ?? 1;
@@ -51,12 +59,17 @@ export function ModulePreview(props: {
           {brickModule.label}
         </Link>
       </h2>
-      <div className="pb-16">
-        <BrickPreview
-          breakpoint={breakpoint}
-          measure={<BrickComponent breakpoint={breakpoint} state={def.state} spec={defaultSpec} />}
-          onGridUnits={onGridUnits}
+      <div className="relative pb-16">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute overflow-hidden"
+          style={{ width: 0, height: 0 }}
         >
+          <MeasuredBrickWrapper onChange={onSizeChange}>
+            <BrickComponent breakpoint={breakpoint} state={def.state} spec={defaultSpec} />
+          </MeasuredBrickWrapper>
+        </div>
+        <GridItemPreview breakpoint={breakpoint} w={dragW} h={dragH}>
           <DraggableBrick
             brickDef={brickDefForDrag}
             className="size-full qrk-bricks overflow-hidden"
@@ -66,8 +79,8 @@ export function ModulePreview(props: {
               <BrickComponent breakpoint={breakpoint} state={def.state} spec={defaultSpec} />
             </div>
           </DraggableBrick>
-        </BrickPreview>
+        </GridItemPreview>
       </div>
-    </>
+    </div>
   );
 }

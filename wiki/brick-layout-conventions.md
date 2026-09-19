@@ -17,39 +17,45 @@ breakpoints. A module owns identity, catalog, `stateShape`, `defaultState`, one
 `defaultSpec`, and a React brick. Grid sizing is never part of the module
 definition.
 
-A Zerospin module model row (`makeModuleModelVersion`) persists shared typed
-`state` only. Complete json-render Specs, grid items, and visibility live on
+A brick row (`makeBrickModel`) persists `moduleId` and shared `state` on the
+wall instance. Complete json-render Specs, grid items, and visibility live on
 **Placement** rows (one per brick × breakpoint).
 
 Library sandbox ownership (contracts via `ZerospinMockProvider`):
 
 ```text
-Wall → Membership (brick) → Placement [sm, md, lg, xl]
-         └─ typed module row (shared state)
+Wall → Brick → Placement [sm, md, lg, xl]
 ```
 
-- **Wall** — collection of memberships (`wal_sandbox` seeded per mock session).
-- **Membership** — wall reference, kebab `moduleId`, and `moduleResourceId` of
-  the typed module row. Grid item `i` equals the membership id across all four
-  placements.
-- **Placement** — membership, breakpoint, complete Spec, `gridItem`, `isVisible`.
+- **Wall** — collection of bricks (`wal_sandbox` seeded per mock session).
+- **Brick** — wall reference, kebab `moduleId`, and shared `state`. Grid item
+  `i` equals the brick id across all four placements.
+- **Placement** — brick, breakpoint, complete Spec, `gridItem`, `isVisible`.
 
 Studio still uses the exported Zustand `BrickWall` / `GridStore` path and is
 not on this contract model yet.
 
-On sandbox drop, `addBrick` creates the module row, membership, and four visible
+On sandbox drop, `addBrick` creates the brick and four visible
 placements in one command. It preserves the active breakpoint’s collision-resolved
 layout and resolves the copied drop against each other breakpoint’s own visible
 layout without automatic compaction. Unrelated gaps survive until the toolbar
 **Compact layout** command runs. Hide flips visibility only; show resolves
 collisions around the saved position. Spec edits update one placement; state
-edits update the shared module row.
+edits update the shared brick row.
 
 ## Measurement
 
 Filmstrip, module-page previews, and drag payloads always size from unconstrained
-intrinsic px as `ceil(px / that breakpoint’s gridItemWidth)` (min 1). Drag
-payloads carry measured `w` / `h` next to `spec`, not on the module `def`.
+intrinsic px (`MeasuredBrickWrapper` `onChange`) as `minGridUnits` —
+`ceil(px / that breakpoint’s gridItemWidth)` (min 1). `GridItemPreview` paints the
+snapped cell and wraps `BrickWrapper`. Drag payloads carry measured `w` / `h`
+next to `spec`, not on the module `def`.
+
+`MeasuredBrickWrapper` must not use Tailwind `@container`. Size containment on
+the measure root makes `width: max-content` ignore children (0×N). It also
+avoids `min-w-0` and stretch (`items-start` instead). `[data-brick-measure]` in
+`bricks.css` undoes fill leftovers (`w-full`, `flex-1`, `truncate`) so Body/Footer
+can size to content.
 
 Intrinsic pixel and derived grid sizes stay available even when they exceed the
 wall width; React Grid Layout owns wall bounds correction. The sandbox grid uses
@@ -66,7 +72,9 @@ id; it is not module inheritance.
 ## Frontend render
 
 `makeFrontend` uses the incoming `breakpoint` prop and the stock Renderer path.
-It performs no measurement and owns no context. Data props are inferred from the
+It performs no measurement, owns no context, and does not wrap fill chrome.
+Callers wrap `BrickWrapper` (wall / `GridItemPreview`) or `MeasuredBrickWrapper`.
+Json-render `BrickShell` is a fragment. Data props are inferred from the
 module data contract. Render each json-render leaf as a React component so hooks remain
 valid. Switching specs remounts json-render local state.
 

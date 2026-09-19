@@ -222,8 +222,6 @@ function LayoutBody(props: {
   const reducedMotion = useReducedMotion() ?? false;
   const moduleId = params.moduleId;
   const brickId = params.brickId;
-  const moduleLabel = moduleId ? modulesHash[moduleId]?.label : undefined;
-  const drawerTitle = moduleLabel !== undefined ? `Bricks / ${moduleLabel}` : "Bricks";
   const locationKey = `${location.pathname}${location.searchStr}`;
   const [drawerOpen, setDrawerOpen] = useState(
     () => location.pathname !== "/" || location.searchStr.length > 0,
@@ -240,12 +238,22 @@ function LayoutBody(props: {
   const placementsQuery = useLiveQuery(LibraryFrontend, {
     query: db => db.query.placement.findMany(),
   });
-  const membershipsQuery = useLiveQuery(LibraryFrontend, {
+  const bricksQuery = useLiveQuery(LibraryFrontend, {
     query: db =>
-      db.query.membership.findMany({
+      db.query.brick.findMany({
         where: { wallId: { eq: SANDBOX_WALL_ID } },
       }),
   });
+  const brickRow =
+    brickId === undefined
+      ? undefined
+      : (bricksQuery.data ?? []).find(candidate => candidate.id === brickId);
+  const breadcrumbModuleId = moduleId ?? brickRow?.moduleId;
+  const moduleLabel =
+    breadcrumbModuleId !== undefined
+      ? modulesHash[breadcrumbModuleId]?.label
+      : undefined;
+  const drawerTitle = moduleLabel !== undefined ? `Bricks / ${moduleLabel}` : "Bricks";
 
   if (locationKey !== drawerOpenForLocationKey) {
     setDrawerOpenForLocationKey(locationKey);
@@ -301,15 +309,15 @@ function LayoutBody(props: {
     if (activeBreakpoint === null) {
       return;
     }
-    const membershipIds = new Set(
-      (membershipsQuery.data ?? []).map(membership => membership.id),
+    const brickIds = new Set(
+      (bricksQuery.data ?? []).map(candidate => candidate.id),
     );
     const visibleLayout = (placementsQuery.data ?? []).flatMap(placement => {
       if (
         placement.breakpoint !== activeBreakpoint ||
         !placement.isVisible ||
-        placement.membershipId === null ||
-        !membershipIds.has(placement.membershipId)
+        placement.brickId === null ||
+        !brickIds.has(placement.brickId)
       ) {
         return [];
       }
@@ -395,13 +403,11 @@ function LayoutBody(props: {
                     gridWidth={row.previewWidth}
                     onCommandError={setCommandError}
                     onBrickActivate={({
-                      moduleId: activatedModuleId,
                       brickId: activatedBrickId,
                     }) => {
                       void navigate({
-                        to: "/modules/$moduleId/$brickId",
+                        to: "/bricks/$brickId",
                         params: {
-                          moduleId: activatedModuleId,
                           brickId: activatedBrickId,
                         },
                       });
@@ -423,7 +429,7 @@ function LayoutBody(props: {
               <div className="flex shrink-0 items-center justify-between gap-4 border-b border-border/60 px-4 py-2.5">
                 <nav aria-label="Drawer breadcrumbs" className="flex min-w-0 items-center gap-2">
                   <Link to="/modules">Bricks</Link>
-                  {moduleLabel !== undefined && moduleId !== undefined ? (
+                  {moduleLabel !== undefined && breadcrumbModuleId !== undefined ? (
                     <>
                       <span aria-hidden className="text-muted-foreground">
                         /
@@ -431,7 +437,7 @@ function LayoutBody(props: {
                       {brickId !== undefined ? (
                         <Link
                           to="/modules/$moduleId"
-                          params={{ moduleId }}
+                          params={{ moduleId: breadcrumbModuleId }}
                           className="truncate"
                         >
                           {moduleLabel}

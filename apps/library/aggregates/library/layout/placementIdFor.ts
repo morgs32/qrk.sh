@@ -1,11 +1,11 @@
 import { prefixId } from "@zerospin/core/models/prefixId";
 
-import { placementModelV1 } from "../models/placement/placementModelV1";
+import { placement } from "../models/placement/placement";
 
-/** Stable placement resource id for a membership + breakpoint pair. */
+/** Stable placement resource id for a brick + breakpoint pair. */
 export function placementIdFor(
-  membershipId: string,
+  brickId: string,
   breakpoint: "sm" | "md" | "lg" | "xl",
 ) {
-  return prefixId(placementModelV1, `${membershipId}_${breakpoint}`);
+  return prefixId(placement, `${brickId}_${breakpoint}`);
 }

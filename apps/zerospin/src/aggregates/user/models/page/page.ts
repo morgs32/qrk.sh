@@ -1,3 +1,3 @@
-import { makeModel } from "@zerospin/sdk/browser";
+import { defineModel } from "@zerospin/sdk/browser";
 
-export const page = makeModel({ name: "page", abbreviation: "pag" });
+export const page = defineModel({ name: "page", abbreviation: "pag" });

@@ -1,3 +1,3 @@
-import { makeModel } from "@zerospin/sdk/browser";
+import { defineModel } from "@zerospin/sdk/browser";
 
-export const grid = makeModel({ name: "grid", abbreviation: "grd" });
+export const grid = defineModel({ name: "grid", abbreviation: "grd" });

@@ -1,4 +1,4 @@
-import { makeModelVersion } from "@zerospin/core/models/makeModel";
+import { makeModelVersion } from "@zerospin/core/models/makeModelVersion";
 import { primitives } from "@zerospin/schema";
 
 import { wall } from "./wall";

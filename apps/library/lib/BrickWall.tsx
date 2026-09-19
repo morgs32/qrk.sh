@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef, useState } from "react";
 
 import GridLayout, { verticalCompactor } from "react-grid-layout";
 
+import { BrickWrapper } from "../components/brick/BrickWrapper";
 import { modulesHash } from "./modulesHash";
 import { useBricksStore, useBricksStoreApi } from "./BrickStoreProvider";
 
@@ -194,11 +195,13 @@ export function BrickWall(props: {
                 >
                   <div className="relative size-full">
                     <div className="brick-drag-content size-full">
-                      <BrickComponent
-                        breakpoint={breakpoint}
-                        state={brickDef.state}
-                        spec={brickDef[breakpoint].spec}
-                      />
+                      <BrickWrapper>
+                        <BrickComponent
+                          breakpoint={breakpoint}
+                          state={brickDef.state}
+                          spec={brickDef[breakpoint].spec}
+                        />
+                      </BrickWrapper>
                     </div>
                   </div>
                 </div>

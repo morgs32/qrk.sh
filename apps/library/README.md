@@ -60,9 +60,9 @@ preview/drag time (`w` / `h` from intrinsic px ÷ `gridItemWidth`), not declared
 on the module.
 
 The workbench sandbox mounts `ZerospinMockProvider` with one seeded empty wall
-(`wal_sandbox`). Committed layout is Wall → Membership → Placement via aggregate
-contracts (`addBrick`, layout/visibility/remove/compact, per-module state and
-spec-at-breakpoint). Shared state lives on the typed module row; each placement
+(`wal_sandbox`). Committed layout is Wall → Brick → Placement via aggregate
+contracts (`addBrick`, layout/visibility/remove/compact, `updateBrickState`, and
+per-module spec-at-breakpoint). Shared state lives on the brick row; each placement
 stores a complete Spec, grid item, and visibility. The sandbox grid uses
 `noCompactor` (collision resolve without auto-gap-closing); **Compact layout**
 runs an explicit command. Reset remounts the mock session. Viewport preference

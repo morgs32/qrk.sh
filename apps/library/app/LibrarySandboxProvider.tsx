@@ -2,16 +2,15 @@
 
 import type { ReactNode } from "react";
 
+import { prefixId } from "@zerospin/core/models/prefixId";
 import { ZerospinMockProvider } from "@zerospin/react/ZerospinMockProvider";
 
 import {
   LibraryFrontend,
   sessionRuntimeLayer,
 } from "../aggregates/library/libraryFrontend";
-import { wallModelV1 } from "../aggregates/library/models/wall/wallModelV1";
-import { sandboxWallId } from "../aggregates/library/sandboxWallId";
 
-export const SANDBOX_WALL_ID = sandboxWallId;
+export const SANDBOX_WALL_ID = prefixId(LibraryFrontend.models.wall, "sandbox");
 
 const fixtureDate = new Date("2026-01-01T00:00:00.000Z");
 
@@ -33,9 +32,9 @@ export function LibrarySandboxProvider(props: {
             createdAt: fixtureDate,
             id: SANDBOX_WALL_ID,
             label: "Sandbox",
-            modelName: wallModelV1.modelName,
+            modelName: LibraryFrontend.models.wall.modelName,
             updatedAt: fixtureDate,
-            version: wallModelV1.version,
+            version: LibraryFrontend.models.wall.version,
           },
         ],
       }}

@@ -1,3 +1,3 @@
-import { defineCommand } from "@zerospin/core/contracts/Command";
+import { defineContract } from "@zerospin/core/contracts/defineContract";
 
-export const updateLayoutAtBreakpoint = defineCommand("updateLayoutAtBreakpoint");
+export const updateLayoutAtBreakpoint = defineContract("updateLayoutAtBreakpoint");

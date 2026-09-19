@@ -1,6 +1,6 @@
 import type { IDb, IResourceDbConfig } from "@zerospin/core/drizzle/types";
 import type { InferCommandPayload } from "@zerospin/core/models/types";
-import { makeModelIdSchema } from "@zerospin/core/models/makeIdSchema";
+import { makeModelIdSchema } from "@zerospin/core/models/makeModelIdSchema";
 import { prefixId, makeContractVersion, primitives, ZerospinError } from "@zerospin/sdk/browser";
 import { Effect, Schema } from "effect";
 import { gridV1 as Grid } from "../../models/grid/GridV1";

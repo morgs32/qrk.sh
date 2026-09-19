@@ -6,6 +6,12 @@ export const BREAKPOINTS = [
   { id: "xl", minWidth: 1440, previewWidth: 1440, gridItemWidth: 180 },
 ] as const;
 
+/** Smallest integer grid units whose pixel size is ≥ intrinsicPx. */
+export function minGridUnits(gridItemWidth: number, intrinsicPx: number): number {
+  if (intrinsicPx <= 0) return 1;
+  return Math.max(1, Math.ceil(intrinsicPx / gridItemWidth));
+}
+
 /** Map measured grid width to the active breakpoint id. */
 export function resolveBreakpoint(gridWidth: number): (typeof BREAKPOINTS)[number]["id"] {
   if (gridWidth < BREAKPOINTS[1].minWidth) return "sm";

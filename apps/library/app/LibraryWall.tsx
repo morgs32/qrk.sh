@@ -6,19 +6,13 @@ import { useLiveQuery, useSession } from "@zerospin/react";
 import GridLayout, { noCompactor } from "react-grid-layout";
 
 import { LibraryFrontend } from "../aggregates/library/libraryFrontend";
-import { membershipModelV1 } from "../aggregates/library/models/membership/membershipModelV1";
+import { BrickWrapper } from "../components/brick/BrickWrapper";
 import { modulesHash } from "../lib/modulesHash";
 import { useBricksStore } from "../lib/BrickStoreProvider";
 import { SANDBOX_WALL_ID } from "./LibrarySandboxProvider";
 import { readGridItem } from "./readGridItem";
 
-function toGridItem(item: {
-  i: string;
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-}) {
+function toGridItem(item: { i: string; x: number; y: number; w: number; h: number }) {
   return {
     i: item.i,
     x: item.x,
@@ -78,47 +72,17 @@ export function LibraryWall(props: {
   const [dragging, setDragging] = useState(false);
   const [outsideBrickId, setOutsideBrickId] = useState<string | null>(null);
   const [dragScrollTop, setDragScrollTop] = useState(0);
-  const activeBrickDrag = useBricksStore(state => state.activeBrickDrag);
-  const setActiveBrickDrag = useBricksStore(state => state.setActiveBrickDrag);
+  const activeBrickDrag = useBricksStore((state) => state.activeBrickDrag);
+  const setActiveBrickDrag = useBricksStore((state) => state.setActiveBrickDrag);
 
-  const membershipsQuery = useLiveQuery(LibraryFrontend, {
-    query: db =>
-      db.query.membership.findMany({
+  const bricksQuery = useLiveQuery(LibraryFrontend, {
+    query: (db) =>
+      db.query.brick.findMany({
         where: { wallId: { eq: SANDBOX_WALL_ID } },
       }),
   });
   const placementsQuery = useLiveQuery(LibraryFrontend, {
-    query: db => db.query.placement.findMany(),
-  });
-  const figmaThumbnailsQuery = useLiveQuery(LibraryFrontend, {
-    query: db => db.query.figmaThumbnail.findMany(),
-  });
-  const githubActivitiesQuery = useLiveQuery(LibraryFrontend, {
-    query: db => db.query.githubActivity.findMany(),
-  });
-  const githubProfilesQuery = useLiveQuery(LibraryFrontend, {
-    query: db => db.query.githubProfile.findMany(),
-  });
-  const githubReposQuery = useLiveQuery(LibraryFrontend, {
-    query: db => db.query.githubRepo.findMany(),
-  });
-  const imagesQuery = useLiveQuery(LibraryFrontend, {
-    query: db => db.query.image.findMany(),
-  });
-  const instagramsQuery = useLiveQuery(LibraryFrontend, {
-    query: db => db.query.instagram.findMany(),
-  });
-  const linksQuery = useLiveQuery(LibraryFrontend, {
-    query: db => db.query.link.findMany(),
-  });
-  const mapPlacesQuery = useLiveQuery(LibraryFrontend, {
-    query: db => db.query.mapPlace.findMany(),
-  });
-  const swatchAndIconsQuery = useLiveQuery(LibraryFrontend, {
-    query: db => db.query.swatchAndIcon.findMany(),
-  });
-  const textsQuery = useLiveQuery(LibraryFrontend, {
-    query: db => db.query.text.findMany(),
+    query: (db) => db.query.placement.findMany(),
   });
 
   useLayoutEffect(() => {
@@ -128,60 +92,22 @@ export function LibraryWall(props: {
     }
   }, [dragging, dragScrollTop]);
 
-  const memberships = membershipsQuery.data ?? [];
+  const bricks = bricksQuery.data ?? [];
   const placements = placementsQuery.data ?? [];
-  const membershipIds = new Set(memberships.map(membership => membership.id));
+  const brickIds = new Set(bricks.map((brickRow) => brickRow.id));
 
   function visibleLayoutAt(targetBreakpoint: "sm" | "md" | "lg" | "xl") {
-    return placements.flatMap(placement => {
+    return placements.flatMap((placement) => {
       if (
         placement.breakpoint !== targetBreakpoint ||
         !placement.isVisible ||
-        placement.membershipId === null ||
-        !membershipIds.has(placement.membershipId)
+        placement.brickId === null ||
+        !brickIds.has(placement.brickId)
       ) {
         return [];
       }
       return [toGridItem(readGridItem(placement.gridItem))];
     });
-  }
-
-  function moduleStateFor(moduleId: string, moduleResourceId: string) {
-    if (moduleId === "figma-thumbnail") {
-      return figmaThumbnailsQuery.data?.find(row => row.id === moduleResourceId)
-        ?.state;
-    }
-    if (moduleId === "github-activity") {
-      return githubActivitiesQuery.data?.find(row => row.id === moduleResourceId)
-        ?.state;
-    }
-    if (moduleId === "github-profile") {
-      return githubProfilesQuery.data?.find(row => row.id === moduleResourceId)
-        ?.state;
-    }
-    if (moduleId === "github-repo") {
-      return githubReposQuery.data?.find(row => row.id === moduleResourceId)
-        ?.state;
-    }
-    if (moduleId === "image") {
-      return imagesQuery.data?.find(row => row.id === moduleResourceId)?.state;
-    }
-    if (moduleId === "instagram") {
-      return instagramsQuery.data?.find(row => row.id === moduleResourceId)
-        ?.state;
-    }
-    if (moduleId === "link") {
-      return linksQuery.data?.find(row => row.id === moduleResourceId)?.state;
-    }
-    if (moduleId === "map-place") {
-      return mapPlacesQuery.data?.find(row => row.id === moduleResourceId)
-        ?.state;
-    }
-    if (moduleId === "swatch-and-icon") {
-      return swatchAndIconsQuery.data?.find(row => row.id === moduleResourceId)
-        ?.state;
-    }
-    return textsQuery.data?.find(row => row.id === moduleResourceId)?.state;
   }
 
   function reportCommandError(failure: { message?: string; code?: string }) {
@@ -209,10 +135,8 @@ export function LibraryWall(props: {
       {gridWidth > 0 && (
         <GridLayout
           width={gridWidth}
-          style={
-            dragging ? { transform: `translateY(-${dragScrollTop}px)` } : undefined
-          }
-          layout={layout.map(item => ({
+          style={dragging ? { transform: `translateY(-${dragScrollTop}px)` } : undefined}
+          layout={layout.map((item) => ({
             ...item,
             isDraggable: true,
             isResizable: true,
@@ -232,7 +156,7 @@ export function LibraryWall(props: {
             bounded: false,
             threshold: 3,
           }}
-          onResizeStop={nextLayout => {
+          onResizeStop={(nextLayout) => {
             const result = session.executeCommand({
               contractName: "updateLayoutAtBreakpoint",
               payload: {
@@ -271,16 +195,15 @@ export function LibraryWall(props: {
             const moduleId = activeBrickDrag.moduleId;
 
             const idSuffix = crypto.randomUUID().replace(/-/g, "");
-            const membershipId = prefixId(membershipModelV1, idSuffix);
-            const moduleResourceId = `${catalog.abbreviation}_${idSuffix}`;
+            const brickId = prefixId(LibraryFrontend.models.brick, idSuffix);
             const droppedItem = {
-              i: membershipId,
+              i: brickId,
               x: item.x,
               y: item.y,
               w: item.w,
               h: item.h,
             };
-            const resolvedActiveLayout = nextLayout.map(layoutItem => {
+            const resolvedActiveLayout = nextLayout.map((layoutItem) => {
               if (layoutItem.i !== item.i) {
                 return toGridItem(layoutItem);
               }
@@ -297,8 +220,7 @@ export function LibraryWall(props: {
               contractName: "addBrick",
               payload: {
                 wallId: SANDBOX_WALL_ID,
-                membershipId,
-                moduleResourceId,
+                brickId,
                 moduleId,
                 state: structuredClone(activeBrickDrag.state),
                 spec: structuredClone(activeBrickDrag.spec),
@@ -314,11 +236,8 @@ export function LibraryWall(props: {
             setActiveBrickDrag(null);
           }}
           onDragStart={() => {
-            const scrollRoot = containerRef.current?.closest(
-              "[data-brick-scroll-root]",
-            );
-            scrollRootRef.current =
-              scrollRoot instanceof HTMLElement ? scrollRoot : null;
+            const scrollRoot = containerRef.current?.closest("[data-brick-scroll-root]");
+            scrollRootRef.current = scrollRoot instanceof HTMLElement ? scrollRoot : null;
             setDragScrollTop(scrollRootRef.current?.scrollTop ?? 0);
             if (scrollRootRef.current) {
               scrollRootRef.current.style.overflow = "visible";
@@ -359,17 +278,13 @@ export function LibraryWall(props: {
                 pointer.clientY < bounds.top ||
                 pointer.clientY > bounds.bottom);
             if (outside && item) {
-              const membership = memberships.find(
-                candidate => candidate.id === item.i,
-              );
-              if (membership !== undefined) {
+              const brickRow = bricks.find((candidate) => candidate.id === item.i);
+              if (brickRow !== undefined) {
                 const result = session.executeCommand({
                   contractName: "removeBrick",
                   payload: {
-                    membershipId: membership.id,
+                    brickId: brickRow.id,
                     wallId: SANDBOX_WALL_ID,
-                    moduleId: membership.moduleId,
-                    moduleResourceId: membership.moduleResourceId,
                   },
                 });
                 if (result._tag === "Failure") {
@@ -393,31 +308,21 @@ export function LibraryWall(props: {
             setDragging(false);
           }}
         >
-          {layout.map(layoutItem => {
-            const membership = memberships.find(
-              candidate => candidate.id === layoutItem.i,
-            );
+          {layout.map((layoutItem) => {
+            const brickRow = bricks.find((candidate) => candidate.id === layoutItem.i);
             const placement = placements.find(
-              candidate =>
-                candidate.membershipId === layoutItem.i &&
+              (candidate) =>
+                candidate.brickId === layoutItem.i &&
                 candidate.breakpoint === breakpoint &&
                 candidate.isVisible,
             );
-            const catalog =
-              membership !== undefined
-                ? modulesHash[membership.moduleId]
-                : undefined;
+            const catalog = brickRow !== undefined ? modulesHash[brickRow.moduleId] : undefined;
 
-            if (membership && placement && catalog) {
+            if (brickRow && placement && catalog) {
               const BrickComponent = catalog.component;
-              const state = moduleStateFor(
-                membership.moduleId,
-                membership.moduleResourceId,
-              );
+              const state = brickRow.state;
               const rawSpec: unknown =
-                typeof placement.spec === "string"
-                  ? JSON.parse(placement.spec)
-                  : placement.spec;
+                typeof placement.spec === "string" ? JSON.parse(placement.spec) : placement.spec;
               if (!isNonEmptySpec(rawSpec)) {
                 return null;
               }
@@ -437,18 +342,16 @@ export function LibraryWall(props: {
                   data-grid-h={layoutItem.h}
                   onDoubleClick={() => {
                     props.onBrickActivate?.({
-                      moduleId: membership.moduleId,
+                      moduleId: brickRow.moduleId,
                       brickId: layoutItem.i,
                     });
                   }}
                 >
                   <div className="relative size-full">
                     <div className="brick-drag-content size-full">
-                      <BrickComponent
-                        breakpoint={breakpoint}
-                        state={state}
-                        spec={rawSpec}
-                      />
+                      <BrickWrapper>
+                        <BrickComponent breakpoint={breakpoint} state={state} spec={rawSpec} />
+                      </BrickWrapper>
                     </div>
                   </div>
                 </div>

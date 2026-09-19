@@ -51,7 +51,7 @@ delete `measurable`. Resolved `w`/`h` presence is the only size contract.
 3. [ ] Measure before showing an intrinsically sized hidden brick.
 
    Update the show flow in
-   `apps/library/app/routes/modules/$moduleId/$brickId.tsx` and
+   `apps/library/app/routes/bricks/$brickId.tsx` and
    `apps/library/lib/BrickStoreProvider.tsx`. For a module without resolved
    declared dimensions, measure its current presentation using the active
    breakpoint, current data, resolved spec, and breakpoint options before

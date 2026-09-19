@@ -1,3 +1,3 @@
-import { defineCommand } from "@zerospin/sdk/browser";
+import { defineContract } from "@zerospin/sdk/browser";
 
-export const updatePageArticle = defineCommand("updatePageArticle");
+export const updatePageArticle = defineContract("updatePageArticle");

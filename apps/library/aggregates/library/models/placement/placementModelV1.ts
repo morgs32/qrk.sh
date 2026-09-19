@@ -1,8 +1,8 @@
-import { makeModelVersion } from "@zerospin/core/models/makeModel";
+import { makeModelVersion } from "@zerospin/core/models/makeModelVersion";
 import { primitives } from "@zerospin/schema";
 import { Schema } from "effect";
 
-import { membershipModelV1 } from "../membership/membershipModelV1";
+import { makeBrickModel } from "../brick/makeBrickModel";
 import { placement } from "./placement";
 
 const gridItemSchema = Schema.Struct({
@@ -19,26 +19,30 @@ const placementSpecSchema = Schema.Struct({
   state: Schema.optional(Schema.Record(Schema.String, Schema.Unknown)),
 });
 
-export const placementModelV1 = makeModelVersion(placement, {
-  attributes: {
-    membershipId: primitives.ref({
-      table: membershipModelV1.table,
-      relation: "membership",
-      inverse: "placements",
-    }),
-    breakpoint: primitives.enum({
-      values: ["sm", "md", "lg", "xl"],
-    }),
-    spec: primitives.json({ schema: placementSpecSchema }),
-    gridItem: primitives.json({ schema: gridItemSchema }),
-    isVisible: primitives.boolean(),
-  },
-  indexes: [
-    {
-      name: "membership_breakpoint",
-      columns: ["membershipId", "breakpoint"],
-      unique: true,
+export function makePlacementModel(props: {
+  brick: ReturnType<typeof makeBrickModel>;
+}) {
+  return makeModelVersion(placement, {
+    attributes: {
+      brickId: primitives.ref({
+        table: props.brick.table,
+        relation: "brick",
+        inverse: "placements",
+      }),
+      breakpoint: primitives.enum({
+        values: ["sm", "md", "lg", "xl"],
+      }),
+      spec: primitives.json({ schema: placementSpecSchema }),
+      gridItem: primitives.json({ schema: gridItemSchema }),
+      isVisible: primitives.boolean(),
     },
-  ],
-  version: "1.0.0",
-});
+    indexes: [
+      {
+        name: "brick_breakpoint",
+        columns: ["brickId", "breakpoint"],
+        unique: true,
+      },
+    ],
+    version: "1.0.0",
+  });
+}

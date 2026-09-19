@@ -14,9 +14,10 @@ sources:
   - path: apps/library/lib/modulesHash.ts
     sha: 442bd44d274457668ba04522c2f6038e9f0f000e
     lines: 14-26
-  - path: apps/library/lib/BrickPreview.tsx
-    sha: 76058457d5bafd25784c185bde7b68f1f1caa590
-    lines: 8-16
+  - path: apps/library/lib/GridItemPreview.tsx
+    lines: 8-33
+  - path: apps/library/components/brick/MeasuredBrickWrapper.tsx
+    lines: 9-49
 ---
 
 # Site editor brick preview and drop
@@ -32,7 +33,8 @@ The site-editor bricks drawer lists [`modulesHash`](../../../apps/library/lib/mo
 sequenceDiagram
   participant BrickGroup
   participant modulesHash
-  participant BrickPreview
+  participant MeasuredBrickWrapper
+  participant GridItemPreview
   participant useBrickDrawerStore
   participant DataTransfer
   participant Grid
@@ -42,28 +44,30 @@ sequenceDiagram
   autonumber 2
   modulesHash-->>BrickGroup: IModule[]
   autonumber 3
-  BrickGroup->>BrickPreview: BrickPreview(...)
+  BrickGroup->>MeasuredBrickWrapper: unconstrained px when undeclared
   autonumber 4
-  BrickGroup->>useBrickDrawerStore: registerActiveBrickDragGridShape(...)
+  BrickGroup->>GridItemPreview: GridItemPreview(...)
   autonumber 5
-  BrickGroup->>DataTransfer: setData(BRICK_DRAG_MIME)
+  BrickGroup->>useBrickDrawerStore: registerActiveBrickDragGridShape(...)
   autonumber 6
-  Grid->>useBrickDrawerStore: getActiveBrickDragGridShape()
+  BrickGroup->>DataTransfer: setData(BRICK_DRAG_MIME)
   autonumber 7
-  useBrickDrawerStore-->>Grid: w, h
+  Grid->>useBrickDrawerStore: getActiveBrickDragGridShape()
   autonumber 8
-  Grid->>Grid: parseBrickDefFromDataTransfer(...)
+  useBrickDrawerStore-->>Grid: w, h
   autonumber 9
+  Grid->>Grid: parseBrickDefFromDataTransfer(...)
+  autonumber 10
   Grid->>modulesHash: modulesHash[brickDef.moduleId]
   alt unknown moduleId
-    autonumber 10
-    modulesHash-->>Grid: undefined
     autonumber 11
+    modulesHash-->>Grid: undefined
+    autonumber 12
     Grid-->>Grid: return
   else known
-    autonumber 12
-    modulesHash-->>Grid: brick
     autonumber 13
+    modulesHash-->>Grid: brick
+    autonumber 14
     Grid->>useBrickDrawerStore: pageGrids[pageKey] =
   end
 ```
@@ -74,9 +78,9 @@ sequenceDiagram
    - [`BrickGroup.tsx:26-56`](../../../apps/studio/app/[username]/site/[siteId]/page/[pageId]/BrickGroup/BrickGroup.tsx#L26-56) — `Object.values(modulesHash)` then `modules.map((brickModule) => ...)`. (`apps/studio/app/[username]/site/[siteId]/page/[pageId]/BrickGroup/BrickGroup.tsx:26-56`)
 2. Each row is an `IModule` (`def`, `component`, `defaultData`).
    - [`modulesHash.ts:14-26`](../../../apps/library/lib/modulesHash.ts#L14-L26) — kebab keys imported by `@qrk.sh/library`. (`apps/library/lib/modulesHash.ts:14-26`)
-3. Preview size uses `BREAKPOINTS[].gridItemWidth` and `brickModule.def[breakpoint]`.
-   - [`BrickGroup.tsx:59-77`](../../../apps/studio/app/[username]/site/[siteId]/page/[pageId]/BrickGroup/BrickGroup.tsx#L59-77) — `w`/`h` from `selectedBrick.def[breakpoint]`, then `BrickPreview`. (`apps/studio/app/[username]/site/[siteId]/page/[pageId]/BrickGroup/BrickGroup.tsx:59-77`)
-   - [`BrickPreview.tsx`](../../../apps/library/lib/BrickPreview.tsx) — `gridItemWidth * w|h`.
+3. Preview size uses `BREAKPOINTS[].gridItemWidth`. `MeasuredBrickWrapper` reports unconstrained px (no `@container`); `GridItemPreview` paints `ceil(px / gridItemWidth)`.
+   - [`BrickGroup.tsx:97-111`](../../../apps/studio/app/[username]/site/[siteId]/page/[pageId]/BrickGroup/BrickGroup.tsx#L97-L111) — hidden measure + `GridItemPreview`. (`apps/studio/app/[username]/site/[siteId]/page/[pageId]/BrickGroup/BrickGroup.tsx:97-111`)
+   - [`GridItemPreview.tsx`](../../../apps/library/lib/GridItemPreview.tsx) — `gridItemWidth * w|h`, wraps `BrickWrapper`.
 4. Drag start registers breakpoint `w`/`h` for drop-over (custom MIME is often empty until drop).
    - [`BrickGroup.tsx:84-85`](../../../apps/studio/app/[username]/site/[siteId]/page/[pageId]/BrickGroup/BrickGroup.tsx#L84-L85) — `registerActiveBrickDragGridShape(w, h)`. (`apps/studio/app/[username]/site/[siteId]/page/[pageId]/BrickGroup/BrickGroup.tsx:84-85`)
    - [`useBrickDrawerStore.ts:18-27`](../../../apps/studio/components/home/useBrickDrawerStore.ts#L18-L27) — store setter and `getActiveBrickDragGridShape()`. (`apps/studio/components/home/useBrickDrawerStore.ts:18-27`)

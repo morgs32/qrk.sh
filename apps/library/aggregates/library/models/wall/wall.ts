@@ -1,6 +1,6 @@
-import { makeModel } from "@zerospin/core/models/makeModel";
+import { defineModel } from "@zerospin/core/models/defineModel";
 
-export const wall = makeModel({
+export const wall = defineModel({
   name: "wall",
   abbreviation: "wal",
 });

@@ -18,9 +18,13 @@
       "types": "./dist/lib/breakpoints.d.ts",
       "import": "./dist/breakpoints.js"
     },
-    "./BrickPreview": {
-      "types": "./dist/lib/BrickPreview.d.ts",
-      "import": "./dist/BrickPreview.js"
+    "./GridItemPreview": {
+      "types": "./dist/lib/GridItemPreview.d.ts",
+      "import": "./dist/GridItemPreview.js"
+    },
+    "./MeasuredBrickWrapper": {
+      "types": "./dist/components/brick/MeasuredBrickWrapper.d.ts",
+      "import": "./dist/MeasuredBrickWrapper.js"
     },
     "./BrickWall": {
       "types": "./dist/lib/BrickWall.d.ts",

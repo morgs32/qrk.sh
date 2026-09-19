@@ -19,6 +19,40 @@
   --ring: oklch(0.705 0.015 285.938);
 }
 
+[data-brick-measure] {
+  align-items: flex-start;
+}
+
+[data-brick-measure] .w-full,
+[data-brick-measure] .h-full,
+[data-brick-measure] .size-full {
+  width: max-content;
+  height: max-content;
+}
+
+[data-brick-measure] .flex-1 {
+  flex: none;
+}
+
+[data-brick-measure] .min-w-0 {
+  min-width: min-content;
+}
+
+[data-brick-measure] .min-h-0 {
+  min-height: min-content;
+}
+
+[data-brick-measure] .truncate {
+  overflow: visible;
+  text-overflow: clip;
+  min-width: min-content;
+}
+
+[data-brick-measure] .overflow-auto,
+[data-brick-measure] .overflow-hidden {
+  overflow: visible;
+}
+
 .qrk-bricks.dark {
   --background: oklch(0.141 0.005 285.823);
   --foreground: oklch(0.985 0 0);

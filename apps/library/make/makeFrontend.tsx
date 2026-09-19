@@ -10,8 +10,6 @@ import {
 } from "@json-render/react";
 import { type IShape } from "@zerospin/schema";
 
-import { BrickFrame } from "../components/brick/BrickFrame";
-
 function initialStateFromDocument(state: unknown): Record<string, unknown> {
   if (state !== null && typeof state === "object" && !Array.isArray(state)) {
     const initialState: Record<string, unknown> = {};
@@ -65,23 +63,17 @@ export function makeFrontend<
     spec: Spec;
   }) {
     if (registry === undefined) {
-      return (
-        <BrickFrame>
-          <Authored state={propsForBrick.state} />
-        </BrickFrame>
-      );
+      return <Authored state={propsForBrick.state} />;
     }
     const initialState = initialStateFromDocument(propsForBrick.state);
     return (
-      <BrickFrame>
-        <StateProvider initialState={initialState}>
-          <VisibilityProvider>
-            <ActionProvider handlers={{}}>
-              <Renderer spec={propsForBrick.spec} registry={registry} />
-            </ActionProvider>
-          </VisibilityProvider>
-        </StateProvider>
-      </BrickFrame>
+      <StateProvider initialState={initialState}>
+        <VisibilityProvider>
+          <ActionProvider handlers={{}}>
+            <Renderer spec={propsForBrick.spec} registry={registry} />
+          </ActionProvider>
+        </VisibilityProvider>
+      </StateProvider>
     );
   }
 

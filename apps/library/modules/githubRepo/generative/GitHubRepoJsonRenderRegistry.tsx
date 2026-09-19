@@ -1,8 +1,5 @@
-import type { ReactNode } from "react";
-
 import { defineRegistry } from "@json-render/react";
 
-import { BrickShell } from "../../../components/brick/BrickShell";
 import { layoutRegistryComponents } from "../../../lib/jsonRender/layoutRegistryComponents";
 import {
   RepoDescription as RepoDescriptionLeaf,
@@ -16,9 +13,6 @@ import { githubRepoV1 } from "../githubRepoV1";
 export const { registry } = defineRegistry(githubRepoV1.catalog, {
   components: {
     ...layoutRegistryComponents,
-    BrickShell: ({ children }: { children?: ReactNode }) => (
-      <BrickShell className="min-w-0">{children}</BrickShell>
-    ),
     RepoName: ({ props }: { props: Record<string, unknown> }) => (
       <RepoNameLeaf name={typeof props.name === "string" ? props.name : ""} />
     ),

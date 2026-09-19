@@ -1,5 +1,5 @@
 import type { IDb } from "@zerospin/core/drizzle/types";
-import { makeContractVersion } from "@zerospin/core/contracts/makeVersion";
+import { makeContractVersion } from "@zerospin/core/contracts/makeContractVersion";
 import type { InferCommandPayload } from "@zerospin/core/models/types";
 import { ZerospinError } from "@zerospin/error";
 import {
@@ -15,8 +15,8 @@ import {
   resolveVisibleCollisions,
   visibleLayoutError,
 } from "../../layout/resolveVisibleCollisions";
-import { membershipModelV1 } from "../../models/membership/membershipModelV1";
-import { placementModelV1 } from "../../models/placement/placementModelV1";
+import { makeBrickModel } from "../../models/brick/makeBrickModel";
+import { makePlacementModel } from "../../models/placement/placementModelV1";
 import { setBrickVisibilityAtBreakpoint } from "./setBrickVisibilityAtBreakpoint";
 
 const gridItemSchema = Schema.Struct({
@@ -27,28 +27,30 @@ const gridItemSchema = Schema.Struct({
   h: Schema.Number,
 });
 
-const setBrickVisibilityAtBreakpointPayload = {
-  membershipId: primitives.foreignKey({
-    abbreviation: membershipModelV1.abbreviation,
-  }),
-  breakpoint: primitives.enum({
-    values: ["sm", "md", "lg", "xl"],
-  }),
-  isVisible: primitives.boolean(),
-  currentlyVisible: primitives.boolean(),
-  savedGridItem: primitives.json({ schema: gridItemSchema }),
-  otherVisibleLayout: primitives.json({
-    schema: Schema.Array(gridItemSchema),
-  }),
-};
+export function makeSetBrickVisibilityAtBreakpointContract(props: {
+  brick: ReturnType<typeof makeBrickModel>;
+  placement: ReturnType<typeof makePlacementModel>;
+}) {
+  const setBrickVisibilityAtBreakpointPayload = {
+    brickId: primitives.foreignKey({
+      abbreviation: props.brick.abbreviation,
+    }),
+    breakpoint: primitives.enum({
+      values: ["sm", "md", "lg", "xl"],
+    }),
+    isVisible: primitives.boolean(),
+    currentlyVisible: primitives.boolean(),
+    savedGridItem: primitives.json({ schema: gridItemSchema }),
+    otherVisibleLayout: primitives.json({
+      schema: Schema.Array(gridItemSchema),
+    }),
+  };
 
-export const setBrickVisibilityAtBreakpointContractV1 = makeContractVersion(
-  setBrickVisibilityAtBreakpoint,
-  {
+  return makeContractVersion(setBrickVisibilityAtBreakpoint, {
     payload: setBrickVisibilityAtBreakpointPayload,
     models: {
-      membership: membershipModelV1,
-      placement: placementModelV1,
+      brick: props.brick,
+      placement: props.placement,
     },
     version: "1.0.0",
     guard: Effect.fn("setBrickVisibilityAtBreakpoint.guard")(function* ({
@@ -59,22 +61,22 @@ export const setBrickVisibilityAtBreakpointContractV1 = makeContractVersion(
       db: Readonly<Pick<IDb, "query">>;
       payload: InferCommandPayload<typeof setBrickVisibilityAtBreakpointPayload>;
     }) {
-      const membership = db.query.membership
+      const brickRow = db.query.brick
         .findFirst({
-          where: { id: { eq: payload.membershipId } },
+          where: { id: { eq: payload.brickId } },
         })
         .sync();
 
-      if (membership === undefined) {
+      if (brickRow === undefined) {
         return yield* new ZerospinError({
-          code: "set-brick-visibility-membership-not-found",
-          message: `membership ${payload.membershipId} was not found`,
+          code: "set-brick-visibility-brick-not-found",
+          message: `brick ${payload.brickId} was not found`,
           status: 404,
         });
       }
 
       const expectedPlacementId = placementIdFor(
-        payload.membershipId,
+        payload.brickId,
         payload.breakpoint,
       );
       const placement = db.query.placement
@@ -99,20 +101,20 @@ export const setBrickVisibilityAtBreakpointContractV1 = makeContractVersion(
         });
       }
 
-      if (payload.savedGridItem.i !== payload.membershipId) {
+      if (payload.savedGridItem.i !== payload.brickId) {
         return yield* new ZerospinError({
           code: "set-brick-visibility-saved-item-mismatch",
-          message: `savedGridItem.i must equal membershipId ${payload.membershipId}`,
+          message: `savedGridItem.i must equal brickId ${payload.brickId}`,
           status: 400,
         });
       }
 
       const otherIds = new Set<string>();
       for (const item of payload.otherVisibleLayout) {
-        if (item.i === payload.membershipId) {
+        if (item.i === payload.brickId) {
           return yield* new ZerospinError({
             code: "set-brick-visibility-other-includes-self",
-            message: `otherVisibleLayout must not include membership ${payload.membershipId}`,
+            message: `otherVisibleLayout must not include brick ${payload.brickId}`,
             status: 400,
           });
         }
@@ -125,18 +127,18 @@ export const setBrickVisibilityAtBreakpointContractV1 = makeContractVersion(
         }
         otherIds.add(item.i);
 
-        const otherMembership = db.query.membership
+        const otherBrick = db.query.brick
           .findFirst({
             where: { id: { eq: item.i } },
           })
           .sync();
         if (
-          otherMembership === undefined ||
-          otherMembership.wallId !== membership.wallId
+          otherBrick === undefined ||
+          otherBrick.wallId !== brickRow.wallId
         ) {
           return yield* new ZerospinError({
             code: "set-brick-visibility-other-not-on-wall",
-            message: `otherVisibleLayout item ${item.i} is not a membership on the same wall`,
+            message: `otherVisibleLayout item ${item.i} is not a brick on the same wall`,
             status: 400,
           });
         }
@@ -158,27 +160,27 @@ export const setBrickVisibilityAtBreakpointContractV1 = makeContractVersion(
       }
 
       if (payload.isVisible && payload.currentlyVisible !== payload.isVisible) {
-        const wallMemberships = db.query.membership
+        const wallBricks = db.query.brick
           .findMany({
-            where: { wallId: { eq: membership.wallId } },
+            where: { wallId: { eq: brickRow.wallId } },
           })
           .sync();
         const expectedOtherVisibleIds = new Set<string>();
-        for (const wallMembership of wallMemberships) {
-          if (wallMembership.id === payload.membershipId) {
+        for (const wallBrick of wallBricks) {
+          if (wallBrick.id === payload.brickId) {
             continue;
           }
           const wallPlacement = db.query.placement
             .findFirst({
               where: {
                 id: {
-                  eq: placementIdFor(wallMembership.id, payload.breakpoint),
+                  eq: placementIdFor(wallBrick.id, payload.breakpoint),
                 },
               },
             })
             .sync();
           if (wallPlacement !== undefined && wallPlacement.isVisible) {
-            expectedOtherVisibleIds.add(wallMembership.id);
+            expectedOtherVisibleIds.add(wallBrick.id);
           }
         }
 
@@ -189,11 +191,11 @@ export const setBrickVisibilityAtBreakpointContractV1 = makeContractVersion(
             status: 400,
           });
         }
-        for (const membershipId of expectedOtherVisibleIds) {
-          if (!otherIds.has(membershipId)) {
+        for (const brickId of expectedOtherVisibleIds) {
+          if (!otherIds.has(brickId)) {
             return yield* new ZerospinError({
               code: "set-brick-visibility-other-set-mismatch",
-              message: `otherVisibleLayout is missing visible membership ${membershipId}`,
+              message: `otherVisibleLayout is missing visible brick ${brickId}`,
               status: 400,
             });
           }
@@ -226,7 +228,7 @@ export const setBrickVisibilityAtBreakpointContractV1 = makeContractVersion(
           return [
             yield* models.placement.update({
               resourceId: placementIdFor(
-                payload.membershipId,
+                payload.brickId,
                 payload.breakpoint,
               ) as InferIdFromAbbreviation<"plc">,
               attributes: {
@@ -243,18 +245,18 @@ export const setBrickVisibilityAtBreakpointContractV1 = makeContractVersion(
         const mutations = [];
 
         for (const item of resolved) {
-          if (item.i === payload.membershipId) {
+          if (item.i === payload.brickId) {
             mutations.push(
               yield* models.placement.update({
                 resourceId: placementIdFor(
-                  payload.membershipId,
+                  payload.brickId,
                   payload.breakpoint,
                 ) as InferIdFromAbbreviation<"plc">,
                 attributes: {
                   isVisible: true,
                   gridItem: structuredClone(item),
                 } as Partial<
-                  InferDecodedRow<(typeof placementModelV1)["attributes"]>
+                  InferDecodedRow<(typeof props.placement)["attributes"]>
                 >,
               }),
             );
@@ -270,7 +272,7 @@ export const setBrickVisibilityAtBreakpointContractV1 = makeContractVersion(
               attributes: {
                 gridItem: structuredClone(item),
               } as Partial<
-                InferDecodedRow<(typeof placementModelV1)["attributes"]>
+                InferDecodedRow<(typeof props.placement)["attributes"]>
               >,
             }),
           );
@@ -278,5 +280,5 @@ export const setBrickVisibilityAtBreakpointContractV1 = makeContractVersion(
 
         return mutations;
       }),
-  },
-);
+  });
+}

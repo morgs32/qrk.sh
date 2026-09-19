@@ -1,5 +1,15 @@
 # qrk.sh
 
+## Vendor
+
+Configured vendor origins are recorded here and in `AGENTS.md`:
+
+| Prefix | Origin | Branch |
+| --- | --- | --- |
+| `vendor/zerospin` | `../zerospin` | `main` |
+
+Use `$update-vendor` for squashed pulls from the sibling checkout.
+
 Two Next.js apps with App Router:
 
 - `apps/web` owns the public homepage at `/` and the `/sign-in`, `/sign-up`, `/replace`, `/ordered-body`, and `/ordered-outline` routes.
@@ -67,4 +77,3 @@ Build and start either app with its package name: `@qrk.sh/web` for the homepage
 ## Deployment
 
 Deploy both Next.js apps and route `/`, `/sign-in(.*)`, `/sign-up(.*)`, `/replace`, `/ordered-body`, and `/ordered-outline` to `@qrk.sh/web`; route the remaining application paths to `@qrk.sh/studio`.
-

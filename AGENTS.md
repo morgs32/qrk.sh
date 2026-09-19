@@ -66,6 +66,12 @@ Treat the codebase as partially authored by whoever is iterating in the IDE.
 
 ### Vendored subtrees are read-only
 
+Configured vendors (prefix, origin, branch must match root `README.md`):
+
+| Prefix | Origin | Branch |
+| --- | --- | --- |
+| `vendor/zerospin` | `../zerospin` | `main` |
+
 - Treat every Git subtree under `vendor/**` as read-only in this repository.
 - Do not author source changes in a vendored subtree and do not use `git subtree push` from this repository.
 - When vendored code must change, make the change in that vendor's source repository, commit and push it there, then pull the resulting upstream commit into this repository through the configured vendor workflow.

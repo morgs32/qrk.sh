@@ -9,7 +9,7 @@ Server execution starts in VAR after AC admission. The browser owns optimism; Se
 
 ## Trigger
 
-1. Local staging commits the frontend command's complete occurrence, optimistic mutations, and inverse journal.
+1. Local staging returns `Success` only after committing the complete occurrence, optimistic mutations, and inverse journal. A mutation-generation failure commits a failed occurrence and returns `Failure` with that occurrence in `command`; a failure before commit returns `Failure` without `command`. Both committed outcomes retain the delivery handoff.
    - [`stageCommand.ts`](../../../packages/core/src/session/stageCommand.ts) — Requires bound execution resources and current ownership before constructing the complete command.
 
 ```mermaid
@@ -35,7 +35,7 @@ sequenceDiagram
 
 ## Annotated workflow steps
 
-1. Local staging commits the frontend command's complete occurrence, optimistic mutations, and inverse journal.
+1. Local staging returns `Success` only after committing the complete occurrence, optimistic mutations, and inverse journal. A mutation-generation failure commits a failed occurrence and returns `Failure` with that occurrence in `command`; a failure before commit returns `Failure` without `command`. Both committed outcomes retain the delivery handoff.
    - [`stageCommand.ts`](../../../packages/core/src/session/stageCommand.ts) — Requires bound execution resources and current ownership before constructing the complete command.
 2. The browser submits that complete occurrence through its authenticated frontend capability.
    - [`pushAggregateFrontendCommand.ts`](../../../packages/frontend/src/pushAggregateFrontendCommand.ts) — Sends the full encoded session command.

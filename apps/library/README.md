@@ -59,17 +59,18 @@ json-render registry and brick React component. Grid sizing is measured at
 preview/drag time (`w` / `h` from intrinsic px ÷ `gridItemWidth`), not declared
 on the module.
 
-The workbench sandbox mounts `ZerospinMockProvider` with one seeded empty wall
-(`wal_sandbox`). Committed layout is Wall → Brick → Placement via aggregate
-contracts (`addBrick`, layout/visibility/remove/compact, `updateBrickState`, and
-per-module spec-at-breakpoint). Shared state lives on the brick row; each placement
-stores a complete Spec, grid item, and visibility. The sandbox grid uses
-`noCompactor` (collision resolve without auto-gap-closing); **Compact layout**
-runs an explicit command. Reset remounts the mock session. Viewport preference
-may persist in localStorage; bricks do not.
+The workbench sandbox mounts `LibrarySandboxProvider` (`makeMockSession` +
+`useInitializeMockSession`) with one seeded empty wall (`wal_sandbox`). Committed
+layout is Wall → Brick → Placement via aggregate contracts (`addBrick`,
+layout/visibility/remove/compact, `updateBrickState`, and per-module
+spec-at-breakpoint). Shared state lives on the brick row; each placement stores a
+complete Spec, grid item, and visibility. The sandbox grid uses `noCompactor`
+(collision resolve without auto-gap-closing); **Compact layout** runs an explicit
+command. Reset remounts the mock session. Viewport preference may persist in
+localStorage; bricks do not.
 
 Studio still imports exported `BrickWall` / `GridStore` (Zustand) and is not on
-the mock-provider path.
+the mock-session path.
 
 Placed bricks drag from their entire surface and resize using the grid library's default
 bottom-right handle. Module and configuration previews also drag from their entire surface.

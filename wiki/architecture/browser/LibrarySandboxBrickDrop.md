@@ -60,7 +60,7 @@ sequenceDiagram
   autonumber 8
   dragStore-->>LibraryWall: w, h, state, spec
   autonumber 9
-  LibraryWall->>session: executeCommand(addBrick)
+  LibraryWall->>session: stageCommand(addBrick)
   autonumber 10
   session-->>LibraryWall: Success | Failure
 ```

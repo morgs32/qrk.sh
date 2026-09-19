@@ -3,7 +3,7 @@ import { useState } from "react";
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { isNonEmptySpec } from "@json-render/core";
 import { newSyncRpcSession } from "@zerospin/core/utils/newSyncRpcSession";
-import { useLiveQuery, useSession } from "@zerospin/react";
+import { stageCommand, useLiveQuery } from "@zerospin/react";
 import { collapseAllNested, defaultStyles, JsonView } from "react-json-view-lite";
 
 import { OrderedBody } from "@qrk.sh/web/library/OrderedBody";
@@ -17,6 +17,7 @@ import { modulesHash } from "../../../lib/modulesHash";
 import { useWallViewport } from "../../../lib/WallViewportProvider";
 import type { LibraryApi } from "../../../worker/LibraryApi.public";
 import type { IScrapeError } from "../../../worker/types.public";
+import { useLibrarySession } from "../../LibrarySandboxProvider";
 import { readGridItem } from "../../readGridItem";
 
 export const Route = createFileRoute("/bricks/$brickId")({
@@ -45,7 +46,7 @@ function BrickDetail() {
   const breakpoint = activeBreakpoint ?? "sm";
   const { brickId: brickIdParam } = Route.useParams();
   const brickId = isBrickId(brickIdParam) ? brickIdParam : null;
-  const session = useSession(LibraryFrontend);
+  const session = useLibrarySession();
   const [generatePrompt, setGeneratePrompt] = useState("");
   const [isGeneratingSpec, setIsGeneratingSpec] = useState(false);
   const [generateError, setGenerateError] = useState<IScrapeError>();
@@ -53,28 +54,31 @@ function BrickDetail() {
   const [commandError, setCommandError] = useState<string | null>(null);
   const [stateDraft, setStateDraft] = useState<string | null>(null);
 
-  const brickQuery = useLiveQuery(LibraryFrontend, {
-    deps: [brickId],
-    query: db =>
+  const brickQuery = useLiveQuery({
+    session,
+    key: brickId,
+    query: (db, queriedBrickId) =>
       db.query.brick.findFirst({
-        where: { id: { eq: brickId ?? "brk_missing" } },
+        where: { id: { eq: queriedBrickId ?? "brk_missing" } },
       }),
   });
-  const placementQuery = useLiveQuery(LibraryFrontend, {
-    deps: [brickId, breakpoint],
-    query: db =>
+  const placementQuery = useLiveQuery({
+    session,
+    key: { brickId, breakpoint },
+    query: (db, { brickId: queriedBrickId, breakpoint: queriedBreakpoint }) =>
       db.query.placement.findFirst({
         where: {
-          brickId: { eq: brickId ?? "brk_missing" },
-          breakpoint: { eq: breakpoint },
+          brickId: { eq: queriedBrickId ?? "brk_missing" },
+          breakpoint: { eq: queriedBreakpoint },
         },
       }),
   });
-  const placementsQuery = useLiveQuery(LibraryFrontend, {
-    deps: [breakpoint],
-    query: db =>
+  const placementsQuery = useLiveQuery({
+    session,
+    key: breakpoint,
+    query: (db, queriedBreakpoint) =>
       db.query.placement.findMany({
-        where: { breakpoint: { eq: breakpoint } },
+        where: { breakpoint: { eq: queriedBreakpoint } },
       }),
   });
 
@@ -148,7 +152,8 @@ function BrickDetail() {
                           return;
                         }
                         const specContractName = specContractByModuleId[targetModuleId];
-                        const commandResult = session.executeCommand({
+                        const commandResult = stageCommand({
+                          session,
                           contractName: specContractName,
                           payload: {
                             brickId: targetBrickId,
@@ -221,7 +226,8 @@ function BrickDetail() {
                         return [readGridItem(otherPlacement.gridItem)];
                       },
                     );
-                    const result = session.executeCommand({
+                    const result = stageCommand({
+                      session,
                       contractName: "setBrickVisibilityAtBreakpoint",
                       payload: {
                         brickId: brickRow.id,
@@ -261,7 +267,8 @@ function BrickDetail() {
                     );
                     return;
                   }
-                  const result = session.executeCommand({
+                  const result = stageCommand({
+                    session,
                     contractName: "updateBrickState",
                     payload: {
                       brickId: brickRow.id,

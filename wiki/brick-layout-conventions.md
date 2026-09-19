@@ -21,7 +21,8 @@ A brick row (`makeBrickModel`) persists `moduleId` and shared `state` on the
 wall instance. Complete json-render Specs, grid items, and visibility live on
 **Placement** rows (one per brick × breakpoint).
 
-Library sandbox ownership (contracts via `ZerospinMockProvider`):
+Library sandbox ownership (contracts via `LibrarySandboxProvider` /
+`makeMockSession`):
 
 ```text
 Wall → Brick → Placement [sm, md, lg, xl]

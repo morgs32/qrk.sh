@@ -2,14 +2,14 @@ import { useLayoutEffect, useRef, useState } from "react";
 
 import { isNonEmptySpec } from "@json-render/core";
 import { prefixId } from "@zerospin/core/models/prefixId";
-import { useLiveQuery, useSession } from "@zerospin/react";
+import { stageCommand, useLiveQuery } from "@zerospin/react";
 import GridLayout, { noCompactor } from "react-grid-layout";
 
 import { LibraryFrontend } from "../aggregates/library/libraryFrontend";
 import { BrickWrapper } from "../components/brick/BrickWrapper";
 import { modulesHash } from "../lib/modulesHash";
 import { useBricksStore } from "../lib/BrickStoreProvider";
-import { SANDBOX_WALL_ID } from "./LibrarySandboxProvider";
+import { SANDBOX_WALL_ID, useLibrarySession } from "./LibrarySandboxProvider";
 import { readGridItem } from "./readGridItem";
 
 function toGridItem(item: { i: string; x: number; y: number; w: number; h: number }) {
@@ -66,7 +66,7 @@ export function LibraryWall(props: {
   onCommandError?: (message: string) => void;
 }) {
   const { breakpoint, gridWidth } = props;
-  const session = useSession(LibraryFrontend);
+  const session = useLibrarySession();
   const containerRef = useRef<HTMLElement>(null);
   const scrollRootRef = useRef<HTMLElement | null>(null);
   const [dragging, setDragging] = useState(false);
@@ -75,13 +75,15 @@ export function LibraryWall(props: {
   const activeBrickDrag = useBricksStore((state) => state.activeBrickDrag);
   const setActiveBrickDrag = useBricksStore((state) => state.setActiveBrickDrag);
 
-  const bricksQuery = useLiveQuery(LibraryFrontend, {
+  const bricksQuery = useLiveQuery({
+    session,
     query: (db) =>
       db.query.brick.findMany({
         where: { wallId: { eq: SANDBOX_WALL_ID } },
       }),
   });
-  const placementsQuery = useLiveQuery(LibraryFrontend, {
+  const placementsQuery = useLiveQuery({
+    session,
     query: (db) => db.query.placement.findMany(),
   });
 
@@ -157,7 +159,8 @@ export function LibraryWall(props: {
             threshold: 3,
           }}
           onResizeStop={(nextLayout) => {
-            const result = session.executeCommand({
+            const result = stageCommand({
+              session,
               contractName: "updateLayoutAtBreakpoint",
               payload: {
                 wallId: SANDBOX_WALL_ID,
@@ -216,7 +219,8 @@ export function LibraryWall(props: {
               xl: visibleLayoutAt("xl"),
             };
 
-            const result = session.executeCommand({
+            const result = stageCommand({
+              session,
               contractName: "addBrick",
               payload: {
                 wallId: SANDBOX_WALL_ID,
@@ -280,7 +284,8 @@ export function LibraryWall(props: {
             if (outside && item) {
               const brickRow = bricks.find((candidate) => candidate.id === item.i);
               if (brickRow !== undefined) {
-                const result = session.executeCommand({
+                const result = stageCommand({
+                  session,
                   contractName: "removeBrick",
                   payload: {
                     brickId: brickRow.id,
@@ -292,7 +297,8 @@ export function LibraryWall(props: {
                 }
               }
             } else {
-              const result = session.executeCommand({
+              const result = stageCommand({
+                session,
                 contractName: "updateLayoutAtBreakpoint",
                 payload: {
                   wallId: SANDBOX_WALL_ID,

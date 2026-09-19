@@ -45,8 +45,8 @@ Each assembler calls [`defineModule`](../../apps/library/make/defineModule.ts) f
 
 Library sandbox walls store shared module `state` on the brick row
 and per-breakpoint Spec / grid / visibility on Placement rows. The library
-aggregate is assembled once from `backendLibrary` through
-[`makeLibraryAggregateVersion`](../../apps/library/aggregates/library/makeLibraryAggregateVersion.ts)
+frontend is assembled once from `backendLibrary` through
+[`makeLibraryFrontend`](../../apps/library/aggregates/library/libraryFrontend.ts)
 (see [`brick-layout-conventions`](../brick-layout-conventions.md)). Studio’s wall still
 uses the exported Zustand `BrickWall` path until a separate migration.
 

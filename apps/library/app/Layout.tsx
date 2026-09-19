@@ -1,12 +1,11 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation, useNavigate, useParams } from "@tanstack/react-router";
-import { useLiveQuery, useSession } from "@zerospin/react";
+import { stageCommand, useLiveQuery } from "@zerospin/react";
 import { motion, useAnimationControls, useReducedMotion } from "framer-motion";
 import { RotateCcw, X } from "lucide-react";
 import { cn } from "cn";
 import { Drawer } from "@qrk.sh/web/library/Drawer";
 
-import { LibraryFrontend } from "../aggregates/library/libraryFrontend";
 import { Button } from "../components/ui/button";
 import { BREAKPOINTS } from "../lib/breakpoints";
 import { modulesHash } from "../lib/modulesHash";
@@ -19,7 +18,11 @@ import {
   useWallViewportStoreApi,
   WallViewportProvider,
 } from "../lib/WallViewportProvider";
-import { LibrarySandboxProvider, SANDBOX_WALL_ID } from "./LibrarySandboxProvider";
+import {
+  LibrarySandboxProvider,
+  SANDBOX_WALL_ID,
+  useLibrarySession,
+} from "./LibrarySandboxProvider";
 import { LibraryWall } from "./LibraryWall";
 import { readGridItem } from "./readGridItem";
 
@@ -212,7 +215,7 @@ function LayoutBody(props: {
   const params = useParams({ strict: false });
   const bricksStore = useBricksStoreApi();
   const wallViewportStore = useWallViewportStoreApi();
-  const session = useSession(LibraryFrontend);
+  const session = useLibrarySession();
   const {
     regionRef,
     availableWidth,
@@ -235,10 +238,12 @@ function LayoutBody(props: {
   const [direction, setDirection] = useState<1 | -1 | 0>(0);
   const [commandError, setCommandError] = useState<string | null>(null);
 
-  const placementsQuery = useLiveQuery(LibraryFrontend, {
+  const placementsQuery = useLiveQuery({
+    session,
     query: db => db.query.placement.findMany(),
   });
-  const bricksQuery = useLiveQuery(LibraryFrontend, {
+  const bricksQuery = useLiveQuery({
+    session,
     query: db =>
       db.query.brick.findMany({
         where: { wallId: { eq: SANDBOX_WALL_ID } },
@@ -323,7 +328,8 @@ function LayoutBody(props: {
       }
       return [readGridItem(placement.gridItem)];
     });
-    const result = session.executeCommand({
+    const result = stageCommand({
+      session,
       contractName: "compactLayoutAtBreakpoint",
       payload: {
         wallId: SANDBOX_WALL_ID,

@@ -1,11 +1,12 @@
-import { makeFrontend } from "../../make/makeFrontend";
+import { makeModuleView } from "../../make/makeModuleView";
 import { registry } from "./generative/TextJsonRenderRegistry";
 import { defaultSpec } from "./generative/defaultSpec";
 import { TextBrick } from "./TextBrick";
 import { textV1 } from "./textV1";
 
-export const textFrontend = makeFrontend(textV1, {
-  registry,
-  component: TextBrick,
-  defaultSpec,
+export const textFrontend = makeModuleView(textV1, {
+  default: {
+    component: TextBrick,
+    generator: { registry, defaultSpec },
+  },
 });

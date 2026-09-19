@@ -5,7 +5,7 @@ import { prefixId } from "@zerospin/core/models/prefixId";
 import { stageCommand, useLiveQuery } from "@zerospin/react";
 import GridLayout, { noCompactor } from "react-grid-layout";
 
-import { LibraryFrontend } from "../aggregates/library/libraryFrontend";
+import { LibraryFrontend } from "../makeLibraryFrontend/makeLibraryFrontend";
 import { BrickWrapper } from "../components/brick/BrickWrapper";
 import { modulesHash } from "../lib/modulesHash";
 import { useBricksStore } from "../lib/BrickStoreProvider";

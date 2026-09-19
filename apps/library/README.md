@@ -54,10 +54,11 @@ Worker/RPC declarations. Neither build deploys the app.
 ## Modules and interaction
 
 `modulesHash` exposes each library module by kebab-case id. `defineModule` owns
-identity, catalog, `stateShape`, and `defaultState`. `makeFrontend` attaches the
-json-render registry and brick React component. Grid sizing is measured at
-preview/drag time (`w` / `h` from intrinsic px ÷ `gridItemWidth`), not declared
-on the module.
+identity, catalog, `stateShape`, and `defaultState`. `makeModuleView` attaches the
+authored React brick and, when ready, a json-render `generator` (`registry` +
+`defaultSpec`). Optional `sm` / `md` / `lg` / `xl` overlays merge onto `default`
+(component, generator, declared `w`/`h`). Grid sizing is measured at preview/drag
+time unless both `w` and `h` are declared on that overlay.
 
 The workbench sandbox mounts `LibrarySandboxProvider` (`makeMockSession` +
 `useInitializeMockSession`) with one seeded empty wall (`wal_sandbox`). Committed

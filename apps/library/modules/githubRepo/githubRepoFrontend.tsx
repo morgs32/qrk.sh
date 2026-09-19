@@ -1,11 +1,12 @@
-import { makeFrontend } from "../../make/makeFrontend";
+import { makeModuleView } from "../../make/makeModuleView";
 import { registry } from "./generative/GitHubRepoJsonRenderRegistry";
 import { defaultSpec } from "./generative/defaultSpec";
 import { GitHubRepo } from "./GitHubRepo/GitHubRepo";
 import { githubRepoV1 } from "./githubRepoV1";
 
-export const githubRepoFrontend = makeFrontend(githubRepoV1, {
-  registry,
-  component: GitHubRepo,
-  defaultSpec,
+export const githubRepoFrontend = makeModuleView(githubRepoV1, {
+  default: {
+    component: GitHubRepo,
+    generator: { registry, defaultSpec },
+  },
 });

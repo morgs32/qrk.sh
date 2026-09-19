@@ -1,11 +1,12 @@
-import { makeFrontend } from "../../make/makeFrontend";
+import { makeModuleView } from "../../make/makeModuleView";
 import { ImageBrick } from "./ImageBrick";
 import { registry } from "./generative/ImageJsonRenderRegistry";
 import { defaultSpec } from "./generative/defaultSpec";
 import { imageV1 } from "./imageV1";
 
-export const imageFrontend = makeFrontend(imageV1, {
-  registry,
-  component: ImageBrick,
-  defaultSpec,
+export const imageFrontend = makeModuleView(imageV1, {
+  default: {
+    component: ImageBrick,
+    generator: { registry, defaultSpec },
+  },
 });

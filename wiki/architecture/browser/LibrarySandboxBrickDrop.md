@@ -12,7 +12,7 @@ sources:
     lines: 8-33
   - path: apps/library/components/brick/MeasuredBrickWrapper.tsx
     lines: 9-49
-  - path: apps/library/aggregates/library/contracts/addBrick/AddBrickContractV1.ts
+  - path: apps/library/makeLibraryFrontend/contracts/addBrick/AddBrickContractV1.ts
     lines: 60-97
   - path: apps/library/lib/modulesHash.ts
     lines: 14-26
@@ -69,7 +69,7 @@ sequenceDiagram
 
 1. The filmstrip reads the hash as an array of modules.
    - [`modulesHash.ts:14-26`](../../../apps/library/lib/modulesHash.ts#L14-L26) — kebab keys to assembler results.
-2. Preview measurement uses unconstrained intrinsic px → grid units via `gridItemWidth`.
+2. Preview measurement uses unconstrained intrinsic px → grid units via `gridItemWidth`, unless `viewFor(breakpoint)` declares both `w` and `h`.
    - [`MeasuredBrickWrapper.tsx`](../../../apps/library/components/brick/MeasuredBrickWrapper.tsx) — max-content box, no `@container`, `onChange({ widthPx, heightPx })`.
    - [`GridItemPreview.tsx`](../../../apps/library/lib/GridItemPreview.tsx) — snapped px from `BREAKPOINTS[].gridItemWidth * w/h`, wraps `BrickWrapper`.
    - [`breakpoints.ts`](../../../apps/library/lib/breakpoints.ts) — `minGridUnits`.
@@ -78,7 +78,7 @@ sequenceDiagram
 4. Drop placeholder size comes from the flat drag payload `w` / `h`.
    - [`LibraryWall.tsx`](../../../apps/library/app/LibraryWall.tsx) — `onDragOver` returns `{ w, h }` from `activeBrickDrag`.
 5. Drop allocates a `brickId`, then runs `addBrick`.
-   - [`AddBrickContractV1.ts`](../../../apps/library/aggregates/library/contracts/addBrick/AddBrickContractV1.ts) — payload includes wall, brick, module id, state/spec, resolved active layout, and other-breakpoint visible layouts.
+   - [`AddBrickContractV1.ts`](../../../apps/library/makeLibraryFrontend/contracts/addBrick/AddBrickContractV1.ts) — payload includes wall, brick, module id, state/spec, resolved active layout, and other-breakpoint visible layouts.
 6. The command creates one brick and four visible placements; neighbors at other breakpoints are collision-resolved without compaction.
 7. Live queries refresh `LibraryWall`; committed Zustand `bricksById` is not used on the sandbox path.
 8. Reset remounts `LibrarySandboxProvider` with a fresh empty-wall seed; viewport preference may persist separately.

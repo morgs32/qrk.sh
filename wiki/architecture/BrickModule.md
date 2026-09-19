@@ -34,19 +34,17 @@ sources:
   - path: apps/library/lib/types.ts
     sha: 32db2cab47c9e341e6356d5f3c902fc7017d792b
     lines: 14-28
-  - path: apps/library/make/makeFrontend.tsx
-    sha: 7a934ee786ad9e6e6994beeb877cffc3b5f961fe
-    lines: 26-49
+  - path: apps/library/make/makeModuleView.tsx
 ---
 
 # Brick module identity and lookup
 
-Each assembler calls [`defineModule`](../../apps/library/make/defineModule.ts) for the worker-safe contract and [`makeFrontend`](../../apps/library/make/makeFrontend.tsx) for registry/forms. [`makeBackendLibrary`](../../apps/library/backendLibrary.ts) keys the contracts by id. [`modulesHash`](../../apps/library/lib/modulesHash.ts) is the matching `makeFrontend` map. Routes bind that value as `brickModule`. Preview and drag are [`LibrarySandboxBrickDrop`](./browser/LibrarySandboxBrickDrop.md) and [`SiteEditorBrickDrop`](./browser/SiteEditorBrickDrop.md).
+Each assembler calls [`defineModule`](../../apps/library/make/defineModule.ts) for the worker-safe contract and [`makeModuleView`](../../apps/library/make/makeModuleView.tsx) for the authored brick and optional json-render generator. [`makeBackendLibrary`](../../apps/library/backendLibrary.ts) keys the contracts by id. [`modulesHash`](../../apps/library/lib/modulesHash.ts) is the matching view map. Routes bind that value as `brickModule`. Preview and drag are [`LibrarySandboxBrickDrop`](./browser/LibrarySandboxBrickDrop.md) and [`SiteEditorBrickDrop`](./browser/SiteEditorBrickDrop.md).
 
 Library sandbox walls store shared module `state` on the brick row
 and per-breakpoint Spec / grid / visibility on Placement rows. The library
 frontend is assembled once from `backendLibrary` through
-[`makeLibraryFrontend`](../../apps/library/aggregates/library/libraryFrontend.ts)
+[`makeLibraryFrontend`](../../apps/library/makeLibraryFrontend/makeLibraryFrontend.ts)
 (see [`brick-layout-conventions`](../brick-layout-conventions.md)). Studio’s wall still
 uses the exported Zustand `BrickWall` path until a separate migration.
 
@@ -61,7 +59,7 @@ uses the exported Zustand `BrickWall` path until a separate migration.
 sequenceDiagram
   participant githubProfile
   participant defineModule
-  participant makeFrontend
+  participant makeModuleView
   participant modulesHash
   participant ModulePage_loader as ModulePage.loader
   participant ModuleDetail
@@ -72,9 +70,9 @@ sequenceDiagram
   autonumber 2
   defineModule-->>githubProfile: contract
   autonumber 3
-  githubProfile->>makeFrontend: makeFrontend(githubProfile, { registry })
+  githubProfile->>makeModuleView: makeModuleView(githubProfileV1, { default })
   autonumber 4
-  makeFrontend-->>githubProfile: IModule
+  makeModuleView-->>githubProfile: IModule
   autonumber 5
   modulesHash->>modulesHash: modulesHash["github-profile"] = githubProfileFrontend
   autonumber 6
@@ -94,7 +92,7 @@ sequenceDiagram
     autonumber 12
     ModuleDetail->>Brick: brickModule.component(...)
     autonumber 13
-    Brick->>Brick: Renderer only; callers wrap BrickWrapper
+    Brick->>Brick: Authored or Renderer; callers wrap BrickWrapper
   end
 ```
 
@@ -104,8 +102,8 @@ sequenceDiagram
    - [`githubProfile.ts:3-8`](../../apps/library/modules/githubProfile/githubProfile.ts#L3-L8) — `githubProfile` is `defineModule({ id: "github-profile", abbreviation: "ghp", ... })`. (`apps/library/modules/githubProfile/githubProfile.ts:3-8`)
 2. The factory rejects non-kebab ids and returns the identity fields including `abbreviation`.
    - [`defineModule.ts:7-21`](../../apps/library/make/defineModule.ts#L7-L21) — kebab-case `id` check and identity return. (`apps/library/make/defineModule.ts:7-21`)
-3. `makeFrontend` attaches the registry and stock Renderer brick.
-   - [`githubProfileFrontend.tsx:7-11`](../../apps/library/modules/githubProfile/githubProfileFrontend.tsx#L7-L11) — `makeFrontend(githubProfileV1, { registry })`. (`apps/library/modules/githubProfile/githubProfileFrontend.tsx:7-11`)
+3. `makeModuleView` attaches the authored brick and optional generator (`registry` + `defaultSpec`).
+   - [`githubProfileFrontend.tsx`](../../apps/library/modules/githubProfile/githubProfileFrontend.tsx) — `makeModuleView(githubProfileV1, { default: { component, generator } })`.
 4. The returned value is an [`IModule`](../../apps/library/lib/types.ts) with `component`.
    - [`types.ts:14-28`](../../apps/library/lib/types.ts#L14-L28) — `IModule` identity including `abbreviation`, catalog, registry. (`apps/library/lib/types.ts:14-28`)
 5. The hash is a `Record<string, IModule>` keyed by kebab `id`, checked against the backend map.
@@ -129,6 +127,6 @@ sequenceDiagram
     - [`index.tsx:39-40`](../../apps/library/app/routes/modules/$moduleId/index.tsx#L39-L40) — `const brick = brickModule` then `BrickComponent = brick.component`. (`apps/library/app/routes/modules/$moduleId/index.tsx:39-40`)
     - [`BrickGroupRoute.tsx:68`](../../apps/studio/app/routes/BrickGroupRoute.tsx#L68) — `BrickComponent = brickModule.component`. (`apps/studio/app/routes/BrickGroupRoute.tsx:68`)
 13. `Brick` renders Authored or json-render `Renderer`. Fill vs measure chrome is applied by the caller (`BrickWrapper` / `MeasuredBrickWrapper`). Json-render `BrickShell` is a filling flex column so Body+Footer pin correctly even when drag wrappers sit between the shell and `BrickWrapper`.
-    - [`makeFrontend.tsx:60-77`](../../apps/library/make/makeFrontend.tsx#L60-L77) — no fill wrapper around Authored/`Renderer`. (`apps/library/make/makeFrontend.tsx:60-77`)
+    - [`makeModuleView.tsx`](../../apps/library/make/makeModuleView.tsx) — no fill wrapper around Authored/`Renderer`.
     - [`BrickWrapper.tsx:6-26`](../../apps/library/components/brick/BrickWrapper.tsx#L6-L26) — `qrk-bricks` fill wrapper (`h-full w-full`). (`apps/library/components/brick/BrickWrapper.tsx:6-26`)
     - [`layoutRegistryComponents.tsx:61`](../../apps/library/lib/jsonRender/layoutRegistryComponents.tsx#L61) — `BrickShell` registry renders `BrickShell` (`flex h-full flex-col`). (`apps/library/lib/jsonRender/layoutRegistryComponents.tsx:61`)

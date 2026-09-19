@@ -10,7 +10,7 @@ import { OrderedBody } from "@qrk.sh/web/library/OrderedBody";
 import { OrderedDoc, OrderedSection } from "@qrk.sh/web/library/OrderedDoc";
 import { OrderedOutline } from "@qrk.sh/web/library/OrderedOutline";
 
-import { LibraryFrontend } from "../../../aggregates/library/libraryFrontend";
+import { LibraryFrontend } from "../../../makeLibraryFrontend/makeLibraryFrontend";
 import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
 import { modulesHash } from "../../../lib/modulesHash";
@@ -100,8 +100,7 @@ function BrickDetail() {
   const brickState = brickRow.state;
   const committedStateJson = JSON.stringify(brickState, null, 2);
   const stateEditorValue = stateDraft ?? committedStateJson;
-  const hasJsonRender =
-    brickModule.catalog !== undefined && brickModule.registry !== undefined;
+  const hasJsonRender = brickModule.registry !== undefined;
   const rawSpec: unknown =
     typeof placement.spec === "string"
       ? JSON.parse(placement.spec)

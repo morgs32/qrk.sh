@@ -16,7 +16,7 @@ import {
 import {
   LibraryFrontend,
   libraryRuntime,
-} from "../aggregates/library/libraryFrontend";
+} from "../makeLibraryFrontend/makeLibraryFrontend";
 
 export const SANDBOX_WALL_ID = prefixId(LibraryFrontend.models.wall, "sandbox");
 

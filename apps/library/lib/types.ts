@@ -23,6 +23,15 @@ export type IModule = {
   defaultSpec: Spec;
   def: IModuleBrickDef;
   component: IModuleBrick["component"];
+  viewFor: (breakpoint: "sm" | "md" | "lg" | "xl") => {
+    component: {
+      bivarianceHack(props: { state: unknown }): ReactNode;
+    }["bivarianceHack"];
+    spec: Spec;
+    registry?: ComponentRegistry;
+    w?: number;
+    h?: number;
+  };
   stateShape: IShape;
   defaultState: unknown;
 };

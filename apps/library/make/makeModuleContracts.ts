@@ -1,6 +1,6 @@
 import type { IBackendLibrary } from "../backendLibrary";
-import { makeBrickModel } from "../aggregates/library/models/brick/makeBrickModel";
-import { makePlacementModel } from "../aggregates/library/models/placement/placementModelV1";
+import { makeBrickModel } from "../makeLibraryFrontend/models/brick/makeBrickModel";
+import { makePlacementModel } from "../makeLibraryFrontend/models/placement/placementModelV1";
 import { makeModuleSpecContractVersion } from "./makeModuleSpecContractVersion";
 
 export function makeModuleContracts(props: {

@@ -38,8 +38,7 @@ function ModuleDetail() {
   const [generateRequestError, setGenerateRequestError] = useState<string>();
   const brick = brickModule;
   const BrickComponent = brick.component;
-  const hasJsonRender = brickModule.catalog !== undefined && brickModule.registry !== undefined;
-  const previewSpec = generatedSpec ?? brick.defaultSpec;
+  const hasJsonRender = brickModule.registry !== undefined;
 
   return (
     <>
@@ -135,7 +134,7 @@ function ModuleDetail() {
                 key={entry.id}
                 moduleState={moduleState}
                 moduleId={moduleId}
-                spec={previewSpec}
+                spec={generatedSpec ?? brick.viewFor(entry.id).spec}
               />
             ))}
           </OrderedBody>
@@ -151,7 +150,7 @@ function ModuleDetail() {
               key={entry.id}
               moduleState={moduleState}
               moduleId={moduleId}
-              spec={brick.defaultSpec}
+              spec={brick.viewFor(entry.id).spec}
               className={index === 0 ? undefined : "mt-10"}
             />
           ))}

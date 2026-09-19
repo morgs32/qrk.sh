@@ -14,7 +14,7 @@ export function ImageCard(props: { children?: ReactNode }) {
 
 export function ImageCover(props: { imageUrl: string; title: string; imagePosition: string }) {
   return (
-    <div className="relative min-h-0 flex-1 basis-[200px] overflow-hidden">
+    <div className="relative min-h-[200px] min-w-[200px] flex-1 overflow-hidden">
       <UnpicImage
         src={props.imageUrl}
         alt={props.title}

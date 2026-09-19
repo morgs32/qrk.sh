@@ -11,14 +11,14 @@ import {
 } from "@zerospin/schema";
 import { Effect, Schema } from "effect";
 
-import type { defineComponent } from "../../../../make/defineComponent";
-import { makeModuleSpecDocumentSchema } from "../../../../make/makeModuleSpecDocumentSchema";
-import { placementIdFor } from "../../layout/placementIdFor";
+import type { defineComponent } from "../../../make/defineComponent";
+import { makeModuleSpecDocumentSchema } from "../../../make/makeModuleSpecDocumentSchema";
+import { makePlacementId } from "../../models/placement/makePlacementId";
 import {
   cloneLayoutItem,
   resolveVisibleCollisions,
   visibleLayoutError,
-} from "../../layout/resolveVisibleCollisions";
+} from "../../resolveVisibleCollisions";
 import { makeBrickModel } from "../../models/brick/makeBrickModel";
 import { makePlacementModel } from "../../models/placement/placementModelV1";
 import { wallModelV1 } from "../../models/wall/wallModelV1";
@@ -123,7 +123,7 @@ export function makeAddBrickContract<
       for (const breakpoint of ["sm", "md", "lg", "xl"] as Array<
         "sm" | "md" | "lg" | "xl"
       >) {
-        const placementId = placementIdFor(payload.brickId, breakpoint);
+        const placementId = makePlacementId(payload.brickId, breakpoint);
         const existingPlacement = db.query.placement
           .findFirst({
             where: { id: { eq: placementId } },
@@ -201,7 +201,7 @@ export function makeAddBrickContract<
           const placement = db.query.placement
             .findFirst({
               where: {
-                id: { eq: placementIdFor(wallBrick.id, breakpoint) },
+                id: { eq: makePlacementId(wallBrick.id, breakpoint) },
               },
             })
             .sync();
@@ -299,7 +299,7 @@ export function makeAddBrickContract<
           .findFirst({
             where: {
               id: {
-                eq: placementIdFor(item.i, payload.breakpoint),
+                eq: makePlacementId(item.i, payload.breakpoint),
               },
             },
           })
@@ -319,7 +319,7 @@ export function makeAddBrickContract<
           .findFirst({
             where: {
               id: {
-                eq: placementIdFor(wallBrick.id, payload.breakpoint),
+                eq: makePlacementId(wallBrick.id, payload.breakpoint),
               },
             },
           })
@@ -380,7 +380,7 @@ export function makeAddBrickContract<
             if (item.i === payload.brickId) {
               mutations.push(
                 yield* models.placement.create({
-                  resourceId: placementIdFor(
+                  resourceId: makePlacementId(
                     payload.brickId,
                     breakpoint,
                   ) as InferIdFromAbbreviation<"plc">,
@@ -401,7 +401,7 @@ export function makeAddBrickContract<
 
             mutations.push(
               yield* models.placement.update({
-                resourceId: placementIdFor(
+                resourceId: makePlacementId(
                   item.i,
                   breakpoint,
                 ) as InferIdFromAbbreviation<"plc">,

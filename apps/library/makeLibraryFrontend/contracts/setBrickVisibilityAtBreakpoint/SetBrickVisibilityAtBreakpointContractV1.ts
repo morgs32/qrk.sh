@@ -9,12 +9,12 @@ import {
 } from "@zerospin/schema";
 import { Effect, Schema } from "effect";
 
-import { placementIdFor } from "../../layout/placementIdFor";
+import { makePlacementId } from "../../models/placement/makePlacementId";
 import {
   cloneLayoutItem,
   resolveVisibleCollisions,
   visibleLayoutError,
-} from "../../layout/resolveVisibleCollisions";
+} from "../../resolveVisibleCollisions";
 import { makeBrickModel } from "../../models/brick/makeBrickModel";
 import { makePlacementModel } from "../../models/placement/placementModelV1";
 import { setBrickVisibilityAtBreakpoint } from "./setBrickVisibilityAtBreakpoint";
@@ -75,7 +75,7 @@ export function makeSetBrickVisibilityAtBreakpointContract(props: {
         });
       }
 
-      const expectedPlacementId = placementIdFor(
+      const expectedPlacementId = makePlacementId(
         payload.brickId,
         payload.breakpoint,
       );
@@ -146,7 +146,7 @@ export function makeSetBrickVisibilityAtBreakpointContract(props: {
         const otherPlacement = db.query.placement
           .findFirst({
             where: {
-              id: { eq: placementIdFor(item.i, payload.breakpoint) },
+              id: { eq: makePlacementId(item.i, payload.breakpoint) },
             },
           })
           .sync();
@@ -174,7 +174,7 @@ export function makeSetBrickVisibilityAtBreakpointContract(props: {
             .findFirst({
               where: {
                 id: {
-                  eq: placementIdFor(wallBrick.id, payload.breakpoint),
+                  eq: makePlacementId(wallBrick.id, payload.breakpoint),
                 },
               },
             })
@@ -227,7 +227,7 @@ export function makeSetBrickVisibilityAtBreakpointContract(props: {
         if (!payload.isVisible) {
           return [
             yield* models.placement.update({
-              resourceId: placementIdFor(
+              resourceId: makePlacementId(
                 payload.brickId,
                 payload.breakpoint,
               ) as InferIdFromAbbreviation<"plc">,
@@ -248,7 +248,7 @@ export function makeSetBrickVisibilityAtBreakpointContract(props: {
           if (item.i === payload.brickId) {
             mutations.push(
               yield* models.placement.update({
-                resourceId: placementIdFor(
+                resourceId: makePlacementId(
                   payload.brickId,
                   payload.breakpoint,
                 ) as InferIdFromAbbreviation<"plc">,
@@ -265,7 +265,7 @@ export function makeSetBrickVisibilityAtBreakpointContract(props: {
 
           mutations.push(
             yield* models.placement.update({
-              resourceId: placementIdFor(
+              resourceId: makePlacementId(
                 item.i,
                 payload.breakpoint,
               ) as InferIdFromAbbreviation<"plc">,

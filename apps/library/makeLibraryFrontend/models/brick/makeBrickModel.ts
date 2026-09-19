@@ -2,7 +2,7 @@ import { makeModelVersion } from "@zerospin/core/models/makeModelVersion";
 import { primitives } from "@zerospin/schema";
 import { Schema } from "effect";
 
-import type { IBackendLibrary } from "../../../../backendLibrary";
+import type { IBackendLibrary } from "../../../backendLibrary";
 import { wallModelV1 } from "../wall/wallModelV1";
 import { brick } from "./brick";
 

@@ -39,15 +39,21 @@ export function BreakpointPreviewRow({
     });
   }, []);
 
+  const view = brick.viewFor(entry.id);
+  const declaredW = view.w;
+  const declaredH = view.h;
+  const hasDeclaredSize = declaredW !== undefined && declaredH !== undefined;
   const measuredW = intrinsicSize
     ? minGridUnits(entry.gridItemWidth, intrinsicSize.widthPx)
     : undefined;
   const measuredH = intrinsicSize
     ? minGridUnits(entry.gridItemWidth, intrinsicSize.heightPx)
     : undefined;
-  const dragW = measuredW ?? 1;
-  const dragH = measuredH ?? 1;
-  const exceedsWallWidth = measuredW !== undefined && measuredW > 8;
+  const dragW = hasDeclaredSize ? declaredW : (measuredW ?? 1);
+  const dragH = hasDeclaredSize ? declaredH : (measuredH ?? 1);
+  const exceedsWallWidth = hasDeclaredSize
+    ? declaredW > 8
+    : measuredW !== undefined && measuredW > 8;
 
   const previewSurface = (
     <div
@@ -95,9 +101,9 @@ export function BreakpointPreviewRow({
             <GridItemPreview breakpoint={entry.id} w={dragW} h={dragH}>
               {previewSurface}
             </GridItemPreview>
-            {measuredW !== undefined && measuredH !== undefined ? (
+            {hasDeclaredSize || (measuredW !== undefined && measuredH !== undefined) ? (
               <p className="m-0 pt-2 font-mono text-neutral-500">
-                w={measuredW} h={measuredH}
+                w={dragW} h={dragH}
               </p>
             ) : null}
           </div>

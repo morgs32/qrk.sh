@@ -8,7 +8,7 @@ import {
 } from "@zerospin/schema";
 import { Effect } from "effect";
 
-import { placementIdFor } from "../../layout/placementIdFor";
+import { makePlacementId } from "../../models/placement/makePlacementId";
 import { makeBrickModel } from "../../models/brick/makeBrickModel";
 import { makePlacementModel } from "../../models/placement/placementModelV1";
 import { wallModelV1 } from "../../models/wall/wallModelV1";
@@ -87,7 +87,7 @@ export function makeRemoveBrickContract(props: {
         >) {
           mutations.push(
             yield* models.placement.delete({
-              resourceId: placementIdFor(
+              resourceId: makePlacementId(
                 payload.brickId,
                 breakpoint,
               ) as InferIdFromAbbreviation<"plc">,

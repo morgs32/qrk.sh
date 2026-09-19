@@ -16,7 +16,12 @@ export function ModulePreview(props: {
   breakpoint: (typeof BREAKPOINTS)[number]["id"];
 }) {
   const { brickModule, breakpoint } = props;
-  const { def, component: BrickComponent, defaultSpec } = brickModule;
+  const { def, component: BrickComponent } = brickModule;
+  const view = brickModule.viewFor(breakpoint);
+  const spec = view.spec;
+  const declaredW = view.w;
+  const declaredH = view.h;
+  const hasDeclaredSize = declaredW !== undefined && declaredH !== undefined;
   const [measuredUnits, setMeasuredUnits] = useState<{ w: number; h: number }>();
   const onSizeChange = useCallback(
     (dimensions: { widthPx: number; heightPx: number }) => {
@@ -32,15 +37,17 @@ export function ModulePreview(props: {
     [breakpoint],
   );
 
-  const dragW = measuredUnits?.w ?? 1;
-  const dragH = measuredUnits?.h ?? 1;
+  const dragW = hasDeclaredSize ? declaredW : (measuredUnits?.w ?? 1);
+  const dragH = hasDeclaredSize ? declaredH : (measuredUnits?.h ?? 1);
   const brickDefForDrag: IModuleBrickDef & { spec: Spec; w: number; h: number } = {
     ...def,
     w: dragW,
     h: dragH,
-    spec: structuredClone(defaultSpec),
+    spec: structuredClone(spec),
   };
-  const exceedsWallWidth = measuredUnits !== undefined && measuredUnits.w > 8;
+  const exceedsWallWidth = hasDeclaredSize
+    ? declaredW > 8
+    : measuredUnits !== undefined && measuredUnits.w > 8;
 
   return (
     <div
@@ -60,15 +67,17 @@ export function ModulePreview(props: {
         </Link>
       </h2>
       <div className="relative pb-16">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute overflow-hidden"
-          style={{ width: 0, height: 0 }}
-        >
-          <MeasuredBrickWrapper onChange={onSizeChange}>
-            <BrickComponent breakpoint={breakpoint} state={def.state} spec={defaultSpec} />
-          </MeasuredBrickWrapper>
-        </div>
+        {hasDeclaredSize ? null : (
+          <div
+            aria-hidden
+            className="pointer-events-none absolute overflow-hidden"
+            style={{ width: 0, height: 0 }}
+          >
+            <MeasuredBrickWrapper onChange={onSizeChange}>
+              <BrickComponent breakpoint={breakpoint} state={def.state} spec={spec} />
+            </MeasuredBrickWrapper>
+          </div>
+        )}
         <GridItemPreview breakpoint={breakpoint} w={dragW} h={dragH}>
           <DraggableBrick
             brickDef={brickDefForDrag}
@@ -76,7 +85,7 @@ export function ModulePreview(props: {
             data-module-representative={def.moduleId}
           >
             <div className="brick-drag-content size-full">
-              <BrickComponent breakpoint={breakpoint} state={def.state} spec={defaultSpec} />
+              <BrickComponent breakpoint={breakpoint} state={def.state} spec={spec} />
             </div>
           </DraggableBrick>
         </GridItemPreview>

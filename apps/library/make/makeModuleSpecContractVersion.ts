@@ -10,9 +10,9 @@ import {
 } from "@zerospin/schema";
 import { Effect } from "effect";
 
-import { placementIdFor } from "../aggregates/library/layout/placementIdFor";
-import { makeBrickModel } from "../aggregates/library/models/brick/makeBrickModel";
-import { makePlacementModel } from "../aggregates/library/models/placement/placementModelV1";
+import { makeBrickModel } from "../makeLibraryFrontend/models/brick/makeBrickModel";
+import { makePlacementId } from "../makeLibraryFrontend/models/placement/makePlacementId";
+import { makePlacementModel } from "../makeLibraryFrontend/models/placement/placementModelV1";
 import type { defineComponent } from "./defineComponent";
 import { makeModuleSpecDocumentSchema } from "./makeModuleSpecDocumentSchema";
 
@@ -80,7 +80,7 @@ export function makeModuleSpecContractVersion<
         });
       }
 
-      const expectedPlacementId = placementIdFor(
+      const expectedPlacementId = makePlacementId(
         guardPayload.brickId,
         guardPayload.breakpoint,
       );
@@ -103,7 +103,7 @@ export function makeModuleSpecContractVersion<
         typeof props.placement
       >;
       return placementMutations.update({
-        resourceId: placementIdFor(
+        resourceId: makePlacementId(
           programPayload.brickId,
           programPayload.breakpoint,
         ) as InferIdFromAbbreviation<"plc">,

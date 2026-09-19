@@ -9,15 +9,12 @@ import {
 } from "@zerospin/schema";
 import { Effect, Schema } from "effect";
 
-import { placementIdFor } from "../../layout/placementIdFor";
-import {
-  compactVisibleLayout,
-  visibleLayoutError,
-} from "../../layout/resolveVisibleCollisions";
+import { makePlacementId } from "../../models/placement/makePlacementId";
+import { visibleLayoutError } from "../../resolveVisibleCollisions";
 import { makeBrickModel } from "../../models/brick/makeBrickModel";
 import { makePlacementModel } from "../../models/placement/placementModelV1";
 import { wallModelV1 } from "../../models/wall/wallModelV1";
-import { compactLayoutAtBreakpoint } from "./compactLayoutAtBreakpoint";
+import { updateLayoutAtBreakpoint } from "./updateLayoutAtBreakpoint";
 
 const gridItemSchema = Schema.Struct({
   i: Schema.String,
@@ -27,36 +24,36 @@ const gridItemSchema = Schema.Struct({
   h: Schema.Number,
 });
 
-export function makeCompactLayoutAtBreakpointContract(props: {
+export function makeUpdateLayoutAtBreakpointContract(props: {
   wall: typeof wallModelV1;
   brick: ReturnType<typeof makeBrickModel>;
   placement: ReturnType<typeof makePlacementModel>;
 }) {
-  const compactLayoutAtBreakpointPayload = {
+  const updateLayoutAtBreakpointPayload = {
     wallId: primitives.foreignKey({ abbreviation: props.wall.abbreviation }),
     breakpoint: primitives.enum({
       values: ["sm", "md", "lg", "xl"],
     }),
-    visibleLayout: primitives.json({
+    layout: primitives.json({
       schema: Schema.Array(gridItemSchema),
     }),
   };
 
-  return makeContractVersion(compactLayoutAtBreakpoint, {
-    payload: compactLayoutAtBreakpointPayload,
+  return makeContractVersion(updateLayoutAtBreakpoint, {
+    payload: updateLayoutAtBreakpointPayload,
     models: {
       wall: props.wall,
       brick: props.brick,
       placement: props.placement,
     },
     version: "1.0.0",
-    guard: Effect.fn("compactLayoutAtBreakpoint.guard")(function* ({
+    guard: Effect.fn("updateLayoutAtBreakpoint.guard")(function* ({
       db,
       payload,
     }: {
       authentication: Readonly<Record<string, unknown>> | null;
       db: Readonly<Pick<IDb, "query">>;
-      payload: InferCommandPayload<typeof compactLayoutAtBreakpointPayload>;
+      payload: InferCommandPayload<typeof updateLayoutAtBreakpointPayload>;
     }) {
       const wall = db.query.wall
         .findFirst({
@@ -66,7 +63,7 @@ export function makeCompactLayoutAtBreakpointContract(props: {
 
       if (wall === undefined) {
         return yield* new ZerospinError({
-          code: "compact-layout-wall-not-found",
+          code: "update-layout-wall-not-found",
           message: `wall ${payload.wallId} was not found`,
           status: 404,
         });
@@ -84,7 +81,7 @@ export function makeCompactLayoutAtBreakpointContract(props: {
         const placement = db.query.placement
           .findFirst({
             where: {
-              id: { eq: placementIdFor(brickRow.id, payload.breakpoint) },
+              id: { eq: makePlacementId(brickRow.id, payload.breakpoint) },
             },
           })
           .sync();
@@ -94,11 +91,11 @@ export function makeCompactLayoutAtBreakpointContract(props: {
       }
 
       const layoutIds = new Set<string>();
-      for (const item of payload.visibleLayout) {
+      for (const item of payload.layout) {
         if (layoutIds.has(item.i)) {
           return yield* new ZerospinError({
-            code: "compact-layout-duplicate-item",
-            message: `visible layout item ${item.i} appears more than once`,
+            code: "update-layout-duplicate-item",
+            message: `layout item ${item.i} appears more than once`,
             status: 400,
           });
         }
@@ -106,16 +103,16 @@ export function makeCompactLayoutAtBreakpointContract(props: {
 
         if (!brickIds.has(item.i)) {
           return yield* new ZerospinError({
-            code: "compact-layout-item-not-on-wall",
-            message: `visible layout item ${item.i} is not a brick on wall ${payload.wallId}`,
+            code: "update-layout-item-not-on-wall",
+            message: `layout item ${item.i} is not a brick on wall ${payload.wallId}`,
             status: 400,
           });
         }
 
         if (!visibleBrickIds.has(item.i)) {
           return yield* new ZerospinError({
-            code: "compact-layout-item-not-visible",
-            message: `visible layout item ${item.i} is not visible at breakpoint ${payload.breakpoint}`,
+            code: "update-layout-item-not-visible",
+            message: `layout item ${item.i} is not visible at breakpoint ${payload.breakpoint}`,
             status: 400,
           });
         }
@@ -123,8 +120,8 @@ export function makeCompactLayoutAtBreakpointContract(props: {
 
       if (layoutIds.size !== visibleBrickIds.size) {
         return yield* new ZerospinError({
-          code: "compact-layout-set-mismatch",
-          message: `visibleLayout must include exactly the visible placements at breakpoint ${payload.breakpoint}`,
+          code: "update-layout-set-mismatch",
+          message: `layout must include exactly the visible placements at breakpoint ${payload.breakpoint}`,
           status: 400,
         });
       }
@@ -132,20 +129,20 @@ export function makeCompactLayoutAtBreakpointContract(props: {
       for (const brickId of visibleBrickIds) {
         if (!layoutIds.has(brickId)) {
           return yield* new ZerospinError({
-            code: "compact-layout-set-mismatch",
-            message: `visibleLayout is missing visible brick ${brickId}`,
+            code: "update-layout-set-mismatch",
+            message: `layout is missing visible brick ${brickId}`,
             status: 400,
           });
         }
       }
 
       const layoutError = visibleLayoutError({
-        layout: payload.visibleLayout,
-        context: "compactLayoutAtBreakpoint",
+        layout: payload.layout,
+        context: "updateLayoutAtBreakpoint",
       });
       if (layoutError !== null) {
         return yield* new ZerospinError({
-          code: "compact-layout-invalid",
+          code: "update-layout-invalid",
           message: layoutError,
           status: 400,
         });
@@ -153,12 +150,11 @@ export function makeCompactLayoutAtBreakpointContract(props: {
     }),
     program: ({ payload, models }) =>
       Effect.gen(function* () {
-        const compacted = compactVisibleLayout(payload.visibleLayout);
         const mutations = [];
-        for (const item of compacted) {
+        for (const item of payload.layout) {
           mutations.push(
             yield* models.placement.update({
-              resourceId: placementIdFor(
+              resourceId: makePlacementId(
                 item.i,
                 payload.breakpoint,
               ) as InferIdFromAbbreviation<"plc">,

@@ -6,8 +6,8 @@ import {
 } from "@zerospin/react";
 import { Layer, Redacted, Schema } from "effect";
 
-import { backendLibrary, type IBackendLibrary } from "../../backendLibrary";
-import { makeModuleContracts } from "../../make/makeModuleContracts";
+import { backendLibrary, type IBackendLibrary } from "../backendLibrary";
+import { makeModuleContracts } from "../make/makeModuleContracts";
 import { makeAddBrickContract } from "./contracts/addBrick/AddBrickContractV1";
 import { makeCompactLayoutAtBreakpointContract } from "./contracts/compactLayoutAtBreakpoint/CompactLayoutAtBreakpointContractV1";
 import { makeRemoveBrickContract } from "./contracts/removeBrick/RemoveBrickContractV1";

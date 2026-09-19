@@ -12,10 +12,13 @@ are not presentations and keep their own names.
 
 ## Modules vs placed bricks
 
-Module versions (`makeModuleVersion` + `makeFrontend`) do **not** declare
-breakpoints. A module owns identity, catalog, `stateShape`, `defaultState`, one
-`defaultSpec`, and a React brick. Grid sizing is never part of the module
-definition.
+Module versions (`makeModuleVersion` + `makeModuleView`) do **not** put
+breakpoints on identity. A module owns identity, catalog, `stateShape`, and
+`defaultState`. The view owns a required `default` `{ component, generator? }`
+and optional `sm` / `md` / `lg` / `xl` overlays (`component?`, `generator?`,
+`w?`/`h?`). Overlays merge onto `default` only. `generator` is optional so a
+module can ship authored UI before extracting catalog leaves. Grid sizing is
+measured unless both `w` and `h` are declared on that overlay.
 
 A brick row (`makeBrickModel`) persists `moduleId` and shared `state` on the
 wall instance. Complete json-render Specs, grid items, and visibility live on
@@ -46,11 +49,12 @@ edits update the shared brick row.
 
 ## Measurement
 
-Filmstrip, module-page previews, and drag payloads always size from unconstrained
+Filmstrip, module-page previews, and drag payloads size from unconstrained
 intrinsic px (`MeasuredBrickWrapper` `onChange`) as `minGridUnits` —
-`ceil(px / that breakpoint’s gridItemWidth)` (min 1). `GridItemPreview` paints the
-snapped cell and wraps `BrickWrapper`. Drag payloads carry measured `w` / `h`
-next to `spec`, not on the module `def`.
+`ceil(px / that breakpoint’s gridItemWidth)` (min 1) — **unless** the resolved
+view declares both `w` and `h`. Declared size skips measurement for gridItem and
+drag. `GridItemPreview` paints the snapped cell and wraps `BrickWrapper`. Drag
+payloads carry `w` / `h` next to `spec`, not on the module `def`.
 
 `MeasuredBrickWrapper` must not use Tailwind `@container`. Size containment on
 the measure root makes `width: max-content` ignore children (0×N). It also
@@ -72,8 +76,9 @@ id; it is not module inheritance.
 
 ## Frontend render
 
-`makeFrontend` uses the incoming `breakpoint` prop and the stock Renderer path.
-It performs no measurement, owns no context, and does not wrap fill chrome.
+`makeModuleView` uses the incoming `breakpoint` prop to resolve the overlay,
+then Authored (no generator) or the stock Renderer path. It performs no
+measurement, owns no context, and does not wrap fill chrome.
 Callers wrap `BrickWrapper` (wall / `GridItemPreview`) or `MeasuredBrickWrapper`.
 Json-render `BrickShell` is a filling flex column (`flex h-full flex-col`)
 that groups `BrickBody` then `BrickFooter`. Data props are inferred from the

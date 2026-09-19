@@ -1,6 +1,6 @@
 ---
 title: Brick module identity and lookup
-updated: 2026-09-17
+updated: 2026-09-19
 sources:
   - path: apps/library/make/defineModule.ts
     sha: c2bcb482f69168cd7671fcc520a19b176a1739a3
@@ -8,11 +8,11 @@ sources:
   - path: apps/library/modules/githubProfile/githubProfile.ts
     sha: 670b49bddf14ce386ef1cefe900b32a1175212fd
     lines: 3-8
-  - path: apps/library/modules/githubProfile/githubProfileFrontend.tsx
-    sha: 27bb9f712ceebfa618f8455baa497b5a312fcf9f
+  - path: apps/library/modules/githubProfile/githubProfileView.tsx
+    sha: f40b241bfb6aba781144e66c8be295e29b673108
     lines: 7-11
   - path: apps/library/lib/modulesHash.ts
-    sha: a57983f91c3abc1a356ecc1162900ef4cfcc8490
+    sha: e3d00c9d7842ef8ece11a40943b6d2cc0d8eb032
     lines: 14-25
   - path: apps/library/backendLibrary.ts
     sha: afb22bcba1d72b5fd6ce55c070ad908c23a69367
@@ -74,7 +74,7 @@ sequenceDiagram
   autonumber 4
   makeModuleView-->>githubProfile: IModule
   autonumber 5
-  modulesHash->>modulesHash: modulesHash["github-profile"] = githubProfileFrontend
+  modulesHash->>modulesHash: modulesHash["github-profile"] = githubProfileView
   autonumber 6
   ModulePage_loader->>modulesHash: modulesHash[params.moduleId]
   alt missing id or hash miss
@@ -103,11 +103,11 @@ sequenceDiagram
 2. The factory rejects non-kebab ids and returns the identity fields including `abbreviation`.
    - [`defineModule.ts:7-21`](../../apps/library/make/defineModule.ts#L7-L21) — kebab-case `id` check and identity return. (`apps/library/make/defineModule.ts:7-21`)
 3. `makeModuleView` attaches the authored brick and optional generator (`registry` + `defaultSpec`).
-   - [`githubProfileFrontend.tsx`](../../apps/library/modules/githubProfile/githubProfileFrontend.tsx) — `makeModuleView(githubProfileV1, { default: { component, generator } })`.
+   - [`githubProfileView.tsx`](../../apps/library/modules/githubProfile/githubProfileView.tsx) — `makeModuleView(githubProfileV1, { default: { component, generator } })`.
 4. The returned value is an [`IModule`](../../apps/library/lib/types.ts) with `component`.
    - [`types.ts:14-28`](../../apps/library/lib/types.ts#L14-L28) — `IModule` identity including `abbreviation`, catalog, registry. (`apps/library/lib/types.ts:14-28`)
 5. The hash is a `Record<string, IModule>` keyed by kebab `id`, checked against the backend map.
-   - [`modulesHash.ts:14-25`](../../apps/library/lib/modulesHash.ts#L14-L25) — `"github-profile": githubProfileFrontend` and the other assemblers. (`apps/library/lib/modulesHash.ts:14-25`)
+   - [`modulesHash.ts:14-25`](../../apps/library/lib/modulesHash.ts#L14-L25) — `"github-profile": githubProfileView` and the other assemblers. (`apps/library/lib/modulesHash.ts:14-25`)
    - [`backendLibrary.ts:13-24`](../../apps/library/backendLibrary.ts#L13-L24) — `defineModule` results keyed by id. (`apps/library/backendLibrary.ts:13-24`)
    - [`index.ts:1-2`](../../apps/library/lib/index.ts#L1-L2) — package export of `modulesHash` and `IModule`. (`apps/library/lib/index.ts:1-2`)
 6. The module parent `beforeLoad` admits only registered `params.moduleId`.

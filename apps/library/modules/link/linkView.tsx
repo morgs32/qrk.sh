@@ -4,7 +4,7 @@ import { defaultSpec } from "./generative/defaultSpec";
 import { LinkBrick } from "./LinkBrick";
 import { linkV1 } from "./linkV1";
 
-export const linkFrontend = makeModuleView(linkV1, {
+export const linkView = makeModuleView(linkV1, {
   default: {
     component: LinkBrick,
     generator: { registry, defaultSpec },

@@ -4,7 +4,7 @@ import { defaultSpec } from "./generative/defaultSpec";
 import { GitHubRepo } from "./GitHubRepo/GitHubRepo";
 import { githubRepoV1 } from "./githubRepoV1";
 
-export const githubRepoFrontend = makeModuleView(githubRepoV1, {
+export const githubRepoView = makeModuleView(githubRepoV1, {
   default: {
     component: GitHubRepo,
     generator: { registry, defaultSpec },

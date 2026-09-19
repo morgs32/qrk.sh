@@ -1,4 +1,4 @@
-import { githubProfileFrontend } from "../../../apps/library/modules/githubProfile/githubProfileFrontend";
+import { githubProfileView } from "../../../apps/library/modules/githubProfile/githubProfileView";
 
 import avatarUrl from "./assets/avatar.jpg";
 import { BREAKPOINTS } from "./breakpoints";
@@ -14,7 +14,7 @@ const PROFILE_DATA = {
   public_repos: 31,
 };
 
-const Brick = githubProfileFrontend.component;
+const Brick = githubProfileView.component;
 
 export function PopulatedGitHubProfileBrick(props: {
   breakpoint: (typeof BREAKPOINTS)[number]["id"];

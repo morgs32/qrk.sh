@@ -4,7 +4,7 @@ import { defaultSpec } from "./generative/defaultSpec";
 import { MapPlaceBrick } from "./MapPlaceBrick";
 import { mapPlaceV1 } from "./mapPlaceV1";
 
-export const mapPlaceFrontend = makeModuleView(mapPlaceV1, {
+export const mapPlaceView = makeModuleView(mapPlaceV1, {
   default: {
     component: MapPlaceBrick,
     generator: { registry, defaultSpec },

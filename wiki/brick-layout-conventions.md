@@ -75,7 +75,8 @@ id; it is not module inheritance.
 `makeFrontend` uses the incoming `breakpoint` prop and the stock Renderer path.
 It performs no measurement, owns no context, and does not wrap fill chrome.
 Callers wrap `BrickWrapper` (wall / `GridItemPreview`) or `MeasuredBrickWrapper`.
-Json-render `BrickShell` is a fragment. Data props are inferred from the
+Json-render `BrickShell` is a filling flex column (`flex h-full flex-col`)
+that groups `BrickBody` then `BrickFooter`. Data props are inferred from the
 module data contract. Render each json-render leaf as a React component so hooks remain
 valid. Switching specs remounts json-render local state.
 

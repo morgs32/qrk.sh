@@ -1,9 +1,7 @@
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
 import { cn } from "cn";
 
-import { brickInsetClass } from "./brickTokens";
-
-export function BrickFooter({
+export function BrickShell({
   children,
   className,
   ...props
@@ -14,7 +12,7 @@ export function BrickFooter({
   return (
     <div
       {...props}
-      className={cn("flex shrink-0 items-center", brickInsetClass, className)}
+      className={cn("flex h-full min-h-0 w-full flex-col", className)}
     >
       {children}
     </div>

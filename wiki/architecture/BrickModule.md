@@ -128,7 +128,7 @@ sequenceDiagram
 12. Render uses `brickModule.component` as `Brick`.
     - [`index.tsx:39-40`](../../apps/library/app/routes/modules/$moduleId/index.tsx#L39-L40) — `const brick = brickModule` then `BrickComponent = brick.component`. (`apps/library/app/routes/modules/$moduleId/index.tsx:39-40`)
     - [`BrickGroupRoute.tsx:68`](../../apps/studio/app/routes/BrickGroupRoute.tsx#L68) — `BrickComponent = brickModule.component`. (`apps/studio/app/routes/BrickGroupRoute.tsx:68`)
-13. `Brick` renders Authored or json-render `Renderer`. Fill vs measure chrome is applied by the caller (`BrickWrapper` / `MeasuredBrickWrapper`). Json-render `BrickShell` is a fragment so Body+Footer are flex children of that wrapper.
+13. `Brick` renders Authored or json-render `Renderer`. Fill vs measure chrome is applied by the caller (`BrickWrapper` / `MeasuredBrickWrapper`). Json-render `BrickShell` is a filling flex column so Body+Footer pin correctly even when drag wrappers sit between the shell and `BrickWrapper`.
     - [`makeFrontend.tsx:60-77`](../../apps/library/make/makeFrontend.tsx#L60-L77) — no fill wrapper around Authored/`Renderer`. (`apps/library/make/makeFrontend.tsx:60-77`)
     - [`BrickWrapper.tsx:6-26`](../../apps/library/components/brick/BrickWrapper.tsx#L6-L26) — `qrk-bricks` fill wrapper (`h-full w-full`). (`apps/library/components/brick/BrickWrapper.tsx:6-26`)
-    - [`layoutRegistryComponents.tsx:60`](../../apps/library/lib/jsonRender/layoutRegistryComponents.tsx#L60) — `BrickShell` registry is `<>{children}</>`. (`apps/library/lib/jsonRender/layoutRegistryComponents.tsx:60`)
+    - [`layoutRegistryComponents.tsx:61`](../../apps/library/lib/jsonRender/layoutRegistryComponents.tsx#L61) — `BrickShell` registry renders `BrickShell` (`flex h-full flex-col`). (`apps/library/lib/jsonRender/layoutRegistryComponents.tsx:61`)

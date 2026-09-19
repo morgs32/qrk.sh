@@ -1,5 +1,6 @@
 import { BrickBody } from "../../../components/brick/BrickBody";
 import { BrickFooter } from "../../../components/brick/BrickFooter";
+import { BrickShell } from "../../../components/brick/BrickShell";
 import { Column } from "../../../components/Column";
 import { Row } from "../../../components/Row";
 import { AvatarAndUsername } from "./components/AvatarAndUsername";
@@ -26,7 +27,7 @@ export function GitHubProfile(props: {
   };
 }) {
   return (
-    <>
+    <BrickShell>
       <BrickBody>
         <Column gap={2}>
           <AvatarAndUsername
@@ -45,6 +46,6 @@ export function GitHubProfile(props: {
           <PublicRepos public_repos={props.state.data.public_repos} />
         </Row>
       </BrickFooter>
-    </>
+    </BrickShell>
   );
 }

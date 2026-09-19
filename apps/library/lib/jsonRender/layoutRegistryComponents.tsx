@@ -2,6 +2,7 @@ import type { CSSProperties, ReactNode } from "react";
 
 import { BrickBody } from "../../components/brick/BrickBody";
 import { BrickFooter } from "../../components/brick/BrickFooter";
+import { BrickShell } from "../../components/brick/BrickShell";
 import { Column } from "../../components/Column";
 import { Row } from "../../components/Row";
 
@@ -57,7 +58,7 @@ function flexWrapProp(value: unknown): CSSProperties["flexWrap"] | undefined {
  * across module catalogs (contextual typing does not flow through spreads).
  */
 export const layoutRegistryComponents = {
-  BrickShell: ({ children }: { children?: ReactNode }) => <>{children}</>,
+  BrickShell: ({ children }: { children?: ReactNode }) => <BrickShell>{children}</BrickShell>,
   BrickBody: ({ children }: { children?: ReactNode }) => <BrickBody>{children}</BrickBody>,
   BrickFooter: ({ children }: { children?: ReactNode }) => <BrickFooter>{children}</BrickFooter>,
   Column: ({ children, props }: { children?: ReactNode; props: Record<string, unknown> }) => (

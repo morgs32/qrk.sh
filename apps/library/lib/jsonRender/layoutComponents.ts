@@ -22,7 +22,7 @@ export const brickShellComponent = defineComponent({
   props: {},
   slots: ["default"],
   description:
-    "Groups BrickBody then BrickFooter as siblings. No DOM box; the fill or measure wrapper is the flex parent.",
+    "Filling flex column that groups BrickBody then BrickFooter. BrickBody grows (flex-1); BrickFooter stays at the bottom. Travels with the brick so drag wrappers need not be the flex parent.",
 });
 
 export const brickBodyComponent = defineComponent({
@@ -38,7 +38,7 @@ export const brickFooterComponent = defineComponent({
   props: {},
   slots: ["default"],
   description:
-    "Pinned bottom band (mt-auto). Put content here when the user asks for the bottom of the card. Accepts any children (identity, stats, or other leaves); not reserved for counts.",
+    "Pinned bottom band inside BrickShell. Put content here when the user asks for the bottom of the card. Accepts any children (identity, stats, or other leaves); not reserved for counts.",
 });
 
 export const columnComponent = defineComponent({

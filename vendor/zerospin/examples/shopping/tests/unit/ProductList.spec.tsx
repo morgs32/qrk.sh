@@ -10,9 +10,11 @@ import { initializeGuards as initializeFrontendGuards } from '@zerospin/core/fro
 import { prefixId } from '@zerospin/core/models/prefixId';
 import { applyAggregateFrontendState } from '@zerospin/core/session/applyAggregateFrontendState';
 import { makeAggregateSession } from '@zerospin/core/session/makeAggregateSession';
+import { sessionCommandJournalDrizzleSchema } from '@zerospin/core/session/sessionCommandShape';
 import { sessionRepoTables } from '@zerospin/core/session/sessionRepoTables';
 import { NanoIdFactory } from '@zerospin/core/utils/NanoIdFactory';
 import { UlidMonotonicFactory } from '@zerospin/core/utils/UlidMonotonicFactory';
+import { ZerospinError } from '@zerospin/error';
 import { Effect, Exit, Layer, ManagedRuntime, Schema, Scope } from 'effect';
 import { createRoot, type Root } from 'react-dom/client';
 import {
@@ -25,6 +27,7 @@ import {
   vi,
 } from 'vitest';
 
+import { CartItemQuantityControls } from '@/components/CartItemQuantityControls';
 import { ProductList } from '@/components/ProductList';
 import {
   ClerkUserIdSchema,
@@ -221,6 +224,7 @@ describe('ProductList', () => {
     });
     container.remove();
     shopperSessionRef.current = null;
+    vi.restoreAllMocks();
   });
 
   it('reads products from the service replica and stages aggregate cart commands', async () => {
@@ -269,5 +273,91 @@ describe('ProductList', () => {
       amount: 1,
       product: expect.stringContaining('prd_test'),
     });
+    expect(container.querySelector('[role="alert"]')).toBeNull();
   });
+
+  it.each<'createCart' | 'addToCart'>(['createCart', 'addToCart'])(
+    'shows a journaled %s failure and stops the success path',
+    async contractName => {
+      vi.spyOn(
+        Shopper.contracts[contractName].contract,
+        'program',
+      ).mockReturnValue(
+        Effect.fail(
+          new ZerospinError({
+            code: 'cart-rejected',
+            message: 'Cart rejected',
+          }),
+        ),
+      );
+
+      await act(async () => {
+        root.render(<ProductList />);
+      });
+      await act(async () => {
+        container.querySelector('button')?.click();
+      });
+
+      expect(container.querySelector('[role="alert"]')?.textContent).toBe(
+        'Cart rejected',
+      );
+      const state = shopperSessionRef.current?.store.getState();
+      if (!state?.isInitialized)
+        throw new Error('Expected initialized session');
+      const rows = state.db
+        .select()
+        .from(sessionCommandJournalDrizzleSchema)
+        .all();
+      expect(rows).toHaveLength(contractName === 'createCart' ? 1 : 2);
+      expect(JSON.parse(rows.at(-1)?.command ?? '{}')).toMatchObject({
+        commandName: contractName,
+        failure: { code: 'cart-rejected' },
+      });
+      await waitFor(() => {
+        expect(executeAggregateFrontendCommand).toHaveBeenCalledTimes(
+          rows.length,
+        );
+      });
+    },
+  );
+
+  it('shows a readiness failure without staging either cart command', async () => {
+    shopperSessionRef.current?.store.setState({ sessionStatus: 'superseded' });
+    await act(async () => {
+      root.render(<ProductList />);
+    });
+    await act(async () => {
+      container.querySelector('button')?.click();
+    });
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain(
+      'requires a current session',
+    );
+    expect(executeAggregateFrontendCommand).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { amount: 1, button: 0, contractName: 'removeFromCart' },
+    { amount: 2, button: 0, contractName: 'updateCartItemQuantity' },
+    { amount: 2, button: 1, contractName: 'updateCartItemQuantity' },
+    { amount: 2, button: 2, contractName: 'removeFromCart' },
+  ])(
+    'shows a quantity-control failure for $contractName at button $button with amount $amount',
+    async ({ amount, button }) => {
+      shopperSessionRef.current?.store.setState({
+        sessionStatus: 'superseded',
+      });
+      await act(async () => {
+        root.render(
+          <CartItemQuantityControls amount={amount} cartItemId="cit_test" />,
+        );
+      });
+      await act(async () => {
+        container.querySelectorAll('button')[button]?.click();
+      });
+      expect(container.querySelector('[role="alert"]')?.textContent).toContain(
+        'requires a current session',
+      );
+      expect(executeAggregateFrontendCommand).not.toHaveBeenCalled();
+    },
+  );
 });

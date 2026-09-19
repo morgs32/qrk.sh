@@ -1,6 +1,7 @@
+import { useState } from 'react';
+
 import { makeId } from '@zerospin/core/models/makeId';
 import type { InferResource } from '@zerospin/core/models/types';
-import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import { NanoIdFactory } from '@zerospin/core/utils/NanoIdFactory';
 import { stageCommand, useLiveQuery } from '@zerospin/react';
 import { Effect } from 'effect';
@@ -28,6 +29,7 @@ export function ProductCard(props: {
   userId: InferResource<typeof userV1>['id'];
 }) {
   const { product, userId } = props;
+  const [error, setError] = useState<string | null>(null);
   const { data: cart } = useLiveQuery({
     session: shopperSession,
     query: db => db.query.cart.findFirst(),
@@ -68,46 +70,47 @@ export function ProductCard(props: {
             size="sm"
             variant="outline"
             onClick={() => {
+              setError(null);
               let cartId = cart?.id;
               if (!cartId) {
-                const { payload } = Effect.runSync(
-                  decodeRpc(
-                    stageCommand({
-                      session: shopperSession,
-                      contractName: 'createCart',
-                      payload: {
-                        id: Effect.runSync(
-                          makeId(cartV1).pipe(Effect.provide(NanoIdFactory)),
-                        ),
-                        userId,
-                      },
-                    }),
-                  ),
-                );
-                cartId = payload.id;
+                const result = stageCommand({
+                  session: shopperSession,
+                  contractName: 'createCart',
+                  payload: {
+                    id: Effect.runSync(
+                      makeId(cartV1).pipe(Effect.provide(NanoIdFactory)),
+                    ),
+                    userId,
+                  },
+                });
+                if (result._tag === 'Failure') {
+                  setError(result.failure.message);
+                  return;
+                }
+                cartId = result.success.payload.id;
               }
-              Effect.runSync(
-                decodeRpc(
-                  stageCommand({
-                    session: shopperSession,
-                    contractName: 'addToCart',
-                    payload: {
-                      cartItemId: Effect.runSync(
-                        makeId(cartItemV2).pipe(Effect.provide(NanoIdFactory)),
-                      ),
-                      cartId,
-                      product,
-                      amount: 1,
-                    },
-                  }),
-                ),
-              );
+              const result = stageCommand({
+                session: shopperSession,
+                contractName: 'addToCart',
+                payload: {
+                  cartItemId: Effect.runSync(
+                    makeId(cartItemV2).pipe(Effect.provide(NanoIdFactory)),
+                  ),
+                  cartId,
+                  product,
+                  amount: 1,
+                },
+              });
+              if (result._tag === 'Failure') {
+                setError(result.failure.message);
+              }
             }}
           >
             <ShoppingCart className="mr-1.5 h-4 w-4" />
             Add to cart
           </Button>
         )}
+        {error === null ? null : <p role="alert">{error}</p>}
       </CardFooter>
     </Card>
   );

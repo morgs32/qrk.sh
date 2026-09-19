@@ -4,6 +4,8 @@ import { stageCommand } from '@zerospin/react';
 
 /**
  * Never render pending UI for `stageCommand`; it is an immediate local optimistic action.
+ * Only Success permits local success UI. Failure includes locally journaled
+ * mutation failures (`command` is present) as well as attempts that never staged.
  *
  * @bad Disable the initiating control while local staging settles.
  * @bad Render loading text or a spinner for the local command journal write.

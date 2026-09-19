@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 import type { InferResource } from '@zerospin/core/models/types';
 import { stageCommand } from '@zerospin/react';
 import { Minus, Plus, Trash2 } from 'lucide-react';
@@ -12,16 +14,21 @@ interface IProps {
 }
 
 export function CartItemQuantityControls({ amount, cartItemId }: IProps) {
+  const [error, setError] = useState<string | null>(null);
   const onDecrement = () => {
+    setError(null);
     if (amount <= 1) {
-      void stageCommand({
+      const result = stageCommand({
         session: shopperSession,
         contractName: 'removeFromCart',
         payload: { id: cartItemId },
       });
+      if (result._tag === 'Failure') {
+        setError(result.failure.message);
+      }
       return;
     }
-    void stageCommand({
+    const result = stageCommand({
       session: shopperSession,
       contractName: 'updateCartItemQuantity',
       payload: {
@@ -29,10 +36,14 @@ export function CartItemQuantityControls({ amount, cartItemId }: IProps) {
         amount: amount - 1,
       },
     });
+    if (result._tag === 'Failure') {
+      setError(result.failure.message);
+    }
   };
 
   const onIncrement = () => {
-    void stageCommand({
+    setError(null);
+    const result = stageCommand({
       session: shopperSession,
       contractName: 'updateCartItemQuantity',
       payload: {
@@ -40,18 +51,25 @@ export function CartItemQuantityControls({ amount, cartItemId }: IProps) {
         amount: amount + 1,
       },
     });
+    if (result._tag === 'Failure') {
+      setError(result.failure.message);
+    }
   };
 
   const onRemove = () => {
-    void stageCommand({
+    setError(null);
+    const result = stageCommand({
       session: shopperSession,
       contractName: 'removeFromCart',
       payload: { id: cartItemId },
     });
+    if (result._tag === 'Failure') {
+      setError(result.failure.message);
+    }
   };
 
   return (
-    <div className="flex items-center justify-end gap-1">
+    <div className="flex flex-wrap items-center justify-end gap-1">
       <Button
         variant="outline"
         size="icon"
@@ -79,6 +97,11 @@ export function CartItemQuantityControls({ amount, cartItemId }: IProps) {
       >
         <Trash2 className="h-4 w-4" />
       </Button>
+      {error === null ? null : (
+        <p className="w-full" role="alert">
+          {error}
+        </p>
+      )}
     </div>
   );
 }

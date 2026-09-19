@@ -283,16 +283,18 @@ describe('local session command journal', () => {
             },
           });
 
-          const result = yield* decodeRpc(
-            stageCommand({ session: session,
-              contractName: 'updateList',
-              payload: {
-                id: 'lst_missing',
-                name: 'Missing',
-                userId: 'usr_1',
-              },
-            }),
-          ).pipe(Effect.result);
+          const staged = stageCommand({
+            session,
+            contractName: 'updateList',
+            payload: {
+              id: 'lst_missing',
+              name: 'Missing',
+              userId: 'usr_1',
+            },
+          });
+          expect(staged._tag).toBe('Failure');
+          expect(staged).not.toHaveProperty('command');
+          const result = yield* decodeRpc(staged).pipe(Effect.result);
 
           expect(Result.isFailure(result)).toBe(true);
           expect(
@@ -305,7 +307,7 @@ describe('local session command journal', () => {
     );
 
     it.effect(
-      'retains an authored failure as a complete ordered occurrence',
+      'returns Failure while retaining and delivering the complete failed occurrence',
       () =>
         Effect.gen(function* () {
           const models = rejectingFrontend.models;
@@ -357,17 +359,26 @@ describe('local session command journal', () => {
             },
           });
 
-          const failed = yield* decodeRpc(
-            stageCommand({ session: session,
-              contractName: 'rejectList',
-              payload: {
-                id: 'lst_rejected',
-                name: 'Rejected',
-                userId: 'usr_1',
-              },
-            }),
-          );
-          expect(failed).toMatchObject({
+          const result = stageCommand({
+            session,
+            contractName: 'rejectList',
+            payload: {
+              id: 'lst_rejected',
+              name: 'Rejected',
+              userId: 'usr_1',
+            },
+          });
+          expect(result).toMatchObject({
+            _tag: 'Failure',
+            failure: {
+              code: 'list-rejected',
+              message: 'The list was rejected',
+            },
+          });
+          if (result._tag !== 'Failure' || !('command' in result)) {
+            return yield* Effect.die('Expected a journaled staging failure');
+          }
+          expect(result.command).toMatchObject({
             sessionIndex: 1,
             failedAt: expect.any(Date),
             failure: {
@@ -381,11 +392,24 @@ describe('local session command journal', () => {
               mutations: [],
             },
           });
+          const decoded = yield* decodeRpc(result).pipe(Effect.result);
+          expect(decoded).toMatchObject({
+            _tag: 'Failure',
+            failure: { code: 'list-rejected' },
+          });
+          expect(db.select().from(dbConfig.schema.list).all()).toEqual([]);
+          expect(
+            db
+              .select()
+              .from(sessionOptimisticAppliedMutationDrizzleSchema)
+              .all(),
+          ).toEqual([]);
           const row = db
             .select()
             .from(sessionCommandJournalDrizzleSchema)
             .get();
           expect(JSON.parse(row?.command ?? '{}')).toMatchObject({
+            id: result.command.id,
             sessionIndex: 1,
             failure: {
               code: 'list-rejected',
@@ -399,6 +423,21 @@ describe('local session command journal', () => {
             () => new Promise<void>(resolve => setTimeout(resolve, 25)),
           );
           expect(submittedFailures).toEqual(['list-rejected']);
+
+          session.clearExecutionResources();
+          const unbound = stageCommand({
+            session,
+            contractName: 'rejectList',
+            payload: { id: 'lst_unbound', name: 'Unbound', userId: 'usr_1' },
+          });
+          expect(unbound).toMatchObject({
+            _tag: 'Failure',
+            failure: { code: 'aggregate-frontend-session-not-ready' },
+          });
+          expect(unbound).not.toHaveProperty('command');
+          expect(
+            db.select().from(sessionCommandJournalDrizzleSchema).all(),
+          ).toEqual([row]);
         }),
     );
 

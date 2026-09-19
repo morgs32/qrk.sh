@@ -31,7 +31,10 @@ import type { IFrontendDelta, ISession } from './types.ts';
 /**
  * Stage a local aggregate command: validate, guard, optimistic mutate, and
  * commit the complete encoded occurrence. Real sessions hand off to delivery
- * after commit; unbound or mock sessions without delivery stop locally.
+ * after commit; bound sessions without delivery stop locally.
+ * Success means optimistic mutations committed. Failure with `command` means
+ * a locally failed occurrence committed and remains eligible for delivery; Failure
+ * without `command` means no occurrence was staged.
  */
 export function stageCommand<
   FRONTEND extends IAggregateFrontendController,
@@ -209,6 +212,17 @@ export function stageCommand<
         Effect.provide(makeTelemetryLayer(telemetryCollector)),
       ),
     );
+  }
+  if (result._tag === 'Success' && result.success.failure !== null) {
+    return {
+      _tag: 'Failure',
+      failure: result.success.failure,
+      command: result.success,
+    } satisfies Readonly<{
+      _tag: 'Failure';
+      failure: NonNullable<typeof result.success.failure>;
+      command: typeof result.success;
+    }>;
   }
   return result;
 }

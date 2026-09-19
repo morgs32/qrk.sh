@@ -31,8 +31,9 @@ import {
   userV1,
 } from '@/zerospin/aggregates/shopper/models/user/UserV1';
 import { productV1 } from '@/zerospin/services/app/models/product/ProductV1';
-import { Catalog, Shopper } from '@/zerospin/ZerospinApp';
-const WebV2 = Shopper.frontend;
+import { Shopper } from '@/zerospin/ZerospinApp';
+
+const WebV2 = { ...Shopper, systemName: 'shopping' as const };
 
 const guardTestRuntime = ManagedRuntime.make(
   Layer.mergeAll(NanoIdFactory, UlidMonotonicFactory),
@@ -44,10 +45,25 @@ Effect.runSync(
 );
 afterAll(() => Effect.runPromise(Scope.close(sessionScope, Exit.void)));
 
-const useInitializedStateOrThrow = vi.hoisted(() => vi.fn());
 const useLiveQuery = vi.hoisted(() => vi.fn());
-const useSession = vi.hoisted(() => vi.fn());
 const executeAggregateFrontendCommand = vi.hoisted(() => vi.fn());
+const shopperSessionRef = vi.hoisted(() => ({
+  current: null as ReturnType<typeof makeAggregateSession<typeof WebV2>> | null,
+}));
+const catalogSessionRef = vi.hoisted(() => ({
+  current: {
+    // Stable session identity for the mocked useLiveQuery branch; store is unused.
+    store: {
+      getState: () => ({
+        isInitialized: true,
+        authentication: null,
+        db: null,
+      }),
+      setState: () => {},
+      subscribe: () => () => {},
+    },
+  },
+}));
 
 vi.hoisted(() => {
   process.env.ZEROSPIN_PUBLISHABLE_KEY = 'pk_test';
@@ -55,10 +71,27 @@ vi.hoisted(() => {
 
 vi.mock('@zerospin/react', async importOriginal => ({
   ...(await importOriginal<typeof import('@zerospin/react')>()),
-  useInitializedStateOrThrow,
   useLiveQuery,
-  useSession,
 }));
+
+vi.mock('@/zerospin/ZerospinApp', async importOriginal => {
+  const actual =
+    await importOriginal<typeof import('@/zerospin/ZerospinApp')>();
+  return {
+    ...actual,
+    get shopperSession() {
+      const session = shopperSessionRef.current;
+      if (session === null) {
+        throw new Error('shopperSession fixture was not initialized');
+      }
+      return session;
+    },
+    get catalogSession() {
+      return catalogSessionRef.current;
+    },
+  };
+});
+
 const clerkUserId = Schema.decodeUnknownSync(ClerkUserIdSchema)('test');
 const userRowId = prefixId(userV1, clerkUserId);
 const now = new Date('2026-01-01T00:00:00.000Z');
@@ -73,16 +106,18 @@ describe('ProductList', () => {
       Effect.succeed({ commandId: props.command.id }),
     );
     const session = Effect.runSync(
-      Effect.map(initializeFrontendGuards(WebV2), guards =>
-        makeAggregateSession({
+      Effect.map(initializeFrontendGuards({ frontend: WebV2 }), guards => {
+        const next = makeAggregateSession({ frontend: WebV2 });
+        next.setExecutionResources({
           runtime: guardTestRuntime,
           guards,
-          frontend: WebV2,
           sessionId: 'sesn_product_list',
           executeAggregateFrontendCommand,
-        }),
-      ).pipe(Effect.provideService(Scope.Scope, sessionScope)),
+        });
+        return next;
+      }).pipe(Effect.provideService(Scope.Scope, sessionScope)),
     );
+    shopperSessionRef.current = session;
     await Effect.runPromise(
       Effect.gen(function* () {
         const models = getFrontendDbModels(session.frontend);
@@ -94,7 +129,7 @@ describe('ProductList', () => {
         yield* applyAggregateFrontendState({
           db,
           frontend: session.frontend,
-          sessionId: session.sessionId,
+          sessionId: session.sessionId!,
           models,
           aggregateId: 'acct_1',
           authentication: { clerkUserId, aggregateId: 'acct_1' },
@@ -141,12 +176,8 @@ describe('ProductList', () => {
         });
       }).pipe(Effect.provide(AsyncLive)),
     );
-    useInitializedStateOrThrow.mockReturnValue({
-      authentication: { clerkUserId, aggregateId: 'acct_1' },
-    });
-    useSession.mockReturnValue(session);
-    useLiveQuery.mockImplementation((selector, props) => {
-      if (selector === Catalog) {
+    useLiveQuery.mockImplementation(props => {
+      if (props.session === catalogSessionRef.current) {
         return {
           data: [
             {
@@ -189,9 +220,10 @@ describe('ProductList', () => {
       await Promise.resolve();
     });
     container.remove();
+    shopperSessionRef.current = null;
   });
 
-  it('reads products from the service replica and executes aggregate cart commands', async () => {
+  it('reads products from the service replica and stages aggregate cart commands', async () => {
     await act(async () => {
       root.render(<ProductList />);
       await Promise.resolve();

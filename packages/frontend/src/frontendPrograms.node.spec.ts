@@ -369,13 +369,16 @@ describe('aggregate frontend snapshot and socket recovery', () => {
       contracts: {},
     });
     const session = Effect.runSync(
-      Effect.map(initializeFrontendGuards(frontend), guards =>
-        makeAggregateSession({
-          runtime: guardTestRuntime,
-          guards,
-          frontend,
-          sessionId: 'sesn_reconnect',
-        }),
+      Effect.map(initializeFrontendGuards({ frontend: frontend }), guards =>
+        {
+          const session = makeAggregateSession({ frontend: frontend });
+          session.setExecutionResources({
+            sessionId: 'sesn_reconnect',
+            guards,
+            runtime: guardTestRuntime,
+          });
+          return session;
+        },
       ).pipe(Effect.provideService(Scope.Scope, sessionScope)),
     );
     try {
@@ -543,16 +546,19 @@ describe('frontend startup without a reusable backup', () => {
                   models: {},
                   contracts: {},
                 });
-                const guards = yield* initializeFrontendGuards(frontend);
+                const guards = yield* initializeFrontendGuards({ frontend: frontend });
                 return yield* bootstrapAggregateFrontendSession({
                   ...props,
                   aggregateVersion: '1.0.0',
-                  session: makeAggregateSession({
-                    runtime: guardTestRuntime,
-                    guards,
-                    frontend,
-                    sessionId: 'sesn_connection_failure',
-                  }),
+                  session: (() => {
+                    const __session = makeAggregateSession({ frontend: frontend });
+                    __session.setExecutionResources({
+                      sessionId: 'sesn_connection_failure',
+                      guards,
+                      runtime: guardTestRuntime,
+                    });
+                    return __session;
+                  })(),
                 });
               }
               const frontend = makeFrontendController({
@@ -568,11 +574,14 @@ describe('frontend startup without a reusable backup', () => {
               return yield* bootstrapServiceFrontendSession({
                 ...props,
                 serviceVersion: '1.0.0',
-                session: makeServiceSession({
-                  frontend,
-                  models: frontend.models,
-                  sessionId: 'sesn_connection_failure',
-                }),
+                session: (() => {
+                  const __session = makeServiceSession({
+                    frontend,
+                    models: frontend.models,
+                  });
+                  __session.setSessionId('sesn_connection_failure');
+                  return __session;
+                })(),
               });
             }),
           ).pipe(Effect.result, Effect.provide(TestLayer)),
@@ -728,12 +737,12 @@ it.each(['aggregate', 'service'])(
               contracts: {},
               authenticationSchema,
             });
-            const guards = yield* initializeFrontendGuards(frontend);
-            const session = makeAggregateSession({
-              frontend,
+            const guards = yield* initializeFrontendGuards({ frontend: frontend });
+            const session = makeAggregateSession({ frontend: frontend });
+            session.setExecutionResources({
+              sessionId: 'sesn_dates082',
               guards,
               runtime: guardTestRuntime,
-              sessionId: 'sesn_dates082',
             });
             const result = yield* bootstrapAggregateFrontendSession({
               ...props,
@@ -762,8 +771,8 @@ it.each(['aggregate', 'service'])(
           const session = makeServiceSession({
             frontend,
             models: frontend.models,
-            sessionId: 'sesn_dates082',
           });
+          session.setSessionId('sesn_dates082');
           const result = yield* bootstrapServiceFrontendSession({
             ...props,
             serviceVersion: '1.0.0',

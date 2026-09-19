@@ -1,6 +1,6 @@
 ---
 title: SystemRepo Durable Architecture
-updated: 2026-09-11
+updated: 2026-09-18
 ---
 
 # SystemRepo Durable Architecture
@@ -141,7 +141,7 @@ execution identity; commands already retained in the journal preserve their
 original occurrence bytes. Revocation pauses only the affected frontend.
 
 - [`makeAggregateSession.ts`](../packages/core/src/session/makeAggregateSession.ts) — reads the current execution identity from session state and captures it for synchronous command construction and metadata writes.
-- [`makeZerospinApp.tsx`](../packages/react/src/makeZerospinApp.tsx) — shares the page connection and moves DevTools registrations when the retained session's ID changes.
+- [`acquireAggregateFrontendSession.ts`](../packages/react/src/makeSession/makeSession.ts) — shares the page connection and moves DevTools registrations when the retained session's ID changes.
 - [`bootstrapAggregateFrontendSession.ts`](../packages/frontend/src/bootstrapAggregateFrontendSession.ts) — owns acquisition, in-place restoration, per-period sockets, pushes, and ordered backup capture.
 - [`bootstrapServiceFrontendSession.ts`](../packages/frontend/src/bootstrapServiceFrontendSession.ts) — owns equivalent service acquisition and delivery independently of aggregate frontends.
 

@@ -5,34 +5,35 @@ import type {
 } from '@zerospin/core/frontendController/types';
 import type { IAnyModels } from '@zerospin/core/models/types';
 import type { MonotonicFactory } from '@zerospin/core/services/MonotonicFactory';
-import type { PublishableKey } from '@zerospin/core/services/PublishableKey';
-import type { ZerospinApiUrl } from '@zerospin/core/services/ZerospinApiUrl';
 import type { IServiceSession } from '@zerospin/core/serviceSession/types';
 import type { ISession } from '@zerospin/core/session/types';
 import type { IAnyError } from '@zerospin/error';
 import type { CuidFactory } from '@zerospin/schema';
-import type { ManagedRuntime } from 'effect';
+import type { Effect, ManagedRuntime } from 'effect';
 
-export type IBrowserSession<
-  FRONTEND extends IAggregateFrontendController = IAggregateFrontendController,
-> = ISession<FRONTEND> & {
-  coreSession: ISession<FRONTEND>;
-};
-
-export type ISessionProviderRuntime<SERVICES = never> =
+export type IZerospinRuntime<APP_SERVICES = never> =
   ManagedRuntime.ManagedRuntime<
-    | Async
-    | CuidFactory
-    | MonotonicFactory
-    | PublishableKey
-    | ZerospinApiUrl
-    | SERVICES,
+    Async | CuidFactory | MonotonicFactory | APP_SERVICES,
     IAnyError
   >;
 
-export type IBrowserServiceSession<
+export type IManagedAggregateSession<
+  FRONTEND extends IAggregateFrontendController = IAggregateFrontendController,
+> = ISession<FRONTEND> & {
+  readonly systemName: string;
+  initialize(props: {
+    generateSignature: () => Effect.Effect<unknown, IAnyError>;
+  }): Promise<void>;
+  dispose(): Promise<void>;
+};
+
+export type IManagedServiceSession<
   FRONTEND extends IServiceFrontendController = IServiceFrontendController,
   MODELS extends IAnyModels = FRONTEND['models'],
 > = IServiceSession<FRONTEND, MODELS> & {
-  coreSession: IServiceSession<FRONTEND, MODELS>;
+  readonly systemName: string;
+  initialize(props: {
+    generateSignature: () => Effect.Effect<unknown, IAnyError>;
+  }): Promise<void>;
+  dispose(): Promise<void>;
 };

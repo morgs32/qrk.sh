@@ -89,7 +89,7 @@ export type IServiceSessionState<
 > =
   | IInitializedServiceSessionState<MODELS, AUTHENTICATION>
   | Readonly<{
-      sessionId: ISessionId;
+      sessionId: null;
       authentication: null;
       systemId: null;
       serviceName: null;
@@ -121,7 +121,8 @@ export type IServiceSession<
 > = Readonly<{
   frontend: FRONTEND;
   models: MODELS;
-  sessionId: ISessionId;
+  sessionId: ISessionId | null;
+  setSessionId(sessionId: ISessionId): void;
   onInitialized(
     handler: (props: {
       state: IInitializedServiceSessionState<

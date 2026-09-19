@@ -14,15 +14,19 @@ import type {
   IServiceSessionState,
 } from './types.ts';
 
+/**
+ * Synchronous service session construction. Creates the stable store only —
+ * no ManagedRuntime, SQLite, or backup. Bind a session ID before publishing
+ * readiness.
+ */
 export function makeServiceSession<
   FRONTEND extends IServiceFrontendController,
   MODELS extends IAnyModels = FRONTEND['models'],
 >(props: {
   frontend: FRONTEND;
   models: MODELS;
-  sessionId: ISessionId;
 }): IServiceSession<FRONTEND, MODELS> {
-  const { frontend, models, sessionId } = props;
+  const { frontend, models } = props;
 
   const store = createStore<
     IServiceSessionState<
@@ -76,7 +80,7 @@ export function makeServiceSession<
     };
 
     return {
-      sessionId,
+      sessionId: null,
       authentication: null,
       systemId: null,
       serviceName: null,
@@ -112,11 +116,11 @@ export function makeServiceSession<
       return () => {};
     }
 
-    const unsubscribe = store.subscribe(state => {
-      if (state.isInitialized && state.db !== null && state.schema !== null) {
+    const unsubscribe = store.subscribe(next => {
+      if (next.isInitialized && next.db !== null && next.schema !== null) {
         unsubscribe();
         queueMicrotask(() => {
-          handler({ state });
+          handler({ state: next });
         });
       }
     });
@@ -126,6 +130,9 @@ export function makeServiceSession<
   return {
     frontend,
     models,
+    setSessionId(sessionId: ISessionId) {
+      store.setState({ sessionId });
+    },
     get sessionId() {
       return store.getState().sessionId;
     },

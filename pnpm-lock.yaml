@@ -242,6 +242,9 @@ importers:
       wa-sqlite:
         specifier: ^1.0.0
         version: 1.0.0
+      zustand:
+        specifier: ^5.0.13
+        version: 5.0.13(@types/react@19.2.17)(react@19.2.7)(use-sync-external-store@1.6.0(react@19.2.7))
     devDependencies:
       '@clerk/testing':
         specifier: ^1.13.35

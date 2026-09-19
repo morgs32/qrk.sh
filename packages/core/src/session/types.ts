@@ -1,15 +1,16 @@
-import type { IAnyErrorJson, IEncodedResult } from '@zerospin/error';
+import type { IAnyError, IAnyErrorJson } from '@zerospin/error';
 import type { ITelemetryBatch, ITelemetryCollector } from '@zerospin/logger';
-import type { InferIdFromAbbreviation, IShape } from '@zerospin/schema';
+import type { CuidFactory, InferIdFromAbbreviation, IShape } from '@zerospin/schema';
 import type { AnyRelations } from 'drizzle-orm';
-import type { Schema } from 'effect';
+import type { Effect, ManagedRuntime, Schema } from 'effect';
 import type { StoreApi } from 'zustand';
 
 import type { AggregateExecutionEntrySchema } from '../contracts/CommandSchema.ts';
 import type {
   IChainedCommand,
   IEncodedAppliedMutation,
-  InferCommand,
+  IEncodedCommand,
+  ISessionCommand,
 } from '../contracts/types.ts';
 import type {
   IDb,
@@ -22,14 +23,15 @@ import type {
   IAggregateFrontendController,
   InferFrontendModels,
 } from '../frontendController/types.ts';
+import type { initializeGuards } from '../guards/initializeGuards.ts';
 import type {
   IAggregateId,
   IAnyModels,
   IEncodedResourceShape,
   IModel,
-  InferPayloadInput,
   IRef,
 } from '../models/types.ts';
+import type { MonotonicFactory } from '../services/MonotonicFactory.ts';
 import type { ISystemId } from '../system/types.ts';
 
 import { type sessionRepoSchema } from './sessionRepoTables.ts';
@@ -116,7 +118,7 @@ export interface IInitializedSessionState<
 }
 
 type IUninitializedSessionState = {
-  sessionId: ISessionId;
+  sessionId: null;
   aggregateId: null;
   aggregateName: null;
   authentication: null;
@@ -175,31 +177,32 @@ export type ISession<
       >;
     }) => void,
   ): () => void;
-  readonly sessionId: ISessionId;
-  /** Generate a model ID synchronously with the session runtime; failures throw. */
+  readonly sessionId: ISessionId | null;
+  /** Generate a model ID synchronously with the bound session runtime; failures throw. */
   makeId<ATTRIBUTES extends IShape, ABBREVIATION extends string>(
     model: IModel<ATTRIBUTES, ABBREVIATION>,
   ): InferIdFromAbbreviation<ABBREVIATION>;
-  executeCommand<
-    CONTRACT_NAME extends keyof FRONTEND['contracts'] & string,
-  >(props: {
-    contractName: CONTRACT_NAME;
-    payload: InferPayloadInput<
-      NonNullable<
-        FRONTEND['contracts'][CONTRACT_NAME]['contract']['__payloads']
-      >[FRONTEND['contracts'][CONTRACT_NAME]['contract']['version']]
+  /**
+   * Bind guard/runtime/delivery resources before publishing readiness.
+   * Cleared during disposal; staging fails while unbound.
+   */
+  setExecutionResources(resources: {
+    sessionId: ISessionId;
+    guards: Effect.Success<
+      ReturnType<typeof initializeGuards<never, unknown, unknown>>
     >;
-  }): IEncodedResult<
-    IChainedCommand<
-      InferCommand<
-        FRONTEND['contracts'][CONTRACT_NAME]['contract'],
-        FRONTEND['contracts'][CONTRACT_NAME]['contract']['version']
-      >,
-      IFrontendDelta
-    > &
-      Readonly<{ sessionIndex: number }>,
-    IAnyErrorJson
-  >;
+    runtime: ManagedRuntime.ManagedRuntime<
+      CuidFactory | MonotonicFactory,
+      IAnyError
+    >;
+    executeAggregateFrontendCommand?: (props: {
+      command: IEncodedCommand<
+        IChainedCommand<ISessionCommand, IFrontendDelta> &
+          Readonly<{ sessionIndex: number; pushIndex: null }>
+      >;
+    }) => Effect.Effect<Readonly<{ commandId: string }>, IAnyError>;
+  }): void;
+  clearExecutionResources(): void;
   store: ISessionStoreApi<
     InferFrontendModels<FRONTEND>,
     FRONTEND['authentication']['authenticationSchema']['Type']

@@ -3,7 +3,7 @@ import type {
   IAnyServiceFrontendController,
 } from '../frontendController/types.ts';
 
-/** Reuse the authored selections in internal fixtures through an app factory. */
+/** Reuse the authored selections in internal fixtures through an unbound factory. */
 export function aggregateFrontendProps<
   const FRONTEND extends IAnyAggregateFrontendController,
 >(
@@ -11,16 +11,18 @@ export function aggregateFrontendProps<
 ): Omit<FRONTEND, 'kind' | 'systemName' | 'modelNames' | 'authentication'> & {
   authenticationSchema: FRONTEND['authentication']['authenticationSchema'];
 } {
-  const {
-    kind: _kind,
-    systemName: _systemName,
-    modelNames: _modelNames,
-    authentication,
-    ...props
-  } = frontend;
   return {
-    ...props,
-    authenticationSchema: authentication.authenticationSchema,
+    authenticationSchema: frontend.authentication.authenticationSchema,
+    aggregateName: frontend.aggregateName,
+    aggregateVersion: frontend.aggregateVersion,
+    name: frontend.name,
+    models: frontend.models,
+    contracts: frontend.contracts,
+    ...(frontend.guardLayer === undefined
+      ? {}
+      : { guardLayer: frontend.guardLayer }),
+  } as Omit<FRONTEND, 'kind' | 'systemName' | 'modelNames' | 'authentication'> & {
+    authenticationSchema: FRONTEND['authentication']['authenticationSchema'];
   };
 }
 
@@ -34,16 +36,16 @@ export function serviceFrontendProps<
 > & {
   authenticationSchema: FRONTEND['authentication']['authenticationSchema'];
 } {
-  const {
-    kind: _kind,
-    systemName: _systemName,
-    modelNames: _modelNames,
-    contracts: _contracts,
-    authentication,
-    ...props
-  } = frontend;
   return {
-    ...props,
-    authenticationSchema: authentication.authenticationSchema,
+    authenticationSchema: frontend.authentication.authenticationSchema,
+    serviceName: frontend.serviceName,
+    serviceVersion: frontend.serviceVersion,
+    name: frontend.name,
+    models: frontend.models,
+  } as Omit<
+    FRONTEND,
+    'kind' | 'systemName' | 'modelNames' | 'contracts' | 'authentication'
+  > & {
+    authenticationSchema: FRONTEND['authentication']['authenticationSchema'];
   };
 }

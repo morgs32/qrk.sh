@@ -2,7 +2,7 @@ import { makeId } from '@zerospin/core/models/makeId';
 import type { InferResource } from '@zerospin/core/models/types';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import { NanoIdFactory } from '@zerospin/core/utils/NanoIdFactory';
-import { useLiveQuery, useSession } from '@zerospin/react';
+import { stageCommand, useLiveQuery } from '@zerospin/react';
 import { Effect } from 'effect';
 import { ShoppingCart } from 'lucide-react';
 
@@ -21,23 +21,25 @@ import { cartV1 } from '@/zerospin/aggregates/shopper/models/cart/CartV1';
 import { cartItemV2 } from '@/zerospin/aggregates/shopper/models/cartItem/CartItemV2';
 import { type userV1 } from '@/zerospin/aggregates/shopper/models/user/UserV1';
 import { type productV1 } from '@/zerospin/services/app/models/product/ProductV1';
-import { Shopper } from '@/zerospin/ZerospinApp';
+import { shopperSession } from '@/zerospin/ZerospinApp';
 
 export function ProductCard(props: {
   product: InferResource<typeof productV1>;
   userId: InferResource<typeof userV1>['id'];
 }) {
   const { product, userId } = props;
-  const session = useSession(Shopper);
-  const { data: cart } = useLiveQuery(Shopper, {
+  const { data: cart } = useLiveQuery({
+    session: shopperSession,
     query: db => db.query.cart.findFirst(),
   });
-  const { data: cartItem } = useLiveQuery(Shopper, {
-    query: db =>
+  const { data: cartItem } = useLiveQuery({
+    session: shopperSession,
+    key: { cartId: cart?.id, productId: product.id },
+    query: (db, { cartId, productId }) =>
       db.query.cartItem.findFirst({
         where: {
-          cartId: { eq: cart?.id },
-          productId: { eq: product.id },
+          cartId: { eq: cartId },
+          productId: { eq: productId },
         },
       }),
   });
@@ -70,7 +72,8 @@ export function ProductCard(props: {
               if (!cartId) {
                 const { payload } = Effect.runSync(
                   decodeRpc(
-                    session.executeCommand({
+                    stageCommand({
+                      session: shopperSession,
                       contractName: 'createCart',
                       payload: {
                         id: Effect.runSync(
@@ -85,7 +88,8 @@ export function ProductCard(props: {
               }
               Effect.runSync(
                 decodeRpc(
-                  session.executeCommand({
+                  stageCommand({
+                    session: shopperSession,
                     contractName: 'addToCart',
                     payload: {
                       cartItemId: Effect.runSync(

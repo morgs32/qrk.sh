@@ -34,6 +34,7 @@ import { initializeGuards as initializeServiceGuards } from '../service/initiali
 import { makeService } from '../service/makeService.ts';
 import { MonotonicFactory } from '../services/MonotonicFactory.ts';
 import { makeAggregateSession } from '../session/makeAggregateSession.ts';
+import { stageCommand } from '../session/stageCommand.ts';
 import { sessionCommandJournalDrizzleSchema } from '../session/sessionCommandShape.ts';
 import { sessionRepoTables } from '../session/sessionRepoTables.ts';
 import { makeSystem } from '../system/makeSystem.ts';
@@ -308,6 +309,20 @@ describe('owner guard layers', () => {
           if (reject) return yield* rejection;
         }),
     });
+    const frontendLayer = Layer.effect(
+      CuidFactory,
+      Effect.acquireRelease(
+        Effect.promise(async () => {
+          await Promise.resolve();
+          events.push('acquire');
+          return () => Effect.succeed('frontend');
+        }),
+        () =>
+          Effect.sync(() => {
+            events.push('release');
+          }),
+      ),
+    );
     const frontend = makeFrontendController({
       authenticationSchema: authenticationFixtureFrontend.authentication.authenticationSchema,
       aggregateVersion: '1.0.0',
@@ -316,32 +331,21 @@ describe('owner guard layers', () => {
       name: 'web',
       models: {},
       contracts: { inspect: { contract: guarded } },
-      layer: Layer.effect(
-        CuidFactory,
-        Effect.acquireRelease(
-          Effect.promise(async () => {
-            await Promise.resolve();
-            events.push('acquire');
-            return () => Effect.succeed('frontend');
-          }),
-          () =>
-            Effect.sync(() => {
-              events.push('release');
-            }),
-        ),
-      ),
     });
     const session = await Effect.runPromise(
       Effect.gen(function* () {
         const session = yield* Effect.map(
-          initializeFrontendGuards(frontend),
+          initializeFrontendGuards({ frontend, layer: frontendLayer }),
           guards =>
-            makeAggregateSession({
-              runtime: guardTestRuntime,
-              guards,
-              frontend,
-              sessionId: 'sesn_guard',
-            }),
+            {
+              const session = makeAggregateSession({ frontend: frontend });
+              session.setExecutionResources({
+                sessionId: 'sesn_guard',
+                guards,
+                runtime: guardTestRuntime,
+              });
+              return session;
+            },
         );
         yield* Effect.addFinalizer(() =>
           Effect.sync(() =>
@@ -378,14 +382,14 @@ describe('owner guard layers', () => {
           backupState: { status: 'ready', failure: null },
         });
         expect(
-          session.executeCommand({ contractName: 'inspect', payload: {} })._tag,
+          stageCommand({ session: session, contractName: 'inspect', payload: {} })._tag,
         ).toBe('Success');
         const before = db
           .select()
           .from(sessionCommandJournalDrizzleSchema)
           .all();
         reject = true;
-        const failed = session.executeCommand({
+        const failed = stageCommand({ session: session,
           contractName: 'inspect',
           payload: {},
         });
@@ -400,7 +404,7 @@ describe('owner guard layers', () => {
     expect(events).toEqual(['acquire', 'frontend', 'frontend', 'release']);
     expect(session.store.getState().sessionStatus).toBe('released');
     expect(
-      session.executeCommand({ contractName: 'inspect', payload: {} })._tag,
+      stageCommand({ session: session, contractName: 'inspect', payload: {} })._tag,
     ).toBe('Failure');
   });
 
@@ -416,6 +420,10 @@ describe('owner guard layers', () => {
           observed.push(yield* id(), yield* clock());
         }),
     });
+    const leftLayer = Layer.effect(
+      CuidFactory,
+      Effect.as(MonotonicFactory, () => Effect.succeed('left')),
+    );
     const left = makeFrontendController({
       authenticationSchema: authenticationFixtureFrontend.authentication.authenticationSchema,
       systemName: 'test',
@@ -424,10 +432,6 @@ describe('owner guard layers', () => {
       name: 'left',
       models: {},
       contracts: { check: { contract: guard } },
-      layer: Layer.effect(
-        CuidFactory,
-        Effect.as(MonotonicFactory, () => Effect.succeed('left')),
-      ),
     });
     const right = makeFrontendController({
       authenticationSchema: authenticationFixtureFrontend.authentication.authenticationSchema,
@@ -448,8 +452,11 @@ describe('owner guard layers', () => {
     );
     await Effect.runPromise(
       Effect.gen(function* () {
-        const leftGuards = yield* initializeFrontendGuards(left);
-        const rightGuards = yield* initializeFrontendGuards(right);
+        const leftGuards = yield* initializeFrontendGuards({
+          frontend: left,
+          layer: leftLayer,
+        });
+        const rightGuards = yield* initializeFrontendGuards({ frontend: right });
         yield* leftGuards.run('check', {
           db: { query: {} },
           authentication: null,
@@ -472,6 +479,22 @@ describe('owner guard layers', () => {
       message: 'Layer failed',
     });
     let fail = true;
+    const frontendLayer = Layer.effect(
+      CuidFactory,
+      Effect.gen(function* () {
+        yield* Effect.acquireRelease(
+          Effect.sync(() => {
+            events.push('acquire');
+          }),
+          () =>
+            Effect.sync(() => {
+              events.push('release');
+            }),
+        );
+        if (fail) return yield* failure;
+        return () => Effect.succeed('id');
+      }),
+    );
     const frontend = makeFrontendController({
       authenticationSchema: authenticationFixtureFrontend.authentication.authenticationSchema,
       aggregateVersion: '1.0.0',
@@ -480,44 +503,36 @@ describe('owner guard layers', () => {
       name: 'web',
       models: {},
       contracts: { inspect: { contract: inspect } },
-      layer: Layer.effect(
-        CuidFactory,
-        Effect.gen(function* () {
-          yield* Effect.acquireRelease(
-            Effect.sync(() => {
-              events.push('acquire');
-            }),
-            () =>
-              Effect.sync(() => {
-                events.push('release');
-              }),
-          );
-          if (fail) return yield* failure;
-          return () => Effect.succeed('id');
-        }),
-      ),
     });
     const result = await Effect.runPromise(
-      Effect.map(initializeFrontendGuards(frontend), guards =>
-        makeAggregateSession({
-          runtime: guardTestRuntime,
-          guards,
-          frontend,
-          sessionId: 'sesn_failure',
-        }),
+      Effect.map(
+        initializeFrontendGuards({ frontend, layer: frontendLayer }),
+        guards => {
+          const session = makeAggregateSession({ frontend });
+          session.setExecutionResources({
+            sessionId: 'sesn_failure',
+            guards,
+            runtime: guardTestRuntime,
+          });
+          return session;
+        },
       ).pipe(Effect.scoped, Effect.result),
     );
     expect(Result.isFailure(result) && result.failure).toBe(failure);
     expect(events).toEqual(['acquire', 'release']);
     fail = false;
     const exit = await Effect.runPromise(
-      Effect.map(initializeFrontendGuards(frontend), guards =>
-        makeAggregateSession({
-          runtime: guardTestRuntime,
-          guards,
-          frontend,
-          sessionId: 'sesn_retry',
-        }),
+      Effect.map(
+        initializeFrontendGuards({ frontend, layer: frontendLayer }),
+        guards => {
+          const session = makeAggregateSession({ frontend });
+          session.setExecutionResources({
+            sessionId: 'sesn_retry',
+            guards,
+            runtime: guardTestRuntime,
+          });
+          return session;
+        },
       ).pipe(Effect.scoped, Effect.exit),
     );
     expect(Exit.isSuccess(exit)).toBe(true);

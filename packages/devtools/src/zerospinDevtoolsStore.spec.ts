@@ -32,13 +32,16 @@ describe('zerospinDevtoolsStore session ownership', () => {
 
   it('registers account and service sessions in separate maps', () => {
     const aggregateSession = Effect.runSync(
-      Effect.map(initializeFrontendGuards(main), guards =>
-        makeAggregateSession({
-          runtime: guardTestRuntime,
-          guards,
-          frontend: main,
-          sessionId: aggregateSessionId,
-        }),
+      Effect.map(initializeFrontendGuards({ frontend: main }), guards =>
+        {
+          const session = makeAggregateSession({ frontend: main });
+          session.setExecutionResources({
+            guards,
+            sessionId: aggregateSessionId,
+            runtime: guardTestRuntime,
+          });
+          return session;
+        },
       ).pipe(Effect.provideService(Scope.Scope, sessionScope)),
     );
     const serviceSession = makeServiceSession({
@@ -59,8 +62,8 @@ describe('zerospinDevtoolsStore session ownership', () => {
         },
       },
       models: {},
-      sessionId: serviceSessionId,
     });
+    serviceSession.setSessionId(serviceSessionId);
 
     zerospinDevtoolsStore.getState().addAggregateSession({
       session: aggregateSession,

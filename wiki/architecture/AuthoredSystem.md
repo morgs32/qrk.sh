@@ -1,6 +1,6 @@
 ---
 title: Authored System and Static Worker
-updated: 2026-09-11
+updated: 2026-09-18
 ---
 
 # Authored System and Static Worker
@@ -378,36 +378,36 @@ arguments to every guard call.
 - [`initializeGuards.ts`](../../packages/core/src/guards/initializeGuards.ts) — builds a fresh local layer in the caller's scope and retains typed provision around synchronous guards.
 - [`ownerLayers.node.spec.ts`](../../packages/core/src/guards/ownerLayers.node.spec.ts) — verifies sibling isolation and application dependencies captured before a local override.
 
-`makeZerospinApp<typeof system, AppServices>({ systemName, layer })` binds
-application infrastructure to a type-only system reference. `App.makeAggregateFrontend(props)` and `App.makeServiceFrontend(props)`
-check the selected aggregate or service/version, authentication descriptor, model and contract
-subsets, and remaining service requirements. It returns a React component that
-also carries the exact controller and models for `useSession(Frontend)` and
-`useLiveQuery(Frontend, ...)`.
+`makeRuntime({ layer })` supplies application infrastructure without a system
+binding. Unbound `makeAggregateFrontend(props)` and `makeServiceFrontend(props)`
+author frontend definitions with exact models, contracts, and authentication.
+`makeSession({ frontend, runtime, layer?, backup, systemName })` captures the
+frontend and system name; `initialize` / `useInitializeSession` check system
+compatibility and signature types. Consumers pass sessions to
+`useLiveQuery({ session, … })` and `useStore(session.store, …)`.
 
-- [`makeZerospinApp.tsx`](../../packages/react/src/makeZerospinApp.tsx) — checks compatibility at frontend binding and keeps framework and application service requirements distinct.
-- [`makeFrontendCompatibility.typecheck.ts`](../../packages/react/src/makeFrontendCompatibility.typecheck.ts) — verifies concrete aggregate/service version compatibility and rejects unknown or incompatible selections.
-- [`makeZerospinApp.typecheck.tsx`](../../packages/react/src/makeZerospinApp.typecheck.tsx) — verifies exact selector inference, signatures, and application service requirements.
+- [`makeAggregateFrontend.ts`](../../packages/react/src/makeAggregateFrontend/makeAggregateFrontend.ts) — authors the aggregate frontend definition without app or Provider binding.
+- [`makeServiceFrontend.ts`](../../packages/react/src/makeServiceFrontend/makeServiceFrontend.ts) — authors the service frontend definition with authoritative models.
+- [`makeFrontendCompatibility.typecheck.ts`](../../packages/react/src/makeFrontendCompatibility.typecheck.ts) — verifies initialize/useInitializeSession reject incompatible systems and signatures.
+- [`makeAppFrontends.typecheck.tsx`](../../packages/react/src/makeAppFrontends.typecheck.tsx) — verifies exact selector inference, signatures, and runtime/local-layer requirements.
 
-Each mounted app Provider owns one managed runtime, with application services
-overriding framework ID/time defaults. Its first frontend lazily acquires the
-shared backup-worker connection; concurrent requests share acquisition, and the
-connection remains until app unmount. Frontend components independently own
-session scopes, local layers, bootstrap, and DevTools session registration.
-Each gates its children until ready, so siblings initialize independently and
-nested frontends initialize sequentially. Nested consumers can access ancestor
-frontend sessions. Duplicate active frontend names and mismatched app Providers
-are rejected.
+`makeRuntime` owns the shared ManagedRuntime. Eager `makeBackup` owns the
+page backup connection independently of sessions. Each `makeSession` owns its
+session scope, local layer, bootstrap, and DevTools registration.
+`useInitializeSession` gates children until ready; concurrent sessions
+initialize independently. Overlapping ownership of the same session is rejected.
 
-Updating a frontend signer retains its session. Changing identity requires an
-explicit keyed remount, which waits for predecessor cleanup. App teardown closes
-frontend scopes before the backup connection and application runtime. Synchronous
-`makeAggregateSession` borrows initialized guards and runtime and owns no layer
-acquisition. Mock Providers retain their existing independent resource ownership.
+Updating a signer retains its session. Changing identity requires an
+explicit dispose/reinitialize. Teardown disposes sessions first, then backup,
+then runtime. Synchronous `makeAggregateSession` constructs the store without
+resources; execution bindings are set during initialize. `makeMockSession`
+owns independent fixture resources without backup or transport.
 
-- [`makeZerospinApp.tsx`](../../packages/react/src/makeZerospinApp.tsx) — owns app resources, per-frontend initialization, readiness, identity checks, and ordered teardown.
-- [`makeAggregateSession.ts`](../../packages/core/src/session/makeAggregateSession.ts) — executes commands through the borrowed runtime and initialized frontend context.
-- [`ZerospinMockProvider.tsx`](../../packages/react/src/ZerospinMockProvider.tsx) — accepts frontend component selectors and owns its mock runtime, layers, and database without live transports.
+- [`makeRuntime.ts`](../../packages/react/src/makeRuntime/makeRuntime.ts) — owns the caller-shared runtime without system or backup binding.
+- [`makeBackup.ts`](../../packages/react/src/makeBackup/makeBackup.ts) — eagerly acquires the shared SharedWorker connection.
+- [`makeSession.ts`](../../packages/react/src/makeSession/makeSession.ts) — owns per-session initialization, readiness, identity checks, and scoped teardown.
+- [`stageCommand.ts`](../../packages/core/src/session/stageCommand.ts) — stages local commands through bound runtime and guards.
+- [`makeMockSession.ts`](../../packages/react/src/makeMockSession/makeMockSession.ts) — owns mock layer and database resources without live transports.
 
 Server command batches acquire `makeSystem` application services and then the
 selected aggregate or service layer before entering a synchronous transaction.
@@ -819,7 +819,8 @@ Frontend controllers retain only the authentication claims schema. Compatibility
 
 - [`makeFrontendController.ts`](../../packages/core/src/frontendController/makeFrontendController.ts) — retains frontend authentication declarations.
 - [`makeAggregateFrontendLock.ts`](../../packages/core/src/frontendController/makeAggregateFrontendLock.ts) — includes authentication in the frontend lock.
-- [`makeZerospinApp.tsx`](../../packages/react/src/makeZerospinApp.tsx) — passes each frontend's decoded signature to its aggregate or service authenticator.
+- [`acquireAggregateFrontendSession.ts`](../../packages/react/src/makeSession/makeSession.ts) — passes each aggregate frontend's decoded signature to bootstrap authentication.
+- [`acquireServiceFrontendSession.ts`](../../packages/react/src/makeSession/makeSession.ts) — passes each service frontend's decoded signature to bootstrap authentication.
 - [Authentication workflow](./browser/Authentication.md) — describes audit, admission, selection partitions, and offline lookup.
 
 Mutation replay requires the exact registered model name and version. Aggregate and service definitions do not accept mutation adapter registries.

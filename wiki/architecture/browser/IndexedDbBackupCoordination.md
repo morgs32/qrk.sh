@@ -1,6 +1,6 @@
 ---
 title: IndexedDB Backup Coordination
-updated: 2026-09-11
+updated: 2026-09-18
 ---
 
 # IndexedDB Backup Coordination
@@ -18,7 +18,9 @@ without waiting for either the previous page or a server response.
 1. The first mounted frontend lazily requests the app Provider's shared page
    connection. Concurrent requests share acquisition. Unmounting a frontend
    does not close the connection; app teardown closes frontend scopes first.
-   - [`makeZerospinApp.tsx`](../../../packages/react/src/makeZerospinApp.tsx) — passes the same `backupWorker` into aggregate and service bootstraps.
+   - [`makeFrontendProvider.tsx`](../../../packages/react/src/makeSession/makeSession.ts) — mounts the frontend and shares the app's `backupAcquisition` Effect into session acquisition.
+   - [`acquireAggregateFrontendSession.ts`](../../../packages/react/src/makeSession/makeSession.ts) — passes the shared backup worker into aggregate bootstrap.
+   - [`acquireServiceFrontendSession.ts`](../../../packages/react/src/makeSession/makeSession.ts) — passes the shared backup worker into service bootstrap.
 2. The connection opens `/__zerospin/backup-worker.js` with the name
    `zerospin-backups`; readiness waits for storage initialization under the
    worker's exclusive `zerospin-backups-lifetime` lock.
@@ -104,7 +106,7 @@ sequenceDiagram
     explicitly invalidates mounted live queries after restoration.
     - [`makeAggregateSession.ts`](../../../packages/core/src/session/makeAggregateSession.ts) — exposes current execution identity from state and captures that ID for each synchronous command.
     - [`makeInMemorySQLite3.ts`](../../../packages/core/src/drizzle/makeInMemorySQLite3.ts) — accepts restored table names because SQLite page copying does not run `update_hook`.
-    - [`makeZerospinApp.tsx`](../../../packages/react/src/makeZerospinApp.tsx) — moves DevTools registrations to the current ID while retaining mounted sessions and tracks the actual registered ID for cleanup.
+    - [`acquireAggregateFrontendSession.ts`](../../../packages/react/src/makeSession/makeSession.ts) — moves DevTools registrations to the current ID while retaining mounted sessions and tracks the actual registered ID for cleanup.
 11. Committed main-thread SQL enters the affected frontend's asynchronous FIFO.
     - [`bootstrapAggregateFrontendSession.ts`](../../../packages/frontend/src/bootstrapAggregateFrontendSession.ts) — captures committed transactions and sends one batch at a time through the active `backupDb`.
 12. The page mutation boundary checks capability revocation and connection
@@ -167,7 +169,7 @@ offline restart.
 ## Verification
 
 - [`makeAggregateSession.node.spec.ts`](../../../packages/core/src/session/makeAggregateSession.node.spec.ts) — verifies renewed IDs restart command indexing and preserve complete previous journal rows.
-- [`makeZerospinAppDevtools.react.spec.tsx`](../../../packages/react/src/makeZerospinAppDevtools.react.spec.tsx) — verifies stable mounting, live browser IDs, renewed registrations, and scoped cleanup.
+- [`makeRuntimeDevtools.react.spec.tsx`](../../../packages/react/src/loadDevtools.react.spec.tsx) — verifies stable mounting, live browser IDs, renewed registrations, and scoped cleanup.
 - [`mainThreadBackupAdverse.playwright.spec.ts`](../../../examples/shopping/tests/browser/mainThreadBackupAdverse.playwright.spec.ts) — contains the real Chromium capability, persistence, and handoff acceptance seam.
 - [`backupWorker.preview.spec.ts`](../../../examples/shopping/e2e/backupWorker.preview.spec.ts) — exercises separately emitted frontend builds, takeover from a frozen page, real worker/WASM assets, and offline worker restart.
 

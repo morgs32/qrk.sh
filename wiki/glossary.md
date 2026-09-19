@@ -1,6 +1,6 @@
 ---
 title: Glossary
-updated: 2026-09-11
+updated: 2026-09-18
 ---
 
 # Glossary
@@ -162,14 +162,14 @@ replica changes and enrollment.
 
 ## mounted frontend
 
-A mounted instance of the React component returned by `App.makeFrontend(controller)`.
-It owns one session and its bootstrap/recovery scope. The component itself retains
-the authored controller and models and acts as the selector passed to session and
-query hooks. Its matching app Provider supplies shared resources. A second active
-mount with the same controller name in that app is rejected.
+A caller-owned session from `makeSession` / `makeMockSession` after
+`initialize` or `useInitializeSession` has published readiness. The session
+object retains its authored frontend and Zustand store; shared runtime and
+backup are borrowed, not owned. Concurrent active initialization on the same
+session is rejected.
 
-- [`makeZerospinApp.tsx`](../packages/react/src/makeZerospinApp.tsx) — constructs bound frontend components and manages their independent mounted lifetimes.
-- [`useSession.ts`](../packages/react/src/useSession.ts) — resolves the exact component selector from ancestor session context.
+- [`makeSession.ts`](../packages/react/src/makeSession/makeSession.ts) — imperative browser composition; construction is sync and acquires no resources.
+- [`useInitializeSession.ts`](../packages/react/src/useInitializeSession/useInitializeSession.ts) — effect-owned startup/disposal with Zustand-backed readiness.
 
 ## WebSocket ticket
 

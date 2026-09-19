@@ -1,6 +1,6 @@
 ---
 title: Main-Thread Frontend Session Bootstrap and Recovery
-updated: 2026-09-11
+updated: 2026-09-19
 ---
 
 # Main-Thread Frontend Session Bootstrap and Recovery
@@ -22,15 +22,20 @@ online initialization path used when no valid baseline can be reused.
 
 ## Trigger
 
-1. `makeZerospinApp<SYSTEM, APP_SERVICES>` owns the application runtime.
-   `App.makeAggregateFrontend(props)` and `App.makeServiceFrontend(props)` creates a component/selector bound to that app.
-   Each mounted frontend supplies its own `generateSignature`, initializes its
-   session, and gates its children independently. Sibling mounts can initialize
-   concurrently; nested mounts initialize sequentially. The app lazily acquires
-   one shared backup connection on the first frontend request and retains it
-   until app teardown. Aggregate authentication supplies the aggregate ID.
-   - [`makeFrontendController.ts`](../../../packages/core/src/frontendController/makeFrontendController.ts) — retains exact contract/model definitions and the selected aggregate or service version.
-   - [`makeZerospinApp.tsx`](../../../packages/react/src/makeZerospinApp.tsx) — checks system compatibility, service requirements, app context, and duplicate names; owns per-frontend sessions and lazy app-wide backup acquisition.
+1. `makeRuntime({ layer })` owns the shared application runtime. Eager
+   `makeBackup()` owns the page backup connection. Unbound
+   `makeAggregateFrontend(props)` and `makeServiceFrontend(props)` construct
+   authored frontend definitions without Providers. `makeSession({ frontend,
+   runtime, layer?, backup, systemName })` creates a stable session
+   synchronously; `session.initialize` / `useInitializeSession` acquire
+   resources and gate children. Concurrent sessions share runtime and backup;
+   each session owns its local layer and bootstrap. Aggregate authentication
+   supplies the aggregate ID.
+   - [`makeAggregateFrontend.ts`](../../../packages/react/src/makeAggregateFrontend/makeAggregateFrontend.ts) — validates and constructs the aggregate frontend directly, retaining exact contract/model definitions and its selected version.
+   - [`makeServiceFrontend.ts`](../../../packages/react/src/makeServiceFrontend/makeServiceFrontend.ts) — validates and constructs the service frontend directly, retaining authoritative models and its selected version.
+   - [`makeRuntime.ts`](../../../packages/react/src/makeRuntime/makeRuntime.ts) — owns the caller-shared ManagedRuntime without system or backup binding.
+   - [`makeBackup.ts`](../../../packages/react/src/makeBackup/makeBackup.ts) — eagerly acquires the shared SharedWorker connection with caller-owned disposal.
+   - [`makeSession.ts`](../../../packages/react/src/makeSession/makeSession.ts) — constructs the session store synchronously and initializes bootstrap under explicit ownership.
 2. Visible startup, focus, and visible page restoration request ownership.
    Hiding an already current frontend retains ownership; hiding during startup
    prevents that acquisition from publishing current state.
@@ -128,7 +133,7 @@ period before publishing. Push controls read the current period when invoked.
 
 - [`bootstrapAggregateFrontendSession.ts`](../../../packages/frontend/src/bootstrapAggregateFrontendSession.ts) — binds callbacks, push controls, socket cleanup, and backup capture to the active acquisition period.
 - [`bootstrapServiceFrontendSession.ts`](../../../packages/frontend/src/bootstrapServiceFrontendSession.ts) — pauses and resumes the service independently of aggregate ownership.
-- [`makeZerospinApp.tsx`](../../../packages/react/src/makeZerospinApp.tsx) — updates DevTools registrations on identity changes and removes the captured registered ID on teardown.
+- [`makeSession.ts`](../../../packages/react/src/makeSession/makeSession.ts) — updates DevTools registrations on identity changes and removes the captured registered ID on teardown.
 
 Typed mutation uncertainty repairs only a still-current backup capability:
 later commits are diverted while a complete live snapshot replaces uncertain
@@ -141,26 +146,28 @@ may be lost; uncertain SQL is never replayed automatically.
 
 ## Guard layer lifetime
 
-Each mounted Provider creates one managed runtime from its application layer
-and framework defaults. Sessions share application instances; frontend-local
-layers initialize in session scopes using those services. Local overrides stay
-within their session. Initialization completes before synchronous
-`makeAggregateSession` construction and publication. The constructor borrows the
-runtime and initialized guards; it owns no resource acquisition or disposal.
+`makeRuntime` creates one managed runtime from the application layer and
+framework defaults. Sessions share that runtime; session-local layers
+initialize in session scopes using those services. Local overrides stay
+within their session. Guard and layer acquisition complete during
+`session.initialize` before publishing readiness. `makeAggregateSession`
+constructs the store synchronously without resources; execution bindings are
+set before readiness and cleared during disposal.
 
 Backup reacquisition retains the same session and local services. Changing
-identity requires an explicit frontend remount, which waits for the old scope
-to close before initializing against the same Provider runtime. Signer callback
-refresh alone does not replace the session. Cleanup marks each session released before
-closing its local scope, then disposes the application runtime after session
-cleanup. Failed initialization is never published. Mock Providers also clean up
-partial acquisition, late completion after unmount, and normal unmount.
+identity requires an explicit session dispose/reinitialize. Signer callback
+refresh alone does not replace the session. Cleanup marks each session released
+before closing its local scope; the caller disposes backup after sessions, then
+runtime after session cleanup. Failed initialization is never published.
+`makeMockSession` also cleans up partial acquisition, late completion, and
+normal disposal.
 
 - [`initializeGuards.ts`](../../../packages/core/src/guards/initializeGuards.ts) — acquires and binds a fresh local context before exposing guard execution.
-- [`makeAggregateSession.ts`](../../../packages/core/src/session/makeAggregateSession.ts) — uses the borrowed runtime and initialized guards, rejecting commands after release.
-- [`makeZerospinApp.tsx`](../../../packages/react/src/makeZerospinApp.tsx) — retains a runtime per Provider and closes session scopes before runtime disposal.
-- [`ZerospinMockProvider.tsx`](../../../packages/react/src/ZerospinMockProvider.tsx) — owns application, layer, and database resources for the mount.
-- [`makeZerospinAppDevtools.react.spec.tsx`](../../../packages/react/src/makeZerospinAppDevtools.react.spec.tsx) — verifies sharing, remount isolation, publication gating, replacement, and cleanup after partial initialization failure.
+- [`makeAggregateSession.ts`](../../../packages/core/src/session/makeAggregateSession.ts) — uses bound runtime and guards; `stageCommand` rejects while unbound or after release.
+- [`makeRuntime.ts`](../../../packages/react/src/makeRuntime/makeRuntime.ts) — retains a caller-owned runtime independent of session lifetimes.
+- [`makeMockSession.ts`](../../../packages/react/src/makeMockSession/makeMockSession.ts) — owns layer and database resources for the mock session lifetime.
+- [`loadDevtools.react.spec.tsx`](../../../packages/react/src/loadDevtools.react.spec.tsx) — verifies DevTools load/open/dispose independent of sessions.
+- [`makeMockSession.react.spec.tsx`](../../../packages/react/src/makeMockSession.react.spec.tsx) — verifies sharing, remount isolation, publication gating, replacement, and cleanup after partial initialization failure.
 
 ## Service sessions
 
@@ -174,7 +181,7 @@ not introduce aggregate command optimism.
 
 - [`makeAggregateSession.node.spec.ts`](../../../packages/core/src/session/makeAggregateSession.node.spec.ts) — verifies fresh execution indexing with unchanged earlier journal rows and rejection while superseded.
 - [`makeWaSqliteDrizzle.node.spec.ts`](../../../packages/core/src/drizzle/makeWaSqliteDrizzle.node.spec.ts) — verifies explicit restored-table invalidation permits synchronous same-client reads without duplicate notifications.
-- [`makeZerospinAppDevtools.react.spec.tsx`](../../../packages/react/src/makeZerospinAppDevtools.react.spec.tsx) — checks stable mounted sessions, renewed browser IDs, retained controls, and registration cleanup.
+- [`loadDevtools.react.spec.tsx`](../../../packages/react/src/loadDevtools.react.spec.tsx) — checks DevTools load/open/dispose and registration cleanup.
 - [`frontendPrograms.node.spec.ts`](../../../packages/frontend/src/frontendPrograms.node.spec.ts) — exercises domain recovery against a real main-thread session database.
 
 ## Callers

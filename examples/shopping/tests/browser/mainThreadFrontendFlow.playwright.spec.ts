@@ -1,32 +1,27 @@
 /* oxlint-disable react/no-children-prop -- This exact .ts acceptance filename cannot contain JSX. */
 import { act, createElement, useEffect } from 'react';
 
-import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { encodePayload } from '@zerospin/core/contracts/encodePayload';
-import {
-  aggregateFrontendProps,
-  serviceFrontendProps,
-} from '@zerospin/core/fixtures/frontendProps';
 import { prefixId } from '@zerospin/core/models/prefixId';
 import { makeServiceCommand } from '@zerospin/core/service/makeServiceCommand';
 import { PublishableKey } from '@zerospin/core/services/PublishableKey';
 import { ZerospinApiUrl } from '@zerospin/core/services/ZerospinApiUrl';
 import { AggregateFrontendJournalCommandSchema } from '@zerospin/core/session/AggregateFrontendCommandSchema';
 import { sessionCommandJournalDrizzleSchema } from '@zerospin/core/session/sessionCommandShape';
-import { IncrementalMonotonicFactory } from '@zerospin/core/test-utils/IncrementalMonotonicFactory';
 import { makePrefixedIncrementalIdFactory } from '@zerospin/core/test-utils/makePrefixedIncrementalIdFactory';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import { zerospinDevtoolsStore } from '@zerospin/devtools/zerospinDevtoolsStore';
-import { makeZerospinApp } from '@zerospin/react/makeZerospinApp';
-import type {
-  IBrowserServiceSession,
-  IBrowserSession,
-} from '@zerospin/react/types';
-import { useLiveQuery } from '@zerospin/react/useLiveQuery';
-import { useSession } from '@zerospin/react/useSession';
+import {
+  makeBackup,
+  makeRuntime,
+  makeSession,
+  stageCommand,
+  useInitializeSession,
+  useLiveQuery,
+} from '@zerospin/react';
 import { newWebSocketRpcSession } from 'capnweb';
 import { eq } from 'drizzle-orm';
-import { Effect, Layer, ManagedRuntime, Redacted, Schema } from 'effect';
+import { Effect, Layer, Redacted, Schema } from 'effect';
 import { createRoot } from 'react-dom/client';
 import type { GatewayApi } from 'system-worker/GatewayApi/GatewayApi';
 import { afterAll, describe, expect, it } from 'vitest';
@@ -37,10 +32,8 @@ import { ClerkUserIdSchema } from '@/zerospin/aggregates/shopper/models/user/Use
 import { createProductV1 } from '@/zerospin/services/app/contracts/createProduct/CreateProductV1';
 import { deleteProductV1 } from '@/zerospin/services/app/contracts/deleteProduct/DeleteProductV1';
 import { productV1 } from '@/zerospin/services/app/models/product/ProductV1';
+import type { system } from '@/zerospin/system';
 import { Catalog, Shopper } from '@/zerospin/ZerospinApp';
-
-const WebV2 = Shopper.frontend;
-const CatalogV1 = Catalog.frontend;
 
 Object.defineProperty(globalThis, 'IS_REACT_ACT_ENVIRONMENT', {
   configurable: true,
@@ -55,50 +48,62 @@ const clerkUserId = Schema.decodeUnknownSync(ClerkUserIdSchema)(
 );
 
 const testRuntimeLayer = Layer.mergeAll(
-    AsyncLive,
-    makePrefixedIncrementalIdFactory('mainThreadFrontendFlow'),
-    IncrementalMonotonicFactory,
-    Layer.succeed(ZerospinApiUrl, 'http://127.0.0.1:3035/'),
-    Layer.succeed(PublishableKey, Redacted.make('pk_test')),
-  ),
-  testRuntime = ManagedRuntime.make(testRuntimeLayer);
-
-const FlowZerospinApp = makeZerospinApp<
-  typeof import('@/zerospin/system').system
->({ systemName: 'shopping', layer: testRuntimeLayer });
-const guardLayer = WebV2.guardLayer;
-if (guardLayer === undefined) {
-  throw new Error('Shopping requires its frontend guard layer');
-}
-const FlowZerospinAppShopperFrontend = FlowZerospinApp.makeAggregateFrontend({
-  ...aggregateFrontendProps(WebV2),
-  guardLayer,
-});
-const FlowZerospinAppAppFrontend = FlowZerospinApp.makeServiceFrontend(
-  serviceFrontendProps(CatalogV1),
+  makePrefixedIncrementalIdFactory('mainThreadFrontendFlow'),
+  Layer.succeed(ZerospinApiUrl, 'http://127.0.0.1:3035/'),
+  Layer.succeed(PublishableKey, Redacted.make('pk_test')),
 );
+const testRuntime = makeRuntime({ layer: testRuntimeLayer });
+const backup = makeBackup();
 
-function FlowSessionsProbe(props: {
-  onSessions(
-    aggregateSession: IBrowserSession<
-      typeof FlowZerospinAppShopperFrontend.frontend
-    >,
-    serviceSession: IBrowserServiceSession<typeof CatalogV1>,
-  ): void;
+const aggregateSession = makeSession({
+  frontend: Shopper,
+  runtime: testRuntime,
+  backup,
+  systemName: 'shopping',
+});
+const serviceSession = makeSession({
+  frontend: Catalog,
+  runtime: testRuntime,
+  backup,
+  systemName: 'shopping',
+});
+
+function FlowSessionsRoot(props: {
+  generateSignature: () => Effect.Effect<{ clerkUserId: typeof clerkUserId }>;
+  onReady(): void;
 }) {
-  const aggregateSession = useSession(FlowZerospinAppShopperFrontend);
-  const serviceSession = useSession(FlowZerospinAppAppFrontend);
-  const { data: cartItem } = useLiveQuery(FlowZerospinAppShopperFrontend, {
+  const { generateSignature, onReady } = props;
+  const aggregate = useInitializeSession<typeof system>({
+    session: aggregateSession,
+    generateSignature,
+  });
+  const service = useInitializeSession<typeof system>({
+    session: serviceSession,
+    generateSignature,
+  });
+
+  useEffect(() => {
+    if (aggregate.isInitialized && service.isInitialized) {
+      onReady();
+    }
+  }, [aggregate.isInitialized, onReady, service.isInitialized]);
+
+  // Initialize both sessions before any query hook; useLiveQuery throws without a DB.
+  if (!aggregate.isInitialized || !service.isInitialized) {
+    return null;
+  }
+
+  return createElement(CartSummary);
+}
+
+function CartSummary() {
+  const { data: cartItem } = useLiveQuery({
+    session: aggregateSession,
     query: db =>
       db.query.cartItem.findFirst({
         with: { product: true },
       }),
   });
-  const { onSessions } = props;
-
-  useEffect(() => {
-    onSessions(aggregateSession, serviceSession);
-  }, [aggregateSession, onSessions, serviceSession]);
 
   return createElement(
     'output',
@@ -114,6 +119,9 @@ function FlowSessionsProbe(props: {
 }
 
 afterAll(async () => {
+  await aggregateSession.dispose();
+  await serviceSession.dispose();
+  await backup.dispose();
   await testRuntime.dispose();
 });
 
@@ -189,36 +197,20 @@ describe('main-thread frontend flow', () => {
     const container = document.createElement('div');
     document.body.appendChild(container);
     const root = createRoot(container);
-    const sessions: {
-      aggregate: IBrowserSession<
-        typeof FlowZerospinAppShopperFrontend.frontend
-      > | null;
-      service: IBrowserServiceSession<typeof CatalogV1> | null;
-    } = { aggregate: null, service: null };
+    let sessionsReady = false;
     let signatureCallCount = 0;
 
     try {
       await act(async () => {
         root.render(
-          createElement(FlowZerospinApp.Provider, {
-            children: createElement(FlowZerospinAppShopperFrontend, {
-              generateSignature: () => {
-                signatureCallCount += 1;
-                return Effect.succeed({ clerkUserId });
-              },
-              children: createElement(FlowZerospinAppAppFrontend, {
-                generateSignature: () => {
-                  signatureCallCount += 1;
-                  return Effect.succeed({ clerkUserId });
-                },
-                children: createElement(FlowSessionsProbe, {
-                  onSessions: (aggregateSession, serviceSession) => {
-                    sessions.aggregate = aggregateSession;
-                    sessions.service = serviceSession;
-                  },
-                }),
-              }),
-            }),
+          createElement(FlowSessionsRoot, {
+            generateSignature: () => {
+              signatureCallCount += 1;
+              return Effect.succeed({ clerkUserId });
+            },
+            onReady: () => {
+              sessionsReady = true;
+            },
           }),
         );
         await Promise.resolve();
@@ -226,22 +218,21 @@ describe('main-thread frontend flow', () => {
 
       await expect
         .poll(
-          () => sessions.aggregate?.store.getState().isInitialized ?? false,
+          () =>
+            sessionsReady &&
+            (aggregateSession.store.getState().isInitialized ?? false),
           { interval: 100, timeout: 30_000 },
         )
         .toBe(true);
       await expect
-        .poll(() => sessions.service?.store.getState().isInitialized ?? false, {
-          interval: 100,
-          timeout: 120_000,
-        })
+        .poll(
+          () => serviceSession.store.getState().isInitialized ?? false,
+          {
+            interval: 100,
+            timeout: 120_000,
+          },
+        )
         .toBe(true);
-
-      const aggregateSession = sessions.aggregate;
-      const serviceSession = sessions.service;
-      if (aggregateSession === null || serviceSession === null) {
-        throw new Error('Both browser sessions must initialize');
-      }
 
       const aggregateState = aggregateSession.store.getState();
       const serviceState = serviceSession.store.getState();
@@ -252,18 +243,16 @@ describe('main-thread frontend flow', () => {
       expect(aggregateState.backupState.status).toBe('ready');
       expect(serviceState.sessionStatus).toBe('current');
       expect(serviceState.backupState.status).toBe('ready');
-      expect(signatureCallCount).toBeGreaterThanOrEqual(4);
+      expect(signatureCallCount).toBeGreaterThanOrEqual(2);
       expect(aggregateState.db).not.toBe(serviceState.db);
 
       const aggregateDevtoolsEntry = zerospinDevtoolsStore
         .getState()
-        .aggregateSessionsById.get(aggregateSession.sessionId);
+        .aggregateSessionsById.get(aggregateSession.sessionId!);
       const serviceDevtoolsEntry = zerospinDevtoolsStore
         .getState()
-        .serviceSessionsById.get(serviceSession.sessionId);
-      expect(aggregateDevtoolsEntry?.session).toBe(
-        aggregateSession.coreSession,
-      );
+        .serviceSessionsById.get(serviceSession.sessionId!);
+      expect(aggregateDevtoolsEntry?.session).toBe(aggregateSession);
       expect(serviceDevtoolsEntry?.getAuthentication()).toEqual({
         clerkUserId,
       });
@@ -276,7 +265,8 @@ describe('main-thread frontend flow', () => {
       const userId = userRow.id;
       expect(userId).not.toBe(`usr_${clerkUserId}`);
 
-      const createdUser = await aggregateSession.executeCommand({
+      const createdUser = stageCommand({
+        session: aggregateSession,
         contractName: 'updateUser',
         payload: {
           id: userId,
@@ -310,7 +300,8 @@ describe('main-thread frontend flow', () => {
         .toBeGreaterThan(0);
 
       const updatedName = `Main-thread capability ${testRunId}`;
-      const updatedUser = await aggregateSession.executeCommand({
+      const updatedUser = stageCommand({
+        session: aggregateSession,
         contractName: 'updateUser',
         payload: {
           id: userId,
@@ -341,13 +332,10 @@ describe('main-thread frontend flow', () => {
       if (catalogProduct === undefined) {
         throw new Error('Expected the seeded catalog to contain a Product');
       }
-      const cartAggregateSession = sessions.aggregate;
-      if (cartAggregateSession === null) {
-        throw new Error('Aggregate browser session must remain acquired');
-      }
       const createdCart = Effect.runSync(
         decodeRpc(
-          cartAggregateSession.executeCommand({
+          stageCommand({
+            session: aggregateSession,
             contractName: 'createCart',
             payload: {
               id: prefixId(cartV1, testRunId),
@@ -359,10 +347,7 @@ describe('main-thread frontend flow', () => {
       await expect
         .poll(
           () => {
-            const currentAggregateSession = sessions.aggregate;
-            if (currentAggregateSession === null) return undefined;
-            const currentAggregateState =
-              currentAggregateSession.store.getState();
+            const currentAggregateState = aggregateSession.store.getState();
             if (!currentAggregateState.isInitialized) return undefined;
             return currentAggregateState.db
               .select({
@@ -375,13 +360,10 @@ describe('main-thread frontend flow', () => {
           { interval: 100, timeout: 15_000 },
         )
         .toBeGreaterThan(0);
-      const addToCartAggregateSession = sessions.aggregate;
-      if (addToCartAggregateSession === null) {
-        throw new Error('Aggregate browser session must remain acquired');
-      }
       const addedToCart = Effect.runSync(
         decodeRpc(
-          addToCartAggregateSession.executeCommand({
+          stageCommand({
+            session: aggregateSession,
             contractName: 'addToCart',
             payload: {
               cartItemId: prefixId(cartItemV2, testRunId),
@@ -413,10 +395,7 @@ describe('main-thread frontend flow', () => {
       await expect
         .poll(
           () => {
-            const currentAggregateSession = sessions.aggregate;
-            if (currentAggregateSession === null) return undefined;
-            const currentAggregateState =
-              currentAggregateSession.store.getState();
+            const currentAggregateState = aggregateSession.store.getState();
             if (!currentAggregateState.isInitialized) return undefined;
             const retainedCommand = currentAggregateState.db
               .select({
@@ -436,7 +415,7 @@ describe('main-thread frontend flow', () => {
               !('id' in command) ||
               !('aggregateIndex' in command) ||
               command.id !== addedToCart.id ||
-              retainedCommand.sessionId !== currentAggregateSession.sessionId ||
+              retainedCommand.sessionId !== aggregateSession.sessionId ||
               retainedCommand.pushIndex === null
             ) {
               return undefined;
@@ -450,11 +429,7 @@ describe('main-thread frontend flow', () => {
         )
         .toEqual({ sessionIndex: addedToCart.sessionIndex, failure: null });
 
-      const latestAggregateSession = sessions.aggregate;
-      if (latestAggregateSession === null) {
-        throw new Error('Aggregate browser session must remain acquired');
-      }
-      const currentAggregateState = latestAggregateSession.store.getState();
+      const currentAggregateState = aggregateSession.store.getState();
       if (!currentAggregateState.isInitialized) {
         throw new Error('Aggregate browser session must remain initialized');
       }
@@ -521,17 +496,9 @@ describe('main-thread frontend flow', () => {
       await expect
         .poll(
           () => {
-            const currentServiceSession = sessions.service;
-            const currentAggregateSession = sessions.aggregate;
-            if (
-              currentServiceSession === null ||
-              currentAggregateSession === null
-            ) {
-              return undefined;
-            }
-            const currentServiceState = currentServiceSession.store.getState();
+            const currentServiceState = serviceSession.store.getState();
             const currentAggregateState =
-              currentAggregateSession.store.getState();
+              aggregateSession.store.getState();
             if (
               !currentServiceState.isInitialized ||
               !currentAggregateState.isInitialized
@@ -654,17 +621,9 @@ describe('main-thread frontend flow', () => {
       await expect
         .poll(
           () => {
-            const currentServiceSession = sessions.service;
-            const currentAggregateSession = sessions.aggregate;
-            if (
-              currentServiceSession === null ||
-              currentAggregateSession === null
-            ) {
-              return undefined;
-            }
-            const currentServiceState = currentServiceSession.store.getState();
+            const currentServiceState = serviceSession.store.getState();
             const currentAggregateState =
-              currentAggregateSession.store.getState();
+              aggregateSession.store.getState();
             if (
               !currentServiceState.isInitialized ||
               !currentAggregateState.isInitialized
@@ -803,13 +762,8 @@ describe('main-thread frontend flow', () => {
           decodeRpc(commandsAfterOldDeleteRetryEnvelope.result),
         ),
       ).toEqual(commandsBeforeOldDeleteRetry);
-      const finalServiceSession = sessions.service;
-      const finalAggregateSession = sessions.aggregate;
-      if (finalServiceSession === null || finalAggregateSession === null) {
-        throw new Error('Both browser sessions must remain acquired');
-      }
-      const finalServiceState = finalServiceSession.store.getState();
-      const finalAggregateState = finalAggregateSession.store.getState();
+      const finalServiceState = serviceSession.store.getState();
+      const finalAggregateState = aggregateSession.store.getState();
       if (
         !finalServiceState.isInitialized ||
         !finalAggregateState.isInitialized
@@ -864,15 +818,18 @@ describe('main-thread frontend flow', () => {
         .poll(
           () => ({
             aggregate:
-              finalAggregateSession.store.getState().backupState.status,
-            service: finalServiceSession.store.getState().backupState.status,
+              aggregateSession.store.getState().backupState.status,
+            service: serviceSession.store.getState().backupState.status,
           }),
           { interval: 25, timeout: 30_000 },
         )
         .toEqual({ aggregate: 'ready', service: 'ready' });
 
-      const aggregateExecutionId = finalAggregateSession.sessionId;
-      const serviceExecutionId = finalServiceSession.sessionId;
+      const aggregateExecutionId = aggregateSession.sessionId;
+      const serviceExecutionId = serviceSession.sessionId;
+      if (aggregateExecutionId === null || serviceExecutionId === null) {
+        throw new Error('Both browser sessions must expose execution IDs');
+      }
       const aggregateDb = finalAggregateState.db;
       const serviceDb = finalServiceState.db;
       const { cdp } = await import('vitest/browser');
@@ -895,16 +852,16 @@ describe('main-thread frontend flow', () => {
       await expect
         .poll(
           () => ({
-            aggregate: finalAggregateSession.store.getState().sessionStatus,
-            service: finalServiceSession.store.getState().sessionStatus,
+            aggregate: aggregateSession.store.getState().sessionStatus,
+            service: serviceSession.store.getState().sessionStatus,
             renewedAggregate:
-              finalAggregateSession.sessionId !== aggregateExecutionId,
+              aggregateSession.sessionId !== aggregateExecutionId,
             renewedService:
-              finalServiceSession.sessionId !== serviceExecutionId,
+              serviceSession.sessionId !== serviceExecutionId,
             aggregateBackup:
-              finalAggregateSession.store.getState().backupState.status,
+              aggregateSession.store.getState().backupState.status,
             serviceBackup:
-              finalServiceSession.store.getState().backupState.status,
+              serviceSession.store.getState().backupState.status,
           }),
           { timeout: 60_000 },
         )
@@ -916,13 +873,13 @@ describe('main-thread frontend flow', () => {
           aggregateBackup: 'ready',
           serviceBackup: 'ready',
         });
-      const renewedAggregate = finalAggregateSession.store.getState();
-      const renewedService = finalServiceSession.store.getState();
+      const renewedAggregate = aggregateSession.store.getState();
+      const renewedService = serviceSession.store.getState();
       if (!renewedAggregate.isInitialized || !renewedService.isInitialized) {
         throw new Error('Both replicas must resume');
       }
-      expect(sessions.aggregate).toBe(finalAggregateSession);
-      expect(sessions.service).toBe(finalServiceSession);
+      expect(aggregateSession.store.getState().isInitialized).toBe(true);
+      expect(serviceSession.store.getState().isInitialized).toBe(true);
       expect(renewedAggregate.db).toBe(aggregateDb);
       expect(renewedService.db).toBe(serviceDb);
       expect(
@@ -930,10 +887,14 @@ describe('main-thread frontend flow', () => {
           .getState()
           .aggregateSessionsById.has(aggregateExecutionId),
       ).toBe(false);
+      const renewedSessionId = aggregateSession.sessionId;
+      if (renewedSessionId === null) {
+        throw new Error('Renewed aggregate session must expose an execution ID');
+      }
       expect(
         zerospinDevtoolsStore
           .getState()
-          .aggregateSessionsById.has(finalAggregateSession.sessionId),
+          .aggregateSessionsById.has(renewedSessionId),
       ).toBe(true);
     } finally {
       await act(async () => {

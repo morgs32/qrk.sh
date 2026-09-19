@@ -78,13 +78,16 @@ describe('SessionsCommandsLayout', () => {
     expect(typeof db.query.commandJournal!.findMany).toBe('function');
 
     const session = Effect.runSync(
-      Effect.map(initializeFrontendGuards(main), guards =>
-        makeAggregateSession({
-          runtime: guardTestRuntime,
-          guards,
-          frontend: main,
-          sessionId,
-        }),
+      Effect.map(initializeFrontendGuards({ frontend: main }), guards =>
+        {
+          const session = makeAggregateSession({ frontend: main });
+          session.setExecutionResources({
+            guards,
+            sessionId,
+            runtime: guardTestRuntime,
+          });
+          return session;
+        },
       ).pipe(Effect.provideService(Scope.Scope, sessionScope)),
     );
 

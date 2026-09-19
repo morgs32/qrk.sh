@@ -16,6 +16,7 @@ import { decodeRpc } from '../utils/decodeRpc.ts';
 import { ErrorLayer } from '../utils/ErrorLayer.ts';
 
 import { makeAggregateSession } from './makeAggregateSession.ts';
+import { stageCommand } from './stageCommand.ts';
 import {
   sessionCommandJournalDrizzleSchema,
   sessionOptimisticAppliedMutationDrizzleSchema,
@@ -64,13 +65,16 @@ describe('deleteList local occurrence', () => {
             })
             .run();
           const session = Effect.runSync(
-            Effect.map(initializeFrontendGuards(main), guards =>
-              makeAggregateSession({
-                runtime: guardTestRuntime,
-                guards,
-                frontend: main,
-                sessionId: 'sesn_delete',
-              }),
+            Effect.map(initializeFrontendGuards({ frontend: main }), guards =>
+              {
+                const session = makeAggregateSession({ frontend: main });
+                session.setExecutionResources({
+                  guards,
+                  sessionId: 'sesn_delete',
+                  runtime: guardTestRuntime,
+                });
+                return session;
+              },
             ).pipe(Effect.provideService(Scope.Scope, sessionScope)),
           );
           session.store.setState({
@@ -96,7 +100,7 @@ describe('deleteList local occurrence', () => {
           });
 
           yield* decodeRpc(
-            session.executeCommand({
+            stageCommand({ session: session,
               contractName: 'createList',
               payload: {
                 id: 'lst_1',
@@ -106,7 +110,7 @@ describe('deleteList local occurrence', () => {
             }),
           );
           const deleted = yield* decodeRpc(
-            session.executeCommand({
+            stageCommand({ session: session,
               contractName: 'deleteList',
               payload: { id: 'lst_1' },
             }),
@@ -149,13 +153,16 @@ describe('deleteList local occurrence', () => {
         });
         const db = yield* makeProvisionedInMemoryWasmSqliteDb({ dbConfig });
         const session = Effect.runSync(
-          Effect.map(initializeFrontendGuards(main), guards =>
-            makeAggregateSession({
-              runtime: guardTestRuntime,
-              guards,
-              frontend: main,
-              sessionId: 'sesn_missing_delete',
-            }),
+          Effect.map(initializeFrontendGuards({ frontend: main }), guards =>
+            {
+              const session = makeAggregateSession({ frontend: main });
+              session.setExecutionResources({
+                guards,
+                sessionId: 'sesn_missing_delete',
+                runtime: guardTestRuntime,
+              });
+              return session;
+            },
           ).pipe(Effect.provideService(Scope.Scope, sessionScope)),
         );
         session.store.setState({
@@ -181,7 +188,7 @@ describe('deleteList local occurrence', () => {
         });
 
         const result = yield* decodeRpc(
-          session.executeCommand({
+          stageCommand({ session: session,
             contractName: 'deleteList',
             payload: { id: 'lst_missing' },
           }),

@@ -17,11 +17,15 @@ export const zerospinDevtoolsStore = createStore<IZerospinDevtoolsStoreState>()(
     profiles: [],
     addAggregateSession: (entry: IDevtoolsAggregateSessionEntry) =>
       set(state => {
-        if (state.aggregateSessionsById.has(entry.session.sessionId)) {
+        const sessionId = entry.session.sessionId;
+        if (sessionId === null) {
+          return state;
+        }
+        if (state.aggregateSessionsById.has(sessionId)) {
           return state;
         }
         const nextAggregateSessionsById = new Map(state.aggregateSessionsById);
-        nextAggregateSessionsById.set(entry.session.sessionId, entry);
+        nextAggregateSessionsById.set(sessionId, entry);
         return { aggregateSessionsById: nextAggregateSessionsById };
       }),
     removeAggregateSession: (sessionId: ISessionId) =>
@@ -38,12 +42,16 @@ export const zerospinDevtoolsStore = createStore<IZerospinDevtoolsStoreState>()(
     }) =>
       set(state => {
         const { session } = entry;
-        if (state.serviceSessionsById.has(session.sessionId)) {
+        const sessionId = session.sessionId;
+        if (sessionId === null) {
+          return state;
+        }
+        if (state.serviceSessionsById.has(sessionId)) {
           return state;
         }
 
         const devtoolsEntry: IDevtoolsServiceSessionEntry = {
-          sessionId: session.sessionId,
+          sessionId,
           serviceName: session.frontend.serviceName,
           frontendName: session.frontend.name,
           modelNames: session.frontend.modelNames,
@@ -81,7 +89,7 @@ export const zerospinDevtoolsStore = createStore<IZerospinDevtoolsStoreState>()(
         };
 
         const nextServiceSessionsById = new Map(state.serviceSessionsById);
-        nextServiceSessionsById.set(session.sessionId, devtoolsEntry);
+        nextServiceSessionsById.set(sessionId, devtoolsEntry);
         return { serviceSessionsById: nextServiceSessionsById };
       }),
     removeServiceSession: (sessionId: ISessionId) =>

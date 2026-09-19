@@ -172,13 +172,16 @@ describe('SessionsLogsRoute', () => {
 
   it('renders and updates session-owned traces without losing the active selection', async () => {
     const session = Effect.runSync(
-      Effect.map(initializeFrontendGuards(main), guards =>
-        makeAggregateSession({
-          runtime: guardTestRuntime,
-          guards,
-          frontend: main,
-          sessionId,
-        }),
+      Effect.map(initializeFrontendGuards({ frontend: main }), guards =>
+        {
+          const session = makeAggregateSession({ frontend: main });
+          session.setExecutionResources({
+            guards,
+            sessionId,
+            runtime: guardTestRuntime,
+          });
+          return session;
+        },
       ).pipe(Effect.provideService(Scope.Scope, sessionScope)),
     );
     session.store.setState({ telemetry: initialTelemetry });
@@ -419,13 +422,16 @@ describe('SessionsLogsRoute', () => {
 
   it('keeps a zero-duration span visible on the one millisecond fallback range', async () => {
     const session = Effect.runSync(
-      Effect.map(initializeFrontendGuards(main), guards =>
-        makeAggregateSession({
-          runtime: guardTestRuntime,
-          guards,
-          frontend: main,
-          sessionId,
-        }),
+      Effect.map(initializeFrontendGuards({ frontend: main }), guards =>
+        {
+          const session = makeAggregateSession({ frontend: main });
+          session.setExecutionResources({
+            guards,
+            sessionId,
+            runtime: guardTestRuntime,
+          });
+          return session;
+        },
       ).pipe(Effect.provideService(Scope.Scope, sessionScope)),
     );
     session.store.setState({
@@ -481,13 +487,16 @@ describe('SessionsLogsRoute', () => {
 
   it('selects the exact trace named by a valid traceId query parameter', async () => {
     const session = Effect.runSync(
-      Effect.map(initializeFrontendGuards(main), guards =>
-        makeAggregateSession({
-          runtime: guardTestRuntime,
-          guards,
-          frontend: main,
-          sessionId,
-        }),
+      Effect.map(initializeFrontendGuards({ frontend: main }), guards =>
+        {
+          const session = makeAggregateSession({ frontend: main });
+          session.setExecutionResources({
+            guards,
+            sessionId,
+            runtime: guardTestRuntime,
+          });
+          return session;
+        },
       ).pipe(Effect.provideService(Scope.Scope, sessionScope)),
     );
     session.store.setState({ telemetry: initialTelemetry });
@@ -525,13 +534,16 @@ describe('SessionsLogsRoute', () => {
 
   it('selects the newest trace when the traceId query parameter is absent', async () => {
     const session = Effect.runSync(
-      Effect.map(initializeFrontendGuards(main), guards =>
-        makeAggregateSession({
-          runtime: guardTestRuntime,
-          guards,
-          frontend: main,
-          sessionId,
-        }),
+      Effect.map(initializeFrontendGuards({ frontend: main }), guards =>
+        {
+          const session = makeAggregateSession({ frontend: main });
+          session.setExecutionResources({
+            guards,
+            sessionId,
+            runtime: guardTestRuntime,
+          });
+          return session;
+        },
       ).pipe(Effect.provideService(Scope.Scope, sessionScope)),
     );
     session.store.setState({ telemetry: initialTelemetry });
@@ -565,13 +577,16 @@ describe('SessionsLogsRoute', () => {
 
   it('falls back to the newest trace for a stale traceId query parameter', async () => {
     const session = Effect.runSync(
-      Effect.map(initializeFrontendGuards(main), guards =>
-        makeAggregateSession({
-          runtime: guardTestRuntime,
-          guards,
-          frontend: main,
-          sessionId,
-        }),
+      Effect.map(initializeFrontendGuards({ frontend: main }), guards =>
+        {
+          const session = makeAggregateSession({ frontend: main });
+          session.setExecutionResources({
+            guards,
+            sessionId,
+            runtime: guardTestRuntime,
+          });
+          return session;
+        },
       ).pipe(Effect.provideService(Scope.Scope, sessionScope)),
     );
     session.store.setState({ telemetry: initialTelemetry });
@@ -604,13 +619,16 @@ describe('SessionsLogsRoute', () => {
 
   it('clears only the selected session telemetry and trace query', async () => {
     const session = Effect.runSync(
-      Effect.map(initializeFrontendGuards(main), guards =>
-        makeAggregateSession({
-          runtime: guardTestRuntime,
-          guards,
-          frontend: main,
-          sessionId,
-        }),
+      Effect.map(initializeFrontendGuards({ frontend: main }), guards =>
+        {
+          const session = makeAggregateSession({ frontend: main });
+          session.setExecutionResources({
+            guards,
+            sessionId,
+            runtime: guardTestRuntime,
+          });
+          return session;
+        },
       ).pipe(Effect.provideService(Scope.Scope, sessionScope)),
     );
     session.store.setState({ telemetry: initialTelemetry });
@@ -638,13 +656,16 @@ describe('SessionsLogsRoute', () => {
       links: [],
     };
     const otherSession = Effect.runSync(
-      Effect.map(initializeFrontendGuards(main), guards =>
-        makeAggregateSession({
-          runtime: guardTestRuntime,
-          guards,
-          frontend: main,
-          sessionId: otherSessionId,
-        }),
+      Effect.map(initializeFrontendGuards({ frontend: main }), guards =>
+        {
+          const session = makeAggregateSession({ frontend: main });
+          session.setExecutionResources({
+            guards,
+            sessionId: otherSessionId,
+            runtime: guardTestRuntime,
+          });
+          return session;
+        },
       ).pipe(Effect.provideService(Scope.Scope, sessionScope)),
     );
     otherSession.store.setState({ telemetry: otherTelemetry });

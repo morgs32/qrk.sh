@@ -1,24 +1,33 @@
-import { useInitializedStateOrThrow, useLiveQuery } from '@zerospin/react';
+import { useLiveQuery } from '@zerospin/react';
+import { useStore } from 'zustand/react';
 
 import { ProductCard } from './ProductCard';
 
-import { Catalog, Shopper } from '@/zerospin/ZerospinApp';
+import {
+  catalogSession,
+  shopperSession,
+} from '@/zerospin/ZerospinApp';
 
 export function ProductList() {
-  const { authentication } = useInitializedStateOrThrow(Shopper);
-  const { data: products } = useLiveQuery(Catalog, {
+  const authentication = useStore(
+    shopperSession.store,
+    state => state.authentication,
+  );
+  const { data: products } = useLiveQuery({
+    session: catalogSession,
     query: db => db.query.product.findMany(),
   });
 
-  const { data: user } = useLiveQuery(Shopper, {
-    query: db =>
+  const { data: user } = useLiveQuery({
+    session: shopperSession,
+    key: { clerkUserId: authentication?.clerkUserId },
+    query: (db, { clerkUserId }) =>
       db.query.user.findFirst({
-        where: { clerkUserId: { eq: authentication.clerkUserId } },
+        where: { clerkUserId: { eq: clerkUserId } },
       }),
-    deps: [authentication.clerkUserId],
   });
 
-  if (user === undefined) {
+  if (authentication === null || user === undefined) {
     return null;
   }
 

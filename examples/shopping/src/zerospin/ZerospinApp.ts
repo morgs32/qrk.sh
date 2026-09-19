@@ -1,4 +1,10 @@
-import { makeZerospinApp } from '@zerospin/react';
+import {
+  makeAggregateFrontend,
+  makeBackup,
+  makeRuntime,
+  makeServiceFrontend,
+  makeSession,
+} from '@zerospin/react';
 import * as sdk from '@zerospin/sdk/browser';
 import { Effect, Layer, Redacted, Schema } from 'effect';
 
@@ -17,7 +23,6 @@ import {
   userV1,
 } from './aggregates/shopper/models/user/UserV1';
 import { productV1 } from './services/app/models/product/ProductV1';
-import type { system } from './system';
 
 const zerospinApiUrl = import.meta.env.VITE_ZEROSPIN_API_URL;
 const zerospinPublishableKey = import.meta.env.VITE_ZEROSPIN_PUBLISHABLE_KEY;
@@ -35,12 +40,12 @@ const applicationLayer = Layer.mergeAll(
   Layer.succeed(sdk.PublishableKey, Redacted.make(zerospinPublishableKey)),
 );
 
-export const ZerospinApp = makeZerospinApp<typeof system>({
-  systemName: 'shopping',
-  layer: applicationLayer,
-});
+export const runtime = makeRuntime({ layer: applicationLayer });
 
-export const Shopper = ZerospinApp.makeAggregateFrontend({
+/** Eager backup — client startup only, never during React render. */
+export const backup = makeBackup();
+
+export const Shopper = makeAggregateFrontend({
   authenticationSchema: Schema.Struct({
     aggregateId: Schema.Literal('acct_1'),
     clerkUserId: ClerkUserIdSchema,
@@ -88,7 +93,7 @@ export const Shopper = ZerospinApp.makeAggregateFrontend({
     ),
 });
 
-export const Catalog = ZerospinApp.makeServiceFrontend({
+export const Catalog = makeServiceFrontend({
   authenticationSchema: Schema.Struct({ clerkUserId: ClerkUserIdSchema }),
   serviceVersion: '1.0.0',
   serviceName: 'app',
@@ -97,3 +102,28 @@ export const Catalog = ZerospinApp.makeServiceFrontend({
     product: productV1,
   },
 });
+
+export const shopperSession = makeSession({
+  frontend: Shopper,
+  runtime,
+  backup,
+  systemName: 'shopping',
+});
+
+export const catalogSession = makeSession({
+  frontend: Catalog,
+  runtime,
+  backup,
+  systemName: 'shopping',
+});
+
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    void (async () => {
+      await shopperSession.dispose();
+      await catalogSession.dispose();
+      await backup.dispose();
+      await runtime.dispose();
+    })();
+  });
+}

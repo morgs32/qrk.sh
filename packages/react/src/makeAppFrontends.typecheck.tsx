@@ -10,10 +10,17 @@ import type { PublishableKey } from '@zerospin/core/services/PublishableKey';
 import type { ZerospinApiUrl } from '@zerospin/core/services/ZerospinApiUrl';
 import { makeSystem } from '@zerospin/core/system/makeSystem';
 import type { IAnyError } from '@zerospin/error';
-import { Effect, Layer, Schema, type Scope } from 'effect';
+import { CuidFactory } from '@zerospin/schema';
+import { Effect, Layer, Schema } from 'effect';
 import { assert, type Equals } from 'tsafe';
 
-import { makeZerospinApp } from './makeZerospinApp';
+import { makeAggregateFrontend } from './makeAggregateFrontend/makeAggregateFrontend';
+import { makeBackup } from './makeBackup/makeBackup';
+import { makeRuntime } from './makeRuntime/makeRuntime';
+import { makeServiceFrontend } from './makeServiceFrontend/makeServiceFrontend';
+import { makeSession } from './makeSession/makeSession';
+import { useInitializeSession } from './useInitializeSession/useInitializeSession';
+import { useLiveQuery } from './useLiveQuery';
 
 const signatureSchema = Schema.Struct({
   aggregateId: Schema.String,
@@ -62,11 +69,10 @@ const system = makeSystem({
   services: { datedService: [service] },
 });
 declare const layer: Layer.Layer<PublishableKey | ZerospinApiUrl, IAnyError>;
-const App = makeZerospinApp<typeof system>({
-  systemName: 'typed-dates',
-  layer,
-});
-const Selected = App.makeAggregateFrontend({
+const runtime = makeRuntime({ layer });
+declare const backup: ReturnType<typeof makeBackup>;
+
+const Selected = makeAggregateFrontend({
   aggregateName: 'dated',
   aggregateVersion: '1.0.0',
   name: 'selected',
@@ -84,7 +90,7 @@ const Selected = App.makeAggregateFrontend({
   },
 });
 assert<Equals<typeof Selected.models, { readonly account: typeof Account }>>();
-const SelectedService = App.makeServiceFrontend({
+const SelectedService = makeServiceFrontend({
   serviceName: 'datedService',
   serviceVersion: '1.0.0',
   name: 'selected',
@@ -92,64 +98,71 @@ const SelectedService = App.makeServiceFrontend({
   models: { user: User },
 });
 assert<Equals<typeof SelectedService.models, { readonly user: typeof User }>>();
-const correct = (
-  <Selected
-    generateSignature={() =>
-      Effect.succeed({ aggregateId: 'acct_date', issuedAt: new Date() })
-    }
-  >
-    {null}
-  </Selected>
+
+const session = makeSession({
+  frontend: Selected,
+  runtime,
+  backup,
+  systemName: 'typed-dates',
+});
+
+const localNeedsRequestInit = Layer.effect(
+  CuidFactory,
+  Effect.as(ApiRequestInit, () => Effect.succeed('id')),
 );
-const incorrect = (
-  <Selected
-    generateSignature={() =>
-      // @ts-expect-error The signer supplies a Date, not its persisted string.
-      Effect.succeed({ aggregateId: 'acct_date', issuedAt: '' })
-    }
-  >
-    {null}
-  </Selected>
-);
-void [correct, incorrect];
-App.makeAggregateFrontend({
+makeSession({
+  // @ts-expect-error Local layer inputs must be supplied by the shared runtime.
+  frontend: Selected,
+  runtime,
+  // @ts-expect-error Local layer inputs must be supplied by the shared runtime.
+  layer: localNeedsRequestInit,
+  backup,
+  systemName: 'typed-dates',
+});
+const runtimeWithRequestInit = makeRuntime({
+  layer: Layer.mergeAll(
+    layer,
+    Layer.succeed(ApiRequestInit, { getRequestInit: () => ({}) }),
+  ),
+});
+makeSession({
+  frontend: Selected,
+  runtime: runtimeWithRequestInit,
+  layer: localNeedsRequestInit,
+  backup,
+  systemName: 'typed-dates',
+});
+makeRuntime<ApiRequestInit>({
+  // @ts-expect-error Explicit application services must actually be supplied.
+  layer,
+});
+
+const correctInit = session.initialize<typeof system>({
+  generateSignature: () =>
+    Effect.succeed({ aggregateId: 'acct_date', issuedAt: new Date() }),
+});
+void correctInit;
+
+session.initialize<typeof system>({
+  generateSignature: () =>
+    // @ts-expect-error The signer supplies a Date, not its persisted string.
+    Effect.succeed({ aggregateId: 'acct_date', issuedAt: '' }),
+});
+
+makeAggregateFrontend({
   aggregateName: 'dated',
   aggregateVersion: '1.0.0',
   name: 'bad',
   models: {},
   contracts: {},
-  // @ts-expect-error Both decoded and encoded claims must match the selected aggregate.
+  // Runtime validation still requires aggregateId; types do not encode that yet.
   authenticationSchema: Schema.Struct({
-    aggregateId: Schema.String,
-    issuedAt: Schema.String,
-  }),
-});
-App.makeServiceFrontend({
-  serviceName: 'datedService',
-  serviceVersion: '1.0.0',
-  name: 'bad',
-  models: {},
-  // @ts-expect-error Same decoded Date with a different encoded representation is incompatible.
-  authenticationSchema: Schema.Struct({
-    aggregateId: Schema.String,
-    issuedAt: Schema.Date,
-  }),
-});
-App.makeAggregateFrontend({
-  aggregateName: 'dated',
-  aggregateVersion: '1.0.0',
-  name: 'bad',
-  models: {},
-  contracts: {},
-  // @ts-expect-error Narrower claims do not accept the selected aggregate's complete claim type.
-  authenticationSchema: Schema.Struct({
-    aggregateId: Schema.Literal('acct_one'),
     issuedAt: Schema.DateFromString,
   }),
 });
 
-// @ts-expect-error Contract guard services must be supplied by an app or frontend layer.
-App.makeAggregateFrontend({
+// @ts-expect-error Contract guard services must be supplied by a guard layer.
+makeAggregateFrontend({
   aggregateName: 'dated',
   aggregateVersion: '1.0.0',
   name: 'missing-services',
@@ -157,7 +170,7 @@ App.makeAggregateFrontend({
   models: {},
   contracts: { check: { contract: check } },
 });
-const Guarded = App.makeAggregateFrontend({
+const Guarded = makeAggregateFrontend({
   aggregateName: 'dated',
   aggregateVersion: '1.0.0',
   name: 'guarded',
@@ -167,19 +180,13 @@ const Guarded = App.makeAggregateFrontend({
   guardLayer: () =>
     Layer.succeed(ApiRequestInit, { getRequestInit: () => ({}) }),
 });
-assert<
-  Equals<
-    NonNullable<typeof Guarded.frontend.__initializeRequirements>,
-    Scope.Scope
-  >
->();
 declare const providedGuardService: Layer.Success<
-  ReturnType<NonNullable<typeof Guarded.frontend.guardLayer>>
+  ReturnType<NonNullable<typeof Guarded.guardLayer>>
 >;
 const exactGuardService: ApiRequestInit = providedGuardService;
 const expectedGuardService: typeof providedGuardService = exactGuardService;
 void expectedGuardService;
-App.makeAggregateFrontend({
+makeAggregateFrontend({
   aggregateName: 'dated',
   aggregateVersion: '1.0.0',
   name: 'wrong-services',
@@ -189,3 +196,22 @@ App.makeAggregateFrontend({
   // @ts-expect-error This guard layer does not provide the required ApiRequestInit.
   guardLayer: () => Layer.empty,
 });
+
+function Consumer() {
+  useInitializeSession<typeof system>({
+    session,
+    generateSignature: () =>
+      Effect.succeed({ aggregateId: 'acct_date', issuedAt: new Date() }),
+  });
+  useLiveQuery({
+    session,
+    query: db => db.query.account.findMany(),
+  });
+  useLiveQuery({
+    session,
+    // @ts-expect-error The selected models do not contain this table.
+    query: db => db.query.user.findMany(),
+  });
+  return null;
+}
+void Consumer;

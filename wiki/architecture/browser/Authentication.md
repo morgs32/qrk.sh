@@ -107,7 +107,7 @@ Different full claims can share one server selection partition. Browser backups 
 
 ## Claims codecs and frontend authoring
 
-`App.makeAggregateFrontend` and `App.makeServiceFrontend` resolve the selected definition from `typeof system`, validate its exact model/contract subset, and return a typed component and selector. The app supplies `systemName`. Browser declarations retain only `authenticationSchema`; signature and selection schemas, patterns, and callbacks stay on the aggregate or service. Claims locks compare the claims JSON schema with that selected definition. Services have no frontend registry or projection adapters; `authorize` is optional.
+`makeAggregateFrontend` and `makeServiceFrontend` resolve the selected definition from `typeof system`, validate its exact model/contract subset, and return a frontend object with definition fields plus a `Provider` used as the session selector. The app supplies `systemName`. Browser declarations retain only `authenticationSchema`; signature and selection schemas, patterns, and callbacks stay on the aggregate or service. Claims locks compare the claims JSON schema with that selected definition. Services have no frontend registry or projection adapters; `authorize` is optional.
 
 Signers return decoded values. Authentication validates the signature against `Schema.toType`, and application authorizers receive decoded claims. Private access state, authentication audit rows, command provenance, and WebSocket-ticket persistence retain encoded claims. Public frontend snapshots decode those claims before returning them. HTTP batch RPC supports decoded `Date` values; the focused transport test exercises that round trip.
 
@@ -115,6 +115,6 @@ Bootstrap encodes incoming claims before canonical hashing and SQLite backup per
 
 Service snapshots filter by the admitted lock. Live WebSocket delivery, WebSocket replay, and HTTP replay filter every complete command's resource delta using that connection or capability's lock. Shared materialization does not treat `frontendName` as a unique subset. Empty selected deltas retain their service index, and deletion and duplicate/restart handling preserve contiguous progress.
 
-- [`makeZerospinApp.tsx`](../../../packages/react/src/makeZerospinApp.tsx) — typed app-bound authoring and decoded signers.
+- [`makeRuntime.ts`](../../../packages/react/src/makeRuntime/makeRuntime.ts) — composes typed app-bound frontend authoring.
 - [`bootstrapAggregateFrontendSession.ts`](../../../packages/frontend/src/bootstrapAggregateFrontendSession.ts), [`bootstrapServiceFrontendSession.ts`](../../../packages/frontend/src/bootstrapServiceFrontendSession.ts) — durable encoding and decoded restoration.
 - [`filterServiceFrontendCommand.ts`](../../../packages/core/src/serviceSession/filterServiceFrontendCommand.ts) — subset filtering without discarding command provenance or progress.

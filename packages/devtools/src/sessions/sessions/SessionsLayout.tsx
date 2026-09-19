@@ -132,10 +132,13 @@ export function SessionsLayout() {
   const aggregateSessions = useStore(
     zerospinDevtoolsStore,
     useShallow(
-      (state): Array<ISession> =>
+      (state): Array<ISession & { sessionId: ISessionId }> =>
         Array.from(
           state.aggregateSessionsById.values(),
           entry => entry.session,
+        ).filter(
+          (session): session is ISession & { sessionId: ISessionId } =>
+            session.sessionId !== null,
         ),
     ),
   );

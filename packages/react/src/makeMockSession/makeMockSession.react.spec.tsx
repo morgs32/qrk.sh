@@ -7,7 +7,6 @@ import {
   List,
   main,
   User,
-  userAggregate,
 } from '@zerospin/core/fixtures/system';
 import { defineModel } from '@zerospin/core/models/defineModel';
 import { makeModelVersion } from '@zerospin/core/models/makeModelVersion';
@@ -18,7 +17,6 @@ import {
   sessionOptimisticAppliedMutationDrizzleSchema,
 } from '@zerospin/core/session/sessionCommandShape';
 import { stageCommand } from '@zerospin/core/session/stageCommand';
-import { makeSystem } from '@zerospin/core/system/makeSystem';
 import { NanoIdFactory } from '@zerospin/core/utils/NanoIdFactory';
 import { UlidMonotonicFactory } from '@zerospin/core/utils/UlidMonotonicFactory';
 import type { IAnyError } from '@zerospin/error';
@@ -31,7 +29,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { makeAggregateFrontend } from '../makeAggregateFrontend/makeAggregateFrontend';
 import { makeRuntime } from '../makeRuntime/makeRuntime';
-import { useInitializeSession } from '../useInitializeSession/useInitializeSession';
+import { useInitializeMockSession } from '../useInitializeMockSession/useInitializeMockSession';
 import { useLiveQuery } from '../useLiveQuery';
 import { makeMockSession } from './makeMockSession';
 
@@ -84,11 +82,6 @@ const sessionRuntimeLayer = Layer.mergeAll(
 
 const runtime = makeRuntime({ layer: sessionRuntimeLayer });
 const Main = makeAggregateFrontend(aggregateFrontendProps(main));
-const mockSystem = makeSystem({
-  name: 'mock',
-  aggregates: { user: [userAggregate] },
-  services: {},
-});
 const fixtureDate = new Date('2026-01-01T00:00:00.000Z');
 const JsonDocument = makeModelVersion(
   defineModel({ name: 'document', abbreviation: 'doc' }),
@@ -122,27 +115,19 @@ const jsonFrontend = makeAggregateFrontend({
 
 function MockRoot(props: {
   session: {
-    systemName: 'mock';
-    frontend: {
-      kind: 'aggregate';
-      aggregateName: 'user';
-      aggregateVersion: string;
-    };
     store: {
       subscribe: (listener: () => void) => () => void;
       getState: () => { isInitialized: boolean };
     };
-    initialize: (props: {
-      generateSignature: () => Effect.Effect<unknown, IAnyError>;
+    initialize: (props?: {
+      generateSignature?: () => Effect.Effect<unknown, IAnyError>;
     }) => Promise<void>;
     dispose: () => Promise<void>;
   };
   children: ReactNode;
 }) {
   const { session, children } = props;
-  const { isInitialized } = useInitializeSession<typeof mockSystem>({
-    session,
-  });
+  const { isInitialized } = useInitializeMockSession({ session });
   if (!isInitialized) {
     return null;
   }

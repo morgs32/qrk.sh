@@ -438,7 +438,7 @@ export function ZerospinDevtools({
     });
   }, []);
 
-  // The layout registration precedes ZerospinApp.Provider's passive mount confirmation.
+  // The layout registration precedes loadDevtools mount confirmation.
   useLayoutEffect(() => {
     const unregisterShell =
       zerospinDevtoolsController.registerShell(openDevtools);

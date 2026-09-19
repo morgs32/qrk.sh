@@ -1,6 +1,6 @@
 import type { IAnyError } from '@zerospin/error';
 import type { ITypeError } from '@zerospin/schema';
-import { Layer, Schema, SchemaAST } from 'effect';
+import { Schema, SchemaAST, type Layer } from 'effect';
 
 import type { AssertContractMutationsInModels } from '../contracts/assertMutationsUseModels.ts';
 import { Contract } from '../contracts/makeContractVersion.ts';
@@ -77,12 +77,6 @@ const AggregateFrontendControllerPropsSchema = Schema.Struct({
         typeof input === 'function',
     ),
   ),
-  layer: Schema.optionalKey(
-    Schema.declare(
-      (input: unknown): input is Layer.Layer<never, IAnyError, unknown> =>
-        Layer.isLayer(input),
-    ),
-  ),
   systemName: Schema.String,
   aggregateName: Schema.String,
   aggregateVersion: Schema.String.check(Schema.isMinLength(1)),
@@ -106,8 +100,6 @@ export function makeFrontendController<
   const FRONTEND_NAME extends string,
   const CONTRACTS extends IAnyContractBindings,
   const MODELS extends IAnyModels,
-  LAYER_SERVICES = never,
-  LAYER_REQUIREMENTS = never,
   AUTHENTICATION extends Schema.Struct<
     Readonly<Record<string, Schema.Codec<unknown, unknown>>>
   > = typeof AggregateIdClaimSchema,
@@ -132,7 +124,6 @@ export function makeFrontendController<
       : ITypeError<`Bad contract "${K}". The key in contracts should be the commandName`>;
   };
   models: MODELS & IAssertValidModels<NoInfer<MODELS>>;
-  layer?: Layer.Layer<LAYER_SERVICES, IAnyError, LAYER_REQUIREMENTS>;
   guardLayer?: (props: {
     db: Readonly<
       Pick<IDb<IResourceDbConfig<MODELS, Record<never, never>>>, 'query'>
@@ -147,8 +138,8 @@ export function makeFrontendController<
     CONTRACTS,
     MODELS,
     AGGREGATE_VERSION,
-    LAYER_SERVICES,
-    LAYER_REQUIREMENTS,
+    never,
+    never,
     AUTHENTICATION,
     GUARD_SERVICES,
     GUARD_REQUIREMENTS
@@ -192,7 +183,6 @@ export function makeFrontendController(
   props:
     | {
         systemName: string;
-        layer?: Layer.Layer<never, IAnyError, unknown>;
         aggregateName: string;
         aggregateVersion: string;
         authenticationSchema?: Schema.Struct<
@@ -201,6 +191,7 @@ export function makeFrontendController(
         name: string;
         contracts: IAnyContractBindings;
         models: IAnyModels;
+        guardLayer?: IAggregateFrontendController['guardLayer'];
       }
     | {
         systemName: string;
@@ -283,7 +274,6 @@ export function makeFrontendController(
   });
 
   return Object.assign(new AggregateFrontendController(), {
-    layer: props.layer ?? Layer.empty,
     authentication,
     ...(decodedProps.guardLayer === undefined
       ? {}

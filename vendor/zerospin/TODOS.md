@@ -2,7 +2,7 @@
 
 - Verify that transport preserves decoded application values across every supported RPC boundary, including signatures and authentication claims. Application-facing APIs should use decoded types; test round trips for supported non-JSON values and explicitly identify unsupported values. Check persistence and hashing separately from transport.
 - Rename `encodeRpc` to reflect that it wraps success values and serializes failures rather than schema-encoding successful RPC payloads; update its callers and paired terminology.
-- Decide whether `guardLayer` should remain authored on both aggregate versions and aggregate frontends when admission, execution, and frontend guards are designed; preserve current behavior during the authentication/frontend authoring cutover.
+- Inspect `guardLayer` and decide whether it should remain authored on both aggregate versions and aggregate frontends when admission, execution, and frontend guards are designed; preserve current behavior during the authentication/frontend authoring cutover.
 - Decide whether aggregate-version invalidation should also prevent pull-based catch-up. Explicit VAR execution can pull retained history while AC excludes invalidated destinations from pushes. VAR alarms no longer subscribe to AC.
 - Audit the other fanout owners and subscribers for correct delivery, durable acknowledgement, and failure/resume logic; verify queue/subscriber `RpcTarget` getters, `.receive(rows)` delivery, and matching `IFanoutRepo<NAME, SUBSCRIBER>` / `IFanoutSubscriberRepo<QUEUE>` implementations.
 - Consider giving every guard its own failure props on the command, and possibly its own result props, for visibility into each guard's outcome.

@@ -4,6 +4,7 @@ import { initializeGuards as initializeFrontendGuards } from '@zerospin/core/fro
 import { makeServiceSession } from '@zerospin/core/serviceSession/makeServiceSession';
 import { makeAggregateSession } from '@zerospin/core/session/makeAggregateSession';
 import { sessionCommandJournalDrizzleSchema } from '@zerospin/core/session/sessionCommandShape';
+import { stageCommand } from '@zerospin/core/session/stageCommand';
 import { encodeRpc } from '@zerospin/core/utils/encodeRpc';
 import { NanoIdFactory } from '@zerospin/core/utils/NanoIdFactory';
 import { UlidMonotonicFactory } from '@zerospin/core/utils/UlidMonotonicFactory';
@@ -23,8 +24,9 @@ import {
 import { ClerkUserIdSchema } from '../../src/zerospin/aggregates/shopper/models/user/UserV1';
 
 import { Catalog, Shopper } from '@/zerospin/ZerospinApp';
-const WebV2 = Shopper.frontend;
-const CatalogV1 = Catalog.frontend;
+
+const WebV2 = { ...Shopper, systemName: 'shopping' as const };
+const CatalogV1 = { ...Catalog, systemName: 'shopping' as const };
 
 const guardTestRuntime = ManagedRuntime.make(
   Layer.mergeAll(NanoIdFactory, UlidMonotonicFactory),
@@ -47,26 +49,27 @@ let controls:
 const scope = Scope.makeUnsafe();
 Effect.runSync(Scope.addFinalizer(scope, guardTestRuntime.disposeEffect));
 const aggregate = await Effect.runPromise(
-  Effect.map(initializeFrontendGuards(WebV2), guards =>
-    makeAggregateSession({
-      runtime: guardTestRuntime,
-      guards,
-      frontend: WebV2,
+  Effect.map(initializeFrontendGuards({ frontend: WebV2 }), guards => {
+    const session = makeAggregateSession({ frontend: WebV2 });
+    session.setExecutionResources({
       sessionId: `sesn_${crypto.randomUUID()}`,
+      guards,
+      runtime: guardTestRuntime,
       executeAggregateFrontendCommand: props => {
         if (controls === undefined) {
           throw new Error('Frontend has not bootstrapped');
         }
         return controls.executeAggregateFrontendCommand(props);
       },
-    }),
-  ).pipe(Scope.provide(scope)),
+    });
+    return session;
+  }).pipe(Scope.provide(scope)),
 );
 const service = makeServiceSession({
   frontend: CatalogV1,
   models: CatalogV1.models,
-  sessionId: `sesn_${crypto.randomUUID()}`,
 });
+service.setSessionId(`sesn_${crypto.randomUUID()}`);
 let initialAggregateDb: ReturnType<typeof aggregate.store.getState>['db'];
 let initialServiceDb: ReturnType<typeof service.store.getState>['db'];
 let acquisitions = 0;
@@ -222,7 +225,8 @@ export const frontendLifecycleFixture = {
     if (user === undefined) {
       throw new Error('Authentication must provision the User');
     }
-    const result = aggregate.executeCommand({
+    const result = stageCommand({
+      session: aggregate,
       contractName: 'updateUser',
       payload: {
         id: user.id,

@@ -1,4 +1,5 @@
-import { useInitializedStateOrThrow, useLiveQuery } from '@zerospin/react';
+import { useLiveQuery } from '@zerospin/react';
+import { useStore } from 'zustand/react';
 
 import { CartItemQuantityControls } from './CartItemQuantityControls';
 
@@ -9,15 +10,20 @@ import {
   SidebarHeader,
   SidebarRail,
 } from '@/components/ui/sidebar';
-import { Shopper } from '@/zerospin/ZerospinApp';
+import { shopperSession } from '@/zerospin/ZerospinApp';
 
 export function ShoppingCartSidebar() {
-  const { authentication } = useInitializedStateOrThrow(Shopper);
+  const authentication = useStore(
+    shopperSession.store,
+    state => state.authentication,
+  );
 
-  const { data: userRow } = useLiveQuery(Shopper, {
-    query: db =>
+  const { data: userRow } = useLiveQuery({
+    session: shopperSession,
+    key: { clerkUserId: authentication?.clerkUserId },
+    query: (db, { clerkUserId }) =>
       db.query.user.findFirst({
-        where: { clerkUserId: { eq: authentication.clerkUserId } },
+        where: { clerkUserId: { eq: clerkUserId } },
         with: {
           cart: {
             with: {
@@ -30,8 +36,11 @@ export function ShoppingCartSidebar() {
           },
         },
       }),
-    deps: [authentication.clerkUserId],
   });
+
+  if (authentication === null) {
+    return null;
+  }
 
   const cartItems = userRow?.cart?.items ?? [];
 

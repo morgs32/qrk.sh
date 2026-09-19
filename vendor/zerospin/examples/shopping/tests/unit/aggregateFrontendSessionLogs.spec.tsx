@@ -42,7 +42,8 @@ import {
   userV1,
 } from '@/zerospin/aggregates/shopper/models/user/UserV1';
 import { Shopper } from '@/zerospin/ZerospinApp';
-const WebV2 = Shopper.frontend;
+
+const WebV2 = { ...Shopper, systemName: 'shopping' as const };
 
 const guardTestRuntime = ManagedRuntime.make(
   Layer.mergeAll(NanoIdFactory, UlidMonotonicFactory),
@@ -114,24 +115,26 @@ describe('aggregate frontend session logs integration', () => {
       aggregateFrontendLock: frontendSpec.aggregateFrontendLock,
     });
     const session = Effect.runSync(
-      Effect.map(initializeFrontendGuards(WebV2), guards =>
-        makeAggregateSession({
+      Effect.map(initializeFrontendGuards({ frontend: WebV2 }), guards => {
+        const next = makeAggregateSession({ frontend: WebV2 });
+        next.setExecutionResources({
           runtime: guardTestRuntime,
           guards,
-          frontend: WebV2,
           sessionId: 'sesn_aggregate_frontend_logs',
-        }),
-      ).pipe(Effect.provideService(Scope.Scope, sessionScope)),
+        });
+        return next;
+      }).pipe(Effect.provideService(Scope.Scope, sessionScope)),
     );
     const otherSession = Effect.runSync(
-      Effect.map(initializeFrontendGuards(WebV2), guards =>
-        makeAggregateSession({
+      Effect.map(initializeFrontendGuards({ frontend: WebV2 }), guards => {
+        const next = makeAggregateSession({ frontend: WebV2 });
+        next.setExecutionResources({
           runtime: guardTestRuntime,
           guards,
-          frontend: WebV2,
           sessionId: 'sesn_other_aggregate_frontend_logs',
-        }),
-      ).pipe(Effect.provideService(Scope.Scope, sessionScope)),
+        });
+        return next;
+      }).pipe(Effect.provideService(Scope.Scope, sessionScope)),
     );
     const tracedAggregateFrontendApi =
       makeTraceableApiTarget(aggregateFrontendApi);
@@ -289,7 +292,7 @@ describe('aggregate frontend session logs integration', () => {
       await Promise.resolve();
     });
     container.remove();
-    zerospinDevtoolsStore.getState().removeAggregateSession(session.sessionId);
+    zerospinDevtoolsStore.getState().removeAggregateSession(session.sessionId!);
     await runtime.dispose();
   });
 });

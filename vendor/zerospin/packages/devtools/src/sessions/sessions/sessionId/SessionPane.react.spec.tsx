@@ -61,8 +61,8 @@ describe('SessionPane service surface', () => {
         },
       },
       models,
-      sessionId: serviceSessionId,
     });
+    session.setSessionId(serviceSessionId);
     session.store.setState({
       sessionId: serviceSessionId,
       authentication: { userId: 'user_service_pane' },

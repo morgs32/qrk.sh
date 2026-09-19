@@ -1,10 +1,10 @@
 import type { InferResource } from '@zerospin/core/models/types';
-import { useSession } from '@zerospin/react';
+import { stageCommand } from '@zerospin/react';
 import { Minus, Plus, Trash2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { type cartItemV2 } from '@/zerospin/aggregates/shopper/models/cartItem/CartItemV2';
-import { Shopper } from '@/zerospin/ZerospinApp';
+import { shopperSession } from '@/zerospin/ZerospinApp';
 
 interface IProps {
   cartItemId: InferResource<typeof cartItemV2>['id'];
@@ -12,17 +12,17 @@ interface IProps {
 }
 
 export function CartItemQuantityControls({ amount, cartItemId }: IProps) {
-  const session = useSession(Shopper);
-
   const onDecrement = () => {
     if (amount <= 1) {
-      void session.executeCommand({
+      void stageCommand({
+        session: shopperSession,
         contractName: 'removeFromCart',
         payload: { id: cartItemId },
       });
       return;
     }
-    void session.executeCommand({
+    void stageCommand({
+      session: shopperSession,
       contractName: 'updateCartItemQuantity',
       payload: {
         cartItemId,
@@ -32,7 +32,8 @@ export function CartItemQuantityControls({ amount, cartItemId }: IProps) {
   };
 
   const onIncrement = () => {
-    void session.executeCommand({
+    void stageCommand({
+      session: shopperSession,
       contractName: 'updateCartItemQuantity',
       payload: {
         cartItemId,
@@ -42,7 +43,8 @@ export function CartItemQuantityControls({ amount, cartItemId }: IProps) {
   };
 
   const onRemove = () => {
-    void session.executeCommand({
+    void stageCommand({
+      session: shopperSession,
       contractName: 'removeFromCart',
       payload: { id: cartItemId },
     });

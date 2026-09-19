@@ -6,24 +6,25 @@ import { acquireBackupWorker } from '@zerospin/backup-worker';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/makeDbConfig';
 import { makeProvisionedInMemoryWasmSqliteDb } from '@zerospin/core/drizzle/makeProvisionedInMemoryWasmSqliteDb';
-import { aggregateFrontendProps } from '@zerospin/core/fixtures/frontendProps';
 import { PublishableKey } from '@zerospin/core/services/PublishableKey';
 import { ZerospinApiUrl } from '@zerospin/core/services/ZerospinApiUrl';
 import { sessionCommandJournalDrizzleSchema } from '@zerospin/core/session/sessionCommandShape';
-import { IncrementalMonotonicFactory } from '@zerospin/core/test-utils/IncrementalMonotonicFactory';
+import { makePrefixedIncrementalIdFactory } from '@zerospin/core/test-utils/makePrefixedIncrementalIdFactory';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
-import { NanoIdFactory } from '@zerospin/core/utils/NanoIdFactory';
 import { zerospinDevtoolsStore } from '@zerospin/devtools/zerospinDevtoolsStore';
-import { ZerospinError } from '@zerospin/error';
-import { makeZerospinApp } from '@zerospin/react/makeZerospinApp';
-import type { IBrowserSession } from '@zerospin/react/types';
-import { useSession } from '@zerospin/react/useSession';
+import { ZerospinError, type IAnyError } from '@zerospin/error';
+import {
+  makeBackup,
+  makeRuntime,
+  makeSession,
+  stageCommand,
+  useInitializeSession,
+} from '@zerospin/react';
 import { newWebSocketRpcSession } from 'capnweb';
 import { eq, sql } from 'drizzle-orm';
 import {
   Effect,
   Layer,
-  ManagedRuntime,
   Redacted,
   Result,
   Schema,
@@ -36,6 +37,7 @@ import { commands } from 'vitest/browser';
 import type { runFrontendLifecycleAcceptance } from '../../vitest.playwright.config';
 
 import { ClerkUserIdSchema } from '@/zerospin/aggregates/shopper/models/user/UserV1';
+import type { system } from '@/zerospin/system';
 import { Shopper } from '@/zerospin/ZerospinApp';
 
 declare module 'vitest/browser' {
@@ -49,8 +51,6 @@ declare module 'vitest/browser' {
   }
 }
 
-const WebV2 = Shopper.frontend;
-
 Object.defineProperty(globalThis, 'IS_REACT_ACT_ENVIRONMENT', {
   configurable: true,
   value: true,
@@ -61,38 +61,38 @@ const testRunId = `${Date.now().toString(36)}-${Math.random()
   .slice(2)}`;
 
 const adverseRuntimeLayer = Layer.mergeAll(
-    AsyncLive,
-    NanoIdFactory,
-    IncrementalMonotonicFactory,
-    Layer.succeed(ZerospinApiUrl, 'http://127.0.0.1:3035/'),
-    Layer.succeed(PublishableKey, Redacted.make('pk_test')),
-  ),
-  adverseRuntime = ManagedRuntime.make(adverseRuntimeLayer);
+  makePrefixedIncrementalIdFactory('mainThreadBackupAdverse'),
+  Layer.succeed(ZerospinApiUrl, 'http://127.0.0.1:3035/'),
+  Layer.succeed(PublishableKey, Redacted.make('pk_test')),
+);
+const adverseRuntime = makeRuntime({ layer: adverseRuntimeLayer });
+const backup = makeBackup();
 
-const AdverseZerospinApp = makeZerospinApp<
-  typeof import('@/zerospin/system').system
->({ systemName: 'shopping', layer: adverseRuntimeLayer });
-const guardLayer = WebV2.guardLayer;
-if (guardLayer === undefined) {
-  throw new Error('Shopping requires its frontend guard layer');
-}
-const AdverseZerospinAppShopperFrontend =
-  AdverseZerospinApp.makeAggregateFrontend({
-    ...aggregateFrontendProps(WebV2),
-    guardLayer,
+const shopperSession = makeSession({
+  frontend: Shopper,
+  runtime: adverseRuntime,
+  backup,
+  systemName: 'shopping',
+});
+
+function AdverseSessionRoot(props: {
+  generateSignature: () => Effect.Effect<
+    { clerkUserId: typeof ClerkUserIdSchema.Type },
+    IAnyError
+  >;
+  onReady?(session: typeof shopperSession): void;
+}) {
+  const { generateSignature, onReady } = props;
+  const { isInitialized } = useInitializeSession<typeof system>({
+    session: shopperSession,
+    generateSignature,
   });
 
-function AdverseSessionProbe(props: {
-  onSession(
-    session: IBrowserSession<typeof AdverseZerospinAppShopperFrontend.frontend>,
-  ): void;
-}) {
-  const session = useSession(AdverseZerospinAppShopperFrontend);
-  const { onSession } = props;
-
   useEffect(() => {
-    onSession(session);
-  }, [onSession, session]);
+    if (isInitialized) {
+      onReady?.(shopperSession);
+    }
+  }, [isInitialized, onReady]);
 
   return null;
 }
@@ -103,6 +103,8 @@ afterEach(() => {
 });
 
 afterAll(async () => {
+  await shopperSession.dispose();
+  await backup.dispose();
   await adverseRuntime.dispose();
 });
 
@@ -443,32 +445,26 @@ describe('main-thread IndexedDB adverse acceptance', () => {
         bootstrapFailure.resolve(error);
       },
     });
-    let publicSession: IBrowserSession<
-      typeof AdverseZerospinAppShopperFrontend.frontend
-    > | null = null;
+    let publicSession: typeof shopperSession | null = null;
     let signatureCallCount = 0;
 
     try {
       await act(async () => {
         root.render(
-          createElement(AdverseZerospinApp.Provider, {
-            children: createElement(AdverseZerospinAppShopperFrontend, {
-              generateSignature: () => {
-                signatureCallCount += 1;
-                return Effect.fail(
-                  new ZerospinError({
-                    code: 'adverse-worker-signature-failed',
-                    message:
-                      'The page refused the worker authentication attempt',
-                  }),
-                );
-              },
-              children: createElement(AdverseSessionProbe, {
-                onSession: session => {
-                  publicSession = session;
-                },
-              }),
-            }),
+          createElement(AdverseSessionRoot, {
+            generateSignature: () => {
+              signatureCallCount += 1;
+              return Effect.fail(
+                new ZerospinError({
+                  code: 'adverse-worker-signature-failed',
+                  message:
+                    'The page refused the worker authentication attempt',
+                }),
+              );
+            },
+            onReady: session => {
+              publicSession = session;
+            },
           }),
         );
         await Promise.resolve();
@@ -524,22 +520,16 @@ describe('main-thread IndexedDB adverse acceptance', () => {
     document.body.appendChild(firstContainer);
     const firstRoot = createRoot(firstContainer);
     const firstSessionCapture: {
-      current: IBrowserSession<
-        typeof AdverseZerospinAppShopperFrontend.frontend
-      > | null;
+      current: typeof shopperSession | null;
     } = { current: null };
 
     await act(async () => {
       firstRoot.render(
-        createElement(AdverseZerospinApp.Provider, {
-          children: createElement(AdverseZerospinAppShopperFrontend, {
-            generateSignature: () => Effect.succeed({ clerkUserId }),
-            children: createElement(AdverseSessionProbe, {
-              onSession: session => {
-                firstSessionCapture.current = session;
-              },
-            }),
-          }),
+        createElement(AdverseSessionRoot, {
+          generateSignature: () => Effect.succeed({ clerkUserId }),
+          onReady: session => {
+            firstSessionCapture.current = session;
+          },
         }),
       );
       await Promise.resolve();
@@ -564,7 +554,8 @@ describe('main-thread IndexedDB adverse acceptance', () => {
       throw new Error('Authentication must provision the User');
     }
     const userId = userRow.id;
-    const createdUser = await firstSession.executeCommand({
+    const createdUser = stageCommand({
+      session: firstSession,
       contractName: 'updateUser',
       payload: {
         id: userId,
@@ -598,7 +589,8 @@ describe('main-thread IndexedDB adverse acceptance', () => {
       )
       .toBeGreaterThan(0);
     const retainedName = `Retained offline ${testRunId}`;
-    const updatedUser = await firstSession.executeCommand({
+    const updatedUser = stageCommand({
+      session: firstSession,
       contractName: 'updateUser',
       payload: {
         id: userId,
@@ -682,23 +674,17 @@ describe('main-thread IndexedDB adverse acceptance', () => {
     document.body.appendChild(secondContainer);
     const secondRoot = createRoot(secondContainer);
     const secondSessionCapture: {
-      current: IBrowserSession<
-        typeof AdverseZerospinAppShopperFrontend.frontend
-      > | null;
+      current: typeof shopperSession | null;
     } = { current: null };
 
     try {
       await act(async () => {
         secondRoot.render(
-          createElement(AdverseZerospinApp.Provider, {
-            children: createElement(AdverseZerospinAppShopperFrontend, {
-              generateSignature: () => Effect.succeed({ clerkUserId }),
-              children: createElement(AdverseSessionProbe, {
-                onSession: session => {
-                  secondSessionCapture.current = session;
-                },
-              }),
-            }),
+          createElement(AdverseSessionRoot, {
+            generateSignature: () => Effect.succeed({ clerkUserId }),
+            onReady: session => {
+              secondSessionCapture.current = session;
+            },
           }),
         );
         await Promise.resolve();
@@ -734,8 +720,9 @@ describe('main-thread IndexedDB adverse acceptance', () => {
           .sync()?.name,
       ).toBe(retainedName);
 
-      const offlineUpdate = await offlineSession.executeCommand({
-        contractName: 'updateUser',
+      const offlineUpdate = stageCommand({
+      session: offlineSession,
+      contractName: 'updateUser',
         payload: {
           id: userId,
           name: `Promoted ${testRunId}`,
@@ -816,22 +803,16 @@ describe('main-thread IndexedDB adverse acceptance', () => {
     document.body.appendChild(firstContainer);
     const firstRoot = createRoot(firstContainer);
     const firstSessionCapture: {
-      current: IBrowserSession<
-        typeof AdverseZerospinAppShopperFrontend.frontend
-      > | null;
+      current: typeof shopperSession | null;
     } = { current: null };
 
     await act(async () => {
       firstRoot.render(
-        createElement(AdverseZerospinApp.Provider, {
-          children: createElement(AdverseZerospinAppShopperFrontend, {
-            generateSignature: () => Effect.succeed({ clerkUserId }),
-            children: createElement(AdverseSessionProbe, {
-              onSession: session => {
-                firstSessionCapture.current = session;
-              },
-            }),
-          }),
+        createElement(AdverseSessionRoot, {
+          generateSignature: () => Effect.succeed({ clerkUserId }),
+          onReady: session => {
+            firstSessionCapture.current = session;
+          },
         }),
       );
       await Promise.resolve();
@@ -855,7 +836,8 @@ describe('main-thread IndexedDB adverse acceptance', () => {
       throw new Error('Authentication must provision the User');
     }
     const userId = userRow.id;
-    const createdUser = await firstSession.executeCommand({
+    const createdUser = stageCommand({
+      session: firstSession,
       contractName: 'updateUser',
       payload: {
         id: userId,
@@ -882,7 +864,8 @@ describe('main-thread IndexedDB adverse acceptance', () => {
       )
       .toBeGreaterThan(0);
     const restartedName = `Persisted through worker restart ${testRunId}`;
-    const updatedUser = await firstSession.executeCommand({
+    const updatedUser = stageCommand({
+      session: firstSession,
       contractName: 'updateUser',
       payload: {
         id: userId,
@@ -952,22 +935,16 @@ describe('main-thread IndexedDB adverse acceptance', () => {
     document.body.appendChild(secondContainer);
     const secondRoot = createRoot(secondContainer);
     const secondSessionCapture: {
-      current: IBrowserSession<
-        typeof AdverseZerospinAppShopperFrontend.frontend
-      > | null;
+      current: typeof shopperSession | null;
     } = { current: null };
     try {
       await act(async () => {
         secondRoot.render(
-          createElement(AdverseZerospinApp.Provider, {
-            children: createElement(AdverseZerospinAppShopperFrontend, {
-              generateSignature: () => Effect.succeed({ clerkUserId }),
-              children: createElement(AdverseSessionProbe, {
-                onSession: session => {
-                  secondSessionCapture.current = session;
-                },
-              }),
-            }),
+          createElement(AdverseSessionRoot, {
+            generateSignature: () => Effect.succeed({ clerkUserId }),
+            onReady: session => {
+              secondSessionCapture.current = session;
+            },
           }),
         );
         await Promise.resolve();

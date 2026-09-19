@@ -396,6 +396,12 @@ export const bootstrapServiceFrontendSession = Effect.fn(
               `sesn_${crypto.randomUUID()}`,
             )
           : session.sessionId;
+        if (executionSessionId === null) {
+          return yield* new ZerospinError({
+            code: 'service-frontend-session-not-ready',
+            message: 'Bootstrap requires a bound session id',
+          });
+        }
         let selectedSnapshot = acquisition.success.snapshot;
         const startupFiber = yield* Effect.forkIn(
           Effect.gen(function* () {

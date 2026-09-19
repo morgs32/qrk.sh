@@ -2,7 +2,6 @@ import { main as authenticationFixtureFrontend } from '@zerospin/core/fixtures/s
 import { NanoIdFactory } from '@zerospin/core/utils/NanoIdFactory';
 import { UlidMonotonicFactory } from '@zerospin/core/utils/UlidMonotonicFactory';
 import {
-  Context,
   Effect,
   Layer,
   ManagedRuntime,
@@ -17,6 +16,8 @@ import { makeFrontendController } from '../frontendController/makeFrontendContro
 import { PublishableKey } from '../services/PublishableKey.ts';
 
 import { makeAggregateSession } from './makeAggregateSession.ts';
+import { stageCommand } from './stageCommand.ts';
+
 const guardTestRuntime = ManagedRuntime.make(
   Layer.mergeAll(NanoIdFactory, UlidMonotonicFactory),
 );
@@ -26,35 +27,32 @@ Effect.runSync(
   Scope.addFinalizer(sessionScope, guardTestRuntime.disposeEffect),
 );
 
-const session = Effect.runSync(
-  Effect.map(
-    initializeFrontendGuards({
-      ...main,
-      contracts: {
-        createList: { contract: main.contracts.createList.contract },
-      },
-    }),
-    guards =>
-      makeAggregateSession({
-        runtime: guardTestRuntime,
-        guards,
-        frontend: {
-          ...main,
-          contracts: {
-            createList: { contract: main.contracts.createList.contract },
-          },
-        },
-        sessionId: 'sesn_typing',
-      }),
-  ).pipe(Effect.provideService(Scope.Scope, sessionScope)),
+const frontend = {
+  ...main,
+  contracts: {
+    createList: { contract: main.contracts.createList.contract },
+  },
+};
+
+const session = makeAggregateSession({ frontend });
+const guards = Effect.runSync(
+  initializeFrontendGuards({ frontend }).pipe(
+    Effect.provideService(Scope.Scope, sessionScope),
+  ),
 );
+session.setExecutionResources({
+  sessionId: 'sesn_typing',
+  guards,
+  runtime: guardTestRuntime,
+});
 
 const userId = session.makeId(User);
 const listId = session.makeId(List);
 assert<Equals<typeof userId, `usr_${string}`>>();
 assert<Equals<typeof listId, `lst_${string}`>>();
 
-const result = session.executeCommand({
+const result = stageCommand({
+  session,
   contractName: 'createList',
   payload: { id: 'lst_typing', name: 'Typed list', userId: 'usr_typing' },
 });
@@ -65,56 +63,57 @@ assert<
   >
 >();
 
-session.executeCommand({
+stageCommand({
+  session,
   contractName: 'createList',
   // @ts-expect-error The public session API retains contract-specific payload validation.
   payload: { id: 'lst_typing', name: 123, userId: 'usr_typing' },
 });
-session.executeCommand({
-  // @ts-expect-error Only contracts mounted on this frontend can be executed.
+stageCommand({
+  session,
+  // @ts-expect-error Only contracts mounted on this frontend can be staged.
   contractName: 'missingContract',
   payload: { id: 'lst_typing', name: 'Typed list', userId: 'usr_typing' },
 });
 
-// The constructor borrows a runtime; initializing guards remains the caller's work.
-// @ts-expect-error A runtime is required, even for a frontend without local dependencies.
-makeAggregateSession({
-  frontend: main,
+const unbound = makeAggregateSession({ frontend: main });
+// @ts-expect-error A runtime is required when binding execution resources.
+unbound.setExecutionResources({
   sessionId: 'sesn_no_runtime',
-  guards: { context: Context.empty(), run: () => Effect.void },
+  guards,
 });
 // @ts-expect-error Uninitialized frontend layers are not a ready guard context.
-makeAggregateSession({
-  frontend: main,
+unbound.setExecutionResources({
   sessionId: 'sesn_no_guards',
   runtime: guardTestRuntime,
 });
+
+const localLayer = Layer.succeed(PublishableKey, Redacted.make('local'));
 const localFrontend = makeFrontendController({
-  authenticationSchema: authenticationFixtureFrontend.authentication.authenticationSchema,
+  authenticationSchema:
+    authenticationFixtureFrontend.authentication.authenticationSchema,
   systemName: 'test',
   aggregateName: 'account',
   aggregateVersion: '1.0.0',
   name: 'guarded',
   models: {},
   contracts: {},
-  layer: Layer.succeed(PublishableKey, Redacted.make('local')),
 });
-assert<Equals<Layer.Success<typeof localFrontend.layer>, PublishableKey>>();
 const localGuards = Effect.runSync(
-  initializeFrontendGuards(localFrontend).pipe(
+  initializeFrontendGuards({ frontend: localFrontend, layer: localLayer }).pipe(
     Effect.provideService(Scope.Scope, sessionScope),
   ),
 );
-makeAggregateSession({
-  frontend: localFrontend,
+const initialized = makeAggregateSession({ frontend: localFrontend });
+initialized.setExecutionResources({
   sessionId: 'sesn_initialized',
   runtime: guardTestRuntime,
   guards: localGuards,
 });
 
 const emptyRuntime = ManagedRuntime.make(Layer.empty);
-makeAggregateSession({
-  frontend: main,
+const missingServices = makeAggregateSession({ frontend: main });
+missingServices.setExecutionResources({
   sessionId: 'sesn_missing_runtime_services',
   guards: localGuards,
   // @ts-expect-error The borrowed runtime must supply framework command ID and timestamp services.

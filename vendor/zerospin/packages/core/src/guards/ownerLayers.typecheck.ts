@@ -134,12 +134,11 @@ const frontend = makeFrontendController({
   name: 'web',
   models: {},
   contracts: { inspect: { contract: inspect } },
-  layer: local,
 });
 // @ts-expect-error Initializing local services requires their application inputs.
-Effect.runPromise(Effect.scoped(initializeFrontendGuards(frontend)));
+Effect.runPromise(Effect.scoped(initializeFrontendGuards({ frontend, layer: local })));
 Effect.runPromise(
-  initializeFrontendGuards(frontend).pipe(
+  initializeFrontendGuards({ frontend, layer: local }).pipe(
     Effect.scoped,
     Effect.provide(Layer.succeed(ZerospinApiUrl, 'https://test.invalid')),
   ),

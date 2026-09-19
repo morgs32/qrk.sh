@@ -1,29 +1,26 @@
 import { aggregateFrontendProps } from '@zerospin/core/fixtures/frontendProps';
-import { List, main, User, type system } from '@zerospin/core/fixtures/system';
+import { List, main, User } from '@zerospin/core/fixtures/system';
 import type { PublishableKey } from '@zerospin/core/services/PublishableKey';
 import type { ZerospinApiUrl } from '@zerospin/core/services/ZerospinApiUrl';
 import type { IAnyError } from '@zerospin/error';
 import { type Layer } from 'effect';
 
-import { makeZerospinApp } from './makeZerospinApp';
-import { ZerospinMockProvider } from './ZerospinMockProvider';
+import { makeAggregateFrontend } from '../makeAggregateFrontend/makeAggregateFrontend';
+import { makeRuntime } from '../makeRuntime/makeRuntime';
+import { makeMockSession } from './makeMockSession';
 
 declare const sessionRuntimeLayer: Layer.Layer<
   PublishableKey | ZerospinApiUrl,
   IAnyError
 >;
 
-const ZerospinApp = makeZerospinApp<typeof system>({
-  systemName: 'system-worker',
-  layer: sessionRuntimeLayer,
-});
-const Main = ZerospinApp.makeAggregateFrontend(aggregateFrontendProps(main));
+const runtime = makeRuntime({ layer: sessionRuntimeLayer });
+const Main = makeAggregateFrontend(aggregateFrontendProps(main));
 const fixtureDate = new Date('2026-01-01T00:00:00.000Z');
 
-ZerospinMockProvider({
+makeMockSession({
   frontend: Main,
-  layer: sessionRuntimeLayer,
-  children: null,
+  runtime,
   authentication: { userId: 'user_1', aggregateId: 'acct_1' },
   resources: {
     user: [
@@ -50,34 +47,31 @@ ZerospinMockProvider({
   },
 });
 
-ZerospinMockProvider({
+makeMockSession({
   frontend: Main,
-  layer: sessionRuntimeLayer,
-  children: null,
+  runtime,
   authentication: { userId: 'user_1', aggregateId: 'acct_1' },
 });
 
-ZerospinMockProvider({
+makeMockSession({
+  // @ts-expect-error Mock resources only accept the frontend's model keys.
   frontend: Main,
-  layer: sessionRuntimeLayer,
-  children: null,
+  runtime,
   authentication: { userId: 'user_1', aggregateId: 'acct_1' },
   resources: {
-    // @ts-expect-error Mock resources only accept the frontend's model keys.
     missing: [],
   },
 });
 
-ZerospinMockProvider({
+makeMockSession({
+  // @ts-expect-error A list ID cannot be supplied under the user model key.
   frontend: Main,
-  layer: sessionRuntimeLayer,
-  children: null,
+  runtime,
   authentication: { userId: 'user_1', aggregateId: 'acct_1' },
   resources: {
     user: [
       {
         createdAt: fixtureDate,
-        // @ts-expect-error A list ID cannot be supplied under the user model key.
         id: 'lst_wrong_model',
         modelName: List.modelName,
         name: 'Wrong model',
@@ -88,25 +82,16 @@ ZerospinMockProvider({
   },
 });
 
-ZerospinMockProvider({
-  frontend: Main,
-  layer: sessionRuntimeLayer,
-  children: null,
+makeMockSession({
   // @ts-expect-error Full authentication requires an aggregateId.
+  frontend: Main,
+  runtime,
   authentication: { userId: 'user_1' },
 });
 
-ZerospinMockProvider({
-  frontend: Main,
-  layer: sessionRuntimeLayer,
-  children: null,
-  authentication: { userId: 'user_1', aggregateId: 'acct_1' },
-});
-
-ZerospinMockProvider({
-  frontend: Main,
-  layer: sessionRuntimeLayer,
-  children: null,
+makeMockSession({
   // @ts-expect-error Authentication fields retain their declared types.
+  frontend: Main,
+  runtime,
   authentication: { userId: 123, aggregateId: 'acct_1' },
 });

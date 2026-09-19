@@ -6,6 +6,7 @@ import { List, main, mainModels, User } from '@zerospin/core/fixtures/system';
 import { initializeGuards as initializeFrontendGuards } from '@zerospin/core/frontendController/initializeGuards';
 import { applyAggregateFrontendCommand } from '@zerospin/core/session/applyAggregateFrontendCommand';
 import { makeAggregateSession } from '@zerospin/core/session/makeAggregateSession';
+import { stageCommand } from '@zerospin/core/session/stageCommand';
 import {
   sessionCommandJournalDrizzleSchema,
   sessionOptimisticAppliedMutationDrizzleSchema,
@@ -52,15 +53,18 @@ it('resolves only the originating optimism, replays the rest, and rejects skippe
         })
         .run();
       const session = Effect.runSync(
-        Effect.map(initializeFrontendGuards(main), guards =>
-          makeAggregateSession({
-            runtime: guardTestRuntime,
-            guards,
-            frontend: main,
-            sessionId: 'sesn_resolution',
-            executeAggregateFrontendCommand: ({ command }) =>
+        Effect.map(initializeFrontendGuards({ frontend: main }), guards =>
+          {
+            const session = makeAggregateSession({ frontend: main });
+            session.setExecutionResources({
+              guards,
+              sessionId: 'sesn_resolution',
+              runtime: guardTestRuntime,
+              executeAggregateFrontendCommand: ({ command }) =>
               Effect.succeed({ commandId: command.id }),
-          }),
+            });
+            return session;
+          },
         ).pipe(Effect.provideService(Scope.Scope, sessionScope)),
       );
       session.store.setState({
@@ -82,13 +86,13 @@ it('resolves only the originating optimism, replays the rest, and rejects skippe
         backupState: { status: 'ready', failure: null },
       });
       const first = yield* decodeRpc(
-        session.executeCommand({
+        stageCommand({ session: session,
           contractName: 'createList',
           payload: { id: 'lst_first', name: 'First', userId: 'usr_1' },
         }),
       );
       yield* decodeRpc(
-        session.executeCommand({
+        stageCommand({ session: session,
           contractName: 'createList',
           payload: { id: 'lst_second', name: 'Second', userId: 'usr_1' },
         }),

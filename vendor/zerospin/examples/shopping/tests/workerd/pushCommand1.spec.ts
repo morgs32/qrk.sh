@@ -15,6 +15,7 @@ import { applyAggregateFrontendState } from '@zerospin/core/session/applyAggrega
 import { makeAggregateSession } from '@zerospin/core/session/makeAggregateSession';
 import { sessionCommandJournalDrizzleSchema } from '@zerospin/core/session/sessionCommandShape';
 import { sessionRepoTables } from '@zerospin/core/session/sessionRepoTables';
+import { stageCommand } from '@zerospin/core/session/stageCommand';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import { makeAggregateId } from '@zerospin/core/utils/makeAggregateId';
 import { NanoIdFactory } from '@zerospin/core/utils/NanoIdFactory';
@@ -121,14 +122,15 @@ describe('pushCommand1: static frontend command push', () => {
             abbreviation: 'sesn',
           });
           const session = Effect.runSync(
-            Effect.map(initializeFrontendGuards(WebV2), guards =>
-              makeAggregateSession({
+            Effect.map(initializeFrontendGuards({ frontend: WebV2 }), guards => {
+              const next = makeAggregateSession({ frontend: WebV2 });
+              next.setExecutionResources({
                 runtime: guardTestRuntime,
                 guards,
-                frontend: WebV2,
                 sessionId,
-              }),
-            ).pipe(Effect.provideService(Scope.Scope, sessionScope)),
+              });
+              return next;
+            }).pipe(Effect.provideService(Scope.Scope, sessionScope)),
           );
           const models = getFrontendDbModels(session.frontend);
           const dbConfig = makeResourceDbConfig({
@@ -178,7 +180,8 @@ describe('pushCommand1: static frontend command push', () => {
           });
           const cartId = yield* makeId(cartV1);
           const localCreateCart = yield* decodeRpc(
-            session.executeCommand({
+            stageCommand({
+              session,
               contractName: 'createCart',
               payload: { id: cartId, userId },
             }),

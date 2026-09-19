@@ -1,4 +1,4 @@
-import { useContext } from 'react';
+import { useMemo, useRef, useSyncExternalStore } from 'react';
 
 import type {
   IDrizzleRelationsFromModels,
@@ -9,82 +9,164 @@ import type {
 } from '@zerospin/core/drizzle/types';
 import type {
   IAggregateFrontendController,
-  IAnyFrontendController,
   IServiceFrontendController,
 } from '@zerospin/core/frontendController/types';
 import type { IAnyModels } from '@zerospin/core/models/types';
-import type { ISessionWaSqliteDb } from '@zerospin/core/session/types';
+import type { IServiceSession } from '@zerospin/core/serviceSession/types';
+import type {
+  ISession,
+  ISessionWaSqliteDb,
+} from '@zerospin/core/session/types';
+import { ZerospinError } from '@zerospin/error';
 
 import { useLiveQueryOnDb } from './useLiveQueryOnDb';
-import { ZerospinProviderContext } from './ZerospinProviderContext';
+function stableKeyEquals(left: unknown, right: unknown): boolean {
+  if (Object.is(left, right)) {
+    return true;
+  }
+  if (
+    left === null ||
+    right === null ||
+    typeof left !== 'object' ||
+    typeof right !== 'object'
+  ) {
+    return false;
+  }
+  if (Array.isArray(left) || Array.isArray(right)) {
+    if (!Array.isArray(left) || !Array.isArray(right)) {
+      return false;
+    }
+    if (left.length !== right.length) {
+      return false;
+    }
+    return left.every((value, index) => stableKeyEquals(value, right[index]));
+  }
+  const leftRecord = left as Record<string, unknown>;
+  const rightRecord = right as Record<string, unknown>;
+  const leftKeys = Object.keys(leftRecord);
+  const rightKeys = Object.keys(rightRecord);
+  if (leftKeys.length !== rightKeys.length) {
+    return false;
+  }
+  return leftKeys.every(
+    key =>
+      Object.prototype.hasOwnProperty.call(rightRecord, key) &&
+      stableKeyEquals(leftRecord[key], rightRecord[key]),
+  );
+}
+
+function useSessionDatabase(session: {
+  store: {
+    subscribe: (listener: () => void) => () => void;
+    getState: () => {
+      isInitialized: boolean;
+      db: { $client: IWaSqliteClient } | null;
+    };
+  };
+}): { $client: IWaSqliteClient } {
+  const db = useSyncExternalStore(
+    session.store.subscribe,
+    () => session.store.getState().db,
+    () => session.store.getState().db,
+  );
+  if (db === null) {
+    throw new ZerospinError({
+      code: 'session-store-not-initialized',
+      message: 'Session store is not initialized',
+    });
+  }
+  return db;
+}
 
 export function useLiveQuery<
   FRONTEND extends IAggregateFrontendController,
-  MODELS extends IAnyModels,
+  MODELS extends IAnyModels & FRONTEND['models'],
+  KEY,
   QUERY extends ILiveRelationalQuery,
->(
-  selector: Readonly<{ frontend: FRONTEND; models: MODELS }>,
-  props: {
-    deps?: readonly unknown[];
-    query(
-      db: ISessionWaSqliteDb<MODELS, IDrizzleRelationsFromModels<MODELS>>,
-    ): QUERY;
-    tableNames?: readonly string[];
-  },
-): {
+>(props: {
+  session: ISession<FRONTEND & { models: MODELS }>;
+  key: KEY;
+  query: (
+    db: ISessionWaSqliteDb<MODELS, IDrizzleRelationsFromModels<MODELS>>,
+    key: KEY,
+  ) => QUERY;
+  tableNames?: readonly string[];
+}): {
   readonly data: QUERY['_']['result'];
   readonly error: Error | undefined;
   readonly updatedAt: Date | undefined;
 };
+
+export function useLiveQuery<
+  FRONTEND extends IAggregateFrontendController,
+  MODELS extends IAnyModels & FRONTEND['models'],
+  QUERY extends ILiveRelationalQuery,
+>(props: {
+  session: ISession<FRONTEND & { models: MODELS }>;
+  key?: undefined;
+  query: (
+    db: ISessionWaSqliteDb<MODELS, IDrizzleRelationsFromModels<MODELS>>,
+  ) => QUERY;
+  tableNames?: readonly string[];
+}): {
+  readonly data: QUERY['_']['result'];
+  readonly error: Error | undefined;
+  readonly updatedAt: Date | undefined;
+};
+
 export function useLiveQuery<
   FRONTEND extends IServiceFrontendController,
-  MODELS extends IAnyModels,
+  MODELS extends IAnyModels & FRONTEND['models'],
+  KEY,
   QUERY extends ILiveRelationalQuery,
->(
-  selector: Readonly<{ frontend: FRONTEND; models: MODELS }>,
-  props: {
-    deps?: readonly unknown[];
-    query(
-      db: IWaSqliteDrizzleDb<IResourceDbConfig<MODELS, Record<never, never>>>,
-    ): QUERY;
-    tableNames?: readonly string[];
-  },
-): {
+>(props: {
+  session: IServiceSession<FRONTEND, MODELS>;
+  key: KEY;
+  query: (
+    db: IWaSqliteDrizzleDb<IResourceDbConfig<MODELS, Record<never, never>>>,
+    key: KEY,
+  ) => QUERY;
+  tableNames?: readonly string[];
+}): {
   readonly data: QUERY['_']['result'];
   readonly error: Error | undefined;
   readonly updatedAt: Date | undefined;
 };
-export function useLiveQuery(
-  selector: Readonly<{
-    frontend: IAnyFrontendController | IServiceFrontendController;
-    models: IAnyModels;
-  }>,
-  props: {
-    deps?: readonly unknown[];
-    query(db: { $client: IWaSqliteClient }): ILiveRelationalQuery;
-    tableNames?: readonly string[];
-  },
-): {
-  readonly data: unknown;
+
+export function useLiveQuery<
+  FRONTEND extends IServiceFrontendController,
+  MODELS extends IAnyModels & FRONTEND['models'],
+  QUERY extends ILiveRelationalQuery,
+>(props: {
+  session: IServiceSession<FRONTEND, MODELS>;
+  key?: undefined;
+  query: (
+    db: IWaSqliteDrizzleDb<IResourceDbConfig<MODELS, Record<never, never>>>,
+  ) => QUERY;
+  tableNames?: readonly string[];
+}): {
+  readonly data: QUERY['_']['result'];
   readonly error: Error | undefined;
   readonly updatedAt: Date | undefined;
-} {
-  const provider = useContext(ZerospinProviderContext);
-  if (provider === null) {
-    throw new Error('useLiveQuery must be used within ZerospinApp.Provider.');
-  }
-  const entry = provider.sessions.get(selector);
-  if (entry === undefined) {
-    throw new Error(
-      `No ancestor frontend component provides a session for "${selector.frontend.name}". Mount the matching frontend component above this consumer.`,
-    );
-  }
-  const { deps = [], query, tableNames = [] } = props;
+};
+
+export function useLiveQuery(props: any): any {
+  const { session, key, query, tableNames = [] } = props;
+  const db = useSessionDatabase(session);
+
+  const keyRef = useRef(key);
+  const stableKey = useMemo(() => {
+    if (stableKeyEquals(keyRef.current, key)) {
+      return keyRef.current;
+    }
+    keyRef.current = key;
+    return key;
+  }, [key]);
 
   return useLiveQueryOnDb({
-    deps,
+    db,
+    key: stableKey,
     query,
-    db: entry.getLiveQueryDb(),
     tableNames,
   });
 }

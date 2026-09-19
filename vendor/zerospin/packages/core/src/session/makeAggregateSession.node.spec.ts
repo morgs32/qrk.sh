@@ -1,23 +1,4 @@
 import { it } from '@effect/vitest';
-import { AsyncLive } from '@zerospin/core/async/AsyncLive';
-import { makeResourceDbConfig } from '@zerospin/core/drizzle/makeDbConfig';
-import { makeProvisionedInMemoryWasmSqliteDb } from '@zerospin/core/drizzle/makeProvisionedInMemoryWasmSqliteDb';
-import { List, main, mainModels, User } from '@zerospin/core/fixtures/system';
-import { makeFrontendController } from '@zerospin/core/frontendController/makeFrontendController';
-import type { InferFrontendModels } from '@zerospin/core/frontendController/types';
-import { makeAggregateSession } from '@zerospin/core/session/makeAggregateSession';
-import { sessionCommandJournalDrizzleSchema } from '@zerospin/core/session/sessionCommandShape';
-import {
-  sessionMetadataDrizzleSchema,
-  sessionRepoTables,
-} from '@zerospin/core/session/sessionRepoTables';
-import type {
-  IInitializedSessionState,
-  ISession,
-  ISessionId,
-} from '@zerospin/core/session/types';
-import { NanoIdFactory } from '@zerospin/core/utils/NanoIdFactory';
-import { UlidMonotonicFactory } from '@zerospin/core/utils/UlidMonotonicFactory';
 import {
   emptyTelemetryBatch,
   type ILogRecord,
@@ -27,11 +8,31 @@ import { CuidFactory } from '@zerospin/schema';
 import { Effect, Exit, Layer, ManagedRuntime, Schema, Scope } from 'effect';
 import { afterAll, describe, expect } from 'vitest';
 
+import { AsyncLive } from '../async/AsyncLive.ts';
+import { makeResourceDbConfig } from '../drizzle/makeDbConfig.ts';
+import { makeProvisionedInMemoryWasmSqliteDb } from '../drizzle/makeProvisionedInMemoryWasmSqliteDb.ts';
+import { List, main, mainModels, User } from '../fixtures/system.ts';
 import { initializeGuards as initializeFrontendGuards } from '../frontendController/initializeGuards.ts';
+import { makeFrontendController } from '../frontendController/makeFrontendController.ts';
+import type { InferFrontendModels } from '../frontendController/types.ts';
+import { NanoIdFactory } from '../utils/NanoIdFactory.ts';
+import { UlidMonotonicFactory } from '../utils/UlidMonotonicFactory.ts';
 import { decodeRpc } from '../utils/decodeRpc.ts';
 
 import { applyAggregateFrontendCommand } from './applyAggregateFrontendCommand.ts';
 import { applyAggregateFrontendState } from './applyAggregateFrontendState.ts';
+import { makeAggregateSession } from './makeAggregateSession.ts';
+import { stageCommand } from './stageCommand.ts';
+import { sessionCommandJournalDrizzleSchema } from './sessionCommandShape.ts';
+import {
+  sessionMetadataDrizzleSchema,
+  sessionRepoTables,
+} from './sessionRepoTables.ts';
+import type {
+  IInitializedSessionState,
+  ISession,
+  ISessionId,
+} from './types.ts';
 const guardTestRuntime = ManagedRuntime.make(
   Layer.mergeAll(NanoIdFactory, UlidMonotonicFactory),
 );
@@ -67,12 +68,12 @@ describe('makeAggregateSession.makeId', () => {
           ),
         );
         yield* Effect.addFinalizer(() => runtime.disposeEffect);
-        const guards = yield* initializeFrontendGuards(frontend);
-        const session = makeAggregateSession({
-          runtime,
-          guards,
-          frontend,
+        const guards = yield* initializeFrontendGuards({ frontend: frontend });
+        const session = makeAggregateSession({ frontend: frontend });
+        session.setExecutionResources({
           sessionId: 'sesn_ids',
+          guards,
+          runtime,
         });
         const state = session.store.getState();
 
@@ -95,12 +96,12 @@ describe('makeAggregateSession.makeId', () => {
         ),
       );
       yield* Effect.addFinalizer(() => runtime.disposeEffect);
-      const guards = yield* initializeFrontendGuards(frontend);
-      const session = makeAggregateSession({
-        runtime,
-        guards,
-        frontend,
+      const guards = yield* initializeFrontendGuards({ frontend: frontend });
+      const session = makeAggregateSession({ frontend: frontend });
+      session.setExecutionResources({
         sessionId: 'sesn_failed_ids',
+        guards,
+        runtime,
       });
 
       expect(() => session.makeId(User)).toThrow('ID generation failed');
@@ -111,23 +112,29 @@ describe('makeAggregateSession.makeId', () => {
 describe('makeAggregateSession telemetry', () => {
   it('keeps ordered telemetry isolated per session without deduplication', () => {
     const first = Effect.runSync(
-      Effect.map(initializeFrontendGuards(frontend), guards =>
-        makeAggregateSession({
-          runtime: guardTestRuntime,
-          guards,
-          frontend,
-          sessionId: 'sesn_telemetry_1',
-        }),
+      Effect.map(initializeFrontendGuards({ frontend: frontend }), guards =>
+        {
+          const session = makeAggregateSession({ frontend: frontend });
+          session.setExecutionResources({
+            sessionId: 'sesn_telemetry_1',
+            guards,
+            runtime: guardTestRuntime,
+          });
+          return session;
+        },
       ).pipe(Effect.provideService(Scope.Scope, sessionScope)),
     );
     const second = Effect.runSync(
-      Effect.map(initializeFrontendGuards(frontend), guards =>
-        makeAggregateSession({
-          runtime: guardTestRuntime,
-          guards,
-          frontend,
-          sessionId: 'sesn_telemetry_2',
-        }),
+      Effect.map(initializeFrontendGuards({ frontend: frontend }), guards =>
+        {
+          const session = makeAggregateSession({ frontend: frontend });
+          session.setExecutionResources({
+            sessionId: 'sesn_telemetry_2',
+            guards,
+            runtime: guardTestRuntime,
+          });
+          return session;
+        },
       ).pipe(Effect.provideService(Scope.Scope, sessionScope)),
     );
     const span: ISpanRecord = {
@@ -162,13 +169,16 @@ describe('makeAggregateSession telemetry', () => {
 
   it('clears the current batch and accepts later in-flight completion', () => {
     const session = Effect.runSync(
-      Effect.map(initializeFrontendGuards(frontend), guards =>
-        makeAggregateSession({
-          runtime: guardTestRuntime,
-          guards,
-          frontend,
-          sessionId: 'sesn_telemetry_clear',
-        }),
+      Effect.map(initializeFrontendGuards({ frontend: frontend }), guards =>
+        {
+          const session = makeAggregateSession({ frontend: frontend });
+          session.setExecutionResources({
+            sessionId: 'sesn_telemetry_clear',
+            guards,
+            runtime: guardTestRuntime,
+          });
+          return session;
+        },
       ).pipe(Effect.provideService(Scope.Scope, sessionScope)),
     );
     const collector = session.store.getState().telemetryCollector;
@@ -220,8 +230,12 @@ function publishInitializedState(props: {
   deps: Awaited<ReturnType<typeof makeInitializedSessionDeps>>;
 }) {
   const { deps, session } = props;
+  const sessionId = session.sessionId;
+  if (sessionId === null) {
+    throw new Error('Expected bound session id before publishing initialized state');
+  }
   session.store.setState({
-    sessionId: session.sessionId,
+    sessionId,
     aggregateId: 'acct_1',
     aggregateName: main.aggregateName,
     authentication: { userId: 'usr_1', aggregateId: 'acct_1' },
@@ -242,13 +256,16 @@ describe('makeAggregateSession onInitialized', () => {
   it('delivers the initialized state to a pending handler once in the next microtask', async () => {
     const deps = await makeInitializedSessionDeps();
     const session = Effect.runSync(
-      Effect.map(initializeFrontendGuards(main), guards =>
-        makeAggregateSession({
-          runtime: guardTestRuntime,
-          guards,
-          frontend: main,
-          sessionId: 'sesn_1' as ISessionId,
-        }),
+      Effect.map(initializeFrontendGuards({ frontend: main }), guards =>
+        {
+          const session = makeAggregateSession({ frontend: main });
+          session.setExecutionResources({
+            guards,
+            sessionId: 'sesn_1' as ISessionId,
+            runtime: guardTestRuntime,
+          });
+          return session;
+        },
       ).pipe(Effect.provideService(Scope.Scope, sessionScope)),
     );
     const deliveries: IInitializedSessionState<
@@ -275,13 +292,16 @@ describe('makeAggregateSession onInitialized', () => {
   it('invokes a handler registered after initialization synchronously', async () => {
     const deps = await makeInitializedSessionDeps();
     const session = Effect.runSync(
-      Effect.map(initializeFrontendGuards(main), guards =>
-        makeAggregateSession({
-          runtime: guardTestRuntime,
-          guards,
-          frontend: main,
-          sessionId: 'sesn_2' as ISessionId,
-        }),
+      Effect.map(initializeFrontendGuards({ frontend: main }), guards =>
+        {
+          const session = makeAggregateSession({ frontend: main });
+          session.setExecutionResources({
+            guards,
+            sessionId: 'sesn_2' as ISessionId,
+            runtime: guardTestRuntime,
+          });
+          return session;
+        },
       ).pipe(Effect.provideService(Scope.Scope, sessionScope)),
     );
     publishInitializedState({ session, deps });
@@ -300,13 +320,16 @@ describe('makeAggregateSession onInitialized', () => {
   it('does not deliver after unsubscribe before initialization', async () => {
     const deps = await makeInitializedSessionDeps();
     const session = Effect.runSync(
-      Effect.map(initializeFrontendGuards(main), guards =>
-        makeAggregateSession({
-          runtime: guardTestRuntime,
-          guards,
-          frontend: main,
-          sessionId: 'sesn_3' as ISessionId,
-        }),
+      Effect.map(initializeFrontendGuards({ frontend: main }), guards =>
+        {
+          const session = makeAggregateSession({ frontend: main });
+          session.setExecutionResources({
+            guards,
+            sessionId: 'sesn_3' as ISessionId,
+            runtime: guardTestRuntime,
+          });
+          return session;
+        },
       ).pipe(Effect.provideService(Scope.Scope, sessionScope)),
     );
     const deliveries: IInitializedSessionState<
@@ -329,13 +352,16 @@ describe('renewable execution identity', () => {
   it('keeps the session and store while new commands restart their index under the renewed identity', async () => {
     const deps = await makeInitializedSessionDeps();
     const session = Effect.runSync(
-      Effect.map(initializeFrontendGuards(main), guards =>
-        makeAggregateSession({
-          runtime: guardTestRuntime,
-          guards,
-          frontend: main,
-          sessionId: 'sesn_before_handoff',
-        }),
+      Effect.map(initializeFrontendGuards({ frontend: main }), guards =>
+        {
+          const session = makeAggregateSession({ frontend: main });
+          session.setExecutionResources({
+            guards,
+            sessionId: 'sesn_before_handoff',
+            runtime: guardTestRuntime,
+          });
+          return session;
+        },
       ).pipe(Effect.provideService(Scope.Scope, sessionScope)),
     );
     const store = session.store;
@@ -354,7 +380,7 @@ describe('renewable execution identity', () => {
       .run();
     const first = await Effect.runPromise(
       decodeRpc(
-        session.executeCommand({
+        stageCommand({ session: session,
           contractName: 'createList',
           payload: {
             id: 'lst_before_handoff',
@@ -371,7 +397,7 @@ describe('renewable execution identity', () => {
 
     store.setState({ sessionStatus: 'superseded' });
     expect(
-      session.executeCommand({
+      stageCommand({ session: session,
         contractName: 'createList',
         payload: { id: 'lst_paused', name: 'Paused', userId: 'usr_1' },
       }),
@@ -385,7 +411,7 @@ describe('renewable execution identity', () => {
     });
     const second = await Effect.runPromise(
       decodeRpc(
-        session.executeCommand({
+        stageCommand({ session: session,
           contractName: 'createList',
           payload: { id: 'lst_after_handoff', name: 'After', userId: 'usr_1' },
         }),
@@ -425,7 +451,7 @@ describe('renewable execution identity', () => {
 
     await Effect.runPromise(
       decodeRpc(
-        session.executeCommand({
+        stageCommand({ session: session,
           contractName: 'updateList',
           payload: {
             id: 'lst_before_handoff',
@@ -438,7 +464,7 @@ describe('renewable execution identity', () => {
     store.setState({ sessionId: 'sesn_third_handoff' });
     await Effect.runPromise(
       decodeRpc(
-        session.executeCommand({
+        stageCommand({ session: session,
           contractName: 'updateList',
           payload: {
             id: 'lst_before_handoff',
@@ -452,10 +478,11 @@ describe('renewable execution identity', () => {
       .select()
       .from(sessionCommandJournalDrizzleSchema)
       .all();
+    expect(session.sessionId).not.toBeNull();
     const target = {
       db: deps.db,
       frontend: main,
-      sessionId: session.sessionId,
+      sessionId: session.sessionId!,
       models: mainModels,
       aggregateId: 'acct_1',
       authentication: { userId: 'usr_1', aggregateId: 'acct_1' },
@@ -536,17 +563,20 @@ it('persists creation-time encoded claims when the current decoded authenticatio
     },
   });
   const session = Effect.runSync(
-    Effect.map(initializeFrontendGuards(dated), guards =>
-      makeAggregateSession({
-        runtime: guardTestRuntime,
-        guards,
-        frontend: dated,
-        sessionId: 'sesn_claims082',
-      }),
+    Effect.map(initializeFrontendGuards({ frontend: dated }), guards =>
+      {
+        const session = makeAggregateSession({ frontend: dated });
+        session.setExecutionResources({
+          guards,
+          sessionId: 'sesn_claims082',
+          runtime: guardTestRuntime,
+        });
+        return session;
+      },
     ).pipe(Effect.provideService(Scope.Scope, sessionScope)),
   );
   session.store.setState({
-    sessionId: session.sessionId,
+    sessionId: 'sesn_claims082',
     aggregateId: 'acct_1',
     aggregateName: dated.aggregateName,
     authentication,
@@ -576,7 +606,7 @@ it('persists creation-time encoded claims when the current decoded authenticatio
     .run();
   const first = await Effect.runPromise(
     decodeRpc(
-      session.executeCommand({
+      stageCommand({ session: session,
         contractName: 'createList',
         payload: { id: 'lst_claims082', name: 'First', userId: 'usr_1' },
       }),
@@ -598,7 +628,7 @@ it('persists creation-time encoded claims when the current decoded authenticatio
   });
   const later = await Effect.runPromise(
     decodeRpc(
-      session.executeCommand({
+      stageCommand({ session: session,
         contractName: 'createList',
         payload: { id: 'lst_later082', name: 'Later', userId: 'usr_1' },
       }),

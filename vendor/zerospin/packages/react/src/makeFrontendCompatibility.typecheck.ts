@@ -17,12 +17,19 @@ import type { PublishableKey } from '@zerospin/core/services/PublishableKey';
 import type { ZerospinApiUrl } from '@zerospin/core/services/ZerospinApiUrl';
 import { makeSystem } from '@zerospin/core/system/makeSystem';
 import type { IAnyError } from '@zerospin/error';
-import { type Layer } from 'effect';
+import { Effect, type Layer } from 'effect';
 import { assert, type Equals } from 'tsafe';
 
-import { makeZerospinApp } from './makeZerospinApp';
+import { makeAggregateFrontend } from './makeAggregateFrontend/makeAggregateFrontend';
+import { makeBackup } from './makeBackup/makeBackup';
+import { makeRuntime } from './makeRuntime/makeRuntime';
+import { makeServiceFrontend } from './makeServiceFrontend/makeServiceFrontend';
+import { makeSession } from './makeSession/makeSession';
+import { useInitializeSession } from './useInitializeSession/useInitializeSession';
 
 declare const layer: Layer.Layer<PublishableKey | ZerospinApiUrl, IAnyError>;
+declare const backup: ReturnType<typeof makeBackup>;
+
 const userV1 = makeAggregateVersion(defineAggregate({ name: 'user' }), {
   ...userAggregate.authentication,
   version: '1.0.0',
@@ -53,29 +60,24 @@ const catalogV2 = makeService({
 });
 const system = makeSystem({
   name: 'system-worker',
-
   aggregates: { user: [userV1, userV2] },
   services: { catalog: [catalog, catalogV2] },
 });
 const emptySystem = makeSystem({
   name: 'system-worker',
-
   aggregates: {},
   services: {},
 });
-const app = makeZerospinApp<typeof system>({
-  systemName: 'system-worker',
-  layer,
+const otherSystem = makeSystem({
+  name: 'other',
+  aggregates: { user: [userV1] },
+  services: {},
 });
-const emptyApp = makeZerospinApp<typeof emptySystem>({
-  systemName: 'system-worker',
-  layer,
-});
-const Main = app.makeAggregateFrontend(aggregateFrontendProps(main));
-assert<Equals<typeof app.systemName, 'system-worker'>>();
-const selectedDefinition: typeof main = Main.frontend;
-void selectedDefinition;
+
+const runtime = makeRuntime({ layer });
+const Main = makeAggregateFrontend(aggregateFrontendProps(main));
 assert<Equals<typeof Main.models, typeof main.models>>();
+
 const subset = makeFrontendController({
   authenticationSchema: main.authentication.authenticationSchema,
   systemName: 'system-worker',
@@ -110,63 +112,192 @@ const productsV2 = makeFrontendController({
   serviceVersion: '2.0.0',
   models: { user: User },
 });
-app.makeAggregateFrontend(aggregateFrontendProps(subset));
-app.makeAggregateFrontend(aggregateFrontendProps(second));
-app.makeServiceFrontend(serviceFrontendProps(products));
-app.makeServiceFrontend(serviceFrontendProps(productsV2));
-app.makeServiceFrontend(
-  serviceFrontendProps({ ...products, models: { user: User } }),
-);
-// @ts-expect-error Empty registries cannot admit aggregates.
-emptyApp.makeAggregateFrontend(aggregateFrontendProps(main));
-// @ts-expect-error Empty registries cannot admit services.
-emptyApp.makeServiceFrontend(serviceFrontendProps(products));
-makeZerospinApp<typeof system>({
-  // @ts-expect-error The app must match the system name.
-  systemName: 'other',
-  layer,
+
+const MainSession = makeSession({
+  frontend: Main,
+  runtime,
+  backup,
+  systemName: 'system-worker',
 });
-app.makeAggregateFrontend(
+const SubsetSession = makeSession({
+  frontend: makeAggregateFrontend(aggregateFrontendProps(subset)),
+  runtime,
+  backup,
+  systemName: 'system-worker',
+});
+const SecondSession = makeSession({
+  frontend: makeAggregateFrontend(aggregateFrontendProps(second)),
+  runtime,
+  backup,
+  systemName: 'system-worker',
+});
+const ProductsSession = makeSession({
+  frontend: makeServiceFrontend(serviceFrontendProps(products)),
+  runtime,
+  backup,
+  systemName: 'system-worker',
+});
+const ProductsV2Session = makeSession({
+  frontend: makeServiceFrontend(serviceFrontendProps(productsV2)),
+  runtime,
+  backup,
+  systemName: 'system-worker',
+});
+const ProductsSubsetSession = makeSession({
+  frontend: makeServiceFrontend(
+    serviceFrontendProps({ ...products, models: { user: User } }),
+  ),
+  runtime,
+  backup,
+  systemName: 'system-worker',
+});
+
+void MainSession.initialize<typeof system>({
+  generateSignature: () => Effect.succeed({ userId: 'usr_1' }),
+});
+void SubsetSession.initialize<typeof system>({
+  generateSignature: () => Effect.succeed({ userId: 'usr_1' }),
+});
+void SecondSession.initialize<typeof system>({
+  generateSignature: () => Effect.succeed({ userId: 'usr_1' }),
+});
+void ProductsSession.initialize<typeof system>({
+  generateSignature: () => Effect.succeed({ userId: 'usr_1' }),
+});
+void ProductsV2Session.initialize<typeof system>({
+  generateSignature: () => Effect.succeed({ userId: 'usr_1' }),
+});
+void ProductsSubsetSession.initialize<typeof system>({
+  generateSignature: () => Effect.succeed({ userId: 'usr_1' }),
+});
+
+MainSession.initialize<typeof emptySystem>({
+  // @ts-expect-error Empty registries cannot admit aggregates.
+  generateSignature: () => Effect.succeed({ userId: 'usr_1' }),
+});
+ProductsSession.initialize<typeof emptySystem>({
+  // @ts-expect-error Empty registries cannot admit services.
+  generateSignature: () => Effect.succeed({ userId: 'usr_1' }),
+});
+
+const WrongNameSession = makeSession({
+  frontend: Main,
+  runtime,
+  backup,
+  systemName: 'other',
+});
+WrongNameSession.initialize<typeof system>({
+  // @ts-expect-error Session systemName must match SYSTEM.name.
+  generateSignature: () => Effect.succeed({ userId: 'usr_1' }),
+});
+WrongNameSession.initialize<typeof otherSystem>({
+  generateSignature: () => Effect.succeed({ userId: 'usr_1' }),
+});
+
+const MissingAggregateSession = makeSession({
+  frontend: makeAggregateFrontend(
+    aggregateFrontendProps({ ...main, aggregateName: 'missing' }),
+  ),
+  runtime,
+  backup,
+  systemName: 'system-worker',
+});
+MissingAggregateSession.initialize<typeof system>({
   // @ts-expect-error Unknown aggregate.
-  aggregateFrontendProps({ ...main, aggregateName: 'missing' }),
-);
-app.makeServiceFrontend(
-  // @ts-expect-error Unknown service.
-  serviceFrontendProps({ ...products, serviceName: 'missing' }),
-);
-app.makeAggregateFrontend(
-  // @ts-expect-error Unknown aggregate version.
-  aggregateFrontendProps({ ...main, aggregateVersion: '3.0.0' }),
-);
-app.makeServiceFrontend(
-  // @ts-expect-error Unknown service version.
-  serviceFrontendProps({ ...products, serviceVersion: '3.0.0' }),
-);
-app.makeAggregateFrontend({
-  ...aggregateFrontendProps(main),
-  // @ts-expect-error Frontend system must match.
-  systemName: 'other',
+  generateSignature: () => Effect.succeed({ userId: 'usr_1' }),
 });
-app.makeAggregateFrontend(
-  // @ts-expect-error A model under an existing key must be compatible.
-  aggregateFrontendProps({ ...main, models: { user: Item } }),
-);
-app.makeAggregateFrontend(
-  // @ts-expect-error Contract names and definitions must agree.
-  aggregateFrontendProps({
-    ...main,
-    contracts: { createList: main.contracts.createItem },
-  }),
-);
-app.makeAggregateFrontend(
-  // @ts-expect-error Compatibility is checked against the selected aggregate version.
-  aggregateFrontendProps({ ...main, aggregateVersion: '2.0.0' }),
-);
-app.makeServiceFrontend(
-  // @ts-expect-error Compatibility is checked against the selected service version.
-  serviceFrontendProps({ ...products, serviceVersion: '2.0.0' }),
-);
-app.makeServiceFrontend(
-  // @ts-expect-error Service models cannot substitute an incompatible model.
-  serviceFrontendProps({ ...products, models: { user: Item } }),
-);
+
+const MissingServiceSession = makeSession({
+  frontend: makeServiceFrontend(
+    serviceFrontendProps({ ...products, serviceName: 'missing' }),
+  ),
+  runtime,
+  backup,
+  systemName: 'system-worker',
+});
+MissingServiceSession.initialize<typeof system>({
+  // @ts-expect-error Unknown service.
+  generateSignature: () => Effect.succeed({ userId: 'usr_1' }),
+});
+
+const UnknownAggregateVersionSession = makeSession({
+  frontend: makeAggregateFrontend(
+    aggregateFrontendProps({ ...main, aggregateVersion: '3.0.0' }),
+  ),
+  runtime,
+  backup,
+  systemName: 'system-worker',
+});
+UnknownAggregateVersionSession.initialize<typeof system>({
+  // @ts-expect-error Unknown aggregate version.
+  generateSignature: () => Effect.succeed({ userId: 'usr_1' }),
+});
+
+const UnknownServiceVersionSession = makeSession({
+  frontend: makeServiceFrontend(
+    serviceFrontendProps({ ...products, serviceVersion: '3.0.0' }),
+  ),
+  runtime,
+  backup,
+  systemName: 'system-worker',
+});
+UnknownServiceVersionSession.initialize<typeof system>({
+  // @ts-expect-error Unknown service version.
+  generateSignature: () => Effect.succeed({ userId: 'usr_1' }),
+});
+
+MainSession.initialize<typeof system>({
+  generateSignature: () =>
+    // @ts-expect-error Signatures retain their decoded schema type.
+    Effect.succeed({ userId: 1 }),
+});
+
+function CompatibleHook() {
+  useInitializeSession<typeof system>({
+    session: MainSession,
+    generateSignature: () => Effect.succeed({ userId: 'usr_1' }),
+  });
+  useInitializeSession<typeof system>({
+    session: ProductsSession,
+    generateSignature: () => Effect.succeed({ userId: 'usr_1' }),
+  });
+  return null;
+}
+void CompatibleHook;
+
+function IncompatibleHooks() {
+  useInitializeSession<typeof emptySystem>({
+    // @ts-expect-error Empty registries cannot admit aggregates.
+    session: MainSession,
+    // @ts-expect-error Empty registries cannot admit aggregates.
+    generateSignature: () => Effect.succeed({ userId: 'usr_1' }),
+  });
+  useInitializeSession<typeof emptySystem>({
+    // @ts-expect-error Empty registries cannot admit services.
+    session: ProductsSession,
+    // @ts-expect-error Empty registries cannot admit services.
+    generateSignature: () => Effect.succeed({ userId: 'usr_1' }),
+  });
+  useInitializeSession<typeof system>({
+    // @ts-expect-error Session systemName must match SYSTEM.name.
+    session: WrongNameSession,
+    generateSignature: () => Effect.succeed({ userId: 'usr_1' }),
+  });
+  useInitializeSession<typeof system>({
+    session: MainSession,
+    // @ts-expect-error Signatures retain their decoded schema type.
+    generateSignature: () => Effect.succeed({ userId: 1 }),
+  });
+  useInitializeSession<typeof system>({
+    // @ts-expect-error Unknown aggregate.
+    session: MissingAggregateSession,
+    generateSignature: () => Effect.succeed({ userId: 'usr_1' }),
+  });
+  useInitializeSession<typeof system>({
+    // @ts-expect-error Unknown service.
+    session: MissingServiceSession,
+    generateSignature: () => Effect.succeed({ userId: 'usr_1' }),
+  });
+  return null;
+}
+void IncompatibleHooks;

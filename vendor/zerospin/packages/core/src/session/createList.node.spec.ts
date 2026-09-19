@@ -29,6 +29,7 @@ import { decodeRpc } from '../utils/decodeRpc.ts';
 import { ErrorLayer } from '../utils/ErrorLayer.ts';
 
 import { makeAggregateSession } from './makeAggregateSession.ts';
+import { stageCommand } from './stageCommand.ts';
 import {
   sessionCommandJournalDrizzleSchema,
   sessionOptimisticAppliedMutationDrizzleSchema,
@@ -107,18 +108,21 @@ describe('local session command journal', () => {
             .run();
           const submitted: number[] = [];
           const session = Effect.runSync(
-            Effect.map(initializeFrontendGuards(main), guards =>
-              makeAggregateSession({
-                runtime: guardTestRuntime,
-                guards,
-                frontend: main,
-                sessionId: 'sesn_commands',
-                executeAggregateFrontendCommand: ({ command }) =>
+            Effect.map(initializeFrontendGuards({ frontend: main }), guards =>
+              {
+                const session = makeAggregateSession({ frontend: main });
+                session.setExecutionResources({
+                  guards,
+                  sessionId: 'sesn_commands',
+                  runtime: guardTestRuntime,
+                  executeAggregateFrontendCommand: ({ command }) =>
                   Effect.sync(() => {
                     submitted.push(command.sessionIndex);
                     return { commandId: command.id };
                   }),
-              }),
+                });
+                return session;
+              },
             ).pipe(Effect.provideService(Scope.Scope, sessionScope)),
           );
           session.store.setState({
@@ -144,7 +148,7 @@ describe('local session command journal', () => {
           });
 
           const first = yield* decodeRpc(
-            session.executeCommand({
+            stageCommand({ session: session,
               contractName: 'createList',
               payload: {
                 id: 'lst_1',
@@ -154,7 +158,7 @@ describe('local session command journal', () => {
             }),
           );
           const second = yield* decodeRpc(
-            session.executeCommand({
+            stageCommand({ session: session,
               contractName: 'createList',
               payload: {
                 id: 'lst_2',
@@ -200,13 +204,16 @@ describe('local session command journal', () => {
           expect(submitted).toEqual([1, 2]);
 
           const resumed = Effect.runSync(
-            Effect.map(initializeFrontendGuards(main), guards =>
-              makeAggregateSession({
-                runtime: guardTestRuntime,
-                guards,
-                frontend: main,
-                sessionId: 'sesn_commands',
-              }),
+            Effect.map(initializeFrontendGuards({ frontend: main }), guards =>
+              {
+                const session = makeAggregateSession({ frontend: main });
+                session.setExecutionResources({
+                  guards,
+                  sessionId: 'sesn_commands',
+                  runtime: guardTestRuntime,
+                });
+                return session;
+              },
             ).pipe(Effect.provideService(Scope.Scope, sessionScope)),
           );
           resumed.store.setState({
@@ -215,7 +222,7 @@ describe('local session command journal', () => {
             telemetryCollector: resumed.store.getState().telemetryCollector,
           });
           const third = yield* decodeRpc(
-            resumed.executeCommand({
+            stageCommand({ session: resumed,
               contractName: 'createList',
               payload: {
                 id: 'lst_3',
@@ -242,13 +249,16 @@ describe('local session command journal', () => {
           });
           const db = yield* makeProvisionedInMemoryWasmSqliteDb({ dbConfig });
           const session = Effect.runSync(
-            Effect.map(initializeFrontendGuards(main), guards =>
-              makeAggregateSession({
-                runtime: guardTestRuntime,
-                guards,
-                frontend: main,
-                sessionId: 'sesn_rollback',
-              }),
+            Effect.map(initializeFrontendGuards({ frontend: main }), guards =>
+              {
+                const session = makeAggregateSession({ frontend: main });
+                session.setExecutionResources({
+                  guards,
+                  sessionId: 'sesn_rollback',
+                  runtime: guardTestRuntime,
+                });
+                return session;
+              },
             ).pipe(Effect.provideService(Scope.Scope, sessionScope)),
           );
           session.store.setState({
@@ -274,7 +284,7 @@ describe('local session command journal', () => {
           });
 
           const result = yield* decodeRpc(
-            session.executeCommand({
+            stageCommand({ session: session,
               contractName: 'updateList',
               payload: {
                 id: 'lst_missing',
@@ -306,20 +316,23 @@ describe('local session command journal', () => {
           const db = yield* makeProvisionedInMemoryWasmSqliteDb({ dbConfig });
           const submittedFailures: string[] = [];
           const session = Effect.runSync(
-            Effect.map(initializeFrontendGuards(rejectingFrontend), guards =>
-              makeAggregateSession({
-                runtime: guardTestRuntime,
-                guards,
-                frontend: rejectingFrontend,
-                sessionId: 'sesn_failure',
-                executeAggregateFrontendCommand: ({ command }) =>
+            Effect.map(initializeFrontendGuards({ frontend: rejectingFrontend }), guards =>
+              {
+                const session = makeAggregateSession({ frontend: rejectingFrontend });
+                session.setExecutionResources({
+                  guards,
+                  sessionId: 'sesn_failure',
+                  runtime: guardTestRuntime,
+                  executeAggregateFrontendCommand: ({ command }) =>
                   Effect.sync(() => {
                     if (command.failure !== null) {
                       submittedFailures.push(command.failure.code);
                     }
                     return { commandId: command.id };
                   }),
-              }),
+                });
+                return session;
+              },
             ).pipe(Effect.provideService(Scope.Scope, sessionScope)),
           );
           session.store.setState({
@@ -345,7 +358,7 @@ describe('local session command journal', () => {
           });
 
           const failed = yield* decodeRpc(
-            session.executeCommand({
+            stageCommand({ session: session,
               contractName: 'rejectList',
               payload: {
                 id: 'lst_rejected',
@@ -398,13 +411,16 @@ describe('local session command journal', () => {
         });
         const db = yield* makeProvisionedInMemoryWasmSqliteDb({ dbConfig });
         const session = Effect.runSync(
-          Effect.map(initializeFrontendGuards(main), guards =>
-            makeAggregateSession({
-              runtime: guardTestRuntime,
-              guards,
-              frontend: main,
-              sessionId: 'sesn_blocked',
-            }),
+          Effect.map(initializeFrontendGuards({ frontend: main }), guards =>
+            {
+              const session = makeAggregateSession({ frontend: main });
+              session.setExecutionResources({
+                guards,
+                sessionId: 'sesn_blocked',
+                runtime: guardTestRuntime,
+              });
+              return session;
+            },
           ).pipe(Effect.provideService(Scope.Scope, sessionScope)),
         );
         session.store.setState({
@@ -429,7 +445,7 @@ describe('local session command journal', () => {
           },
         });
         const repairing = yield* decodeRpc(
-          session.executeCommand({
+          stageCommand({ session: session,
             contractName: 'createList',
             payload: {
               id: 'lst_repairing',
@@ -446,7 +462,7 @@ describe('local session command journal', () => {
         }
         session.store.setState({ sessionStatus: 'failed' });
         const failed = yield* decodeRpc(
-          session.executeCommand({
+          stageCommand({ session: session,
             contractName: 'createList',
             payload: {
               id: 'lst_failed',
@@ -484,13 +500,14 @@ describe('local session command journal', () => {
             .run();
           let attempts = 0;
           const session = Effect.runSync(
-            Effect.map(initializeFrontendGuards(main), guards =>
-              makeAggregateSession({
-                runtime: guardTestRuntime,
-                guards,
-                frontend: main,
-                sessionId: 'sesn_handoff',
-                executeAggregateFrontendCommand: () => {
+            Effect.map(initializeFrontendGuards({ frontend: main }), guards =>
+              {
+                const session = makeAggregateSession({ frontend: main });
+                session.setExecutionResources({
+                  guards,
+                  sessionId: 'sesn_handoff',
+                  runtime: guardTestRuntime,
+                  executeAggregateFrontendCommand: () => {
                   attempts += 1;
                   return Effect.fail(
                     new ZerospinError({
@@ -499,7 +516,9 @@ describe('local session command journal', () => {
                     }),
                   );
                 },
-              }),
+                });
+                return session;
+              },
             ).pipe(Effect.provideService(Scope.Scope, sessionScope)),
           );
           session.store.setState({
@@ -525,7 +544,7 @@ describe('local session command journal', () => {
           });
 
           yield* decodeRpc(
-            session.executeCommand({
+            stageCommand({ session: session,
               contractName: 'createList',
               payload: {
                 id: 'lst_handoff',

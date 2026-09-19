@@ -3,6 +3,7 @@ import { StrictMode, Suspense } from 'react';
 import '@fontsource-variable/geist/wght.css';
 import '@fontsource-variable/geist-mono/wght.css';
 import { ZerospinRouteErrorBoundary } from '@zerospin/error-boundary/ZerospinRouteErrorBoundary';
+import { loadDevtools } from '@zerospin/react';
 import { createRoot } from 'react-dom/client';
 import { createBrowserRouter, RouterProvider } from 'react-router';
 
@@ -15,6 +16,9 @@ import { SignInRoute } from '@/routes/SignInRoute';
 import { SignUpRoute } from '@/routes/SignUpRoute';
 
 import './styles.css';
+
+// Eager DevTools console API — client startup only, never during React render.
+void loadDevtools();
 
 const router = createBrowserRouter([
   {

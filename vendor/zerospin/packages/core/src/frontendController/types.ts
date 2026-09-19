@@ -21,7 +21,7 @@ export type IAggregateFrontendController<
   MODELS extends IAnyModels = IAnyModels,
   AGGREGATE_VERSION extends string = string,
   LAYER_SERVICES = never,
-  LAYER_REQUIREMENTS = unknown,
+  LAYER_REQUIREMENTS = never,
   AUTHENTICATION extends Schema.Struct<
     Readonly<Record<string, Schema.Codec<unknown, unknown>>>
   > = Schema.Struct<Readonly<Record<string, Schema.Codec<unknown, unknown>>>>,
@@ -40,7 +40,6 @@ export type IAggregateFrontendController<
         LAYER_SERVICES | GUARD_SERVICES
       >
     | Scope.Scope;
-  layer: Layer.Layer<LAYER_SERVICES, IAnyError, LAYER_REQUIREMENTS>;
   guardLayer?: {
     bivarianceHack(
       props: string extends keyof MODELS
@@ -95,11 +94,10 @@ export type IServiceFrontendController<
 export type IAnyAggregateFrontendController<
   GUARD_REQUIREMENTS = unknown,
   LAYER_SERVICES = never,
-  LAYER_REQUIREMENTS = unknown,
-  INITIALIZE_REQUIREMENTS = unknown,
+  LAYER_REQUIREMENTS = never,
+  INITIALIZE_REQUIREMENTS = never,
 > = Readonly<{
   readonly __initializeRequirements?: INITIALIZE_REQUIREMENTS | Scope.Scope;
-  layer: Layer.Layer<LAYER_SERVICES, IAnyError, LAYER_REQUIREMENTS>;
   guardLayer?: {
     bivarianceHack(
       props: unknown,
@@ -276,7 +274,6 @@ export type IAggregateFrontend<
   aggregateName: AGGREGATE['name'];
   aggregateVersion: AGGREGATE['version'];
   name: string;
-  layer: Layer.Layer<never, IAnyError, unknown>;
   models: Partial<AGGREGATE['models']> &
     Readonly<Record<string, AGGREGATE['models'][keyof AGGREGATE['models']]>>;
   contracts: {

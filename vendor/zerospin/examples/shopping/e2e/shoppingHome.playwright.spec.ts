@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import '@zerospin/react/makeZerospinApp';
+import '@zerospin/react/loadDevtools/loadDevtools';
 
 test('signed-out user is redirected to sign in', async ({ browser }) => {
   const context = await browser.newContext({
@@ -92,7 +92,7 @@ test('main-thread push applies inverse deletes without reentering SQLite', async
   await page.evaluate(async () => {
     if (window.zerospin?.devtools === undefined) {
       throw new Error(
-        'ZerospinApp.Provider did not install the DevTools console API.',
+        'loadDevtools did not install the DevTools console API.',
       );
     }
     await window.zerospin.devtools.open();
@@ -140,12 +140,12 @@ test('main-thread push applies inverse deletes without reentering SQLite', async
   ).toBeVisible({ timeout: 90_000 });
   await expect(addBasicTShirt).toBeVisible();
 
-  // A reload creates a new ZerospinApp.Provider lifetime, so it also requires a new
+  // A reload creates a new loadDevtools lifetime, so it also requires a new
   // explicit console open before this test can manipulate DevTools again.
   await page.evaluate(async () => {
     if (window.zerospin?.devtools === undefined) {
       throw new Error(
-        'ZerospinApp.Provider did not install the DevTools console API.',
+        'loadDevtools did not install the DevTools console API.',
       );
     }
     await window.zerospin.devtools.open();
@@ -153,7 +153,7 @@ test('main-thread push applies inverse deletes without reentering SQLite', async
   devtools = page.getByRole('region', { name: 'Zerospin DevTools' });
   await expect(devtools).toBeVisible();
   const aggregateSessionRow = devtools
-    .getByRole('cell', { name: 'shopper/web', exact: true })
+    .getByRole('cell', { name: 'shopper/shopperFrontend', exact: true })
     .locator('..');
   await expect(aggregateSessionRow).toHaveCount(1);
   await expect(
@@ -206,7 +206,7 @@ test('main-thread push applies inverse deletes without reentering SQLite', async
     await expect(devtools).toBeVisible();
     await devtools.getByRole('link', { name: 'Sessions', exact: true }).click();
     const currentAggregateSessionRow = devtools
-      .getByRole('cell', { name: 'shopper/web', exact: true })
+      .getByRole('cell', { name: 'shopper/shopperFrontend', exact: true })
       .locator('..');
     await expect(currentAggregateSessionRow).toHaveCount(1);
     await expect(currentAggregateSessionRow.locator('td').nth(2)).toHaveText(
@@ -291,7 +291,7 @@ test('main-thread push applies inverse deletes without reentering SQLite', async
       await page.evaluate(async () => {
         if (window.zerospin?.devtools === undefined) {
           throw new Error(
-            'ZerospinApp.Provider did not install the DevTools console API.',
+            'loadDevtools did not install the DevTools console API.',
           );
         }
         await window.zerospin.devtools.open();
@@ -302,7 +302,7 @@ test('main-thread push applies inverse deletes without reentering SQLite', async
         .getByRole('link', { name: 'Sessions', exact: true })
         .click();
       const cleanupSessionRow = devtools
-        .getByRole('cell', { name: 'shopper/web', exact: true })
+        .getByRole('cell', { name: 'shopper/shopperFrontend', exact: true })
         .locator('..');
       await cleanupSessionRow.click();
       await devtools
@@ -340,16 +340,16 @@ test('Zerospin DevTools uses one routed React shell', async ({ page }) => {
   });
 
   // The production application must expose no DevTools UI before the first
-  // console request, even though ZerospinApp.Provider and the session are ready.
+  // console request, even though loadDevtools and the session are ready.
   await expect(devtools).toHaveCount(0);
   await expect(openDevtools).toHaveCount(0);
 
-  // This is the production escape hatch: it loads one shell into the existing
-  // ZerospinApp.Provider React tree and resolves only after that shell is visible.
+  // This is the production escape hatch: loadDevtools mounts one shell and
+  // resolves only after that shell is visible.
   await page.evaluate(async () => {
     if (window.zerospin?.devtools === undefined) {
       throw new Error(
-        'ZerospinApp.Provider did not install the DevTools console API.',
+        'loadDevtools did not install the DevTools console API.',
       );
     }
     await window.zerospin.devtools.open();
@@ -368,7 +368,7 @@ test('Zerospin DevTools uses one routed React shell', async ({ page }) => {
   });
   await expect(devtools).toBeVisible({ timeout: 90_000 });
   await expect(
-    devtools.getByRole('cell', { name: 'shopper/web', exact: true }),
+    devtools.getByRole('cell', { name: 'shopper/shopperFrontend', exact: true }),
   ).toBeVisible({ timeout: 90_000 });
 
   const sessionsRoute = page.getByRole('link', {

@@ -10,7 +10,7 @@ updated: 2026-09-19
 create/update reject. [`readGridItem`](../../../apps/library/lib/readGridItem.ts)
 decodes the column. [`toStoredGridItem`](../../../apps/library/makeLibraryFrontend/contracts/addBrick/AddBrickContractV1.ts)
 picks the five stored fields before write. Brick drop ownership is
-[LibraryBrickDrop](./LibraryBrickDrop.md).
+[LibraryBrickDrop](LibraryBrickDrop.md).
 
 ## Trigger
 

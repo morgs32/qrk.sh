@@ -1,8 +1,11 @@
 "use client";
 
 import { BREAKPOINTS, resolveBreakpoint } from "@qrk.sh/library/breakpoints";
-import { useWallViewport } from "@qrk.sh/library/WallViewportProvider";
 import { BrickWall } from "@qrk.sh/library/BrickWall";
+import { useLibrarySession } from "@qrk.sh/library/createLibraryMockSession";
+import { LibraryFrontend } from "@qrk.sh/library/LibraryFrontend";
+import { useWallViewport } from "@qrk.sh/library/WallViewportProvider";
+import { prefixId } from "@zerospin/core/models/prefixId";
 import { Schema } from "effect";
 import { useCallback, useState, type RefCallback } from "react";
 import { href, useLocation, useNavigate } from "react-router";
@@ -15,8 +18,11 @@ const ParamsSchema = Schema.Struct({
   pageId: Schema.String,
 });
 
+const WALL_ID = prefixId(LibraryFrontend.models.wall, "library");
+
 export function Grid() {
   const { regionRef, availableWidth, activeBreakpoint } = useWallViewport();
+  const session = useLibrarySession();
   const params = useValidatedParams(ParamsSchema);
   const navigate = useNavigate();
   const location = useLocation();
@@ -46,10 +52,12 @@ export function Grid() {
   const fixedPreviewWidth =
     activeBreakpoint === null
       ? null
-      : BREAKPOINTS.find((row) => row.id === activeBreakpoint)?.previewWidth ?? null;
+      : (BREAKPOINTS.find((row) => row.id === activeBreakpoint)?.previewWidth ?? null);
 
   const wall = (breakpoint: "sm" | "md" | "lg" | "xl", gridWidth: number) => (
     <BrickWall
+      session={session}
+      wallId={WALL_ID}
       breakpoint={breakpoint}
       gridWidth={gridWidth}
       onBrickActivate={({ brickId }) => {

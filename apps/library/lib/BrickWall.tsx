@@ -1,29 +1,91 @@
 import { useLayoutEffect, useRef, useState } from "react";
 
-import GridLayout, { verticalCompactor } from "react-grid-layout";
+import { isNonEmptySpec } from "@json-render/core";
+import { prefixId } from "@zerospin/core/models/prefixId";
+import { stageCommand, useLiveQuery } from "@zerospin/react";
+import GridLayout, { noCompactor } from "react-grid-layout";
 
+import { LibraryFrontend } from "../makeLibraryFrontend/makeLibraryFrontend";
+import type { LibraryMockSession } from "../makeLibraryFrontend/createLibraryMockSession";
 import { BrickWrapper } from "../components/brick/BrickWrapper";
+import { brickDragStore } from "./GridStore";
 import { modulesHash } from "./modulesHash";
-import { useBricksStore, useBricksStoreApi } from "./BrickStoreProvider";
+import { readGridItem } from "./readGridItem";
+
+function toGridItem(item: { i: string; x: number; y: number; w: number; h: number }) {
+  return {
+    i: item.i,
+    x: item.x,
+    y: item.y,
+    w: item.w,
+    h: item.h,
+  };
+}
+
+function isLibraryModuleId(
+  value: string,
+): value is
+  | "figma-thumbnail"
+  | "github-activity"
+  | "github-profile"
+  | "github-repo"
+  | "image"
+  | "instagram"
+  | "link"
+  | "map-place"
+  | "swatch-and-icon"
+  | "text" {
+  return (
+    value === "figma-thumbnail" ||
+    value === "github-activity" ||
+    value === "github-profile" ||
+    value === "github-repo" ||
+    value === "image" ||
+    value === "instagram" ||
+    value === "link" ||
+    value === "map-place" ||
+    value === "swatch-and-icon" ||
+    value === "text"
+  );
+}
+
+function commandErrorMessage(failure: { message?: string; code?: string }) {
+  if (typeof failure.message === "string" && failure.message.length > 0) {
+    return failure.message;
+  }
+  if (typeof failure.code === "string" && failure.code.length > 0) {
+    return failure.code;
+  }
+  return "Command failed";
+}
 
 export function BrickWall(props: {
+  session: LibraryMockSession;
+  wallId: `wal_${string}`;
   breakpoint: "sm" | "md" | "lg" | "xl";
   gridWidth: number;
   onBrickActivate?: (args: { moduleId: string; brickId: string }) => void;
+  onCommandError?: (message: string) => void;
 }) {
-  const { breakpoint, gridWidth } = props;
-  const bricksStore = useBricksStoreApi();
+  const { session, wallId, breakpoint, gridWidth } = props;
   const containerRef = useRef<HTMLElement>(null);
   const scrollRootRef = useRef<HTMLElement | null>(null);
   const [dragging, setDragging] = useState(false);
   const [outsideBrickId, setOutsideBrickId] = useState<string | null>(null);
   const [dragScrollTop, setDragScrollTop] = useState(0);
-  const bricksById = useBricksStore((state) => state.bricksById);
-  const activeBrickDrag = useBricksStore((state) => state.activeBrickDrag);
-  const hasHydrated = useBricksStore((state) => state.hasHydrated);
-  const setLayout = useBricksStore((state) => state.setLayout);
-  const addBrick = useBricksStore((state) => state.addBrick);
-  const setActiveBrickDrag = useBricksStore((state) => state.setActiveBrickDrag);
+
+  const bricksQuery = useLiveQuery({
+    session,
+    query: (db) =>
+      db.query.brick.findMany({
+        where: { wallId: { eq: wallId } },
+      }),
+  });
+  const placementsQuery = useLiveQuery({
+    session,
+    query: (db) => db.query.placement.findMany(),
+  });
+
   useLayoutEffect(() => {
     if (!dragging && scrollRootRef.current) {
       scrollRootRef.current.scrollTop = dragScrollTop;
@@ -31,10 +93,34 @@ export function BrickWall(props: {
     }
   }, [dragging, dragScrollTop]);
 
-  const layout = Object.values(bricksById).flatMap((brick) => {
-    const entry = brick[breakpoint];
-    return entry.isVisible ? [{ ...entry.gridItem }] : [];
-  });
+  const bricks = bricksQuery.data ?? [];
+  const placements = placementsQuery.data ?? [];
+  const brickIds = new Set(bricks.map((brickRow) => brickRow.id));
+
+  function visibleLayoutAt(targetBreakpoint: "sm" | "md" | "lg" | "xl") {
+    return placements.flatMap((placement) => {
+      if (
+        placement.breakpoint !== targetBreakpoint ||
+        !placement.isVisible ||
+        placement.brickId === null ||
+        !brickIds.has(placement.brickId)
+      ) {
+        return [];
+      }
+      return [toGridItem(readGridItem(placement.gridItem))];
+    });
+  }
+
+  function reportCommandError(failure: { message?: string; code?: string }) {
+    const message = commandErrorMessage(failure);
+    if (props.onCommandError) {
+      props.onCommandError(message);
+      return;
+    }
+    window.alert(message);
+  }
+
+  const layout = visibleLayoutAt(breakpoint);
   const rowHeight = gridWidth / 8;
 
   return (
@@ -47,11 +133,10 @@ export function BrickWall(props: {
           Release to remove
         </div>
       )}
-      {gridWidth > 0 && hasHydrated && (
+      {gridWidth > 0 && (
         <GridLayout
           width={gridWidth}
           style={dragging ? { transform: `translateY(-${dragScrollTop}px)` } : undefined}
-          // Dropped items carry isDraggable, which overrides dragConfig.enabled.
           layout={layout.map((item) => ({
             ...item,
             isDraggable: true,
@@ -59,7 +144,7 @@ export function BrickWall(props: {
           }))}
           autoSize
           className="grid-layout min-h-[calc(100dvh-3.5rem)]"
-          compactor={verticalCompactor}
+          compactor={noCompactor}
           gridConfig={{
             cols: 8,
             rowHeight,
@@ -72,36 +157,100 @@ export function BrickWall(props: {
             bounded: false,
             threshold: 3,
           }}
-          onResizeStop={(nextLayout) => setLayout(nextLayout, breakpoint)}
+          onResizeStop={(nextLayout) => {
+            const result = stageCommand({
+              session,
+              contractName: "updateLayoutAtBreakpoint",
+              payload: {
+                wallId,
+                breakpoint,
+                layout: nextLayout.map(toGridItem),
+              },
+            });
+            if (result._tag === "Failure") {
+              reportCommandError(result.failure);
+            }
+          }}
           dropConfig={{
             enabled: true,
             defaultItem: { w: 2, h: 2 },
             onDragOver: () => {
-              if (!activeBrickDrag) {
+              const brickDef = brickDragStore.getState().brickDef;
+              if (!brickDef) {
                 return false;
               }
 
-              return { w: activeBrickDrag.w, h: activeBrickDrag.h };
+              return { w: brickDef.w, h: brickDef.h };
             },
           }}
           onDrop={(nextLayout, item) => {
-            if (!item || !activeBrickDrag) {
+            const brickDef = brickDragStore.getState().brickDef;
+            if (!item || !brickDef) {
               return;
             }
 
-            const brickId = crypto.randomUUID();
-            const gridLayoutWithDroppedBrick = nextLayout.map((layoutItem) => {
-              if (layoutItem.i !== item.i) {
-                return layoutItem;
-              }
+            const catalog = modulesHash[brickDef.moduleId];
+            if (catalog === undefined || !isLibraryModuleId(brickDef.moduleId)) {
+              reportCommandError({
+                message: `Unknown module ${brickDef.moduleId}`,
+              });
+              return;
+            }
+            const moduleId = brickDef.moduleId;
 
-              return {
-                ...layoutItem,
-                i: brickId,
-              };
+            const idSuffix = crypto.randomUUID().replace(/-/g, "");
+            const brickId = prefixId(LibraryFrontend.models.brick, idSuffix);
+            const droppedItem = {
+              i: brickId,
+              x: item.x,
+              y: item.y,
+              w: item.w,
+              h: item.h,
+            };
+            const resolvedActiveLayout = nextLayout.map((layoutItem) => {
+              if (layoutItem.i !== item.i) {
+                return toGridItem(layoutItem);
+              }
+              return droppedItem;
             });
-            addBrick(brickId, activeBrickDrag, gridLayoutWithDroppedBrick, breakpoint);
-            setActiveBrickDrag(null);
+            const otherBreakpointVisibleLayouts = {
+              sm: visibleLayoutAt("sm"),
+              md: visibleLayoutAt("md"),
+              lg: visibleLayoutAt("lg"),
+              xl: visibleLayoutAt("xl"),
+            };
+
+            const result = stageCommand({
+              session,
+              contractName: "addBrick",
+              payload: {
+                wallId,
+                brickId,
+                moduleId,
+                state: structuredClone(brickDef.state),
+                spec: structuredClone(brickDef.spec),
+                breakpoint,
+                droppedItem,
+                resolvedActiveLayout,
+                otherBreakpointVisibleLayouts,
+              },
+            });
+            if (result._tag === "Failure") {
+              reportCommandError(result.failure);
+            } else if (
+              "failure" in result.success &&
+              result.success.failure != null
+            ) {
+              const failure = result.success.failure;
+              reportCommandError(
+                typeof failure === "object" &&
+                  failure !== null &&
+                  "message" in failure
+                  ? { message: String(failure.message) }
+                  : { message: "addBrick failed" },
+              );
+            }
+            brickDragStore.getState().setBrickDef(null);
           }}
           onDragStart={() => {
             const scrollRoot = containerRef.current?.closest("[data-brick-scroll-root]");
@@ -146,41 +295,65 @@ export function BrickWall(props: {
                 pointer.clientY < bounds.top ||
                 pointer.clientY > bounds.bottom);
             if (outside && item) {
-              bricksStore.setState((state) => {
-                const remainingBricks = { ...state.bricksById };
-                delete remainingBricks[item.i];
-                return {
-                  bricksById: remainingBricks,
-                };
-              });
-              setLayout(
-                verticalCompactor.compact(
-                  nextLayout.filter((layoutItem) => layoutItem.i !== item.i),
-                  8,
-                ),
-                breakpoint,
-              );
+              const brickRow = bricks.find((candidate) => candidate.id === item.i);
+              if (brickRow !== undefined) {
+                const result = stageCommand({
+                  session,
+                  contractName: "removeBrick",
+                  payload: {
+                    brickId: brickRow.id,
+                    wallId,
+                  },
+                });
+                if (result._tag === "Failure") {
+                  reportCommandError(result.failure);
+                }
+              }
             } else {
-              setLayout(nextLayout, breakpoint);
+              const result = stageCommand({
+                session,
+                contractName: "updateLayoutAtBreakpoint",
+                payload: {
+                  wallId,
+                  breakpoint,
+                  layout: nextLayout.map(toGridItem),
+                },
+              });
+              if (result._tag === "Failure") {
+                reportCommandError(result.failure);
+              }
             }
             setOutsideBrickId(null);
             setDragging(false);
           }}
         >
           {layout.map((layoutItem) => {
-            const brickDef = bricksById[layoutItem.i];
-            const catalog = brickDef ? modulesHash[brickDef.moduleId] : undefined;
-            const brick = catalog;
+            const brickRow = bricks.find((candidate) => candidate.id === layoutItem.i);
+            const placement = placements.find(
+              (candidate) =>
+                candidate.brickId === layoutItem.i &&
+                candidate.breakpoint === breakpoint &&
+                candidate.isVisible,
+            );
+            const catalog = brickRow !== undefined ? modulesHash[brickRow.moduleId] : undefined;
 
-            if (brick) {
-              const BrickComponent = brick.component;
+            if (brickRow && placement && catalog) {
+              const BrickComponent = catalog.component;
+              const state = brickRow.state;
+              const rawSpec: unknown =
+                typeof placement.spec === "string" ? JSON.parse(placement.spec) : placement.spec;
+              if (!isNonEmptySpec(rawSpec)) {
+                return null;
+              }
 
               return (
                 <div
                   key={layoutItem.i}
-                  style={{ opacity: outsideBrickId === layoutItem.i ? 0.4 : 1 }}
+                  style={{
+                    opacity: outsideBrickId === layoutItem.i ? 0.4 : 1,
+                  }}
                   className="brick-drag-surface size-full"
-                  data-brick={brick.def.moduleId}
+                  data-brick={catalog.def.moduleId}
                   data-brick-id={layoutItem.i}
                   data-grid-x={layoutItem.x}
                   data-grid-y={layoutItem.y}
@@ -188,7 +361,7 @@ export function BrickWall(props: {
                   data-grid-h={layoutItem.h}
                   onDoubleClick={() => {
                     props.onBrickActivate?.({
-                      moduleId: brickDef.moduleId,
+                      moduleId: brickRow.moduleId,
                       brickId: layoutItem.i,
                     });
                   }}
@@ -196,11 +369,7 @@ export function BrickWall(props: {
                   <div className="relative size-full">
                     <div className="brick-drag-content size-full">
                       <BrickWrapper>
-                        <BrickComponent
-                          breakpoint={breakpoint}
-                          state={brickDef.state}
-                          spec={brickDef[breakpoint].spec}
-                        />
+                        <BrickComponent breakpoint={breakpoint} state={state} spec={rawSpec} />
                       </BrickWrapper>
                     </div>
                   </div>

@@ -72,6 +72,16 @@
   --ring: oklch(0.552 0.016 285.938);
 }
 
+/* Catalog drag sources own HTML5 drag. Nested <a>/<img> must not start a
+   native link or image drag. Wall cells are not [draggable="true"]; RGL owns
+   those drags. */
+.brick-drag-surface[draggable="true"] .brick-drag-content,
+.brick-drag-surface[draggable="true"] .brick-drag-content * {
+  pointer-events: none;
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
 /* Group previews and placed Grid bricks reserve pointer movement for their
    existing drag interactions. Direct, configuration, and detail previews keep
    normal Mapbox pan and zoom behavior. */

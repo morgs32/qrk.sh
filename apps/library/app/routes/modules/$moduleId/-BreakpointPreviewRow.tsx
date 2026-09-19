@@ -8,8 +8,8 @@ import { OrderedSection } from "@qrk.sh/web/library/OrderedDoc";
 import { MeasuredBrickWrapper } from "../../../../components/brick/MeasuredBrickWrapper";
 import { GridItemPreview } from "../../../../lib/GridItemPreview";
 import { BREAKPOINTS, minGridUnits } from "../../../../lib/breakpoints";
+import { brickDragStore } from "../../../../lib/GridStore";
 import { modulesHash } from "../../../../lib/modulesHash";
-import { useBricksStore } from "../../../../lib/BrickStoreProvider";
 
 export function BreakpointPreviewRow({
   entry,
@@ -28,7 +28,6 @@ export function BreakpointPreviewRow({
   className?: string;
   spec: Spec;
 }) {
-  const setActiveBrickDrag = useBricksStore((state) => state.setActiveBrickDrag);
   const [intrinsicSize, setIntrinsicSize] = useState<{ widthPx: number; heightPx: number }>();
   const onSizeChange = useCallback((size: { widthPx: number; heightPx: number }) => {
     setIntrinsicSize((current) => {
@@ -62,7 +61,7 @@ export function BreakpointPreviewRow({
       data-testid="brick-preview"
       draggable
       onDragStart={(event) => {
-        setActiveBrickDrag({
+        brickDragStore.getState().setBrickDef({
           ...brick.def,
           w: dragW,
           h: dragH,
@@ -81,7 +80,7 @@ export function BreakpointPreviewRow({
         event.dataTransfer.effectAllowed = "copy";
         event.dataTransfer.setData("text/plain", brick.def.moduleId);
       }}
-      onDragEnd={() => setActiveBrickDrag(null)}
+      onDragEnd={() => brickDragStore.getState().setBrickDef(null)}
     >
       <div className="brick-drag-content size-full select-none">
         <BrickComponent breakpoint={entry.id} state={moduleState} spec={spec} />

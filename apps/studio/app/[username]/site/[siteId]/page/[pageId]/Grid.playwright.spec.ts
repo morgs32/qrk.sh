@@ -3,13 +3,11 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 const pageBase = "/e2e/site/e2e/page/home";
 
 function drawerBrickPreviewSlot(page: Page, moduleId: string) {
-  return page.locator(
-    `[data-brick-drawer-brick-slot][data-brick-drawer-module-id="${moduleId}"]`,
-  );
+  return page.locator(`[data-brick-drawer-brick-slot][data-brick-drawer-module-id="${moduleId}"]`);
 }
 
 function gridLocateByBrickIdentity(grid: Locator, moduleId: string) {
-  return grid.locator(`[data-brick-module-id="${moduleId}"]`);
+  return grid.locator(`[data-brick="${moduleId}"]`);
 }
 
 function boxCenter(box: { x: number; y: number; width: number; height: number }) {
@@ -26,22 +24,61 @@ function centerDistance(
 }
 
 test.describe("Site grid drag", () => {
+  test("dragging a drawer brick onto the grid creates a new instance", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(`${pageBase}/brick-group`, { waitUntil: "load" });
+
+    const grid = page.locator(".grid-layout");
+    await expect(grid).toBeVisible({ timeout: 90_000 });
+
+    const newBricks = gridLocateByBrickIdentity(grid, "swatch-and-icon");
+    await expect(newBricks).toHaveCount(0);
+
+    await expect(page.getByLabel("Workspace drawer")).toBeVisible();
+
+    const slot = drawerBrickPreviewSlot(page, "swatch-and-icon").first();
+    await expect(slot).toBeVisible();
+
+    const gridBox = await grid.boundingBox();
+    expect(gridBox).not.toBeNull();
+    await slot.dragTo(grid, {
+      targetPosition: {
+        x: Math.min(120, gridBox!.width / 2),
+        y: Math.min(80, gridBox!.height / 2),
+      },
+      steps: 24,
+    });
+
+    await expect(newBricks).toHaveCount(1, { timeout: 15_000 });
+  });
+
   test("brick bounding box stays stable through drag threshold; moves with pointer", async ({
     page,
   }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
-    await page.goto(pageBase, { waitUntil: "load" });
+    await page.goto(`${pageBase}/brick-group`, { waitUntil: "load" });
 
     const layout = page.getByTestId("grid-layout");
     const grid = page.locator(".grid-layout");
-    const brick = gridLocateByBrickIdentity(grid, "swatch-and-icon").first();
-    await expect(brick).toBeVisible({ timeout: 90_000 });
+    await expect(grid).toBeVisible({ timeout: 90_000 });
     await expect(layout).toBeVisible();
-    await expect(grid).toBeVisible();
+
+    const slot = drawerBrickPreviewSlot(page, "swatch-and-icon").first();
+    await expect(slot).toBeVisible();
+    const gridBox = await grid.boundingBox();
+    expect(gridBox).not.toBeNull();
+    await slot.dragTo(grid, {
+      targetPosition: {
+        x: Math.min(120, gridBox!.width / 2),
+        y: Math.min(80, gridBox!.height / 2),
+      },
+      steps: 24,
+    });
+
+    const brick = gridLocateByBrickIdentity(grid, "swatch-and-icon").first();
+    await expect(brick).toBeVisible({ timeout: 15_000 });
 
     await brick.scrollIntoViewIfNeeded();
-    await expect(brick).toBeVisible();
-
     const rectIdle = await brick.boundingBox();
     expect(rectIdle, "idle bounding box").not.toBeNull();
 
@@ -76,36 +113,6 @@ test.describe("Site grid drag", () => {
     await expect(brick).toBeVisible();
   });
 
-  test("dragging a drawer brick onto the grid creates a new instance and grows the overlay", async ({
-    page,
-  }) => {
-    await page.setViewportSize({ width: 1440, height: 900 });
-    await page.goto(`${pageBase}/brick-group`, { waitUntil: "load" });
-
-    const grid = page.locator(".grid-layout");
-    await expect(grid).toBeVisible({ timeout: 90_000 });
-
-    const newBricks = gridLocateByBrickIdentity(grid, "swatch-and-icon");
-    await expect(newBricks).toHaveCount(0);
-
-    await expect(page.getByLabel("Workspace drawer")).toBeVisible();
-
-    const slot = drawerBrickPreviewSlot(page, "swatch-and-icon").first();
-    await expect(slot).toBeVisible();
-
-    const gridBox = await grid.boundingBox();
-    expect(gridBox).not.toBeNull();
-    await slot.dragTo(grid, {
-      targetPosition: {
-        x: Math.min(120, gridBox!.width / 2),
-        y: Math.min(80, gridBox!.height / 2),
-      },
-      steps: 24,
-    });
-
-    await expect(newBricks).toHaveCount(1, { timeout: 15_000 });
-  });
-
   test("releasing a drawer brick outside the grid springs back without adding an instance", async ({
     page,
   }) => {
@@ -131,23 +138,13 @@ test.describe("Site grid drag", () => {
     await expect(bricks).toHaveCount(0);
   });
 
-  test("work appears as grid text bricks", async ({ page }) => {
+  test("empty wall has no text bricks until one is dropped", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto(pageBase, { waitUntil: "load" });
 
-    const rightColumn = page.locator("[data-site-right-scroll]");
-    await expect(rightColumn).toBeVisible({ timeout: 90_000 });
-    await expect(rightColumn.locator("h2", { hasText: /^Work$/ })).toHaveCount(0);
-
     const grid = page.locator(".grid-layout");
-    await expect(grid).toBeVisible();
-
-    const workRows = gridLocateByBrickIdentity(grid, "text");
-    await expect(workRows).toHaveCount(46);
-
-    const sampleRow = workRows.first();
-    await expect(sampleRow.getByText("Text brick")).toBeVisible();
-    await expect(sampleRow.locator("a")).toHaveCount(0);
+    await expect(grid).toBeVisible({ timeout: 90_000 });
+    await expect(gridLocateByBrickIdentity(grid, "text")).toHaveCount(0);
   });
 
   test("dragging a Text brick from the drawer onto the grid adds a sample instance", async ({
@@ -182,18 +179,38 @@ test.describe("Site grid drag", () => {
     await expect(text4x4Bricks).toHaveCount(1, { timeout: 15_000 });
   });
 
-  test("seeded work text bricks can be reordered within the grid", async ({ page }) => {
+  test("dropped text bricks can be reordered within the grid", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
-    await page.goto(pageBase, { waitUntil: "load" });
+    await page.goto(`${pageBase}/brick-group`, { waitUntil: "load" });
 
     const grid = page.locator(".grid-layout");
     await expect(grid).toBeVisible({ timeout: 90_000 });
 
-    const first = grid.locator('[data-brick-id="text-brick-work--0"]');
-    const second = grid.locator('[data-brick-id="text-brick-work--1"]');
-    await expect(first).toBeVisible();
-    await expect(second).toBeVisible();
+    const slot = drawerBrickPreviewSlot(page, "text").first();
+    await expect(slot).toBeVisible();
+    const gridBox = await grid.boundingBox();
+    expect(gridBox).not.toBeNull();
 
+    await slot.dragTo(grid, {
+      targetPosition: {
+        x: Math.min(80, gridBox!.width / 2),
+        y: Math.min(80, gridBox!.height / 2),
+      },
+      steps: 24,
+    });
+    await slot.dragTo(grid, {
+      targetPosition: {
+        x: Math.min(240, gridBox!.width / 2),
+        y: Math.min(80, gridBox!.height / 2),
+      },
+      steps: 24,
+    });
+
+    const textBricks = gridLocateByBrickIdentity(grid, "text");
+    await expect(textBricks).toHaveCount(2, { timeout: 15_000 });
+
+    const first = textBricks.nth(0);
+    const second = textBricks.nth(1);
     const boxA = await first.boundingBox();
     const boxB = await second.boundingBox();
     expect(boxA).not.toBeNull();

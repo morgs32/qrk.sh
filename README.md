@@ -18,9 +18,9 @@ Brick groups are defined under `apps/library/groups/`.
 3. Placed bricks retain their own **`brickId`**. Workbench bricks and backend brick records store **`groupId`** and **`catalogId`**.
 
 This is a hard terminology cutover: old backend state must be reset before reuse.
-Model and contract versions remain unchanged. Browser persistence version 2 resets
-older sandbox bricks and site editor drafts on hydration. Storage keys remain
-`qrk-bricks-sandbox-responsive-bricks-v2` and `qrk-site-editor-drafts-v2`.
+Model and contract versions remain unchanged. Library workbench viewport preference
+uses `qrk-bricks-library-viewport-v1`. Site walls are owned by in-memory library
+mock sessions (`wal_library`), not persisted Zustand brick maps.
 
 More detail and test patterns: [docs/styleguide/component-and-file-naming.md](docs/styleguide/component-and-file-naming.md).
 

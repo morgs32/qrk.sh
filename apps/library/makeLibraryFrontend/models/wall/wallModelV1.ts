@@ -5,7 +5,7 @@ import { wall } from "./wall";
 
 export const wallModelV1 = makeModelVersion(wall, {
   attributes: {
-    label: primitives.text({ defaultValue: "Sandbox" }),
+    label: primitives.text({ defaultValue: "Library" }),
   },
   indexes: [],
   version: "1.0.0",

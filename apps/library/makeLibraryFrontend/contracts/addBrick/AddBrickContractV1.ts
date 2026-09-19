@@ -32,6 +32,16 @@ const gridItemSchema = Schema.Struct({
   h: Schema.Number,
 });
 
+function toStoredGridItem(item: { i: string; x: number; y: number; w: number; h: number }) {
+  return {
+    i: item.i,
+    x: item.x,
+    y: item.y,
+    w: item.w,
+    h: item.h,
+  };
+}
+
 const structuralSpecSchema = Schema.Struct({
   root: Schema.String,
   elements: Schema.Record(Schema.String, Schema.Unknown),
@@ -389,7 +399,7 @@ export function makeAddBrickContract<
                       payload.brickId as InferIdFromAbbreviation<"brk">,
                     breakpoint,
                     spec: structuredClone(clonedSpec),
-                    gridItem: structuredClone(item),
+                    gridItem: toStoredGridItem(item),
                     isVisible: true,
                   } as InferDecodedRow<
                     (typeof props.placement)["attributes"]
@@ -406,7 +416,7 @@ export function makeAddBrickContract<
                   breakpoint,
                 ) as InferIdFromAbbreviation<"plc">,
                 attributes: {
-                  gridItem: structuredClone(item),
+                  gridItem: toStoredGridItem(item),
                 } as Partial<
                   InferDecodedRow<(typeof props.placement)["attributes"]>
                 >,

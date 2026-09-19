@@ -28,6 +28,8 @@ export default defineConfig(({ mode }) => {
           breakpoints: "lib/breakpoints.ts",
           BrickWall: "lib/BrickWall.tsx",
           GridStore: "lib/GridStore.ts",
+          LibraryFrontend: "makeLibraryFrontend/makeLibraryFrontend.ts",
+          createLibraryMockSession: "makeLibraryFrontend/createLibraryMockSession.ts",
           TiptapDocSchema: "lib/TiptapDocSchema.ts",
         },
         formats: ["es"],
@@ -35,9 +37,12 @@ export default defineConfig(({ mode }) => {
       },
       rollupOptions: {
         external: [
+          "@json-render/core",
           "@radix-ui/react-slot",
           "@tiptap/react",
           "@unpic/react",
+          "@zerospin/core",
+          "@zerospin/react",
           "@zerospin/schema",
           "class-variance-authority",
           "cn",

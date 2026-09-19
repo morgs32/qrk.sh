@@ -5,7 +5,8 @@ import { useWallViewport } from "@qrk.sh/library/WallViewportProvider";
 import { BREAKPOINTS, minGridUnits } from "@qrk.sh/library/breakpoints";
 import { GridItemPreview } from "@qrk.sh/library/GridItemPreview";
 import { MeasuredBrickWrapper } from "@qrk.sh/library/MeasuredBrickWrapper";
-import type { IModuleBrickDef } from "@qrk.sh/library";
+import { brickDragStore } from "@qrk.sh/library/GridStore";
+import type { Spec } from "@json-render/core";
 import { ArrowLeft } from "lucide-react";
 import { Tabs } from "radix-ui";
 import { href, Link, useParams } from "react-router";
@@ -14,13 +15,11 @@ import { CodeText } from "../[username]/site/[siteId]/page/[pageId]/BrickGroup/C
 import { MetadataField } from "../[username]/site/[siteId]/page/[pageId]/BrickGroup/MetadataField";
 
 import { BRICK_DRAG_MIME } from "@/components/home/useBrickDrawerStore";
-import { useBricksStoreApi } from "@qrk.sh/library/GridStore";
 
 export default function BrickGroupRoute() {
   const { activeBreakpoint } = useWallViewport();
   const breakpoint = activeBreakpoint ?? "sm";
   const params = useParams();
-  const bricksStore = useBricksStoreApi();
   const { username, siteId, pageId } = params;
   if (!username || !siteId || !pageId) throw new Error("Missing editor route params");
   const { groupName } = params;
@@ -48,7 +47,6 @@ export default function BrickGroupRoute() {
     <BrickGroupRouteBody
       brickModule={brickModule}
       breakpoint={breakpoint}
-      bricksStore={bricksStore}
       pageId={pageId}
       siteId={siteId}
       username={username}
@@ -59,16 +57,15 @@ export default function BrickGroupRoute() {
 function BrickGroupRouteBody(props: {
   brickModule: (typeof modulesHash)[string];
   breakpoint: "sm" | "md" | "lg" | "xl";
-  bricksStore: ReturnType<typeof useBricksStoreApi>;
   username: string;
   siteId: string;
   pageId: string;
 }) {
-  const { brickModule, breakpoint, bricksStore, username, siteId, pageId } = props;
+  const { brickModule, breakpoint, username, siteId, pageId } = props;
   const BrickComponent = brickModule.component;
-  const declared = brickModule.def[breakpoint];
-  const declaredW = declared.w;
-  const declaredH = declared.h;
+  const view = brickModule.viewFor(breakpoint);
+  const declaredW = view.w;
+  const declaredH = view.h;
   const hasDeclaredSize = declaredW !== undefined && declaredH !== undefined;
   const [measuredUnits, setMeasuredUnits] = useState<{ w: number; h: number }>();
   const onSizeChange = useCallback(
@@ -87,29 +84,42 @@ function BrickGroupRouteBody(props: {
 
   const w = hasDeclaredSize ? declaredW : (measuredUnits?.w ?? 1);
   const h = hasDeclaredSize ? declaredH : (measuredUnits?.h ?? 1);
-  const brickDefForDrag: IModuleBrickDef = {
+  const brickDefForDrag: (typeof brickModule.def) & {
+    spec: Spec;
+    w: number;
+    h: number;
+  } = {
     ...brickModule.def,
-    [breakpoint]: { w, h },
+    w,
+    h,
+    state: structuredClone(brickModule.defaultState),
+    spec: structuredClone(view.spec),
   };
 
   const surface = (
     <div
-      className="size-full qrk-bricks cursor-grab overflow-hidden active:cursor-grabbing"
+      className="size-full qrk-bricks brick-drag-surface cursor-grab overflow-hidden active:cursor-grabbing"
       data-brick-full-view={brickModule.def.moduleId}
       data-brick-drawer-brick-slot
       data-brick-drawer-module-id={brickModule.def.moduleId}
       draggable
       onDragStart={(event) => {
-        bricksStore.getState().setActiveBrickDrag(structuredClone(brickDefForDrag));
+        brickDragStore.getState().setBrickDef(structuredClone(brickDefForDrag));
         event.dataTransfer.setData(BRICK_DRAG_MIME, JSON.stringify(brickDefForDrag));
         event.dataTransfer.effectAllowed = "copy";
         event.dataTransfer.setData("text/plain", brickModule.def.moduleId);
       }}
       onDragEnd={() => {
-        bricksStore.getState().setActiveBrickDrag(null);
+        brickDragStore.getState().setBrickDef(null);
       }}
     >
-      <BrickComponent breakpoint={breakpoint} data={brickModule.defaultData} />
+      <div className="brick-drag-content size-full">
+        <BrickComponent
+          breakpoint={breakpoint}
+          state={brickModule.defaultState}
+          spec={view.spec}
+        />
+      </div>
     </div>
   );
 
@@ -169,7 +179,11 @@ function BrickGroupRouteBody(props: {
                       style={{ width: 0, height: 0 }}
                     >
                       <MeasuredBrickWrapper onChange={onSizeChange}>
-                        <BrickComponent breakpoint={breakpoint} data={brickModule.defaultData} />
+                        <BrickComponent
+                          breakpoint={breakpoint}
+                          state={brickModule.defaultState}
+                          spec={view.spec}
+                        />
                       </MeasuredBrickWrapper>
                     </div>
                   )}

@@ -7,7 +7,8 @@ import { useWallViewport } from "@qrk.sh/library/WallViewportProvider";
 import { BREAKPOINTS, minGridUnits } from "@qrk.sh/library/breakpoints";
 import { GridItemPreview } from "@qrk.sh/library/GridItemPreview";
 import { MeasuredBrickWrapper } from "@qrk.sh/library/MeasuredBrickWrapper";
-import type { IModuleBrickDef } from "@qrk.sh/library";
+import { brickDragStore } from "@qrk.sh/library/GridStore";
+import type { Spec } from "@json-render/core";
 import { Schema } from "effect";
 import { X } from "lucide-react";
 import { Link } from "react-router";
@@ -15,7 +16,6 @@ import { useNavigate } from "react-router";
 import { href } from "react-router";
 
 import { BRICK_DRAG_MIME } from "@/components/home/useBrickDrawerStore";
-import { useBricksStoreApi } from "@qrk.sh/library/GridStore";
 import { Button } from "@/components/ui/button";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 
@@ -31,11 +31,10 @@ function BrickGroupModulePreview(props: {
   params: { username: string; siteId: string; pageId: string };
 }) {
   const { brickModule, breakpoint, params } = props;
-  const bricksStore = useBricksStoreApi();
   const BrickComponent = brickModule.component;
-  const declared = brickModule.def[breakpoint];
-  const declaredW = declared.w;
-  const declaredH = declared.h;
+  const view = brickModule.viewFor(breakpoint);
+  const declaredW = view.w;
+  const declaredH = view.h;
   const hasDeclaredSize = declaredW !== undefined && declaredH !== undefined;
   const [measuredUnits, setMeasuredUnits] = useState<{ w: number; h: number }>();
   const onSizeChange = useCallback(
@@ -54,29 +53,42 @@ function BrickGroupModulePreview(props: {
 
   const w = hasDeclaredSize ? declaredW : (measuredUnits?.w ?? 1);
   const h = hasDeclaredSize ? declaredH : (measuredUnits?.h ?? 1);
-  const brickDefForDrag: IModuleBrickDef = {
+  const brickDefForDrag: (typeof brickModule.def) & {
+    spec: Spec;
+    w: number;
+    h: number;
+  } = {
     ...brickModule.def,
-    [breakpoint]: { w, h },
+    w,
+    h,
+    state: structuredClone(brickModule.defaultState),
+    spec: structuredClone(view.spec),
   };
 
   const surface = (
     <div
-      className="size-full qrk-bricks cursor-grab overflow-hidden active:cursor-grabbing"
+      className="size-full qrk-bricks brick-drag-surface cursor-grab overflow-hidden active:cursor-grabbing"
       data-module-representative={brickModule.def.moduleId}
       data-brick-drawer-brick-slot
       data-brick-drawer-module-id={brickModule.def.moduleId}
       draggable
       onDragStart={(event) => {
-        bricksStore.getState().setActiveBrickDrag(structuredClone(brickDefForDrag));
+        brickDragStore.getState().setBrickDef(structuredClone(brickDefForDrag));
         event.dataTransfer.setData(BRICK_DRAG_MIME, JSON.stringify(brickDefForDrag));
         event.dataTransfer.effectAllowed = "copy";
         event.dataTransfer.setData("text/plain", brickModule.def.moduleId);
       }}
       onDragEnd={() => {
-        bricksStore.getState().setActiveBrickDrag(null);
+        brickDragStore.getState().setBrickDef(null);
       }}
     >
-      <BrickComponent breakpoint={breakpoint} data={brickModule.defaultData} />
+      <div className="brick-drag-content size-full">
+        <BrickComponent
+          breakpoint={breakpoint}
+          state={brickModule.defaultState}
+          spec={view.spec}
+        />
+      </div>
     </div>
   );
 
@@ -102,7 +114,11 @@ function BrickGroupModulePreview(props: {
               style={{ width: 0, height: 0 }}
             >
               <MeasuredBrickWrapper onChange={onSizeChange}>
-                <BrickComponent breakpoint={breakpoint} data={brickModule.defaultData} />
+                <BrickComponent
+                  breakpoint={breakpoint}
+                  state={brickModule.defaultState}
+                  spec={view.spec}
+                />
               </MeasuredBrickWrapper>
             </div>
           )}

@@ -3,7 +3,7 @@ import type { ComponentProps } from "react";
 import type { Spec } from "@json-render/core";
 
 import type { IModuleBrickDef } from "../lib/types";
-import { useBricksStore } from "../lib/BrickStoreProvider";
+import { brickDragStore } from "../lib/GridStore";
 
 export function DraggableBrick({
   brickDef,
@@ -13,15 +13,13 @@ export function DraggableBrick({
 }: {
   brickDef: IModuleBrickDef & { spec: Spec; w: number; h: number };
 } & Omit<ComponentProps<"div">, "draggable" | "onDragStart" | "onDragEnd">) {
-  const setActiveBrickDrag = useBricksStore(state => state.setActiveBrickDrag);
-
   return (
     <div
       {...props}
       className={`brick-drag-surface ${className ?? ""}`}
       draggable
-      onDragStart={event => {
-        setActiveBrickDrag(structuredClone(brickDef));
+      onDragStart={(event) => {
+        brickDragStore.getState().setBrickDef(structuredClone(brickDef));
         const surface = event.currentTarget;
         if (surface) {
           const bounds = surface.getBoundingClientRect();
@@ -35,7 +33,7 @@ export function DraggableBrick({
         event.dataTransfer.setData("text/plain", brickDef.moduleId);
       }}
       onDragEnd={() => {
-        setActiveBrickDrag(null);
+        brickDragStore.getState().setBrickDef(null);
       }}
     >
       {children}

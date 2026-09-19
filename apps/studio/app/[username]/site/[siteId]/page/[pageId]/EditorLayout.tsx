@@ -1,9 +1,16 @@
 "use client";
 
 import { useUser } from "@clerk/react";
-import { BrickStoreProvider } from "@qrk.sh/library/GridStore";
+import {
+  createLibraryMockSession,
+  LibrarySessionContext,
+} from "@qrk.sh/library/createLibraryMockSession";
+import { LibraryFrontend } from "@qrk.sh/library/LibraryFrontend";
 import { WallViewportProvider } from "@qrk.sh/library/WallViewportProvider";
+import { prefixId } from "@zerospin/core/models/prefixId";
+import { useInitializeMockSession } from "@zerospin/react";
 import { Schema } from "effect";
+import { useMemo } from "react";
 
 import { Drawers } from "../../Drawers/Drawers";
 import { Toolbars } from "../../Toolbars/Toolbars";
@@ -16,6 +23,8 @@ const ParamsSchema = Schema.Struct({
   pageId: Schema.String,
 });
 
+const WALL_ID = prefixId(LibraryFrontend.models.wall, "library");
+
 export default function SitePage() {
   const params = useValidatedParams(ParamsSchema);
   const { user } = useUser();
@@ -25,12 +34,22 @@ export default function SitePage() {
   }
 
   return (
-    <WallViewportProvider>
-      <BrickStoreProvider key={`${user.id}:${params.siteId}:${params.pageId}`}>
+    <LibraryEditorSession key={`${user.id}:${params.siteId}:${params.pageId}`}>
+      <WallViewportProvider>
         <MainColumns />
         <Drawers />
         <Toolbars />
-      </BrickStoreProvider>
-    </WallViewportProvider>
+      </WallViewportProvider>
+    </LibraryEditorSession>
   );
+}
+
+function LibraryEditorSession(props: { children: React.ReactNode }) {
+  const session = useMemo(() => createLibraryMockSession({ wallId: WALL_ID }), []);
+  const { isInitialized } = useInitializeMockSession({ session });
+  if (!isInitialized) {
+    return null;
+  }
+
+  return <LibrarySessionContext value={session}>{props.children}</LibrarySessionContext>;
 }

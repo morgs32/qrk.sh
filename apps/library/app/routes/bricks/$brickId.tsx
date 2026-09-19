@@ -17,7 +17,7 @@ import { modulesHash } from "../../../lib/modulesHash";
 import { useWallViewport } from "../../../lib/WallViewportProvider";
 import type { LibraryApi } from "../../../worker/LibraryApi.public";
 import type { IScrapeError } from "../../../worker/types.public";
-import { useLibrarySession } from "../../LibrarySandboxProvider";
+import { useLibrarySession } from "../../../makeLibraryFrontend/createLibraryMockSession";
 import { readGridItem } from "../../readGridItem";
 
 export const Route = createFileRoute("/bricks/$brickId")({

@@ -4,14 +4,14 @@
 
 Catalog tiles (library filmstrip, Studio brick drawer) place bricks onto
 `BrickWall` through an in-memory `LibraryFrontend` mock session and the
-`addBrick` aggregate contract. There is no `LibrarySandboxProvider`; each app
-layout owns `createLibraryMockSession({ wallId })` + `useInitializeMockSession`.
+`addBrick` aggregate contract. Each app layout owns
+`createLibraryMockSession({ wallId })` + `useInitializeMockSession`.
 
 ## Owners
 
 | Surface | Session owner | Wall id |
 | --- | --- | --- |
-| Library workbench | [`Layout.tsx`](../../../apps/library/app/Layout.tsx) | `prefixId(wall, "library")` → `wal_library` |
+| Library | [`Layout.tsx`](../../../apps/library/app/Layout.tsx) | `prefixId(wall, "library")` → `wal_library` |
 | Studio site editor | [`EditorLayout.tsx`](../../../apps/studio/app/[username]/site/[siteId]/page/[pageId]/EditorLayout.tsx) | same hardcoded `wal_library` (separate in-memory db) |
 
 `LibrarySessionContext` (next to `createLibraryMockSession`, not a `*Provider.tsx`)
@@ -55,3 +55,5 @@ disabled via `pointer-events: none` and `-webkit-user-drag: none` in
 `wallId`. Layout / resize / remove / compact use contracts. Compactor is
 `noCompactor`; explicit **Compact layout** runs `compactLayoutAtBreakpoint`.
 Placed cells expose `data-brick="{moduleId}"` and `data-brick-id="{brickId}"`.
+Stored `gridItem` is `{ i, x, y, w, h }` — see
+[LibraryGridItem](./LibraryGridItem.md).

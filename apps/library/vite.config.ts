@@ -1,5 +1,8 @@
 import { fileURLToPath, URL } from "node:url";
 
+import { cloudflare } from "@cloudflare/vite-plugin";
+import tailwindcss from "@tailwindcss/vite";
+import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig, loadEnv } from "vite-plus";
 
@@ -14,51 +17,33 @@ export default defineConfig(({ mode }) => {
   }
 
   return {
+    root: packageRoot,
+    envDir: packageRoot,
     define: {
       "import.meta.env.PUBLIC_MAPBOX_TOKEN": JSON.stringify(mapboxToken),
     },
-    plugins: [react()],
-    build: {
-      lib: {
-        entry: {
-          index: "lib/index.ts",
-          GridItemPreview: "lib/GridItemPreview.tsx",
-          MeasuredBrickWrapper: "components/brick/MeasuredBrickWrapper.tsx",
-          WallViewportProvider: "lib/WallViewportProvider.tsx",
-          breakpoints: "lib/breakpoints.ts",
-          BrickWall: "lib/BrickWall.tsx",
-          GridStore: "lib/GridStore.ts",
-          LibraryFrontend: "makeLibraryFrontend/makeLibraryFrontend.ts",
-          createLibraryMockSession: "makeLibraryFrontend/createLibraryMockSession.ts",
-          TiptapDocSchema: "lib/TiptapDocSchema.ts",
+    resolve: {
+      alias: [
+        {
+          find: "@qrk.sh/library/bricks.css",
+          replacement: fileURLToPath(new URL("./bricks.css", import.meta.url)),
         },
-        formats: ["es"],
-        fileName: (_format, entryName) => `${entryName}.js`,
-      },
-      rollupOptions: {
-        external: [
-          "@json-render/core",
-          "@radix-ui/react-slot",
-          "@tiptap/react",
-          "@unpic/react",
-          "@zerospin/core",
-          "@zerospin/react",
-          "@zerospin/schema",
-          "class-variance-authority",
-          "cn",
-          "effect",
-          "es-toolkit/object",
-          "lucide-react",
-          "mapbox-gl",
-          "react",
-          "react-activity-calendar",
-          "react-dom",
-          "react-grid-layout",
-          "react/jsx-runtime",
-          /^swr(?:\/|$)/,
-          /^zustand(?:\/|$)/,
-        ],
-      },
+        {
+          find: "@qrk.sh/library",
+          replacement: fileURLToPath(new URL("./lib/index.ts", import.meta.url)),
+        },
+      ],
+    },
+    plugins: [
+      tailwindcss(),
+      cloudflare({ viteEnvironment: { name: "ssr" } }),
+      tanstackStart({ srcDirectory: "app" }),
+      react(),
+    ],
+    server: {
+      host: "127.0.0.1",
+      port: 4100,
+      strictPort: true,
     },
   };
 });

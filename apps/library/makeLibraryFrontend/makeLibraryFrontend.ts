@@ -115,7 +115,7 @@ export const LibraryFrontend = makeLibraryFrontend(backendLibrary);
 
 export const libraryRuntime = makeRuntime({
   layer: Layer.mergeAll(
-    Layer.succeed(PublishableKey, Redacted.make("pk_library_sandbox")),
-    Layer.succeed(ZerospinApiUrl, "https://api.library.sandbox.test"),
+    Layer.succeed(PublishableKey, Redacted.make("pk_library_local")),
+    Layer.succeed(ZerospinApiUrl, "https://api.library.local.test"),
   ),
 });

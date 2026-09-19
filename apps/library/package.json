@@ -49,14 +49,14 @@
     "./bricks.css": "./dist/bricks.css"
   },
   "scripts": {
-    "dev": "vp dev --config vite.workbench.config.ts",
-    "preview": "vp preview --config vite.workbench.config.ts --host 127.0.0.1 --port 4100 --strictPort",
-    "build": "vp build && cp bricks.css dist/ && mkdir -p dist/worker && cp worker/*.public.d.ts dist/worker/ && tsc -p tsconfig.build.json --emitDeclarationOnly",
+    "dev": "vp dev",
+    "preview": "vp preview --host 127.0.0.1 --port 4100 --strictPort",
+    "build": "vp build --config vite.lib.config.ts && cp bricks.css dist/ && mkdir -p dist/worker && cp worker/*.public.d.ts dist/worker/ && tsc -p tsconfig.build.json --emitDeclarationOnly",
     "tsc": "tsc --noEmit",
     "lint": "oxlint .",
     "format": "oxfmt .",
     "format:check": "oxfmt --check .",
-    "build:app": "vp build --config vite.workbench.config.ts",
+    "build:app": "vp build",
     "test:workerd": "vitest run --config vitest.worker.config.ts",
     "types": "wrangler types ./worker-configuration.d.ts",
     "tsc:worker": "tsc -p tsconfig.worker.json"

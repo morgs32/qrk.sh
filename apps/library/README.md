@@ -1,6 +1,6 @@
 # Library
 
-The brick library, TanStack Start workbench, and scraper backend share this package.
+The brick library, TanStack Start app, and scraper backend share this package.
 Vite+ runs TanStack Start and the Cloudflare Worker together through
 `@cloudflare/vite-plugin`, following the
 [Cloudflare TanStack Start guide](https://developers.cloudflare.com/workers/framework-guides/web-apps/tanstack-start/).
@@ -19,7 +19,7 @@ This command runs locally and does not deploy anything.
 
 Put local settings in `apps/library/.env.local`:
 
-- `PUBLIC_MAPBOX_TOKEN` is required for the workbench and is exposed to the browser.
+- `PUBLIC_MAPBOX_TOKEN` is required for the library app and is exposed to the browser.
 - `GITHUB_TOKEN`, `FIGMA_TOKEN`, `GOOGLE_PLACES_API_KEY`, `STREAMLINE_API_KEY`,
   and `OPENAI_API_KEY` are private Worker credentials for their respective
   providers.
@@ -60,7 +60,7 @@ authored React brick and, when ready, a json-render `generator` (`registry` +
 (component, generator, declared `w`/`h`). Grid sizing is measured at preview/drag
 time unless both `w` and `h` are declared on that overlay.
 
-The workbench `Layout` owns `createLibraryMockSession({ wallId })` +
+`Layout` owns `createLibraryMockSession({ wallId })` +
 `useInitializeMockSession`, with a hardcoded `WALL_ID` of
 `prefixId(wall, "library")` → `wal_library`. Studio `EditorLayout` does the same
 for its ephemeral editor wall (separate in-memory db). Committed layout is

@@ -15,10 +15,10 @@ Brick groups are defined under `apps/library/groups/`.
 
 1. **`groupName`** identifies a group; **`catalog`** identifies a data/configuration and responsive presentation definition within it.
 2. **`(groupName, catalog)`** uniquely identifies a group brick, independently of dimensions. Views are no longer a separate selection.
-3. Placed bricks retain their own **`brickId`**. Workbench bricks and backend brick records store **`groupId`** and **`catalogId`**.
+3. Placed bricks retain their own **`brickId`**. Library bricks and backend brick records store **`groupId`** and **`catalogId`**.
 
 This is a hard terminology cutover: old backend state must be reset before reuse.
-Model and contract versions remain unchanged. Library workbench viewport preference
+Model and contract versions remain unchanged. Library viewport preference
 uses `qrk-bricks-library-viewport-v1`. Site walls are owned by in-memory library
 mock sessions (`wal_library`), not persisted Zustand brick maps.
 

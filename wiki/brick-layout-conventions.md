@@ -11,7 +11,7 @@
 
 ## Session-backed walls
 
-Library workbench and Studio site editor both render
+Library `Layout` and Studio site editor both render
 [`BrickWall`](../apps/library/lib/BrickWall.tsx) against an in-memory
 `LibraryFrontend` mock session:
 
@@ -26,6 +26,7 @@ Library workbench and Studio site editor both render
 
 Transient HTML5 drag payload only: `brickDragStore` (`brickDef` /
 `setBrickDef`). See [LibraryBrickDrop](./architecture/browser/LibraryBrickDrop.md).
+Placement `gridItem` decode/strip: [LibraryGridItem](./architecture/browser/LibraryGridItem.md).
 
 ## Breakpoints
 

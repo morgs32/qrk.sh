@@ -150,5 +150,5 @@ class-migration history.
 
 ## Zerospin subrepo metadata
 
-- Upstream: https://github.com/morgs32/zerospin.git
+- Upstream: ../zerospin
 - Branch: main

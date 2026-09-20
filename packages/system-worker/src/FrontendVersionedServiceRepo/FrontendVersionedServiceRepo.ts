@@ -19,7 +19,7 @@ import { execute } from './execute/execute.js';
 import { frontendVersionedServiceRepoDbConfig } from './frontendVersionedServiceRepoDbConfig.js';
 import { frontendVersionedServiceRepoFixedDORepoConfig } from './frontendVersionedServiceRepoFixedDORepoConfig.js';
 import { getProjectionReadiness } from './getProjectionReadiness/getProjectionReadiness.js';
-import { getState } from './getState/getState.js';
+import { getSnapshot } from './getSnapshot/getSnapshot.js';
 import { onDOActivation } from './onDOActivation/onDOActivation.js';
 export class FrontendVersionedServiceRepo extends makeFixedDORepo({
   namespaceBinding: 'FRONTEND_VERSIONED_SERVICE_REPO',
@@ -32,10 +32,10 @@ export class FrontendVersionedServiceRepo extends makeFixedDORepo({
   }
 
   readonly #execution = Semaphore.makeUnsafe(1);
-  readonly #deltas = makeOutboxQueue({
-    name: 'deltas',
+  readonly #selectedCommands = makeOutboxQueue({
+    name: 'selectedCommands',
     db: this.db,
-    outboxTable: frontendVersionedServiceRepoDbConfig.schema.deltas,
+    outboxTable: frontendVersionedServiceRepoDbConfig.schema.selectedCommands,
     alarmRegistry: this.alarmRegistry,
     retention: 'delete',
     deliver: rows =>
@@ -43,23 +43,25 @@ export class FrontendVersionedServiceRepo extends makeFixedDORepo({
         const chain = yield* FrontendServiceChain.getRepo({
           key: this.key,
         });
-        const receiver = yield* makeAsync(() => chain.deltasSubscriber);
+        const receiver = yield* makeAsync(
+          () => chain.selectedCommandsSubscriber,
+        );
         yield* makeAsync(() => receiver.receive(rows)).pipe(
           Effect.flatMap(decodeRpc),
         );
       }),
   });
   /*
-   * Exposes the already bound deltas capability from FrontendVersionedServiceRepo.
+   * Exposes the already bound selected-command capability from FrontendVersionedServiceRepo.
    *
    * 1. Return the bound capability.
    */
-  get deltas() {
+  get selectedCommands() {
     // 1 — reuse the existing private queue/subscriber instance
-    return this.#deltas;
+    return this.#selectedCommands;
   }
   /*
-   * Bind one finalized service source to the replica's durable projection cursor.
+   * Bind one selected service source to the replica's durable projection cursor.
    * Pulled and pushed pages share the same execution permit and output alarm.
    */
   replicaFanoutQueueSubscriber(
@@ -106,7 +108,7 @@ export class FrontendVersionedServiceRepo extends makeFixedDORepo({
         Effect.gen({ self: this }, function* () {
           yield* this.#execution.withPermits(1)(
             Effect.gen({ self: this }, function* () {
-              yield* this.alarmRegistry.hold('deltas');
+              yield* this.alarmRegistry.hold('selectedCommands');
               yield* execute({
                 rows: delivery.rows,
                 db: this.db,
@@ -116,7 +118,9 @@ export class FrontendVersionedServiceRepo extends makeFixedDORepo({
           );
           this.ctx.waitUntil(
             managedRuntime
-              .runPromise(this.#deltas.drain().pipe(Effect.provide(AsyncLive)))
+              .runPromise(
+                this.#selectedCommands.drain().pipe(Effect.provide(AsyncLive)),
+              )
               .catch(() => undefined),
           );
         }),
@@ -145,15 +149,15 @@ export class FrontendVersionedServiceRepo extends makeFixedDORepo({
    *
    * 1. Run the bound domain operation.
    */
-  async getState(props: Parameters<typeof getState>[0]['requested']) {
-    // 1 — run getState with the instance-bound dependencies and encode its RPC outcome
+  async getSnapshot(props: Parameters<typeof getSnapshot>[0]['requested']) {
+    // 1 — run getSnapshot with the instance-bound dependencies and encode its RPC outcome
     return managedRuntime.runPromise(
-      getState({
+      getSnapshot({
         db: this.db,
         key: this.key,
         requested: props,
         execution: this.#execution,
-        deltas: this.#deltas,
+        selectedCommands: this.#selectedCommands,
         subscriber: this.replicaFanoutQueueSubscriber(this.key),
       }).pipe(Effect.provide(AsyncLive), encodeRpc),
     );

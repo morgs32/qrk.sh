@@ -1,6 +1,6 @@
 ---
 title: Command Chains and Materialization
-updated: 2026-09-11
+updated: 2026-09-20
 ---
 
 # Command Chains and Materialization
@@ -9,12 +9,11 @@ The aggregate path is AC → VAR → VAC → SelectionVAR → SelectionVAC → b
 
 ## Trigger
 
-1. The frontend capability submits the complete local occurrence. AC assigns an aggregate position and returns an admission receipt.
-   - [`pushCommand.ts`](../../../packages/system-worker/src/AggregateFrontendApi/pushCommand/pushCommand.ts) — Validates the capability-bound input and returns the assigned index and command ID.
+1. The history-validated live SelectionVAC connection submits the complete local occurrence. Its AggregateChain key is exactly `{ systemId, aggregateId, aggregateName }`: systemId comes from the SelectionVAC Repo key, and the aggregate fields must match the retained ticket-derived connection state. AC assigns an aggregate position and returns an admission receipt.
+   - [`onMessage.ts`](../../../packages/system-worker/src/SelectionVersionedAggregateChain/onMessage/onMessage.ts) — Validates the capability-bound input and returns the assigned index and command ID.
 
 ```mermaid
 sequenceDiagram
-  participant AggregateFrontendApi
   participant AggregateChain
   participant VersionedAggregateRepo
   participant VersionedServiceRepo
@@ -24,7 +23,7 @@ sequenceDiagram
   participant SelectionVersionedAggregateChain
   participant Browser
   autonumber 1
-  AggregateFrontendApi->>AggregateChain: chain.admitCommands(...)
+  SelectionVersionedAggregateChain->>AggregateChain: chain.admitCommands(...)
   autonumber 2
   AggregateChain->>VersionedAggregateRepo: receiver.receive(...)
   autonumber 3
@@ -40,15 +39,15 @@ sequenceDiagram
   autonumber 8
   VersionedServiceChain->>SelectionVersionedAggregateRepo: receiver.receive(...)
   autonumber 9
-  SelectionVersionedAggregateRepo->>SelectionVersionedAggregateChain: subscriber.receive(...)
+  SelectionVersionedAggregateRepo->>SelectionVersionedAggregateChain: selectedCommandsSubscriber.receive(...)
   autonumber 10
-  SelectionVersionedAggregateChain-->>Browser: aggregateFrontendCommand
+  SelectionVersionedAggregateChain-->>Browser: aggregateSelectedCommand
 ```
 
 ## Annotated workflow steps
 
-1. The frontend capability submits the complete local occurrence. AC assigns an aggregate position and returns an admission receipt.
-   - [`pushCommand.ts`](../../../packages/system-worker/src/AggregateFrontendApi/pushCommand/pushCommand.ts) — Validates the capability-bound input and returns the assigned index and command ID.
+1. The history-validated live SelectionVAC connection submits the complete local occurrence. Its AggregateChain key is exactly `{ systemId, aggregateId, aggregateName }`: systemId comes from the SelectionVAC Repo key, and the aggregate fields must match the retained ticket-derived connection state. AC assigns an aggregate position and returns an admission receipt.
+   - [`onMessage.ts`](../../../packages/system-worker/src/SelectionVersionedAggregateChain/onMessage/onMessage.ts) — Validates the capability-bound input and returns the assigned index and command ID.
 2. AC fanout delivers bounded aggregate admission pages to registered aggregate materializers.
    - [`AggregateChain.ts`](../../../packages/system-worker/src/AggregateChain/AggregateChain.ts) — Binds the VAR repo lookup and excludes invalidated subscribers.
    - [`makeFanoutQueue.ts`](../../../packages/system-worker/src/makeFanoutQueue/makeFanoutQueue.ts) — Resolves the named subscriber capability, sends complete rows, and persists the delivered page's last index after successful receipt.
@@ -65,10 +64,15 @@ sequenceDiagram
    - [`VersionedAggregateRepo.ts`](../../../packages/system-worker/src/VersionedAggregateRepo/VersionedAggregateRepo.ts) and [`receiveServiceCommandsTx.ts`](../../../packages/system-worker/src/VersionedAggregateRepo/receiveServiceCommandsTx.ts) — Validates and commits source delivery under the same execution permit used for aggregate commands.
 8. VSC also sends complete entries to SelectionVAR. It serializes both input streams and commits each occurrence's graph, source progress, and outgoing delta together.
    - [`SelectionVersionedAggregateRepo.ts`](../../../packages/system-worker/src/SelectionVersionedAggregateRepo/SelectionVersionedAggregateRepo.ts) — Binds the direct source subscriber and shared execution permit.
-9. SelectionVAR publishes one output per consumed occurrence, including empty deltas. `selectionIndex` advances; service-only outputs retain `aggregateIndex` and have no resolution.
-   - [`executeTx.ts`](../../../packages/system-worker/src/SelectionVersionedAggregateRepo/execute/executeTx.ts) — Stores the graph and delta outbox row in the source application transaction.
-10. SelectionVAC retains each contiguous frontend output before broadcasting it. Reconnect replay uses the same durable output order.
-    - [`receiveDeltas.ts`](../../../packages/system-worker/src/SelectionVersionedAggregateChain/receiveDeltas/receiveDeltas.ts) — Validates frontend positions and aggregate watermarks before exact-byte retention and broadcast.
+9. SelectionVAR derives one minimal selected command per consumed occurrence,
+   including empty deltas. `selectionIndex` and `selectionHash` advance for
+   aggregate success, aggregate failure, other-origin aggregate commands, and
+   service-derived commands; service-derived commands retain `aggregateIndex`
+   and carry `failure: null`.
+   - [`executeTx.ts`](../../../packages/system-worker/src/SelectionVersionedAggregateRepo/execute/executeTx.ts) — stores the graph and `selectedCommands` outbox row in the source-application transaction while privately retaining any aggregate completion owner.
+10. SelectionVAC retains each contiguous selected command in its `commands`
+    table before broadcasting it. Reconnect replay uses the same durable order.
+    - [`receiveSelectedCommands.ts`](../../../packages/system-worker/src/SelectionVersionedAggregateChain/receiveSelectedCommands/receiveSelectedCommands.ts) — validates selection positions, aggregate watermarks, owner metadata, and exact retries before retention and broadcast.
 
 ## Atomic batch admission
 
@@ -277,15 +281,21 @@ VAR and SelectionVAR initialize every declared service source during activation.
 - [`onDOActivation.ts`](../../../packages/system-worker/src/SelectionVersionedAggregateRepo/onDOActivation/onDOActivation.ts) — Declares service sources, subscribes finalized aggregate history, then subscribes the service feeds.
 - [`sourceReplay.node.spec.ts`](../../../packages/system-worker/src/SelectionVersionedAggregateRepo/execute/sourceReplay.node.spec.ts) — Preserves late-resource replay behind an already advanced source cursor.
 
-Snapshots capture the graph and both indices under execution exclusivity. After releasing that permit they await SelectionVAC publication through the captured selection position, then reconcile only requested outstanding command IDs from retained SelectionVAC entries through that position. Full resolutions are restricted to the requesting frontend.
+Snapshots capture the graph and both indices under execution exclusivity. After
+releasing that permit they await SelectionVAC publication through the captured
+selection position, then reconcile requested `pendingCommandIds` from retained
+SelectionVAC entries through that position. Only entries whose private
+authentication and frontend name exactly match the requesting capability are
+returned in `selectedCommands`; the server never exposes source command bytes
+or execution metadata at this seam.
 
-- [`getState.ts`](../../../packages/system-worker/src/SelectionVersionedAggregateRepo/getState/getState.ts) — Captures a coherent view and waits for its captured delta publication before returning.
+- [`getSnapshot.ts`](../../../packages/system-worker/src/SelectionVersionedAggregateRepo/getSnapshot/getSnapshot.ts) — captures a coherent snapshot and waits for its selected-command publication before returning.
 
 ## Verification
 
 - [`onDOActivation.node.spec.ts`](../../../packages/system-worker/src/AggregateChain/onDOActivation/onDOActivation.node.spec.ts) — Exercises deployed destination reconciliation during activation.
 - [`onDOActivation.node.spec.ts`](../../../packages/system-worker/src/VersionedAggregateRepo/onDOActivation/onDOActivation.node.spec.ts) — Declares all service dependencies before resource enrollment and resumes subscription from committed cursors.
-- [`getState.node.spec.ts`](../../../packages/system-worker/src/SelectionVersionedAggregateRepo/getState/getState.node.spec.ts) — Catches up both aggregate and service feeds without resubscribing and waits for the captured output position.
+- [`getSnapshot.node.spec.ts`](../../../packages/system-worker/src/SelectionVersionedAggregateRepo/getSnapshot/getSnapshot.node.spec.ts) — catches up both aggregate and service feeds without resubscribing and waits for the captured selected-command position.
 
 - [`makeFanoutSubscriber.node.spec.ts`](../../../packages/system-worker/src/makeFanoutSubscriber/makeFanoutSubscriber.node.spec.ts) — Exercises fixed destinations, source paging failures, overlapping delivery, subscription handoff, and independent source cursors.
 - [`makeFanoutQueue.node.spec.ts`](../../../packages/system-worker/src/makeFanoutQueue/makeFanoutQueue.node.spec.ts) — Verifies bounded pages during a held drain, complete source-key routing, cached envelope tips, and acknowledgement of the row tail.

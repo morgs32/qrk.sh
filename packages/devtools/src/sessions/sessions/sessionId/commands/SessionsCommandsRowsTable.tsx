@@ -7,7 +7,7 @@ import {
   type VisibilityState,
 } from '@tanstack/react-table';
 import { getInitializedStateOrThrow } from '@zerospin/core/session/getInitializedStateOrThrow';
-import type { ISession } from '@zerospin/core/session/types';
+import type { IAggregateSession } from '@zerospin/core/session/types';
 
 import { useLiveQueryOnDb } from '../../../../useLiveQueryOnDb';
 import { SessionsDataCell } from '../../../SessionsDataCell';
@@ -118,7 +118,7 @@ const SessionsCommandsTableBody = memo(
 );
 
 export function SessionsCommandsRowsTable(props: {
-  readonly session: ISession;
+  readonly session: IAggregateSession;
 }) {
   const { session } = props;
   const { db } = getInitializedStateOrThrow({ session });

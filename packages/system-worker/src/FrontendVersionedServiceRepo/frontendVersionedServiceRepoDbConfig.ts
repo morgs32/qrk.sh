@@ -2,7 +2,7 @@ import { makeDbConfig } from '@zerospin/core/drizzle/makeDbConfig';
 import type { IDb, IResourceDbConfig, ITx } from '@zerospin/core/drizzle/types';
 import { EncodedResourceSchema } from '@zerospin/core/models/EncodedResourceSchema';
 import type { IAnyModels } from '@zerospin/core/models/types';
-import { ServiceFrontendFinalizedCommandSchema } from '@zerospin/core/serviceSession/ServiceFrontendCommandSchema';
+import { ServiceSelectedCommandSchema } from '@zerospin/core/serviceSession/ServiceSelectedCommandSchema';
 import { makeTable, primitives } from '@zerospin/schema';
 import { Context, Schema } from 'effect';
 
@@ -12,17 +12,18 @@ export const frontendVersionedServiceRepoTables = {
     shape: {
       id: primitives.integer({ primaryKey: true }),
       serviceIndex: primitives.integer(),
+      serviceHash: primitives.text(),
       serviceVersion: primitives.text(),
       canonicalBytes: primitives.text(),
       graph: primitives.json({ schema: Schema.Array(EncodedResourceSchema) }),
     },
   }),
-  deltas: makeTable({
-    name: 'deltas',
+  selectedCommands: makeTable({
+    name: 'selectedCommands',
     shape: {
       outboxIndex: primitives.integer({ primaryKey: true }),
       output: primitives.json({
-        schema: ServiceFrontendFinalizedCommandSchema,
+        schema: ServiceSelectedCommandSchema,
       }),
       deliveredAt: primitives.date({ nullable: true }),
       lastDeliveryFailure: primitives.text({ nullable: true }),

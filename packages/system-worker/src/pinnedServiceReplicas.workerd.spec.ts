@@ -107,10 +107,11 @@ it('initializes before guards and delivers pinned updates and tombstones indepen
         key: view,
       });
       const initial = yield* makeAsync(() =>
-        replica.getState({
+        replica.getSnapshot({
           ...view,
           frontendName: 'main',
-          outstandingCommandIds: [],
+          authentication: { userId: 'usr_pinned' },
+          pendingCommandIds: [],
         }),
       ).pipe(Effect.flatMap(decodeRpc));
       expect(
@@ -141,10 +142,11 @@ it('initializes before guards and delivers pinned updates and tombstones indepen
             async () => {
               const state = await Effect.runPromise(
                 makeAsync(() =>
-                  replica.getState({
+                  replica.getSnapshot({
                     ...view,
                     frontendName: 'main',
-                    outstandingCommandIds: [],
+                    authentication: { userId: 'usr_pinned' },
+                    pendingCommandIds: [],
                   }),
                 ).pipe(Effect.flatMap(decodeRpc), Effect.provide(AsyncLive)),
               );
@@ -190,7 +192,7 @@ it('initializes before guards and delivers pinned updates and tombstones indepen
         key: view,
       });
       const outputs = yield* makeAsync(() =>
-        frontend.getCommands({ afterSelectionIndex: 0 }),
+        frontend.getSelectedCommands({ afterSelectionIndex: 0 }),
       ).pipe(Effect.flatMap(decodeRpc));
       expect(
         outputs.commands.map(row => [row.aggregateIndex, row.selectionIndex]),
@@ -199,7 +201,10 @@ it('initializes before guards and delivers pinned updates and tombstones indepen
         [1, 2],
         [1, 3],
       ]);
-      expect(outputs.commands[1]?.resolution).toBeNull();
+      expect(
+        new Set(outputs.commands.map(row => row.selectionHash)).size,
+      ).toBe(3);
+      expect(outputs.commands[1]?.failure).toBeNull();
       const vsc = yield* VersionedServiceChain.getRepo({
         key: serviceKey,
       });
@@ -219,10 +224,11 @@ it('initializes before guards and delivers pinned updates and tombstones indepen
       ).pipe(Effect.flatMap(decodeRpc));
       expect(
         (yield* makeAsync(() =>
-          replica.getState({
+          replica.getSnapshot({
             ...view,
             frontendName: 'main',
-            outstandingCommandIds: [],
+            authentication: { userId: 'usr_pinned' },
+            pendingCommandIds: [],
           }),
         ).pipe(Effect.flatMap(decodeRpc))).selectionIndex,
       ).toBe(3);
@@ -260,10 +266,11 @@ it('initializes before guards and delivers pinned updates and tombstones indepen
             async () => {
               const state = await Effect.runPromise(
                 makeAsync(() =>
-                  replica.getState({
+                  replica.getSnapshot({
                     ...view,
                     frontendName: 'main',
-                    outstandingCommandIds: [],
+                    authentication: { userId: 'usr_pinned' },
+                    pendingCommandIds: [],
                   }),
                 ).pipe(Effect.flatMap(decodeRpc), Effect.provide(AsyncLive)),
               );
@@ -294,10 +301,11 @@ it('initializes before guards and delivers pinned updates and tombstones indepen
           .toBe(true),
       );
       const state = yield* makeAsync(() =>
-        replica.getState({
+        replica.getSnapshot({
           ...view,
           frontendName: 'main',
-          outstandingCommandIds: [],
+          authentication: { userId: 'usr_pinned' },
+          pendingCommandIds: [],
         }),
       ).pipe(Effect.flatMap(decodeRpc));
       expect(state.aggregateIndex).toBe(1);

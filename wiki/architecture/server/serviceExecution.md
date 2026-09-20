@@ -1,6 +1,6 @@
 ---
 title: Versioned Service Execution and Delivery
-updated: 2026-09-11
+updated: 2026-09-20
 ---
 
 # Versioned Service Execution and Delivery
@@ -38,17 +38,19 @@ sequenceDiagram
     autonumber 6
     VSC->>SelectionVAR: receiver.receive(...)
     autonumber 7
-    SelectionVAR->>SelectionVAC: deltasSubscriber.receive(...)
+    SelectionVAR->>SelectionVAC: selectedCommandsSubscriber.receive(...)
     autonumber 8
-    SelectionVAC-->>Browser: aggregateFrontendCommand / replay-complete
+    SelectionVAC-->>Browser: aggregateSelectedCommand / replay-complete
   and Standalone service frontends
     autonumber 9
     VSC->>FVSR: receiver.receive(...)
     autonumber 10
-    FVSR->>FSC: deltasSubscriber.receive(...)
+    FVSR->>FSC: selectedCommandsSubscriber.receive(...)
     autonumber 11
-    FSC-->>Browser: serviceFrontendCommand / replay-complete
+    FSC-->>Browser: serviceSelectedCommand / replay-complete
   end
+  autonumber 12
+  Browser->>Browser: applyServiceSelectedCommand(...)
 ```
 
 ## Annotated workflow steps
@@ -71,17 +73,23 @@ sequenceDiagram
 6. The same pinned VSC independently delivers complete entries to SelectionVAR.
    - [`VersionedServiceChain.ts`](../../../packages/system-worker/src/VersionedServiceChain/VersionedServiceChain.ts) — Binds a separate typed queue to SelectionVAR subscribers.
    - [`executeTx.ts`](../../../packages/system-worker/src/SelectionVersionedAggregateRepo/execute/executeTx.ts) — Validates source order and applies newer service mutations to enrolled copies while retaining aggregate progress.
-7. SelectionVAR projects its combined resource state and publishes one output into SelectionVAC for every consumed source occurrence.
-   - [`executeTx.ts`](../../../packages/system-worker/src/SelectionVersionedAggregateRepo/execute/executeTx.ts) — Increments `selectionIndex` independently, derives the projected delta, and uses `resolution: null` for service-only output.
+7. SelectionVAR projects its combined resource state and publishes one minimal aggregate selected command into SelectionVAC for every consumed source occurrence.
+   - [`executeTx.ts`](../../../packages/system-worker/src/SelectionVersionedAggregateRepo/execute/executeTx.ts) — increments `selectionIndex` and `selectionHash` independently, derives `delta.upserted` and `delta.deleted`, retains the aggregate watermark, and uses `failure: null` with no completion owner for service-derived output.
 8. The aggregate browser resumes one combined frontend stream by `selectionIndex`.
    - [`onMessage.ts`](../../../packages/system-worker/src/SelectionVersionedAggregateChain/onMessage/onMessage.ts) — Replays the contiguous frontend suffix and reports its frontend completion position.
 9. The existing VSC replica fanout separately feeds pinned FVSR instances for standalone service frontends.
    - [`VersionedServiceChain.ts`](../../../packages/system-worker/src/VersionedServiceChain/VersionedServiceChain.ts) — Retains the FVSR queue and subscriber identity.
    - [`executeTx.ts`](../../../packages/system-worker/src/FrontendVersionedServiceRepo/execute/executeTx.ts) — Replays successful mutations without service programs and commits projected progress for failed and empty positions too.
-10. FVSR publishes through its delta outbox into FSC.
-    - [`receiveDeltas.ts`](../../../packages/system-worker/src/FrontendServiceChain/receiveDeltas/receiveDeltas.ts) — Retains exact contiguous outputs before acknowledgment and live broadcast.
+10. FVSR publishes minimal service selected commands through its `selectedCommands` outbox into FSC.
+    - [`frontendServiceChainDbConfig.ts`](../../../packages/system-worker/src/FrontendServiceChain/frontendServiceChainDbConfig.ts) — defines FSC's durable `commands` table keyed by `serviceIndex`, with `serviceHash` and the complete encoded `IServiceSelectedCommand` output.
+    - [`receiveSelectedCommands.ts`](../../../packages/system-worker/src/FrontendServiceChain/receiveSelectedCommands/receiveSelectedCommands.ts) — validates exact duplicate bytes and contiguous service positions, inserts selected commands before acknowledgment, and then broadcasts live.
 11. A standalone service browser resumes its pinned stream strictly after the captured serviceIndex.
     - [`onMessage.ts`](../../../packages/system-worker/src/FrontendServiceChain/onMessage/onMessage.ts) — Replays a contiguous suffix before transitioning the connection to live delivery.
+12. The browser applies each `IServiceSelectedCommand` in order: resource upserts
+    and deletions commit atomically with the new `serviceIndex` and `serviceHash`.
+    Duplicate positions are ignored, while a gap fails recovery instead of
+    skipping frontend history.
+    - [`applyServiceSelectedCommandTx.ts`](../../../packages/core/src/serviceSession/applyServiceSelectedCommandTx.ts) — enforces exact-next application and atomically advances the service checkpoint.
 
 ## Durable identities and version selection
 
@@ -96,7 +104,7 @@ Worker configuration supplies systemId; the admitted command or capability suppl
 - [`serviceAdmittedChainFixedDORepoConfig.ts`](../../../packages/system-worker/src/ServiceAdmittedChain/serviceAdmittedChainFixedDORepoConfig.ts) — SAC physical identity is independent of service version.
 - [`versionedServiceRepoFixedDORepoConfig.ts`](../../../packages/system-worker/src/VersionedServiceRepo/versionedServiceRepoFixedDORepoConfig.ts) — The materializer selects its fixed resource schema from the bound service slice.
 - [`frontendVersionedServiceRepoFixedDORepoConfig.ts`](../../../packages/system-worker/src/FrontendVersionedServiceRepo/frontendVersionedServiceRepoFixedDORepoConfig.ts) — The frontend replica adds its pinned service version, user, and frontend.
-- [`getState.ts`](../../../packages/system-worker/src/ServiceFrontendApi/getState/getState.ts) — Snapshot requests select the base once, flush admitted progress, and resolve that versioned projection.
+- [`getSnapshot.ts`](../../../packages/system-worker/src/ServiceFrontendApi/getSnapshot/getSnapshot.ts) — snapshot requests select the base once, flush admitted progress, and resolve that versioned projection.
 
 ## Promotion and pinned aggregate delivery
 
@@ -141,10 +149,10 @@ Both aggregate materializers track service progress in `services.lastIndex`, ind
 
 ## Snapshot and failure boundaries
 
-FVSR subscribes its pinned finalized service feed during activation. It maintains service source tables and the preceding projected graph; snapshot reads catch up without re-enrollment. Successful prepared mutations update source state; failed and empty positions still produce one output. Projection failure rolls back the replay page; when returned to fanout, it terminally fails that subscriber. Snapshot resources and serviceIndex are captured together under the execution semaphore, then FSC publication is awaited after releasing it. Tickets carry the snapshot's serviceVersion, and reconnect uses serviceIndex as its only cursor.
+FVSR subscribes its pinned finalized service feed during activation. It maintains service source tables and the preceding projected graph; snapshot reads catch up without re-enrollment. Successful prepared mutations update source state; failed and empty positions still produce one selected command. Each service selected command exposes only `id`, `serviceIndex`, `delta`, and `serviceHash`; payload, failure, mutation journal, and repeated service identity/version do not cross the frontend seam. Projection failure rolls back the replay page; when returned to fanout, it terminally fails that subscriber. Snapshot resources and serviceIndex are captured together under the execution semaphore, then FSC publication is awaited after releasing it. Tickets carry the snapshot's serviceVersion, and reconnect uses the persisted `serviceIndex`/`serviceHash` checkpoint.
 
 - [`onDOActivation.ts`](../../../packages/system-worker/src/FrontendVersionedServiceRepo/onDOActivation/onDOActivation.ts) — Awaits upstream catch-up and enrollment before serving the replica.
-- [`getState.ts`](../../../packages/system-worker/src/FrontendVersionedServiceRepo/getState/getState.ts) — Captures the graph and cursor together and waits for bounded output publication outside execution exclusivity.
+- [`getSnapshot.ts`](../../../packages/system-worker/src/FrontendVersionedServiceRepo/getSnapshot/getSnapshot.ts) — captures the graph and cursor together and waits for bounded selected-command publication outside execution exclusivity.
 - [`createWebSocketTicket.ts`](../../../packages/system-worker/src/ServiceFrontendApi/createWebSocketTicket/createWebSocketTicket.ts) — Requires the matching versioned projection registration and persists the pinned finalized-chain name.
 
 The service subscriber commits supplied admitted envelopes through `executeCommands`. The index-driven `execute` path delegates paging to `subscriber.catchup(serviceIndex)`, then recovers the requested terminal result from the local outbox or retained VSC history. Pulled and pushed rows use the same receive Effect under the owner's execution semaphore; source page requests hold no receiver permit. Empty and fully committed pages succeed, while an uncommitted suffix must begin at `head + 1` and remain contiguous. Input validation precedes writes, domain rejection rolls back one command, and infrastructure failure aborts the complete page transaction.

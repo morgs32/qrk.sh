@@ -15,17 +15,13 @@ import type { initializeGuards } from '../guards/initializeGuards.ts';
 import { EncodedResourceSchema } from '../models/EncodedResourceSchema.ts';
 import type { IAnyModels } from '../models/types.ts';
 
-import { SessionCommandSchema } from './AggregateFrontendCommandSchema.ts';
+import { SessionCommandSchema } from './AggregateSelectedCommandSchema.ts';
 import {
   sessionCommandJournalDrizzleSchema,
   sessionOptimisticAppliedMutationDrizzleSchema,
 } from './sessionCommandShape.ts';
 import { sessionMetadataDrizzleSchema } from './sessionRepoTables.ts';
-import type {
-  IFrontendDelta,
-  IInitializedSessionState,
-  ISessionId,
-} from './types.ts';
+import type { IInitializedSessionState, ISessionId } from './types.ts';
 
 export class Db extends Context.Service<Db, IDb>()(
   'core/src/session/makeAggregateSession/Db',
@@ -36,13 +32,14 @@ export class Db extends Context.Service<Db, IDb>()(
   >('core/src/session/makeAggregateSession/Db.Tx');
 }
 
-/** Commit one local command occurrence, its optimistic mutations, and the next session position together. */
+/** Commit one complete local occurrence and its next position; only live execution retains pending optimism. */
 export const executeCommandTx = makeTx(
   'executeCommandTx',
   Db,
 )(function* <
   COMMAND extends ISessionCommand & Readonly<{ pushIndex: null }>,
 >(props: {
+  settleLocally?: boolean;
   sessionId: ISessionId;
   guards: Effect.Success<
     ReturnType<typeof initializeGuards<never, unknown, unknown>>
@@ -55,7 +52,7 @@ export const executeCommandTx = makeTx(
   chainedAt: Date;
   state: Pick<
     IInitializedSessionState<IAnyModels>,
-    'aggregateIndex' | 'selectionIndex' | 'pushIndex'
+    'aggregateIndex' | 'selectionIndex' | 'selectionHash' | 'pushIndex'
   >;
   command: COMMAND;
 }) {
@@ -107,7 +104,7 @@ export const executeCommandTx = makeTx(
       updated: [],
       deleted: [],
       mutations: [],
-    } satisfies IFrontendDelta;
+    };
     const encodedOccurrence = {
       ...encodedCommand,
       sessionIndex,
@@ -139,6 +136,7 @@ export const executeCommandTx = makeTx(
         nextSessionIndex,
         aggregateIndex: state.aggregateIndex,
         selectionIndex: state.selectionIndex,
+        selectionHash: state.selectionHash,
         pushIndex: state.pushIndex,
       })
       .onConflictDoUpdate({
@@ -261,7 +259,7 @@ export const executeCommandTx = makeTx(
     updated: updatedResources,
     deleted: [...deleted.values()],
     mutations: encodedMutations,
-  } satisfies IFrontendDelta;
+  };
   const encodedOccurrence = {
     ...encodedCommand,
     sessionIndex,
@@ -287,27 +285,30 @@ export const executeCommandTx = makeTx(
       command: commandBytes,
     })
     .run();
-  const encodedMutationJson = yield* Schema.encodeEffect(
-    Schema.fromJsonString(Schema.Array(EncodedAppliedMutationSchema)),
-  )(encodedMutations).pipe(
-    mapParseError({
-      code: 'session-optimistic-mutations-encode-failed',
-      prefix: 'Failed to encode optimistic session mutations',
-    }),
-  );
-  tx.insert(sessionOptimisticAppliedMutationDrizzleSchema)
-    .values({ commandId: command.id, mutations: encodedMutationJson })
-    .onConflictDoUpdate({
-      target: sessionOptimisticAppliedMutationDrizzleSchema.commandId,
-      set: { mutations: sql`excluded.mutations` },
-    })
-    .run();
+  if (!props.settleLocally) {
+    const encodedMutationJson = yield* Schema.encodeEffect(
+      Schema.fromJsonString(Schema.Array(EncodedAppliedMutationSchema)),
+    )(encodedMutations).pipe(
+      mapParseError({
+        code: 'session-optimistic-mutations-encode-failed',
+        prefix: 'Failed to encode optimistic session mutations',
+      }),
+    );
+    tx.insert(sessionOptimisticAppliedMutationDrizzleSchema)
+      .values({ commandId: command.id, mutations: encodedMutationJson })
+      .onConflictDoUpdate({
+        target: sessionOptimisticAppliedMutationDrizzleSchema.commandId,
+        set: { mutations: sql`excluded.mutations` },
+      })
+      .run();
+  }
   tx.insert(sessionMetadataDrizzleSchema)
     .values({
       sessionId,
       nextSessionIndex,
       aggregateIndex: state.aggregateIndex,
       selectionIndex: state.selectionIndex,
+      selectionHash: state.selectionHash,
       pushIndex: state.pushIndex,
     })
     .onConflictDoUpdate({

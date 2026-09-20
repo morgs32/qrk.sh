@@ -1,5 +1,5 @@
 /**
- * AggregateFrontendApi sends the complete local occurrence to AAC and returns
+ * The history-validated live SelectionVAC socket sends the complete local occurrence to AggregateChain and returns
  * its { aggregateIndex, commandId } admission receipt. Browser optimism stays
  * pending until a terminal per-command SelectionVAC output resolves that command ID.
  * VAR owns preparation and contract and aggregate binding guards; SelectionVAR never executes optimism.

@@ -1,6 +1,6 @@
 ---
 title: Aggregate and Service Authentication and Access
-updated: 2026-09-18
+updated: 2026-09-20
 ---
 
 # Aggregate and Service Authentication and Access
@@ -18,12 +18,12 @@ const access = aggregate.authenticate({ signature });
 const frontend = access.authorize({ frontendName, aggregateFrontendLock });
 ```
 
-Services use `gateway.service(...)` and `serviceFrontendLock`. The browser pipelines these capabilities through the existing HTTP batch session. Each operation or reconnect generates a fresh signature; access is not cached across browser operations. Server-side access retains claims privately, and authorization checks current database state on every invocation.
+Services use `gateway.service(...)` and `serviceFrontendLock`. The browser pipelines these capabilities through the existing HTTP batch session. Each HTTP snapshot, ticket, history, or query operation generates a fresh signature; access is not cached across those operations. Aggregate command admission uses the retained authenticated and authorized socket after its exact selection checkpoint reaches live, until that socket closes. Server-side access retains claims privately, and authorization checks current database state on every invocation.
 
 ## Trigger
 
-1. A state fetch, WebSocket-ticket request, or aggregate push generates its current signature and creates a disposable RPC session.
-   - [`fetchAggregateFrontendState.ts`](../../../packages/frontend/src/fetchAggregateFrontendState.ts) — pipelines aggregate selection, authentication, authorization, and state retrieval.
+1. A snapshot fetch, WebSocket-ticket request, or service query generates its current signature and creates a disposable RPC session.
+   - [`fetchAggregateFrontendSnapshot.ts`](../../../packages/frontend/src/fetchAggregateFrontendSnapshot.ts) — pipelines aggregate selection, authentication, authorization, and snapshot retrieval.
    - [`createServiceFrontendWebSocketTicket.ts`](../../../packages/frontend/src/createServiceFrontendWebSocketTicket.ts) — uses the equivalent service chain and disposes the session after the result.
 
 The diagram shows the aggregate path; the service path uses `ServiceApi`, `ServiceAccessApi`, and `ServiceFrontendApi` with the same sequence.
@@ -35,43 +35,67 @@ sequenceDiagram
   participant AggregateApi
   participant AggregateAccessApi
   participant AggregateFrontendApi
-  autonumber
+  autonumber 1
   Session->>GatewayApi: gateway.aggregate(...)
+  autonumber 2
   GatewayApi-->>Session: aggregate capability
+  autonumber 3
   Session->>AggregateApi: aggregate.authenticate(...)
+  autonumber 4
   AggregateApi-->>Session: verified access capability
+  autonumber 5
   Session->>AggregateAccessApi: access.authorize(...)
+  autonumber 6
   AggregateAccessApi-->>Session: authorized frontend capability
-  Session->>AggregateFrontendApi: frontend.getState(...)
+  autonumber 7
+  Session->>AggregateFrontendApi: frontend.getSnapshot(...)
+  autonumber 8
   AggregateFrontendApi-->>Session: structured snapshot result
 ```
 
 ## Annotated workflow steps
 
 1. The browser selects an aggregate or service by publishable key, system name, name, and version.
-   - [`aggregate.ts:21-26`](../../../packages/system-worker/src/GatewayApi/aggregate/aggregate.ts#L21-L26) — decodes the aggregate selector. (`packages/system-worker/src/GatewayApi/aggregate/aggregate.ts:21-26`)
-   - [`service.ts:21-26`](../../../packages/system-worker/src/GatewayApi/service/service.ts#L21-L26) — decodes the service selector. (`packages/system-worker/src/GatewayApi/service/service.ts:21-26`)
+   - [`aggregate.ts:21-26`](../../../packages/system-worker/src/GatewayApi/aggregate/aggregate.ts#L21-L26) — decodes the aggregate selector.
+   - [`service.ts:21-26`](../../../packages/system-worker/src/GatewayApi/service/service.ts#L21-L26) — decodes the service selector.
 2. The gateway validates the key, system, and definition, then returns a capability bound to that version.
-   - [`aggregate.ts:49-54`](../../../packages/system-worker/src/GatewayApi/aggregate/aggregate.ts#L49-L54) — binds the aggregate coordinates. (`packages/system-worker/src/GatewayApi/aggregate/aggregate.ts:49-54`)
-   - [`service.ts:47-52`](../../../packages/system-worker/src/GatewayApi/service/service.ts#L47-L52) — binds the service coordinates. (`packages/system-worker/src/GatewayApi/service/service.ts:47-52`)
+   - [`aggregate.ts:49-54`](../../../packages/system-worker/src/GatewayApi/aggregate/aggregate.ts#L49-L54) — binds the aggregate coordinates.
+   - [`service.ts:47-52`](../../../packages/system-worker/src/GatewayApi/service/service.ts#L47-L52) — binds the service coordinates.
 3. The browser submits a fresh signature to the selected capability.
-   - [`authenticate.ts:28-33`](../../../packages/system-worker/src/AggregateApi/authenticate/authenticate.ts#L28-L33) — runs aggregate authentication. (`packages/system-worker/src/AggregateApi/authenticate/authenticate.ts:28-33`)
-   - [`authenticate.ts:28-33`](../../../packages/system-worker/src/ServiceApi/authenticate/authenticate.ts#L28-L33) — runs service authentication. (`packages/system-worker/src/ServiceApi/authenticate/authenticate.ts:28-33`)
+   - [`authenticate.ts:28-33`](../../../packages/system-worker/src/AggregateApi/authenticate/authenticate.ts#L28-L33) — runs aggregate authentication.
+   - [`authenticate.ts:28-33`](../../../packages/system-worker/src/ServiceApi/authenticate/authenticate.ts#L28-L33) — runs service authentication.
 4. Successful authentication returns access with private verified claims and selection.
-   - [`authenticate.ts:32-37`](../../../packages/system-worker/src/AggregateApi/authenticate/authenticate.ts#L32-L37) — constructs aggregate access. (`packages/system-worker/src/AggregateApi/authenticate/authenticate.ts:32-37`)
-   - [`authenticate.ts:32-37`](../../../packages/system-worker/src/ServiceApi/authenticate/authenticate.ts#L32-L37) — constructs service access. (`packages/system-worker/src/ServiceApi/authenticate/authenticate.ts:32-37`)
+   - [`authenticate.ts:32-37`](../../../packages/system-worker/src/AggregateApi/authenticate/authenticate.ts#L32-L37) — constructs aggregate access.
+   - [`authenticate.ts:32-37`](../../../packages/system-worker/src/ServiceApi/authenticate/authenticate.ts#L32-L37) — constructs service access.
 5. The browser requests authorization for a frontend name and lock. Identity and version cannot be resubmitted.
-   - [`authorize.ts:36-41`](../../../packages/system-worker/src/AggregateAccessApi/authorize/authorize.ts#L36-L41) — rejects extra aggregate authorization fields. (`packages/system-worker/src/AggregateAccessApi/authorize/authorize.ts:36-41`)
-   - [`authorize.ts:32-37`](../../../packages/system-worker/src/ServiceAccessApi/authorize/authorize.ts#L32-L37) — rejects extra service authorization fields. (`packages/system-worker/src/ServiceAccessApi/authorize/authorize.ts:32-37`)
+   - [`authorize.ts:36-41`](../../../packages/system-worker/src/AggregateAccessApi/authorize/authorize.ts#L36-L41) — rejects extra aggregate authorization fields.
+   - [`authorize.ts:32-37`](../../../packages/system-worker/src/ServiceAccessApi/authorize/authorize.ts#L32-L37) — rejects extra service authorization fields.
 6. Access checks the current database authorization and matching target, then returns the frontend API.
-   - [`authorize.ts:65-70`](../../../packages/system-worker/src/AggregateAccessApi/authorize/authorize.ts#L65-L70) — invokes aggregate authorization with bound claims. (`packages/system-worker/src/AggregateAccessApi/authorize/authorize.ts:65-70`)
-   - [`authorize.ts:53-58`](../../../packages/system-worker/src/ServiceAccessApi/authorize/authorize.ts#L53-L58) — invokes service authorization with bound claims. (`packages/system-worker/src/ServiceAccessApi/authorize/authorize.ts:53-58`)
+   - [`authorize.ts:65-70`](../../../packages/system-worker/src/AggregateAccessApi/authorize/authorize.ts#L65-L70) — invokes aggregate authorization with bound claims.
+   - [`authorize.ts:53-58`](../../../packages/system-worker/src/ServiceAccessApi/authorize/authorize.ts#L53-L58) — invokes service authorization with bound claims.
 7. The browser invokes its frontend operation.
-   - [`AggregateFrontendApi.ts:150-155`](../../../packages/system-worker/src/AggregateFrontendApi/AggregateFrontendApi.ts#L150-L155) — delegates the aggregate state read. (`packages/system-worker/src/AggregateFrontendApi/AggregateFrontendApi.ts:150-155`)
-   - [`ServiceFrontendApi.ts:66-71`](../../../packages/system-worker/src/ServiceFrontendApi/ServiceFrontendApi.ts#L66-L71) — delegates the service state read. (`packages/system-worker/src/ServiceFrontendApi/ServiceFrontendApi.ts:66-71`)
+   - [`AggregateFrontendApi.ts:155-161`](../../../packages/system-worker/src/AggregateFrontendApi/AggregateFrontendApi.ts#L155-L161) — delegates the aggregate snapshot read with `pendingCommandIds`.
+   - [`ServiceFrontendApi.ts:65-71`](../../../packages/system-worker/src/ServiceFrontendApi/ServiceFrontendApi.ts#L65-L71) — delegates the service snapshot read.
 8. The operation returns its existing structured result. The browser disposes the RPC session afterward.
-   - [`getState.ts:39-44`](../../../packages/system-worker/src/AggregateFrontendApi/getState/getState.ts#L39-L44) — runs the aggregate snapshot operation. (`packages/system-worker/src/AggregateFrontendApi/getState/getState.ts:39-44`)
-   - [`getState.ts:51-56`](../../../packages/system-worker/src/ServiceFrontendApi/getState/getState.ts#L51-L56) — runs the service snapshot operation. (`packages/system-worker/src/ServiceFrontendApi/getState/getState.ts:51-56`)
+   - [`getSnapshot.ts:40-55`](../../../packages/system-worker/src/AggregateFrontendApi/getSnapshot/getSnapshot.ts#L40-L55) — runs the aggregate snapshot operation with the capability-bound owner and pending IDs.
+   - [`getSnapshot.ts:53-68`](../../../packages/system-worker/src/ServiceFrontendApi/getSnapshot/getSnapshot.ts#L53-L68) — runs the service snapshot operation.
+
+## Authorized recovery operations
+
+The same authorized capabilities expose HTTP recovery history without adding
+owner fields to the request. `AggregateFrontendApi.getSelectedCommands` accepts
+only `{ afterSelectionIndex, aggregateVersion }` and returns
+`{ commands: IAggregateSelectedCommand[], tip }`; the capability supplies
+`systemId`, aggregate identity, selection path, authentication, frontend name,
+and lock. `ServiceFrontendApi.getSelectedCommands` analogously accepts only
+`{ afterServiceIndex, serviceVersion }`, returns
+`{ commands: IServiceSelectedCommand[], tip }`, and filters every returned
+delta through the capability-bound service frontend lock. Invalid arguments,
+unavailable versions, chain lookup failures, and retained replay failures stay
+encoded in the normal RPC result.
+
+- [`getSelectedCommands.ts`](../../../packages/system-worker/src/AggregateFrontendApi/getSelectedCommands/getSelectedCommands.ts) — validates the aggregate cursor/version and reads the capability-bound SelectionVAC suffix.
+- [`getSelectedCommands.ts`](../../../packages/system-worker/src/ServiceFrontendApi/getSelectedCommands/getSelectedCommands.ts) — validates the service cursor/version, reads FSC history, and filters selected deltas before returning them.
 
 ## Authentication and failure boundaries
 
@@ -113,8 +137,27 @@ Signers return decoded values. Authentication validates the signature against `S
 
 Bootstrap encodes incoming claims before canonical hashing and SQLite backup persistence. Offline reopen validates the encoded partition identity, then decodes claims before publishing session state. Reconnect encodes fresh claims before comparing hashes; it cannot silently move pending commands to a different identity. Commands retain their creation-time encoded claims, while local and authoritative application guards receive decoded claims. A locally matching backup hash is a consistency check, not proof of authenticity.
 
-Service snapshots filter by the admitted lock. Live WebSocket delivery, WebSocket replay, and HTTP replay filter every complete command's resource delta using that connection or capability's lock. Shared materialization does not treat `frontendName` as a unique subset. Empty selected deltas retain their service index, and deletion and duplicate/restart handling preserve contiguous progress.
+Service snapshots filter by the admitted lock. Live WebSocket delivery,
+WebSocket replay, and HTTP replay filter each minimal service selected command's
+resource changes using that connection or capability's lock. Shared
+materialization does not treat `frontendName` as a unique subset. Empty
+selected deltas retain their service index, and deletion and duplicate/restart
+handling preserve contiguous progress.
 
 - [`makeRuntime.ts`](../../../packages/react/src/makeRuntime/makeRuntime.ts) — composes typed app-bound frontend authoring.
 - [`bootstrapAggregateFrontendSession.ts`](../../../packages/frontend/src/bootstrapAggregateFrontendSession.ts), [`bootstrapServiceFrontendSession.ts`](../../../packages/frontend/src/bootstrapServiceFrontendSession.ts) — durable encoding and decoded restoration.
-- [`filterServiceFrontendCommand.ts`](../../../packages/core/src/serviceSession/filterServiceFrontendCommand.ts) — subset filtering without discarding command provenance or progress.
+- [`filterServiceSelectedCommand.ts`](../../../packages/core/src/serviceSession/filterServiceSelectedCommand.ts) — filters selected resource changes without changing command identity, service position, or `serviceHash`.
+
+## Retained aggregate admission
+
+The aggregate socket retains `{ systemId, aggregateId, aggregateName,
+aggregateVersion, selectionPath, authentication, frontendName,
+aggregateFrontendLock }`. SystemRepo supplies `systemId` through the SelectionVAC
+key selected from the consumed ticket; the remaining fields come from that
+ticket and are checked against the Repo key before connection state is installed.
+Only a connection whose exact `{ selectionIndex, selectionHash }` resume has
+completed may submit. Closing it ends admission; recovery obtains a new ticket
+and validates history again before sending another command.
+
+- [`onConnect.ts`](../../../packages/system-worker/src/SelectionVersionedAggregateChain/onConnect/onConnect.ts) — validates and retains ticket-bound state.
+- [`onMessage.ts`](../../../packages/system-worker/src/SelectionVersionedAggregateChain/onMessage/onMessage.ts) — validates resume and admits unchanged occurrences against the live connection.

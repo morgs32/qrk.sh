@@ -3,7 +3,7 @@ import { Schema } from 'effect';
 
 import { EncodedAppliedMutationSchema } from '../contracts/encodeAppliedMutation.ts';
 
-import { AggregateFrontendJournalCommandSchema } from './AggregateFrontendCommandSchema.ts';
+import { AggregateFrontendJournalCommandSchema } from './AggregateSelectedCommandSchema.ts';
 
 export const sessionCommandJournalShape = {
   id: primitives.primaryKey({ abbreviation: 'cmd' }),

@@ -18,13 +18,14 @@ const emptyRequest = {
   traceContext: null,
 } satisfies Parameters<SystemApi['healthcheck']>[0];
 
-const frontendStateRequest = {
+const frontendSnapshotRequest = {
   args: [
     {
       aggregateId: 'acct_1',
       aggregateName: 'shopping',
       aggregateVersion: '1.0.0',
       selectionPath: 'user_1',
+      authentication: {},
       frontendName: 'web',
       aggregateFrontendLock: {
         systemName: 'shopping',
@@ -38,7 +39,7 @@ const frontendStateRequest = {
     },
   ],
   traceContext: null,
-} satisfies Parameters<SystemApi['getAggregateFrontendState']>[0];
+} satisfies Parameters<SystemApi['getAggregateFrontendSnapshot']>[0];
 
 const serviceQueryRequest = {
   args: [
@@ -80,7 +81,7 @@ const repoTableRequest = {
 } satisfies Parameters<SystemApi['getSystemRepoTableRows']>[0];
 
 void systemApi.healthcheck(emptyRequest);
-void systemApi.getAggregateFrontendState(frontendStateRequest);
+void systemApi.getAggregateFrontendSnapshot(frontendSnapshotRequest);
 void systemApi.executeServiceQuery(serviceQueryRequest);
 void systemApi.executeAggregateCommand(finalizeAggregateRequest);
 void systemApi.executeSelectQuery(selectQueryRequest);
@@ -113,7 +114,7 @@ void systemApi.initialize(emptyRequest);
 
 void systemApiFailure.healthcheck(emptyRequest);
 void systemApiFailure.initialize(emptyRequest);
-void systemApiFailure.getAggregateFrontendState(frontendStateRequest);
+void systemApiFailure.getAggregateFrontendSnapshot(frontendSnapshotRequest);
 void systemApiFailure.executeServiceQuery(serviceQueryRequest);
 void systemApiFailure.executeAggregateCommand(finalizeAggregateRequest);
 void systemApiFailure.executeSelectQuery(selectQueryRequest);
@@ -151,7 +152,7 @@ void systemApiFailure.checkSystemSpec(emptyRequest);
 
 void systemApiUnion.healthcheck(emptyRequest);
 void systemApiUnion.initialize(emptyRequest);
-void systemApiUnion.getAggregateFrontendState(frontendStateRequest);
+void systemApiUnion.getAggregateFrontendSnapshot(frontendSnapshotRequest);
 void systemApiUnion.getFrontendVersionedServiceRepos(emptyRequest);
 void systemApiUnion.getFrontendVersionedServiceRepoTableRows(repoTableRequest);
 void systemApiUnion.getFrontendServiceChains(emptyRequest);

@@ -8,7 +8,7 @@ import { makeProvisionedInMemoryWasmSqliteDb } from '@zerospin/core/drizzle/make
 import { getFrontendDbModels } from '@zerospin/core/frontendController/getFrontendDbModels';
 import { initializeGuards as initializeFrontendGuards } from '@zerospin/core/frontendController/initializeGuards';
 import { prefixId } from '@zerospin/core/models/prefixId';
-import { applyAggregateFrontendState } from '@zerospin/core/session/applyAggregateFrontendState';
+import { applyAggregateFrontendSnapshot } from '@zerospin/core/session/applyAggregateFrontendSnapshot';
 import { makeAggregateSession } from '@zerospin/core/session/makeAggregateSession';
 import { sessionCommandJournalDrizzleSchema } from '@zerospin/core/session/sessionCommandShape';
 import { sessionRepoTables } from '@zerospin/core/session/sessionRepoTables';
@@ -129,24 +129,24 @@ describe('ProductList', () => {
           otherTables: sessionRepoTables,
         });
         const db = yield* makeProvisionedInMemoryWasmSqliteDb({ dbConfig });
-        yield* applyAggregateFrontendState({
+        yield* applyAggregateFrontendSnapshot({
           db,
           frontend: session.frontend,
           sessionId: session.sessionId!,
           models,
           aggregateId: 'acct_1',
           authentication: { clerkUserId, aggregateId: 'acct_1' },
-          systemId: 'sys_test',
-          frontendState: {
+          snapshot: {
             aggregateId: 'acct_1',
             aggregateName: WebV2.aggregateName,
             authentication: { clerkUserId, aggregateId: 'acct_1' },
             frontendName: WebV2.name,
             selectionIndex: 0,
-            systemId: 'sys_test',
+            selectionHash:
+              'd0e2a11643c9bf23800218703ef6f12a058b941fca272a34c57c14ea2a5e62dc',
             aggregateIndex: 0,
             aggregateVersion: WebV2.aggregateVersion,
-            resolutions: [],
+            selectedCommands: [],
             resources: [
               {
                 id: userRowId,
@@ -165,7 +165,6 @@ describe('ProductList', () => {
           aggregateName: WebV2.aggregateName,
           authentication: { clerkUserId, aggregateId: 'acct_1' },
           frontendName: WebV2.name,
-          systemId: 'sys_test',
           aggregateFrontendLockKey: 'a'.repeat(64),
           db,
           schema: dbConfig.schema,
@@ -173,6 +172,8 @@ describe('ProductList', () => {
           isInitialized: true,
           aggregateIndex: 0,
           selectionIndex: 0,
+          selectionHash:
+            'd0e2a11643c9bf23800218703ef6f12a058b941fca272a34c57c14ea2a5e62dc',
           pushIndex: 0,
           sessionStatus: 'current',
           backupState: { status: 'ready', failure: null },

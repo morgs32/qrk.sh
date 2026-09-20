@@ -17,12 +17,13 @@ Main-thread SQLite commits and IndexedDB backup commits are deliberately separat
 
 ## Trigger
 
-1. The first mounted frontend lazily requests the app Provider's shared page
-   connection. Concurrent requests share acquisition. Unmounting a frontend
-   does not close the connection; app teardown closes frontend scopes first.
-   - [`makeFrontendProvider.tsx`](../../../packages/react/src/makeSession/makeSession.ts) — mounts the frontend and shares the app's `backupAcquisition` Effect into session acquisition.
-   - [`acquireAggregateFrontendSession.ts`](../../../packages/react/src/makeSession/makeSession.ts) — passes the shared backup worker into aggregate bootstrap.
-   - [`acquireServiceFrontendSession.ts`](../../../packages/react/src/makeSession/makeSession.ts) — passes the shared backup worker into service bootstrap.
+1. The first live or standalone session claim lazily requests its application
+   runtime's shared connection. Concurrent claims share acquisition. Releasing
+   a session releases only its backup-key claim; runtime disposal closes the
+   connection after its session scopes close.
+   - [`BrowserBackup.ts`](../../../packages/react/src/BrowserBackup/BrowserBackup.ts) — caches one lazy acquisition in the runtime scope and rejects conflicting live claims for the same exact backup key.
+   - [`makeSession.ts`](../../../packages/react/src/makeSession/makeSession.ts) — passes one scoped claim operation into aggregate and service bootstrap.
+   - [`makeStandaloneSession.ts`](../../../packages/react/src/makeStandaloneSession/makeStandaloneSession.ts) — claims its standalone backup key through the same runtime service.
 2. The connection opens `/__zerospin/backup-worker.js` with the name
    `zerospin-backups`; readiness waits for storage initialization under the
    worker's exclusive `zerospin-backups-lifetime` lock.
@@ -30,7 +31,7 @@ Main-thread SQLite commits and IndexedDB backup commits are deliberately separat
    - [`backupWorker.entry.ts`](../../../packages/backup-worker/src/backupWorker.entry.ts) — holds the exclusive lifetime lock and creates one asynchronous SQLite runtime.
 3. Each successful main-thread SQLite transaction synchronously invokes the installed commit callback after `COMMIT`. The callback marks backup state pending and enqueues captured SQL without awaiting the backup worker, so the originating command result remains a local-commit result.
    - [`WaSqliteSession.ts:345-374`](../../../packages/core/src/drizzle/WaSqliteSession.ts#L345-L374) — calls `onCommittedTransaction` after the synchronous SQLite commit and returns the transaction result immediately. (`packages/core/src/drizzle/WaSqliteSession.ts:345-374`)
-   - [`bootstrapAggregateFrontendSession.ts:595-605`](../../../packages/frontend/src/bootstrapAggregateFrontendSession.ts#L595-L605) — sets `backupState` to `pending` and offers the captured statements to the asynchronous FIFO. (`packages/frontend/src/bootstrapAggregateFrontendSession.ts:595-605`)
+   - [`bootstrapAggregateFrontendSession.ts`](../../../packages/frontend/src/bootstrapAggregateFrontendSession.ts) — sets `backupState` to `pending` and offers the captured statements to the asynchronous FIFO.
 
 ```mermaid
 sequenceDiagram
@@ -117,7 +118,7 @@ sequenceDiagram
     - [`acquireAggregateFrontendSession.ts`](../../../packages/react/src/makeSession/makeSession.ts) — moves DevTools registrations to the current ID while retaining mounted sessions and tracks the actual registered ID for cleanup.
 11. Committed main-thread SQL enters the affected frontend's asynchronous FIFO. The local transaction and its caller do not await this dispatch.
     - [`WaSqliteSession.ts:345-374`](../../../packages/core/src/drizzle/WaSqliteSession.ts#L345-L374) — invokes the capture callback after `COMMIT` while retaining a synchronous transaction result. (`packages/core/src/drizzle/WaSqliteSession.ts:345-374`)
-    - [`bootstrapAggregateFrontendSession.ts:595-605`](../../../packages/frontend/src/bootstrapAggregateFrontendSession.ts#L595-L605) — marks backup pending and enqueues committed statements for later delivery. (`packages/frontend/src/bootstrapAggregateFrontendSession.ts:595-605`)
+    - [`bootstrapAggregateFrontendSession.ts`](../../../packages/frontend/src/bootstrapAggregateFrontendSession.ts) — marks backup pending and enqueues committed statements for later delivery.
 12. The page mutation boundary checks capability revocation and connection
     generation before dispatch and classifies lost replies as uncertainty.
     - [`acquireBackupWorker.ts`](../../../packages/backup-worker/src/acquireBackupWorker/acquireBackupWorker.ts) — rejects expired database capabilities and races dispatched operations against connection loss without retrying SQL.
@@ -128,22 +129,21 @@ sequenceDiagram
     - [`applyStatements.ts:31-64`](../../../packages/backup-worker/src/BackupDbApi/applyStatements/applyStatements.ts#L31-L64) — returns from the uninterruptible worker turn only after `COMMIT` succeeds or rollback settles. (`packages/backup-worker/src/BackupDbApi/applyStatements/applyStatements.ts:31-64`)
     - [`dispose.ts`](../../../packages/backup-worker/src/BackupDbApi/dispose/dispose.ts) — checks target identity again before removing the map entry or closing the SQLite handle.
 15. After a successful acknowledgement, the frontend publishes `backupState: ready` only when no later captured transaction remains queued. While backup state is pending, a refresh recovers the last acknowledged prefix and is not guaranteed to include the latest local commit.
-    - [`bootstrapAggregateFrontendSession.ts:1040-1070`](../../../packages/frontend/src/bootstrapAggregateFrontendSession.ts#L1040-L1070) — serializes queued batches and changes backup state to `ready` only after `applyStatements` succeeds and the FIFO is empty. (`packages/frontend/src/bootstrapAggregateFrontendSession.ts:1040-1070`)
+    - [`bootstrapAggregateFrontendSession.ts`](../../../packages/frontend/src/bootstrapAggregateFrontendSession.ts) — serializes queued batches and changes backup state to `ready` only after `applyStatements` succeeds and the FIFO is empty.
 
 ## Exact keys and fixed storage
 
-The aggregate key contains `{ systemId, authenticationHash, aggregateId, aggregateName, aggregateVersion,
+The aggregate key contains `{ authenticationHash, aggregateId, aggregateName, aggregateVersion,
 frontendName, aggregateFrontendLockKey }`; the service key contains
-`{ systemId, authenticationHash, serviceName, serviceVersion, frontendName, serviceFrontendLockKey }`.
-Worker configuration supplies systemId; authentication supplies aggregateId
-and the canonical hash of full encoded claims. An offline locator retains those
+`{ authenticationHash, serviceName, serviceVersion, frontendName, serviceFrontendLockKey }`.
+Authentication supplies aggregateId and the canonical hash of full encoded claims. An offline locator retains those
 coordinates. Authored frontend controllers supply names, versions, and the complete
 canonical frontend lock hash.
 Route parameters encode separators, percent signs, and Unicode. Empty values,
 dot segments, controls, malformed Unicode, and oversized keys are rejected
 before they can alias another logical VFS path.
 
-- [`makeAggregateFrontendBackupKey.ts`](../../../packages/frontend/src/makeAggregateFrontendBackupKey.ts) — builds `/zerospin/:systemId/:authenticationHash/aggregate/:aggregateName/:aggregateVersion/:aggregateId/:frontendName/:aggregateFrontendLockKey/backup.sqlite3` with RoutePattern.
+- [`makeAggregateFrontendBackupKey.ts`](../../../packages/frontend/src/makeAggregateFrontendBackupKey.ts) — builds `/zerospin/:authenticationHash/aggregate/:aggregateName/:aggregateVersion/:aggregateId/:frontendName/:aggregateFrontendLockKey/backup.sqlite3` with RoutePattern.
 - [`makeServiceFrontendBackupKey.ts`](../../../packages/frontend/src/makeServiceFrontendBackupKey.ts) — builds the corresponding `/service/:serviceName/:serviceVersion/:frontendName/:serviceFrontendLockKey/backup.sqlite3` route.
 - [`acquireDb.ts`](../../../packages/backup-worker/src/BackupWorkerApi/acquireDb/acquireDb.ts) — rejects noncanonical paths and keys whose UTF-8 length reaches the VFS's 4096-byte path limit.
 
@@ -152,6 +152,28 @@ VFS's fixed layout. Existing incompatible layouts are rejected before an
 IndexedDB upgrade can run.
 
 - [`backupWorker.entry.ts`](../../../packages/backup-worker/src/backupWorker.entry.ts) — validates the existing version, stores, and key paths before VFS initialization.
+
+## Standalone documents
+
+Standalone sessions share the runtime-owned backup connection but never open a
+backend transport. Their commands retain complete local occurrences and inverse
+mutations without active optimistic rows. Local commit remains separate from
+backup acknowledgement. Restore validates the saved encoded authentication;
+reset explicitly replaces a document with the constructor's original seed.
+
+- [`makeStandaloneSession.ts`](../../../packages/react/src/makeStandaloneSession/makeStandaloneSession.ts) — owns authentication validation, original-seed reset, revocable ownership, and backup repair without backend delivery.
+- [`executeCommandTx.ts`](../../../packages/core/src/session/executeCommandTx.ts) — retains complete command history while omitting pending optimism for local settlement.
+- [`stageCommand.ts`](../../../packages/core/src/session/stageCommand.ts) — excludes delivery for locally settled execution resources.
+
+Visibility, focus, and pageshow reacquire superseded standalone ownership while
+retaining the live database handle. Terminal backup failure leaves local data
+readable and staging blocked; explicit disposal and initialization restore the
+last durable baseline. React owns initialization after commit, reports startup
+errors to an error boundary, and disposes only the hook's admitted ownership.
+
+- [`makeStandaloneSession.ts`](../../../packages/react/src/makeStandaloneSession/makeStandaloneSession.ts) — fences obsolete ownership, renews execution identity, and retains failed-session data until explicit recovery.
+- [`useInitializeStandaloneSession.ts`](../../../packages/react/src/useInitializeStandaloneSession/useInitializeStandaloneSession.ts) — owns React startup and cleanup without a signature callback.
+- [`standalone-session.playwright.spec.ts`](../../../examples/shopping/tests/browser/standalone-session.playwright.spec.ts) — exercises real IndexedDB persistence, authentication rejection, takeover, interrupted acquisition, terminal failure, worker termination, React ownership, and DevTools registration.
 
 ## Uncertainty, revocation, and worker loss
 
@@ -187,5 +209,5 @@ offline restart.
 
 - [Main-thread frontend session bootstrap and recovery](./bootstrapBrowserSession.md)
 - [Aggregate frontend submission](./PushSequence.md)
-- [Frontend finalized-command WebSocket](./FrontendWebSocket.md)
+- [Frontend selected-command WebSocket](./FrontendWebSocket.md)
 - [Exact frontend authentication](./Authentication.md)

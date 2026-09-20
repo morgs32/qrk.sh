@@ -33,7 +33,7 @@ export type IBackupWorker = Readonly<{
   onDisconnect(listener: () => void): () => void;
 }>;
 
-/** One page resource; connection loss invalidates its capabilities without replaying SQL. */
+/** One scoped connection; connection loss invalidates its capabilities without replaying SQL. */
 export const acquireBackupWorker = Effect.fn('acquireBackupWorker')(
   function* (): Effect.fn.Return<IBackupWorker, IAnyError, Scope.Scope> {
     if (

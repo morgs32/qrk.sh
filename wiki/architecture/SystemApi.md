@@ -5,7 +5,7 @@ updated: 2026-09-10
 
 # System API
 
-SystemApi accepts the executing bundle's authored spec, accepts direct aggregate and service commands, reads registered Repos. Frontend admission uses AggregateFrontendApi.
+SystemApi accepts the executing bundle's authored spec, accepts direct aggregate and service commands, reads registered Repos. Frontend admission uses the history-validated live SelectionVAC socket.
 
 ## Trigger
 

@@ -24,9 +24,10 @@ import { dutils } from '../utils/dutils.ts';
 import { encodeRpc } from '../utils/encodeRpc.ts';
 import { getByKeyOrThrow } from '../utils/getByKeyOrThrow.ts';
 
+import type { SessionCommandSchema } from './AggregateSelectedCommandSchema.ts';
 import { Db, executeCommandTx } from './executeCommandTx.ts';
 import { getAggregateSessionExecutionResources } from './makeAggregateSession.ts';
-import type { IFrontendDelta, ISession } from './types.ts';
+import type { IAggregateSession } from './types.ts';
 
 /**
  * Stage a local aggregate command: validate, guard, optimistic mutate, and
@@ -40,7 +41,7 @@ export function stageCommand<
   FRONTEND extends IAggregateFrontendController,
   CONTRACT_NAME extends keyof FRONTEND['contracts'] & string,
 >(props: {
-  session: ISession<FRONTEND>;
+  session: IAggregateSession<FRONTEND>;
   contractName: CONTRACT_NAME;
   payload: InferPayloadInput<
     NonNullable<
@@ -50,7 +51,7 @@ export function stageCommand<
 }) {
   const { session, contractName, payload } = props;
   const resources = getAggregateSessionExecutionResources(
-    session as ISession<IAggregateFrontendController>,
+    session as IAggregateSession<IAggregateFrontendController>,
   );
   if (resources === undefined) {
     return Effect.runSync(
@@ -76,7 +77,7 @@ export function stageCommand<
           FRONTEND['contracts'][CONTRACT_NAME]['contract'],
           FRONTEND['contracts'][CONTRACT_NAME]['contract']['version']
         >,
-        IFrontendDelta
+        NonNullable<Schema.Schema.Type<typeof SessionCommandSchema>['delta']>
       > &
         Readonly<{ sessionIndex: number }>;
       encodedCommand: IEncodedCommand<
@@ -85,7 +86,7 @@ export function stageCommand<
             FRONTEND['contracts'][CONTRACT_NAME]['contract'],
             FRONTEND['contracts'][CONTRACT_NAME]['contract']['version']
           >,
-          IFrontendDelta
+          NonNullable<Schema.Schema.Type<typeof SessionCommandSchema>['delta']>
         > &
           Readonly<{ sessionIndex: number; pushIndex: null }>
       > | null;
@@ -157,6 +158,7 @@ export function stageCommand<
     );
 
     return yield* executeCommandTx({
+      settleLocally: resources.settleLocally === true,
       guards,
       authentication: state.authentication,
       sessionId,
@@ -170,7 +172,10 @@ export function stageCommand<
 
   let committedCommand:
     | IEncodedCommand<
-        IChainedCommand<ISessionCommand, IFrontendDelta> &
+        IChainedCommand<
+          ISessionCommand,
+          NonNullable<Schema.Schema.Type<typeof SessionCommandSchema>['delta']>
+        > &
           Readonly<{ sessionIndex: number; pushIndex: null }>
       >
     | undefined;
@@ -192,6 +197,7 @@ export function stageCommand<
 
   if (
     executeAggregateFrontendCommand !== undefined &&
+    resources.settleLocally !== true &&
     committedCommand !== undefined
   ) {
     const command = committedCommand;

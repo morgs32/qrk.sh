@@ -14,7 +14,6 @@ import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import { zerospinDevtoolsStore } from '@zerospin/devtools/zerospinDevtoolsStore';
 import { ZerospinError, type IAnyError } from '@zerospin/error';
 import {
-  makeBackup,
   makeRuntime,
   makeSession,
   stageCommand,
@@ -66,12 +65,10 @@ const adverseRuntimeLayer = Layer.mergeAll(
   Layer.succeed(PublishableKey, Redacted.make('pk_test')),
 );
 const adverseRuntime = makeRuntime({ layer: adverseRuntimeLayer });
-const backup = makeBackup();
 
 const shopperSession = makeSession({
   frontend: Shopper,
   runtime: adverseRuntime,
-  backup,
   systemName: 'shopping',
 });
 
@@ -104,8 +101,7 @@ afterEach(() => {
 
 afterAll(async () => {
   await shopperSession.dispose();
-  await backup.dispose();
-  await adverseRuntime.dispose();
+    await adverseRuntime.dispose();
 });
 
 describe('main-thread IndexedDB adverse acceptance', () => {

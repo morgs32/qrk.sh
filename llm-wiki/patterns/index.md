@@ -94,6 +94,7 @@ Keyword → pattern file routing. Code shows good; `@bad` JSDoc tags document an
 
 | Keywords                                    | File                                               |
 | ------------------------------------------- | -------------------------------------------------- |
+| test organization, runtime lanes, Node, workerd, React, Playwright, typecheck | `testing/runtime-lanes.md` |
 | test DB fixture, assertion readback, makeTx | `testing/direct-db-in-test-fixtures-not-maketx.ts` |
 
 ## cli

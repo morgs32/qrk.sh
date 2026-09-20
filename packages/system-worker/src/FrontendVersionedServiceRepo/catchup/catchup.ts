@@ -5,7 +5,7 @@ import { Effect } from 'effect';
 import type { FrontendVersionedServiceRepo } from '../FrontendVersionedServiceRepo.js';
 
 /*
- * Snapshot reads replay a bounded finalized suffix through the same subscriber
+ * Snapshot reads replay a bounded selected-command suffix through the same subscriber
  * that receives live delivery, without changing its activation-owned subscription.
  *
  * 1. Catch up without holding the local execution permit.

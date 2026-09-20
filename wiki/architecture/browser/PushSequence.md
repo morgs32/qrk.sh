@@ -16,38 +16,64 @@ Server execution starts in VAR after AC admission. The browser owns optimism; Se
 sequenceDiagram
   participant Browser
   participant AggregateSession
-  participant AggregateFrontendApi
   participant AggregateChain
   participant SelectionVersionedAggregateChain
   autonumber 1
   Browser->>AggregateSession: stageCommand(...)
   Note over Browser,AggregateSession: Result reports the local SQLite commit only; backup and backend work remain asynchronous
   autonumber 2
-  AggregateSession->>AggregateFrontendApi: frontendApi.pushCommand(...)
+  AggregateSession->>SelectionVersionedAggregateChain: socket.send(pushAggregateCommand)
   autonumber 3
-  AggregateFrontendApi->>AggregateChain: chain.admitCommands(...)
+  SelectionVersionedAggregateChain->>AggregateChain: chain.admitCommands(...)
   autonumber 4
-  AggregateChain-->>Browser: admission receipt
+  AggregateChain-->>SelectionVersionedAggregateChain: admission receipt
   autonumber 5
-  SelectionVersionedAggregateChain-->>Browser: aggregateFrontendCommand
+  SelectionVersionedAggregateChain-->>Browser: aggregateCommandAdmission
   autonumber 6
-  Browser->>Browser: apply authoritative output and reconcile optimism
+  SelectionVersionedAggregateChain-->>Browser: aggregateSelectedCommand
+  autonumber 7
+  Browser->>Browser: applyAggregateSelectedCommand(...)
 ```
 
 ## Annotated workflow steps
 
 1. Local staging returns `Success` only after committing the complete occurrence, optimistic mutations, and inverse journal. A mutation-generation failure commits a failed occurrence and returns `Failure` with that occurrence in `command`; a failure before commit returns `Failure` without `command`. Both committed outcomes retain the asynchronous delivery handoff. Neither outcome promises that backup persistence or backend admission has completed.
    - [`stageCommand.ts:159-214`](../../../packages/core/src/session/stageCommand.ts#L159-L214) — completes and encodes the synchronous local transaction before launching the optional delivery Effect with `runtime.runFork`. (`packages/core/src/session/stageCommand.ts:159-214`)
-2. The browser submits that complete occurrence through its authenticated frontend capability.
-   - [`pushAggregateFrontendCommand.ts`](../../../packages/frontend/src/pushAggregateFrontendCommand.ts) — Sends the full encoded session command.
-3. The API checks the bound aggregate/user/frontend fields and admits the unchanged input.
-   - [`pushCommand.ts`](../../../packages/system-worker/src/AggregateFrontendApi/pushCommand/pushCommand.ts) — Returns only the assigned aggregate index and command ID.
-4. An admission receipt stops resubmission; it does not resolve optimism.
+2. The browser submits that complete occurrence over its retained live socket, after exact checkpoint validation and replay completion.
+   - [`bootstrapAggregateFrontendSession.ts`](../../../packages/frontend/src/bootstrapAggregateFrontendSession.ts) — Sends the full encoded session command.
+3. SelectionVAC checks the retained connection, configured aggregate version, complete authentication, frontend name, system name, and selected contract before admitting the unchanged input.
+   - [`onMessage.ts`](../../../packages/system-worker/src/SelectionVersionedAggregateChain/onMessage/onMessage.ts) — Returns only the assigned aggregate index and command ID.
+4. AggregateChain returns its durable `{ aggregateIndex, commandId }` receipt.
+   - [`admitCommands.ts`](../../../packages/system-worker/src/AggregateChain/admitCommands/admitCommands.ts) — retains the complete occurrence and recovers identical retries.
+5. SelectionVAC returns the encoded domain result and optional telemetry link on the same socket. A matching admission receipt stops resubmission; it does not resolve optimism.
    - [`bootstrapAggregateFrontendSession.ts`](../../../packages/frontend/src/bootstrapAggregateFrontendSession.ts) — Stores receipt progress in the journal while retaining optimistic mutation rows.
-5. A durable output supplies the per-command delta and complete originating resolution for this view.
-   - [`receiveDeltas.ts`](../../../packages/system-worker/src/SelectionVersionedAggregateChain/receiveDeltas/receiveDeltas.ts) — Validates the resolution target and persists output before broadcasting.
-6. The session rewinds optimism, applies the authoritative delta, resolves that command ID, and replays the remaining optimism in one transaction.
-   - [`applyAggregateFrontendCommandTx.ts`](../../../packages/core/src/session/applyAggregateFrontendCommandTx.ts) — Rejects gaps, ignores committed duplicates, and advances the aggregate cursor after application.
+6. SelectionVAC retains and broadcasts a minimal selected command: opaque command ID, selection and aggregate positions, selected resource delta, private failure when this capability exactly owns completion, and `selectionHash`.
+   - [`receiveSelectedCommands.ts`](../../../packages/system-worker/src/SelectionVersionedAggregateChain/receiveSelectedCommands/receiveSelectedCommands.ts) — validates the selected occurrence and its private owner metadata before retaining it and broadcasting the committed value.
+7. The session rewinds optimism, applies `delta.upserted` and `delta.deleted`, completes the matching command ID, records its failure, and replays the remaining optimism in one transaction.
+   - [`applyAggregateSelectedCommandTx.ts`](../../../packages/core/src/session/applyAggregateSelectedCommandTx.ts) — rejects gaps, ignores committed duplicates, and advances the aggregate and selection cursors after application.
+
+## Synchronous staging and backup durability
+
+`stageCommand` stays synchronous. Its return value reports the local SQLite
+transaction; it is not an awaitable backup flush or a backend acknowledgement.
+The optional delivery callback runs in a separate fiber after that local result
+has been produced.
+
+- [`stageCommand.ts:178-214`](../../../packages/core/src/session/stageCommand.ts#L178-L214) — obtains the encoded local result with `runtime.runSync`, then schedules optional delivery with `runtime.runFork`. (`packages/core/src/session/stageCommand.ts:178-214`)
+
+Committed transactions enqueue their SQL statements for asynchronous backup and
+set `backupState.status` to `pending`. After successful delivery, the backup lane
+publishes `ready` only when its transaction queue is empty. A staging success
+therefore does not by itself promise that an immediate refresh will restore the
+change. Backup progress is observed separately through `backupState`.
+
+- [`bootstrapAggregateFrontendSession.ts`](../../../packages/frontend/src/bootstrapAggregateFrontendSession.ts) — installs the committed-transaction callback that marks backup work pending and enqueues statements.
+- [`bootstrapAggregateFrontendSession.ts`](../../../packages/frontend/src/bootstrapAggregateFrontendSession.ts) — drains statements asynchronously, repairs uncertain writes, and publishes readiness after the queue empties.
+
+A later backup failure is reported through `backupState`; it does not change the
+already returned staging result or undo the local commit.
+
+- [`bootstrapAggregateFrontendSession.ts`](../../../packages/frontend/src/bootstrapAggregateFrontendSession.ts) — handles revocation separately and records other backup failures on the session store.
 
 ## Ownership and execution identity
 
@@ -69,15 +95,37 @@ periods. Admitted occurrences retain `pushIndex` order. `sessionIndex` orders
 commands within their original execution identity and does not reorder pending
 commands from older periods.
 
-- [`applyAggregateFrontendStateTx.ts`](../../../packages/core/src/session/applyAggregateFrontendStateTx.ts) — sorts admitted commands before unadmitted commands and uses SQLite row identity to retain cross-period insertion order.
-- [`applyAggregateFrontendCommandTx.ts`](../../../packages/core/src/session/applyAggregateFrontendCommandTx.ts) — uses the same ordering before rewinding active optimism.
-- [`applyAggregateFrontendCommandTx.ts`](../../../packages/core/src/session/applyAggregateFrontendCommandTx.ts) — reapplies surviving commands in admitted/insertion order after authoritative state changes.
-- [`makeAggregateSession.node.spec.ts`](../../../packages/core/src/session/makeAggregateSession.node.spec.ts) — preserves the latest optimistic update through snapshot and finalized replay after execution indices restart.
+- [`applyAggregateFrontendSnapshotTx.ts`](../../../packages/core/src/session/applyAggregateFrontendSnapshotTx.ts) — sorts admitted commands before unadmitted commands and uses SQLite row identity to retain cross-period insertion order.
+- [`applyAggregateSelectedCommandTx.ts`](../../../packages/core/src/session/applyAggregateSelectedCommandTx.ts) — uses the same ordering before rewinding active optimism.
+- [`applyAggregateSelectedCommandTx.ts`](../../../packages/core/src/session/applyAggregateSelectedCommandTx.ts) — reapplies surviving commands in admitted/insertion order after authoritative changes.
+- [`makeAggregateSession.node.spec.ts`](../../../packages/core/src/session/makeAggregateSession.node.spec.ts) — preserves the latest optimistic update through snapshot and selected-command replay after execution indices restart.
 
 ## Reconnect
 
-A published SelectionVAR snapshot carries `aggregateVersion`, cursor `n`, and complete resolutions for the requested outstanding command IDs. The browser installs that state, retains unresolved local optimism, and consumes SelectionVAC output strictly after `n`.
+A published SelectionVAR snapshot carries `aggregateVersion`, selection cursor
+`n`, and exact-owner `selectedCommands` for requested `pendingCommandIds`
+through `n`. The browser installs `snapshot.resources` first, uses those
+selected commands only to reconcile journal rows, retains unmatched optimism,
+and then applies `bufferedSelectedCommands` strictly after `n`.
 
-- [`getState.ts`](../../../packages/system-worker/src/SelectionVersionedAggregateRepo/getState/getState.ts) — Captures state and cursor together and awaits publication outside the execution semaphore.
-- [`applyAggregateFrontendStateTx.ts`](../../../packages/core/src/session/applyAggregateFrontendStateTx.ts) — Records full outcomes and their admission indices, then replays surviving local optimism.
-- [`frontendReplica.node.spec.ts`](../../../packages/system-worker/src/frontendReplica.node.spec.ts) — Verifies rejection resolution, surviving optimism, duplicate delivery, empty progress, and gap rejection.
+- [`getSnapshot.ts`](../../../packages/system-worker/src/SelectionVersionedAggregateRepo/getSnapshot/getSnapshot.ts) — captures resources and cursors together, awaits publication outside the execution semaphore, and reconciles `pendingCommandIds` through the captured selection position.
+- [`applyAggregateFrontendSnapshotTx.ts`](../../../packages/core/src/session/applyAggregateFrontendSnapshotTx.ts) — records matching selected-command outcomes without reapplying their already-incorporated deltas, then replays surviving local optimism.
+- [`frontendReplica.node.spec.ts`](../../../packages/system-worker/src/frontendReplica.node.spec.ts) — verifies private failure completion, surviving optimism, duplicate delivery, empty progress, and gap rejection.
+
+## Receipt recovery
+
+The browser sends the oldest journal row with `pushIndex IS NULL` and waits for
+its matching receipt before sending another. Manual pause stops new sends while
+selected output and the current receipt continue. Typed transient failures use
+the existing retry schedule; terminal failures remain observable in `pushNow`.
+A malformed or mismatched receipt closes the socket. Close or ownership release
+fails the pending wait and interrupts automatic submission.
+
+- [`bootstrapAggregateFrontendSession.ts`](../../../packages/frontend/src/bootstrapAggregateFrontendSession.ts) — owns the single pending Deferred, receipt validation, journal update, pause, and reconnect lifecycle.
+
+If admission commits before the socket loses its receipt, the journal remains
+unacknowledged. A newly history-validated socket resends the identical encoded
+occurrence; AggregateChain returns the original receipt. A conflicting retry
+fails. This recovery cannot roll back an already committed admission.
+
+- [`admitCommandsTx.ts`](../../../packages/system-worker/src/AggregateChain/admitCommands/admitCommandsTx.ts) — compares retained bytes and recovers the assigned index for identical input.

@@ -144,7 +144,7 @@ const ready = Effect.runPromise(
               ...props,
               session: aggregate,
               aggregateVersion: WebV2.aggregateVersion,
-              backupWorker,
+              claimBackup: () => Effect.succeed(backupWorker),
             }),
         selection === 'aggregate'
           ? Effect.void
@@ -152,7 +152,7 @@ const ready = Effect.runPromise(
               ...props,
               session: service,
               serviceVersion: CatalogV1.serviceVersion,
-              backupWorker,
+              claimBackup: () => Effect.succeed(backupWorker),
             }),
       ],
       { concurrency: 'unbounded' },

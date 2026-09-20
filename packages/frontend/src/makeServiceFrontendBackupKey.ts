@@ -1,11 +1,9 @@
 import { RoutePattern } from '@remix-run/route-pattern';
 import { createHref } from '@remix-run/route-pattern/href';
-import type { ISystemId } from '@zerospin/core/system/types';
 import { ZerospinError, type IAnyError } from '@zerospin/error';
 import { Effect } from 'effect';
 
 export type IServiceFrontendBackupIdentity = Readonly<{
-  systemId: ISystemId;
   authenticationHash: string;
   serviceName: string;
   serviceVersion: string;
@@ -21,7 +19,6 @@ export const makeServiceFrontendBackupKey = Effect.fn(
   return yield* Effect.try({
     try: () => {
       for (const value of [
-        identity.systemId,
         identity.authenticationHash,
         identity.serviceName,
         identity.serviceVersion,
@@ -51,7 +48,7 @@ export const makeServiceFrontendBackupKey = Effect.fn(
         );
       }
       const route = RoutePattern.parse(
-        '/zerospin/:systemId/:authenticationHash/service/:serviceName/:serviceVersion/:frontendName/:serviceFrontendLockKey/backup.sqlite3',
+        '/zerospin/:authenticationHash/service/:serviceName/:serviceVersion/:frontendName/:serviceFrontendLockKey/backup.sqlite3',
       );
       // IDBBatchAtomicVFS uses URL.pathname as its logical filename too.
       return new URL(createHref(route, identity), 'file:///').pathname;

@@ -27,22 +27,17 @@ it('retains exact service output and replays strictly after a nonzero version-pi
       const repo = yield* FrontendServiceChain.getRepo({
         key,
       });
-      const receiver = yield* makeAsync(() => repo.deltasSubscriber);
+      const receiver = yield* makeAsync(() => repo.selectedCommandsSubscriber);
       const rows = [1, 2].map(index => ({
         outboxIndex: index,
         output: JSON.stringify({
           id: `cmd_replay071_${index}`,
-          serviceName: 'app',
-          serviceVersion: '1.0.0',
-          commandName: 'createProduct',
-          contractVersion: '1.0.0',
-          payload: '{}',
-          chainedAt: new Date(index),
           serviceIndex: index,
-          dispositionHash: 'a'.repeat(64),
-          delta: { inserted: [], updated: [], deleted: [], mutations: [] },
-          failedAt: null,
-          failure: null,
+          serviceHash:
+            index === 1
+              ? 'f31c0c51be861af11225611526c9e2b73ab453f449950aa4ad4eaad22c522dbc'
+              : 'a'.repeat(64),
+          delta: { upserted: [], deleted: [] },
         }),
         deliveredAt: null,
         lastDeliveryFailure: null,
@@ -57,7 +52,7 @@ it('retains exact service output and replays strictly after a nonzero version-pi
         receiver.receive([
           {
             ...rows[0]!,
-            output: rows[0]!.output.replace('createProduct', 'deleteProduct'),
+            output: rows[0]!.output.replace('cmd_replay071_1', 'cmd_conflict'),
           },
         ]),
       ).pipe(Effect.flatMap(decodeRpc), Effect.result);
@@ -103,23 +98,68 @@ it('retains exact service output and replays strictly after a nonzero version-pi
       const indices: number[] = [];
       socket.addEventListener('message', event => {
         const message = JSON.parse(String(event.data));
-        if (message.type === 'serviceFrontendCommand') {
-          indices.push(message.sync.serviceIndex);
+        if (message.type === 'serviceSelectedCommand') {
+          indices.push(message.command.serviceIndex);
         }
         if (message.type === 'replay-complete') completed.resolve();
       });
       socket.addEventListener('close', () =>
         completed.reject(new Error('Socket closed before replay completed')),
       );
-      socket.send(JSON.stringify({ serviceIndex: 1 }));
+      socket.send(
+        JSON.stringify({
+          serviceIndex: 1,
+          serviceHash:
+            'f31c0c51be861af11225611526c9e2b73ab453f449950aa4ad4eaad22c522dbc',
+        }),
+      );
       yield* makeAsync(() => completed.promise);
       expect(indices).toEqual([2]);
+      const closed = Promise.withResolvers<void>();
+      socket.addEventListener('close', () => closed.resolve());
+      socket.send(
+        JSON.stringify({ type: 'pushAggregateCommand', command: {} }),
+      );
+      yield* makeAsync(() => closed.promise);
       socket.close(1000);
+
+      const mismatchResponse = yield* makeAsync(() =>
+        repo.fetch(
+          new Request('https://service-replay.test/', {
+            headers: {
+              Upgrade: 'websocket',
+              'x-zerospin-service-name': key.serviceName,
+              'x-zerospin-service-version': key.serviceVersion,
+              'x-zerospin-selection-path': key.selectionPath,
+              'x-zerospin-authentication': JSON.stringify({
+                userId: decodeURIComponent(key.selectionPath.slice(1)),
+              }),
+              'x-zerospin-frontend-name': key.frontendName,
+              'x-zerospin-service-frontend-lock': JSON.stringify(
+                makeServiceFrontendLock({ frontend: products }),
+              ),
+            },
+          }),
+        ),
+      );
+      const mismatchSocket = mismatchResponse.webSocket;
+      if (mismatchSocket === null) throw new Error('Expected a WebSocket');
+      mismatchSocket.accept();
+      const stateRequired = Promise.withResolvers<void>();
+      mismatchSocket.addEventListener('message', event => {
+        const message = JSON.parse(String(event.data));
+        if (message.type === 'state-required') stateRequired.resolve();
+      });
+      mismatchSocket.send(
+        JSON.stringify({ serviceIndex: 1, serviceHash: '0'.repeat(64) }),
+      );
+      yield* makeAsync(() => stateRequired.promise);
+      mismatchSocket.close(1000);
     }).pipe(Effect.provide(AsyncLive)),
   );
 });
 
-it('isolates two subsets sharing a frontend name across replay, live deltas, deletion and restart', async () => {
+it('isolates two subsets sharing a frontend name across replay, live selected commands, deletion and restart', async () => {
   const key = {
     systemId: env.ZEROSPIN_SYSTEM_ID,
     serviceName: 'app',
@@ -128,7 +168,7 @@ it('isolates two subsets sharing a frontend name across replay, live deltas, del
     frontendName: 'products',
   };
   const repo = await Effect.runPromise(FrontendServiceChain.getRepo({ key }));
-  const receiver = await repo.deltasSubscriber;
+  const receiver = await repo.selectedCommandsSubscriber;
   const lock = makeServiceFrontendLock({ frontend: products });
   const product = {
     modelName: 'product',
@@ -142,21 +182,19 @@ it('isolates two subsets sharing a frontend name across replay, live deltas, del
     outboxIndex: index,
     output: JSON.stringify({
       id: `cmd_subset082_${index}`,
-      serviceName: 'app',
-      serviceVersion: '1.0.0',
-      commandName: 'createProduct',
-      contractVersion: '1.0.0',
-      payload: '{}',
-      chainedAt: new Date(index),
       serviceIndex: index,
-      dispositionHash: 'b'.repeat(64),
-      failedAt: null,
-      failure: null,
+      serviceHash:
+        index === 1
+          ? 'f31c0c51be861af11225611526c9e2b73ab453f449950aa4ad4eaad22c522dbc'
+          : 'b'.repeat(64),
       delta: {
-        inserted: index === 1 ? [product] : [],
-        updated: index === 2 ? [{ ...product, name: 'Updated' }] : [],
+        upserted:
+          index === 1
+            ? [product]
+            : index === 2
+              ? [{ ...product, name: 'Updated' }]
+              : [],
         deleted: index === 3 ? [{ modelName: 'product', id: product.id }] : [],
-        mutations: [],
       },
     }),
     deliveredAt: null,
@@ -191,24 +229,28 @@ it('isolates two subsets sharing a frontend name across replay, live deltas, del
     const commands: Array<{
       serviceIndex: number;
       delta: {
-        inserted: unknown[];
-        updated: unknown[];
+        upserted: unknown[];
         deleted: unknown[];
-        mutations: unknown[];
       };
     }> = [];
     const replayed = Promise.withResolvers<void>();
     socket.addEventListener('message', event => {
       const message = JSON.parse(String(event.data));
-      if (message.type === 'serviceFrontendCommand') {
-        commands.push(message.sync);
+      if (message.type === 'serviceSelectedCommand') {
+        commands.push(message.command);
       }
       if (message.type === 'replay-complete') replayed.resolve();
       if (message.type === 'state-required') {
         replayed.reject(new Error('Unexpected state-required'));
       }
     });
-    socket.send(JSON.stringify({ serviceIndex: cursor }));
+    socket.send(
+      JSON.stringify({
+        serviceIndex: cursor,
+        serviceHash:
+          'f31c0c51be861af11225611526c9e2b73ab453f449950aa4ad4eaad22c522dbc',
+      }),
+    );
     await replayed.promise;
     return { socket, commands };
   };
@@ -216,8 +258,8 @@ it('isolates two subsets sharing a frontend name across replay, live deltas, del
   if (productModel === undefined) throw new Error('Missing product lock');
   const selected = await connect({ product: productModel }, 0);
   const empty = await connect({}, 0);
-  expect(selected.commands[0]?.delta.inserted).toEqual([product]);
-  expect(empty.commands[0]?.delta.inserted).toEqual([]);
+  expect(selected.commands[0]?.delta.upserted).toEqual([product]);
+  expect(empty.commands[0]?.delta.upserted).toEqual([]);
   await Effect.runPromise(decodeRpc(await receiver.receive(rows.slice(1))));
   await expect
     .poll(() => [selected.commands.length, empty.commands.length])
@@ -225,7 +267,7 @@ it('isolates two subsets sharing a frontend name across replay, live deltas, del
   expect(selected.commands.map(command => command.serviceIndex)).toEqual([
     1, 2, 3,
   ]);
-  expect(selected.commands[1]?.delta.updated).toEqual([
+  expect(selected.commands[1]?.delta.upserted).toEqual([
     { ...product, name: 'Updated' },
   ]);
   expect(selected.commands[2]?.delta.deleted).toEqual([
@@ -233,10 +275,8 @@ it('isolates two subsets sharing a frontend name across replay, live deltas, del
   ]);
   expect(empty.commands.map(command => command.delta)).toEqual(
     Array.from({ length: 3 }, () => ({
-      inserted: [],
-      updated: [],
+      upserted: [],
       deleted: [],
-      mutations: [],
     })),
   );
   await Effect.runPromise(decodeRpc(await receiver.receive(rows)));

@@ -12,7 +12,7 @@ import { ZerospinApiUrl } from '@zerospin/core/services/ZerospinApiUrl';
 import { makeServiceSession } from '@zerospin/core/serviceSession/makeServiceSession';
 import type { IServiceSession } from '@zerospin/core/serviceSession/types';
 import { makeAggregateSession } from '@zerospin/core/session/makeAggregateSession';
-import type { ISession } from '@zerospin/core/session/types';
+import type { IAggregateSession } from '@zerospin/core/session/types';
 import type { ISystem } from '@zerospin/core/system/types';
 import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
 import { encodeRpc } from '@zerospin/core/utils/encodeRpc';
@@ -32,7 +32,7 @@ import {
   Scope,
 } from 'effect';
 
-import type { makeBackup } from '../makeBackup/makeBackup';
+import { BrowserBackup } from '../BrowserBackup/BrowserBackup';
 import type { IZerospinRuntime } from '../makeRuntime/makeRuntime';
 
 type AggregatesOf<SYSTEM> =
@@ -89,7 +89,6 @@ function createLifecycle(): LifecycleState {
     active: false,
   };
 }
-
 function admitInitialization(lifecycle: LifecycleState): {
   attempt: number;
   scope: Scope.Closeable;
@@ -146,9 +145,8 @@ export function makeSession<
   frontend: FRONTEND & { kind: 'aggregate' };
   runtime: IZerospinRuntime<APP_SERVICES>;
   layer?: Layer.Layer<LAYER_SERVICES, IAnyError, LAYER_REQUIREMENTS>;
-  backup: ReturnType<typeof makeBackup>;
   systemName: SYSTEM_NAME;
-}): ISession<FRONTEND & { systemName: SYSTEM_NAME }> & {
+}): IAggregateSession<FRONTEND & { systemName: SYSTEM_NAME }> & {
   readonly systemName: SYSTEM_NAME;
   initialize<SYSTEM extends { name: string }>(initializeProps: {
     generateSignature: SystemNameOf<SYSTEM> extends SYSTEM_NAME
@@ -166,7 +164,6 @@ export function makeSession<
   frontend: FRONTEND & { kind: 'service' };
   runtime: IZerospinRuntime<APP_SERVICES>;
   layer?: Layer.Layer<never, IAnyError, never>;
-  backup: ReturnType<typeof makeBackup>;
   systemName: SYSTEM_NAME;
 }): IServiceSession<FRONTEND & { systemName: SYSTEM_NAME }> & {
   readonly systemName: SYSTEM_NAME;
@@ -183,7 +180,6 @@ export function makeSession(props: unknown): unknown {
     frontend: authoredFrontend,
     runtime,
     layer = Layer.empty,
-    backup,
     systemName,
   } = props as {
     frontend: (AuthoredAggregateFrontend | AuthoredServiceFrontend) & {
@@ -192,14 +188,12 @@ export function makeSession(props: unknown): unknown {
     // Implementation body erases APP_SERVICES; callers keep exact inference via overloads.
     runtime: IZerospinRuntime<any>;
     layer?: Layer.Layer<any, IAnyError, any>;
-    backup: ReturnType<typeof makeBackup>;
     systemName: string;
   };
   const frontend = { ...authoredFrontend, systemName };
   const lifecycle = createLifecycle();
   let generateSignatureRef: (() => Effect.Effect<unknown, IAnyError>) | null =
     null;
-
   const resolveSignature = () =>
     Effect.suspend(() => {
       const generateSignature = generateSignatureRef;
@@ -249,11 +243,11 @@ export function makeSession(props: unknown): unknown {
               aggregateId: null,
               aggregateName: null,
               authentication: null,
-              systemId: null,
               frontendName: null,
               aggregateFrontendLockKey: null,
               aggregateIndex: null,
               selectionIndex: null,
+              selectionHash: null,
               pushIndex: null,
               backupState: { status: 'released', failure: null },
             });
@@ -262,7 +256,7 @@ export function makeSession(props: unknown): unknown {
 
         const application = yield* runtime.contextEffect;
         return yield* Effect.gen(function* () {
-          const backupWorker = yield* backup.ready;
+          const backup = yield* BrowserBackup;
           const sessionId = yield* makeIdFromAbbreviation({
             abbreviation: coreAbbreviations.session,
           });
@@ -302,7 +296,8 @@ export function makeSession(props: unknown): unknown {
             systemName,
             generateSignature: () =>
               runtime.runPromise(resolveSignature().pipe(encodeRpc)),
-            backupWorker,
+            claimBackup: ({ backupKey }) =>
+              backup.claim({ backupKey, session: coreSession }),
           }).pipe(
             Effect.provide(
               makeTelemetryLayer(
@@ -446,11 +441,11 @@ export function makeSession(props: unknown): unknown {
             models: null,
             sessionId: null,
             authentication: null,
-            systemId: null,
             serviceName: null,
             frontendName: null,
             serviceFrontendLockKey: null,
             serviceIndex: null,
+            serviceHash: null,
             serviceVersion: null,
             backupState: { status: 'released', failure: null },
           });
@@ -458,7 +453,7 @@ export function makeSession(props: unknown): unknown {
       );
       const application = yield* runtime.contextEffect;
       return yield* Effect.gen(function* () {
-        const backupWorker = yield* backup.ready;
+        const backup = yield* BrowserBackup;
         const sessionId = yield* makeIdFromAbbreviation({
           abbreviation: coreAbbreviations.session,
         });
@@ -473,7 +468,8 @@ export function makeSession(props: unknown): unknown {
           systemName,
           generateSignature: () =>
             runtime.runPromise(resolveSignature().pipe(encodeRpc)),
-          backupWorker,
+          claimBackup: ({ backupKey }) =>
+            backup.claim({ backupKey, session: coreSession }),
         }).pipe(
           Effect.provide(
             makeTelemetryLayer(coreSession.store.getState().telemetryCollector),

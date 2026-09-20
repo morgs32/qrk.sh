@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from 'react';
 
 import { getInitializedStateOrThrow } from '@zerospin/core/session/getInitializedStateOrThrow';
-import type { ISession } from '@zerospin/core/session/types';
+import type { IAggregateSession } from '@zerospin/core/session/types';
 
 import type { IDevtoolsServiceSessionEntry } from '../../../../types.js';
 import { useLiveQueryOnDb } from '../../../../useLiveQueryOnDb';
@@ -107,7 +107,7 @@ function DatabaseRowsTable(props: {
 }
 
 function AggregateDatabaseRowsTable(props: {
-  readonly session: ISession;
+  readonly session: IAggregateSession;
   readonly modelKey: string;
 }) {
   const { session, modelKey } = props;

@@ -6,7 +6,7 @@ import { EncodedResourceSchema } from '@zerospin/core/models/EncodedResourceSche
 import { encodeResource } from '@zerospin/core/models/encodeResource';
 import type { IEncodedResourceShape } from '@zerospin/core/models/types';
 import type { IAnyService } from '@zerospin/core/service/types';
-import { ServiceFrontendFinalizedCommandSchema } from '@zerospin/core/serviceSession/ServiceFrontendCommandSchema';
+import { ServiceSelectedCommandSchema } from '@zerospin/core/serviceSession/ServiceSelectedCommandSchema';
 import { mapParseError, ZerospinError } from '@zerospin/error';
 import { makeEffectSchema } from '@zerospin/schema';
 import { eq } from 'drizzle-orm';
@@ -185,23 +185,22 @@ export const executeTx = makeTx(
       }
     }
     const output = yield* Schema.encodeEffect(
-      Schema.fromJsonString(ServiceFrontendFinalizedCommandSchema),
+      Schema.fromJsonString(ServiceSelectedCommandSchema),
     )({
-      ...command,
-      serviceVersion: key.serviceVersion,
+      id: command.id,
+      serviceIndex: command.serviceIndex,
       delta: {
-        inserted,
-        updated,
+        upserted: [...inserted, ...updated],
         deleted,
-        mutations: command.delta.mutations,
       },
+      serviceHash: command.dispositionHash,
     }).pipe(
       mapParseError({
         code: 'service-replica-output-invalid',
         prefix: 'Invalid per-position service output',
       }),
     );
-    tx.insert(frontendVersionedServiceRepoDbConfig.schema.deltas)
+    tx.insert(frontendVersionedServiceRepoDbConfig.schema.selectedCommands)
       .values({
         outboxIndex: command.serviceIndex,
         output,
@@ -221,6 +220,7 @@ export const executeTx = makeTx(
       .values({
         id: 1,
         serviceIndex: command.serviceIndex,
+        serviceHash: command.dispositionHash,
         serviceVersion: key.serviceVersion,
         canonicalBytes: row.entry,
         graph: graphBytes,
@@ -229,6 +229,7 @@ export const executeTx = makeTx(
         target: frontendVersionedServiceRepoDbConfig.schema.projectionState.id,
         set: {
           serviceIndex: command.serviceIndex,
+          serviceHash: command.dispositionHash,
           serviceVersion: key.serviceVersion,
           canonicalBytes: row.entry,
           graph: graphBytes,

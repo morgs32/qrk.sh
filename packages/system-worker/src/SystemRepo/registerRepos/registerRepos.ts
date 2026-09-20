@@ -1,6 +1,6 @@
 /*
  * System-worker annotation:
- * Publishes one ready frontend projection and finalized-command chain together.
+ * Publishes one ready frontend projection and selected-command chain together.
  */
 import type { IDb } from '@zerospin/core/drizzle/types';
 import type { ISystemSpec } from '@zerospin/core/system/types';
@@ -55,7 +55,7 @@ export const registerRepos = Effect.fn('SystemRepo.registerRepos')(
         finalizedCommandChain.repoType !== 'FrontendServiceChain')
     ) {
       return yield* Effect.die(
-        'SystemRepo.registerRepos requires a matching projection/finalized-command chain pair',
+        'SystemRepo.registerRepos requires a matching projection/selected-command chain pair',
       );
     }
 

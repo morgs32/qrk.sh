@@ -68,7 +68,7 @@ describe('serviceFrontendFlow1: static service frontend', () => {
               }),
           );
           const invalidAuthentication = yield* makeAsync(() =>
-            invalidFrontendApi.getState({ traceContext: null, args: [] }),
+            invalidFrontendApi.getSnapshot({ traceContext: null, args: [] }),
           ).pipe(
             Effect.flatMap(envelope => decodeRpc(envelope.result)),
             Effect.result,
@@ -133,14 +133,14 @@ describe('serviceFrontendFlow1: static service frontend', () => {
             expect
               .poll(
                 async () => {
-                  const envelope = await frontendApi.getState({
+                  const envelope = await frontendApi.getSnapshot({
                     traceContext: null,
                     args: [],
                   });
-                  const state = await Effect.runPromise(
+                  const snapshot = await Effect.runPromise(
                     decodeRpc(envelope.result),
                   );
-                  return state.resources;
+                  return snapshot.resources;
                 },
                 { timeout: 10_000 },
               )
@@ -152,7 +152,7 @@ describe('serviceFrontendFlow1: static service frontend', () => {
           );
 
           const snapshot = yield* makeAsync(() =>
-            frontendApi.getState({ traceContext: null, args: [] }),
+            frontendApi.getSnapshot({ traceContext: null, args: [] }),
           ).pipe(Effect.flatMap(envelope => decodeRpc(envelope.result)));
           const ticket = yield* makeAsync(() =>
             frontendApi.createWebSocketTicket({

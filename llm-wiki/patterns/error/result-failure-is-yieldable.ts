@@ -6,7 +6,9 @@ import { Effect, Result } from 'effect';
  * @bad Wrap `result.failure` in `Effect.fail` after `Effect.result`.
  */
 export const callFrontendApi = Effect.fn('callFrontendApi')(function* () {
-  const result = yield* makeAsync(() => frontendApi.getState()).pipe(
+  const result = yield* makeAsync(() =>
+    frontendApi.getSnapshot({ args: [], traceContext: null }),
+  ).pipe(
     Effect.flatMap(decodeRpc),
     Effect.result,
   );
@@ -25,6 +27,9 @@ declare function decodeRpc<A>(
   encoded: unknown,
 ): Effect.Effect<A, ZerospinError, unknown>;
 declare const frontendApi: {
-  getState: () => Promise<unknown>;
+  getSnapshot: (request: {
+    args: [];
+    traceContext: null;
+  }) => Promise<unknown>;
 };
 declare class ZerospinError {}

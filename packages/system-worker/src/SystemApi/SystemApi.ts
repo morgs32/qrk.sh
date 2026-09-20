@@ -9,7 +9,7 @@ import type {
 } from '@zerospin/core/contracts/types';
 import type { AggregateFrontendLockSchema } from '@zerospin/core/frontendController/makeAggregateFrontendLock';
 import type { IAggregateId } from '@zerospin/core/models/types';
-import type { IAggregateFrontendSyncState } from '@zerospin/core/session/types';
+import type { IAggregateFrontendSnapshot } from '@zerospin/core/session/types';
 import type {
   IEncodedQuery,
   IRepoRegistration,
@@ -31,7 +31,7 @@ import { executeServiceCommand } from './executeServiceCommand/executeServiceCom
 import { executeServiceQuery } from './executeServiceQuery/executeServiceQuery.js';
 import { getAggregateChains } from './getAggregateChains/getAggregateChains.js';
 import { getAggregateChainTableRows } from './getAggregateChainTableRows/getAggregateChainTableRows.js';
-import { getAggregateFrontendState } from './getAggregateFrontendState/getAggregateFrontendState.js';
+import { getAggregateFrontendSnapshot } from './getAggregateFrontendSnapshot/getAggregateFrontendSnapshot.js';
 import { getFrontendServiceChains } from './getFrontendServiceChains/getFrontendServiceChains.js';
 import { getFrontendServiceChainTableRows } from './getFrontendServiceChainTableRows/getFrontendServiceChainTableRows.js';
 import { getFrontendVersionedServiceRepos } from './getFrontendVersionedServiceRepos/getFrontendVersionedServiceRepos.js';
@@ -119,7 +119,7 @@ export class SystemApi extends RpcTarget {
    *
    * 1. Run the bound domain operation.
    */
-  async getAggregateFrontendState(
+  async getAggregateFrontendSnapshot(
     request: IRpcRequest<
       [
         {
@@ -127,6 +127,7 @@ export class SystemApi extends RpcTarget {
           aggregateName: string;
           aggregateVersion: string;
           selectionPath: string;
+          authentication: Readonly<Record<string, unknown>>;
           frontendName: string;
           aggregateFrontendLock: Schema.Schema.Type<
             typeof AggregateFrontendLockSchema
@@ -134,10 +135,10 @@ export class SystemApi extends RpcTarget {
         },
       ]
     >,
-  ): Promise<ILinkedRpcEnvelope<IAggregateFrontendSyncState, IAnyErrorJson>> {
-    // 1 — run getAggregateFrontendState with the instance-bound dependencies
+  ): Promise<ILinkedRpcEnvelope<IAggregateFrontendSnapshot, IAnyErrorJson>> {
+    // 1 — run getAggregateFrontendSnapshot with the instance-bound dependencies
     return this.#runtime.runPromise(
-      getAggregateFrontendState({ request, authResults: this.#authResults }),
+      getAggregateFrontendSnapshot({ request, authResults: this.#authResults }),
     );
   }
 

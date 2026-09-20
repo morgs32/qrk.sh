@@ -1,10 +1,9 @@
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
-import { AggregateExecutionEntrySchema } from '@zerospin/core/contracts/CommandSchema';
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/makeDbConfig';
 import { makeProvisionedInMemoryWasmSqliteDb } from '@zerospin/core/drizzle/makeProvisionedInMemoryWasmSqliteDb';
 import { List, main, mainModels, User } from '@zerospin/core/fixtures/system';
 import { initializeGuards as initializeFrontendGuards } from '@zerospin/core/frontendController/initializeGuards';
-import { applyAggregateFrontendCommand } from '@zerospin/core/session/applyAggregateFrontendCommand';
+import { applyAggregateSelectedCommand } from '@zerospin/core/session/applyAggregateSelectedCommand';
 import { makeAggregateSession } from '@zerospin/core/session/makeAggregateSession';
 import { stageCommand } from '@zerospin/core/session/stageCommand';
 import {
@@ -20,7 +19,7 @@ import { makePrefixedIncrementalIdFactory } from '@zerospin/core/test-utils/make
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import { NanoIdFactory } from '@zerospin/core/utils/NanoIdFactory';
 import { UlidMonotonicFactory } from '@zerospin/core/utils/UlidMonotonicFactory';
-import { Effect, Exit, Layer, ManagedRuntime, Schema, Scope } from 'effect';
+import { Effect, Exit, Layer, ManagedRuntime, Scope } from 'effect';
 import { afterAll, expect, it } from 'vitest';
 
 const guardTestRuntime = ManagedRuntime.make(
@@ -72,7 +71,6 @@ it('resolves only the originating optimism, replays the rest, and rejects skippe
         aggregateId: 'acct_1',
         aggregateName: main.aggregateName,
         authentication: { userId: 'usr_1', aggregateId: 'acct_1' },
-        systemId: 'sys_1',
         frontendName: main.name,
         aggregateFrontendLockKey: 'lock',
         db,
@@ -81,6 +79,7 @@ it('resolves only the originating optimism, replays the rest, and rejects skippe
         isInitialized: true,
         aggregateIndex: 0,
         selectionIndex: 0,
+                  selectionHash: 'd0e2a11643c9bf23800218703ef6f12a058b941fca272a34c57c14ea2a5e62dc',
         pushIndex: 0,
         sessionStatus: 'current',
         backupState: { status: 'ready', failure: null },
@@ -98,50 +97,29 @@ it('resolves only the originating optimism, replays the rest, and rejects skippe
         }),
       );
       expect(db.select().from(List.drizzleSchema).all()).toHaveLength(2);
-      const sourceCommand = db
-        .select()
-        .from(sessionCommandJournalDrizzleSchema)
-        .all()
-        .find(row => row.id === first.id)!.command;
-      const resolution = yield* Schema.decodeUnknownEffect(
-        Schema.toType(AggregateExecutionEntrySchema),
-      )({
-        sourceCommand,
-        command: {
-          ...first,
-          payload: JSON.stringify(first.payload),
-          aggregateIndex: 1,
-          delta: null,
-          dispositionHash: 'a'.repeat(64),
-          failedAt: now,
-          failure: {
-            code: 'rejected',
-            message: 'Rejected',
-            cause: null,
-            extra: null,
-            status: null,
-          },
-        },
-        preparationVersion: '1.0.0',
-        executionTimestamp: now,
-        mutations: [],
-      });
       const output = {
+        id: first.id,
         selectionIndex: 1,
+        selectionHash:
+          'd0e2a11643c9bf23800218703ef6f12a058b941fca272a34c57c14ea2a5e62dc',
         aggregateIndex: 1,
-        delta: { inserted: [], updated: [], deleted: [], mutations: [] },
-        resolution,
+        delta: { upserted: [], deleted: [] },
+        failure: {
+          code: 'rejected',
+          message: 'Rejected',
+          cause: null,
+          extra: null,
+          status: null,
+        },
       };
       const props = {
         db,
         frontend: main,
         models: mainModels,
-        aggregateId: 'acct_1',
-        authentication: { userId: 'usr_1', aggregateId: 'acct_1' },
         sessionId: session.sessionId,
         command: output,
       };
-      expect(yield* applyAggregateFrontendCommand(props)).toBe('applied');
+      expect(yield* applyAggregateSelectedCommand(props)).toBe('applied');
       expect(
         db
           .select()
@@ -152,14 +130,17 @@ it('resolves only the originating optimism, replays the rest, and rejects skippe
       expect(
         db.select().from(sessionOptimisticAppliedMutationDrizzleSchema).all(),
       ).toHaveLength(1);
-      expect(yield* applyAggregateFrontendCommand(props)).toBe('duplicate');
-      const gap = yield* applyAggregateFrontendCommand({
+      expect(yield* applyAggregateSelectedCommand(props)).toBe('duplicate');
+      const gap = yield* applyAggregateSelectedCommand({
         ...props,
         command: {
+          id: 'cmd_gap',
           selectionIndex: 3,
+          selectionHash:
+            'd0e2a11643c9bf23800218703ef6f12a058b941fca272a34c57c14ea2a5e62dc',
           aggregateIndex: 1,
           delta: output.delta,
-          resolution: null,
+          failure: null,
         },
       }).pipe(Effect.result);
       expect(gap).toMatchObject({
@@ -170,13 +151,16 @@ it('resolves only the originating optimism, replays the rest, and rejects skippe
         db.select().from(sessionMetadataDrizzleSchema).get()?.aggregateIndex,
       ).toBe(1);
       expect(
-        yield* applyAggregateFrontendCommand({
+        yield* applyAggregateSelectedCommand({
           ...props,
           command: {
+            id: 'cmd_other',
             selectionIndex: 2,
+            selectionHash:
+              'd0e2a11643c9bf23800218703ef6f12a058b941fca272a34c57c14ea2a5e62dc',
             aggregateIndex: 1,
             delta: output.delta,
-            resolution: null,
+            failure: null,
           },
         }),
       ).toBe('applied');
@@ -192,7 +176,7 @@ it('resolves only the originating optimism, replays the rest, and rejects skippe
         Layer.mergeAll(
           AsyncLive,
           IncrementalMonotonicFactory,
-          makePrefixedIncrementalIdFactory('resolution'),
+          makePrefixedIncrementalIdFactory('selected-command'),
         ),
       ),
     ),

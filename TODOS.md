@@ -48,8 +48,8 @@
 
 SCC 3.7.0 complexity measured from the current source files on 2026-09-01:
 
-The transaction formerly inside `applyAggregateFrontendCommand.ts` now lives in
-[`applyAggregateFrontendCommandTx.ts`](./packages/core/src/session/applyAggregateFrontendCommandTx.ts);
+The transaction formerly inside `applyAggregateSelectedCommand.ts` now lives in
+[`applyAggregateSelectedCommandTx.ts`](./packages/core/src/session/applyAggregateSelectedCommandTx.ts);
 the measurements below predate that extraction.
 
 | Complexity | File                                                                                                                                    |
@@ -65,7 +65,7 @@ the measurements below predate that extraction.
 |         93 | [`makeDrizzleRelationsFromTables.ts`](./packages/core/src/drizzle/makeDrizzleRelationsFromTables.ts)                                                        |
 |         92 | [`encodeAppliedMutation.ts`](./packages/core/src/contracts/encodeAppliedMutation.ts)                                                    |
 |        629 | [`makeContractVersion.ts`](./packages/core/src/contracts/makeContractVersion.ts)                                                            |
-|         88 | [`applyAggregateFrontendCommand.ts`](./packages/core/src/session/applyAggregateFrontendCommand.ts)                                      |
+|         88 | [`applyAggregateSelectedCommand.ts`](./packages/core/src/session/applyAggregateSelectedCommand.ts)                                      |
 |         86 | [`makeLiveQuery.ts`](./packages/live-query/src/makeLiveQuery.ts)                                                                        |
 |         84 | [`SessionsLogsRoute.tsx`](./packages/devtools/src/sessions/sessions/sessionId/logs/SessionsLogsRoute.tsx)                               |
 |         72 | [`ZerospinDevtools.tsx`](./packages/devtools/src/ZerospinDevtools.tsx)                                                                  |

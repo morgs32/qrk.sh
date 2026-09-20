@@ -15,7 +15,6 @@ import { Effect, Layer, Schema } from 'effect';
 import { assert, type Equals } from 'tsafe';
 
 import { makeAggregateFrontend } from './makeAggregateFrontend/makeAggregateFrontend';
-import { makeBackup } from './makeBackup/makeBackup';
 import { makeRuntime } from './makeRuntime/makeRuntime';
 import { makeServiceFrontend } from './makeServiceFrontend/makeServiceFrontend';
 import { makeSession } from './makeSession/makeSession';
@@ -70,7 +69,6 @@ const system = makeSystem({
 });
 declare const layer: Layer.Layer<PublishableKey | ZerospinApiUrl, IAnyError>;
 const runtime = makeRuntime({ layer });
-declare const backup: ReturnType<typeof makeBackup>;
 
 const Selected = makeAggregateFrontend({
   aggregateName: 'dated',
@@ -102,7 +100,6 @@ assert<Equals<typeof SelectedService.models, { readonly user: typeof User }>>();
 const session = makeSession({
   frontend: Selected,
   runtime,
-  backup,
   systemName: 'typed-dates',
 });
 
@@ -116,7 +113,6 @@ makeSession({
   runtime,
   // @ts-expect-error Local layer inputs must be supplied by the shared runtime.
   layer: localNeedsRequestInit,
-  backup,
   systemName: 'typed-dates',
 });
 const runtimeWithRequestInit = makeRuntime({
@@ -129,7 +125,6 @@ makeSession({
   frontend: Selected,
   runtime: runtimeWithRequestInit,
   layer: localNeedsRequestInit,
-  backup,
   systemName: 'typed-dates',
 });
 makeRuntime<ApiRequestInit>({

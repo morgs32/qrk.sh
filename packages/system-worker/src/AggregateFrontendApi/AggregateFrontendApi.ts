@@ -1,14 +1,8 @@
-import type {
-  IChainedCommand,
-  IEncodedCommand,
-  ISessionCommand,
-} from '@zerospin/core/contracts/types';
 import type { AggregateFrontendLockSchema } from '@zerospin/core/frontendController/makeAggregateFrontendLock';
 import type { IAggregateId } from '@zerospin/core/models/types';
 import type {
-  IAggregateFrontendFinalizedCommand,
-  IAggregateFrontendSyncState,
-  IFrontendDelta,
+  IAggregateFrontendSnapshot,
+  IAggregateSelectedCommand,
 } from '@zerospin/core/session/types';
 import type { ISystemId } from '@zerospin/core/system/types';
 import type { IAnyErrorJson } from '@zerospin/error';
@@ -20,9 +14,8 @@ import type { ISystemRuntime } from '../makeSystemRuntime.js';
 
 import { createWebSocketTicket } from './createWebSocketTicket/createWebSocketTicket.js';
 import { executeServiceQuery } from './executeServiceQuery/executeServiceQuery.js';
-import { getFinalizedCommands } from './getFinalizedCommands/getFinalizedCommands.js';
-import { getState } from './getState/getState.js';
-import { pushCommand } from './pushCommand/pushCommand.js';
+import { getSelectedCommands } from './getSelectedCommands/getSelectedCommands.js';
+import { getSnapshot } from './getSnapshot/getSnapshot.js';
 
 export class AggregateFrontendApi extends RpcTarget {
   readonly #authResults: {
@@ -67,58 +60,28 @@ export class AggregateFrontendApi extends RpcTarget {
   }
 
   /*
-   * The aggregate frontend capability admits a complete locally committed
-   * occurrence into AggregateChain. It returns the admission receipt;
-   * version-owned server execution and frontend publication happen downstream.
-   *
-   * 1. Run the bound domain operation.
-   */
-  async pushCommand(
-    request: IRpcRequest<
-      [
-        {
-          readonly command: IEncodedCommand<
-            IChainedCommand<ISessionCommand, IFrontendDelta> &
-              Readonly<{ sessionIndex: number; pushIndex: null }>
-          >;
-        },
-      ]
-    >,
-  ): Promise<
-    ILinkedRpcEnvelope<
-      Readonly<{ aggregateIndex: number; commandId: string }>,
-      IAnyErrorJson
-    >
-  > {
-    // 1 — run pushCommand with the instance-bound dependencies
-    return this.#runtime.runPromise(
-      pushCommand({ request, authResults: this.#authResults }),
-    );
-  }
-
-  /*
    * AggregateFrontendApi serves reconnect history from SelectionVersionedAggregateChain.
    * The capability binds the frontend identity; the request supplies the replay
    * cursor and aggregateVersion.
    *
    * 1. Run the bound domain operation.
    */
-  async getFinalizedCommands(
+  async getSelectedCommands(
     request: IRpcRequest<
       [{ afterSelectionIndex: number; aggregateVersion: string }]
     >,
   ): Promise<
     ILinkedRpcEnvelope<
       Readonly<{
-        commands: readonly IAggregateFrontendFinalizedCommand[];
+        commands: readonly IAggregateSelectedCommand[];
         tip: number;
       }>,
       IAnyErrorJson
     >
   > {
-    // 1 — run getFinalizedCommands with the instance-bound dependencies
+    // 1 — run getSelectedCommands with the instance-bound dependencies
     return this.#runtime.runPromise(
-      getFinalizedCommands({ request, authResults: this.#authResults }),
+      getSelectedCommands({ request, authResults: this.#authResults }),
     );
   }
 
@@ -147,12 +110,12 @@ export class AggregateFrontendApi extends RpcTarget {
    *
    * 1. Run the bound domain operation.
    */
-  async getState(
-    request: IRpcRequest<[{ outstandingCommandIds: readonly string[] }]>,
-  ): Promise<ILinkedRpcEnvelope<IAggregateFrontendSyncState, IAnyErrorJson>> {
-    // 1 — run getState with the instance-bound dependencies
+  async getSnapshot(
+    request: IRpcRequest<[{ pendingCommandIds: readonly string[] }]>,
+  ): Promise<ILinkedRpcEnvelope<IAggregateFrontendSnapshot, IAnyErrorJson>> {
+    // 1 — run getSnapshot with the instance-bound dependencies
     return this.#runtime.runPromise(
-      getState({ request, authResults: this.#authResults }),
+      getSnapshot({ request, authResults: this.#authResults }),
     );
   }
 

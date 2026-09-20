@@ -18,14 +18,14 @@ import type {
   InferResource,
 } from '@zerospin/core/models/types';
 import type { MonotonicFactory } from '@zerospin/core/services/MonotonicFactory';
-import { applyServiceFrontendState } from '@zerospin/core/serviceSession/applyServiceFrontendState';
+import { applyServiceFrontendSnapshot } from '@zerospin/core/serviceSession/applyServiceFrontendSnapshot';
 import { makeServiceSession } from '@zerospin/core/serviceSession/makeServiceSession';
 import { serviceSessionRepoTables } from '@zerospin/core/serviceSession/serviceSessionRepoTables';
 import type { IServiceSession } from '@zerospin/core/serviceSession/types';
-import { applyAggregateFrontendState } from '@zerospin/core/session/applyAggregateFrontendState';
+import { applyAggregateFrontendSnapshot } from '@zerospin/core/session/applyAggregateFrontendSnapshot';
 import { makeAggregateSession } from '@zerospin/core/session/makeAggregateSession';
 import { sessionRepoTables } from '@zerospin/core/session/sessionRepoTables';
-import type { ISession } from '@zerospin/core/session/types';
+import type { IAggregateSession } from '@zerospin/core/session/types';
 import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
 import { mapParseError, ZerospinError, type IAnyError } from '@zerospin/error';
 import {
@@ -180,7 +180,7 @@ export function makeMockSession<
   resources?: Partial<{
     [K in keyof MODELS]: readonly InferResource<MODELS[K]>[];
   }>;
-}): ISession<FRONTEND & { systemName: typeof MOCK_SYSTEM_NAME }> & {
+}): IAggregateSession<FRONTEND & { systemName: typeof MOCK_SYSTEM_NAME }> & {
   readonly systemName: typeof MOCK_SYSTEM_NAME;
   initialize(props?: {
     generateSignature?: () => Effect.Effect<unknown, IAnyError>;
@@ -268,11 +268,11 @@ export function makeMockSession(props: unknown): unknown {
                 aggregateId: null,
                 aggregateName: null,
                 authentication: null,
-                systemId: null,
                 frontendName: null,
                 aggregateFrontendLockKey: null,
                 aggregateIndex: null,
                 selectionIndex: null,
+                selectionHash: null,
                 pushIndex: null,
                 backupState: { status: 'released', failure: null },
               });
@@ -333,9 +333,6 @@ export function makeMockSession(props: unknown): unknown {
                 ).pipe(Effect.asVoid, Effect.ignore),
             );
 
-            const systemId = yield* makeIdFromAbbreviation({
-              abbreviation: coreAbbreviations.system,
-            });
             const aggregateFrontendLockKey =
               yield* makeAggregateFrontendLockKey(
                 makeFrontendControllerSpec(
@@ -347,24 +344,24 @@ export function makeMockSession(props: unknown): unknown {
               resources: fixtureResources,
             });
 
-            yield* applyAggregateFrontendState({
+            yield* applyAggregateFrontendSnapshot({
               db,
               frontend: frontend as IAggregateFrontendController,
               sessionId,
               aggregateId,
               authentication,
-              systemId,
-              frontendState: {
+              snapshot: {
                 aggregateId,
                 aggregateName: frontend.aggregateName,
                 authentication: fixtureAuthentication,
                 aggregateIndex: 0,
                 selectionIndex: 0,
+                selectionHash:
+                  'd0e2a11643c9bf23800218703ef6f12a058b941fca272a34c57c14ea2a5e62dc',
                 frontendName: frontend.name,
                 aggregateVersion: frontend.aggregateVersion,
-                resolutions: [],
+                selectedCommands: [],
                 resources,
-                systemId,
               },
               models,
             });
@@ -378,6 +375,8 @@ export function makeMockSession(props: unknown): unknown {
               db,
               aggregateIndex: 0,
               selectionIndex: 0,
+              selectionHash:
+                'd0e2a11643c9bf23800218703ef6f12a058b941fca272a34c57c14ea2a5e62dc',
               pushIndex: 0,
               frontendName: frontend.name,
               aggregateFrontendLockKey,
@@ -385,7 +384,6 @@ export function makeMockSession(props: unknown): unknown {
               models,
               schema: dbConfig.schema,
               sessionId,
-              systemId,
               sessionStatus: 'current',
               backupState: {
                 status: 'ready',
@@ -483,11 +481,11 @@ export function makeMockSession(props: unknown): unknown {
               models: null,
               sessionId: null,
               authentication: null,
-              systemId: null,
               serviceName: null,
               frontendName: null,
               serviceFrontendLockKey: null,
               serviceIndex: null,
+              serviceHash: null,
               serviceVersion: null,
               backupState: { status: 'released', failure: null },
             });
@@ -530,9 +528,6 @@ export function makeMockSession(props: unknown): unknown {
               ).pipe(Effect.asVoid, Effect.ignore),
           );
 
-          const systemId = yield* makeIdFromAbbreviation({
-            abbreviation: coreAbbreviations.system,
-          });
           const serviceFrontendLockKey = yield* makeServiceFrontendLockKey(
             makeServiceFrontendLock({
               frontend: frontend as IServiceFrontendController,
@@ -543,19 +538,19 @@ export function makeMockSession(props: unknown): unknown {
             resources: fixtureResources,
           });
 
-          yield* applyServiceFrontendState({
+          yield* applyServiceFrontendSnapshot({
             frontend: frontend as IServiceFrontendController,
             sessionId,
             authentication,
-            systemId,
             db,
             models,
-            frontendState: {
+            snapshot: {
               authentication: fixtureAuthentication,
-              systemId,
               serviceName: frontend.serviceName,
               frontendName: frontend.name,
               serviceIndex: 0,
+              serviceHash:
+                'f31c0c51be861af11225611526c9e2b73ab453f449950aa4ad4eaad22c522dbc',
               serviceVersion: frontend.serviceVersion,
               resources,
             },
@@ -566,7 +561,6 @@ export function makeMockSession(props: unknown): unknown {
             authentication: Schema.decodeUnknownSync(
               frontend.authentication.authenticationSchema,
             )(authentication),
-            systemId,
             serviceName: frontend.serviceName,
             frontendName: frontend.name,
             serviceFrontendLockKey,
@@ -575,6 +569,8 @@ export function makeMockSession(props: unknown): unknown {
             models,
             isInitialized: true,
             serviceIndex: 0,
+            serviceHash:
+              'f31c0c51be861af11225611526c9e2b73ab453f449950aa4ad4eaad22c522dbc',
             serviceVersion: frontend.serviceVersion,
             sessionStatus: 'current',
             backupState: {

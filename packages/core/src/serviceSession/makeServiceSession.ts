@@ -82,7 +82,6 @@ export function makeServiceSession<
     return {
       sessionId: null,
       authentication: null,
-      systemId: null,
       serviceName: null,
       frontendName: null,
       serviceFrontendLockKey: null,
@@ -91,6 +90,7 @@ export function makeServiceSession<
       models: null,
       isInitialized: false,
       serviceIndex: null,
+      serviceHash: null,
       serviceVersion: null,
       sessionStatus: 'bootstrapping',
       backupState: {

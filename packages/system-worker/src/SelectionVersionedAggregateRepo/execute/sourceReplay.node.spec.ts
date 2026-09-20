@@ -323,7 +323,7 @@ it('orders source output independently, backfills late enrollments, and never re
       .find(row => row.id === 'prd_c'),
   ).toMatchObject({ name: 'C at eight', serviceIndex: 8 });
   db.$client.exec(
-    "CREATE TRIGGER reject_delta BEFORE INSERT ON deltas BEGIN SELECT RAISE(ABORT, 'fixture-output-failed'); END",
+    "CREATE TRIGGER reject_selected_command BEFORE INSERT ON selectedCommands BEGIN SELECT RAISE(ABORT, 'fixture-output-failed'); END",
   );
   const failed = await Effect.runPromise(
     execute({
@@ -349,7 +349,7 @@ it('orders source output independently, backfills late enrollments, and never re
       .all()
       .find(row => row.id === 'prd_c'),
   ).toMatchObject({ name: 'C at eight', serviceIndex: 8 });
-  db.$client.exec('DROP TRIGGER reject_delta');
+  db.$client.exec('DROP TRIGGER reject_selected_command');
   await Effect.runPromise(
     execute({
       db,
@@ -366,21 +366,21 @@ it('orders source output independently, backfills late enrollments, and never re
       rows: source.rows,
     }).pipe(Effect.provide(AsyncLive)),
   );
-  const deltas = db
+  const selectedCommands = db
     .select()
-    .from(selectionVersionedAggregateRepoDbConfig.schema.deltas)
+    .from(selectionVersionedAggregateRepoDbConfig.schema.selectedCommands)
     .all()
     .map(row => JSON.parse(row.output));
-  expect(deltas.map(output => output.selectionIndex)).toEqual([
+  expect(selectedCommands.map(output => output.selectionIndex)).toEqual([
     1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
   ]);
-  expect(deltas.map(output => output.aggregateIndex)).toEqual([
+  expect(selectedCommands.map(output => output.aggregateIndex)).toEqual([
     1, 1, 1, 1, 2, 3, 3, 3, 3, 3,
   ]);
   expect(
-    deltas
-      .filter(output => output.resolution !== null)
-      .map(output => output.resolution.command.id),
+    selectedCommands
+      .map(output => output.id)
+      .filter((id: string) => id.startsWith('cmd_aggregate_')),
   ).toEqual(['cmd_aggregate_1', 'cmd_aggregate_2', 'cmd_aggregate_3']);
   expect(
     db

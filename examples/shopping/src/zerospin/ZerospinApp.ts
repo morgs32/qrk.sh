@@ -1,6 +1,5 @@
 import {
   makeAggregateFrontend,
-  makeBackup,
   makeRuntime,
   makeServiceFrontend,
   makeSession,
@@ -41,9 +40,6 @@ const applicationLayer = Layer.mergeAll(
 );
 
 export const runtime = makeRuntime({ layer: applicationLayer });
-
-/** Eager backup — client startup only, never during React render. */
-export const backup = makeBackup();
 
 export const Shopper = makeAggregateFrontend({
   authenticationSchema: Schema.Struct({
@@ -106,14 +102,12 @@ export const Catalog = makeServiceFrontend({
 export const shopperSession = makeSession({
   frontend: Shopper,
   runtime,
-  backup,
   systemName: 'shopping',
 });
 
 export const catalogSession = makeSession({
   frontend: Catalog,
   runtime,
-  backup,
   systemName: 'shopping',
 });
 
@@ -122,7 +116,6 @@ if (import.meta.hot) {
     void (async () => {
       await shopperSession.dispose();
       await catalogSession.dispose();
-      await backup.dispose();
       await runtime.dispose();
     })();
   });

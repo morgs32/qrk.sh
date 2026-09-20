@@ -82,7 +82,6 @@ describe('deleteList local occurrence', () => {
             aggregateId: 'acct_1',
             aggregateName: main.aggregateName,
             authentication: { userId: 'user_1', aggregateId: 'acct_1' },
-            systemId: 'sys_1',
             frontendName: main.name,
             aggregateFrontendLockKey: 'aggregate-lock-key',
             db,
@@ -91,6 +90,7 @@ describe('deleteList local occurrence', () => {
             isInitialized: true,
             aggregateIndex: 0,
             selectionIndex: 0,
+                  selectionHash: 'd0e2a11643c9bf23800218703ef6f12a058b941fca272a34c57c14ea2a5e62dc',
             pushIndex: 0,
             sessionStatus: 'current',
             backupState: {
@@ -170,7 +170,6 @@ describe('deleteList local occurrence', () => {
           aggregateId: 'acct_1',
           aggregateName: main.aggregateName,
           authentication: { userId: 'user_1', aggregateId: 'acct_1' },
-          systemId: 'sys_1',
           frontendName: main.name,
           aggregateFrontendLockKey: 'aggregate-lock-key',
           db,
@@ -179,6 +178,7 @@ describe('deleteList local occurrence', () => {
           isInitialized: true,
           aggregateIndex: 0,
           selectionIndex: 0,
+                  selectionHash: 'd0e2a11643c9bf23800218703ef6f12a058b941fca272a34c57c14ea2a5e62dc',
           pushIndex: 0,
           sessionStatus: 'current',
           backupState: {

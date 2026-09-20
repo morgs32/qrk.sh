@@ -4,7 +4,7 @@ import {
   type ITelemetryCollector,
 } from '@zerospin/logger';
 import type { CuidFactory } from '@zerospin/schema';
-import { type Effect, type ManagedRuntime } from 'effect';
+import { type Effect, type ManagedRuntime, type Schema } from 'effect';
 import { createStore } from 'zustand/vanilla';
 
 import type {
@@ -20,16 +20,17 @@ import type { initializeGuards } from '../guards/initializeGuards.ts';
 import { makeId } from '../models/makeId.ts';
 import type { MonotonicFactory } from '../services/MonotonicFactory.ts';
 
+import type { SessionCommandSchema } from './AggregateSelectedCommandSchema.ts';
 import type {
-  IFrontendDelta,
+  IAggregateSession,
   IInitializedSessionState,
-  ISession,
   ISessionId,
   ISessionState,
 } from './types.ts';
 
 type IExecutionResources = {
   sessionId: ISessionId;
+  settleLocally?: boolean;
   guards: Effect.Success<
     ReturnType<typeof initializeGuards<never, unknown, unknown>>
   >;
@@ -39,19 +40,22 @@ type IExecutionResources = {
   >;
   executeAggregateFrontendCommand?: (props: {
     command: IEncodedCommand<
-      IChainedCommand<ISessionCommand, IFrontendDelta> &
+      IChainedCommand<
+        ISessionCommand,
+        NonNullable<Schema.Schema.Type<typeof SessionCommandSchema>['delta']>
+      > &
         Readonly<{ sessionIndex: number; pushIndex: null }>
     >;
   }) => Effect.Effect<Readonly<{ commandId: string }>, IAnyError>;
 };
 
 const executionResourcesBySession = new WeakMap<
-  ISession<IAggregateFrontendController>,
+  IAggregateSession<IAggregateFrontendController>,
   IExecutionResources
 >();
 
 export function getAggregateSessionExecutionResources(
-  session: ISession<IAggregateFrontendController>,
+  session: IAggregateSession<IAggregateFrontendController>,
 ): IExecutionResources | undefined {
   return executionResourcesBySession.get(session);
 }
@@ -63,7 +67,7 @@ export function getAggregateSessionExecutionResources(
  */
 export function makeAggregateSession<
   FRONTEND extends IAggregateFrontendController,
->(props: { frontend: FRONTEND }): ISession<FRONTEND> {
+>(props: { frontend: FRONTEND }): IAggregateSession<FRONTEND> {
   const { frontend } = props;
   const store = createStore<
     ISessionState<
@@ -121,7 +125,6 @@ export function makeAggregateSession<
       aggregateId: null,
       aggregateName: null,
       authentication: null,
-      systemId: null,
       frontendName: null,
       aggregateFrontendLockKey: null,
       db: null,
@@ -130,6 +133,7 @@ export function makeAggregateSession<
       isInitialized: false,
       aggregateIndex: null,
       selectionIndex: null,
+      selectionHash: null,
       pushIndex: null,
       sessionStatus: 'bootstrapping',
       backupState: {
@@ -165,10 +169,10 @@ export function makeAggregateSession<
     return unsubscribe;
   };
 
-  const session: ISession<FRONTEND> = {
+  const session: IAggregateSession<FRONTEND> = {
     makeId(model) {
       const resources = executionResourcesBySession.get(
-        session as ISession<IAggregateFrontendController>,
+        session as IAggregateSession<IAggregateFrontendController>,
       );
       if (resources === undefined) {
         throw new ZerospinError({
@@ -181,14 +185,14 @@ export function makeAggregateSession<
     },
     setExecutionResources(resources) {
       executionResourcesBySession.set(
-        session as ISession<IAggregateFrontendController>,
+        session as IAggregateSession<IAggregateFrontendController>,
         resources,
       );
       store.setState({ sessionId: resources.sessionId });
     },
     clearExecutionResources() {
       executionResourcesBySession.delete(
-        session as ISession<IAggregateFrontendController>,
+        session as IAggregateSession<IAggregateFrontendController>,
       );
     },
     frontend,

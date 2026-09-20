@@ -17,11 +17,14 @@ export function SessionsCommandsLayout() {
   );
   const [pushPaused, setPushPaused] = useState(false);
   const [pushStatus, setPushStatus] = useState('');
+  const getPushPaused = entry?.getPushPaused;
+  const setPushPausedRpc = entry?.setPushPaused;
+  const pushNow = entry?.pushNow;
 
   useEffect(() => {
     let active = true;
-    if (entry !== undefined) {
-      void entry.getPushPaused().then(result => {
+    if (getPushPaused !== undefined) {
+      void getPushPaused().then(result => {
         if (active && result._tag === 'Success') {
           setPushPaused(result.success);
         }
@@ -30,7 +33,7 @@ export function SessionsCommandsLayout() {
     return () => {
       active = false;
     };
-  }, [entry]);
+  }, [getPushPaused]);
 
   if (entry === undefined || sessionId === undefined) {
     return null;
@@ -45,48 +48,52 @@ export function SessionsCommandsLayout() {
         flexDirection: 'column',
       }}
     >
-      <div
-        style={{
-          alignItems: 'center',
-          borderBottom: '1px solid #e5e7eb',
-          display: 'flex',
-          gap: 8,
-          padding: '4px 8px',
-        }}
-      >
-        <button
-          type="button"
-          onClick={() => {
-            void entry
-              .setPushPaused({ pushPaused: !pushPaused })
-              .then(result => {
-                if (result._tag === 'Success') {
-                  setPushPaused(!pushPaused);
-                  setPushStatus(!pushPaused ? 'paused' : 'running');
-                } else {
-                  setPushStatus(`failure: ${result.failure.code}`);
-                }
-              });
+      {getPushPaused !== undefined &&
+      setPushPausedRpc !== undefined &&
+      pushNow !== undefined ? (
+        <div
+          style={{
+            alignItems: 'center',
+            borderBottom: '1px solid #e5e7eb',
+            display: 'flex',
+            gap: 8,
+            padding: '4px 8px',
           }}
         >
-          {pushPaused ? 'Resume push' : 'Pause push'}
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            void entry.pushNow().then(result => {
-              setPushStatus(
-                result._tag === 'Success'
-                  ? result.success.status
-                  : `failure: ${result.failure.code}`,
+          <button
+            type="button"
+            onClick={() => {
+              void setPushPausedRpc({ pushPaused: !pushPaused }).then(
+                result => {
+                  if (result._tag === 'Success') {
+                    setPushPaused(!pushPaused);
+                    setPushStatus(!pushPaused ? 'paused' : 'running');
+                  } else {
+                    setPushStatus(`failure: ${result.failure.code}`);
+                  }
+                },
               );
-            });
-          }}
-        >
-          Push now
-        </button>
-        <span style={{ fontSize: 11 }}>{pushStatus}</span>
-      </div>
+            }}
+          >
+            {pushPaused ? 'Resume push' : 'Pause push'}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              void pushNow().then(result => {
+                setPushStatus(
+                  result._tag === 'Success'
+                    ? result.success.status
+                    : `failure: ${result.failure.code}`,
+                );
+              });
+            }}
+          >
+            Push now
+          </button>
+          <span style={{ fontSize: 11 }}>{pushStatus}</span>
+        </div>
+      ) : null}
       <SessionsCommandsRowsTable session={entry.session} />
     </div>
   );

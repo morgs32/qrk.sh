@@ -77,7 +77,7 @@ it('executes, publishes, projects, and recovers an exact admission receipt after
       const replica = yield* FrontendVersionedServiceRepo.getRepo({
         key: view,
       });
-      const state = yield* makeAsync(() => replica.getState(view)).pipe(
+      const state = yield* makeAsync(() => replica.getSnapshot(view)).pipe(
         Effect.flatMap(decodeRpc),
       );
       expect(state.serviceVersion).toBe(key.serviceVersion);
@@ -89,7 +89,7 @@ it('executes, publishes, projects, and recovers an exact admission receipt after
         key: view,
       });
       const output = yield* makeAsync(() =>
-        frontend.getCommands({ afterServiceIndex: result.serviceIndex - 1 }),
+        frontend.getSelectedCommands({ afterServiceIndex: result.serviceIndex - 1 }),
       ).pipe(Effect.flatMap(decodeRpc));
       expect(output.commands[0]?.id).toBe(command.id);
       return result;

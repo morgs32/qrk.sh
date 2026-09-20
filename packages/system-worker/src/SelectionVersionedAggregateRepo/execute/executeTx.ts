@@ -9,7 +9,7 @@ import type { IAnyMutation } from '@zerospin/core/contracts/types';
 import { makeTx } from '@zerospin/core/drizzle/makeTx';
 import { EncodedResourceSchema } from '@zerospin/core/models/EncodedResourceSchema';
 import { getGraph } from '@zerospin/core/models/getGraph';
-import { AggregateFrontendFinalizedCommandSchema } from '@zerospin/core/session/AggregateFrontendCommandSchema';
+import { AggregateSelectedCommandSchema } from '@zerospin/core/session/AggregateSelectedCommandSchema';
 import { getByKeyOrThrow } from '@zerospin/core/utils/getByKeyOrThrow';
 import { mapParseError, ZerospinError } from '@zerospin/error';
 import { makeEffectSchema } from '@zerospin/schema';
@@ -17,6 +17,10 @@ import type config from 'config';
 import { eq } from 'drizzle-orm';
 import { Effect, Schema } from 'effect';
 
+import {
+  advanceSelectionHash,
+  genesisSelectionHash,
+} from '../../selectionDispositionHash/selectionDispositionHash.js';
 import { type versionedAggregateChainDbConfig } from '../../VersionedAggregateChain/versionedAggregateChainDbConfig.js';
 import type { versionedServiceChainDbConfig } from '../../VersionedServiceChain/versionedServiceChainDbConfig.js';
 import {
@@ -100,6 +104,7 @@ export const executeTx = makeTx(
     .get();
   let cursor = state?.aggregateIndex ?? 0;
   let selectionIndex = state?.selectionIndex ?? 0;
+  let selectionHash = state?.selectionHash ?? genesisSelectionHash();
   let canonicalBytes = state?.canonicalBytes ?? '';
   let graph =
     state === undefined
@@ -268,6 +273,13 @@ export const executeTx = makeTx(
         .run();
     }
     selectionIndex += 1;
+    selectionHash = advanceSelectionHash({
+      previousSelectionHash: selectionHash,
+      selectionIndex,
+      commandId: executionEntry.command.id,
+      disposition:
+        executionEntry.command.failedAt === null ? 'success' : 'failure',
+    });
 
     // 6 — select this authentication's resources across every model in the aggregate version
     const selected = getGraph({
@@ -312,7 +324,7 @@ export const executeTx = makeTx(
       );
     }
 
-    // 7 — key resources by modelName plus id and derive inserted, updated, and deleted sets
+    // 7 — key resources by modelName plus id and derive the selected changes
     const before = new Map(
       graph.map(resource => [
         `${resource.modelName}\u0000${resource.id}`,
@@ -326,15 +338,10 @@ export const executeTx = makeTx(
       ]),
     );
     const delta = {
-      inserted: nextGraph.filter(
-        resource => !before.has(`${resource.modelName}\u0000${resource.id}`),
-      ),
-      updated: nextGraph.filter(resource => {
-        const previous = before.get(
-          `${resource.modelName}\u0000${resource.id}`,
-        );
+      upserted: nextGraph.filter(resource => {
+        const previous = before.get(`${resource.modelName}\u0000${resource.id}`);
         return (
-          previous !== undefined &&
+          previous === undefined ||
           JSON.stringify(previous) !== JSON.stringify(resource)
         );
       }),
@@ -346,14 +353,35 @@ export const executeTx = makeTx(
           modelName: resource.modelName,
           id: resource.id,
         })),
-      mutations: [],
     };
 
-    // 8 — retain the full occurrence; each recipient reconciles its own authentication and session.
-    const resolution = aggregateEntry;
+    // 8 — derive the minimal selected occurrence and retain its completion owner privately.
+    const ownerCommand = aggregateEntry?.command ?? null;
+    const ownerAuthentication = ownerCommand?.authentication ?? null;
+    const ownerFrontendName = ownerCommand?.frontendName ?? null;
+    const ownerAuthenticationBytes = yield* Schema.encodeEffect(
+      Schema.fromJsonString(
+        Schema.NullOr(Schema.Record(Schema.String, Schema.Unknown)),
+      ),
+    )(ownerAuthentication).pipe(
+      mapParseError({
+        code: 'replica-output-owner-invalid',
+        prefix: 'Failed to encode selected command owner',
+      }),
+    );
     const output = yield* Schema.encodeEffect(
-      Schema.fromJsonString(AggregateFrontendFinalizedCommandSchema),
-    )({ selectionIndex, aggregateIndex: cursor, delta, resolution }).pipe(
+      Schema.fromJsonString(AggregateSelectedCommandSchema),
+    )({
+      id: executionEntry.command.id,
+      selectionIndex,
+      aggregateIndex: cursor,
+      delta,
+      failure:
+        ownerAuthentication !== null && ownerFrontendName !== null
+          ? (aggregateEntry?.command.failure ?? null)
+          : null,
+      selectionHash,
+    }).pipe(
       mapParseError({
         code: 'replica-output-invalid',
         prefix: 'Failed to encode frontend output',
@@ -368,11 +396,13 @@ export const executeTx = makeTx(
       }),
     );
 
-    // 9 — write the delta outbox, source bytes, graph, and cursor in the replay transaction
-    tx.insert(selectionVersionedAggregateRepoDbConfig.schema.deltas)
+    // 9 — write the selected-command outbox, graph, and cursor in the replay transaction
+    tx.insert(selectionVersionedAggregateRepoDbConfig.schema.selectedCommands)
       .values({
         outboxIndex: selectionIndex,
         output,
+        authentication: ownerAuthenticationBytes,
+        frontendName: ownerFrontendName,
         deliveredAt: null,
         lastDeliveryFailure: null,
       })
@@ -382,6 +412,7 @@ export const executeTx = makeTx(
         id: 1,
         aggregateIndex: cursor,
         selectionIndex,
+        selectionHash,
         aggregateVersion: key.aggregateVersion,
         canonicalBytes,
         graph: graphBytes,
@@ -392,6 +423,7 @@ export const executeTx = makeTx(
         set: {
           aggregateIndex: cursor,
           selectionIndex,
+          selectionHash,
           aggregateVersion: key.aggregateVersion,
           canonicalBytes,
           graph: graphBytes,

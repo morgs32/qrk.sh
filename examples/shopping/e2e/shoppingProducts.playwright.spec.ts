@@ -88,7 +88,7 @@ test('signed-in e2e user can read products through the service-owned catalog fro
       });
     const aggregateState = await Effect.runPromise(
       makeTraceableApiTarget(aggregateFrontendApi)
-        .getState({ outstandingCommandIds: [] })
+        .getSnapshot({ pendingCommandIds: [] })
         .pipe(Effect.provide(makeTelemetryLayer(telemetryCollector))),
     );
     expect(aggregateState.authentication.clerkUserId).toBe(clerkUserId);
@@ -109,7 +109,7 @@ test('signed-in e2e user can read products through the service-owned catalog fro
     const productFrontendApi = makeTraceableApiTarget(serviceFrontendApi);
 
     const productRows = await Effect.runPromise(
-      productFrontendApi.getState().pipe(
+      productFrontendApi.getSnapshot().pipe(
         Effect.withSpan('shoppingProducts.getServiceFrontendState', {
           root: true,
         }),

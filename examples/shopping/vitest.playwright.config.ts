@@ -257,6 +257,7 @@ export default mergeConfig(
     include: [
       'tests/browser/mainThreadFrontendFlow.playwright.spec.ts',
       'tests/browser/mainThreadBackupAdverse.playwright.spec.ts',
+      'tests/browser/standalone-session.playwright.spec.ts',
     ],
     packageRoot: __dirname,
   }),
@@ -343,6 +344,7 @@ export default mergeConfig(
       entries: [
         'tests/browser/mainThreadFrontendFlow.playwright.spec.ts',
         'tests/browser/mainThreadBackupAdverse.playwright.spec.ts',
+        'tests/browser/standalone-session.playwright.spec.ts',
       ],
     },
     test: {

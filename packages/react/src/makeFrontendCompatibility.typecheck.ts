@@ -21,14 +21,12 @@ import { Effect, type Layer } from 'effect';
 import { assert, type Equals } from 'tsafe';
 
 import { makeAggregateFrontend } from './makeAggregateFrontend/makeAggregateFrontend';
-import { makeBackup } from './makeBackup/makeBackup';
 import { makeRuntime } from './makeRuntime/makeRuntime';
 import { makeServiceFrontend } from './makeServiceFrontend/makeServiceFrontend';
 import { makeSession } from './makeSession/makeSession';
 import { useInitializeSession } from './useInitializeSession/useInitializeSession';
 
 declare const layer: Layer.Layer<PublishableKey | ZerospinApiUrl, IAnyError>;
-declare const backup: ReturnType<typeof makeBackup>;
 
 const userV1 = makeAggregateVersion(defineAggregate({ name: 'user' }), {
   ...userAggregate.authentication,
@@ -116,31 +114,26 @@ const productsV2 = makeFrontendController({
 const MainSession = makeSession({
   frontend: Main,
   runtime,
-  backup,
   systemName: 'system-worker',
 });
 const SubsetSession = makeSession({
   frontend: makeAggregateFrontend(aggregateFrontendProps(subset)),
   runtime,
-  backup,
   systemName: 'system-worker',
 });
 const SecondSession = makeSession({
   frontend: makeAggregateFrontend(aggregateFrontendProps(second)),
   runtime,
-  backup,
   systemName: 'system-worker',
 });
 const ProductsSession = makeSession({
   frontend: makeServiceFrontend(serviceFrontendProps(products)),
   runtime,
-  backup,
   systemName: 'system-worker',
 });
 const ProductsV2Session = makeSession({
   frontend: makeServiceFrontend(serviceFrontendProps(productsV2)),
   runtime,
-  backup,
   systemName: 'system-worker',
 });
 const ProductsSubsetSession = makeSession({
@@ -148,7 +141,6 @@ const ProductsSubsetSession = makeSession({
     serviceFrontendProps({ ...products, models: { user: User } }),
   ),
   runtime,
-  backup,
   systemName: 'system-worker',
 });
 
@@ -183,7 +175,6 @@ ProductsSession.initialize<typeof emptySystem>({
 const WrongNameSession = makeSession({
   frontend: Main,
   runtime,
-  backup,
   systemName: 'other',
 });
 WrongNameSession.initialize<typeof system>({
@@ -199,7 +190,6 @@ const MissingAggregateSession = makeSession({
     aggregateFrontendProps({ ...main, aggregateName: 'missing' }),
   ),
   runtime,
-  backup,
   systemName: 'system-worker',
 });
 MissingAggregateSession.initialize<typeof system>({
@@ -212,7 +202,6 @@ const MissingServiceSession = makeSession({
     serviceFrontendProps({ ...products, serviceName: 'missing' }),
   ),
   runtime,
-  backup,
   systemName: 'system-worker',
 });
 MissingServiceSession.initialize<typeof system>({
@@ -225,7 +214,6 @@ const UnknownAggregateVersionSession = makeSession({
     aggregateFrontendProps({ ...main, aggregateVersion: '3.0.0' }),
   ),
   runtime,
-  backup,
   systemName: 'system-worker',
 });
 UnknownAggregateVersionSession.initialize<typeof system>({
@@ -238,7 +226,6 @@ const UnknownServiceVersionSession = makeSession({
     serviceFrontendProps({ ...products, serviceVersion: '3.0.0' }),
   ),
   runtime,
-  backup,
   systemName: 'system-worker',
 });
 UnknownServiceVersionSession.initialize<typeof system>({

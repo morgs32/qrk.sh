@@ -19,18 +19,21 @@ import { NanoIdFactory } from '../utils/NanoIdFactory.ts';
 import { UlidMonotonicFactory } from '../utils/UlidMonotonicFactory.ts';
 import { decodeRpc } from '../utils/decodeRpc.ts';
 
-import { applyAggregateFrontendCommand } from './applyAggregateFrontendCommand.ts';
-import { applyAggregateFrontendState } from './applyAggregateFrontendState.ts';
+import { applyAggregateSelectedCommand } from './applyAggregateSelectedCommand.ts';
+import { applyAggregateFrontendSnapshot } from './applyAggregateFrontendSnapshot.ts';
 import { makeAggregateSession } from './makeAggregateSession.ts';
 import { stageCommand } from './stageCommand.ts';
-import { sessionCommandJournalDrizzleSchema } from './sessionCommandShape.ts';
+import {
+  sessionCommandJournalDrizzleSchema,
+  sessionOptimisticAppliedMutationDrizzleSchema,
+} from './sessionCommandShape.ts';
 import {
   sessionMetadataDrizzleSchema,
   sessionRepoTables,
 } from './sessionRepoTables.ts';
 import type {
   IInitializedSessionState,
-  ISession,
+  IAggregateSession,
   ISessionId,
 } from './types.ts';
 const guardTestRuntime = ManagedRuntime.make(
@@ -226,7 +229,7 @@ async function makeInitializedSessionDeps() {
 }
 
 function publishInitializedState(props: {
-  session: ISession<typeof main>;
+  session: IAggregateSession<typeof main>;
   deps: Awaited<ReturnType<typeof makeInitializedSessionDeps>>;
 }) {
   const { deps, session } = props;
@@ -239,7 +242,6 @@ function publishInitializedState(props: {
     aggregateId: 'acct_1',
     aggregateName: main.aggregateName,
     authentication: { userId: 'usr_1', aggregateId: 'acct_1' },
-    systemId: 'sys_test',
     frontendName: main.name,
     aggregateFrontendLockKey: 'aggregate-lock-key',
     db: deps.db,
@@ -247,6 +249,7 @@ function publishInitializedState(props: {
     models: mainModels,
     isInitialized: true,
     selectionIndex: 0,
+                  selectionHash: 'd0e2a11643c9bf23800218703ef6f12a058b941fca272a34c57c14ea2a5e62dc',
     sessionStatus: 'current',
     backupState: { status: 'ready', failure: null },
   });
@@ -486,27 +489,26 @@ describe('renewable execution identity', () => {
       models: mainModels,
       aggregateId: 'acct_1',
       authentication: { userId: 'usr_1', aggregateId: 'acct_1' },
-      systemId: 'sys_test',
     } satisfies Omit<
-      Parameters<typeof applyAggregateFrontendState<typeof main>>[0],
-      'frontendState'
+      Parameters<typeof applyAggregateFrontendSnapshot<typeof main>>[0],
+      'snapshot'
     >;
     await Effect.runPromise(
-      applyAggregateFrontendState({
+      applyAggregateFrontendSnapshot({
         ...target,
-        frontendState: {
+        snapshot: {
           aggregateId: target.aggregateId,
           aggregateName: main.aggregateName,
           authentication: {
             userId: target.authentication.userId,
             aggregateId: target.aggregateId,
           },
-          systemId: target.systemId,
           frontendName: main.name,
           aggregateVersion: '1.0.0',
           aggregateIndex: 0,
           selectionIndex: 0,
-          resolutions: [],
+                  selectionHash: 'd0e2a11643c9bf23800218703ef6f12a058b941fca272a34c57c14ea2a5e62dc',
+          selectedCommands: [],
           resources: deps.db.select().from(deps.schema.user).all(),
         },
       }),
@@ -515,13 +517,15 @@ describe('renewable execution identity', () => {
       'Latest optimistic update',
     );
     await Effect.runPromise(
-      applyAggregateFrontendCommand({
+      applyAggregateSelectedCommand({
         ...target,
         command: {
+          id: 'cmd_selected',
           selectionIndex: 1,
+                  selectionHash: 'd0e2a11643c9bf23800218703ef6f12a058b941fca272a34c57c14ea2a5e62dc',
           aggregateIndex: 0,
-          delta: { inserted: [], updated: [], deleted: [], mutations: [] },
-          resolution: null,
+          delta: { upserted: [], deleted: [] },
+          failure: null,
         },
       }),
     );
@@ -580,7 +584,6 @@ it('persists creation-time encoded claims when the current decoded authenticatio
     aggregateId: 'acct_1',
     aggregateName: dated.aggregateName,
     authentication,
-    systemId: 'sys_test',
     frontendName: dated.name,
     aggregateFrontendLockKey: 'aggregate-lock-key',
     db: deps.db,
@@ -589,6 +592,7 @@ it('persists creation-time encoded claims when the current decoded authenticatio
     isInitialized: true,
     aggregateIndex: 0,
     selectionIndex: 0,
+                  selectionHash: 'd0e2a11643c9bf23800218703ef6f12a058b941fca272a34c57c14ea2a5e62dc',
     pushIndex: 0,
     sessionStatus: 'current',
     backupState: { status: 'ready', failure: null },
@@ -644,3 +648,86 @@ it('persists creation-time encoded claims when the current decoded authenticatio
   ).toEqual(original[0]);
   expect(first.authentication).toEqual(encoded);
 });
+
+it.effect(
+  'settles standalone commands with complete history and inverse mutations but no pending optimism',
+  () =>
+    Effect.gen(function* () {
+      const dbConfig = makeResourceDbConfig({
+        models: mainModels,
+        otherTables: sessionRepoTables,
+      });
+      const db = yield* makeProvisionedInMemoryWasmSqliteDb({ dbConfig }).pipe(
+        Effect.provide(AsyncLive),
+      );
+      yield* Effect.addFinalizer(() =>
+        Effect.sync(() => db.$client.sqlite3.close(db.$client.db)),
+      );
+      const guards = yield* initializeFrontendGuards({ frontend: main });
+      const session = makeAggregateSession({ frontend: main });
+      session.setExecutionResources({
+        guards,
+        runtime: guardTestRuntime,
+        sessionId: 'sesn_standalone',
+        settleLocally: true,
+      });
+      publishInitializedState({
+        session,
+        deps: { db, schema: dbConfig.schema },
+      });
+      session.store.setState({ aggregateIndex: 0, pushIndex: 0 });
+      db.insert(dbConfig.schema.user)
+        .values({
+          id: 'usr_1',
+          modelName: User.modelName,
+          createdAt: new Date(0),
+          updatedAt: new Date(0),
+          version: User.version,
+          name: 'User',
+        })
+        .run();
+      const command = yield* decodeRpc(
+        stageCommand({
+          session,
+          contractName: 'createList',
+          payload: {
+            id: 'lst_standalone',
+            name: 'Durable',
+            userId: 'usr_1',
+          },
+        }),
+      );
+      expect(command.delta?.mutations).toHaveLength(1);
+      expect(command.delta?.mutations[0]).toHaveProperty('inverseOperation');
+      const rows = db.select().from(sessionCommandJournalDrizzleSchema).all();
+      expect(rows).toHaveLength(1);
+      expect(JSON.parse(rows[0]?.command ?? '{}')).toEqual({
+        ...JSON.parse(JSON.stringify(command)),
+        payload: JSON.stringify(command.payload),
+      });
+      expect(
+        db.select().from(sessionOptimisticAppliedMutationDrizzleSchema).all(),
+      ).toEqual([]);
+      expect(db.select().from(dbConfig.schema.list).all()).toEqual([
+        expect.objectContaining({ id: 'lst_standalone', name: 'Durable' }),
+      ]);
+      session.store.setState({ sessionStatus: 'failed' });
+      expect(
+        stageCommand({
+          session,
+          contractName: 'createList',
+          payload: {
+            id: 'lst_blocked',
+            name: 'Blocked',
+            userId: 'usr_1',
+          },
+        }),
+      ).toMatchObject({
+        _tag: 'Failure',
+        failure: { code: 'aggregate-frontend-session-not-current' },
+      });
+      expect(
+        db.select().from(sessionCommandJournalDrizzleSchema).all(),
+      ).toEqual(rows);
+    }),
+);

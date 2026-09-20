@@ -99,13 +99,13 @@ function SessionState(props: {
   readonly sourceLabel: 'aggregate index' | 'service index';
   readonly frontendLabel: 'frontend index' | 'service frontend index';
   readonly sourceIndex: number | null;
-  readonly userIndex: number | null;
+  readonly selectionIndex: number | null;
   readonly pushIndex?: number | null;
 }) {
   const {
     backupState,
     frontendLabel,
-    userIndex,
+    selectionIndex,
     pushIndex,
     sessionStatus,
     sourceLabel,
@@ -133,7 +133,7 @@ function SessionState(props: {
         {sourceLabel}: {sourceIndex ?? 'none'}
       </span>
       <span>
-        {frontendLabel}: {userIndex ?? 'none'}
+        {frontendLabel}: {selectionIndex ?? 'none'}
       </span>
       {pushIndex === undefined ? null : (
         <span>push index: {pushIndex ?? 'none'}</span>
@@ -155,7 +155,7 @@ function AggregateSessionPane(props: { readonly session: ISession }) {
   const sessionStatus = useStore(session.store, state => state.sessionStatus);
   const backupState = useStore(session.store, state => state.backupState);
   const aggregateIndex = useStore(session.store, state => state.aggregateIndex);
-  const userIndex = useStore(session.store, state => state.userIndex);
+  const selectionIndex = useStore(session.store, state => state.selectionIndex);
   const pushIndex = useStore(session.store, state => state.pushIndex);
 
   if (!isInitialized) {
@@ -166,7 +166,7 @@ function AggregateSessionPane(props: { readonly session: ISession }) {
         sourceLabel="aggregate index"
         frontendLabel="frontend index"
         sourceIndex={aggregateIndex}
-        userIndex={userIndex}
+        selectionIndex={selectionIndex}
         pushIndex={pushIndex}
       />
     );
@@ -180,7 +180,7 @@ function AggregateSessionPane(props: { readonly session: ISession }) {
         sourceLabel="aggregate index"
         frontendLabel="frontend index"
         sourceIndex={aggregateIndex}
-        userIndex={userIndex}
+        selectionIndex={selectionIndex}
         pushIndex={pushIndex}
       />
       <div style={styles.tabsHeader}>
@@ -254,7 +254,7 @@ function ServiceSessionPane(props: {
         sourceLabel="service index"
         frontendLabel="service frontend index"
         sourceIndex={serviceIndex}
-        userIndex={serviceIndex}
+        selectionIndex={serviceIndex}
       />
     );
   }
@@ -267,7 +267,7 @@ function ServiceSessionPane(props: {
         sourceLabel="service index"
         frontendLabel="service frontend index"
         sourceIndex={serviceIndex}
-        userIndex={serviceIndex}
+        selectionIndex={serviceIndex}
       />
       <div style={styles.tabsHeader}>
         <NavLink

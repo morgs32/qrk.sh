@@ -99,7 +99,7 @@ export const executeTx = makeTx(
     )
     .get();
   let cursor = state?.aggregateIndex ?? 0;
-  let userIndex = state?.userIndex ?? 0;
+  let selectionIndex = state?.selectionIndex ?? 0;
   let canonicalBytes = state?.canonicalBytes ?? '';
   let graph =
     state === undefined
@@ -267,9 +267,9 @@ export const executeTx = makeTx(
         )
         .run();
     }
-    userIndex += 1;
+    selectionIndex += 1;
 
-    // 6 — select this user's resources across every model in the aggregate version
+    // 6 — select this authentication's resources across every model in the aggregate version
     const selected = getGraph({
       db: tx,
       models: aggregate.models,
@@ -353,7 +353,7 @@ export const executeTx = makeTx(
     const resolution = aggregateEntry;
     const output = yield* Schema.encodeEffect(
       Schema.fromJsonString(AggregateFrontendFinalizedCommandSchema),
-    )({ userIndex, aggregateIndex: cursor, delta, resolution }).pipe(
+    )({ selectionIndex, aggregateIndex: cursor, delta, resolution }).pipe(
       mapParseError({
         code: 'replica-output-invalid',
         prefix: 'Failed to encode frontend output',
@@ -371,7 +371,7 @@ export const executeTx = makeTx(
     // 9 — write the delta outbox, source bytes, graph, and cursor in the replay transaction
     tx.insert(selectionVersionedAggregateRepoDbConfig.schema.deltas)
       .values({
-        outboxIndex: userIndex,
+        outboxIndex: selectionIndex,
         output,
         deliveredAt: null,
         lastDeliveryFailure: null,
@@ -381,7 +381,7 @@ export const executeTx = makeTx(
       .values({
         id: 1,
         aggregateIndex: cursor,
-        userIndex,
+        selectionIndex,
         aggregateVersion: key.aggregateVersion,
         canonicalBytes,
         graph: graphBytes,
@@ -391,7 +391,7 @@ export const executeTx = makeTx(
           selectionVersionedAggregateRepoDbConfig.schema.projectionState.id,
         set: {
           aggregateIndex: cursor,
-          userIndex,
+          selectionIndex,
           aggregateVersion: key.aggregateVersion,
           canonicalBytes,
           graph: graphBytes,

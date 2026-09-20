@@ -2,21 +2,21 @@
 
 ## Vendor
 
-`vendor/` contains external repositories vendored with `git subtree`:
+`vendor/` contains external repositories vendored with `git subtree`. Consumer
+origin of record is this README and `AGENTS.md` (they must agree):
 
-| Prefix          | Upstream                                  |
-| --------------- | ----------------------------------------- |
-| `vendor/effect` | `https://github.com/Effect-TS/effect.git` |
+| Prefix | Origin | Branch |
+| --- | --- | --- |
+| `vendor/effect` | `https://github.com/Effect-TS/effect.git` | `main` |
+| `vendor/epluribus-machina` | `../epluribus-machina` | `subtree/core` |
 
-Shared code-shape guidance is provided by the globally installed
-`$engineering-patterns` skill. `llm-wiki/` is first-party Zerospin-domain
-guidance (not a subtree).
+Shared code-shape guidance is provided by the globally installed `$patterns`
+skill. `llm-wiki/` is first-party Zerospin-domain guidance (not a subtree).
 
-Each vendor README records its upstream and branch. Use the repository-local
-`update-vendor` skill for occasional squashed pulls and pushes. Invoking it
-without a target pulls every configured vendor. A push can target one vendor
-or all vendors, but it must show the outgoing commits and receive confirmation
-before publishing.
+Use the `$update-vendor` skill for occasional squashed pulls and pushes.
+Invoking it without a target pulls every configured vendor. A push can target
+one vendor or all vendors, but it must show the outgoing commits and receive
+confirmation before publishing.
 
 ## Structure
 

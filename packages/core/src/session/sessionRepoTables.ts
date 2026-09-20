@@ -18,7 +18,7 @@ const sessionMetadataTable = makeTable({
     sessionId: primitives.primaryKey({ abbreviation: 'sesn' }),
     nextSessionIndex: primitives.integer(),
     aggregateIndex: primitives.integer(),
-    userIndex: primitives.integer(),
+    selectionIndex: primitives.integer(),
     pushIndex: primitives.integer(),
   },
 });

@@ -715,7 +715,7 @@ export const bootstrapAggregateFrontendSession = Effect.fn(
                     nextSocket.onopen = () => {
                       nextSocket.send(
                         JSON.stringify({
-                          userIndex: recoveryState.userIndex,
+                          selectionIndex: recoveryState.selectionIndex,
                         }),
                       );
                       opened.resolve();
@@ -735,7 +735,7 @@ export const bootstrapAggregateFrontendSession = Effect.fn(
                         if (message.type === 'aggregateFrontendCommand') {
                           bufferedCommands.push(message.sync);
                         } else if (message.type === 'replay-complete') {
-                          replayComplete.resolve(message.userIndex);
+                          replayComplete.resolve(message.selectionIndex);
                         } else if (message.type === 'state-required') {
                           replayComplete.reject(
                             new Error('Finalized socket requires state'),
@@ -786,26 +786,26 @@ export const bootstrapAggregateFrontendSession = Effect.fn(
                   );
                 }
                 decodedFinalized.sort(
-                  (left, right) => left.userIndex - right.userIndex,
+                  (left, right) => left.selectionIndex - right.selectionIndex,
                 );
-                let bufferedThroughUserIndex = recoveryState.userIndex;
+                let bufferedThroughSelectionIndex = recoveryState.selectionIndex;
                 for (const command of decodedFinalized) {
-                  if (command.userIndex <= bufferedThroughUserIndex) {
+                  if (command.selectionIndex <= bufferedThroughSelectionIndex) {
                     continue;
                   }
-                  if (command.userIndex !== bufferedThroughUserIndex + 1) {
+                  if (command.selectionIndex !== bufferedThroughSelectionIndex + 1) {
                     return yield* new ZerospinError({
                       code: 'aggregate-frontend-finalized-replay-invalid',
                       message:
                         'Finalized socket replay was incomplete or non-contiguous',
                     });
                   }
-                  bufferedThroughUserIndex = command.userIndex;
+                  bufferedThroughSelectionIndex = command.selectionIndex;
                 }
                 if (
                   !Number.isSafeInteger(replayTip) ||
-                  replayTip < recoveryState.userIndex ||
-                  bufferedThroughUserIndex < replayTip
+                  replayTip < recoveryState.selectionIndex ||
+                  bufferedThroughSelectionIndex < replayTip
                 ) {
                   return yield* new ZerospinError({
                     code: 'aggregate-frontend-finalized-replay-invalid',
@@ -830,7 +830,7 @@ export const bootstrapAggregateFrontendSession = Effect.fn(
                   systemId,
                 });
                 for (const command of decodedFinalized) {
-                  if (command.userIndex <= recoveryState.userIndex) {
+                  if (command.selectionIndex <= recoveryState.selectionIndex) {
                     continue;
                   }
                   yield* applyAggregateFrontendCommand({
@@ -909,7 +909,7 @@ export const bootstrapAggregateFrontendSession = Effect.fn(
                         if (nextMetadata !== undefined) {
                           session.store.setState({
                             aggregateIndex: nextMetadata.aggregateIndex,
-                            userIndex: nextMetadata.userIndex,
+                            selectionIndex: nextMetadata.selectionIndex,
                             pushIndex: nextMetadata.pushIndex,
                           });
                         }
@@ -1256,7 +1256,7 @@ export const bootstrapAggregateFrontendSession = Effect.fn(
               models,
               isInitialized: true,
               aggregateIndex: metadata.aggregateIndex,
-              userIndex: metadata.userIndex,
+              selectionIndex: metadata.selectionIndex,
               pushIndex: metadata.pushIndex,
               sessionStatus: 'current',
               backupState: { status: 'ready', failure: null },
@@ -1370,7 +1370,7 @@ export const bootstrapAggregateFrontendSession = Effect.fn(
                   if (recoveredMetadata !== undefined) {
                     session.store.setState({
                       aggregateIndex: recoveredMetadata.aggregateIndex,
-                      userIndex: recoveredMetadata.userIndex,
+                      selectionIndex: recoveredMetadata.selectionIndex,
                       pushIndex: recoveredMetadata.pushIndex,
                     });
                   }

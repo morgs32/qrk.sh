@@ -30,6 +30,6 @@ export const getProjectionReadiness = Effect.fn(
   return {
     systemId: props.key.systemId,
     serviceIndex: index,
-    userIndex: index,
+    selectionIndex: index,
   };
 });

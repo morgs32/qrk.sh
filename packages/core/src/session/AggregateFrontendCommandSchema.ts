@@ -53,7 +53,7 @@ const EmptyFrontendDeltaSchema = Schema.Struct({
 });
 
 export const AggregateFrontendFinalizedCommandSchema = Schema.Struct({
-  userIndex: positiveIndexSchema,
+  selectionIndex: positiveIndexSchema,
   aggregateIndex: nonNegativeIndexSchema,
   delta: FrontendDeltaSchema,
   resolution: Schema.NullOr(AggregateExecutionEntrySchema),
@@ -107,6 +107,6 @@ export const AggregateFrontendSyncStateSchema = Schema.Struct({
   resolutions: Schema.Array(AggregateExecutionEntrySchema),
   frontendName: Schema.String,
   aggregateIndex: nonNegativeIndexSchema,
-  userIndex: nonNegativeIndexSchema,
+  selectionIndex: nonNegativeIndexSchema,
   resources: Schema.Array(EncodedResourceSchema),
 }) satisfies Schema.Codec<IAggregateFrontendSyncState, any>;

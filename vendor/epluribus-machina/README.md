@@ -2,5 +2,5 @@
 
 ## Zerospin subrepo metadata
 
-Upstream: `https://github.com/morgs32/epluribus-machina.git`
+Upstream: `../epluribus-machina`
 Branch: `subtree/core`

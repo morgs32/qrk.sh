@@ -170,7 +170,7 @@ describe('pushCommand1: static frontend command push', () => {
             models,
             isInitialized: true,
             aggregateIndex: state.aggregateIndex,
-            userIndex: state.userIndex,
+            selectionIndex: state.selectionIndex,
             pushIndex: 0,
             sessionStatus: 'current',
             backupState: {

@@ -127,26 +127,26 @@ export const getState = Effect.fn('SelectionVersionedAggregateRepo.getState')(
             }),
           );
     const aggregateIndex = captured.state?.aggregateIndex ?? 0;
-    const userIndex = captured.state?.userIndex ?? 0;
+    const selectionIndex = captured.state?.selectionIndex ?? 0;
 
     // 5 — drain the deltas outbox without retaining the execution permit
-    yield* props.deltas.drain(userIndex);
+    yield* props.deltas.drain(selectionIndex);
     const chain = yield* SelectionVersionedAggregateChain.getRepo({ key });
     const published = yield* makeAsync<
       Awaited<ReturnType<SelectionVersionedAggregateChain['getCommands']>>
     >(() =>
       chain.getCommands({
-        afterUserIndex: 0,
+        afterSelectionIndex: 0,
         reconcile: {
           commandIds: requested.outstandingCommandIds,
           frontendName: requested.frontendName,
-          throughUserIndex: userIndex,
+          throughSelectionIndex: selectionIndex,
         },
       }),
     ).pipe(Effect.flatMap(decodeRpc));
 
     // 6 — reject a SelectionVAC tip behind the captured snapshot index
-    if (published.tip < userIndex) {
+    if (published.tip < selectionIndex) {
       return yield* new ZerospinError({
         code: 'replica-state-publication-pending',
         message: 'Snapshot cursor has not been durably published',
@@ -167,7 +167,7 @@ export const getState = Effect.fn('SelectionVersionedAggregateRepo.getState')(
       ...key,
       aggregateVersion: key.aggregateVersion,
       aggregateIndex,
-      userIndex,
+      selectionIndex,
       frontendName: requested.frontendName,
       resolutions: published.commands.flatMap(entry =>
         entry.resolution === null ? [] : [entry.resolution],

@@ -47,13 +47,13 @@ it('shares one history across concurrent frontend locks and filters replay and l
       userId: 'usr_shared',
     },
   ];
-  const rows = [1, 2, 3].map(userIndex => ({
-    outboxIndex: userIndex,
+  const rows = [1, 2, 3].map(selectionIndex => ({
+    outboxIndex: selectionIndex,
     deliveredAt: null,
     lastDeliveryFailure: null,
     output: JSON.stringify({
-      userIndex,
-      aggregateIndex: userIndex,
+      selectionIndex,
+      aggregateIndex: selectionIndex,
       delta: { inserted: resources, updated: [], deleted: [], mutations: [] },
       resolution: {
         sourceCommand: '{}',
@@ -61,7 +61,7 @@ it('shares one history across concurrent frontend locks and filters replay and l
         executionTimestamp: time,
         mutations: [],
         command: {
-          id: `cmd_shared_${userIndex}`,
+          id: `cmd_shared_${selectionIndex}`,
           commandName: 'createList',
           payload: '{}',
           contractVersion: '1.0.0',
@@ -74,8 +74,8 @@ it('shares one history across concurrent frontend locks and filters replay and l
           },
           frontendName: 'main',
           sessionId: 'sesn_shared',
-          pushIndex: userIndex,
-          aggregateIndex: userIndex,
+          pushIndex: selectionIndex,
+          aggregateIndex: selectionIndex,
           chainedAt: time,
           delta: null,
           failedAt: null,
@@ -135,18 +135,18 @@ it('shares one history across concurrent frontend locks and filters replay and l
       const message = JSON.parse(String(event.data));
       if (message.type === 'aggregateFrontendCommand') {
         messages.push(message.sync);
-        if (message.sync.userIndex === 3) live.resolve();
+        if (message.sync.selectionIndex === 3) live.resolve();
       }
       if (message.type === 'replay-complete') replay.resolve();
     });
-    socket.send(JSON.stringify({ userIndex: 0 }));
+    socket.send(JSON.stringify({ selectionIndex: 0 }));
     await replay.promise;
     connections.push({ name, authentication, lock, socket, messages, live });
   }
   await Effect.runPromise(decodeRpc(await receiver.receive(rows.slice(2))));
   for (const connection of connections) {
     await connection.live.promise;
-    expect(connection.messages.map(entry => entry.userIndex)).toEqual([
+    expect(connection.messages.map(entry => entry.selectionIndex)).toEqual([
       1, 2, 3,
     ]);
     for (const entry of connection.messages) {
@@ -162,7 +162,7 @@ it('shares one history across concurrent frontend locks and filters replay and l
     const paged = await Effect.runPromise(
       decodeRpc(
         await repo.getCommands({
-          afterUserIndex: 0,
+          afterSelectionIndex: 0,
           frontend: {
             name: connection.name,
             authentication: connection.authentication,
@@ -199,7 +199,7 @@ it('persists before acknowledgement and replays strictly after the supplied snap
       const rows = [1, 2].map(index => ({
         outboxIndex: index,
         output: JSON.stringify({
-          userIndex: index,
+          selectionIndex: index,
           aggregateIndex: 0,
           delta: { inserted: [], updated: [], deleted: [], mutations: [] },
           resolution: null,
@@ -214,7 +214,7 @@ it('persists before acknowledgement and replays strictly after the supplied snap
         Effect.flatMap(decodeRpc),
       );
       expect(
-        (yield* makeAsync(() => repo.getCommands({ afterUserIndex: 0 })).pipe(
+        (yield* makeAsync(() => repo.getCommands({ afterSelectionIndex: 0 })).pipe(
           Effect.flatMap(decodeRpc),
         )).commands,
       ).toHaveLength(2);
@@ -223,7 +223,7 @@ it('persists before acknowledgement and replays strictly after the supplied snap
           {
             ...rows[0]!,
             outboxIndex: 4,
-            output: rows[0]!.output.replace('"userIndex":1', '"userIndex":4'),
+            output: rows[0]!.output.replace('"selectionIndex":1', '"selectionIndex":4'),
           },
         ]),
       ).pipe(Effect.flatMap(decodeRpc), Effect.result);
@@ -257,12 +257,12 @@ it('persists before acknowledgement and replays strictly after the supplied snap
       socket.addEventListener('message', event => {
         const message = JSON.parse(String(event.data));
         if (message.type === 'aggregateFrontendCommand') {
-          indexes.push(message.sync.userIndex);
+          indexes.push(message.sync.selectionIndex);
           expect(message.sync.aggregateIndex).toBe(0);
         }
         if (message.type === 'replay-complete') completed.resolve();
       });
-      socket.send(JSON.stringify({ userIndex: 1 }));
+      socket.send(JSON.stringify({ selectionIndex: 1 }));
       yield* makeAsync(() => completed.promise);
       expect(indexes).toEqual([2]);
       socket.close(1000);

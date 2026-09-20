@@ -237,7 +237,7 @@ it('prepares in VAR, publishes per-command output, and recovers terminal results
         ['user'],
       );
       expect(narrowState.resolutions).toEqual([]);
-      expect(narrowState.userIndex).toBe(state.userIndex);
+      expect(narrowState.selectionIndex).toBe(state.selectionIndex);
       expect(state.aggregateIndex).toBe(4);
       expect(state.resolutions.map(entry => entry.command.id)).toEqual([
         'cmd_prepared_list_0',
@@ -249,11 +249,11 @@ it('prepares in VAR, publishes per-command output, and recovers terminal results
       });
       const earlier = yield* makeAsync(() =>
         throughTwo.getCommands({
-          afterUserIndex: 0,
+          afterSelectionIndex: 0,
           reconcile: {
             commandIds: ['cmd_prepared_list_0', 'cmd_prepared_list_1'],
             frontendName: 'main',
-            throughUserIndex: 2,
+            throughSelectionIndex: 2,
           },
         }),
       ).pipe(Effect.flatMap(decodeRpc));
@@ -262,11 +262,11 @@ it('prepares in VAR, publishes per-command output, and recovers terminal results
       ).toEqual(['cmd_prepared_list_0']);
       const otherFrontend = yield* makeAsync(() =>
         throughTwo.getCommands({
-          afterUserIndex: 0,
+          afterSelectionIndex: 0,
           reconcile: {
             commandIds: ['cmd_prepared_list_0'],
             frontendName: 'other',
-            throughUserIndex: 4,
+            throughSelectionIndex: 4,
           },
         }),
       ).pipe(Effect.flatMap(decodeRpc));
@@ -278,7 +278,7 @@ it('prepares in VAR, publishes per-command output, and recovers terminal results
         key: view,
       });
       const outputs = yield* makeAsync(() =>
-        frontend.getCommands({ afterUserIndex: 0 }),
+        frontend.getCommands({ afterSelectionIndex: 0 }),
       ).pipe(Effect.flatMap(decodeRpc));
       expect(outputs.commands.map(command => command.aggregateIndex)).toEqual([
         1, 2, 3, 4,
@@ -298,7 +298,7 @@ it('prepares in VAR, publishes per-command output, and recovers terminal results
       expect(outputs.tip).toBeGreaterThanOrEqual(state.aggregateIndex);
       expect(
         (yield* makeAsync(() =>
-          frontend.getCommands({ afterUserIndex: state.userIndex }),
+          frontend.getCommands({ afterSelectionIndex: state.selectionIndex }),
         ).pipe(Effect.flatMap(decodeRpc))).commands,
       ).toEqual([]);
       const retried = yield* makeAsync(() =>

@@ -80,7 +80,7 @@ it('resolves only the originating optimism, replays the rest, and rejects skippe
         models: mainModels,
         isInitialized: true,
         aggregateIndex: 0,
-        userIndex: 0,
+        selectionIndex: 0,
         pushIndex: 0,
         sessionStatus: 'current',
         backupState: { status: 'ready', failure: null },
@@ -127,7 +127,7 @@ it('resolves only the originating optimism, replays the rest, and rejects skippe
         mutations: [],
       });
       const output = {
-        userIndex: 1,
+        selectionIndex: 1,
         aggregateIndex: 1,
         delta: { inserted: [], updated: [], deleted: [], mutations: [] },
         resolution,
@@ -156,7 +156,7 @@ it('resolves only the originating optimism, replays the rest, and rejects skippe
       const gap = yield* applyAggregateFrontendCommand({
         ...props,
         command: {
-          userIndex: 3,
+          selectionIndex: 3,
           aggregateIndex: 1,
           delta: output.delta,
           resolution: null,
@@ -173,7 +173,7 @@ it('resolves only the originating optimism, replays the rest, and rejects skippe
         yield* applyAggregateFrontendCommand({
           ...props,
           command: {
-            userIndex: 2,
+            selectionIndex: 2,
             aggregateIndex: 1,
             delta: output.delta,
             resolution: null,

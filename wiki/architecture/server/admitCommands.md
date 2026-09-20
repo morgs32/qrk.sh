@@ -5,7 +5,7 @@ updated: 2026-09-11
 
 # Command Chains and Materialization
 
-The aggregate path is AC → VAR → VAC → SelectionVAR → SelectionVAC → browser. VAR and SelectionVAR also consume the service histories pinned by their aggregate definition. SelectionVAR combines those sources into one user stream with its own output index.
+The aggregate path is AC → VAR → VAC → SelectionVAR → SelectionVAC → browser. VAR and SelectionVAR also consume the service histories pinned by their aggregate definition. SelectionVAR combines those sources into one selection stream with its own output index.
 
 ## Trigger
 
@@ -65,7 +65,7 @@ sequenceDiagram
    - [`VersionedAggregateRepo.ts`](../../../packages/system-worker/src/VersionedAggregateRepo/VersionedAggregateRepo.ts) and [`receiveServiceCommandsTx.ts`](../../../packages/system-worker/src/VersionedAggregateRepo/receiveServiceCommandsTx.ts) — Validates and commits source delivery under the same execution permit used for aggregate commands.
 8. VSC also sends complete entries to SelectionVAR. It serializes both input streams and commits each occurrence's graph, source progress, and outgoing delta together.
    - [`SelectionVersionedAggregateRepo.ts`](../../../packages/system-worker/src/SelectionVersionedAggregateRepo/SelectionVersionedAggregateRepo.ts) — Binds the direct source subscriber and shared execution permit.
-9. SelectionVAR publishes one output per consumed occurrence, including empty deltas. `userIndex` advances; service-only outputs retain `aggregateIndex` and have no resolution.
+9. SelectionVAR publishes one output per consumed occurrence, including empty deltas. `selectionIndex` advances; service-only outputs retain `aggregateIndex` and have no resolution.
    - [`executeTx.ts`](../../../packages/system-worker/src/SelectionVersionedAggregateRepo/execute/executeTx.ts) — Stores the graph and delta outbox row in the source application transaction.
 10. SelectionVAC retains each contiguous frontend output before broadcasting it. Reconnect replay uses the same durable output order.
     - [`receiveDeltas.ts`](../../../packages/system-worker/src/SelectionVersionedAggregateChain/receiveDeltas/receiveDeltas.ts) — Validates frontend positions and aggregate watermarks before exact-byte retention and broadcast.
@@ -277,7 +277,7 @@ VAR and SelectionVAR initialize every declared service source during activation.
 - [`onDOActivation.ts`](../../../packages/system-worker/src/SelectionVersionedAggregateRepo/onDOActivation/onDOActivation.ts) — Declares service sources, subscribes finalized aggregate history, then subscribes the service feeds.
 - [`sourceReplay.node.spec.ts`](../../../packages/system-worker/src/SelectionVersionedAggregateRepo/execute/sourceReplay.node.spec.ts) — Preserves late-resource replay behind an already advanced source cursor.
 
-Snapshots capture the graph and both indices under execution exclusivity. After releasing that permit they await SelectionVAC publication through the captured user position, then reconcile only requested outstanding command IDs from retained SelectionVAC entries through that position. Full resolutions are restricted to the requesting frontend.
+Snapshots capture the graph and both indices under execution exclusivity. After releasing that permit they await SelectionVAC publication through the captured selection position, then reconcile only requested outstanding command IDs from retained SelectionVAC entries through that position. Full resolutions are restricted to the requesting frontend.
 
 - [`getState.ts`](../../../packages/system-worker/src/SelectionVersionedAggregateRepo/getState/getState.ts) — Captures a coherent view and waits for its captured delta publication before returning.
 

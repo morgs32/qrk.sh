@@ -39,7 +39,7 @@ const { system } = config;
  * 3. Enforce each source's contiguous replay and retry identity.
  * 4. Validate the terminal occurrence against its bound owner.
  * 5. Apply successful changes without regressing enrolled replica copies.
- * 6. Select this user graph from the complete aggregate model set.
+ * 6. Select this authentication graph from the complete aggregate model set.
  * 7. Compare membership and values with the preceding graph.
  * 8. Encode one output and its own-origin resolution.
  * 9. Commit output and the new projection checkpoint.

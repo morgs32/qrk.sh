@@ -101,14 +101,14 @@ export const applyAggregateFrontendStateTx = makeTx(
       sessionId,
       nextSessionIndex: metadata?.nextSessionIndex ?? 1,
       aggregateIndex: frontendState.aggregateIndex,
-      userIndex: frontendState.userIndex,
+      selectionIndex: frontendState.selectionIndex,
       pushIndex: metadata?.pushIndex ?? 0,
     })
     .onConflictDoUpdate({
       target: sessionMetadataDrizzleSchema.sessionId,
       set: {
         aggregateIndex: frontendState.aggregateIndex,
-        userIndex: frontendState.userIndex,
+        selectionIndex: frontendState.selectionIndex,
         pushIndex: metadata?.pushIndex ?? 0,
       },
     })

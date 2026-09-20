@@ -246,7 +246,7 @@ function publishInitializedState(props: {
     schema: deps.schema,
     models: mainModels,
     isInitialized: true,
-    userIndex: 0,
+    selectionIndex: 0,
     sessionStatus: 'current',
     backupState: { status: 'ready', failure: null },
   });
@@ -284,7 +284,7 @@ describe('makeAggregateSession onInitialized', () => {
     expect(deliveries[0]?.isInitialized).toBe(true);
     expect(deliveries[0]?.db).toBe(deps.db);
 
-    session.store.setState({ userIndex: 1 });
+    session.store.setState({ selectionIndex: 1 });
     await Promise.resolve();
     expect(deliveries).toHaveLength(1);
   });
@@ -505,7 +505,7 @@ describe('renewable execution identity', () => {
           frontendName: main.name,
           aggregateVersion: '1.0.0',
           aggregateIndex: 0,
-          userIndex: 0,
+          selectionIndex: 0,
           resolutions: [],
           resources: deps.db.select().from(deps.schema.user).all(),
         },
@@ -518,7 +518,7 @@ describe('renewable execution identity', () => {
       applyAggregateFrontendCommand({
         ...target,
         command: {
-          userIndex: 1,
+          selectionIndex: 1,
           aggregateIndex: 0,
           delta: { inserted: [], updated: [], deleted: [], mutations: [] },
           resolution: null,
@@ -588,7 +588,7 @@ it('persists creation-time encoded claims when the current decoded authenticatio
     models: mainModels,
     isInitialized: true,
     aggregateIndex: 0,
-    userIndex: 0,
+    selectionIndex: 0,
     pushIndex: 0,
     sessionStatus: 'current',
     backupState: { status: 'ready', failure: null },

@@ -181,7 +181,7 @@ describe('@zerospin/frontend programs', () => {
         aggregateName: 'user',
         frontendName: 'web',
         aggregateIndex: 0,
-        userIndex: 7,
+        selectionIndex: 7,
         aggregateVersion: '1.0.0',
         resolutions: [],
         resources: [],
@@ -264,7 +264,7 @@ describe('aggregate frontend snapshot and socket recovery', () => {
       aggregateVersion: '1.0.0',
       frontendName: 'web',
       aggregateIndex: 1,
-      userIndex: 5,
+      selectionIndex: 5,
       resolutions: [],
       resources: [],
     };
@@ -282,7 +282,7 @@ describe('aggregate frontend snapshot and socket recovery', () => {
       .mockResolvedValueOnce({ result: encodeSuccess(state), link: null })
       .mockResolvedValueOnce({ result: encodeSuccess(state), link: null })
       .mockResolvedValue({
-        result: encodeSuccess({ ...state, userIndex: 8 }),
+        result: encodeSuccess({ ...state, selectionIndex: 8 }),
         link: null,
       });
     createWebSocketTicketLeaf.mockResolvedValue({
@@ -304,14 +304,14 @@ describe('aggregate frontend snapshot and socket recovery', () => {
       }
       send(bytes: string) {
         const message = JSON.parse(bytes);
-        resumed.push(message.userIndex);
-        const next = message.userIndex + 1;
+        resumed.push(message.selectionIndex);
+        const next = message.selectionIndex + 1;
         for (let duplicate = 0; duplicate < 2; duplicate++) {
           this.onmessage?.({
             data: JSON.stringify({
               type: 'aggregateFrontendCommand',
               sync: {
-                userIndex: next,
+                selectionIndex: next,
                 aggregateIndex: 1,
                 delta: {
                   inserted: [],
@@ -327,7 +327,7 @@ describe('aggregate frontend snapshot and socket recovery', () => {
         this.onmessage?.({
           data: JSON.stringify({
             type: 'replay-complete',
-            userIndex: next,
+            selectionIndex: next,
           }),
         });
       }
@@ -409,12 +409,12 @@ describe('aggregate frontend snapshot and socket recovery', () => {
             });
             expect(session.store.getState()).toMatchObject({
               aggregateIndex: 1,
-              userIndex: 6,
+              selectionIndex: 6,
               sessionStatus: 'current',
             });
             const recovered = Promise.withResolvers<void>();
             const unsubscribe = session.store.subscribe(next => {
-              if (next.userIndex === 9) recovered.resolve();
+              if (next.selectionIndex === 9) recovered.resolve();
             });
             sockets[0]!.close();
             yield* Effect.tryPromise(() => recovered.promise).pipe(
@@ -423,7 +423,7 @@ describe('aggregate frontend snapshot and socket recovery', () => {
             expect(resumed).toEqual([5, 8]);
             expect(session.store.getState()).toMatchObject({
               aggregateIndex: 1,
-              userIndex: 9,
+              selectionIndex: 9,
               sessionStatus: 'current',
             });
             expect(session.store.getState().authentication).toEqual(
@@ -467,7 +467,7 @@ describe('frontend startup without a reusable backup', () => {
                 aggregateName: 'user',
                 aggregateVersion: '1.0.0',
                 aggregateIndex: 0,
-                userIndex: 0,
+                selectionIndex: 0,
                 resolutions: [],
               }
             : {
@@ -630,7 +630,7 @@ it.each(['aggregate', 'service'])(
             aggregateName: 'user',
             aggregateVersion: '1.0.0',
             aggregateIndex: 0,
-            userIndex: 0,
+            selectionIndex: 0,
             resolutions: [],
           }
         : { serviceName: 'catalog', serviceVersion: '1.0.0', serviceIndex: 0 }),
@@ -683,7 +683,7 @@ it.each(['aggregate', 'service'])(
               data: JSON.stringify({
                 type: 'replay-complete',
                 ...(kind === 'aggregate'
-                  ? { userIndex: 0 }
+                  ? { selectionIndex: 0 }
                   : { serviceIndex: 0 }),
               }),
             }),

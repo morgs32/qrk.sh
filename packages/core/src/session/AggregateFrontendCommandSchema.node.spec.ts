@@ -81,7 +81,7 @@ describe('aggregate frontend command schemas', () => {
     const output = await Effect.runPromise(
       Schema.decodeUnknownEffect(AggregateFrontendFinalizedCommandSchema)(
         {
-          userIndex: 6,
+          selectionIndex: 6,
           aggregateIndex: 3,
           delta: frontendDelta,
           resolution,
@@ -97,14 +97,14 @@ describe('aggregate frontend command schemas', () => {
     expect(
       await Effect.runPromise(
         Schema.decodeUnknownEffect(AggregateFrontendFinalizedCommandSchema)({
-          userIndex: 7,
+          selectionIndex: 7,
           aggregateIndex: 3,
           delta: emptyDelta,
           resolution: null,
         }),
       ),
     ).toEqual({
-      userIndex: 7,
+      selectionIndex: 7,
       aggregateIndex: 3,
       delta: emptyDelta,
       resolution: null,
@@ -156,7 +156,7 @@ describe('aggregate frontend command schemas', () => {
       aggregateName: 'user',
       frontendName: 'main',
       aggregateIndex: 5,
-      userIndex: 8,
+      selectionIndex: 8,
       aggregateVersion: '1.0.0',
       resolutions: [
         {
@@ -184,7 +184,7 @@ describe('aggregate frontend command schemas', () => {
 
     expect(syncState).toMatchObject({
       aggregateIndex: 5,
-      userIndex: 8,
+      selectionIndex: 8,
       aggregateVersion: '1.0.0',
       resolutions: [{ command: { id: 'cmd_session' } }],
     });

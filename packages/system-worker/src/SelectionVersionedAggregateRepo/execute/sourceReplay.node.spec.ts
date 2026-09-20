@@ -371,7 +371,7 @@ it('orders source output independently, backfills late enrollments, and never re
     .from(selectionVersionedAggregateRepoDbConfig.schema.deltas)
     .all()
     .map(row => JSON.parse(row.output));
-  expect(deltas.map(output => output.userIndex)).toEqual([
+  expect(deltas.map(output => output.selectionIndex)).toEqual([
     1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
   ]);
   expect(deltas.map(output => output.aggregateIndex)).toEqual([
@@ -387,7 +387,7 @@ it('orders source output independently, backfills late enrollments, and never re
       .select()
       .from(selectionVersionedAggregateRepoDbConfig.schema.projectionState)
       .get(),
-  ).toMatchObject({ aggregateIndex: 3, userIndex: 10 });
+  ).toMatchObject({ aggregateIndex: 3, selectionIndex: 10 });
   expect(
     db
       .select()

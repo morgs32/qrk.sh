@@ -51,7 +51,7 @@ describe('applyAggregateFrontendState', () => {
               aggregateName: main.aggregateName,
               frontendName: main.name,
               aggregateIndex: 3,
-              userIndex: 8,
+              selectionIndex: 8,
               aggregateVersion: '1.0.0',
               resolutions: [],
               resources: [
@@ -73,7 +73,7 @@ describe('applyAggregateFrontendState', () => {
             sessionId: 'sesn_state',
             nextSessionIndex: 1,
             aggregateIndex: 3,
-            userIndex: 8,
+            selectionIndex: 8,
             pushIndex: 0,
           });
           expect(db.select().from(User.drizzleSchema).all()).toEqual([
@@ -98,7 +98,7 @@ describe('applyAggregateFrontendState', () => {
               aggregateName: main.aggregateName,
               frontendName: main.name,
               aggregateIndex: 4,
-              userIndex: 10,
+              selectionIndex: 10,
               aggregateVersion: '1.0.0',
               resolutions: [],
               resources: [],
@@ -136,7 +136,7 @@ describe('applyAggregateFrontendState', () => {
               aggregateName: main.aggregateName,
               frontendName: main.name,
               aggregateIndex: 0,
-              userIndex: 0,
+              selectionIndex: 0,
               aggregateVersion: '1.0.0',
               resolutions: [0, 1].map(() => ({
                 sourceCommand: '{}',
@@ -217,7 +217,7 @@ describe('applyAggregateFrontendState', () => {
             aggregateName: main.aggregateName,
             frontendName: main.name,
             aggregateIndex: 0,
-            userIndex: 0,
+            selectionIndex: 0,
             aggregateVersion: '1.0.0',
             resolutions: [],
             resources,

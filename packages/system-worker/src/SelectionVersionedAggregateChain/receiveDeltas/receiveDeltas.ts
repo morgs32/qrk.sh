@@ -44,8 +44,8 @@ export const receiveDeltas = Effect.fn(
       }),
     );
 
-    // 2 — require userIndex to match the incoming outboxIndex
-    if (output.userIndex !== row.outboxIndex) {
+    // 2 — require selectionIndex to match the incoming outboxIndex
+    if (output.selectionIndex !== row.outboxIndex) {
       return yield* new ZerospinError({
         code: 'frontend-output-invalid',
         message: 'Output index does not match its command position',
@@ -77,7 +77,7 @@ export const receiveDeltas = Effect.fn(
             .where(
               eq(
                 selectionVersionedAggregateChainDbConfig.schema.deltas
-                  .userIndex,
+                  .selectionIndex,
                 row.outboxIndex,
               ),
             )
@@ -92,12 +92,12 @@ export const receiveDeltas = Effect.fn(
             return;
           }
 
-          // 5 — append only the next userIndex after the retained tip
+          // 5 — append only the next selectionIndex after the retained tip
           const previous = tx
             .select({
-              userIndex:
+              selectionIndex:
                 selectionVersionedAggregateChainDbConfig.schema.deltas
-                  .userIndex,
+                  .selectionIndex,
               aggregateIndex:
                 selectionVersionedAggregateChainDbConfig.schema.deltas
                   .aggregateIndex,
@@ -106,12 +106,12 @@ export const receiveDeltas = Effect.fn(
             .orderBy(
               desc(
                 selectionVersionedAggregateChainDbConfig.schema.deltas
-                  .userIndex,
+                  .selectionIndex,
               ),
             )
             .limit(1)
             .get();
-          const tip = previous?.userIndex ?? 0;
+          const tip = previous?.selectionIndex ?? 0;
           if (row.outboxIndex !== tip + 1) {
             throw new ZerospinError({
               code: 'frontend-output-index-gap',
@@ -129,7 +129,7 @@ export const receiveDeltas = Effect.fn(
           tx.insert(selectionVersionedAggregateChainDbConfig.schema.deltas)
             .values({
               commandId: output.resolution?.command.id ?? null,
-              userIndex: row.outboxIndex,
+              selectionIndex: row.outboxIndex,
               aggregateIndex: output.aggregateIndex,
               output: row.output,
             })

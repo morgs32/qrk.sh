@@ -105,7 +105,7 @@ export class AggregateFrontendApi extends RpcTarget {
    */
   async getFinalizedCommands(
     request: IRpcRequest<
-      [{ afterUserIndex: number; aggregateVersion: string }]
+      [{ afterSelectionIndex: number; aggregateVersion: string }]
     >,
   ): Promise<
     ILinkedRpcEnvelope<

@@ -16,6 +16,8 @@ playwright/.cache/
 
 # agents
 .claude/
+.opencode/
+opencode.json
 .cursor/
 .codex/
 .skills/

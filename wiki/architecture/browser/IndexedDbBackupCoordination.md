@@ -1,6 +1,6 @@
 ---
 title: IndexedDB Backup Coordination
-updated: 2026-09-18
+updated: 2026-09-20
 ---
 
 # IndexedDB Backup Coordination
@@ -12,6 +12,8 @@ The acquisition result distinguishes current-owner reuse from a new grant;
 only a new grant restores committed backup state and renews execution identity.
 A valid authentication locator and compatible backup allow takeover restoration
 without waiting for either the previous page or a server response.
+
+Main-thread SQLite commits and IndexedDB backup commits are deliberately separate. A successful `stageCommand` result means the local transaction committed; it never waits for cross-refresh persistence. The commit callback marks backup state pending and queues SQL asynchronously. A later worker acknowledgement makes that batch durable; an empty frontend FIFO followed by `backupState: ready` means the backup has caught up completely.
 
 ## Trigger
 
@@ -26,6 +28,9 @@ without waiting for either the previous page or a server response.
    worker's exclusive `zerospin-backups-lifetime` lock.
    - [`acquireBackupWorker.ts`](../../../packages/backup-worker/src/acquireBackupWorker/acquireBackupWorker.ts) — opens the stable MessagePort RPC session and observes worker lifetime only after `api.ready()` succeeds.
    - [`backupWorker.entry.ts`](../../../packages/backup-worker/src/backupWorker.entry.ts) — holds the exclusive lifetime lock and creates one asynchronous SQLite runtime.
+3. Each successful main-thread SQLite transaction synchronously invokes the installed commit callback after `COMMIT`. The callback marks backup state pending and enqueues captured SQL without awaiting the backup worker, so the originating command result remains a local-commit result.
+   - [`WaSqliteSession.ts:345-374`](../../../packages/core/src/drizzle/WaSqliteSession.ts#L345-L374) — calls `onCommittedTransaction` after the synchronous SQLite commit and returns the transaction result immediately. (`packages/core/src/drizzle/WaSqliteSession.ts:345-374`)
+   - [`bootstrapAggregateFrontendSession.ts:595-605`](../../../packages/frontend/src/bootstrapAggregateFrontendSession.ts#L595-L605) — sets `backupState` to `pending` and offers the captured statements to the asynchronous FIFO. (`packages/frontend/src/bootstrapAggregateFrontendSession.ts:595-605`)
 
 ```mermaid
 sequenceDiagram
@@ -58,6 +63,7 @@ sequenceDiagram
   frontendSession->>frontendSession: db.$client.sqlite3.backup(...)
   autonumber 10
   frontendSession->>frontendSession: session.store.setState(...)
+  Note over frontendSession: Local command results may already have returned while backupState is pending
   autonumber 11
   frontendSession->>backupWorker: backupDb.applyStatements(...)
   autonumber 12
@@ -66,6 +72,8 @@ sequenceDiagram
   BackupDbApi->>sqlite3: sqlite3.exec(...)
   autonumber 14
   BackupDbApi-->>frontendSession: committed acknowledgement
+  autonumber 15
+  frontendSession->>frontendSession: session.store.setState(...)
 ```
 
 ## Annotated workflow steps
@@ -107,18 +115,20 @@ sequenceDiagram
     - [`makeAggregateSession.ts`](../../../packages/core/src/session/makeAggregateSession.ts) — exposes current execution identity from state and captures that ID for each synchronous command.
     - [`makeInMemorySQLite3.ts`](../../../packages/core/src/drizzle/makeInMemorySQLite3.ts) — accepts restored table names because SQLite page copying does not run `update_hook`.
     - [`acquireAggregateFrontendSession.ts`](../../../packages/react/src/makeSession/makeSession.ts) — moves DevTools registrations to the current ID while retaining mounted sessions and tracks the actual registered ID for cleanup.
-11. Committed main-thread SQL enters the affected frontend's asynchronous FIFO.
-    - [`bootstrapAggregateFrontendSession.ts`](../../../packages/frontend/src/bootstrapAggregateFrontendSession.ts) — captures committed transactions and sends one batch at a time through the active `backupDb`.
+11. Committed main-thread SQL enters the affected frontend's asynchronous FIFO. The local transaction and its caller do not await this dispatch.
+    - [`WaSqliteSession.ts:345-374`](../../../packages/core/src/drizzle/WaSqliteSession.ts#L345-L374) — invokes the capture callback after `COMMIT` while retaining a synchronous transaction result. (`packages/core/src/drizzle/WaSqliteSession.ts:345-374`)
+    - [`bootstrapAggregateFrontendSession.ts:595-605`](../../../packages/frontend/src/bootstrapAggregateFrontendSession.ts#L595-L605) — marks backup pending and enqueues committed statements for later delivery. (`packages/frontend/src/bootstrapAggregateFrontendSession.ts:595-605`)
 12. The page mutation boundary checks capability revocation and connection
     generation before dispatch and classifies lost replies as uncertainty.
     - [`acquireBackupWorker.ts`](../../../packages/backup-worker/src/acquireBackupWorker/acquireBackupWorker.ts) — rejects expired database capabilities and races dispatched operations against connection loss without retrying SQL.
 13. The bound worker target checks ownership inside the SQLite semaphore and
     awaits the complete transaction, including rollback on failure.
-    - [`applyStatements.ts`](../../../packages/backup-worker/src/BackupDbApi/applyStatements/applyStatements.ts) — owns `BEGIN IMMEDIATE`, ordered statements, `COMMIT`, and rollback under an uninterruptible asynchronous turn.
-14. The acknowledgement follows the awaited commit. Stale disposal can release
-    only resources still owned by its target.
-    - [`applyStatements.ts`](../../../packages/backup-worker/src/BackupDbApi/applyStatements/applyStatements.ts) — returns only after SQLite commit finishes.
+    - [`applyStatements.ts:13-64`](../../../packages/backup-worker/src/BackupDbApi/applyStatements/applyStatements.ts#L13-L64) — owns the revocation check, `BEGIN IMMEDIATE`, ordered statements, `COMMIT`, and rollback under one uninterruptible asynchronous turn. (`packages/backup-worker/src/BackupDbApi/applyStatements/applyStatements.ts:13-64`)
+14. The acknowledgement follows the awaited IndexedDB commit. Stale disposal can release only resources still owned by its target.
+    - [`applyStatements.ts:31-64`](../../../packages/backup-worker/src/BackupDbApi/applyStatements/applyStatements.ts#L31-L64) — returns from the uninterruptible worker turn only after `COMMIT` succeeds or rollback settles. (`packages/backup-worker/src/BackupDbApi/applyStatements/applyStatements.ts:31-64`)
     - [`dispose.ts`](../../../packages/backup-worker/src/BackupDbApi/dispose/dispose.ts) — checks target identity again before removing the map entry or closing the SQLite handle.
+15. After a successful acknowledgement, the frontend publishes `backupState: ready` only when no later captured transaction remains queued. While backup state is pending, a refresh recovers the last acknowledged prefix and is not guaranteed to include the latest local commit.
+    - [`bootstrapAggregateFrontendSession.ts:1040-1070`](../../../packages/frontend/src/bootstrapAggregateFrontendSession.ts#L1040-L1070) — serializes queued batches and changes backup state to `ready` only after `applyStatements` succeeds and the FIFO is empty. (`packages/frontend/src/bootstrapAggregateFrontendSession.ts:1040-1070`)
 
 ## Exact keys and fixed storage
 

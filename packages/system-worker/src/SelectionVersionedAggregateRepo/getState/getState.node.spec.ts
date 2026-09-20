@@ -31,9 +31,9 @@ vi.mock(
       getRepo: () =>
         Effect.succeed({
           getCommands: async (request: {
-            reconcile: { throughUserIndex: number };
+            reconcile: { throughSelectionIndex: number };
           }) => {
-            published.requested = request.reconcile.throughUserIndex;
+            published.requested = request.reconcile.throughSelectionIndex;
             return {
               _tag: 'Success',
               success: { tip: published.tip, commands: [] },
@@ -58,7 +58,7 @@ it('catches up without resubscribing and waits for the captured frontend index',
     .values({
       id: 1,
       aggregateIndex: 3,
-      userIndex: 10,
+      selectionIndex: 10,
       aggregateVersion: '1.0.0',
       canonicalBytes: '{}',
       graph: '[]',
@@ -116,7 +116,7 @@ it('catches up without resubscribing and waits for the captured frontend index',
   );
   expect(snapshot).toMatchObject({
     aggregateIndex: 3,
-    userIndex: 10,
+    selectionIndex: 10,
     resources: [],
   });
   expect(aggregateCatchup).toHaveBeenCalledTimes(2);

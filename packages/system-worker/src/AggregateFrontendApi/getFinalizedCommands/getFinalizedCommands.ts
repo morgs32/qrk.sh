@@ -33,7 +33,7 @@ const { system } = config;
 export const getFinalizedCommands = Effect.fn(
   'AggregateFrontendApi.getFinalizedCommands',
 )(function* (props: {
-  request: IRpcRequest<[{ afterUserIndex: number; aggregateVersion: string }]>;
+  request: IRpcRequest<[{ afterSelectionIndex: number; aggregateVersion: string }]>;
   authResults: {
     readonly aggregateId: IAggregateId;
     readonly aggregateName: string;
@@ -49,14 +49,14 @@ export const getFinalizedCommands = Effect.fn(
 }) {
   const { authResults, request } = props;
 
-  // 1 — require an integer, nonnegative afterUserIndex and string aggregateVersion
+  // 1 — require an integer, nonnegative afterSelectionIndex and string aggregateVersion
   const validated = yield* Schema.decodeUnknownEffect(
     Schema.toType(
       Schema.mutable(
         Schema.Tuple([
           Schema.Struct({
             aggregateVersion: Schema.String,
-            afterUserIndex: Schema.Number.check(
+            afterSelectionIndex: Schema.Number.check(
               Schema.isInt(),
               Schema.isGreaterThanOrEqualTo(0),
             ),
@@ -124,7 +124,7 @@ export const getFinalizedCommands = Effect.fn(
     >
   >(() =>
     chain.getCommands({
-      afterUserIndex: validated.success[0].afterUserIndex,
+      afterSelectionIndex: validated.success[0].afterSelectionIndex,
       frontend: {
         name: authResults.frontendName,
         authentication: authResults.authentication,

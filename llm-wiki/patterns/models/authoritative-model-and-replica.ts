@@ -19,7 +19,7 @@ import { makeModelVersion } from '@zerospin/core/models/makeModelVersion';
  * the pinned VSR and installs them before guards inside the command savepoint.
  * VAR and SelectionVAR then subscribe directly to that version's VSFC; service updates
  * advance independent source cursors without entering AAC or VAFC. SelectionVAR emits
- * one userIndex per aggregate or service input while retaining aggregateIndex
+ * one selectionIndex per aggregate or service input while retaining aggregateIndex
  * as its consumed aggregate watermark. Standalone service frontends use VSRR.
  *
  * @bad Add serviceName or deletedAt to makeModelVersion; service ownership and replica

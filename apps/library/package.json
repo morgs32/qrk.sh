@@ -78,6 +78,7 @@
     "@tiptap/starter-kit": "^3.31.3",
     "@unpic/react": "1.0.2",
     "@zerospin/core": "workspace:*",
+    "@zerospin/devtools": "workspace:*",
     "@zerospin/error": "workspace:*",
     "@zerospin/react": "workspace:*",
     "@zerospin/schema": "workspace:*",

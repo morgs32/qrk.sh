@@ -9,7 +9,7 @@ import {
   rowComponent,
 } from "../../lib/jsonRender/layoutComponents";
 import { makeModuleVersion } from "../../make/makeModuleVersion";
-import { textBrickComponent } from "./generative/TextBrickComponent";
+import { textBrickComponent } from "./generator/TextBrickComponent";
 import { text } from "./text";
 
 const dataShape = {

@@ -1,6 +1,6 @@
 import { makeModuleView } from "../../make/makeModuleView";
-import { registry } from "./generative/GitHubProfileJsonRenderRegistry";
-import { defaultSpec } from "./generative/defaultSpec";
+import { registry } from "./generator/GitHubProfileJsonRenderRegistry";
+import { defaultSpec } from "./generator/defaultSpec";
 import { GitHubProfile } from "./GitHubProfile/GitHubProfile";
 import { githubProfileV1 } from "./githubProfileV1";
 

@@ -8,9 +8,9 @@ import {
   rowComponent,
 } from "../../lib/jsonRender/layoutComponents";
 import { makeModuleVersion } from "../../make/makeModuleVersion";
-import { linkCardComponent } from "./generative/LinkCardComponent";
-import { linkCopyComponent } from "./generative/LinkCopyComponent";
-import { linkHeroImageComponent } from "./generative/LinkHeroImageComponent";
+import { linkCardComponent } from "./generator/LinkCardComponent";
+import { linkCopyComponent } from "./generator/LinkCopyComponent";
+import { linkHeroImageComponent } from "./generator/LinkHeroImageComponent";
 import { link } from "./link";
 
 const payloadShape = {

@@ -1,6 +1,6 @@
 import { makeModuleView } from "../../make/makeModuleView";
-import { registry } from "./generative/LinkJsonRenderRegistry";
-import { defaultSpec } from "./generative/defaultSpec";
+import { registry } from "./generator/LinkJsonRenderRegistry";
+import { defaultSpec } from "./generator/defaultSpec";
 import { LinkBrick } from "./LinkBrick";
 import { linkV1 } from "./linkV1";
 

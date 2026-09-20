@@ -9,7 +9,7 @@ import {
   rowComponent,
 } from "../../lib/jsonRender/layoutComponents";
 import { makeModuleVersion } from "../../make/makeModuleVersion";
-import { activityCalendarComponent } from "./generative/ActivityCalendarComponent";
+import { activityCalendarComponent } from "./generator/ActivityCalendarComponent";
 import { githubActivity } from "./githubActivity";
 
 const payloadShape = {

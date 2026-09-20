@@ -1,6 +1,6 @@
 import { makeModuleView } from "../../make/makeModuleView";
-import { registry } from "./generative/MapPlaceJsonRenderRegistry";
-import { defaultSpec } from "./generative/defaultSpec";
+import { registry } from "./generator/MapPlaceJsonRenderRegistry";
+import { defaultSpec } from "./generator/defaultSpec";
 import { MapPlaceBrick } from "./MapPlaceBrick";
 import { mapPlaceV1 } from "./mapPlaceV1";
 

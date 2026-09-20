@@ -37,9 +37,20 @@ export default defineConfig(({ mode }) => {
     plugins: [
       tailwindcss(),
       cloudflare({ viteEnvironment: { name: "ssr" } }),
-      tanstackStart({ srcDirectory: "app" }),
+      tanstackStart({
+        srcDirectory: "app",
+        client: { entry: "./client.tsx" },
+      }),
       react(),
     ],
+    optimizeDeps: {
+      exclude: ["react-router"],
+      include: [
+        // Same as shopping: DevTools lazy-imports react-router cookie deps.
+        "@zerospin/devtools > react-router > cookie",
+        "@zerospin/devtools > react-router > set-cookie-parser",
+      ],
+    },
     server: {
       host: "127.0.0.1",
       port: 4100,

@@ -1,6 +1,6 @@
 import { makeModuleView } from "../../make/makeModuleView";
-import { registry } from "./generative/InstagramJsonRenderRegistry";
-import { defaultSpec } from "./generative/defaultSpec";
+import { registry } from "./generator/InstagramJsonRenderRegistry";
+import { defaultSpec } from "./generator/defaultSpec";
 import { InstagramBrick } from "./InstagramBrick";
 import { instagramV1 } from "./instagramV1";
 

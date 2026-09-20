@@ -1,6 +1,6 @@
 import { makeModuleView } from "../../make/makeModuleView";
-import { registry } from "./generative/SwatchAndIconJsonRenderRegistry";
-import { defaultSpec } from "./generative/defaultSpec";
+import { registry } from "./generator/SwatchAndIconJsonRenderRegistry";
+import { defaultSpec } from "./generator/defaultSpec";
 import { SwatchAndIconBrick } from "./SwatchAndIconBrick";
 import { swatchAndIconV1 } from "./swatchAndIconV1";
 

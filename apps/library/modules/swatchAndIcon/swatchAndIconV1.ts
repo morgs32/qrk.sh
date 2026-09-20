@@ -8,8 +8,8 @@ import {
   rowComponent,
 } from "../../lib/jsonRender/layoutComponents";
 import { makeModuleVersion } from "../../make/makeModuleVersion";
-import { iconSvgGraphicComponent } from "./generative/IconSvgGraphicComponent";
-import { swatchAndIconColorComponent } from "./generative/SwatchAndIconColorComponent";
+import { iconSvgGraphicComponent } from "./generator/IconSvgGraphicComponent";
+import { swatchAndIconColorComponent } from "./generator/SwatchAndIconColorComponent";
 import { swatchAndIcon } from "./swatchAndIcon";
 
 const payloadShape = {

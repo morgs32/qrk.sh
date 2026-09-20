@@ -8,9 +8,9 @@ import {
   rowComponent,
 } from "../../lib/jsonRender/layoutComponents";
 import { makeModuleVersion } from "../../make/makeModuleVersion";
-import { imageCardComponent } from "./generative/ImageCardComponent";
-import { imageCoverComponent } from "./generative/ImageCoverComponent";
-import { mediaFooterComponent } from "./generative/MediaFooterComponent";
+import { imageCardComponent } from "./generator/ImageCardComponent";
+import { imageCoverComponent } from "./generator/ImageCoverComponent";
+import { mediaFooterComponent } from "./generator/MediaFooterComponent";
 import { image } from "./image";
 
 const dataShape = {

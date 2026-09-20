@@ -8,9 +8,9 @@ import {
   rowComponent,
 } from "../../lib/jsonRender/layoutComponents";
 import { makeModuleVersion } from "../../make/makeModuleVersion";
-import { instagramCardComponent } from "./generative/InstagramCardComponent";
-import { instagramMediaFooterComponent } from "./generative/InstagramMediaFooterComponent";
-import { instagramPostGridComponent } from "./generative/InstagramPostGridComponent";
+import { instagramCardComponent } from "./generator/InstagramCardComponent";
+import { instagramMediaFooterComponent } from "./generator/InstagramMediaFooterComponent";
+import { instagramPostGridComponent } from "./generator/InstagramPostGridComponent";
 import { instagram } from "./instagram";
 
 const payloadShape = {

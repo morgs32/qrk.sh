@@ -8,7 +8,7 @@ import {
   rowComponent,
 } from "../../lib/jsonRender/layoutComponents";
 import { makeModuleVersion } from "../../make/makeModuleVersion";
-import { mapCanvasComponent } from "./generative/MapCanvasComponent";
+import { mapCanvasComponent } from "./generator/MapCanvasComponent";
 import { mapPlace } from "./mapPlace";
 
 const payloadShape = {

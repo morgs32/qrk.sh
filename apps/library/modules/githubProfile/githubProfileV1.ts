@@ -8,13 +8,13 @@ import {
   rowComponent,
 } from "../../lib/jsonRender/layoutComponents";
 import { makeModuleVersion } from "../../make/makeModuleVersion";
-import { avatarAndUsernameComponent } from "./generative/AvatarAndUsernameComponent";
-import { bioComponent } from "./generative/BioComponent";
-import { blogComponent } from "./generative/BlogComponent";
-import { followersComponent } from "./generative/FollowersComponent";
-import { followingComponent } from "./generative/FollowingComponent";
-import { locationComponent } from "./generative/LocationComponent";
-import { publicReposComponent } from "./generative/PublicReposComponent";
+import { avatarAndUsernameComponent } from "./generator/AvatarAndUsernameComponent";
+import { bioComponent } from "./generator/BioComponent";
+import { blogComponent } from "./generator/BlogComponent";
+import { followersComponent } from "./generator/FollowersComponent";
+import { followingComponent } from "./generator/FollowingComponent";
+import { locationComponent } from "./generator/LocationComponent";
+import { publicReposComponent } from "./generator/PublicReposComponent";
 import { githubProfile } from "./githubProfile";
 
 const payloadShape = {

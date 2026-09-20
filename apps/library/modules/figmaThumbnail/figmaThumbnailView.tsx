@@ -1,7 +1,7 @@
 import { makeModuleView } from "../../make/makeModuleView";
 import { FigmaThumbnailBrick } from "./FigmaThumbnailBrick";
-import { registry } from "./generative/FigmaThumbnailJsonRenderRegistry";
-import { defaultSpec } from "./generative/defaultSpec";
+import { registry } from "./generator/FigmaThumbnailJsonRenderRegistry";
+import { defaultSpec } from "./generator/defaultSpec";
 import { figmaThumbnailV1 } from "./figmaThumbnailV1";
 
 export const figmaThumbnailView = makeModuleView(figmaThumbnailV1, {

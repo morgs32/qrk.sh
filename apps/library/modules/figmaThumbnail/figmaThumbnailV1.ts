@@ -9,9 +9,9 @@ import {
 } from "../../lib/jsonRender/layoutComponents";
 import { makeModuleVersion } from "../../make/makeModuleVersion";
 import { figmaThumbnail } from "./figmaThumbnail";
-import { figmaCardComponent } from "./generative/FigmaCardComponent";
-import { figmaMediaFooterComponent } from "./generative/FigmaMediaFooterComponent";
-import { figmaThumbnailBandComponent } from "./generative/FigmaThumbnailBandComponent";
+import { figmaCardComponent } from "./generator/FigmaCardComponent";
+import { figmaMediaFooterComponent } from "./generator/FigmaMediaFooterComponent";
+import { figmaThumbnailBandComponent } from "./generator/FigmaThumbnailBandComponent";
 
 const payloadShape = {
   url: primitives.text({

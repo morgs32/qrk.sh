@@ -1,6 +1,6 @@
 import { makeModuleView } from "../../make/makeModuleView";
-import { registry } from "./generative/GitHubRepoJsonRenderRegistry";
-import { defaultSpec } from "./generative/defaultSpec";
+import { registry } from "./generator/GitHubRepoJsonRenderRegistry";
+import { defaultSpec } from "./generator/defaultSpec";
 import { GitHubRepo } from "./GitHubRepo/GitHubRepo";
 import { githubRepoV1 } from "./githubRepoV1";
 

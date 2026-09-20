@@ -8,11 +8,11 @@ import {
   rowComponent,
 } from "../../lib/jsonRender/layoutComponents";
 import { makeModuleVersion } from "../../make/makeModuleVersion";
-import { repoDescriptionComponent } from "./generative/RepoDescriptionComponent";
-import { repoForksComponent } from "./generative/RepoForksComponent";
-import { repoLanguageComponent } from "./generative/RepoLanguageComponent";
-import { repoNameComponent } from "./generative/RepoNameComponent";
-import { repoStarsComponent } from "./generative/RepoStarsComponent";
+import { repoDescriptionComponent } from "./generator/RepoDescriptionComponent";
+import { repoForksComponent } from "./generator/RepoForksComponent";
+import { repoLanguageComponent } from "./generator/RepoLanguageComponent";
+import { repoNameComponent } from "./generator/RepoNameComponent";
+import { repoStarsComponent } from "./generator/RepoStarsComponent";
 import { githubRepo } from "./githubRepo";
 
 const payloadShape = {

@@ -1,11 +1,11 @@
-import type { ISession, ISessionId } from '@zerospin/core/session/types';
+import type { IAggregateSession, ISessionId } from '@zerospin/core/session/types';
 import { useParams } from 'react-router';
 import { useStore } from 'zustand/react';
 
 import type { IDevtoolsServiceSessionEntry } from '../../../types.js';
 import { zerospinDevtoolsStore } from '../../../zerospinDevtoolsStore.js';
 
-export function useAggregateSession(): ISession | undefined {
+export function useAggregateSession(): IAggregateSession | undefined {
   const { sessionId } = useParams<{ sessionId: ISessionId }>();
   return useStore(zerospinDevtoolsStore, state =>
     sessionId === undefined
@@ -14,7 +14,7 @@ export function useAggregateSession(): ISession | undefined {
   );
 }
 
-export function useAggregateSessionOrThrow(): ISession {
+export function useAggregateSessionOrThrow(): IAggregateSession {
   const session = useAggregateSession();
   if (!session) {
     throw new Error('Aggregate session not found');

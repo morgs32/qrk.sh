@@ -11,7 +11,7 @@ import { makeFrontendController } from '@zerospin/core/frontendController/makeFr
 import { makeFrontendControllerSpec } from '@zerospin/core/frontendController/makeFrontendControllerSpec';
 import { makeId } from '@zerospin/core/models/makeId';
 import { makeModelIdSchema } from '@zerospin/core/models/makeModelIdSchema';
-import { applyAggregateFrontendState } from '@zerospin/core/session/applyAggregateFrontendState';
+import { applyAggregateFrontendSnapshot } from '@zerospin/core/session/applyAggregateFrontendSnapshot';
 import { makeAggregateSession } from '@zerospin/core/session/makeAggregateSession';
 import { sessionCommandJournalDrizzleSchema } from '@zerospin/core/session/sessionCommandShape';
 import { sessionRepoTables } from '@zerospin/core/session/sessionRepoTables';
@@ -99,9 +99,9 @@ describe('pushCommand1: static frontend command push', () => {
           );
 
           const state = yield* makeAsync(() =>
-            frontendApi.getState({
+            frontendApi.getSnapshot({
               traceContext: null,
-              args: [{ outstandingCommandIds: [] }],
+              args: [{ pendingCommandIds: [] }],
             }),
           ).pipe(Effect.flatMap(envelope => decodeRpc(envelope.result)));
           expect(state).toMatchObject({
@@ -122,15 +122,18 @@ describe('pushCommand1: static frontend command push', () => {
             abbreviation: 'sesn',
           });
           const session = Effect.runSync(
-            Effect.map(initializeFrontendGuards({ frontend: WebV2 }), guards => {
-              const next = makeAggregateSession({ frontend: WebV2 });
-              next.setExecutionResources({
-                runtime: guardTestRuntime,
-                guards,
-                sessionId,
-              });
-              return next;
-            }).pipe(Effect.provideService(Scope.Scope, sessionScope)),
+            Effect.map(
+              initializeFrontendGuards({ frontend: WebV2 }),
+              guards => {
+                const next = makeAggregateSession({ frontend: WebV2 });
+                next.setExecutionResources({
+                  runtime: guardTestRuntime,
+                  guards,
+                  sessionId,
+                });
+                return next;
+              },
+            ).pipe(Effect.provideService(Scope.Scope, sessionScope)),
           );
           const models = getFrontendDbModels(session.frontend);
           const dbConfig = makeResourceDbConfig({
@@ -138,7 +141,7 @@ describe('pushCommand1: static frontend command push', () => {
             otherTables: sessionRepoTables,
           });
           const db = yield* makeProvisionedInMemoryWasmSqliteDb({ dbConfig });
-          yield* applyAggregateFrontendState({
+          yield* applyAggregateFrontendSnapshot({
             frontend: WebV2,
             sessionId,
             aggregateId: E2E_AGGREGATE_ID,
@@ -146,10 +149,9 @@ describe('pushCommand1: static frontend command push', () => {
               clerkUserId: E2E_USER_ID_1,
               aggregateId: 'acct_1',
             },
-            systemId: env.ZEROSPIN_SYSTEM_ID,
             db,
             models,
-            frontendState: state,
+            snapshot: state,
           });
           session.store.setState({
             sessionId,
@@ -160,7 +162,6 @@ describe('pushCommand1: static frontend command push', () => {
               clerkUserId: E2E_USER_ID_1,
               aggregateId: 'acct_1',
             },
-            systemId: env.ZEROSPIN_SYSTEM_ID,
             frontendName: WebV2.name,
             aggregateFrontendLockKey: yield* makeAggregateFrontendLockKey(
               shopperAggregateFrontendLock,
@@ -171,6 +172,7 @@ describe('pushCommand1: static frontend command push', () => {
             isInitialized: true,
             aggregateIndex: state.aggregateIndex,
             selectionIndex: state.selectionIndex,
+            selectionHash: state.selectionHash,
             pushIndex: 0,
             sessionStatus: 'current',
             backupState: {
@@ -214,18 +216,48 @@ describe('pushCommand1: static frontend command push', () => {
           ).pipe(Effect.flatMap(envelope => decodeRpc(envelope.result)));
           expect(ticket.ticket).toHaveLength(43);
 
-          const pushedCommand = yield* makeAsync(() =>
-            frontendApi.pushCommand({
-              traceContext: null,
-              args: [{ command: encodedLocalCreateCart }],
-            }),
-          ).pipe(Effect.flatMap(envelope => decodeRpc(envelope.result)));
-          expect(pushedCommand).toEqual(
-            expect.objectContaining({
-              commandId: localCreateCart.id,
-              aggregateIndex: 2,
+          const response = yield* makeAsync(() =>
+            SELF.fetch(
+              new Request(
+                `https://shopping.test/ws-aggregate-frontend-commands?ticket=${ticket.ticket}`,
+                { headers: { Upgrade: 'websocket' } },
+              ),
+            ),
+          );
+          const socket = response.webSocket;
+          if (socket === null) throw new Error('Expected frontend WebSocket');
+          socket.accept();
+          const live = Promise.withResolvers<void>();
+          const receipt = Promise.withResolvers<unknown>();
+          socket.addEventListener('message', event => {
+            const message = JSON.parse(String(event.data));
+            if (message.type === 'replay-complete') live.resolve();
+            if (message.type === 'aggregateCommandAdmission')
+              receipt.resolve(message);
+          });
+          socket.send(
+            JSON.stringify({
+              selectionIndex: state.selectionIndex,
+              selectionHash: state.selectionHash,
             }),
           );
+          yield* makeAsync(() => live.promise);
+          socket.send(
+            JSON.stringify({
+              type: 'pushAggregateCommand',
+              command: encodedLocalCreateCart,
+              traceContext: null,
+            }),
+          );
+          expect(yield* makeAsync(() => receipt.promise)).toMatchObject({
+            type: 'aggregateCommandAdmission',
+            commandId: localCreateCart.id,
+            result: {
+              _tag: 'Success',
+              success: { commandId: localCreateCart.id, aggregateIndex: 2 },
+            },
+          });
+          socket.close(1000);
 
           const systemRepo = env.SYSTEM_REPO.getByName(env.ZEROSPIN_SYSTEM_ID);
           expect(

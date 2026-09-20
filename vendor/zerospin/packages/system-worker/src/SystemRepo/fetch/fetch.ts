@@ -163,7 +163,7 @@ export const fetch = Effect.fn('SystemRepo.fetch', { root: true })(
         const response = await repo.fetch(new Request(request, { headers }));
         if (!(response instanceof Response)) {
           throw new Error(
-            'Service frontend finalized command chain returned a non-Response result',
+            'Service frontend selected-command chain returned a non-Response result',
           );
         }
         return response;
@@ -230,7 +230,7 @@ export const fetch = Effect.fn('SystemRepo.fetch', { root: true })(
       const response = await repo.fetch(new Request(request, { headers }));
       if (!(response instanceof Response)) {
         throw new Error(
-          'Aggregate frontend finalized command chain returned a non-Response result',
+          'Aggregate frontend selected-command chain returned a non-Response result',
         );
       }
       return response;

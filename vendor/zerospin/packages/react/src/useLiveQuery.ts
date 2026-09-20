@@ -14,7 +14,7 @@ import type {
 import type { IAnyModels } from '@zerospin/core/models/types';
 import type { IServiceSession } from '@zerospin/core/serviceSession/types';
 import type {
-  ISession,
+  IAggregateSession,
   ISessionWaSqliteDb,
 } from '@zerospin/core/session/types';
 import { ZerospinError } from '@zerospin/error';
@@ -84,7 +84,7 @@ export function useLiveQuery<
   KEY,
   QUERY extends ILiveRelationalQuery,
 >(props: {
-  session: ISession<FRONTEND & { models: MODELS }>;
+  session: IAggregateSession<FRONTEND & { models: MODELS }>;
   key: KEY;
   query: (
     db: ISessionWaSqliteDb<MODELS, IDrizzleRelationsFromModels<MODELS>>,
@@ -102,7 +102,7 @@ export function useLiveQuery<
   MODELS extends IAnyModels & FRONTEND['models'],
   QUERY extends ILiveRelationalQuery,
 >(props: {
-  session: ISession<FRONTEND & { models: MODELS }>;
+  session: IAggregateSession<FRONTEND & { models: MODELS }>;
   key?: undefined;
   query: (
     db: ISessionWaSqliteDb<MODELS, IDrizzleRelationsFromModels<MODELS>>,

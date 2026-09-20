@@ -2,7 +2,7 @@ import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { makeAsync } from '@zerospin/core/async/makeAsync';
 import { EncodedAggregateCommandSchema } from '@zerospin/core/contracts/CommandSchema';
 import { makeAggregateFrontendLock } from '@zerospin/core/frontendController/makeAggregateFrontendLock';
-import { SessionCommandSchema } from '@zerospin/core/session/AggregateFrontendCommandSchema';
+import { SessionCommandSchema } from '@zerospin/core/session/AggregateSelectedCommandSchema';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import {
   abortAllDurableObjects,
@@ -108,8 +108,8 @@ it('prepares in VAR, publishes per-command output, and recovers terminal results
       );
       expect(
         (yield* makeAsync(() =>
-          denied.getState({
-            args: [{ outstandingCommandIds: [] }],
+          denied.getSnapshot({
+            args: [{ pendingCommandIds: [] }],
             traceContext: null,
           }),
         )).result._tag,
@@ -123,50 +123,87 @@ it('prepares in VAR, publishes per-command output, and recovers terminal results
           },
         }),
       );
-      const rejectedPush = yield* makeAsync(() =>
-        readOnly.pushCommand({
-          args: [{ command: commands[1]! }],
-          traceContext: null,
-        }),
-      );
-      expect(rejectedPush.result).toMatchObject({
-        _tag: 'Failure',
-        failure: { code: 'aggregate-frontend-command-contract-unavailable' },
-      });
-      const stale = yield* makeAsync(() =>
-        api.pushCommand({
-          args: [
-            {
-              command: {
-                ...commands[1]!,
-                authentication: {
-                  userId: 'usr_prepared',
-                  aggregateId: key.aggregateId,
-                  role: 'stale',
-                },
-              },
-            },
-          ],
-          traceContext: null,
-        }),
-      );
-      expect(stale.result).toMatchObject({
-        _tag: 'Failure',
-        failure: { code: 'aggregate-frontend-command-target-mismatch' },
-      });
-      for (const [index, input] of commands.slice(1).entries()) {
-        const command = yield* Schema.decodeUnknownEffect(
-          Schema.toType(SessionCommandSchema),
-        )(input);
-        const envelope = yield* makeAsync(() =>
-          api.pushCommand({ args: [{ command }], traceContext: null }),
+      for (const [index, attempt] of [
+        {
+          api: readOnly,
+          command: commands[1]!,
+          failure: 'aggregate-frontend-command-contract-unavailable',
+        },
+        {
+          api,
+          command: {
+            ...commands[1]!,
+            authentication: { ...admission.signature, role: 'stale' },
+          },
+          failure: 'aggregate-frontend-command-target-mismatch',
+        },
+        ...commands.slice(1).map(command => ({ api, command, failure: null })),
+      ].entries()) {
+        yield* makeAsync(() =>
+          attempt.api.getSnapshot({
+            args: [{ pendingCommandIds: [] }],
+            traceContext: null,
+          }),
+        ).pipe(Effect.flatMap(envelope => decodeRpc(envelope.result)));
+        const ticket = yield* makeAsync(() =>
+          attempt.api.createWebSocketTicket({
+            args: [{ aggregateVersion: key.aggregateVersion }],
+            traceContext: null,
+          }),
+        ).pipe(Effect.flatMap(envelope => decodeRpc(envelope.result)));
+        const response = yield* makeAsync(() =>
+          env.SYSTEM_REPO.getByName(key.systemId).fetch(
+            new Request(
+              `https://test/ws-aggregate-frontend-commands?ticket=${ticket.ticket}`,
+              { headers: { Upgrade: 'websocket' } },
+            ),
+          ),
         );
-        const receipt = yield* decodeRpc(envelope.result);
-        expect(receipt).toEqual({
-          aggregateIndex: index + 2,
-          commandId: input.id,
+        const socket = response.webSocket;
+        if (socket === null) throw new Error('Expected admitted WebSocket');
+        socket.accept();
+        const live = Promise.withResolvers<void>();
+        const receipt = Promise.withResolvers<unknown>();
+        socket.addEventListener('message', event => {
+          const message = JSON.parse(String(event.data));
+          if (message.type === 'replay-complete') live.resolve();
+          if (message.type === 'aggregateCommandAdmission') {
+            receipt.resolve(message);
+          }
         });
-        expect('delta' in receipt).toBe(false);
+        socket.send(
+          JSON.stringify({
+            selectionIndex: 0,
+            selectionHash:
+              'd0e2a11643c9bf23800218703ef6f12a058b941fca272a34c57c14ea2a5e62dc',
+          }),
+        );
+        yield* makeAsync(() => live.promise);
+        socket.send(
+          JSON.stringify({
+            type: 'pushAggregateCommand',
+            command: attempt.command,
+            traceContext: null,
+          }),
+        );
+        const envelope = yield* makeAsync(() => receipt.promise);
+        if (attempt.failure !== null) {
+          expect(envelope).toMatchObject({
+            type: 'aggregateCommandAdmission',
+            commandId: attempt.command.id,
+            result: { _tag: 'Failure', failure: { code: attempt.failure } },
+          });
+        } else {
+          expect(envelope).toMatchObject({
+            type: 'aggregateCommandAdmission',
+            commandId: attempt.command.id,
+            result: {
+              _tag: 'Success',
+              success: { aggregateIndex: index, commandId: attempt.command.id },
+            },
+          });
+        }
+        socket.close(1000);
       }
       const aggregateRepo = yield* VersionedAggregateRepo.getRepo({ key });
       const admitted = yield* makeAsync(async () =>
@@ -203,9 +240,10 @@ it('prepares in VAR, publishes per-command output, and recovers terminal results
         key: view,
       });
       const state = yield* makeAsync(() =>
-        replica.getState({
+        replica.getSnapshot({
           ...view,
-          outstandingCommandIds: [
+          authentication: admission.signature,
+          pendingCommandIds: [
             'cmd_prepared_list_0',
             'cmd_prepared_list_1',
             'cmd_prepared_list_2',
@@ -227,8 +265,8 @@ it('prepares in VAR, publishes per-command output, and recovers terminal results
         }),
       );
       const narrowEnvelope = yield* makeAsync(() =>
-        narrowApi.getState({
-          args: [{ outstandingCommandIds: ['cmd_prepared_list_0'] }],
+        narrowApi.getSnapshot({
+          args: [{ pendingCommandIds: ['cmd_prepared_list_0'] }],
           traceContext: null,
         }),
       );
@@ -236,36 +274,41 @@ it('prepares in VAR, publishes per-command output, and recovers terminal results
       expect(narrowState.resources.map(resource => resource.modelName)).toEqual(
         ['user'],
       );
-      expect(narrowState.resolutions).toEqual([]);
+      expect(narrowState.selectedCommands).toEqual([]);
       expect(narrowState.selectionIndex).toBe(state.selectionIndex);
       expect(state.aggregateIndex).toBe(4);
-      expect(state.resolutions.map(entry => entry.command.id)).toEqual([
+      expect(state.selectedCommands.map(entry => entry.id)).toEqual([
         'cmd_prepared_list_0',
         'cmd_prepared_list_1',
         'cmd_prepared_list_2',
       ]);
+      expect(
+        state.selectedCommands.map(entry => entry.failure?.code ?? null),
+      ).toEqual([null, 'list-name-rejected', 'aggregate-list-name-rejected']);
       const throughTwo = yield* SelectionVersionedAggregateChain.getRepo({
         key: view,
       });
       const earlier = yield* makeAsync(() =>
-        throughTwo.getCommands({
+        throughTwo.getSelectedCommands({
           afterSelectionIndex: 0,
           reconcile: {
             commandIds: ['cmd_prepared_list_0', 'cmd_prepared_list_1'],
             frontendName: 'main',
+            authentication: admission.signature,
             throughSelectionIndex: 2,
           },
         }),
       ).pipe(Effect.flatMap(decodeRpc));
-      expect(
-        earlier.commands.map(entry => entry.resolution?.command.id),
-      ).toEqual(['cmd_prepared_list_0']);
+      expect(earlier.commands.map(entry => entry.id)).toEqual([
+        'cmd_prepared_list_0',
+      ]);
       const otherFrontend = yield* makeAsync(() =>
-        throughTwo.getCommands({
+        throughTwo.getSelectedCommands({
           afterSelectionIndex: 0,
           reconcile: {
             commandIds: ['cmd_prepared_list_0'],
             frontendName: 'other',
+            authentication: admission.signature,
             throughSelectionIndex: 4,
           },
         }),
@@ -278,27 +321,26 @@ it('prepares in VAR, publishes per-command output, and recovers terminal results
         key: view,
       });
       const outputs = yield* makeAsync(() =>
-        frontend.getCommands({ afterSelectionIndex: 0 }),
+        frontend.getSelectedCommands({ afterSelectionIndex: 0 }),
       ).pipe(Effect.flatMap(decodeRpc));
       expect(outputs.commands.map(command => command.aggregateIndex)).toEqual([
         1, 2, 3, 4,
       ]);
       expect(
-        outputs.commands[0]?.resolution?.command.authentication,
-      ).toBeNull();
-      expect(outputs.commands[2]?.resolution?.command.failure?.code).toBe(
-        'list-name-rejected',
-      );
+        new Set(outputs.commands.map(command => command.selectionHash)).size,
+      ).toBe(4);
+      expect(outputs.commands[0]?.failure).toBeNull();
+      expect(outputs.commands[2]?.failure).toBeNull();
       expect(outputs.commands[2]?.delta).toEqual({
-        inserted: [],
-        updated: [],
+        upserted: [],
         deleted: [],
-        mutations: [],
       });
       expect(outputs.tip).toBeGreaterThanOrEqual(state.aggregateIndex);
       expect(
         (yield* makeAsync(() =>
-          frontend.getCommands({ afterSelectionIndex: state.selectionIndex }),
+          frontend.getSelectedCommands({
+            afterSelectionIndex: state.selectionIndex,
+          }),
         ).pipe(Effect.flatMap(decodeRpc))).commands,
       ).toEqual([]);
       const retried = yield* makeAsync(() =>

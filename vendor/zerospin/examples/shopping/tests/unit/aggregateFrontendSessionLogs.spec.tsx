@@ -206,13 +206,14 @@ describe('aggregate frontend session logs integration', () => {
       aggregateId: 'acct_1',
       aggregateName: WebV2.aggregateName,
       authentication: { clerkUserId, aggregateId: 'acct_1' },
-      systemId: 'sys_shopping_20260904',
       frontendName: WebV2.name,
       db,
       schema: dbConfig.schema,
       models,
       isInitialized: true,
       selectionIndex: 0,
+      selectionHash:
+        'd0e2a11643c9bf23800218703ef6f12a058b941fca272a34c57c14ea2a5e62dc',
       sessionStatus: 'current',
       backupState: { status: 'ready', failure: null },
     });

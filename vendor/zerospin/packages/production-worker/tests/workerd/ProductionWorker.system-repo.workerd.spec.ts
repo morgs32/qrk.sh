@@ -70,11 +70,11 @@ describe('ProductionWorker static Gateway', () => {
           frontend: products,
         }),
       });
-    const stateEnvelope = await serviceFrontendApi.getState({
+    const snapshotEnvelope = await serviceFrontendApi.getSnapshot({
       args: [],
       traceContext: null,
     });
-    await Effect.runPromise(decodeRpc(stateEnvelope.result));
+    await Effect.runPromise(decodeRpc(snapshotEnvelope.result));
     const ticketEnvelope = await serviceFrontendApi.createWebSocketTicket({
       args: [{ serviceVersion: '1.0.0' }],
       traceContext: null,

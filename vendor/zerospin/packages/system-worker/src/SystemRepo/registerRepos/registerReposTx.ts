@@ -6,7 +6,7 @@ import type { AnyColumn } from 'drizzle-orm';
 import { registerRepo } from '../registerRepo/registerRepo.js';
 import { SystemRepoDb } from '../systemRepoDbConfig.js';
 
-/** Commit the frontend projection and finalized command chain registrations together. */
+/** Commit the frontend projection and selected-command chain registrations together. */
 export const registerReposTx = makeTx(
   'SystemRepo.registerReposTx',
   SystemRepoDb,

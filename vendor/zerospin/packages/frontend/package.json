@@ -10,25 +10,20 @@
     "src"
   ],
   "exports": {
-    "./fetchAggregateFrontendState": {
-      "types": "./dist/fetchAggregateFrontendState.d.ts",
-      "import": "./dist/fetchAggregateFrontendState.js",
-      "default": "./dist/fetchAggregateFrontendState.js"
-    },
-    "./pushAggregateFrontendCommand": {
-      "types": "./dist/pushAggregateFrontendCommand.d.ts",
-      "import": "./dist/pushAggregateFrontendCommand.js",
-      "default": "./dist/pushAggregateFrontendCommand.js"
+    "./fetchAggregateFrontendSnapshot": {
+      "types": "./dist/fetchAggregateFrontendSnapshot.d.ts",
+      "import": "./dist/fetchAggregateFrontendSnapshot.js",
+      "default": "./dist/fetchAggregateFrontendSnapshot.js"
     },
     "./createAggregateFrontendWebSocketTicket": {
       "types": "./dist/createAggregateFrontendWebSocketTicket.d.ts",
       "import": "./dist/createAggregateFrontendWebSocketTicket.js",
       "default": "./dist/createAggregateFrontendWebSocketTicket.js"
     },
-    "./fetchServiceFrontendState": {
-      "types": "./dist/fetchServiceFrontendState.d.ts",
-      "import": "./dist/fetchServiceFrontendState.js",
-      "default": "./dist/fetchServiceFrontendState.js"
+    "./fetchServiceFrontendSnapshot": {
+      "types": "./dist/fetchServiceFrontendSnapshot.d.ts",
+      "import": "./dist/fetchServiceFrontendSnapshot.js",
+      "default": "./dist/fetchServiceFrontendSnapshot.js"
     },
     "./createServiceFrontendWebSocketTicket": {
       "types": "./dist/createServiceFrontendWebSocketTicket.d.ts",
@@ -44,6 +39,11 @@
       "types": "./dist/makeServiceFrontendBackupKey.d.ts",
       "import": "./dist/makeServiceFrontendBackupKey.js",
       "default": "./dist/makeServiceFrontendBackupKey.js"
+    },
+    "./makeStandaloneFrontendBackupKey": {
+      "types": "./dist/makeStandaloneFrontendBackupKey.d.ts",
+      "import": "./dist/makeStandaloneFrontendBackupKey.js",
+      "default": "./dist/makeStandaloneFrontendBackupKey.js"
     },
     "./frontendPushRetrySchedule": {
       "types": "./dist/frontendPushRetrySchedule.d.ts",

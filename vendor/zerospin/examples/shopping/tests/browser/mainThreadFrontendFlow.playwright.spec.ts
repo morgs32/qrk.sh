@@ -6,13 +6,12 @@ import { prefixId } from '@zerospin/core/models/prefixId';
 import { makeServiceCommand } from '@zerospin/core/service/makeServiceCommand';
 import { PublishableKey } from '@zerospin/core/services/PublishableKey';
 import { ZerospinApiUrl } from '@zerospin/core/services/ZerospinApiUrl';
-import { AggregateFrontendJournalCommandSchema } from '@zerospin/core/session/AggregateFrontendCommandSchema';
+import { AggregateFrontendJournalCommandSchema } from '@zerospin/core/session/AggregateSelectedCommandSchema';
 import { sessionCommandJournalDrizzleSchema } from '@zerospin/core/session/sessionCommandShape';
 import { makePrefixedIncrementalIdFactory } from '@zerospin/core/test-utils/makePrefixedIncrementalIdFactory';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import { zerospinDevtoolsStore } from '@zerospin/devtools/zerospinDevtoolsStore';
 import {
-  makeBackup,
   makeRuntime,
   makeSession,
   stageCommand,
@@ -53,18 +52,15 @@ const testRuntimeLayer = Layer.mergeAll(
   Layer.succeed(PublishableKey, Redacted.make('pk_test')),
 );
 const testRuntime = makeRuntime({ layer: testRuntimeLayer });
-const backup = makeBackup();
 
 const aggregateSession = makeSession({
   frontend: Shopper,
   runtime: testRuntime,
-  backup,
   systemName: 'shopping',
 });
 const serviceSession = makeSession({
   frontend: Catalog,
   runtime: testRuntime,
-  backup,
   systemName: 'shopping',
 });
 
@@ -121,8 +117,7 @@ function CartSummary() {
 afterAll(async () => {
   await aggregateSession.dispose();
   await serviceSession.dispose();
-  await backup.dispose();
-  await testRuntime.dispose();
+    await testRuntime.dispose();
 });
 
 describe('main-thread frontend flow', () => {
@@ -374,8 +369,11 @@ describe('main-thread frontend flow', () => {
           }),
         ),
       );
-      if (aggregateDevtoolsEntry === undefined) {
-        throw new Error('Expected one aggregate frontend DevTools entry');
+      if (
+        aggregateDevtoolsEntry?.setPushPaused === undefined ||
+        aggregateDevtoolsEntry.pushNow === undefined
+      ) {
+        throw new Error('Expected aggregate frontend push controls');
       }
       await Effect.runPromise(
         decodeRpc(

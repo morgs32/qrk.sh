@@ -6,7 +6,7 @@ import type {
 import type { IAnyModels } from '@zerospin/core/models/types';
 import type { MonotonicFactory } from '@zerospin/core/services/MonotonicFactory';
 import type { IServiceSession } from '@zerospin/core/serviceSession/types';
-import type { ISession } from '@zerospin/core/session/types';
+import type { IAggregateSession } from '@zerospin/core/session/types';
 import type { IAnyError } from '@zerospin/error';
 import type { CuidFactory } from '@zerospin/schema';
 import type { Effect, ManagedRuntime } from 'effect';
@@ -19,7 +19,7 @@ export type IZerospinRuntime<APP_SERVICES = never> =
 
 export type IManagedAggregateSession<
   FRONTEND extends IAggregateFrontendController = IAggregateFrontendController,
-> = ISession<FRONTEND> & {
+> = IAggregateSession<FRONTEND> & {
   readonly systemName: string;
   initialize(props: {
     generateSignature: () => Effect.Effect<unknown, IAnyError>;

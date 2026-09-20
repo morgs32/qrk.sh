@@ -381,7 +381,7 @@ arguments to every guard call.
 `makeRuntime({ layer })` supplies application infrastructure without a system
 binding. Unbound `makeAggregateFrontend(props)` and `makeServiceFrontend(props)`
 author frontend definitions with exact models, contracts, and authentication.
-`makeSession({ frontend, runtime, layer?, backup, systemName })` captures the
+`makeSession({ frontend, runtime, layer?, systemName })` captures the
 frontend and system name; `initialize` / `useInitializeSession` check system
 compatibility and signature types. Consumers pass sessions to
 `useLiveQuery({ session, … })` and `useStore(session.store, …)`.
@@ -391,20 +391,23 @@ compatibility and signature types. Consumers pass sessions to
 - [`makeFrontendCompatibility.typecheck.ts`](../../packages/react/src/makeFrontendCompatibility.typecheck.ts) — verifies initialize/useInitializeSession reject incompatible systems and signatures.
 - [`makeAppFrontends.typecheck.tsx`](../../packages/react/src/makeAppFrontends.typecheck.tsx) — verifies exact selector inference, signatures, and runtime/local-layer requirements.
 
-`makeRuntime` owns the shared ManagedRuntime. Eager `makeBackup` owns the
-page backup connection independently of sessions. Each `makeSession` owns its
-session scope, local layer, bootstrap, and DevTools registration.
+`makeRuntime` owns the shared ManagedRuntime and its `BrowserBackup` service.
+The first live or standalone session claim lazily acquires the SharedWorker
+connection in the runtime scope; session construction does not acquire browser
+resources. Each `makeSession` owns its session scope, backup-key claim, local
+layer, bootstrap, and DevTools registration.
 `useInitializeSession` gates children until ready; concurrent sessions
 initialize independently. Overlapping ownership of the same session is rejected.
 
 Updating a signer retains its session. Changing identity requires an
-explicit dispose/reinitialize. Teardown disposes sessions first, then backup,
-then runtime. Synchronous `makeAggregateSession` constructs the store without
-resources; execution bindings are set during initialize. `makeMockSession`
+explicit dispose/reinitialize. Teardown disposes sessions before the runtime;
+runtime disposal closes the shared backup connection. Synchronous
+`makeAggregateSession` constructs the store without resources; execution
+bindings are set during initialize. `makeMockSession`
 owns independent fixture resources without backup or transport.
 
-- [`makeRuntime.ts`](../../packages/react/src/makeRuntime/makeRuntime.ts) — owns the caller-shared runtime without system or backup binding.
-- [`makeBackup.ts`](../../packages/react/src/makeBackup/makeBackup.ts) — eagerly acquires the shared SharedWorker connection.
+- [`makeRuntime.ts`](../../packages/react/src/makeRuntime/makeRuntime.ts) — owns the caller-shared runtime and installs its browser-backup Layer without a system binding.
+- [`BrowserBackup.ts`](../../packages/react/src/BrowserBackup/BrowserBackup.ts) — lazily acquires one runtime-scoped SharedWorker connection and scopes each backup-key claim to its session.
 - [`makeSession.ts`](../../packages/react/src/makeSession/makeSession.ts) — owns per-session initialization, readiness, identity checks, and scoped teardown.
 - [`stageCommand.ts`](../../packages/core/src/session/stageCommand.ts) — stages local commands through bound runtime and guards.
 - [`makeMockSession.ts`](../../packages/react/src/makeMockSession/makeMockSession.ts) — owns mock layer and database resources without live transports.

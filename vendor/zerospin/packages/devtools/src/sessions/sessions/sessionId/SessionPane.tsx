@@ -1,6 +1,6 @@
 import { useSyncExternalStore, type CSSProperties } from 'react';
 
-import type { ISession } from '@zerospin/core/session/types';
+import type { IAggregateSession } from '@zerospin/core/session/types';
 import { NavLink, Outlet } from 'react-router';
 import { useStore } from 'zustand/react';
 
@@ -148,7 +148,7 @@ function SessionState(props: {
   );
 }
 
-function AggregateSessionPane(props: { readonly session: ISession }) {
+function AggregateSessionPane(props: { readonly session: IAggregateSession }) {
   const { session } = props;
 
   const isInitialized = useStore(session.store, state => state.isInitialized);

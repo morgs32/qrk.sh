@@ -1,4 +1,4 @@
-import type { IServiceFrontendState } from '@zerospin/core/serviceSession/types';
+import type { IServiceFrontendSnapshot } from '@zerospin/core/serviceSession/types';
 import type { IAnyErrorJson } from '@zerospin/error';
 import type { ILinkedRpcEnvelope, IRpcRequest } from '@zerospin/logger';
 
@@ -16,9 +16,9 @@ const emptyRequest = {
   traceContext: null,
 } satisfies IRpcRequest<[]>;
 
-const stateEnvelope = serviceFrontendApi.getState(
+const stateEnvelope = serviceFrontendApi.getSnapshot(
   emptyRequest,
-) satisfies Promise<ILinkedRpcEnvelope<IServiceFrontendState, IAnyErrorJson>>;
+) satisfies Promise<ILinkedRpcEnvelope<IServiceFrontendSnapshot, IAnyErrorJson>>;
 const ticketEnvelope = serviceFrontendApi.createWebSocketTicket({
   args: [{ serviceVersion: '1.0.0' }],
   traceContext: null,
@@ -26,12 +26,12 @@ const ticketEnvelope = serviceFrontendApi.createWebSocketTicket({
 
 void stateEnvelope;
 void ticketEnvelope;
-void failedServiceFrontendApi.getState(emptyRequest);
+void failedServiceFrontendApi.getSnapshot(emptyRequest);
 void failedServiceFrontendApi.createWebSocketTicket({
   args: [{ serviceVersion: '1.0.0' }],
   traceContext: null,
 });
-void serviceFrontendApiUnion.getState(emptyRequest);
+void serviceFrontendApiUnion.getSnapshot(emptyRequest);
 void serviceFrontendApiUnion.createWebSocketTicket({
   args: [{ serviceVersion: '1.0.0' }],
   traceContext: null,

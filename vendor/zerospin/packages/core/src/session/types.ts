@@ -1,14 +1,17 @@
 import type { IAnyError, IAnyErrorJson } from '@zerospin/error';
 import type { ITelemetryBatch, ITelemetryCollector } from '@zerospin/logger';
-import type { CuidFactory, InferIdFromAbbreviation, IShape } from '@zerospin/schema';
+import type {
+  CuidFactory,
+  InferIdFromAbbreviation,
+  IShape,
+} from '@zerospin/schema';
 import type { AnyRelations } from 'drizzle-orm';
 import type { Effect, ManagedRuntime, Schema } from 'effect';
 import type { StoreApi } from 'zustand';
 
-import type { AggregateExecutionEntrySchema } from '../contracts/CommandSchema.ts';
 import type {
   IChainedCommand,
-  IEncodedAppliedMutation,
+  ICommand,
   IEncodedCommand,
   ISessionCommand,
 } from '../contracts/types.ts';
@@ -32,8 +35,8 @@ import type {
   IRef,
 } from '../models/types.ts';
 import type { MonotonicFactory } from '../services/MonotonicFactory.ts';
-import type { ISystemId } from '../system/types.ts';
 
+import type { SessionCommandSchema } from './AggregateSelectedCommandSchema.ts';
 import { type sessionRepoSchema } from './sessionRepoTables.ts';
 
 export type ISessionRepoSchema = typeof sessionRepoSchema;
@@ -54,32 +57,30 @@ export type ISessionWaSqliteDb<
 export type ISessionId = InferIdFromAbbreviation<'sesn'>;
 
 export type IFrontendDelta = Readonly<{
-  inserted: readonly IEncodedResourceShape[];
-  updated: readonly IEncodedResourceShape[];
+  upserted: readonly IEncodedResourceShape[];
   deleted: readonly IRef[];
-  mutations: readonly IEncodedAppliedMutation[];
 }>;
 
-export type IAggregateFrontendFinalizedCommand = Readonly<{
+export type IAggregateSelectedCommand = Readonly<{
+  id: ICommand['id'];
   selectionIndex: number;
   aggregateIndex: number;
   delta: IFrontendDelta;
-  resolution: Schema.Schema.Type<typeof AggregateExecutionEntrySchema> | null;
+  failure: IAnyErrorJson | null;
+  selectionHash: string;
 }>;
 
 /** Complete server-owned aggregate frontend state used for creation and repair. */
-export type IAggregateFrontendSyncState = Readonly<{
+export type IAggregateFrontendSnapshot = Readonly<{
   aggregateId: IAggregateId;
   authentication: Readonly<Record<string, unknown>>;
-  systemId: ISystemId;
   aggregateName: string;
   aggregateVersion: string;
-  resolutions: readonly Schema.Schema.Type<
-    typeof AggregateExecutionEntrySchema
-  >[];
   frontendName: string;
   aggregateIndex: number;
   selectionIndex: number;
+  selectionHash: string;
+  selectedCommands: readonly IAggregateSelectedCommand[];
   resources: readonly IEncodedResourceShape[];
 }>;
 
@@ -91,7 +92,6 @@ export interface IInitializedSessionState<
   aggregateId: IAggregateId;
   aggregateName: string;
   authentication: AUTHENTICATION;
-  systemId: ISystemId;
   frontendName: string;
   aggregateFrontendLockKey: string;
   db: IWaSqliteDrizzleDb<
@@ -102,6 +102,7 @@ export interface IInitializedSessionState<
   isInitialized: true;
   aggregateIndex: number;
   selectionIndex: number;
+  selectionHash: string;
   pushIndex: number;
   sessionStatus:
     | 'bootstrapping'
@@ -122,7 +123,6 @@ type IUninitializedSessionState = {
   aggregateId: null;
   aggregateName: null;
   authentication: null;
-  systemId: null;
   frontendName: null;
   aggregateFrontendLockKey: null;
   db: null;
@@ -131,6 +131,7 @@ type IUninitializedSessionState = {
   isInitialized: false;
   aggregateIndex: null;
   selectionIndex: null;
+  selectionHash: null;
   pushIndex: null;
   sessionStatus:
     | 'bootstrapping'
@@ -158,7 +159,7 @@ type ISessionStoreApi<
   AUTHENTICATION = Readonly<Record<string, unknown>>,
 > = StoreApi<ISessionState<MODELS, AUTHENTICATION>>;
 
-export type ISession<
+export type IAggregateSession<
   FRONTEND extends IAggregateFrontendController = IAggregateFrontendController,
 > = {
   frontend: FRONTEND;
@@ -188,6 +189,8 @@ export type ISession<
    */
   setExecutionResources(resources: {
     sessionId: ISessionId;
+    /** Standalone commands settle locally without retaining active optimism. */
+    settleLocally?: boolean;
     guards: Effect.Success<
       ReturnType<typeof initializeGuards<never, unknown, unknown>>
     >;
@@ -197,7 +200,10 @@ export type ISession<
     >;
     executeAggregateFrontendCommand?: (props: {
       command: IEncodedCommand<
-        IChainedCommand<ISessionCommand, IFrontendDelta> &
+        IChainedCommand<
+          ISessionCommand,
+          NonNullable<Schema.Schema.Type<typeof SessionCommandSchema>['delta']>
+        > &
           Readonly<{ sessionIndex: number; pushIndex: null }>
       >;
     }) => Effect.Effect<Readonly<{ commandId: string }>, IAnyError>;

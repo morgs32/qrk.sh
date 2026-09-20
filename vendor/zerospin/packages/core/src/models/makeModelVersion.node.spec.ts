@@ -43,7 +43,7 @@ const Todo = makeModelVersion(
   },
 );
 
-describe('defineModel', () => {
+describe('makeModelVersion', () => {
   it('constructs a canonical Model and rejects excess props', () => {
     expect(User).toBeInstanceOf(Model);
     expect(() =>

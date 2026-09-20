@@ -137,9 +137,9 @@ describe('basicFlow1: static shopping system workerd flow', () => {
               }),
           );
           const state = yield* makeAsync(() =>
-            frontendApi.getState({
+            frontendApi.getSnapshot({
               traceContext: null,
-              args: [{ outstandingCommandIds: [] }],
+              args: [{ pendingCommandIds: [] }],
             }),
           ).pipe(Effect.flatMap(envelope => decodeRpc(envelope.result)));
           expect(
@@ -160,9 +160,9 @@ describe('basicFlow1: static shopping system workerd flow', () => {
                     frontendName: WebV2.name,
                     aggregateFrontendLock: shopperAggregateFrontendLock,
                   });
-                return api.getState({
+                return api.getSnapshot({
                   traceContext: null,
-                  args: [{ outstandingCommandIds: [] }],
+                  args: [{ pendingCommandIds: [] }],
                 });
               }).pipe(Effect.flatMap(envelope => decodeRpc(envelope.result))),
             ),

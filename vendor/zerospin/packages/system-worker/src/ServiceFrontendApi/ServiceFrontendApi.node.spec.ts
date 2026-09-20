@@ -16,13 +16,13 @@ import { ServiceFrontendApiFailure } from './ServiceFrontendApiFailure/ServiceFr
 const {
   appendTelemetryBatch,
   getFrontendVersionedServiceRepoByName,
-  getState,
+  getSnapshot,
   getSystemLogRepoByName,
   flush,
 } = vi.hoisted(() => ({
   appendTelemetryBatch: vi.fn(),
   getFrontendVersionedServiceRepoByName: vi.fn(),
-  getState: vi.fn(),
+  getSnapshot: vi.fn(),
   getSystemLogRepoByName: vi.fn(),
   flush: vi.fn(),
 }));
@@ -59,15 +59,15 @@ describe('ServiceFrontendApi', () => {
   beforeEach(() => {
     appendTelemetryBatch.mockReset();
     getFrontendVersionedServiceRepoByName.mockReset();
-    getState.mockReset();
+    getSnapshot.mockReset();
     getSystemLogRepoByName.mockReset();
     flush.mockReset();
     flush.mockResolvedValue(encodeSuccess(undefined));
     getFrontendVersionedServiceRepoByName.mockReturnValue({
-      getState,
+      getSnapshot,
     });
     getSystemLogRepoByName.mockReturnValue({ appendTelemetryBatch });
-    getState.mockResolvedValue(
+    getSnapshot.mockResolvedValue(
       encodeSuccess({
         serviceName: 'app',
         selectionPath: '/user_1',
@@ -75,6 +75,8 @@ describe('ServiceFrontendApi', () => {
         frontendName: 'products',
         serviceVersion: '1.0.0',
         serviceIndex: 1,
+        serviceHash:
+          'f31c0c51be861af11225611526c9e2b73ab453f449950aa4ad4eaad22c522dbc',
         resources: [],
       }),
     );
@@ -101,7 +103,7 @@ describe('ServiceFrontendApi', () => {
       runtime,
     });
 
-    const envelope = await api.getState({
+    const envelope = await api.getSnapshot({
       args: [],
       traceContext: { traceId: 'trc_caller', parentSpanId: 'spn_caller' },
     });
@@ -115,7 +117,7 @@ describe('ServiceFrontendApi', () => {
       serviceVersion: '1.0.0',
     });
     expect(flush).toHaveBeenCalledWith(1);
-    expect(getState).toHaveBeenCalledWith({
+    expect(getSnapshot).toHaveBeenCalledWith({
       serviceName: 'app',
       frontendName: 'products',
       selectionPath: '/user_1',
@@ -136,7 +138,7 @@ describe('ServiceFrontendApi', () => {
       }),
     );
 
-    const envelope = await api.getState({ args: [], traceContext: null });
+    const envelope = await api.getSnapshot({ args: [], traceContext: null });
     const result = await Effect.runPromise(
       decodeRpc(envelope.result).pipe(Effect.result),
     );

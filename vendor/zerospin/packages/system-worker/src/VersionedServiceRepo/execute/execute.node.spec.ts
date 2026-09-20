@@ -224,7 +224,7 @@ it('commits bounded pages, publishes complete entries, recovers after outbox del
     outputs.push(
       replica
         .select()
-        .from(frontendVersionedServiceRepoDbConfig.schema.deltas)
+        .from(frontendVersionedServiceRepoDbConfig.schema.selectedCommands)
         .all()
         .map(row => row.output),
     );

@@ -48,7 +48,7 @@ it('rejects a gapped page without advancing the projection or output', async () 
       .all(),
   ).toHaveLength(0);
   expect(
-    db.select().from(frontendVersionedServiceRepoDbConfig.schema.deltas).all(),
+    db.select().from(frontendVersionedServiceRepoDbConfig.schema.selectedCommands).all(),
   ).toHaveLength(0);
 });
 
@@ -133,7 +133,7 @@ it('rolls back source state and every output when projection fails, then retries
   expect(failed._tag).toBe('Failure');
   expect(db.select().from(product.drizzleSchema).all()).toHaveLength(0);
   expect(
-    db.select().from(frontendVersionedServiceRepoDbConfig.schema.deltas).all(),
+    db.select().from(frontendVersionedServiceRepoDbConfig.schema.selectedCommands).all(),
   ).toHaveLength(0);
   db.run('DROP TRIGGER corrupt_projection');
   await Effect.runPromise(execute({ db, key, rows }));
@@ -141,7 +141,7 @@ it('rolls back source state and every output when projection fails, then retries
   expect(
     db
       .select()
-      .from(frontendVersionedServiceRepoDbConfig.schema.deltas)
+      .from(frontendVersionedServiceRepoDbConfig.schema.selectedCommands)
       .all()
       .map(row => row.outboxIndex),
   ).toEqual([1, 2]);

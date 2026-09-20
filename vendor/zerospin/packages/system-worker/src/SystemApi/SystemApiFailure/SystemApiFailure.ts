@@ -11,7 +11,7 @@ import { executeServiceCommand } from './executeServiceCommand/executeServiceCom
 import { executeServiceQuery } from './executeServiceQuery/executeServiceQuery.js';
 import { getAggregateChains } from './getAggregateChains/getAggregateChains.js';
 import { getAggregateChainTableRows } from './getAggregateChainTableRows/getAggregateChainTableRows.js';
-import { getAggregateFrontendState } from './getAggregateFrontendState/getAggregateFrontendState.js';
+import { getAggregateFrontendSnapshot } from './getAggregateFrontendSnapshot/getAggregateFrontendSnapshot.js';
 import { getFrontendServiceChains } from './getFrontendServiceChains/getFrontendServiceChains.js';
 import { getFrontendServiceChainTableRows } from './getFrontendServiceChainTableRows/getFrontendServiceChainTableRows.js';
 import { getFrontendVersionedServiceRepos } from './getFrontendVersionedServiceRepos/getFrontendVersionedServiceRepos.js';
@@ -74,16 +74,16 @@ export class SystemApiFailure extends RpcTarget {
   }
 
   /*
-   * SystemApiFailure.getAggregateFrontendState answers a rejected capability with its retained admission error.
+   * SystemApiFailure.getAggregateFrontendSnapshot answers a rejected capability with its retained admission error.
    *
    * 1. Run the bound domain operation.
    */
-  async getAggregateFrontendState(
-    request: Parameters<SystemApi['getAggregateFrontendState']>[0],
-  ): ReturnType<SystemApi['getAggregateFrontendState']> {
-    // 1 — run getAggregateFrontendState with the retained admission error
+  async getAggregateFrontendSnapshot(
+    request: Parameters<SystemApi['getAggregateFrontendSnapshot']>[0],
+  ): ReturnType<SystemApi['getAggregateFrontendSnapshot']> {
+    // 1 — run getAggregateFrontendSnapshot with the retained admission error
     return Effect.runPromise(
-      getAggregateFrontendState({ request, error: this.error }),
+      getAggregateFrontendSnapshot({ request, error: this.error }),
     );
   }
 

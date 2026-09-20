@@ -1,0 +1,945 @@
+import { getTableConfig } from 'drizzle-orm/sqlite-core';
+import { Result, Schema } from 'effect';
+import { assert, type Equals } from 'tsafe';
+import { describe, expect, it } from 'vitest';
+
+import {
+  descriptorToEffectSchema,
+  encodeShape,
+  generateProvisioningSqlForDescriptor,
+  makeDrizzleSchemaFromEncodedTable,
+  makeDrizzleSchemaFromTable,
+  makeEffectSchema,
+  makeTable,
+  PrimitiveKind,
+  primitives,
+  type InferDecodedRow,
+  type InferEncodedRow,
+} from './index.ts';
+
+const userTable = makeTable({
+  name: 'user',
+  shape: {
+    id: primitives.primaryKey({ abbreviation: 'usr' }),
+    name: primitives.text(),
+  },
+});
+
+const numericBlockTable = makeTable({
+  name: 'numericBlock',
+  shape: {
+    blockIndex: primitives.integer({ primaryKey: true }),
+  },
+});
+
+const TinyJsonRowSchema = Schema.Struct({ x: Schema.String });
+
+const tinyJsonColumn = primitives.json({ schema: TinyJsonRowSchema });
+
+const nullableTinyJsonColumn = primitives.json({
+  nullable: true,
+  schema: TinyJsonRowSchema,
+});
+
+const nullableTinyJsonDefaultColumn = primitives.json({
+  nullable: true,
+  schema: TinyJsonRowSchema,
+  defaultValue: null,
+});
+
+describe('descriptorToEffectSchema', () => {
+  it('requires caller-supplied foreign keys and preserves supplied ids', () => {
+    const schema = makeEffectSchema({
+      id: primitives.foreignKey({ abbreviation: 'item' }),
+    });
+    for (const input of [
+      {},
+      { id: null },
+      { id: undefined },
+      { id: 'other_1' },
+    ]) {
+      expect(Result.isFailure(Schema.decodeUnknownResult(schema)(input))).toBe(
+        true,
+      );
+    }
+    expect(Schema.decodeUnknownSync(schema)({ id: 'item_supplied' })).toEqual({
+      id: 'item_supplied',
+    });
+  });
+
+  it('supports boolean primitives', () => {
+    const schema = descriptorToEffectSchema(primitives.boolean());
+    expect(Result.isSuccess(Schema.decodeUnknownResult(schema)(true))).toBe(
+      true,
+    );
+    expect(Result.isFailure(Schema.decodeUnknownResult(schema)(1))).toBe(true);
+  });
+
+  it('fills missing scalar default values during shape decode', () => {
+    const defaultDate = new Date(0);
+    const providedDate = new Date(1000);
+    const schema = makeEffectSchema({
+      flag: primitives.boolean({ defaultValue: true }),
+      count: primitives.integer({ defaultValue: 5 }),
+      ratio: primitives.number({ defaultValue: 1.5 }),
+      name: primitives.text({ defaultValue: 'saved' }),
+      createdAt: primitives.date({ defaultValue: defaultDate }),
+      status: primitives.enum({
+        values: ['open', 'closed'],
+        defaultValue: 'open',
+      }),
+    });
+
+    expect(Schema.decodeUnknownSync(schema)({})).toEqual({
+      flag: true,
+      count: 5,
+      ratio: 1.5,
+      name: 'saved',
+      createdAt: defaultDate,
+      status: 'open',
+    });
+    expect(
+      Schema.decodeUnknownSync(schema)({
+        flag: false,
+        count: 7,
+        ratio: 2.5,
+        name: 'provided',
+        createdAt: providedDate,
+        status: 'closed',
+      }),
+    ).toEqual({
+      flag: false,
+      count: 7,
+      ratio: 2.5,
+      name: 'provided',
+      createdAt: providedDate,
+      status: 'closed',
+    });
+    expect(() =>
+      Schema.decodeUnknownSync(schema)({ count: undefined }),
+    ).toThrow();
+  });
+
+  it('allows null for nullable scalar default values', () => {
+    const defaultDate = new Date(0);
+    const schema = makeEffectSchema({
+      flag: primitives.boolean({ nullable: true, defaultValue: true }),
+      count: primitives.integer({ nullable: true, defaultValue: 5 }),
+      ratio: primitives.number({ nullable: true, defaultValue: 1.5 }),
+      name: primitives.text({ nullable: true, defaultValue: 'saved' }),
+      createdAt: primitives.date({ nullable: true, defaultValue: defaultDate }),
+      status: primitives.enum({
+        values: ['open', 'closed'],
+        nullable: true,
+        defaultValue: 'open',
+      }),
+    });
+
+    expect(Schema.decodeUnknownSync(schema)({})).toEqual({
+      flag: true,
+      count: 5,
+      ratio: 1.5,
+      name: 'saved',
+      createdAt: defaultDate,
+      status: 'open',
+    });
+    expect(
+      Schema.decodeUnknownSync(schema)({
+        flag: null,
+        count: null,
+        ratio: null,
+        name: null,
+        createdAt: null,
+        status: null,
+      }),
+    ).toEqual({
+      flag: null,
+      count: null,
+      ratio: null,
+      name: null,
+      createdAt: null,
+      status: null,
+    });
+  });
+
+  it('fills missing nullable text null defaults during shape decode', () => {
+    const schema = makeEffectSchema({
+      name: primitives.text({ nullable: true, defaultValue: null }),
+    });
+
+    expect(Schema.decodeUnknownSync(schema)({})).toEqual({ name: null });
+    expect(Schema.decodeUnknownSync(schema)({ name: null })).toEqual({
+      name: null,
+    });
+    expect(Schema.decodeUnknownSync(schema)({ name: 'provided' })).toEqual({
+      name: 'provided',
+    });
+    expect(() =>
+      Schema.decodeUnknownSync(schema)({ name: undefined }),
+    ).toThrow();
+  });
+
+  it('fills missing nullable json null defaults during shape decode', () => {
+    const row = JSON.stringify({ x: 'ok' });
+    const schema = makeEffectSchema({
+      payload: nullableTinyJsonDefaultColumn,
+    });
+
+    expect(Schema.decodeUnknownSync(schema)({})).toEqual({ payload: null });
+    expect(Schema.decodeUnknownSync(schema)({ payload: row })).toEqual({
+      payload: { x: 'ok' },
+    });
+    expect(() =>
+      Schema.decodeUnknownSync(schema)({ payload: undefined }),
+    ).toThrow();
+    expect(Schema.decodeUnknownSync(schema)({ payload: null })).toEqual({
+      payload: null,
+    });
+  });
+
+  it('supports json primitive as domain schema over string wire', () => {
+    const schema = descriptorToEffectSchema(tinyJsonColumn);
+    const row = JSON.stringify({ x: 'ok' });
+    expect(Schema.decodeUnknownSync(schema)(row)).toEqual({ x: 'ok' });
+    expect(Schema.encodeSync(schema)({ x: 'ok' })).toBe(row);
+  });
+
+  it('json descriptor exposes the domain schema', () => {
+    const data = { x: 'ok' };
+    expect(Schema.decodeUnknownSync(tinyJsonColumn.schema)(data)).toEqual(data);
+  });
+
+  it('nullable json encodes domain data or null to wire schema', () => {
+    const schema = descriptorToEffectSchema(nullableTinyJsonColumn);
+    expect(Schema.encodeSync(schema)(null)).toBe(null);
+    expect(Schema.encodeSync(schema)({ x: 'ok' })).toBe(
+      JSON.stringify({ x: 'ok' }),
+    );
+    expect(
+      Schema.decodeUnknownSync(schema)(JSON.stringify({ x: 'ok' })),
+    ).toEqual({ x: 'ok' });
+  });
+
+  it('json dates encode to ISO text and decode back to Date', () => {
+    const schema = descriptorToEffectSchema(
+      primitives.json({
+        schema: Schema.Struct({
+          happenedAt: Schema.DateFromString,
+        }),
+      }),
+    );
+    const happenedAt = new Date(0);
+
+    expect(Schema.encodeSync(schema)({ happenedAt })).toBe(
+      JSON.stringify({ happenedAt: happenedAt.toISOString() }),
+    );
+    expect(
+      Schema.decodeUnknownSync(schema)(
+        JSON.stringify({ happenedAt: happenedAt.toISOString() }),
+      ).happenedAt,
+    ).toEqual(happenedAt);
+  });
+});
+
+describe('json shape row encode/decode', () => {
+  it('round-trips json columns through makeEffectSchema', () => {
+    const schema = makeEffectSchema({
+      flag: primitives.boolean(),
+      maybeJson: nullableTinyJsonColumn,
+    });
+    const domainRow = {
+      flag: true,
+      maybeJson: { x: 'ok' },
+    };
+
+    const wireRow = Schema.encodeSync(schema)(domainRow);
+
+    expect(wireRow).toEqual({
+      flag: true,
+      maybeJson: JSON.stringify({ x: 'ok' }),
+    });
+    expect(Schema.decodeUnknownSync(schema)(wireRow)).toEqual(domainRow);
+  });
+});
+
+describe('encoded primitive descriptors', () => {
+  it('omits absent primary-key state and runtime ref tables', () => {
+    const encoded = encodeShape({
+      primaryKey: primitives.primaryKey({ abbreviation: 'pk' }),
+      cursor: primitives.cursor({ abbreviation: 'cur' }),
+      foreignKey: primitives.foreignKey({ abbreviation: 'ext' }),
+      userId: primitives.ref({
+        table: userTable,
+        relation: 'user',
+        inverse: 'records',
+      }),
+      text: primitives.text(),
+    });
+
+    expect('primaryKey' in encoded.primaryKey).toBe(false);
+    expect('primaryKey' in encoded.cursor).toBe(false);
+    expect('primaryKey' in encoded.foreignKey).toBe(false);
+    expect('primaryKey' in encoded.userId).toBe(false);
+    expect('primaryKey' in encoded.text).toBe(false);
+    expect('defaultValue' in encoded.text).toBe(false);
+    expect('table' in encoded.userId).toBe(false);
+    expect(encoded.userId).toEqual({
+      abbreviation: 'usr',
+      inverse: 'records',
+      kind: PrimitiveKind.Ref,
+      nullable: false,
+      relation: 'user',
+      targetColumnName: 'id',
+      targetTableName: 'user',
+      unique: false,
+    });
+  });
+
+  it('maps an encoded table shape and indexes directly to Drizzle', () => {
+    const schema = makeDrizzleSchemaFromEncodedTable({
+      name: 'encodedRecord',
+      shape: encodeShape({
+        id: primitives.primaryKey({ abbreviation: 'record' }),
+        name: primitives.text(),
+        userId: primitives.ref({
+          table: userTable,
+          relation: 'user',
+          inverse: 'records',
+        }),
+      }),
+      indexes: [
+        {
+          name: 'encodedRecord_name_userId_idx',
+          columns: ['name', 'userId'],
+          unique: true,
+        },
+      ],
+    });
+    const tableConfig = getTableConfig(schema);
+
+    expect(tableConfig.name).toBe('encodedRecord');
+    expect(tableConfig.columns).toMatchObject([
+      { name: 'id', notNull: true, primary: true },
+      { name: 'name', notNull: true, primary: false },
+      { name: 'userId', notNull: true, primary: false },
+    ]);
+    expect(
+      tableConfig.indexes.map(index => ({
+        name: index.config.name,
+        columns: index.config.columns.map(column =>
+          'name' in column ? column.name : null,
+        ),
+        unique: index.config.unique,
+      })),
+    ).toEqual([
+      {
+        name: 'encodedRecord_name_userId_idx',
+        columns: ['name', 'userId'],
+        unique: true,
+      },
+    ]);
+  });
+});
+
+describe('primitive Drizzle columns', () => {
+  it('marks only dedicated primary-key descriptors as primary columns', () => {
+    const table = makeTable({
+      name: 'primitiveTaxonomy',
+      shape: {
+        primaryKey: primitives.primaryKey({ abbreviation: 'row' }),
+        cursor: primitives.cursor({ abbreviation: 'cur' }),
+        foreignKey: primitives.foreignKey({ abbreviation: 'ext' }),
+        userId: primitives.ref({
+          table: userTable,
+          relation: 'user',
+          inverse: 'records',
+        }),
+        text: primitives.text(),
+      },
+    });
+    const columns = getTableConfig(makeDrizzleSchemaFromTable(table)).columns;
+
+    expect(columns[0]).toMatchObject({
+      name: 'primaryKey',
+      notNull: true,
+      primary: true,
+    });
+    expect(columns[1]).toMatchObject({
+      name: 'cursor',
+      notNull: true,
+      primary: false,
+    });
+    expect(columns[2]).toMatchObject({
+      name: 'foreignKey',
+      notNull: true,
+      primary: false,
+    });
+    expect(columns[3]).toMatchObject({
+      name: 'userId',
+      notNull: true,
+      primary: false,
+    });
+    expect(columns[4]).toMatchObject({
+      name: 'text',
+      notNull: true,
+      primary: false,
+    });
+  });
+
+  it('builds numeric ref columns with a literal integer foreign key', () => {
+    const numericBlockDrizzleSchema =
+      makeDrizzleSchemaFromTable(numericBlockTable);
+    const commandTable = makeTable({
+      name: 'numericBlockCommand',
+      shape: {
+        commandId: primitives.primaryKey({ abbreviation: 'cmd' }),
+        blockIndex: primitives.ref({
+          table: numericBlockTable,
+          relation: 'block',
+          inverse: 'commands',
+        }),
+      },
+    });
+    const commandDrizzleSchema = makeDrizzleSchemaFromTable(
+      commandTable,
+      () => () => numericBlockDrizzleSchema.blockIndex,
+    );
+    const tableConfig = getTableConfig(commandDrizzleSchema);
+    const reference = tableConfig.foreignKeys[0]?.reference();
+
+    expect(tableConfig.columns[1]).toMatchObject({
+      dataType: 'number int53',
+      name: 'blockIndex',
+      notNull: true,
+      primary: false,
+    });
+    expect(reference?.columns.map(column => column.name)).toEqual([
+      'blockIndex',
+    ]);
+    expect(reference?.foreignColumns.map(column => column.name)).toEqual([
+      'blockIndex',
+    ]);
+    expect(getTableConfig(reference!.foreignTable).name).toBe('numericBlock');
+  });
+
+  it('maps encoded numeric refs back to integer columns', () => {
+    const encodedSchema = makeDrizzleSchemaFromEncodedTable({
+      name: 'encodedNumericBlockCommand',
+      shape: encodeShape({
+        commandId: primitives.primaryKey({ abbreviation: 'cmd' }),
+        blockIndex: primitives.ref({
+          table: numericBlockTable,
+          relation: 'block',
+          inverse: 'commands',
+        }),
+      }),
+      indexes: [],
+    });
+
+    expect(getTableConfig(encodedSchema).columns[1]).toMatchObject({
+      dataType: 'number int53',
+      name: 'blockIndex',
+      notNull: true,
+    });
+  });
+});
+
+describe('generateProvisioningSqlForDescriptor', () => {
+  it('returns expected SQL for non-nullable built-ins', () => {
+    expect(
+      generateProvisioningSqlForDescriptor(
+        primitives.primaryKey({ abbreviation: 'usr' }),
+        'id',
+      ),
+    ).toBe('id text PRIMARY KEY NOT NULL');
+    expect(
+      generateProvisioningSqlForDescriptor(
+        primitives.cursor({ abbreviation: 'cur' }),
+        'cursor',
+      ),
+    ).toBe('cursor text NOT NULL');
+    expect(
+      generateProvisioningSqlForDescriptor(
+        primitives.foreignKey({ abbreviation: 'ext' }),
+        'externalId',
+      ),
+    ).toBe('externalId text NOT NULL');
+    expect(
+      generateProvisioningSqlForDescriptor(primitives.text(), 'version'),
+    ).toBe('version text NOT NULL');
+    expect(
+      generateProvisioningSqlForDescriptor(primitives.integer(), 'count'),
+    ).toBe('count integer NOT NULL');
+    expect(
+      generateProvisioningSqlForDescriptor(primitives.boolean(), 'flag'),
+    ).toBe('flag integer NOT NULL');
+    expect(
+      generateProvisioningSqlForDescriptor(primitives.text(), 'name'),
+    ).toBe('name text NOT NULL');
+    expect(
+      generateProvisioningSqlForDescriptor(tinyJsonColumn, 'payload'),
+    ).toBe('payload text NOT NULL');
+    expect(
+      generateProvisioningSqlForDescriptor(primitives.date(), 'createdAt'),
+    ).toBe('createdAt integer NOT NULL');
+    expect(
+      generateProvisioningSqlForDescriptor(
+        primitives.enum({ values: ['open', 'closed'] }),
+        'status',
+      ),
+    ).toBe('status text NOT NULL');
+    expect(
+      generateProvisioningSqlForDescriptor(
+        primitives.ref({
+          table: userTable,
+          relation: 'user',
+          inverse: 'records',
+        }),
+        'userId',
+      ),
+    ).toBe('userId text NOT NULL');
+    expect(
+      generateProvisioningSqlForDescriptor(
+        primitives.ref({
+          table: numericBlockTable,
+          relation: 'block',
+          inverse: 'commands',
+        }),
+        'blockIndex',
+      ),
+    ).toBe('blockIndex integer NOT NULL');
+  });
+
+  it('returns expected SQL for nullable built-ins', () => {
+    expect(
+      generateProvisioningSqlForDescriptor(
+        primitives.integer({ nullable: true }),
+        'count',
+      ),
+    ).toBe('count integer');
+    expect(
+      generateProvisioningSqlForDescriptor(
+        primitives.boolean({ nullable: true }),
+        'flag',
+      ),
+    ).toBe('flag integer');
+    expect(
+      generateProvisioningSqlForDescriptor(
+        primitives.text({ nullable: true }),
+        'name',
+      ),
+    ).toBe('name text');
+    expect(
+      generateProvisioningSqlForDescriptor(nullableTinyJsonColumn, 'payload'),
+    ).toBe('payload text');
+    expect(
+      generateProvisioningSqlForDescriptor(
+        primitives.date({ nullable: true }),
+        'createdAt',
+      ),
+    ).toBe('createdAt integer');
+    expect(
+      generateProvisioningSqlForDescriptor(
+        primitives.enum({ values: ['open', 'closed'], nullable: true }),
+        'status',
+      ),
+    ).toBe('status text');
+    expect(
+      generateProvisioningSqlForDescriptor(
+        primitives.cursor({ abbreviation: 'cur', nullable: true }),
+        'cursor',
+      ),
+    ).toBe('cursor text');
+    expect(
+      generateProvisioningSqlForDescriptor(
+        primitives.foreignKey({ abbreviation: 'ext', nullable: true }),
+        'externalId',
+      ),
+    ).toBe('externalId text');
+    expect(
+      generateProvisioningSqlForDescriptor(
+        primitives.ref({
+          table: userTable,
+          relation: 'user',
+          inverse: 'records',
+          nullable: true,
+        }),
+        'userId',
+      ),
+    ).toBe('userId text');
+  });
+
+  it('does not emit a SQLite reference constraint for table refs', () => {
+    const sql = generateProvisioningSqlForDescriptor(
+      primitives.ref({
+        table: userTable,
+        relation: 'user',
+        inverse: 'records',
+      }),
+      'userId',
+    );
+
+    expect(sql).toBe('userId text NOT NULL');
+    expect(sql).not.toContain('REFERENCES');
+  });
+
+  it('appends UNIQUE to provisioning SQL when unique is true', () => {
+    expect(
+      generateProvisioningSqlForDescriptor(
+        primitives.text({ unique: true }),
+        'email',
+      ),
+    ).toBe('email text NOT NULL UNIQUE');
+    expect(
+      generateProvisioningSqlForDescriptor(
+        primitives.text({ nullable: true, unique: true }),
+        'email',
+      ),
+    ).toBe('email text UNIQUE');
+    expect(
+      generateProvisioningSqlForDescriptor(
+        primitives.integer({ unique: true }),
+        'slot',
+      ),
+    ).toBe('slot integer NOT NULL UNIQUE');
+    expect(
+      generateProvisioningSqlForDescriptor(
+        primitives.ref({
+          table: userTable,
+          relation: 'user',
+          inverse: 'profile',
+          unique: true,
+        }),
+        'userId',
+      ),
+    ).toBe('userId text NOT NULL UNIQUE');
+    expect(
+      generateProvisioningSqlForDescriptor(
+        primitives.foreignKey({ abbreviation: 'ext', unique: true }),
+        'externalId',
+      ),
+    ).toBe('externalId text NOT NULL UNIQUE');
+  });
+
+  it('appends DEFAULT to provisioning SQL for defaulted scalar primitives', () => {
+    expect(
+      generateProvisioningSqlForDescriptor(
+        primitives.boolean({ defaultValue: true }),
+        'flag',
+      ),
+    ).toBe('flag integer NOT NULL DEFAULT 1');
+    expect(
+      generateProvisioningSqlForDescriptor(
+        primitives.boolean({ nullable: true, defaultValue: false }),
+        'flag',
+      ),
+    ).toBe('flag integer DEFAULT 0');
+    expect(
+      generateProvisioningSqlForDescriptor(
+        primitives.integer({ defaultValue: 5 }),
+        'count',
+      ),
+    ).toBe('count integer NOT NULL DEFAULT 5');
+    expect(
+      generateProvisioningSqlForDescriptor(
+        primitives.integer({ nullable: true, defaultValue: 5 }),
+        'count',
+      ),
+    ).toBe('count integer DEFAULT 5');
+    expect(
+      generateProvisioningSqlForDescriptor(
+        primitives.number({ defaultValue: 1.5 }),
+        'ratio',
+      ),
+    ).toBe('ratio real NOT NULL DEFAULT 1.5');
+    expect(
+      generateProvisioningSqlForDescriptor(
+        primitives.text({ defaultValue: "it's saved" }),
+        'name',
+      ),
+    ).toBe("name text NOT NULL DEFAULT 'it''s saved'");
+    expect(
+      generateProvisioningSqlForDescriptor(
+        primitives.text({ nullable: true, defaultValue: null }),
+        'name',
+      ),
+    ).toBe('name text DEFAULT NULL');
+    expect(
+      generateProvisioningSqlForDescriptor(
+        primitives.date({
+          defaultValue: new Date('2026-08-24T12:34:56.123Z'),
+        }),
+        'createdAt',
+      ),
+    ).toBe('createdAt integer NOT NULL DEFAULT 1787574896123');
+    expect(
+      generateProvisioningSqlForDescriptor(
+        primitives.enum({
+          values: ['open', 'closed'],
+          defaultValue: 'open',
+        }),
+        'status',
+      ),
+    ).toBe("status text NOT NULL DEFAULT 'open'");
+    expect(
+      generateProvisioningSqlForDescriptor(
+        nullableTinyJsonDefaultColumn,
+        'payload',
+      ),
+    ).toBe('payload text DEFAULT NULL');
+  });
+});
+
+describe('primitive type inference', () => {
+  it('infers encoded and decoded primitive types', () => {
+    const builtinsShape = {
+      pk: primitives.primaryKey({ abbreviation: 'pkg' }),
+      int: primitives.integer(),
+      defaultInt: primitives.integer({ defaultValue: 5 }),
+      maybeInt: primitives.integer({ nullable: true }),
+      defaultBool: primitives.boolean({ defaultValue: true }),
+      num: primitives.number(),
+      defaultNum: primitives.number({ defaultValue: 1.5 }),
+      maybeNum: primitives.number({ nullable: true }),
+      text: primitives.text(),
+      defaultText: primitives.text({ defaultValue: 'saved' }),
+      maybeText: primitives.text({ nullable: true }),
+      status: primitives.enum({ values: ['open', 'closed'] }),
+      defaultStatus: primitives.enum({
+        values: ['open', 'closed'],
+        defaultValue: 'open',
+      }),
+      maybeStatus: primitives.enum({
+        values: ['open', 'closed'],
+        nullable: true,
+      }),
+      createdAt: primitives.date(),
+      defaultCreatedAt: primitives.date({ defaultValue: new Date(0) }),
+      deletedAt: primitives.date({ nullable: true }),
+    };
+
+    const refShape = {
+      userId: primitives.ref({
+        table: userTable,
+        relation: 'user',
+        inverse: 'records',
+      }),
+    };
+
+    const nullableRefShape = {
+      userId: primitives.ref({
+        table: userTable,
+        relation: 'user',
+        inverse: 'records',
+        nullable: true,
+      }),
+    };
+
+    const numericRefShape = {
+      blockIndex: primitives.ref({
+        table: numericBlockTable,
+        relation: 'block',
+        inverse: 'commands',
+      }),
+    };
+
+    const nullableNumericRefShape = {
+      blockIndex: primitives.ref({
+        table: numericBlockTable,
+        relation: 'nullableBlock',
+        inverse: 'nullableCommands',
+        nullable: true,
+      }),
+    };
+
+    const foreignKeyShape = {
+      userId: primitives.foreignKey({ abbreviation: 'usr' }),
+    };
+
+    const nullableForeignKeyShape = {
+      userId: primitives.foreignKey({ nullable: true, abbreviation: 'act' }),
+    };
+
+    const primaryKeyShape = {
+      id: primitives.primaryKey({ abbreviation: 'usr' }),
+    };
+
+    const cursorShape = {
+      cursor: primitives.cursor({ abbreviation: 'cur' }),
+      maybeCursor: primitives.cursor({
+        abbreviation: 'cur',
+        nullable: true,
+      }),
+    };
+
+    const cloudRepoShape = {
+      flag: primitives.boolean(),
+      maybeJson: nullableTinyJsonColumn,
+      defaultJson: nullableTinyJsonDefaultColumn,
+      createdAt: primitives.date(),
+    };
+
+    assert<
+      Equals<
+        InferEncodedRow<typeof builtinsShape>,
+        {
+          pk: `pkg_${string}`;
+          int: number;
+          defaultInt: number;
+          maybeInt: number | null;
+          defaultBool: boolean;
+          num: number;
+          defaultNum: number;
+          maybeNum: number | null;
+          text: string;
+          defaultText: string;
+          maybeText: string | null;
+          status: 'open' | 'closed';
+          defaultStatus: 'open' | 'closed';
+          maybeStatus: 'open' | 'closed' | null;
+          createdAt: Date;
+          defaultCreatedAt: Date;
+          deletedAt: Date | null;
+        }
+      >
+    >();
+    assert<
+      Equals<
+        InferDecodedRow<typeof builtinsShape>,
+        {
+          pk: `pkg_${string}`;
+          int: number;
+          defaultInt: number;
+          maybeInt: number | null;
+          defaultBool: boolean;
+          num: number;
+          defaultNum: number;
+          maybeNum: number | null;
+          text: string;
+          defaultText: string;
+          maybeText: string | null;
+          status: 'open' | 'closed';
+          defaultStatus: 'open' | 'closed';
+          maybeStatus: 'open' | 'closed' | null;
+          createdAt: Date;
+          defaultCreatedAt: Date;
+          deletedAt: Date | null;
+        }
+      >
+    >();
+
+    assert<
+      Equals<InferEncodedRow<typeof refShape>, { userId: `usr_${string}` }>
+    >();
+    assert<
+      Equals<InferDecodedRow<typeof refShape>, { userId: `usr_${string}` }>
+    >();
+
+    assert<
+      Equals<
+        InferEncodedRow<typeof nullableRefShape>,
+        { userId: `usr_${string}` | null }
+      >
+    >();
+    assert<
+      Equals<
+        InferDecodedRow<typeof nullableRefShape>,
+        { userId: `usr_${string}` | null }
+      >
+    >();
+
+    assert<
+      Equals<InferEncodedRow<typeof numericRefShape>, { blockIndex: number }>
+    >();
+    assert<
+      Equals<InferDecodedRow<typeof numericRefShape>, { blockIndex: number }>
+    >();
+    assert<
+      Equals<
+        InferEncodedRow<typeof nullableNumericRefShape>,
+        { blockIndex: number | null }
+      >
+    >();
+    assert<
+      Equals<
+        InferDecodedRow<typeof nullableNumericRefShape>,
+        { blockIndex: number | null }
+      >
+    >();
+
+    assert<
+      Equals<
+        InferEncodedRow<typeof foreignKeyShape>,
+        { userId: `usr_${string}` }
+      >
+    >();
+    assert<
+      Equals<
+        InferDecodedRow<typeof foreignKeyShape>,
+        { userId: `usr_${string}` }
+      >
+    >();
+
+    assert<
+      Equals<
+        InferEncodedRow<typeof nullableForeignKeyShape>,
+        { userId: `act_${string}` | null }
+      >
+    >();
+    assert<
+      Equals<
+        InferDecodedRow<typeof nullableForeignKeyShape>,
+        { userId: `act_${string}` | null }
+      >
+    >();
+
+    assert<
+      Equals<InferEncodedRow<typeof primaryKeyShape>, { id: `usr_${string}` }>
+    >();
+    assert<
+      Equals<InferDecodedRow<typeof primaryKeyShape>, { id: `usr_${string}` }>
+    >();
+
+    assert<
+      Equals<
+        InferEncodedRow<typeof cursorShape>,
+        {
+          cursor: `cur_${string}`;
+          maybeCursor: `cur_${string}` | null;
+        }
+      >
+    >();
+    assert<
+      Equals<
+        InferDecodedRow<typeof cursorShape>,
+        {
+          cursor: `cur_${string}`;
+          maybeCursor: `cur_${string}` | null;
+        }
+      >
+    >();
+
+    assert<
+      Equals<
+        InferEncodedRow<typeof cloudRepoShape>,
+        {
+          flag: boolean;
+          maybeJson: string | null;
+          defaultJson: string | null;
+          createdAt: Date;
+        }
+      >
+    >();
+    assert<
+      Equals<
+        InferDecodedRow<typeof cloudRepoShape>,
+        {
+          flag: boolean;
+          maybeJson: { x: string } | null;
+          defaultJson: { x: string } | null;
+          createdAt: Date;
+        }
+      >
+    >();
+  });
+});

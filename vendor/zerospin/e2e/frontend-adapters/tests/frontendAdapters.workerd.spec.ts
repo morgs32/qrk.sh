@@ -1,7 +1,6 @@
 import { describe, it } from '@effect/vitest';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { makeAsync } from '@zerospin/core/async/makeAsync';
-import { makeAuthenticationLock } from '@zerospin/core/authentication/makeAuthenticationLock';
 import { encodePayload } from '@zerospin/core/contracts/encodePayload';
 import { makeFrontendControllerSpec } from '@zerospin/core/frontendController/makeFrontendControllerSpec';
 import { makeCommand } from '@zerospin/core/makeCommand';
@@ -18,7 +17,7 @@ import { expect } from 'vitest';
 
 import { SourceItem } from '../src/domain';
 import { projection } from '../src/projection';
-import { authenticationSignature, system } from '../src/system';
+import { system } from '../src/system';
 
 const E2E_AGGREGATE_ID = makeAggregateId({ id: '1' });
 const E2E_CLERK_USER_ID = 'uid_frontend_adapters_workerd_user';
@@ -96,25 +95,28 @@ describe('frontendAdapters: static aggregate finalization', () => {
           );
           expect(finalized.aggregateIndex).toBe(1);
 
-          const authenticationLock = makeAuthenticationLock(
-            authenticationSignature,
-          );
           const frontendResults = yield* makeAsync(async () => {
-            using frontendApi = await gatewayApi.getAggregateFrontendApi({
-              aggregateVersion: '1.0.0',
-              publishableKey: 'pk_test',
-              systemName: system.name,
-              authenticationLock,
-              signature: { clerkUserId: E2E_CLERK_USER_ID },
-              aggregateId: E2E_AGGREGATE_ID,
-              aggregateName: projection.aggregateName,
-              frontendName: projection.name,
-              aggregateFrontendLock,
-            });
+            using frontendApi = await gatewayApi
+              .aggregate({
+                publishableKey: 'pk_test',
+                systemName: system.name,
+                name: projection.aggregateName,
+                version: '1.0.0',
+              })
+              .authenticate({
+                signature: {
+                  clerkUserId: E2E_CLERK_USER_ID,
+                  aggregateId: E2E_AGGREGATE_ID,
+                },
+              })
+              .authorize({
+                frontendName: projection.name,
+                aggregateFrontendLock,
+              });
             return {
-              state: await frontendApi.getState({
+              snapshot: await frontendApi.getSnapshot({
                 traceContext: null,
-                args: [{ outstandingCommandIds: [] }],
+                args: [{ pendingCommandIds: [] }],
               }),
               ticket: await frontendApi.createWebSocketTicket({
                 traceContext: null,
@@ -123,10 +125,13 @@ describe('frontendAdapters: static aggregate finalization', () => {
             };
           });
 
-          const state = yield* decodeRpc(frontendResults.state.result);
-          expect(state).toMatchObject({
+          const snapshot = yield* decodeRpc(frontendResults.snapshot.result);
+          expect(snapshot).toMatchObject({
             aggregateId: E2E_AGGREGATE_ID,
-            userId: E2E_CLERK_USER_ID,
+            authentication: {
+              clerkUserId: E2E_CLERK_USER_ID,
+              aggregateId: E2E_AGGREGATE_ID,
+            },
           });
 
           const ticket = yield* decodeRpc(frontendResults.ticket.result);

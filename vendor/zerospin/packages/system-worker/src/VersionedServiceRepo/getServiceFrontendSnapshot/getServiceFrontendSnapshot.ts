@@ -30,7 +30,7 @@ export const getServiceFrontendSnapshot = Effect.fn(
   frontendName: string;
   db: IDb;
 }) {
-  const { db, frontendName, serviceName } = props;
+  const { db, serviceName } = props;
 
   // 1 — read system.services by serviceName
   const latestService = yield* getByKeyOrThrow({

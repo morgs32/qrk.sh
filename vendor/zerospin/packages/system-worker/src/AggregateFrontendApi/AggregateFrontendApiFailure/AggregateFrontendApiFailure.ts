@@ -6,9 +6,8 @@ import type { AggregateFrontendApi } from '../AggregateFrontendApi.js';
 
 import { createWebSocketTicket } from './createWebSocketTicket/createWebSocketTicket.js';
 import { executeServiceQuery } from './executeServiceQuery/executeServiceQuery.js';
-import { getFinalizedCommands } from './getFinalizedCommands/getFinalizedCommands.js';
-import { getState } from './getState/getState.js';
-import { pushCommand } from './pushCommand/pushCommand.js';
+import { getSelectedCommands } from './getSelectedCommands/getSelectedCommands.js';
+import { getSnapshot } from './getSnapshot/getSnapshot.js';
 
 export class AggregateFrontendApiFailure extends RpcTarget {
   /*
@@ -22,15 +21,15 @@ export class AggregateFrontendApiFailure extends RpcTarget {
   }
 
   /*
-   * AggregateFrontendApiFailure.getState answers a rejected capability with its retained admission error.
+   * AggregateFrontendApiFailure.getSnapshot answers a rejected capability with its retained admission error.
    *
    * 1. Run the bound domain operation.
    */
-  async getState(
-    request: Parameters<AggregateFrontendApi['getState']>[0],
-  ): ReturnType<AggregateFrontendApi['getState']> {
-    // 1 — run getState with the retained admission error
-    return Effect.runPromise(getState({ request, error: this.error }));
+  async getSnapshot(
+    request: Parameters<AggregateFrontendApi['getSnapshot']>[0],
+  ): ReturnType<AggregateFrontendApi['getSnapshot']> {
+    // 1 — run getSnapshot with the retained admission error
+    return Effect.runPromise(getSnapshot({ request, error: this.error }));
   }
 
   /*
@@ -48,28 +47,16 @@ export class AggregateFrontendApiFailure extends RpcTarget {
   }
 
   /*
-   * AggregateFrontendApiFailure.pushCommand answers a rejected capability with its retained admission error.
+   * AggregateFrontendApiFailure.getSelectedCommands answers a rejected capability with its retained admission error.
    *
    * 1. Run the bound domain operation.
    */
-  async pushCommand(
-    request: Parameters<AggregateFrontendApi['pushCommand']>[0],
-  ): ReturnType<AggregateFrontendApi['pushCommand']> {
-    // 1 — run pushCommand with the retained admission error
-    return Effect.runPromise(pushCommand({ request, error: this.error }));
-  }
-
-  /*
-   * AggregateFrontendApiFailure.getFinalizedCommands answers a rejected capability with its retained admission error.
-   *
-   * 1. Run the bound domain operation.
-   */
-  async getFinalizedCommands(
-    request: Parameters<AggregateFrontendApi['getFinalizedCommands']>[0],
-  ): ReturnType<AggregateFrontendApi['getFinalizedCommands']> {
-    // 1 — run getFinalizedCommands with the retained admission error
+  async getSelectedCommands(
+    request: Parameters<AggregateFrontendApi['getSelectedCommands']>[0],
+  ): ReturnType<AggregateFrontendApi['getSelectedCommands']> {
+    // 1 — run getSelectedCommands with the retained admission error
     return Effect.runPromise(
-      getFinalizedCommands({ request, error: this.error }),
+      getSelectedCommands({ request, error: this.error }),
     );
   }
 

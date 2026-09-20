@@ -5,12 +5,12 @@ import type {
   InferFrontendModels,
 } from '../frontendController/types.ts';
 
-import type { IInitializedSessionState, ISession } from './types.ts';
+import type { IAggregateSession, IInitializedSessionState } from './types.ts';
 
 export function getInitializedStateOrThrow<
   FRONTEND extends IAggregateFrontendController,
 >(props: {
-  session: ISession<FRONTEND>;
+  session: IAggregateSession<FRONTEND>;
 }): IInitializedSessionState<InferFrontendModels<FRONTEND>> {
   const { session } = props;
   const state = session.store.getState();

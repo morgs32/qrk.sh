@@ -1,11 +1,12 @@
 export { makeAggregateFrontend } from './makeAggregateFrontend/makeAggregateFrontend.js';
 export { makeServiceFrontend } from './makeServiceFrontend/makeServiceFrontend.js';
 export { makeRuntime } from './makeRuntime/makeRuntime.js';
-export { makeBackup } from './makeBackup/makeBackup.js';
 export { makeSession } from './makeSession/makeSession.js';
 export { makeMockSession } from './makeMockSession/makeMockSession.js';
+export { makeStandaloneSession } from './makeStandaloneSession/makeStandaloneSession.js';
 export { useInitializeSession } from './useInitializeSession/useInitializeSession.js';
 export { useInitializeMockSession } from './useInitializeMockSession/useInitializeMockSession.js';
+export { useInitializeStandaloneSession } from './useInitializeStandaloneSession/useInitializeStandaloneSession.js';
 export { useLiveQuery } from './useLiveQuery.js';
 export { loadDevtools } from './loadDevtools/loadDevtools.js';
 export { stageCommand } from '@zerospin/core/session/stageCommand';

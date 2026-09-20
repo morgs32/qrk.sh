@@ -11,7 +11,6 @@ import {
 } from './makeServiceFrontendBackupKey.ts';
 
 const aggregate = {
-  systemId: 'sys_one',
   authenticationHash: 'c'.repeat(64),
   aggregateId: 'acct_one',
   aggregateName: 'account',
@@ -20,7 +19,6 @@ const aggregate = {
   aggregateFrontendLockKey: 'a'.repeat(64),
 } satisfies IAggregateFrontendBackupIdentity;
 const service = {
-  systemId: 'sys_one',
   authenticationHash: 'c'.repeat(64),
   serviceName: 'catalog',
   serviceVersion: '1.0.0',
@@ -31,17 +29,16 @@ const service = {
 describe('exact frontend backup routes', () => {
   it('retains readable identities and the complete canonical lock digest', () => {
     expect(Effect.runSync(makeAggregateFrontendBackupKey(aggregate))).toBe(
-      `/zerospin/sys_one/${'c'.repeat(64)}/aggregate/account/1.0.0/acct_one/web/${'a'.repeat(64)}/backup.sqlite3`,
+      `/zerospin/${'c'.repeat(64)}/aggregate/account/1.0.0/acct_one/web/${'a'.repeat(64)}/backup.sqlite3`,
     );
     expect(Effect.runSync(makeServiceFrontendBackupKey(service))).toBe(
-      `/zerospin/sys_one/${'c'.repeat(64)}/service/catalog/1.0.0/web/${'b'.repeat(64)}/backup.sqlite3`,
+      `/zerospin/${'c'.repeat(64)}/service/catalog/1.0.0/web/${'b'.repeat(64)}/backup.sqlite3`,
     );
   });
 
   it('isolates every aggregate tuple field', () => {
     const identities: IAggregateFrontendBackupIdentity[] = [
       aggregate,
-      { ...aggregate, systemId: 'sys_two' },
       { ...aggregate, authenticationHash: 'd'.repeat(64) },
       { ...aggregate, aggregateId: 'acct_two' },
       { ...aggregate, aggregateName: 'account-two' },
@@ -61,7 +58,6 @@ describe('exact frontend backup routes', () => {
   it('isolates every service tuple field', () => {
     const identities: IServiceFrontendBackupIdentity[] = [
       service,
-      { ...service, systemId: 'sys_two' },
       { ...service, authenticationHash: 'd'.repeat(64) },
       { ...service, serviceName: 'inventory' },
       { ...service, serviceVersion: '2.0.0' },
@@ -100,7 +96,7 @@ describe('exact frontend backup routes', () => {
     expect(new Set(keys).size).toBe(values.length);
     for (const [index, key] of keys.entries()) {
       expect(new URL(key, 'file:///').pathname).toBe(key);
-      expect(decodeURIComponent(key.split('/')[8]!)).toBe(values[index]);
+      expect(decodeURIComponent(key.split('/')[7]!)).toBe(values[index]);
     }
     const serviceKeys = values.map(userId =>
       Effect.runSync(
@@ -110,7 +106,7 @@ describe('exact frontend backup routes', () => {
     expect(new Set(serviceKeys).size).toBe(values.length);
     for (const [index, key] of serviceKeys.entries()) {
       expect(new URL(key, 'file:///').pathname).toBe(key);
-      expect(decodeURIComponent(key.split('/')[7]!)).toBe(values[index]);
+      expect(decodeURIComponent(key.split('/')[6]!)).toBe(values[index]);
     }
   });
 

@@ -2,7 +2,7 @@ import { makeDbConfig } from '@zerospin/core/drizzle/makeDbConfig';
 import type { IDb, IResourceDbConfig, ITx } from '@zerospin/core/drizzle/types';
 import { EncodedResourceSchema } from '@zerospin/core/models/EncodedResourceSchema';
 import type { IAnyModels } from '@zerospin/core/models/types';
-import { AggregateFrontendFinalizedCommandSchema } from '@zerospin/core/session/AggregateFrontendCommandSchema';
+import { AggregateSelectedCommandSchema } from '@zerospin/core/session/AggregateSelectedCommandSchema';
 import { makeTable, primitives } from '@zerospin/schema';
 import { Context, Schema } from 'effect';
 
@@ -13,6 +13,7 @@ export const selectionVersionedAggregateRepoTables = {
       id: primitives.integer({ primaryKey: true }),
       aggregateIndex: primitives.integer(),
       selectionIndex: primitives.integer(),
+      selectionHash: primitives.text(),
       aggregateVersion: primitives.text(),
       canonicalBytes: primitives.text(),
       graph: primitives.json({ schema: Schema.Array(EncodedResourceSchema) }),
@@ -25,13 +26,17 @@ export const selectionVersionedAggregateRepoTables = {
       lastIndex: primitives.integer(),
     },
   }),
-  deltas: makeTable({
-    name: 'deltas',
+  selectedCommands: makeTable({
+    name: 'selectedCommands',
     shape: {
       outboxIndex: primitives.integer({ primaryKey: true }),
       output: primitives.json({
-        schema: AggregateFrontendFinalizedCommandSchema,
+        schema: AggregateSelectedCommandSchema,
       }),
+      authentication: primitives.json({
+        schema: Schema.NullOr(Schema.Record(Schema.String, Schema.Unknown)),
+      }),
+      frontendName: primitives.text({ nullable: true }),
       deliveredAt: primitives.date({ nullable: true }),
       lastDeliveryFailure: primitives.text({ nullable: true }),
     },

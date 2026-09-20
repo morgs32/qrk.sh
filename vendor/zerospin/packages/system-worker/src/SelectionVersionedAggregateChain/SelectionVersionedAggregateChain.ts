@@ -2,7 +2,7 @@ import { RoutePattern } from '@remix-run/route-pattern';
 import { createHref } from '@remix-run/route-pattern/href';
 import { createMatcher } from '@remix-run/route-pattern/match';
 import type { AggregateFrontendLockSchema } from '@zerospin/core/frontendController/makeAggregateFrontendLock';
-import type { IAggregateFrontendFinalizedCommand } from '@zerospin/core/session/types';
+import type { IAggregateSelectedCommand } from '@zerospin/core/session/types';
 import { encodeRpc } from '@zerospin/core/utils/encodeRpc';
 import {
   mapParseError,
@@ -26,10 +26,10 @@ import { makeOutboxSubscriber } from '../makeOutboxSubscriber/makeOutboxSubscrib
 import { managedRuntime } from '../managedRuntime.js';
 import { systemWorkerAbbreviations } from '../systemWorkerAbbreviations.js';
 
-import { getCommands } from './getCommands/getCommands.js';
+import { getSelectedCommands } from './getSelectedCommands/getSelectedCommands.js';
 import { onConnect } from './onConnect/onConnect.js';
 import { onMessage } from './onMessage/onMessage.js';
-import { receiveDeltas } from './receiveDeltas/receiveDeltas.js';
+import { receiveSelectedCommands } from './receiveSelectedCommands/receiveSelectedCommands.js';
 import { selectionVersionedAggregateChainDbConfig } from './selectionVersionedAggregateChainDbConfig.js';
 
 const selectionVersionedAggregateChainFixedDORepoConfig = makeFixedDORepoConfig(
@@ -106,16 +106,16 @@ export class SelectionVersionedAggregateChain extends makeFixedDORepo({
   static override readonly fixedDORepoConfig =
     selectionVersionedAggregateChainFixedDORepoConfig;
 
-  readonly #deltasSubscriber = makeOutboxSubscriber({
-    name: 'deltas',
-    receive: (rows: Parameters<typeof receiveDeltas>[0]['rows']) =>
-      receiveDeltas({
+  readonly #selectedCommandsSubscriber = makeOutboxSubscriber({
+    name: 'selectedCommands',
+    receive: (rows: Parameters<typeof receiveSelectedCommands>[0]['rows']) =>
+      receiveSelectedCommands({
         rows,
         db: this.db,
-        key: this.key,
-        broadcast: command => {
+        broadcast: ({ command, authentication, frontendName }) => {
           for (const connection of this.getConnections<{
             phase: 'awaiting-resume' | 'replaying' | 'live';
+            admissionCommandId?: string | null;
             aggregateId: string;
             aggregateName: string;
             aggregateVersion: string;
@@ -135,18 +135,11 @@ export class SelectionVersionedAggregateChain extends makeFixedDORepo({
             try {
               connection.send(
                 JSON.stringify({
-                  type: 'aggregateFrontendCommand',
-                  sync: {
+                  type: 'aggregateSelectedCommand',
+                  command: {
                     ...command,
                     delta: {
-                      ...command.delta,
-                      inserted: command.delta.inserted.filter(resource =>
-                        Object.hasOwn(
-                          state.aggregateFrontendLock.models,
-                          resource.modelName,
-                        ),
-                      ),
-                      updated: command.delta.updated.filter(resource =>
+                      upserted: command.delta.upserted.filter(resource =>
                         Object.hasOwn(
                           state.aggregateFrontendLock.models,
                           resource.modelName,
@@ -158,21 +151,11 @@ export class SelectionVersionedAggregateChain extends makeFixedDORepo({
                           resource.modelName,
                         ),
                       ),
-                      mutations: command.delta.mutations.filter(mutation =>
-                        Object.hasOwn(
-                          state.aggregateFrontendLock.models,
-                          mutation.modelName,
-                        ),
-                      ),
                     },
-                    resolution:
-                      isEqual(
-                        command.resolution?.command.authentication,
-                        state.authentication,
-                      ) &&
-                      command.resolution?.command.frontendName ===
-                        state.frontendName
-                        ? command.resolution
+                    failure:
+                      isEqual(authentication, state.authentication) &&
+                      frontendName === state.frontendName
+                        ? command.failure
                         : null,
                   },
                 }),
@@ -185,13 +168,13 @@ export class SelectionVersionedAggregateChain extends makeFixedDORepo({
       }),
   });
   /*
-   * Exposes the already bound deltasSubscriber capability from SelectionVersionedAggregateChain.
+   * Exposes the already bound selectedCommandsSubscriber capability from SelectionVersionedAggregateChain.
    *
    * 1. Return the bound capability.
    */
-  get deltasSubscriber() {
+  get selectedCommandsSubscriber() {
     // 1 — reuse the existing private queue/subscriber instance
-    return this.#deltasSubscriber;
+    return this.#selectedCommandsSubscriber;
   }
 
   /*
@@ -201,20 +184,20 @@ export class SelectionVersionedAggregateChain extends makeFixedDORepo({
    *
    * 1. Run the bound domain operation.
    */
-  async getCommands(
-    props: Omit<Parameters<typeof getCommands>[0], 'db'>,
+  async getSelectedCommands(
+    props: Omit<Parameters<typeof getSelectedCommands>[0], 'db'>,
   ): Promise<
     IEncodedResult<
       Readonly<{
-        commands: readonly IAggregateFrontendFinalizedCommand[];
+        commands: readonly IAggregateSelectedCommand[];
         tip: number;
       }>,
       IAnyErrorJson
     >
   > {
-    // 1 — run getCommands with the instance-bound dependencies and encode its RPC outcome
+    // 1 — run getSelectedCommands with the instance-bound dependencies and encode its RPC outcome
     return managedRuntime.runPromise(
-      getCommands({
+      getSelectedCommands({
         ...props,
         db: this.db,
       }).pipe(encodeRpc),
@@ -231,6 +214,7 @@ export class SelectionVersionedAggregateChain extends makeFixedDORepo({
   async onConnect(
     connection: Connection<{
       phase: 'awaiting-resume' | 'replaying' | 'live';
+      admissionCommandId?: string | null;
       aggregateId: string;
       aggregateName: string;
       aggregateVersion: string;
@@ -250,7 +234,9 @@ export class SelectionVersionedAggregateChain extends makeFixedDORepo({
   }
 
   /*
-   * The aggregate frontend log handles the one initial resume message by
+   * The aggregate frontend log admits unchanged commands only on its validated live
+   * socket and returns linked admission receipts alongside selected delivery.
+   * It handles the one initial resume message by
    * replaying its retained suffix before marking the connection live. Invalid
    * state or an unavailable cursor requests a fresh snapshot and closes the socket.
    *
@@ -259,6 +245,7 @@ export class SelectionVersionedAggregateChain extends makeFixedDORepo({
   async onMessage(
     connection: Connection<{
       phase: 'awaiting-resume' | 'replaying' | 'live';
+      admissionCommandId?: string | null;
       aggregateId: string;
       aggregateName: string;
       aggregateVersion: string;

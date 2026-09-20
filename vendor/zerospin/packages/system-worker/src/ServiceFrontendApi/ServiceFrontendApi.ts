@@ -1,8 +1,7 @@
-import type { IEncodedCommand } from '@zerospin/core/contracts/types';
 import type { ServiceFrontendLockSchema } from '@zerospin/core/frontendController/makeServiceFrontendLock';
 import type {
-  IServiceFrontendFinalizedCommand,
-  IServiceFrontendState,
+  IServiceFrontendSnapshot,
+  IServiceSelectedCommand,
 } from '@zerospin/core/serviceSession/types';
 import type { ISystemId } from '@zerospin/core/system/types';
 import type { IAnyErrorJson } from '@zerospin/error';
@@ -13,8 +12,8 @@ import type { Schema } from 'effect';
 import type { ISystemRuntime } from '../makeSystemRuntime.js';
 
 import { createWebSocketTicket } from './createWebSocketTicket/createWebSocketTicket.js';
-import { getFinalizedCommands } from './getFinalizedCommands/getFinalizedCommands.js';
-import { getState } from './getState/getState.js';
+import { getSelectedCommands } from './getSelectedCommands/getSelectedCommands.js';
+import { getSnapshot } from './getSnapshot/getSnapshot.js';
 
 export class ServiceFrontendApi extends RpcTarget {
   readonly #authResults: {
@@ -59,16 +58,16 @@ export class ServiceFrontendApi extends RpcTarget {
   /*
    * The service frontend capability requests its snapshot from
    * FrontendVersionedServiceRepo and adapts resources to the exact
-   * frontend selection. The materializer owns catch-up and frontend state.
+   * frontend selection. The materializer owns catch-up and the snapshot.
    *
    * 1. Run the bound domain operation.
    */
-  async getState(
+  async getSnapshot(
     request: IRpcRequest<[]>,
-  ): Promise<ILinkedRpcEnvelope<IServiceFrontendState, IAnyErrorJson>> {
-    // 1 — run getState with the instance-bound dependencies
+  ): Promise<ILinkedRpcEnvelope<IServiceFrontendSnapshot, IAnyErrorJson>> {
+    // 1 — run getSnapshot with the instance-bound dependencies
     return this.#runtime.runPromise(
-      getState({ request, authResults: this.#authResults }),
+      getSnapshot({ request, authResults: this.#authResults }),
     );
   }
 
@@ -79,22 +78,22 @@ export class ServiceFrontendApi extends RpcTarget {
    *
    * 1. Run the bound domain operation.
    */
-  async getFinalizedCommands(
+  async getSelectedCommands(
     request: IRpcRequest<
       [{ afterServiceIndex: number; serviceVersion: string }]
     >,
   ): Promise<
     ILinkedRpcEnvelope<
       Readonly<{
-        commands: readonly IEncodedCommand<IServiceFrontendFinalizedCommand>[];
+        commands: readonly IServiceSelectedCommand[];
         tip: number;
       }>,
       IAnyErrorJson
     >
   > {
-    // 1 — run getFinalizedCommands with the instance-bound dependencies
+    // 1 — run getSelectedCommands with the instance-bound dependencies
     return this.#runtime.runPromise(
-      getFinalizedCommands({ request, authResults: this.#authResults }),
+      getSelectedCommands({ request, authResults: this.#authResults }),
     );
   }
 

@@ -20,7 +20,7 @@ import { VersionedServiceChain } from '../VersionedServiceChain/VersionedService
 import { catchup } from './catchup/catchup.js';
 import { execute } from './execute/execute.js';
 import { getProjectionReadiness } from './getProjectionReadiness/getProjectionReadiness.js';
-import { getState } from './getState/getState.js';
+import { getSnapshot } from './getSnapshot/getSnapshot.js';
 import { onDOActivation } from './onDOActivation/onDOActivation.js';
 import { selectionVersionedAggregateRepoDbConfig } from './selectionVersionedAggregateRepoDbConfig.js';
 import { selectionVersionedAggregateRepoFixedDORepoConfig } from './selectionVersionedAggregateRepoFixedDORepoConfig.js';
@@ -39,10 +39,11 @@ export class SelectionVersionedAggregateRepo extends makeFixedDORepo({
   }
 
   readonly #execution = Semaphore.makeUnsafe(1);
-  readonly #deltas = makeOutboxQueue({
-    name: 'deltas',
+  readonly #selectedCommands = makeOutboxQueue({
+    name: 'selectedCommands',
     db: this.db,
-    outboxTable: selectionVersionedAggregateRepoDbConfig.schema.deltas,
+    outboxTable:
+      selectionVersionedAggregateRepoDbConfig.schema.selectedCommands,
     alarmRegistry: this.alarmRegistry,
     retention: 'delete',
     deliver: rows =>
@@ -50,23 +51,25 @@ export class SelectionVersionedAggregateRepo extends makeFixedDORepo({
         const chain = yield* SelectionVersionedAggregateChain.getRepo({
           key: this.key,
         });
-        const receiver = yield* makeAsync(() => chain.deltasSubscriber);
+        const receiver = yield* makeAsync(
+          () => chain.selectedCommandsSubscriber,
+        );
         yield* makeAsync(() => receiver.receive(rows)).pipe(
           Effect.flatMap(decodeRpc),
         );
       }),
   });
   /*
-   * Exposes the already bound deltas capability from SelectionVersionedAggregateRepo.
+   * Exposes the already bound selectedCommands capability.
    *
    * 1. Return the bound capability.
    */
-  get deltas() {
+  get selectedCommands() {
     // 1 — reuse the existing private queue/subscriber instance
-    return this.#deltas;
+    return this.#selectedCommands;
   }
   /*
-   * Bind finalized aggregate delivery and catch-up to the durable projection cursor.
+   * Bind selected aggregate delivery and catch-up to the durable projection cursor.
    * Every receive holds the output lease before committing local replay.
    */
   replicaFanoutQueueSubscriber(
@@ -114,7 +117,7 @@ export class SelectionVersionedAggregateRepo extends makeFixedDORepo({
         Effect.gen({ self: this }, function* () {
           yield* this.#execution.withPermits(1)(
             Effect.gen({ self: this }, function* () {
-              yield* this.alarmRegistry.hold('deltas');
+              yield* this.alarmRegistry.hold('selectedCommands');
               yield* execute({
                 rows: delivery.rows,
                 db: this.db,
@@ -124,7 +127,9 @@ export class SelectionVersionedAggregateRepo extends makeFixedDORepo({
           );
           this.ctx.waitUntil(
             managedRuntime
-              .runPromise(this.#deltas.drain().pipe(Effect.provide(AsyncLive)))
+              .runPromise(
+                this.#selectedCommands.drain().pipe(Effect.provide(AsyncLive)),
+              )
               .catch(() => undefined),
           );
         }),
@@ -204,7 +209,7 @@ export class SelectionVersionedAggregateRepo extends makeFixedDORepo({
         Effect.gen({ self: this }, function* () {
           yield* this.#execution.withPermits(1)(
             Effect.gen({ self: this }, function* () {
-              yield* this.alarmRegistry.hold('deltas');
+              yield* this.alarmRegistry.hold('selectedCommands');
               yield* execute({
                 rows: delivery.rows,
                 db: this.db,
@@ -215,7 +220,9 @@ export class SelectionVersionedAggregateRepo extends makeFixedDORepo({
           );
           this.ctx.waitUntil(
             managedRuntime
-              .runPromise(this.#deltas.drain().pipe(Effect.provide(AsyncLive)))
+              .runPromise(
+                this.#selectedCommands.drain().pipe(Effect.provide(AsyncLive)),
+              )
               .catch(() => undefined),
           );
         }),
@@ -244,10 +251,10 @@ export class SelectionVersionedAggregateRepo extends makeFixedDORepo({
    *
    * 1. Run the bound domain operation.
    */
-  async getState(props: Parameters<typeof getState>[0]['requested']) {
-    // 1 — run getState with the instance-bound dependencies and encode its RPC outcome
+  async getSnapshot(props: Parameters<typeof getSnapshot>[0]['requested']) {
+    // 1 — run getSnapshot with the instance-bound dependencies and encode its RPC outcome
     return managedRuntime.runPromise(
-      getState({
+      getSnapshot({
         db: this.db,
         key: this.key,
         requested: props,
@@ -255,7 +262,7 @@ export class SelectionVersionedAggregateRepo extends makeFixedDORepo({
         serviceSubscriber:
           this.aggregateReplicaFanoutQueueSubscriber.bind(this),
         execution: this.#execution,
-        deltas: this.#deltas,
+        selectedCommands: this.#selectedCommands,
       }).pipe(Effect.provide(AsyncLive), encodeRpc),
     );
   }

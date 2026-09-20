@@ -1,15 +1,15 @@
 ---
 title: Main-Thread Frontend Session Bootstrap and Recovery
-updated: 2026-09-19
+updated: 2026-09-20
 ---
 
 # Main-Thread Frontend Session Bootstrap and Recovery
 
 Each selected frontend keeps one synchronous in-memory SQLite replica and one
 mounted session/store. A scoped ownership period owns its revocable backup
-capability, recovery loop, finalized-command WebSocket, and aggregate push lane.
-The page shares one stable IndexedDB backup-worker connection across these
-independent frontends. A real reacquisition restores committed persistence and
+capability, recovery loop, selected-command WebSocket, and aggregate push lane on that same live socket.
+The application runtime shares one stable IndexedDB backup-worker connection
+across these independent frontends. A real reacquisition restores committed persistence and
 renews execution identity without replacing the mounted session.
 
 A validated authentication locator selects existing local persistence before
@@ -22,19 +22,21 @@ online initialization path used when no valid baseline can be reused.
 
 ## Trigger
 
-1. `makeRuntime({ layer })` owns the shared application runtime. Eager
-   `makeBackup()` owns the page backup connection. Unbound
+1. `makeRuntime({ layer })` owns the shared application runtime and its
+   `BrowserBackup` Layer. The first live or standalone session claim lazily
+   acquires the SharedWorker connection in that runtime's scope.
+   Unbound
    `makeAggregateFrontend(props)` and `makeServiceFrontend(props)` construct
    authored frontend definitions without Providers. `makeSession({ frontend,
-   runtime, layer?, backup, systemName })` creates a stable session
+   runtime, layer?, systemName })` creates a stable session
    synchronously; `session.initialize` / `useInitializeSession` acquire
    resources and gate children. Concurrent sessions share runtime and backup;
-   each session owns its local layer and bootstrap. Aggregate authentication
-   supplies the aggregate ID.
+   each session owns its scoped backup-key claim, local layer, and bootstrap.
+   Aggregate authentication supplies the aggregate ID.
    - [`makeAggregateFrontend.ts`](../../../packages/react/src/makeAggregateFrontend/makeAggregateFrontend.ts) — validates and constructs the aggregate frontend directly, retaining exact contract/model definitions and its selected version.
    - [`makeServiceFrontend.ts`](../../../packages/react/src/makeServiceFrontend/makeServiceFrontend.ts) — validates and constructs the service frontend directly, retaining authoritative models and its selected version.
-   - [`makeRuntime.ts`](../../../packages/react/src/makeRuntime/makeRuntime.ts) — owns the caller-shared ManagedRuntime without system or backup binding.
-   - [`makeBackup.ts`](../../../packages/react/src/makeBackup/makeBackup.ts) — eagerly acquires the shared SharedWorker connection with caller-owned disposal.
+   - [`makeRuntime.ts`](../../../packages/react/src/makeRuntime/makeRuntime.ts) — owns the caller-shared ManagedRuntime and installs its browser-backup Layer without a system binding.
+   - [`BrowserBackup.ts`](../../../packages/react/src/BrowserBackup/BrowserBackup.ts) — caches lazy SharedWorker acquisition in the runtime scope and releases each key claim with its session scope.
    - [`makeSession.ts`](../../../packages/react/src/makeSession/makeSession.ts) — constructs the session store synchronously and initializes bootstrap under explicit ownership.
 2. Visible startup, focus, and visible page restoration request ownership.
    Hiding an already current frontend retains ownership; hiding during startup
@@ -57,20 +59,22 @@ sequenceDiagram
   autonumber 3
   Browser->>Browser: db.$client.sqlite3.backup(...)
   autonumber 4
-  Browser->>AggregateFrontendApi: frontendApi.getState(...)
+  Browser->>AggregateFrontendApi: frontendApi.getSnapshot({ pendingCommandIds })
   autonumber 5
   Browser->>AggregateFrontendApi: frontendApi.createWebSocketTicket(...)
   autonumber 6
-  Browser->>SelectionVersionedAggregateChain: socket.send(...)
+  Browser->>SelectionVersionedAggregateChain: socket.send({ selectionIndex, selectionHash })
   autonumber 7
-  SelectionVersionedAggregateChain-->>Browser: outputs and replay-complete
+  SelectionVersionedAggregateChain-->>Browser: aggregateSelectedCommand / replay-complete
   autonumber 8
-  Browser->>Browser: install snapshot resources and surviving optimism
+  Browser->>Browser: applyAggregateFrontendSnapshot(...)
   autonumber 9
-  Browser->>BackupDbApi: backupDb.overwriteDb(...)
+  Browser->>Browser: applyAggregateSelectedCommand(bufferedSelectedCommands)
   autonumber 10
-  Browser->>Browser: session.store.setState(...)
+  Browser->>BackupDbApi: backupDb.overwriteDb(...)
   autonumber 11
+  Browser->>Browser: session.store.setState(...)
+  autonumber 12
   Browser->>BackupDbApi: backupDb.applyStatements(...)
 ```
 
@@ -78,7 +82,7 @@ sequenceDiagram
 
 1. The exact backup key is independent of execution ID and app build. The
    worker returns current-owner reuse without triggering a restore.
-   - [`makeAggregateFrontendBackupKey.ts`](../../../packages/frontend/src/makeAggregateFrontendBackupKey.ts) — generates the aggregate route from system/user identity, caller-selected aggregate ID, authored names, and the full frontend lock hash.
+   - [`makeAggregateFrontendBackupKey.ts`](../../../packages/frontend/src/makeAggregateFrontendBackupKey.ts) — generates the aggregate route from the authentication hash, caller-selected aggregate ID, authored aggregate/version/frontend names, and the full frontend lock hash; `systemId` is not part of the browser backup identity.
    - [`acquireDb.ts`](../../../packages/backup-worker/src/BackupWorkerApi/acquireDb/acquireDb.ts) — distinguishes repeated current ownership from a new capability grant.
 2. A new owner receives committed backup contents after the previous target is
    revoked and any in-flight SQLite work settles.
@@ -94,30 +98,39 @@ sequenceDiagram
    - [`frontendPrograms.node.spec.ts`](../../../packages/frontend/src/frontendPrograms.node.spec.ts) — verifies aggregate and service socket-open failures remain connection failures when no reusable backup exists.
 4. Online aggregate recovery fetches a consistently captured, durably published
    snapshot containing both `aggregateIndex` and `selectionIndex`.
-   - [`fetchAggregateFrontendState.ts`](../../../packages/frontend/src/fetchAggregateFrontendState.ts) — fetches current published state through a freshly authenticated frontend capability.
-   - [`getState.ts`](../../../packages/system-worker/src/SelectionVersionedAggregateRepo/getState/getState.ts) — captures both indices and awaits publication through the captured frontend position.
+   The request supplies `pendingCommandIds` from locally restored commands that
+   still own optimistic mutation rows.
+   - [`fetchAggregateFrontendSnapshot.ts`](../../../packages/frontend/src/fetchAggregateFrontendSnapshot.ts) — fetches the published snapshot through a freshly authenticated frontend capability and sends `pendingCommandIds`.
+   - [`getSnapshot.ts`](../../../packages/system-worker/src/SelectionVersionedAggregateRepo/getSnapshot/getSnapshot.ts) — captures both indices, awaits publication through the captured selection position, and returns exact-owner selected commands through that cursor.
 5. The browser pins that snapshot's `aggregateVersion` in its WebSocket ticket.
    - [`createAggregateFrontendWebSocketTicket.ts`](../../../packages/frontend/src/createAggregateFrontendWebSocketTicket.ts) — forwards the selected aggregate version alongside the exact admitted frontend target.
 6. The socket resumes strictly after the snapshot `selectionIndex`; this cursor
    is independent of the consumed aggregate watermark.
    - [`bootstrapAggregateFrontendSession.ts`](../../../packages/frontend/src/bootstrapAggregateFrontendSession.ts) — sends the captured frontend resume position and buffers outputs until replay completes.
-7. The retained stream returns contiguous output plus its replay watermark.
+7. The retained stream returns contiguous `aggregateSelectedCommand` envelopes
+   and then `replay-complete`; the browser buffers every command until the replay
+   watermark is validated.
    - [`onMessage.ts`](../../../packages/system-worker/src/SelectionVersionedAggregateChain/onMessage/onMessage.ts) — samples the retained tip and sends replay pages through that boundary.
-8. The browser replaces authoritative resources and removes optimism only for
-   requested complete command resolutions, then reapplies unresolved journal occurrences.
-   - [`applyAggregateFrontendStateTx.ts`](../../../packages/core/src/session/applyAggregateFrontendStateTx.ts) — commits resource replacement and both indices together while preserving surviving optimism.
-   - [`applyAggregateFrontendCommandTx.ts`](../../../packages/core/src/session/applyAggregateFrontendCommandTx.ts) — resolves optimism through the complete originating command rather than rewriting occurrence provenance.
-9. Before publishing a first online baseline, the browser waits for the full
+8. The browser installs `snapshot.resources` and uses
+   `snapshot.selectedCommands` only to complete matching journal rows, remove
+   their optimism, and record their outcomes. Their deltas are not reapplied.
+   - [`applyAggregateFrontendSnapshotTx.ts`](../../../packages/core/src/session/applyAggregateFrontendSnapshotTx.ts) — atomically replaces authoritative resources, records matching selected commands, and preserves unmatched optimism.
+9. After snapshot installation, the browser applies
+   `bufferedSelectedCommands` contiguously before switching the same socket to
+   direct live delivery.
+   - [`bootstrapAggregateFrontendSession.ts`](../../../packages/frontend/src/bootstrapAggregateFrontendSession.ts) — validates the buffered replay and applies each selected command strictly after the installed snapshot cursor.
+   - [`applyAggregateSelectedCommandTx.ts`](../../../packages/core/src/session/applyAggregateSelectedCommandTx.ts) — completes a matching journal row by opaque command ID while applying only live/replayed selected deltas.
+10. Before publishing a first online baseline, the browser waits for the full
    live snapshot to replace the absent or incompatible shared backup.
    - [`bootstrapAggregateFrontendSession.ts`](../../../packages/frontend/src/bootstrapAggregateFrontendSession.ts) — awaits `repairBackup` before publishing an ownership period initialized without a reusable baseline.
    - [`overwriteDb.ts`](../../../packages/backup-worker/src/BackupDbApi/overwriteDb/overwriteDb.ts) — checks current ownership inside the SQLite semaphore and awaits the snapshot copy into persistent backup storage.
-10. After restoration and persistence succeed, the bootstrap publishes the new
+11. After restoration and persistence succeed, the bootstrap publishes the new
     execution ID and current state on the original store. Repeated current-owner
     signals preserve the existing ID, live contents, and pending backup FIFO.
     - [`bootstrapAggregateFrontendSession.ts`](../../../packages/frontend/src/bootstrapAggregateFrontendSession.ts) — publishes only a still-valid acquired period and invalidates restored live-query tables.
     - [`makeAggregateSession.ts`](../../../packages/core/src/session/makeAggregateSession.ts) — reads the current execution ID from state and captures it synchronously for command construction and journal metadata.
     - [`makeServiceSession.ts`](../../../packages/core/src/serviceSession/makeServiceSession.ts) — exposes the equivalent live service session ID getter.
-11. New commits flow through the current capability's ordered backup queue.
+12. New commits flow through the current capability's ordered backup queue.
     Reusable backups persist renewal metadata before publication, then accept
     subsequent commits through the same queue.
     - [`bootstrapAggregateFrontendSession.ts`](../../../packages/frontend/src/bootstrapAggregateFrontendSession.ts) — establishes initial backup persistence and then sends one committed SQL batch at a time.
@@ -189,3 +202,11 @@ not introduce aggregate command optimism.
 - [Frontend WebSocket delivery](./FrontendWebSocket.md)
 - [Aggregate submission](./PushSequence.md)
 - [IndexedDB backup coordination](./IndexedDbBackupCoordination.md)
+
+Aggregate submission begins only after exact checkpoint validation, replay, and
+live-handler installation. The retained live socket is the admission gate.
+Socket close fails the pending receipt, stops the push lane, and queues serialized
+recovery; a browser online event can request recovery but cannot permit a send.
+Manual pause leaves selected delivery and an already pending receipt active.
+
+- [`bootstrapAggregateFrontendSession.ts`](../../../packages/frontend/src/bootstrapAggregateFrontendSession.ts) — retains one live socket per ownership period and shares its handler between selected output and admission receipts.

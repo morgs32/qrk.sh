@@ -2,8 +2,8 @@ import { RoutePattern } from '@remix-run/route-pattern';
 import { createHref } from '@remix-run/route-pattern/href';
 import { createMatcher } from '@remix-run/route-pattern/match';
 import type { ServiceFrontendLockSchema } from '@zerospin/core/frontendController/makeServiceFrontendLock';
-import { filterServiceFrontendCommand } from '@zerospin/core/serviceSession/filterServiceFrontendCommand';
-import type { IServiceFrontendFinalizedCommand } from '@zerospin/core/serviceSession/types';
+import { filterServiceSelectedCommand } from '@zerospin/core/serviceSession/filterServiceSelectedCommand';
+import type { IServiceSelectedCommand } from '@zerospin/core/serviceSession/types';
 import { encodeRpc } from '@zerospin/core/utils/encodeRpc';
 import {
   mapParseError,
@@ -27,10 +27,10 @@ import { managedRuntime } from '../managedRuntime.js';
 import { systemWorkerAbbreviations } from '../systemWorkerAbbreviations.js';
 
 import { frontendServiceChainDbConfig } from './frontendServiceChainDbConfig.js';
-import { getCommands } from './getCommands/getCommands.js';
+import { getSelectedCommands } from './getSelectedCommands/getSelectedCommands.js';
 import { onConnect } from './onConnect/onConnect.js';
 import { onMessage } from './onMessage/onMessage.js';
-import { receiveDeltas } from './receiveDeltas/receiveDeltas.js';
+import { receiveSelectedCommands } from './receiveSelectedCommands/receiveSelectedCommands.js';
 
 const frontendServiceChainFixedDORepoConfig = makeFixedDORepoConfig({
   abbreviation: systemWorkerAbbreviations.frontendServiceChain,
@@ -96,13 +96,12 @@ export class FrontendServiceChain extends makeFixedDORepo({
   static override readonly fixedDORepoConfig =
     frontendServiceChainFixedDORepoConfig;
 
-  readonly #deltasSubscriber = makeOutboxSubscriber({
-    name: 'deltas',
-    receive: (rows: Parameters<typeof receiveDeltas>[0]['rows']) =>
-      receiveDeltas({
+  readonly #selectedCommandsSubscriber = makeOutboxSubscriber({
+    name: 'selectedCommands',
+    receive: (rows: Parameters<typeof receiveSelectedCommands>[0]['rows']) =>
+      receiveSelectedCommands({
         rows,
         db: this.db,
-        key: this.key,
         broadcast: command => {
           for (const connection of this.getConnections<{
             phase: 'awaiting-resume' | 'replaying' | 'live';
@@ -123,8 +122,8 @@ export class FrontendServiceChain extends makeFixedDORepo({
             try {
               connection.send(
                 JSON.stringify({
-                  type: 'serviceFrontendCommand',
-                  sync: filterServiceFrontendCommand(
+                  type: 'serviceSelectedCommand',
+                  command: filterServiceSelectedCommand(
                     command,
                     connection.state.serviceFrontendLock.models,
                   ),
@@ -138,13 +137,13 @@ export class FrontendServiceChain extends makeFixedDORepo({
       }),
   });
   /*
-   * Exposes the already bound deltasSubscriber capability from FrontendServiceChain.
+   * Exposes the already bound selectedCommandsSubscriber capability from FrontendServiceChain.
    *
    * 1. Return the bound capability.
    */
-  get deltasSubscriber() {
+  get selectedCommandsSubscriber() {
     // 1 — reuse the existing private queue/subscriber instance
-    return this.#deltasSubscriber;
+    return this.#selectedCommandsSubscriber;
   }
 
   /*
@@ -154,10 +153,10 @@ export class FrontendServiceChain extends makeFixedDORepo({
    *
    * 1. Run the bound domain operation.
    */
-  async getCommands(props: { afterServiceIndex: number }): Promise<
+  async getSelectedCommands(props: { afterServiceIndex: number }): Promise<
     IEncodedResult<
       Readonly<{
-        commands: readonly IServiceFrontendFinalizedCommand[];
+        commands: readonly IServiceSelectedCommand[];
         tip: number;
       }>,
       IAnyErrorJson
@@ -165,9 +164,9 @@ export class FrontendServiceChain extends makeFixedDORepo({
   > {
     const { afterServiceIndex } = props;
 
-    // 1 — run getCommands with the instance-bound dependencies and encode its RPC outcome
+    // 1 — run getSelectedCommands with the instance-bound dependencies and encode its RPC outcome
     return managedRuntime.runPromise(
-      getCommands({
+      getSelectedCommands({
         afterServiceIndex,
         db: this.db,
       }).pipe(encodeRpc),

@@ -18,6 +18,7 @@ export const onConnect = Effect.fn(
 )(function* (props: {
   connection: Connection<{
     phase: 'awaiting-resume' | 'replaying' | 'live';
+    admissionCommandId?: string | null;
     aggregateId: string;
     aggregateName: string;
     aggregateVersion: string;

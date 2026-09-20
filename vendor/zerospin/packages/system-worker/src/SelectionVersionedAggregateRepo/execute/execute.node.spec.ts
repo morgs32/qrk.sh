@@ -116,25 +116,23 @@ it('produces identical per-command deltas across pages, including relationship-d
       );
     }
     await Effect.runPromise(execute({ db, key, rows }));
-    const deltas = db
+    const selectedCommands = db
       .select()
-      .from(selectionVersionedAggregateRepoDbConfig.schema.deltas)
+      .from(selectionVersionedAggregateRepoDbConfig.schema.selectedCommands)
       .all();
-    expect(deltas).toHaveLength(6);
-    const decoded = deltas.map(row => JSON.parse(row.output));
+    expect(selectedCommands).toHaveLength(6);
+    const decoded = selectedCommands.map(row => JSON.parse(row.output));
     expect(
       decoded[4].delta.deleted.map((row: { id: string }) => row.id).sort(),
     ).toEqual(['lst_test', 'tsk_test']);
     expect(
-      decoded[5].delta.inserted.map((row: { id: string }) => row.id).sort(),
+      decoded[5].delta.upserted.map((row: { id: string }) => row.id).sort(),
     ).toEqual(['lst_test', 'tsk_test']);
     expect(decoded[1].delta).toEqual({
-      inserted: [],
-      updated: [],
+      upserted: [],
       deleted: [],
-      mutations: [],
     });
-    outputs.push(deltas.map(row => row.output));
+    outputs.push(selectedCommands.map(row => row.output));
   }
   expect(outputs[1]).toEqual(outputs[0]);
   expect(outputs[2]).toEqual(outputs[0]);

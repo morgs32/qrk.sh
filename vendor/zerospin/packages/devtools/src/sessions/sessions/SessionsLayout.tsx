@@ -1,6 +1,6 @@
 import { useEffect, useState, type CSSProperties } from 'react';
 
-import type { ISession, ISessionId } from '@zerospin/core/session/types';
+import type { IAggregateSession, ISessionId } from '@zerospin/core/session/types';
 import { Outlet, useMatch, useNavigate } from 'react-router';
 import { useStore } from 'zustand/react';
 import { useShallow } from 'zustand/react/shallow';
@@ -132,12 +132,12 @@ export function SessionsLayout() {
   const aggregateSessions = useStore(
     zerospinDevtoolsStore,
     useShallow(
-      (state): Array<ISession & { sessionId: ISessionId }> =>
+      (state): Array<IAggregateSession & { sessionId: ISessionId }> =>
         Array.from(
           state.aggregateSessionsById.values(),
           entry => entry.session,
         ).filter(
-          (session): session is ISession & { sessionId: ISessionId } =>
+          (session): session is IAggregateSession & { sessionId: ISessionId } =>
             session.sessionId !== null,
         ),
     ),

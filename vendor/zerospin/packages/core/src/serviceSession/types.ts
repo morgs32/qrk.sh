@@ -3,7 +3,7 @@ import type { ITelemetryBatch, ITelemetryCollector } from '@zerospin/logger';
 import type { AnyRelations } from 'drizzle-orm';
 import type { StoreApi } from 'zustand';
 
-import type { IChainedCommand, IServiceCommand } from '../contracts/types.ts';
+import type { ICommand } from '../contracts/types.ts';
 import type {
   IDb,
   IDbConfig,
@@ -14,7 +14,6 @@ import type {
 import type { IServiceFrontendController } from '../frontendController/types.ts';
 import type { IAnyModels, IEncodedResourceShape } from '../models/types.ts';
 import type { IFrontendDelta, ISessionId } from '../session/types.ts';
-import type { ISystemId } from '../system/types.ts';
 
 import { type serviceSessionRepoSchema } from './serviceSessionRepoTables.ts';
 
@@ -33,22 +32,19 @@ export type IServiceSessionWaSqliteDb<
   RELATIONS extends AnyRelations = AnyRelations,
 > = IWaSqliteDrizzleDb<IDbConfig<IServiceSessionSchema<MODELS>, RELATIONS>>;
 
-export type IServiceFrontendFinalizedCommand = IChainedCommand<
-  IServiceCommand,
-  IFrontendDelta
-> &
-  Readonly<{
-    serviceIndex: number;
-    serviceVersion: string;
-    dispositionHash: string;
-  }>;
+export type IServiceSelectedCommand = Readonly<{
+  id: ICommand['id'];
+  serviceIndex: number;
+  delta: IFrontendDelta;
+  serviceHash: string;
+}>;
 
-export type IServiceFrontendState = Readonly<{
+export type IServiceFrontendSnapshot = Readonly<{
   authentication: Readonly<Record<string, unknown>>;
-  systemId: ISystemId;
   serviceName: string;
   frontendName: string;
   serviceIndex: number;
+  serviceHash: string;
   serviceVersion: string;
   resources: readonly IEncodedResourceShape[];
 }>;
@@ -59,7 +55,6 @@ export type IInitializedServiceSessionState<
 > = Readonly<{
   sessionId: ISessionId;
   authentication: AUTHENTICATION;
-  systemId: ISystemId;
   serviceName: string;
   frontendName: string;
   serviceFrontendLockKey: string;
@@ -68,6 +63,7 @@ export type IInitializedServiceSessionState<
   models: MODELS;
   isInitialized: true;
   serviceIndex: number;
+  serviceHash: string;
   serviceVersion: string;
   sessionStatus:
     | 'bootstrapping'
@@ -91,7 +87,6 @@ export type IServiceSessionState<
   | Readonly<{
       sessionId: null;
       authentication: null;
-      systemId: null;
       serviceName: null;
       frontendName: null;
       serviceFrontendLockKey: null;
@@ -100,6 +95,7 @@ export type IServiceSessionState<
       models: null;
       isInitialized: false;
       serviceIndex: null;
+      serviceHash: null;
       serviceVersion: null;
       sessionStatus:
         | 'bootstrapping'

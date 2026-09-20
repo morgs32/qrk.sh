@@ -19,6 +19,7 @@ const sessionMetadataTable = makeTable({
     nextSessionIndex: primitives.integer(),
     aggregateIndex: primitives.integer(),
     selectionIndex: primitives.integer(),
+    selectionHash: primitives.text(),
     pushIndex: primitives.integer(),
   },
 });

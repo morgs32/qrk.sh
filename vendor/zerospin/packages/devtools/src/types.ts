@@ -1,6 +1,6 @@
 import type { IServiceFrontendController } from '@zerospin/core/frontendController/types';
 import type { IServiceSession } from '@zerospin/core/serviceSession/types';
-import type { ISession, ISessionId } from '@zerospin/core/session/types';
+import type { IAggregateSession, ISessionId } from '@zerospin/core/session/types';
 import type { IAnyErrorJson, IEncodedResult } from '@zerospin/error';
 import type { ITelemetryBatch } from '@zerospin/logger';
 
@@ -50,12 +50,12 @@ export interface IProfilerProfile {
 }
 
 export interface IDevtoolsAggregateSessionEntry {
-  readonly session: ISession;
-  readonly getPushPaused: () => Promise<IEncodedResult<boolean, IAnyErrorJson>>;
-  readonly setPushPaused: (props: {
+  readonly session: IAggregateSession;
+  readonly getPushPaused?: () => Promise<IEncodedResult<boolean, IAnyErrorJson>>;
+  readonly setPushPaused?: (props: {
     pushPaused: boolean;
   }) => Promise<IEncodedResult<void, IAnyErrorJson>>;
-  readonly pushNow: () => Promise<
+  readonly pushNow?: () => Promise<
     IEncodedResult<
       | Readonly<{ status: 'empty' }>
       | Readonly<{ status: 'pushed' }>

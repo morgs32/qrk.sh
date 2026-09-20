@@ -214,7 +214,7 @@ describe("QRK system", () => {
       );
       // Both owners initialize the same contract guard for command admission.
       const backendGuards = yield* initializeAggregateGuards(aggregate);
-      const frontendGuards = yield* initializeFrontendGuards(userFrontend);
+      const frontendGuards = yield* initializeFrontendGuards({ frontend: userFrontend });
       for (const guards of [backendGuards, frontendGuards]) {
         const rejected = yield* guards
           .run("createUser", {

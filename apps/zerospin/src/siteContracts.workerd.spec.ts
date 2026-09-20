@@ -7,6 +7,7 @@ import { makeResourceDbConfig } from "@zerospin/core/drizzle/makeDbConfig";
 import { makeProvisionedInMemoryWasmSqliteDb } from "@zerospin/core/drizzle/makeProvisionedInMemoryWasmSqliteDb";
 import { makeAggregateSession } from "@zerospin/core/session/makeAggregateSession";
 import { sessionRepoTables } from "@zerospin/core/session/sessionRepoTables";
+import { stageCommand } from "@zerospin/core/session/stageCommand";
 import { NanoIdFactory } from "@zerospin/core/utils/NanoIdFactory";
 import { UlidMonotonicFactory } from "@zerospin/core/utils/UlidMonotonicFactory";
 import { DateTime, Effect, Layer, ManagedRuntime, Result } from "effect";
@@ -52,11 +53,11 @@ describe("site and page creation contracts", () => {
         Effect.sync(() => ManagedRuntime.make(Layer.mergeAll(NanoIdFactory, UlidMonotonicFactory))),
         (runtime) => runtime.disposeEffect,
       );
-      const guards = yield* initializeGuards(userFrontend);
-      const session = makeAggregateSession({
-        runtime,
+      const guards = yield* initializeGuards({ frontend: userFrontend });
+      const session = makeAggregateSession({ frontend: userFrontend });
+      session.setExecutionResources({
         guards,
-        frontend: userFrontend,
+        runtime,
         sessionId,
       });
       session.store.setState({
@@ -76,13 +77,14 @@ describe("site and page creation contracts", () => {
         models: userFrontend.models,
         isInitialized: true,
         aggregateIndex: 0,
-        userIndex: 0,
+        selectionIndex: 0,
         pushIndex: 0,
         sessionStatus: "current",
         backupState: { status: "ready", failure: null },
       });
 
-      const staged = session.executeCommand({
+      const staged = stageCommand({
+        session,
         contractName: "createSite",
         payload: { id: "sit_site_contract", userId },
       });
@@ -117,7 +119,8 @@ describe("site and page creation contracts", () => {
         }),
       );
 
-      const missingSiteId = session.executeCommand({
+      const missingSiteId = stageCommand({
+        session,
         contractName: "createSite",
         // @ts-expect-error Caller-supplied IDs are required; also verify runtime rejection.
         payload: {},
@@ -126,7 +129,8 @@ describe("site and page creation contracts", () => {
       expect(db.select().from(dbConfig.schema.site).all()).toHaveLength(1);
 
       const siteId = staged.success.payload.id;
-      const stagedPage = session.executeCommand({
+      const stagedPage = stageCommand({
+        session,
         contractName: "createPage",
         payload: {
           id: "pag_site_contract",
@@ -167,7 +171,8 @@ describe("site and page creation contracts", () => {
         }),
       );
 
-      const missingPageId = session.executeCommand({
+      const missingPageId = stageCommand({
+        session,
         contractName: "createPage",
         // @ts-expect-error Caller-supplied IDs are required; also verify runtime rejection.
         payload: { siteId, slug: "missing-id", pageType: "split-scroll" },
@@ -177,7 +182,8 @@ describe("site and page creation contracts", () => {
 
       const gridId = prefixId(Grid, `${stagedPage.success.payload.id}/main`);
       const brickId = prefixId(Brick, `${gridId}/first`);
-      const grid = session.executeCommand({
+      const grid = stageCommand({
+        session,
         contractName: "createGrid",
         payload: {
           id: gridId,
@@ -202,7 +208,8 @@ describe("site and page creation contracts", () => {
       expect(grid._tag).toBe("Success");
       const originalGrid = db.select().from(dbConfig.schema.grid).all();
       const originalBricks = db.select().from(dbConfig.schema.brick).all();
-      const invalidUpdate = session.executeCommand({
+      const invalidUpdate = stageCommand({
+        session,
         contractName: "updateGrid",
         payload: {
           id: gridId,
@@ -221,7 +228,8 @@ describe("site and page creation contracts", () => {
       expect(db.select().from(dbConfig.schema.grid).all()).toEqual(originalGrid);
       expect(db.select().from(dbConfig.schema.brick).all()).toEqual(originalBricks);
 
-      const updated = session.executeCommand({
+      const updated = stageCommand({
+        session,
         contractName: "updateGrid",
         payload: {
           id: gridId,
@@ -483,11 +491,11 @@ describe("user frontend creation guards", () => {
         Effect.sync(() => ManagedRuntime.make(Layer.mergeAll(NanoIdFactory, UlidMonotonicFactory))),
         (runtime) => runtime.disposeEffect,
       );
-      const guards = yield* initializeGuards(userFrontend);
-      const session = makeAggregateSession({
-        runtime,
+      const guards = yield* initializeGuards({ frontend: userFrontend });
+      const session = makeAggregateSession({ frontend: userFrontend });
+      session.setExecutionResources({
         guards,
-        frontend: userFrontend,
+        runtime,
         sessionId,
       });
       session.store.setState({
@@ -507,13 +515,14 @@ describe("user frontend creation guards", () => {
         models: userFrontend.models,
         isInitialized: true,
         aggregateIndex: 0,
-        userIndex: 0,
+        selectionIndex: 0,
         pushIndex: 0,
         sessionStatus: "current",
         backupState: { status: "ready", failure: null },
       });
 
-      const staged = session.executeCommand({
+      const staged = stageCommand({
+        session,
         contractName: "createSite",
         payload: { id: "sit_update_site_settings", userId },
       });
@@ -522,7 +531,8 @@ describe("user frontend creation guards", () => {
         throw new Error(staged.failure.message);
       }
 
-      const updated = session.executeCommand({
+      const updated = stageCommand({
+        session,
         contractName: "updateSiteSettings",
         payload: {
           id: staged.success.payload.id,
@@ -594,11 +604,11 @@ describe("user frontend creation guards", () => {
         Effect.sync(() => ManagedRuntime.make(Layer.mergeAll(NanoIdFactory, UlidMonotonicFactory))),
         (runtime) => runtime.disposeEffect,
       );
-      const guards = yield* initializeGuards(userFrontend);
-      const session = makeAggregateSession({
-        runtime,
+      const guards = yield* initializeGuards({ frontend: userFrontend });
+      const session = makeAggregateSession({ frontend: userFrontend });
+      session.setExecutionResources({
         guards,
-        frontend: userFrontend,
+        runtime,
         sessionId,
       });
       session.store.setState({
@@ -618,13 +628,14 @@ describe("user frontend creation guards", () => {
         models: userFrontend.models,
         isInitialized: true,
         aggregateIndex: 0,
-        userIndex: 0,
+        selectionIndex: 0,
         pushIndex: 0,
         sessionStatus: "current",
         backupState: { status: "ready", failure: null },
       });
 
-      const stagedSite = session.executeCommand({
+      const stagedSite = stageCommand({
+        session,
         contractName: "createSite",
         payload: { id: "sit_update_page_settings", userId },
       });
@@ -633,7 +644,8 @@ describe("user frontend creation guards", () => {
         throw new Error(stagedSite.failure.message);
       }
 
-      const stagedPage = session.executeCommand({
+      const stagedPage = stageCommand({
+        session,
         contractName: "createPage",
         payload: {
           id: "pag_update_page_settings",
@@ -647,7 +659,8 @@ describe("user frontend creation guards", () => {
         throw new Error(stagedPage.failure.message);
       }
 
-      const updated = session.executeCommand({
+      const updated = stageCommand({
+        session,
         contractName: "updatePageSettings",
         payload: {
           id: stagedPage.success.payload.id,
@@ -710,11 +723,11 @@ describe("user frontend creation guards", () => {
         Effect.sync(() => ManagedRuntime.make(Layer.mergeAll(NanoIdFactory, UlidMonotonicFactory))),
         (runtime) => runtime.disposeEffect,
       );
-      const guards = yield* initializeGuards(userFrontend);
-      const session = makeAggregateSession({
-        runtime,
+      const guards = yield* initializeGuards({ frontend: userFrontend });
+      const session = makeAggregateSession({ frontend: userFrontend });
+      session.setExecutionResources({
         guards,
-        frontend: userFrontend,
+        runtime,
         sessionId,
       });
       session.store.setState({
@@ -734,13 +747,14 @@ describe("user frontend creation guards", () => {
         models: userFrontend.models,
         isInitialized: true,
         aggregateIndex: 0,
-        userIndex: 0,
+        selectionIndex: 0,
         pushIndex: 0,
         sessionStatus: "current",
         backupState: { status: "ready", failure: null },
       });
 
-      const stagedSite = session.executeCommand({
+      const stagedSite = stageCommand({
+        session,
         contractName: "createSite",
         payload: { id: "sit_update_page_article", userId },
       });
@@ -749,7 +763,8 @@ describe("user frontend creation guards", () => {
         throw new Error(stagedSite.failure.message);
       }
 
-      const stagedPage = session.executeCommand({
+      const stagedPage = stageCommand({
+        session,
         contractName: "createPage",
         payload: {
           id: "pag_update_page_article",
@@ -774,7 +789,8 @@ describe("user frontend creation guards", () => {
         ],
       };
 
-      const updated = session.executeCommand({
+      const updated = stageCommand({
+        session,
         contractName: "updatePageArticle",
         payload: {
           id: stagedPage.success.payload.id,

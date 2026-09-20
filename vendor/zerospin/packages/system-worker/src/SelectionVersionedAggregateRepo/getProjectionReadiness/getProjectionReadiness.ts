@@ -9,7 +9,7 @@ import { selectionVersionedAggregateRepoDbConfig } from '../selectionVersionedAg
  * by the snapshot path.
  *
  * 1. Read the local projection checkpoint.
- * 2. Return local aggregate and user progress.
+ * 2. Return local aggregate and selection progress.
  */
 export const getProjectionReadiness = Effect.fn(
   'SelectionVersionedAggregateRepo.getProjectionReadiness',
@@ -25,10 +25,10 @@ export const getProjectionReadiness = Effect.fn(
     )
     .get();
 
-  // 2 — aggregate consumption and user output have separate cursors
+  // 2 — aggregate consumption and selection output have separate cursors
   return {
     systemId: props.key.systemId,
     aggregateIndex: state?.aggregateIndex ?? 0,
-    userIndex: state?.userIndex ?? 0,
+    selectionIndex: state?.selectionIndex ?? 0,
   };
 });

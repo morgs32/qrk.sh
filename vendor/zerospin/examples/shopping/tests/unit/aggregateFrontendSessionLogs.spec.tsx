@@ -212,7 +212,7 @@ describe('aggregate frontend session logs integration', () => {
       schema: dbConfig.schema,
       models,
       isInitialized: true,
-      userIndex: 0,
+      selectionIndex: 0,
       sessionStatus: 'current',
       backupState: { status: 'ready', failure: null },
     });

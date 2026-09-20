@@ -13,7 +13,7 @@ import { selectionVersionedAggregateChainDbConfig } from '../selectionVersionedA
  * requested command IDs through the captured cursor. Both return the current tip.
  *
  * 1. Validate the replay cursor.
- * 2. Select retained user output.
+ * 2. Select retained selection output.
  * 3. Read a replay page or indexed reconciliation results.
  * 4. Check replay contiguity and decode each output.
  * 5. Filter delivery by frontend and return the publication tip.
@@ -22,7 +22,7 @@ export const getCommands = Effect.fn(
   'SelectionVersionedAggregateChain.getCommands',
 )(function* (props: {
   db: IDb;
-  afterUserIndex: number;
+  afterSelectionIndex: number;
   frontend?: {
     name: string;
     authentication: Readonly<Record<string, unknown>>;
@@ -31,16 +31,16 @@ export const getCommands = Effect.fn(
   reconcile?: {
     commandIds: readonly string[];
     frontendName: string;
-    throughUserIndex: number;
+    throughSelectionIndex: number;
   };
 }) {
-  // 1 — require a nonnegative safe afterUserIndex
+  // 1 — require a nonnegative safe afterSelectionIndex
   if (
-    !Number.isSafeInteger(props.afterUserIndex) ||
-    props.afterUserIndex < 0 ||
+    !Number.isSafeInteger(props.afterSelectionIndex) ||
+    props.afterSelectionIndex < 0 ||
     (props.reconcile !== undefined &&
-      (!Number.isSafeInteger(props.reconcile.throughUserIndex) ||
-        props.reconcile.throughUserIndex < 0))
+      (!Number.isSafeInteger(props.reconcile.throughSelectionIndex) ||
+        props.reconcile.throughSelectionIndex < 0))
   ) {
     return yield* new ZerospinError({
       code: 'frontend-replay-cursor-invalid',
@@ -57,8 +57,8 @@ export const getCommands = Effect.fn(
     .where(
       and(
         gt(
-          selectionVersionedAggregateChainDbConfig.schema.deltas.userIndex,
-          props.afterUserIndex,
+          selectionVersionedAggregateChainDbConfig.schema.deltas.selectionIndex,
+          props.afterSelectionIndex,
         ),
         props.reconcile === undefined
           ? undefined
@@ -69,13 +69,13 @@ export const getCommands = Effect.fn(
         props.reconcile === undefined
           ? undefined
           : lte(
-              selectionVersionedAggregateChainDbConfig.schema.deltas.userIndex,
-              props.reconcile.throughUserIndex,
+              selectionVersionedAggregateChainDbConfig.schema.deltas.selectionIndex,
+              props.reconcile.throughSelectionIndex,
             ),
       ),
     )
     .orderBy(
-      asc(selectionVersionedAggregateChainDbConfig.schema.deltas.userIndex),
+      asc(selectionVersionedAggregateChainDbConfig.schema.deltas.selectionIndex),
     )
     .limit(
       props.reconcile === undefined
@@ -89,7 +89,7 @@ export const getCommands = Effect.fn(
     Effect.gen(function* () {
       if (
         props.reconcile === undefined &&
-        row.userIndex !== props.afterUserIndex + i + 1
+        row.selectionIndex !== props.afterSelectionIndex + i + 1
       ) {
         return yield* new ZerospinError({
           code: 'frontend-replay-gap',
@@ -149,12 +149,12 @@ export const getCommands = Effect.fn(
       props.db
         .select({
           index:
-            selectionVersionedAggregateChainDbConfig.schema.deltas.userIndex,
+            selectionVersionedAggregateChainDbConfig.schema.deltas.selectionIndex,
         })
         .from(selectionVersionedAggregateChainDbConfig.schema.deltas)
         .orderBy(
           desc(
-            selectionVersionedAggregateChainDbConfig.schema.deltas.userIndex,
+            selectionVersionedAggregateChainDbConfig.schema.deltas.selectionIndex,
           ),
         )
         .limit(1)

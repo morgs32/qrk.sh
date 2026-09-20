@@ -93,12 +93,12 @@ sequenceDiagram
    - [`bootstrapServiceFrontendSession.ts`](../../../packages/frontend/src/bootstrapServiceFrontendSession.ts) — independently validates and restores service persistence.
    - [`frontendPrograms.node.spec.ts`](../../../packages/frontend/src/frontendPrograms.node.spec.ts) — verifies aggregate and service socket-open failures remain connection failures when no reusable backup exists.
 4. Online aggregate recovery fetches a consistently captured, durably published
-   snapshot containing both `aggregateIndex` and `userIndex`.
+   snapshot containing both `aggregateIndex` and `selectionIndex`.
    - [`fetchAggregateFrontendState.ts`](../../../packages/frontend/src/fetchAggregateFrontendState.ts) — fetches current published state through a freshly authenticated frontend capability.
    - [`getState.ts`](../../../packages/system-worker/src/SelectionVersionedAggregateRepo/getState/getState.ts) — captures both indices and awaits publication through the captured frontend position.
 5. The browser pins that snapshot's `aggregateVersion` in its WebSocket ticket.
    - [`createAggregateFrontendWebSocketTicket.ts`](../../../packages/frontend/src/createAggregateFrontendWebSocketTicket.ts) — forwards the selected aggregate version alongside the exact admitted frontend target.
-6. The socket resumes strictly after the snapshot `userIndex`; this cursor
+6. The socket resumes strictly after the snapshot `selectionIndex`; this cursor
    is independent of the consumed aggregate watermark.
    - [`bootstrapAggregateFrontendSession.ts`](../../../packages/frontend/src/bootstrapAggregateFrontendSession.ts) — sends the captured frontend resume position and buffers outputs until replay completes.
 7. The retained stream returns contiguous output plus its replay watermark.

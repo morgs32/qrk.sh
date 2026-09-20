@@ -117,7 +117,7 @@ it('initializes before guards and delivers pinned updates and tombstones indepen
         initial.resources.find(row => row.id === 'prd_pinned'),
       ).toMatchObject({ name: 'Authoritative product' });
       expect(initial.aggregateIndex).toBe(1);
-      expect(initial.userIndex).toBe(2);
+      expect(initial.selectionIndex).toBe(2);
 
       const updated = yield* makeAsync(() =>
         source.admitServiceCommand({
@@ -190,10 +190,10 @@ it('initializes before guards and delivers pinned updates and tombstones indepen
         key: view,
       });
       const outputs = yield* makeAsync(() =>
-        frontend.getCommands({ afterUserIndex: 0 }),
+        frontend.getCommands({ afterSelectionIndex: 0 }),
       ).pipe(Effect.flatMap(decodeRpc));
       expect(
-        outputs.commands.map(row => [row.aggregateIndex, row.userIndex]),
+        outputs.commands.map(row => [row.aggregateIndex, row.selectionIndex]),
       ).toEqual([
         [1, 1],
         [1, 2],
@@ -224,7 +224,7 @@ it('initializes before guards and delivers pinned updates and tombstones indepen
             frontendName: 'main',
             outstandingCommandIds: [],
           }),
-        ).pipe(Effect.flatMap(decodeRpc))).userIndex,
+        ).pipe(Effect.flatMap(decodeRpc))).selectionIndex,
       ).toBe(3);
     }).pipe(Effect.provide(AsyncLive)),
   );
@@ -267,7 +267,7 @@ it('initializes before guards and delivers pinned updates and tombstones indepen
                   }),
                 ).pipe(Effect.flatMap(decodeRpc), Effect.provide(AsyncLive)),
               );
-              return state.userIndex;
+              return state.selectionIndex;
             },
             { timeout: 10_000 },
           )

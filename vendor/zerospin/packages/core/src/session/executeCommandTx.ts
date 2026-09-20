@@ -55,7 +55,7 @@ export const executeCommandTx = makeTx(
   chainedAt: Date;
   state: Pick<
     IInitializedSessionState<IAnyModels>,
-    'aggregateIndex' | 'userIndex' | 'pushIndex'
+    'aggregateIndex' | 'selectionIndex' | 'pushIndex'
   >;
   command: COMMAND;
 }) {
@@ -138,7 +138,7 @@ export const executeCommandTx = makeTx(
         sessionId,
         nextSessionIndex,
         aggregateIndex: state.aggregateIndex,
-        userIndex: state.userIndex,
+        selectionIndex: state.selectionIndex,
         pushIndex: state.pushIndex,
       })
       .onConflictDoUpdate({
@@ -307,7 +307,7 @@ export const executeCommandTx = makeTx(
       sessionId,
       nextSessionIndex,
       aggregateIndex: state.aggregateIndex,
-      userIndex: state.userIndex,
+      selectionIndex: state.selectionIndex,
       pushIndex: state.pushIndex,
     })
     .onConflictDoUpdate({

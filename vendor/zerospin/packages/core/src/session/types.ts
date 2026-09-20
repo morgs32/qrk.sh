@@ -61,7 +61,7 @@ export type IFrontendDelta = Readonly<{
 }>;
 
 export type IAggregateFrontendFinalizedCommand = Readonly<{
-  userIndex: number;
+  selectionIndex: number;
   aggregateIndex: number;
   delta: IFrontendDelta;
   resolution: Schema.Schema.Type<typeof AggregateExecutionEntrySchema> | null;
@@ -79,7 +79,7 @@ export type IAggregateFrontendSyncState = Readonly<{
   >[];
   frontendName: string;
   aggregateIndex: number;
-  userIndex: number;
+  selectionIndex: number;
   resources: readonly IEncodedResourceShape[];
 }>;
 
@@ -101,7 +101,7 @@ export interface IInitializedSessionState<
   models: MODELS;
   isInitialized: true;
   aggregateIndex: number;
-  userIndex: number;
+  selectionIndex: number;
   pushIndex: number;
   sessionStatus:
     | 'bootstrapping'
@@ -130,7 +130,7 @@ type IUninitializedSessionState = {
   models: null;
   isInitialized: false;
   aggregateIndex: null;
-  userIndex: null;
+  selectionIndex: null;
   pushIndex: null;
   sessionStatus:
     | 'bootstrapping'

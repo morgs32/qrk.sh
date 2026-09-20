@@ -81,7 +81,7 @@ describe('independent frontend progress', () => {
                 frontendName: main.name,
                 aggregateVersion: '1.0.0',
                 aggregateIndex: 0,
-                userIndex: 0,
+                selectionIndex: 0,
                 resolutions: [],
                 resources: [],
               } satisfies IAggregateFrontendSyncState;
@@ -100,7 +100,7 @@ describe('independent frontend progress', () => {
               yield* applyAggregateFrontendCommand({
                 ...target,
                 command: {
-                  userIndex: 1,
+                  selectionIndex: 1,
                   aggregateIndex: 1,
                   delta: { ...emptyDelta, inserted: [user] },
                   resolution: null,
@@ -199,7 +199,7 @@ describe('independent frontend progress', () => {
                 .from(sessionCommandJournalDrizzleSchema)
                 .all();
               const serviceOutput = {
-                userIndex: 2,
+                selectionIndex: 2,
                 aggregateIndex: 1,
                 delta: {
                   ...emptyDelta,
@@ -214,7 +214,7 @@ describe('independent frontend progress', () => {
               expect(
                 db.select().from(sessionMetadataDrizzleSchema).get(),
               ).toMatchObject({
-                userIndex: 2,
+                selectionIndex: 2,
                 aggregateIndex: 1,
                 pushIndex: 0,
               });
@@ -246,8 +246,8 @@ describe('independent frontend progress', () => {
               ).toBe('duplicate');
 
               for (const invalid of [
-                { ...serviceOutput, userIndex: 4 },
-                { ...serviceOutput, userIndex: 3, aggregateIndex: 0 },
+                { ...serviceOutput, selectionIndex: 4 },
+                { ...serviceOutput, selectionIndex: 3, aggregateIndex: 0 },
               ]) {
                 const rejected = yield* applyAggregateFrontendCommand({
                   ...target,
@@ -256,7 +256,7 @@ describe('independent frontend progress', () => {
                 expect(Result.isFailure(rejected)).toBe(true);
                 expect(
                   db.select().from(sessionMetadataDrizzleSchema).get(),
-                ).toMatchObject({ userIndex: 2, aggregateIndex: 1 });
+                ).toMatchObject({ selectionIndex: 2, aggregateIndex: 1 });
                 expect(
                   db.select().from(sessionCommandJournalDrizzleSchema).all(),
                 ).toEqual(journalBefore);
@@ -269,7 +269,7 @@ describe('independent frontend progress', () => {
                 frontendState: {
                   ...snapshot,
                   aggregateIndex: 1,
-                  userIndex: 2,
+                  selectionIndex: 2,
                   resources: [{ ...user, name: 'Snapshot update' }],
                 },
               });
@@ -283,12 +283,12 @@ describe('independent frontend progress', () => {
               });
               expect(
                 db.select().from(sessionMetadataDrizzleSchema).get(),
-              ).toMatchObject({ aggregateIndex: 1, userIndex: 2 });
+              ).toMatchObject({ aggregateIndex: 1, selectionIndex: 2 });
 
               const finalized = yield* Schema.decodeUnknownEffect(
                 AggregateFrontendFinalizedCommandSchema,
               )({
-                userIndex: 3,
+                selectionIndex: 3,
                 aggregateIndex: 2,
                 delta: rejected
                   ? emptyDelta
@@ -336,7 +336,7 @@ describe('independent frontend progress', () => {
                   frontendState: {
                     ...snapshot,
                     aggregateIndex: 2,
-                    userIndex: 3,
+                    selectionIndex: 3,
                     resources: rejected
                       ? [user]
                       : [user, ...finalized.delta.inserted],
@@ -361,7 +361,7 @@ describe('independent frontend progress', () => {
               expect(
                 db.select().from(sessionMetadataDrizzleSchema).get(),
               ).toMatchObject({
-                userIndex: 3,
+                selectionIndex: 3,
                 aggregateIndex: 2,
                 pushIndex: 0,
               });

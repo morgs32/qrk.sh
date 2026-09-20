@@ -633,7 +633,7 @@ describe('main-thread IndexedDB adverse acceptance', () => {
         timeout: 120_000,
       })
       .toBe('ready');
-    const retainedUserIndex = firstSession.store.getState().userIndex;
+    const retainedSelectionIndex = firstSession.store.getState().selectionIndex;
 
     await act(async () => {
       firstRoot.unmount();
@@ -707,7 +707,7 @@ describe('main-thread IndexedDB adverse acceptance', () => {
       }
       expect(offlineState.sessionStatus).toBe('current');
       expect(offlineState.backupState.status).toBe('ready');
-      expect(offlineState.userIndex).toBe(retainedUserIndex);
+      expect(offlineState.selectionIndex).toBe(retainedSelectionIndex);
       expect(
         offlineState.db.query.user
           ?.findFirst({
@@ -895,7 +895,7 @@ describe('main-thread IndexedDB adverse acceptance', () => {
     if (!firstState.isInitialized) {
       throw new Error('The first main-thread session must be current');
     }
-    const persistedUserIndex = firstState.userIndex;
+    const persistedSelectionIndex = firstState.selectionIndex;
 
     const { cdp } = await import('vitest/browser');
     const targets = await cdp().send('Target.getTargets');
@@ -973,7 +973,9 @@ describe('main-thread IndexedDB adverse acceptance', () => {
           timeout: 120_000,
         })
         .toBe('ready');
-      expect(secondState.userIndex).toBeGreaterThanOrEqual(persistedUserIndex);
+      expect(secondState.selectionIndex).toBeGreaterThanOrEqual(
+        persistedSelectionIndex,
+      );
       expect(
         secondState.db.query.user
           ?.findFirst({

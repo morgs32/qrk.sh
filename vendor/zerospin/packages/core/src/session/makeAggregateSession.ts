@@ -129,7 +129,7 @@ export function makeAggregateSession<
       models: null,
       isInitialized: false,
       aggregateIndex: null,
-      userIndex: null,
+      selectionIndex: null,
       pushIndex: null,
       sessionStatus: 'bootstrapping',
       backupState: {

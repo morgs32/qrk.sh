@@ -94,7 +94,7 @@ A bounded contiguous page after a consumer cursor. Transport page boundaries do 
 
 - [`makeFanoutQueue.ts`](../packages/system-worker/src/makeFanoutQueue/makeFanoutQueue.ts) — Reads complete rows after the exclusive cursor with a 64-row limit and an optional inclusive upper bound.
 
-## userIndex
+## selectionIndex
 
 The contiguous position of one aggregate frontend output in SelectionVAR's SelectionVAC log.
 It advances for aggregate outcomes and independent pinned-service occurrences,

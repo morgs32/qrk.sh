@@ -138,7 +138,7 @@ describe('local session command journal', () => {
             models,
             isInitialized: true,
             aggregateIndex: 0,
-            userIndex: 0,
+            selectionIndex: 0,
             pushIndex: 0,
             sessionStatus: 'current',
             backupState: {
@@ -274,7 +274,7 @@ describe('local session command journal', () => {
             models,
             isInitialized: true,
             aggregateIndex: 0,
-            userIndex: 0,
+            selectionIndex: 0,
             pushIndex: 0,
             sessionStatus: 'current',
             backupState: {
@@ -350,7 +350,7 @@ describe('local session command journal', () => {
             models,
             isInitialized: true,
             aggregateIndex: 0,
-            userIndex: 0,
+            selectionIndex: 0,
             pushIndex: 0,
             sessionStatus: 'current',
             backupState: {
@@ -475,7 +475,7 @@ describe('local session command journal', () => {
           models,
           isInitialized: true,
           aggregateIndex: 0,
-          userIndex: 0,
+          selectionIndex: 0,
           pushIndex: 0,
           sessionStatus: 'bootstrapping',
           backupState: {
@@ -573,7 +573,7 @@ describe('local session command journal', () => {
             models,
             isInitialized: true,
             aggregateIndex: 0,
-            userIndex: 0,
+            selectionIndex: 0,
             pushIndex: 0,
             sessionStatus: 'current',
             backupState: {

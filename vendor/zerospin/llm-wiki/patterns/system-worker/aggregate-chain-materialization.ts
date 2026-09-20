@@ -22,7 +22,7 @@
  * successful finalized replicate mutations carry the effective resource,
  * serviceVersion, and serviceIndex. Service updates never create VAC entries.
  * SelectionVAR publishes aggregate and service progress through one SelectionVAC history,
- * ordered by userIndex with a separate aggregateIndex watermark.
+ * ordered by selectionIndex with a separate aggregateIndex watermark.
  *
  * Direct retries select the current base and return its retained result.
  * Cutover validates enrollment after its already-promoted shortcut. It samples n and awaits base.flush(n) and candidate.flush(n) in parallel.

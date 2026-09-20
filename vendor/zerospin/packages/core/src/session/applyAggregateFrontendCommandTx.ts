@@ -70,8 +70,8 @@ export const applyAggregateFrontendCommandTx = makeTx(
       message: 'Session metadata must exist before command delivery',
     });
   }
-  if (command.userIndex <= metadata.userIndex) return 'duplicate';
-  if (command.userIndex !== metadata.userIndex + 1) {
+  if (command.selectionIndex <= metadata.selectionIndex) return 'duplicate';
+  if (command.selectionIndex !== metadata.selectionIndex + 1) {
     return yield* new ZerospinError({
       code: 'aggregate-frontend-command-index-gap',
       message: 'Frontend output is not the next frontend position',
@@ -258,7 +258,7 @@ export const applyAggregateFrontendCommandTx = makeTx(
   tx.update(sessionMetadataDrizzleSchema)
     .set({
       aggregateIndex: command.aggregateIndex,
-      userIndex: command.userIndex,
+      selectionIndex: command.selectionIndex,
     })
     .where(eq(sessionMetadataDrizzleSchema.sessionId, sessionId))
     .run();

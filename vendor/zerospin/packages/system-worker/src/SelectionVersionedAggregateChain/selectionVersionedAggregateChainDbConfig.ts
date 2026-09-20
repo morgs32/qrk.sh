@@ -8,7 +8,7 @@ export const selectionVersionedAggregateChainDbConfig = makeDbConfig({
       name: 'deltas',
       shape: {
         commandId: primitives.text({ nullable: true }),
-        userIndex: primitives.integer({ primaryKey: true }),
+        selectionIndex: primitives.integer({ primaryKey: true }),
         aggregateIndex: primitives.integer(),
         output: primitives.json({
           schema: AggregateFrontendFinalizedCommandSchema,

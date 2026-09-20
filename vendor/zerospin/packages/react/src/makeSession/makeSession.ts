@@ -253,7 +253,7 @@ export function makeSession(props: unknown): unknown {
               frontendName: null,
               aggregateFrontendLockKey: null,
               aggregateIndex: null,
-              userIndex: null,
+              selectionIndex: null,
               pushIndex: null,
               backupState: { status: 'released', failure: null },
             });

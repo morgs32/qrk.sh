@@ -1,16 +1,16 @@
 ---
 title: Aggregate Frontend Submission
-updated: 2026-09-19
+updated: 2026-09-20
 ---
 
 # Aggregate Frontend Submission
 
-Server execution starts in VAR after AC admission. The browser owns optimism; SelectionVAR computes authoritative per-command view changes.
+Server execution starts in VAR after AC admission. The browser owns optimism; SelectionVAR computes authoritative per-command view changes. A `stageCommand` result describes only the synchronous main-thread SQLite transaction. Backup persistence and backend admission continue asynchronously and are never part of staging success.
 
 ## Trigger
 
-1. Local staging returns `Success` only after committing the complete occurrence, optimistic mutations, and inverse journal. A mutation-generation failure commits a failed occurrence and returns `Failure` with that occurrence in `command`; a failure before commit returns `Failure` without `command`. Both committed outcomes retain the delivery handoff.
-   - [`stageCommand.ts`](../../../packages/core/src/session/stageCommand.ts) — Requires bound execution resources and current ownership before constructing the complete command.
+1. Local staging returns `Success` only after committing the complete occurrence, optimistic mutations, and inverse journal. A mutation-generation failure commits a failed occurrence and returns `Failure` with that occurrence in `command`; a failure before commit returns `Failure` without `command`. Both committed outcomes retain the asynchronous delivery handoff. Neither outcome waits for backup persistence or backend admission.
+   - [`stageCommand.ts:159-214`](../../../packages/core/src/session/stageCommand.ts#L159-L214) — runs the local command transaction synchronously, then forks backend delivery independently after the encoded result exists. (`packages/core/src/session/stageCommand.ts:159-214`)
 
 ```mermaid
 sequenceDiagram
@@ -21,6 +21,7 @@ sequenceDiagram
   participant SelectionVersionedAggregateChain
   autonumber 1
   Browser->>AggregateSession: stageCommand(...)
+  Note over Browser,AggregateSession: Result reports the local SQLite commit only; backup and backend work remain asynchronous
   autonumber 2
   AggregateSession->>AggregateFrontendApi: frontendApi.pushCommand(...)
   autonumber 3
@@ -35,8 +36,8 @@ sequenceDiagram
 
 ## Annotated workflow steps
 
-1. Local staging returns `Success` only after committing the complete occurrence, optimistic mutations, and inverse journal. A mutation-generation failure commits a failed occurrence and returns `Failure` with that occurrence in `command`; a failure before commit returns `Failure` without `command`. Both committed outcomes retain the delivery handoff.
-   - [`stageCommand.ts`](../../../packages/core/src/session/stageCommand.ts) — Requires bound execution resources and current ownership before constructing the complete command.
+1. Local staging returns `Success` only after committing the complete occurrence, optimistic mutations, and inverse journal. A mutation-generation failure commits a failed occurrence and returns `Failure` with that occurrence in `command`; a failure before commit returns `Failure` without `command`. Both committed outcomes retain the asynchronous delivery handoff. Neither outcome promises that backup persistence or backend admission has completed.
+   - [`stageCommand.ts:159-214`](../../../packages/core/src/session/stageCommand.ts#L159-L214) — completes and encodes the synchronous local transaction before launching the optional delivery Effect with `runtime.runFork`. (`packages/core/src/session/stageCommand.ts:159-214`)
 2. The browser submits that complete occurrence through its authenticated frontend capability.
    - [`pushAggregateFrontendCommand.ts`](../../../packages/frontend/src/pushAggregateFrontendCommand.ts) — Sends the full encoded session command.
 3. The API checks the bound aggregate/user/frontend fields and admits the unchanged input.

@@ -90,7 +90,7 @@ describe('deleteList local occurrence', () => {
             models,
             isInitialized: true,
             aggregateIndex: 0,
-            userIndex: 0,
+            selectionIndex: 0,
             pushIndex: 0,
             sessionStatus: 'current',
             backupState: {
@@ -178,7 +178,7 @@ describe('deleteList local occurrence', () => {
           models,
           isInitialized: true,
           aggregateIndex: 0,
-          userIndex: 0,
+          selectionIndex: 0,
           pushIndex: 0,
           sessionStatus: 'current',
           backupState: {

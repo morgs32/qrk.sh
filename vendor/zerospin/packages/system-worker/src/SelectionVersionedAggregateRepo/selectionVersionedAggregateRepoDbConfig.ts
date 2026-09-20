@@ -12,7 +12,7 @@ export const selectionVersionedAggregateRepoTables = {
     shape: {
       id: primitives.integer({ primaryKey: true }),
       aggregateIndex: primitives.integer(),
-      userIndex: primitives.integer(),
+      selectionIndex: primitives.integer(),
       aggregateVersion: primitives.text(),
       canonicalBytes: primitives.text(),
       graph: primitives.json({ schema: Schema.Array(EncodedResourceSchema) }),

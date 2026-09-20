@@ -72,7 +72,7 @@ export const onMessage = Effect.fn(
   const decodedResume = yield* Schema.decodeUnknownEffect(
     Schema.fromJsonString(
       Schema.Struct({
-        userIndex: Schema.Number.check(
+        selectionIndex: Schema.Number.check(
           Schema.isInt(),
           Schema.isGreaterThanOrEqualTo(0),
         ),
@@ -88,10 +88,10 @@ export const onMessage = Effect.fn(
   connection.setState({ ...state, phase: 'replaying' });
 
   // 6 — reject a cursor beyond the tip and advance only after each send
-  let deliveredThroughUserIndex = decodedResume.success.userIndex;
+  let deliveredThroughSelectionIndex = decodedResume.success.selectionIndex;
   for (;;) {
     const page = yield* getCommands({
-      afterUserIndex: deliveredThroughUserIndex,
+      afterSelectionIndex: deliveredThroughSelectionIndex,
       db,
       frontend: {
         name: state.frontendName,
@@ -99,12 +99,12 @@ export const onMessage = Effect.fn(
         lock: state.aggregateFrontendLock,
       },
     });
-    if (page.tip < deliveredThroughUserIndex) {
+    if (page.tip < deliveredThroughSelectionIndex) {
       stateRequired();
       return;
     }
     for (const command of page.commands) {
-      if (command.userIndex !== deliveredThroughUserIndex + 1) {
+      if (command.selectionIndex !== deliveredThroughSelectionIndex + 1) {
         stateRequired();
         return;
       }
@@ -121,20 +121,20 @@ export const onMessage = Effect.fn(
           message: 'Failed to replay an aggregate frontend command',
         }),
       });
-      deliveredThroughUserIndex = command.userIndex;
+      deliveredThroughSelectionIndex = command.selectionIndex;
     }
-    if (deliveredThroughUserIndex === page.tip) break;
+    if (deliveredThroughSelectionIndex === page.tip) break;
     if (page.commands.length === 0) {
       stateRequired();
       return;
     }
   }
 
-  // 7 — send the final userIndex then set phase live
+  // 7 — send the final selectionIndex then set phase live
   connection.send(
     JSON.stringify({
       type: 'replay-complete',
-      userIndex: deliveredThroughUserIndex,
+      selectionIndex: deliveredThroughSelectionIndex,
     }),
   );
   connection.setState({ ...state, phase: 'live' });

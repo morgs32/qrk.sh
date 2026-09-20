@@ -72,8 +72,8 @@ sequenceDiagram
    - [`VersionedServiceChain.ts`](../../../packages/system-worker/src/VersionedServiceChain/VersionedServiceChain.ts) — Binds a separate typed queue to SelectionVAR subscribers.
    - [`executeTx.ts`](../../../packages/system-worker/src/SelectionVersionedAggregateRepo/execute/executeTx.ts) — Validates source order and applies newer service mutations to enrolled copies while retaining aggregate progress.
 7. SelectionVAR projects its combined resource state and publishes one output into SelectionVAC for every consumed source occurrence.
-   - [`executeTx.ts`](../../../packages/system-worker/src/SelectionVersionedAggregateRepo/execute/executeTx.ts) — Increments `userIndex` independently, derives the projected delta, and uses `resolution: null` for service-only output.
-8. The aggregate browser resumes one combined frontend stream by `userIndex`.
+   - [`executeTx.ts`](../../../packages/system-worker/src/SelectionVersionedAggregateRepo/execute/executeTx.ts) — Increments `selectionIndex` independently, derives the projected delta, and uses `resolution: null` for service-only output.
+8. The aggregate browser resumes one combined frontend stream by `selectionIndex`.
    - [`onMessage.ts`](../../../packages/system-worker/src/SelectionVersionedAggregateChain/onMessage/onMessage.ts) — Replays the contiguous frontend suffix and reports its frontend completion position.
 9. The existing VSC replica fanout separately feeds pinned FVSR instances for standalone service frontends.
    - [`VersionedServiceChain.ts`](../../../packages/system-worker/src/VersionedServiceChain/VersionedServiceChain.ts) — Retains the FVSR queue and subscriber identity.

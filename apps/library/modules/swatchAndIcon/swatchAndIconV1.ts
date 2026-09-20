@@ -1,12 +1,5 @@
 import { makeEffectSchema, primitives } from "@zerospin/schema";
 
-import {
-  brickBodyComponent,
-  brickFooterComponent,
-  brickShellComponent,
-  columnComponent,
-  rowComponent,
-} from "../../lib/jsonRender/layoutComponents";
 import { makeModuleVersion } from "../../make/makeModuleVersion";
 import { iconSvgGraphicComponent } from "./generator/IconSvgGraphicComponent";
 import { swatchAndIconColorComponent } from "./generator/SwatchAndIconColorComponent";
@@ -29,11 +22,6 @@ const defaultData = {
 export const swatchAndIconV1 = makeModuleVersion(swatchAndIcon, {
   version: "1.0.0",
   components: {
-    BrickShell: brickShellComponent,
-    BrickBody: brickBodyComponent,
-    BrickFooter: brickFooterComponent,
-    Column: columnComponent,
-    Row: rowComponent,
     SwatchAndIconColor: swatchAndIconColorComponent,
     IconSvgGraphic: iconSvgGraphicComponent,
   },

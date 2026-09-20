@@ -11,8 +11,8 @@ import { Effect, Schema } from "effect";
 
 import { makePlacementId } from "../../models/placement/makePlacementId";
 import {
-  compactVisibleLayout,
-  visibleLayoutError,
+  makeCompactLayout,
+  findVisibleLayoutError,
 } from "../../resolveVisibleCollisions";
 import { makeBrickModel } from "../../models/brick/makeBrickModel";
 import { makePlacementModel } from "../../models/placement/placementModelV1";
@@ -139,7 +139,7 @@ export function makeCompactLayoutAtBreakpointContract(props: {
         }
       }
 
-      const layoutError = visibleLayoutError({
+      const layoutError = findVisibleLayoutError({
         layout: payload.visibleLayout,
         context: "compactLayoutAtBreakpoint",
       });
@@ -153,7 +153,7 @@ export function makeCompactLayoutAtBreakpointContract(props: {
     }),
     program: ({ payload, models }) =>
       Effect.gen(function* () {
-        const compacted = compactVisibleLayout(payload.visibleLayout);
+        const compacted = makeCompactLayout(payload.visibleLayout);
         const mutations = [];
         for (const item of compacted) {
           mutations.push(
@@ -163,7 +163,7 @@ export function makeCompactLayoutAtBreakpointContract(props: {
                 payload.breakpoint,
               ) as InferIdFromAbbreviation<"plc">,
               attributes: {
-                gridItem: structuredClone(item),
+                gridItem: item,
               } as Partial<
                 InferDecodedRow<(typeof props.placement)["attributes"]>
               >,

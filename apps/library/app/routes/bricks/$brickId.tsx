@@ -18,7 +18,7 @@ import { useWallViewport } from "../../../lib/WallViewportProvider";
 import type { LibraryApi } from "../../../worker/LibraryApi.public";
 import type { IScrapeError } from "../../../worker/types.public";
 import { useLibrarySession } from "../../../makeLibraryFrontend/createLibraryMockSession";
-import { readGridItem } from "../../readGridItem";
+import { decodeGridItem } from "../../decodeGridItem";
 
 export const Route = createFileRoute("/bricks/$brickId")({
   component: BrickDetail,
@@ -109,7 +109,7 @@ function BrickDetail() {
     throw notFound();
   }
   const placementSpec = rawSpec;
-  const savedGridItem = readGridItem(placement.gridItem);
+  const savedGridItem = decodeGridItem(placement.gridItem);
 
   return (
     <OrderedDoc>
@@ -222,7 +222,7 @@ function BrickDetail() {
                         ) {
                           return [];
                         }
-                        return [readGridItem(otherPlacement.gridItem)];
+                        return [decodeGridItem(otherPlacement.gridItem)];
                       },
                     );
                     const result = stageCommand({

@@ -9,7 +9,7 @@ import {
   type ComponentRegistry,
 } from "@json-render/react";
 
-function initialStateFromDocument(state: unknown): Record<string, unknown> {
+function makeInitialState(state: unknown): Record<string, unknown> {
   if (state !== null && typeof state === "object" && !Array.isArray(state)) {
     const initialState: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(state)) {
@@ -26,7 +26,7 @@ export function ModuleSpecPreview(props: {
   spec: Spec;
   registry: ComponentRegistry;
 }) {
-  const initialState = initialStateFromDocument(props.state);
+  const initialState = makeInitialState(props.state);
 
   return (
     <div className="size-full overflow-hidden" data-module-spec-preview>

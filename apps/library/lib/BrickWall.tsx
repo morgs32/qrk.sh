@@ -10,9 +10,9 @@ import type { LibraryMockSession } from "../makeLibraryFrontend/createLibraryMoc
 import { BrickWrapper } from "../components/brick/BrickWrapper";
 import { brickDragStore } from "./GridStore";
 import { modulesHash } from "./modulesHash";
-import { readGridItem } from "./readGridItem";
+import { decodeGridItem } from "./decodeGridItem";
 
-function toGridItem(item: { i: string; x: number; y: number; w: number; h: number }) {
+function makeGridItem(item: { i: string; x: number; y: number; w: number; h: number }) {
   return {
     i: item.i,
     x: item.x,
@@ -107,7 +107,7 @@ export function BrickWall(props: {
       ) {
         return [];
       }
-      return [toGridItem(readGridItem(placement.gridItem))];
+      return [makeGridItem(decodeGridItem(placement.gridItem))];
     });
   }
 
@@ -164,7 +164,7 @@ export function BrickWall(props: {
               payload: {
                 wallId,
                 breakpoint,
-                layout: nextLayout.map(toGridItem),
+                layout: nextLayout.map(makeGridItem),
               },
             });
             if (result._tag === "Failure") {
@@ -209,7 +209,7 @@ export function BrickWall(props: {
             };
             const resolvedActiveLayout = nextLayout.map((layoutItem) => {
               if (layoutItem.i !== item.i) {
-                return toGridItem(layoutItem);
+                return makeGridItem(layoutItem);
               }
               return droppedItem;
             });
@@ -316,7 +316,7 @@ export function BrickWall(props: {
                 payload: {
                   wallId,
                   breakpoint,
-                  layout: nextLayout.map(toGridItem),
+                  layout: nextLayout.map(makeGridItem),
                 },
               });
               if (result._tag === "Failure") {

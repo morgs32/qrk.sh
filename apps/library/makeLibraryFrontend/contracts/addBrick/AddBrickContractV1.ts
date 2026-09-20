@@ -16,8 +16,8 @@ import { makeModuleSpecDocumentSchema } from "../../../make/makeModuleSpecDocume
 import { makePlacementId } from "../../models/placement/makePlacementId";
 import {
   cloneLayoutItem,
-  resolveVisibleCollisions,
-  visibleLayoutError,
+  makeCollisionResolvedLayout,
+  findVisibleLayoutError,
 } from "../../resolveVisibleCollisions";
 import { makeBrickModel } from "../../models/brick/makeBrickModel";
 import { makePlacementModel } from "../../models/placement/placementModelV1";
@@ -31,16 +31,6 @@ const gridItemSchema = Schema.Struct({
   w: Schema.Number,
   h: Schema.Number,
 });
-
-function toStoredGridItem(item: { i: string; x: number; y: number; w: number; h: number }) {
-  return {
-    i: item.i,
-    x: item.x,
-    y: item.y,
-    w: item.w,
-    h: item.h,
-  };
-}
 
 const structuralSpecSchema = Schema.Struct({
   root: Schema.String,
@@ -174,7 +164,7 @@ export function makeAddBrickContract<
         });
       }
 
-      const activeLayoutError = visibleLayoutError({
+      const activeLayoutError = findVisibleLayoutError({
         layout: payload.resolvedActiveLayout,
         context: "addBrick.resolvedActiveLayout",
       });
@@ -267,7 +257,7 @@ export function makeAddBrickContract<
           }
         }
 
-        const otherLayoutError = visibleLayoutError({
+        const otherLayoutError = findVisibleLayoutError({
           layout: preDropLayout,
           context: `addBrick.otherBreakpointVisibleLayouts.${breakpoint}`,
         });
@@ -380,7 +370,7 @@ export function makeAddBrickContract<
           const layout =
             breakpoint === payload.breakpoint
               ? payload.resolvedActiveLayout
-              : resolveVisibleCollisions({
+              : makeCollisionResolvedLayout({
                   visibleLayout:
                     payload.otherBreakpointVisibleLayouts[breakpoint],
                   incoming: cloneLayoutItem(payload.droppedItem),
@@ -399,7 +389,7 @@ export function makeAddBrickContract<
                       payload.brickId as InferIdFromAbbreviation<"brk">,
                     breakpoint,
                     spec: structuredClone(clonedSpec),
-                    gridItem: toStoredGridItem(item),
+                    gridItem: item,
                     isVisible: true,
                   } as InferDecodedRow<
                     (typeof props.placement)["attributes"]
@@ -416,7 +406,7 @@ export function makeAddBrickContract<
                   breakpoint,
                 ) as InferIdFromAbbreviation<"plc">,
                 attributes: {
-                  gridItem: toStoredGridItem(item),
+                  gridItem: item,
                 } as Partial<
                   InferDecodedRow<(typeof props.placement)["attributes"]>
                 >,

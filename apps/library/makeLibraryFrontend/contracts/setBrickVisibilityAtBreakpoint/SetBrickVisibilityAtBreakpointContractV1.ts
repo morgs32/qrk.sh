@@ -12,8 +12,8 @@ import { Effect, Schema } from "effect";
 import { makePlacementId } from "../../models/placement/makePlacementId";
 import {
   cloneLayoutItem,
-  resolveVisibleCollisions,
-  visibleLayoutError,
+  makeCollisionResolvedLayout,
+  findVisibleLayoutError,
 } from "../../resolveVisibleCollisions";
 import { makeBrickModel } from "../../models/brick/makeBrickModel";
 import { makePlacementModel } from "../../models/placement/placementModelV1";
@@ -201,11 +201,11 @@ export function makeSetBrickVisibilityAtBreakpointContract(props: {
           }
         }
 
-        const resolved = resolveVisibleCollisions({
+        const resolved = makeCollisionResolvedLayout({
           visibleLayout: payload.otherVisibleLayout,
           incoming: payload.savedGridItem,
         });
-        const layoutError = visibleLayoutError({
+        const layoutError = findVisibleLayoutError({
           layout: resolved,
           context: "setBrickVisibilityAtBreakpoint",
         });
@@ -238,7 +238,7 @@ export function makeSetBrickVisibilityAtBreakpointContract(props: {
           ];
         }
 
-        const resolved = resolveVisibleCollisions({
+        const resolved = makeCollisionResolvedLayout({
           visibleLayout: payload.otherVisibleLayout,
           incoming: cloneLayoutItem(payload.savedGridItem),
         });
@@ -254,7 +254,7 @@ export function makeSetBrickVisibilityAtBreakpointContract(props: {
                 ) as InferIdFromAbbreviation<"plc">,
                 attributes: {
                   isVisible: true,
-                  gridItem: structuredClone(item),
+                  gridItem: item,
                 } as Partial<
                   InferDecodedRow<(typeof props.placement)["attributes"]>
                 >,
@@ -270,7 +270,7 @@ export function makeSetBrickVisibilityAtBreakpointContract(props: {
                 payload.breakpoint,
               ) as InferIdFromAbbreviation<"plc">,
               attributes: {
-                gridItem: structuredClone(item),
+                gridItem: item,
               } as Partial<
                 InferDecodedRow<(typeof props.placement)["attributes"]>
               >,

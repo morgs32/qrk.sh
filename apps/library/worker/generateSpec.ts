@@ -12,7 +12,7 @@ function backendEntryForModuleId(moduleId: string) {
   return undefined;
 }
 
-function initialStateFromDocument(state: unknown): Record<string, unknown> {
+function makeInitialState(state: unknown): Record<string, unknown> {
   if (state !== null && typeof state === "object" && !Array.isArray(state)) {
     const initialState: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(state)) {
@@ -117,7 +117,7 @@ export async function generateSpec(props: {
     const system = catalog.prompt({ mode: "standalone" });
     const user = buildUserPrompt({
       prompt: trimmedPrompt,
-      state: initialStateFromDocument(props.state),
+      state: makeInitialState(props.state),
       currentSpec,
     });
     const response = await fetch("https://api.openai.com/v1/chat/completions", {

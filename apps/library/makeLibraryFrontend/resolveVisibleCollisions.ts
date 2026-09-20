@@ -10,11 +10,14 @@ import type { Layout, LayoutItem } from "react-grid-layout";
 
 const GRID_COLS = 8;
 
-/** Clone, bound, and displace visible neighbors around an inserted/shown item without compacting gaps. */
-export function resolveVisibleCollisions(props: {
+/**
+ * Clone, bound, and displace visible neighbors around an inserted/shown item without compacting gaps.
+ * Synchronously return a fresh array of fresh { i, x, y, w, h } objects without mutating inputs.
+ */
+export function makeCollisionResolvedLayout(props: {
   visibleLayout: Layout;
   incoming: LayoutItem;
-}): Layout {
+}) {
   let working = cloneLayout(props.visibleLayout);
   const existingIndex = working.findIndex(item => item.i === props.incoming.i);
   const incoming = cloneLayoutItem(props.incoming);
@@ -46,11 +49,11 @@ export function resolveVisibleCollisions(props: {
     }
   }
 
-  return working;
+  return working.map(({ i, x, y, w, h }) => ({ i, x, y, w, h }));
 }
 
 /** Return an error message when a visible layout has overlaps or out-of-bounds items. */
-export function visibleLayoutError(props: {
+export function findVisibleLayoutError(props: {
   layout: Layout;
   context: string;
 }): string | null {
@@ -74,9 +77,13 @@ export function visibleLayoutError(props: {
   return null;
 }
 
-/** Vertically compact visible placements only. */
-export function compactVisibleLayout(layout: Layout): Layout {
-  return verticalCompactor.compact(cloneLayout(layout), GRID_COLS);
+/**
+ * Vertically compact visible placements only.
+ * Synchronously return a fresh array of fresh { i, x, y, w, h } objects without mutating inputs.
+ */
+export function makeCompactLayout(layout: Layout) {
+  const compacted = verticalCompactor.compact(cloneLayout(layout), GRID_COLS);
+  return compacted.map(({ i, x, y, w, h }) => ({ i, x, y, w, h }));
 }
 
 export { GRID_COLS, cloneLayout, cloneLayoutItem, correctBounds };

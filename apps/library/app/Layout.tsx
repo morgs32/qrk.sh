@@ -26,7 +26,7 @@ import {
   LibrarySessionContext,
 } from "../makeLibraryFrontend/createLibraryMockSession";
 import { LibraryFrontend } from "../makeLibraryFrontend/makeLibraryFrontend";
-import { readGridItem } from "./readGridItem";
+import { decodeGridItem } from "./decodeGridItem";
 
 const WALL_ID = prefixId(LibraryFrontend.models.wall, "library");
 const LIBRARY_VIEWPORT_STORAGE_NAME = "qrk-bricks-library-viewport-v1";
@@ -322,7 +322,7 @@ function LayoutBody(props: {
       ) {
         return [];
       }
-      return [readGridItem(placement.gridItem)];
+      return [decodeGridItem(placement.gridItem)];
     });
     const result = stageCommand({
       session,

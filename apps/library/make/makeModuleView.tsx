@@ -15,7 +15,7 @@ const emptySpec: Spec = {
   elements: {},
 };
 
-function initialStateFromDocument(state: unknown): Record<string, unknown> {
+function makeInitialState(state: unknown): Record<string, unknown> {
   if (state !== null && typeof state === "object" && !Array.isArray(state)) {
     const initialState: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(state)) {
@@ -157,7 +157,7 @@ export function makeModuleView<
     if (resolved.registry === undefined) {
       return <Authored state={propsForBrick.state} />;
     }
-    const initialState = initialStateFromDocument(propsForBrick.state);
+    const initialState = makeInitialState(propsForBrick.state);
     return (
       <StateProvider initialState={initialState}>
         <VisibilityProvider>

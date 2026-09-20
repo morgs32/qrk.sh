@@ -10,7 +10,7 @@ import {
 import { Effect, Schema } from "effect";
 
 import { makePlacementId } from "../../models/placement/makePlacementId";
-import { visibleLayoutError } from "../../resolveVisibleCollisions";
+import { findVisibleLayoutError } from "../../resolveVisibleCollisions";
 import { makeBrickModel } from "../../models/brick/makeBrickModel";
 import { makePlacementModel } from "../../models/placement/placementModelV1";
 import { wallModelV1 } from "../../models/wall/wallModelV1";
@@ -136,7 +136,7 @@ export function makeUpdateLayoutAtBreakpointContract(props: {
         }
       }
 
-      const layoutError = visibleLayoutError({
+      const layoutError = findVisibleLayoutError({
         layout: payload.layout,
         context: "updateLayoutAtBreakpoint",
       });

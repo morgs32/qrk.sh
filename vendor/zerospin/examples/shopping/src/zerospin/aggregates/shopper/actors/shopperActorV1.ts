@@ -3,10 +3,7 @@ import { resolveFailure } from '@zerospin/core/contracts/failureCodec';
 import * as sdk from '@zerospin/sdk';
 import { Effect } from 'effect';
 
-import {
-  clerkCredentialsSchema,
-  shopperIdentitySchema,
-} from '../../../identities';
+import { clerkCredentialsSchema, shopperClaims } from '../../../claims';
 import { verifyClerkIdentity } from '../../../verifyClerkIdentity';
 import { addToCartV1 } from '../contracts/addToCart/AddToCartV1';
 import { createCartV1 } from '../contracts/createCart/CreateCartV1';
@@ -39,7 +36,7 @@ const shopperDb = sdk.makeActorDbVersion({
   },
 });
 const shopperIdentity = sdk.makeActorIdentity({
-  schema: shopperIdentitySchema,
+  claims: shopperClaims,
   actorPath: RoutePattern.parse('/:clerkUserId'),
 });
 export const shopperActorV1 = sdk.makeAggregateActorVersion(shopperActor, {
@@ -52,7 +49,7 @@ export const shopperActorV1 = sdk.makeAggregateActorVersion(shopperActor, {
           aggregateId: 'acct_1',
           contract: createUserV1,
           actor: provisionerV1,
-          identity: {
+          claims: {
             aggregateId: 'acct_1',
             clerkUserId,
           },

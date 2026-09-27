@@ -5,13 +5,9 @@
     "incremental": false,
     "rewriteRelativeImportExtensions": false,
     "allowImportingTsExtensions": true,
-    "rootDir": ".",
+    "rootDir": "../..",
     "noEmit": true,
-    "types": [
-      "node",
-      "vite/client",
-      "vitest/globals"
-    ]
+    "types": ["node", "vite/client", "vitest/globals"]
   },
   "include": [
     "src/**/*.spec.ts",

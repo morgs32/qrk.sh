@@ -28,7 +28,7 @@ it('keeps one command ID in distinct aggregate and service source scopes', async
         systemName: null,
         actorName: null,
         actorVersion: null,
-        identity: null,
+        claims: null,
         nodeId: null,
         sessionName: null,
         nodeIndex: null,

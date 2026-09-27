@@ -16,11 +16,11 @@ import type {
 export type IAggregateActorSelections = Readonly<Record<string, ISelection>>;
 
 export type IAggregateActorAuthorization<
-  IDENTITY = Readonly<Record<string, unknown>>,
+  CLAIMS = Readonly<Record<string, unknown>>,
   R = never,
 > = {
   bivarianceHack(props: {
-    identity: IDENTITY;
+    claims: CLAIMS;
     aggregateId: string;
     sessionName: string;
     db: Readonly<Pick<IDb, 'query'>>;

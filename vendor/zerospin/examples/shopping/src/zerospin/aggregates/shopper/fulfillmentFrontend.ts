@@ -1,8 +1,8 @@
 import { makeFulfillmentFrontendModule } from '@zerospin/fulfillment/browser';
 
+import { shopperClaims } from '../../claims';
 import { fulfillmentSource } from '../../services/fulfillment/fulfillmentSource';
 
-import { shopperIdentitySchema } from './actors/identities';
 import { cartV1 } from './models/cart/CartV1';
 import { userV1 } from './models/user/UserV1';
 import { purchaseFrontend } from './purchaseFrontend';
@@ -14,6 +14,6 @@ export const fulfillmentFrontend = makeFulfillmentFrontendModule({
     user: userV1,
   },
   source: fulfillmentSource,
-  identitySchema: shopperIdentitySchema,
+  claimsSchema: shopperClaims,
   resolvePurchaseOwner,
 });

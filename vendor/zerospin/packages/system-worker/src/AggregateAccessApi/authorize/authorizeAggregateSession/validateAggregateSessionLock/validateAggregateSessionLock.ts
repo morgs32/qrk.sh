@@ -88,9 +88,9 @@ export const validateAggregateSessionLock = Effect.fn(
     );
   }
   if (
-    !isEqual(aggregateSessionLock.identity, {
-      identityJsonSchema: Schema.toJsonSchemaDocument(
-        actor.identity.identitySchema,
+    !isEqual(aggregateSessionLock.claims, {
+      claimsJsonSchema: Schema.toJsonSchemaDocument(
+        actor.identity.claimsSchema,
       ),
     })
   ) {
@@ -98,7 +98,7 @@ export const validateAggregateSessionLock = Effect.fn(
       makeZerospinError({
         code: 'aggregate-session-lock-unsupported',
         message:
-          'Session identity declarations differ from the selected owner version',
+          'Session claims declarations differ from the selected owner version',
       }),
     );
   }
@@ -283,7 +283,7 @@ export const validateAggregateSessionLock = Effect.fn(
   const resolvedLock = {
     actorName: actor.name,
     actorVersion: actor.version,
-    identity: aggregateSessionLock.identity,
+    claims: aggregateSessionLock.claims,
     sessionName,
     models: resolvedModels,
     contracts: resolvedContracts,

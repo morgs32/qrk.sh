@@ -53,7 +53,7 @@ export const createWebSocketTicket = Effect.fn(
   authResults: {
     readonly serviceName: string;
     serviceVersion: string;
-    readonly identity: Readonly<Record<string, unknown>>;
+    readonly claims: Readonly<Record<string, unknown>>;
     readonly actorPath: string;
     readonly sessionName: string;
     readonly serviceSessionLock: IServiceSessionLock;
@@ -117,7 +117,7 @@ export const createWebSocketTicket = Effect.fn(
       sessionName,
       serviceSessionLock,
       serviceName,
-      identity,
+      claims,
       actorPath,
 
       systemId: configuredSystemId,
@@ -174,7 +174,7 @@ export const createWebSocketTicket = Effect.fn(
           extra: {
             serviceName,
             serviceVersion,
-            identity,
+            claims,
             actorPath,
             sessionName,
           },
@@ -188,7 +188,7 @@ export const createWebSocketTicket = Effect.fn(
         repoName,
         serviceName,
         serviceVersion,
-        identity,
+        claims,
         actorPath,
         sessionName,
         serviceSessionLock,

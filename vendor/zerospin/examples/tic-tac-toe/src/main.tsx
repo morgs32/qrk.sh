@@ -16,11 +16,11 @@ const stored = localStorage.getItem('tic-tac-toe-game');
 const token = stored ?? crypto.randomUUID();
 localStorage.setItem('tic-tac-toe-game', token);
 const id = sdk.prefixId(game, token);
-const identity = { aggregateId: `acct_${token}`, instanceId: id };
+const claims = { aggregateId: `acct_${token}`, instanceId: id };
 function App() {
   const status = useInitializeSession({
     session: gameSession,
-    identity,
+    claims,
   });
   return (
     <main>

@@ -1,7 +1,7 @@
 import * as sdk from '@zerospin/sdk/browser';
 import { Effect, Schema } from 'effect';
 
-import { shopperIdentitySchema } from '../../actors/identities';
+import { userClaims } from '../../../../claims';
 import { cartV1 } from '../../models/cart/CartV1';
 import { cartItem } from '../../models/cartItem/cartItem';
 import { cartItemV2 } from '../../models/cartItem/CartItemV2';
@@ -15,7 +15,7 @@ const { checkout: checkoutV1, purchase: purchaseV1 } = purchaseFrontend.models;
 export const updateCartItemQuantityV1 = sdk.makeContractVersion(
   updateCartItemQuantity,
   {
-    identity: shopperIdentitySchema,
+    claims: userClaims,
     failures: {
       cartFrozen: sdk.ContractError.schema({
         code: 'cart-frozen',
@@ -50,7 +50,7 @@ export const updateCartItemQuantityV1 = sdk.makeContractVersion(
     guard: Effect.fn('updateCartItemQuantityV1.guard')(function* ({
       failures,
       payload,
-      identity,
+      claims,
       queryDb,
     }) {
       const db = queryDb;
@@ -80,7 +80,7 @@ export const updateCartItemQuantityV1 = sdk.makeContractVersion(
           .sync(),
         user: queryDb.query.user
           .findFirst({
-            where: { clerkUserId: { eq: identity.clerkUserId } },
+            where: { clerkUserId: { eq: claims.clerkUserId } },
           })
           .sync(),
         hasPendingPurchase:

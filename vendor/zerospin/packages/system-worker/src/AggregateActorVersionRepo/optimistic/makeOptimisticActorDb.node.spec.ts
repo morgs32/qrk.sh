@@ -4,10 +4,10 @@ import { encodeMutation } from '@zerospin/core/contracts/encodeAppliedMutation';
 import { makeModelMutations } from '@zerospin/core/contracts/make/makeModelMutations';
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/make/makeDbConfig/makeDbConfig';
 import { makeTx } from '@zerospin/core/drizzle/make/makeTx';
+import { game } from '@zerospin/fixtures/system-worker/workerd/automationFixture';
 import { Effect } from 'effect';
 import { expect, it } from 'vitest';
 
-import { game } from '../../workerd-utils/automationFixture.js';
 import { makeActorSnapshotDb } from '../validateCommands/makeActorSnapshotDb.js';
 
 import { makeOptimisticActorDb } from './makeOptimisticActorDb.js';

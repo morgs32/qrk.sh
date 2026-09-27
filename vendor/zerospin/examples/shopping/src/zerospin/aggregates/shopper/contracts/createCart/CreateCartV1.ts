@@ -1,7 +1,7 @@
 import * as sdk from '@zerospin/sdk/browser';
 import { Effect, Schema } from 'effect';
 
-import { shopperIdentitySchema } from '../../actors/identities';
+import { userClaims } from '../../../../claims';
 import { cart } from '../../models/cart/cart';
 import { cartV1 } from '../../models/cart/CartV1';
 import { user } from '../../models/user/user';
@@ -9,7 +9,7 @@ import { userV1 } from '../../models/user/UserV1';
 
 import { createCart } from './createCart';
 export const createCartV1 = sdk.makeContractVersion(createCart, {
-  identity: shopperIdentitySchema,
+  claims: userClaims,
   failures: {
     actorDenied: sdk.ActorError.schema({
       code: 'actor-denied',
@@ -31,7 +31,7 @@ export const createCartV1 = sdk.makeContractVersion(createCart, {
   guard: Effect.fn('createCartV1.guard')(function* ({
     failures,
     payload,
-    identity,
+    claims,
     queryDb,
   }) {
     const db = queryDb;
@@ -54,7 +54,7 @@ export const createCartV1 = sdk.makeContractVersion(createCart, {
     }
 
     const user = queryDb.query.user
-      .findFirst({ where: { clerkUserId: { eq: identity.clerkUserId } } })
+      .findFirst({ where: { clerkUserId: { eq: claims.clerkUserId } } })
       .sync();
     if (user?.id !== resource.id) {
       return yield* Effect.fail(

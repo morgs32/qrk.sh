@@ -3,7 +3,7 @@ import { makeSession } from '@zerospin/browser';
 import { applicationLayer } from './applicationLayer';
 import { createGame } from './contracts/createGameV1';
 import { playX } from './contracts/playXV1';
-import { game, identitySchema } from './gameV1';
+import { claimsSchema, game } from './gameV1';
 
 export const gameSession = makeSession({
   kind: 'aggregate',
@@ -15,7 +15,7 @@ export const gameSession = makeSession({
   models: { game },
   contracts: { createGame, playX },
   automations: {},
-  identitySchema,
+  claimsSchema,
   layer: applicationLayer,
   systemName: 'tic-tac-toe',
 });

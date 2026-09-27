@@ -44,7 +44,7 @@ const command = (
   payload: JSON.stringify({ id: 'gam_selected', value }),
   actorName: 'human',
   actorVersion: '1.0.0',
-  identity: { aggregateId: key.aggregateId, instanceId: 'gam_selected' },
+  claims: { aggregateId: key.aggregateId, instanceId: 'gam_selected' },
   nodeId: null,
   sessionName: null,
   nodeIndex: null,
@@ -268,7 +268,7 @@ it('registers before the first move and executes a guarded automation-only comma
     )
     .toMatchObject({
       automationName: 'computerTurn',
-      identity: expect.any(String),
+      claims: expect.any(String),
     });
   await expect
     .poll(

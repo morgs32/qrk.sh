@@ -48,7 +48,7 @@ export function makeMockAggregateSession<
   props: {
     definition: DEFINITION & { models: MODELS };
     layer?: APP_LAYER;
-    identity: DEFINITION['identity']['identitySchema']['Type'];
+    claims: DEFINITION['claimsSchema']['Type'];
     resources?: Partial<{
       [K in keyof MODELS]: readonly InferResource<MODELS[K]>[];
     }>;
@@ -78,7 +78,7 @@ export function makeMockAggregateSession<
 export function makeMockAggregateSession(props: {
   definition: Omit<IAggregateSessionDefinition, 'systemName'>;
   layer?: Layer.Layer<never, IAnyError>;
-  identity: Readonly<Record<string, unknown>>;
+  claims: Readonly<Record<string, unknown>>;
   resources?: Partial<
     Record<string, readonly InferResource<IAnyModels[string]>[]>
   >;
@@ -86,7 +86,7 @@ export function makeMockAggregateSession(props: {
   const {
     definition: authoredDefinition,
     layer = Layer.empty,
-    identity: fixtureIdentity,
+    claims: fixtureClaims,
     resources: fixtureResources = {},
   } = props;
   const definition: typeof authoredDefinition & {
@@ -111,7 +111,7 @@ export function makeMockAggregateSession(props: {
         sessionId: null,
         aggregateId: null,
         aggregateName: null,
-        identity: null,
+        claims: null,
         sessionName: null,
         aggregateSessionLockKey: null,
         aggregateIndex: null,
@@ -135,17 +135,17 @@ export function makeMockAggregateSession(props: {
           settleLocally: true,
         });
 
-        const identity = yield* Schema.encodeEffect(
-          definition.identity.identitySchema,
-        )(fixtureIdentity).pipe(
+        const claims = yield* Schema.encodeEffect(definition.claimsSchema)(
+          fixtureClaims,
+        ).pipe(
           mapParseError({
-            code: 'mock-session-identity-invalid',
-            prefix: 'Invalid mock identity',
+            code: 'mock-session-claims-invalid',
+            prefix: 'Invalid mock claims',
           }),
         );
         const aggregateId = yield* Schema.decodeUnknownEffect(
           makeAbbreviationIdSchema('acct'),
-        )(identity.aggregateId).pipe(
+        )(claims.aggregateId).pipe(
           mapParseError({
             code: 'mock-session-aggregate-id-invalid',
             prefix: 'Invalid mock aggregate ID',
@@ -185,14 +185,14 @@ export function makeMockAggregateSession(props: {
           definition,
           sessionId,
           aggregateId,
-          identity,
+          claims,
           snapshot: {
             actorName: definition.actorName,
             actorVersion: definition.actorVersion,
 
             aggregateId,
             aggregateName: definition.aggregateName,
-            identity: fixtureIdentity,
+            claims: fixtureClaims,
             aggregateIndex: 0,
             executedIndex: 0,
             executedHash:
@@ -211,9 +211,7 @@ export function makeMockAggregateSession(props: {
 
           aggregateId,
           aggregateName: definition.aggregateName,
-          identity: Schema.decodeUnknownSync(
-            definition.identity.identitySchema,
-          )(identity),
+          claims: Schema.decodeUnknownSync(definition.claimsSchema)(claims),
           db,
           aggregateIndex: 0,
           executedIndex: 0,

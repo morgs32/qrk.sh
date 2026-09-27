@@ -4,7 +4,7 @@ import { RpcTarget } from 'capnweb';
 
 import { authorize } from './authorize/authorize.js';
 
-/** Verified aggregate identity, retained privately for definition admission. */
+/** Verified aggregate claims, retained privately for definition admission. */
 export class AggregateAccessApi extends RpcTarget {
   readonly #access: Parameters<typeof authorize>[0]['access'];
   readonly #runtime: ISystem['runtime'];

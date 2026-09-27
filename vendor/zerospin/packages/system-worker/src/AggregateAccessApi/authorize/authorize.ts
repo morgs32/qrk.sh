@@ -26,7 +26,7 @@ export const authorize = Effect.fn('AggregateAccessApi.authorize')(
       aggregateName: string;
       aggregateVersion: string;
       admitted: {
-        identity: Readonly<Record<string, unknown>>;
+        claims: Readonly<Record<string, unknown>>;
         actorName: string;
         actorVersion: string;
         actorPath: string;
@@ -67,10 +67,10 @@ export const authorize = Effect.fn('AggregateAccessApi.authorize')(
           }),
         );
       }
-      const identity = admitted.identity;
+      const claims = admitted.claims;
       const aggregateId = yield* Schema.decodeUnknownEffect(
         makeAbbreviationIdSchema(coreAbbreviations.aggregate),
-      )(identity.aggregateId).pipe(
+      )(claims.aggregateId).pipe(
         mapParseError({
           code: 'identity-aggregate-id-invalid',
           prefix: 'Invalid admitted aggregate ID',
@@ -83,12 +83,12 @@ export const authorize = Effect.fn('AggregateAccessApi.authorize')(
         aggregateName: access.aggregateName,
         sessionName: validated.sessionName,
         aggregateSessionLock,
-        identity,
+        claims,
       });
       yield* checkAggregateAuthorization({
         aggregateVersion: access.aggregateVersion,
         authorization,
-        identity,
+        claims,
         aggregateId,
         aggregateName: access.aggregateName,
         sessionName: validated.sessionName,
@@ -100,7 +100,7 @@ export const authorize = Effect.fn('AggregateAccessApi.authorize')(
           aggregateVersion: access.aggregateVersion,
           aggregateId: authorization.aggregateId,
           aggregateName: authorization.aggregateName,
-          identity: authorization.identity,
+          claims: authorization.claims,
           actorName: admitted.actorName,
           actorVersion: admitted.actorVersion,
           actorPath: admitted.actorPath,

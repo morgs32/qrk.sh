@@ -44,7 +44,7 @@ export const getActorCommands = Effect.fn(
     readonly aggregateId: IAggregateId;
     readonly aggregateName: string;
     aggregateVersion: string;
-    readonly identity: Readonly<Record<string, unknown>>;
+    readonly claims: Readonly<Record<string, unknown>>;
     actorName: string;
     actorVersion: string;
     readonly actorPath: string;
@@ -134,7 +134,7 @@ export const getActorCommands = Effect.fn(
       afterExecutedIndex: validated.success[0].afterExecutedIndex,
       definition: {
         name: authResults.sessionName,
-        identity: authResults.identity,
+        claims: authResults.claims,
         lock: authResults.aggregateSessionLock,
       },
     }),

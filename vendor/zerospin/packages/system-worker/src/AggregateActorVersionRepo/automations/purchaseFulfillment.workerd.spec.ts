@@ -99,7 +99,7 @@ it('pays a purchase and persists manual packing and shipping outcomes', async ()
           aggregateVersion: '1.0.0',
           actorName: 'shopper',
           actorVersion: '1.0.0',
-          identity: { aggregateId, userId: owner },
+          claims: { aggregateId, userId: owner },
           id,
           commandName,
           contractVersion: '1.0.0',

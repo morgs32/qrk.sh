@@ -4,7 +4,23 @@
   "targets": {
     "lib": {
       "inputs": ["default", "^default", "{projectRoot}/tsconfig.json"],
-      "outputs": ["{projectRoot}/dist"]
+      "outputs": ["{projectRoot}/dist"],
+      "dependsOn": [
+        {
+          "target": "lib",
+          "projects": [
+            "@zerospin/core",
+            "@zerospin/error",
+            "@zerospin/logger",
+            "@zerospin/schema",
+            "system-worker"
+          ]
+        },
+        {
+          "target": "config:lib",
+          "projects": ["@zerospin/fixtures"]
+        }
+      ]
     },
     "test:workerd": {
       "executor": "nx:run-script",

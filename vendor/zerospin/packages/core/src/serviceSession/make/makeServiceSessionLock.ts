@@ -43,10 +43,8 @@ export const makeServiceSessionLock = (
     sessionName: definition.sessionName,
     actorName: definition.actorName,
     actorVersion: definition.actorVersion,
-    identity: {
-      identityJsonSchema: Schema.toJsonSchemaDocument(
-        definition.identity.identitySchema,
-      ),
+    claims: {
+      claimsJsonSchema: Schema.toJsonSchemaDocument(definition.claimsSchema),
     },
     models,
   };

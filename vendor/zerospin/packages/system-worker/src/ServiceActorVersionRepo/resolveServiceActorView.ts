@@ -23,14 +23,14 @@ export const resolveServiceActorView = Effect.fn('resolveServiceActorView')(
       catch: () => makeZerospinError({ code: 'actor-path-invalid' }),
     });
     const selected = yield* Schema.decodeUnknownEffect(
-      actor.identity.actorSchema,
+      actor.identity.identitySchema,
     )(matched?.params, { onExcessProperty: 'error' }).pipe(
       mapParseError({
         code: 'actor-path-invalid',
         prefix: 'Invalid actor fields',
       }),
     );
-    const encoded = yield* Schema.encodeEffect(actor.identity.actorSchema)(
+    const encoded = yield* Schema.encodeEffect(actor.identity.identitySchema)(
       selected,
     ).pipe(
       mapParseError({

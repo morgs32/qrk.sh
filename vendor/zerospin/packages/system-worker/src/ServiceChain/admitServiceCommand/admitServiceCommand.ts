@@ -87,7 +87,7 @@ export const prepareServiceAdmission = Effect.fn(
   }
   yield* checkAdmission({
     command,
-    identity: null,
+    claims: null,
     owners: [{ ...addressed, contracts: Object.values(addressed.contracts) }],
   });
   return {

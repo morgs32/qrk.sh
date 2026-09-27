@@ -1,4 +1,5 @@
 import { RoutePattern } from '@remix-run/route-pattern';
+import { createHref } from '@remix-run/route-pattern/href';
 import { Effect, Schema } from 'effect';
 import { describe, expect, it } from 'vitest';
 
@@ -6,7 +7,7 @@ import { makeAggregateActorVersion } from '../aggregateActor/make/makeAggregateA
 import { makeActorDbVersion } from '../models/make/makeActorDbVersion';
 import { makeServiceActorVersion } from '../serviceActor/make/makeServiceActorVersion';
 
-import { assertSessionIdentity } from './assertSessionIdentity';
+import { assertSessionClaims } from './assertSessionClaims';
 import { makeActorIdentity } from './make/makeActorIdentity/makeActorIdentity';
 
 const schema = Schema.Struct({
@@ -14,7 +15,7 @@ const schema = Schema.Struct({
   subject: Schema.String,
 });
 const identity = makeActorIdentity({
-  schema,
+  claims: schema,
   actorPath: RoutePattern.parse('/:subject'),
 });
 const db = makeActorDbVersion({ models: {} });
@@ -27,13 +28,27 @@ const definition = {
 };
 
 describe('actor identity declarations', () => {
-  it('derives only selected identity fields and keeps the complete identity schema', () => {
-    expect(identity.identitySchema).toBe(schema);
-    expect(Object.keys(identity.actorSchema.fields)).toEqual(['subject']);
+  it('derives only selected identity fields and keeps the complete claims schema', () => {
+    expect(identity.claimsSchema).toBe(schema);
+    expect(Object.keys(identity.identitySchema.fields)).toEqual(['subject']);
     expect(identity.sql.placeholder('subject').name).toBe('subject');
     expect(() =>
       Reflect.apply(identity.sql.placeholder, identity.sql, ['aggregateId']),
     ).toThrow();
+  });
+  it('uses only actorPath fields to identify a partition', () => {
+    const partition = makeActorIdentity({
+      claims: Schema.Struct({ subject: Schema.String, role: Schema.String }),
+      actorPath: RoutePattern.parse('/:subject'),
+    });
+    const path = (claims: typeof partition.claimsSchema.Type) =>
+      createHref(
+        partition.pattern,
+        Schema.decodeUnknownSync(partition.identitySchema)(claims),
+      );
+    expect(path({ subject: 'alice', role: 'reader' })).toBe('/alice');
+    expect(path({ subject: 'alice', role: 'admin' })).toBe('/alice');
+    expect(path({ subject: 'bob', role: 'reader' })).toBe('/bob');
   });
   it('requires an explicit policy for both actor kinds', () => {
     const { contracts: _, ...service } = definition;
@@ -68,21 +83,21 @@ describe('actor identity declarations', () => {
       ).authentication,
     ).toBe('none');
   });
-  it('permits only matching direct identities when restoring a session', () => {
+  it('permits only matching direct claims when restoring a session', () => {
     const expected = { aggregateId: 'acct_first', nested: { value: 1 } };
     expect(() =>
-      assertSessionIdentity(expected, {
+      assertSessionClaims(expected, {
         nested: { value: 1 },
         aggregateId: 'acct_first',
       }),
     ).not.toThrow();
     expect(() =>
-      assertSessionIdentity(expected, {
+      assertSessionClaims(expected, {
         ...expected,
         aggregateId: 'acct_other',
       }),
     ).toThrow();
-    expect(() => assertSessionIdentity(undefined, expected)).not.toThrow();
+    expect(() => assertSessionClaims(undefined, expected)).not.toThrow();
   });
 });
 
@@ -110,7 +125,7 @@ export function checkActorAuthenticationTypes() {
       authentication: {
         credentialsSchema,
         authenticate: () =>
-          // @ts-expect-error Callback identity must match the declared identity schema.
+          // @ts-expect-error Callback claims must match the declared claims schema.
           Effect.succeed({ aggregateId: 'acct_verified', subject: 42 }),
       },
     },
@@ -124,7 +139,7 @@ export function checkActorAuthenticationTypes() {
       queries: {},
       authentication: {
         credentialsSchema,
-        // @ts-expect-error Service callback identity must match its declared schema.
+        // @ts-expect-error Service callback claims must match its declared schema.
         authenticate: () => Effect.succeed({ aggregateId: 'acct_verified' }),
       },
     },

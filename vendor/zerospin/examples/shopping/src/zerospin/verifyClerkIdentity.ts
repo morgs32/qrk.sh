@@ -3,7 +3,7 @@ import { makeZerospinError, mapParseError } from '@zerospin/error';
 import { Effect, Schema } from 'effect';
 
 import { ClerkUserIdSchema } from './aggregates/shopper/models/user/UserV1';
-import { type clerkCredentialsSchema } from './identities';
+import { type clerkCredentialsSchema } from './claims';
 
 /** Verify the session before deriving claims or issuing a provisioning command. */
 export const verifyClerkIdentity = Effect.fn('verifyClerkIdentity')(function* (

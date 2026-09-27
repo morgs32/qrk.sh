@@ -8,17 +8,17 @@ import type {
 import { makeZerospinError, mapParseError } from '@zerospin/error';
 import { Effect, Schema } from 'effect';
 
-/** Validate the submitted payload and identity before retaining the original command. */
+/** Validate the submitted payload and claims before retaining the original command. */
 export const checkAdmission = Effect.fn('checkAdmission')(function* (props: {
   command: IEncodedCommand<ICommand>;
   owners: readonly {
-    identity?: { identitySchema: Schema.Codec<unknown, unknown> };
+    identity?: { claimsSchema: Schema.Codec<unknown, unknown> };
     contracts: readonly IContract[];
   }[];
-  identity: unknown;
+  claims: unknown;
   actor?: IAnyAggregateActorVersion | undefined;
 }) {
-  const { command, owners, actor, identity } = props;
+  const { command, owners, actor, claims } = props;
   for (const owner of owners) {
     for (const candidate of owner.contracts) {
       if (candidate.commandName !== command.commandName) continue;
@@ -29,11 +29,11 @@ export const checkAdmission = Effect.fn('checkAdmission')(function* (props: {
       }
       if (contract === undefined) continue;
       yield* decodePayload(contract, { command });
-      const identitySchema =
+      const claimsSchema =
         actor === undefined
-          ? owner.identity?.identitySchema
-          : actor.identity.identitySchema;
-      if (identity !== null && identitySchema === undefined) {
+          ? owner.identity?.claimsSchema
+          : actor.identity.claimsSchema;
+      if (claims !== null && claimsSchema === undefined) {
         return yield* Effect.fail(
           makeZerospinError({
             code: 'command-actor-required',
@@ -42,13 +42,13 @@ export const checkAdmission = Effect.fn('checkAdmission')(function* (props: {
         );
       }
 
-      if (identity !== null) {
-        yield* Schema.decodeUnknownEffect(identitySchema!)(identity, {
+      if (claims !== null) {
+        yield* Schema.decodeUnknownEffect(claimsSchema!)(claims, {
           onExcessProperty: 'error',
         }).pipe(
           mapParseError({
-            code: 'command-identity-unsupported',
-            prefix: 'Unsupported command identity',
+            code: 'command-claims-unsupported',
+            prefix: 'Unsupported command claims',
           }),
         );
       }

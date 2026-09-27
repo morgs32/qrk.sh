@@ -1,0 +1,39 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": [
+      "node",
+      "@cloudflare/vitest-plugin/types",
+      "../system-worker/worker-configuration.d.ts"
+    ]
+  },
+  "include": [
+    "src/system-worker/**/*.ts",
+    "../system-worker/worker-configuration.d.ts",
+    "../system-worker/env-types.d.ts",
+    "../system-worker/vitest-env.d.ts"
+  ],
+  "references": [
+    {
+      "path": "../core"
+    },
+    {
+      "path": "../error"
+    },
+    {
+      "path": "../fulfillment"
+    },
+    {
+      "path": "../logger"
+    },
+    {
+      "path": "../purchase"
+    },
+    {
+      "path": "../schema"
+    },
+    {
+      "path": "../system-worker"
+    }
+  ]
+}

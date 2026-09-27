@@ -71,7 +71,7 @@ export function checkGuards(props: {
         contract,
         queryDb: state.db,
         payload: props.payload,
-        identity: state.identity,
+        claims: state.claims,
       }).pipe(
         runProgram,
         Effect.provideContext(context),

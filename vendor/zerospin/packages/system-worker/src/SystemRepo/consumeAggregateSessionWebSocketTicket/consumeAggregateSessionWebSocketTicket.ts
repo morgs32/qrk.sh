@@ -42,7 +42,7 @@ export const consumeAggregateSessionWebSocketTicket = Effect.fn(
     actorPath: AnyColumn;
     actorName: AnyColumn;
     actorVersion: AnyColumn;
-    identity: AnyColumn;
+    claims: AnyColumn;
     sessionName: AnyColumn;
     aggregateSessionLock: AnyColumn;
   }>;
@@ -90,9 +90,7 @@ export const consumeAggregateSessionWebSocketTicket = Effect.fn(
     actorPath: Schema.String,
     actorName: Schema.String,
     actorVersion: Schema.String,
-    identity: Schema.fromJsonString(
-      Schema.Record(Schema.String, Schema.Unknown),
-    ),
+    claims: Schema.fromJsonString(Schema.Record(Schema.String, Schema.Unknown)),
     sessionName: Schema.String,
     aggregateSessionLock: Schema.fromJsonString(AggregateSessionLockSchema),
     expiresAt: Schema.Date,
@@ -113,7 +111,7 @@ export const consumeAggregateSessionWebSocketTicket = Effect.fn(
           actorPath: aggregateSessionWebSocketTicketColumns.actorPath,
           actorName: aggregateSessionWebSocketTicketColumns.actorName,
           actorVersion: aggregateSessionWebSocketTicketColumns.actorVersion,
-          identity: aggregateSessionWebSocketTicketColumns.identity,
+          claims: aggregateSessionWebSocketTicketColumns.claims,
           sessionName: aggregateSessionWebSocketTicketColumns.sessionName,
           aggregateSessionLock:
             aggregateSessionWebSocketTicketColumns.aggregateSessionLock,

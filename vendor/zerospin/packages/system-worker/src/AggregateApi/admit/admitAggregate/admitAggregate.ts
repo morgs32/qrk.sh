@@ -82,12 +82,12 @@ export const admitAggregate = Effect.fn('AggregateApi.admitAggregate', {
           );
           const returned = yield* Effect.gen(function* () {
             if (policy === 'none') {
-              if (!('identity' in request)) {
+              if (!('claims' in request)) {
                 return yield* Effect.fail(
-                  makeZerospinError('admission-identity-required'),
+                  makeZerospinError('admission-claims-required'),
                 );
               }
-              return request.identity;
+              return request.claims;
             }
             if (!('credentials' in request)) {
               return yield* Effect.fail(
@@ -105,7 +105,7 @@ export const admitAggregate = Effect.fn('AggregateApi.admitAggregate', {
             return yield* policy
               .authenticate({
                 credentials,
-                executeCommand: Effect.fn('identity.executeCommand')(
+                executeCommand: Effect.fn('claims.executeCommand')(
                   function* (requested) {
                     const aggregate =
                       system.aggregates[props.aggregateName]?.[
@@ -134,22 +134,22 @@ export const admitAggregate = Effect.fn('AggregateApi.admitAggregate', {
                         prefix: 'Invalid provisioning aggregate ID',
                       }),
                     );
-                    const identity = yield* Schema.decodeUnknownEffect(
-                      requested.actor.identity.identitySchema,
-                    )(requested.identity).pipe(
+                    const claims = yield* Schema.decodeUnknownEffect(
+                      requested.actor.identity.claimsSchema,
+                    )(requested.claims).pipe(
                       mapParseError({
-                        code: 'provisioning-identity-invalid',
+                        code: 'provisioning-claims-invalid',
                         prefix: 'Invalid provisioning claims',
                       }),
                     );
-                    if (identity.aggregateId !== aggregateId) {
+                    if (claims.aggregateId !== aggregateId) {
                       return yield* Effect.fail(
                         makeZerospinError('aggregate-command-target-mismatch'),
                       );
                     }
                     const command = yield* makeAggregateCommand({
                       ...requested,
-                      identity,
+                      claims,
                       actorName: requested.actor.name,
                       actorVersion: requested.actor.version,
                       aggregateId,
@@ -192,8 +192,8 @@ export const admitAggregate = Effect.fn('AggregateApi.admitAggregate', {
               })
               .pipe(Effect.provide(NanoIdFactory));
           });
-          const identity = yield* Schema.decodeUnknownEffect(
-            Schema.toType(definition.identitySchema),
+          const claims = yield* Schema.decodeUnknownEffect(
+            Schema.toType(definition.claimsSchema),
           )(returned, { onExcessProperty: 'error' }).pipe(
             mapParseError({
               code: 'identity-result-invalid',
@@ -202,31 +202,31 @@ export const admitAggregate = Effect.fn('AggregateApi.admitAggregate', {
           );
           {
             yield* Schema.decodeUnknownEffect(makeAbbreviationIdSchema('acct'))(
-              identity.aggregateId,
+              claims.aggregateId,
             ).pipe(
               mapParseError({
                 code: 'identity-aggregate-id-invalid',
-                prefix: 'Identity must supply an aggregate ID',
+                prefix: 'Claims must supply an aggregate ID',
               }),
             );
           }
-          const encoded = yield* Schema.encodeEffect(definition.identitySchema)(
-            identity,
+          const encoded = yield* Schema.encodeEffect(definition.claimsSchema)(
+            claims,
           ).pipe(
             mapParseError({
               code: 'identity-result-invalid',
-              prefix: 'Identity could not be encoded',
+              prefix: 'Claims could not be encoded',
             }),
           );
           // Only explicitly declared selection claims cross into selection callbacks or replica names.
           const selected = Object.fromEntries(
-            Object.keys(definition.actorSchema.fields).map(field => [
+            Object.keys(definition.identitySchema.fields).map(field => [
               field,
-              identity[field],
+              claims[field],
             ]),
           );
           const selection = yield* Schema.decodeUnknownEffect(
-            Schema.toType(definition.actorSchema),
+            Schema.toType(definition.identitySchema),
           )(selected, { onExcessProperty: 'error' }).pipe(
             mapParseError({
               code: 'identity-selection-invalid',
@@ -234,7 +234,7 @@ export const admitAggregate = Effect.fn('AggregateApi.admitAggregate', {
             }),
           );
           const encodedSelection = yield* Schema.encodeEffect(
-            definition.actorSchema,
+            definition.identitySchema,
           )(selection).pipe(
             mapParseError({
               code: 'identity-selection-invalid',
@@ -269,7 +269,7 @@ export const admitAggregate = Effect.fn('AggregateApi.admitAggregate', {
               }),
           });
           const recovered = yield* Schema.decodeUnknownEffect(
-            definition.actorSchema,
+            definition.identitySchema,
           )(matched?.params, { onExcessProperty: 'error' }).pipe(
             mapParseError({
               code: 'identity-selection-invalid',
@@ -308,12 +308,12 @@ export const admitAggregate = Effect.fn('AggregateApi.admitAggregate', {
               ),
             ),
           );
-          const identityHash = [...new Uint8Array(digest)]
+          const claimsHash = [...new Uint8Array(digest)]
             .map(byte => byte.toString(16).padStart(2, '0'))
             .join('');
           return {
-            identity: encoded,
-            identityHash,
+            claims: encoded,
+            claimsHash,
             selection: selectionStrings,
             actorName: selectedDefinition.name,
             actorVersion: selectedDefinition.version,

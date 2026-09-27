@@ -326,7 +326,7 @@ export class NodeSynchronization {
           actorName,
           actorVersion,
           sessionName,
-          identity,
+          claims,
         } = command;
         await new Promise<void>((resolve, reject) => {
           const timeout = setTimeout(() => {
@@ -359,7 +359,7 @@ export class NodeSynchronization {
                 actorName,
                 actorVersion,
                 sessionName,
-                identity,
+                claims,
                 systemName: this.request.systemName,
               },
             }),

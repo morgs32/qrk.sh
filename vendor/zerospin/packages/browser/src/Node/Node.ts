@@ -318,7 +318,7 @@ export class Node {
         command.staging === undefined ||
         (await nodeKey({
           ...identity,
-          identity: command.identity,
+          claims: command.claims,
         })) !== (await nodeKey(identity))
       ) {
         throw makeZerospinError({ code: 'node-command-target-mismatch' });

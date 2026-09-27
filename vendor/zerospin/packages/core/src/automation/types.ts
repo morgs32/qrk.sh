@@ -89,7 +89,7 @@ export type IActorCommandGuards<
   CONTRACTS extends IAnyContracts,
   AUTOMATIONS extends Readonly<Record<string, IAnyAutomation>>,
   MODELS extends IAnyModels,
-  IDENTITY,
+  CLAIMS,
   SELECTION,
   SCOPE extends 'actor' | 'aggregate',
   R = never,
@@ -100,8 +100,8 @@ export type IActorCommandGuards<
     MODELS,
     K extends keyof CONTRACTS
       ? K extends keyof IAutomationOutputContracts<AUTOMATIONS>
-        ? IDENTITY | SELECTION
-        : IDENTITY
+        ? CLAIMS | SELECTION
+        : CLAIMS
       : SELECTION,
     SCOPE,
     R

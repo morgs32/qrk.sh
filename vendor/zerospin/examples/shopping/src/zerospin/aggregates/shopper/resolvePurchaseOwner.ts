@@ -5,7 +5,7 @@ import { type userV1 } from './models/user/UserV1';
 import { type purchaseFrontend } from './purchaseFrontend';
 export const resolvePurchaseOwner = ({
   queryDb,
-  identity,
+  claims,
   purchaseId,
 }: {
   queryDb: Pick<
@@ -21,11 +21,11 @@ export const resolvePurchaseOwner = ({
     >,
     'query'
   >;
-  identity: { clerkUserId: string };
+  claims: { clerkUserId: string };
   purchaseId: string;
 }) => {
   const user = queryDb.query.user
-    .findFirst({ where: { clerkUserId: { eq: identity.clerkUserId } } })
+    .findFirst({ where: { clerkUserId: { eq: claims.clerkUserId } } })
     .sync();
   const purchase = queryDb.query.purchase
     .findMany()

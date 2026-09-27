@@ -102,12 +102,12 @@ vi.mock('../bootstrapAggregateSession.ts', async () => {
   };
 });
 
-const identity = Schema.Struct({ aggregateId: Schema.String });
+const claims = Schema.Struct({ aggregateId: Schema.String });
 const apiLayer = Layer.mergeAll(
   Layer.succeed(ZerospinApiUrl, 'http://localhost:3005'),
   Layer.succeed(PublishableKey, Redacted.make('pk_test')),
 );
-const fixtureIdentity = { aggregateId: 'acct_test' };
+const fixtureClaims = { aggregateId: 'acct_test' };
 class Instance extends Context.Service<Instance, { id: number }>()(
   'BackupSessionInstance',
 ) {}
@@ -129,7 +129,7 @@ describe('live session backup ownership', () => {
       models: {},
       contracts: {},
       automations: {},
-      identitySchema: identity,
+      claimsSchema: claims,
       layer: Layer.mergeAll(
         apiLayer,
         Layer.effect(
@@ -142,7 +142,7 @@ describe('live session backup ownership', () => {
         ),
       ),
     });
-    await session.initialize({ identity: fixtureIdentity });
+    await session.initialize({ claims: fixtureClaims });
     const runtime = session.runtime;
     connections.failSessionCleanup = true;
     await expect(session.dispose()).rejects.toThrow('session-cleanup-failed');
@@ -150,7 +150,7 @@ describe('live session backup ownership', () => {
     expect(session.store.getState().sessionStatus).toBe('released');
     expect(() => runtime.runSync(Instance)).toThrow('ManagedRuntime disposed');
     try {
-      await session.initialize({ identity: fixtureIdentity });
+      await session.initialize({ claims: fixtureClaims });
       expect(session.runtime).not.toBe(runtime);
     } finally {
       await session.dispose();
@@ -180,7 +180,7 @@ describe('live session backup ownership', () => {
       models: {},
       contracts: {},
       automations: {},
-      identitySchema: identity,
+      claimsSchema: claims,
       layer,
     });
     const second = makeSession({
@@ -194,7 +194,7 @@ describe('live session backup ownership', () => {
       models: {},
       contracts: {},
       automations: {},
-      identitySchema: identity,
+      claimsSchema: claims,
       layer,
     });
     const duplicate = makeSession({
@@ -208,20 +208,20 @@ describe('live session backup ownership', () => {
       models: {},
       contracts: {},
       automations: {},
-      identitySchema: identity,
+      claimsSchema: claims,
       layer,
     });
     expect(connections.opened).toBe(opened);
     try {
       await Promise.all([
-        first.initialize({ identity: fixtureIdentity }),
-        second.initialize({ identity: fixtureIdentity }),
+        first.initialize({ claims: fixtureClaims }),
+        second.initialize({ claims: fixtureClaims }),
       ]);
       expect(connections.opened).toBe(opened);
       expect(first.runtime.runSync(Instance)).not.toBe(
         second.runtime.runSync(Instance),
       );
-      await duplicate.initialize({ identity: fixtureIdentity });
+      await duplicate.initialize({ claims: fixtureClaims });
       await first.dispose();
       expect(connections.closed).toBe(closed);
       expect(second.store.getState().isInitialized).toBe(true);
@@ -262,8 +262,8 @@ describe('live session backup ownership', () => {
       actorVersion: '1.0.0',
       models: {},
       contracts: {},
-      identitySchema: identity,
-      identity: fixtureIdentity,
+      claimsSchema: claims,
+      claims: fixtureClaims,
       layer: Layer.effect(
         Instance,
         Effect.acquireRelease(

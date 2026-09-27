@@ -23,7 +23,7 @@ export const sessionRepoDbConfig = makeDbConfig({
         actorName: primitives.text(),
         actorVersion: primitives.text(),
         sessionName: primitives.text(),
-        identity: primitives.json({
+        claims: primitives.json({
           schema: Schema.Record(Schema.String, Schema.Unknown),
         }),
         sessionId: primitives.foreignKey({ abbreviation: 'sesn' }),

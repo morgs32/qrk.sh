@@ -119,8 +119,8 @@ export function makeAggregateVersion<
         NoInfer<ACTORS[K]['contracts']>,
         NoInfer<ACTORS[K]['automations']>,
         NoInfer<IComposedDeclarations<MODELS, MODULES, 'models'>>,
+        NoInfer<ACTORS[K]['identity']['claimsSchema']['Type']>,
         NoInfer<ACTORS[K]['identity']['identitySchema']['Type']>,
-        NoInfer<ACTORS[K]['identity']['actorSchema']['Type']>,
         'aggregate',
         GUARD_REQUIREMENTS
       >;

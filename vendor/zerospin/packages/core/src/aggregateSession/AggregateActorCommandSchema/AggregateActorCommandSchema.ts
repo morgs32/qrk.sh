@@ -78,7 +78,7 @@ export const SessionCommandSchema = Schema.fieldsAssign({
 
 export const AggregateSessionSnapshotSchema = Schema.Struct({
   aggregateId: makeAbbreviationIdSchema(coreAbbreviations.aggregate),
-  identity: Schema.Record(Schema.String, Schema.Unknown),
+  claims: Schema.Record(Schema.String, Schema.Unknown),
   aggregateName: Schema.String,
   aggregateVersion: Schema.String,
   actorName: Schema.String,

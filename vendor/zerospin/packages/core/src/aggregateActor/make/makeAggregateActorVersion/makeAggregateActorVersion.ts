@@ -31,7 +31,7 @@ import type {
   IAnyAggregateActorVersion,
 } from '../../types.ts';
 
-import { assertIdentityRequirements } from './assertIdentityRequirements/assertIdentityRequirements.ts';
+import { assertClaimsRequirements } from './assertClaimsRequirements/assertClaimsRequirements.ts';
 
 class AggregateActorVersion {
   readonly kind = 'aggregate';
@@ -59,8 +59,8 @@ const DeclarationSchema = Schema.Struct({
     (input: unknown): input is IAnyAggregateActorVersion['identity'] =>
       typeof input === 'object' &&
       input !== null &&
+      'claimsSchema' in input &&
       'identitySchema' in input &&
-      'actorSchema' in input &&
       'sql' in input,
   ),
   authentication: AuthenticationPolicySchema,
@@ -82,7 +82,7 @@ const DeclarationSchema = Schema.Struct({
 export type ValidActorContracts<
   CONTRACTS extends IAnyContracts,
   MODELS extends IAnyModels,
-  IDENTITY,
+  CLAIMS,
 > = {
   [K in keyof CONTRACTS]: K extends CONTRACTS[K]['commandName']
     ? ([CONTRACTS[K]['models'][keyof CONTRACTS[K]['models']]] extends [
@@ -91,7 +91,7 @@ export type ValidActorContracts<
         ? unknown
         : never) &
         AssertContractMutationsInModels<CONTRACTS[K], MODELS> &
-        (IDENTITY extends NonNullable<CONTRACTS[K]['identity']>['Type']
+        (CLAIMS extends NonNullable<CONTRACTS[K]['claims']>['Type']
           ? unknown
           : never)
     : never;
@@ -118,11 +118,11 @@ export type IAggregateActorDeclaration<
   version: VERSION;
   authentication: IAggregateAuthentication<
     CREDENTIALS,
-    IDENTITY['identitySchema']
+    IDENTITY['claimsSchema']
   >;
   db: DB;
   identity: IDENTITY &
-    (IDENTITY['identitySchema']['Type'] extends {
+    (IDENTITY['claimsSchema']['Type'] extends {
       readonly aggregateId: string;
     }
       ? unknown
@@ -132,10 +132,10 @@ export type IAggregateActorDeclaration<
     ValidActorContracts<
       CONTRACTS,
       DB['models'],
-      IDENTITY['identitySchema']['Type']
+      IDENTITY['claimsSchema']['Type']
     >;
   authorize?: IAggregateActorAuthorization<
-    IDENTITY['identitySchema']['Type'],
+    IDENTITY['claimsSchema']['Type'],
     AUTHORIZE_REQUIREMENTS
   >;
 } & ({} extends AUTOMATIONS
@@ -145,8 +145,8 @@ export type IAggregateActorDeclaration<
       NoInfer<CONTRACTS>,
       NoInfer<AUTOMATIONS>,
       DB['models'],
+      IDENTITY['claimsSchema']['Type'],
       IDENTITY['identitySchema']['Type'],
-      IDENTITY['actorSchema']['Type'],
       'actor',
       unknown
     >;
@@ -167,14 +167,14 @@ export type IAggregateActorVersion<
       CONTRACTS,
       AUTOMATIONS,
       DB['models'],
+      IDENTITY['claimsSchema']['Type'],
       IDENTITY['identitySchema']['Type'],
-      IDENTITY['actorSchema']['Type'],
       'actor',
       GUARD_REQUIREMENTS
     >,
   AUTHORIZE extends IAnyAggregateActorVersion['authorize'] =
     IAggregateActorAuthorization<
-      IDENTITY['identitySchema']['Type'],
+      IDENTITY['claimsSchema']['Type'],
       AUTHORIZE_REQUIREMENTS
     >,
 > = {
@@ -185,13 +185,13 @@ export type IAggregateActorVersion<
   readonly identity: IDENTITY;
   readonly authentication: IAggregateAuthentication<
     Schema.Codec<unknown, unknown>,
-    IDENTITY['identitySchema']
+    IDENTITY['claimsSchema']
   >;
   readonly queries: QUERIES;
   readonly selections: IActorSelections<
     DB['models'],
     QUERIES,
-    IDENTITY['actorSchema']['Type']
+    IDENTITY['identitySchema']['Type']
   >;
   readonly contracts: CONTRACTS;
   readonly automations: AUTOMATIONS;
@@ -273,14 +273,14 @@ export function constructAggregateActorVersion<
       CONTRACTS,
       AUTOMATIONS,
       DB['models'],
+      IDENTITY['claimsSchema']['Type'],
       IDENTITY['identitySchema']['Type'],
-      IDENTITY['actorSchema']['Type'],
       'actor',
       GUARD_REQUIREMENTS
     >,
   AUTHORIZE extends IAnyAggregateActorVersion['authorize'] =
     IAggregateActorAuthorization<
-      IDENTITY['identitySchema']['Type'],
+      IDENTITY['claimsSchema']['Type'],
       AUTHORIZE_REQUIREMENTS
     >,
 >(
@@ -291,7 +291,7 @@ export function constructAggregateActorVersion<
     identity: IDENTITY;
     authentication: IAggregateAuthentication<
       Schema.Codec<unknown, unknown>,
-      IDENTITY['identitySchema']
+      IDENTITY['claimsSchema']
     >;
     queries: QUERIES;
     contracts: CONTRACTS;
@@ -336,10 +336,10 @@ export function constructAggregateActorVersion<
       }
     }
     for (const contract of Object.values(automation.contracts)) {
-      if (contract.identity !== undefined) {
-        assertIdentityRequirements(
-          decoded.identity.actorSchema,
-          contract.identity,
+      if (contract.claims !== undefined) {
+        assertClaimsRequirements(
+          decoded.identity.identitySchema,
+          contract.claims,
         );
       }
     }
@@ -355,7 +355,7 @@ export function constructAggregateActorVersion<
     }
   }
   const identity = decoded.identity;
-  const field = identity.identitySchema.fields.aggregateId;
+  const field = identity.claimsSchema.fields.aggregateId;
   const ast = field === undefined ? undefined : SchemaAST.toType(field.ast);
   if (
     ast === undefined ||
@@ -366,7 +366,7 @@ export function constructAggregateActorVersion<
     )
   ) {
     throw new Error(
-      'Actor identitySchema must contain a required string aggregateId',
+      'Actor claimsSchema must contain a required string aggregateId',
     );
   }
   for (const [key, contract] of Object.entries(decoded.contracts)) {
@@ -375,8 +375,8 @@ export function constructAggregateActorVersion<
         `Actor contract key ${key} must match ${contract.commandName}`,
       );
     }
-    if (contract.identity !== undefined) {
-      assertIdentityRequirements(identity.identitySchema, contract.identity);
+    if (contract.claims !== undefined) {
+      assertClaimsRequirements(identity.claimsSchema, contract.claims);
     }
     for (const model of Object.values(contract.models)) {
       if (!Object.values(decoded.db.models).includes(model)) {
@@ -397,7 +397,7 @@ export function constructAggregateActorVersion<
       captureActorSelections(
         props.db,
         props.queries,
-        props.identity.actorSchema,
+        props.identity.identitySchema,
       ),
     ),
     contracts: Object.freeze({ ...props.contracts }),

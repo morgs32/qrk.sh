@@ -1,7 +1,10 @@
 import { makeZerospinError } from '@zerospin/error';
+import {
+  command,
+  database,
+  definition,
+} from '@zerospin/fixtures/browser/nodeFixture';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
-import { command, database, definition } from '../../tests/nodeFixture.ts';
 
 import { NodeCatalog } from './NodeCatalog.ts';
 import { NodeHost } from './NodeHost.ts';
@@ -25,7 +28,7 @@ const request: INodeRequest = {
   lock: { ...definition.lock, contracts: {} },
 };
 const snapshot = {
-  identity: definition.identity.identity,
+  claims: definition.identity.claims,
   aggregateId: 'acct_test',
 };
 const fixture = async () => {
@@ -57,26 +60,23 @@ beforeEach(() => {
 afterEach(() => vi.restoreAllMocks());
 
 describe('node attachment identity and catalog', () => {
-  it('rejects an offline node whose saved identity differs from the captured direct identity', async () => {
+  it('rejects an offline node whose saved identity differs from the captured direct claims', async () => {
     const { host, close } = await fixture();
     try {
       const first = await host.attach(
         request,
         {},
-        async () => ({ identity: { userId: 'one' } }),
+        async () => ({ claims: { userId: 'one' } }),
         { userId: 'one' },
       );
       network.snapshot.mockRejectedValue(
         makeZerospinError({ code: 'async-failed' }),
       );
       await expect(
-        host.attach(
-          request,
-          {},
-          async () => ({ identity: { userId: 'two' } }),
-          { userId: 'two' },
-        ),
-      ).rejects.toMatchObject({ code: 'session-identity-mismatch' });
+        host.attach(request, {}, async () => ({ claims: { userId: 'two' } }), {
+          userId: 'two',
+        }),
+      ).rejects.toMatchObject({ code: 'session-claims-mismatch' });
       first.detach();
     } finally {
       close();
@@ -173,7 +173,7 @@ describe('node attachment identity and catalog', () => {
       const retained = await first.node.accept(command('old'));
       network.snapshot
         .mockClear()
-        .mockResolvedValue({ ...snapshot, identity: { userId: 'two' } });
+        .mockResolvedValue({ ...snapshot, claims: { userId: 'two' } });
       const second = await host.attach(
         { ...request, lock: { ...request.lock, actorVersion: 'v2' } },
         {},
@@ -186,7 +186,7 @@ describe('node attachment identity and catalog', () => {
         ]),
       );
       expect(first.node.definition.lock.actorVersion).toBe('v1');
-      expect(first.node.definition.identity.identity).toEqual({
+      expect(first.node.definition.identity.claims).toEqual({
         userId: 'one',
       });
       expect(

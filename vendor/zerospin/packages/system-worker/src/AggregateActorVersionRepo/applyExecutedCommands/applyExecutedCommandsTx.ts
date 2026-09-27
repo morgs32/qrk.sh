@@ -205,12 +205,12 @@ export const applyExecutedCommandsTx = makeTx(
               command.actorVersion === key.actorVersion
                 ? command.nodeIndex
                 : null,
-            ownerIdentity:
+            ownerClaims:
               command.nodeId !== null &&
               command.sessionName !== null &&
               command.actorName === key.actorName &&
               command.actorVersion === key.actorVersion
-                ? command.identity
+                ? command.claims
                 : null,
             ownerSessionName:
               command.nodeId !== null &&

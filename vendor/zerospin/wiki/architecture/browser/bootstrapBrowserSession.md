@@ -12,7 +12,7 @@ attach to the same node. A tab's disposal detaches its capability.
 
 ## Trigger
 
-`makeSession` and `useInitializeSession` accept `{ identity }` for direct actors
+`makeSession` and `useInitializeSession` accept `{ claims }` for direct actors
 or `{ getCredentials }` for verified actors. Applications serve `nodeWorkerPlugin()` from
 `@zerospin/browser/vite`. Non-Vite hosts must serve the built worker and async
 WASM at `/__zerospin/node-worker.js` and `/__zerospin/node-sqlite.wasm`.
@@ -27,7 +27,7 @@ sequenceDiagram
   participant Node
   participant Server
   Tab->>BrowserNode: attach(definition, admission provider)
-  BrowserNode->>Server: admit identity or credentials
+  BrowserNode->>Server: admit claims or credentials
   BrowserNode->>Node: open persistent identity + full lock key
   Tab->>BrowserNode: subscribe(callback)
   Node-->>Tab: confirmed resources + unresolved commands
@@ -44,9 +44,9 @@ sequenceDiagram
 ## Annotated workflow steps
 
 1. Initial server admission selects a key containing backend, system, full
-   encoded identity, target, and complete definition-lock hash. The catalog may
+   encoded claims, target, and complete definition-lock hash. The catalog may
    reopen the last admitted node on a transient outage. Direct sessions must
-   match the identity captured at initialization; explicit server rejection
+   match the claims captured at initialization; explicit server rejection
    does not select an offline identity.
    - [`NodeHost.ts`](../../../packages/browser/src/Node/NodeHost.ts)
    - [`NodeCatalog.ts`](../../../packages/browser/src/Node/NodeCatalog.ts)

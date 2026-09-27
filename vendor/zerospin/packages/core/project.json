@@ -4,7 +4,18 @@
   "targets": {
     "lib": {
       "inputs": ["default", "^default", "{projectRoot}/tsconfig.json"],
-      "outputs": ["{projectRoot}/dist"]
+      "outputs": ["{projectRoot}/dist"],
+      "dependsOn": [
+        {
+          "target": "lib",
+          "projects": [
+            "@zerospin/error",
+            "@zerospin/logger",
+            "@zerospin/schema",
+            "@zerospin/server-only"
+          ]
+        }
+      ]
     },
     "test": {
       "dependsOn": ["lib", "^lib"]

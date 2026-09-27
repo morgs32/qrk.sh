@@ -24,7 +24,7 @@ export function makeMutations<CONTRACT extends IContract>(props: {
   contract: CONTRACT;
   models: IAnyModels;
   command: ICommand;
-  identity: Readonly<Record<string, unknown>> | null;
+  claims: Readonly<Record<string, unknown>> | null;
 }): Effect.Effect<
   Readonly<{
     payload: unknown;
@@ -37,7 +37,7 @@ export function makeMutations(props: {
   contract: IContract;
   models: IAnyModels;
   command: ICommand;
-  identity: Readonly<Record<string, unknown>> | null;
+  claims: Readonly<Record<string, unknown>> | null;
 }) {
   return make(props);
 }
@@ -45,7 +45,7 @@ const make = Effect.fn('makeMutations')(function* (props: {
   contract: IContract;
   models: IAnyModels;
   command: ICommand;
-  identity: Readonly<Record<string, unknown>> | null;
+  claims: Readonly<Record<string, unknown>> | null;
 }): Effect.fn.Return<
   Readonly<{
     payload: unknown;
@@ -54,29 +54,29 @@ const make = Effect.fn('makeMutations')(function* (props: {
   IContractFailure,
   CuidFactory | unknown
 > {
-  const { contract, models, command, identity: inputIdentity } = props;
+  const { contract, models, command, claims: inputClaims } = props;
 
   const payload = yield* validatePayload(contract, {
     version: contract.version,
     payload: command.payload,
   });
-  const identity =
-    contract.identity === undefined
-      ? inputIdentity
+  const claims =
+    contract.claims === undefined
+      ? inputClaims
       : yield* runProgram(
-          Schema.decodeUnknownEffect(Schema.toType(contract.identity))(
-            inputIdentity,
+          Schema.decodeUnknownEffect(Schema.toType(contract.claims))(
+            inputClaims,
           ).pipe(
             mapParseError({
-              code: 'contract-identity-invalid',
-              prefix: 'Invalid contract identity',
+              code: 'contract-claims-invalid',
+              prefix: 'Invalid contract claims',
             }),
           ),
         );
   const commandMutations = yield* runProgram(
     contract.program({
       payload,
-      identity,
+      claims,
     }),
   ).pipe(
     Effect.catch(failure =>

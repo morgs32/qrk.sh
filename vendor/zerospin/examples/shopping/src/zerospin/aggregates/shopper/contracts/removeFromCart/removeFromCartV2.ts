@@ -2,7 +2,7 @@ import { makeAbbreviationIdSchema } from '@zerospin/schema';
 import * as sdk from '@zerospin/sdk/browser';
 import { Effect, Schema } from 'effect';
 
-import { shopperIdentitySchema } from '../../actors/identities';
+import { userClaims } from '../../../../claims';
 import { cartItemV2 } from '../../models/cartItem/CartItemV2';
 import { purchaseFrontend } from '../../purchaseFrontend';
 import { canEditCart } from '../addToCart/AddToCartV1';
@@ -11,7 +11,7 @@ import { removeFromCartV1 } from './RemoveFromCartV1';
 const { checkout: checkoutV1 } = purchaseFrontend.models;
 
 export const removeFromCartV2 = sdk.upgradeContractVersion(removeFromCartV1, {
-  identity: shopperIdentitySchema,
+  claims: userClaims,
   version: '2.0.0',
   failures: {
     cartFrozen: sdk.ContractError.schema({
@@ -42,7 +42,7 @@ export const removeFromCartV2 = sdk.upgradeContractVersion(removeFromCartV1, {
   guard: Effect.fn('removeFromCartV2.guard')(function* ({
     failures,
     payload,
-    identity,
+    claims,
     queryDb,
   }) {
     const db = queryDb;
@@ -62,7 +62,7 @@ export const removeFromCartV2 = sdk.upgradeContractVersion(removeFromCartV1, {
         .sync(),
       user: queryDb.query.user
         .findFirst({
-          where: { clerkUserId: { eq: identity.clerkUserId } },
+          where: { clerkUserId: { eq: claims.clerkUserId } },
         })
         .sync(),
       hasPendingPurchase:

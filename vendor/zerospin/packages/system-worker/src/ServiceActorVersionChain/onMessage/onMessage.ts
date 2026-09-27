@@ -32,7 +32,7 @@ export const onMessage = Effect.fn('ServiceActorVersionChain.onMessage')(
       serviceName: string;
       serviceVersion: string;
       actorPath: string;
-      identity: Readonly<Record<string, unknown>>;
+      claims: Readonly<Record<string, unknown>>;
       sessionName: string;
       serviceSessionLock: IServiceSessionLock;
     }>;

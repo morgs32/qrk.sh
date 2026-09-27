@@ -14,7 +14,7 @@ import { makeAggregateActorVersion } from './makeAggregateActorVersion.ts';
 const db = makeActorDbVersion({ models: {} });
 const claims = Schema.Struct({ aggregateId: Schema.String });
 const identity = makeActorIdentity({
-  schema: claims,
+  claims,
   actorPath: RoutePattern.parse('/:aggregateId'),
 });
 
@@ -123,7 +123,7 @@ describe('makeAggregateActorVersion', () => {
   it('rejects identity without a required string aggregateId', () => {
     const subject = Schema.Struct({ subject: Schema.String });
     const withoutAggregateId = makeActorIdentity({
-      schema: subject,
+      claims: subject,
       actorPath: RoutePattern.parse('/:subject'),
     });
     expect(() =>
@@ -139,8 +139,6 @@ describe('makeAggregateActorVersion', () => {
           contracts: {},
         },
       ),
-    ).toThrow(
-      'Actor identitySchema must contain a required string aggregateId',
-    );
+    ).toThrow('Actor claimsSchema must contain a required string aggregateId');
   });
 });

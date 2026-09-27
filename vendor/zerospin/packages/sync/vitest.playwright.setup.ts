@@ -115,7 +115,7 @@ export async function setup() {
   }
 
   console.log('[setup] Starting sync test worker...');
-  const workerEntry = path.join(packageRoot, 'e2e/worker.ts');
+  const workerEntry = path.join(packageRoot, '../fixtures/src/sync/worker.ts');
   const wranglerConfig = path.join(packageRoot, 'wrangler.vitest.jsonc');
 
   try {

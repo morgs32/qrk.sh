@@ -1,7 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "system-worker-test",
-  "main": "./src/TestWorker.ts",
+  "main": "../fixtures/src/system-worker/TestWorker.ts",
   "compatibility_date": "2025-04-16",
   "compatibility_flags": ["nodejs_compat"],
   "durable_objects": {

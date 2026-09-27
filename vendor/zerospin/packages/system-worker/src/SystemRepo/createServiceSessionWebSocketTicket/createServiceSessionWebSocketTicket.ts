@@ -33,7 +33,7 @@ export const createServiceSessionWebSocketTicket = Effect.fn(
   serviceName: string;
   serviceVersion: string;
   actorPath: string;
-  identity: Readonly<Record<string, unknown>>;
+  claims: Readonly<Record<string, unknown>>;
   sessionName: string;
   serviceSessionLock: IServiceSessionLock;
   serviceSessionWebSocketTicketTable: IAnyDrizzleSchema;
@@ -51,7 +51,7 @@ export const createServiceSessionWebSocketTicket = Effect.fn(
     serviceName,
     actorPath,
     serviceVersion,
-    identity,
+    claims,
   } = props;
 
   // 1 — encode 32 random bytes as unpadded base64url
@@ -105,7 +105,7 @@ export const createServiceSessionWebSocketTicket = Effect.fn(
             serviceName,
             serviceVersion,
             actorPath,
-            identity: JSON.stringify(identity),
+            claims: JSON.stringify(claims),
             sessionName,
             serviceSessionLock: encodedServiceSessionLock,
             expiresAt: new Date(now.getTime() + 30_000),

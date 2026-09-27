@@ -1,8 +1,8 @@
 import * as sdk from '@zerospin/sdk/browser';
 import { Effect, Schema } from 'effect';
 
+import { userClaims } from '../../../../claims';
 import { productV1 } from '../../../../services/app/models/product/ProductV1';
-import { shopperIdentitySchema } from '../../actors/identities';
 import { cart } from '../../models/cart/cart';
 import { cartV1 } from '../../models/cart/CartV1';
 import { cartItem } from '../../models/cartItem/cartItem';
@@ -64,11 +64,11 @@ export const addToCartV1 = sdk.makeContractVersion(addToCart, {
       extra: Schema.Struct({ operation: Schema.String }),
     }),
   },
-  identity: shopperIdentitySchema,
+  claims: userClaims,
   guard: Effect.fn('addToCartV1.guard')(function* ({
     failures,
     payload,
-    identity,
+    claims,
     queryDb,
   }) {
     return yield* canEditCart({
@@ -79,7 +79,7 @@ export const addToCartV1 = sdk.makeContractVersion(addToCart, {
         .sync(),
       user: queryDb.query.user
         .findFirst({
-          where: { clerkUserId: { eq: identity.clerkUserId } },
+          where: { clerkUserId: { eq: claims.clerkUserId } },
         })
         .sync(),
       hasPendingPurchase:

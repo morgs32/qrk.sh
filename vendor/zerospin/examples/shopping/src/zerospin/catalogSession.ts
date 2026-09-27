@@ -1,11 +1,11 @@
 import { makeSession } from '@zerospin/browser';
 
 import { applicationLayer } from './applicationLayer';
-import { catalogIdentitySchema, clerkCredentialsSchema } from './identities';
+import { clerkCredentialsSchema, userClaims } from './claims';
 import { productV1 } from './services/app/models/product/ProductV1';
 
 export const catalogSession = makeSession({
-  identitySchema: catalogIdentitySchema,
+  claimsSchema: userClaims,
   credentialsSchema: clerkCredentialsSchema,
   kind: 'service',
   actorName: 'default',

@@ -114,8 +114,8 @@ export const executeTx = makeTx('ServiceActorVersionRepo.executeTx')(function* (
     const inserted: IEncodedResourceShape[] = [],
       updated: IEncodedResourceShape[] = [];
     const deleted: Array<{ modelName: string; id: string }> = [];
-    for (const [identity, resource] of after) {
-      const previous = before.get(identity);
+    for (const [claims, resource] of after) {
+      const previous = before.get(claims);
       if (!previous) {
         inserted.push(resource);
       } else if (
@@ -125,8 +125,8 @@ export const executeTx = makeTx('ServiceActorVersionRepo.executeTx')(function* (
         updated.push(resource);
       }
     }
-    for (const [identity, resource] of before) {
-      if (!after.has(identity)) {
+    for (const [claims, resource] of before) {
+      if (!after.has(claims)) {
         deleted.push({ modelName: resource.modelName, id: resource.id });
       }
     }

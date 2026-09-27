@@ -58,6 +58,16 @@
     "./vite": {
       "types": "./dist/nodeWorkerPlugin.d.ts",
       "import": "./dist/nodeWorkerPlugin.js"
+    },
+    "./Node/Node": {
+      "types": "./dist/Node/Node.d.ts",
+      "import": "./dist/Node/Node.js",
+      "default": "./dist/Node/Node.js"
+    },
+    "./Node/types": {
+      "types": "./dist/Node/types.d.ts",
+      "import": "./dist/Node/types.js",
+      "default": "./dist/Node/types.js"
     }
   },
   "scripts": {
@@ -89,6 +99,7 @@
     "@effect/vitest": "rc",
     "@playwright/test": "^1.59.1",
     "@types/node": "^25.6.2",
+    "@zerospin/fixtures": "workspace:*",
     "effect": "4.0.0-rc.111",
     "rimraf": "^6.1.3",
     "tsup": "^8.5.1",

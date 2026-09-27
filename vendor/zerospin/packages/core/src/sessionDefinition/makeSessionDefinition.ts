@@ -2,7 +2,7 @@ import { Schema, SchemaAST } from 'effect';
 
 import { AggregateSessionPropsSchema } from '../aggregateSession/make/makeAggregateSessionDefinition.ts';
 import type { IAnyContractBindings } from '../contracts/types.ts';
-import type { IIdentitySchema } from '../identity/types.ts';
+import type { IClaimsSchema } from '../identity/types.ts';
 import { assertValidModels } from '../models/assertValidModels.ts';
 import type { IAnyModels } from '../models/types.ts';
 import { ServiceSessionPropsSchema } from '../serviceSession/make/makeServiceSessionDefinition.ts';
@@ -14,7 +14,7 @@ export function makeSessionDefinition(props: {
   sessionName: string;
   actorName: string;
   actorVersion: string;
-  identitySchema: IIdentitySchema;
+  claimsSchema: IClaimsSchema;
   models: IAnyModels;
   aggregateName?: string;
   aggregateVersion?: string;
@@ -23,7 +23,7 @@ export function makeSessionDefinition(props: {
   contracts?: IAnyContractBindings;
 }) {
   const {
-    identitySchema,
+    claimsSchema,
     sessionName,
     actorName,
     actorVersion,
@@ -36,7 +36,7 @@ export function makeSessionDefinition(props: {
     actorName,
     actorVersion,
     models,
-    identitySchema,
+    claimsSchema,
   };
   if (props.kind === 'aggregate') {
     if (
@@ -57,7 +57,7 @@ export function makeSessionDefinition(props: {
       },
       { onExcessProperty: 'error' },
     );
-    const field = identitySchema.fields.aggregateId;
+    const field = claimsSchema.fields.aggregateId;
     const ast = field === undefined ? undefined : SchemaAST.toType(field.ast);
     if (
       ast === undefined ||
@@ -69,12 +69,12 @@ export function makeSessionDefinition(props: {
         'Aggregate session identity must contain a required string aggregateId',
       );
     }
-    const { identitySchema: _, ...definition } = decoded;
+    const { claimsSchema: _, ...definition } = decoded;
     return {
       ...definition,
       kind: 'aggregate' as const,
       systemName,
-      identity: { identitySchema },
+      claimsSchema,
       contracts: Object.fromEntries(
         Object.entries(props.contracts).map(([name, binding]) => [
           name,
@@ -97,12 +97,12 @@ export function makeSessionDefinition(props: {
     serviceName: props.serviceName,
     serviceVersion: props.serviceVersion,
   });
-  const { identitySchema: _, ...definition } = decoded;
+  const { claimsSchema: _, ...definition } = decoded;
   return {
     ...definition,
     kind: 'service' as const,
     systemName,
-    identity: { identitySchema },
+    claimsSchema,
     contracts: {},
     models: { ...models },
     modelNames: Object.keys(models),

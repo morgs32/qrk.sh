@@ -17,9 +17,9 @@ export const projectActorCommand = (row: Retained) => ({
   executedIndex: row.executedIndex,
   executedHash: row.executedHash,
   actorDelta: row.actorDelta,
-  admission: row.completionIdentity === null ? null : row.admission,
+  admission: row.completionClaims === null ? null : row.admission,
   execution:
-    row.completionIdentity === null || row.execution === null
+    row.completionClaims === null || row.execution === null
       ? null
       : row.execution.status === 'succeeded'
         ? {

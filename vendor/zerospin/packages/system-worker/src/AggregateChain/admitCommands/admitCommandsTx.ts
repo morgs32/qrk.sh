@@ -50,7 +50,7 @@ const retain = makeTx('AggregateChain.admitCommandsTx')(function* (
         retained.sessionName !== command.sessionName ||
         retained.actorName !== command.actorName ||
         retained.actorVersion !== command.actorVersion ||
-        !isEqual(JSON.parse(retained.identity), command.identity)
+        !isEqual(JSON.parse(retained.claims), command.claims)
       ) {
         return yield* makeZerospinError({
           code: 'node-admission-identity-mismatch',
@@ -90,7 +90,7 @@ const retain = makeTx('AggregateChain.admitCommandsTx')(function* (
         (prior.sessionName !== command.sessionName ||
           prior.actorName !== command.actorName ||
           prior.actorVersion !== command.actorVersion ||
-          !isEqual(JSON.parse(prior.identity), command.identity))
+          !isEqual(JSON.parse(prior.claims), command.claims))
       ) {
         return yield* makeZerospinError({
           code: 'node-admission-identity-mismatch',

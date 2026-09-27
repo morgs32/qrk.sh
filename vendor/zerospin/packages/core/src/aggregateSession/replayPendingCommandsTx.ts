@@ -31,7 +31,7 @@ export const replayPendingCommandsTx = Effect.fn('replayPendingCommandsTx')(
   }): Effect.fn.Return<void, IAnyError> {
     const { tx, definition } = props;
     // Registry-selected contracts erase their service types. Preserve the caller's
-    // runtime capabilities and bind database/identity per replay below.
+    // runtime capabilities and bind database/claims per replay below.
     const ambient = yield* Effect.context<never>();
     const context = Context.makeUnsafe<unknown>(ambient.mapUnsafe);
     const rows = tx
@@ -80,12 +80,12 @@ export const replayPendingCommandsTx = Effect.fn('replayPendingCommandsTx')(
           }),
         );
       }
-      const identity = yield* Schema.decodeUnknownEffect(
-        definition.identity.identitySchema,
-      )(command.identity).pipe(
+      const claims = yield* Schema.decodeUnknownEffect(definition.claimsSchema)(
+        command.claims,
+      ).pipe(
         mapParseError({
-          code: 'pending-command-identity-invalid',
-          prefix: 'Invalid pending identity',
+          code: 'pending-command-claims-invalid',
+          prefix: 'Invalid pending claims',
         }),
       );
       const payload = yield* decodePayload(binding.contract, { command });
@@ -96,7 +96,7 @@ export const replayPendingCommandsTx = Effect.fn('replayPendingCommandsTx')(
             const made = yield* runContractGuard({
               contract: binding.contract,
               queryDb: replayTx,
-              identity,
+              claims,
               payload,
             })
               .pipe(
@@ -105,7 +105,7 @@ export const replayPendingCommandsTx = Effect.fn('replayPendingCommandsTx')(
                     contract: binding.contract,
                     models: definition.models,
                     command: { ...command, payload },
-                    identity,
+                    claims,
                   }),
                 ),
               )

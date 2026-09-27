@@ -31,7 +31,7 @@ export const UnknownAggregateCommandSchema = Schema.Union([
   Schema.fieldsAssign({
     aggregateVersion: Schema.String,
     nodeId: Schema.Null,
-    identity: Schema.Record(Schema.String, Schema.Unknown),
+    claims: Schema.Record(Schema.String, Schema.Unknown),
     actorName: Schema.String,
     actorVersion: Schema.String,
     sessionName: Schema.Null,
@@ -39,7 +39,7 @@ export const UnknownAggregateCommandSchema = Schema.Union([
   })(UnknownAggregateCommandBaseSchema),
   Schema.fieldsAssign({
     nodeId: Schema.String,
-    identity: Schema.Record(Schema.String, Schema.Unknown),
+    claims: Schema.Record(Schema.String, Schema.Unknown),
     actorName: Schema.String,
     actorVersion: Schema.String,
     sessionName: Schema.String,
@@ -80,7 +80,7 @@ export const EncodedAggregateCommandSchema = Schema.Union([
   Schema.fieldsAssign({
     aggregateVersion: Schema.String,
     nodeId: Schema.Null,
-    identity: Schema.Record(Schema.String, Schema.Unknown),
+    claims: Schema.Record(Schema.String, Schema.Unknown),
     actorName: Schema.String,
     actorVersion: Schema.String,
     sessionName: Schema.Null,
@@ -88,7 +88,7 @@ export const EncodedAggregateCommandSchema = Schema.Union([
   })(EncodedAggregateCommandBaseSchema),
   Schema.fieldsAssign({
     nodeId: Schema.String,
-    identity: Schema.Record(Schema.String, Schema.Unknown),
+    claims: Schema.Record(Schema.String, Schema.Unknown),
     actorName: Schema.String,
     actorVersion: Schema.String,
     sessionName: Schema.String,
@@ -104,7 +104,7 @@ export const EncodedSessionCommandSchema = Schema.Struct({
   aggregateId: Schema.String,
   aggregateName: Schema.String,
   sessionId: makeAbbreviationIdSchema('sesn'),
-  identity: Schema.Record(Schema.String, Schema.Unknown),
+  claims: Schema.Record(Schema.String, Schema.Unknown),
   actorName: Schema.String,
   actorVersion: Schema.String,
   sessionName: Schema.String,

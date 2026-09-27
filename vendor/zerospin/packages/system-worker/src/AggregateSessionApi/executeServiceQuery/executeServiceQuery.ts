@@ -35,7 +35,7 @@ export const executeServiceQuery = Effect.fn(
     readonly aggregateId: IAggregateId;
     readonly aggregateName: string;
     aggregateVersion: string;
-    readonly identity: Readonly<Record<string, unknown>>;
+    readonly claims: Readonly<Record<string, unknown>>;
     actorName: string;
     actorVersion: string;
     readonly actorPath: string;
@@ -83,7 +83,7 @@ export const executeServiceQuery = Effect.fn(
     aggregateVersion: authResults.aggregateVersion,
     aggregateId: authResults.aggregateId,
     aggregateName: authResults.aggregateName,
-    identity: authResults.identity,
+    claims: authResults.claims,
     aggregateSessionLock: authResults.aggregateSessionLock,
     sessionName: authResults.sessionName,
     params: validatedArgs.success[0].params,

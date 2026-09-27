@@ -9,7 +9,7 @@ import { getSnapshot } from './getSnapshot/getSnapshot.js';
 
 export class ServiceSessionApi extends RpcTarget {
   readonly #authResults: {
-    readonly identity: Readonly<Record<string, unknown>>;
+    readonly claims: Readonly<Record<string, unknown>>;
     readonly actorPath: string;
     readonly sessionName: string;
     readonly serviceSessionLock: IServiceSessionLock;
@@ -26,7 +26,7 @@ export class ServiceSessionApi extends RpcTarget {
    */
   constructor(props: {
     authResults: {
-      readonly identity: Readonly<Record<string, unknown>>;
+      readonly claims: Readonly<Record<string, unknown>>;
       readonly actorPath: string;
       readonly sessionName: string;
       readonly serviceSessionLock: IServiceSessionLock;

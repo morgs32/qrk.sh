@@ -24,13 +24,13 @@ export const aggregate = makeAggregateVersion(
         playX: Effect.fn('game.authoritativePlayX')(function* ({
           queryDb,
           payload,
-          identity,
+          claims,
         }) {
           const current = queryDb.query.game
             .findFirst({ where: { id: { eq: payload.id } } })
             .sync();
           if (
-            identity.instanceId !== payload.id ||
+            claims.instanceId !== payload.id ||
             !isValidMove(current, payload, 'X')
           ) {
             return yield* makeZerospinError('invalid-move');

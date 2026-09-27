@@ -26,7 +26,7 @@ export const authorize = Effect.fn('ServiceAccessApi.authorize')(
       actorName: string;
       actorVersion: string;
       admitted: {
-        identity: Readonly<Record<string, unknown>>;
+        claims: Readonly<Record<string, unknown>>;
         actorPath: string;
       };
     };
@@ -62,19 +62,19 @@ export const authorize = Effect.fn('ServiceAccessApi.authorize')(
           makeZerospinError({ code: 'service-actor-target-mismatch' }),
         );
       }
-      const identity = admitted.identity;
+      const claims = admitted.claims;
 
       const authorization = yield* authorizeServiceSession({
         serviceVersion: access.serviceVersion,
         serviceName: access.serviceName,
         sessionName: validated.sessionName,
         serviceSessionLock,
-        identity,
+        claims,
       });
       yield* checkServiceAuthorization({
         serviceVersion: access.serviceVersion,
         authorization,
-        identity,
+        claims,
         serviceName: access.serviceName,
         sessionName: validated.sessionName,
         serviceSessionLock,
@@ -87,7 +87,7 @@ export const authorize = Effect.fn('ServiceAccessApi.authorize')(
           serviceSessionLock: authorization.serviceSessionLock,
           serviceName: access.serviceName,
           systemId: env.ZEROSPIN_SYSTEM_ID,
-          identity,
+          claims,
           actorPath: admitted.actorPath,
         },
         runtime,

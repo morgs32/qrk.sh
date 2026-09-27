@@ -33,9 +33,9 @@
         "name": "@effect/language-service"
       }
     ],
-    "types": ["node", "./worker-configuration.d.ts"]
+    "types": ["node"]
   },
-  "include": ["src/**/*.ts", "worker-configuration.d.ts"],
+  "include": ["src/**/*.ts"],
   "exclude": ["**/*.spec.ts"],
   "references": [
     {

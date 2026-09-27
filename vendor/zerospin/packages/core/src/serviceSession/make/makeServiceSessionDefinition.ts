@@ -29,7 +29,7 @@ const ClaimsSchema = Schema.declare(
 export const ServiceSessionPropsSchema = Schema.Struct({
   actorName: Schema.String,
   actorVersion: Schema.String,
-  identitySchema: ClaimsSchema,
+  claimsSchema: ClaimsSchema,
   serviceName: Schema.String,
   serviceVersion: Schema.String.check(Schema.isMinLength(1)),
   sessionName: Schema.String,
@@ -57,7 +57,7 @@ export function makeServiceSessionDefinition<
   const SERVICE_VERSION extends string,
   const DEFINITION_NAME extends string,
   const MODELS extends IAnyModels,
-  const IDENTITY extends Schema.Struct<
+  const CLAIMS extends Schema.Struct<
     Readonly<Record<string, Schema.Codec<unknown, unknown>>>
   >,
 >(props: {
@@ -66,7 +66,7 @@ export function makeServiceSessionDefinition<
   serviceName: SERVICE_NAME;
   serviceVersion: SERVICE_VERSION;
   sessionName: DEFINITION_NAME;
-  identitySchema: IDENTITY;
+  claimsSchema: CLAIMS;
   models: MODELS &
     IAssertValidModels<NoInfer<MODELS>> & {
       [K in keyof MODELS]: MODELS[K] extends IModelReplica
@@ -84,7 +84,7 @@ export function makeServiceSessionDefinition<
     kind: 'service' as const,
     actorName: props.actorName,
     actorVersion: props.actorVersion,
-    identity: { identitySchema: props.identitySchema },
+    claimsSchema: props.claimsSchema,
     serviceName: props.serviceName,
     serviceVersion: props.serviceVersion,
     sessionName: props.sessionName,
@@ -98,7 +98,7 @@ export function makeServiceSessionDefinition<
       DEFINITION_NAME,
       MODELS,
       SERVICE_VERSION,
-      IDENTITY
+      CLAIMS
     >,
     'systemName'
   >;

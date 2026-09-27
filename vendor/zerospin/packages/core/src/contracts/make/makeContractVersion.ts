@@ -52,7 +52,7 @@ export type InferContractProgram<
   REQUIREMENTS = never,
   ERROR extends IContractFailure = IContractFailure,
 > = (props: {
-  identity: Readonly<Record<string, unknown>> | null;
+  claims: Readonly<Record<string, unknown>> | null;
   payload: IsErasedPayloadShape<PAYLOAD> extends true
     ? // oxlint-disable-next-line typescript/no-explicit-any -- erased payload shape intentionally accepts any payload
       any
@@ -65,12 +65,15 @@ type IContractProgramFn<
   MODELS extends IAnyModels,
   REQUIREMENTS = never,
   ERROR extends IContractFailure = IContractFailure,
-  IDENTITY = Readonly<Record<string, unknown>> | null,
+  CLAIMS = Readonly<Record<string, unknown>> | null,
   FAILURES extends IFailures = IFailures,
+  DEFAULT_FAILURES extends IFailures = Record<never, never>,
 > = (props: {
-  identity: IDENTITY;
-  failures: NoInfer<FAILURES>;
-  models: { readonly [K in keyof MODELS]: IModelMutations<MODELS[K]> };
+  claims: CLAIMS;
+  failures: [FAILURES] extends [never] ? DEFAULT_FAILURES : NoInfer<FAILURES>;
+  models: [MODELS] extends [never]
+    ? Record<never, never>
+    : { readonly [K in keyof MODELS]: IModelMutations<MODELS[K]> };
   payload: InferCommandPayload<PAYLOAD>;
 }) => Effect.Effect<MUTATIONS, ERROR, REQUIREMENTS>;
 
@@ -133,7 +136,7 @@ const ContractProgramSchema = Schema.declare(
     input: unknown,
   ): input is (props: {
     payload: unknown;
-    identity: Readonly<Record<string, unknown>> | null;
+    claims: Readonly<Record<string, unknown>> | null;
     models: Readonly<Record<string, IModelMutations<IModel>>>;
     failures: IFailures;
   }) => Effect.Effect<
@@ -164,7 +167,7 @@ const ContractSemVerSchema = Schema.String.check(
 );
 
 const MakeVersionPropsSchema = Schema.Struct({
-  identity: Schema.optionalKey(
+  claims: Schema.optionalKey(
     Schema.declare(
       (
         input: unknown,
@@ -181,7 +184,7 @@ const MakeVersionPropsSchema = Schema.Struct({
       ): input is (props: {
         queryDb: Readonly<Pick<IDb, 'query'>>;
         payload: unknown;
-        identity: Readonly<Record<string, unknown>> | null;
+        claims: Readonly<Record<string, unknown>> | null;
         failures: IFailures;
       }) => Effect.Effect<
         void,
@@ -222,6 +225,8 @@ export class Contract {
   }
 }
 
+// Effect.fn can contextualize omitted declarations as never; guard inputs use
+// the same empty failures default as the authored declaration.
 export function makeContractVersion<
   COMMAND_NAME extends string,
   PAYLOAD extends Record<string, IPayloadFieldDescriptor>,
@@ -234,7 +239,7 @@ export function makeContractVersion<
     | IFrameworkError
     | NoInfer<Extract<FailureType<FAILURE>, { readonly scope: 'contract' }>> =
     IAnyError,
-  IDENTITY extends Schema.Codec<
+  CLAIMS extends Schema.Codec<
     Readonly<Record<string, unknown>> | null,
     unknown
   > = Schema.Codec<Readonly<Record<string, unknown>> | null, unknown>,
@@ -242,16 +247,18 @@ export function makeContractVersion<
 >(
   commandName: Command<COMMAND_NAME>,
   props: {
-    identity?: never;
+    claims?: never;
     guard?: (props: {
-      failures: NoInfer<FAILURE>;
+      failures: [FAILURE] extends [never]
+        ? Record<never, never>
+        : NoInfer<FAILURE>;
       queryDb: string extends keyof MODELS
         ? Readonly<Pick<IDb, 'query'>>
         : Readonly<
             Pick<IDb<IResourceDbConfig<MODELS, Record<never, never>>>, 'query'>
           >;
       payload: InferCommandPayload<PAYLOAD>;
-      identity: NoInfer<Readonly<Record<string, unknown>> | null>;
+      claims: NoInfer<Readonly<Record<string, unknown>> | null>;
     }) => Effect.Effect<
       void,
       | IFrameworkError
@@ -291,7 +298,7 @@ export function makeContractVersion<
   PROGRAM_REQUIREMENTS | GUARD_REQUIREMENTS,
   FAILURE,
   { [K in VERSION]: FAILURE },
-  IDENTITY
+  CLAIMS
 >;
 
 export function makeContractVersion<
@@ -306,7 +313,7 @@ export function makeContractVersion<
     | IFrameworkError
     | NoInfer<Extract<FailureType<FAILURE>, { readonly scope: 'contract' }>> =
     IAnyError,
-  IDENTITY extends Schema.Codec<
+  CLAIMS extends Schema.Codec<
     Readonly<Record<string, unknown>> | null,
     unknown
   > = Schema.Codec<Readonly<Record<string, unknown>> | null, unknown>,
@@ -314,16 +321,18 @@ export function makeContractVersion<
 >(
   commandName: Command<COMMAND_NAME>,
   props: {
-    identity: IDENTITY;
+    claims: CLAIMS;
     guard?: (props: {
-      failures: NoInfer<FAILURE>;
+      failures: [FAILURE] extends [never]
+        ? Record<never, never>
+        : NoInfer<FAILURE>;
       queryDb: string extends keyof MODELS
         ? Readonly<Pick<IDb, 'query'>>
         : Readonly<
             Pick<IDb<IResourceDbConfig<MODELS, Record<never, never>>>, 'query'>
           >;
       payload: InferCommandPayload<PAYLOAD>;
-      identity: NoInfer<IDENTITY['Type']>;
+      claims: NoInfer<CLAIMS['Type']>;
     }) => Effect.Effect<
       void,
       | IFrameworkError
@@ -341,7 +350,7 @@ export function makeContractVersion<
       MODELS,
       PROGRAM_REQUIREMENTS,
       PROGRAM_ERROR,
-      IDENTITY['Type'],
+      CLAIMS['Type'],
       FAILURE
     >;
   },
@@ -363,7 +372,7 @@ export function makeContractVersion<
   PROGRAM_REQUIREMENTS | GUARD_REQUIREMENTS,
   FAILURE,
   { [K in VERSION]: FAILURE },
-  IDENTITY
+  CLAIMS
 >;
 
 /*
@@ -401,10 +410,10 @@ function makeVersion(
     inheritedFailures ?? Object.freeze({ ...decodedProps.failures });
   getFailuresCodec(failures);
   const authoredProgram = decodedProps.program ?? noOpProgram;
-  const program: IContract['program'] = ({ payload, identity }) =>
+  const program: IContract['program'] = ({ payload, claims }) =>
     authoredProgram({
       payload,
-      identity,
+      claims,
       models: modelMutations,
       failures,
     });
@@ -421,9 +430,9 @@ function makeVersion(
   };
 
   const fields: Omit<IContract, 'previous' | 'next' | 'up' | 'down'> = {
-    ...(decodedProps.identity === undefined
+    ...(decodedProps.claims === undefined
       ? {}
-      : { identity: decodedProps.identity }),
+      : { claims: decodedProps.claims }),
     ...(decodedProps.guard === undefined ? {} : { guard: decodedProps.guard }),
     failures,
     models,
@@ -437,12 +446,19 @@ function makeVersion(
   return contract;
 }
 
+// Effect.fn contextual inference can instantiate an omitted patch as never.
+// Treat that the same as an empty patch so inherited model queries remain typed.
 type IPatchedModels<
   M extends IAnyModels,
   P extends Readonly<Record<string, IModel | null>>,
-> = Omit<M, keyof P> & {
-  readonly [K in keyof P as P[K] extends null ? never : K]: Exclude<P[K], null>;
-};
+> = [P] extends [never]
+  ? M
+  : Omit<M, keyof P> & {
+      readonly [K in keyof P as P[K] extends null ? never : K]: Exclude<
+        P[K],
+        null
+      >;
+    };
 
 export function upgradeContractVersion<
   COMMAND_NAME extends string,
@@ -467,7 +483,7 @@ export function upgradeContractVersion<
     | NoInfer<Extract<FailureType<FAILURE>, { readonly scope: 'contract' }>> =
     IAnyError,
   HISTORICAL_PROGRAM_REQUIREMENTS = never,
-  IDENTITY extends Schema.Codec<
+  CLAIMS extends Schema.Codec<
     Readonly<Record<string, unknown>> | null,
     unknown
   > = Schema.Codec<Readonly<Record<string, unknown>> | null, unknown>,
@@ -487,9 +503,9 @@ export function upgradeContractVersion<
     FAILURES
   >,
   props: {
-    identity?: never;
+    claims?: never;
     guard?: (props: {
-      failures: NoInfer<FAILURE>;
+      failures: [FAILURE] extends [never] ? PREVIOUS_FAILURE : NoInfer<FAILURE>;
       queryDb: Readonly<
         Pick<
           IDb<
@@ -516,7 +532,7 @@ export function upgradeContractVersion<
             ? PAYLOAD[K]
             : never;
       }>;
-      identity: Readonly<Record<string, unknown>> | null;
+      claims: Readonly<Record<string, unknown>> | null;
     }) => Effect.Effect<
       void,
       | IFrameworkError
@@ -613,7 +629,8 @@ export function upgradeContractVersion<
       NEXT_PROGRAM_REQUIREMENTS,
       NEXT_PROGRAM_ERROR,
       Readonly<Record<string, unknown>> | null,
-      FAILURE
+      FAILURE,
+      PREVIOUS_FAILURE
     >;
   },
 ): string extends NEXT_VERSION
@@ -676,7 +693,7 @@ export function upgradeContractVersion<
         | GUARD_REQUIREMENTS,
         FAILURE,
         FAILURES & { [K in NEXT_VERSION]: FAILURE },
-        IDENTITY
+        CLAIMS
       >;
 
 export function upgradeContractVersion<
@@ -702,7 +719,7 @@ export function upgradeContractVersion<
     | NoInfer<Extract<FailureType<FAILURE>, { readonly scope: 'contract' }>> =
     IAnyError,
   HISTORICAL_PROGRAM_REQUIREMENTS = never,
-  IDENTITY extends Schema.Codec<
+  CLAIMS extends Schema.Codec<
     Readonly<Record<string, unknown>> | null,
     unknown
   > = Schema.Codec<Readonly<Record<string, unknown>> | null, unknown>,
@@ -722,9 +739,9 @@ export function upgradeContractVersion<
     FAILURES
   >,
   props: {
-    identity: IDENTITY;
+    claims: CLAIMS;
     guard?: (props: {
-      failures: NoInfer<FAILURE>;
+      failures: [FAILURE] extends [never] ? PREVIOUS_FAILURE : NoInfer<FAILURE>;
       queryDb: Readonly<
         Pick<
           IDb<
@@ -751,7 +768,7 @@ export function upgradeContractVersion<
             ? PAYLOAD[K]
             : never;
       }>;
-      identity: NoInfer<IDENTITY['Type']>;
+      claims: NoInfer<CLAIMS['Type']>;
     }) => Effect.Effect<
       void,
       | IFrameworkError
@@ -847,8 +864,9 @@ export function upgradeContractVersion<
       },
       NEXT_PROGRAM_REQUIREMENTS,
       NEXT_PROGRAM_ERROR,
-      IDENTITY['Type'],
-      FAILURE
+      CLAIMS['Type'],
+      FAILURE,
+      PREVIOUS_FAILURE
     >;
   },
 ): string extends NEXT_VERSION
@@ -911,7 +929,7 @@ export function upgradeContractVersion<
         | GUARD_REQUIREMENTS,
         FAILURE,
         FAILURES & { [K in NEXT_VERSION]: FAILURE },
-        IDENTITY
+        CLAIMS
       >;
 
 export function upgradeContractVersion(
@@ -991,7 +1009,7 @@ export function upgradeContractVersion(
       payload: nextPayload,
       version: props.version,
       program: props.program,
-      ...(props.identity === undefined ? {} : { identity: props.identity }),
+      ...(props.claims === undefined ? {} : { claims: props.claims }),
       ...(props.guard === undefined ? {} : { guard: props.guard }),
       failures: props.failures ?? contract.failures,
     },

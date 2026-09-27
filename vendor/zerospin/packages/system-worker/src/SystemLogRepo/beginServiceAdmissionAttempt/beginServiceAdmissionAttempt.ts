@@ -5,7 +5,7 @@ import { Effect } from 'effect';
 
 import { systemLogRepoDbConfig } from '../systemLogRepoDbConfig.js';
 
-/** Persist an unfinished attempt before any credentials validation or authored identity. */
+/** Persist an unfinished attempt before any credentials validation or authored claims. */
 export const beginServiceAdmissionAttempt = Effect.fn(
   'SystemLogRepo.beginServiceAdmissionAttempt',
 )(function* (props: { db: IDb; serviceName: string; serviceVersion: string }) {
@@ -23,8 +23,8 @@ export const beginServiceAdmissionAttempt = Effect.fn(
           startedAt: new Date(),
           completedAt: null,
           status: 'unfinished',
-          identity: null,
-          identityHash: null,
+          claims: null,
+          claimsHash: null,
           selection: null,
           actorPath: null,
           failure: null,

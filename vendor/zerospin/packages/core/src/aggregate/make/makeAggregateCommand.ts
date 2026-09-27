@@ -22,7 +22,7 @@ export const makeAggregateCommand: <
   contract: CONTRACT;
   actorName: string;
   actorVersion: string;
-  identity: Readonly<Record<string, unknown>>;
+  claims: Readonly<Record<string, unknown>>;
   aggregateId: IAggregateId;
   aggregateVersion: string;
   aggregateName: AGGREGATE_NAME;
@@ -51,7 +51,7 @@ export const makeAggregateCommand: <
   contract: CONTRACT;
   actorName: string;
   actorVersion: string;
-  identity: Readonly<Record<string, unknown>>;
+  claims: Readonly<Record<string, unknown>>;
   aggregateId: IAggregateId;
   aggregateVersion: string;
   aggregateName: AGGREGATE_NAME;
@@ -80,7 +80,7 @@ export const makeAggregateCommand: <
     payload,
     systemName,
     aggregateVersion,
-    identity,
+    claims,
     actorName,
     actorVersion,
   } = props;
@@ -95,7 +95,7 @@ export const makeAggregateCommand: <
     aggregateVersion,
     aggregateId,
     aggregateName,
-    identity,
+    claims,
     actorName,
     actorVersion,
     nodeIndex: null,

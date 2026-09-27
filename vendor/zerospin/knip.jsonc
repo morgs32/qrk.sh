@@ -18,9 +18,9 @@
   "ignoreIssues": {
     "**/components/ui/**": ["exports"],
     "examples/shopping/src/components/ui/**": ["exports"],
-    "packages/sync/e2e/FixtureStateRepo.ts": ["exports"],
-    "packages/sync/e2e/FixtureSyncAgent.ts": ["exports"],
-    "packages/sync/e2e/worker.ts": ["exports"],
+    "packages/fixtures/src/sync/FixtureStateRepo.ts": ["exports"],
+    "packages/fixtures/src/sync/FixtureSyncAgent.ts": ["exports"],
+    "packages/fixtures/src/sync/worker.ts": ["exports"],
     "packages/system-worker/src/types.ts": ["types"],
   },
   "workspaces": {
@@ -149,18 +149,18 @@
         "e2e/Sync.useAgent.playwright.spec.tsx",
         "e2e/Sync.workerd.spec.ts",
         // Referenced as the ignored Wrangler dispatch config's main string path.
-        "e2e/dispatchWorker.ts",
+        "../fixtures/src/sync/dispatchWorker.ts",
       ],
       "vitest": true,
     },
     "packages/system-worker": {
       "entry": [
-        "src/TestWorker.ts",
+        "../fixtures/src/system-worker/TestWorker.ts",
         "vitest.workerd.config.ts",
         "vitest.node.config.ts",
       ],
       "paths": {
-        "config": ["./src/fixtures/system.ts"],
+        "config": ["../fixtures/src/system-worker/systems/system.ts"],
       },
       "ignore": ["worker.d.ts"],
       "ignoreFiles": ["vitest.workerd.config.ts"],

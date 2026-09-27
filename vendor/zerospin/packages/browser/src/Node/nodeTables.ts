@@ -27,9 +27,7 @@ export const nodeCommands = sqliteTable('commands', {
   actorName: text().notNull(),
   actorVersion: text().notNull(),
   sessionName: text().notNull(),
-  identity: text({ mode: 'json' })
-    .$type<INodeCommandInput['identity']>()
-    .notNull(),
+  claims: text({ mode: 'json' }).$type<INodeCommandInput['claims']>().notNull(),
   staging: text({ mode: 'json' })
     .$type<INodeCommandInput['staging']>()
     .notNull(),

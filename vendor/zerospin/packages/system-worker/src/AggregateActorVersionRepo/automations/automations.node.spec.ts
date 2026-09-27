@@ -1,11 +1,14 @@
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/make/makeDbConfig/makeDbConfig';
 import { isZerospinError, makeZerospinError } from '@zerospin/error';
+import {
+  game,
+  playX,
+} from '@zerospin/fixtures/system-worker/workerd/automationFixture';
 import { Effect, Exit, Fiber, Schema } from 'effect';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { aggregateVersionChainDbConfig } from '../../AggregateVersionChain/aggregateVersionChainDbConfig.js';
-import { game, playX } from '../../workerd-utils/automationFixture.js';
 import { aggregateActorVersionRepoDbConfig } from '../aggregateActorVersionRepoDbConfig.js';
 import { applyExecutedCommands } from '../applyExecutedCommands/applyExecutedCommands.js';
 import { stageActorCommands } from '../optimistic/stageActorCommands.js';
@@ -24,7 +27,7 @@ vi.mock('config', async () => {
   const { makeSystemConfig } =
     await import('@zerospin/core/system/make/makeSystemConfig');
   const { automationGame, AutomationDecision } =
-    await import('../../workerd-utils/automationFixture.js');
+    await import('@zerospin/fixtures/system-worker/workerd/automationFixture');
   const { Effect, Layer } = await import('effect');
   return {
     default: makeSystemConfig(
@@ -82,7 +85,7 @@ const row = (
     }),
     ...key,
     systemName: 'automations',
-    identity: {
+    claims: {
       aggregateId: key.aggregateId,
       instanceId: options.id ?? 'gam_selected',
     },

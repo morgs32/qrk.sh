@@ -64,7 +64,7 @@ export class NodeCatalog {
   }
 
   private locator(identity: INodeIdentity) {
-    return nodeKey({ ...identity, targetId: '', identity: {} });
+    return nodeKey({ ...identity, targetId: '', claims: {} });
   }
 
   private logicalSession(identity: INodeIdentity) {
@@ -74,7 +74,7 @@ export class NodeCatalog {
       targetVersion: '',
       actorVersion: '',
       definitionHash: '',
-      identity: {},
+      claims: {},
     });
   }
 

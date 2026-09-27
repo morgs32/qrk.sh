@@ -47,7 +47,7 @@ export const getSnapshot = Effect.fn('AggregateActorVersionRepo.getSnapshot')(
         actorVersion: string;
         actorPath: string;
         sessionName: string;
-        identity: Readonly<Record<string, unknown>>;
+        claims: Readonly<Record<string, unknown>>;
         nodeId: string | null;
       };
       actorCommandsOutbox: Pick<
@@ -128,8 +128,8 @@ export const getSnapshot = Effect.fn('AggregateActorVersionRepo.getSnapshot')(
                 .select({
                   nodeIndex:
                     aggregateActorVersionRepoDbConfig.schema.commands.nodeIndex,
-                  identity:
-                    aggregateActorVersionRepoDbConfig.schema.commands.identity,
+                  claims:
+                    aggregateActorVersionRepoDbConfig.schema.commands.claims,
                 })
                 .from(aggregateActorVersionRepoDbConfig.schema.commands)
                 .where(
@@ -151,9 +151,7 @@ export const getSnapshot = Effect.fn('AggregateActorVersionRepo.getSnapshot')(
                 .all();
         let resolvedThrough = 0;
         for (const row of rows) {
-          if (
-            !isEqual(JSON.parse(row.identity ?? 'null'), requested.identity)
-          ) {
+          if (!isEqual(JSON.parse(row.claims ?? 'null'), requested.claims)) {
             continue;
           }
           if (row.nodeIndex !== resolvedThrough + 1) break;
@@ -175,7 +173,7 @@ export const getSnapshot = Effect.fn('AggregateActorVersionRepo.getSnapshot')(
     return yield* Schema.decodeUnknownEffect(
       Schema.toType(
         AggregateSessionSnapshotSchema.mapFields(
-          ({ identity: _identity, ...fields }) => ({
+          ({ claims: _identity, ...fields }) => ({
             ...fields,
             actorPath: Schema.String,
           }),

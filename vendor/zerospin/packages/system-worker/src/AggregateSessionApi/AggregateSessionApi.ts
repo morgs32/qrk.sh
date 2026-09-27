@@ -15,7 +15,7 @@ export class AggregateSessionApi extends RpcTarget {
     readonly aggregateId: IAggregateId;
     readonly aggregateName: string;
     aggregateVersion: string;
-    readonly identity: Readonly<Record<string, unknown>>;
+    readonly claims: Readonly<Record<string, unknown>>;
     actorName: string;
     actorVersion: string;
     readonly actorPath: string;
@@ -35,7 +35,7 @@ export class AggregateSessionApi extends RpcTarget {
       readonly aggregateId: IAggregateId;
       readonly aggregateName: string;
       aggregateVersion: string;
-      readonly identity: Readonly<Record<string, unknown>>;
+      readonly claims: Readonly<Record<string, unknown>>;
       actorName: string;
       actorVersion: string;
       readonly actorPath: string;

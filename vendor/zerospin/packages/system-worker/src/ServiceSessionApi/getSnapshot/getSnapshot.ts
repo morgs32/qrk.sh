@@ -49,7 +49,7 @@ export const getSnapshot = Effect.fn('ServiceSessionApi.getSnapshot')(
   function* (props: {
     request: IRpcRequest<[]>;
     authResults: {
-      readonly identity: Readonly<Record<string, unknown>>;
+      readonly claims: Readonly<Record<string, unknown>>;
       readonly actorPath: string;
       readonly sessionName: string;
       readonly serviceSessionLock: IServiceSessionLock;
@@ -87,7 +87,7 @@ export const getSnapshot = Effect.fn('ServiceSessionApi.getSnapshot')(
         sessionName,
         serviceSessionLock,
         serviceName,
-        identity,
+        claims,
         actorPath,
       } = authResults;
 
@@ -134,7 +134,7 @@ export const getSnapshot = Effect.fn('ServiceSessionApi.getSnapshot')(
               success: Schema.toType(
                 ServiceSessionSnapshotSchema.mapFields(
                   ({
-                    identity: _identity,
+                    claims: _identity,
                     sessionName: _sessionName,
                     ...fields
                   }) => ({
@@ -195,7 +195,7 @@ export const getSnapshot = Effect.fn('ServiceSessionApi.getSnapshot')(
         resources.push(adapted.resource);
       }
 
-      // 7 — retain the snapshot cursor and full identity
+      // 7 — retain the snapshot cursor and full claims
       return {
         serviceName: canonicalSnapshot.serviceName,
         serviceVersion: canonicalSnapshot.serviceVersion,
@@ -204,7 +204,7 @@ export const getSnapshot = Effect.fn('ServiceSessionApi.getSnapshot')(
         serviceIndex: canonicalSnapshot.serviceIndex,
         serviceHash: canonicalSnapshot.serviceHash,
         sessionName,
-        identity,
+        claims,
         resources,
       };
     }).pipe(

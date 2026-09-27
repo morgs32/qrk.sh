@@ -2,13 +2,13 @@ import type { Async } from '@zerospin/core/async/Async';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/make/makeDbConfig/makeDbConfig';
 import { makeZerospinError } from '@zerospin/error';
+import { game } from '@zerospin/fixtures/system-worker/workerd/automationFixture';
 import { Effect, type Scope } from 'effect';
 import { describe, expect, it, vi } from 'vitest';
 
 import { aggregateActorVersionRepoDbConfig } from '../AggregateActorVersionRepo/aggregateActorVersionRepoDbConfig.js';
 import { makeActorSnapshotDb } from '../AggregateActorVersionRepo/validateCommands/makeActorSnapshotDb.js';
 import { makeAlarmRegistry } from '../makeAlarmRegistry/makeAlarmRegistry.js';
-import { game } from '../workerd-utils/automationFixture.js';
 
 import { makeOutboxQueue } from './makeOutboxQueue.js';
 

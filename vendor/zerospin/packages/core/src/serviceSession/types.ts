@@ -24,7 +24,7 @@ export type IServiceSessionDefinition<
   DEFINITION_NAME extends string = string,
   MODELS extends IAnyModels = IAnyModels,
   SERVICE_VERSION extends string = string,
-  IDENTITY extends Schema.Struct<
+  CLAIMS extends Schema.Struct<
     Readonly<Record<string, Schema.Codec<unknown, unknown>>>
   > = Schema.Struct<Readonly<Record<string, Schema.Codec<unknown, unknown>>>>,
 > = Readonly<{
@@ -34,7 +34,7 @@ export type IServiceSessionDefinition<
   serviceVersion: SERVICE_VERSION;
   actorName: string;
   actorVersion: string;
-  identity: Readonly<{ identitySchema: IDENTITY }>;
+  claimsSchema: CLAIMS;
   sessionName: DEFINITION_NAME;
   contracts: Readonly<Record<never, never>>;
   models: Readonly<MODELS>;
@@ -66,7 +66,7 @@ export type IServiceActorCommand = Readonly<{
 export type IServiceSessionSnapshot = Readonly<{
   actorName: string;
   actorVersion: string;
-  identity: Readonly<Record<string, unknown>>;
+  claims: Readonly<Record<string, unknown>>;
   serviceName: string;
   sessionName: string;
   serviceIndex: number;
@@ -77,10 +77,10 @@ export type IServiceSessionSnapshot = Readonly<{
 
 export type IInitializedServiceSessionState<
   MODELS extends IAnyModels = IAnyModels,
-  IDENTITY = Readonly<Record<string, unknown>>,
+  CLAIMS = Readonly<Record<string, unknown>>,
 > = Readonly<{
   sessionId: ISessionId;
-  identity: IDENTITY;
+  claims: CLAIMS;
   serviceName: string;
   sessionName: string;
   serviceSessionLockKey: string;
@@ -103,12 +103,12 @@ export type IInitializedServiceSessionState<
 
 export type IServiceSessionState<
   MODELS extends IAnyModels = IAnyModels,
-  IDENTITY = Readonly<Record<string, unknown>>,
+  CLAIMS = Readonly<Record<string, unknown>>,
 > =
-  | IInitializedServiceSessionState<MODELS, IDENTITY>
+  | IInitializedServiceSessionState<MODELS, CLAIMS>
   | Readonly<{
       sessionId: null;
-      identity: null;
+      claims: null;
       serviceName: null;
       sessionName: null;
       serviceSessionLockKey: null;
@@ -141,14 +141,11 @@ export type IServiceSession<
     handler: (props: {
       state: IInitializedServiceSessionState<
         MODELS,
-        DEFINITION['identity']['identitySchema']['Type']
+        DEFINITION['claimsSchema']['Type']
       >;
     }) => void,
   ): () => void;
   store: StoreApi<
-    IServiceSessionState<
-      MODELS,
-      DEFINITION['identity']['identitySchema']['Type']
-    >
+    IServiceSessionState<MODELS, DEFINITION['claimsSchema']['Type']>
   >;
 }>;

@@ -67,11 +67,11 @@ export function makeSystemSpec<
                   ),
                 },
           identity: {
+            claimsJsonSchema: Schema.toJsonSchemaDocument(
+              actor.identity.claimsSchema,
+            ),
             identityJsonSchema: Schema.toJsonSchemaDocument(
               actor.identity.identitySchema,
-            ),
-            actorJsonSchema: Schema.toJsonSchemaDocument(
-              actor.identity.actorSchema,
             ),
             pattern: actor.identity.pattern.source,
           },
@@ -102,11 +102,11 @@ export function makeSystemSpec<
                   ),
                 },
           identity: {
+            claimsJsonSchema: Schema.toJsonSchemaDocument(
+              actor.identity.claimsSchema,
+            ),
             identityJsonSchema: Schema.toJsonSchemaDocument(
               actor.identity.identitySchema,
-            ),
-            actorJsonSchema: Schema.toJsonSchemaDocument(
-              actor.identity.actorSchema,
             ),
             pattern: actor.identity.pattern.source,
           },

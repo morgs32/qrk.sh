@@ -4,10 +4,7 @@ import { makeServiceActorVersion } from '@zerospin/core/serviceActor/make/makeSe
 import * as sdk from '@zerospin/sdk';
 import { Effect, Schema } from 'effect';
 
-import {
-  catalogIdentitySchema,
-  clerkCredentialsSchema,
-} from '../../identities';
+import { clerkCredentialsSchema, userClaims } from '../../claims';
 import { verifyClerkIdentity } from '../../verifyClerkIdentity';
 
 import { createCatalogMarkerV1 } from './contracts/createCatalogMarker/CreateCatalogMarkerV1';
@@ -20,7 +17,7 @@ const catalogDb = sdk.makeActorDbVersion({
   models: { catalogMarker: catalogMarkerV1, product: productV1 },
 });
 const catalogIdentity = sdk.makeActorIdentity({
-  schema: catalogIdentitySchema,
+  claims: userClaims,
   actorPath: RoutePattern.parse('/:clerkUserId'),
 });
 export const appServiceV1 = sdk.makeService({

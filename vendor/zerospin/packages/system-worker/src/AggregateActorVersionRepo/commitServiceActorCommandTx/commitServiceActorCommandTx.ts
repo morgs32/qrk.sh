@@ -8,11 +8,7 @@ export const commitServiceActorCommandTx = Effect.fn(
 )(function* (
   props: Omit<
     Parameters<typeof commitActorProjectionTx>[0],
-    | 'executedHash'
-    | 'ownerIdentity'
-    | 'ownerSessionName'
-    | 'nodeId'
-    | 'nodeIndex'
+    'executedHash' | 'ownerClaims' | 'ownerSessionName' | 'nodeId' | 'nodeIndex'
   > & { previousExecutedHash: string; disposition: 'success' | 'failure' },
 ) {
   const { previousExecutedHash, disposition, ...projection } = props;
@@ -34,7 +30,7 @@ export const commitServiceActorCommandTx = Effect.fn(
     execution: null,
     nodeId: null,
     nodeIndex: null,
-    ownerIdentity: null,
+    ownerClaims: null,
     ownerSessionName: null,
     executedHash,
   });

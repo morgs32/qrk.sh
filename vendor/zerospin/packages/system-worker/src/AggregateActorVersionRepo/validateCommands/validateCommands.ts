@@ -74,18 +74,18 @@ export const validateCommands = Effect.fn(
         key: command.commandName,
         recordKind: 'actor contracts',
       });
-      const identity = yield* Schema.decodeUnknownEffect(
+      const claims = yield* Schema.decodeUnknownEffect(
         command.automationName == null
-          ? actor.identity.identitySchema
-          : actor.identity.actorSchema,
-      )(command.identity);
+          ? actor.identity.claimsSchema
+          : actor.identity.identitySchema,
+      )(command.claims);
       const payload = yield* decodePayload(contract, { command });
       const checked = yield* Effect.gen(function* () {
         yield* runContractGuard({
           contract,
           queryDb: optimistic.queryDb,
           payload,
-          identity,
+          claims,
         });
         yield* runProgram(
           Effect.suspend(
@@ -93,7 +93,7 @@ export const validateCommands = Effect.fn(
               actor.guards[command.commandName]?.({
                 queryDb: optimistic.queryDb,
                 payload,
-                identity,
+                claims,
                 failures: contract.failures,
               }) ?? Effect.void,
           ),

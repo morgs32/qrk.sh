@@ -30,7 +30,7 @@ export const resolveActorIdentity = Effect.fn('resolveActorIdentity')(
         }),
     });
     const selectedClaims = yield* Schema.decodeUnknownEffect(
-      actor.identity.actorSchema,
+      actor.identity.identitySchema,
     )(matched?.params, { onExcessProperty: 'error' }).pipe(
       mapParseError({
         code: 'actor-path-invalid',

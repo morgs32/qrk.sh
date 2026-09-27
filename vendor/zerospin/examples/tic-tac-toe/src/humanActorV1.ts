@@ -6,11 +6,11 @@ import { makeActorDbVersion } from '@zerospin/core/models/make/makeActorDbVersio
 import { computerTurn } from './computerTurn';
 import { createGame } from './contracts/createGameV1';
 import { playX } from './contracts/playXV1';
-import { game, identitySchema } from './gameV1';
+import { claimsSchema, game } from './gameV1';
 
 const db = makeActorDbVersion({ models: { game } });
 const path = RoutePattern.parse('/:aggregateId/:instanceId');
-const identity = makeActorIdentity({ schema: identitySchema, actorPath: path });
+const identity = makeActorIdentity({ claims: claimsSchema, actorPath: path });
 export const human = makeAggregateActorVersion(
   { name: 'human' },
   {

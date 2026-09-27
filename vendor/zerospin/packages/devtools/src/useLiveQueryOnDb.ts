@@ -29,7 +29,7 @@ export function useLiveQueryOnDb<
 } {
   const { db, query, deps, tableNames } = props;
 
-  // 1 — callback identity alone does not rebuild the query.
+  // 1 — callback claims alone does not rebuild the query.
   const tableNamesRef = useRef(tableNames);
   const queryRef = useRef(query);
   tableNamesRef.current = tableNames;

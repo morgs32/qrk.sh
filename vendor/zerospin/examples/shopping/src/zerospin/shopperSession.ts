@@ -12,10 +12,10 @@ import { productReplicaV1 } from './aggregates/shopper/models/productReplica/Pro
 import { userV1 } from './aggregates/shopper/models/user/UserV1';
 import { purchaseFrontend } from './aggregates/shopper/purchaseFrontend';
 import { applicationLayer } from './applicationLayer';
-import { clerkCredentialsSchema, shopperIdentitySchema } from './identities';
+import { clerkCredentialsSchema, shopperClaims } from './claims';
 
 export const shopperSession = makeSession({
-  identitySchema: shopperIdentitySchema,
+  claimsSchema: shopperClaims,
   credentialsSchema: clerkCredentialsSchema,
   kind: 'aggregate',
   actorName: 'shopper',

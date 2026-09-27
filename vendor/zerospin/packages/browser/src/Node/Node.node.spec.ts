@@ -1,7 +1,3 @@
-import { encodeShape, primitives } from '@zerospin/schema';
-import { sql } from 'drizzle-orm';
-import { describe, expect, it, vi } from 'vitest';
-
 import {
   admitted,
   command,
@@ -11,7 +7,11 @@ import {
   executed,
   fixture,
   rejection,
-} from '../../tests/nodeFixture.ts';
+} from '@zerospin/fixtures/browser/nodeFixture';
+import { encodeShape, primitives } from '@zerospin/schema';
+import { sql } from 'drizzle-orm';
+import { describe, expect, it, vi } from 'vitest';
+
 import { BrowserNode } from '../BrowserNode/BrowserNode.ts';
 
 import { Node } from './Node.ts';
@@ -218,7 +218,7 @@ describe('node authentication', () => {
           admission,
           identity: {
             ...definition.identity,
-            identity: { userId: 'two' },
+            claims: { userId: 'two' },
           },
         },
       }),

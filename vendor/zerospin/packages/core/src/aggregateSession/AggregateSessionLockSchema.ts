@@ -5,8 +5,8 @@ export const AggregateSessionLockSchema = Schema.Struct({
   sessionName: Schema.String,
   actorName: Schema.String,
   actorVersion: Schema.String,
-  identity: Schema.Struct({
-    identityJsonSchema: Schema.Unknown,
+  claims: Schema.Struct({
+    claimsJsonSchema: Schema.Unknown,
   }),
   models: Schema.Record(
     Schema.String,

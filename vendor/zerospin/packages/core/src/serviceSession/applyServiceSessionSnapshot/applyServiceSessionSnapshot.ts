@@ -28,12 +28,12 @@ export const applyServiceSessionSnapshot = Effect.fn(
 )(function* <DEFINITION extends IServiceSessionDefinition>(props: {
   definition: DEFINITION;
   sessionId: ISessionId;
-  identity: IServiceSessionSnapshot['identity'];
+  claims: IServiceSessionSnapshot['claims'];
   db: IServiceSessionDrizzleDb<DEFINITION['models'], Record<never, never>>;
   models: DEFINITION['models'];
   snapshot: IServiceSessionSnapshot;
 }): Effect.fn.Return<void, IAnyError> {
-  const { db, definition, snapshot, models, sessionId, identity } = props;
+  const { db, definition, snapshot, models, sessionId, claims } = props;
 
   yield* Schema.encodeEffect(ServiceSessionSnapshotSchema)(snapshot, {
     onExcessProperty: 'error',
@@ -44,17 +44,17 @@ export const applyServiceSessionSnapshot = Effect.fn(
     }),
   );
 
-  const encodedIdentity = yield* Schema.encodeEffect(
-    definition.identity.identitySchema,
-  )(snapshot.identity).pipe(
+  const encodedClaims = yield* Schema.encodeEffect(definition.claimsSchema)(
+    snapshot.claims,
+  ).pipe(
     mapParseError({
-      code: 'session-identity-invalid',
-      prefix: 'Invalid definition state identity',
+      code: 'session-claims-invalid',
+      prefix: 'Invalid definition state claims',
     }),
   );
 
   if (
-    !isEqual(encodedIdentity, identity) ||
+    !isEqual(encodedClaims, claims) ||
     snapshot.actorName !== definition.actorName ||
     snapshot.actorVersion !== definition.actorVersion ||
     snapshot.serviceVersion !== definition.serviceVersion ||
@@ -66,10 +66,10 @@ export const applyServiceSessionSnapshot = Effect.fn(
         code: 'service-session-state-target-mismatch',
         message: 'Service definition state does not match the bound target',
         extra: {
-          expectedIdentityKey: identity,
+          expectedClaimsKey: claims,
           expectedServiceName: definition.serviceName,
           expectedSessionName: definition.sessionName,
-          actualIdentityKey: snapshot.identity,
+          actualClaimsKey: snapshot.claims,
           actualServiceName: snapshot.serviceName,
           actualSessionName: snapshot.sessionName,
         },

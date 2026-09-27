@@ -19,8 +19,8 @@ const fulfillment = makeFulfillmentFrontendModule({
     cart: purchaseHost.cart,
     purchase: purchase.models.purchase,
   },
-  identitySchema: purchaseIdentity,
-  resolvePurchaseOwner: ({ queryDb, identity, purchaseId }) => {
+  claimsSchema: purchaseIdentity,
+  resolvePurchaseOwner: ({ queryDb, claims, purchaseId }) => {
     const row = queryDb.query.purchase
       .findMany()
       .sync()
@@ -30,10 +30,10 @@ const fulfillment = makeFulfillmentFrontendModule({
       queryDb.query.cart
         .findFirst({ where: { id: { eq: row.cartId } } })
         .sync();
-    return cart?.userId === identity.userId && row
+    return cart?.userId === claims.userId && row
       ? {
-          userId: identity.userId,
-          aggregateId: identity.aggregateId,
+          userId: claims.userId,
+          aggregateId: claims.aggregateId,
           status: row.status,
         }
       : undefined;
@@ -44,7 +44,7 @@ const fulfillment = makeFulfillmentFrontendModule({
     models: { fulfillment: makeFulfillmentModelV1() },
   },
 });
-const identitySchema = Schema.Struct({
+const claimsSchema = Schema.Struct({
   aggregateId: Schema.String,
   userId: Schema.String,
 });
@@ -62,7 +62,7 @@ export const userSession = makeSession({
   actorVersion: '1.0.0',
   sessionName: 'user',
   systemName: 'shop',
-  identitySchema,
+  claimsSchema,
   layer,
   modules: { purchase, fulfillment },
   models: purchaseHost,

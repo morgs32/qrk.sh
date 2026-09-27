@@ -20,10 +20,10 @@ export class NodeWorker extends RpcTarget {
   async attach(
     input: unknown,
     target: RpcStub<() => Promise<IAdmissionRequest>>,
-    expectedIdentity?: Readonly<Record<string, unknown>>,
+    expectedClaims?: Readonly<Record<string, unknown>>,
   ): Promise<IResult<RpcStub<IBrowserNode>, IZerospinErrorJson>> {
     return Effect.runPromise(
-      attach({ api: this, input, target, expectedIdentity }),
+      attach({ api: this, input, target, expectedClaims }),
     );
   }
   [Symbol.dispose](): void {

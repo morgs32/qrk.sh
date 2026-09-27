@@ -28,7 +28,7 @@ export const onConnect = Effect.fn('AggregateActorVersionChain.onConnect')(
       actorName: string;
       actorVersion: string;
       actorPath: string;
-      identity: Readonly<Record<string, unknown>>;
+      claims: Readonly<Record<string, unknown>>;
       sessionName: string;
       aggregateSessionLock: IAggregateSessionLock;
     }>;
@@ -69,18 +69,18 @@ export const onConnect = Effect.fn('AggregateActorVersionChain.onConnect')(
     }
 
     // 4 — close with 4004 when identity does not decode
-    const identityResult = yield* Schema.decodeUnknownEffect(
+    const claimsResult = yield* Schema.decodeUnknownEffect(
       Schema.fromJsonString(Schema.Record(Schema.String, Schema.Unknown)),
-    )(request.headers.get('x-zerospin-identity')).pipe(Effect.result);
-    if (Result.isFailure(identityResult)) {
-      connection.close(4004, 'session-identity-invalid');
+    )(request.headers.get('x-zerospin-claims')).pipe(Effect.result);
+    if (Result.isFailure(claimsResult)) {
+      connection.close(4004, 'session-claims-invalid');
       return;
     }
 
     // 5 — store phase awaiting-resume from the repo key and the lock
     connection.setState({
       phase: 'awaiting-resume',
-      identity: identityResult.success,
+      claims: claimsResult.success,
       aggregateVersion: key.aggregateVersion,
       aggregateId: key.aggregateId,
       aggregateName: key.aggregateName,

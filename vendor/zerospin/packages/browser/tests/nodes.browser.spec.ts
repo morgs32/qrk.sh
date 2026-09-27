@@ -6,7 +6,10 @@ import { fileURLToPath } from 'node:url';
 import { chromium, expect, test, type Page } from '@playwright/test';
 
 const controls =
-  '/@fs' + fileURLToPath(new URL('./browserControls.ts', import.meta.url));
+  '/@fs' +
+  fileURLToPath(
+    new URL('../../fixtures/src/browser/browserControls.ts', import.meta.url),
+  );
 async function nodeState(page: Page) {
   return page.evaluate(async controls => {
     const { gameEntry } = await import(controls);

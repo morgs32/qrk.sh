@@ -56,7 +56,7 @@ export function makeCommand<
   props: {
     contractName: CONTRACT_NAME;
     actorName: ACTOR_NAME;
-    identity: AGGREGATE['actors'][ACTOR_NAME]['identity']['identitySchema']['Type'];
+    claims: AGGREGATE['actors'][ACTOR_NAME]['identity']['claimsSchema']['Type'];
     aggregateId: IAggregateId;
     systemName: SYSTEM_NAME;
     payload: NoInfer<
@@ -89,7 +89,7 @@ export function makeCommand(
     contractName: string;
     payload: InferPayloadInput<IAnyService['contracts'][string]['payload']>;
     actorName?: string;
-    identity?: Readonly<Record<string, unknown>>;
+    claims?: Readonly<Record<string, unknown>>;
     aggregateId?: IAggregateId;
     systemName?: string;
   },
@@ -99,7 +99,7 @@ export function makeCommand(
       const input = yield* Schema.decodeUnknownEffect(
         Schema.Struct({
           actorName: Schema.String,
-          identity: Schema.Record(Schema.String, Schema.Unknown),
+          claims: Schema.Record(Schema.String, Schema.Unknown),
           aggregateId: makeAbbreviationIdSchema('acct'),
           systemName: Schema.String,
         }),
@@ -119,15 +119,15 @@ export function makeCommand(
         key: props.contractName,
         recordKind: 'actor-contract',
       });
-      const identity = yield* Schema.decodeUnknownEffect(
-        actor.identity.identitySchema,
-      )(input.identity).pipe(
+      const claims = yield* Schema.decodeUnknownEffect(
+        actor.identity.claimsSchema,
+      )(input.claims).pipe(
         mapParseError({
-          code: 'aggregate-command-identity-invalid',
-          prefix: 'Invalid aggregate command identity',
+          code: 'aggregate-command-claims-invalid',
+          prefix: 'Invalid aggregate command claims',
         }),
       );
-      if (identity.aggregateId !== input.aggregateId) {
+      if (claims.aggregateId !== input.aggregateId) {
         return yield* Effect.fail(
           makeZerospinError('aggregate-command-target-mismatch'),
         );
@@ -140,7 +140,7 @@ export function makeCommand(
         systemName: input.systemName,
         actorName: actor.name,
         actorVersion: actor.version,
-        identity,
+        claims,
         payload: props.payload,
       });
     }

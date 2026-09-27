@@ -23,11 +23,11 @@ it('reuses the session across StrictMode and remounts while replacing disposed r
     actorVersion: '1.0.0',
     sessionName: 'reader',
     models: {},
-    identitySchema: Schema.Struct({ user: Schema.String }),
+    claimsSchema: Schema.Struct({ user: Schema.String }),
   });
   const session = makeMockServiceSession({
     definition,
-    identity: { user: 'test' },
+    claims: { user: 'test' },
     layer: Layer.effect(
       Instance,
       Effect.acquireRelease(

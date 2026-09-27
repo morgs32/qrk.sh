@@ -1,13 +1,13 @@
 import * as sdk from '@zerospin/sdk/browser';
 import { Effect, Schema } from 'effect';
 
-import { shopperIdentitySchema } from '../../actors/identities';
+import { userClaims } from '../../../../claims';
 import { cartItemV3 } from '../../models/cartItem/CartItemV3';
 import { canEditCart } from '../addToCart/AddToCartV1';
 
 import { removeFromCartV2 } from './removeFromCartV2';
 export const removeFromCartV3 = sdk.upgradeContractVersion(removeFromCartV2, {
-  identity: shopperIdentitySchema,
+  claims: userClaims,
   version: '3.0.0',
   failures: {
     cartFrozen: sdk.ContractError.schema({
@@ -37,7 +37,7 @@ export const removeFromCartV3 = sdk.upgradeContractVersion(removeFromCartV2, {
   guard: Effect.fn('removeFromCartV3.guard')(function* ({
     failures,
     payload,
-    identity,
+    claims,
     queryDb,
   }) {
     const db = queryDb;
@@ -57,7 +57,7 @@ export const removeFromCartV3 = sdk.upgradeContractVersion(removeFromCartV2, {
         .sync(),
       user: queryDb.query.user
         .findFirst({
-          where: { clerkUserId: { eq: identity.clerkUserId } },
+          where: { clerkUserId: { eq: claims.clerkUserId } },
         })
         .sync(),
       hasPendingPurchase:

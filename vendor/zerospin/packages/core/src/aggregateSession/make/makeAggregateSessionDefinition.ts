@@ -35,7 +35,7 @@ const ClaimsSchema = Schema.declare(
 );
 
 export const AggregateSessionPropsSchema = Schema.Struct({
-  identitySchema: ClaimsSchema,
+  claimsSchema: ClaimsSchema,
   aggregateName: Schema.String,
   aggregateVersion: Schema.String.check(Schema.isMinLength(1)),
   actorName: Schema.String,
@@ -55,7 +55,7 @@ export function makeAggregateSessionDefinition<
   const DEFINITION_NAME extends string,
   const MODELS extends IAnyModels,
   const CONTRACTS extends IAnyContractBindings,
-  const IDENTITY extends Schema.Struct<
+  const CLAIMS extends Schema.Struct<
     Readonly<Record<string, Schema.Codec<unknown, unknown>>>
   >,
   const ACTOR_NAME extends string = string,
@@ -66,7 +66,7 @@ export function makeAggregateSessionDefinition<
   actorName: ACTOR_NAME;
   actorVersion: ACTOR_VERSION;
   sessionName: DEFINITION_NAME;
-  identitySchema: IDENTITY;
+  claimsSchema: CLAIMS;
   models: MODELS & IAssertValidModels<NoInfer<MODELS>>;
   contracts: CONTRACTS & {
     [K in keyof CONTRACTS &
@@ -84,10 +84,8 @@ export function makeAggregateSessionDefinition<
   Schema.decodeUnknownSync(AggregateSessionPropsSchema, {
     onExcessProperty: 'error',
   })(props);
-  const identity = {
-    identitySchema: props.identitySchema,
-  };
-  const aggregateIdField = identity.identitySchema.fields.aggregateId;
+  const { claimsSchema } = props;
+  const aggregateIdField = claimsSchema.fields.aggregateId;
   const aggregateIdAst =
     aggregateIdField === undefined
       ? undefined
@@ -102,7 +100,7 @@ export function makeAggregateSessionDefinition<
       ))
   ) {
     throw new Error(
-      'Aggregate identitySchema must contain a required string aggregateId',
+      'Aggregate claimsSchema must contain a required string aggregateId',
     );
   }
 
@@ -117,7 +115,7 @@ export function makeAggregateSessionDefinition<
   assertValidModels({ models, context: 'makeAggregateSessionDefinition' });
   return {
     kind: 'aggregate' as const,
-    identity,
+    claimsSchema,
     aggregateName: props.aggregateName,
     aggregateVersion: props.aggregateVersion,
     actorName: props.actorName,
@@ -134,7 +132,7 @@ export function makeAggregateSessionDefinition<
       CONTRACTS,
       MODELS,
       AGGREGATE_VERSION,
-      IDENTITY
+      CLAIMS
     >,
     'systemName'
   > & {

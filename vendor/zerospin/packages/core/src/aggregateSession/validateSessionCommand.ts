@@ -66,7 +66,7 @@ export function validateSessionCommand(props: {
         contract,
         queryDb: state.db,
         payload: props.payload,
-        identity: state.identity,
+        claims: state.claims,
       }).pipe(
         Effect.andThen(
           makeMutations({
@@ -78,7 +78,7 @@ export function validateSessionCommand(props: {
               contractVersion: contract.version,
               payload: props.payload,
             },
-            identity: state.identity,
+            claims: state.claims,
           }),
         ),
         runProgram,

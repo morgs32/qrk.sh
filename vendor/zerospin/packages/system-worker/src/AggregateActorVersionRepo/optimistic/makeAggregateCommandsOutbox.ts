@@ -16,7 +16,7 @@ const terminalAdmissionCodes = new Set([
   'aggregate-chain-command-invalid',
   'aggregate-chain-target-mismatch',
   'command-actor-required',
-  'command-identity-unsupported',
+  'command-claims-unsupported',
   'node-admission-identity-mismatch',
   'node-admission-index-mismatch',
 ]);

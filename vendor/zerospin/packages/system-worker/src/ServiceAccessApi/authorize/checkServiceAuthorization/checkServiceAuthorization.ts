@@ -9,11 +9,11 @@ export const checkServiceAuthorization = Effect.fn(
   'ServiceAccessApi.checkServiceAuthorization',
 )(function* (props: {
   authorization: Readonly<{
-    identity: Readonly<Record<string, unknown>>;
+    claims: Readonly<Record<string, unknown>>;
     serviceSessionLock: IServiceSessionLock;
     sessionSpec: IServiceSessionSpec;
   }>;
-  identity: Readonly<Record<string, unknown>>;
+  claims: Readonly<Record<string, unknown>>;
   serviceName: string;
   serviceVersion: string;
   sessionName: string;
@@ -21,7 +21,7 @@ export const checkServiceAuthorization = Effect.fn(
 }) {
   const {
     authorization,
-    identity,
+    claims,
     serviceName,
     sessionName,
     serviceSessionLock,
@@ -34,9 +34,9 @@ export const checkServiceAuthorization = Effect.fn(
     authorization.serviceSessionLock,
   );
 
-  // 5 — compare identity, serviceName, sessionName, and lock
+  // 5 — compare claims, serviceName, sessionName, and lock
   if (
-    !isEqual(authorization.identity, identity) ||
+    !isEqual(authorization.claims, claims) ||
     authorization.sessionSpec.serviceName !== serviceName ||
     authorization.sessionSpec.serviceVersion !== serviceVersion ||
     authorization.sessionSpec.sessionName !== sessionName ||

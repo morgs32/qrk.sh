@@ -8,13 +8,13 @@ import type { AggregateChainedCommandSchema } from '../contracts/CommandSchema.t
 import type { IContract } from '../contracts/types.ts';
 import type { InferPayloadInput } from '../models/types.ts';
 
-export type IIdentitySchema = Schema.Struct<
+export type IClaimsSchema = Schema.Struct<
   Readonly<Record<string, Schema.Codec<unknown, unknown>>>
 >;
 
 export type IServiceAuthentication<
   C extends Schema.Codec<unknown, unknown> = Schema.Codec<unknown, unknown>,
-  I extends IIdentitySchema = IIdentitySchema,
+  I extends IClaimsSchema = IClaimsSchema,
 > =
   | 'none'
   | Readonly<{
@@ -26,7 +26,7 @@ export type IServiceAuthentication<
 
 export type IAggregateAuthentication<
   C extends Schema.Codec<unknown, unknown> = Schema.Codec<unknown, unknown>,
-  I extends IIdentitySchema = IIdentitySchema,
+  I extends IClaimsSchema = IClaimsSchema,
 > =
   | 'none'
   | Readonly<{
@@ -37,7 +37,7 @@ export type IAggregateAuthentication<
           aggregateId: string;
           contract: CONTRACT;
           actor: IAnyAggregateActorVersion;
-          identity: Readonly<Record<string, unknown>>;
+          claims: Readonly<Record<string, unknown>>;
           payload: InferPayloadInput<CONTRACT['payload']>;
         }): Effect.Effect<
           Schema.Schema.Type<typeof AggregateChainedCommandSchema>,
@@ -48,16 +48,16 @@ export type IAggregateAuthentication<
     }>;
 
 export type ISessionInitialization<
-  I extends IIdentitySchema,
+  I extends IClaimsSchema,
   C extends Schema.Codec<unknown, unknown> | undefined,
 > =
   C extends Schema.Codec<unknown, unknown>
     ? {
         getCredentials: () => Effect.Effect<C['Type'], IAnyError>;
-        identity?: never;
+        claims?: never;
       }
-    : { identity: I['Type']; getCredentials?: never };
+    : { claims: I['Type']; getCredentials?: never };
 
 export type IAdmissionRequest =
-  | { identity: unknown; credentials?: never }
-  | { credentials: unknown; identity?: never };
+  | { claims: unknown; credentials?: never }
+  | { credentials: unknown; claims?: never };

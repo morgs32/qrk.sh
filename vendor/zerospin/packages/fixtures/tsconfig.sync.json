@@ -1,0 +1,25 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": [
+      "node",
+      "./src/sync/worker-configuration.d.ts",
+      "../system-worker/worker-configuration.d.ts"
+    ]
+  },
+  "include": ["src/sync/**/*.ts", "./src/sync/worker-configuration.d.ts"],
+  "references": [
+    {
+      "path": "../error"
+    },
+    {
+      "path": "../logger"
+    },
+    {
+      "path": "../schema"
+    },
+    {
+      "path": "../sync"
+    }
+  ]
+}

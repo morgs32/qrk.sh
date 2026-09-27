@@ -23,7 +23,7 @@ export const aggregateActorVersionRepoDbConfig = makeDbConfig({
         systemName: primitives.text({ nullable: true }),
         actorName: primitives.text({ nullable: true }),
         actorVersion: primitives.text({ nullable: true }),
-        identity: primitives.json({
+        claims: primitives.json({
           schema: Schema.Record(Schema.String, Schema.Unknown),
           nullable: true,
         }),

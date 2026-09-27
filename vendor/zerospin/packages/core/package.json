@@ -72,6 +72,7 @@
     "@types/sql.js": "^1.4.11",
     "@vitest/coverage-v8": "^4.1.5",
     "@vitest/pretty-format": "^4.1.5",
+    "@zerospin/fixtures": "workspace:*",
     "effect": "rc",
     "happy-dom": "^20.9.0",
     "jsdom": "^29.1.1",

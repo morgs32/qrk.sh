@@ -41,7 +41,7 @@ describe('fulfillment service factory', () => {
     };
     const created = await Effect.runPromise(
       module.contracts.requestFulfillment.program({
-        identity: null,
+        claims: null,
         failures: {},
         models,
         payload: {
@@ -58,7 +58,7 @@ describe('fulfillment service factory', () => {
     ]);
     const packed = await Effect.runPromise(
       module.contracts.markPacked.program({
-        identity: null,
+        claims: null,
         failures: {},
         models,
         payload: { fulfillmentId: 'ful_1', warehouseCode: 'aus-02' },
@@ -88,7 +88,7 @@ describe('fulfillment service factory', () => {
     });
     const result = await Effect.runPromise(
       module.contracts.markPacked.program({
-        identity: null,
+        claims: null,
         failures: {},
         models: { fulfillment: makeModelMutations(module.models.fulfillment) },
         payload: { fulfillmentId: 'ful_1' },
@@ -145,7 +145,7 @@ describe('fulfillment service factory', () => {
     expect(packed).toMatchObject({ warehouseCode: 'aus-01' });
     const created = await Effect.runPromise(
       module.contracts.requestFulfillment.program({
-        identity: null,
+        claims: null,
         failures: {},
         models: { fulfillment: makeModelMutations(module.models.fulfillment) },
         payload: request,

@@ -1,10 +1,10 @@
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/make/makeDbConfig/makeDbConfig';
+import { serviceAutomation } from '@zerospin/fixtures/system-worker/workerd/serviceAutomation';
 import { Effect } from 'effect';
 import { expect, it } from 'vitest';
 
 import { makeActorSnapshotDb } from '../AggregateActorVersionRepo/validateCommands/makeActorSnapshotDb.js';
-import { serviceAutomation } from '../workerd-utils/serviceAutomation.js';
 
 import { readServiceResources } from './readServiceResources.js';
 

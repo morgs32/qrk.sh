@@ -14,8 +14,8 @@ export const completeAdmissionAttempt = Effect.fn(
   result:
     | {
         status: 'succeeded';
-        identity: Readonly<Record<string, unknown>>;
-        identityHash: string;
+        claims: Readonly<Record<string, unknown>>;
+        claimsHash: string;
         selection: Readonly<Record<string, string>>;
         actorPath: string;
       }
@@ -31,8 +31,8 @@ export const completeAdmissionAttempt = Effect.fn(
           status: props.result.status,
           ...(props.result.status === 'succeeded'
             ? {
-                identity: JSON.stringify(props.result.identity),
-                identityHash: props.result.identityHash,
+                claims: JSON.stringify(props.result.claims),
+                claimsHash: props.result.claimsHash,
                 selection: JSON.stringify(props.result.selection),
                 actorPath: props.result.actorPath,
                 failure: null,

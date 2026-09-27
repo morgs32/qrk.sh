@@ -235,7 +235,7 @@ export class AggregateActorVersionRepo extends makeFixedDORepo({
                 lastDeliveryFailure: null,
                 completionNodeId: owned ? row.nodeId : null,
                 completionNodeIndex: owned ? row.nodeIndex : null,
-                completionIdentity: owned ? row.identity : null,
+                completionClaims: owned ? row.claims : null,
                 completionSessionName: owned ? row.sessionName : null,
               },
             );

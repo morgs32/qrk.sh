@@ -17,7 +17,7 @@ import type { IAnyModels } from '../../models/types.ts';
 export function makeGuard<
   const MODELS extends IAnyModels,
   PAYLOAD extends Schema.Top,
-  IDENTITY extends Schema.Top,
+  CLAIMS extends Schema.Top,
   const FAILURES extends IFailures = Record<never, never>,
   ERROR extends IFrameworkError | NoInfer<FailureType<FAILURES>> = never,
   REQUIREMENTS = never,
@@ -25,28 +25,28 @@ export function makeGuard<
   models: MODELS;
   failures?: FAILURES;
   payload: PAYLOAD;
-  identity: IDENTITY;
+  claims: CLAIMS;
   program: (props: {
     failures: NoInfer<FAILURES>;
     db: Readonly<
       Pick<IDb<IResourceDbConfig<MODELS, Record<never, never>>>, 'query'>
     >;
     payload: PAYLOAD['Type'];
-    identity: IDENTITY['Type'];
+    claims: CLAIMS['Type'];
   }) => Effect.Effect<void, ERROR, REQUIREMENTS>;
 }): (input: {
   db: Readonly<
     Pick<IDb<IResourceDbConfig<MODELS, Record<never, never>>>, 'query'>
   >;
   payload: PAYLOAD['Type'];
-  identity: IDENTITY['Type'];
+  claims: CLAIMS['Type'];
 }) => Effect.Effect<void, ERROR, REQUIREMENTS>;
 export function makeGuard(props: unknown): unknown {
   const definition = Schema.decodeUnknownSync(
     Schema.Struct({
       models: Schema.Unknown,
       payload: Schema.Unknown,
-      identity: Schema.Unknown,
+      claims: Schema.Unknown,
       failures: Schema.optionalKey(FailuresSchema),
       program: Schema.declare(
         (
@@ -54,7 +54,7 @@ export function makeGuard(props: unknown): unknown {
         ): value is (input: {
           db: Readonly<Pick<IDb, 'query'>>;
           payload: unknown;
-          identity: unknown;
+          claims: unknown;
           failures: IFailures;
         }) => Effect.Effect<void, unknown, unknown> =>
           typeof value === 'function',
@@ -66,6 +66,6 @@ export function makeGuard(props: unknown): unknown {
   return (input: {
     db: Readonly<Pick<IDb, 'query'>>;
     payload: unknown;
-    identity: unknown;
+    claims: unknown;
   }) => definition.program({ ...input, failures });
 }

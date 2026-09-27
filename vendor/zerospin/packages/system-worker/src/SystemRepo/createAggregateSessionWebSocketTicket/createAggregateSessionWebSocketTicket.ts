@@ -36,7 +36,7 @@ export const createAggregateSessionWebSocketTicket = Effect.fn(
   actorPath: string;
   actorName: string;
   actorVersion: string;
-  identity: Readonly<Record<string, unknown>>;
+  claims: Readonly<Record<string, unknown>>;
   sessionName: string;
   aggregateSessionLock: IAggregateSessionLock;
   aggregateSessionWebSocketTicketTable: IAnyDrizzleSchema;
@@ -57,7 +57,7 @@ export const createAggregateSessionWebSocketTicket = Effect.fn(
     aggregateVersion,
     actorName,
     actorVersion,
-    identity,
+    claims,
   } = props;
 
   // 1 — encode 32 random bytes as unpadded base64url
@@ -114,7 +114,7 @@ export const createAggregateSessionWebSocketTicket = Effect.fn(
             actorName,
             actorVersion,
             actorPath,
-            identity: JSON.stringify(identity),
+            claims: JSON.stringify(claims),
             sessionName,
             aggregateSessionLock: encodedAggregateSessionLock,
             expiresAt: new Date(now.getTime() + 30_000),

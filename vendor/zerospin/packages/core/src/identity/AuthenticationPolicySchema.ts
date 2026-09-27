@@ -1,6 +1,6 @@
 import { Schema } from 'effect';
 
-/** Missing policy is invalid; direct identity admission must be explicit. */
+/** Missing policy is invalid; direct claims admission must be explicit. */
 export const AuthenticationPolicySchema = Schema.Union([
   Schema.Literal('none'),
   Schema.Struct({

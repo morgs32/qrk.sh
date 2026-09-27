@@ -97,7 +97,7 @@ export const executeCommandsTx = makeTx('ServiceVersionRepo.executeCommandsTx')(
             contract,
             queryDb: tx,
             payload: prepared.success.payload,
-            identity: null,
+            claims: null,
           }).pipe(
             runProgram,
             Effect.catch(failure =>

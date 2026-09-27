@@ -29,14 +29,14 @@ export const authorizeServiceSession = Effect.fn(
   actorName: string;
   actorVersion: string;
   sessionName: string;
-  identity: Readonly<Record<string, unknown>>;
+  claims: Readonly<Record<string, unknown>>;
   db: IDb;
 }) {
   const {
     db,
     sessionName,
     serviceName,
-    identity,
+    claims,
     serviceVersion,
     actorName,
     actorVersion,
@@ -82,12 +82,12 @@ export const authorizeServiceSession = Effect.fn(
   const context: Context.Context<unknown> = yield* system.runtime.contextEffect;
 
   // 5 — decode the request against actor.identity.IdentitySchema
-  const decodedIdentity = yield* Schema.decodeUnknownEffect(
-    actor.identity.identitySchema,
-  )(identity, { onExcessProperty: 'error' }).pipe(
+  const decodedClaims = yield* Schema.decodeUnknownEffect(
+    actor.identity.claimsSchema,
+  )(claims, { onExcessProperty: 'error' }).pipe(
     mapParseError({
-      code: 'authorization-identity-invalid',
-      prefix: 'Invalid actor identity',
+      code: 'authorization-claims-invalid',
+      prefix: 'Invalid actor claims',
     }),
   );
 
@@ -96,7 +96,7 @@ export const authorizeServiceSession = Effect.fn(
   yield* actor
     .authorize({
       sessionName,
-      identity: decodedIdentity,
+      claims: decodedClaims,
       db: { query },
     })
     .pipe(Effect.provideContext(context));

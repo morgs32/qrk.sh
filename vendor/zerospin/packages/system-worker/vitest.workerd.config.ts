@@ -32,7 +32,10 @@ export default defineConfig({
       { find: 'internal', replacement: path.resolve(__dirname, 'src') },
       {
         find: 'config',
-        replacement: path.resolve(__dirname, 'src/fixtures/system.ts'),
+        replacement: path.resolve(
+          __dirname,
+          '../fixtures/src/system-worker/systems/system.ts',
+        ),
       },
     ],
   },
@@ -44,7 +47,7 @@ export default defineConfig({
   ssr: { noExternal: ['drizzle-orm'] },
   test: {
     include: ['src/**/*.workerd.spec.ts'],
-    setupFiles: ['./src/workerd-utils/acceptSystemSpec.ts'],
+    setupFiles: ['../fixtures/src/system-worker/workerd/acceptSystemSpec.ts'],
     isolate: true,
     maxWorkers: 1,
     passWithNoTests: false,

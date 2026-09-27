@@ -21,8 +21,8 @@ export const stageDirectActorCommand = Effect.fn('stageDirectActorCommand')(
   }) {
     const { systemId, aggregateVersion, actor, command } = props;
     const selection = yield* Schema.decodeUnknownEffect(
-      actor.identity.actorSchema,
-    )(command.identity).pipe(
+      actor.identity.identitySchema,
+    )(command.claims).pipe(
       mapParseError({
         code: 'actor-staging-identity-invalid',
         prefix: 'Invalid direct actor identity',

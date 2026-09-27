@@ -20,9 +20,12 @@ import { Effect, Schema } from 'effect';
  * Refusing adapters return declared failures; missing wiring is a configuration defect.
  * Guards may suspend without an execution DB. Programs and their capabilities
  * are synchronous. Guards receive the invocation database as `queryDb`.
- * Programs receive decoded claims as an argument. Service commands pass null claims.
+ * Claims include partition-identifying fields and additional authenticated fields.
+ * makeActorIdentity({ claims, actorPath }) derives identitySchema from actorPath
+ * and retains the complete claimsSchema. Contracts declare reusable claims schemas.
+ * Guards and programs receive decoded claims as an argument. Service commands pass null claims.
  *
- * Sessions bind actorName/version and declare their identity schema.
+ * Sessions bind actorName/version and declare their claims schema.
  * Browser/session layers supply browser adapters without importing server actors.
  * A model schema may support program mutations without exposing any server rows;
  * only entries in actor.selections participate in projection.
@@ -32,12 +35,12 @@ import { Effect, Schema } from 'effect';
  * Internal commands have null authenticated provenance and explicit internal adapters.
  * Replica identity includes actor name/version before the canonical path.
  * @bad Merge all identities into one role union or inject unrelated identity tags with null.
- * @bad Capture an invocation's database or identity in a shared long-lived adapter.
+ * @bad Capture an invocation's database or claims in a shared long-lived adapter.
  * @bad Treat an omitted model filter as unrestricted visibility.
  * @bad Import authenticate callbacks into browser bundles.
  */
 const identity = makeActorIdentity({
-  schema: Schema.Struct({ aggregateId: Schema.String, subject: Schema.String }),
+  claims: Schema.Struct({ aggregateId: Schema.String, subject: Schema.String }),
   actorPath: RoutePattern.parse('/:subject'),
 });
 const db = makeActorDbVersion({ models: {} });
@@ -46,7 +49,7 @@ export const shopperActorV1 = makeAggregateActorVersion(
   {
     version: '1.0.0',
     db,
-    identity,
+    claims,
     authentication: {
       credentialsSchema: Schema.Struct({ subject: Schema.String }),
       authenticate: ({ credentials }) =>

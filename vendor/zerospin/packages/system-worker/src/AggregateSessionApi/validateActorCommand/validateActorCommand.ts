@@ -66,7 +66,7 @@ export const validateActorCommand = Effect.fn(
             commandName: contract.commandName,
             contractVersion: contract.version,
             payload,
-            identity: auth.identity,
+            claims: auth.claims,
             aggregateId: auth.aggregateId,
             aggregateName: auth.aggregateName,
             aggregateVersion: auth.aggregateVersion,

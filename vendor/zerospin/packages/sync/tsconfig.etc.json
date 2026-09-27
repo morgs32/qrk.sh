@@ -1,14 +1,18 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "rootDir": ".",
+    "rootDir": "../..",
     "noEmit": true,
     "types": [
       "@cloudflare/vitest-plugin/types",
       "node",
       "vitest/globals",
-      "./worker-configuration.d.ts"
-    ]
+      "../fixtures/src/sync/worker-configuration.d.ts",
+      "../system-worker/worker-configuration.d.ts"
+    ],
+    "composite": false,
+    "incremental": false,
+    "allowImportingTsExtensions": true
   },
   "include": [
     "vitest.config.ts",
@@ -17,7 +21,7 @@
     "vitest.playwright.platform.config.ts",
     "vitest.playwright.setup.ts",
     "vitest.playwright.test-config.ts",
-    "worker-configuration.d.ts"
+    "../fixtures/src/sync/worker-configuration.d.ts"
   ],
   "exclude": [],
   "references": [

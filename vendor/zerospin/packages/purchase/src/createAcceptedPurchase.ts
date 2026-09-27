@@ -1,6 +1,6 @@
 import { defineContract } from '@zerospin/core/contracts/defineContract';
 import { makeContractVersion } from '@zerospin/core/contracts/make/makeContractVersion';
-import type { IIdentitySchema } from '@zerospin/core/identity/types';
+import type { IClaimsSchema } from '@zerospin/core/identity/types';
 import { prefixId } from '@zerospin/core/models/prefixId';
 import { ContractError } from '@zerospin/error';
 import { makeEffectSchema, primitives } from '@zerospin/schema';
@@ -13,10 +13,10 @@ import type { IInternalOptions } from './internalOptions.js';
 import { PurchaseQuoteSchema } from './quote.js';
 export const makeCreateAcceptedPurchase = <
   const HOST extends IPurchaseHostModels,
-  const IDENTITY extends IIdentitySchema,
-  const SELECTION extends IIdentitySchema,
+  const CLAIMS extends IClaimsSchema,
+  const SELECTION extends IClaimsSchema,
 >(
-  options: IInternalOptions<HOST, IDENTITY, SELECTION>,
+  options: IInternalOptions<HOST, CLAIMS, SELECTION>,
 ) => {
   const { frontend, selectionIdentitySchema, resolveUserId } = options;
   const {
@@ -35,7 +35,7 @@ export const makeCreateAcceptedPurchase = <
     defineContract('createAcceptedPurchase'),
     {
       version: '1.0.0',
-      identity: selectionIdentitySchema,
+      claims: selectionIdentitySchema,
       failures: {
         aggregateConflict: purchaseStateConflict,
         conflict: ContractError.schema({ code: 'checkout-conflict' }),
@@ -60,7 +60,7 @@ export const makeCreateAcceptedPurchase = <
       },
       guard: Effect.fn('createAcceptedPurchase.guard')(function* ({
         payload,
-        identity,
+        claims,
         queryDb: db,
         failures,
       }) {
@@ -73,7 +73,7 @@ export const makeCreateAcceptedPurchase = <
         );
         if (
           checkout === undefined ||
-          checkout.userId !== resolveUserId({ queryDb: db, identity }) ||
+          checkout.userId !== resolveUserId({ queryDb: db, claims }) ||
           checkout?.cartId !== payload.cartId ||
           checkout.purchaseId !== payload.id ||
           checkout.firstPaymentIntentId !== payload.paymentIntentId ||

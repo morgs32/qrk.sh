@@ -55,7 +55,7 @@ export const createWebSocketTicket = Effect.fn(
     readonly aggregateId: IAggregateId;
     readonly aggregateName: string;
     aggregateVersion: string;
-    readonly identity: Readonly<Record<string, unknown>>;
+    readonly claims: Readonly<Record<string, unknown>>;
     actorName: string;
     actorVersion: string;
     readonly actorPath: string;
@@ -122,7 +122,7 @@ export const createWebSocketTicket = Effect.fn(
       aggregateId,
       aggregateName,
       sessionName,
-      identity,
+      claims,
       actorName,
       actorVersion,
       actorPath,
@@ -185,7 +185,7 @@ export const createWebSocketTicket = Effect.fn(
             'Session state must initialize before a WebSocket ticket can be created',
           extra: {
             aggregateId,
-            identity,
+            claims,
             actorName,
             actorVersion,
             actorPath,
@@ -202,7 +202,7 @@ export const createWebSocketTicket = Effect.fn(
         repoName,
         aggregateId,
         aggregateName,
-        identity,
+        claims,
         actorName,
         actorVersion,
         actorPath,

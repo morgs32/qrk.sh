@@ -1,7 +1,7 @@
 import * as sdk from '@zerospin/sdk/browser';
 import { Effect, Schema } from 'effect';
 
-import { shopperIdentitySchema } from '../../actors/identities';
+import { userClaims } from '../../../../claims';
 import { user } from '../../models/user/user';
 import { userV1 } from '../../models/user/UserV1';
 
@@ -16,7 +16,7 @@ export const createUserV1 = sdk.makeContractVersion(createUser, {
       code: 'user-clerk-identity-already-exists',
     }),
   },
-  identity: shopperIdentitySchema,
+  claims: userClaims,
   payload: {
     id: sdk.primitives.foreignKey({ abbreviation: user.abbreviation }),
   },
@@ -24,7 +24,7 @@ export const createUserV1 = sdk.makeContractVersion(createUser, {
   models: { user: userV1 },
   guard: Effect.fn('createUserV1.guard')(function* ({
     failures,
-    identity,
+    claims,
     queryDb,
   }) {
     const db = queryDb;
@@ -32,7 +32,7 @@ export const createUserV1 = sdk.makeContractVersion(createUser, {
       try: () =>
         db.query.user
           .findFirst({
-            where: { clerkUserId: { eq: identity.clerkUserId } },
+            where: { clerkUserId: { eq: claims.clerkUserId } },
           })
           .sync(),
       catch: sdk.catchZerospinError({
@@ -48,10 +48,10 @@ export const createUserV1 = sdk.makeContractVersion(createUser, {
       );
     }
   }),
-  program: ({ payload, identity, models }) =>
+  program: ({ payload, claims, models }) =>
     Effect.gen(function* () {
       const { id } = payload;
-      const { clerkUserId } = identity;
+      const { clerkUserId } = claims;
       return yield* Effect.all([
         models.user.create({
           resourceId: id,

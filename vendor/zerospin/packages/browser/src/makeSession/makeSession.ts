@@ -6,7 +6,7 @@ import type {
 import type { AssertContractMutationsInModels } from '@zerospin/core/contracts/assertMutationsUseModels';
 import type { IAnyContracts } from '@zerospin/core/contracts/types';
 import type {
-  IIdentitySchema,
+  IClaimsSchema,
   ISessionInitialization,
 } from '@zerospin/core/identity/types';
 import type {
@@ -84,7 +84,7 @@ export function makeSession<
   const ACTOR_NAME extends string,
   const ACTOR_VERSION extends string,
   const SESSION_NAME extends string,
-  const IDENTITY extends IIdentitySchema,
+  const CLAIMS extends IClaimsSchema,
   APP_LAYER extends Layer.Layer<never, IAnyError>,
   const SYSTEM_NAME extends string,
   const MODELS extends IAnyModels = {},
@@ -99,7 +99,7 @@ export function makeSession<
   actorName: ACTOR_NAME;
   actorVersion: ACTOR_VERSION;
   sessionName: SESSION_NAME;
-  identitySchema: IDENTITY;
+  claimsSchema: CLAIMS;
   readonly credentialsSchema?: CREDENTIALS;
   models?: MODELS &
     IAssertValidModels<
@@ -152,16 +152,14 @@ export function makeSession<
     BrowserBindings<IComposedDeclarations<CONTRACTS, MODULES, 'contracts'>>,
     IComposedDeclarations<MODELS, MODULES, 'models'>,
     AGGREGATE_VERSION,
-    IDENTITY
+    CLAIMS
   > & { readonly actorName: ACTOR_NAME; readonly actorVersion: ACTOR_VERSION }
 > & {
   readonly runtime: IZerospinRuntime<Layer.Success<APP_LAYER>>;
   readonly systemName: SYSTEM_NAME;
-  readonly identitySchema: IDENTITY;
+  readonly claimsSchema: CLAIMS;
   readonly credentialsSchema?: CREDENTIALS;
-  initialize(
-    props: ISessionInitialization<IDENTITY, CREDENTIALS>,
-  ): Promise<void>;
+  initialize(props: ISessionInitialization<CLAIMS, CREDENTIALS>): Promise<void>;
   dispose(): Promise<void>;
   clearAuthentication(): Promise<void>;
 };
@@ -172,7 +170,7 @@ export function makeSession<
   const ACTOR_NAME extends string,
   const ACTOR_VERSION extends string,
   const SESSION_NAME extends string,
-  const IDENTITY extends IIdentitySchema,
+  const CLAIMS extends IClaimsSchema,
   APP_LAYER extends Layer.Layer<never, IAnyError>,
   const SYSTEM_NAME extends string,
   const MODELS extends IAnyModels = {},
@@ -187,7 +185,7 @@ export function makeSession<
     actorName: ACTOR_NAME;
     actorVersion: ACTOR_VERSION;
     sessionName: SESSION_NAME;
-    identitySchema: IDENTITY;
+    claimsSchema: CLAIMS;
     readonly credentialsSchema?: CREDENTIALS;
     models?: MODELS &
       IAssertServiceModels<
@@ -221,16 +219,14 @@ export function makeSession<
     SESSION_NAME,
     IComposedDeclarations<MODELS, MODULES, 'models'>,
     SERVICE_VERSION,
-    IDENTITY
+    CLAIMS
   > & { readonly actorName: ACTOR_NAME; readonly actorVersion: ACTOR_VERSION }
 > & {
   readonly runtime: IZerospinRuntime<Layer.Success<APP_LAYER>>;
   readonly systemName: SYSTEM_NAME;
-  readonly identitySchema: IDENTITY;
+  readonly claimsSchema: CLAIMS;
   readonly credentialsSchema?: CREDENTIALS;
-  initialize(
-    props: ISessionInitialization<IDENTITY, CREDENTIALS>,
-  ): Promise<void>;
+  initialize(props: ISessionInitialization<CLAIMS, CREDENTIALS>): Promise<void>;
   dispose(): Promise<void>;
   clearAuthentication(): Promise<void>;
 };
@@ -245,7 +241,7 @@ export function makeSession(props: unknown): unknown {
       layer: Layer.Layer<unknown, IAnyError>;
       credentialsSchema?: Schema.Codec<unknown, unknown>;
     };
-  const { identitySchema, credentialsSchema, systemName, layer } = input;
+  const { claimsSchema, credentialsSchema, systemName, layer } = input;
   if ('module' in input) {
     throw new Error('Unknown session property module');
   }
@@ -300,7 +296,7 @@ export function makeSession(props: unknown): unknown {
           sessionId: null,
           aggregateId: null,
           aggregateName: null,
-          identity: null,
+          claims: null,
           sessionName: null,
           aggregateSessionLockKey: null,
           aggregateIndex: null,
@@ -315,12 +311,12 @@ export function makeSession(props: unknown): unknown {
     let clearAuthentication = async () => {};
     const initialize = (
       initializeProps: ISessionInitialization<
-        IIdentitySchema,
+        IClaimsSchema,
         Schema.Codec<unknown, unknown> | undefined
       >,
     ): Promise<void> => {
       const admission = makeAdmissionProvider({
-        identitySchema,
+        claimsSchema,
         credentialsSchema,
         initialization: initializeProps,
       });
@@ -361,7 +357,7 @@ export function makeSession(props: unknown): unknown {
               runtime.runPromise(
                 Effect.suspend(admission.getAdmission).pipe(encodeRpcOutcome),
               ),
-            expectedIdentity: admission.identity,
+            expectedClaims: admission.claims,
           }).pipe(
             Effect.provide(
               makeTelemetryLayer(
@@ -429,7 +425,7 @@ export function makeSession(props: unknown): unknown {
     return Object.defineProperty(
       Object.assign(coreSession, {
         systemName,
-        identitySchema,
+        claimsSchema,
         credentialsSchema,
         initialize,
         dispose,
@@ -456,7 +452,7 @@ export function makeSession(props: unknown): unknown {
         schema: null,
         models: null,
         sessionId: null,
-        identity: null,
+        claims: null,
         serviceName: null,
         sessionName: null,
         serviceSessionLockKey: null,
@@ -471,12 +467,12 @@ export function makeSession(props: unknown): unknown {
   let clearAuthentication = async () => {};
   const initialize = (
     initializeProps: ISessionInitialization<
-      IIdentitySchema,
+      IClaimsSchema,
       Schema.Codec<unknown, unknown> | undefined
     >,
   ): Promise<void> => {
     const admission = makeAdmissionProvider({
-      identitySchema,
+      claimsSchema,
       credentialsSchema,
       initialization: initializeProps,
     });
@@ -498,7 +494,7 @@ export function makeSession(props: unknown): unknown {
             runtime.runPromise(
               Effect.suspend(admission.getAdmission).pipe(encodeRpcOutcome),
             ),
-          expectedIdentity: admission.identity,
+          expectedClaims: admission.claims,
         }).pipe(
           Effect.provide(
             makeTelemetryLayer(coreSession.store.getState().telemetryCollector),
@@ -548,7 +544,7 @@ export function makeSession(props: unknown): unknown {
   return Object.defineProperty(
     Object.assign(coreSession, {
       systemName,
-      identitySchema,
+      claimsSchema,
       credentialsSchema,
       initialize,
       dispose,

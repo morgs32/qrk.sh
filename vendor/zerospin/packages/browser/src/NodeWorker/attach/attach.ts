@@ -18,13 +18,13 @@ export const attach: (props: {
   api: NodeWorker;
   input: unknown;
   target: RpcStub<() => Promise<IAdmissionRequest>>;
-  expectedIdentity?: Readonly<Record<string, unknown>> | undefined;
+  expectedClaims?: Readonly<Record<string, unknown>> | undefined;
 }) => Effect.Effect<IResult<RpcStub<IBrowserNode>, IZerospinErrorJson>> =
   Effect.fn('NodeWorker.attach')(function* (props: {
     api: NodeWorker;
     input: unknown;
     target: RpcStub<() => Promise<IAdmissionRequest>>;
-    expectedIdentity?: Readonly<Record<string, unknown>> | undefined;
+    expectedClaims?: Readonly<Record<string, unknown>> | undefined;
   }): Effect.fn.Return<
     IResult<RpcStub<IBrowserNode>, IZerospinErrorJson>,
     never
@@ -38,7 +38,7 @@ export const attach: (props: {
             props.input,
             target,
             () => Promise.resolve(target()),
-            props.expectedIdentity,
+            props.expectedClaims,
           );
           const close = () => {
             hosted.detach();

@@ -37,7 +37,10 @@ import { executeSelectQuery } from './executeSelectQuery/executeSelectQuery.js';
 import { flush } from './flush/flush.js';
 import { onDOActivation } from './onDOActivation/onDOActivation.js';
 import { receiveServiceCommandsTx } from './receiveServiceCommandsTx.js';
-import type { IExecutedCommandDelivery, IExecutedCommandOutboxRow } from './types.js';
+import type {
+  IExecutedCommandDelivery,
+  IExecutedCommandOutboxRow,
+} from './types.js';
 
 const { system } = config;
 
@@ -476,7 +479,7 @@ export class AggregateVersionRepo
     aggregateId: IAggregateId;
     aggregateName: string;
     sessionName: string;
-    identity: Readonly<Record<string, unknown>>;
+    claims: Readonly<Record<string, unknown>>;
   }) {
     // 1 — spread props + db + this.key.aggregateVersion
 

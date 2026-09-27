@@ -66,14 +66,14 @@ export const aggregateActorVersionRepoFixedDORepoConfig = makeFixedDORepoConfig(
           }),
       });
       const selection = yield* Schema.decodeUnknownEffect(
-        view.identity.actorSchema,
+        view.identity.identitySchema,
       )(matched?.params, { onExcessProperty: 'error' }).pipe(
         mapParseError({
           code: 'actor-path-invalid',
           prefix: 'Invalid replica selection fields',
         }),
       );
-      const encoded = yield* Schema.encodeEffect(view.identity.actorSchema)(
+      const encoded = yield* Schema.encodeEffect(view.identity.identitySchema)(
         selection,
       ).pipe(
         mapParseError({

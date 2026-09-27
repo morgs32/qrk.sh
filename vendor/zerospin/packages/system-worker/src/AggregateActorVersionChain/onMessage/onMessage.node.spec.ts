@@ -14,12 +14,12 @@ const lock = {
   sessionName: 'editor',
   actorName: 'editor',
   actorVersion: '1.0.0',
-  identity: { identityJsonSchema: {} },
+  claims: { claimsJsonSchema: {} },
   models: {},
   contracts: {},
 };
-const identity = { userId: 'one', nested: { a: 1, b: 2 } };
-const definition = { name: 'editor', identity, lock };
+const claims = { userId: 'one', nested: { a: 1, b: 2 } };
+const definition = { name: 'editor', claims, lock };
 const hash = (index: number) =>
   index === 0 ? genesisExecutedHash() : index.toString(16).padStart(64, '0');
 const key = {
@@ -55,7 +55,7 @@ const fixture = Effect.fn(function* (count: number, interleaved = false) {
           nodeId,
           nodeIndex,
           sessionName: 'editor',
-          identity,
+          claims,
           serviceName: null,
           serviceVersion: null,
           automationName: null,
@@ -84,7 +84,7 @@ const fixture = Effect.fn(function* (count: number, interleaved = false) {
           lastDeliveryFailure: null,
           completionNodeId: nodeId,
           completionNodeIndex: nodeIndex,
-          completionIdentity:
+          completionClaims:
             interleaved && index <= 70
               ? { userId: 'wrong' }
               : { nested: { b: 2, a: 1 }, userId: 'one' },
@@ -116,7 +116,7 @@ const fixture = Effect.fn(function* (count: number, interleaved = false) {
     state: {
       ...key,
       phase: 'awaiting-resume',
-      identity,
+      claims,
       sessionName: 'editor',
       aggregateSessionLock: lock,
     },
@@ -125,7 +125,7 @@ const fixture = Effect.fn(function* (count: number, interleaved = false) {
       this.state =
         resolved === null
           ? null
-          : { ...resolved, identity, aggregateSessionLock: lock };
+          : { ...resolved, claims, aggregateSessionLock: lock };
       return this.state;
     },
     send(message) {
@@ -215,7 +215,7 @@ describe('one actor command subscription with two cursors', () => {
     );
   });
 
-  it.each(['node', 'session', 'identity'] as const)(
+  it.each(['node', 'session', 'claims'] as const)(
     'redacts newer commands and excludes historical results for another %s',
     async mismatch => {
       await Effect.runPromise(
@@ -229,8 +229,7 @@ describe('one actor command subscription with two cursors', () => {
             definition: {
               ...definition,
               name: mismatch === 'session' ? 'other' : definition.name,
-              identity:
-                mismatch === 'identity' ? { userId: 'other' } : identity,
+              claims: mismatch === 'claims' ? { userId: 'other' } : claims,
             },
           });
           expect(page.commands).toMatchObject([

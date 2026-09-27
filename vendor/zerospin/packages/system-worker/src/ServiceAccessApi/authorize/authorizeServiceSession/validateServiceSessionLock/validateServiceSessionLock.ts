@@ -72,9 +72,9 @@ export const validateServiceSessionLock = Effect.fn(
     serviceSessionLock,
   );
   if (
-    !isEqual(serviceSessionLock.identity, {
-      identityJsonSchema: Schema.toJsonSchemaDocument(
-        actor.identity.identitySchema,
+    !isEqual(serviceSessionLock.claims, {
+      claimsJsonSchema: Schema.toJsonSchemaDocument(
+        actor.identity.claimsSchema,
       ),
     })
   ) {
@@ -82,7 +82,7 @@ export const validateServiceSessionLock = Effect.fn(
       makeZerospinError({
         code: 'service-session-lock-unsupported',
         message:
-          'Session identity declarations differ from the selected owner version',
+          'Session claims declarations differ from the selected owner version',
       }),
     );
   }
@@ -186,7 +186,7 @@ export const validateServiceSessionLock = Effect.fn(
   const resolvedLock = {
     actorName: actor.name,
     actorVersion: actor.version,
-    identity: serviceSessionLock.identity,
+    claims: serviceSessionLock.claims,
     sessionName,
     models: resolvedModels,
   };

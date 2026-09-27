@@ -1,6 +1,6 @@
 import { defineContract } from '@zerospin/core/contracts/defineContract';
 import { makeContractVersion } from '@zerospin/core/contracts/make/makeContractVersion';
-import type { IIdentitySchema } from '@zerospin/core/identity/types';
+import type { IClaimsSchema } from '@zerospin/core/identity/types';
 import { ContractError } from '@zerospin/error';
 import { makeEffectSchema, primitives } from '@zerospin/schema';
 import '@zerospin/server-only';
@@ -11,10 +11,10 @@ import type { IPurchaseHostModels } from './host.js';
 import type { IInternalOptions } from './internalOptions.js';
 export const makeFailCheckout = <
   const HOST extends IPurchaseHostModels,
-  const IDENTITY extends IIdentitySchema,
-  const SELECTION extends IIdentitySchema,
+  const CLAIMS extends IClaimsSchema,
+  const SELECTION extends IClaimsSchema,
 >(
-  options: IInternalOptions<HOST, IDENTITY, SELECTION>,
+  options: IInternalOptions<HOST, CLAIMS, SELECTION>,
 ) => {
   const { frontend, selectionIdentitySchema, resolveUserId } = options;
   const { checkout: checkoutV1, cartPromotion: cartPromotionV1 } =
@@ -26,7 +26,7 @@ export const makeFailCheckout = <
   } = frontend.contracts.confirmCheckout.models;
   const failCheckout = makeContractVersion(defineContract('failCheckout'), {
     version: '1.0.0',
-    identity: selectionIdentitySchema,
+    claims: selectionIdentitySchema,
     failures: {
       aggregateConflict: purchaseStateConflict,
       conflict: ContractError.schema({ code: 'checkout-conflict' }),
@@ -45,7 +45,7 @@ export const makeFailCheckout = <
     },
     guard: Effect.fn('failCheckout.guard')(function* ({
       payload,
-      identity,
+      claims,
       queryDb,
       failures,
     }) {
@@ -58,7 +58,7 @@ export const makeFailCheckout = <
       );
       if (
         row === undefined ||
-        row.userId !== resolveUserId({ queryDb, identity }) ||
+        row.userId !== resolveUserId({ queryDb, claims }) ||
         row?.status !== payload.expected
       ) {
         return yield* failures.conflict.make({

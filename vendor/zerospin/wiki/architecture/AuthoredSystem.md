@@ -24,11 +24,12 @@ imports its selected command module separately.
 - [`loadZerospinConfigFn.ts`](../../packages/cli/src/deploy/loadZerospinConfigFn.ts) — loads TypeScript with project aliases and validates live capabilities.
 - [`e2eFn.spec.ts`](../../packages/cli/src/e2e/e2eFn.spec.ts) — runs the shared fixture through the CLI and workerd using the direct config alias.
 
-The types-only `config` workspace package supplies the compile-time configuration
-shape. Worker builds replace that module with the selected project configuration.
+Worker tsconfigs map `config` to the isolated configuration fixture and reference
+its declaration project. Worker builds still replace that module with the selected
+application configuration through Wrangler. There is no `config` workspace package.
 
-- [`package.json`](../../packages/config/package.json) — exposes only the configuration type source.
-- [`config.ts`](../../packages/config/src/config.ts) — default-exports the inferred configuration.
+- [`config.ts`](../../packages/fixtures/src/config/config.ts) — default-exports the inferred compile-time configuration.
+- [`tsconfig.config.json`](../../packages/fixtures/tsconfig.config.json) — builds only this fixture, without test workers or purchase/fulfillment scenarios.
 
 ## Generated backend configuration
 
@@ -266,7 +267,7 @@ version without historical-definition arrays.
 `makeService` owns service actors, authoritative models, contracts, queries,
 and its shared capability layer. `makeAggregateVersion` owns aggregate-local model, selection, guard,
 service-pin, and command-construction checks. Each service actor’s optional `authorize` callback
-receives `{ identity, sessionName, db }`, with `db` limited to model queries.
+receives `{ claims, sessionName, db }`, with `db` limited to model queries.
 Omitting it allows access without an authored authorization check. Aggregate
 definitions do not configure session bindings or adapters. Each constructs its decoded registries and
 the query, selection, and capability containers it owns.
@@ -283,9 +284,9 @@ Aggregate actor versions select callable contracts from their host's canonical d
 
 `updateAggregateActorVersion(previous, changes)` inherits omitted declaration fields and merges supplied `contracts`, `queries`, `guards`, and `automations` by key. Supplied entries replace matching keys; an empty map preserves existing entries. Database, identity, and authorization overrides replace inherited values, and the complete merged declaration receives the same constructor validation.
 
-Authored `queries` are native `actorDb.query.model.findMany(...)` queries. `makeActorDbVersion({ models })` pins the database graph without opening storage. `makeActorIdentity({ schema, actorPath })` derives identity codecs from the path and exposes typed `sql.placeholder(name)` inputs. The actor captures SQL, serializable bindings, and row mapping once at construction as `actor.selections`.
+Authored `queries` are native `actorDb.query.model.findMany(...)` queries. `makeActorDbVersion({ models })` pins the database graph without opening storage. `makeActorIdentity({ claims, actorPath })` derives identity codecs from the path and exposes typed `sql.placeholder(name)` inputs. The actor captures SQL, serializable bindings, and row mapping once at construction as `actor.selections`.
 
-Contracts may declare an identity schema and a shared synchronous `guard({ payload, identity })`. Execution validates claims once before callbacks. Local staging and pending replay run the guard before the program; authoritative execution prepares the program, then runs the guard inside the mutation transaction before applying mutations. Both callbacks use the same validated claims. Guard business failures use the executing contract's failure codec and explicit historical adapters.
+Contracts may declare a reusable claims schema and a shared synchronous `guard({ payload, claims, queryDb })`. Execution validates claims once before callbacks. Local staging and pending replay run the guard before the program; authoritative execution prepares the program, then runs the guard inside the mutation transaction before applying mutations. Both callbacks use the same validated claims. Guard business failures use the executing contract's failure codec and explicit historical adapters.
 
 Changing an actor's database requires rebuilding its queries against that definition. Selections have no independent identity or version; the actor version locks their compiled SQL and bindings along with model bindings.
 
@@ -344,31 +345,31 @@ persistence, and session inputs retain their normal boundary validation.
 - [`resolveSystemAggregate.ts`](../../packages/core/src/system/make/makeSystem/resolveSystemAggregate/resolveSystemAggregate.ts) — validates service pins and returns the original Aggregate definition.
 - [`makeSystem.ts`](../../packages/core/src/system/make/makeSystem/makeSystem.ts) — resolves services before aggregates and assembles the owner registries into the completed `ISystem` graph.
 
-Contract programs receive `{ payload, models, identity }`. Guards receive
-`queryDb`. Browser execution uses the session's full identity; aggregate
-execution preserves the admitted command's full identity, including actor
+Contract programs receive `{ payload, models, claims }`. Guards receive
+`queryDb`. Browser execution uses the session's full claims; aggregate
+execution preserves the admitted command's full claims, including actor
 claims for trusted sessionless commands. Service programs receive `null`. The
-identity is an invocation argument and does not belong in command payloads.
+claims are an invocation argument and does not belong in command payloads.
 
 Aggregate contracts resolve only through the recorded actor name/version and that actor’s contract lineage. Explicit payload and failure adaptation remains supported within that lineage; another actor cannot supply a missing contract. Service and session registries contain `{ contract }`; guard callbacks belong to contracts.
 
 `makeSystem({ layer })` supplies server capabilities through one managed `system.runtime`; aggregates, services, and actors do not own layers. `makeSession` supplies a separate browser session layer. The executing contract version supplies the shared state guard; historical payload adapters remain on contracts. These executable values are excluded from specs and locks.
 
 Guards read the invocation database through `queryDb`. Programs receive decoded
-identity as an argument. Aggregate sessionless execution retains validated
+claims as an argument. Aggregate sessionless execution retains validated
 actor claims. Service commands pass `null` claims. There is no execution tag map.
 
 `system.runtime` lazily acquires capabilities once and reuses them across server calls. Its author layer must acquire synchronously because Durable Object construction uses `runSync`.
-Admission validates payloads and identity without running state guards.
+Admission validates payloads and claims without running state guards.
 
 - [`makeSystem.ts`](../../packages/core/src/system/make/makeSystem/makeSystem.ts) — constructs the shared runtime with default and authored capabilities.
 - [`systemRuntime.node.spec.ts`](../../packages/core/src/system/systemRuntime.node.spec.ts) — verifies runtime lifetime, isolation, failure cleanup, and synchronous capability acquisition.
 
 `makeSession({ layer, ... })` composes application services and framework defaults
 into its own lazy `session.runtime`. It accepts models, contracts, owner and actor
-versions, `sessionName`, identity schema, optional credentials schema, and `systemName` directly. The definition and
-lock retain the system binding for gateway validation. Identity types come
-from `identitySchema` and optional `credentialsSchema`; `session.definition` exposes the validated configuration.
+versions, `sessionName`, claims schema, optional credentials schema, and `systemName` directly. The definition and
+lock retain the system binding for gateway validation. Claims types come
+from `claimsSchema` and optional `credentialsSchema`; `session.definition` exposes the validated configuration.
 Local commands omit `systemName`; the worker stamps it on admitted commands.
 
 Each live, standalone, or mock session owns its application-layer acquisitions.
@@ -416,7 +417,7 @@ retain their existing behavior.
 
 - [`runProgram.ts`](../../packages/core/src/execution/runProgram.ts) — preserves domain failures and rejects suspension.
 - [`stageCommand.ts`](../../packages/core/src/aggregateSession/stageCommand/stageCommand.ts) — performs synchronous optimistic staging.
-- [`checkAdmission.ts`](../../packages/system-worker/src/checkAdmission.ts) — validates the submitted payload and identity before materializer adaptation.
+- [`checkAdmission.ts`](../../packages/system-worker/src/checkAdmission.ts) — validates the submitted payload and claims before materializer adaptation.
 
 The React application factory accepts authored sessions directly.
 Configured name and system checks live in
@@ -803,7 +804,7 @@ inherit omitted registrations, replace supplied registrations, and remove entrie
 marked `null`. Actor update helpers inherit omitted fields and merge authored queries by key. Aggregates retain canonical models,
 database registration, and shared capability layers; actor versions own contracts.
 
-Sessions receive a browser-safe `identitySchema`; verified sessions also receive
+Sessions receive a browser-safe `claimsSchema`; verified sessions also receive
 `credentialsSchema`. Direct sessions initialize with `{ identity }`, while verified
 sessions initialize with `{ getCredentials }`. An actor explicitly declares
 `authentication: 'none'` to accept supplied identity, or
@@ -818,7 +819,7 @@ view must distinguish its path.
 
 ```ts
 const identity = sdk.makeActorIdentity({
-  schema: identitySchema,
+  schema: claimsSchema,
   actorPath: RoutePattern.parse('/:userId'),
 });
 const db = sdk.makeActorDbVersion({ models: { user: User, list: List } });
@@ -855,7 +856,7 @@ or compatibility decoder is provided.
 - [`makeSystemSpec.ts`](../../packages/core/src/system/make/makeSystemSpec.ts) — serializes actor identity, identity descriptors, and captured queries in the aggregate spec.
 
 Contracts consume domain capability interfaces supplied by `system.runtime` on
-servers and the session runtime in browsers. Decoded identity and the
+servers and the session runtime in browsers. Decoded claims and the
 invocation database are explicit callback arguments. Shared contract guards run
 locally and during replay, and inside the server mutation transaction. Programs
 and guards complete synchronously. Declared business failures retain their normal
@@ -875,7 +876,7 @@ Autonomous actor APIs and their identity rules are deferred.
 - [`executeCommands.ts`](../../packages/system-worker/src/AggregateVersionRepo/executeCommands/executeCommands.ts) — invocation binding and retained command provenance.
 
 Aggregate sessions bind `actorName` and `actorVersion`, and declare the
-matching identity schema. Browser sessions compose optional named `modules` with flat declarations before constructing their effective model and contract bindings. Duplicate names are rejected. Browser sessions reject automations; service sessions expose authoritative models only and reject contracts. Browser session layers supply browser adapters;
+matching claims schema. Browser sessions compose optional named `modules` with flat declarations before constructing their effective model and contract bindings. Duplicate names are rejected. Browser sessions reject automations; service sessions expose authoritative models only and reject contracts. Browser session layers supply browser adapters;
 server actor modules never enter the browser import graph. Session model
 schemas can include aggregate models needed by contract mutations, while only
 selection filters determine visible server rows. Locks validate exact aggregate
@@ -883,7 +884,7 @@ model definitions and the selected identity declaration. Replica keys,
 snapshots, sessions, locks, and tickets include the actor identity, so equal
 path parameters do not join different actors.
 
-- [`makeAggregateSessionLock.ts`](../../packages/core/src/aggregateSession/make/makeAggregateSessionLock.ts) — locks actor identity and identity.
+- [`makeAggregateSessionLock.ts`](../../packages/core/src/aggregateSession/make/makeAggregateSessionLock.ts) — locks actor name/version and claims schema.
 - [`makeSessionLifecycle.ts`](../../packages/browser/src/makeSessionLifecycle.ts) — acquires browser adapters once per session runtime lifetime.
 - [Identity workflow](./browser/Identity.md) — admission, selection partitions, and offline lookup.
 
@@ -920,7 +921,7 @@ Aggregate commands retain null session and provenance fields.
 Session controllers expose data and execution registration. Session runtimes build
 the supplied browser layer once before readiness, retaining its services for
 preflight, staging, and pending replay. Constructor types require the services
-used by both contract programs and guards. Database and identity remain
+used by both contract programs and guards. Database and claims remain
 bound to each invocation; validation retains its temporary ID factories.
 
 - [`types.ts`](../../packages/core/src/aggregateSession/types.ts) — derives required services from the selected contracts.
@@ -944,9 +945,9 @@ service actors do not require `aggregateId` or receive aggregate provisioning ca
 `updateServiceActorVersion(previous, changes)` creates a new declaration with the same name and a required `version`. Omitted identity fields, authorization, queries, layer, and execution inherit from the previous actor. Supplied `queries` merge by key: omitted entries inherit, supplied entries replace matching keys, and an empty map preserves existing entries. Other supplied fields replace wholesale. The complete declaration is validated by `makeServiceActorVersion`. This helper is server-only and does not migrate storage.
 
 Actors own identity, optional authorization, authored resource `queries`, and compiled `selections`.
-Sessions import identity and optional credentials schemas directly.
+Sessions import claims and optional credentials schemas directly.
 `makeActorIdentity` derives the selection schema from `actorPath` parameters;
-there is no separately authored `actorSchema`. Only this subset parameterizes selection queries.
+there is no separately authored partition schema. Only this subset parameterizes selection queries.
 
 Both session kinds pin `actorName` and `actorVersion` in their locks. Service
 actor replicas and chains use `{ systemId, serviceName, serviceVersion, actorName,

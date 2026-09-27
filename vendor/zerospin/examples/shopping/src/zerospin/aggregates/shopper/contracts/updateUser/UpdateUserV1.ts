@@ -1,13 +1,13 @@
 import * as sdk from '@zerospin/sdk/browser';
 import { Effect, Schema } from 'effect';
 
-import { shopperIdentitySchema } from '../../actors/identities';
+import { userClaims } from '../../../../claims';
 import { user } from '../../models/user/user';
 import { userV1 } from '../../models/user/UserV1';
 
 import { updateUser } from './updateUser';
 export const updateUserV1 = sdk.makeContractVersion(updateUser, {
-  identity: shopperIdentitySchema,
+  claims: userClaims,
   failures: {
     actorDenied: sdk.ActorError.schema({
       code: 'actor-denied',
@@ -29,7 +29,7 @@ export const updateUserV1 = sdk.makeContractVersion(updateUser, {
   guard: Effect.fn('updateUserV1.guard')(function* ({
     failures,
     payload,
-    identity,
+    claims,
     queryDb,
   }) {
     const db = queryDb;
@@ -50,7 +50,7 @@ export const updateUserV1 = sdk.makeContractVersion(updateUser, {
     }
 
     const user = queryDb.query.user
-      .findFirst({ where: { clerkUserId: { eq: identity.clerkUserId } } })
+      .findFirst({ where: { clerkUserId: { eq: claims.clerkUserId } } })
       .sync();
     if (user?.id !== resource.id) {
       return yield* Effect.fail(

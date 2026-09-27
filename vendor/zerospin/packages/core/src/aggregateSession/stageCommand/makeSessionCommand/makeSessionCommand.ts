@@ -15,7 +15,7 @@ export const makeSessionCommand = Effect.fn('makeSessionCommand')(function* <
 >(props: {
   aggregateId: string;
   aggregateName: string;
-  identity: Readonly<Record<string, unknown>>;
+  claims: Readonly<Record<string, unknown>>;
   actorName: string;
   actorVersion: string;
   contract: CONTRACT;
@@ -27,7 +27,7 @@ export const makeSessionCommand = Effect.fn('makeSessionCommand')(function* <
   const {
     aggregateId,
     aggregateName,
-    identity,
+    claims,
     actorName,
     actorVersion,
     contract,
@@ -47,7 +47,7 @@ export const makeSessionCommand = Effect.fn('makeSessionCommand')(function* <
     payload: validatedPayload,
     aggregateId,
     aggregateName,
-    identity,
+    claims,
     actorName,
     actorVersion,
     pushIndex: null,

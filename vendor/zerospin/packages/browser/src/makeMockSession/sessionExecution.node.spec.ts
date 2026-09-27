@@ -45,16 +45,16 @@ describe('session runtime execution', () => {
           models: { item },
           payload: {},
           failures: {},
-          identity: claims,
-          guard: Effect.fn(function* ({ identity, queryDb }) {
+          claims,
+          guard: Effect.fn(function* ({ claims, queryDb }) {
             seen.push(yield* Capability);
-            expect(identity.user).toBe('owner');
+            expect(claims.user).toBe('owner');
             expect(queryDb.query.item.findMany().sync()).toEqual([]);
           }),
-          program: Effect.fn(function* ({ models, identity }) {
+          program: Effect.fn(function* ({ models, claims }) {
             const capability = yield* Capability;
             seen.push(capability);
-            expect(identity.user).toBe('owner');
+            expect(claims.user).toBe('owner');
             ids.push(yield* (yield* CuidFactory)());
             return [
               yield* models.item.create({
@@ -72,7 +72,7 @@ describe('session runtime execution', () => {
           sessionName: 'writer',
           models: { item },
           contracts: { create: { contract: create } },
-          identitySchema: claims,
+          claimsSchema: claims,
         });
         const layer = Layer.mergeAll(
           Layer.effect(
@@ -85,7 +85,7 @@ describe('session runtime execution', () => {
         );
         const session = makeMockAggregateSession({
           definition,
-          identity: { aggregateId: 'acct_test', user: 'owner' },
+          claims: { aggregateId: 'acct_test', user: 'owner' },
           layer,
         });
         try {
@@ -183,11 +183,11 @@ describe('session runtime execution', () => {
         create: { contract: create },
         guarded: { contract: guarded },
       },
-      identitySchema: claims,
+      claimsSchema: claims,
     });
     const session = makeMockAggregateSession({
       definition,
-      identity: { aggregateId: 'acct_test', user: 'owner' },
+      claims: { aggregateId: 'acct_test', user: 'owner' },
       layer: Layer.effect(
         Capability,
         Effect.promise(async () => ({ value: 1 })),
@@ -221,7 +221,7 @@ it('rolls back failed staging without retaining history or consuming a session p
     models: { item },
     payload: { fail: primitives.boolean() },
     failures: {},
-    identity: claims,
+    claims,
     program: Effect.fn(function* ({ models, payload }) {
       const created = yield* models.item.create({
         resourceId: 'itm_atomic',
@@ -246,11 +246,11 @@ it('rolls back failed staging without retaining history or consuming a session p
     sessionName: 'writer',
     models: { item },
     contracts: { create: { contract: create } },
-    identitySchema: claims,
+    claimsSchema: claims,
   });
   const session = makeMockAggregateSession({
     definition,
-    identity: { aggregateId: 'acct_test', user: 'owner' },
+    claims: { aggregateId: 'acct_test', user: 'owner' },
   });
   try {
     await session.initialize();

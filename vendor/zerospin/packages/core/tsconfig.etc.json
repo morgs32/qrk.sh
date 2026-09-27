@@ -4,7 +4,7 @@
     "allowImportingTsExtensions": true,
     "composite": false,
     "incremental": false,
-    "rootDir": ".",
+    "rootDir": "../..",
     "noEmit": true,
     "rewriteRelativeImportExtensions": false,
     "types": ["node", "vite/client", "vitest/globals"]

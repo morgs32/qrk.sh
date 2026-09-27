@@ -16,7 +16,7 @@ export function runContractGuard<CONTRACT extends IContract>(props: {
   contract: CONTRACT;
   queryDb: Readonly<Pick<IDb, 'query'>>;
   payload: unknown;
-  identity: Readonly<Record<string, unknown>> | null;
+  claims: Readonly<Record<string, unknown>> | null;
 }): Effect.Effect<
   void,
   IAnyError | InferFailure<CONTRACT>,
@@ -26,7 +26,7 @@ export function runContractGuard(props: {
   contract: IContract;
   queryDb: Readonly<Pick<IDb, 'query'>>;
   payload: unknown;
-  identity: Readonly<Record<string, unknown>> | null;
+  claims: Readonly<Record<string, unknown>> | null;
 }) {
   return Effect.gen(function* () {
     const { contract, queryDb } = props;
@@ -34,16 +34,16 @@ export function runContractGuard(props: {
       version: contract.version,
       payload: props.payload,
     });
-    const identity =
-      contract.identity === undefined
-        ? props.identity
+    const claims =
+      contract.claims === undefined
+        ? props.claims
         : yield* runProgram(
-            Schema.decodeUnknownEffect(Schema.toType(contract.identity))(
-              props.identity,
+            Schema.decodeUnknownEffect(Schema.toType(contract.claims))(
+              props.claims,
             ).pipe(
               mapParseError({
-                code: 'contract-identity-invalid',
-                prefix: 'Invalid contract identity',
+                code: 'contract-claims-invalid',
+                prefix: 'Invalid contract claims',
               }),
             ),
           );
@@ -53,7 +53,7 @@ export function runContractGuard(props: {
           contract.guard?.({
             queryDb,
             payload,
-            identity,
+            claims,
             failures: contract.failures,
           }) ?? Effect.void,
       ),

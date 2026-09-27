@@ -1,5 +1,5 @@
 import type { IDb, IResourceDbConfig } from '@zerospin/core/drizzle/types';
-import type { IIdentitySchema } from '@zerospin/core/identity/types';
+import type { IClaimsSchema } from '@zerospin/core/identity/types';
 import type { IModel } from '@zerospin/core/models/types';
 import * as sdk from '@zerospin/sdk/browser';
 import { Effect, Schema } from 'effect';
@@ -14,7 +14,7 @@ export type IFulfillmentOwner = {
 };
 export type IFulfillmentOwnership<
   HOST extends { purchase: IModel; user: IModel; cart: IModel },
-  IDENTITY extends IIdentitySchema,
+  CLAIMS extends IClaimsSchema,
 > = (props: {
   queryDb: Readonly<
     Pick<
@@ -31,13 +31,13 @@ export type IFulfillmentOwnership<
       'query'
     >
   >;
-  identity: IDENTITY['Type'];
+  claims: CLAIMS['Type'];
   purchaseId: string;
 }) => IFulfillmentOwner | undefined;
 
 export const makeFulfillmentFrontendModule = <
   const HOST extends { purchase: IModel; user: IModel; cart: IModel },
-  const IDENTITY extends IIdentitySchema,
+  const CLAIMS extends IClaimsSchema,
 >(options: {
   models: HOST;
   source: {
@@ -45,15 +45,10 @@ export const makeFulfillmentFrontendModule = <
     version: string;
     models: { fulfillment: ReturnType<typeof makeFulfillmentModelV1> };
   };
-  identitySchema: IDENTITY;
-  resolvePurchaseOwner: IFulfillmentOwnership<HOST, IDENTITY>;
+  claimsSchema: CLAIMS;
+  resolvePurchaseOwner: IFulfillmentOwnership<HOST, CLAIMS>;
 }) => {
-  const {
-    models: host,
-    source,
-    identitySchema,
-    resolvePurchaseOwner,
-  } = options;
+  const { models: host, source, claimsSchema, resolvePurchaseOwner } = options;
   const purchase: HOST['purchase'] = host.purchase;
   const user: HOST['user'] = host.user;
   const cart: HOST['cart'] = host.cart;
@@ -88,7 +83,7 @@ export const makeFulfillmentFrontendModule = <
   ) =>
     sdk.makeContractVersion(sdk.defineContract(name), {
       version: '1.0.0',
-      identity: identitySchema,
+      claims: claimsSchema,
       models: { purchase, user, cart, fulfillment, fulfillmentOperation },
       payload: {
         id: sdk.primitives.foreignKey({ abbreviation: 'fop' }),
@@ -100,7 +95,7 @@ export const makeFulfillmentFrontendModule = <
           code: 'fulfillment-operation-conflict',
         }),
       },
-      guard: Effect.fn(function* ({ queryDb, identity, payload, failures }) {
+      guard: Effect.fn(function* ({ queryDb, claims, payload, failures }) {
         const row = Schema.decodeUnknownSync(
           Schema.toType(Schema.Array(fulfillment.resourceSchema)),
         )(queryDb.query.fulfillment.findMany().sync()).find(
@@ -114,7 +109,7 @@ export const makeFulfillmentFrontendModule = <
             ? undefined
             : resolvePurchaseOwner({
                 queryDb,
-                identity,
+                claims,
                 purchaseId: row.purchaseId,
               });
         if (

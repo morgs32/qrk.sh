@@ -172,22 +172,22 @@ export const executeCommands = Effect.fn(
                     );
                   }
                   const payload = yield* decodePayload(contract, { command });
-                  const identity = yield* Schema.decodeUnknownEffect(
+                  const claims = yield* Schema.decodeUnknownEffect(
                     command.automationName == null
-                      ? actor.identity.identitySchema
-                      : actor.identity.actorSchema,
-                  )(command.identity, {
+                      ? actor.identity.claimsSchema
+                      : actor.identity.identitySchema,
+                  )(command.claims, {
                     onExcessProperty: 'error',
                   }).pipe(
                     mapParseError({
-                      code: 'command-identity-unsupported',
+                      code: 'command-claims-unsupported',
                       prefix:
                         'Saved command identity is unsupported by this aggregate version',
                     }),
                   );
 
                   const made = yield* makeMutations({
-                    identity,
+                    claims,
                     contract,
                     models: aggregate.models,
                     command: { ...command, payload },
@@ -306,7 +306,7 @@ export const executeCommands = Effect.fn(
                           contract,
                           queryDb,
                           payload,
-                          identity,
+                          claims,
                         });
                       }).pipe(
                         Effect.catch(failure =>

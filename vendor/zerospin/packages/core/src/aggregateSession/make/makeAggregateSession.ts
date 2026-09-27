@@ -63,10 +63,7 @@ export function makeAggregateSession<
 >(props: { definition: DEFINITION }): IAggregateSession<DEFINITION> {
   const { definition } = props;
   const store = createStore<
-    ISessionState<
-      DEFINITION['models'],
-      DEFINITION['identity']['identitySchema']['Type']
-    >
+    ISessionState<DEFINITION['models'], DEFINITION['claimsSchema']['Type']>
   >((set, get) => {
     const telemetryCollector: ITelemetryCollector = {
       addSpan: span => {
@@ -120,7 +117,7 @@ export function makeAggregateSession<
       sessionId: null,
       aggregateId: null,
       aggregateName: null,
-      identity: null,
+      claims: null,
       sessionName: null,
       aggregateSessionLockKey: null,
       db: null,
@@ -145,7 +142,7 @@ export function makeAggregateSession<
     handler: (props: {
       state: IInitializedSessionState<
         DEFINITION['models'],
-        DEFINITION['identity']['identitySchema']['Type']
+        DEFINITION['claimsSchema']['Type']
       >;
     }) => void,
   ): (() => void) => {

@@ -6,9 +6,9 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 
 import { useInitializeSession } from './useInitializeSession';
 
-const identitySchema = Schema.Struct({ aggregateId: Schema.String });
+const claimsSchema = Schema.Struct({ aggregateId: Schema.String });
 const base = {
-  identitySchema,
+  claimsSchema,
   systemName: 'test',
   definition: {
     kind: 'aggregate' as const,
@@ -35,19 +35,19 @@ afterEach(async () => {
 
 it('does not retarget a direct session on rerender and disposes its owned initialization', async () => {
   const initialize = vi.fn(
-    async (_props: { identity: typeof identitySchema.Type }) => undefined,
+    async (_props: { claims: typeof claimsSchema.Type }) => undefined,
   );
   const dispose = vi.fn(async () => undefined);
   const session = { ...base, initialize, dispose };
   function App({ aggregateId }: { aggregateId: string }) {
-    useInitializeSession({ session, identity: { aggregateId } });
+    useInitializeSession({ session, claims: { aggregateId } });
     return null;
   }
   await act(() => root.render(<App aggregateId="acct_first" />));
   await act(() => root.render(<App aggregateId="acct_second" />));
   expect(initialize).toHaveBeenCalledTimes(1);
   expect(initialize).toHaveBeenCalledWith({
-    identity: { aggregateId: 'acct_first' },
+    claims: { aggregateId: 'acct_first' },
   });
   await act(() => root.render(null));
   expect(dispose).toHaveBeenCalledTimes(1);
@@ -65,7 +65,7 @@ it('invokes disposal of the previous session before initializing its replacement
     dispose: vi.fn(async () => undefined),
   };
   function App({ session }: { session: typeof first }) {
-    useInitializeSession({ session, identity: { aggregateId: 'acct_first' } });
+    useInitializeSession({ session, claims: { aggregateId: 'acct_first' } });
     return null;
   }
 

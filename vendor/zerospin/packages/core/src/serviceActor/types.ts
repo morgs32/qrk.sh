@@ -13,11 +13,11 @@ import type {
 export type IServiceActorSelections = Readonly<Record<string, ISelection>>;
 
 export type IServiceActorAuthorization<
-  IDENTITY = Readonly<Record<string, unknown>>,
+  CLAIMS = Readonly<Record<string, unknown>>,
   R = never,
 > = {
   bivarianceHack(props: {
-    identity: IDENTITY;
+    claims: CLAIMS;
     sessionName: string;
     db: Readonly<Pick<IDb, 'query'>>;
   }): Effect.Effect<void, IAnyError, R>;

@@ -2,7 +2,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 
 const COMMAND_COLUMN_IDS = [
   'id',
-  'identity',
+  'claims',
   'aggregateIndex',
   'executedIndex',
   'executedHash',
@@ -24,10 +24,10 @@ type ICommandColumnId = (typeof COMMAND_COLUMN_IDS)[number];
 
 const COPY_CELL_COLUMN_IDS: ReadonlySet<string> = new Set<ICommandColumnId>([
   'id',
-  'identity',
+  'claims',
   'sessionId',
   'payload',
-  'identity',
+  'claims',
 ]);
 
 const COLUMN_SIZES: Partial<
@@ -36,7 +36,7 @@ const COLUMN_SIZES: Partial<
   id: { size: 140, minSize: 80, maxSize: 200 },
   commandName: { size: 120, minSize: 80, maxSize: 160 },
   payload: { size: 200, minSize: 120, maxSize: 320 },
-  identity: { size: 140, minSize: 80, maxSize: 200 },
+  claims: { size: 140, minSize: 80, maxSize: 200 },
   sessionId: { size: 140, minSize: 80, maxSize: 200 },
 };
 

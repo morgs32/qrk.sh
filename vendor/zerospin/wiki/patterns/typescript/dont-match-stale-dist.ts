@@ -7,6 +7,6 @@ import type { ComponentType } from 'react';
 
 import { ZerospinDevtools } from '@zerospin/devtools/ZerospinDevtools';
 
-export const AppDevtools: ComponentType = ZerospinDevtools;
+export const appDevtools: ComponentType = ZerospinDevtools;
 
 // Rebuild: nx run @zerospin/devtools:lib

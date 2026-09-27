@@ -1,8 +1,11 @@
-import type { IAnyErrorJson } from '@zerospin/error';
+import type { IAnyError, IZerospinErrorJson } from '@zerospin/error';
 import type { ITelemetryBatch, ITelemetryCollector } from '@zerospin/logger';
 import type { AnyRelations } from 'drizzle-orm';
+import type { Schema } from 'effect';
 import type { StoreApi } from 'zustand';
 
+import type { INodeState } from '../aggregateSession/NodeState.ts';
+import type { IActorDelta, ISessionId } from '../aggregateSession/types.ts';
 import type { ICommand } from '../contracts/types.ts';
 import type {
   IDb,
@@ -11,11 +14,32 @@ import type {
   IResourceDrizzleSchemasFromModels,
   IWaSqliteDrizzleDb,
 } from '../drizzle/types.ts';
-import type { IServiceFrontendController } from '../frontendController/types.ts';
 import type { IAnyModels, IEncodedResourceShape } from '../models/types.ts';
-import type { IFrontendDelta, ISessionId } from '../session/types.ts';
 
 import { type serviceSessionRepoSchema } from './serviceSessionRepoTables.ts';
+
+export type IServiceSessionDefinition<
+  SYSTEM_NAME extends string = string,
+  SERVICE_NAME extends string = string,
+  DEFINITION_NAME extends string = string,
+  MODELS extends IAnyModels = IAnyModels,
+  SERVICE_VERSION extends string = string,
+  IDENTITY extends Schema.Struct<
+    Readonly<Record<string, Schema.Codec<unknown, unknown>>>
+  > = Schema.Struct<Readonly<Record<string, Schema.Codec<unknown, unknown>>>>,
+> = Readonly<{
+  kind: 'service';
+  systemName: SYSTEM_NAME;
+  serviceName: SERVICE_NAME;
+  serviceVersion: SERVICE_VERSION;
+  actorName: string;
+  actorVersion: string;
+  identity: Readonly<{ identitySchema: IDENTITY }>;
+  sessionName: DEFINITION_NAME;
+  contracts: Readonly<Record<never, never>>;
+  models: Readonly<MODELS>;
+  modelNames: readonly string[];
+}>;
 
 export type IServiceSessionRepoSchema = typeof serviceSessionRepoSchema;
 
@@ -32,17 +56,19 @@ export type IServiceSessionWaSqliteDb<
   RELATIONS extends AnyRelations = AnyRelations,
 > = IWaSqliteDrizzleDb<IDbConfig<IServiceSessionSchema<MODELS>, RELATIONS>>;
 
-export type IServiceSelectedCommand = Readonly<{
+export type IServiceActorCommand = Readonly<{
   id: ICommand['id'];
   serviceIndex: number;
-  delta: IFrontendDelta;
+  actorDelta: IActorDelta;
   serviceHash: string;
 }>;
 
-export type IServiceFrontendSnapshot = Readonly<{
-  authentication: Readonly<Record<string, unknown>>;
+export type IServiceSessionSnapshot = Readonly<{
+  actorName: string;
+  actorVersion: string;
+  identity: Readonly<Record<string, unknown>>;
   serviceName: string;
-  frontendName: string;
+  sessionName: string;
   serviceIndex: number;
   serviceHash: string;
   serviceVersion: string;
@@ -51,13 +77,13 @@ export type IServiceFrontendSnapshot = Readonly<{
 
 export type IInitializedServiceSessionState<
   MODELS extends IAnyModels = IAnyModels,
-  AUTHENTICATION = Readonly<Record<string, unknown>>,
+  IDENTITY = Readonly<Record<string, unknown>>,
 > = Readonly<{
   sessionId: ISessionId;
-  authentication: AUTHENTICATION;
+  identity: IDENTITY;
   serviceName: string;
-  frontendName: string;
-  serviceFrontendLockKey: string;
+  sessionName: string;
+  serviceSessionLockKey: string;
   db: IServiceSessionWaSqliteDb<MODELS, IDrizzleRelationsFromModels<MODELS>>;
   schema: IServiceSessionSchema<MODELS>;
   models: MODELS;
@@ -65,31 +91,27 @@ export type IInitializedServiceSessionState<
   serviceIndex: number;
   serviceHash: string;
   serviceVersion: string;
-  sessionStatus:
-    | 'bootstrapping'
-    | 'current'
-    | 'superseded'
-    | 'failed'
-    | 'released';
+  sessionStatus: 'bootstrapping' | 'current' | 'failed' | 'released';
+  nodeState?: INodeState | null;
   backupState: Readonly<{
     status: 'pending' | 'ready' | 'repairing' | 'failed' | 'released';
-    failure: IAnyErrorJson | null;
-  }>;
+    failure: IAnyError | IZerospinErrorJson | null;
+  }> | null;
   telemetry: ITelemetryBatch;
   telemetryCollector: ITelemetryCollector;
 }>;
 
 export type IServiceSessionState<
   MODELS extends IAnyModels = IAnyModels,
-  AUTHENTICATION = Readonly<Record<string, unknown>>,
+  IDENTITY = Readonly<Record<string, unknown>>,
 > =
-  | IInitializedServiceSessionState<MODELS, AUTHENTICATION>
+  | IInitializedServiceSessionState<MODELS, IDENTITY>
   | Readonly<{
       sessionId: null;
-      authentication: null;
+      identity: null;
       serviceName: null;
-      frontendName: null;
-      serviceFrontendLockKey: null;
+      sessionName: null;
+      serviceSessionLockKey: null;
       db: null;
       schema: null;
       models: null;
@@ -97,25 +119,21 @@ export type IServiceSessionState<
       serviceIndex: null;
       serviceHash: null;
       serviceVersion: null;
-      sessionStatus:
-        | 'bootstrapping'
-        | 'current'
-        | 'superseded'
-        | 'failed'
-        | 'released';
+      sessionStatus: 'bootstrapping' | 'current' | 'failed' | 'released';
+      nodeState?: INodeState | null;
       backupState: Readonly<{
         status: 'pending' | 'ready' | 'repairing' | 'failed' | 'released';
-        failure: IAnyErrorJson | null;
-      }>;
+        failure: IAnyError | IZerospinErrorJson | null;
+      }> | null;
       telemetry: ITelemetryBatch;
       telemetryCollector: ITelemetryCollector;
     }>;
 
 export type IServiceSession<
-  FRONTEND extends IServiceFrontendController = IServiceFrontendController,
-  MODELS extends IAnyModels = FRONTEND['models'],
+  DEFINITION extends IServiceSessionDefinition = IServiceSessionDefinition,
+  MODELS extends IAnyModels = DEFINITION['models'],
 > = Readonly<{
-  frontend: FRONTEND;
+  definition: DEFINITION;
   models: MODELS;
   sessionId: ISessionId | null;
   setSessionId(sessionId: ISessionId): void;
@@ -123,14 +141,14 @@ export type IServiceSession<
     handler: (props: {
       state: IInitializedServiceSessionState<
         MODELS,
-        FRONTEND['authentication']['authenticationSchema']['Type']
+        DEFINITION['identity']['identitySchema']['Type']
       >;
     }) => void,
   ): () => void;
   store: StoreApi<
     IServiceSessionState<
       MODELS,
-      FRONTEND['authentication']['authenticationSchema']['Type']
+      DEFINITION['identity']['identitySchema']['Type']
     >
   >;
 }>;

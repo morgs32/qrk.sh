@@ -1,0 +1,190 @@
+import {
+  makeZerospinError,
+  mapParseError,
+  type IAnyError,
+} from '@zerospin/error';
+import type { IDecodedRecord } from '@zerospin/schema';
+import { Effect, Schema } from 'effect';
+
+import {
+  makeInverseOperationJsonSchema,
+  makeOperationJsonSchema,
+} from '../../../contracts/encodeAppliedMutation.ts';
+import type {
+  IAnyMutation,
+  IAppliedMutation,
+  IEncodedAppliedMutation,
+  IInverseOperation,
+  IMutation,
+} from '../../../contracts/types.ts';
+import type { IModel } from '../../../models/types.ts';
+
+/** Decodes an applied mutation row/transport value. */
+export const decodeAppliedMutation = Effect.fn('decodeAppliedMutation')(
+  function* (props: {
+    mutation: IEncodedAppliedMutation;
+    model: IModel;
+  }): Effect.fn.Return<IAppliedMutation, IAnyError> {
+    const { mutation, model } = props;
+    const definition =
+      model.version === mutation.modelVersion ? model : undefined;
+    if (definition === undefined) {
+      return yield* Effect.fail(
+        makeZerospinError({
+          code: 'unknown-applied-mutation-model-version',
+          message: `Unknown model version "${mutation.modelVersion}" for "${model.modelName}"`,
+        }),
+      );
+    }
+    const decoded = yield* Schema.decodeEffect(
+      makeOperationJsonSchema({
+        model,
+        modelVersion: mutation.modelVersion,
+        operationName: mutation.operationName,
+      }),
+    )(mutation.operation).pipe(
+      mapParseError({
+        code: 'failed-to-decode-applied-mutation-operation',
+        prefix: `Failed to decode mutation operation for model "${mutation.modelName}"`,
+      }),
+    );
+
+    const resourceId = mutation.resourceId as IAnyMutation['resourceId'];
+    const appliedFields = {
+      commandId: mutation.commandId,
+      mutationIndex: mutation.mutationIndex,
+      modelVersion: mutation.modelVersion,
+      appliedAt: mutation.appliedAt,
+      previousUpdatedAt: mutation.previousUpdatedAt,
+    };
+
+    switch (mutation.operationName) {
+      case 'delete': {
+        const inverseOperation = (yield* Schema.decodeEffect(
+          makeInverseOperationJsonSchema({
+            model,
+            modelVersion: mutation.modelVersion,
+            operationName: 'delete',
+          }),
+        )(mutation.inverseOperation).pipe(
+          mapParseError({
+            code: 'failed-to-decode-applied-mutation-inverse-operation',
+            prefix: `Failed to decode mutation inverseOperation for model "${mutation.modelName}"`,
+          }),
+        )) as IInverseOperation | null;
+        return {
+          model,
+          resourceId,
+          operationName: 'delete',
+          operation: {},
+          ...appliedFields,
+          inverseOperation,
+        };
+      }
+      case 'create': {
+        const attributes = (decoded as { encodedAttributes: IDecodedRecord })
+          .encodedAttributes;
+        return {
+          model,
+          resourceId,
+          operationName: 'create',
+          operation: { attributes },
+          ...appliedFields,
+          inverseOperation: null,
+        };
+      }
+      case 'update': {
+        const attributes = (decoded as { encodedAttributes: IDecodedRecord })
+          .encodedAttributes;
+        const decodedInverseOperation = yield* Schema.decodeEffect(
+          makeInverseOperationJsonSchema({
+            model,
+            modelVersion: mutation.modelVersion,
+            operationName: 'update',
+          }),
+        )(mutation.inverseOperation).pipe(
+          mapParseError({
+            code: 'failed-to-decode-applied-mutation-inverse-operation',
+            prefix: `Failed to decode mutation inverseOperation for model "${mutation.modelName}"`,
+          }),
+        );
+        const inverseOperation =
+          decodedInverseOperation === null
+            ? null
+            : {
+                attributes: (
+                  decodedInverseOperation as {
+                    encodedAttributes: IDecodedRecord;
+                  }
+                ).encodedAttributes,
+              };
+
+        return {
+          model,
+          resourceId,
+          operationName: 'update',
+          operation: { attributes },
+          ...appliedFields,
+          inverseOperation,
+        };
+      }
+      case 'move': {
+        const inverseOperation = (yield* Schema.decodeEffect(
+          makeInverseOperationJsonSchema({
+            model,
+            modelVersion: mutation.modelVersion,
+            operationName: 'move',
+          }),
+        )(mutation.inverseOperation).pipe(
+          mapParseError({
+            code: 'failed-to-decode-applied-mutation-inverse-operation',
+            prefix: `Failed to decode mutation inverseOperation for model "${mutation.modelName}"`,
+          }),
+        )) as IInverseOperation | null;
+        return {
+          model,
+          resourceId,
+          operationName: 'move',
+          operation: decoded as IMutation<IModel, 'move'>['operation'],
+          ...appliedFields,
+          inverseOperation,
+        };
+      }
+      case 'replicate': {
+        const replication = decoded as IMutation<
+          IModel,
+          'replicate'
+        >['operation'];
+        const inverseOperation = (yield* Schema.decodeEffect(
+          makeInverseOperationJsonSchema({
+            model,
+            modelVersion: mutation.modelVersion,
+            operationName: 'replicate',
+          }),
+        )(mutation.inverseOperation).pipe(
+          mapParseError({
+            code: 'failed-to-decode-applied-mutation-inverse-operation',
+            prefix: `Failed to decode replication inverse for model "${mutation.modelName}"`,
+          }),
+        )) as IInverseOperation | null;
+        return {
+          model,
+          resourceId,
+          operationName: 'replicate',
+          operation: replication,
+          ...appliedFields,
+          inverseOperation,
+        };
+      }
+      default: {
+        const _exhaustive: never = mutation.operationName;
+        return yield* Effect.fail(
+          makeZerospinError({
+            code: 'unsupported-mutation-operation',
+            message: `decodeAppliedMutation: unsupported operationName "${String(_exhaustive)}"`,
+          }),
+        );
+      }
+    }
+  },
+);

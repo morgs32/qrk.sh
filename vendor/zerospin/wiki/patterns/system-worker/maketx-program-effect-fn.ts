@@ -1,8 +1,7 @@
-import { makeDbConfig } from '@zerospin/core/drizzle/makeDbConfig';
-import { makeTx } from '@zerospin/core/drizzle/makeTx';
+import { makeDbConfig } from '@zerospin/core/drizzle/make/makeDbConfig/makeDbConfig';
+import { makeTx } from '@zerospin/core/drizzle/make/makeTx';
 import type { IDb, ITx } from '@zerospin/core/drizzle/types';
 import { makeTable, primitives } from '@zerospin/schema';
-import { Context, Effect } from 'effect';
 
 const subscriberDbConfig = makeDbConfig({
   tables: {
@@ -16,37 +15,26 @@ const subscriberDbConfig = makeDbConfig({
   },
 });
 
-class SubscriberDb extends Context.Service<
-  SubscriberDb,
-  IDb<typeof subscriberDbConfig>
->()('SubscriberDb') {
-  static readonly Tx = Context.Service<
-    'SubscriberDb.Tx',
-    ITx<typeof subscriberDbConfig>
-  >('SubscriberDb.Tx');
-}
-
 /**
- * Define named synchronous transaction programs with makeTx(name, Db)(generator).
- * Db owns a distinct, schema-specific Tx service; only makeTx provides the open transaction.
+ * Define named synchronous transaction programs with makeTx(name, options?)(generator).
+ * Pass db at invocation; the generator receives a schema-specific tx as its first argument.
  *
- * @bad Passing database handles and transaction callbacks in a makeTx props object.
+ * @bad Creating Db/Tx Context services solely to pass handles into makeTx.
  * @bad Wrapping the generator in another Effect.fn or Effect.gen at the call site.
- * @bad Using the transaction value type as its service identifier; same-schema owners must remain distinct.
- * @good Yield Db.Tx, perform synchronous Drizzle operations inline, and provide Db at invocation.
+ * @bad Replacing explicit transaction arguments with a shared ambient transaction tag.
+ * @good Receive tx directly, perform synchronous Drizzle operations inline, and pass tx to helpers.
  * @good Run async preparation before the transaction; keep commit-time invariants inside it.
  */
-export const applySubscriberBatch = makeTx(
-  'Subscriber.applyBatch',
-  SubscriberDb,
-)(function* (events: readonly { cursor: number; payload: string }[]) {
-  const tx = yield* SubscriberDb.Tx;
+export const applySubscriberBatch = makeTx('Subscriber.applyBatch')(function* (
+  tx: ITx<typeof subscriberDbConfig>,
+  events: readonly { cursor: number; payload: string }[],
+) {
   for (const event of events) {
     tx.insert(subscriberDbConfig.schema.events).values(event).run();
   }
 });
 
 declare const db: IDb<typeof subscriberDbConfig>;
-export const application = applySubscriberBatch([
+export const application = applySubscriberBatch(db, [
   { cursor: 1, payload: 'event' },
-]).pipe(Effect.provideService(SubscriberDb, db));
+]);

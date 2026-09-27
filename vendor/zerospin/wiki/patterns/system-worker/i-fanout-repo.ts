@@ -1,10 +1,12 @@
 import type { IDb } from '@zerospin/core/drizzle/types';
 import { RpcTarget } from 'capnweb';
 import type { SQL } from 'drizzle-orm';
-import { Brand, Effect } from 'effect';
+import { type Effect } from 'effect';
 
+import { type aggregateVersionChainDbConfig } from '../../../packages/system-worker/src/AggregateVersionChain/aggregateVersionChainDbConfig.js';
+import type { IExecutedCommandRow } from '../../../packages/system-worker/src/AggregateVersionChain/types.js';
 import type { IAlarmRegistry } from '../../../packages/system-worker/src/makeAlarmRegistry/makeAlarmRegistry.js';
-import { versionedAggregateChainDbConfig } from '../../../packages/system-worker/src/VersionedAggregateChain/versionedAggregateChainDbConfig.js';
+import { readExecutedCommandsPage } from '../../../packages/system-worker/src/readExecutedCommandsPage/readExecutedCommandsPage.js';
 
 /**
  * A fanout owner implements `IFanoutRepo<NAME, SUBSCRIBER>` (queue name and receiver repo) with a
@@ -15,7 +17,9 @@ import { versionedAggregateChainDbConfig } from '../../../packages/system-worker
  *
  * `makeFanoutQueue` binds explicit `db`, `schema`, `subscribersTableName`,
  * `entriesTableName`, and `indexColumnName`; its row type comes from the entries
- * table. The factory reads at most 64 complete rows in ascending index order,
+ * table, or from its optional `readPage` hook for merged command families.
+ * The merged reader orders both tables by executedIndex and reports their global tip.
+ * The factory reads at most 64 complete rows in ascending index order,
  * exclusively after `afterIndex` and inclusively through optional `maxIndex`.
  * The returned
  * `IFanoutDelivery<ROW>` contains complete `rows` and `lastIndex`, the source
@@ -26,7 +30,8 @@ import { versionedAggregateChainDbConfig } from '../../../packages/system-worker
  * Its Effect reads the entries table's persisted tip and raises the remembered
  * highest index before acquiring the drain lock. The queue observes background
  * rejection internally but returns the original Promise so awaiting it still fails.
- * Admission and publication call drain() without awaiting delivery. The factory
+ * Admission and publication use drainAfter() to arm recovery, run the producer,
+ * and start drain() after it settles without awaiting delivery. The factory
  * registers its internal drain Effect with the inherited alarmRegistry; the common
  * Repo alarm dispatches it alongside other queue drains and a configured superclass alarm. Owners retain alarm holds before committing source rows
  * and use finalizers so partially successful writes also start a drain.
@@ -34,7 +39,7 @@ import { versionedAggregateChainDbConfig } from '../../../packages/system-worker
  * Each query selects the oldest unfailed subscribers behind that index, excluding
  * in-memory pending identities in SQL before LIMIT. Optional `subscribersWhere`
  * supplies a tuple of additional AND predicates; undefined entries are ignored.
- * AC and SAC use it to exclude invalidated materializers. Completion frees
+ * AC and SC use it to exclude invalidated materializers. Completion frees
  * a slot; a subscriber with another page may be selected again in the same drain.
  * The queue caches one suffix and refetches whenever it no longer covers the
  * selected subscriber's next position. Each delivery retains its own row slice
@@ -54,7 +59,8 @@ import { versionedAggregateChainDbConfig } from '../../../packages/system-worker
  * monotonically. A drain may be waiting for this subscriber to cold-activate;
  * acquiring its lock during activation-time enrollment would deadlock.
  * Every successful subscription starts drain() after committing,
- * including on a cold queue. The factory needs no ctx or waitUntil.
+ * including on a cold queue. Enrollment returns a void success in its RPC
+ * envelope. The factory needs no ctx or waitUntil.
  * Empty suffixes wait for the next drain call, which rereads the persisted tip.
  * Completed drains release their lease; interrupted work resumes durable cursors.
  * Interrupting a caller awaiting the Promise does not cancel queue-owned delivery.
@@ -95,7 +101,7 @@ import { versionedAggregateChainDbConfig } from '../../../packages/system-worker
  * VAR and VSR retain terminal result recovery around subscriber catch-up.
  * Receive commits supplied admitted rows under the owner's execution permit and
  * schedules result publication.
- * VAR and SelectionVAR initialize services.lastIndex from their selected snapshot
+ * VAR and ActorVAR initialize services.lastIndex from their selected snapshot
  * aggregate.services at activation, preserving existing source progress. Resource
  * membership is the replica row or tombstone; its serviceIndex is independent.
  * Creating a copy never creates subscriptions or rewinds the source
@@ -110,11 +116,14 @@ import { versionedAggregateChainDbConfig } from '../../../packages/system-worker
  * exposes `makeOutboxSubscriber` through `queueNameSubscriber`. Its receive
  * parameter is inferred from the sender's full Drizzle row.
  *
- * Outbox owners insert stable integer `outboxIndex` rows in their own domain
- * transactions, with nullable `deliveredAt` and `lastDeliveryFailure`.
+ * Outbox owners insert stable integer `executedIndex` rows in their own domain
+ * transactions, with nullable `acknowledgedAt` and `lastDeliveryFailure`.
  * The factory owns SQL LIMIT 64 paging, exact-page retain/delete acknowledgement,
  * retries and alarm leases. `deliver(rows)` binds one receiver;
  * there is no enqueue RPC, subscriber registry or row-dependent routing.
+ * Outbox drainAfter() arms recovery before the producer, then launches drain()
+ * through the system runtime on success, failure, or interruption. The producer
+ * returns without waiting for delivery; initial alarm failure skips both.
  * The base DO gate completes onDOActivation before exposing owner capabilities;
  * queue factories do not accept readiness callbacks. Activation awaits source
  * subscription without an execution permit or transaction across RPCs. Outbox
@@ -141,8 +150,6 @@ export type IFanoutDelivery<ROW> = {
   lastIndex: number;
 };
 
-export type IFanoutSubscribeResult = Brand.Brand<'IFanoutSubscribeResult'>;
-
 export type IFanoutRepo<
   FANOUT_QUEUE_NAME extends string,
   _SUBSCRIBER extends IFanoutSubscriberRepo<{
@@ -154,9 +161,7 @@ export type IFanoutRepo<
 
 export type IFanoutSubscriberRepo<QUEUE extends { readonly name: string }> = {
   readonly [K in `${QUEUE['name']}Subscriber`]: (
-    sourceKey: QUEUE extends { readonly _sourceKey?: infer SOURCE_KEY }
-      ? NonNullable<SOURCE_KEY>
-      : never,
+    sourceKey: never,
   ) => RpcTarget & {
     receive(
       delivery: IFanoutDelivery<unknown>,
@@ -164,26 +169,26 @@ export type IFanoutSubscriberRepo<QUEUE extends { readonly name: string }> = {
   };
 };
 
-export class VersionedAggregateChain
+export class AggregateVersionChain
   extends RpcTarget
-  implements IFanoutRepo<'replicaFanoutQueue', SelectionVersionedAggregateRepo>
+  implements IFanoutRepo<'executionResultsFanout', AggregateActorVersionRepo>
 {
   declare static readonly getRepo: (props: {
     key: Parameters<
-      SelectionVersionedAggregateRepo['replicaFanoutQueueSubscriber']
+      AggregateActorVersionRepo['executionResultsFanoutSubscriber']
     >[0];
   }) => Effect.Effect<{
-    readonly replicaFanoutQueue: PromiseLike<
-      VersionedAggregateChain['replicaFanoutQueue']
+    readonly executionResultsFanout: PromiseLike<
+      AggregateVersionChain['executionResultsFanout']
     >;
   }>;
 
   declare readonly db: IDb;
-  declare readonly schema: typeof versionedAggregateChainDbConfig.schema;
+  declare readonly schema: typeof aggregateVersionChainDbConfig.schema;
   declare readonly alarmRegistry: IAlarmRegistry;
 
-  readonly #replicaFanoutQueue = makeFanoutQueue({
-    name: 'replicaFanoutQueue',
+  readonly #executionResultsFanout = makeFanoutQueue({
+    name: 'executionResultsFanout',
     concurrency: 100,
     subscriberNameUtils: replicaNameUtils,
     key: {
@@ -195,34 +200,44 @@ export class VersionedAggregateChain
     db: this.db,
     schema: this.schema,
     alarmRegistry: this.alarmRegistry,
-    subscribersTableName: 'replicaSubscribers',
-    entriesTableName: 'commands',
-    indexColumnName: 'outboxIndex',
-    getRepo: SelectionVersionedAggregateRepo.getRepo,
+    subscribersTableName: 'executedCommandsFanoutSubscribers',
+    entriesTableName: 'aggregateCommands',
+    indexColumnName: 'executedIndex',
+    readPage: (
+      page,
+    ): {
+      rows: readonly { row: IExecutedCommandRow; index: number }[];
+      lastIndex: number;
+    } =>
+      readExecutedCommandsPage({
+        db: this.db,
+        aggregateCommands: this.schema.aggregateCommands,
+        serviceCommands: this.schema.serviceCommands,
+        ...page,
+      }),
+    getRepo: AggregateActorVersionRepo.getRepo,
   });
 
-  get replicaFanoutQueue() {
-    return this.#replicaFanoutQueue;
+  get executionResultsFanout() {
+    return this.#executionResultsFanout;
   }
 }
 
-export class SelectionVersionedAggregateRepo extends RpcTarget {
+export class AggregateActorVersionRepo extends RpcTarget {
   declare static readonly getRepo: (props: {
     key: Record<string, string>;
   }) => Effect.Effect<{
-    replicaFanoutQueueSubscriber(
+    executionResultsFanoutSubscriber(
       sourceKey: Parameters<
-        SelectionVersionedAggregateRepo['replicaFanoutQueueSubscriber']
+        AggregateActorVersionRepo['executionResultsFanoutSubscriber']
       >[0],
     ): PromiseLike<
-      ReturnType<
-        SelectionVersionedAggregateRepo['replicaFanoutQueueSubscriber']
-      >
+      ReturnType<AggregateActorVersionRepo['executionResultsFanoutSubscriber']>
     >;
   }>;
 
   declare readonly receive: (
-    delivery: IFanoutDelivery<{ outboxIndex: number }>,
+    delivery: IFanoutDelivery<IExecutedCommandRow>,
   ) => Effect.Effect<void>;
   declare readonly getCurrentIndex: () => number;
   readonly key = {
@@ -230,21 +245,21 @@ export class SelectionVersionedAggregateRepo extends RpcTarget {
     aggregateId: 'acct',
     aggregateName: 'user',
     aggregateVersion: '1.0.0',
-    selectionPath: '/user_1',
-    frontendName: 'main',
+    actorPath: '/user_1',
+    sessionName: 'main',
   };
 
-  replicaFanoutQueueSubscriber(sourceKey: {
+  executionResultsFanoutSubscriber(sourceKey: {
     systemId: string;
     aggregateId: string;
     aggregateName: string;
     aggregateVersion: string;
   }) {
     return makeFanoutSubscriber({
-      name: 'replicaFanoutQueue',
+      name: 'executionResultsFanout',
       sourceKey,
       key: this.key,
-      getRepo: VersionedAggregateChain.getRepo,
+      getRepo: AggregateVersionChain.getRepo,
       getCurrentIndex: this.getCurrentIndex,
       receive: this.receive,
     });
@@ -257,44 +272,48 @@ declare const replicaNameUtils: {
 };
 
 declare function makeFanoutQueue(props: {
-  name: 'replicaFanoutQueue';
+  name: 'executionResultsFanout';
   concurrency: number;
   subscriberNameUtils: typeof replicaNameUtils;
   key: Record<string, string>;
   db: IDb;
-  schema: typeof versionedAggregateChainDbConfig.schema;
+  schema: typeof aggregateVersionChainDbConfig.schema;
   alarmRegistry: IAlarmRegistry;
-  subscribersTableName: 'replicaSubscribers';
-  entriesTableName: 'commands';
-  indexColumnName: 'outboxIndex';
-  getRepo: typeof SelectionVersionedAggregateRepo.getRepo;
+  subscribersTableName: 'executedCommandsFanoutSubscribers';
+  entriesTableName: 'aggregateCommands';
+  indexColumnName: 'executedIndex';
+  readPage(page: { afterIndex: number; maxIndex?: number }): {
+    rows: readonly { row: IExecutedCommandRow; index: number }[];
+    lastIndex: number;
+  };
+  getRepo: typeof AggregateActorVersionRepo.getRepo;
   subscribersWhere?: readonly [SQL | undefined, ...(SQL | undefined)[]];
 }): RpcTarget & {
   readonly drain: () => Promise<void>;
-  readonly name: 'replicaFanoutQueue';
+  readonly name: 'executionResultsFanout';
   getPage(props: { afterIndex: number; maxIndex?: number }): Promise<{
     _tag: 'Success';
-    success: IFanoutDelivery<{ outboxIndex: number }>;
+    success: IFanoutDelivery<IExecutedCommandRow>;
   }>;
   subscribe(
     props: { currentIndex: number | null } & Record<string, string>,
-  ): Promise<{ _tag: 'Success'; success: IFanoutSubscribeResult }>;
+  ): Promise<{ _tag: 'Success'; success: void }>;
 };
 
 declare function makeFanoutSubscriber(props: {
-  name: 'replicaFanoutQueue';
+  name: 'executionResultsFanout';
   sourceKey: Parameters<
-    SelectionVersionedAggregateRepo['replicaFanoutQueueSubscriber']
+    AggregateActorVersionRepo['executionResultsFanoutSubscriber']
   >[0];
-  key: SelectionVersionedAggregateRepo['key'];
-  getRepo: typeof VersionedAggregateChain.getRepo;
+  key: AggregateActorVersionRepo['key'];
+  getRepo: typeof AggregateVersionChain.getRepo;
   getCurrentIndex: () => number;
   receive: (
-    delivery: IFanoutDelivery<{ outboxIndex: number }>,
+    delivery: IFanoutDelivery<IExecutedCommandRow>,
   ) => Effect.Effect<void>;
 }): RpcTarget & {
   receive(
-    delivery: IFanoutDelivery<{ outboxIndex: number }>,
+    delivery: IFanoutDelivery<IExecutedCommandRow>,
   ): Promise<{ _tag: 'Success'; success: void }>;
   catchup(index?: number): Promise<{ _tag: 'Success'; success: void }>;
   subscribe(index?: number): Promise<{ _tag: 'Success'; success: void }>;

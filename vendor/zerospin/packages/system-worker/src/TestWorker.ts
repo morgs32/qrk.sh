@@ -5,21 +5,21 @@
  */
 
 export { AggregateChain } from './AggregateChain/AggregateChain.js';
-export { VersionedAggregateRepo } from './VersionedAggregateRepo/VersionedAggregateRepo.js';
-export { SelectionVersionedAggregateRepo } from './SelectionVersionedAggregateRepo/SelectionVersionedAggregateRepo.js';
-export { SelectionVersionedAggregateChain } from './SelectionVersionedAggregateChain/SelectionVersionedAggregateChain.js';
-export { VersionedAggregateChain } from './VersionedAggregateChain/VersionedAggregateChain.js';
-export { VersionedServiceChain } from './VersionedServiceChain/VersionedServiceChain.js';
+export { AggregateVersionRepo } from './AggregateVersionRepo/AggregateVersionRepo.js';
+export { AggregateActorVersionRepo } from './AggregateActorVersionRepo/AggregateActorVersionRepo.js';
+export { AggregateActorVersionChain } from './AggregateActorVersionChain/AggregateActorVersionChain.js';
+export { AggregateVersionChain } from './AggregateVersionChain/AggregateVersionChain.js';
+export { ServiceVersionChain } from './ServiceVersionChain/ServiceVersionChain.js';
 export { SystemLogAgent } from './SystemLogAgent/SystemLogAgent.js';
 export { SystemLogRepo } from './SystemLogRepo/SystemLogRepo.js';
-export { VersionedServiceRepo } from './VersionedServiceRepo/VersionedServiceRepo.js';
-export { ServiceAdmittedChain } from './ServiceAdmittedChain/ServiceAdmittedChain.js';
-export { FrontendVersionedServiceRepo } from './FrontendVersionedServiceRepo/FrontendVersionedServiceRepo.js';
-export { FrontendServiceChain } from './FrontendServiceChain/FrontendServiceChain.js';
+export { ServiceVersionRepo } from './ServiceVersionRepo/ServiceVersionRepo.js';
+export { ServiceChain } from './ServiceChain/ServiceChain.js';
+export { ServiceActorVersionRepo } from './ServiceActorVersionRepo/ServiceActorVersionRepo.js';
+export { ServiceActorVersionChain } from './ServiceActorVersionChain/ServiceActorVersionChain.js';
 export { SystemRepo } from './SystemRepo/SystemRepo.js';
 export { FixtureRepo } from './FixtureRepo/FixtureRepo.js';
 export { FixedDORepoFixture } from './makeFixedDORepo/test/FixedDORepoFixture.js';
-export { VersionedDORepoFixture } from './makeVersionedDORepo/test/VersionedDORepoFixture.js';
+export { MigratableDORepoFixture } from './makeMigratableDORepo/test/MigratableDORepoFixture.js';
 
 // eslint-disable-next-line no-default-export
 export default {

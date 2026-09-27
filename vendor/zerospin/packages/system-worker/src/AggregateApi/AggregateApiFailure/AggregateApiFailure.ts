@@ -4,7 +4,7 @@ import { Effect } from 'effect';
 
 import type { AggregateApi } from '../AggregateApi.js';
 
-import { authenticate } from './authenticate/authenticate.js';
+import { admit } from './admit/admit.js';
 
 export class AggregateApiFailure extends RpcTarget {
   readonly #error: IAnyError;
@@ -12,7 +12,7 @@ export class AggregateApiFailure extends RpcTarget {
     super();
     this.#error = error;
   }
-  async authenticate(_request: Parameters<AggregateApi['authenticate']>[0]) {
-    return Effect.runPromise(authenticate({ error: this.#error }));
+  async admit(_request: Parameters<AggregateApi['admit']>[0]) {
+    return Effect.runPromise(admit({ error: this.#error }));
   }
 }

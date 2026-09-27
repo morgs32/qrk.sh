@@ -4,7 +4,11 @@ import {
   createMatcher,
   type MatchParams,
 } from '@remix-run/route-pattern/match';
-import { ZerospinError } from '@zerospin/error';
+import {
+  makeZerospinError,
+  prettyUnknownFailure,
+  type IZerospinError,
+} from '@zerospin/error';
 import { Effect } from 'effect';
 
 import {
@@ -20,14 +24,14 @@ export type IRepoNameUtils<PATTERN extends string> = {
     >;
   }) => Effect.Effect<
     string,
-    ZerospinError<typeof REPO_KEY_ENCODE_FAILED>,
+    IZerospinError<typeof REPO_KEY_ENCODE_FAILED>,
     never
   >;
   parseName: (
     name: string,
   ) => Effect.Effect<
     MatchParams<PATTERN>,
-    ZerospinError<typeof REPO_KEY_DECODE_FAILED>,
+    IZerospinError<typeof REPO_KEY_DECODE_FAILED>,
     never
   >;
 };
@@ -63,9 +67,9 @@ export function makeRepoNameUtils<const PATTERN extends string>(props: {
     return yield* Effect.try({
       try: () => `${prefix}${createHref<string>(namePattern, key).slice(1)}`,
       catch: cause =>
-        new ZerospinError({
+        makeZerospinError({
           code: REPO_KEY_ENCODE_FAILED,
-          cause: ZerospinError.prettyUnknownFailure(cause),
+          cause: prettyUnknownFailure(cause),
         }),
     });
   });
@@ -73,10 +77,12 @@ export function makeRepoNameUtils<const PATTERN extends string>(props: {
   // 3 — fail before attempting to match the route
   const parseName = Effect.fn('parseName')(function* (name: string) {
     if (!name.startsWith(prefix)) {
-      return yield* new ZerospinError({
-        code: REPO_KEY_DECODE_FAILED,
-        cause: `Durable Object name "${name}" does not start with exact prefix "${prefix}"`,
-      });
+      return yield* Effect.fail(
+        makeZerospinError({
+          code: REPO_KEY_DECODE_FAILED,
+          cause: `Durable Object name "${name}" does not start with exact prefix "${prefix}"`,
+        }),
+      );
     }
 
     // 4 — use a synthetic URL solely for route-pattern parsing
@@ -84,18 +90,20 @@ export function makeRepoNameUtils<const PATTERN extends string>(props: {
     const match = yield* Effect.try({
       try: () => matcher.match(`http://do.invalid/${routeName}`),
       catch: cause =>
-        new ZerospinError({
+        makeZerospinError({
           code: REPO_KEY_DECODE_FAILED,
-          cause: ZerospinError.prettyUnknownFailure(cause),
+          cause: prettyUnknownFailure(cause),
         }),
     });
 
-    // 5 — return REPO_KEY_DECODE_FAILED instead of partial key fragments
+    // 5 — return repoKeyDecodeFailed instead of partial key fragments
     if (match === null) {
-      return yield* new ZerospinError({
-        code: REPO_KEY_DECODE_FAILED,
-        cause: `Durable Object name "${name}" does not match namePattern after prefix "${prefix}"`,
-      });
+      return yield* Effect.fail(
+        makeZerospinError({
+          code: REPO_KEY_DECODE_FAILED,
+          cause: `Durable Object name "${name}" does not match namePattern after prefix "${prefix}"`,
+        }),
+      );
     }
 
     // 6 — expose the route matcher parameters after both checks

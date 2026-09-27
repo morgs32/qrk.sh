@@ -1,6 +1,6 @@
 import { expect } from 'vitest';
 
-import { toMatchProcedure, type ProcedureCall } from './toMatchProcedure.ts';
+import { toMatchProcedure, type IProcedureCall } from './toMatchProcedure/toMatchProcedure.ts';
 
 expect.extend({
   toMatchProcedure,
@@ -9,10 +9,10 @@ expect.extend({
 declare module 'vitest' {
   // oxlint-disable-next-line typescript-eslint(consistent-type-definitions) -- module augmentation requires interface
   interface Assertion {
-    toMatchProcedure(expected: ProcedureCall[]): void;
+    toMatchProcedure(expected: IProcedureCall[]): void;
   }
   // oxlint-disable-next-line typescript-eslint(consistent-type-definitions) -- module augmentation requires interface
   interface AsymmetricMatchers {
-    toMatchProcedure(expected: ProcedureCall[]): void;
+    toMatchProcedure(expected: IProcedureCall[]): void;
   }
 }

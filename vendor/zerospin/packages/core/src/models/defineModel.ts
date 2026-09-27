@@ -7,6 +7,7 @@ const replicaMetadata = new WeakMap<
   Readonly<{
     sourceModel: IModel;
     serviceName: string;
+    serviceVersion: string;
   }>
 >();
 
@@ -19,18 +20,23 @@ export class Model {
     return replicaMetadata.get(this)?.serviceName;
   }
 
+  get serviceVersion(): string | undefined {
+    return replicaMetadata.get(this)?.serviceVersion;
+  }
+
   static markReplica(
     model: IModel,
     props: {
       sourceModel: IModel;
       serviceName: string;
+      serviceVersion: string;
     },
   ): IModel {
-    const { sourceModel, serviceName } = props;
+    const { sourceModel, serviceName, serviceVersion } = props;
     if (replicaMetadata.has(model)) {
       throw new Error('Model is already marked as a replica');
     }
-    replicaMetadata.set(model, { sourceModel, serviceName });
+    replicaMetadata.set(model, { sourceModel, serviceName, serviceVersion });
     return model;
   }
 

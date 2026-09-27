@@ -1,0 +1,53 @@
+:root {
+  font-family: system-ui, sans-serif;
+  color: #172b35;
+  background: #f6f4ed;
+}
+body {
+  margin: 0;
+}
+main {
+  max-width: 520px;
+  margin: 10vh auto;
+  padding: 24px;
+}
+h1 {
+  font-size: 3.5rem;
+  margin: 8px 0;
+  letter-spacing: -0.06em;
+}
+p {
+  line-height: 1.6;
+}
+.eyebrow {
+  font-size: 0.75rem;
+  letter-spacing: 0.14em;
+}
+button {
+  font: inherit;
+  border: 1px solid #172b35;
+  border-radius: 8px;
+  padding: 12px 20px;
+  background: #fff;
+  color: inherit;
+  cursor: pointer;
+}
+.board {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  max-width: 360px;
+  margin: 24px 0;
+}
+.board button {
+  aspect-ratio: 1;
+  font-size: 3rem;
+  padding: 0;
+}
+.board button:disabled {
+  cursor: default;
+  color: #172b35;
+}
+.board button:not(:disabled):hover {
+  background: #e3ece6;
+}

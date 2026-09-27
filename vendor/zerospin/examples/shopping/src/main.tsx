@@ -9,6 +9,7 @@ import { createBrowserRouter, RouterProvider } from 'react-router';
 
 import { AppUpdateDialog } from '@/components/AppUpdateDialog';
 import { AuthenticatedRoute } from '@/routes/AuthenticatedRoute';
+import { FulfillmentRoute } from '@/routes/FulfillmentRoute';
 import { ProductRoute } from '@/routes/ProductRoute.client';
 import { RootRoute } from '@/routes/RootRoute';
 import { ShoppingRoute } from '@/routes/ShoppingRoute';
@@ -40,6 +41,7 @@ const router = createBrowserRouter([
             path: '/',
             element: <ShoppingRoute />,
           },
+          { path: '/fulfillment', element: <FulfillmentRoute /> },
           {
             path: '/products/:productId',
             element: <ProductRoute />,

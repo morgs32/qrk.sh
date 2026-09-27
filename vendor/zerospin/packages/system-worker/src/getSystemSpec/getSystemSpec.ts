@@ -1,4 +1,4 @@
-import { makeSystemSpec } from '@zerospin/core/system/makeSystemSpec';
+import { makeSystemSpec } from '@zerospin/core/system/make/makeSystemSpec';
 import { SystemSpecSchema } from '@zerospin/core/system/SystemSpecSchema';
 import type { ISystemSpec } from '@zerospin/core/system/types';
 import { mapParseError, type IAnyError } from '@zerospin/error';

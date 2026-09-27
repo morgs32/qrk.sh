@@ -70,8 +70,8 @@ declare class ZerospinError {
   static catch(props: { code: string }): (error: unknown) => ZerospinError;
 }
 
-declare function encodeRpc<A>(effect: unknown): unknown;
-declare function decodeRpc<A, E>(effect: unknown): unknown;
+declare function settleResult<A>(effect: unknown): unknown;
+declare function readResult<A, E>(effect: unknown): unknown;
 declare function makeAsync<A>(
   fn: () => Promise<A>,
   onError?: (error: unknown) => ZerospinError,

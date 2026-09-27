@@ -1,4 +1,4 @@
-import { ZerospinError } from '@zerospin/error';
+import { makeZerospinError, ZerospinErrorSchema } from '@zerospin/error';
 import {
   makeRpcHandler,
   makeTraceableRpcTarget,
@@ -36,10 +36,12 @@ export class AccountBlockRepo extends DurableObject {
           yield* Effect.promise(() =>
             storage.delete('failNextAccountBlockPublish'),
           );
-          return yield* new ZerospinError({
-            code: 'mock-account-block-publish-failure',
-            message: 'mock account block publish failure',
-          }).pipe(Effect.mapError(Schema.encodeSync(ZerospinError.schema)));
+          return yield* Effect.fail(
+            makeZerospinError({
+              code: 'mock-account-block-publish-failure',
+              message: 'mock account block publish failure',
+            }),
+          ).pipe(Effect.mapError(Schema.encodeSync(ZerospinErrorSchema)));
         }
 
         const span = yield* Effect.currentSpan.pipe(Effect.orDie);

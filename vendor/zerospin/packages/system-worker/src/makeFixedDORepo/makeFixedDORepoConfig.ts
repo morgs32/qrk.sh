@@ -37,7 +37,7 @@ export function makeFixedDORepoConfig<
   abbreviation: string | undefined;
   repoType?: IRepoType;
   namePattern: RoutePattern<PATTERN>;
-  managedRuntime: ManagedRuntime.ManagedRuntime<SERVICES, never>;
+  managedRuntime: ManagedRuntime.ManagedRuntime<SERVICES, IAnyError>;
   dbConfig:
     | CONFIG
     | ((props: {

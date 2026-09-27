@@ -6,11 +6,11 @@
 export class AggregateChain {
   /**
    * Secret-key finalization path: SystemApi → AggregateChain →
-   * VersionedAggregateRepo; its results outbox publishes to VAC.
+   * AggregateVersionRepo; its results outbox publishes to VAC.
    */
   async executeAggregateCommand(props: { command: unknown }) {
     return managedRuntime.runPromise(
-      executeAggregateCommand(props).pipe(encodeRpc),
+      executeAggregateCommand(props).pipe(settleResult),
     );
   }
 }
@@ -18,7 +18,7 @@ export class AggregateChain {
 declare const managedRuntime: {
   runPromise: (effect: unknown) => Promise<unknown>;
 };
-declare const encodeRpc: (effect: unknown) => unknown;
+declare const settleResult: (effect: unknown) => unknown;
 declare const executeAggregateCommand: (props: unknown) => {
   pipe(next: unknown): unknown;
 };

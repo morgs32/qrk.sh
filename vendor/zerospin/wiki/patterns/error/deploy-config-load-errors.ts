@@ -1,3 +1,4 @@
+import { makeZerospinError, prettyUnknownFailure } from '@zerospin/error';
 import { Effect } from 'effect';
 
 /**
@@ -9,20 +10,15 @@ import { Effect } from 'effect';
 export const loadZerospinConfigFn = Effect.fn('loadZerospinConfigFn')(
   function* () {
     return yield* importProjectConfig().pipe(
-      Effect.catch(
-        (base: unknown) =>
-          new ZerospinError({
-            code: 'deploy-invalid-config',
-            message: 'Failed to load zerospin.config.ts.',
-            cause: ZerospinError.prettyUnknownFailure(base),
-          }),
+      Effect.catch((base: unknown) =>
+        makeZerospinError({
+          code: 'deploy-invalid-config',
+          message: 'Failed to load zerospin.config.ts.',
+          cause: prettyUnknownFailure(base),
+        }),
       ),
     );
   },
 );
 
 declare function importProjectConfig(): Effect.Effect<unknown, unknown, never>;
-declare class ZerospinError {
-  constructor(props: { code: string; message: string; cause?: string | null });
-  static prettyUnknownFailure(error: unknown): string;
-}

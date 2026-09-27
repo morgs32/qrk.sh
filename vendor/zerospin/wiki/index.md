@@ -28,9 +28,9 @@ Organised by category. Pages are `[[wiki-links]]` without the `.md` extension.
 
 ### Browser
 
-- [[architecture/browser/Authentication|Direct Exact Frontend Authentication]] — direct Gateway authentication, owner authorization, and aggregate/service child capability surfaces
-- [[architecture/browser/FrontendWebSocket]] — domain-specific selected-command routes, exact opaque one-use tickets, and contiguous replay
-- [[architecture/browser/IndexedDbBackupCoordination]] — stable SharedWorker, revocable per-key capabilities, atomic IndexedDB backup, and in-place frontend handoff
+- [[architecture/browser/Authentication|Direct Exact Session Authentication]] — direct Gateway authentication, owner authorization, and aggregate/service child capability surfaces
+- [[architecture/browser/SessionWebSocket]] — domain-specific actor-command routes, exact opaque one-use tickets, and contiguous replay
+- [[architecture/browser/IndexedDbBackupCoordination]] — stable SharedWorker, revocable per-key capabilities, atomic IndexedDB backup, and in-place session handoff
 - [[architecture/browser/PushSequence]] — local aggregate occurrence, live-socket admission receipts, and selected completion
 - [[architecture/browser/bootstrapBrowserSession]] — main-thread recovery, shared IndexedDB backup, renewable execution identity, and scoped ownership
 
@@ -50,4 +50,4 @@ _No pages yet._
 
 _No pages yet. One page is created per significant source file or module as the codebase grows._
 
-- [[architecture/server/serviceExecution]] — versioned service execution, cutover ranges, replication adaptation, and frontend delivery
+- [[architecture/server/serviceExecution]] — versioned service execution, cutover ranges, replication adaptation, and session delivery

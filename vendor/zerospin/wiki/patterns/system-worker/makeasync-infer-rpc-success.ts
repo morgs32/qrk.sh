@@ -17,11 +17,11 @@ export const readNextCommands = Effect.fn('Repo.readNextCommands')(
       props.queue.getPage({
         afterIndex: props.afterAggregateIndex ?? 0,
       }),
-    ).pipe(Effect.flatMap(decodeRpc));
+    ).pipe(Effect.flatMap(readResult));
   },
 );
 
 declare function makeAsync<A>(
   fn: () => PromiseLike<A>,
 ): Effect.Effect<A, unknown, unknown>;
-declare function decodeRpc<A>(encoded: A): Effect.Effect<A, unknown, unknown>;
+declare function readResult<A>(encoded: A): Effect.Effect<A, unknown, unknown>;

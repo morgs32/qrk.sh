@@ -17,6 +17,10 @@ const resolveAlias = {
   conditions: ['node'],
   alias: [
     {
+      find: /^@zerospin\/browser\/(.+)$/,
+      replacement: `${path.join(__dirname, '../browser/src')}/$1`,
+    },
+    {
       find: /^@zerospin\/core\/(.+)$/,
       replacement: `${path.join(__dirname, '../core/src')}/$1`,
     },

@@ -10,7 +10,7 @@
     "src/fixtures/system.ts",
     "worker-configuration.d.ts",
     "env-types.d.ts",
-    "src/inMemoryFrontendGuard.wasm.d.ts"
+    "src/inMemorySessionGuard.wasm.d.ts"
   ],
   "exclude": []
 }

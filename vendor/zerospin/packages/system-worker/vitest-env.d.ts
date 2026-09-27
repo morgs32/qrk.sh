@@ -7,7 +7,7 @@ declare namespace Cloudflare {
       import('./src/TestWorker').FixedDORepoFixture
     >;
     VERSIONED_DO_REPO_FIXTURE: DurableObjectNamespace<
-      import('./src/TestWorker').VersionedDORepoFixture
+      import('./src/TestWorker').MigratableDORepoFixture
     >;
   }
 }

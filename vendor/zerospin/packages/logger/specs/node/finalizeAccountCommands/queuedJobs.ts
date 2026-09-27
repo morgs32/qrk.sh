@@ -1,10 +1,10 @@
-import type { IAnyErrorJson } from '@zerospin/error';
+import type { IAnyError } from '@zerospin/error';
 import type { IRpcEnvelope } from '@zerospin/logger';
 
 export const queuedJobs: Array<{
   name: 'drain' | 'alarm';
   delayMs: number;
-  run: () => Promise<IRpcEnvelope<void, IAnyErrorJson>>;
+  run: () => Promise<IRpcEnvelope<void, IAnyError>>;
 }> = [];
 
 export const harness = {

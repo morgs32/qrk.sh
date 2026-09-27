@@ -1,0 +1,37 @@
+{
+  "name": "tic-tac-toe",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 3020",
+    "build": "vite build",
+    "zerospin:dev": "zerospin dev --port 3006",
+    "ts": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "lint": "oxlint src --format stylish"
+  },
+  "dependencies": {
+    "@remix-run/route-pattern": "^0.22.1",
+    "@zerospin/browser": "workspace:*",
+    "@zerospin/core": "workspace:*",
+    "@zerospin/error": "workspace:*",
+    "@zerospin/react": "workspace:*",
+    "@zerospin/schema": "workspace:*",
+    "@zerospin/sdk": "workspace:*",
+    "drizzle-orm": "1.0.0-rc.4",
+    "effect": "4.0.0-rc.111",
+    "react": "19.2.7",
+    "react-dom": "19.2.7"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.2",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
+    "@zerospin/backup-worker": "workspace:*",
+    "@zerospin/cli": "workspace:*",
+    "vite": "^8.0.11",
+    "vitest": "^4.1.5"
+  }
+}

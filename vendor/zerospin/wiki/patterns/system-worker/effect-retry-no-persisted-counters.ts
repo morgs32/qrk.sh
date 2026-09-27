@@ -1,3 +1,8 @@
+import {
+  encodeError,
+  makeZerospinError,
+  type PublicFailureSchema,
+} from '@zerospin/error';
 import { Effect, Result } from 'effect';
 
 /**
@@ -5,7 +10,7 @@ import { Effect, Result } from 'effect';
  * Persist domain completion and the latest diagnostic, never retry progress.
  *
  * @bad Add `deliveryAttempts`, `nextRetryAt`, `failedAt`, or `succeededAt` columns for ordinary delivery retry bookkeeping.
- * @bad Treat `lastDeliveryError` as retry progress; it is retained operator-visible diagnostic state.
+ * @bad Treat `lastDeliveryFailure` as retry progress; it is retained operator-visible diagnostic state.
  * @bad Decode persisted payloads or run local validation inside the retry schedule.
  */
 export const drainDeliveryOutbox = Effect.fn('LedgerRepo.drainDeliveryOutbox')(
@@ -24,8 +29,11 @@ export const drainDeliveryOutbox = Effect.fn('LedgerRepo.drainDeliveryOutbox')(
     outbox: {
       readFirstPending(): { id: string; payload: unknown } | undefined;
       hasPending(): boolean;
-      markDelivered(props: { deliveredAt: Date; id: string }): void;
-      recordDiagnostic(props: { failure: string; id: string }): void;
+      markAcknowledged(props: { acknowledgedAt: Date; id: string }): void;
+      recordDiagnostic(props: {
+        failure: typeof PublicFailureSchema.Type;
+        id: string;
+      }): void;
     };
     targetRepo: {
       handle(payload: unknown): PromiseLike<unknown>;
@@ -46,20 +54,25 @@ export const drainDeliveryOutbox = Effect.fn('LedgerRepo.drainDeliveryOutbox')(
               const delivered = yield* props.deliveryQueue
                 .retry(
                   makeAsync(() => props.targetRepo.handle(payload)).pipe(
-                    Effect.flatMap(decodeRpc),
+                    Effect.flatMap(readResult),
                   ),
                 )
                 .pipe(Effect.result);
               if (Result.isFailure(delivered)) {
                 props.outbox.recordDiagnostic({
                   id: pending.id,
-                  failure: delivered.failure.message,
+                  failure: yield* encodeError(
+                    makeZerospinError({
+                      code: 'delivery-failed',
+                      message: delivered.failure.message,
+                    }),
+                  ),
                 });
                 return;
               }
-              props.outbox.markDelivered({
+              props.outbox.markAcknowledged({
                 id: pending.id,
-                deliveredAt: new Date(),
+                acknowledgedAt: new Date(),
               });
             }),
           hasPending: () => Effect.sync(() => props.outbox.hasPending()),
@@ -75,4 +88,4 @@ declare function decodePersistedPayload(
 declare function makeAsync<A>(
   fn: () => PromiseLike<A>,
 ): Effect.Effect<A, Error>;
-declare function decodeRpc<A>(encoded: A): Effect.Effect<A, Error>;
+declare function readResult<A>(encoded: A): Effect.Effect<A, Error>;

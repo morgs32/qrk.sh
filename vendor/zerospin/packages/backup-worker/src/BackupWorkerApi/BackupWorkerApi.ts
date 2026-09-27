@@ -1,5 +1,4 @@
-import { encodeRpc } from '@zerospin/core/utils/encodeRpc';
-import type { IAnyErrorJson, IEncodedResult } from '@zerospin/error';
+import { makeRpcEnvelope } from '@zerospin/logger';
 import { RpcTarget, type RpcStub } from 'capnweb';
 import { Effect, type Semaphore } from 'effect';
 import type * as SQLite from 'wa-sqlite';
@@ -56,25 +55,17 @@ export class BackupWorkerApi extends RpcTarget {
     super();
   }
 
-  async ready(): Promise<IEncodedResult<void, IAnyErrorJson>> {
-    return Effect.runPromise(encodeRpc(ready({ api: this })));
+  async ready() {
+    return Effect.runPromise(makeRpcEnvelope(ready({ api: this })));
   }
 
   async acquireDb(props: {
     backupKey: string;
     onRevoked: RpcStub<() => void>;
-  }): Promise<
-    IEncodedResult<
-      | { status: 'current'; db: RpcStub<BackupDbApi> }
-      | {
-          status: 'acquired';
-          db: RpcStub<BackupDbApi>;
-          snapshot: Uint8Array | null;
-        },
-      IAnyErrorJson
-    >
-  > {
-    return Effect.runPromise(encodeRpc(acquireDb({ api: this, ...props })));
+  }) {
+    return Effect.runPromise(
+      makeRpcEnvelope(acquireDb({ api: this, ...props })),
+    );
   }
 
   [Symbol.dispose](): void {

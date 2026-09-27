@@ -1,7 +1,8 @@
-import { Exit, Option, Tracer, type Context } from 'effect';
+import { Cause, Exit, Option, Tracer, type Context } from 'effect';
 
 import { makeSpanId, makeSpanLinkId, makeTraceId } from './makeTelemetryIds.ts';
 import type { ITelemetryCollector } from './TelemetryCollector.ts';
+import { telemetryValue } from './telemetryValue.ts';
 import type {
   ISpanId,
   ISpanLinkKind,
@@ -53,6 +54,10 @@ class CollectorSpan implements Tracer.Span {
 
   end(endTime: bigint, exit: Exit.Exit<unknown, unknown>): void {
     this.status = { _tag: 'Ended', startTime: this.startTime, endTime, exit };
+    // Preserve Effect's call trace before an RPC boundary extracts the failure value.
+    if (Exit.isFailure(exit)) {
+      this.attributes.set('error.cause', Cause.pretty(exit.cause));
+    }
     const spanRecord: ISpanRecord = {
       spanId: this.spanId,
       traceId: this.traceId,
@@ -65,7 +70,14 @@ class CollectorSpan implements Tracer.Span {
       startedAt: nanosToMillis(this.startTime),
       endedAt: nanosToMillis(endTime),
       attributes:
-        this.attributes.size > 0 ? Object.fromEntries(this.attributes) : null,
+        this.attributes.size > 0
+          ? Object.fromEntries(
+              [...this.attributes].map(([key, value]) => [
+                key,
+                telemetryValue(value),
+              ]),
+            )
+          : null,
     };
     this.collector.addSpan(spanRecord);
 

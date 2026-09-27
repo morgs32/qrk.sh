@@ -9,13 +9,13 @@ import type {
   IRepoRegistration,
   ISystemSpec,
 } from '@zerospin/core/system/types';
-import { mapParseError, ZerospinError } from '@zerospin/error';
-import { makeEffectSchema, type IAnyDrizzleSchema } from '@zerospin/schema';
+import { makeZerospinError, mapParseError } from '@zerospin/error';
+import type { IAnyDrizzleSchema } from '@zerospin/schema';
 import { and, eq, type AnyColumn } from 'drizzle-orm';
 import { Effect, Schema } from 'effect';
 
 import { assertAcceptedSpec } from '../assertAcceptedSpec/assertAcceptedSpec.js';
-import { systemRepoDbConfig, systemRepoTables } from '../systemRepoDbConfig.js';
+import { systemRepoDbConfig } from '../systemRepoDbConfig.js';
 
 /*
  * Repo startup records its physical instance and table names in SystemRepo.
@@ -35,9 +35,9 @@ export const registerRepo = Effect.fn('SystemRepo.registerRepo')(
     registration: IRepoRegistration;
     spec: ISystemSpec;
   }) {
-    const { db, registration, repoTable } = props;
+    const { db, registration, repoTable, spec: inputSpec } = props;
     const spec = yield* Schema.decodeUnknownEffect(SystemSpecSchema)(
-      props.spec,
+      inputSpec,
       { onExcessProperty: 'error' },
     ).pipe(
       mapParseError({
@@ -54,8 +54,8 @@ export const registerRepo = Effect.fn('SystemRepo.registerRepo')(
           Object.values(versions),
         ),
         table: systemRepoDbConfig.schema.lockedAggregateVersions,
-        codec: makeEffectSchema(systemRepoTables.lockedAggregateVersions.shape)
-          .fields.spec,
+        codec:
+          systemRepoDbConfig.tables.lockedAggregateVersions.codec.fields.spec,
       },
       {
         kind: 'service',
@@ -63,8 +63,8 @@ export const registerRepo = Effect.fn('SystemRepo.registerRepo')(
           Object.values(versions),
         ),
         table: systemRepoDbConfig.schema.lockedServiceVersions,
-        codec: makeEffectSchema(systemRepoTables.lockedServiceVersions.shape)
-          .fields.spec,
+        codec:
+          systemRepoDbConfig.tables.lockedServiceVersions.codec.fields.spec,
       },
     ]) {
       for (const definition of definitions) {
@@ -79,10 +79,12 @@ export const registerRepo = Effect.fn('SystemRepo.registerRepo')(
           )
           .get();
         if (!lock) {
-          return yield* new ZerospinError({
-            code: `${kind}-spec-not-accepted`,
-            message: `The ${kind} ${definition.name}@${definition.version} has no accepted spec`,
-          });
+          return yield* Effect.fail(
+            makeZerospinError({
+              code: `${kind}-spec-not-accepted`,
+              message: `The ${kind} ${definition.name}@${definition.version} has no accepted spec`,
+            }),
+          );
         }
         const accepted = yield* Schema.decodeUnknownEffect(codec)(
           lock.spec,

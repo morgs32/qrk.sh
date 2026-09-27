@@ -10,8 +10,6 @@ import type { ITelemetryBatch } from '@zerospin/logger';
 import { makeAbbreviationIdSchema } from '@zerospin/schema';
 import { Effect, Schema } from 'effect';
 
-import { SystemLogRepoDb } from '../systemLogRepoDbConfig.js';
-
 import { appendTelemetryBatchTx } from './appendTelemetryBatchTx.js';
 
 /*
@@ -47,7 +45,5 @@ export const appendTelemetryBatch = Effect.fn(
   );
 
   // 2 — commit incoming records and trace cleanup together
-  yield* appendTelemetryBatchTx({ batch, decodedSystemId }).pipe(
-    Effect.provideService(SystemLogRepoDb, db),
-  );
+  yield* appendTelemetryBatchTx(db, { batch, decodedSystemId });
 });

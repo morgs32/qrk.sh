@@ -1,9 +1,9 @@
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
-import { makeAsync } from '@zerospin/core/async/makeAsync';
-import { makeDbConfig } from '@zerospin/core/drizzle/makeDbConfig';
-import { provisionDb } from '@zerospin/core/drizzle/provisionDb';
-import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
-import { ZerospinError } from '@zerospin/error';
+import { makeAsync } from '@zerospin/core/async/make/makeAsync';
+import { makeDbConfig } from '@zerospin/core/drizzle/make/makeDbConfig/makeDbConfig';
+import { provisionDb } from '@zerospin/core/drizzle/provisionDb/provisionDb';
+import { readRpcEnvelope } from '@zerospin/core/utils/readRpcEnvelope';
+import { makeZerospinError, PublicFailureSchema } from '@zerospin/error';
 import { makeTable, primitives } from '@zerospin/schema';
 import { DurableObject } from 'cloudflare:workers';
 import { eq } from 'drizzle-orm';
@@ -26,8 +26,11 @@ const dbConfig = makeDbConfig({
       name: 'output',
       shape: {
         outboxIndex: primitives.integer({ primaryKey: true }),
-        deliveredAt: primitives.date({ nullable: true }),
-        lastDeliveryFailure: primitives.text({ nullable: true }),
+        acknowledgedAt: primitives.date({ nullable: true }),
+        lastDeliveryFailure: primitives.json({
+          schema: PublicFailureSchema,
+          nullable: true,
+        }),
         payload: primitives.text(),
       },
     }),
@@ -89,10 +92,12 @@ export class OutboxReceiverFixture
 
           // 4 — return response-lost after the transaction has already committed
           if (this.ctx.storage.kv.get('loseResponse')) {
-            return yield* new ZerospinError({
-              code: 'response-lost',
-              message: 'Committed receiver page before response loss',
-            });
+            return yield* Effect.fail(
+              makeZerospinError({
+                code: 'response-lost',
+                message: 'Committed receiver page before response loss',
+              }),
+            );
           }
         }),
     ),
@@ -152,6 +157,7 @@ export class OutboxSenderFixture
   });
   readonly #alarmRegistry = makeAlarmRegistry({ storage: this.ctx.storage });
   readonly #output = makeOutboxQueue({
+    indexColumnName: 'outboxIndex',
     name: 'output',
     db: this.#db,
     outboxTable: dbConfig.schema.output,
@@ -163,7 +169,7 @@ export class OutboxSenderFixture
           this.ctx.id.toString(),
         ).outputSubscriber;
         return receiver.receive(rows);
-      }).pipe(Effect.flatMap(decodeRpc)),
+      }).pipe(Effect.flatMap(envelope => readRpcEnvelope(envelope))),
   });
   /*
    * Exposes the sender outbox so fixture tests can exercise its local drain behavior.

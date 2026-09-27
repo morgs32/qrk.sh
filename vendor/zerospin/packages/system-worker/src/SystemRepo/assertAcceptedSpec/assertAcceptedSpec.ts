@@ -1,4 +1,4 @@
-import { mapParseError, ZerospinError } from '@zerospin/error';
+import { makeZerospinError, mapParseError } from '@zerospin/error';
 import { Effect, JsonPatch, Schema } from 'effect';
 
 /** Compare accepted and incoming definitions and report only their changes. */
@@ -25,10 +25,12 @@ export const assertAcceptedSpec = Effect.fn('SystemRepo.assertAcceptedSpec')(
     );
     const changes = JsonPatch.get(accepted, incoming);
     if (changes.length === 0) return;
-    return yield* new ZerospinError({
-      code: `${props.kind}-spec-mismatch`,
-      message: `The ${props.kind} ${props.name}@${props.version} differs from its accepted spec\n${JSON.stringify(changes, null, 2)}`,
-      extra: { changes },
-    });
+    return yield* Effect.fail(
+      makeZerospinError({
+        code: `${props.kind}-spec-mismatch`,
+        message: `The ${props.kind} ${props.name}@${props.version} differs from its accepted spec\n${JSON.stringify(changes, null, 2)}`,
+        extra: { changes },
+      }),
+    );
   },
 );

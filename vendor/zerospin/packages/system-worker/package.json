@@ -48,47 +48,41 @@
       "import": "./src/SystemApi/SystemApiFailure/SystemApiFailure.ts",
       "default": "./src/SystemApi/SystemApiFailure/SystemApiFailure.ts"
     },
-    "./AggregateFrontendApi": {
-      "types": "./src/AggregateFrontendApi/AggregateFrontendApi.ts",
-      "workerd": "./src/AggregateFrontendApi/AggregateFrontendApi.ts",
-      "import": "./src/AggregateFrontendApi/AggregateFrontendApi.ts",
-      "default": "./src/AggregateFrontendApi/AggregateFrontendApi.ts"
+    "./AggregateSessionApi": {
+      "types": "./src/AggregateSessionApi/AggregateSessionApi.ts",
+      "workerd": "./src/AggregateSessionApi/AggregateSessionApi.ts",
+      "import": "./src/AggregateSessionApi/AggregateSessionApi.ts",
+      "default": "./src/AggregateSessionApi/AggregateSessionApi.ts"
     },
-    "./AggregateFrontendApi/AggregateFrontendApi": {
-      "types": "./src/AggregateFrontendApi/AggregateFrontendApi.ts",
-      "workerd": "./src/AggregateFrontendApi/AggregateFrontendApi.ts",
-      "import": "./src/AggregateFrontendApi/AggregateFrontendApi.ts",
-      "default": "./src/AggregateFrontendApi/AggregateFrontendApi.ts"
+    "./AggregateSessionApi/AggregateSessionApi": {
+      "types": "./src/AggregateSessionApi/AggregateSessionApi.ts",
+      "workerd": "./src/AggregateSessionApi/AggregateSessionApi.ts",
+      "import": "./src/AggregateSessionApi/AggregateSessionApi.ts",
+      "default": "./src/AggregateSessionApi/AggregateSessionApi.ts"
     },
-    "./AggregateFrontendApi/AggregateFrontendApiFailure": {
-      "types": "./src/AggregateFrontendApi/AggregateFrontendApiFailure/AggregateFrontendApiFailure.ts",
-      "workerd": "./src/AggregateFrontendApi/AggregateFrontendApiFailure/AggregateFrontendApiFailure.ts",
-      "import": "./src/AggregateFrontendApi/AggregateFrontendApiFailure/AggregateFrontendApiFailure.ts",
-      "default": "./src/AggregateFrontendApi/AggregateFrontendApiFailure/AggregateFrontendApiFailure.ts"
+    "./AggregateSessionApi/AggregateSessionApiFailure": {
+      "types": "./src/AggregateSessionApi/AggregateSessionApiFailure/AggregateSessionApiFailure.ts",
+      "workerd": "./src/AggregateSessionApi/AggregateSessionApiFailure/AggregateSessionApiFailure.ts",
+      "import": "./src/AggregateSessionApi/AggregateSessionApiFailure/AggregateSessionApiFailure.ts",
+      "default": "./src/AggregateSessionApi/AggregateSessionApiFailure/AggregateSessionApiFailure.ts"
     },
-    "./ServiceFrontendApi": {
-      "types": "./src/ServiceFrontendApi/ServiceFrontendApi.ts",
-      "workerd": "./src/ServiceFrontendApi/ServiceFrontendApi.ts",
-      "import": "./src/ServiceFrontendApi/ServiceFrontendApi.ts",
-      "default": "./src/ServiceFrontendApi/ServiceFrontendApi.ts"
+    "./ServiceSessionApi": {
+      "types": "./src/ServiceSessionApi/ServiceSessionApi.ts",
+      "workerd": "./src/ServiceSessionApi/ServiceSessionApi.ts",
+      "import": "./src/ServiceSessionApi/ServiceSessionApi.ts",
+      "default": "./src/ServiceSessionApi/ServiceSessionApi.ts"
     },
-    "./ServiceFrontendApi/ServiceFrontendApi": {
-      "types": "./src/ServiceFrontendApi/ServiceFrontendApi.ts",
-      "workerd": "./src/ServiceFrontendApi/ServiceFrontendApi.ts",
-      "import": "./src/ServiceFrontendApi/ServiceFrontendApi.ts",
-      "default": "./src/ServiceFrontendApi/ServiceFrontendApi.ts"
+    "./ServiceSessionApi/ServiceSessionApi": {
+      "types": "./src/ServiceSessionApi/ServiceSessionApi.ts",
+      "workerd": "./src/ServiceSessionApi/ServiceSessionApi.ts",
+      "import": "./src/ServiceSessionApi/ServiceSessionApi.ts",
+      "default": "./src/ServiceSessionApi/ServiceSessionApi.ts"
     },
-    "./ServiceFrontendApi/ServiceFrontendApiFailure": {
-      "types": "./src/ServiceFrontendApi/ServiceFrontendApiFailure/ServiceFrontendApiFailure.ts",
-      "workerd": "./src/ServiceFrontendApi/ServiceFrontendApiFailure/ServiceFrontendApiFailure.ts",
-      "import": "./src/ServiceFrontendApi/ServiceFrontendApiFailure/ServiceFrontendApiFailure.ts",
-      "default": "./src/ServiceFrontendApi/ServiceFrontendApiFailure/ServiceFrontendApiFailure.ts"
-    },
-    "./makeSystemRuntime": {
-      "types": "./src/makeSystemRuntime.ts",
-      "workerd": "./src/makeSystemRuntime.ts",
-      "import": "./src/makeSystemRuntime.ts",
-      "default": "./src/makeSystemRuntime.ts"
+    "./ServiceSessionApi/ServiceSessionApiFailure": {
+      "types": "./src/ServiceSessionApi/ServiceSessionApiFailure/ServiceSessionApiFailure.ts",
+      "workerd": "./src/ServiceSessionApi/ServiceSessionApiFailure/ServiceSessionApiFailure.ts",
+      "import": "./src/ServiceSessionApi/ServiceSessionApiFailure/ServiceSessionApiFailure.ts",
+      "default": "./src/ServiceSessionApi/ServiceSessionApiFailure/ServiceSessionApiFailure.ts"
     },
     "./makeFixedDORepo/makeFixedDORepo": {
       "types": "./src/makeFixedDORepo/makeFixedDORepo.ts",
@@ -102,23 +96,23 @@
       "import": "./src/makeFixedDORepo/makeFixedDORepoConfig.ts",
       "default": "./src/makeFixedDORepo/makeFixedDORepoConfig.ts"
     },
-    "./makeVersionedDORepo/makeVersionedDORepo": {
-      "types": "./src/makeVersionedDORepo/makeVersionedDORepo.ts",
-      "workerd": "./src/makeVersionedDORepo/makeVersionedDORepo.ts",
-      "import": "./src/makeVersionedDORepo/makeVersionedDORepo.ts",
-      "default": "./src/makeVersionedDORepo/makeVersionedDORepo.ts"
+    "./makeMigratableDORepo/makeMigratableDORepo": {
+      "types": "./src/makeMigratableDORepo/makeMigratableDORepo.ts",
+      "workerd": "./src/makeMigratableDORepo/makeMigratableDORepo.ts",
+      "import": "./src/makeMigratableDORepo/makeMigratableDORepo.ts",
+      "default": "./src/makeMigratableDORepo/makeMigratableDORepo.ts"
     },
-    "./makeVersionedDORepo/makeVersionedDORepoConfig": {
-      "types": "./src/makeVersionedDORepo/makeVersionedDORepoConfig.ts",
-      "workerd": "./src/makeVersionedDORepo/makeVersionedDORepoConfig.ts",
-      "import": "./src/makeVersionedDORepo/makeVersionedDORepoConfig.ts",
-      "default": "./src/makeVersionedDORepo/makeVersionedDORepoConfig.ts"
+    "./makeMigratableDORepo/makeMigratableDORepoConfig": {
+      "types": "./src/makeMigratableDORepo/makeMigratableDORepoConfig.ts",
+      "workerd": "./src/makeMigratableDORepo/makeMigratableDORepoConfig.ts",
+      "import": "./src/makeMigratableDORepo/makeMigratableDORepoConfig.ts",
+      "default": "./src/makeMigratableDORepo/makeMigratableDORepoConfig.ts"
     }
   },
   "scripts": {
     "clean": "rimraf dist tsconfig.tsbuildinfo",
     "lib": "pnpm run clean && tsc -b tsconfig.json --emitDeclarationOnly",
-    "ts": "tsc -p tsconfig.etc.json --noEmit && tsc -p tsconfig.lookup.json --noEmit",
+    "ts": "tsc -p tsconfig.etc.json --noEmit",
     "test": "vitest run --config vitest.node.config.ts",
     "test:workerd": "vitest run --config vitest.workerd.config.ts",
     "test:watch": "vitest --config vitest.node.config.ts",
@@ -161,6 +155,9 @@
     "@types/sql.js": "^1.4.11",
     "@vitejs/plugin-react": "^6.0.1",
     "@vitest/coverage-v8": "^4.1.5",
+    "@zerospin/fulfillment": "workspace:*",
+    "@zerospin/purchase": "workspace:*",
+    "config": "workspace:*",
     "effect": "rc",
     "happy-dom": "^20.9.0",
     "jsdom": "^29.1.1",
@@ -168,7 +165,6 @@
     "react": "19.2.7",
     "react-dom": "19.2.7",
     "rimraf": "^6.1.3",
-    "config": "workspace:*",
     "tsx": "^4.21.0",
     "vite": "^8.0.11",
     "vitest": "^4.1.5",

@@ -1,6 +1,8 @@
-import type { IServiceFrontendController } from '@zerospin/core/frontendController/types';
-import type { IServiceSession } from '@zerospin/core/serviceSession/types';
-import type { ISessionId } from '@zerospin/core/session/types';
+import type { ISessionId } from '@zerospin/core/aggregateSession/types';
+import type {
+  IServiceSession,
+  IServiceSessionDefinition,
+} from '@zerospin/core/serviceSession/types';
 import { emptyTelemetryBatch } from '@zerospin/logger';
 import { createStore } from 'zustand/vanilla';
 
@@ -37,8 +39,8 @@ export const zerospinDevtoolsStore = createStore<IZerospinDevtoolsStoreState>()(
         nextAggregateSessionsById.delete(sessionId);
         return { aggregateSessionsById: nextAggregateSessionsById };
       }),
-    addServiceSession: <FRONTEND extends IServiceFrontendController>(entry: {
-      readonly session: IServiceSession<FRONTEND>;
+    addServiceSession: <DEFINITION extends IServiceSessionDefinition>(entry: {
+      readonly session: IServiceSession<DEFINITION>;
     }) =>
       set(state => {
         const { session } = entry;
@@ -52,22 +54,22 @@ export const zerospinDevtoolsStore = createStore<IZerospinDevtoolsStoreState>()(
 
         const devtoolsEntry: IDevtoolsServiceSessionEntry = {
           sessionId,
-          serviceName: session.frontend.serviceName,
-          frontendName: session.frontend.name,
-          modelNames: session.frontend.modelNames,
+          serviceName: session.definition.serviceName,
+          sessionName: session.definition.sessionName,
+          modelNames: session.definition.modelNames,
           subscribe: listener =>
             session.store.subscribe(() => {
               listener();
             }),
-          getAuthentication: () => session.store.getState().authentication,
+          getIdentity: () => session.store.getState().identity,
           getIsInitialized: () => session.store.getState().isInitialized,
           getSessionStatus: () => session.store.getState().sessionStatus,
+          getNodeState: () => session.store.getState().nodeState,
           getBackupState: () => session.store.getState().backupState,
           getTelemetry: () => session.store.getState().telemetry,
           getServiceIndex: () => session.store.getState().serviceIndex,
-          getServiceFrontendIndex: () => session.store.getState().serviceIndex,
           getModelAttributes: modelName =>
-            Object.entries(session.frontend.models).find(
+            Object.entries(session.definition.models).find(
               ([name]) => name === modelName,
             )?.[1].attributes,
           readModelRows: modelName => {

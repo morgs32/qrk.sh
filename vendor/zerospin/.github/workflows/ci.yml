@@ -79,8 +79,14 @@ jobs:
       - name: Check static runtime cutover
         run: nx run system-worker:static-cutover:check
 
+      - name: Check static source contracts
+        run: nx run-many -t static:check --all --nxBail
+
       - name: Test
         run: CI=true nx run-many -t test --all
+
+      - name: Test integrations
+        run: CI=true nx run-many -t test:integration --all --nxBail
 
       - name: Test workerd
         run: CI=true nx run-many -t test:workerd --all

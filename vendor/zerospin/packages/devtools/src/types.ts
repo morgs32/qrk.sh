@@ -1,7 +1,12 @@
-import type { IServiceFrontendController } from '@zerospin/core/frontendController/types';
-import type { IServiceSession } from '@zerospin/core/serviceSession/types';
-import type { IAggregateSession, ISessionId } from '@zerospin/core/session/types';
-import type { IAnyErrorJson, IEncodedResult } from '@zerospin/error';
+import type {
+  IAggregateSession,
+  ISessionId,
+} from '@zerospin/core/aggregateSession/types';
+import type {
+  IServiceSession,
+  IServiceSessionDefinition,
+} from '@zerospin/core/serviceSession/types';
+import type { IResult, IZerospinErrorJson } from '@zerospin/error';
 import type { ITelemetryBatch } from '@zerospin/logger';
 
 export type IModifierKey = 'Alt' | 'Control' | 'Meta' | 'Shift' | 'CtrlOrMeta';
@@ -51,19 +56,23 @@ export interface IProfilerProfile {
 
 export interface IDevtoolsAggregateSessionEntry {
   readonly session: IAggregateSession;
-  readonly getPushPaused?: () => Promise<IEncodedResult<boolean, IAnyErrorJson>>;
+  readonly history?: (page: {
+    afterNodeIndex: number;
+    limit: number;
+  }) => Promise<readonly Readonly<Record<string, unknown>>[]>;
+  readonly getPushPaused?: () => Promise<IResult<boolean, IZerospinErrorJson>>;
   readonly setPushPaused?: (props: {
     pushPaused: boolean;
-  }) => Promise<IEncodedResult<void, IAnyErrorJson>>;
+  }) => Promise<IResult<void, IZerospinErrorJson>>;
   readonly pushNow?: () => Promise<
-    IEncodedResult<
+    IResult<
       | Readonly<{ status: 'empty' }>
       | Readonly<{ status: 'pushed' }>
       | Readonly<{
           status: 'retry-exhausted';
-          failure: IAnyErrorJson;
+          failure: IZerospinErrorJson;
         }>,
-      IAnyErrorJson
+      IZerospinErrorJson
     >
   >;
 }
@@ -76,20 +85,22 @@ export interface IDevtoolsAggregateSessionEntry {
 export interface IDevtoolsServiceSessionEntry {
   readonly sessionId: ISessionId;
   readonly serviceName: string;
-  readonly frontendName: string;
+  readonly sessionName: string;
   readonly modelNames: readonly string[];
   readonly subscribe: (listener: () => void) => () => void;
-  readonly getAuthentication: () => Readonly<Record<string, unknown>> | null;
+  readonly getIdentity: () => Readonly<Record<string, unknown>> | null;
   readonly getIsInitialized: () => boolean;
   readonly getSessionStatus: () => ReturnType<
     IServiceSession['store']['getState']
   >['sessionStatus'];
+  readonly getNodeState: () => ReturnType<
+    IServiceSession['store']['getState']
+  >['nodeState'];
   readonly getBackupState: () => ReturnType<
     IServiceSession['store']['getState']
   >['backupState'];
   readonly getTelemetry: () => ITelemetryBatch;
   readonly getServiceIndex: () => number | null;
-  readonly getServiceFrontendIndex: () => number | null;
   readonly getModelAttributes: (
     modelName: string,
   ) => Readonly<Record<string, unknown>> | undefined;
@@ -109,8 +120,8 @@ export type IZerospinDevtoolsStoreState = {
   readonly profiles: ReadonlyArray<IProfilerProfile>;
   addAggregateSession: (entry: IDevtoolsAggregateSessionEntry) => void;
   removeAggregateSession: (sessionId: ISessionId) => void;
-  addServiceSession: <FRONTEND extends IServiceFrontendController>(entry: {
-    readonly session: IServiceSession<FRONTEND>;
+  addServiceSession: <DEFINITION extends IServiceSessionDefinition>(entry: {
+    readonly session: IServiceSession<DEFINITION>;
   }) => void;
   removeServiceSession: (sessionId: ISessionId) => void;
 };

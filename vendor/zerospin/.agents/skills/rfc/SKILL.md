@@ -19,9 +19,11 @@ generated documentation of behavior at HEAD and do not authorize code changes.
 1. Read the relevant `wiki/architecture/` pages, `wiki/glossary.md`, and source
    needed to understand the constraint. Use that research to avoid impossible
    proposals, not to turn the RFC into a current-state audit.
-2. Resolve material design ambiguity with the user before presenting one option
-   as the proposal. Ask before canonizing a new named type, helper, public RPC,
-   or runtime-boundary move as required by `AGENTS.md`.
+2. Resolve material design ambiguity through the shared `spec` decision guidance
+   before presenting one option as the proposal. Confirm unrequested
+   abstractions, public contracts, named domain concepts, and runtime/trust
+   boundary changes; do not re-ask for requested or approved decisions or
+   ordinary implementation details.
 3. Create or update exactly one Markdown file under `wiki/dev/rfcs/`. Use a
    concise, descriptive filename and update an existing RFC for the same
    proposal rather than creating a serial copy.
@@ -90,7 +92,7 @@ For every schema table:
    for table relationships.
 2. Keep each diagram focused; split persistence, lifecycle, and request flow
    rather than producing one unreadable graph.
-3. Use exact owner names such as SystemRepo, VersionedServiceRepo, and
+3. Use exact owner names such as SystemRepo, ServiceVersionRepo, and
    AggregateCommandChain.
 4. For every message, enumerate the exact target fields at first use and state
    which boundary supplies them.

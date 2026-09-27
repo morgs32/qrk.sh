@@ -7,3 +7,4 @@ export * from './primitiveKind.ts';
 export * from './primitiveMaps.ts';
 export * from './primitives.ts';
 export * from './types.ts';
+export * from './resolveTableReferences.ts';

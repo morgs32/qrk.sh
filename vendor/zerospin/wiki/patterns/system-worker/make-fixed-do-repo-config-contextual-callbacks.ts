@@ -5,16 +5,16 @@ import { Effect } from 'effect';
  *
  * @bad Put generic Durable Object lookup in `makeFixedDORepoConfig`.
  * @bad Restate route-derived `{ name, key, storage }` props on `dbConfig`.
- * @bad Call `VersionedAggregateRepo.fixedDORepoConfig.getRepo(...)`; call `yield* VersionedAggregateRepo.getRepo(...)`.
+ * @bad Call `AggregateVersionRepo.fixedDORepoConfig.getRepo(...)`; call `yield* AggregateVersionRepo.getRepo(...)`.
  */
 export const aggregateFixedDORepoConfig = makeFixedDORepoConfig({
   abbreviation: 'mataggrepo',
-  repoType: 'VersionedAggregateRepo',
+  repoType: 'AggregateVersionRepo',
   namePattern: parseRoutePattern(
     '/:systemId/:aggregateId/:aggregateName/:aggregateVersion',
   ),
   managedRuntime,
-  dbConfig: Effect.fn('VersionedAggregateRepo.dbConfig')(function* (props) {
+  dbConfig: Effect.fn('AggregateVersionRepo.dbConfig')(function* (props) {
     const aggregate = yield* getByKeyOrThrow({
       record: system.aggregates,
       key: props.key.aggregateName,

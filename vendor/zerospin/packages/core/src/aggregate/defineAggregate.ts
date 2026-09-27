@@ -1,28 +1,11 @@
-import type { IAnyError } from '@zerospin/error';
-import { Layer, Schema } from 'effect';
+import { Schema } from 'effect';
 
-export function defineAggregate<
-  const NAME extends string,
-  SERVICES,
-  REQUIREMENTS,
->(props: {
-  name: NAME;
-  layer: Layer.Layer<SERVICES, IAnyError, REQUIREMENTS>;
-}): { name: NAME; layer: Layer.Layer<SERVICES, IAnyError, REQUIREMENTS> };
 export function defineAggregate<const NAME extends string>(props: {
   name: NAME;
-  layer?: never;
-}): { name: NAME; layer: Layer.Layer<never> };
-export function defineAggregate(props: {
-  name: string;
-  layer?: Layer.Layer<never, IAnyError, unknown>;
-}): unknown {
-  Schema.decodeUnknownSync(
-    Schema.Struct({
-      name: Schema.String,
-      layer: Schema.optionalKey(Schema.declare(Layer.isLayer)),
-    }),
-    { onExcessProperty: 'error' },
-  )(props);
-  return { name: props.name, layer: props.layer ?? Layer.empty };
+}): { name: NAME } {
+  const { name, ...extra } = props;
+  Schema.decodeUnknownSync(Schema.Struct({ name: Schema.String }), {
+    onExcessProperty: 'error',
+  })({ name, ...extra });
+  return { name };
 }

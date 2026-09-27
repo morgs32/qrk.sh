@@ -1,46 +1,58 @@
-import { EncodedAggregateCommandSchema } from '@zerospin/core/contracts/CommandSchema';
-import { makeDbConfig } from '@zerospin/core/drizzle/makeDbConfig';
-import type { IDb, ITx } from '@zerospin/core/drizzle/types';
+import { AdmissionResultSchema } from '@zerospin/core/contracts/AdmissionResultSchema';
+import { makeDbConfig } from '@zerospin/core/drizzle/make/makeDbConfig/makeDbConfig';
+import { PublicFailureSchema } from '@zerospin/error';
 import { makeTable, primitives } from '@zerospin/schema';
-import { Context } from 'effect';
+import { Schema } from 'effect';
 
 import { systemWorkerAbbreviations } from '../systemWorkerAbbreviations.js';
 
 export const aggregateChainDbConfig = makeDbConfig({
   tables: {
-    admittedCommands: makeTable({
-      name: 'admittedCommands',
+    commands: makeTable({
+      name: 'commands',
       shape: {
-        aggregateIndex: primitives.integer({ primaryKey: true }),
-        commandId: primitives.text({ unique: true }),
-        canonicalBytes: primitives.text(),
-        chainedAt: primitives.date(),
-        command: primitives.json({
-          schema: EncodedAggregateCommandSchema,
+        id: primitives.text({ unique: true }),
+        commandName: primitives.text(),
+        payload: primitives.text(),
+        contractVersion: primitives.text(),
+        aggregateId: primitives.text(),
+        aggregateName: primitives.text(),
+        systemName: primitives.text(),
+        aggregateVersion: primitives.text({ nullable: true }),
+        nodeId: primitives.text({ nullable: true }),
+        automationName: primitives.text({ nullable: true }),
+        actorName: primitives.text(),
+        actorVersion: primitives.text(),
+        identity: primitives.json({
+          schema: Schema.Record(Schema.String, Schema.Unknown),
         }),
+        sessionName: primitives.text({ nullable: true }),
+        nodeIndex: primitives.integer({ nullable: true }),
+        aggregateIndex: primitives.integer({ primaryKey: true }),
+        admission: primitives.json({ schema: AdmissionResultSchema }),
       },
+      indexes: [
+        {
+          name: 'commands_node',
+          columns: ['nodeId', 'nodeIndex'],
+          unique: true,
+        },
+      ],
     }),
-    versionedAggregateRepos: makeTable({
-      name: 'versionedAggregateRepos',
+    aggregateVersionRepos: makeTable({
+      name: 'aggregateVersionRepos',
       shape: {
-        versionedAggregateRepoName: primitives.primaryKey({
-          abbreviation: systemWorkerAbbreviations.versionedAggregateRepo,
+        aggregateVersionRepoName: primitives.primaryKey({
+          abbreviation: systemWorkerAbbreviations.aggregateVersionRepo,
         }),
         aggregateVersion: primitives.text({ unique: true }),
         active: primitives.boolean(),
         currentIndex: primitives.integer({ nullable: true }),
-        failure: primitives.text({ nullable: true }),
+        failure: primitives.json({
+          schema: PublicFailureSchema,
+          nullable: true,
+        }),
       },
     }),
   },
 });
-
-export class AggregateChainDb extends Context.Service<
-  AggregateChainDb,
-  IDb<typeof aggregateChainDbConfig>
->()('@zerospin/system-worker/AggregateChainDb') {
-  static readonly Tx = Context.Service<
-    '@zerospin/system-worker/AggregateChainDb.Tx',
-    ITx<typeof aggregateChainDbConfig>
-  >('@zerospin/system-worker/AggregateChainDb.Tx');
-}

@@ -3,7 +3,7 @@
 The common Durable Object Repo base owns identity resolution, database startup,
 activation, and alarm dispatch. Production Repos use it through
 [`makeFixedDORepo`](../makeFixedDORepo/makeFixedDORepo.ts); the evolving-schema
-sibling is [`makeVersionedDORepo`](../makeVersionedDORepo/makeVersionedDORepo.ts).
+sibling is [`makeMigratableDORepo`](../makeMigratableDORepo/makeMigratableDORepo.ts).
 
 ## Construction and activation
 
@@ -22,7 +22,7 @@ block defers startup until derived fields exist, then runs:
    match an existing immutable lock before registration succeeds. SystemRepo
    does not register with itself.
 2. Enable SQLite foreign keys and apply the selected schema policy. Fixed Repos
-   provision only an unmarked database; versioned Repos apply migrations.
+   provision only an unmarked database; migratable Repos apply migrations.
 3. Bootstrap when required, recording `_isBootstrapped` only after success.
 4. The Repo's named `onDOActivation()` Effect.
 
@@ -54,7 +54,7 @@ receiver's durable cursor. This is a startup prerequisite, not alarm work.
 Explicit reads may subsequently call `catchup(index?)` without subscribing again.
 
 AC initializes its base/feed cursor and subscribes to SystemRepo's version
-feed. VAR and SelectionVAR select the aggregate snapshot using their physical
+feed. VAR and ActorVAR select the aggregate snapshot using their physical
 `aggregateName` and `aggregateVersion`; that snapshot already declares every
 service dependency in `aggregate.services`. For each service target,
 `systemId` comes from the Repo key, while `serviceName` and `serviceVersion` come
@@ -64,15 +64,15 @@ Activation inserts missing `services` rows with `lastIndex: 0` and preserves exi
 progress. Service pins stay in the selected definition. A later command can insert
 a replica row with its own `serviceIndex` without discovering
 a new service or rewinding the feed cursor. Service list order does not change an aggregate's authored pin. VAR does not
-subscribe itself to AC, and VSR does not subscribe itself to SAC: each chain
+subscribe itself to AC, and VSR does not subscribe itself to SC: each chain
 reconciles its admitted-command destinations from the deployed version list.
 
 - [AC activation](../AggregateChain/onDOActivation/onDOActivation.ts)
-- [VAR activation](../VersionedAggregateRepo/onDOActivation/onDOActivation.ts)
-- [SAC activation](../ServiceAdmittedChain/onDOActivation/onDOActivation.ts)
-- [FVSR activation](../FrontendVersionedServiceRepo/onDOActivation/onDOActivation.ts)
-- [SelectionVAR activation](../SelectionVersionedAggregateRepo/onDOActivation/onDOActivation.ts)
-- [Declared-source and restart tests](../SelectionVersionedAggregateRepo/SelectionVersionedAggregateRepo.workerd.spec.ts)
+- [VAR activation](../AggregateVersionRepo/onDOActivation/onDOActivation.ts)
+- [SC activation](../ServiceChain/onDOActivation/onDOActivation.ts)
+- [FVSR activation](../ServiceActorVersionRepo/onDOActivation/onDOActivation.ts)
+- [ActorVAR activation](../AggregateActorVersionRepo/onDOActivation/onDOActivation.ts)
+- [Declared-source and restart tests](../AggregateActorVersionRepo/AggregateActorVersionRepo.workerd.spec.ts)
 - [Pinned service replication tests](../pinnedServiceReplicas.workerd.spec.ts)
 
 The activation gate is held during subscription, but **execution permits and
@@ -110,7 +110,7 @@ Every alarm runs every registered operation against durable state, including
 after reconstruction with no in-memory leases. Operations run concurrently;
 each outcome is captured so a failure does not cancel siblings. The alarm waits
 for all outcomes and propagates combined failures through the configured runtime
-without `encodeRpc`. A custom superclass's bound `alarm()` is registered too,
+without `settleResult`. A custom superclass's bound `alarm()` is registered too,
 preserving PartyServer initialization and `onAlarm()` behavior.
 
 Queues hold their leases during drains and release them when their work settles.

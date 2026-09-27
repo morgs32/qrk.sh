@@ -2,7 +2,7 @@
   "name": "@zerospin/backup-worker",
   "version": "2.0.1",
   "private": false,
-  "description": "Shared IndexedDB SQLite backups and revocable frontend ownership",
+  "description": "Shared IndexedDB SQLite backups and revocable session ownership",
   "type": "module",
   "sideEffects": false,
   "files": [
@@ -32,6 +32,7 @@
   "dependencies": {
     "@zerospin/core": "workspace:*",
     "@zerospin/error": "workspace:*",
+    "@zerospin/logger": "workspace:*",
     "capnweb": "^0.12.0",
     "wa-sqlite": "github:rhashimoto/wa-sqlite#07ad48cf2f682d279f9cd69818cc1d39b2ccda86"
   },

@@ -1,12 +1,7 @@
-import type { Plugin } from '@vitest/pretty-format';
+import { formatZerospinError, isZerospinError } from '../makeZerospinError.js';
+import type { IAnyError } from '../types.js';
 
-import { ZerospinError } from '../ZerospinError.js';
-
-export const errorSerializer: Plugin = {
-  serialize(val: ZerospinError) {
-    return `[Error ${val.message}]`;
-  },
-  test(val) {
-    return val instanceof ZerospinError;
-  },
+export const errorSerializer = {
+  serialize: (value: IAnyError) => `[Error ${formatZerospinError(value)}]`,
+  test: isZerospinError,
 };

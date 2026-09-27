@@ -1,10 +1,10 @@
-import { makeAsync } from '@zerospin/core/async/makeAsync';
-import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
+import { makeAsync } from '@zerospin/core/async/make/makeAsync';
 import { getByKeyOrThrow } from '@zerospin/core/utils/getByKeyOrThrow';
+import { readRpcEnvelope } from '@zerospin/core/utils/readRpcEnvelope';
 import config from 'config';
 import { Effect } from 'effect';
 
-import { VersionedAggregateRepo } from '../../VersionedAggregateRepo/VersionedAggregateRepo.js';
+import { AggregateVersionRepo } from '../../AggregateVersionRepo/AggregateVersionRepo.js';
 import { admitCommands } from '../admitCommands/admitCommands.js';
 
 const { system } = config;
@@ -14,6 +14,7 @@ export const executeAggregateCommand = Effect.fn(
   'AggregateChain.executeAggregateCommand',
 )(function* (props: {
   aggregateVersion: string;
+  automationOutput?: boolean;
   command: Parameters<typeof admitCommands>[0]['commands'][number];
   db: Parameters<typeof admitCommands>[0]['db'];
   key: Parameters<typeof admitCommands>[0]['key'];
@@ -33,14 +34,12 @@ export const executeAggregateCommand = Effect.fn(
   // Selection remains explicit on retries.
 
   // 3 — extend the admitted-chain key with aggregateVersion
-  const repo = yield* VersionedAggregateRepo.getRepo({
+  const repo = yield* AggregateVersionRepo.getRepo({
     key: { ...props.key, aggregateVersion },
   });
 
   // 4 — execute through receipt.aggregateIndex and decode its terminal result
-  return yield* makeAsync<
-    Awaited<ReturnType<VersionedAggregateRepo['execute']>>
-  >(() => repo.execute({ aggregateIndex: receipt!.aggregateIndex })).pipe(
-    Effect.flatMap(decodeRpc),
-  );
+  return yield* makeAsync<Awaited<ReturnType<AggregateVersionRepo['execute']>>>(
+    () => repo.execute({ aggregateIndex: receipt!.aggregateIndex }),
+  ).pipe(Effect.flatMap(envelope => readRpcEnvelope(envelope)));
 });

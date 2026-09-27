@@ -31,7 +31,7 @@ export function SessionsDatabaseLayout() {
   }
 
   const modelNames =
-    aggregateSession?.frontend.modelNames ?? serviceSession?.modelNames;
+    aggregateSession?.definition.modelNames ?? serviceSession?.modelNames;
 
   if (modelNames === undefined) {
     return null;
@@ -40,7 +40,7 @@ export function SessionsDatabaseLayout() {
   if (modelNames.length === 0) {
     return (
       <div style={sessionsDatabaseTabStyles.dbEmptyState}>
-        No models on frontend
+        No models on definition
       </div>
     );
   }

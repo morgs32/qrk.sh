@@ -1,22 +1,22 @@
 /* eslint-disable perfectionist/sort-exports */
 import { newWorkersRpcResponse } from 'capnweb';
 import { env, WorkerEntrypoint } from 'cloudflare:workers';
+import config from 'config';
 import { GatewayApi } from 'system-worker/GatewayApi/GatewayApi';
-import { makeSystemRuntime } from 'system-worker/makeSystemRuntime';
 
-const systemRuntime = makeSystemRuntime();
+const systemRuntime = config.system.runtime;
 export { AggregateChain } from 'system-worker';
-export { SelectionVersionedAggregateChain } from 'system-worker';
-export { VersionedAggregateChain } from 'system-worker';
-export { VersionedServiceChain } from 'system-worker';
-export { SelectionVersionedAggregateRepo } from 'system-worker';
-export { VersionedAggregateRepo } from 'system-worker';
-export { FrontendVersionedServiceRepo } from 'system-worker';
-export { VersionedServiceRepo } from 'system-worker';
+export { AggregateActorVersionChain } from 'system-worker';
+export { AggregateVersionChain } from 'system-worker';
+export { ServiceVersionChain } from 'system-worker';
+export { AggregateActorVersionRepo } from 'system-worker';
+export { AggregateVersionRepo } from 'system-worker';
+export { ServiceActorVersionRepo } from 'system-worker';
+export { ServiceVersionRepo } from 'system-worker';
 export { SystemLogAgent } from 'system-worker';
 export { SystemLogRepo } from 'system-worker';
-export { ServiceAdmittedChain } from 'system-worker';
-export { FrontendServiceChain } from 'system-worker';
+export { ServiceChain } from 'system-worker';
+export { ServiceActorVersionChain } from 'system-worker';
 export { SystemRepo } from 'system-worker';
 
 // oxlint-disable-next-line import/no-default-export -- Cloudflare Worker entrypoints are default exports.
@@ -25,8 +25,8 @@ export default class DevWorker extends WorkerEntrypoint {
     const url = new URL(request.url);
     if (
       /^\/ws-system-logs\/[^/]+$/.test(url.pathname) ||
-      url.pathname === '/ws-aggregate-frontend-commands' ||
-      url.pathname === '/ws-service-frontend-commands'
+      url.pathname === '/ws-aggregate-session-commands' ||
+      url.pathname === '/ws-service-session-commands'
     ) {
       return env.SYSTEM_REPO.getByName(env.ZEROSPIN_SYSTEM_ID).fetch(request);
     }

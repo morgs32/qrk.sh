@@ -1,5 +1,5 @@
 import { defineContract } from '@zerospin/core/contracts/defineContract';
-import { makeContractVersion } from '@zerospin/core/contracts/makeContractVersion';
+import { makeContractVersion } from '@zerospin/core/contracts/make/makeContractVersion';
 import { Effect } from 'effect';
 
 /**

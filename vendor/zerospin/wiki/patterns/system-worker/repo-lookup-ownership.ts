@@ -7,17 +7,17 @@ import type { Effect } from 'effect';
  * SystemRepo uses only the configured systemId; its constructor enforces that singleton identity.
  *
  * @bad Add a standalone get*Repo lookup helper or a per-Repo static implementation.
- * @bad Put namespace lookup in fixedDORepoConfig or versionedDORepoConfig.
+ * @bad Put namespace lookup in fixedDORepoConfig or migratableDORepoConfig.
  * @bad Read a namespace while defining the class, or run readiness or authorization during lookup.
  */
-export const lookup = VersionedServiceRepo.getRepo({
+export const lookup = ServiceVersionRepo.getRepo({
   key: { systemId: 'sys_1', serviceName: 'catalog', serviceVersion: '1.0.0' },
 });
 
 // The same captured function can be supplied as a queue's getRepo callback.
-export const queueLookup = VersionedServiceRepo.getRepo;
+export const queueLookup = ServiceVersionRepo.getRepo;
 
-declare const VersionedServiceRepo: {
+declare const ServiceVersionRepo: {
   getRepo(props: {
     key: { systemId: string; serviceName: string; serviceVersion: string };
   }): Effect.Effect<unknown>;

@@ -1,5 +1,9 @@
-import { encodeFailure } from '@zerospin/core/utils/encodeFailure';
-import type { IAnyError } from '@zerospin/error';
+import { resultFailure } from '@zerospin/core/utils/resultFailure';
+import {
+  encodeError,
+  type IAnyError,
+  type IZerospinErrorJson,
+} from '@zerospin/error';
 import { Effect } from 'effect';
 
 import type { SystemApi } from '../../SystemApi.js';
@@ -13,13 +17,15 @@ import type { SystemApi } from '../../SystemApi.js';
  */
 export const getSystemRepos = Effect.fn('SystemApiFailure.getSystemRepos')(
   (props: {
-    error: IAnyError;
+    error: IAnyError | IZerospinErrorJson;
     request: Parameters<SystemApi['getSystemRepos']>[0];
   }) => {
     // 1 — ignore operation arguments because this capability was never granted
     const { error } = props;
 
     // 2 — encode the retained error and leave the trace link null
-    return Effect.succeed({ result: encodeFailure(error), link: null });
+    return encodeError(error).pipe(
+      Effect.map(failure => ({ result: resultFailure(failure), link: null })),
+    );
   },
 );

@@ -20,6 +20,7 @@ import type {
   IIntegerDescriptor,
   IJsonDescriptor,
   INumberDescriptor,
+  INamedRefDescriptor,
   IPrimaryKeyDescriptor,
   IRefDescriptor,
   ITextDescriptor,
@@ -576,6 +577,34 @@ function enum_<const VALUES extends readonly [string, ...string[]]>(props: {
 }
 
 function ref<
+  const TABLE_NAME extends string,
+  const COLUMN_NAME extends string,
+  const RELATION extends string,
+  const INVERSE extends string,
+  const NULLABLE extends boolean = false,
+  const UNIQUE extends boolean = false,
+>(props: {
+  table: TABLE_NAME;
+  column: COLUMN_NAME;
+  relation: RELATION &
+    (RELATION extends ''
+      ? ITypeError<'primitives.ref relation must be non-empty'>
+      : unknown);
+  inverse: INVERSE &
+    (INVERSE extends ''
+      ? ITypeError<'primitives.ref inverse must be non-empty'>
+      : unknown);
+  nullable?: NULLABLE;
+  unique?: UNIQUE;
+}): INamedRefDescriptor<
+  TABLE_NAME,
+  COLUMN_NAME,
+  RELATION,
+  INVERSE,
+  NULLABLE,
+  UNIQUE
+>;
+function ref<
   const TABLE extends IAnyTable,
   const RELATION extends string,
   const INVERSE extends string,
@@ -585,17 +614,9 @@ function ref<
   nullable?: NULLABLE;
   unique?: UNIQUE;
   table: TABLE &
-    ([
-      {
-        [KEY in keyof TABLE['shape'] & string]: TABLE['shape'][KEY] extends
-          | IPrimaryKeyDescriptor
-          | (IIntegerDescriptor & { primaryKey: true })
-          ? KEY
-          : never;
-      }[keyof TABLE['shape'] & string],
-    ] extends [never]
-      ? ITypeError<`primitives.ref target table "${TABLE['name']}" must have one primary key`>
-      : IsUnion<
+    (string extends TABLE['name']
+      ? unknown
+      : [
             {
               [KEY in keyof TABLE['shape'] &
                 string]: TABLE['shape'][KEY] extends
@@ -603,10 +624,21 @@ function ref<
                 | (IIntegerDescriptor & { primaryKey: true })
                 ? KEY
                 : never;
-            }[keyof TABLE['shape'] & string]
-          > extends true
-        ? ITypeError<`primitives.ref target table "${TABLE['name']}" must have only one primary key`>
-        : unknown);
+            }[keyof TABLE['shape'] & string],
+          ] extends [never]
+        ? ITypeError<`primitives.ref target table "${TABLE['name']}" must have one primary key`>
+        : IsUnion<
+              {
+                [KEY in keyof TABLE['shape'] &
+                  string]: TABLE['shape'][KEY] extends
+                  | IPrimaryKeyDescriptor
+                  | (IIntegerDescriptor & { primaryKey: true })
+                  ? KEY
+                  : never;
+              }[keyof TABLE['shape'] & string]
+            > extends true
+          ? ITypeError<`primitives.ref target table "${TABLE['name']}" must have only one primary key`>
+          : unknown);
   relation: RELATION &
     (RELATION extends ''
       ? ITypeError<'primitives.ref relation must be non-empty'>
@@ -654,19 +686,39 @@ function ref<
 function ref(props: {
   nullable?: boolean | undefined;
   unique?: boolean | undefined;
-  table: IAnyTable;
+  table: IAnyTable | string;
+  column?: string;
   relation: string;
   inverse: string;
 }): IAnyRefDescriptor {
   const { table, relation, inverse, nullable = false, unique = false } = props;
-  if (!(table instanceof Table)) {
-    throw new Error('primitives.ref requires a Table instance from makeTable');
-  }
   if (relation === '') {
     throw new Error('primitives.ref requires a non-empty `relation`');
   }
   if (inverse === '') {
     throw new Error('primitives.ref requires a non-empty `inverse`');
+  }
+
+  if (typeof table === 'string') {
+    if (table === '' || props.column === undefined || props.column === '') {
+      throw new Error(
+        'primitives.ref requires non-empty table and column names',
+      );
+    }
+    return {
+      kind: PrimitiveKind.Ref,
+      table,
+      targetTableName: table,
+      targetColumnName: props.column,
+      relation,
+      inverse,
+      nullable,
+      unique,
+      abbreviation: '',
+    };
+  }
+  if (!(table instanceof Table)) {
+    throw new Error('primitives.ref requires a Table instance from makeTable');
   }
 
   let targetColumnName: string | undefined;

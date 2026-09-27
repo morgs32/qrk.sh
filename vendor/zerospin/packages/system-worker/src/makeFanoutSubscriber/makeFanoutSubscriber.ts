@@ -1,21 +1,21 @@
 import type { Async } from '@zerospin/core/async/Async';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
-import { makeAsync } from '@zerospin/core/async/makeAsync';
+import { makeAsync } from '@zerospin/core/async/make/makeAsync';
 import type { MonotonicFactory } from '@zerospin/core/services/MonotonicFactory';
-import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
-import { encodeRpc } from '@zerospin/core/utils/encodeRpc';
+import { readRpcEnvelope } from '@zerospin/core/utils/readRpcEnvelope';
 import {
-  ZerospinError,
+  catchZerospinError,
+  makeZerospinError,
   type IAnyError,
-  type IAnyErrorJson,
-  type IEncodedResult,
+  type IZerospinErrorJson,
 } from '@zerospin/error';
+import { makeRpcEnvelope, type IRpcEnvelope } from '@zerospin/logger';
 import type { CuidFactory } from '@zerospin/schema';
 import { RpcTarget } from 'capnweb';
+import config from 'config';
 import { Effect } from 'effect';
 
 import type { IFanoutDelivery } from '../makeFanoutQueue/makeFanoutQueue.js';
-import { managedRuntime } from '../managedRuntime.js';
 
 /**
  * One source-bound fanout capability. RPC methods live on the prototype;
@@ -47,41 +47,47 @@ export const makeFanoutSubscriber = <
         getPage(props: {
           afterIndex: number;
           maxIndex?: number;
-        }): PromiseLike<IEncodedResult<IFanoutDelivery<ROW>, IAnyErrorJson>>;
+        }): PromiseLike<IRpcEnvelope<IFanoutDelivery<ROW>, IZerospinErrorJson>>;
         subscribe(
           props: KEY & { currentIndex: number | null },
-        ): PromiseLike<IEncodedResult<unknown, IAnyErrorJson>>;
+        ): PromiseLike<IRpcEnvelope<void, IZerospinErrorJson>>;
       }>;
     },
-    IAnyError,
+    IAnyError | IZerospinErrorJson,
     Async
   >;
   getCurrentIndex: () => number;
   receive: (
     delivery: IFanoutDelivery<NoInfer<ROW>>,
-  ) => Effect.Effect<void, IAnyError, Async | CuidFactory | MonotonicFactory>;
+  ) => Effect.Effect<
+    void,
+    IAnyError | IZerospinErrorJson,
+    Async | CuidFactory | MonotonicFactory
+  >;
 }): RpcTarget & {
   readonly name: NAME;
   receive(
     delivery: IFanoutDelivery<ROW>,
-  ): Promise<IEncodedResult<void, IAnyErrorJson>>;
-  catchup(index?: number): Promise<IEncodedResult<void, IAnyErrorJson>>;
-  subscribe(index?: number): Promise<IEncodedResult<void, IAnyErrorJson>>;
+  ): Promise<IRpcEnvelope<void, IZerospinErrorJson>>;
+  catchup(index?: number): Promise<IRpcEnvelope<void, IZerospinErrorJson>>;
+  subscribe(index?: number): Promise<IRpcEnvelope<void, IZerospinErrorJson>>;
 } => {
   // 1 — one instance always addresses the same source queue and local cursor
   const { name, sourceKey, key, getRepo, getCurrentIndex, receive } = props;
   const currentIndex = Effect.try({
     try: getCurrentIndex,
-    catch: ZerospinError.catch({ code: 'fanout-subscriber-cursor-failed' }),
+    catch: catchZerospinError({ code: 'fanout-subscriber-cursor-failed' }),
   });
 
   // 2 — the first page supplies the destination only when the caller did not
   const catchup = Effect.fn(`${name}.catchup`)(function* (index?: number) {
     if (index !== undefined && (!Number.isSafeInteger(index) || index < 0)) {
-      return yield* new ZerospinError({
-        code: 'fanout-catchup-index-invalid',
-        message: 'Catch-up requires a nonnegative safe integer index',
-      });
+      return yield* Effect.fail(
+        makeZerospinError({
+          code: 'fanout-catchup-index-invalid',
+          message: 'Catch-up requires a nonnegative safe integer index',
+        }),
+      );
     }
     let cursor = yield* currentIndex;
     if (index !== undefined && cursor >= index) return;
@@ -95,22 +101,26 @@ export const makeFanoutSubscriber = <
           afterIndex: cursor,
           ...(destination === undefined ? {} : { maxIndex: destination }),
         }),
-      ).pipe(Effect.flatMap(decodeRpc));
+      ).pipe(Effect.flatMap(envelope => readRpcEnvelope(envelope)));
       if (!Number.isSafeInteger(delivery.lastIndex) || delivery.lastIndex < 0) {
-        return yield* new ZerospinError({
-          code: 'fanout-catchup-tip-invalid',
-          message: 'The source returned an invalid deliverable tip',
-        });
+        return yield* Effect.fail(
+          makeZerospinError({
+            code: 'fanout-catchup-tip-invalid',
+            message: 'The source returned an invalid deliverable tip',
+          }),
+        );
       }
       destination ??= delivery.lastIndex;
       // A concurrent push can commit while the source page is in flight.
       cursor = yield* currentIndex;
       if (cursor >= destination) return;
       if (delivery.rows.length === 0) {
-        return yield* new ZerospinError({
-          code: 'fanout-catchup-history-missing',
-          message: `Fanout history is unavailable after ${cursor} through ${destination}`,
-        });
+        return yield* Effect.fail(
+          makeZerospinError({
+            code: 'fanout-catchup-history-missing',
+            message: `Fanout history is unavailable after ${cursor} through ${destination}`,
+          }),
+        );
       }
 
       // 3 — the owner serializes and durably commits both pulled and pushed rows
@@ -118,10 +128,12 @@ export const makeFanoutSubscriber = <
       const committed = yield* currentIndex;
       if (committed >= destination) return;
       if (committed <= requestedCursor) {
-        return yield* new ZerospinError({
-          code: 'fanout-catchup-no-progress',
-          message: `Fanout receipt did not advance the committed cursor after ${cursor}`,
-        });
+        return yield* Effect.fail(
+          makeZerospinError({
+            code: 'fanout-catchup-no-progress',
+            message: `Fanout receipt did not advance the committed cursor after ${cursor}`,
+          }),
+        );
       }
       cursor = committed;
     }
@@ -136,25 +148,23 @@ export const makeFanoutSubscriber = <
       this.name = name;
     }
 
-    async receive(
-      delivery: IFanoutDelivery<ROW>,
-    ): Promise<IEncodedResult<void, IAnyErrorJson>> {
-      return managedRuntime.runPromise(
+    async receive(delivery: IFanoutDelivery<ROW>) {
+      return config.system.runtime.runPromise(
         Effect.suspend(() => receive(delivery)).pipe(
           Effect.provide(AsyncLive),
-          encodeRpc,
+          makeRpcEnvelope,
         ),
       );
     }
 
-    catchup(index?: number): Promise<IEncodedResult<void, IAnyErrorJson>> {
-      return managedRuntime.runPromise(
-        catchup(index).pipe(Effect.provide(AsyncLive), encodeRpc),
+    catchup(index?: number) {
+      return config.system.runtime.runPromise(
+        catchup(index).pipe(Effect.provide(AsyncLive), makeRpcEnvelope),
       );
     }
 
-    subscribe(index?: number): Promise<IEncodedResult<void, IAnyErrorJson>> {
-      return managedRuntime.runPromise(
+    subscribe(index?: number) {
+      return config.system.runtime.runPromise(
         Effect.gen(function* () {
           // 5 — enrollment holds no receiver lock and cannot skip retained rows
           yield* catchup(index);
@@ -166,8 +176,8 @@ export const makeFanoutSubscriber = <
               ...key,
               currentIndex: cursor === 0 ? null : cursor,
             }),
-          ).pipe(Effect.flatMap(decodeRpc));
-        }).pipe(Effect.provide(AsyncLive), encodeRpc),
+          ).pipe(Effect.flatMap(envelope => readRpcEnvelope(envelope)));
+        }).pipe(Effect.provide(AsyncLive), makeRpcEnvelope),
       );
     }
   }

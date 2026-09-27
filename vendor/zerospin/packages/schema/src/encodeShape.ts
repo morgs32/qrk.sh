@@ -131,6 +131,11 @@ export function encodeShape(shape: IAnyShape): IEncodedShape {
       }
 
       case PrimitiveKind.Ref: {
+        if (typeof descriptor.table === 'string') {
+          throw new Error(
+            `Unresolved reference to ${descriptor.table}.${descriptor.targetColumnName}; construct its owning makeDbConfig first`,
+          );
+        }
         const {
           abbreviation,
           inverse,

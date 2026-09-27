@@ -6,14 +6,14 @@ update the wiki so it reflects the code at HEAD.
 
 ## Before you start
 
-1. Read `AGENTS.md` — especially [LLM Wiki ingest](../../AGENTS.md#llm-wiki-ingest). Follow it exactly.
+1. Read `AGENTS.md` and the [LLM Wiki ingest manual](../README.md). Follow it exactly.
 2. Read `.llmwiki/config.yml`. Only populate doc types whose flag is `true`.
 3. Read `wiki/index.md` to orient yourself.
 4. Read the last 5 entries of `wiki/log.md` to know recent history.
 
-## Hard rules (restating for emphasis — AGENTS.md has the full list)
+## Hard rules (restating for emphasis — the ingest manual has the full list)
 
-- Every non-trivial claim needs a working Markdown source citation per `AGENTS.md` hard rule 1 (label includes line numbers; destination uses document-relative path plus `#L` anchors). Exception: on architecture pages, opening prose that only summarizes the immediately following `## Annotated workflow steps` must not repeat those step citations; put the source links on the matching numbered steps instead.
+- Every non-trivial claim needs a working Markdown source citation per the ingest manual's hard rule 1 (label includes line numbers; destination uses document-relative path plus `#L` anchors). Exception: on architecture pages, opening prose that only summarizes the immediately following `## Annotated workflow steps` must not repeat those step citations; put the source links on the matching numbered steps instead.
 - Never describe an API, parameter, or behavior that is not in the current code.
 - For UI code, do not describe runtime behavior unless a test file confirms it.
 - When the diff contradicts an existing page, add a `> CONTRADICTION:` blockquote,

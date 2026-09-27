@@ -1,4 +1,8 @@
-import { ZerospinError, type IAnyError } from '@zerospin/error';
+import {
+  catchZerospinError,
+  makeZerospinError,
+  type IAnyError,
+} from '@zerospin/error';
 import { RpcStub } from 'capnweb';
 import { Effect } from 'effect';
 
@@ -28,23 +32,27 @@ export const acquireDb = Effect.fn('BackupWorkerApi.acquireDb')(
       new URL(backupKey, 'file://').pathname !== backupKey ||
       backupKey.includes('\\')
     ) {
-      return yield* new ZerospinError({
-        code: 'backup-key-invalid',
-        message: 'Backup key must be an exact normalized /zerospin/ path',
-      });
+      return yield* Effect.fail(
+        makeZerospinError({
+          code: 'backup-key-invalid',
+          message: 'Backup key must be an exact normalized /zerospin/ path',
+        }),
+      );
     }
     const runtime = yield* Effect.tryPromise({
       try: () => api.runtime,
-      catch: ZerospinError.catch({
+      catch: catchZerospinError({
         code: 'backup-worker-unavailable',
         message: 'Failed to initialize IndexedDB backup storage',
       }),
     });
     if (api.disposed) {
-      return yield* new ZerospinError({
-        code: 'backup-worker-closed',
-        message: 'Backup connection is closed',
-      });
+      return yield* Effect.fail(
+        makeZerospinError({
+          code: 'backup-worker-closed',
+          message: 'Backup connection is closed',
+        }),
+      );
     }
     const retained = api.targets.get(backupKey);
     if (
@@ -55,7 +63,7 @@ export const acquireDb = Effect.fn('BackupWorkerApi.acquireDb')(
       yield* Effect.tryPromise({
         try: () => retained.target.granted.promise,
         catch: cause =>
-          new ZerospinError({
+          makeZerospinError({
             code: 'backup-db-revoked',
             message: 'Initial acquisition did not complete',
             cause: String(cause),
@@ -65,10 +73,12 @@ export const acquireDb = Effect.fn('BackupWorkerApi.acquireDb')(
         retained.target.revoked ||
         runtime.current.get(backupKey) !== retained.target
       ) {
-        return yield* new ZerospinError({
-          code: 'backup-db-revoked',
-          message: 'Backup acquisition was superseded',
-        });
+        return yield* Effect.fail(
+          makeZerospinError({
+            code: 'backup-db-revoked',
+            message: 'Backup acquisition was superseded',
+          }),
+        );
       }
       return { status: 'current', db: retained.stub.dup() } satisfies {
         status: 'current';
@@ -99,10 +109,12 @@ export const acquireDb = Effect.fn('BackupWorkerApi.acquireDb')(
         api.disposed ||
         runtime.current.get(backupKey) !== target
       ) {
-        return yield* new ZerospinError({
-          code: 'backup-db-revoked',
-          message: 'Backup acquisition was superseded',
-        });
+        return yield* Effect.fail(
+          makeZerospinError({
+            code: 'backup-db-revoked',
+            message: 'Backup acquisition was superseded',
+          }),
+        );
       }
       target.granted.resolve();
       return { status: 'acquired', db: stub.dup(), snapshot } satisfies {

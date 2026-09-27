@@ -1,13 +1,18 @@
-import { makeAsync } from '@zerospin/core/async/makeAsync';
+import { makeAsync } from '@zerospin/core/async/make/makeAsync';
 import type { ISystemLogState } from '@zerospin/core/system/types';
 import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
-import { RpcResultSchema } from '@zerospin/core/utils/encodeRpc';
-import { mapParseError, ZerospinError } from '@zerospin/error';
+import { readRpcEnvelope } from '@zerospin/core/utils/readRpcEnvelope';
+import {
+  makeZerospinError,
+  mapParseError,
+  ZerospinErrorSchema,
+} from '@zerospin/error';
+import { TelemetryBatchSchema } from '@zerospin/logger';
 import { makeAbbreviationIdSchema } from '@zerospin/schema';
-import { Effect, Result, Schema } from 'effect';
+import { Effect, Schema } from 'effect';
 
 import { SystemLogRepo } from '../../SystemLogRepo/SystemLogRepo.js';
-import { systemLogRowSchema } from '../../SystemLogRepo/systemLogRepoDbConfig.js';
+import { systemLogRepoDbConfig } from '../../SystemLogRepo/systemLogRepoDbConfig.js';
 
 /*
  * SystemLogAgent activation replaces its persisted live-tail projection with
@@ -24,10 +29,8 @@ export const onStart = Effect.fn('SystemLogAgent.onStart')(function* (props: {
   systemId: string;
   setState: (state: ISystemLogState) => void;
 }) {
-  const { setState } = props;
-
   // 1 — Agent names stay aligned with the static SystemLogRepo name
-  const { name, systemId } = props;
+  const { setState, name, systemId } = props;
 
   // 2 — reject unnamed or malformed activations before any repo lookup
   const agentSystemId = yield* Schema.decodeUnknownEffect(
@@ -40,11 +43,13 @@ export const onStart = Effect.fn('SystemLogAgent.onStart')(function* (props: {
     }),
   );
   if (agentSystemId !== systemId) {
-    return yield* new ZerospinError({
-      code: 'system-log-agent-system-id-mismatch',
-      message: 'SystemLogAgent name does not match the configured systemId',
-      extra: { agentSystemId, systemId },
-    });
+    return yield* Effect.fail(
+      makeZerospinError({
+        code: 'system-log-agent-system-id-mismatch',
+        message: 'SystemLogAgent name does not match the configured systemId',
+        extra: { agentSystemId, systemId },
+      }),
+    );
   }
 
   // 3 — preserve SystemLogRepo naming policy by using the lookup boundary
@@ -56,29 +61,31 @@ export const onStart = Effect.fn('SystemLogAgent.onStart')(function* (props: {
   const rows = yield* makeAsync(() =>
     systemLogRepo.getSystemLogRows({ limit: 100 }),
   ).pipe(
-    Effect.flatMap(encoded =>
-      Schema.decodeUnknownEffect(RpcResultSchema)(encoded).pipe(
-        Effect.flatMap(
-          Schema.decodeUnknownEffect(
-            Schema.toType(
-              Schema.Result(
-                Schema.Array(systemLogRowSchema),
-                ZerospinError.schema,
+    Effect.flatMap(envelope =>
+      Schema.decodeUnknownEffect(
+        Schema.Struct({
+          result: Schema.Union([
+            Schema.Struct({
+              _tag: Schema.Literal('Success'),
+              success: Schema.Array(
+                Schema.toType(systemLogRepoDbConfig.tables.logs.codec),
               ),
-            ),
-          ),
-        ),
+            }),
+            Schema.Struct({
+              _tag: Schema.Literal('Failure'),
+              failure: ZerospinErrorSchema,
+            }),
+          ]),
+          telemetry: TelemetryBatchSchema,
+        }),
+      )(envelope).pipe(
         mapParseError({
           code: 'failed-to-decode-system-log-agent-rows',
-          prefix: 'Failed to decode SystemLogAgent rows',
+          prefix: 'Failed to decode SystemLogAgent envelope',
         }),
       ),
     ),
-    Effect.flatMap(result =>
-      Result.isFailure(result)
-        ? result.failure
-        : Effect.succeed(result.success),
-    ),
+    Effect.flatMap(readRpcEnvelope),
   );
 
   // 5 — authoritative startup always replaces, rather than merges with, persisted state

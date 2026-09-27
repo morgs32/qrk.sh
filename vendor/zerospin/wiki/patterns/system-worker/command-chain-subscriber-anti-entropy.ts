@@ -1,12 +1,12 @@
 /**
  * Subscriber-owned catch-up commits bounded pages before live enrollment.
  *
- * AAC and SAC send complete admitted envelopes to VAR and VSR. Their
+ * AAC and SC send complete admitted envelopes to VAR and VSR. Their
  * source-bound subscribers execute supplied rows and share the same receive
  * Effect with pull catch-up. VAFC and VSFC send complete terminal envelopes
  * to replicas, which replay retained mutations without authored programs.
- * VAR and SelectionVAR independently consume their pinned VSFC service histories;
- * SAC does not route finalized service occurrences through AAC.
+ * VAR and ActorVAR independently consume their pinned VSFC service histories;
+ * SC does not route finalized service occurrences through AAC.
  *
  * Each `${queueName}Subscriber(sourceKey)` target binds one source queue,
  * enrollment key, and durable receiver cursor. `catchup(index?)` requests
@@ -31,6 +31,6 @@
  * @bad Advance the subscriber frontier before local state and output commit.
  * @bad Re-execute authored code in a terminal-history replica.
  * @bad Keep a second transport paging loop in a Repo.
- * @bad Call VersionedAggregateRepo.catchup; that RPC is deleted.
+ * @bad Call AggregateVersionRepo.catchup; that RPC is deleted.
  */
 export {};

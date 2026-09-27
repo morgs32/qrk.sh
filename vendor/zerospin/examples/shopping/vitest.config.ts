@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -14,7 +15,27 @@ export default defineConfig({
     ),
     'import.meta.env.VITE_ZEROSPIN_PUBLISHABLE_KEY': JSON.stringify('pk_test'),
   },
-  plugins: [react(), VitePWA({ injectRegister: false })],
+  plugins: [
+    react(),
+    VitePWA({ injectRegister: false }),
+    {
+      name: 'worker-snapshot-wasm-in-node',
+      enforce: 'pre',
+      resolveId(source) {
+        return source.endsWith('/sql-wasm.wasm') ? '\0shopping-sql-wasm' : null;
+      },
+      load(id) {
+        if (id !== '\0shopping-sql-wasm') return null;
+        const bytes = readFileSync(
+          path.resolve(
+            __dirname,
+            '../../packages/system-worker/node_modules/sql.js/dist/sql-wasm.wasm',
+          ),
+        );
+        return `export default new WebAssembly.Module(Uint8Array.from(Buffer.from('${bytes.toString('base64')}', 'base64')))`;
+      },
+    },
+  ],
   resolve: {
     conditions: ['node'],
     alias: [
@@ -38,7 +59,7 @@ export default defineConfig({
     ],
   },
   ssr: {
-    noExternal: ['system-worker', 'partyserver'],
+    noExternal: ['system-worker', 'partyserver', 'sql.js'],
   },
   test: {
     environment: 'node',

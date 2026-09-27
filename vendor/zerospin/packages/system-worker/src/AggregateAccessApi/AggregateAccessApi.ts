@@ -1,28 +1,24 @@
-import type { AggregateFrontendLockSchema } from '@zerospin/core/frontendController/makeAggregateFrontendLock';
+import type { IAggregateSessionLock } from '@zerospin/core/aggregateSession/AggregateSessionLockSchema';
+import type { ISystem } from '@zerospin/core/system/types';
 import { RpcTarget } from 'capnweb';
-import type { Schema } from 'effect';
-
-import type { ISystemRuntime } from '../makeSystemRuntime.js';
 
 import { authorize } from './authorize/authorize.js';
 
-/** Verified aggregate authentication, retained privately for frontend admission. */
+/** Verified aggregate identity, retained privately for definition admission. */
 export class AggregateAccessApi extends RpcTarget {
   readonly #access: Parameters<typeof authorize>[0]['access'];
-  readonly #runtime: ISystemRuntime;
+  readonly #runtime: ISystem['runtime'];
   constructor(props: {
     access: Parameters<typeof authorize>[0]['access'];
-    runtime: ISystemRuntime;
+    runtime: ISystem['runtime'];
   }) {
     super();
     this.#access = props.access;
     this.#runtime = props.runtime;
   }
   async authorize(request: {
-    frontendName: string;
-    aggregateFrontendLock: Schema.Schema.Type<
-      typeof AggregateFrontendLockSchema
-    >;
+    sessionName: string;
+    aggregateSessionLock: IAggregateSessionLock;
   }) {
     return this.#runtime.runPromise(
       authorize({ request, access: this.#access, runtime: this.#runtime }),

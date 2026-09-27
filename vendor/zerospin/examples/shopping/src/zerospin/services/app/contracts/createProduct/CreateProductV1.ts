@@ -17,12 +17,12 @@ export const createProductV1 = sdk.makeContractVersion(createProduct, {
   models: { product: productV1 },
   program: ({ payload, models }) => {
     const { description, id, name, price } = payload;
-    return Effect.all({
-      created: models.product.create({
+    return Effect.all([
+      models.product.create({
         resourceId: id,
         attributes: { description, name, price },
       }),
-    });
+    ]);
   },
   version: '1.0.0',
 });

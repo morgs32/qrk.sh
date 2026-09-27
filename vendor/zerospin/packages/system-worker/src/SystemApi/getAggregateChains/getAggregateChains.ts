@@ -1,5 +1,5 @@
-import { makeAsync } from '@zerospin/core/async/makeAsync';
-import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
+import { makeAsync } from '@zerospin/core/async/make/makeAsync';
+import { readRpcEnvelope } from '@zerospin/core/utils/readRpcEnvelope';
 import { Effect, Schema, type Context } from 'effect';
 
 import { SystemRepo } from '../../SystemRepo/SystemRepo.js';
@@ -49,7 +49,7 @@ export const getAggregateChains = Effect.fn('SystemApi.getAggregateChains')(
             systemRepo.getRepoRegistrations({
               repoType: 'AggregateChain',
             }),
-          ).pipe(Effect.flatMap(decodeRpc));
+          ).pipe(Effect.flatMap(envelope => readRpcEnvelope(envelope)));
         }).pipe(
           Effect.withSpan('SystemApi.getAggregateChains', { root: true }),
         ),

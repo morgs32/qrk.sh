@@ -1,5 +1,9 @@
 import type { ICommittedSqlStatement } from '@zerospin/core/drizzle/WaSqliteSession';
-import { ZerospinError } from '@zerospin/error';
+import {
+  catchZerospinError,
+  isZerospinError,
+  makeZerospinError,
+} from '@zerospin/error';
 import { Effect } from 'effect';
 
 import type { BackupDbApi } from '../BackupDbApi.ts';
@@ -19,7 +23,7 @@ export const applyStatements = Effect.fn('BackupDbApi.applyStatements')(
             api.owner.disposed ||
             api.runtime.current.get(api.backupKey) !== api
           ) {
-            throw new ZerospinError({
+            throw makeZerospinError({
               code: 'backup-db-revoked',
               message: 'Backup ownership was revoked',
             });
@@ -54,9 +58,9 @@ export const applyStatements = Effect.fn('BackupDbApi.applyStatements')(
           }
         },
         catch: cause =>
-          ZerospinError.isZerospinError(cause)
+          isZerospinError(cause)
             ? cause
-            : ZerospinError.catch({
+            : catchZerospinError({
                 code: 'backup-db-apply-failed',
                 message: 'Failed to apply committed SQL to IndexedDB backup',
               })(cause),

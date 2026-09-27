@@ -1,11 +1,11 @@
 ---
 title: System API
-updated: 2026-09-10
+updated: 2026-09-24
 ---
 
 # System API
 
-SystemApi accepts the executing bundle's authored spec, accepts direct aggregate and service commands, reads registered Repos. Frontend admission uses the history-validated live SelectionVAC socket.
+SystemApi accepts the executing bundle's authored spec, accepts direct aggregate and service commands, reads registered Repos. Session admission uses the history-validated live AAVC socket.
 
 ## Trigger
 
@@ -17,28 +17,31 @@ sequenceDiagram
   participant Caller
   participant SystemApi
   participant AggregateChain
-  participant VersionedAggregateRepo
-  autonumber 1
+  participant AggregateVersionRepo
+  autonumber
   Caller->>SystemApi: systemApi.executeAggregateCommand(...)
-  autonumber 2
-  SystemApi->>AggregateChain: chain.executeAggregateCommand(...)
-  autonumber 3
-  AggregateChain->>VersionedAggregateRepo: repo.execute(...)
-  autonumber 4
-  SystemApi-->>Caller: linked terminal result
+  alt malformed request.args
+    SystemApi-->>Caller: system-api-arguments-invalid
+  else valid arguments
+    SystemApi->>AggregateChain: chain.executeAggregateCommand(...)
+    AggregateChain->>AggregateVersionRepo: repo.execute(...)
+    SystemApi-->>Caller: linked terminal result
+  end
 ```
 
 ## Annotated workflow steps
 
-1. The secret-key capability accepts the complete aggregate command and binds the configured systemId.
-   - [`executeAggregateCommand.ts:34-44`](../../packages/system-worker/src/SystemApi/executeAggregateCommand/executeAggregateCommand.ts#L34-L44) — Validates the envelope within the capability's linked RPC handler.
-2. The direct command routes by the checked aggregate fields and capability-bound systemId.
+1. The secret-key capability receives the complete aggregate command.
+   - [`executeAggregateCommand.ts:34-44`](../../packages/system-worker/src/SystemApi/executeAggregateCommand/executeAggregateCommand.ts#L34-L44) — Enters the capability's linked RPC handler with the wire request.
+2. `makeApiHandler` rejects malformed `request.args` with `system-api-arguments-invalid` before AggregateChain runs.
+   - [`makeApiHandler.ts:47-65`](../../packages/system-worker/src/SystemApi/makeApiHandler/makeApiHandler.ts#L47-L65) — Decodes the argument tuple with excess properties rejected and returns the settled failure with a null trace link.
+3. On valid arguments, the direct command routes by the checked aggregate fields and capability-bound systemId.
    - [`executeAggregateCommand.ts`](../../packages/system-worker/src/SystemApi/executeAggregateCommand/executeAggregateCommand.ts) — Resolves AC and delegates the complete command.
-3. AC validates the caller-selected aggregate version and requests execution or committed-result recovery.
+4. AC validates the caller-selected aggregate version and requests execution or committed-result recovery.
    - [`executeAggregateCommand.ts`](../../packages/system-worker/src/AggregateChain/executeAggregateCommand/executeAggregateCommand.ts) — Keeps the requested version explicit for both first execution and retries.
-4. The API returns the settled terminal occurrence; durable publication continues independently.
+5. The API returns the settled terminal occurrence; durable publication continues independently.
    - [`executeAggregateCommand.ts:69-80`](../../packages/system-worker/src/SystemApi/executeAggregateCommand/executeAggregateCommand.ts#L69-L80) — Decodes the chain result through the linked handler.
-   - [`execute.ts:59-106`](../../packages/system-worker/src/VersionedAggregateRepo/execute/execute.ts#L59-L106) — Returns a committed VAR result or the retained VAC occurrence.
+   - [`execute.ts:59-106`](../../packages/system-worker/src/AggregateVersionRepo/execute/execute.ts#L59-L106) — Returns a committed AVR result or the retained AVC occurrence.
 
 ## Inspection
 
@@ -102,15 +105,26 @@ sequenceDiagram
 ## Deployed versions
 
 Each physical aggregate chain binds `{ systemId, aggregateId, aggregateName }`;
-activation derives its active VAR destinations from the executing bundle's
+activation derives its active AVR destinations from the executing bundle's
 aggregate versions after the common spec guard succeeds. Direct command
 execution validates the caller-selected aggregateVersion, including on retry.
 
 - [`onDOActivation.ts`](../../packages/system-worker/src/AggregateChain/onDOActivation/onDOActivation.ts) — reconciles active destinations while retaining delivery cursors and failures.
-- [`executeAggregateCommand.ts`](../../packages/system-worker/src/AggregateChain/executeAggregateCommand/executeAggregateCommand.ts) — validates the requested version and dispatches to its VAR.
+- [`executeAggregateCommand.ts`](../../packages/system-worker/src/AggregateChain/executeAggregateCommand/executeAggregateCommand.ts) — validates the requested version and dispatches to its AVR.
 
 ## Callers
 
 - [Authored System and static deployment](./AuthoredSystem.md)
 - [Command chains and materialization](./server/admitCommands.md)
 - [`executeAggregateCommand` lifecycle](./server/executeAggregateCommand.md)
+
+## Results and diagnostics
+
+Internal RPC returns `{ result, telemetry }`; `makeRpcEnvelope` captures Effect causes and settles typed failures without catching defects. External System API responses return `{ result, link }`. A link refers only to successfully persisted telemetry, and telemetry persistence failure cannot replace the domain outcome. Telemetry acknowledgements emit empty batches. Local result helpers do not perform transport serialization.
+
+Direct command responses carry named admission and execution results. A failed result contains one public structured failure envelope. Actor replay exposes private phase results only to the owning authenticated session; snapshot recovery retains them in durable command history. Each consuming runtime recognizes failures against its bound contract's `failures` record; unfamiliar valid failures reconcile normally. Recognition metadata is local and rebuilt after transport. Original retained occurrences and disposition hashes remain unchanged.
+
+- [`makeRpcEnvelope.ts`](../../packages/logger/src/makeRpcEnvelope.ts) — shared internal envelope producer.
+- [`makeApiHandler.ts`](../../packages/system-worker/src/SystemApi/makeApiHandler/makeApiHandler.ts) — external links and best-effort telemetry persistence.
+- [`deliverCommandOutcome.ts`](../../packages/core/src/contracts/deliverCommandOutcome.ts) — direct command delivery.
+- [`deliverActorCommand.ts`](../../packages/system-worker/src/deliverActorCommand/deliverActorCommand.ts) — session delivery and bound-version persistence.

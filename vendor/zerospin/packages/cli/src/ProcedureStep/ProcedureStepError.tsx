@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 
-import { ZerospinError, type IAnyError } from '@zerospin/error';
+import { isZerospinError, type IAnyError } from '@zerospin/error';
 import { Box, Text } from 'ink';
 
 import { useProcedureStepContext } from './ProcedureStepContext.js';
@@ -18,7 +18,7 @@ function formatZerospinErrorDetails(error: IAnyError): string {
   );
 }
 
-type ProcedureStepErrorProps = {
+type IProcedureStepErrorProps = {
   description: string;
   error?: IAnyError | null | undefined;
 };
@@ -26,7 +26,7 @@ type ProcedureStepErrorProps = {
 export function ProcedureStepError({
   description,
   error,
-}: ProcedureStepErrorProps) {
+}: IProcedureStepErrorProps) {
   const status = useProcedureStepContext();
 
   useEffect(() => {
@@ -50,7 +50,7 @@ export function ProcedureStepError({
           <Text color="red">{message}</Text>
         </Box>
       </Box>
-      {ZerospinError.isZerospinError(error) && (
+      {isZerospinError(error) && (
         <Box marginLeft={2}>
           <Text>{formatZerospinErrorDetails(error)}</Text>
         </Box>

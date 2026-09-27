@@ -1,28 +1,25 @@
-import { makeAsync } from '@zerospin/core/async/makeAsync';
-import type { AggregateFrontendLockSchema } from '@zerospin/core/frontendController/makeAggregateFrontendLock';
+import type { IAggregateSessionLock } from '@zerospin/core/aggregateSession/AggregateSessionLockSchema';
+import { makeAsync } from '@zerospin/core/async/make/makeAsync';
 import type { IAggregateId } from '@zerospin/core/models/types';
-import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import { getByKeyOrThrow } from '@zerospin/core/utils/getByKeyOrThrow';
-import {
-  ZerospinError,
-  type IAnyErrorJson,
-  type IEncodedResult,
-} from '@zerospin/error';
+import { readRpcEnvelope } from '@zerospin/core/utils/readRpcEnvelope';
+import { makeZerospinError, type IZerospinErrorJson } from '@zerospin/error';
+import type { IRpcEnvelope } from '@zerospin/logger';
 import { env } from 'cloudflare:workers';
 import config from 'config';
-import { Effect, type Schema } from 'effect';
+import { Effect } from 'effect';
 
-import { VersionedServiceRepo } from '../VersionedServiceRepo/VersionedServiceRepo.js';
+import { ServiceVersionRepo } from '../ServiceVersionRepo/ServiceVersionRepo.js';
 
 const { system } = config;
 
 /*
- * SystemApi and aggregate frontend calls route named service queries through
- * this worker operation. It requires frontend context fields to be supplied
+ * SystemApi and aggregate definition calls route named service queries through
+ * this worker operation. It requires definition context fields to be supplied
  * together when any are present; the service owner performs the query.
  *
- * 1. Detect supplied frontend context.
- * 2. Reject partially supplied frontend context.
+ * 1. Detect supplied definition context.
+ * 2. Reject partially supplied definition context.
  * 3. Resolve the requested service owner.
  * 4. Execute and decode the named service query.
  */
@@ -34,57 +31,59 @@ export const executeServiceQuery = Effect.fn(
   aggregateName?: string;
   aggregateVersion?: string;
   serviceVersion?: string;
-  authentication?: Readonly<Record<string, unknown>>;
-  frontendName?: string;
-  aggregateFrontendLock?: Schema.Schema.Type<
-    typeof AggregateFrontendLockSchema
-  >;
+  identity?: Readonly<Record<string, unknown>>;
+  sessionName?: string;
+  aggregateSessionLock?: IAggregateSessionLock;
   serviceName: string;
   queryName: string;
   params: unknown;
 }) {
   const {
-    aggregateFrontendLock,
+    aggregateSessionLock,
     aggregateId,
     aggregateName,
-    frontendName,
+    sessionName,
     params,
     queryName,
     serviceName,
-    authentication,
+    identity,
+    serviceVersion: inputServiceVersion,
+    aggregateVersion,
   } = props;
 
-  // 1 — inspect aggregateId, aggregateName, authentication, frontendName, and aggregateFrontendLock
-  const hasAnyFrontendBinding =
+  // 1 — inspect aggregateId, aggregateName, identity, sessionName, and aggregateSessionLock
+  const hasAnySessionBinding =
     aggregateId !== undefined ||
     aggregateName !== undefined ||
-    authentication !== undefined ||
-    frontendName !== undefined ||
-    aggregateFrontendLock !== undefined;
+    identity !== undefined ||
+    sessionName !== undefined ||
+    aggregateSessionLock !== undefined;
 
   // 2 — require all five fields together when any is present
   if (
-    hasAnyFrontendBinding &&
+    hasAnySessionBinding &&
     (aggregateId === undefined ||
       aggregateName === undefined ||
-      authentication === undefined ||
-      frontendName === undefined ||
-      aggregateFrontendLock === undefined)
+      identity === undefined ||
+      sessionName === undefined ||
+      aggregateSessionLock === undefined)
   ) {
-    return yield* new ZerospinError({
-      code: 'service-query-frontend-binding-incomplete',
-      message:
-        'A frontend-bound service query requires aggregateId, aggregateName, authentication, frontendName, and aggregateFrontendLock together',
-    });
+    return yield* Effect.fail(
+      makeZerospinError({
+        code: 'service-query-session-binding-incomplete',
+        message:
+          'A session-bound service query requires aggregateId, aggregateName, identity, sessionName, and aggregateSessionLock together',
+      }),
+    );
   }
 
   // 3 — use configured systemId and the caller serviceName
   const serviceVersion =
     aggregateName === undefined
-      ? props.serviceVersion
+      ? inputServiceVersion
       : (yield* getByKeyOrThrow({
           record: system.aggregates[aggregateName] ?? {},
-          key: props.aggregateVersion ?? '',
+          key: aggregateVersion ?? '',
           recordKind: 'aggregate versions',
         })).services[serviceName];
   yield* getByKeyOrThrow({
@@ -93,12 +92,14 @@ export const executeServiceQuery = Effect.fn(
     recordKind: 'service versions',
   });
   if (serviceVersion === undefined) {
-    return yield* new ZerospinError({
-      code: 'service-version-required',
-      message: 'An exact service version is required',
-    });
+    return yield* Effect.fail(
+      makeZerospinError({
+        code: 'service-version-required',
+        message: 'An exact service version is required',
+      }),
+    );
   }
-  const serviceRepo = yield* VersionedServiceRepo.getRepo({
+  const serviceRepo = yield* ServiceVersionRepo.getRepo({
     key: {
       systemId: env.ZEROSPIN_SYSTEM_ID,
       serviceName,
@@ -106,12 +107,12 @@ export const executeServiceQuery = Effect.fn(
     },
   });
 
-  // 4 — forward serviceName, queryName, and params to VersionedServiceRepo
-  return yield* makeAsync<IEncodedResult<unknown, IAnyErrorJson>>(() =>
+  // 4 — forward serviceName, queryName, and params to ServiceVersionRepo
+  return yield* makeAsync<IRpcEnvelope<unknown, IZerospinErrorJson>>(() =>
     serviceRepo.executeServiceQuery({
       serviceName,
       queryName,
       params,
     }),
-  ).pipe(Effect.flatMap(decodeRpc));
+  ).pipe(Effect.flatMap(envelope => readRpcEnvelope(envelope)));
 });

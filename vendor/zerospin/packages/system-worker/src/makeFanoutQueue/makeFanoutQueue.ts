@@ -1,17 +1,21 @@
 import type { MatchParams } from '@remix-run/route-pattern/match';
 import type { Async } from '@zerospin/core/async/Async';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
-import { makeAsync } from '@zerospin/core/async/makeAsync';
+import { makeAsync } from '@zerospin/core/async/make/makeAsync';
 import type { IDb } from '@zerospin/core/drizzle/types';
-import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
-import { encodeRpc } from '@zerospin/core/utils/encodeRpc';
+import { readRpcEnvelope } from '@zerospin/core/utils/readRpcEnvelope';
 import {
-  ZerospinError,
+  encodeError,
+  isZerospinError,
+  makeZerospinError,
+  prettyUnknownFailure,
+  stringifyZerospinError,
   type IAnyError,
-  type IAnyErrorJson,
-  type IEncodedResult,
+  type IZerospinErrorJson,
 } from '@zerospin/error';
+import { makeRpcEnvelope, type IRpcEnvelope } from '@zerospin/logger';
 import { RpcTarget } from 'capnweb';
+import config from 'config';
 import {
   and,
   asc,
@@ -34,7 +38,6 @@ import {
   type SQLiteTable,
 } from 'drizzle-orm/sqlite-core';
 import {
-  Brand,
   Cause,
   Effect,
   Exit,
@@ -46,33 +49,24 @@ import {
 
 import type { IAlarmRegistry } from '../makeAlarmRegistry/makeAlarmRegistry.js';
 import type { IRepoNameUtils } from '../makeDORepo/makeRepoNameUtils.js';
-import { managedRuntime } from '../managedRuntime.js';
 
 export type IFanoutDelivery<ROW> = {
   rows: readonly ROW[];
   lastIndex: number;
 };
 
-export type IFanoutSubscribeResult = Brand.Brand<'IFanoutSubscribeResult'>;
-
-const FanoutSubscribeResult = Brand.nominal<IFanoutSubscribeResult>();
-
 export type IFanoutQueue<
   NAME extends string = string,
   PATTERN extends string = string,
   ROW = unknown,
-  SOURCE_KEY extends Readonly<Record<string, string>> = Readonly<
-    Record<string, string>
-  >,
 > = RpcTarget & {
   readonly name: NAME;
   /** Type-only carriers; never assigned at runtime. */
   readonly _fanoutRow?: ROW;
   readonly _subscribePattern?: PATTERN;
-  readonly _sourceKey?: SOURCE_KEY;
   /** Starts delivery immediately; callers may await completion or ignore it. */
   readonly drain: () => Promise<void>;
-  /** Schedule recovery before a synchronous producer; delivery runs on the alarm. */
+  /** Arm recovery before a synchronous producer, then start background delivery. */
   readonly drainAfter: <A, E, R>(
     callback: (() => Effect.Effect<A, E, R>) &
       ([Extract<R, Async>] extends [never] ? unknown : never) &
@@ -81,13 +75,13 @@ export type IFanoutQueue<
   getPage(props: {
     afterIndex: number;
     maxIndex?: number;
-  }): Promise<IEncodedResult<IFanoutDelivery<ROW>, IAnyErrorJson>>;
+  }): Promise<IRpcEnvelope<IFanoutDelivery<ROW>, IZerospinErrorJson>>;
   subscribe(
     props: MatchParams<PATTERN> & { currentIndex: number | null },
-  ): Promise<IEncodedResult<IFanoutSubscribeResult, IAnyErrorJson>>;
+  ): Promise<IRpcEnvelope<void, IZerospinErrorJson>>;
 };
 
-export type FanoutQueueRow<
+export type IFanoutQueueRow<
   QUEUE extends IFanoutQueue<string, string, unknown>,
 > = NonNullable<QUEUE['_fanoutRow']>;
 
@@ -106,13 +100,11 @@ export type IFanoutRepo<
 
 export type IFanoutSubscriberRepo<QUEUE extends { readonly name: string }> = {
   readonly [K in `${QUEUE['name']}Subscriber`]: (
-    sourceKey: QUEUE extends { readonly _sourceKey?: infer SOURCE_KEY }
-      ? NonNullable<SOURCE_KEY>
-      : never,
+    sourceKey: never,
   ) => RpcTarget & {
     receive(
       delivery: IFanoutDelivery<unknown>,
-    ): Promise<IEncodedResult<void, IAnyErrorJson>>;
+    ): Promise<IRpcEnvelope<void, IZerospinErrorJson>>;
   };
 };
 
@@ -129,7 +121,7 @@ const readSubscriberIdColumn = (subscriberTable: Table): Column => {
   ) {
     return tableConfig.primaryKeys[0]!.columns[0]!;
   }
-  throw new ZerospinError({
+  throw makeZerospinError({
     code: 'fanout-subscriber-primary-key-ambiguous',
     message: `Fanout subscriber table must have exactly one primary-key column`,
   });
@@ -181,6 +173,7 @@ export const makeFanoutQueue = <
           AnySQLiteColumn<{ data: number; notNull: true }>
         >
     >,
+  ADDITIONAL_ROW = never,
 >(props: {
   name: NAME;
   alarmRegistry: IAlarmRegistry;
@@ -189,6 +182,10 @@ export const makeFanoutQueue = <
   subscribersTableName: SUBSCRIBERS_TABLE_NAME;
   entriesTableName: ENTRIES_TABLE_NAME;
   indexColumnName: INDEX_COLUMN_NAME;
+  readPage?: (page: { afterIndex: number; maxIndex?: number }) => {
+    rows: readonly { row: ADDITIONAL_ROW; index: number }[];
+    lastIndex: number;
+  };
   /** Subscriber page size and simultaneous deliveries; a positive integer. */
   concurrency: number;
   /** Additional predicates ANDed with queue eligibility before the page limit. */
@@ -203,19 +200,19 @@ export const makeFanoutQueue = <
       ) => PromiseLike<{
         receive(
           delivery: IFanoutDelivery<
-            InferSelectModel<NoInfer<SCHEMA[ENTRIES_TABLE_NAME]>>
+            | InferSelectModel<NoInfer<SCHEMA[ENTRIES_TABLE_NAME]>>
+            | NoInfer<ADDITIONAL_ROW>
           >,
-        ): PromiseLike<IEncodedResult<void, IAnyErrorJson>>;
+        ): PromiseLike<IRpcEnvelope<void, IZerospinErrorJson>>;
       }>;
     },
-    IAnyError,
+    IAnyError | IZerospinErrorJson,
     Async
   >;
 }): IFanoutQueue<
   NAME,
   PATTERN,
-  InferSelectModel<SCHEMA[ENTRIES_TABLE_NAME]>,
-  SOURCE_KEY
+  InferSelectModel<SCHEMA[ENTRIES_TABLE_NAME]> | ADDITIONAL_ROW
 > => {
   type SUBSCRIBER = InferSelectModel<SCHEMA[SUBSCRIBERS_TABLE_NAME]> & {
     readonly currentIndex: number | null;
@@ -233,6 +230,7 @@ export const makeFanoutQueue = <
     subscribersWhere = [],
     subscriberNameUtils,
     key,
+    readPage,
   } = props;
 
   const subscriberTable = schema[subscribersTableName];
@@ -245,6 +243,7 @@ export const makeFanoutQueue = <
     maxIndex?: number;
   }) {
     yield* Effect.void;
+    if (readPage !== undefined) return readPage(page);
     return {
       rows: db
         .select({ row: getTableColumns(entriesTable), index: indexColumn })
@@ -272,7 +271,7 @@ export const makeFanoutQueue = <
 
   // 1 — require a positive integer page size before constructing queue state
   if (!Number.isInteger(concurrency) || concurrency < 1) {
-    throw new ZerospinError({
+    throw makeZerospinError({
       code: 'fanout-concurrency-invalid',
       message: 'Fanout concurrency must be a positive integer',
     });
@@ -341,10 +340,12 @@ export const makeFanoutQueue = <
           continue;
         }
         if ((params as Record<string, string>)[field] !== expected) {
-          return yield* new ZerospinError({
-            code: 'fanout-subscriber-target-mismatch',
-            message: `Fanout subscriber key.${field} does not belong to this owner`,
-          });
+          return yield* Effect.fail(
+            makeZerospinError({
+              code: 'fanout-subscriber-target-mismatch',
+              message: `Fanout subscriber key.${field} does not belong to this owner`,
+            }),
+          );
         }
       }
       const subscriberName = yield* subscriberNameUtils.makeName(
@@ -360,7 +361,7 @@ export const makeFanoutQueue = <
               .get();
             if (existing !== undefined) {
               if (existing.failure !== null) {
-                throw new ZerospinError({
+                throw makeZerospinError({
                   code: 'fanout-subscriber-failed',
                   message: `Fanout subscriber ${subscriberName} has a terminal failure`,
                   cause: String(existing.failure),
@@ -390,12 +391,12 @@ export const makeFanoutQueue = <
               .run();
           }),
         catch: cause =>
-          ZerospinError.isZerospinError(cause)
+          isZerospinError(cause)
             ? cause
-            : new ZerospinError({
+            : makeZerospinError({
                 code: 'fanout-subscriber-enroll-failed',
                 message: `Failed to enroll fanout subscriber ${subscriberName}`,
-                cause: ZerospinError.prettyUnknownFailure(cause),
+                cause: prettyUnknownFailure(cause),
               }),
       });
     });
@@ -405,13 +406,15 @@ export const makeFanoutQueue = <
     readonly drain: () => Promise<void>;
     readonly drainAfter: IFanoutQueue['drainAfter'] = <A, E, R>(
       callback: () => Effect.Effect<A, E, R>,
-    ) =>
-      Effect.uninterruptibleMask(restore =>
-        Effect.gen(function* () {
+    ) => {
+      return Effect.uninterruptibleMask(restore =>
+        Effect.gen({ self: this }, function* () {
           activeProducers += 1;
+          let started = false;
           return yield* restore(
             Effect.gen(function* () {
               yield* alarmRegistry.hold(name);
+              started = true;
               const context = yield* Effect.context<R>();
               const exit = Effect.runSyncExitWith(context)(
                 Effect.suspend(callback),
@@ -436,11 +439,13 @@ export const makeFanoutQueue = <
               Effect.sync(() => {
                 producerRevision += 1;
                 activeProducers -= 1;
+                if (started) this.drain();
               }),
             ),
           );
         }),
       );
+    };
 
     constructor() {
       super();
@@ -450,12 +455,14 @@ export const makeFanoutQueue = <
         // 6 — newer calls extend active work before waiting for the shared lock
         lastIndex = Math.max(
           lastIndex,
-          db
-            .select({ index: indexColumn })
-            .from(entriesTable)
-            .orderBy(desc(indexColumn))
-            .limit(1)
-            .get()?.index ?? 0,
+          readPage === undefined
+            ? (db
+                .select({ index: indexColumn })
+                .from(entriesTable)
+                .orderBy(desc(indexColumn))
+                .limit(1)
+                .get()?.index ?? 0)
+            : (yield* getSuffix({ afterIndex: 0, maxIndex: 0 })).lastIndex,
         );
         return yield* Effect.gen(function* () {
           // 7 — scoped children cannot outlive the serialized drain
@@ -513,11 +520,13 @@ export const makeFanoutQueue = <
               yield* Effect.gen(function* () {
                 const result = yield* Effect.gen(function* () {
                   if (typeof id !== 'string') {
-                    return yield* new ZerospinError({
-                      code: 'fanout-subscriber-name-invalid',
-                      message:
-                        'Fanout subscriber primary key must be a Repo name',
-                    });
+                    return yield* Effect.fail(
+                      makeZerospinError({
+                        code: 'fanout-subscriber-name-invalid',
+                        message:
+                          'Fanout subscriber primary key must be a Repo name',
+                      }),
+                    );
                   }
                   const subscriberKey =
                     yield* subscriberNameUtils.parseName(id);
@@ -526,39 +535,42 @@ export const makeFanoutQueue = <
                     repo[subscriberProperty](key),
                   );
                   yield* makeAsync(() => receiver.receive(delivery)).pipe(
-                    Effect.flatMap(decodeRpc),
+                    Effect.flatMap(envelope => readRpcEnvelope(envelope)),
                   );
                   yield* setCurrentIndex(subscriber, deliveredThrough);
                 }).pipe(
                   Effect.catchDefect(cause =>
                     Effect.fail(
-                      new ZerospinError({
+                      makeZerospinError({
                         code: 'fanout-subscriber-delivery-defect',
                         message:
                           'Fanout subscriber delivery or acknowledgement threw',
-                        cause: ZerospinError.prettyUnknownFailure(cause),
+                        cause: prettyUnknownFailure(cause),
                       }),
                     ),
                   ),
                   Effect.result,
                 );
                 if (Result.isFailure(result)) {
-                  const failure = result.failure;
+                  const failure = makeZerospinError(result.failure);
+                  const encodedFailure = JSON.stringify(
+                    yield* encodeError(failure),
+                  );
                   yield* Effect.try({
                     try: () =>
                       db
                         .update(subscriberTable as never)
                         .set({
-                          failure: ZerospinError.stringify(failure),
+                          failure: encodedFailure,
                         } as never)
                         .where(eq(subscriberIdColumn, id))
                         .run(),
                     catch: cause =>
-                      new ZerospinError({
+                      makeZerospinError({
                         code: 'fanout-subscriber-failure-persist-failed',
                         message:
                           'Failed to persist terminal fanout subscriber failure',
-                        cause: `${ZerospinError.stringify(failure)}\n${ZerospinError.prettyUnknownFailure(cause)}`,
+                        cause: `${stringifyZerospinError(failure)}\n${prettyUnknownFailure(cause)}`,
                       }),
                   });
                   firstFailure ??= failure;
@@ -584,12 +596,14 @@ export const makeFanoutQueue = <
               ? alarmRegistry.release(name)
               : Effect.void,
           ).pipe(Effect.provideService(References.PreventSchedulerYield, true));
-          if (firstFailure !== undefined) return yield* firstFailure;
+          if (firstFailure !== undefined) {
+            return yield* Effect.fail(firstFailure);
+          }
         }).pipe(Effect.scoped, semaphore.withPermits(1));
       });
       alarmRegistry.register(name, drain());
       this.drain = () => {
-        const promise = managedRuntime.runPromise(
+        const promise = config.system.runtime.runPromise(
           drain().pipe(Effect.provide(AsyncLive)),
         );
         // Observe background rejection without changing what awaiting callers see.
@@ -598,41 +612,32 @@ export const makeFanoutQueue = <
       };
     }
 
-    async getPage(pageProps: {
-      afterIndex: number;
-      maxIndex?: number;
-    }): Promise<
-      IEncodedResult<
-        IFanoutDelivery<InferSelectModel<SCHEMA[ENTRIES_TABLE_NAME]>>,
-        IAnyErrorJson
-      >
-    > {
-      return managedRuntime.runPromise(
+    async getPage(pageProps: { afterIndex: number; maxIndex?: number }) {
+      return config.system.runtime.runPromise(
         getSuffix(pageProps).pipe(
           Effect.map(page => ({
             rows: page.rows.map(entry => entry.row),
             lastIndex: page.lastIndex,
           })),
           Effect.provide(AsyncLive),
-          encodeRpc,
+          makeRpcEnvelope,
         ),
       );
     }
 
     async subscribe(
       subscribeProps: MatchParams<PATTERN> & { currentIndex: number | null },
-    ): Promise<IEncodedResult<IFanoutSubscribeResult, IAnyErrorJson>> {
+    ) {
       // 11 — enrollment must not wait for a drain awaiting this receiver's activation.
-      const result = await managedRuntime.runPromise(
+      const result = await config.system.runtime.runPromise(
         Effect.gen(function* () {
           // Retain recovery before committing enrollment. Local cursor writes are
           // synchronous and monotonic, including acknowledgements already in flight.
           yield* alarmRegistry.hold(name);
           yield* enroll(subscribeProps);
-          return FanoutSubscribeResult({});
-        }).pipe(Effect.provide(AsyncLive), encodeRpc),
+        }).pipe(Effect.provide(AsyncLive), makeRpcEnvelope),
       );
-      if (result._tag === 'Success') {
+      if (result.result._tag === 'Success') {
         this.drain();
       }
       return result;
@@ -643,7 +648,6 @@ export const makeFanoutQueue = <
   return new FanoutQueue() as IFanoutQueue<
     NAME,
     PATTERN,
-    InferSelectModel<SCHEMA[ENTRIES_TABLE_NAME]>,
-    SOURCE_KEY
+    InferSelectModel<SCHEMA[ENTRIES_TABLE_NAME]> | ADDITIONAL_ROW
   >;
 };

@@ -1,28 +1,33 @@
 import { RoutePattern } from '@remix-run/route-pattern';
 import { defineAggregate } from '@zerospin/core/aggregate/defineAggregate';
-import { makeAggregateVersion } from '@zerospin/core/aggregate/makeAggregateVersion';
+import { makeAggregateVersion } from '@zerospin/core/aggregate/make/makeAggregateVersion';
+import { defineAggregateActor } from '@zerospin/core/aggregateActor/defineAggregateActor';
+import { makeAggregateActorVersion } from '@zerospin/core/aggregateActor/make/makeAggregateActorVersion/makeAggregateActorVersion';
+import { makeAggregateSessionDefinition } from '@zerospin/core/aggregateSession/make/makeAggregateSessionDefinition';
 import { defineContract } from '@zerospin/core/contracts/defineContract';
-import { makeContractVersion } from '@zerospin/core/contracts/makeContractVersion';
+import { makeContractVersion } from '@zerospin/core/contracts/make/makeContractVersion';
 import type { IDb, IResourceDbConfig } from '@zerospin/core/drizzle/types';
-import { getFrontendDbModels } from '@zerospin/core/frontendController/getFrontendDbModels';
-import { makeFrontendController } from '@zerospin/core/frontendController/makeFrontendController';
+import { makeActorIdentity } from '@zerospin/core/identity/make/makeActorIdentity/makeActorIdentity';
 import { defineModel } from '@zerospin/core/models/defineModel';
-import { makeModelIdSchema } from '@zerospin/core/models/makeModelIdSchema';
-import { makeModelVersion } from '@zerospin/core/models/makeModelVersion';
-import { makeSelection } from '@zerospin/core/models/makeSelection';
-import type { IAggregateId } from '@zerospin/core/models/types';
-import { makeSystem } from '@zerospin/core/system/makeSystem';
-import { makeSystemConfig } from '@zerospin/core/system/makeSystemConfig';
-import { mapParseError, ZerospinError } from '@zerospin/error';
+import { makeActorDbVersion } from '@zerospin/core/models/make/makeActorDbVersion';
+import { makeModelIdSchema } from '@zerospin/core/models/make/makeModelIdSchema';
+import { makeModelVersion } from '@zerospin/core/models/make/makeModelVersion';
+import { makeSystem } from '@zerospin/core/system/make/makeSystem/makeSystem';
+import { makeSystemConfig } from '@zerospin/core/system/make/makeSystemConfig';
+import {
+  makeZerospinError,
+  mapParseError,
+  prettyUnknownFailure,
+} from '@zerospin/error';
 import { primitives } from '@zerospin/schema';
 import { Effect, Schema } from 'effect';
 
-export const UserModel = defineModel({
+export const userModel = defineModel({
   name: 'user',
   abbreviation: 'usr',
 });
 
-export const User = makeModelVersion(UserModel, {
+export const userVersion = makeModelVersion(userModel, {
   attributes: {
     name: primitives.text(),
   },
@@ -30,7 +35,7 @@ export const User = makeModelVersion(UserModel, {
   version: '1.0.0',
 });
 
-export const Account = makeModelVersion(
+export const account = makeModelVersion(
   defineModel({ name: 'account', abbreviation: 'acct' }),
   {
     attributes: {
@@ -41,16 +46,16 @@ export const Account = makeModelVersion(
   },
 );
 
-export const ListModel = defineModel({
+export const listModel = defineModel({
   name: 'list',
   abbreviation: 'lst',
 });
 
-export const List = makeModelVersion(ListModel, {
+export const list = makeModelVersion(listModel, {
   attributes: {
     name: primitives.text(),
     userId: primitives.ref({
-      table: User.table,
+      table: userVersion.table,
       relation: 'user',
       inverse: 'lists',
     }),
@@ -59,15 +64,15 @@ export const List = makeModelVersion(ListModel, {
   version: '1.0.0',
 });
 
-export const ItemModel = defineModel({
+export const itemModel = defineModel({
   name: 'item',
   abbreviation: 'tsk',
 });
 
-export const Item = makeModelVersion(ItemModel, {
+export const item = makeModelVersion(itemModel, {
   attributes: {
     listId: primitives.ref({
-      table: List.table,
+      table: list.table,
       relation: 'list',
       inverse: 'items',
     }),
@@ -81,247 +86,278 @@ export const createList = makeContractVersion(defineContract('createList'), {
   guard: ({ payload }: { payload: { name: string } }) =>
     Effect.gen(function* () {
       if (payload.name === 'invalid-name') {
-        return yield* new ZerospinError({
-          code: 'list-name-rejected',
-          message: `List name is rejected: ${payload.name}`,
-        });
+        return yield* Effect.fail(
+          makeZerospinError({
+            code: 'list-name-rejected',
+            message: `List name is rejected: ${payload.name}`,
+          }),
+        );
       }
     }).pipe(Effect.withSpan('createListGuard')),
-
   payload: {
-    id: primitives.foreignKey({ abbreviation: ListModel.abbreviation }),
+    id: primitives.foreignKey({ abbreviation: listModel.abbreviation }),
     name: primitives.text(),
-    userId: primitives.foreignKey({ abbreviation: UserModel.abbreviation }),
+    userId: primitives.foreignKey({ abbreviation: userModel.abbreviation }),
   },
 
-  models: { list: List },
+  models: { list },
   program: ({ payload, models }) => {
     const { id, name, userId } = payload;
-    return Effect.all({
-      created: models.list.create({
+    return Effect.all([
+      models.list.create({
         resourceId: id,
         attributes: {
           name,
           userId,
         },
       }),
-    });
+    ]);
   },
   version: '1.0.0',
 });
 
 export const createItem = makeContractVersion(defineContract('createItem'), {
   payload: {
-    id: primitives.foreignKey({ abbreviation: ItemModel.abbreviation }),
-    listId: primitives.foreignKey({ abbreviation: ListModel.abbreviation }),
+    id: primitives.foreignKey({ abbreviation: itemModel.abbreviation }),
+    listId: primitives.foreignKey({ abbreviation: listModel.abbreviation }),
     name: primitives.text(),
   },
 
-  models: { item: Item },
+  models: { item },
   program: ({ payload, models }) => {
     const { id, listId, name } = payload;
-    return Effect.all({
-      created: models.item.create({
+    return Effect.all([
+      models.item.create({
         resourceId: id,
         attributes: {
           listId,
           name,
         },
       }),
-    });
+    ]);
   },
   version: '1.0.0',
 });
 
 export const deleteList = makeContractVersion(defineContract('deleteList'), {
   payload: {
-    id: primitives.foreignKey({ abbreviation: ListModel.abbreviation }),
+    id: primitives.foreignKey({ abbreviation: listModel.abbreviation }),
   },
 
-  models: { list: List },
+  models: { list },
   program: ({ payload, models }) => {
     const { id } = payload;
-    return Effect.all({
-      deleted: models.list.delete({
+    return Effect.all([
+      models.list.delete({
         resourceId: id,
       }),
-    });
+    ]);
   },
   version: '1.0.0',
 });
 
 export const moveItem = makeContractVersion(defineContract('moveItem'), {
   payload: {
-    id: primitives.foreignKey({ abbreviation: ItemModel.abbreviation }),
+    id: primitives.foreignKey({ abbreviation: itemModel.abbreviation }),
     prevListId: primitives.foreignKey({
-      abbreviation: ListModel.abbreviation,
+      abbreviation: listModel.abbreviation,
     }),
     nextListId: primitives.foreignKey({
-      abbreviation: ListModel.abbreviation,
+      abbreviation: listModel.abbreviation,
     }),
   },
 
-  models: { item: Item },
+  models: { item },
   program: ({ payload, models }) => {
     const { id, prevListId, nextListId } = payload;
-    return Effect.all({
-      moved: models.item.move({
+    return Effect.all([
+      models.item.move({
         resourceId: id,
         property: 'listId',
         prevId: prevListId,
         nextId: nextListId,
       }),
-    });
+    ]);
   },
   version: '1.0.0',
 });
 
 export const updateList = makeContractVersion(defineContract('updateList'), {
   payload: {
-    id: primitives.foreignKey({ abbreviation: ListModel.abbreviation }),
+    id: primitives.foreignKey({ abbreviation: listModel.abbreviation }),
     name: primitives.text(),
-    userId: primitives.foreignKey({ abbreviation: UserModel.abbreviation }),
+    userId: primitives.foreignKey({ abbreviation: userModel.abbreviation }),
   },
 
-  models: { list: List },
+  models: { list },
   program: ({ payload, models }) => {
     const { id, name, userId } = payload;
-    return Effect.all({
-      updated: models.list.update({
+    return Effect.all([
+      models.list.update({
         resourceId: id,
         attributes: { name, userId },
       }),
-    });
+    ]);
   },
   version: '1.0.0',
 });
 
-export const main = makeFrontendController({
-  authenticationSchema: Schema.Struct({
-    aggregateId: Schema.String,
-    userId: makeModelIdSchema(User),
-  }),
-  aggregateVersion: '1.0.0',
-  contracts: {
-    deleteList: { contract: deleteList },
-    createList: {
-      contract: createList,
+export const main = {
+  ...makeAggregateSessionDefinition({
+    actorName: 'default',
+    actorVersion: '1.0.0',
+    identitySchema: Schema.Struct({
+      aggregateId: Schema.String,
+      userId: makeModelIdSchema(userVersion),
+    }),
+    aggregateVersion: '1.0.0',
+    contracts: {
+      deleteList: { contract: deleteList },
+      createList: {
+        contract: createList,
+      },
+      createItem: { contract: createItem },
+      moveItem: { contract: moveItem },
+      updateList: { contract: updateList },
     },
-    createItem: { contract: createItem },
-    moveItem: { contract: moveItem },
-    updateList: { contract: updateList },
-  },
-  aggregateName: 'user',
-  name: 'main',
+    aggregateName: 'user',
+    sessionName: 'main',
+    models: {
+      account,
+      list,
+      item,
+      user: userVersion,
+    },
+  }),
   systemName: 'system-worker',
-  models: {
-    account: Account,
-    list: List,
-    item: Item,
-    user: User,
-  },
+};
+
+export const mainModels = main.models;
+
+const actorDb1 = makeActorDbVersion({
+  models: { user: userVersion, list, item, account },
 });
-
-export const mainModels = getFrontendDbModels(main);
-
+const actorIdentity1 = makeActorIdentity({
+  schema: Schema.Struct({
+    aggregateId: Schema.String,
+    userId: makeModelIdSchema(userVersion),
+  }),
+  actorPath: RoutePattern.parse('/:userId'),
+});
 export const system = makeSystem({
   aggregates: {
-    user: [
-      makeAggregateVersion(defineAggregate({ name: 'user' }), {
-        signatureSchema: Schema.Struct({
-          userId: makeModelIdSchema(User),
-          aggregateId: Schema.String,
-        }),
-        authenticationSchema: Schema.Struct({
-          aggregateId: Schema.String,
-          userId: makeModelIdSchema(User),
-        }),
-        selectionSchema: Schema.Struct({ userId: makeModelIdSchema(User) }),
-        pattern: RoutePattern.parse('/:userId'),
-        authenticate: ({ signature }) => Effect.succeed(signature),
+    user: {
+      '1.0.0': makeAggregateVersion(defineAggregate({ name: 'user' }), {
         version: '1.0.0',
-        authorize: (props: {
-          authentication: Readonly<Record<string, unknown>>;
-          aggregateId: IAggregateId;
-          db: Readonly<
-            Pick<
-              IDb<IResourceDbConfig<typeof mainModels, Record<never, never>>>,
-              'query'
-            >
-          >;
-        }) => {
-          const { db, authentication } = props;
-          const requestedIdentityKey = authentication.userId;
-          return Effect.gen(function* () {
-            const userId = yield* Schema.decodeUnknownEffect(
-              makeModelIdSchema(User),
-            )(requestedIdentityKey).pipe(
-              mapParseError({
-                code: 'fixture-user-id-invalid',
-                prefix: 'Failed to decode the fixture authorization userId',
-              }),
-            );
-            const user = yield* Effect.try({
-              try: () =>
-                db.query.user
-                  .findFirst({
-                    where: { id: { eq: userId } },
-                  })
-                  .sync(),
-              catch: cause =>
-                new ZerospinError({
-                  code: 'fixture-user-query-failed',
-                  message:
-                    'Failed to query the fixture user during authentication.',
-                  cause: ZerospinError.prettyUnknownFailure(cause),
-                }),
-            });
-            if (user === undefined) {
-              return yield* new ZerospinError({
-                code: 'user-not-found',
-                message: `User ${requestedIdentityKey} was not found`,
-              });
-            }
-            return yield* Effect.void;
-          });
-        },
-        models: {
-          user: User,
-          list: List,
-          item: Item,
-          account: Account,
-        },
+
+        models: { user: userVersion, list, item, account },
         contracts: {
-          deleteList: { contract: deleteList },
-          createList: { contract: createList },
-          createItem: { contract: createItem },
-          moveItem: { contract: moveItem },
-          updateList: { contract: updateList },
+          deleteList,
+          createList,
+          createItem,
+          moveItem,
+          updateList,
         },
-        selections: {
-          user: makeSelection({
-            model: User,
-            where: ({ authentication }) => ({ id: authentication.userId }),
-          }),
-          list: makeSelection({
-            model: List,
-            where: ({ authentication }) => ({
-              user: { id: authentication.userId },
-            }),
-          }),
-          item: makeSelection({
-            model: Item,
-            where: ({ authentication }) => ({
-              list: { user: { id: authentication.userId } },
-            }),
-          }),
-          account: makeSelection({
-            model: Account,
-            where: () => ({}),
-          }),
+        automations: {},
+
+        actors: {
+          default: makeAggregateActorVersion(
+            defineAggregateActor({ name: 'default' }),
+            {
+              authentication: 'none',
+              contracts: {
+                deleteList,
+                createList,
+                createItem,
+                moveItem,
+                updateList,
+              },
+              version: '1.0.0',
+              authorize: (props: {
+                identity: Readonly<Record<string, unknown>>;
+                aggregateId: string;
+                db: Readonly<
+                  Pick<
+                    IDb<
+                      IResourceDbConfig<typeof mainModels, Record<never, never>>
+                    >,
+                    'query'
+                  >
+                >;
+              }) => {
+                const { db, identity } = props;
+                const requestedIdentityKey = identity.userId;
+                return Effect.gen(function* () {
+                  const userId = yield* Schema.decodeUnknownEffect(
+                    makeModelIdSchema(userVersion),
+                  )(requestedIdentityKey).pipe(
+                    mapParseError({
+                      code: 'fixture-user-id-invalid',
+                      prefix:
+                        'Failed to decode the fixture authorization userId',
+                    }),
+                  );
+                  const user = yield* Effect.try({
+                    try: () =>
+                      db.query.user
+                        .findFirst({
+                          where: { id: { eq: userId } },
+                        })
+                        .sync(),
+                    catch: cause =>
+                      makeZerospinError({
+                        code: 'fixture-user-query-failed',
+                        message:
+                          'Failed to query the fixture user during identity.',
+                        cause: prettyUnknownFailure(cause),
+                      }),
+                  });
+                  if (user === undefined) {
+                    return yield* Effect.fail(
+                      makeZerospinError({
+                        code: 'user-not-found',
+                        message: `User ${requestedIdentityKey} was not found`,
+                      }),
+                    );
+                  }
+                  return yield* Effect.void;
+                });
+              },
+              db: actorDb1,
+              identity: actorIdentity1,
+              queries: {
+                user: actorDb1.query['user'].findMany({
+                  where: {
+                    id: { eq: actorIdentity1.sql.placeholder('userId') },
+                  },
+                }),
+                list: actorDb1.query['list'].findMany({
+                  where: {
+                    user: {
+                      id: {
+                        eq: actorIdentity1.sql.placeholder('userId'),
+                      },
+                    },
+                  },
+                }),
+                item: actorDb1.query['item'].findMany({
+                  where: {
+                    list: {
+                      user: {
+                        id: {
+                          eq: actorIdentity1.sql.placeholder('userId'),
+                        },
+                      },
+                    },
+                  },
+                }),
+                account: actorDb1.query['account'].findMany({}),
+              },
+            },
+          ),
         },
       }),
-    ],
+    },
   },
   services: {},
   name: 'system-worker',

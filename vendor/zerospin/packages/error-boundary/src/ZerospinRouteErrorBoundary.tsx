@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { ZerospinError } from '@zerospin/error';
+import { isZerospinError } from '@zerospin/error';
 import { Copy, RefreshCw } from 'lucide-react';
 import { isRouteErrorResponse, useRouteError } from 'react-router';
 
@@ -23,23 +23,22 @@ export function ZerospinRouteErrorBoundary() {
   let stack: string | null = null;
   let diagnostics: unknown;
 
-  if (ZerospinError.isZerospinError(error)) {
+  if (isZerospinError(error)) {
     errorKind = error._tag;
     errorCode = error.code;
-    message = error.rawMessage;
+    message = error.message;
     status = error.status;
     structuredDetailsLabel = error.extra === null ? null : 'Extra';
     structuredDetails = error.extra;
     cause = error.cause;
-    stack = error.stack ?? null;
+
     diagnostics = {
       tag: error._tag,
       code: error.code,
-      message: error.rawMessage,
+      message: error.message,
       status: error.status,
       extra: error.extra,
       cause: error.cause,
-      stack: error.stack ?? null,
     };
   } else if (isRouteErrorResponse(error)) {
     errorKind = 'RouteErrorResponse';

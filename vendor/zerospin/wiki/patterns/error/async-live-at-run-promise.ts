@@ -19,7 +19,7 @@ export function runSystemRepoRead(systemName: string) {
   return managedRuntime.runPromise(
     Effect.gen(function* () {
       yield* makeAsync(() => systemRepo.findGeneration(systemName));
-    }).pipe(Effect.provide(AsyncLive), encodeRpc),
+    }).pipe(Effect.provide(AsyncLive), settleResult),
   );
 }
 
@@ -39,4 +39,4 @@ declare function makeAsync<A>(
 declare const systemRepo: {
   findGeneration: (systemName: string) => Promise<unknown>;
 };
-declare function encodeRpc(e: unknown): unknown;
+declare function settleResult(e: unknown): unknown;

@@ -12,7 +12,7 @@ import { mapValues } from 'es-toolkit';
  *
  * @bad Do not add `decodeShape` when the worker can consume the encoded descriptor shape directly.
  * @bad Do not send `primitives.json({ schema })` descriptors with the Effect `Schema` object across RPC.
- * Model and contract specs and frontend locks use encoded primitive descriptors.
+ * Model and contract specs and definition locks use encoded primitive descriptors.
  * Only nested JSON keeps JSON Schema; date defaults serialize as ISO strings.
  *
  * @bad Do not emit a bare schema root; preserve the draft-2020-12 document metadata.

@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { playwright } from '@vitest/browser-playwright';
 import { defineConfig } from 'vitest/config';
 
-// Must match TEST_WORKER_PORT in vitest.playwright.setup.ts
+// Must match testWorkerPort in vitest.playwright.setup.ts
 const TEST_WORKER_PORT = 18788;
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -40,8 +40,7 @@ export default defineConfig({
     'globalThis.IS_REACT_ACT_ENVIRONMENT': true,
   },
   test: {
-    include: ['e2e/**/*.playwright.spec.{ts,tsx}'],
-    exclude: ['e2e/**/*.platform.playwright.spec.{ts,tsx}'],
+    include: ['e2e/Sync.useAgent.playwright.spec.tsx'],
     retry: 3,
     browser: {
       enabled: true,

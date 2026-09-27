@@ -1,5 +1,5 @@
 import { makeCommand } from '@zerospin/core/makeCommand';
-import { makeAggregateId } from '@zerospin/core/utils/makeAggregateId';
+import { makeAggregateId } from '@zerospin/core/utils/make/makeAggregateId';
 import { NanoIdFactory } from '@zerospin/core/utils/NanoIdFactory';
 import { Effect } from 'effect';
 
@@ -7,11 +7,14 @@ import { system } from './zerospin.config';
 
 export const seeds = Effect.runSync(
   Effect.gen(function* () {
+    const aggregateId = makeAggregateId({ id: 'seed-user' });
     return [
       yield* makeCommand(system.aggregates.user['2.0.0'], {
         contractName: 'createUser',
+        actorName: 'default',
+        identity: { userId: 'seed-user', aggregateId },
         systemName: system.name,
-        aggregateId: makeAggregateId({ id: 'seed-user' }),
+        aggregateId,
         payload: { name: 'Ada' },
       }),
 

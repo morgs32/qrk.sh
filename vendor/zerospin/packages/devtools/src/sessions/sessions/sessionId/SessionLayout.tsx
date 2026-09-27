@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react';
 
-import type { ISessionId } from '@zerospin/core/session/types';
+import type { ISessionId } from '@zerospin/core/aggregateSession/types';
 import { Navigate, Outlet, useParams } from 'react-router';
 
 import { useAggregateSession, useServiceSession } from './useSession';

@@ -2,10 +2,14 @@ import type { EventEmitter } from 'node:events';
 import { createRequire } from 'node:module';
 
 import type { Async } from '@zerospin/core/async/Async';
-import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
-import { newSyncRpcSession } from '@zerospin/core/utils/newSyncRpcSession';
+import { getApi } from '@zerospin/core/utils/getApi/getApi';
 import { makeWranglerConfig } from '@zerospin/dev-worker/makeWranglerConfig';
-import { ZerospinError, type IAnyError } from '@zerospin/error';
+import {
+  isZerospinError,
+  makeZerospinError,
+  prettyUnknownFailure,
+  type IAnyError,
+} from '@zerospin/error';
 import { config as loadEnv } from 'dotenv';
 import {
   Config,
@@ -90,14 +94,13 @@ export const devFn = Effect.fn('devFn')(function* (props: {
     if (port === undefined) {
       const configuredPort = yield* Config.port('ZEROSPIN_PORT').pipe(
         Config.option,
-        Effect.mapError(
-          cause =>
-            new ZerospinError({
-              code: 'zerospin-dev-invalid-port',
-              message:
-                'Invalid ZEROSPIN_PORT. Expected an integer from 1 to 65535.',
-              cause: ZerospinError.prettyUnknownFailure(cause),
-            }),
+        Effect.mapError(cause =>
+          makeZerospinError({
+            code: 'zerospin-dev-invalid-port',
+            message:
+              'Invalid ZEROSPIN_PORT. Expected an integer from 1 to 65535.',
+            cause: prettyUnknownFailure(cause),
+          }),
         ),
       );
       port = Option.getOrUndefined(configuredPort);
@@ -135,20 +138,20 @@ export const devFn = Effect.fn('devFn')(function* (props: {
         return wrangler;
       },
       catch: cause =>
-        new ZerospinError({
+        makeZerospinError({
           code: 'zerospin-dev-wrangler-not-found',
           message:
             'Could not load the Wrangler development API from the current project. Install a Wrangler version exposing unstable_DevEnv.',
-          cause: ZerospinError.prettyUnknownFailure(cause),
+          cause: prettyUnknownFailure(cause),
         }),
     });
     const devWorkerPath = yield* Effect.try({
       try: () => require.resolve('@zerospin/dev-worker/DevWorker'),
       catch: cause =>
-        new ZerospinError({
+        makeZerospinError({
           code: 'zerospin-dev-worker-not-found',
           message: 'Could not resolve the Zerospin development Worker.',
-          cause: ZerospinError.prettyUnknownFailure(cause),
+          cause: prettyUnknownFailure(cause),
         }),
     });
 
@@ -163,12 +166,12 @@ export const devFn = Effect.fn('devFn')(function* (props: {
           environment: 'dev',
         }),
       catch: cause =>
-        ZerospinError.isZerospinError(cause)
+        isZerospinError(cause)
           ? cause
-          : new ZerospinError({
+          : makeZerospinError({
               code: 'zerospin-dev-config-failed',
               message: 'Failed to generate backend configuration.',
-              cause: ZerospinError.prettyUnknownFailure(cause),
+              cause: prettyUnknownFailure(cause),
             }),
     });
     const generatedRoot = pathApi.join(cwd, '.wrangler', 'zerospin');
@@ -181,13 +184,12 @@ export const devFn = Effect.fn('devFn')(function* (props: {
             prefix: 'dev-config-',
           }),
         ),
-        Effect.mapError(
-          cause =>
-            new ZerospinError({
-              code: 'zerospin-dev-generated-config-write-failed',
-              message: `Failed to prepare generated Wrangler config under ${generatedRoot}.`,
-              cause: ZerospinError.prettyUnknownFailure(cause),
-            }),
+        Effect.mapError(cause =>
+          makeZerospinError({
+            code: 'zerospin-dev-generated-config-write-failed',
+            message: `Failed to prepare generated Wrangler config under ${generatedRoot}.`,
+            cause: prettyUnknownFailure(cause),
+          }),
         ),
       );
     const generatedConfigPath = pathApi.join(
@@ -209,10 +211,10 @@ export const devFn = Effect.fn('devFn')(function* (props: {
         ZEROSPIN_SYSTEM_ID: { type: 'plain_text', value: systemId },
       }),
       catch: cause =>
-        new ZerospinError({
+        makeZerospinError({
           code: 'zerospin-dev-env-load-failed',
           message: 'Failed to load project environment bindings.',
-          cause: ZerospinError.prettyUnknownFailure(cause),
+          cause: prettyUnknownFailure(cause),
         }),
     });
     const persistPath = pathApi.join(
@@ -226,13 +228,12 @@ export const devFn = Effect.fn('devFn')(function* (props: {
       yield* fileSystem
         .remove(persistPath, { force: true, recursive: true })
         .pipe(
-          Effect.mapError(
-            cause =>
-              new ZerospinError({
-                code: 'zerospin-dev-clean-failed',
-                message: `Failed to remove local Zerospin state at ${persistPath}.`,
-                cause: ZerospinError.prettyUnknownFailure(cause),
-              }),
+          Effect.mapError(cause =>
+            makeZerospinError({
+              code: 'zerospin-dev-clean-failed',
+              message: `Failed to remove local Zerospin state at ${persistPath}.`,
+              cause: prettyUnknownFailure(cause),
+            }),
           ),
         );
     }
@@ -244,13 +245,12 @@ export const devFn = Effect.fn('devFn')(function* (props: {
         { mode: 0o600 },
       )
       .pipe(
-        Effect.mapError(
-          cause =>
-            new ZerospinError({
-              code: 'zerospin-dev-generated-config-write-failed',
-              message: `Failed to write generated Wrangler config ${generatedConfigPath}.`,
-              cause: ZerospinError.prettyUnknownFailure(cause),
-            }),
+        Effect.mapError(cause =>
+          makeZerospinError({
+            code: 'zerospin-dev-generated-config-write-failed',
+            message: `Failed to write generated Wrangler config ${generatedConfigPath}.`,
+            cause: prettyUnknownFailure(cause),
+          }),
         ),
       );
 
@@ -261,11 +261,11 @@ export const devFn = Effect.fn('devFn')(function* (props: {
         Effect.tryPromise(() => environment.teardown()).pipe(
           Effect.catch(cause =>
             Effect.logError(
-              new ZerospinError({
+              makeZerospinError({
                 code: 'zerospin-dev-wrangler-cleanup-failed',
                 message:
                   'Failed to dispose the Wrangler development environment.',
-                cause: ZerospinError.prettyUnknownFailure(cause),
+                cause: prettyUnknownFailure(cause),
               }),
             ),
           ),
@@ -279,10 +279,10 @@ export const devFn = Effect.fn('devFn')(function* (props: {
         Deferred.doneUnsafe(
           stopped,
           Effect.fail(
-            new ZerospinError({
+            makeZerospinError({
               code: 'zerospin-dev-wrangler-failed',
               message: 'The Wrangler development environment failed.',
-              cause: ZerospinError.prettyUnknownFailure(cause),
+              cause: prettyUnknownFailure(cause),
             }),
           ),
         ),
@@ -302,10 +302,10 @@ export const devFn = Effect.fn('devFn')(function* (props: {
           },
         }),
       catch: cause =>
-        new ZerospinError({
+        makeZerospinError({
           code: 'zerospin-dev-wrangler-start-failed',
           message: 'Failed to start Wrangler for zerospin dev.',
-          cause: ZerospinError.prettyUnknownFailure(cause),
+          cause: prettyUnknownFailure(cause),
         }),
     });
     while (true) {
@@ -318,55 +318,39 @@ export const devFn = Effect.fn('devFn')(function* (props: {
         return url.toString();
       }).pipe(
         Effect.timeout('30 seconds'),
-        Effect.mapError(
-          cause =>
-            new ZerospinError({
-              code: 'zerospin-dev-wrangler-not-ready',
-              message:
-                'Wrangler did not finish loading the development Worker.',
-              cause: ZerospinError.prettyUnknownFailure(cause),
-            }),
+        Effect.mapError(cause =>
+          makeZerospinError({
+            code: 'zerospin-dev-wrangler-not-ready',
+            message: 'Wrangler did not finish loading the development Worker.',
+            cause: prettyUnknownFailure(cause),
+          }),
         ),
       );
-      yield* Effect.scoped(
-        Effect.gen(function* () {
-          const gatewayApi = yield* Effect.acquireRelease(
-            Effect.sync(() => newSyncRpcSession<GatewayApi>(apiUrl)),
-            session => Effect.sync(() => session[Symbol.dispose]()),
-          );
-          const response = yield* Effect.tryPromise(() =>
-            gatewayApi
-              .getSystemApi({ zerospinSecretKey: 'sk_dev' })
-              .checkSystemSpec({
-                traceContext: null,
-                args: [],
-              }),
-          );
-          yield* decodeRpc(response.result);
-        }),
-      ).pipe(
+      const systemApi = yield* getApi<GatewayApi>(apiUrl)(gatewayApi =>
+        gatewayApi.getSystemApi({ zerospinSecretKey: 'sk_dev' }),
+      );
+      yield* systemApi.checkSystemSpec().pipe(
         Effect.timeout('30 seconds'),
         Effect.mapError(cause =>
-          ZerospinError.isZerospinError(cause)
+          isZerospinError(cause)
             ? cause
-            : new ZerospinError({
+            : makeZerospinError({
                 code: 'zerospin-dev-system-spec-check-failed',
                 message:
                   'The development Worker did not accept its authored system spec.',
-                cause: ZerospinError.prettyUnknownFailure(cause),
+                cause: prettyUnknownFailure(cause),
               }),
         ),
       );
       yield* terminal
         .display(`Ready on ${apiUrl} (system spec accepted)\n`)
         .pipe(
-          Effect.mapError(
-            cause =>
-              new ZerospinError({
-                code: 'zerospin-dev-wrangler-output-failed',
-                message: 'Failed to display development Worker readiness.',
-                cause: ZerospinError.prettyUnknownFailure(cause),
-              }),
+          Effect.mapError(cause =>
+            makeZerospinError({
+              code: 'zerospin-dev-wrangler-output-failed',
+              message: 'Failed to display development Worker readiness.',
+              cause: prettyUnknownFailure(cause),
+            }),
           ),
         );
     }

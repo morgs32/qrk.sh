@@ -1,5 +1,5 @@
 import { defineModel } from '@zerospin/core/models/defineModel';
-import { makeModelVersion } from '@zerospin/core/models/makeModelVersion';
+import { makeModelVersion } from '@zerospin/core/models/make/makeModelVersion';
 
 /**
  * Define service-owned data with makeModelVersion, derive aggregate-held copies with
@@ -8,7 +8,7 @@ import { makeModelVersion } from '@zerospin/core/models/makeModelVersion';
  * sourceModel and serviceName getters are intentionally absent from spread,
  * Object.keys, and JSON output; explicitly copy them only when deriving a
  * structural source-model record. Use authoritative models in direct service
- * frontends and replicas in aggregate frontends and selections. Use
+ * sessions and replicas in aggregate sessions and selections. Use
  * Product.resourceSchema for authoritative payloads and
  * a contract model binding such as models.product.replicate for aggregate replication.
  *
@@ -17,20 +17,20 @@ import { makeModelVersion } from '@zerospin/core/models/makeModelVersion';
  * that each aggregate definition's replicas match the
  * model versions exposed by its service pins. VAR fetches initial copies from
  * the pinned VSR and installs them before guards inside the command savepoint.
- * VAR and SelectionVAR then subscribe directly to that version's VSFC; service updates
- * advance independent source cursors without entering AAC or VAFC. SelectionVAR emits
- * one selectionIndex per aggregate or service input while retaining aggregateIndex
- * as its consumed aggregate watermark. Standalone service frontends use VSRR.
+ * VAR and ActorVAR then subscribe directly to that version's VSFC; service updates
+ * advance independent source cursors without entering AAC or VAFC. ActorVAR emits
+ * one executedIndex per aggregate or service input while retaining aggregateIndex
+ * as its consumed aggregate watermark. Standalone service sessions use VSRR.
  *
  * @bad Add serviceName or deletedAt to makeModelVersion; service ownership and replica
  * tombstones are not intrinsic authoritative-model fields.
- * @bad Register ProductReplica in services.app.models.
+ * @bad Register productReplica in services.app.models.
  * @bad Register the authoritative Product in aggregates.shopper.models when the
  * aggregate stores the service-derived copy.
  * @bad Detect a canonical replica with 'sourceModel' in model or by reflecting
  * its provenance fields.
  */
-export const Product = makeModelVersion(
+export const product = makeModelVersion(
   defineModel({ name: 'product', abbreviation: 'prd' }),
   {
     attributes: {
@@ -41,8 +41,8 @@ export const Product = makeModelVersion(
   },
 );
 
-export const ProductReplica = makeReplica({
-  sourceModel: Product,
+export const productReplica = makeReplica({
+  sourceModel: product,
   serviceName: 'app',
   modelVersion: '1.0.0',
 });
@@ -51,7 +51,7 @@ const appV1 = makeService({
   name: 'app',
   version: '1.0.0',
   models: {
-    product: Product,
+    product: product,
   },
 });
 
@@ -60,7 +60,7 @@ export const system = makeSystem({
     shopper: makeAggregateVersion(defineAggregate({ name: 'shopper' }), {
       services: { app: appV1 },
       models: {
-        product: ProductReplica,
+        product: productReplica,
       },
     }),
   },

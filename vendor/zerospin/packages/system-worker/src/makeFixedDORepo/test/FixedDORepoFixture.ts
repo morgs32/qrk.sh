@@ -1,8 +1,8 @@
 import { RoutePattern } from '@remix-run/route-pattern';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
-import { makeAsync } from '@zerospin/core/async/makeAsync';
-import { makeDbConfig } from '@zerospin/core/drizzle/makeDbConfig';
-import { ZerospinError } from '@zerospin/error';
+import { makeAsync } from '@zerospin/core/async/make/makeAsync';
+import { makeDbConfig } from '@zerospin/core/drizzle/make/makeDbConfig/makeDbConfig';
+import { makeZerospinError } from '@zerospin/error';
 import { makeTable, primitives } from '@zerospin/schema';
 import { Effect, ManagedRuntime } from 'effect';
 import { Server } from 'partyserver';
@@ -76,11 +76,13 @@ const fixedDORepoFixtureConfig = makeFixedDORepoConfig({
     if (key.scenario === 'fail-once' && attempt === 2) {
       ctx.storage.sql.exec('DROP TABLE fixedDORepoFixtureRows');
       yield* makeAsync(() => ctx.storage.sync());
-      return yield* new ZerospinError({
-        code: 'fixed-do-repo-fixture-bootstrap-failed',
-        message:
-          'FixedDORepo fixture bootstrap failed on its configured attempt',
-      });
+      return yield* Effect.fail(
+        makeZerospinError({
+          code: 'fixed-do-repo-fixture-bootstrap-failed',
+          message:
+            'FixedDORepo fixture bootstrap failed on its configured attempt',
+        }),
+      );
     }
 
     // 5 — insert the named scenario and ID into the fixture table
@@ -145,10 +147,13 @@ export class FixedDORepoFixture extends makeFixedDORepo({
       );
       yield* makeAsync(() => storage.sync());
       if (this.key.scenario === 'activation-fail-once' && attempt === 1) {
-        return yield* new ZerospinError({
-          code: 'fixed-do-repo-fixture-activation-failed',
-          message: 'FixedDORepo fixture activation failed on its first attempt',
-        });
+        return yield* Effect.fail(
+          makeZerospinError({
+            code: 'fixed-do-repo-fixture-activation-failed',
+            message:
+              'FixedDORepo fixture activation failed on its first attempt',
+          }),
+        );
       }
       storage.kv.put('fixedDORepoFixtureActivationCompleted', attempt);
     });

@@ -2,7 +2,11 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { type Async } from '@zerospin/core/async/Async';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
-import { ZerospinError, type IAnyError } from '@zerospin/error';
+import {
+  makeZerospinError,
+  type IAnyError,
+  type IZerospinError,
+} from '@zerospin/error';
 import { Cause, Effect, Exit, Option } from 'effect';
 
 type IProps<TData, TError> = {
@@ -29,14 +33,14 @@ type IErrorState<TData, TError> = {
   status: 'error';
 } & IState<TData, TError>;
 
-export type UseProgramResult<TData, TError> =
+export type IUseProgramResult<TData, TError> =
   | IErrorState<TData, TError>
   | ILoadingState<TData, TError>
   | ISuccessState<TData, TError>;
 
 export function useProgram<TData, TError extends IAnyError = IAnyError>(
   options: IProps<TData, TError>,
-): UseProgramResult<TData, TError | ZerospinError<'unexpected-error'>> {
+): IUseProgramResult<TData, TError | IZerospinError<'unexpected-error'>> {
   const { fetcher } = options;
   // Ink re-renders often; a new inline `() => myEffect` each time must not
   // retrigger this effect (that caused an infinite fetch loop in the CLI).
@@ -74,7 +78,7 @@ export function useProgram<TData, TError extends IAnyError = IAnyError>(
     if (Exit.isFailure(exit)) {
       const error = Option.match(Cause.findErrorOption(exit.cause), {
         onNone: () => {
-          return new ZerospinError({
+          return makeZerospinError({
             code: 'unexpected-error',
             message: Cause.pretty(exit.cause),
           });

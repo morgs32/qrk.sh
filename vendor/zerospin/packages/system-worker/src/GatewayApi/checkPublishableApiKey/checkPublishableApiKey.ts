@@ -1,9 +1,9 @@
-import { ZerospinError } from '@zerospin/error';
+import { makeZerospinError } from '@zerospin/error';
 import { env } from 'cloudflare:workers';
 import { Effect } from 'effect';
 
 /*
- * GatewayApi uses this check before granting a frontend capability.
+ * GatewayApi uses this check before granting a definition capability.
  * Development uses a prefix policy; production requires the configured publishable key.
  *
  * 1. Select the environment policy.
@@ -21,18 +21,22 @@ export const checkPublishableApiKey = Effect.fn(
     if (!apiKey.startsWith('sk_')) {
       return;
     }
-    return yield* new ZerospinError({
-      code: 'secret-key-not-allowed',
-      message: 'A publishable API key is required',
-    });
+    return yield* Effect.fail(
+      makeZerospinError({
+        code: 'secret-key-not-allowed',
+        message: 'A publishable API key is required',
+      }),
+    );
   }
 
-  // 3 — prevent a secret key from acquiring a frontend capability
+  // 3 — prevent a secret key from acquiring a definition capability
   if (apiKey === env.ZEROSPIN_SECRET_KEY) {
-    return yield* new ZerospinError({
-      code: 'secret-key-not-allowed',
-      message: 'A publishable API key is required',
-    });
+    return yield* Effect.fail(
+      makeZerospinError({
+        code: 'secret-key-not-allowed',
+        message: 'A publishable API key is required',
+      }),
+    );
   }
 
   // 4 — match ZEROSPIN_PUBLISHABLE_KEY exactly
@@ -41,9 +45,11 @@ export const checkPublishableApiKey = Effect.fn(
   }
 
   // 5 — return production-api-key-invalid with HTTP status 401
-  return yield* new ZerospinError({
-    code: 'production-api-key-invalid',
-    message: 'The API key does not match this production deployment',
-    status: 401,
-  });
+  return yield* Effect.fail(
+    makeZerospinError({
+      code: 'production-api-key-invalid',
+      message: 'The API key does not match this production deployment',
+      status: 401,
+    }),
+  );
 });

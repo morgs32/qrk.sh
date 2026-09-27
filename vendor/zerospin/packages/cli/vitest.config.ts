@@ -15,7 +15,18 @@ export default defineConfig({
   test: {
     environment: 'node',
     // Jiti and Vitest must share core's canonical class identities.
-    server: { deps: { external: [/\/packages\/core\//] } },
+    server: {
+      deps: {
+        // Transform the RPC adapter so tests can replace its transport.
+        inline: [
+          /\/packages\/core\/dist\/utils\/getApi\/(getApi|newSyncRpcSession\/newSyncRpcSession)\.js$/,
+        ],
+        external: [
+          /\/packages\/core\/(?!dist\/utils\/getApi\/(?:getApi|newSyncRpcSession\/newSyncRpcSession)\.js$)/,
+        ],
+      },
+    },
+    exclude: ['src/**/*.integration.spec.ts'],
     include: ['src/**/*.spec.ts'],
   },
 });

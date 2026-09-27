@@ -1,0 +1,21 @@
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+import { defineConfig } from 'vitest/config';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+export default defineConfig({
+  resolve: {
+    conditions: ['node'],
+    alias: {
+      internal: path.resolve(__dirname, '../core/src'),
+    },
+  },
+  test: {
+    environment: 'node',
+    // Jiti and Vitest must share core's canonical class identities.
+    server: { deps: { external: [/\/packages\/core\//] } },
+    include: ['src/**/*.integration.spec.ts'],
+  },
+});

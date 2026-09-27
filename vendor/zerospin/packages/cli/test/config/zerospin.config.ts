@@ -1,13 +1,19 @@
 import { RoutePattern } from '@remix-run/route-pattern';
 import { defineAggregate } from '@zerospin/core/aggregate/defineAggregate';
-import { makeAggregateVersion } from '@zerospin/core/aggregate/makeAggregateVersion';
+import { makeAggregateVersion } from '@zerospin/core/aggregate/make/makeAggregateVersion';
+import { defineAggregateActor } from '@zerospin/core/aggregateActor/defineAggregateActor';
+import { makeAggregateActorVersion } from '@zerospin/core/aggregateActor/make/makeAggregateActorVersion/makeAggregateActorVersion';
 import { defineContract } from '@zerospin/core/contracts/defineContract';
-import { makeContractVersion } from '@zerospin/core/contracts/makeContractVersion';
-import { makeService } from '@zerospin/core/service/makeService';
-import { makeSystem } from '@zerospin/core/system/makeSystem';
-import { makeSystemConfig } from '@zerospin/core/system/makeSystemConfig';
+import { makeContractVersion } from '@zerospin/core/contracts/make/makeContractVersion';
+import { makeActorIdentity } from '@zerospin/core/identity/make/makeActorIdentity/makeActorIdentity';
+import { makeActorDbVersion } from '@zerospin/core/models/make/makeActorDbVersion';
+import { makeService } from '@zerospin/core/service/make/makeService';
+import { defineServiceActor } from '@zerospin/core/serviceActor/defineServiceActor';
+import { makeServiceActorVersion } from '@zerospin/core/serviceActor/make/makeServiceActorVersion';
+import { makeSystem } from '@zerospin/core/system/make/makeSystem/makeSystem';
+import { makeSystemConfig } from '@zerospin/core/system/make/makeSystemConfig';
 import { primitives } from '@zerospin/schema';
-import { Effect, Schema } from 'effect';
+import { Schema } from 'effect';
 
 const createUser = makeContractVersion(defineContract('createUser'), {
   version: '1.0.0',
@@ -18,49 +24,75 @@ const createProduct = makeContractVersion(defineContract('createProduct'), {
   payload: { name: primitives.text() },
 });
 
+const actorDb2 = makeActorDbVersion({ models: {} });
+const actorIdentity2 = makeActorIdentity({
+  schema: Schema.Struct({
+    userId: Schema.String,
+    aggregateId: Schema.String,
+  }),
+  actorPath: RoutePattern.parse('/:userId'),
+});
+const actorDb1 = makeActorDbVersion({ models: {} });
+const actorIdentity1 = makeActorIdentity({
+  schema: Schema.Struct({
+    userId: Schema.String,
+    aggregateId: Schema.String,
+  }),
+  actorPath: RoutePattern.parse('/:userId'),
+});
 export const system = makeSystem({
   name: 'typed-config-fixture',
   aggregates: {
-    user: [
-      makeAggregateVersion(defineAggregate({ name: 'user' }), {
-                  signatureSchema: Schema.Struct({
-            userId: Schema.String,
-            aggregateId: Schema.String,
-          }),
-          authenticationSchema: Schema.Struct({
-            userId: Schema.String,
-            aggregateId: Schema.String,
-          }),
-          selectionSchema: Schema.Struct({ userId: Schema.String }),
-          pattern: RoutePattern.parse('/:userId'),
-          authenticate: ({ signature }) => Effect.succeed(signature),
+    user: {
+      '2.0.0': makeAggregateVersion(defineAggregate({ name: 'user' }), {
         version: '2.0.0',
         models: {},
-        contracts: { createUser: { contract: createUser } },
-        selections: {},
+        contracts: { createUser },
+        automations: {},
+
+        actors: {
+          default: makeAggregateActorVersion(
+            defineAggregateActor({ name: 'default' }),
+            {
+              authentication: 'none',
+              contracts: { createUser },
+              version: '2.0.0',
+              db: actorDb1,
+              identity: actorIdentity1,
+              queries: {},
+            },
+          ),
+        },
       }),
-    ],
+    },
   },
   services: {
-    app: [
-      makeService({
-        name: 'app',
-                  signatureSchema: Schema.Struct({
-            userId: Schema.String,
-            aggregateId: Schema.String,
-          }),
-          authenticationSchema: Schema.Struct({
-            userId: Schema.String,
-            aggregateId: Schema.String,
-          }),
-          selectionSchema: Schema.Struct({ userId: Schema.String }),
-          pattern: RoutePattern.parse('/:userId'),
-          authenticate: ({ signature }) => Effect.succeed(signature),
-        version: '2.0.0',
-        models: {},
-        contracts: { createProduct },
-      }),
-    ],
+    app: makeService({
+      actors: {
+        '2.0.0': {
+          default: makeServiceActorVersion(
+            defineServiceActor({ name: 'default' }),
+            {
+              authentication: 'none',
+              version: '1.0.0',
+              db: actorDb2,
+              identity: actorIdentity2,
+              queries: {},
+            },
+          ),
+        },
+      },
+
+      name: 'app',
+
+      module: {
+        '2.0.0': {
+          models: {},
+          contracts: { createProduct },
+          automations: {},
+        },
+      },
+    }),
   },
 });
 

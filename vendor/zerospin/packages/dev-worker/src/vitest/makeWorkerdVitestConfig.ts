@@ -30,13 +30,15 @@ export function makeWorkerdVitestConfig(props: {
     setupFiles = [],
     workerBindings,
     config,
+    workerMainPath: inputWorkerMainPath,
+    configModulePath: inputConfigModulePath,
   } = props;
   const repoRoot = path.resolve(packageRoot, '../..');
   const devWorkerRuntimeRoot = path.resolve(__dirname, '..');
   const devWorkerRuntimeExtension =
     path.basename(devWorkerRuntimeRoot) === 'dist' ? '.js' : '.ts';
   const workerMainPath =
-    props.workerMainPath ??
+    inputWorkerMainPath ??
     path.join(devWorkerRuntimeRoot, `DevWorker${devWorkerRuntimeExtension}`);
   const workerdSetupPath = path.join(
     devWorkerRuntimeRoot,
@@ -116,7 +118,7 @@ export function makeWorkerdVitestConfig(props: {
   process.once('exit', generatedFiles.closeBundle);
   try {
     const configModulePath = path.resolve(
-      props.configModulePath ?? path.join(packageRoot, 'zerospin.config.ts'),
+      inputConfigModulePath ?? path.join(packageRoot, 'zerospin.config.ts'),
     );
     const generatedConfig = makeWranglerConfig({
       config,

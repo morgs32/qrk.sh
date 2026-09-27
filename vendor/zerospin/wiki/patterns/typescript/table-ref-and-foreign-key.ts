@@ -1,8 +1,8 @@
 import { defineContract } from '@zerospin/core/contracts/defineContract';
-import { makeContractVersion } from '@zerospin/core/contracts/makeContractVersion';
-import { makeResourceDbConfig } from '@zerospin/core/drizzle/makeDbConfig';
+import { makeContractVersion } from '@zerospin/core/contracts/make/makeContractVersion';
+import { makeResourceDbConfig } from '@zerospin/core/drizzle/make/makeDbConfig/makeDbConfig';
 import { defineModel } from '@zerospin/core/models/defineModel';
-import { makeModelVersion } from '@zerospin/core/models/makeModelVersion';
+import { makeModelVersion } from '@zerospin/core/models/make/makeModelVersion';
 import { makeTable, primitives } from '@zerospin/schema';
 
 /**
@@ -15,9 +15,9 @@ import { makeTable, primitives } from '@zerospin/schema';
  * @bad Supply every non-nullable payload ID explicitly; payload decoding never generates IDs.
  * @bad Do not build referenced resource tables and other tables as separate database configs; the lazy target resolver requires one complete database graph.
  */
-const UserModel = defineModel({ name: 'user', abbreviation: 'usr' });
+const userModel = defineModel({ name: 'user', abbreviation: 'usr' });
 
-const User = makeModelVersion(UserModel, {
+const user = makeModelVersion(userModel, {
   attributes: {
     clerkUserId: primitives.foreignKey({ abbreviation: 'clerkusr' }),
     name: primitives.text(),
@@ -30,7 +30,7 @@ const auditEventTable = makeTable({
   shape: {
     id: primitives.primaryKey({ abbreviation: 'aevt' }),
     userId: primitives.ref({
-      table: User.table,
+      table: user.table,
       relation: 'user',
       inverse: 'auditEvents',
     }),
@@ -51,7 +51,7 @@ const categoryTable = makeTable({
 });
 
 export const userDbConfig = makeResourceDbConfig({
-  models: { user: User },
+  models: { user: user },
   otherTables: {
     auditEvent: auditEventTable,
     category: categoryTable,
@@ -60,7 +60,7 @@ export const userDbConfig = makeResourceDbConfig({
 
 export const createUser = makeContractVersion(defineContract('createUser'), {
   payload: {
-    id: primitives.foreignKey({ abbreviation: UserModel.abbreviation }),
+    id: primitives.foreignKey({ abbreviation: userModel.abbreviation }),
     clerkUserId: primitives.foreignKey({ abbreviation: 'clerkusr' }),
     name: primitives.text(),
   },
@@ -69,7 +69,7 @@ export const createUser = makeContractVersion(defineContract('createUser'), {
 
 export const renameUser = makeContractVersion(defineContract('renameUser'), {
   payload: {
-    id: primitives.foreignKey({ abbreviation: UserModel.abbreviation }),
+    id: primitives.foreignKey({ abbreviation: userModel.abbreviation }),
     name: primitives.text(),
   },
   version: '1.0.0',

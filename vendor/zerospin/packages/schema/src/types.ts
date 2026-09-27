@@ -217,11 +217,28 @@ export interface IAnyRefDescriptor {
   unique: boolean;
   abbreviation: string;
   targetKind?: PrimitiveKind.Integer;
-  table: IAnyTable;
+  table: IAnyTable | string;
   targetTableName: string;
   targetColumnName: string;
   relation: string;
   inverse: string;
+}
+
+/** A config-local reference, resolved before its table codec or SQL is used. */
+export interface INamedRefDescriptor<
+  TABLE_NAME extends string = string,
+  COLUMN_NAME extends string = string,
+  RELATION extends string = string,
+  INVERSE extends string = string,
+  NULLABLE extends boolean = boolean,
+  UNIQUE extends boolean = boolean,
+> extends IAnyRefDescriptor {
+  table: TABLE_NAME;
+  targetColumnName: COLUMN_NAME;
+  relation: RELATION;
+  inverse: INVERSE;
+  nullable: NULLABLE;
+  unique: UNIQUE;
 }
 
 export type IAnyShapes = Record<string, IAnyShape>;
@@ -281,12 +298,15 @@ export type IPrimitiveKindEncoded =
   IPrimitiveKindEncodedMap[keyof IPrimitiveKindEncodedMap];
 
 export type IPrimitiveDescriptorDecoded<T extends IAnyPrimitiveDescriptor> =
-  T extends
-    | IPrimaryKeyDescriptor
-    | IForeignKeyDescriptor
-    | ICursorDescriptor
-    | IAnyRefDescriptor
-    ? T extends IAnyRefDescriptor & { targetKind: PrimitiveKind.Integer }
+  T extends {
+    kind:
+      | PrimitiveKind.PrimaryKey
+      | PrimitiveKind.ForeignKey
+      | PrimitiveKind.Cursor
+      | PrimitiveKind.Ref;
+    abbreviation: string;
+  }
+    ? T extends { targetKind: PrimitiveKind.Integer }
       ? T extends { nullable: true }
         ? number | null
         : number
@@ -330,12 +350,15 @@ export type IPrimitiveDescriptorDecoded<T extends IAnyPrimitiveDescriptor> =
                 : IPrimitiveKindDecodedMap[T['kind']];
 
 export type IPrimitiveDescriptorEncoded<T extends IAnyPrimitiveDescriptor> =
-  T extends
-    | IPrimaryKeyDescriptor
-    | IForeignKeyDescriptor
-    | ICursorDescriptor
-    | IAnyRefDescriptor
-    ? T extends IAnyRefDescriptor & { targetKind: PrimitiveKind.Integer }
+  T extends {
+    kind:
+      | PrimitiveKind.PrimaryKey
+      | PrimitiveKind.ForeignKey
+      | PrimitiveKind.Cursor
+      | PrimitiveKind.Ref;
+    abbreviation: string;
+  }
+    ? T extends { targetKind: PrimitiveKind.Integer }
       ? T extends { nullable: true }
         ? number | null
         : number

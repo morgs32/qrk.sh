@@ -1,6 +1,6 @@
 import type { Async } from '@zerospin/core/async/Async';
 import type { ISystemConfig } from '@zerospin/core/system/types';
-import { ZerospinError, type IAnyError } from '@zerospin/error';
+import { makeZerospinError, type IAnyError } from '@zerospin/error';
 import { config as loadEnv } from 'dotenv';
 import { Effect, Path, type FileSystem } from 'effect';
 
@@ -29,10 +29,12 @@ export const loadConfigFn = Effect.fn('loadConfigFn')(function* (
 
   const zerospinSecretKey = process.env['ZEROSPIN_SECRET_KEY'];
   if (!zerospinSecretKey) {
-    return yield* new ZerospinError({
-      code: 'deploy-missing-env',
-      message: 'Missing ZEROSPIN_SECRET_KEY env var.',
-    });
+    return yield* Effect.fail(
+      makeZerospinError({
+        code: 'deploy-missing-env',
+        message: 'Missing ZEROSPIN_SECRET_KEY env var.',
+      }),
+    );
   }
   const zerospinApiUrl =
     process.env['ZEROSPIN_API_URL'] ?? 'https://api.zerospin.dev';

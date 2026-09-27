@@ -1,5 +1,5 @@
 import type { IChainedCommand } from '@zerospin/core/contracts/types';
-import type { IEncodedResult } from '@zerospin/error';
+import type { IResult } from '@zerospin/error';
 import { assert, type Equals } from 'tsafe';
 
 /**
@@ -11,10 +11,7 @@ const finalizeListPromise =
   systemApi.executeAggregateCommand(encodedListCommand);
 
 assert<
-  Equals<
-    typeof finalizeListPromise,
-    Promise<IEncodedResult<IChainedCommand, unknown>>
-  >
+  Equals<typeof finalizeListPromise, Promise<IResult<IChainedCommand, unknown>>>
 >();
 
 declare const systemApi: {

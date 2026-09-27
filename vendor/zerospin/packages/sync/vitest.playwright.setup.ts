@@ -14,7 +14,7 @@ import { unstable_dev, type Unstable_DevWorker } from 'wrangler';
 
 const packageRoot = path.dirname(fileURLToPath(import.meta.url));
 
-// Must match TEST_WORKER_PORT in vitest.playwright.config.ts
+// Must match testWorkerPort in vitest.playwright.config.ts
 export const TEST_WORKER_PORT = 18788;
 
 let worker: Unstable_DevWorker | undefined;

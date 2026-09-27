@@ -1,0 +1,18 @@
+{
+  "name": "domain-modules-fixture",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "ts": "tsc -p tsconfig.json --noEmit",
+    "lint": "oxlint . --format stylish"
+  },
+  "dependencies": {
+    "@zerospin/browser": "workspace:*",
+    "@zerospin/core": "workspace:*",
+    "@zerospin/fulfillment": "workspace:*",
+    "@zerospin/purchase": "workspace:*",
+    "@zerospin/sdk": "workspace:*",
+    "effect": "4.0.0-rc.111"
+  }
+}

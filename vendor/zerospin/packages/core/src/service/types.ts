@@ -1,11 +1,12 @@
 import type { IAnyError } from '@zerospin/error';
-import { type Effect, type Layer, type Schema, type Scope } from 'effect';
+import { type Effect, type Schema } from 'effect';
 
-import type { IServiceAuthentication } from '../authentication/types.ts';
+import type { IAnyAutomation } from '../automation/types.ts';
 import type { IAnyContracts } from '../contracts/types.ts';
 import type { IDb, IResourceDbConfig } from '../drizzle/types.ts';
-import type { IServiceAuthorization } from '../frontendBinding/types.ts';
 import type { IAnyModels } from '../models/types.ts';
+import type { IAnyDeclarationModule } from '../module/types.ts';
+import type { IAnyServiceActorVersion } from '../serviceActor/types.ts';
 
 export type IServiceQuery<
   MODELS extends IAnyModels = IAnyModels,
@@ -62,51 +63,63 @@ export type IService<
     string,
     IAnyServiceQuery
   >,
-  AUTHORIZE extends IServiceAuthorization<MODELS, never> =
-    IServiceAuthorization<MODELS, never>,
-  VERSION extends string = string,
-  LAYER_SERVICES = never,
-  LAYER_REQUIREMENTS = unknown,
-  GUARD_REQUIREMENTS = Effect.Services<
-    ReturnType<NonNullable<CONTRACTS[keyof CONTRACTS]['guard']>>
+  ACTORS extends Record<string, IAnyServiceActorVersion> = Record<
+    string,
+    IAnyServiceActorVersion
   >,
-  AUTHENTICATION extends IServiceAuthentication = IServiceAuthentication,
+  VERSION extends string = string,
+  AUTOMATIONS extends Readonly<Record<string, IAnyAutomation>> = Readonly<
+    Record<string, IAnyAutomation>
+  >,
 > = {
-  /** Type-only requirements retained when system registries erase concrete guards and layers. */
-  readonly __initializeRequirements?:
-    | LAYER_REQUIREMENTS
-    | Exclude<GUARD_REQUIREMENTS, LAYER_SERVICES>
-    | Scope.Scope;
-  readonly layer: Layer.Layer<LAYER_SERVICES, IAnyError, LAYER_REQUIREMENTS>;
-  readonly authentication: AUTHENTICATION;
+  readonly actors: Readonly<ACTORS>;
   readonly name: NAME;
   readonly version: VERSION;
   readonly models: Readonly<MODELS>;
   readonly contracts: Readonly<CONTRACTS>;
+  readonly automations: Readonly<AUTOMATIONS>;
   readonly queries: Readonly<QUERIES>;
-  readonly authorize?: AUTHORIZE;
 };
 
-export type IAnyService<
-  GUARD_REQUIREMENTS = unknown,
-  LAYER_SERVICES = never,
-  LAYER_REQUIREMENTS = unknown,
-  INITIALIZE_REQUIREMENTS = unknown,
-> = {
-  /** Type-only requirements retained when system registries erase concrete guards and layers. */
-  readonly __initializeRequirements?: INITIALIZE_REQUIREMENTS | Scope.Scope;
-  readonly layer: Layer.Layer<LAYER_SERVICES, IAnyError, LAYER_REQUIREMENTS>;
-  readonly authentication: IServiceAuthentication;
+export type IAnyService = {
+  readonly actors: Readonly<Record<string, IAnyServiceActorVersion>>;
   readonly name: string;
   readonly version: string;
   readonly models: IAnyModels;
-  readonly contracts: IAnyContracts<GUARD_REQUIREMENTS>;
+  readonly contracts: IAnyContracts;
+  readonly automations: Readonly<Record<string, IAnyAutomation>>;
   readonly queries: Readonly<Record<string, IAnyServiceQuery>>;
-  readonly authorize?: {
-    bivarianceHack(props: unknown): Effect.Effect<void, IAnyError, never>;
-  }['bivarianceHack'];
 };
 
-export type IAnyServices<GUARD_REQUIREMENTS = unknown> = Readonly<
-  Record<string, IAnyService<GUARD_REQUIREMENTS>>
->;
+export type IAnyServices = Readonly<Record<string, IAnyService>>;
+
+export type IVersionedService<
+  NAME extends string = string,
+  MODULES extends Readonly<Record<string, IAnyDeclarationModule>> = Readonly<
+    Record<string, IAnyDeclarationModule>
+  >,
+  ACTORS extends Partial<
+    Record<
+      keyof MODULES & string,
+      Readonly<Record<string, IAnyServiceActorVersion>>
+    >
+  > = {},
+> = {
+  readonly name: NAME;
+  readonly versions: {
+    readonly [VERSION in keyof MODULES & string]: IService<
+      NAME,
+      MODULES[VERSION]['models'],
+      MODULES[VERSION]['contracts'],
+      Record<string, IAnyServiceQuery>,
+      VERSION extends keyof ACTORS ? NonNullable<ACTORS[VERSION]> : {},
+      VERSION,
+      MODULES[VERSION]['automations']
+    >;
+  };
+};
+
+export type IAnyVersionedService = {
+  readonly name: string;
+  readonly versions: Readonly<Record<string, IAnyService>>;
+};

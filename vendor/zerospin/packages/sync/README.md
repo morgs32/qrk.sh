@@ -40,17 +40,20 @@ Note the dispatch worker URL (e.g. `https://sync-dispatch.<subdomain>.workers.de
 
 ```bash
 export ZEROSPIN_SYNC_DISPATCH_URL=https://sync-dispatch.<subdomain>.workers.dev
-pnpm nx run @zerospin/sync:test:vitest:browser:platform
+nx run @zerospin/sync:test:vitest:browser:platform
 ```
 
 Requires a prior deploy of both workers to the `zerospin-sync-e2e` namespace.
+Both browser configurations run `e2e/Sync.useAgent.playwright.spec.tsx`: the
+same four observable sync contracts against local or deployed Workers. Each
+case uses a fresh Agent name so reruns do not inherit prior state.
 
-## Local tests (unchanged)
+## Local tests
 
 In-process workerd lane + local `wrangler unstable_dev` browser lane:
 
 ```bash
-pnpm nx run @zerospin/sync:e2e
+nx run @zerospin/sync:e2e
 ```
 
 Vitest config split by runtime: [sync vitest case study](../../wiki/patterns/cases/2026-06-27-sync-vitest-config-by-runtime.md).

@@ -1,6 +1,6 @@
-import { makeAsync } from '@zerospin/core/async/makeAsync';
-import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
-import { ZerospinError } from '@zerospin/error';
+import { makeAsync } from '@zerospin/core/async/make/makeAsync';
+import { readRpcEnvelope } from '@zerospin/core/utils/readRpcEnvelope';
+import { makeZerospinError } from '@zerospin/error';
 import { Effect, Schema, type Context } from 'effect';
 
 import { AggregateChain } from '../../AggregateChain/AggregateChain.js';
@@ -59,7 +59,7 @@ export const getAggregateChainTableRows = Effect.fn(
           systemRepo.getRepoRegistrations({
             repoType: 'AggregateChain',
           }),
-        ).pipe(Effect.flatMap(decodeRpc));
+        ).pipe(Effect.flatMap(envelope => readRpcEnvelope(envelope)));
 
         // 4 — return repo-explorer-repo-not-found before opening the requested Repo
         if (
@@ -67,11 +67,13 @@ export const getAggregateChainTableRows = Effect.fn(
             registration => registration.repoName === repoName,
           ) === undefined
         ) {
-          return yield* new ZerospinError({
-            code: 'repo-explorer-repo-not-found',
-            message: `AggregateChain "${repoName}" is not registered`,
-            extra: { repoName, repoType: 'AggregateChain' },
-          });
+          return yield* Effect.fail(
+            makeZerospinError({
+              code: 'repo-explorer-repo-not-found',
+              message: `AggregateChain "${repoName}" is not registered`,
+              extra: { repoName, repoType: 'AggregateChain' },
+            }),
+          );
         }
 
         // 5 — parse owner fields from repoName and bind systemId from SystemApi
@@ -89,7 +91,7 @@ export const getAggregateChainTableRows = Effect.fn(
         return yield* makeAsync<
           Awaited<ReturnType<AggregateChain['getRepoTableRows']>>
         >(() => repo.getRepoTableRows({ tableName })).pipe(
-          Effect.flatMap(decodeRpc),
+          Effect.flatMap(envelope => readRpcEnvelope(envelope)),
         );
       }).pipe(
         Effect.withSpan('SystemApi.getAggregateChainTableRows', {

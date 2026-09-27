@@ -28,7 +28,7 @@ export function SessionsDatabaseModelRoute() {
 
   const isDeclaredAggregateModel =
     aggregateSession !== undefined &&
-    Object.hasOwn(aggregateSession.frontend.models, decoded);
+    Object.hasOwn(aggregateSession.definition.models, decoded);
   const isDeclaredServiceModel =
     serviceSession !== undefined &&
     serviceSession.getModelAttributes(decoded) !== undefined;

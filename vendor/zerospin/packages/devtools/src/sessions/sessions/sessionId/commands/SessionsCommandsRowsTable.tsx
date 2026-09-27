@@ -1,4 +1,4 @@
-import { memo, useMemo, useState } from 'react';
+import { memo, useEffect, useMemo, useState } from 'react';
 
 import {
   flexRender,
@@ -6,10 +6,13 @@ import {
   useReactTable,
   type VisibilityState,
 } from '@tanstack/react-table';
-import { getInitializedStateOrThrow } from '@zerospin/core/session/getInitializedStateOrThrow';
-import type { IAggregateSession } from '@zerospin/core/session/types';
+import { getInitializedStateOrThrow } from '@zerospin/core/aggregateSession/getInitializedStateOrThrow';
+import type { IAggregateSession } from '@zerospin/core/aggregateSession/types';
+import { useStore } from 'zustand/react';
 
+import type { IDevtoolsAggregateSessionEntry } from '../../../../types';
 import { useLiveQueryOnDb } from '../../../../useLiveQueryOnDb';
+import { zerospinDevtoolsStore } from '../../../../zerospinDevtoolsStore';
 import { SessionsDataCell } from '../../../SessionsDataCell';
 import { sessionsDatabaseTabStyles } from '../database/sessionsDatabaseTabStyles';
 
@@ -24,9 +27,13 @@ import {
 const SessionsCommandsTableBody = memo(
   function SessionsCommandsTableBody(props: {
     rows: Readonly<Record<string, unknown>>[];
+    node?: boolean;
   }) {
-    const { rows } = props;
-    const columns = useMemo(() => makeSessionsCommandsTableColumns(), []);
+    const { rows, node = false } = props;
+    const columns = useMemo(
+      () => makeSessionsCommandsTableColumns(node),
+      [node],
+    );
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(
       {},
     );
@@ -117,7 +124,7 @@ const SessionsCommandsTableBody = memo(
   },
 );
 
-export function SessionsCommandsRowsTable(props: {
+function LocalCommandsRowsTable(props: {
   readonly session: IAggregateSession;
 }) {
   const { session } = props;
@@ -125,8 +132,8 @@ export function SessionsCommandsRowsTable(props: {
   const { data: rows, error } = useLiveQueryOnDb({
     db,
     deps: [],
-    query: db => db.query.commandJournal!.findMany(),
-    tableNames: ['commandJournal'],
+    query: db => db.query.commands!.findMany(),
+    tableNames: ['commands'],
   });
 
   if (error !== undefined) {
@@ -144,4 +151,83 @@ export function SessionsCommandsRowsTable(props: {
   }
 
   return <SessionsCommandsTableBody rows={rows} />;
+}
+
+function NodeCommandsRowsTable(props: {
+  history: NonNullable<IDevtoolsAggregateSessionEntry['history']>;
+}) {
+  const { history } = props;
+  const [after, setAfter] = useState(0);
+  const [revision, setRevision] = useState(0);
+  const [rows, setRows] = useState<Readonly<Record<string, unknown>>[]>([]);
+  const [failure, setFailure] = useState('');
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    let current = true;
+    setLoading(true);
+    void history({ afterNodeIndex: after, limit: 50 })
+      .then(
+        page => {
+          if (current) {
+            setRows([...page]);
+            setFailure('');
+          }
+        },
+        error => {
+          if (current) setFailure(String(error));
+        },
+      )
+      .finally(() => {
+        if (current) setLoading(false);
+      });
+    return () => {
+      current = false;
+    };
+  }, [history, after, revision]);
+  const last = rows.at(-1)?.nodeIndex;
+  return (
+    <>
+      <div style={sessionsDatabaseTabStyles.tableToolbar}>
+        <button
+          disabled={loading}
+          onClick={() => {
+            setAfter(0);
+            setRevision(value => value + 1);
+          }}
+        >
+          Refresh
+        </button>
+        <button
+          disabled={loading || rows.length < 50 || typeof last !== 'number'}
+          onClick={() => {
+            if (typeof last === 'number') setAfter(last);
+          }}
+        >
+          Next 50
+        </button>
+        <span>
+          {loading
+            ? 'Loading…'
+            : `${rows.length} commands after nodeIndex ${after}`}
+        </span>
+        {failure && <span role="alert">{failure}</span>}
+      </div>
+      <SessionsCommandsTableBody rows={rows} node />
+    </>
+  );
+}
+
+export function SessionsCommandsRowsTable(props: {
+  readonly session: IAggregateSession;
+}) {
+  const history = useStore(zerospinDevtoolsStore, state =>
+    props.session.sessionId === null
+      ? undefined
+      : state.aggregateSessionsById.get(props.session.sessionId)?.history,
+  );
+  return history === undefined ? (
+    <LocalCommandsRowsTable {...props} />
+  ) : (
+    <NodeCommandsRowsTable history={history} />
+  );
 }

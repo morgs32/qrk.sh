@@ -14,7 +14,7 @@ import type { UnionToIntersection } from 'type-fest';
 
 import type { IAnyModels } from '../models/types.ts';
 
-import type { makeInMemorySQLite3 } from './makeInMemorySQLite3.ts';
+import type { makeInMemorySQLite3 } from './make/makeInMemorySQLite3/makeInMemorySQLite3.ts';
 
 type IInMemoryWaSqliteClient = Awaited<ReturnType<typeof makeInMemorySQLite3>>;
 
@@ -149,7 +149,9 @@ export type IDrizzleRelationsFromModels<
 export type IDbConfig<
   SCHEMA extends IAnyDrizzleSchemas = IAnyDrizzleSchemas,
   RELATIONS extends AnyRelations = AnyRelations,
+  TABLES extends IAnyTables = IAnyTables,
 > = Readonly<{
+  tables: TABLES;
   schema: SCHEMA;
   relations: RELATIONS;
 }>;
@@ -168,7 +170,8 @@ export type IResourceDbConfig<
     {
       [MODEL_KEY in keyof MODELS]: MODELS[MODEL_KEY]['table'];
     } & OTHER_TABLES
-  >
+  >,
+  { [MODEL_KEY in keyof MODELS]: MODELS[MODEL_KEY]['table'] } & OTHER_TABLES
 > &
   Brand.Brand<'ResourceDbConfig'>;
 
@@ -189,7 +192,7 @@ export type IResourceDb<
   CONFIG extends IResourceDbConfig = IResourceDbConfig<any, any>,
 > = IDb<CONFIG> & Brand.Brand<'ResourceDb'>;
 
-/** Synchronous Drizzle transaction supplied by Db.Tx or an explicit savepoint. */
+/** Synchronous Drizzle transaction supplied by makeTx or an explicit savepoint. */
 type IDrizzleTransaction<CONFIG extends IDbConfig> = SQLiteAsyncTransaction<
   'sync',
   unknown,

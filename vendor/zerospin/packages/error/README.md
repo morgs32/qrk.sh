@@ -1,5 +1,30 @@
 # @zerospin/error
 
+Scoped business errors are declared inline in a contract or reusable guard's
+`failures` record, using camelCase keys. Callbacks receive the declared schemas:
+
+```ts
+failures: {
+  purchaseNotFound: ContractError.schema({ code: 'purchase-not-found' }),
+  amountInvalid: ContractError.schema({
+    code: 'amount-invalid',
+    extra: Schema.Struct({ amount: Schema.Number }),
+  }),
+},
+guard: Effect.fn('purchase.guard')(function* ({ failures, payload }) {
+  if (payload.amount < 0) {
+    yield* failures.amountInvalid.make({ extra: { amount: payload.amount } });
+  }
+  if (!purchaseExists()) yield* failures.purchaseNotFound.make();
+}),
+```
+
+`ContractError.schema`, `ActorError.schema`, and `AggregateError.schema` default
+`extra` to `Schema.Null`. For that schema, `.make()`, `.make({})`, or a message
+override produces an explicit `extra: null` in runtime and JSON values.
+Custom extra schemas require their decoded value. Wire decoding still requires
+all encoded fields. The record key does not replace the error's wire `code`.
+
 Zerospin Error provides a type-safe, structured error system for Effect-based applications. It extends Effect's `Data.TaggedError` to provide consistent error handling with serialization support, error codes, and optional metadata.
 
 ## Installation
@@ -138,7 +163,7 @@ const parseJson = Effect.tryPromise(() => res.json()).pipe(
 **Example from Zerospin:**
 
 ```typescript
-// From packages/client/src/makeZerospinFetchFrontendApi.ts
+// From packages/client/src/makeZerospinFetchSessionApi.ts
 Effect.fn('fnName')(function* () {
   const res = yield* Effect.tryPromise(async () => {
     return fetch(url, {
@@ -230,7 +255,7 @@ const fetchData = Effect.tryPromise(async () => {
 **Example from Zerospin:**
 
 ```typescript
-// From packages/client/src/makeZerospinFetchFrontendApi.ts
+// From packages/client/src/makeZerospinFetchSessionApi.ts
 Effect.fn('fnName')(function* () {
   const res = yield* Effect.tryPromise(async () => {
     return fetch(url, {
@@ -308,7 +333,7 @@ When receiving errors from APIs or serialized sources:
 ```typescript
 import { ZerospinError } from '@zerospin/error';
 
-// From packages/client/src/makeZerospinFetchFrontendApi.ts
+// From packages/client/src/makeZerospinFetchSessionApi.ts
 Effect.fn('fnName')(function* () {
   const payload = yield* Effect.tryPromise(() => {
     return res.json() as Promise<IAnyErrorJson | IJson>;

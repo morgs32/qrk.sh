@@ -1,44 +1,17 @@
-import { Effect } from 'effect';
+import type { IAnyAggregates } from '@zerospin/core/aggregate/types';
+import { getAggregateActorVersion } from '@zerospin/core/aggregateActor/getAggregateActorVersion';
 
 /**
- * VersionedAggregateRepo resolves the command contract from the named aggregate only.
- *
- * @bad Scan `system.services` during aggregate command execution.
- * @bad Search every aggregate after the named aggregate misses.
- * @bad Replace keyed contract lookup with an `Object.values(...).find(...)` scan.
+ * Resolve the recorded actor version within the named aggregate's supported versions.
+ * Materialization follows explicit contract adaptation in this same actor lineage.
+ * @bad Read an aggregate-authored contracts map.
+ * @bad Search unrelated actors or services after a missing actor contract.
+ * @bad Substitute the latest actor for a retained command's actor version.
  */
-export const resolveAggregateContract = Effect.fn('resolveAggregateContract')(
-  function* (props: {
-    aggregateName: string;
-    command: { commandName: string };
-    system: {
-      aggregates: Record<
-        string,
-        {
-          contracts: Record<
-            string,
-            { contract: { commandName: string; program: unknown } }
-          >;
-        }
-      >;
-    };
-  }) {
-    const aggregate = yield* getByKeyOrThrow({
-      record: props.system.aggregates,
-      key: props.aggregateName,
-      recordKind: 'aggregates',
-    });
-    const contractBinding = yield* getByKeyOrThrow({
-      record: aggregate.contracts,
-      key: props.command.commandName,
-      recordKind: 'aggregate contracts',
-    });
-    return contractBinding.contract;
-  },
-);
-
-declare function getByKeyOrThrow<VALUE>(props: {
-  record: Record<string, VALUE>;
-  key: string;
-  recordKind: string;
-}): Effect.Effect<VALUE, unknown>;
+export function resolveAggregateContract(props: {
+  versions: IAnyAggregates;
+  command: { actorName: string; actorVersion: string; commandName: string };
+}) {
+  const actor = getAggregateActorVersion(props.versions, props.command);
+  return actor.contracts[props.command.commandName];
+}

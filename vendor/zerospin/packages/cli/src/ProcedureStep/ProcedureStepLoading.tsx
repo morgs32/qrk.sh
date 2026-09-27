@@ -2,11 +2,11 @@ import { Box, Text } from 'ink';
 
 import { useProcedureStepContext } from './ProcedureStepContext.js';
 
-type ProcedureStepLoadingProps = {
+type IProcedureStepLoadingProps = {
   message?: string | undefined;
 };
 
-export function ProcedureStepLoading({ message }: ProcedureStepLoadingProps) {
+export function ProcedureStepLoading({ message }: IProcedureStepLoadingProps) {
   const status = useProcedureStepContext();
 
   if (status !== 'loading') {

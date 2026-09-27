@@ -4,7 +4,7 @@ import type {
   ISystemConfig,
   ISystemEnvironmentId,
 } from '@zerospin/core/system/types';
-import { ZerospinError } from '@zerospin/error';
+import { makeZerospinError } from '@zerospin/error';
 
 /** Framework-owned backend configuration shared by CLI and workerd tests. */
 export function makeWranglerConfig(props: {
@@ -15,35 +15,38 @@ export function makeWranglerConfig(props: {
 }) {
   const name = `zerospin-${props.config.system.name}`;
   if (!/^[a-z][a-z0-9_-]*$/.test(name) || name.length > 63) {
-    throw new ZerospinError({
+    throw makeZerospinError({
       code: 'zerospin-worker-name-invalid',
       message: `System name ${JSON.stringify(props.config.system.name)} produces an invalid Worker name: ${name}.`,
     });
   }
   const bindings = [
     { name: 'SYSTEM_REPO', class_name: 'SystemRepo' },
-    { name: 'VERSIONED_AGGREGATE_REPO', class_name: 'VersionedAggregateRepo' },
-    { name: 'VERSIONED_SERVICE_REPO', class_name: 'VersionedServiceRepo' },
+    { name: 'AGGREGATE_VERSION_REPO', class_name: 'AggregateVersionRepo' },
+    { name: 'SERVICE_VERSION_REPO', class_name: 'ServiceVersionRepo' },
     { name: 'AGGREGATE_CHAIN', class_name: 'AggregateChain' },
     {
-      name: 'VERSIONED_AGGREGATE_CHAIN',
-      class_name: 'VersionedAggregateChain',
+      name: 'AGGREGATE_VERSION_CHAIN',
+      class_name: 'AggregateVersionChain',
     },
-    { name: 'VERSIONED_SERVICE_CHAIN', class_name: 'VersionedServiceChain' },
+    { name: 'SERVICE_VERSION_CHAIN', class_name: 'ServiceVersionChain' },
     {
-      name: 'SELECTION_VERSIONED_AGGREGATE_REPO',
-      class_name: 'SelectionVersionedAggregateRepo',
+      name: 'AGGREGATE_ACTOR_VERSION_REPO',
+      class_name: 'AggregateActorVersionRepo',
     },
     {
-      name: 'SELECTION_VERSIONED_AGGREGATE_CHAIN',
-      class_name: 'SelectionVersionedAggregateChain',
+      name: 'AGGREGATE_ACTOR_VERSION_CHAIN',
+      class_name: 'AggregateActorVersionChain',
     },
-    { name: 'SERVICE_ADMITTED_CHAIN', class_name: 'ServiceAdmittedChain' },
+    { name: 'SERVICE_CHAIN', class_name: 'ServiceChain' },
     {
-      name: 'FRONTEND_VERSIONED_SERVICE_REPO',
-      class_name: 'FrontendVersionedServiceRepo',
+      name: 'SERVICE_ACTOR_VERSION_REPO',
+      class_name: 'ServiceActorVersionRepo',
     },
-    { name: 'FRONTEND_SERVICE_CHAIN', class_name: 'FrontendServiceChain' },
+    {
+      name: 'SERVICE_ACTOR_VERSION_CHAIN',
+      class_name: 'ServiceActorVersionChain',
+    },
     { name: 'SYSTEM_LOG_REPO', class_name: 'SystemLogRepo' },
     { name: 'SYSTEM_LOG_AGENT', class_name: 'SystemLogAgent' },
   ];

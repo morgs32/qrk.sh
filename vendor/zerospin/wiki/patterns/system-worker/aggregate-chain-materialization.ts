@@ -3,7 +3,7 @@
  * A VAR for each aggregateVersion prepares admitted commands outside its
  * SQLite transaction, then commits resources, terminal results, and its hash
  * together. VAC retains the results after VAR's delete-mode executedCommands outbox delivers.
- * AC fanout invokes VAR.versionedAggregateFanoutQueueSubscriber
+ * AC fanout invokes VAR.admissionResultsFanoutSubscriber
  * with AC's bound { systemId, aggregateId, aggregateName }, then sends
  * receive({ rows, lastIndex }); delivery advances only to the committed row
  * tail, never to lastIndex. Direct bounded execution uses that same subscriber
@@ -16,13 +16,14 @@
  * service subscriptions, without AC self-enrollment. SystemRepo inspection
  * reads explicit Repo registrations.
  *
- * AC contains aggregate commands only. VAR and SelectionVAR consume their authored
- * service-version pins directly from VSC, using independent service cursors
- * and resource enrollment. VAR installs authoritative replicas before guards;
- * successful finalized replicate mutations carry the effective resource,
- * serviceVersion, and serviceIndex. Service updates never create VAC entries.
- * SelectionVAR publishes aggregate and service progress through one SelectionVAC history,
- * ordered by selectionIndex with a separate aggregateIndex watermark.
+ * AC contains aggregate commands only. VAR consumes pinned VSC sources and
+ * installs authoritative replicas before guards. Its aggregateCommands and
+ * serviceCommands tables allocate one head.executedIndex. VAC retains both
+ * families and merges them into ordered pages of fanout rows. ActorVAR consumes
+ * only VAC and commits one minimal actor output at each source executedIndex,
+ * including empty deltas. Its actorState retains executedIndex, executedHash,
+ * and the separate aggregateIndex watermark. Service outputs have no aggregate
+ * frontend completion owner.
  *
  * Direct retries select the current base and return its retained result.
  * Cutover validates enrollment after its already-promoted shortcut. It samples n and awaits base.flush(n) and candidate.flush(n) in parallel.

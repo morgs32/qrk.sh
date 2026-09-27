@@ -1,4 +1,7 @@
-import type { IAggregateSession, ISessionId } from '@zerospin/core/session/types';
+import type {
+  IAggregateSession,
+  ISessionId,
+} from '@zerospin/core/aggregateSession/types';
 import { useParams } from 'react-router';
 import { useStore } from 'zustand/react';
 

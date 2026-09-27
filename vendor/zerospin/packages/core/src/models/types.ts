@@ -24,7 +24,6 @@ import type { Schema } from 'effect';
 import type { Brand } from 'effect/Brand';
 import { assert, type Equals } from 'tsafe';
 
-import type { IEncodedAppliedMutation } from '../contracts/types.ts';
 import { type coreAbbreviations } from '../utils/coreAbbreviations.ts';
 
 // --- model ---
@@ -119,11 +118,10 @@ export type IEncodedResourceShape = InferEncodedRow<IResourceShape> &
 export type IEncodedDeletedResourceShape = IEncodedResourceShape &
   Readonly<{ deletedAt: Date }>;
 
-export type IResourceDelta = Readonly<{
+export type IExecutionDelta = Readonly<{
   inserted: readonly IEncodedResourceShape[];
   updated: readonly IEncodedResourceShape[];
   deleted: readonly IEncodedDeletedResourceShape[];
-  mutations: readonly IEncodedAppliedMutation[];
 }>;
 
 export type IEncodedResource = Readonly<IEncodedResourceShape> &
@@ -181,11 +179,7 @@ export interface IModel<
   readonly table: ITable<
     MODEL_NAME,
     PROPERTIES_SHAPE & {
-      readonly [KEY in keyof PROPERTIES_SHAPE]: PROPERTIES_SHAPE[KEY] extends infer DESCRIPTOR
-        ? DESCRIPTOR extends IShape[string]
-          ? Readonly<DESCRIPTOR>
-          : never
-        : never;
+      readonly [KEY in keyof PROPERTIES_SHAPE]: PROPERTIES_SHAPE[KEY];
     }
   >;
   readonly drizzleSchema: IDrizzleResourceTable;
@@ -220,6 +214,7 @@ export type IModelReplica<
 > & {
   readonly sourceModel: SOURCE_MODEL;
   readonly serviceName: SERVICE_NAME;
+  readonly serviceVersion: string;
 };
 export type InferResource<
   MODEL extends IModel,
@@ -248,49 +243,56 @@ export type InferAttributesSchema<MODEL extends IModel> = Schema.Codec<
 
 export type IAnyModels = Readonly<Record<string, IModel>>;
 
-export type IAssertValidModels<MODELS extends IAnyModels> = {
-  [K in keyof MODELS & string]: K extends MODELS[K]['modelName']
-    ? MODELS[K]['modelName'] extends K
-      ? {
-          [ATTRIBUTE_KEY in keyof MODELS[K]['attributes'] &
-            string]: MODELS[K]['attributes'][ATTRIBUTE_KEY] extends IAnyRefDescriptor
-            ? MODELS[K]['attributes'][ATTRIBUTE_KEY]['targetTableName'] extends infer TARGET_MODEL_NAME extends
-                keyof MODELS & string
-              ? MODELS[TARGET_MODEL_NAME]['table'] extends MODELS[K]['attributes'][ATTRIBUTE_KEY]['table']
-                ? MODELS[K]['attributes'][ATTRIBUTE_KEY]['table'] extends MODELS[TARGET_MODEL_NAME]['table']
-                  ? MODELS[K]
-                  : MODELS[TARGET_MODEL_NAME] extends {
-                        readonly sourceModel: infer SOURCE_MODEL extends IModel;
-                      }
-                    ? SOURCE_MODEL['table'] extends MODELS[K]['attributes'][ATTRIBUTE_KEY]['table']
-                      ? MODELS[K]['attributes'][ATTRIBUTE_KEY]['table'] extends SOURCE_MODEL['table']
+export type IAssertValidModels<
+  MODELS extends IAnyModels,
+  ALL_MODELS extends IAnyModels = MODELS,
+> = string extends keyof MODELS
+  ? MODELS
+  : {
+        [K in keyof MODELS & string]: K extends MODELS[K]['modelName']
+          ? MODELS[K]['modelName'] extends K
+            ? {
+                [ATTRIBUTE_KEY in keyof MODELS[K]['attributes'] &
+                  string]: MODELS[K]['attributes'][ATTRIBUTE_KEY] extends IAnyRefDescriptor
+                  ? MODELS[K]['attributes'][ATTRIBUTE_KEY]['targetTableName'] extends infer TARGET_MODEL_NAME extends
+                      keyof ALL_MODELS & string
+                    ? ALL_MODELS[TARGET_MODEL_NAME]['table'] extends MODELS[K]['attributes'][ATTRIBUTE_KEY]['table']
+                      ? MODELS[K]['attributes'][ATTRIBUTE_KEY]['table'] extends ALL_MODELS[TARGET_MODEL_NAME]['table']
                         ? MODELS[K]
+                        : ALL_MODELS[TARGET_MODEL_NAME] extends {
+                              readonly sourceModel: infer SOURCE_MODEL extends
+                                IModel;
+                            }
+                          ? SOURCE_MODEL['table'] extends MODELS[K]['attributes'][ATTRIBUTE_KEY]['table']
+                            ? MODELS[K]['attributes'][ATTRIBUTE_KEY]['table'] extends SOURCE_MODEL['table']
+                              ? MODELS[K]
+                              : ITypeError<`ref "${MODELS[K]['modelName'] & string}.${ATTRIBUTE_KEY}" target model must match models.${TARGET_MODEL_NAME}`>
+                            : ITypeError<`ref "${MODELS[K]['modelName'] & string}.${ATTRIBUTE_KEY}" target model must match models.${TARGET_MODEL_NAME}`>
+                          : ITypeError<`ref "${MODELS[K]['modelName'] & string}.${ATTRIBUTE_KEY}" target model must match models.${TARGET_MODEL_NAME}`>
+                      : ALL_MODELS[TARGET_MODEL_NAME] extends {
+                            readonly sourceModel: infer SOURCE_MODEL extends
+                              IModel;
+                          }
+                        ? SOURCE_MODEL['table'] extends MODELS[K]['attributes'][ATTRIBUTE_KEY]['table']
+                          ? MODELS[K]['attributes'][ATTRIBUTE_KEY]['table'] extends SOURCE_MODEL['table']
+                            ? MODELS[K]
+                            : ITypeError<`ref "${MODELS[K]['modelName'] & string}.${ATTRIBUTE_KEY}" target model must match models.${TARGET_MODEL_NAME}`>
+                          : ITypeError<`ref "${MODELS[K]['modelName'] & string}.${ATTRIBUTE_KEY}" target model must match models.${TARGET_MODEL_NAME}`>
                         : ITypeError<`ref "${MODELS[K]['modelName'] & string}.${ATTRIBUTE_KEY}" target model must match models.${TARGET_MODEL_NAME}`>
-                      : ITypeError<`ref "${MODELS[K]['modelName'] & string}.${ATTRIBUTE_KEY}" target model must match models.${TARGET_MODEL_NAME}`>
-                    : ITypeError<`ref "${MODELS[K]['modelName'] & string}.${ATTRIBUTE_KEY}" target model must match models.${TARGET_MODEL_NAME}`>
-                : MODELS[TARGET_MODEL_NAME] extends {
-                      readonly sourceModel: infer SOURCE_MODEL extends IModel;
-                    }
-                  ? SOURCE_MODEL['table'] extends MODELS[K]['attributes'][ATTRIBUTE_KEY]['table']
-                    ? MODELS[K]['attributes'][ATTRIBUTE_KEY]['table'] extends SOURCE_MODEL['table']
-                      ? MODELS[K]
-                      : ITypeError<`ref "${MODELS[K]['modelName'] & string}.${ATTRIBUTE_KEY}" target model must match models.${TARGET_MODEL_NAME}`>
-                    : ITypeError<`ref "${MODELS[K]['modelName'] & string}.${ATTRIBUTE_KEY}" target model must match models.${TARGET_MODEL_NAME}`>
-                  : ITypeError<`ref "${MODELS[K]['modelName'] & string}.${ATTRIBUTE_KEY}" target model must match models.${TARGET_MODEL_NAME}`>
-              : ITypeError<`ref "${MODELS[K]['modelName'] & string}.${ATTRIBUTE_KEY}" target model "${MODELS[K]['attributes'][ATTRIBUTE_KEY]['targetTableName'] & string}" is not registered on controller models`>
-            : MODELS[K];
-        }[keyof MODELS[K]['attributes'] & string] extends infer RESULT
-        ? Exclude<RESULT, MODELS[K]> extends never
-          ? MODELS[K]
-          : Exclude<RESULT, MODELS[K]>
-        : never
-      : ITypeError<`models key "${K}" must equal model.modelName "${MODELS[K]['modelName'] & string}"`>
-    : ITypeError<`models key "${K}" must equal model.modelName "${MODELS[K]['modelName'] & string}"`>;
-}[keyof MODELS & string] extends infer RESULT
-  ? Exclude<RESULT, MODELS[keyof MODELS & string]> extends never
-    ? MODELS
-    : Exclude<RESULT, MODELS[keyof MODELS & string]>
-  : never;
+                    : ITypeError<`ref "${MODELS[K]['modelName'] & string}.${ATTRIBUTE_KEY}" target model "${MODELS[K]['attributes'][ATTRIBUTE_KEY]['targetTableName'] & string}" is not registered on controller models`>
+                  : MODELS[K];
+              }[keyof MODELS[K]['attributes'] & string] extends infer RESULT
+              ? Exclude<RESULT, MODELS[K]> extends never
+                ? MODELS[K]
+                : Exclude<RESULT, MODELS[K]>
+              : never
+            : ITypeError<`models key "${K}" must equal model.modelName "${MODELS[K]['modelName'] & string}"`>
+          : ITypeError<`models key "${K}" must equal model.modelName "${MODELS[K]['modelName'] & string}"`>;
+      }[keyof MODELS & string] extends infer RESULT
+    ? Exclude<RESULT, MODELS[keyof MODELS & string]> extends never
+      ? MODELS
+      : Exclude<RESULT, MODELS[keyof MODELS & string]>
+    : never;
 
 type IRelationRefSelector<
   MODEL extends IModel = IModel,

@@ -1,6 +1,6 @@
 import type { MatchParams } from '@remix-run/route-pattern/match';
 import type { Async } from '@zerospin/core/async/Async';
-import { provisionDb } from '@zerospin/core/drizzle/provisionDb';
+import { provisionDb } from '@zerospin/core/drizzle/provisionDb/provisionDb';
 import type {
   IDb,
   IDbConfig,
@@ -8,7 +8,8 @@ import type {
   IDbConfigSchema,
 } from '@zerospin/core/drizzle/types';
 import type { IRepoTableData } from '@zerospin/core/system/types';
-import type { IAnyError, IAnyErrorJson, IEncodedResult } from '@zerospin/error';
+import { type IAnyError, type IZerospinErrorJson } from '@zerospin/error';
+import type { IRpcEnvelope } from '@zerospin/logger';
 import type { DurableObject } from 'cloudflare:workers';
 import { Effect } from 'effect';
 
@@ -85,11 +86,15 @@ export function makeFixedDORepo<
     readonly doRepoInitialization: Promise<void>;
     readonly alarmRegistry: IAlarmRegistry;
     alarm(): Promise<void>;
-    onDOActivation(): Effect.Effect<void, IAnyError, SERVICES | Async>;
-    ready(): Promise<IEncodedResult<void, IAnyErrorJson>>;
+    onDOActivation(): Effect.Effect<
+      void,
+      IAnyError | IZerospinErrorJson,
+      SERVICES | Async
+    >;
+    ready(): Promise<IRpcEnvelope<void, IZerospinErrorJson>>;
     getRepoTableRows(props: {
       tableName: string;
-    }): Promise<IEncodedResult<IRepoTableData, IAnyErrorJson>>;
+    }): Promise<IRpcEnvelope<IRepoTableData, IZerospinErrorJson>>;
   };
 } {
   // 1 — retain an optional Durable Object base class

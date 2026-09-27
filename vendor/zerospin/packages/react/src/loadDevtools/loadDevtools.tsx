@@ -1,11 +1,7 @@
-import {
-  Component,
-  useLayoutEffect,
-  type ReactNode,
-} from 'react';
-import { createRoot, type Root } from 'react-dom/client';
+import { Component, useLayoutEffect, type ReactNode } from 'react';
 
 import { zerospinDevtoolsController } from '@zerospin/devtools/zerospinDevtoolsController';
+import { createRoot, type Root } from 'react-dom/client';
 
 declare global {
   interface Window {
@@ -51,9 +47,7 @@ function MountConfirmation(props: { onMounted: () => void }) {
  * Imperative DevTools load. Mounts the UI in its own DOM host/root, independent
  * of the application React tree and session lifetimes.
  */
-export async function loadDevtools(props?: {
-  defaultOpen?: boolean;
-}): Promise<{
+export async function loadDevtools(props?: { defaultOpen?: boolean }): Promise<{
   open(): Promise<void>;
   dispose(): void;
 }> {
@@ -73,9 +67,8 @@ export async function loadDevtools(props?: {
     new Promise<void>((resolve, reject) => {
       void (async () => {
         try {
-          const loadedModule = await import(
-            '@zerospin/devtools/ZerospinDevtools'
-          );
+          const loadedModule =
+            await import('@zerospin/devtools/ZerospinDevtools');
           // Resolve the export before creating a root so a failed chunk never
           // mounts React (lazy getters / broken exports throw here).
           const Devtools = loadedModule.ZerospinDevtools;
@@ -116,9 +109,7 @@ export async function loadDevtools(props?: {
             <ZerospinDevtoolsMountBoundary onError={failLoad}>
               <div>
                 <Devtools config={{ defaultOpen }} />
-                <MountConfirmation
-                  onMounted={() => settle(() => resolve())}
-                />
+                <MountConfirmation onMounted={() => settle(() => resolve())} />
               </div>
             </ZerospinDevtoolsMountBoundary>,
           );

@@ -7,10 +7,14 @@ import path from 'node:path';
 import * as NodeFileSystem from '@effect/platform-node-shared/NodeFileSystem';
 import * as NodePath from '@effect/platform-node-shared/NodePath';
 import type { Async } from '@zerospin/core/async/Async';
-import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
-import { newSyncRpcSession } from '@zerospin/core/utils/newSyncRpcSession';
+import { getApi } from '@zerospin/core/utils/getApi/getApi';
 import { makeWranglerConfig } from '@zerospin/dev-worker/makeWranglerConfig';
-import { ZerospinError, type IAnyError } from '@zerospin/error';
+import {
+  isZerospinError,
+  makeZerospinError,
+  prettyUnknownFailure,
+  type IAnyError,
+} from '@zerospin/error';
 import { config as loadEnv } from 'dotenv';
 import { Effect, Fiber, Layer, Schema, Stream, type Scope } from 'effect';
 import {
@@ -119,11 +123,11 @@ export const deployWranglerFn = Effect.fn('deployWranglerFn')(
         );
       },
       catch: cause =>
-        new ZerospinError({
+        makeZerospinError({
           code: 'zerospin-wrangler-not-found',
           message:
             'Could not resolve Wrangler from the current project. Install wrangler in the project before running zerospin deploy.',
-          cause: ZerospinError.prettyUnknownFailure(cause),
+          cause: prettyUnknownFailure(cause),
         }),
     });
 
@@ -134,11 +138,11 @@ export const deployWranglerFn = Effect.fn('deployWranglerFn')(
       try: () =>
         require.resolve('@zerospin/production-worker/ProductionWorker'),
       catch: cause =>
-        new ZerospinError({
+        makeZerospinError({
           code: 'zerospin-wrangler-production-worker-not-found',
           message:
             'Could not resolve the Zerospin Production Worker for production deployment.',
-          cause: ZerospinError.prettyUnknownFailure(cause),
+          cause: prettyUnknownFailure(cause),
         }),
     });
     const generatedConfig = yield* Effect.try({
@@ -150,12 +154,12 @@ export const deployWranglerFn = Effect.fn('deployWranglerFn')(
           environment: 'production',
         }),
       catch: cause =>
-        ZerospinError.isZerospinError(cause)
+        isZerospinError(cause)
           ? cause
-          : new ZerospinError({
+          : makeZerospinError({
               code: 'zerospin-wrangler-config-invalid',
               message: 'Failed to generate backend configuration.',
-              cause: ZerospinError.prettyUnknownFailure(cause),
+              cause: prettyUnknownFailure(cause),
             }),
     });
     const workerName = generatedConfig.name;
@@ -167,21 +171,21 @@ export const deployWranglerFn = Effect.fn('deployWranglerFn')(
           return fs.mkdtemp(path.join(generatedRoot, 'deploy-'));
         },
         catch: cause =>
-          new ZerospinError({
+          makeZerospinError({
             code: 'zerospin-wrangler-temp-directory-failed',
             message: 'Failed to create temporary production deployment files.',
-            cause: ZerospinError.prettyUnknownFailure(cause),
+            cause: prettyUnknownFailure(cause),
           }),
       }),
       directory =>
         Effect.tryPromise({
           try: () => fs.rm(directory, { recursive: true, force: true }),
           catch: cause =>
-            new ZerospinError({
+            makeZerospinError({
               code: 'zerospin-wrangler-temp-directory-remove-failed',
               message:
                 'Failed to remove temporary production deployment files.',
-              cause: ZerospinError.prettyUnknownFailure(cause),
+              cause: prettyUnknownFailure(cause),
             }),
         }).pipe(
           Effect.catch(error =>
@@ -216,14 +220,14 @@ export const deployWranglerFn = Effect.fn('deployWranglerFn')(
               ),
             ]),
           catch: cause =>
-            new ZerospinError({
+            makeZerospinError({
               code: 'zerospin-wrangler-temp-files-write-failed',
               message: 'Failed to write temporary production deployment files.',
-              cause: ZerospinError.prettyUnknownFailure(cause),
+              cause: prettyUnknownFailure(cause),
             }),
         });
 
-        // Wrangler owns Cloudflare authentication. Project application secrets
+        // Wrangler owns Cloudflare identity. Project application secrets
         // reach the upload only through the mode-0600 secrets file.
         const wranglerEnvironment = { ...process.env };
         for (const key of [
@@ -290,11 +294,13 @@ export const deployWranglerFn = Effect.fn('deployWranglerFn')(
               ) {
                 return { stdout: '[]', records: [] };
               }
-              return yield* new ZerospinError({
-                code: 'zerospin-wrangler-exited',
-                message: `Wrangler ${args.slice(0, 2).join(' ')} exited with code ${exitCode}.`,
-                cause: `${stdout}\n${stderr}`.trim(),
-              });
+              return yield* Effect.fail(
+                makeZerospinError({
+                  code: 'zerospin-wrangler-exited',
+                  message: `Wrangler ${args.slice(0, 2).join(' ')} exited with code ${exitCode}.`,
+                  cause: `${stdout}\n${stderr}`.trim(),
+                }),
+              );
             }
             const records = yield* Effect.tryPromise({
               try: async () => {
@@ -311,23 +317,23 @@ export const deployWranglerFn = Effect.fn('deployWranglerFn')(
                 );
               },
               catch: cause =>
-                new ZerospinError({
+                makeZerospinError({
                   code: 'zerospin-wrangler-output-invalid',
                   message:
                     'Wrangler did not return its structured deployment output.',
-                  cause: ZerospinError.prettyUnknownFailure(cause),
+                  cause: prettyUnknownFailure(cause),
                 }),
             });
             return { stdout, records };
           },
           Effect.scoped,
           Effect.mapError(cause =>
-            ZerospinError.isZerospinError(cause)
+            isZerospinError(cause)
               ? cause
-              : new ZerospinError({
+              : makeZerospinError({
                   code: 'zerospin-wrangler-process-failed',
                   message: 'Failed to run Wrangler.',
-                  cause: ZerospinError.prettyUnknownFailure(cause),
+                  cause: prettyUnknownFailure(cause),
                 }),
           ),
         );
@@ -357,10 +363,10 @@ export const deployWranglerFn = Effect.fn('deployWranglerFn')(
                 )
                 .at(-1),
             catch: cause =>
-              new ZerospinError({
+              makeZerospinError({
                 code: 'zerospin-wrangler-deployment-invalid',
                 message: 'Wrangler returned invalid deployment JSON.',
-                cause: ZerospinError.prettyUnknownFailure(cause),
+                cause: prettyUnknownFailure(cause),
               }),
           });
         });
@@ -370,11 +376,13 @@ export const deployWranglerFn = Effect.fn('deployWranglerFn')(
           (incumbent.versions.length !== 1 ||
             incumbent.versions[0]?.percentage !== 100)
         ) {
-          return yield* new ZerospinError({
-            code: 'zerospin-deployment-split-rollout',
-            message:
-              'Production already has a split rollout. Finish or restore that deployment before deploying Zerospin.',
-          });
+          return yield* Effect.fail(
+            makeZerospinError({
+              code: 'zerospin-deployment-split-rollout',
+              message:
+                'Production already has a split rollout. Finish or restore that deployment before deploying Zerospin.',
+            }),
+          );
         }
         const incumbentVersion = incumbent?.versions[0]?.version_id;
         const upload = yield* runWrangler([
@@ -393,11 +401,13 @@ export const deployWranglerFn = Effect.fn('deployWranglerFn')(
           typeof versionId !== 'string' ||
           !/^[0-9a-f-]{36}$/i.test(versionId)
         ) {
-          return yield* new ZerospinError({
-            code: 'zerospin-wrangler-version-output-missing',
-            message:
-              'Wrangler uploaded the Worker but did not report a version ID.',
-          });
+          return yield* Effect.fail(
+            makeZerospinError({
+              code: 'zerospin-wrangler-version-output-missing',
+              message:
+                'Wrangler uploaded the Worker but did not report a version ID.',
+            }),
+          );
         }
         const stageMessage = `zerospin-preflight-${randomUUID()}`;
         let staged = false;
@@ -454,22 +464,26 @@ export const deployWranglerFn = Effect.fn('deployWranglerFn')(
             initial.versions[0]?.version_id !== versionId ||
             initial.versions[0]?.percentage !== 100
           ) {
-            return yield* new ZerospinError({
-              code: 'zerospin-deployment-changed',
-              message:
-                'The initial Worker deployment does not match the uploaded version.',
-            });
+            return yield* Effect.fail(
+              makeZerospinError({
+                code: 'zerospin-deployment-changed',
+                message:
+                  'The initial Worker deployment does not match the uploaded version.',
+              }),
+            );
           }
           stagedDeploymentId = initial.id;
         } else {
           // Recheck after upload before altering production; an upload can take minutes.
           const beforeStage = yield* readDeployment;
           if (beforeStage?.id !== incumbent?.id) {
-            return yield* new ZerospinError({
-              code: 'zerospin-deployment-changed',
-              message:
-                'Production changed during upload. Candidate was not staged.',
-            });
+            return yield* Effect.fail(
+              makeZerospinError({
+                code: 'zerospin-deployment-changed',
+                message:
+                  'Production changed during upload. Candidate was not staged.',
+              }),
+            );
           }
           staged = true;
           const stage = yield* runWrangler([
@@ -485,11 +499,13 @@ export const deployWranglerFn = Effect.fn('deployWranglerFn')(
             record => record['type'] === 'version-deploy',
           )?.['deployment_id'];
           if (typeof deploymentId !== 'string') {
-            return yield* new ZerospinError({
-              code: 'zerospin-wrangler-deployment-output-missing',
-              message:
-                'Wrangler staged the candidate but did not report its deployment ID.',
-            });
+            return yield* Effect.fail(
+              makeZerospinError({
+                code: 'zerospin-wrangler-deployment-output-missing',
+                message:
+                  'Wrangler staged the candidate but did not report its deployment ID.',
+              }),
+            );
           }
           stagedDeploymentId = deploymentId;
         }
@@ -538,10 +554,10 @@ export const deployWranglerFn = Effect.fn('deployWranglerFn')(
               ),
             ]),
           catch: cause =>
-            new ZerospinError({
+            makeZerospinError({
               code: 'zerospin-preflight-forwarder-write-failed',
               message: 'Failed to prepare the local preflight Worker.',
-              cause: ZerospinError.prettyUnknownFailure(cause),
+              cause: prettyUnknownFailure(cause),
             }),
         });
         const devEnv = yield* Effect.acquireRelease(
@@ -566,20 +582,20 @@ export const deployWranglerFn = Effect.fn('deployWranglerFn')(
               return new unstable_DevEnv();
             },
             catch: cause =>
-              new ZerospinError({
+              makeZerospinError({
                 code: 'zerospin-preflight-wrangler-api-failed',
                 message: 'Could not load the project Wrangler development API.',
-                cause: ZerospinError.prettyUnknownFailure(cause),
+                cause: prettyUnknownFailure(cause),
               }),
           }),
           environment =>
             Effect.tryPromise({
               try: () => environment.teardown(),
               catch: cause =>
-                new ZerospinError({
+                makeZerospinError({
                   code: 'zerospin-preflight-forwarder-stop-failed',
                   message: 'Failed to stop the local preflight Worker.',
-                  cause: ZerospinError.prettyUnknownFailure(cause),
+                  cause: prettyUnknownFailure(cause),
                 }),
             }).pipe(
               Effect.catch(error =>
@@ -620,77 +636,70 @@ export const deployWranglerFn = Effect.fn('deployWranglerFn')(
                 });
             }),
           catch: cause =>
-            new ZerospinError({
+            makeZerospinError({
               code: 'zerospin-preflight-forwarder-start-failed',
               message:
                 'Failed to start the local Worker with its remote production binding.',
-              cause: ZerospinError.prettyUnknownFailure(cause),
+              cause: prettyUnknownFailure(cause),
             }),
         }).pipe(
           Effect.timeout('60 seconds'),
           Effect.mapError(cause =>
-            ZerospinError.isZerospinError(cause)
+            isZerospinError(cause)
               ? cause
-              : new ZerospinError({
+              : makeZerospinError({
                   code: 'zerospin-preflight-forwarder-start-failed',
                   message:
                     'The local preflight Worker did not become ready within 60 seconds.',
-                  cause: ZerospinError.prettyUnknownFailure(cause),
+                  cause: prettyUnknownFailure(cause),
                 }),
           ),
         );
-        // HTTP batch sessions are single-use. Each call owns its session in an
-        // Effect scope so interruption closes it even while the request awaits.
+        const systemApi = yield* getApi<GatewayApi>(forwarderUrl)(gatewayApi =>
+          gatewayApi.getSystemApi({ zerospinSecretKey: configuredSecretKey }),
+        );
+        // Each invocation owns its batch; deployment owns attestation and promotion.
         const requestSystem = Effect.fn('deployWranglerFn.requestSystem')(
           function* (method: 'checkSystemSpec' | 'healthcheck' | 'initialize') {
-            const gatewayApi = yield* Effect.acquireRelease(
-              Effect.sync(() => newSyncRpcSession<GatewayApi>(forwarderUrl)),
-              session => Effect.sync(() => session[Symbol.dispose]()),
+            const result = yield* systemApi[method]().pipe(
+              Effect.mapError(cause =>
+                makeZerospinError({
+                  code: 'zerospin-production-rpc-failed',
+                  message: `Worker ${workerName} version ${versionId} failed ${method}: ${cause.message}`,
+                  cause: prettyUnknownFailure(cause),
+                  extra: { workerName, versionId, rpc: cause },
+                }),
+              ),
             );
-            const response = yield* Effect.tryPromise({
-              try: async () =>
-                await gatewayApi
-                  .getSystemApi({ zerospinSecretKey: configuredSecretKey })
-                  [method]({ traceContext: null, args: [] }),
-              catch: cause =>
-                ZerospinError.isZerospinError(cause)
-                  ? cause
-                  : new ZerospinError({
-                      code: 'zerospin-production-rpc-failed',
-                      message: `Worker ${workerName} version ${versionId} failed ${method}.`,
-                      cause: ZerospinError.prettyUnknownFailure(cause),
-                    }),
-            });
-            const result = yield* decodeRpc<unknown>(response.result);
             if (method === 'checkSystemSpec') {
               return yield* Schema.decodeUnknownEffect(
                 Schema.Struct({
                   workerVersionId: Schema.NullOr(Schema.String),
                 }),
               )(result).pipe(
-                Effect.mapError(
-                  cause =>
-                    new ZerospinError({
-                      code: 'zerospin-production-version-attestation-invalid',
-                      message:
-                        'SystemRepo did not report its executing Worker version.',
-                      cause: ZerospinError.prettyUnknownFailure(cause),
-                    }),
+                Effect.mapError(cause =>
+                  makeZerospinError({
+                    code: 'zerospin-production-version-attestation-invalid',
+                    message:
+                      'SystemRepo did not report its executing Worker version.',
+                    cause: prettyUnknownFailure(cause),
+                  }),
                 ),
               );
             }
             return undefined;
           },
-          Effect.scoped,
         );
         yield* requestSystem('checkSystemSpec');
         const beforePromotion = yield* readDeployment;
         if (beforePromotion?.id !== stagedDeploymentId) {
-          return yield* new ZerospinError({
-            code: 'zerospin-deployment-changed',
-            message:
-              'Production changed during preflight. Candidate was not promoted.',
-          });
+          return yield* Effect.fail(
+            makeZerospinError({
+              code: 'zerospin-deployment-changed',
+              message:
+                'Production changed during preflight. Candidate was not promoted.',
+            }),
+          );
         }
         if (incumbentVersion !== undefined) {
           yield* runWrangler([
@@ -709,31 +718,32 @@ export const deployWranglerFn = Effect.fn('deployWranglerFn')(
             if (accepted?.workerVersionId === versionId) return;
             yield* Effect.sleep('1 second');
           }
-          return yield* new ZerospinError({
-            code: 'zerospin-deployment-version-assignment-pending',
-            message: `Worker ${workerName} version ${versionId} is promoted, but SystemRepo has not switched to it. Initialization was not run.`,
-          });
+          return yield* Effect.fail(
+            makeZerospinError({
+              code: 'zerospin-deployment-version-assignment-pending',
+              message: `Worker ${workerName} version ${versionId} is promoted, but SystemRepo has not switched to it. Initialization was not run.`,
+            }),
+          );
         }).pipe(
           Effect.timeout('180 seconds'),
           Effect.mapError(cause =>
-            ZerospinError.isZerospinError(cause)
+            isZerospinError(cause)
               ? cause
-              : new ZerospinError({
+              : makeZerospinError({
                   code: 'zerospin-deployment-version-assignment-pending',
                   message: `Worker ${workerName} version ${versionId} is promoted, but SystemRepo did not prove its version before initialization.`,
-                  cause: ZerospinError.prettyUnknownFailure(cause),
+                  cause: prettyUnknownFailure(cause),
                 }),
           ),
         );
         yield* requestSystem('healthcheck');
         yield* requestSystem('initialize').pipe(
-          Effect.mapError(
-            cause =>
-              new ZerospinError({
-                code: 'zerospin-deployment-readiness-failed',
-                message: `Worker ${workerName} version ${versionId} was promoted but initialization failed. Accepted spec locks remain durable.`,
-                cause: ZerospinError.prettyUnknownFailure(cause),
-              }),
+          Effect.mapError(cause =>
+            makeZerospinError({
+              code: 'zerospin-deployment-readiness-failed',
+              message: `Worker ${workerName} version ${versionId} was promoted but initialization failed. Accepted spec locks remain durable.`,
+              cause: prettyUnknownFailure(cause),
+            }),
           ),
         );
         return { workerName, versionId };

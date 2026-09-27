@@ -5,37 +5,37 @@ import { Effect, Schema } from 'effect';
  *
  * @bad Route same-isolate work through an exported SystemWorker RPC target or
  * `ctx.exports` resolver after GatewayApi decoded the request.
- * @bad Run `Schema.decodeUnknownEffect` on an aggregate frontend lock inside a repo
+ * @bad Run `Schema.decodeUnknownEffect` on an aggregate definition lock inside a repo
  * DO when the GatewayApi capability factory already validated it.
  */
 export const authorize = Effect.fn('AggregateAccessApi.authorize')(function* (
   props: unknown,
 ) {
   const validated = yield* Schema.decodeUnknownEffect(
-    AggregateFrontendApiPropsSchema,
+    AggregateSessionApiPropsSchema,
   )(props, { onExcessProperty: 'error' }).pipe(
-    mapParseError({ code: 'aggregate-frontend-api-props-invalid' }),
+    mapParseError({ code: 'aggregate-definition-api-props-invalid' }),
   );
-  const authentication = yield* authenticate(validated.signature);
-  const authorization = yield* authorizeAggregateFrontend({
+  const identity = yield* authenticate(validated.credentials);
+  const authorization = yield* authorizeAggregateSession({
     ...validated,
-    authentication: authentication.authentication,
-    aggregateId: authentication.authentication.aggregateId,
+    identity: identity.identity,
+    aggregateId: identity.identity.aggregateId,
   });
 
-  return aggregateFrontendApiFactory(authorization);
+  return aggregateSessionApiFactory(authorization);
 });
 
-declare const AggregateFrontendApiPropsSchema: unknown;
+declare const AggregateSessionApiPropsSchema: unknown;
 declare function mapParseError(props: {
   code: string;
 }): (effect: unknown) => unknown;
-declare function aggregateFrontendApiFactory(props: unknown): unknown;
-declare function authenticate(signature: unknown): Effect.Effect<{
-  authentication: { aggregateId: string; subject: string };
+declare function aggregateSessionApiFactory(props: unknown): unknown;
+declare function authenticate(credentials: unknown): Effect.Effect<{
+  identity: { aggregateId: string; subject: string };
 }>;
-declare function authorizeAggregateFrontend(props: unknown): Effect.Effect<{
+declare function authorizeAggregateSession(props: unknown): Effect.Effect<{
   aggregateId: string;
   aggregateName: string;
-  authentication: { aggregateId: string; subject: string };
+  identity: { aggregateId: string; subject: string };
 }>;

@@ -3,27 +3,27 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
 
 import type { IAnyError } from '@zerospin/error';
-import { Effect } from 'effect';
+import { type Effect } from 'effect';
 
-type MockInitializableSession = {
+type IMockInitializableSession = {
   readonly store: {
     subscribe: (listener: () => void) => () => void;
     getState: () => { isInitialized: boolean };
   };
   initialize(props?: {
-    generateSignature?: () => Effect.Effect<unknown, IAnyError>;
+    getCredentials?: () => Effect.Effect<unknown, IAnyError>;
   }): Promise<void>;
   dispose(): Promise<void>;
 };
 
 /**
  * React owns mock-session initialization after commit and disposal on unmount.
- * No system generic and no signature — fixtures never authenticate.
+ * No system generic and no credentials — fixtures never authenticate.
  * Competing hooks that are rejected synchronously never acquire disposal
  * responsibility.
  */
 export function useInitializeMockSession(props: {
-  session: MockInitializableSession;
+  session: IMockInitializableSession;
 }): { isInitialized: boolean } {
   const { session } = props;
   const [startupError, setStartupError] = useState<unknown>(null);

@@ -1,7 +1,7 @@
 import type { MatchParams } from '@remix-run/route-pattern/match';
 import type { Async } from '@zerospin/core/async/Async';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
-import { makeAsync } from '@zerospin/core/async/makeAsync';
+import { makeAsync } from '@zerospin/core/async/make/makeAsync';
 import type {
   IDb,
   IDbConfig,
@@ -9,40 +9,39 @@ import type {
   IDbConfigSchema,
 } from '@zerospin/core/drizzle/types';
 import type { IRepoTableData, IRepoType } from '@zerospin/core/system/types';
-import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
-import { encodeRpc } from '@zerospin/core/utils/encodeRpc';
+import { readRpcEnvelope } from '@zerospin/core/utils/readRpcEnvelope';
 import {
-  ZerospinError,
+  makeZerospinError,
   type IAnyError,
-  type IAnyErrorJson,
-  type IEncodedResult,
+  type IZerospinErrorJson,
 } from '@zerospin/error';
+import { makeRpcEnvelope, type IRpcEnvelope } from '@zerospin/logger';
 import { DurableObject, env } from 'cloudflare:workers';
 import config from 'config';
 import { getTableName } from 'drizzle-orm';
 import { Effect, type ManagedRuntime } from 'effect';
 import invariant from 'tiny-invariant';
 
+import type { AggregateActorVersionChain } from '../AggregateActorVersionChain/AggregateActorVersionChain.js';
+import type { AggregateActorVersionRepo } from '../AggregateActorVersionRepo/AggregateActorVersionRepo.js';
 import type { AggregateChain } from '../AggregateChain/AggregateChain.js';
-import type { FrontendServiceChain } from '../FrontendServiceChain/FrontendServiceChain.js';
-import type { FrontendVersionedServiceRepo } from '../FrontendVersionedServiceRepo/FrontendVersionedServiceRepo.js';
-import { getRepoTableRows } from '../getRepoTableRows/getRepoTableRows.js';
+import type { AggregateVersionChain } from '../AggregateVersionChain/AggregateVersionChain.js';
+import type { AggregateVersionRepo } from '../AggregateVersionRepo/AggregateVersionRepo.js';
+import { getRepoTableRows } from './getRepoTableRows/getRepoTableRows.js';
 import { getSystemSpec } from '../getSystemSpec/getSystemSpec.js';
 import {
   makeAlarmRegistry,
   type IAlarmRegistry,
 } from '../makeAlarmRegistry/makeAlarmRegistry.js';
-import { makeDurableDb } from '../makeDurableDb.js';
-import type { SelectionVersionedAggregateChain } from '../SelectionVersionedAggregateChain/SelectionVersionedAggregateChain.js';
-import type { SelectionVersionedAggregateRepo } from '../SelectionVersionedAggregateRepo/SelectionVersionedAggregateRepo.js';
-import type { ServiceAdmittedChain } from '../ServiceAdmittedChain/ServiceAdmittedChain.js';
+import { makeDurableDb } from './makeDurableDb.js';
+import type { ServiceActorVersionChain } from '../ServiceActorVersionChain/ServiceActorVersionChain.js';
+import type { ServiceActorVersionRepo } from '../ServiceActorVersionRepo/ServiceActorVersionRepo.js';
+import type { ServiceChain } from '../ServiceChain/ServiceChain.js';
+import type { ServiceVersionChain } from '../ServiceVersionChain/ServiceVersionChain.js';
+import type { ServiceVersionRepo } from '../ServiceVersionRepo/ServiceVersionRepo.js';
 import type { SystemLogAgent } from '../SystemLogAgent/SystemLogAgent.js';
 import type { SystemLogRepo } from '../SystemLogRepo/SystemLogRepo.js';
 import type { SystemRepo } from '../SystemRepo/SystemRepo.js';
-import type { VersionedAggregateChain } from '../VersionedAggregateChain/VersionedAggregateChain.js';
-import type { VersionedAggregateRepo } from '../VersionedAggregateRepo/VersionedAggregateRepo.js';
-import type { VersionedServiceChain } from '../VersionedServiceChain/VersionedServiceChain.js';
-import type { VersionedServiceRepo } from '../VersionedServiceRepo/VersionedServiceRepo.js';
 
 import type { IRepoNameUtils } from './makeRepoNameUtils.js';
 
@@ -60,45 +59,45 @@ declare global {
           SystemRepo,
           | 'initialize'
           | 'checkSystemSpec'
-          | 'createAggregateFrontendWebSocketTicket'
-          | 'consumeAggregateFrontendWebSocketTicket'
-          | 'createServiceFrontendWebSocketTicket'
-          | 'consumeServiceFrontendWebSocketTicket'
+          | 'createAggregateSessionWebSocketTicket'
+          | 'consumeAggregateSessionWebSocketTicket'
+          | 'createServiceSessionWebSocketTicket'
+          | 'consumeServiceSessionWebSocketTicket'
           | 'registerRepo'
           | 'registerRepos'
           | 'getRepoRegistrations'
           | 'getRepoTableRows'
         >;
       };
-      VERSIONED_AGGREGATE_REPO: DurableObjectNamespace<
-        Rpc.DurableObjectBranded & VersionedAggregateRepo
+      AGGREGATE_VERSION_REPO: DurableObjectNamespace<
+        Rpc.DurableObjectBranded & AggregateVersionRepo
       >;
-      VERSIONED_SERVICE_REPO: DurableObjectNamespace<
-        Rpc.DurableObjectBranded & VersionedServiceRepo
+      SERVICE_VERSION_REPO: DurableObjectNamespace<
+        Rpc.DurableObjectBranded & ServiceVersionRepo
       >;
       AGGREGATE_CHAIN: DurableObjectNamespace<
         Rpc.DurableObjectBranded & AggregateChain
       >;
-      VERSIONED_AGGREGATE_CHAIN: DurableObjectNamespace<
-        Rpc.DurableObjectBranded & VersionedAggregateChain
+      AGGREGATE_VERSION_CHAIN: DurableObjectNamespace<
+        Rpc.DurableObjectBranded & AggregateVersionChain
       >;
-      VERSIONED_SERVICE_CHAIN: DurableObjectNamespace<
-        Rpc.DurableObjectBranded & VersionedServiceChain
+      SERVICE_VERSION_CHAIN: DurableObjectNamespace<
+        Rpc.DurableObjectBranded & ServiceVersionChain
       >;
-      SELECTION_VERSIONED_AGGREGATE_REPO: DurableObjectNamespace<
-        Rpc.DurableObjectBranded & SelectionVersionedAggregateRepo
+      AGGREGATE_ACTOR_VERSION_REPO: DurableObjectNamespace<
+        Rpc.DurableObjectBranded & AggregateActorVersionRepo
       >;
-      SELECTION_VERSIONED_AGGREGATE_CHAIN: DurableObjectNamespace<
-        Rpc.DurableObjectBranded & SelectionVersionedAggregateChain
+      AGGREGATE_ACTOR_VERSION_CHAIN: DurableObjectNamespace<
+        Rpc.DurableObjectBranded & AggregateActorVersionChain
       >;
-      SERVICE_ADMITTED_CHAIN: DurableObjectNamespace<
-        Rpc.DurableObjectBranded & ServiceAdmittedChain
+      SERVICE_CHAIN: DurableObjectNamespace<
+        Rpc.DurableObjectBranded & ServiceChain
       >;
-      FRONTEND_VERSIONED_SERVICE_REPO: DurableObjectNamespace<
-        Rpc.DurableObjectBranded & FrontendVersionedServiceRepo
+      SERVICE_ACTOR_VERSION_REPO: DurableObjectNamespace<
+        Rpc.DurableObjectBranded & ServiceActorVersionRepo
       >;
-      FRONTEND_SERVICE_CHAIN: DurableObjectNamespace<
-        Rpc.DurableObjectBranded & FrontendServiceChain
+      SERVICE_ACTOR_VERSION_CHAIN: DurableObjectNamespace<
+        Rpc.DurableObjectBranded & ServiceActorVersionChain
       >;
       SYSTEM_LOG_REPO: DurableObjectNamespace<
         Rpc.DurableObjectBranded & SystemLogRepo
@@ -145,7 +144,7 @@ export function makeDORepo<
         env: Cloudflare.Env,
       ) => DurableObject<Cloudflare.Env> & Rpc.DurableObjectBranded);
   repoType: IRepoType | undefined;
-  managedRuntime: ManagedRuntime.ManagedRuntime<SERVICES, never>;
+  managedRuntime: ManagedRuntime.ManagedRuntime<SERVICES, IAnyError>;
   nameUtils: IRepoNameUtils<PATTERN>;
   dbConfig: (props: {
     name: string;
@@ -194,10 +193,10 @@ export function makeDORepo<
     readonly alarmRegistry: IAlarmRegistry;
     alarm(): Promise<void>;
     onDOActivation(): Effect.Effect<void, IAnyError, SERVICES | Async>;
-    ready(): Promise<IEncodedResult<void, IAnyErrorJson>>;
+    ready(): Promise<IRpcEnvelope<void, IZerospinErrorJson>>;
     getRepoTableRows(props: {
       tableName: string;
-    }): Promise<IEncodedResult<IRepoTableData, IAnyErrorJson>>;
+    }): Promise<IRpcEnvelope<IRepoTableData, IZerospinErrorJson>>;
   };
 } {
   const {
@@ -235,10 +234,12 @@ export function makeDORepo<
           key.aggregateVersion,
         )
       ) {
-        return yield* new ZerospinError({
-          code: 'aggregate-version-unavailable',
-          message: 'Aggregate version is not listed in this deployment',
-        });
+        return yield* Effect.fail(
+          makeZerospinError({
+            code: 'aggregate-version-unavailable',
+            message: 'Aggregate version is not listed in this deployment',
+          }),
+        );
       }
     }
     if (
@@ -253,10 +254,12 @@ export function makeDORepo<
           key.serviceVersion,
         )
       ) {
-        return yield* new ZerospinError({
-          code: 'service-version-unavailable',
-          message: 'Service version is not listed in this deployment',
-        });
+        return yield* Effect.fail(
+          makeZerospinError({
+            code: 'service-version-unavailable',
+            message: 'Service version is not listed in this deployment',
+          }),
+        );
       }
     }
     const resolvedDbConfig = yield* dbConfigFn({
@@ -342,7 +345,7 @@ export function makeDORepo<
             // 6 — reject unaccepted definitions before any storage access or initialization
             if (repoType !== undefined) {
               const spec = yield* getSystemSpec();
-              yield* makeAsync<IEncodedResult<void, IAnyErrorJson>>(() =>
+              yield* makeAsync<IRpcEnvelope<void, IZerospinErrorJson>>(() =>
                 env.SYSTEM_REPO.getByName(env.ZEROSPIN_SYSTEM_ID).registerRepo({
                   spec,
                   registration: {
@@ -351,7 +354,7 @@ export function makeDORepo<
                     tableNames: Object.values(schema).map(getTableName),
                   },
                 }),
-              ).pipe(Effect.flatMap(decodeRpc));
+              ).pipe(Effect.flatMap(envelope => readRpcEnvelope(envelope)));
             }
 
             ctx.storage.sql.exec('PRAGMA foreign_keys = ON;');
@@ -402,14 +405,12 @@ export function makeDORepo<
       );
     }
 
-    ready(): Promise<IEncodedResult<void, IAnyErrorJson>> {
+    ready() {
       // Incoming RPCs reach this method only after the constructor gate opens.
-      return managedRuntime.runPromise(encodeRpc(Effect.void));
+      return managedRuntime.runPromise(makeRpcEnvelope(Effect.void));
     }
 
-    getRepoTableRows(props: {
-      tableName: string;
-    }): Promise<IEncodedResult<IRepoTableData, IAnyErrorJson>> {
+    getRepoTableRows(props: { tableName: string }) {
       // 10 — provide AsyncLive and encode getRepoTableRows at the RPC boundary
       const { tableName } = props;
       return managedRuntime.runPromise(
@@ -417,7 +418,7 @@ export function makeDORepo<
           db: this.db,
           schema: this.schema,
           tableName,
-        }).pipe(Effect.provide(AsyncLive), encodeRpc),
+        }).pipe(Effect.provide(AsyncLive), makeRpcEnvelope),
       );
     }
   };

@@ -5,25 +5,20 @@ import { AsyncLive } from '@zerospin/core/async/AsyncLive';
  * Defines the system-scoped SystemLogRepo Durable Object shell and log row storage.
  * Public RPC methods delegate to same-named Effect functions in method folders.
  */
-import type {
-  ISystemLogLevel,
-  ISystemLogRow,
-} from '@zerospin/core/system/types';
-import { encodeRpc } from '@zerospin/core/utils/encodeRpc';
-import { type IAnyErrorJson, type IEncodedResult } from '@zerospin/error';
-import type { ITelemetryBatch } from '@zerospin/logger';
+import type { ISystemLogLevel } from '@zerospin/core/system/types';
+import { makeRpcEnvelope, type ITelemetryBatch } from '@zerospin/logger';
+import config from 'config';
 import { Effect } from 'effect';
 
 import { makeFixedDORepo } from '../makeFixedDORepo/makeFixedDORepo.js';
 import { makeFixedDORepoConfig } from '../makeFixedDORepo/makeFixedDORepoConfig.js';
-import { managedRuntime } from '../managedRuntime.js';
 import { systemWorkerAbbreviations } from '../systemWorkerAbbreviations.js';
 
 import { appendLogRow } from './appendLogRow/appendLogRow.js';
 import { appendTelemetryBatch } from './appendTelemetryBatch/appendTelemetryBatch.js';
-import { beginAggregateAuthenticationAttempt } from './beginAggregateAuthenticationAttempt/beginAggregateAuthenticationAttempt.js';
-import { beginServiceAuthenticationAttempt } from './beginServiceAuthenticationAttempt/beginServiceAuthenticationAttempt.js';
-import { completeAuthenticationAttempt } from './completeAuthenticationAttempt/completeAuthenticationAttempt.js';
+import { beginAggregateAdmissionAttempt } from './beginAggregateAdmissionAttempt/beginAggregateAdmissionAttempt.js';
+import { beginServiceAdmissionAttempt } from './beginServiceAdmissionAttempt/beginServiceAdmissionAttempt.js';
+import { completeAdmissionAttempt } from './completeAdmissionAttempt/completeAdmissionAttempt.js';
 import { getSystemLogRows } from './getSystemLogRows/getSystemLogRows.js';
 import { systemLogRepoDbConfig } from './systemLogRepoDbConfig.js';
 
@@ -31,7 +26,7 @@ const systemLogFixedDORepoConfig = makeFixedDORepoConfig({
   abbreviation: systemWorkerAbbreviations.systemLogRepo,
   repoType: 'SystemLogRepo',
   namePattern: RoutePattern.parse('/:systemId'),
-  managedRuntime,
+  managedRuntime: config.system.runtime,
   dbConfig: systemLogRepoDbConfig,
 });
 
@@ -41,34 +36,31 @@ export class SystemLogRepo extends makeFixedDORepo({
 }) {
   static override readonly fixedDORepoConfig = systemLogFixedDORepoConfig;
 
-  async beginAggregateAuthenticationAttempt(
-    props: Omit<
-      Parameters<typeof beginAggregateAuthenticationAttempt>[0],
-      'db'
-    >,
+  async beginAggregateAdmissionAttempt(
+    props: Omit<Parameters<typeof beginAggregateAdmissionAttempt>[0], 'db'>,
   ) {
-    return managedRuntime.runPromise(
-      beginAggregateAuthenticationAttempt({ ...props, db: this.db }).pipe(
-        encodeRpc,
+    return config.system.runtime.runPromise(
+      beginAggregateAdmissionAttempt({ ...props, db: this.db }).pipe(
+        makeRpcEnvelope,
       ),
     );
   }
 
-  async beginServiceAuthenticationAttempt(
-    props: Omit<Parameters<typeof beginServiceAuthenticationAttempt>[0], 'db'>,
+  async beginServiceAdmissionAttempt(
+    props: Omit<Parameters<typeof beginServiceAdmissionAttempt>[0], 'db'>,
   ) {
-    return managedRuntime.runPromise(
-      beginServiceAuthenticationAttempt({ ...props, db: this.db }).pipe(
-        encodeRpc,
+    return config.system.runtime.runPromise(
+      beginServiceAdmissionAttempt({ ...props, db: this.db }).pipe(
+        makeRpcEnvelope,
       ),
     );
   }
 
-  async completeAuthenticationAttempt(
-    props: Omit<Parameters<typeof completeAuthenticationAttempt>[0], 'db'>,
+  async completeAdmissionAttempt(
+    props: Omit<Parameters<typeof completeAdmissionAttempt>[0], 'db'>,
   ) {
-    return managedRuntime.runPromise(
-      completeAuthenticationAttempt({ ...props, db: this.db }).pipe(encodeRpc),
+    return config.system.runtime.runPromise(
+      completeAdmissionAttempt({ ...props, db: this.db }).pipe(makeRpcEnvelope),
     );
   }
 
@@ -82,11 +74,11 @@ export class SystemLogRepo extends makeFixedDORepo({
     message: string;
     payload?: unknown | null;
     source: string;
-  }): Promise<IEncodedResult<ISystemLogRow, IAnyErrorJson>> {
+  }) {
     const { level, message, payload, source } = props;
 
     // 1 — run appendLogRow with the instance-bound dependencies and encode its RPC outcome
-    return managedRuntime.runPromise(
+    return config.system.runtime.runPromise(
       appendLogRow({
         db: this.db,
         level,
@@ -94,7 +86,7 @@ export class SystemLogRepo extends makeFixedDORepo({
         payload: payload ?? null,
         source,
         systemId: this.env.ZEROSPIN_SYSTEM_ID,
-      }).pipe(Effect.provide(AsyncLive), encodeRpc),
+      }).pipe(Effect.provide(AsyncLive), makeRpcEnvelope),
     );
   }
 
@@ -105,18 +97,18 @@ export class SystemLogRepo extends makeFixedDORepo({
    *
    * 1. Run the bound domain operation.
    */
-  async appendTelemetryBatch(props: {
-    batch: ITelemetryBatch;
-  }): Promise<IEncodedResult<void, IAnyErrorJson>> {
+  async appendTelemetryBatch(props: { batch: ITelemetryBatch }) {
     const { batch } = props;
 
     // 1 — run appendTelemetryBatch with the instance-bound dependencies and encode its RPC outcome
-    return managedRuntime.runPromise(
+    return config.system.runtime.runPromise(
       appendTelemetryBatch({
         batch,
         db: this.db,
         systemId: this.env.ZEROSPIN_SYSTEM_ID,
-      }).pipe(Effect.provide(AsyncLive), encodeRpc),
+      }).pipe(Effect.provide(AsyncLive), program =>
+        makeRpcEnvelope(program, { collectTelemetry: false }),
+      ),
     );
   }
 
@@ -126,17 +118,15 @@ export class SystemLogRepo extends makeFixedDORepo({
    *
    * 1. Run the bound domain operation.
    */
-  async getSystemLogRows(props: {
-    limit: number;
-  }): Promise<IEncodedResult<readonly ISystemLogRow[], IAnyErrorJson>> {
+  async getSystemLogRows(props: { limit: number }) {
     const { limit } = props;
 
     // 1 — run getSystemLogRows with the instance-bound dependencies and encode its RPC outcome
-    return managedRuntime.runPromise(
+    return config.system.runtime.runPromise(
       getSystemLogRows({
         db: this.db,
         limit,
-      }).pipe(Effect.provide(AsyncLive), encodeRpc),
+      }).pipe(Effect.provide(AsyncLive), makeRpcEnvelope),
     );
   }
 }

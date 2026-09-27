@@ -1,6 +1,6 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
 
-import type { IAggregateSession } from '@zerospin/core/session/types';
+import type { IAggregateSession } from '@zerospin/core/aggregateSession/types';
 import {
   buildTraceTree,
   emptyTelemetryBatch,
@@ -19,7 +19,9 @@ import { useAggregateSession, useServiceSession } from '../useSession';
 
 import { SessionsLogsSpanNode } from './SessionsLogsSpanNode';
 
-function AggregateSessionsLogsRouteBody(props: { readonly session: IAggregateSession }) {
+function AggregateSessionsLogsRouteBody(props: {
+  readonly session: IAggregateSession;
+}) {
   const { session } = props;
   const telemetry = useStore(session.store, state => state.telemetry);
 

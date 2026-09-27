@@ -1,21 +1,23 @@
-import { mapParseError, ZerospinError } from '@zerospin/error';
+import type { ISystem } from '@zerospin/core/system/types';
+import { makeZerospinError, mapParseError } from '@zerospin/error';
 import config from 'config';
 import { Effect, Schema } from 'effect';
 
 import { AggregateApi } from '../../AggregateApi/AggregateApi.js';
 import { AggregateApiFailure } from '../../AggregateApi/AggregateApiFailure/AggregateApiFailure.js';
-import type { ISystemRuntime } from '../../makeSystemRuntime.js';
 import { checkPublishableApiKey } from '../checkPublishableApiKey/checkPublishableApiKey.js';
 
-/** Resolve one aggregate version before issuing an authentication capability. */
+/** Resolve one aggregate version before issuing an identity capability. */
 export const aggregate = Effect.fn('GatewayApi.aggregate')(function* (props: {
   request: {
     publishableKey: string;
     systemName: string;
     name: string;
     version: string;
+    actorName: string;
+    actorVersion: string;
   };
-  runtime: ISystemRuntime;
+  runtime: ISystem['runtime'];
 }) {
   return yield* Effect.gen(function* () {
     const request = yield* Schema.decodeUnknownEffect(
@@ -24,6 +26,8 @@ export const aggregate = Effect.fn('GatewayApi.aggregate')(function* (props: {
         systemName: Schema.String,
         name: Schema.String,
         version: Schema.String,
+        actorName: Schema.String,
+        actorVersion: Schema.String,
       }),
     )(props.request, { onExcessProperty: 'error' }).pipe(
       mapParseError({
@@ -33,24 +37,30 @@ export const aggregate = Effect.fn('GatewayApi.aggregate')(function* (props: {
     );
     yield* checkPublishableApiKey(request.publishableKey);
     if (request.systemName !== config.system.name) {
-      return yield* new ZerospinError({
-        code: 'authentication-system-name-mismatch',
-        message: 'Requested system differs from the configured system',
-      });
+      return yield* Effect.fail(
+        makeZerospinError({
+          code: 'identity-system-name-mismatch',
+          message: 'Requested system differs from the configured system',
+        }),
+      );
     }
     if (
       config.system.aggregates[request.name]?.[request.version] === undefined
     ) {
-      return yield* new ZerospinError({
-        code: 'authentication-aggregate-unavailable',
-        message: 'The requested aggregate version is unavailable',
-      });
+      return yield* Effect.fail(
+        makeZerospinError({
+          code: 'identity-aggregate-unavailable',
+          message: 'The requested aggregate version is unavailable',
+        }),
+      );
     }
     return new AggregateApi({
       binding: {
         systemName: request.systemName,
         aggregateName: request.name,
         aggregateVersion: request.version,
+        actorName: request.actorName,
+        actorVersion: request.actorVersion,
       },
       runtime: props.runtime,
     });

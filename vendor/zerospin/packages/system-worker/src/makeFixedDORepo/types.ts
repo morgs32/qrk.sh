@@ -20,7 +20,7 @@ export type IFixedDORepoConfig<
 > = {
   readonly repoType: IRepoType | undefined;
   readonly namePattern: string;
-  managedRuntime: ManagedRuntime.ManagedRuntime<SERVICES, never>;
+  managedRuntime: ManagedRuntime.ManagedRuntime<SERVICES, IAnyError>;
   nameUtils: IRepoNameUtils<PATTERN>;
   dbConfig: (props: {
     name: string;

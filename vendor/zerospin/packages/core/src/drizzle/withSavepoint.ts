@@ -1,6 +1,10 @@
-import { ZerospinError, type IAnyError } from '@zerospin/error';
+import {
+  makeZerospinError,
+  prettyUnknownFailure,
+  type IZerospinError,
+} from '@zerospin/error';
 import type { IAnyDrizzleSchemas } from '@zerospin/schema';
-import type { AnyRelations, DrizzleTypeError } from 'drizzle-orm';
+import type { AnyRelations } from 'drizzle-orm';
 import { Cause, Effect, Exit, Option } from 'effect';
 
 import type { Async } from '../async/Async.ts';
@@ -11,23 +15,26 @@ export const withSavepoint = Effect.fn('withSavepoint')(function* <
   SCHEMA extends IAnyDrizzleSchemas,
   RELATIONS extends AnyRelations,
   SUCCESS,
-  ERROR extends IAnyError,
+  ERROR,
   PROGRAM_REQUIREMENTS,
->(props: {
-  tx: ITx<IDbConfig<SCHEMA, RELATIONS>>;
-  program: (props: { tx: ITx<IDbConfig<SCHEMA, RELATIONS>> }) => Effect.Effect<
-    // oxlint-disable-next-line typescript/no-explicit-any -- Drizzle savepoint callback is synchronous; Promise<any> is its exact rejection check.
-    SUCCESS extends Promise<any>
-      ? DrizzleTypeError<"Sync drivers can't use async functions in transactions!">
-      : SUCCESS,
-    ERROR,
-    [Extract<PROGRAM_REQUIREMENTS, Async>] extends [never]
-      ? PROGRAM_REQUIREMENTS
-      : never
-  >;
-}): Effect.fn.Return<
+>(
+  props: {
+    tx: ITx<IDbConfig<SCHEMA, RELATIONS>>;
+    program: (props: {
+      tx: ITx<IDbConfig<SCHEMA, RELATIONS>>;
+    }) => Effect.Effect<
+      SUCCESS,
+      ERROR,
+      [Extract<PROGRAM_REQUIREMENTS, Async>] extends [never]
+        ? PROGRAM_REQUIREMENTS
+        : never
+    >;
+  } & ([Extract<SUCCESS, PromiseLike<unknown>>] extends [never]
+    ? unknown
+    : never),
+): Effect.fn.Return<
   SUCCESS,
-  IAnyError,
+  ERROR | IZerospinError<'drizzle-savepoint-failed'>,
   [Extract<PROGRAM_REQUIREMENTS, Async>] extends [never]
     ? PROGRAM_REQUIREMENTS
     : never
@@ -40,33 +47,53 @@ export const withSavepoint = Effect.fn('withSavepoint')(function* <
         : never
     >();
 
-  return yield* Effect.try({
-    try: (): SUCCESS =>
-      tx.transaction(savepointTx => {
-        const exit = Effect.runSyncExitWith(context)(
-          program({ tx: savepointTx }),
-        );
-        if (Exit.isFailure(exit)) {
-          throw exit;
-        }
-        return exit.value;
-      }),
-    catch: cause => {
-      if (Exit.isExit(cause) && Exit.isFailure(cause)) {
-        const failure = Cause.findErrorOption(cause.cause);
-        if (
-          Option.isSome(failure) &&
-          ZerospinError.isZerospinError(failure.value)
-        ) {
-          return failure.value;
-        }
+  const rollback = {};
+  let captured: Exit.Exit<SUCCESS, ERROR> | undefined;
+  const exit = yield* Effect.try({
+    try: () => {
+      try {
+        return tx.transaction(savepointTx => {
+          const exit = Effect.runSyncExitWith(context)(
+            program({ tx: savepointTx }),
+          );
+          if (Exit.isFailure(exit)) {
+            for (const reason of exit.cause.reasons) {
+              if (
+                Cause.isDieReason(reason) &&
+                Cause.isAsyncFiberError(reason.defect)
+              ) {
+                reason.defect.fiber.interruptUnsafe();
+                reason.defect.fiber.currentDispatcher.flush();
+              }
+            }
+            captured = exit;
+            throw rollback;
+          }
+          return exit;
+        });
+      } catch (cause) {
+        if (cause === rollback && captured !== undefined) return captured;
+        throw cause;
       }
-
-      return new ZerospinError({
+    },
+    catch: cause => {
+      return makeZerospinError({
         code: 'drizzle-savepoint-failed',
-        message: `Failed to run database savepoint: ${ZerospinError.prettyUnknownFailure(cause)}`,
-        cause: ZerospinError.prettyUnknownFailure(cause),
+        message: `Failed to run database savepoint: ${prettyUnknownFailure(cause)}`,
+        cause: prettyUnknownFailure(cause),
       });
     },
   });
+  if (Exit.isSuccess(exit)) return exit.value;
+  const failure = Cause.findErrorOption(exit.cause);
+  if (exit.cause.reasons.every(Cause.isFailReason) && Option.isSome(failure)) {
+    return yield* Effect.fail(failure.value);
+  }
+  return yield* Effect.fail(
+    makeZerospinError({
+      code: 'drizzle-savepoint-failed',
+      message: 'Failed to run database savepoint',
+      cause: prettyUnknownFailure(exit.cause),
+    }),
+  );
 });

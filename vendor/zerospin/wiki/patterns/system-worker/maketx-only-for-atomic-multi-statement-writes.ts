@@ -1,15 +1,7 @@
-import { makeTx } from '@zerospin/core/drizzle/makeTx';
+import { makeTx } from '@zerospin/core/drizzle/make/makeTx';
 import type { IDb, ITx } from '@zerospin/core/drizzle/types';
 import type { IAnyDrizzleSchema } from '@zerospin/schema';
-import { Context, Effect } from 'effect';
-
-class AuthorizationDb extends Context.Service<AuthorizationDb, IDb>()(
-  'AuthorizationDb',
-) {
-  static readonly Tx = Context.Service<'AuthorizationDb.Tx', ITx>(
-    'AuthorizationDb.Tx',
-  );
-}
+import { Effect } from 'effect';
 
 /**
  * Use `makeTx` only when multiple Drizzle statements must commit or roll back together.
@@ -52,13 +44,11 @@ export const recordAuthorization = Effect.fn('Repo.recordAuthorization')(
       db,
     } = props;
 
-    return yield* makeTx(
-      'Repo.recordAuthorization.transaction',
-      AuthorizationDb,
-    )(function* () {
-      const tx = yield* AuthorizationDb.Tx;
+    return yield* makeTx('Repo.recordAuthorization.transaction')(function* (
+      tx: ITx,
+    ) {
       tx.insert(authorizationAttempts).values(attemptRow).run();
       tx.insert(authorizations).values(authorizationRow).run();
-    })().pipe(Effect.provideService(AuthorizationDb, db));
+    })(db);
   },
 );

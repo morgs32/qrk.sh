@@ -24,15 +24,6 @@
       "continuous": true,
       "dependsOn": ["^lib"]
     },
-    "adverse-fixture:dev": {
-      "executor": "nx:run-commands",
-      "continuous": true,
-      "options": {
-        "command": "zerospin dev --port 3035",
-        "cwd": "{projectRoot}/tests/browser/adverse-fixture"
-      },
-      "dependsOn": ["^lib"]
-    },
     "deploy:app": {
       "executor": "nx:run-script",
       "options": {
@@ -46,14 +37,6 @@
         "script": "deploy:zerospin"
       },
       "dependsOn": ["^lib"]
-    },
-    "e2e-app": {
-      "executor": "nx:run-script",
-      "options": {
-        "script": "dev"
-      },
-      "continuous": true,
-      "dependsOn": ["^lib", "zerospin:dev"]
     },
     "test:playwright": {
       "executor": "nx:run-script",
@@ -79,27 +62,6 @@
       "options": {
         "script": "test:playwright:ui"
       }
-    },
-    "test:vitest:browser": {
-      "executor": "nx:run-script",
-      "options": {
-        "script": "test:vitest:browser:main"
-      },
-      "dependsOn": ["^lib"]
-    },
-    "test:vitest:browser:main": {
-      "executor": "nx:run-script",
-      "options": {
-        "script": "test:vitest:browser:main"
-      },
-      "dependsOn": ["^lib"]
-    },
-    "test:workerd": {
-      "executor": "nx:run-script",
-      "options": {
-        "script": "test:workerd"
-      },
-      "dependsOn": ["^lib"]
     }
   }
 }

@@ -1,5 +1,5 @@
 import { defineContract } from '@zerospin/core/contracts/defineContract';
-import { makeContractVersion } from '@zerospin/core/contracts/makeContractVersion';
+import { makeContractVersion } from '@zerospin/core/contracts/make/makeContractVersion';
 import { Effect } from 'effect';
 
 /**
@@ -15,7 +15,7 @@ export const createListContract = makeContractVersion(
       const { id, name, userId } = payload;
       return Effect.all({
         created: createMutation({
-          model: List,
+          model: list,
           resourceId: id,
           attributes: { name, userId },
         }),
@@ -25,7 +25,7 @@ export const createListContract = makeContractVersion(
 );
 
 declare const CreateListPayloadSchema: unknown;
-declare const List: unknown;
+declare const list: unknown;
 declare function createMutation(
   props: unknown,
 ): Effect.Effect<unknown, never, never>;

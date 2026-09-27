@@ -1,7 +1,7 @@
-import { useLiveQuery } from '@zerospin/react';
-import { useStore } from 'zustand/react';
+import { useIdentity, useLiveQuery } from '@zerospin/react';
 
 import { CartItemQuantityControls } from './CartItemQuantityControls';
+import { PurchasePanel } from './PurchasePanel';
 
 import {
   Sidebar,
@@ -10,17 +10,14 @@ import {
   SidebarHeader,
   SidebarRail,
 } from '@/components/ui/sidebar';
-import { shopperSession } from '@/zerospin/ZerospinApp';
+import { shopperSession } from '@/zerospin/shopperSession';
 
 export function ShoppingCartSidebar() {
-  const authentication = useStore(
-    shopperSession.store,
-    state => state.authentication,
-  );
+  const identity = useIdentity(shopperSession);
 
   const { data: userRow } = useLiveQuery({
     session: shopperSession,
-    key: { clerkUserId: authentication?.clerkUserId },
+    key: { clerkUserId: identity.clerkUserId ?? undefined },
     query: (db, { clerkUserId }) =>
       db.query.user.findFirst({
         where: { clerkUserId: { eq: clerkUserId } },
@@ -38,10 +35,6 @@ export function ShoppingCartSidebar() {
       }),
   });
 
-  if (authentication === null) {
-    return null;
-  }
-
   const cartItems = userRow?.cart?.items ?? [];
 
   return (
@@ -52,12 +45,12 @@ export function ShoppingCartSidebar() {
           Review items before checkout (demo).
         </span>
       </SidebarHeader>
-      <SidebarContent className="min-w-0 flex-initial overflow-y-auto">
+      <SidebarContent className="min-w-0 overflow-y-auto">
         <div className="flex min-w-0 flex-col gap-2 p-3">
           {cartItems.length === 0 ? (
             <p className="text-muted-foreground py-8 text-center text-sm leading-relaxed">
-              Your cart is empty for {authentication.clerkUserId}. Add products
-              from the catalog.
+              Your cart is empty for {identity.clerkUserId}. Add products from
+              the catalog.
             </p>
           ) : (
             <div className="space-y-2">
@@ -79,12 +72,13 @@ export function ShoppingCartSidebar() {
               ))}
             </div>
           )}
+          <PurchasePanel />
         </div>
       </SidebarContent>
       <SidebarFooter className="shrink-0 border-t border-sidebar-border p-4">
         {cartItems.length > 0 ? (
           <p className="text-right text-base font-semibold tabular-nums">
-            Total:{' '}
+            Subtotal:{' '}
             {new Intl.NumberFormat('en-US', {
               style: 'currency',
               currency: 'USD',

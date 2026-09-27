@@ -6,7 +6,7 @@ import { Effect } from 'effect';
  * public method to a same-named foldered Effect.fn.
  *
  * PartitionApi/PartitionApi.ts
- * PartitionApi/acquireAggregateFrontendReplica/acquireAggregateFrontendReplica.ts
+ * PartitionApi/acquireAggregateSessionReplica/acquireAggregateSessionReplica.ts
  *
  * Exception: IFanoutRepo owners inline `makeFanoutQueue` on the class (`#field`
  * + prototype getter). IFanoutSubscriberRepo owners inline `makeFanoutSubscriber`
@@ -16,11 +16,18 @@ import { Effect } from 'effect';
  * `FanoutSubscriber/catchup/`, `FanoutSubscriber/subscribe/`, or `<queueName>/`
  * method folders. Factory queue `getPage` / `subscribe` and subscriber
  * `receive` / `catchup` / `subscribe` methods remain inline.
+ * The same exception applies to IOutboxRepo / IOutboxSubscriberRepo owners:
+ * inline makeOutboxQueue / makeOutboxSubscriber behind queue and subscriber
+ * getters. Outboxes bind one receiver, expose no enqueue or subscription RPC,
+ * and keep drain / hasPending as local Effects.
+ * Transport-only test fixtures may remain inline. Non-public one-consumer
+ * helpers stay inline unless reused, independently tested, or part of an
+ * explicitly approved shared utility.
  * See `system-worker/i-fanout-repo.ts`.
  *
  * @bad Keep a full RPC workflow inline in the RpcTarget class.
  * @bad Exempt an Api, gateway, provider, or failure target because it is not a Repo.
- * @bad Import `acquireAggregateFrontendReplica` under an alias when the class already supplies scope.
+ * @bad Import `acquireAggregateSessionReplica` under an alias when the class already supplies scope.
  * @bad Create an `index.ts` barrel just to re-export the method file.
  * @bad Create a method folder for an IFanoutRepo queue or its nested `subscribe`.
  * @bad Create a method folder for an IFanoutSubscriberRepo or its nested `receive`.
@@ -33,27 +40,27 @@ export class PartitionApi extends RpcTarget {
     super();
   }
 
-  async acquireAggregateFrontendReplica(props: { frontendName: string }) {
+  async acquireAggregateSessionReplica(props: { sessionName: string }) {
     return this.runtime.runPromise(
-      acquireAggregateFrontendReplica({
-        frontendName: props.frontendName,
+      acquireAggregateSessionReplica({
+        sessionName: props.sessionName,
         db: this.db,
-      }).pipe(encodeRpc),
+      }).pipe(settleResult),
     );
   }
 }
 
-export const acquireAggregateFrontendReplica = Effect.fn(
-  'PartitionApi.acquireAggregateFrontendReplica',
-)(function* (props: { frontendName: string; db: unknown }) {
+export const acquireAggregateSessionReplica = Effect.fn(
+  'PartitionApi.acquireAggregateSessionReplica',
+)(function* (props: { sessionName: string; db: unknown }) {
   return yield* acquireReplica(props);
 });
 
 declare const managedRuntime: {
   runPromise(effect: unknown): Promise<unknown>;
 };
-declare function encodeRpc(effect: unknown): unknown;
+declare function settleResult(effect: unknown): unknown;
 declare function acquireReplica(props: {
-  frontendName: string;
+  sessionName: string;
   db: unknown;
 }): Effect.Effect<void>;

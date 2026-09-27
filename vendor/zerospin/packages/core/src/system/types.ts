@@ -1,20 +1,15 @@
 import type { IAnyError } from '@zerospin/error';
-import type {
-  CuidFactory,
-  IEncodedShape,
-  InferIdFromAbbreviation,
-} from '@zerospin/schema';
-import type { Brand, JsonSchema, Layer } from 'effect';
+import type { IEncodedShape, InferIdFromAbbreviation } from '@zerospin/schema';
+import type { Brand, JsonSchema, ManagedRuntime } from 'effect';
 
 import type { IAnyAggregate, IAnyAggregates } from '../aggregate/types.ts';
-import type { Async } from '../async/Async.ts';
+import type { ISelectionQuery } from '../models/SelectionQuerySchema.ts';
 import type {
   IEncodedResourceShape,
   IModelSpec,
   IRef,
 } from '../models/types.ts';
 import type { IAnyService, IAnyServices } from '../service/types.ts';
-import type { MonotonicFactory } from '../services/MonotonicFactory.ts';
 
 export type IRefRecord = Record<string, IRef>;
 
@@ -39,15 +34,15 @@ export type IEncodedQuery = {
 export type IRepoType =
   | 'SystemRepo'
   | 'AggregateChain'
-  | 'VersionedAggregateRepo'
-  | 'ServiceAdmittedChain'
-  | 'VersionedServiceRepo'
-  | 'VersionedAggregateChain'
-  | 'VersionedServiceChain'
-  | 'SelectionVersionedAggregateChain'
-  | 'FrontendServiceChain'
-  | 'SelectionVersionedAggregateRepo'
-  | 'FrontendVersionedServiceRepo'
+  | 'AggregateVersionRepo'
+  | 'ServiceChain'
+  | 'ServiceVersionRepo'
+  | 'AggregateVersionChain'
+  | 'ServiceVersionChain'
+  | 'AggregateActorVersionChain'
+  | 'ServiceActorVersionChain'
+  | 'AggregateActorVersionRepo'
+  | 'ServiceActorVersionRepo'
   | 'SystemLogRepo';
 
 export type IRepoRegistration = Readonly<{
@@ -84,61 +79,85 @@ type ISystemContractSpec = Readonly<{
   readonly commandName: string;
   readonly version: string;
   readonly payloadShape: Readonly<IEncodedShape>;
+  readonly failureJsonSchema: unknown;
+  readonly failureSchemas: Readonly<Record<string, unknown>>;
   readonly models: Readonly<Record<string, IModelSpec>>;
 }>;
 
+type ISystemActorSpec = Readonly<{
+  models: Readonly<
+    Record<string, Readonly<{ modelName: string; version: string }>>
+  >;
+  name: string;
+  version: string;
+  authentication: 'none' | Readonly<{ credentialsJsonSchema: unknown }>;
+  identity: Readonly<{
+    identityJsonSchema: unknown;
+    actorJsonSchema: unknown;
+    pattern: string;
+  }>;
+  selections: Readonly<
+    Record<string, Readonly<{ modelName: string; query: ISelectionQuery }>>
+  >;
+}>;
+
 export type ISystemSpec = Readonly<{
-  readonly systemName: string;
-  readonly aggregates: Readonly<
+  systemName: string;
+  aggregates: Readonly<
     Record<
       string,
       Readonly<
         Record<
           string,
           Readonly<{
-            readonly name: string;
-            readonly version: string;
-            readonly authentication: {
-              readonly signatureJsonSchema: unknown;
-              readonly authenticationJsonSchema: unknown;
-              readonly selectionJsonSchema: unknown;
-              readonly pattern: string;
-            };
-            readonly services: Readonly<Record<string, string>>;
-            readonly models: Readonly<Record<string, ISystemModelSpec>>;
-            readonly contracts: Readonly<Record<string, ISystemContractSpec>>;
-            readonly selections: Readonly<
-              Record<string, Readonly<{ readonly modelName: string }>>
+            name: string;
+            version: string;
+            services: Readonly<Record<string, string>>;
+            models: Readonly<Record<string, ISystemModelSpec>>;
+            actors: Readonly<
+              Record<
+                string,
+                ISystemActorSpec & {
+                  contracts: Readonly<Record<string, ISystemContractSpec>>;
+                  automations: Readonly<
+                    Record<
+                      string,
+                      {
+                        name: string;
+                        on: { commandName: string; version: string };
+                        contracts: Readonly<
+                          Record<string, ISystemContractSpec>
+                        >;
+                      }
+                    >
+                  >;
+                }
+              >
             >;
           }>
         >
       >
     >
   >;
-  readonly services: Readonly<
+  services: Readonly<
     Record<
       string,
       Readonly<
         Record<
           string,
           Readonly<{
-            readonly name: string;
-            readonly version: string;
-            readonly authentication: {
-              readonly signatureJsonSchema: unknown;
-              readonly authenticationJsonSchema: unknown;
-              readonly selectionJsonSchema: unknown;
-              readonly pattern: string;
-            };
-            readonly models: Readonly<Record<string, ISystemModelSpec>>;
-            readonly contracts: Readonly<Record<string, ISystemContractSpec>>;
-            readonly queries: Readonly<
+            name: string;
+            version: string;
+            models: Readonly<Record<string, ISystemModelSpec>>;
+            contracts: Readonly<Record<string, ISystemContractSpec>>;
+            actors: Readonly<Record<string, ISystemActorSpec>>;
+            queries: Readonly<
               Record<
                 string,
                 Readonly<{
-                  readonly name: string;
-                  readonly serviceName: string;
-                  readonly paramsJsonSchema: Readonly<{
+                  name: string;
+                  serviceName: string;
+                  paramsJsonSchema: Readonly<{
                     dialect: 'draft-2020-12';
                     schema: Readonly<JsonSchema.JsonSchema>;
                     definitions: Readonly<
@@ -181,42 +200,13 @@ export type ISystem<
     Record<string, IAnyServices>
   >,
   SYSTEM_NAME extends string = string,
-  LAYER_SERVICES = never,
 > = {
-  readonly layer: Layer.Layer<LAYER_SERVICES, IAnyError>;
+  readonly runtime: ManagedRuntime.ManagedRuntime<unknown, IAnyError>;
   readonly name: SYSTEM_NAME;
   readonly aggregates: Readonly<
-    AGGREGATES &
-      Record<
-        string,
-        Readonly<
-          Record<
-            string,
-            IAnyAggregate<
-              unknown,
-              never,
-              unknown,
-              LAYER_SERVICES | CuidFactory | MonotonicFactory | Async
-            >
-          >
-        >
-      >
+    AGGREGATES & Record<string, Readonly<Record<string, IAnyAggregate>>>
   >;
   readonly services: Readonly<
-    SERVICES &
-      Record<
-        string,
-        Readonly<
-          Record<
-            string,
-            IAnyService<
-              unknown,
-              never,
-              unknown,
-              LAYER_SERVICES | CuidFactory | MonotonicFactory | Async
-            >
-          >
-        >
-      >
+    SERVICES & Record<string, Readonly<Record<string, IAnyService>>>
   >;
 };

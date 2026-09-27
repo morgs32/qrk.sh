@@ -34,16 +34,16 @@ import {
 
 const repoTypes = [
   'SystemRepo',
-  'VersionedAggregateRepo',
-  'SelectionVersionedAggregateRepo',
-  'FrontendVersionedServiceRepo',
-  'VersionedServiceRepo',
+  'AggregateVersionRepo',
+  'AggregateActorVersionRepo',
+  'ServiceActorVersionRepo',
+  'ServiceVersionRepo',
   'AggregateChain',
-  'VersionedAggregateChain',
-  'VersionedServiceChain',
-  'SelectionVersionedAggregateChain',
-  'FrontendServiceChain',
-  'ServiceAdmittedChain',
+  'AggregateVersionChain',
+  'ServiceVersionChain',
+  'AggregateActorVersionChain',
+  'ServiceActorVersionChain',
+  'ServiceChain',
   'SystemLogRepo',
 ] satisfies readonly IRepoType[];
 
@@ -241,12 +241,15 @@ export function RepoExplorer() {
                           <li>
                             contracts
                             <ol className="ml-5 list-decimal">
-                              {Object.values(aggregate.contracts).map(
-                                contract => (
-                                  <li key={contract.commandName}>
-                                    {contract.commandName}: {contract.version}
+                              {Object.values(aggregate.actors).flatMap(actor =>
+                                Object.values(actor.contracts).map(contract => (
+                                  <li
+                                    key={`${actor.name}.${contract.commandName}`}
+                                  >
+                                    {actor.name}.{contract.commandName}:{' '}
+                                    {contract.version}
                                   </li>
-                                ),
+                                )),
                               )}
                             </ol>
                           </li>

@@ -1,24 +1,29 @@
+import type { IAdmissionRequest } from '@zerospin/core/identity/types';
+import type { ISystem } from '@zerospin/core/system/types';
 import { RpcTarget } from 'capnweb';
 
-import type { ISystemRuntime } from '../makeSystemRuntime.js';
+import { admit } from './admit/admit.js';
 
-import { authenticate } from './authenticate/authenticate.js';
-
-/** Authentication capability for one service version. */
+/** Identity capability for one service version. */
 export class ServiceApi extends RpcTarget {
-  readonly #binding: Parameters<typeof authenticate>[0]['binding'];
-  readonly #runtime: ISystemRuntime;
+  readonly #binding: Parameters<typeof admit>[0]['binding'];
+  readonly #runtime: ISystem['runtime'];
   constructor(props: {
-    binding: Parameters<typeof authenticate>[0]['binding'];
-    runtime: ISystemRuntime;
+    binding: Parameters<typeof admit>[0]['binding'];
+    runtime: ISystem['runtime'];
   }) {
     super();
     this.#binding = props.binding;
     this.#runtime = props.runtime;
   }
-  async authenticate(request: { signature: unknown }) {
+  async admit(
+    request: IAdmissionRequest & {
+      actorName: string;
+      actorVersion: string;
+    },
+  ) {
     return this.#runtime.runPromise(
-      authenticate({ request, binding: this.#binding, runtime: this.#runtime }),
+      admit({ request, binding: this.#binding, runtime: this.#runtime }),
     );
   }
 }

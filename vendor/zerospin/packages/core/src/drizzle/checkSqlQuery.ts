@@ -19,11 +19,11 @@ const sqlTypes = [
   'reindex',
 ] as const;
 
-export type SqlType = (typeof sqlTypes)[number];
+export type ISqlType = (typeof sqlTypes)[number];
 
 export type ICheckSqlQueryResult = {
   readonly readonly: boolean;
-  readonly types: SqlType[];
+  readonly types: ISqlType[];
   readonly error?: string;
 };
 
@@ -162,7 +162,7 @@ export const checkSqlQuery = Effect.fn('checkSqlQuery')(function* (props: {
       }
     }
 
-    const types: SqlType[] = [];
+    const types: ISqlType[] = [];
     for (const type of sqlTypes) {
       if (sql.includes(type)) {
         types.push(type);

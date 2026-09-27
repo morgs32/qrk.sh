@@ -1,4 +1,9 @@
-import { mapParseError, ZerospinError, type IAnyError } from '@zerospin/error';
+import {
+  makeZerospinError,
+  mapParseError,
+  prettyUnknownFailure,
+  type IAnyError,
+} from '@zerospin/error';
 import { eq } from 'drizzle-orm';
 import { Effect, Schema } from 'effect';
 
@@ -48,9 +53,9 @@ export const applyAggregateMutationTx = Effect.fn('applyAggregateMutationTx')(
             values: mutation.operation.resource,
           }),
         catch: cause => {
-          const failure = `${ZerospinError.prettyUnknownFailure(cause)}${
+          const failure = `${prettyUnknownFailure(cause)}${
             cause instanceof Error && cause.cause !== undefined
-              ? `\n${ZerospinError.prettyUnknownFailure(cause.cause)}`
+              ? `\n${prettyUnknownFailure(cause.cause)}`
               : ''
           }`;
           if (
@@ -58,7 +63,7 @@ export const applyAggregateMutationTx = Effect.fn('applyAggregateMutationTx')(
           ) {
             throw cause;
           }
-          return new ZerospinError({
+          return makeZerospinError({
             code: 'mutation-referential-integrity-failed',
             message: `Cannot apply replicate mutation to "${mutation.model.modelName}.${mutation.resourceId}" because it violates a persisted reference`,
             cause: failure,
@@ -75,7 +80,7 @@ export const applyAggregateMutationTx = Effect.fn('applyAggregateMutationTx')(
         commandId,
         mutationIndex,
         appliedAt,
-        lastAppliedAt: previousResource?.updatedAt ?? null,
+        previousUpdatedAt: previousResource?.updatedAt ?? null,
         inverseOperation:
           previousResource === null
             ? null
@@ -106,16 +111,18 @@ export const applyAggregateMutationTx = Effect.fn('applyAggregateMutationTx')(
         resourceId,
       });
       if (resourceRow.deletedAt !== null) {
-        return yield* new ZerospinError({
-          code: 'service-resource-deleted',
-          message: `Cannot apply delete mutation to deleted service resource "${resourceId}"`,
-          extra: {
-            modelName: model.modelName,
-            resourceId,
-            operationName,
-            deletedAt: resourceRow.deletedAt,
-          },
-        });
+        return yield* Effect.fail(
+          makeZerospinError({
+            code: 'service-resource-deleted',
+            message: `Cannot apply delete mutation to deleted service resource "${resourceId}"`,
+            extra: {
+              modelName: model.modelName,
+              resourceId,
+              operationName,
+              deletedAt: resourceRow.deletedAt,
+            },
+          }),
+        );
       }
       const resource = yield* Schema.decodeUnknownEffect(
         Schema.toType(model.resourceSchema),
@@ -136,7 +143,7 @@ export const applyAggregateMutationTx = Effect.fn('applyAggregateMutationTx')(
         commandId,
         mutationIndex,
         appliedAt,
-        lastAppliedAt: resourceRow.updatedAt,
+        previousUpdatedAt: resourceRow.updatedAt,
         inverseOperation: { resource },
       };
     }
@@ -184,9 +191,9 @@ export const applyAggregateMutationTx = Effect.fn('applyAggregateMutationTx')(
             .where(eq(table.id, resourceId))
             .run(),
         catch: cause => {
-          const failure = `${ZerospinError.prettyUnknownFailure(cause)}${
+          const failure = `${prettyUnknownFailure(cause)}${
             cause instanceof Error && cause.cause !== undefined
-              ? `\n${ZerospinError.prettyUnknownFailure(cause.cause)}`
+              ? `\n${prettyUnknownFailure(cause.cause)}`
               : ''
           }`;
           if (
@@ -194,7 +201,7 @@ export const applyAggregateMutationTx = Effect.fn('applyAggregateMutationTx')(
           ) {
             throw cause;
           }
-          return new ZerospinError({
+          return makeZerospinError({
             code: 'mutation-referential-integrity-failed',
             message: `Cannot apply create mutation to "${model.modelName}.${resourceId}" because it violates a persisted reference`,
             cause: failure,
@@ -207,7 +214,7 @@ export const applyAggregateMutationTx = Effect.fn('applyAggregateMutationTx')(
         commandId,
         mutationIndex,
         appliedAt,
-        lastAppliedAt: null,
+        previousUpdatedAt: null,
         inverseOperation: null,
       };
     }
@@ -217,16 +224,18 @@ export const applyAggregateMutationTx = Effect.fn('applyAggregateMutationTx')(
       'deletedAt' in existingResource &&
       existingResource.deletedAt !== null
     ) {
-      return yield* new ZerospinError({
-        code: 'service-resource-deleted',
-        message: `Cannot apply ${operationName} mutation to deleted service resource "${resourceId}"`,
-        extra: {
-          modelName: model.modelName,
-          resourceId,
-          operationName,
-          deletedAt: existingResource.deletedAt,
-        },
-      });
+      return yield* Effect.fail(
+        makeZerospinError({
+          code: 'service-resource-deleted',
+          message: `Cannot apply ${operationName} mutation to deleted service resource "${resourceId}"`,
+          extra: {
+            modelName: model.modelName,
+            resourceId,
+            operationName,
+            deletedAt: existingResource.deletedAt,
+          },
+        }),
+      );
     }
 
     return yield* applyMutationTx({

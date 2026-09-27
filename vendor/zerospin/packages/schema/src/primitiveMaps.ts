@@ -132,6 +132,11 @@ export function descriptorToEffectSchema(
       return nullable ? Schema.NullOr(literal) : literal;
     }
     case PrimitiveKind.Ref: {
+      if ('table' in descriptor && typeof descriptor.table === 'string') {
+        throw new Error(
+          `Unresolved reference to ${descriptor.table}.${descriptor.targetColumnName}; construct its owning makeDbConfig first`,
+        );
+      }
       if (descriptor.targetKind === PrimitiveKind.Integer) {
         return nullable ? Schema.NullOr(Schema.Number) : Schema.Number;
       }
@@ -188,9 +193,8 @@ export function descriptorToDrizzleColumn(props: {
   descriptor: IAnyPrimitiveDescriptor | IEncodedShape[string];
   reference?: () => AnySQLiteColumn;
 }): ColumnBuilderBase {
-  const { reference } = props;
+  const { reference, key, descriptor } = props;
   // 1 — Every branch shares the authored column key and nullable flag.
-  const { key, descriptor } = props;
   const nullable = descriptor.nullable === true;
   const column: ColumnBuilderBase = (() => {
     switch (descriptor.kind) {
@@ -282,6 +286,11 @@ export function descriptorToDrizzleColumn(props: {
       // 5 — Refs select integer or prefixed-text storage and attach the lazy
       // foreign-key target only when the caller resolved one.
       case PrimitiveKind.Ref: {
+        if ('table' in descriptor && typeof descriptor.table === 'string') {
+          throw new Error(
+            `Unresolved reference to ${descriptor.table}.${descriptor.targetColumnName}; construct its owning makeDbConfig first`,
+          );
+        }
         if (descriptor.targetKind === PrimitiveKind.Integer) {
           let col = nullable
             ? drizzleInteger(key)
@@ -416,6 +425,11 @@ export function generateProvisioningSqlForDescriptor(
     }
     // 4 — References follow their target key kind; cursor and foreign keys use text.
     case PrimitiveKind.Ref: {
+      if ('table' in descriptor && typeof descriptor.table === 'string') {
+        throw new Error(
+          `Unresolved reference to ${descriptor.table}.${descriptor.targetColumnName}; construct its owning makeDbConfig first`,
+        );
+      }
       if (descriptor.targetKind === PrimitiveKind.Integer) {
         return nullable
           ? `${columnName} integer${uniqueSql}`

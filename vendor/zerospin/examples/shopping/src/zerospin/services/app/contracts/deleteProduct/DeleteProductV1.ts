@@ -14,11 +14,11 @@ export const deleteProductV1 = sdk.makeContractVersion(deleteProduct, {
   models: { product: productV1 },
   program: ({ payload, models }) => {
     const { id } = payload;
-    return Effect.all({
-      deleted: models.product.delete({
+    return Effect.all([
+      models.product.delete({
         resourceId: id,
       }),
-    });
+    ]);
   },
   version: '1.0.0',
 });

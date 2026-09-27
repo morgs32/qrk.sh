@@ -1,3 +1,4 @@
+import type { Async } from '@zerospin/core/async/Async';
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/make/makeDbConfig/makeDbConfig';
 import { makeProvisionedInMemoryWasmSqliteDb } from '@zerospin/core/drizzle/make/makeProvisionedInMemoryWasmSqliteDb/makeProvisionedInMemoryWasmSqliteDb';
 import { assertSessionClaims } from '@zerospin/core/identity/assertSessionClaims';
@@ -20,9 +21,10 @@ import {
   type IZerospinErrorJson,
 } from '@zerospin/error';
 import { getTableName, sql } from 'drizzle-orm';
-import { Effect, Schema } from 'effect';
+import { Effect, Schema, type Scope } from 'effect';
 
 import { connectBrowserNode, nodeResult } from './connectBrowserNode.ts';
+import type { INodeCommand } from './Node/Node.ts';
 
 export const bootstrapServiceSession = Effect.fn('bootstrapServiceSession')(
   function* <D extends IServiceSessionDefinition>(props: {
@@ -36,7 +38,17 @@ export const bootstrapServiceSession = Effect.fn('bootstrapServiceSession')(
     >;
     sharedWorker: (props: { name: string }) => SharedWorker;
     expectedClaims?: Readonly<Record<string, unknown>> | undefined;
-  }) {
+  }): Effect.fn.Return<
+    {
+      clearAuthentication(): Promise<void>;
+      history(page: {
+        afterNodeIndex: number;
+        limit: number;
+      }): Promise<readonly INodeCommand[]>;
+    },
+    IAnyError,
+    Async | Scope.Scope
+  > {
     const {
       session,
       apiUrl,

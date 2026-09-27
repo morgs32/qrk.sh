@@ -219,12 +219,14 @@ export function SessionsLayout() {
             <colgroup>
               <col style={{ width: 70 }} />
               <col style={{ width: 100 }} />
+              <col style={{ width: 100 }} />
               <col style={{ width: 220 }} />
               <col style={{ width: 220 }} />
             </colgroup>
             <thead style={styles.tableHeader}>
               <tr>
                 <th style={styles.thKind}>Kind</th>
+                <th style={styles.thSession}>Actor name</th>
                 <th style={styles.thSession}>Session name</th>
                 <th style={styles.thSessionName}>Session ID</th>
                 <th style={styles.thActor}>Claims</th>
@@ -234,7 +236,7 @@ export function SessionsLayout() {
               {aggregateSessions.length === 0 &&
               serviceSessions.length === 0 ? (
                 <tr style={styles.tr}>
-                  <td colSpan={4} style={{ ...styles.td, color: '#6b7280' }}>
+                  <td colSpan={5} style={{ ...styles.td, color: '#6b7280' }}>
                     No sessions
                   </td>
                 </tr>
@@ -269,6 +271,12 @@ export function SessionsLayout() {
                         }}
                       >
                         <td style={styles.tdKind}>aggregate</td>
+                        <td
+                          style={styles.tdSession}
+                          title={session.definition.aggregateName}
+                        >
+                          {session.definition.aggregateName}
+                        </td>
                         <td
                           style={styles.tdSession}
                           title={`${session.definition.aggregateName}/${session.definition.sessionName}`}
@@ -316,6 +324,12 @@ export function SessionsLayout() {
                         }}
                       >
                         <td style={styles.tdKind}>service</td>
+                        <td
+                          style={styles.tdSession}
+                          title={session.serviceName}
+                        >
+                          {session.serviceName}
+                        </td>
                         <td
                           style={styles.tdSession}
                           title={`${session.serviceName}/${session.sessionName}`}

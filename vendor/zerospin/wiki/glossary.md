@@ -367,12 +367,12 @@ history into the tab.
 ## durable browser node
 
 A SharedWorker-owned persistent SQLite database for one authenticated target and
-full definition. Its random `nodeId` survives restart; `nodeIndex` is allocated
+full definition. Its prefixed `nodeId`, generated once with `makeIdFromAbbreviation`, survives restart; `nodeIndex` is allocated
 atomically with command retention. It owns confirmed resources, flat command
 history, authentication coordination, shared push state, and server synchronization.
 
 - [`Node.ts`](../packages/browser/src/Node/Node.ts)
-- [`NodeHost.ts`](../packages/browser/src/Node/NodeHost.ts)
+- [`makeSharedWorker.ts`](../packages/browser/src/makeSharedWorker.ts)
 
 ## IndexedDB backup worker
 

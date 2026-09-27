@@ -7,11 +7,15 @@ import {
 } from '@zerospin/error';
 import { newMessagePortRpcSession, RpcStub } from 'capnweb';
 
-import type { IBrowserNode } from './BrowserNode/BrowserNode.ts';
+import type { IBrowserSessionApi } from './BrowserSessionApi/BrowserSessionApi.ts';
 import { isNodeNetworkUnavailable } from './Node/isNodeNetworkUnavailable.ts';
 import type { INodeChange, INodeSnapshot } from './Node/Node.ts';
+import { nodeKey } from './Node/nodeKey.ts';
 import type { INodeRequest } from './Node/nodeRequest.ts';
-import type { NodeWorker } from './NodeWorker/NodeWorker.ts';
+import { resolveNode } from './Node/resolveNode.ts';
+import { sessionDiscovery } from './Node/sessionDiscovery.ts';
+import type { SharedWorkerApi } from './SharedWorkerApi/SharedWorkerApi.ts';
+import { sharedWorkerVersion } from './sharedWorkerVersion.ts';
 
 export function nodeResult<A>(
   result: IResult<A, IAnyError | IZerospinErrorJson>,
@@ -21,13 +25,14 @@ export function nodeResult<A>(
 }
 
 export type INodeConnection = {
-  readonly node: RpcStub<IBrowserNode>;
+  readonly node: RpcStub<IBrowserSessionApi>;
   ready(): Promise<void>;
   resnapshot(): Promise<void>;
   dispose(): Promise<void>;
 };
 
 export async function connectBrowserNode(props: {
+  sharedWorker: (props: { name: string }) => SharedWorker;
   request: INodeRequest;
   getAdmission(): Promise<
     IResult<IAdmissionRequest, IAnyError | IZerospinErrorJson>
@@ -38,19 +43,30 @@ export async function connectBrowserNode(props: {
   reconnect(): Promise<void>;
 }): Promise<INodeConnection> {
   let disposed = false;
-  let api: RpcStub<NodeWorker> | null = null;
-  let node: RpcStub<IBrowserNode> | null = null;
+  let api: RpcStub<SharedWorkerApi> | null = null;
+  let node: RpcStub<IBrowserSessionApi> | null = null;
   let port: MessagePort | null = null;
   let callback: RpcStub<(change: INodeChange) => Promise<void>> | null = null;
   let generation = 0;
   let opening: Promise<void> | null = null;
   let lifetime: AbortController | null = null;
   let timer: ReturnType<typeof setTimeout> | null = null;
-  const admission = new RpcStub(async () =>
-    nodeResult(await props.getAdmission()),
-  );
+  let revision: number | undefined;
+  let selectedKey: string | undefined;
+  let verifiedAdmission: IAdmissionRequest | null = null;
+  let removeListeners = () => {};
+  const admission = new RpcStub(async () => {
+    if (verifiedAdmission !== null) {
+      const value = verifiedAdmission;
+      verifiedAdmission = null;
+      return value;
+    }
+    return nodeResult(await props.getAdmission());
+  });
 
   const closeConnection = () => {
+    removeListeners();
+    removeListeners = () => {};
     lifetime?.abort();
     lifetime = null;
     callback?.[Symbol.dispose]();
@@ -70,25 +86,39 @@ export async function connectBrowserNode(props: {
     const current = ++generation;
     const work = (async () => {
       closeConnection();
-      const worker = new SharedWorker('/__zerospin/node-worker.js', {
-        name: 'zerospin-nodes',
-        type: 'module',
+      revision ??= await sessionDiscovery.revision();
+      const resolved = await resolveNode({
+        request: props.request,
+        getAdmission: async () => nodeResult(await props.getAdmission()),
+        expectedClaims: props.expectedClaims,
+        revision,
       });
+      if (disposed || generation !== current) return;
+      const key = await nodeKey(resolved.definition.identity);
+      if (selectedKey !== undefined && selectedKey !== key) {
+        throw makeZerospinError({
+          code: 'node-authentication-identity-mismatch',
+        });
+      }
+      selectedKey = key;
+      verifiedAdmission = resolved.admission;
+      const name = `zerospin:${sharedWorkerVersion}:${key}`;
+      const worker = props.sharedWorker({ name });
       port = worker.port;
-      const connection = newMessagePortRpcSession<NodeWorker>(port);
+      const connection = newMessagePortRpcSession<SharedWorkerApi>(port);
       api = connection;
       const ready = Promise.withResolvers<void>();
       void ready.promise.catch(() => undefined);
       let broken = false;
+      let retired = false;
       const lost = () => {
-        if (disposed || generation !== current || broken) return;
+        if (disposed || generation !== current || broken || retired) return;
         broken = true;
         ready.reject(
           makeZerospinError({ code: 'node-connection-unavailable' }),
         );
         connection[Symbol.dispose]();
         props.state({
-          retainedNodes: [],
           localAvailability: 'unavailable',
           authentication: 'unavailable',
           synchronization: 'offline',
@@ -102,21 +132,32 @@ export async function connectBrowserNode(props: {
           }, 250);
         }
       };
+      const startupTimeout = setTimeout(lost, 15000);
       connection.onRpcBroken(lost);
       worker.addEventListener('error', lost);
       port.addEventListener('messageerror', lost);
+      const currentPort = port;
+      removeListeners = () => {
+        retired = true;
+        clearTimeout(startupTimeout);
+        worker.removeEventListener('error', lost);
+        currentPort.removeEventListener('messageerror', lost);
+      };
       port.start();
-      nodeResult(await connection.ready());
+      const workerReady = nodeResult(await connection.ready());
+      if (workerReady.version !== sharedWorkerVersion) {
+        throw makeZerospinError({ code: 'node-worker-version-mismatch' });
+      }
       lifetime = new AbortController();
       void navigator.locks
         .request(
-          'zerospin-nodes-lifetime',
+          `${name}:lifetime`,
           { mode: 'shared', signal: lifetime.signal },
           lost,
         )
         .catch(() => undefined);
       const attached = nodeResult(
-        await connection.attach(props.request, admission, props.expectedClaims),
+        await connection.attach(resolved.attachment, admission),
       );
       if (disposed || generation !== current) {
         attached[Symbol.dispose]();
@@ -146,11 +187,13 @@ export async function connectBrowserNode(props: {
       callback = receive;
       nodeResult(await attached.subscribe(receive));
       await ready.promise;
+      clearTimeout(startupTimeout);
       await props.reconnect();
     })();
     opening = work;
     void work
       .catch(error => {
+        if (generation === current) closeConnection();
         if (
           disposed ||
           generation !== current ||
@@ -159,7 +202,6 @@ export async function connectBrowserNode(props: {
           return;
         }
         props.state({
-          retainedNodes: [],
           localAvailability: 'unavailable',
           authentication: 'unavailable',
           synchronization: 'blocked',

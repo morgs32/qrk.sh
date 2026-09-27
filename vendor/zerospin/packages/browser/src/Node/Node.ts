@@ -1,14 +1,16 @@
-import type { IRetainedNodeState } from '@zerospin/core/aggregateSession/NodeState';
 import type { IAggregateActorCommand } from '@zerospin/core/aggregateSession/types';
 import { AdmissionResultSchema } from '@zerospin/core/contracts/AdmissionResultSchema';
 import { ExecutionSummarySchema } from '@zerospin/core/contracts/ExecutionSummarySchema';
 import { makeTableProvisioningStatements } from '@zerospin/core/drizzle/provisionDb/provisionDbTx/makeTableProvisioningSQL/makeTableProvisioningSQL';
 import { EncodedResourceSchema } from '@zerospin/core/models/EncodedResourceSchema';
+import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
+import { NanoIdFactory } from '@zerospin/core/utils/NanoIdFactory';
 import { isZerospinError, makeZerospinError } from '@zerospin/error';
+import { makeIdFromAbbreviation } from '@zerospin/schema';
 import { and, eq, gt, gte, isNull, sql } from 'drizzle-orm';
 import { getTableConfig } from 'drizzle-orm/sqlite-core';
 import type { SqliteRemoteDatabase } from 'drizzle-orm/sqlite-proxy';
-import { Schema } from 'effect';
+import { Effect, Schema } from 'effect';
 
 import { makeNodeResourceTables } from './makeNodeResourceTables.ts';
 import { nodeKey } from './nodeKey.ts';
@@ -52,19 +54,6 @@ type INodeSubscriber = {
 
 /** Owns committed state. Only database work runs inside the serialization boundary. */
 export class Node {
-  private readonly retainedNodes = new Map<string, IRetainedNodeState>();
-
-  retainNodeState(state: IRetainedNodeState): void {
-    if (
-      JSON.stringify(this.retainedNodes.get(state.nodeId)) ===
-      JSON.stringify(state)
-    ) {
-      return;
-    }
-    this.retainedNodes.set(state.nodeId, state);
-    this.publish({ type: 'state', state: this.status() });
-  }
-
   private serial: Promise<unknown> = Promise.resolve();
   private readonly subscribers = new Set<INodeSubscriber>();
   private readonly tables;
@@ -124,7 +113,8 @@ export class Node {
     }
   }
 
-  async initialize(): Promise<void> {
+  async initialize(create = true): Promise<boolean> {
+    let created = false;
     await this.serialized(() =>
       this.transaction(async () => {
         const [existing] = await this.db.values<[number]>(
@@ -133,7 +123,7 @@ export class Node {
         const tables = await this.db.all<{ name: string }>(
           sql`SELECT name FROM sqlite_master WHERE type = 'table'`,
         );
-        if (tables.length > 0 && existing?.[0] !== 4) {
+        if (tables.length > 0 && existing?.[0] !== 5) {
           throw makeZerospinError({ code: 'node-storage-reset-required' });
         }
         if (tables.length > 0) {
@@ -143,8 +133,13 @@ export class Node {
           ) {
             throw makeZerospinError({ code: 'node-storage-identity-mismatch' });
           }
+          if (!create && !(await this.metadata()).initialized) {
+            throw makeZerospinError({ code: 'node-storage-incomplete' });
+          }
           return;
         }
+        if (!create) throw makeZerospinError({ code: 'node-storage-missing' });
+        created = true;
         for (const table of [
           nodeMetadata,
           nodeCommands,
@@ -156,8 +151,13 @@ export class Node {
         }
         await this.db.insert(nodeMetadata).values({
           id: 1,
-          nodeId: crypto.randomUUID(),
+          nodeId: await Effect.runPromise(
+            makeIdFromAbbreviation({
+              abbreviation: coreAbbreviations.node,
+            }).pipe(Effect.provide(NanoIdFactory)),
+          ),
           definitionKey: await nodeKey(this.definition.identity),
+          initialized: false,
           nextNodeIndex: 1,
           outcomeIndex: 0,
           aggregateIndex: 0,
@@ -174,9 +174,10 @@ export class Node {
             .join(''),
           pushPaused: false,
         });
-        await this.db.run(sql`PRAGMA user_version = 4`);
+        await this.db.run(sql`PRAGMA user_version = 5`);
       }),
     );
+    return created;
   }
 
   private async metadata() {
@@ -589,6 +590,7 @@ export class Node {
           aggregateIndex: recovery.snapshot.aggregateIndex,
           executedIndex: recovery.snapshot.executedIndex,
           executedHash: recovery.snapshot.executedHash,
+          initialized: true,
         })
         .where(eq(nodeMetadata.id, 1));
     });
@@ -728,7 +730,6 @@ export class Node {
 
   status() {
     return {
-      retainedNodes: [...this.retainedNodes.values()],
       localAvailability:
         this.persistenceFailure === null ? 'available' : 'failed',
       authentication: this.suspended

@@ -15,6 +15,11 @@ import { applicationLayer } from './applicationLayer';
 import { clerkCredentialsSchema, shopperClaims } from './claims';
 
 export const shopperSession = makeSession({
+  sharedWorker: ({ name }) =>
+    new SharedWorker(new URL('./zerospin.worker.ts', import.meta.url), {
+      type: 'module',
+      name,
+    }),
   claimsSchema: shopperClaims,
   credentialsSchema: clerkCredentialsSchema,
   kind: 'aggregate',

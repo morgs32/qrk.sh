@@ -93,6 +93,7 @@ export function makeSession<
   const CREDENTIALS extends Schema.Codec<unknown, unknown> | undefined =
     undefined,
 >(props: {
+  sharedWorker: (props: { name: string }) => SharedWorker;
   kind: 'aggregate';
   aggregateName: AGGREGATE_NAME;
   aggregateVersion: AGGREGATE_VERSION;
@@ -179,6 +180,7 @@ export function makeSession<
     undefined,
 >(
   props: {
+    sharedWorker: (props: { name: string }) => SharedWorker;
     kind: 'service';
     serviceName: SERVICE_NAME;
     serviceVersion: SERVICE_VERSION;
@@ -237,11 +239,13 @@ export function makeSession(props: unknown): unknown {
     'models' | 'contracts'
   > &
     Partial<IAnyDeclarationModule> & {
+      sharedWorker: (props: { name: string }) => SharedWorker;
       modules?: Readonly<Record<string, IAnyDeclarationModule>>;
       layer: Layer.Layer<unknown, IAnyError>;
       credentialsSchema?: Schema.Codec<unknown, unknown>;
     };
-  const { claimsSchema, credentialsSchema, systemName, layer } = input;
+  const { claimsSchema, credentialsSchema, systemName, layer, sharedWorker } =
+    input;
   if ('module' in input) {
     throw new Error('Unknown session property module');
   }
@@ -358,6 +362,7 @@ export function makeSession(props: unknown): unknown {
                 Effect.suspend(admission.getAdmission).pipe(encodeRpcOutcome),
               ),
             expectedClaims: admission.claims,
+            sharedWorker,
           }).pipe(
             Effect.provide(
               makeTelemetryLayer(
@@ -495,6 +500,7 @@ export function makeSession(props: unknown): unknown {
               Effect.suspend(admission.getAdmission).pipe(encodeRpcOutcome),
             ),
           expectedClaims: admission.claims,
+          sharedWorker,
         }).pipe(
           Effect.provide(
             makeTelemetryLayer(coreSession.store.getState().telemetryCollector),

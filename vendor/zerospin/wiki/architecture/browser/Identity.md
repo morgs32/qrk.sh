@@ -9,7 +9,7 @@ updated: 2026-09-27
 
 An actor declares its full claims schema and partition path with `makeActorIdentity({ claims, actorPath })`. The server separately declares an admission policy: `authentication: 'none'` accepts an claims supplied by the browser, while `{ credentialsSchema, authenticate }` verifies credentials and returns an claims. Aggregate verifiers can provision through `executeCommand`. Service verifiers retain their service capabilities. The selected actor's policy decides which request form is valid; mixed forms and missing policies fail.
 
-A browser session imports `claimsSchema` and, for a verified actor, `credentialsSchema`. Direct sessions initialize with `{ claims }`; verified sessions initialize with `{ getCredentials }`. The direct claims is copied at initialization. The credential provider is called for each new server admission. Credentials are never stored in session snapshots, commands, tickets, or durable node databases.
+A browser session imports `claimsSchema` and, for a verified actor, `credentialsSchema`. Direct sessions initialize with `{ claims }`; verified sessions initialize with `{ getCredentials, expectedClaims? }`. Expected claims are captured for that initialization and must exactly match verified claims. The direct claims is copied at initialization. The credential provider is called for each new server admission. Credentials are never stored in session snapshots, commands, tickets, or durable node databases.
 
 ```ts
 await directSession.initialize({ claims: { aggregateId, instanceId } });
@@ -41,13 +41,13 @@ sequenceDiagram
 
 ## Durable nodes and recovery
 
-The SharedWorker creates a durable node key from the admitted claims, target, backend, and full definition lock. A tab decodes the returned claims before publishing session state. The node stores claims with commands and uses it for replay and reconnect. Its offline catalog locator remembers the last admitted node for a session definition; it is a local recovery aid, not server proof. When a direct session reopens offline, the remembered claims must match the value captured at initialization.
+The SharedWorker creates a durable node key from the admitted claims, target, backend, and full definition lock. A tab decodes the returned claims before publishing session state. The node stores claims with commands and uses it for replay and reconnect. A runtime-scoped discovery index selects exactly one eligible identity for the session configuration, complete expected claims, and exact lock; it is a local recovery aid, not server proof. Offline startup is attempted only after classified network unavailability and requires explicit expected claims. Missing or ambiguous matches fail. Each runtime-version/session-key pair owns a separate worker and database.
 
 A node obtains a fresh admission request from an attached tab when it reconnects. Eligible tabs respond concurrently, with bounded waits. Only a server response for the node's exact identity can resume synchronization. `clearAuthentication()` suspends the node, invalidates pending attempts, closes sockets, and disables offline restoration while retaining command databases for a later login.
 
-- [`NodeHost.ts`](../../../packages/browser/src/Node/NodeHost.ts) binds attachment, claims checking, and offline lookup.
+- [`resolveNode.ts`](../../../packages/browser/src/Node/resolveNode.ts) resolves verified identity before selecting the worker; [`makeSharedWorker.ts`](../../../packages/browser/src/makeSharedWorker.ts) owns one identity and validates attachments.
 - [`NodeAuthentication.ts`](../../../packages/browser/src/Node/NodeAuthentication.ts) coordinates admission providers and verifies the server's returned claims.
-- [`NodeCatalog.ts`](../../../packages/browser/src/Node/NodeCatalog.ts) retains admitted definitions and offline locators.
+- [`sessionDiscovery.ts`](../../../packages/browser/src/Node/sessionDiscovery.ts) retains runtime-scoped verified identity metadata and transactional logout revisions. Offline lookup requires explicit matching expected claims and the exact session lock.
 
 Cold server activation reconstructs only the actor selection fields from the canonical path; it does not run `authenticate` or recover credentials. Commands, snapshots, tickets, and replay carry the accepted claims. Different claims may select the same actor partition, so authorization and command provenance continue to bind the complete value.
 

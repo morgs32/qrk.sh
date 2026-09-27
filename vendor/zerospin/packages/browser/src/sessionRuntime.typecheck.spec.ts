@@ -54,6 +54,9 @@ const definition = makeAggregateSessionDefinition({
 // Compile-only public constructor and runtime inference checks.
 export function checkSessionLayerTypes() {
   const live = makeSession({
+    sharedWorker: () => {
+      throw new Error('Worker construction is not expected during declaration');
+    },
     ...liveAggregate,
     systemName: 'test',
     layer: Layer.mergeAll(apiLayer, Layer.succeed(Capability, { value: 1 })),
@@ -104,9 +107,19 @@ export function checkSessionLayerTypes() {
   // @ts-expect-error Runtime services retain the supplied layer's exact output.
   live.runtime.runSync(Unrelated);
   // @ts-expect-error Guard dependencies must be supplied even without a program.
-  makeSession({ ...liveAggregate, systemName: 'test', layer: apiLayer });
+  makeSession({
+    sharedWorker: () => {
+      throw new Error('Worker construction is not expected during declaration');
+    },
+    ...liveAggregate,
+    systemName: 'test',
+    layer: apiLayer,
+  });
   // @ts-expect-error Live configuration includes both URL and publishable key.
   makeSession({
+    sharedWorker: () => {
+      throw new Error('Worker construction is not expected during declaration');
+    },
     ...liveAggregate,
     systemName: 'test',
     layer: Layer.succeed(Capability, { value }),
@@ -132,7 +145,14 @@ export function checkAdmissionTypes() {
     apiLayer,
     Layer.succeed(Capability, { value: 1 }),
   );
-  const direct = makeSession({ ...liveAggregate, systemName: 'test', layer });
+  const direct = makeSession({
+    sharedWorker: () => {
+      throw new Error('Worker construction is not expected during declaration');
+    },
+    ...liveAggregate,
+    systemName: 'test',
+    layer,
+  });
   void direct.initialize({ claims: { aggregateId: 'acct_test' } });
   void direct.initialize({
     // @ts-expect-error Direct sessions do not accept credentials.
@@ -141,6 +161,9 @@ export function checkAdmissionTypes() {
   // @ts-expect-error Identity must satisfy the declared schema.
   void direct.initialize({ claims: { aggregateId: 42 } });
   const verified = makeSession({
+    sharedWorker: () => {
+      throw new Error('Worker construction is not expected during declaration');
+    },
     ...liveAggregate,
     systemName: 'test',
     layer,
@@ -172,13 +195,22 @@ export function checkModuleLayerTypes() {
     systemName: 'test',
   };
   const session = makeSession({
+    sharedWorker: () => {
+      throw new Error('Worker construction is not expected during declaration');
+    },
     ...modular,
     layer: Layer.mergeAll(apiLayer, Layer.succeed(Capability, { value: 1 })),
   });
   const value: number = session.runtime.runSync(Capability).value;
   // @ts-expect-error Module contracts require the same guard capability as local contracts.
-  makeSession({ ...modular, layer: apiLayer });
+  makeSession({
+    sharedWorker: () => {
+      throw new Error('Worker construction is not expected during declaration');
+    },
+    ...modular,
+    layer: apiLayer,
+  });
   // @ts-expect-error Unknown contracts are not introduced by module composition.
-  session.definition.contracts.unknown;
+  void session.definition.contracts.unknown;
   return value;
 }

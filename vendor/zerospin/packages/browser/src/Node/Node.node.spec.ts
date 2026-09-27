@@ -12,11 +12,10 @@ import { encodeShape, primitives } from '@zerospin/schema';
 import { sql } from 'drizzle-orm';
 import { describe, expect, it, vi } from 'vitest';
 
-import { BrowserNode } from '../BrowserNode/BrowserNode.ts';
+import { BrowserSessionApi } from '../BrowserSessionApi/BrowserSessionApi.ts';
 
 import { Node } from './Node.ts';
 import { NodeAuthentication } from './NodeAuthentication.ts';
-import { NodeCatalog } from './NodeCatalog.ts';
 import type { INodeOutcome } from './types.ts';
 
 describe('durable node storage', () => {
@@ -44,7 +43,7 @@ describe('durable node storage', () => {
     const { node, db, sqlite } = await fixture();
     try {
       const [version] = await db.values<[number]>(sql`PRAGMA user_version`);
-      expect(version?.[0]).toBe(4);
+      expect(version?.[0]).toBe(5);
       const accepted = await Promise.all([
         node.accept(command('one')),
         node.accept(command('two')),
@@ -225,7 +224,7 @@ describe('node authentication', () => {
     );
     auth.register({}, async () => ({ credentials: { token: 'wrong' } }));
     await expect(auth.authenticate()).rejects.toMatchObject({
-      code: 'node-authentication-unavailable',
+      code: 'node-authentication-rejected',
     });
     await expect(
       auth.resume({ ...definition.identity, targetId: 'acct_other' }),
@@ -248,12 +247,12 @@ describe('node authentication', () => {
   });
 });
 
-describe('BrowserNode RPC boundary', () => {
+describe('BrowserSessionApi RPC boundary', () => {
   it('validates complete occurrences and shares ordering across attached capabilities', async () => {
     const { node, sqlite } = await fixture();
     try {
-      const first = new BrowserNode(node);
-      const second = new BrowserNode(node);
+      const first = new BrowserSessionApi(node);
+      const second = new BrowserSessionApi(node);
       expect(
         await first.accept({ ...command('bad'), nodeIndex: 45 }),
       ).toMatchObject({
@@ -281,40 +280,6 @@ describe('BrowserNode RPC boundary', () => {
         _tag: 'Success',
         success: { nodeIndex: 3 },
       });
-    } finally {
-      sqlite.close();
-    }
-  });
-});
-
-describe('persistent node catalog', () => {
-  it('remembers offline identity, discovers old definitions, and preserves databases across sign-out', async () => {
-    const { db, sqlite } = database();
-    try {
-      const catalog = new NodeCatalog(db);
-      await catalog.initialize();
-      await catalog.authenticated(definition);
-      const newer = {
-        ...definition,
-        identity: { ...definition.identity, definitionHash: 'b'.repeat(64) },
-      };
-      await catalog.authenticated(newer);
-      const restarted = new NodeCatalog(db);
-      await restarted.initialize();
-      expect(await restarted.reopenOffline(definition.identity)).toEqual(
-        definition,
-      );
-      expect(await restarted.discover(newer.identity)).toEqual([
-        definition,
-        newer,
-      ]);
-      await restarted.clearAuthentication(newer.identity);
-      expect(await restarted.reopenOffline(definition.identity)).toBeNull();
-      expect(await restarted.reopenOffline(newer.identity)).toBeNull();
-      expect(await restarted.discover(newer.identity)).toHaveLength(2);
-      await restarted.authenticated(newer);
-      expect(await restarted.reopenOffline(newer.identity)).toEqual(newer);
-      expect(await restarted.reopenOffline(definition.identity)).toBeNull();
     } finally {
       sqlite.close();
     }
@@ -743,6 +708,35 @@ it('records historical missing results without moving resource progress and pres
     await expect(
       node.receiveCommand({ ...outcome(first), aggregateIndex: 10 }),
     ).rejects.toMatchObject({ code: 'node-outcome-conflict' });
+  } finally {
+    sqlite.close();
+  }
+});
+
+it('generates a prefixed node ID once and never creates missing offline storage', async () => {
+  const { db, sqlite } = database();
+  try {
+    const node = new Node(db, definition);
+    await expect(node.initialize(false)).rejects.toMatchObject({
+      code: 'node-storage-missing',
+    });
+    expect(await node.initialize()).toBe(true);
+    const id = (await node.snapshot()).metadata.nodeId;
+    expect(id).toMatch(/^node_.+/);
+    const reopened = new Node(db, definition);
+    await expect(reopened.initialize(false)).rejects.toMatchObject({
+      code: 'node-storage-incomplete',
+    });
+    const snapshot = await node.snapshot();
+    await node.beginRecovery({
+      executedIndex: 0,
+      executedHash: snapshot.metadata.executedHash,
+      resolvedThrough: 0,
+      aggregateIndex: 0,
+      resources: [],
+    });
+    expect(await reopened.initialize(false)).toBe(false);
+    expect((await reopened.snapshot()).metadata.nodeId).toBe(id);
   } finally {
     sqlite.close();
   }

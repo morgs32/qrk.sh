@@ -119,6 +119,11 @@ describe('live session backup ownership', () => {
   it('disposes its runtime even when session cleanup fails and can initialize again', async () => {
     let releases = 0;
     const session = makeSession({
+      sharedWorker: () => {
+        throw new Error(
+          'Worker construction is not expected during declaration',
+        );
+      },
       kind: 'service',
       systemName: 'test',
       sessionName: 'cleanup-failure',
@@ -170,6 +175,11 @@ describe('live session backup ownership', () => {
       ),
     );
     const first = makeSession({
+      sharedWorker: () => {
+        throw new Error(
+          'Worker construction is not expected during declaration',
+        );
+      },
       kind: 'aggregate',
       systemName: 'test',
       sessionName: 'aggregate',
@@ -184,6 +194,11 @@ describe('live session backup ownership', () => {
       layer,
     });
     const second = makeSession({
+      sharedWorker: () => {
+        throw new Error(
+          'Worker construction is not expected during declaration',
+        );
+      },
       kind: 'service',
       systemName: 'test',
       sessionName: 'service',
@@ -198,6 +213,11 @@ describe('live session backup ownership', () => {
       layer,
     });
     const duplicate = makeSession({
+      sharedWorker: () => {
+        throw new Error(
+          'Worker construction is not expected during declaration',
+        );
+      },
       kind: 'service',
       systemName: 'test',
       sessionName: 'service',

@@ -116,16 +116,22 @@ export function getApi(apiUrl: string) {
                           { traceContext, args },
                         ]),
                       ),
-                    catch: catchZerospinError({
-                      code: 'async-failed',
-                      message: `RPC ${method} at ${endpoint} failed before a usable result was available.`,
-                      preferCauseMessage: false,
-                      extra: {
-                        ...extra,
-                        phase: 'invocation',
-                        remoteOutcome: 'unknown',
-                      },
-                    }),
+                    catch: cause =>
+                      catchZerospinError({
+                        code: 'async-failed',
+                        message: `RPC ${method} at ${endpoint} failed before a usable result was available.`,
+                        preferCauseMessage: false,
+                        extra: {
+                          ...extra,
+                          phase: 'invocation',
+                          remoteOutcome: 'unknown',
+                          networkUnavailable:
+                            cause instanceof TypeError &&
+                            /^(Failed to fetch|fetch failed|Load failed|NetworkError when attempting to fetch resource\.?)$/.test(
+                              cause.message,
+                            ),
+                        },
+                      })(cause),
                   });
                   const envelope = Schema.decodeUnknownResult(
                     Schema.Struct({

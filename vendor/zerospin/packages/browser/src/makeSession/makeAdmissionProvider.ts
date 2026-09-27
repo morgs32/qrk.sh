@@ -32,6 +32,7 @@ export function makeAdmissionProvider(props: {
   }
   const input = Schema.decodeUnknownSync(
     Schema.Struct({
+      expectedClaims: Schema.optional(Schema.toType(props.claimsSchema)),
       getCredentials: Schema.declare(
         (value: unknown): value is () => Effect.Effect<unknown, IAnyError> =>
           typeof value === 'function',
@@ -41,7 +42,10 @@ export function makeAdmissionProvider(props: {
   )(props.initialization);
   const credentialsSchema = props.credentialsSchema;
   return {
-    claims: undefined,
+    claims:
+      input.expectedClaims === undefined
+        ? undefined
+        : structuredClone(input.expectedClaims),
     getAdmission: () =>
       Effect.suspend(input.getCredentials).pipe(
         Effect.flatMap(

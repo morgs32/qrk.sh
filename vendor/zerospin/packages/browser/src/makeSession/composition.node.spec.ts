@@ -53,12 +53,30 @@ const service = {
 describe('browser session declaration composition', () => {
   it('constructs flat, modular, and mixed aggregate definitions', () => {
     const flat = makeSession({
+      sharedWorker: () => {
+        throw new Error(
+          'Worker construction is not expected during declaration',
+        );
+      },
       ...aggregate,
       models: { item },
       contracts: { observed },
     });
-    const modular = makeSession({ ...aggregate, modules: { data, commands } });
+    const modular = makeSession({
+      sharedWorker: () => {
+        throw new Error(
+          'Worker construction is not expected during declaration',
+        );
+      },
+      ...aggregate,
+      modules: { data, commands },
+    });
     const mixed = makeSession({
+      sharedWorker: () => {
+        throw new Error(
+          'Worker construction is not expected during declaration',
+        );
+      },
       ...aggregate,
       modules: { commands },
       models: { item },
@@ -78,9 +96,30 @@ describe('browser session declaration composition', () => {
   });
 
   it('constructs flat, modular, and mixed service definitions', () => {
-    const flat = makeSession({ ...service, models: { item } });
-    const modular = makeSession({ ...service, modules: { data } });
+    const flat = makeSession({
+      sharedWorker: () => {
+        throw new Error(
+          'Worker construction is not expected during declaration',
+        );
+      },
+      ...service,
+      models: { item },
+    });
+    const modular = makeSession({
+      sharedWorker: () => {
+        throw new Error(
+          'Worker construction is not expected during declaration',
+        );
+      },
+      ...service,
+      modules: { data },
+    });
     const mixed = makeSession({
+      sharedWorker: () => {
+        throw new Error(
+          'Worker construction is not expected during declaration',
+        );
+      },
       ...service,
       modules: { empty: { models: {}, contracts: {}, automations: {} } },
       models: { item },
@@ -163,10 +202,29 @@ describe('browser session declaration composition', () => {
 
 function checkDuplicateSessionDeclarations() {
   // @ts-expect-error Identical modules still contribute duplicate model keys.
-  makeSession({ ...aggregate, modules: { first: data, second: data } });
-  // @ts-expect-error A local model cannot override a module model.
-  makeSession({ ...service, models: { item }, modules: { data } });
+  makeSession({
+    sharedWorker: () => {
+      throw new Error('Worker construction is not expected during declaration');
+    },
+    ...aggregate,
+    modules: { first: data, second: data },
+  });
+  makeSession({
+    sharedWorker: () => {
+      throw new Error('Worker construction is not expected during declaration');
+    },
+    ...service,
+    models: { item },
+    // @ts-expect-error A local model cannot override a module model.
+    modules: { data },
+  });
   // @ts-expect-error Module contract collisions cannot be hidden by inference.
-  makeSession({ ...aggregate, modules: { first: commands, second: commands } });
+  makeSession({
+    sharedWorker: () => {
+      throw new Error('Worker construction is not expected during declaration');
+    },
+    ...aggregate,
+    modules: { first: commands, second: commands },
+  });
 }
 void checkDuplicateSessionDeclarations;

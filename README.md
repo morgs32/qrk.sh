@@ -9,6 +9,8 @@ Configured vendor origins are recorded here and in `AGENTS.md`:
 | `vendor/zerospin` | `../zerospin` | `main` |
 
 Use `$update-vendor` for squashed pulls from the sibling checkout.
+The root pnpm workspace applies Zerospin's vendored sql.js patch so Cloudflare
+Workers can initialize actor snapshot databases without `self.location`.
 
 Two Next.js apps with App Router:
 

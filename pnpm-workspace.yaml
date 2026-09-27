@@ -4,3 +4,6 @@ packages:
   - "packages/*"
   - "vendor/zerospin/packages/*"
   - "vendor/zerospin/vendor/epluribus-machina"
+
+patchedDependencies:
+  sql.js@1.14.1: vendor/zerospin/patches/sql.js@1.14.1.patch

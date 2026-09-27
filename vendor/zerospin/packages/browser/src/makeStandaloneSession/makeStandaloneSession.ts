@@ -652,10 +652,6 @@ export function makeStandaloneSession(props: unknown): unknown {
               db.run(
                 sql`INSERT INTO __zerospin_backup_identity (backupKey, claims) VALUES (${backupKey}, ${JSON.stringify(claims)})`,
               );
-            } else {
-              db.update(sessionRepoDbConfig.schema.sessionMetadata)
-                .set({ sessionId, nextSessionIndex: 1 })
-                .run();
             }
             coreSession.setExecutionResources({
               sessionId,
@@ -746,6 +742,10 @@ export function makeStandaloneSession(props: unknown): unknown {
               yield* repairBackup;
               forceSeed = false;
             } else {
+              // Persist the new session identity before commands can add metadata.
+              db.update(sessionRepoDbConfig.schema.sessionMetadata)
+                .set({ sessionId, nextSessionIndex: 1 })
+                .run();
               while (Queue.sizeUnsafe(transactionQueue) > 0) {
                 const statements = yield* Queue.take(transactionQueue);
                 yield* backupDb

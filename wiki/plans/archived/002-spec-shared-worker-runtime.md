@@ -1,6 +1,8 @@
-# App-owned SharedWorker per persistent session identity
+# App-owned SharedWorker per persistent session identity design
 
-Status: Approved; implementation and verification in progress. Spec: `../archived/002-spec-shared-worker-runtime.md`.
+Date: 2026-09-27
+
+Status: Approved and converted into plan 002. This archived specification records the agreed design; implementation status belongs to the active plan.
 
 ## Ownership and identity
 
@@ -48,7 +50,3 @@ Status: Approved; implementation and verification in progress. Spec: `../archive
 4. Run affected Nx build/type/lint/unit/browser checks, QRK Studio/web checks, and manual development/production worker/WASM loading through ordinary assets. Never add/run QRK library-app tests or Shopping browser tests.
 5. Audit removed names/endpoints and current docs. Record actual verification and blockers below; keep this plan active until implementation and verification finish.
 
-## Execution record
-
-1. QRK baseline committed as `566834d24` before implementation.
-2. Upstream implementation in progress; verification incomplete.

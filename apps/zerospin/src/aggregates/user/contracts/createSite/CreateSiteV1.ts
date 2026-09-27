@@ -2,7 +2,7 @@ import type { IDb, IResourceDbConfig } from "@zerospin/core/drizzle/types";
 import type { InferCommandPayload } from "@zerospin/core/models/types";
 import { makeContractVersion, primitives, ZerospinError } from "@zerospin/sdk/browser";
 import { Effect } from "effect";
-import { siteV2 as Site } from "../../models/site/SiteV2";
+import { siteV1 as Site } from "../../models/site/SiteV1";
 import { userV1 as User } from "../../models/user/UserV1";
 
 import { createSite } from "./createSite";
@@ -24,21 +24,21 @@ const createSitePayload = {
   }),
 };
 
-export const createSiteV2 = makeContractVersion(createSite, {
+export const createSiteV1 = makeContractVersion(createSite, {
   payload: createSitePayload,
   models: { user: User, site: Site },
   guard: Effect.fn("createSite.guard")(function* ({
-    authentication,
-    db,
+    identity,
+    queryDb: db,
     payload,
   }: {
-    authentication: Readonly<Record<string, unknown>> | null;
-    db: Readonly<
+    identity: Readonly<Record<string, unknown>> | null;
+    queryDb: Readonly<
       Pick<IDb<IResourceDbConfig<{ user: typeof User }, Record<never, never>>>, "query">
     >;
     payload: InferCommandPayload<typeof createSitePayload>;
   }) {
-    const clerkUserId = authentication?.clerkUserId;
+    const clerkUserId = identity?.clerkUserId;
 
     if (typeof clerkUserId !== "string") {
       return yield* new ZerospinError({
@@ -62,8 +62,8 @@ export const createSiteV2 = makeContractVersion(createSite, {
       });
     }
   }),
-  program: ({ payload, models, authentication }) => {
-    const clerkUserId = authentication?.clerkUserId;
+  program: ({ payload, models, identity }) => {
+    const clerkUserId = identity?.clerkUserId;
     if (typeof clerkUserId !== "string") {
       return Effect.fail(
         new ZerospinError({
@@ -74,8 +74,8 @@ export const createSiteV2 = makeContractVersion(createSite, {
       );
     }
     const { id, slug, name, description } = payload;
-    return Effect.all({
-      created: models.site.create({
+    return Effect.all([
+      models.site.create({
         resourceId: id,
         attributes: {
           userId: payload.userId,
@@ -87,7 +87,7 @@ export const createSiteV2 = makeContractVersion(createSite, {
           faviconDarkUrl: null,
         },
       }),
-    });
+    ]);
   },
-  version: "2.0.0",
+  version: "1.0.0",
 });

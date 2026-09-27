@@ -60,22 +60,22 @@ authored React brick and, when ready, a json-render `generator` (`registry` +
 (component, generator, declared `w`/`h`). Grid sizing is measured at preview/drag
 time unless both `w` and `h` are declared on that overlay.
 
-`Layout` owns `createLibraryStandaloneSession({ key, wallId })` and
-`useInitializeStandaloneSession`. Library uses the stable document key
-`JSON.stringify(["library"])`. Studio uses
-`JSON.stringify(["studio", user.id, siteId, pageId])`, with `user.id` supplied by
-Clerk and `siteId` / `pageId` supplied by route parameters. Both seed
-`prefixId(wall, "library")` → `wal_library`; the document key separates their
-IndexedDB backups. Restored resources take precedence over these seeds.
+`Layout` initializes the module-level `librarySession` with
+`useInitializeMockSession`. This fixture session stays in memory and seeds
+`wal_library`; reloading starts from the seed again. Studio retains
+`createLibraryStandaloneSession({ key, wallId })` and
+`useInitializeStandaloneSession`, using
+`JSON.stringify(["studio", user.id, siteId, pageId])` to isolate each document's
+IndexedDB backup. Restored Studio resources take precedence over its seed.
 
 Committed layout is Wall → Brick → Placement via aggregate contracts
 (`addBrick`, layout/visibility/remove/compact, `updateBrickState`, and per-module
-spec-at-breakpoint). Commands commit synchronously; `backupState: ready` confirms
-backup durability. Shared state lives on the brick row; each placement stores a
+spec-at-breakpoint). Commands commit synchronously; Studio
+`backupState: ready` confirms backup durability. Shared state lives on the brick row; each placement stores a
 complete Spec, grid item, and visibility. `BrickWall` uses `noCompactor`
 (collision resolve without auto-gap-closing); **Compact layout** runs an explicit
-command. Reset calls `session.reset()` to replace persisted bricks with the
-original seed and remounts the viewport. Viewport preference persists in
+command. Library reset disposes and reinitializes its mock session from the original
+seed and remounts the viewport. Viewport preference persists in
 localStorage (`qrk-bricks-library-viewport-v1`).
 
 Library's backup-worker Vite plugin serves `/__zerospin/backup-worker.js` and
@@ -83,7 +83,7 @@ Library's backup-worker Vite plugin serves `/__zerospin/backup-worker.js` and
 application build. Studio copies the same built assets into its public directory.
 
 HTML5 catalog drag is a module-level `brickDragStore` (`brickDef` / `setBrickDef`
-only). Drop / resize / remove go through contracts on the standalone session — not
+only). Drop / resize / remove go through contracts on the owning session — not
 Zustand `bricksById`.
 
 Placed bricks drag from their entire surface and resize using the grid library's default

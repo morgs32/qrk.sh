@@ -12,40 +12,28 @@ and generate their configuration without a prior CLI run.
 Run the checks from the repository root:
 
 ```sh
-pnpm nx run @qrk.sh/zerospin:typecheck
+pnpm nx run @qrk.sh/zerospin:tsc
 pnpm nx run @qrk.sh/zerospin:test:workerd
 ```
 
-The existing `dev` target includes `--clean` and resets this system's local
-backend state. Use the CLI without `--clean` when retaining that state.
-QRK's scraper lives in `packages/bricks/src/scraper`; its Worker configuration is
-`packages/bricks/wrangler.jsonc`.
+For this V1 cutover, start local development with `zerospin dev --clean` from
+this directory after building its dependencies. The regular `dev` target does
+not reset storage. Existing backend and browser storage must be reset separately;
+this cutover provides no compatibility decoder or migration for old rows.
 
 ## Source layout
 
-`src/system.ts` registers the user aggregate.
-`authentication.clerkUserId` is the verified Clerk identity; `userId` refers to an independently
-generated User resource ID (`usr_…`), including site ownership references.
-`UserV6.authenticate` verifies Clerk and awaits `executeCommand` for `createUser`.
-Each attempt generates independent command and user resource IDs. The transactional
-guard rejects an existing `clerkUserId` with `user-already-exists`; authentication accepts
-only that rejection as successful provisioning and preserves the first user ID.
-Other failures prevent authentication from completing. Site creation passes that
-stored resource ID, and its guard verifies ownership against the Clerk identity.
-`src/aggregates/user/user.ts` declares its identity; `UserV6.ts` defines version 6.
-Models live under `aggregates/user/models/<model>/`, and contracts under
-`aggregates/user/contracts/<command>/`, with separate identity and version files.
-`aggregates/user/userFrontend.ts` exposes the web frontend controller for Workerd
-fixtures; studio binds the same subset through `ZerospinApp.makeAggregateFrontend`.
-The existing Workerd integration suites remain in `src/`.
+`src/system.ts` registers only user aggregate `1.0.0`. All current models and
+contracts start at `1.0.0`; older declaration versions have been removed.
 
-Authentication returns `{ aggregateId, clerkUserId }`, deriving the aggregate ID
-from the verified Clerk subject. Selections use only `{ clerkUserId }` and partition
-replicas by `/:clerkUserId`. Browser frontend declarations retain only
-`authenticationSchema`; signature, selection, pattern, and `authenticate` stay on
-the aggregate version. `ZerospinUser` mounts beneath `ZerospinApp.Provider`, signs
-through its `generateSignature` prop, and receives its aggregate ID from authentication.
-The frontend is keyed by Clerk user ID so identity changes remount the session.
-Brick records and grid command payloads use `groupId` and `catalogId`. These fixed
-schemas require empty affected storage: reset this system's local state with
-`pnpm nx run @qrk.sh/zerospin:dev --clean` before reusing a pre-cutover database.
+`userActorV1` verifies Clerk through `userProvisionerV1`, then awaits `createUser`
+under that provisioner actor and verified identity. Each attempt generates an
+independent User resource ID (`usr_…`); `identity.clerkUserId` remains the Clerk
+subject. The transactional guard rejects duplicate subjects with
+`user-already-exists`, which authentication accepts as successful provisioning.
+Other admission or execution failures prevent session initialization.
+
+The web actor filters User → Site → Page → Grid → Brick rows by Clerk identity.
+Studio's explicit `userSession` uses the matching V1 web actor and React-owned
+initialization/disposal. Models live under `aggregates/user/models/<model>/`,
+and contracts under `aggregates/user/contracts/<command>/`.

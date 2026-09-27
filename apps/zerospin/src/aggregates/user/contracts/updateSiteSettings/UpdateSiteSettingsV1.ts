@@ -2,7 +2,7 @@ import type { IDb, IResourceDbConfig } from "@zerospin/core/drizzle/types";
 import type { InferCommandPayload } from "@zerospin/core/models/types";
 import { makeContractVersion, primitives, ZerospinError } from "@zerospin/sdk/browser";
 import { Effect } from "effect";
-import { siteV2 as Site } from "../../models/site/SiteV2";
+import { siteV1 as Site } from "../../models/site/SiteV1";
 import { userV1 as User } from "../../models/user/UserV1";
 
 import { updateSiteSettings } from "./updateSiteSettings";
@@ -35,12 +35,12 @@ export const updateSiteSettingsV1 = makeContractVersion(updateSiteSettings, {
   payload: updateSiteSettingsPayload,
   models: { user: User, site: Site },
   guard: Effect.fn("updateSiteSettings.guard")(function* ({
-    authentication,
-    db,
+    identity,
+    queryDb: db,
     payload,
   }: {
-    authentication: Readonly<Record<string, unknown>> | null;
-    db: Readonly<
+    identity: Readonly<Record<string, unknown>> | null;
+    queryDb: Readonly<
       Pick<
         IDb<
           IResourceDbConfig<
@@ -56,7 +56,7 @@ export const updateSiteSettingsV1 = makeContractVersion(updateSiteSettings, {
     >;
     payload: InferCommandPayload<typeof updateSiteSettingsPayload>;
   }) {
-    const clerkUserId = authentication?.clerkUserId;
+    const clerkUserId = identity?.clerkUserId;
 
     if (typeof clerkUserId !== "string") {
       return yield* new ZerospinError({
@@ -98,8 +98,8 @@ export const updateSiteSettingsV1 = makeContractVersion(updateSiteSettings, {
     }
   }),
   program: ({ payload, models }) =>
-    Effect.all({
-      updated: models.site.update({
+    Effect.all([
+      models.site.update({
         resourceId: payload.id,
         attributes: {
           name: payload.name,
@@ -109,6 +109,6 @@ export const updateSiteSettingsV1 = makeContractVersion(updateSiteSettings, {
           faviconDarkUrl: payload.faviconDarkUrl,
         },
       }),
-    }),
+    ]),
   version: "1.0.0",
 });

@@ -5,23 +5,20 @@ updated: 2026-09-20
 
 # Library brick drop
 
-Catalog tiles place a brick onto `BrickWall` through a persisted
-`LibraryFrontend` standalone session and `addBrick`. HTML5 `dragover` cannot read
+Catalog tiles place a brick onto `BrickWall` through a library session (mock in the showcase, persisted standalone in Studio) and `addBrick`. HTML5 `dragover` cannot read
 custom MIME, so the live payload is the module-level Zustand singleton
 `brickDragStore` (`brickDef` / `setBrickDef` only). Placement column shape is
 [LibraryGridItem](LibraryGridItem.md).
 
 ## Trigger
 
-1. Each app layout owns a standalone session for hardcoded `wal_library`, then
-   gates children on `isInitialized`.
-   1. Library workbench: `createLibraryStandaloneSession({ key, wallId })` +
-      `useInitializeStandaloneSession`, then `LibrarySessionContext`.
-   2. Studio site editor: the same pair in `LibraryEditorSession`. Studio's
-      live `ZerospinUser` session is unrelated to this wall. Library's key is
-      `JSON.stringify(["library"])`; Studio's is
-      `JSON.stringify(["studio", user.id, siteId, pageId])`, using Clerk's user ID
-      and the route's site/page IDs.
+1. Each app layout gates children on an initialized session seeded with `wal_library`.
+   1. Library workbench: module-level `librarySession` + `useInitializeMockSession`,
+      then `LibrarySessionContext`; reset recreates the in-memory fixture.
+   2. Studio: `createLibraryStandaloneSession({ key, wallId })` +
+      `useInitializeStandaloneSession` in `LibraryEditorSession`. Its document key is
+      `JSON.stringify(["studio", user.id, siteId, pageId])`. Studio's live
+      `userSession` owns the remote user/site/page data separately.
 2. A catalog tile starts an HTML5 drag and writes `brickDragStore` before
    RGL sees `dragover`.
    1. Library filmstrip: `DraggableBrick`.

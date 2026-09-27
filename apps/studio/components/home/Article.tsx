@@ -11,7 +11,7 @@ import { Underline } from "@tiptap/extension-underline";
 import { Selection } from "@tiptap/extensions";
 import { EditorContent, EditorContext, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import { useSession } from "@zerospin/react";
+import { stageCommand } from "@zerospin/react";
 import { ZerospinError } from "@zerospin/sdk/browser";
 import { Schema } from "effect";
 import { useEffect, useState } from "react";
@@ -21,7 +21,7 @@ import { useValidatedParams } from "@/hooks/useValidatedParams";
 import { usePageStore } from "@/app/[username]/site/[siteId]/page/[pageId]/pageStore";
 import { ArticleToolbar } from "@/components/home/ArticleToolbar";
 import { HorizontalRule } from "@/app/tiptap/node/horizontal-rule-node/horizontal-rule-node-extension";
-import { ZerospinUser } from "@/components/ZerospinUser";
+import { userSession } from "@/zerospin/userSession";
 
 import "@/app/tiptap/node/blockquote-node/blockquote-node.scss";
 import "@/app/tiptap/node/code-block-node/code-block-node.scss";
@@ -56,7 +56,7 @@ function isSelectionInRequiredHeading(editor: {
 
 export function Article() {
   const params = useValidatedParams(ParamsSchema);
-  const session = useSession(ZerospinUser);
+  const session = userSession;
   const page = usePageStore((state) => state.page);
   const article = page?.id === params.pageId ? page.article : undefined;
   const setArticle = usePageStore((state) => state.setArticle);
@@ -113,7 +113,8 @@ export function Article() {
           }),
         )(json);
 
-        const result = session.executeCommand({
+        const result = stageCommand({
+          session,
           contractName: "updatePageArticle",
           payload: {
             id: params.pageId,

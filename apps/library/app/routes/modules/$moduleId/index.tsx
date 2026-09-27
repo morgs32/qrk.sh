@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 import { createFileRoute, notFound } from "@tanstack/react-router";
-import { newSyncRpcSession } from "@zerospin/core/utils/newSyncRpcSession";
+import { newSyncRpcSession } from "@zerospin/core/utils/getApi/newSyncRpcSession/newSyncRpcSession";
 import type { Spec } from "@json-render/core";
 import { collapseAllNested, defaultStyles, JsonView } from "react-json-view-lite";
 
@@ -58,7 +58,7 @@ function ModuleDetail() {
             <OrderedSection label="Generate spec input">
               <form
                 className="flex flex-col items-start gap-2 py-5"
-                onSubmit={event => {
+                onSubmit={(event) => {
                   event.preventDefault();
                   void (async () => {
                     setIsGeneratingSpec(true);
@@ -93,7 +93,7 @@ function ModuleDetail() {
                 <Input
                   id="generate-spec-prompt"
                   name="prompt"
-                  onChange={event => {
+                  onChange={(event) => {
                     setGeneratePrompt(event.target.value);
                   }}
                   type="text"
@@ -125,7 +125,7 @@ function ModuleDetail() {
                 </div>
               ) : null}
             </OrderedSection>
-            {BREAKPOINTS.map(entry => (
+            {BREAKPOINTS.map((entry) => (
               <BreakpointPreviewRow
                 BrickComponent={BrickComponent}
                 brick={brick}

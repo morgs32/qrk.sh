@@ -1,19 +1,12 @@
 import type { IDb } from "@zerospin/core/drizzle/types";
-import { makeContractVersion } from "@zerospin/core/contracts/makeContractVersion";
+import { makeContractVersion } from "@zerospin/core/contracts/make/makeContractVersion";
 import type { InferCommandPayload } from "@zerospin/core/models/types";
 import { ZerospinError } from "@zerospin/error";
-import {
-  primitives,
-  type InferDecodedRow,
-  type InferIdFromAbbreviation,
-} from "@zerospin/schema";
+import { primitives, type InferDecodedRow, type InferIdFromAbbreviation } from "@zerospin/schema";
 import { Effect, Schema } from "effect";
 
 import { makePlacementId } from "../../models/placement/makePlacementId";
-import {
-  makeCompactLayout,
-  findVisibleLayoutError,
-} from "../../resolveVisibleCollisions";
+import { makeCompactLayout, findVisibleLayoutError } from "../../resolveVisibleCollisions";
 import { makeBrickModel } from "../../models/brick/makeBrickModel";
 import { makePlacementModel } from "../../models/placement/placementModelV1";
 import { wallModelV1 } from "../../models/wall/wallModelV1";
@@ -51,11 +44,11 @@ export function makeCompactLayoutAtBreakpointContract(props: {
     },
     version: "1.0.0",
     guard: Effect.fn("compactLayoutAtBreakpoint.guard")(function* ({
-      db,
+      queryDb: db,
       payload,
     }: {
-      authentication: Readonly<Record<string, unknown>> | null;
-      db: Readonly<Pick<IDb, "query">>;
+      identity: Readonly<Record<string, unknown>> | null;
+      queryDb: Readonly<Pick<IDb, "query">>;
       payload: InferCommandPayload<typeof compactLayoutAtBreakpointPayload>;
     }) {
       const wall = db.query.wall
@@ -77,7 +70,7 @@ export function makeCompactLayoutAtBreakpointContract(props: {
           where: { wallId: { eq: payload.wallId } },
         })
         .sync();
-      const brickIds = new Set(bricks.map(brickRow => brickRow.id));
+      const brickIds = new Set(bricks.map((brickRow) => brickRow.id));
 
       const visibleBrickIds = new Set<string>();
       for (const brickRow of bricks) {
@@ -164,9 +157,7 @@ export function makeCompactLayoutAtBreakpointContract(props: {
               ) as InferIdFromAbbreviation<"plc">,
               attributes: {
                 gridItem: item,
-              } as Partial<
-                InferDecodedRow<(typeof props.placement)["attributes"]>
-              >,
+              } as Partial<InferDecodedRow<(typeof props.placement)["attributes"]>>,
             }),
           );
         }

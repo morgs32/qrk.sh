@@ -1,10 +1,5 @@
-import { PublishableKey } from "@zerospin/core/services/PublishableKey";
-import { ZerospinApiUrl } from "@zerospin/core/services/ZerospinApiUrl";
-import {
-  makeAggregateFrontend,
-  makeRuntime,
-} from "@zerospin/react";
-import { Layer, Redacted, Schema } from "effect";
+import { makeAggregateSessionDefinition } from "@zerospin/core/aggregateSession/make/makeAggregateSessionDefinition";
+import { Schema } from "effect";
 
 import { backendLibrary, type IBackendLibrary } from "../backendLibrary";
 import { makeModuleContracts } from "../make/makeModuleContracts";
@@ -34,11 +29,10 @@ export function makeLibraryFrontend(backendLibrary: IBackendLibrary) {
     brick,
     placement,
   });
-  const setBrickVisibilityAtBreakpoint =
-    makeSetBrickVisibilityAtBreakpointContract({
-      brick,
-      placement,
-    });
+  const setBrickVisibilityAtBreakpoint = makeSetBrickVisibilityAtBreakpointContract({
+    brick,
+    placement,
+  });
   const compactLayoutAtBreakpoint = makeCompactLayoutAtBreakpointContract({
     wall,
     brick,
@@ -54,13 +48,15 @@ export function makeLibraryFrontend(backendLibrary: IBackendLibrary) {
     placement,
   });
 
-  return makeAggregateFrontend({
-    authenticationSchema: Schema.Struct({
+  return makeAggregateSessionDefinition({
+    identitySchema: Schema.Struct({
       aggregateId: Schema.String,
     }),
     aggregateName: "library",
     aggregateVersion: "1.0.0",
-    name: "library",
+    sessionName: "library",
+    actorName: "library",
+    actorVersion: "1.0.0",
     models: {
       wall,
       brick,
@@ -112,10 +108,3 @@ export function makeLibraryFrontend(backendLibrary: IBackendLibrary) {
 }
 
 export const LibraryFrontend = makeLibraryFrontend(backendLibrary);
-
-export const libraryRuntime = makeRuntime({
-  layer: Layer.mergeAll(
-    Layer.succeed(PublishableKey, Redacted.make("pk_library_local")),
-    Layer.succeed(ZerospinApiUrl, "https://api.library.local.test"),
-  ),
-});

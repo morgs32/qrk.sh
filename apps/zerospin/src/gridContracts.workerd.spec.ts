@@ -1,19 +1,19 @@
 import { prefixId } from "@zerospin/sdk/browser";
 import { it } from "@effect/vitest";
 import { AsyncLive } from "@zerospin/core/async/AsyncLive";
-import { makeResourceDbConfig } from "@zerospin/core/drizzle/makeDbConfig";
-import { makeProvisionedInMemoryWasmSqliteDb } from "@zerospin/core/drizzle/makeProvisionedInMemoryWasmSqliteDb";
+import { makeResourceDbConfig } from "@zerospin/core/drizzle/make/makeDbConfig/makeDbConfig";
+import { makeProvisionedInMemoryWasmSqliteDb } from "@zerospin/core/drizzle/make/makeProvisionedInMemoryWasmSqliteDb/makeProvisionedInMemoryWasmSqliteDb";
 import { DateTime, Effect } from "effect";
 import { describe, expect } from "vitest";
 
-import { createGridV2 as createGrid } from "./aggregates/user/contracts/createGrid/CreateGridV2";
-import { updateGridV2 as updateGrid } from "./aggregates/user/contracts/updateGrid/UpdateGridV2";
+import { createGridV1 as createGrid } from "./aggregates/user/contracts/createGrid/CreateGridV1";
+import { updateGridV1 as updateGrid } from "./aggregates/user/contracts/updateGrid/UpdateGridV1";
 import { gridV1 as Grid } from "./aggregates/user/models/grid/GridV1";
-import { brickV2 as Brick } from "./aggregates/user/models/brick/BrickV2";
-import { pageV2 as Page } from "./aggregates/user/models/page/PageV2";
-import { siteV2 as Site } from "./aggregates/user/models/site/SiteV2";
+import { brickV1 as Brick } from "./aggregates/user/models/brick/BrickV1";
+import { pageV1 as Page } from "./aggregates/user/models/page/PageV1";
+import { siteV1 as Site } from "./aggregates/user/models/site/SiteV1";
 import { userV1 as User } from "./aggregates/user/models/user/UserV1";
-import { userFrontend } from "./aggregates/user/userFrontend";
+import { userSessionDefinition } from "./aggregates/user/userSessionDefinition";
 
 describe("aggregate Grid contracts", () => {
   it.effect("createGrid emits one Grid mutation and one mutation for every submitted Brick", () =>
@@ -24,7 +24,7 @@ describe("aggregate Grid contracts", () => {
       const secondBrickId = "brck_contract_create_second";
 
       const mutations = yield* createGrid.program({
-        authentication: null,
+        identity: null,
         payload: {
           id: gridId,
           pageId,
@@ -74,7 +74,7 @@ describe("aggregate Grid contracts", () => {
       });
       expect(mutations[1]).toEqual({
         model: Brick,
-        modelVersion: "2.0.0",
+        modelVersion: "1.0.0",
         operationName: "create",
         resourceId: firstBrickId,
         operation: {
@@ -93,7 +93,7 @@ describe("aggregate Grid contracts", () => {
       });
       expect(mutations[2]).toEqual({
         model: Brick,
-        modelVersion: "2.0.0",
+        modelVersion: "1.0.0",
         operationName: "create",
         resourceId: secondBrickId,
         operation: {
@@ -116,7 +116,7 @@ describe("aggregate Grid contracts", () => {
   it.effect("createGrid with no Bricks emits only the Grid mutation", () =>
     Effect.gen(function* () {
       const mutations = yield* createGrid.program({
-        authentication: null,
+        identity: null,
         payload: {
           id: "grd_contract_create_empty",
           pageId: "pag_contract_create_empty",
@@ -143,7 +143,7 @@ describe("aggregate Grid contracts", () => {
       const expectedRevision = 3;
 
       const mutations = yield* updateGrid.program({
-        authentication: null,
+        identity: null,
         payload: {
           id: gridId,
           name: "Renamed grid",
@@ -208,7 +208,7 @@ describe("aggregate Grid contracts", () => {
       });
       expect(mutations[1]).toEqual({
         model: Brick,
-        modelVersion: "2.0.0",
+        modelVersion: "1.0.0",
         operationName: "create",
         resourceId: createdBrickId,
         operation: {
@@ -227,7 +227,7 @@ describe("aggregate Grid contracts", () => {
       });
       expect(mutations[2]).toEqual({
         model: Brick,
-        modelVersion: "2.0.0",
+        modelVersion: "1.0.0",
         operationName: "update",
         resourceId: updatedBrickId,
         operation: {
@@ -244,7 +244,7 @@ describe("aggregate Grid contracts", () => {
       });
       expect(mutations[3]).toEqual({
         model: Brick,
-        modelVersion: "2.0.0",
+        modelVersion: "1.0.0",
         operationName: "delete",
         resourceId: deletedBrickId,
         operation: {},
@@ -258,7 +258,7 @@ describe("aggregate Grid contracts", () => {
       const gridId = "grd_contract_brick_only_update";
       const brickId = "brck_contract_brick_only_update";
       const mutations = yield* updateGrid.program({
-        authentication: null,
+        identity: null,
         payload: {
           id: gridId,
           name: "Unchanged grid",
@@ -306,7 +306,7 @@ describe("aggregate Grid contracts", () => {
   it.effect("updateGrid emits no mutation for an unchanged Grid and unchanged Bricks", () =>
     Effect.gen(function* () {
       const mutations = yield* updateGrid.program({
-        authentication: null,
+        identity: null,
         payload: {
           id: "grd_contract_update_none",
           name: "Unchanged grid",
@@ -346,7 +346,7 @@ describe("user frontend Grid guards", () => {
       const brickId = prefixId(Brick, `${gridId}/orange-flag--0`);
       const now = DateTime.toDateUtc(yield* DateTime.now);
       const dbConfig = makeResourceDbConfig({
-        models: userFrontend.models,
+        models: userSessionDefinition.models,
       });
       const db = yield* makeProvisionedInMemoryWasmSqliteDb({ dbConfig }).pipe(
         Effect.provide(AsyncLive),
@@ -398,18 +398,20 @@ describe("user frontend Grid guards", () => {
 
       const createGuard = createGrid.guard;
       if (createGuard === undefined) {
-        throw new Error("Expected userFrontend createGrid guard");
+        throw new Error("Expected userSessionDefinition createGrid guard");
       }
 
       yield* createGuard({
-        authentication: { clerkUserId: "grid_guard_user" },
-        db,
+        failures: {},
+        identity: { clerkUserId: "grid_guard_user" },
+        queryDb: db,
         payload: { id: gridId, pageId, name: "Home grid", columnCount: 8, bricks: [] },
       });
       for (const authenticatedIdentityKey of ["different_grid_user", null]) {
         const ownershipError = yield* createGuard({
-          authentication: { clerkUserId: authenticatedIdentityKey },
-          db,
+          failures: {},
+          identity: { clerkUserId: authenticatedIdentityKey },
+          queryDb: db,
           payload: { id: gridId, pageId, name: "Home grid", columnCount: 8, bricks: [] },
         }).pipe(Effect.flip);
         expect(ownershipError).toMatchObject({ code: "create-grid-user-mismatch", status: 403 });
@@ -417,8 +419,9 @@ describe("user frontend Grid guards", () => {
 
       // 2 — Grid and Brick ids are deterministic parts of the aggregate boundary.
       const noncanonicalGridError = yield* createGuard({
-        authentication: { clerkUserId: "grid_guard_user" },
-        db,
+        failures: {},
+        identity: { clerkUserId: "grid_guard_user" },
+        queryDb: db,
         payload: {
           id: "grd_grid_guard_noncanonical",
           pageId,
@@ -434,8 +437,9 @@ describe("user frontend Grid guards", () => {
       });
 
       const noncanonicalBrickError = yield* createGuard({
-        authentication: { clerkUserId: "grid_guard_user" },
-        db,
+        failures: {},
+        identity: { clerkUserId: "grid_guard_user" },
+        queryDb: db,
         payload: {
           id: gridId,
           pageId,
@@ -497,12 +501,13 @@ describe("user frontend Grid guards", () => {
 
       const guard = updateGrid.guard;
       if (guard === undefined) {
-        throw new Error("Expected userFrontend updateGrid guard");
+        throw new Error("Expected userSessionDefinition updateGrid guard");
       }
 
       yield* guard({
-        authentication: { clerkUserId: "grid_guard_user" },
-        db,
+        failures: {},
+        identity: { clerkUserId: "grid_guard_user" },
+        queryDb: db,
         payload: {
           id: gridId,
           name: "Renamed grid",
@@ -515,8 +520,9 @@ describe("user frontend Grid guards", () => {
       });
       for (const authenticatedIdentityKey of ["different_grid_user", null]) {
         const ownershipError = yield* guard({
-          authentication: { clerkUserId: authenticatedIdentityKey },
-          db,
+          failures: {},
+          identity: { clerkUserId: authenticatedIdentityKey },
+          queryDb: db,
           payload: {
             id: gridId,
             name: "Renamed grid",
@@ -532,8 +538,9 @@ describe("user frontend Grid guards", () => {
 
       // 4 — unchanged attributes paired with update intent must fail before mutation generation.
       const error = yield* guard({
-        authentication: { clerkUserId: "grid_guard_user" },
-        db,
+        failures: {},
+        identity: { clerkUserId: "grid_guard_user" },
+        queryDb: db,
         payload: {
           id: gridId,
           name: "Home grid",
@@ -565,8 +572,9 @@ describe("user frontend Grid guards", () => {
 
       // 5 — a desired item id must be canonical before resource identity is inspected.
       const noncanonicalUpdateItemError = yield* guard({
-        authentication: { clerkUserId: "grid_guard_user" },
-        db,
+        failures: {},
+        identity: { clerkUserId: "grid_guard_user" },
+        queryDb: db,
         payload: {
           id: gridId,
           name: "Home grid",
@@ -598,8 +606,9 @@ describe("user frontend Grid guards", () => {
 
       // 6 — a canonical desired item cannot claim a missing Brick resource.
       const foreignIdentityError = yield* guard({
-        authentication: { clerkUserId: "grid_guard_user" },
-        db,
+        failures: {},
+        identity: { clerkUserId: "grid_guard_user" },
+        queryDb: db,
         payload: {
           id: gridId,
           name: "Home grid",
@@ -631,8 +640,9 @@ describe("user frontend Grid guards", () => {
 
       // 7 — every persisted Brick must be kept or explicitly deleted.
       const incompleteSnapshotError = yield* guard({
-        authentication: { clerkUserId: "grid_guard_user" },
-        db,
+        failures: {},
+        identity: { clerkUserId: "grid_guard_user" },
+        queryDb: db,
         payload: {
           id: gridId,
           name: "Home grid",
@@ -651,8 +661,9 @@ describe("user frontend Grid guards", () => {
 
       // 8 — a draft loaded before the current aggregate revision cannot overwrite it.
       const staleSnapshotError = yield* guard({
-        authentication: { clerkUserId: "grid_guard_user" },
-        db,
+        failures: {},
+        identity: { clerkUserId: "grid_guard_user" },
+        queryDb: db,
         payload: {
           id: gridId,
           name: "Home grid",

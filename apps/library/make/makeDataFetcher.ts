@@ -1,4 +1,4 @@
-import type { newSyncRpcSession } from "@zerospin/core/utils/newSyncRpcSession";
+import type { newSyncRpcSession } from "@zerospin/core/utils/getApi/newSyncRpcSession/newSyncRpcSession";
 import { makeEffectSchema, type InferDecodedRow, type IShape } from "@zerospin/schema";
 import { Effect, Schema } from "effect";
 

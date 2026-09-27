@@ -1,13 +1,9 @@
 import type { IDb } from "@zerospin/core/drizzle/types";
 import { defineContract } from "@zerospin/core/contracts/defineContract";
-import { makeContractVersion } from "@zerospin/core/contracts/makeContractVersion";
+import { makeContractVersion } from "@zerospin/core/contracts/make/makeContractVersion";
 import type { IModelMutations } from "@zerospin/core/contracts/types";
 import { ZerospinError } from "@zerospin/error";
-import {
-  primitives,
-  type InferDecodedRow,
-  type InferIdFromAbbreviation,
-} from "@zerospin/schema";
+import { primitives, type InferDecodedRow, type InferIdFromAbbreviation } from "@zerospin/schema";
 import { Effect } from "effect";
 
 import { makeBrickModel } from "../makeLibraryFrontend/models/brick/makeBrickModel";
@@ -48,11 +44,11 @@ export function makeModuleSpecContractVersion<
     },
     version: "1.0.0",
     guard: Effect.fn(`${props.commandName}.guard`)(function* ({
-      db,
+      queryDb: db,
       payload: guardPayload,
     }: {
-      authentication: Readonly<Record<string, unknown>> | null;
-      db: Readonly<Pick<IDb, "query">>;
+      identity: Readonly<Record<string, unknown>> | null;
+      queryDb: Readonly<Pick<IDb, "query">>;
       payload: {
         brickId: string;
         breakpoint: "sm" | "md" | "lg" | "xl";
@@ -80,10 +76,7 @@ export function makeModuleSpecContractVersion<
         });
       }
 
-      const expectedPlacementId = makePlacementId(
-        guardPayload.brickId,
-        guardPayload.breakpoint,
-      );
+      const expectedPlacementId = makePlacementId(guardPayload.brickId, guardPayload.breakpoint);
       const placement = db.query.placement
         .findFirst({
           where: { id: { eq: expectedPlacementId } },
@@ -99,18 +92,18 @@ export function makeModuleSpecContractVersion<
       }
     }),
     program: ({ payload: programPayload, models: programModels }) => {
-      const placementMutations = programModels.placement as IModelMutations<
-        typeof props.placement
-      >;
-      return placementMutations.update({
-        resourceId: makePlacementId(
-          programPayload.brickId,
-          programPayload.breakpoint,
-        ) as InferIdFromAbbreviation<"plc">,
-        attributes: {
-          spec: structuredClone(programPayload.spec),
-        } as Partial<InferDecodedRow<(typeof props.placement)["attributes"]>>,
-      });
+      const placementMutations = programModels.placement as IModelMutations<typeof props.placement>;
+      return Effect.all([
+        placementMutations.update({
+          resourceId: makePlacementId(
+            programPayload.brickId,
+            programPayload.breakpoint,
+          ) as InferIdFromAbbreviation<"plc">,
+          attributes: {
+            spec: structuredClone(programPayload.spec),
+          } as Partial<InferDecodedRow<(typeof props.placement)["attributes"]>>,
+        }),
+      ]);
     },
   });
 }

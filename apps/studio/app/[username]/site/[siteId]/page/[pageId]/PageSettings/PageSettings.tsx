@@ -1,6 +1,6 @@
 "use client";
 
-import { useSession } from "@zerospin/react";
+import { stageCommand } from "@zerospin/react";
 import { ZerospinError } from "@zerospin/sdk/browser";
 import { Schema } from "effect";
 import { FileText, Globe, X } from "lucide-react";
@@ -10,7 +10,8 @@ import { toast } from "sonner";
 
 import { usePageStore } from "../pageStore";
 
-import { useZerospinUserInitializedState, ZerospinUser } from "@/components/ZerospinUser";
+import { useZerospinUserInitializedState } from "@/components/ZerospinUser";
+import { userSession } from "@/zerospin/userSession";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -39,7 +40,7 @@ function emptyToNull(value: string): string | null {
 export function PageSettings() {
   const params = useValidatedParams(ParamsSchema);
   const navigate = useNavigate();
-  const session = useSession(ZerospinUser);
+  const session = userSession;
   const { db } = useZerospinUserInitializedState();
   const pageDraft = usePageStore((state) => state.page);
   const setTitle = usePageStore((state) => state.setTitle);
@@ -110,7 +111,8 @@ export function PageSettings() {
                   return;
                 }
 
-                const result = session.executeCommand({
+                const result = stageCommand({
+                  session,
                   contractName: "updatePageSettings",
                   payload: {
                     id: params.pageId,

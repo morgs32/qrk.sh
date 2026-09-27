@@ -6,7 +6,7 @@ import { stageCommand, useLiveQuery } from "@zerospin/react";
 import GridLayout, { noCompactor } from "react-grid-layout";
 
 import { LibraryFrontend } from "../makeLibraryFrontend/makeLibraryFrontend";
-import type { ILibraryStandaloneSession } from "../makeLibraryFrontend/createLibraryStandaloneSession";
+import type { ILibrarySession } from "../makeLibraryFrontend/createLibraryStandaloneSession";
 import { BrickWrapper } from "../components/brick/BrickWrapper";
 import { brickDragStore } from "./GridStore";
 import { modulesHash } from "./modulesHash";
@@ -60,7 +60,7 @@ function commandErrorMessage(failure: { message?: string; code?: string }) {
 }
 
 export function BrickWall(props: {
-  session: ILibraryStandaloneSession;
+  session: ILibrarySession;
   wallId: `wal_${string}`;
   breakpoint: "sm" | "md" | "lg" | "xl";
   gridWidth: number;
@@ -237,15 +237,10 @@ export function BrickWall(props: {
             });
             if (result._tag === "Failure") {
               reportCommandError(result.failure);
-            } else if (
-              "failure" in result.success &&
-              result.success.failure != null
-            ) {
+            } else if ("failure" in result.success && result.success.failure != null) {
               const failure = result.success.failure;
               reportCommandError(
-                typeof failure === "object" &&
-                  failure !== null &&
-                  "message" in failure
+                typeof failure === "object" && failure !== null && "message" in failure
                   ? { message: String(failure.message) }
                   : { message: "addBrick failed" },
               );

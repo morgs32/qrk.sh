@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 import { isNotFound } from "@tanstack/react-router";
-import { ZerospinError } from "@zerospin/error";
+import { isZerospinError } from "@zerospin/error";
 import { Copy, RefreshCw } from "lucide-react";
 
 import "./TanStackRouteErrorBoundary.css";
@@ -21,10 +21,10 @@ export function TanStackRouteErrorBoundary(props: { error: unknown }) {
   let stack: string | null = null;
   let diagnostics: unknown;
 
-  if (ZerospinError.isZerospinError(error)) {
+  if (isZerospinError(error)) {
     errorKind = error._tag;
     errorCode = error.code;
-    message = error.rawMessage;
+    message = error.message;
     status = error.status;
     structuredDetailsLabel = error.extra === null ? null : "Extra";
     structuredDetails = error.extra;
@@ -33,7 +33,7 @@ export function TanStackRouteErrorBoundary(props: { error: unknown }) {
     diagnostics = {
       tag: error._tag,
       code: error.code,
-      message: error.rawMessage,
+      message: error.message,
       status: error.status,
       extra: error.extra,
       cause: error.cause,
@@ -95,8 +95,7 @@ export function TanStackRouteErrorBoundary(props: { error: unknown }) {
     }
   }
 
-  const hasDetailedSections =
-    structuredDetailsText !== null || cause !== null || stack !== null;
+  const hasDetailedSections = structuredDetailsText !== null || cause !== null || stack !== null;
 
   return (
     <main className="zerospin-route-error">
@@ -129,9 +128,7 @@ export function TanStackRouteErrorBoundary(props: { error: unknown }) {
               setDetailsOpen(event.currentTarget.open);
             }}
           >
-            <summary>
-              {detailsOpen ? "Hide diagnostic details" : "Show diagnostic details"}
-            </summary>
+            <summary>{detailsOpen ? "Hide diagnostic details" : "Show diagnostic details"}</summary>
             <div className="zerospin-route-error__details">
               {structuredDetailsText === null ? null : (
                 <section>

@@ -1,12 +1,8 @@
 import type { IDb } from "@zerospin/core/drizzle/types";
-import { makeContractVersion } from "@zerospin/core/contracts/makeContractVersion";
+import { makeContractVersion } from "@zerospin/core/contracts/make/makeContractVersion";
 import type { InferCommandPayload } from "@zerospin/core/models/types";
 import { ZerospinError } from "@zerospin/error";
-import {
-  primitives,
-  type InferDecodedRow,
-  type InferIdFromAbbreviation,
-} from "@zerospin/schema";
+import { primitives, type InferDecodedRow, type InferIdFromAbbreviation } from "@zerospin/schema";
 import { Effect, Schema } from "effect";
 
 import { makePlacementId } from "../../models/placement/makePlacementId";
@@ -54,11 +50,11 @@ export function makeSetBrickVisibilityAtBreakpointContract(props: {
     },
     version: "1.0.0",
     guard: Effect.fn("setBrickVisibilityAtBreakpoint.guard")(function* ({
-      db,
+      queryDb: db,
       payload,
     }: {
-      authentication: Readonly<Record<string, unknown>> | null;
-      db: Readonly<Pick<IDb, "query">>;
+      identity: Readonly<Record<string, unknown>> | null;
+      queryDb: Readonly<Pick<IDb, "query">>;
       payload: InferCommandPayload<typeof setBrickVisibilityAtBreakpointPayload>;
     }) {
       const brickRow = db.query.brick
@@ -75,10 +71,7 @@ export function makeSetBrickVisibilityAtBreakpointContract(props: {
         });
       }
 
-      const expectedPlacementId = makePlacementId(
-        payload.brickId,
-        payload.breakpoint,
-      );
+      const expectedPlacementId = makePlacementId(payload.brickId, payload.breakpoint);
       const placement = db.query.placement
         .findFirst({
           where: { id: { eq: expectedPlacementId } },
@@ -132,10 +125,7 @@ export function makeSetBrickVisibilityAtBreakpointContract(props: {
             where: { id: { eq: item.i } },
           })
           .sync();
-        if (
-          otherBrick === undefined ||
-          otherBrick.wallId !== brickRow.wallId
-        ) {
+        if (otherBrick === undefined || otherBrick.wallId !== brickRow.wallId) {
           return yield* new ZerospinError({
             code: "set-brick-visibility-other-not-on-wall",
             message: `otherVisibleLayout item ${item.i} is not a brick on the same wall`,
@@ -255,9 +245,7 @@ export function makeSetBrickVisibilityAtBreakpointContract(props: {
                 attributes: {
                   isVisible: true,
                   gridItem: item,
-                } as Partial<
-                  InferDecodedRow<(typeof props.placement)["attributes"]>
-                >,
+                } as Partial<InferDecodedRow<(typeof props.placement)["attributes"]>>,
               }),
             );
             continue;
@@ -271,9 +259,7 @@ export function makeSetBrickVisibilityAtBreakpointContract(props: {
               ) as InferIdFromAbbreviation<"plc">,
               attributes: {
                 gridItem: item,
-              } as Partial<
-                InferDecodedRow<(typeof props.placement)["attributes"]>
-              >,
+              } as Partial<InferDecodedRow<(typeof props.placement)["attributes"]>>,
             }),
           );
         }

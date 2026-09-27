@@ -1,7 +1,7 @@
 "use client";
 
 import { useAuth } from "@clerk/react";
-import { useSession } from "@zerospin/react";
+import { stageCommand } from "@zerospin/react";
 import { ZerospinError } from "@zerospin/sdk/browser";
 import { Schema } from "effect";
 import { Globe, X } from "lucide-react";
@@ -14,7 +14,8 @@ import { useSiteStore } from "../../../siteStore";
 import { CopyButton } from "./CopyButton";
 import { SearchPreviewCard } from "../SearchPreviewCard";
 
-import { useZerospinUserInitializedState, ZerospinUser } from "@/components/ZerospinUser";
+import { useZerospinUserInitializedState } from "@/components/ZerospinUser";
+import { userSession } from "@/zerospin/userSession";
 import { Button } from "@/components/ui/button";
 import { FieldLabel } from "@/components/ui/field-label";
 import { Input } from "@/components/ui/input";
@@ -92,7 +93,7 @@ export function SiteSettings() {
   const navigate = useNavigate();
   const username = useUsername();
   const { getToken } = useAuth();
-  const session = useSession(ZerospinUser);
+  const session = userSession;
   const siteId = params.siteId;
   const { db } = useZerospinUserInitializedState();
   const siteDraft = useSiteStore((state) => state.site);
@@ -227,7 +228,8 @@ export function SiteSettings() {
                   return;
                 }
 
-                const result = session.executeCommand({
+                const result = stageCommand({
+                  session,
                   contractName: "updateSiteSettings",
                   payload: {
                     id: params.siteId,

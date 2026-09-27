@@ -1,3 +1,4 @@
+import { nodeWorkerPlugin } from "@zerospin/browser/vite";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig, loadEnv } from "vite";
@@ -33,6 +34,7 @@ export default defineConfig(({ mode }) => {
     build: { outDir: "build/client" },
     server: { hmr: { path: "hmr" } },
     plugins: [
+      nodeWorkerPlugin(),
       tailwindcss(),
       {
         name: "rooted-app-routes",

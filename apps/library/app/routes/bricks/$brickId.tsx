@@ -2,7 +2,7 @@ import { useState } from "react";
 
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { isNonEmptySpec } from "@json-render/core";
-import { newSyncRpcSession } from "@zerospin/core/utils/newSyncRpcSession";
+import { newSyncRpcSession } from "@zerospin/core/utils/getApi/newSyncRpcSession/newSyncRpcSession";
 import { stageCommand, useLiveQuery } from "@zerospin/react";
 import { collapseAllNested, defaultStyles, JsonView } from "react-json-view-lite";
 
@@ -102,9 +102,7 @@ function BrickDetail() {
   const stateEditorValue = stateDraft ?? committedStateJson;
   const hasJsonRender = brickModule.registry !== undefined;
   const rawSpec: unknown =
-    typeof placement.spec === "string"
-      ? JSON.parse(placement.spec)
-      : placement.spec;
+    typeof placement.spec === "string" ? JSON.parse(placement.spec) : placement.spec;
   if (!isNonEmptySpec(rawSpec)) {
     throw notFound();
   }
@@ -128,7 +126,7 @@ function BrickDetail() {
               <OrderedSection data-testid="brick-detail-pane" label="Generate spec">
                 <form
                   className="flex flex-col items-start gap-2 py-5"
-                  onSubmit={event => {
+                  onSubmit={(event) => {
                     event.preventDefault();
                     void (async () => {
                       const targetBrickId = brickRow.id;
@@ -184,7 +182,7 @@ function BrickDetail() {
                   <Input
                     id="generate-spec-prompt"
                     name="prompt"
-                    onChange={event => {
+                    onChange={(event) => {
                       setGeneratePrompt(event.target.value);
                     }}
                     type="text"
@@ -215,11 +213,8 @@ function BrickDetail() {
                   aria-pressed={placement.isVisible}
                   onClick={() => {
                     const otherVisibleLayout = (placementsQuery.data ?? []).flatMap(
-                      otherPlacement => {
-                        if (
-                          !otherPlacement.isVisible ||
-                          otherPlacement.brickId === brickRow.id
-                        ) {
+                      (otherPlacement) => {
+                        if (!otherPlacement.isVisible || otherPlacement.brickId === brickRow.id) {
                           return [];
                         }
                         return [decodeGridItem(otherPlacement.gridItem)];
@@ -255,15 +250,13 @@ function BrickDetail() {
             <OrderedSection className="mt-10" label="Shared state">
               <form
                 className="flex flex-col gap-2 py-4"
-                onSubmit={event => {
+                onSubmit={(event) => {
                   event.preventDefault();
                   let parsed: unknown;
                   try {
                     parsed = JSON.parse(stateEditorValue);
                   } catch (cause) {
-                    setCommandError(
-                      cause instanceof Error ? cause.message : "Invalid JSON",
-                    );
+                    setCommandError(cause instanceof Error ? cause.message : "Invalid JSON");
                     return;
                   }
                   const result = stageCommand({
@@ -276,9 +269,7 @@ function BrickDetail() {
                   });
                   if (result._tag === "Failure") {
                     setCommandError(
-                      result.failure.message ??
-                        result.failure.code ??
-                        "Failed to update state",
+                      result.failure.message ?? result.failure.code ?? "Failed to update state",
                     );
                     return;
                   }
@@ -293,7 +284,7 @@ function BrickDetail() {
                   id="shared-state-editor"
                   className="min-h-48 w-full rounded border border-border bg-white p-2 font-mono text-sm"
                   value={stateEditorValue}
-                  onChange={event => {
+                  onChange={(event) => {
                     setStateDraft(event.target.value);
                   }}
                 />

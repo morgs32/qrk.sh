@@ -4,7 +4,7 @@ import { useLiveQuery } from "@zerospin/react";
 import { Schema } from "effect";
 import { Link, href, useMatch } from "react-router";
 
-import { ZerospinUser } from "@/components/ZerospinUser";
+import { userSession } from "@/zerospin/userSession";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 
 import { useSiteStore } from "./siteStore";
@@ -21,8 +21,9 @@ export function Wordmark() {
   const settingsOpen =
     useMatch({ path: "/:username/site/:siteId/page/:pageId/site-settings", end: true }) != null;
 
-  const { data: site, error } = useLiveQuery(ZerospinUser, {
-    deps: [siteId],
+  const { data: site, error } = useLiveQuery({
+    session: userSession,
+    key: [siteId],
     query: (db) =>
       db.query.site.findFirst({
         where: { id: { eq: siteId } },

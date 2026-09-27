@@ -1,9 +1,9 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 
 import { Drawer } from "@qrk.sh/web/library/Drawer";
 import { Link, useLocation, useNavigate, useParams } from "@tanstack/react-router";
 import { prefixId } from "@zerospin/core/models/prefixId";
-import { stageCommand, useInitializeStandaloneSession, useLiveQuery } from "@zerospin/react";
+import { stageCommand, useInitializeMockSession, useLiveQuery } from "@zerospin/react";
 import { cn } from "cn";
 import { motion, useAnimationControls, useReducedMotion } from "framer-motion";
 import { RotateCcw, X } from "lucide-react";
@@ -18,11 +18,10 @@ import {
   useWallViewportStoreApi,
   WallViewportProvider,
 } from "../lib/WallViewportProvider";
-import {
-  createLibraryStandaloneSession,
-  LibrarySessionContext,
-} from "../makeLibraryFrontend/createLibraryStandaloneSession";
+import { LibrarySessionContext } from "../makeLibraryFrontend/createLibraryStandaloneSession";
 import { LibraryFrontend } from "../makeLibraryFrontend/makeLibraryFrontend";
+
+import { librarySession } from "./librarySession";
 
 import { decodeGridItem } from "./decodeGridItem";
 
@@ -175,15 +174,8 @@ function LibraryWallPane(props: {
 export function Layout(props: { children: ReactNode }) {
   const [sessionKey, setSessionKey] = useState(0);
   const [resetError, setResetError] = useState<unknown>(null);
-  const session = useMemo(
-    () =>
-      createLibraryStandaloneSession({
-        key: JSON.stringify(["library"]),
-        wallId: WALL_ID,
-      }),
-    [],
-  );
-  const { isInitialized } = useInitializeStandaloneSession({ session });
+  const session = librarySession;
+  const { isInitialized } = useInitializeMockSession({ session });
   if (resetError !== null) throw resetError;
   if (!isInitialized) {
     return null;
@@ -199,7 +191,8 @@ export function Layout(props: { children: ReactNode }) {
           session={session}
           onResetSession={() => {
             void session
-              .reset()
+              .dispose()
+              .then(() => session.initialize())
               .then(() => setSessionKey((key) => key + 1))
               .catch(setResetError);
           }}
@@ -213,7 +206,7 @@ export function Layout(props: { children: ReactNode }) {
 
 function LayoutBody(props: {
   children: ReactNode;
-  session: ReturnType<typeof createLibraryStandaloneSession>;
+  session: typeof librarySession;
   onResetSession: () => void;
 }) {
   const { children, session, onResetSession } = props;

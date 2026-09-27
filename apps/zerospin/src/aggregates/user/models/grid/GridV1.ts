@@ -1,6 +1,6 @@
 import { makeModelVersion, primitives } from "@zerospin/sdk/browser";
 
-import { pageV2 as Page } from "../page/PageV2";
+import { pageV1 as Page } from "../page/PageV1";
 
 import { grid } from "./grid";
 

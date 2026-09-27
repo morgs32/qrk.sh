@@ -1,24 +1,24 @@
 import { makeEffectSchema } from "@zerospin/schema";
-import { makeAggregateCommand } from "@zerospin/core/aggregate/makeAggregateCommand";
+import { makeAggregateCommand } from "@zerospin/core/aggregate/make/makeAggregateCommand";
 import { encodeCommand } from "@zerospin/core/contracts/encodeCommand";
 import { it } from "@effect/vitest";
-import { initializeGuards as initializeAggregateGuards } from "@zerospin/core/aggregate/initializeGuards";
+import { runContractGuard } from "@zerospin/core/contracts/runContractGuard";
+import { encodeFailure } from "@zerospin/core/contracts/failureCodec";
 import { AsyncLive } from "@zerospin/core/async/AsyncLive";
-import { makeAsync } from "@zerospin/core/async/makeAsync";
-import { makeResourceDbConfig } from "@zerospin/core/drizzle/makeDbConfig";
-import { makeProvisionedInMemoryWasmSqliteDb } from "@zerospin/core/drizzle/makeProvisionedInMemoryWasmSqliteDb";
-import { initializeGuards as initializeFrontendGuards } from "@zerospin/core/frontendController/initializeGuards";
+import { makeAsync } from "@zerospin/core/async/make/makeAsync";
+import { makeResourceDbConfig } from "@zerospin/core/drizzle/make/makeDbConfig/makeDbConfig";
+import { makeProvisionedInMemoryWasmSqliteDb } from "@zerospin/core/drizzle/make/makeProvisionedInMemoryWasmSqliteDb/makeProvisionedInMemoryWasmSqliteDb";
 import { makeAggregateId } from "@zerospin/sdk";
 import { ZerospinError } from "@zerospin/sdk";
 import { NanoIdFactory } from "@zerospin/core/utils/NanoIdFactory";
-import { decodeRpc } from "@zerospin/core/utils/decodeRpc";
-import { makeSystemSpec } from "@zerospin/core/system/makeSystemSpec";
-import { AggregateChain, SystemRepo, VersionedAggregateRepo } from "system-worker";
+import { readRpcEnvelope } from "@zerospin/core/utils/readRpcEnvelope";
+import { makeSystemSpec } from "@zerospin/core/system/make/makeSystemSpec";
+import { AggregateChain, SystemRepo, AggregateVersionRepo } from "system-worker";
 import { getTableName } from "drizzle-orm";
 import { DateTime, Effect, Schema } from "effect";
 import { describe, expect, vi, beforeAll } from "vitest";
 
-import { userFrontend } from "./aggregates/user/userFrontend";
+import { userSessionDefinition } from "./aggregates/user/userSessionDefinition";
 import { createUserV1 as createUser } from "./aggregates/user/contracts/createUser/CreateUserV1";
 import { signature } from "./signature";
 import { system } from "./system";
@@ -36,12 +36,19 @@ describe("QRK system", () => {
     "provisions one independent user across a lost response and concurrent authentications",
     () =>
       Effect.gen(function* () {
-        const { userV8 } = yield* Effect.promise(() => import("./aggregates/user/UserV8"));
-        const authenticate = userV8.authentication.authenticate;
+        const { userActorV1 } = yield* Effect.promise(
+          () => import("./aggregates/user/actors/userActorV1"),
+        );
+        const authentication = userActorV1.authentication;
+        if (authentication === "none") throw new Error("User actor must authenticate");
+        const authenticate = authentication.authenticate;
         const systemRepo = yield* SystemRepo.getRepo({ key: { systemId: "sys_qrk_sh_1" } });
         yield* makeAsync<Awaited<ReturnType<SystemRepo["checkSystemSpec"]>>>(() =>
           systemRepo.checkSystemSpec({ spec: makeSystemSpec({ system }) }),
-        ).pipe(Effect.flatMap(decodeRpc));
+        ).pipe(
+          Effect.flatMap(readRpcEnvelope),
+          Effect.mapError((failure) => new ZerospinError(failure)),
+        );
         for (const loseFirstResponse of [true, false]) {
           const clerkUserId = loseFirstResponse
             ? "user_provisioning_retry"
@@ -50,7 +57,7 @@ describe("QRK system", () => {
             systemId: "sys_qrk_sh_1",
             aggregateId: makeAggregateId({ id: clerkUserId }),
             aggregateName: "user",
-            aggregateVersion: "8.0.0",
+            aggregateVersion: "1.0.0",
           };
           const chain = yield* AggregateChain.getRepo({ key });
           const attempts: { id: string; failureCode: string | null }[] = [];
@@ -60,9 +67,12 @@ describe("QRK system", () => {
           )(function* (props) {
             const command = yield* makeAggregateCommand({
               contract: createUser,
+              actorName: props.actor.name,
+              actorVersion: props.actor.version,
+              identity: props.identity,
               aggregateId: key.aggregateId,
               aggregateName: "user",
-              aggregateVersion: "8.0.0",
+              aggregateVersion: "1.0.0",
               systemName: "qrk-sh",
               payload: yield* Schema.decodeUnknownEffect(makeEffectSchema(createUser.payload))(
                 props.payload,
@@ -74,7 +84,7 @@ describe("QRK system", () => {
               ),
             });
             const encoded = yield* encodeCommand({ contract: props.contract, command });
-            // Provisioning crosses the trusted command boundary with null authentication.
+            // Provisioning carries the authenticated identity and provisioner actor.
             const result = yield* makeAsync<
               Awaited<ReturnType<AggregateChain["executeAggregateCommand"]>>
             >(() =>
@@ -82,8 +92,20 @@ describe("QRK system", () => {
                 aggregateVersion: key.aggregateVersion,
                 command: encoded,
               }),
-            ).pipe(Effect.flatMap(decodeRpc));
-            attempts.push({ id: command.id, failureCode: result.failure?.code ?? null });
+            ).pipe(
+              Effect.tap((envelope) => Effect.sync(() => {
+                if (envelope.result._tag === "Failure") console.log("PROVISIONING_ENVELOPE", JSON.stringify(envelope));
+              })),
+              Effect.flatMap(readRpcEnvelope),
+              Effect.mapError((failure) => new ZerospinError(failure)),
+            );
+            attempts.push({
+              id: command.id,
+              failureCode:
+                result.execution.status === "failed" && "code" in result.execution.failure
+                  ? result.execution.failure.code
+                  : null,
+            });
             if (loseResponse) {
               loseResponse = false;
               return yield* new ZerospinError({
@@ -96,7 +118,7 @@ describe("QRK system", () => {
 
           if (loseFirstResponse) {
             const lost = yield* authenticate({
-              signature: { sessionToken: clerkUserId },
+              credentials: { sessionToken: clerkUserId },
               executeCommand,
             }).pipe(Effect.flip);
             expect(lost.code).toBe("test-response-lost");
@@ -105,9 +127,9 @@ describe("QRK system", () => {
 
           yield* Effect.all(
             [
-              authenticate({ signature: { sessionToken: clerkUserId }, executeCommand }),
-              authenticate({ signature: { sessionToken: clerkUserId }, executeCommand }),
-              authenticate({ signature: { sessionToken: clerkUserId }, executeCommand }),
+              authenticate({ credentials: { sessionToken: clerkUserId }, executeCommand }),
+              authenticate({ credentials: { sessionToken: clerkUserId }, executeCommand }),
+              authenticate({ credentials: { sessionToken: clerkUserId }, executeCommand }),
             ],
             { concurrency: "unbounded" },
           );
@@ -119,10 +141,10 @@ describe("QRK system", () => {
             attempts.filter((attempt) => attempt.failureCode === "user-already-exists"),
           ).toHaveLength(loseFirstResponse ? 3 : 2);
 
-          const repo = yield* VersionedAggregateRepo.getRepo({ key });
-          const dbConfig = makeResourceDbConfig({ models: userFrontend.models });
+          const repo = yield* AggregateVersionRepo.getRepo({ key });
+          const dbConfig = makeResourceDbConfig({ models: userSessionDefinition.models });
           const users = yield* makeAsync<
-            Awaited<ReturnType<VersionedAggregateRepo["executeSelectQuery"]>>
+            Awaited<ReturnType<AggregateVersionRepo["executeSelectQuery"]>>
           >(() =>
             repo.executeSelectQuery({
               query: {
@@ -132,7 +154,7 @@ describe("QRK system", () => {
               },
             }),
           ).pipe(
-            Effect.flatMap(decodeRpc),
+            Effect.flatMap(readRpcEnvelope),
             Effect.flatMap(
               Schema.decodeUnknownEffect(
                 Schema.Array(Schema.Struct({ id: Schema.String, clerkUserId: Schema.String })),
@@ -149,15 +171,22 @@ describe("QRK system", () => {
 
   it.effect("fails provisioning for terminal command errors other than an existing user", () =>
     Effect.gen(function* () {
-      const { userV8 } = yield* Effect.promise(() => import("./aggregates/user/UserV8"));
-      const authenticate = userV8.authentication.authenticate;
+      const { userActorV1 } = yield* Effect.promise(
+        () => import("./aggregates/user/actors/userActorV1"),
+      );
+      const authentication = userActorV1.authentication;
+      if (authentication === "none") throw new Error("User actor must authenticate");
+      const authenticate = authentication.authenticate;
       const now = DateTime.toDateUtc(yield* DateTime.now);
       const failure = yield* authenticate({
-        signature: { sessionToken: "user_rejected_provisioning" },
+        credentials: { sessionToken: "user_rejected_provisioning" },
         executeCommand: (props) =>
           Effect.gen(function* () {
             const command = yield* makeAggregateCommand({
               contract: createUser,
+              actorName: props.actor.name,
+              actorVersion: props.actor.version,
+              identity: props.identity,
               payload: yield* Schema.decodeUnknownEffect(makeEffectSchema(createUser.payload))(
                 props.payload,
               ).pipe(
@@ -168,40 +197,46 @@ describe("QRK system", () => {
               ),
               aggregateId: "acct_user_rejected_provisioning",
               aggregateName: "user",
-              aggregateVersion: "8.0.0",
+              aggregateVersion: "1.0.0",
               systemName: "qrk-sh",
             });
             const encoded = yield* encodeCommand({ contract: createUser, command });
             return {
               ...encoded,
               aggregateIndex: 1,
-              chainedAt: now,
-              dispositionHash: "a".repeat(64),
-              delta: null,
-              failedAt: now,
-              failure: {
-                code: "create-user-identity-mismatch",
-                message: "Wrong identity",
-                status: 403,
-                cause: null,
-                extra: null,
+              dispositionHash: null,
+              admission: { status: "succeeded", startedAt: now, completedAt: now },
+              execution: {
+                status: "failed",
+                startedAt: now,
+                completedAt: now,
+                failure: yield* encodeFailure(
+                  createUser,
+                  new ZerospinError({
+                    code: "create-user-identity-mismatch",
+                    message: "Wrong identity",
+                    status: 403,
+                  }),
+                ),
               },
             };
           }),
       }).pipe(Effect.flip);
-      expect(failure.code).toBe("create-user-identity-mismatch");
+      expect(failure.code).toBe("user-provisioning-failed");
     }).pipe(Effect.provide(AsyncLive), Effect.provide(NanoIdFactory)),
   );
 
   it.effect("registers the user aggregate and enforces its authenticated ownership", () =>
     Effect.gen(function* () {
       expect(system.name).toBe("qrk-sh");
-      expect(system.aggregates.user["8.0.0"].authentication.pattern.source).toBe("/:clerkUserId");
-      expect(Object.keys(system.aggregates.user)).toEqual(["8.0.0"]);
-      const aggregate = system.aggregates.user["8.0.0"];
-      expect(aggregate.models).toEqual(userFrontend.models);
-      expect(aggregate.contracts.createUser.contract).toBe(createUser);
-      expect(Object.keys(aggregate.selections).sort()).toEqual([
+      expect(system.aggregates.user["1.0.0"].actors.web.identity.pattern.source).toBe(
+        "/:clerkUserId",
+      );
+      expect(Object.keys(system.aggregates.user)).toEqual(["1.0.0"]);
+      const aggregate = system.aggregates.user["1.0.0"];
+      expect(aggregate.models).toEqual(userSessionDefinition.models);
+      expect(aggregate.contracts.createUser).toBe(createUser);
+      expect(Object.keys(aggregate.actors.web.selections).sort()).toEqual([
         "brick",
         "grid",
         "page",
@@ -212,29 +247,24 @@ describe("QRK system", () => {
       const db = yield* makeProvisionedInMemoryWasmSqliteDb({ dbConfig }).pipe(
         Effect.provide(AsyncLive),
       );
-      // Both owners initialize the same contract guard for command admission.
-      const backendGuards = yield* initializeAggregateGuards(aggregate);
-      const frontendGuards = yield* initializeFrontendGuards({ frontend: userFrontend });
-      for (const guards of [backendGuards, frontendGuards]) {
-        const rejected = yield* guards
-          .run("createUser", {
-            db,
-            authentication: { aggregateId: "acct_owner", clerkUserId: "owner" },
-            payload: { id: "usr_other", clerkUserId: "other", username: null, displayName: null },
-          })
-          .pipe(Effect.flip);
-        expect(rejected).toMatchObject({ code: "create-user-identity-mismatch", status: 403 });
-        yield* guards.run("createUser", {
-          db,
-          authentication: { aggregateId: "acct_owner", clerkUserId: "owner" },
-          payload: {
-            id: "usr_independent_owner",
-            clerkUserId: "owner",
-            username: null,
-            displayName: null,
-          },
-        });
-      }
+      const rejected = yield* runContractGuard({
+        contract: createUser,
+        queryDb: db,
+        identity: { aggregateId: "acct_owner", clerkUserId: "owner" },
+        payload: { id: "usr_other", clerkUserId: "other", username: null, displayName: null },
+      }).pipe(Effect.flip);
+      expect(rejected).toMatchObject({ code: "create-user-identity-mismatch", status: 403 });
+      yield* runContractGuard({
+        contract: createUser,
+        queryDb: db,
+        identity: { aggregateId: "acct_owner", clerkUserId: "owner" },
+        payload: {
+          id: "usr_independent_owner",
+          clerkUserId: "owner",
+          username: null,
+          displayName: null,
+        },
+      });
     }).pipe(Effect.scoped),
   );
 
@@ -244,10 +274,11 @@ describe("QRK system", () => {
         Effect.result,
       );
       expect(malformed._tag).toBe("Failure");
-      const authentication = system.aggregates.user["8.0.0"].authentication;
+      const authentication = system.aggregates.user["1.0.0"].actors.web.authentication;
+      if (authentication === "none") throw new Error("User actor must authenticate");
       const failure = yield* authentication
         .authenticate({
-          signature: { sessionToken: "invalid-token" },
+          credentials: { sessionToken: "invalid-token" },
           executeCommand: () => Effect.die("Invalid token must not execute commands"),
         })
         .pipe(Effect.flip);

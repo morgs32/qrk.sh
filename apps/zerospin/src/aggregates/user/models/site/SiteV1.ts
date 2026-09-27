@@ -23,6 +23,18 @@ export const siteV1 = makeModelVersion(site, {
       nullable: true,
       defaultValue: null,
     }),
+    logoUrl: primitives.text({
+      nullable: true,
+      defaultValue: null,
+    }),
+    faviconLightUrl: primitives.text({
+      nullable: true,
+      defaultValue: null,
+    }),
+    faviconDarkUrl: primitives.text({
+      nullable: true,
+      defaultValue: null,
+    }),
   },
   indexes: [],
   version: "1.0.0",

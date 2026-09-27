@@ -1,5 +1,5 @@
 import type { IDb } from "@zerospin/core/drizzle/types";
-import { makeContractVersion } from "@zerospin/core/contracts/makeContractVersion";
+import { makeContractVersion } from "@zerospin/core/contracts/make/makeContractVersion";
 import type { InferCommandPayload } from "@zerospin/core/models/types";
 import { mapParseError, ZerospinError } from "@zerospin/error";
 import {
@@ -20,10 +20,7 @@ export function makeUpdateBrickStateContract<
       readonly stateShape: IShape;
     }
   >,
->(props: {
-  library: LIBRARY;
-  brick: ReturnType<typeof makeBrickModel>;
-}) {
+>(props: { library: LIBRARY; brick: ReturnType<typeof makeBrickModel> }) {
   const updateBrickStatePayload = {
     brickId: primitives.foreignKey({
       abbreviation: props.brick.abbreviation,
@@ -38,11 +35,11 @@ export function makeUpdateBrickStateContract<
     },
     version: "1.0.0",
     guard: Effect.fn("updateBrickState.guard")(function* ({
-      db,
+      queryDb: db,
       payload,
     }: {
-      authentication: Readonly<Record<string, unknown>> | null;
-      db: Readonly<Pick<IDb, "query">>;
+      identity: Readonly<Record<string, unknown>> | null;
+      queryDb: Readonly<Pick<IDb, "query">>;
       payload: InferCommandPayload<typeof updateBrickStatePayload>;
     }) {
       const brickRow = db.query.brick
@@ -60,9 +57,10 @@ export function makeUpdateBrickStateContract<
       }
 
       const brickModule = props.library[brickRow.moduleId];
-      yield* Schema.decodeUnknownEffect(
-        Schema.toType(makeEffectSchema(brickModule.stateShape)),
-      )(payload.state, { onExcessProperty: "error" }).pipe(
+      yield* Schema.decodeUnknownEffect(Schema.toType(makeEffectSchema(brickModule.stateShape)))(
+        payload.state,
+        { onExcessProperty: "error" },
+      ).pipe(
         mapParseError({
           code: "update-brick-state-invalid-state",
           prefix: `updateBrickState state failed ${brickRow.moduleId} decode`,
@@ -70,11 +68,13 @@ export function makeUpdateBrickStateContract<
       );
     }),
     program: ({ payload, models }) =>
-      models.brick.update({
-        resourceId: payload.brickId as InferIdFromAbbreviation<"brk">,
-        attributes: {
-          state: structuredClone(payload.state),
-        },
-      }),
+      Effect.all([
+        models.brick.update({
+          resourceId: payload.brickId as InferIdFromAbbreviation<"brk">,
+          attributes: {
+            state: structuredClone(payload.state),
+          },
+        }),
+      ]),
   });
 }

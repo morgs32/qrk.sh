@@ -1,6 +1,6 @@
 "use client";
 
-import { newSyncRpcSession } from "@zerospin/core/utils/newSyncRpcSession";
+import { newSyncRpcSession } from "@zerospin/core/utils/getApi/newSyncRpcSession/newSyncRpcSession";
 import { Loader2, MapPin, Search, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { LibraryApi } from "../../worker/LibraryApi.public";
@@ -245,9 +245,7 @@ export function GooglePlaceLookup(props: { value: string; onChange: (value: stri
                   aria-selected={index === activeIndex}
                   className={cn(
                     "flex cursor-pointer items-start gap-2 rounded-sm px-3 py-2 transition-colors",
-                    index === activeIndex
-                      ? "bg-accent"
-                      : "hover:bg-accent/50",
+                    index === activeIndex ? "bg-accent" : "hover:bg-accent/50",
                   )}
                   id={`google-place-option-${index}`}
                   key={suggestion.placeId}
@@ -269,18 +267,14 @@ export function GooglePlaceLookup(props: { value: string; onChange: (value: stri
                   <div className="min-w-0 flex-1">
                     <p className="m-0 truncate font-medium">{suggestion.mainText}</p>
                     {suggestion.secondaryText.length > 0 ? (
-                      <p className="m-0 mt-0.5 truncate">
-                        {suggestion.secondaryText}
-                      </p>
+                      <p className="m-0 mt-0.5 truncate">{suggestion.secondaryText}</p>
                     ) : null}
                   </div>
                 </li>
               ))}
             </ul>
           ) : !isLoadingSuggestions && query.trim().length >= 2 ? (
-            <p className="m-0 px-3 py-4 text-center">
-              No places found for &ldquo;{query}&rdquo;
-            </p>
+            <p className="m-0 px-3 py-4 text-center">No places found for &ldquo;{query}&rdquo;</p>
           ) : null}
           <p className="m-0 border-t border-border px-3 py-1.5 text-right">
             Powered by Google Places

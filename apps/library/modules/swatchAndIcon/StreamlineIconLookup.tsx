@@ -1,6 +1,6 @@
 "use client";
 
-import { newSyncRpcSession } from "@zerospin/core/utils/newSyncRpcSession";
+import { newSyncRpcSession } from "@zerospin/core/utils/getApi/newSyncRpcSession/newSyncRpcSession";
 import { Image } from "@unpic/react";
 import { Check, Loader2, Search } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -75,7 +75,8 @@ export function StreamlineIconLookup(props: { value: string; onChange: (value: s
     },
     {
       keepPreviousData: false,
-      revalidateFirstPage: false},
+      revalidateFirstPage: false,
+    },
   );
 
   const lastPage = data?.at(-1);
@@ -117,9 +118,7 @@ export function StreamlineIconLookup(props: { value: string; onChange: (value: s
       ) : null}
 
       {debouncedQuery.length < 2 ? (
-        <p className="m-0 py-4 text-center">
-          Enter at least two characters to search.
-        </p>
+        <p className="m-0 py-4 text-center">Enter at least two characters to search.</p>
       ) : isLoading ? (
         <div className="flex items-center justify-center gap-2 py-6">
           <Loader2 aria-hidden className="size-4 animate-spin" />
@@ -191,9 +190,7 @@ export function StreamlineIconLookup(props: { value: string; onChange: (value: s
           ) : null}
         </>
       ) : error === undefined ? (
-        <p className="m-0 py-4 text-center">
-          No icons found for &ldquo;{debouncedQuery}&rdquo;.
-        </p>
+        <p className="m-0 py-4 text-center">No icons found for &ldquo;{debouncedQuery}&rdquo;.</p>
       ) : null}
 
       <p className="m-0 text-right">Powered by Streamline</p>

@@ -1,9 +1,10 @@
 import type { IDb, IResourceDbConfig } from "@zerospin/core/drizzle/types";
 import type { InferCommandPayload } from "@zerospin/core/models/types";
 import { makeContractVersion, primitives, ZerospinError } from "@zerospin/sdk/browser";
+import { TiptapDocSchema } from "@qrk.sh/library/TiptapDocSchema";
 import { Effect } from "effect";
 import { pageV1 as Page } from "../../models/page/PageV1";
-import { siteV2 as Site } from "../../models/site/SiteV2";
+import { siteV1 as Site } from "../../models/site/SiteV1";
 import { userV1 as User } from "../../models/user/UserV1";
 
 import { createPage } from "./createPage";
@@ -23,18 +24,23 @@ const createPagePayload = {
   pageType: primitives.enum({
     values: ["split-scroll", "shared-scroll"],
   }),
+  article: primitives.json({
+    nullable: true,
+    defaultValue: null,
+    schema: TiptapDocSchema,
+  }),
 };
 
 export const createPageV1 = makeContractVersion(createPage, {
   payload: createPagePayload,
   models: { site: Site, user: User, page: Page },
   guard: Effect.fn("createPage.guard")(function* ({
-    authentication,
-    db,
+    identity,
+    queryDb: db,
     payload,
   }: {
-    authentication: Readonly<Record<string, unknown>> | null;
-    db: Readonly<
+    identity: Readonly<Record<string, unknown>> | null;
+    queryDb: Readonly<
       Pick<
         IDb<IResourceDbConfig<{ site: typeof Site; user: typeof User }, Record<never, never>>>,
         "query"
@@ -42,7 +48,7 @@ export const createPageV1 = makeContractVersion(createPage, {
     >;
     payload: InferCommandPayload<typeof createPagePayload>;
   }) {
-    const clerkUserId = authentication?.clerkUserId;
+    const clerkUserId = identity?.clerkUserId;
     if (typeof clerkUserId !== "string") {
       return yield* new ZerospinError({
         code: "create-page-user-mismatch",
@@ -83,9 +89,9 @@ export const createPageV1 = makeContractVersion(createPage, {
     }
   }),
   program: ({ payload, models }) => {
-    const { id, siteId, slug, title, description, pageType } = payload;
-    return Effect.all({
-      created: models.page.create({
+    const { id, siteId, slug, title, description, pageType, article } = payload;
+    return Effect.all([
+      models.page.create({
         resourceId: id,
         attributes: {
           siteId,
@@ -93,9 +99,10 @@ export const createPageV1 = makeContractVersion(createPage, {
           title,
           description,
           pageType,
+          article,
         },
       }),
-    });
+    ]);
   },
-  version: "1.1.0",
+  version: "1.0.0",
 });

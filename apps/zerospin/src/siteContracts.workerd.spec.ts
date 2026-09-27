@@ -1,25 +1,24 @@
 import { validatePayload } from "@zerospin/core/contracts/validatePayload";
-import { initializeGuards } from "@zerospin/core/frontendController/initializeGuards";
 import { prefixId } from "@zerospin/sdk/browser";
 import { it } from "@effect/vitest";
 import { AsyncLive } from "@zerospin/core/async/AsyncLive";
-import { makeResourceDbConfig } from "@zerospin/core/drizzle/makeDbConfig";
-import { makeProvisionedInMemoryWasmSqliteDb } from "@zerospin/core/drizzle/makeProvisionedInMemoryWasmSqliteDb";
-import { makeAggregateSession } from "@zerospin/core/session/makeAggregateSession";
-import { sessionRepoTables } from "@zerospin/core/session/sessionRepoTables";
-import { stageCommand } from "@zerospin/core/session/stageCommand";
+import { makeResourceDbConfig } from "@zerospin/core/drizzle/make/makeDbConfig/makeDbConfig";
+import { makeProvisionedInMemoryWasmSqliteDb } from "@zerospin/core/drizzle/make/makeProvisionedInMemoryWasmSqliteDb/makeProvisionedInMemoryWasmSqliteDb";
+import { makeAggregateSession } from "@zerospin/core/aggregateSession/make/makeAggregateSession";
+import { sessionRepoDbConfig } from "@zerospin/core/aggregateSession/sessionRepoDbConfig";
+import { stageCommand } from "@zerospin/core/aggregateSession/stageCommand/stageCommand";
 import { NanoIdFactory } from "@zerospin/core/utils/NanoIdFactory";
 import { UlidMonotonicFactory } from "@zerospin/core/utils/UlidMonotonicFactory";
 import { DateTime, Effect, Layer, ManagedRuntime, Result } from "effect";
 import { describe, expect } from "vitest";
 
-import { createPageV2 as createPage } from "./aggregates/user/contracts/createPage/CreatePageV2";
-import { createSiteV2 as createSite } from "./aggregates/user/contracts/createSite/CreateSiteV2";
+import { createPageV1 as createPage } from "./aggregates/user/contracts/createPage/CreatePageV1";
+import { createSiteV1 as createSite } from "./aggregates/user/contracts/createSite/CreateSiteV1";
 import { gridV1 as Grid } from "./aggregates/user/models/grid/GridV1";
-import { brickV2 as Brick } from "./aggregates/user/models/brick/BrickV2";
-import { siteV2 as Site } from "./aggregates/user/models/site/SiteV2";
+import { brickV1 as Brick } from "./aggregates/user/models/brick/BrickV1";
+import { siteV1 as Site } from "./aggregates/user/models/site/SiteV1";
 import { userV1 as User } from "./aggregates/user/models/user/UserV1";
-import { userFrontend } from "./aggregates/user/userFrontend";
+import { userSessionDefinition } from "./aggregates/user/userSessionDefinition";
 
 describe("site and page creation contracts", () => {
   it.effect("stages a Site and its initial Page with caller-supplied IDs", () =>
@@ -27,8 +26,8 @@ describe("site and page creation contracts", () => {
       const userId = "usr_independent_site_owner";
       const now = DateTime.toDateUtc(yield* DateTime.now);
       const dbConfig = makeResourceDbConfig({
-        models: userFrontend.models,
-        otherTables: sessionRepoTables,
+        models: userSessionDefinition.models,
+        otherTables: sessionRepoDbConfig.tables,
       });
       const { schema } = dbConfig;
       const db = yield* makeProvisionedInMemoryWasmSqliteDb({ dbConfig }).pipe(
@@ -53,10 +52,10 @@ describe("site and page creation contracts", () => {
         Effect.sync(() => ManagedRuntime.make(Layer.mergeAll(NanoIdFactory, UlidMonotonicFactory))),
         (runtime) => runtime.disposeEffect,
       );
-      const guards = yield* initializeGuards({ frontend: userFrontend });
-      const session = makeAggregateSession({ frontend: userFrontend });
+      const session = makeAggregateSession({
+        definition: { ...userSessionDefinition, systemName: "qrk-sh" },
+      });
       session.setExecutionResources({
-        guards,
         runtime,
         sessionId,
       });
@@ -64,20 +63,22 @@ describe("site and page creation contracts", () => {
         ...session.store.getState(),
         sessionId,
         aggregateId: "acct_site_contract_user",
-        aggregateName: userFrontend.aggregateName,
-        authentication: {
+        aggregateName: userSessionDefinition.aggregateName,
+        identity: {
           aggregateId: "acct_site_contract_user",
           clerkUserId: "site_contract_user",
         },
-        systemId: "sys_site_contract",
-        frontendName: userFrontend.name,
-        aggregateFrontendLockKey: "site-contract-lock-key",
+        sessionName: userSessionDefinition.sessionName,
+        aggregateSessionLockKey: "site-contract-lock-key",
         db,
         schema,
-        models: userFrontend.models,
+        models: userSessionDefinition.models,
         isInitialized: true,
         aggregateIndex: 0,
-        selectionIndex: 0,
+        executedIndex: 0,
+        executedHash: "",
+        actorName: "web",
+        actorVersion: "1.0.0",
         pushIndex: 0,
         sessionStatus: "current",
         backupState: { status: "ready", failure: null },
@@ -96,7 +97,7 @@ describe("site and page creation contracts", () => {
 
       const siteRows = db.select().from(dbConfig.schema.site).all();
 
-      expect(staged.success.contractVersion).toBe("2.0.0");
+      expect(staged.success.contractVersion).toBe("1.0.0");
       expect(staged.success.payload.id).toBe("sit_site_contract");
       expect(staged.success.payload.userId).toBe(userId);
       expect(staged.success.payload).toMatchObject({
@@ -108,7 +109,7 @@ describe("site and page creation contracts", () => {
       expect(siteRows[0]).toEqual(
         expect.objectContaining({
           id: staged.success.payload.id,
-          version: "2.0.0",
+          version: "1.0.0",
           userId,
           slug: null,
           name: null,
@@ -147,7 +148,7 @@ describe("site and page creation contracts", () => {
 
       const pageRows = db.select().from(dbConfig.schema.page).all();
 
-      expect(stagedPage.success.contractVersion).toBe("2.0.0");
+      expect(stagedPage.success.contractVersion).toBe("1.0.0");
       expect(stagedPage.success.payload.id).toBe("pag_site_contract");
       expect(stagedPage.success.payload).toMatchObject({
         siteId,
@@ -161,7 +162,7 @@ describe("site and page creation contracts", () => {
       expect(pageRows[0]).toEqual(
         expect.objectContaining({
           id: stagedPage.success.payload.id,
-          version: "2.0.0",
+          version: "1.0.0",
           siteId,
           slug: "home",
           title: null,
@@ -264,7 +265,7 @@ describe("site and page creation contracts", () => {
     Effect.gen(function* () {
       const error = yield* createSite
         .program({
-          authentication: null,
+          identity: null,
           payload: {
             id: "sit_unauthenticated",
             userId: "usr_independent_site_owner",
@@ -285,7 +286,7 @@ describe("site and page creation contracts", () => {
   it.effect("rejects a site payload without userId", () =>
     Effect.gen(function* () {
       const validation = yield* validatePayload(createSite, {
-        version: "2.0.0",
+        version: "1.0.0",
         // @ts-expect-error Intentionally omit the required owner ID to exercise runtime validation.
         payload: {
           id: "sit_missing_user",
@@ -299,7 +300,7 @@ describe("site and page creation contracts", () => {
   it.effect("rejects a Page payload that omits siteId", () =>
     Effect.gen(function* () {
       const validation = yield* validatePayload(createPage, {
-        version: "2.0.0",
+        version: "1.0.0",
         // @ts-expect-error Intentionally omit the required parent ID to exercise runtime validation.
         payload: {
           id: "pag_missing_site",
@@ -319,7 +320,7 @@ describe("user frontend creation guards", () => {
       const userId = "usr_independent_guard_owner";
       const now = DateTime.toDateUtc(yield* DateTime.now);
       const dbConfig = makeResourceDbConfig({
-        models: userFrontend.models,
+        models: userSessionDefinition.models,
       });
       const db = yield* makeProvisionedInMemoryWasmSqliteDb({ dbConfig }).pipe(
         Effect.provide(AsyncLive),
@@ -340,12 +341,13 @@ describe("user frontend creation guards", () => {
 
       const guard = createSite.guard;
       if (guard === undefined) {
-        throw new Error("Expected userFrontend createSite guard");
+        throw new Error("Expected userSessionDefinition createSite guard");
       }
 
       yield* guard({
-        authentication: { clerkUserId: "site_guard_user" },
-        db,
+        failures: {},
+        identity: { clerkUserId: "site_guard_user" },
+        queryDb: db,
         payload: {
           id: "sit_site_guard_user",
           userId,
@@ -357,8 +359,9 @@ describe("user frontend creation guards", () => {
 
       for (const authenticatedIdentityKey of ["different_site_user", null]) {
         const error = yield* guard({
-          authentication: { clerkUserId: authenticatedIdentityKey },
-          db,
+          failures: {},
+          identity: { clerkUserId: authenticatedIdentityKey },
+          queryDb: db,
           payload: {
             id: "sit_site_guard_user",
             userId,
@@ -382,7 +385,7 @@ describe("user frontend creation guards", () => {
       const siteId = "sit_page_guard_user";
       const now = DateTime.toDateUtc(yield* DateTime.now);
       const dbConfig = makeResourceDbConfig({
-        models: userFrontend.models,
+        models: userSessionDefinition.models,
       });
       const db = yield* makeProvisionedInMemoryWasmSqliteDb({ dbConfig }).pipe(
         Effect.provide(AsyncLive),
@@ -420,12 +423,13 @@ describe("user frontend creation guards", () => {
 
       const guard = createPage.guard;
       if (guard === undefined) {
-        throw new Error("Expected userFrontend createPage guard");
+        throw new Error("Expected userSessionDefinition createPage guard");
       }
 
       yield* guard({
-        authentication: { clerkUserId: "page_guard_user" },
-        db,
+        failures: {},
+        identity: { clerkUserId: "page_guard_user" },
+        queryDb: db,
         payload: {
           id: "pag_page_guard_user",
           siteId,
@@ -439,8 +443,9 @@ describe("user frontend creation guards", () => {
 
       for (const authenticatedIdentityKey of ["different_page_user", null]) {
         const error = yield* guard({
-          authentication: { clerkUserId: authenticatedIdentityKey },
-          db,
+          failures: {},
+          identity: { clerkUserId: authenticatedIdentityKey },
+          queryDb: db,
           payload: {
             id: "pag_page_guard_user",
             siteId,
@@ -465,8 +470,8 @@ describe("user frontend creation guards", () => {
       const userId = "usr_update_site_settings";
       const now = DateTime.toDateUtc(yield* DateTime.now);
       const dbConfig = makeResourceDbConfig({
-        models: userFrontend.models,
-        otherTables: sessionRepoTables,
+        models: userSessionDefinition.models,
+        otherTables: sessionRepoDbConfig.tables,
       });
       const { schema } = dbConfig;
       const db = yield* makeProvisionedInMemoryWasmSqliteDb({ dbConfig }).pipe(
@@ -491,10 +496,10 @@ describe("user frontend creation guards", () => {
         Effect.sync(() => ManagedRuntime.make(Layer.mergeAll(NanoIdFactory, UlidMonotonicFactory))),
         (runtime) => runtime.disposeEffect,
       );
-      const guards = yield* initializeGuards({ frontend: userFrontend });
-      const session = makeAggregateSession({ frontend: userFrontend });
+      const session = makeAggregateSession({
+        definition: { ...userSessionDefinition, systemName: "qrk-sh" },
+      });
       session.setExecutionResources({
-        guards,
         runtime,
         sessionId,
       });
@@ -502,20 +507,23 @@ describe("user frontend creation guards", () => {
         ...session.store.getState(),
         sessionId,
         aggregateId: "acct_update_site_settings_user",
-        aggregateName: userFrontend.aggregateName,
-        authentication: {
+        aggregateName: userSessionDefinition.aggregateName,
+        identity: {
           aggregateId: "acct_update_site_settings_user",
           clerkUserId: "update_site_settings_user",
         },
-        systemId: "sys_update_site_settings",
-        frontendName: userFrontend.name,
-        aggregateFrontendLockKey: "update-site-settings-lock-key",
+
+        sessionName: userSessionDefinition.sessionName,
+        aggregateSessionLockKey: "update-site-settings-lock-key",
         db,
         schema,
-        models: userFrontend.models,
+        models: userSessionDefinition.models,
         isInitialized: true,
         aggregateIndex: 0,
-        selectionIndex: 0,
+        executedIndex: 0,
+        executedHash: "",
+        actorName: "web",
+        actorVersion: "1.0.0",
         pushIndex: 0,
         sessionStatus: "current",
         backupState: { status: "ready", failure: null },
@@ -578,8 +586,8 @@ describe("user frontend creation guards", () => {
       const userId = "usr_update_page_settings";
       const now = DateTime.toDateUtc(yield* DateTime.now);
       const dbConfig = makeResourceDbConfig({
-        models: userFrontend.models,
-        otherTables: sessionRepoTables,
+        models: userSessionDefinition.models,
+        otherTables: sessionRepoDbConfig.tables,
       });
       const { schema } = dbConfig;
       const db = yield* makeProvisionedInMemoryWasmSqliteDb({ dbConfig }).pipe(
@@ -604,10 +612,10 @@ describe("user frontend creation guards", () => {
         Effect.sync(() => ManagedRuntime.make(Layer.mergeAll(NanoIdFactory, UlidMonotonicFactory))),
         (runtime) => runtime.disposeEffect,
       );
-      const guards = yield* initializeGuards({ frontend: userFrontend });
-      const session = makeAggregateSession({ frontend: userFrontend });
+      const session = makeAggregateSession({
+        definition: { ...userSessionDefinition, systemName: "qrk-sh" },
+      });
       session.setExecutionResources({
-        guards,
         runtime,
         sessionId,
       });
@@ -615,20 +623,23 @@ describe("user frontend creation guards", () => {
         ...session.store.getState(),
         sessionId,
         aggregateId: "acct_update_page_settings_user",
-        aggregateName: userFrontend.aggregateName,
-        authentication: {
+        aggregateName: userSessionDefinition.aggregateName,
+        identity: {
           aggregateId: "acct_update_page_settings_user",
           clerkUserId: "update_page_settings_user",
         },
-        systemId: "sys_update_page_settings",
-        frontendName: userFrontend.name,
-        aggregateFrontendLockKey: "update-page-settings-lock-key",
+
+        sessionName: userSessionDefinition.sessionName,
+        aggregateSessionLockKey: "update-page-settings-lock-key",
         db,
         schema,
-        models: userFrontend.models,
+        models: userSessionDefinition.models,
         isInitialized: true,
         aggregateIndex: 0,
-        selectionIndex: 0,
+        executedIndex: 0,
+        executedHash: "",
+        actorName: "web",
+        actorVersion: "1.0.0",
         pushIndex: 0,
         sessionStatus: "current",
         backupState: { status: "ready", failure: null },
@@ -697,8 +708,8 @@ describe("user frontend creation guards", () => {
       const userId = "usr_update_page_article";
       const now = DateTime.toDateUtc(yield* DateTime.now);
       const dbConfig = makeResourceDbConfig({
-        models: userFrontend.models,
-        otherTables: sessionRepoTables,
+        models: userSessionDefinition.models,
+        otherTables: sessionRepoDbConfig.tables,
       });
       const { schema } = dbConfig;
       const db = yield* makeProvisionedInMemoryWasmSqliteDb({ dbConfig }).pipe(
@@ -723,10 +734,10 @@ describe("user frontend creation guards", () => {
         Effect.sync(() => ManagedRuntime.make(Layer.mergeAll(NanoIdFactory, UlidMonotonicFactory))),
         (runtime) => runtime.disposeEffect,
       );
-      const guards = yield* initializeGuards({ frontend: userFrontend });
-      const session = makeAggregateSession({ frontend: userFrontend });
+      const session = makeAggregateSession({
+        definition: { ...userSessionDefinition, systemName: "qrk-sh" },
+      });
       session.setExecutionResources({
-        guards,
         runtime,
         sessionId,
       });
@@ -734,20 +745,23 @@ describe("user frontend creation guards", () => {
         ...session.store.getState(),
         sessionId,
         aggregateId: "acct_update_page_article_user",
-        aggregateName: userFrontend.aggregateName,
-        authentication: {
+        aggregateName: userSessionDefinition.aggregateName,
+        identity: {
           aggregateId: "acct_update_page_article_user",
           clerkUserId: "update_page_article_user",
         },
-        systemId: "sys_update_page_article",
-        frontendName: userFrontend.name,
-        aggregateFrontendLockKey: "update-page-article-lock-key",
+
+        sessionName: userSessionDefinition.sessionName,
+        aggregateSessionLockKey: "update-page-article-lock-key",
         db,
         schema,
-        models: userFrontend.models,
+        models: userSessionDefinition.models,
         isInitialized: true,
         aggregateIndex: 0,
-        selectionIndex: 0,
+        executedIndex: 0,
+        executedHash: "",
+        actorName: "web",
+        actorVersion: "1.0.0",
         pushIndex: 0,
         sessionStatus: "current",
         backupState: { status: "ready", failure: null },

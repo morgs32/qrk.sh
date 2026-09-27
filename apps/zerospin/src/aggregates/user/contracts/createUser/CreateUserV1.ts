@@ -21,19 +21,19 @@ export const createUserV1 = makeContractVersion(createUser, {
   payload: createUserPayload,
   models: { user: User },
   guard: Effect.fn("createUser.guard")(function* ({
-    authentication,
+    identity,
     payload,
-    db,
+    queryDb: db,
   }: {
-    authentication: Readonly<Record<string, unknown>> | null;
-    db: Readonly<
+    identity: Readonly<Record<string, unknown>> | null;
+    queryDb: Readonly<
       Pick<IDb<IResourceDbConfig<{ user: typeof User }, Record<never, never>>>, "query">
     >;
     payload: InferCommandPayload<typeof createUserPayload>;
   }) {
-    const clerkUserId = authentication?.clerkUserId;
+    const clerkUserId = identity?.clerkUserId;
 
-    if (authentication !== null && payload.clerkUserId !== clerkUserId) {
+    if (identity !== null && payload.clerkUserId !== clerkUserId) {
       return yield* new ZerospinError({
         code: "create-user-identity-mismatch",
         message: `User ${payload.id} does not match authenticated identity ${clerkUserId}`,
@@ -57,8 +57,8 @@ export const createUserV1 = makeContractVersion(createUser, {
   }),
   program: ({ payload, models }) => {
     const { id, clerkUserId, username, displayName } = payload;
-    return Effect.all({
-      created: models.user.create({
+    return Effect.all([
+      models.user.create({
         resourceId: id,
         attributes: {
           clerkUserId,
@@ -66,7 +66,7 @@ export const createUserV1 = makeContractVersion(createUser, {
           displayName,
         },
       }),
-    });
+    ]);
   },
   version: "1.0.0",
 });

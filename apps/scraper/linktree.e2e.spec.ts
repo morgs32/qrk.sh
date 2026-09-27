@@ -1,5 +1,5 @@
 import { it } from "@effect/vitest";
-import { newSyncRpcSession } from "@zerospin/core/utils/newSyncRpcSession";
+import { newSyncRpcSession } from "@zerospin/core/utils/getApi/newSyncRpcSession/newSyncRpcSession";
 import { SELF } from "cloudflare:test";
 import { Effect } from "effect";
 import { beforeEach, describe, expect, vi } from "vite-plus/test";

@@ -1,12 +1,12 @@
 import type { IDb, IResourceDbConfig } from "@zerospin/core/drizzle/types";
 import type { InferCommandPayload } from "@zerospin/core/models/types";
-import { makeModelIdSchema } from "@zerospin/core/models/makeModelIdSchema";
+import { makeModelIdSchema } from "@zerospin/core/models/make/makeModelIdSchema";
 import { prefixId, makeContractVersion, primitives, ZerospinError } from "@zerospin/sdk/browser";
 import { Effect, Schema } from "effect";
 import { gridV1 as Grid } from "../../models/grid/GridV1";
-import { brickV2 as Brick } from "../../models/brick/BrickV2";
-import { pageV2 as Page } from "../../models/page/PageV2";
-import { siteV2 as Site } from "../../models/site/SiteV2";
+import { brickV1 as Brick } from "../../models/brick/BrickV1";
+import { pageV1 as Page } from "../../models/page/PageV1";
+import { siteV1 as Site } from "../../models/site/SiteV1";
 import { userV1 as User } from "../../models/user/UserV1";
 
 import { createGrid } from "./createGrid";
@@ -33,16 +33,16 @@ const createGridPayload = {
   }),
 };
 
-export const createGridV2 = makeContractVersion(createGrid, {
+export const createGridV1 = makeContractVersion(createGrid, {
   payload: createGridPayload,
   models: { brick: Brick, grid: Grid, page: Page, site: Site, user: User },
   guard: Effect.fn("createGrid.guard")(function* ({
-    authentication,
-    db,
+    identity,
+    queryDb: db,
     payload,
   }: {
-    authentication: Readonly<Record<string, unknown>> | null;
-    db: Readonly<
+    identity: Readonly<Record<string, unknown>> | null;
+    queryDb: Readonly<
       Pick<
         IDb<
           IResourceDbConfig<
@@ -61,7 +61,7 @@ export const createGridV2 = makeContractVersion(createGrid, {
     >;
     payload: InferCommandPayload<typeof createGridPayload>;
   }) {
-    const clerkUserId = authentication?.clerkUserId;
+    const clerkUserId = identity?.clerkUserId;
     if (typeof clerkUserId !== "string") {
       return yield* new ZerospinError({
         code: "create-grid-user-mismatch",
@@ -227,5 +227,5 @@ export const createGridV2 = makeContractVersion(createGrid, {
 
       return mutations;
     }),
-  version: "2.0.0",
+  version: "1.0.0",
 });

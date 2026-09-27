@@ -1,11 +1,8 @@
 import type { IDb } from "@zerospin/core/drizzle/types";
-import { makeContractVersion } from "@zerospin/core/contracts/makeContractVersion";
+import { makeContractVersion } from "@zerospin/core/contracts/make/makeContractVersion";
 import type { InferCommandPayload } from "@zerospin/core/models/types";
 import { ZerospinError } from "@zerospin/error";
-import {
-  primitives,
-  type InferIdFromAbbreviation,
-} from "@zerospin/schema";
+import { primitives, type InferIdFromAbbreviation } from "@zerospin/schema";
 import { Effect } from "effect";
 
 import { makePlacementId } from "../../models/placement/makePlacementId";
@@ -35,11 +32,11 @@ export function makeRemoveBrickContract(props: {
     },
     version: "1.0.0",
     guard: Effect.fn("removeBrick.guard")(function* ({
-      db,
+      queryDb: db,
       payload,
     }: {
-      authentication: Readonly<Record<string, unknown>> | null;
-      db: Readonly<Pick<IDb, "query">>;
+      identity: Readonly<Record<string, unknown>> | null;
+      queryDb: Readonly<Pick<IDb, "query">>;
       payload: InferCommandPayload<typeof removeBrickPayload>;
     }) {
       const wall = db.query.wall
@@ -82,9 +79,7 @@ export function makeRemoveBrickContract(props: {
       Effect.gen(function* () {
         const mutations = [];
 
-        for (const breakpoint of ["sm", "md", "lg", "xl"] as Array<
-          "sm" | "md" | "lg" | "xl"
-        >) {
+        for (const breakpoint of ["sm", "md", "lg", "xl"] as Array<"sm" | "md" | "lg" | "xl">) {
           mutations.push(
             yield* models.placement.delete({
               resourceId: makePlacementId(

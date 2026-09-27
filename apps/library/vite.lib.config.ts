@@ -41,6 +41,7 @@ export default defineConfig(({ mode }) => {
           "@radix-ui/react-slot",
           "@tiptap/react",
           "@unpic/react",
+          "@zerospin/browser",
           "@zerospin/core",
           "@zerospin/react",
           "@zerospin/schema",

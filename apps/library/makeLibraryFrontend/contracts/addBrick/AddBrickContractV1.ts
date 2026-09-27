@@ -1,5 +1,5 @@
 import type { IDb } from "@zerospin/core/drizzle/types";
-import { makeContractVersion } from "@zerospin/core/contracts/makeContractVersion";
+import { makeContractVersion } from "@zerospin/core/contracts/make/makeContractVersion";
 import type { InferCommandPayload } from "@zerospin/core/models/types";
 import { mapParseError, ZerospinError } from "@zerospin/error";
 import {
@@ -86,11 +86,11 @@ export function makeAddBrickContract<
     },
     version: "1.0.0",
     guard: Effect.fn("addBrick.guard")(function* ({
-      db,
+      queryDb: db,
       payload,
     }: {
-      authentication: Readonly<Record<string, unknown>> | null;
-      db: Readonly<Pick<IDb, "query">>;
+      identity: Readonly<Record<string, unknown>> | null;
+      queryDb: Readonly<Pick<IDb, "query">>;
       payload: InferCommandPayload<typeof addBrickPayload>;
     }) {
       const wall = db.query.wall
@@ -120,9 +120,7 @@ export function makeAddBrickContract<
         });
       }
 
-      for (const breakpoint of ["sm", "md", "lg", "xl"] as Array<
-        "sm" | "md" | "lg" | "xl"
-      >) {
+      for (const breakpoint of ["sm", "md", "lg", "xl"] as Array<"sm" | "md" | "lg" | "xl">) {
         const placementId = makePlacementId(payload.brickId, breakpoint);
         const existingPlacement = db.query.placement
           .findFirst({
@@ -139,17 +137,19 @@ export function makeAddBrickContract<
       }
 
       const brickModule = props.library[payload.moduleId];
-      yield* Schema.decodeUnknownEffect(
-        Schema.toType(makeEffectSchema(brickModule.stateShape)),
-      )(payload.state, { onExcessProperty: "error" }).pipe(
+      yield* Schema.decodeUnknownEffect(Schema.toType(makeEffectSchema(brickModule.stateShape)))(
+        payload.state,
+        { onExcessProperty: "error" },
+      ).pipe(
         mapParseError({
           code: "add-brick-invalid-state",
           prefix: `addBrick state failed ${payload.moduleId} decode`,
         }),
       );
-      yield* Schema.decodeUnknownEffect(
-        makeModuleSpecDocumentSchema(brickModule.components),
-      )(payload.spec, { onExcessProperty: "error" }).pipe(
+      yield* Schema.decodeUnknownEffect(makeModuleSpecDocumentSchema(brickModule.components))(
+        payload.spec,
+        { onExcessProperty: "error" },
+      ).pipe(
         mapParseError({
           code: "add-brick-invalid-spec",
           prefix: `addBrick spec failed ${payload.moduleId} decode`,
@@ -177,7 +177,7 @@ export function makeAddBrickContract<
       }
 
       const resolvedIncludesBrick = payload.resolvedActiveLayout.some(
-        item => item.i === payload.brickId,
+        (item) => item.i === payload.brickId,
       );
       if (!resolvedIncludesBrick) {
         return yield* new ZerospinError({
@@ -193,9 +193,7 @@ export function makeAddBrickContract<
         })
         .sync();
 
-      for (const breakpoint of ["sm", "md", "lg", "xl"] as Array<
-        "sm" | "md" | "lg" | "xl"
-      >) {
+      for (const breakpoint of ["sm", "md", "lg", "xl"] as Array<"sm" | "md" | "lg" | "xl">) {
         const visibleBrickIds = new Set<string>();
         for (const wallBrick of wallBricks) {
           const placement = db.query.placement
@@ -284,9 +282,7 @@ export function makeAddBrickContract<
         }
         activeNeighborIds.add(item.i);
 
-        const neighborBrick = wallBricks.find(
-          wallBrick => wallBrick.id === item.i,
-        );
+        const neighborBrick = wallBricks.find((wallBrick) => wallBrick.id === item.i);
         if (neighborBrick === undefined) {
           return yield* new ZerospinError({
             code: "add-brick-resolved-neighbor-not-on-wall",
@@ -364,15 +360,12 @@ export function makeAddBrickContract<
           }),
         );
 
-        for (const breakpoint of ["sm", "md", "lg", "xl"] as Array<
-          "sm" | "md" | "lg" | "xl"
-        >) {
+        for (const breakpoint of ["sm", "md", "lg", "xl"] as Array<"sm" | "md" | "lg" | "xl">) {
           const layout =
             breakpoint === payload.breakpoint
               ? payload.resolvedActiveLayout
               : makeCollisionResolvedLayout({
-                  visibleLayout:
-                    payload.otherBreakpointVisibleLayouts[breakpoint],
+                  visibleLayout: payload.otherBreakpointVisibleLayouts[breakpoint],
                   incoming: cloneLayoutItem(payload.droppedItem),
                 });
 
@@ -385,15 +378,12 @@ export function makeAddBrickContract<
                     breakpoint,
                   ) as InferIdFromAbbreviation<"plc">,
                   attributes: {
-                    brickId:
-                      payload.brickId as InferIdFromAbbreviation<"brk">,
+                    brickId: payload.brickId as InferIdFromAbbreviation<"brk">,
                     breakpoint,
                     spec: structuredClone(clonedSpec),
                     gridItem: item,
                     isVisible: true,
-                  } as InferDecodedRow<
-                    (typeof props.placement)["attributes"]
-                  >,
+                  } as InferDecodedRow<(typeof props.placement)["attributes"]>,
                 }),
               );
               continue;
@@ -401,15 +391,10 @@ export function makeAddBrickContract<
 
             mutations.push(
               yield* models.placement.update({
-                resourceId: makePlacementId(
-                  item.i,
-                  breakpoint,
-                ) as InferIdFromAbbreviation<"plc">,
+                resourceId: makePlacementId(item.i, breakpoint) as InferIdFromAbbreviation<"plc">,
                 attributes: {
                   gridItem: item,
-                } as Partial<
-                  InferDecodedRow<(typeof props.placement)["attributes"]>
-                >,
+                } as Partial<InferDecodedRow<(typeof props.placement)["attributes"]>>,
               }),
             );
           }

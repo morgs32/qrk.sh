@@ -1,14 +1,16 @@
 "use client";
 
+import { makeId } from "@zerospin/sdk/browser";
+
 import { useState } from "react";
 import { Schema } from "effect";
 import { toast } from "sonner";
 import { href, Link } from "react-router";
-import { useLiveQuery, useSession } from "@zerospin/react";
+import { useLiveQuery, stageCommand } from "@zerospin/react";
 import { ZerospinError } from "@zerospin/sdk/browser";
 
-import { siteV2 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV2";
-import { pageV2 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV2";
+import { siteV1 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV1";
+import { pageV1 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -20,7 +22,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { ZerospinUser } from "@/components/ZerospinUser";
+import { userSession } from "@/zerospin/userSession";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 
 import { Header } from "./Header";
@@ -31,17 +33,18 @@ const ParamsSchema = Schema.Struct({
 
 export default function UsernameDashboardPage() {
   const { username } = useValidatedParams(ParamsSchema);
-  const session = useSession(ZerospinUser);
+  const session = userSession;
   const [createSiteOpen, setCreateSiteOpen] = useState(false);
   const [siteName, setSiteName] = useState("");
-  const { data: user, error } = useLiveQuery(ZerospinUser, {
+  const { data: user, error } = useLiveQuery({
+    session: userSession,
     query: (db) => {
       const state = session.store.getState();
       if (!state.isInitialized) {
         throw new Error("Your session is not ready");
       }
       return db.query.user.findFirst({
-        where: { clerkUserId: { eq: state.authentication.clerkUserId } },
+        where: { clerkUserId: { eq: state.identity.clerkUserId } },
         with: { sites: { with: { pages: true } } },
       });
     },
@@ -98,10 +101,11 @@ export default function UsernameDashboardPage() {
                         toast.error("Your session is not ready");
                         return;
                       }
-                      const siteResult = session.executeCommand({
+                      const siteResult = stageCommand({
+                        session,
                         contractName: "createSite",
                         payload: {
-                          id: session.makeId(Site),
+                          id: session.runtime.runSync(makeId(Site)),
                           userId: user.id,
                           name,
                         },
@@ -112,10 +116,11 @@ export default function UsernameDashboardPage() {
                       }
 
                       const siteId = siteResult.success.payload.id;
-                      const pageResult = session.executeCommand({
+                      const pageResult = stageCommand({
+                        session,
                         contractName: "createPage",
                         payload: {
-                          id: session.makeId(Page),
+                          id: session.runtime.runSync(makeId(Page)),
                           siteId,
                           slug: "home",
                           pageType: "split-scroll",

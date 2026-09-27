@@ -1,4 +1,4 @@
-import { newSyncRpcSession } from "@zerospin/core/utils/newSyncRpcSession";
+import { newSyncRpcSession } from "@zerospin/core/utils/getApi/newSyncRpcSession/newSyncRpcSession";
 import { SELF } from "cloudflare:test";
 import { beforeAll, expect, it, vi } from "vite-plus/test";
 

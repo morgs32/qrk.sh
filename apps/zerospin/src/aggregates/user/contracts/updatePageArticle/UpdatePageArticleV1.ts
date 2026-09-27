@@ -3,8 +3,8 @@ import type { InferCommandPayload } from "@zerospin/core/models/types";
 import { makeContractVersion, primitives, ZerospinError } from "@zerospin/sdk/browser";
 import { TiptapDocSchema } from "@qrk.sh/library/TiptapDocSchema";
 import { Effect } from "effect";
-import { pageV2 as Page } from "../../models/page/PageV2";
-import { siteV2 as Site } from "../../models/site/SiteV2";
+import { pageV1 as Page } from "../../models/page/PageV1";
+import { siteV1 as Site } from "../../models/site/SiteV1";
 import { userV1 as User } from "../../models/user/UserV1";
 
 import { updatePageArticle } from "./updatePageArticle";
@@ -20,12 +20,12 @@ export const updatePageArticleV1 = makeContractVersion(updatePageArticle, {
   payload: updatePageArticlePayload,
   models: { user: User, site: Site, page: Page },
   guard: Effect.fn("updatePageArticle.guard")(function* ({
-    authentication,
-    db,
+    identity,
+    queryDb: db,
     payload,
   }: {
-    authentication: Readonly<Record<string, unknown>> | null;
-    db: Readonly<
+    identity: Readonly<Record<string, unknown>> | null;
+    queryDb: Readonly<
       Pick<
         IDb<
           IResourceDbConfig<
@@ -42,7 +42,7 @@ export const updatePageArticleV1 = makeContractVersion(updatePageArticle, {
     >;
     payload: InferCommandPayload<typeof updatePageArticlePayload>;
   }) {
-    const clerkUserId = authentication?.clerkUserId;
+    const clerkUserId = identity?.clerkUserId;
 
     if (typeof clerkUserId !== "string") {
       return yield* new ZerospinError({
@@ -106,13 +106,13 @@ export const updatePageArticleV1 = makeContractVersion(updatePageArticle, {
     }
   }),
   program: ({ payload, models }) =>
-    Effect.all({
-      updated: models.page.update({
+    Effect.all([
+      models.page.update({
         resourceId: payload.id,
         attributes: {
           article: payload.article,
         },
       }),
-    }),
+    ]),
   version: "1.0.0",
 });

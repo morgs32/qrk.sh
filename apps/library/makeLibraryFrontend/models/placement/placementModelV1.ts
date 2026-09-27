@@ -1,4 +1,4 @@
-import { makeModelVersion } from "@zerospin/core/models/makeModelVersion";
+import { makeModelVersion } from "@zerospin/core/models/make/makeModelVersion";
 import { primitives } from "@zerospin/schema";
 import { Schema } from "effect";
 
@@ -19,9 +19,7 @@ const placementSpecSchema = Schema.Struct({
   state: Schema.optional(Schema.Record(Schema.String, Schema.Unknown)),
 });
 
-export function makePlacementModel(props: {
-  brick: ReturnType<typeof makeBrickModel>;
-}) {
+export function makePlacementModel(props: { brick: ReturnType<typeof makeBrickModel> }) {
   return makeModelVersion(placement, {
     attributes: {
       brickId: primitives.ref({

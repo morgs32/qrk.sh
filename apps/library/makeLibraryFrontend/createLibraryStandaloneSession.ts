@@ -1,8 +1,9 @@
+import type { IAggregateSession } from "@zerospin/core/aggregateSession/types";
 import { createContext, useContext } from "react";
 
-import { makeStandaloneSession } from "@zerospin/react";
+import { makeStandaloneSession } from "@zerospin/browser";
 
-import { LibraryFrontend, libraryRuntime } from "./makeLibraryFrontend";
+import { LibraryFrontend } from "./makeLibraryFrontend";
 
 const fixtureDate = new Date("2026-01-01T00:00:00.000Z");
 
@@ -10,9 +11,9 @@ export function createLibraryStandaloneSession(props: { key: string; wallId: `wa
   const { key, wallId } = props;
   return makeStandaloneSession({
     key,
-    frontend: LibraryFrontend,
-    runtime: libraryRuntime,
-    authentication: { aggregateId: "acct_1" },
+    ...LibraryFrontend,
+    identitySchema: LibraryFrontend.identity.identitySchema,
+    identity: { aggregateId: "acct_1" },
     resources: {
       wall: [
         {
@@ -28,9 +29,9 @@ export function createLibraryStandaloneSession(props: { key: string; wallId: `wa
   });
 }
 
-export type ILibraryStandaloneSession = ReturnType<typeof createLibraryStandaloneSession>;
+export type ILibrarySession = IAggregateSession<typeof LibraryFrontend & { systemName: string }>;
 
-export const LibrarySessionContext = createContext<ILibraryStandaloneSession | null>(null);
+export const LibrarySessionContext = createContext<ILibrarySession | null>(null);
 
 export function useLibrarySession() {
   const session = useContext(LibrarySessionContext);

@@ -1,4 +1,4 @@
-import { makeModelVersion } from "@zerospin/core/models/makeModelVersion";
+import { makeModelVersion } from "@zerospin/core/models/make/makeModelVersion";
 import { primitives } from "@zerospin/schema";
 import { Schema } from "effect";
 
@@ -6,10 +6,7 @@ import type { IBackendLibrary } from "../../../backendLibrary";
 import { wallModelV1 } from "../wall/wallModelV1";
 import { brick } from "./brick";
 
-export function makeBrickModel(props: {
-  library: IBackendLibrary;
-  wall: typeof wallModelV1;
-}) {
+export function makeBrickModel(props: { library: IBackendLibrary; wall: typeof wallModelV1 }) {
   const moduleIdValues = Object.keys(props.library) as [
     keyof IBackendLibrary,
     ...Array<keyof IBackendLibrary>,

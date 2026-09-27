@@ -1,16 +1,17 @@
 "use client";
 
 import { useUser } from "@clerk/react";
-import { makeModelIdSchema } from "@zerospin/core/models/makeModelIdSchema";
+import { makeModelIdSchema } from "@zerospin/core/models/make/makeModelIdSchema";
 import { useLiveQuery } from "@zerospin/react";
 import { Schema } from "effect";
 import { useEffect, useState } from "react";
 import { Outlet } from "react-router";
 
-import { pageV2 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV2";
-import { siteV2 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV2";
+import { pageV1 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
+import { siteV1 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV1";
 
-import { useZerospinUserInitializedState, ZerospinUser } from "@/components/ZerospinUser";
+import { useZerospinUserInitializedState } from "@/components/ZerospinUser";
+import { userSession } from "@/zerospin/userSession";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 
 import { SiteHeader } from "./SiteHeader";
@@ -42,8 +43,9 @@ export default function PageLayout() {
 
   const identityKey = user?.id;
 
-  const { data: page } = useLiveQuery(ZerospinUser, {
-    deps: [pageId, siteId],
+  const { data: page } = useLiveQuery({
+    session: userSession,
+    key: [pageId, siteId],
     query: (queryDb) =>
       queryDb.query.page.findFirst({
         where: {
@@ -132,9 +134,7 @@ export default function PageLayout() {
   return isCurrentRouteReady ? (
     <div className="flex h-screen flex-col overflow-hidden">
       <title>
-        {pageTitle === ""
-          ? `[Editing] ${siteName}`
-          : `[Editing] ${siteName} - ${pageTitle}`}
+        {pageTitle === "" ? `[Editing] ${siteName}` : `[Editing] ${siteName} - ${pageTitle}`}
       </title>
       <SiteHeader />
 

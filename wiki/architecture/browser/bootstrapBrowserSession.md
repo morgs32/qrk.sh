@@ -1,106 +1,40 @@
----
-title: Durable Browser Session Bootstrap and Recovery
-updated: 2026-09-26
----
+# Browser session bootstrap
 
-# Durable browser session bootstrap and recovery
+An application declares a session with a lazy `sharedWorker: ({ name }) => new SharedWorker(new URL('./zerospin.worker.ts', import.meta.url), { type: 'module', name })` factory. Its worker entry imports `makeSharedWorker` and the bundled `sqlite.wasm?url`, then calls `makeSharedWorker({ sqliteWasmUrl })`. Runtime assets are ordinary application assets; the API server does not serve worker code.
 
-Synchronized aggregate and service sessions attach to a durable `Node` in one
-origin-relative SharedWorker. Each tab owns its application runtime, executable
-contracts, synchronous SQLite view, and optimistic replay. Several tabs can
-attach to the same node. A tab's disposal detaches its capability.
+## Workflow
 
-## Trigger
-
-`makeSession` and `useInitializeSession` accept `{ claims }` for direct actors
-or `{ getCredentials }` for verified actors. Applications serve `nodeWorkerPlugin()` from
-`@zerospin/browser/vite`. Non-Vite hosts must serve the built worker and async
-WASM at `/__zerospin/node-worker.js` and `/__zerospin/node-sqlite.wasm`.
-
-- [`makeSession.ts`](../../../packages/browser/src/makeSession/makeSession.ts) owns the tab runtime and explicit `clearAuthentication()` operation.
-- [`nodeWorkerPlugin.ts`](../../../packages/browser/src/nodeWorkerPlugin.ts) serves stable worker assets in development and production.
+1. Initialization captures direct claims or optional expectedClaims and a fresh credential provider. Server snapshot admission resolves the complete identity before selecting storage. Only classified network unavailability permits offline discovery with explicit expected claims.
+2. The runtime-scoped IndexedDB discovery index locates exactly one previously verified identity for the configuration, claims, and full lock. It stores identity metadata and eligibility, never credentials or command bytes.
+3. The complete identity hashes to sessionKey. The factory receives `zerospin:${sharedWorkerVersion}:${sessionKey}`. Worker, storage, and lifetime lock are isolated by this pair.
+4. SharedWorkerApi exposes readiness/version and validates attachment identity. One worker owns one Node. Concurrent attachments serialize initialization; different identities cannot attach to it.
+5. A new database generates a prefixed nodeId and commits its initial resource baseline before offline eligibility is published. Existing nodes recover with their own nodeId. Pending work is never replaced by an identity-discovery snapshot.
+6. BrowserSessionApi represents each tab connection. Its subscription rebuilds the tab's synchronous resource projection and replays pending commands. Disposal detaches only that connection. Last detach stops synchronization; a later attachment reuses the worker.
+7. clearAuthentication revokes this identity across tabs, invalidates offline discovery, and preserves stored work. Revision checks prevent stale login results from undoing logout. Fresh initialization and successful server verification can reopen it.
+8. Worker termination triggers reconnection to the same identity and a new snapshot. Older locks resume only when explicitly opened; other runtime versions never read or recover this storage.
 
 ```mermaid
 sequenceDiagram
   participant Tab
-  participant BrowserNode
-  participant Node
   participant Server
-  Tab->>BrowserNode: attach(definition, admission provider)
-  BrowserNode->>Server: admit claims or credentials
-  BrowserNode->>Node: open persistent identity + full lock key
-  Tab->>BrowserNode: subscribe(callback)
-  Node-->>Tab: confirmed resources + unresolved commands
-  Tab->>Tab: replay node order, then uncertain local submissions
-  Node->>Server: snapshot(nodeId)
-  Server-->>Node: resources + execution checkpoint + resolvedThrough
-  Node->>Server: resume(executedIndex/hash, outcome nodeIndex)
-  Server-->>Node: aggregateActorCommand union ordered by executedIndex
-  Node->>Node: check node results and execution progress independently
-  Node->>Node: commit replacement resources + outcomes + checkpoints
-  Node-->>Tab: committed snapshot / changes
+  participant Discovery
+  participant SharedWorkerApi
+  participant Node
+  Tab->>Server: snapshot admission
+  Server-->>Tab: verified claims and target
+  Tab->>SharedWorkerApi: create named worker; ready; attach
+  SharedWorkerApi->>Node: open exact identity database
+  Node->>Discovery: publish initialized identity eligibility
+  SharedWorkerApi-->>Tab: BrowserSessionApi
+  Tab->>Node: subscribe through attachment
+  Node-->>Tab: committed snapshot and changes
 ```
 
-## Annotated workflow steps
+## Source
 
-1. Initial server admission selects a key containing backend, system, full
-   encoded claims, target, and complete definition-lock hash. The catalog may
-   reopen the last admitted node on a transient outage. Direct sessions must
-   match the claims captured at initialization; explicit server rejection
-   does not select an offline identity.
-   - [`NodeHost.ts`](../../../packages/browser/src/Node/NodeHost.ts)
-   - [`NodeCatalog.ts`](../../../packages/browser/src/Node/NodeCatalog.ts)
-2. Snapshot capture and subscriber registration share one serialized database
-   operation. Callback delivery happens outside that boundary. A slow subscriber
-   receives a resnapshot signal when its bounded queue overflows.
-   - [`Node.ts`](../../../packages/browser/src/Node/Node.ts)
-   - [`subscribe.ts`](../../../packages/browser/src/BrowserNode/subscribe/subscribe.ts)
-3. Tabs install confirmed resources and only unresolved commands. Local optimism
-   replays by node order, followed by uncertain local submissions in submission
-   order. Completed history stays in the node and is queried by page in DevTools.
-   Unresolved journal rows set `actorDelta` to null and encode the complete row
-   through `sessionRepoDbConfig.tables.commands`; staged data stays on `staging.stagedDelta`.
-   - [`bootstrapAggregateSession.ts`](../../../packages/browser/src/bootstrapAggregateSession.ts)
-   - [`bootstrapServiceSession.ts`](../../../packages/browser/src/bootstrapServiceSession.ts)
-4. Recovery keeps the previous consistent state until outcomes through the
-   snapshot watermark are retained. One transaction installs resources, outcomes,
-   and checkpoints. Historical outcomes fill command history without reapplying
-   `actorDelta`. The same `receiveCommand` handler validates owned duplicates and
-   applies later executions with missing owned results atomically. It rejects
-   execution beyond the snapshot while required results are missing. Native node JSON columns remain Drizzle-managed; the node does
-   not use the session table codec.
-   - [`Node.ts`](../../../packages/browser/src/Node/Node.ts)
-   - [`NodeSynchronization.ts`](../../../packages/browser/src/Node/NodeSynchronization.ts)
-5. Worker loss reconnects with a fresh local snapshot and retries uncertain IDs.
-   Focus, visible restoration, and network restoration request synchronization.
-   Background execution requires a live host; committed work survives its loss.
-   - [`connectBrowserNode.ts`](../../../packages/browser/src/connectBrowserNode.ts)
-
-Standalone sessions keep their separate [backup coordination](./IndexedDbBackupCoordination.md).
-Changed fixed server and retained standalone journal schemas require empty
-development storage. Nonempty node databases with a version before 3 fail with
-`node-storage-reset-required` before renamed columns are read; neither the
-catalog nor the node deletes that storage automatically.
-
-## Retained command results and cutover
-
-Only successful staging creates `ISessionCommand`. Failed staging returns its
-structured error, rolls back local mutations, and consumes no session or node index.
-A retained command owns successful `staging` plus `admission` and `execution` results.
-Standalone and mock sessions use `skipped/local-only` for both server operations.
-
-A durable admission rejection publishes a snapshot immediately. The tab rebuilds its
-view from confirmed resources and replays the remaining unresolved commands; it does
-not apply subscription events directly to its database. The receipt does not advance
-resource or outcome checkpoints. Ordered actor output still resolves that position.
-Complete tab journal rows use `sessionRepoDbConfig.tables.commands.encodeRow`; node
-rows retain native Drizzle JSON values and their existing timestamp representation.
-
-Node storage uses `user_version = 4`. Nonempty incompatible storage raises
-`node-storage-reset-required` before reading changed columns. Catalog entries and node
-identity remain intact. Changed server and standalone journal schemas require empty
-storage; no automatic deletion or compatibility decoder is provided.
-
-Server-side AAVR staging uses a separate derived optimistic database for actor
-guards and automation reads. Browser snapshot resources and their execution cursor
-come from authoritative AAVR rows; pending server operations are not included.
+- [Connection lifecycle](../../../packages/browser/src/connectBrowserNode.ts)
+- [Identity resolution](../../../packages/browser/src/Node/resolveNode.ts)
+- [Discovery index](../../../packages/browser/src/Node/sessionDiscovery.ts)
+- [Worker ownership](../../../packages/browser/src/makeSharedWorker.ts)
+- [Aggregate projection](../../../packages/browser/src/bootstrapAggregateSession.ts)
+- [Service projection](../../../packages/browser/src/bootstrapServiceSession.ts)

@@ -55,10 +55,6 @@
       "import": "./dist/*.js",
       "default": "./dist/*.js"
     },
-    "./vite": {
-      "types": "./dist/nodeWorkerPlugin.d.ts",
-      "import": "./dist/nodeWorkerPlugin.js"
-    },
     "./Node/Node": {
       "types": "./dist/Node/Node.d.ts",
       "import": "./dist/Node/Node.js",
@@ -68,11 +64,17 @@
       "types": "./dist/Node/types.d.ts",
       "import": "./dist/Node/types.js",
       "default": "./dist/Node/types.js"
-    }
+    },
+    "./makeSharedWorker": {
+      "types": "./dist/makeSharedWorker.d.ts",
+      "import": "./dist/makeSharedWorker.bundle.js",
+      "default": "./dist/makeSharedWorker.bundle.js"
+    },
+    "./sqlite.wasm": "./dist/sqlite.wasm"
   },
   "scripts": {
     "clean": "rimraf dist tsconfig.tsbuildinfo",
-    "lib": "pnpm run clean && tsc -b tsconfig.json && node -e \"const fs=require('node:fs'); const wasm=require.resolve('@livestore/wa-sqlite/dist/wa-sqlite.wasm'); fs.copyFileSync(wasm, 'dist/wa-sqlite.wasm');\" && tsup && node -e \"const fs=require('node:fs');const path=require('node:path');fs.copyFileSync(path.join(path.dirname(require.resolve('wa-sqlite/dist/wa-sqlite-async.mjs')), 'wa-sqlite-async.wasm'),'dist/wa-sqlite-async.wasm');\"",
+    "lib": "pnpm run clean && tsc -b tsconfig.json && node -e \"const fs=require('node:fs'); const wasm=require.resolve('@livestore/wa-sqlite/dist/wa-sqlite.wasm'); fs.copyFileSync(wasm, 'dist/wa-sqlite.wasm');\" && tsup",
     "ts": "tsc -p tsconfig.etc.json --noEmit",
     "watch": "tsc -b tsconfig.json --watch",
     "test": "vitest run --config vitest.config.ts",
@@ -113,7 +115,13 @@
     "targets": {
       "test:playwright": {
         "dependsOn": [
-          "lib"
+          "lib",
+          {
+            "target": "lib",
+            "projects": [
+              "@zerospin/cli"
+            ]
+          }
         ],
         "cache": false
       }

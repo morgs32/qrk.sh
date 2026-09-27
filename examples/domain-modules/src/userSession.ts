@@ -55,6 +55,11 @@ const layer = Layer.mergeAll(
 
 /** The session installs the actual browser-safe purchase and fulfillment declarations. */
 export const userSession = makeSession({
+  sharedWorker: ({ name }) =>
+    new SharedWorker(new URL('./zerospin.worker.ts', import.meta.url), {
+      type: 'module',
+      name,
+    }),
   kind: 'aggregate',
   aggregateName: 'shopper',
   aggregateVersion: '1.0.0',

@@ -2,9 +2,10 @@ import type { IAdmissionRequest } from '@zerospin/core/identity/types';
 import { makeZerospinError } from '@zerospin/error';
 
 import { nodeKey } from './nodeKey.ts';
-import type { INodeIdentity } from './types.ts';
+import type { INodeIdentity, INodeRecovery } from './types.ts';
 
-type IVerifiedAdmission = {
+export type IVerifiedAdmission = {
+  snapshot?: INodeRecovery;
   admission: IAdmissionRequest;
   identity: INodeIdentity;
 };
@@ -150,7 +151,7 @@ export class NodeAuthentication {
               resolve(result.value);
               return;
             }
-            if (result.status === 'rejected') rejected = true;
+            if (result.status !== 'unavailable') rejected = true;
             remaining -= 1;
             if (remaining === 0) {
               fail(

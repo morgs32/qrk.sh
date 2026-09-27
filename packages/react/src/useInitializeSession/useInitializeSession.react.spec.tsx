@@ -89,6 +89,7 @@ it('uses the latest credential provider without remounting a verified session', 
   const initialize = vi.fn(
     async (_props: {
       getCredentials: () => Effect.Effect<typeof credentialsSchema.Type>;
+      expectedClaims?: typeof claimsSchema.Type;
     }) => undefined,
   );
   const session = {
@@ -101,6 +102,7 @@ it('uses the latest credential provider without remounting a verified session', 
     useInitializeSession({
       session,
       getCredentials: () => Effect.succeed({ token }),
+      expectedClaims: { aggregateId: `acct_${token}` },
     });
     return null;
   }
@@ -113,6 +115,7 @@ it('uses the latest credential provider without remounting a verified session', 
   });
   await act(() => root.render(<App token="second" />));
   expect(initialize).toHaveBeenCalledTimes(1);
+  expect(admitted.expectedClaims).toEqual({ aggregateId: 'acct_first' });
   expect(await Effect.runPromise(admitted.getCredentials())).toEqual({
     token: 'second',
   });

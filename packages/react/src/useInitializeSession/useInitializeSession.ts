@@ -76,6 +76,13 @@ export function useInitializeSession(
           return session.initialize({ claims });
         }
         return session.initialize({
+          ...(initializationRef.current.expectedClaims === undefined
+            ? {}
+            : {
+                expectedClaims: structuredClone(
+                  initializationRef.current.expectedClaims,
+                ),
+              }),
           getCredentials: () =>
             Effect.suspend(() => {
               const provider = initializationRef.current.getCredentials;

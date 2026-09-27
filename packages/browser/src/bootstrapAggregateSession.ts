@@ -35,6 +35,7 @@ export const bootstrapAggregateSession = Effect.fn('bootstrapAggregateSession')(
     getAdmission(): Promise<
       IResult<IAdmissionRequest, IAnyError | IZerospinErrorJson>
     >;
+    sharedWorker: (props: { name: string }) => SharedWorker;
     expectedClaims?: Readonly<Record<string, unknown>> | undefined;
   }) {
     const {
@@ -44,6 +45,7 @@ export const bootstrapAggregateSession = Effect.fn('bootstrapAggregateSession')(
       systemName,
       getAdmission,
       expectedClaims,
+      sharedWorker,
     } = props;
     const definition = session.definition;
     const execution = getAggregateSessionExecutionResources(session);
@@ -89,6 +91,7 @@ export const bootstrapAggregateSession = Effect.fn('bootstrapAggregateSession')(
             lock,
           },
           getAdmission,
+          sharedWorker,
           expectedClaims,
           receive: async snapshot => {
             const identity = snapshot.identity;

@@ -5,8 +5,12 @@ import { makeZerospinError } from '@zerospin/error';
 import { Schema } from 'effect';
 
 import { isNodeNetworkUnavailable } from './isNodeNetworkUnavailable.ts';
+import { makeNodeRecovery } from './makeNodeRecovery.ts';
 import type { INodeCommand, Node } from './Node.ts';
-import type { NodeAuthentication } from './NodeAuthentication.ts';
+import type {
+  IVerifiedAdmission,
+  NodeAuthentication,
+} from './NodeAuthentication.ts';
 import { nodeNetwork } from './nodeNetwork.ts';
 import type { INodeRequest } from './nodeRequest.ts';
 
@@ -34,13 +38,13 @@ export class NodeSynchronization {
     this.stopped = false;
   }
 
-  resume(): Promise<void> {
+  resume(verified?: IVerifiedAdmission): Promise<void> {
     if (this.stopped) {
       return Promise.reject(makeZerospinError({ code: 'node-signed-out' }));
     }
     if (this.connecting !== null) return this.connecting;
     if (this.socket?.readyState === WebSocket.OPEN) return Promise.resolve();
-    const connecting = this.connect();
+    const connecting = this.connect(verified);
     this.connecting = connecting;
     const generation = this.generation;
     void connecting
@@ -84,10 +88,10 @@ export class NodeSynchronization {
     return connecting;
   }
 
-  private async connect(): Promise<void> {
+  private async connect(admitted?: IVerifiedAdmission): Promise<void> {
     const generation = ++this.generation;
     this.node.connectionState('authenticating');
-    const verified = await this.authentication.authenticate();
+    const verified = admitted ?? (await this.authentication.authenticate());
     if (generation !== this.generation || this.stopped) return;
     await this.node.authenticated(
       verified.identity,
@@ -95,26 +99,11 @@ export class NodeSynchronization {
     );
     const network = nodeNetwork(this.request, verified.admission);
     const before = await this.node.snapshot();
-    const snapshot = await network.snapshot(before.metadata.nodeId);
-    if (generation !== this.generation || this.stopped) return;
     const checkpoint =
-      'executedIndex' in snapshot
-        ? {
-            executedIndex: snapshot.executedIndex,
-            executedHash: snapshot.executedHash,
-            resolvedThrough: snapshot.resolvedThrough,
-          }
-        : {
-            executedIndex: snapshot.serviceIndex,
-            executedHash: snapshot.serviceHash,
-            resolvedThrough: 0,
-          };
-    await this.node.beginRecovery({
-      ...checkpoint,
-      aggregateIndex:
-        'aggregateIndex' in snapshot ? snapshot.aggregateIndex : 0,
-      resources: snapshot.resources,
-    });
+      verified.snapshot ??
+      makeNodeRecovery(await network.snapshot(before.metadata.nodeId));
+    if (generation !== this.generation || this.stopped) return;
+    await this.node.beginRecovery(checkpoint);
     const ticket = await network.ticket();
     if (generation !== this.generation || this.stopped) return;
     const url = new URL(this.request.apiUrl);

@@ -12,4 +12,4 @@ export const isNodeNetworkUnavailable = (error: unknown) =>
   error instanceof Error &&
   ('code' in error
     ? typeof error.code === 'string' && transient.has(error.code)
-    : true);
+    : false);

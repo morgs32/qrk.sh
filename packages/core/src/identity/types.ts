@@ -55,8 +55,9 @@ export type ISessionInitialization<
     ? {
         getCredentials: () => Effect.Effect<C['Type'], IAnyError>;
         claims?: never;
+        expectedClaims?: I['Type'];
       }
-    : { claims: I['Type']; getCredentials?: never };
+    : { claims: I['Type']; getCredentials?: never; expectedClaims?: never };
 
 export type IAdmissionRequest =
   | { claims: unknown; credentials?: never }

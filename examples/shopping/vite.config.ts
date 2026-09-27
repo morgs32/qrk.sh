@@ -4,14 +4,12 @@ import { cloudflare } from '@cloudflare/vite-plugin';
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { backupWorkerPlugin } from '@zerospin/backup-worker/vite';
-import { nodeWorkerPlugin } from '@zerospin/browser/vite';
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
   plugins: [
     backupWorkerPlugin(),
-    nodeWorkerPlugin(),
     cloudflare({ configPath: 'wrangler.app.jsonc' }),
     react(),
     tailwindcss(),

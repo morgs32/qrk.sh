@@ -6,6 +6,11 @@ import { playX } from './contracts/playXV1';
 import { claimsSchema, game } from './gameV1';
 
 export const gameSession = makeSession({
+  sharedWorker: ({ name }) =>
+    new SharedWorker(new URL('./zerospin.worker.ts', import.meta.url), {
+      type: 'module',
+      name,
+    }),
   kind: 'aggregate',
   sessionName: 'gameSession',
   aggregateName: 'game',

@@ -8,6 +8,7 @@ export const nodeMetadata = sqliteTable('nodeMetadata', {
   id: integer().primaryKey(),
   nodeId: text().notNull(),
   definitionKey: text().notNull(),
+  initialized: integer({ mode: 'boolean' }).notNull(),
   nextNodeIndex: integer().notNull(),
   outcomeIndex: integer().notNull(),
   aggregateIndex: integer().notNull(),

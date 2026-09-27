@@ -78,3 +78,20 @@ describe('session admission inputs', () => {
     await expect(Effect.runPromise(invalid.getAdmission())).rejects.toThrow();
   });
 });
+
+it('captures expected claims for credential sessions without retaining a mutable caller object', () => {
+  const expectedClaims = { aggregateId: 'acct_first', subject: 'first' };
+  const provider = makeAdmissionProvider({
+    claimsSchema,
+    credentialsSchema,
+    initialization: {
+      expectedClaims,
+      getCredentials: () => Effect.succeed({ token: 'token' }),
+    },
+  });
+  expectedClaims.aggregateId = 'acct_second';
+  expect(provider.claims).toEqual({
+    aggregateId: 'acct_first',
+    subject: 'first',
+  });
+});

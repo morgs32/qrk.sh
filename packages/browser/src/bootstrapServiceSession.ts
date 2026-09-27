@@ -34,6 +34,7 @@ export const bootstrapServiceSession = Effect.fn('bootstrapServiceSession')(
     getAdmission(): Promise<
       IResult<IAdmissionRequest, IAnyError | IZerospinErrorJson>
     >;
+    sharedWorker: (props: { name: string }) => SharedWorker;
     expectedClaims?: Readonly<Record<string, unknown>> | undefined;
   }) {
     const {
@@ -43,6 +44,7 @@ export const bootstrapServiceSession = Effect.fn('bootstrapServiceSession')(
       systemName,
       getAdmission,
       expectedClaims,
+      sharedWorker,
     } = props;
     const definition = session.definition;
     const models = session.models;
@@ -71,6 +73,7 @@ export const bootstrapServiceSession = Effect.fn('bootstrapServiceSession')(
             lock,
           },
           getAdmission,
+          sharedWorker,
           expectedClaims,
           receive: async snapshot => {
             const acceptedClaims = Schema.decodeUnknownSync(

@@ -7,7 +7,7 @@ declare module 'wa-sqlite/src/examples/IDBBatchAtomicVFS.js' {
     ): Promise<
       Parameters<
         ReturnType<typeof import('wa-sqlite').Factory>['vfs_register']
-      >[0]
+      >[0] & { close(): void }
     >;
   }
 }

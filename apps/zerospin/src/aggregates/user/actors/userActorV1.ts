@@ -60,7 +60,14 @@ export const userActorV1 = makeAggregateActorVersion(defineAggregateActor({ name
           username: null,
           displayName: null,
         },
-      });
+      }).pipe(
+        Effect.catchIf(
+          (error) => error.code === "user-already-exists",
+          () => Effect.succeed(null),
+        ),
+      );
+      // The staging guard can reject a duplicate before execution is reached.
+      if (result === null) return claims;
       if (result.admission.status === "failed") {
         return yield* new ZerospinError({
           code: "user-provisioning-failed",

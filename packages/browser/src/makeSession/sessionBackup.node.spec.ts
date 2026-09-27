@@ -13,6 +13,7 @@ const connections = vi.hoisted(() => ({
   opened: 0,
   closed: 0,
   snapshots: new Map<string, Uint8Array>(),
+  appliedParameters: new Array<readonly unknown[]>(),
   failSessionCleanup: false,
 }));
 vi.mock('@zerospin/backup-worker', async () => {
@@ -28,7 +29,12 @@ vi.mock('@zerospin/backup-worker', async () => {
             Effect.sync(() => {
               connections.snapshots.set(backupKey, snapshot.slice());
             }),
-          applyStatements: () => Effect.void,
+          applyStatements: ({ statements }) =>
+            Effect.sync(() => {
+              for (const statement of statements) {
+                connections.appliedParameters.push(statement.parameters);
+              }
+            }),
           exportSnapshot: () =>
             Effect.sync(() => connections.snapshots.get(backupKey) ?? null),
           dispose: () => Effect.void,
@@ -311,7 +317,12 @@ describe('live session backup ownership', () => {
       expect(released).toBe(1);
       await session.dispose();
       expect([...connections.snapshots.keys()]).toEqual(saved);
+      connections.appliedParameters.length = 0;
       await session.initialize();
+      expect(connections.appliedParameters).toContainEqual([
+        session.sessionId,
+        1,
+      ]);
       expect(session.runtime.runSync(Instance).id).toBe(3);
       expect(session.store.getState().sessionStatus).toBe('current');
       const reset = session.reset();

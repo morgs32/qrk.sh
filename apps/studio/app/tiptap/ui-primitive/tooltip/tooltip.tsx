@@ -183,6 +183,8 @@ export const TooltipTrigger = forwardRef<HTMLElement, TooltipTriggerProps>(
 
       return cloneElement(
         children,
+        // Floating UI forwards ref callbacks; this does not read ref.current.
+        // oxlint-disable-next-line react/refs
         context.getReferenceProps({
           ref,
           ...props,

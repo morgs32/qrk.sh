@@ -1,6 +1,6 @@
 "use client"
 
-import { forwardRef, useCallback, useEffect, useState } from "react"
+import { forwardRef, useCallback, useState } from "react"
 import type { Editor } from "@tiptap/react"
 
 // --- Hooks ---
@@ -123,14 +123,10 @@ const LinkMain: React.FC<LinkMainProps> = ({
 
   return (
     <Card
-      style={{
-        ...(isMobile ? { boxShadow: "none", border: 0 } : {}),
-      }}
+      style={isMobile ? { boxShadow: "none", border: 0 } : {}}
     >
       <CardBody
-        style={{
-          ...(isMobile ? { padding: 0 } : {}),
-        }}
+        style={isMobile ? { padding: 0 } : {}}
       >
         <CardItemGroup orientation="horizontal">
           <Input
@@ -268,11 +264,11 @@ export const LinkPopover = forwardRef<HTMLButtonElement, LinkPopoverProps>(
       [onClick, isOpen]
     )
 
-    useEffect(() => {
-      if (shouldAutoOpen) {
-        setIsOpen(true)
-      }
-    }, [shouldAutoOpen])
+    const [previousAutoOpen, setPreviousAutoOpen] = useState(false)
+    if (shouldAutoOpen !== previousAutoOpen) {
+      setPreviousAutoOpen(shouldAutoOpen)
+      if (shouldAutoOpen) setIsOpen(true)
+    }
 
     if (!isVisible) {
       return null

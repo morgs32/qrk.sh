@@ -4,7 +4,7 @@ import { useUser } from "@clerk/react";
 import { makeModelIdSchema } from "@zerospin/core/models/make/makeModelIdSchema";
 import { useLiveQuery } from "@zerospin/react";
 import { Schema } from "effect";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Outlet } from "react-router";
 
 import { pageV1 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
@@ -35,13 +35,12 @@ export default function PageLayout() {
   const pageDraftId = usePageStore((state) => state.page?.id);
   const pageDraftTitle = usePageStore((state) => state.page?.title ?? "");
   const initializeSitePageDraft = useSitePageDraftStore((state) => state.initializePageDraft);
-  const [readyRoute, setReadyRoute] = useState<{
-    identityKey: string;
-    siteId: string;
-    pageId: string;
-  } | null>(null);
-
   const identityKey = user?.id;
+  const pageDraft = useSitePageDraftStore((state) =>
+    identityKey === undefined || pageId === undefined
+      ? undefined
+      : state.owners[identityKey]?.sites[siteId]?.pages[pageId],
+  );
 
   const { data: page } = useLiveQuery({
     session: userSession,
@@ -120,14 +119,10 @@ export default function PageLayout() {
     }
 
     initializeSitePageDraft(identityKey, siteId, pageId);
-    setReadyRoute({ identityKey, siteId, pageId });
   }, [initializeSitePageDraft, pageId, siteId, identityKey]);
 
   const isCurrentRouteReady =
-    readyRoute !== null &&
-    readyRoute.identityKey === identityKey &&
-    readyRoute.siteId === siteId &&
-    readyRoute.pageId === pageId &&
+    pageDraft !== undefined &&
     siteDraftId === siteId &&
     pageDraftId === pageId;
 

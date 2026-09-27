@@ -14,7 +14,7 @@ import StarterKit from "@tiptap/starter-kit";
 import { stageCommand } from "@zerospin/react";
 import { ZerospinError } from "@zerospin/sdk/browser";
 import { Schema } from "effect";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 import { useValidatedParams } from "@/hooks/useValidatedParams";
@@ -146,12 +146,6 @@ export function Article() {
     [article === undefined ? "missing" : "ready"],
   );
 
-  useEffect(() => {
-    if (editor === null) {
-      return;
-    }
-    setInRequiredHeading(isSelectionInRequiredHeading(editor));
-  }, [editor]);
 
   if (article === undefined || editor === null) {
     return null;

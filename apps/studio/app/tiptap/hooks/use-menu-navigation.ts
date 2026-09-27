@@ -193,11 +193,13 @@ export function useMenuNavigation<T>({
     loopOnTab,
   ])
 
-  useEffect(() => {
-    if (query) {
-      setSelectedIndex(autoSelectFirstItem ? 0 : -1)
-    }
-  }, [query, autoSelectFirstItem])
+  const [previousQuery, setPreviousQuery] = useState(query)
+  const [previousAutoSelect, setPreviousAutoSelect] = useState(autoSelectFirstItem)
+  if (query !== previousQuery || autoSelectFirstItem !== previousAutoSelect) {
+    setPreviousQuery(query)
+    setPreviousAutoSelect(autoSelectFirstItem)
+    if (query) setSelectedIndex(autoSelectFirstItem ? 0 : -1)
+  }
 
   return {
     selectedIndex: items.length ? selectedIndex : undefined,

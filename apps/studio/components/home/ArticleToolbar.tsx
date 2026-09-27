@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import type { Editor } from "@tiptap/react";
 
 import { Button } from "@/app/tiptap/ui-primitive/button";
@@ -128,7 +128,7 @@ function MobileToolbarContent({
 }
 
 export function ArticleToolbar({
-  editor,
+  editor: _editor,
   inRequiredHeading,
 }: {
   editor: Editor;
@@ -138,17 +138,9 @@ export function ArticleToolbar({
   const [mobileView, setMobileView] = useState<"main" | "highlighter" | "link">("main");
   const toolbarRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (!isMobile && mobileView !== "main") {
-      setMobileView("main");
-    }
-  }, [isMobile, mobileView]);
-
-  useEffect(() => {
-    if (inRequiredHeading) {
-      setMobileView("main");
-    }
-  }, [inRequiredHeading]);
+  if ((!isMobile || inRequiredHeading) && mobileView !== "main") {
+    setMobileView("main");
+  }
 
   return (
     <div className="sticky top-0 z-10 border-b border-border bg-background">

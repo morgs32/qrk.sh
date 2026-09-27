@@ -1,4 +1,3 @@
-import type { IAggregateSession } from "@zerospin/core/aggregateSession/types";
 import { createContext, useContext } from "react";
 
 import { makeStandaloneSession } from "@zerospin/browser";
@@ -29,7 +28,7 @@ export function createLibraryStandaloneSession(props: { key: string; wallId: `wa
   });
 }
 
-export type ILibrarySession = IAggregateSession<typeof LibraryFrontend & { systemName: string }>;
+export type ILibrarySession = ReturnType<typeof createLibraryStandaloneSession>;
 
 export const LibrarySessionContext = createContext<ILibrarySession | null>(null);
 

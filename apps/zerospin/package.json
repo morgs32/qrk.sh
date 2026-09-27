@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "zerospin dev",
+    "dev": "zerospin dev --port 8788",
     "lint": "oxlint . --format stylish",
     "test:workerd": "vitest run --config vitest.workerd.config.ts",
     "tsc": "tsc -p tsconfig.json --noEmit"

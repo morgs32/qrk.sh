@@ -6,7 +6,19 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return {
       beforeFiles: [
-        { source: "/__zerospin/:path*", destination: `${appOrigin}/assets/__zerospin/:path*` },
+        {
+          source: "/__zerospin/node-worker.js",
+          destination: `${appOrigin}/__zerospin/node-worker.js`,
+        },
+        {
+          source: "/__zerospin/node-sqlite.wasm",
+          destination: `${appOrigin}/__zerospin/node-sqlite.wasm`,
+        },
+        {
+          source: "/__zerospin/:path*",
+          destination: `${appOrigin}/assets/__zerospin/:path*`,
+          //
+        },
         {
           source: "/assets/:path*",
           destination: `${appOrigin}/assets/:path*`,

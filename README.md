@@ -64,6 +64,24 @@ More detail and test patterns: [docs/styleguide/component-and-file-naming.md](do
 
 3. Open http://localhost:4000
 
+To run all app development servers and build their dependencies:
+
+```bash
+pnpm dev
+```
+
+The web server proxies Zerospin's node worker and SQLite WASM directly to studio's
+`/__zerospin/` routes; other Zerospin assets use studio's `/assets/__zerospin/` path.
+
+API runs on port 8787 and Zerospin on port 8788. Set
+`NEXT_PUBLIC_ZEROSPIN_API_URL=http://127.0.0.1:8788/` in `apps/studio/.env.local`.
+
+To run only the library app and build its dependencies:
+
+```bash
+pnpm nx run @qrk.sh/library:dev
+```
+
 To run the dashboard and site app instead:
 
 ```bash

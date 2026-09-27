@@ -31,8 +31,8 @@ Brick groups are defined under `apps/library/groups/`.
 
 This is a hard terminology cutover: old backend state must be reset before reuse.
 Model and contract versions remain unchanged. Library viewport preference
-uses `qrk-bricks-library-viewport-v1`. Site walls are owned by in-memory library
-mock sessions (`wal_library`), not persisted Zustand brick maps.
+uses `qrk-bricks-library-viewport-v1`. Library and Studio walls are owned by
+standalone sessions with IndexedDB backups, not persisted Zustand brick maps.
 
 More detail and test patterns: [docs/styleguide/component-and-file-naming.md](docs/styleguide/component-and-file-naming.md).
 

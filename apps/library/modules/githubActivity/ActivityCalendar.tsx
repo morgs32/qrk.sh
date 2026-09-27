@@ -12,7 +12,7 @@ export function ActivityCalendarView(props: {
   return (
     <div
       data-github-activity
-      className="flex h-full w-full items-center overflow-x-auto px-3 py-2 [&_[class$=legend-colors]]:ml-0!"
+      className="flex h-full w-full items-center overflow-x-auto bg-white px-3 py-2 [&_[class$=legend-colors]]:ml-0!"
       style={{
         maskImage: "linear-gradient(to right, black calc(100% - 20px), transparent)",
       }}

@@ -61,8 +61,9 @@ authored React brick and, when ready, a json-render `generator` (`registry` +
 time unless both `w` and `h` are declared on that overlay.
 
 `Layout` initializes the module-level `librarySession` with
-`useInitializeMockSession`. This fixture session stays in memory and seeds
-`wal_library`; reloading starts from the seed again. Studio retains
+`useInitializeStandaloneSession`. Its `qrk-library` backup key persists the
+`wal_library` document across reloads and initialization registers it with DevTools.
+Restored resources take precedence over the initial seed. Studio retains
 `createLibraryStandaloneSession({ key, wallId })` and
 `useInitializeStandaloneSession`, using
 `JSON.stringify(["studio", user.id, siteId, pageId])` to isolate each document's
@@ -79,8 +80,8 @@ spec-at-breakpoint). Commands commit synchronously; Studio
 `backupState: ready` confirms backup durability. Shared state lives on the brick row; each placement stores a
 complete Spec, grid item, and visibility. `BrickWall` uses `noCompactor`
 (collision resolve without auto-gap-closing); **Compact layout** runs an explicit
-command. Library reset disposes and reinitializes its mock session from the original
-seed and remounts the viewport. Viewport preference persists in
+command. Library reset calls the standalone session's `reset()` to replace its
+backup with the original seed and remounts the viewport. Viewport preference persists in
 localStorage (`qrk-bricks-library-viewport-v1`).
 
 Library's backup-worker Vite plugin serves `/__zerospin/backup-worker.js` and

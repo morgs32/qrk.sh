@@ -3,7 +3,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "re
 import { Drawer } from "@qrk.sh/web/library/Drawer";
 import { Link, useLocation, useNavigate, useParams } from "@tanstack/react-router";
 import { prefixId } from "@zerospin/core/models/prefixId";
-import { stageCommand, useInitializeMockSession, useLiveQuery } from "@zerospin/react";
+import { stageCommand, useInitializeStandaloneSession, useLiveQuery } from "@zerospin/react";
 import { cn } from "cn";
 import { motion, useAnimationControls, useReducedMotion } from "framer-motion";
 import { RotateCcw, X } from "lucide-react";
@@ -175,7 +175,7 @@ export function Layout(props: { children: ReactNode }) {
   const [sessionKey, setSessionKey] = useState(0);
   const [resetError, setResetError] = useState<unknown>(null);
   const session = librarySession;
-  const { isInitialized } = useInitializeMockSession({ session });
+  const { isInitialized } = useInitializeStandaloneSession({ session });
   if (resetError !== null) throw resetError;
   if (!isInitialized) {
     return null;
@@ -191,8 +191,7 @@ export function Layout(props: { children: ReactNode }) {
           session={session}
           onResetSession={() => {
             void session
-              .dispose()
-              .then(() => session.initialize())
+              .reset()
               .then(() => setSessionKey((key) => key + 1))
               .catch(setResetError);
           }}

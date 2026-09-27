@@ -1,11 +1,12 @@
-import { makeMockAggregateSession } from "@zerospin/browser";
+import { makeStandaloneSession } from "@zerospin/browser";
 import { prefixId } from "@zerospin/core/models/prefixId";
 import { LibraryFrontend } from "../makeLibraryFrontend/makeLibraryFrontend";
 
 const fixtureDate = new Date("2026-01-01T00:00:00.000Z");
 
-export const librarySession = makeMockAggregateSession({
-  definition: LibraryFrontend,
+export const librarySession = makeStandaloneSession({
+  key: "qrk-library",
+  ...LibraryFrontend,
   claims: { aggregateId: "acct_1" },
   resources: {
     wall: [

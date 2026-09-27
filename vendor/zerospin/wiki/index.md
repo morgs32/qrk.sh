@@ -18,7 +18,7 @@ Organised by category. Pages are `[[wiki-links]]` without the `.md` extension.
 ## Agent pattern libraries (not auto-ingested)
 
 - `$engineering-patterns` — globally installed generic code-shape guidance
-- [llm-wiki patterns](../llm-wiki/patterns/index.md) — zerospin-specific patterns and case studies
+- [wiki patterns](../wiki/patterns/index.md) — zerospin-specific patterns and case studies
 
 ## Architecture
 

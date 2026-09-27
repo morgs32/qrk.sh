@@ -5,20 +5,23 @@ updated: 2026-09-20
 
 # Library brick drop
 
-Catalog tiles place a brick onto `BrickWall` through an in-memory
-`LibraryFrontend` mock session and `addBrick`. HTML5 `dragover` cannot read
+Catalog tiles place a brick onto `BrickWall` through a persisted
+`LibraryFrontend` standalone session and `addBrick`. HTML5 `dragover` cannot read
 custom MIME, so the live payload is the module-level Zustand singleton
 `brickDragStore` (`brickDef` / `setBrickDef` only). Placement column shape is
 [LibraryGridItem](LibraryGridItem.md).
 
 ## Trigger
 
-1. Each app layout owns a mock session for hardcoded `wal_library`, then
+1. Each app layout owns a standalone session for hardcoded `wal_library`, then
    gates children on `isInitialized`.
-   1. Library workbench: `createLibraryMockSession({ wallId })` +
-      `useInitializeMockSession`, then `LibrarySessionContext`.
+   1. Library workbench: `createLibraryStandaloneSession({ key, wallId })` +
+      `useInitializeStandaloneSession`, then `LibrarySessionContext`.
    2. Studio site editor: the same pair in `LibraryEditorSession`. Studio's
-      live `ZerospinUser` session is unrelated to this wall.
+      live `ZerospinUser` session is unrelated to this wall. Library's key is
+      `JSON.stringify(["library"])`; Studio's is
+      `JSON.stringify(["studio", user.id, siteId, pageId])`, using Clerk's user ID
+      and the route's site/page IDs.
 2. A catalog tile starts an HTML5 drag and writes `brickDragStore` before
    RGL sees `dragover`.
    1. Library filmstrip: `DraggableBrick`.
@@ -96,15 +99,15 @@ sequenceDiagram
 8. Drop uses that `brickDef` for `moduleId`, `state`, `spec`, `w`, and `h`.
    - [`BrickWall.tsx:187`](../../../apps/library/lib/BrickWall.tsx#L187) — same `getState().brickDef` object returned to `onDrop`. (`apps/library/lib/BrickWall.tsx:187`)
 9. Unknown `moduleId` reports and returns; otherwise the wall stages `addBrick`
-   on the layout-owned mock session.
+   on the layout-owned standalone session.
    - [`BrickWall.tsx:192-198`](../../../apps/library/lib/BrickWall.tsx#L192-L198) — `modulesHash` + `isLibraryModuleId`; else `reportCommandError`. (`apps/library/lib/BrickWall.tsx:192-198`)
    - [`BrickWall.tsx:201-221`](../../../apps/library/lib/BrickWall.tsx#L201-L221) — new `brickId`, `droppedItem`, `resolvedActiveLayout` via `makeGridItem`, and `otherBreakpointVisibleLayouts` via `visibleLayoutAt`. (`apps/library/lib/BrickWall.tsx:201-221`)
    - [`BrickWall.tsx:62-64`](../../../apps/library/lib/BrickWall.tsx#L62-L64) — props are `session` + `wallId`. (`apps/library/lib/BrickWall.tsx:62-64`)
    - [`BrickWall.tsx:223-236`](../../../apps/library/lib/BrickWall.tsx#L223-L236) — `stageCommand({ contractName: "addBrick", payload })`. (`apps/library/lib/BrickWall.tsx:223-236`)
    - [`Layout.tsx:31`](../../../apps/library/app/Layout.tsx#L31) — `WALL_ID = prefixId(wall, "library")`. (`apps/library/app/Layout.tsx:31`)
-   - [`Layout.tsx:181-193`](../../../apps/library/app/Layout.tsx#L181-L193) — workbench `createLibraryMockSession` + `LibrarySessionContext`. (`apps/library/app/Layout.tsx:181-193`)
+   - [`Layout.tsx:181-193`](../../../apps/library/app/Layout.tsx#L181-L193) — workbench `createLibraryStandaloneSession` + `LibrarySessionContext`. (`apps/library/app/Layout.tsx:181-193`)
    - [`EditorLayout.tsx:26`](../../../apps/studio/app/[username]/site/[siteId]/page/[pageId]/EditorLayout.tsx#L26) — Studio hardcodes the same `wal_library`. (`apps/studio/app/[username]/site/[siteId]/page/[pageId]/EditorLayout.tsx:26`)
-   - [`EditorLayout.tsx:47-54`](../../../apps/studio/app/[username]/site/[siteId]/page/[pageId]/EditorLayout.tsx:47-54) — `LibraryEditorSession` initializes a separate in-memory db. (`apps/studio/app/[username]/site/[siteId]/page/[pageId]/EditorLayout.tsx:47-54`)
+   - [`EditorLayout.tsx:47-54`](../../../apps/studio/app/[username]/site/[siteId]/page/[pageId]/EditorLayout.tsx:47-54) — `LibraryEditorSession` initializes a separately keyed durable document. (`apps/studio/app/[username]/site/[siteId]/page/[pageId]/EditorLayout.tsx:47-54`)
 10. `makeMutations` runs the `addBrick` contract program.
     - [`AddBrickContractV1.ts:350-351`](../../../apps/library/makeLibraryFrontend/contracts/addBrick/AddBrickContractV1.ts#L350-L351) — `program: ({ payload, models }) => Effect.gen`. (`apps/library/makeLibraryFrontend/contracts/addBrick/AddBrickContractV1.ts:350-351`)
 11. One brick row is created with cloned module state.

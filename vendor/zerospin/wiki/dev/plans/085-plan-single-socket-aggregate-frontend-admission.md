@@ -212,7 +212,7 @@
    exact admission tuple explicit and remove the separate push-capability
    lane.
 5. Update `wiki/architecture/SystemApi.md`, repository indexes/glossary entries,
-   `llm-wiki/patterns/system-worker/aggregate-frontend-admission.ts`, and the
+   `wiki/patterns/system-worker/aggregate-frontend-admission.ts`, and the
    API JSDoc guidance so none claims frontend admission is owned by
    `AggregateFrontendApi`.
 6. Preserve every active architecture page's Mermaid numbering, immediately

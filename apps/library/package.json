@@ -38,9 +38,9 @@
       "types": "./dist/makeLibraryFrontend/makeLibraryFrontend.d.ts",
       "import": "./dist/LibraryFrontend.js"
     },
-    "./createLibraryMockSession": {
-      "types": "./dist/makeLibraryFrontend/createLibraryMockSession.d.ts",
-      "import": "./dist/createLibraryMockSession.js"
+    "./createLibraryStandaloneSession": {
+      "types": "./dist/makeLibraryFrontend/createLibraryStandaloneSession.d.ts",
+      "import": "./dist/createLibraryStandaloneSession.js"
     },
     "./TiptapDocSchema": {
       "types": "./dist/lib/TiptapDocSchema.d.ts",
@@ -111,6 +111,7 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "6.0.3",
+    "@zerospin/backup-worker": "workspace:*",
     "dotenv": "^17.4.2",
     "oxfmt": "^0.44.0",
     "oxlint": "^1.59.0",

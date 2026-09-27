@@ -1,4 +1,4 @@
-# llm-wiki patterns
+# wiki patterns
 
 Zerospin-domain code-shape guidance. First-party in this repository; uses
 Zerospin vocabulary (`AggregateChain`, `encodeRpc`, `makeContractVersion`) but **no paths

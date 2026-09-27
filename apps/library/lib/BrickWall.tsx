@@ -6,7 +6,7 @@ import { stageCommand, useLiveQuery } from "@zerospin/react";
 import GridLayout, { noCompactor } from "react-grid-layout";
 
 import { LibraryFrontend } from "../makeLibraryFrontend/makeLibraryFrontend";
-import type { LibraryMockSession } from "../makeLibraryFrontend/createLibraryMockSession";
+import type { ILibraryStandaloneSession } from "../makeLibraryFrontend/createLibraryStandaloneSession";
 import { BrickWrapper } from "../components/brick/BrickWrapper";
 import { brickDragStore } from "./GridStore";
 import { modulesHash } from "./modulesHash";
@@ -60,7 +60,7 @@ function commandErrorMessage(failure: { message?: string; code?: string }) {
 }
 
 export function BrickWall(props: {
-  session: LibraryMockSession;
+  session: ILibraryStandaloneSession;
   wallId: `wal_${string}`;
   breakpoint: "sm" | "md" | "lg" | "xl";
   gridWidth: number;

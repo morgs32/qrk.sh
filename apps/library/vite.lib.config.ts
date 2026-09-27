@@ -29,7 +29,7 @@ export default defineConfig(({ mode }) => {
           BrickWall: "lib/BrickWall.tsx",
           GridStore: "lib/GridStore.ts",
           LibraryFrontend: "makeLibraryFrontend/makeLibraryFrontend.ts",
-          createLibraryMockSession: "makeLibraryFrontend/createLibraryMockSession.ts",
+          createLibraryStandaloneSession: "makeLibraryFrontend/createLibraryStandaloneSession.ts",
           TiptapDocSchema: "lib/TiptapDocSchema.ts",
         },
         formats: ["es"],

@@ -1,7 +1,7 @@
 "use client";
 
 import { modulesHash } from "@qrk.sh/library";
-import { useLibrarySession } from "@qrk.sh/library/createLibraryMockSession";
+import { useLibrarySession } from "@qrk.sh/library/createLibraryStandaloneSession";
 import { GridItemPreview } from "@qrk.sh/library/GridItemPreview";
 import { LibraryFrontend } from "@qrk.sh/library/LibraryFrontend";
 import { useWallViewport } from "@qrk.sh/library/WallViewportProvider";

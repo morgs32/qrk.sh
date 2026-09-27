@@ -2,7 +2,7 @@
 
 import { BREAKPOINTS, resolveBreakpoint } from "@qrk.sh/library/breakpoints";
 import { BrickWall } from "@qrk.sh/library/BrickWall";
-import { useLibrarySession } from "@qrk.sh/library/createLibraryMockSession";
+import { useLibrarySession } from "@qrk.sh/library/createLibraryStandaloneSession";
 import { LibraryFrontend } from "@qrk.sh/library/LibraryFrontend";
 import { useWallViewport } from "@qrk.sh/library/WallViewportProvider";
 import { prefixId } from "@zerospin/core/models/prefixId";

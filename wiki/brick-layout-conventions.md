@@ -1,6 +1,6 @@
 # Brick layout conventions
 
-**updated:** 2026-09-19
+**updated:** 2026-09-20
 
 ## Grid identity
 
@@ -12,14 +12,18 @@
 ## Session-backed walls
 
 Library `Layout` and Studio site editor both render
-[`BrickWall`](../apps/library/lib/BrickWall.tsx) against an in-memory
-`LibraryFrontend` mock session:
+[`BrickWall`](../apps/library/lib/BrickWall.tsx) against a persisted
+`LibraryFrontend` standalone session:
 
 - Hardcoded `WALL_ID = prefixId(LibraryFrontend.models.wall, "library")`
   (`wal_library`) in each app — do not import a shared wall id from
   `@qrk.sh/library`.
-- Layout / EditorLayout: `createLibraryMockSession({ wallId })`,
-  `useInitializeMockSession`, gate on `isInitialized`.
+- Layout / EditorLayout: `createLibraryStandaloneSession({ key, wallId })`,
+  `useInitializeStandaloneSession`, gate on `isInitialized`.
+- Library uses `JSON.stringify(["library"])`; Studio uses
+  `JSON.stringify(["studio", user.id, siteId, pageId])`, with Clerk supplying
+  `user.id` and route parameters supplying `siteId` and `pageId`.
+- Reset calls `session.reset()` to replace the saved document with its original seeds.
 - Drop / move / resize / remove / compact: aggregate contracts via
   `stageCommand`. No Zustand `bricksById` wall state.
 - `noCompactor` on the grid; compact is an explicit command.

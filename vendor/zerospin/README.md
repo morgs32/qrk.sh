@@ -11,7 +11,7 @@ origin of record is this README and `AGENTS.md` (they must agree):
 | `vendor/epluribus-machina` | `../epluribus-machina` | `subtree/core` |
 
 Shared code-shape guidance is provided by the globally installed `$patterns`
-skill. `llm-wiki/` is first-party Zerospin-domain guidance (not a subtree).
+skill. `wiki/` is first-party Zerospin-domain guidance (not a subtree).
 
 Use the `$update-vendor` skill for occasional squashed pulls and pushes.
 Invoking it without a target pulls every configured vendor. A push can target

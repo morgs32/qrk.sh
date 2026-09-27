@@ -1,15 +1,12 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+
+import { Drawer } from "@qrk.sh/web/library/Drawer";
 import { Link, useLocation, useNavigate, useParams } from "@tanstack/react-router";
 import { prefixId } from "@zerospin/core/models/prefixId";
-import {
-  stageCommand,
-  useInitializeMockSession,
-  useLiveQuery,
-} from "@zerospin/react";
+import { stageCommand, useInitializeStandaloneSession, useLiveQuery } from "@zerospin/react";
+import { cn } from "cn";
 import { motion, useAnimationControls, useReducedMotion } from "framer-motion";
 import { RotateCcw, X } from "lucide-react";
-import { cn } from "cn";
-import { Drawer } from "@qrk.sh/web/library/Drawer";
 
 import { Button } from "../components/ui/button";
 import { BREAKPOINTS } from "../lib/breakpoints";
@@ -22,10 +19,11 @@ import {
   WallViewportProvider,
 } from "../lib/WallViewportProvider";
 import {
-  createLibraryMockSession,
+  createLibraryStandaloneSession,
   LibrarySessionContext,
-} from "../makeLibraryFrontend/createLibraryMockSession";
+} from "../makeLibraryFrontend/createLibraryStandaloneSession";
 import { LibraryFrontend } from "../makeLibraryFrontend/makeLibraryFrontend";
+
 import { decodeGridItem } from "./decodeGridItem";
 
 const WALL_ID = prefixId(LibraryFrontend.models.wall, "library");
@@ -57,9 +55,7 @@ function readLibraryViewportState() {
     if (raw === null) return undefined;
     const parsed: unknown = JSON.parse(raw);
     const persistedState =
-      parsed !== null && typeof parsed === "object" && "state" in parsed
-        ? parsed.state
-        : parsed;
+      parsed !== null && typeof parsed === "object" && "state" in parsed ? parsed.state : parsed;
     if (persistedState === null || typeof persistedState !== "object") {
       return undefined;
     }
@@ -178,13 +174,17 @@ function LibraryWallPane(props: {
 
 export function Layout(props: { children: ReactNode }) {
   const [sessionKey, setSessionKey] = useState(0);
+  const [resetError, setResetError] = useState<unknown>(null);
   const session = useMemo(
-    () => createLibraryMockSession({ wallId: WALL_ID }),
-    // sessionKey is the reset signal
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [sessionKey],
+    () =>
+      createLibraryStandaloneSession({
+        key: JSON.stringify(["library"]),
+        wallId: WALL_ID,
+      }),
+    [],
   );
-  const { isInitialized } = useInitializeMockSession({ session });
+  const { isInitialized } = useInitializeStandaloneSession({ session });
+  if (resetError !== null) throw resetError;
   if (!isInitialized) {
     return null;
   }
@@ -197,7 +197,12 @@ export function Layout(props: { children: ReactNode }) {
       >
         <LayoutBody
           session={session}
-          onResetSession={() => setSessionKey((key) => key + 1)}
+          onResetSession={() => {
+            void session
+              .reset()
+              .then(() => setSessionKey((key) => key + 1))
+              .catch(setResetError);
+          }}
         >
           {props.children}
         </LayoutBody>
@@ -208,7 +213,7 @@ export function Layout(props: { children: ReactNode }) {
 
 function LayoutBody(props: {
   children: ReactNode;
-  session: ReturnType<typeof createLibraryMockSession>;
+  session: ReturnType<typeof createLibraryStandaloneSession>;
   onResetSession: () => void;
 }) {
   const { children, session, onResetSession } = props;
@@ -216,12 +221,7 @@ function LayoutBody(props: {
   const navigate = useNavigate();
   const params = useParams({ strict: false });
   const wallViewportStore = useWallViewportStoreApi();
-  const {
-    regionRef,
-    availableWidth,
-    activeBreakpoint,
-    setSelectedBreakpoint,
-  } = useWallViewport();
+  const { regionRef, availableWidth, activeBreakpoint, setSelectedBreakpoint } = useWallViewport();
   const reducedMotion = useReducedMotion() ?? false;
   const moduleId = params.moduleId;
   const brickId = params.brickId;

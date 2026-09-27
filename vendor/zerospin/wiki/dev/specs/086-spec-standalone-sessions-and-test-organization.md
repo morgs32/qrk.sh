@@ -91,7 +91,7 @@ resurrecting obsolete architecture.
    existing viewport-reset behavior.
 6. Serve the required backup-worker and WASM assets through each consuming
    application's development and production hosting configuration.
-7. Add QRK-local `llm-wiki` guidance that all named types begin with `I`. Apply
+7. Add QRK-local `wiki` guidance that all named types begin with `I`. Apply
    it to the touched session type; this does not require an unrelated
    repository-wide rename.
 

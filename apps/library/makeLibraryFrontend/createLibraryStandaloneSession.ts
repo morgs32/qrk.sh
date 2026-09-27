@@ -1,14 +1,15 @@
 import { createContext, useContext } from "react";
 
-import { makeMockSession } from "@zerospin/react";
+import { makeStandaloneSession } from "@zerospin/react";
 
 import { LibraryFrontend, libraryRuntime } from "./makeLibraryFrontend";
 
 const fixtureDate = new Date("2026-01-01T00:00:00.000Z");
 
-export function createLibraryMockSession(props: { wallId: `wal_${string}` }) {
-  const { wallId } = props;
-  return makeMockSession({
+export function createLibraryStandaloneSession(props: { key: string; wallId: `wal_${string}` }) {
+  const { key, wallId } = props;
+  return makeStandaloneSession({
+    key,
     frontend: LibraryFrontend,
     runtime: libraryRuntime,
     authentication: { aggregateId: "acct_1" },
@@ -27,9 +28,9 @@ export function createLibraryMockSession(props: { wallId: `wal_${string}` }) {
   });
 }
 
-export type LibraryMockSession = ReturnType<typeof createLibraryMockSession>;
+export type ILibraryStandaloneSession = ReturnType<typeof createLibraryStandaloneSession>;
 
-export const LibrarySessionContext = createContext<LibraryMockSession | null>(null);
+export const LibrarySessionContext = createContext<ILibraryStandaloneSession | null>(null);
 
 export function useLibrarySession() {
   const session = useContext(LibrarySessionContext);

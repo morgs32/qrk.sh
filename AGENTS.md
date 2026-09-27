@@ -137,11 +137,12 @@ Plans and specs live under [`wiki/plans/`](./wiki/plans/):
 | --- | --- |
 | React components, files, site workspace, bricks, and group | [`docs/styleguide/component-and-file-naming.md`](./docs/styleguide/component-and-file-naming.md) |
 | Effect core, Schema, and errors | [`docs/effect/README.md`](./docs/effect/README.md) |
+| Named type aliases, interfaces, I prefix | [Local named-type guidance](./wiki/patterns/typescript/named-types.md) |
 | TypeScript fixes and validation patterns | [`docs/tooling/typescript.md`](./docs/tooling/typescript.md) |
 | Next.js client route params, `useParams`, and `ParamsSchema` | Invoke `$engineering-patterns`; read `references/patterns/nextjs/validated-client-route-params.ts` |
 | Local Zerospin model resets and clean development state | Invoke `$engineering-patterns`; read `references/patterns/tooling/zerospin-dev-clean-until-production.ts` |
 | React controls, shadcn, buttons, and design-system components | Invoke `$engineering-patterns`; read `references/patterns/react/prefer-design-system-components.ts` |
-| Zerospin domain patterns and case studies | [Pinned Zerospin pattern index](./vendor/zerospin/llm-wiki/patterns/index.md) |
+| Zerospin domain patterns and case studies | [Pinned Zerospin pattern index](./vendor/zerospin/wiki/patterns/index.md) |
 | Agent workflow skills | [`.agents/skills/`](./.agents/skills/) |
 
 When a code change invalidates a linked doc, update that doc in the same requested pass. Do not leave stale file paths or symbol names.

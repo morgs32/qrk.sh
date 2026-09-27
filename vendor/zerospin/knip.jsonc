@@ -5,7 +5,7 @@
   "include": ["files", "exports", "types"],
   "ignore": [
     "vendor/**",
-    "llm-wiki/**",
+    "wiki/**",
     "**/*.config.{js,cjs,mjs,ts,tsx}",
     "**/vitest*.{js,cjs,mjs,ts,tsx}",
     "**/*GlobalSetup.{js,cjs,mjs,ts,tsx}",

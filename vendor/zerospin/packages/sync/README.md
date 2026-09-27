@@ -53,7 +53,7 @@ In-process workerd lane + local `wrangler unstable_dev` browser lane:
 pnpm nx run @zerospin/sync:e2e
 ```
 
-Vitest config split by runtime: [sync vitest case study](../../llm-wiki/patterns/cases/2026-06-27-sync-vitest-config-by-runtime.md).
+Vitest config split by runtime: [sync vitest case study](../../wiki/patterns/cases/2026-06-27-sync-vitest-config-by-runtime.md).
 
 ## Architecture (platform)
 

@@ -365,7 +365,7 @@ The resulting boundary is:
    schema-evolution, redeployment, drain, fence, and version-selection claims
    from current documentation. Document fixed provision-once activation and
    the new-system-for-new-code boundary where those behaviors were described.
-6. Update `AGENTS.md`, `TODOS.md`, and `llm-wiki/patterns/**` references whose
+6. Update `AGENTS.md`, `TODOS.md`, and `wiki/patterns/**` references whose
    paths or terminology changed. Do not alter unrelated guidance.
 7. For every architecture sequence diagram, use one explicit `autonumber N`
    immediately before each message and place an exactly corresponding numbered

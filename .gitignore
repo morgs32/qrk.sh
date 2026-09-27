@@ -73,7 +73,7 @@ next-env.d.ts
 # Sentry Config File
 .env.sentry-build-plugin
 
-# llm-wiki local state and per-machine obsidian workspace
+# wiki local state and per-machine obsidian workspace
 .llmwiki/state/
 .obsidian/workspace.json
 .obsidian/cache

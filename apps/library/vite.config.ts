@@ -4,6 +4,7 @@ import { cloudflare } from "@cloudflare/vite-plugin";
 import tailwindcss from "@tailwindcss/vite";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import react from "@vitejs/plugin-react";
+import { backupWorkerPlugin } from "@zerospin/backup-worker/vite";
 import { defineConfig, loadEnv } from "vite-plus";
 
 const packageRoot = fileURLToPath(new URL(".", import.meta.url));
@@ -35,6 +36,7 @@ export default defineConfig(({ mode }) => {
       ],
     },
     plugins: [
+      backupWorkerPlugin(),
       tailwindcss(),
       cloudflare({ viteEnvironment: { name: "ssr" } }),
       tanstackStart({

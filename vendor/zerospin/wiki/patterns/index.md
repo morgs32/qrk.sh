@@ -1,4 +1,4 @@
-# llm-wiki pattern index
+# wiki pattern index
 
 Keyword → pattern file routing. Code shows good; `@bad` JSDoc tags document anti-patterns.
 

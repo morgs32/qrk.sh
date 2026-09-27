@@ -8,6 +8,7 @@ import type {
   IAggregateSession,
   IAggregateSessionDefinition,
 } from '@zerospin/core/aggregateSession/types';
+import type { Async } from '@zerospin/core/async/Async';
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/make/makeDbConfig/makeDbConfig';
 import { makeProvisionedInMemoryWasmSqliteDb } from '@zerospin/core/drizzle/make/makeProvisionedInMemoryWasmSqliteDb/makeProvisionedInMemoryWasmSqliteDb';
 import { assertSessionClaims } from '@zerospin/core/identity/assertSessionClaims';
@@ -20,10 +21,11 @@ import {
   type IZerospinErrorJson,
 } from '@zerospin/error';
 import { getTableName, sql } from 'drizzle-orm';
-import { Effect, Schema } from 'effect';
+import { Effect, Schema, type Scope } from 'effect';
 
 import { connectBrowserNode, nodeResult } from './connectBrowserNode.ts';
 import type { INodeCommandInput } from './Node/types.ts';
+import type { INodeCommand } from './Node/Node.ts';
 
 export const bootstrapAggregateSession = Effect.fn('bootstrapAggregateSession')(
   function* <D extends IAggregateSessionDefinition>(props: {
@@ -37,7 +39,27 @@ export const bootstrapAggregateSession = Effect.fn('bootstrapAggregateSession')(
     >;
     sharedWorker: (props: { name: string }) => SharedWorker;
     expectedClaims?: Readonly<Record<string, unknown>> | undefined;
-  }) {
+  }): Effect.fn.Return<
+    {
+      executeAggregateSessionCommand: NonNullable<
+        Parameters<
+          IAggregateSession<D>['setExecutionResources']
+        >[0]['executeAggregateSessionCommand']
+      >;
+      getPushPaused: Effect.Effect<boolean, IAnyError>;
+      setPushPaused(input: {
+        pushPaused: boolean;
+      }): Effect.Effect<void, IAnyError>;
+      pushNow: Effect.Effect<{ status: 'empty' | 'pushed' }, IAnyError>;
+      clearAuthentication(): Promise<void>;
+      history(page: {
+        afterNodeIndex: number;
+        limit: number;
+      }): Promise<readonly INodeCommand[]>;
+    },
+    IAnyError,
+    Async | Scope.Scope
+  > {
     const {
       session,
       apiUrl,

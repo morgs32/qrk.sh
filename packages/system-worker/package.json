@@ -6,12 +6,6 @@
   "type": "module",
   "sideEffects": false,
   "exports": {
-    "./fixtures/system": {
-      "types": "./src/fixtures/system.ts",
-      "workerd": "./src/fixtures/system.ts",
-      "import": "./src/fixtures/system.ts",
-      "default": "./src/fixtures/system.ts"
-    },
     ".": {
       "types": "./src/index.ts",
       "workerd": "./src/index.ts",
@@ -107,6 +101,42 @@
       "workerd": "./src/makeMigratableDORepo/makeMigratableDORepoConfig.ts",
       "import": "./src/makeMigratableDORepo/makeMigratableDORepoConfig.ts",
       "default": "./src/makeMigratableDORepo/makeMigratableDORepoConfig.ts"
+    },
+    "./ServiceChain/ServiceChain": {
+      "types": "./src/ServiceChain/ServiceChain.ts",
+      "workerd": "./src/ServiceChain/ServiceChain.ts",
+      "import": "./src/ServiceChain/ServiceChain.ts",
+      "default": "./src/ServiceChain/ServiceChain.ts"
+    },
+    "./ServiceVersionRepo/ServiceVersionRepo": {
+      "types": "./src/ServiceVersionRepo/ServiceVersionRepo.ts",
+      "workerd": "./src/ServiceVersionRepo/ServiceVersionRepo.ts",
+      "import": "./src/ServiceVersionRepo/ServiceVersionRepo.ts",
+      "default": "./src/ServiceVersionRepo/ServiceVersionRepo.ts"
+    },
+    "./makeDORepo/makeDORepo": {
+      "types": "./src/makeDORepo/makeDORepo.ts",
+      "workerd": "./src/makeDORepo/makeDORepo.ts",
+      "import": "./src/makeDORepo/makeDORepo.ts",
+      "default": "./src/makeDORepo/makeDORepo.ts"
+    },
+    "./makeAlarmRegistry/makeAlarmRegistry": {
+      "types": "./src/makeAlarmRegistry/makeAlarmRegistry.ts",
+      "workerd": "./src/makeAlarmRegistry/makeAlarmRegistry.ts",
+      "import": "./src/makeAlarmRegistry/makeAlarmRegistry.ts",
+      "default": "./src/makeAlarmRegistry/makeAlarmRegistry.ts"
+    },
+    "./makeOutboxQueue/makeOutboxQueue": {
+      "types": "./src/makeOutboxQueue/makeOutboxQueue.ts",
+      "workerd": "./src/makeOutboxQueue/makeOutboxQueue.ts",
+      "import": "./src/makeOutboxQueue/makeOutboxQueue.ts",
+      "default": "./src/makeOutboxQueue/makeOutboxQueue.ts"
+    },
+    "./makeOutboxSubscriber/makeOutboxSubscriber": {
+      "types": "./src/makeOutboxSubscriber/makeOutboxSubscriber.ts",
+      "workerd": "./src/makeOutboxSubscriber/makeOutboxSubscriber.ts",
+      "import": "./src/makeOutboxSubscriber/makeOutboxSubscriber.ts",
+      "default": "./src/makeOutboxSubscriber/makeOutboxSubscriber.ts"
     }
   },
   "scripts": {
@@ -155,9 +185,7 @@
     "@types/sql.js": "^1.4.11",
     "@vitejs/plugin-react": "^6.0.1",
     "@vitest/coverage-v8": "^4.1.5",
-    "@zerospin/fulfillment": "workspace:*",
-    "@zerospin/purchase": "workspace:*",
-    "config": "workspace:*",
+    "@zerospin/fixtures": "workspace:*",
     "effect": "rc",
     "happy-dom": "^20.9.0",
     "jsdom": "^29.1.1",

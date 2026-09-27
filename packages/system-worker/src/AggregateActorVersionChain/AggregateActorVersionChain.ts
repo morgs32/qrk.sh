@@ -74,14 +74,14 @@ const aggregateActorVersionChainFixedDORepoConfig = makeFixedDORepoConfig({
         catch: () => makeZerospinError({ code: 'actor-path-invalid' }),
       });
       const selection = yield* Schema.decodeUnknownEffect(
-        view.identity.actorSchema,
+        view.identity.identitySchema,
       )(matched?.params, { onExcessProperty: 'error' }).pipe(
         mapParseError({
           code: 'actor-path-invalid',
           prefix: 'Invalid chain selection fields',
         }),
       );
-      const encoded = yield* Schema.encodeEffect(view.identity.actorSchema)(
+      const encoded = yield* Schema.encodeEffect(view.identity.identitySchema)(
         selection,
       ).pipe(
         mapParseError({
@@ -131,7 +131,7 @@ export class AggregateActorVersionChain extends makeFixedDORepo({
       receiveActorCommands({
         rows,
         db: this.db,
-        broadcast: ({ command, identity, sessionName }) => {
+        broadcast: ({ command, claims, sessionName }) => {
           for (const connection of this.getConnections<{
             phase: 'awaiting-resume' | 'replaying' | 'live';
             nodeId?: string;
@@ -142,7 +142,7 @@ export class AggregateActorVersionChain extends makeFixedDORepo({
             actorName: string;
             actorVersion: string;
             actorPath: string;
-            identity: Readonly<Record<string, unknown>>;
+            claims: Readonly<Record<string, unknown>>;
             sessionName: string;
             aggregateSessionLock: IAggregateSessionLock;
           }>()) {
@@ -154,7 +154,7 @@ export class AggregateActorVersionChain extends makeFixedDORepo({
             if (state?.phase !== 'live') continue;
             try {
               const ownsCompletion =
-                isEqual(identity, state.identity) &&
+                isEqual(claims, state.claims) &&
                 sessionName === state.sessionName &&
                 command.nodeId === state.nodeId;
               // Validate the public envelope; JSON sockets carry the original codec bytes.
@@ -238,7 +238,7 @@ export class AggregateActorVersionChain extends makeFixedDORepo({
       actorName: string;
       actorVersion: string;
       actorPath: string;
-      identity: Readonly<Record<string, unknown>>;
+      claims: Readonly<Record<string, unknown>>;
       sessionName: string;
       aggregateSessionLock: IAggregateSessionLock;
     }>,
@@ -271,7 +271,7 @@ export class AggregateActorVersionChain extends makeFixedDORepo({
       actorName: string;
       actorVersion: string;
       actorPath: string;
-      identity: Readonly<Record<string, unknown>>;
+      claims: Readonly<Record<string, unknown>>;
       sessionName: string;
       aggregateSessionLock: IAggregateSessionLock;
     }>,

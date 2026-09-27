@@ -34,8 +34,8 @@ export type IAuthoredAggregate<
       ACTORS[K]['contracts'],
       ACTORS[K]['automations'],
       MODELS,
+      ACTORS[K]['identity']['claimsSchema']['Type'],
       ACTORS[K]['identity']['identitySchema']['Type'],
-      ACTORS[K]['identity']['actorSchema']['Type'],
       'aggregate',
       GUARD_REQUIREMENTS
     >;

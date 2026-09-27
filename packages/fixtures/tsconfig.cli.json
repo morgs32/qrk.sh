@@ -1,0 +1,33 @@
+{
+  "extends": "./tsconfig.workerd.json",
+  "compilerOptions": {
+    "paths": {
+      "config": ["./src/cli/zerospin.config.ts"]
+    }
+  },
+  "include": [
+    "src/cli/**/*.ts",
+    "../system-worker/worker-configuration.d.ts",
+    "../system-worker/env-types.d.ts"
+  ],
+  "references": [
+    {
+      "path": "../schema"
+    },
+    {
+      "path": "../error"
+    },
+    {
+      "path": "../logger"
+    },
+    {
+      "path": "../core"
+    },
+    {
+      "path": "../system-worker"
+    },
+    {
+      "path": "../dev-worker"
+    }
+  ]
+}

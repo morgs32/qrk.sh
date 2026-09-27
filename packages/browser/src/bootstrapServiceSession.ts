@@ -1,6 +1,6 @@
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/make/makeDbConfig/makeDbConfig';
 import { makeProvisionedInMemoryWasmSqliteDb } from '@zerospin/core/drizzle/make/makeProvisionedInMemoryWasmSqliteDb/makeProvisionedInMemoryWasmSqliteDb';
-import { assertSessionIdentity } from '@zerospin/core/identity/assertSessionIdentity';
+import { assertSessionClaims } from '@zerospin/core/identity/assertSessionClaims';
 import type { IAdmissionRequest } from '@zerospin/core/identity/types';
 import { makeServiceSessionLockKey } from '@zerospin/core/serviceSession/make/makeServiceSessionLockKey';
 import { makeServiceSessionSpec } from '@zerospin/core/serviceSession/make/makeServiceSessionSpec';
@@ -34,7 +34,7 @@ export const bootstrapServiceSession = Effect.fn('bootstrapServiceSession')(
     getAdmission(): Promise<
       IResult<IAdmissionRequest, IAnyError | IZerospinErrorJson>
     >;
-    expectedIdentity?: Readonly<Record<string, unknown>> | undefined;
+    expectedClaims?: Readonly<Record<string, unknown>> | undefined;
   }) {
     const {
       session,
@@ -42,7 +42,7 @@ export const bootstrapServiceSession = Effect.fn('bootstrapServiceSession')(
       publishableKey,
       systemName,
       getAdmission,
-      expectedIdentity,
+      expectedClaims,
     } = props;
     const definition = session.definition;
     const models = session.models;
@@ -71,12 +71,12 @@ export const bootstrapServiceSession = Effect.fn('bootstrapServiceSession')(
             lock,
           },
           getAdmission,
-          expectedIdentity,
+          expectedClaims,
           receive: async snapshot => {
-            const acceptedIdentity = Schema.decodeUnknownSync(
-              definition.identity.identitySchema,
-            )(snapshot.identity.identity);
-            assertSessionIdentity(expectedIdentity, acceptedIdentity);
+            const acceptedClaims = Schema.decodeUnknownSync(
+              definition.claimsSchema,
+            )(snapshot.identity.claims);
+            assertSessionClaims(expectedClaims, acceptedClaims);
             db.transaction(tx => {
               tx.run(sql`PRAGMA defer_foreign_keys = ON`);
               for (const model of Object.values(models)) {
@@ -109,7 +109,7 @@ export const bootstrapServiceSession = Effect.fn('bootstrapServiceSession')(
             });
             session.store.setState({
               sessionId,
-              identity: acceptedIdentity,
+              claims: acceptedClaims,
               serviceName: definition.serviceName,
               serviceVersion: definition.serviceVersion,
               sessionName: definition.sessionName,

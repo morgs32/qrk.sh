@@ -39,7 +39,7 @@ export const getActorCommands = Effect.fn('ServiceSessionApi.getActorCommands')(
       [{ afterServiceIndex: number; serviceVersion: string }]
     >;
     authResults: {
-      readonly identity: Readonly<Record<string, unknown>>;
+      readonly claims: Readonly<Record<string, unknown>>;
       readonly actorPath: string;
       readonly sessionName: string;
       readonly serviceSessionLock: IServiceSessionLock;

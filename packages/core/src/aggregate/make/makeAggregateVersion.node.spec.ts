@@ -102,7 +102,7 @@ describe('aggregate declaration composition', () => {
         version: '1.0.0',
         db,
         identity: makeActorIdentity({
-          schema: Schema.Struct({ aggregateId: Schema.String }),
+          claims: Schema.Struct({ aggregateId: Schema.String }),
           actorPath: RoutePattern.parse('/:aggregateId'),
         }),
         queries: {},
@@ -115,10 +115,10 @@ describe('aggregate declaration composition', () => {
       actors: { reader },
       guards: {
         reader: {
-          observed: ({ queryDb, identity }) => {
+          observed: ({ queryDb, claims }) => {
             const value = queryDb.query.item.findFirst().sync()?.value;
             assert<Equals<typeof value, string | undefined>>();
-            assert<Equals<typeof identity.aggregateId, string>>();
+            assert<Equals<typeof claims.aggregateId, string>>();
             return Effect.void;
           },
         },

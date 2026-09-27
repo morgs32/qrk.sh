@@ -4,8 +4,8 @@ import { Schema } from 'effect';
 import { SelectionQuerySchema } from '../models/SelectionQuerySchema.ts';
 
 const identitySchema = Schema.Struct({
+  claimsJsonSchema: Schema.Unknown,
   identityJsonSchema: Schema.Unknown,
-  actorJsonSchema: Schema.Unknown,
   pattern: Schema.String,
 });
 

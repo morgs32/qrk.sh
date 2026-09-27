@@ -1,9 +1,9 @@
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/make/makeDbConfig/makeDbConfig';
+import { game } from '@zerospin/fixtures/system-worker/workerd/automationFixture';
 import { Effect } from 'effect';
 import { expect, it, vi } from 'vitest';
 
-import { game } from '../../workerd-utils/automationFixture.js';
 import { aggregateActorVersionRepoDbConfig } from '../aggregateActorVersionRepoDbConfig.js';
 import { makeActorSnapshotDb } from '../validateCommands/makeActorSnapshotDb.js';
 
@@ -16,7 +16,7 @@ vi.mock('config', async () => {
   const { makeSystemConfig } =
     await import('@zerospin/core/system/make/makeSystemConfig');
   const { automationGame, AutomationDecision } =
-    await import('../../workerd-utils/automationFixture.js');
+    await import('@zerospin/fixtures/system-worker/workerd/automationFixture');
   const { Effect, Layer } = await import('effect');
   return {
     default: makeSystemConfig(
@@ -61,7 +61,7 @@ it('durably stages prepared mutations while leaving resource rows authoritative'
           systemName: 'automations',
           actorName: key.actorName,
           actorVersion: key.actorVersion,
-          identity: {
+          claims: {
             aggregateId: key.aggregateId,
             instanceId: 'gam_selected',
           },

@@ -1,7 +1,7 @@
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",
   "name": "sync-dispatch",
-  "main": "e2e/dispatchWorker.ts",
+  "main": "../fixtures/src/sync/dispatchWorker.ts",
   "compatibility_date": "2025-04-16",
   "compatibility_flags": ["nodejs_compat"],
   "dispatch_namespaces": [

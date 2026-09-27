@@ -15,10 +15,10 @@
 // machineSession.ts
 import { makeSession } from '@zerospin/browser';
 
+import { claimsSchema } from '../claimsSchema';
 import { receiveResult } from '../contracts/receiveResultV1';
 import { recordAcceptance } from '../contracts/recordAcceptanceV1';
 import { startRequest } from '../contracts/startRequestV1';
-import { identitySchema } from '../identitySchema';
 import { machine } from '../machineV1';
 
 import { applicationLayer } from './applicationLayer';
@@ -33,6 +33,6 @@ export const machineSession = makeSession({
   actorVersion: '1.0.0',
   models: { machine },
   contracts: { startRequest, recordAcceptance, receiveResult },
-  identitySchema,
+  claimsSchema,
   layer: applicationLayer,
 });

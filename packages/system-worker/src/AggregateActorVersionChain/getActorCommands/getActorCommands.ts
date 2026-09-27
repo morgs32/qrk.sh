@@ -27,7 +27,7 @@ export const getActorCommands = Effect.fn(
   afterExecutedIndex: number;
   definition?: {
     name: string;
-    identity: Readonly<Record<string, unknown>>;
+    claims: Readonly<Record<string, unknown>>;
     lock: IAggregateSessionLock;
   };
   nodeId?: string;
@@ -118,7 +118,7 @@ export const getActorCommands = Effect.fn(
         props.definition !== undefined &&
         decoded.completionNodeId === props.nodeId &&
         decoded.completionSessionName === props.definition.name &&
-        isEqual(decoded.completionIdentity, props.definition.identity);
+        isEqual(decoded.completionClaims, props.definition.claims);
       if (row.executedIndex <= props.afterExecutedIndex && !ownsCompletion)
         continue;
       if (row.executedIndex > executedThrough) {

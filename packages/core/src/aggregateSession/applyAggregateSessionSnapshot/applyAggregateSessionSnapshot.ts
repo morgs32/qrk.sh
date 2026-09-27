@@ -31,9 +31,9 @@ export const applyAggregateSessionSnapshot = Effect.fn(
   models: DEFINITION['models'];
   snapshot: IAggregateSessionSnapshot;
   aggregateId: IAggregateSessionSnapshot['aggregateId'];
-  identity: IAggregateSessionSnapshot['identity'];
+  claims: IAggregateSessionSnapshot['claims'];
 }): Effect.fn.Return<void, IAnyError> {
-  const { aggregateId, db, definition, snapshot, models, sessionId, identity } =
+  const { aggregateId, db, definition, snapshot, models, sessionId, claims } =
     props;
 
   yield* Schema.encodeEffect(AggregateSessionSnapshotSchema)(snapshot, {
@@ -45,18 +45,18 @@ export const applyAggregateSessionSnapshot = Effect.fn(
     }),
   );
 
-  const encodedIdentity = yield* Schema.encodeEffect(
-    definition.identity.identitySchema,
-  )(snapshot.identity).pipe(
+  const encodedClaims = yield* Schema.encodeEffect(definition.claimsSchema)(
+    snapshot.claims,
+  ).pipe(
     mapParseError({
-      code: 'session-identity-invalid',
-      prefix: 'Invalid definition state identity',
+      code: 'session-claims-invalid',
+      prefix: 'Invalid definition state claims',
     }),
   );
 
   if (
     snapshot.aggregateId !== aggregateId ||
-    !isEqual(encodedIdentity, identity) ||
+    !isEqual(encodedClaims, claims) ||
     snapshot.aggregateName !== definition.aggregateName ||
     snapshot.actorName !== definition.actorName ||
     snapshot.actorVersion !== definition.actorVersion ||

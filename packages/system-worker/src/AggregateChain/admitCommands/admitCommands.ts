@@ -87,20 +87,20 @@ export const prepareAdmission = Effect.fn('AggregateChain.prepareAdmission')(
             config.system.aggregates[key.aggregateName] ?? {},
             command,
           );
-          if (command.identity.aggregateId !== command.aggregateId) {
+          if (command.claims.aggregateId !== command.aggregateId) {
             return yield* Effect.fail(
               makeZerospinError('aggregate-command-target-mismatch'),
             );
           }
           yield* checkAdmission({
             command,
-            identity: command.identity,
+            claims: command.claims,
             ...(command.automationName == null ? { actor } : {}),
             owners: [
               {
                 contracts: Object.values(getCommandContracts(actor, command)),
                 identity: {
-                  identitySchema: actor.identity.actorSchema,
+                  claimsSchema: actor.identity.identitySchema,
                 },
               },
             ],
@@ -134,8 +134,8 @@ export const prepareAdmission = Effect.fn('AggregateChain.prepareAdmission')(
       );
       if (Object.keys(actor.automations).length === 0) continue;
       const selection = yield* Schema.decodeUnknownEffect(
-        actor.identity.actorSchema,
-      )(entry.command.identity);
+        actor.identity.identitySchema,
+      )(entry.command.claims);
       const actorPath = createHref(
         actor.identity.pattern,
         yield* Schema.decodeUnknownEffect(

@@ -10,7 +10,7 @@ import { Schema } from 'effect';
 
 import { makeResourceDbConfig } from '../../drizzle/make/makeDbConfig/makeDbConfig.ts';
 import type { IDb, IDbConfig, IResourceDbConfig } from '../../drizzle/types.ts';
-import type { IIdentitySchema } from '../../identity/types.ts';
+import type { IClaimsSchema } from '../../identity/types.ts';
 import type { ISelectionQuery } from '../SelectionQuerySchema.ts';
 import type { IAnyModels, IModel } from '../types.ts';
 
@@ -42,7 +42,7 @@ export class ActorQuery<TResult = unknown> extends SQLiteRelationalQuery<
     db: IAnyActorDbVersion;
     model: IModel;
     key: string;
-    identity: IIdentitySchema;
+    identity: IClaimsSchema;
   }) {
     if (
       this.schema !== props.db.config.relations ||
@@ -246,7 +246,7 @@ export type ValidActorQueries<
 export function captureActorSelections<
   DB extends IAnyActorDbVersion,
   QUERIES extends IActorQueries,
-  S extends IIdentitySchema,
+  S extends IClaimsSchema,
 >(
   db: DB,
   queries: QUERIES,
@@ -255,7 +255,7 @@ export function captureActorSelections<
 export function captureActorSelections(
   db: IAnyActorDbVersion,
   queries: IActorQueries,
-  identity: IIdentitySchema,
+  identity: IClaimsSchema,
 ): Record<string, ISelection> {
   return Object.fromEntries(
     Object.entries(queries).map(([key, query]) => {

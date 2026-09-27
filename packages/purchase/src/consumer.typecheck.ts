@@ -39,11 +39,11 @@ export const purchase: ReturnType<
 >({
   frontend: purchaseFrontend,
   selectionIdentitySchema: purchaseIdentity,
-  resolveUserId: ({ queryDb, identity }) =>
+  resolveUserId: ({ queryDb, claims }) =>
     queryDb.query.user
       .findMany()
       .sync()
-      .find(user => user.id === identity.userId)?.id,
+      .find(user => user.id === claims.userId)?.id,
   cartContracts: { removeFromCart },
 });
 

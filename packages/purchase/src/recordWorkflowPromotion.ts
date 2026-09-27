@@ -1,6 +1,6 @@
 import { defineContract } from '@zerospin/core/contracts/defineContract';
 import { makeContractVersion } from '@zerospin/core/contracts/make/makeContractVersion';
-import type { IIdentitySchema } from '@zerospin/core/identity/types';
+import type { IClaimsSchema } from '@zerospin/core/identity/types';
 import { ContractError } from '@zerospin/error';
 import { makeEffectSchema, primitives } from '@zerospin/schema';
 import '@zerospin/server-only';
@@ -11,10 +11,10 @@ import type { IPurchaseHostModels } from './host.js';
 import type { IInternalOptions } from './internalOptions.js';
 export const makeRecordWorkflowPromotion = <
   const HOST extends IPurchaseHostModels,
-  const IDENTITY extends IIdentitySchema,
-  const SELECTION extends IIdentitySchema,
+  const CLAIMS extends IClaimsSchema,
+  const SELECTION extends IClaimsSchema,
 >(
-  options: IInternalOptions<HOST, IDENTITY, SELECTION>,
+  options: IInternalOptions<HOST, CLAIMS, SELECTION>,
 ) => {
   const { frontend, selectionIdentitySchema, resolveUserId } = options;
   const {
@@ -31,7 +31,7 @@ export const makeRecordWorkflowPromotion = <
     defineContract('recordPromotion'),
     {
       version: '1.0.0',
-      identity: selectionIdentitySchema,
+      claims: selectionIdentitySchema,
       failures: {
         aggregateConflict: purchaseStateConflict,
         conflict: ContractError.schema({
@@ -61,7 +61,7 @@ export const makeRecordWorkflowPromotion = <
       },
       guard: Effect.fn('recordPromotion.guard')(function* ({
         payload,
-        identity,
+        claims,
         queryDb: db,
         failures,
       }) {
@@ -81,7 +81,7 @@ export const makeRecordWorkflowPromotion = <
         );
         if (
           checkout === undefined ||
-          checkout.userId !== resolveUserId({ queryDb: db, identity }) ||
+          checkout.userId !== resolveUserId({ queryDb: db, claims }) ||
           checkout?.promotionReservationId !== payload.id ||
           promotion?.cartId !== checkout.cartId
         ) {

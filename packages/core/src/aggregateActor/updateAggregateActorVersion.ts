@@ -76,11 +76,11 @@ export function updateAggregateActorVersion<
     version: VERSION;
     authentication?: IAggregateAuthentication<
       CREDENTIALS,
-      IDENTITY['identitySchema']
+      IDENTITY['claimsSchema']
     >;
     db?: DB;
     identity?: IDENTITY &
-      (IDENTITY['identitySchema']['Type'] extends {
+      (IDENTITY['claimsSchema']['Type'] extends {
         readonly aggregateId: string;
       }
         ? unknown
@@ -93,14 +93,14 @@ export function updateAggregateActorVersion<
         NoInfer<Merge<PREVIOUS['contracts'], CONTRACTS>>,
         NoInfer<Merge<PREVIOUS['automations'], AUTOMATIONS>>,
         DB['models'],
+        IDENTITY['claimsSchema']['Type'],
         IDENTITY['identitySchema']['Type'],
-        IDENTITY['actorSchema']['Type'],
         'actor',
         GUARD_REQUIREMENTS
       >;
     authorize?: AUTHORIZE &
       IAggregateActorAuthorization<
-        IDENTITY['identitySchema']['Type'],
+        IDENTITY['claimsSchema']['Type'],
         AUTHORIZE_REQUIREMENTS
       >;
   } & (Same<DB, PREVIOUS['db']> extends true ? unknown : { db: DB }) &
@@ -119,7 +119,7 @@ export function updateAggregateActorVersion<
     (Merge<PREVIOUS['contracts'], CONTRACTS> extends ValidActorContracts<
       Merge<PREVIOUS['contracts'], CONTRACTS>,
       DB['models'],
-      IDENTITY['identitySchema']['Type']
+      IDENTITY['claimsSchema']['Type']
     >
       ? unknown
       : { contracts: never }) &
@@ -127,8 +127,8 @@ export function updateAggregateActorVersion<
       Merge<PREVIOUS['contracts'], CONTRACTS>,
       Merge<PREVIOUS['automations'], AUTOMATIONS>,
       DB['models'],
+      IDENTITY['claimsSchema']['Type'],
       IDENTITY['identitySchema']['Type'],
-      IDENTITY['actorSchema']['Type'],
       'actor',
       ActorGuardRequirements<Merge<PREVIOUS['guards'], GUARDS>>
     >

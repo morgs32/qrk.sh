@@ -58,7 +58,7 @@ export const onMessage = Effect.fn('AggregateActorVersionChain.onMessage')(
       actorName: string;
       actorVersion: string;
       actorPath: string;
-      identity: Readonly<Record<string, unknown>>;
+      claims: Readonly<Record<string, unknown>>;
       sessionName: string;
       aggregateSessionLock: IAggregateSessionLock;
     }>;
@@ -159,13 +159,13 @@ export const onMessage = Effect.fn('AggregateActorVersionChain.onMessage')(
           };
         }
 
-        // 3 — compare aggregateId, aggregateName, identity, sessionName, nodeIndex, and stagedDelta
+        // 3 — compare aggregateId, aggregateName, claims, sessionName, nodeIndex, and stagedDelta
         if (
           command.aggregateId !== state.aggregateId ||
           command.aggregateName !== state.aggregateName ||
           command.actorName !== state.actorName ||
           command.actorVersion !== state.actorVersion ||
-          !isEqual(command.identity, state.identity) ||
+          !isEqual(command.claims, state.claims) ||
           command.sessionName !== state.sessionName ||
           command.nodeId !== state.nodeId
         ) {
@@ -376,7 +376,7 @@ export const onMessage = Effect.fn('AggregateActorVersionChain.onMessage')(
         db,
         definition: {
           name: state.sessionName,
-          identity: state.identity,
+          claims: state.claims,
           lock: state.aggregateSessionLock,
         },
       });

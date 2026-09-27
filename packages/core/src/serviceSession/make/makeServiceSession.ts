@@ -28,10 +28,7 @@ export function makeServiceSession<
   const { definition, models } = props;
 
   const store = createStore<
-    IServiceSessionState<
-      MODELS,
-      DEFINITION['identity']['identitySchema']['Type']
-    >
+    IServiceSessionState<MODELS, DEFINITION['claimsSchema']['Type']>
   >((set, get) => {
     const telemetryCollector: ITelemetryCollector = {
       addSpan: span => {
@@ -80,7 +77,7 @@ export function makeServiceSession<
 
     return {
       sessionId: null,
-      identity: null,
+      claims: null,
       serviceName: null,
       sessionName: null,
       serviceSessionLockKey: null,
@@ -105,7 +102,7 @@ export function makeServiceSession<
     handler: (props: {
       state: IInitializedServiceSessionState<
         MODELS,
-        DEFINITION['identity']['identitySchema']['Type']
+        DEFINITION['claimsSchema']['Type']
       >;
     }) => void,
   ): (() => void) => {

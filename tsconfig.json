@@ -11,7 +11,7 @@
       "path": "./packages/devtools"
     },
     {
-      "path": "./packages/config"
+      "path": "./packages/fixtures/tsconfig.config.json"
     },
     {
       "path": "./packages/error"

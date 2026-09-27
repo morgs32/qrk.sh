@@ -42,7 +42,7 @@ export const fetch = Effect.fn('SystemRepo.fetch', { root: true })(
       actorName: AnyColumn;
       actorVersion: AnyColumn;
       actorPath: AnyColumn;
-      identity: AnyColumn;
+      claims: AnyColumn;
       sessionName: AnyColumn;
       aggregateSessionLock: AnyColumn;
     }>;
@@ -54,7 +54,7 @@ export const fetch = Effect.fn('SystemRepo.fetch', { root: true })(
       serviceName: AnyColumn;
       serviceVersion: AnyColumn;
       actorPath: AnyColumn;
-      identity: AnyColumn;
+      claims: AnyColumn;
       sessionName: AnyColumn;
       serviceSessionLock: AnyColumn;
     }>;
@@ -155,8 +155,8 @@ export const fetch = Effect.fn('SystemRepo.fetch', { root: true })(
         );
         headers.set('x-zerospin-actor-path', settled.success.actorPath);
         headers.set(
-          'x-zerospin-identity',
-          JSON.stringify(settled.success.identity),
+          'x-zerospin-claims',
+          JSON.stringify(settled.success.claims),
         );
         headers.set('x-zerospin-session-name', settled.success.sessionName);
         headers.set(
@@ -221,10 +221,7 @@ export const fetch = Effect.fn('SystemRepo.fetch', { root: true })(
       headers.delete('x-zerospin-actor-version');
       headers.delete('x-zerospin-actor-path');
       headers.delete('x-zerospin-session-name');
-      headers.set(
-        'x-zerospin-identity',
-        JSON.stringify(settled.success.identity),
-      );
+      headers.set('x-zerospin-claims', JSON.stringify(settled.success.claims));
       headers.set(
         'x-zerospin-aggregate-session-lock',
         JSON.stringify(settled.success.aggregateSessionLock),

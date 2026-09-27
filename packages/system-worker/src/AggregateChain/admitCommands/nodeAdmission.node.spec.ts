@@ -29,7 +29,7 @@ const command = (
   systemName: 'test',
   actorName: 'owner',
   actorVersion: 'v1',
-  identity: { aggregateId: 'acct_one' },
+  claims: { aggregateId: 'acct_one' },
 });
 
 describe('node admission and retained outcome replay', () => {
@@ -102,7 +102,7 @@ describe('node admission and retained outcome replay', () => {
         yield* admit(command('one', 1));
         const rejected = yield* admit({
           ...command('two', 2),
-          identity: { aggregateId: 'acct_other' },
+          claims: { aggregateId: 'acct_other' },
         }).pipe(Effect.result);
         expect(Result.isFailure(rejected) && rejected.failure.code).toBe(
           'node-admission-identity-mismatch',
@@ -136,7 +136,7 @@ describe('node admission and retained outcome replay', () => {
                   systemName: 'example',
                   actorName: 'editor',
                   actorVersion: '1.0.0',
-                  identity: { aggregateId: 'acct_one' },
+                  claims: { aggregateId: 'acct_one' },
                   nodeId: 'node_one',
                   nodeIndex: index,
                   sessionName: 'editor',
@@ -184,7 +184,7 @@ describe('node admission and retained outcome replay', () => {
                   lastDeliveryFailure: null,
                   completionNodeId: 'node_one',
                   completionNodeIndex: index,
-                  completionIdentity: { aggregateId: 'acct_one' },
+                  completionClaims: { aggregateId: 'acct_one' },
                   completionSessionName: 'editor',
                 }),
               ),
@@ -196,12 +196,12 @@ describe('node admission and retained outcome replay', () => {
           afterNodeIndex: 0,
           definition: {
             name: 'editor',
-            identity: { aggregateId: 'acct_one' },
+            claims: { aggregateId: 'acct_one' },
             lock: {
               sessionName: 'editor',
               actorName: 'editor',
               actorVersion: '1.0.0',
-              identity: { identityJsonSchema: {} },
+              claims: { claimsJsonSchema: {} },
               models: {},
               contracts: {},
             },
@@ -231,7 +231,7 @@ describe('node admission and retained outcome replay', () => {
           ...own,
           definition: {
             ...own.definition,
-            identity: { aggregateId: 'acct_other' },
+            claims: { aggregateId: 'acct_other' },
           },
         });
         expect(other.commands).toEqual([]);

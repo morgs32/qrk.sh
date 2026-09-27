@@ -161,7 +161,7 @@ The session selects models and contracts from one aggregate version. Its lock mu
 
 ```ts
 // Share this browser-safe identity schema with the selected server actor.
-export const listIdentitySchema = Schema.Struct({
+export const listClaims = Schema.Struct({
   aggregateId: Schema.String,
   userId: makeModelIdSchema(User),
 });
@@ -170,7 +170,7 @@ export const listSession = makeSession({
   kind: 'aggregate',
   sessionName: 'main',
   systemName: 'system1',
-  identitySchema: listIdentitySchema,
+  claimsSchema: listClaims,
   layer: applicationLayer,
   aggregateName: 'user',
   aggregateVersion: '1.0.0',
@@ -206,7 +206,7 @@ same identity shape, and their sessions initialize with `{ getCredentials }`.
 
 ```ts
 const identity = sdk.makeActorIdentity({
-  schema: listIdentitySchema,
+  claims: listClaims,
   actorPath: RoutePattern.parse('/:userId'),
 });
 const db = sdk.makeActorDbVersion({
@@ -249,7 +249,7 @@ export const system = sdk.makeSystem({
   services: {},
 });
 await listSession.initialize({
-  identity: { aggregateId: 'acct_example', userId },
+  claims: { aggregateId: 'acct_example', userId },
 });
 ```
 

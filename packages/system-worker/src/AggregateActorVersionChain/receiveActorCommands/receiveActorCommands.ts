@@ -16,9 +16,9 @@ import { isEqual } from 'es-toolkit';
 import { aggregateActorVersionChainDbConfig } from '../aggregateActorVersionChainDbConfig.js';
 import { projectActorCommand } from '../projectActorCommand.js';
 
-const identitySchema = makeEffectSchema(
+const claimsSchema = makeEffectSchema(
   aggregateActorVersionChainDbConfig.tables.commands.shape,
-).fields.completionIdentity;
+).fields.completionClaims;
 
 /** Retain a validated actor command before broadcasting, including on duplicate delivery. */
 const retainActorCommand = makeTx(
@@ -27,14 +27,14 @@ const retainActorCommand = makeTx(
   tx: ITx<typeof aggregateActorVersionChainDbConfig>,
   row: typeof aggregateActorVersionChainDbConfig.schema.commands.$inferSelect,
   output: IAggregateActorCommand,
-  identity: Readonly<Record<string, unknown>> | null,
+  claims: Readonly<Record<string, unknown>> | null,
 ) {
   if (
-    (identity === null) !== (row.completionSessionName === null) ||
-    (identity === null) !== (row.completionNodeId === null) ||
-    (identity === null) !== (row.completionNodeIndex === null) ||
+    (claims === null) !== (row.completionSessionName === null) ||
+    (claims === null) !== (row.completionNodeId === null) ||
+    (claims === null) !== (row.completionNodeIndex === null) ||
     ((output.admission !== null || output.execution !== null) &&
-      identity === null)
+      claims === null)
   ) {
     return yield* makeZerospinError({
       code: 'session-output-completion-owner-invalid',
@@ -90,7 +90,7 @@ export const receiveActorCommands = Effect.fn(
   db: IDb<typeof aggregateActorVersionChainDbConfig>;
   broadcast(props: {
     command: IAggregateActorCommand;
-    identity: Readonly<Record<string, unknown>> | null;
+    claims: Readonly<Record<string, unknown>> | null;
     sessionName: string | null;
   }): void;
 }) {
@@ -100,9 +100,7 @@ export const receiveActorCommands = Effect.fn(
       .pipe(
         Effect.catch(error =>
           // Classify malformed authentication only after a row fails decoding.
-          Schema.decodeUnknownEffect(identitySchema)(
-            row.completionIdentity,
-          ).pipe(
+          Schema.decodeUnknownEffect(claimsSchema)(row.completionClaims).pipe(
             mapParseError({
               code: 'session-output-completion-owner-invalid',
               prefix: 'Failed to decode actor command owner',
@@ -130,7 +128,7 @@ export const receiveActorCommands = Effect.fn(
       props.db,
       row,
       output,
-      decoded.completionIdentity,
+      decoded.completionClaims,
     ).pipe(
       Effect.mapError(cause =>
         isZerospinError(cause) && cause.code !== 'drizzle-transaction-failed'
@@ -144,7 +142,7 @@ export const receiveActorCommands = Effect.fn(
     );
     props.broadcast({
       command: output,
-      identity: decoded.completionIdentity,
+      claims: decoded.completionClaims,
       sessionName: decoded.completionSessionName,
     });
   }

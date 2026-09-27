@@ -13,11 +13,11 @@ export const checkAggregateAuthorization = Effect.fn(
     aggregateId: IAggregateId;
     aggregateName: string;
     aggregateVersion: string;
-    identity: Readonly<Record<string, unknown>>;
+    claims: Readonly<Record<string, unknown>>;
     aggregateSessionLock: IAggregateSessionLock;
     sessionSpec: IAggregateSessionSpec;
   }>;
-  identity: Readonly<Record<string, unknown>>;
+  claims: Readonly<Record<string, unknown>>;
   aggregateId: IAggregateId;
   aggregateName: string;
   aggregateVersion: string;
@@ -26,7 +26,7 @@ export const checkAggregateAuthorization = Effect.fn(
 }) {
   const {
     authorization,
-    identity,
+    claims,
     aggregateId,
     aggregateName,
     sessionName,
@@ -41,13 +41,13 @@ export const checkAggregateAuthorization = Effect.fn(
     authorization.aggregateSessionLock,
   );
 
-  // 3 — compare aggregateId, aggregateName, identity, sessionName, and lock
+  // 3 — compare aggregateId, aggregateName, claims, sessionName, and lock
   if (
     authorization.aggregateId !== aggregateId ||
     authorization.aggregateName !== aggregateName ||
     authorization.aggregateVersion !== aggregateVersion ||
     authorization.sessionSpec.aggregateVersion !== aggregateVersion ||
-    !isEqual(authorization.identity, identity) ||
+    !isEqual(authorization.claims, claims) ||
     authorization.sessionSpec.aggregateName !== aggregateName ||
     authorization.sessionSpec.sessionName !== sessionName ||
     authorizedLockKey !== submittedLockKey

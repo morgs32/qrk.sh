@@ -32,7 +32,7 @@ export async function connectBrowserNode(props: {
   getAdmission(): Promise<
     IResult<IAdmissionRequest, IAnyError | IZerospinErrorJson>
   >;
-  expectedIdentity?: Readonly<Record<string, unknown>> | undefined;
+  expectedClaims?: Readonly<Record<string, unknown>> | undefined;
   receive(snapshot: INodeSnapshot): Promise<void>;
   state(state: INodeSnapshot['state']): void;
   reconnect(): Promise<void>;
@@ -116,11 +116,7 @@ export async function connectBrowserNode(props: {
         )
         .catch(() => undefined);
       const attached = nodeResult(
-        await connection.attach(
-          props.request,
-          admission,
-          props.expectedIdentity,
-        ),
+        await connection.attach(props.request, admission, props.expectedClaims),
       );
       if (disposed || generation !== current) {
         attached[Symbol.dispose]();

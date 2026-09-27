@@ -1,5 +1,5 @@
 import type { IDb, IResourceDbConfig } from '@zerospin/core/drizzle/types';
-import type { IIdentitySchema } from '@zerospin/core/identity/types';
+import type { IClaimsSchema } from '@zerospin/core/identity/types';
 import type {
   IModel,
   IModelReplica,
@@ -76,7 +76,7 @@ type IRole<
 > = Omit<IModel<A, ABBREVIATION, NAME>, 'indexes'> & Pick<IModel, 'indexes'>;
 export type IUserLookup<
   HOST extends IPurchaseHostModels,
-  IDENTITY extends IIdentitySchema,
+  CLAIMS extends IClaimsSchema,
 > = (props: {
   queryDb: Readonly<
     Pick<
@@ -84,15 +84,15 @@ export type IUserLookup<
       'query'
     >
   >;
-  identity: IDENTITY['Type'];
+  claims: CLAIMS['Type'];
 }) => `usr_${string}` | undefined;
 export type IPurchaseFrontendOptions<
   HOST extends IPurchaseHostModels,
-  IDENTITY extends IIdentitySchema,
+  CLAIMS extends IClaimsSchema,
 > = {
   models: HOST;
   contractVersion?: string;
-  identitySchema: IDENTITY;
-  resolveUserId: IUserLookup<HOST, IDENTITY>;
+  claimsSchema: CLAIMS;
+  resolveUserId: IUserLookup<HOST, CLAIMS>;
   readQuantity: (item: InferResource<HOST['cartItem']>) => number;
 };

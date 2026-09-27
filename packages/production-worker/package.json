@@ -29,13 +29,13 @@
     "@zerospin/schema": "workspace:*",
     "capnweb": "^0.12.0",
     "cloudflare": "^6.1.0",
-    "config": "workspace:*",
     "system-worker": "workspace:*"
   },
   "devDependencies": {
     "@cloudflare/vitest-plugin": "^1.1.2",
     "@types/node": "^25.9.4",
     "@zerospin/dev-worker": "workspace:*",
+    "@zerospin/fixtures": "workspace:*",
     "effect": "rc",
     "rimraf": "^6.1.3",
     "vitest": "^4.1.5"

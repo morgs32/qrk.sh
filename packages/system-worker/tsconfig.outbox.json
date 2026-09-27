@@ -5,7 +5,6 @@
     "src/makeOutboxSubscriber/*.ts",
     "src/makeAlarmRegistry/*.ts",
     "src/managedRuntime.ts",
-    "src/workerd-utils/OutboxFixture.ts",
     "worker-configuration.d.ts"
   ],
   "exclude": []

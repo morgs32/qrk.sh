@@ -36,12 +36,17 @@
         "name": "@effect/language-service"
       }
     ],
-    "types": ["node"]
+    "types": ["node"],
+    "paths": {
+      "config": ["../fixtures/src/config/config.ts"]
+    }
   },
   "include": ["src"],
   "exclude": ["**/*.spec.ts", "**/*.spec.tsx"],
   "references": [
-    { "path": "../config" },
+    {
+      "path": "../fixtures/tsconfig.config.json"
+    },
     {
       "path": "../system-worker"
     },

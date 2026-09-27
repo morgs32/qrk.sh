@@ -26,7 +26,7 @@ const aggregateCommand = () =>
     automationName: null,
     actorName: 'owner',
     actorVersion: 'v1',
-    identity: { aggregateId: 'acct_one' },
+    claims: { aggregateId: 'acct_one' },
     sessionName: null,
     nodeIndex: null,
     admission: {

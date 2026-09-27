@@ -41,7 +41,7 @@ export const getSnapshot = Effect.fn('AggregateSessionApi.getSnapshot')(
       readonly aggregateId: IAggregateId;
       readonly aggregateName: string;
       aggregateVersion: string;
-      readonly identity: Readonly<Record<string, unknown>>;
+      readonly claims: Readonly<Record<string, unknown>>;
       actorName: string;
       actorVersion: string;
       readonly actorPath: string;
@@ -98,7 +98,7 @@ export const getSnapshot = Effect.fn('AggregateSessionApi.getSnapshot')(
     // 5 — settle the materializer getSnapshot RPC under a collected root span
     const settled = yield* makeAsync<
       IRpcEnvelope<
-        Omit<IAggregateSessionSnapshot, 'identity'> & {
+        Omit<IAggregateSessionSnapshot, 'claims'> & {
           actorName: string;
           actorVersion: string;
           actorPath: string;
@@ -113,7 +113,7 @@ export const getSnapshot = Effect.fn('AggregateSessionApi.getSnapshot')(
         actorVersion: authResults.actorVersion,
         actorPath: authResults.actorPath,
         sessionName: authResults.sessionName,
-        identity: authResults.identity,
+        claims: authResults.claims,
         nodeId: validatedArgs.success[0].nodeId,
       }),
     ).pipe(
@@ -131,7 +131,7 @@ export const getSnapshot = Effect.fn('AggregateSessionApi.getSnapshot')(
             executedIndex: snapshot.executedIndex,
             executedHash: snapshot.executedHash,
             resolvedThrough: snapshot.resolvedThrough,
-            identity: authResults.identity,
+            claims: authResults.claims,
             resources: snapshot.resources.filter(resource =>
               Object.hasOwn(
                 authResults.aggregateSessionLock.models,

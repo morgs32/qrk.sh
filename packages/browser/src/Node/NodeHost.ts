@@ -1,4 +1,4 @@
-import { assertSessionIdentity } from '@zerospin/core/identity/assertSessionIdentity';
+import { assertSessionClaims } from '@zerospin/core/identity/assertSessionClaims';
 import type { IAdmissionRequest } from '@zerospin/core/identity/types';
 import { makeZerospinError } from '@zerospin/error';
 import type { SqliteRemoteDatabase } from 'drizzle-orm/sqlite-proxy';
@@ -40,7 +40,7 @@ export class NodeHost {
 
   private async identity(
     request: INodeRequest,
-    identity: INodeIdentity['identity'],
+    claims: INodeIdentity['claims'],
     targetId: string,
   ): Promise<INodeIdentity> {
     const { lock, ...configuration } = request;
@@ -49,7 +49,7 @@ export class NodeHost {
       actorName: lock.actorName,
       actorVersion: lock.actorVersion,
       targetId,
-      identity,
+      claims,
       definitionHash: await hashNodeValue(lock),
     };
   }
@@ -91,7 +91,7 @@ export class NodeHost {
             );
             const identity = await this.identity(
               request,
-              snapshot.identity,
+              snapshot.claims,
               'aggregateId' in snapshot
                 ? snapshot.aggregateId
                 : snapshot.serviceName,
@@ -136,7 +136,7 @@ export class NodeHost {
     input: unknown,
     target: object,
     getAdmission: () => Promise<IAdmissionRequest>,
-    expectedIdentity?: Readonly<Record<string, unknown>>,
+    expectedClaims?: Readonly<Record<string, unknown>>,
   ) {
     const request = Schema.decodeUnknownSync(NodeRequestSchema)(input, {
       onExcessProperty: 'error',
@@ -177,20 +177,20 @@ export class NodeHost {
       definition = {
         identity: await this.identity(
           request,
-          snapshot.identity,
+          snapshot.claims,
           'aggregateId' in snapshot
             ? snapshot.aggregateId
             : snapshot.serviceName,
         ),
         lock: request.lock,
       };
-      assertSessionIdentity(expectedIdentity, definition.identity.identity);
+      assertSessionClaims(expectedClaims, definition.identity.claims);
       online = true;
     } catch (error) {
       if (!isNodeNetworkUnavailable(error)) throw error;
       const remembered = await this.catalog.reopenOffline(locator);
       if (remembered === null) throw error;
-      assertSessionIdentity(expectedIdentity, remembered.identity.identity);
+      assertSessionClaims(expectedClaims, remembered.identity.claims);
       definition = remembered;
     }
     if (generation !== this.generation) {
@@ -270,7 +270,7 @@ export class NodeHost {
             ).snapshot((await entry.node.snapshot()).metadata.nodeId);
             const identity = await this.identity(
               oldRequest,
-              verified.identity,
+              verified.claims,
               'aggregateId' in verified
                 ? verified.aggregateId
                 : verified.serviceName,

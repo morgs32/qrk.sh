@@ -55,11 +55,11 @@ export const systemLogRepoDbConfig = makeDbConfig({
         status: primitives.enum({
           values: ['unfinished', 'succeeded', 'failed'],
         }),
-        identity: primitives.json({
+        claims: primitives.json({
           schema: Schema.Record(Schema.String, Schema.Unknown),
           nullable: true,
         }),
-        identityHash: primitives.text({ nullable: true }),
+        claimsHash: primitives.text({ nullable: true }),
         selection: primitives.json({
           schema: Schema.Record(Schema.String, Schema.String),
           nullable: true,

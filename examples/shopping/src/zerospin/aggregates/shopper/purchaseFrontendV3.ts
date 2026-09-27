@@ -2,7 +2,8 @@ import { makePurchaseFrontendModule } from '@zerospin/purchase/browser';
 import * as sdk from '@zerospin/sdk/browser';
 import { Effect } from 'effect';
 
-import { shopperIdentitySchema } from './actors/identities';
+import { shopperClaims } from '../../claims';
+
 import { cartV1 } from './models/cart/CartV1';
 import { cartItemV3 } from './models/cartItem/CartItemV3';
 import { productReplicaV1 } from './models/productReplica/ProductReplicaV1';
@@ -16,10 +17,10 @@ const next = makePurchaseFrontendModule(
       cartItem: cartItemV3,
       product: productReplicaV1,
     },
-    identitySchema: shopperIdentitySchema,
-    resolveUserId: ({ queryDb, identity }) =>
+    claimsSchema: shopperClaims,
+    resolveUserId: ({ queryDb, claims }) =>
       queryDb.query.user
-        .findFirst({ where: { clerkUserId: { eq: identity.clerkUserId } } })
+        .findFirst({ where: { clerkUserId: { eq: claims.clerkUserId } } })
         .sync()?.id,
     readQuantity: item => item.quantity,
   },
@@ -29,7 +30,7 @@ const confirmCheckout = sdk.upgradeContractVersion(
   purchaseFrontend.contracts.confirmCheckout,
   {
     version: '2.0.0',
-    identity: shopperIdentitySchema,
+    claims: shopperClaims,
     failures: next.contracts.confirmCheckout.failures,
     models: next.contracts.confirmCheckout.models,
     payload: {},
@@ -43,7 +44,7 @@ const applyPromotion = sdk.upgradeContractVersion(
   purchaseFrontend.contracts.applyPromotion,
   {
     version: '2.0.0',
-    identity: shopperIdentitySchema,
+    claims: shopperClaims,
     failures: next.contracts.applyPromotion.failures,
     models: next.contracts.applyPromotion.models,
     payload: {},

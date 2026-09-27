@@ -15,7 +15,7 @@ import { purchase } from './consumer.typecheck.js';
 import { PromotionProvider } from './providers.js';
 import { makePurchaseQuote } from './quote.js';
 
-const identity = { aggregateId: 'acct_test', userId: 'usr_test' };
+const claims = { aggregateId: 'acct_test', userId: 'usr_test' };
 const quote = makePurchaseQuote([
   {
     id: 'cit_test',
@@ -99,20 +99,20 @@ async function fixture() {
   const execute = async (
     contract: Contract,
     payload: Record<string, unknown>,
-    owner = identity,
+    owner = claims,
   ) => {
     if (contract.guard) {
       await Effect.runPromise(
         contract.guard({
           queryDb: db,
-          identity: owner,
+          claims: owner,
           payload,
           failures: contract.failures,
         }),
       );
     }
     const mutations = await Effect.runPromise(
-      contract.program({ identity: owner, payload }),
+      contract.program({ claims: owner, payload }),
     );
     db.transaction(tx =>
       Effect.runSync(
@@ -461,7 +461,7 @@ it('retries partially successful remote releases and returns one complete local 
               aggregateVersion: '1.0.0',
               actorName: 'shopper',
               actorVersion: '1.0.0',
-              identity,
+              claims,
               nodeId: null,
               nodeIndex: null,
               sessionName: null,

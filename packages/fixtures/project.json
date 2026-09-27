@@ -1,0 +1,71 @@
+{
+  "name": "@zerospin/fixtures",
+  "targets": {
+    "config:lib": {
+      "dependsOn": [
+        {
+          "target": "lib",
+          "projects": ["@zerospin/core", "@zerospin/schema", "@zerospin/error"]
+        }
+      ],
+      "cache": true,
+      "inputs": [
+        "{projectRoot}/src/config/**/*",
+        "{projectRoot}/tsconfig.config.json",
+        "{workspaceRoot}/tsconfig.base.json",
+        {
+          "dependentTasksOutputFiles": "**/*.d.ts",
+          "transitive": true
+        }
+      ],
+      "outputs": [
+        "{projectRoot}/dist/config",
+        "{projectRoot}/dist/config.tsbuildinfo"
+      ]
+    },
+    "ts:node": {
+      "dependsOn": [
+        {
+          "target": "lib",
+          "projects": [
+            "@zerospin/core",
+            "@zerospin/browser",
+            "@zerospin/devtools",
+            "@zerospin/dev-worker"
+          ]
+        },
+        "config:lib"
+      ]
+    },
+    "ts:workerd": {
+      "dependsOn": [
+        {
+          "target": "lib",
+          "projects": [
+            "system-worker",
+            "@zerospin/purchase",
+            "@zerospin/fulfillment"
+          ]
+        },
+        "config:lib"
+      ]
+    },
+    "ts:sync": {
+      "dependsOn": [
+        {
+          "target": "lib",
+          "projects": ["@zerospin/sync"]
+        },
+        "config:lib"
+      ]
+    },
+    "ts:cli": {
+      "dependsOn": [
+        {
+          "target": "lib",
+          "projects": ["@zerospin/dev-worker"]
+        }
+      ]
+    }
+  }
+}

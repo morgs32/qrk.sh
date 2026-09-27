@@ -27,7 +27,7 @@ export const authorizeAggregateSession = Effect.fn(
   actorName: string;
   actorVersion: string;
   sessionName: string;
-  identity: Readonly<Record<string, unknown>>;
+  claims: Readonly<Record<string, unknown>>;
   db: IDb;
 }) {
   const {
@@ -36,7 +36,7 @@ export const authorizeAggregateSession = Effect.fn(
     aggregateVersion,
     db,
     sessionName,
-    identity,
+    claims,
     actorName,
     actorVersion,
   } = props;
@@ -80,15 +80,15 @@ export const authorizeAggregateSession = Effect.fn(
     Reflect.set(query, modelName, modelQuery);
   }
 
-  // 4 — supply aggregateId, identity, and the restricted query object
+  // 4 — supply aggregateId, claims, and the restricted query object
   const context: Context.Context<unknown> = yield* system.runtime.contextEffect;
 
-  const decodedIdentity = yield* Schema.decodeUnknownEffect(
-    actor.identity.identitySchema,
-  )(identity, { onExcessProperty: 'error' }).pipe(
+  const decodedClaims = yield* Schema.decodeUnknownEffect(
+    actor.identity.claimsSchema,
+  )(claims, { onExcessProperty: 'error' }).pipe(
     mapParseError({
-      code: 'authorization-identity-invalid',
-      prefix: 'Invalid actor identity',
+      code: 'authorization-claims-invalid',
+      prefix: 'Invalid actor claims',
     }),
   );
 
@@ -96,7 +96,7 @@ export const authorizeAggregateSession = Effect.fn(
     .authorize({
       aggregateId,
       sessionName,
-      identity: decodedIdentity,
+      claims: decodedClaims,
       db: { query },
     })
     .pipe(Effect.provideContext(context));

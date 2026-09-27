@@ -23,7 +23,7 @@ export const onConnect = Effect.fn('ServiceActorVersionChain.onConnect')(
       serviceName: string;
       serviceVersion: string;
       actorPath: string;
-      identity: Readonly<Record<string, unknown>>;
+      claims: Readonly<Record<string, unknown>>;
       sessionName: string;
       serviceSessionLock: IServiceSessionLock;
     }>;
@@ -79,18 +79,18 @@ export const onConnect = Effect.fn('ServiceActorVersionChain.onConnect')(
       return;
     }
 
-    const identityResult = yield* Schema.decodeUnknownEffect(
+    const claimsResult = yield* Schema.decodeUnknownEffect(
       Schema.fromJsonString(Schema.Record(Schema.String, Schema.Unknown)),
-    )(request.headers.get('x-zerospin-identity')).pipe(Effect.result);
-    if (Result.isFailure(identityResult)) {
-      connection.close(4004, 'session-identity-invalid');
+    )(request.headers.get('x-zerospin-claims')).pipe(Effect.result);
+    if (Result.isFailure(claimsResult)) {
+      connection.close(4004, 'session-claims-invalid');
       return;
     }
 
     // 5 — store phase awaiting-resume and the checked header fields
     connection.setState({
       phase: 'awaiting-resume',
-      identity: identityResult.success,
+      claims: claimsResult.success,
       serviceVersion,
       serviceName,
       actorPath,

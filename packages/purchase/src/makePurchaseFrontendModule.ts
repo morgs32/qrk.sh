@@ -1,4 +1,4 @@
-import type { IIdentitySchema } from '@zerospin/core/identity/types';
+import type { IClaimsSchema } from '@zerospin/core/identity/types';
 import { makeEffectSchema } from '@zerospin/schema';
 import * as sdk from '@zerospin/sdk/browser';
 import { Clock, Effect, Schema } from 'effect';
@@ -8,12 +8,12 @@ import { makePurchaseModels } from './models.js';
 import { makePurchaseQuote, PurchaseQuoteSchema } from './quote.js';
 export const makePurchaseFrontendModule = <
   const HOST extends IPurchaseHostModels,
-  const IDENTITY extends IIdentitySchema,
+  const CLAIMS extends IClaimsSchema,
 >(
-  options: IPurchaseFrontendOptions<HOST, IDENTITY>,
+  options: IPurchaseFrontendOptions<HOST, CLAIMS>,
   domainModels = makePurchaseModels(options.models),
 ) => {
-  const { models: host, identitySchema, resolveUserId, readQuantity } = options;
+  const { models: host, claimsSchema, resolveUserId, readQuantity } = options;
   const cartV1: HOST['cart'] = host.cart;
   const cartItemV2: HOST['cartItem'] = host.cartItem;
   const productReplicaV1: HOST['product'] = host.product;
@@ -29,7 +29,7 @@ export const makePurchaseFrontendModule = <
     sdk.defineContract('confirmCheckout'),
     {
       version: options.contractVersion ?? '1.0.0',
-      identity: identitySchema,
+      claims: claimsSchema,
       failures: {
         conflict: sdk.ContractError.schema({ code: 'checkout-conflict' }),
         actorDenied: sdk.ActorError.schema({
@@ -60,11 +60,11 @@ export const makePurchaseFrontendModule = <
       },
       guard: Effect.fn('confirmCheckout.guard')(function* ({
         payload,
-        identity,
+        claims,
         queryDb: db,
         failures,
       }) {
-        const userId = resolveUserId({ queryDb: db, identity });
+        const userId = resolveUserId({ queryDb: db, claims });
         const cart = Schema.decodeUnknownSync(
           Schema.Array(
             Schema.toEncoded(makeEffectSchema(cartV1.propertiesShape)),
@@ -266,7 +266,7 @@ export const makePurchaseFrontendModule = <
     sdk.defineContract('initiatePayment'),
     {
       version: '1.0.0',
-      identity: identitySchema,
+      claims: claimsSchema,
       failures: {
         conflict: sdk.ContractError.schema({ code: 'payment-intent-conflict' }),
         actorDenied: sdk.ActorError.schema({
@@ -290,7 +290,7 @@ export const makePurchaseFrontendModule = <
       },
       guard: Effect.fn('initiatePayment.guard')(function* ({
         payload,
-        identity,
+        claims,
         queryDb: db,
         failures,
       }) {
@@ -310,7 +310,7 @@ export const makePurchaseFrontendModule = <
         );
         if (
           checkout === undefined ||
-          checkout.userId !== resolveUserId({ queryDb: db, identity }) ||
+          checkout.userId !== resolveUserId({ queryDb: db, claims }) ||
           checkout.purchaseId !== payload.purchaseId ||
           purchase === undefined
         ) {
@@ -381,7 +381,7 @@ export const makePurchaseFrontendModule = <
     sdk.defineContract('cancelPurchase'),
     {
       version: '1.0.0',
-      identity: identitySchema,
+      claims: claimsSchema,
       failures: {
         conflict: sdk.ContractError.schema({
           code: 'purchase-cancellation-conflict',
@@ -405,7 +405,7 @@ export const makePurchaseFrontendModule = <
       },
       guard: Effect.fn('cancelPurchase.guard')(function* ({
         payload,
-        identity,
+        claims,
         queryDb: db,
         failures,
       }) {
@@ -425,7 +425,7 @@ export const makePurchaseFrontendModule = <
         );
         if (
           checkout === undefined ||
-          checkout.userId !== resolveUserId({ queryDb: db, identity }) ||
+          checkout.userId !== resolveUserId({ queryDb: db, claims }) ||
           checkout.purchaseId !== payload.purchaseId ||
           purchase === undefined
         ) {
@@ -473,7 +473,7 @@ export const makePurchaseFrontendModule = <
     sdk.defineContract('applyPromotion'),
     {
       version: options.contractVersion ?? '1.0.0',
-      identity: identitySchema,
+      claims: claimsSchema,
       failures: {
         conflict: sdk.ContractError.schema({ code: 'promotion-unavailable' }),
         actorDenied: sdk.ActorError.schema({
@@ -497,11 +497,11 @@ export const makePurchaseFrontendModule = <
       },
       guard: Effect.fn('applyPromotion.guard')(function* ({
         payload,
-        identity,
+        claims,
         queryDb: db,
         failures,
       }) {
-        const userId = resolveUserId({ queryDb: db, identity });
+        const userId = resolveUserId({ queryDb: db, claims });
         const cart = Schema.decodeUnknownSync(
           Schema.Array(
             Schema.toEncoded(makeEffectSchema(cartV1.propertiesShape)),
@@ -621,7 +621,7 @@ export const makePurchaseFrontendModule = <
     sdk.defineContract('removePromotion'),
     {
       version: '1.0.0',
-      identity: identitySchema,
+      claims: claimsSchema,
       failures: {
         conflict: sdk.ContractError.schema({ code: 'promotion-unavailable' }),
         actorDenied: sdk.ActorError.schema({
@@ -640,7 +640,7 @@ export const makePurchaseFrontendModule = <
       },
       guard: Effect.fn('removePromotion.guard')(function* ({
         payload,
-        identity,
+        claims,
         queryDb,
         failures,
       }) {
@@ -653,7 +653,7 @@ export const makePurchaseFrontendModule = <
         );
         if (
           row === undefined ||
-          row.userId !== resolveUserId({ queryDb, identity }) ||
+          row.userId !== resolveUserId({ queryDb, claims }) ||
           row.promotionReservationId === null ||
           !['promotion', 'failed', 'removing'].includes(row.status)
         ) {

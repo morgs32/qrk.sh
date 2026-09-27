@@ -20,6 +20,6 @@ const checkPurchase = makeGuard({
     cartPromotion: cartPromotionV1,
   },
   payload: PurchaseCheckSchema,
-  identity: shopperIdentitySchema,
+  claims: shopperClaims,
   program: checkPurchaseProgram,
 });

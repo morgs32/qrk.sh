@@ -88,7 +88,7 @@ export interface IDevtoolsServiceSessionEntry {
   readonly sessionName: string;
   readonly modelNames: readonly string[];
   readonly subscribe: (listener: () => void) => () => void;
-  readonly getIdentity: () => Readonly<Record<string, unknown>> | null;
+  readonly getClaims: () => Readonly<Record<string, unknown>> | null;
   readonly getIsInitialized: () => boolean;
   readonly getSessionStatus: () => ReturnType<
     IServiceSession['store']['getState']

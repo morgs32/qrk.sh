@@ -4,7 +4,7 @@ import { RpcTarget } from 'capnweb';
 
 import { authorize } from './authorize/authorize.js';
 
-/** Verified service identity, retained privately for definition admission. */
+/** Verified service claims, retained privately for definition admission. */
 export class ServiceAccessApi extends RpcTarget {
   readonly #access: Parameters<typeof authorize>[0]['access'];
   readonly #runtime: ISystem['runtime'];

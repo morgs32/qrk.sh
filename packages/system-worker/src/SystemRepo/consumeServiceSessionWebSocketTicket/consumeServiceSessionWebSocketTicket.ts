@@ -39,7 +39,7 @@ export const consumeServiceSessionWebSocketTicket = Effect.fn(
     serviceName: AnyColumn;
     serviceVersion: AnyColumn;
     actorPath: AnyColumn;
-    identity: AnyColumn;
+    claims: AnyColumn;
     sessionName: AnyColumn;
     serviceSessionLock: AnyColumn;
   }>;
@@ -83,9 +83,7 @@ export const consumeServiceSessionWebSocketTicket = Effect.fn(
     serviceName: Schema.String,
     serviceVersion: Schema.String,
     actorPath: Schema.String,
-    identity: Schema.fromJsonString(
-      Schema.Record(Schema.String, Schema.Unknown),
-    ),
+    claims: Schema.fromJsonString(Schema.Record(Schema.String, Schema.Unknown)),
     sessionName: Schema.String,
     serviceSessionLock: Schema.fromJsonString(ServiceSessionLockSchema),
     expiresAt: Schema.Date,
@@ -100,7 +98,7 @@ export const consumeServiceSessionWebSocketTicket = Effect.fn(
           serviceName: serviceSessionWebSocketTicketColumns.serviceName,
           serviceVersion: serviceSessionWebSocketTicketColumns.serviceVersion,
           actorPath: serviceSessionWebSocketTicketColumns.actorPath,
-          identity: serviceSessionWebSocketTicketColumns.identity,
+          claims: serviceSessionWebSocketTicketColumns.claims,
           sessionName: serviceSessionWebSocketTicketColumns.sessionName,
           serviceSessionLock:
             serviceSessionWebSocketTicketColumns.serviceSessionLock,

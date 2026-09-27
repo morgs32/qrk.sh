@@ -31,7 +31,7 @@ const common = {
   sessionName: 'test',
   actorName: 'reader',
   actorVersion: '1.0.0',
-  identitySchema: Schema.Struct({ aggregateId: Schema.String }),
+  claimsSchema: Schema.Struct({ aggregateId: Schema.String }),
   layer: Layer.mergeAll(
     Layer.succeed(ZerospinApiUrl, 'http://test'),
     Layer.succeed(PublishableKey, Redacted.make('pk_test')),

@@ -607,16 +607,16 @@ export const makeUserAggregateModuleV1 = <
 /** Contribute a user-scoped query against the application's final actor database. */
 export const makeUserActorModuleV1 = <
   const MODELS extends IAnyModels,
-  const IDENTITY extends IActorIdentity,
+  const CLAIMS extends IActorIdentity,
   const QUERY extends ActorQuery,
 >(options: {
   db: IActorDbVersion<MODELS>;
-  identity: IDENTITY;
-  selectFulfillment: (db: IActorDbVersion<MODELS>, identity: IDENTITY) => QUERY;
+  claims: CLAIMS;
+  selectFulfillment: (db: IActorDbVersion<MODELS>, claims: CLAIMS) => QUERY;
 }) => ({
   db: options.db,
   queries: {
-    fulfillment: options.selectFulfillment(options.db, options.identity),
+    fulfillment: options.selectFulfillment(options.db, options.claims),
   },
   contracts: {},
   automations: {},

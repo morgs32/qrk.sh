@@ -49,7 +49,7 @@ export type IAggregateSessionDefinition<
   CONTRACTS extends IAnyContractBindings = IAnyContractBindings,
   MODELS extends IAnyModels = IAnyModels,
   AGGREGATE_VERSION extends string = string,
-  IDENTITY extends Schema.Struct<
+  CLAIMS extends Schema.Struct<
     Readonly<Record<string, Schema.Codec<unknown, unknown>>>
   > = Schema.Struct<Readonly<Record<string, Schema.Codec<unknown, unknown>>>>,
 > = Readonly<{
@@ -67,7 +67,7 @@ export type IAggregateSessionDefinition<
   aggregateVersion: AGGREGATE_VERSION;
   actorName: string;
   actorVersion: string;
-  identity: Readonly<{ identitySchema: IDENTITY }>;
+  claimsSchema: CLAIMS;
   sessionName: DEFINITION_NAME;
   contracts: {
     readonly [COMMAND_NAME in keyof CONTRACTS]: Readonly<{
@@ -87,11 +87,9 @@ export type IAnyAggregateSessionDefinition<INITIALIZE_REQUIREMENTS = never> =
     aggregateVersion: string;
     actorName: string;
     actorVersion: string;
-    identity: Readonly<{
-      identitySchema: Schema.Struct<
-        Readonly<Record<string, Schema.Codec<unknown, unknown>>>
-      >;
-    }>;
+    claimsSchema: Schema.Struct<
+      Readonly<Record<string, Schema.Codec<unknown, unknown>>>
+    >;
     sessionName: string;
     contracts: Readonly<
       Record<string, Readonly<{ contract: IAnyContracts[string] }>>
@@ -139,7 +137,7 @@ export type IAggregateActorCommand = Readonly<{
 /** Complete server-owned aggregate session state used for creation and repair. */
 export type IAggregateSessionSnapshot = Readonly<{
   aggregateId: IAggregateId;
-  identity: Readonly<Record<string, unknown>>;
+  claims: Readonly<Record<string, unknown>>;
   aggregateName: string;
   aggregateVersion: string;
   actorName: string;
@@ -154,14 +152,14 @@ export type IAggregateSessionSnapshot = Readonly<{
 
 export interface IInitializedSessionState<
   MODELS extends IAnyModels = IAnyModels,
-  IDENTITY = Readonly<Record<string, unknown>>,
+  CLAIMS = Readonly<Record<string, unknown>>,
 > {
   sessionId: ISessionId;
   aggregateId: IAggregateId;
   aggregateName: string;
   actorName: string;
   actorVersion: string;
-  identity: IDENTITY;
+  claims: CLAIMS;
   sessionName: string;
   aggregateSessionLockKey: string;
   db: IWaSqliteDrizzleDb<
@@ -195,7 +193,7 @@ type IUninitializedSessionState = {
   aggregateName: null;
   actorName: null;
   actorVersion: null;
-  identity: null;
+  claims: null;
   sessionName: null;
   aggregateSessionLockKey: null;
   db: null;
@@ -223,13 +221,13 @@ type IUninitializedSessionState = {
 
 export type ISessionState<
   MODELS extends IAnyModels = IAnyModels,
-  IDENTITY = Readonly<Record<string, unknown>>,
-> = IInitializedSessionState<MODELS, IDENTITY> | IUninitializedSessionState;
+  CLAIMS = Readonly<Record<string, unknown>>,
+> = IInitializedSessionState<MODELS, CLAIMS> | IUninitializedSessionState;
 
 type ISessionStoreApi<
   MODELS extends IAnyModels = IAnyModels,
-  IDENTITY = Readonly<Record<string, unknown>>,
-> = StoreApi<ISessionState<MODELS, IDENTITY>>;
+  CLAIMS = Readonly<Record<string, unknown>>,
+> = StoreApi<ISessionState<MODELS, CLAIMS>>;
 
 export type IAggregateSession<
   DEFINITION extends IAggregateSessionDefinition = IAggregateSessionDefinition,
@@ -246,7 +244,7 @@ export type IAggregateSession<
     handler: (props: {
       state: IInitializedSessionState<
         DEFINITION['models'],
-        DEFINITION['identity']['identitySchema']['Type']
+        DEFINITION['claimsSchema']['Type']
       >;
     }) => void,
   ): () => void;
@@ -279,6 +277,6 @@ export type IAggregateSession<
   clearExecutionResources(): void;
   store: ISessionStoreApi<
     DEFINITION['models'],
-    DEFINITION['identity']['identitySchema']['Type']
+    DEFINITION['claimsSchema']['Type']
   >;
 };

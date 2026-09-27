@@ -12,7 +12,7 @@ export const game = sdk.makeModelVersion(
     indexes: [],
   },
 );
-export const identitySchema = Schema.Struct({
+export const claimsSchema = Schema.Struct({
   aggregateId: Schema.String,
   instanceId: Schema.String,
 });

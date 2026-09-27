@@ -2,7 +2,7 @@ import { makeAutomation } from '@zerospin/core/automation/makeAutomation';
 import type { IAutomation } from '@zerospin/core/automation/types';
 import type { IMutations } from '@zerospin/core/contracts/make/makeContractVersion';
 import type { IContract } from '@zerospin/core/contracts/types';
-import type { IIdentitySchema } from '@zerospin/core/identity/types';
+import type { IClaimsSchema } from '@zerospin/core/identity/types';
 import { makeZerospinError } from '@zerospin/error';
 import {
   makeAbbreviationIdSchema,
@@ -32,37 +32,37 @@ type ICartRemoval<H extends IPurchaseHostModels> = IContract<
 >;
 type IFrontend<
   H extends IPurchaseHostModels,
-  I extends IIdentitySchema,
+  I extends IClaimsSchema,
 > = ReturnType<typeof makePurchaseFrontendModule<H, I>>;
 type ICreateAcceptedPurchase<
   H extends IPurchaseHostModels,
-  I extends IIdentitySchema,
-  S extends IIdentitySchema,
+  I extends IClaimsSchema,
+  S extends IClaimsSchema,
 > = ReturnType<typeof makeCreateAcceptedPurchase<H, I, S>>;
 type IRecordIntentObservation<
   H extends IPurchaseHostModels,
-  I extends IIdentitySchema,
-  S extends IIdentitySchema,
+  I extends IClaimsSchema,
+  S extends IClaimsSchema,
 > = ReturnType<typeof makeRecordIntentObservation<H, I, S>>;
 type IRecordWorkflowPromotion<
   H extends IPurchaseHostModels,
-  I extends IIdentitySchema,
-  S extends IIdentitySchema,
+  I extends IClaimsSchema,
+  S extends IClaimsSchema,
 > = ReturnType<typeof makeRecordWorkflowPromotion<H, I, S>>;
 type IFailCheckout<
   H extends IPurchaseHostModels,
-  I extends IIdentitySchema,
-  S extends IIdentitySchema,
+  I extends IClaimsSchema,
+  S extends IClaimsSchema,
 > = ReturnType<typeof makeFailCheckout<H, I, S>>;
 type IRecordPromotionReleases<
   H extends IPurchaseHostModels,
-  I extends IIdentitySchema,
-  S extends IIdentitySchema,
+  I extends IClaimsSchema,
+  S extends IClaimsSchema,
 > = ReturnType<typeof makeRecordPromotionReleases<H, I, S>>;
 type IPurchaseModule<
   H extends IPurchaseHostModels,
-  I extends IIdentitySchema,
-  S extends IIdentitySchema,
+  I extends IClaimsSchema,
+  S extends IClaimsSchema,
   REMOVE extends IContract,
 > = {
   models: IFrontend<H, I>['models'];
@@ -160,20 +160,16 @@ type IPurchaseModule<
 };
 const makePurchaseModuleImpl = <
   const HOST extends IPurchaseHostModels,
-  const IDENTITY extends IIdentitySchema,
-  const SELECTION extends IIdentitySchema,
+  const CLAIMS extends IClaimsSchema,
+  const SELECTION extends IClaimsSchema,
   const REMOVE extends ICartRemoval<HOST>,
 >(options: {
-  frontend: ReturnType<typeof makePurchaseFrontendModule<HOST, IDENTITY>>;
-  recordPaymentObservation?: IRecordIntentObservation<
-    HOST,
-    IDENTITY,
-    SELECTION
-  >;
+  frontend: ReturnType<typeof makePurchaseFrontendModule<HOST, CLAIMS>>;
+  recordPaymentObservation?: IRecordIntentObservation<HOST, CLAIMS, SELECTION>;
   selectionIdentitySchema: SELECTION;
   resolveUserId: IUserLookup<HOST, SELECTION>;
   cartContracts: { removeFromCart: REMOVE };
-}): IPurchaseModule<HOST, IDENTITY, SELECTION, REMOVE> => {
+}): IPurchaseModule<HOST, CLAIMS, SELECTION, REMOVE> => {
   const { frontend } = options;
   const { checkout: checkoutV1 } = frontend.models;
 
@@ -192,7 +188,7 @@ const makePurchaseModuleImpl = <
   const failCheckout = makeFailCheckout(options);
   const recordPromotionReleases = makeRecordPromotionReleases<
     HOST,
-    IDENTITY,
+    CLAIMS,
     SELECTION
   >(options.selectionIdentitySchema, recordWorkflowPromotion);
   const acceptPurchase = makeAutomation({
@@ -689,15 +685,13 @@ const makePurchaseModuleImpl = <
 
 export function makePurchaseModule<
   const HOST extends IPurchaseHostModels,
-  const IDENTITY extends IIdentitySchema,
-  const SELECTION extends IIdentitySchema,
+  const CLAIMS extends IClaimsSchema,
+  const SELECTION extends IClaimsSchema,
   const REMOVE extends ICartRemoval<HOST>,
 >(
   options: Parameters<
-    typeof makePurchaseModuleImpl<HOST, IDENTITY, SELECTION, REMOVE>
+    typeof makePurchaseModuleImpl<HOST, CLAIMS, SELECTION, REMOVE>
   >[0],
-): ReturnType<
-  typeof makePurchaseModuleImpl<HOST, IDENTITY, SELECTION, REMOVE>
-> {
+): ReturnType<typeof makePurchaseModuleImpl<HOST, CLAIMS, SELECTION, REMOVE>> {
   return makePurchaseModuleImpl(options);
 }

@@ -24,7 +24,7 @@ const row = () =>
     nodeId: 'node_one',
     nodeIndex: 1,
     sessionName: 'editor',
-    identity: { userId: 'one' },
+    claims: { userId: 'one' },
     serviceName: null,
     serviceVersion: null,
     automationName: null,
@@ -41,7 +41,7 @@ const row = () =>
     lastDeliveryFailure: null,
     completionNodeId: 'node_one',
     completionNodeIndex: 1,
-    completionIdentity: { userId: 'one' },
+    completionClaims: { userId: 'one' },
     completionSessionName: 'editor',
   });
 
@@ -59,7 +59,7 @@ describe('aggregate actor publication', () => {
           nodeId: string;
           afterNodeIndex: number;
           sessionName: string;
-          identity: { userId: string };
+          claims: { userId: string };
         }) =>
           getActorCommands({
             db,
@@ -68,12 +68,12 @@ describe('aggregate actor publication', () => {
             afterNodeIndex: owner.afterNodeIndex,
             definition: {
               name: owner.sessionName,
-              identity: owner.identity,
+              claims: owner.claims,
               lock: {
                 sessionName: 'editor',
                 actorName: 'editor',
                 actorVersion: '1.0.0',
-                identity: { identityJsonSchema: {} },
+                claims: { claimsJsonSchema: {} },
                 models: {},
                 contracts: {},
               },
@@ -83,13 +83,13 @@ describe('aggregate actor publication', () => {
           nodeId: 'node_one',
           afterNodeIndex: 0,
           sessionName: 'editor',
-          identity: { userId: 'one' },
+          claims: { userId: 'one' },
         };
         expect((yield* replay(owner)).commands).toMatchObject([
           { id: 'cmd_one', nodeId: 'node_one', nodeIndex: 1 },
         ]);
         expect(
-          (yield* replay({ ...owner, identity: { userId: 'two' } })).commands,
+          (yield* replay({ ...owner, claims: { userId: 'two' } })).commands,
         ).toEqual([]);
         expect(
           (yield* replay({ ...owner, sessionName: 'other' })).commands,
@@ -117,12 +117,12 @@ describe('aggregate actor publication', () => {
         const source =
           yield* aggregateActorVersionChainDbConfig.tables.commands.encodeRow({
             ...decoded,
-            completionIdentity: null,
+            completionClaims: null,
             completionSessionName: null,
             completionNodeId: null,
             completionNodeIndex: null,
           });
-        expect(source.completionIdentity).toBeNull();
+        expect(source.completionClaims).toBeNull();
         producer
           .insert(aggregateActorVersionChainDbConfig.schema.commands)
           .values(source)
@@ -131,7 +131,7 @@ describe('aggregate actor publication', () => {
           .select()
           .from(aggregateActorVersionChainDbConfig.schema.commands)
           .all();
-        expect(rows[0]?.completionIdentity).toBeNull();
+        expect(rows[0]?.completionClaims).toBeNull();
         const broadcasts: unknown[] = [];
         yield* receiveActorCommands({
           db,
@@ -143,11 +143,9 @@ describe('aggregate actor publication', () => {
           .from(aggregateActorVersionChainDbConfig.schema.commands)
           .all();
         expect(retained).toHaveLength(1);
-        expect(retained[0]?.completionIdentity).toBeNull();
-        expect(retained[0]?.identity).toBe(JSON.stringify({ userId: 'one' }));
-        expect(broadcasts).toMatchObject([
-          { identity: null, sessionName: null },
-        ]);
+        expect(retained[0]?.completionClaims).toBeNull();
+        expect(retained[0]?.claims).toBe(JSON.stringify({ userId: 'one' }));
+        expect(broadcasts).toMatchObject([{ claims: null, sessionName: null }]);
       }).pipe(Effect.scoped, Effect.provide(AsyncLive)),
     );
   });
@@ -184,10 +182,8 @@ describe('aggregate actor publication', () => {
           .all();
         expect(retained).toHaveLength(1);
         expect(retained[0]?.actorDelta).toBe(source.actorDelta);
-        expect(source.completionIdentity).toBe(
-          JSON.stringify({ userId: 'one' }),
-        );
-        expect(retained[0]?.completionIdentity).toBe(source.completionIdentity);
+        expect(source.completionClaims).toBe(JSON.stringify({ userId: 'one' }));
+        expect(retained[0]?.completionClaims).toBe(source.completionClaims);
         expect(broadcasts).toHaveLength(2);
         const conflicting = yield* receiveActorCommands({
           db,
@@ -201,13 +197,13 @@ describe('aggregate actor publication', () => {
         );
         expect(broadcasts[0]).toMatchObject({
           command: { actorDelta: { upserted: [], deleted: [] } },
-          identity: { userId: 'one' },
+          claims: { userId: 'one' },
         });
         const replay = yield* getActorCommands({ db, afterExecutedIndex: 0 });
         expect(replay.commands[0]).toMatchObject({
           actorDelta: { upserted: [], deleted: [] },
         });
-        expect(replay.commands[0]).not.toHaveProperty('identity');
+        expect(replay.commands[0]).not.toHaveProperty('claims');
       }).pipe(Effect.scoped, Effect.provide(AsyncLive)),
     );
   });
@@ -232,7 +228,7 @@ describe('aggregate actor publication', () => {
         );
         const malformedOwner = yield* receiveActorCommands({
           db,
-          rows: [{ ...source, completionIdentity: '{' }],
+          rows: [{ ...source, completionClaims: '{' }],
           broadcast,
         }).pipe(Effect.result);
         expect(
@@ -248,7 +244,7 @@ describe('aggregate actor publication', () => {
         );
         const missingIdentity = yield* receiveActorCommands({
           db,
-          rows: [{ ...source, completionIdentity: null }],
+          rows: [{ ...source, completionClaims: null }],
           broadcast,
         }).pipe(Effect.result);
         expect(
@@ -261,7 +257,7 @@ describe('aggregate actor publication', () => {
         const failedWithoutOwner =
           yield* aggregateActorVersionChainDbConfig.tables.commands.encodeRow({
             ...decoded,
-            completionIdentity: null,
+            completionClaims: null,
             completionSessionName: null,
             completionNodeId: null,
             completionNodeIndex: null,

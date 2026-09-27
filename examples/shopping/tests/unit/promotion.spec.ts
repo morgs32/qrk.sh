@@ -51,7 +51,7 @@ it.effect(
       const reserve = (available: boolean) =>
         reservePromotion.guard!({
           queryDb: db,
-          identity: null,
+          claims: null,
           failures: reservePromotion.failures,
           payload: { ...payload, available },
         });
@@ -66,7 +66,7 @@ it.effect(
           yield* Effect.exit(
             commitPromotion.guard!({
               queryDb: db,
-              identity: null,
+              claims: null,
               failures: commitPromotion.failures,
               payload: {
                 id: 'prv_0',

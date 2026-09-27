@@ -24,7 +24,7 @@ describe('Shopping credentials and identity', () => {
       throw new Error('Shopping requires credential verification');
     }
     let provisioned: unknown;
-    const identity = await Effect.runPromise(
+    const claims = await Effect.runPromise(
       policy
         .authenticate({
           credentials: { token: 'secret' },
@@ -43,7 +43,7 @@ describe('Shopping credentials and identity', () => {
                 systemName: 'shopping',
                 actorName: props.actor.name,
                 actorVersion: props.actor.version,
-                identity: props.identity,
+                claims: props.claims,
                 nodeId: null,
                 nodeIndex: null,
                 payload: JSON.stringify(props.payload),
@@ -68,12 +68,12 @@ describe('Shopping credentials and identity', () => {
         .pipe(Effect.provide(NanoIdFactory), Effect.provide(AsyncLive)),
     );
     expect(verifyClerkIdentity).toHaveBeenCalledWith({ token: 'secret' });
-    expect(identity).toEqual({ aggregateId: 'acct_1', clerkUserId });
+    expect(claims).toEqual({ aggregateId: 'acct_1', clerkUserId });
     expect(provisioned).toMatchObject({
-      identity,
+      claims,
       actor: { name: 'provisioner' },
     });
-    expect(JSON.stringify(identity)).not.toContain('secret');
+    expect(JSON.stringify(claims)).not.toContain('secret');
   });
   it('keeps catalog verification and rejects failed credentials before provisioning', async () => {
     const catalog =

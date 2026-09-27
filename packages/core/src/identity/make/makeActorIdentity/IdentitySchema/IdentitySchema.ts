@@ -3,7 +3,7 @@ import { Schema, SchemaAST } from 'effect';
 
 /** Validate the common owner/definition declarations using the library's parsed pattern. */
 export const IdentitySchema = Schema.Struct({
-  identitySchema: Schema.declare(
+  claimsSchema: Schema.declare(
     (
       input: unknown,
     ): input is Schema.Struct<
@@ -13,7 +13,7 @@ export const IdentitySchema = Schema.Struct({
       'fields' in input &&
       input.ast._tag === 'Objects',
   ),
-  actorSchema: Schema.declare(
+  identitySchema: Schema.declare(
     (
       input: unknown,
     ): input is Schema.Struct<
@@ -28,7 +28,7 @@ export const IdentitySchema = Schema.Struct({
   ),
 }).check(
   Schema.makeFilter(definition => {
-    const { pattern, actorSchema, identitySchema } = definition;
+    const { pattern, identitySchema, claimsSchema } = definition;
     if (
       pattern.protocol !== null ||
       pattern.hostname !== null ||
@@ -55,7 +55,7 @@ export const IdentitySchema = Schema.Struct({
       }
       names.add(token.name);
     }
-    const fields = Object.keys(actorSchema.fields);
+    const fields = Object.keys(identitySchema.fields);
     if (
       names.size !== fields.length ||
       fields.some(field => !names.has(field))
@@ -63,10 +63,10 @@ export const IdentitySchema = Schema.Struct({
       return 'Actor schema fields must exactly match pattern parameters';
     }
     for (const field of fields) {
-      const selected = actorSchema.fields[field];
-      const admitted = identitySchema.fields[field];
+      const selected = identitySchema.fields[field];
+      const admitted = claimsSchema.fields[field];
       if (selected === undefined || admitted === undefined) {
-        return 'Actor fields must exist in identitySchema';
+        return 'Actor fields must exist in claimsSchema';
       }
       const selectedAst = SchemaAST.toType(selected.ast);
       const admittedAst = SchemaAST.toType(admitted.ast);

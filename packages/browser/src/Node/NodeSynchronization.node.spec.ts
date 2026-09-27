@@ -1,5 +1,3 @@
-import { afterEach, expect, it, vi } from 'vitest';
-
 import {
   command,
   database,
@@ -7,7 +5,8 @@ import {
   encodedAdmission,
   fixture,
   rejection,
-} from '../../tests/nodeFixture.ts';
+} from '@zerospin/fixtures/browser/nodeFixture';
+import { afterEach, expect, it, vi } from 'vitest';
 
 import { Node } from './Node.ts';
 import { NodeAuthentication } from './NodeAuthentication.ts';

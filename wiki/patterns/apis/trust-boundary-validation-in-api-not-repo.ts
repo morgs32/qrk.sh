@@ -16,11 +16,11 @@ export const authorize = Effect.fn('AggregateAccessApi.authorize')(function* (
   )(props, { onExcessProperty: 'error' }).pipe(
     mapParseError({ code: 'aggregate-definition-api-props-invalid' }),
   );
-  const identity = yield* authenticate(validated.credentials);
+  const claims = yield* authenticate(validated.credentials);
   const authorization = yield* authorizeAggregateSession({
     ...validated,
-    identity: identity.identity,
-    aggregateId: identity.identity.aggregateId,
+    claims: claims.claims,
+    aggregateId: claims.claims.aggregateId,
   });
 
   return aggregateSessionApiFactory(authorization);
@@ -32,10 +32,10 @@ declare function mapParseError(props: {
 }): (effect: unknown) => unknown;
 declare function aggregateSessionApiFactory(props: unknown): unknown;
 declare function authenticate(credentials: unknown): Effect.Effect<{
-  identity: { aggregateId: string; subject: string };
+  claims: { aggregateId: string; subject: string };
 }>;
 declare function authorizeAggregateSession(props: unknown): Effect.Effect<{
   aggregateId: string;
   aggregateName: string;
-  identity: { aggregateId: string; subject: string };
+  claims: { aggregateId: string; subject: string };
 }>;

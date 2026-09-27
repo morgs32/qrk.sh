@@ -5,10 +5,9 @@ import * as NodeFileSystem from '@effect/platform-node-shared/NodeFileSystem';
 import * as NodePath from '@effect/platform-node-shared/NodePath';
 import { it } from '@effect/vitest';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
+import { seeds } from '@zerospin/fixtures/cli/seeds';
 import { Effect, Exit, Layer } from 'effect';
 import { afterEach, beforeEach, describe, expect, vi } from 'vitest';
-
-import { seeds } from '../../test/config/seeds.js';
 
 import { seedFn } from './seedFn.js';
 
@@ -31,7 +30,7 @@ vi.mock(
 );
 
 const fixtureDirectory = fileURLToPath(
-  new URL('../../test/config/', import.meta.url),
+  new URL('../../../fixtures/src/cli/', import.meta.url),
 );
 const layers = Layer.mergeAll(AsyncLive, NodeFileSystem.layer, NodePath.layer);
 let cwd: string;
@@ -138,7 +137,7 @@ describe('seedFn', () => {
     ],
     [
       'missing aggregate provenance',
-      [{ ...seeds[0], identity: undefined }],
+      [{ ...seeds[0], claims: undefined }],
       'seed-command-invalid',
     ],
     [

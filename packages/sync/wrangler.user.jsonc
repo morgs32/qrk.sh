@@ -1,7 +1,7 @@
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",
   "name": "sync-fixture",
-  "main": "e2e/worker.ts",
+  "main": "../fixtures/src/sync/worker.ts",
   "compatibility_date": "2025-04-16",
   "compatibility_flags": ["nodejs_compat"],
   "durable_objects": {

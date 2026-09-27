@@ -32,11 +32,11 @@ const queryV1 = dbV1.query.item.findMany();
 const queryV2 = dbV2.query.item.findMany();
 const claims = Schema.Struct({ aggregateId: Schema.String });
 const identity = makeActorIdentity({
-  schema: claims,
+  claims,
   actorPath: RoutePattern.parse('/:aggregateId'),
 });
 const replacementIdentity = makeActorIdentity({
-  schema: claims,
+  claims,
   actorPath: RoutePattern.parse('/:aggregateId'),
 });
 const pingV1 = makeContractVersion(defineContract('ping'), {
@@ -58,7 +58,7 @@ const needsSecret = makeContractVersion(defineContract('needsSecret'), {
   version: '1.0.0',
   payload: {},
   models: {},
-  identity: Schema.Struct({
+  claims: Schema.Struct({
     aggregateId: Schema.String,
     secret: Schema.String,
   }),
@@ -132,7 +132,7 @@ const actorV2 = updateAggregateActorVersion(actorV1, {
   contracts: { ping: pingV2 },
   automations: { second: secondAutomation },
   guards: {
-    pong: ({ identity: auth, payload }) => {
+    pong: ({ claims: auth, payload }) => {
       const aggregateId: string = auth.aggregateId;
       void aggregateId;
       void payload;
@@ -141,7 +141,7 @@ const actorV2 = updateAggregateActorVersion(actorV1, {
       });
     },
   },
-  authorize: ({ identity: auth }) => {
+  authorize: ({ claims: auth }) => {
     const aggregateId: string = auth.aggregateId;
     void aggregateId;
     return Effect.gen(function* () {
@@ -253,7 +253,7 @@ function rejectedCalls() {
     queries: { item: dbV1.query.item.findFirst() },
   });
   const withoutAggregateId = makeActorIdentity({
-    schema: Schema.Struct({ subject: Schema.String }),
+    claims: Schema.Struct({ subject: Schema.String }),
     actorPath: RoutePattern.parse('/:subject'),
   });
   updateAggregateActorVersion(actorV1, {
@@ -320,7 +320,7 @@ describe('updateAggregateActorVersion', () => {
         // @ts-expect-error The actor cannot supply the required secret.
         contracts: { needsSecret },
       }),
-    ).toThrow('Actor cannot supply identity claim secret');
+    ).toThrow('Actor cannot supply claim secret');
     expect(() =>
       updateAggregateActorVersion(actorV1, {
         version: '2.0.0',

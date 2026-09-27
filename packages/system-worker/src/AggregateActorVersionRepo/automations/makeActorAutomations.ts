@@ -263,7 +263,7 @@ export const makeActorAutomations = (props: {
           systemName: config.system.name,
           actorName: key.actorName,
           actorVersion: key.actorVersion,
-          identity,
+          claims: identity,
           nodeId: null,
           sessionName: null,
           nodeIndex: null,

@@ -16,7 +16,7 @@ const definition = makeServiceSessionDefinition({
   actorVersion: '1.0.0',
   sessionName: 'reader',
   models: {},
-  identitySchema: Schema.Struct({ user: Schema.String }),
+  claimsSchema: Schema.Struct({ user: Schema.String }),
 });
 
 function fixture(
@@ -24,7 +24,7 @@ function fixture(
 ) {
   return makeMockServiceSession({
     definition,
-    identity: { user: 'test' },
+    claims: { user: 'test' },
     layer,
   });
 }

@@ -40,8 +40,8 @@ const DeclarationSchema = Schema.Struct({
     (input: unknown): input is IAnyServiceActorVersion['identity'] =>
       typeof input === 'object' &&
       input !== null &&
+      'claimsSchema' in input &&
       'identitySchema' in input &&
-      'actorSchema' in input &&
       'sql' in input,
   ),
   authentication: AuthenticationPolicySchema,
@@ -71,12 +71,12 @@ export function makeServiceActorVersion<
     identity: IDENTITY;
     authentication: IServiceAuthentication<
       CREDENTIALS,
-      IDENTITY['identitySchema']
+      IDENTITY['claimsSchema']
     >;
     queries: QUERIES & ValidActorQueries<DB['models'], QUERIES>;
 
     authorize?: IServiceActorAuthorization<
-      IDENTITY['identitySchema']['Type'],
+      IDENTITY['claimsSchema']['Type'],
       AUTHORIZE_REQUIREMENTS
     >;
   },
@@ -88,16 +88,16 @@ export function makeServiceActorVersion<
   readonly identity: IDENTITY;
   readonly authentication: IServiceAuthentication<
     CREDENTIALS,
-    IDENTITY['identitySchema']
+    IDENTITY['claimsSchema']
   >;
   readonly queries: QUERIES;
   readonly selections: IActorSelections<
     DB['models'],
     QUERIES,
-    IDENTITY['actorSchema']['Type']
+    IDENTITY['identitySchema']['Type']
   >;
   readonly authorize?: IServiceActorAuthorization<
-    IDENTITY['identitySchema']['Type'],
+    IDENTITY['claimsSchema']['Type'],
     AUTHORIZE_REQUIREMENTS
   >;
   readonly __authorizeRequirements?: AUTHORIZE_REQUIREMENTS;
@@ -122,7 +122,11 @@ export function makeServiceActorVersion(
     authentication: decoded.authentication,
     queries: Object.freeze({ ...decoded.queries }),
     selections: Object.freeze(
-      captureActorSelections(decoded.db, decoded.queries, identity.actorSchema),
+      captureActorSelections(
+        decoded.db,
+        decoded.queries,
+        identity.identitySchema,
+      ),
     ),
     ...(decoded.authorize === undefined
       ? {}

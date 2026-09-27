@@ -10,7 +10,7 @@ import type {
 } from '@zerospin/core/aggregateSession/types';
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/make/makeDbConfig/makeDbConfig';
 import { makeProvisionedInMemoryWasmSqliteDb } from '@zerospin/core/drizzle/make/makeProvisionedInMemoryWasmSqliteDb/makeProvisionedInMemoryWasmSqliteDb';
-import { assertSessionIdentity } from '@zerospin/core/identity/assertSessionIdentity';
+import { assertSessionClaims } from '@zerospin/core/identity/assertSessionClaims';
 import type { IAdmissionRequest } from '@zerospin/core/identity/types';
 import {
   catchZerospinError,
@@ -35,7 +35,7 @@ export const bootstrapAggregateSession = Effect.fn('bootstrapAggregateSession')(
     getAdmission(): Promise<
       IResult<IAdmissionRequest, IAnyError | IZerospinErrorJson>
     >;
-    expectedIdentity?: Readonly<Record<string, unknown>> | undefined;
+    expectedClaims?: Readonly<Record<string, unknown>> | undefined;
   }) {
     const {
       session,
@@ -43,7 +43,7 @@ export const bootstrapAggregateSession = Effect.fn('bootstrapAggregateSession')(
       publishableKey,
       systemName,
       getAdmission,
-      expectedIdentity,
+      expectedClaims,
     } = props;
     const definition = session.definition;
     const execution = getAggregateSessionExecutionResources(session);
@@ -89,13 +89,13 @@ export const bootstrapAggregateSession = Effect.fn('bootstrapAggregateSession')(
             lock,
           },
           getAdmission,
-          expectedIdentity,
+          expectedClaims,
           receive: async snapshot => {
             const identity = snapshot.identity;
-            const acceptedIdentity = Schema.decodeUnknownSync(
-              definition.identity.identitySchema,
-            )(identity.identity);
-            assertSessionIdentity(expectedIdentity, acceptedIdentity);
+            const acceptedClaims = Schema.decodeUnknownSync(
+              definition.claimsSchema,
+            )(identity.claims);
+            assertSessionClaims(expectedClaims, acceptedClaims);
             const accepted = new Set(
               snapshot.unresolvedCommands.map(command => command.id),
             );
@@ -139,7 +139,7 @@ export const bootstrapAggregateSession = Effect.fn('bootstrapAggregateSession')(
                   actorName: command.actorName,
                   actorVersion: command.actorVersion,
                   sessionName: command.sessionName,
-                  identity: command.identity,
+                  claims: command.claims,
                   staging: command.staging,
                   sessionId,
                   sessionIndex: index + 1,
@@ -197,7 +197,7 @@ export const bootstrapAggregateSession = Effect.fn('bootstrapAggregateSession')(
                 Schema.TemplateLiteral(['acct_', Schema.String]),
               )(identity.targetId),
               aggregateName: definition.aggregateName,
-              identity: acceptedIdentity,
+              claims: acceptedClaims,
               sessionName: definition.sessionName,
               aggregateSessionLockKey,
               db,
@@ -264,7 +264,7 @@ export const bootstrapAggregateSession = Effect.fn('bootstrapAggregateSession')(
           actorName: staged.actorName,
           actorVersion: staged.actorVersion,
           sessionName: staged.sessionName,
-          identity: staged.identity,
+          claims: staged.claims,
           staging: staged.staging,
         };
         uncertain.set(command.id, command);

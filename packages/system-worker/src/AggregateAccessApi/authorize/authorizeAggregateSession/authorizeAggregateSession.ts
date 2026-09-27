@@ -14,7 +14,7 @@ import { validateAggregateSessionLock } from './validateAggregateSessionLock/val
 
 /*
  * GatewayApi uses this operation to admit a aggregate definition for an
- * admitted identity and caller-selected owner/definition fields.
+ * admitted claims and caller-selected owner/definition fields.
  * The aggregate Repo runs authorization against its local resource state.
  *
  * 1. Validate the requested definition lock.
@@ -26,7 +26,7 @@ export const authorizeAggregateSession = Effect.fn(
   'AggregateAccessApi.authorizeAggregateSession',
   { root: true },
 )(function* (props: {
-  identity: Readonly<Record<string, unknown>>;
+  claims: Readonly<Record<string, unknown>>;
   aggregateId: IAggregateId;
   aggregateName: string;
   aggregateVersion: string;
@@ -37,7 +37,7 @@ export const authorizeAggregateSession = Effect.fn(
     aggregateId: IAggregateId;
     aggregateName: string;
     aggregateVersion: string;
-    identity: Readonly<Record<string, unknown>>;
+    claims: Readonly<Record<string, unknown>>;
     aggregateSessionLock: IAggregateSessionLock;
     sessionSpec: IAggregateSessionSpec;
   }>,
@@ -45,7 +45,7 @@ export const authorizeAggregateSession = Effect.fn(
   Async
 > {
   const {
-    identity,
+    claims,
     aggregateId,
     aggregateName,
     sessionName,
@@ -80,7 +80,7 @@ export const authorizeAggregateSession = Effect.fn(
       aggregateId,
       aggregateName,
       sessionName,
-      identity,
+      claims,
     }),
   ).pipe(Effect.flatMap(envelope => readRpcEnvelope(envelope)));
 
@@ -89,7 +89,7 @@ export const authorizeAggregateSession = Effect.fn(
     aggregateVersion,
     aggregateId,
     aggregateName,
-    identity,
+    claims,
     aggregateSessionLock: selected.aggregateSessionLock,
     sessionSpec: selected.sessionSpec,
   };

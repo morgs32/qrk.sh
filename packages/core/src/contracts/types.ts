@@ -210,12 +210,12 @@ export interface IContract<
   HISTORICAL_PROGRAM_REQUIREMENTS = PROGRAM_REQUIREMENTS,
   FAILURE extends IFailures = IFailures,
   FAILURES extends Record<string, IFailures> = Record<string, FAILURE>,
-  AUTHENTICATION extends Schema.Codec<
+  CLAIMS extends Schema.Codec<
     Readonly<Record<string, unknown>> | null,
     unknown
   > = Schema.Codec<Readonly<Record<string, unknown>> | null, unknown>,
 > {
-  readonly identity?: AUTHENTICATION;
+  readonly claims?: CLAIMS;
   readonly guard?: {
     bivarianceHack(
       props: Parameters<InferContractProgram<PAYLOAD>>[0] & {
@@ -322,7 +322,7 @@ export type IAggregateCommand<
     | Readonly<{
         aggregateVersion: string;
         nodeId: null;
-        identity: Readonly<Record<string, unknown>>;
+        claims: Readonly<Record<string, unknown>>;
         actorName: string;
         actorVersion: string;
         sessionName: null;
@@ -330,7 +330,7 @@ export type IAggregateCommand<
       }>
     | Readonly<{
         nodeId: string;
-        identity: Readonly<Record<string, unknown>>;
+        claims: Readonly<Record<string, unknown>>;
         actorName: string;
         actorVersion: string;
         sessionName: string;
@@ -352,7 +352,7 @@ export type ISessionCommandInput<COMMAND extends ICommand = ICommand> =
     Readonly<{
       aggregateId: string;
       aggregateName: string;
-      identity: Readonly<Record<string, unknown>>;
+      claims: Readonly<Record<string, unknown>>;
       actorName: string;
       actorVersion: string;
       sessionName: string;

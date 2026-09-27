@@ -1,0 +1,21 @@
+{
+  "name": "@zerospin/browser",
+  "targets": {
+    "lib": {
+      "dependsOn": [
+        {
+          "target": "lib",
+          "projects": [
+            "@zerospin/backup-worker",
+            "@zerospin/core",
+            "@zerospin/devtools",
+            "@zerospin/error",
+            "@zerospin/logger",
+            "@zerospin/schema",
+            "system-worker"
+          ]
+        }
+      ]
+    }
+  }
+}

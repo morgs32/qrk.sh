@@ -92,8 +92,8 @@ type ISystemActorSpec = Readonly<{
   version: string;
   authentication: 'none' | Readonly<{ credentialsJsonSchema: unknown }>;
   identity: Readonly<{
+    claimsJsonSchema: unknown;
     identityJsonSchema: unknown;
-    actorJsonSchema: unknown;
     pattern: string;
   }>;
   selections: Readonly<

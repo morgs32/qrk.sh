@@ -76,12 +76,12 @@ export const admitService = Effect.fn('ServiceApi.admitService', {
           );
           const returned = yield* Effect.gen(function* () {
             if (policy === 'none') {
-              if (!('identity' in request)) {
+              if (!('claims' in request)) {
                 return yield* Effect.fail(
-                  makeZerospinError('admission-identity-required'),
+                  makeZerospinError('admission-claims-required'),
                 );
               }
-              return request.identity;
+              return request.claims;
             }
             if (!('credentials' in request)) {
               return yield* Effect.fail(
@@ -102,31 +102,31 @@ export const admitService = Effect.fn('ServiceApi.admitService', {
               })
               .pipe(Effect.provide(NanoIdFactory));
           });
-          const identity = yield* Schema.decodeUnknownEffect(
-            Schema.toType(definition.identitySchema),
+          const claims = yield* Schema.decodeUnknownEffect(
+            Schema.toType(definition.claimsSchema),
           )(returned, { onExcessProperty: 'error' }).pipe(
             mapParseError({
               code: 'identity-result-invalid',
               prefix: 'Invalid identity result',
             }),
           );
-          const encoded = yield* Schema.encodeEffect(definition.identitySchema)(
-            identity,
+          const encoded = yield* Schema.encodeEffect(definition.claimsSchema)(
+            claims,
           ).pipe(
             mapParseError({
               code: 'identity-result-invalid',
-              prefix: 'Identity could not be encoded',
+              prefix: 'Claims could not be encoded',
             }),
           );
           // Only explicitly declared selection claims cross into selection callbacks or replica names.
           const selected = Object.fromEntries(
-            Object.keys(definition.actorSchema.fields).map(field => [
+            Object.keys(definition.identitySchema.fields).map(field => [
               field,
-              identity[field],
+              claims[field],
             ]),
           );
           const selection = yield* Schema.decodeUnknownEffect(
-            Schema.toType(definition.actorSchema),
+            Schema.toType(definition.identitySchema),
           )(selected, { onExcessProperty: 'error' }).pipe(
             mapParseError({
               code: 'identity-selection-invalid',
@@ -134,7 +134,7 @@ export const admitService = Effect.fn('ServiceApi.admitService', {
             }),
           );
           const encodedSelection = yield* Schema.encodeEffect(
-            definition.actorSchema,
+            definition.identitySchema,
           )(selection).pipe(
             mapParseError({
               code: 'identity-selection-invalid',
@@ -169,7 +169,7 @@ export const admitService = Effect.fn('ServiceApi.admitService', {
               }),
           });
           const recovered = yield* Schema.decodeUnknownEffect(
-            definition.actorSchema,
+            definition.identitySchema,
           )(matched?.params, { onExcessProperty: 'error' }).pipe(
             mapParseError({
               code: 'identity-selection-invalid',
@@ -208,12 +208,12 @@ export const admitService = Effect.fn('ServiceApi.admitService', {
               ),
             ),
           );
-          const identityHash = [...new Uint8Array(digest)]
+          const claimsHash = [...new Uint8Array(digest)]
             .map(byte => byte.toString(16).padStart(2, '0'))
             .join('');
           return {
-            identity: encoded,
-            identityHash,
+            claims: encoded,
+            claimsHash,
             selection: selectionStrings,
             actorPath,
             systemName: system.name,

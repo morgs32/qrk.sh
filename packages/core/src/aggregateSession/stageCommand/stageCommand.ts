@@ -165,12 +165,12 @@ export function stageCommand<
       contract,
       sessionName: definition.sessionName,
       sessionId,
-      identity: yield* Schema.encodeEffect(definition.identity.identitySchema)(
-        state.identity,
+      claims: yield* Schema.encodeEffect(definition.claimsSchema)(
+        state.claims,
       ).pipe(
         mapParseError({
-          code: 'command-identity-invalid',
-          prefix: 'Failed to encode command identity',
+          code: 'command-claims-invalid',
+          prefix: 'Failed to encode command claims',
         }),
       ),
       validatedPayload,
@@ -181,13 +181,13 @@ export function stageCommand<
     const madeMutations = yield* runContractGuard({
       contract,
       queryDb: state.db,
-      identity: state.identity,
+      claims: state.claims,
       payload: command.payload,
     })
       .pipe(
         Effect.andThen(
           makeMutations({
-            identity: state.identity,
+            claims: state.claims,
             contract,
             models: definition.models,
             command,

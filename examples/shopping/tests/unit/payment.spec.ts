@@ -37,7 +37,7 @@ it.effect(
             aggregateVersion: '2.0.0',
             actorName: 'shopper',
             actorVersion: '2.0.0',
-            identity: { clerkUserId: 'user_1' },
+            claims: { clerkUserId: 'user_1' },
             nodeId: null,
             nodeIndex: null,
             sessionName: null,
@@ -183,7 +183,7 @@ it.effect(
       const guard = shopperAggregateV2.guards.shopper!.recordPaymentObservation;
       const input: Parameters<NonNullable<typeof guard>>[0] = {
         queryDb: scratch.queryDb,
-        identity: {
+        claims: {
           clerkUserId: Schema.decodeUnknownSync(ClerkUserIdSchema)('user_1'),
         },
         failures: recordIntentObservation.failures,
@@ -203,7 +203,7 @@ it.effect(
           yield* Effect.exit(
             guard!({
               ...input,
-              identity: {
+              claims: {
                 clerkUserId:
                   Schema.decodeUnknownSync(ClerkUserIdSchema)('user_other'),
               },

@@ -9,7 +9,7 @@ import type { IAnyContracts, InferFailure } from './types.ts';
 export type IOwnerGuards<
   CONTRACTS extends IAnyContracts,
   MODELS extends IAnyModels,
-  IDENTITY,
+  CLAIMS,
   SCOPE extends IScopedError['scope'],
   REQUIREMENTS = never,
 > = {
@@ -20,7 +20,7 @@ export type IOwnerGuards<
           Pick<IDb<IResourceDbConfig<MODELS, Record<never, never>>>, 'query'>
         >;
     payload: InferCommandPayload<CONTRACTS[K]['payload']>;
-    identity: IDENTITY;
+    claims: CLAIMS;
     failures: CONTRACTS[K]['failures'];
   }) => Effect.Effect<
     void,

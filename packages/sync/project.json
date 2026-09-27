@@ -4,7 +4,13 @@
   "targets": {
     "lib": {
       "inputs": ["default", "^default", "{projectRoot}/tsconfig.json"],
-      "outputs": ["{projectRoot}/dist"]
+      "outputs": ["{projectRoot}/dist"],
+      "dependsOn": [
+        {
+          "target": "lib",
+          "projects": ["@zerospin/core", "@zerospin/error"]
+        }
+      ]
     },
     "e2e": {
       "dependsOn": ["lib"]

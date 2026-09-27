@@ -211,7 +211,7 @@ export class SystemRepo extends makeFixedDORepo({
     actorName: string;
     actorVersion: string;
     actorPath: string;
-    identity: Readonly<Record<string, unknown>>;
+    claims: Readonly<Record<string, unknown>>;
     sessionName: string;
     aggregateSessionLock: IAggregateSessionLock;
   }) {
@@ -265,7 +265,7 @@ export class SystemRepo extends makeFixedDORepo({
     serviceName: string;
     serviceVersion: string;
     actorPath: string;
-    identity: Readonly<Record<string, unknown>>;
+    claims: Readonly<Record<string, unknown>>;
     sessionName: string;
     serviceSessionLock: IServiceSessionLock;
   }) {

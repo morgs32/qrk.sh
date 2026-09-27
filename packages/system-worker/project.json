@@ -3,7 +3,22 @@
   "name": "system-worker",
   "targets": {
     "lib": {
-      "outputs": ["{projectRoot}/dist"]
+      "outputs": ["{projectRoot}/dist"],
+      "dependsOn": [
+        {
+          "target": "lib",
+          "projects": [
+            "@zerospin/core",
+            "@zerospin/error",
+            "@zerospin/logger",
+            "@zerospin/schema"
+          ]
+        },
+        {
+          "target": "config:lib",
+          "projects": ["@zerospin/fixtures"]
+        }
+      ]
     },
     "dev": {
       "continuous": true

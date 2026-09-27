@@ -35,7 +35,7 @@ export const commitActorProjectionTx = Effect.fn('commitActorProjectionTx')(
       | typeof ServiceExecutedCommandSchema.Type;
     admission: IAggregateActorCommand['admission'];
     execution: IAggregateActorCommand['execution'];
-    ownerIdentity: Readonly<Record<string, unknown>> | null;
+    ownerClaims: Readonly<Record<string, unknown>> | null;
     ownerSessionName: string | null;
     nodeId: string | null;
     nodeIndex: number | null;

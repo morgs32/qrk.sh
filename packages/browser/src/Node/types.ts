@@ -25,7 +25,7 @@ export type INodeIdentity = Readonly<{
   actorName: string;
   actorVersion: string;
   sessionName: string;
-  identity: Readonly<Record<string, unknown>>;
+  claims: Readonly<Record<string, unknown>>;
   definitionHash: string;
 }>;
 

@@ -1,7 +1,7 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "rootDir": ".",
+    "rootDir": "../..",
     "noEmit": true,
     "types": [
       "@cloudflare/vitest-plugin/types",
@@ -9,22 +9,22 @@
       "vite/client",
       "vitest/globals",
       "./worker-configuration.d.ts"
-    ]
+    ],
+    "paths": {
+      "config": ["../fixtures/src/config/config.ts"]
+    },
+    "composite": false,
+    "incremental": false,
+    "allowImportingTsExtensions": true
   },
   "include": [
     "src/**/*.spec.ts",
     "src/**/*.spec.tsx",
-    "src/workerd-utils/**/*.ts",
     "vitest-env.d.ts",
     "worker-configuration.d.ts",
     "env-types.d.ts",
     "vitest.node.config.ts",
-    "vitest.workerd.config.ts",
-    "src/fixtures/purchaseAggregate.ts",
-    "src/fixtures/purchaseModels.ts",
-    "src/fixtures/purchaseFulfillmentClient.ts",
-    "src/fixtures/trustedService.ts",
-    "src/fixtures/fulfillmentService.ts"
+    "vitest.workerd.config.ts"
   ],
   "exclude": [],
   "references": [
@@ -38,7 +38,7 @@
       "path": "../../packages/error"
     },
     {
-      "path": "../config"
+      "path": "../fixtures/tsconfig.config.json"
     }
   ]
 }

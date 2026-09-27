@@ -13,8 +13,8 @@ export const aggregateActorVersionChainDbConfig = makeDbConfig({
         completionNodeId: primitives.text({ nullable: true }),
         completionNodeIndex: primitives.integer({ nullable: true }),
         completionSessionName: primitives.text({ nullable: true }),
-        completionIdentity:
-          aggregateActorVersionRepoDbConfig.tables.commands.shape.identity,
+        completionClaims:
+          aggregateActorVersionRepoDbConfig.tables.commands.shape.claims,
       },
       indexes: [
         {

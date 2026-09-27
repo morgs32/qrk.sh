@@ -15,7 +15,7 @@
   "scripts": {
     "clean": "rimraf dist tsconfig.tsbuildinfo",
     "lib": "pnpm run clean && tsc -b tsconfig.json",
-    "ts": "tsc -p e2e/tsconfig.json --noEmit && tsc -p tsconfig.etc.json --noEmit",
+    "ts": "tsc -p tsconfig.etc.json --noEmit",
     "test": "vitest run --config vitest.config.ts",
     "test:vitest:browser": "vitest run --config vitest.playwright.config.ts",
     "test:vitest:browser:platform": "vitest run --config vitest.playwright.platform.config.ts",
@@ -33,6 +33,7 @@
     "@vitest/browser-playwright": "^4.1.5",
     "@zerospin/core": "workspace:*",
     "@zerospin/error": "workspace:*",
+    "@zerospin/fixtures": "workspace:*",
     "@zerospin/logger": "workspace:*",
     "capnweb": "^0.12.0",
     "cloudflare": "^6.1.0",

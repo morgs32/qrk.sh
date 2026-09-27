@@ -31,7 +31,7 @@ export const executeServiceQuery = Effect.fn(
   aggregateName?: string;
   aggregateVersion?: string;
   serviceVersion?: string;
-  identity?: Readonly<Record<string, unknown>>;
+  claims?: Readonly<Record<string, unknown>>;
   sessionName?: string;
   aggregateSessionLock?: IAggregateSessionLock;
   serviceName: string;
@@ -46,16 +46,16 @@ export const executeServiceQuery = Effect.fn(
     params,
     queryName,
     serviceName,
-    identity,
+    claims,
     serviceVersion: inputServiceVersion,
     aggregateVersion,
   } = props;
 
-  // 1 — inspect aggregateId, aggregateName, identity, sessionName, and aggregateSessionLock
+  // 1 — inspect aggregateId, aggregateName, claims, sessionName, and aggregateSessionLock
   const hasAnySessionBinding =
     aggregateId !== undefined ||
     aggregateName !== undefined ||
-    identity !== undefined ||
+    claims !== undefined ||
     sessionName !== undefined ||
     aggregateSessionLock !== undefined;
 
@@ -64,7 +64,7 @@ export const executeServiceQuery = Effect.fn(
     hasAnySessionBinding &&
     (aggregateId === undefined ||
       aggregateName === undefined ||
-      identity === undefined ||
+      claims === undefined ||
       sessionName === undefined ||
       aggregateSessionLock === undefined)
   ) {
@@ -72,7 +72,7 @@ export const executeServiceQuery = Effect.fn(
       makeZerospinError({
         code: 'service-query-session-binding-incomplete',
         message:
-          'A session-bound service query requires aggregateId, aggregateName, identity, sessionName, and aggregateSessionLock together',
+          'A session-bound service query requires aggregateId, aggregateName, claims, sessionName, and aggregateSessionLock together',
       }),
     );
   }

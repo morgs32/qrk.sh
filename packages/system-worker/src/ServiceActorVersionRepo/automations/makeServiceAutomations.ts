@@ -385,13 +385,13 @@ export const makeServiceAutomations = (props: {
           contract,
           queryDb: scratch.queryDb,
           payload,
-          identity: null,
+          claims: null,
         });
         const made = yield* makeMutations({
           contract,
           models: service.models,
           command: { ...encodedCommand, payload },
-          identity: null,
+          claims: null,
         });
         const mutations = yield* Effect.forEach(
           made.mutations,

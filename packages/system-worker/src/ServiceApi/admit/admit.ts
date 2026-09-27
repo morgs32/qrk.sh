@@ -21,7 +21,7 @@ export const admit = Effect.fn('ServiceApi.admit')(function* (props: {
     const request = yield* Schema.decodeUnknownEffect(
       Schema.Union([
         Schema.Struct({
-          identity: Schema.Unknown,
+          claims: Schema.Unknown,
           actorName: Schema.String,
           actorVersion: Schema.String,
         }),
@@ -40,8 +40,8 @@ export const admit = Effect.fn('ServiceApi.admit')(function* (props: {
     const admitted = yield* admitService({
       ...props.binding,
       request:
-        'identity' in request
-          ? { identity: request.identity }
+        'claims' in request
+          ? { claims: request.claims }
           : { credentials: request.credentials },
       actorName: request.actorName,
       actorVersion: request.actorVersion,

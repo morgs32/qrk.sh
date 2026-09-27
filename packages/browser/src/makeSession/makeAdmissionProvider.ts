@@ -1,34 +1,34 @@
 import type {
   IAdmissionRequest,
-  IIdentitySchema,
+  IClaimsSchema,
   ISessionInitialization,
 } from '@zerospin/core/identity/types';
 import { catchZerospinError, type IAnyError } from '@zerospin/error';
 import { Effect, Schema } from 'effect';
 
-/** Capture direct identity once; acquire fresh credentials for each server admission. */
+/** Capture direct claims once; acquire fresh credentials for each server admission. */
 export function makeAdmissionProvider(props: {
-  identitySchema: IIdentitySchema;
+  claimsSchema: IClaimsSchema;
   credentialsSchema?: Schema.Codec<unknown, unknown> | undefined;
   initialization: ISessionInitialization<
-    IIdentitySchema,
+    IClaimsSchema,
     Schema.Codec<unknown, unknown> | undefined
   >;
 }): {
-  identity: Readonly<Record<string, unknown>> | undefined;
+  claims: Readonly<Record<string, unknown>> | undefined;
   getAdmission(): Effect.Effect<IAdmissionRequest, IAnyError>;
 } {
   if (props.credentialsSchema === undefined) {
     const input = Schema.decodeUnknownSync(
-      Schema.Struct({ identity: Schema.Unknown }),
+      Schema.Struct({ claims: Schema.Unknown }),
       { onExcessProperty: 'error' },
     )(props.initialization);
-    const identity = structuredClone(
-      Schema.decodeUnknownSync(Schema.toType(props.identitySchema), {
+    const claims = structuredClone(
+      Schema.decodeUnknownSync(Schema.toType(props.claimsSchema), {
         onExcessProperty: 'error',
-      })(input.identity),
+      })(input.claims),
     );
-    return { identity, getAdmission: () => Effect.succeed({ identity }) };
+    return { claims, getAdmission: () => Effect.succeed({ claims }) };
   }
   const input = Schema.decodeUnknownSync(
     Schema.Struct({
@@ -41,7 +41,7 @@ export function makeAdmissionProvider(props: {
   )(props.initialization);
   const credentialsSchema = props.credentialsSchema;
   return {
-    identity: undefined,
+    claims: undefined,
     getAdmission: () =>
       Effect.suspend(input.getCredentials).pipe(
         Effect.flatMap(

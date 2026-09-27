@@ -33,49 +33,49 @@ const service = (actorName: string, request: IAdmissionRequest) =>
   });
 
 describe('server identity admission', () => {
-  it('accepts direct identity for both actor kinds and derives the actor path', async () => {
+  it('accepts direct claims for both actor kinds and derives the actor path', async () => {
     expect(
       await config.system.runtime.runPromise(
         aggregate('direct', {
-          identity: { aggregateId: 'acct_direct', subject: 'browser' },
+          claims: { aggregateId: 'acct_direct', subject: 'browser' },
         }),
       ),
     ).toMatchObject({
-      identity: { aggregateId: 'acct_direct', subject: 'browser' },
+      claims: { aggregateId: 'acct_direct', subject: 'browser' },
       actorPath: '/browser',
     });
     expect(
       await config.system.runtime.runPromise(
-        service('direct', { identity: { subject: 'browser' } }),
+        service('direct', { claims: { subject: 'browser' } }),
       ),
     ).toMatchObject({
-      identity: { subject: 'browser' },
+      claims: { subject: 'browser' },
       actorPath: '/browser',
     });
   });
-  it('returns only server identity when verifying credentials', async () => {
+  it('returns only server claims when verifying credentials', async () => {
     expect(
       await config.system.runtime.runPromise(
         aggregate('verified', { credentials: { token: 'secret' } }),
       ),
     ).toMatchObject({
-      identity: { aggregateId: 'acct_server', subject: 'server' },
+      claims: { aggregateId: 'acct_server', subject: 'server' },
       actorPath: '/server',
     });
     const result = await config.system.runtime.runPromise(
       service('verified', { credentials: { token: 'secret' } }),
     );
-    expect(result.identity).toEqual({ subject: 'server' });
+    expect(result.claims).toEqual({ subject: 'server' });
     expect(JSON.stringify(result)).not.toContain('secret');
   });
   it('rejects missing claims and invalid aggregate IDs from either source', async () => {
     for (const effect of [
-      aggregate('direct', { identity: { subject: 'browser' } }),
+      aggregate('direct', { claims: { subject: 'browser' } }),
       aggregate('direct', {
-        identity: { aggregateId: 'wrong', subject: 'browser' },
+        claims: { aggregateId: 'wrong', subject: 'browser' },
       }),
       aggregate('verified', { credentials: { token: 'bad-id' } }),
-      service('direct', { identity: {} }),
+      service('direct', { claims: {} }),
     ]) {
       expect(
         (await config.system.runtime.runPromise(effect.pipe(Effect.result)))
@@ -88,7 +88,7 @@ describe('server identity admission', () => {
       for (const [actorName, request] of [
         [
           'verified',
-          { identity: { subject: 'browser', aggregateId: 'acct_browser' } },
+          { claims: { subject: 'browser', aggregateId: 'acct_browser' } },
         ],
         ['direct', { credentials: { token: 'secret' } }],
         ['verified', { credentials: { token: 'deny' } }],
@@ -105,7 +105,7 @@ describe('server identity admission', () => {
       // Exercise runtime validation across the RPC trust boundary.
       // @ts-expect-error Mixed requests must also be rejected at runtime.
       const invalid = admit('direct', {
-        identity: { subject: 'browser', aggregateId: 'acct_browser' },
+        claims: { subject: 'browser', aggregateId: 'acct_browser' },
         credentials: { token: 'secret' },
       });
       expect(
@@ -142,8 +142,7 @@ it('retains success and failure admission audits without credentials', async () 
       .filter(row => row.status === 'succeeded')
       .some(
         row =>
-          typeof row.identity === 'string' &&
-          row.identity.includes('acct_server'),
+          typeof row.claims === 'string' && row.claims.includes('acct_server'),
       ),
   ).toBe(true);
 });

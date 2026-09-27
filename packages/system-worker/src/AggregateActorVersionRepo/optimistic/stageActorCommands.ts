@@ -127,7 +127,7 @@ export const stageActorCommands = Effect.fn(
             systemName: duplicate.systemName,
             actorName: duplicate.actorName,
             actorVersion: duplicate.actorVersion,
-            identity: duplicate.identity,
+            claims: duplicate.claims,
             nodeId: duplicate.nodeId,
             sessionName: duplicate.sessionName,
             nodeIndex: duplicate.nodeIndex,
@@ -146,7 +146,7 @@ export const stageActorCommands = Effect.fn(
             systemName: command.systemName,
             actorName: command.actorName,
             actorVersion: command.actorVersion,
-            identity: command.identity,
+            claims: command.claims,
             nodeId: command.nodeId,
             sessionName: command.sessionName,
             nodeIndex: command.nodeIndex,
@@ -172,18 +172,18 @@ export const stageActorCommands = Effect.fn(
       key: command.commandName,
       recordKind: 'actor contracts',
     });
-    const identity = yield* Schema.decodeUnknownEffect(
+    const claims = yield* Schema.decodeUnknownEffect(
       command.automationName == null
-        ? actor.identity.identitySchema
-        : actor.identity.actorSchema,
-    )(command.identity);
+        ? actor.identity.claimsSchema
+        : actor.identity.identitySchema,
+    )(command.claims);
     const payload = yield* decodePayload(contract, { command });
     const attempted = yield* Effect.gen(function* () {
       yield* runContractGuard({
         contract,
         queryDb: scratch.queryDb,
         payload,
-        identity,
+        claims,
       });
       yield* runProgram(
         Effect.suspend(
@@ -191,7 +191,7 @@ export const stageActorCommands = Effect.fn(
             actor.guards[command.commandName]?.({
               queryDb: scratch.queryDb,
               payload,
-              identity,
+              claims,
               failures: contract.failures,
             }) ?? Effect.void,
         ),
@@ -208,7 +208,7 @@ export const stageActorCommands = Effect.fn(
         contract,
         models: aggregate.models,
         command: { ...command, payload },
-        identity,
+        claims,
       });
       const captured = yield* getReplicatedResources({
         systemId: key.systemId,

@@ -36,7 +36,7 @@ const resolveAlias = {
       find: 'config',
       replacement: path.resolve(
         __dirname,
-        '../system-worker/src/fixtures/system.ts',
+        '../fixtures/src/system-worker/systems/system.ts',
       ),
     },
     {

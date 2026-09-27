@@ -17,7 +17,7 @@ it('round trips required phase JSON and dates without wrapping structured failur
     actorName: 'writer',
     actorVersion: '1.0.0',
     sessionName: 'editor',
-    identity: {},
+    claims: {},
     sessionId: 'sesn_one' as const,
     sessionIndex: 1,
     pushIndex: null,

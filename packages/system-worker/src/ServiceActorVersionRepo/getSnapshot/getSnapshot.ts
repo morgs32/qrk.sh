@@ -138,7 +138,7 @@ export const getSnapshot = Effect.fn('ServiceActorVersionRepo.getSnapshot')(
     return yield* Schema.decodeUnknownEffect(
       Schema.toType(
         ServiceSessionSnapshotSchema.mapFields(
-          ({ identity: _identity, sessionName: _sessionName, ...fields }) => ({
+          ({ claims: _identity, sessionName: _sessionName, ...fields }) => ({
             ...fields,
             actorPath: Schema.String,
             actorName: Schema.String,

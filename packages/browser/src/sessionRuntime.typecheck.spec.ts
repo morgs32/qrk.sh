@@ -15,7 +15,7 @@ class Capability extends Context.Service<Capability, { value: number }>()(
 class Unrelated extends Context.Service<Unrelated, { label: string }>()(
   'UnrelatedSessionCapability',
 ) {}
-const identity = Schema.Struct({ aggregateId: Schema.String });
+const claims = Schema.Struct({ aggregateId: Schema.String });
 
 const guarded = makeContractVersion(defineContract('guarded'), {
   version: '1.0.0',
@@ -33,7 +33,7 @@ const aggregate = {
   sessionName: 'test',
   models: {},
   contracts: { guarded: { contract: guarded } },
-  identitySchema: identity,
+  claimsSchema: claims,
 };
 const liveAggregate = { ...aggregate, contracts: { guarded } };
 const apiLayer = Layer.mergeAll(
@@ -48,7 +48,7 @@ const definition = makeAggregateSessionDefinition({
   sessionName: aggregate.sessionName,
   models: aggregate.models,
   contracts: aggregate.contracts,
-  identitySchema: identity,
+  claimsSchema: claims,
 });
 
 // Compile-only public constructor and runtime inference checks.
@@ -62,7 +62,7 @@ export function checkSessionLayerTypes() {
   const standalone = makeStandaloneSession({
     ...aggregate,
     key: 'test',
-    identity: { aggregateId: 'acct_test' },
+    claims: { aggregateId: 'acct_test' },
     layer: Layer.effect(
       Capability,
       Effect.promise(async () => ({ value })),
@@ -70,7 +70,7 @@ export function checkSessionLayerTypes() {
   });
   const mock = makeMockAggregateSession({
     definition,
-    identity: { aggregateId: 'acct_test' },
+    claims: { aggregateId: 'acct_test' },
     layer: Layer.effect(
       Capability,
       Effect.promise(async () => ({ value })),
@@ -82,7 +82,7 @@ export function checkSessionLayerTypes() {
     ...aggregate,
     contracts: {},
     key: 'defaults',
-    identity: { aggregateId: 'acct_test' },
+    claims: { aggregateId: 'acct_test' },
   });
   const detached = makeMockAggregateSession({
     definition: makeAggregateSessionDefinition({
@@ -93,9 +93,9 @@ export function checkSessionLayerTypes() {
       sessionName: 'test',
       models: {},
       contracts: {},
-      identitySchema: identity,
+      claimsSchema: claims,
     }),
-    identity: { aggregateId: 'acct_test' },
+    claims: { aggregateId: 'acct_test' },
   });
   // @ts-expect-error Omitting the layer does not add arbitrary services.
   defaults.runtime.runSync(Capability);
@@ -115,12 +115,12 @@ export function checkSessionLayerTypes() {
   makeStandaloneSession({
     ...aggregate,
     key: 'test',
-    identity: { aggregateId: 'acct_test' },
+    claims: { aggregateId: 'acct_test' },
   });
   // @ts-expect-error Mock guards require a supplying layer.
   makeMockAggregateSession({
     definition,
-    identity: { aggregateId: 'acct_test' },
+    claims: { aggregateId: 'acct_test' },
   });
   // @ts-expect-error Runtime ownership is read-only to callers.
   live.runtime = standalone.runtime;
@@ -133,13 +133,13 @@ export function checkAdmissionTypes() {
     Layer.succeed(Capability, { value: 1 }),
   );
   const direct = makeSession({ ...liveAggregate, systemName: 'test', layer });
-  void direct.initialize({ identity: { aggregateId: 'acct_test' } });
+  void direct.initialize({ claims: { aggregateId: 'acct_test' } });
   void direct.initialize({
     // @ts-expect-error Direct sessions do not accept credentials.
     getCredentials: () => Effect.succeed({ token: 'token' }),
   });
   // @ts-expect-error Identity must satisfy the declared schema.
-  void direct.initialize({ identity: { aggregateId: 42 } });
+  void direct.initialize({ claims: { aggregateId: 42 } });
   const verified = makeSession({
     ...liveAggregate,
     systemName: 'test',
@@ -149,15 +149,15 @@ export function checkAdmissionTypes() {
   void verified.initialize({
     getCredentials: () => Effect.succeed({ token: 'token' }),
   });
-  // @ts-expect-error Verified sessions cannot accept caller-supplied identity.
-  void verified.initialize({ identity: { aggregateId: 'acct_test' } });
+  // @ts-expect-error Verified sessions cannot accept caller-supplied claims.
+  void verified.initialize({ claims: { aggregateId: 'acct_test' } });
   void verified.initialize({
     // @ts-expect-error Credentials must satisfy the declared schema.
     getCredentials: () => Effect.succeed({ token: 42 }),
   });
   void verified.initialize({
-    // @ts-expect-error Identity and credentials are mutually exclusive.
-    identity: { aggregateId: 'acct_test' },
+    // @ts-expect-error Claims and credentials are mutually exclusive.
+    claims: { aggregateId: 'acct_test' },
     getCredentials: () => Effect.succeed({ token: 'token' }),
   });
 }

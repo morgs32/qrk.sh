@@ -5,7 +5,7 @@ import {
   type IMutations,
 } from '@zerospin/core/contracts/make/makeContractVersion';
 import type { IContract } from '@zerospin/core/contracts/types';
-import type { IIdentitySchema } from '@zerospin/core/identity/types';
+import type { IClaimsSchema } from '@zerospin/core/identity/types';
 import type { IModel } from '@zerospin/core/models/types';
 import { ContractError, makeZerospinError } from '@zerospin/error';
 import {
@@ -34,11 +34,11 @@ type IPaid = IContract<
 >;
 export const makeFulfillmentModule = <
   const HOST extends IHost,
-  const IDENTITY extends IIdentitySchema,
-  const SELECTION extends IIdentitySchema,
+  const CLAIMS extends IClaimsSchema,
+  const SELECTION extends IClaimsSchema,
   const PAID extends IPaid,
 >(options: {
-  frontend: ReturnType<typeof makeFulfillmentFrontendModule<HOST, IDENTITY>>;
+  frontend: ReturnType<typeof makeFulfillmentFrontendModule<HOST, CLAIMS>>;
   paid: PAID;
   selectionIdentitySchema: SELECTION;
   resolvePurchaseOwner: IFulfillmentOwnership<HOST, SELECTION>;
@@ -52,7 +52,7 @@ export const makeFulfillmentModule = <
     defineContract('enrollFulfillment'),
     {
       version: '1.0.0',
-      identity: selectionIdentitySchema,
+      claims: selectionIdentitySchema,
       models,
       failures: {
         aggregateConflict: fulfillmentStateConflict,
@@ -61,11 +61,11 @@ export const makeFulfillmentModule = <
         }),
       },
       payload: { fulfillment: primitives.json({ schema: sourceSchema }) },
-      guard: Effect.fn(function* ({ queryDb, identity, payload, failures }) {
+      guard: Effect.fn(function* ({ queryDb, claims, payload, failures }) {
         const row = payload.fulfillment;
         const owner = resolvePurchaseOwner({
           queryDb,
-          identity,
+          claims,
           purchaseId: row.purchaseId,
         });
         if (
@@ -90,7 +90,7 @@ export const makeFulfillmentModule = <
     defineContract('recordFulfillmentOperation'),
     {
       version: '1.0.0',
-      identity: selectionIdentitySchema,
+      claims: selectionIdentitySchema,
       models,
       failures: {
         aggregateConflict: fulfillmentStateConflict,
@@ -109,7 +109,7 @@ export const makeFulfillmentModule = <
           nullable: true,
         }),
       },
-      guard: Effect.fn(function* ({ queryDb, identity, payload, failures }) {
+      guard: Effect.fn(function* ({ queryDb, claims, payload, failures }) {
         const row = Schema.decodeUnknownSync(
           Schema.toType(Schema.Array(fulfillment.resourceSchema)),
         )(queryDb.query.fulfillment.findMany().sync()).find(
@@ -125,7 +125,7 @@ export const makeFulfillmentModule = <
             ? undefined
             : resolvePurchaseOwner({
                 queryDb,
-                identity,
+                claims,
                 purchaseId: row.purchaseId,
               });
         const result = payload.fulfillment;

@@ -1,14 +1,14 @@
 import * as sdk from '@zerospin/sdk/browser';
 import { Effect } from 'effect';
 
-import { game, identitySchema } from '../gameV1';
+import { claimsSchema, game } from '../gameV1';
 
 export const createGame = sdk.makeContractVersion(
   sdk.defineContract('createGame'),
   {
     version: '1.0.0',
     models: { game },
-    identity: identitySchema,
+    claims: claimsSchema,
     failures: {
       invalidMove: sdk.ContractError.schema({ code: 'invalid-move' }),
     },
@@ -16,12 +16,12 @@ export const createGame = sdk.makeContractVersion(
     guard: Effect.fn('createGame.guard')(function* ({
       failures,
       payload,
-      identity,
+      claims,
       queryDb,
     }) {
       if (
-        identity === null ||
-        payload.id !== identity.instanceId ||
+        claims === null ||
+        payload.id !== claims.instanceId ||
         queryDb.query.game.findFirst().sync() !== undefined
       ) {
         return yield* failures.invalidMove.make({ extra: null });

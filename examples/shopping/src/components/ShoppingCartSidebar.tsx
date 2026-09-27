@@ -1,4 +1,4 @@
-import { useIdentity, useLiveQuery } from '@zerospin/react';
+import { useClaims, useLiveQuery } from '@zerospin/react';
 
 import { CartItemQuantityControls } from './CartItemQuantityControls';
 import { PurchasePanel } from './PurchasePanel';
@@ -13,11 +13,11 @@ import {
 import { shopperSession } from '@/zerospin/shopperSession';
 
 export function ShoppingCartSidebar() {
-  const identity = useIdentity(shopperSession);
+  const claims = useClaims(shopperSession);
 
   const { data: userRow } = useLiveQuery({
     session: shopperSession,
-    key: { clerkUserId: identity.clerkUserId ?? undefined },
+    key: { clerkUserId: claims.clerkUserId ?? undefined },
     query: (db, { clerkUserId }) =>
       db.query.user.findFirst({
         where: { clerkUserId: { eq: clerkUserId } },
@@ -49,8 +49,8 @@ export function ShoppingCartSidebar() {
         <div className="flex min-w-0 flex-col gap-2 p-3">
           {cartItems.length === 0 ? (
             <p className="text-muted-foreground py-8 text-center text-sm leading-relaxed">
-              Your cart is empty for {identity.clerkUserId}. Add products from
-              the catalog.
+              Your cart is empty for {claims.clerkUserId}. Add products from the
+              catalog.
             </p>
           ) : (
             <div className="space-y-2">

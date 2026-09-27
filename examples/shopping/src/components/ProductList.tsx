@@ -1,4 +1,4 @@
-import { useIdentity, useLiveQuery } from '@zerospin/react';
+import { useClaims, useLiveQuery } from '@zerospin/react';
 
 import { ProductCard } from './ProductCard';
 
@@ -6,7 +6,7 @@ import { catalogSession } from '@/zerospin/catalogSession';
 import { shopperSession } from '@/zerospin/shopperSession';
 
 export function ProductList() {
-  const identity = useIdentity(shopperSession);
+  const claims = useClaims(shopperSession);
   const { data: products } = useLiveQuery({
     session: catalogSession,
     query: db => db.query.product.findMany(),
@@ -14,7 +14,7 @@ export function ProductList() {
 
   const { data: user } = useLiveQuery({
     session: shopperSession,
-    key: { clerkUserId: identity.clerkUserId ?? undefined },
+    key: { clerkUserId: claims.clerkUserId ?? undefined },
     query: (db, { clerkUserId }) =>
       db.query.user.findFirst({
         where: { clerkUserId: { eq: clerkUserId } },

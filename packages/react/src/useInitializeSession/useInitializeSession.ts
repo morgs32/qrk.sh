@@ -3,17 +3,17 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 
 import type {
-  IIdentitySchema,
+  IClaimsSchema,
   ISessionInitialization,
 } from '@zerospin/core/identity/types';
 import { catchZerospinError, makeZerospinError } from '@zerospin/error';
 import { Effect, type Schema } from 'effect';
 
 type IInitializableSession<
-  I extends IIdentitySchema,
+  I extends IClaimsSchema,
   C extends Schema.Codec<unknown, unknown> | undefined,
 > = {
-  readonly identitySchema: I;
+  readonly claimsSchema: I;
   readonly credentialsSchema?: C;
   readonly systemName: string;
   readonly definition:
@@ -29,11 +29,11 @@ type IInitializableSession<
 
 /**
  * React owns initialization after commit and disposal on unmount. Depends on
- * session identity, not credentials callback identity. Competing hooks that are
+ * session identity, not credentials callback claims. Competing hooks that are
  * rejected synchronously never acquire disposal responsibility.
  */
 export function useInitializeSession<
-  I extends IIdentitySchema,
+  I extends IClaimsSchema,
   C extends Schema.Codec<unknown, unknown> | undefined = undefined,
 >(
   props: {
@@ -43,11 +43,11 @@ export function useInitializeSession<
 export function useInitializeSession(
   props: {
     session: IInitializableSession<
-      IIdentitySchema,
+      IClaimsSchema,
       Schema.Codec<unknown, unknown> | undefined
     >;
   } & ISessionInitialization<
-    IIdentitySchema,
+    IClaimsSchema,
     Schema.Codec<unknown, unknown> | undefined
   >,
 ): { isInitialized: boolean } {
@@ -69,11 +69,11 @@ export function useInitializeSession(
     try {
       const start = () => {
         if (session.credentialsSchema === undefined) {
-          const identity = initializationRef.current.identity;
-          if (identity === undefined) {
-            throw makeZerospinError('session-identity-required');
+          const claims = initializationRef.current.claims;
+          if (claims === undefined) {
+            throw makeZerospinError('session-claims-required');
           }
-          return session.initialize({ identity });
+          return session.initialize({ claims });
         }
         return session.initialize({
           getCredentials: () =>

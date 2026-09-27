@@ -31,7 +31,7 @@ export const ServiceActorCommandSchema = Schema.Struct({
 export const ServiceSessionSnapshotSchema = Schema.Struct({
   actorName: Schema.String,
   actorVersion: Schema.String,
-  identity: Schema.Record(Schema.String, Schema.Unknown),
+  claims: Schema.Record(Schema.String, Schema.Unknown),
   serviceName: Schema.String,
   sessionName: Schema.String,
   serviceIndex: nonNegativeIndexSchema,

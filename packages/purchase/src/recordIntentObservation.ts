@@ -1,6 +1,6 @@
 import { defineContract } from '@zerospin/core/contracts/defineContract';
 import { makeContractVersion } from '@zerospin/core/contracts/make/makeContractVersion';
-import type { IIdentitySchema } from '@zerospin/core/identity/types';
+import type { IClaimsSchema } from '@zerospin/core/identity/types';
 import { ContractError } from '@zerospin/error';
 import {
   makeAbbreviationIdSchema,
@@ -15,10 +15,10 @@ import type { IPurchaseHostModels } from './host.js';
 import type { IInternalOptions } from './internalOptions.js';
 export const makeRecordIntentObservation = <
   const HOST extends IPurchaseHostModels,
-  const IDENTITY extends IIdentitySchema,
-  const SELECTION extends IIdentitySchema,
+  const CLAIMS extends IClaimsSchema,
+  const SELECTION extends IClaimsSchema,
 >(
-  options: IInternalOptions<HOST, IDENTITY, SELECTION>,
+  options: IInternalOptions<HOST, CLAIMS, SELECTION>,
 ) => {
   const { frontend, selectionIdentitySchema, resolveUserId } = options;
   const {
@@ -37,7 +37,7 @@ export const makeRecordIntentObservation = <
     defineContract('recordPaymentObservation'),
     {
       version: options.contractVersion ?? '1.0.0',
-      identity: selectionIdentitySchema,
+      claims: selectionIdentitySchema,
       failures: {
         aggregateConflict: purchaseStateConflict,
         conflict: ContractError.schema({
@@ -77,7 +77,7 @@ export const makeRecordIntentObservation = <
       },
       guard: Effect.fn('recordPaymentObservation.guard')(function* ({
         payload,
-        identity,
+        claims,
         queryDb: db,
         failures,
       }) {
@@ -104,7 +104,7 @@ export const makeRecordIntentObservation = <
         );
         if (
           checkout === undefined ||
-          checkout.userId !== resolveUserId({ queryDb: db, identity }) ||
+          checkout.userId !== resolveUserId({ queryDb: db, claims }) ||
           checkout?.purchaseId !== payload.purchaseId ||
           purchase === undefined ||
           intent?.purchaseId !== purchase.id ||

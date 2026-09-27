@@ -4,7 +4,26 @@
   "targets": {
     "lib": {
       "inputs": ["default", "^default", "{projectRoot}/tsconfig.json"],
-      "outputs": ["{projectRoot}/dist"]
+      "outputs": ["{projectRoot}/dist"],
+      "dependsOn": [
+        {
+          "target": "lib",
+          "projects": [
+            "@zerospin/core",
+            "@zerospin/dev-worker",
+            "@zerospin/error",
+            "@zerospin/logger",
+            "@zerospin/production-worker",
+            "@zerospin/schema",
+            "@zerospin/studio",
+            "system-worker"
+          ]
+        },
+        {
+          "target": "config:lib",
+          "projects": ["@zerospin/fixtures"]
+        }
+      ]
     },
     "watch": {
       "continuous": true

@@ -93,7 +93,7 @@ export const systemRepoDbConfig = makeDbConfig({
         actorName: primitives.text(),
         actorVersion: primitives.text(),
         actorPath: primitives.text(),
-        identity: primitives.json({
+        claims: primitives.json({
           schema: Schema.Record(Schema.String, Schema.Unknown),
         }),
         sessionName: primitives.text(),
@@ -118,7 +118,7 @@ export const systemRepoDbConfig = makeDbConfig({
         serviceName: primitives.text(),
         serviceVersion: primitives.text(),
         actorPath: primitives.text(),
-        identity: primitives.json({
+        claims: primitives.json({
           schema: Schema.Record(Schema.String, Schema.Unknown),
         }),
         sessionName: primitives.text(),

@@ -13,7 +13,7 @@ import type { IAnyContractBindings } from '@zerospin/core/contracts/types';
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/make/makeDbConfig/makeDbConfig';
 import { makeProvisionedInMemoryWasmSqliteDb } from '@zerospin/core/drizzle/make/makeProvisionedInMemoryWasmSqliteDb/makeProvisionedInMemoryWasmSqliteDb';
 import type { ICommittedSqlStatement } from '@zerospin/core/drizzle/WaSqliteSession';
-import type { IIdentitySchema } from '@zerospin/core/identity/types';
+import type { IClaimsSchema } from '@zerospin/core/identity/types';
 import type {
   IAnyModels,
   IAssertValidModels,
@@ -177,7 +177,7 @@ export function makeStandaloneSession<
   const SESSION_NAME extends string,
   const MODELS extends IAnyModels,
   const CONTRACTS extends IAnyContractBindings,
-  const IDENTITY extends IIdentitySchema,
+  const CLAIMS extends IClaimsSchema,
   APP_LAYER extends Layer.Layer<never, IAnyError> = Layer.Layer<never>,
 >(
   props: {
@@ -187,7 +187,7 @@ export function makeStandaloneSession<
     actorName: ACTOR_NAME;
     actorVersion: ACTOR_VERSION;
     sessionName: SESSION_NAME;
-    identitySchema: IDENTITY;
+    claimsSchema: CLAIMS;
     models: MODELS & IAssertValidModels<NoInfer<MODELS>>;
     layer?: APP_LAYER;
     contracts: CONTRACTS & {
@@ -202,7 +202,7 @@ export function makeStandaloneSession<
           }
         : ITypeError<`Bad contract "${K}". The key in contracts should be the commandName`>;
     };
-    identity: NoInfer<IDENTITY>['Type'];
+    claims: NoInfer<CLAIMS>['Type'];
     resources?: Partial<{
       [K in keyof MODELS]: readonly InferResource<MODELS[K]>[];
     }>;
@@ -245,7 +245,7 @@ export function makeStandaloneSession<
     CONTRACTS,
     MODELS,
     AGGREGATE_VERSION,
-    IDENTITY
+    CLAIMS
   > & { readonly actorName: ACTOR_NAME; readonly actorVersion: ACTOR_VERSION }
 > & {
   readonly runtime: IZerospinRuntime<Layer.Success<APP_LAYER>>;
@@ -259,7 +259,7 @@ export function makeStandaloneSession(props: unknown): unknown {
   const input = props as Parameters<typeof makeSessionDefinition>[0] & {
     key: string;
     layer?: Layer.Layer<unknown, IAnyError>;
-    identity: Readonly<Record<string, unknown>>;
+    claims: Readonly<Record<string, unknown>>;
     resources?: Partial<
       Record<string, readonly InferResource<IAnyModels[string]>[]>
     >;
@@ -267,7 +267,7 @@ export function makeStandaloneSession(props: unknown): unknown {
   const {
     key,
     layer = Layer.empty,
-    identity: fixtureIdentity,
+    claims: fixtureClaims,
     resources: fixtureResources = {},
   } = input;
   if (key === '') {
@@ -311,7 +311,7 @@ export function makeStandaloneSession(props: unknown): unknown {
         sessionId: null,
         aggregateId: null,
         aggregateName: null,
-        identity: null,
+        claims: null,
         sessionName: null,
         aggregateSessionLockKey: null,
         aggregateIndex: null,
@@ -327,17 +327,17 @@ export function makeStandaloneSession(props: unknown): unknown {
       let published = false;
       return Effect.gen(function* () {
         const models = definition.models;
-        const identity = yield* Schema.encodeEffect(
-          definition.identity.identitySchema,
-        )(fixtureIdentity).pipe(
+        const claims = yield* Schema.encodeEffect(definition.claimsSchema)(
+          fixtureClaims,
+        ).pipe(
           mapParseError({
-            code: 'standalone-session-identity-invalid',
-            prefix: 'Invalid standalone identity',
+            code: 'standalone-session-claims-invalid',
+            prefix: 'Invalid standalone claims',
           }),
         );
         const aggregateId = yield* Schema.decodeUnknownEffect(
           makeAbbreviationIdSchema('acct'),
-        )(identity.aggregateId).pipe(
+        )(claims.aggregateId).pipe(
           mapParseError({
             code: 'standalone-session-aggregate-id-invalid',
             prefix: 'Invalid standalone aggregate ID',
@@ -554,9 +554,9 @@ export function makeStandaloneSession(props: unknown): unknown {
                   }
                   const identityRows = db.all<{
                     backupKey: string;
-                    identity: string;
+                    claims: string;
                   }>(
-                    sql`SELECT backupKey, identity FROM __zerospin_backup_identity`,
+                    sql`SELECT backupKey, claims FROM __zerospin_backup_identity`,
                   );
                   if (
                     identityRows.length !== 1 ||
@@ -566,24 +566,24 @@ export function makeStandaloneSession(props: unknown): unknown {
                       'The backup identity does not match this definition',
                     );
                   }
-                  const encodedIdentitySchema = Schema.toEncoded(
-                    definition.identity.identitySchema,
+                  const encodedClaimsSchema = Schema.toEncoded(
+                    definition.claimsSchema,
                   );
-                  const savedIdentity = Schema.decodeUnknownSync(
-                    Schema.fromJsonString(encodedIdentitySchema),
-                  )(identityRows[0]?.identity, {
+                  const savedClaims = Schema.decodeUnknownSync(
+                    Schema.fromJsonString(encodedClaimsSchema),
+                  )(identityRows[0]?.claims, {
                     onExcessProperty: 'error',
                   });
                   if (
-                    !Schema.toEquivalence(encodedIdentitySchema)(
-                      savedIdentity,
-                      identity,
+                    !Schema.toEquivalence(encodedClaimsSchema)(
+                      savedClaims,
+                      claims,
                     )
                   ) {
                     throw makeZerospinError({
-                      code: 'standalone-identity-mismatch',
+                      code: 'standalone-claims-mismatch',
                       message:
-                        'Saved identity differs; call reset() to replace this document',
+                        'Saved claims differ; call reset() to replace this document',
                     });
                   }
                   if (
@@ -628,14 +628,14 @@ export function makeStandaloneSession(props: unknown): unknown {
                 definition,
                 sessionId,
                 aggregateId,
-                identity,
+                claims,
                 snapshot: {
                   actorName: definition.actorName,
                   actorVersion: definition.actorVersion,
 
                   aggregateId,
                   aggregateName: definition.aggregateName,
-                  identity: fixtureIdentity,
+                  claims: fixtureClaims,
                   aggregateIndex: 0,
                   executedIndex: 0,
                   executedHash: SELECTION_GENESIS_HASH,
@@ -647,10 +647,10 @@ export function makeStandaloneSession(props: unknown): unknown {
                 models,
               });
               db.run(
-                sql`CREATE TABLE __zerospin_backup_identity (backupKey TEXT NOT NULL, identity TEXT)`,
+                sql`CREATE TABLE __zerospin_backup_identity (backupKey TEXT NOT NULL, claims TEXT)`,
               );
               db.run(
-                sql`INSERT INTO __zerospin_backup_identity (backupKey, identity) VALUES (${backupKey}, ${JSON.stringify(identity)})`,
+                sql`INSERT INTO __zerospin_backup_identity (backupKey, claims) VALUES (${backupKey}, ${JSON.stringify(claims)})`,
               );
             } else {
               db.update(sessionRepoDbConfig.schema.sessionMetadata)
@@ -839,9 +839,7 @@ export function makeStandaloneSession(props: unknown): unknown {
 
               aggregateId,
               aggregateName: definition.aggregateName,
-              identity: Schema.decodeUnknownSync(
-                definition.identity.identitySchema,
-              )(identity),
+              claims: Schema.decodeUnknownSync(definition.claimsSchema)(claims),
               db,
               aggregateIndex: metadata.aggregateIndex,
               executedIndex: metadata.executedIndex,

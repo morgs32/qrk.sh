@@ -64,10 +64,8 @@ export const makeAggregateSessionLock = (
     sessionName: definition.sessionName,
     actorName: definition.actorName,
     actorVersion: definition.actorVersion,
-    identity: {
-      identityJsonSchema: Schema.toJsonSchemaDocument(
-        definition.identity.identitySchema,
-      ),
+    claims: {
+      claimsJsonSchema: Schema.toJsonSchemaDocument(definition.claimsSchema),
     },
     models,
     contracts,

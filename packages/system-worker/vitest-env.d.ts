@@ -1,13 +1,13 @@
 declare namespace Cloudflare {
   interface DORepoNamespaces {
     FIXTURE_REPO: DurableObjectNamespace<
-      import('./src/TestWorker').FixtureRepo
+      import('@zerospin/fixtures/system-worker/TestWorker').FixtureRepo
     >;
     FIXED_DO_REPO_FIXTURE: DurableObjectNamespace<
-      import('./src/TestWorker').FixedDORepoFixture
+      import('@zerospin/fixtures/system-worker/TestWorker').FixedDORepoFixture
     >;
     VERSIONED_DO_REPO_FIXTURE: DurableObjectNamespace<
-      import('./src/TestWorker').MigratableDORepoFixture
+      import('@zerospin/fixtures/system-worker/TestWorker').MigratableDORepoFixture
     >;
   }
 }

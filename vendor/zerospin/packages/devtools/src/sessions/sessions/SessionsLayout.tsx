@@ -273,7 +273,6 @@ export function SessionsLayout() {
                           style={styles.tdSession}
                           title={`${session.definition.aggregateName}/${session.definition.sessionName}`}
                         >
-                          {session.definition.aggregateName}/
                           {session.definition.sessionName}
                         </td>
                         <SessionsDataCell
@@ -321,7 +320,7 @@ export function SessionsLayout() {
                           style={styles.tdSession}
                           title={`${session.serviceName}/${session.sessionName}`}
                         >
-                          {session.serviceName}/{session.sessionName}
+                          {session.sessionName}
                         </td>
                         <SessionsDataCell
                           text={session.sessionId}

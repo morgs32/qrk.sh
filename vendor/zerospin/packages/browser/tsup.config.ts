@@ -15,6 +15,10 @@ export default defineConfig({
   clean: false,
   dts: false,
   sourcemap: false,
+  minify: true,
+  esbuildOptions(options) {
+    options.legalComments = 'none';
+  },
   splitting: false,
   noExternal: [/.*/],
   async onSuccess() {

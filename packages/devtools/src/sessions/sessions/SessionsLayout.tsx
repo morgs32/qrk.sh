@@ -47,6 +47,7 @@ const styles = {
     borderCollapse: 'collapse',
   } satisfies CSSProperties,
   tableHeader: {
+    whiteSpace: 'nowrap',
     backgroundColor: '#f3f4f6',
     position: 'sticky',
     top: 0,

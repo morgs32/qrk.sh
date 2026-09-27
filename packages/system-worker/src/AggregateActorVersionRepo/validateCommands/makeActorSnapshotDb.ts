@@ -7,7 +7,7 @@ import type {
 } from '@zerospin/core/drizzle/types';
 import { drizzle } from 'drizzle-orm/sql-js';
 import { Effect } from 'effect';
-import initSqlJs from 'sql.js';
+import initSqlJs from 'sql.js/dist/sql-wasm-browser.js';
 import wasm from 'sql.js/dist/sql-wasm.wasm';
 
 /** Acquire before entering a synchronous transaction; scope owns the scratch connection. */

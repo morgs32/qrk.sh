@@ -9,30 +9,28 @@
  *
  * @bad Constructing and disposing a separate application runtime for browser sessions.
  * @bad A sessions.ts makeSessions factory that declares multiple sessions and returns them with operation IDs.
- * @bad A makeMachineSession wrapper called through React useState instead of exporting machineSession.
+ * @bad A makeGameSession wrapper called through React useState instead of exporting gameSession.
  * @bad Disposing a hook-owned session from import.meta.hot.dispose in a session or entry module.
  */
-// machineSession.ts
+// gameSession.ts
 import { makeSession } from '@zerospin/browser';
 
-import { claimsSchema } from '../claimsSchema';
-import { receiveResult } from '../contracts/receiveResultV1';
-import { recordAcceptance } from '../contracts/recordAcceptanceV1';
-import { startRequest } from '../contracts/startRequestV1';
-import { machine } from '../machineV1';
-
 import { applicationLayer } from './applicationLayer';
+import { createGame } from './contracts/createGameV1';
+import { playX } from './contracts/playXV1';
+import { claimsSchema, game } from './gameV1';
 
-export const machineSession = makeSession({
+export const gameSession = makeSession({
   kind: 'aggregate',
-  sessionName: 'machineSession',
-  systemName: 'example',
-  aggregateName: 'machine',
+  sessionName: 'gameSession',
+  aggregateName: 'game',
   aggregateVersion: '1.0.0',
   actorName: 'human',
   actorVersion: '1.0.0',
-  models: { machine },
-  contracts: { startRequest, recordAcceptance, receiveResult },
+  models: { game },
+  contracts: { createGame, playX },
+  automations: {},
   claimsSchema,
   layer: applicationLayer,
+  systemName: 'tic-tac-toe',
 });

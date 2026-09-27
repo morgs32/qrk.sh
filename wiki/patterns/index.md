@@ -85,7 +85,7 @@ Keyword → pattern file routing. Code shows good; `@bad` JSDoc tags document an
 
 ## react
 
-- [One session per file](react/one-session-per-file.ts): makeSession, makeSessions, session declarations, module-level session values, no session factories, applicationLayer, session.runtime, useInitializeSession, dispose/reinitialize, HMR, root.unmount, operation IDs.
+- [One session per file](react/one-session-per-file.ts): makeSession, makeSessions, gameSession, session declarations, module-level session values, no session factories, applicationLayer, session.runtime, useInitializeSession, dispose/reinitialize, HMR, root.unmount, operation IDs.
 
 | Keywords                                                                | File                                          |
 | ----------------------------------------------------------------------- | --------------------------------------------- |

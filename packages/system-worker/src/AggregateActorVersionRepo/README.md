@@ -6,4 +6,6 @@ This Durable Object projects confirmed aggregate occurrences into one actor's se
 
 The aggregate command outbox submits retained staged rows to the aggregate chain. The actor command outbox publishes confirmed selected deltas. It retains acknowledged command rows, and browser snapshots read confirmed resources and their cursor.
 
+Actor scratch snapshots instantiate the bundled sql.js WASM module with its browser loader, which supports workerd's missing `self.location`. They do not fetch WASM from a URL.
+
 See [AggregateActorVersionRepo.ts](AggregateActorVersionRepo.ts), [retainedCommands.ts](retainedCommands.ts), and [automation lifecycle](automations/README.md). Fixed-schema changes require empty storage.

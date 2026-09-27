@@ -21,19 +21,19 @@ export const createUserV1 = makeContractVersion(createUser, {
   payload: createUserPayload,
   models: { user: User },
   guard: Effect.fn("createUser.guard")(function* ({
-    identity,
+    claims,
     payload,
     queryDb: db,
   }: {
-    identity: Readonly<Record<string, unknown>> | null;
+    claims: Readonly<Record<string, unknown>> | null;
     queryDb: Readonly<
       Pick<IDb<IResourceDbConfig<{ user: typeof User }, Record<never, never>>>, "query">
     >;
     payload: InferCommandPayload<typeof createUserPayload>;
   }) {
-    const clerkUserId = identity?.clerkUserId;
+    const clerkUserId = claims?.clerkUserId;
 
-    if (identity !== null && payload.clerkUserId !== clerkUserId) {
+    if (claims !== null && payload.clerkUserId !== clerkUserId) {
       return yield* new ZerospinError({
         code: "create-user-identity-mismatch",
         message: `User ${payload.id} does not match authenticated identity ${clerkUserId}`,

@@ -11,13 +11,13 @@ import {
 } from "@zerospin/sdk";
 import { Effect } from "effect";
 
-import { userIdentitySchema } from "../../../identity";
+import { userClaims } from "../../../claims";
 import { signature } from "../../../signature";
 import { createUserV1 } from "../contracts/createUser/CreateUserV1";
 import { userV1 } from "../models/user/UserV1";
 
 const identity = makeActorIdentity({
-  schema: userIdentitySchema,
+  claims: userClaims,
   actorPath: RoutePattern.parse("/:clerkUserId"),
 });
 const db = makeActorDbVersion({ models: { user: userV1 } });

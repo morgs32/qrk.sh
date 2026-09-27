@@ -12,8 +12,8 @@ export function createLibraryStandaloneSession(props: { key: string; wallId: `wa
   return makeStandaloneSession({
     key,
     ...LibraryFrontend,
-    identitySchema: LibraryFrontend.identity.identitySchema,
-    identity: { aggregateId: "acct_1" },
+    claimsSchema: LibraryFrontend.claimsSchema,
+    claims: { aggregateId: "acct_1" },
     resources: {
       wall: [
         {

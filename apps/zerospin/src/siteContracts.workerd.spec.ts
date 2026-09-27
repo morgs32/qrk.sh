@@ -64,7 +64,7 @@ describe("site and page creation contracts", () => {
         sessionId,
         aggregateId: "acct_site_contract_user",
         aggregateName: userSessionDefinition.aggregateName,
-        identity: {
+        claims: {
           aggregateId: "acct_site_contract_user",
           clerkUserId: "site_contract_user",
         },
@@ -265,7 +265,7 @@ describe("site and page creation contracts", () => {
     Effect.gen(function* () {
       const error = yield* createSite
         .program({
-          identity: null,
+          claims: null,
           payload: {
             id: "sit_unauthenticated",
             userId: "usr_independent_site_owner",
@@ -346,7 +346,7 @@ describe("user frontend creation guards", () => {
 
       yield* guard({
         failures: {},
-        identity: { clerkUserId: "site_guard_user" },
+        claims: { clerkUserId: "site_guard_user" },
         queryDb: db,
         payload: {
           id: "sit_site_guard_user",
@@ -360,7 +360,7 @@ describe("user frontend creation guards", () => {
       for (const authenticatedIdentityKey of ["different_site_user", null]) {
         const error = yield* guard({
           failures: {},
-          identity: { clerkUserId: authenticatedIdentityKey },
+          claims: { clerkUserId: authenticatedIdentityKey },
           queryDb: db,
           payload: {
             id: "sit_site_guard_user",
@@ -428,7 +428,7 @@ describe("user frontend creation guards", () => {
 
       yield* guard({
         failures: {},
-        identity: { clerkUserId: "page_guard_user" },
+        claims: { clerkUserId: "page_guard_user" },
         queryDb: db,
         payload: {
           id: "pag_page_guard_user",
@@ -444,7 +444,7 @@ describe("user frontend creation guards", () => {
       for (const authenticatedIdentityKey of ["different_page_user", null]) {
         const error = yield* guard({
           failures: {},
-          identity: { clerkUserId: authenticatedIdentityKey },
+          claims: { clerkUserId: authenticatedIdentityKey },
           queryDb: db,
           payload: {
             id: "pag_page_guard_user",
@@ -508,7 +508,7 @@ describe("user frontend creation guards", () => {
         sessionId,
         aggregateId: "acct_update_site_settings_user",
         aggregateName: userSessionDefinition.aggregateName,
-        identity: {
+        claims: {
           aggregateId: "acct_update_site_settings_user",
           clerkUserId: "update_site_settings_user",
         },
@@ -624,7 +624,7 @@ describe("user frontend creation guards", () => {
         sessionId,
         aggregateId: "acct_update_page_settings_user",
         aggregateName: userSessionDefinition.aggregateName,
-        identity: {
+        claims: {
           aggregateId: "acct_update_page_settings_user",
           clerkUserId: "update_page_settings_user",
         },
@@ -746,7 +746,7 @@ describe("user frontend creation guards", () => {
         sessionId,
         aggregateId: "acct_update_page_article_user",
         aggregateName: userSessionDefinition.aggregateName,
-        identity: {
+        claims: {
           aggregateId: "acct_update_page_article_user",
           clerkUserId: "update_page_article_user",
         },

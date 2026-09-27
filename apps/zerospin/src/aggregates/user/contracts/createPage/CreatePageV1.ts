@@ -35,11 +35,11 @@ export const createPageV1 = makeContractVersion(createPage, {
   payload: createPagePayload,
   models: { site: Site, user: User, page: Page },
   guard: Effect.fn("createPage.guard")(function* ({
-    identity,
+    claims,
     queryDb: db,
     payload,
   }: {
-    identity: Readonly<Record<string, unknown>> | null;
+    claims: Readonly<Record<string, unknown>> | null;
     queryDb: Readonly<
       Pick<
         IDb<IResourceDbConfig<{ site: typeof Site; user: typeof User }, Record<never, never>>>,
@@ -48,7 +48,7 @@ export const createPageV1 = makeContractVersion(createPage, {
     >;
     payload: InferCommandPayload<typeof createPagePayload>;
   }) {
-    const clerkUserId = identity?.clerkUserId;
+    const clerkUserId = claims?.clerkUserId;
     if (typeof clerkUserId !== "string") {
       return yield* new ZerospinError({
         code: "create-page-user-mismatch",

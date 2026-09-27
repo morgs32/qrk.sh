@@ -1,4 +1,4 @@
-import { userIdentitySchema } from "../../identity";
+import { userClaims } from "../../claims";
 import { makeAggregateSessionDefinition } from "@zerospin/core/aggregateSession/make/makeAggregateSessionDefinition";
 
 import { createGridV1 as createGrid } from "./contracts/createGrid/CreateGridV1";
@@ -15,7 +15,7 @@ import { siteV1 as Site } from "./models/site/SiteV1";
 import { userV1 as User } from "./models/user/UserV1";
 
 export const userSessionDefinition = makeAggregateSessionDefinition({
-  identitySchema: userIdentitySchema,
+  claimsSchema: userClaims,
   contracts: {
     createGrid: { contract: createGrid },
     createPage: { contract: createPage },

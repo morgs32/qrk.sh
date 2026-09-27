@@ -9,7 +9,7 @@ import {
   ZerospinError,
 } from "@zerospin/sdk";
 import { Effect } from "effect";
-import { userIdentitySchema } from "../../../identity";
+import { userClaims } from "../../../claims";
 import { signature } from "../../../signature";
 import { userProvisionerV1 } from "./userProvisionerV1";
 import { createGridV1 as createGrid } from "../contracts/createGrid/CreateGridV1";
@@ -27,7 +27,7 @@ import { siteV1 as Site } from "../models/site/SiteV1";
 import { userV1 as User } from "../models/user/UserV1";
 
 const identity = makeActorIdentity({
-  schema: userIdentitySchema,
+  claims: userClaims,
   actorPath: RoutePattern.parse("/:clerkUserId"),
 });
 const db = makeActorDbVersion({
@@ -48,15 +48,15 @@ export const userActorV1 = makeAggregateActorVersion(defineAggregateActor({ name
           message: "The provisioner must authenticate Clerk credentials",
         });
       }
-      const identity = yield* authentication.authenticate({ credentials, executeCommand });
+      const claims = yield* authentication.authenticate({ credentials, executeCommand });
       const result = yield* executeCommand({
-        aggregateId: identity.aggregateId,
+        aggregateId: claims.aggregateId,
         actor: userProvisionerV1,
-        identity,
+        claims,
         contract: createUser,
         payload: {
           id: yield* makeId(User),
-          clerkUserId: identity.clerkUserId,
+          clerkUserId: claims.clerkUserId,
           username: null,
           displayName: null,
         },
@@ -79,7 +79,7 @@ export const userActorV1 = makeAggregateActorVersion(defineAggregateActor({ name
           });
         }
       }
-      return identity;
+      return claims;
     }),
   },
   contracts: {

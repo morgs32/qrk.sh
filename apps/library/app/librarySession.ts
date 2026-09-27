@@ -6,7 +6,7 @@ const fixtureDate = new Date("2026-01-01T00:00:00.000Z");
 
 export const librarySession = makeMockAggregateSession({
   definition: LibraryFrontend,
-  identity: { aggregateId: "acct_1" },
+  claims: { aggregateId: "acct_1" },
   resources: {
     wall: [
       {

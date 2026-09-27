@@ -19,7 +19,7 @@ export const userSession = makeSession({
   actorName: "web",
   actorVersion: "1.0.0",
   sessionName: "userSession",
-  identitySchema: userSessionDefinition.identity.identitySchema,
+  claimsSchema: userSessionDefinition.claimsSchema,
   credentialsSchema: signature,
   models: userSessionDefinition.models,
   contracts: {

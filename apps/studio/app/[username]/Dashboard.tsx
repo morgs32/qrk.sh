@@ -44,7 +44,7 @@ export default function UsernameDashboardPage() {
         throw new Error("Your session is not ready");
       }
       return db.query.user.findFirst({
-        where: { clerkUserId: { eq: state.identity.clerkUserId } },
+        where: { clerkUserId: { eq: state.claims.clerkUserId } },
         with: { sites: { with: { pages: true } } },
       });
     },

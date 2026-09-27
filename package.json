@@ -19,7 +19,6 @@
       "@zerospin/schema": "workspace:*",
       "@zerospin/sdk": "workspace:*",
       "@zerospin/zod": "workspace:*",
-      "config": "workspace:*",
       "system-worker": "workspace:*",
       "@zerospin/dispatch-worker": "workspace:*",
       "@zerospin/frontend": "workspace:*",

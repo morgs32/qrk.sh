@@ -49,7 +49,7 @@ export function makeLibraryFrontend(backendLibrary: IBackendLibrary) {
   });
 
   return makeAggregateSessionDefinition({
-    identitySchema: Schema.Struct({
+    claimsSchema: Schema.Struct({
       aggregateId: Schema.String,
     }),
     aggregateName: "library",

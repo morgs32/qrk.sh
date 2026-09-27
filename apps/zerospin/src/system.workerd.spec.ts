@@ -69,7 +69,7 @@ describe("QRK system", () => {
               contract: createUser,
               actorName: props.actor.name,
               actorVersion: props.actor.version,
-              identity: props.identity,
+              claims: props.claims,
               aggregateId: key.aggregateId,
               aggregateName: "user",
               aggregateVersion: "1.0.0",
@@ -84,7 +84,7 @@ describe("QRK system", () => {
               ),
             });
             const encoded = yield* encodeCommand({ contract: props.contract, command });
-            // Provisioning carries the authenticated identity and provisioner actor.
+            // Provisioning carries the authenticated claims and provisioner actor.
             const result = yield* makeAsync<
               Awaited<ReturnType<AggregateChain["executeAggregateCommand"]>>
             >(() =>
@@ -186,7 +186,7 @@ describe("QRK system", () => {
               contract: createUser,
               actorName: props.actor.name,
               actorVersion: props.actor.version,
-              identity: props.identity,
+              claims: props.claims,
               payload: yield* Schema.decodeUnknownEffect(makeEffectSchema(createUser.payload))(
                 props.payload,
               ).pipe(
@@ -250,14 +250,14 @@ describe("QRK system", () => {
       const rejected = yield* runContractGuard({
         contract: createUser,
         queryDb: db,
-        identity: { aggregateId: "acct_owner", clerkUserId: "owner" },
+        claims: { aggregateId: "acct_owner", clerkUserId: "owner" },
         payload: { id: "usr_other", clerkUserId: "other", username: null, displayName: null },
       }).pipe(Effect.flip);
       expect(rejected).toMatchObject({ code: "create-user-identity-mismatch", status: 403 });
       yield* runContractGuard({
         contract: createUser,
         queryDb: db,
-        identity: { aggregateId: "acct_owner", clerkUserId: "owner" },
+        claims: { aggregateId: "acct_owner", clerkUserId: "owner" },
         payload: {
           id: "usr_independent_owner",
           clerkUserId: "owner",

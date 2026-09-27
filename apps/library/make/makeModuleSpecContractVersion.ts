@@ -47,7 +47,7 @@ export function makeModuleSpecContractVersion<
       queryDb: db,
       payload: guardPayload,
     }: {
-      identity: Readonly<Record<string, unknown>> | null;
+      claims: Readonly<Record<string, unknown>> | null;
       queryDb: Readonly<Pick<IDb, "query">>;
       payload: {
         brickId: string;

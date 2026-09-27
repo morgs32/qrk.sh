@@ -26,7 +26,6 @@
     "@zerospin/cli": "workspace:*",
     "@zerospin/dev-worker": "workspace:*",
     "cloudflare": "^6.1.0",
-    "config": "workspace:*",
     "drizzle-orm": "1.0.0-rc.4",
     "oxlint": "^1.59.0",
     "typescript": "^6.0.2",

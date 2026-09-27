@@ -37,11 +37,11 @@ export const createGridV1 = makeContractVersion(createGrid, {
   payload: createGridPayload,
   models: { brick: Brick, grid: Grid, page: Page, site: Site, user: User },
   guard: Effect.fn("createGrid.guard")(function* ({
-    identity,
+    claims,
     queryDb: db,
     payload,
   }: {
-    identity: Readonly<Record<string, unknown>> | null;
+    claims: Readonly<Record<string, unknown>> | null;
     queryDb: Readonly<
       Pick<
         IDb<
@@ -61,7 +61,7 @@ export const createGridV1 = makeContractVersion(createGrid, {
     >;
     payload: InferCommandPayload<typeof createGridPayload>;
   }) {
-    const clerkUserId = identity?.clerkUserId;
+    const clerkUserId = claims?.clerkUserId;
     if (typeof clerkUserId !== "string") {
       return yield* new ZerospinError({
         code: "create-grid-user-mismatch",

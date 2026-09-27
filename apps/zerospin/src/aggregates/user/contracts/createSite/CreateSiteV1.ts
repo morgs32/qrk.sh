@@ -28,17 +28,17 @@ export const createSiteV1 = makeContractVersion(createSite, {
   payload: createSitePayload,
   models: { user: User, site: Site },
   guard: Effect.fn("createSite.guard")(function* ({
-    identity,
+    claims,
     queryDb: db,
     payload,
   }: {
-    identity: Readonly<Record<string, unknown>> | null;
+    claims: Readonly<Record<string, unknown>> | null;
     queryDb: Readonly<
       Pick<IDb<IResourceDbConfig<{ user: typeof User }, Record<never, never>>>, "query">
     >;
     payload: InferCommandPayload<typeof createSitePayload>;
   }) {
-    const clerkUserId = identity?.clerkUserId;
+    const clerkUserId = claims?.clerkUserId;
 
     if (typeof clerkUserId !== "string") {
       return yield* new ZerospinError({
@@ -62,8 +62,8 @@ export const createSiteV1 = makeContractVersion(createSite, {
       });
     }
   }),
-  program: ({ payload, models, identity }) => {
-    const clerkUserId = identity?.clerkUserId;
+  program: ({ payload, models, claims }) => {
+    const clerkUserId = claims?.clerkUserId;
     if (typeof clerkUserId !== "string") {
       return Effect.fail(
         new ZerospinError({

@@ -89,7 +89,7 @@ export function makeAddBrickContract<
       queryDb: db,
       payload,
     }: {
-      identity: Readonly<Record<string, unknown>> | null;
+      claims: Readonly<Record<string, unknown>> | null;
       queryDb: Readonly<Pick<IDb, "query">>;
       payload: InferCommandPayload<typeof addBrickPayload>;
     }) {

@@ -24,11 +24,11 @@ export const updatePageSettingsV1 = makeContractVersion(updatePageSettings, {
   payload: updatePageSettingsPayload,
   models: { user: User, site: Site, page: Page },
   guard: Effect.fn("updatePageSettings.guard")(function* ({
-    identity,
+    claims,
     queryDb: db,
     payload,
   }: {
-    identity: Readonly<Record<string, unknown>> | null;
+    claims: Readonly<Record<string, unknown>> | null;
     queryDb: Readonly<
       Pick<
         IDb<
@@ -46,7 +46,7 @@ export const updatePageSettingsV1 = makeContractVersion(updatePageSettings, {
     >;
     payload: InferCommandPayload<typeof updatePageSettingsPayload>;
   }) {
-    const clerkUserId = identity?.clerkUserId;
+    const clerkUserId = claims?.clerkUserId;
 
     if (typeof clerkUserId !== "string") {
       return yield* new ZerospinError({

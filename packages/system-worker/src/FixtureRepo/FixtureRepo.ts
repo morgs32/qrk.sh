@@ -1,8 +1,8 @@
 import { RoutePattern } from '@remix-run/route-pattern';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
-import { makeAsyncTx } from '@zerospin/core/drizzle/makeAsyncTx';
-import { makeDbConfig } from '@zerospin/core/drizzle/makeDbConfig';
-import { ZerospinError } from '@zerospin/error';
+import { makeAsyncTx } from '@zerospin/core/drizzle/make/makeAsyncTx';
+import { makeDbConfig } from '@zerospin/core/drizzle/make/makeDbConfig/makeDbConfig';
+import { makeZerospinError } from '@zerospin/error';
 import { makeTable, primitives } from '@zerospin/schema';
 import { eq } from 'drizzle-orm';
 import { Effect, ManagedRuntime, Result } from 'effect';
@@ -119,10 +119,12 @@ export class FixtureRepo extends makeFixedDORepo({
                       .set({ value: 'nested-rolled-back' })
                       .where(eq(this.schema.fixtureValues.id, this.key.id))
                       .run();
-                    return yield* new ZerospinError({
-                      code: 'fixture-nested-transaction-failure',
-                      message: 'Roll back only the nested transaction',
-                    });
+                    return yield* Effect.fail(
+                      makeZerospinError({
+                        code: 'fixture-nested-transaction-failure',
+                        message: 'Roll back only the nested transaction',
+                      }),
+                    );
                   }),
               }).pipe(Effect.result);
 
@@ -151,10 +153,12 @@ export class FixtureRepo extends makeFixedDORepo({
                 .set({ value: 'outer-rolled-back' })
                 .where(eq(this.schema.fixtureValues.id, this.key.id))
                 .run();
-              return yield* new ZerospinError({
-                code: 'fixture-outer-transaction-failure',
-                message: 'Roll back the outer transaction',
-              });
+              return yield* Effect.fail(
+                makeZerospinError({
+                  code: 'fixture-outer-transaction-failure',
+                  message: 'Roll back the outer transaction',
+                }),
+              );
             }),
         }).pipe(Effect.result);
         const row = this.db

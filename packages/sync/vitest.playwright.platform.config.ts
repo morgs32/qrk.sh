@@ -40,7 +40,7 @@ export default defineConfig({
     'globalThis.IS_REACT_ACT_ENVIRONMENT': true,
   },
   test: {
-    include: ['e2e/**/*.platform.playwright.spec.{ts,tsx}'],
+    include: ['e2e/Sync.useAgent.playwright.spec.tsx'],
     retry: 3,
     browser: {
       enabled: true,

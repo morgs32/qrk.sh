@@ -1,21 +1,33 @@
 import type { ColumnDef } from '@tanstack/react-table';
-import { sessionCommandDevtoolsShape } from '@zerospin/core/session/sessionCommandShape';
 
 const COMMAND_COLUMN_IDS = [
   'id',
-  ...Object.keys(sessionCommandDevtoolsShape)
-    .filter(key => key !== 'id')
-    .sort(),
+  'identity',
+  'aggregateIndex',
+  'executedIndex',
+  'executedHash',
+  'staging',
+  'admission',
+  'execution',
+  'actorDelta',
+  'nodeId',
+  'nodeIndex',
+  'contractVersion',
+  'commandName',
+  'payload',
+  'pushIndex',
+  'sessionId',
+  'sessionIndex',
 ] as const;
 
 type ICommandColumnId = (typeof COMMAND_COLUMN_IDS)[number];
 
-const COPY_CELL_COLUMN_IDS = new Set<ICommandColumnId>([
+const COPY_CELL_COLUMN_IDS: ReadonlySet<string> = new Set<ICommandColumnId>([
   'id',
-  'authentication',
+  'identity',
   'sessionId',
   'payload',
-  'authentication',
+  'identity',
 ]);
 
 const COLUMN_SIZES: Partial<
@@ -24,7 +36,7 @@ const COLUMN_SIZES: Partial<
   id: { size: 140, minSize: 80, maxSize: 200 },
   commandName: { size: 120, minSize: 80, maxSize: 160 },
   payload: { size: 200, minSize: 120, maxSize: 320 },
-  authentication: { size: 140, minSize: 80, maxSize: 200 },
+  identity: { size: 140, minSize: 80, maxSize: 200 },
   sessionId: { size: 140, minSize: 80, maxSize: 200 },
 };
 
@@ -51,10 +63,14 @@ export function isSessionsCommandsCopyCellColumn(columnId: string): boolean {
   return COPY_CELL_COLUMN_IDS.has(columnId);
 }
 
-export function makeSessionsCommandsTableColumns(): ColumnDef<
-  Record<string, unknown>
->[] {
-  return COMMAND_COLUMN_IDS.map(columnId => {
+export function makeSessionsCommandsTableColumns(
+  node = false,
+): ColumnDef<Record<string, unknown>>[] {
+  return COMMAND_COLUMN_IDS.filter(columnId =>
+    node
+      ? !['sessionId', 'sessionIndex', 'pushIndex'].includes(columnId)
+      : !['nodeId', 'nodeIndex'].includes(columnId),
+  ).map(columnId => {
     const sizing = COLUMN_SIZES[columnId];
 
     return {

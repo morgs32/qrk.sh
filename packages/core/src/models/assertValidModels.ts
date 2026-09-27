@@ -1,4 +1,4 @@
-import { makeResourceDbConfig } from '../drizzle/makeDbConfig.ts';
+import { makeResourceDbConfig } from '../drizzle/make/makeDbConfig/makeDbConfig.ts';
 
 import type { IAnyModels } from './types.ts';
 

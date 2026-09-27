@@ -3,6 +3,7 @@ import { toStringUnknown } from 'effect/Inspectable';
 
 import { makeLogId } from './makeTelemetryIds.ts';
 import type { ITelemetryCollector } from './TelemetryCollector.ts';
+import { telemetryValue } from './telemetryValue.ts';
 import type { ILogLevel, ISpanId, ITraceId } from './types.ts';
 
 const levelFromLabel = (label: string): ILogLevel => {
@@ -42,7 +43,7 @@ export const makeTelemetryLogger = (
         ? options.message.map(part => toStringUnknown(part)).join(' ')
         : toStringUnknown(options.message),
       source: span !== null && span._tag === 'Span' ? span.name : 'effect',
-      payload: Object.keys(payload).length > 0 ? payload : null,
+      payload: Object.keys(payload).length > 0 ? telemetryValue(payload) : null,
       traceId: span !== null ? (span.traceId as ITraceId) : null,
       spanId: span !== null ? (span.spanId as ISpanId) : null,
     });

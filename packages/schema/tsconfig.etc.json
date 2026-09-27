@@ -9,7 +9,7 @@
     "rewriteRelativeImportExtensions": false,
     "types": ["node", "vitest/globals"]
   },
-  "include": ["src/**/*.typecheck.ts", "vitest.config.ts"],
+  "include": ["src/**/*.spec.ts", "vitest.config.ts"],
   "exclude": [],
   "references": [
     {

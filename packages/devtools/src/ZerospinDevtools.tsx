@@ -33,7 +33,10 @@ import { SessionsDatabaseModelRoute } from './sessions/sessions/sessionId/databa
 import { SessionsLogsRoute } from './sessions/sessions/sessionId/logs/SessionsLogsRoute.js';
 import { SessionIndexRoute } from './sessions/sessions/sessionId/SessionIndexRoute.js';
 import { SessionLayout } from './sessions/sessions/sessionId/SessionLayout.js';
-import { SessionPane } from './sessions/sessions/sessionId/SessionPane.js';
+import {
+  SessionPane,
+  SessionStateRoute,
+} from './sessions/sessions/sessionId/SessionPane.js';
 import { SessionsDetailEmpty } from './sessions/sessions/SessionsDetailEmpty.js';
 import { SessionsLayout } from './sessions/sessions/SessionsLayout.js';
 import { SettingsRoute } from './SettingsRoute.js';
@@ -294,6 +297,7 @@ function DevtoolsRoutes(props: {
           <Route path=":sessionId" element={<SessionLayout />}>
             <Route index element={<SessionIndexRoute />} />
             <Route element={<SessionPane />}>
+              <Route path="state" element={<SessionStateRoute />} />
               <Route path="commands" element={<SessionsCommandsLayout />} />
               <Route path="database" element={<SessionsDatabaseLayout />}>
                 <Route index element={<SessionsDatabaseIndexRoute />} />

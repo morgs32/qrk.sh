@@ -19,12 +19,12 @@ export const createCatalogMarkerV1 = sdk.makeContractVersion(
     models: { catalogMarker: catalogMarkerV1 },
     program: ({ payload, models }) => {
       const { id, label } = payload;
-      return Effect.all({
-        created: models.catalogMarker.create({
+      return Effect.all([
+        models.catalogMarker.create({
           resourceId: id,
           attributes: { label },
         }),
-      });
+      ]);
     },
     version: '1.0.0',
   },

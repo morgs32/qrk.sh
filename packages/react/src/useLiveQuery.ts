@@ -7,17 +7,17 @@ import type {
   IWaSqliteClient,
   IWaSqliteDrizzleDb,
 } from '@zerospin/core/drizzle/types';
-import type {
-  IAggregateFrontendController,
-  IServiceFrontendController,
-} from '@zerospin/core/frontendController/types';
 import type { IAnyModels } from '@zerospin/core/models/types';
-import type { IServiceSession } from '@zerospin/core/serviceSession/types';
+import type {
+  IServiceSession,
+  IServiceSessionDefinition,
+} from '@zerospin/core/serviceSession/types';
 import type {
   IAggregateSession,
+  IAggregateSessionDefinition,
   ISessionWaSqliteDb,
-} from '@zerospin/core/session/types';
-import { ZerospinError } from '@zerospin/error';
+} from '@zerospin/core/aggregateSession/types';
+import { makeZerospinError } from '@zerospin/error';
 
 import { useLiveQueryOnDb } from './useLiveQueryOnDb';
 function stableKeyEquals(left: unknown, right: unknown): boolean {
@@ -70,7 +70,7 @@ function useSessionDatabase(session: {
     () => session.store.getState().db,
   );
   if (db === null) {
-    throw new ZerospinError({
+    throw makeZerospinError({
       code: 'session-store-not-initialized',
       message: 'Session store is not initialized',
     });
@@ -79,12 +79,12 @@ function useSessionDatabase(session: {
 }
 
 export function useLiveQuery<
-  FRONTEND extends IAggregateFrontendController,
-  MODELS extends IAnyModels & FRONTEND['models'],
+  DEFINITION extends IAggregateSessionDefinition,
+  MODELS extends IAnyModels & DEFINITION['models'],
   KEY,
   QUERY extends ILiveRelationalQuery,
 >(props: {
-  session: IAggregateSession<FRONTEND & { models: MODELS }>;
+  session: IAggregateSession<DEFINITION & { models: MODELS }>;
   key: KEY;
   query: (
     db: ISessionWaSqliteDb<MODELS, IDrizzleRelationsFromModels<MODELS>>,
@@ -98,11 +98,11 @@ export function useLiveQuery<
 };
 
 export function useLiveQuery<
-  FRONTEND extends IAggregateFrontendController,
-  MODELS extends IAnyModels & FRONTEND['models'],
+  DEFINITION extends IAggregateSessionDefinition,
+  MODELS extends IAnyModels & DEFINITION['models'],
   QUERY extends ILiveRelationalQuery,
 >(props: {
-  session: IAggregateSession<FRONTEND & { models: MODELS }>;
+  session: IAggregateSession<DEFINITION & { models: MODELS }>;
   key?: undefined;
   query: (
     db: ISessionWaSqliteDb<MODELS, IDrizzleRelationsFromModels<MODELS>>,
@@ -115,12 +115,12 @@ export function useLiveQuery<
 };
 
 export function useLiveQuery<
-  FRONTEND extends IServiceFrontendController,
-  MODELS extends IAnyModels & FRONTEND['models'],
+  DEFINITION extends IServiceSessionDefinition,
+  MODELS extends IAnyModels & DEFINITION['models'],
   KEY,
   QUERY extends ILiveRelationalQuery,
 >(props: {
-  session: IServiceSession<FRONTEND, MODELS>;
+  session: IServiceSession<DEFINITION, MODELS>;
   key: KEY;
   query: (
     db: IWaSqliteDrizzleDb<IResourceDbConfig<MODELS, Record<never, never>>>,
@@ -134,11 +134,11 @@ export function useLiveQuery<
 };
 
 export function useLiveQuery<
-  FRONTEND extends IServiceFrontendController,
-  MODELS extends IAnyModels & FRONTEND['models'],
+  DEFINITION extends IServiceSessionDefinition,
+  MODELS extends IAnyModels & DEFINITION['models'],
   QUERY extends ILiveRelationalQuery,
 >(props: {
-  session: IServiceSession<FRONTEND, MODELS>;
+  session: IServiceSession<DEFINITION, MODELS>;
   key?: undefined;
   query: (
     db: IWaSqliteDrizzleDb<IResourceDbConfig<MODELS, Record<never, never>>>,

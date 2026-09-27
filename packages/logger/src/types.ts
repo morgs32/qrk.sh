@@ -1,4 +1,5 @@
-import type { IEncodedResult } from '@zerospin/error';
+import type { IResult } from '@zerospin/error';
+import type { Schema } from 'effect';
 
 export type ITraceId = `trc_${string}`;
 export type ISpanId = `spn_${string}`;
@@ -27,7 +28,7 @@ export type ISpanRecord = Readonly<{
   status: ISpanStatus;
   startedAt: number;
   endedAt: number;
-  attributes: Readonly<Record<string, unknown>> | null;
+  attributes: Readonly<Record<string, Schema.Json>> | null;
 }>;
 
 export type ILogRecord = Readonly<{
@@ -36,7 +37,7 @@ export type ILogRecord = Readonly<{
   level: ILogLevel;
   message: string;
   source: string;
-  payload: unknown | null;
+  payload: Schema.Json | null;
   traceId: ITraceId | null;
   spanId: ISpanId | null;
 }>;
@@ -63,15 +64,15 @@ export const emptyTelemetryBatch = (): ITelemetryBatch => ({
   links: [],
 });
 
-/** Wire shape of every cross-boundary RPC response: encoded domain Result plus telemetry. */
+/** Internal RPC carries success values, serialized failures, and full telemetry batches. */
 export type IRpcEnvelope<A, E = unknown> = Readonly<{
-  result: IEncodedResult<A, E>;
+  result: IResult<A, E>;
   telemetry: ITelemetryBatch;
 }>;
 
 /** Wire shape for an API result and optional causal link to persisted server telemetry. */
 export type ILinkedRpcEnvelope<A, E = unknown> = Readonly<{
-  result: IEncodedResult<A, E>;
+  result: IResult<A, E>;
   link: ISpanLinkRecord | null;
 }>;
 

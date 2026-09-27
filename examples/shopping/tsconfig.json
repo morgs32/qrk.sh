@@ -62,7 +62,7 @@
       "path": "../../packages/schema"
     },
     {
-      "path": "../../packages/frontend"
+      "path": "../../packages/browser"
     },
     {
       "path": "../../packages/dev-worker"

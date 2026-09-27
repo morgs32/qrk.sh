@@ -40,16 +40,14 @@
     "**/*.spec.ts",
     "**/*.spec.tsx",
     "**/*.react.spec.ts",
-    "**/*.react.spec.tsx",
-    "**/*.typecheck.ts",
-    "**/*.typecheck.tsx"
+    "**/*.react.spec.tsx"
   ],
   "references": [
     {
       "path": "../backup-worker"
     },
     {
-      "path": "../frontend"
+      "path": "../browser"
     },
     {
       "path": "../sdk"

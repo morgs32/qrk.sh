@@ -1,3 +1,5 @@
+import { Schema } from 'effect';
+
 import type { IUnstableGraph } from '../system/types.ts';
 
 import {
@@ -9,27 +11,25 @@ import type { IAnyModels, IEncodedResourceShape, IModel } from './types.ts';
 
 export const getGraph = (props: {
   db: ISelectionDb;
-  authentication: Readonly<Record<string, string>>;
+  identity: Readonly<Record<string, string>>;
   models: IAnyModels;
   selections: Record<string, ISelection<IModel>>;
-  whereByModelName?: Readonly<
-    Record<string, Readonly<Record<string, unknown>>>
-  >;
 }): IUnstableGraph => {
-  const { db, authentication, models, selections, whereByModelName } = props;
+  const { db, identity, models, selections } = props;
   const graph: IUnstableGraph = {};
 
-  for (const [modelName, selection] of Object.entries(selections)) {
-    for (const row of selectAllFromSelection({
-      db,
-      models,
-      selection,
-      authentication,
-      ...(whereByModelName?.[modelName] === undefined
-        ? {}
-        : { where: whereByModelName[modelName] }),
-    }).all()) {
-      const record = row as Record<string, unknown>;
+  for (const selection of Object.values(selections)) {
+    for (const row of Schema.decodeUnknownSync(
+      Schema.Array(Schema.Record(Schema.String, Schema.Unknown)),
+    )(
+      selectAllFromSelection({
+        db,
+        models,
+        selection,
+        identity,
+      }).all(),
+    )) {
+      const record = row;
       const id = record.id;
       if (typeof id === 'string') {
         graph[id] = record as IEncodedResourceShape;

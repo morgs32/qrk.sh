@@ -1,11 +1,12 @@
 import { useSyncExternalStore, type CSSProperties } from 'react';
 
-import type { IAggregateSession } from '@zerospin/core/session/types';
-import { NavLink, Outlet } from 'react-router';
+import type { IAggregateSession } from '@zerospin/core/aggregateSession/types';
+import { NavLink, Outlet, useOutletContext } from 'react-router';
 import { useStore } from 'zustand/react';
 
 import type { IDevtoolsServiceSessionEntry } from '../../../types.js';
 
+import { SessionPushControls } from './SessionPushControls';
 import { useAggregateSession, useServiceSession } from './useSession';
 
 const styles = {
@@ -90,60 +91,61 @@ export function SessionPane() {
   throw new Error('Session not found');
 }
 
-function SessionState(props: {
-  readonly sessionStatus: string;
-  readonly backupState: Readonly<{
-    status: string;
-    failure: unknown;
-  }>;
-  readonly sourceLabel: 'aggregate index' | 'service index';
-  readonly frontendLabel: 'frontend index' | 'service frontend index';
-  readonly sourceIndex: number | null;
-  readonly selectionIndex: number | null;
-  readonly pushIndex?: number | null;
-}) {
-  const {
-    backupState,
-    frontendLabel,
-    selectionIndex,
-    pushIndex,
-    sessionStatus,
-    sourceLabel,
-    sourceIndex,
-  } = props;
+type ISessionStateRows = readonly { key: string; value: unknown }[];
 
+export function SessionStateRoute() {
+  const rows = useOutletContext<ISessionStateRows>();
+  return <SessionStateTable rows={rows} />;
+}
+
+function SessionStateTable({ rows }: { readonly rows: ISessionStateRows }) {
+  const cellStyle = {
+    padding: '8px 12px',
+    borderBottom: '1px solid #e5e7eb',
+    textAlign: 'left',
+  } satisfies CSSProperties;
+  const codeStyle = {
+    fontFamily: 'ui-monospace, monospace',
+    fontSize: 11,
+    backgroundColor: '#f3f4f6',
+    borderRadius: 3,
+    padding: '2px 4px',
+    whiteSpace: 'pre-wrap',
+    overflowWrap: 'anywhere',
+  } satisfies CSSProperties;
   return (
-    <div
-      data-testid="session-state"
-      style={{
-        display: 'flex',
-        flexWrap: 'wrap',
-        gap: '4px 12px',
-        padding: '4px 12px',
-        borderBottom: '1px solid #e5e7eb',
-        color: '#4b5563',
-        backgroundColor: '#f9fafb',
-        fontFamily: 'ui-monospace, monospace',
-        fontSize: 10,
-      }}
-    >
-      <span>session: {sessionStatus}</span>
-      <span>backup: {backupState.status}</span>
-      <span>
-        {sourceLabel}: {sourceIndex ?? 'none'}
-      </span>
-      <span>
-        {frontendLabel}: {selectionIndex ?? 'none'}
-      </span>
-      {pushIndex === undefined ? null : (
-        <span>push index: {pushIndex ?? 'none'}</span>
-      )}
-      <span>
-        failure:{' '}
-        {backupState.failure === null
-          ? 'none'
-          : JSON.stringify(backupState.failure)}
-      </span>
+    <div style={{ overflow: 'auto' }}>
+      <table
+        data-testid="session-state"
+        style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}
+      >
+        <thead>
+          <tr>
+            <th scope="col" style={cellStyle}>
+              Key
+            </th>
+            <th scope="col" style={cellStyle}>
+              Value
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map(({ key, value }) => (
+            <tr key={key}>
+              <th scope="row" style={{ ...cellStyle, fontWeight: 400 }}>
+                <code style={codeStyle}>{key}</code>
+              </th>
+              <td style={cellStyle}>
+                <code style={codeStyle}>
+                  {typeof value === 'string'
+                    ? value
+                    : JSON.stringify(value, null, 2)}
+                </code>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
@@ -154,36 +156,52 @@ function AggregateSessionPane(props: { readonly session: IAggregateSession }) {
   const isInitialized = useStore(session.store, state => state.isInitialized);
   const sessionStatus = useStore(session.store, state => state.sessionStatus);
   const backupState = useStore(session.store, state => state.backupState);
+  const nodeState = useStore(session.store, state => state.nodeState);
   const aggregateIndex = useStore(session.store, state => state.aggregateIndex);
-  const selectionIndex = useStore(session.store, state => state.selectionIndex);
+  const executedIndex = useStore(session.store, state => state.executedIndex);
   const pushIndex = useStore(session.store, state => state.pushIndex);
 
-  if (!isInitialized) {
-    return (
-      <SessionState
-        sessionStatus={sessionStatus}
-        backupState={backupState}
-        sourceLabel="aggregate index"
-        frontendLabel="frontend index"
-        sourceIndex={aggregateIndex}
-        selectionIndex={selectionIndex}
-        pushIndex={pushIndex}
-      />
-    );
-  }
+  const rows: ISessionStateRows = [
+    { key: 'sessionStatus', value: sessionStatus },
+    ...(backupState === null
+      ? []
+      : [{ key: 'backupState.status', value: backupState.status }]),
+    { key: 'aggregateIndex', value: aggregateIndex },
+    { key: 'executedIndex', value: executedIndex },
+    ...(nodeState == null ? [{ key: 'pushIndex', value: pushIndex }] : []),
+    ...(backupState === null
+      ? []
+      : [{ key: 'backupState.failure', value: backupState.failure }]),
+    ...Object.entries(nodeState ?? {}).map(([key, value]) => ({
+      key: `nodeState.${key}`,
+      value,
+    })),
+  ];
+
+  if (!isInitialized) return <SessionStateTable rows={rows} />;
 
   return (
     <div style={styles.paneRoot}>
-      <SessionState
-        sessionStatus={sessionStatus}
-        backupState={backupState}
-        sourceLabel="aggregate index"
-        frontendLabel="frontend index"
-        sourceIndex={aggregateIndex}
-        selectionIndex={selectionIndex}
-        pushIndex={pushIndex}
-      />
+      <div
+        style={{
+          padding: '4px 12px',
+          fontFamily: 'ui-monospace, monospace',
+          fontSize: 10,
+          borderBottom: '1px solid #e5e7eb',
+        }}
+      >
+        <SessionPushControls key={session.sessionId} />
+      </div>
       <div style={styles.tabsHeader}>
+        <NavLink
+          to="state"
+          style={({ isActive }) => ({
+            ...styles.tab,
+            ...(isActive ? styles.tabActive : {}),
+          })}
+        >
+          State
+        </NavLink>
         <NavLink
           to="commands"
           style={({ isActive }) => ({
@@ -215,7 +233,7 @@ function AggregateSessionPane(props: { readonly session: IAggregateSession }) {
         </NavLink>
       </div>
       <div style={styles.tabContent}>
-        <Outlet />
+        <Outlet context={rows} />
       </div>
     </div>
   );
@@ -236,6 +254,11 @@ function ServiceSessionPane(props: {
     session.getSessionStatus,
     session.getSessionStatus,
   );
+  const nodeState = useSyncExternalStore(
+    session.subscribe,
+    session.getNodeState,
+    session.getNodeState,
+  );
   const backupState = useSyncExternalStore(
     session.subscribe,
     session.getBackupState,
@@ -246,30 +269,34 @@ function ServiceSessionPane(props: {
     session.getServiceIndex,
     session.getServiceIndex,
   );
-  if (!isInitialized) {
-    return (
-      <SessionState
-        sessionStatus={sessionStatus}
-        backupState={backupState}
-        sourceLabel="service index"
-        frontendLabel="service frontend index"
-        sourceIndex={serviceIndex}
-        selectionIndex={serviceIndex}
-      />
-    );
-  }
+  const rows: ISessionStateRows = [
+    { key: 'sessionStatus', value: sessionStatus },
+    ...(backupState === null
+      ? []
+      : [{ key: 'backupState.status', value: backupState.status }]),
+    { key: 'serviceIndex', value: serviceIndex },
+    ...(backupState === null
+      ? []
+      : [{ key: 'backupState.failure', value: backupState.failure }]),
+    ...Object.entries(nodeState ?? {}).map(([key, value]) => ({
+      key: `nodeState.${key}`,
+      value,
+    })),
+  ];
+  if (!isInitialized) return <SessionStateTable rows={rows} />;
 
   return (
     <div style={styles.paneRoot}>
-      <SessionState
-        sessionStatus={sessionStatus}
-        backupState={backupState}
-        sourceLabel="service index"
-        frontendLabel="service frontend index"
-        sourceIndex={serviceIndex}
-        selectionIndex={serviceIndex}
-      />
       <div style={styles.tabsHeader}>
+        <NavLink
+          to="state"
+          style={({ isActive }) => ({
+            ...styles.tab,
+            ...(isActive ? styles.tabActive : {}),
+          })}
+        >
+          State
+        </NavLink>
         <NavLink
           to="database"
           style={({ isActive }) => ({
@@ -291,7 +318,7 @@ function ServiceSessionPane(props: {
         </NavLink>
       </div>
       <div style={styles.tabContent}>
-        <Outlet />
+        <Outlet context={rows} />
       </div>
     </div>
   );

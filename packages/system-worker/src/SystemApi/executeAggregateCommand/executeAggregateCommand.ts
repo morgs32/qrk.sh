@@ -1,12 +1,15 @@
-import { makeAsync } from '@zerospin/core/async/makeAsync';
+import { resolveAggregateActorVersion } from '@zerospin/core/aggregateActor/getAggregateActorVersion';
+import { makeAsync } from '@zerospin/core/async/make/makeAsync';
 import { EncodedAggregateCommandSchema } from '@zerospin/core/contracts/CommandSchema';
-import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
+import { getVersion } from '@zerospin/core/contracts/getVersion';
 import { getByKeyOrThrow } from '@zerospin/core/utils/getByKeyOrThrow';
-import { mapParseError } from '@zerospin/error';
+import { readRpcEnvelope } from '@zerospin/core/utils/readRpcEnvelope';
+import { makeZerospinError, mapParseError } from '@zerospin/error';
 import { makeAbbreviationIdSchema } from '@zerospin/schema';
 import config from 'config';
 import { Effect, Schema, type Context } from 'effect';
 
+import { stageDirectActorCommand } from '../../AggregateActorVersionRepo/stageDirectActorCommand.js';
 import { AggregateChain } from '../../AggregateChain/AggregateChain.js';
 import {
   makeApiHandler,
@@ -75,12 +78,31 @@ export const executeAggregateCommand = Effect.fn(
           },
         });
 
+        const actor = yield* resolveAggregateActorVersion(
+          system.aggregates[command.aggregateName] ?? {},
+          command,
+        );
+        const authored = actor.contracts[command.commandName];
+        if (authored === undefined) {
+          return yield* Effect.fail(
+            makeZerospinError('contract-failure-binding-missing'),
+          );
+        }
+        yield* getVersion(authored, command.contractVersion);
+
+        yield* stageDirectActorCommand({
+          systemId: authResults.systemId,
+          aggregateVersion,
+          actor,
+          command,
+        });
+
         // 5 — forward the full command to AggregateChain.executeAggregateCommand
         return yield* makeAsync<
           Awaited<ReturnType<AggregateChain['executeAggregateCommand']>>
         >(() =>
           chain.executeAggregateCommand({ command, aggregateVersion }),
-        ).pipe(Effect.flatMap(decodeRpc));
+        ).pipe(Effect.flatMap(envelope => readRpcEnvelope(envelope)));
       }).pipe(
         Effect.withSpan('SystemApi.executeAggregateCommand', { root: true }),
       ),

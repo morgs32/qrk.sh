@@ -1,4 +1,8 @@
-import { ZerospinError } from '@zerospin/error';
+import {
+  catchZerospinError,
+  isZerospinError,
+  makeZerospinError,
+} from '@zerospin/error';
 import { Effect } from 'effect';
 import * as SQLite from 'wa-sqlite';
 
@@ -16,7 +20,7 @@ export const overwriteDb = Effect.fn('BackupDbApi.overwriteDb')(
             api.owner.disposed ||
             api.runtime.current.get(api.backupKey) !== api
           ) {
-            throw new ZerospinError({
+            throw makeZerospinError({
               code: 'backup-db-revoked',
               message: 'Backup ownership was revoked',
             });
@@ -68,9 +72,9 @@ export const overwriteDb = Effect.fn('BackupDbApi.overwriteDb')(
           }
         },
         catch: cause =>
-          ZerospinError.isZerospinError(cause)
+          isZerospinError(cause)
             ? cause
-            : ZerospinError.catch({
+            : catchZerospinError({
                 code: 'backup-db-overwrite-failed',
                 message: 'Failed to overwrite IndexedDB backup',
               })(cause),

@@ -1,7 +1,7 @@
-import { makeAsync } from '@zerospin/core/async/makeAsync';
-import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
-import type { IAnyErrorJson, IEncodedResult } from '@zerospin/error';
-import type { ITelemetryBatch } from '@zerospin/logger';
+import { makeAsync } from '@zerospin/core/async/make/makeAsync';
+import { readRpcEnvelope } from '@zerospin/core/utils/readRpcEnvelope';
+import { type IZerospinErrorJson } from '@zerospin/error';
+import type { IRpcEnvelope, ITelemetryBatch } from '@zerospin/logger';
 import { env } from 'cloudflare:workers';
 import { Effect } from 'effect';
 
@@ -26,7 +26,7 @@ export const appendTelemetryBatch = Effect.fn(
   });
 
   // 2 — forward the complete batch to SystemLogRepo.appendTelemetryBatch
-  return yield* makeAsync<IEncodedResult<void, IAnyErrorJson>>(() =>
+  return yield* makeAsync<IRpcEnvelope<void, IZerospinErrorJson>>(() =>
     systemLogRepo.appendTelemetryBatch({ batch }),
-  ).pipe(Effect.flatMap(decodeRpc));
+  ).pipe(Effect.flatMap(envelope => readRpcEnvelope(envelope)));
 });

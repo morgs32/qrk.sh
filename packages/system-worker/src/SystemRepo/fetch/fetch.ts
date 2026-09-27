@@ -1,5 +1,5 @@
 import type { Async } from '@zerospin/core/async/Async';
-import { makeAsync } from '@zerospin/core/async/makeAsync';
+import { makeAsync } from '@zerospin/core/async/make/makeAsync';
 import type { IDb } from '@zerospin/core/drizzle/types';
 import type { IAnyError } from '@zerospin/error';
 import type { IAnyDrizzleSchema } from '@zerospin/schema';
@@ -7,63 +7,65 @@ import { env } from 'cloudflare:workers';
 import type { AnyColumn } from 'drizzle-orm';
 import { Effect, Result } from 'effect';
 
-import { FrontendServiceChain } from '../../FrontendServiceChain/FrontendServiceChain.js';
-import { SelectionVersionedAggregateChain } from '../../SelectionVersionedAggregateChain/SelectionVersionedAggregateChain.js';
-import { consumeAggregateFrontendWebSocketTicket } from '../consumeAggregateFrontendWebSocketTicket/consumeAggregateFrontendWebSocketTicket.js';
-import { consumeServiceFrontendWebSocketTicket } from '../consumeServiceFrontendWebSocketTicket/consumeServiceFrontendWebSocketTicket.js';
+import { AggregateActorVersionChain } from '../../AggregateActorVersionChain/AggregateActorVersionChain.js';
+import { ServiceActorVersionChain } from '../../ServiceActorVersionChain/ServiceActorVersionChain.js';
+import { consumeAggregateSessionWebSocketTicket } from '../consumeAggregateSessionWebSocketTicket/consumeAggregateSessionWebSocketTicket.js';
+import { consumeServiceSessionWebSocketTicket } from '../consumeServiceSessionWebSocketTicket/consumeServiceSessionWebSocketTicket.js';
 
 /*
  * Entrypoint WebSocket requests reach the singleton SystemRepo router.
- * Frontend upgrades spend a retained ticket before forwarding to its log, while
+ * Session upgrades spend a retained ticket before forwarding to its log, while
  * the system-log route delegates directly to SystemLogAgent.
  *
  * 1. Parse the request after the common Repo activation gate.
  * 2. Route system-log upgrades.
  * 3. Reject unsupported routes and non-upgrades.
- * 4. Validate the frontend ticket query.
- * 5. Spend and forward a service frontend ticket.
- * 6. Spend the aggregate frontend ticket.
- * 7. Resolve the exact retained versioned frontend log.
- * 8. Forward the aggregate upgrade with retained admission fields.
+ * 4. Validate the definition ticket query.
+ * 5. Spend and forward a service definition ticket.
+ * 6. Spend the aggregate definition ticket.
+ * 7. Resolve the exact retained versioned definition log.
+ * 8. Forward identity and the definition lock.
  */
 export const fetch = Effect.fn('SystemRepo.fetch', { root: true })(
   function* (props: {
     db: IDb;
     systemId: string;
     request: Request;
-    aggregateFrontendWebSocketTicketTable: IAnyDrizzleSchema;
-    aggregateFrontendWebSocketTicketColumns: Readonly<{
+    aggregateSessionWebSocketTicketTable: IAnyDrizzleSchema;
+    aggregateSessionWebSocketTicketColumns: Readonly<{
       expiresAt: AnyColumn;
       ticketHash: AnyColumn;
       repoName: AnyColumn;
       aggregateId: AnyColumn;
       aggregateName: AnyColumn;
       aggregateVersion: AnyColumn;
-      selectionPath: AnyColumn;
-      authentication: AnyColumn;
-      frontendName: AnyColumn;
-      aggregateFrontendLock: AnyColumn;
+      actorName: AnyColumn;
+      actorVersion: AnyColumn;
+      actorPath: AnyColumn;
+      identity: AnyColumn;
+      sessionName: AnyColumn;
+      aggregateSessionLock: AnyColumn;
     }>;
-    serviceFrontendWebSocketTicketTable: IAnyDrizzleSchema;
-    serviceFrontendWebSocketTicketColumns: Readonly<{
+    serviceSessionWebSocketTicketTable: IAnyDrizzleSchema;
+    serviceSessionWebSocketTicketColumns: Readonly<{
       expiresAt: AnyColumn;
       ticketHash: AnyColumn;
       repoName: AnyColumn;
       serviceName: AnyColumn;
       serviceVersion: AnyColumn;
-      selectionPath: AnyColumn;
-      authentication: AnyColumn;
-      frontendName: AnyColumn;
-      serviceFrontendLock: AnyColumn;
+      actorPath: AnyColumn;
+      identity: AnyColumn;
+      sessionName: AnyColumn;
+      serviceSessionLock: AnyColumn;
     }>;
   }): Effect.fn.Return<Response, IAnyError, Async> {
     const {
-      aggregateFrontendWebSocketTicketColumns,
-      aggregateFrontendWebSocketTicketTable,
+      aggregateSessionWebSocketTicketColumns,
+      aggregateSessionWebSocketTicketTable,
       db,
       request,
-      serviceFrontendWebSocketTicketColumns,
-      serviceFrontendWebSocketTicketTable,
+      serviceSessionWebSocketTicketColumns,
+      serviceSessionWebSocketTicketTable,
       systemId,
     } = props;
 
@@ -85,8 +87,8 @@ export const fetch = Effect.fn('SystemRepo.fetch', { root: true })(
 
     // 3 — return 404 for unknown paths or 426 without the websocket upgrade
     if (
-      url.pathname !== '/ws-aggregate-frontend-commands' &&
-      url.pathname !== '/ws-service-frontend-commands'
+      url.pathname !== '/ws-aggregate-session-commands' &&
+      url.pathname !== '/ws-service-session-commands'
     ) {
       return new Response('Not found', { status: 404 });
     }
@@ -113,12 +115,12 @@ export const fetch = Effect.fn('SystemRepo.fetch', { root: true })(
     }
 
     // 5 — map consumption errors and replace forwarding headers from the retained ticket
-    if (url.pathname === '/ws-service-frontend-commands') {
-      const settled = yield* consumeServiceFrontendWebSocketTicket({
+    if (url.pathname === '/ws-service-session-commands') {
+      const settled = yield* consumeServiceSessionWebSocketTicket({
         db,
         ticket,
-        serviceFrontendWebSocketTicketTable,
-        serviceFrontendWebSocketTicketColumns,
+        serviceSessionWebSocketTicketTable,
+        serviceSessionWebSocketTicketColumns,
       }).pipe(Effect.result);
       if (Result.isFailure(settled)) {
         return Response.json(
@@ -134,13 +136,14 @@ export const fetch = Effect.fn('SystemRepo.fetch', { root: true })(
           },
         );
       }
-      const repo = yield* FrontendServiceChain.getRepo({
+      const repo = yield* ServiceActorVersionChain.getRepo({
         key: {
           systemId,
           serviceName: settled.success.serviceName,
           serviceVersion: settled.success.serviceVersion,
-          selectionPath: settled.success.selectionPath,
-          frontendName: settled.success.frontendName,
+          actorPath: settled.success.actorPath,
+          actorName: settled.success.serviceSessionLock.actorName,
+          actorVersion: settled.success.serviceSessionLock.actorVersion,
         },
       });
       return yield* makeAsync(async () => {
@@ -150,20 +153,20 @@ export const fetch = Effect.fn('SystemRepo.fetch', { root: true })(
           'x-zerospin-service-version',
           settled.success.serviceVersion,
         );
-        headers.set('x-zerospin-selection-path', settled.success.selectionPath);
+        headers.set('x-zerospin-actor-path', settled.success.actorPath);
         headers.set(
-          'x-zerospin-authentication',
-          JSON.stringify(settled.success.authentication),
+          'x-zerospin-identity',
+          JSON.stringify(settled.success.identity),
         );
-        headers.set('x-zerospin-frontend-name', settled.success.frontendName);
+        headers.set('x-zerospin-session-name', settled.success.sessionName);
         headers.set(
-          'x-zerospin-service-frontend-lock',
-          JSON.stringify(settled.success.serviceFrontendLock),
+          'x-zerospin-service-session-lock',
+          JSON.stringify(settled.success.serviceSessionLock),
         );
         const response = await repo.fetch(new Request(request, { headers }));
         if (!(response instanceof Response)) {
           throw new Error(
-            'Service frontend selected-command chain returned a non-Response result',
+            'Service definition actor-command chain returned a non-Response result',
           );
         }
         return response;
@@ -179,12 +182,12 @@ export const fetch = Effect.fn('SystemRepo.fetch', { root: true })(
       );
     }
 
-    // 6 — return invalid/expired or storage failure before opening the frontend log
-    const settled = yield* consumeAggregateFrontendWebSocketTicket({
+    // 6 — return invalid/expired or storage failure before opening the definition log
+    const settled = yield* consumeAggregateSessionWebSocketTicket({
       db,
       ticket,
-      aggregateFrontendWebSocketTicketTable,
-      aggregateFrontendWebSocketTicketColumns,
+      aggregateSessionWebSocketTicketTable,
+      aggregateSessionWebSocketTicketColumns,
     }).pipe(Effect.result);
     if (Result.isFailure(settled)) {
       return Response.json(
@@ -203,34 +206,33 @@ export const fetch = Effect.fn('SystemRepo.fetch', { root: true })(
 
     // 7 — parse repoName from the spent ticket, preserving the snapshot-selected version
     const key =
-      yield* SelectionVersionedAggregateChain.fixedDORepoConfig.nameUtils.parseName(
+      yield* AggregateActorVersionChain.fixedDORepoConfig.nameUtils.parseName(
         settled.success.repoName,
       );
-    const repo = yield* SelectionVersionedAggregateChain.getRepo({ key });
+    const repo = yield* AggregateActorVersionChain.getRepo({ key });
 
-    // 8 — replace aggregate/user/frontend headers and map forwarding failure to HTTP 500
+    // 8 — forward identity and the definition lock; map forwarding failure to HTTP 500
     return yield* makeAsync(async () => {
       const headers = new Headers(request.headers);
-      headers.set('x-zerospin-aggregate-id', settled.success.aggregateId);
-      headers.set('x-zerospin-aggregate-name', settled.success.aggregateName);
+      headers.delete('x-zerospin-aggregate-id');
+      headers.delete('x-zerospin-aggregate-name');
+      headers.delete('x-zerospin-aggregate-version');
+      headers.delete('x-zerospin-actor-name');
+      headers.delete('x-zerospin-actor-version');
+      headers.delete('x-zerospin-actor-path');
+      headers.delete('x-zerospin-session-name');
       headers.set(
-        'x-zerospin-aggregate-version',
-        settled.success.aggregateVersion,
+        'x-zerospin-identity',
+        JSON.stringify(settled.success.identity),
       );
-      headers.set('x-zerospin-selection-path', settled.success.selectionPath);
       headers.set(
-        'x-zerospin-authentication',
-        JSON.stringify(settled.success.authentication),
-      );
-      headers.set('x-zerospin-frontend-name', settled.success.frontendName);
-      headers.set(
-        'x-zerospin-aggregate-frontend-lock',
-        JSON.stringify(settled.success.aggregateFrontendLock),
+        'x-zerospin-aggregate-session-lock',
+        JSON.stringify(settled.success.aggregateSessionLock),
       );
       const response = await repo.fetch(new Request(request, { headers }));
       if (!(response instanceof Response)) {
         throw new Error(
-          'Aggregate frontend selected-command chain returned a non-Response result',
+          'Aggregate definition actor-command chain returned a non-Response result',
         );
       }
       return response;

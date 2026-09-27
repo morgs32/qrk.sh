@@ -1,24 +1,32 @@
 import type { ICommittedSqlStatement } from '@zerospin/core/drizzle/WaSqliteSession';
-import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
+import { readRpcEnvelope } from '@zerospin/core/utils/readRpcEnvelope';
 import {
-  ZerospinError,
+  catchZerospinError,
+  isZerospinError,
+  ZerospinErrorJsonSchema,
+  makeZerospinError,
   type IAnyError,
-  type IAnyErrorJson,
-  type IEncodedResult,
+  type IZerospinErrorJson,
 } from '@zerospin/error';
+import type { IRpcEnvelope } from '@zerospin/logger';
 import { newMessagePortRpcSession, RpcStub } from 'capnweb';
-import { Effect, type Scope } from 'effect';
+import { Effect, Schema, type Scope } from 'effect';
 
 import type { BackupDbApi } from '../BackupDbApi/BackupDbApi.ts';
 import type { BackupWorkerApi } from '../BackupWorkerApi/BackupWorkerApi.ts';
 
 export type IBackupDb = Readonly<{
-  overwriteDb(props: { snapshot: Uint8Array }): Effect.Effect<void, IAnyError>;
+  overwriteDb(props: {
+    snapshot: Uint8Array;
+  }): Effect.Effect<void, IAnyError | IZerospinErrorJson>;
   applyStatements(props: {
     statements: readonly ICommittedSqlStatement[];
-  }): Effect.Effect<void, IAnyError>;
-  exportSnapshot(): Effect.Effect<Uint8Array | null, IAnyError>;
-  dispose(): Effect.Effect<void, IAnyError>;
+  }): Effect.Effect<void, IAnyError | IZerospinErrorJson>;
+  exportSnapshot(): Effect.Effect<
+    Uint8Array | null,
+    IAnyError | IZerospinErrorJson
+  >;
+  dispose(): Effect.Effect<void, IAnyError | IZerospinErrorJson>;
 }>;
 
 export type IBackupWorker = Readonly<{
@@ -28,7 +36,7 @@ export type IBackupWorker = Readonly<{
   }): Effect.Effect<
     | { status: 'current'; db: IBackupDb }
     | { status: 'acquired'; db: IBackupDb; snapshot: Uint8Array | null },
-    IAnyError
+    IAnyError | IZerospinErrorJson
   >;
   onDisconnect(listener: () => void): () => void;
 }>;
@@ -41,10 +49,13 @@ export const acquireBackupWorker = Effect.fn('acquireBackupWorker')(
       typeof globalThis.MessagePort !== 'function' ||
       typeof navigator.locks?.request !== 'function'
     ) {
-      return yield* new ZerospinError({
-        code: 'backup-worker-unavailable',
-        message: 'SharedWorker and Web Locks are required for browser backups',
-      });
+      return yield* Effect.fail(
+        makeZerospinError({
+          code: 'backup-worker-unavailable',
+          message:
+            'SharedWorker and Web Locks are required for browser backups',
+        }),
+      );
     }
     const resource = yield* Effect.acquireRelease(
       Effect.try({
@@ -58,7 +69,7 @@ export const acquireBackupWorker = Effect.fn('acquireBackupWorker')(
                 generation: number;
                 port: MessagePort;
                 api: RpcStub<BackupWorkerApi>;
-                ready: Promise<IEncodedResult<void, IAnyErrorJson>>;
+                ready: Promise<IRpcEnvelope<void, IZerospinErrorJson>>;
                 lost: PromiseWithResolvers<never>;
                 abort: AbortController;
               }
@@ -100,7 +111,7 @@ export const acquireBackupWorker = Effect.fn('acquireBackupWorker')(
             void ready
               .then(async result => {
                 if (
-                  result._tag !== 'Success' ||
+                  result.result._tag !== 'Success' ||
                   closed ||
                   connection !== current
                 ) {
@@ -137,19 +148,21 @@ export const acquireBackupWorker = Effect.fn('acquireBackupWorker')(
                 const { backupKey, onRevoked } = props;
                 const current = connection;
                 if (closed || !current) {
-                  return yield* new ZerospinError({
-                    code: 'backup-worker-closed',
-                    message: 'Backup connection is closed',
-                  });
+                  return yield* Effect.fail(
+                    makeZerospinError({
+                      code: 'backup-worker-closed',
+                      message: 'Backup connection is closed',
+                    }),
+                  );
                 }
                 yield* Effect.tryPromise({
                   try: () =>
                     Promise.race([current.ready, current.lost.promise]),
-                  catch: ZerospinError.catch({
+                  catch: catchZerospinError({
                     code: 'backup-request-uncertain',
                     message: 'Backup worker readiness was interrupted',
                   }),
-                }).pipe(Effect.flatMap(decodeRpc));
+                }).pipe(Effect.flatMap(envelope => readRpcEnvelope(envelope)));
                 let revoked = false;
                 const callback = new RpcStub(() => {
                   revoked = true;
@@ -165,10 +178,10 @@ export const acquireBackupWorker = Effect.fn('acquireBackupWorker')(
                         }),
                         current.lost.promise,
                       ]);
-                      if (reply._tag === 'Failure') {
-                        throw new ZerospinError(reply.failure);
+                      if (reply.result._tag === 'Failure') {
+                        throw makeZerospinError(reply.result.failure);
                       }
-                      const result = reply.success;
+                      const result = reply.result.success;
                       if (
                         signal.aborted ||
                         closed ||
@@ -178,7 +191,7 @@ export const acquireBackupWorker = Effect.fn('acquireBackupWorker')(
                         if (result.status === 'acquired') {
                           await result.db.dispose();
                         }
-                        throw new ZerospinError({
+                        throw makeZerospinError({
                           code: 'backup-db-revoked',
                           message: 'Backup acquisition is no longer current',
                         });
@@ -200,13 +213,13 @@ export const acquireBackupWorker = Effect.fn('acquireBackupWorker')(
                       // This shared wire boundary supplies generation checks and uncertainty classification.
                       const call = <T>(
                         invoke: () => PromiseLike<
-                          IEncodedResult<T, IAnyErrorJson>
+                          IRpcEnvelope<T, IZerospinErrorJson>
                         >,
                       ) =>
                         Effect.suspend(() => {
                           if (disposed || revoked) {
                             return Effect.fail(
-                              new ZerospinError({
+                              makeZerospinError({
                                 code: 'backup-db-revoked',
                                 message: 'Backup ownership was revoked',
                               }),
@@ -214,7 +227,7 @@ export const acquireBackupWorker = Effect.fn('acquireBackupWorker')(
                           }
                           if (closed || connection !== current) {
                             return Effect.fail(
-                              new ZerospinError({
+                              makeZerospinError({
                                 code: 'backup-request-uncertain',
                                 message:
                                   'Backup worker connection was replaced',
@@ -224,22 +237,28 @@ export const acquireBackupWorker = Effect.fn('acquireBackupWorker')(
                           return Effect.tryPromise({
                             try: () =>
                               Promise.race([invoke(), current.lost.promise]),
-                            catch: ZerospinError.catch({
+                            catch: catchZerospinError({
                               code: 'backup-request-uncertain',
                               message:
                                 'Dispatched backup operation has an uncertain result',
                             }),
                           }).pipe(
-                            Effect.flatMap(reply =>
-                              connection === current && !closed
-                                ? decodeRpc(reply)
-                                : Effect.fail(
-                                    new ZerospinError({
-                                      code: 'backup-request-uncertain',
-                                      message:
-                                        'Backup reply belongs to a replaced connection',
-                                    }),
-                                  ),
+                            Effect.flatMap(
+                              (
+                                reply,
+                              ): Effect.Effect<
+                                T,
+                                IAnyError | IZerospinErrorJson
+                              > =>
+                                connection === current && !closed
+                                  ? readRpcEnvelope(reply)
+                                  : Effect.fail(
+                                      makeZerospinError({
+                                        code: 'backup-request-uncertain',
+                                        message:
+                                          'Backup reply belongs to a replaced connection',
+                                      }),
+                                    ),
                             ),
                           );
                         });
@@ -263,21 +282,27 @@ export const acquireBackupWorker = Effect.fn('acquireBackupWorker')(
                                   stub.dispose(),
                                   current.lost.promise,
                                 ]),
-                              catch: ZerospinError.catch({
+                              catch: catchZerospinError({
                                 code: 'backup-request-uncertain',
                                 message: 'Backup disposal was interrupted',
                               }),
                             }).pipe(
-                              Effect.flatMap(reply =>
-                                connection === current && !closed
-                                  ? decodeRpc(reply)
-                                  : Effect.fail(
-                                      new ZerospinError({
-                                        code: 'backup-request-uncertain',
-                                        message:
-                                          'Backup reply belongs to a replaced connection',
-                                      }),
-                                    ),
+                              Effect.flatMap(
+                                (
+                                  reply,
+                                ): Effect.Effect<
+                                  void,
+                                  IAnyError | IZerospinErrorJson
+                                > =>
+                                  connection === current && !closed
+                                    ? readRpcEnvelope(reply)
+                                    : Effect.fail(
+                                        makeZerospinError({
+                                          code: 'backup-request-uncertain',
+                                          message:
+                                            'Backup reply belongs to a replaced connection',
+                                        }),
+                                      ),
                               ),
                             );
                           }).pipe(
@@ -301,9 +326,10 @@ export const acquireBackupWorker = Effect.fn('acquireBackupWorker')(
                     }
                   },
                   catch: cause =>
-                    ZerospinError.isZerospinError(cause)
+                    isZerospinError(cause) ||
+                    Schema.is(ZerospinErrorJsonSchema)(cause)
                       ? cause
-                      : ZerospinError.catch({
+                      : catchZerospinError({
                           code: 'backup-request-uncertain',
                           message: 'Backup acquisition was interrupted',
                         })(cause),
@@ -326,7 +352,7 @@ export const acquireBackupWorker = Effect.fn('acquireBackupWorker')(
             },
           };
         },
-        catch: ZerospinError.catch({
+        catch: catchZerospinError({
           code: 'backup-worker-unavailable',
           message: 'Failed to open the backup SharedWorker',
         }),

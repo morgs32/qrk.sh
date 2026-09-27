@@ -1,4 +1,4 @@
-import { ZerospinError, type IAnyError } from '@zerospin/error';
+import { makeZerospinError, type IAnyError } from '@zerospin/error';
 import { Effect } from 'effect';
 
 export const getByKeyOrThrow = Effect.fn('getByKeyOrThrow')(function* <
@@ -12,11 +12,11 @@ export const getByKeyOrThrow = Effect.fn('getByKeyOrThrow')(function* <
 }): Effect.fn.Return<NonNullable<RECORD[KEY]>, IAnyError> {
   const { record, key, recordKind } = props;
   if (!(key in record)) {
-    return yield* new ZerospinError(`${recordKind}-not-found`);
+    return yield* Effect.fail(makeZerospinError(`${recordKind}-not-found`));
   }
   const value = record[key as KEY];
   if (!value || value === null) {
-    return yield* new ZerospinError(`${recordKind}-not-found`);
+    return yield* Effect.fail(makeZerospinError(`${recordKind}-not-found`));
   }
   return value;
 });

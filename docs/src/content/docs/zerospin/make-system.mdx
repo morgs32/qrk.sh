@@ -1,9 +1,9 @@
 ---
 title: Make a system
-description: Define models, contracts, a frontend, and its system authentication and aggregate authorization with Zerospin make methods.
+description: Define models, contracts, a session, and actor identity and authorization with Zerospin make methods.
 ---
 
-This guide shows the direct shape for defining a small system. It keeps each exported piece visible so the relationships between models, contracts, frontend, aggregate owner, and system are easy to inspect.
+This guide shows the direct shape for defining a small system. It keeps each exported piece visible so the relationships between models, contracts, session, aggregate owner, and system are easy to inspect.
 
 ## Imports
 
@@ -11,8 +11,9 @@ Import the builders, primitive descriptors, typed error shape, and Effect schema
 
 ```ts
 import * as sdk from '@zerospin/sdk';
+import { makeSession } from '@zerospin/browser';
 import { makeModelIdSchema } from '@zerospin/core/models/makeModelIdSchema.js';
-import { Effect, Schema } from 'effect';
+import { Effect, Layer, Schema } from 'effect';
 ```
 
 ## Models
@@ -154,16 +155,27 @@ export const updateList = sdk.makeContractVersion(
 );
 ```
 
-## Frontend
+## Session
 
-The frontend selects models and contracts from one aggregate version. Its lock must match those definitions exactly and include every selected contract's declared mutation models. Frontends are not registered on the server aggregate.
+The session selects models and contracts from one aggregate version. Its lock must match those definitions exactly and include every selected contract's declared mutation models. Sessions are not registered on the server aggregate. `makeSession` receives an identity schema shared with the selected actor. Aggregate identities require a string `aggregateId`. The session has no independent version.
 
 ```ts
-export const listFrontend = sdk.makeFrontendController({
+// Share this browser-safe identity schema with the selected server actor.
+export const listIdentitySchema = Schema.Struct({
+  aggregateId: Schema.String,
+  userId: makeModelIdSchema(User),
+});
+// Supply API URL, publishable key, and application capabilities in this layer.
+export const listSession = makeSession({
+  kind: 'aggregate',
+  sessionName: 'main',
   systemName: 'system1',
+  identitySchema: listIdentitySchema,
+  layer: applicationLayer,
   aggregateName: 'user',
-  name: 'main',
   aggregateVersion: '1.0.0',
+  actorName: 'default',
+  actorVersion: '1.0.0',
   contracts: {
     createList: { contract: createList },
     createItem: { contract: createItem },
@@ -177,67 +189,77 @@ export const listFrontend = sdk.makeFrontendController({
 });
 ```
 
-## System authentication and aggregate authorization
+Each session owns its runtime. Its application layer is acquired lazily and reused
+until `session.dispose()`, including for local guards and commands. Call
+`session.runtime.runPromise(effect)` to run an Effect with those services.
+Reinitializing the same session preserves its store but creates a fresh runtime;
+read `session.runtime` again after reinitialization. Disposing a session preserves
+its saved backup.
 
-Authentication produces an `identityKey`, an opaque identity string. `userId` remains the name for a User resource ID. The selected aggregate authorizes that user against its database. Selections define visible resources for snapshots and live updates; the frontend lock further narrows the delivered models and accepted commands.
+## Actor identity and authorization
+
+An actor declares its identity schema and selection path separately from its
+server authentication policy. This example explicitly accepts supplied identity.
+Production actors that verify credentials instead declare
+`authentication: { credentialsSchema, authenticate }`; their callback returns the
+same identity shape, and their sessions initialize with `{ getCredentials }`.
 
 ```ts
-export const user = sdk.makeAggregateVersion(
-  sdk.defineAggregate({ name: 'user' }),
+const identity = sdk.makeActorIdentity({
+  schema: listIdentitySchema,
+  actorPath: RoutePattern.parse('/:userId'),
+});
+const db = sdk.makeActorDbVersion({
+  models: { user: User, list: List, item: Item },
+});
+const defaultActor = sdk.makeAggregateActorVersion(
+  { name: 'default' },
   {
     version: '1.0.0',
-    authorize: ({ identityKey, db }) =>
-      Effect.gen(function* () {
-        const row = yield* Effect.sync(() =>
-          db.query.user
-            .findFirst({
-              where: { id: { eq: identityKey } },
-            })
-            .sync(),
-        );
-        if (row === undefined) {
-          return yield* new sdk.ZerospinError({
-            code: 'user-not-found',
-            message: `User ${identityKey} was not found`,
-          });
-        }
+    db,
+    identity,
+    authentication: 'none',
+    contracts: { createList, createItem, updateList },
+    queries: {
+      user: db.query.user.findMany({
+        where: { id: { eq: identity.sql.placeholder('userId') } },
       }),
-    models: { user: User, list: List, item: Item },
-    contracts: {
-      createList: { contract: createList },
-      createItem: { contract: createItem },
-      updateList: { contract: updateList },
-    },
-    selections: {
-      user: sdk.makeSelection({
-        model: User,
-        where: ({ identityKey }) => ({ id: identityKey }),
+      list: db.query.list.findMany({
+        where: { user: { id: { eq: identity.sql.placeholder('userId') } } },
       }),
-      list: sdk.makeSelection({
-        model: List,
-        where: ({ identityKey }) => ({ user: { id: identityKey } }),
-      }),
-      item: sdk.makeSelection({
-        model: Item,
-        where: ({ identityKey }) => ({ list: { user: { id: identityKey } } }),
+      item: db.query.item.findMany({
+        where: {
+          list: { user: { id: { eq: identity.sql.placeholder('userId') } } },
+        },
       }),
     },
   },
 );
-
+export const user = sdk.makeAggregateVersion(
+  sdk.defineAggregate({ name: 'user' }),
+  {
+    version: '1.0.0',
+    models: { user: User, list: List, item: Item },
+    actors: { default: defaultActor },
+  },
+);
 export const system = sdk.makeSystem({
   name: 'system1',
-  authentication: [
-    sdk.makeAuthenticationVersion({
-      version: '1.0.0',
-      signature: Schema.Struct({ userId: makeModelIdSchema(User) }),
-      authenticate: ({ signature }) => Effect.succeed(signature.userId),
-    }),
-  ],
-  aggregates: { user: [user] },
+  aggregates: { user: { '1.0.0': user } },
+  services: {},
+});
+await listSession.initialize({
+  identity: { aggregateId: 'acct_example', userId },
 });
 ```
 
-This example accepts a user ID as its demonstration signature. Applications supply their own authenticator. Server execution uses the aggregate's contracts and guards directly; it does not load a frontend controller or run frontend binding adapters.
+Admission validates the supplied identity or verified callback result. Actor
+`authorize` callbacks receive that identity and current database access. Selection
+paths determine the actor view; the session lock further limits delivered models
+and accepted commands. Credentials are never saved in commands or backups.
 
-Frontends sharing `{ systemId, aggregateId, aggregateName, aggregateVersion, selectionPath }` share a `SelectionVersionedAggregateRepo` and `SelectionVersionedAggregateChain`. Worker configuration supplies `systemId`; authentication supplies `aggregateId` and the canonical path derived from `selectionSchema` and `pattern`; admission checks the caller-selected aggregate name and version. Different full authentication claims can share that selection partition. Changing a frontend lock creates a new capability and snapshot, not a new server replica.
+A direct session captures identity at initialization and reuses it on reconnect.
+Dispose and initialize again to change identity. Verified sessions obtain fresh
+credentials on reconnect. Both forms retain the server-accepted identity in
+session state and commands; offline restoration cannot switch a direct session
+to another identity's backup.

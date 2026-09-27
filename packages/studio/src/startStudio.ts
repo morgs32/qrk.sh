@@ -1,12 +1,8 @@
 import { fileURLToPath } from 'node:url';
 
 import type { IRepoType, ISystemSpec } from '@zerospin/core/system/types';
-import { newSyncRpcSession } from '@zerospin/core/utils/newSyncRpcSession';
-import {
-  makeTelemetryCollector,
-  makeTelemetryLayer,
-  makeTraceableApiTarget,
-} from '@zerospin/logger';
+import { getApi } from '@zerospin/core/utils/getApi/getApi';
+import { makeTelemetryCollector, makeTelemetryLayer } from '@zerospin/logger';
 import { Effect } from 'effect';
 import type { GatewayApi } from 'system-worker/GatewayApi/GatewayApi';
 import { createServer } from 'vite';
@@ -63,12 +59,10 @@ export const startStudio = Effect.fn('startStudio')(function* (props: {
 
               try {
                 // 2 — keep the concrete capability and secret-key exchange inside this request
-                using gatewayApi =
-                  newSyncRpcSession<GatewayApi>(zerospinApiUrl);
-                const systemApi = makeTraceableApiTarget(
-                  gatewayApi.getSystemApi({
-                    zerospinSecretKey,
-                  }),
+                const systemApi = await Effect.runPromise(
+                  getApi<GatewayApi>(zerospinApiUrl)(gatewayApi =>
+                    gatewayApi.getSystemApi({ zerospinSecretKey }),
+                  ),
                 );
                 let data: unknown;
 
@@ -85,49 +79,46 @@ export const startStudio = Effect.fn('startStudio')(function* (props: {
                         ),
                       );
                       break;
-                    case 'VersionedAggregateRepo':
+                    case 'AggregateVersionRepo':
+                      data = await Effect.runPromise(
+                        systemApi.getAggregateVersionRepos().pipe(
+                          Effect.withSpan('Studio.getAggregateVersionRepos', {
+                            root: true,
+                          }),
+                          Effect.provide(makeTelemetryLayer(collector)),
+                        ),
+                      );
+                      break;
+                    case 'AggregateActorVersionRepo':
                       data = await Effect.runPromise(
                         systemApi
-                          .getVersionedAggregateRepos()
+                          .getAggregateActorVersionRepos()
                           .pipe(
                             Effect.withSpan(
-                              'Studio.getVersionedAggregateRepos',
+                              'Studio.getAggregateActorVersionRepos',
                               { root: true },
                             ),
                             Effect.provide(makeTelemetryLayer(collector)),
                           ),
                       );
                       break;
-                    case 'SelectionVersionedAggregateRepo':
+                    case 'ServiceActorVersionRepo':
                       data = await Effect.runPromise(
                         systemApi
-                          .getSelectionVersionedAggregateRepos()
+                          .getServiceActorVersionRepos()
                           .pipe(
                             Effect.withSpan(
-                              'Studio.getSelectionVersionedAggregateRepos',
+                              'Studio.getServiceActorVersionRepos',
                               { root: true },
                             ),
                             Effect.provide(makeTelemetryLayer(collector)),
                           ),
                       );
                       break;
-                    case 'FrontendVersionedServiceRepo':
+                    case 'ServiceVersionRepo':
                       data = await Effect.runPromise(
-                        systemApi
-                          .getFrontendVersionedServiceRepos()
-                          .pipe(
-                            Effect.withSpan(
-                              'Studio.getFrontendVersionedServiceRepos',
-                              { root: true },
-                            ),
-                            Effect.provide(makeTelemetryLayer(collector)),
-                          ),
-                      );
-                      break;
-                    case 'VersionedServiceRepo':
-                      data = await Effect.runPromise(
-                        systemApi.getVersionedServiceRepos().pipe(
-                          Effect.withSpan('Studio.getVersionedServiceRepos', {
+                        systemApi.getServiceVersionRepos().pipe(
+                          Effect.withSpan('Studio.getServiceVersionRepos', {
                             root: true,
                           }),
                           Effect.provide(makeTelemetryLayer(collector)),
@@ -144,37 +135,34 @@ export const startStudio = Effect.fn('startStudio')(function* (props: {
                         ),
                       );
                       break;
-                    case 'VersionedAggregateChain':
+                    case 'AggregateVersionChain':
                       data = await Effect.runPromise(
                         systemApi
-                          .getVersionedAggregateChains()
+                          .getAggregateVersionChains()
                           .pipe(
                             Effect.withSpan(
-                              'Studio.getVersionedAggregateChains',
+                              'Studio.getAggregateVersionChains',
                               { root: true },
                             ),
                             Effect.provide(makeTelemetryLayer(collector)),
                           ),
                       );
                       break;
-                    case 'VersionedServiceChain':
+                    case 'ServiceVersionChain':
                       data = await Effect.runPromise(
-                        systemApi
-                          .getVersionedServiceChains()
-                          .pipe(
-                            Effect.withSpan(
-                              'Studio.getVersionedServiceChains',
-                              { root: true },
-                            ),
-                            Effect.provide(makeTelemetryLayer(collector)),
-                          ),
+                        systemApi.getServiceVersionChains().pipe(
+                          Effect.withSpan('Studio.getServiceVersionChains', {
+                            root: true,
+                          }),
+                          Effect.provide(makeTelemetryLayer(collector)),
+                        ),
                       );
                       break;
-                    case 'SelectionVersionedAggregateChain':
+                    case 'AggregateActorVersionChain':
                       data = await Effect.runPromise(
-                        systemApi.getSelectionVersionedAggregateChains().pipe(
+                        systemApi.getAggregateActorVersionChains().pipe(
                           Effect.withSpan(
-                            'Studio.getSelectionVersionedAggregateChains',
+                            'Studio.getAggregateActorVersionChains',
                             {
                               root: true,
                             },
@@ -183,20 +171,23 @@ export const startStudio = Effect.fn('startStudio')(function* (props: {
                         ),
                       );
                       break;
-                    case 'FrontendServiceChain':
+                    case 'ServiceActorVersionChain':
                       data = await Effect.runPromise(
-                        systemApi.getFrontendServiceChains().pipe(
-                          Effect.withSpan('Studio.getFrontendServiceChains', {
-                            root: true,
-                          }),
+                        systemApi.getServiceActorVersionChains().pipe(
+                          Effect.withSpan(
+                            'Studio.getServiceActorVersionChains',
+                            {
+                              root: true,
+                            },
+                          ),
                           Effect.provide(makeTelemetryLayer(collector)),
                         ),
                       );
                       break;
-                    case 'ServiceAdmittedChain':
+                    case 'ServiceChain':
                       data = await Effect.runPromise(
-                        systemApi.getServiceAdmittedChains().pipe(
-                          Effect.withSpan('Studio.getServiceAdmittedChains', {
+                        systemApi.getServiceChains().pipe(
+                          Effect.withSpan('Studio.getServiceChains', {
                             root: true,
                           }),
                           Effect.provide(makeTelemetryLayer(collector)),
@@ -241,32 +232,32 @@ export const startStudio = Effect.fn('startStudio')(function* (props: {
                           ),
                       );
                       break;
-                    case 'VersionedAggregateRepo':
+                    case 'AggregateVersionRepo':
                       data = await Effect.runPromise(
                         systemApi
-                          .getVersionedAggregateRepoTableRows({
+                          .getAggregateVersionRepoTableRows({
                             repoName,
                             tableName,
                           })
                           .pipe(
                             Effect.withSpan(
-                              'Studio.getVersionedAggregateRepoTableRows',
+                              'Studio.getAggregateVersionRepoTableRows',
                               { root: true },
                             ),
                             Effect.provide(makeTelemetryLayer(collector)),
                           ),
                       );
                       break;
-                    case 'SelectionVersionedAggregateRepo':
+                    case 'AggregateActorVersionRepo':
                       data = await Effect.runPromise(
                         systemApi
-                          .getSelectionVersionedAggregateRepoTableRows({
+                          .getAggregateActorVersionRepoTableRows({
                             repoName,
                             tableName,
                           })
                           .pipe(
                             Effect.withSpan(
-                              'Studio.getSelectionVersionedAggregateRepoTableRows',
+                              'Studio.getAggregateActorVersionRepoTableRows',
                               {
                                 root: true,
                               },
@@ -275,32 +266,32 @@ export const startStudio = Effect.fn('startStudio')(function* (props: {
                           ),
                       );
                       break;
-                    case 'FrontendVersionedServiceRepo':
+                    case 'ServiceActorVersionRepo':
                       data = await Effect.runPromise(
                         systemApi
-                          .getFrontendVersionedServiceRepoTableRows({
+                          .getServiceActorVersionRepoTableRows({
                             repoName,
                             tableName,
                           })
                           .pipe(
                             Effect.withSpan(
-                              'Studio.getFrontendVersionedServiceRepoTableRows',
+                              'Studio.getServiceActorVersionRepoTableRows',
                               { root: true },
                             ),
                             Effect.provide(makeTelemetryLayer(collector)),
                           ),
                       );
                       break;
-                    case 'VersionedServiceRepo':
+                    case 'ServiceVersionRepo':
                       data = await Effect.runPromise(
                         systemApi
-                          .getVersionedServiceRepoTableRows({
+                          .getServiceVersionRepoTableRows({
                             repoName,
                             tableName,
                           })
                           .pipe(
                             Effect.withSpan(
-                              'Studio.getVersionedServiceRepoTableRows',
+                              'Studio.getServiceVersionRepoTableRows',
                               { root: true },
                             ),
                             Effect.provide(makeTelemetryLayer(collector)),
@@ -323,82 +314,81 @@ export const startStudio = Effect.fn('startStudio')(function* (props: {
                           ),
                       );
                       break;
-                    case 'VersionedAggregateChain':
+                    case 'AggregateVersionChain':
                       data = await Effect.runPromise(
                         systemApi
-                          .getVersionedAggregateChainTableRows({
+                          .getAggregateVersionChainTableRows({
                             repoName,
                             tableName,
                           })
                           .pipe(
                             Effect.withSpan(
-                              'Studio.getVersionedAggregateChainTableRows',
+                              'Studio.getAggregateVersionChainTableRows',
                               { root: true },
                             ),
                             Effect.provide(makeTelemetryLayer(collector)),
                           ),
                       );
                       break;
-                    case 'VersionedServiceChain':
+                    case 'ServiceVersionChain':
                       data = await Effect.runPromise(
                         systemApi
-                          .getVersionedServiceChainTableRows({
+                          .getServiceVersionChainTableRows({
                             repoName,
                             tableName,
                           })
                           .pipe(
                             Effect.withSpan(
-                              'Studio.getVersionedServiceChainTableRows',
+                              'Studio.getServiceVersionChainTableRows',
                               { root: true },
                             ),
                             Effect.provide(makeTelemetryLayer(collector)),
                           ),
                       );
                       break;
-                    case 'SelectionVersionedAggregateChain':
+                    case 'AggregateActorVersionChain':
                       data = await Effect.runPromise(
                         systemApi
-                          .getSelectionVersionedAggregateChainTableRows({
+                          .getAggregateActorVersionChainTableRows({
                             repoName,
                             tableName,
                           })
                           .pipe(
                             Effect.withSpan(
-                              'Studio.getSelectionVersionedAggregateChainTableRows',
+                              'Studio.getAggregateActorVersionChainTableRows',
                               { root: true },
                             ),
                             Effect.provide(makeTelemetryLayer(collector)),
                           ),
                       );
                       break;
-                    case 'FrontendServiceChain':
+                    case 'ServiceActorVersionChain':
                       data = await Effect.runPromise(
                         systemApi
-                          .getFrontendServiceChainTableRows({
+                          .getServiceActorVersionChainTableRows({
                             repoName,
                             tableName,
                           })
                           .pipe(
                             Effect.withSpan(
-                              'Studio.getFrontendServiceChainTableRows',
+                              'Studio.getServiceActorVersionChainTableRows',
                               { root: true },
                             ),
                             Effect.provide(makeTelemetryLayer(collector)),
                           ),
                       );
                       break;
-                    case 'ServiceAdmittedChain':
+                    case 'ServiceChain':
                       data = await Effect.runPromise(
                         systemApi
-                          .getServiceAdmittedChainTableRows({
+                          .getServiceChainTableRows({
                             repoName,
                             tableName,
                           })
                           .pipe(
-                            Effect.withSpan(
-                              'Studio.getServiceAdmittedChainTableRows',
-                              { root: true },
-                            ),
+                            Effect.withSpan('Studio.getServiceChainTableRows', {
+                              root: true,
+                            }),
                             Effect.provide(makeTelemetryLayer(collector)),
                           ),
                       );

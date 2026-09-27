@@ -1,38 +1,44 @@
-import { ServiceFrontendLockSchema } from '@zerospin/core/frontendController/makeServiceFrontendLock';
-import { mapParseError } from '@zerospin/error';
+import {
+  ServiceSessionLockSchema,
+  type IServiceSessionLock,
+} from '@zerospin/core/serviceSession/ServiceSessionLockSchema';
+import type { ISystem } from '@zerospin/core/system/types';
+import { makeZerospinError, mapParseError } from '@zerospin/error';
 import { env } from 'cloudflare:workers';
 import { Effect, Schema } from 'effect';
 
-import { authorizeServiceFrontend } from '../../authorizeServiceFrontend/authorizeServiceFrontend.js';
-import { checkServiceAuthorization } from '../../GatewayApi/checkServiceAuthorization/checkServiceAuthorization.js';
-import type { ISystemRuntime } from '../../makeSystemRuntime.js';
-import { ServiceFrontendApi } from '../../ServiceFrontendApi/ServiceFrontendApi.js';
-import { ServiceFrontendApiFailure } from '../../ServiceFrontendApi/ServiceFrontendApiFailure/ServiceFrontendApiFailure.js';
+import { ServiceSessionApi } from '../../ServiceSessionApi/ServiceSessionApi.js';
+import { ServiceSessionApiFailure } from '../../ServiceSessionApi/ServiceSessionApiFailure/ServiceSessionApiFailure.js';
+
+import { authorizeServiceSession } from './authorizeServiceSession/authorizeServiceSession.js';
+import { checkServiceAuthorization } from './checkServiceAuthorization/checkServiceAuthorization.js';
 
 export const authorize = Effect.fn('ServiceAccessApi.authorize')(
   function* (props: {
     request: {
-      frontendName: string;
-      serviceFrontendLock: Schema.Schema.Type<typeof ServiceFrontendLockSchema>;
+      sessionName: string;
+      serviceSessionLock: IServiceSessionLock;
     };
     access: {
       systemName: string;
       serviceName: string;
       serviceVersion: string;
-      authenticated: {
-        authentication: Readonly<Record<string, unknown>>;
-        selectionPath: string;
+      actorName: string;
+      actorVersion: string;
+      admitted: {
+        identity: Readonly<Record<string, unknown>>;
+        actorPath: string;
       };
     };
-    runtime: ISystemRuntime;
+    runtime: ISystem['runtime'];
   }) {
     const { request, access, runtime } = props;
-    const { authenticated } = access;
+    const { admitted } = access;
     return yield* Effect.gen(function* () {
       const validated = yield* Schema.decodeUnknownEffect(
         Schema.Struct({
-          frontendName: Schema.String,
-          serviceFrontendLock: Schema.Unknown,
+          sessionName: Schema.String,
+          serviceSessionLock: Schema.Unknown,
         }),
       )(request, { onExcessProperty: 'error' }).pipe(
         mapParseError({
@@ -40,48 +46,55 @@ export const authorize = Effect.fn('ServiceAccessApi.authorize')(
           prefix: 'Invalid service authorization arguments',
         }),
       );
-      const serviceFrontendLock = yield* Schema.decodeUnknownEffect(
-        ServiceFrontendLockSchema,
-      )(validated.serviceFrontendLock, { onExcessProperty: 'error' }).pipe(
+      const serviceSessionLock = yield* Schema.decodeUnknownEffect(
+        ServiceSessionLockSchema,
+      )(validated.serviceSessionLock, { onExcessProperty: 'error' }).pipe(
         mapParseError({
-          code: 'service-frontend-lock-invalid',
-          prefix: 'Invalid service frontend lock',
+          code: 'service-session-lock-invalid',
+          prefix: 'Invalid service definition lock',
         }),
       );
-      const authentication = authenticated.authentication;
+      if (
+        serviceSessionLock.actorName !== access.actorName ||
+        serviceSessionLock.actorVersion !== access.actorVersion
+      ) {
+        return yield* Effect.fail(
+          makeZerospinError({ code: 'service-actor-target-mismatch' }),
+        );
+      }
+      const identity = admitted.identity;
 
-      const authorization = yield* authorizeServiceFrontend({
+      const authorization = yield* authorizeServiceSession({
         serviceVersion: access.serviceVersion,
         serviceName: access.serviceName,
-        frontendName: validated.frontendName,
-        serviceFrontendLock,
-        authentication,
+        sessionName: validated.sessionName,
+        serviceSessionLock,
+        identity,
       });
       yield* checkServiceAuthorization({
         serviceVersion: access.serviceVersion,
         authorization,
-        authentication,
-        systemName: access.systemName,
+        identity,
         serviceName: access.serviceName,
-        frontendName: validated.frontendName,
-        serviceFrontendLock,
+        sessionName: validated.sessionName,
+        serviceSessionLock,
       });
 
-      return new ServiceFrontendApi({
+      return new ServiceSessionApi({
         authResults: {
           serviceVersion: access.serviceVersion,
-          frontendName: validated.frontendName,
-          serviceFrontendLock: authorization.serviceFrontendLock,
+          sessionName: validated.sessionName,
+          serviceSessionLock: authorization.serviceSessionLock,
           serviceName: access.serviceName,
           systemId: env.ZEROSPIN_SYSTEM_ID,
-          authentication,
-          selectionPath: authenticated.selectionPath,
+          identity,
+          actorPath: admitted.actorPath,
         },
         runtime,
       });
     }).pipe(
       Effect.catch(error =>
-        Effect.succeed(new ServiceFrontendApiFailure(error)),
+        Effect.succeed(new ServiceSessionApiFailure(error)),
       ),
     );
   },

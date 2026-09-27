@@ -1,290 +1,196 @@
-import { encodeFailure } from '@zerospin/core/utils/encodeFailure';
-import { encodeSuccess } from '@zerospin/core/utils/encodeSuccess';
-import {
-  ZerospinError,
-  type IAnyError,
-  type IAnyErrorJson,
-  type IEncodedResult,
-} from '@zerospin/error';
+import { it } from '@effect/vitest';
+import { RoutePattern } from '@remix-run/route-pattern';
+import { AsyncLive } from '@zerospin/core/async/AsyncLive';
+import { makeDbConfig } from '@zerospin/core/drizzle/make/makeDbConfig/makeDbConfig';
+import { readRpcEnvelope } from '@zerospin/core/utils/readRpcEnvelope';
+import { PublicFailureSchema } from '@zerospin/error';
+import { makeRpcEnvelope } from '@zerospin/logger';
+import { makeTable, primitives } from '@zerospin/schema';
+import { asc, desc } from 'drizzle-orm';
 import { Effect } from 'effect';
-import { describe, expect, it, vi } from 'vitest';
+import { expect, vi } from 'vitest';
 
-import type { IFanoutDelivery } from '../makeFanoutQueue/makeFanoutQueue.js';
+import { makeActorSnapshotDb } from '../AggregateActorVersionRepo/validateCommands/makeActorSnapshotDb.js';
+import { makeAlarmRegistry } from '../makeAlarmRegistry/makeAlarmRegistry.js';
+import { makeRepoNameUtils } from '../makeDORepo/makeRepoNameUtils.js';
+import {
+  makeFanoutQueue,
+  type IFanoutDelivery,
+} from '../makeFanoutQueue/makeFanoutQueue.js';
 
 import { makeFanoutSubscriber } from './makeFanoutSubscriber.js';
 
-const makeFixture = (sourceId = 'source-a') => {
-  const applied: Array<{ index: number; payload: string }> = [];
-  const state = {
-    cursor: 0,
-    rows: Array.from({ length: 5 }, (_, offset) => ({
-      index: offset + 1,
-      payload: `row-${offset + 1}`,
-    })),
-    applied,
-  };
-  const queue = {
-    getPage: vi.fn(
-      async (request: {
-        afterIndex: number;
-        maxIndex?: number;
-      }): Promise<
-        IEncodedResult<
-          IFanoutDelivery<{ index: number; payload: string }>,
-          IAnyErrorJson
-        >
-      > =>
-        encodeSuccess({
-          rows: state.rows
-            .filter(
-              row =>
-                row.index > request.afterIndex &&
-                row.index <= (request.maxIndex ?? Infinity),
-            )
-            .slice(0, 2),
-          lastIndex: state.rows.at(-1)?.index ?? 0,
+const dbConfig = makeDbConfig({
+  tables: {
+    entries: makeTable({
+      name: 'fanoutArchiveEntries',
+      shape: {
+        position: primitives.integer({ primaryKey: true }),
+        value: primitives.integer(),
+      },
+    }),
+    subscribers: makeTable({
+      name: 'fanoutArchiveSubscribers',
+      shape: {
+        id: primitives.primaryKey({ abbreviation: 'sub' }),
+        currentIndex: primitives.integer({ nullable: true }),
+        failure: primitives.json({
+          schema: PublicFailureSchema,
+          nullable: true,
         }),
-    ),
-    subscribe: vi.fn(
-      async (_request: {
-        subscriberId: string;
-        currentIndex: number | null;
-      }): Promise<IEncodedResult<void, IAnyErrorJson>> =>
-        encodeSuccess(undefined),
-    ),
-  };
-  const getRepo = vi.fn((_props: { key: { sourceId: string } }) =>
-    Effect.succeed({ updates: Promise.resolve(queue) }),
-  );
-  const receive = vi.fn(
-    (
-      delivery: IFanoutDelivery<{ index: number; payload: string }>,
-    ): Effect.Effect<void, IAnyError> =>
-      Effect.sync(() => {
-        for (const row of delivery.rows) {
-          if (row.index <= state.cursor) continue;
-          state.applied.push(row);
-          state.cursor = row.index;
-        }
-      }),
-  );
-  const props = {
-    name: 'updates',
-    sourceKey: { sourceId },
-    key: { subscriberId: 'subscriber-a' },
-    getRepo,
-    getCurrentIndex: () => state.cursor,
-    receive,
-  };
-  const subscriber = makeFanoutSubscriber(props);
-  return { state, queue, getRepo, receive, props, subscriber };
-};
-
-describe('makeFanoutSubscriber', () => {
-  it('exposes source-bound RPC methods on the prototype', () => {
-    const { subscriber } = makeFixture();
-    expect(Object.hasOwn(subscriber, 'name')).toBe(true);
-    for (const name of ['receive', 'catchup', 'subscribe']) {
-      expect(Object.hasOwn(subscriber, name)).toBe(false);
-      expect(typeof Object.getPrototypeOf(subscriber)[name]).toBe('function');
-    }
-  });
-
-  it('captures the first tip and commits full pages without chasing later appends', async () => {
-    const { state, queue, receive, subscriber } = makeFixture();
-    const getPage = queue.getPage.getMockImplementation()!;
-    queue.getPage.mockImplementation(async request => {
-      const result = await getPage(request);
-      state.rows.push({ index: state.rows.length + 1, payload: 'new' });
-      return result;
-    });
-    expect(await subscriber.catchup()).toEqual(encodeSuccess(undefined));
-    expect(state.cursor).toBe(5);
-    expect(queue.getPage.mock.calls.map(([request]) => request)).toEqual([
-      { afterIndex: 0 },
-      { afterIndex: 2, maxIndex: 5 },
-      { afterIndex: 4, maxIndex: 5 },
-    ]);
-    expect(receive.mock.calls.map(([delivery]) => delivery.lastIndex)).toEqual([
-      5, 6, 7,
-    ]);
-    expect(state.applied).toEqual(state.rows.slice(0, 5));
-  });
-
-  it('uses an explicit destination and skips a destination already committed', async () => {
-    const { state, queue, subscriber } = makeFixture();
-    expect(await subscriber.catchup(3)).toEqual(encodeSuccess(undefined));
-    expect(state.cursor).toBe(3);
-    expect(
-      queue.getPage.mock.calls.map(([request]) => request.maxIndex),
-    ).toEqual([3, 3]);
-    queue.getPage.mockClear();
-    expect(await subscriber.catchup(3)).toEqual(encodeSuccess(undefined));
-    expect(queue.getPage).not.toHaveBeenCalled();
-  });
-
-  it('subscribes empty history at the genesis cursor', async () => {
-    const { state, queue, subscriber } = makeFixture();
-    state.rows = [];
-    expect(await subscriber.subscribe()).toEqual(encodeSuccess(undefined));
-    expect(queue.subscribe).toHaveBeenCalledWith({
-      subscriberId: 'subscriber-a',
-      currentIndex: null,
-    });
-  });
-
-  it('enrolls the committed page tail and accepts rows appended during handoff', async () => {
-    const { state, queue, subscriber } = makeFixture();
-    queue.subscribe.mockImplementation(async request => {
-      expect(request.currentIndex).toBe(5);
-      const next = { index: 6, payload: 'during-enrollment' };
-      state.rows.push(next);
-      expect(await subscriber.receive({ rows: [next], lastIndex: 6 })).toEqual(
-        encodeSuccess(undefined),
-      );
-      return encodeSuccess(undefined);
-    });
-    expect(await subscriber.subscribe()).toEqual(encodeSuccess(undefined));
-    expect(state.cursor).toBe(6);
-    expect(state.applied).toEqual(state.rows);
-  });
-
-  it('allows overlapping push to advance past an in-flight pulled page', async () => {
-    const { state, queue, subscriber } = makeFixture();
-    const entered = Promise.withResolvers<void>();
-    const resume = Promise.withResolvers<void>();
-    const getPage = queue.getPage.getMockImplementation()!;
-    queue.getPage.mockImplementationOnce(async request => {
-      const result = await getPage(request);
-      entered.resolve();
-      await resume.promise;
-      return result;
-    });
-    const caughtUp = subscriber.catchup();
-    await entered.promise;
-    expect(
-      await subscriber.receive({ rows: state.rows.slice(0, 3), lastIndex: 5 }),
-    ).toEqual(encodeSuccess(undefined));
-    resume.resolve();
-    expect(await caughtUp).toEqual(encodeSuccess(undefined));
-    expect(state.cursor).toBe(5);
-    expect(state.applied).toEqual(state.rows);
-  });
-
-  it('resumes committed progress after interruption and does not enroll failed catch-up', async () => {
-    const { state, queue, receive, props, subscriber } = makeFixture();
-    const apply = receive.getMockImplementation()!;
-    receive.mockImplementationOnce(delivery => apply(delivery));
-    receive.mockImplementationOnce(() =>
-      Effect.fail(
-        new ZerospinError({
-          code: 'interrupted',
-          message: 'Interrupted after first page',
-        }),
-      ),
-    );
-    expect(await subscriber.subscribe()).toMatchObject({
-      _tag: 'Failure',
-      failure: { code: 'interrupted' },
-    });
-    expect(state.cursor).toBe(2);
-    expect(queue.subscribe).not.toHaveBeenCalled();
-    const reopened = makeFanoutSubscriber(props);
-    expect(await reopened.subscribe()).toEqual(encodeSuccess(undefined));
-    expect(state.applied).toEqual(state.rows);
-    expect(queue.subscribe).toHaveBeenLastCalledWith({
-      subscriberId: 'subscriber-a',
-      currentIndex: 5,
-    });
-  });
-
-  it('propagates source and terminal enrollment failures without clearing them', async () => {
-    const { queue, subscriber } = makeFixture();
-    const failure = encodeFailure(
-      new ZerospinError({ code: 'source-failed', message: 'Unavailable' }),
-    );
-    queue.getPage.mockResolvedValueOnce(failure);
-    expect(await subscriber.subscribe()).toEqual(failure);
-    expect(queue.subscribe).not.toHaveBeenCalled();
-    const terminal = encodeFailure(
-      new ZerospinError({
-        code: 'fanout-subscriber-failed',
-        message: 'Retained failure',
-      }),
-    );
-    queue.subscribe.mockResolvedValue(terminal);
-    expect(await subscriber.subscribe()).toEqual(terminal);
-    expect(await subscriber.subscribe()).toEqual(terminal);
-  });
-
-  it('reports unavailable history below the requested destination', async () => {
-    const { queue, subscriber } = makeFixture();
-    queue.getPage.mockResolvedValue(encodeSuccess({ rows: [], lastIndex: 5 }));
-    expect(await subscriber.subscribe()).toMatchObject({
-      _tag: 'Failure',
-      failure: { code: 'fanout-catchup-history-missing' },
-    });
-    expect(queue.getPage).toHaveBeenCalledTimes(1);
-    expect(queue.subscribe).not.toHaveBeenCalled();
-  });
-
-  it('fails when receive acknowledges without making durable progress', async () => {
-    const { receive, queue, subscriber } = makeFixture();
-    receive.mockReturnValue(Effect.void);
-    expect(await subscriber.subscribe()).toMatchObject({
-      _tag: 'Failure',
-      failure: { code: 'fanout-catchup-no-progress' },
-    });
-    expect(queue.getPage).toHaveBeenCalledTimes(1);
-    expect(queue.subscribe).not.toHaveBeenCalled();
-  });
-
-  it.each([-1, 0.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1])(
-    'rejects invalid destination %s',
-    async index => {
-      const { queue, subscriber } = makeFixture();
-      expect(await subscriber.catchup(index)).toMatchObject({
-        _tag: 'Failure',
-        failure: { code: 'fanout-catchup-index-invalid' },
-      });
-      expect(queue.getPage).not.toHaveBeenCalled();
-    },
-  );
-
-  it('keeps two bound sources and their cursors independent', async () => {
-    const a = makeFixture('a');
-    const b = makeFixture('b');
-    await a.subscriber.catchup(4);
-    await b.subscriber.catchup(2);
-    expect(a.state.cursor).toBe(4);
-    expect(b.state.cursor).toBe(2);
-    expect(a.getRepo).toHaveBeenCalledWith({ key: { sourceId: 'a' } });
-    expect(b.getRepo).toHaveBeenCalledWith({ key: { sourceId: 'b' } });
-  });
-
-  it('waits for durable receive before acknowledging', async () => {
-    const { state, props, receive } = makeFixture();
-    const committed = Promise.withResolvers<void>();
-    const entered = Promise.withResolvers<void>();
-    receive.mockImplementation(delivery =>
-      Effect.gen(function* () {
-        entered.resolve();
-        yield* Effect.promise(() => committed.promise);
-        state.cursor = delivery.rows.at(-1)?.index ?? state.cursor;
-      }),
-    );
-    const subscriber = makeFanoutSubscriber(props);
-    let acknowledged = false;
-    const result = subscriber
-      .receive({ rows: state.rows.slice(0, 2), lastIndex: 5 })
-      .then(value => {
-        acknowledged = true;
-        return value;
-      });
-    await entered.promise;
-    expect(acknowledged).toBe(false);
-    committed.resolve();
-    expect(await result).toEqual(encodeSuccess(undefined));
-    expect(state.cursor).toBe(2);
-  });
+      },
+    }),
+    received: makeTable({
+      name: 'fanoutReceivedEntries',
+      shape: {
+        position: primitives.integer({ primaryKey: true }),
+        value: primitives.integer(),
+      },
+    }),
+  },
 });
+const { entries, subscribers, received } = dbConfig.schema;
+
+const fixture = Effect.gen(function* () {
+  const { db } = yield* makeActorSnapshotDb(dbConfig);
+  const rows = Array.from({ length: 65 }, (_, index) => ({
+    position: index + 1,
+    value: index + 100,
+  }));
+  db.insert(entries).values(rows).run();
+  const getCurrentIndex = () =>
+    db.select().from(received).orderBy(desc(received.position)).get()
+      ?.position ?? 0;
+  const receive = vi.fn((delivery: IFanoutDelivery<(typeof rows)[number]>) =>
+    Effect.sync(() => {
+      db.insert(received)
+        .values([...delivery.rows])
+        .onConflictDoNothing()
+        .run();
+    }),
+  );
+  const queue = makeFanoutQueue({
+    name: 'archive',
+    db,
+    schema: dbConfig.schema,
+    entriesTableName: 'entries',
+    subscribersTableName: 'subscribers',
+    indexColumnName: 'position',
+    concurrency: 1,
+    alarmRegistry: makeAlarmRegistry({
+      storage: {
+        setAlarm: async () => {},
+        deleteAlarm: async () => {},
+      },
+    }),
+    subscriberNameUtils: makeRepoNameUtils({
+      abbreviation: undefined,
+      namePattern: RoutePattern.parse('/:id'),
+    }),
+    key: { source: 'test' },
+    getRepo: () =>
+      Effect.succeed({
+        archiveSubscriber: async () => ({
+          receive: (delivery: IFanoutDelivery<(typeof rows)[number]>) =>
+            Effect.runPromise(receive(delivery).pipe(makeRpcEnvelope)),
+        }),
+      }),
+  });
+  const subscriber = makeFanoutSubscriber<
+    'archive',
+    { source: string },
+    { id: string },
+    typeof entries.$inferSelect
+  >({
+    name: 'archive',
+    sourceKey: { source: 'test' },
+    key: { id: 'sub_sink' },
+    getRepo: () => Effect.succeed({ archive: Promise.resolve(queue) }),
+    getCurrentIndex,
+    receive,
+  });
+  return { db, rows, queue, subscriber, getCurrentIndex, receive };
+});
+
+it.effect(
+  'pulls and commits a fixed archive destination across pages without enrolling',
+  () =>
+    Effect.gen(function* () {
+      const f = yield* fixture;
+      const readPage = f.queue.getPage.bind(f.queue);
+      const getPage = vi.spyOn(f.queue, 'getPage');
+      const subscribe = vi.spyOn(f.queue, 'subscribe');
+      getPage.mockImplementationOnce(async page => {
+        const result = await readPage(page);
+        // The source advances after the first page captured its destination.
+        f.db.insert(entries).values({ position: 66, value: 165 }).run();
+        return result;
+      });
+
+      expect(f.getCurrentIndex()).toBe(0);
+      const result = yield* Effect.promise(() => f.subscriber.catchup()).pipe(
+        Effect.flatMap(readRpcEnvelope),
+      );
+      expect(result).toBeUndefined();
+      expect(getPage.mock.calls).toEqual([
+        [{ afterIndex: 0 }],
+        [{ afterIndex: 64, maxIndex: 65 }],
+      ]);
+      expect(
+        f.receive.mock.calls.map(([page]) => ({
+          count: page.rows.length,
+          lastIndex: page.lastIndex,
+        })),
+      ).toEqual([
+        { count: 64, lastIndex: 65 },
+        { count: 1, lastIndex: 66 },
+      ]);
+      expect(
+        f.db.select().from(received).orderBy(asc(received.position)).all(),
+      ).toEqual(f.rows);
+      expect(f.getCurrentIndex()).toBe(65);
+      expect(subscribe).not.toHaveBeenCalled();
+      expect(f.db.select().from(subscribers).all()).toEqual([]);
+    }).pipe(Effect.provide(AsyncLive)),
+);
+
+it.effect(
+  'commits initial archive catch-up before enrollment, then receives live delivery',
+  () =>
+    Effect.gen(function* () {
+      const f = yield* fixture;
+      const enroll = f.queue.subscribe.bind(f.queue);
+      const subscribe = vi
+        .spyOn(f.queue, 'subscribe')
+        .mockImplementation(props => {
+          expect(
+            f.db.select().from(received).orderBy(asc(received.position)).all(),
+          ).toEqual(f.rows);
+          expect(props).toEqual({ id: 'sub_sink', currentIndex: 65 });
+          return enroll(props);
+        });
+
+      const result = yield* Effect.promise(() => f.subscriber.subscribe()).pipe(
+        Effect.flatMap(readRpcEnvelope),
+      );
+      expect(result).toBeUndefined();
+      expect(subscribe).toHaveBeenCalledTimes(1);
+      expect(f.db.select().from(subscribers).get()).toEqual({
+        id: 'sub_sink',
+        currentIndex: 65,
+        failure: null,
+      });
+
+      const next = { position: 66, value: 165 };
+      f.db.insert(entries).values(next).run();
+      yield* Effect.promise(() => f.queue.drain());
+      expect(f.receive).toHaveBeenLastCalledWith({
+        rows: [next],
+        lastIndex: 66,
+      });
+      expect(
+        f.db.select().from(received).orderBy(asc(received.position)).all(),
+      ).toEqual([...f.rows, next]);
+      expect(f.db.select().from(subscribers).get()?.currentIndex).toBe(66);
+    }).pipe(Effect.provide(AsyncLive)),
+);

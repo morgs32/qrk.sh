@@ -1,249 +1,73 @@
-import type { IAnyError } from '@zerospin/error';
-import { type Effect, type Layer, type Schema, type Scope } from 'effect';
-
-import type { IAggregateAuthentication } from '../authentication/types.ts';
+import type { IAnyAggregateActorVersion } from '../aggregateActor/types.ts';
 import type {
-  IAnyContractBindings,
-  IContractBinding,
-} from '../contracts/types.ts';
-import type { IDb, IResourceDbConfig } from '../drizzle/types.ts';
-import type { initializeGuards } from '../guards/initializeGuards.ts';
-import type { ISelectionWhereProps } from '../models/makeSelection.ts';
-import type { IAggregateId, IAnyModels, IModel } from '../models/types.ts';
-
-export type IAggregateAuthorization<
-  MODELS extends IAnyModels,
-  AUTHORIZATION_CONTEXT = never,
-  AUTHENTICATION = Readonly<Record<string, unknown>>,
-> = (props: {
-  authentication: AUTHENTICATION;
-  aggregateId: IAggregateId;
-  db: Readonly<
-    Pick<IDb<IResourceDbConfig<MODELS, Record<never, never>>>, 'query'>
-  >;
-}) => Effect.Effect<void, IAnyError, AUTHORIZATION_CONTEXT>;
-
-type IAnySelection = {
-  readonly model: IModel;
-  readonly where: {
-    bivarianceHack(props: ISelectionWhereProps): Record<string, unknown>;
-  }['bivarianceHack'];
-};
+  IActorCommandGuards,
+  IAnyAutomation,
+} from '../automation/types.ts';
+import type { IAnyOwnerGuard } from '../contracts/ownerGuards.ts';
+import type { IAnyContracts } from '../contracts/types.ts';
+import type { IAnyModels } from '../models/types.ts';
 
 export type IAuthoredAggregate<
   NAME extends string = string,
   MODELS extends IAnyModels = IAnyModels,
-  CONTRACTS extends IAnyContractBindings = IAnyContractBindings,
-  SELECTIONS extends Record<string, IAnySelection> = Record<
+  ACTORS extends Record<string, IAnyAggregateActorVersion> = Record<
     string,
-    IAnySelection
+    IAnyAggregateActorVersion
   >,
-  AUTHORIZE extends IAggregateAuthorization<MODELS> =
-    IAggregateAuthorization<MODELS>,
   VERSION extends string = string,
-  LAYER_SERVICES = never,
-  LAYER_REQUIREMENTS = never,
-  AUTHENTICATION extends IAggregateAuthentication = IAggregateAuthentication,
-  GUARD_SERVICES = never,
   GUARD_REQUIREMENTS = never,
+  CONTRACTS extends IAnyContracts = IAnyContracts,
+  AUTOMATIONS extends Readonly<Record<string, IAnyAutomation>> = Readonly<
+    Record<string, IAnyAutomation>
+  >,
 > = {
-  /** Type-only owner requirements retained when a system registry erases concrete guards and layers. */
-  readonly __initializeRequirements?: Exclude<
-    Effect.Services<
-      ReturnType<
-        typeof initializeGuards<
-          LAYER_SERVICES,
-          LAYER_REQUIREMENTS,
-          | Effect.Services<
-              ReturnType<
-                NonNullable<CONTRACTS[keyof CONTRACTS]['contract']['guard']>
-              >
-            >
-          | {
-              [K in keyof CONTRACTS]: CONTRACTS[K] extends {
-                readonly guard: (
-                  ...args: never[]
-                ) => Effect.Effect<void, IAnyError, infer R>;
-              }
-                ? R
-                : never;
-            }[keyof CONTRACTS],
-          GUARD_SERVICES,
-          GUARD_REQUIREMENTS
-        >
-      >
-    >,
-    GUARD_SERVICES
-  >;
-  readonly layer: Layer.Layer<LAYER_SERVICES, IAnyError, LAYER_REQUIREMENTS>;
-  readonly authentication: AUTHENTICATION;
-  readonly guardLayer?: {
-    bivarianceHack(props: {
-      db: Readonly<
-        Pick<IDb<IResourceDbConfig<MODELS, Record<never, never>>>, 'query'>
-      >;
-      authentication: Schema.Schema.Type<
-        AUTHENTICATION['authenticationSchema']
-      > | null;
-    }): Layer.Layer<GUARD_SERVICES, IAnyError, GUARD_REQUIREMENTS>;
-  }['bivarianceHack'];
+  readonly __guardRequirements?: GUARD_REQUIREMENTS;
   readonly name: NAME;
   readonly version: VERSION;
   readonly services: Readonly<Record<string, string>>;
   readonly models: Readonly<MODELS>;
-  readonly contracts: {
-    readonly [COMMAND_NAME in keyof CONTRACTS]: IContractBinding<
-      CONTRACTS[COMMAND_NAME]['contract'],
-      CONTRACTS[COMMAND_NAME] extends {
-        readonly guard: infer GUARD extends NonNullable<
-          IContractBinding['guard']
-        >;
-      }
-        ? GUARD
-        : never
+  readonly contracts: Readonly<CONTRACTS>;
+  readonly automations: Readonly<AUTOMATIONS>;
+  readonly actors: Readonly<ACTORS>;
+  readonly guards: {
+    readonly [K in keyof ACTORS]?: IActorCommandGuards<
+      ACTORS[K]['contracts'],
+      ACTORS[K]['automations'],
+      MODELS,
+      ACTORS[K]['identity']['identitySchema']['Type'],
+      ACTORS[K]['identity']['actorSchema']['Type'],
+      'aggregate',
+      GUARD_REQUIREMENTS
     >;
   };
-  readonly selections: {
-    readonly [SELECTION_NAME in keyof SELECTIONS]: Readonly<
-      SELECTIONS[SELECTION_NAME]
-    >;
-  };
-
-  readonly authorize?: AUTHORIZE;
 };
 
-export type IAnyAuthoredAggregate<
-  GUARD_REQUIREMENTS = unknown,
-  LAYER_SERVICES = never,
-  LAYER_REQUIREMENTS = unknown,
-  INITIALIZE_REQUIREMENTS = unknown,
-> = {
-  /** Type-only owner requirements retained when a system registry erases concrete guards and layers. */
-  readonly __initializeRequirements?: INITIALIZE_REQUIREMENTS | Scope.Scope;
-  readonly layer: Layer.Layer<LAYER_SERVICES, IAnyError, LAYER_REQUIREMENTS>;
-  readonly authentication: IAggregateAuthentication;
-  readonly guardLayer?: {
-    bivarianceHack(
-      props: unknown,
-    ): Layer.Layer<LAYER_SERVICES, IAnyError, LAYER_REQUIREMENTS>;
-  }['bivarianceHack'];
+export type IAnyAuthoredAggregate = {
+  readonly __guardRequirements?: unknown;
   readonly name: string;
   readonly version: string;
   readonly services: Readonly<Record<string, string>>;
   readonly models: IAnyModels;
-  readonly contracts: IAnyContractBindings<GUARD_REQUIREMENTS>;
-  readonly selections: Readonly<Record<string, IAnySelection>>;
-  readonly authorize?: {
-    bivarianceHack(props: unknown): Effect.Effect<void, IAnyError>;
-  }['bivarianceHack'];
+  readonly contracts: IAnyContracts;
+  readonly automations: Readonly<Record<string, IAnyAutomation>>;
+  readonly actors: Readonly<Record<string, IAnyAggregateActorVersion>>;
+  readonly guards: Readonly<
+    Record<
+      string,
+      Readonly<Record<string, IAnyOwnerGuard | undefined>> | undefined
+    >
+  >;
 };
 
 export type IAggregate<
   NAME extends string = string,
   MODELS extends IAnyModels = IAnyModels,
-  CONTRACTS extends IAnyContractBindings = IAnyContractBindings,
-  SELECTIONS extends Record<string, IAnySelection> = Record<
+  ACTORS extends Record<string, IAnyAggregateActorVersion> = Record<
     string,
-    IAnySelection
+    IAnyAggregateActorVersion
   >,
-  AUTHORIZE extends IAggregateAuthorization<MODELS> =
-    IAggregateAuthorization<MODELS>,
   VERSION extends string = string,
-  LAYER_SERVICES = never,
-  LAYER_REQUIREMENTS = never,
-  AUTHENTICATION extends IAggregateAuthentication = IAggregateAuthentication,
-  GUARD_SERVICES = never,
   GUARD_REQUIREMENTS = never,
-> = {
-  /** Type-only owner requirements retained when a system registry erases concrete guards and layers. */
-  readonly __initializeRequirements?: Exclude<
-    Effect.Services<
-      ReturnType<
-        typeof initializeGuards<
-          LAYER_SERVICES,
-          LAYER_REQUIREMENTS,
-          | Effect.Services<
-              ReturnType<
-                NonNullable<CONTRACTS[keyof CONTRACTS]['contract']['guard']>
-              >
-            >
-          | {
-              [K in keyof CONTRACTS]: CONTRACTS[K] extends {
-                readonly guard: (
-                  ...args: never[]
-                ) => Effect.Effect<void, IAnyError, infer R>;
-              }
-                ? R
-                : never;
-            }[keyof CONTRACTS],
-          GUARD_SERVICES,
-          GUARD_REQUIREMENTS
-        >
-      >
-    >,
-    GUARD_SERVICES
-  >;
-  readonly layer: Layer.Layer<LAYER_SERVICES, IAnyError, LAYER_REQUIREMENTS>;
-  readonly authentication: AUTHENTICATION;
-  readonly guardLayer?: {
-    bivarianceHack(props: {
-      db: Readonly<
-        Pick<IDb<IResourceDbConfig<MODELS, Record<never, never>>>, 'query'>
-      >;
-      authentication: Schema.Schema.Type<
-        AUTHENTICATION['authenticationSchema']
-      > | null;
-    }): Layer.Layer<GUARD_SERVICES, IAnyError, GUARD_REQUIREMENTS>;
-  }['bivarianceHack'];
-  readonly name: NAME;
-  readonly version: VERSION;
-  readonly services: Readonly<Record<string, string>>;
-  readonly models: Readonly<MODELS>;
-  readonly contracts: {
-    readonly [COMMAND_NAME in keyof CONTRACTS]: IContractBinding<
-      CONTRACTS[COMMAND_NAME]['contract'],
-      CONTRACTS[COMMAND_NAME] extends {
-        readonly guard: infer GUARD extends NonNullable<
-          IContractBinding['guard']
-        >;
-      }
-        ? GUARD
-        : never
-    >;
-  };
-  readonly selections: {
-    readonly [SELECTION_NAME in keyof SELECTIONS]: Readonly<
-      SELECTIONS[SELECTION_NAME]
-    >;
-  };
-
-  readonly authorize?: AUTHORIZE;
-};
-
-export type IAnyAggregate<
-  GUARD_REQUIREMENTS = unknown,
-  LAYER_SERVICES = never,
-  LAYER_REQUIREMENTS = unknown,
-  INITIALIZE_REQUIREMENTS = unknown,
-> = {
-  /** Type-only owner requirements retained when a system registry erases concrete guards and layers. */
-  readonly __initializeRequirements?: INITIALIZE_REQUIREMENTS | Scope.Scope;
-  readonly layer: Layer.Layer<LAYER_SERVICES, IAnyError, LAYER_REQUIREMENTS>;
-  readonly authentication: IAggregateAuthentication;
-  readonly guardLayer?: {
-    bivarianceHack(
-      props: unknown,
-    ): Layer.Layer<LAYER_SERVICES, IAnyError, LAYER_REQUIREMENTS>;
-  }['bivarianceHack'];
-  readonly name: string;
-  readonly version: string;
-  readonly services: Readonly<Record<string, string>>;
-  readonly models: IAnyModels;
-  readonly contracts: IAnyContractBindings<GUARD_REQUIREMENTS>;
-  readonly selections: Readonly<Record<string, IAnySelection>>;
-  readonly authorize?: {
-    bivarianceHack(props: unknown): Effect.Effect<void, IAnyError>;
-  }['bivarianceHack'];
-};
-
+> = IAuthoredAggregate<NAME, MODELS, ACTORS, VERSION, GUARD_REQUIREMENTS>;
+export type IAnyAggregate = IAnyAuthoredAggregate;
 export type IAnyAggregates = Readonly<Record<string, IAnyAggregate>>;

@@ -1,10 +1,11 @@
 import { encodedShapeSchema } from '@zerospin/schema';
 import { Schema } from 'effect';
 
-const authenticationSchema = Schema.Struct({
-  signatureJsonSchema: Schema.Unknown,
-  authenticationJsonSchema: Schema.Unknown,
-  selectionJsonSchema: Schema.Unknown,
+import { SelectionQuerySchema } from '../models/SelectionQuerySchema.ts';
+
+const identitySchema = Schema.Struct({
+  identityJsonSchema: Schema.Unknown,
+  actorJsonSchema: Schema.Unknown,
   pattern: Schema.String,
 });
 
@@ -26,6 +27,8 @@ const contractSchema = Schema.Struct({
   commandName: Schema.String,
   version: Schema.String,
   payloadShape: encodedShapeSchema,
+  failureJsonSchema: Schema.Unknown,
+  failureSchemas: Schema.Record(Schema.String, Schema.Unknown),
   models: Schema.Record(
     Schema.String,
     Schema.Struct({
@@ -65,13 +68,45 @@ export const SystemSpecSchema = Schema.Struct({
       Schema.Struct({
         name: Schema.String,
         version: Schema.String,
-        authentication: authenticationSchema,
         services: Schema.Record(Schema.String, Schema.String),
         models: Schema.Record(Schema.String, modelSchema),
-        contracts: Schema.Record(Schema.String, contractSchema),
-        selections: Schema.Record(
+        actors: Schema.Record(
           Schema.String,
-          Schema.Struct({ modelName: Schema.String }),
+          Schema.Struct({
+            contracts: Schema.Record(Schema.String, contractSchema),
+            automations: Schema.Record(
+              Schema.String,
+              Schema.Struct({
+                name: Schema.String,
+                on: Schema.Struct({
+                  commandName: Schema.String,
+                  version: Schema.String,
+                }),
+                contracts: Schema.Record(Schema.String, contractSchema),
+              }),
+            ),
+            name: Schema.String,
+            version: Schema.String,
+            authentication: Schema.Union([
+              Schema.Literal('none'),
+              Schema.Struct({ credentialsJsonSchema: Schema.Unknown }),
+            ]),
+            identity: identitySchema,
+            models: Schema.Record(
+              Schema.String,
+              Schema.Struct({
+                modelName: Schema.String,
+                version: Schema.String,
+              }),
+            ),
+            selections: Schema.Record(
+              Schema.String,
+              Schema.Struct({
+                modelName: Schema.String,
+                query: SelectionQuerySchema,
+              }),
+            ),
+          }),
         ),
       }),
     ),
@@ -83,7 +118,32 @@ export const SystemSpecSchema = Schema.Struct({
       Schema.Struct({
         name: Schema.String,
         version: Schema.String,
-        authentication: authenticationSchema,
+        actors: Schema.Record(
+          Schema.String,
+          Schema.Struct({
+            name: Schema.String,
+            version: Schema.String,
+            authentication: Schema.Union([
+              Schema.Literal('none'),
+              Schema.Struct({ credentialsJsonSchema: Schema.Unknown }),
+            ]),
+            identity: identitySchema,
+            models: Schema.Record(
+              Schema.String,
+              Schema.Struct({
+                modelName: Schema.String,
+                version: Schema.String,
+              }),
+            ),
+            selections: Schema.Record(
+              Schema.String,
+              Schema.Struct({
+                modelName: Schema.String,
+                query: SelectionQuerySchema,
+              }),
+            ),
+          }),
+        ),
         models: Schema.Record(Schema.String, modelSchema),
         contracts: Schema.Record(Schema.String, contractSchema),
         queries: Schema.Record(Schema.String, querySchema),

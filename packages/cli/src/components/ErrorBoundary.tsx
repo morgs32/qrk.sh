@@ -3,20 +3,20 @@ import { Component, type ErrorInfo, type ReactNode } from 'react';
 
 import { Box, Text } from 'ink';
 
-type ErrorBoundaryProps = {
+type IErrorBoundaryProps = {
   children: ReactNode;
 };
 
-type ErrorBoundaryState = {
+type IErrorBoundaryState = {
   componentStack: null | string;
   error: Error | null;
 };
 
 export class ErrorBoundary extends Component<
-  ErrorBoundaryProps,
-  ErrorBoundaryState
+  IErrorBoundaryProps,
+  IErrorBoundaryState
 > {
-  override state: ErrorBoundaryState = {
+  override state: IErrorBoundaryState = {
     componentStack: null,
     error: null,
   };

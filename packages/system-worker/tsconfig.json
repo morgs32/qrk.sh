@@ -55,7 +55,7 @@
     "src/FixtureRepo/**",
     "src/fixtures/**",
     "src/makeFixedDORepo/test/**",
-    "src/makeVersionedDORepo/test/**",
+    "src/makeMigratableDORepo/test/**",
     "src/workerd-utils/**"
   ],
   "references": [

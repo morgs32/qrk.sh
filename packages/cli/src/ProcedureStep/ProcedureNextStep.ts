@@ -2,11 +2,11 @@ import type { ReactNode } from 'react';
 
 import { useProcedureStepContext } from './ProcedureStepContext.js';
 
-type NextProcedureStepProps = {
+type INextProcedureStepProps = {
   children: ReactNode;
 };
 
-export function ProcedureNextStep({ children }: NextProcedureStepProps) {
+export function ProcedureNextStep({ children }: INextProcedureStepProps) {
   const status = useProcedureStepContext();
 
   if (status !== 'success') {

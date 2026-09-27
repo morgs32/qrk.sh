@@ -1,11 +1,11 @@
-import { ZerospinError, type IAnyError } from '@zerospin/error';
+import { makeZerospinError, type IAnyError } from '@zerospin/error';
 import type { ITypeError } from '@zerospin/schema';
 import { Effect } from 'effect';
 
 import { Model } from '../models/defineModel.ts';
 import type { IAnyModels, IModel, IModelReplica } from '../models/types.ts';
 
-import type { MutationValues } from './makeContractVersion.ts';
+import type { MutationValues } from './make/makeContractVersion.ts';
 import type { IAnyContracts, IAnyMutation, IContract } from './types.ts';
 
 type InferContractMutations<CONTRACT extends IContract> = Effect.Success<
@@ -33,22 +33,26 @@ export const assertMutationsUseModels = Effect.fn('assertMutationsUseModels')(
           mutation.operationName,
         )
       ) {
-        return yield* new ZerospinError({
-          code: 'contract-program-mutation-invalid',
-          message: `Contract "${commandName}" must return mutations bound to their exact model version`,
-        });
+        return yield* Effect.fail(
+          makeZerospinError({
+            code: 'contract-program-mutation-invalid',
+            message: `Contract "${commandName}" must return mutations bound to their exact model version`,
+          }),
+        );
       }
       const modelName = mutation.model.modelName;
       const controllerModel = models[modelName];
       if (controllerModel !== mutation.model) {
-        return yield* new ZerospinError({
-          code: 'contract-mutation-model-out-of-scope',
-          message: `Contract "${commandName}" emitted a mutation for model "${modelName}" outside the passed controller models`,
-          extra: {
-            commandName,
-            modelName,
-          },
-        });
+        return yield* Effect.fail(
+          makeZerospinError({
+            code: 'contract-mutation-model-out-of-scope',
+            message: `Contract "${commandName}" emitted a mutation for model "${modelName}" outside the passed controller models`,
+            extra: {
+              commandName,
+              modelName,
+            },
+          }),
+        );
       }
 
       const isReplica = Model.isReplica(mutation.model);
@@ -56,11 +60,13 @@ export const assertMutationsUseModels = Effect.fn('assertMutationsUseModels')(
         continue;
       }
 
-      return yield* new ZerospinError({
-        code: 'contract-mutation-model-operation-mismatch',
-        message: `Contract "${commandName}" emitted ${mutation.operationName} for model "${modelName}" with an operation incompatible with that model`,
-        extra: { commandName, modelName },
-      });
+      return yield* Effect.fail(
+        makeZerospinError({
+          code: 'contract-mutation-model-operation-mismatch',
+          message: `Contract "${commandName}" emitted ${mutation.operationName} for model "${modelName}" with an operation incompatible with that model`,
+          extra: { commandName, modelName },
+        }),
+      );
     }
   },
 );

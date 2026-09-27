@@ -1,5 +1,6 @@
 import type { ISystemEnvironmentId } from '@zerospin/core/system/types';
-import type { IAnyErrorJson, IEncodedResult } from '@zerospin/error';
+import type { IZerospinErrorJson } from '@zerospin/error';
+import type { ILinkedRpcEnvelope, IRpcRequest } from '@zerospin/logger';
 import type { RpcTarget } from 'capnweb';
 
 /** Success payload decoded from `CliApi.deployWorkerBundle` RPC. */
@@ -11,12 +12,18 @@ export type IDeployWorkerResponse = {
 
 /** RPC client shape returned from `getCliApi` over the batch gateway. */
 export type ICliClientApi = RpcTarget & {
-  deployWorkerBundle(props: {
-    readonly workerModule: string;
-    readonly compatibilityDate: string;
-    readonly compatibilityFlags: readonly string[];
-    readonly environmentId: ISystemEnvironmentId;
-  }): Promise<IEncodedResult<IDeployWorkerResponse, IAnyErrorJson>>;
+  deployWorkerBundle(
+    request: IRpcRequest<
+      [
+        {
+          readonly workerModule: string;
+          readonly compatibilityDate: string;
+          readonly compatibilityFlags: readonly string[];
+          readonly environmentId: ISystemEnvironmentId;
+        },
+      ]
+    >,
+  ): Promise<ILinkedRpcEnvelope<IDeployWorkerResponse, IZerospinErrorJson>>;
 };
 
 export type ICliApis = RpcTarget & {

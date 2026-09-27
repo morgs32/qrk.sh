@@ -1,12 +1,14 @@
-import { makeAsync } from '@zerospin/core/async/makeAsync';
+import { makeAsync } from '@zerospin/core/async/make/makeAsync';
 import { EncodedServiceCommandSchema } from '@zerospin/core/contracts/CommandSchema';
-import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
+import { getVersion } from '@zerospin/core/contracts/getVersion';
 import { getByKeyOrThrow } from '@zerospin/core/utils/getByKeyOrThrow';
+import { readRpcEnvelope } from '@zerospin/core/utils/readRpcEnvelope';
+import { makeZerospinError } from '@zerospin/error';
 import config from 'config';
 import { Effect, Schema, type Context } from 'effect';
 
-import { ServiceAdmittedChain } from '../../ServiceAdmittedChain/ServiceAdmittedChain.js';
-import { VersionedServiceRepo } from '../../VersionedServiceRepo/VersionedServiceRepo.js';
+import { ServiceChain } from '../../ServiceChain/ServiceChain.js';
+import { ServiceVersionRepo } from '../../ServiceVersionRepo/ServiceVersionRepo.js';
 import {
   makeApiHandler,
   SystemApiAuthResults,
@@ -17,7 +19,7 @@ const { system } = config;
 
 /*
  * Secret-key callers submit a complete encoded service command through
- * SystemApi. This boundary routes to ServiceAdmittedChain and returns its
+ * SystemApi. This boundary routes to ServiceChain and returns its
  * admission receipt through the linked RPC handler.
  *
  * 1. Capture the granted capability.
@@ -57,20 +59,31 @@ export const executeServiceCommand = Effect.fn(
           key: serviceVersion,
           recordKind: 'service versions',
         });
-        const chain = yield* ServiceAdmittedChain.getRepo({
+        const chain = yield* ServiceChain.getRepo({
           key: {
             systemId: authResults.systemId,
             serviceName: command.serviceName,
           },
         });
 
-        // 5 — forward the full command to ServiceAdmittedChain.executeServiceCommand
-        const receipt = yield* makeAsync<
-          Awaited<ReturnType<ServiceAdmittedChain['admitServiceCommand']>>
-        >(() => chain.admitServiceCommand({ command })).pipe(
-          Effect.flatMap(decodeRpc),
+        const owner = system.services[command.serviceName]?.[serviceVersion];
+        const authored = Object.values(owner?.contracts ?? {}).find(
+          candidate => candidate.commandName === command.commandName,
         );
-        const repo = yield* VersionedServiceRepo.getRepo({
+        if (authored === undefined) {
+          return yield* Effect.fail(
+            makeZerospinError('contract-failure-binding-missing'),
+          );
+        }
+        yield* getVersion(authored, command.contractVersion);
+
+        // 5 — forward the full command to ServiceChain.executeServiceCommand
+        const receipt = yield* makeAsync<
+          Awaited<ReturnType<ServiceChain['admitServiceCommand']>>
+        >(() => chain.admitServiceCommand({ command })).pipe(
+          Effect.flatMap(envelope => readRpcEnvelope(envelope)),
+        );
+        const repo = yield* ServiceVersionRepo.getRepo({
           key: {
             systemId: authResults.systemId,
             serviceName: command.serviceName,
@@ -78,9 +91,9 @@ export const executeServiceCommand = Effect.fn(
           },
         });
         return yield* makeAsync<
-          Awaited<ReturnType<VersionedServiceRepo['execute']>>
+          Awaited<ReturnType<ServiceVersionRepo['execute']>>
         >(() => repo.execute({ serviceIndex: receipt.serviceIndex })).pipe(
-          Effect.flatMap(decodeRpc),
+          Effect.flatMap(envelope => readRpcEnvelope(envelope)),
         );
       }).pipe(
         Effect.withSpan('SystemApi.executeServiceCommand', { root: true }),

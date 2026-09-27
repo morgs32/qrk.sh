@@ -6,25 +6,20 @@
   "type": "module",
   "sideEffects": false,
   "exports": {
-    "./contracts/makeCommand": {
-      "types": "./dist/__private__/contracts/makeCommand.d.ts",
-      "import": "./dist/__private__/contracts/makeCommand.js",
-      "default": "./dist/__private__/contracts/makeCommand.js"
+    "./contracts/make/makeCommand": {
+      "types": "./dist/contracts/make/makeCommand.d.ts",
+      "import": "./dist/contracts/make/makeCommand.js",
+      "default": "./dist/contracts/make/makeCommand.js"
     },
-    "./contracts/makeSessionCommand": {
-      "types": "./dist/__private__/contracts/makeSessionCommand.d.ts",
-      "import": "./dist/__private__/contracts/makeSessionCommand.js",
-      "default": "./dist/__private__/contracts/makeSessionCommand.js"
+    "./aggregateSession/stageCommand/makeSessionCommand/makeSessionCommand": {
+      "types": "./dist/aggregateSession/stageCommand/makeSessionCommand/makeSessionCommand.d.ts",
+      "import": "./dist/aggregateSession/stageCommand/makeSessionCommand/makeSessionCommand.js",
+      "default": "./dist/aggregateSession/stageCommand/makeSessionCommand/makeSessionCommand.js"
     },
-    "./aggregate/makeAggregateCommand": {
-      "types": "./dist/aggregate/makeAggregateCommand.d.ts",
-      "import": "./dist/aggregate/makeAggregateCommand.js",
-      "default": "./dist/aggregate/makeAggregateCommand.js"
-    },
-    "./service/makeServiceCommand": {
-      "types": "./dist/service/makeServiceCommand.d.ts",
-      "import": "./dist/service/makeServiceCommand.js",
-      "default": "./dist/service/makeServiceCommand.js"
+    "./aggregate/make/makeAggregateCommand": {
+      "types": "./dist/aggregate/make/makeAggregateCommand.d.ts",
+      "import": "./dist/aggregate/make/makeAggregateCommand.js",
+      "default": "./dist/aggregate/make/makeAggregateCommand.js"
     },
     "./*": {
       "types": "./dist/*.d.ts",
@@ -43,10 +38,10 @@
   },
   "dependencies": {
     "@livestore/wa-sqlite": "^1.0.5",
-    "@remix-run/route-pattern": "^0.22.1",
     "@opentelemetry/api": "^1.9.1",
     "@opentelemetry/core": "^2.7.1",
     "@opentelemetry/sdk-trace-node": "^2.7.1",
+    "@remix-run/route-pattern": "^0.22.1",
     "@zerospin/error": "workspace:*",
     "@zerospin/logger": "workspace:*",
     "@zerospin/schema": "workspace:*",

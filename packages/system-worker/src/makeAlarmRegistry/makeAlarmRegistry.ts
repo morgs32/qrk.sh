@@ -21,22 +21,34 @@ export const makeAlarmRegistry = (props: {
 }) => {
   const { storage } = props;
 
-  // 1 — keep independent queue ownership in one Set
-  const leases = new Set<string>();
+  // 1 — retain each operation's next absolute wake-up
+  const leases = new Map<string, number>();
   const operations = new Map<string, Effect.Effect<void, IAnyError, Async>>();
 
   return {
-    hold: Effect.fn('AlarmRegistry.hold')(function* (key: string) {
-      // 2 — schedule Date.now() plus one second even when the lease already exists
-      leases.add(key);
+    hold: Effect.fn('AlarmRegistry.hold')(function* (
+      key: string,
+      deadline = Date.now() + 1_000,
+    ) {
+      // 2 — preserve the earliest deadline when another operation renews its hold
+      leases.set(key, deadline);
       // A fired alarm is consumed even while its lease remains held.
-      yield* Effect.promise(() => storage.setAlarm(Date.now() + 1_000));
-    }) as (key: string) => Effect.Effect<void, IAnyError, Async>,
+      yield* Effect.promise(() =>
+        storage.setAlarm(Math.max(Date.now(), Math.min(...leases.values()))),
+      );
+    }) as (
+      key: string,
+      deadline?: number,
+    ) => Effect.Effect<void, IAnyError, Async>,
     release: Effect.fn('AlarmRegistry.release')(function* (key: string) {
       // 3 — delete the storage alarm only after the last lease is removed
       leases.delete(key);
       if (leases.size === 0) {
         yield* Effect.promise(() => storage.deleteAlarm());
+      } else {
+        yield* Effect.promise(() =>
+          storage.setAlarm(Math.max(Date.now(), Math.min(...leases.values()))),
+        );
       }
     }) as (key: string) => Effect.Effect<void, IAnyError, Async>,
     register(

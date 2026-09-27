@@ -1,5 +1,5 @@
 import { makeAbbreviationIdSchema } from '@zerospin/schema';
-import { Exit, Schema } from 'effect';
+import { Exit, ManagedRuntime, Schema } from 'effect';
 
 import { coreAbbreviations } from '../utils/coreAbbreviations.ts';
 
@@ -15,6 +15,7 @@ export const ZerospinConfigSchema = Schema.declare<ISystemConfig>(
           Schema.is(
             Schema.Struct({
               name: Schema.String,
+              runtime: Schema.declare(ManagedRuntime.isManagedRuntime),
               aggregates: Schema.Record(
                 Schema.String,
                 Schema.Record(

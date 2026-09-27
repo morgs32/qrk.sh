@@ -1,4 +1,4 @@
-import { ZerospinError } from '@zerospin/error';
+import { catchZerospinError } from '@zerospin/error';
 import { Effect } from 'effect';
 
 import type { BackupDbApi } from '../BackupDbApi.ts';
@@ -24,7 +24,7 @@ export const dispose = Effect.fn('BackupDbApi.dispose')(function* (props: {
         api.runtime.handles.delete(api.backupKey);
         if (db !== undefined) await api.runtime.sqlite3.close(db);
       },
-      catch: ZerospinError.catch({
+      catch: catchZerospinError({
         code: 'backup-db-close-failed',
         message: 'Failed to close IndexedDB backup',
       }),

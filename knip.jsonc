@@ -5,12 +5,11 @@
   "include": ["files", "exports", "types"],
   "ignore": [
     "vendor/**",
-    "llm-wiki/**",
+    "wiki/**",
     "**/*.config.{js,cjs,mjs,ts,tsx}",
     "**/vitest*.{js,cjs,mjs,ts,tsx}",
     "**/*GlobalSetup.{js,cjs,mjs,ts,tsx}",
     "**/vitest-env.d.ts",
-    "**/*.typecheck.ts",
     ".agents/skills/**",
     ".github/skills/**",
   ],
@@ -61,16 +60,12 @@
         "src/zerospin/system.ts",
         "src/zerospin/seeds.ts",
         "src/zerospin/models.ts",
-        "src/zerospin/frontends.ts",
+        "src/zerospin/sessions.ts",
       ],
       "ignoreFiles": ["vitest-env.d.ts"],
       "vitest": true,
       "next": true,
       "playwright": true,
-    },
-    "e2e/frontend-adapters": {
-      "entry": ["tests/frontendAdapters.workerd.spec.ts"],
-      "vitest": true,
     },
     "packages/core": {
       "entry": [

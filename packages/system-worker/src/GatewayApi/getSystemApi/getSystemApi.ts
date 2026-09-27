@@ -1,11 +1,11 @@
+import type { ISystem } from '@zerospin/core/system/types';
 import { mapParseError } from '@zerospin/error';
 import { env } from 'cloudflare:workers';
 import { Effect, Schema } from 'effect';
 
-import type { ISystemRuntime } from '../../makeSystemRuntime.js';
 import { SystemApi } from '../../SystemApi/SystemApi.js';
 import { SystemApiFailure } from '../../SystemApi/SystemApiFailure/SystemApiFailure.js';
-import { checkSecretApiKey } from '../checkSecretApiKey/checkSecretApiKey.js';
+import { checkSecretApiKey } from './checkSecretApiKey/checkSecretApiKey.js';
 
 /*
  * GatewayApi grants the deployment-scoped SystemApi to secret-key callers.
@@ -20,7 +20,7 @@ export const getSystemApi = Effect.fn('GatewayApi.getSystemApi', {
   root: true,
 })(function* (props: {
   request: { zerospinSecretKey: string };
-  runtime: ISystemRuntime;
+  runtime: ISystem['runtime'];
 }) {
   // 1 — keep the secret-key request and capability runtime
   const { request, runtime } = props;

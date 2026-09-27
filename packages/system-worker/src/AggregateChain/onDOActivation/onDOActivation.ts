@@ -1,10 +1,10 @@
 import type { IDb } from '@zerospin/core/drizzle/types';
-import { ZerospinError } from '@zerospin/error';
+import { catchZerospinError } from '@zerospin/error';
 import config from 'config';
 import { Effect } from 'effect';
 
+import { AggregateVersionRepo } from '../../AggregateVersionRepo/AggregateVersionRepo.js';
 import type { IAlarmRegistry } from '../../makeAlarmRegistry/makeAlarmRegistry.js';
-import { VersionedAggregateRepo } from '../../VersionedAggregateRepo/VersionedAggregateRepo.js';
 import { aggregateChainDbConfig } from '../aggregateChainDbConfig.js';
 
 const { system } = config;
@@ -21,23 +21,23 @@ export const onDOActivation = Effect.fn('AggregateChain.onDOActivation')(
       Object.keys(versions),
       aggregateVersion =>
         Effect.gen(function* () {
-          const versionedAggregateRepoName =
-            yield* VersionedAggregateRepo.fixedDORepoConfig.nameUtils.makeName({
+          const aggregateVersionRepoName =
+            yield* AggregateVersionRepo.fixedDORepoConfig.nameUtils.makeName({
               ...props.key,
               aggregateVersion,
             });
-          return { versionedAggregateRepoName, aggregateVersion };
+          return { aggregateVersionRepoName, aggregateVersion };
         }),
     );
-    yield* props.alarms.hold('versionedAggregateFanoutQueue');
+    yield* props.alarms.hold('admissionResultsFanout');
     yield* Effect.try({
       try: () =>
         props.db.transaction(tx => {
-          tx.update(aggregateChainDbConfig.schema.versionedAggregateRepos)
+          tx.update(aggregateChainDbConfig.schema.aggregateVersionRepos)
             .set({ active: false })
             .run();
           for (const destination of destinations) {
-            tx.insert(aggregateChainDbConfig.schema.versionedAggregateRepos)
+            tx.insert(aggregateChainDbConfig.schema.aggregateVersionRepos)
               .values({
                 ...destination,
                 active: true,
@@ -46,14 +46,14 @@ export const onDOActivation = Effect.fn('AggregateChain.onDOActivation')(
               })
               .onConflictDoUpdate({
                 target:
-                  aggregateChainDbConfig.schema.versionedAggregateRepos
-                    .versionedAggregateRepoName,
+                  aggregateChainDbConfig.schema.aggregateVersionRepos
+                    .aggregateVersionRepoName,
                 set: { active: true },
               })
               .run();
           }
         }),
-      catch: ZerospinError.catch({
+      catch: catchZerospinError({
         code: 'aggregate-membership-reconciliation-failed',
       }),
     });

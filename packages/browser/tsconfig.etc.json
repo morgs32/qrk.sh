@@ -1,0 +1,47 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "composite": false,
+    "incremental": false,
+    "rewriteRelativeImportExtensions": false,
+    "allowImportingTsExtensions": true,
+    "rootDir": ".",
+    "noEmit": true,
+    "types": [
+      "node",
+      "vite/client",
+      "vitest/globals"
+    ]
+  },
+  "include": [
+    "src/**/*.spec.ts",
+    "vitest.config.ts",
+    "tests/**/*.ts",
+    "playwright.config.ts",
+    "tsup.config.ts"
+  ],
+  "references": [
+    {
+      "path": "./tsconfig.json"
+    },
+    {
+      "path": "../backup-worker"
+    },
+    {
+      "path": "../core"
+    },
+    {
+      "path": "../error"
+    },
+    {
+      "path": "../logger"
+    },
+    {
+      "path": "../schema"
+    },
+    {
+      "path": "../system-worker"
+    }
+  ],
+  "exclude": []
+}

@@ -1,4 +1,8 @@
-import { mapParseError, ZerospinError, type IAnyError } from '@zerospin/error';
+import {
+  makeZerospinError,
+  mapParseError,
+  type IAnyError,
+} from '@zerospin/error';
 import { makeEffectSchema } from '@zerospin/schema';
 import { Effect, Schema } from 'effect';
 
@@ -24,16 +28,18 @@ export const encodeResource = Effect.fn('models.encodeResource')(function* <
     Reflect.get(currentResource, 'modelName') !== modelName ||
     Reflect.get(currentResource, 'version') !== version
   ) {
-    return yield* new ZerospinError({
-      code: 'model-current-resource-identity-invalid',
-      message: `Current resource must identify ${modelName}@${version}`,
-      extra: {
-        modelName,
-        modelVersion: version,
-        resourceModelName: Reflect.get(currentResource, 'modelName'),
-        resourceVersion: Reflect.get(currentResource, 'version'),
-      },
-    });
+    return yield* Effect.fail(
+      makeZerospinError({
+        code: 'model-current-resource-identity-invalid',
+        message: `Current resource must identify ${modelName}@${version}`,
+        extra: {
+          modelName,
+          modelVersion: version,
+          resourceModelName: Reflect.get(currentResource, 'modelName'),
+          resourceVersion: Reflect.get(currentResource, 'version'),
+        },
+      }),
+    );
   }
 
   return yield* Schema.encodeEffect(model.resourceSchema)(currentResource, {

@@ -1,9 +1,14 @@
-import type { IAnyError } from '@zerospin/error';
-import type { CuidFactory } from '@zerospin/schema';
-import { Effect } from 'effect';
+import {
+  makeZerospinError,
+  mapParseError,
+  type IAnyError,
+} from '@zerospin/error';
+import { makeAbbreviationIdSchema, type CuidFactory } from '@zerospin/schema';
+import { Effect, Schema } from 'effect';
 
+import { makeAggregateCommand } from './aggregate/make/makeAggregateCommand.ts';
 import type { IAnyAuthoredAggregate } from './aggregate/types.ts';
-import { makeCommand as makeContractCommand } from './contracts/makeCommand.ts';
+import { makeCommand as makeContractCommand } from './contracts/make/makeCommand.ts';
 import type {
   IAggregateCommand,
   ICommand,
@@ -42,17 +47,21 @@ export function makeCommand<
 >;
 export function makeCommand<
   AGGREGATE extends IAnyAuthoredAggregate,
-  CONTRACT_NAME extends keyof AGGREGATE['contracts'] & string,
+  ACTOR_NAME extends keyof AGGREGATE['actors'] & string,
+  CONTRACT_NAME extends keyof AGGREGATE['actors'][ACTOR_NAME]['contracts'] &
+    string,
   const SYSTEM_NAME extends string,
 >(
   aggregate: AGGREGATE,
   props: {
     contractName: CONTRACT_NAME;
+    actorName: ACTOR_NAME;
+    identity: AGGREGATE['actors'][ACTOR_NAME]['identity']['identitySchema']['Type'];
     aggregateId: IAggregateId;
     systemName: SYSTEM_NAME;
     payload: NoInfer<
       InferPayloadInput<
-        AGGREGATE['contracts'][CONTRACT_NAME]['contract']['payload']
+        AGGREGATE['actors'][ACTOR_NAME]['contracts'][CONTRACT_NAME]['payload']
       >
     >;
   },
@@ -60,10 +69,10 @@ export function makeCommand<
   Extract<
     IAggregateCommand<
       ICommand<
-        AGGREGATE['contracts'][CONTRACT_NAME]['contract']['commandName'],
-        AGGREGATE['contracts'][CONTRACT_NAME]['contract']['version'],
+        AGGREGATE['actors'][ACTOR_NAME]['contracts'][CONTRACT_NAME]['commandName'],
+        AGGREGATE['actors'][ACTOR_NAME]['contracts'][CONTRACT_NAME]['version'],
         InferCommandPayload<
-          AGGREGATE['contracts'][CONTRACT_NAME]['contract']['payload']
+          AGGREGATE['actors'][ACTOR_NAME]['contracts'][CONTRACT_NAME]['payload']
         >
       >,
       AGGREGATE['name'],
@@ -79,34 +88,71 @@ export function makeCommand(
   props: {
     contractName: string;
     payload: InferPayloadInput<IAnyService['contracts'][string]['payload']>;
+    actorName?: string;
+    identity?: Readonly<Record<string, unknown>>;
     aggregateId?: IAggregateId;
     systemName?: string;
   },
 ): Effect.Effect<unknown, IAnyError, CuidFactory> {
   return Effect.gen(function* () {
+    if ('services' in owner) {
+      const input = yield* Schema.decodeUnknownEffect(
+        Schema.Struct({
+          actorName: Schema.String,
+          identity: Schema.Record(Schema.String, Schema.Unknown),
+          aggregateId: makeAbbreviationIdSchema('acct'),
+          systemName: Schema.String,
+        }),
+      )(props).pipe(
+        mapParseError({
+          code: 'aggregate-command-provenance-invalid',
+          prefix: 'Invalid aggregate command provenance',
+        }),
+      );
+      const actor = yield* getByKeyOrThrow({
+        record: owner.actors,
+        key: input.actorName,
+        recordKind: 'aggregate-actor',
+      });
+      const contract = yield* getByKeyOrThrow({
+        record: actor.contracts,
+        key: props.contractName,
+        recordKind: 'actor-contract',
+      });
+      const identity = yield* Schema.decodeUnknownEffect(
+        actor.identity.identitySchema,
+      )(input.identity).pipe(
+        mapParseError({
+          code: 'aggregate-command-identity-invalid',
+          prefix: 'Invalid aggregate command identity',
+        }),
+      );
+      if (identity.aggregateId !== input.aggregateId) {
+        return yield* Effect.fail(
+          makeZerospinError('aggregate-command-target-mismatch'),
+        );
+      }
+      return yield* makeAggregateCommand({
+        contract,
+        aggregateName: owner.name,
+        aggregateVersion: owner.version,
+        aggregateId: input.aggregateId,
+        systemName: input.systemName,
+        actorName: actor.name,
+        actorVersion: actor.version,
+        identity,
+        payload: props.payload,
+      });
+    }
     const selected = yield* getByKeyOrThrow({
       record: owner.contracts,
       key: props.contractName,
       recordKind: 'contracts',
     });
-    const contract = 'contract' in selected ? selected.contract : selected;
     const command = yield* makeContractCommand({
-      contract,
+      contract: selected,
       payload: props.payload,
     });
-    if ('contract' in selected) {
-      return {
-        ...command,
-        aggregateVersion: owner.version,
-        aggregateId: props.aggregateId,
-        aggregateName: owner.name,
-        authentication: null,
-        pushIndex: null,
-        sessionId: null,
-        frontendName: null,
-        systemName: props.systemName,
-      };
-    }
     return {
       ...command,
       serviceVersion: owner.version,

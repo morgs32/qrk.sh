@@ -17,7 +17,7 @@
       "path": "./packages/error"
     },
     {
-      "path": "./packages/frontend"
+      "path": "./packages/browser"
     },
     {
       "path": "./packages/react"

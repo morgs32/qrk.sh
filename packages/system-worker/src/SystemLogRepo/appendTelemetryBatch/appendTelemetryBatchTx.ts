@@ -1,24 +1,23 @@
-import { makeTx } from '@zerospin/core/drizzle/makeTx';
+import { makeTx } from '@zerospin/core/drizzle/make/makeTx';
+import type { ITx } from '@zerospin/core/drizzle/types';
 import type { ISystemId } from '@zerospin/core/system/types';
 import type { ITelemetryBatch } from '@zerospin/logger';
 import { sql } from 'drizzle-orm';
 import { Effect, Schema } from 'effect';
 
-import {
-  SystemLogRepoDb,
-  systemLogRepoDbConfig,
-} from '../systemLogRepoDbConfig.js';
+import { systemLogRepoDbConfig } from '../systemLogRepoDbConfig.js';
 
 const maxTraces = 1000;
 
 /** Retain incoming telemetry and prune traces beyond retention in the same transaction. */
 export const appendTelemetryBatchTx = makeTx(
   'SystemLogRepo.appendTelemetryBatchTx',
-  SystemLogRepoDb,
-)(function* (props: { batch: ITelemetryBatch; decodedSystemId: ISystemId }) {
+)(function* (
+  tx: ITx<typeof systemLogRepoDbConfig>,
+  props: { batch: ITelemetryBatch; decodedSystemId: ISystemId },
+) {
   const { batch, decodedSystemId } = props;
 
-  const tx = yield* SystemLogRepoDb.Tx;
   yield* Effect.void;
 
   // 3 — encode attributes and bind systemId before inserting

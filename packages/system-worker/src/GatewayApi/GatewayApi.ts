@@ -1,6 +1,6 @@
+import type { ISystem } from '@zerospin/core/system/types';
 import { RpcTarget } from 'capnweb';
 
-import type { ISystemRuntime } from '../makeSystemRuntime.js';
 import type { SystemApi } from '../SystemApi/SystemApi.js';
 import type { SystemApiFailure } from '../SystemApi/SystemApiFailure/SystemApiFailure.js';
 
@@ -10,8 +10,8 @@ import { service } from './service/service.js';
 
 /** Public root for aggregate, service, and secret-key system capabilities. */
 export class GatewayApi extends RpcTarget {
-  readonly #runtime: ISystemRuntime;
-  constructor(props: { runtime: ISystemRuntime }) {
+  readonly #runtime: ISystem['runtime'];
+  constructor(props: { runtime: ISystem['runtime'] }) {
     super();
     this.#runtime = props.runtime;
   }

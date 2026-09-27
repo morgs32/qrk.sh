@@ -15,7 +15,7 @@ export function SessionsDatabaseIndexRoute() {
   }
 
   const firstModelName =
-    aggregateSession?.frontend.modelNames[0] ?? serviceSession?.modelNames[0];
+    aggregateSession?.definition.modelNames[0] ?? serviceSession?.modelNames[0];
 
   if (firstModelName === undefined) {
     return null;

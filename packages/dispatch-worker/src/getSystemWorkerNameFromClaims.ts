@@ -1,4 +1,4 @@
-import { ZerospinError, type IAnyError } from '@zerospin/error';
+import { makeZerospinError, type IAnyError } from '@zerospin/error';
 import { Effect } from 'effect';
 
 import type { ICloudApiKeyJwtClaims } from './CloudApiKeyJwtClaimsSchema';
@@ -22,9 +22,11 @@ export const getSystemWorkerNameFromClaims = Effect.fn(
         systemEnvironmentId: claims.systemEnvironmentId,
       });
     default:
-      return yield* new ZerospinError({
-        code: 'unsupported-system-environment-id',
-        message: 'Unsupported system environment',
-      });
+      return yield* Effect.fail(
+        makeZerospinError({
+          code: 'unsupported-system-environment-id',
+          message: 'Unsupported system environment',
+        }),
+      );
   }
 });

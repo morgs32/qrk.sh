@@ -1,6 +1,6 @@
 /*
  * System-worker annotation:
- * Publishes one ready frontend projection and selected-command chain together.
+ * Publishes one ready definition projection and actor-command chain together.
  */
 import type { IDb } from '@zerospin/core/drizzle/types';
 import type { ISystemSpec } from '@zerospin/core/system/types';
@@ -8,19 +8,17 @@ import type { IAnyDrizzleSchema } from '@zerospin/schema';
 import type { AnyColumn } from 'drizzle-orm';
 import { Effect } from 'effect';
 
-import { SystemRepoDb } from '../systemRepoDbConfig.js';
-
 import { registerReposTx } from './registerReposTx.js';
 
 /*
- * Frontend initialization registers its projection and retained output log
+ * Session initialization registers its projection and retained output log
  * as one catalog transaction. The pair must belong to the same aggregate or
- * service frontend topology.
+ * service definition topology.
  *
  * 1. Require a matching projection/log pair.
  * 2. Open one catalog registration transaction.
- * 3. Register the frontend materializer.
- * 4. Register the retained frontend log.
+ * 3. Register the definition materializer.
+ * 4. Register the retained definition log.
  */
 export const registerRepos = Effect.fn('SystemRepo.registerRepos')(
   function* (props: {
@@ -31,40 +29,37 @@ export const registerRepos = Effect.fn('SystemRepo.registerRepos')(
       repoName: AnyColumn;
       tableNames: AnyColumn;
     };
-    frontendRepo: {
-      repoType:
-        | 'SelectionVersionedAggregateRepo'
-        | 'FrontendVersionedServiceRepo';
+    sessionRepo: {
+      repoType: 'AggregateActorVersionRepo' | 'ServiceActorVersionRepo';
       repoName: string;
       tableNames: readonly string[];
     };
     finalizedCommandChain: {
-      repoType: 'SelectionVersionedAggregateChain' | 'FrontendServiceChain';
+      repoType: 'AggregateActorVersionChain' | 'ServiceActorVersionChain';
       repoName: string;
       tableNames: readonly string[];
     };
   }) {
-    const { db, finalizedCommandChain, frontendRepo, repoTable } = props;
+    const { db, finalizedCommandChain, sessionRepo, repoTable, spec } = props;
 
     // 1 — reject aggregate/service Repo-kind mismatches before the transaction
     if (
-      (frontendRepo.repoType === 'SelectionVersionedAggregateRepo' &&
-        finalizedCommandChain.repoType !==
-          'SelectionVersionedAggregateChain') ||
-      (frontendRepo.repoType === 'FrontendVersionedServiceRepo' &&
-        finalizedCommandChain.repoType !== 'FrontendServiceChain')
+      (sessionRepo.repoType === 'AggregateActorVersionRepo' &&
+        finalizedCommandChain.repoType !== 'AggregateActorVersionChain') ||
+      (sessionRepo.repoType === 'ServiceActorVersionRepo' &&
+        finalizedCommandChain.repoType !== 'ServiceActorVersionChain')
     ) {
       return yield* Effect.die(
-        'SystemRepo.registerRepos requires a matching projection/selected-command chain pair',
+        'SystemRepo.registerRepos requires a matching projection/actor-command chain pair',
       );
     }
 
     // 2 — commit both registrations together
-    yield* registerReposTx({
-      spec: props.spec,
+    yield* registerReposTx(db, {
+      spec,
       repoTable,
-      frontendRepo,
+      sessionRepo,
       finalizedCommandChain,
-    }).pipe(Effect.provideService(SystemRepoDb, db));
+    });
   },
 );

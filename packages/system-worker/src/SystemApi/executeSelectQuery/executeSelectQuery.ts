@@ -1,12 +1,13 @@
-import { makeAsync } from '@zerospin/core/async/makeAsync';
-import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
+import { makeAsync } from '@zerospin/core/async/make/makeAsync';
 import { getByKeyOrThrow } from '@zerospin/core/utils/getByKeyOrThrow';
-import { mapParseError, ZerospinError } from '@zerospin/error';
+import { readRpcEnvelope } from '@zerospin/core/utils/readRpcEnvelope';
+import { mapParseError, ZerospinErrorJsonSchema } from '@zerospin/error';
+import { TelemetryBatchSchema } from '@zerospin/logger';
 import { makeAbbreviationIdSchema } from '@zerospin/schema';
 import config from 'config';
 import { Effect, Schema, type Context } from 'effect';
 
-import { VersionedAggregateRepo } from '../../VersionedAggregateRepo/VersionedAggregateRepo.js';
+import { AggregateVersionRepo } from '../../AggregateVersionRepo/AggregateVersionRepo.js';
 import {
   makeApiHandler,
   SystemApiAuthResults,
@@ -62,7 +63,7 @@ export const executeSelectQuery = Effect.fn('SystemApi.executeSelectQuery')(
             recordKind: 'aggregates',
           });
           // 4 — open VAR at the selected aggregateVersion and call executeSelectQuery
-          const aggregateRepo = yield* VersionedAggregateRepo.getRepo({
+          const aggregateRepo = yield* AggregateVersionRepo.getRepo({
             key: {
               systemId: authResults.systemId,
               aggregateId,
@@ -74,26 +75,28 @@ export const executeSelectQuery = Effect.fn('SystemApi.executeSelectQuery')(
             aggregateRepo.executeSelectQuery({ aggregateName, query }),
           );
 
-          // 5 — require a Success or encoded ZerospinError Failure before decodeRpc
+          // 5 — require a Success or encoded ZerospinError Failure before readRpcEnvelope
           const encoded = yield* Schema.decodeUnknownEffect(
-            Schema.Union([
-              Schema.Struct({
-                _tag: Schema.Literal('Success'),
-                success: Schema.Unknown,
-              }),
-              Schema.Struct({
-                _tag: Schema.Literal('Failure'),
-                failure: Schema.toEncoded(ZerospinError.schema),
-              }),
-            ]),
+            Schema.Struct({
+              result: Schema.Union([
+                Schema.Struct({
+                  _tag: Schema.Literal('Success'),
+                  success: Schema.Unknown,
+                }),
+                Schema.Struct({
+                  _tag: Schema.Literal('Failure'),
+                  failure: Schema.toEncoded(ZerospinErrorJsonSchema),
+                }),
+              ]),
+              telemetry: TelemetryBatchSchema,
+            }),
           )(encodedUnknown).pipe(
             mapParseError({
               code: 'aggregate-select-query-rpc-invalid',
-              prefix:
-                'Failed to decode VersionedAggregateRepo select-query RPC',
+              prefix: 'Failed to decode AggregateVersionRepo select-query RPC',
             }),
           );
-          return yield* decodeRpc(encoded);
+          return yield* readRpcEnvelope(encoded);
         }).pipe(
           Effect.withSpan('SystemApi.executeSelectQuery', { root: true }),
         ),

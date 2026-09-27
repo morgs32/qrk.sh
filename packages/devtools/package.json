@@ -17,6 +17,7 @@
     "lib": "pnpm run clean && tsc -b tsconfig.json",
     "ts": "tsc -p tsconfig.etc.json --noEmit",
     "watch": "tsc -b tsconfig.json --watch",
+    "static:check": "node --experimental-strip-types scripts/import-meta-compat.static-check.ts",
     "test": "vitest run --config vitest.config.ts",
     "test:watch": "vitest --config vitest.config.ts",
     "lint": "oxlint . --format stylish"

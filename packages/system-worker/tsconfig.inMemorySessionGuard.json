@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.etc.json",
+  "include": [
+    "src/inMemorySessionGuard.workerd.spec.ts",
+    "src/inMemorySessionGuard.wasm.d.ts",
+    "env-types.d.ts",
+    "worker-configuration.d.ts",
+    "vitest-env.d.ts"
+  ],
+  "exclude": [],
+  "compilerOptions": {
+    "composite": false,
+    "incremental": false
+  }
+}

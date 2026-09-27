@@ -1,10 +1,13 @@
 import type { ISystemId } from '@zerospin/core/system/types';
-import { encodeRpc } from '@zerospin/core/utils/encodeRpc';
-import { mapParseError, type IAnyError } from '@zerospin/error';
 import {
+  encodeError,
+  mapParseError,
+  type IAnyError,
+  type IZerospinErrorJson,
+} from '@zerospin/error';
+import {
+  makeRpcEnvelope,
   makeSpanLinkId,
-  makeTelemetryCollector,
-  makeTelemetryLayer,
   type IRpcRequest,
   type ISpanLinkRecord,
 } from '@zerospin/logger';
@@ -38,10 +41,14 @@ export function makeApiHandler<ARGS extends Array<unknown>, A, R>(props: {
   persistTelemetry?: boolean;
   handler: (
     ...args: ARGS
-  ) => Effect.Effect<A, IAnyError, R | SystemApiAuthResults>;
+  ) => Effect.Effect<
+    A,
+    IAnyError | IZerospinErrorJson,
+    R | SystemApiAuthResults
+  >;
 }) {
   // 1 — retain the method name, argument schema, and domain handler
-  const { argsSchema, handler, name } = props;
+  const { argsSchema, handler, name, persistTelemetry } = props;
 
   return (request: IRpcRequest<ARGS>) =>
     Effect.gen(function* () {
@@ -58,7 +65,9 @@ export function makeApiHandler<ARGS extends Array<unknown>, A, R>(props: {
 
       // 3 — encode the validation failure with a null trace link
       if (Result.isFailure(validatedArgs)) {
-        const result = yield* encodeRpc(Effect.fail(validatedArgs.failure));
+        const result = yield* encodeError(validatedArgs.failure).pipe(
+          Effect.map(failure => ({ _tag: 'Failure' as const, failure })),
+        );
         return {
           result,
           link: null,
@@ -67,26 +76,21 @@ export function makeApiHandler<ARGS extends Array<unknown>, A, R>(props: {
 
       // 4 — attach systemId and collect method spans before settling the result
       const authResults = yield* SystemApiAuthResults;
-      const collector = makeTelemetryCollector();
 
-      const settled = yield* handler(...validatedArgs.success).pipe(
+      const envelope = yield* handler(...validatedArgs.success).pipe(
         Effect.annotateSpans({ systemId: authResults.systemId }),
         Effect.provideService(SystemApiAuthResults, authResults),
-        Effect.provide(makeTelemetryLayer(collector)),
-        Effect.result,
+        makeRpcEnvelope,
       );
-      const result = yield* Result.match(settled, {
-        onFailure: error => encodeRpc(Effect.fail(error)),
-        onSuccess: value => encodeRpc(Effect.succeed(value)),
-      });
+      const result = envelope.result;
 
       // Spec acceptance and inspection must be callable before child Repos are accepted.
-      if (props.persistTelemetry === false) {
+      if (persistTelemetry === false) {
         return { result, link: null };
       }
 
       // 5 — flush the collector and record whether appendTelemetryBatch succeeded
-      const batch = collector.flush();
+      const batch = envelope.telemetry;
       const persisted = yield* appendTelemetryBatch({ batch }).pipe(
         Effect.exit,
       );

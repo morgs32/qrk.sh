@@ -1,5 +1,5 @@
-import { makeAsync } from '@zerospin/core/async/makeAsync';
-import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
+import { makeAsync } from '@zerospin/core/async/make/makeAsync';
+import { readRpcEnvelope } from '@zerospin/core/utils/readRpcEnvelope';
 import { Effect, Schema, type Context } from 'effect';
 
 import { SystemRepo } from '../../SystemRepo/SystemRepo.js';
@@ -47,7 +47,7 @@ export const getSystemLogRepos = Effect.fn('SystemApi.getSystemLogRepos')(
           // 5 — decode SystemRepo.getRepoRegistrations for SystemLogRepo
           return yield* makeAsync(() =>
             systemRepo.getRepoRegistrations({ repoType: 'SystemLogRepo' }),
-          ).pipe(Effect.flatMap(decodeRpc));
+          ).pipe(Effect.flatMap(envelope => readRpcEnvelope(envelope)));
         }).pipe(Effect.withSpan('SystemApi.getSystemLogRepos', { root: true })),
     })(request).pipe(
       Effect.provideService(SystemApiAuthResults, requestedAuthResults),

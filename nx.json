@@ -48,6 +48,18 @@
       "cache": true,
       "inputs": ["default", "^default"]
     },
+    "test:integration": {
+      "dependsOn": ["^lib"],
+      "cache": true,
+      "inputs": ["default", "^default"]
+    },
+    "test:playwright": {
+      "dependsOn": ["^lib"]
+    },
+    "static:check": {
+      "cache": true,
+      "inputs": ["default"]
+    },
     "deploy": {
       "dependsOn": ["^lib"]
     }

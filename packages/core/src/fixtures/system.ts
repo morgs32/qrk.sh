@@ -1,28 +1,33 @@
 import { RoutePattern } from '@remix-run/route-pattern';
-import { mapParseError, ZerospinError } from '@zerospin/error';
+import {
+  makeZerospinError,
+  mapParseError,
+  prettyUnknownFailure,
+} from '@zerospin/error';
 import { primitives } from '@zerospin/schema';
 import { Effect, Schema } from 'effect';
 
 import { defineAggregate } from '../aggregate/defineAggregate.ts';
-import { makeAggregateVersion } from '../aggregate/makeAggregateVersion.ts';
+import { makeAggregateVersion } from '../aggregate/make/makeAggregateVersion.ts';
+import { defineAggregateActor } from '../aggregateActor/defineAggregateActor.ts';
+import { makeAggregateActorVersion } from '../aggregateActor/make/makeAggregateActorVersion/makeAggregateActorVersion.ts';
+import { makeAggregateSessionDefinition } from '../aggregateSession/make/makeAggregateSessionDefinition.ts';
 import { defineContract } from '../contracts/defineContract.ts';
-import { makeContractVersion } from '../contracts/makeContractVersion.ts';
+import { makeContractVersion } from '../contracts/make/makeContractVersion.ts';
 import type { IDb, IResourceDbConfig } from '../drizzle/types.ts';
-import { getFrontendDbModels } from '../frontendController/getFrontendDbModels.ts';
-import { makeFrontendController } from '../frontendController/makeFrontendController.ts';
-import { makeModelIdSchema } from '../models/makeModelIdSchema.ts';
+import { makeActorIdentity } from '../identity/make/makeActorIdentity/makeActorIdentity.ts';
 import { defineModel } from '../models/defineModel.ts';
-import { makeModelVersion } from '../models/makeModelVersion.ts';
-import { makeSelection } from '../models/makeSelection.ts';
-import type { IAggregateId } from '../models/types.ts';
-import { makeSystem } from '../system/makeSystem.ts';
+import { makeActorDbVersion } from '../models/make/makeActorDbVersion.ts';
+import { makeModelIdSchema } from '../models/make/makeModelIdSchema.ts';
+import { makeModelVersion } from '../models/make/makeModelVersion.ts';
+import { makeSystem } from '../system/make/makeSystem/makeSystem.ts';
 
-export const UserModel = defineModel({
+export const userModel = defineModel({
   name: 'user',
   abbreviation: 'usr',
 });
 
-export const User = makeModelVersion(UserModel, {
+export const userVersion = makeModelVersion(userModel, {
   attributes: {
     name: primitives.text(),
   },
@@ -30,7 +35,7 @@ export const User = makeModelVersion(UserModel, {
   version: '1.0.0',
 });
 
-export const Account = makeModelVersion(
+export const account = makeModelVersion(
   defineModel({ name: 'account', abbreviation: 'acct' }),
   {
     attributes: {
@@ -41,16 +46,16 @@ export const Account = makeModelVersion(
   },
 );
 
-export const ListModel = defineModel({
+export const listModel = defineModel({
   name: 'list',
   abbreviation: 'lst',
 });
 
-export const List = makeModelVersion(ListModel, {
+export const list = makeModelVersion(listModel, {
   attributes: {
     name: primitives.text(),
     userId: primitives.ref({
-      table: User.table,
+      table: userVersion.table,
       relation: 'user',
       inverse: 'lists',
     }),
@@ -59,15 +64,15 @@ export const List = makeModelVersion(ListModel, {
   version: '1.0.0',
 });
 
-export const ItemModel = defineModel({
+export const itemModel = defineModel({
   name: 'item',
   abbreviation: 'tsk',
 });
 
-export const Item = makeModelVersion(ItemModel, {
+export const item = makeModelVersion(itemModel, {
   attributes: {
     listId: primitives.ref({
-      table: List.table,
+      table: list.table,
       relation: 'list',
       inverse: 'items',
     }),
@@ -78,221 +83,251 @@ export const Item = makeModelVersion(ItemModel, {
 });
 
 export const createList = makeContractVersion(defineContract('createList'), {
-  guard: ({ payload }: { payload: { name: string } }) =>
-    Effect.gen(function* () {
-      if (payload.name === 'invalid-name') {
-        return yield* new ZerospinError({
-          code: 'list-name-rejected',
-          message: `List name is rejected: ${payload.name}`,
-        });
-      }
-    }).pipe(Effect.withSpan('createListGuard')),
-
   payload: {
-    id: primitives.foreignKey({ abbreviation: ListModel.abbreviation }),
+    id: primitives.foreignKey({ abbreviation: listModel.abbreviation }),
     name: primitives.text(),
-    userId: primitives.foreignKey({ abbreviation: UserModel.abbreviation }),
+    userId: primitives.foreignKey({ abbreviation: userModel.abbreviation }),
   },
 
-  models: { list: List },
+  models: { list },
   program: ({ payload, models }) => {
     const { id, name, userId } = payload;
-    return Effect.all({
-      created: models.list.create({
+    return Effect.all([
+      models.list.create({
         resourceId: id,
         attributes: {
           name,
           userId,
         },
       }),
-    });
+    ]);
   },
+  guard: ({ payload }: { payload: { name: string } }) =>
+    Effect.gen(function* () {
+      if (payload.name === 'invalid-name') {
+        return yield* Effect.fail(
+          makeZerospinError({
+            code: 'list-name-rejected',
+            message: `List name is rejected: ${payload.name}`,
+          }),
+        );
+      }
+    }).pipe(Effect.withSpan('createListGuard')),
   version: '1.0.0',
 });
 
 export const createItem = makeContractVersion(defineContract('createItem'), {
   payload: {
-    id: primitives.foreignKey({ abbreviation: ItemModel.abbreviation }),
-    listId: primitives.foreignKey({ abbreviation: ListModel.abbreviation }),
+    id: primitives.foreignKey({ abbreviation: itemModel.abbreviation }),
+    listId: primitives.foreignKey({ abbreviation: listModel.abbreviation }),
     name: primitives.text(),
   },
 
-  models: { item: Item },
+  models: { item },
   program: ({ payload, models }) => {
     const { id, listId, name } = payload;
-    return Effect.all({
-      created: models.item.create({
+    return Effect.all([
+      models.item.create({
         resourceId: id,
         attributes: {
           listId,
           name,
         },
       }),
-    });
+    ]);
   },
   version: '1.0.0',
 });
 
 export const updateList = makeContractVersion(defineContract('updateList'), {
   payload: {
-    id: primitives.foreignKey({ abbreviation: ListModel.abbreviation }),
+    id: primitives.foreignKey({ abbreviation: listModel.abbreviation }),
     name: primitives.text(),
-    userId: primitives.foreignKey({ abbreviation: UserModel.abbreviation }),
+    userId: primitives.foreignKey({ abbreviation: userModel.abbreviation }),
   },
 
-  models: { list: List },
+  models: { list },
   program: ({ payload, models }) => {
     const { id, name, userId } = payload;
-    return Effect.all({
-      updated: models.list.update({
+    return Effect.all([
+      models.list.update({
         resourceId: id,
         attributes: { name, userId },
       }),
-    });
+    ]);
   },
   version: '1.0.0',
 });
 
 export const deleteList = makeContractVersion(defineContract('deleteList'), {
   payload: {
-    id: primitives.foreignKey({ abbreviation: ListModel.abbreviation }),
+    id: primitives.foreignKey({ abbreviation: listModel.abbreviation }),
   },
 
-  models: { list: List },
+  models: { list },
   program: ({ payload, models }) =>
-    Effect.all({
-      deleted: models.list.delete({
+    Effect.all([
+      models.list.delete({
         resourceId: payload.id,
       }),
-    }),
+    ]),
   version: '1.0.0',
 });
 
-const signatureSchema = Schema.Struct({ userId: makeModelIdSchema(User) });
+const credentialsSchema = Schema.Struct({
+  userId: makeModelIdSchema(userVersion),
+});
 
-export const main = makeFrontendController({
-  aggregateVersion: '1.0.0',
-  contracts: {
-    createList: {
-      contract: createList,
+export const main = {
+  ...makeAggregateSessionDefinition({
+    actorName: 'default',
+    actorVersion: '1.0.0',
+    aggregateVersion: '1.0.0',
+    contracts: {
+      createList: {
+        contract: createList,
+      },
+      createItem: { contract: createItem },
+      updateList: { contract: updateList },
+      deleteList: { contract: deleteList },
     },
-    createItem: { contract: createItem },
-    updateList: { contract: updateList },
-    deleteList: { contract: deleteList },
-  },
-  authenticationSchema: Schema.Struct({
+    identitySchema: Schema.Struct({
+      aggregateId: Schema.String,
+      userId: Schema.String,
+    }),
+    aggregateName: 'user',
+    sessionName: 'main',
+    models: {
+      account,
+      list,
+      item,
+      user: userVersion,
+    },
+  }),
+  systemName: 'system-worker',
+};
+
+export const mainModels = main.models;
+
+const actorDb1 = makeActorDbVersion({
+  models: { user: userVersion, list, item, account },
+});
+const actorIdentity1 = makeActorIdentity({
+  schema: Schema.Struct({
     aggregateId: Schema.String,
     userId: Schema.String,
   }),
-  aggregateName: 'user',
-  name: 'main',
-  systemName: 'system-worker',
-  models: {
-    account: Account,
-    list: List,
-    item: Item,
-    user: User,
-  },
+  actorPath: RoutePattern.parse('/:userId'),
 });
-
-export const mainModels = getFrontendDbModels(main);
-
 export const system = makeSystem({
   services: {},
   aggregates: {
-    user: [
-      makeAggregateVersion(defineAggregate({ name: 'user' }), {
+    user: {
+      '1.0.0': makeAggregateVersion(defineAggregate({ name: 'user' }), {
         version: '1.0.0',
-        signatureSchema,
-        authenticationSchema: Schema.Struct({
-          aggregateId: Schema.String,
-          userId: Schema.String,
-        }),
-        selectionSchema: Schema.Struct({ userId: Schema.String }),
-        pattern: RoutePattern.parse('/:userId'),
-        authenticate: ({ signature }) =>
-          Effect.succeed({ aggregateId: 'acct_1', userId: signature.userId }),
-        authorize: (props: {
-          authentication: Readonly<Record<string, unknown>>;
-          aggregateId: IAggregateId;
-          db: Readonly<
-            Pick<
-              IDb<IResourceDbConfig<typeof mainModels, Record<never, never>>>,
-              'query'
-            >
-          >;
-        }) => {
-          const { db, authentication } = props;
-          const requestedIdentityKey = authentication.userId;
-          return Effect.gen(function* () {
-            const userId = yield* Schema.decodeUnknownEffect(
-              makeModelIdSchema(User),
-            )(requestedIdentityKey).pipe(
-              mapParseError({
-                code: 'fixture-user-id-invalid',
-                prefix: 'Failed to decode the fixture authorization userId',
-              }),
-            );
-            const user = yield* Effect.try({
-              try: () =>
-                db.query.user
-                  .findFirst({
-                    where: { id: { eq: userId } },
-                  })
-                  .sync(),
-              catch: cause =>
-                new ZerospinError({
-                  code: 'fixture-user-query-failed',
-                  message:
-                    'Failed to query the fixture user during authentication.',
-                  cause: ZerospinError.prettyUnknownFailure(cause),
+
+        models: { user: userVersion, list, item, account },
+        contracts: { createList, createItem, updateList, deleteList },
+        automations: {},
+        actors: {
+          default: makeAggregateActorVersion(
+            defineAggregateActor({ name: 'default' }),
+            {
+              authentication: {
+                credentialsSchema,
+                authenticate: ({ credentials }) =>
+                  Effect.succeed({
+                    aggregateId: 'acct_1',
+                    userId: credentials.userId,
+                  }),
+              },
+              version: '1.0.0',
+              contracts: { createList, createItem, updateList, deleteList },
+              authorize: (props: {
+                identity: Readonly<Record<string, unknown>>;
+                aggregateId: string;
+                db: Readonly<
+                  Pick<
+                    IDb<
+                      IResourceDbConfig<typeof mainModels, Record<never, never>>
+                    >,
+                    'query'
+                  >
+                >;
+              }) => {
+                const { db, identity } = props;
+                const requestedIdentityKey = identity.userId;
+                return Effect.gen(function* () {
+                  const userId = yield* Schema.decodeUnknownEffect(
+                    makeModelIdSchema(userVersion),
+                  )(requestedIdentityKey).pipe(
+                    mapParseError({
+                      code: 'fixture-user-id-invalid',
+                      prefix:
+                        'Failed to decode the fixture authorization userId',
+                    }),
+                  );
+                  const user = yield* Effect.try({
+                    try: () =>
+                      db.query.user
+                        .findFirst({
+                          where: { id: { eq: userId } },
+                        })
+                        .sync(),
+                    catch: cause =>
+                      makeZerospinError({
+                        code: 'fixture-user-query-failed',
+                        message:
+                          'Failed to query the fixture user during identity.',
+                        cause: prettyUnknownFailure(cause),
+                      }),
+                  });
+                  if (user === undefined) {
+                    return yield* Effect.fail(
+                      makeZerospinError({
+                        code: 'user-not-found',
+                        message: `User ${requestedIdentityKey} was not found`,
+                      }),
+                    );
+                  }
+                  return yield* Effect.void;
+                });
+              },
+              db: actorDb1,
+              identity: actorIdentity1,
+              queries: {
+                user: actorDb1.query['user'].findMany({
+                  where: {
+                    id: { eq: actorIdentity1.sql.placeholder('userId') },
+                  },
                 }),
-            });
-            if (user === undefined) {
-              return yield* new ZerospinError({
-                code: 'user-not-found',
-                message: `User ${requestedIdentityKey} was not found`,
-              });
-            }
-            return yield* Effect.void;
-          });
-        },
-        models: {
-          user: User,
-          list: List,
-          item: Item,
-          account: Account,
-        },
-        contracts: {
-          createList: { contract: createList },
-          createItem: { contract: createItem },
-          updateList: { contract: updateList },
-          deleteList: { contract: deleteList },
-        },
-        selections: {
-          user: makeSelection({
-            model: User,
-            where: ({ authentication }) => ({ id: authentication.userId }),
-          }),
-          list: makeSelection({
-            model: List,
-            where: ({ authentication }) => ({
-              user: { id: authentication.userId },
-            }),
-          }),
-          item: makeSelection({
-            model: Item,
-            where: ({ authentication }) => ({
-              list: { user: { id: authentication.userId } },
-            }),
-          }),
-          account: makeSelection({
-            model: Account,
-            where: () => ({}),
-          }),
+                list: actorDb1.query['list'].findMany({
+                  where: {
+                    user: {
+                      id: {
+                        eq: actorIdentity1.sql.placeholder('userId'),
+                      },
+                    },
+                  },
+                }),
+                item: actorDb1.query['item'].findMany({
+                  where: {
+                    list: {
+                      user: {
+                        id: {
+                          eq: actorIdentity1.sql.placeholder('userId'),
+                        },
+                      },
+                    },
+                  },
+                }),
+                account: actorDb1.query['account'].findMany({}),
+              },
+            },
+          ),
         },
       }),
-    ],
+    },
   },
   name: 'system-worker',
 });

@@ -1,7 +1,7 @@
 /*
  * applyMutationTx is the only mutation write helper that accepts unfinalized
  * mutations and captures rollback state. It snapshots `inverseOperation` plus
- * `lastAppliedAt` before writing, then applies with the caller-provided
+ * `previousUpdatedAt` before writing, then applies with the caller-provided
  * `appliedAt`.
  *
  * Replica replay deliberately remakes inverse state against the local replica,
@@ -10,7 +10,12 @@
  * `IAppliedMutation`.
  */
 
-import { mapParseError, ZerospinError, type IAnyError } from '@zerospin/error';
+import {
+  makeZerospinError,
+  mapParseError,
+  prettyUnknownFailure,
+  type IAnyError,
+} from '@zerospin/error';
 import type { InferDecodedRow } from '@zerospin/schema';
 import { eq } from 'drizzle-orm';
 import { Effect, Schema, Struct } from 'effect';
@@ -37,7 +42,7 @@ export const applyMutationTx = Effect.fn('applyMutationTx')(function* <
   const { model, operationName, resourceId } = mutation;
 
   let inverseOperation: IAppliedMutation['inverseOperation'] = null;
-  let lastAppliedAt: Date | null = null;
+  let previousUpdatedAt: Date | null = null;
 
   switch (operationName) {
     case 'delete': {
@@ -56,14 +61,14 @@ export const applyMutationTx = Effect.fn('applyMutationTx')(function* <
         }),
       );
       inverseOperation = { resource };
-      lastAppliedAt = resourceRow.updatedAt;
+      previousUpdatedAt = resourceRow.updatedAt;
 
       yield* Effect.try({
         try: () => tx.delete(table).where(eq(table.id, resourceId)).run(),
         catch: cause => {
-          const failure = `${ZerospinError.prettyUnknownFailure(cause)}${
+          const failure = `${prettyUnknownFailure(cause)}${
             cause instanceof Error && cause.cause !== undefined
-              ? `\n${ZerospinError.prettyUnknownFailure(cause.cause)}`
+              ? `\n${prettyUnknownFailure(cause.cause)}`
               : ''
           }`;
           if (
@@ -71,7 +76,7 @@ export const applyMutationTx = Effect.fn('applyMutationTx')(function* <
           ) {
             throw cause;
           }
-          return new ZerospinError({
+          return makeZerospinError({
             code: 'mutation-referential-integrity-failed',
             message: `Cannot apply delete mutation to "${model.modelName}.${resourceId}" because it violates a persisted reference`,
             cause: failure,
@@ -105,9 +110,9 @@ export const applyMutationTx = Effect.fn('applyMutationTx')(function* <
             })
             .run(),
         catch: cause => {
-          const failure = `${ZerospinError.prettyUnknownFailure(cause)}${
+          const failure = `${prettyUnknownFailure(cause)}${
             cause instanceof Error && cause.cause !== undefined
-              ? `\n${ZerospinError.prettyUnknownFailure(cause.cause)}`
+              ? `\n${prettyUnknownFailure(cause.cause)}`
               : ''
           }`;
           if (
@@ -115,7 +120,7 @@ export const applyMutationTx = Effect.fn('applyMutationTx')(function* <
           ) {
             throw cause;
           }
-          return new ZerospinError({
+          return makeZerospinError({
             code: 'mutation-referential-integrity-failed',
             message: `Cannot apply create mutation to "${model.modelName}.${resourceId}" because it violates a persisted reference`,
             cause: failure,
@@ -155,7 +160,7 @@ export const applyMutationTx = Effect.fn('applyMutationTx')(function* <
             )
           : rowAttributes,
       };
-      lastAppliedAt = resourceRow.updatedAt;
+      previousUpdatedAt = resourceRow.updatedAt;
 
       const filtered = mutation.operation.mask
         ? pick(mutation.operation.attributes, mutation.operation.mask)
@@ -182,9 +187,9 @@ export const applyMutationTx = Effect.fn('applyMutationTx')(function* <
             .where(eq(table.id, resourceId))
             .run(),
         catch: cause => {
-          const failure = `${ZerospinError.prettyUnknownFailure(cause)}${
+          const failure = `${prettyUnknownFailure(cause)}${
             cause instanceof Error && cause.cause !== undefined
-              ? `\n${ZerospinError.prettyUnknownFailure(cause.cause)}`
+              ? `\n${prettyUnknownFailure(cause.cause)}`
               : ''
           }`;
           if (
@@ -192,7 +197,7 @@ export const applyMutationTx = Effect.fn('applyMutationTx')(function* <
           ) {
             throw cause;
           }
-          return new ZerospinError({
+          return makeZerospinError({
             code: 'mutation-referential-integrity-failed',
             message: `Cannot apply update mutation to "${model.modelName}.${resourceId}" because it violates a persisted reference`,
             cause: failure,
@@ -213,7 +218,7 @@ export const applyMutationTx = Effect.fn('applyMutationTx')(function* <
         property: mutation.operation.property,
         prevId: mutation.operation.prevId,
       };
-      lastAppliedAt = resourceRow.updatedAt;
+      previousUpdatedAt = resourceRow.updatedAt;
 
       yield* Effect.try({
         try: () =>
@@ -226,9 +231,9 @@ export const applyMutationTx = Effect.fn('applyMutationTx')(function* <
             .where(eq(table.id, resourceId))
             .run(),
         catch: cause => {
-          const failure = `${ZerospinError.prettyUnknownFailure(cause)}${
+          const failure = `${prettyUnknownFailure(cause)}${
             cause instanceof Error && cause.cause !== undefined
-              ? `\n${ZerospinError.prettyUnknownFailure(cause.cause)}`
+              ? `\n${prettyUnknownFailure(cause.cause)}`
               : ''
           }`;
           if (
@@ -236,7 +241,7 @@ export const applyMutationTx = Effect.fn('applyMutationTx')(function* <
           ) {
             throw cause;
           }
-          return new ZerospinError({
+          return makeZerospinError({
             code: 'mutation-referential-integrity-failed',
             message: `Cannot apply move mutation to "${model.modelName}.${resourceId}" because it violates a persisted reference`,
             cause: failure,
@@ -248,10 +253,12 @@ export const applyMutationTx = Effect.fn('applyMutationTx')(function* <
     }
     default: {
       const _exhaustive: never = operationName;
-      return yield* new ZerospinError({
-        code: 'unsupported-mutation-operation',
-        message: `applyMutationTx: unsupported operation "${String(_exhaustive)}"`,
-      });
+      return yield* Effect.fail(
+        makeZerospinError({
+          code: 'unsupported-mutation-operation',
+          message: `applyMutationTx: unsupported operation "${String(_exhaustive)}"`,
+        }),
+      );
     }
   }
 
@@ -260,7 +267,7 @@ export const applyMutationTx = Effect.fn('applyMutationTx')(function* <
     commandId,
     mutationIndex,
     appliedAt,
-    lastAppliedAt,
+    previousUpdatedAt,
     inverseOperation,
   };
 });

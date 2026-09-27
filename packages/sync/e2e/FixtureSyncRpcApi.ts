@@ -1,5 +1,5 @@
-import { encodeRpc } from '@zerospin/core/utils/encodeRpc';
-import type { IAnyErrorJson, IEncodedResult } from '@zerospin/error';
+import type { IAnyError } from '@zerospin/error';
+import { makeRpcEnvelope, type IRpcEnvelope } from '@zerospin/logger';
 import { RpcTarget } from 'capnweb';
 import { Effect } from 'effect';
 
@@ -22,26 +22,26 @@ export class FixtureSyncRpcApi extends RpcTarget {
 
   async getSnapshot(props: {
     name: string;
-  }): Promise<IEncodedResult<ISnapshot, IAnyErrorJson>> {
+  }): Promise<IRpcEnvelope<ISnapshot, IAnyError>> {
     const { name } = props;
     const { workerEnv } = this;
     return Effect.runPromise(
       Effect.promise(() =>
         workerEnv.FIXTURE_STATE_REPO.getByName(name).getSnapshot(),
-      ).pipe(encodeRpc),
+      ).pipe(makeRpcEnvelope),
     );
   }
 
   async bump(props: {
     name: string;
     value: string;
-  }): Promise<IEncodedResult<ISnapshot, IAnyErrorJson>> {
+  }): Promise<IRpcEnvelope<ISnapshot, IAnyError>> {
     const { name, value } = props;
     const { workerEnv } = this;
     return Effect.runPromise(
       Effect.promise(() =>
         workerEnv.FIXTURE_STATE_REPO.getByName(name).bump({ value }),
-      ).pipe(encodeRpc),
+      ).pipe(makeRpcEnvelope),
     );
   }
 }

@@ -1,11 +1,10 @@
 import type { Async } from '@zerospin/core/async/Async';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
-import { encodeRpc } from '@zerospin/core/utils/encodeRpc';
-import type { IAnyError, IAnyErrorJson, IEncodedResult } from '@zerospin/error';
+import { type IAnyError, type IZerospinErrorJson } from '@zerospin/error';
+import { makeRpcEnvelope, type IRpcEnvelope } from '@zerospin/logger';
 import { RpcTarget } from 'capnweb';
+import config from 'config';
 import { Effect } from 'effect';
-
-import { managedRuntime } from '../managedRuntime.js';
 
 /**
  * Nested outbox-subscriber RpcTarget. `receive` is on the prototype
@@ -26,7 +25,9 @@ export const makeOutboxSubscriber = <NAME extends string, ROW>(props: {
   receive: (rows: readonly ROW[]) => Effect.Effect<void, IAnyError, Async>;
 }): RpcTarget & {
   readonly name: NAME;
-  receive(rows: readonly ROW[]): Promise<IEncodedResult<void, IAnyErrorJson>>;
+  receive(
+    rows: readonly ROW[],
+  ): Promise<IRpcEnvelope<void, IZerospinErrorJson>>;
 } => {
   // 1 — bind the owner name and receive Effect
   const { name, receive } = props;
@@ -40,14 +41,12 @@ export const makeOutboxSubscriber = <NAME extends string, ROW>(props: {
       this.name = name;
     }
 
-    async receive(
-      rows: readonly ROW[],
-    ): Promise<IEncodedResult<void, IAnyErrorJson>> {
-      return managedRuntime.runPromise(
+    async receive(rows: readonly ROW[]) {
+      return config.system.runtime.runPromise(
         // 3 — provide AsyncLive and encode the durable owner receive outcome
         Effect.suspend(() => receive(rows)).pipe(
           Effect.provide(AsyncLive),
-          encodeRpc,
+          makeRpcEnvelope,
         ),
       );
     }
@@ -66,6 +65,6 @@ export type IOutboxSubscriberRepo<
   readonly [K in `${QUEUE['name']}Subscriber`]: RpcTarget & {
     receive(
       rows: readonly NonNullable<QUEUE['_outboxRow']>[],
-    ): Promise<IEncodedResult<void, IAnyErrorJson>>;
+    ): Promise<IRpcEnvelope<void, IZerospinErrorJson>>;
   };
 };

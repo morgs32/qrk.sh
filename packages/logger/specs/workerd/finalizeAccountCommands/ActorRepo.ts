@@ -1,4 +1,4 @@
-import { ZerospinError } from '@zerospin/error';
+import { makeZerospinError, ZerospinErrorSchema } from '@zerospin/error';
 import { makeRpcHandler, type IRpcRequest } from '@zerospin/logger';
 import { DurableObject } from 'cloudflare:workers';
 import { Effect, Schema } from 'effect';
@@ -25,10 +25,12 @@ export class ActorRepo extends DurableObject {
         );
         if (failNextActorDelivery === true) {
           yield* Effect.promise(() => storage.delete('failNextActorDelivery'));
-          return yield* new ZerospinError({
-            code: 'mock-actor-delivery-failure',
-            message: 'mock actor delivery failure',
-          }).pipe(Effect.mapError(Schema.encodeSync(ZerospinError.schema)));
+          return yield* Effect.fail(
+            makeZerospinError({
+              code: 'mock-actor-delivery-failure',
+              message: 'mock actor delivery failure',
+            }),
+          ).pipe(Effect.mapError(Schema.encodeSync(ZerospinErrorSchema)));
         }
 
         yield* Effect.logInfo('actor delivery succeeded');

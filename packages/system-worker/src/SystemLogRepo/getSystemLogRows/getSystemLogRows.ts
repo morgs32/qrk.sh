@@ -5,14 +5,11 @@
 
 import type { IDb } from '@zerospin/core/drizzle/types';
 import type { ISystemLogRow } from '@zerospin/core/system/types';
-import { ZerospinError, type IAnyError } from '@zerospin/error';
+import { catchZerospinError, type IAnyError } from '@zerospin/error';
 import { desc } from 'drizzle-orm';
 import { Effect, Schema } from 'effect';
 
-import {
-  systemLogRepoDbConfig,
-  systemLogRowSchema,
-} from '../systemLogRepoDbConfig.js';
+import { systemLogRepoDbConfig } from '../systemLogRepoDbConfig.js';
 
 /*
  * Log dashboard and live-tail bootstrap read newest retained log rows here.
@@ -40,8 +37,12 @@ export const getSystemLogRows = Effect.fn('SystemLogRepo.getSystemLogRows')(
           .orderBy(desc(systemLogRepoDbConfig.schema.logs.logIndex))
           .limit(boundedLimit)
           .all()
-          .map(row => Schema.decodeUnknownSync(systemLogRowSchema)(row)),
-      catch: ZerospinError.catch({ code: 'log-rows-read-failed' }),
+          .map(row =>
+            Schema.decodeUnknownSync(systemLogRepoDbConfig.tables.logs.codec)(
+              row,
+            ),
+          ),
+      catch: catchZerospinError({ code: 'log-rows-read-failed' }),
     });
   },
 );

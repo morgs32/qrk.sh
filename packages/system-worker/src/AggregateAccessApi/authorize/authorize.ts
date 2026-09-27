@@ -1,42 +1,46 @@
-import { AggregateFrontendLockSchema } from '@zerospin/core/frontendController/makeAggregateFrontendLock';
+import {
+  AggregateSessionLockSchema,
+  type IAggregateSessionLock,
+} from '@zerospin/core/aggregateSession/AggregateSessionLockSchema';
+import type { ISystem } from '@zerospin/core/system/types';
 import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
-import { mapParseError } from '@zerospin/error';
+import { makeZerospinError, mapParseError } from '@zerospin/error';
 import { makeAbbreviationIdSchema } from '@zerospin/schema';
 import { env } from 'cloudflare:workers';
 import { Effect, Schema } from 'effect';
 
-import { AggregateFrontendApi } from '../../AggregateFrontendApi/AggregateFrontendApi.js';
-import { AggregateFrontendApiFailure } from '../../AggregateFrontendApi/AggregateFrontendApiFailure/AggregateFrontendApiFailure.js';
-import { authorizeAggregateFrontend } from '../../authorizeAggregateFrontend/authorizeAggregateFrontend.js';
-import { checkAggregateAuthorization } from '../../GatewayApi/checkAggregateAuthorization/checkAggregateAuthorization.js';
-import type { ISystemRuntime } from '../../makeSystemRuntime.js';
+import { AggregateSessionApi } from '../../AggregateSessionApi/AggregateSessionApi.js';
+import { AggregateSessionApiFailure } from '../../AggregateSessionApi/AggregateSessionApiFailure/AggregateSessionApiFailure.js';
+
+import { authorizeAggregateSession } from './authorizeAggregateSession/authorizeAggregateSession.js';
+import { checkAggregateAuthorization } from './checkAggregateAuthorization/checkAggregateAuthorization.js';
 
 export const authorize = Effect.fn('AggregateAccessApi.authorize')(
   function* (props: {
     request: {
-      frontendName: string;
-      aggregateFrontendLock: Schema.Schema.Type<
-        typeof AggregateFrontendLockSchema
-      >;
+      sessionName: string;
+      aggregateSessionLock: IAggregateSessionLock;
     };
     access: {
       systemName: string;
       aggregateName: string;
       aggregateVersion: string;
-      authenticated: {
-        authentication: Readonly<Record<string, unknown>>;
-        selectionPath: string;
+      admitted: {
+        identity: Readonly<Record<string, unknown>>;
+        actorName: string;
+        actorVersion: string;
+        actorPath: string;
       };
     };
-    runtime: ISystemRuntime;
+    runtime: ISystem['runtime'];
   }) {
     const { request, access, runtime } = props;
-    const { authenticated } = access;
+    const { admitted } = access;
     return yield* Effect.gen(function* () {
       const validated = yield* Schema.decodeUnknownEffect(
         Schema.Struct({
-          frontendName: Schema.String,
-          aggregateFrontendLock: Schema.Unknown,
+          sessionName: Schema.String,
+          aggregateSessionLock: Schema.Unknown,
         }),
       )(request, { onExcessProperty: 'error' }).pipe(
         mapParseError({
@@ -44,59 +48,71 @@ export const authorize = Effect.fn('AggregateAccessApi.authorize')(
           prefix: 'Invalid aggregate authorization arguments',
         }),
       );
-      const aggregateFrontendLock = yield* Schema.decodeUnknownEffect(
-        AggregateFrontendLockSchema,
-      )(validated.aggregateFrontendLock, { onExcessProperty: 'error' }).pipe(
+      const aggregateSessionLock = yield* Schema.decodeUnknownEffect(
+        AggregateSessionLockSchema,
+      )(validated.aggregateSessionLock, { onExcessProperty: 'error' }).pipe(
         mapParseError({
-          code: 'aggregate-frontend-lock-invalid',
-          prefix: 'Invalid aggregate frontend lock',
+          code: 'aggregate-session-lock-invalid',
+          prefix: 'Invalid aggregate definition lock',
         }),
       );
-      const authentication = authenticated.authentication;
+      if (
+        aggregateSessionLock.actorName !== admitted.actorName ||
+        aggregateSessionLock.actorVersion !== admitted.actorVersion
+      ) {
+        return yield* Effect.fail(
+          makeZerospinError({
+            code: 'actor-capability-mismatch',
+            message: 'Session lock differs from the admitted selection',
+          }),
+        );
+      }
+      const identity = admitted.identity;
       const aggregateId = yield* Schema.decodeUnknownEffect(
         makeAbbreviationIdSchema(coreAbbreviations.aggregate),
-      )(authentication.aggregateId).pipe(
+      )(identity.aggregateId).pipe(
         mapParseError({
-          code: 'authentication-aggregate-id-invalid',
-          prefix: 'Invalid authenticated aggregate ID',
+          code: 'identity-aggregate-id-invalid',
+          prefix: 'Invalid admitted aggregate ID',
         }),
       );
 
-      const authorization = yield* authorizeAggregateFrontend({
+      const authorization = yield* authorizeAggregateSession({
         aggregateVersion: access.aggregateVersion,
         aggregateId,
         aggregateName: access.aggregateName,
-        frontendName: validated.frontendName,
-        aggregateFrontendLock,
-        authentication,
+        sessionName: validated.sessionName,
+        aggregateSessionLock,
+        identity,
       });
       yield* checkAggregateAuthorization({
         aggregateVersion: access.aggregateVersion,
         authorization,
-        authentication,
+        identity,
         aggregateId,
         aggregateName: access.aggregateName,
-        systemName: access.systemName,
-        frontendName: validated.frontendName,
-        aggregateFrontendLock,
+        sessionName: validated.sessionName,
+        aggregateSessionLock,
       });
 
-      return new AggregateFrontendApi({
+      return new AggregateSessionApi({
         authResults: {
           aggregateVersion: access.aggregateVersion,
           aggregateId: authorization.aggregateId,
           aggregateName: authorization.aggregateName,
-          authentication: authorization.authentication,
-          selectionPath: authenticated.selectionPath,
-          aggregateFrontendLock: authorization.aggregateFrontendLock,
-          frontendName: validated.frontendName,
+          identity: authorization.identity,
+          actorName: admitted.actorName,
+          actorVersion: admitted.actorVersion,
+          actorPath: admitted.actorPath,
+          aggregateSessionLock: authorization.aggregateSessionLock,
+          sessionName: validated.sessionName,
           systemId: env.ZEROSPIN_SYSTEM_ID,
         },
         runtime,
       });
     }).pipe(
       Effect.catch(error =>
-        Effect.succeed(new AggregateFrontendApiFailure(error)),
+        Effect.succeed(new AggregateSessionApiFailure(error)),
       ),
     );
   },

@@ -3,35 +3,35 @@ declare module 'cloudflare:workers' {
     AGGREGATE_CHAIN: DurableObjectNamespace<
       Rpc.DurableObjectBranded & import('system-worker').AggregateChain
     >;
-    SERVICE_ADMITTED_CHAIN: DurableObjectNamespace<
-      Rpc.DurableObjectBranded & import('system-worker').ServiceAdmittedChain
+    SERVICE_CHAIN: DurableObjectNamespace<
+      Rpc.DurableObjectBranded & import('system-worker').ServiceChain
     >;
-    VERSIONED_AGGREGATE_CHAIN: DurableObjectNamespace<
-      Rpc.DurableObjectBranded & import('system-worker').VersionedAggregateChain
+    AGGREGATE_VERSION_CHAIN: DurableObjectNamespace<
+      Rpc.DurableObjectBranded & import('system-worker').AggregateVersionChain
     >;
-    VERSIONED_SERVICE_CHAIN: DurableObjectNamespace<
-      Rpc.DurableObjectBranded & import('system-worker').VersionedServiceChain
+    SERVICE_VERSION_CHAIN: DurableObjectNamespace<
+      Rpc.DurableObjectBranded & import('system-worker').ServiceVersionChain
     >;
-    SELECTION_VERSIONED_AGGREGATE_CHAIN: DurableObjectNamespace<
+    AGGREGATE_ACTOR_VERSION_CHAIN: DurableObjectNamespace<
       Rpc.DurableObjectBranded &
-        import('system-worker').SelectionVersionedAggregateChain
+        import('system-worker').AggregateActorVersionChain
     >;
-    FRONTEND_SERVICE_CHAIN: DurableObjectNamespace<
-      Rpc.DurableObjectBranded & import('system-worker').FrontendServiceChain
-    >;
-    VERSIONED_AGGREGATE_REPO: DurableObjectNamespace<
-      Rpc.DurableObjectBranded & import('system-worker').VersionedAggregateRepo
-    >;
-    VERSIONED_SERVICE_REPO: DurableObjectNamespace<
-      Rpc.DurableObjectBranded & import('system-worker').VersionedServiceRepo
-    >;
-    SELECTION_VERSIONED_AGGREGATE_REPO: DurableObjectNamespace<
+    SERVICE_ACTOR_VERSION_CHAIN: DurableObjectNamespace<
       Rpc.DurableObjectBranded &
-        import('system-worker').SelectionVersionedAggregateRepo
+        import('system-worker').ServiceActorVersionChain
     >;
-    FRONTEND_VERSIONED_SERVICE_REPO: DurableObjectNamespace<
+    AGGREGATE_VERSION_REPO: DurableObjectNamespace<
+      Rpc.DurableObjectBranded & import('system-worker').AggregateVersionRepo
+    >;
+    SERVICE_VERSION_REPO: DurableObjectNamespace<
+      Rpc.DurableObjectBranded & import('system-worker').ServiceVersionRepo
+    >;
+    AGGREGATE_ACTOR_VERSION_REPO: DurableObjectNamespace<
       Rpc.DurableObjectBranded &
-        import('system-worker').FrontendVersionedServiceRepo
+        import('system-worker').AggregateActorVersionRepo
+    >;
+    SERVICE_ACTOR_VERSION_REPO: DurableObjectNamespace<
+      Rpc.DurableObjectBranded & import('system-worker').ServiceActorVersionRepo
     >;
     SYSTEM_LOG_REPO: DurableObjectNamespace<
       Rpc.DurableObjectBranded & import('system-worker').SystemLogRepo

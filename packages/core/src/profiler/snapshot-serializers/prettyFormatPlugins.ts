@@ -1,7 +1,7 @@
 import type { ReadableSpan } from '@opentelemetry/sdk-trace-base';
 import type { Plugin } from '@vitest/pretty-format';
 
-import { ZerospinProfile } from '../makeProfilerLayer.ts';
+import { ZerospinProfile } from '../make/makeProfilerLayer/makeProfilerLayer.ts';
 
 export const spanSerializer: Plugin = {
   serialize(val: ReadableSpan, config, indentation, depth, refs, printer) {

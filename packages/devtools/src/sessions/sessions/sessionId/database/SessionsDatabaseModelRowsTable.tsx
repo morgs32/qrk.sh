@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from 'react';
 
-import { getInitializedStateOrThrow } from '@zerospin/core/session/getInitializedStateOrThrow';
-import type { IAggregateSession } from '@zerospin/core/session/types';
+import { getInitializedStateOrThrow } from '@zerospin/core/aggregateSession/getInitializedStateOrThrow';
+import type { IAggregateSession } from '@zerospin/core/aggregateSession/types';
 
 import type { IDevtoolsServiceSessionEntry } from '../../../../types.js';
 import { useLiveQueryOnDb } from '../../../../useLiveQueryOnDb';
@@ -149,8 +149,8 @@ function ServiceDatabaseRowsTable(props: {
   );
   const serviceIndex = useSyncExternalStore(
     session.subscribe,
-    session.getServiceFrontendIndex,
-    session.getServiceFrontendIndex,
+    session.getServiceIndex,
+    session.getServiceIndex,
   );
 
   if (!isInitialized) {
@@ -161,7 +161,7 @@ function ServiceDatabaseRowsTable(props: {
   let error: Error | undefined;
 
   try {
-    // The subscribed frontend index makes each committed service command rerun
+    // The subscribed definition index makes each committed service command rerun
     // the typed query closure retained by the registration adapter.
     void serviceIndex;
     const result = session.readModelRows(modelKey);

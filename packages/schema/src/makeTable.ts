@@ -1,8 +1,13 @@
+import { Schema, type Effect } from 'effect';
+
 import { PrimitiveKind } from './primitiveKind.ts';
+import { makeEffectSchema } from './primitiveMaps.ts';
 import type {
   IAnyRefDescriptor,
   IAnyShape,
   IDrizzleIndexConfig,
+  InferDecodedRow,
+  InferEncodedRow,
   IPrimaryKeyDescriptor,
   ITable,
 } from './types.ts';
@@ -17,14 +22,19 @@ export class Table<
   readonly name: TABLE_NAME;
   readonly shape: SHAPE;
   readonly indexes: readonly IDrizzleIndexConfig<string>[];
+  #codec: ReturnType<typeof makeEffectSchema<SHAPE>> | undefined;
+
+  get codec(): ReturnType<typeof makeEffectSchema<SHAPE>> {
+    return (this.#codec ??= makeEffectSchema(this.shape));
+  }
 
   constructor(props: {
     name: TABLE_NAME;
     shape: SHAPE;
     indexes?: readonly IDrizzleIndexConfig<keyof SHAPE & string>[];
   }) {
-    const { name } = props;
-    const shape = { ...props.shape };
+    const { name, shape: inputShape, indexes: inputIndexes } = props;
+    const shape = { ...inputShape };
     for (const key in shape) {
       const descriptor = shape[key];
       if (descriptor === undefined) continue;
@@ -34,7 +44,7 @@ export class Table<
         Object.assign(ownedDescriptor, { values: [...descriptor.values] });
       }
     }
-    const indexes = (props.indexes ?? []).map(index => {
+    const indexes = (inputIndexes ?? []).map(index => {
       const columns: typeof index.columns = [...index.columns];
       return { ...index, columns };
     });
@@ -94,6 +104,28 @@ export class Table<
       selfDescriptor.targetColumnName = primaryKeyColumnName;
       Reflect.deleteProperty(selfDescriptor, 'self');
     }
+    // Named refs acquire their key codec when the owning config resolves them.
+    if (
+      !Object.values(shape).some(
+        descriptor =>
+          descriptor.kind === PrimitiveKind.Ref &&
+          typeof descriptor.table === 'string',
+      )
+    ) {
+      this.#codec = makeEffectSchema(this.shape);
+    }
+  }
+
+  decodeRow(
+    row: unknown,
+  ): Effect.Effect<InferDecodedRow<SHAPE>, Schema.SchemaError> {
+    return Schema.decodeUnknownEffect(this.codec)(row);
+  }
+
+  encodeRow(
+    row: InferDecodedRow<SHAPE>,
+  ): Effect.Effect<InferEncodedRow<SHAPE>, Schema.SchemaError> {
+    return Schema.encodeEffect(this.codec)(row);
   }
 }
 

@@ -5,8 +5,8 @@ import path from 'node:path';
 import * as NodeFileSystem from '@effect/platform-node-shared/NodeFileSystem';
 import * as NodePath from '@effect/platform-node-shared/NodePath';
 import type {} from '@zerospin/core/async/Async';
-import { makeAsync } from '@zerospin/core/async/makeAsync';
-import { ZerospinError } from '@zerospin/error';
+import { makeAsync } from '@zerospin/core/async/make/makeAsync';
+import { makeZerospinError, prettyUnknownFailure } from '@zerospin/error';
 import { Effect, Layer } from 'effect';
 import { ChildProcess } from 'effect/unstable/process';
 
@@ -24,11 +24,11 @@ export const e2eFn = Effect.fn('e2eFn')(function* (
   yield* makeAsync(
     () => fs.access(vitestConfigPath),
     cause =>
-      new ZerospinError({
+      makeZerospinError({
         code: 'zerospin-e2e-config-not-found',
         message:
           'Could not find vitest.zerospin.config.ts in the current project.',
-        cause: ZerospinError.prettyUnknownFailure(cause),
+        cause: prettyUnknownFailure(cause),
       }),
   );
 
@@ -51,24 +51,25 @@ export const e2eFn = Effect.fn('e2eFn')(function* (
   ).pipe(
     Effect.flatMap(process => process.exitCode),
     Effect.scoped,
-    Effect.mapError(
-      cause =>
-        new ZerospinError({
-          code: 'zerospin-e2e-run-failed',
-          message: 'Failed to run zerospin e2e.',
-          cause: ZerospinError.prettyUnknownFailure(cause),
-        }),
+    Effect.mapError(cause =>
+      makeZerospinError({
+        code: 'zerospin-e2e-run-failed',
+        message: 'Failed to run zerospin e2e.',
+        cause: prettyUnknownFailure(cause),
+      }),
     ),
   );
 
   if (exitCode !== 0) {
-    return yield* new ZerospinError({
-      code: 'zerospin-e2e-failed',
-      message: `zerospin e2e failed with exit code ${exitCode}.`,
-      extra: {
-        vitestConfigPath,
-      },
-    });
+    return yield* Effect.fail(
+      makeZerospinError({
+        code: 'zerospin-e2e-failed',
+        message: `zerospin e2e failed with exit code ${exitCode}.`,
+        extra: {
+          vitestConfigPath,
+        },
+      }),
+    );
   }
 
   return {

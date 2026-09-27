@@ -18,38 +18,38 @@ occurrence; command history and resource state are separate durable owners.
 ```mermaid
 flowchart TB
   Source["Authored System + current Repo schemas"] --> Worker["DevWorker / ProductionWorker"]
-  Browser["React + main-thread frontend replicas"] --> Gateway[GatewayApi]
+  Browser["React + main-thread session replicas"] --> Gateway[GatewayApi]
   Browser --> BackupWorker["Stable SharedWorker: BackupWorkerApi + BackupDbApi"]
   BackupWorker --> IndexedDB[(IDBBatchAtomicVFS backups)]
   Operator["server caller"] --> Gateway
   Worker --> Gateway
   Gateway --> SystemApi
-  Gateway --> AggregateFrontendApi
-  Gateway --> ServiceFrontendApi
+  Gateway --> AggregateSessionApi
+  Gateway --> ServiceSessionApi
 
   SystemApi --> AggregateChain
-  SystemApi --> ServiceAdmittedChain
-  AggregateFrontendApi --> AggregateChain
+  SystemApi --> ServiceChain
+  AggregateSessionApi --> AggregateChain
 
-  AggregateChain --> VersionedAggregateRepo
-  ServiceAdmittedChain --> VersionedServiceRepo
-  ServiceAdmittedChain --> AggregateChain
-  VersionedAggregateRepo --> VersionedAggregateChain
-  VersionedAggregateChain --> SelectionVersionedAggregateRepo
-  VersionedServiceRepo --> VersionedServiceChain
-  VersionedServiceChain --> FrontendVersionedServiceRepo
+  AggregateChain --> AggregateVersionRepo
+  ServiceChain --> ServiceVersionRepo
+  ServiceChain --> AggregateChain
+  AggregateVersionRepo --> AggregateVersionChain
+  AggregateVersionChain --> AggregateActorVersionRepo
+  ServiceVersionRepo --> ServiceVersionChain
+  ServiceVersionChain --> ServiceActorVersionRepo
 
-  SelectionVersionedAggregateRepo --> SelectionVersionedAggregateChain
-  FrontendVersionedServiceRepo --> FrontendServiceChain
-  SelectionVersionedAggregateChain --> Browser
-  FrontendServiceChain --> Browser
+  AggregateActorVersionRepo --> AggregateActorVersionChain
+  ServiceActorVersionRepo --> ServiceActorVersionChain
+  AggregateActorVersionChain --> Browser
+  ServiceActorVersionChain --> Browser
 
   Gateway --> SystemRepo
   SystemRepo --> SystemLogRepo
 ```
 
 Gateway exposes SystemApi to secret-key callers and independently acquired
-aggregate or service frontend capabilities to publishable-key callers.
+aggregate or service session capabilities to publishable-key callers.
 
 - [`GatewayApi.ts`](../packages/system-worker/src/GatewayApi/GatewayApi.ts) — defines the three root capability getters.
 - [`getSystemApi.ts`](../packages/system-worker/src/GatewayApi/getSystemApi/getSystemApi.ts) — validates the secret key and binds SystemApi to configured `systemId`.
@@ -59,32 +59,32 @@ aggregate or service frontend capabilities to publishable-key callers.
 Durable Object identity includes `systemId` plus the logical instance fields.
 Every instance provisions its current schema once and reopens that same schema
 on later cold activations. Authored materializers derive their one fixed
-database configuration from the aggregate, service, and frontend names in the
+database configuration from the aggregate, service, and session names in the
 instance identity; there is no separate schema target or history.
 
-| Repo                             | Durable identity                                                            |
-| -------------------------------- | --------------------------------------------------------------------------- |
-| AggregateChain                   | `{ systemId, aggregateId, aggregateName }`                                  |
-| ServiceAdmittedChain             | `{ systemId, serviceName }`                                                 |
-| VersionedAggregateChain          | `{ systemId, aggregateId, aggregateName, aggregateVersion }`                |
-| SelectionVersionedAggregateChain | `{ systemId, aggregateId, aggregateName, aggregateVersion, selectionPath }` |
-| FrontendServiceChain             | `{ systemId, serviceName, serviceVersion, identityKey, frontendName }`      |
-| VersionedAggregateRepo           | `{ systemId, aggregateId, aggregateName, aggregateVersion }`                |
-| VersionedServiceRepo             | `{ systemId, serviceName, serviceVersion }`                                 |
-| SelectionVersionedAggregateRepo  | `{ systemId, aggregateId, aggregateName, aggregateVersion, selectionPath }` |
-| FrontendVersionedServiceRepo     | `{ systemId, serviceName, serviceVersion, identityKey, frontendName }`      |
-| VersionedServiceChain            | `{ systemId, serviceName, serviceVersion }`                                 |
-| SystemRepo and SystemLogRepo     | `{ systemId }`                                                              |
+| Repo                         | Durable identity                                                                                 |
+| ---------------------------- | ------------------------------------------------------------------------------------------------ |
+| AggregateChain               | `{ systemId, aggregateId, aggregateName }`                                                       |
+| ServiceChain                 | `{ systemId, serviceName }`                                                                      |
+| AggregateVersionChain        | `{ systemId, aggregateId, aggregateName, aggregateVersion }`                                     |
+| AggregateActorVersionChain   | `{ systemId, aggregateId, aggregateName, aggregateVersion, actorName, actorVersion, actorPath }` |
+| ServiceActorVersionChain     | `{ systemId, serviceName, serviceVersion, identityKey, sessionName }`                            |
+| AggregateVersionRepo         | `{ systemId, aggregateId, aggregateName, aggregateVersion }`                                     |
+| ServiceVersionRepo           | `{ systemId, serviceName, serviceVersion }`                                                      |
+| AggregateActorVersionRepo    | `{ systemId, aggregateId, aggregateName, aggregateVersion, actorName, actorVersion, actorPath }` |
+| ServiceActorVersionRepo      | `{ systemId, serviceName, serviceVersion, identityKey, sessionName }`                            |
+| ServiceVersionChain          | `{ systemId, serviceName, serviceVersion }`                                                      |
+| SystemRepo and SystemLogRepo | `{ systemId }`                                                                                   |
 
 - [`types.ts`](../packages/core/src/system/types.ts) — defines the current Repo kinds and registration shape without schema targets.
 - [`aggregateChainFixedDORepoConfig.ts`](../packages/system-worker/src/AggregateChain/aggregateChainFixedDORepoConfig.ts) — keeps AggregateChain on the unversioned `{ systemId, aggregateId, aggregateName }` name.
-- [`VersionedAggregateRepo.ts`](../packages/system-worker/src/VersionedAggregateRepo/VersionedAggregateRepo.ts) — binds each aggregate implementation to `{ systemId, aggregateId, aggregateName, aggregateVersion }`.
-- [`SelectionVersionedAggregateRepo.ts`](../packages/system-worker/src/SelectionVersionedAggregateRepo/SelectionVersionedAggregateRepo.ts) — derives the frontend materializer's fixed database config from its exact identity.
+- [`AggregateVersionRepo.ts`](../packages/system-worker/src/AggregateVersionRepo/AggregateVersionRepo.ts) — binds each aggregate implementation to `{ systemId, aggregateId, aggregateName, aggregateVersion }`.
+- [`AggregateActorVersionRepo.ts`](../packages/system-worker/src/AggregateActorVersionRepo/AggregateActorVersionRepo.ts) — derives the session materializer's fixed database config from its exact identity.
 - [`makeFixedDORepo.ts`](../packages/system-worker/src/makeFixedDORepo/makeFixedDORepo.ts) — skips provisioning after the durable bootstrap marker is present.
 
 ## SystemRepo boundary and command execution
 
-SystemRepo is the singleton keyed by `{ systemId }`. It owns Repo inspection, one-time frontend
+SystemRepo is the singleton keyed by `{ systemId }`. It owns Repo inspection, one-time session
 WebSocket tickets, and WebSocket routing. AC reconciles its VAR destinations
 from deployed aggregate definitions during activation. Commands and direct RPCs
 activate VARs.
@@ -92,7 +92,7 @@ activate VARs.
 - [`SystemRepo.ts`](../packages/system-worker/src/SystemRepo/SystemRepo.ts) — Owns Repo registration, inspection, and singleton ticket routing.
 - [`systemRepoDbConfig.ts`](../packages/system-worker/src/SystemRepo/systemRepoDbConfig.ts) — Persists tickets and Repo registrations.
 - [`onDOActivation.ts`](../packages/system-worker/src/AggregateChain/onDOActivation/onDOActivation.ts) — Reconciles supported destinations while preserving retained command progress.
-- [`onDOActivation.ts`](../packages/system-worker/src/VersionedAggregateRepo/onDOActivation/onDOActivation.ts) — Initializes declared service pins and subscribes during activation; the registered outbox independently resumes publication.
+- [`onDOActivation.ts`](../packages/system-worker/src/AggregateVersionRepo/onDOActivation/onDOActivation.ts) — Initializes declared service pins and subscribes during activation; the registered outbox independently resumes publication.
 
 AC admits complete aggregate inputs with exact-byte idempotency. Each VAR
 prepares inputs for its own aggregateVersion and commits terminal execution
@@ -112,21 +112,21 @@ fence, reopen, or compatibility path.
 
 ## Browser convergence and backup
 
-Each selected frontend owns an in-memory wa-sqlite replica, finalized-output
+Each selected session owns an in-memory wa-sqlite replica, finalized-output
 socket, and recovery loop on the page main thread. Aggregate recovery fetches
-a published SelectionVAR snapshot, pins its aggregateVersion in the ticket, and replays
-SelectionVAC outputs strictly after the captured frontend cursor. Snapshot resolved
+a published ActorVAR snapshot, pins its aggregateVersion in the ticket, and replays
+ActorVAC outputs strictly after the captured session cursor. Snapshot resolved
 command IDs and per-command originating resolutions reconcile local optimism.
 Service recovery captures a published FVSR snapshot, pins its serviceVersion,
 and replays FSC strictly after its serviceIndex.
 
-- [`getState.ts`](../packages/system-worker/src/SelectionVersionedAggregateRepo/getState/getState.ts) — captures state and cursor together and awaits bounded SelectionVAC publication.
-- [`bootstrapAggregateFrontendSession.ts`](../packages/frontend/src/bootstrapAggregateFrontendSession.ts) — installs published state, validates contiguous replay, and retains the live socket.
-- [`bootstrapServiceFrontendSession.ts`](../packages/frontend/src/bootstrapServiceFrontendSession.ts) — captures the service snapshot before obtaining its version-pinned ticket.
+- [`getState.ts`](../packages/system-worker/src/AggregateActorVersionRepo/getState/getState.ts) — captures state and cursor together and awaits bounded ActorVAC publication.
+- [`bootstrapAggregateSession.ts`](../packages/browser/src/bootstrapAggregateSession.ts) — installs published state, validates contiguous replay, and retains the live socket.
+- [`bootstrapServiceSession.ts`](../packages/browser/src/bootstrapServiceSession.ts) — captures the service snapshot before obtaining its version-pinned ticket.
 
 The page shares one connection to `/__zerospin/backup-worker.js`, named
-`zerospin-backups`, across its selected frontends. That SharedWorker owns
-asynchronous backup SQLite and `IDBBatchAtomicVFS`. Each exact frontend backup
+`zerospin-backups`, across its selected sessions. That SharedWorker owns
+asynchronous backup SQLite and `IDBBatchAtomicVFS`. Each exact session backup
 key selects one database independently of the app build and execution session
 ID. A takeover revokes the previous database capability before waiting for its
 in-flight SQLite operation and returns the committed baseline to the new owner.
@@ -138,12 +138,12 @@ in-flight SQLite operation and returns the committed baseline to the new owner.
 The mounted page keeps its synchronous live SQLite, session, and store across
 ownership changes. Reacquisition restores committed backup contents and renews
 execution identity; commands already retained in the journal preserve their
-original occurrence bytes. Revocation pauses only the affected frontend.
+original occurrence bytes. Revocation pauses only the affected session.
 
-- [`makeAggregateSession.ts`](../packages/core/src/session/makeAggregateSession.ts) — reads the current execution identity from session state and captures it for synchronous command construction and metadata writes.
-- [`acquireAggregateFrontendSession.ts`](../packages/react/src/makeSession/makeSession.ts) — shares the page connection and moves DevTools registrations when the retained session's ID changes.
-- [`bootstrapAggregateFrontendSession.ts`](../packages/frontend/src/bootstrapAggregateFrontendSession.ts) — owns acquisition, in-place restoration, per-period sockets, pushes, and ordered backup capture.
-- [`bootstrapServiceFrontendSession.ts`](../packages/frontend/src/bootstrapServiceFrontendSession.ts) — owns equivalent service acquisition and delivery independently of aggregate frontends.
+- [`makeAggregateSession.ts`](../packages/core/src/aggregateSession/make/makeAggregateSession.ts) — reads the current execution identity from session state and captures it for synchronous command construction and metadata writes.
+- [`acquireAggregateSession.ts`](../packages/browser/src/makeSession/makeSession.ts) — shares the page connection and moves DevTools registrations when the retained session's ID changes.
+- [`bootstrapAggregateSession.ts`](../packages/browser/src/bootstrapAggregateSession.ts) — owns acquisition, in-place restoration, per-period sockets, pushes, and ordered backup capture.
+- [`bootstrapServiceSession.ts`](../packages/browser/src/bootstrapServiceSession.ts) — owns equivalent service acquisition and delivery independently of aggregate sessions.
 
 See [Authored System](./architecture/AuthoredSystem.md),
 [System API](./architecture/SystemApi.md),

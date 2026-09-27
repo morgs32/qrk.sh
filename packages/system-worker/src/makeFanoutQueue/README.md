@@ -33,7 +33,8 @@ The two `subscribe` methods do different work:
    normal `receive` Effect, rereads durable progress, and then calls the source
    queue's enrollment RPC.
 2. **`queue.subscribe(...)`** durably enrolls the receiver cursor and starts a
-   drain. It returns after enrollment, without waiting for delivery.
+   drain. It returns an RPC envelope with a `void` success value after enrollment,
+   without waiting for delivery.
 
 An unbounded `catchup()` still captures one finite destination. Later page tips
 cannot keep extending it. `getPage` returns at most 64 complete rows after the
@@ -43,7 +44,10 @@ the whole retained source tip. The envelope tip is never an acknowledgement.
 Retained source rows close the gap between catch-up and enrollment: a row
 appended during that handoff remains available for the ensuing drain. Failed
 catch-up does not enroll. Reconstructing a subscriber resumes committed progress.
-See [handoff and interruption tests](../makeFanoutSubscriber/makeFanoutSubscriber.node.spec.ts).
+The [subscriber tests](../makeFanoutSubscriber/makeFanoutSubscriber.node.spec.ts)
+pull and commit retained pages through a fixed destination even when the source
+tip advances, and verify initial archive catch-up before enrollment followed by
+live delivery.
 
 Repos call `subscriber.subscribe()` during `onDOActivation()`. Subsequent reads
 use `catchup()` when they need fresh or bounded state. Service dependencies come
@@ -84,8 +88,8 @@ progress, and repeated subscription cannot rewind acknowledged history.
 Delivery remains serialized. Pending receiver identities are excluded before
 the concurrency limit; completed receivers free slots for the next oldest
 unfailed destination. Every delivery keeps its own immutable page slice.
-The [queue tests](./makeFanoutQueue.node.spec.ts) cover reentrant activation,
-concurrent enrollment/acknowledgement, repeated enrollment, and serialized drains.
+The [queue tests](./makeFanoutQueue.node.spec.ts) cover background delivery,
+durable acknowledgements, and failure of the initial recovery alarm.
 
 ## Durable acknowledgement and failures
 
@@ -109,8 +113,8 @@ when eligible delivery settles. The registry combines outcomes only after all
 registered operations settle; it does not resubscribe receivers.
 
 `drainAfter(() => effect)` schedules the recovery alarm before running a lazy,
-synchronous producer Effect. It returns the producer result without starting or
-waiting for delivery. AC admission uses this boundary around its existing atomic
+synchronous producer Effect. After the producer settles, it starts delivery in
+the system runtime and returns without waiting for receivers. AC admission uses this boundary around its existing atomic
 batch transaction. Service admission and aggregate finalized-command receipt also use it.
 Direct aggregate execution and service finalized-result publication retain their
 existing scheduling paths.
@@ -118,17 +122,18 @@ existing scheduling paths.
 The callback cannot require `Async` or return a Promise value. Synchronous runtime
 execution also rejects suspension and cancels the suspended fiber, preventing later
 continuation. This boundary does not roll back arbitrary side effects: the caller's
-transaction owns rollback. Scheduling failure prevents callback invocation; callback
-failure preserves the alarm and may cause a harmless empty wakeup.
+transaction owns rollback. Scheduling failure prevents callback invocation and
+background delivery. Producer failure or interruption still launches a drain
+for any committed rows.
 
 A producer increments an active count before scheduling and advances a revision when
 it settles. A drain captures that revision with its persisted-tip read and clears
 its lease only if no producer is active and the revision is unchanged. Thus a drain
 that read an older tip cannot clear a newer producer's recovery. Admission does not
-wait for the delivery semaphore or remote receipts. Termination after commit needs
-no finalizer: the alarm already exists, and a cold queue reads durable history.
+wait for the delivery semaphore or remote receipts. The finalizer finishes producer
+bookkeeping before launching delivery; a cold queue reads durable history.
 See the [producer recovery tests](./makeFanoutQueue.node.spec.ts) and
-[AC admission tests](../AggregateChain/AggregateChain.node.spec.ts).
+[live automation fanout test](../AggregateActorVersionRepo/automations/automations.workerd.spec.ts).
 
 Enrollment holds the queue wakeup before committing, then starts delivery. A
 finished queue releases only its own lease; other queues may still need the shared
@@ -140,4 +145,4 @@ queue-owned delivery. Cold queues reconstruct progress from storage. An empty
 eligible suffix waits for a later drain to reread the durable tip.
 
 Further detail: [fanout architecture](../../../../wiki/architecture/server/admitCommands.md#fanout-scheduling-and-terminal-failures)
-and [registry tests](../makeAlarmRegistry/makeAlarmRegistry.node.spec.ts).
+and [alarm registry](../makeAlarmRegistry/makeAlarmRegistry.ts).

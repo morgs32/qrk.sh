@@ -1,4 +1,4 @@
-import { makeProvisionedInMemorySqljsDb } from '@zerospin/core/drizzle/makeProvisionedInMemorySqljsDb';
+import { makeProvisionedInMemorySqljsDb } from '@zerospin/core/drizzle/make/makeProvisionedInMemorySqljsDb/makeProvisionedInMemorySqljsDb';
 
 export const makeProvisionedInMemoryWasmSqliteDb =
   makeProvisionedInMemorySqljsDb;

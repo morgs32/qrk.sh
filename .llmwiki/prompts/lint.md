@@ -6,13 +6,13 @@ each fix.
 
 ## Steps
 
-1. Read `AGENTS.md` ([LLM Wiki ingest](../../AGENTS.md#llm-wiki-ingest)) and `.llmwiki/config.yml`.
+1. Read `AGENTS.md`, the [LLM Wiki ingest manual](../README.md), and `.llmwiki/config.yml`.
 2. Walk `wiki/**/*.md`, excluding the human-authored `wiki/dev/**` tree, and
    check for:
    - **Orphan pages** — no inbound `[[wiki-link]]` from any other page.
    - **Stale `TODO-VERIFY` blocks** — blocks older than 30 days that are still unresolved.
    - **Unresolved `CONTRADICTION` blocks** — ever flagged, never cleaned up.
-   - **Ungrounded claims** — paragraphs without a working Markdown source citation nearby per `AGENTS.md` hard rule 1. Do not flag architecture opening prose when the immediately following `## Annotated workflow steps` already cite the same claims.
+   - **Ungrounded claims** — paragraphs without a working Markdown source citation nearby per the ingest manual's hard rule 1. Do not flag architecture opening prose when the immediately following `## Annotated workflow steps` already cite the same claims.
    - **Glossary gaps** — public identifiers that appear in `wiki/architecture/`
      but not in `wiki/glossary.md`.
    - **Glossary citation format** — each `wiki/glossary.md` term lists source

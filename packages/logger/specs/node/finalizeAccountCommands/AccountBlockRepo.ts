@@ -1,4 +1,4 @@
-import { ZerospinError } from '@zerospin/error';
+import { makeZerospinError, ZerospinErrorSchema } from '@zerospin/error';
 import {
   makeRpcHandler,
   makeTraceableRpcTarget,
@@ -49,10 +49,12 @@ const publishHandler = makeRpcHandler('AccountBlockRepo.publish')(function* () {
   yield* Effect.logInfo(`publish attempt ${publishAttempt}`);
   if (harness.failNextAccountBlockPublish) {
     harness.failNextAccountBlockPublish = false;
-    return yield* new ZerospinError({
-      code: 'mock-account-block-publish-failure',
-      message: 'mock account block publish failure',
-    }).pipe(Effect.mapError(Schema.encodeSync(ZerospinError.schema)));
+    return yield* Effect.fail(
+      makeZerospinError({
+        code: 'mock-account-block-publish-failure',
+        message: 'mock account block publish failure',
+      }),
+    ).pipe(Effect.mapError(Schema.encodeSync(ZerospinErrorSchema)));
   }
 
   const span = yield* Effect.currentSpan.pipe(Effect.orDie);

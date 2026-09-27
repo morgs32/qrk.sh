@@ -8,7 +8,7 @@ export function makePlaywrightVitestConfig(props: {
   include?: readonly string[];
 }) {
   const {
-    include = ['src/mainThreadFrontendFlow.playwright.spec.ts'],
+    include = ['src/mainThreadSessionFlow.playwright.spec.ts'],
     packageRoot,
   } = props;
   const repoRoot = path.resolve(packageRoot, '../..');

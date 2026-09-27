@@ -4,15 +4,15 @@ import { Box, Text } from 'ink';
 
 import {
   ProcedureStepContext,
-  type ProcedureStepStatus,
+  type IProcedureStepStatus,
 } from './ProcedureStepContext.js';
 
-type ProcedureStepProps = {
+type IProcedureStepProps = {
   children: ReactNode;
-  status: ProcedureStepStatus;
+  status: IProcedureStepStatus;
 };
 
-export function ProcedureStep(props: ProcedureStepProps) {
+export function ProcedureStep(props: IProcedureStepProps) {
   const { children, status } = props;
 
   return (

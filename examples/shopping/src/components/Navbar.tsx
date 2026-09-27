@@ -23,6 +23,12 @@ export function Navbar({ className }: { className?: string }) {
         Zerospin Shopping
       </Link>
       <div className="flex items-center gap-2">
+        <Link
+          to="/fulfillment"
+          className="px-3 text-sm font-medium hover:underline"
+        >
+          Fulfillment
+        </Link>
         <Button
           type="button"
           variant="outline"

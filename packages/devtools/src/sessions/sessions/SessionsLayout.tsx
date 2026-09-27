@@ -1,17 +1,20 @@
 import { useEffect, useState, type CSSProperties } from 'react';
 
-import type { IAggregateSession, ISessionId } from '@zerospin/core/session/types';
+import type {
+  IAggregateSession,
+  ISessionId,
+} from '@zerospin/core/aggregateSession/types';
 import { Outlet, useMatch, useNavigate } from 'react-router';
 import { useStore } from 'zustand/react';
 import { useShallow } from 'zustand/react/shallow';
 
 import type { IDevtoolsServiceSessionEntry } from '../../types.js';
 import { zerospinDevtoolsStore } from '../../zerospinDevtoolsStore';
-import {
-  ServiceSessionsAuthenticationCell,
-  SessionsAuthenticationCell,
-} from '../SessionsAuthenticationCell';
 import { SessionsDataCell } from '../SessionsDataCell';
+import {
+  ServiceSessionsIdentityCell,
+  SessionsIdentityCell,
+} from '../SessionsIdentityCell';
 
 const styles = {
   root: {
@@ -56,7 +59,7 @@ const styles = {
   td: {
     padding: '4px 12px',
   } satisfies CSSProperties,
-  thFrontend: {
+  thSession: {
     padding: '4px 12px',
     fontWeight: 500,
     textAlign: 'left',
@@ -70,7 +73,7 @@ const styles = {
     color: '#6b7280',
     width: 70,
   } satisfies CSSProperties,
-  thSession: {
+  thSessionName: {
     padding: '4px 12px',
     fontWeight: 500,
     textAlign: 'left',
@@ -84,7 +87,7 @@ const styles = {
     color: '#6b7280',
     width: 220,
   } satisfies CSSProperties,
-  tdFrontend: {
+  tdSession: {
     padding: '4px 12px',
     color: '#9333ea',
     fontFamily: 'ui-monospace, monospace',
@@ -221,8 +224,8 @@ export function SessionsLayout() {
             <thead style={styles.tableHeader}>
               <tr>
                 <th style={styles.thKind}>Kind</th>
-                <th style={styles.thFrontend}>Frontend</th>
-                <th style={styles.thSession}>Session</th>
+                <th style={styles.thSession}>Session name</th>
+                <th style={styles.thSessionName}>Session ID</th>
                 <th style={styles.thActor}>Identity key</th>
               </tr>
             </thead>
@@ -266,18 +269,18 @@ export function SessionsLayout() {
                       >
                         <td style={styles.tdKind}>aggregate</td>
                         <td
-                          style={styles.tdFrontend}
-                          title={`${session.frontend.aggregateName}/${session.frontend.name}`}
+                          style={styles.tdSession}
+                          title={`${session.definition.aggregateName}/${session.definition.sessionName}`}
                         >
-                          {session.frontend.aggregateName}/
-                          {session.frontend.name}
+                          {session.definition.aggregateName}/
+                          {session.definition.sessionName}
                         </td>
                         <SessionsDataCell
                           text={session.sessionId}
                           ariaLabel="Copy session id"
                           tdStyle={styles.tdCopyCell}
                         />
-                        <SessionsAuthenticationCell
+                        <SessionsIdentityCell
                           session={session}
                           tdStyle={styles.tdActorCell}
                         />
@@ -314,17 +317,17 @@ export function SessionsLayout() {
                       >
                         <td style={styles.tdKind}>service</td>
                         <td
-                          style={styles.tdFrontend}
-                          title={`${session.serviceName}/${session.frontendName}`}
+                          style={styles.tdSession}
+                          title={`${session.serviceName}/${session.sessionName}`}
                         >
-                          {session.serviceName}/{session.frontendName}
+                          {session.serviceName}/{session.sessionName}
                         </td>
                         <SessionsDataCell
                           text={session.sessionId}
                           ariaLabel="Copy session id"
                           tdStyle={styles.tdCopyCell}
                         />
-                        <ServiceSessionsAuthenticationCell
+                        <ServiceSessionsIdentityCell
                           session={session}
                           tdStyle={styles.tdActorCell}
                         />

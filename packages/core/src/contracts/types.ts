@@ -1,13 +1,15 @@
 /* oxlint-disable typescript/no-explicit-any -- payload/mutation/guard erased defaults */
-import type { IAnyError, IAnyErrorJson } from '@zerospin/error';
+import type { IAnyError, IFrameworkError, IScopedError } from '@zerospin/error';
 import {
   type IAnyShape,
   type IEncodedShape,
   type InferDecodedRow,
   type InferIdFromAbbreviation,
 } from '@zerospin/schema';
-import type { Effect } from 'effect';
+import type { Effect, Schema } from 'effect';
 
+import type { StagingResultSchema } from '../aggregateSession/StagingResultSchema.ts';
+import type { IDb, IResourceDbConfig } from '../drizzle/types.ts';
 import type {
   IAnyModels,
   IModel,
@@ -17,9 +19,16 @@ import type {
   InferResource,
 } from '../models/types.ts';
 
+import type { AdmissionResultSchema } from './AdmissionResultSchema.ts';
 import type { ICreateMutation } from './createMutation.ts';
 import type { IDeleteMutation } from './deleteMutation.ts';
-import type { IMutations, InferContractProgram } from './makeContractVersion.ts';
+import type { ExecutionResultSchema } from './ExecutionResultSchema.ts';
+import type { ExecutionSummarySchema } from './ExecutionSummarySchema.ts';
+import type { FailureJson, FailureType, IFailures } from './failures.ts';
+import type {
+  IMutations,
+  InferContractProgram,
+} from './make/makeContractVersion.ts';
 import type { IMoveMutation } from './moveMutation.ts';
 import type { IReplicateMutation } from './replicate.ts';
 import type { IUpdateMutation } from './updateMutation.ts';
@@ -114,42 +123,44 @@ export type IAppliedMutation = IAnyMutation &
     commandId: string;
     mutationIndex: number;
     appliedAt: Date;
-    lastAppliedAt: Date | null;
+    previousUpdatedAt: Date | null;
     inverseOperation: IInverseOperation | null;
   }>;
 
-export type IAnyContracts<GUARD_REQUIREMENTS = any> = Readonly<
+export type IAnyContracts = Readonly<
   Record<
     string,
-    IContract<
-      string,
-      IAnyShape,
-      string,
-      IMutations,
-      Record<string, IAnyShape>,
-      (...args: any[]) => Effect.Effect<void, IAnyError, GUARD_REQUIREMENTS>
-    >
+    IContract<string, IAnyShape, string, IMutations, Record<string, IAnyShape>>
   >
 >;
 
-export type IContractBinding<
-  CONTRACT extends IContract = IContract,
-  GUARD extends (...args: any[]) => Effect.Effect<void, IAnyError, any> = (
-    ...args: any[]
-  ) => Effect.Effect<void, IAnyError, any>,
-> = Readonly<{
-  contract: CONTRACT;
-  guard?: GUARD;
-}>;
-
-export type IAnyContractBindings<GUARD_REQUIREMENTS = any> = Readonly<
+/** A definition or service registration of a shared contract version. */
+export type IContractBinding<CONTRACT extends IContract = IContract> =
+  Readonly<{ contract: CONTRACT }>;
+export type IAnyContractBindings<REQUIREMENTS = unknown> = Readonly<
   Record<
     string,
-    IContractBinding<
-      IAnyContracts<GUARD_REQUIREMENTS>[string],
-      (...args: any[]) => Effect.Effect<void, IAnyError, GUARD_REQUIREMENTS>
-    >
+    {
+      readonly contract: IContract & {
+        readonly guard?: (
+          ...args: any[]
+        ) => Effect.Effect<void, IContractFailure, REQUIREMENTS>;
+      };
+    }
   >
+>;
+
+/** Discriminated domain values; framework failures use their own reserved tag. */
+export type IBusinessFailure = IScopedError;
+export type IContractFailure = IAnyError | IBusinessFailure;
+export type InferFailure<
+  CONTRACT extends IContract,
+  VERSION extends keyof NonNullable<CONTRACT['__failures']> & string =
+    CONTRACT['version'],
+> = FailureType<NonNullable<CONTRACT['__failures']>[VERSION]>;
+
+export type InferFailureJson<CONTRACT extends IContract> = FailureJson<
+  CONTRACT['failures']
 >;
 
 // --- Contracts & validation
@@ -158,6 +169,7 @@ export type IContractSpec = Readonly<{
   commandName: string;
   version: string;
   payloadShape: Readonly<IEncodedShape>;
+  failureJsonSchema: unknown;
   models: Readonly<Record<string, IModelSpec>>;
 }>;
 
@@ -182,7 +194,7 @@ export type IEncodedAppliedMutation = Readonly<{
   operationName: IOperationName;
   operation: string;
   appliedAt: Date;
-  lastAppliedAt: Date | null;
+  previousUpdatedAt: Date | null;
   inverseOperation: string;
 }>;
 
@@ -192,12 +204,40 @@ export interface IContract<
   VERSION extends string = string,
   MUTATIONS = IMutations,
   PAYLOADS extends Record<string, IAnyShape> = { [K in VERSION]: PAYLOAD },
-  GUARD extends (...args: any[]) => Effect.Effect<void, IAnyError, any> = (
-    ...args: any[]
-  ) => Effect.Effect<void, IAnyError, any>,
   MODELS extends IAnyModels = IAnyModels,
-  HISTORICAL_GUARD_REQUIREMENTS = Effect.Services<ReturnType<GUARD>>,
+  PROGRAM_REQUIREMENTS = unknown,
+  PROGRAM_ERROR extends IContractFailure = IContractFailure,
+  HISTORICAL_PROGRAM_REQUIREMENTS = PROGRAM_REQUIREMENTS,
+  FAILURE extends IFailures = IFailures,
+  FAILURES extends Record<string, IFailures> = Record<string, FAILURE>,
+  AUTHENTICATION extends Schema.Codec<
+    Readonly<Record<string, unknown>> | null,
+    unknown
+  > = Schema.Codec<Readonly<Record<string, unknown>> | null, unknown>,
 > {
+  readonly identity?: AUTHENTICATION;
+  readonly guard?: {
+    bivarianceHack(
+      props: Parameters<InferContractProgram<PAYLOAD>>[0] & {
+        failures: FAILURE;
+        queryDb: string extends keyof MODELS
+          ? Readonly<Pick<IDb, 'query'>>
+          : Readonly<
+              Pick<
+                IDb<IResourceDbConfig<MODELS, Record<never, never>>>,
+                'query'
+              >
+            >;
+      },
+    ): Effect.Effect<
+      void,
+      IFrameworkError | Extract<FailureType<FAILURE>, { scope: 'contract' }>,
+      PROGRAM_REQUIREMENTS
+    >;
+  }['bivarianceHack'];
+  readonly failures: FAILURE;
+  readonly __failures?: FAILURES;
+
   readonly models: MODELS;
   readonly previous:
     | IContract<
@@ -206,11 +246,8 @@ export interface IContract<
         string,
         MUTATIONS,
         Record<string, IAnyShape>,
-        NonNullable<
-          IAnyContracts<HISTORICAL_GUARD_REQUIREMENTS>[string]['guard']
-        >,
         IAnyModels,
-        HISTORICAL_GUARD_REQUIREMENTS
+        HISTORICAL_PROGRAM_REQUIREMENTS
       >
     | undefined;
   readonly next: IContract | undefined;
@@ -220,12 +257,17 @@ export interface IContract<
   readonly down:
     | ((props: { payload: unknown }) => Effect.Effect<unknown, IAnyError>)
     | undefined;
-  readonly guard?: GUARD;
+
   readonly commandName: COMMAND_NAME;
   readonly payload: PAYLOAD;
   readonly __payloads?: PAYLOADS;
   readonly version: VERSION;
-  readonly program: InferContractProgram<PAYLOAD, MUTATIONS>;
+  readonly program: InferContractProgram<
+    PAYLOAD,
+    MUTATIONS,
+    PROGRAM_REQUIREMENTS,
+    PROGRAM_ERROR
+  >;
   readonly spec: IContractSpec;
   readonly __mutations?: MUTATIONS;
 }
@@ -256,7 +298,7 @@ export type InferCommand<
   CONTRACT extends IContract,
   VERSION extends keyof NonNullable<CONTRACT['__payloads']> & string =
     CONTRACT['version'],
-> = ISessionCommand<
+> = ISessionCommandInput<
   ICommand<
     CONTRACT['commandName'],
     VERSION,
@@ -271,6 +313,7 @@ export type IAggregateCommand<
   SYSTEM_NAME extends string = string,
 > = COMMAND &
   Readonly<{
+    automationName?: string | null;
     aggregateId: string;
     aggregateName: AGGREGATE_NAME;
     systemName: SYSTEM_NAME;
@@ -278,16 +321,20 @@ export type IAggregateCommand<
   (
     | Readonly<{
         aggregateVersion: string;
-        sessionId: null;
-        authentication: null;
-        frontendName: null;
-        pushIndex: null;
+        nodeId: null;
+        identity: Readonly<Record<string, unknown>>;
+        actorName: string;
+        actorVersion: string;
+        sessionName: null;
+        nodeIndex: null;
       }>
     | Readonly<{
-        sessionId: ISessionId;
-        authentication: Readonly<Record<string, unknown>>;
-        frontendName: string;
-        pushIndex: number | null;
+        nodeId: string;
+        identity: Readonly<Record<string, unknown>>;
+        actorName: string;
+        actorVersion: string;
+        sessionName: string;
+        nodeIndex: number;
       }>
   );
 
@@ -300,37 +347,39 @@ export type IServiceCommand<
     serviceVersion: string;
   }>;
 
-export type ISessionCommand<COMMAND extends ICommand = ICommand> = COMMAND &
+export type ISessionCommandInput<COMMAND extends ICommand = ICommand> =
+  COMMAND &
+    Readonly<{
+      aggregateId: string;
+      aggregateName: string;
+      identity: Readonly<Record<string, unknown>>;
+      actorName: string;
+      actorVersion: string;
+      sessionName: string;
+      sessionId: ISessionId;
+      pushIndex: number | null;
+    }>;
+
+/** A successfully staged session command owns its original local result and later server results. */
+export type ISessionCommand<COMMAND extends ICommand = ICommand> =
+  ISessionCommandInput<COMMAND> &
+    Readonly<{
+      sessionIndex: number;
+      staging: typeof StagingResultSchema.Type;
+      admission: typeof AdmissionResultSchema.Type;
+      execution: typeof ExecutionSummarySchema.Type;
+    }>;
+
+export type IChainedCommand<COMMAND extends ICommand = ICommand> = COMMAND &
   Readonly<{
-    aggregateId: string;
-    aggregateName: string;
-    systemName: string;
-    authentication: Readonly<Record<string, unknown>>;
-    frontendName: string;
-    sessionId: ISessionId;
-    pushIndex: number | null;
+    admission: typeof AdmissionResultSchema.Type;
+    execution: typeof ExecutionResultSchema.Type;
   }>;
 
-/** One flat occurrence in a command chain. */
-export type IChainedCommand<
-  COMMAND extends ICommand = ICommand,
-  DELTA = unknown,
-> = COMMAND &
-  Readonly<{ chainedAt: Date }> &
-  (
-    | Readonly<{
-        delta: null;
-        failedAt: null;
-        failure: null;
-      }>
-    | Readonly<{
-        delta: DELTA;
-        failedAt: null;
-        failure: null;
-      }>
-    | Readonly<{
-        delta: DELTA;
-        failedAt: Date;
-        failure: IAnyErrorJson;
-      }>
-  );
+export type InferContractGuardRequirements<BINDINGS> = {
+  [K in keyof BINDINGS]: BINDINGS[K] extends {
+    readonly contract: infer CONTRACT extends IContract;
+  }
+    ? Effect.Services<ReturnType<NonNullable<CONTRACT['guard']>>>
+    : never;
+}[keyof BINDINGS];

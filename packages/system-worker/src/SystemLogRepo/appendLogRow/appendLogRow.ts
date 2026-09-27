@@ -5,7 +5,7 @@
  */
 
 import type { Async } from '@zerospin/core/async/Async';
-import { makeAsync } from '@zerospin/core/async/makeAsync';
+import { makeAsync } from '@zerospin/core/async/make/makeAsync';
 import type { IDb } from '@zerospin/core/drizzle/types';
 import type {
   ISystemLogLevel,
@@ -22,10 +22,7 @@ import {
 import { max, sql } from 'drizzle-orm';
 import { Effect, Schema } from 'effect';
 
-import {
-  systemLogRepoDbConfig,
-  systemLogRowSchema,
-} from '../systemLogRepoDbConfig.js';
+import { systemLogRepoDbConfig } from '../systemLogRepoDbConfig.js';
 
 const maxRows = 1000;
 
@@ -85,7 +82,9 @@ export const appendLogRow = Effect.fn('SystemLogRepo.appendLogRow')(
 
       // 4 — the max read and insert are synchronous so requests cannot interleave them
       db.insert(systemLogRepoDbConfig.schema.logs)
-        .values(Schema.encodeSync(systemLogRowSchema)(nextRow))
+        .values(
+          Schema.encodeSync(systemLogRepoDbConfig.tables.logs.codec)(nextRow),
+        )
         .run();
       return Promise.resolve(nextRow);
     });

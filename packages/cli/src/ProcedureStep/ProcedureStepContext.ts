@@ -1,13 +1,13 @@
 import { createContext, useContext } from 'react';
 
-export type ProcedureStepStatus =
+export type IProcedureStepStatus =
   | 'error'
   | 'loading'
   | 'prompt'
   | 'saving'
   | 'success';
 
-export const ProcedureStepContext = createContext<null | ProcedureStepStatus>(
+export const ProcedureStepContext = createContext<null | IProcedureStepStatus>(
   null,
 );
 

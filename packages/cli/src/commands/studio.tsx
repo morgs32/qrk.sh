@@ -1,6 +1,6 @@
 import * as NodeFileSystem from '@effect/platform-node-shared/NodeFileSystem';
 import * as NodePath from '@effect/platform-node-shared/NodePath';
-import { makeSystemSpec } from '@zerospin/core/system/makeSystemSpec';
+import { makeSystemSpec } from '@zerospin/core/system/make/makeSystemSpec';
 import { startStudio } from '@zerospin/studio/startStudio';
 import { Effect, Layer } from 'effect';
 import { Box, Text } from 'ink';

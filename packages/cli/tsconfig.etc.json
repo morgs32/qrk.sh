@@ -5,7 +5,12 @@
     "noEmit": true,
     "types": ["node", "vitest/globals"]
   },
-  "include": ["src/**/*.spec.ts", "src/**/*.spec.tsx", "vitest.config.ts"],
+  "include": [
+    "src/**/*.spec.ts",
+    "src/**/*.spec.tsx",
+    "vitest.config.ts",
+    "vitest.integration.config.ts"
+  ],
   "references": [
     {
       "path": "./tsconfig.json"

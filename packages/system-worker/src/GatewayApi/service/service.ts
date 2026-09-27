@@ -1,13 +1,13 @@
-import { mapParseError, ZerospinError } from '@zerospin/error';
+import type { ISystem } from '@zerospin/core/system/types';
+import { makeZerospinError, mapParseError } from '@zerospin/error';
 import config from 'config';
 import { Effect, Schema } from 'effect';
 
-import type { ISystemRuntime } from '../../makeSystemRuntime.js';
 import { ServiceApi } from '../../ServiceApi/ServiceApi.js';
 import { ServiceApiFailure } from '../../ServiceApi/ServiceApiFailure/ServiceApiFailure.js';
 import { checkPublishableApiKey } from '../checkPublishableApiKey/checkPublishableApiKey.js';
 
-/** Resolve one service version before issuing an authentication capability. */
+/** Resolve one service version before issuing an identity capability. */
 export const service = Effect.fn('GatewayApi.service')(function* (props: {
   request: {
     publishableKey: string;
@@ -15,7 +15,7 @@ export const service = Effect.fn('GatewayApi.service')(function* (props: {
     name: string;
     version: string;
   };
-  runtime: ISystemRuntime;
+  runtime: ISystem['runtime'];
 }) {
   return yield* Effect.gen(function* () {
     const request = yield* Schema.decodeUnknownEffect(
@@ -33,16 +33,20 @@ export const service = Effect.fn('GatewayApi.service')(function* (props: {
     );
     yield* checkPublishableApiKey(request.publishableKey);
     if (request.systemName !== config.system.name) {
-      return yield* new ZerospinError({
-        code: 'authentication-system-name-mismatch',
-        message: 'Requested system differs from the configured system',
-      });
+      return yield* Effect.fail(
+        makeZerospinError({
+          code: 'identity-system-name-mismatch',
+          message: 'Requested system differs from the configured system',
+        }),
+      );
     }
     if (config.system.services[request.name]?.[request.version] === undefined) {
-      return yield* new ZerospinError({
-        code: 'authentication-service-unavailable',
-        message: 'The requested service version is unavailable',
-      });
+      return yield* Effect.fail(
+        makeZerospinError({
+          code: 'identity-service-unavailable',
+          message: 'The requested service version is unavailable',
+        }),
+      );
     }
     return new ServiceApi({
       binding: {

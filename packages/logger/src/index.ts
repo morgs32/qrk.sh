@@ -4,9 +4,12 @@ export * from './makeTelemetryIds.ts';
 export * from './makeTelemetryLayer.ts';
 export * from './makeTelemetryLogger.ts';
 export * from './makeTelemetryTracer.ts';
-export * from './makeTraceableApiTarget.ts';
 export * from './makeTraceableRpcTarget.ts';
 export * from './renderTraceDag.ts';
 export * from './TelemetryCollector.ts';
 export * from './TraceStore.ts';
 export * from './types.ts';
+
+export * from './makeRpcEnvelope.ts';
+
+export * from './TelemetryBatchSchema.ts';

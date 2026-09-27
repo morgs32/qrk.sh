@@ -1,6 +1,5 @@
 import type { ICommittedSqlStatement } from '@zerospin/core/drizzle/WaSqliteSession';
-import { encodeRpc } from '@zerospin/core/utils/encodeRpc';
-import type { IAnyErrorJson, IEncodedResult } from '@zerospin/error';
+import { makeRpcEnvelope } from '@zerospin/logger';
 import { RpcTarget, type RpcStub } from 'capnweb';
 import { Effect } from 'effect';
 
@@ -24,28 +23,26 @@ export class BackupDbApi extends RpcTarget {
     void this.granted.promise.catch(() => undefined);
   }
 
-  async overwriteDb(props: {
-    snapshot: Uint8Array;
-  }): Promise<IEncodedResult<void, IAnyErrorJson>> {
-    return Effect.runPromise(encodeRpc(overwriteDb({ api: this, ...props })));
+  async overwriteDb(props: { snapshot: Uint8Array }) {
+    return Effect.runPromise(
+      makeRpcEnvelope(overwriteDb({ api: this, ...props })),
+    );
   }
 
   async applyStatements(props: {
     statements: readonly ICommittedSqlStatement[];
-  }): Promise<IEncodedResult<void, IAnyErrorJson>> {
+  }) {
     return Effect.runPromise(
-      encodeRpc(applyStatements({ api: this, ...props })),
+      makeRpcEnvelope(applyStatements({ api: this, ...props })),
     );
   }
 
-  async exportSnapshot(): Promise<
-    IEncodedResult<Uint8Array | null, IAnyErrorJson>
-  > {
-    return Effect.runPromise(encodeRpc(exportSnapshot({ api: this })));
+  async exportSnapshot() {
+    return Effect.runPromise(makeRpcEnvelope(exportSnapshot({ api: this })));
   }
 
-  async dispose(): Promise<IEncodedResult<void, IAnyErrorJson>> {
-    return Effect.runPromise(encodeRpc(dispose({ api: this })));
+  async dispose() {
+    return Effect.runPromise(makeRpcEnvelope(dispose({ api: this })));
   }
 
   [Symbol.dispose](): void {

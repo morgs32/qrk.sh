@@ -45,8 +45,7 @@
     "**/*.spec.tsx",
     "**/*.node.spec.ts",
     "**/*.react.spec.ts",
-    "**/*.react.spec.tsx",
-    "**/*.typecheck.ts"
+    "**/*.react.spec.tsx"
   ],
   "references": [
     {

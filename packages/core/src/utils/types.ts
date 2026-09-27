@@ -1,6 +1,7 @@
 /* oxlint-disable typescript/no-explicit-any -- Effect Schema encoded types / defaults */
 
-import type { IAnyError, IAnyErrorJson, IEncodedResult } from '@zerospin/error';
+import type { IAnyError } from '@zerospin/error';
+import type { IRpcEnvelope } from '@zerospin/logger';
 import type { ITypeError } from '@zerospin/schema';
 import type { Effect } from 'effect';
 
@@ -28,12 +29,12 @@ type IRpcMethodKeys<T> = {
     : never;
 }[keyof T];
 
-/** Every function member must return `Promise<IEncodedResult<…>>`; violations become `ITypeError`. */
+/** Every function member must return `Promise<IRpcEnvelope<…>>`; violations become `ITypeError`. */
 type IRpcTargetMethodsOf<T> = {
   [K in IRpcMethodKeys<T>]: T[K] extends (...args: infer A) => infer R
-    ? Awaited<R> extends IEncodedResult<infer S, infer E extends IAnyErrorJson>
-      ? (...args: A) => Promise<IEncodedResult<S, E>>
-      : ITypeError<`RPC method "${K & string}" must return Promise<IEncodedResult<…>>`>
+    ? Awaited<R> extends IRpcEnvelope<infer S, infer E>
+      ? (...args: A) => Promise<IRpcEnvelope<S, E>>
+      : ITypeError<`RPC method "${K & string}" must return Promise<IRpcEnvelope<…>>`>
     : never;
 };
 

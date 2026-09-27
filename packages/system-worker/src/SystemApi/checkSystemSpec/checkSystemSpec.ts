@@ -1,5 +1,5 @@
-import { makeAsync } from '@zerospin/core/async/makeAsync';
-import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
+import { makeAsync } from '@zerospin/core/async/make/makeAsync';
+import { readRpcEnvelope } from '@zerospin/core/utils/readRpcEnvelope';
 import { Effect, Schema, type Context } from 'effect';
 
 import { getSystemSpec } from '../../getSystemSpec/getSystemSpec.js';
@@ -29,7 +29,7 @@ export const checkSystemSpec = Effect.fn('SystemApi.checkSystemSpec')(
           });
           return yield* makeAsync(() =>
             systemRepo.checkSystemSpec({ spec }),
-          ).pipe(Effect.flatMap(decodeRpc));
+          ).pipe(Effect.flatMap(envelope => readRpcEnvelope(envelope)));
         }),
     })(request).pipe(Effect.provideService(SystemApiAuthResults, authResults));
   },

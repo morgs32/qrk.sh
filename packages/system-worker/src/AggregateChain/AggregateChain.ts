@@ -1,23 +1,30 @@
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
-import { type AggregateChainedCommandSchema } from '@zerospin/core/contracts/CommandSchema';
+import { makeAsync } from '@zerospin/core/async/make/makeAsync';
+import type { AggregateExecutedCommandSchema } from '@zerospin/core/contracts/CommandSchema';
 import type {
   IAggregateCommand,
   IEncodedCommand,
 } from '@zerospin/core/contracts/types';
-import { encodeRpc } from '@zerospin/core/utils/encodeRpc';
-import { type IAnyErrorJson, type IEncodedResult } from '@zerospin/error';
+import { readRpcEnvelope } from '@zerospin/core/utils/readRpcEnvelope';
+import { makeZerospinError, type IZerospinErrorJson } from '@zerospin/error';
+import { makeRpcEnvelope, type IRpcEnvelope } from '@zerospin/logger';
+import config from 'config';
 import { eq } from 'drizzle-orm';
-import { Effect, type Schema } from 'effect';
+import { Effect } from 'effect';
 
+import { AggregateActorVersionRepo } from '../AggregateActorVersionRepo/AggregateActorVersionRepo.js';
+import { AggregateVersionRepo } from '../AggregateVersionRepo/AggregateVersionRepo.js';
 import {
   makeFanoutQueue,
   type IFanoutRepo,
 } from '../makeFanoutQueue/makeFanoutQueue.js';
 import { makeFixedDORepo } from '../makeFixedDORepo/makeFixedDORepo.js';
-import { managedRuntime } from '../managedRuntime.js';
-import { VersionedAggregateRepo } from '../VersionedAggregateRepo/VersionedAggregateRepo.js';
 
-import { admitCommands } from './admitCommands/admitCommands.js';
+import {
+  prepareAdmission,
+  type admitCommands,
+} from './admitCommands/admitCommands.js';
+import { admitCommandsTx } from './admitCommands/admitCommandsTx.js';
 import { aggregateChainDbConfig } from './aggregateChainDbConfig.js';
 import { aggregateChainFixedDORepoConfig } from './aggregateChainFixedDORepoConfig.js';
 import { executeAggregateCommand } from './executeAggregateCommand/executeAggregateCommand.js';
@@ -28,39 +35,38 @@ export class AggregateChain
     namespaceBinding: 'AGGREGATE_CHAIN',
     fixedDORepoConfig: aggregateChainFixedDORepoConfig,
   })
-  implements
-    IFanoutRepo<'versionedAggregateFanoutQueue', VersionedAggregateRepo>
+  implements IFanoutRepo<'admissionResultsFanout', AggregateVersionRepo>
 {
   /**
-   * Fanout: AggregateChain → VersionedAggregateRepo.
+   * Fanout: AggregateChain → AggregateVersionRepo.
    *
-   * WHO: versionedAggregateRepos.
-   * LOG: admittedCommands (every row deliverable).
+   * WHO: aggregateVersionRepos.
+   * LOG: commands (every row deliverable).
    * DELIVER: VAR subscriber.receive(delivery); acknowledgement follows its durable commit.
    * ENROLL: Activation reconciles the deployed versions without resetting progress.
    */
-  readonly #versionedAggregateFanoutQueue = makeFanoutQueue({
+  readonly #admissionResultsFanout = makeFanoutQueue({
     concurrency: 100,
-    name: 'versionedAggregateFanoutQueue',
+    name: 'admissionResultsFanout',
     alarmRegistry: this.alarmRegistry,
     schema: this.schema,
     db: this.db,
-    entriesTableName: 'admittedCommands',
+    entriesTableName: 'commands',
     indexColumnName: 'aggregateIndex',
-    subscribersTableName: 'versionedAggregateRepos',
+    subscribersTableName: 'aggregateVersionRepos',
     subscribersWhere: [
-      eq(aggregateChainDbConfig.schema.versionedAggregateRepos.active, true),
+      eq(aggregateChainDbConfig.schema.aggregateVersionRepos.active, true),
     ],
-    subscriberNameUtils: VersionedAggregateRepo.fixedDORepoConfig.nameUtils,
+    subscriberNameUtils: AggregateVersionRepo.fixedDORepoConfig.nameUtils,
     key: this.key,
-    getRepo: VersionedAggregateRepo.getRepo,
+    getRepo: AggregateVersionRepo.getRepo,
   });
 
   /*
-   * Exposes the already bound versionedAggregateFanoutQueue capability from AggregateChain.
+   * Exposes the already bound admissionResultsFanout capability from AggregateChain.
    */
-  get versionedAggregateFanoutQueue() {
-    return this.#versionedAggregateFanoutQueue;
+  get admissionResultsFanout() {
+    return this.#admissionResultsFanout;
   }
 
   /** Adopt bundled intent and retain recovery before this activation admits events. */
@@ -74,26 +80,79 @@ export class AggregateChain
 
   /*
    * AggregateChain durably orders complete aggregate inputs and returns
-   * admission receipts. Each batch commits atomically; retries recover retained
-   * receipts, while version-owned materializers perform preparation and execution.
+   * the retained commands. Each batch commits atomically; a repeated id
+   * returns the command already stored, while version-owned materializers
+   * perform preparation and execution.
    *
    * 1. Hold the materializer delivery alarm.
    * 2. Commit the admitted occurrences.
-   * 3. Deliver through the retained alarm.
+   * 3. Start delivery after admission; the retained alarm recovers interruption.
    */
   async admitCommands(
     props: Parameters<typeof admitCommands>[0] extends {
       commands: infer C;
     }
-      ? { commands: C }
+      ? { commands: C; aggregateVersion: string }
       : never,
   ) {
-    return managedRuntime.runPromise(
-      this.#versionedAggregateFanoutQueue
-        .drainAfter(() =>
-          admitCommands({ ...props, db: this.db, key: this.key }),
-        )
-        .pipe(Effect.provide(AsyncLive), encodeRpc),
+    return config.system.runtime.runPromise(
+      prepareAdmission({ ...props, db: this.db, key: this.key }).pipe(
+        Effect.flatMap(prepared =>
+          this.#admissionResultsFanout.drainAfter(() =>
+            admitCommandsTx(this.db, prepared),
+          ),
+        ),
+        Effect.provide(AsyncLive),
+        makeRpcEnvelope,
+      ),
+    );
+  }
+
+  /** Internal DO capability: recover the output from its owning actor, never trust submitted bytes. */
+  async executeAutomationCommand(props: {
+    aggregateVersion: string;
+    actorName: string;
+    actorVersion: string;
+    actorPath: string;
+    automationName: string;
+    executedIndex: number;
+  }): Promise<
+    IRpcEnvelope<
+      typeof AggregateExecutedCommandSchema.Type & { executedIndex: number },
+      IZerospinErrorJson
+    >
+  > {
+    return config.system.runtime.runPromise(
+      Effect.gen({ self: this }, function* () {
+        const repo = yield* AggregateActorVersionRepo.getRepo({
+          key: {
+            ...this.key,
+            aggregateVersion: props.aggregateVersion,
+            actorName: props.actorName,
+            actorVersion: props.actorVersion,
+            actorPath: props.actorPath,
+          },
+        });
+        const command = yield* makeAsync<
+          Awaited<ReturnType<AggregateActorVersionRepo['getAutomationOutput']>>
+        >(() =>
+          repo.getAutomationOutput({
+            automationName: props.automationName,
+            executedIndex: props.executedIndex,
+          }),
+        ).pipe(Effect.flatMap(readRpcEnvelope));
+        if (command.automationName !== props.automationName) {
+          return yield* makeZerospinError('automation-output-invalid');
+        }
+        yield* this.alarmRegistry.hold('admissionResultsFanout');
+        return yield* executeAggregateCommand({
+          aggregateVersion: props.aggregateVersion,
+          command,
+          automationOutput: true,
+          db: this.db,
+          key: this.key,
+        });
+      }).pipe(Effect.provide(AsyncLive), makeRpcEnvelope),
     );
   }
 
@@ -109,30 +168,25 @@ export class AggregateChain
   async executeAggregateCommand(props: {
     aggregateVersion: string;
     command: IEncodedCommand<IAggregateCommand>;
-  }): Promise<
-    IEncodedResult<
-      Schema.Schema.Type<typeof AggregateChainedCommandSchema>,
-      IAnyErrorJson
-    >
-  > {
+  }) {
     // 1 — retain delivery before admitting the command
-    await managedRuntime.runPromise(
+    await config.system.runtime.runPromise(
       this.alarmRegistry
-        .hold('versionedAggregateFanoutQueue')
+        .hold('admissionResultsFanout')
         .pipe(Effect.provide(AsyncLive)),
     );
 
     // 2 — run executeAggregateCommand with the instance-bound dependencies and encode its RPC outcome
-    const result = await managedRuntime.runPromise(
+    const result = await config.system.runtime.runPromise(
       executeAggregateCommand({ ...props, db: this.db, key: this.key }).pipe(
         // 3 — wake from the persisted tip, including prior work after admission failure
         Effect.ensuring(
           Effect.sync(() => {
-            this.#versionedAggregateFanoutQueue.drain();
+            this.#admissionResultsFanout.drain();
           }),
         ),
         Effect.provide(AsyncLive),
-        encodeRpc,
+        makeRpcEnvelope,
       ),
     );
     return result;

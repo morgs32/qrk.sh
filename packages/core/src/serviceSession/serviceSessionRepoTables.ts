@@ -5,7 +5,7 @@ import {
   type IAnyTables,
 } from '@zerospin/schema';
 
-import { makeDrizzleSchemasRecordFromTables } from '../drizzle/makeDrizzleSchemasRecordFromTables.ts';
+import { makeDrizzleSchemasRecordFromTables } from '../drizzle/make/makeDrizzleSchemasRecordFromTables.ts';
 
 const serviceSessionMetadataTable = makeTable({
   name: 'serviceSessionMetadata',

@@ -1,12 +1,16 @@
-import { ZerospinError, type IAnyError } from '@zerospin/error';
+import {
+  catchZerospinError,
+  makeZerospinError,
+  type IAnyError,
+} from '@zerospin/error';
 import { Effect, Schema } from 'effect';
 
-import { makeModelIdSchema } from '../models/makeModelIdSchema.ts';
 import { Model } from '../models/defineModel.ts';
+import { makeModelIdSchema } from '../models/make/makeModelIdSchema.ts';
 import type { IAnyModels } from '../models/types.ts';
 
 import { makeOperationJsonSchema } from './encodeAppliedMutation.ts';
-import { makeModelMutations } from './makeModelMutations.ts';
+import { makeModelMutations } from './make/makeModelMutations.ts';
 import type { IAnyMutation, IEncodedAppliedMutation } from './types.ts';
 
 /*
@@ -31,7 +35,7 @@ export const prepareReplayAppliedMutation = Effect.fn(
   // owns all source attribute/resource decoding, including dates.
   const parsedOperation: unknown = yield* Effect.try({
     try: () => JSON.parse(mutation.operation),
-    catch: ZerospinError.catch({
+    catch: catchZerospinError({
       code: 'replay-applied-mutation-operation-parse-failed',
       message: `Failed to parse replay mutation operation for ${mutation.modelName}@${mutation.modelVersion}/${mutation.operationName}`,
     }),
@@ -41,10 +45,12 @@ export const prepareReplayAppliedMutation = Effect.fn(
     parsedOperation === null ||
     Array.isArray(parsedOperation)
   ) {
-    return yield* new ZerospinError({
-      code: 'replay-applied-mutation-operation-invalid',
-      message: `Replay mutation operation for ${mutation.modelName}@${mutation.modelVersion}/${mutation.operationName} must be an object`,
-    });
+    return yield* Effect.fail(
+      makeZerospinError({
+        code: 'replay-applied-mutation-operation-invalid',
+        message: `Replay mutation operation for ${mutation.modelName}@${mutation.modelVersion}/${mutation.operationName} must be an object`,
+      }),
+    );
   }
 
   if (mutation.operationName === 'replicate') {
@@ -57,10 +63,12 @@ export const prepareReplayAppliedMutation = Effect.fn(
       Reflect.get(resource, 'modelName') !== mutation.modelName ||
       Reflect.get(resource, 'version') !== mutation.modelVersion
     ) {
-      return yield* new ZerospinError({
-        code: 'replay-replicate-resource-source-identity-invalid',
-        message: `Replay replication resource identity must equal ${mutation.modelName}@${mutation.modelVersion}/${mutation.resourceId}`,
-      });
+      return yield* Effect.fail(
+        makeZerospinError({
+          code: 'replay-replicate-resource-source-identity-invalid',
+          message: `Replay replication resource identity must equal ${mutation.modelName}@${mutation.modelVersion}/${mutation.resourceId}`,
+        }),
+      );
     }
   }
 
@@ -69,10 +77,12 @@ export const prepareReplayAppliedMutation = Effect.fn(
     sameNameCurrentModel === undefined ||
     sameNameCurrentModel.version !== mutation.modelVersion
   ) {
-    return yield* new ZerospinError({
-      code: 'replay-mutation-model-version-unavailable',
-      message: `Replay requires the exact model ${mutation.modelName}@${mutation.modelVersion}`,
-    });
+    return yield* Effect.fail(
+      makeZerospinError({
+        code: 'replay-mutation-model-version-unavailable',
+        message: `Replay requires the exact model ${mutation.modelName}@${mutation.modelVersion}`,
+      }),
+    );
   }
 
   // 2 — Decode the operation with the current model codec, then construct a
@@ -84,10 +94,12 @@ export const prepareReplayAppliedMutation = Effect.fn(
         sameNameCurrentModel.serviceName !==
           Reflect.get(parsedOperation, 'serviceName'))
     ) {
-      return yield* new ZerospinError({
-        code: 'replay-replicate-resource-destination-invalid',
-        message: `Replay destination must be the replica owned by the source service`,
-      });
+      return yield* Effect.fail(
+        makeZerospinError({
+          code: 'replay-replicate-resource-destination-invalid',
+          message: `Replay destination must be the replica owned by the source service`,
+        }),
+      );
     }
     const resourceId = yield* Schema.decodeUnknownEffect(
       makeModelIdSchema(sameNameCurrentModel),
@@ -162,31 +174,34 @@ export const prepareReplayAppliedMutation = Effect.fn(
       }
     }
   }).pipe(
-    Effect.mapError(
-      error =>
-        new ZerospinError({
-          code: 'replay-current-applied-mutation-invalid',
-          message: `Replay mutation ${mutation.modelName}@${mutation.modelVersion}/${mutation.operationName} does not validate under its exact schema`,
-          cause: String(error),
-        }),
+    Effect.mapError(error =>
+      makeZerospinError({
+        code: 'replay-current-applied-mutation-invalid',
+        message: `Replay mutation ${mutation.modelName}@${mutation.modelVersion}/${mutation.operationName} does not validate under its exact schema`,
+        cause: String(error),
+      }),
     ),
   );
 
   // 3 — The result must bind the exact current controller model; replication
   // additionally preserves service, resource, model, version, and ID identity.
   if (targetMutation === undefined) {
-    return yield* new ZerospinError({
-      code: 'replay-target-mutation-missing',
-      message: `Replay produced no target mutation for ${mutation.modelName}@${mutation.modelVersion}/${mutation.operationName}`,
-    });
+    return yield* Effect.fail(
+      makeZerospinError({
+        code: 'replay-target-mutation-missing',
+        message: `Replay produced no target mutation for ${mutation.modelName}@${mutation.modelVersion}/${mutation.operationName}`,
+      }),
+    );
   }
   if (
     controller.models[targetMutation.model.modelName] !== targetMutation.model
   ) {
-    return yield* new ZerospinError({
-      code: 'replay-target-mutation-model-binding-invalid',
-      message: `Replay destination mutation for ${mutation.modelName}@${mutation.modelVersion}/${mutation.operationName} is not bound to the exact registered controller model`,
-    });
+    return yield* Effect.fail(
+      makeZerospinError({
+        code: 'replay-target-mutation-model-binding-invalid',
+        message: `Replay destination mutation for ${mutation.modelName}@${mutation.modelVersion}/${mutation.operationName} is not bound to the exact registered controller model`,
+      }),
+    );
   }
   if (
     targetMutation.operationName === 'replicate' &&
@@ -200,10 +215,12 @@ export const prepareReplayAppliedMutation = Effect.fn(
         targetMutation.model.modelName ||
       targetMutation.operation.resource.version !== targetMutation.modelVersion)
   ) {
-    return yield* new ZerospinError({
-      code: 'replay-replicate-resource-destination-identity-invalid',
-      message: `Replay replication destination resource identity must equal ${targetMutation.model.modelName}@${targetMutation.modelVersion}/${targetMutation.resourceId}`,
-    });
+    return yield* Effect.fail(
+      makeZerospinError({
+        code: 'replay-replicate-resource-destination-identity-invalid',
+        message: `Replay replication destination resource identity must equal ${targetMutation.model.modelName}@${targetMutation.modelVersion}/${targetMutation.resourceId}`,
+      }),
+    );
   }
 
   return targetMutation;

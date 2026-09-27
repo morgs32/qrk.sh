@@ -1,11 +1,8 @@
-import { makeAsync } from '@zerospin/core/async/makeAsync';
+import { makeAsync } from '@zerospin/core/async/make/makeAsync';
 import type { IRepoTableData } from '@zerospin/core/system/types';
-import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
-import {
-  ZerospinError,
-  type IAnyErrorJson,
-  type IEncodedResult,
-} from '@zerospin/error';
+import { readRpcEnvelope } from '@zerospin/core/utils/readRpcEnvelope';
+import { makeZerospinError, type IZerospinErrorJson } from '@zerospin/error';
+import type { IRpcEnvelope } from '@zerospin/logger';
 import { Effect, Schema, type Context } from 'effect';
 
 import { SystemLogRepo } from '../../SystemLogRepo/SystemLogRepo.js';
@@ -62,7 +59,7 @@ export const getSystemLogRepoTableRows = Effect.fn(
         // 3 — query SystemRepo for SystemLogRepo registrations
         const registrations = yield* makeAsync(() =>
           systemRepo.getRepoRegistrations({ repoType: 'SystemLogRepo' }),
-        ).pipe(Effect.flatMap(decodeRpc));
+        ).pipe(Effect.flatMap(envelope => readRpcEnvelope(envelope)));
 
         // 4 — return repo-explorer-repo-not-found before opening the requested Repo
         if (
@@ -70,11 +67,13 @@ export const getSystemLogRepoTableRows = Effect.fn(
             registration => registration.repoName === repoName,
           ) === undefined
         ) {
-          return yield* new ZerospinError({
-            code: 'repo-explorer-repo-not-found',
-            message: `SystemLogRepo "${repoName}" is not registered`,
-            extra: { repoName, repoType: 'SystemLogRepo' },
-          });
+          return yield* Effect.fail(
+            makeZerospinError({
+              code: 'repo-explorer-repo-not-found',
+              message: `SystemLogRepo "${repoName}" is not registered`,
+              extra: { repoName, repoType: 'SystemLogRepo' },
+            }),
+          );
         }
 
         // 5 — use the capability-bound systemId for SystemLogRepo
@@ -83,9 +82,11 @@ export const getSystemLogRepoTableRows = Effect.fn(
         });
 
         // 6 — decode getRepoTableRows; the Repo owns table-name validation
-        return yield* makeAsync<IEncodedResult<IRepoTableData, IAnyErrorJson>>(
-          () => repo.getRepoTableRows({ tableName }),
-        ).pipe(Effect.flatMap(decodeRpc));
+        return yield* makeAsync<
+          IRpcEnvelope<IRepoTableData, IZerospinErrorJson>
+        >(() => repo.getRepoTableRows({ tableName })).pipe(
+          Effect.flatMap(envelope => readRpcEnvelope(envelope)),
+        );
       }).pipe(
         Effect.withSpan('SystemApi.getSystemLogRepoTableRows', { root: true }),
       ),

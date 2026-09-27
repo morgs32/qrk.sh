@@ -1,15 +1,15 @@
-import { makeAsync } from '@zerospin/core/async/makeAsync';
-import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
+import { makeAsync } from '@zerospin/core/async/make/makeAsync';
+import { readRpcEnvelope } from '@zerospin/core/utils/readRpcEnvelope';
 import {
-  ZerospinError,
+  catchZerospinError,
   type IAnyError,
-  type IAnyErrorJson,
-  type IEncodedResult,
+  type IZerospinErrorJson,
 } from '@zerospin/error';
+import type { IRpcEnvelope } from '@zerospin/logger';
 import config from 'config';
 import { Effect } from 'effect';
 
-import { ServiceAdmittedChain } from '../../ServiceAdmittedChain/ServiceAdmittedChain.js';
+import { ServiceChain } from '../../ServiceChain/ServiceChain.js';
 
 const { system } = config;
 
@@ -19,24 +19,23 @@ const { system } = config;
  * 1. Initialize authored service chains and decode their readiness outcomes.
  */
 export const initialize = Effect.fn('SystemRepo.initialize')(function* (props: {
-  serviceAdmittedChains: Cloudflare.Env['SERVICE_ADMITTED_CHAIN'];
+  serviceChains: Cloudflare.Env['SERVICE_CHAIN'];
   systemId: string;
 }) {
-  const { serviceAdmittedChains, systemId } = props;
+  const { serviceChains, systemId } = props;
 
   // 1 — preserve awaited service readiness and its failure result
   for (const serviceName of Object.keys(system.services)) {
-    const name =
-      yield* ServiceAdmittedChain.fixedDORepoConfig.nameUtils.makeName({
-        systemId,
-        serviceName,
-      });
-    yield* makeAsync<IEncodedResult<void, IAnyErrorJson>, IAnyError>(
-      () => serviceAdmittedChains.getByName(name).ready(),
-      ZerospinError.catch({
+    const name = yield* ServiceChain.fixedDORepoConfig.nameUtils.makeName({
+      systemId,
+      serviceName,
+    });
+    yield* makeAsync<IRpcEnvelope<void, IZerospinErrorJson>, IAnyError>(
+      () => serviceChains.getByName(name).ready(),
+      catchZerospinError({
         code: 'system-repo-initialize-service-chain-failed',
-        message: `Failed to initialize ServiceAdmittedChain ${name}`,
+        message: `Failed to initialize ServiceChain ${name}`,
       }),
-    ).pipe(Effect.flatMap(decodeRpc));
+    ).pipe(Effect.flatMap(envelope => readRpcEnvelope(envelope)));
   }
 });

@@ -1,4 +1,8 @@
-import { mapParseError, ZerospinError, type IAnyError } from '@zerospin/error';
+import {
+  makeZerospinError,
+  mapParseError,
+  type IAnyError,
+} from '@zerospin/error';
 /* oxlint-disable typescript/no-explicit-any -- Erased contract payloads retain the existing runtime-validation boundary. */
 import { makeEffectSchema, type IAnyShape } from '@zerospin/schema';
 import { Effect, Schema } from 'effect';
@@ -46,15 +50,17 @@ export function encodePayload(
       if (parent !== undefined) {
         return yield* encodePayload(parent, props);
       }
-      return yield* new ZerospinError({
-        code: 'contract-payload-version-unsupported',
-        message: `Contract "${commandName}" does not support payload version "${sourceVersion}"`,
-        extra: {
-          commandName,
-          currentVersion: version,
-          sourceVersion,
-        },
-      });
+      return yield* Effect.fail(
+        makeZerospinError({
+          code: 'contract-payload-version-unsupported',
+          message: `Contract "${commandName}" does not support payload version "${sourceVersion}"`,
+          extra: {
+            commandName,
+            currentVersion: version,
+            sourceVersion,
+          },
+        }),
+      );
     }
     return yield* Schema.encodeEffect(payloadJsonSchema)(payload, {
       onExcessProperty: 'error',

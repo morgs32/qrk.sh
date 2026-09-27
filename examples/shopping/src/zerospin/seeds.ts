@@ -1,13 +1,13 @@
 import * as sdk from '@zerospin/sdk';
 import { Effect } from 'effect';
 
-import { appV1 } from './services/app/AppV1';
+import { appServiceV1 } from './services/app/appServiceV1';
 import { productV1 } from './services/app/models/product/ProductV1';
 
 export const seeds = Effect.runSync(
   Effect.gen(function* () {
     return [
-      yield* sdk.makeCommand(appV1, {
+      yield* sdk.makeCommand(appServiceV1.versions['1.0.0'], {
         contractName: 'createProduct',
         payload: {
           id: sdk.prefixId(productV1, 'seed-1'),
@@ -17,7 +17,7 @@ export const seeds = Effect.runSync(
         },
       }),
 
-      yield* sdk.makeCommand(appV1, {
+      yield* sdk.makeCommand(appServiceV1.versions['1.0.0'], {
         contractName: 'createProduct',
         payload: {
           id: sdk.prefixId(productV1, 'seed-2'),
@@ -27,7 +27,7 @@ export const seeds = Effect.runSync(
         },
       }),
 
-      yield* sdk.makeCommand(appV1, {
+      yield* sdk.makeCommand(appServiceV1.versions['1.0.0'], {
         contractName: 'createProduct',
         payload: {
           id: sdk.prefixId(productV1, 'seed-3'),
@@ -37,7 +37,7 @@ export const seeds = Effect.runSync(
         },
       }),
 
-      yield* sdk.makeCommand(appV1, {
+      yield* sdk.makeCommand(appServiceV1.versions['1.0.0'], {
         contractName: 'createProduct',
         payload: {
           id: sdk.prefixId(productV1, 'seed-4'),
@@ -47,7 +47,7 @@ export const seeds = Effect.runSync(
         },
       }),
 
-      yield* sdk.makeCommand(appV1, {
+      yield* sdk.makeCommand(appServiceV1.versions['1.0.0'], {
         contractName: 'createProduct',
         payload: {
           id: sdk.prefixId(productV1, 'seed-5'),
@@ -57,7 +57,7 @@ export const seeds = Effect.runSync(
         },
       }),
 
-      yield* sdk.makeCommand(appV1, {
+      yield* sdk.makeCommand(appServiceV1.versions['1.0.0'], {
         contractName: 'createProduct',
         payload: {
           id: sdk.prefixId(productV1, 'seed-6'),
@@ -67,7 +67,7 @@ export const seeds = Effect.runSync(
         },
       }),
 
-      yield* sdk.makeCommand(appV1, {
+      yield* sdk.makeCommand(appServiceV1.versions['1.0.0'], {
         contractName: 'createProduct',
         payload: {
           id: sdk.prefixId(productV1, 'seed-7'),
@@ -77,7 +77,7 @@ export const seeds = Effect.runSync(
         },
       }),
 
-      yield* sdk.makeCommand(appV1, {
+      yield* sdk.makeCommand(appServiceV1.versions['1.0.0'], {
         contractName: 'createProduct',
         payload: {
           id: sdk.prefixId(productV1, 'seed-8'),
@@ -87,7 +87,7 @@ export const seeds = Effect.runSync(
         },
       }),
 
-      yield* sdk.makeCommand(appV1, {
+      yield* sdk.makeCommand(appServiceV1.versions['1.0.0'], {
         contractName: 'createProduct',
         payload: {
           id: sdk.prefixId(productV1, 'seed-9'),
@@ -97,7 +97,7 @@ export const seeds = Effect.runSync(
         },
       }),
 
-      yield* sdk.makeCommand(appV1, {
+      yield* sdk.makeCommand(appServiceV1.versions['1.0.0'], {
         contractName: 'createProduct',
         payload: {
           id: sdk.prefixId(productV1, 'seed-10'),
@@ -107,7 +107,7 @@ export const seeds = Effect.runSync(
         },
       }),
 
-      yield* sdk.makeCommand(appV1, {
+      yield* sdk.makeCommand(appServiceV1.versions['1.0.0'], {
         contractName: 'createProduct',
         payload: {
           id: sdk.prefixId(productV1, 'seed-11'),
@@ -117,7 +117,7 @@ export const seeds = Effect.runSync(
         },
       }),
 
-      yield* sdk.makeCommand(appV1, {
+      yield* sdk.makeCommand(appServiceV1.versions['1.0.0'], {
         contractName: 'createProduct',
         payload: {
           id: sdk.prefixId(productV1, 'seed-12'),

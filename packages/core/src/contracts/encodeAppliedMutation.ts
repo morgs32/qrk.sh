@@ -1,4 +1,8 @@
-import { mapParseError, ZerospinError, type IAnyError } from '@zerospin/error';
+import {
+  makeZerospinError,
+  mapParseError,
+  type IAnyError,
+} from '@zerospin/error';
 import { makeAbbreviationIdSchema, PrimitiveKind } from '@zerospin/schema';
 import { Effect, Schema, Struct } from 'effect';
 import { mapValues, pick } from 'es-toolkit';
@@ -44,7 +48,7 @@ export const EncodedAppliedMutationSchema = Schema.Struct({
   ]),
   operation: Schema.String,
   appliedAt: Schema.DateFromString,
-  lastAppliedAt: Schema.NullOr(Schema.DateFromString),
+  previousUpdatedAt: Schema.NullOr(Schema.DateFromString),
   inverseOperation: Schema.String,
 }) satisfies Schema.Codec<IEncodedAppliedMutation, unknown>;
 
@@ -400,7 +404,7 @@ export const encodeMutation = Effect.fn('encodeMutation')(function* (props: {
           }),
         )({}).pipe(
           mapParseError({
-            code: 'failed-to-encode-aggregate-frontend-mutation-operation',
+            code: 'failed-to-encode-aggregate-session-mutation-operation',
             prefix: `Failed to encode mutation operation JSON for model "${model.modelName}"`,
           }),
         ),
@@ -416,7 +420,7 @@ export const encodeMutation = Effect.fn('encodeMutation')(function* (props: {
           }),
         )({ encodedAttributes: mutation.operation.attributes }).pipe(
           mapParseError({
-            code: 'failed-to-encode-aggregate-frontend-mutation-operation',
+            code: 'failed-to-encode-aggregate-session-mutation-operation',
             prefix: `Failed to encode mutation operation JSON for model "${model.modelName}"`,
           }),
         ),
@@ -436,7 +440,7 @@ export const encodeMutation = Effect.fn('encodeMutation')(function* (props: {
           }),
         )({ encodedAttributes: filtered }).pipe(
           mapParseError({
-            code: 'failed-to-encode-aggregate-frontend-mutation-operation',
+            code: 'failed-to-encode-aggregate-session-mutation-operation',
             prefix: `Failed to encode mutation operation JSON for model "${model.modelName}"`,
           }),
         ),
@@ -454,7 +458,7 @@ export const encodeMutation = Effect.fn('encodeMutation')(function* (props: {
           }),
         )(mutation.operation).pipe(
           mapParseError({
-            code: 'failed-to-encode-aggregate-frontend-mutation-operation',
+            code: 'failed-to-encode-aggregate-session-mutation-operation',
             prefix: `Failed to encode mutation operation JSON for model "${model.modelName}"`,
           }),
         ),
@@ -470,7 +474,7 @@ export const encodeMutation = Effect.fn('encodeMutation')(function* (props: {
           }),
         )(mutation.operation).pipe(
           mapParseError({
-            code: 'failed-to-encode-aggregate-frontend-mutation-operation',
+            code: 'failed-to-encode-aggregate-session-mutation-operation',
             prefix: `Failed to encode replication mutation operation for model "${model.modelName}"`,
           }),
         ),
@@ -478,10 +482,12 @@ export const encodeMutation = Effect.fn('encodeMutation')(function* (props: {
     // 5 — Exhaustiveness failures become a typed unsupported-operation error.
     default: {
       const _exhaustive: never = operationName;
-      return yield* new ZerospinError({
-        code: 'unsupported-mutation-operation',
-        message: `encodeMutation: unsupported operationName "${String(_exhaustive)}"`,
-      });
+      return yield* Effect.fail(
+        makeZerospinError({
+          code: 'unsupported-mutation-operation',
+          message: `encodeMutation: unsupported operationName "${String(_exhaustive)}"`,
+        }),
+      );
     }
   }
 });
@@ -506,7 +512,7 @@ export const encodeAppliedMutation = Effect.fn('encodeAppliedMutation')(
     const {
       appliedAt,
       commandId,
-      lastAppliedAt,
+      previousUpdatedAt,
       inverseOperation,
       model,
       modelVersion,
@@ -522,7 +528,7 @@ export const encodeAppliedMutation = Effect.fn('encodeAppliedMutation')(
       resourceId,
       operationName,
       appliedAt,
-      lastAppliedAt,
+      previousUpdatedAt,
     };
     // 2 — Encode the forward operation exactly as the pre-application mutation
     // encoder does, retaining update masks and complete move/replication data.
@@ -614,10 +620,12 @@ export const encodeAppliedMutation = Effect.fn('encodeAppliedMutation')(
           };
         default: {
           const _exhaustive: never = operationName;
-          return yield* new ZerospinError({
-            code: 'unsupported-mutation-operation',
-            message: `encodeAppliedMutation: unsupported operationName "${String(_exhaustive)}"`,
-          });
+          return yield* Effect.fail(
+            makeZerospinError({
+              code: 'unsupported-mutation-operation',
+              message: `encodeAppliedMutation: unsupported operationName "${String(_exhaustive)}"`,
+            }),
+          );
         }
       }
     });
@@ -646,11 +654,13 @@ export const encodeAppliedMutation = Effect.fn('encodeAppliedMutation')(
       // 4 — Update inverses must contain attributes and obey the forward mask.
       case 'update': {
         if (!('attributes' in inverseOperation)) {
-          return yield* new ZerospinError({
-            code: 'invalid-inverse-operation',
-            message:
-              'encodeAppliedMutation: update inverseOperation must include attributes',
-          });
+          return yield* Effect.fail(
+            makeZerospinError({
+              code: 'invalid-inverse-operation',
+              message:
+                'encodeAppliedMutation: update inverseOperation must include attributes',
+            }),
+          );
         }
         const filtered = mutation.operation.mask
           ? pick(inverseOperation.attributes, mutation.operation.mask)
@@ -675,11 +685,13 @@ export const encodeAppliedMutation = Effect.fn('encodeAppliedMutation')(
       // fields before encoding through the matching inverse schema.
       case 'move':
         if (!('property' in inverseOperation)) {
-          return yield* new ZerospinError({
-            code: 'invalid-inverse-operation',
-            message:
-              'encodeAppliedMutation: move inverseOperation must include property',
-          });
+          return yield* Effect.fail(
+            makeZerospinError({
+              code: 'invalid-inverse-operation',
+              message:
+                'encodeAppliedMutation: move inverseOperation must include property',
+            }),
+          );
         }
         return {
           ...encoded,
@@ -698,11 +710,13 @@ export const encodeAppliedMutation = Effect.fn('encodeAppliedMutation')(
         };
       case 'replicate':
         if (!('resource' in inverseOperation)) {
-          return yield* new ZerospinError({
-            code: 'invalid-inverse-operation',
-            message:
-              'encodeAppliedMutation: replicate inverseOperation must include resource',
-          });
+          return yield* Effect.fail(
+            makeZerospinError({
+              code: 'invalid-inverse-operation',
+              message:
+                'encodeAppliedMutation: replicate inverseOperation must include resource',
+            }),
+          );
         }
         return {
           ...encoded,
@@ -721,11 +735,13 @@ export const encodeAppliedMutation = Effect.fn('encodeAppliedMutation')(
         };
       case 'delete':
         if (!('resource' in inverseOperation)) {
-          return yield* new ZerospinError({
-            code: 'invalid-inverse-operation',
-            message:
-              'encodeAppliedMutation: delete inverseOperation must include resource',
-          });
+          return yield* Effect.fail(
+            makeZerospinError({
+              code: 'invalid-inverse-operation',
+              message:
+                'encodeAppliedMutation: delete inverseOperation must include resource',
+            }),
+          );
         }
         return {
           ...encoded,
@@ -745,17 +761,21 @@ export const encodeAppliedMutation = Effect.fn('encodeAppliedMutation')(
       // 6 — A non-null create inverse is impossible; unknown operations remain
       // a typed unsupported-operation failure.
       case 'create':
-        return yield* new ZerospinError({
-          code: 'invalid-inverse-operation',
-          message:
-            'encodeAppliedMutation: create inverseOperation must be null',
-        });
+        return yield* Effect.fail(
+          makeZerospinError({
+            code: 'invalid-inverse-operation',
+            message:
+              'encodeAppliedMutation: create inverseOperation must be null',
+          }),
+        );
       default: {
         const _exhaustive: never = operationName;
-        return yield* new ZerospinError({
-          code: 'unsupported-mutation-operation',
-          message: `encodeAppliedMutation: unsupported operationName "${String(_exhaustive)}"`,
-        });
+        return yield* Effect.fail(
+          makeZerospinError({
+            code: 'unsupported-mutation-operation',
+            message: `encodeAppliedMutation: unsupported operationName "${String(_exhaustive)}"`,
+          }),
+        );
       }
     }
   },

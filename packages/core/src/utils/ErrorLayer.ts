@@ -1,5 +1,5 @@
 /* eslint-disable no-console */
-import { ZerospinError } from '@zerospin/error';
+import { isZerospinError } from '@zerospin/error';
 import { Effect, Exit, Layer, Option, Tracer } from 'effect';
 
 const makeTracer: Effect.Effect<Tracer.Tracer> = Effect.gen(function* () {
@@ -30,12 +30,12 @@ const makeTracer: Effect.Effect<Tracer.Tracer> = Effect.gen(function* () {
           );
 
           const stacktraceAttr = span.attributes.get('code.stacktrace');
-          if (typeof stacktraceAttr !== 'string') {
-            throw new Error('missing code.stacktrace on failed span');
-          }
-          const stacktrace = stacktraceAttr
-            .replaceAll(/\(|\)/g, '')
-            .split('\n');
+          // Explicit spans need not have the function stack metadata attached by Effect.fn.
+          // Tracing must preserve the original failure even when that metadata is absent.
+          const stacktrace =
+            typeof stacktraceAttr === 'string'
+              ? stacktraceAttr.replaceAll(/\(|\)/g, '').split('\n')
+              : [];
           spans.push({
             attributes,
             name: span.name,
@@ -43,7 +43,13 @@ const makeTracer: Effect.Effect<Tracer.Tracer> = Effect.gen(function* () {
           });
           if (Option.isNone(span.parent)) {
             Exit.mapError(exit, error => {
-              if (ZerospinError.isZerospinError(error)) {
+              if (
+                isZerospinError(error) &&
+                !('scope' in error) &&
+                (error.extra === null ||
+                  (typeof error.extra === 'object' &&
+                    !Array.isArray(error.extra)))
+              ) {
                 // @ts-expect-error mutating structured error metadata for tracing.
                 error.extra = {
                   ...error.extra,

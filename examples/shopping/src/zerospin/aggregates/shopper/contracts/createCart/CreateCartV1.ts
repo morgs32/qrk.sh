@@ -1,60 +1,78 @@
 import * as sdk from '@zerospin/sdk/browser';
-import { Effect } from 'effect';
+import { Effect, Schema } from 'effect';
 
+import { shopperIdentitySchema } from '../../actors/identities';
 import { cart } from '../../models/cart/cart';
 import { cartV1 } from '../../models/cart/CartV1';
 import { user } from '../../models/user/user';
-import { type userV1 } from '../../models/user/UserV1';
+import { userV1 } from '../../models/user/UserV1';
 
 import { createCart } from './createCart';
-
 export const createCartV1 = sdk.makeContractVersion(createCart, {
+  identity: shopperIdentitySchema,
+  failures: {
+    actorDenied: sdk.ActorError.schema({
+      code: 'actor-denied',
+      extra: Schema.Struct({ operation: Schema.String }),
+    }),
+    userNotFound: sdk.ContractError.schema({
+      code: 'user-not-found',
+    }),
+    userOwnerMismatch: sdk.ContractError.schema({
+      code: 'user-owner-mismatch',
+    }),
+  },
   payload: {
     id: sdk.primitives.foreignKey({ abbreviation: cart.abbreviation }),
     userId: sdk.primitives.foreignKey({ abbreviation: user.abbreviation }),
   },
 
-  guard: ({
-    db,
+  models: { cart: cartV1, user: userV1 },
+  guard: Effect.fn('createCartV1.guard')(function* ({
+    failures,
     payload,
-  }: {
-    db: Readonly<
-      Pick<
-        sdk.IDb<
-          sdk.IResourceDbConfig<{ user: typeof userV1 }, Record<never, never>>
-        >,
-        'query'
-      >
-    >;
-    payload: { userId: sdk.InferResource<typeof userV1>['id'] };
-  }) =>
-    Effect.gen(function* () {
-      const resource = yield* Effect.try({
-        try: () =>
-          db.query.user
-            .findFirst({ where: { id: { eq: payload.userId } } })
-            .sync(),
-        catch: sdk.ZerospinError.catch({
-          code: 'user-guard-query-failed',
-          message: 'Failed to query user during guard evaluation',
-        }),
-      });
-      if (resource === undefined) {
-        return yield* new sdk.ZerospinError({
-          code: 'user-not-found',
-          message: `user ${payload.userId} was not found`,
-        });
-      }
-    }),
-  models: { cart: cartV1 },
-  program: ({ payload, models }) => {
-    const { id, userId } = payload;
-    return Effect.all({
-      created: models.cart.create({
-        resourceId: id,
-        attributes: { userId },
+    identity,
+    queryDb,
+  }) {
+    const db = queryDb;
+    const resource = yield* Effect.try({
+      try: () =>
+        db.query.user
+          .findFirst({ where: { id: { eq: payload.userId } } })
+          .sync(),
+      catch: sdk.catchZerospinError({
+        code: 'user-guard-query-failed',
+        message: 'Failed to query user during guard evaluation',
       }),
     });
-  },
+    if (resource === undefined) {
+      return yield* Effect.fail(
+        failures.userNotFound.make({
+          message: `user ${payload.userId} was not found`,
+        }),
+      );
+    }
+
+    const user = queryDb.query.user
+      .findFirst({ where: { clerkUserId: { eq: identity.clerkUserId } } })
+      .sync();
+    if (user?.id !== resource.id) {
+      return yield* Effect.fail(
+        failures.userOwnerMismatch.make({
+          message: 'This user belongs to another shopper.',
+        }),
+      );
+    }
+  }),
+  program: ({ payload, models }) =>
+    Effect.gen(function* () {
+      const { id, userId } = payload;
+      return yield* Effect.all([
+        models.cart.create({
+          resourceId: id,
+          attributes: { userId },
+        }),
+      ]);
+    }),
   version: '1.0.0',
 });

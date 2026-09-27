@@ -1,6 +1,6 @@
-import { makeAsync } from '@zerospin/core/async/makeAsync';
-import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
-import { ZerospinError } from '@zerospin/error';
+import { makeAsync } from '@zerospin/core/async/make/makeAsync';
+import { readRpcEnvelope } from '@zerospin/core/utils/readRpcEnvelope';
+import { makeZerospinError } from '@zerospin/error';
 import { Effect, Schema, type Context } from 'effect';
 
 import { SystemRepo } from '../../SystemRepo/SystemRepo.js';
@@ -55,7 +55,7 @@ export const getSystemRepoTableRows = Effect.fn(
         // 3 — query SystemRepo for SystemRepo registrations
         const registrations = yield* makeAsync(() =>
           systemRepo.getRepoRegistrations({ repoType: 'SystemRepo' }),
-        ).pipe(Effect.flatMap(decodeRpc));
+        ).pipe(Effect.flatMap(envelope => readRpcEnvelope(envelope)));
 
         // 4 — return repo-explorer-repo-not-found before opening the requested Repo
         if (
@@ -63,17 +63,19 @@ export const getSystemRepoTableRows = Effect.fn(
             registration => registration.repoName === repoName,
           ) === undefined
         ) {
-          return yield* new ZerospinError({
-            code: 'repo-explorer-repo-not-found',
-            message: `SystemRepo "${repoName}" is not registered`,
-            extra: { repoName, repoType: 'SystemRepo' },
-          });
+          return yield* Effect.fail(
+            makeZerospinError({
+              code: 'repo-explorer-repo-not-found',
+              message: `SystemRepo "${repoName}" is not registered`,
+              extra: { repoName, repoType: 'SystemRepo' },
+            }),
+          );
         }
 
         // 5 — decode getRepoTableRows; the Repo owns table-name validation
         return yield* makeAsync(() =>
           systemRepo.getRepoTableRows({ tableName }),
-        ).pipe(Effect.flatMap(decodeRpc));
+        ).pipe(Effect.flatMap(envelope => readRpcEnvelope(envelope)));
       }).pipe(
         Effect.withSpan('SystemApi.getSystemRepoTableRows', { root: true }),
       ),

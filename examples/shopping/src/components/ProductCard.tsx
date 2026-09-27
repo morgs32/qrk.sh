@@ -1,9 +1,10 @@
 import { useState } from 'react';
 
-import { makeId } from '@zerospin/core/models/makeId';
+import { makeId } from '@zerospin/core/models/make/makeId';
 import type { InferResource } from '@zerospin/core/models/types';
 import { NanoIdFactory } from '@zerospin/core/utils/NanoIdFactory';
 import { stageCommand, useLiveQuery } from '@zerospin/react';
+import { checkGuards } from '@zerospin/sdk/browser';
 import { Effect } from 'effect';
 import { ShoppingCart } from 'lucide-react';
 
@@ -22,7 +23,7 @@ import { cartV1 } from '@/zerospin/aggregates/shopper/models/cart/CartV1';
 import { cartItemV2 } from '@/zerospin/aggregates/shopper/models/cartItem/CartItemV2';
 import { type userV1 } from '@/zerospin/aggregates/shopper/models/user/UserV1';
 import { type productV1 } from '@/zerospin/services/app/models/product/ProductV1';
-import { shopperSession } from '@/zerospin/ZerospinApp';
+import { shopperSession } from '@/zerospin/shopperSession';
 
 export function ProductCard(props: {
   product: InferResource<typeof productV1>;
@@ -30,6 +31,13 @@ export function ProductCard(props: {
 }) {
   const { product, userId } = props;
   const [error, setError] = useState<string | null>(null);
+  useLiveQuery({
+    session: shopperSession,
+    query: db =>
+      db.query.checkout.findFirst({
+        where: { status: { in: ['accepted', 'paying', 'declined'] } },
+      }),
+  });
   const { data: cart } = useLiveQuery({
     session: shopperSession,
     query: db => db.query.cart.findFirst(),
@@ -66,6 +74,28 @@ export function ProductCard(props: {
           />
         ) : (
           <Button
+            disabled={
+              (cart?.id === undefined
+                ? Effect.runSync(
+                    checkGuards({
+                      session: shopperSession,
+                      contractName: 'createCart',
+                      payload: { id: 'crt_preview', userId },
+                    }),
+                  )
+                : Effect.runSync(
+                    checkGuards({
+                      session: shopperSession,
+                      contractName: 'addToCart',
+                      payload: {
+                        cartItemId: 'cit_preview',
+                        cartId: cart.id,
+                        product,
+                        amount: 1,
+                      },
+                    }),
+                  )) !== null
+            }
             className="self-end"
             size="sm"
             variant="outline"

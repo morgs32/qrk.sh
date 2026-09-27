@@ -1,5 +1,0 @@
-{
-  "extends": "./tsconfig.etc.json",
-  "include": ["src/session/makeAggregateSession.typecheck.ts"],
-  "exclude": []
-}

@@ -177,7 +177,7 @@ export const annotateFunctionSpan = <
         }
 
         if (
-          /password|passwd|secret|token|authorization|cookie|credential|signature|api[-_.]?key|private[-_.]?key|publishable[-_.]?key/i.test(
+          /password|passwd|secret|token|authorization|cookie|credential|credentials|api[-_.]?key|private[-_.]?key|publishable[-_.]?key/i.test(
             key,
           )
         ) {

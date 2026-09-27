@@ -20,7 +20,7 @@
   },
   "scripts": {
     "clean": "rimraf dist tsconfig.tsbuildinfo",
-    "lib": "pnpm run clean && tsc -b tsconfig.json && node -e \"const fs=require('node:fs'); const syncWasm=require.resolve('@livestore/wa-sqlite/dist/wa-sqlite.wasm'); fs.copyFileSync(syncWasm, 'dist/wa-sqlite.wasm');\"",
+    "lib": "pnpm run clean && tsc -b tsconfig.json",
     "ts": "tsc -p tsconfig.etc.json --noEmit",
     "watch": "tsc -b tsconfig.json --watch",
     "test": "vitest run --config vitest.config.ts",
@@ -36,7 +36,7 @@
     "@zerospin/core": "workspace:*",
     "@zerospin/devtools": "workspace:*",
     "@zerospin/error": "workspace:*",
-    "@zerospin/frontend": "workspace:*",
+    "@zerospin/browser": "workspace:*",
     "@zerospin/live-query": "workspace:*",
     "@zerospin/logger": "workspace:*",
     "@zerospin/schema": "workspace:*",

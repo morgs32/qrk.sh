@@ -1,40 +1,39 @@
+import { RoutePattern } from '@remix-run/route-pattern';
+import type { IAggregateSessionLock } from '@zerospin/core/aggregateSession/AggregateSessionLockSchema';
 /*
  * System-worker annotation:
  * Defines the static SystemRepo Durable Object shell and local storage wiring.
  * Public RPC methods delegate to same-named Effect functions in method folders.
  */
-
-import { RoutePattern } from '@remix-run/route-pattern';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
-import type { AggregateFrontendLockSchema } from '@zerospin/core/frontendController/makeAggregateFrontendLock';
-import type { ServiceFrontendLockSchema } from '@zerospin/core/frontendController/makeServiceFrontendLock';
 import type { IAggregateId } from '@zerospin/core/models/types';
+import type { IServiceSessionLock } from '@zerospin/core/serviceSession/ServiceSessionLockSchema';
 import type {
   IRepoRegistration,
   IRepoType,
   ISystemSpec,
 } from '@zerospin/core/system/types';
 import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
-import { encodeRpc } from '@zerospin/core/utils/encodeRpc';
 import {
-  ZerospinError,
-  type IAnyErrorJson,
-  type IEncodedResult,
+  isZerospinError,
+  makeZerospinError,
+  prettyUnknownFailure,
 } from '@zerospin/error';
+import { makeRpcEnvelope } from '@zerospin/logger';
 import { makeAbbreviationIdSchema } from '@zerospin/schema';
+import config from 'config';
 import { getTableColumns } from 'drizzle-orm';
 import { Effect, Schema } from 'effect';
 import invariant from 'tiny-invariant';
 
 import { makeFixedDORepo } from '../makeFixedDORepo/makeFixedDORepo.js';
 import { makeFixedDORepoConfig } from '../makeFixedDORepo/makeFixedDORepoConfig.js';
-import { managedRuntime } from '../managedRuntime.js';
 
 import { checkSystemSpec } from './checkSystemSpec/checkSystemSpec.js';
-import { consumeAggregateFrontendWebSocketTicket } from './consumeAggregateFrontendWebSocketTicket/consumeAggregateFrontendWebSocketTicket.js';
-import { consumeServiceFrontendWebSocketTicket } from './consumeServiceFrontendWebSocketTicket/consumeServiceFrontendWebSocketTicket.js';
-import { createAggregateFrontendWebSocketTicket } from './createAggregateFrontendWebSocketTicket/createAggregateFrontendWebSocketTicket.js';
-import { createServiceFrontendWebSocketTicket } from './createServiceFrontendWebSocketTicket/createServiceFrontendWebSocketTicket.js';
+import { consumeAggregateSessionWebSocketTicket } from './consumeAggregateSessionWebSocketTicket/consumeAggregateSessionWebSocketTicket.js';
+import { consumeServiceSessionWebSocketTicket } from './consumeServiceSessionWebSocketTicket/consumeServiceSessionWebSocketTicket.js';
+import { createAggregateSessionWebSocketTicket } from './createAggregateSessionWebSocketTicket/createAggregateSessionWebSocketTicket.js';
+import { createServiceSessionWebSocketTicket } from './createServiceSessionWebSocketTicket/createServiceSessionWebSocketTicket.js';
 import { fetch } from './fetch/fetch.js';
 import { getRepoRegistrations } from './getRepoRegistrations/getRepoRegistrations.js';
 import { initialize } from './initialize/initialize.js';
@@ -47,7 +46,7 @@ export class SystemRepo extends makeFixedDORepo({
   fixedDORepoConfig: makeFixedDORepoConfig({
     abbreviation: undefined,
     namePattern: RoutePattern.parse('/:systemId'),
-    managedRuntime,
+    managedRuntime: config.system.runtime,
     dbConfig: systemRepoDbConfig,
   }),
 }) {
@@ -84,7 +83,7 @@ export class SystemRepo extends makeFixedDORepo({
             )
             .toArray().length > 0;
         if (oldExists && newExists) {
-          throw new ZerospinError({
+          throw makeZerospinError({
             code: 'system-spec-lock-migration-conflict',
             message: `Cannot migrate ${oldName}: both ${oldName} and ${newName} exist`,
           });
@@ -107,7 +106,7 @@ export class SystemRepo extends makeFixedDORepo({
 
   /*
    * Entrypoint WebSocket requests reach the singleton SystemRepo router.
-   * Frontend upgrades spend a retained ticket before forwarding to its log, while
+   * Session upgrades spend a retained ticket before forwarding to its log, while
    * the system-log route delegates directly to SystemLogAgent.
    *
    * 1. Run the named HTTP routing Effect.
@@ -117,21 +116,21 @@ export class SystemRepo extends makeFixedDORepo({
   fetch(request: Request): Promise<Response> {
     // 1 — bind singleton identity and ticket tables after the common activation gate
     return (
-      managedRuntime
+      config.system.runtime
         .runPromise(
           fetch({
             db: this.db,
             systemId: this.key.systemId,
             request,
-            aggregateFrontendWebSocketTicketTable:
-              systemRepoDbConfig.schema.aggregateFrontendWebSocketTickets,
-            aggregateFrontendWebSocketTicketColumns: getTableColumns(
-              systemRepoDbConfig.schema.aggregateFrontendWebSocketTickets,
+            aggregateSessionWebSocketTicketTable:
+              systemRepoDbConfig.schema.aggregateSessionWebSocketTickets,
+            aggregateSessionWebSocketTicketColumns: getTableColumns(
+              systemRepoDbConfig.schema.aggregateSessionWebSocketTickets,
             ),
-            serviceFrontendWebSocketTicketTable:
-              systemRepoDbConfig.schema.serviceFrontendWebSocketTickets,
-            serviceFrontendWebSocketTicketColumns: getTableColumns(
-              systemRepoDbConfig.schema.serviceFrontendWebSocketTickets,
+            serviceSessionWebSocketTicketTable:
+              systemRepoDbConfig.schema.serviceSessionWebSocketTickets,
+            serviceSessionWebSocketTicketColumns: getTableColumns(
+              systemRepoDbConfig.schema.serviceSessionWebSocketTickets,
             ),
           }).pipe(
             // 2 — retain the domain status or default to HTTP 500
@@ -142,7 +141,7 @@ export class SystemRepo extends makeFixedDORepo({
                     cause: failure.cause,
                     code: failure.code,
                     extra: failure.extra,
-                    message: failure.rawMessage,
+                    message: failure.message,
                     status: failure.status,
                   },
                   {
@@ -157,12 +156,12 @@ export class SystemRepo extends makeFixedDORepo({
 
         // 3 — wrap unexpected failures as system-fetch-failed and return no-store JSON
         .catch(error => {
-          const failure = ZerospinError.isZerospinError(error)
+          const failure = isZerospinError(error)
             ? error
-            : new ZerospinError({
+            : makeZerospinError({
                 code: 'system-fetch-failed',
                 message: 'SystemRepo request failed',
-                cause: ZerospinError.prettyUnknownFailure(error),
+                cause: prettyUnknownFailure(error),
                 status: 500,
               });
           return Response.json(
@@ -170,7 +169,7 @@ export class SystemRepo extends makeFixedDORepo({
               cause: failure.cause,
               code: failure.code,
               extra: failure.extra,
-              message: failure.rawMessage,
+              message: failure.message,
               status: failure.status,
             },
             {
@@ -187,135 +186,131 @@ export class SystemRepo extends makeFixedDORepo({
    *
    * 1. Run the bound domain operation.
    */
-  initialize(): Promise<IEncodedResult<void, IAnyErrorJson>> {
+  initialize() {
     // 1 — run initialize with the instance-bound dependencies and encode its RPC outcome
-    return managedRuntime.runPromise(
+    return config.system.runtime.runPromise(
       initialize({
-        serviceAdmittedChains: this.env.SERVICE_ADMITTED_CHAIN,
+        serviceChains: this.env.SERVICE_CHAIN,
         systemId: this.key.systemId,
-      }).pipe(Effect.provide(AsyncLive), encodeRpc),
+      }).pipe(Effect.provide(AsyncLive), makeRpcEnvelope),
     );
   }
 
   /*
-   * SystemRepo mints a single-use ticket for a preselected aggregate frontend
+   * SystemRepo mints a single-use ticket for a preselected aggregate definition
    * log and lock. Only the ticket hash is retained; the raw random credential
    * is returned once for the subsequent WebSocket upgrade.
    *
    * 1. Run the bound domain operation.
    */
-  createAggregateFrontendWebSocketTicket(props: {
+  createAggregateSessionWebSocketTicket(props: {
     repoName: string;
     aggregateId: IAggregateId;
     aggregateName: string;
     aggregateVersion: string;
-    selectionPath: string;
-    authentication: Readonly<Record<string, unknown>>;
-    frontendName: string;
-    aggregateFrontendLock: Schema.Schema.Type<
-      typeof AggregateFrontendLockSchema
-    >;
+    actorName: string;
+    actorVersion: string;
+    actorPath: string;
+    identity: Readonly<Record<string, unknown>>;
+    sessionName: string;
+    aggregateSessionLock: IAggregateSessionLock;
   }) {
-    // 1 — run createAggregateFrontendWebSocketTicket with the instance-bound dependencies and encode its RPC outcome
-    return managedRuntime.runPromise(
-      createAggregateFrontendWebSocketTicket({
+    // 1 — run createAggregateSessionWebSocketTicket with the instance-bound dependencies and encode its RPC outcome
+    return config.system.runtime.runPromise(
+      createAggregateSessionWebSocketTicket({
         db: this.db,
         ...props,
-        aggregateFrontendWebSocketTicketTable:
-          systemRepoDbConfig.schema.aggregateFrontendWebSocketTickets,
-        aggregateFrontendWebSocketTicketColumns: getTableColumns(
-          systemRepoDbConfig.schema.aggregateFrontendWebSocketTickets,
+        aggregateSessionWebSocketTicketTable:
+          systemRepoDbConfig.schema.aggregateSessionWebSocketTickets,
+        aggregateSessionWebSocketTicketColumns: getTableColumns(
+          systemRepoDbConfig.schema.aggregateSessionWebSocketTickets,
         ),
-      }).pipe(encodeRpc),
+      }).pipe(makeRpcEnvelope),
     );
   }
 
   /*
-   * SystemRepo spends the aggregate frontend ticket during WebSocket upgrade.
+   * SystemRepo spends the aggregate definition ticket during WebSocket upgrade.
    * DELETE RETURNING makes consumption single-use before stored-row validation
    * and expiry checks finish.
    *
    * 1. Run the bound domain operation.
    */
-  consumeAggregateFrontendWebSocketTicket(props: { ticket: string }) {
+  consumeAggregateSessionWebSocketTicket(props: { ticket: string }) {
     const { ticket } = props;
 
-    // 1 — run consumeAggregateFrontendWebSocketTicket with the instance-bound dependencies and encode its RPC outcome
-    return managedRuntime.runPromise(
-      consumeAggregateFrontendWebSocketTicket({
+    // 1 — run consumeAggregateSessionWebSocketTicket with the instance-bound dependencies and encode its RPC outcome
+    return config.system.runtime.runPromise(
+      consumeAggregateSessionWebSocketTicket({
         db: this.db,
         ticket,
-        aggregateFrontendWebSocketTicketTable:
-          systemRepoDbConfig.schema.aggregateFrontendWebSocketTickets,
-        aggregateFrontendWebSocketTicketColumns: getTableColumns(
-          systemRepoDbConfig.schema.aggregateFrontendWebSocketTickets,
+        aggregateSessionWebSocketTicketTable:
+          systemRepoDbConfig.schema.aggregateSessionWebSocketTickets,
+        aggregateSessionWebSocketTicketColumns: getTableColumns(
+          systemRepoDbConfig.schema.aggregateSessionWebSocketTickets,
         ),
-      }).pipe(encodeRpc),
+      }).pipe(makeRpcEnvelope),
     );
   }
 
   /*
-   * SystemRepo mints a single-use ticket for a preselected service frontend
+   * SystemRepo mints a single-use ticket for a preselected service definition
    * log and lock. Only the ticket hash is retained; the raw random credential
    * is returned once for the subsequent WebSocket upgrade.
    *
    * 1. Run the bound domain operation.
    */
-  createServiceFrontendWebSocketTicket(props: {
+  createServiceSessionWebSocketTicket(props: {
     repoName: string;
     serviceName: string;
     serviceVersion: string;
-    selectionPath: string;
-    authentication: Readonly<Record<string, unknown>>;
-    frontendName: string;
-    serviceFrontendLock: Schema.Schema.Type<typeof ServiceFrontendLockSchema>;
-  }): Promise<IEncodedResult<string, IAnyErrorJson>> {
-    // 1 — run createServiceFrontendWebSocketTicket with the instance-bound dependencies and encode its RPC outcome
-    return managedRuntime.runPromise(
-      createServiceFrontendWebSocketTicket({
+    actorPath: string;
+    identity: Readonly<Record<string, unknown>>;
+    sessionName: string;
+    serviceSessionLock: IServiceSessionLock;
+  }) {
+    // 1 — run createServiceSessionWebSocketTicket with the instance-bound dependencies and encode its RPC outcome
+    return config.system.runtime.runPromise(
+      createServiceSessionWebSocketTicket({
         db: this.db,
         ...props,
-        serviceFrontendWebSocketTicketTable:
-          systemRepoDbConfig.schema.serviceFrontendWebSocketTickets,
-        serviceFrontendWebSocketTicketColumns: getTableColumns(
-          systemRepoDbConfig.schema.serviceFrontendWebSocketTickets,
+        serviceSessionWebSocketTicketTable:
+          systemRepoDbConfig.schema.serviceSessionWebSocketTickets,
+        serviceSessionWebSocketTicketColumns: getTableColumns(
+          systemRepoDbConfig.schema.serviceSessionWebSocketTickets,
         ),
-      }).pipe(encodeRpc),
+      }).pipe(makeRpcEnvelope),
     );
   }
 
   /*
-   * SystemRepo spends the service frontend ticket during WebSocket upgrade.
+   * SystemRepo spends the service definition ticket during WebSocket upgrade.
    * DELETE RETURNING makes consumption single-use before stored-row validation
    * and expiry checks finish.
    *
    * 1. Run the bound domain operation.
    */
-  consumeServiceFrontendWebSocketTicket(props: { ticket: string }) {
+  consumeServiceSessionWebSocketTicket(props: { ticket: string }) {
     const { ticket } = props;
 
-    // 1 — run consumeServiceFrontendWebSocketTicket with the instance-bound dependencies and encode its RPC outcome
-    return managedRuntime.runPromise(
-      consumeServiceFrontendWebSocketTicket({
+    // 1 — run consumeServiceSessionWebSocketTicket with the instance-bound dependencies and encode its RPC outcome
+    return config.system.runtime.runPromise(
+      consumeServiceSessionWebSocketTicket({
         db: this.db,
         ticket,
-        serviceFrontendWebSocketTicketTable:
-          systemRepoDbConfig.schema.serviceFrontendWebSocketTickets,
-        serviceFrontendWebSocketTicketColumns: getTableColumns(
-          systemRepoDbConfig.schema.serviceFrontendWebSocketTickets,
+        serviceSessionWebSocketTicketTable:
+          systemRepoDbConfig.schema.serviceSessionWebSocketTickets,
+        serviceSessionWebSocketTicketColumns: getTableColumns(
+          systemRepoDbConfig.schema.serviceSessionWebSocketTickets,
         ),
-      }).pipe(encodeRpc),
+      }).pipe(makeRpcEnvelope),
     );
   }
 
   /** Lock all candidate definitions supplied by the executing Worker in one transaction. */
-  checkSystemSpec(props: {
-    spec: ISystemSpec;
-  }): Promise<
-    IEncodedResult<{ workerVersionId: string | null }, IAnyErrorJson>
-  > {
-    return managedRuntime.runPromise(
-      checkSystemSpec({ db: this.db, spec: props.spec }).pipe(encodeRpc),
+  checkSystemSpec(props: { spec: ISystemSpec }) {
+    return config.system.runtime.runPromise(
+      checkSystemSpec({ db: this.db, spec: props.spec }).pipe(makeRpcEnvelope),
     );
   }
 
@@ -325,56 +320,51 @@ export class SystemRepo extends makeFixedDORepo({
    *
    * 1. Run the bound domain operation.
    */
-  registerRepo(props: {
-    registration: IRepoRegistration;
-    spec: ISystemSpec;
-  }): Promise<IEncodedResult<void, IAnyErrorJson>> {
-    const { registration } = props;
+  registerRepo(props: { registration: IRepoRegistration; spec: ISystemSpec }) {
+    const { registration, spec } = props;
 
     // 1 — run registerRepo with the instance-bound dependencies and encode its RPC outcome
-    return managedRuntime.runPromise(
+    return config.system.runtime.runPromise(
       registerRepo({
-        spec: props.spec,
+        spec,
         db: this.db,
         repoTable: systemRepoDbConfig.schema.repos,
         registration,
-      }).pipe(encodeRpc),
+      }).pipe(makeRpcEnvelope),
     );
   }
 
   /*
-   * Frontend initialization registers its projection and retained output log
+   * Session initialization registers its projection and retained output log
    * as one catalog transaction. The pair must belong to the same aggregate or
-   * service frontend topology.
+   * service definition topology.
    *
    * 1. Run the bound domain operation.
    */
   registerRepos(props: {
     spec: ISystemSpec;
-    frontendRepo: {
-      repoType:
-        | 'SelectionVersionedAggregateRepo'
-        | 'FrontendVersionedServiceRepo';
+    sessionRepo: {
+      repoType: 'AggregateActorVersionRepo' | 'ServiceActorVersionRepo';
       repoName: string;
       tableNames: readonly string[];
     };
     finalizedCommandChain: {
-      repoType: 'SelectionVersionedAggregateChain' | 'FrontendServiceChain';
+      repoType: 'AggregateActorVersionChain' | 'ServiceActorVersionChain';
       repoName: string;
       tableNames: readonly string[];
     };
-  }): Promise<IEncodedResult<void, IAnyErrorJson>> {
-    const { finalizedCommandChain, frontendRepo } = props;
+  }) {
+    const { finalizedCommandChain, sessionRepo, spec } = props;
 
     // 1 — run registerRepos with the instance-bound dependencies and encode its RPC outcome
-    return managedRuntime.runPromise(
+    return config.system.runtime.runPromise(
       registerRepos({
-        spec: props.spec,
+        spec,
         db: this.db,
         repoTable: systemRepoDbConfig.schema.repos,
-        frontendRepo,
+        sessionRepo,
         finalizedCommandChain,
-      }).pipe(encodeRpc),
+      }).pipe(makeRpcEnvelope),
     );
   }
 
@@ -385,19 +375,17 @@ export class SystemRepo extends makeFixedDORepo({
    *
    * 1. Run the bound domain operation.
    */
-  getRepoRegistrations(props: {
-    repoType: IRepoType;
-  }): Promise<IEncodedResult<readonly IRepoRegistration[], IAnyErrorJson>> {
+  getRepoRegistrations(props: { repoType: IRepoType }) {
     const { repoType } = props;
 
     // 1 — run getRepoRegistrations with the instance-bound dependencies and encode its RPC outcome
-    return managedRuntime.runPromise(
+    return config.system.runtime.runPromise(
       getRepoRegistrations({
         db: this.db,
         repoTable: systemRepoDbConfig.schema.repos,
         repoType,
         systemId: this.key.systemId,
-      }).pipe(encodeRpc),
+      }).pipe(makeRpcEnvelope),
     );
   }
 }

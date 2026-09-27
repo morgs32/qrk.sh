@@ -5,7 +5,7 @@
 
 import type { IDb } from '@zerospin/core/drizzle/types';
 import type { IRepoType } from '@zerospin/core/system/types';
-import { ZerospinError } from '@zerospin/error';
+import { makeZerospinError, prettyUnknownFailure } from '@zerospin/error';
 import type { IAnyDrizzleSchema } from '@zerospin/schema';
 import { asc, eq, type AnyColumn } from 'drizzle-orm';
 import { Effect, Schema } from 'effect';
@@ -47,15 +47,15 @@ export const getRepoRegistrations = Effect.fn(
           Schema.Struct({
             repoType: Schema.Literals([
               'SystemRepo',
-              'VersionedAggregateRepo',
-              'SelectionVersionedAggregateRepo',
-              'FrontendVersionedServiceRepo',
-              'VersionedServiceRepo',
+              'AggregateVersionRepo',
+              'AggregateActorVersionRepo',
+              'ServiceActorVersionRepo',
+              'ServiceVersionRepo',
               'AggregateChain',
-              'VersionedAggregateChain',
-              'SelectionVersionedAggregateChain',
-              'FrontendServiceChain',
-              'ServiceAdmittedChain',
+              'AggregateVersionChain',
+              'AggregateActorVersionChain',
+              'ServiceActorVersionChain',
+              'ServiceChain',
               'SystemLogRepo',
             ]),
             repoName: Schema.String,
@@ -69,10 +69,10 @@ export const getRepoRegistrations = Effect.fn(
 
     // Retain the requested repoType and original decoding failure.
     catch: failure =>
-      new ZerospinError({
+      makeZerospinError({
         code: 'repo-registration-table-names-invalid',
         message: 'Registered repo table names are not valid JSON',
-        cause: ZerospinError.prettyUnknownFailure(failure),
+        cause: prettyUnknownFailure(failure),
         extra: { repoType },
       }),
   });

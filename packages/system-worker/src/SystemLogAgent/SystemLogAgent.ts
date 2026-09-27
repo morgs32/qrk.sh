@@ -3,8 +3,7 @@ import type {
   ISystemLogState,
 } from '@zerospin/core/system/types';
 import { Agent, type Connection, type ConnectionContext } from 'agents';
-
-import { managedRuntime } from '../managedRuntime.js';
+import config from 'config';
 
 import { onStart } from './onStart/onStart.js';
 import { pushLogRows } from './pushLogRows/pushLogRows.js';
@@ -23,7 +22,7 @@ export class SystemLogAgent extends Agent<Cloudflare.Env, ISystemLogState> {
    */
   override onStart(): Promise<void> {
     // 1 — run onStart with the instance-bound dependencies
-    return managedRuntime.runPromise(
+    return config.system.runtime.runPromise(
       onStart({
         name: this.name,
         systemId: this.env.ZEROSPIN_SYSTEM_ID,
@@ -43,7 +42,7 @@ export class SystemLogAgent extends Agent<Cloudflare.Env, ISystemLogState> {
     context: ConnectionContext,
   ): boolean {
     // 1 — run shouldConnectionBeReadonly with the instance-bound dependencies
-    return managedRuntime.runSync(
+    return config.system.runtime.runSync(
       shouldConnectionBeReadonly({ connection, context }),
     );
   }
@@ -55,7 +54,7 @@ export class SystemLogAgent extends Agent<Cloudflare.Env, ISystemLogState> {
    */
   pushLogRows(rows: readonly ISystemLogRow[]): Promise<void> {
     // 1 — run pushLogRows with the instance-bound dependencies
-    return managedRuntime.runPromise(
+    return config.system.runtime.runPromise(
       pushLogRows({
         currentRows: this.state.rows,
         rows,

@@ -1,11 +1,11 @@
-import { makeAsync } from '@zerospin/core/async/makeAsync';
-import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
+import { makeAsync } from '@zerospin/core/async/make/makeAsync';
+import { readRpcEnvelope } from '@zerospin/core/utils/readRpcEnvelope';
 import {
-  ZerospinError,
+  catchZerospinError,
   type IAnyError,
-  type IAnyErrorJson,
-  type IEncodedResult,
+  type IZerospinErrorJson,
 } from '@zerospin/error';
+import type { IRpcEnvelope } from '@zerospin/logger';
 import { env } from 'cloudflare:workers';
 import { Effect, Schema, type Context } from 'effect';
 
@@ -41,14 +41,17 @@ export const initialize = Effect.fn('SystemApi.initialize')(function* (props: {
         });
 
         // 3 — map a rejected initialize RPC to system-api-initialize-failed
-        return yield* makeAsync<IEncodedResult<void, IAnyErrorJson>, IAnyError>(
+        return yield* makeAsync<
+          IRpcEnvelope<void, IZerospinErrorJson>,
+          IAnyError
+        >(
           () => systemRepo.initialize(),
-          ZerospinError.catch({
+          catchZerospinError({
             code: 'system-api-initialize-failed',
             message: 'Failed to initialize SystemRepo catalog chains',
           }),
         ).pipe(
-          Effect.flatMap(decodeRpc),
+          Effect.flatMap(envelope => readRpcEnvelope(envelope)),
           Effect.withSpan('SystemApi.initialize', { root: true }),
         );
       }),

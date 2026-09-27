@@ -70,8 +70,21 @@ To run all app development servers and build their dependencies:
 pnpm dev
 ```
 
-The web server proxies Zerospin's node worker and SQLite WASM directly to studio's
-`/__zerospin/` routes; other Zerospin assets use studio's `/assets/__zerospin/` path.
+Studio owns `apps/studio/zerospin/zerospin.worker.ts`, which calls
+`makeSharedWorker({ sqliteWasmUrl })`. `userSession` supplies a lazy worker factory;
+Zerospin chooses its name from the runtime version and persistent session identity.
+Vite bundles the worker and SQLite WASM as ordinary `/assets/` resources, proxied
+by web's general asset rewrite in development and production. No worker plugin
+or worker-specific rewrite is needed. Studio normalizes empty development query
+flags after Next proxies them so Vite recognizes `?url` and `?import` assets.
+Standalone backup assets retain their
+`/__zerospin/` to `/assets/__zerospin/` routing.
+
+The signed-in Clerk user supplies expected claims using the same `makeAggregateId`
+construction as the server. Zerospin verifies those expectations online before
+attachment. Offline reopening requires that exact previously verified identity
+and session lock. Runtime versions use separate storage; pending commands in an
+older version are not migrated or deleted.
 
 API runs on port 8787 and Zerospin on port 8788. Set
 `NEXT_PUBLIC_ZEROSPIN_API_URL=http://127.0.0.1:8788/` in `apps/studio/.env.local`.

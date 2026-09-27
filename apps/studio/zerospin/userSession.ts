@@ -13,6 +13,11 @@ if (!publishableKey)
 
 export const userSession = makeSession({
   kind: "aggregate",
+  sharedWorker: ({ name }) =>
+    new SharedWorker(new URL("./zerospin.worker.ts", import.meta.url), {
+      type: "module",
+      name,
+    }),
   systemName: "qrk-sh",
   aggregateName: "user",
   aggregateVersion: "1.0.0",

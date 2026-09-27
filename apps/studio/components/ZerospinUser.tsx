@@ -1,5 +1,6 @@
 "use client";
 
+import { makeAggregateId } from "@zerospin/core/utils/make/makeAggregateId";
 import { prettyUnknownFailure } from "@zerospin/error";
 
 import { RedirectToSignIn, useAuth, useUser } from "@clerk/react";
@@ -19,10 +20,20 @@ export function useZerospinUserInitializedState() {
   return state;
 }
 
-function ZerospinUserInitializedStateProvider({ children }: { children: ReactNode }) {
+function ZerospinUserInitializedStateProvider({
+  children,
+  clerkUserId,
+}: {
+  children: ReactNode;
+  clerkUserId: string;
+}) {
   const { getToken } = useAuth();
   const { isInitialized } = useInitializeSession({
     session: userSession,
+    expectedClaims: {
+      aggregateId: makeAggregateId({ id: clerkUserId }),
+      clerkUserId,
+    },
     getCredentials: () =>
       Effect.tryPromise({
         try: async () => {
@@ -61,7 +72,7 @@ export function ZerospinUserProvider({ children }: { children: ReactNode }) {
   if (!isLoaded) return null;
   if (!user) return <RedirectToSignIn />;
   return (
-    <ZerospinUserInitializedStateProvider key={user.id}>
+    <ZerospinUserInitializedStateProvider key={user.id} clerkUserId={user.id}>
       {children}
     </ZerospinUserInitializedStateProvider>
   );

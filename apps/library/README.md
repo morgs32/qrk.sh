@@ -68,6 +68,11 @@ time unless both `w` and `h` are declared on that overlay.
 `JSON.stringify(["studio", user.id, siteId, pageId])` to isolate each document's
 IndexedDB backup. Restored Studio resources take precedence over its seed.
 
+Shared consumers (`LibrarySessionContext`, `useLibrarySession`, and `BrickWall`)
+use `ILibrarySession`, the core aggregate session interface bound to Library's
+models, contracts, and claims with either a `mock` or `standalone` system name.
+Each app retains its concrete session type and owns initialization and disposal.
+
 Committed layout is Wall → Brick → Placement via aggregate contracts
 (`addBrick`, layout/visibility/remove/compact, `updateBrickState`, and per-module
 spec-at-breakpoint). Commands commit synchronously; Studio

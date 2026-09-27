@@ -1,6 +1,10 @@
 import { createContext, useContext } from "react";
 
 import { makeStandaloneSession } from "@zerospin/browser";
+import type {
+  IAggregateSession,
+  IAggregateSessionDefinition,
+} from "@zerospin/core/aggregateSession/types";
 
 import { LibraryFrontend } from "./makeLibraryFrontend";
 
@@ -28,7 +32,17 @@ export function createLibraryStandaloneSession(props: { key: string; wallId: `wa
   });
 }
 
-export type ILibrarySession = ReturnType<typeof createLibraryStandaloneSession>;
+export type ILibrarySession = IAggregateSession<
+  IAggregateSessionDefinition<
+    "mock" | "standalone",
+    typeof LibraryFrontend.aggregateName,
+    typeof LibraryFrontend.sessionName,
+    typeof LibraryFrontend.contracts,
+    typeof LibraryFrontend.models,
+    typeof LibraryFrontend.aggregateVersion,
+    typeof LibraryFrontend.claimsSchema
+  >
+>;
 
 export const LibrarySessionContext = createContext<ILibrarySession | null>(null);
 

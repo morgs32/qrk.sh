@@ -182,16 +182,7 @@ function AggregateSessionPane(props: { readonly session: IAggregateSession }) {
 
   return (
     <div style={styles.paneRoot}>
-      <div
-        style={{
-          padding: '4px 12px',
-          fontFamily: 'ui-monospace, monospace',
-          fontSize: 10,
-          borderBottom: '1px solid #e5e7eb',
-        }}
-      >
-        <SessionPushControls key={session.sessionId} />
-      </div>
+      <SessionPushControls key={session.sessionId} />
       <div style={styles.tabsHeader}>
         <NavLink
           to="state"

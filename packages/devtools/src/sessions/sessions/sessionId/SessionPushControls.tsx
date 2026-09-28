@@ -47,7 +47,17 @@ export function SessionPushControls() {
   }
 
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        padding: '4px 12px',
+        fontFamily: 'ui-monospace, monospace',
+        fontSize: 10,
+        borderBottom: '1px solid #e5e7eb',
+      }}
+    >
       <label
         style={{
           display: 'inline-flex',
@@ -102,6 +112,6 @@ export function SessionPushControls() {
         </button>
       ) : null}
       {pushStatus ? <span role="status">{pushStatus}</span> : null}
-    </span>
+    </div>
   );
 }

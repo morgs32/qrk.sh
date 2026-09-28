@@ -1,5 +1,4 @@
 import { makeZerospinError, type IAnyError } from '@zerospin/error';
-import { eq } from 'drizzle-orm';
 import { Effect } from 'effect';
 
 import type { IDbConfig, ITx } from '../drizzle/types.ts';
@@ -19,9 +18,15 @@ export const getResourceRow = Effect.fn('getResourceRow')(function* <
   IAnyError
 > {
   const { model, operationName, resourceId, tx } = props;
-  const table = model.drizzleSchema;
-
-  const row = tx.select().from(table).where(eq(table.id, resourceId)).get();
+  const query = tx.query[model.modelName];
+  if (query === undefined) {
+    throw new Error(`Missing registered model query: ${model.modelName}`);
+  }
+  const row = query
+    .findFirst({ where: { id: resourceId } } as Parameters<
+      typeof query.findFirst
+    >[0])
+    .sync();
   if (row === undefined) {
     return yield* Effect.fail(
       makeZerospinError({
@@ -31,7 +36,7 @@ export const getResourceRow = Effect.fn('getResourceRow')(function* <
       }),
     );
   }
-  if (!(row.updatedAt instanceof Date)) {
+  if (!('updatedAt' in row) || !(row.updatedAt instanceof Date)) {
     return yield* Effect.fail(
       makeZerospinError({
         code: 'mutation-row-invalid-updated-at',

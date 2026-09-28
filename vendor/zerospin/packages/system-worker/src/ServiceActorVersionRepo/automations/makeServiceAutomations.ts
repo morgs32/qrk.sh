@@ -157,7 +157,7 @@ export const makeServiceAutomations = (props: {
             const context = yield* config.system.runtime.contextEffect;
             const output = yield* Effect.suspend(() =>
               automation.program({
-                db: scratch.queryDb,
+                db: scratch.db,
                 on: {
                   id: source.id,
                   commandName: source.commandName,
@@ -383,7 +383,7 @@ export const makeServiceAutomations = (props: {
         });
         yield* runContractGuard({
           contract,
-          queryDb: scratch.queryDb,
+          queryDb: scratch.db,
           payload,
           claims: null,
         });

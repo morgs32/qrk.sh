@@ -83,7 +83,7 @@ export const validateCommands = Effect.fn(
       const checked = yield* Effect.gen(function* () {
         yield* runContractGuard({
           contract,
-          queryDb: optimistic.queryDb,
+          queryDb: optimistic.db,
           payload,
           claims,
         });
@@ -91,7 +91,7 @@ export const validateCommands = Effect.fn(
           Effect.suspend(
             () =>
               actor.guards[command.commandName]?.({
-                queryDb: optimistic.queryDb,
+                queryDb: optimistic.db,
                 payload,
                 claims,
                 failures: contract.failures,

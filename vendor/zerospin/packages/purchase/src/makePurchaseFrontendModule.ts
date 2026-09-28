@@ -66,9 +66,7 @@ export const makePurchaseFrontendModule = <
       }) {
         const userId = resolveUserId({ queryDb: db, claims });
         const cart = Schema.decodeUnknownSync(
-          Schema.Array(
-            Schema.toEncoded(makeEffectSchema(cartV1.propertiesShape)),
-          ),
+          Schema.Array(Schema.toType(makeEffectSchema(cartV1.propertiesShape))),
         )(db.query.cart.findMany().sync()).find(
           row => row.id === payload.cartId,
         );
@@ -83,7 +81,7 @@ export const makePurchaseFrontendModule = <
         }
         const existing = Schema.decodeUnknownSync(
           Schema.Array(
-            Schema.toEncoded(makeEffectSchema(checkoutV1.propertiesShape)),
+            Schema.toType(makeEffectSchema(checkoutV1.propertiesShape)),
           ),
         )(db.query.checkout.findMany().sync()).find(
           row => row.id === payload.id,
@@ -100,7 +98,7 @@ export const makePurchaseFrontendModule = <
           if (
             existing?.purchaseId !== payload.purchaseId ||
             existing.firstPaymentIntentId !== payload.paymentIntentId ||
-            existing.quote !== JSON.stringify(payload.quote)
+            JSON.stringify(existing.quote) !== JSON.stringify(payload.quote)
           ) {
             return yield* failures.conflict.make({
               message: 'Accepted checkout contents changed.',
@@ -119,7 +117,7 @@ export const makePurchaseFrontendModule = <
         if (
           Schema.decodeUnknownSync(
             Schema.Array(
-              Schema.toEncoded(makeEffectSchema(checkoutV1.propertiesShape)),
+              Schema.toType(makeEffectSchema(checkoutV1.propertiesShape)),
             ),
           )(db.query.checkout.findMany().sync())
             .filter(row => row.cartId === payload.cartId)
@@ -130,7 +128,7 @@ export const makePurchaseFrontendModule = <
             ) ||
           Schema.decodeUnknownSync(
             Schema.Array(
-              Schema.toEncoded(makeEffectSchema(purchaseV1.propertiesShape)),
+              Schema.toType(makeEffectSchema(purchaseV1.propertiesShape)),
             ),
           )(db.query.purchase.findMany().sync()).find(
             row =>
@@ -143,7 +141,7 @@ export const makePurchaseFrontendModule = <
         }
         const items = Schema.decodeUnknownSync(
           Schema.Array(
-            Schema.toEncoded(makeEffectSchema(cartItemV2.propertiesShape)),
+            Schema.toType(makeEffectSchema(cartItemV2.propertiesShape)),
           ),
         )(db.query.cartItem.findMany().sync())
           .filter(row => row.cartId === payload.cartId)
@@ -151,7 +149,7 @@ export const makePurchaseFrontendModule = <
             ...item,
             product: Schema.decodeUnknownSync(
               Schema.Array(
-                Schema.toEncoded(
+                Schema.toType(
                   makeEffectSchema(productReplicaV1.propertiesShape),
                 ),
               ),
@@ -200,7 +198,7 @@ export const makePurchaseFrontendModule = <
         }
         const promotions = Schema.decodeUnknownSync(
           Schema.Array(
-            Schema.toEncoded(makeEffectSchema(cartPromotionV1.propertiesShape)),
+            Schema.toType(makeEffectSchema(cartPromotionV1.propertiesShape)),
           ),
         )(db.query.cartPromotion.findMany().sync()).filter(
           row => row.cartId === payload.cartId,
@@ -296,14 +294,14 @@ export const makePurchaseFrontendModule = <
       }) {
         const checkout = Schema.decodeUnknownSync(
           Schema.Array(
-            Schema.toEncoded(makeEffectSchema(checkoutV1.propertiesShape)),
+            Schema.toType(makeEffectSchema(checkoutV1.propertiesShape)),
           ),
         )(db.query.checkout.findMany().sync()).find(
           row => row.id === payload.checkoutId,
         );
         const purchase = Schema.decodeUnknownSync(
           Schema.Array(
-            Schema.toEncoded(makeEffectSchema(purchaseV1.propertiesShape)),
+            Schema.toType(makeEffectSchema(purchaseV1.propertiesShape)),
           ),
         )(db.query.purchase.findMany().sync()).find(
           row => row.id === payload.purchaseId,
@@ -320,14 +318,14 @@ export const makePurchaseFrontendModule = <
         }
         const intents = Schema.decodeUnknownSync(
           Schema.Array(
-            Schema.toEncoded(makeEffectSchema(paymentIntentV1.propertiesShape)),
+            Schema.toType(makeEffectSchema(paymentIntentV1.propertiesShape)),
           ),
         )(db.query.paymentIntent.findMany().sync()).filter(
           row => row.purchaseId === payload.purchaseId,
         );
         const existing = Schema.decodeUnknownSync(
           Schema.Array(
-            Schema.toEncoded(makeEffectSchema(paymentIntentV1.propertiesShape)),
+            Schema.toType(makeEffectSchema(paymentIntentV1.propertiesShape)),
           ),
         )(db.query.paymentIntent.findMany().sync()).find(
           row => row.id === payload.id,
@@ -411,14 +409,14 @@ export const makePurchaseFrontendModule = <
       }) {
         const checkout = Schema.decodeUnknownSync(
           Schema.Array(
-            Schema.toEncoded(makeEffectSchema(checkoutV1.propertiesShape)),
+            Schema.toType(makeEffectSchema(checkoutV1.propertiesShape)),
           ),
         )(db.query.checkout.findMany().sync()).find(
           row => row.id === payload.checkoutId,
         );
         const purchase = Schema.decodeUnknownSync(
           Schema.Array(
-            Schema.toEncoded(makeEffectSchema(purchaseV1.propertiesShape)),
+            Schema.toType(makeEffectSchema(purchaseV1.propertiesShape)),
           ),
         )(db.query.purchase.findMany().sync()).find(
           row => row.id === payload.purchaseId,
@@ -438,9 +436,7 @@ export const makePurchaseFrontendModule = <
           purchase.status !== 'unpaid' ||
           Schema.decodeUnknownSync(
             Schema.Array(
-              Schema.toEncoded(
-                makeEffectSchema(paymentIntentV1.propertiesShape),
-              ),
+              Schema.toType(makeEffectSchema(paymentIntentV1.propertiesShape)),
             ),
           )(db.query.paymentIntent.findMany().sync())
             .filter(row => row.purchaseId === payload.purchaseId)
@@ -503,9 +499,7 @@ export const makePurchaseFrontendModule = <
       }) {
         const userId = resolveUserId({ queryDb: db, claims });
         const cart = Schema.decodeUnknownSync(
-          Schema.Array(
-            Schema.toEncoded(makeEffectSchema(cartV1.propertiesShape)),
-          ),
+          Schema.Array(Schema.toType(makeEffectSchema(cartV1.propertiesShape))),
         )(db.query.cart.findMany().sync()).find(
           row => row.id === payload.cartId,
         );
@@ -515,7 +509,7 @@ export const makePurchaseFrontendModule = <
           cart?.userId !== userId ||
           Schema.decodeUnknownSync(
             Schema.Array(
-              Schema.toEncoded(makeEffectSchema(cartItemV2.propertiesShape)),
+              Schema.toType(makeEffectSchema(cartItemV2.propertiesShape)),
             ),
           )(db.query.cartItem.findMany().sync()).find(
             row => row.cartId === payload.cartId,
@@ -529,16 +523,14 @@ export const makePurchaseFrontendModule = <
         if (
           Schema.decodeUnknownSync(
             Schema.Array(
-              Schema.toEncoded(makeEffectSchema(checkoutV1.propertiesShape)),
+              Schema.toType(makeEffectSchema(checkoutV1.propertiesShape)),
             ),
           )(db.query.checkout.findMany().sync()).find(
             row => row.id === payload.checkoutId,
           ) !== undefined ||
           Schema.decodeUnknownSync(
             Schema.Array(
-              Schema.toEncoded(
-                makeEffectSchema(cartPromotionV1.propertiesShape),
-              ),
+              Schema.toType(makeEffectSchema(cartPromotionV1.propertiesShape)),
             ),
           )(db.query.cartPromotion.findMany().sync()).find(
             row => row.id === payload.id,
@@ -551,7 +543,7 @@ export const makePurchaseFrontendModule = <
         if (
           Schema.decodeUnknownSync(
             Schema.Array(
-              Schema.toEncoded(makeEffectSchema(purchaseV1.propertiesShape)),
+              Schema.toType(makeEffectSchema(purchaseV1.propertiesShape)),
             ),
           )(db.query.purchase.findMany().sync()).find(
             row =>
@@ -559,7 +551,7 @@ export const makePurchaseFrontendModule = <
           ) !== undefined ||
           Schema.decodeUnknownSync(
             Schema.Array(
-              Schema.toEncoded(makeEffectSchema(checkoutV1.propertiesShape)),
+              Schema.toType(makeEffectSchema(checkoutV1.propertiesShape)),
             ),
           )(db.query.checkout.findMany().sync())
             .filter(row => row.cartId === payload.cartId)
@@ -570,9 +562,7 @@ export const makePurchaseFrontendModule = <
             ) ||
           Schema.decodeUnknownSync(
             Schema.Array(
-              Schema.toEncoded(
-                makeEffectSchema(cartPromotionV1.propertiesShape),
-              ),
+              Schema.toType(makeEffectSchema(cartPromotionV1.propertiesShape)),
             ),
           )(db.query.cartPromotion.findMany().sync())
             .filter(row => row.cartId === payload.cartId)
@@ -646,7 +636,7 @@ export const makePurchaseFrontendModule = <
       }) {
         const row = Schema.decodeUnknownSync(
           Schema.Array(
-            Schema.toEncoded(makeEffectSchema(checkoutV1.propertiesShape)),
+            Schema.toType(makeEffectSchema(checkoutV1.propertiesShape)),
           ),
         )(queryDb.query.checkout.findMany().sync()).find(
           row => row.id === payload.checkoutId,

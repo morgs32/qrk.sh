@@ -33,5 +33,5 @@ export const makeActorSnapshotDb = Effect.fn(
     relations: config.relations,
   });
   yield* provisionDb({ db, schema: config.schema });
-  return { db, queryDb: { query: db.query } };
+  return { db };
 });

@@ -145,7 +145,9 @@ export const applyMutationTx = Effect.fn('applyMutationTx')(function* <
       }
 
       const rowAttributes = yield* Schema.decodeUnknownEffect(
-        model.attributesSchema as InferAttributesSchema<typeof model>,
+        Schema.toType(
+          model.attributesSchema as InferAttributesSchema<typeof model>,
+        ),
       )(rawAttributes).pipe(
         mapParseError({
           code: 'failed-to-decode-row-attributes',

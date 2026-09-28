@@ -23,11 +23,11 @@ import type {
   IEncodedCommand,
   ISessionCommand,
 } from '../contracts/types.ts';
-import type { makeSessionQueryDb } from '../drizzle/make/makeSessionQueryDb.ts';
 import type {
   IDb,
   IDbConfig,
   IDrizzleRelationsFromModels,
+  IResourceDbConfig,
   IResourceDrizzleSchemasFromModels,
   IWaSqliteDrizzleDb,
 } from '../drizzle/types.ts';
@@ -155,9 +155,11 @@ export interface IInitializedSessionState<
   sessionName: string;
   aggregateSessionLockKey: string;
   db: IWaSqliteDrizzleDb<
-    IDbConfig<ISessionSchema<MODELS>, IDrizzleRelationsFromModels<MODELS>>
+    IDbConfig<
+      ISessionSchema<MODELS>,
+      IResourceDbConfig<MODELS, typeof sessionRepoDbConfig.tables>['relations']
+    >
   >;
-  queryDb: ReturnType<typeof makeSessionQueryDb<MODELS>>;
   schema: ISessionSchema<MODELS>;
   models: MODELS;
   isInitialized: true;
@@ -190,7 +192,6 @@ type IUninitializedSessionState = {
   sessionName: null;
   aggregateSessionLockKey: null;
   db: null;
-  queryDb: null;
   schema: null;
   models: null;
   isInitialized: false;

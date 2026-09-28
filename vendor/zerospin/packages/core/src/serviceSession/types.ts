@@ -7,17 +7,20 @@ import type { StoreApi } from 'zustand';
 import type { INodeState } from '../aggregateSession/NodeState.ts';
 import type { IActorDelta, ISessionId } from '../aggregateSession/types.ts';
 import type { ICommand } from '../contracts/types.ts';
-import type { makeSessionQueryDb } from '../drizzle/make/makeSessionQueryDb.ts';
 import type {
   IDb,
   IDbConfig,
   IDrizzleRelationsFromModels,
+  IResourceDbConfig,
   IResourceDrizzleSchemasFromModels,
   IWaSqliteDrizzleDb,
 } from '../drizzle/types.ts';
 import type { IAnyModels, IEncodedResourceShape } from '../models/types.ts';
 
-import { type serviceSessionRepoSchema } from './serviceSessionRepoTables.ts';
+import {
+  type serviceSessionRepoSchema,
+  type serviceSessionRepoTables,
+} from './serviceSessionRepoTables.ts';
 
 export type IServiceSessionDefinition<
   SYSTEM_NAME extends string = string,
@@ -85,8 +88,10 @@ export type IInitializedServiceSessionState<
   serviceName: string;
   sessionName: string;
   serviceSessionLockKey: string;
-  db: IServiceSessionWaSqliteDb<MODELS, IDrizzleRelationsFromModels<MODELS>>;
-  queryDb: ReturnType<typeof makeSessionQueryDb<MODELS>>;
+  db: IServiceSessionWaSqliteDb<
+    MODELS,
+    IResourceDbConfig<MODELS, typeof serviceSessionRepoTables>['relations']
+  >;
   schema: IServiceSessionSchema<MODELS>;
   models: MODELS;
   isInitialized: true;
@@ -115,7 +120,6 @@ export type IServiceSessionState<
       sessionName: null;
       serviceSessionLockKey: null;
       db: null;
-      queryDb: null;
       schema: null;
       models: null;
       isInitialized: false;

@@ -105,7 +105,9 @@ export const makeOperationJsonSchema = (props: {
             ? Schema.NullOr(Schema.Number)
             : Schema.Number;
         case PrimitiveKind.Json: {
-          const jsonSchema = Schema.fromJsonString(Schema.Unknown);
+          const jsonSchema = Schema.fromJsonString(
+            descriptor.schema as Schema.Codec<unknown, unknown>,
+          );
           return descriptor.nullable ? Schema.NullOr(jsonSchema) : jsonSchema;
         }
         case PrimitiveKind.PrimaryKey:
@@ -151,7 +153,9 @@ export const makeOperationJsonSchema = (props: {
             ? Schema.NullOr(Schema.Number)
             : Schema.Number;
         case PrimitiveKind.Json: {
-          const jsonSchema = Schema.fromJsonString(Schema.Unknown);
+          const jsonSchema = Schema.fromJsonString(
+            descriptor.schema as Schema.Codec<unknown, unknown>,
+          );
           return descriptor.nullable ? Schema.NullOr(jsonSchema) : jsonSchema;
         }
         case PrimitiveKind.PrimaryKey:
@@ -257,7 +261,9 @@ export const makeInverseOperationJsonSchema = (props: {
             ? Schema.NullOr(Schema.Number)
             : Schema.Number;
         case PrimitiveKind.Json: {
-          const jsonSchema = Schema.fromJsonString(Schema.Unknown);
+          const jsonSchema = Schema.fromJsonString(
+            descriptor.schema as Schema.Codec<unknown, unknown>,
+          );
           return descriptor.nullable ? Schema.NullOr(jsonSchema) : jsonSchema;
         }
         case PrimitiveKind.PrimaryKey:
@@ -303,7 +309,9 @@ export const makeInverseOperationJsonSchema = (props: {
             ? Schema.NullOr(Schema.Number)
             : Schema.Number;
         case PrimitiveKind.Json: {
-          const jsonSchema = Schema.fromJsonString(Schema.Unknown);
+          const jsonSchema = Schema.fromJsonString(
+            descriptor.schema as Schema.Codec<unknown, unknown>,
+          );
           return descriptor.nullable ? Schema.NullOr(jsonSchema) : jsonSchema;
         }
         case PrimitiveKind.PrimaryKey:

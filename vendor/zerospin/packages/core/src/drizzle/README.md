@@ -1,20 +1,40 @@
-# Session database interfaces
+# Database queries and persistence
 
-Session state exposes two handles sharing one SQLite connection:
+Each aggregate, service, standalone, and mock session publishes one `db` and its
+encoded `schema`. `db.query` and `tx.query` decode declared JSON columns for every
+registered table, including internal command tables. Predicates on those columns
+accept decoded values and use the column codec to encode SQLite parameters.
+Selected columns and nested relations keep their inferred decoded types. Invalid
+selected JSON fails the query. Raw SQL expressions require explicit mapping.
 
-- `db` and `schema` retain encoded persistence values. Command execution, guards,
-  replay, backup, and raw inspection use this interface.
-- `queryDb` exposes model-only relational queries and the same `$client` for live
-  notifications. `makeSessionQueryDb` creates fresh query columns whose JSON
-  mappers decode through the field codec and encode predicate values through it.
-  Storage columns are never modified. Selected columns and nested relations retain
-  their inferred decoded types. Invalid JSON or schema values fail the query.
+Explicit table operations use encoded SQLite values. `config.schema` and
+`model.drizzleSchema` are the persistence tables; neither receives relational
+JSON mappers. Use a table codec when writing a previously decoded full row:
 
-`useLiveQuery({ session, query })` passes `queryDb` to its query callback. Direct
-reads use `session.store.getState().queryDb.query.<model>`. Raw SQL expressions
-keep their explicitly declared result mapping; model codecs apply to model columns.
+```ts
+const row = db.query.item.findFirst({ where: { id: 'itm_one' } }).sync();
+if (row !== undefined) {
+  const encoded = Effect.runSync(item.table.encodeRow(row));
+  db.insert(item.drizzleSchema).values(encoded).onConflictDoUpdate({
+    target: item.drizzleSchema.id,
+    set: { payload: encoded.payload },
+  }).run();
+}
+```
 
-Aggregate, service, standalone, and both mock sessions publish `queryDb` with
-`db` on initialization and clear both when releasing the database. The query
-handle owns no separate connection or finalizer. It excludes mutation methods
-and session metadata tables. Backups continue to store encoded values.
+Inside `makeTx`, `tx.query` belongs to the active transaction. It sees preceding
+writes and participates in the same commit or rollback:
+
+```ts
+const program = makeTx('example')(function* (tx) {
+  tx.update(item.drizzleSchema).set({ payload: '{"count":2}' }).run();
+  return tx.query.item.findFirst({ where: { id: 'itm_one' } }).sync();
+});
+const row = Effect.runSync(program(db));
+```
+
+`useLiveQuery({ session, query })` subscribes to this `db` and its `$client`.
+Its callback type exposes model-only relational queries, without internal tables
+or mutation methods. Guard parameters named `queryDb` likewise receive the
+invocation database or transaction as a restricted query capability. Backups,
+selection exports, and transport envelopes retain their encoded formats.

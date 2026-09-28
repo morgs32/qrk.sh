@@ -4,7 +4,7 @@ import { getGraph } from '@zerospin/core/models/getGraph';
 import type { IEncodedResourceShape } from '@zerospin/core/models/types';
 import type { IAnyService } from '@zerospin/core/service/types';
 import { getByKeyOrThrow } from '@zerospin/core/utils/getByKeyOrThrow';
-import { makeZerospinError, mapParseError } from '@zerospin/error';
+import { mapParseError } from '@zerospin/error';
 import { makeEffectSchema } from '@zerospin/schema';
 import { Effect, Schema } from 'effect';
 
@@ -24,16 +24,13 @@ export const readServiceResources = Effect.fn('readServiceResources')(
           yield* Effect.gen(function* () {
             const entries: [string, IEncodedResourceShape][] = [];
             for (const modelName of Object.keys(models)) {
-              const query = db.query[modelName];
-              if (query === undefined) {
-                return yield* Effect.fail(
-                  makeZerospinError({
-                    code: 'service-model-query-not-found',
-                    message: `Missing service model query: ${modelName}`,
-                  }),
-                );
-              }
-              for (const resource of query.findMany().sync()) {
+              const model = models[modelName];
+              if (model === undefined)
+                throw new Error(`Missing service model: ${modelName}`);
+              for (const resource of db
+                .select()
+                .from(model.drizzleSchema)
+                .all()) {
                 const row = Schema.decodeUnknownSync(
                   Schema.toType(EncodedResourceSchema),
                 )(resource);

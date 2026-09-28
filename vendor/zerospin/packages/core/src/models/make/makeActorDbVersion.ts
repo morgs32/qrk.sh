@@ -141,9 +141,12 @@ export class ActorQuery<TResult = unknown> extends SQLiteRelationalQuery<
             throw new Error(`Missing selection parameter ${binding.name}`);
           }
         }
-        return db._.session
+        const rows = db._.session
           .prepareQuery(compiled, 'arrays', false, 'all', mapper)
           .all({ ...identity });
+        return Schema.decodeUnknownSync(Schema.Array(Schema.Unknown))(rows).map(
+          row => Schema.encodeUnknownSync(props.model.table.codec)(row),
+        );
       },
     });
   }

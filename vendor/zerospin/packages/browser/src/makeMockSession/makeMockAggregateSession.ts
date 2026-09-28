@@ -11,7 +11,6 @@ import { makeAsync } from '@zerospin/core/async/make/makeAsync';
 import type { AssertContractMutationsInModels } from '@zerospin/core/contracts/assertMutationsUseModels';
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/make/makeDbConfig/makeDbConfig';
 import { makeProvisionedInMemoryWasmSqliteDb } from '@zerospin/core/drizzle/make/makeProvisionedInMemoryWasmSqliteDb/makeProvisionedInMemoryWasmSqliteDb';
-import { makeSessionQueryDb } from '@zerospin/core/drizzle/make/makeSessionQueryDb';
 import type { IAnyModels, InferResource } from '@zerospin/core/models/types';
 import { makeSessionDefinition } from '@zerospin/core/sessionDefinition/makeSessionDefinition';
 import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
@@ -144,7 +143,6 @@ export function makeMockAggregateSession(props: {
         sessionStatus: 'released',
         isInitialized: false,
         db: null,
-        queryDb: null,
         schema: null,
         models: null,
         sessionId: null,
@@ -211,7 +209,6 @@ export function makeMockAggregateSession(props: {
             ).pipe(Effect.asVoid, Effect.ignore),
         );
 
-        const queryDb = makeSessionQueryDb({ models, client: db.$client });
         const aggregateSessionLockKey = yield* makeAggregateSessionLockKey(
           makeAggregateSessionLock(definition),
         );
@@ -253,7 +250,6 @@ export function makeMockAggregateSession(props: {
           aggregateName: definition.aggregateName,
           claims: Schema.decodeUnknownSync(definition.claimsSchema)(claims),
           db,
-          queryDb,
           aggregateIndex: 0,
           executedIndex: 0,
           executedHash:

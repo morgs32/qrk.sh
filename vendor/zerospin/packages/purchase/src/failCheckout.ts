@@ -51,7 +51,7 @@ export const makeFailCheckout = <
     }) {
       const row = Schema.decodeUnknownSync(
         Schema.Array(
-          Schema.toEncoded(makeEffectSchema(checkoutV1.propertiesShape)),
+          Schema.toType(makeEffectSchema(checkoutV1.propertiesShape)),
         ),
       )(queryDb.query.checkout.findMany().sync()).find(
         row => row.id === payload.id,

@@ -156,12 +156,27 @@ export const applyMutationInverseTx = Effect.fn('applyMutationInverseTx')(
           );
         }
         const inverseResource = mutation.inverseOperation.resource;
+        const encodedResource = yield* Schema.encodeUnknownEffect(
+          model.table.codec,
+        )(inverseResource).pipe(
+          mapParseError({
+            code: 'failed-to-encode-inverse-resource',
+            prefix: `Failed to encode inverse resource for model "${model.modelName}"`,
+          }),
+        );
         yield* Effect.try({
           try: () =>
             upsertHelper({
               table,
               tx,
-              values: inverseResource,
+              values: {
+                ...encodedResource,
+                id: inverseResource.id,
+                modelName: inverseResource.modelName,
+                version: inverseResource.version,
+                createdAt: inverseResource.createdAt,
+                updatedAt: inverseResource.updatedAt,
+              },
             }),
           catch: cause => {
             const failure = `${prettyUnknownFailure(cause)}${
@@ -283,12 +298,27 @@ export const applyMutationInverseTx = Effect.fn('applyMutationInverseTx')(
           );
         }
         const inverseResource = mutation.inverseOperation.resource;
+        const encodedResource = yield* Schema.encodeUnknownEffect(
+          model.table.codec,
+        )(inverseResource).pipe(
+          mapParseError({
+            code: 'failed-to-encode-inverse-resource',
+            prefix: `Failed to encode inverse resource for model "${model.modelName}"`,
+          }),
+        );
         yield* Effect.try({
           try: () =>
             upsertHelper({
               table,
               tx,
-              values: inverseResource,
+              values: {
+                ...encodedResource,
+                id: inverseResource.id,
+                modelName: inverseResource.modelName,
+                version: inverseResource.version,
+                createdAt: inverseResource.createdAt,
+                updatedAt: inverseResource.updatedAt,
+              },
             }),
           catch: cause => {
             const failure = `${prettyUnknownFailure(cause)}${

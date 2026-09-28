@@ -18,7 +18,6 @@ import type { INodeState } from '../aggregateSession/NodeState.ts';
 import type { AdmissionResultSchema } from '../contracts/AdmissionResultSchema.ts';
 import type { ExecutionSummarySchema } from '../contracts/ExecutionSummarySchema.ts';
 import type {
-  IAnyContractBindings,
   IAnyContracts,
   ICommand,
   IEncodedCommand,
@@ -47,7 +46,7 @@ export type IAggregateSessionDefinition<
   SYSTEM_NAME extends string = string,
   AGGREGATE_NAME extends string = string,
   DEFINITION_NAME extends string = string,
-  CONTRACTS extends IAnyContractBindings = IAnyContractBindings,
+  CONTRACTS extends IAnyContracts = IAnyContracts,
   MODELS extends IAnyModels = IAnyModels,
   AGGREGATE_VERSION extends string = string,
   CLAIMS extends Schema.Struct<
@@ -55,11 +54,9 @@ export type IAggregateSessionDefinition<
   > = Schema.Struct<Readonly<Record<string, Schema.Codec<unknown, unknown>>>>,
 > = Readonly<{
   readonly __initializeRequirements?:
+    | Effect.Services<ReturnType<CONTRACTS[keyof CONTRACTS]['program']>>
     | Effect.Services<
-        ReturnType<CONTRACTS[keyof CONTRACTS]['contract']['program']>
-      >
-    | Effect.Services<
-        ReturnType<NonNullable<CONTRACTS[keyof CONTRACTS]['contract']['guard']>>
+        ReturnType<NonNullable<CONTRACTS[keyof CONTRACTS]['guard']>>
       >
     | Scope.Scope;
   kind: 'aggregate';
@@ -70,11 +67,7 @@ export type IAggregateSessionDefinition<
   actorVersion: string;
   claimsSchema: CLAIMS;
   sessionName: DEFINITION_NAME;
-  contracts: {
-    readonly [COMMAND_NAME in keyof CONTRACTS]: Readonly<{
-      contract: CONTRACTS[COMMAND_NAME]['contract'];
-    }>;
-  };
+  contracts: Readonly<CONTRACTS>;
   models: Readonly<MODELS>;
   modelNames: readonly string[];
 }>;
@@ -92,9 +85,7 @@ export type IAnyAggregateSessionDefinition<INITIALIZE_REQUIREMENTS = never> =
       Readonly<Record<string, Schema.Codec<unknown, unknown>>>
     >;
     sessionName: string;
-    contracts: Readonly<
-      Record<string, Readonly<{ contract: IAnyContracts[string] }>>
-    >;
+    contracts: IAnyContracts;
     models: Readonly<IAnyModels>;
     modelNames: readonly string[];
   }>;

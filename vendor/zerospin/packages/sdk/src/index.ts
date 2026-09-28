@@ -25,9 +25,7 @@ export {
 } from '@zerospin/core/contracts/make/makeContractVersion';
 export type {
   IAggregateCommand,
-  IAnyContractBindings,
   ICommand,
-  IContractBinding,
   IServiceCommand,
 } from '@zerospin/core/contracts/types';
 export type { IDb, IResourceDbConfig } from '@zerospin/core/drizzle/types';

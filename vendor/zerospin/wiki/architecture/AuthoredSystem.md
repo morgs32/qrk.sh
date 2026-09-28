@@ -244,13 +244,13 @@ private to their factory modules.
 - [`makeModelVersion.ts`](../../packages/core/src/models/make/makeModelVersion.ts) — constructs the canonical `Model` instance.
 - [`makeReplica.ts`](../../packages/core/src/models/make/makeReplica.ts) — accepts only a canonical source `Model` and rejects nested replicas.
 - [`makeReplica.ts`](../../packages/core/src/models/make/makeReplica.ts) — constructs the replica through `makeModelVersion`, then registers exact source and service name after the instance exists.
-- [`makeAggregateSessionDefinition.ts`](../../packages/core/src/aggregateSession/make/makeAggregateSessionDefinition.ts) — authors the aggregate session definition without `systemName`.
+- [`makeSessionDefinition.ts`](../../packages/core/src/sessionDefinition/makeSessionDefinition.ts) — internally constructs and validates aggregate session definitions from plain constructor fields.
 - [`makeServiceSessionDefinition.ts`](../../packages/core/src/serviceSession/make/makeServiceSessionDefinition.ts) — authors the service session definition without `systemName`.
 - [`makeService.ts`](../../packages/core/src/service/make/makeService.ts) — keeps `Service` private while exposing its internal canonical-instance schema.
 - [`makeAggregateVersion.ts`](../../packages/core/src/aggregate/make/makeAggregateVersion.ts) — keeps `Aggregate` private while exposing its internal canonical-instance schema.
 
 `makeSession` accepts the aggregate or service identity, `sessionName`, selected models,
-aggregate contract bindings, and identity schema together. Its internal definition retains
+flat aggregate contracts, and identity schema together. Its internal definition retains
 those selections and the bound system identity. Session specs serialize `sessionName`
 and the selected `aggregateVersion` or `serviceVersion`. Specs and locks do not copy
 `systemName`; that identity lives on the owning system spec, the session bind,
@@ -259,7 +259,7 @@ version without historical-definition arrays.
 
 - [`types.ts`](../../packages/core/src/aggregateSession/types.ts) — defines the aggregate session definition.
 - [`types.ts`](../../packages/core/src/serviceSession/types.ts) — defines the service session definition.
-- [`makeAggregateSessionDefinition.ts`](../../packages/core/src/aggregateSession/make/makeAggregateSessionDefinition.ts) — requires a nonempty aggregate version and a required string `aggregateId` claim.
+- [`makeSessionDefinition.ts`](../../packages/core/src/sessionDefinition/makeSessionDefinition.ts) — requires a nonempty aggregate version, a required string `aggregateId` claim, and flat contracts keyed by their command names.
 - [`makeServiceSessionDefinition.ts`](../../packages/core/src/serviceSession/make/makeServiceSessionDefinition.ts) — requires a nonempty service version and authoritative models.
 - [`makeAggregateSessionSpec.ts`](../../packages/core/src/aggregateSession/make/makeAggregateSessionSpec.ts) — serializes aggregate definition identity and builds aggregate lock fields from the definition alone.
 - [`makeServiceSessionSpec.ts`](../../packages/core/src/serviceSession/make/makeServiceSessionSpec.ts) — serializes service definition identity and builds service lock fields from the definition alone.

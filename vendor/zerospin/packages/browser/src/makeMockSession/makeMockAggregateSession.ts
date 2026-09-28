@@ -8,10 +8,12 @@ import type {
   IAggregateSessionDefinition,
 } from '@zerospin/core/aggregateSession/types';
 import { makeAsync } from '@zerospin/core/async/make/makeAsync';
+import type { AssertContractMutationsInModels } from '@zerospin/core/contracts/assertMutationsUseModels';
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/make/makeDbConfig/makeDbConfig';
 import { makeProvisionedInMemoryWasmSqliteDb } from '@zerospin/core/drizzle/make/makeProvisionedInMemoryWasmSqliteDb/makeProvisionedInMemoryWasmSqliteDb';
 import { makeSessionQueryDb } from '@zerospin/core/drizzle/make/makeSessionQueryDb';
 import type { IAnyModels, InferResource } from '@zerospin/core/models/types';
+import { makeSessionDefinition } from '@zerospin/core/sessionDefinition/makeSessionDefinition';
 import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
 import {
   catchZerospinError,
@@ -21,6 +23,7 @@ import {
 import {
   makeAbbreviationIdSchema,
   makeIdFromAbbreviation,
+  type ITypeError,
 } from '@zerospin/schema';
 import { Effect, Layer, Schema, type Scope } from 'effect';
 
@@ -40,14 +43,25 @@ const MOCK_SYSTEM_NAME = 'mock';
  */
 export function makeMockAggregateSession<
   APP_LAYER extends Layer.Layer<never, IAnyError> = Layer.Layer<never>,
-  DEFINITION extends Omit<IAggregateSessionDefinition, 'systemName'> = Omit<
+  const DEFINITION extends Omit<
     IAggregateSessionDefinition,
-    'systemName'
-  >,
+    'systemName' | 'modelNames'
+  > = Omit<IAggregateSessionDefinition, 'systemName' | 'modelNames'>,
   MODELS extends IAnyModels = DEFINITION['models'],
 >(
   props: {
-    definition: DEFINITION & { models: MODELS };
+    definition: DEFINITION & {
+      models: MODELS;
+      contracts: {
+        [K in keyof DEFINITION['contracts'] &
+          string]: K extends DEFINITION['contracts'][K]['commandName']
+          ? AssertContractMutationsInModels<
+              DEFINITION['contracts'][K],
+              NoInfer<MODELS>
+            >
+          : ITypeError<`Bad contract "${K}". The key in contracts should be the commandName`>;
+      };
+    };
     layer?: APP_LAYER;
     claims: DEFINITION['claimsSchema']['Type'];
     resources?: Partial<{
@@ -55,7 +69,14 @@ export function makeMockAggregateSession<
     }>;
   } & ([
     Exclude<
-      NonNullable<NoInfer<DEFINITION>['__initializeRequirements']>,
+      NonNullable<
+        IAggregateSessionDefinition<
+          string,
+          string,
+          string,
+          NoInfer<DEFINITION['contracts']>
+        >['__initializeRequirements']
+      >,
       ISessionRuntimeServices | Scope.Scope
     >,
   ] extends [never]
@@ -63,13 +84,25 @@ export function makeMockAggregateSession<
     : {
         layer: Layer.Layer<
           Exclude<
-            NonNullable<NoInfer<DEFINITION>['__initializeRequirements']>,
+            NonNullable<
+              IAggregateSessionDefinition<
+                string,
+                string,
+                string,
+                NoInfer<DEFINITION['contracts']>
+              >['__initializeRequirements']
+            >,
             ISessionRuntimeServices | Scope.Scope
           >,
           IAnyError
         >;
       }),
-): IAggregateSession<DEFINITION & { systemName: typeof MOCK_SYSTEM_NAME }> & {
+): IAggregateSession<
+  DEFINITION & {
+    systemName: typeof MOCK_SYSTEM_NAME;
+    modelNames: readonly string[];
+  }
+> & {
   readonly runtime: IZerospinRuntime<Layer.Success<APP_LAYER>>;
   readonly systemName: typeof MOCK_SYSTEM_NAME;
   initialize(): Promise<void>;
@@ -77,7 +110,7 @@ export function makeMockAggregateSession<
 };
 
 export function makeMockAggregateSession(props: {
-  definition: Omit<IAggregateSessionDefinition, 'systemName'>;
+  definition: Omit<IAggregateSessionDefinition, 'systemName' | 'modelNames'>;
   layer?: Layer.Layer<never, IAnyError>;
   claims: Readonly<Record<string, unknown>>;
   resources?: Partial<
@@ -90,9 +123,13 @@ export function makeMockAggregateSession(props: {
     claims: fixtureClaims,
     resources: fixtureResources = {},
   } = props;
-  const definition: typeof authoredDefinition & {
-    systemName: typeof MOCK_SYSTEM_NAME;
-  } = { ...authoredDefinition, systemName: MOCK_SYSTEM_NAME };
+  const definition = makeSessionDefinition({
+    ...authoredDefinition,
+    systemName: MOCK_SYSTEM_NAME,
+  });
+  if (definition.kind !== 'aggregate') {
+    throw new Error('Mock aggregate sessions require an aggregate');
+  }
   const coreSession = makeAggregateSession<typeof definition>({ definition });
 
   const lifecycle = makeSessionLifecycle({

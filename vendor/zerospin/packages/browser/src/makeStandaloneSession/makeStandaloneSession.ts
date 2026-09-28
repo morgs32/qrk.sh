@@ -9,7 +9,7 @@ import type {
 } from '@zerospin/core/aggregateSession/types';
 import { makeAsync } from '@zerospin/core/async/make/makeAsync';
 import type { AssertContractMutationsInModels } from '@zerospin/core/contracts/assertMutationsUseModels';
-import type { IAnyContractBindings } from '@zerospin/core/contracts/types';
+import type { IAnyContracts } from '@zerospin/core/contracts/types';
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/make/makeDbConfig/makeDbConfig';
 import { makeProvisionedInMemoryWasmSqliteDb } from '@zerospin/core/drizzle/make/makeProvisionedInMemoryWasmSqliteDb/makeProvisionedInMemoryWasmSqliteDb';
 import { makeSessionQueryDb } from '@zerospin/core/drizzle/make/makeSessionQueryDb';
@@ -177,7 +177,7 @@ export function makeStandaloneSession<
   const ACTOR_VERSION extends string,
   const SESSION_NAME extends string,
   const MODELS extends IAnyModels,
-  const CONTRACTS extends IAnyContractBindings,
+  const CONTRACTS extends IAnyContracts,
   const CLAIMS extends IClaimsSchema,
   APP_LAYER extends Layer.Layer<never, IAnyError> = Layer.Layer<never>,
 >(
@@ -192,15 +192,8 @@ export function makeStandaloneSession<
     models: MODELS & IAssertValidModels<NoInfer<MODELS>>;
     layer?: APP_LAYER;
     contracts: CONTRACTS & {
-      [K in keyof CONTRACTS &
-        string]: K extends CONTRACTS[K]['contract']['commandName']
-        ? CONTRACTS[K] & {
-            contract: AssertContractMutationsInModels<
-              CONTRACTS[K]['contract'],
-              NoInfer<MODELS>
-            >;
-            guard?: never;
-          }
+      [K in keyof CONTRACTS & string]: K extends CONTRACTS[K]['commandName']
+        ? AssertContractMutationsInModels<CONTRACTS[K], NoInfer<MODELS>>
         : ITypeError<`Bad contract "${K}". The key in contracts should be the commandName`>;
     };
     claims: NoInfer<CLAIMS>['Type'];

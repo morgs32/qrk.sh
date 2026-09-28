@@ -3,7 +3,6 @@ import { defineAggregate } from '@zerospin/core/aggregate/defineAggregate';
 import { makeAggregateVersion } from '@zerospin/core/aggregate/make/makeAggregateVersion';
 import { defineAggregateActor } from '@zerospin/core/aggregateActor/defineAggregateActor';
 import { makeAggregateActorVersion } from '@zerospin/core/aggregateActor/make/makeAggregateActorVersion/makeAggregateActorVersion';
-import { makeAggregateSessionDefinition } from '@zerospin/core/aggregateSession/make/makeAggregateSessionDefinition';
 import { defineContract } from '@zerospin/core/contracts/defineContract';
 import { makeContractVersion } from '@zerospin/core/contracts/make/makeContractVersion';
 import type { IDb, IResourceDbConfig } from '@zerospin/core/drizzle/types';
@@ -178,31 +177,28 @@ const credentialsSchema = Schema.Struct({
 });
 
 export const main = {
-  ...makeAggregateSessionDefinition({
-    actorName: 'default',
-    actorVersion: '1.0.0',
-    aggregateVersion: '1.0.0',
-    contracts: {
-      createList: {
-        contract: createList,
-      },
-      createItem: { contract: createItem },
-      updateList: { contract: updateList },
-      deleteList: { contract: deleteList },
-    },
-    claimsSchema: Schema.Struct({
-      aggregateId: Schema.String,
-      userId: Schema.String,
-    }),
-    aggregateName: 'user',
-    sessionName: 'main',
-    models: {
-      account,
-      list,
-      item,
-      user: userVersion,
-    },
+  kind: 'aggregate' as const,
+  actorName: 'default',
+  actorVersion: '1.0.0',
+  aggregateVersion: '1.0.0',
+  contracts: {
+    createList,
+    createItem,
+    updateList,
+    deleteList,
+  },
+  claimsSchema: Schema.Struct({
+    aggregateId: Schema.String,
+    userId: Schema.String,
   }),
+  aggregateName: 'user',
+  sessionName: 'main',
+  models: {
+    account,
+    list,
+    item,
+    user: userVersion,
+  },
   systemName: 'system-worker',
 };
 

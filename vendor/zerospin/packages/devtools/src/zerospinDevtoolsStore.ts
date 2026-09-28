@@ -55,6 +55,7 @@ export const zerospinDevtoolsStore = createStore<IZerospinDevtoolsStoreState>()(
         const devtoolsEntry: IDevtoolsServiceSessionEntry = {
           sessionId,
           serviceName: session.definition.serviceName,
+          actorName: session.definition.actorName,
           sessionName: session.definition.sessionName,
           modelNames: session.definition.modelNames,
           subscribe: listener =>

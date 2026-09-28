@@ -5,7 +5,7 @@ import { Effect } from 'effect';
 
 /**
  * Pass the registered models into contract execution; validate exact model membership and replica operation compatibility.
- * `makeAggregateSessionDefinition` also applies `AssertContractMutationsInModels` to its client-side contracts.
+ * Browser session constructors also apply `AssertContractMutationsInModels` to its client-side contracts.
  *
  * @bad Let a service contract mutate an aggregate-only model and wait for persistence to fail.
  * @bad Validate only contract lookup; validate every produced mutation against the owner's model map too.

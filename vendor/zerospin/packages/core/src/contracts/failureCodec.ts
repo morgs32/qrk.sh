@@ -119,10 +119,8 @@ export const resolveSessionFailure = <
   commandName: string,
   failure: IFailure,
 ) => {
-  const binding = Object.values(definition.contracts).find(
-    binding => binding.contract.commandName === commandName,
-  );
-  return binding === undefined
+  const contract = definition.contracts[commandName];
+  return contract === undefined
     ? Effect.succeed(recognizeZerospinError(Schema.Never, failure))
-    : resolveFailure(binding.contract, failure);
+    : resolveFailure(contract, failure);
 };

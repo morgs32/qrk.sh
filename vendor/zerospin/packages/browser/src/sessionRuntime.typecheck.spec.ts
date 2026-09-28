@@ -1,4 +1,4 @@
-import { makeAggregateSessionDefinition } from '@zerospin/core/aggregateSession/make/makeAggregateSessionDefinition';
+import { stageCommand } from '@zerospin/core/aggregateSession/stageCommand/stageCommand';
 import { defineContract } from '@zerospin/core/contracts/defineContract';
 import { makeContractVersion } from '@zerospin/core/contracts/make/makeContractVersion';
 import { PublishableKey } from '@zerospin/core/services/PublishableKey';
@@ -32,7 +32,7 @@ const aggregate = {
   actorVersion: '1.0.0',
   sessionName: 'test',
   models: {},
-  contracts: { guarded: { contract: guarded } },
+  contracts: { guarded },
   claimsSchema: claims,
 };
 const liveAggregate = { ...aggregate, contracts: { guarded } };
@@ -40,7 +40,8 @@ const apiLayer = Layer.mergeAll(
   Layer.succeed(ZerospinApiUrl, 'http://test'),
   Layer.succeed(PublishableKey, Redacted.make('pk_test')),
 );
-const definition = makeAggregateSessionDefinition({
+const definition = {
+  kind: 'aggregate' as const,
   aggregateName: aggregate.aggregateName,
   aggregateVersion: aggregate.aggregateVersion,
   actorName: aggregate.actorName,
@@ -49,7 +50,7 @@ const definition = makeAggregateSessionDefinition({
   models: aggregate.models,
   contracts: aggregate.contracts,
   claimsSchema: claims,
-});
+};
 
 // Compile-only public constructor and runtime inference checks.
 export function checkSessionLayerTypes() {
@@ -88,7 +89,8 @@ export function checkSessionLayerTypes() {
     claims: { aggregateId: 'acct_test' },
   });
   const detached = makeMockAggregateSession({
-    definition: makeAggregateSessionDefinition({
+    definition: {
+      kind: 'aggregate' as const,
       aggregateName: 'test',
       aggregateVersion: '1.0.0',
       actorName: 'writer',
@@ -97,7 +99,7 @@ export function checkSessionLayerTypes() {
       models: {},
       contracts: {},
       claimsSchema: claims,
-    }),
+    },
     claims: { aggregateId: 'acct_test' },
   });
   // @ts-expect-error Omitting the layer does not add arbitrary services.
@@ -213,4 +215,34 @@ export function checkModuleLayerTypes() {
   // @ts-expect-error Unknown contracts are not introduced by module composition.
   void session.definition.contracts.unknown;
   return value;
+}
+
+// Flat standalone declarations retain command-name and payload validation.
+export function checkFlatContractTypes() {
+  const session = makeStandaloneSession({
+    ...aggregate,
+    key: 'flat-types',
+    claims: { aggregateId: 'acct_test' },
+    layer: Layer.succeed(Capability, { value: 1 }),
+  });
+  stageCommand({ session, contractName: 'guarded', payload: {} });
+  // @ts-expect-error Unknown commands remain rejected.
+  stageCommand({ session, contractName: 'missing', payload: {} });
+  makeStandaloneSession({
+    ...aggregate,
+    key: 'wrong-key',
+    claims: { aggregateId: 'acct_test' },
+    layer: Layer.succeed(Capability, { value: 1 }),
+    // @ts-expect-error Registry keys must match the contract command name.
+    contracts: { wrong: guarded },
+  });
+  makeMockAggregateSession({
+    definition: {
+      ...definition,
+      // @ts-expect-error Mock declarations enforce the same command key.
+      contracts: { wrong: guarded },
+    },
+    claims: { aggregateId: 'acct_test' },
+    layer: Layer.succeed(Capability, { value: 1 }),
+  });
 }

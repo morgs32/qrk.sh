@@ -98,6 +98,7 @@
     "react-colorful": "^5.8.1",
     "react-grid-layout": "^2.2.3",
     "react-json-view-lite": "^2.5.0",
+    "sonner": "^2.0.8",
     "swr": "^2.3.3",
     "zod": "^4.4.3",
     "zustand": "^5.0.14"

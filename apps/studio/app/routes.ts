@@ -1,7 +1,7 @@
 import { createElement } from "react";
 import type { RouteObject } from "react-router";
 import { ZerospinRouteErrorBoundary } from "@zerospin/error-boundary/ZerospinRouteErrorBoundary";
-import { LoadingWorkspace } from "./LoadingWorkspace";
+import { LoadingWorkspace } from "./LoadingWorkspace/LoadingWorkspace";
 import App from "./App";
 
 export default [

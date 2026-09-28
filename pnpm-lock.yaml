@@ -193,6 +193,9 @@ importers:
       react-json-view-lite:
         specifier: ^2.5.0
         version: 2.5.0(react@19.2.7)
+      sonner:
+        specifier: ^2.0.8
+        version: 2.0.8(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       swr:
         specifier: ^2.3.3
         version: 2.4.1(react@19.2.7)

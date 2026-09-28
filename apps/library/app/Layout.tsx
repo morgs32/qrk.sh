@@ -7,8 +7,10 @@ import { stageCommand, useInitializeStandaloneSession, useLiveQuery } from "@zer
 import { cn } from "cn";
 import { motion, useAnimationControls, useReducedMotion } from "framer-motion";
 import { RotateCcw, X } from "lucide-react";
+import { toast } from "sonner";
 
 import { Button } from "../components/ui/button";
+import { Toaster } from "../components/ui/sonner";
 import { BREAKPOINTS } from "../lib/breakpoints";
 import { BrickWall } from "../lib/BrickWall";
 import { brickDragStore } from "../lib/GridStore";
@@ -227,7 +229,6 @@ function LayoutBody(props: {
     null,
   );
   const [direction, setDirection] = useState<1 | -1 | 0>(0);
-  const [commandError, setCommandError] = useState<string | null>(null);
 
   const placementsQuery = useLiveQuery({
     session,
@@ -325,33 +326,14 @@ function LayoutBody(props: {
       },
     });
     if (result._tag === "Failure") {
-      setCommandError(result.failure.message ?? result.failure.code ?? "Compact failed");
+      toast.error(result.failure.message ?? result.failure.code ?? "Compact failed");
       return;
     }
-    setCommandError(null);
   }
 
   return (
     <main className="relative h-dvh overflow-hidden">
-      {commandError !== null ? (
-        <div
-          role="alert"
-          className="pointer-events-auto fixed inset-x-4 top-16 z-90 mx-auto max-w-lg rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-900"
-        >
-          <div className="flex items-start justify-between gap-3">
-            <p className="m-0">{commandError}</p>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-7 shrink-0 px-2"
-              onClick={() => setCommandError(null)}
-            >
-              Dismiss
-            </Button>
-          </div>
-        </div>
-      ) : null}
+      <Toaster />
       <div
         className={cn(
           "grid h-full overflow-hidden transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0,0,0.2,1)] motion-reduce:transition-none",
@@ -394,7 +376,7 @@ function LayoutBody(props: {
                     wallId={WALL_ID}
                     breakpoint={row.id}
                     gridWidth={row.previewWidth}
-                    onCommandError={setCommandError}
+                    onCommandError={(message) => toast.error(message)}
                     onBrickActivate={({ brickId: activatedBrickId }) => {
                       void navigate({
                         to: "/bricks/$brickId",
@@ -508,7 +490,7 @@ function LayoutBody(props: {
             title="Reset grid layout"
             onClick={() => {
               brickDragStore.getState().setBrickDef(null);
-              setCommandError(null);
+              toast.dismiss();
               onResetSession();
               if (brickId !== undefined) {
                 void navigate({ to: "/modules" });

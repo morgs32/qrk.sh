@@ -26,9 +26,6 @@
       "path": "./packages/core"
     },
     {
-      "path": "./docs"
-    },
-    {
       "path": "./packages/cli"
     },
     {

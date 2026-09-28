@@ -8,7 +8,6 @@
   "scripts": {
     "build": "nx run-many -t lib build --all",
     "lib": "nx run-many -t lib --all",
-    "dev": "NX_DAEMON=false nx run docs:dev",
     "types": "nx run-many -t types --all",
     "format": "oxfmt",
     "format:check": "oxfmt --check",

@@ -33,6 +33,7 @@ out/
 # production
 build/
 dist/
+/docs/.astro/
 .output/
 .vinxi/
 .turbo/

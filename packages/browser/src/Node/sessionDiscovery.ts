@@ -1,10 +1,10 @@
+import { hashNodeValue, nodeKey } from '@zerospin/core/Node/nodeKey';
 import { makeZerospinError } from '@zerospin/error';
 import { Schema } from 'effect';
 
 import { sharedWorkerVersion } from '../sharedWorkerVersion.ts';
 
 import { makeNodeDefinition } from './makeNodeDefinition.ts';
-import { hashNodeValue, nodeKey } from './nodeKey.ts';
 import { NodeRequestSchema, type INodeRequest } from './nodeRequest.ts';
 
 const entrySchema = Schema.Struct({

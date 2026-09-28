@@ -1,6 +1,7 @@
-import type { AdmissionResultSchema } from '@zerospin/core/contracts/AdmissionResultSchema';
-import type { ExecutionSummarySchema } from '@zerospin/core/contracts/ExecutionSummarySchema';
 import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+
+import type { AdmissionResultSchema } from '../contracts/AdmissionResultSchema.ts';
+import type { ExecutionSummarySchema } from '../contracts/ExecutionSummarySchema.ts';
 
 import type { INodeCommandInput, INodeOutcome } from './types.ts';
 

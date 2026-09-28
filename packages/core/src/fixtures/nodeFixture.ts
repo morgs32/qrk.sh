@@ -1,47 +1,27 @@
 import { DatabaseSync } from 'node:sqlite';
 
-import { Node } from '@zerospin/browser/Node/Node';
-import type {
-  INodeCommandInput,
-  INodeDefinition,
-} from '@zerospin/browser/Node/types';
 import { drizzle } from 'drizzle-orm/sqlite-proxy';
 
-export const definition: INodeDefinition = {
-  identity: {
-    apiUrl: 'https://api.example.test',
-    publishableKey: 'public',
-    systemName: 'test',
-    kind: 'aggregate',
-    targetName: 'account',
-    targetVersion: 'v1',
-    targetId: 'acct_test',
-    actorName: 'owner',
-    actorVersion: 'v1',
-    sessionName: 'editor',
-    claims: { userId: 'one' },
-    definitionHash: 'a'.repeat(64),
-  },
-  lock: {
-    sessionName: 'editor',
-    actorName: 'owner',
-    actorVersion: 'v1',
-    claims: { claimsJsonSchema: {} },
-    contracts: {},
-    models: {},
-  },
-};
+import { Node } from '../Node/Node.ts';
+import type { INodeCommandInput } from '../Node/types.ts';
+
+import { addItem, definition } from './shopping.ts';
+
 export const command = (id: string): INodeCommandInput => ({
   id: `cmd_${id}`,
-  commandName: 'change',
-  payload: '{}',
-  contractVersion: 'v1',
-  aggregateId: 'acct_test',
-  aggregateName: 'account',
-  actorName: 'owner',
-  actorVersion: 'v1',
-  sessionName: 'editor',
-  claims: { userId: 'one' },
+  commandName: addItem.commandName,
+  payload: JSON.stringify({
+    id: `cit_${id}`,
+    productId: 'product_one',
+    quantity: 1,
+  }),
+  contractVersion: addItem.version,
+  aggregateId: definition.identity.targetId,
+  aggregateName: definition.identity.targetName,
+  actorName: definition.identity.actorName,
+  actorVersion: definition.identity.actorVersion,
+  sessionName: definition.identity.sessionName,
+  claims: definition.identity.claims,
   staging: {
     startedAt: '2026-01-01T00:00:00.000Z',
     completedAt: '2026-01-01T00:00:00.000Z',

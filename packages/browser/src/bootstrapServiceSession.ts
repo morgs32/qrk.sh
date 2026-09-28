@@ -4,6 +4,7 @@ import { makeProvisionedInMemoryWasmSqliteDb } from '@zerospin/core/drizzle/make
 import { makeSessionQueryDb } from '@zerospin/core/drizzle/make/makeSessionQueryDb';
 import { assertSessionClaims } from '@zerospin/core/identity/assertSessionClaims';
 import type { IAdmissionRequest } from '@zerospin/core/identity/types';
+import type { INodeCommand } from '@zerospin/core/Node/Node';
 import { makeServiceSessionLockKey } from '@zerospin/core/serviceSession/make/makeServiceSessionLockKey';
 import { makeServiceSessionSpec } from '@zerospin/core/serviceSession/make/makeServiceSessionSpec';
 import {
@@ -25,7 +26,6 @@ import { getTableName, sql } from 'drizzle-orm';
 import { Effect, Schema, type Scope } from 'effect';
 
 import { connectBrowserNode, nodeResult } from './connectBrowserNode.ts';
-import type { INodeCommand } from './Node/Node.ts';
 
 export const bootstrapServiceSession = Effect.fn('bootstrapServiceSession')(
   function* <D extends IServiceSessionDefinition>(props: {

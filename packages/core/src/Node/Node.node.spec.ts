@@ -1,21 +1,18 @@
+import { sql } from 'drizzle-orm';
+import { describe, expect, it, vi } from 'vitest';
+
 import {
   admitted,
   command,
   database,
-  definition,
   encodedAdmission,
   executed,
   fixture,
   rejection,
-} from '@zerospin/fixtures/browser/nodeFixture';
-import { encodeShape, primitives } from '@zerospin/schema';
-import { sql } from 'drizzle-orm';
-import { describe, expect, it, vi } from 'vitest';
-
-import { BrowserSessionApi } from '../BrowserSessionApi/BrowserSessionApi.ts';
+} from '../fixtures/nodeFixture.ts';
+import { cartItem, definition } from '../fixtures/shopping.ts';
 
 import { Node } from './Node.ts';
-import { NodeAuthentication } from './NodeAuthentication.ts';
 import type { INodeOutcome } from './types.ts';
 
 describe('durable node storage', () => {
@@ -190,102 +187,6 @@ describe('durable node storage', () => {
   });
 });
 
-describe('node authentication', () => {
-  it('shares attempts and accepts the first matching server-verified responder despite a frozen tab', async () => {
-    const auth = new NodeAuthentication(
-      definition.identity,
-      async admission => ({
-        status: 'verified',
-        value: { admission, identity: definition.identity },
-      }),
-    );
-    auth.register({}, () => new Promise(() => undefined));
-    auth.register({}, async () => ({ credentials: { token: 'signature' } }));
-    const first = auth.authenticate();
-    expect(auth.authenticate()).toBe(first);
-    expect((await first).admission).toEqual({
-      credentials: { token: 'signature' },
-    });
-  });
-
-  it('does not bind a command node to another authenticated identity', async () => {
-    const auth = new NodeAuthentication(
-      definition.identity,
-      async admission => ({
-        status: 'verified',
-        value: {
-          admission,
-          identity: {
-            ...definition.identity,
-            claims: { userId: 'two' },
-          },
-        },
-      }),
-    );
-    auth.register({}, async () => ({ credentials: { token: 'wrong' } }));
-    await expect(auth.authenticate()).rejects.toMatchObject({
-      code: 'node-authentication-rejected',
-    });
-    await expect(
-      auth.resume({ ...definition.identity, targetId: 'acct_other' }),
-    ).rejects.toMatchObject({ code: 'node-authentication-identity-mismatch' });
-  });
-
-  it('invalidates outstanding authentication on sign-out', async () => {
-    const auth = new NodeAuthentication(definition.identity, async () => ({
-      status: 'unavailable',
-    }));
-    auth.register({}, () => new Promise(() => undefined));
-    const attempt = auth.authenticate();
-    auth.clear();
-    await expect(attempt).rejects.toMatchObject({
-      code: 'node-authentication-cancelled',
-    });
-    await expect(auth.authenticate()).rejects.toMatchObject({
-      code: 'node-signed-out',
-    });
-  });
-});
-
-describe('BrowserSessionApi RPC boundary', () => {
-  it('validates complete occurrences and shares ordering across attached capabilities', async () => {
-    const { node, sqlite } = await fixture();
-    try {
-      const first = new BrowserSessionApi(node);
-      const second = new BrowserSessionApi(node);
-      expect(
-        await first.accept({ ...command('bad'), nodeIndex: 45 }),
-      ).toMatchObject({
-        _tag: 'Failure',
-        failure: { code: 'node-command-invalid' },
-      });
-      const [one, two] = await Promise.all([
-        first.accept(command('one')),
-        second.accept(command('two')),
-      ]);
-      expect(one).toMatchObject({ _tag: 'Success', success: { nodeIndex: 1 } });
-      expect(two).toMatchObject({ _tag: 'Success', success: { nodeIndex: 2 } });
-      expect(
-        await second.history({ afterNodeIndex: 0, limit: 1 }),
-      ).toMatchObject({ _tag: 'Success', success: [{ id: 'cmd_one' }] });
-      expect(
-        await second.history({ afterNodeIndex: 0, limit: 201 }),
-      ).toMatchObject({ _tag: 'Failure' });
-      await first.dispose();
-      expect(await first.accept(command('three'))).toMatchObject({
-        _tag: 'Failure',
-        failure: { code: 'node-tab-detached' },
-      });
-      expect(await second.accept(command('three'))).toMatchObject({
-        _tag: 'Success',
-        success: { nodeIndex: 3 },
-      });
-    } finally {
-      sqlite.close();
-    }
-  });
-});
-
 it('retains terminal failures in the same history and resolves them after success', async () => {
   const { node, sqlite } = await fixture();
   try {
@@ -331,40 +232,6 @@ it('retains terminal failures in the same history and resolves them after succes
   }
 });
 
-it('bounds frozen authentication waits without accumulating pending calls', async () => {
-  vi.useFakeTimers();
-  try {
-    const started = Promise.withResolvers<void>();
-    let calls = 0;
-    const auth = new NodeAuthentication(
-      definition.identity,
-      async () => ({ status: 'unavailable' }),
-      100,
-    );
-    auth.register({}, () => {
-      calls += 1;
-      started.resolve();
-      return new Promise(() => undefined);
-    });
-    const first = expect(auth.authenticate()).rejects.toMatchObject({
-      code: 'node-authentication-unavailable',
-    });
-    await started.promise;
-    await vi.advanceTimersByTimeAsync(100);
-    await first;
-    const secondAttempt = auth.authenticate();
-    const second = expect(secondAttempt).rejects.toMatchObject({
-      code: 'node-authentication-unavailable',
-    });
-    await vi.waitFor(() => expect(vi.getTimerCount()).toBe(1));
-    await vi.advanceTimersByTimeAsync(100);
-    await second;
-    expect(calls).toBe(1);
-  } finally {
-    vi.useRealTimers();
-  }
-});
-
 it('rolls back allocation on storage failure and blocks new staging', async () => {
   const { node, db, sqlite } = await fixture();
   try {
@@ -387,36 +254,18 @@ it('rolls back allocation on storage failure and blocks new staging', async () =
 
 it('commits structured resource rows with the checkpoint and never reapplies historical outcomes', async () => {
   const { db, sqlite } = database();
-  const models = {
-    item: {
-      modelName: 'item',
-      abbreviation: 'itm',
-      version: 'v1',
-      propertiesShape: encodeShape({
-        id: primitives.primaryKey({ abbreviation: 'itm' }),
-        modelName: primitives.text(),
-        version: primitives.text(),
-        createdAt: primitives.date(),
-        updatedAt: primitives.date(),
-        count: primitives.integer(),
-      }),
-      indexes: [],
-    },
-  };
-  const node = new Node(db, {
-    ...definition,
-    lock: { ...definition.lock, models },
-  });
+  const node = new Node(db, definition);
   try {
     await node.initialize();
     const accepted = await node.accept(command('one'));
     const row = {
-      id: 'itm_one',
-      modelName: 'item',
-      version: 'v1',
+      id: 'cit_one',
+      modelName: cartItem.modelName,
+      version: cartItem.version,
       createdAt: new Date(0),
       updatedAt: new Date(0),
-      count: 10,
+      productId: 'product_one',
+      quantity: 10,
     };
     await node.beginRecovery({
       aggregateIndex: 0,
@@ -434,7 +283,7 @@ it('commits structured resource rows with the checkpoint and never reapplies his
       executedHash: '1'.repeat(64),
       admission: admitted,
       execution: executed,
-      actorDelta: { upserted: [{ ...row, count: 1 }], deleted: [] },
+      actorDelta: { upserted: [{ ...row, quantity: 1 }], deleted: [] },
     };
     await node.receiveCommand(outcome);
     await node.receiveCommand(outcome);
@@ -444,7 +293,7 @@ it('commits structured resource rows with the checkpoint and never reapplies his
     });
     await Promise.resolve();
     expect(changes[0]).toMatchObject({
-      snapshot: { resources: [{ id: row.id, count: 10 }] },
+      snapshot: { resources: [{ id: row.id, quantity: 10 }] },
     });
     await expect(
       node.receiveCommand({ ...outcome, id: 'cmd_conflicting' }),
@@ -459,7 +308,7 @@ it('commits structured resource rows with the checkpoint and never reapplies his
       nodeIndex: null,
       executedIndex: 2,
       executedHash: '2'.repeat(64),
-      actorDelta: { upserted: [{ ...row, count: 20 }], deleted: [] },
+      actorDelta: { upserted: [{ ...row, quantity: 20 }], deleted: [] },
     };
     await node.receiveCommand(external);
     const fresh: unknown[] = [];
@@ -470,7 +319,7 @@ it('commits structured resource rows with the checkpoint and never reapplies his
     expect(fresh[0]).toMatchObject({
       snapshot: {
         metadata: { executedIndex: 2, outcomeIndex: 1 },
-        resources: [{ count: 20 }],
+        resources: [{ quantity: 20 }],
       },
     });
     const second = await node.accept(command('two'));
@@ -481,14 +330,14 @@ it('commits structured resource rows with the checkpoint and never reapplies his
       aggregateIndex: 3,
       executedIndex: 3,
       executedHash: '3'.repeat(64),
-      actorDelta: { upserted: [{ ...row, count: 30 }], deleted: [] },
+      actorDelta: { upserted: [{ ...row, quantity: 30 }], deleted: [] },
     };
     await expect(
       node.receiveCommand({
         ...newer,
         actorDelta: {
           upserted: [
-            { ...row, count: 99 },
+            { ...row, quantity: 99 },
             { ...row, modelName: 'unavailable' },
           ],
           deleted: [],
@@ -497,25 +346,25 @@ it('commits structured resource rows with the checkpoint and never reapplies his
     ).rejects.toMatchObject({ code: 'node-resource-model-invalid' });
     expect(await node.snapshot()).toMatchObject({
       metadata: { outcomeIndex: 1, executedIndex: 2 },
-      resources: [{ count: 20 }],
+      resources: [{ quantity: 20 }],
       unresolvedCommands: [{ id: second.id }],
     });
     await node.receiveCommand(newer);
     expect(await node.snapshot()).toMatchObject({
       metadata: { outcomeIndex: 2, executedIndex: 3 },
-      resources: [{ count: 30 }],
+      resources: [{ quantity: 30 }],
       unresolvedCommands: [],
     });
     expect(
       (await node.history({ afterNodeIndex: 1, limit: 1 }))[0],
     ).toMatchObject({
       executedIndex: 3,
-      actorDelta: { upserted: [{ id: row.id, count: 30 }], deleted: [] },
+      actorDelta: { upserted: [{ id: row.id, quantity: 30 }], deleted: [] },
     });
     // An old nonempty delta and an exact owned duplicate cannot replay resources.
     await node.receiveCommand(outcome);
     await node.receiveCommand(newer);
-    expect((await node.snapshot()).resources).toMatchObject([{ count: 30 }]);
+    expect((await node.snapshot()).resources).toMatchObject([{ quantity: 30 }]);
   } finally {
     sqlite.close();
   }
@@ -566,30 +415,6 @@ it('resnapshots a slow subscriber after its bounded queue overflows', async () =
     detach();
   } finally {
     release.resolve();
-    sqlite.close();
-  }
-});
-
-it('cannot resurrect signed-out authentication through an in-flight resume', async () => {
-  const auth = new NodeAuthentication(definition.identity, async () => ({
-    status: 'unavailable',
-  }));
-  const resume = auth.resume(definition.identity);
-  auth.clear();
-  await expect(resume).rejects.toMatchObject({
-    code: 'node-authentication-cancelled',
-  });
-  await expect(auth.authenticate()).rejects.toMatchObject({
-    code: 'node-signed-out',
-  });
-  const { node, sqlite } = await fixture();
-  try {
-    await node.clearAuthentication();
-    await expect(
-      node.authenticated(definition.identity, () => false),
-    ).rejects.toMatchObject({ code: 'node-authentication-cancelled' });
-    expect(node.status().authentication).toBe('signed-out');
-  } finally {
     sqlite.close();
   }
 });

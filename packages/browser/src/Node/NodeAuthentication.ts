@@ -1,8 +1,7 @@
 import type { IAdmissionRequest } from '@zerospin/core/identity/types';
+import { nodeKey } from '@zerospin/core/Node/nodeKey';
+import type { INodeIdentity, INodeRecovery } from '@zerospin/core/Node/types';
 import { makeZerospinError } from '@zerospin/error';
-
-import { nodeKey } from './nodeKey.ts';
-import type { INodeIdentity, INodeRecovery } from './types.ts';
 
 export type IVerifiedAdmission = {
   snapshot?: INodeRecovery;

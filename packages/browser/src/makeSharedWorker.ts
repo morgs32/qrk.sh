@@ -1,4 +1,6 @@
 import { EncodedResourceSchema } from '@zerospin/core/models/EncodedResourceSchema';
+import { Node } from '@zerospin/core/Node/Node';
+import { nodeKey } from '@zerospin/core/Node/nodeKey';
 import { makeZerospinError } from '@zerospin/error';
 import { newMessagePortRpcSession } from 'capnweb';
 import { Schema } from 'effect';
@@ -7,9 +9,7 @@ import { BrowserSessionApi } from './BrowserSessionApi/BrowserSessionApi.ts';
 import { isNodeNetworkUnavailable } from './Node/isNodeNetworkUnavailable.ts';
 import { makeNodeDefinition } from './Node/makeNodeDefinition.ts';
 import { makeNodeRecovery } from './Node/makeNodeRecovery.ts';
-import { Node } from './Node/Node.ts';
 import { NodeAuthentication } from './Node/NodeAuthentication.ts';
-import { nodeKey } from './Node/nodeKey.ts';
 import { nodeNetwork } from './Node/nodeNetwork.ts';
 import { NodeRequestSchema } from './Node/nodeRequest.ts';
 import { NodeSynchronization } from './Node/NodeSynchronization.ts';

@@ -1,4 +1,6 @@
 import type { IAdmissionRequest } from '@zerospin/core/identity/types';
+import type { INodeChange, INodeSnapshot } from '@zerospin/core/Node/Node';
+import { nodeKey } from '@zerospin/core/Node/nodeKey';
 import {
   makeZerospinError,
   type IAnyError,
@@ -9,8 +11,6 @@ import { newMessagePortRpcSession, RpcStub } from 'capnweb';
 
 import type { IBrowserSessionApi } from './BrowserSessionApi/BrowserSessionApi.ts';
 import { isNodeNetworkUnavailable } from './Node/isNodeNetworkUnavailable.ts';
-import type { INodeChange, INodeSnapshot } from './Node/Node.ts';
-import { nodeKey } from './Node/nodeKey.ts';
 import type { INodeRequest } from './Node/nodeRequest.ts';
 import { resolveNode } from './Node/resolveNode.ts';
 import { sessionDiscovery } from './Node/sessionDiscovery.ts';

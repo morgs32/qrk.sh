@@ -16,7 +16,6 @@ const resolveAlias = {
   conditions: ['node'],
   alias: {
     internal: path.resolve(__dirname, 'src'),
-    system: path.resolve(__dirname, '../fixtures/src/core/system.ts'),
     '@livestore/wa-sqlite/dist/wa-sqlite.mjs': path.resolve(
       __dirname,
       'node_modules/@livestore/wa-sqlite/dist/wa-sqlite.node.mjs',

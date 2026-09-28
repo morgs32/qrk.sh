@@ -116,6 +116,7 @@ Keyword → pattern file routing. Code shows good; `@bad` JSDoc tags document an
 | Keywords                                                                                                                          | File                                               |
 | --------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
 | test organization, runtime lanes, Node, workerd, React, Playwright, typecheck                                                     | `testing/runtime-lanes.md`                         |
+| shopping, cart, core fixtures, browser test setup, Node storage, dependency cycles                                                | `testing/core-shopping-fixtures.md`                |
 | test DB fixture, assertion readback, makeTx                                                                                       | `testing/direct-db-in-test-fixtures-not-maketx.ts` |
 | malformed props, RPC seam, Schema.SchemaError, schema catalog, JSON.stringify loss, journal replay, outbox decode, public handler | `testing/malformed-props-at-rpc-seam.ts`           |
 

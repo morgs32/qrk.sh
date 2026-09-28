@@ -1,5 +1,6 @@
+import type { INodeRecovery } from '@zerospin/core/Node/types';
+
 import type { nodeNetwork } from './nodeNetwork.ts';
-import type { INodeRecovery } from './types.ts';
 
 export function makeNodeRecovery(
   snapshot: Awaited<ReturnType<ReturnType<typeof nodeNetwork>['snapshot']>>,

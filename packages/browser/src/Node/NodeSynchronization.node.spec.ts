@@ -1,14 +1,14 @@
 import {
   command,
   database,
-  definition,
   encodedAdmission,
   fixture,
   rejection,
-} from '@zerospin/fixtures/browser/nodeFixture';
+} from '@zerospin/core/fixtures/nodeFixture';
+import { definition } from '@zerospin/core/fixtures/shopping';
+import { Node } from '@zerospin/core/Node/Node';
 import { afterEach, expect, it, vi } from 'vitest';
 
-import { Node } from './Node.ts';
 import { NodeAuthentication } from './NodeAuthentication.ts';
 import { NodeSynchronization } from './NodeSynchronization.ts';
 
@@ -66,10 +66,10 @@ it('resumes both cursors and commits missed terminal outcomes with their resourc
       kind: 'aggregate',
       apiUrl: definition.identity.apiUrl,
       publishableKey: 'public',
-      systemName: 'test',
-      targetName: 'account',
-      targetVersion: 'v1',
-      sessionName: 'editor',
+      systemName: definition.identity.systemName,
+      targetName: definition.identity.targetName,
+      targetVersion: definition.identity.targetVersion,
+      sessionName: definition.identity.sessionName,
       lock: { ...definition.lock, contracts: {} },
     },
     auth,
@@ -215,10 +215,10 @@ it('routes adapted service commands through the shared receiver', async () => {
       kind: 'service',
       apiUrl: definition.identity.apiUrl,
       publishableKey: 'public',
-      systemName: 'test',
-      targetName: 'account',
-      targetVersion: 'v1',
-      sessionName: 'editor',
+      systemName: definition.identity.systemName,
+      targetName: definition.identity.targetName,
+      targetVersion: definition.identity.targetVersion,
+      sessionName: definition.identity.sessionName,
       lock: definition.lock,
     },
     auth,

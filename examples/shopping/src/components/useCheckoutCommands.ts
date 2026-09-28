@@ -4,8 +4,10 @@ import type {
   IAggregateSessionDefinition,
 } from '@zerospin/core/aggregateSession/types';
 import { resolveSessionFailure } from '@zerospin/core/contracts/failureCodec';
-import { useLiveQuery } from '@zerospin/react';
+import { makeZerospinError } from '@zerospin/error';
+import { useLiveQueryOnDb } from '@zerospin/react/useLiveQueryOnDb';
 import { Effect } from 'effect';
+import { useStore } from 'zustand/react';
 
 const readCommand = (row: unknown) =>
   Effect.runSync(sessionRepoDbConfig.tables.commands.decodeRow(row));
@@ -13,8 +15,15 @@ const readCommand = (row: unknown) =>
 export function useCheckoutCommands<
   DEFINITION extends IAggregateSessionDefinition,
 >(session: IAggregateSession<DEFINITION>) {
-  const { data: journal } = useLiveQuery({
-    session,
+  const db = useStore(session.store, state => state.db);
+  if (db === null) {
+    throw makeZerospinError({
+      code: 'session-store-not-initialized',
+      message: 'Session store is not initialized',
+    });
+  }
+  const { data: journal } = useLiveQueryOnDb({
+    db,
     query: db =>
       db
         .select()

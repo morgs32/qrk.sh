@@ -12,7 +12,6 @@ import type { AssertContractMutationsInModels } from '@zerospin/core/contracts/a
 import type { IAnyContracts } from '@zerospin/core/contracts/types';
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/make/makeDbConfig/makeDbConfig';
 import { makeProvisionedInMemoryWasmSqliteDb } from '@zerospin/core/drizzle/make/makeProvisionedInMemoryWasmSqliteDb/makeProvisionedInMemoryWasmSqliteDb';
-import { makeSessionQueryDb } from '@zerospin/core/drizzle/make/makeSessionQueryDb';
 import type { ICommittedSqlStatement } from '@zerospin/core/drizzle/WaSqliteSession';
 import type { IClaimsSchema } from '@zerospin/core/identity/types';
 import type {
@@ -300,7 +299,6 @@ export function makeStandaloneSession(props: unknown): unknown {
         sessionStatus: 'released',
         isInitialized: false,
         db: null,
-        queryDb: null,
         schema: null,
         models: null,
         sessionId: null,
@@ -366,7 +364,6 @@ export function makeStandaloneSession(props: unknown): unknown {
               }),
             ).pipe(Effect.asVoid, Effect.ignore),
         );
-        const queryDb = makeSessionQueryDb({ models, client: db.$client });
         const emptyDatabase = db.$client.sqlite3.serialize(
           db.$client.db,
           'main',
@@ -837,7 +834,6 @@ export function makeStandaloneSession(props: unknown): unknown {
               aggregateName: definition.aggregateName,
               claims: Schema.decodeUnknownSync(definition.claimsSchema)(claims),
               db,
-              queryDb,
               aggregateIndex: metadata.aggregateIndex,
               executedIndex: metadata.executedIndex,
               executedHash: metadata.executedHash,

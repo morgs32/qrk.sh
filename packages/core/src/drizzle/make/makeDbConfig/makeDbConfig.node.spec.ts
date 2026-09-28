@@ -3,7 +3,7 @@ import { getTableName } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/sql-js';
 import initSqlJs from 'sql.js';
 import { getTableConfig } from 'drizzle-orm/sqlite-core';
-import { Effect } from 'effect';
+import { Effect, Schema } from 'effect';
 import { describe, expect, expectTypeOf, it } from 'vitest';
 
 import { defineModel } from '../../../models/defineModel.ts';
@@ -12,10 +12,143 @@ import { makeReplica } from '../../../models/make/makeReplica.ts';
 
 import { makeDbConfig, makeResourceDbConfig } from './makeDbConfig.ts';
 import { makeTableProvisioningSQL } from '../../provisionDb/provisionDbTx/makeTableProvisioningSQL/makeTableProvisioningSQL.ts';
+import { makeTableProvisioningStatements } from '../../provisionDb/provisionDbTx/makeTableProvisioningSQL/makeTableProvisioningSQL.ts';
+import { makeInMemorySQLite3 } from '../makeInMemorySQLite3/makeInMemorySQLite3.ts';
+import { makeWaSqliteDrizzle } from '../makeProvisionedInMemoryWasmSqliteDb/makeInMemoryWasmSqliteDb/makeWaSqliteDrizzle/makeWaSqliteDrizzle.ts';
+import { sessionRepoDbConfig } from '../../../aggregateSession/sessionRepoDbConfig.ts';
+import type { IModelQueryDb } from '../../types.ts';
 
 const parent = makeTable({
   name: 'parent',
   shape: { id: primitives.primaryKey({ abbreviation: 'par' }) },
+});
+
+describe('decoded relational columns', () => {
+  const jsonItem = makeModelVersion(defineModel({ name: 'jsonItem', abbreviation: 'jsn' }), {
+    version: '1.0.0',
+    attributes: {
+      payload: primitives.json({ schema: Schema.Struct({ count: Schema.Number }) }),
+      tags: primitives.json({ schema: Schema.Array(Schema.String) }),
+      optional: primitives.json({ schema: Schema.String, nullable: true }),
+      date: primitives.json({ schema: Schema.DateFromString }),
+    },
+    indexes: [],
+  });
+  const jsonChild = makeModelVersion(defineModel({ name: 'jsonChild', abbreviation: 'jch' }), {
+    version: '1.0.0',
+    attributes: {
+      itemId: primitives.ref({ table: jsonItem.table, relation: 'item', inverse: 'children' }),
+      value: primitives.json({ schema: Schema.Array(Schema.Number) }),
+    },
+    indexes: [],
+  });
+  const date = new Date('2026-09-27T00:00:00.000Z');
+  type AuthoredQuery = IModelQueryDb<{ jsonItem: typeof jsonItem }>;
+  expectTypeOf<keyof AuthoredQuery['query']>().toEqualTypeOf<'jsonItem'>();
+  // @ts-expect-error Internal tables are unavailable to authored callbacks.
+  type _InternalQuery = AuthoredQuery['query']['commands'];
+  // @ts-expect-error Unknown models are unavailable to authored callbacks.
+  type _UnknownModel = AuthoredQuery['query']['missing'];
+  // @ts-expect-error Authored callbacks cannot insert rows.
+  type _MutationMethod = AuthoredQuery['insert'];
+
+  it('decodes JSON in the model-only resource configuration', async () => {
+    const config = makeResourceDbConfig({ models: { jsonItem } });
+    const client = await makeInMemorySQLite3();
+    try {
+      const db = makeWaSqliteDrizzle(client, config);
+      for (const statement of makeTableProvisioningStatements(config.schema.jsonItem)) client.sqlite3.exec(client.db, statement);
+      db.insert(config.schema.jsonItem).values({
+        id: 'jsn_one', modelName: 'jsonItem', version: '1.0.0', createdAt: date, updatedAt: date,
+        payload: '{"count":2}', tags: '[]', optional: null, date: JSON.stringify(date.toISOString()),
+      }).run();
+      expect(db.query.jsonItem.findFirst({ where: { payload: { eq: { count: 2 } } } }).sync()?.payload).toEqual({ count: 2 });
+      expect(db.select().from(config.schema.jsonItem).get()?.payload).toBe('{"count":2}');
+    } finally {
+      client.sqlite3.close(client.db);
+    }
+  });
+
+  it('keeps decoded queries on the active wa-sqlite transaction and savepoint', async () => {
+    const config = makeResourceDbConfig({ models: { jsonItem } });
+    const client = await makeInMemorySQLite3();
+    try {
+      const db = makeWaSqliteDrizzle(client, config);
+      for (const statement of makeTableProvisioningStatements(config.schema.jsonItem)) client.sqlite3.exec(client.db, statement);
+      const changed: string[] = [];
+      const unsubscribe = client.subscribeToTableChanges(tables => changed.push(...tables));
+      try {
+        db.transaction(tx => {
+          tx.insert(config.schema.jsonItem).values({
+            id: 'jsn_one', modelName: 'jsonItem', version: '1.0.0', createdAt: date, updatedAt: date,
+            payload: '{"count":1}', tags: '[]', optional: null, date: JSON.stringify(date.toISOString()),
+          }).run();
+          expect(tx.query.jsonItem.findFirst().sync()?.payload).toEqual({ count: 1 });
+          expect(() => tx.transaction(nested => {
+            nested.update(config.schema.jsonItem).set({ payload: '{"count":2}' }).run();
+            expect(nested.query.jsonItem.findFirst().sync()?.payload).toEqual({ count: 2 });
+            throw new Error('savepoint rollback');
+          })).toThrow('savepoint rollback');
+          expect(tx.query.jsonItem.findFirst().sync()?.payload).toEqual({ count: 1 });
+        });
+        client.flushTableChanges();
+        expect(changed).toContain('jsonItem');
+        changed.length = 0;
+        expect(() => db.transaction(tx => {
+          tx.update(config.schema.jsonItem).set({ payload: '{"count":3}' }).run();
+          expect(tx.query.jsonItem.findFirst().sync()?.payload).toEqual({ count: 3 });
+          throw new Error('outer rollback');
+        })).toThrow('outer rollback');
+        client.flushTableChanges();
+        expect(changed).toEqual([]);
+        expect(db.query.jsonItem.findFirst().sync()?.payload).toEqual({ count: 1 });
+      } finally {
+        unsubscribe();
+      }
+    } finally {
+      client.sqlite3.close(client.db);
+    }
+  });
+
+  it('decodes full, partial, nested, and predicate values while explicit selects stay encoded', async () => {
+    const config = makeResourceDbConfig({ models: { jsonItem, jsonChild }, otherTables: sessionRepoDbConfig.tables });
+    const client = await makeInMemorySQLite3();
+    try {
+      const db = makeWaSqliteDrizzle(client, config);
+      for (const table of Object.values(config.schema)) {
+        for (const statement of makeTableProvisioningStatements(table)) client.sqlite3.exec(client.db, statement);
+      }
+      db.insert(config.schema.jsonItem).values({
+        id: 'jsn_one', modelName: 'jsonItem', version: '1.0.0', createdAt: date, updatedAt: date,
+        payload: '{"count":2}', tags: '["a","b"]', optional: null, date: JSON.stringify(date.toISOString()),
+      }).run();
+      db.insert(config.schema.jsonChild).values({
+        id: 'jch_one', modelName: 'jsonChild', version: '1.0.0', createdAt: date, updatedAt: date,
+        itemId: 'jsn_one', value: '[1,2]',
+      }).run();
+      const row = db.query.jsonItem.findFirst().sync();
+      expect(row).toMatchObject({ payload: { count: 2 }, tags: ['a', 'b'], optional: null, date });
+      expectTypeOf(row!.payload).toEqualTypeOf<{ readonly count: number }>();
+      expectTypeOf(row!.date).toEqualTypeOf<Date>();
+      expect(db.query.jsonItem.findMany({
+        columns: { payload: true, date: true },
+        where: { payload: { eq: { count: 2 } }, date: { eq: date } },
+        with: { children: { columns: { value: true } } },
+      }).sync()).toEqual([{ payload: { count: 2 }, date, children: [{ value: [1, 2] }] }]);
+      expect(db.select().from(config.schema.jsonItem).get()?.payload).toBe('{"count":2}');
+      expect(db.query.commands).toBeDefined();
+      db.insert(config.schema.optimisticAppliedMutations).values({ commandId: 'cmd_one', mutations: '[]' }).run();
+      expect(db.query.optimisticAppliedMutations.findFirst().sync()?.mutations).toEqual([]);
+      expect(db.select().from(config.schema.optimisticAppliedMutations).get()?.mutations).toBe('[]');
+      for (const payload of ['{broken', '{"count":"invalid"}']) {
+        db.update(config.schema.jsonItem).set({ payload }).run();
+        expect(() => db.query.jsonItem.findMany().sync()).toThrow();
+        expect(db.query.jsonItem.findMany({ columns: { optional: true } }).sync()).toEqual([{ optional: null }]);
+      }
+    } finally {
+      client.sqlite3.close(client.db);
+    }
+  });
 });
 const child = makeTable({
   name: 'child',

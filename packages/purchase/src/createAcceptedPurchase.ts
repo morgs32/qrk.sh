@@ -66,7 +66,7 @@ export const makeCreateAcceptedPurchase = <
       }) {
         const checkout = Schema.decodeUnknownSync(
           Schema.Array(
-            Schema.toEncoded(makeEffectSchema(checkoutV1.propertiesShape)),
+            Schema.toType(makeEffectSchema(checkoutV1.propertiesShape)),
           ),
         )(db.query.checkout.findMany().sync()).find(
           row => row.id === payload.checkoutId,
@@ -77,7 +77,7 @@ export const makeCreateAcceptedPurchase = <
           checkout?.cartId !== payload.cartId ||
           checkout.purchaseId !== payload.id ||
           checkout.firstPaymentIntentId !== payload.paymentIntentId ||
-          checkout.quote !== JSON.stringify(payload.quote)
+          JSON.stringify(checkout.quote) !== JSON.stringify(payload.quote)
         ) {
           return yield* failures.conflict.make({
             message: 'Purchase must match its accepted checkout.',
@@ -85,7 +85,7 @@ export const makeCreateAcceptedPurchase = <
         }
         const existing = Schema.decodeUnknownSync(
           Schema.Array(
-            Schema.toEncoded(makeEffectSchema(purchaseV1.propertiesShape)),
+            Schema.toType(makeEffectSchema(purchaseV1.propertiesShape)),
           ),
         )(db.query.purchase.findMany().sync()).find(
           row => row.id === payload.id,
@@ -93,18 +93,14 @@ export const makeCreateAcceptedPurchase = <
         if (payload.expectedExisting) {
           const intent = Schema.decodeUnknownSync(
             Schema.Array(
-              Schema.toEncoded(
-                makeEffectSchema(paymentIntentV1.propertiesShape),
-              ),
+              Schema.toType(makeEffectSchema(paymentIntentV1.propertiesShape)),
             ),
           )(db.query.paymentIntent.findMany().sync()).find(
             row => row.id === payload.paymentIntentId,
           );
           const lines = Schema.decodeUnknownSync(
             Schema.Array(
-              Schema.toEncoded(
-                makeEffectSchema(purchaseItemV1.propertiesShape),
-              ),
+              Schema.toType(makeEffectSchema(purchaseItemV1.propertiesShape)),
             ),
           )(db.query.purchaseItem.findMany().sync()).filter(
             row => row.purchaseId === payload.id,
@@ -146,9 +142,7 @@ export const makeCreateAcceptedPurchase = <
         if (payload.quote.promotionReservationId !== null) {
           const promotion = Schema.decodeUnknownSync(
             Schema.Array(
-              Schema.toEncoded(
-                makeEffectSchema(cartPromotionV1.propertiesShape),
-              ),
+              Schema.toType(makeEffectSchema(cartPromotionV1.propertiesShape)),
             ),
           )(db.query.cartPromotion.findMany().sync()).find(
             row => row.id === payload.quote.promotionReservationId,

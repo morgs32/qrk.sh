@@ -245,14 +245,14 @@ const makePurchaseModuleImpl = <
       if (on.payload.expectedExisting) return null;
       const checkout = Schema.decodeUnknownSync(
         Schema.Array(
-          Schema.toEncoded(makeEffectSchema(checkoutV1.propertiesShape)),
+          Schema.toType(makeEffectSchema(checkoutV1.propertiesShape)),
         ),
       )(db.query.checkout.findMany().sync()).find(
         row => row.id === on.payload.checkoutId,
       );
       if (checkout === undefined) return null;
       const quote = yield* Schema.decodeUnknownEffect(
-        Schema.fromJsonString(PurchaseQuoteSchema),
+        Schema.toType(PurchaseQuoteSchema),
       )(checkout.quote).pipe(
         Effect.mapError(() => makeZerospinError('invalid-checkout-quote')),
       );
@@ -282,7 +282,7 @@ const makePurchaseModuleImpl = <
       if (!('aggregateId' in on)) return null;
       const checkout = Schema.decodeUnknownSync(
         Schema.Array(
-          Schema.toEncoded(makeEffectSchema(checkoutV1.propertiesShape)),
+          Schema.toType(makeEffectSchema(checkoutV1.propertiesShape)),
         ),
       )(db.query.checkout.findMany().sync()).find(
         row => row.id === on.payload.checkoutId,
@@ -328,7 +328,7 @@ const makePurchaseModuleImpl = <
       if (!('aggregateId' in on)) return null;
       const checkout = Schema.decodeUnknownSync(
         Schema.Array(
-          Schema.toEncoded(makeEffectSchema(checkoutV1.propertiesShape)),
+          Schema.toType(makeEffectSchema(checkoutV1.propertiesShape)),
         ),
       )(db.query.checkout.findMany().sync()).find(
         row => row.id === on.payload.id,
@@ -374,7 +374,7 @@ const makePurchaseModuleImpl = <
       if (!('aggregateId' in on)) return null;
       const checkout = Schema.decodeUnknownSync(
         Schema.Array(
-          Schema.toEncoded(makeEffectSchema(checkoutV1.propertiesShape)),
+          Schema.toType(makeEffectSchema(checkoutV1.propertiesShape)),
         ),
       )(db.query.checkout.findMany().sync()).find(
         row => row.id === on.payload.checkoutId,
@@ -423,7 +423,7 @@ const makePurchaseModuleImpl = <
       if (!('aggregateId' in on)) return null;
       const checkout = Schema.decodeUnknownSync(
         Schema.Array(
-          Schema.toEncoded(makeEffectSchema(checkoutV1.propertiesShape)),
+          Schema.toType(makeEffectSchema(checkoutV1.propertiesShape)),
         ),
       )(db.query.checkout.findMany().sync()).find(
         row => row.id === on.payload.checkoutId,
@@ -472,7 +472,7 @@ const makePurchaseModuleImpl = <
       if (!('aggregateId' in on)) return null;
       const checkout = Schema.decodeUnknownSync(
         Schema.Array(
-          Schema.toEncoded(makeEffectSchema(checkoutV1.propertiesShape)),
+          Schema.toType(makeEffectSchema(checkoutV1.propertiesShape)),
         ),
       )(db.query.checkout.findMany().sync()).find(
         row => row.id === on.payload.checkoutId,
@@ -521,7 +521,7 @@ const makePurchaseModuleImpl = <
       if (!('aggregateId' in on)) return null;
       const checkout = Schema.decodeUnknownSync(
         Schema.Array(
-          Schema.toEncoded(makeEffectSchema(checkoutV1.propertiesShape)),
+          Schema.toType(makeEffectSchema(checkoutV1.propertiesShape)),
         ),
       )(db.query.checkout.findMany().sync()).find(
         row => row.id === on.payload.id,
@@ -570,7 +570,7 @@ const makePurchaseModuleImpl = <
       if (on.payload.status !== 'committed') return null;
       const checkout = Schema.decodeUnknownSync(
         Schema.Array(
-          Schema.toEncoded(makeEffectSchema(checkoutV1.propertiesShape)),
+          Schema.toType(makeEffectSchema(checkoutV1.propertiesShape)),
         ),
       )(db.query.checkout.findMany().sync()).find(
         row => row.id === on.payload.checkoutId,
@@ -583,7 +583,7 @@ const makePurchaseModuleImpl = <
         return null;
       }
       const quote = yield* Schema.decodeUnknownEffect(
-        Schema.fromJsonString(PurchaseQuoteSchema),
+        Schema.toType(PurchaseQuoteSchema),
       )(checkout.quote).pipe(
         Effect.mapError(() => makeZerospinError('invalid-checkout-quote')),
       );
@@ -617,7 +617,7 @@ const makePurchaseModuleImpl = <
       for (const id of ids) {
         const checkout = Schema.decodeUnknownSync(
           Schema.Array(
-            Schema.toEncoded(makeEffectSchema(checkoutV1.propertiesShape)),
+            Schema.toType(makeEffectSchema(checkoutV1.propertiesShape)),
           ),
         )(db.query.checkout.findMany().sync()).find(row => row.id === id);
         if (

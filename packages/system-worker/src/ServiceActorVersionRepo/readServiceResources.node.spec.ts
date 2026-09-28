@@ -1,7 +1,11 @@
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/make/makeDbConfig/makeDbConfig';
+import { defineModel } from '@zerospin/core/models/defineModel';
+import { makeModelVersion } from '@zerospin/core/models/make/makeModelVersion';
+import { makeService } from '@zerospin/core/service/make/makeService';
 import { serviceAutomation } from '@zerospin/fixtures/system-worker/workerd/serviceAutomation';
-import { Effect } from 'effect';
+import { primitives } from '@zerospin/schema';
+import { Effect, Schema } from 'effect';
 import { expect, it } from 'vitest';
 
 import { makeActorSnapshotDb } from '../AggregateActorVersionRepo/validateCommands/makeActorSnapshotDb.js';
@@ -27,17 +31,45 @@ it('reads a provisioned model with no rows as an empty service graph', async () 
   expect(rows).toEqual([]);
 });
 
-it('reports the required model name when its query is missing', async () => {
-  const error = await Effect.runPromise(
+it('exports encoded JSON from the private service actor', async () => {
+  const item = makeModelVersion(
+    defineModel({ name: 'item', abbreviation: 'itm' }),
+    {
+      version: '1.0.0',
+      attributes: {
+        payload: primitives.json({
+          schema: Schema.Struct({ count: Schema.Number }),
+        }),
+      },
+      indexes: [],
+    },
+  );
+  const jsonService = makeService({
+    name: 'jsonService',
+    module: { '1.0.0': { models: { item }, contracts: {}, automations: {} } },
+  }).versions['1.0.0'];
+  if (jsonService === undefined)
+    throw new Error('JSON service version missing');
+  const rows = await Effect.runPromise(
     Effect.gen(function* () {
-      const { db } = yield* makeActorSnapshotDb(
-        makeResourceDbConfig({ models: {} }),
-      );
-      return yield* readServiceResources(db, service, key).pipe(Effect.flip);
+      const config = makeResourceDbConfig({ models: { item } });
+      const { db } = yield* makeActorSnapshotDb(config);
+      const now = new Date('2026-09-28T00:00:00.000Z');
+      db.insert(config.schema.item)
+        .values({
+          id: 'itm_one',
+          modelName: 'item',
+          version: '1.0.0',
+          createdAt: now,
+          updatedAt: now,
+          payload: '{"count":2}',
+        })
+        .run();
+      return yield* readServiceResources(db, jsonService, {
+        ...key,
+        actorVersion: '1.0.0',
+      });
     }).pipe(Effect.scoped, Effect.provide(AsyncLive)),
   );
-  expect(error).toMatchObject({
-    code: 'service-model-query-not-found',
-    message: 'Missing service model query: job',
-  });
+  expect(rows).toEqual([expect.objectContaining({ payload: '{"count":2}' })]);
 });

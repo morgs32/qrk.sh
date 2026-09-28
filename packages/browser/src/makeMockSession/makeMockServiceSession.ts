@@ -1,7 +1,6 @@
 import { makeAsync } from '@zerospin/core/async/make/makeAsync';
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/make/makeDbConfig/makeDbConfig';
 import { makeProvisionedInMemoryWasmSqliteDb } from '@zerospin/core/drizzle/make/makeProvisionedInMemoryWasmSqliteDb/makeProvisionedInMemoryWasmSqliteDb';
-import { makeSessionQueryDb } from '@zerospin/core/drizzle/make/makeSessionQueryDb';
 import type { IAnyModels, InferResource } from '@zerospin/core/models/types';
 import { applyServiceSessionSnapshot } from '@zerospin/core/serviceSession/applyServiceSessionSnapshot/applyServiceSessionSnapshot';
 import { makeServiceSession } from '@zerospin/core/serviceSession/make/makeServiceSession';
@@ -81,7 +80,6 @@ export function makeMockServiceSession(props: {
         sessionStatus: 'released',
         isInitialized: false,
         db: null,
-        queryDb: null,
         schema: null,
         models: null,
         sessionId: null,
@@ -133,7 +131,6 @@ export function makeMockServiceSession(props: {
             ).pipe(Effect.asVoid, Effect.ignore),
         );
 
-        const queryDb = makeSessionQueryDb({ models, client: db.$client });
         const serviceSessionLockKey = yield* makeServiceSessionLockKey(
           makeServiceSessionLock(definition),
         );
@@ -169,7 +166,6 @@ export function makeMockServiceSession(props: {
           sessionName: definition.sessionName,
           serviceSessionLockKey,
           db,
-          queryDb,
           schema: dbConfig.schema,
           models,
           isInitialized: true,

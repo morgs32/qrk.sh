@@ -15,7 +15,7 @@ export function makeDbConfig<TABLES extends IAnyTables>(props: {
   tableAliases?: ReadonlyMap<unknown, IAnyTable>;
 }): IDbConfig<
   ReturnType<typeof makeDrizzleSchemasRecordFromTables<IResolvedTables<TABLES>>>,
-  ReturnType<typeof makeDrizzleRelationsFromTables<IResolvedTables<TABLES>>>,
+  ReturnType<typeof makeDrizzleRelationsFromTables<IResolvedTables<TABLES>, true>>,
   IResolvedTables<TABLES>
 > {
   const { physicalTableNames, tableAliases } = props;
@@ -27,10 +27,11 @@ export function makeDbConfig<TABLES extends IAnyTables>(props: {
       physicalTableNames,
       tableAliases,
     ),
-    relations: makeDrizzleRelationsFromTables<IResolvedTables<TABLES>>(
+    relations: makeDrizzleRelationsFromTables<IResolvedTables<TABLES>, true>(
       tables,
       physicalTableNames,
       tableAliases,
+      true,
     ),
   };
 }
@@ -68,7 +69,7 @@ export function makeResourceDbConfig<
       {
         tables: modelTables,
         schema: makeDrizzleSchemasRecordFromTables(modelTables, {}, tableAliases),
-        relations: makeDrizzleRelationsFromTables(modelTables, {}, tableAliases),
+        relations: makeDrizzleRelationsFromTables(modelTables, {}, tableAliases, true),
       },
     );
   }
@@ -81,6 +82,6 @@ export function makeResourceDbConfig<
   return Brand.nominal<IResourceDbConfig<MODELS, OTHER_TABLES>>()({
     tables,
     schema: makeDrizzleSchemasRecordFromTables(tables, {}, tableAliases),
-    relations: makeDrizzleRelationsFromTables(tables, {}, tableAliases),
+    relations: makeDrizzleRelationsFromTables(tables, {}, tableAliases, true),
   });
 }

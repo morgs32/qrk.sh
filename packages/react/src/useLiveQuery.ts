@@ -4,9 +4,9 @@ import type {
   IAggregateSession,
   IAggregateSessionDefinition,
 } from '@zerospin/core/aggregateSession/types';
-import type { makeSessionQueryDb } from '@zerospin/core/drizzle/make/makeSessionQueryDb';
 import type {
   ILiveRelationalQuery,
+  IModelQueryDb,
   IWaSqliteClient,
 } from '@zerospin/core/drizzle/types';
 import type { IAnyModels } from '@zerospin/core/models/types';
@@ -57,14 +57,14 @@ function useSessionDatabase(session: {
     subscribe: (listener: () => void) => () => void;
     getState: () => {
       isInitialized: boolean;
-      queryDb: { $client: IWaSqliteClient } | null;
+      db: { $client: IWaSqliteClient } | null;
     };
   };
 }): { $client: IWaSqliteClient } {
   const db = useSyncExternalStore(
     session.store.subscribe,
-    () => session.store.getState().queryDb,
-    () => session.store.getState().queryDb,
+    () => session.store.getState().db,
+    () => session.store.getState().db,
   );
   if (db === null) {
     throw makeZerospinError({
@@ -83,7 +83,7 @@ export function useLiveQuery<
 >(props: {
   session: IAggregateSession<DEFINITION & { models: MODELS }>;
   key: KEY;
-  query: (db: ReturnType<typeof makeSessionQueryDb<MODELS>>, key: KEY) => QUERY;
+  query: (db: IModelQueryDb<MODELS>, key: KEY) => QUERY;
   tableNames?: readonly string[];
 }): {
   readonly data: QUERY['_']['result'];
@@ -98,7 +98,7 @@ export function useLiveQuery<
 >(props: {
   session: IAggregateSession<DEFINITION & { models: MODELS }>;
   key?: undefined;
-  query: (db: ReturnType<typeof makeSessionQueryDb<MODELS>>) => QUERY;
+  query: (db: IModelQueryDb<MODELS>) => QUERY;
   tableNames?: readonly string[];
 }): {
   readonly data: QUERY['_']['result'];
@@ -114,7 +114,7 @@ export function useLiveQuery<
 >(props: {
   session: IServiceSession<DEFINITION, MODELS>;
   key: KEY;
-  query: (db: ReturnType<typeof makeSessionQueryDb<MODELS>>, key: KEY) => QUERY;
+  query: (db: IModelQueryDb<MODELS>, key: KEY) => QUERY;
   tableNames?: readonly string[];
 }): {
   readonly data: QUERY['_']['result'];
@@ -129,7 +129,7 @@ export function useLiveQuery<
 >(props: {
   session: IServiceSession<DEFINITION, MODELS>;
   key?: undefined;
-  query: (db: ReturnType<typeof makeSessionQueryDb<MODELS>>) => QUERY;
+  query: (db: IModelQueryDb<MODELS>) => QUERY;
   tableNames?: readonly string[];
 }): {
   readonly data: QUERY['_']['result'];

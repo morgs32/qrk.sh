@@ -181,7 +181,7 @@ export const stageActorCommands = Effect.fn(
     const attempted = yield* Effect.gen(function* () {
       yield* runContractGuard({
         contract,
-        queryDb: scratch.queryDb,
+        queryDb: scratch.db,
         payload,
         claims,
       });
@@ -189,7 +189,7 @@ export const stageActorCommands = Effect.fn(
         Effect.suspend(
           () =>
             actor.guards[command.commandName]?.({
-              queryDb: scratch.queryDb,
+              queryDb: scratch.db,
               payload,
               claims,
               failures: contract.failures,

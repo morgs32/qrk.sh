@@ -83,21 +83,21 @@ export const makeRecordIntentObservation = <
       }) {
         const checkout = Schema.decodeUnknownSync(
           Schema.Array(
-            Schema.toEncoded(makeEffectSchema(checkoutV1.propertiesShape)),
+            Schema.toType(makeEffectSchema(checkoutV1.propertiesShape)),
           ),
         )(db.query.checkout.findMany().sync()).find(
           row => row.id === payload.checkoutId,
         );
         const purchase = Schema.decodeUnknownSync(
           Schema.Array(
-            Schema.toEncoded(makeEffectSchema(purchaseV1.propertiesShape)),
+            Schema.toType(makeEffectSchema(purchaseV1.propertiesShape)),
           ),
         )(db.query.purchase.findMany().sync()).find(
           row => row.id === payload.purchaseId,
         );
         const intent = Schema.decodeUnknownSync(
           Schema.Array(
-            Schema.toEncoded(makeEffectSchema(paymentIntentV1.propertiesShape)),
+            Schema.toType(makeEffectSchema(paymentIntentV1.propertiesShape)),
           ),
         )(db.query.paymentIntent.findMany().sync()).find(
           row => row.id === payload.paymentIntentId,
@@ -129,9 +129,7 @@ export const makeRecordIntentObservation = <
           purchase.status !== 'unpaid' ||
           Schema.decodeUnknownSync(
             Schema.Array(
-              Schema.toEncoded(
-                makeEffectSchema(paymentIntentV1.propertiesShape),
-              ),
+              Schema.toType(makeEffectSchema(paymentIntentV1.propertiesShape)),
             ),
           )(db.query.paymentIntent.findMany().sync())
             .filter(row => row.purchaseId === purchase.id)
@@ -150,7 +148,7 @@ export const makeRecordIntentObservation = <
         if (payload.outcome === 'succeeded') {
           const items = Schema.decodeUnknownSync(
             Schema.Array(
-              Schema.toEncoded(makeEffectSchema(cartItemV2.propertiesShape)),
+              Schema.toType(makeEffectSchema(cartItemV2.propertiesShape)),
             ),
           )(db.query.cartItem.findMany().sync())
             .filter(row => row.cartId === purchase.cartId)

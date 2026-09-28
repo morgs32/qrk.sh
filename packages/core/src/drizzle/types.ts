@@ -122,7 +122,7 @@ export type IDrizzleRelationsFromModels<
   TABLES extends IAnyTables = {
     [MODEL_KEY in keyof MODELS]: MODELS[MODEL_KEY]['table'];
   },
-  DECODED extends boolean = false,
+  DECODED extends boolean = true,
 > = {
   [TABLE_KEY in keyof TABLES & string]: {
     table: IDrizzleSchema<
@@ -211,6 +211,17 @@ export type IWaSqliteDrizzleDb<CONFIG extends IDbConfig = IDbConfig<any, any>> =
   IDb<CONFIG> & {
     $client: IWaSqliteClient;
   };
+
+/** Model-only relational capability passed to authored session queries. */
+export type IModelQueryDb<MODELS extends IAnyModels> = Pick<
+  IWaSqliteDrizzleDb<
+    IDbConfig<
+      IResourceDrizzleSchemasFromModels<MODELS>,
+      IDrizzleRelationsFromModels<MODELS>
+    >
+  >,
+  'query' | '$client'
+>;
 
 /** Relational/select queries `useLiveQuery` can run against a sync wa-sqlite Drizzle db. */
 export type ILiveRelationalQuery =

@@ -218,7 +218,7 @@ export const makeActorAutomations = (props: {
         const context = yield* config.system.runtime.contextEffect;
         const result = yield* Effect.suspend(() =>
           automation.program({
-            db: scratch.queryDb,
+            db: scratch.db,
             on,
             contracts: Object.fromEntries(
               Object.entries(automation.contracts).map(([name, contract]) => [

@@ -1,7 +1,6 @@
 import type { Async } from '@zerospin/core/async/Async';
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/make/makeDbConfig/makeDbConfig';
 import { makeProvisionedInMemoryWasmSqliteDb } from '@zerospin/core/drizzle/make/makeProvisionedInMemoryWasmSqliteDb/makeProvisionedInMemoryWasmSqliteDb';
-import { makeSessionQueryDb } from '@zerospin/core/drizzle/make/makeSessionQueryDb';
 import { assertSessionClaims } from '@zerospin/core/identity/assertSessionClaims';
 import type { IAdmissionRequest } from '@zerospin/core/identity/types';
 import type { INodeCommand } from '@zerospin/core/Node/Node';
@@ -72,7 +71,6 @@ export const bootstrapServiceSession = Effect.fn('bootstrapServiceSession')(
       otherTables: serviceSessionRepoTables,
     });
     const db = yield* makeProvisionedInMemoryWasmSqliteDb({ dbConfig });
-    const queryDb = makeSessionQueryDb({ models, client: db.$client });
     const connection = yield* Effect.tryPromise({
       try: () =>
         connectBrowserNode({
@@ -132,7 +130,6 @@ export const bootstrapServiceSession = Effect.fn('bootstrapServiceSession')(
               sessionName: definition.sessionName,
               serviceSessionLockKey,
               db,
-              queryDb,
               schema: dbConfig.schema,
               models,
               isInitialized: true,

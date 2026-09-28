@@ -82,7 +82,6 @@ export function makeServiceSession<
       sessionName: null,
       serviceSessionLockKey: null,
       db: null,
-      queryDb: null,
       schema: null,
       models: null,
       isInitialized: false,

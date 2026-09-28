@@ -27,11 +27,16 @@ export const applyAggregateMutationTx = Effect.fn('applyAggregateMutationTx')(
     const { appliedAt, commandId, mutation, mutationIndex, tx } = props;
     if (mutation.operationName === 'replicate') {
       const table = mutation.model.drizzleSchema;
-      const previousRow = tx
-        .select()
-        .from(table)
-        .where(eq(table.id, mutation.resourceId))
-        .get();
+      const query = tx.query[mutation.model.modelName];
+      if (query === undefined)
+        throw new Error(
+          `Missing registered model query: ${mutation.model.modelName}`,
+        );
+      const previousRow = query
+        .findFirst({ where: { id: mutation.resourceId } } as Parameters<
+          typeof query.findFirst
+        >[0])
+        .sync();
       const previousResource =
         previousRow === undefined
           ? null
@@ -45,12 +50,27 @@ export const applyAggregateMutationTx = Effect.fn('applyAggregateMutationTx')(
             );
       // Captured service replication includes tombstones. Replaying the same
       // prepared mutation must preserve the authoritative deletion in every replica.
+      const encodedResource = yield* Schema.encodeUnknownEffect(
+        mutation.model.table.codec,
+      )(mutation.operation.resource).pipe(
+        mapParseError({
+          code: 'replicate-resource-row-invalid',
+          prefix: `Failed to encode replicated resource "${mutation.resourceId}"`,
+        }),
+      );
       yield* Effect.try({
         try: () =>
           upsertHelper({
             table,
             tx,
-            values: mutation.operation.resource,
+            values: {
+              ...encodedResource,
+              id: mutation.operation.resource.id,
+              modelName: mutation.operation.resource.modelName,
+              version: mutation.operation.resource.version,
+              createdAt: mutation.operation.resource.createdAt,
+              updatedAt: mutation.operation.resource.updatedAt,
+            },
           }),
         catch: cause => {
           const failure = `${prettyUnknownFailure(cause)}${

@@ -46,7 +46,10 @@ it('preserves JSON text while installing authoritative resources', async () => {
         }),
       ),
     );
-    expect(db.query.checkout.findFirst().sync()?.quote).toBe('{"total":100}');
+    expect(db.query.checkout.findFirst().sync()?.quote).toEqual({ total: 100 });
+    expect(db.select().from(config.schema.checkout).get()?.quote).toBe(
+      '{"total":100}',
+    );
     db.transaction(tx =>
       Effect.runSync(
         applyExecutionDeltaTx({
@@ -60,7 +63,10 @@ it('preserves JSON text while installing authoritative resources', async () => {
         }),
       ),
     );
-    expect(db.query.checkout.findFirst().sync()?.quote).toBe('{"total":200}');
+    expect(db.query.checkout.findFirst().sync()?.quote).toEqual({ total: 200 });
+    expect(db.select().from(config.schema.checkout).get()?.quote).toBe(
+      '{"total":200}',
+    );
   } finally {
     if (
       '$client' in db &&

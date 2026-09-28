@@ -11,7 +11,6 @@ import type {
 import type { Async } from '@zerospin/core/async/Async';
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/make/makeDbConfig/makeDbConfig';
 import { makeProvisionedInMemoryWasmSqliteDb } from '@zerospin/core/drizzle/make/makeProvisionedInMemoryWasmSqliteDb/makeProvisionedInMemoryWasmSqliteDb';
-import { makeSessionQueryDb } from '@zerospin/core/drizzle/make/makeSessionQueryDb';
 import { assertSessionClaims } from '@zerospin/core/identity/assertSessionClaims';
 import type { IAdmissionRequest } from '@zerospin/core/identity/types';
 import type { INodeCommand } from '@zerospin/core/Node/Node';
@@ -84,7 +83,6 @@ export const bootstrapAggregateSession = Effect.fn('bootstrapAggregateSession')(
       otherTables: sessionRepoDbConfig.tables,
     });
     const db = yield* makeProvisionedInMemoryWasmSqliteDb({ dbConfig });
-    const queryDb = makeSessionQueryDb({ models, client: db.$client });
     const uncertain = new Map<string, INodeCommandInput>();
     let connection: Awaited<ReturnType<typeof connectBrowserNode>>;
     const accept = async (command: INodeCommandInput) => {
@@ -228,7 +226,6 @@ export const bootstrapAggregateSession = Effect.fn('bootstrapAggregateSession')(
               sessionName: definition.sessionName,
               aggregateSessionLockKey,
               db,
-              queryDb,
               schema: dbConfig.schema,
               models,
               isInitialized: true,

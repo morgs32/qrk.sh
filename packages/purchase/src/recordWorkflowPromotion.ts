@@ -67,14 +67,14 @@ export const makeRecordWorkflowPromotion = <
       }) {
         const checkout = Schema.decodeUnknownSync(
           Schema.Array(
-            Schema.toEncoded(makeEffectSchema(checkoutV1.propertiesShape)),
+            Schema.toType(makeEffectSchema(checkoutV1.propertiesShape)),
           ),
         )(db.query.checkout.findMany().sync()).find(
           row => row.id === payload.checkoutId,
         );
         const promotion = Schema.decodeUnknownSync(
           Schema.Array(
-            Schema.toEncoded(makeEffectSchema(cartPromotionV1.propertiesShape)),
+            Schema.toType(makeEffectSchema(cartPromotionV1.propertiesShape)),
           ),
         )(db.query.cartPromotion.findMany().sync()).find(
           row => row.id === payload.id,
@@ -129,9 +129,7 @@ export const makeRecordWorkflowPromotion = <
               ? undefined
               : Schema.decodeUnknownSync(
                   Schema.Array(
-                    Schema.toEncoded(
-                      makeEffectSchema(purchaseV1.propertiesShape),
-                    ),
+                    Schema.toType(makeEffectSchema(purchaseV1.propertiesShape)),
                   ),
                 )(db.query.purchase.findMany().sync()).find(
                   row => row.id === payload.purchaseId,

@@ -26,7 +26,7 @@ it.effect(
       let completed = false;
       const fiber = yield* processPayment
         .program({
-          db: scratch.queryDb,
+          db: scratch.db,
           on: {
             id: 'cmd_accepted',
             commandName: 'createAcceptedPurchase',
@@ -182,7 +182,7 @@ it.effect(
       scratch.db.insert(dbConfig.schema.paymentIntent).values(intent).run();
       const guard = shopperAggregateV2.guards.shopper!.recordPaymentObservation;
       const input: Parameters<NonNullable<typeof guard>>[0] = {
-        queryDb: scratch.queryDb,
+        queryDb: scratch.db,
         claims: {
           clerkUserId: Schema.decodeUnknownSync(ClerkUserIdSchema)('user_1'),
         },

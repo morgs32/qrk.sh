@@ -1,7 +1,7 @@
+import type { Node } from '@zerospin/core/Node/Node';
 import { RpcTarget, type RpcStub } from 'capnweb';
 import { Effect } from 'effect';
 
-import type { Node } from '../Node/Node.ts';
 import type { NodeSynchronization } from '../Node/NodeSynchronization.ts';
 
 import { accept } from './accept/accept.ts';

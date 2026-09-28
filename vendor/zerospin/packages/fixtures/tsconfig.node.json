@@ -4,15 +4,11 @@
     "types": ["node", "vite/client"]
   },
   "include": [
-    "src/core/**/*.ts",
     "src/browser/**/*.ts",
     "src/cli/seeds.ts",
     "src/cli/zerospin.config.ts"
   ],
   "references": [
-    {
-      "path": "../browser"
-    },
     {
       "path": "../core"
     },

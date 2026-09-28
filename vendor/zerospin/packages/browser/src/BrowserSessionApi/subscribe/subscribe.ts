@@ -1,9 +1,9 @@
+import type { Node } from '@zerospin/core/Node/Node';
 import { encodeRpcOutcome } from '@zerospin/core/utils/encodeRpcOutcome';
 import { catchZerospinError, makeZerospinError } from '@zerospin/error';
 import type { RpcStub } from 'capnweb';
 import { Effect } from 'effect';
 
-import type { Node } from '../../Node/Node.ts';
 import type { BrowserSessionApi } from '../BrowserSessionApi.ts';
 
 export const subscribe = Effect.fn('BrowserSessionApi.subscribe')(

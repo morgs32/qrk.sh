@@ -1,5 +1,5 @@
+import { definition } from '@zerospin/core/fixtures/shopping';
 import { makeZerospinError } from '@zerospin/error';
-import { definition } from '@zerospin/fixtures/browser/nodeFixture';
 import { beforeEach, expect, it, vi } from 'vitest';
 
 import type { INodeRequest } from './nodeRequest.ts';
@@ -16,10 +16,10 @@ const request: INodeRequest = {
   kind: 'aggregate',
   apiUrl: definition.identity.apiUrl,
   publishableKey: definition.identity.publishableKey,
-  systemName: 'test',
-  targetName: 'account',
-  targetVersion: 'v1',
-  sessionName: 'editor',
+  systemName: definition.identity.systemName,
+  targetName: definition.identity.targetName,
+  targetVersion: definition.identity.targetVersion,
+  sessionName: definition.identity.sessionName,
   lock: { ...definition.lock, contracts: {} },
 };
 const props = {
@@ -31,7 +31,7 @@ const props = {
 beforeEach(() => {
   mocks.snapshot.mockReset().mockResolvedValue({
     claims: { userId: 'one' },
-    aggregateId: 'acct_one',
+    aggregateId: 'cart_one',
     executedIndex: 0,
     executedHash: '0'.repeat(64),
     resources: [],
@@ -39,12 +39,12 @@ beforeEach(() => {
   });
   mocks.find
     .mockReset()
-    .mockResolvedValue({ claims: { userId: 'one' }, targetId: 'acct_one' });
+    .mockResolvedValue({ claims: { userId: 'one' }, targetId: 'cart_one' });
 });
 it('verifies online before lookup and derives one exact persistent identity', async () => {
   const result = await resolveNode(props);
   expect(result.definition.identity).toMatchObject({
-    targetId: 'acct_one',
+    targetId: 'cart_one',
     claims: props.expectedClaims,
   });
   expect(result.attachment.online).toBe(true);
@@ -74,7 +74,7 @@ it('does not fall back on authentication rejection, claims mismatch, or arbitrar
   }
   mocks.snapshot.mockResolvedValue({
     claims: { userId: 'other' },
-    aggregateId: 'acct_other',
+    aggregateId: 'cart_other',
   });
   await expect(resolveNode(props)).rejects.toMatchObject({
     code: 'session-claims-mismatch',

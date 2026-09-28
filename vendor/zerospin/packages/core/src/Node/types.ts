@@ -1,8 +1,8 @@
-import type { SessionCommandSchema } from '@zerospin/core/aggregateSession/AggregateActorCommandSchema/AggregateActorCommandSchema';
-import type { IAggregateSessionLock } from '@zerospin/core/aggregateSession/AggregateSessionLockSchema';
-import type { IAggregateActorCommand } from '@zerospin/core/aggregateSession/types';
-import type { IEncodedResourceShape } from '@zerospin/core/models/types';
-import type { IServiceSessionLock } from '@zerospin/core/serviceSession/ServiceSessionLockSchema';
+import type { SessionCommandSchema } from '../aggregateSession/AggregateActorCommandSchema/AggregateActorCommandSchema.ts';
+import type { IAggregateSessionLock } from '../aggregateSession/AggregateSessionLockSchema.ts';
+import type { IAggregateActorCommand } from '../aggregateSession/types.ts';
+import type { IEncodedResourceShape } from '../models/types.ts';
+import type { IServiceSessionLock } from '../serviceSession/ServiceSessionLockSchema.ts';
 
 export type INodeCommandInput = Omit<
   typeof SessionCommandSchema.Encoded,

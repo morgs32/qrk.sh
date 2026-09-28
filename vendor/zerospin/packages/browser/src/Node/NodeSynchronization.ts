@@ -1,12 +1,12 @@
 import { AggregateActorCommandSchema } from '@zerospin/core/aggregateSession/AggregateActorCommandSchema/AggregateActorCommandSchema';
 import { AdmissionResultSchema } from '@zerospin/core/contracts/AdmissionResultSchema';
+import type { INodeCommand, Node } from '@zerospin/core/Node/Node';
 import { ServiceActorCommandSchema } from '@zerospin/core/serviceSession/ServiceActorCommandSchema';
 import { makeZerospinError } from '@zerospin/error';
 import { Schema } from 'effect';
 
 import { isNodeNetworkUnavailable } from './isNodeNetworkUnavailable.ts';
 import { makeNodeRecovery } from './makeNodeRecovery.ts';
-import type { INodeCommand, Node } from './Node.ts';
 import type {
   IVerifiedAdmission,
   NodeAuthentication,

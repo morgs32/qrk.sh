@@ -19,7 +19,6 @@
     "ts:cli": "tsc -p tsconfig.cli.json --noEmit"
   },
   "dependencies": {
-    "@zerospin/browser": "workspace:*",
     "@zerospin/core": "workspace:*",
     "@zerospin/dev-worker": "workspace:*",
     "@zerospin/devtools": "workspace:*",

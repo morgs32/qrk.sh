@@ -1,16 +1,17 @@
-import type { IAggregateActorCommand } from '@zerospin/core/aggregateSession/types';
-import { AdmissionResultSchema } from '@zerospin/core/contracts/AdmissionResultSchema';
-import { ExecutionSummarySchema } from '@zerospin/core/contracts/ExecutionSummarySchema';
-import { makeTableProvisioningStatements } from '@zerospin/core/drizzle/provisionDb/provisionDbTx/makeTableProvisioningSQL/makeTableProvisioningSQL';
-import { EncodedResourceSchema } from '@zerospin/core/models/EncodedResourceSchema';
-import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
-import { NanoIdFactory } from '@zerospin/core/utils/NanoIdFactory';
 import { isZerospinError, makeZerospinError } from '@zerospin/error';
 import { makeIdFromAbbreviation } from '@zerospin/schema';
 import { and, eq, gt, gte, isNull, sql } from 'drizzle-orm';
 import { getTableConfig } from 'drizzle-orm/sqlite-core';
 import type { SqliteRemoteDatabase } from 'drizzle-orm/sqlite-proxy';
 import { Effect, Schema } from 'effect';
+
+import type { IAggregateActorCommand } from '../aggregateSession/types.ts';
+import { AdmissionResultSchema } from '../contracts/AdmissionResultSchema.ts';
+import { ExecutionSummarySchema } from '../contracts/ExecutionSummarySchema.ts';
+import { makeTableProvisioningStatements } from '../drizzle/provisionDb/provisionDbTx/makeTableProvisioningSQL/makeTableProvisioningSQL.ts';
+import { EncodedResourceSchema } from '../models/EncodedResourceSchema.ts';
+import { coreAbbreviations } from '../utils/coreAbbreviations.ts';
+import { NanoIdFactory } from '../utils/NanoIdFactory.ts';
 
 import { makeNodeResourceTables } from './makeNodeResourceTables.ts';
 import { nodeKey } from './nodeKey.ts';

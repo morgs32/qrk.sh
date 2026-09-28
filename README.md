@@ -39,10 +39,8 @@ flowchart TD
     sdkPkg["@zerospin/sdk"]
   end
 
-  docs["docs"]
   shopping["examples/shopping"]
 
-  docs --> corePkg
   shopping --> devWorkerPkg
   shopping --> reactPkg
 
@@ -84,14 +82,14 @@ flowchart TD
 
 ## Development
 
-Install the pinned workspace dependencies, then run the documentation site:
+Install the pinned workspace dependencies, then run an example target:
 
 ```bash
 pnpm install
-pnpm dev
+pnpm nx run shopping:dev
 ```
 
-`pnpm dev` delegates to `NX_DAEMON=false nx run docs:dev`. Run package and
+The documentation site lives in `zerospin-cloud/apps/docs`. Run package and
 example targets directly through Nx, for example `nx run shopping:dev` or
 `nx run parking:ts`.
 

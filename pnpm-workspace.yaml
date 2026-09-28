@@ -4,7 +4,6 @@
 minimumReleaseAge: 0
 
 packages:
-  - 'docs'
   - 'packages/*'
   - 'examples/*'
 allowBuilds:

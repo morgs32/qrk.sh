@@ -9,11 +9,12 @@ import { getTableConfig } from 'drizzle-orm/sqlite-core';
 
 import type { InferDrizzleSchemaFromTables } from '../types.ts';
 
-export function makeDrizzleSchemasRecordFromTables<TABLES extends IAnyTables>(
+export function makeDrizzleSchemasRecordFromTables<TABLES extends IAnyTables, DECODED extends boolean = false>(
   tables: TABLES,
   physicalTableNames: Partial<Record<keyof TABLES & string, string>> = {},
   tableAliases: ReadonlyMap<unknown, IAnyTable> = new Map(),
-): InferDrizzleSchemaFromTables<TABLES> {
+  decodeJson?: DECODED,
+): InferDrizzleSchemaFromTables<TABLES, DECODED> {
   const tableKeysByIdentity = new Map<unknown, string>();
   const drizzleSchemas: IAnyDrizzleSchemas = {};
   const registeredPhysicalTableNames = new Map<string, string>();
@@ -69,8 +70,9 @@ export function makeDrizzleSchemasRecordFromTables<TABLES extends IAnyTables>(
         }
         return targetColumn;
       },
+      decodeJson,
     );
   }
 
-  return drizzleSchemas as InferDrizzleSchemaFromTables<TABLES>;
+  return drizzleSchemas as InferDrizzleSchemaFromTables<TABLES, DECODED>;
 }

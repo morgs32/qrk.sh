@@ -1,22 +1,19 @@
 import { useMemo, useRef, useSyncExternalStore } from 'react';
 
 import type {
-  IDrizzleRelationsFromModels,
+  IAggregateSession,
+  IAggregateSessionDefinition,
+} from '@zerospin/core/aggregateSession/types';
+import type { makeSessionQueryDb } from '@zerospin/core/drizzle/make/makeSessionQueryDb';
+import type {
   ILiveRelationalQuery,
-  IResourceDbConfig,
   IWaSqliteClient,
-  IWaSqliteDrizzleDb,
 } from '@zerospin/core/drizzle/types';
 import type { IAnyModels } from '@zerospin/core/models/types';
 import type {
   IServiceSession,
   IServiceSessionDefinition,
 } from '@zerospin/core/serviceSession/types';
-import type {
-  IAggregateSession,
-  IAggregateSessionDefinition,
-  ISessionWaSqliteDb,
-} from '@zerospin/core/aggregateSession/types';
 import { makeZerospinError } from '@zerospin/error';
 
 import { useLiveQueryOnDb } from './useLiveQueryOnDb';
@@ -60,14 +57,14 @@ function useSessionDatabase(session: {
     subscribe: (listener: () => void) => () => void;
     getState: () => {
       isInitialized: boolean;
-      db: { $client: IWaSqliteClient } | null;
+      queryDb: { $client: IWaSqliteClient } | null;
     };
   };
 }): { $client: IWaSqliteClient } {
   const db = useSyncExternalStore(
     session.store.subscribe,
-    () => session.store.getState().db,
-    () => session.store.getState().db,
+    () => session.store.getState().queryDb,
+    () => session.store.getState().queryDb,
   );
   if (db === null) {
     throw makeZerospinError({
@@ -86,10 +83,7 @@ export function useLiveQuery<
 >(props: {
   session: IAggregateSession<DEFINITION & { models: MODELS }>;
   key: KEY;
-  query: (
-    db: ISessionWaSqliteDb<MODELS, IDrizzleRelationsFromModels<MODELS>>,
-    key: KEY,
-  ) => QUERY;
+  query: (db: ReturnType<typeof makeSessionQueryDb<MODELS>>, key: KEY) => QUERY;
   tableNames?: readonly string[];
 }): {
   readonly data: QUERY['_']['result'];
@@ -104,9 +98,7 @@ export function useLiveQuery<
 >(props: {
   session: IAggregateSession<DEFINITION & { models: MODELS }>;
   key?: undefined;
-  query: (
-    db: ISessionWaSqliteDb<MODELS, IDrizzleRelationsFromModels<MODELS>>,
-  ) => QUERY;
+  query: (db: ReturnType<typeof makeSessionQueryDb<MODELS>>) => QUERY;
   tableNames?: readonly string[];
 }): {
   readonly data: QUERY['_']['result'];
@@ -122,10 +114,7 @@ export function useLiveQuery<
 >(props: {
   session: IServiceSession<DEFINITION, MODELS>;
   key: KEY;
-  query: (
-    db: IWaSqliteDrizzleDb<IResourceDbConfig<MODELS, Record<never, never>>>,
-    key: KEY,
-  ) => QUERY;
+  query: (db: ReturnType<typeof makeSessionQueryDb<MODELS>>, key: KEY) => QUERY;
   tableNames?: readonly string[];
 }): {
   readonly data: QUERY['_']['result'];
@@ -140,9 +129,7 @@ export function useLiveQuery<
 >(props: {
   session: IServiceSession<DEFINITION, MODELS>;
   key?: undefined;
-  query: (
-    db: IWaSqliteDrizzleDb<IResourceDbConfig<MODELS, Record<never, never>>>,
-  ) => QUERY;
+  query: (db: ReturnType<typeof makeSessionQueryDb<MODELS>>) => QUERY;
   tableNames?: readonly string[];
 }): {
   readonly data: QUERY['_']['result'];

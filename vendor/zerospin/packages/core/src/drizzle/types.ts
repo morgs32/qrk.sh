@@ -96,10 +96,11 @@ type InverseRelationsMapForParentModel<
         : never
     >;
 
-export type InferDrizzleSchemaFromTables<TABLES extends IAnyTables> = {
+export type InferDrizzleSchemaFromTables<TABLES extends IAnyTables, DECODED extends boolean = false> = {
   [K in keyof TABLES]: IDrizzleSchema<
     Extract<TABLES[K]['name'], string>,
-    TABLES[K]['shape']
+    TABLES[K]['shape'],
+    DECODED
   >;
 };
 
@@ -121,11 +122,13 @@ export type IDrizzleRelationsFromModels<
   TABLES extends IAnyTables = {
     [MODEL_KEY in keyof MODELS]: MODELS[MODEL_KEY]['table'];
   },
+  DECODED extends boolean = false,
 > = {
   [TABLE_KEY in keyof TABLES & string]: {
     table: IDrizzleSchema<
       TABLES[TABLE_KEY]['name'],
-      TABLES[TABLE_KEY]['shape']
+      TABLES[TABLE_KEY]['shape'],
+      DECODED
     >;
     name: TABLE_KEY;
     relations: {

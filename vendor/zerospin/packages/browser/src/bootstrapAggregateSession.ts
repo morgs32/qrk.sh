@@ -11,6 +11,7 @@ import type {
 import type { Async } from '@zerospin/core/async/Async';
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/make/makeDbConfig/makeDbConfig';
 import { makeProvisionedInMemoryWasmSqliteDb } from '@zerospin/core/drizzle/make/makeProvisionedInMemoryWasmSqliteDb/makeProvisionedInMemoryWasmSqliteDb';
+import { makeSessionQueryDb } from '@zerospin/core/drizzle/make/makeSessionQueryDb';
 import { assertSessionClaims } from '@zerospin/core/identity/assertSessionClaims';
 import type { IAdmissionRequest } from '@zerospin/core/identity/types';
 import {
@@ -24,8 +25,8 @@ import { getTableName, sql } from 'drizzle-orm';
 import { Effect, Schema, type Scope } from 'effect';
 
 import { connectBrowserNode, nodeResult } from './connectBrowserNode.ts';
-import type { INodeCommandInput } from './Node/types.ts';
 import type { INodeCommand } from './Node/Node.ts';
+import type { INodeCommandInput } from './Node/types.ts';
 
 export const bootstrapAggregateSession = Effect.fn('bootstrapAggregateSession')(
   function* <D extends IAggregateSessionDefinition>(props: {
@@ -83,6 +84,7 @@ export const bootstrapAggregateSession = Effect.fn('bootstrapAggregateSession')(
       otherTables: sessionRepoDbConfig.tables,
     });
     const db = yield* makeProvisionedInMemoryWasmSqliteDb({ dbConfig });
+    const queryDb = makeSessionQueryDb({ models, client: db.$client });
     const uncertain = new Map<string, INodeCommandInput>();
     let connection: Awaited<ReturnType<typeof connectBrowserNode>>;
     const accept = async (command: INodeCommandInput) => {
@@ -226,6 +228,7 @@ export const bootstrapAggregateSession = Effect.fn('bootstrapAggregateSession')(
               sessionName: definition.sessionName,
               aggregateSessionLockKey,
               db,
+              queryDb,
               schema: dbConfig.schema,
               models,
               isInitialized: true,

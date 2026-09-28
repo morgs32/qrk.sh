@@ -25,15 +25,17 @@ import type { IDrizzleRelationsFromModels } from '../../../types.ts';
  * 4. Reject cycles across the validated cross-table ref graph.
  * 5. Build matching forward and inverse Drizzle relations.
  */
-export function makeDrizzleRelationsFromTables<TABLES extends IAnyTables>(
+export function makeDrizzleRelationsFromTables<TABLES extends IAnyTables, DECODED extends boolean = false>(
   tables: TABLES,
   physicalTableNames?: Partial<Record<keyof TABLES & string, string>>,
   tableAliases?: ReadonlyMap<unknown, IAnyTable>,
-): IDrizzleRelationsFromModels<IAnyModels, TABLES>;
+  decodeJson?: DECODED,
+): IDrizzleRelationsFromModels<IAnyModels, TABLES, DECODED>;
 export function makeDrizzleRelationsFromTables<TABLES extends IAnyTables>(
   tables: TABLES,
   physicalTableNames: Partial<Record<keyof TABLES & string, string>> = {},
   tableAliases: ReadonlyMap<unknown, IAnyTable> = new Map(),
+  decodeJson = false,
 ): AnyRelations {
   const tableKeys: (keyof TABLES & string)[] = [];
   const tableKeyByObject = new Map<unknown, keyof TABLES & string>();
@@ -241,6 +243,7 @@ export function makeDrizzleRelationsFromTables<TABLES extends IAnyTables>(
     tables,
     physicalTableNames,
     tableAliases,
+    decodeJson,
   );
 
   // 5 — Construct one forward and one inverse relation per ref. Unique refs

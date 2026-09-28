@@ -121,6 +121,7 @@ export function makeAggregateSession<
       sessionName: null,
       aggregateSessionLockKey: null,
       db: null,
+      queryDb: null,
       schema: null,
       models: null,
       isInitialized: false,

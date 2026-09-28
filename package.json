@@ -9,29 +9,6 @@
     "typescript": "^6.0.2"
   },
   "packageManager": "pnpm@10.33.0",
-  "pnpm": {
-    "overrides": {
-      "@zerospin/cli": "workspace:*",
-      "@zerospin/core": "workspace:*",
-      "@zerospin/devtools": "workspace:*",
-      "@zerospin/error": "workspace:*",
-      "@zerospin/react": "workspace:*",
-      "@zerospin/schema": "workspace:*",
-      "@zerospin/sdk": "workspace:*",
-      "@zerospin/zod": "workspace:*",
-      "system-worker": "workspace:*",
-      "@zerospin/dispatch-worker": "workspace:*",
-      "@zerospin/frontend": "workspace:*",
-      "@zerospin/live-query": "workspace:*",
-      "@zerospin/logger": "workspace:*",
-      "@zerospin/server-only": "workspace:*",
-      "@zerospin/shared-worker": "workspace:*",
-      "@zerospin/studio": "workspace:*",
-      "effect": "4.0.0-rc.112",
-      "react": "19.2.7",
-      "react-dom": "19.2.7"
-    }
-  },
   "dependencies": {
     "framer-motion": "13.2.0"
   }

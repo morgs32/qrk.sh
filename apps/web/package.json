@@ -12,10 +12,10 @@
     "build": "next build",
     "start": "next start",
     "tsc": "tsc --noEmit",
-    "lint": "oxlint .",
-    "lint:fix": "oxlint --fix .",
-    "format": "oxfmt .",
-    "format:check": "oxfmt --check ."
+    "lint": "vp lint --config ../../.oxlintrc.json .",
+    "lint:fix": "vp lint --config ../../.oxlintrc.json --fix .",
+    "format": "vp fmt --config ../../.oxfmtrc.json .",
+    "format:check": "vp fmt --config ../../.oxfmtrc.json --check ."
   },
   "dependencies": {
     "@clerk/nextjs": "^7.1.0",
@@ -34,9 +34,8 @@
     "@types/node": "^25.5.2",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
-    "oxfmt": "^0.44.0",
-    "oxlint": "^1.59.0",
     "tailwindcss": "^4.2.2",
-    "typescript": "^6.0.2"
+    "typescript": "^6.0.2",
+    "vite-plus": "1.0.0"
   }
 }

@@ -7,3 +7,25 @@ packages:
 
 patchedDependencies:
   sql.js@1.14.1: vendor/zerospin/patches/sql.js@1.14.1.patch
+
+overrides:
+  "@zerospin/cli": "workspace:*"
+  "@zerospin/core": "workspace:*"
+  "@zerospin/devtools": "workspace:*"
+  "@zerospin/error": "workspace:*"
+  "@zerospin/react": "workspace:*"
+  "@zerospin/schema": "workspace:*"
+  "@zerospin/sdk": "workspace:*"
+  "@zerospin/zod": "workspace:*"
+  "system-worker": "workspace:*"
+  "@zerospin/dispatch-worker": "workspace:*"
+  "@zerospin/frontend": "workspace:*"
+  "@zerospin/live-query": "workspace:*"
+  "@zerospin/logger": "workspace:*"
+  "@zerospin/server-only": "workspace:*"
+  "@zerospin/shared-worker": "workspace:*"
+  "@zerospin/studio": "workspace:*"
+  "effect": "4.0.0-rc.112"
+  "react": "19.2.7"
+  "react-dom": "19.2.7"
+  "vite": "npm:@voidzero-dev/vite-plus-core@1.0.0"

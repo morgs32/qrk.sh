@@ -7,8 +7,8 @@
     "typecheck": "react-router typegen && tsc --noEmit",
     "dev": "react-router dev --host 127.0.0.1 --port 4319 --strictPort",
     "build": "react-router build",
-    "preview": "vite preview --outDir build/client --host 127.0.0.1 --port 4319 --strictPort",
-    "format": "oxfmt src",
+    "preview": "vp preview --outDir build/client --host 127.0.0.1 --port 4319 --strictPort",
+    "format": "vp fmt --config ../../.oxfmtrc.json src",
     "test:e2e": "playwright test",
     "test:e2e:cold": "COLD_DEV=1 playwright test",
     "test:e2e:preview": "PREVIEW=1 playwright test"
@@ -26,8 +26,8 @@
     "@react-router/dev": "8.3.1",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
-    "oxfmt": "^0.44.0",
-    "vite": "8.3.0"
+    "vite": "npm:@voidzero-dev/vite-plus-core@1.0.0",
+    "vite-plus": "1.0.0"
   },
   "nx": {
     "targets": {

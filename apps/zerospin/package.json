@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "zerospin dev --port 8788",
-    "lint": "oxlint . --format stylish",
+    "lint": "vp lint --config ../../.oxlintrc.json . --format stylish",
     "test:workerd": "vitest run --config vitest.workerd.config.ts",
     "tsc": "tsc -p tsconfig.json --noEmit"
   },
@@ -27,10 +27,10 @@
     "@zerospin/dev-worker": "workspace:*",
     "cloudflare": "^6.1.0",
     "drizzle-orm": "1.0.0-rc.4",
-    "oxlint": "^1.59.0",
     "typescript": "^6.0.2",
     "vitest": "^4.1.5",
-    "wrangler": "^4.127.1"
+    "wrangler": "^4.127.1",
+    "vite-plus": "1.0.0"
   },
   "nx": {
     "targets": {

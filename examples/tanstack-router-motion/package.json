@@ -3,10 +3,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite --host 127.0.0.1 --port 4317 --strictPort",
-    "build": "vite build",
-    "preview": "vite preview --host 127.0.0.1 --port 4317 --strictPort",
-    "format": "oxfmt src"
+    "dev": "vp dev --host 127.0.0.1 --port 4317 --strictPort",
+    "build": "vp build",
+    "preview": "vp preview --host 127.0.0.1 --port 4317 --strictPort",
+    "format": "vp fmt --config ../../.oxfmtrc.json src"
   },
   "dependencies": {
     "@tanstack/react-router": "1.170.36",
@@ -15,12 +15,14 @@
     "react-dom": "19.2.7"
   },
   "devDependencies": {
-    "vite": "8.3.0",
-    "oxfmt": "^0.44.0"
+    "vite": "npm:@voidzero-dev/vite-plus-core@1.0.0",
+    "vite-plus": "1.0.0"
   },
   "nx": {
     "targets": {
-      "dev": { "continuous": true }
+      "dev": {
+        "continuous": true
+      }
     }
   }
 }

@@ -1,11 +1,12 @@
 import { createElement } from "react";
 import type { RouteObject } from "react-router";
 import { ZerospinRouteErrorBoundary } from "@zerospin/error-boundary/ZerospinRouteErrorBoundary";
+import { LoadingWorkspace } from "./LoadingWorkspace";
 import App from "./App";
 
 export default [
   {
-    hydrateFallbackElement: createElement("p", { role: "status" }, "Loading workspace…"),
+    hydrateFallbackElement: createElement(LoadingWorkspace),
     Component: App,
     ErrorBoundary: ZerospinRouteErrorBoundary,
     children: [

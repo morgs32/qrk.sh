@@ -59,7 +59,13 @@ More detail and test patterns: [docs/styleguide/component-and-file-naming.md](do
 
    ```bash
    pnpm install
+   ln -s ../../node_modules vendor/zerospin/node_modules
    ```
+
+   Install dependencies from the QRK root. On a fresh checkout, the symlink
+   lets vendored build scripts use the root toolchain. Avoid a separate install
+   inside `vendor/zerospin`: duplicate dependency instances can cause actor-path
+   validation to fail when `zerospin dev` loads the app configuration.
 
 2. Start the homepage:
 

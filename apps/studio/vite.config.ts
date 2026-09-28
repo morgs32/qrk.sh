@@ -1,10 +1,13 @@
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
-import { defineConfig, loadEnv } from "vite";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { createServer, defineConfig, loadEnv, type ViteDevServer } from "vite-plus";
 import { copyFileSync, mkdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 export default defineConfig(({ mode }) => {
+  let devServer: ViteDevServer | undefined;
   const env = loadEnv(mode, import.meta.dirname, ["NEXT_PUBLIC_", "PUBLIC_"]);
   const mapboxToken = process.env.PUBLIC_MAPBOX_TOKEN ?? env.PUBLIC_MAPBOX_TOKEN;
   if (!mapboxToken) throw new Error("PUBLIC_MAPBOX_TOKEN is required in apps/studio/.env.local");
@@ -34,6 +37,30 @@ export default defineConfig(({ mode }) => {
     server: { hmr: { path: "hmr" } },
     plugins: [
       tailwindcss(),
+      {
+        name: "render-loading-workspace",
+        configureServer(server) {
+          devServer = server;
+        },
+        async transformIndexHtml(html) {
+          const loader =
+            devServer ??
+            (await createServer({
+              configFile: false,
+              root: import.meta.dirname,
+              server: { middlewareMode: true },
+            }));
+          try {
+            const { LoadingWorkspace } = await loader.ssrLoadModule("/app/LoadingWorkspace.tsx");
+            return html.replace(
+              "<!-- loading-workspace -->",
+              renderToStaticMarkup(createElement(LoadingWorkspace)),
+            );
+          } finally {
+            if (!devServer) await loader.close();
+          }
+        },
+      },
       {
         name: "rooted-app-routes",
         configureServer(server) {

@@ -1,11 +1,42 @@
 import { Schema, SchemaAST } from 'effect';
 
-import { AggregateSessionPropsSchema } from '../aggregateSession/make/makeAggregateSessionDefinition.ts';
-import type { IAnyContractBindings } from '../contracts/types.ts';
+import { Contract } from '../contracts/make/makeContractVersion.ts';
+import type { IAnyContracts, IContract } from '../contracts/types.ts';
 import type { IClaimsSchema } from '../identity/types.ts';
 import { assertValidModels } from '../models/assertValidModels.ts';
-import type { IAnyModels } from '../models/types.ts';
+import { Model } from '../models/defineModel.ts';
+import type { IAnyModels, IModel } from '../models/types.ts';
 import { ServiceSessionPropsSchema } from '../serviceSession/make/makeServiceSessionDefinition.ts';
+
+const CanonicalModelSchema = Schema.declare(
+  (input: unknown): input is IModel => input instanceof Model,
+);
+
+const ContractSchema = Schema.declare(
+  (input: unknown): input is IContract => input instanceof Contract,
+);
+
+const ModelsRecordSchema = Schema.Record(Schema.String, CanonicalModelSchema);
+
+const ClaimsSchema = Schema.declare(
+  (
+    input: unknown,
+  ): input is Schema.Struct<
+    Readonly<Record<string, Schema.Codec<unknown, unknown>>>
+  > =>
+    Schema.isSchema(input) && 'fields' in input && input.ast._tag === 'Objects',
+);
+
+const AggregateSessionPropsSchema = Schema.Struct({
+  claimsSchema: ClaimsSchema,
+  aggregateName: Schema.String,
+  aggregateVersion: Schema.String.check(Schema.isMinLength(1)),
+  actorName: Schema.String,
+  actorVersion: Schema.String,
+  sessionName: Schema.String,
+  contracts: Schema.Record(Schema.String, ContractSchema),
+  models: ModelsRecordSchema,
+});
 
 /** Internal validation and definition construction shared by session lifecycles. */
 export function makeSessionDefinition(props: {
@@ -20,7 +51,7 @@ export function makeSessionDefinition(props: {
   aggregateVersion?: string;
   serviceName?: string;
   serviceVersion?: string;
-  contracts?: IAnyContractBindings;
+  contracts?: IAnyContracts;
 }) {
   const {
     claimsSchema,
@@ -57,6 +88,20 @@ export function makeSessionDefinition(props: {
       },
       { onExcessProperty: 'error' },
     );
+    for (const [name, contract] of Object.entries(decoded.contracts)) {
+      if (name !== contract.commandName) {
+        throw new Error(
+          `Contract key ${name} must match ${contract.commandName}`,
+        );
+      }
+      for (const model of Object.values(contract.models)) {
+        if (models[model.modelName] !== model) {
+          throw new Error(
+            `Contract ${name} model ${model.modelName} must belong to session ${sessionName}`,
+          );
+        }
+      }
+    }
     const field = claimsSchema.fields.aggregateId;
     const ast = field === undefined ? undefined : SchemaAST.toType(field.ast);
     if (
@@ -75,12 +120,7 @@ export function makeSessionDefinition(props: {
       kind: 'aggregate' as const,
       systemName,
       claimsSchema,
-      contracts: Object.fromEntries(
-        Object.entries(props.contracts).map(([name, binding]) => [
-          name,
-          { ...binding },
-        ]),
-      ),
+      contracts: { ...props.contracts },
       models: { ...models },
       modelNames: Object.keys(models),
     };

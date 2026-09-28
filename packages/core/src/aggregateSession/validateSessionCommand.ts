@@ -28,14 +28,9 @@ export function validateSessionCommand<
 >(props: {
   session: IAggregateSession<DEFINITION>;
   contractName: NAME;
-  payload: InferPayloadInput<
-    DEFINITION['contracts'][NAME]['contract']['payload']
-  >;
+  payload: InferPayloadInput<DEFINITION['contracts'][NAME]['payload']>;
 }): Effect.Effect<
-  IResult<
-    void,
-    IRecognizedFailure<InferFailure<DEFINITION['contracts'][NAME]['contract']>>
-  >
+  IResult<void, IRecognizedFailure<InferFailure<DEFINITION['contracts'][NAME]>>>
 >;
 export function validateSessionCommand(props: {
   session: IAggregateSession;
@@ -45,8 +40,7 @@ export function validateSessionCommand(props: {
   return Effect.suspend(() => {
     const resources = getAggregateSessionExecutionResources(props.session);
     const state = props.session.store.getState();
-    const contract =
-      props.session.definition.contracts[props.contractName]?.contract;
+    const contract = props.session.definition.contracts[props.contractName];
     const evaluate = Effect.gen(function* () {
       if (
         resources === undefined ||

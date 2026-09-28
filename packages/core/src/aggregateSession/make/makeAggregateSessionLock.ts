@@ -48,10 +48,9 @@ export const makeAggregateSessionLock = (
       failureJsonSchema: unknown;
     }
   > = {};
-  for (const [contractKey, binding] of Object.entries(
+  for (const [contractKey, contract] of Object.entries(
     definition.contracts,
   ).toSorted(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey))) {
-    const { contract } = binding;
     contracts[contractKey] = {
       commandName: contract.commandName,
       version: contract.version,

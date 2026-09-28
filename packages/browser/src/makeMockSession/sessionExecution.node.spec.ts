@@ -1,6 +1,5 @@
 import { it } from '@effect/vitest';
 import { checkGuards } from '@zerospin/core/aggregateSession/checkGuards';
-import { makeAggregateSessionDefinition } from '@zerospin/core/aggregateSession/make/makeAggregateSessionDefinition';
 import { replayPendingCommandsTx } from '@zerospin/core/aggregateSession/replayPendingCommandsTx';
 import { sessionRepoDbConfig } from '@zerospin/core/aggregateSession/sessionRepoDbConfig';
 import { stageCommand } from '@zerospin/core/aggregateSession/stageCommand/stageCommand';
@@ -64,16 +63,17 @@ describe('session runtime execution', () => {
             ];
           }),
         });
-        const definition = makeAggregateSessionDefinition({
+        const definition = {
+          kind: 'aggregate' as const,
           aggregateName: 'test',
           aggregateVersion: '1.0.0',
           actorName: 'writer',
           actorVersion: '1.0.0',
           sessionName: 'writer',
           models: { item },
-          contracts: { create: { contract: create } },
+          contracts: { create },
           claimsSchema: claims,
-        });
+        };
         const layer = Layer.mergeAll(
           Layer.effect(
             Capability,
@@ -172,7 +172,8 @@ describe('session runtime execution', () => {
         ];
       }),
     });
-    const definition = makeAggregateSessionDefinition({
+    const definition = {
+      kind: 'aggregate' as const,
       aggregateName: 'test',
       aggregateVersion: '1.0.0',
       actorName: 'writer',
@@ -180,11 +181,11 @@ describe('session runtime execution', () => {
       sessionName: 'writer',
       models: { item },
       contracts: {
-        create: { contract: create },
-        guarded: { contract: guarded },
+        create,
+        guarded,
       },
       claimsSchema: claims,
-    });
+    };
     const session = makeMockAggregateSession({
       definition,
       claims: { aggregateId: 'acct_test', user: 'owner' },
@@ -238,16 +239,17 @@ it('rolls back failed staging without retaining history or consuming a session p
         : [created];
     }),
   });
-  const definition = makeAggregateSessionDefinition({
+  const definition = {
+    kind: 'aggregate' as const,
     aggregateName: 'test',
     aggregateVersion: '1.0.0',
     actorName: 'writer',
     actorVersion: '1.0.0',
     sessionName: 'writer',
     models: { item },
-    contracts: { create: { contract: create } },
+    contracts: { create },
     claimsSchema: claims,
-  });
+  };
   const session = makeMockAggregateSession({
     definition,
     claims: { aggregateId: 'acct_test', user: 'owner' },

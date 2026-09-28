@@ -85,6 +85,7 @@ export interface IDevtoolsAggregateSessionEntry {
 export interface IDevtoolsServiceSessionEntry {
   readonly sessionId: ISessionId;
   readonly serviceName: string;
+  readonly actorName: string;
   readonly sessionName: string;
   readonly modelNames: readonly string[];
   readonly subscribe: (listener: () => void) => () => void;

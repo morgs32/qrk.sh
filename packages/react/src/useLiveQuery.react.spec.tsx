@@ -1,7 +1,6 @@
 import { act } from 'react';
 
 import { makeMockAggregateSession } from '@zerospin/browser/makeMockSession/makeMockAggregateSession';
-import { makeAggregateSessionDefinition } from '@zerospin/core/aggregateSession/make/makeAggregateSessionDefinition';
 import { defineModel } from '@zerospin/core/models/defineModel';
 import { makeModelVersion } from '@zerospin/core/models/make/makeModelVersion';
 import { primitives } from '@zerospin/schema';
@@ -25,7 +24,8 @@ it('infers decoded model values from package declarations and renders live chang
     },
   );
   const session = makeMockAggregateSession({
-    definition: makeAggregateSessionDefinition({
+    definition: {
+      kind: 'aggregate' as const,
       aggregateName: 'test',
       aggregateVersion: '1.0.0',
       actorName: 'writer',
@@ -34,7 +34,7 @@ it('infers decoded model values from package declarations and renders live chang
       models: { item },
       contracts: {},
       claimsSchema: Schema.Struct({ aggregateId: Schema.String }),
-    }),
+    },
     claims: { aggregateId: 'acct_test' },
   });
   function View() {

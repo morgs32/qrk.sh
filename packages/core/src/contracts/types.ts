@@ -134,22 +134,6 @@ export type IAnyContracts = Readonly<
   >
 >;
 
-/** A definition or service registration of a shared contract version. */
-export type IContractBinding<CONTRACT extends IContract = IContract> =
-  Readonly<{ contract: CONTRACT }>;
-export type IAnyContractBindings<REQUIREMENTS = unknown> = Readonly<
-  Record<
-    string,
-    {
-      readonly contract: IContract & {
-        readonly guard?: (
-          ...args: any[]
-        ) => Effect.Effect<void, IContractFailure, REQUIREMENTS>;
-      };
-    }
-  >
->;
-
 /** Discriminated domain values; framework failures use their own reserved tag. */
 export type IBusinessFailure = IScopedError;
 export type IContractFailure = IAnyError | IBusinessFailure;

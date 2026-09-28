@@ -8,7 +8,6 @@ import { makeAggregateActorVersion } from '@zerospin/core/aggregateActor/make/ma
  * Builds fixture data for system-worker tests and examples.
  * Fixture changes should preserve the domain relationships that repo and API tests rely on.
  */
-import { makeAggregateSessionDefinition } from '@zerospin/core/aggregateSession/make/makeAggregateSessionDefinition';
 import { defineContract } from '@zerospin/core/contracts/defineContract';
 import { makeContractVersion } from '@zerospin/core/contracts/make/makeContractVersion';
 import type { IDb, IResourceDbConfig } from '@zerospin/core/drizzle/types';
@@ -692,43 +691,36 @@ export const deleteList = makeContractVersion(defineContract('deleteList'), {
 });
 
 export const main = {
-  ...makeAggregateSessionDefinition({
-    actorName: 'default',
-    actorVersion: '1.0.0',
-    claimsSchema: Schema.Struct({
-      aggregateId: Schema.String,
-      userId: Schema.String,
-    }),
-    aggregateVersion: '1.0.0',
-    contracts: {
-      createList: {
-        contract: createList,
-      },
-      createItem: { contract: createItem },
-      createListAndReplicateProduct: {
-        contract: createListAndReplicateProduct,
-      },
-      replicateProduct: { contract: replicateProduct },
-      replicateProductAndStock: { contract: replicateProductAndStock },
-      deleteList: { contract: deleteList },
-      moveItem: { contract: moveItem },
-      renameList: { contract: renameList },
-      updateList: {
-        contract: updateList,
-      },
-    },
-    aggregateName: 'user',
-    sessionName: 'main',
-    models: {
-      account,
-      list,
-      item,
-      product: productReplica,
-      preference,
-      stock: stockReplica,
-      user: userVersion,
-    },
+  kind: 'aggregate' as const,
+  actorName: 'default',
+  actorVersion: '1.0.0',
+  claimsSchema: Schema.Struct({
+    aggregateId: Schema.String,
+    userId: Schema.String,
   }),
+  aggregateVersion: '1.0.0',
+  contracts: {
+    createList,
+    createItem,
+    createListAndReplicateProduct,
+    replicateProduct,
+    replicateProductAndStock,
+    deleteList,
+    moveItem,
+    renameList,
+    updateList,
+  },
+  aggregateName: 'user',
+  sessionName: 'main',
+  models: {
+    account,
+    list,
+    item,
+    product: productReplica,
+    preference,
+    stock: stockReplica,
+    user: userVersion,
+  },
   systemName: 'system-worker',
 };
 

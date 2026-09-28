@@ -46,10 +46,6 @@ import type {
 
 import { makeAdmissionProvider } from './makeAdmissionProvider';
 
-type BrowserBindings<CONTRACTS extends IAnyContracts> = {
-  readonly [K in keyof CONTRACTS]: { readonly contract: CONTRACTS[K] };
-};
-
 type AggregateSessionRequirements<CONTRACTS extends IAnyContracts> = {
   [K in keyof CONTRACTS]:
     | Effect.Services<ReturnType<CONTRACTS[K]['program']>>
@@ -150,7 +146,7 @@ export function makeSession<
     SYSTEM_NAME,
     AGGREGATE_NAME,
     SESSION_NAME,
-    BrowserBindings<IComposedDeclarations<CONTRACTS, MODULES, 'contracts'>>,
+    IComposedDeclarations<CONTRACTS, MODULES, 'contracts'>,
     IComposedDeclarations<MODELS, MODULES, 'models'>,
     AGGREGATE_VERSION,
     CLAIMS
@@ -256,26 +252,10 @@ export function makeSession(props: unknown): unknown {
   if (input.kind === 'service' && Object.keys(contracts).length !== 0) {
     throw new Error('Service sessions cannot contain contracts');
   }
-  for (const [name, contract] of Object.entries(contracts)) {
-    if (name !== contract.commandName) {
-      throw new Error(
-        `Contract key ${name} must match ${contract.commandName}`,
-      );
-    }
-    for (const model of Object.values(contract.models)) {
-      if (models[model.modelName] !== model) {
-        throw new Error(
-          `Contract ${name} model ${model.modelName} must belong to session ${input.sessionName}`,
-        );
-      }
-    }
-  }
   const definition = makeSessionDefinition({
     ...input,
     models,
-    contracts: Object.fromEntries(
-      Object.entries(contracts).map(([name, contract]) => [name, { contract }]),
-    ),
+    contracts,
   });
 
   if (definition.kind === 'aggregate') {

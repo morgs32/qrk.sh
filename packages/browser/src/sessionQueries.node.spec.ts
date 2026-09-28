@@ -1,13 +1,13 @@
-import { makeAggregateSessionDefinition } from '@zerospin/core/aggregateSession/make/makeAggregateSessionDefinition';
 import { defineModel } from '@zerospin/core/models/defineModel';
 import { makeModelVersion } from '@zerospin/core/models/make/makeModelVersion';
 import { PublishableKey } from '@zerospin/core/services/PublishableKey';
 import { ZerospinApiUrl } from '@zerospin/core/services/ZerospinApiUrl';
 import { makeServiceSessionDefinition } from '@zerospin/core/serviceSession/make/makeServiceSessionDefinition';
-import { makeLiveQuery } from '../../live-query/src/makeLiveQuery.ts';
 import { primitives } from '@zerospin/schema';
 import { Layer, Redacted, Schema } from 'effect';
 import { describe, expect, it, vi } from 'vitest';
+
+import { makeLiveQuery } from '../../live-query/src/makeLiveQuery.ts';
 
 import { makeMockAggregateSession } from './makeMockSession/makeMockAggregateSession';
 import { makeMockServiceSession } from './makeMockSession/makeMockServiceSession';
@@ -113,7 +113,7 @@ describe('session query handles', () => {
               })
             : kind === 'mock aggregate'
               ? makeMockAggregateSession({
-                  definition: makeAggregateSessionDefinition(aggregate),
+                  definition: { ...aggregate, kind: 'aggregate' },
                   claims: { aggregateId: 'acct_test' },
                 })
               : makeMockServiceSession({
@@ -145,7 +145,7 @@ describe('session query handles', () => {
           '{"count":1}',
         );
         const query = state.queryDb.query.item.findMany();
-      const live = makeLiveQuery<typeof query['_']['result']>({
+        const live = makeLiveQuery<(typeof query)['_']['result']>({
           client: state.queryDb.$client,
           query,
           tableNames: [],

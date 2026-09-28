@@ -61,10 +61,8 @@ export const replayPendingCommandsTx = Effect.fn('replayPendingCommandsTx')(
       ) {
         continue;
       }
-      const binding = Object.values(definition.contracts).find(
-        binding => binding.contract.commandName === command.commandName,
-      );
-      if (binding === undefined) {
+      const contract = definition.contracts[command.commandName];
+      if (contract === undefined) {
         return yield* Effect.fail(
           makeZerospinError('pending-command-contract-missing'),
         );
@@ -88,13 +86,13 @@ export const replayPendingCommandsTx = Effect.fn('replayPendingCommandsTx')(
           prefix: 'Invalid pending claims',
         }),
       );
-      const payload = yield* decodePayload(binding.contract, { command });
+      const payload = yield* decodePayload(contract, { command });
       const replayed = yield* withSavepoint({
         tx,
         program: ({ tx: replayTx }) =>
           Effect.gen(function* () {
             const made = yield* runContractGuard({
-              contract: binding.contract,
+              contract,
               queryDb: replayTx,
               claims,
               payload,
@@ -102,7 +100,7 @@ export const replayPendingCommandsTx = Effect.fn('replayPendingCommandsTx')(
               .pipe(
                 Effect.andThen(
                   makeMutations({
-                    contract: binding.contract,
+                    contract,
                     models: definition.models,
                     command: { ...command, payload },
                     claims,
@@ -113,7 +111,7 @@ export const replayPendingCommandsTx = Effect.fn('replayPendingCommandsTx')(
                 runProgram,
                 Effect.provideContext(context),
                 Effect.catch(failure =>
-                  encodeFailure(binding.contract, failure).pipe(
+                  encodeFailure(contract, failure).pipe(
                     Effect.flatMap(retained =>
                       retained.scope !== undefined
                         ? Effect.fail(

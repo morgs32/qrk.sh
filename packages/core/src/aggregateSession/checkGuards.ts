@@ -25,11 +25,9 @@ export function checkGuards<
 >(props: {
   session: IAggregateSession<DEFINITION>;
   contractName: NAME;
-  payload: InferPayloadInput<
-    DEFINITION['contracts'][NAME]['contract']['payload']
-  >;
+  payload: InferPayloadInput<DEFINITION['contracts'][NAME]['payload']>;
 }): Effect.Effect<IRecognizedFailure<
-  InferFailure<DEFINITION['contracts'][NAME]['contract']>
+  InferFailure<DEFINITION['contracts'][NAME]>
 > | null>;
 export function checkGuards(props: {
   session: IAggregateSession;
@@ -39,8 +37,7 @@ export function checkGuards(props: {
   return Effect.sync(() => {
     const resources = getAggregateSessionExecutionResources(props.session);
     const state = props.session.store.getState();
-    const contract =
-      props.session.definition.contracts[props.contractName]?.contract;
+    const contract = props.session.definition.contracts[props.contractName];
     if (
       resources === undefined ||
       !state.isInitialized ||

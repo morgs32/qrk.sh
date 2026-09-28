@@ -1,15 +1,15 @@
 import { mapValues } from 'es-toolkit';
 
-import { makeAggregateSessionLock } from './makeAggregateSessionLock.ts';
 import type { IAggregateSessionDefinition } from '../types.ts';
+
+import { makeAggregateSessionLock } from './makeAggregateSessionLock.ts';
 
 export function makeAggregateSessionSpec(
   definition: Omit<IAggregateSessionDefinition, 'systemName'>,
 ) {
   const aggregateSessionLock = makeAggregateSessionLock(definition);
   const modelNames: readonly string[] = definition.modelNames.toSorted();
-  const contracts = mapValues(definition.contracts, binding => {
-    const { contract } = binding;
+  const contracts = mapValues(definition.contracts, contract => {
     return {
       commandName: contract.spec.commandName,
       version: contract.spec.version,

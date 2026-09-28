@@ -51,8 +51,8 @@ export function stageCommand<
   contractName: CONTRACT_NAME;
   payload: InferPayloadInput<
     NonNullable<
-      DEFINITION['contracts'][CONTRACT_NAME]['contract']['__payloads']
-    >[DEFINITION['contracts'][CONTRACT_NAME]['contract']['version']]
+      DEFINITION['contracts'][CONTRACT_NAME]['__payloads']
+    >[DEFINITION['contracts'][CONTRACT_NAME]['version']]
   >;
 }) {
   const { session, contractName, payload } = props;
@@ -93,16 +93,16 @@ export function stageCommand<
     Readonly<{
       command: ISessionCommand<
         InferCommand<
-          DEFINITION['contracts'][CONTRACT_NAME]['contract'],
-          DEFINITION['contracts'][CONTRACT_NAME]['contract']['version']
+          DEFINITION['contracts'][CONTRACT_NAME],
+          DEFINITION['contracts'][CONTRACT_NAME]['version']
         >
       > &
         Readonly<{ sessionIndex: number }>;
       encodedCommand: IEncodedCommand<
         ISessionCommand<
           InferCommand<
-            DEFINITION['contracts'][CONTRACT_NAME]['contract'],
-            DEFINITION['contracts'][CONTRACT_NAME]['contract']['version']
+            DEFINITION['contracts'][CONTRACT_NAME],
+            DEFINITION['contracts'][CONTRACT_NAME]['version']
           >
         > &
           Readonly<{ sessionIndex: number; pushIndex: null }>
@@ -142,7 +142,7 @@ export function stageCommand<
     }
     const sessionId = state.sessionId;
 
-    const binding = yield* getByKeyOrThrow<
+    const contract = yield* getByKeyOrThrow<
       DEFINITION['contracts'],
       CONTRACT_NAME
     >({
@@ -150,8 +150,6 @@ export function stageCommand<
       key: contractName,
       recordKind: 'contracts',
     });
-    const contract: DEFINITION['contracts'][CONTRACT_NAME]['contract'] =
-      binding.contract;
     const version = contract.version;
     const validatedPayload = yield* validatePayload(contract, {
       version,
@@ -264,9 +262,7 @@ export function stageCommand<
     ? {
         ...result,
         failure: recognizeZerospinError(
-          getFailuresCodec(
-            definition.contracts[contractName]?.contract.failures ?? {},
-          ),
+          getFailuresCodec(definition.contracts[contractName]?.failures ?? {}),
           result.failure,
         ),
       }

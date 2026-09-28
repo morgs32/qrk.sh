@@ -83,15 +83,12 @@ describe('browser session declaration composition', () => {
     });
     for (const session of [flat, modular, mixed]) {
       expect(session.definition.models.item).toBe(item);
-      expect(session.definition.contracts.observed.contract).toBe(observed);
+      expect(session.definition.contracts.observed).toBe(observed);
       expect(session.store.getState().isInitialized).toBe(false);
     }
     assert<Equals<typeof modular.definition.models.item, typeof item>>();
     assert<
-      Equals<
-        typeof mixed.definition.contracts.observed.contract,
-        typeof observed
-      >
+      Equals<typeof mixed.definition.contracts.observed, typeof observed>
     >();
   });
 

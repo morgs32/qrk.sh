@@ -273,9 +273,9 @@ export function SessionsLayout() {
                         <td style={styles.tdKind}>aggregate</td>
                         <td
                           style={styles.tdSession}
-                          title={session.definition.aggregateName}
+                          title={session.definition.actorName}
                         >
-                          {session.definition.aggregateName}
+                          {session.definition.actorName}
                         </td>
                         <td
                           style={styles.tdSession}
@@ -324,11 +324,8 @@ export function SessionsLayout() {
                         }}
                       >
                         <td style={styles.tdKind}>service</td>
-                        <td
-                          style={styles.tdSession}
-                          title={session.serviceName}
-                        >
-                          {session.serviceName}
+                        <td style={styles.tdSession} title={session.actorName}>
+                          {session.actorName}
                         </td>
                         <td
                           style={styles.tdSession}

@@ -74,6 +74,11 @@ use `ILibrarySession`, inferred from `createLibraryStandaloneSession`. The share
 `libraryModule` exports only models and flat command contracts. Session construction
 owns identity, claims, initialization, and disposal.
 
+`useLiveQuery` reads the session's `queryDb`, returning model-decoded `state`,
+`spec`, and `gridItem` values. Components consume these values directly. The
+session's `db` remains the encoded persistence interface used by commands and
+backup; both handles share the same SQLite connection.
+
 Committed layout is Wall → Brick → Placement via aggregate contracts
 (`addBrick`, layout/visibility/remove/compact, `updateBrickState`, and per-module
 spec-at-breakpoint). Commands commit synchronously; Studio

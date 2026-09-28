@@ -23,7 +23,6 @@ import { libraryModule } from "../libraryModule/libraryModule";
 
 import { librarySession } from "./librarySession";
 
-import { decodeGridItem } from "./decodeGridItem";
 
 const WALL_ID = prefixId(libraryModule.models.wall, "library");
 const LIBRARY_VIEWPORT_STORAGE_NAME = "qrk-bricks-library-viewport-v1";
@@ -314,7 +313,7 @@ function LayoutBody(props: {
       ) {
         return [];
       }
-      return [decodeGridItem(placement.gridItem)];
+      return [placement.gridItem];
     });
     const result = stageCommand({
       session,

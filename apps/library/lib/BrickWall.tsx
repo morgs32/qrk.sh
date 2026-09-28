@@ -10,7 +10,6 @@ import type { ILibrarySession } from "../session/createLibraryStandaloneSession"
 import { BrickWrapper } from "../components/brick/BrickWrapper";
 import { brickDragStore } from "./GridStore";
 import { modulesHash } from "./modulesHash";
-import { decodeGridItem } from "./decodeGridItem";
 
 function makeGridItem(item: { i: string; x: number; y: number; w: number; h: number }) {
   return {
@@ -93,7 +92,7 @@ export function BrickWall(props: {
     }
   }, [dragging, dragScrollTop]);
 
-  const bricks = bricksQuery.data ?? [];
+  const bricks = bricksQuery.data
   const placements = placementsQuery.data ?? [];
   const brickIds = new Set(bricks.map((brickRow) => brickRow.id));
 
@@ -107,7 +106,7 @@ export function BrickWall(props: {
       ) {
         return [];
       }
-      return [makeGridItem(decodeGridItem(placement.gridItem))];
+      return [makeGridItem(placement.gridItem)];
     });
   }
 
@@ -335,8 +334,7 @@ export function BrickWall(props: {
             if (brickRow && placement && catalog) {
               const BrickComponent = catalog.component;
               const state = brickRow.state;
-              const rawSpec: unknown =
-                typeof placement.spec === "string" ? JSON.parse(placement.spec) : placement.spec;
+              const rawSpec = placement.spec;
               if (!isNonEmptySpec(rawSpec)) {
                 return null;
               }

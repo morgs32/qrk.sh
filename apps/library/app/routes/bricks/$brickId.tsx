@@ -18,7 +18,6 @@ import { useWallViewport } from "../../../lib/WallViewportProvider";
 import type { LibraryApi } from "../../../worker/LibraryApi.public";
 import type { IScrapeError } from "../../../worker/types.public";
 import { useLibrarySession } from "../../../session/createLibraryStandaloneSession";
-import { decodeGridItem } from "../../decodeGridItem";
 
 export const Route = createFileRoute("/bricks/$brickId")({
   component: BrickDetail,
@@ -101,13 +100,12 @@ function BrickDetail() {
   const committedStateJson = JSON.stringify(brickState, null, 2);
   const stateEditorValue = stateDraft ?? committedStateJson;
   const hasJsonRender = brickModule.registry !== undefined;
-  const rawSpec: unknown =
-    typeof placement.spec === "string" ? JSON.parse(placement.spec) : placement.spec;
+  const rawSpec = placement.spec;
   if (!isNonEmptySpec(rawSpec)) {
     throw notFound();
   }
   const placementSpec = rawSpec;
-  const savedGridItem = decodeGridItem(placement.gridItem);
+  const savedGridItem = placement.gridItem;
 
   return (
     <OrderedDoc>
@@ -217,7 +215,7 @@ function BrickDetail() {
                         if (!otherPlacement.isVisible || otherPlacement.brickId === brickRow.id) {
                           return [];
                         }
-                        return [decodeGridItem(otherPlacement.gridItem)];
+                        return [otherPlacement.gridItem];
                       },
                     );
                     const result = stageCommand({

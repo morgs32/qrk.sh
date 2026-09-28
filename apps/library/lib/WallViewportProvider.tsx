@@ -37,9 +37,7 @@ function resolveActiveBreakpoint(
     }
   }
 
-  return (
-    [...BREAKPOINTS].reverse().find((row) => row.previewWidth <= availableWidth)?.id ?? null
-  );
+  return [...BREAKPOINTS].reverse().find((row) => row.previewWidth <= availableWidth)?.id ?? null;
 }
 
 const WallViewportContext = createContext<{
@@ -57,9 +55,7 @@ export function WallViewportProvider(props: {
     store.getState().setAvailableWidth(width);
   });
 
-  return (
-    <WallViewportContext value={{ store, regionRef }}>{children}</WallViewportContext>
-  );
+  return <WallViewportContext value={{ store, regionRef }}>{children}</WallViewportContext>;
 }
 
 export function useWallViewportStoreApi() {

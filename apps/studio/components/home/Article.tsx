@@ -146,7 +146,6 @@ export function Article() {
     [article === undefined ? "missing" : "ready"],
   );
 
-
   if (article === undefined || editor === null) {
     return null;
   }

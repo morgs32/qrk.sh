@@ -19,7 +19,7 @@ pnpm nx run @qrk.sh/studio:test:e2e -- --project=chromium
 
 Development retains the shared-library, web, and Zerospin Nx dependencies. Web listens on port 3000 and proxies app requests to `APP_ORIGIN` (default `http://localhost:3001`). Vite+ listens on 3001. Client route URLs are rooted at `/`; modules, fonts, and compiled assets use `/assets/`; HMR uses `/assets/hmr` so the WebSocket upgrade avoids Next’s trailing-slash normalization. The backup worker's existing `/__zerospin/` URLs are forwarded to the app's public assets.
 
-The initial HTML and router hydration fallback both render `app/LoadingWorkspace.tsx`. Vite+ renders the component into `index.html` during dev and build, while `app/LoadingWorkspace.css` loads Silkscreen before the browser app starts. Storybook lists the two previews under **App / Loading workspace**.
+The initial HTML and router hydration fallback both render `app/LoadingWorkspace/LoadingWorkspace.tsx`. Vite+ renders the component into `index.html` during dev and build, while `app/LoadingWorkspace/LoadingWorkspace.css` loads Silkscreen before the browser app starts. Storybook lists the two previews under **App / Loading workspace**.
 
 `build` writes `build/client`. `start` serves that directory on port 3001 (`PORT` overrides it), serves assets with their normal MIME types, returns 404 for missing SPA assets, and falls back to `index.html` for client routes. A production host must provide that same fallback and forward `/assets/` and `/__zerospin/` assets; production hosting and deployment are not configured here.
 

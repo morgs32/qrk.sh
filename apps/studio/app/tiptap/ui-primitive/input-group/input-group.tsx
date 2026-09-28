@@ -1,15 +1,15 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { cva, type VariantProps } from "class-variance-authority"
+import * as React from "react";
+import { cva, type VariantProps } from "class-variance-authority";
 
-import { cn } from "@/app/tiptap/lib/tiptap-utils"
+import { cn } from "@/app/tiptap/lib/tiptap-utils";
 
-import { Input } from "@/app/tiptap/ui-primitive/input"
-import { Button } from "@/app/tiptap/ui-primitive/button"
-import { Textarea } from "@/app/tiptap/ui-primitive/textarea"
+import { Input } from "@/app/tiptap/ui-primitive/input";
+import { Button } from "@/app/tiptap/ui-primitive/button";
+import { Textarea } from "@/app/tiptap/ui-primitive/textarea";
 
-import "./input-group.scss"
+import "./input-group.scss";
 
 function InputGroup({ className, ...props }: React.ComponentProps<"div">) {
   return (
@@ -19,7 +19,7 @@ function InputGroup({ className, ...props }: React.ComponentProps<"div">) {
       className={cn("tiptap-input-group", className)}
       {...props}
     />
-  )
+  );
 }
 
 const inputGroupAddonVariants = cva("tiptap-input-group-addon", {
@@ -34,7 +34,7 @@ const inputGroupAddonVariants = cva("tiptap-input-group-addon", {
   defaultVariants: {
     align: "inline-start",
   },
-})
+});
 
 function InputGroupAddon({
   className,
@@ -48,12 +48,12 @@ function InputGroupAddon({
       data-align={align}
       className={cn(inputGroupAddonVariants({ align }), className)}
       onClick={(e) => {
-        if ((e.target as HTMLElement).closest("button")) return
-        e.currentTarget.parentElement?.querySelector("input")?.focus()
+        if ((e.target as HTMLElement).closest("button")) return;
+        e.currentTarget.parentElement?.querySelector("input")?.focus();
       }}
       {...props}
     />
-  )
+  );
 }
 
 const inputGroupButtonVariants = cva("tiptap-input-group-button", {
@@ -68,7 +68,7 @@ const inputGroupButtonVariants = cva("tiptap-input-group-button", {
   defaultVariants: {
     size: "xs",
   },
-})
+});
 
 function InputGroupButton({
   className,
@@ -78,7 +78,7 @@ function InputGroupButton({
   ...props
 }: Omit<React.ComponentProps<typeof Button>, "size" | "type"> &
   VariantProps<typeof inputGroupButtonVariants> & {
-    type?: "button" | "submit" | "reset"
+    type?: "button" | "submit" | "reset";
   }) {
   return (
     <Button
@@ -88,42 +88,31 @@ function InputGroupButton({
       className={cn(inputGroupButtonVariants({ size }), className)}
       {...props}
     />
-  )
+  );
 }
 
 function InputGroupText({ className, ...props }: React.ComponentProps<"span">) {
-  return (
-    <span className={cn("tiptap-input-group-text", className)} {...props} />
-  )
+  return <span className={cn("tiptap-input-group-text", className)} {...props} />;
 }
 
-function InputGroupInput({
-  className,
-  ...props
-}: React.ComponentProps<"input">) {
+function InputGroupInput({ className, ...props }: React.ComponentProps<"input">) {
   return (
     <Input
       data-slot="tiptap-input-group-control"
       className={cn("tiptap-input-group-control", className)}
       {...props}
     />
-  )
+  );
 }
 
-function InputGroupTextarea({
-  className,
-  ...props
-}: React.ComponentProps<"textarea">) {
+function InputGroupTextarea({ className, ...props }: React.ComponentProps<"textarea">) {
   return (
     <Textarea
       data-slot="tiptap-input-group-control"
-      className={cn(
-        "tiptap-input-group-control tiptap-input-group-control--textarea",
-        className
-      )}
+      className={cn("tiptap-input-group-control tiptap-input-group-control--textarea", className)}
       {...props}
     />
-  )
+  );
 }
 
 export {
@@ -133,4 +122,4 @@ export {
   InputGroupText,
   InputGroupInput,
   InputGroupTextarea,
-}
+};

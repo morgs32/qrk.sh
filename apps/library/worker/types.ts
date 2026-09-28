@@ -105,9 +105,7 @@ export interface IScraperEnv {
   GOOGLE_PLACES_BACKEND: DurableObjectNamespace<
     import("../modules/mapPlace/GooglePlacesBackend").GooglePlacesBackend
   >;
-  LINK_BACKEND: DurableObjectNamespace<
-    import("../modules/link/LinkBackend").LinkBackend
-  >;
+  LINK_BACKEND: DurableObjectNamespace<import("../modules/link/LinkBackend").LinkBackend>;
   STREAMLINE_BACKEND: DurableObjectNamespace<
     import("../modules/swatchAndIcon/StreamlineBackend").StreamlineBackend
   >;

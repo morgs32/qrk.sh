@@ -33,21 +33,13 @@ export async function handleLibraryUpload(
 }> {
   const contentTypeHeader = request.headers.get("Content-Type") ?? "";
   if (!contentTypeHeader.toLowerCase().includes("multipart/form-data")) {
-    throw new LibraryUploadHttpError(
-      400,
-      "invalid-content-type",
-      "Expected multipart/form-data",
-    );
+    throw new LibraryUploadHttpError(400, "invalid-content-type", "Expected multipart/form-data");
   }
 
   const formData = await request.formData();
   const fileEntry = formData.get("file");
   if (!(fileEntry instanceof File)) {
-    throw new LibraryUploadHttpError(
-      400,
-      "missing-file",
-      'Multipart field "file" is required',
-    );
+    throw new LibraryUploadHttpError(400, "missing-file", 'Multipart field "file" is required');
   }
 
   if (fileEntry.size <= 0) {

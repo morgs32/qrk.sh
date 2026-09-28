@@ -1,32 +1,27 @@
-"use client"
+"use client";
 
-import { forwardRef, Fragment, useMemo } from "react"
+import { forwardRef, Fragment, useMemo } from "react";
 
 // --- Tiptap UI Primitive ---
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/app/tiptap/ui-primitive/tooltip"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/app/tiptap/ui-primitive/tooltip";
 
 // --- Icons ---
-import { CheckIcon } from "@/app/tiptap/icons/check-icon"
+import { CheckIcon } from "@/app/tiptap/icons/check-icon";
 
 // --- Lib ---
-import { cn, parseShortcutKeys } from "@/app/tiptap/lib/tiptap-utils"
+import { cn, parseShortcutKeys } from "@/app/tiptap/lib/tiptap-utils";
 
-import "@/app/tiptap/ui-primitive/button/button-colors.scss"
-import "@/app/tiptap/ui-primitive/button/button.scss"
+import "@/app/tiptap/ui-primitive/button/button-colors.scss";
+import "@/app/tiptap/ui-primitive/button/button.scss";
 
-export type ButtonStyle =
-  "ghost" | "primary" | "secondary" | "tertiary" | "subtle"
-export type ButtonVariant = ButtonStyle | "check"
-export type ButtonSize = "small" | "default" | "large"
+export type ButtonStyle = "ghost" | "primary" | "secondary" | "tertiary" | "subtle";
+export type ButtonVariant = ButtonStyle | "check";
+export type ButtonSize = "small" | "default" | "large";
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  showTooltip?: boolean
-  tooltip?: React.ReactNode
-  shortcutKeys?: string
+  showTooltip?: boolean;
+  tooltip?: React.ReactNode;
+  shortcutKeys?: string;
   /**
    * Visual treatment or feature variant.
    *
@@ -52,14 +47,12 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
    * </Button>
    * ```
    */
-  variant?: ButtonVariant
-  size?: ButtonSize
+  variant?: ButtonVariant;
+  size?: ButtonSize;
 }
 
-export const ShortcutDisplay: React.FC<{ shortcuts: string[] }> = ({
-  shortcuts,
-}) => {
-  if (shortcuts.length === 0) return null
+export const ShortcutDisplay: React.FC<{ shortcuts: string[] }> = ({ shortcuts }) => {
+  if (shortcuts.length === 0) return null;
 
   return (
     <div>
@@ -70,8 +63,8 @@ export const ShortcutDisplay: React.FC<{ shortcuts: string[] }> = ({
         </Fragment>
       ))}
     </div>
-  )
-}
+  );
+};
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   (
@@ -87,21 +80,14 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       "aria-checked": ariaChecked,
       ...props
     },
-    ref
+    ref,
   ) => {
-    const isCheckVariant = variant === "check"
-    const buttonStyle: ButtonStyle | undefined = isCheckVariant
-      ? "ghost"
-      : variant
-    const buttonSize = isCheckVariant ? (size ?? "small") : size
-    const buttonRole = isCheckVariant ? (role ?? "checkbox") : role
-    const buttonAriaChecked = isCheckVariant
-      ? (ariaChecked ?? false)
-      : ariaChecked
-    const shortcuts = useMemo<string[]>(
-      () => parseShortcutKeys({ shortcutKeys }),
-      [shortcutKeys]
-    )
+    const isCheckVariant = variant === "check";
+    const buttonStyle: ButtonStyle | undefined = isCheckVariant ? "ghost" : variant;
+    const buttonSize = isCheckVariant ? (size ?? "small") : size;
+    const buttonRole = isCheckVariant ? (role ?? "checkbox") : role;
+    const buttonAriaChecked = isCheckVariant ? (ariaChecked ?? false) : ariaChecked;
+    const shortcuts = useMemo<string[]>(() => parseShortcutKeys({ shortcutKeys }), [shortcutKeys]);
     const content = (
       <>
         {children}
@@ -111,7 +97,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
           </span>
         )}
       </>
-    )
+    );
 
     if (!tooltip || !showTooltip) {
       return (
@@ -128,7 +114,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         >
           {content}
         </button>
-      )
+      );
     }
 
     return (
@@ -151,10 +137,10 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
           <ShortcutDisplay shortcuts={shortcuts} />
         </TooltipContent>
       </Tooltip>
-    )
-  }
-)
+    );
+  },
+);
 
-Button.displayName = "Button"
+Button.displayName = "Button";
 
-export default Button
+export default Button;

@@ -46,9 +46,7 @@ test.describe("BrickDetail route", () => {
 
     await brick.dblclick();
 
-    await expect
-      .poll(() => new URL(page.url()).pathname)
-      .toBe(`${pageBase}/brick/${brickId}`);
+    await expect.poll(() => new URL(page.url()).pathname).toBe(`${pageBase}/brick/${brickId}`);
     expect(getSearchParams(page.url()).get("drawer")).toBeNull();
     expect(getSearchParams(page.url()).get("brickId")).toBeNull();
   });

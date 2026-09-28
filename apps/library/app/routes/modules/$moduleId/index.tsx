@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { newSyncRpcSession } from "@zerospin/core/utils/getApi/newSyncRpcSession/newSyncRpcSession";
@@ -39,6 +39,22 @@ function ModuleDetail() {
   const brick = brickModule;
   const BrickComponent = brick.component;
   const hasJsonRender = brickModule.registry !== undefined;
+  const defaultSpecs = useMemo(
+    () => ({
+      sm: brick.viewFor("sm").spec,
+      md: brick.viewFor("md").spec,
+      lg: brick.viewFor("lg").spec,
+      xl: brick.viewFor("xl").spec,
+    }),
+    [brick],
+  );
+  const generatedSpecs = useMemo(
+    () =>
+      generatedSpec === undefined
+        ? defaultSpecs
+        : { sm: generatedSpec, md: generatedSpec, lg: generatedSpec, xl: generatedSpec },
+    [defaultSpecs, generatedSpec],
+  );
 
   return (
     <>
@@ -134,7 +150,7 @@ function ModuleDetail() {
                 key={entry.id}
                 moduleState={moduleState}
                 moduleId={moduleId}
-                spec={generatedSpec ?? brick.viewFor(entry.id).spec}
+                specs={generatedSpecs}
               />
             ))}
           </OrderedBody>
@@ -150,7 +166,7 @@ function ModuleDetail() {
               key={entry.id}
               moduleState={moduleState}
               moduleId={moduleId}
-              spec={brick.viewFor(entry.id).spec}
+              specs={defaultSpecs}
               className={index === 0 ? undefined : "mt-10"}
             />
           ))}

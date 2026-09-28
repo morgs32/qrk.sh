@@ -24,9 +24,7 @@ function ListItem(props: { children: ReactNode; tone: string; level: 1 | 2 | 3 }
   );
 }
 
-function OutlineSections(props: {
-  sections: Array<OrderedDocSection>;
-}) {
+function OutlineSections(props: { sections: Array<OrderedDocSection> }) {
   return (
     <ol className="m-0 list-none p-0 [counter-reset:item]">
       {props.sections.map((section) => {
@@ -62,9 +60,7 @@ function OutlineSections(props: {
   );
 }
 
-export function OrderedOutline(props: {
-  sections?: Array<OrderedDocSection>;
-}) {
+export function OrderedOutline(props: { sections?: Array<OrderedDocSection> }) {
   const registeredSections = useOrderedDocSections();
   const sections = props.sections ?? registeredSections;
 

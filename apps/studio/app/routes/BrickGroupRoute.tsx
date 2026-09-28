@@ -64,37 +64,58 @@ function BrickGroupRouteBody(props: {
   const { brickModule, breakpoint, username, siteId, pageId } = props;
   const BrickComponent = brickModule.component;
   const view = brickModule.viewFor(breakpoint);
-  const declaredW = view.w;
-  const declaredH = view.h;
-  const hasDeclaredSize = declaredW !== undefined && declaredH !== undefined;
-  const [measuredUnits, setMeasuredUnits] = useState<{ w: number; h: number }>();
+  const [measuredUnits, setMeasuredUnits] = useState<
+    Partial<Record<(typeof BREAKPOINTS)[number]["id"], { w: number; h: number }>>
+  >({});
   const onSizeChange = useCallback(
-    (dimensions: { widthPx: number; heightPx: number }) => {
-      const entry = BREAKPOINTS.find((row) => row.id === breakpoint);
+    (
+      targetBreakpoint: (typeof BREAKPOINTS)[number]["id"],
+      dimensions: { widthPx: number; heightPx: number },
+    ) => {
+      const entry = BREAKPOINTS.find((row) => row.id === targetBreakpoint);
       if (entry === undefined) return;
-      const nextW = minGridUnits(entry.gridItemWidth, dimensions.widthPx);
+      const nextW = Math.min(8, minGridUnits(entry.gridItemWidth, dimensions.widthPx));
       const nextH = minGridUnits(entry.gridItemWidth, dimensions.heightPx);
       setMeasuredUnits((current) => {
-        if (current?.w === nextW && current?.h === nextH) return current;
-        return { w: nextW, h: nextH };
+        const measured = current[targetBreakpoint];
+        if (measured?.w === nextW && measured.h === nextH) return current;
+        return { ...current, [targetBreakpoint]: { w: nextW, h: nextH } };
       });
     },
-    [breakpoint],
+    [],
   );
 
-  const w = hasDeclaredSize ? declaredW : (measuredUnits?.w ?? 1);
-  const h = hasDeclaredSize ? declaredH : (measuredUnits?.h ?? 1);
-  const brickDefForDrag: (typeof brickModule.def) & {
-    spec: Spec;
-    w: number;
-    h: number;
-  } = {
-    ...brickModule.def,
-    w,
-    h,
-    state: structuredClone(brickModule.defaultState),
-    spec: structuredClone(view.spec),
-  };
+  const sizes = BREAKPOINTS.map((entry) => {
+    const entryView = brickModule.viewFor(entry.id);
+    return entryView.w !== undefined && entryView.h !== undefined
+      ? { w: entryView.w, h: entryView.h }
+      : measuredUnits[entry.id];
+  });
+  const placementSizes =
+    sizes[0] && sizes[1] && sizes[2] && sizes[3]
+      ? { sm: sizes[0], md: sizes[1], lg: sizes[2], xl: sizes[3] }
+      : null;
+  const activeSize = placementSizes?.[breakpoint];
+  const w = activeSize?.w ?? 1;
+  const h = activeSize?.h ?? 1;
+  const brickDefForDrag:
+    | (typeof brickModule.def & {
+        spec: Spec;
+        w: number;
+        h: number;
+        placementSizes: Record<"sm" | "md" | "lg" | "xl", { w: number; h: number }>;
+      })
+    | null =
+    placementSizes === null
+      ? null
+      : {
+          ...brickModule.def,
+          w,
+          h,
+          placementSizes,
+          state: structuredClone(brickModule.defaultState),
+          spec: structuredClone(view.spec),
+        };
 
   const surface = (
     <div
@@ -102,8 +123,12 @@ function BrickGroupRouteBody(props: {
       data-brick-full-view={brickModule.def.moduleId}
       data-brick-drawer-brick-slot
       data-brick-drawer-module-id={brickModule.def.moduleId}
-      draggable
+      draggable={brickDefForDrag !== null}
       onDragStart={(event) => {
+        if (brickDefForDrag === null) {
+          event.preventDefault();
+          return;
+        }
         brickDragStore.getState().setBrickDef(structuredClone(brickDefForDrag));
         event.dataTransfer.setData(BRICK_DRAG_MIME, JSON.stringify(brickDefForDrag));
         event.dataTransfer.effectAllowed = "copy";
@@ -114,11 +139,7 @@ function BrickGroupRouteBody(props: {
       }}
     >
       <div className="brick-drag-content size-full">
-        <BrickComponent
-          breakpoint={breakpoint}
-          state={brickModule.defaultState}
-          spec={view.spec}
-        />
+        <BrickComponent breakpoint={breakpoint} state={brickModule.defaultState} spec={view.spec} />
       </div>
     </div>
   );
@@ -172,21 +193,28 @@ function BrickGroupRouteBody(props: {
             <Tabs.Content value={`${brickModule.def.moduleId}-preview`}>
               <div className="mt-6 overflow-auto">
                 <div className={w === 8 ? "relative" : "relative ml-6"}>
-                  {hasDeclaredSize ? null : (
-                    <div
-                      aria-hidden
-                      className="pointer-events-none absolute overflow-hidden"
-                      style={{ width: 0, height: 0 }}
-                    >
-                      <MeasuredBrickWrapper onChange={onSizeChange}>
-                        <BrickComponent
-                          breakpoint={breakpoint}
-                          state={brickModule.defaultState}
-                          spec={view.spec}
-                        />
-                      </MeasuredBrickWrapper>
-                    </div>
-                  )}
+                  <div
+                    aria-hidden
+                    className="pointer-events-none absolute overflow-hidden"
+                    style={{ width: 0, height: 0 }}
+                  >
+                    {BREAKPOINTS.map((entry) => {
+                      const entryView = brickModule.viewFor(entry.id);
+                      if (entryView.w !== undefined && entryView.h !== undefined) return null;
+                      return (
+                        <MeasuredBrickWrapper
+                          key={entry.id}
+                          onChange={(dimensions) => onSizeChange(entry.id, dimensions)}
+                        >
+                          <BrickComponent
+                            breakpoint={entry.id}
+                            state={brickModule.defaultState}
+                            spec={entryView.spec}
+                          />
+                        </MeasuredBrickWrapper>
+                      );
+                    })}
+                  </div>
                   <GridItemPreview breakpoint={breakpoint} w={w} h={h}>
                     {surface}
                   </GridItemPreview>

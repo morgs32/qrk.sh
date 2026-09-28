@@ -1,39 +1,39 @@
-"use client"
+"use client";
 
-import { forwardRef, useCallback, useState } from "react"
+import { forwardRef, useCallback, useState } from "react";
 
 // --- Icons ---
-import { ChevronDownIcon } from "@/app/tiptap/icons/chevron-down-icon"
+import { ChevronDownIcon } from "@/app/tiptap/icons/chevron-down-icon";
 
 // --- Hooks ---
-import { useTiptapEditor } from "@/app/tiptap/hooks/use-tiptap-editor"
+import { useTiptapEditor } from "@/app/tiptap/hooks/use-tiptap-editor";
 
 // --- Tiptap UI ---
-import { TextAlignButton, textAlignLabels } from "@/app/tiptap/ui/text-align-button"
-import type { UseTextAlignDropdownMenuConfig } from "@/app/tiptap/ui/text-align-dropdown-menu"
-import { useTextAlignDropdownMenu } from "@/app/tiptap/ui/text-align-dropdown-menu"
+import { TextAlignButton, textAlignLabels } from "@/app/tiptap/ui/text-align-button";
+import type { UseTextAlignDropdownMenuConfig } from "@/app/tiptap/ui/text-align-dropdown-menu";
+import { useTextAlignDropdownMenu } from "@/app/tiptap/ui/text-align-dropdown-menu";
 
 // --- UI Primitives ---
-import type { ButtonProps } from "@/app/tiptap/ui-primitive/button"
-import { Button } from "@/app/tiptap/ui-primitive/button"
+import type { ButtonProps } from "@/app/tiptap/ui-primitive/button";
+import { Button } from "@/app/tiptap/ui-primitive/button";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuGroup,
-} from "@/app/tiptap/ui-primitive/dropdown-menu"
+} from "@/app/tiptap/ui-primitive/dropdown-menu";
 
 export interface TextAlignDropdownMenuProps
   extends Omit<ButtonProps, "type">, UseTextAlignDropdownMenuConfig {
   /**
    * Callback for when the dropdown opens or closes
    */
-  onOpenChange?: (isOpen: boolean) => void
+  onOpenChange?: (isOpen: boolean) => void;
   /**
    * Whether the dropdown should use a modal
    */
-  modal?: boolean
+  modal?: boolean;
 }
 
 /**
@@ -41,10 +41,7 @@ export interface TextAlignDropdownMenuProps
  *
  * For custom dropdown implementations, use the `useTextAlignDropdownMenu` hook instead.
  */
-export const TextAlignDropdownMenu = forwardRef<
-  HTMLButtonElement,
-  TextAlignDropdownMenuProps
->(
+export const TextAlignDropdownMenu = forwardRef<HTMLButtonElement, TextAlignDropdownMenuProps>(
   (
     {
       editor: providedEditor,
@@ -55,27 +52,27 @@ export const TextAlignDropdownMenu = forwardRef<
       modal = true,
       ...buttonProps
     },
-    ref
+    ref,
   ) => {
-    const { editor } = useTiptapEditor(providedEditor)
-    const [isOpen, setIsOpen] = useState<boolean>(false)
+    const { editor } = useTiptapEditor(providedEditor);
+    const [isOpen, setIsOpen] = useState<boolean>(false);
     const { isVisible, isActive, canAlign, Icon } = useTextAlignDropdownMenu({
       editor,
       aligns,
       hideWhenUnavailable,
-    })
+    });
 
     const handleOpenChange = useCallback(
       (open: boolean) => {
-        if (!editor || !canAlign) return
-        setIsOpen(open)
-        onOpenChange?.(open)
+        if (!editor || !canAlign) return;
+        setIsOpen(open);
+        onOpenChange?.(open);
       },
-      [canAlign, editor, onOpenChange]
-    )
+      [canAlign, editor, onOpenChange],
+    );
 
     if (!isVisible) {
-      return null
+      return null;
     }
 
     return (
@@ -121,10 +118,10 @@ export const TextAlignDropdownMenu = forwardRef<
           </DropdownMenuGroup>
         </DropdownMenuContent>
       </DropdownMenu>
-    )
-  }
-)
+    );
+  },
+);
 
-TextAlignDropdownMenu.displayName = "TextAlignDropdownMenu"
+TextAlignDropdownMenu.displayName = "TextAlignDropdownMenu";
 
-export default TextAlignDropdownMenu
+export default TextAlignDropdownMenu;

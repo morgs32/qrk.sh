@@ -125,9 +125,7 @@ export default function OrderedBodyPage() {
   const [showAnchors, setShowAnchors] = useState(true);
   const [leftAligned, setLeftAligned] = useState(false);
 
-  const nestedListClassName = leftAligned
-    ? "max-[480px]:-ml-8 -ml-[29px]"
-    : undefined;
+  const nestedListClassName = leftAligned ? "max-[480px]:-ml-8 -ml-[29px]" : undefined;
 
   return (
     <main className="min-h-screen bg-[#f5f5f5] px-6 pt-7 pb-14 font-mono text-[15px] leading-[1.28] text-[#171717] max-[480px]:px-[23px] max-[480px]:pt-2 max-[480px]:pb-10 max-[480px]:text-sm md:px-10 md:pb-[72px]">

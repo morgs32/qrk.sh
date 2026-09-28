@@ -27,9 +27,7 @@ export function ImageCover(props: { imageUrl: string; title: string; imagePositi
   );
 }
 
-export function ImageBrick(props: {
-  state: { imageUrl: string; title: string };
-}) {
+export function ImageBrick(props: { state: { imageUrl: string; title: string } }) {
   return (
     <ImageCard>
       <ImageCover

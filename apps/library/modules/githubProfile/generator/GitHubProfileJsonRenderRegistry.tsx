@@ -39,9 +39,7 @@ export const { registry } = defineRegistry(githubProfileV1.catalog, {
       <Following following={typeof props.following === "number" ? props.following : 0} />
     ),
     PublicRepos: ({ props }: { props: Record<string, unknown> }) => (
-      <PublicRepos
-        public_repos={typeof props.public_repos === "number" ? props.public_repos : 0}
-      />
+      <PublicRepos public_repos={typeof props.public_repos === "number" ? props.public_repos : 0} />
     ),
   },
 });

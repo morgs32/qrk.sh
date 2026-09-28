@@ -11,14 +11,25 @@ export function DraggableBrick({
   className,
   ...props
 }: {
-  brickDef: IModuleBrickDef & { spec: Spec; w: number; h: number };
+  brickDef:
+    | (IModuleBrickDef & {
+        spec: Spec;
+        w: number;
+        h: number;
+        placementSizes: Record<"sm" | "md" | "lg" | "xl", { w: number; h: number }>;
+      })
+    | null;
 } & Omit<ComponentProps<"div">, "draggable" | "onDragStart" | "onDragEnd">) {
   return (
     <div
       {...props}
       className={`brick-drag-surface ${className ?? ""}`}
-      draggable
+      draggable={brickDef !== null}
       onDragStart={(event) => {
+        if (brickDef === null) {
+          event.preventDefault();
+          return;
+        }
         brickDragStore.getState().setBrickDef(structuredClone(brickDef));
         const surface = event.currentTarget;
         if (surface) {

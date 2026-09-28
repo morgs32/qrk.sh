@@ -19,11 +19,7 @@ function ModulesPage() {
       className="flex h-full min-h-0 w-full min-w-0 flex-row gap-0 overflow-x-auto overflow-y-hidden overscroll-x-contain touch-pan-x touch-pan-y"
     >
       {modules.map((brickModule) => (
-        <ModulePreview
-          key={brickModule.id}
-          brickModule={brickModule}
-          breakpoint={breakpoint}
-        />
+        <ModulePreview key={brickModule.id} brickModule={brickModule} breakpoint={breakpoint} />
       ))}
     </div>
   );

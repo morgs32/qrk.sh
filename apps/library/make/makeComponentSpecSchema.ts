@@ -10,12 +10,7 @@ const stateRefSchema = Schema.Struct({
 export function makeComponentSpecSchema<
   const TYPE extends string,
   const PROPS extends IShape,
->(component: {
-  type: TYPE;
-  props: PROPS;
-  slots?: readonly string[];
-  description?: string;
-}) {
+>(component: { type: TYPE; props: PROPS; slots?: readonly string[]; description?: string }) {
   const propsSchema = makeEffectSchema(component.props);
   const dynamicProps = Schema.Struct(
     mapValues(propsSchema.fields, (fieldSchema, key) => {

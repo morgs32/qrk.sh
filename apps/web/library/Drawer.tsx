@@ -60,8 +60,7 @@ export function Drawer(props: {
       transition={reducedMotion ? { duration: 0 } : drawerTransition}
       className={cn(
         sideClassName[side],
-        isFlow &&
-          "relative inset-auto top-auto z-60 h-full max-md:w-full shadow-none md:h-full",
+        isFlow && "relative inset-auto top-auto z-60 h-full max-md:w-full shadow-none md:h-full",
         className,
       )}
     >

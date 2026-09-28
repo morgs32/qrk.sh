@@ -10,7 +10,7 @@ export function useElementWidthRef(onWidth: (width: number) => void): RefCallbac
     onWidthRef.current = onWidth;
   });
 
-  return useCallback<RefCallback<HTMLElement>>(element => {
+  return useCallback<RefCallback<HTMLElement>>((element) => {
     if (!element) return;
 
     const notify = () => {

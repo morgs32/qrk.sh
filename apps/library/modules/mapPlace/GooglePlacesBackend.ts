@@ -5,7 +5,12 @@ import { migrate } from "drizzle-orm/durable-sqlite/migrator";
 import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { Result, Schema } from "effect";
 
-import type { IGooglePlaceDetails, IGooglePlaceSuggestion, IRpcEither, IScraperEnv } from "../../worker/types";
+import type {
+  IGooglePlaceDetails,
+  IGooglePlaceSuggestion,
+  IRpcEither,
+  IScraperEnv,
+} from "../../worker/types";
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1_000;
 
@@ -20,11 +25,15 @@ const GoogleAutocompleteResponse = Schema.Struct({
             structuredFormat: Schema.optional(
               Schema.Struct({
                 mainText: Schema.Struct({ text: Schema.String }),
-                secondaryText: Schema.optional(Schema.Struct({ text: Schema.String }))}),
-            )}),
-        )}),
+                secondaryText: Schema.optional(Schema.Struct({ text: Schema.String })),
+              }),
+            ),
+          }),
+        ),
+      }),
     ),
-  )});
+  ),
+});
 
 const GooglePlaceDetailsResponse = Schema.Struct({
   id: Schema.String,
@@ -32,13 +41,16 @@ const GooglePlaceDetailsResponse = Schema.Struct({
   formattedAddress: Schema.optional(Schema.String),
   location: Schema.Struct({
     latitude: Schema.Number,
-    longitude: Schema.Number})});
+    longitude: Schema.Number,
+  }),
+});
 
 const googlePlacesCache = sqliteTable("google_places_cache", {
   googlePlaceId: text("google_place_id").primaryKey(),
   payload: text("payload", { mode: "json" }).$type<IGooglePlaceDetails>().notNull(),
   refreshedAt: integer("refreshed_at").notNull(),
-  expiresAt: integer("expires_at").notNull()});
+  expiresAt: integer("expires_at").notNull(),
+});
 
 const googlePlacesMigrations = {
   "20260718000000_create_google_places_cache.sql": `
@@ -48,7 +60,8 @@ CREATE TABLE google_places_cache (
   refreshed_at INTEGER NOT NULL,
   expires_at INTEGER NOT NULL
 );
-`};
+`,
+};
 
 export class GooglePlacesBackend extends DurableObject<IScraperEnv> {
   readonly #db;
@@ -75,7 +88,9 @@ export class GooglePlacesBackend extends DurableObject<IScraperEnv> {
         left: {
           code: "provider-configuration-error",
           message: "GOOGLE_PLACES_API_KEY is required for Google Places requests",
-          retryable: false}};
+          retryable: false,
+        },
+      };
     }
 
     try {
@@ -83,8 +98,10 @@ export class GooglePlacesBackend extends DurableObject<IScraperEnv> {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "X-Goog-Api-Key": this.env.GOOGLE_PLACES_API_KEY},
-        body: JSON.stringify({ input: normalizedQuery })});
+          "X-Goog-Api-Key": this.env.GOOGLE_PLACES_API_KEY,
+        },
+        body: JSON.stringify({ input: normalizedQuery }),
+      });
 
       if (!response.ok) {
         return {
@@ -92,12 +109,15 @@ export class GooglePlacesBackend extends DurableObject<IScraperEnv> {
           left: {
             code: response.status >= 500 ? "scrape-transient-failure" : "place-unavailable",
             message: `Google Places autocomplete failed with HTTP ${response.status}`,
-            retryable: response.status >= 500}};
+            retryable: response.status >= 500,
+          },
+        };
       }
 
       const responseJson: unknown = await response.json();
       const decoded = Schema.decodeUnknownResult(GoogleAutocompleteResponse)(responseJson, {
-        onExcessProperty: "ignore"});
+        onExcessProperty: "ignore",
+      });
 
       if (Result.isFailure(decoded)) {
         return {
@@ -105,7 +125,9 @@ export class GooglePlacesBackend extends DurableObject<IScraperEnv> {
           left: {
             code: "unsupported-page-shape",
             message: "Google Places autocomplete returned an unsupported response shape",
-            retryable: false}};
+            retryable: false,
+          },
+        };
       }
 
       const suggestions: Array<IGooglePlaceSuggestion> = [];
@@ -121,7 +143,8 @@ export class GooglePlacesBackend extends DurableObject<IScraperEnv> {
           mainText:
             suggestion.placePrediction.structuredFormat?.mainText.text ??
             suggestion.placePrediction.text.text,
-          secondaryText: suggestion.placePrediction.structuredFormat?.secondaryText?.text ?? ""});
+          secondaryText: suggestion.placePrediction.structuredFormat?.secondaryText?.text ?? "",
+        });
       }
 
       return { _tag: "Right", right: suggestions };
@@ -131,7 +154,9 @@ export class GooglePlacesBackend extends DurableObject<IScraperEnv> {
         left: {
           code: "scrape-transient-failure",
           message: `Google Places autocomplete request failed: ${String(cause)}`,
-          retryable: true}};
+          retryable: true,
+        },
+      };
     }
   }
 
@@ -144,7 +169,9 @@ export class GooglePlacesBackend extends DurableObject<IScraperEnv> {
         left: {
           code: "invalid-scrape-request",
           message: "Google Places details require a non-empty place ID",
-          retryable: false}};
+          retryable: false,
+        },
+      };
     }
 
     if (this.env.GOOGLE_PLACES_API_KEY.trim().length === 0) {
@@ -153,7 +180,9 @@ export class GooglePlacesBackend extends DurableObject<IScraperEnv> {
         left: {
           code: "provider-configuration-error",
           message: "GOOGLE_PLACES_API_KEY is required for Google Places requests",
-          retryable: false}};
+          retryable: false,
+        },
+      };
     }
 
     const cached = this.#db
@@ -185,7 +214,9 @@ export class GooglePlacesBackend extends DurableObject<IScraperEnv> {
           headers: {
             "Content-Type": "application/json",
             "X-Goog-Api-Key": this.env.GOOGLE_PLACES_API_KEY,
-            "X-Goog-FieldMask": "id,displayName,formattedAddress,location"}},
+            "X-Goog-FieldMask": "id,displayName,formattedAddress,location",
+          },
+        },
       );
 
       if (!response.ok) {
@@ -194,12 +225,15 @@ export class GooglePlacesBackend extends DurableObject<IScraperEnv> {
           left: {
             code: response.status >= 500 ? "scrape-transient-failure" : "place-unavailable",
             message: `Google Places details failed with HTTP ${response.status}`,
-            retryable: response.status >= 500}};
+            retryable: response.status >= 500,
+          },
+        };
       }
 
       const responseJson: unknown = await response.json();
       const decoded = Schema.decodeUnknownResult(GooglePlaceDetailsResponse)(responseJson, {
-        onExcessProperty: "ignore"});
+        onExcessProperty: "ignore",
+      });
 
       if (Result.isFailure(decoded)) {
         return {
@@ -207,7 +241,9 @@ export class GooglePlacesBackend extends DurableObject<IScraperEnv> {
           left: {
             code: "unsupported-page-shape",
             message: "Google Places details returned an unsupported response shape",
-            retryable: false}};
+            retryable: false,
+          },
+        };
       }
 
       const payload: IGooglePlaceDetails = {
@@ -215,7 +251,8 @@ export class GooglePlacesBackend extends DurableObject<IScraperEnv> {
         name: decoded.success.displayName.text,
         address: decoded.success.formattedAddress ?? "",
         latitude: decoded.success.location.latitude,
-        longitude: decoded.success.location.longitude};
+        longitude: decoded.success.location.longitude,
+      };
       const refreshedAt = Date.now();
 
       this.#db
@@ -224,24 +261,27 @@ export class GooglePlacesBackend extends DurableObject<IScraperEnv> {
           googlePlaceId: normalizedGooglePlaceId,
           payload,
           refreshedAt,
-          expiresAt: refreshedAt + CACHE_TTL_MS})
+          expiresAt: refreshedAt + CACHE_TTL_MS,
+        })
         .onConflictDoUpdate({
           target: googlePlacesCache.googlePlaceId,
           set: {
             payload,
             refreshedAt,
-            expiresAt: refreshedAt + CACHE_TTL_MS}})
+            expiresAt: refreshedAt + CACHE_TTL_MS,
+          },
+        })
         .run();
 
       return { _tag: "Right", right: payload };
-    })().catch(
-      (cause): IRpcEither<IGooglePlaceDetails> => ({
-        _tag: "Left",
-        left: {
-          code: "scrape-transient-failure",
-          message: `Google Places details request failed: ${String(cause)}`,
-          retryable: true}}),
-    );
+    })().catch((cause): IRpcEither<IGooglePlaceDetails> => ({
+      _tag: "Left",
+      left: {
+        code: "scrape-transient-failure",
+        message: `Google Places details request failed: ${String(cause)}`,
+        retryable: true,
+      },
+    }));
 
     this.#inFlightPlaceRequests.set(normalizedGooglePlaceId, placeRequest);
 
@@ -255,7 +295,8 @@ export class GooglePlacesBackend extends DurableObject<IScraperEnv> {
                   event: "scraper-background-refresh-failed",
                   backend: "GooglePlacesBackend",
                   googlePlaceId: normalizedGooglePlaceId,
-                  error: result.left}),
+                  error: result.left,
+                }),
               );
             }
           })

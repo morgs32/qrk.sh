@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
-import { useCallback, useSyncExternalStore } from "react"
+import { useCallback, useSyncExternalStore } from "react";
 
-type BreakpointMode = "min" | "max"
+type BreakpointMode = "min" | "max";
 
 /**
  * Hook to detect whether the current viewport matches a given breakpoint rule.
@@ -10,22 +10,20 @@ type BreakpointMode = "min" | "max"
  *   useIsBreakpoint("max", 768)   // true when width < 768
  *   useIsBreakpoint("min", 1024)  // true when width >= 1024
  */
-export function useIsBreakpoint(
-  mode: BreakpointMode = "max",
-  breakpoint = 768
-) {
+export function useIsBreakpoint(mode: BreakpointMode = "max", breakpoint = 768) {
   const query =
-    mode === "min"
-      ? `(min-width: ${breakpoint}px)`
-      : `(max-width: ${breakpoint - 1}px)`
+    mode === "min" ? `(min-width: ${breakpoint}px)` : `(max-width: ${breakpoint - 1}px)`;
 
   return useSyncExternalStore(
-    useCallback((onChange) => {
-      const mql = window.matchMedia(query)
-      mql.addEventListener("change", onChange)
-      return () => mql.removeEventListener("change", onChange)
-    }, [query]),
+    useCallback(
+      (onChange) => {
+        const mql = window.matchMedia(query);
+        mql.addEventListener("change", onChange);
+        return () => mql.removeEventListener("change", onChange);
+      },
+      [query],
+    ),
     () => window.matchMedia(query).matches,
     () => false,
-  )
+  );
 }

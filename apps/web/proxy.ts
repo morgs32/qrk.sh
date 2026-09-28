@@ -10,7 +10,6 @@ const isPublicRoute = createRouteMatcher([
   "/ordered-outline",
 ]);
 
-
 export default clerkMiddleware(async (auth, request) => {
   const pathname = request.nextUrl.pathname;
   if (

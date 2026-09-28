@@ -9,7 +9,7 @@ import { modulesHash } from "../lib/modulesHash";
 export const useModuleStateStore = create<{
   stateByModule: Record<string, unknown>;
   setModuleState: (moduleId: string, state: unknown) => void;
-}>(set => ({
+}>((set) => ({
   stateByModule: {},
   setModuleState: (moduleId, nextState) => {
     const brickModule = modulesHash[moduleId];
@@ -20,7 +20,7 @@ export const useModuleStateStore = create<{
     const decodedState = Schema.decodeUnknownSync(StateSchema)(nextState, {
       onExcessProperty: "preserve",
     });
-    set(store => ({
+    set((store) => ({
       stateByModule: {
         ...store.stateByModule,
         [moduleId]: decodedState,
@@ -30,7 +30,7 @@ export const useModuleStateStore = create<{
 }));
 
 export function useModuleState(moduleId: string): [unknown, (state: unknown) => void] {
-  const moduleState = useModuleStateStore(store => {
+  const moduleState = useModuleStateStore((store) => {
     if (Object.hasOwn(store.stateByModule, moduleId)) {
       return store.stateByModule[moduleId];
     }

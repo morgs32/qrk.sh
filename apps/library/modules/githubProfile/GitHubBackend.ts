@@ -10,7 +10,12 @@ import { fetchGitHubRepo } from "../../worker/fetchGitHubRepo";
 import { normalizeGitHubUrl } from "../../worker/normalizeGitHubUrl";
 import { normalizeGitHubRepoUrl } from "../../worker/normalizeGitHubRepoUrl";
 import { scrapeGitHub } from "../../worker/scrapeGitHub";
-import type { IGitHubRepoPayload, IGitHubScrapePayload, IRpcEither, IScraperEnv } from "../../worker/types";
+import type {
+  IGitHubRepoPayload,
+  IGitHubScrapePayload,
+  IRpcEither,
+  IScraperEnv,
+} from "../../worker/types";
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1_000;
 
@@ -18,7 +23,8 @@ const gitHubCache = sqliteTable("github_cache", {
   url: text("url").primaryKey(),
   payload: text("payload", { mode: "json" }).$type<IGitHubScrapePayload>().notNull(),
   refreshedAt: integer("refreshed_at").notNull(),
-  expiresAt: integer("expires_at").notNull()});
+  expiresAt: integer("expires_at").notNull(),
+});
 
 const gitHubMigrations = {
   "20260717000000_create_github_cache.sql": `
@@ -28,7 +34,8 @@ CREATE TABLE github_cache (
   refreshed_at INTEGER NOT NULL,
   expires_at INTEGER NOT NULL
 );
-`};
+`,
+};
 
 export class GitHubBackend extends DurableObject<IScraperEnv> {
   readonly #db;
@@ -72,24 +79,27 @@ export class GitHubBackend extends DurableObject<IScraperEnv> {
                   url: canonicalUrl,
                   payload: result.right,
                   refreshedAt,
-                  expiresAt: refreshedAt + CACHE_TTL_MS})
+                  expiresAt: refreshedAt + CACHE_TTL_MS,
+                })
                 .onConflictDoUpdate({
                   target: gitHubCache.url,
                   set: {
                     payload: result.right,
                     refreshedAt,
-                    expiresAt: refreshedAt + CACHE_TTL_MS}})
+                    expiresAt: refreshedAt + CACHE_TTL_MS,
+                  },
+                })
                 .run();
             }
             return result;
           })
-          .catch(
-            (cause): IRpcEither<IGitHubScrapePayload> => ({
-              _tag: "Left",
-              left: {
-                code: "scrape-persistence-failed",
-                message: `GitHub refresh failed: ${String(cause)}`}}),
-          );
+          .catch((cause): IRpcEither<IGitHubScrapePayload> => ({
+            _tag: "Left",
+            left: {
+              code: "scrape-persistence-failed",
+              message: `GitHub refresh failed: ${String(cause)}`,
+            },
+          }));
         this.#inFlightScrapes.set(canonicalUrl, refreshPromise);
         this.ctx.waitUntil(
           refreshPromise
@@ -100,7 +110,8 @@ export class GitHubBackend extends DurableObject<IScraperEnv> {
                     event: "scraper-background-refresh-failed",
                     backend: "GitHubBackend",
                     url: canonicalUrl,
-                    error: result.left}),
+                    error: result.left,
+                  }),
                 );
             })
             .finally(() => {
@@ -124,21 +135,23 @@ export class GitHubBackend extends DurableObject<IScraperEnv> {
               url: canonicalUrl,
               payload: result.right,
               refreshedAt,
-              expiresAt: refreshedAt + CACHE_TTL_MS})
+              expiresAt: refreshedAt + CACHE_TTL_MS,
+            })
             .onConflictDoUpdate({
               target: gitHubCache.url,
-              set: { payload: result.right, refreshedAt, expiresAt: refreshedAt + CACHE_TTL_MS }})
+              set: { payload: result.right, refreshedAt, expiresAt: refreshedAt + CACHE_TTL_MS },
+            })
             .run();
         }
         return result;
       })
-      .catch(
-        (cause): IRpcEither<IGitHubScrapePayload> => ({
-          _tag: "Left",
-          left: {
-            code: "scrape-persistence-failed",
-            message: `GitHub scrape failed: ${String(cause)}`}}),
-      );
+      .catch((cause): IRpcEither<IGitHubScrapePayload> => ({
+        _tag: "Left",
+        left: {
+          code: "scrape-persistence-failed",
+          message: `GitHub scrape failed: ${String(cause)}`,
+        },
+      }));
     this.#inFlightScrapes.set(canonicalUrl, scrapePromise);
     try {
       return await scrapePromise;

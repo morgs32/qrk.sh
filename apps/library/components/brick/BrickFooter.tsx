@@ -12,10 +12,7 @@ export function BrickFooter({
   className?: string;
 } & Omit<ComponentPropsWithoutRef<"div">, "children" | "className">) {
   return (
-    <div
-      {...props}
-      className={cn("flex shrink-0 items-center", brickInsetClass, className)}
-    >
+    <div {...props} className={cn("flex shrink-0 items-center", brickInsetClass, className)}>
       {children}
     </div>
   );

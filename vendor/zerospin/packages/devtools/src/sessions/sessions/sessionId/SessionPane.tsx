@@ -27,7 +27,7 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     gap: 6,
-    padding: '6px 12px',
+    padding: '4px 12px 2px',
     fontSize: 12,
     fontWeight: 500,
     border: 'none',

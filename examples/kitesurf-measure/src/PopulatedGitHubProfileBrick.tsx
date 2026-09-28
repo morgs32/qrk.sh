@@ -19,5 +19,11 @@ const Brick = githubProfileView.component;
 export function PopulatedGitHubProfileBrick(props: {
   breakpoint: (typeof BREAKPOINTS)[number]["id"];
 }) {
-  return <Brick breakpoint={props.breakpoint} data={PROFILE_DATA} />;
+  return (
+    <Brick
+      breakpoint={props.breakpoint}
+      state={{ payload: { url: "https://github.com/morgs32" }, data: PROFILE_DATA }}
+      spec={githubProfileView.defaultSpec}
+    />
+  );
 }

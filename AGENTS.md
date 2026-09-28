@@ -27,7 +27,7 @@ Use `$use-morgs32-wiki-patterns` for TypeScript, Effect, RPC, React/Next.js, Clo
 
 ## Vendors
 
-Treat `vendor/**` as read-only. Use `$update-vendor` and the prefix, origin, and branch in [README.md](./README.md). Make vendor source changes upstream, commit and push there, then pull through that workflow; never author vendor edits or subtree-push here. The pull workflow may restore existing consumer metadata verbatim. Keep consumer integrations outside vendors.
+Direct source edits are allowed in `vendor/zerospin`, but they must eventually be synced to the upstream Zerospin repository (`../zerospin`). This exception takes precedence over `$update-vendor`'s read-only rule for that vendor. Treat all other `vendor/**` paths as read-only: make their source changes upstream, commit and push there, then pull through `$update-vendor`; never author direct edits or subtree-push for those vendors here. Use the prefix, origin, and branch in [README.md](./README.md) for vendor syncs. The pull workflow may restore existing consumer metadata verbatim. Keep consumer integrations outside vendors.
 
 ## Verification
 

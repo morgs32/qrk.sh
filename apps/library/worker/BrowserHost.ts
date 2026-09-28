@@ -18,17 +18,20 @@ export class BrowserHost extends DurableObject<IScraperEnv> {
     }
     if (browser === undefined) {
       if (this.#browserLaunchPromise === undefined) {
-        this.#browserLaunchPromise = puppeteer.launch(this.env.BROWSER).then(launchedBrowser => {
-          this.#browser = launchedBrowser;
-          launchedBrowser.on("disconnected", () => {
-            if (this.#browser === launchedBrowser) {
-              this.#browser = undefined;
-            }
+        this.#browserLaunchPromise = puppeteer
+          .launch(this.env.BROWSER)
+          .then((launchedBrowser) => {
+            this.#browser = launchedBrowser;
+            launchedBrowser.on("disconnected", () => {
+              if (this.#browser === launchedBrowser) {
+                this.#browser = undefined;
+              }
+            });
+            return launchedBrowser;
+          })
+          .finally(() => {
+            this.#browserLaunchPromise = undefined;
           });
-          return launchedBrowser;
-        }).finally(() => {
-          this.#browserLaunchPromise = undefined;
-        });
       }
       try {
         browser = await this.#browserLaunchPromise;

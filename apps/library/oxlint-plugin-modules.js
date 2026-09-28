@@ -87,8 +87,7 @@ const noFontClassnames = {
   meta: {
     type: "problem",
     docs: {
-      description:
-        "Disallow Tailwind font size and font color classnames under modules/**",
+      description: "Disallow Tailwind font size and font color classnames under modules/**",
     },
   },
   create(context) {

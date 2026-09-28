@@ -9,5 +9,5 @@ export const instagramMediaFooterComponent = defineComponent({
     followersText: primitives.text(),
   },
   description:
-    'Instagram-branded media footer with @username and followersText. Bind both from state.',
+    "Instagram-branded media footer with @username and followersText. Bind both from state.",
 });

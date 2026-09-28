@@ -6,12 +6,7 @@ export function Link(props: {
   className?: string;
 }) {
   return (
-    <a
-      className={props.className}
-      href={props.href}
-      rel="noopener noreferrer"
-      target="_blank"
-    >
+    <a className={props.className} href={props.href} rel="noopener noreferrer" target="_blank">
       {props.children}
     </a>
   );

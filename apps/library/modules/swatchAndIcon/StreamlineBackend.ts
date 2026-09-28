@@ -11,17 +11,21 @@ const StreamlineSearchResponse = Schema.Struct({
       name: Schema.String,
       imagePreviewUrl: Schema.String,
       familyName: Schema.String,
-      isFree: Schema.Boolean}),
+      isFree: Schema.Boolean,
+    }),
   ),
   pagination: Schema.Struct({
     total: Schema.Number,
     hasMore: Schema.Boolean,
     offset: Schema.Number,
-    nextOffset: Schema.Number})});
+    nextOffset: Schema.Number,
+  }),
+});
 
 const StreamlineIconResponse = Schema.Struct({
   hash: Schema.String,
-  name: Schema.String});
+  name: Schema.String,
+});
 
 export class StreamlineBackend extends DurableObject<IScraperEnv> {
   async search(
@@ -54,7 +58,9 @@ export class StreamlineBackend extends DurableObject<IScraperEnv> {
         right: {
           query: normalizedQuery,
           results: [],
-          pagination: { total: 0, hasMore: false, offset: 0, nextOffset: 0 }}};
+          pagination: { total: 0, hasMore: false, offset: 0, nextOffset: 0 },
+        },
+      };
     }
 
     if (
@@ -70,7 +76,9 @@ export class StreamlineBackend extends DurableObject<IScraperEnv> {
           code: "invalid-scrape-request",
           message:
             "Streamline search requires an offset of zero or greater and a limit from 1 to 100",
-          retryable: false}};
+          retryable: false,
+        },
+      };
     }
 
     if (!this.env.STREAMLINE_API_KEY?.trim()) {
@@ -79,7 +87,9 @@ export class StreamlineBackend extends DurableObject<IScraperEnv> {
         left: {
           code: "provider-configuration-error",
           message: "STREAMLINE_API_KEY is required for Streamline requests",
-          retryable: false}};
+          retryable: false,
+        },
+      };
     }
 
     const searchUrl = new URL(
@@ -92,7 +102,8 @@ export class StreamlineBackend extends DurableObject<IScraperEnv> {
 
     try {
       const response = await fetch(searchUrl, {
-        headers: { accept: "application/json", "x-api-key": this.env.STREAMLINE_API_KEY }});
+        headers: { accept: "application/json", "x-api-key": this.env.STREAMLINE_API_KEY },
+      });
 
       if (!response.ok) {
         return {
@@ -100,12 +111,15 @@ export class StreamlineBackend extends DurableObject<IScraperEnv> {
           left: {
             code: response.status >= 500 ? "scrape-transient-failure" : "file-unavailable",
             message: `Streamline search failed with HTTP ${response.status}`,
-            retryable: response.status >= 500}};
+            retryable: response.status >= 500,
+          },
+        };
       }
 
       const responseJson: unknown = await response.json();
       const decoded = Schema.decodeUnknownResult(StreamlineSearchResponse)(responseJson, {
-        onExcessProperty: "ignore"});
+        onExcessProperty: "ignore",
+      });
 
       if (Result.isFailure(decoded)) {
         return {
@@ -113,7 +127,9 @@ export class StreamlineBackend extends DurableObject<IScraperEnv> {
           left: {
             code: "unsupported-page-shape",
             message: "Streamline search returned an unsupported response shape",
-            retryable: false}};
+            retryable: false,
+          },
+        };
       }
 
       return { _tag: "Right", right: decoded.success };
@@ -123,7 +139,9 @@ export class StreamlineBackend extends DurableObject<IScraperEnv> {
         left: {
           code: "scrape-transient-failure",
           message: `Streamline search request failed: ${String(cause)}`,
-          retryable: true}};
+          retryable: true,
+        },
+      };
     }
   }
 
@@ -136,7 +154,9 @@ export class StreamlineBackend extends DurableObject<IScraperEnv> {
         left: {
           code: "invalid-scrape-request",
           message: "Streamline SVG requests require a valid icon hash",
-          retryable: false}};
+          retryable: false,
+        },
+      };
     }
 
     if (!this.env.STREAMLINE_API_KEY?.trim()) {
@@ -145,7 +165,9 @@ export class StreamlineBackend extends DurableObject<IScraperEnv> {
         left: {
           code: "provider-configuration-error",
           message: "STREAMLINE_API_KEY is required for Streamline requests",
-          retryable: false}};
+          retryable: false,
+        },
+      };
     }
 
     try {
@@ -160,12 +182,15 @@ export class StreamlineBackend extends DurableObject<IScraperEnv> {
           left: {
             code: iconResponse.status >= 500 ? "scrape-transient-failure" : "file-unavailable",
             message: `Streamline icon details failed with HTTP ${iconResponse.status}`,
-            retryable: iconResponse.status >= 500}};
+            retryable: iconResponse.status >= 500,
+          },
+        };
       }
 
       const iconResponseJson: unknown = await iconResponse.json();
       const decodedIcon = Schema.decodeUnknownResult(StreamlineIconResponse)(iconResponseJson, {
-        onExcessProperty: "ignore"});
+        onExcessProperty: "ignore",
+      });
 
       if (Result.isFailure(decodedIcon)) {
         return {
@@ -173,7 +198,9 @@ export class StreamlineBackend extends DurableObject<IScraperEnv> {
           left: {
             code: "unsupported-page-shape",
             message: "Streamline icon details returned an unsupported response shape",
-            retryable: false}};
+            retryable: false,
+          },
+        };
       }
 
       const svgUrl = new URL(
@@ -184,7 +211,8 @@ export class StreamlineBackend extends DurableObject<IScraperEnv> {
       svgUrl.searchParams.set("strokeToFill", "false");
 
       const svgResponse = await fetch(svgUrl, {
-        headers: { "x-api-key": this.env.STREAMLINE_API_KEY }});
+        headers: { "x-api-key": this.env.STREAMLINE_API_KEY },
+      });
 
       if (!svgResponse.ok) {
         return {
@@ -192,7 +220,9 @@ export class StreamlineBackend extends DurableObject<IScraperEnv> {
           left: {
             code: svgResponse.status >= 500 ? "scrape-transient-failure" : "file-unavailable",
             message: `Streamline SVG download failed with HTTP ${svgResponse.status}`,
-            retryable: svgResponse.status >= 500}};
+            retryable: svgResponse.status >= 500,
+          },
+        };
       }
 
       const svg = await svgResponse.text();
@@ -202,7 +232,9 @@ export class StreamlineBackend extends DurableObject<IScraperEnv> {
           left: {
             code: "unsupported-page-shape",
             message: "Streamline SVG download did not return SVG markup",
-            retryable: false}};
+            retryable: false,
+          },
+        };
       }
 
       return {
@@ -210,14 +242,18 @@ export class StreamlineBackend extends DurableObject<IScraperEnv> {
         right: {
           hash: decodedIcon.success.hash,
           name: decodedIcon.success.name,
-          svg}};
+          svg,
+        },
+      };
     } catch (cause) {
       return {
         _tag: "Left",
         left: {
           code: "scrape-transient-failure",
           message: `Streamline SVG request failed: ${String(cause)}`,
-          retryable: true}};
+          retryable: true,
+        },
+      };
     }
   }
 }

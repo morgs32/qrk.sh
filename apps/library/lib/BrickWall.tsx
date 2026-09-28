@@ -92,7 +92,7 @@ export function BrickWall(props: {
     }
   }, [dragging, dragScrollTop]);
 
-  const bricks = bricksQuery.data
+  const bricks = bricksQuery.data;
   const placements = placementsQuery.data ?? [];
   const brickIds = new Set(bricks.map((brickRow) => brickRow.id));
 
@@ -230,6 +230,7 @@ export function BrickWall(props: {
                 spec: structuredClone(brickDef.spec),
                 breakpoint,
                 droppedItem,
+                placementSizes: brickDef.placementSizes,
                 resolvedActiveLayout,
                 otherBreakpointVisibleLayouts,
               },

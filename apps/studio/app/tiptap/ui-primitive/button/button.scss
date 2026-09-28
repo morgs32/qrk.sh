@@ -214,9 +214,7 @@
       }
     }
 
-    &:hover:not([disabled]):not([aria-checked="true"]):not(
-        [aria-checked="mixed"]
-      )
+    &:hover:not([disabled]):not([aria-checked="true"]):not([aria-checked="mixed"])
       .tiptap-button-check {
       border-color: var(--tt-button-check-hover-border-color);
       background-color: var(--tt-button-check-hover-bg-color);

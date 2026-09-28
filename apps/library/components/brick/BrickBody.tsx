@@ -14,11 +14,7 @@ export function BrickBody({
   return (
     <div
       {...props}
-      className={cn(
-        "flex min-h-0 flex-1 flex-col gap-2 overflow-auto",
-        brickInsetClass,
-        className,
-      )}
+      className={cn("flex min-h-0 flex-1 flex-col gap-2 overflow-auto", brickInsetClass, className)}
     >
       {children}
     </div>

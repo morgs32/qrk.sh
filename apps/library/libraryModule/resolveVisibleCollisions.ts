@@ -19,7 +19,7 @@ export function makeCollisionResolvedLayout(props: {
   incoming: LayoutItem;
 }) {
   let working = cloneLayout(props.visibleLayout);
-  const existingIndex = working.findIndex(item => item.i === props.incoming.i);
+  const existingIndex = working.findIndex((item) => item.i === props.incoming.i);
   const incoming = cloneLayoutItem(props.incoming);
   if (existingIndex === -1) {
     working.push(incoming);
@@ -29,7 +29,7 @@ export function makeCollisionResolvedLayout(props: {
   working = correctBounds(working, { cols: GRID_COLS });
 
   for (let safety = 0; safety < 1000; safety += 1) {
-    const incomingRef = working.find(item => item.i === props.incoming.i);
+    const incomingRef = working.find((item) => item.i === props.incoming.i);
     if (incomingRef === undefined) {
       break;
     }
@@ -53,10 +53,7 @@ export function makeCollisionResolvedLayout(props: {
 }
 
 /** Return an error message when a visible layout has overlaps or out-of-bounds items. */
-export function findVisibleLayoutError(props: {
-  layout: Layout;
-  context: string;
-}): string | null {
+export function findVisibleLayoutError(props: { layout: Layout; context: string }): string | null {
   const bounded = correctBounds(cloneLayout(props.layout), { cols: GRID_COLS });
   const seen = new Set<string>();
   for (const item of bounded) {
@@ -70,7 +67,7 @@ export function findVisibleLayoutError(props: {
     const collisions = getAllCollisions(bounded, item);
     if (collisions.length > 0) {
       return `${props.context}: layout item ${item.i} overlaps ${collisions
-        .map(collision => collision.i)
+        .map((collision) => collision.i)
         .join(", ")}`;
     }
   }

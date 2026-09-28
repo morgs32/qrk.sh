@@ -25,7 +25,6 @@ import { libraryModule } from "../libraryModule/libraryModule";
 
 import { librarySession } from "./librarySession";
 
-
 const WALL_ID = prefixId(libraryModule.models.wall, "library");
 const LIBRARY_VIEWPORT_STORAGE_NAME = "qrk-bricks-library-viewport-v1";
 

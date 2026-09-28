@@ -1,5 +1,7 @@
 "use client";
 
+/* oxlint-disable next/no-img-element -- Studio uses Vite, so Next image optimization is unavailable. */
+
 import { useAuth } from "@clerk/react";
 import { stageCommand } from "@zerospin/react";
 import { ZerospinError } from "@zerospin/sdk/browser";

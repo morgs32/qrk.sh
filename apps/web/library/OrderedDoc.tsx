@@ -5,7 +5,7 @@ import {
   useContext,
   useId,
   useLayoutEffect,
-  useRef,
+  useState,
   useSyncExternalStore,
   type ReactNode,
 } from "react";
@@ -146,14 +146,9 @@ function createOrderedDocStore(): OrderedDocStore {
 }
 
 export function OrderedDoc(props: { children: ReactNode }) {
-  const storeRef = useRef<OrderedDocStore | null>(null);
-  if (storeRef.current === null) {
-    storeRef.current = createOrderedDocStore();
-  }
+  const [store] = useState(createOrderedDocStore);
 
-  return (
-    <OrderedDocStoreContext value={storeRef.current}>{props.children}</OrderedDocStoreContext>
-  );
+  return <OrderedDocStoreContext value={store}>{props.children}</OrderedDocStoreContext>;
 }
 
 export function useOrderedDocSections(): Array<OrderedDocSection> {

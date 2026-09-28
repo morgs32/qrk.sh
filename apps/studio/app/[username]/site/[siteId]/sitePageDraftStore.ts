@@ -114,8 +114,7 @@ const PersistedSitePageDraftStateSchema = Schema.Struct({
 function createSeedPageDraft(): IPageDraft {
   return {
     title: "Make it Rainey",
-    description:
-      "We are helping Austin home owners save $600 or more on their property taxes.",
+    description: "We are helping Austin home owners save $600 or more on their property taxes.",
     pageType: "split-scroll",
     layout: seedLayout,
     composeBlocks: [],

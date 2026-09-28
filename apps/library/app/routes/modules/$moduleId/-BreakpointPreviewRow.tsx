@@ -18,7 +18,7 @@ export function BreakpointPreviewRow({
   moduleState,
   BrickComponent,
   className,
-  spec,
+  specs,
 }: {
   entry: (typeof BREAKPOINTS)[number];
   moduleId: string;
@@ -26,30 +26,72 @@ export function BreakpointPreviewRow({
   moduleState: unknown;
   BrickComponent: NonNullable<(typeof modulesHash)[string]>["component"];
   className?: string;
-  spec: Spec;
+  specs: Record<(typeof BREAKPOINTS)[number]["id"], Spec>;
 }) {
-  const [intrinsicSize, setIntrinsicSize] = useState<{ widthPx: number; heightPx: number }>();
-  const onSizeChange = useCallback((size: { widthPx: number; heightPx: number }) => {
-    setIntrinsicSize((current) => {
-      if (current?.widthPx === size.widthPx && current?.heightPx === size.heightPx) {
-        return current;
-      }
-      return size;
-    });
-  }, []);
+  const [measurement, setMeasurement] = useState<{
+    state: unknown;
+    specs: typeof specs;
+    dimensions: Partial<
+      Record<(typeof BREAKPOINTS)[number]["id"], { widthPx: number; heightPx: number }>
+    >;
+  }>();
+  const dimensions =
+    measurement !== undefined && measurement.state === moduleState && measurement.specs === specs
+      ? measurement.dimensions
+      : {};
+  const onSizeChange = useCallback(
+    (
+      targetBreakpoint: (typeof BREAKPOINTS)[number]["id"],
+      size: { widthPx: number; heightPx: number },
+    ) => {
+      setMeasurement((current) => {
+        const currentDimensions =
+          current !== undefined && current.state === moduleState && current.specs === specs
+            ? current.dimensions
+            : {};
+        const previous = currentDimensions[targetBreakpoint];
+        if (previous?.widthPx === size.widthPx && previous.heightPx === size.heightPx)
+          return current;
+        return {
+          state: moduleState,
+          specs,
+          dimensions: { ...currentDimensions, [targetBreakpoint]: size },
+        };
+      });
+    },
+    [moduleState, specs],
+  );
 
   const view = brick.viewFor(entry.id);
+  const spec = specs[entry.id];
   const declaredW = view.w;
   const declaredH = view.h;
   const hasDeclaredSize = declaredW !== undefined && declaredH !== undefined;
+  const intrinsicSize = dimensions[entry.id];
   const measuredW = intrinsicSize
     ? minGridUnits(entry.gridItemWidth, intrinsicSize.widthPx)
     : undefined;
   const measuredH = intrinsicSize
     ? minGridUnits(entry.gridItemWidth, intrinsicSize.heightPx)
     : undefined;
-  const dragW = hasDeclaredSize ? declaredW : (measuredW ?? 1);
+  const dragW = hasDeclaredSize ? declaredW : Math.min(8, measuredW ?? 1);
   const dragH = hasDeclaredSize ? declaredH : (measuredH ?? 1);
+  const sizes = BREAKPOINTS.map((breakpointEntry) => {
+    const breakpointView = brick.viewFor(breakpointEntry.id);
+    const measured = dimensions[breakpointEntry.id];
+    return breakpointView.w !== undefined && breakpointView.h !== undefined
+      ? { w: breakpointView.w, h: breakpointView.h }
+      : measured === undefined
+        ? undefined
+        : {
+            w: Math.min(8, minGridUnits(breakpointEntry.gridItemWidth, measured.widthPx)),
+            h: minGridUnits(breakpointEntry.gridItemWidth, measured.heightPx),
+          };
+  });
+  const placementSizes =
+    sizes[0] && sizes[1] && sizes[2] && sizes[3]
+      ? { sm: sizes[0], md: sizes[1], lg: sizes[2], xl: sizes[3] }
+      : null;
   const exceedsWallWidth = hasDeclaredSize
     ? declaredW > 8
     : measuredW !== undefined && measuredW > 8;
@@ -59,12 +101,17 @@ export function BreakpointPreviewRow({
       className="size-full qrk-bricks brick-drag-surface overflow-hidden"
       data-module-brick={moduleId}
       data-testid="brick-preview"
-      draggable
+      draggable={placementSizes !== null}
       onDragStart={(event) => {
+        if (placementSizes === null) {
+          event.preventDefault();
+          return;
+        }
         brickDragStore.getState().setBrickDef({
           ...brick.def,
           w: dragW,
           h: dragH,
+          placementSizes,
           state: structuredClone(moduleState),
           spec: structuredClone(spec),
         });
@@ -108,9 +155,32 @@ export function BreakpointPreviewRow({
           </div>
           <div>
             <p className="m-0 mb-2 font-mono text-neutral-500">intrinsic</p>
-            <MeasuredBrickWrapper onChange={onSizeChange}>
+            <MeasuredBrickWrapper onChange={(size) => onSizeChange(entry.id, size)}>
               <BrickComponent breakpoint={entry.id} state={moduleState} spec={spec} />
             </MeasuredBrickWrapper>
+            <div
+              aria-hidden
+              className="pointer-events-none absolute overflow-hidden"
+              style={{ width: 0, height: 0 }}
+            >
+              {BREAKPOINTS.map((breakpointEntry) => {
+                if (breakpointEntry.id === entry.id) return null;
+                const breakpointView = brick.viewFor(breakpointEntry.id);
+                if (breakpointView.w !== undefined && breakpointView.h !== undefined) return null;
+                return (
+                  <MeasuredBrickWrapper
+                    key={breakpointEntry.id}
+                    onChange={(size) => onSizeChange(breakpointEntry.id, size)}
+                  >
+                    <BrickComponent
+                      breakpoint={breakpointEntry.id}
+                      state={moduleState}
+                      spec={specs[breakpointEntry.id]}
+                    />
+                  </MeasuredBrickWrapper>
+                );
+              })}
+            </div>
             {intrinsicSize !== undefined ? (
               <p className="m-0 pt-2 font-mono text-neutral-500">
                 {intrinsicSize.widthPx}×{intrinsicSize.heightPx}px

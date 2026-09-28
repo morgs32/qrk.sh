@@ -8,5 +8,5 @@ export const figmaMediaFooterComponent = defineComponent({
     title: primitives.text(),
     url: primitives.text(),
   },
-  description: 'Figma-branded media footer with linked title. Bind title and url from state.',
+  description: "Figma-branded media footer with linked title. Bind title and url from state.",
 });

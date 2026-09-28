@@ -5,11 +5,7 @@ import type { Editor } from "@tiptap/react";
 
 import { Button } from "@/app/tiptap/ui-primitive/button";
 import { Spacer } from "@/app/tiptap/ui-primitive/spacer";
-import {
-  Toolbar,
-  ToolbarGroup,
-  ToolbarSeparator,
-} from "@/app/tiptap/ui-primitive/toolbar";
+import { Toolbar, ToolbarGroup, ToolbarSeparator } from "@/app/tiptap/ui-primitive/toolbar";
 import { HeadingDropdownMenu } from "@/app/tiptap/ui/heading-dropdown-menu";
 import { ListDropdownMenu } from "@/app/tiptap/ui/list-dropdown-menu";
 import { BlockquoteButton } from "@/app/tiptap/ui/blockquote-button";

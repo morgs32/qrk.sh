@@ -1,5 +1,7 @@
 "use client";
 
+/* oxlint-disable next/no-img-element -- Studio uses Vite, so Next image optimization is unavailable. */
+
 import { Card, CardContent } from "@/components/ui/card";
 
 export function SearchPreviewCard({

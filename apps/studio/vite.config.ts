@@ -51,7 +51,9 @@ export default defineConfig(({ mode }) => {
               server: { middlewareMode: true },
             }));
           try {
-            const { LoadingWorkspace } = await loader.ssrLoadModule("/app/LoadingWorkspace.tsx");
+            const { LoadingWorkspace } = await loader.ssrLoadModule(
+              "/app/LoadingWorkspace/LoadingWorkspace.tsx",
+            );
             return html.replace(
               "<!-- loading-workspace -->",
               renderToStaticMarkup(createElement(LoadingWorkspace)),

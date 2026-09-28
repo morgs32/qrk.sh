@@ -13,7 +13,8 @@ import {
   Quote,
   Redo2,
   Strikethrough,
-  Undo2} from "lucide-react";
+  Undo2,
+} from "lucide-react";
 
 import { Button } from "../../components/ui/button";
 
@@ -28,8 +29,10 @@ export function TextEditorControl(props: {
       content: [
         {
           type: "paragraph",
-          content: [{ type: "text", text: "Start writing…" }]},
-      ]},
+          content: [{ type: "text", text: "Start writing…" }],
+        },
+      ],
+    },
     immediatelyRender: false,
     editorProps: {
       attributes: {

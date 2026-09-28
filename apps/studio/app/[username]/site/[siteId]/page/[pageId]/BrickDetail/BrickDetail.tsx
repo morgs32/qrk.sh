@@ -91,7 +91,11 @@ export function BrickDetail() {
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto pb-6">
-        {!brick || !BrickComponent || brickRow === undefined || placement === undefined || spec === undefined ? (
+        {!brick ||
+        !BrickComponent ||
+        brickRow === undefined ||
+        placement === undefined ||
+        spec === undefined ? (
           <div className="px-6 pt-6" data-testid="brick-not-found">
             <Link to={href("/:username/site/:siteId/page/:pageId/brick-group", params)}>
               All modules
@@ -121,20 +125,12 @@ export function BrickDetail() {
               <p className="mt-0 font-mono text-sm text-muted-foreground">{brick.def.moduleId}</p>
             </div>
             <div className="mt-8 overflow-auto">
-              <GridItemPreview
-                breakpoint={breakpoint}
-                w={gridItem?.w ?? 1}
-                h={gridItem?.h ?? 1}
-              >
+              <GridItemPreview breakpoint={breakpoint} w={gridItem?.w ?? 1} h={gridItem?.h ?? 1}>
                 <div
                   className="size-full qrk-bricks overflow-hidden"
                   data-testid="selected-brick-preview"
                 >
-                  <BrickComponent
-                    breakpoint={breakpoint}
-                    state={brickRow.state}
-                    spec={spec}
-                  />
+                  <BrickComponent breakpoint={breakpoint} state={brickRow.state} spec={spec} />
                 </div>
               </GridItemPreview>
             </div>

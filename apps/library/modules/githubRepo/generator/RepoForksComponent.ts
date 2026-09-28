@@ -7,6 +7,5 @@ export const repoForksComponent = defineComponent({
   props: {
     forks_count: primitives.integer(),
   },
-  description:
-    'Fork count. Bind forks_count with { "$state": "/forks_count" }. Hidden when zero.',
+  description: 'Fork count. Bind forks_count with { "$state": "/forks_count" }. Hidden when zero.',
 });

@@ -35,10 +35,7 @@ function corsHeaders(request: Request): Headers {
     headers.set("Vary", "Origin");
   }
   headers.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  headers.set(
-    "Access-Control-Allow-Headers",
-    "Authorization, Content-Type",
-  );
+  headers.set("Access-Control-Allow-Headers", "Authorization, Content-Type");
   headers.set("Access-Control-Max-Age", "86400");
   return headers;
 }
@@ -78,17 +75,9 @@ export async function handleRequest(request: Request, env: IScraperEnv): Promise
       return jsonResponse(request, result, 200);
     } catch (cause) {
       if (cause instanceof LibraryUploadHttpError) {
-        return jsonResponse(
-          request,
-          { code: cause.code, message: cause.message },
-          cause.status,
-        );
+        return jsonResponse(request, { code: cause.code, message: cause.message }, cause.status);
       }
-      return jsonResponse(
-        request,
-        { code: "internal-error", message: "Upload failed" },
-        500,
-      );
+      return jsonResponse(request, { code: "internal-error", message: "Upload failed" }, 500);
     }
   }
 

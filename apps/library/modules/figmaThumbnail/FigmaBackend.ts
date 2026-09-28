@@ -16,7 +16,8 @@ const figmaCache = sqliteTable("figma_cache", {
   url: text("url").primaryKey(),
   payload: text("payload", { mode: "json" }).$type<IFigmaFilePreviewPayload>().notNull(),
   refreshedAt: integer("refreshed_at").notNull(),
-  expiresAt: integer("expires_at").notNull()});
+  expiresAt: integer("expires_at").notNull(),
+});
 
 const figmaMigrations = {
   "20260718000000_create_figma_cache.sql": `
@@ -26,7 +27,8 @@ CREATE TABLE figma_cache (
   refreshed_at INTEGER NOT NULL,
   expires_at INTEGER NOT NULL
 );
-`};
+`,
+};
 
 export class FigmaBackend extends DurableObject<IScraperEnv> {
   readonly #db;
@@ -48,7 +50,9 @@ export class FigmaBackend extends DurableObject<IScraperEnv> {
           catch: () =>
             new ScrapeError({
               code: "invalid-scrape-request",
-              message: "Figma file URL must be valid"})});
+              message: "Figma file URL must be valid",
+            }),
+        });
 
         const pathSegments = parsed.pathname.split("/");
         const inputType = pathSegments[1];
@@ -73,7 +77,8 @@ export class FigmaBackend extends DurableObject<IScraperEnv> {
           return yield* new ScrapeError({
             code: "invalid-scrape-request",
             message:
-              "Figma requests require a supported https://figma.com/<file-type>/<file-key> URL"});
+              "Figma requests require a supported https://figma.com/<file-type>/<file-key> URL",
+          });
         }
 
         const canonicalType =
@@ -106,24 +111,27 @@ export class FigmaBackend extends DurableObject<IScraperEnv> {
                   url: canonicalUrl,
                   payload: result.right,
                   refreshedAt,
-                  expiresAt: refreshedAt + CACHE_TTL_MS})
+                  expiresAt: refreshedAt + CACHE_TTL_MS,
+                })
                 .onConflictDoUpdate({
                   target: figmaCache.url,
                   set: {
                     payload: result.right,
                     refreshedAt,
-                    expiresAt: refreshedAt + CACHE_TTL_MS}})
+                    expiresAt: refreshedAt + CACHE_TTL_MS,
+                  },
+                })
                 .run();
             }
             return result;
           })
-          .catch(
-            (cause): IRpcEither<IFigmaFilePreviewPayload> => ({
-              _tag: "Left",
-              left: {
-                code: "scrape-persistence-failed",
-                message: `Figma refresh failed: ${String(cause)}`}}),
-          );
+          .catch((cause): IRpcEither<IFigmaFilePreviewPayload> => ({
+            _tag: "Left",
+            left: {
+              code: "scrape-persistence-failed",
+              message: `Figma refresh failed: ${String(cause)}`,
+            },
+          }));
 
         this.#inFlightScrapes.set(canonicalUrl, refreshPromise);
         this.ctx.waitUntil(
@@ -135,7 +143,8 @@ export class FigmaBackend extends DurableObject<IScraperEnv> {
                     event: "scraper-background-refresh-failed",
                     backend: "FigmaBackend",
                     url: canonicalUrl,
-                    error: result.left}),
+                    error: result.left,
+                  }),
                 );
               }
             })
@@ -162,24 +171,27 @@ export class FigmaBackend extends DurableObject<IScraperEnv> {
               url: canonicalUrl,
               payload: result.right,
               refreshedAt,
-              expiresAt: refreshedAt + CACHE_TTL_MS})
+              expiresAt: refreshedAt + CACHE_TTL_MS,
+            })
             .onConflictDoUpdate({
               target: figmaCache.url,
               set: {
                 payload: result.right,
                 refreshedAt,
-                expiresAt: refreshedAt + CACHE_TTL_MS}})
+                expiresAt: refreshedAt + CACHE_TTL_MS,
+              },
+            })
             .run();
         }
         return result;
       })
-      .catch(
-        (cause): IRpcEither<IFigmaFilePreviewPayload> => ({
-          _tag: "Left",
-          left: {
-            code: "scrape-persistence-failed",
-            message: `Figma scrape failed: ${String(cause)}`}}),
-      );
+      .catch((cause): IRpcEither<IFigmaFilePreviewPayload> => ({
+        _tag: "Left",
+        left: {
+          code: "scrape-persistence-failed",
+          message: `Figma scrape failed: ${String(cause)}`,
+        },
+      }));
 
     this.#inFlightScrapes.set(canonicalUrl, scrapePromise);
     try {

@@ -21,7 +21,8 @@ const JsonLdPreviewObjectSchema = Schema.Struct({
       Schema.Struct({ url: Schema.String }),
     ]),
   ),
-  publisher: Schema.optional(Schema.Union([Schema.String, Schema.Struct({ name: Schema.String })]))});
+  publisher: Schema.optional(Schema.Union([Schema.String, Schema.Struct({ name: Schema.String })])),
+});
 
 const JsonLdPreviewDocumentSchema = Schema.Union([
   JsonLdPreviewObjectSchema,
@@ -32,7 +33,8 @@ const linkPreviewCache = sqliteTable("link_preview_cache", {
   url: text("url").primaryKey(),
   payload: text("payload", { mode: "json" }).$type<ILinkPreview>().notNull(),
   refreshedAt: integer("refreshed_at").notNull(),
-  expiresAt: integer("expires_at").notNull()});
+  expiresAt: integer("expires_at").notNull(),
+});
 
 const linkPreviewMigrations = {
   "20260718000000_create_link_preview_cache.sql": `
@@ -42,7 +44,8 @@ CREATE TABLE link_preview_cache (
   refreshed_at INTEGER NOT NULL,
   expires_at INTEGER NOT NULL
 );
-`};
+`,
+};
 
 export class LinkBackend extends DurableObject<IScraperEnv> {
   readonly #db;
@@ -67,7 +70,9 @@ export class LinkBackend extends DurableObject<IScraperEnv> {
         left: {
           code: "invalid-scrape-request",
           message: "Link preview requires a valid HTTP or HTTPS URL",
-          retryable: false}};
+          retryable: false,
+        },
+      };
     }
 
     if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
@@ -76,7 +81,9 @@ export class LinkBackend extends DurableObject<IScraperEnv> {
         left: {
           code: "invalid-scrape-request",
           message: "Link preview requires an HTTP or HTTPS URL",
-          retryable: false}};
+          retryable: false,
+        },
+      };
     }
 
     parsedUrl.hash = "";
@@ -105,8 +112,10 @@ export class LinkBackend extends DurableObject<IScraperEnv> {
         const response = await fetch(canonicalUrl, {
           headers: {
             Accept: "text/html,application/xhtml+xml",
-            "User-Agent": "qrk.sh link preview"},
-          redirect: "follow"});
+            "User-Agent": "qrk.sh link preview",
+          },
+          redirect: "follow",
+        });
 
         if (!response.ok) {
           return {
@@ -114,7 +123,9 @@ export class LinkBackend extends DurableObject<IScraperEnv> {
             left: {
               code: response.status >= 500 ? "scrape-transient-failure" : "link-unavailable",
               message: `Link preview request failed with HTTP ${response.status}`,
-              retryable: response.status >= 500}};
+              retryable: response.status >= 500,
+            },
+          };
         }
 
         const contentType = response.headers.get("content-type") ?? "";
@@ -124,7 +135,9 @@ export class LinkBackend extends DurableObject<IScraperEnv> {
             left: {
               code: "unsupported-page-shape",
               message: "Link preview response was not HTML",
-              retryable: false}};
+              retryable: false,
+            },
+          };
         }
 
         let openGraphTitle = "";
@@ -140,42 +153,50 @@ export class LinkBackend extends DurableObject<IScraperEnv> {
           .on('meta[property="og:title"]', {
             element(element) {
               openGraphTitle = element.getAttribute("content")?.trim() ?? "";
-            }})
+            },
+          })
           .on('meta[property="og:description"]', {
             element(element) {
               openGraphDescription = element.getAttribute("content")?.trim() ?? "";
-            }})
+            },
+          })
           .on('meta[property="og:site_name"]', {
             element(element) {
               openGraphSiteName = element.getAttribute("content")?.trim() ?? "";
-            }})
+            },
+          })
           .on('meta[property="og:image"]', {
             element(element) {
               openGraphImageUrl = element.getAttribute("content")?.trim() ?? "";
-            }})
+            },
+          })
           .on('link[rel="icon"]', {
             element(element) {
               if (iconUrl.length === 0) {
                 iconUrl = element.getAttribute("href")?.trim() ?? "";
               }
-            }})
+            },
+          })
           .on('link[rel="shortcut icon"]', {
             element(element) {
               if (iconUrl.length === 0) {
                 iconUrl = element.getAttribute("href")?.trim() ?? "";
               }
-            }})
+            },
+          })
           .on("title", {
             text(textChunk) {
               documentTitle += textChunk.text;
-            }})
+            },
+          })
           .on('script[type="application/ld+json"]', {
             text(textChunk) {
               if (!jsonLdComplete) {
                 jsonLdText += textChunk.text;
                 jsonLdComplete = textChunk.lastInTextNode;
               }
-            }})
+            },
+          })
           .transform(response);
 
         await transformedResponse.text();
@@ -250,9 +271,11 @@ export class LinkBackend extends DurableObject<IScraperEnv> {
           description: jsonLdDescription || openGraphDescription,
           siteName: jsonLdSiteName || openGraphSiteName || parsedUrl.hostname,
           imageUrl: resolvedImageUrl,
-          iconUrl: resolvedIconUrl};
+          iconUrl: resolvedIconUrl,
+        };
         const decodedPreview = Schema.decodeUnknownResult(LinkPreviewSchema)(previewCandidate, {
-          onExcessProperty: "error"});
+          onExcessProperty: "error",
+        });
 
         if (Result.isFailure(decodedPreview) || decodedPreview.success.title.length === 0) {
           return {
@@ -260,7 +283,9 @@ export class LinkBackend extends DurableObject<IScraperEnv> {
             left: {
               code: "unsupported-page-shape",
               message: "Link preview page did not provide a title",
-              retryable: false}};
+              retryable: false,
+            },
+          };
         }
 
         const refreshedAt = Date.now();
@@ -270,13 +295,16 @@ export class LinkBackend extends DurableObject<IScraperEnv> {
             url: canonicalUrl,
             payload: decodedPreview.success,
             refreshedAt,
-            expiresAt: refreshedAt + CACHE_TTL_MS})
+            expiresAt: refreshedAt + CACHE_TTL_MS,
+          })
           .onConflictDoUpdate({
             target: linkPreviewCache.url,
             set: {
               payload: decodedPreview.success,
               refreshedAt,
-              expiresAt: refreshedAt + CACHE_TTL_MS}})
+              expiresAt: refreshedAt + CACHE_TTL_MS,
+            },
+          })
           .run();
 
         return { _tag: "Right", right: decodedPreview.success };
@@ -286,7 +314,9 @@ export class LinkBackend extends DurableObject<IScraperEnv> {
           left: {
             code: "scrape-transient-failure",
             message: `Link preview request failed: ${String(cause)}`,
-            retryable: true}};
+            retryable: true,
+          },
+        };
       }
     })();
 
@@ -302,7 +332,8 @@ export class LinkBackend extends DurableObject<IScraperEnv> {
                   event: "scraper-background-refresh-failed",
                   backend: "LinkBackend",
                   url: canonicalUrl,
-                  error: result.left}),
+                  error: result.left,
+                }),
               );
             }
           })

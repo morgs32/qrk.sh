@@ -7,6 +7,5 @@ export const repoLanguageComponent = defineComponent({
   props: {
     language: primitives.text({ nullable: true }),
   },
-  description:
-    'Primary language. Bind language with { "$state": "/language" }. Hidden when null.',
+  description: 'Primary language. Bind language with { "$state": "/language" }. Hidden when null.',
 });

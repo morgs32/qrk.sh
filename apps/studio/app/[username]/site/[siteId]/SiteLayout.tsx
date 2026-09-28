@@ -122,9 +122,7 @@ export default function PageLayout() {
   }, [initializeSitePageDraft, pageId, siteId, identityKey]);
 
   const isCurrentRouteReady =
-    pageDraft !== undefined &&
-    siteDraftId === siteId &&
-    pageDraftId === pageId;
+    pageDraft !== undefined && siteDraftId === siteId && pageDraftId === pageId;
 
   return isCurrentRouteReady ? (
     <div className="flex h-screen flex-col overflow-hidden">

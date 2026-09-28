@@ -22,32 +22,63 @@ export function ModulePreview(props: {
   const declaredW = view.w;
   const declaredH = view.h;
   const hasDeclaredSize = declaredW !== undefined && declaredH !== undefined;
-  const [measuredUnits, setMeasuredUnits] = useState<{ w: number; h: number }>();
+  const [measuredUnits, setMeasuredUnits] = useState<
+    Partial<Record<(typeof BREAKPOINTS)[number]["id"], { w: number; h: number }>>
+  >({});
   const onSizeChange = useCallback(
-    (dimensions: { widthPx: number; heightPx: number }) => {
-      const entry = BREAKPOINTS.find((row) => row.id === breakpoint);
+    (
+      targetBreakpoint: (typeof BREAKPOINTS)[number]["id"],
+      dimensions: { widthPx: number; heightPx: number },
+    ) => {
+      const entry = BREAKPOINTS.find((row) => row.id === targetBreakpoint);
       if (entry === undefined) return;
       const w = minGridUnits(entry.gridItemWidth, dimensions.widthPx);
       const h = minGridUnits(entry.gridItemWidth, dimensions.heightPx);
       setMeasuredUnits((current) => {
-        if (current?.w === w && current?.h === h) return current;
-        return { w, h };
+        const measured = current[targetBreakpoint];
+        if (measured?.w === w && measured.h === h) return current;
+        return { ...current, [targetBreakpoint]: { w, h } };
       });
     },
-    [breakpoint],
+    [],
   );
 
-  const dragW = hasDeclaredSize ? declaredW : (measuredUnits?.w ?? 1);
-  const dragH = hasDeclaredSize ? declaredH : (measuredUnits?.h ?? 1);
-  const brickDefForDrag: IModuleBrickDef & { spec: Spec; w: number; h: number } = {
-    ...def,
-    w: dragW,
-    h: dragH,
-    spec: structuredClone(spec),
-  };
+  const sizes = BREAKPOINTS.map((entry) => {
+    const entryView = brickModule.viewFor(entry.id);
+    const measured = measuredUnits[entry.id];
+    return entryView.w !== undefined && entryView.h !== undefined
+      ? { w: entryView.w, h: entryView.h }
+      : measured === undefined
+        ? undefined
+        : { w: Math.min(8, measured.w), h: measured.h };
+  });
+  const placementSizes =
+    sizes[0] && sizes[1] && sizes[2] && sizes[3]
+      ? { sm: sizes[0], md: sizes[1], lg: sizes[2], xl: sizes[3] }
+      : null;
+  const activeSize = placementSizes?.[breakpoint];
+  const dragW = activeSize?.w ?? 1;
+  const dragH = activeSize?.h ?? 1;
+  const brickDefForDrag:
+    | (IModuleBrickDef & {
+        spec: Spec;
+        w: number;
+        h: number;
+        placementSizes: Record<"sm" | "md" | "lg" | "xl", { w: number; h: number }>;
+      })
+    | null =
+    placementSizes === null
+      ? null
+      : {
+          ...def,
+          w: dragW,
+          h: dragH,
+          placementSizes,
+          spec: structuredClone(spec),
+        };
   const exceedsWallWidth = hasDeclaredSize
     ? declaredW > 8
-    : measuredUnits !== undefined && measuredUnits.w > 8;
+    : measuredUnits[breakpoint] !== undefined && measuredUnits[breakpoint].w > 8;
 
   return (
     <div
@@ -67,17 +98,24 @@ export function ModulePreview(props: {
         </Link>
       </h2>
       <div className="relative pb-16">
-        {hasDeclaredSize ? null : (
-          <div
-            aria-hidden
-            className="pointer-events-none absolute overflow-hidden"
-            style={{ width: 0, height: 0 }}
-          >
-            <MeasuredBrickWrapper onChange={onSizeChange}>
-              <BrickComponent breakpoint={breakpoint} state={def.state} spec={spec} />
-            </MeasuredBrickWrapper>
-          </div>
-        )}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute overflow-hidden"
+          style={{ width: 0, height: 0 }}
+        >
+          {BREAKPOINTS.map((entry) => {
+            const entryView = brickModule.viewFor(entry.id);
+            if (entryView.w !== undefined && entryView.h !== undefined) return null;
+            return (
+              <MeasuredBrickWrapper
+                key={entry.id}
+                onChange={(dimensions) => onSizeChange(entry.id, dimensions)}
+              >
+                <BrickComponent breakpoint={entry.id} state={def.state} spec={entryView.spec} />
+              </MeasuredBrickWrapper>
+            );
+          })}
+        </div>
         <GridItemPreview breakpoint={breakpoint} w={dragW} h={dragH}>
           <DraggableBrick
             brickDef={brickDefForDrag}

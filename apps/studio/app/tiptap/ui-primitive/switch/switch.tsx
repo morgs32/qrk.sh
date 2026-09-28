@@ -1,17 +1,17 @@
-"use client"
+"use client";
 
-import { Switch as SwitchPrimitive } from "@base-ui/react/switch"
+import { Switch as SwitchPrimitive } from "@base-ui/react/switch";
 
-import { cn } from "@/app/tiptap/lib/tiptap-utils"
+import { cn } from "@/app/tiptap/lib/tiptap-utils";
 
-import "./switch.scss"
+import "./switch.scss";
 
 function Switch({
   className,
   size = "default",
   ...props
 }: SwitchPrimitive.Root.Props & {
-  size?: "sm" | "default"
+  size?: "sm" | "default";
 }) {
   return (
     <SwitchPrimitive.Root
@@ -20,12 +20,9 @@ function Switch({
       className={cn("tiptap-switch", className)}
       {...props}
     >
-      <SwitchPrimitive.Thumb
-        data-slot="tiptap-switch-thumb"
-        className="tiptap-switch-thumb"
-      />
+      <SwitchPrimitive.Thumb data-slot="tiptap-switch-thumb" className="tiptap-switch-thumb" />
     </SwitchPrimitive.Root>
-  )
+  );
 }
 
-export { Switch }
+export { Switch };

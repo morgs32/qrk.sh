@@ -3,9 +3,7 @@ import { expect, test, type Page } from "@playwright/test";
 const pageBase = "/e2e/site/e2e/page/home";
 
 function drawerBrickPreviewSlot(page: Page, moduleId: string) {
-  return page.locator(
-    `[data-brick-drawer-brick-slot][data-brick-drawer-module-id="${moduleId}"]`,
-  );
+  return page.locator(`[data-brick-drawer-brick-slot][data-brick-drawer-module-id="${moduleId}"]`);
 }
 
 test.describe("BrickGroup", () => {

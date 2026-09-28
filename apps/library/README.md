@@ -58,7 +58,10 @@ identity, catalog, `stateShape`, and `defaultState`. `makeModuleView` attaches t
 authored React brick and, when ready, a json-render `generator` (`registry` +
 `defaultSpec`). Optional `sm` / `md` / `lg` / `xl` overlays merge onto `default`
 (component, generator, declared `w`/`h`). Grid sizing is measured at preview/drag
-time unless both `w` and `h` are declared on that overlay.
+time unless both `w` and `h` are declared on that overlay. A new drag waits for
+all four breakpoint defaults; measured widths are limited to the wall's eight
+columns. `addBrick` uses the drop X/Y and each breakpoint's own size when
+creating placements.
 
 `Layout` initializes the module-level `librarySession` with
 `useInitializeStandaloneSession`. Its `qrk-library` backup key persists the

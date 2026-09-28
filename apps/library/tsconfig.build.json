@@ -10,13 +10,5 @@
     "rootDir": "."
   },
   "include": ["**/*.ts", "**/*.tsx"],
-  "exclude": [
-    "app/**",
-    "worker/**",
-    "vite*.ts",
-    "dist",
-    "build",
-    "node_modules",
-    "test-results"
-  ]
+  "exclude": ["app/**", "worker/**", "vite*.ts", "dist", "build", "node_modules", "test-results"]
 }

@@ -26,10 +26,7 @@ function makeInitialState(state: unknown): Record<string, unknown> {
   return {};
 }
 
-function assertBothOrNeitherWh(
-  context: string,
-  overlay: { w?: number; h?: number },
-) {
+function assertBothOrNeitherWh(context: string, overlay: { w?: number; h?: number }) {
   const hasW = overlay.w !== undefined;
   const hasH = overlay.h !== undefined;
   if (hasW !== hasH) {
@@ -71,9 +68,7 @@ function resolvedGenerator(
     );
   }
   if (catalog === undefined) {
-    throw new Error(
-      `makeModuleView: ${JSON.stringify(moduleId)} has no catalog; omit generator`,
-    );
+    throw new Error(`makeModuleView: ${JSON.stringify(moduleId)} has no catalog; omit generator`);
   }
   return { registry, defaultSpec };
 }
@@ -120,9 +115,7 @@ export function makeModuleView<
   },
 ) {
   if (view.default.generator !== undefined && module.catalog === undefined) {
-    throw new Error(
-      `makeModuleView: ${JSON.stringify(module.id)} has no catalog; omit generator`,
-    );
+    throw new Error(`makeModuleView: ${JSON.stringify(module.id)} has no catalog; omit generator`);
   }
   assertBothOrNeitherWh(`${JSON.stringify(module.id)}.sm`, view.sm ?? {});
   assertBothOrNeitherWh(`${JSON.stringify(module.id)}.md`, view.md ?? {});

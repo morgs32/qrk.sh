@@ -1,5 +1,9 @@
 import type { IDb } from "@zerospin/core/drizzle/types";
-import { makeContractVersion } from "@zerospin/core/contracts/make/makeContractVersion";
+import {
+  makeContractVersion,
+  upgradeContractVersion,
+} from "@zerospin/core/contracts/make/makeContractVersion";
+import type { IModelMutations } from "@zerospin/core/contracts/types";
 import type { InferCommandPayload } from "@zerospin/core/models/types";
 import { mapParseError, ZerospinError } from "@zerospin/error";
 import {
@@ -15,7 +19,6 @@ import type { defineComponent } from "../../../make/defineComponent";
 import { makeModuleSpecDocumentSchema } from "../../../make/makeModuleSpecDocumentSchema";
 import { makePlacementId } from "../../models/placement/makePlacementId";
 import {
-  cloneLayoutItem,
   makeCollisionResolvedLayout,
   findVisibleLayoutError,
 } from "../../resolveVisibleCollisions";
@@ -77,7 +80,88 @@ export function makeAddBrickContract<
     }),
   };
 
-  return makeContractVersion(addBrick, {
+  const placementSizes = primitives.json({
+    schema: Schema.Struct({
+      sm: Schema.Struct({ w: Schema.Number, h: Schema.Number }),
+      md: Schema.Struct({ w: Schema.Number, h: Schema.Number }),
+      lg: Schema.Struct({ w: Schema.Number, h: Schema.Number }),
+      xl: Schema.Struct({ w: Schema.Number, h: Schema.Number }),
+    }),
+  });
+
+  const applyAddBrickMutations = Effect.fn("addBrick.applyMutations")(function* (args: {
+    payload: InferCommandPayload<typeof addBrickPayload>;
+    models: {
+      brick: IModelMutations<typeof props.brick>;
+      placement: IModelMutations<typeof props.placement>;
+    };
+    placementSizes: Record<"sm" | "md" | "lg" | "xl", { w: number; h: number }>;
+  }) {
+    const { payload, models, placementSizes } = args;
+    const mutations = [];
+    const clonedState = structuredClone(payload.state);
+    const clonedSpec = structuredClone(payload.spec);
+
+    mutations.push(
+      yield* models.brick.create({
+        resourceId: payload.brickId as InferIdFromAbbreviation<"brk">,
+        attributes: {
+          wallId: payload.wallId as InferIdFromAbbreviation<"wal">,
+          moduleId: payload.moduleId,
+          state: clonedState,
+        },
+      }),
+    );
+
+    for (const breakpoint of ["sm", "md", "lg", "xl"] as Array<"sm" | "md" | "lg" | "xl">) {
+      const size = placementSizes[breakpoint];
+      const layout =
+        breakpoint === payload.breakpoint
+          ? payload.resolvedActiveLayout
+          : makeCollisionResolvedLayout({
+              visibleLayout: payload.otherBreakpointVisibleLayouts[breakpoint],
+              incoming: {
+                ...payload.droppedItem,
+                w: size.w,
+                h: size.h,
+              },
+            });
+
+      for (const item of layout) {
+        if (item.i === payload.brickId) {
+          mutations.push(
+            yield* models.placement.create({
+              resourceId: makePlacementId(
+                payload.brickId,
+                breakpoint,
+              ) as InferIdFromAbbreviation<"plc">,
+              attributes: {
+                brickId: payload.brickId as InferIdFromAbbreviation<"brk">,
+                breakpoint,
+                spec: structuredClone(clonedSpec),
+                gridItem: item,
+                isVisible: true,
+              } as InferDecodedRow<(typeof props.placement)["attributes"]>,
+            }),
+          );
+          continue;
+        }
+
+        mutations.push(
+          yield* models.placement.update({
+            resourceId: makePlacementId(item.i, breakpoint) as InferIdFromAbbreviation<"plc">,
+            attributes: {
+              gridItem: item,
+            } as Partial<InferDecodedRow<(typeof props.placement)["attributes"]>>,
+          }),
+        );
+      }
+    }
+
+    return mutations;
+  });
+
+  const addBrickV1 = makeContractVersion(addBrick, {
     payload: addBrickPayload,
     models: {
       wall: props.wall,
@@ -344,63 +428,47 @@ export function makeAddBrickContract<
       }
     }),
     program: ({ payload, models }) =>
-      Effect.gen(function* () {
-        const mutations = [];
-        const clonedState = structuredClone(payload.state);
-        const clonedSpec = structuredClone(payload.spec);
-
-        mutations.push(
-          yield* models.brick.create({
-            resourceId: payload.brickId as InferIdFromAbbreviation<"brk">,
-            attributes: {
-              wallId: payload.wallId as InferIdFromAbbreviation<"wal">,
-              moduleId: payload.moduleId,
-              state: clonedState,
-            },
-          }),
-        );
-
-        for (const breakpoint of ["sm", "md", "lg", "xl"] as Array<"sm" | "md" | "lg" | "xl">) {
-          const layout =
-            breakpoint === payload.breakpoint
-              ? payload.resolvedActiveLayout
-              : makeCollisionResolvedLayout({
-                  visibleLayout: payload.otherBreakpointVisibleLayouts[breakpoint],
-                  incoming: cloneLayoutItem(payload.droppedItem),
-                });
-
-          for (const item of layout) {
-            if (item.i === payload.brickId) {
-              mutations.push(
-                yield* models.placement.create({
-                  resourceId: makePlacementId(
-                    payload.brickId,
-                    breakpoint,
-                  ) as InferIdFromAbbreviation<"plc">,
-                  attributes: {
-                    brickId: payload.brickId as InferIdFromAbbreviation<"brk">,
-                    breakpoint,
-                    spec: structuredClone(clonedSpec),
-                    gridItem: item,
-                    isVisible: true,
-                  } as InferDecodedRow<(typeof props.placement)["attributes"]>,
-                }),
-              );
-              continue;
-            }
-
-            mutations.push(
-              yield* models.placement.update({
-                resourceId: makePlacementId(item.i, breakpoint) as InferIdFromAbbreviation<"plc">,
-                attributes: {
-                  gridItem: item,
-                } as Partial<InferDecodedRow<(typeof props.placement)["attributes"]>>,
-              }),
-            );
-          }
-        }
-
-        return mutations;
+      applyAddBrickMutations({
+        payload,
+        models,
+        placementSizes: {
+          sm: { w: payload.droppedItem.w, h: payload.droppedItem.h },
+          md: { w: payload.droppedItem.w, h: payload.droppedItem.h },
+          lg: { w: payload.droppedItem.w, h: payload.droppedItem.h },
+          xl: { w: payload.droppedItem.w, h: payload.droppedItem.h },
+        },
       }),
+  });
+
+  return upgradeContractVersion(addBrickV1, {
+    version: "1.1.0",
+    payload: { placementSizes },
+    up: ({ payload }) =>
+      Effect.succeed({
+        ...payload,
+        placementSizes: {
+          sm: { w: payload.droppedItem.w, h: payload.droppedItem.h },
+          md: { w: payload.droppedItem.w, h: payload.droppedItem.h },
+          lg: { w: payload.droppedItem.w, h: payload.droppedItem.h },
+          xl: { w: payload.droppedItem.w, h: payload.droppedItem.h },
+        },
+      }),
+    guard: Effect.fn("addBrick.guardV1_1")(function* ({ queryDb, payload, claims }) {
+      if (addBrickV1.guard) {
+        yield* addBrickV1.guard({ queryDb, payload, claims, failures: {} });
+      }
+      for (const breakpoint of ["sm", "md", "lg", "xl"] as Array<"sm" | "md" | "lg" | "xl">) {
+        const size = payload.placementSizes[breakpoint];
+        if (!Number.isInteger(size.w) || size.w < 1 || !Number.isInteger(size.h) || size.h < 1) {
+          return yield* new ZerospinError({
+            code: "add-brick-placement-size-invalid",
+            message: `placementSizes.${breakpoint} must contain positive integer w and h`,
+            status: 400,
+          });
+        }
+      }
+    }),
+    program: ({ payload, models }) =>
+      applyAddBrickMutations({ payload, models, placementSizes: payload.placementSizes }),
   });
 }

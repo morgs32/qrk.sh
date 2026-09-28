@@ -33,9 +33,9 @@ function makeCatalogFromComponents(
     }
   }
 
-  const catalogComponents = mapValues(components, component => {
+  const catalogComponents = mapValues(components, (component) => {
     const dynamicProps = makeZodSchema({}).extend(
-      mapValues(component.props, descriptor => {
+      mapValues(component.props, (descriptor) => {
         const dynamicField = descriptorToZod(descriptor).or(stateRefSchema);
         if (
           descriptor !== undefined &&

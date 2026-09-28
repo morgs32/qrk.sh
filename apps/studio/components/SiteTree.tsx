@@ -39,7 +39,10 @@ function AccountTypeIcon({ kind }: { kind: "asset" | "liability" | "income" }) {
         data-testid="account-type-icon-liability"
       >
         <circle cx="6" cy="6" r="6" fill="#ef4444" />
-        <path d="M4.00366 9.29678H8.95966V8.38478H5.05966V2.30078H4.00366V9.29678Z" fill="#18181b" />
+        <path
+          d="M4.00366 9.29678H8.95966V8.38478H5.05966V2.30078H4.00366V9.29678Z"
+          fill="#18181b"
+        />
       </svg>
     );
   }
@@ -113,11 +116,17 @@ export function SiteTree({
       ) : null}
       <div className="divide-y-[0.5px] overflow-hidden border-[0.5px] border-border bg-background">
         {rows.map((row, index) => (
-          <div key={`${row.label}-${index}`} className="flex h-[1lh] items-center bg-background pl-[2px]">
+          <div
+            key={`${row.label}-${index}`}
+            className="flex h-[1lh] items-center bg-background pl-[2px]"
+          >
             {row.prefix === null && row.kind !== undefined ? (
               <AccountTypeIcon kind={row.kind} />
             ) : (
-              <span aria-hidden="true" className="pr-[1ch] pl-[12px] whitespace-pre text-muted-foreground">
+              <span
+                aria-hidden="true"
+                className="pr-[1ch] pl-[12px] whitespace-pre text-muted-foreground"
+              >
                 {row.prefix}
               </span>
             )}

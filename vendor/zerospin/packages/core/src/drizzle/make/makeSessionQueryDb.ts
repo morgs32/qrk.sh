@@ -3,7 +3,7 @@ import { mapValues } from 'es-toolkit';
 
 import { Model } from '../../models/defineModel.ts';
 import type { IAnyModels } from '../../models/types.ts';
-import type { IWaSqliteClient } from '../types.ts';
+import type { IDbConfig, IDrizzleRelationsFromModels, InferDrizzleSchemaFromTables, IWaSqliteClient, IWaSqliteDrizzleDb } from '../types.ts';
 import { makeDrizzleRelationsFromTables } from './makeDbConfig/makeDrizzleRelationsFromTables/makeDrizzleRelationsFromTables.ts';
 import { makeDrizzleSchemasRecordFromTables } from './makeDrizzleSchemasRecordFromTables.ts';
 import { makeWaSqliteDrizzle } from './makeProvisionedInMemoryWasmSqliteDb/makeInMemoryWasmSqliteDb/makeWaSqliteDrizzle/makeWaSqliteDrizzle.ts';
@@ -12,7 +12,13 @@ import { makeWaSqliteDrizzle } from './makeProvisionedInMemoryWasmSqliteDb/makeI
 export function makeSessionQueryDb<MODELS extends IAnyModels>(props: {
   models: MODELS;
   client: IWaSqliteClient;
-}) {
+}): Pick<
+  IWaSqliteDrizzleDb<IDbConfig<
+    InferDrizzleSchemaFromTables<{ [K in keyof MODELS]: MODELS[K]['table'] }, true>,
+    IDrizzleRelationsFromModels<MODELS, { [K in keyof MODELS]: MODELS[K]['table'] }, true>
+  >>,
+  'query' | '$client'
+> {
   const tables: { [K in keyof MODELS]: MODELS[K]['table'] } = mapValues(
     props.models,
     model => model.table,

@@ -7,6 +7,7 @@ import type { StoreApi } from 'zustand';
 import type { INodeState } from '../aggregateSession/NodeState.ts';
 import type { IActorDelta, ISessionId } from '../aggregateSession/types.ts';
 import type { ICommand } from '../contracts/types.ts';
+import type { makeSessionQueryDb } from '../drizzle/make/makeSessionQueryDb.ts';
 import type {
   IDb,
   IDbConfig,
@@ -85,6 +86,7 @@ export type IInitializedServiceSessionState<
   sessionName: string;
   serviceSessionLockKey: string;
   db: IServiceSessionWaSqliteDb<MODELS, IDrizzleRelationsFromModels<MODELS>>;
+  queryDb: ReturnType<typeof makeSessionQueryDb<MODELS>>;
   schema: IServiceSessionSchema<MODELS>;
   models: MODELS;
   isInitialized: true;
@@ -113,6 +115,7 @@ export type IServiceSessionState<
       sessionName: null;
       serviceSessionLockKey: null;
       db: null;
+      queryDb: null;
       schema: null;
       models: null;
       isInitialized: false;

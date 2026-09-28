@@ -307,6 +307,9 @@ describe('live session backup ownership', () => {
     });
     try {
       await session.initialize();
+      const initialState = session.store.getState();
+      expect(initialState.queryDb?.$client).toBe(initialState.db?.$client);
+      expect(initialState.queryDb?.query).toEqual({});
       const first = session.runtime;
       const saved = [...connections.snapshots.keys()];
       expect(saved).toHaveLength(1);
@@ -316,6 +319,10 @@ describe('live session backup ownership', () => {
       expect(session.store.getState().sessionStatus).toBe('current');
       expect(released).toBe(1);
       await session.dispose();
+      expect(session.store.getState()).toMatchObject({
+        db: null,
+        queryDb: null,
+      });
       expect([...connections.snapshots.keys()]).toEqual(saved);
       connections.appliedParameters.length = 0;
       await session.initialize();
@@ -324,6 +331,9 @@ describe('live session backup ownership', () => {
         1,
       ]);
       expect(session.runtime.runSync(Instance).id).toBe(3);
+      const restoredState = session.store.getState();
+      expect(restoredState.queryDb?.$client).toBe(restoredState.db?.$client);
+      expect(restoredState.queryDb).not.toBe(initialState.queryDb);
       expect(session.store.getState().sessionStatus).toBe('current');
       const reset = session.reset();
       const disposed = session.dispose();

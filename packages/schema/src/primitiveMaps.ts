@@ -1,3 +1,4 @@
+import { getTableColumns } from 'drizzle-orm';
 import type { ColumnBuilderBase } from 'drizzle-orm/column-builder';
 import {
   integer as drizzleInteger,
@@ -509,16 +510,20 @@ export function makeDrizzleSchema<
 export function makeDrizzleSchemaFromTable<
   TABLE_NAME extends string,
   SHAPE extends IAnyShape,
+  DECODED extends boolean = false,
 >(
   table: ITable<TABLE_NAME, SHAPE>,
   resolveReference?: (descriptor: IAnyRefDescriptor) => () => AnySQLiteColumn,
-): IDrizzleSchema<TABLE_NAME, SHAPE> {
+  decodeJson?: DECODED,
+): IDrizzleSchema<TABLE_NAME, SHAPE, DECODED>;
+export function makeDrizzleSchemaFromTable(
+  table: ITable<string, IAnyShape>,
+  resolveReference?: (descriptor: IAnyRefDescriptor) => () => AnySQLiteColumn,
+  decodeJson = false,
+): IAnyDrizzleSchema {
   const { indexes, name, shape } = table;
   const columns = buildDrizzleColumnsFromShape(shape, resolveReference);
-  if (indexes.length === 0) {
-    return sqliteTable(name, columns);
-  }
-  return sqliteTable(name, columns, tableColumns =>
+  const result = sqliteTable(name, columns, tableColumns =>
     indexes.map(indexConfig => {
       const [firstColumnName, ...otherColumnNames] = indexConfig.columns;
       const indexedTableColumns = tableColumns as Record<
@@ -536,6 +541,18 @@ export function makeDrizzleSchemaFromTable<
       return builder.on(firstColumn, ...otherColumns);
     }),
   );
+  if (decodeJson) {
+    const resultColumns = getTableColumns(result);
+    for (const [key, descriptor] of Object.entries(shape)) {
+      if (descriptor.kind !== PrimitiveKind.Json) continue;
+      const column = resultColumns[key];
+      if (column === undefined) continue;
+      const codec = descriptorToEffectSchema(descriptor);
+      column.mapFromDriverValue = Schema.decodeUnknownSync(codec);
+      column.mapToDriverValue = Schema.encodeSync(codec);
+    }
+  }
+  return result;
 }
 
 export function makeDrizzleSchemaFromEncodedTable(props: {

@@ -430,10 +430,7 @@ type ISqliteDateBuilder = ColumnBuilderBase<{
   driverParam: unknown;
 }>;
 
-type IEncodedTextColumn<
-  NULLABLE extends boolean,
-  DATA extends string,
-> = NULLABLE extends true
+type IEncodedTextColumn<NULLABLE extends boolean, DATA> = NULLABLE extends true
   ? $Type<ISqliteTextBuilder, DATA | null>
   : NotNull<$Type<ISqliteTextBuilder, DATA>>;
 
@@ -455,6 +452,7 @@ type IEncodedDateColumn<NULLABLE extends boolean> = NULLABLE extends true
  */
 export type InferDrizzleColumnBuilderFromDescriptor<
   D extends IAnyPrimitiveDescriptor,
+  DECODED extends boolean = false,
 > =
   D extends IPrimaryKeyDescriptor<infer ABBREVIATION>
     ? IsPrimaryKey<
@@ -493,14 +491,25 @@ export type InferDrizzleColumnBuilderFromDescriptor<
                   : IEncodedTextColumn<NULLABLE, string>
                 : D extends IJsonDescriptor<
                       infer NULLABLE,
-                      infer _DATA,
+                      infer DATA,
                       infer DEFAULT_VALUE
                     >
                   ? [DEFAULT_VALUE] extends [null]
                     ? NULLABLE extends true
-                      ? HasDefault<IEncodedTextColumn<NULLABLE, string>>
-                      : IEncodedTextColumn<NULLABLE, string>
-                    : IEncodedTextColumn<NULLABLE, string>
+                      ? HasDefault<
+                          IEncodedTextColumn<
+                            NULLABLE,
+                            DECODED extends true ? DATA : string
+                          >
+                        >
+                      : IEncodedTextColumn<
+                          NULLABLE,
+                          DECODED extends true ? DATA : string
+                        >
+                    : IEncodedTextColumn<
+                        NULLABLE,
+                        DECODED extends true ? DATA : string
+                      >
                   : D extends IDateDescriptor<
                         infer NULLABLE,
                         infer DEFAULT_VALUE
@@ -541,19 +550,26 @@ export type InferDrizzleColumnBuilderFromDescriptor<
                             >
                         : ISqliteTextBuilder;
 
-export type InferDrizzleColumnBuildersFromShape<SHAPE extends IAnyShape> = {
-  [K in keyof SHAPE]: InferDrizzleColumnBuilderFromDescriptor<SHAPE[K]>;
+export type InferDrizzleColumnBuildersFromShape<
+  SHAPE extends IAnyShape,
+  DECODED extends boolean = false,
+> = {
+  [K in keyof SHAPE]: InferDrizzleColumnBuilderFromDescriptor<
+    SHAPE[K],
+    DECODED
+  >;
 };
 
 type IDrizzleSQLiteTable<
   MODEL_NAME extends string,
   PROPERTIES extends IAnyShape,
+  DECODED extends boolean = false,
 > = {
   name: MODEL_NAME;
   schema: undefined;
   columns: BuildColumns<
     MODEL_NAME,
-    InferDrizzleColumnBuildersFromShape<PROPERTIES>,
+    InferDrizzleColumnBuildersFromShape<PROPERTIES, DECODED>,
     'sqlite'
   >;
   dialect: 'sqlite';
@@ -562,7 +578,10 @@ type IDrizzleSQLiteTable<
 export type IDrizzleSchema<
   MODEL_NAME extends string = string,
   PROPERTIES extends IAnyShape = IShape,
-> = SQLiteTableWithColumns<IDrizzleSQLiteTable<MODEL_NAME, PROPERTIES>>;
+  DECODED extends boolean = false,
+> = SQLiteTableWithColumns<
+  IDrizzleSQLiteTable<MODEL_NAME, PROPERTIES, DECODED>
+>;
 
 /** Widest sqlite table in a `drizzle({ schema })` record (zerospin `IDrizzleSchema`, raw `sqliteTable`, merged repo schemas). */
 export type IAnyDrizzleSchema = AnySQLiteTable;

@@ -3,7 +3,7 @@
 import { modulesHash } from "@qrk.sh/library";
 import { useLibrarySession } from "@qrk.sh/library/createLibraryStandaloneSession";
 import { GridItemPreview } from "@qrk.sh/library/GridItemPreview";
-import { LibraryFrontend } from "@qrk.sh/library/LibraryFrontend";
+import { libraryModule } from "@qrk.sh/library/libraryModule";
 import { useWallViewport } from "@qrk.sh/library/WallViewportProvider";
 import { isNonEmptySpec, type Spec } from "@json-render/core";
 import { useLiveQuery } from "@zerospin/react";
@@ -24,7 +24,7 @@ const ParamsSchema = Schema.Struct({
 });
 
 function isBrickId(value: string): value is `brk_${string}` {
-  return value.startsWith(`${LibraryFrontend.models.brick.abbreviation}_`);
+  return value.startsWith(`${libraryModule.models.brick.abbreviation}_`);
 }
 
 export function BrickDetail() {

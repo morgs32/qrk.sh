@@ -1,12 +1,9 @@
+import { Schema } from "effect";
 import { createContext, useContext } from "react";
 
 import { makeStandaloneSession } from "@zerospin/browser";
-import type {
-  IAggregateSession,
-  IAggregateSessionDefinition,
-} from "@zerospin/core/aggregateSession/types";
 
-import { LibraryFrontend } from "./makeLibraryFrontend";
+import { libraryModule } from "../libraryModule/libraryModule";
 
 const fixtureDate = new Date("2026-01-01T00:00:00.000Z");
 
@@ -14,8 +11,14 @@ export function createLibraryStandaloneSession(props: { key: string; wallId: `wa
   const { key, wallId } = props;
   return makeStandaloneSession({
     key,
-    ...LibraryFrontend,
-    claimsSchema: LibraryFrontend.claimsSchema,
+    ...libraryModule,
+    kind: "aggregate",
+    aggregateName: "library",
+    aggregateVersion: "1.0.0",
+    actorName: "library",
+    actorVersion: "1.0.0",
+    sessionName: "library",
+    claimsSchema: Schema.Struct({ aggregateId: Schema.String }),
     claims: { aggregateId: "acct_1" },
     resources: {
       wall: [
@@ -23,26 +26,16 @@ export function createLibraryStandaloneSession(props: { key: string; wallId: `wa
           createdAt: fixtureDate,
           id: wallId,
           label: "Library",
-          modelName: LibraryFrontend.models.wall.modelName,
+          modelName: libraryModule.models.wall.modelName,
           updatedAt: fixtureDate,
-          version: LibraryFrontend.models.wall.version,
+          version: libraryModule.models.wall.version,
         },
       ],
     },
   });
 }
 
-export type ILibrarySession = IAggregateSession<
-  IAggregateSessionDefinition<
-    "mock" | "standalone",
-    typeof LibraryFrontend.aggregateName,
-    typeof LibraryFrontend.sessionName,
-    typeof LibraryFrontend.contracts,
-    typeof LibraryFrontend.models,
-    typeof LibraryFrontend.aggregateVersion,
-    typeof LibraryFrontend.claimsSchema
-  >
->;
+export type ILibrarySession = ReturnType<typeof createLibraryStandaloneSession>;
 
 export const LibrarySessionContext = createContext<ILibrarySession | null>(null);
 

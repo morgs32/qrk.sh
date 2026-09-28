@@ -106,20 +106,20 @@ sequenceDiagram
    - [`EditorLayout.tsx:26`](../../../apps/studio/app/[username]/site/[siteId]/page/[pageId]/EditorLayout.tsx#L26) — Studio hardcodes the same `wal_library`. (`apps/studio/app/[username]/site/[siteId]/page/[pageId]/EditorLayout.tsx:26`)
    - [`EditorLayout.tsx:47-54`](../../../apps/studio/app/[username]/site/[siteId]/page/[pageId]/EditorLayout.tsx:47-54) — `LibraryEditorSession` initializes a separately keyed durable document. (`apps/studio/app/[username]/site/[siteId]/page/[pageId]/EditorLayout.tsx:47-54`)
 10. `makeMutations` runs the `addBrick` contract program.
-    - [`AddBrickContractV1.ts:350-351`](../../../apps/library/makeLibraryFrontend/contracts/addBrick/AddBrickContractV1.ts#L350-L351) — `program: ({ payload, models }) => Effect.gen`. (`apps/library/makeLibraryFrontend/contracts/addBrick/AddBrickContractV1.ts:350-351`)
+    - [`AddBrickContractV1.ts:350-351`](../../../apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts#L350-L351) — `program: ({ payload, models }) => Effect.gen`. (`apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts:350-351`)
 11. One brick row is created with cloned module state.
-    - [`AddBrickContractV1.ts:356-364`](../../../apps/library/makeLibraryFrontend/contracts/addBrick/AddBrickContractV1.ts#L356-L364) — `models.brick.create` with `wallId`, `moduleId`, `state`. (`apps/library/makeLibraryFrontend/contracts/addBrick/AddBrickContractV1.ts:356-364`)
+    - [`AddBrickContractV1.ts:356-364`](../../../apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts#L356-L364) — `models.brick.create` with `wallId`, `moduleId`, `state`. (`apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts:356-364`)
 12. Other breakpoints resolve collisions around the dropped item; the active
     breakpoint keeps the UI-supplied layout. Validate already checked the active
     layout with `findVisibleLayoutError`.
-    - [`AddBrickContractV1.ts:167-177`](../../../apps/library/makeLibraryFrontend/contracts/addBrick/AddBrickContractV1.ts#L167-L177) — `findVisibleLayoutError` on `payload.resolvedActiveLayout`. (`apps/library/makeLibraryFrontend/contracts/addBrick/AddBrickContractV1.ts:167-177`)
-    - [`AddBrickContractV1.ts:367-377`](../../../apps/library/makeLibraryFrontend/contracts/addBrick/AddBrickContractV1.ts#L367-L377) — active layout from payload; others `makeCollisionResolvedLayout`. (`apps/library/makeLibraryFrontend/contracts/addBrick/AddBrickContractV1.ts:367-377`)
-    - [`resolveVisibleCollisions.ts:21-50`](../../../apps/library/makeLibraryFrontend/resolveVisibleCollisions.ts#L21-L50) — clones inputs, corrects bounds, and displaces collisions. (`apps/library/makeLibraryFrontend/resolveVisibleCollisions.ts:21-50`)
+    - [`AddBrickContractV1.ts:167-177`](../../../apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts#L167-L177) — `findVisibleLayoutError` on `payload.resolvedActiveLayout`. (`apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts:167-177`)
+    - [`AddBrickContractV1.ts:367-377`](../../../apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts#L367-L377) — active layout from payload; others `makeCollisionResolvedLayout`. (`apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts:367-377`)
+    - [`resolveVisibleCollisions.ts:21-50`](../../../apps/library/libraryModule/resolveVisibleCollisions.ts#L21-L50) — clones inputs, corrects bounds, and displaces collisions. (`apps/library/libraryModule/resolveVisibleCollisions.ts:21-50`)
 13. The constructor returns fresh five-field objects for other-breakpoint layouts.
-    - [`resolveVisibleCollisions.ts:52`](../../../apps/library/makeLibraryFrontend/resolveVisibleCollisions.ts#L52) — maps the completed working layout into fresh five-field objects. (`apps/library/makeLibraryFrontend/resolveVisibleCollisions.ts:52`)
+    - [`resolveVisibleCollisions.ts:52`](../../../apps/library/libraryModule/resolveVisibleCollisions.ts#L52) — maps the completed working layout into fresh five-field objects. (`apps/library/libraryModule/resolveVisibleCollisions.ts:52`)
 14. Four placements are created (one per breakpoint) using five-field items
     directly.
-    - [`AddBrickContractV1.ts:382-397`](../../../apps/library/makeLibraryFrontend/contracts/addBrick/AddBrickContractV1.ts#L382-L397) — `models.placement.create` with `gridItem: item`. (`apps/library/makeLibraryFrontend/contracts/addBrick/AddBrickContractV1.ts:382-397`)
+    - [`AddBrickContractV1.ts:382-397`](../../../apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts#L382-L397) — `models.placement.create` with `gridItem: item`. (`apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts:382-397`)
 15. Drop clears the singleton even when staging reports a failure.
     - [`BrickWall.tsx:253`](../../../apps/library/lib/BrickWall.tsx#L253) — `brickDragStore.getState().setBrickDef(null)` after the command result. (`apps/library/lib/BrickWall.tsx:253`)
     - [`DraggableBrick.tsx:35-37`](../../../apps/library/app/DraggableBrick.tsx#L35-L37) — `onDragEnd` also clears if the drag never dropped. (`apps/library/app/DraggableBrick.tsx:35-37`)

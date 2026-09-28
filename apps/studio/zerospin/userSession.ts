@@ -27,15 +27,7 @@ export const userSession = makeSession({
   claimsSchema: userSessionDefinition.claimsSchema,
   credentialsSchema: signature,
   models: userSessionDefinition.models,
-  contracts: {
-    createGrid: userSessionDefinition.contracts.createGrid.contract,
-    createPage: userSessionDefinition.contracts.createPage.contract,
-    createSite: userSessionDefinition.contracts.createSite.contract,
-    updateGrid: userSessionDefinition.contracts.updateGrid.contract,
-    updatePageArticle: userSessionDefinition.contracts.updatePageArticle.contract,
-    updatePageSettings: userSessionDefinition.contracts.updatePageSettings.contract,
-    updateSiteSettings: userSessionDefinition.contracts.updateSiteSettings.contract,
-  },
+  contracts: userSessionDefinition.contracts,
   layer: Layer.mergeAll(
     Layer.succeed(ZerospinApiUrl, apiUrl),
     Layer.succeed(PublishableKey, Redacted.make(publishableKey)),

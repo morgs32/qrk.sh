@@ -6,9 +6,9 @@ import { ZerospinError } from "@zerospin/error";
 import { primitives, type InferDecodedRow, type InferIdFromAbbreviation } from "@zerospin/schema";
 import { Effect } from "effect";
 
-import { makeBrickModel } from "../makeLibraryFrontend/models/brick/makeBrickModel";
-import { makePlacementId } from "../makeLibraryFrontend/models/placement/makePlacementId";
-import { makePlacementModel } from "../makeLibraryFrontend/models/placement/placementModelV1";
+import { makeBrickModel } from "../libraryModule/models/brick/makeBrickModel";
+import { makePlacementId } from "../libraryModule/models/placement/makePlacementId";
+import { makePlacementModel } from "../libraryModule/models/placement/placementModelV1";
 import type { defineComponent } from "./defineComponent";
 import { makeModuleSpecDocumentSchema } from "./makeModuleSpecDocumentSchema";
 

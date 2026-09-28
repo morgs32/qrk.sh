@@ -3,7 +3,7 @@
 import { BREAKPOINTS, resolveBreakpoint } from "@qrk.sh/library/breakpoints";
 import { BrickWall } from "@qrk.sh/library/BrickWall";
 import { useLibrarySession } from "@qrk.sh/library/createLibraryStandaloneSession";
-import { LibraryFrontend } from "@qrk.sh/library/LibraryFrontend";
+import { libraryModule } from "@qrk.sh/library/libraryModule";
 import { useWallViewport } from "@qrk.sh/library/WallViewportProvider";
 import { prefixId } from "@zerospin/core/models/prefixId";
 import { Schema } from "effect";
@@ -18,7 +18,7 @@ const ParamsSchema = Schema.Struct({
   pageId: Schema.String,
 });
 
-const WALL_ID = prefixId(LibraryFrontend.models.wall, "library");
+const WALL_ID = prefixId(libraryModule.models.wall, "library");
 
 export function Grid() {
   const { regionRef, availableWidth, activeBreakpoint } = useWallViewport();

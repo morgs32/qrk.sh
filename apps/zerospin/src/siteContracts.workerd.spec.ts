@@ -1,3 +1,4 @@
+import { makeSessionDefinition } from "@zerospin/core/sessionDefinition/makeSessionDefinition";
 import { validatePayload } from "@zerospin/core/contracts/validatePayload";
 import { prefixId } from "@zerospin/sdk/browser";
 import { it } from "@effect/vitest";
@@ -52,9 +53,9 @@ describe("site and page creation contracts", () => {
         Effect.sync(() => ManagedRuntime.make(Layer.mergeAll(NanoIdFactory, UlidMonotonicFactory))),
         (runtime) => runtime.disposeEffect,
       );
-      const session = makeAggregateSession({
-        definition: { ...userSessionDefinition, systemName: "qrk-sh" },
-      });
+      const definition = makeSessionDefinition({ ...userSessionDefinition, systemName: "qrk-sh" });
+      if (definition.kind !== "aggregate") throw new Error("Expected aggregate session definition");
+      const session = makeAggregateSession({ definition: { ...definition, ...userSessionDefinition } });
       session.setExecutionResources({
         runtime,
         sessionId,
@@ -496,9 +497,9 @@ describe("user frontend creation guards", () => {
         Effect.sync(() => ManagedRuntime.make(Layer.mergeAll(NanoIdFactory, UlidMonotonicFactory))),
         (runtime) => runtime.disposeEffect,
       );
-      const session = makeAggregateSession({
-        definition: { ...userSessionDefinition, systemName: "qrk-sh" },
-      });
+      const definition = makeSessionDefinition({ ...userSessionDefinition, systemName: "qrk-sh" });
+      if (definition.kind !== "aggregate") throw new Error("Expected aggregate session definition");
+      const session = makeAggregateSession({ definition: { ...definition, ...userSessionDefinition } });
       session.setExecutionResources({
         runtime,
         sessionId,
@@ -612,9 +613,9 @@ describe("user frontend creation guards", () => {
         Effect.sync(() => ManagedRuntime.make(Layer.mergeAll(NanoIdFactory, UlidMonotonicFactory))),
         (runtime) => runtime.disposeEffect,
       );
-      const session = makeAggregateSession({
-        definition: { ...userSessionDefinition, systemName: "qrk-sh" },
-      });
+      const definition = makeSessionDefinition({ ...userSessionDefinition, systemName: "qrk-sh" });
+      if (definition.kind !== "aggregate") throw new Error("Expected aggregate session definition");
+      const session = makeAggregateSession({ definition: { ...definition, ...userSessionDefinition } });
       session.setExecutionResources({
         runtime,
         sessionId,
@@ -734,9 +735,9 @@ describe("user frontend creation guards", () => {
         Effect.sync(() => ManagedRuntime.make(Layer.mergeAll(NanoIdFactory, UlidMonotonicFactory))),
         (runtime) => runtime.disposeEffect,
       );
-      const session = makeAggregateSession({
-        definition: { ...userSessionDefinition, systemName: "qrk-sh" },
-      });
+      const definition = makeSessionDefinition({ ...userSessionDefinition, systemName: "qrk-sh" });
+      if (definition.kind !== "aggregate") throw new Error("Expected aggregate session definition");
+      const session = makeAggregateSession({ definition: { ...definition, ...userSessionDefinition } });
       session.setExecutionResources({
         runtime,
         sessionId,

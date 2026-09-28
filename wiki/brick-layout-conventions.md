@@ -13,9 +13,9 @@
 
 Library `Layout` and Studio site editor both render
 [`BrickWall`](../apps/library/lib/BrickWall.tsx) against a persisted
-`LibraryFrontend` standalone session:
+Standalone session using `libraryModule`:
 
-- Hardcoded `WALL_ID = prefixId(LibraryFrontend.models.wall, "library")`
+- Hardcoded `WALL_ID = prefixId(libraryModule.models.wall, "library")`
   (`wal_library`) in each app — do not import a shared wall id from
   `@qrk.sh/library`.
 - Layout / EditorLayout: `createLibraryStandaloneSession({ key, wallId })`,

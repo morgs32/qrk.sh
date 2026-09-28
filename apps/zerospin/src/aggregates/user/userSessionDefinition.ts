@@ -1,5 +1,4 @@
 import { userClaims } from "../../claims";
-import { makeAggregateSessionDefinition } from "@zerospin/core/aggregateSession/make/makeAggregateSessionDefinition";
 
 import { createGridV1 as createGrid } from "./contracts/createGrid/CreateGridV1";
 import { createPageV1 as createPage } from "./contracts/createPage/CreatePageV1";
@@ -14,16 +13,17 @@ import { pageV1 as Page } from "./models/page/PageV1";
 import { siteV1 as Site } from "./models/site/SiteV1";
 import { userV1 as User } from "./models/user/UserV1";
 
-export const userSessionDefinition = makeAggregateSessionDefinition({
+export const userSessionDefinition = {
+  kind: "aggregate" as const,
   claimsSchema: userClaims,
   contracts: {
-    createGrid: { contract: createGrid },
-    createPage: { contract: createPage },
-    createSite: { contract: createSite },
-    updateGrid: { contract: updateGrid },
-    updatePageArticle: { contract: updatePageArticle },
-    updatePageSettings: { contract: updatePageSettings },
-    updateSiteSettings: { contract: updateSiteSettings },
+    createGrid,
+    createPage,
+    createSite,
+    updateGrid,
+    updatePageArticle,
+    updatePageSettings,
+    updateSiteSettings,
   },
   aggregateName: "user",
   sessionName: "userSession",
@@ -37,4 +37,4 @@ export const userSessionDefinition = makeAggregateSessionDefinition({
     site: Site,
     user: User,
   },
-});
+};

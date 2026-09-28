@@ -7,7 +7,7 @@ import {
   createLibraryStandaloneSession,
   LibrarySessionContext,
 } from "@qrk.sh/library/createLibraryStandaloneSession";
-import { LibraryFrontend } from "@qrk.sh/library/LibraryFrontend";
+import { libraryModule } from "@qrk.sh/library/libraryModule";
 import { WallViewportProvider } from "@qrk.sh/library/WallViewportProvider";
 import { prefixId } from "@zerospin/core/models/prefixId";
 import { useInitializeStandaloneSession } from "@zerospin/react";
@@ -25,7 +25,7 @@ const ParamsSchema = Schema.Struct({
   pageId: Schema.String,
 });
 
-const WALL_ID = prefixId(LibraryFrontend.models.wall, "library");
+const WALL_ID = prefixId(libraryModule.models.wall, "library");
 
 export default function SitePage() {
   const params = useValidatedParams(ParamsSchema);

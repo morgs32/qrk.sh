@@ -70,9 +70,9 @@ Restored resources take precedence over the initial seed. Studio retains
 IndexedDB backup. Restored Studio resources take precedence over its seed.
 
 Shared consumers (`LibrarySessionContext`, `useLibrarySession`, and `BrickWall`)
-use `ILibrarySession`, the core aggregate session interface bound to Library's
-models, contracts, and claims with either a `mock` or `standalone` system name.
-Each app retains its concrete session type and owns initialization and disposal.
+use `ILibrarySession`, inferred from `createLibraryStandaloneSession`. The shared
+`libraryModule` exports only models and flat command contracts. Session construction
+owns identity, claims, initialization, and disposal.
 
 Committed layout is Wall → Brick → Placement via aggregate contracts
 (`addBrick`, layout/visibility/remove/compact, `updateBrickState`, and per-module

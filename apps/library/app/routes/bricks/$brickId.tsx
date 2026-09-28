@@ -10,14 +10,14 @@ import { OrderedBody } from "@qrk.sh/web/library/OrderedBody";
 import { OrderedDoc, OrderedSection } from "@qrk.sh/web/library/OrderedDoc";
 import { OrderedOutline } from "@qrk.sh/web/library/OrderedOutline";
 
-import { LibraryFrontend } from "../../../makeLibraryFrontend/makeLibraryFrontend";
+import { libraryModule } from "../../../libraryModule/libraryModule";
 import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
 import { modulesHash } from "../../../lib/modulesHash";
 import { useWallViewport } from "../../../lib/WallViewportProvider";
 import type { LibraryApi } from "../../../worker/LibraryApi.public";
 import type { IScrapeError } from "../../../worker/types.public";
-import { useLibrarySession } from "../../../makeLibraryFrontend/createLibraryStandaloneSession";
+import { useLibrarySession } from "../../../session/createLibraryStandaloneSession";
 import { decodeGridItem } from "../../decodeGridItem";
 
 export const Route = createFileRoute("/bricks/$brickId")({
@@ -25,7 +25,7 @@ export const Route = createFileRoute("/bricks/$brickId")({
 });
 
 function isBrickId(value: string): value is `brk_${string}` {
-  return value.startsWith(`${LibraryFrontend.models.brick.abbreviation}_`);
+  return value.startsWith(`${libraryModule.models.brick.abbreviation}_`);
 }
 
 const specContractByModuleId = {

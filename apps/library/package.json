@@ -34,12 +34,12 @@
       "types": "./dist/lib/GridStore.d.ts",
       "import": "./dist/GridStore.js"
     },
-    "./LibraryFrontend": {
-      "types": "./dist/makeLibraryFrontend/makeLibraryFrontend.d.ts",
-      "import": "./dist/LibraryFrontend.js"
+    "./libraryModule": {
+      "types": "./dist/libraryModule/libraryModule.d.ts",
+      "import": "./dist/libraryModule.js"
     },
     "./createLibraryStandaloneSession": {
-      "types": "./dist/makeLibraryFrontend/createLibraryStandaloneSession.d.ts",
+      "types": "./dist/session/createLibraryStandaloneSession.d.ts",
       "import": "./dist/createLibraryStandaloneSession.js"
     },
     "./TiptapDocSchema": {

@@ -5,8 +5,8 @@ import { prefixId } from "@zerospin/core/models/prefixId";
 import { stageCommand, useLiveQuery } from "@zerospin/react";
 import GridLayout, { noCompactor } from "react-grid-layout";
 
-import { LibraryFrontend } from "../makeLibraryFrontend/makeLibraryFrontend";
-import type { ILibrarySession } from "../makeLibraryFrontend/createLibraryStandaloneSession";
+import { libraryModule } from "../libraryModule/libraryModule";
+import type { ILibrarySession } from "../session/createLibraryStandaloneSession";
 import { BrickWrapper } from "../components/brick/BrickWrapper";
 import { brickDragStore } from "./GridStore";
 import { modulesHash } from "./modulesHash";
@@ -199,7 +199,7 @@ export function BrickWall(props: {
             const moduleId = brickDef.moduleId;
 
             const idSuffix = crypto.randomUUID().replace(/-/g, "");
-            const brickId = prefixId(LibraryFrontend.models.brick, idSuffix);
+            const brickId = prefixId(libraryModule.models.brick, idSuffix);
             const droppedItem = {
               i: brickId,
               x: item.x,

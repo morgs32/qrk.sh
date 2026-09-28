@@ -18,14 +18,14 @@ import {
   useWallViewportStoreApi,
   WallViewportProvider,
 } from "../lib/WallViewportProvider";
-import { LibrarySessionContext } from "../makeLibraryFrontend/createLibraryStandaloneSession";
-import { LibraryFrontend } from "../makeLibraryFrontend/makeLibraryFrontend";
+import { LibrarySessionContext } from "../session/createLibraryStandaloneSession";
+import { libraryModule } from "../libraryModule/libraryModule";
 
 import { librarySession } from "./librarySession";
 
 import { decodeGridItem } from "./decodeGridItem";
 
-const WALL_ID = prefixId(LibraryFrontend.models.wall, "library");
+const WALL_ID = prefixId(libraryModule.models.wall, "library");
 const LIBRARY_VIEWPORT_STORAGE_NAME = "qrk-bricks-library-viewport-v1";
 
 const wallSlideTransition = {

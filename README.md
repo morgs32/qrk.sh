@@ -30,6 +30,9 @@ Brick groups are defined under `apps/library/groups/`.
 3. Placed bricks retain their own **`brickId`**. Library bricks and backend brick records store **`groupId`** and **`catalogId`**.
 
 This is a hard terminology cutover: old backend state must be reset before reuse.
+`libraryModule` exports the shared models and flat command contracts. Library and
+Studio construct standalone sessions with their own identity and storage keys.
+
 Model and contract versions remain unchanged. Library viewport preference
 uses `qrk-bricks-library-viewport-v1`. Library and Studio walls are owned by
 standalone sessions with IndexedDB backups, not persisted Zustand brick maps.

@@ -8,7 +8,7 @@ updated: 2026-09-20
 `placement.gridItem` is JSON `{ i, x, y, w, h }`. react-grid-layout
 `cloneLayoutItem` / `cloneLayout` add `minW` and other working properties.
 [`decodeGridItem`](../../../apps/library/lib/decodeGridItem.ts) decodes the column.
-[`makeCollisionResolvedLayout` and `makeCompactLayout`](../../../apps/library/makeLibraryFrontend/resolveVisibleCollisions.ts)
+[`makeCollisionResolvedLayout` and `makeCompactLayout`](../../../apps/library/libraryModule/resolveVisibleCollisions.ts)
 return fresh arrays of fresh five-field objects synchronously, without mutating
 inputs. Contract writers use these items directly. Brick drop ownership is
 [LibraryBrickDrop](LibraryBrickDrop.md).
@@ -57,8 +57,8 @@ sequenceDiagram
 2. Decode output is the five stored fields; default Schema decoding strips
    extra properties while validating the declared fields.
    - [`decodeGridItem.ts:3-9`](../../../apps/library/lib/decodeGridItem.ts#L3-L9) — `GridItemSchema` matches the placement column schema. (`apps/library/lib/decodeGridItem.ts:3-9`)
-   - [`placementModelV1.ts:8-14`](../../../apps/library/makeLibraryFrontend/models/placement/placementModelV1.ts#L8-L14) — stored `gridItem` schema is the same five fields. (`apps/library/makeLibraryFrontend/models/placement/placementModelV1.ts:8-14`)
-   - [`placementModelV1.ts:36`](../../../apps/library/makeLibraryFrontend/models/placement/placementModelV1.ts#L36) — `primitives.json({ schema: gridItemSchema })` declares the column's object schema. (`apps/library/makeLibraryFrontend/models/placement/placementModelV1.ts:36`)
+   - [`placementModelV1.ts:8-14`](../../../apps/library/libraryModule/models/placement/placementModelV1.ts#L8-L14) — stored `gridItem` schema is the same five fields. (`apps/library/libraryModule/models/placement/placementModelV1.ts:8-14`)
+   - [`placementModelV1.ts:36`](../../../apps/library/libraryModule/models/placement/placementModelV1.ts#L36) — `primitives.json({ schema: gridItemSchema })` declares the column's object schema. (`apps/library/libraryModule/models/placement/placementModelV1.ts:36`)
 3. BrickWall picks the same five fields again so RGL `isDraggable` /
    `isResizable` spreads do not leak into command payloads.
    - [`BrickWall.tsx:15-23`](../../../apps/library/lib/BrickWall.tsx#L15-L23) — local `makeGridItem` returns `{ i, x, y, w, h }`. (`apps/library/lib/BrickWall.tsx:15-23`)
@@ -111,25 +111,25 @@ sequenceDiagram
 3. BrickWall stages the add command with five-field payload layouts.
    - [`BrickWall.tsx:223-236`](../../../apps/library/lib/BrickWall.tsx#L223-L236) — `stageCommand({ contractName: "addBrick", payload })`. (`apps/library/lib/BrickWall.tsx:223-236`)
 4. The contract runs after staging; validate then program handle four breakpoints.
-   - [`AddBrickContractV1.ts:350-351`](../../../apps/library/makeLibraryFrontend/contracts/addBrick/AddBrickContractV1.ts#L350-L351) — `program: ({ payload, models }) => Effect.gen`. (`apps/library/makeLibraryFrontend/contracts/addBrick/AddBrickContractV1.ts:350-351`)
+   - [`AddBrickContractV1.ts:350-351`](../../../apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts#L350-L351) — `program: ({ payload, models }) => Effect.gen`. (`apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts:350-351`)
 5. Validate rejects an overlapping or out-of-bounds active layout before writes.
-   - [`AddBrickContractV1.ts:167-177`](../../../apps/library/makeLibraryFrontend/contracts/addBrick/AddBrickContractV1.ts#L167-L177) — `findVisibleLayoutError` on `payload.resolvedActiveLayout`. (`apps/library/makeLibraryFrontend/contracts/addBrick/AddBrickContractV1.ts:167-177`)
-   - [`resolveVisibleCollisions.ts:56-77`](../../../apps/library/makeLibraryFrontend/resolveVisibleCollisions.ts#L56-L77) — returns a context-prefixed message or `null`. (`apps/library/makeLibraryFrontend/resolveVisibleCollisions.ts:56-77`)
+   - [`AddBrickContractV1.ts:167-177`](../../../apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts#L167-L177) — `findVisibleLayoutError` on `payload.resolvedActiveLayout`. (`apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts:167-177`)
+   - [`resolveVisibleCollisions.ts:56-77`](../../../apps/library/libraryModule/resolveVisibleCollisions.ts#L56-L77) — returns a context-prefixed message or `null`. (`apps/library/libraryModule/resolveVisibleCollisions.ts:56-77`)
 6. Validate returns `null` when the active layout has no duplicates, overlaps, or
    out-of-bounds items.
-   - [`AddBrickContractV1.ts:171-177`](../../../apps/library/makeLibraryFrontend/contracts/addBrick/AddBrickContractV1.ts#L171-L177) — non-null message becomes `add-brick-resolved-active-invalid`. (`apps/library/makeLibraryFrontend/contracts/addBrick/AddBrickContractV1.ts:171-177`)
+   - [`AddBrickContractV1.ts:171-177`](../../../apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts#L171-L177) — non-null message becomes `add-brick-resolved-active-invalid`. (`apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts:171-177`)
 7. Other breakpoints resolve collisions on cloned RGL working objects; the active
    breakpoint keeps the UI-supplied layout.
-   - [`AddBrickContractV1.ts:367-377`](../../../apps/library/makeLibraryFrontend/contracts/addBrick/AddBrickContractV1.ts#L367-L377) — active uses `payload.resolvedActiveLayout`; others call the constructor. (`apps/library/makeLibraryFrontend/contracts/addBrick/AddBrickContractV1.ts:367-377`)
-   - [`AddBrickContractV1.ts:373-377`](../../../apps/library/makeLibraryFrontend/contracts/addBrick/AddBrickContractV1.ts#L373-L377) — constructor receives the visible layout and cloned incoming item. (`apps/library/makeLibraryFrontend/contracts/addBrick/AddBrickContractV1.ts:373-377`)
-   - [`resolveVisibleCollisions.ts:21-50`](../../../apps/library/makeLibraryFrontend/resolveVisibleCollisions.ts#L21-L50) — clones inputs, corrects bounds, and displaces collisions with the existing 1,000-iteration cap. (`apps/library/makeLibraryFrontend/resolveVisibleCollisions.ts:21-50`)
+   - [`AddBrickContractV1.ts:367-377`](../../../apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts#L367-L377) — active uses `payload.resolvedActiveLayout`; others call the constructor. (`apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts:367-377`)
+   - [`AddBrickContractV1.ts:373-377`](../../../apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts#L373-L377) — constructor receives the visible layout and cloned incoming item. (`apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts:373-377`)
+   - [`resolveVisibleCollisions.ts:21-50`](../../../apps/library/libraryModule/resolveVisibleCollisions.ts#L21-L50) — clones inputs, corrects bounds, and displaces collisions with the existing 1,000-iteration cap. (`apps/library/libraryModule/resolveVisibleCollisions.ts:21-50`)
 8. The constructor returns only placement geometry for every item, including
    displaced neighbors; RGL working properties remain internal.
-   - [`resolveVisibleCollisions.ts:52`](../../../apps/library/makeLibraryFrontend/resolveVisibleCollisions.ts#L52) — maps the completed working layout into fresh five-field objects. (`apps/library/makeLibraryFrontend/resolveVisibleCollisions.ts:52`)
+   - [`resolveVisibleCollisions.ts:52`](../../../apps/library/libraryModule/resolveVisibleCollisions.ts#L52) — maps the completed working layout into fresh five-field objects. (`apps/library/libraryModule/resolveVisibleCollisions.ts:52`)
 9. The new brick's placement uses the item directly at each breakpoint.
-   - [`AddBrickContractV1.ts:382-397`](../../../apps/library/makeLibraryFrontend/contracts/addBrick/AddBrickContractV1.ts#L382-L397) — `models.placement.create` receives `gridItem: item`. (`apps/library/makeLibraryFrontend/contracts/addBrick/AddBrickContractV1.ts:382-397`)
+   - [`AddBrickContractV1.ts:382-397`](../../../apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts#L382-L397) — `models.placement.create` receives `gridItem: item`. (`apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts:382-397`)
 10. Neighbor placements use the same clean output directly.
-    - [`AddBrickContractV1.ts:403-413`](../../../apps/library/makeLibraryFrontend/contracts/addBrick/AddBrickContractV1.ts#L403-L413) — `models.placement.update` receives `gridItem: item`. (`apps/library/makeLibraryFrontend/contracts/addBrick/AddBrickContractV1.ts:403-413`)
+    - [`AddBrickContractV1.ts:403-413`](../../../apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts#L403-L413) — `models.placement.update` receives `gridItem: item`. (`apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts:403-413`)
 
 ```mermaid
 sequenceDiagram
@@ -163,25 +163,25 @@ sequenceDiagram
 ## Annotated workflow steps
 
 1. Compact validate rejects an overlapping or out-of-bounds visible layout.
-   - [`CompactLayoutAtBreakpointContractV1.ts:142-152`](../../../apps/library/makeLibraryFrontend/contracts/compactLayoutAtBreakpoint/CompactLayoutAtBreakpointContractV1.ts#L142-L152) — `findVisibleLayoutError` on `payload.visibleLayout`. (`apps/library/makeLibraryFrontend/contracts/compactLayoutAtBreakpoint/CompactLayoutAtBreakpointContractV1.ts:142-152`)
+   - [`CompactLayoutAtBreakpointContractV1.ts:142-152`](../../../apps/library/libraryModule/contracts/compactLayoutAtBreakpoint/CompactLayoutAtBreakpointContractV1.ts#L142-L152) — `findVisibleLayoutError` on `payload.visibleLayout`. (`apps/library/libraryModule/contracts/compactLayoutAtBreakpoint/CompactLayoutAtBreakpointContractV1.ts:142-152`)
 2. Validate returns `null` when the visible layout is clear.
-   - [`CompactLayoutAtBreakpointContractV1.ts:146-152`](../../../apps/library/makeLibraryFrontend/contracts/compactLayoutAtBreakpoint/CompactLayoutAtBreakpointContractV1.ts#L146-L152) — non-null message becomes `compact-layout-invalid`. (`apps/library/makeLibraryFrontend/contracts/compactLayoutAtBreakpoint/CompactLayoutAtBreakpointContractV1.ts:146-152`)
+   - [`CompactLayoutAtBreakpointContractV1.ts:146-152`](../../../apps/library/libraryModule/contracts/compactLayoutAtBreakpoint/CompactLayoutAtBreakpointContractV1.ts#L146-L152) — non-null message becomes `compact-layout-invalid`. (`apps/library/libraryModule/contracts/compactLayoutAtBreakpoint/CompactLayoutAtBreakpointContractV1.ts:146-152`)
 3. Compact runs RGL's vertical compactor on a cloned layout.
-   - [`CompactLayoutAtBreakpointContractV1.ts:156`](../../../apps/library/makeLibraryFrontend/contracts/compactLayoutAtBreakpoint/CompactLayoutAtBreakpointContractV1.ts#L156) — `makeCompactLayout(payload.visibleLayout)`. (`apps/library/makeLibraryFrontend/contracts/compactLayoutAtBreakpoint/CompactLayoutAtBreakpointContractV1.ts:156`)
-   - [`resolveVisibleCollisions.ts:85`](../../../apps/library/makeLibraryFrontend/resolveVisibleCollisions.ts#L85) — `verticalCompactor.compact(cloneLayout(layout), GRID_COLS)`. (`apps/library/makeLibraryFrontend/resolveVisibleCollisions.ts:85`)
+   - [`CompactLayoutAtBreakpointContractV1.ts:156`](../../../apps/library/libraryModule/contracts/compactLayoutAtBreakpoint/CompactLayoutAtBreakpointContractV1.ts#L156) — `makeCompactLayout(payload.visibleLayout)`. (`apps/library/libraryModule/contracts/compactLayoutAtBreakpoint/CompactLayoutAtBreakpointContractV1.ts:156`)
+   - [`resolveVisibleCollisions.ts:85`](../../../apps/library/libraryModule/resolveVisibleCollisions.ts#L85) — `verticalCompactor.compact(cloneLayout(layout), GRID_COLS)`. (`apps/library/libraryModule/resolveVisibleCollisions.ts:85`)
 4. The constructor returns fresh five-field objects in compacted order.
-   - [`resolveVisibleCollisions.ts:86`](../../../apps/library/makeLibraryFrontend/resolveVisibleCollisions.ts#L86) — projects each compacted item; an empty result maps to a fresh empty array. (`apps/library/makeLibraryFrontend/resolveVisibleCollisions.ts:86`)
+   - [`resolveVisibleCollisions.ts:86`](../../../apps/library/libraryModule/resolveVisibleCollisions.ts#L86) — projects each compacted item; an empty result maps to a fresh empty array. (`apps/library/libraryModule/resolveVisibleCollisions.ts:86`)
 5. Compact writes each constructed item directly.
-   - [`CompactLayoutAtBreakpointContractV1.ts:158-170`](../../../apps/library/makeLibraryFrontend/contracts/compactLayoutAtBreakpoint/CompactLayoutAtBreakpointContractV1.ts#L158-L170) — `gridItem: item` on each visible placement. (`apps/library/makeLibraryFrontend/contracts/compactLayoutAtBreakpoint/CompactLayoutAtBreakpointContractV1.ts:158-170`)
+   - [`CompactLayoutAtBreakpointContractV1.ts:158-170`](../../../apps/library/libraryModule/contracts/compactLayoutAtBreakpoint/CompactLayoutAtBreakpointContractV1.ts#L158-L170) — `gridItem: item` on each visible placement. (`apps/library/libraryModule/contracts/compactLayoutAtBreakpoint/CompactLayoutAtBreakpointContractV1.ts:158-170`)
 6. Showing a hidden brick resolves collisions the same way `addBrick` does
    for other breakpoints.
-   - [`SetBrickVisibilityAtBreakpointContractV1.ts:241-244`](../../../apps/library/makeLibraryFrontend/contracts/setBrickVisibilityAtBreakpoint/SetBrickVisibilityAtBreakpointContractV1.ts#L241-L244) — `incoming: cloneLayoutItem(payload.savedGridItem)`. (`apps/library/makeLibraryFrontend/contracts/setBrickVisibilityAtBreakpoint/SetBrickVisibilityAtBreakpointContractV1.ts:241-244`)
-   - [`SetBrickVisibilityAtBreakpointContractV1.ts:204-217`](../../../apps/library/makeLibraryFrontend/contracts/setBrickVisibilityAtBreakpoint/SetBrickVisibilityAtBreakpointContractV1.ts#L204-L217) — validate also constructs then `findVisibleLayoutError` on the resolved layout. (`apps/library/makeLibraryFrontend/contracts/setBrickVisibilityAtBreakpoint/SetBrickVisibilityAtBreakpointContractV1.ts:204-217`)
+   - [`SetBrickVisibilityAtBreakpointContractV1.ts:241-244`](../../../apps/library/libraryModule/contracts/setBrickVisibilityAtBreakpoint/SetBrickVisibilityAtBreakpointContractV1.ts#L241-L244) — `incoming: cloneLayoutItem(payload.savedGridItem)`. (`apps/library/libraryModule/contracts/setBrickVisibilityAtBreakpoint/SetBrickVisibilityAtBreakpointContractV1.ts:241-244`)
+   - [`SetBrickVisibilityAtBreakpointContractV1.ts:204-217`](../../../apps/library/libraryModule/contracts/setBrickVisibilityAtBreakpoint/SetBrickVisibilityAtBreakpointContractV1.ts#L204-L217) — validate also constructs then `findVisibleLayoutError` on the resolved layout. (`apps/library/libraryModule/contracts/setBrickVisibilityAtBreakpoint/SetBrickVisibilityAtBreakpointContractV1.ts:204-217`)
 7. The constructor returns five-field geometry for the shown brick and its
    visible neighbors.
-   - [`resolveVisibleCollisions.ts:52`](../../../apps/library/makeLibraryFrontend/resolveVisibleCollisions.ts#L52) — projects all resolved items before returning. (`apps/library/makeLibraryFrontend/resolveVisibleCollisions.ts:52`)
+   - [`resolveVisibleCollisions.ts:52`](../../../apps/library/libraryModule/resolveVisibleCollisions.ts#L52) — projects all resolved items before returning. (`apps/library/libraryModule/resolveVisibleCollisions.ts:52`)
 8. Visibility writes each constructed item directly.
-   - [`SetBrickVisibilityAtBreakpointContractV1.ts:247-278`](../../../apps/library/makeLibraryFrontend/contracts/setBrickVisibilityAtBreakpoint/SetBrickVisibilityAtBreakpointContractV1.ts#L247-L278) — show-path updates use `gridItem: item`; the shown brick also becomes visible. (`apps/library/makeLibraryFrontend/contracts/setBrickVisibilityAtBreakpoint/SetBrickVisibilityAtBreakpointContractV1.ts:247-278`)
+   - [`SetBrickVisibilityAtBreakpointContractV1.ts:247-278`](../../../apps/library/libraryModule/contracts/setBrickVisibilityAtBreakpoint/SetBrickVisibilityAtBreakpointContractV1.ts#L247-L278) — show-path updates use `gridItem: item`; the shown brick also becomes visible. (`apps/library/libraryModule/contracts/setBrickVisibilityAtBreakpoint/SetBrickVisibilityAtBreakpointContractV1.ts:247-278`)
 
 ```mermaid
 sequenceDiagram
@@ -199,12 +199,12 @@ sequenceDiagram
 ## Annotated workflow steps
 
 1. Update validate rejects an overlapping or out-of-bounds drag/resize layout.
-   - [`UpdateLayoutAtBreakpointContractV1.ts:139-149`](../../../apps/library/makeLibraryFrontend/contracts/updateLayoutAtBreakpoint/UpdateLayoutAtBreakpointContractV1.ts#L139-L149) — `findVisibleLayoutError` on `payload.layout`. (`apps/library/makeLibraryFrontend/contracts/updateLayoutAtBreakpoint/UpdateLayoutAtBreakpointContractV1.ts:139-149`)
+   - [`UpdateLayoutAtBreakpointContractV1.ts:139-149`](../../../apps/library/libraryModule/contracts/updateLayoutAtBreakpoint/UpdateLayoutAtBreakpointContractV1.ts#L139-L149) — `findVisibleLayoutError` on `payload.layout`. (`apps/library/libraryModule/contracts/updateLayoutAtBreakpoint/UpdateLayoutAtBreakpointContractV1.ts:139-149`)
 2. Validate returns `null` when the payload layout is clear.
-   - [`UpdateLayoutAtBreakpointContractV1.ts:143-149`](../../../apps/library/makeLibraryFrontend/contracts/updateLayoutAtBreakpoint/UpdateLayoutAtBreakpointContractV1.ts#L143-L149) — non-null message becomes `update-layout-invalid`. (`apps/library/makeLibraryFrontend/contracts/updateLayoutAtBreakpoint/UpdateLayoutAtBreakpointContractV1.ts:143-149`)
+   - [`UpdateLayoutAtBreakpointContractV1.ts:143-149`](../../../apps/library/libraryModule/contracts/updateLayoutAtBreakpoint/UpdateLayoutAtBreakpointContractV1.ts#L143-L149) — non-null message becomes `update-layout-invalid`. (`apps/library/libraryModule/contracts/updateLayoutAtBreakpoint/UpdateLayoutAtBreakpointContractV1.ts:143-149`)
 3. Program writes each already-picked payload item with a clone; it does not call
    the layout constructors.
-   - [`UpdateLayoutAtBreakpointContractV1.ts:154-168`](../../../apps/library/makeLibraryFrontend/contracts/updateLayoutAtBreakpoint/UpdateLayoutAtBreakpointContractV1.ts#L154-L168) — `gridItem: structuredClone(item)` on each layout entry. (`apps/library/makeLibraryFrontend/contracts/updateLayoutAtBreakpoint/UpdateLayoutAtBreakpointContractV1.ts:154-168`)
+   - [`UpdateLayoutAtBreakpointContractV1.ts:154-168`](../../../apps/library/libraryModule/contracts/updateLayoutAtBreakpoint/UpdateLayoutAtBreakpointContractV1.ts#L154-L168) — `gridItem: structuredClone(item)` on each layout entry. (`apps/library/libraryModule/contracts/updateLayoutAtBreakpoint/UpdateLayoutAtBreakpointContractV1.ts:154-168`)
 
 ## Callers
 
@@ -212,9 +212,9 @@ sequenceDiagram
 | --- | --- | --- |
 | column → five fields | `decodeGridItem` | [`lib/decodeGridItem.ts`](../../../apps/library/lib/decodeGridItem.ts); re-export [`app/decodeGridItem.ts`](../../../apps/library/app/decodeGridItem.ts) |
 | RGL item → five fields (UI payload) | `makeGridItem` | local in [`BrickWall.tsx`](../../../apps/library/lib/BrickWall.tsx) |
-| collision resolution → five-field layout | `makeCollisionResolvedLayout` | [`resolveVisibleCollisions.ts`](../../../apps/library/makeLibraryFrontend/resolveVisibleCollisions.ts) |
-| compaction → five-field layout | `makeCompactLayout` | [`resolveVisibleCollisions.ts`](../../../apps/library/makeLibraryFrontend/resolveVisibleCollisions.ts) |
-| visible layout → error or null | `findVisibleLayoutError` | [`resolveVisibleCollisions.ts`](../../../apps/library/makeLibraryFrontend/resolveVisibleCollisions.ts) |
+| collision resolution → five-field layout | `makeCollisionResolvedLayout` | [`resolveVisibleCollisions.ts`](../../../apps/library/libraryModule/resolveVisibleCollisions.ts) |
+| compaction → five-field layout | `makeCompactLayout` | [`resolveVisibleCollisions.ts`](../../../apps/library/libraryModule/resolveVisibleCollisions.ts) |
+| visible layout → error or null | `findVisibleLayoutError` | [`resolveVisibleCollisions.ts`](../../../apps/library/libraryModule/resolveVisibleCollisions.ts) |
 
 `updateLayoutAtBreakpoint` payload items are already `makeGridItem`'d by
 BrickWall. Add, compact, and show persist constructor items directly.

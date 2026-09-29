@@ -11,7 +11,9 @@ export function createLibraryStandaloneSession(props: { key: string; wallId: `wa
   const { key, wallId } = props;
   return makeStandaloneSession({
     key,
-    ...libraryModule,
+    modules: {
+      library: libraryModule,
+    },
     kind: "aggregate",
     aggregateName: "library",
     aggregateVersion: "1.0.0",

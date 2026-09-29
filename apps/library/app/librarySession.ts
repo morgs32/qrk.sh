@@ -7,7 +7,9 @@ const fixtureDate = new Date("2026-01-01T00:00:00.000Z");
 
 export const librarySession = makeStandaloneSession({
   key: "qrk-library",
-  ...libraryModule,
+  modules: {
+    library: libraryModule,
+  },
   kind: "aggregate",
   aggregateName: "library",
   aggregateVersion: "1.0.0",

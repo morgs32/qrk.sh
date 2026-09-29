@@ -53,15 +53,26 @@ Worker/RPC declarations. Neither build deploys the app.
 
 ## Modules and interaction
 
-`modulesHash` exposes each library module by kebab-case id. `defineModule` owns
+`modulesHash` exposes each library module by its registered kebab-case id, with
+no arbitrary-string index signature. Module URLs decode their ID against the
+brick model enum before passing it through route context; unknown IDs remain 404s.
+Internal previews, state updates, and drag callbacks retain the registered ID union. `defineModule` owns
 identity, catalog, `stateShape`, and `defaultState`. `makeModuleView` attaches the
 authored React brick and, when ready, a json-render `generator` (`registry` +
 `defaultSpec`). Optional `sm` / `md` / `lg` / `xl` overlays merge onto `default`
 (component, generator, declared `w`/`h`). Grid sizing is measured at preview/drag
 time unless both `w` and `h` are declared on that overlay. A new drag waits for
 all four breakpoint defaults; measured widths are limited to the wall's eight
-columns. `addBrick` uses the drop X/Y and each breakpoint's own size when
-creating placements.
+columns. `addBrick.program` resolves all four layouts using the drop X/Y and each
+breakpoint's own size. The caller supplies `dropPosition`, `placementSizes`, and
+`visibleLayouts` snapshots from session placements; grid-proposed neighbor positions
+are ignored. The guard requires snapshots to match stored visible geometry exactly,
+regardless of array order, and rejects stale snapshots with conflict 409 before mutation.
+The program validates all resolved outputs, then creates the brick and four placements
+and updates displaced visible neighbors. Hidden and unaffected placements retain their
+geometry. This is a fresh `addBrick` version `1.0.0` baseline with no historical adapter;
+old payloads and pending commands require the authorized document reset. Module previews may retain extra provider fields; a drop
+persists only fields declared by that module's state shape.
 
 `Layout` initializes the module-level `librarySession` with
 `useInitializeStandaloneSession`. Its `qrk-library` backup key persists the
@@ -86,9 +97,10 @@ Committed layout is Wall → Brick → Placement via aggregate contracts
 (`addBrick`, layout/visibility/remove/compact, `updateBrickState`, and per-module
 spec-at-breakpoint). Commands commit synchronously; Studio
 `backupState: ready` confirms backup durability. Shared state lives on the brick row; each placement stores a
-complete Spec, grid item, and visibility. `BrickWall` uses `noCompactor`
-(collision resolve without auto-gap-closing); **Compact layout** runs an explicit
-command. Library reset calls the standalone session's `reset()` to replace its
+complete Spec, grid item, and visibility. `BrickWall` uses `noCompactor` to avoid
+closing gaps automatically. Dropping a brick displaces overlapping visible neighbors
+downward, including collisions caused by that displacement. **Compact layout** runs
+an explicit command. Library reset calls the standalone session's `reset()` to replace its
 backup with the original seed and remounts the viewport. Viewport preference persists in
 localStorage (`qrk-bricks-library-viewport-v1`).
 
@@ -97,7 +109,12 @@ Library's backup-worker Vite plugin serves `/__zerospin/backup-worker.js` and
 application build. Studio copies the same built assets into its public directory.
 
 HTML5 catalog drag is a module-level `brickDragStore` (`brickDef` / `setBrickDef`
-only). Drop / resize / remove go through contracts on the owning session — not
+only). Its shared `IDraggedBrick` payload preserves the registered module ID
+from both Library previews and both Studio drawer views through to `addBrick`.
+`makeModuleViewLibrary` ties each registry key to its module and definition IDs;
+known keys return a module, while arbitrary route strings can return `undefined`.
+The wall uses this trusted identity directly and still decodes the dragged state.
+Drop / resize / remove go through contracts on the owning session — not
 Zustand `bricksById`.
 
 Placed bricks drag from their entire surface and resize using the grid library's default

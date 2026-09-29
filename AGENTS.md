@@ -14,6 +14,7 @@
 - Ask before adding named types or interfaces; provide the name, shape, and use sites. Inline single-use shapes and follow [named-type guidance](./wiki/patterns/typescript/named-types.md); do not export a type just to share a small parent/child shape.
 - Never add `ALLOWED_CAST` without explicit human authorization. Read the relevant code before adding or retaining casts; ask if a necessary cast requires a marker. No assertion chains that hide mismatches; use `as const` only when requested or demonstrably required.
 - Fix types at their actual model, factory, annotation, or call-site boundary; do not bolt on fields or intersection types to silence errors.
+- Every function that accepts `props` must destructure it as the first statement (`const { foo, bar } = props;`) before doing anything else. Keep `props` as the parameter rather than destructuring in the parameter list, and use the destructured names throughout the body.
 - Use PascalCase component filenames matching the primary component, except shadcn and framework special files. Prefer one primary component per file; keep single-use route logic in its owning `page.tsx`. Preserve existing brick identity, drag, grid, and group conventions.
 - Prefer named `Effect.fn` programs for domain behavior and thin Promise boundaries. Use Effect Schema at untrusted boundaries, preserving local naming and decoding conventions. Ask before moving validation or trust boundaries between browser, server, packages, or Workers. Do not parenthesize `yield*`.
 
@@ -37,6 +38,7 @@ Direct source edits are allowed in `vendor/zerospin`, but they must eventually b
 ## Plans
 
 Keep specs at `wiki/plans/specs/XXX-spec-<topic>.md` and implementation plans at `wiki/plans/plans/XXX-plan-<topic>.md`. Use one above the highest existing three-digit prefix for new specs; reuse the spec number/topic for its plan. Revise in place, use ordered steps and numbered review findings, archive specs after conversion, and archive plans only after implementation and verification.
+Plans created by agents must include gratuitous annotated examples and annotated code snippets.
 
 <!-- nx configuration start-->
 <!-- Leave the start & end comments to automatically receive updates. -->

@@ -1,9 +1,6 @@
 import type { ComponentProps } from "react";
 
-import type { Spec } from "@json-render/core";
-
-import type { IModuleBrickDef } from "../lib/types";
-import { brickDragStore } from "../lib/GridStore";
+import { brickDragStore, type IDraggedBrick } from "../lib/GridStore";
 
 export function DraggableBrick({
   brickDef,
@@ -11,14 +8,7 @@ export function DraggableBrick({
   className,
   ...props
 }: {
-  brickDef:
-    | (IModuleBrickDef & {
-        spec: Spec;
-        w: number;
-        h: number;
-        placementSizes: Record<"sm" | "md" | "lg" | "xl", { w: number; h: number }>;
-      })
-    | null;
+  brickDef: IDraggedBrick | null;
 } & Omit<ComponentProps<"div">, "draggable" | "onDragStart" | "onDragEnd">) {
   return (
     <div

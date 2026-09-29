@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 
-import { createFileRoute, notFound } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { newSyncRpcSession } from "@zerospin/core/utils/getApi/newSyncRpcSession/newSyncRpcSession";
 import type { Spec } from "@json-render/core";
 import { collapseAllNested, defaultStyles, JsonView } from "react-json-view-lite";
@@ -23,12 +23,8 @@ export const Route = createFileRoute("/modules/$moduleId/")({
 });
 
 function ModuleDetail() {
-  const { moduleId } = Route.useParams();
+  const { moduleId } = Route.useRouteContext();
   const brickModule = modulesHash[moduleId];
-
-  if (!brickModule) {
-    throw notFound();
-  }
 
   const [moduleState] = useModuleState(moduleId);
   const [generatePrompt, setGeneratePrompt] = useState("");

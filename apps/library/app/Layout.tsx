@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 
 import { Drawer } from "@qrk.sh/web/library/Drawer";
-import { Link, useLocation, useNavigate, useParams } from "@tanstack/react-router";
+import { Link, useLocation, useMatch, useNavigate, useParams } from "@tanstack/react-router";
 import { prefixId } from "@zerospin/core/models/prefixId";
 import { stageCommand, useInitializeStandaloneSession, useLiveQuery } from "@zerospin/react";
 import { cn } from "cn";
@@ -215,7 +215,8 @@ function LayoutBody(props: {
   const wallViewportStore = useWallViewportStoreApi();
   const { regionRef, availableWidth, activeBreakpoint, setSelectedBreakpoint } = useWallViewport();
   const reducedMotion = useReducedMotion() ?? false;
-  const moduleId = params.moduleId;
+  const moduleMatch = useMatch({ from: "/modules/$moduleId", shouldThrow: false });
+  const moduleId = moduleMatch?.status === "success" ? moduleMatch.context.moduleId : undefined;
   const brickId = params.brickId;
   const locationKey = `${location.pathname}${location.searchStr}`;
   const [drawerOpen, setDrawerOpen] = useState(
@@ -246,7 +247,7 @@ function LayoutBody(props: {
       : (bricksQuery.data ?? []).find((candidate) => candidate.id === brickId);
   const breadcrumbModuleId = moduleId ?? brickRow?.moduleId;
   const moduleLabel =
-    breadcrumbModuleId !== undefined ? modulesHash[breadcrumbModuleId]?.label : undefined;
+    breadcrumbModuleId !== undefined ? modulesHash[breadcrumbModuleId].label : undefined;
   const drawerTitle = moduleLabel !== undefined ? `Bricks / ${moduleLabel}` : "Bricks";
 
   if (locationKey !== drawerOpenForLocationKey) {

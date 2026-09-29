@@ -7,39 +7,30 @@ export function makeModuleViewLibrary<
       readonly id: string;
     };
   },
->(
-  backend: BACKEND,
-  modules: { [K in keyof BACKEND]: IModule } & {
-    [moduleId: string]: IModule;
-  },
-): Record<string, IModule> {
+>(backend: BACKEND, modules: { [K in keyof BACKEND & string]: IModule<K> }) {
   for (const moduleId of Object.keys(backend)) {
-    const brickModule = modules[moduleId];
-    if (brickModule === undefined) {
+    if (!Object.hasOwn(modules, moduleId)) {
       throw new Error(
         `makeModuleViewLibrary: missing view module for backend key ${JSON.stringify(moduleId)}`,
       );
     }
-    if (brickModule.id !== moduleId) {
-      throw new Error(
-        `makeModuleViewLibrary: module id ${JSON.stringify(brickModule.id)} does not match key ${JSON.stringify(moduleId)}`,
-      );
-    }
   }
 
-  const result: Record<string, IModule> = {};
-  for (const [moduleId, brickModule] of Object.entries(modules)) {
-    if (brickModule.id !== moduleId) {
+  for (const [moduleId, brickModule] of Object.entries<IModule<keyof BACKEND & string>>(modules)) {
+    if (
+      brickModule === undefined ||
+      brickModule.id !== moduleId ||
+      brickModule.def.moduleId !== moduleId
+    ) {
       throw new Error(
-        `makeModuleViewLibrary: module id ${JSON.stringify(brickModule.id)} does not match key ${JSON.stringify(moduleId)}`,
+        `makeModuleViewLibrary: module identity does not match key ${JSON.stringify(moduleId)}`,
       );
     }
-    if (backend[moduleId as keyof BACKEND] === undefined) {
+    if (!Object.hasOwn(backend, moduleId)) {
       throw new Error(
         `makeModuleViewLibrary: missing backend entry for module ${JSON.stringify(moduleId)}`,
       );
     }
-    result[moduleId] = brickModule;
   }
-  return result;
+  return modules;
 }

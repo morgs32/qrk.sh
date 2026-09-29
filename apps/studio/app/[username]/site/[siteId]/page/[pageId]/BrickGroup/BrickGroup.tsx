@@ -8,7 +8,6 @@ import { BREAKPOINTS, minGridUnits } from "@qrk.sh/library/breakpoints";
 import { GridItemPreview } from "@qrk.sh/library/GridItemPreview";
 import { MeasuredBrickWrapper } from "@qrk.sh/library/MeasuredBrickWrapper";
 import { brickDragStore } from "@qrk.sh/library/GridStore";
-import type { Spec } from "@json-render/core";
 import { Schema } from "effect";
 import { X } from "lucide-react";
 import { Link } from "react-router";
@@ -26,7 +25,7 @@ const ParamsSchema = Schema.Struct({
 });
 
 function BrickGroupModulePreview(props: {
-  brickModule: (typeof modulesHash)[string];
+  brickModule: (typeof modulesHash)[keyof typeof modulesHash];
   breakpoint: "sm" | "md" | "lg" | "xl";
   params: { username: string; siteId: string; pageId: string };
 }) {
@@ -67,14 +66,7 @@ function BrickGroupModulePreview(props: {
   const activeSize = placementSizes?.[breakpoint];
   const w = activeSize?.w ?? 1;
   const h = activeSize?.h ?? 1;
-  const brickDefForDrag:
-    | (typeof brickModule.def & {
-        spec: Spec;
-        w: number;
-        h: number;
-        placementSizes: Record<"sm" | "md" | "lg" | "xl", { w: number; h: number }>;
-      })
-    | null =
+  const brickDefForDrag =
     placementSizes === null
       ? null
       : {

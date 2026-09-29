@@ -3,6 +3,8 @@ import { useLayoutEffect, useRef, useState } from "react";
 import { isNonEmptySpec } from "@json-render/core";
 import { prefixId } from "@zerospin/core/models/prefixId";
 import { stageCommand, useLiveQuery } from "@zerospin/react";
+import { makeEffectSchema } from "@zerospin/schema";
+import { Result, Schema } from "effect";
 import GridLayout, { noCompactor } from "react-grid-layout";
 
 import { libraryModule } from "../libraryModule/libraryModule";
@@ -21,33 +23,6 @@ function makeGridItem(item: { i: string; x: number; y: number; w: number; h: num
   };
 }
 
-function isLibraryModuleId(
-  value: string,
-): value is
-  | "figma-thumbnail"
-  | "github-activity"
-  | "github-profile"
-  | "github-repo"
-  | "image"
-  | "instagram"
-  | "link"
-  | "map-place"
-  | "swatch-and-icon"
-  | "text" {
-  return (
-    value === "figma-thumbnail" ||
-    value === "github-activity" ||
-    value === "github-profile" ||
-    value === "github-repo" ||
-    value === "image" ||
-    value === "instagram" ||
-    value === "link" ||
-    value === "map-place" ||
-    value === "swatch-and-icon" ||
-    value === "text"
-  );
-}
-
 function commandErrorMessage(failure: { message?: string; code?: string }) {
   if (typeof failure.message === "string" && failure.message.length > 0) {
     return failure.message;
@@ -63,7 +38,7 @@ export function BrickWall(props: {
   wallId: `wal_${string}`;
   breakpoint: "sm" | "md" | "lg" | "xl";
   gridWidth: number;
-  onBrickActivate?: (args: { moduleId: string; brickId: string }) => void;
+  onBrickActivate?: (args: { moduleId: keyof typeof modulesHash; brickId: string }) => void;
   onCommandError?: (message: string) => void;
 }) {
   const { session, wallId, breakpoint, gridWidth } = props;
@@ -182,37 +157,28 @@ export function BrickWall(props: {
               return { w: brickDef.w, h: brickDef.h };
             },
           }}
-          onDrop={(nextLayout, item) => {
+          onDrop={(_nextLayout, item) => {
             const brickDef = brickDragStore.getState().brickDef;
             if (!item || !brickDef) {
               return;
             }
 
             const catalog = modulesHash[brickDef.moduleId];
-            if (catalog === undefined || !isLibraryModuleId(brickDef.moduleId)) {
+            const moduleId = brickDef.moduleId;
+            // Previews can retain provider fields that are not part of the brick's state.
+            const state = Schema.decodeUnknownResult(
+              Schema.toType(makeEffectSchema(catalog.stateShape)),
+            )(brickDef.state, { onExcessProperty: "ignore" });
+            if (Result.isFailure(state)) {
               reportCommandError({
-                message: `Unknown module ${brickDef.moduleId}`,
+                message: `addBrick state failed ${moduleId} decode: ${state.failure.message}`,
               });
               return;
             }
-            const moduleId = brickDef.moduleId;
 
             const idSuffix = crypto.randomUUID().replace(/-/g, "");
             const brickId = prefixId(libraryModule.models.brick, idSuffix);
-            const droppedItem = {
-              i: brickId,
-              x: item.x,
-              y: item.y,
-              w: item.w,
-              h: item.h,
-            };
-            const resolvedActiveLayout = nextLayout.map((layoutItem) => {
-              if (layoutItem.i !== item.i) {
-                return makeGridItem(layoutItem);
-              }
-              return droppedItem;
-            });
-            const otherBreakpointVisibleLayouts = {
+            const visibleLayouts = {
               sm: visibleLayoutAt("sm"),
               md: visibleLayoutAt("md"),
               lg: visibleLayoutAt("lg"),
@@ -226,13 +192,11 @@ export function BrickWall(props: {
                 wallId,
                 brickId,
                 moduleId,
-                state: structuredClone(brickDef.state),
+                state: structuredClone(state.success),
                 spec: structuredClone(brickDef.spec),
-                breakpoint,
-                droppedItem,
+                dropPosition: { x: item.x, y: item.y },
                 placementSizes: brickDef.placementSizes,
-                resolvedActiveLayout,
-                otherBreakpointVisibleLayouts,
+                visibleLayouts,
               },
             });
             if (result._tag === "Failure") {
@@ -330,9 +294,8 @@ export function BrickWall(props: {
                 candidate.breakpoint === breakpoint &&
                 candidate.isVisible,
             );
-            const catalog = brickRow !== undefined ? modulesHash[brickRow.moduleId] : undefined;
-
-            if (brickRow && placement && catalog) {
+            if (brickRow && placement) {
+              const catalog = modulesHash[brickRow.moduleId];
               const BrickComponent = catalog.component;
               const state = brickRow.state;
               const rawSpec = placement.spec;

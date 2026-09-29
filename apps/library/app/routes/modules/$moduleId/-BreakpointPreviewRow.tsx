@@ -21,10 +21,10 @@ export function BreakpointPreviewRow({
   specs,
 }: {
   entry: (typeof BREAKPOINTS)[number];
-  moduleId: string;
-  brick: NonNullable<(typeof modulesHash)[string]>;
+  moduleId: keyof typeof modulesHash;
+  brick: (typeof modulesHash)[keyof typeof modulesHash];
   moduleState: unknown;
-  BrickComponent: NonNullable<(typeof modulesHash)[string]>["component"];
+  BrickComponent: (typeof modulesHash)[keyof typeof modulesHash]["component"];
   className?: string;
   specs: Record<(typeof BREAKPOINTS)[number]["id"], Spec>;
 }) {

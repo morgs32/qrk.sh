@@ -1,12 +1,14 @@
 import { useCallback, useState } from "react";
 
 import { modulesHash } from "@qrk.sh/library";
+import { libraryModule } from "@qrk.sh/library/libraryModule";
+import { makeEffectSchema } from "@zerospin/schema";
+import { Result, Schema } from "effect";
 import { useWallViewport } from "@qrk.sh/library/WallViewportProvider";
 import { BREAKPOINTS, minGridUnits } from "@qrk.sh/library/breakpoints";
 import { GridItemPreview } from "@qrk.sh/library/GridItemPreview";
 import { MeasuredBrickWrapper } from "@qrk.sh/library/MeasuredBrickWrapper";
 import { brickDragStore } from "@qrk.sh/library/GridStore";
-import type { Spec } from "@json-render/core";
 import { ArrowLeft } from "lucide-react";
 import { Tabs } from "radix-ui";
 import { href, Link, useParams } from "react-router";
@@ -24,9 +26,11 @@ export default function BrickGroupRoute() {
   if (!username || !siteId || !pageId) throw new Error("Missing editor route params");
   const { groupName } = params;
 
-  const brickModule = Object.values(modulesHash).find((candidate) => candidate.id === groupName);
+  const decoded = Schema.decodeUnknownResult(
+    makeEffectSchema({ moduleId: libraryModule.models.brick.attributes.moduleId }),
+  )({ moduleId: groupName });
 
-  if (!brickModule) {
+  if (Result.isFailure(decoded)) {
     return (
       <div className="p-6" data-testid="module-not-found">
         <h1>Module not found</h1>
@@ -43,6 +47,7 @@ export default function BrickGroupRoute() {
     );
   }
 
+  const brickModule = modulesHash[decoded.success.moduleId];
   return (
     <BrickGroupRouteBody
       brickModule={brickModule}
@@ -55,7 +60,7 @@ export default function BrickGroupRoute() {
 }
 
 function BrickGroupRouteBody(props: {
-  brickModule: (typeof modulesHash)[string];
+  brickModule: (typeof modulesHash)[keyof typeof modulesHash];
   breakpoint: "sm" | "md" | "lg" | "xl";
   username: string;
   siteId: string;
@@ -98,14 +103,7 @@ function BrickGroupRouteBody(props: {
   const activeSize = placementSizes?.[breakpoint];
   const w = activeSize?.w ?? 1;
   const h = activeSize?.h ?? 1;
-  const brickDefForDrag:
-    | (typeof brickModule.def & {
-        spec: Spec;
-        w: number;
-        h: number;
-        placementSizes: Record<"sm" | "md" | "lg" | "xl", { w: number; h: number }>;
-      })
-    | null =
+  const brickDefForDrag =
     placementSizes === null
       ? null
       : {

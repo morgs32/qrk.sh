@@ -5,16 +5,23 @@ updated: 2026-09-28
 
 # Library brick drop
 
-Catalog tiles place a brick onto `BrickWall` through a library session (mock in the showcase, persisted standalone in Studio) and `addBrick`. HTML5 `dragover` cannot read
+Catalog tiles place a brick onto `BrickWall` through a persisted standalone library session and `addBrick`. HTML5 `dragover` cannot read
 custom MIME, so the live payload is the module-level Zustand singleton
 `brickDragStore` (`brickDef` / `setBrickDef` only). Placement column shape is
 [LibraryGridItem](LibraryGridItem.md).
 
+The shared `IDraggedBrick` payload retains a registered module ID from all four
+drag sources. The view registry preserves the relationship between its keys,
+module IDs, and definition IDs, so drop needs no separate module ID guard.
+State decoding remains part of the drop workflow.
+
 ## Trigger
 
 1. Each app layout gates children on an initialized session seeded with `wal_library`.
-   1. Library workbench: module-level `librarySession` + `useInitializeMockSession`,
-      then `LibrarySessionContext`; reset recreates the in-memory fixture.
+   1. Library workbench: module-level `librarySession` + `useInitializeStandaloneSession`,
+      then `LibrarySessionContext`; reset replaces the `qrk-library` backup with
+      the empty seeded wall and clears its command history. Studio document keys
+      and backend storage are outside this reset.
    2. Studio: `createLibraryStandaloneSession({ key, wallId })` +
       `useInitializeStandaloneSession` in `LibraryEditorSession`. Its document key is
       `JSON.stringify(["studio", user.id, siteId, pageId])`. Studio's live
@@ -28,6 +35,12 @@ custom MIME, so the live payload is the module-level Zustand singleton
    2. Library module breakpoint preview: `-BreakpointPreviewRow`.
    3. Studio drawer: `BrickGroup` / `BrickGroupRoute`.
 
+`addBrick` is a fresh `1.0.0` baseline with no historical payload adapter.
+The payload contains `wallId`, `brickId`, `moduleId`, `state`, `spec`,
+`dropPosition: { x, y }`, four `placementSizes`, and four `visibleLayouts`.
+The grid preview may differ from the committed result: every breakpoint is
+resolved by the contract using the stored placement snapshots.
+
 ```mermaid
 sequenceDiagram
   participant DraggableBrick
@@ -35,98 +48,53 @@ sequenceDiagram
   participant GridLayout
   participant BrickWall
   participant stageCommand
-  participant addBrickProgram as addBrick.program
-  participant addBrickMutations as applyAddBrickMutations
-  participant brickModel as models.brick
+  participant guard as addBrick.guard
+  participant program as addBrick.program
   participant makeCollisionResolvedLayout
-  participant placementModel as models.placement
-  autonumber 1
+  participant models
+  autonumber
   DraggableBrick->>brickDragStore: setBrickDef(... placementSizes)
-  autonumber 2
-  GridLayout->>BrickWall: dropConfig.onDragOver()
-  autonumber 3
-  BrickWall->>brickDragStore: brickDragStore.getState()
-  autonumber 4
-  brickDragStore-->>BrickWall: brickDef or null
-  autonumber 5
-  BrickWall-->>GridLayout: active w h or false
-  autonumber 6
-  GridLayout->>BrickWall: onDrop(...)
-  autonumber 7
-  BrickWall->>brickDragStore: brickDragStore.getState()
-  autonumber 8
-  brickDragStore-->>BrickWall: brickDef
-  autonumber 9
-  BrickWall->>stageCommand: stageCommand(... droppedItem, placementSizes)
-  autonumber 10
-  stageCommand->>addBrickProgram: program(...)
-  autonumber 11
-  addBrickProgram->>addBrickMutations: active layout and sizes per breakpoint
-  autonumber 12
-  addBrickMutations->>makeCollisionResolvedLayout: dropped x/y and breakpoint w/h
-  autonumber 13
-  makeCollisionResolvedLayout-->>addBrickMutations: bounds- and collision-resolved items
-  autonumber 14
-  addBrickMutations->>placementModel: models.placement.create(...)
-  autonumber 15
-  BrickWall->>brickDragStore: brickDragStore.setBrickDef(...)
+  GridLayout->>BrickWall: onDragOver()
+  GridLayout->>BrickWall: onDrop(nextLayout, item)
+  BrickWall->>stageCommand: addBrick(dropPosition, placementSizes, visibleLayouts)
+  stageCommand->>guard: guard(payload, queryDb)
+  guard->>guard: match current visible geometry at every breakpoint
+  stageCommand->>program: program(payload)
+  program->>makeCollisionResolvedLayout: resolve all four layouts
+  makeCollisionResolvedLayout-->>program: fresh i x y w h items
+  program->>program: validate every resolved layout
+  program->>models: create brick and four placements; update displaced neighbors
+  BrickWall->>brickDragStore: setBrickDef(null)
 ```
 
 ## Annotated workflow steps
 
-1. Each source selects declared or measured defaults for all four breakpoints.
-   Drag start waits for those sizes and writes `placementSizes` into the singleton.
-   Nested `<a>` / `<img>` inside `.brick-drag-content` cannot start a native drag.
-   - [`-ModulePreview.tsx:46-69`](../../../apps/library/app/routes/modules/-ModulePreview.tsx#L46-L69) — filmstrip resolves all four sizes. (`apps/library/app/routes/modules/-ModulePreview.tsx:46-69`)
-   - [`DraggableBrick.tsx:27-33`](../../../apps/library/app/DraggableBrick.tsx#L27-L33) — disabled until ready, then writes the drag def. (`apps/library/app/DraggableBrick.tsx:27-33`)
-   - [`-BreakpointPreviewRow.tsx:73-110`](../../../apps/library/app/routes/modules/$moduleId/-BreakpointPreviewRow.tsx#L73-L110) — module detail resolves four sizes using its current state and specs. (`apps/library/app/routes/modules/$moduleId/-BreakpointPreviewRow.tsx:73-110`)
-   - [`BrickGroup.tsx:60-91`](../../../apps/studio/app/[username]/site/[siteId]/page/[pageId]/BrickGroup/BrickGroup.tsx#L60-L91) — Studio drawer resolves all sizes and enables drag. (`apps/studio/app/[username]/site/[siteId]/page/[pageId]/BrickGroup/BrickGroup.tsx:60-91`)
-   - [`BrickGroupRoute.tsx:90-120`](../../../apps/studio/app/routes/BrickGroupRoute.tsx#L90-L120) — full-view drawer follows the same rule. (`apps/studio/app/routes/BrickGroupRoute.tsx:90-120`)
-   - [`bricks.css:78-82`](../../../apps/library/bricks.css#L78-L82) — `[draggable="true"] .brick-drag-content` gets `pointer-events: none` and `-webkit-user-drag: none`. (`apps/library/bricks.css:78-82`)
-2. RGL drop targeting calls the wall's `onDragOver`; a React hook snapshot
-   closed over at render time is stale.
-   - [`BrickWall.tsx:174-184`](../../../apps/library/lib/BrickWall.tsx#L174-L184) — `dropConfig.onDragOver` reads `brickDragStore.getState().brickDef`. (`apps/library/lib/BrickWall.tsx:174-184`)
-3. Hover reads the singleton; `dataTransfer` is not consulted.
-   - [`BrickWall.tsx:178`](../../../apps/library/lib/BrickWall.tsx#L178) — `brickDragStore.getState().brickDef` inside `onDragOver`. (`apps/library/lib/BrickWall.tsx:178`)
-   - [`GridStore.ts:6-15`](../../../apps/library/lib/GridStore.ts#L6-L15) — store holds `brickDef` or `null`; `setBrickDef` replaces that field. (`apps/library/lib/GridStore.ts:6-15`)
-4. `getState()` is the live `brickDef` field, not a render-time hook snapshot.
-   - [`GridStore.ts:12-14`](../../../apps/library/lib/GridStore.ts#L12-L14) — `setBrickDef` writes `{ brickDef }` that `getState()` returns. (`apps/library/lib/GridStore.ts:12-14`)
-5. Missing payload returns `false` (RGL ignores the drag); otherwise the
-   placeholder uses catalog `w` / `h`.
-   - [`BrickWall.tsx:178-181`](../../../apps/library/lib/BrickWall.tsx#L178-L181) — `if (!brickDef) return false`. (`apps/library/lib/BrickWall.tsx:178-181`)
-   - [`BrickWall.tsx:183`](../../../apps/library/lib/BrickWall.tsx#L183) — `return { w: brickDef.w, h: brickDef.h }`. (`apps/library/lib/BrickWall.tsx:183`)
-6. Drop delivers `nextLayout` plus the placeholder `item`.
-   - [`BrickWall.tsx:186-190`](../../../apps/library/lib/BrickWall.tsx#L186-L190) — `onDrop` returns immediately when `item` or `brickDef` is missing. (`apps/library/lib/BrickWall.tsx:186-190`)
-7. `onDrop` re-reads the store; the `onDragOver` value is not reused.
-   - [`BrickWall.tsx:187`](../../../apps/library/lib/BrickWall.tsx#L187) — `brickDragStore.getState().brickDef` at drop time. (`apps/library/lib/BrickWall.tsx:187`)
-8. Drop uses that `brickDef` for `moduleId`, `state`, `spec`, active `w` / `h`, and four `placementSizes`.
-   - [`BrickWall.tsx:187`](../../../apps/library/lib/BrickWall.tsx#L187) — same `getState().brickDef` object returned to `onDrop`. (`apps/library/lib/BrickWall.tsx:187`)
-9. Unknown `moduleId` reports and returns; otherwise the wall stages `addBrick`
-   on the layout-owned standalone session.
-   - [`BrickWall.tsx:192-198`](../../../apps/library/lib/BrickWall.tsx#L192-L198) — `modulesHash` + `isLibraryModuleId`; else `reportCommandError`. (`apps/library/lib/BrickWall.tsx:192-198`)
-   - [`BrickWall.tsx:200-220`](../../../apps/library/lib/BrickWall.tsx#L200-L220) — new `brickId`, `droppedItem` with starting X/Y, resolved active layout, and other visible layouts. (`apps/library/lib/BrickWall.tsx:200-220`)
-   - [`BrickWall.tsx:62-64`](../../../apps/library/lib/BrickWall.tsx#L62-L64) — props are `session` + `wallId`. (`apps/library/lib/BrickWall.tsx:62-64`)
-   - [`BrickWall.tsx:222-236`](../../../apps/library/lib/BrickWall.tsx#L222-L236) — `stageCommand({ contractName: "addBrick", payload })` includes `placementSizes`. (`apps/library/lib/BrickWall.tsx:222-236`)
-   - [`Layout.tsx:31`](../../../apps/library/app/Layout.tsx#L31) — `WALL_ID = prefixId(wall, "library")`. (`apps/library/app/Layout.tsx:31`)
-   - [`Layout.tsx:181-193`](../../../apps/library/app/Layout.tsx#L181-L193) — workbench `createLibraryStandaloneSession` + `LibrarySessionContext`. (`apps/library/app/Layout.tsx:181-193`)
-   - [`EditorLayout.tsx:26`](../../../apps/studio/app/[username]/site/[siteId]/page/[pageId]/EditorLayout.tsx#L26) — Studio hardcodes the same `wal_library`. (`apps/studio/app/[username]/site/[siteId]/page/[pageId]/EditorLayout.tsx:26`)
-   - [`EditorLayout.tsx:47-54`](../../../apps/studio/app/[username]/site/[siteId]/page/[pageId]/EditorLayout.tsx:47-54) — `LibraryEditorSession` initializes a separately keyed durable document. (`apps/studio/app/[username]/site/[siteId]/page/[pageId]/EditorLayout.tsx:47-54`)
-10. `addBrick` version `1.1.0` calls the local mutation program. The upgrade
-    adapter maps historical `1.0.0` commands to their original dropped size at
-    every breakpoint.
-    - [`AddBrickContractV1.ts:430-470`](../../../apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts#L430-L470) — both version programs and historical adapter. (`apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts:430-470`)
-11. The local mutation program creates one brick row with cloned module state.
-    - [`AddBrickContractV1.ts:100-114`](../../../apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts#L100-L114) — `models.brick.create` with `wallId`, `moduleId`, `state`. (`apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts:100-114`)
-12. Other breakpoints start with the dropped numeric X/Y and their own default
-    size, then resolve bounds and collisions. The active breakpoint keeps the
-    UI-supplied layout, which the guard has already validated.
-    - [`AddBrickContractV1.ts:116-128`](../../../apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts#L116-L128) — active layout from payload; other layouts use breakpoint width and height. (`apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts:116-128`)
-    - [`resolveVisibleCollisions.ts:21-50`](../../../apps/library/libraryModule/resolveVisibleCollisions.ts#L21-L50) — clones inputs, corrects bounds, and displaces collisions. (`apps/library/libraryModule/resolveVisibleCollisions.ts:21-50`)
-13. The constructor returns fresh five-field objects for other-breakpoint layouts.
-    - [`resolveVisibleCollisions.ts:52`](../../../apps/library/libraryModule/resolveVisibleCollisions.ts#L52) — maps the completed working layout into fresh five-field objects. (`apps/library/libraryModule/resolveVisibleCollisions.ts:52`)
-14. Four placements are created (one per breakpoint) using five-field items
-    directly.
-    - [`AddBrickContractV1.ts:130-146`](../../../apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts#L130-L146) — `models.placement.create` with `gridItem: item`. (`apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts:130-146`)
-15. Drop clears the singleton even when staging reports a failure.
-    - [`BrickWall.tsx:248`](../../../apps/library/lib/BrickWall.tsx#L248) — `brickDragStore.getState().setBrickDef(null)` after the command result. (`apps/library/lib/BrickWall.tsx:248`)
-    - [`DraggableBrick.tsx:46-48`](../../../apps/library/app/DraggableBrick.tsx#L46-L48) — `onDragEnd` also clears if the drag never dropped. (`apps/library/app/DraggableBrick.tsx:46-48`)
+1. Drag start supplies all four measured or declared sizes.
+   - [`DraggableBrick.tsx:18-34`](../../../apps/library/app/DraggableBrick.tsx#L18-L34) — writes the drag definition once all sizes are available. (`apps/library/app/DraggableBrick.tsx:18-34`)
+2. Hover reads the live drag definition and returns the active placeholder size.
+   - [`BrickWall.tsx:148-158`](../../../apps/library/lib/BrickWall.tsx#L148-L158) — missing drag data returns false. (`apps/library/lib/BrickWall.tsx:148-158`)
+3. Drop uses only the item position from the grid and reads the drag definition again.
+   - [`BrickWall.tsx:160-167`](../../../apps/library/lib/BrickWall.tsx#L160-L167) — reads the typed drag payload and looks up its registered module. (`apps/library/lib/BrickWall.tsx:160-167`)
+4. The caller decodes module state, snapshots all four visible layouts from session placements, and stages the payload.
+   - [`BrickWall.tsx:168-201`](../../../apps/library/lib/BrickWall.tsx#L168-L201) — preserves module state decoding and four placement sizes. (`apps/library/lib/BrickWall.tsx:168-201`)
+5. The guard validates wall and identity, state/spec, nonnegative integer coordinates, and positive integer dimensions.
+   - [`AddBrickContractV1.ts:100-184`](../../../apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts#L100-L184) — rejects invalid inputs before the program. (`apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts:100-184`)
+6. Each snapshot must match stored visible i/x/y/w/h exactly, regardless of order. Duplicates, omissions, stale geometry, and extra items fail with conflict 409.
+   - [`AddBrickContractV1.ts:186-237`](../../../apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts#L186-L237) — compares snapshots against current wall placements. (`apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts:186-237`)
+7. The named program constructs the incoming item separately for every breakpoint.
+   - [`AddBrickContractV1.ts:239-258`](../../../apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts#L239-L258) — combines brickId, dropPosition, and breakpoint size. (`apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts:239-258`)
+8. The constructor clones inputs, corrects eight-column bounds, and pushes overlapping neighbors downward through cascades while preserving gaps.
+   - [`resolveVisibleCollisions.ts:20-41`](../../../apps/library/libraryModule/resolveVisibleCollisions.ts#L20-L41) — settles neighbors in row and column order. (`apps/library/libraryModule/resolveVisibleCollisions.ts:20-41`)
+9. Resolved layouts contain only the five persisted geometry fields.
+   - [`resolveVisibleCollisions.ts:43`](../../../apps/library/libraryModule/resolveVisibleCollisions.ts#L43) — projects fresh objects. (`apps/library/libraryModule/resolveVisibleCollisions.ts:43`)
+10. All four outputs are validated before any mutation is constructed.
+
+- [`AddBrickContractV1.ts:259-271`](../../../apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts#L259-L271) — fails before brick creation if a resolved layout is invalid. (`apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts:259-271`)
+
+11. The program clones state/spec, creates the brick and placements, and updates changed visible neighbors. Hidden placements and unchanged neighbors are untouched.
+
+- [`AddBrickContractV1.ts:273-332`](../../../apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts#L273-L332) — creates incoming placements and skips unchanged geometry. (`apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts:273-332`)
+
+12. Existing command errors are presented and the drag definition is cleared.
+
+- [`BrickWall.tsx:202-212`](../../../apps/library/lib/BrickWall.tsx#L202-L212) — preserves failure handling. (`apps/library/lib/BrickWall.tsx:202-212`)

@@ -1,8 +1,5 @@
 import type { IDb } from "@zerospin/core/drizzle/types";
-import {
-  makeContractVersion,
-  upgradeContractVersion,
-} from "@zerospin/core/contracts/make/makeContractVersion";
+import { makeContractVersion } from "@zerospin/core/contracts/make/makeContractVersion";
 import type { IModelMutations } from "@zerospin/core/contracts/types";
 import type { InferCommandPayload } from "@zerospin/core/models/types";
 import { mapParseError, ZerospinError } from "@zerospin/error";
@@ -63,14 +60,10 @@ export function makeAddBrickContract<
     moduleId: props.brick.attributes.moduleId,
     state: primitives.json({ schema: Schema.Unknown }),
     spec: primitives.json({ schema: structuralSpecSchema }),
-    breakpoint: primitives.enum({
-      values: ["sm", "md", "lg", "xl"],
+    dropPosition: primitives.json({
+      schema: Schema.Struct({ x: Schema.Number, y: Schema.Number }),
     }),
-    droppedItem: primitives.json({ schema: gridItemSchema }),
-    resolvedActiveLayout: primitives.json({
-      schema: Schema.Array(gridItemSchema),
-    }),
-    otherBreakpointVisibleLayouts: primitives.json({
+    visibleLayouts: primitives.json({
       schema: Schema.Struct({
         sm: Schema.Array(gridItemSchema),
         md: Schema.Array(gridItemSchema),
@@ -78,90 +71,17 @@ export function makeAddBrickContract<
         xl: Schema.Array(gridItemSchema),
       }),
     }),
+    placementSizes: primitives.json({
+      schema: Schema.Struct({
+        sm: Schema.Struct({ w: Schema.Number, h: Schema.Number }),
+        md: Schema.Struct({ w: Schema.Number, h: Schema.Number }),
+        lg: Schema.Struct({ w: Schema.Number, h: Schema.Number }),
+        xl: Schema.Struct({ w: Schema.Number, h: Schema.Number }),
+      }),
+    }),
   };
 
-  const placementSizes = primitives.json({
-    schema: Schema.Struct({
-      sm: Schema.Struct({ w: Schema.Number, h: Schema.Number }),
-      md: Schema.Struct({ w: Schema.Number, h: Schema.Number }),
-      lg: Schema.Struct({ w: Schema.Number, h: Schema.Number }),
-      xl: Schema.Struct({ w: Schema.Number, h: Schema.Number }),
-    }),
-  });
-
-  const applyAddBrickMutations = Effect.fn("addBrick.applyMutations")(function* (args: {
-    payload: InferCommandPayload<typeof addBrickPayload>;
-    models: {
-      brick: IModelMutations<typeof props.brick>;
-      placement: IModelMutations<typeof props.placement>;
-    };
-    placementSizes: Record<"sm" | "md" | "lg" | "xl", { w: number; h: number }>;
-  }) {
-    const { payload, models, placementSizes } = args;
-    const mutations = [];
-    const clonedState = structuredClone(payload.state);
-    const clonedSpec = structuredClone(payload.spec);
-
-    mutations.push(
-      yield* models.brick.create({
-        resourceId: payload.brickId as InferIdFromAbbreviation<"brk">,
-        attributes: {
-          wallId: payload.wallId as InferIdFromAbbreviation<"wal">,
-          moduleId: payload.moduleId,
-          state: clonedState,
-        },
-      }),
-    );
-
-    for (const breakpoint of ["sm", "md", "lg", "xl"] as Array<"sm" | "md" | "lg" | "xl">) {
-      const size = placementSizes[breakpoint];
-      const layout =
-        breakpoint === payload.breakpoint
-          ? payload.resolvedActiveLayout
-          : makeCollisionResolvedLayout({
-              visibleLayout: payload.otherBreakpointVisibleLayouts[breakpoint],
-              incoming: {
-                ...payload.droppedItem,
-                w: size.w,
-                h: size.h,
-              },
-            });
-
-      for (const item of layout) {
-        if (item.i === payload.brickId) {
-          mutations.push(
-            yield* models.placement.create({
-              resourceId: makePlacementId(
-                payload.brickId,
-                breakpoint,
-              ) as InferIdFromAbbreviation<"plc">,
-              attributes: {
-                brickId: payload.brickId as InferIdFromAbbreviation<"brk">,
-                breakpoint,
-                spec: structuredClone(clonedSpec),
-                gridItem: item,
-                isVisible: true,
-              } as InferDecodedRow<(typeof props.placement)["attributes"]>,
-            }),
-          );
-          continue;
-        }
-
-        mutations.push(
-          yield* models.placement.update({
-            resourceId: makePlacementId(item.i, breakpoint) as InferIdFromAbbreviation<"plc">,
-            attributes: {
-              gridItem: item,
-            } as Partial<InferDecodedRow<(typeof props.placement)["attributes"]>>,
-          }),
-        );
-      }
-    }
-
-    return mutations;
-  });
-
-  const addBrickV1 = makeContractVersion(addBrick, {
+  return makeContractVersion(addBrick, {
     payload: addBrickPayload,
     models: {
       wall: props.wall,
@@ -240,222 +160,17 @@ export function makeAddBrickContract<
         }),
       );
 
-      if (payload.droppedItem.i !== payload.brickId) {
+      if (
+        !Number.isInteger(payload.dropPosition.x) ||
+        payload.dropPosition.x < 0 ||
+        !Number.isInteger(payload.dropPosition.y) ||
+        payload.dropPosition.y < 0
+      ) {
         return yield* new ZerospinError({
-          code: "add-brick-dropped-item-mismatch",
-          message: `droppedItem.i must equal brickId ${payload.brickId}`,
+          code: "add-brick-drop-position-invalid",
+          message: "dropPosition must contain nonnegative integer x and y",
           status: 400,
         });
-      }
-
-      const activeLayoutError = findVisibleLayoutError({
-        layout: payload.resolvedActiveLayout,
-        context: "addBrick.resolvedActiveLayout",
-      });
-      if (activeLayoutError !== null) {
-        return yield* new ZerospinError({
-          code: "add-brick-resolved-active-invalid",
-          message: activeLayoutError,
-          status: 400,
-        });
-      }
-
-      const resolvedIncludesBrick = payload.resolvedActiveLayout.some(
-        (item) => item.i === payload.brickId,
-      );
-      if (!resolvedIncludesBrick) {
-        return yield* new ZerospinError({
-          code: "add-brick-resolved-missing-brick",
-          message: `resolvedActiveLayout must include brick ${payload.brickId}`,
-          status: 400,
-        });
-      }
-
-      const wallBricks = db.query.brick
-        .findMany({
-          where: { wallId: { eq: payload.wallId } },
-        })
-        .sync();
-
-      for (const breakpoint of ["sm", "md", "lg", "xl"] as Array<"sm" | "md" | "lg" | "xl">) {
-        const visibleBrickIds = new Set<string>();
-        for (const wallBrick of wallBricks) {
-          const placement = db.query.placement
-            .findFirst({
-              where: {
-                id: { eq: makePlacementId(wallBrick.id, breakpoint) },
-              },
-            })
-            .sync();
-          if (placement !== undefined && placement.isVisible) {
-            visibleBrickIds.add(wallBrick.id);
-          }
-        }
-
-        const preDropLayout = payload.otherBreakpointVisibleLayouts[breakpoint];
-        const preDropIds = new Set<string>();
-        for (const item of preDropLayout) {
-          if (preDropIds.has(item.i)) {
-            return yield* new ZerospinError({
-              code: "add-brick-layout-duplicate-item",
-              message: `otherBreakpointVisibleLayouts.${breakpoint} repeats item ${item.i}`,
-              status: 400,
-            });
-          }
-          preDropIds.add(item.i);
-
-          if (item.i === payload.brickId) {
-            return yield* new ZerospinError({
-              code: "add-brick-layout-includes-new-brick",
-              message: `otherBreakpointVisibleLayouts.${breakpoint} must not include new brick ${payload.brickId}`,
-              status: 400,
-            });
-          }
-
-          if (!visibleBrickIds.has(item.i)) {
-            return yield* new ZerospinError({
-              code: "add-brick-layout-item-not-visible",
-              message: `layout item ${item.i} is not a visible placement on wall ${payload.wallId} at ${breakpoint}`,
-              status: 400,
-            });
-          }
-        }
-
-        if (preDropIds.size !== visibleBrickIds.size) {
-          return yield* new ZerospinError({
-            code: "add-brick-layout-set-mismatch",
-            message: `otherBreakpointVisibleLayouts.${breakpoint} must match the wall's current visible placements`,
-            status: 400,
-          });
-        }
-
-        for (const brickId of visibleBrickIds) {
-          if (!preDropIds.has(brickId)) {
-            return yield* new ZerospinError({
-              code: "add-brick-layout-set-mismatch",
-              message: `otherBreakpointVisibleLayouts.${breakpoint} is missing visible brick ${brickId}`,
-              status: 400,
-            });
-          }
-        }
-
-        const otherLayoutError = findVisibleLayoutError({
-          layout: preDropLayout,
-          context: `addBrick.otherBreakpointVisibleLayouts.${breakpoint}`,
-        });
-        if (otherLayoutError !== null) {
-          return yield* new ZerospinError({
-            code: "add-brick-other-layout-invalid",
-            message: otherLayoutError,
-            status: 400,
-          });
-        }
-      }
-
-      const activeNeighborIds = new Set<string>();
-      for (const item of payload.resolvedActiveLayout) {
-        if (item.i === payload.brickId) {
-          continue;
-        }
-        if (activeNeighborIds.has(item.i)) {
-          return yield* new ZerospinError({
-            code: "add-brick-resolved-duplicate-neighbor",
-            message: `resolvedActiveLayout repeats neighbor ${item.i}`,
-            status: 400,
-          });
-        }
-        activeNeighborIds.add(item.i);
-
-        const neighborBrick = wallBricks.find((wallBrick) => wallBrick.id === item.i);
-        if (neighborBrick === undefined) {
-          return yield* new ZerospinError({
-            code: "add-brick-resolved-neighbor-not-on-wall",
-            message: `resolvedActiveLayout neighbor ${item.i} is not a brick on wall ${payload.wallId}`,
-            status: 400,
-          });
-        }
-
-        const neighborPlacement = db.query.placement
-          .findFirst({
-            where: {
-              id: {
-                eq: makePlacementId(item.i, payload.breakpoint),
-              },
-            },
-          })
-          .sync();
-        if (neighborPlacement === undefined || !neighborPlacement.isVisible) {
-          return yield* new ZerospinError({
-            code: "add-brick-resolved-neighbor-not-visible",
-            message: `resolvedActiveLayout neighbor ${item.i} is not visible at breakpoint ${payload.breakpoint}`,
-            status: 400,
-          });
-        }
-      }
-
-      const activeVisibleNeighborIds = new Set<string>();
-      for (const wallBrick of wallBricks) {
-        const placement = db.query.placement
-          .findFirst({
-            where: {
-              id: {
-                eq: makePlacementId(wallBrick.id, payload.breakpoint),
-              },
-            },
-          })
-          .sync();
-        if (placement !== undefined && placement.isVisible) {
-          activeVisibleNeighborIds.add(wallBrick.id);
-        }
-      }
-
-      if (activeNeighborIds.size !== activeVisibleNeighborIds.size) {
-        return yield* new ZerospinError({
-          code: "add-brick-resolved-neighbor-set-mismatch",
-          message: `resolvedActiveLayout neighbors must match current visible placements at ${payload.breakpoint}`,
-          status: 400,
-        });
-      }
-
-      for (const brickId of activeVisibleNeighborIds) {
-        if (!activeNeighborIds.has(brickId)) {
-          return yield* new ZerospinError({
-            code: "add-brick-resolved-neighbor-set-mismatch",
-            message: `resolvedActiveLayout is missing visible neighbor ${brickId}`,
-            status: 400,
-          });
-        }
-      }
-    }),
-    program: ({ payload, models }) =>
-      applyAddBrickMutations({
-        payload,
-        models,
-        placementSizes: {
-          sm: { w: payload.droppedItem.w, h: payload.droppedItem.h },
-          md: { w: payload.droppedItem.w, h: payload.droppedItem.h },
-          lg: { w: payload.droppedItem.w, h: payload.droppedItem.h },
-          xl: { w: payload.droppedItem.w, h: payload.droppedItem.h },
-        },
-      }),
-  });
-
-  return upgradeContractVersion(addBrickV1, {
-    version: "1.1.0",
-    payload: { placementSizes },
-    up: ({ payload }) =>
-      Effect.succeed({
-        ...payload,
-        placementSizes: {
-          sm: { w: payload.droppedItem.w, h: payload.droppedItem.h },
-          md: { w: payload.droppedItem.w, h: payload.droppedItem.h },
-          lg: { w: payload.droppedItem.w, h: payload.droppedItem.h },
-          xl: { w: payload.droppedItem.w, h: payload.droppedItem.h },
-        },
-      }),
-    guard: Effect.fn("addBrick.guardV1_1")(function* ({ queryDb, payload, claims }) {
-      if (addBrickV1.guard) {
-        yield* addBrickV1.guard({ queryDb, payload, claims, failures: {} });
       }
       for (const breakpoint of ["sm", "md", "lg", "xl"] as Array<"sm" | "md" | "lg" | "xl">) {
         const size = payload.placementSizes[breakpoint];
@@ -467,8 +182,156 @@ export function makeAddBrickContract<
           });
         }
       }
+
+      const wallBricks = db.query.brick
+        .findMany({
+          where: { wallId: { eq: payload.wallId } },
+        })
+        .sync();
+
+      for (const breakpoint of ["sm", "md", "lg", "xl"] as Array<"sm" | "md" | "lg" | "xl">) {
+        const visibleItems = [];
+        for (const wallBrick of wallBricks) {
+          const placement = db.query.placement
+            .findFirst({ where: { id: { eq: makePlacementId(wallBrick.id, breakpoint) } } })
+            .sync();
+          if (placement !== undefined && placement.isVisible) {
+            visibleItems.push(placement.gridItem);
+          }
+        }
+
+        const snapshot = payload.visibleLayouts[breakpoint];
+        const snapshotIds = new Set(snapshot.map((item) => item.i));
+        if (
+          snapshotIds.size !== snapshot.length ||
+          snapshot.length !== visibleItems.length ||
+          visibleItems.some(
+            (stored) =>
+              !snapshot.some(
+                (item) =>
+                  item.i === stored.i &&
+                  item.x === stored.x &&
+                  item.y === stored.y &&
+                  item.w === stored.w &&
+                  item.h === stored.h,
+              ),
+          )
+        ) {
+          return yield* new ZerospinError({
+            code: "add-brick-visible-layout-conflict",
+            message: `visibleLayouts.${breakpoint} must match the wall's current visible placements`,
+            status: 409,
+          });
+        }
+        const layoutError = findVisibleLayoutError({
+          layout: snapshot,
+          context: `addBrick.visibleLayouts.${breakpoint}`,
+        });
+        if (layoutError !== null) {
+          return yield* new ZerospinError({
+            code: "add-brick-visible-layout-invalid",
+            message: layoutError,
+            status: 400,
+          });
+        }
+      }
     }),
-    program: ({ payload, models }) =>
-      applyAddBrickMutations({ payload, models, placementSizes: payload.placementSizes }),
+    program: Effect.fn("addBrick.program")(function* ({
+      payload,
+      models,
+    }: {
+      payload: InferCommandPayload<typeof addBrickPayload>;
+      models: {
+        brick: IModelMutations<typeof props.brick>;
+        placement: IModelMutations<typeof props.placement>;
+      };
+    }) {
+      const resolvedLayouts = { ...payload.visibleLayouts };
+      for (const breakpoint of ["sm", "md", "lg", "xl"] as Array<"sm" | "md" | "lg" | "xl">) {
+        const layout = makeCollisionResolvedLayout({
+          visibleLayout: payload.visibleLayouts[breakpoint],
+          incoming: {
+            i: payload.brickId,
+            ...payload.dropPosition,
+            ...payload.placementSizes[breakpoint],
+          },
+        });
+        const layoutError = findVisibleLayoutError({
+          layout,
+          context: `addBrick.resolvedLayouts.${breakpoint}`,
+        });
+        if (layoutError !== null) {
+          return yield* new ZerospinError({
+            code: "add-brick-resolved-layout-invalid",
+            message: layoutError,
+            status: 400,
+          });
+        }
+        resolvedLayouts[breakpoint] = layout;
+      }
+
+      const mutations = [];
+      const clonedState = structuredClone(payload.state);
+      const clonedSpec = structuredClone(payload.spec);
+
+      mutations.push(
+        yield* models.brick.create({
+          resourceId: payload.brickId as InferIdFromAbbreviation<"brk">,
+          attributes: {
+            wallId: payload.wallId as InferIdFromAbbreviation<"wal">,
+            moduleId: payload.moduleId,
+            state: clonedState,
+          },
+        }),
+      );
+
+      for (const breakpoint of ["sm", "md", "lg", "xl"] as Array<"sm" | "md" | "lg" | "xl">) {
+        const layout = resolvedLayouts[breakpoint];
+
+        for (const item of layout) {
+          if (item.i === payload.brickId) {
+            mutations.push(
+              yield* models.placement.create({
+                resourceId: makePlacementId(
+                  payload.brickId,
+                  breakpoint,
+                ) as InferIdFromAbbreviation<"plc">,
+                attributes: {
+                  brickId: payload.brickId as InferIdFromAbbreviation<"brk">,
+                  breakpoint,
+                  spec: structuredClone(clonedSpec),
+                  gridItem: item,
+                  isVisible: true,
+                } as InferDecodedRow<(typeof props.placement)["attributes"]>,
+              }),
+            );
+            continue;
+          }
+
+          const previous = payload.visibleLayouts[breakpoint].find(
+            (visible) => visible.i === item.i,
+          );
+          if (
+            previous?.x === item.x &&
+            previous.y === item.y &&
+            previous.w === item.w &&
+            previous.h === item.h
+          ) {
+            continue;
+          }
+
+          mutations.push(
+            yield* models.placement.update({
+              resourceId: makePlacementId(item.i, breakpoint) as InferIdFromAbbreviation<"plc">,
+              attributes: {
+                gridItem: item,
+              } as Partial<InferDecodedRow<(typeof props.placement)["attributes"]>>,
+            }),
+          );
+        }
+      }
+
+      return mutations;
+    }),
   });
 }

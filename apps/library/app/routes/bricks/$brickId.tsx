@@ -92,9 +92,6 @@ function BrickDetail() {
   }
 
   const brickModule = modulesHash[brickRow.moduleId];
-  if (brickModule === undefined) {
-    throw notFound();
-  }
 
   const brickState = brickRow.state;
   const committedStateJson = JSON.stringify(brickState, null, 2);

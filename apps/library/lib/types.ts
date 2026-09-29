@@ -4,16 +4,10 @@ import type { Catalog, Spec } from "@json-render/core";
 import type { ComponentRegistry } from "@json-render/react";
 import type { IShape } from "@zerospin/schema";
 
-/** A module definition (serializable identity). */
-export type IBrickDef<MODULE extends string = string> = {
-  /** Kebab-case module slug (for example `icon`, `github-profile`, or `figma-thumbnail`). */
-  moduleId: MODULE;
-};
-
 /** A library module: state document, authored component, optional json-render. */
-export type IModule = {
+export type IModule<MODULE extends string> = {
   /** Kebab-case module id, unique across the library. */
-  id: string;
+  id: MODULE;
   /** Zerospin model abbreviation (for example `ghp`). */
   abbreviation: string;
   label: string;
@@ -21,8 +15,18 @@ export type IModule = {
   catalog?: Catalog;
   registry?: ComponentRegistry;
   defaultSpec: Spec;
-  def: IModuleBrickDef;
-  component: IModuleBrick["component"];
+  def: IModuleBrickDef<MODULE>;
+  /**
+   * Render boundaries supply the brick state document; components without a
+   * state contract ignore the prop.
+   */
+  component: {
+    bivarianceHack(props: {
+      state?: unknown;
+      spec: Spec;
+      breakpoint: "sm" | "md" | "lg" | "xl";
+    }): ReactNode;
+  }["bivarianceHack"];
   viewFor: (breakpoint: "sm" | "md" | "lg" | "xl") => {
     component: {
       bivarianceHack(props: { state: unknown }): ReactNode;
@@ -37,30 +41,9 @@ export type IModule = {
 };
 
 /** Serializable module row: module identity, no React component. */
-export type IModuleBrickDef = IBrickDef & {
+export type IModuleBrickDef<MODULE extends string> = {
+  /** Kebab-case module slug (for example `github-profile` or `figma-thumbnail`). */
+  moduleId: MODULE;
   /** Default module state or the configured state of a placed brick. */
   state: unknown;
-};
-
-export type IBrick<
-  MODULE extends string = string,
-  COMPONENT extends (props: never) => ReactNode = (props: never) => ReactNode,
-> = {
-  def: IBrickDef<MODULE>;
-  component: COMPONENT;
-};
-
-export type IModuleBrick = {
-  def: IModuleBrickDef;
-  /**
-   * Render boundaries supply the brick state document; components without a
-   * state contract ignore the prop.
-   */
-  component: {
-    bivarianceHack(props: {
-      state?: unknown;
-      spec: Spec;
-      breakpoint: "sm" | "md" | "lg" | "xl";
-    }): ReactNode;
-  }["bivarianceHack"];
 };

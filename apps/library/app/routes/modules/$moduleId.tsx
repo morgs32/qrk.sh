@@ -3,26 +3,26 @@ import { OrderedBody } from "@qrk.sh/web/library/OrderedBody";
 import { OrderedDoc } from "@qrk.sh/web/library/OrderedDoc";
 import { OrderedOutline } from "@qrk.sh/web/library/OrderedOutline";
 
-import { modulesHash } from "../../../lib/modulesHash";
+import { makeEffectSchema } from "@zerospin/schema";
+import { Result, Schema } from "effect";
+
+import { libraryModule } from "../../../libraryModule/libraryModule";
 
 export const Route = createFileRoute("/modules/$moduleId")({
   beforeLoad: ({ params }) => {
-    if (modulesHash[params.moduleId] === undefined) {
+    const decoded = Schema.decodeUnknownResult(
+      makeEffectSchema({ moduleId: libraryModule.models.brick.attributes.moduleId }),
+    )({ moduleId: params.moduleId });
+    if (Result.isFailure(decoded)) {
       throw notFound();
     }
+    return { moduleId: decoded.success.moduleId };
   },
   component: ModulePage,
 });
 
 function ModulePage() {
   const location = useLocation();
-  const { moduleId } = Route.useParams();
-  const brickModule = modulesHash[moduleId];
-
-  if (!brickModule) {
-    throw notFound();
-  }
-
   return (
     <OrderedDoc>
       <div className="flex flex-col gap-8 px-6 lg:flex-row lg:gap-10 lg:px-8">

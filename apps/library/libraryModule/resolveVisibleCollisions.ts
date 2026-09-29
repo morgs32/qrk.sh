@@ -3,7 +3,6 @@ import {
   cloneLayoutItem,
   correctBounds,
   getAllCollisions,
-  moveElementAwayFromCollision,
   verticalCompactor,
 } from "react-grid-layout/core";
 import type { Layout, LayoutItem } from "react-grid-layout";
@@ -28,25 +27,17 @@ export function makeCollisionResolvedLayout(props: {
   }
   working = correctBounds(working, { cols: GRID_COLS });
 
-  for (let safety = 0; safety < 1000; safety += 1) {
-    const incomingRef = working.find((item) => item.i === props.incoming.i);
-    if (incomingRef === undefined) {
-      break;
+  const settled = working.filter((item) => item.i === props.incoming.i);
+  const neighbors = working
+    .filter((item) => item.i !== props.incoming.i)
+    .sort((a, b) => a.y - b.y || a.x - b.x);
+  for (const neighbor of neighbors) {
+    let collisions = getAllCollisions(settled, neighbor);
+    for (let safety = 0; safety < settled.length && collisions.length > 0; safety += 1) {
+      neighbor.y = Math.max(...collisions.map((collision) => collision.y + collision.h));
+      collisions = getAllCollisions(settled, neighbor);
     }
-    const collisions = getAllCollisions(working, incomingRef);
-    if (collisions.length === 0) {
-      break;
-    }
-    for (const collision of collisions) {
-      working = moveElementAwayFromCollision(
-        working,
-        incomingRef,
-        collision,
-        true,
-        null,
-        GRID_COLS,
-      );
-    }
+    settled.push(neighbor);
   }
 
   return working.map(({ i, x, y, w, h }) => ({ i, x, y, w, h }));

@@ -2,17 +2,14 @@ import { useCallback, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { cn } from "cn";
 
-import type { Spec } from "@json-render/core";
-
 import { MeasuredBrickWrapper } from "../../../components/brick/MeasuredBrickWrapper";
 import { GridItemPreview } from "../../../lib/GridItemPreview";
 import { BREAKPOINTS, minGridUnits } from "../../../lib/breakpoints";
 import { modulesHash } from "../../../lib/modulesHash";
-import type { IModuleBrickDef } from "../../../lib/types";
 import { DraggableBrick } from "../../DraggableBrick";
 
 export function ModulePreview(props: {
-  brickModule: (typeof modulesHash)[string];
+  brickModule: (typeof modulesHash)[keyof typeof modulesHash];
   breakpoint: (typeof BREAKPOINTS)[number]["id"];
 }) {
   const { brickModule, breakpoint } = props;
@@ -59,14 +56,7 @@ export function ModulePreview(props: {
   const activeSize = placementSizes?.[breakpoint];
   const dragW = activeSize?.w ?? 1;
   const dragH = activeSize?.h ?? 1;
-  const brickDefForDrag:
-    | (IModuleBrickDef & {
-        spec: Spec;
-        w: number;
-        h: number;
-        placementSizes: Record<"sm" | "md" | "lg" | "xl", { w: number; h: number }>;
-      })
-    | null =
+  const brickDefForDrag =
     placementSizes === null
       ? null
       : {

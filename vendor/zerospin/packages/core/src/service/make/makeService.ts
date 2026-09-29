@@ -2,6 +2,7 @@ import '@zerospin/server-only';
 import { Schema } from 'effect';
 import { mapValues } from 'es-toolkit';
 
+import { assertSameCoreInstance } from '../../assertSameCoreInstance.ts';
 import { AutomationSchema } from '../../automation/makeAutomation.ts';
 import { Contract } from '../../contracts/make/makeContractVersion.ts';
 import type { IContract } from '../../contracts/types.ts';
@@ -95,6 +96,31 @@ export function makeService<
 }): IVersionedService<NAME, MODULES, ACTORS>;
 
 export function makeService(props: unknown): unknown {
+  if (typeof props === 'object' && props !== null && 'module' in props) {
+    const modules = props.module;
+    if (typeof modules === 'object' && modules !== null) {
+      for (const declaration of Object.values(modules)) {
+        if (typeof declaration !== 'object' || declaration === null) continue;
+        const models = 'models' in declaration ? declaration.models : undefined;
+        const contracts =
+          'contracts' in declaration ? declaration.contracts : undefined;
+        if (typeof models === 'object' && models !== null) {
+          for (const model of Object.values(models)) {
+            assertSameCoreInstance({ value: model, expected: Model, kind: 'Model' });
+          }
+        }
+        if (typeof contracts === 'object' && contracts !== null) {
+          for (const contract of Object.values(contracts)) {
+            assertSameCoreInstance({
+              value: contract,
+              expected: Contract,
+              kind: 'Contract',
+            });
+          }
+        }
+      }
+    }
+  }
   const decoded = Schema.decodeUnknownSync(ServicePropsSchema, {
     onExcessProperty: 'error',
   })(props);

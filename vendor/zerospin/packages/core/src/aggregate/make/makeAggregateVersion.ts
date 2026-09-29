@@ -1,6 +1,7 @@
 import { Schema } from 'effect';
 import '@zerospin/server-only';
 
+import { assertSameCoreInstance } from '../../assertSameCoreInstance.ts';
 import { AggregateActorVersionSchema } from '../../aggregateActor/make/makeAggregateActorVersion/makeAggregateActorVersion.ts';
 import { AutomationSchema } from '../../automation/makeAutomation.ts';
 import type {
@@ -158,6 +159,35 @@ export function makeAggregateVersion(
   }>,
   props: unknown,
 ): unknown {
+  if (typeof props === 'object' && props !== null) {
+    const modules = 'modules' in props ? props.modules : undefined;
+    const declarations = [
+      props,
+      ...(typeof modules === 'object' && modules !== null
+        ? Object.values(modules)
+        : []),
+    ];
+    for (const declaration of declarations) {
+      if (typeof declaration !== 'object' || declaration === null) continue;
+      const models = 'models' in declaration ? declaration.models : undefined;
+      const contracts =
+        'contracts' in declaration ? declaration.contracts : undefined;
+      if (typeof models === 'object' && models !== null) {
+        for (const model of Object.values(models)) {
+          assertSameCoreInstance({ value: model, expected: Model, kind: 'Model' });
+        }
+      }
+      if (typeof contracts === 'object' && contracts !== null) {
+        for (const contract of Object.values(contracts)) {
+          assertSameCoreInstance({
+            value: contract,
+            expected: Contract,
+            kind: 'Contract',
+          });
+        }
+      }
+    }
+  }
   const decodedProps = Schema.decodeUnknownSync(AggregatePropsSchema, {
     onExcessProperty: 'error',
   })(props);

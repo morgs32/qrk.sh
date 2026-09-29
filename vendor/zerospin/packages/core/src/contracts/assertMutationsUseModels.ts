@@ -2,6 +2,7 @@ import { makeZerospinError, type IAnyError } from '@zerospin/error';
 import type { ITypeError } from '@zerospin/schema';
 import { Effect } from 'effect';
 
+import { assertSameCoreInstance } from '../assertSameCoreInstance.ts';
 import { Model } from '../models/defineModel.ts';
 import type { IAnyModels, IModel, IModelReplica } from '../models/types.ts';
 
@@ -24,6 +25,9 @@ export const assertMutationsUseModels = Effect.fn('assertMutationsUseModels')(
     const { mutations, models, commandName } = props;
 
     for (const mutation of mutations) {
+      if (mutation !== null && typeof mutation === 'object') {
+        assertSameCoreInstance({ value: mutation.model, expected: Model, kind: 'Model' });
+      }
       if (
         mutation === null ||
         typeof mutation !== 'object' ||

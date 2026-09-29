@@ -15,6 +15,8 @@ import {
 import { Effect, Schema } from 'effect';
 import { mapValues } from 'es-toolkit';
 
+import { assertSameCoreInstance } from '../../assertSameCoreInstance.ts';
+
 import type { IDb, IResourceDbConfig } from '../../drizzle/types.ts';
 import { Model } from '../../models/defineModel.ts';
 import type {
@@ -207,7 +209,11 @@ const MakeVersionPropsSchema = Schema.Struct({
   program: Schema.optionalKey(ContractProgramSchema),
 });
 
+const contractIdentity = Symbol.for('@zerospin/core/Contract');
+
 export class Contract {
+  readonly [contractIdentity] = true;
+
   get previous(): IContract | undefined {
     return upgradeEdges.get(this)?.parent;
   }
@@ -390,6 +396,14 @@ function makeVersion(
   inheritedFailures?: IFailures,
 ) {
   // 1 — Strictly decode the current definition and its optional program.
+  if (typeof props === 'object' && props !== null && 'models' in props) {
+    const models = props.models;
+    if (typeof models === 'object' && models !== null) {
+      for (const model of Object.values(models)) {
+        assertSameCoreInstance({ value: model, expected: Model, kind: 'Model' });
+      }
+    }
+  }
   const decodedProps = Schema.decodeUnknownSync(MakeVersionPropsSchema, {
     onExcessProperty: 'error',
   })(props);
@@ -936,6 +950,14 @@ export function upgradeContractVersion(
   contract: IContract,
   input: unknown,
 ): IContract {
+  if (typeof input === 'object' && input !== null && 'models' in input) {
+    const models = input.models;
+    if (typeof models === 'object' && models !== null) {
+      for (const model of Object.values(models)) {
+        assertSameCoreInstance({ value: model, expected: Model, kind: 'Model' });
+      }
+    }
+  }
   const props = Schema.decodeUnknownSync(
     Schema.Struct({
       ...MakeVersionPropsSchema.fields,

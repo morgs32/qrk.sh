@@ -42,7 +42,7 @@ export default defineConfig(({ mode }) => {
           "@tiptap/react",
           "@unpic/react",
           "@zerospin/browser",
-          "@zerospin/core",
+          /^@zerospin\/core(?:\/|$)/,
           "@zerospin/react",
           "@zerospin/schema",
           "class-variance-authority",

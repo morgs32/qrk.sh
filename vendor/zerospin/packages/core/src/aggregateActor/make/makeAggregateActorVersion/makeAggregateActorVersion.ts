@@ -1,5 +1,6 @@
 import { Schema, SchemaAST, type Effect } from 'effect';
 
+import { assertSameCoreInstance } from '../../../assertSameCoreInstance.ts';
 import { AutomationSchema } from '../../../automation/makeAutomation.ts';
 import type {
   IActorCommandGuards,
@@ -312,6 +313,9 @@ export function constructAggregateActorVersion<
   GUARDS,
   AUTHORIZE
 > {
+  for (const contract of Object.values(props.contracts)) {
+    assertSameCoreInstance({ value: contract, expected: Contract, kind: 'Contract' });
+  }
   const name = Schema.decodeUnknownSync(
     Schema.Struct({ name: Schema.String }),
     { onExcessProperty: 'error' },

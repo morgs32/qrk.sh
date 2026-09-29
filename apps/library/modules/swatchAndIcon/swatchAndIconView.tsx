@@ -11,7 +11,7 @@ export const swatchAndIconView = makeModuleView(swatchAndIconV1, {
       const { state } = props;
       return (
         <swatchAndIconColorView.Component color="#4A7C59">
-          <iconSvgGraphicView.Component data={{ name: state.data.name, svg: state.data.svg }} />
+          <iconSvgGraphicView.Component name={state.data.name} svg={state.data.svg} />
         </swatchAndIconColorView.Component>
       );
     },

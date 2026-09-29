@@ -19,7 +19,9 @@ export const defaultSpec: Spec = {
     "footer-1": {
       type: "MediaFooter",
       props: {
+        overline: null,
         heading: { $state: "/title" },
+        iconUrl: null,
       },
     },
   },

@@ -13,7 +13,7 @@ export function makeComponentView<const PROPS extends IShape>(
 ) {
   const { props: shape } = definition;
   const { component: Component } = view;
-  const decodeProps = Schema.decodeUnknownSync(makeEffectSchema(shape));
+  const decodeProps = Schema.decodeUnknownSync(Schema.toType(makeEffectSchema(shape)));
 
   function RegistryComponent(context: BaseComponentProps<unknown>) {
     const { props, children } = context;

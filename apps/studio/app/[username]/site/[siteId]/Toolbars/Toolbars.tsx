@@ -14,7 +14,7 @@ export function Toolbars() {
       <BrickGroupToolbar key="BrickGroup" />
     ) : route === "breakpoints" ? (
       <BreakpointsToolbar key="Breakpoints" />
-    ) : route === undefined || route === "brick" ? (
+    ) : route === undefined || route === "brick" || route === "compose" ? (
       <SiteToolbar key="Site" />
     ) : null;
   return (

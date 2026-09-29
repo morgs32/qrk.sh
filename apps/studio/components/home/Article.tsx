@@ -15,6 +15,8 @@ import { stageCommand } from "@zerospin/react";
 import { ZerospinError } from "@zerospin/sdk/browser";
 import { Schema } from "effect";
 import { GripVertical } from "lucide-react";
+import { useEffect } from "react";
+import { useSelectedLayoutSegments } from "next/navigation";
 import { toast } from "sonner";
 import ImageResize from "tiptap-extension-resize-image";
 
@@ -40,6 +42,7 @@ const ParamsSchema = Schema.Struct({
 });
 
 export function Article() {
+  const isComposing = useSelectedLayoutSegments()[0] === "compose";
   const { getToken } = useAuth();
   const params = useValidatedParams(ParamsSchema);
   const session = userSession;
@@ -133,8 +136,10 @@ export function Article() {
         Selection,
       ],
       content: article,
+      editable: isComposing,
       immediatelyRender: false,
       onUpdate: ({ editor: updatedEditor }) => {
+        if (!updatedEditor.isEditable) return;
         const json = updatedEditor.getJSON();
         setArticle(json);
 
@@ -181,6 +186,22 @@ export function Article() {
     [article === undefined ? "missing" : "ready"],
   );
 
+  useEffect(() => {
+    if (editor === null || editor.isDestroyed || editor.isEditable === isComposing) return;
+
+    // Keep the document and undo history; changing modes must not trigger autosave.
+    editor.setEditable(isComposing, false);
+    // Image controls read editability at creation. Recreating node views also
+    // unmounts upload placeholders, whose cleanup cancels pending requests.
+    // React node views flush synchronously, so refresh after this effect finishes.
+    queueMicrotask(() => {
+      if (editor.isDestroyed) return;
+      editor.createNodeViews();
+      // Notify toolbar subscriptions without changing the document or autosaving.
+      editor.view.dispatch(editor.state.tr);
+    });
+  }, [editor, isComposing]);
+
   if (article === undefined || editor === null) {
     return null;
   }
@@ -188,18 +209,20 @@ export function Article() {
   return (
     <EditorContext.Provider value={{ editor }}>
       <div className="flex min-h-full w-full flex-col bg-background">
-        <ArticleToolbar editor={editor} />
+        {isComposing && <ArticleToolbar editor={editor} />}
         <div className="w-full px-6 py-16">
           {/* The extension positions the handle and owns native dragging. */}
-          <DragHandle editor={editor} nested={false}>
-            <div
-              title="Drag block"
-              aria-label="Drag block"
-              className="flex size-6 cursor-grab items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground active:cursor-grabbing"
-            >
-              <GripVertical className="size-4" aria-hidden="true" />
-            </div>
-          </DragHandle>
+          {isComposing && (
+            <DragHandle editor={editor} nested={false}>
+              <div
+                title="Drag block"
+                aria-label="Drag block"
+                className="flex size-6 cursor-grab items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground active:cursor-grabbing"
+              >
+                <GripVertical className="size-4" aria-hidden="true" />
+              </div>
+            </DragHandle>
+          )}
           <EditorContent editor={editor} />
         </div>
       </div>

@@ -19,7 +19,7 @@ test("deep editor URLs server-render the custom-wordmark skeleton", async ({ bro
   const context = await browser.newContext({ baseURL, javaScriptEnabled: false });
   const page = await context.newPage();
   try {
-    for (const suffix of ["", "/brick-group", "/brick-group/module%20name", "/brick/brk_encoded%20brick", "/breakpoints", "/page-settings", "/site-settings"]) {
+    for (const suffix of ["", "/brick-group", "/brick-group/module%20name", "/brick/brk_encoded%20brick", "/breakpoints", "/page-settings", "/site-settings", "/compose"]) {
       const response = await page.goto(`/shell-check/site/sit_check/page/pag_check${suffix}?retained=yes`);
       expect(response?.status()).toBe(200);
       const header = page.getByTestId("site-navbar");
@@ -58,11 +58,11 @@ test("Next serves isolated assets and preserves backup worker URLs", async ({ re
   expect((await request.get("/assets/missing.js")).status()).toBe(404);
 });
 
-test("removed and unknown routes remain not found", async ({ browser, baseURL }) => {
+test("unknown routes remain not found", async ({ browser, baseURL }) => {
   const context = await browser.newContext({ baseURL, javaScriptEnabled: false });
   const page = await context.newPage();
   try {
-    for (const path of ["/unknown/path/that/does/not/exist", "/shell-check/site/sit_check/page/pag_check/compose"]) {
+    for (const path of ["/unknown/path/that/does/not/exist", "/shell-check/site/sit_check/page/pag_check/unknown"]) {
       await page.goto(path);
       await expect(page.getByRole("heading", { name: "Page not found" })).toBeVisible();
       await page.reload();

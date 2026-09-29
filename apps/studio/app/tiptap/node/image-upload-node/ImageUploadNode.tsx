@@ -452,12 +452,12 @@ export const ImageUploadNode: React.FC<NodeViewProps> = (props) => {
   const { fileItems, uploadFiles, removeFileItem, clearAllFiles } = useFileUpload(uploadOptions);
 
   const handleUpload = async (files: File[]) => {
-    if (uploading.current || fileItems.length > 0) return;
+    if (!editor.isEditable || uploading.current || fileItems.length > 0) return;
     uploading.current = true;
     try {
       const urls = await uploadFiles(files);
 
-      if (urls.length === 0 || !mounted.current || editor.isDestroyed) return;
+      if (urls.length === 0 || !mounted.current || editor.isDestroyed || !editor.isEditable) return;
       const pos = getPos();
 
       // Resolve the current position after upload: edits may have moved or
@@ -499,13 +499,17 @@ export const ImageUploadNode: React.FC<NodeViewProps> = (props) => {
   };
 
   const handleClick = () => {
-    if (inputRef.current && fileItems.length === 0) {
+    if (editor.isEditable && inputRef.current && fileItems.length === 0) {
       inputRef.current.value = "";
       inputRef.current.click();
     }
   };
 
   const hasFiles = fileItems.length > 0;
+
+  if (!editor.isEditable) {
+    return <NodeViewWrapper className="tiptap-image-upload">Image upload</NodeViewWrapper>;
+  }
 
   return (
     <NodeViewWrapper className="tiptap-image-upload" tabIndex={0} onClick={handleClick}>

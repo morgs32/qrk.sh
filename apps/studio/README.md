@@ -42,7 +42,7 @@ The dashboard layout renders the `qrk.sh` header in the initial HTML and reserve
 
 ## Routes and transitions
 
-Filesystem routes preserve dashboards, base editors, brick catalogs, group details, brick details, breakpoints, page settings, and site settings. `/compose` and unknown paths render Next's not-found screen. The local error boundary preserves client diagnostics and reload behavior.
+Filesystem routes preserve dashboards, base editors, brick catalogs, group details, brick details, breakpoints, page settings, and site settings. The page's `/compose` route sits outside the drawer route groups and closes all drawers. Unknown paths render Next's not-found screen. The local error boundary preserves client diagnostics and reload behavior.
 
 The page layout keeps site/page drafts, `MainColumns`, the grid, and the library session above the drawers. Pathless `(left)` and `(bottom)` layouts retain their drawer shells during same-group navigation. `Toolbars` reads selected layout segments to preserve the existing toolbar mapping.
 
@@ -71,16 +71,20 @@ Authenticated drawer checks require `PLAYWRIGHT_STORAGE_STATE` pointing to a val
 
 The separate React Router/Motion example remains an independent example, not an acceptance gate for Studio's Next navigation.
 
+## Article composing
+
+Choose **Compose** after **Add bricks** in the site toolbar to navigate to `/:username/site/:siteId/page/:pageId/compose`. Only this route enables article editing, the Tiptap toolbar, and block drag handles. Elsewhere the article remains selectable and read-only, including image controls, task checkboxes, and upload placeholders. Composing preserves the existing article/grid layout and autosave. Its bottom toolbar contains only **Done**, which returns to the base page without discarding edits. Route changes preserve the editor document and undo history.
+
 ## Article block dragging
 
-Hover over an article block to reveal its grip on the left, then drag the grip to reorder it. Lists and blockquotes move as whole blocks; nested items do not get separate handles. Moves use the editor's existing undo/redo and autosave flow, preserving image size and alignment. Articles can begin with any supported block; a leading heading is optional.
+While composing, hover over an article block to reveal its grip on the left, then drag the grip to reorder it. Lists and blockquotes move as whole blocks; nested items do not get separate handles. Moves use the editor's existing undo/redo and autosave flow, preserving image size and alignment. Articles can begin with any supported block; a leading heading is optional.
 
 ## Article images
 
-The article toolbar's **Add image** button inserts an upload placeholder at the cursor in the article body. Choose or drop one PNG, JPEG, WebP, or SVG file, up to 5 MiB. Upload progress is reported by the request; cancel an upload with its close button. On failure, remove the failed file and choose it again. Removing the placeholder or leaving the editor cancels pending uploads.
+While composing, the article toolbar's **Add image** button inserts an upload placeholder at the cursor in the article body. Choose or drop one PNG, JPEG, WebP, or SVG file, up to 5 MiB. Upload progress is reported by the request; cancel an upload with its close button. On failure, remove the failed file and choose it again. Removing the placeholder, leaving compose, or leaving the editor cancels pending uploads. Late upload completion cannot insert content after leaving compose; return to compose to retry an empty placeholder.
 
 Set `NEXT_PUBLIC_API_URL` to the upload API origin; local development uses `http://127.0.0.1:8787`. Run `pnpm nx run @qrk.sh/api:dev` separately. The existing API Worker verifies the Clerk bearer token using `CLERK_SECRET_KEY` and `CLERK_AUTHORIZED_PARTY`, stores the bytes in its `QRKSH` R2 binding, and returns a URL built from `R2_PUBLIC_BASE_URL`. The configured authorized party and CORS origins must match the browser origin. `/assets` serves local R2 objects through the Worker; production can use the configured public R2 host. Clerk secrets stay on the Worker.
 
-Completed uploads replace the placeholder with an `image` node. Its `src`, `width`, `containerStyle`, and `wrapperStyle` persist inside `page.article` through `updatePageArticle`. Select an image to resize it or align it left, center, or right. Images remain block elements and shrink to fit narrower article columns. Existing `image` nodes continue to load.
+Completed uploads replace the placeholder with an `image` node. Its `src`, `width`, `containerStyle`, and `wrapperStyle` persist inside `page.article` through `updatePageArticle`. While composing, select an image to resize it or align it left, center, or right. Images remain block elements and shrink to fit narrower article columns. Existing `image` nodes continue to load.
 
 Empty placeholders are autosaved, but file bytes and in-flight upload state are not. Reloading leaves an empty placeholder for another attempt. Removing an image does not delete its R2 object. Captions, wrapping, and free placement are not enabled.

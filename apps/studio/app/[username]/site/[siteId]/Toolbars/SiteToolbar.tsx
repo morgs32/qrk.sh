@@ -3,7 +3,8 @@
 import { Schema } from "effect";
 import { motion, useReducedMotion } from "framer-motion";
 import { useMemo } from "react";
-import { ArrowLeft, File, Globe, Plus, RectangleHorizontal } from "lucide-react";
+import { ArrowLeft, Check, File, Globe, Pencil, Plus, RectangleHorizontal } from "lucide-react";
+import { useSelectedLayoutSegments } from "next/navigation";
 
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 
@@ -23,6 +24,7 @@ const toolbarPresenceTransition = {
 
 export function SiteToolbar() {
   const reducedMotion = useReducedMotion();
+  const isComposing = useSelectedLayoutSegments()[0] === "compose";
   const params = useValidatedParams(ParamsSchema);
   const username = params.username;
   const siteId = params.siteId;
@@ -42,52 +44,72 @@ export function SiteToolbar() {
           transition={reducedMotion ? { duration: 0 } : toolbarPresenceTransition}
         >
           <BottomToolbar>
-            <ToolbarButton
-              label="Leave"
-              icon={<ArrowLeft className="h-3.5 w-3.5" />}
-              tooltip="Leave"
-              href={`/${encodeURIComponent(username)}`}
-              className="h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
-            />
+            {isComposing ? (
+              <ToolbarButton
+                label="Done"
+                icon={<Check className="h-3.5 w-3.5" />}
+                href={`/${encodeURIComponent(username)}/site/${encodeURIComponent(siteId)}/page/${encodeURIComponent(pageId)}`}
+                className="h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
+              />
+            ) : (
+              <>
+                <ToolbarButton
+                  label="Leave"
+                  icon={<ArrowLeft className="h-3.5 w-3.5" />}
+                  tooltip="Leave"
+                  href={`/${encodeURIComponent(username)}`}
+                  className="h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
+                />
 
-            <ToolbarSeparator />
+                <ToolbarSeparator />
 
-            <ToolbarButton
-              label="Add bricks"
-              icon={<Plus className="h-3.5 w-3.5" />}
-              href={`/${encodeURIComponent(hrefParams.username)}/site/${encodeURIComponent(hrefParams.siteId)}/page/${encodeURIComponent(hrefParams.pageId)}/brick-group`}
-              className="h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
-            />
+                <ToolbarButton
+                  label="Add bricks"
+                  icon={<Plus className="h-3.5 w-3.5" />}
+                  href={`/${encodeURIComponent(hrefParams.username)}/site/${encodeURIComponent(hrefParams.siteId)}/page/${encodeURIComponent(hrefParams.pageId)}/brick-group`}
+                  className="h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
+                />
 
-            <ToolbarSeparator />
+                <ToolbarSeparator />
 
-            <ToolbarButton
-              label="Set breakpoints"
-              icon={<RectangleHorizontal className="h-3.5 w-3.5" />}
-              tooltip="Set breakpoints"
-              href={`/${encodeURIComponent(hrefParams.username)}/site/${encodeURIComponent(hrefParams.siteId)}/page/${encodeURIComponent(hrefParams.pageId)}/breakpoints`}
-              className="h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
-            />
+                <ToolbarButton
+                  label="Compose"
+                  icon={<Pencil className="h-3.5 w-3.5" />}
+                  href={`/${encodeURIComponent(username)}/site/${encodeURIComponent(siteId)}/page/${encodeURIComponent(pageId)}/compose`}
+                  className="h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
+                />
 
-            <ToolbarSeparator />
+                <ToolbarSeparator />
 
-            <ToolbarButton
-              label="Page settings"
-              icon={<File className="h-3.5 w-3.5" />}
-              tooltip="Page settings"
-              href={`/${encodeURIComponent(hrefParams.username)}/site/${encodeURIComponent(hrefParams.siteId)}/page/${encodeURIComponent(hrefParams.pageId)}/page-settings`}
-              className="h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
-            />
+                <ToolbarButton
+                  label="Set breakpoints"
+                  icon={<RectangleHorizontal className="h-3.5 w-3.5" />}
+                  tooltip="Set breakpoints"
+                  href={`/${encodeURIComponent(hrefParams.username)}/site/${encodeURIComponent(hrefParams.siteId)}/page/${encodeURIComponent(hrefParams.pageId)}/breakpoints`}
+                  className="h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
+                />
 
-            <ToolbarSeparator />
+                <ToolbarSeparator />
 
-            <ToolbarButton
-              label="Site settings"
-              icon={<Globe className="h-3.5 w-3.5" />}
-              tooltip="Site settings"
-              href={`/${encodeURIComponent(hrefParams.username)}/site/${encodeURIComponent(hrefParams.siteId)}/page/${encodeURIComponent(hrefParams.pageId)}/site-settings`}
-              className="h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
-            />
+                <ToolbarButton
+                  label="Page settings"
+                  icon={<File className="h-3.5 w-3.5" />}
+                  tooltip="Page settings"
+                  href={`/${encodeURIComponent(hrefParams.username)}/site/${encodeURIComponent(hrefParams.siteId)}/page/${encodeURIComponent(hrefParams.pageId)}/page-settings`}
+                  className="h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
+                />
+
+                <ToolbarSeparator />
+
+                <ToolbarButton
+                  label="Site settings"
+                  icon={<Globe className="h-3.5 w-3.5" />}
+                  tooltip="Site settings"
+                  href={`/${encodeURIComponent(hrefParams.username)}/site/${encodeURIComponent(hrefParams.siteId)}/page/${encodeURIComponent(hrefParams.pageId)}/site-settings`}
+                  className="h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
+                />
+              </>
+            )}
           </BottomToolbar>
         </motion.div>
       </div>

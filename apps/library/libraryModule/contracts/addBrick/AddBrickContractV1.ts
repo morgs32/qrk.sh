@@ -52,12 +52,13 @@ export function makeAddBrickContract<
   brick: ReturnType<typeof makeBrickModel>;
   placement: ReturnType<typeof makePlacementModel>;
 }) {
+  const { library, wall, brick, placement } = props;
   const addBrickPayload = {
-    wallId: primitives.foreignKey({ abbreviation: props.wall.abbreviation }),
+    wallId: primitives.foreignKey({ abbreviation: wall.abbreviation }),
     brickId: primitives.foreignKey({
-      abbreviation: props.brick.abbreviation,
+      abbreviation: brick.abbreviation,
     }),
-    moduleId: props.brick.attributes.moduleId,
+    moduleId: brick.attributes.moduleId,
     state: primitives.json({ schema: Schema.Unknown }),
     spec: primitives.json({ schema: structuralSpecSchema }),
     dropPosition: primitives.json({
@@ -84,9 +85,9 @@ export function makeAddBrickContract<
   return makeContractVersion(addBrick, {
     payload: addBrickPayload,
     models: {
-      wall: props.wall,
-      brick: props.brick,
-      placement: props.placement,
+      wall,
+      brick,
+      placement,
     },
     version: "1.0.0",
     guard: Effect.fn("addBrick.guard")(function* ({
@@ -140,10 +141,10 @@ export function makeAddBrickContract<
         }
       }
 
-      const brickModule = props.library[payload.moduleId];
+      const brickModule = library[payload.moduleId];
       yield* Schema.decodeUnknownEffect(Schema.toType(makeEffectSchema(brickModule.stateShape)))(
         payload.state,
-        { onExcessProperty: "error" },
+        { onExcessProperty: "ignore" },
       ).pipe(
         mapParseError({
           code: "add-brick-invalid-state",
@@ -242,8 +243,8 @@ export function makeAddBrickContract<
     }: {
       payload: InferCommandPayload<typeof addBrickPayload>;
       models: {
-        brick: IModelMutations<typeof props.brick>;
-        placement: IModelMutations<typeof props.placement>;
+        brick: IModelMutations<typeof brick>;
+        placement: IModelMutations<typeof placement>;
       };
     }) {
       const resolvedLayouts = { ...payload.visibleLayouts };
@@ -271,7 +272,16 @@ export function makeAddBrickContract<
       }
 
       const mutations = [];
-      const clonedState = structuredClone(payload.state);
+      const brickModule = library[payload.moduleId];
+      const decodedState = yield* Schema.decodeUnknownEffect(
+        Schema.toType(makeEffectSchema(brickModule.stateShape)),
+      )(payload.state, { onExcessProperty: "ignore" }).pipe(
+        mapParseError({
+          code: "add-brick-invalid-state",
+          prefix: `addBrick state failed ${payload.moduleId} decode`,
+        }),
+      );
+      const clonedState = structuredClone(decodedState);
       const clonedSpec = structuredClone(payload.spec);
 
       mutations.push(
@@ -302,7 +312,7 @@ export function makeAddBrickContract<
                   spec: structuredClone(clonedSpec),
                   gridItem: item,
                   isVisible: true,
-                } as InferDecodedRow<(typeof props.placement)["attributes"]>,
+                } as InferDecodedRow<(typeof placement)["attributes"]>,
               }),
             );
             continue;
@@ -325,7 +335,7 @@ export function makeAddBrickContract<
               resourceId: makePlacementId(item.i, breakpoint) as InferIdFromAbbreviation<"plc">,
               attributes: {
                 gridItem: item,
-              } as Partial<InferDecodedRow<(typeof props.placement)["attributes"]>>,
+              } as Partial<InferDecodedRow<(typeof placement)["attributes"]>>,
             }),
           );
         }

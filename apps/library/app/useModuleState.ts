@@ -17,7 +17,7 @@ export const useModuleStateStore = create<{
     // Decode before changing state: failed writes leave the last preview intact.
     const StateSchema = Schema.toType(makeEffectSchema(brickModule.stateShape));
     const decodedState = Schema.decodeUnknownSync(StateSchema)(nextState, {
-      onExcessProperty: "preserve",
+      onExcessProperty: "ignore",
     });
     set((store) => ({
       stateByModule: {

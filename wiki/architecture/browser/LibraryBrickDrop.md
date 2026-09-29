@@ -1,6 +1,6 @@
 ---
 title: Library brick drop
-updated: 2026-09-28
+updated: 2026-09-29
 ---
 
 # Library brick drop
@@ -13,7 +13,9 @@ custom MIME, so the live payload is the module-level Zustand singleton
 The shared `IDraggedBrick` payload retains a registered module ID from all four
 drag sources. The view registry preserves the relationship between its keys,
 module IDs, and definition IDs, so drop needs no separate module ID guard.
-State decoding remains part of the drop workflow.
+Module defaults and preview updates discard undeclared state fields. The command
+guard validates declared fields, and the program decodes and saves the resulting
+state, stripping extras from any caller. Invalid declared fields still fail.
 
 ## Trigger
 
@@ -63,6 +65,7 @@ sequenceDiagram
   program->>makeCollisionResolvedLayout: resolve all four layouts
   makeCollisionResolvedLayout-->>program: fresh i x y w h items
   program->>program: validate every resolved layout
+  program->>program: decode module state, discarding undeclared fields
   program->>models: create brick and four placements; update displaced neighbors
   BrickWall->>brickDragStore: setBrickDef(null)
 ```
@@ -75,9 +78,9 @@ sequenceDiagram
    - [`BrickWall.tsx:148-158`](../../../apps/library/lib/BrickWall.tsx#L148-L158) — missing drag data returns false. (`apps/library/lib/BrickWall.tsx:148-158`)
 3. Drop uses only the item position from the grid and reads the drag definition again.
    - [`BrickWall.tsx:160-167`](../../../apps/library/lib/BrickWall.tsx#L160-L167) — reads the typed drag payload and looks up its registered module. (`apps/library/lib/BrickWall.tsx:160-167`)
-4. The caller decodes module state, snapshots all four visible layouts from session placements, and stages the payload.
-   - [`BrickWall.tsx:168-201`](../../../apps/library/lib/BrickWall.tsx#L168-L201) — preserves module state decoding and four placement sizes. (`apps/library/lib/BrickWall.tsx:168-201`)
-5. The guard validates wall and identity, state/spec, nonnegative integer coordinates, and positive integer dimensions.
+4. The caller clones dragged state, snapshots all four visible layouts from session placements, and stages the payload.
+   - [`BrickWall.tsx:168-201`](../../../apps/library/lib/BrickWall.tsx#L168-L201) — carries state and four placement sizes. (`apps/library/lib/BrickWall.tsx:168-201`)
+5. The guard validates wall and identity, declared state fields, strict spec, nonnegative integer coordinates, and positive integer dimensions. Extra state properties are ignored.
    - [`AddBrickContractV1.ts:100-184`](../../../apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts#L100-L184) — rejects invalid inputs before the program. (`apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts:100-184`)
 6. Each snapshot must match stored visible i/x/y/w/h exactly, regardless of order. Duplicates, omissions, stale geometry, and extra items fail with conflict 409.
    - [`AddBrickContractV1.ts:186-237`](../../../apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts#L186-L237) — compares snapshots against current wall placements. (`apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts:186-237`)
@@ -91,9 +94,9 @@ sequenceDiagram
 
 - [`AddBrickContractV1.ts:259-271`](../../../apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts#L259-L271) — fails before brick creation if a resolved layout is invalid. (`apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts:259-271`)
 
-11. The program clones state/spec, creates the brick and placements, and updates changed visible neighbors. Hidden placements and unchanged neighbors are untouched.
+11. The program decodes state with `onExcessProperty: "ignore"`, clones the decoded state and spec, creates the brick and placements, and updates changed visible neighbors. Hidden placements and unchanged neighbors are untouched.
 
-- [`AddBrickContractV1.ts:273-332`](../../../apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts#L273-L332) — creates incoming placements and skips unchanged geometry. (`apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts:273-332`)
+- [`AddBrickContractV1.ts:274-343`](../../../apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts#L274-L343) — saves decoded state, creates incoming placements, and skips unchanged geometry. (`apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts:274-343`)
 
 12. Existing command errors are presented and the drag definition is cleared.
 

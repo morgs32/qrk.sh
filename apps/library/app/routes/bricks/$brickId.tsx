@@ -259,6 +259,7 @@ function BrickDetail() {
                     contractName: "updateBrickState",
                     payload: {
                       brickId: brickRow.id,
+                      moduleId: brickRow.moduleId,
                       state: parsed,
                     },
                   });

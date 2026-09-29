@@ -137,7 +137,7 @@ export function makeModuleView<
       }
       function Authored(props: { state: unknown }) {
         const { state } = props;
-        const decoded = decodeState(state, { onExcessProperty: "preserve" });
+        const decoded = decodeState(state, { onExcessProperty: "ignore" });
         return <Component state={decoded} />;
       }
       authoredByComponent.set(Component, Authored);

@@ -59,7 +59,7 @@ brick model enum before passing it through route context; unknown IDs remain 404
 Internal previews, state updates, and drag callbacks retain the registered ID union.
 `defineModule` declares identity; `makeModuleVersion` owns the catalog, `stateShape`,
 and `defaultState`. `makeModuleView` infers authored callback props from that state
-shape and decodes incoming state before rendering, preserving extra provider fields.
+shape and decodes incoming state before rendering, discarding undeclared fields.
 Its authored wrappers are created once and reused by previews and placed bricks.
 It also attaches a json-render `generator` (`registry` + `defaultSpec`).
 
@@ -95,9 +95,14 @@ regardless of array order, and rejects stale snapshots with conflict 409 before 
 The program validates all resolved outputs, then creates the brick and four placements
 and updates displaced visible neighbors. Hidden and unaffected placements retain their
 geometry. This is a fresh `addBrick` version `1.0.0` baseline with no historical adapter;
-old payloads and pending commands require the authorized document reset. Dragged state
-reaches the strict `addBrick` guard without projection; extra provider fields are
-rejected there even when they were retained by preview state decoding.
+old payloads and pending commands require the authorized document reset. Module defaults,
+preview state, and authored rendering discard undeclared fields during decoding.
+`addBrick` and `updateBrickState` validate declared state fields while ignoring extras;
+their programs decode again and persist the decoded state. Invalid declared fields
+still reject the command before mutation. Spec validation remains strict.
+`updateBrickState` requires `moduleId`, checked against the stored brick before decoding.
+Pending updates without it must be resubmitted against the current `1.0.0` baseline.
+Existing bricks are normalized on their next state update; there is no bulk migration.
 
 `Layout` initializes the module-level `librarySession` with
 `useInitializeStandaloneSession`. Its `qrk-library` backup key persists the

@@ -1,5 +1,6 @@
 import type { IDb } from "@zerospin/core/drizzle/types";
 import { makeContractVersion } from "@zerospin/core/contracts/make/makeContractVersion";
+import type { IModelMutations } from "@zerospin/core/contracts/types";
 import type { InferCommandPayload } from "@zerospin/core/models/types";
 import { mapParseError, ZerospinError } from "@zerospin/error";
 import {
@@ -21,17 +22,19 @@ export function makeUpdateBrickStateContract<
     }
   >,
 >(props: { library: LIBRARY; brick: ReturnType<typeof makeBrickModel> }) {
+  const { library, brick } = props;
   const updateBrickStatePayload = {
     brickId: primitives.foreignKey({
-      abbreviation: props.brick.abbreviation,
+      abbreviation: brick.abbreviation,
     }),
+    moduleId: brick.attributes.moduleId,
     state: primitives.json({ schema: Schema.Unknown }),
   };
 
   return makeContractVersion(updateBrickState, {
     payload: updateBrickStatePayload,
     models: {
-      brick: props.brick,
+      brick,
     },
     version: "1.0.0",
     guard: Effect.fn("updateBrickState.guard")(function* ({
@@ -56,10 +59,18 @@ export function makeUpdateBrickStateContract<
         });
       }
 
-      const brickModule = props.library[brickRow.moduleId];
+      if (payload.moduleId !== brickRow.moduleId) {
+        return yield* new ZerospinError({
+          code: "update-brick-state-module-mismatch",
+          message: `brick ${payload.brickId} does not belong to module ${payload.moduleId}`,
+          status: 400,
+        });
+      }
+
+      const brickModule = library[brickRow.moduleId];
       yield* Schema.decodeUnknownEffect(Schema.toType(makeEffectSchema(brickModule.stateShape)))(
         payload.state,
-        { onExcessProperty: "error" },
+        { onExcessProperty: "ignore" },
       ).pipe(
         mapParseError({
           code: "update-brick-state-invalid-state",
@@ -67,14 +78,30 @@ export function makeUpdateBrickStateContract<
         }),
       );
     }),
-    program: ({ payload, models }) =>
-      Effect.all([
-        models.brick.update({
+    program: Effect.fn("updateBrickState.program")(function* ({
+      payload,
+      models,
+    }: {
+      payload: InferCommandPayload<typeof updateBrickStatePayload>;
+      models: { brick: IModelMutations<typeof brick> };
+    }) {
+      const brickModule = library[payload.moduleId];
+      const decodedState = yield* Schema.decodeUnknownEffect(
+        Schema.toType(makeEffectSchema(brickModule.stateShape)),
+      )(payload.state, { onExcessProperty: "ignore" }).pipe(
+        mapParseError({
+          code: "update-brick-state-invalid-state",
+          prefix: `updateBrickState state failed ${payload.moduleId} decode`,
+        }),
+      );
+      return [
+        yield* models.brick.update({
           resourceId: payload.brickId as InferIdFromAbbreviation<"brk">,
           attributes: {
-            state: structuredClone(payload.state),
+            state: structuredClone(decodedState),
           },
         }),
-      ]),
+      ];
+    }),
   });
 }

@@ -2,6 +2,7 @@
 
 import { useAuth } from "@clerk/nextjs";
 import Document from "@tiptap/extension-document";
+import DragHandle from "@tiptap/extension-drag-handle-react";
 import { Highlight } from "@tiptap/extension-highlight";
 import { TaskItem, TaskList } from "@tiptap/extension-list";
 import Placeholder from "@tiptap/extension-placeholder";
@@ -14,6 +15,7 @@ import StarterKit from "@tiptap/starter-kit";
 import { stageCommand } from "@zerospin/react";
 import { ZerospinError } from "@zerospin/sdk/browser";
 import { Schema } from "effect";
+import { GripVertical } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import ImageResize from "tiptap-extension-resize-image";
@@ -216,6 +218,16 @@ export function Article() {
       <div className="flex min-h-full w-full flex-col bg-background">
         <ArticleToolbar editor={editor} inRequiredHeading={inRequiredHeading} />
         <div className="w-full px-6 py-16">
+          {/* The extension positions the handle and owns native dragging. */}
+          <DragHandle editor={editor} nested={false}>
+            <div
+              title="Drag block"
+              aria-label="Drag block"
+              className="flex size-6 cursor-grab items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground active:cursor-grabbing"
+            >
+              <GripVertical className="size-4" aria-hidden="true" />
+            </div>
+          </DragHandle>
           <EditorContent editor={editor} />
         </div>
       </div>

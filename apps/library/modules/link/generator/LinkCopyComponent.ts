@@ -11,5 +11,5 @@ export const linkCopyComponent = defineComponent({
     iconUrl: primitives.text(),
   },
   description:
-    'Left copy column and sole link. Bind url with { "$state": "/url" } for the href. Bind title/siteName/iconUrl from state.',
+    "Link copy column with favicon, full URL, and title. Bind url, title, and iconUrl from state.",
 });

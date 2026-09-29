@@ -9,7 +9,7 @@ export const linkHeroImageView = makeComponentView(linkHeroImageComponent, {
       return null;
     }
     return (
-      <div className="relative w-[44%] min-w-[200px] shrink-0 overflow-hidden bg-zinc-200">
+      <div className="relative min-w-0 flex-1 overflow-hidden bg-zinc-200">
         <Image
           alt=""
           className="absolute inset-0 h-full w-full object-cover"

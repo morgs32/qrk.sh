@@ -7,29 +7,39 @@ import { linkCopyComponent } from "./generator/LinkCopyComponent";
 
 export const linkCopyView = makeComponentView(linkCopyComponent, {
   component(props) {
-    const { url, iconUrl, siteName, title } = props;
+    const { url, iconUrl, title } = props;
     const copyRef = useRef<HTMLDivElement>(null);
-    const siteRef = useRef<HTMLSpanElement>(null);
+    const headerRef = useRef<HTMLDivElement>(null);
+    const urlRef = useRef<HTMLDivElement>(null);
     const titleRef = useRef<HTMLHeadingElement>(null);
+    const [copyWidth, setCopyWidth] = useState<number>();
     const [fontSize, setFontSize] = useState<number>();
     const href = url.length > 0 ? url : undefined;
 
     useLayoutEffect(() => {
       const copy = copyRef.current;
-      const site = siteRef.current;
+      const header = headerRef.current;
+      const urlElement = urlRef.current;
       const heading = titleRef.current;
-      if (!copy || !site || !heading) return;
+      const card = copy?.parentElement;
+      if (!copy || !header || !urlElement || !heading || !card) return;
 
       const updateFontSize = () => {
         const copyStyle = getComputedStyle(copy);
         const headingStyle = getComputedStyle(heading);
-        const width =
-          copy.clientWidth - parseFloat(copyStyle.paddingLeft) - parseFloat(copyStyle.paddingRight);
+        const horizontalPadding =
+          parseFloat(copyStyle.paddingLeft) + parseFloat(copyStyle.paddingRight);
+        const nextCopyWidth = Math.min(
+          Math.ceil(urlElement.scrollWidth + horizontalPadding),
+          (card.clientWidth * 2) / 3,
+        );
+        setCopyWidth(nextCopyWidth);
+        const width = nextCopyWidth - horizontalPadding;
         const height =
           copy.clientHeight -
           parseFloat(copyStyle.paddingTop) -
           parseFloat(copyStyle.paddingBottom) -
-          site.offsetHeight -
+          header.offsetHeight -
           parseFloat(copyStyle.rowGap);
         const maxSize = parseFloat(copyStyle.fontSize);
         if (width <= 0 || height <= 0 || !Number.isFinite(maxSize)) return;
@@ -58,8 +68,9 @@ export const linkCopyView = makeComponentView(linkCopyComponent, {
 
       updateFontSize();
       const observer = new ResizeObserver(updateFontSize);
+      observer.observe(card);
       observer.observe(copy);
-      observer.observe(site);
+      observer.observe(header);
       document.fonts.addEventListener("loadingdone", updateFontSize);
       let active = true;
       void document.fonts.ready.then(() => {
@@ -70,28 +81,34 @@ export const linkCopyView = makeComponentView(linkCopyComponent, {
         observer.disconnect();
         document.fonts.removeEventListener("loadingdone", updateFontSize);
       };
-    }, [title]);
+    }, [title, url]);
 
     return (
-      <div ref={copyRef} className="flex min-w-0 flex-1 flex-col gap-4 p-4">
-        <span ref={siteRef} className="flex min-w-0 items-center gap-2">
+      <div
+        ref={copyRef}
+        className="flex min-w-0 shrink-0 flex-col gap-4 p-4"
+        style={{ width: copyWidth ?? "50%" }}
+      >
+        <div ref={headerRef} className="flex min-w-0 flex-col gap-1">
           {iconUrl.length > 0 ? (
             <Image
               alt=""
-              className="size-4 shrink-0 rounded-sm object-contain"
-              height={16}
+              className="size-8 shrink-0 rounded-sm object-contain"
+              height={32}
               layout="constrained"
               onError={(event) => {
                 event.currentTarget.style.display = "none";
               }}
               src={iconUrl}
-              width={16}
+              width={32}
             />
           ) : null}
-          <Link className="min-w-0" href={href}>
-            <small className="m-0 min-w-0 truncate">{siteName}</small>
-          </Link>
-        </span>
+          <div ref={urlRef} className="min-w-0 truncate">
+            <Link href={href}>
+              <small className="m-0">{url}</small>
+            </Link>
+          </div>
+        </div>
         <h2
           ref={titleRef}
           className="m-0 min-h-0 overflow-hidden leading-normal"

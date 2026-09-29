@@ -28,7 +28,7 @@ const dataShape = {
 };
 
 const defaultData = {
-  name: "ink-steps",
+  name: "github-repo",
   description: "A sample GitHub repository card.",
   stargazers_count: 12,
   forks_count: 3,

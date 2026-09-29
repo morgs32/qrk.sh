@@ -1,18 +1,18 @@
-import { useCallback, useState } from "react";
-import { Link } from "@tanstack/react-router";
+import { useCallback, useState, type ReactNode } from "react";
 import { cn } from "cn";
 
-import { MeasuredBrickWrapper } from "../../../components/brick/MeasuredBrickWrapper";
-import { GridItemPreview } from "../../../lib/GridItemPreview";
-import { BREAKPOINTS, minGridUnits } from "../../../lib/breakpoints";
-import { modulesHash } from "../../../lib/modulesHash";
-import { DraggableBrick } from "../../DraggableBrick";
+import { MeasuredBrickWrapper } from "../components/brick/MeasuredBrickWrapper";
+import { GridItemPreview } from "./GridItemPreview";
+import { BREAKPOINTS, minGridUnits } from "./breakpoints";
+import { modulesHash } from "./modulesHash";
+import { DraggableBrick } from "./DraggableBrick";
 
 export function ModulePreview(props: {
   brickModule: (typeof modulesHash)[keyof typeof modulesHash];
   breakpoint: (typeof BREAKPOINTS)[number]["id"];
+  moduleLink: ReactNode;
 }) {
-  const { brickModule, breakpoint } = props;
+  const { brickModule, breakpoint, moduleLink } = props;
   const { def, component: BrickComponent } = brickModule;
   const view = brickModule.viewFor(breakpoint);
   const spec = view.spec;
@@ -81,15 +81,7 @@ export function ModulePreview(props: {
         exceedsWallWidth ? "border border-red-200 bg-red-50" : "border-r border-zinc-200",
       )}
     >
-      <h2 className="m-0 shrink-0 py-4 font-normal">
-        <Link
-          to="/modules/$moduleId"
-          params={{ moduleId: brickModule.id }}
-          data-module-link={brickModule.id}
-        >
-          {brickModule.label}
-        </Link>
-      </h2>
+      <h2 className="m-0 shrink-0 py-4 font-normal">{moduleLink}</h2>
       <div className="relative pb-16">
         <div
           aria-hidden
@@ -114,6 +106,8 @@ export function ModulePreview(props: {
             brickDef={brickDefForDrag}
             className="size-full qrk-bricks overflow-hidden"
             data-module-representative={def.moduleId}
+            data-brick-drawer-brick-slot
+            data-brick-drawer-module-id={def.moduleId}
           >
             <div className="brick-drag-content size-full">
               <BrickComponent breakpoint={breakpoint} state={def.state} spec={spec} />

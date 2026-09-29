@@ -3,18 +3,11 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import { useCallback, useState } from "react";
-
-import { modulesHash } from "@qrk.sh/library";
+import { ModuleFilmstrip } from "@qrk.sh/library/ModuleFilmstrip";
 import { useWallViewport } from "@qrk.sh/library/WallViewportProvider";
-import { BREAKPOINTS, minGridUnits } from "@qrk.sh/library/breakpoints";
-import { GridItemPreview } from "@qrk.sh/library/GridItemPreview";
-import { MeasuredBrickWrapper } from "@qrk.sh/library/MeasuredBrickWrapper";
-import { brickDragStore } from "@qrk.sh/library/GridStore";
 import { Schema } from "effect";
 import { X } from "lucide-react";
 
-import { BRICK_DRAG_MIME } from "@/components/home/useBrickDrawerStore";
 import { Button } from "@/components/ui/button";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 
@@ -24,143 +17,12 @@ const ParamsSchema = Schema.Struct({
   pageId: Schema.String,
 });
 
-function BrickGroupModulePreview(props: {
-  brickModule: (typeof modulesHash)[keyof typeof modulesHash];
-  breakpoint: "sm" | "md" | "lg" | "xl";
-  params: { username: string; siteId: string; pageId: string };
-}) {
-  const { brickModule, breakpoint, params } = props;
-  const BrickComponent = brickModule.component;
-  const view = brickModule.viewFor(breakpoint);
-  const [measuredUnits, setMeasuredUnits] = useState<
-    Partial<Record<(typeof BREAKPOINTS)[number]["id"], { w: number; h: number }>>
-  >({});
-  const onSizeChange = useCallback(
-    (
-      targetBreakpoint: (typeof BREAKPOINTS)[number]["id"],
-      dimensions: { widthPx: number; heightPx: number },
-    ) => {
-      const entry = BREAKPOINTS.find((row) => row.id === targetBreakpoint);
-      if (entry === undefined) return;
-      const nextW = Math.min(8, minGridUnits(entry.gridItemWidth, dimensions.widthPx));
-      const nextH = minGridUnits(entry.gridItemWidth, dimensions.heightPx);
-      setMeasuredUnits((current) => {
-        const measured = current[targetBreakpoint];
-        if (measured?.w === nextW && measured.h === nextH) return current;
-        return { ...current, [targetBreakpoint]: { w: nextW, h: nextH } };
-      });
-    },
-    [],
-  );
-
-  const sizes = BREAKPOINTS.map((entry) => {
-    const entryView = brickModule.viewFor(entry.id);
-    const measured = measuredUnits[entry.id];
-    return entryView.w !== undefined && entryView.h !== undefined
-      ? { w: entryView.w, h: entryView.h }
-      : measured === undefined
-        ? undefined
-        : {
-            w: Math.min(8, Math.max(measured.w, entryView.minW ?? 1)),
-            h: Math.max(measured.h, entryView.minH ?? 1),
-          };
-  });
-  const placementSizes =
-    sizes[0] && sizes[1] && sizes[2] && sizes[3]
-      ? { sm: sizes[0], md: sizes[1], lg: sizes[2], xl: sizes[3] }
-      : null;
-  const activeSize = placementSizes?.[breakpoint];
-  const w = activeSize?.w ?? view.minW ?? 1;
-  const h = activeSize?.h ?? view.minH ?? 1;
-  const brickDefForDrag =
-    placementSizes === null
-      ? null
-      : {
-          ...brickModule.def,
-          w,
-          h,
-          placementSizes,
-          state: structuredClone(brickModule.defaultState),
-          spec: structuredClone(view.spec),
-        };
-
-  const surface = (
-    <div
-      className="size-full qrk-bricks brick-drag-surface cursor-grab overflow-hidden active:cursor-grabbing"
-      data-module-representative={brickModule.def.moduleId}
-      data-brick-drawer-brick-slot
-      data-brick-drawer-module-id={brickModule.def.moduleId}
-      draggable={brickDefForDrag !== null}
-      onDragStart={(event) => {
-        if (brickDefForDrag === null) {
-          event.preventDefault();
-          return;
-        }
-        brickDragStore.getState().setBrickDef(structuredClone(brickDefForDrag));
-        event.dataTransfer.setData(BRICK_DRAG_MIME, JSON.stringify(brickDefForDrag));
-        event.dataTransfer.effectAllowed = "copy";
-        event.dataTransfer.setData("text/plain", brickModule.def.moduleId);
-      }}
-      onDragEnd={() => {
-        brickDragStore.getState().setBrickDef(null);
-      }}
-    >
-      <div className="brick-drag-content size-full">
-        <BrickComponent breakpoint={breakpoint} state={brickModule.defaultState} spec={view.spec} />
-      </div>
-    </div>
-  );
-
-  return (
-    <section data-module-entry={brickModule.id}>
-      <h2 className="m-0 shrink-0 sticky top-0 z-10 bg-zinc-100 px-4 py-4 text-sm font-normal">
-        <Link
-              scroll={false}
-          href={`/${encodeURIComponent(params.username)}/site/${encodeURIComponent(params.siteId)}/page/${encodeURIComponent(params.pageId)}/brick-group/${encodeURIComponent(brickModule.id)}`}
-          data-module-link={brickModule.id}
-        >
-          {brickModule.label}
-        </Link>
-      </h2>
-      <div className="overflow-auto py-6">
-        <div className={w === 8 ? "relative" : "relative px-4"}>
-          <div
-            aria-hidden
-            className="pointer-events-none absolute overflow-hidden"
-            style={{ width: 0, height: 0 }}
-          >
-            {BREAKPOINTS.map((entry) => {
-              const entryView = brickModule.viewFor(entry.id);
-              if (entryView.w !== undefined && entryView.h !== undefined) return null;
-              return (
-                <MeasuredBrickWrapper
-                  key={entry.id}
-                  onChange={(dimensions) => onSizeChange(entry.id, dimensions)}
-                >
-                  <BrickComponent
-                    breakpoint={entry.id}
-                    state={brickModule.defaultState}
-                    spec={entryView.spec}
-                  />
-                </MeasuredBrickWrapper>
-              );
-            })}
-          </div>
-          <GridItemPreview breakpoint={breakpoint} w={w} h={h}>
-            {surface}
-          </GridItemPreview>
-        </div>
-      </div>
-    </section>
-  );
-}
-
 export function BrickGroup() {
   const { activeBreakpoint } = useWallViewport();
   const breakpoint = activeBreakpoint ?? "sm";
   const params = useValidatedParams(ParamsSchema);
   const router = useRouter();
-  const modules = Object.values(modulesHash);
+  const base = `/${encodeURIComponent(params.username)}/site/${encodeURIComponent(params.siteId)}/page/${encodeURIComponent(params.pageId)}`;
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
@@ -191,18 +53,19 @@ export function BrickGroup() {
         </div>
       </div>
 
-      <div
-        aria-label="Brick modules"
-        className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-zinc-100 pb-16 font-mono text-sm leading-5 text-zinc-900"
-      >
-        {modules.map((brickModule) => (
-          <BrickGroupModulePreview
-            key={brickModule.id}
-            brickModule={brickModule}
-            breakpoint={breakpoint}
-            params={params}
-          />
-        ))}
+      <div className="min-h-0 flex-1 font-mono text-sm leading-5 text-zinc-900">
+        <ModuleFilmstrip
+          breakpoint={breakpoint}
+          renderModuleLink={(brickModule) => (
+            <Link
+              href={`${base}/brick-group/${encodeURIComponent(brickModule.id)}`}
+              scroll={false}
+              data-module-link={brickModule.id}
+            >
+              {brickModule.label}
+            </Link>
+          )}
+        />
       </div>
     </div>
   );

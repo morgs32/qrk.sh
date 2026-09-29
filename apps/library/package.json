@@ -10,6 +10,10 @@
       "types": "./dist/lib/index.d.ts",
       "import": "./dist/index.js"
     },
+    "./ModuleFilmstrip": {
+      "types": "./dist/lib/ModuleFilmstrip.d.ts",
+      "import": "./dist/ModuleFilmstrip.js"
+    },
     "./WallViewportProvider": {
       "types": "./dist/lib/WallViewportProvider.d.ts",
       "import": "./dist/WallViewportProvider.js"

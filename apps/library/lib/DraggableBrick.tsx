@@ -1,18 +1,16 @@
 import type { ComponentProps } from "react";
 
-import { brickDragStore, type IDraggedBrick } from "../lib/GridStore";
+import { brickDragStore, type IDraggedBrick } from "./GridStore";
 
-export function DraggableBrick({
-  brickDef,
-  children,
-  className,
-  ...props
-}: {
-  brickDef: IDraggedBrick | null;
-} & Omit<ComponentProps<"div">, "draggable" | "onDragStart" | "onDragEnd">) {
+export function DraggableBrick(
+  props: {
+    brickDef: IDraggedBrick | null;
+  } & Omit<ComponentProps<"div">, "draggable" | "onDragStart" | "onDragEnd">,
+) {
+  const { brickDef, children, className, ...rest } = props;
   return (
     <div
-      {...props}
+      {...rest}
       className={`brick-drag-surface ${className ?? ""}`}
       draggable={brickDef !== null}
       onDragStart={(event) => {

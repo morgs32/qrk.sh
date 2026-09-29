@@ -48,6 +48,11 @@ The page layout keeps site/page drafts, `MainColumns`, the grid, and the library
 
 React `ViewTransition` boundaries animate only drawer insertion/removal, sliding left or bottom for 300 ms. Exits use snapshots; rapid navigation may batch updates. Unsupported browsers navigate immediately. Reduced motion disables positional animations, and the transition overlay allows pointer events through. The navbar and persistent editor are not named snapshot participants. Studio disables the shared Drawer's Motion animation; other consumers retain it, as do unrelated component interactions.
 
+The bricks catalog uses `@qrk.sh/library/ModuleFilmstrip`, the same horizontal
+filmstrip as Library. Each module column scrolls vertically; previews use the
+active breakpoint and shared drag payload. Studio supplies Next links to its
+existing module-detail routes.
+
 ## Browser checks
 
 Playwright builds and starts Next on port 3333 by default. The shell checks disable JavaScript to verify initial navbar HTML, deep links, refresh, not-found behavior, styles, and asset MIME types in Chromium, Firefox, and WebKit:

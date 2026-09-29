@@ -22,6 +22,7 @@ export default defineConfig(({ mode }) => {
       lib: {
         entry: {
           index: "lib/index.ts",
+          ModuleFilmstrip: "lib/ModuleFilmstrip.tsx",
           GridItemPreview: "lib/GridItemPreview.tsx",
           MeasuredBrickWrapper: "components/brick/MeasuredBrickWrapper.tsx",
           WallViewportProvider: "lib/WallViewportProvider.tsx",

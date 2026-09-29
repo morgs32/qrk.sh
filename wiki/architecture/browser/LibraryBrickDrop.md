@@ -33,9 +33,9 @@ state, stripping extras from any caller. Invalid declared fields still fail.
    default `{ w, h }` for all four breakpoints using its current state and spec.
    Measured widths are limited to the wall's eight columns.
    Dragging remains disabled until every size is available.
-   1. Library filmstrip: `DraggableBrick`.
+   1. Library and Studio filmstrip: shared `ModuleFilmstrip` → `ModulePreview` → `DraggableBrick`.
    2. Library module breakpoint preview: `-BreakpointPreviewRow`.
-   3. Studio drawer: `BrickGroup` / `BrickGroupRoute`.
+   3. Studio module detail: `BrickGroupRoute`.
 
 `addBrick` is a fresh `1.0.0` baseline with no historical payload adapter.
 The payload contains `wallId`, `brickId`, `moduleId`, `state`, `spec`,
@@ -73,7 +73,7 @@ sequenceDiagram
 ## Annotated workflow steps
 
 1. Drag start supplies all four measured or declared sizes.
-   - [`DraggableBrick.tsx:18-34`](../../../apps/library/app/DraggableBrick.tsx#L18-L34) — writes the drag definition once all sizes are available. (`apps/library/app/DraggableBrick.tsx:18-34`)
+   - [`DraggableBrick.tsx:17-33`](../../../apps/library/lib/DraggableBrick.tsx#L17-L33) — writes the drag definition once all sizes are available. (`apps/library/lib/DraggableBrick.tsx:17-33`)
 2. Hover reads the live drag definition and returns the active placeholder size.
    - [`BrickWall.tsx:148-158`](../../../apps/library/lib/BrickWall.tsx#L148-L158) — missing drag data returns false. (`apps/library/lib/BrickWall.tsx:148-158`)
 3. Drop uses only the item position from the grid and reads the drag definition again.

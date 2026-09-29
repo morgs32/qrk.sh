@@ -51,6 +51,13 @@ maintained for now (see root `AGENTS.md`).
 `build` produces the reusable brick library in `dist`, including its public
 Worker/RPC declarations. Neither build deploys the app.
 
+## Shared module filmstrip
+
+`@qrk.sh/library/ModuleFilmstrip` renders the horizontal module catalog for Library
+and Studio. Each app supplies its own module links through `renderModuleLink`;
+previews share four-breakpoint measurement and `DraggableBrick`. Columns scroll
+vertically within the horizontal strip. Module detail screens remain app-owned.
+
 ## Modules and interaction
 
 `modulesHash` exposes each library module by its registered kebab-case id, with

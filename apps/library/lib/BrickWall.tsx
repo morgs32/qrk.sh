@@ -312,7 +312,9 @@ export function BrickWall(props: {
                 >
                   <div className="relative size-full">
                     <div className="brick-drag-content size-full">
-                      <BrickWrapper>
+                      <BrickWrapper
+                        className={brickRow.moduleId === "github-activity" ? "bg-white" : undefined}
+                      >
                         <BrickComponent breakpoint={breakpoint} state={state} spec={rawSpec} />
                       </BrickWrapper>
                     </div>

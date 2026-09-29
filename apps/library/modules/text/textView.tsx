@@ -12,4 +12,8 @@ export const textView = makeModuleView(textV1, {
     },
     generator: { registry, defaultSpec },
   },
+  sm: { w: 8, h: 2 },
+  md: { w: 4, h: 4 },
+  lg: { w: 4, h: 4 },
+  xl: { w: 4, h: 4 },
 });

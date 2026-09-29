@@ -17,7 +17,7 @@ export const githubRepoView = makeModuleView(githubRepoV1, {
     component(props) {
       const { state } = props;
       return (
-        <BrickShell>
+        <BrickShell className="bg-white">
           <BrickBody>
             <repoNameView.Component name={state.data.name} />
             <repoDescriptionView.Component description={state.data.description} />

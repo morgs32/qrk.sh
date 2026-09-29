@@ -20,7 +20,7 @@ export const githubProfileView = makeModuleView(githubProfileV1, {
     component(props) {
       const { state } = props;
       return (
-        <BrickShell>
+        <BrickShell className="bg-white">
           <BrickBody>
             <Column gap={2}>
               <avatarAndUsernameView.Component

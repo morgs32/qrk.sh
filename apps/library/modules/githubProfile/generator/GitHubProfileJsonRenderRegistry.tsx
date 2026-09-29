@@ -1,5 +1,7 @@
 import { defineRegistry } from "@json-render/react";
+import type { ReactNode } from "react";
 
+import { BrickShell } from "../../../components/brick/BrickShell";
 import { layoutRegistryComponents } from "../../../lib/jsonRender/layoutRegistryComponents";
 import { avatarAndUsernameView } from "../GitHubProfile/components/AvatarAndUsername";
 import { bioView } from "../GitHubProfile/components/Bio";
@@ -13,6 +15,10 @@ import { githubProfileV1 } from "../githubProfileV1";
 export const { registry } = defineRegistry(githubProfileV1.catalog, {
   components: {
     ...layoutRegistryComponents,
+    BrickShell: (props: { children?: ReactNode }) => {
+      const { children } = props;
+      return <BrickShell className="bg-white">{children}</BrickShell>;
+    },
     AvatarAndUsername: avatarAndUsernameView.RegistryComponent,
     Bio: bioView.RegistryComponent,
     Blog: blogView.RegistryComponent,

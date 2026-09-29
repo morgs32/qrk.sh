@@ -41,10 +41,12 @@ export default defineConfig(({ mode }) => {
           "@radix-ui/react-slot",
           "@tiptap/react",
           "@unpic/react",
-          "@zerospin/browser",
-          "@zerospin/core",
-          "@zerospin/react",
-          "@zerospin/schema",
+          // The library imports @zerospin packages via subpaths
+          // (@zerospin/core/...). String externals match whole specifiers
+          // only, so subpath imports would be bundled into dist — duplicating
+          // the Contract/Model classes the consuming app also loads and
+          // breaking `instanceof` checks during definition validation.
+          /^@zerospin\/(?:browser|core|react|schema|zod)(?:\/|$)/,
           "class-variance-authority",
           "cn",
           "effect",

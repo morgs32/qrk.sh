@@ -3,7 +3,7 @@
 import { createContext, useContext, useState, type ReactNode, type RefCallback } from "react";
 import { create, useStore } from "zustand";
 
-import { BREAKPOINTS } from "./breakpoints";
+import { BREAKPOINTS, resolveBreakpoint } from "./breakpoints";
 import { useElementWidthRef } from "./useElementWidthRef";
 
 function createWallViewportStore(initialState?: {
@@ -12,13 +12,17 @@ function createWallViewportStore(initialState?: {
   return create<{
     selectedBreakpoint: (typeof BREAKPOINTS)[number]["id"] | null;
     availableWidth: number;
+    wallWidth: number;
     setSelectedBreakpoint: (breakpoint: (typeof BREAKPOINTS)[number]["id"] | null) => void;
     setAvailableWidth: (width: number) => void;
+    setWallWidth: (width: number) => void;
   }>()((set) => ({
     selectedBreakpoint: initialState?.selectedBreakpoint ?? null,
     availableWidth: 0,
+    wallWidth: 0,
     setSelectedBreakpoint: (breakpoint) => set({ selectedBreakpoint: breakpoint }),
     setAvailableWidth: (width) => set({ availableWidth: width }),
+    setWallWidth: (width) => set({ wallWidth: width }),
   }));
 }
 
@@ -43,6 +47,7 @@ function resolveActiveBreakpoint(
 const WallViewportContext = createContext<{
   store: ReturnType<typeof createWallViewportStore>;
   regionRef: RefCallback<HTMLElement>;
+  wallRef: RefCallback<HTMLElement>;
 } | null>(null);
 
 export function WallViewportProvider(props: {
@@ -54,8 +59,13 @@ export function WallViewportProvider(props: {
   const regionRef = useElementWidthRef((width) => {
     store.getState().setAvailableWidth(width);
   });
+  const wallRef = useElementWidthRef((width) => {
+    store.getState().setWallWidth(width);
+  });
 
-  return <WallViewportContext value={{ store, regionRef }}>{children}</WallViewportContext>;
+  return (
+    <WallViewportContext value={{ store, regionRef, wallRef }}>{children}</WallViewportContext>
+  );
 }
 
 export function useWallViewportStoreApi() {
@@ -74,14 +84,19 @@ export function useWallViewport() {
 
   const selectedBreakpoint = useStore(value.store, (state) => state.selectedBreakpoint);
   const availableWidth = useStore(value.store, (state) => state.availableWidth);
+  const wallWidth = useStore(value.store, (state) => state.wallWidth);
   const setSelectedBreakpoint = useStore(value.store, (state) => state.setSelectedBreakpoint);
   const activeBreakpoint = resolveActiveBreakpoint(selectedBreakpoint, availableWidth);
+  const wallBreakpoint = wallWidth > 0 ? resolveBreakpoint(wallWidth) : null;
 
   return {
     selectedBreakpoint,
     setSelectedBreakpoint,
     availableWidth,
+    wallWidth,
+    wallBreakpoint,
     activeBreakpoint,
     regionRef: value.regionRef,
+    wallRef: value.wallRef,
   };
 }

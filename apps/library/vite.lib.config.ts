@@ -35,6 +35,7 @@ export default defineConfig(({ mode }) => {
           TiptapDocSchema: "lib/TiptapDocSchema.ts",
         },
         formats: ["es"],
+        cssFileName: "text-editor",
         fileName: (_format, entryName) => `${entryName}.js`,
       },
       rollupOptions: {

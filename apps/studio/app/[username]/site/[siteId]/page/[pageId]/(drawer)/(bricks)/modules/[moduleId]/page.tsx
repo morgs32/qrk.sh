@@ -20,8 +20,8 @@ import { MetadataField } from "@/app/[username]/site/[siteId]/page/[pageId]/Modu
 import { BRICK_DRAG_MIME } from "@/components/home/useBrickDrawerStore";
 
 export default function ModuleRoute() {
-  const { activeBreakpoint } = useWallViewport();
-  const breakpoint = activeBreakpoint ?? "sm";
+  const { wallBreakpoint } = useWallViewport();
+  const breakpoint = wallBreakpoint ?? "sm";
   const params = useParams<{
     username: string;
     siteId: string;

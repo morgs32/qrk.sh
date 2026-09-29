@@ -1,7 +1,6 @@
 import type { IDb, IResourceDbConfig } from "@zerospin/core/drizzle/types";
 import type { InferCommandPayload } from "@zerospin/core/models/types";
 import { makeContractVersion, primitives, ZerospinError } from "@zerospin/sdk/browser";
-import { TiptapDocSchema } from "@qrk.sh/library/TiptapDocSchema";
 import { Effect } from "effect";
 import { pageV1 as Page } from "../../models/page/PageV1";
 import { siteV1 as Site } from "../../models/site/SiteV1";
@@ -20,14 +19,6 @@ const createPagePayload = {
   description: primitives.text({
     nullable: true,
     defaultValue: null,
-  }),
-  pageType: primitives.enum({
-    values: ["split-scroll", "shared-scroll"],
-  }),
-  article: primitives.json({
-    nullable: true,
-    defaultValue: null,
-    schema: TiptapDocSchema,
   }),
 };
 
@@ -86,7 +77,7 @@ export const createPageV1 = makeContractVersion(createPage, {
     }
   }),
   program: ({ payload, models }) => {
-    const { id, siteId, slug, title, description, pageType, article } = payload;
+    const { id, siteId, slug, title, description } = payload;
     return Effect.all([
       models.page.create({
         resourceId: id,
@@ -95,8 +86,6 @@ export const createPageV1 = makeContractVersion(createPage, {
           slug,
           title,
           description,
-          pageType,
-          article,
         },
       }),
     ]);

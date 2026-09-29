@@ -121,7 +121,6 @@ export default function UsernameDashboardPage() {
                           id: session.runtime.runSync(makeId(Page)),
                           siteId,
                           slug: "home",
-                          pageType: "split-scroll",
                         },
                       });
                       if (pageResult._tag === "Failure") {

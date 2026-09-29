@@ -103,8 +103,6 @@ export default function SiteLayout(props: { children: ReactNode }) {
       slug: pageRow.slug,
       title: pageRow.title,
       description: pageRow.description,
-      pageType: pageRow.pageType,
-      article: pageRow.article,
     });
   }
 

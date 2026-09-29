@@ -35,7 +35,6 @@ test("deep editor URLs server-render the custom-wordmark skeleton", async ({
       "/breakpoints",
       "/page-settings",
       "/site-settings",
-      "/compose",
     ]) {
       const response = await page.goto(
         `/shell-check/site/sit_check/page/pag_check${suffix}?retained=yes`,
@@ -88,6 +87,7 @@ test("unknown routes remain not found", async ({ browser, baseURL }) => {
     for (const path of [
       "/unknown/path/that/does/not/exist",
       "/shell-check/site/sit_check/page/pag_check/unknown",
+      "/shell-check/site/sit_check/page/pag_check/compose",
       // Removed catalog routes must not resolve or redirect to modules.
       "/shell-check/site/sit_check/page/pag_check/brick-group",
       "/shell-check/site/sit_check/page/pag_check/brick-group/module%20name",

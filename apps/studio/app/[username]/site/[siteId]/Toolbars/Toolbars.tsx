@@ -10,9 +10,12 @@ export function Toolbars() {
   const isBrickDrawer = segments.includes("(bricks)");
   const route = segments.find((segment) => !segment.startsWith("("));
   const toolbar =
-    route === "breakpoints" || isBrickDrawer ? (
-      <BreakpointsToolbar key="Breakpoints" inBrickDrawer={isBrickDrawer} />
-    ) : route === undefined || route === "compose" ? (
+    route === "breakpoints" || route === "page-settings" || isBrickDrawer ? (
+      <BreakpointsToolbar
+        key="Breakpoints"
+        aboveDrawer={isBrickDrawer || route === "page-settings"}
+      />
+    ) : route === undefined ? (
       <SiteToolbar key="Site" />
     ) : null;
   return (

@@ -12,5 +12,6 @@ export const textBrickComponent = defineComponent({
       schema: TiptapDocSchema,
     }),
   },
-  description: "Read-only TipTap document. Bind content from module data ($state /content).",
+  description:
+    "Tiptap document; editable when placed in a wall. Bind content from module data ($state /content).",
 });

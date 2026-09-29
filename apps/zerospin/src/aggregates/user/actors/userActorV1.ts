@@ -17,7 +17,6 @@ import { createPageV1 as createPage } from "../contracts/createPage/CreatePageV1
 import { createSiteV1 as createSite } from "../contracts/createSite/CreateSiteV1";
 import { createUserV1 as createUser } from "../contracts/createUser/CreateUserV1";
 import { updateGridV1 as updateGrid } from "../contracts/updateGrid/UpdateGridV1";
-import { updatePageArticleV1 as updatePageArticle } from "../contracts/updatePageArticle/UpdatePageArticleV1";
 import { updatePageSettingsV1 as updatePageSettings } from "../contracts/updatePageSettings/UpdatePageSettingsV1";
 import { updateSiteSettingsV1 as updateSiteSettings } from "../contracts/updateSiteSettings/UpdateSiteSettingsV1";
 import { brickV1 as Brick } from "../models/brick/BrickV1";
@@ -94,7 +93,6 @@ export const userActorV1 = makeAggregateActorVersion(defineAggregateActor({ name
     createPage,
     createSite,
     updateGrid,
-    updatePageArticle,
     updatePageSettings,
     updateSiteSettings,
   },

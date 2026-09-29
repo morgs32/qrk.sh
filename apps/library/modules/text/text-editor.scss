@@ -1,0 +1,58 @@
+@use "./tiptap/styles/variables";
+@use "./tiptap/styles/keyframe-animations";
+@use "./tiptap/node/blockquote-node/blockquote-node";
+@use "./tiptap/node/code-block-node/code-block-node";
+@use "./tiptap/node/horizontal-rule-node/horizontal-rule-node";
+@use "./tiptap/node/list-node/list-node";
+@use "./tiptap/node/image-node/image-node";
+@use "./tiptap/node/heading-node/heading-node";
+@use "./tiptap/node/paragraph-node/paragraph-node";
+
+.qrk-text-surface {
+  width: 100%;
+  min-width: 0;
+  background: var(--background);
+}
+.qrk-text-document {
+  display: flow-root;
+  width: 100%;
+}
+.qrk-text-editor {
+  display: flow-root;
+  padding: 12px 16px;
+  min-height: 48px;
+  overflow-wrap: anywhere;
+}
+.qrk-text-editor p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  color: var(--muted-foreground);
+  pointer-events: none;
+}
+.qrk-text-controls {
+  overflow: visible;
+}
+.qrk-text-controls .tiptap-toolbar {
+  position: relative;
+  flex-wrap: wrap;
+  max-width: calc(100vw - 16px);
+}
+.qrk-text-block-handle {
+  cursor: grab;
+  padding: 2px;
+  border-radius: 4px;
+  background: var(--background);
+  color: var(--foreground);
+}
+.qrk-text-edit {
+  position: absolute;
+  right: 4px;
+  top: 4px;
+  z-index: 2;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--background);
+  color: var(--foreground);
+  font-size: 12px;
+}

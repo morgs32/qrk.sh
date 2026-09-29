@@ -1,5 +1,4 @@
 import { makeModelVersion, primitives } from "@zerospin/sdk/browser";
-import { TiptapDocSchema } from "@qrk.sh/library/TiptapDocSchema";
 
 import { siteV1 as Site } from "../site/SiteV1";
 
@@ -20,14 +19,6 @@ export const pageV1 = makeModelVersion(page, {
     description: primitives.text({
       nullable: true,
       defaultValue: null,
-    }),
-    pageType: primitives.enum({
-      values: ["split-scroll", "shared-scroll"],
-    }),
-    article: primitives.json({
-      nullable: true,
-      defaultValue: null,
-      schema: TiptapDocSchema,
     }),
   },
   indexes: [],

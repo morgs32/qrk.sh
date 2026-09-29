@@ -1,51 +1,42 @@
 "use client";
-import { useUser } from "@clerk/nextjs";
-import { Schema } from "effect";
 
-import { Article } from "@/components/home/Article";
-import { useValidatedParams } from "@/hooks/useValidatedParams";
+import { BREAKPOINTS } from "@qrk.sh/library/breakpoints";
+import { useWallViewport } from "@qrk.sh/library/WallViewportProvider";
+import { useSelectedLayoutSegments } from "next/navigation";
 
-import { useSitePageDraftStore } from "../../sitePageDraftStore";
 import { Grid } from "./Grid";
 
-const ParamsSchema = Schema.Struct({
-  siteId: Schema.String,
-  pageId: Schema.String,
-});
-
 export function MainColumns() {
-  const params = useValidatedParams(ParamsSchema);
-  const { user } = useUser();
-  const pageType = useSitePageDraftStore((state) =>
-    user === null || user === undefined
-      ? undefined
-      : state.owners[user.id]?.sites[params.siteId]?.pages[params.pageId]?.pageType,
-  );
-
-  if (pageType === undefined) {
-    return null;
-  }
-
-  if (pageType === "split-scroll") {
-    return (
-      <div className="grid h-full grid-cols-2 overflow-hidden">
-        <div className="min-h-0 overflow-y-auto">
-          <Article />
-        </div>
-        <div data-site-right-scroll data-brick-scroll-root="" className="min-h-0 overflow-y-auto">
-          <Grid />
-        </div>
-      </div>
-    );
-  }
+  const segments = useSelectedLayoutSegments();
+  const { regionRef, availableWidth, activeBreakpoint } = useWallViewport();
+  const route = segments.find((segment) => !segment.startsWith("("));
+  const isPreviewRoute =
+    route === "breakpoints" || route === "page-settings" || segments.includes("(bricks)");
+  const previewWidth = BREAKPOINTS.find((row) => row.id === activeBreakpoint)?.previewWidth ?? 360;
+  const insufficientWidth = isPreviewRoute && availableWidth > 0 && activeBreakpoint === null;
 
   return (
-    <div data-site-right-scroll data-brick-scroll-root="" className="h-full overflow-y-auto">
-      <div className="grid min-h-full grid-cols-2">
-        <div className="min-h-0">
-          <Article />
-        </div>
-        <div className="min-h-0">
+    <div
+      ref={regionRef}
+      className="h-full w-full overflow-hidden"
+      data-testid="page-preview-region"
+    >
+      {insufficientWidth ? (
+        <p className="p-4 text-sm" role="status">
+          At least 360px is needed to preview the page.
+        </p>
+      ) : null}
+      <div
+        hidden={insufficientWidth}
+        className="mx-auto h-full"
+        style={{ width: isPreviewRoute ? previewWidth : "100%" }}
+        data-testid="page-composition"
+      >
+        <div
+          className="h-full min-h-0 overflow-y-auto"
+          data-site-right-scroll
+          data-brick-scroll-root
+        >
           <Grid />
         </div>
       </div>

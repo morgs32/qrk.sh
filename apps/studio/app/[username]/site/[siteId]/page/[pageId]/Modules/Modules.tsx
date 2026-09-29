@@ -15,8 +15,8 @@ const ParamsSchema = Schema.Struct({
 });
 
 export function Modules() {
-  const { activeBreakpoint } = useWallViewport();
-  const breakpoint = activeBreakpoint ?? "sm";
+  const { wallBreakpoint } = useWallViewport();
+  const breakpoint = wallBreakpoint ?? "sm";
   const params = useValidatedParams(ParamsSchema);
   const base = `/${encodeURIComponent(params.username)}/site/${encodeURIComponent(params.siteId)}/page/${encodeURIComponent(params.pageId)}`;
 

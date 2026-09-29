@@ -1,10 +1,9 @@
+import "@qrk.sh/library/text-editor.css";
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import type { ReactNode } from "react";
 import App from "./App";
 import "./globals.css";
-import "./tiptap/styles/_variables.scss";
-import "./tiptap/styles/_keyframe-animations.scss";
 
 const spaceMono = localFont({
   src: [

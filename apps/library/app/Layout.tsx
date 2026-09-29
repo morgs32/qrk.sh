@@ -5,6 +5,7 @@ import { Link, useLocation, useMatch, useNavigate, useParams } from "@tanstack/r
 import { prefixId } from "@zerospin/core/models/prefixId";
 import { stageCommand, useInitializeStandaloneSession, useLiveQuery } from "@zerospin/react";
 import { cn } from "cn";
+import { Schema } from "effect";
 import { motion, useAnimationControls, useReducedMotion } from "framer-motion";
 import { RotateCcw, X } from "lucide-react";
 import { toast } from "sonner";
@@ -172,6 +173,7 @@ function LibraryWallPane(props: {
 }
 
 export function Layout(props: { children: ReactNode }) {
+  const { children } = props;
   const [sessionKey, setSessionKey] = useState(0);
   const [resetError, setResetError] = useState<unknown>(null);
   const session = librarySession;
@@ -196,7 +198,7 @@ export function Layout(props: { children: ReactNode }) {
               .catch(setResetError);
           }}
         >
-          {props.children}
+          {children}
         </LayoutBody>
       </WallViewportProvider>
     </LibrarySessionContext>
@@ -215,6 +217,12 @@ function LayoutBody(props: {
   const wallViewportStore = useWallViewportStoreApi();
   const { regionRef, availableWidth, activeBreakpoint, setSelectedBreakpoint } = useWallViewport();
   const reducedMotion = useReducedMotion() ?? false;
+  const [activeText, setActiveText] = useState<{
+    brickId: string;
+    breakpoint: "sm" | "md" | "lg" | "xl";
+  } | null>(null);
+  const [gridGesture, setGridGesture] = useState(false);
+  if (activeText !== null && activeText.breakpoint !== activeBreakpoint) setActiveText(null);
   const moduleMatch = useMatch({ from: "/modules/$moduleId", shouldThrow: false });
   const moduleId = moduleMatch?.status === "success" ? moduleMatch.context.moduleId : undefined;
   const brickId = params.brickId;
@@ -301,7 +309,7 @@ function LayoutBody(props: {
   }
 
   function compactActiveLayout() {
-    if (activeBreakpoint === null) {
+    if (activeBreakpoint === null || gridGesture) {
       return;
     }
     const brickIds = new Set((bricksQuery.data ?? []).map((candidate) => candidate.id));
@@ -376,6 +384,64 @@ function LayoutBody(props: {
                     wallId={WALL_ID}
                     breakpoint={row.id}
                     gridWidth={row.previewWidth}
+                    isActive={isActive}
+                    activeTextBrickId={
+                      isActive && activeText?.breakpoint === row.id ? activeText.brickId : null
+                    }
+                    onTextEditStart={(brickId) => {
+                      setActiveText({ brickId, breakpoint: row.id });
+                      setDrawerOpen(false);
+                      void navigate({ to: "/" });
+                    }}
+                    onTextEditEnd={() =>
+                      setActiveText((current) => (current?.breakpoint === row.id ? null : current))
+                    }
+                    onGestureChange={setGridGesture}
+                    uploadImage={async (file, onProgress, signal) => {
+                      signal?.throwIfAborted();
+                      const formData = new FormData();
+                      formData.set("file", file);
+
+                      return new Promise<string>((resolve, reject) => {
+                        const request = new XMLHttpRequest();
+                        request.open("POST", "/upload");
+                        request.responseType = "json";
+                        request.upload.onprogress = (event) => {
+                          if (event.lengthComputable) {
+                            onProgress?.({
+                              progress: Math.round((event.loaded / event.total) * 100),
+                            });
+                          }
+                        };
+                        request.onload = () => {
+                          try {
+                            if (request.status < 200 || request.status >= 300) {
+                              const body = Schema.decodeUnknownSync(
+                                Schema.Struct({ message: Schema.String }),
+                              )(request.response);
+                              reject(new Error(body.message));
+                              return;
+                            }
+                            const body = Schema.decodeUnknownSync(
+                              Schema.Struct({ url: Schema.String }),
+                            )(request.response);
+                            resolve(body.url);
+                          } catch {
+                            reject(
+                              new Error(`Upload failed (${request.status}): invalid response`),
+                            );
+                          }
+                        };
+                        request.onerror = () =>
+                          reject(new Error("Image upload failed. Check your connection."));
+                        request.onabort = () =>
+                          reject(new DOMException("Upload cancelled", "AbortError"));
+                        const abort = () => request.abort();
+                        signal?.addEventListener("abort", abort, { once: true });
+                        request.onloadend = () => signal?.removeEventListener("abort", abort);
+                        request.send(formData);
+                      });
+                    }}
                     onCommandError={(message) => toast.error(message)}
                     onBrickActivate={({ brickId: activatedBrickId }) => {
                       void navigate({
@@ -476,7 +542,7 @@ function LayoutBody(props: {
             variant="ghost"
             size="sm"
             className="h-8 px-2"
-            disabled={activeBreakpoint === null}
+            disabled={activeBreakpoint === null || gridGesture}
             onClick={compactActiveLayout}
           >
             Compact layout

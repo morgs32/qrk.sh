@@ -1,9 +1,12 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import { isNonEmptySpec } from "@json-render/core";
 import { Schema } from "effect";
 import { prefixId } from "@zerospin/core/models/prefixId";
 import { stageCommand, useLiveQuery } from "@zerospin/react";
+import type { UploadFunction } from "../modules/text/tiptap/node/image-upload-node/image-upload-node-extension";
+import { TextBrickEditingContext } from "../modules/text/TextBrickEditingContext";
+import { makeCollisionResolvedLayout } from "../libraryModule/resolveVisibleCollisions";
 import GridLayout, { noCompactor } from "react-grid-layout";
 
 import { libraryModule } from "../libraryModule/libraryModule";
@@ -37,10 +40,40 @@ export function BrickWall(props: {
   wallId: `wal_${string}`;
   breakpoint: "sm" | "md" | "lg" | "xl";
   gridWidth: number;
+  isActive?: boolean;
+  activeTextBrickId?: string | null;
+  onTextEditStart?: (brickId: string) => void;
+  onTextEditEnd?: () => void;
+  onGestureChange?: (active: boolean) => void;
+  uploadImage?: UploadFunction;
   onBrickActivate?: (args: { moduleId: keyof typeof modulesHash; brickId: string }) => void;
   onCommandError?: (message: string) => void;
 }) {
-  const { session, wallId, breakpoint, gridWidth } = props;
+  const {
+    session,
+    wallId,
+    breakpoint,
+    gridWidth,
+    isActive = true,
+    activeTextBrickId = null,
+    onTextEditStart,
+    onTextEditEnd,
+    onGestureChange,
+    uploadImage,
+    onBrickActivate,
+    onCommandError,
+  } = props;
+  const backupStatus = useSyncExternalStore(
+    session.store.subscribe,
+    () => session.store.getState().backupState?.status ?? "released",
+    () => "released",
+  );
+  const gesture = useRef(false);
+  const heights = useRef(new Map<string, number>());
+  const frame = useRef<number | null>(null);
+  const applyHeights = useRef<() => void>(() => {});
+  const [measurementEpoch, setMeasurementEpoch] = useState(0);
+  const isTextEditing = isActive && activeTextBrickId !== null;
   const containerRef = useRef<HTMLElement>(null);
   const scrollRootRef = useRef<HTMLElement | null>(null);
   const [dragging, setDragging] = useState(false);
@@ -70,6 +103,16 @@ export function BrickWall(props: {
   const placements = placementsQuery.data ?? [];
   const brickIds = new Set(bricks.map((brickRow) => brickRow.id));
 
+  useEffect(() => {
+    if (
+      isActive &&
+      activeTextBrickId !== null &&
+      !bricks.some((brick) => brick.id === activeTextBrickId)
+    ) {
+      onTextEditEnd?.();
+    }
+  }, [isActive, activeTextBrickId, bricks, onTextEditEnd]);
+
   function visibleLayoutAt(targetBreakpoint: "sm" | "md" | "lg" | "xl") {
     return placements.flatMap((placement) => {
       if (
@@ -86,8 +129,8 @@ export function BrickWall(props: {
 
   function reportCommandError(failure: { message?: string; code?: string }) {
     const message = commandErrorMessage(failure);
-    if (props.onCommandError) {
-      props.onCommandError(message);
+    if (onCommandError) {
+      onCommandError(message);
       return;
     }
     window.alert(message);
@@ -96,8 +139,83 @@ export function BrickWall(props: {
   const layout = visibleLayoutAt(breakpoint);
   const rowHeight = gridWidth / 8;
 
+  // Measure all changed Text bricks against one current database snapshot.
+  useLayoutEffect(() => {
+    applyHeights.current = () => {
+      frame.current = null;
+      if (!isActive || gesture.current || gridWidth <= 0) {
+        heights.current.clear();
+        return;
+      }
+      const state = session.store.getState();
+      if (!state.isInitialized || state.db === null) return;
+      const currentBricks = state.db.query.brick
+        .findMany({ where: { wallId: { eq: wallId } } })
+        .sync();
+      const ids = new Set(currentBricks.map((brick) => brick.id));
+      const currentPlacements = state.db.query.placement.findMany().sync();
+      let nextLayout = currentPlacements.flatMap((placement) =>
+        placement.breakpoint === breakpoint &&
+        placement.isVisible &&
+        placement.brickId !== null &&
+        ids.has(placement.brickId)
+          ? [makeGridItem(placement.gridItem)]
+          : [],
+      );
+      let changed = false;
+      for (const [brickId, height] of heights.current) {
+        const item = nextLayout.find((candidate) => candidate.i === brickId);
+        const h = Math.max(1, Math.ceil(height / rowHeight));
+        if (!item || item.h === h) continue;
+        nextLayout = makeCollisionResolvedLayout({
+          visibleLayout: nextLayout,
+          incoming: { ...item, h },
+        });
+        changed = true;
+      }
+      heights.current.clear();
+      if (!changed) return;
+      try {
+        const result = stageCommand({
+          session,
+          contractName: "updateLayoutAtBreakpoint",
+          payload: { wallId, breakpoint, layout: nextLayout },
+        });
+        if (result._tag === "Failure") reportCommandError(result.failure);
+      } catch (error) {
+        reportCommandError({
+          message: error instanceof Error ? error.message : "Layout update failed",
+        });
+      }
+    };
+  });
+
+  useEffect(
+    () => () => {
+      if (frame.current !== null) cancelAnimationFrame(frame.current);
+    },
+    [],
+  );
+
+  function beginGesture() {
+    gesture.current = true;
+    heights.current.clear();
+    onGestureChange?.(true);
+  }
+  function endGesture() {
+    gesture.current = false;
+    heights.current.clear();
+    setMeasurementEpoch((epoch) => epoch + 1);
+    onGestureChange?.(false);
+  }
+
   return (
-    <section ref={containerRef} aria-label="Brick grid" className="bg-black">
+    <section
+      ref={containerRef}
+      data-backup-status={backupStatus}
+      aria-label="Brick grid"
+      className="bg-black"
+    >
       {outsideBrickId && (
         <div
           role="status"
@@ -117,8 +235,9 @@ export function BrickWall(props: {
               ...item,
               minW: view?.minW,
               minH: view?.minH,
-              isDraggable: true,
-              isResizable: true,
+              isDraggable: isActive && !isTextEditing,
+              isResizable: isActive && !isTextEditing,
+              ...(brickRow?.moduleId === "text" ? { resizeHandles: ["e" satisfies "e"] } : {}),
             };
           })}
           autoSize
@@ -132,10 +251,12 @@ export function BrickWall(props: {
             maxRows: Number.POSITIVE_INFINITY,
           }}
           dragConfig={{
-            enabled: true,
+            enabled: isActive && !isTextEditing,
+            cancel: ".qrk-text-edit",
             bounded: false,
             threshold: 3,
           }}
+          onResizeStart={beginGesture}
           onResizeStop={(nextLayout) => {
             const result = stageCommand({
               session,
@@ -149,9 +270,10 @@ export function BrickWall(props: {
             if (result._tag === "Failure") {
               reportCommandError(result.failure);
             }
+            endGesture();
           }}
           dropConfig={{
-            enabled: true,
+            enabled: isActive && !isTextEditing,
             defaultItem: { w: 2, h: 2 },
             onDragOver: () => {
               const brickDef = brickDragStore.getState().brickDef;
@@ -209,6 +331,10 @@ export function BrickWall(props: {
             brickDragStore.getState().setBrickDef(null);
           }}
           onDragStart={() => {
+            // RGL also starts a synthetic gesture for its external-drop placeholder.
+            // That path finishes in onDrop, rather than onDragStop.
+            if (brickDragStore.getState().brickDef !== null) return;
+            beginGesture();
             const scrollRoot = containerRef.current?.closest("[data-brick-scroll-root]");
             scrollRootRef.current = scrollRoot instanceof HTMLElement ? scrollRoot : null;
             setDragScrollTop(scrollRootRef.current?.scrollTop ?? 0);
@@ -281,6 +407,7 @@ export function BrickWall(props: {
             }
             setOutsideBrickId(null);
             setDragging(false);
+            endGesture();
           }}
         >
           {layout.map((layoutItem) => {
@@ -327,18 +454,93 @@ export function BrickWall(props: {
                   data-grid-w={layoutItem.w}
                   data-grid-h={layoutItem.h}
                   onDoubleClick={() => {
-                    props.onBrickActivate?.({
+                    if (!isActive) return;
+                    if (brickRow.moduleId === "text") {
+                      onTextEditStart?.(brickRow.id);
+                      return;
+                    }
+                    onBrickActivate?.({
                       moduleId: brickRow.moduleId,
                       brickId: layoutItem.i,
                     });
                   }}
                 >
                   <div className="relative size-full">
+                    {brickRow.moduleId === "text" &&
+                      isActive &&
+                      activeTextBrickId !== brickRow.id && (
+                        <button
+                          type="button"
+                          className="qrk-text-edit"
+                          aria-label="Edit text"
+                          onClick={() => onTextEditStart?.(brickRow.id)}
+                        >
+                          Edit text
+                        </button>
+                      )}
                     <div className="brick-drag-content size-full">
                       <BrickWrapper
                         className={brickRow.moduleId === "github-activity" ? "bg-white" : undefined}
                       >
-                        <BrickComponent breakpoint={breakpoint} state={state} spec={spec} />
+                        <TextBrickEditingContext
+                          value={
+                            brickRow.moduleId === "text" && uploadImage
+                              ? {
+                                  isActive,
+                                  isEditing: isTextEditing && activeTextBrickId === brickRow.id,
+                                  measurementEpoch: `${measurementEpoch}:${breakpoint}:${gridWidth}`,
+                                  activate: () => onTextEditStart?.(brickRow.id),
+                                  deactivate: () => onTextEditEnd?.(),
+                                  uploadImage,
+                                  onError: (message) => reportCommandError({ message }),
+                                  onDocumentChange: (document) => {
+                                    try {
+                                      const current = session.store.getState();
+                                      if (
+                                        !current.isInitialized ||
+                                        !current.db?.query.brick
+                                          .findFirst({ where: { id: { eq: brickRow.id } } })
+                                          .sync()
+                                      )
+                                        return false;
+                                      const result = stageCommand({
+                                        session,
+                                        contractName: "updateBrickState",
+                                        payload: {
+                                          brickId: brickRow.id,
+                                          moduleId: "text",
+                                          state: { content: document },
+                                        },
+                                      });
+                                      if (result._tag === "Failure") {
+                                        reportCommandError(result.failure);
+                                        return false;
+                                      }
+                                      return true;
+                                    } catch (error) {
+                                      reportCommandError({
+                                        message:
+                                          error instanceof Error
+                                            ? error.message
+                                            : "Text update failed",
+                                      });
+                                      return false;
+                                    }
+                                  },
+                                  onNaturalHeight: (height) => {
+                                    if (!isActive || gesture.current) return;
+                                    heights.current.set(brickRow.id, height);
+                                    if (frame.current === null)
+                                      frame.current = requestAnimationFrame(() =>
+                                        applyHeights.current(),
+                                      );
+                                  },
+                                }
+                              : null
+                          }
+                        >
+                          <BrickComponent breakpoint={breakpoint} state={state} spec={spec} />
+                        </TextBrickEditingContext>
                       </BrickWrapper>
                     </div>
                   </div>

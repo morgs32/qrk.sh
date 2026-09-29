@@ -7,7 +7,6 @@ import { seedLayout, type ILayout } from "@/components/home/seedLayout";
 interface IPageDraft {
   readonly title: string;
   readonly description: string;
-  readonly pageType: "split-scroll" | "shared-scroll";
   readonly layout: ILayout;
 }
 
@@ -56,7 +55,6 @@ const PersistedSitePageDraftStateSchema = Schema.Struct({
             Schema.Struct({
               title: Schema.String,
               description: Schema.String,
-              pageType: Schema.Literals(["split-scroll", "shared-scroll"]),
               layout: Schema.Array(
                 Schema.Struct({
                   i: Schema.String,
@@ -89,7 +87,6 @@ function createSeedPageDraft(): IPageDraft {
   return {
     title: "Make it Rainey",
     description: "We are helping Austin home owners save $600 or more on their property taxes.",
-    pageType: "split-scroll",
     layout: seedLayout,
   };
 }

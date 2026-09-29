@@ -55,7 +55,9 @@ describe("site and page creation contracts", () => {
       );
       const definition = makeSessionDefinition({ ...userSessionDefinition, systemName: "qrk-sh" });
       if (definition.kind !== "aggregate") throw new Error("Expected aggregate session definition");
-      const session = makeAggregateSession({ definition: { ...definition, ...userSessionDefinition } });
+      const session = makeAggregateSession({
+        definition: { ...definition, ...userSessionDefinition },
+      });
       session.setExecutionResources({
         runtime,
         sessionId,
@@ -79,7 +81,7 @@ describe("site and page creation contracts", () => {
         executedIndex: 0,
         executedHash: "",
         actorName: "web",
-        actorVersion: "1.0.0",
+        actorVersion: userSessionDefinition.actorVersion,
         pushIndex: 0,
         sessionStatus: "current",
         backupState: { status: "ready", failure: null },
@@ -138,7 +140,6 @@ describe("site and page creation contracts", () => {
           id: "pag_site_contract",
           siteId,
           slug: "home",
-          pageType: "split-scroll",
         },
       });
 
@@ -156,8 +157,6 @@ describe("site and page creation contracts", () => {
         slug: "home",
         title: null,
         description: null,
-        pageType: "split-scroll",
-        article: null,
       });
       expect(pageRows).toHaveLength(1);
       expect(pageRows[0]).toEqual(
@@ -168,8 +167,6 @@ describe("site and page creation contracts", () => {
           slug: "home",
           title: null,
           description: null,
-          pageType: "split-scroll",
-          article: null,
         }),
       );
 
@@ -177,7 +174,7 @@ describe("site and page creation contracts", () => {
         session,
         contractName: "createPage",
         // @ts-expect-error Caller-supplied IDs are required; also verify runtime rejection.
-        payload: { siteId, slug: "missing-id", pageType: "split-scroll" },
+        payload: { siteId, slug: "missing-id" },
       });
       expect(missingPageId._tag).toBe("Failure");
       expect(db.select().from(dbConfig.schema.page).all()).toHaveLength(1);
@@ -311,7 +308,6 @@ describe("site and page creation contracts", () => {
         payload: {
           id: "pag_missing_site",
           slug: "home",
-          pageType: "split-scroll",
         },
       }).pipe(Effect.result);
 
@@ -442,8 +438,6 @@ describe("user frontend creation guards", () => {
           slug: "home",
           title: null,
           description: null,
-          pageType: "split-scroll",
-          article: null,
         },
       });
 
@@ -458,8 +452,6 @@ describe("user frontend creation guards", () => {
             slug: "home",
             title: null,
             description: null,
-            pageType: "split-scroll",
-            article: null,
           },
         }).pipe(Effect.flip);
 
@@ -504,7 +496,9 @@ describe("user frontend creation guards", () => {
       );
       const definition = makeSessionDefinition({ ...userSessionDefinition, systemName: "qrk-sh" });
       if (definition.kind !== "aggregate") throw new Error("Expected aggregate session definition");
-      const session = makeAggregateSession({ definition: { ...definition, ...userSessionDefinition } });
+      const session = makeAggregateSession({
+        definition: { ...definition, ...userSessionDefinition },
+      });
       session.setExecutionResources({
         runtime,
         sessionId,
@@ -529,7 +523,7 @@ describe("user frontend creation guards", () => {
         executedIndex: 0,
         executedHash: "",
         actorName: "web",
-        actorVersion: "1.0.0",
+        actorVersion: userSessionDefinition.actorVersion,
         pushIndex: 0,
         sessionStatus: "current",
         backupState: { status: "ready", failure: null },
@@ -620,7 +614,9 @@ describe("user frontend creation guards", () => {
       );
       const definition = makeSessionDefinition({ ...userSessionDefinition, systemName: "qrk-sh" });
       if (definition.kind !== "aggregate") throw new Error("Expected aggregate session definition");
-      const session = makeAggregateSession({ definition: { ...definition, ...userSessionDefinition } });
+      const session = makeAggregateSession({
+        definition: { ...definition, ...userSessionDefinition },
+      });
       session.setExecutionResources({
         runtime,
         sessionId,
@@ -645,7 +641,7 @@ describe("user frontend creation guards", () => {
         executedIndex: 0,
         executedHash: "",
         actorName: "web",
-        actorVersion: "1.0.0",
+        actorVersion: userSessionDefinition.actorVersion,
         pushIndex: 0,
         sessionStatus: "current",
         backupState: { status: "ready", failure: null },
@@ -668,13 +664,45 @@ describe("user frontend creation guards", () => {
           id: "pag_update_page_settings",
           siteId: stagedSite.success.payload.id,
           slug: "home",
-          pageType: "split-scroll",
         },
       });
       expect(stagedPage._tag).toBe("Success");
       if (stagedPage._tag === "Failure") {
         throw new Error(stagedPage.failure.message);
       }
+
+      session.store.setState((state) =>
+        state.isInitialized
+          ? {
+              ...state,
+              claims: {
+                aggregateId: "acct_update_page_settings_user",
+                clerkUserId: "another_user",
+              },
+            }
+          : state,
+      );
+      const denied = stageCommand({
+        session,
+        contractName: "updatePageSettings",
+        payload: {
+          id: stagedPage.success.payload.id,
+          title: "Denied",
+          description: null,
+        },
+      });
+      expect(denied._tag).toBe("Failure");
+      session.store.setState((state) =>
+        state.isInitialized
+          ? {
+              ...state,
+              claims: {
+                aggregateId: "acct_update_page_settings_user",
+                clerkUserId: "update_page_settings_user",
+              },
+            }
+          : state,
+      );
 
       const updated = stageCommand({
         session,
@@ -706,132 +734,6 @@ describe("user frontend creation guards", () => {
           description: "A page description",
         }),
       );
-    }).pipe(Effect.scoped),
-  );
-
-  it.effect("updates page article for the owning authenticated user", () =>
-    Effect.gen(function* () {
-      const userId = "usr_update_page_article";
-      const now = DateTime.toDateUtc(yield* DateTime.now);
-      const dbConfig = makeResourceDbConfig({
-        models: userSessionDefinition.models,
-        otherTables: sessionRepoDbConfig.tables,
-      });
-      const { schema } = dbConfig;
-      const db = yield* makeProvisionedInMemoryWasmSqliteDb({ dbConfig }).pipe(
-        Effect.provide(AsyncLive),
-      );
-
-      db.insert(dbConfig.schema.user)
-        .values({
-          id: userId,
-          modelName: User.modelName,
-          version: User.version,
-          createdAt: now,
-          updatedAt: now,
-          clerkUserId: "update_page_article_user",
-          username: null,
-          displayName: null,
-        })
-        .run();
-
-      const sessionId = "sesn_update_page_article";
-      const runtime = yield* Effect.acquireRelease(
-        Effect.sync(() => ManagedRuntime.make(Layer.mergeAll(NanoIdFactory, UlidMonotonicFactory))),
-        (runtime) => runtime.disposeEffect,
-      );
-      const definition = makeSessionDefinition({ ...userSessionDefinition, systemName: "qrk-sh" });
-      if (definition.kind !== "aggregate") throw new Error("Expected aggregate session definition");
-      const session = makeAggregateSession({ definition: { ...definition, ...userSessionDefinition } });
-      session.setExecutionResources({
-        runtime,
-        sessionId,
-      });
-      session.store.setState({
-        ...session.store.getState(),
-        sessionId,
-        aggregateId: "acct_update_page_article_user",
-        aggregateName: userSessionDefinition.aggregateName,
-        claims: {
-          aggregateId: "acct_update_page_article_user",
-          clerkUserId: "update_page_article_user",
-        },
-
-        sessionName: userSessionDefinition.sessionName,
-        aggregateSessionLockKey: "update-page-article-lock-key",
-        db,
-        schema,
-        models: userSessionDefinition.models,
-        isInitialized: true,
-        aggregateIndex: 0,
-        executedIndex: 0,
-        executedHash: "",
-        actorName: "web",
-        actorVersion: "1.0.0",
-        pushIndex: 0,
-        sessionStatus: "current",
-        backupState: { status: "ready", failure: null },
-      });
-
-      const stagedSite = stageCommand({
-        session,
-        contractName: "createSite",
-        payload: { id: "sit_update_page_article", userId },
-      });
-      expect(stagedSite._tag).toBe("Success");
-      if (stagedSite._tag === "Failure") {
-        throw new Error(stagedSite.failure.message);
-      }
-
-      const stagedPage = stageCommand({
-        session,
-        contractName: "createPage",
-        payload: {
-          id: "pag_update_page_article",
-          siteId: stagedSite.success.payload.id,
-          slug: "home",
-          pageType: "split-scroll",
-        },
-      });
-      expect(stagedPage._tag).toBe("Success");
-      if (stagedPage._tag === "Failure") {
-        throw new Error(stagedPage.failure.message);
-      }
-
-      const article = {
-        type: "doc" as const,
-        content: [
-          {
-            type: "heading",
-            attrs: { level: 1 },
-            content: [{ type: "text", text: "Hello" }],
-          },
-        ],
-      };
-
-      const updated = stageCommand({
-        session,
-        contractName: "updatePageArticle",
-        payload: {
-          id: stagedPage.success.payload.id,
-          article,
-        },
-      });
-      expect(updated._tag).toBe("Success");
-      if (updated._tag === "Failure") {
-        throw new Error(updated.failure.message);
-      }
-
-      expect(updated.success.contractVersion).toBe("1.0.0");
-      expect(updated.success.payload).toMatchObject({
-        id: stagedPage.success.payload.id,
-        article,
-      });
-
-      const pageRows = db.select().from(dbConfig.schema.page).all();
-      expect(pageRows).toHaveLength(1);
-      expect(pageRows[0]?.id).toBe(stagedPage.success.payload.id);
-      expect(JSON.parse(String(pageRows[0]?.article))).toEqual(article);
     }).pipe(Effect.scoped),
   );
 });

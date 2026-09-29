@@ -196,10 +196,8 @@ use `ILibrarySession`, inferred from `createLibraryStandaloneSession`. The share
 `libraryModule` exports only models and flat command contracts. Session construction
 owns identity, claims, initialization, and disposal.
 
-`useLiveQuery` reads the session's `queryDb`, returning model-decoded `state`,
-`spec`, and `gridItem` values. Components consume these values directly. The
-session's `db` remains the encoded persistence interface used by commands and
-backup; both handles share the same SQLite connection.
+`useLiveQuery` reads the session's `db`, returning model-decoded `state`,
+`spec`, and `gridItem` values. Components consume these values directly. Explicit writes and backups use encoded SQLite values; relational queries decode model fields.
 
 Committed layout is Wall → Brick → Placement via aggregate contracts
 (`addBrick`, layout/visibility/remove/compact, `updateBrickState`, and per-module
@@ -227,3 +225,15 @@ Zustand `bricksById`.
 
 Placed bricks drag from their entire surface and resize using the grid library's default
 bottom-right handle. Module and configuration previews also drag from their entire surface.
+
+## Inline Text bricks
+
+Placed Text bricks use the shared rich-text editor for authored and JSON-render views. Double-click or **Edit text** activates a brick and closes the drawer. One active `{ brickId, breakpoint }` belongs to the wall host above all four mounted breakpoint panes; every pane shares the same standalone session. Switching breakpoint ends editing and cancels in-flight uploads. Inactive/outgoing panes cannot edit or write measured heights.
+
+The floating toolbar and its popovers are part of the editing surface. Escape first dismisses a popover, then ends editing; outside focus/click ends editing. A native file picker keeps editing active. Wall dragging, dropping, and resizing pause while editing; document block dragging and image resizing remain available. Catalog and detail previews stay read-only.
+
+Every changed document stages `updateBrickState` synchronously. Identical documents and non-document transactions issue no command. Session echoes preserve editor identity, selection, and undo history. Failures are reported and retain the current document while mounted, with another attempt on the next edit or exit. The existing standalone backup lifecycle provides local durability; there is no server wall Save or throttle.
+
+Text's natural border-box height, including padding, rounds up to square grid rows at the actual width. Growth resolves collisions without compacting gaps; shrink leaves neighbors in place. Measurements are batched against current geometry, paused during grid gestures, and repeated after the gesture commits. Compact is disabled during a gesture. Only the active pane writes automatic heights.
+
+Uploads use `/upload` in Library and the host's authenticated site-scoped endpoint in Studio. PNG/JPEG/WebP/SVG up to 5 MiB retain progress, cancellation, and validation. Leaving editing/deleting/unmounting aborts uploads and prevents late insertion. Assets upload immediately even though document edits remain local. Consumers of the built package load `@qrk.sh/library/text-editor.css` alongside `bricks.css` for editor and portaled-control styles.

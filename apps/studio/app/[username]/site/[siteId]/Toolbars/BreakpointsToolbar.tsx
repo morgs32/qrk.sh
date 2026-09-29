@@ -25,8 +25,8 @@ const toolbarPresenceTransition = {
 };
 
 /** Figma: floating breakpoints preview toolbar (sm/md/lg/xl). */
-export function BreakpointsToolbar(props: { inBrickDrawer?: boolean }) {
-  const { inBrickDrawer = false } = props;
+export function BreakpointsToolbar(props: { aboveDrawer?: boolean }) {
+  const { aboveDrawer = false } = props;
   const reducedMotion = useReducedMotion();
   const params = useValidatedParams(ParamsSchema);
   const router = useRouter();
@@ -34,8 +34,8 @@ export function BreakpointsToolbar(props: { inBrickDrawer?: boolean }) {
 
   return (
     <div
-      className="pointer-events-none fixed bottom-6 left-1/2 z-30 -translate-x-1/2 md:left-[25%]"
-      style={inBrickDrawer ? { bottom: "calc(50dvh + 1.5rem)", left: "75%" } : undefined}
+      className="pointer-events-none fixed bottom-6 left-1/2 z-30 -translate-x-1/2"
+      style={aboveDrawer ? { bottom: "calc(50dvh + 1.5rem)" } : undefined}
     >
       <div className="pointer-events-auto" role="toolbar" aria-label="Breakpoints">
         <motion.div
@@ -65,7 +65,7 @@ export function BreakpointsToolbar(props: { inBrickDrawer?: boolean }) {
               </ToolbarButton>
             ))}
 
-            {!inBrickDrawer ? (
+            {!aboveDrawer ? (
               <>
                 <ToolbarSeparator />
 

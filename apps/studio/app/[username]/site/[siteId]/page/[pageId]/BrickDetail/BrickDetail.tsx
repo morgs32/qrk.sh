@@ -23,8 +23,8 @@ function isBrickId(value: string): value is `brk_${string}` {
 }
 
 export function BrickDetail() {
-  const { activeBreakpoint } = useWallViewport();
-  const breakpoint = activeBreakpoint ?? "sm";
+  const { wallBreakpoint } = useWallViewport();
+  const breakpoint = wallBreakpoint ?? "sm";
   const params = useValidatedParams(ParamsSchema);
   const session = useLibrarySession();
   const brickId = isBrickId(params.brickId) ? params.brickId : null;

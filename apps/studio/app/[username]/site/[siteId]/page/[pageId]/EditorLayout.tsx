@@ -22,6 +22,7 @@ import { MainColumns } from "./MainColumns";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 
 const ParamsSchema = Schema.Struct({
+  username: Schema.String,
   siteId: Schema.String,
   pageId: Schema.String,
 });
@@ -31,7 +32,8 @@ const WALL_ID = prefixId(libraryModule.models.wall, "library");
 export default function EditorLayout(props: { children: ReactNode }) {
   const { children } = props;
   const params = useValidatedParams(ParamsSchema);
-  const drawerOpen = useSelectedLayoutSegments().includes("(drawer)");
+  const segments = useSelectedLayoutSegments();
+  const drawerOpen = segments.includes("(drawer)");
   const { user } = useUser();
 
   if (user === null || user === undefined) {

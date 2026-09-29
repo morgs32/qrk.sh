@@ -417,7 +417,6 @@ describe("user frontend Grid guards", () => {
           slug: "home",
           title: "Home",
           description: null,
-          pageType: "split-scroll",
         })
         .run();
 

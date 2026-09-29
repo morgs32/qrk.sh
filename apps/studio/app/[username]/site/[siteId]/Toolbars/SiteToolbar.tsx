@@ -3,7 +3,7 @@
 import { Schema } from "effect";
 import { motion, useReducedMotion } from "framer-motion";
 import { useMemo } from "react";
-import { ArrowLeft, File, Globe, Plus, RectangleHorizontal, Type } from "lucide-react";
+import { ArrowLeft, File, Globe, Plus, RectangleHorizontal } from "lucide-react";
 
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 
@@ -48,15 +48,6 @@ export function SiteToolbar() {
               icon={<ArrowLeft className="h-3.5 w-3.5" />}
               tooltip="Leave"
               href={href("/:username", { username })}
-              className="h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
-            />
-
-            <ToolbarSeparator />
-
-            <ToolbarButton
-              label="Compose"
-              icon={<Type className="h-3.5 w-3.5" />}
-              href={href("/:username/site/:siteId/page/:pageId/compose", hrefParams)}
               className="h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
             />
 

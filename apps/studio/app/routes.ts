@@ -79,23 +79,6 @@ export default [
                     ],
                   },
                   {
-                    lazy: async () => {
-                      const { default: RightDrawerLayout, handle } =
-                        await import("./routes/RightDrawerLayout");
-                      return { Component: RightDrawerLayout, handle };
-                    },
-                    children: [
-                      {
-                        path: "compose",
-                        lazy: async () => {
-                          const { default: ComposeRoute, handle } =
-                            await import("./routes/ComposeRoute");
-                          return { Component: ComposeRoute, handle };
-                        },
-                      },
-                    ],
-                  },
-                  {
                     path: "breakpoints",
                     lazy: async () => {
                       const { default: BreakpointsRoute, handle } =

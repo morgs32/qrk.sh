@@ -4,17 +4,11 @@ import { createJSONStorage, persist } from "zustand/middleware";
 
 import { seedLayout, type ILayout } from "@/components/home/seedLayout";
 
-interface IComposeBlock {
-  readonly id: string;
-  readonly content: string;
-}
-
 interface IPageDraft {
   readonly title: string;
   readonly description: string;
   readonly pageType: "split-scroll" | "shared-scroll";
   readonly layout: ILayout;
-  readonly composeBlocks: readonly IComposeBlock[];
 }
 
 interface ISiteDraft {
@@ -45,20 +39,6 @@ interface ISitePageDraftStoreState {
     siteId: string,
     pageId: string,
     layout: ILayout,
-  ) => void;
-  readonly addComposeBlock: (identityKey: string, siteId: string, pageId: string) => void;
-  readonly updateComposeBlock: (
-    identityKey: string,
-    siteId: string,
-    pageId: string,
-    blockId: string,
-    content: string,
-  ) => void;
-  readonly removeComposeBlock: (
-    identityKey: string,
-    siteId: string,
-    pageId: string,
-    blockId: string,
   ) => void;
 }
 
@@ -95,12 +75,6 @@ const PersistedSitePageDraftStateSchema = Schema.Struct({
                   moved: Schema.optional(Schema.Boolean),
                 }),
               ),
-              composeBlocks: Schema.Array(
-                Schema.Struct({
-                  id: Schema.String,
-                  content: Schema.String,
-                }),
-              ),
             }).annotate({ parseOptions: { onExcessProperty: "ignore" } }),
           ),
         }).annotate({ parseOptions: { onExcessProperty: "ignore" } }),
@@ -117,7 +91,6 @@ function createSeedPageDraft(): IPageDraft {
     description: "We are helping Austin home owners save $600 or more on their property taxes.",
     pageType: "split-scroll",
     layout: seedLayout,
-    composeBlocks: [],
   };
 }
 
@@ -276,113 +249,6 @@ export const useSitePageDraftStore = create<ISitePageDraftStoreState>()(
                       [pageId]: {
                         ...pageDraft,
                         layout,
-                      },
-                    },
-                  },
-                },
-              },
-            },
-          };
-        });
-      },
-      addComposeBlock: (identityKey, siteId, pageId) => {
-        set((state) => {
-          const ownerDraft = state.owners[identityKey];
-          const siteDraft = ownerDraft?.sites[siteId];
-          const pageDraft = siteDraft?.pages[pageId];
-
-          if (ownerDraft === undefined || siteDraft === undefined || pageDraft === undefined) {
-            return state;
-          }
-
-          return {
-            owners: {
-              ...state.owners,
-              [identityKey]: {
-                sites: {
-                  ...ownerDraft.sites,
-                  [siteId]: {
-                    ...siteDraft,
-                    pages: {
-                      ...siteDraft.pages,
-                      [pageId]: {
-                        ...pageDraft,
-                        composeBlocks: [
-                          ...pageDraft.composeBlocks,
-                          { id: crypto.randomUUID(), content: "" },
-                        ],
-                      },
-                    },
-                  },
-                },
-              },
-            },
-          };
-        });
-      },
-      updateComposeBlock: (identityKey, siteId, pageId, blockId, content) => {
-        set((state) => {
-          const ownerDraft = state.owners[identityKey];
-          const siteDraft = ownerDraft?.sites[siteId];
-          const pageDraft = siteDraft?.pages[pageId];
-
-          if (ownerDraft === undefined || siteDraft === undefined || pageDraft === undefined) {
-            return state;
-          }
-
-          return {
-            owners: {
-              ...state.owners,
-              [identityKey]: {
-                sites: {
-                  ...ownerDraft.sites,
-                  [siteId]: {
-                    ...siteDraft,
-                    pages: {
-                      ...siteDraft.pages,
-                      [pageId]: {
-                        ...pageDraft,
-                        // The compose block list is intentionally traversed here so the matching
-                        // block is replaced without hiding the update inside a generic helper.
-                        composeBlocks: pageDraft.composeBlocks.map((block) =>
-                          block.id === blockId ? { ...block, content } : block,
-                        ),
-                      },
-                    },
-                  },
-                },
-              },
-            },
-          };
-        });
-      },
-      removeComposeBlock: (identityKey, siteId, pageId, blockId) => {
-        set((state) => {
-          const ownerDraft = state.owners[identityKey];
-          const siteDraft = ownerDraft?.sites[siteId];
-          const pageDraft = siteDraft?.pages[pageId];
-
-          if (ownerDraft === undefined || siteDraft === undefined || pageDraft === undefined) {
-            return state;
-          }
-
-          return {
-            owners: {
-              ...state.owners,
-              [identityKey]: {
-                sites: {
-                  ...ownerDraft.sites,
-                  [siteId]: {
-                    ...siteDraft,
-                    pages: {
-                      ...siteDraft.pages,
-                      [pageId]: {
-                        ...pageDraft,
-                        // The compose block list is intentionally traversed here so only the
-                        // requested block is removed without introducing a filtering helper.
-                        composeBlocks: pageDraft.composeBlocks.filter(
-                          (block) => block.id !== blockId,
-                        ),
                       },
                     },
                   },

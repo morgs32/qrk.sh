@@ -38,49 +38,19 @@ test("editor retains drawer identity, params, history, toolbar, and grid", async
   await page.goBack();
   await expect(page.getByTestId("brick-detail-title")).toHaveText("brick one");
   // The left drawer overlaps this toolbar link; keyboard activation exercises the route change.
-  await page.getByRole("link", { name: "Compose", exact: true }).press("Enter");
-  await expect(page.getByTestId("brick-detail-title")).toBeAttached();
-  await expect(page.locator('[data-drawer="right"]')).toBeVisible();
-  await expect(left).toHaveCount(0);
-  await page.goBack();
-  await expect(page.getByTestId("brick-detail-title")).toHaveText("brick one");
   await page.getByRole("link", { name: "Page settings", exact: true }).press("Enter");
   const bottom = page.locator('[data-drawer="bottom"]');
   await expect(bottom).toBeVisible();
   await bottom.getByRole("button", { name: "Close drawer", exact: true }).click();
   await expect(bottom).toHaveCount(0);
-  await expect(page.getByRole("link", { name: "Compose", exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Add bricks", exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Compose", exact: true })).toHaveCount(0);
+  await page.goto(base + "/compose");
+  await expect(page.getByRole("heading", { name: "Page not found" })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "Page not found" })).toBeVisible();
   expect(errors).toEqual([]);
   await shell!.dispose();
-});
-
-test("compose draft and grid scroll survive close, reopen, and reduced motion", async ({
-  page,
-}) => {
-  await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.goto(base);
-  const scroll = page.locator("[data-site-right-scroll]");
-  await expect(scroll).toBeVisible();
-  await scroll.evaluate((element) => {
-    element.scrollTop = 100;
-  });
-  const scrollTop = await scroll.evaluate((element) => element.scrollTop);
-  const grid = await page.getByTestId("grid-layout").elementHandle();
-  await page.getByRole("link", { name: "Compose", exact: true }).click();
-  const right = page.locator('[data-drawer="right"]');
-  const editor = right.locator('[contenteditable="true"]').first();
-  await expect(editor).toBeVisible();
-  const original = await editor.innerText();
-  expect(original.trim(), "Use a test page with an empty compose block").toBe("");
-  await editor.fill("Retained migration draft");
-  await right.getByRole("button", { name: "Close drawer" }).click();
-  await expect(right).toHaveCount(0);
-  await page.getByRole("link", { name: "Compose", exact: true }).click();
-  await expect(editor).toHaveText("Retained migration draft");
-  expect(await right.evaluate((element) => getComputedStyle(element).transform)).toBe("none");
-  expect(await grid!.evaluate((element) => element.isConnected)).toBe(true);
-  expect(await scroll.evaluate((element) => element.scrollTop)).toBe(scrollTop);
-  await editor.fill("");
 });
 
 test("interrupted history navigation settles with one drawer and preserves bottom shell", async ({

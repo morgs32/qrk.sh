@@ -36,7 +36,7 @@ Required-value checks remain at app initialization and Vite configuration. Clerk
 
 ## Routes and state
 
-`app/main.tsx` mounts `RouterProvider`; `app/routes.ts` declares explicit data routes with lazy component imports and route handles. Site/page draft initialization, `MainColumns`, and grid state stay in persistent layouts. Pathless drawer layouts own the left, right, and bottom shells. `Drawers` captures `useOutlet()` under a drawer-group key, including the base-page outlet. Leaf handles supply the toolbar element to its separate persistent Motion boundary. This preserves same-group shell identity and outgoing parameter context without private router APIs. Drawer transitions last 300 ms and respect reduced motion.
+`app/main.tsx` mounts `RouterProvider`; `app/routes.ts` declares explicit data routes with lazy component imports and route handles. Site/page draft initialization, `MainColumns`, and grid state stay in persistent layouts. Pathless drawer layouts own the left and bottom shells. `Drawers` captures `useOutlet()` under a drawer-group key, including the base-page outlet. Leaf handles supply the toolbar element to its separate persistent Motion boundary. This preserves same-group shell identity and outgoing parameter context without private router APIs. Drawer transitions last 300 ms and respect reduced motion. The former `/compose` route now renders the existing not-found screen.
 
 ## Browser tests
 
@@ -57,4 +57,4 @@ To run focused smoke tests against an already running app dev server:
 PLAYWRIGHT_EXTERNAL_SERVER=1 PLAYWRIGHT_BASE_URL=http://127.0.0.1:3001 pnpm nx run @qrk.sh/studio:test:e2e -- tests/spa.playwright.spec.ts
 ```
 
-For authenticated tests through web, use `PLAYWRIGHT_BASE_URL=http://localhost:3000` with `PLAYWRIGHT_EXTERNAL_SERVER=1`, `PLAYWRIGHT_STORAGE_STATE`, and `PLAYWRIGHT_EDITOR_PATH`. Run `Drawers.playwright.spec.ts` with `--workers=1` when sharing one empty test page across browser projects. Cross-drawer assertions use keyboard activation where the existing drawer geometry covers toolbar links. The older brick group tests assume a populated group; the current group is empty and those expectations are outside this migration.
+For authenticated tests through web, use `PLAYWRIGHT_BASE_URL=http://localhost:3000` with `PLAYWRIGHT_EXTERNAL_SERVER=1`, `PLAYWRIGHT_STORAGE_STATE`, and `PLAYWRIGHT_EDITOR_PATH`. Run `Drawers.playwright.spec.ts` with `--workers=1` when sharing one test page across browser projects. Cross-drawer assertions use keyboard activation where the existing drawer geometry covers toolbar links. The older brick group tests assume a populated group; the current group is empty and those expectations are outside this migration.

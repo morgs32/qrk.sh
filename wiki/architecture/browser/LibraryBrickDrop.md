@@ -17,6 +17,15 @@ Module defaults and preview updates discard undeclared state fields. The command
 guard validates declared fields, and the program decodes and saves the resulting
 state, stripping extras from any caller. Invalid declared fields still fail.
 
+A module opts into unconfigured bricks with backend `hasPlaceholder: true` and
+view `default.placeholder`. `makeModuleView` rejects either declaration mismatch.
+Image currently opts in with a full-size shadcn Skeleton. A new drop of an opted-in
+module sends null instead of copying the preview state; the spec and sizes remain
+unchanged. The JSON payload codec encodes null as JSON for the existing non-nullable
+descriptors, then guards and programs accept it only for opted-in modules.
+Descriptor shapes remain unchanged, preserving the standalone backup definition key. The existing
+JSON state column stores the encoded JSON null without a storage migration.
+
 ## Trigger
 
 1. Each app layout gates children on an initialized session seeded with `wal_library`.
@@ -35,7 +44,7 @@ state, stripping extras from any caller. Invalid declared fields still fail.
    Dragging remains disabled until every size is available.
    1. Library and Studio filmstrip: shared `ModuleFilmstrip` → `ModulePreview` → `DraggableBrick`.
    2. Library module breakpoint preview: `-BreakpointPreviewRow`.
-   3. Studio module detail: `BrickGroupRoute`.
+   3. Studio module detail: `ModuleRoute`.
 
 `addBrick` is a fresh `1.0.0` baseline with no historical payload adapter.
 The payload contains `wallId`, `brickId`, `moduleId`, `state`, `spec`,
@@ -55,49 +64,82 @@ sequenceDiagram
   participant makeCollisionResolvedLayout
   participant models
   autonumber
-  DraggableBrick->>brickDragStore: setBrickDef(... placementSizes)
+  DraggableBrick->>brickDragStore: brickDragStore.getState().setBrickDef(...)
   GridLayout->>BrickWall: onDragOver()
-  GridLayout->>BrickWall: onDrop(nextLayout, item)
-  BrickWall->>stageCommand: addBrick(dropPosition, placementSizes, visibleLayouts)
-  stageCommand->>guard: guard(payload, queryDb)
+  GridLayout->>BrickWall: onDrop(...)
+  BrickWall->>BrickWall: registered placeholder selects null state
+  BrickWall->>stageCommand: stageCommand(...)
+  stageCommand->>guard: guard(...)
   guard->>guard: match current visible geometry at every breakpoint
-  stageCommand->>program: program(payload)
-  program->>makeCollisionResolvedLayout: resolve all four layouts
+  stageCommand->>program: program(...)
+  program->>makeCollisionResolvedLayout: makeCollisionResolvedLayout(...)
   makeCollisionResolvedLayout-->>program: fresh i x y w h items
   program->>program: validate every resolved layout
-  program->>program: decode module state, discarding undeclared fields
-  program->>models: create brick and four placements; update displaced neighbors
-  BrickWall->>brickDragStore: setBrickDef(null)
+  program->>program: decode declared state or opted-in null
+  program->>models: create brick and placements; update displaced neighbors
+  BrickWall->>brickDragStore: brickDragStore.getState().setBrickDef(...)
 ```
 
 ## Annotated workflow steps
 
 1. Drag start supplies all four measured or declared sizes.
    - [`DraggableBrick.tsx:17-33`](../../../apps/library/lib/DraggableBrick.tsx#L17-L33) — writes the drag definition once all sizes are available. (`apps/library/lib/DraggableBrick.tsx:17-33`)
-2. Hover reads the live drag definition and returns the active placeholder size.
-   - [`BrickWall.tsx:148-158`](../../../apps/library/lib/BrickWall.tsx#L148-L158) — missing drag data returns false. (`apps/library/lib/BrickWall.tsx:148-158`)
-3. Drop uses only the item position from the grid and reads the drag definition again.
-   - [`BrickWall.tsx:160-167`](../../../apps/library/lib/BrickWall.tsx#L160-L167) — reads the typed drag payload and looks up its registered module. (`apps/library/lib/BrickWall.tsx:160-167`)
-4. The caller clones dragged state, snapshots all four visible layouts from session placements, and stages the payload.
-   - [`BrickWall.tsx:168-201`](../../../apps/library/lib/BrickWall.tsx#L168-L201) — carries state and four placement sizes. (`apps/library/lib/BrickWall.tsx:168-201`)
-5. The guard validates wall and identity, declared state fields, strict spec, nonnegative integer coordinates, and positive integer dimensions. Extra state properties are ignored.
-   - [`AddBrickContractV1.ts:100-184`](../../../apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts#L100-L184) — rejects invalid inputs before the program. (`apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts:100-184`)
-6. Each snapshot must match stored visible i/x/y/w/h exactly, regardless of order. Duplicates, omissions, stale geometry, and extra items fail with conflict 409.
-   - [`AddBrickContractV1.ts:186-237`](../../../apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts#L186-L237) — compares snapshots against current wall placements. (`apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts:186-237`)
-7. The named program constructs the incoming item separately for every breakpoint.
-   - [`AddBrickContractV1.ts:239-258`](../../../apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts#L239-L258) — combines brickId, dropPosition, and breakpoint size. (`apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts:239-258`)
-8. The constructor clones inputs, corrects eight-column bounds, and pushes overlapping neighbors downward through cascades while preserving gaps.
-   - [`resolveVisibleCollisions.ts:20-41`](../../../apps/library/libraryModule/resolveVisibleCollisions.ts#L20-L41) — settles neighbors in row and column order. (`apps/library/libraryModule/resolveVisibleCollisions.ts:20-41`)
-9. Resolved layouts contain only the five persisted geometry fields.
-   - [`resolveVisibleCollisions.ts:43`](../../../apps/library/libraryModule/resolveVisibleCollisions.ts#L43) — projects fresh objects. (`apps/library/libraryModule/resolveVisibleCollisions.ts:43`)
-10. All four outputs are validated before any mutation is constructed.
+2. Hover reads the live definition and returns the active drag-preview size.
+   - [`BrickWall.tsx:153-163`](../../../apps/library/lib/BrickWall.tsx#L153-L163) — missing drag data returns false. (`apps/library/lib/BrickWall.tsx:153-163`)
+3. Drop uses the grid item position and reads the typed drag definition again.
+   - [`BrickWall.tsx:164-171`](../../../apps/library/lib/BrickWall.tsx#L164-L171) — requires both an item and drag data. (`apps/library/lib/BrickWall.tsx:164-171`)
+4. A registered placeholder selects null; otherwise the dragged state is cloned.
+   - [`BrickWall.tsx:188-192`](../../../apps/library/lib/BrickWall.tsx#L188-L192) — preserves the dragged spec while selecting the new brick state. (`apps/library/lib/BrickWall.tsx:188-192`)
+5. The caller snapshots visible layouts and stages addBrick with all placement sizes.
+   - [`BrickWall.tsx:172-197`](../../../apps/library/lib/BrickWall.tsx#L172-L197) — supplies fresh brick identity, state, spec, position, sizes, and layout snapshots. (`apps/library/lib/BrickWall.tsx:172-197`)
+6. The guard validates identity, module state or permitted null, strict spec, coordinates, and dimensions.
+   - [`AddBrickContractV1.ts:98-187`](../../../apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts#L98-L187) — rejects invalid input before any mutation. (`apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts:98-187`)
+7. Visible snapshots must match stored geometry exactly at every breakpoint.
+   - [`AddBrickContractV1.ts:189-239`](../../../apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts#L189-L239) — rejects duplicates, omissions, stale geometry, and extra items. (`apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts:189-239`)
+8. The named program receives the validated payload and model mutation interfaces.
+   - [`AddBrickContractV1.ts:241-250`](../../../apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts#L241-L250) — owns brick creation and placement updates. (`apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts:241-250`)
+9. The program constructs the incoming item separately for every breakpoint.
+   - [`AddBrickContractV1.ts:251-260`](../../../apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts#L251-L260) — combines brickId, dropPosition, and breakpoint size. (`apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts:251-260`)
+10. Collision resolution returns fresh persisted geometry.
 
-- [`AddBrickContractV1.ts:259-271`](../../../apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts#L259-L271) — fails before brick creation if a resolved layout is invalid. (`apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts:259-271`)
+- [`resolveVisibleCollisions.ts:20-44`](../../../apps/library/libraryModule/resolveVisibleCollisions.ts#L20-L44) — clones inputs, corrects bounds, pushes overlapping neighbors, and returns i/x/y/w/h. (`apps/library/libraryModule/resolveVisibleCollisions.ts:20-44`)
 
-11. The program decodes state with `onExcessProperty: "ignore"`, clones the decoded state and spec, creates the brick and placements, and updates changed visible neighbors. Hidden placements and unchanged neighbors are untouched.
+11. All resolved layouts are checked before any mutation is constructed.
 
-- [`AddBrickContractV1.ts:274-343`](../../../apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts#L274-L343) — saves decoded state, creates incoming placements, and skips unchanged geometry. (`apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts:274-343`)
+- [`AddBrickContractV1.ts:261-273`](../../../apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts#L261-L273) — fails before brick creation when a resolved layout is invalid. (`apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts:261-273`)
 
-12. Existing command errors are presented and the drag definition is cleared.
+12. The program decodes state again, admitting null only for hasPlaceholder modules.
 
-- [`BrickWall.tsx:202-212`](../../../apps/library/lib/BrickWall.tsx#L202-L212) — preserves failure handling. (`apps/library/lib/BrickWall.tsx:202-212`)
+- [`AddBrickContractV1.ts:275-287`](../../../apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts#L275-L287) — ignores undeclared non-null state fields and clones the decoded state and spec. (`apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts:275-287`)
+
+13. Create the brick and four placements, updating only displaced visible neighbors.
+
+- [`AddBrickContractV1.ts:289-348`](../../../apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts#L289-L348) — saves null or configured state and preserves hidden or unchanged placements. (`apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts:289-348`)
+
+14. Command failures are presented and the drag definition is cleared.
+
+- [`BrickWall.tsx:198-209`](../../../apps/library/lib/BrickWall.tsx#L198-L209) — retains the existing error handling and clears the completed drag. (`apps/library/lib/BrickWall.tsx:198-209`)
+
+## Placeholder rendering and state updates
+
+The shared module renderer checks exact null before authored decoding or JSON-render
+execution. Wall and detail consumers also accept a structurally valid empty spec
+when a registered placeholder is being rendered. This does not relax command spec
+validation. Non-null values, including empty objects and strings, follow normal
+rendering and validation. Preview examples and existing configured bricks remain
+unchanged.
+
+```tsx
+// Backend-safe declaration on Image's version.
+hasPlaceholder: true,
+
+// Matching view markup; one display-only placeholder for every breakpoint.
+placeholder() {
+  return <Skeleton className="size-full" />;
+},
+```
+
+Library's existing JSON state editor calls `updateBrickState`: saving a valid Image
+state replaces the skeleton, and saving null restores it without changing specs or
+placement. Other modules reject null. Studio's brick detail consumes the same
+renderer; this feature adds no editing UI there.

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter, usePathname, useSelectedLayoutSegments } from "next/navigation";
 
 import { BREAKPOINTS, resolveBreakpoint } from "@qrk.sh/library/breakpoints";
 import { BrickWall } from "@qrk.sh/library/BrickWall";
@@ -28,6 +28,8 @@ export function Grid() {
   const router = useRouter();
   const pathname = usePathname();
   const isBreakpointsRoute = /\/breakpoints\/?$/.test(pathname);
+  const isBrickDrawer = useSelectedLayoutSegments().includes("(bricks)");
+  const useFixedPreview = isBreakpointsRoute || isBrickDrawer;
   const [fluidWidth, setFluidWidth] = useState(0);
   const fluidRef = useCallback<RefCallback<HTMLElement>>((element) => {
     if (!element) return;
@@ -64,39 +66,35 @@ export function Grid() {
       onBrickActivate={({ brickId }) => {
         void router.push(
           `/${encodeURIComponent(params.username)}/site/${encodeURIComponent(params.siteId)}/page/${encodeURIComponent(params.pageId)}/brick/${encodeURIComponent(brickId)}`,
-        { scroll: false },
+          { scroll: false },
         );
       }}
     />
   );
 
-  if (isBreakpointsRoute) {
-    return (
-      <div ref={regionRef} className="min-h-full w-full" data-testid="grid-region">
-        {availableWidth > 0 && availableWidth < BREAKPOINTS[0].previewWidth ? (
-          <p className="p-4 text-sm" role="status">
-            At least {BREAKPOINTS[0].previewWidth}px is needed to preview the grid.
-          </p>
-        ) : null}
-        <div
-          hidden={fixedPreviewWidth === null || activeBreakpoint === null}
-          className="mx-auto min-h-full"
-          style={{ width: fixedPreviewWidth ?? BREAKPOINTS[0].previewWidth }}
-          data-testid="grid-layout"
-        >
-          {activeBreakpoint !== null && fixedPreviewWidth !== null
-            ? wall(activeBreakpoint, fixedPreviewWidth)
-            : null}
-        </div>
-      </div>
-    );
-  }
-
   const fluidBreakpoint = resolveBreakpoint(fluidWidth);
+  const gridWidth = useFixedPreview
+    ? (fixedPreviewWidth ?? BREAKPOINTS[0].previewWidth)
+    : fluidWidth;
 
   return (
-    <div ref={fluidAndRegionRef} className="min-h-full w-full" data-testid="grid-layout">
-      {wall(fluidBreakpoint, fluidWidth)}
+    <div ref={fluidAndRegionRef} className="min-h-full w-full" data-testid="grid-region">
+      {useFixedPreview && availableWidth > 0 && availableWidth < BREAKPOINTS[0].previewWidth ? (
+        <p className="p-4 text-sm" role="status">
+          At least {BREAKPOINTS[0].previewWidth}px is needed to preview the grid.
+        </p>
+      ) : null}
+      <div
+        hidden={useFixedPreview && activeBreakpoint === null}
+        className="mx-auto min-h-full"
+        style={{ width: useFixedPreview ? gridWidth : "100%" }}
+        data-testid="grid-layout"
+      >
+        {wall(
+          useFixedPreview ? (activeBreakpoint ?? BREAKPOINTS[0].id) : fluidBreakpoint,
+          gridWidth,
+        )}
+      </div>
     </div>
   );
 }

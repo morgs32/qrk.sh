@@ -19,6 +19,7 @@ export function makeUpdateBrickStateContract<
     string,
     {
       readonly stateShape: IShape;
+      readonly hasPlaceholder: boolean;
     }
   >,
 >(props: { library: LIBRARY; brick: ReturnType<typeof makeBrickModel> }) {
@@ -38,11 +39,11 @@ export function makeUpdateBrickStateContract<
     },
     version: "1.0.0",
     guard: Effect.fn("updateBrickState.guard")(function* ({
-      queryDb: db,
+      db,
       payload,
     }: {
       claims: Readonly<Record<string, unknown>> | null;
-      queryDb: Readonly<Pick<IDb, "query">>;
+      db: Readonly<Pick<IDb, "query">>;
       payload: InferCommandPayload<typeof updateBrickStatePayload>;
     }) {
       const brickRow = db.query.brick
@@ -68,10 +69,10 @@ export function makeUpdateBrickStateContract<
       }
 
       const brickModule = library[brickRow.moduleId];
-      yield* Schema.decodeUnknownEffect(Schema.toType(makeEffectSchema(brickModule.stateShape)))(
-        payload.state,
-        { onExcessProperty: "ignore" },
-      ).pipe(
+      const StateSchema = Schema.toType(makeEffectSchema(brickModule.stateShape));
+      yield* Schema.decodeUnknownEffect(
+        brickModule.hasPlaceholder ? Schema.NullOr(StateSchema) : StateSchema,
+      )(payload.state, { onExcessProperty: "ignore" }).pipe(
         mapParseError({
           code: "update-brick-state-invalid-state",
           prefix: `updateBrickState state failed ${brickRow.moduleId} decode`,
@@ -86,8 +87,9 @@ export function makeUpdateBrickStateContract<
       models: { brick: IModelMutations<typeof brick> };
     }) {
       const brickModule = library[payload.moduleId];
+      const StateSchema = Schema.toType(makeEffectSchema(brickModule.stateShape));
       const decodedState = yield* Schema.decodeUnknownEffect(
-        Schema.toType(makeEffectSchema(brickModule.stateShape)),
+        brickModule.hasPlaceholder ? Schema.NullOr(StateSchema) : StateSchema,
       )(payload.state, { onExcessProperty: "ignore" }).pipe(
         mapParseError({
           code: "update-brick-state-invalid-state",

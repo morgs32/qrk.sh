@@ -32,11 +32,11 @@ export function makeRemoveBrickContract(props: {
     },
     version: "1.0.0",
     guard: Effect.fn("removeBrick.guard")(function* ({
-      queryDb: db,
+      db,
       payload,
     }: {
       claims: Readonly<Record<string, unknown>> | null;
-      queryDb: Readonly<Pick<IDb, "query">>;
+      db: Readonly<Pick<IDb, "query">>;
       payload: InferCommandPayload<typeof removeBrickPayload>;
     }) {
       const wall = db.query.wall

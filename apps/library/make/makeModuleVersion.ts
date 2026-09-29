@@ -77,16 +77,24 @@ export function makeModuleVersion<
   }>,
   props: {
     version: VERSION;
+    hasPlaceholder?: boolean;
     components: Record<string, ReturnType<typeof defineComponent>>;
     stateShape: STATE_SHAPE;
     defaultState: InferDecodedRow<STATE_SHAPE> & Readonly<Record<string, IJsonValue>>;
   },
 ) {
+  const {
+    version,
+    components,
+    stateShape,
+    defaultState: suppliedDefaultState,
+    hasPlaceholder = false,
+  } = props;
   const { id, abbreviation, label, description } = defineModule(identity);
-  assertSemVer(props.version);
+  assertSemVer(version);
 
-  const catalog = makeCatalogFromComponents(props.components);
-  const defaultState = decodeDefaultData(props.stateShape, props.defaultState);
+  const catalog = makeCatalogFromComponents(components);
+  const defaultState = decodeDefaultData(stateShape, suppliedDefaultState);
 
   const def = {
     moduleId: id,
@@ -98,10 +106,11 @@ export function makeModuleVersion<
     abbreviation,
     label,
     description,
-    version: props.version,
+    version,
+    hasPlaceholder,
     catalog,
-    components: props.components,
-    stateShape: props.stateShape,
+    components,
+    stateShape,
     defaultState,
     def,
   };

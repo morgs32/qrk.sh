@@ -1,6 +1,6 @@
 import type { ComponentProps } from "react";
 
-import { brickDragStore, type IDraggedBrick } from "./GridStore";
+import { brickDragStore, type IDraggedBrick } from "./brickDragStore";
 
 export function DraggableBrick(
   props: {

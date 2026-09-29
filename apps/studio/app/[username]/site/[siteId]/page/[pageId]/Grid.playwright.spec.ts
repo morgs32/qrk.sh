@@ -26,7 +26,7 @@ function centerDistance(
 test.describe("Site grid drag", () => {
   test("dragging a drawer brick onto the grid creates a new instance", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
-    await page.goto(`${pageBase}/brick-group`, { waitUntil: "load" });
+    await page.goto(`${pageBase}/modules`, { waitUntil: "load" });
 
     const grid = page.locator(".grid-layout");
     await expect(grid).toBeVisible({ timeout: 90_000 });
@@ -56,7 +56,7 @@ test.describe("Site grid drag", () => {
     page,
   }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
-    await page.goto(`${pageBase}/brick-group`, { waitUntil: "load" });
+    await page.goto(`${pageBase}/modules`, { waitUntil: "load" });
 
     const layout = page.getByTestId("grid-layout");
     const grid = page.locator(".grid-layout");
@@ -117,7 +117,7 @@ test.describe("Site grid drag", () => {
     page,
   }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
-    await page.goto(`${pageBase}/brick-group`, { waitUntil: "load" });
+    await page.goto(`${pageBase}/modules`, { waitUntil: "load" });
 
     const grid = page.locator(".grid-layout");
     await expect(grid).toBeVisible({ timeout: 90_000 });
@@ -151,7 +151,7 @@ test.describe("Site grid drag", () => {
     page,
   }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
-    await page.goto(`${pageBase}/brick-group`, { waitUntil: "load" });
+    await page.goto(`${pageBase}/modules`, { waitUntil: "load" });
 
     const grid = page.locator(".grid-layout");
     await expect(grid).toBeVisible({ timeout: 90_000 });
@@ -181,7 +181,7 @@ test.describe("Site grid drag", () => {
 
   test("dropped text bricks can be reordered within the grid", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
-    await page.goto(`${pageBase}/brick-group`, { waitUntil: "load" });
+    await page.goto(`${pageBase}/modules`, { waitUntil: "load" });
 
     const grid = page.locator(".grid-layout");
     await expect(grid).toBeVisible({ timeout: 90_000 });

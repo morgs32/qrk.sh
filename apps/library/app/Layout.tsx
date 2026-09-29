@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 
-import { Drawer } from "@qrk.sh/web/library/Drawer";
+import { Drawer } from "../lib/Drawer";
 import { Link, useLocation, useMatch, useNavigate, useParams } from "@tanstack/react-router";
 import { prefixId } from "@zerospin/core/models/prefixId";
 import { stageCommand, useInitializeStandaloneSession, useLiveQuery } from "@zerospin/react";
@@ -13,7 +13,7 @@ import { Button } from "../components/ui/button";
 import { Toaster } from "../components/ui/sonner";
 import { BREAKPOINTS } from "../lib/breakpoints";
 import { BrickWall } from "../lib/BrickWall";
-import { brickDragStore } from "../lib/GridStore";
+import { brickDragStore } from "../lib/brickDragStore";
 import { modulesHash } from "../lib/modulesHash";
 import {
   useWallViewport,

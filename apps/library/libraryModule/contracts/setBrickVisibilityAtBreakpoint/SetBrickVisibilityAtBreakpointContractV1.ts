@@ -50,11 +50,11 @@ export function makeSetBrickVisibilityAtBreakpointContract(props: {
     },
     version: "1.0.0",
     guard: Effect.fn("setBrickVisibilityAtBreakpoint.guard")(function* ({
-      queryDb: db,
+      db,
       payload,
     }: {
       claims: Readonly<Record<string, unknown>> | null;
-      queryDb: Readonly<Pick<IDb, "query">>;
+      db: Readonly<Pick<IDb, "query">>;
       payload: InferCommandPayload<typeof setBrickVisibilityAtBreakpointPayload>;
     }) {
       const brickRow = db.query.brick

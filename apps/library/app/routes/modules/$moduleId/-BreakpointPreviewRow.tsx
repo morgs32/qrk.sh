@@ -8,7 +8,7 @@ import { OrderedSection } from "@qrk.sh/web/library/OrderedDoc";
 import { MeasuredBrickWrapper } from "../../../../components/brick/MeasuredBrickWrapper";
 import { GridItemPreview } from "../../../../lib/GridItemPreview";
 import { BREAKPOINTS, minGridUnits } from "../../../../lib/breakpoints";
-import { brickDragStore } from "../../../../lib/GridStore";
+import { brickDragStore } from "../../../../lib/brickDragStore";
 import { modulesHash } from "../../../../lib/modulesHash";
 
 export function BreakpointPreviewRow({

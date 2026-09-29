@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef, useState } from "react";
 
 import { isNonEmptySpec } from "@json-render/core";
+import { Schema } from "effect";
 import { prefixId } from "@zerospin/core/models/prefixId";
 import { stageCommand, useLiveQuery } from "@zerospin/react";
 import GridLayout, { noCompactor } from "react-grid-layout";
@@ -8,7 +9,7 @@ import GridLayout, { noCompactor } from "react-grid-layout";
 import { libraryModule } from "../libraryModule/libraryModule";
 import type { ILibrarySession } from "../session/createLibraryStandaloneSession";
 import { BrickWrapper } from "../components/brick/BrickWrapper";
-import { brickDragStore } from "./GridStore";
+import { brickDragStore } from "./brickDragStore";
 import { modulesHash } from "./modulesHash";
 
 function makeGridItem(item: { i: string; x: number; y: number; w: number; h: number }) {
@@ -185,7 +186,10 @@ export function BrickWall(props: {
                 wallId,
                 brickId,
                 moduleId,
-                state: structuredClone(brickDef.state),
+                state:
+                  modulesHash[moduleId].placeholder !== undefined
+                    ? null
+                    : structuredClone(brickDef.state),
                 spec: structuredClone(brickDef.spec),
                 dropPosition: { x: item.x, y: item.y },
                 placementSizes: brickDef.placementSizes,
@@ -292,7 +296,20 @@ export function BrickWall(props: {
               const BrickComponent = catalog.component;
               const state = brickRow.state;
               const rawSpec = placement.spec;
-              if (!isNonEmptySpec(rawSpec)) {
+              const spec =
+                isNonEmptySpec(rawSpec) ||
+                (state === null &&
+                  catalog.placeholder !== undefined &&
+                  Schema.is(
+                    Schema.Struct({
+                      root: Schema.String,
+                      elements: Schema.Record(Schema.String, Schema.Never),
+                      state: Schema.optional(Schema.Record(Schema.String, Schema.Unknown)),
+                    }),
+                  )(rawSpec))
+                  ? rawSpec
+                  : undefined;
+              if (spec === undefined) {
                 return null;
               }
 
@@ -321,7 +338,7 @@ export function BrickWall(props: {
                       <BrickWrapper
                         className={brickRow.moduleId === "github-activity" ? "bg-white" : undefined}
                       >
-                        <BrickComponent breakpoint={breakpoint} state={state} spec={rawSpec} />
+                        <BrickComponent breakpoint={breakpoint} state={state} spec={spec} />
                       </BrickWrapper>
                     </div>
                   </div>

@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { isNonEmptySpec } from "@json-render/core";
+import { Schema } from "effect";
 import { newSyncRpcSession } from "@zerospin/core/utils/getApi/newSyncRpcSession/newSyncRpcSession";
 import { stageCommand, useLiveQuery } from "@zerospin/react";
 import { collapseAllNested, defaultStyles, JsonView } from "react-json-view-lite";
@@ -98,10 +99,22 @@ function BrickDetail() {
   const stateEditorValue = stateDraft ?? committedStateJson;
   const hasJsonRender = brickModule.registry !== undefined;
   const rawSpec = placement.spec;
-  if (!isNonEmptySpec(rawSpec)) {
+  const placementSpec =
+    isNonEmptySpec(rawSpec) ||
+    (brickState === null &&
+      brickModule.placeholder !== undefined &&
+      Schema.is(
+        Schema.Struct({
+          root: Schema.String,
+          elements: Schema.Record(Schema.String, Schema.Never),
+          state: Schema.optional(Schema.Record(Schema.String, Schema.Unknown)),
+        }),
+      )(rawSpec))
+      ? rawSpec
+      : undefined;
+  if (placementSpec === undefined) {
     throw notFound();
   }
-  const placementSpec = rawSpec;
   const savedGridItem = placement.gridItem;
 
   return (

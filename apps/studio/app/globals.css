@@ -263,40 +263,16 @@ html body[data-scroll-locked] {
 ::view-transition-new(root) {
   animation: none;
 }
-::view-transition-group(.drawer-left-in),
-::view-transition-group(.drawer-left-out),
 ::view-transition-group(.drawer-bottom-in),
 ::view-transition-group(.drawer-bottom-out) {
   animation-duration: 300ms;
   animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
-}
-::view-transition-new(.drawer-left-in) {
-  animation: drawer-left-in 300ms cubic-bezier(0, 0, 0.2, 1) both;
-}
-::view-transition-old(.drawer-left-out) {
-  animation: drawer-left-out 300ms cubic-bezier(0, 0, 0.2, 1) both;
 }
 ::view-transition-new(.drawer-bottom-in) {
   animation: drawer-bottom-in 300ms cubic-bezier(0, 0, 0.2, 1) both;
 }
 ::view-transition-old(.drawer-bottom-out) {
   animation: drawer-bottom-out 300ms cubic-bezier(0, 0, 0.2, 1) both;
-}
-@keyframes drawer-left-in {
-  from {
-    transform: translateX(-100%);
-  }
-  to {
-    transform: translateX(0);
-  }
-}
-@keyframes drawer-left-out {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(-100%);
-  }
 }
 @keyframes drawer-bottom-in {
   from {

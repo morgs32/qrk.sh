@@ -42,16 +42,20 @@ The dashboard layout renders the `qrk.sh` header in the initial HTML and reserve
 
 ## Routes and transitions
 
-Filesystem routes preserve dashboards, base editors, brick catalogs, group details, brick details, breakpoints, page settings, and site settings. The page's `/compose` route sits outside the drawer route groups and closes all drawers. Unknown paths render Next's not-found screen. The local error boundary preserves client diagnostics and reload behavior.
+Filesystem routes preserve dashboards, base editors, module catalogs, module details, brick details, breakpoints, page settings, and site settings. The page's `/compose` route sits outside `(drawer)`, so composing closes all drawers. Unknown paths render Next's not-found screen. The local error boundary preserves client diagnostics and reload behavior.
 
-The page layout keeps site/page drafts, `MainColumns`, the grid, and the library session above the drawers. Pathless `(left)` and `(bottom)` layouts retain their drawer shells during same-group navigation. `Toolbars` reads selected layout segments to preserve the existing toolbar mapping.
+The page layout keeps site/page drafts, `MainColumns`, the grid, and the library session above the drawers. One pathless `(drawer)` layout retains the bottom drawer shell across brick catalog, module, placed-brick, page-settings, and site-settings navigation. Its `(bricks)` child layout owns brick breadcrumbs and the close link; settings retain their own Save/Cancel headers. The editor reserves `50dvh` for the drawer on desktop and mobile and keeps its session, article, and grid mounted above it. `Toolbars` reads selected layout segments to choose the route's controls.
 
-React `ViewTransition` boundaries animate only drawer insertion/removal, sliding left or bottom for 300 ms. Exits use snapshots; rapid navigation may batch updates. Unsupported browsers navigate immediately. Reduced motion disables positional animations, and the transition overlay allows pointer events through. The navbar and persistent editor are not named snapshot participants. Studio disables the shared Drawer's Motion animation; other consumers retain it, as do unrelated component interactions.
+On every `(bricks)` route, a breakpoint-only toolbar sits `1.5rem` above the drawer, centered over the grid column. **sm / md / lg / xl** select **360 / 720 / 1080 / 1440px** previews; widths larger than the available grid column are disabled. Below 360px, the grid shows its insufficient-width message. Selection survives catalog, module, and brick navigation in the mounted editor session. Closing the drawer or visiting settings or compose restores fluid sizing without replacing the grid; reopening the bricks drawer reuses the selection. The separate `/breakpoints` route retains its existing toolbar placement and close action.
 
-The bricks catalog uses `@qrk.sh/library/ModuleFilmstrip`, the same horizontal
+React `ViewTransition` boundaries animate only drawer insertion/removal, sliding from the bottom for 300 ms. Exits use snapshots; rapid navigation may batch updates. Unsupported browsers navigate immediately. Reduced motion disables positional animations, and the transition overlay allows pointer events through. The navbar and persistent editor are not named snapshot participants. Studio's client drawer layout imports `Drawer` from `@qrk.sh/library/Drawer` in flow mode with Motion animation disabled. Library's app imports that same component from its defining source. Each app owns its surrounding grid-row animation; Studio additionally owns its route view transitions. Reduced motion also disables the grid-row transition.
+
+The modules catalog uses `@qrk.sh/library/ModuleFilmstrip`, the same horizontal
 filmstrip as Library. Each module column scrolls vertically; previews use the
 active breakpoint and shared drag payload. Studio supplies Next links to its
-existing module-detail routes.
+`/modules/[moduleId]` detail routes. The catalog lives at `/modules` under the
+page editor, with a **Modules** breadcrumb and the **Add bricks** toolbar action.
+The previous catalog URLs are removed without redirects.
 
 ## Browser checks
 
@@ -67,7 +71,7 @@ For an already running Studio server:
 PLAYWRIGHT_EXTERNAL_SERVER=1 PLAYWRIGHT_BASE_URL=http://127.0.0.1:3001 pnpm nx run @qrk.sh/studio:test:e2e -- tests/shell.playwright.spec.ts
 ```
 
-Authenticated drawer checks require `PLAYWRIGHT_STORAGE_STATE` pointing to a valid Clerk storage-state file, `PLAYWRIGHT_EDITOR_PATH` pointing to an existing editor, and a working Zerospin backend. Keep session files outside version control. Through web, also set `PLAYWRIGHT_BASE_URL=http://localhost:3000` and `PLAYWRIGHT_EXTERNAL_SERVER=1`. Run `Drawers.playwright.spec.ts` with `--workers=1` when sharing one editor across browser projects. The checks cover shell identity, persistent editor state, history, interrupted navigation, and reduced motion; snapshot exits need not retain outgoing DOM. The older brick group checks require a populated group.
+Authenticated drawer checks require `PLAYWRIGHT_STORAGE_STATE` pointing to a valid Clerk storage-state file, `PLAYWRIGHT_EDITOR_PATH` pointing to an existing editor, and a working Zerospin backend. Keep session files outside version control. Through web, also set `PLAYWRIGHT_BASE_URL=http://localhost:3000` and `PLAYWRIGHT_EXTERNAL_SERVER=1`. Run `Drawers.playwright.spec.ts` with `--workers=1` when sharing one editor across browser projects. The checks cover shell identity, persistent editor state, history, interrupted navigation, and reduced motion; snapshot exits need not retain outgoing DOM. The module catalog checks require the Library module registry to be available.
 
 The separate React Router/Motion example remains an independent example, not an acceptance gate for Studio's Next navigation.
 

@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 
-const pageBase = "/e2e/site/e2e/page/home";
+const pageBase = process.env.PLAYWRIGHT_EDITOR_PATH ?? "/e2e/site/e2e/page/home";
 
 function drawerBrickPreviewSlot(page: Page, moduleId: string) {
   return page.locator(`[data-brick-drawer-brick-slot][data-brick-drawer-module-id="${moduleId}"]`);
@@ -8,7 +8,7 @@ function drawerBrickPreviewSlot(page: Page, moduleId: string) {
 
 async function dropSwatchOntoGrid(page: Page) {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto(`${pageBase}/brick-group`, { waitUntil: "load" });
+  await page.goto(`${pageBase}/modules`, { waitUntil: "load" });
 
   const grid = page.locator(".grid-layout");
   await expect(grid).toBeVisible({ timeout: 90_000 });
@@ -69,7 +69,7 @@ test.describe("BrickDetail route", () => {
     await page.mouse.up();
     await page.waitForTimeout(200);
 
-    expect(new URL(page.url()).pathname).toBe(`${pageBase}/brick-group`);
+    expect(new URL(page.url()).pathname).toBe(`${pageBase}/modules`);
   });
 
   test("brick drawer shows module label on brick detail route", async ({ page }) => {
@@ -84,7 +84,7 @@ test.describe("BrickDetail route", () => {
     });
   });
 
-  test("Back from brick detail opens module group", async ({ page }) => {
+  test("Back from brick detail opens module detail", async ({ page }) => {
     const brick = await dropSwatchOntoGrid(page);
     const brickId = await brick.getAttribute("data-brick-id");
     expect(brickId).toBeTruthy();
@@ -94,11 +94,11 @@ test.describe("BrickDetail route", () => {
     await expect(page.getByTestId("brick-detail-title")).toBeVisible({
       timeout: 90_000,
     });
-    await page.getByRole("link", { name: "Back to Swatch and Icon" }).click();
+    await page.getByRole("link", { name: "Swatch and Icon", exact: true }).click();
 
     await expect
       .poll(() => new URL(page.url()).pathname)
-      .toBe(`${pageBase}/brick-group/swatch-and-icon`);
+      .toBe(`${pageBase}/modules/swatch-and-icon`);
   });
 
   test("closing brick drawer returns to site root", async ({ page }) => {
@@ -111,7 +111,7 @@ test.describe("BrickDetail route", () => {
     await expect(page.getByTestId("brick-detail-title")).toBeVisible({
       timeout: 90_000,
     });
-    await page.getByRole("button", { name: "Close drawer" }).click();
+    await page.getByRole("link", { name: "Close drawer" }).click();
 
     await expect.poll(() => new URL(page.url()).pathname).toBe(pageBase);
   });

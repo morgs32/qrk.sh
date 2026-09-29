@@ -15,6 +15,9 @@ export type IModule<MODULE extends string> = {
   catalog?: Catalog;
   registry?: ComponentRegistry;
   defaultSpec: Spec;
+  hasPlaceholder: boolean;
+  /** Display-only markup for an explicitly unconfigured brick (state === null). */
+  placeholder?: () => ReactNode;
   def: IModuleBrickDef<MODULE>;
   /**
    * Render boundaries supply the brick state document; components without a
@@ -46,6 +49,6 @@ export type IModule<MODULE extends string> = {
 export type IModuleBrickDef<MODULE extends string> = {
   /** Kebab-case module slug (for example `github-profile` or `figma-thumbnail`). */
   moduleId: MODULE;
-  /** Default module state or the configured state of a placed brick. */
+  /** Default or configured state; null for an opted-in, unconfigured placed brick. */
   state: unknown;
 };

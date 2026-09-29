@@ -18,7 +18,10 @@ for (const [source, destination] of [
 const nextConfig: NextConfig = {
   assetPrefix: "/studio-static",
   outputFileTracingRoot: fileURLToPath(new URL("../../", import.meta.url)),
-  env: { PUBLIC_MAPBOX_TOKEN: process.env.PUBLIC_MAPBOX_TOKEN ?? "", NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8787" },
+  env: {
+    PUBLIC_MAPBOX_TOKEN: process.env.PUBLIC_MAPBOX_TOKEN ?? "",
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8787",
+  },
   webpack(config) {
     // The prebundled SQLite loader contains a fallback URL as well as our explicit URL.
     // Both must resolve to the exact WASM bytes paired with this worker runtime.

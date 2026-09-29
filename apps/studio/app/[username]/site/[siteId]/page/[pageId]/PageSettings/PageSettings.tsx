@@ -149,7 +149,7 @@ export function PageSettings() {
               }
               router.push(
                 `/${encodeURIComponent(params.username)}/site/${encodeURIComponent(params.siteId)}/page/${encodeURIComponent(params.pageId)}`,
-              { scroll: false },
+                { scroll: false },
               );
             }}
           >

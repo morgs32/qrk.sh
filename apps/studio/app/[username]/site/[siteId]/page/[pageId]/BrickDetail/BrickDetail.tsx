@@ -1,19 +1,14 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-
 import { modulesHash } from "@qrk.sh/library";
 import { useLibrarySession } from "@qrk.sh/library/createLibraryStandaloneSession";
 import { GridItemPreview } from "@qrk.sh/library/GridItemPreview";
 import { libraryModule } from "@qrk.sh/library/libraryModule";
 import { useWallViewport } from "@qrk.sh/library/WallViewportProvider";
-import { isNonEmptySpec, type Spec } from "@json-render/core";
+import { isNonEmptySpec } from "@json-render/core";
 import { useLiveQuery } from "@zerospin/react";
 import { Schema } from "effect";
-import { ArrowLeft, X } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 
 const ParamsSchema = Schema.Struct({
@@ -30,7 +25,6 @@ function isBrickId(value: string): value is `brk_${string}` {
 export function BrickDetail() {
   const { activeBreakpoint } = useWallViewport();
   const breakpoint = activeBreakpoint ?? "sm";
-  const router = useRouter();
   const params = useValidatedParams(ParamsSchema);
   const session = useLibrarySession();
   const brickId = isBrickId(params.brickId) ? params.brickId : null;
@@ -65,8 +59,19 @@ export function BrickDetail() {
       : typeof placement.spec === "string"
         ? JSON.parse(placement.spec)
         : placement.spec;
-  const spec: Spec | undefined =
-    rawSpec !== undefined && isNonEmptySpec(rawSpec) ? rawSpec : undefined;
+  const spec =
+    isNonEmptySpec(rawSpec) ||
+    (brickRow?.state === null &&
+      brick?.placeholder !== undefined &&
+      Schema.is(
+        Schema.Struct({
+          root: Schema.String,
+          elements: Schema.Record(Schema.String, Schema.Never),
+          state: Schema.optional(Schema.Record(Schema.String, Schema.Unknown)),
+        }),
+      )(rawSpec))
+      ? rawSpec
+      : undefined;
   const gridItem =
     placement === undefined
       ? undefined
@@ -75,26 +80,6 @@ export function BrickDetail() {
         : (placement.gridItem as { w: number; h: number });
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-      <div className="flex shrink-0 flex-col gap-4 border-b border-border/60 bg-background/95 px-6 pb-5 pt-6 backdrop-blur-sm">
-        <div className="flex items-center justify-between gap-4">
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="cursor-pointer"
-            aria-label="Close drawer"
-            onClick={() =>
-              router.push(
-                `/${encodeURIComponent(params.username)}/site/${encodeURIComponent(params.siteId)}/page/${encodeURIComponent(params.pageId)}`,
-              { scroll: false },
-              )
-            }
-          >
-            <X className="size-4" />
-          </Button>
-        </div>
-      </div>
-
       <div className="min-h-0 flex-1 overflow-y-auto pb-6">
         {!brick ||
         !BrickComponent ||
@@ -102,12 +87,6 @@ export function BrickDetail() {
         placement === undefined ||
         spec === undefined ? (
           <div className="px-6 pt-6" data-testid="brick-not-found">
-            <Link
-              scroll={false}
-              href={`/${encodeURIComponent(params.username)}/site/${encodeURIComponent(params.siteId)}/page/${encodeURIComponent(params.pageId)}/brick-group`}
-            >
-              All modules
-            </Link>
             <h1 className="mb-2 mt-8 text-4xl tracking-tight">Brick not found</h1>
             <p className="text-muted-foreground">
               This brick is not available in this page's current session.
@@ -116,14 +95,6 @@ export function BrickDetail() {
         ) : (
           <section data-testid="brick-detail-pane">
             <div className="px-6 pt-6">
-              <Link
-              scroll={false}
-                href={`/${encodeURIComponent(params.username)}/site/${encodeURIComponent(params.siteId)}/page/${encodeURIComponent(params.pageId)}/brick-group/${encodeURIComponent(brick.def.moduleId)}`}
-                className="inline-flex items-center gap-2 text-sm"
-              >
-                <ArrowLeft aria-hidden className="size-4" />
-                <span>Back to {brick.label}</span>
-              </Link>
               <p className="mb-0 mt-8 text-sm text-muted-foreground">Brick detail</p>
               <h1 className="mb-1 mt-2 text-4xl tracking-tight" data-testid="brick-detail-title">
                 {brick.label}

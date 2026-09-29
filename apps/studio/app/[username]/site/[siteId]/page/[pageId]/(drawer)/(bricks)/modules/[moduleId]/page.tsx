@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCallback, useState } from "react";
 
@@ -12,66 +11,48 @@ import { useWallViewport } from "@qrk.sh/library/WallViewportProvider";
 import { BREAKPOINTS, minGridUnits } from "@qrk.sh/library/breakpoints";
 import { GridItemPreview } from "@qrk.sh/library/GridItemPreview";
 import { MeasuredBrickWrapper } from "@qrk.sh/library/MeasuredBrickWrapper";
-import { brickDragStore } from "@qrk.sh/library/GridStore";
-import { ArrowLeft } from "lucide-react";
+import { brickDragStore } from "@qrk.sh/library/brickDragStore";
 import { Tabs } from "radix-ui";
 
-import { CodeText } from "@/app/[username]/site/[siteId]/page/[pageId]/BrickGroup/CodeText";
-import { MetadataField } from "@/app/[username]/site/[siteId]/page/[pageId]/BrickGroup/MetadataField";
+import { CodeText } from "@/app/[username]/site/[siteId]/page/[pageId]/Modules/CodeText";
+import { MetadataField } from "@/app/[username]/site/[siteId]/page/[pageId]/Modules/MetadataField";
 
 import { BRICK_DRAG_MIME } from "@/components/home/useBrickDrawerStore";
 
-export default function BrickGroupRoute() {
+export default function ModuleRoute() {
   const { activeBreakpoint } = useWallViewport();
   const breakpoint = activeBreakpoint ?? "sm";
   const params = useParams<{
     username: string;
     siteId: string;
     pageId: string;
-    groupName: string;
+    moduleId: string;
   }>();
   const { username, siteId, pageId } = params;
   if (!username || !siteId || !pageId) throw new Error("Missing editor route params");
-  const { groupName } = params;
+  const { moduleId } = params;
 
   const decoded = Schema.decodeUnknownResult(
     makeEffectSchema({ moduleId: libraryModule.models.brick.attributes.moduleId }),
-  )({ moduleId: groupName });
+  )({ moduleId: moduleId });
 
   if (Result.isFailure(decoded)) {
     return (
       <div className="p-6" data-testid="module-not-found">
         <h1>Module not found</h1>
-        <Link
-              scroll={false}
-          href={`/${encodeURIComponent(username)}/site/${encodeURIComponent(siteId)}/page/${encodeURIComponent(pageId)}/brick-group`}
-        >
-          All modules
-        </Link>
       </div>
     );
   }
 
   const brickModule = modulesHash[decoded.success.moduleId];
-  return (
-    <BrickGroupRouteBody
-      brickModule={brickModule}
-      breakpoint={breakpoint}
-      pageId={pageId}
-      siteId={siteId}
-      username={username}
-    />
-  );
+  return <ModuleRouteBody brickModule={brickModule} breakpoint={breakpoint} />;
 }
 
-function BrickGroupRouteBody(props: {
+function ModuleRouteBody(props: {
   brickModule: (typeof modulesHash)[keyof typeof modulesHash];
   breakpoint: "sm" | "md" | "lg" | "xl";
-  username: string;
-  siteId: string;
-  pageId: string;
 }) {
-  const { brickModule, breakpoint, username, siteId, pageId } = props;
+  const { brickModule, breakpoint } = props;
   const BrickComponent = brickModule.component;
   const view = brickModule.viewFor(breakpoint);
   const [measuredUnits, setMeasuredUnits] = useState<
@@ -156,14 +137,6 @@ function BrickGroupRouteBody(props: {
   return (
     <div className="min-h-0 flex-1 overflow-y-auto pb-6">
       <div className="px-6 pt-6">
-        <Link
-              scroll={false}
-          href={`/${encodeURIComponent(username)}/site/${encodeURIComponent(siteId)}/page/${encodeURIComponent(pageId)}/brick-group`}
-          className="inline-flex items-center gap-2 text-sm"
-        >
-          <ArrowLeft aria-hidden className="size-4" />
-          <span>All modules</span>
-        </Link>
         <dl className="mt-5 grid max-w-[500px] grid-cols-2 gap-x-6 gap-y-3 text-sm">
           <MetadataField label="Module name">{brickModule.label}</MetadataField>
           <MetadataField label="Module ID" className="text-right">

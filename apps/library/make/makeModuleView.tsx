@@ -103,6 +103,7 @@ export function makeModuleView<
     catalog?: Catalog;
     stateShape: IShape;
     defaultState: unknown;
+    hasPlaceholder: boolean;
     def: {
       moduleId: string;
       state: unknown;
@@ -113,6 +114,7 @@ export function makeModuleView<
   view: {
     default: {
       component: (props: { state: InferDecodedRow<MODULE["stateShape"]> }) => ReactNode;
+      placeholder?: () => ReactNode;
       generator?: {
         registry: ComponentRegistry;
         defaultSpec: Spec;
@@ -132,6 +134,11 @@ export function makeModuleView<
     };
   },
 ) {
+  if (module.hasPlaceholder !== (view.default.placeholder !== undefined)) {
+    throw new Error(
+      `makeModuleView: ${JSON.stringify(module.id)} hasPlaceholder must match default.placeholder`,
+    );
+  }
   if (view.default.generator !== undefined && module.catalog === undefined) {
     throw new Error(`makeModuleView: ${JSON.stringify(module.id)} has no catalog; omit generator`);
   }
@@ -187,6 +194,10 @@ export function makeModuleView<
 
   function Brick(props: { state?: unknown; breakpoint: "sm" | "md" | "lg" | "xl"; spec: Spec }) {
     const { state, breakpoint, spec } = props;
+    const Placeholder = view.default.placeholder;
+    if (state === null && Placeholder !== undefined) {
+      return <Placeholder />;
+    }
     const resolved = viewFor(breakpoint);
     const Authored = resolved.component;
     if (resolved.registry === undefined) {
@@ -212,6 +223,7 @@ export function makeModuleView<
     stateShape: module.stateShape,
     defaultState: module.defaultState,
     defaultSpec,
+    placeholder: view.default.placeholder,
     ...(registry === undefined ? {} : { registry }),
     viewFor,
     component: Brick,

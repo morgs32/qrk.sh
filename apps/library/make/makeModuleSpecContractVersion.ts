@@ -44,11 +44,11 @@ export function makeModuleSpecContractVersion<
     },
     version: "1.0.0",
     guard: Effect.fn(`${props.commandName}.guard`)(function* ({
-      queryDb: db,
+      db,
       payload: guardPayload,
     }: {
       claims: Readonly<Record<string, unknown>> | null;
-      queryDb: Readonly<Pick<IDb, "query">>;
+      db: Readonly<Pick<IDb, "query">>;
       payload: {
         brickId: string;
         breakpoint: "sm" | "md" | "lg" | "xl";

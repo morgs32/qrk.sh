@@ -84,6 +84,8 @@ describe("QRK system", () => {
               ),
             });
             const encoded = yield* encodeCommand({ contract: props.contract, command });
+            const attempt: (typeof attempts)[number] = { id: command.id, failureCode: null };
+            attempts.push(attempt);
             // Provisioning carries the authenticated claims and provisioner actor.
             const result = yield* makeAsync<
               Awaited<ReturnType<AggregateChain["executeAggregateCommand"]>>
@@ -93,19 +95,24 @@ describe("QRK system", () => {
                 command: encoded,
               }),
             ).pipe(
-              Effect.tap((envelope) => Effect.sync(() => {
-                if (envelope.result._tag === "Failure") console.log("PROVISIONING_ENVELOPE", JSON.stringify(envelope));
-              })),
+              Effect.tap((envelope) =>
+                Effect.sync(() => {
+                  if (envelope.result._tag === "Failure")
+                    console.log("PROVISIONING_ENVELOPE", JSON.stringify(envelope));
+                }),
+              ),
               Effect.flatMap(readRpcEnvelope),
               Effect.mapError((failure) => new ZerospinError(failure)),
+              Effect.tapError((failure) =>
+                Effect.sync(() => {
+                  attempt.failureCode = failure.code;
+                }),
+              ),
             );
-            attempts.push({
-              id: command.id,
-              failureCode:
-                result.execution.status === "failed" && "code" in result.execution.failure
-                  ? result.execution.failure.code
-                  : null,
-            });
+            attempt.failureCode =
+              result.execution.status === "failed" && "code" in result.execution.failure
+                ? result.execution.failure.code
+                : null;
             if (loseResponse) {
               loseResponse = false;
               return yield* new ZerospinError({

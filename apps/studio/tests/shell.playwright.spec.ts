@@ -1,7 +1,10 @@
 import { expect, test } from "@playwright/test";
 
 // No browser database or authenticated fixture is needed to verify initial HTML.
-test("server-rendered dashboard navbar survives without JavaScript", async ({ browser, baseURL }) => {
+test("server-rendered dashboard navbar survives without JavaScript", async ({
+  browser,
+  baseURL,
+}) => {
   const context = await browser.newContext({ baseURL, javaScriptEnabled: false });
   const page = await context.newPage();
   try {
@@ -12,15 +15,31 @@ test("server-rendered dashboard navbar survives without JavaScript", async ({ br
     await expect(header.getByLabel("Loading account")).toBeVisible();
     expect(await header.evaluate((element) => element.getBoundingClientRect().height)).toBe(64);
     await expect(page.getByText(/Loading\s+workspace/)).toHaveCount(0);
-  } finally { await context.close(); }
+  } finally {
+    await context.close();
+  }
 });
 
-test("deep editor URLs server-render the custom-wordmark skeleton", async ({ browser, baseURL }) => {
+test("deep editor URLs server-render the custom-wordmark skeleton", async ({
+  browser,
+  baseURL,
+}) => {
   const context = await browser.newContext({ baseURL, javaScriptEnabled: false });
   const page = await context.newPage();
   try {
-    for (const suffix of ["", "/brick-group", "/brick-group/module%20name", "/brick/brk_encoded%20brick", "/breakpoints", "/page-settings", "/site-settings", "/compose"]) {
-      const response = await page.goto(`/shell-check/site/sit_check/page/pag_check${suffix}?retained=yes`);
+    for (const suffix of [
+      "",
+      "/modules",
+      "/modules/module%20name",
+      "/brick/brk_encoded%20brick",
+      "/breakpoints",
+      "/page-settings",
+      "/site-settings",
+      "/compose",
+    ]) {
+      const response = await page.goto(
+        `/shell-check/site/sit_check/page/pag_check${suffix}?retained=yes`,
+      );
       expect(response?.status()).toBe(200);
       const header = page.getByTestId("site-navbar");
       await expect(header).toHaveCount(1);
@@ -31,7 +50,9 @@ test("deep editor URLs server-render the custom-wordmark skeleton", async ({ bro
     }
     await page.reload();
     await expect(page.getByTestId("site-navbar")).toHaveCount(1);
-  } finally { await context.close(); }
+  } finally {
+    await context.close();
+  }
 });
 
 test("Next serves isolated assets and preserves backup worker URLs", async ({ request }) => {
@@ -39,7 +60,9 @@ test("Next serves isolated assets and preserves backup worker URLs", async ({ re
   const html = await response.text();
   expect(html).toContain('data-testid="dashboard-navbar"');
   expect(html).toContain("/studio-static/_next/");
-  const stylesheet = /href="([^" ]*\/studio-static\/_next\/static[^" ]*\.css[^" ]*)"/.exec(html)?.[1];
+  const stylesheet = /href="([^" ]*\/studio-static\/_next\/static[^" ]*\.css[^" ]*)"/.exec(
+    html,
+  )?.[1];
   expect(stylesheet).toBeDefined();
   if (!stylesheet) throw new Error("Missing server-linked stylesheet");
   const css = await request.get(stylesheet.replaceAll("&amp;", "&"));
@@ -62,11 +85,20 @@ test("unknown routes remain not found", async ({ browser, baseURL }) => {
   const context = await browser.newContext({ baseURL, javaScriptEnabled: false });
   const page = await context.newPage();
   try {
-    for (const path of ["/unknown/path/that/does/not/exist", "/shell-check/site/sit_check/page/pag_check/unknown"]) {
+    for (const path of [
+      "/unknown/path/that/does/not/exist",
+      "/shell-check/site/sit_check/page/pag_check/unknown",
+      // Removed catalog routes must not resolve or redirect to modules.
+      "/shell-check/site/sit_check/page/pag_check/brick-group",
+      "/shell-check/site/sit_check/page/pag_check/brick-group/module%20name",
+    ]) {
       await page.goto(path);
+      expect(new URL(page.url()).pathname).toBe(path);
       await expect(page.getByRole("heading", { name: "Page not found" })).toBeVisible();
       await page.reload();
       await expect(page.getByRole("heading", { name: "Page not found" })).toBeVisible();
     }
-  } finally { await context.close(); }
+  } finally {
+    await context.close();
+  }
 });

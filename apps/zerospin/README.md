@@ -29,8 +29,9 @@ contracts start at `1.0.0`; older declaration versions have been removed.
 `userActorV1` verifies Clerk through `userProvisionerV1`, then awaits `createUser`
 under that provisioner actor and verified identity. Each attempt generates an
 independent User resource ID (`usr_…`); `identity.clerkUserId` remains the Clerk
-subject. The transactional guard rejects duplicate subjects with
-`user-already-exists`, which authentication accepts as successful provisioning.
+subject. The provisioner guard runs inside the aggregate command transaction and
+rejects duplicate subjects with `user-already-exists`, which authentication
+accepts as successful provisioning.
 Other admission or execution failures prevent session initialization.
 
 The web actor filters User → Site → Page → Grid → Brick rows by Clerk identity.

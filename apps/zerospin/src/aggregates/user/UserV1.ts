@@ -36,4 +36,5 @@ export const userAggregateV1 = makeAggregateVersion(user, {
     updateSiteSettings: updateSiteSettings,
   },
   actors: { web: userActorV1, provisioner: userProvisionerV1 },
+  guards: { provisioner: { createUser: createUser.guard! } },
 });

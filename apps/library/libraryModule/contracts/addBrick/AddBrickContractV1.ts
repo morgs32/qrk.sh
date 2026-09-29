@@ -43,6 +43,7 @@ export function makeAddBrickContract<
     string,
     {
       readonly stateShape: IShape;
+      readonly hasPlaceholder: boolean;
       readonly components: Record<string, ReturnType<typeof defineComponent>>;
     }
   >,
@@ -91,11 +92,11 @@ export function makeAddBrickContract<
     },
     version: "1.0.0",
     guard: Effect.fn("addBrick.guard")(function* ({
-      queryDb: db,
+      db,
       payload,
     }: {
       claims: Readonly<Record<string, unknown>> | null;
-      queryDb: Readonly<Pick<IDb, "query">>;
+      db: Readonly<Pick<IDb, "query">>;
       payload: InferCommandPayload<typeof addBrickPayload>;
     }) {
       const wall = db.query.wall
@@ -142,10 +143,10 @@ export function makeAddBrickContract<
       }
 
       const brickModule = library[payload.moduleId];
-      yield* Schema.decodeUnknownEffect(Schema.toType(makeEffectSchema(brickModule.stateShape)))(
-        payload.state,
-        { onExcessProperty: "ignore" },
-      ).pipe(
+      const StateSchema = Schema.toType(makeEffectSchema(brickModule.stateShape));
+      yield* Schema.decodeUnknownEffect(
+        brickModule.hasPlaceholder ? Schema.NullOr(StateSchema) : StateSchema,
+      )(payload.state, { onExcessProperty: "ignore" }).pipe(
         mapParseError({
           code: "add-brick-invalid-state",
           prefix: `addBrick state failed ${payload.moduleId} decode`,
@@ -273,8 +274,9 @@ export function makeAddBrickContract<
 
       const mutations = [];
       const brickModule = library[payload.moduleId];
+      const StateSchema = Schema.toType(makeEffectSchema(brickModule.stateShape));
       const decodedState = yield* Schema.decodeUnknownEffect(
-        Schema.toType(makeEffectSchema(brickModule.stateShape)),
+        brickModule.hasPlaceholder ? Schema.NullOr(StateSchema) : StateSchema,
       )(payload.state, { onExcessProperty: "ignore" }).pipe(
         mapParseError({
           code: "add-brick-invalid-state",

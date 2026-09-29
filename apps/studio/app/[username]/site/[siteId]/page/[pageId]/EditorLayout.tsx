@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo, type ReactNode } from "react";
+import { useSelectedLayoutSegments } from "next/navigation";
+import { cn } from "cn";
 
 import { useUser } from "@clerk/nextjs";
 import {
@@ -29,6 +31,7 @@ const WALL_ID = prefixId(libraryModule.models.wall, "library");
 export default function EditorLayout(props: { children: ReactNode }) {
   const { children } = props;
   const params = useValidatedParams(ParamsSchema);
+  const drawerOpen = useSelectedLayoutSegments().includes("(drawer)");
   const { user } = useUser();
 
   if (user === null || user === undefined) {
@@ -40,8 +43,18 @@ export default function EditorLayout(props: { children: ReactNode }) {
   return (
     <LibraryEditorSession key={documentKey} documentKey={documentKey}>
       <WallViewportProvider>
-        <MainColumns />
-        {children}
+        <div
+          data-editor-split
+          className={cn(
+            "grid h-full min-h-0 overflow-hidden transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0,0,0.2,1)] motion-reduce:transition-none",
+            drawerOpen ? "grid-rows-[minmax(0,1fr)_50dvh]" : "grid-rows-[minmax(0,1fr)_0dvh]",
+          )}
+        >
+          <div data-editor-region className="min-h-0 overflow-hidden">
+            <MainColumns />
+          </div>
+          <div className="min-h-0 overflow-hidden">{children}</div>
+        </div>
         <Toolbars />
       </WallViewportProvider>
     </LibraryEditorSession>

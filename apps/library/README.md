@@ -51,12 +51,38 @@ maintained for now (see root `AGENTS.md`).
 `build` produces the reusable brick library in `dist`, including its public
 Worker/RPC declarations. Neither build deploys the app.
 
-## Shared module filmstrip
+## Public exports and shared UI
 
-`@qrk.sh/library/ModuleFilmstrip` renders the horizontal module catalog for Library
-and Studio. Each app supplies its own module links through `renderModuleLink`;
-previews share four-breakpoint measurement and `DraggableBrick`. Columns scroll
-vertically within the horizontal strip. Module detail screens remain app-owned.
+`package.json` lists the public subpaths and `vite.lib.config.ts` maps each one to
+its defining source. `build` emits their JavaScript and declaration files; `app/`
+contains the Library-only routes and layout, not exported application screens.
+
+| Import under `@qrk.sh/library`    | Defining source                             | Purpose                                                   |
+| --------------------------------- | ------------------------------------------- | --------------------------------------------------------- |
+| package root                      | `lib/index.ts`                              | Small barrel: `modulesHash`, `IModule`, `IModuleBrickDef` |
+| `/ModuleFilmstrip`                | `lib/ModuleFilmstrip.tsx`                   | Shared horizontal module catalog                          |
+| `/Drawer`                         | `lib/Drawer.tsx`                            | Shared Drawer and existing DrawerPresence                 |
+| `/BrickWall`                      | `lib/BrickWall.tsx`                         | Interactive wall                                          |
+| `/GridItemPreview`                | `lib/GridItemPreview.tsx`                   | Preview geometry                                          |
+| `/WallViewportProvider`           | `lib/WallViewportProvider.tsx`              | Viewport provider and hooks                               |
+| `/breakpoints`                    | `lib/breakpoints.ts`                        | Breakpoint definitions and sizing                         |
+| `/brickDragStore`                 | `lib/brickDragStore.ts`                     | Shared drag state                                         |
+| `/TiptapDocSchema`                | `lib/TiptapDocSchema.ts`                    | Article document schema                                   |
+| `/MeasuredBrickWrapper`           | `components/brick/MeasuredBrickWrapper.tsx` | Content measurement                                       |
+| `/libraryModule`                  | `libraryModule/libraryModule.ts`            | Models and command contracts                              |
+| `/createLibraryStandaloneSession` | `session/createLibraryStandaloneSession.ts` | Session factory, context, hook, and type                  |
+| `/bricks.css`                     | `bricks.css`                                | Shared brick styles                                       |
+
+Studio imports `Drawer` directly from `@qrk.sh/library/Drawer`; Library's own app
+imports `../lib/Drawer`. Drawer owns the surface and optional Motion animation,
+not routing, breadcrumbs, or settings actions. Flow mode disables its Motion slide.
+Library animates its surrounding grid rows; Studio adds React view transitions in
+its own client route layout. The drawer is no longer exported by Web.
+
+Library and Studio share `ModuleFilmstrip`, including module previews, four-breakpoint
+measurement, and `DraggableBrick`. Each app supplies its own module links through
+`renderModuleLink`; the shared catalog has no router dependency. Columns scroll
+vertically within a horizontal strip. Module detail screens remain app-owned.
 
 ## Modules and interaction
 
@@ -69,6 +95,31 @@ and `defaultState`. `makeModuleView` infers authored callback props from that st
 shape and decodes incoming state before rendering, discarding undeclared fields.
 Its authored wrappers are created once and reused by previews and placed bricks.
 It also attaches a json-render `generator` (`registry` + `defaultSpec`).
+
+Modules can opt into unconfigured bricks with `hasPlaceholder: true` in
+`makeModuleVersion` and a matching display-only `default.placeholder` in
+`makeModuleView`. Omitting the flag defaults it to false. View construction rejects
+both mismatches, so the backend declaration and markup must agree. The returned
+module exposes `hasPlaceholder` and `placeholder`; one placeholder is shared across
+all breakpoints and receives no props.
+
+```tsx
+// In imageV1: the backend accepts null as an unconfigured Image brick.
+hasPlaceholder: true,
+
+// In imageView.default: render a shadcn Skeleton until state is supplied.
+placeholder() {
+  return <Skeleton className="size-full" />;
+},
+```
+
+Image is the first opt-in. Catalog previews retain their example state and measured
+sizes. On a new drop, `BrickWall` stores null for modules with a placeholder while
+preserving the dragged spec and placement sizes; other modules copy the dragged
+state. The shared renderer selects the placeholder only for exact null, before
+state decoding or JSON-render execution. Empty strings, objects, and collections
+still take the normal rendering path. Valid empty specs do not hide placeholders.
+Existing configured bricks are not reset.
 
 `makeComponentView` binds display markup to a `defineComponent` descriptor. Its
 `.Component` accepts inferred flat props; its `.RegistryComponent` decodes resolved
@@ -122,8 +173,11 @@ geometry. This is a fresh `addBrick` version `1.0.0` baseline with no historical
 old payloads and pending commands require the authorized document reset. Module defaults,
 preview state, and authored rendering discard undeclared fields during decoding.
 `addBrick` and `updateBrickState` validate declared state fields while ignoring extras;
-their programs decode again and persist the decoded state. Invalid declared fields
-still reject the command before mutation. Spec validation remains strict.
+their programs decode again and persist the decoded state. Both accept and persist
+null only for modules declaring `hasPlaceholder: true`. The existing Library JSON
+state editor can save valid state to replace a placeholder, or null to restore it.
+Invalid declared fields and null for other modules still reject the command before
+mutation. Spec validation remains strict.
 `updateBrickState` requires `moduleId`, checked against the stored brick before decoding.
 Pending updates without it must be resubmitted against the current `1.0.0` baseline.
 Existing bricks are normalized on their next state update; there is no bulk migration.

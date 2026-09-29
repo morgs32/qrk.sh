@@ -43,7 +43,7 @@ export function Wordmark() {
 
   return (
     <Link
-              scroll={false}
+      scroll={false}
       href={`/${encodeURIComponent(username)}/site/${encodeURIComponent(siteId)}/page/${encodeURIComponent(pageId)}`}
       className="text-sm font-medium"
     >

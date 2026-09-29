@@ -1,11 +1,12 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+
 import { BREAKPOINTS } from "@qrk.sh/library/breakpoints";
 import { useWallViewport } from "@qrk.sh/library/WallViewportProvider";
 import { Schema } from "effect";
 import { motion, useReducedMotion } from "framer-motion";
 import { X } from "lucide-react";
-import { href, useNavigate } from "react-router";
 
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 
@@ -27,7 +28,7 @@ const toolbarPresenceTransition = {
 export function BreakpointsToolbar() {
   const reducedMotion = useReducedMotion();
   const params = useValidatedParams(ParamsSchema);
-  const navigate = useNavigate();
+  const router = useRouter();
   const { availableWidth, activeBreakpoint, setSelectedBreakpoint } = useWallViewport();
 
   return (
@@ -65,7 +66,12 @@ export function BreakpointsToolbar() {
             <ToolbarButton
               tooltip="Close"
               aria-label="Close"
-              onClick={() => navigate(href("/:username/site/:siteId/page/:pageId", { ...params }))}
+              onClick={() =>
+                router.push(
+                  `/${encodeURIComponent(params.username)}/site/${encodeURIComponent(params.siteId)}/page/${encodeURIComponent(params.pageId)}`,
+                { scroll: false },
+                )
+              }
               className="h-7 px-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
             >
               <X className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />

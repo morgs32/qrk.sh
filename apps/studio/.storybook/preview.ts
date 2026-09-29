@@ -4,6 +4,8 @@ import "@fontsource/space-mono/700.css";
 import "@fontsource/silkscreen/400.css";
 import "@fontsource/silkscreen/700.css";
 import "../app/globals.css";
+import "../app/tiptap/styles/_variables.scss";
+import "../app/tiptap/styles/_keyframe-animations.scss";
 
 const preview: Preview = {
   parameters: {

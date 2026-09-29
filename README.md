@@ -15,7 +15,7 @@ Workers can initialize actor snapshot databases without `self.location`.
 Two Next.js apps with App Router:
 
 - `apps/web` owns the public homepage at `/` and the `/sign-in`, `/sign-up`, `/replace`, `/ordered-body`, and `/ordered-outline` routes.
-- `apps/studio` owns dashboards at `/:username`, published sites, and site workspaces under `/:username/site`.
+- `apps/studio` owns dashboards at `/:username` and site workspaces under `/:username/site`.
 
 ## Features
 
@@ -41,7 +41,7 @@ More detail and test patterns: [docs/styleguide/component-and-file-naming.md](do
 
 ## Tech Stack
 
-- [Next.js 15](https://nextjs.org/) with App Router
+- [Next.js 16.3.4](https://nextjs.org/) with App Router
 - [React 19](https://react.dev/)
 - [Tailwind 4](https://tailwindcss.com/) for styling
 - [shadcn/ui](https://ui.shadcn.com/) for the design system
@@ -50,7 +50,7 @@ More detail and test patterns: [docs/styleguide/component-and-file-naming.md](do
 
 ### Prerequisites
 
-- Node.js 18.17.0 or later
+- Node.js 20.9.0 or later
 - pnpm (recommended) or npm/yarn
 
 ### Installation
@@ -70,10 +70,10 @@ More detail and test patterns: [docs/styleguide/component-and-file-naming.md](do
 2. Start the homepage:
 
    ```bash
-   pnpm --filter @qrk.sh/web dev
+   pnpm nx run @qrk.sh/web:dev
    ```
 
-3. Open http://localhost:4000
+3. Open http://localhost:3000
 
 To run all app development servers and build their dependencies:
 
@@ -84,12 +84,20 @@ pnpm dev
 Studio owns `apps/studio/zerospin/zerospin.worker.ts`, which calls
 `makeSharedWorker({ sqliteWasmUrl })`. `userSession` supplies a lazy worker factory;
 Zerospin chooses its name from the runtime version and persistent session identity.
-Vite bundles the worker and SQLite WASM as ordinary `/assets/` resources, proxied
-by web's general asset rewrite in development and production. No worker plugin
-or worker-specific rewrite is needed. Studio normalizes empty development query
-flags after Next proxies them so Vite recognizes `?url` and `?import` assets.
-Standalone backup assets retain their
-`/__zerospin/` to `/assets/__zerospin/` routing.
+Studio uses webpack in Next development and production builds to bundle the
+worker and its `new URL(..., import.meta.url)` SQLite WASM asset. Studio listens
+on port 3001 behind web on port 3000. Web proxies Studio's isolated
+`/studio-static/_next/` asset namespace and its `/__zerospin/` backup-worker
+artifacts. Existing `/assets/` public-file URLs have explicit Studio mappings.
+Vite remains only for Studio Storybook.
+
+Studio server-renders the document, fonts, and navigation before its browser
+session initializes. The dashboard shows `qrk.sh`; the site navbar reserves its
+custom wordmark with a skeleton. Browser-owned data and editor drafts stay under
+the content readiness gate. Persistent App Router layouts retain the editor
+across drawers; native React View Transitions animate drawer entry and snapshot
+exit for 300 ms, with reduced-motion and immediate-navigation fallbacks.
+See [Studio's README](apps/studio/README.md) for routes and browser checks.
 
 The signed-in Clerk user supplies expected claims using the same `makeAggregateId`
 construction as the server. Zerospin verifies those expectations online before
@@ -114,8 +122,14 @@ pnpm nx run @qrk.sh/studio:dev
 
 ### Production server
 
-Build and start either app with its package name: `@qrk.sh/web` for the homepage or `@qrk.sh/studio` for the dashboard and site app.
+Build and start either app with Nx: `pnpm nx run @qrk.sh/web:build` and
+`pnpm nx run @qrk.sh/web:start`, or the equivalent `@qrk.sh/studio` targets.
+Studio uses webpack and writes `.next`; its production server defaults to port
+3001 (`PORT` overrides it). Keep web on port 3000 with `APP_ORIGIN` pointing to
+Studio.
 
 ## Deployment
 
 Deploy both Next.js apps and route `/`, `/sign-in(.*)`, `/sign-up(.*)`, `/replace`, `/ordered-body`, and `/ordered-outline` to `@qrk.sh/web`; route the remaining application paths to `@qrk.sh/studio`.
+
+Preserve the `/studio-static/`, `/assets/`, and `/__zerospin/` proxy routes in production.

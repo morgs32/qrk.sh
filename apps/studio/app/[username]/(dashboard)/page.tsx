@@ -1,11 +1,12 @@
 "use client";
 
+import Link from "next/link";
+
 import { makeId } from "@zerospin/sdk/browser";
 
 import { useState } from "react";
 import { Schema } from "effect";
 import { toast } from "sonner";
-import { href, Link } from "react-router";
 import { useLiveQuery, stageCommand } from "@zerospin/react";
 import { ZerospinError } from "@zerospin/sdk/browser";
 
@@ -24,8 +25,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { userSession } from "@/zerospin/userSession";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
-
-import { Header } from "./Header";
 
 const ParamsSchema = Schema.Struct({
   username: Schema.String,
@@ -59,9 +58,8 @@ export default function UsernameDashboardPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <Header />
-      <main className="mt-16 flex-1 p-6">
+    <div className="flex flex-col">
+      <main className="flex-1 p-6">
         <div className="mx-auto flex w-full max-w-3xl flex-col gap-4 p-6">
           <div className="flex items-center justify-between gap-3">
             <h1 className="text-xl font-medium">{username}</h1>
@@ -173,11 +171,7 @@ export default function UsernameDashboardPage() {
                     ) : (
                       <Link
                         className="font-medium underline-offset-4 hover:underline"
-                        to={href("/:username/site/:siteId/page/:pageId", {
-                          username,
-                          siteId: site.id,
-                          pageId: page.id,
-                        })}
+                        href={`/${encodeURIComponent(username)}/site/${encodeURIComponent(site.id)}/page/${encodeURIComponent(page.id)}`}
                       >
                         {site.name ?? site.slug ?? "Untitled site"}
                       </Link>

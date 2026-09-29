@@ -3,7 +3,7 @@
 import { makeAggregateId } from "@zerospin/core/utils/make/makeAggregateId";
 import { prettyUnknownFailure } from "@zerospin/error";
 
-import { RedirectToSignIn, useAuth, useUser } from "@clerk/react";
+import { RedirectToSignIn, useAuth, useUser } from "@clerk/nextjs";
 import { loadDevtools, useInitializeSession } from "@zerospin/react";
 import { ZerospinError } from "@zerospin/sdk/browser";
 import { Effect } from "effect";
@@ -20,15 +20,10 @@ export function useZerospinUserInitializedState() {
   return state;
 }
 
-function ZerospinUserInitializedStateProvider({
-  children,
-  clerkUserId,
-}: {
-  children: ReactNode;
-  clerkUserId: string;
-}) {
+function ZerospinUserInitializedStateProvider(props: { clerkUserId: string }) {
+  const { clerkUserId } = props;
   const { getToken } = useAuth();
-  const { isInitialized } = useInitializeSession({
+  useInitializeSession({
     session: userSession,
     expectedClaims: {
       aggregateId: makeAggregateId({ id: clerkUserId }),
@@ -50,7 +45,7 @@ function ZerospinUserInitializedStateProvider({
       }),
   });
   useEffect(() => {
-    if (!import.meta.env.DEV) return;
+    if (process.env.NODE_ENV !== "development") return;
     let disposed = false;
     let dispose: (() => void) | undefined;
     void loadDevtools({ defaultOpen: false })
@@ -64,16 +59,21 @@ function ZerospinUserInitializedStateProvider({
       dispose?.();
     };
   }, []);
-  return isInitialized ? children : null;
+  return null;
 }
 
-export function ZerospinUserProvider({ children }: { children: ReactNode }) {
+export function ZerospinUserProvider(props: { children: ReactNode }) {
+  const { children } = props;
   const { isLoaded, user } = useUser();
-  if (!isLoaded) return null;
-  if (!user) return <RedirectToSignIn />;
+  // Initialization is a sibling: the server-rendered shell never waits on SQLite.
   return (
-    <ZerospinUserInitializedStateProvider key={user.id} clerkUserId={user.id}>
+    <>
+      {isLoaded && user ? (
+        <ZerospinUserInitializedStateProvider key={user.id} clerkUserId={user.id} />
+      ) : isLoaded ? (
+        <RedirectToSignIn />
+      ) : null}
       {children}
-    </ZerospinUserInitializedStateProvider>
+    </>
   );
 }

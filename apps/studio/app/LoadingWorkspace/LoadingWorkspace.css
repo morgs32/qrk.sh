@@ -1,9 +1,9 @@
-@import "@fontsource/silkscreen/400.css";
-
 .loading-workspace {
   margin: 0;
   padding: 40px;
-  font-family: "Silkscreen", monospace;
+  font-family: var(--font-silkscreen, "Silkscreen"), monospace;
+  font-size: 16px;
+  line-height: 24px;
 }
 
 .loading-workspace::before {

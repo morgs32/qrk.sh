@@ -1,11 +1,26 @@
 "use client";
 
+import { useSyncExternalStore } from "react";
+import { userSession } from "@/zerospin/userSession";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Wordmark } from "./Wordmark";
 
 export function SiteHeader() {
+  const isInitialized = useSyncExternalStore(
+    userSession.store.subscribe,
+    () => userSession.store.getState().isInitialized,
+    () => false,
+  );
   return (
-    <header className="z-50 flex h-16 shrink-0 items-center justify-between border-b border-border bg-background px-6">
-      <Wordmark />
+    <header
+      data-testid="site-navbar"
+      className="z-50 flex h-16 shrink-0 items-center justify-between border-b border-border bg-background px-6"
+    >
+      {isInitialized ? (
+        <Wordmark />
+      ) : (
+        <Skeleton className="h-5 w-32" aria-label="Loading site name" />
+      )}
       {/* <nav className="flex items-center gap-6">
         <Link to="/work" className="text-xs transition-opacity hover:opacity-70">
           Work

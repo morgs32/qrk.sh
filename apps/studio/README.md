@@ -1,6 +1,6 @@
 # Dashboard and editor
 
-React Router 8.3.1 Data Mode SPA with Vite+. The marketing and authentication app in `apps/web` remains on Next.js.
+Studio is a Next.js App Router application. The separate Next.js application in `apps/web` owns marketing and authentication routes.
 
 ## Local commands
 
@@ -14,47 +14,64 @@ pnpm nx run @qrk.sh/studio:lint
 pnpm nx run @qrk.sh/studio:start
 pnpm nx run @qrk.sh/studio:storybook
 pnpm nx run @qrk.sh/studio:build-storybook
-pnpm nx run @qrk.sh/studio:test:e2e -- --project=chromium
 ```
 
-Development retains the shared-library, web, and Zerospin Nx dependencies. Web listens on port 3000 and proxies app requests to `APP_ORIGIN` (default `http://localhost:3001`). Vite+ listens on 3001. Client route URLs are rooted at `/`; modules, fonts, and compiled assets use `/assets/`; HMR uses `/assets/hmr` so the WebSocket upgrade avoids Next’s trailing-slash normalization. The backup worker's existing `/__zerospin/` URLs are forwarded to the app's public assets.
+Web listens on port 3000 and proxies Studio routes to `APP_ORIGIN` (default `http://localhost:3001`). Studio runs on port 3001. Development and production builds use webpack so the existing native `SharedWorker(new URL(...))` factory retains its identity and bundles its SQLite WASM. Vite is retained only for Storybook.
 
-The initial HTML and router hydration fallback both render `app/LoadingWorkspace/LoadingWorkspace.tsx`. Vite+ renders the component into `index.html` during dev and build, while `app/LoadingWorkspace/LoadingWorkspace.css` loads Silkscreen before the browser app starts. Storybook lists the two previews under **App / Loading workspace**.
+Studio's Next chunks, fonts, worker, and WASM use `/studio-static/_next/`. Web excludes that namespace from authentication and proxies it to Studio. The existing backup-worker and WASM artifacts remain at `/__zerospin/`. Referenced `/assets/` public files have explicit mappings in Studio's Next configuration; missing files return 404. There is no Vite module or HMR routing.
 
-`build` writes `build/client`. `start` serves that directory on port 3001 (`PORT` overrides it), serves assets with their normal MIME types, returns 404 for missing SPA assets, and falls back to `index.html` for client routes. A production host must provide that same fallback and forward `/assets/` and `/__zerospin/` assets; production hosting and deployment are not configured here.
+`build` writes `.next`; `start` runs the Next production server on port 3001 (`PORT` overrides it). Production must run both Next applications and preserve these proxy routes. Deployment is not configured here.
 
 ## Environment
 
-Place local values in `apps/studio/.env.local`. Only these public variables are compiled into client code:
+Place local values in `apps/studio/.env.local`:
 
 - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`
 - `NEXT_PUBLIC_ZEROSPIN_API_URL`
 - `NEXT_PUBLIC_ZEROSPIN_PUBLISHABLE_KEY`
 - `PUBLIC_MAPBOX_TOKEN`
+- `NEXT_PUBLIC_API_URL` (article upload API; defaults to `http://127.0.0.1:8787`)
 
-Required-value checks remain at app initialization and Vite configuration. Clerk secret keys belong to web/backend configuration and are never injected by Vite. Sign-in and sign-up use web routes and retain `/replace` as the fallback destination. Web performs signed-out redirects; the app retains its client guard and Zerospin retains backend authorization.
+Clerk uses its Next.js integration; nuqs uses its Next App Router adapter. Sign-in and sign-up remain web-owned routes and retain `/replace` as their fallback destination. Web performs signed-out redirects, Studio retains its client guard, and Zerospin retains backend authorization. No server-side Zerospin queries or new authentication rules are introduced.
 
-## Routes and state
+## Server shell and browser state
 
-`app/main.tsx` mounts `RouterProvider`; `app/routes.ts` declares explicit data routes with lazy component imports and route handles. Site/page draft initialization, `MainColumns`, and grid state stay in persistent layouts. Pathless drawer layouts own the left and bottom shells. `Drawers` captures `useOutlet()` under a drawer-group key, including the base-page outlet. Leaf handles supply the toolbar element to its separate persistent Motion boundary. This preserves same-group shell identity and outgoing parameter context without private router APIs. Drawer transitions last 300 ms and respect reduced motion. The former `/compose` route now renders the existing not-found screen.
+`app/layout.tsx` owns the document, global/reset styles, metadata, and preloaded local Silkscreen and Space Mono fonts. `App` holds the client providers. The username layout keeps one session initializer mounted across Studio navigation; `UserLayout` gates only data-dependent content.
 
-## Browser tests
+The dashboard layout renders the `qrk.sh` header in the initial HTML and reserves a 40 px account slot with a shadcn skeleton. The site layout renders its 64 px navbar with a fixed-height site-name skeleton. Once the browser session is ready, the existing `Wordmark` subscribes to site data and preserves settings draft previews. `LoadingWorkspace` stays below the navbar during initialization. Site data, drafts, SQLite, and editing remain browser-owned.
 
-Playwright builds and starts the static preview on port 3333. Authenticated editor tests require `PLAYWRIGHT_STORAGE_STATE` pointing to a valid Clerk browser storage-state file and a running local Zerospin backend. Generate that file with Clerk’s [authenticated Playwright setup](https://clerk.com/docs/guides/development/testing/playwright/test-authenticated-flows): call `clerkSetup()`, authenticate a development user with `clerk.signIn({ page, emailAddress })`, verify access to the editor, then save `page.context().storageState({ path })`. Keep the session file outside version control. They do not bypass application authorization. `PLAYWRIGHT_EDITOR_PATH` can identify an existing site/page; the default test path is `/e2e/site/e2e/page/home`.
+## Routes and transitions
 
-The standalone routing acceptance gate is:
+Filesystem routes preserve dashboards, base editors, brick catalogs, group details, brick details, breakpoints, page settings, and site settings. `/compose` and unknown paths render Next's not-found screen. The local error boundary preserves client diagnostics and reload behavior.
+
+The page layout keeps site/page drafts, `MainColumns`, the grid, and the library session above the drawers. Pathless `(left)` and `(bottom)` layouts retain their drawer shells during same-group navigation. `Toolbars` reads selected layout segments to preserve the existing toolbar mapping.
+
+React `ViewTransition` boundaries animate only drawer insertion/removal, sliding left or bottom for 300 ms. Exits use snapshots; rapid navigation may batch updates. Unsupported browsers navigate immediately. Reduced motion disables positional animations, and the transition overlay allows pointer events through. The navbar and persistent editor are not named snapshot participants. Studio disables the shared Drawer's Motion animation; other consumers retain it, as do unrelated component interactions.
+
+## Browser checks
+
+Playwright builds and starts Next on port 3333 by default. The shell checks disable JavaScript to verify initial navbar HTML, deep links, refresh, not-found behavior, styles, and asset MIME types in Chromium, Firefox, and WebKit:
 
 ```sh
-pnpm nx run @qrk.sh/react-router-motion:test:e2e:cold -- --project=chromium
-pnpm nx run @qrk.sh/react-router-motion:test:e2e
+pnpm nx run @qrk.sh/studio:test:e2e -- tests/shell.playwright.spec.ts
 ```
 
-The cold target forces Vite dependency optimization. It verifies retained outgoing parameters, shell identity, history, interrupted navigation, and persistent grid input/scroll independently of authentication.
-
-To run focused smoke tests against an already running app dev server:
+For an already running Studio server:
 
 ```sh
-PLAYWRIGHT_EXTERNAL_SERVER=1 PLAYWRIGHT_BASE_URL=http://127.0.0.1:3001 pnpm nx run @qrk.sh/studio:test:e2e -- tests/spa.playwright.spec.ts
+PLAYWRIGHT_EXTERNAL_SERVER=1 PLAYWRIGHT_BASE_URL=http://127.0.0.1:3001 pnpm nx run @qrk.sh/studio:test:e2e -- tests/shell.playwright.spec.ts
 ```
 
-For authenticated tests through web, use `PLAYWRIGHT_BASE_URL=http://localhost:3000` with `PLAYWRIGHT_EXTERNAL_SERVER=1`, `PLAYWRIGHT_STORAGE_STATE`, and `PLAYWRIGHT_EDITOR_PATH`. Run `Drawers.playwright.spec.ts` with `--workers=1` when sharing one test page across browser projects. Cross-drawer assertions use keyboard activation where the existing drawer geometry covers toolbar links. The older brick group tests assume a populated group; the current group is empty and those expectations are outside this migration.
+Authenticated drawer checks require `PLAYWRIGHT_STORAGE_STATE` pointing to a valid Clerk storage-state file, `PLAYWRIGHT_EDITOR_PATH` pointing to an existing editor, and a working Zerospin backend. Keep session files outside version control. Through web, also set `PLAYWRIGHT_BASE_URL=http://localhost:3000` and `PLAYWRIGHT_EXTERNAL_SERVER=1`. Run `Drawers.playwright.spec.ts` with `--workers=1` when sharing one editor across browser projects. The checks cover shell identity, persistent editor state, history, interrupted navigation, and reduced motion; snapshot exits need not retain outgoing DOM. The older brick group checks require a populated group.
+
+The separate React Router/Motion example remains an independent example, not an acceptance gate for Studio's Next navigation.
+
+## Article images
+
+The article toolbar's **Add image** button inserts an upload placeholder at the cursor in the article body. Choose or drop one PNG, JPEG, WebP, or SVG file, up to 5 MiB. Upload progress is reported by the request; cancel an upload with its close button. On failure, remove the failed file and choose it again. Removing the placeholder or leaving the editor cancels pending uploads.
+
+Set `NEXT_PUBLIC_API_URL` to the upload API origin; local development uses `http://127.0.0.1:8787`. Run `pnpm nx run @qrk.sh/api:dev` separately. The existing API Worker verifies the Clerk bearer token using `CLERK_SECRET_KEY` and `CLERK_AUTHORIZED_PARTY`, stores the bytes in its `QRKSH` R2 binding, and returns a URL built from `R2_PUBLIC_BASE_URL`. The configured authorized party and CORS origins must match the browser origin. `/assets` serves local R2 objects through the Worker; production can use the configured public R2 host. Clerk secrets stay on the Worker.
+
+Completed uploads replace the placeholder with an `image` node. Its `src`, `width`, `containerStyle`, and `wrapperStyle` persist inside `page.article` through `updatePageArticle`. Select an image to resize it or align it left, center, or right. Images remain block elements and shrink to fit narrower article columns. Existing `image` nodes continue to load.
+
+Empty placeholders are autosaved, but file bytes and in-flight upload state are not. Reloading leaves an empty placeholder for another attempt. Removing an image does not delete its R2 object. Captions, wrapping, and free placement are not enabled.

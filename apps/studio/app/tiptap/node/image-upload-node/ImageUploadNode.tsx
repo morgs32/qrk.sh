@@ -1,9 +1,9 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { NodeViewProps } from "@tiptap/react";
 import { NodeViewWrapper } from "@tiptap/react";
-import { Button } from "@/app/tiptap/ui-primitive/button";
+import { Button } from "@/app/tiptap/ui-primitive/button/button";
 import { CloseIcon } from "@/app/tiptap/icons/close-icon";
 import "@/app/tiptap/node/image-upload-node/image-upload-node.scss";
 import { focusNextNode, isValidPosition } from "@/app/tiptap/lib/tiptap-utils";
@@ -84,9 +84,36 @@ export interface UploadOptions {
  */
 function useFileUpload(options: UploadOptions) {
   const [fileItems, setFileItems] = useState<FileItem[]>([]);
+  const activeUploads = useRef(new Map<string, AbortController>());
+
+  useEffect(() => {
+    const controllers = activeUploads.current;
+    return () => {
+      controllers.forEach((controller) => controller.abort());
+      controllers.clear();
+    };
+  }, []);
 
   const uploadFile = async (file: File): Promise<string | null> => {
-    if (file.size > options.maxSize) {
+    if (file.size === 0) {
+      options.onError?.(new Error("Uploaded file is empty"));
+      return null;
+    }
+    const acceptedTypes = options.accept.split(",").map((type) => type.trim());
+    if (
+      options.accept &&
+      !acceptedTypes.some((type) =>
+        type.startsWith(".")
+          ? file.name.toLowerCase().endsWith(type.toLowerCase())
+          : type.endsWith("/*")
+            ? file.type.startsWith(type.slice(0, -1))
+            : file.type === type,
+      )
+    ) {
+      options.onError?.(new Error("Unsupported image type. Choose PNG, JPEG, WebP, or SVG."));
+      return null;
+    }
+    if (options.maxSize > 0 && file.size > options.maxSize) {
       const error = new Error(
         `File size exceeds maximum allowed (${options.maxSize / 1024 / 1024}MB)`,
       );
@@ -96,6 +123,7 @@ function useFileUpload(options: UploadOptions) {
 
     const abortController = new AbortController();
     const fileId = crypto.randomUUID();
+    activeUploads.current.set(fileId, abortController);
 
     const newFileItem: FileItem = {
       id: fileId,
@@ -115,6 +143,7 @@ function useFileUpload(options: UploadOptions) {
       const url = await options.upload(
         file,
         (event: { progress: number }) => {
+          if (abortController.signal.aborted) return;
           setFileItems((prev) =>
             prev.map((item) => (item.id === fileId ? { ...item, progress: event.progress } : item)),
           );
@@ -145,6 +174,8 @@ function useFileUpload(options: UploadOptions) {
         options.onError?.(error instanceof Error ? error : new Error("Upload failed"));
       }
       return null;
+    } finally {
+      activeUploads.current.delete(fileId);
     }
   };
 
@@ -170,27 +201,12 @@ function useFileUpload(options: UploadOptions) {
   };
 
   const removeFileItem = (fileId: string) => {
-    setFileItems((prev) => {
-      const fileToRemove = prev.find((item) => item.id === fileId);
-      if (fileToRemove?.abortController) {
-        fileToRemove.abortController.abort();
-      }
-      if (fileToRemove?.url) {
-        URL.revokeObjectURL(fileToRemove.url);
-      }
-      return prev.filter((item) => item.id !== fileId);
-    });
+    activeUploads.current.get(fileId)?.abort();
+    setFileItems((prev) => prev.filter((item) => item.id !== fileId));
   };
 
   const clearAllFiles = () => {
-    fileItems.forEach((item) => {
-      if (item.abortController) {
-        item.abortController.abort();
-      }
-      if (item.url) {
-        URL.revokeObjectURL(item.url);
-      }
-    });
+    activeUploads.current.forEach((controller) => controller.abort());
     setFileItems([]);
   };
 
@@ -338,7 +354,8 @@ interface ImageUploadPreviewProps {
 /**
  * Component that displays a preview of an uploading file with progress
  */
-const ImageUploadPreview: React.FC<ImageUploadPreviewProps> = ({ fileItem, onRemove }) => {
+const ImageUploadPreview: React.FC<ImageUploadPreviewProps> = (props) => {
+  const { fileItem, onRemove } = props;
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return "0 Bytes";
     const k = 1024;
@@ -361,7 +378,9 @@ const ImageUploadPreview: React.FC<ImageUploadPreviewProps> = ({ fileItem, onRem
           <div className="tiptap-image-upload-details">
             <span className="tiptap-image-upload-text">{fileItem.file.name}</span>
             <span className="tiptap-image-upload-subtext">
-              {formatFileSize(fileItem.file.size)}
+              {fileItem.status === "error"
+                ? "Upload failed. Remove this file to try again."
+                : formatFileSize(fileItem.file.size)}
             </span>
           </div>
         </div>
@@ -372,6 +391,7 @@ const ImageUploadPreview: React.FC<ImageUploadPreviewProps> = ({ fileItem, onRem
           <Button
             type="button"
             variant="ghost"
+            aria-label={fileItem.status === "uploading" ? "Cancel upload" : "Remove file"}
             onClick={(e) => {
               e.stopPropagation();
               onRemove();
@@ -407,9 +427,18 @@ const DropZoneContent: React.FC<{ maxSize: number; limit: number }> = ({ maxSize
 );
 
 export const ImageUploadNode: React.FC<NodeViewProps> = (props) => {
-  const { accept, limit, maxSize } = props.node.attrs;
+  const { node, extension, getPos, editor } = props;
+  const { accept, limit, maxSize } = node.attrs;
   const inputRef = useRef<HTMLInputElement>(null);
-  const extension = props.extension;
+  const uploading = useRef(false);
+  const mounted = useRef(false);
+
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
 
   const uploadOptions: UploadOptions = {
     maxSize,
@@ -423,18 +452,22 @@ export const ImageUploadNode: React.FC<NodeViewProps> = (props) => {
   const { fileItems, uploadFiles, removeFileItem, clearAllFiles } = useFileUpload(uploadOptions);
 
   const handleUpload = async (files: File[]) => {
-    const urls = await uploadFiles(files);
+    if (uploading.current || fileItems.length > 0) return;
+    uploading.current = true;
+    try {
+      const urls = await uploadFiles(files);
 
-    if (urls.length > 0) {
-      const pos = props.getPos();
+      if (urls.length === 0 || !mounted.current || editor.isDestroyed) return;
+      const pos = getPos();
 
-      if (isValidPosition(pos)) {
+      // Resolve the current position after upload: edits may have moved or
+      // deleted the placeholder while the request was in flight.
+      if (isValidPosition(pos) && editor.state.doc.nodeAt(pos)?.type === node.type) {
         const imageNodes = urls.map((url, index) => {
           const filename = files[index]?.name.replace(/\.[^/.]+$/, "") || "unknown";
           return {
             type: extension.options.type,
             attrs: {
-              ...extension.options,
               src: url,
               alt: filename,
               title: filename,
@@ -442,15 +475,17 @@ export const ImageUploadNode: React.FC<NodeViewProps> = (props) => {
           };
         });
 
-        props.editor
+        editor
           .chain()
           .focus()
-          .deleteRange({ from: pos, to: pos + props.node.nodeSize })
+          .deleteRange({ from: pos, to: pos + node.nodeSize })
           .insertContentAt(pos, imageNodes)
           .run();
 
-        focusNextNode(props.editor);
+        focusNextNode(editor);
       }
+    } finally {
+      uploading.current = false;
     }
   };
 
@@ -510,6 +545,7 @@ export const ImageUploadNode: React.FC<NodeViewProps> = (props) => {
       <input
         ref={inputRef}
         name="file"
+        aria-label="Choose image"
         accept={accept}
         type="file"
         multiple={limit > 1}

@@ -1,4 +1,4 @@
 import { makeSharedWorker } from "@zerospin/browser/makeSharedWorker";
-import sqliteWasmUrl from "@zerospin/browser/sqlite.wasm?url";
+const sqliteWasmUrl = new URL("@zerospin/browser/sqlite.wasm", import.meta.url).href;
 
 makeSharedWorker({ sqliteWasmUrl });

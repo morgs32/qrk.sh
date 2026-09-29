@@ -1,11 +1,12 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+
 import { stageCommand } from "@zerospin/react";
 import { ZerospinError } from "@zerospin/sdk/browser";
 import { Schema } from "effect";
 import { FileText, Globe, X } from "lucide-react";
 import { useState } from "react";
-import { href, useNavigate } from "react-router";
 import { toast } from "sonner";
 
 import { usePageStore } from "../pageStore";
@@ -39,7 +40,7 @@ function emptyToNull(value: string): string | null {
 
 export function PageSettings() {
   const params = useValidatedParams(ParamsSchema);
-  const navigate = useNavigate();
+  const router = useRouter();
   const session = userSession;
   const { db } = useZerospinUserInitializedState();
   const pageDraft = usePageStore((state) => state.page);
@@ -146,7 +147,10 @@ export function PageSettings() {
                 setTitle(baseline.title);
                 setDescription(baseline.description);
               }
-              navigate(href("/:username/site/:siteId/page/:pageId", { ...params }));
+              router.push(
+                `/${encodeURIComponent(params.username)}/site/${encodeURIComponent(params.siteId)}/page/${encodeURIComponent(params.pageId)}`,
+              { scroll: false },
+              );
             }}
           >
             <X className="size-3.5" />

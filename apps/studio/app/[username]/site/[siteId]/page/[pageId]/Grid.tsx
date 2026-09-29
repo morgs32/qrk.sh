@@ -1,5 +1,7 @@
 "use client";
 
+import { useRouter, usePathname } from "next/navigation";
+
 import { BREAKPOINTS, resolveBreakpoint } from "@qrk.sh/library/breakpoints";
 import { BrickWall } from "@qrk.sh/library/BrickWall";
 import { useLibrarySession } from "@qrk.sh/library/createLibraryStandaloneSession";
@@ -8,7 +10,6 @@ import { useWallViewport } from "@qrk.sh/library/WallViewportProvider";
 import { prefixId } from "@zerospin/core/models/prefixId";
 import { Schema } from "effect";
 import { useCallback, useState, type RefCallback } from "react";
-import { href, useLocation, useNavigate } from "react-router";
 
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 
@@ -24,9 +25,9 @@ export function Grid() {
   const { regionRef, availableWidth, activeBreakpoint } = useWallViewport();
   const session = useLibrarySession();
   const params = useValidatedParams(ParamsSchema);
-  const navigate = useNavigate();
-  const location = useLocation();
-  const isBreakpointsRoute = /\/breakpoints\/?$/.test(location.pathname);
+  const router = useRouter();
+  const pathname = usePathname();
+  const isBreakpointsRoute = /\/breakpoints\/?$/.test(pathname);
   const [fluidWidth, setFluidWidth] = useState(0);
   const fluidRef = useCallback<RefCallback<HTMLElement>>((element) => {
     if (!element) return;
@@ -61,11 +62,9 @@ export function Grid() {
       breakpoint={breakpoint}
       gridWidth={gridWidth}
       onBrickActivate={({ brickId }) => {
-        void navigate(
-          href("/:username/site/:siteId/page/:pageId/brick/:brickId", {
-            ...params,
-            brickId,
-          }),
+        void router.push(
+          `/${encodeURIComponent(params.username)}/site/${encodeURIComponent(params.siteId)}/page/${encodeURIComponent(params.pageId)}/brick/${encodeURIComponent(brickId)}`,
+        { scroll: false },
         );
       }}
     />

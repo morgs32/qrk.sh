@@ -1,3 +1,7 @@
+"use client";
+
+import Link from "next/link";
+import { useParams } from "next/navigation";
 import { useCallback, useState } from "react";
 
 import { modulesHash } from "@qrk.sh/library";
@@ -11,17 +15,21 @@ import { MeasuredBrickWrapper } from "@qrk.sh/library/MeasuredBrickWrapper";
 import { brickDragStore } from "@qrk.sh/library/GridStore";
 import { ArrowLeft } from "lucide-react";
 import { Tabs } from "radix-ui";
-import { href, Link, useParams } from "react-router";
 
-import { CodeText } from "../[username]/site/[siteId]/page/[pageId]/BrickGroup/CodeText";
-import { MetadataField } from "../[username]/site/[siteId]/page/[pageId]/BrickGroup/MetadataField";
+import { CodeText } from "@/app/[username]/site/[siteId]/page/[pageId]/BrickGroup/CodeText";
+import { MetadataField } from "@/app/[username]/site/[siteId]/page/[pageId]/BrickGroup/MetadataField";
 
 import { BRICK_DRAG_MIME } from "@/components/home/useBrickDrawerStore";
 
 export default function BrickGroupRoute() {
   const { activeBreakpoint } = useWallViewport();
   const breakpoint = activeBreakpoint ?? "sm";
-  const params = useParams();
+  const params = useParams<{
+    username: string;
+    siteId: string;
+    pageId: string;
+    groupName: string;
+  }>();
   const { username, siteId, pageId } = params;
   if (!username || !siteId || !pageId) throw new Error("Missing editor route params");
   const { groupName } = params;
@@ -35,11 +43,8 @@ export default function BrickGroupRoute() {
       <div className="p-6" data-testid="module-not-found">
         <h1>Module not found</h1>
         <Link
-          to={href("/:username/site/:siteId/page/:pageId/brick-group", {
-            username,
-            siteId,
-            pageId,
-          })}
+              scroll={false}
+          href={`/${encodeURIComponent(username)}/site/${encodeURIComponent(siteId)}/page/${encodeURIComponent(pageId)}/brick-group`}
         >
           All modules
         </Link>
@@ -152,11 +157,8 @@ function BrickGroupRouteBody(props: {
     <div className="min-h-0 flex-1 overflow-y-auto pb-6">
       <div className="px-6 pt-6">
         <Link
-          to={href("/:username/site/:siteId/page/:pageId/brick-group", {
-            username,
-            siteId,
-            pageId,
-          })}
+              scroll={false}
+          href={`/${encodeURIComponent(username)}/site/${encodeURIComponent(siteId)}/page/${encodeURIComponent(pageId)}/brick-group`}
           className="inline-flex items-center gap-2 text-sm"
         >
           <ArrowLeft aria-hidden className="size-4" />

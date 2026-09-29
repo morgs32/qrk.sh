@@ -37,22 +37,30 @@ const sideClassName = {
 
 export function Drawer(props: {
   side: "left" | "right" | "bottom";
+  animated?: boolean;
   children: ReactNode;
   className?: string;
   layoutMode?: "overlay" | "flow";
   "aria-label"?: string;
 }) {
-  const { side, children, className, layoutMode = "overlay" } = props;
+  const {
+    side,
+    children,
+    className,
+    layoutMode = "overlay",
+    animated = true,
+    "aria-label": ariaLabel,
+  } = props;
   const reducedMotion = useReducedMotion();
   const isFlow = layoutMode === "flow";
-  const motionProps = isFlow ? undefined : sideMotion[side];
+  const motionProps = isFlow || !animated ? undefined : sideMotion[side];
 
   return (
     <motion.div
       key={`${side}-drawer`}
       data-drawer={side}
       role="dialog"
-      aria-label={props["aria-label"]}
+      aria-label={ariaLabel}
       aria-hidden={false}
       initial={motionProps?.initial}
       animate={motionProps?.animate}

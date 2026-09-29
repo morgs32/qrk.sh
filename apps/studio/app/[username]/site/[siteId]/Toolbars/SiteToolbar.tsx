@@ -7,7 +7,6 @@ import { ArrowLeft, File, Globe, Plus, RectangleHorizontal } from "lucide-react"
 
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 
-import { href } from "react-router";
 import { BottomToolbar, ToolbarSeparator } from "./BottomToolbar";
 import { ToolbarButton } from "./ToolbarButton";
 
@@ -47,7 +46,7 @@ export function SiteToolbar() {
               label="Leave"
               icon={<ArrowLeft className="h-3.5 w-3.5" />}
               tooltip="Leave"
-              href={href("/:username", { username })}
+              href={`/${encodeURIComponent(username)}`}
               className="h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
             />
 
@@ -56,7 +55,7 @@ export function SiteToolbar() {
             <ToolbarButton
               label="Add bricks"
               icon={<Plus className="h-3.5 w-3.5" />}
-              href={href("/:username/site/:siteId/page/:pageId/brick-group", hrefParams)}
+              href={`/${encodeURIComponent(hrefParams.username)}/site/${encodeURIComponent(hrefParams.siteId)}/page/${encodeURIComponent(hrefParams.pageId)}/brick-group`}
               className="h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
             />
 
@@ -66,7 +65,7 @@ export function SiteToolbar() {
               label="Set breakpoints"
               icon={<RectangleHorizontal className="h-3.5 w-3.5" />}
               tooltip="Set breakpoints"
-              href={href("/:username/site/:siteId/page/:pageId/breakpoints", hrefParams)}
+              href={`/${encodeURIComponent(hrefParams.username)}/site/${encodeURIComponent(hrefParams.siteId)}/page/${encodeURIComponent(hrefParams.pageId)}/breakpoints`}
               className="h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
             />
 
@@ -76,7 +75,7 @@ export function SiteToolbar() {
               label="Page settings"
               icon={<File className="h-3.5 w-3.5" />}
               tooltip="Page settings"
-              href={href("/:username/site/:siteId/page/:pageId/page-settings", hrefParams)}
+              href={`/${encodeURIComponent(hrefParams.username)}/site/${encodeURIComponent(hrefParams.siteId)}/page/${encodeURIComponent(hrefParams.pageId)}/page-settings`}
               className="h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
             />
 
@@ -86,7 +85,7 @@ export function SiteToolbar() {
               label="Site settings"
               icon={<Globe className="h-3.5 w-3.5" />}
               tooltip="Site settings"
-              href={href("/:username/site/:siteId/page/:pageId/site-settings", hrefParams)}
+              href={`/${encodeURIComponent(hrefParams.username)}/site/${encodeURIComponent(hrefParams.siteId)}/page/${encodeURIComponent(hrefParams.pageId)}/site-settings`}
               className="h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
             />
           </BottomToolbar>

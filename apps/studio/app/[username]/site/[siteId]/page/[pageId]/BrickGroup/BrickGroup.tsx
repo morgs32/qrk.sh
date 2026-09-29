@@ -1,5 +1,8 @@
 "use client";
 
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+
 import { useCallback, useState } from "react";
 
 import { modulesHash } from "@qrk.sh/library";
@@ -10,9 +13,6 @@ import { MeasuredBrickWrapper } from "@qrk.sh/library/MeasuredBrickWrapper";
 import { brickDragStore } from "@qrk.sh/library/GridStore";
 import { Schema } from "effect";
 import { X } from "lucide-react";
-import { Link } from "react-router";
-import { useNavigate } from "react-router";
-import { href } from "react-router";
 
 import { BRICK_DRAG_MIME } from "@/components/home/useBrickDrawerStore";
 import { Button } from "@/components/ui/button";
@@ -115,10 +115,8 @@ function BrickGroupModulePreview(props: {
     <section data-module-entry={brickModule.id}>
       <h2 className="m-0 shrink-0 sticky top-0 z-10 bg-zinc-100 px-4 py-4 text-sm font-normal">
         <Link
-          to={href("/:username/site/:siteId/page/:pageId/brick-group/:groupName", {
-            ...params,
-            groupName: brickModule.id,
-          })}
+              scroll={false}
+          href={`/${encodeURIComponent(params.username)}/site/${encodeURIComponent(params.siteId)}/page/${encodeURIComponent(params.pageId)}/brick-group/${encodeURIComponent(brickModule.id)}`}
           data-module-link={brickModule.id}
         >
           {brickModule.label}
@@ -161,7 +159,7 @@ export function BrickGroup() {
   const { activeBreakpoint } = useWallViewport();
   const breakpoint = activeBreakpoint ?? "sm";
   const params = useValidatedParams(ParamsSchema);
-  const navigate = useNavigate();
+  const router = useRouter();
   const modules = Object.values(modulesHash);
 
   return (
@@ -181,7 +179,12 @@ export function BrickGroup() {
             size="icon"
             className="cursor-pointer"
             aria-label="Close drawer"
-            onClick={() => navigate(href("/:username/site/:siteId/page/:pageId", { ...params }))}
+            onClick={() =>
+              router.push(
+                `/${encodeURIComponent(params.username)}/site/${encodeURIComponent(params.siteId)}/page/${encodeURIComponent(params.pageId)}`,
+              { scroll: false },
+              )
+            }
           >
             <X className="size-4" />
           </Button>

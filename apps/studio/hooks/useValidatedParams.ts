@@ -1,7 +1,8 @@
 "use client";
 
+import { useParams } from "next/navigation";
+
 import { Schema } from "effect";
-import { useParams } from "react-router";
 
 export function useValidatedParams<SCHEMA extends Schema.ConstraintDecoder<unknown>>(
   schema: SCHEMA,

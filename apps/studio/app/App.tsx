@@ -1,22 +1,16 @@
-import { Outlet } from "react-router";
-import { ClerkProvider } from "@clerk/react";
-import { SpeedInsights } from "@vercel/speed-insights/react";
-import { NuqsAdapter } from "nuqs/adapters/react-router/v7";
+"use client";
+
+import type { ReactNode } from "react";
+import { ClerkProvider } from "@clerk/nextjs";
+import { SpeedInsights } from "@vercel/speed-insights/next";
+import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { MotionConfig } from "framer-motion";
 import { Toaster } from "@/components/ui/sonner";
-import "@fontsource/space-mono/400.css";
-import "@fontsource/space-mono/700.css";
-import "@fontsource/silkscreen/400.css";
-import "@fontsource/silkscreen/700.css";
-import "./globals.css";
 
-export default function App() {
-  const clerkPublishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
-  if (!clerkPublishableKey)
-    throw new Error("NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY is required for the app.");
+export default function App(props: { children: ReactNode }) {
+  const { children } = props;
   return (
     <ClerkProvider
-      publishableKey={clerkPublishableKey}
       signInUrl="/sign-in"
       signUpUrl="/sign-up"
       signInFallbackRedirectUrl="/replace"
@@ -27,9 +21,7 @@ export default function App() {
       }}
     >
       <NuqsAdapter>
-        <MotionConfig reducedMotion="user">
-          <Outlet />
-        </MotionConfig>
+        <MotionConfig reducedMotion="user">{children}</MotionConfig>
       </NuqsAdapter>
       <SpeedInsights />
       <Toaster />

@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
+
 import * as React from "react";
-import { Link } from "react-router";
 
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "cn";
@@ -70,7 +71,7 @@ function ToolbarLabeledButton({
   const hasHref = href !== undefined && href !== "";
 
   const control = hasHref ? (
-    <Link to={href} aria-label={ariaLabel} className={mergedClassName}>
+    <Link scroll={false} href={href} aria-label={ariaLabel} className={mergedClassName}>
       {body}
     </Link>
   ) : (

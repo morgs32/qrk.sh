@@ -1,8 +1,10 @@
 "use client";
 
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+
 import { useLiveQuery } from "@zerospin/react";
 import { Schema } from "effect";
-import { Link, href, useMatch } from "react-router";
 
 import { userSession } from "@/zerospin/userSession";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
@@ -18,8 +20,7 @@ const ParamsSchema = Schema.Struct({
 export function Wordmark() {
   const { username, siteId, pageId } = useValidatedParams(ParamsSchema);
   const draftName = useSiteStore((state) => state.site?.name);
-  const settingsOpen =
-    useMatch({ path: "/:username/site/:siteId/page/:pageId/site-settings", end: true }) != null;
+  const settingsOpen = usePathname().endsWith("/site-settings");
 
   const { data: site, error } = useLiveQuery({
     session: userSession,
@@ -42,7 +43,8 @@ export function Wordmark() {
 
   return (
     <Link
-      to={href("/:username/site/:siteId/page/:pageId", { username, siteId, pageId })}
+              scroll={false}
+      href={`/${encodeURIComponent(username)}/site/${encodeURIComponent(siteId)}/page/${encodeURIComponent(pageId)}`}
       className="text-sm font-medium"
     >
       {siteName}

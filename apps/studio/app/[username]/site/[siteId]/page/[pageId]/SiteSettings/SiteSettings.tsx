@@ -1,14 +1,15 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+
 /* oxlint-disable next/no-img-element -- Studio uses Vite, so Next image optimization is unavailable. */
 
-import { useAuth } from "@clerk/react";
+import { useAuth } from "@clerk/nextjs";
 import { stageCommand } from "@zerospin/react";
 import { ZerospinError } from "@zerospin/sdk/browser";
 import { Schema } from "effect";
 import { Globe, X } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
-import { href, useNavigate } from "react-router";
 import { toast } from "sonner";
 import useSWR from "swr";
 
@@ -92,7 +93,7 @@ async function uploadSiteImage(props: {
 
 export function SiteSettings() {
   const params = useValidatedParams(ParamsSchema);
-  const navigate = useNavigate();
+  const router = useRouter();
   const username = useUsername();
   const { getToken } = useAuth();
   const session = userSession;
@@ -274,7 +275,10 @@ export function SiteSettings() {
                 setFaviconLightUrl(baseline.faviconLightUrl);
                 setFaviconDarkUrl(baseline.faviconDarkUrl);
               }
-              navigate(href("/:username/site/:siteId/page/:pageId", { ...params }));
+              router.push(
+                `/${encodeURIComponent(params.username)}/site/${encodeURIComponent(params.siteId)}/page/${encodeURIComponent(params.pageId)}`,
+              { scroll: false },
+              );
             }}
           >
             <X className="size-3.5" />

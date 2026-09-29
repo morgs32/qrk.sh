@@ -1,19 +1,20 @@
-@import "tailwindcss";
+@import "tailwindcss" source(none);
 @import "tw-animate-css";
 @import "react-grid-layout/css/styles.css";
 @import "@qrk.sh/library/bricks.css";
-@import "./tiptap/styles/_variables.scss";
-@import "./tiptap/styles/_keyframe-animations.scss";
 
-@source "../../library/**/*.{ts,tsx}";
+@source "./**/*.{ts,tsx}";
+@source "../components/**/*.{ts,tsx}";
+@source "../../web/library/**/*.{ts,tsx}";
+@source "../../library/{app,components,lib,make,modules,registry}/**/*.{ts,tsx}";
 
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-space-mono);
-  --font-mono: var(--font-space-mono);
+  --font-sans: var(--font-space-mono, "Space Mono", monospace);
+  --font-mono: var(--font-space-mono, "Space Mono", monospace);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -50,7 +51,6 @@
 }
 
 :root {
-  --font-space-mono: "Space Mono";
   --radius: 0.625rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.141 0.005 285.823);
@@ -253,4 +253,72 @@ html body[data-scroll-locked] {
   float: left;
   height: 0;
   pointer-events: none;
+}
+
+/* Route snapshots animate only the drawer; the editor remains live underneath. */
+::view-transition {
+  pointer-events: none;
+}
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+}
+::view-transition-group(.drawer-left-in),
+::view-transition-group(.drawer-left-out),
+::view-transition-group(.drawer-bottom-in),
+::view-transition-group(.drawer-bottom-out) {
+  animation-duration: 300ms;
+  animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+}
+::view-transition-new(.drawer-left-in) {
+  animation: drawer-left-in 300ms cubic-bezier(0, 0, 0.2, 1) both;
+}
+::view-transition-old(.drawer-left-out) {
+  animation: drawer-left-out 300ms cubic-bezier(0, 0, 0.2, 1) both;
+}
+::view-transition-new(.drawer-bottom-in) {
+  animation: drawer-bottom-in 300ms cubic-bezier(0, 0, 0.2, 1) both;
+}
+::view-transition-old(.drawer-bottom-out) {
+  animation: drawer-bottom-out 300ms cubic-bezier(0, 0, 0.2, 1) both;
+}
+@keyframes drawer-left-in {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+@keyframes drawer-left-out {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-100%);
+  }
+}
+@keyframes drawer-bottom-in {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+@keyframes drawer-bottom-out {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(100%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+  }
 }

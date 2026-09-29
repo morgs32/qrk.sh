@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, type ReactNode } from "react";
 
-import { useUser } from "@clerk/react";
+import { useUser } from "@clerk/nextjs";
 import {
   createLibraryStandaloneSession,
   LibrarySessionContext,
@@ -13,7 +13,6 @@ import { prefixId } from "@zerospin/core/models/prefixId";
 import { useInitializeStandaloneSession } from "@zerospin/react";
 import { Schema } from "effect";
 
-import { Drawers } from "../../Drawers/Drawers";
 import { Toolbars } from "../../Toolbars/Toolbars";
 
 import { MainColumns } from "./MainColumns";
@@ -27,7 +26,8 @@ const ParamsSchema = Schema.Struct({
 
 const WALL_ID = prefixId(libraryModule.models.wall, "library");
 
-export default function SitePage() {
+export default function EditorLayout(props: { children: ReactNode }) {
+  const { children } = props;
   const params = useValidatedParams(ParamsSchema);
   const { user } = useUser();
 
@@ -41,7 +41,7 @@ export default function SitePage() {
     <LibraryEditorSession key={documentKey} documentKey={documentKey}>
       <WallViewportProvider>
         <MainColumns />
-        <Drawers />
+        {children}
         <Toolbars />
       </WallViewportProvider>
     </LibraryEditorSession>
@@ -49,18 +49,19 @@ export default function SitePage() {
 }
 
 function LibraryEditorSession(props: { children: React.ReactNode; documentKey: string }) {
+  const { children, documentKey } = props;
   const session = useMemo(
     () =>
       createLibraryStandaloneSession({
-        key: props.documentKey,
+        key: documentKey,
         wallId: WALL_ID,
       }),
-    [props.documentKey],
+    [documentKey],
   );
   const { isInitialized } = useInitializeStandaloneSession({ session });
   if (!isInitialized) {
     return null;
   }
 
-  return <LibrarySessionContext value={session}>{props.children}</LibrarySessionContext>;
+  return <LibrarySessionContext value={session}>{children}</LibrarySessionContext>;
 }

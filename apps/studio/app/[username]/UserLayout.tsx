@@ -1,10 +1,15 @@
-import { Outlet } from "react-router";
-import { ZerospinUserProvider } from "@/components/ZerospinUser";
+"use client";
 
-export default function UsernameLayout() {
-  return (
-    <ZerospinUserProvider>
-      <Outlet />
-    </ZerospinUserProvider>
+import { useSyncExternalStore, type ReactNode } from "react";
+import { userSession } from "@/zerospin/userSession";
+import { LoadingWorkspace } from "@/app/LoadingWorkspace/LoadingWorkspace";
+
+export default function UserLayout(props: { children: ReactNode }) {
+  const { children } = props;
+  const isInitialized = useSyncExternalStore(
+    userSession.store.subscribe,
+    () => userSession.store.getState().isInitialized,
+    () => false,
   );
+  return isInitialized ? children : <LoadingWorkspace />;
 }

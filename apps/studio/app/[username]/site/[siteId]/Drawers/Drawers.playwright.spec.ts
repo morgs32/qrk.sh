@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 const base = process.env.PLAYWRIGHT_EDITOR_PATH ?? "/e2e/site/e2e/page/home";
 
-test("editor retains drawer identity, params, history, toolbar, and grid", async ({ page }) => {
+test("editor retains drawer shells, encoded routes, history, toolbar, and grid", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto(base + "/brick-group");
@@ -21,10 +21,12 @@ test("editor retains drawer identity, params, history, toolbar, and grid", async
   await expect(left).toBeVisible();
   expect(await grid!.evaluate((element) => element.isConnected)).toBe(true);
   // A direct deep link and refresh must preserve decoded brick identity.
-  await page.goto(base + "/brick/brick%20one");
-  await expect(page.getByTestId("brick-detail-title")).toHaveText("brick one");
+  await page.goto(base + "/brick/brk_missing%20brick");
+  await expect(page.getByTestId("brick-not-found")).toBeVisible();
+  expect(new URL(page.url()).pathname).toBe(base + "/brick/brk_missing%20brick");
   await page.reload();
-  await expect(page.getByTestId("brick-detail-title")).toHaveText("brick one");
+  await expect(page.getByTestId("brick-not-found")).toBeVisible();
+  expect(new URL(page.url()).pathname).toBe(base + "/brick/brk_missing%20brick");
   const detailShell = await left.elementHandle();
   // Activate the toolbar beneath the left drawer with the keyboard.
   await page.getByRole("link", { name: "Add bricks" }).press("Enter");
@@ -36,7 +38,8 @@ test("editor retains drawer identity, params, history, toolbar, and grid", async
     ),
   ).toBe(true);
   await page.goBack();
-  await expect(page.getByTestId("brick-detail-title")).toHaveText("brick one");
+  await expect(page.getByTestId("brick-not-found")).toBeVisible();
+  expect(new URL(page.url()).pathname).toBe(base + "/brick/brk_missing%20brick");
   // The left drawer overlaps this toolbar link; keyboard activation exercises the route change.
   await page.getByRole("link", { name: "Page settings", exact: true }).press("Enter");
   const bottom = page.locator('[data-drawer="bottom"]');
@@ -65,7 +68,7 @@ test("interrupted history navigation settles with one drawer and preserves botto
   await page.getByRole("link", { name: "Site settings", exact: true }).click();
   await expect(page).toHaveURL(base + "/site-settings");
   const bottom = await page.locator('[data-drawer="bottom"]').elementHandle();
-  // Schedule the second Back in the browser's next frame, before the 300 ms exit ends.
+  // Interrupt the native snapshot animation; the final live route must settle correctly.
   await page.evaluate(
     () =>
       new Promise<void>((resolve) => {
@@ -96,4 +99,15 @@ test("interrupted history navigation settles with one drawer and preserves botto
   }
   await expect(page.locator("[data-drawer]")).toHaveCount(1);
   await expect(page.getByRole("heading", { name: "Page Settings", exact: true })).toBeVisible();
+});
+
+
+test("reduced motion preserves navigation without positional drawer animation", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto(base);
+  await page.getByRole("link", { name: "Add bricks" }).click();
+  await expect(page.locator('[data-drawer="left"]')).toHaveCount(1);
+  await page.locator('[data-drawer="left"]').getByRole("button", { name: "Close drawer" }).click();
+  await expect(page.locator("[data-drawer]")).toHaveCount(0);
+  await expect(page.getByTestId("grid-layout")).toBeVisible();
 });

@@ -19,6 +19,13 @@
     outline-color: var(--tt-brand-color-500);
   }
 
+  // The resize extension gives the container a pixel width. Let it shrink with
+  // the article while keeping the saved width for wider screens.
+  &.hero-article div:has(> img):not([data-resize-image-ui]) {
+    max-width: 100%;
+    min-width: 0;
+  }
+
   // Thread image handling
   .tiptap-thread:has(> img) {
     margin: 2rem 0;

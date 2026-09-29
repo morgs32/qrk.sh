@@ -1,9 +1,10 @@
 "use client";
 
 import { useRef, useState } from "react";
-import type { Editor } from "@tiptap/react";
+import { type Editor, useEditorState } from "@tiptap/react";
 
-import { Button } from "@/app/tiptap/ui-primitive/button";
+import { Button } from "@/app/tiptap/ui-primitive/button/button";
+import { ImagePlusIcon } from "@/app/tiptap/icons/image-plus-icon";
 import { Spacer } from "@/app/tiptap/ui-primitive/spacer";
 import { Toolbar, ToolbarGroup, ToolbarSeparator } from "@/app/tiptap/ui-primitive/toolbar";
 import { HeadingDropdownMenu } from "@/app/tiptap/ui/heading-dropdown-menu";
@@ -27,18 +28,20 @@ import { useIsBreakpoint } from "@/app/tiptap/hooks/use-is-breakpoint";
 const bodyLockedProps = (locked: boolean) =>
   locked ? ({ disabled: true, "data-disabled": true } as const) : ({} as const);
 
-function MainToolbarContent({
-  bodyLocked,
-  onHighlighterClick,
-  onLinkClick,
-  isMobile,
-}: {
+function MainToolbarContent(props: {
+  editor: Editor;
   bodyLocked: boolean;
   onHighlighterClick: () => void;
   onLinkClick: () => void;
   isMobile: boolean;
 }) {
+  const { editor, bodyLocked, onHighlighterClick, onLinkClick, isMobile } = props;
   const locked = bodyLockedProps(bodyLocked);
+  const canInsertImage = useEditorState({
+    editor,
+    selector: ({ editor: currentEditor }) =>
+      currentEditor.isEditable && currentEditor.can().setImageUploadNode(),
+  });
 
   return (
     <>
@@ -89,6 +92,17 @@ function MainToolbarContent({
 
       <ToolbarGroup>
         <TextAlignDropdownMenu modal={false} {...locked} />
+        <Button
+          type="button"
+          variant="ghost"
+          tooltip="Add image"
+          aria-label="Add image"
+          disabled={bodyLocked || !canInsertImage}
+          data-disabled={bodyLocked || !canInsertImage}
+          onClick={() => editor.chain().focus().setImageUploadNode().run()}
+        >
+          <ImagePlusIcon className="tiptap-button-icon" />
+        </Button>
       </ToolbarGroup>
 
       <Spacer />
@@ -123,13 +137,8 @@ function MobileToolbarContent({
   );
 }
 
-export function ArticleToolbar({
-  editor: _editor,
-  inRequiredHeading,
-}: {
-  editor: Editor;
-  inRequiredHeading: boolean;
-}) {
+export function ArticleToolbar(props: { editor: Editor; inRequiredHeading: boolean }) {
+  const { editor, inRequiredHeading } = props;
   const isMobile = useIsBreakpoint();
   const [mobileView, setMobileView] = useState<"main" | "highlighter" | "link">("main");
   const toolbarRef = useRef<HTMLDivElement>(null);
@@ -143,6 +152,7 @@ export function ArticleToolbar({
       <Toolbar ref={toolbarRef}>
         {mobileView === "main" ? (
           <MainToolbarContent
+            editor={editor}
             bodyLocked={inRequiredHeading}
             onHighlighterClick={() => setMobileView("highlighter")}
             onLinkClick={() => setMobileView("link")}

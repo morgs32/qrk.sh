@@ -16,8 +16,20 @@
     "paths": {
       "@/*": ["./*"]
     },
-    "types": ["vite/client", "node"]
+    "types": ["node", "react/canary"],
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ]
   },
-  "include": ["**/*.ts", "**/*.tsx", "../zerospin/cloudflare-test.d.ts"],
-  "exclude": ["node_modules", ".next", "build", ".react-router"]
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts",
+    "../zerospin/cloudflare-test.d.ts"
+  ],
+  "exclude": ["node_modules", "build", "storybook-static"]
 }

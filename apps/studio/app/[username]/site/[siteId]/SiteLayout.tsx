@@ -1,11 +1,10 @@
 "use client";
 
-import { useUser } from "@clerk/react";
+import { useUser } from "@clerk/nextjs";
 import { makeModelIdSchema } from "@zerospin/core/models/make/makeModelIdSchema";
 import { useLiveQuery } from "@zerospin/react";
 import { Schema } from "effect";
-import { useEffect } from "react";
-import { Outlet } from "react-router";
+import { useEffect, type ReactNode } from "react";
 
 import { pageV1 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
 import { siteV1 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV1";
@@ -14,7 +13,6 @@ import { useZerospinUserInitializedState } from "@/components/ZerospinUser";
 import { userSession } from "@/zerospin/userSession";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 
-import { SiteHeader } from "./SiteHeader";
 import { usePageStore } from "./page/[pageId]/pageStore";
 import { useSitePageDraftStore } from "./sitePageDraftStore";
 import { useSiteStore } from "./siteStore";
@@ -24,7 +22,8 @@ const ParamsSchema = Schema.Struct({
   pageId: Schema.optional(makeModelIdSchema(Page)),
 });
 
-export default function PageLayout() {
+export default function SiteLayout(props: { children: ReactNode }) {
+  const { children } = props;
   const { siteId, pageId } = useValidatedParams(ParamsSchema);
   const { user } = useUser();
   const { db } = useZerospinUserInitializedState();
@@ -125,15 +124,12 @@ export default function PageLayout() {
     pageDraft !== undefined && siteDraftId === siteId && pageDraftId === pageId;
 
   return isCurrentRouteReady ? (
-    <div className="flex h-screen flex-col overflow-hidden">
+    <div className="flex h-full flex-col overflow-hidden">
       <title>
         {pageTitle === "" ? `[Editing] ${siteName}` : `[Editing] ${siteName} - ${pageTitle}`}
       </title>
-      <SiteHeader />
 
-      <div className="min-h-0 flex-1">
-        <Outlet />
-      </div>
+      <div className="min-h-0 flex-1">{children}</div>
     </div>
   ) : null;
 }

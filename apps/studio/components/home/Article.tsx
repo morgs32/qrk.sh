@@ -1,8 +1,8 @@
 "use client";
 
+import { useAuth } from "@clerk/nextjs";
 import Document from "@tiptap/extension-document";
 import { Highlight } from "@tiptap/extension-highlight";
-import { Image } from "@tiptap/extension-image";
 import { TaskItem, TaskList } from "@tiptap/extension-list";
 import Placeholder from "@tiptap/extension-placeholder";
 import { TextAlign } from "@tiptap/extension-text-align";
@@ -16,11 +16,13 @@ import { ZerospinError } from "@zerospin/sdk/browser";
 import { Schema } from "effect";
 import { useState } from "react";
 import { toast } from "sonner";
+import ImageResize from "tiptap-extension-resize-image";
 
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 import { usePageStore } from "@/app/[username]/site/[siteId]/page/[pageId]/pageStore";
 import { ArticleToolbar } from "@/components/home/ArticleToolbar";
 import { HorizontalRule } from "@/app/tiptap/node/horizontal-rule-node/horizontal-rule-node-extension";
+import { ImageUploadNode } from "@/app/tiptap/node/image-upload-node/image-upload-node-extension";
 import { userSession } from "@/zerospin/userSession";
 
 import "@/app/tiptap/node/blockquote-node/blockquote-node.scss";
@@ -55,6 +57,7 @@ function isSelectionInRequiredHeading(editor: {
 }
 
 export function Article() {
+  const { getToken } = useAuth();
   const params = useValidatedParams(ParamsSchema);
   const session = userSession;
   const page = usePageStore((state) => state.page);
@@ -86,7 +89,65 @@ export function Article() {
         TaskList,
         TaskItem.configure({ nested: true }),
         Highlight.configure({ multicolor: true }),
-        Image,
+        // Keep existing article images and upload-node output on the same node type.
+        ImageResize.extend({ name: "image" }).configure({
+          inline: false,
+        }),
+        ImageUploadNode.configure({
+          accept: "image/png,image/jpeg,image/webp,image/svg+xml",
+          maxSize: 5 * 1024 * 1024,
+          limit: 1,
+          upload: async (file, onProgress, signal) => {
+            signal?.throwIfAborted();
+            const sessionToken = await getToken();
+            signal?.throwIfAborted();
+            if (!sessionToken) throw new Error("Sign in to upload images");
+
+            const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
+            if (!apiBaseUrl) throw new Error("NEXT_PUBLIC_API_URL is required");
+
+            const formData = new FormData();
+            formData.set("file", file);
+            formData.set("siteId", params.siteId);
+
+            return new Promise<string>((resolve, reject) => {
+              const request = new XMLHttpRequest();
+              request.open("POST", `${apiBaseUrl.replace(/\/$/, "")}/upload`);
+              request.setRequestHeader("Authorization", `Bearer ${sessionToken}`);
+              request.responseType = "json";
+              request.upload.onprogress = (event) => {
+                if (event.lengthComputable) {
+                  onProgress?.({ progress: Math.round((event.loaded / event.total) * 100) });
+                }
+              };
+              request.onload = () => {
+                try {
+                  if (request.status < 200 || request.status >= 300) {
+                    const body = Schema.decodeUnknownSync(
+                      Schema.Struct({ message: Schema.String }),
+                    )(request.response);
+                    reject(new Error(body.message));
+                    return;
+                  }
+                  const body = Schema.decodeUnknownSync(Schema.Struct({ url: Schema.String }))(
+                    request.response,
+                  );
+                  resolve(body.url);
+                } catch {
+                  reject(new Error(`Upload failed (${request.status}): invalid response`));
+                }
+              };
+              request.onerror = () =>
+                reject(new Error("Image upload failed. Check your connection."));
+              request.onabort = () => reject(new DOMException("Upload cancelled", "AbortError"));
+              const abort = () => request.abort();
+              signal?.addEventListener("abort", abort, { once: true });
+              request.onloadend = () => signal?.removeEventListener("abort", abort);
+              request.send(formData);
+            });
+          },
+          onError: (error) => toast.error(error.message),
+        }),
         Typography,
         Underline,
         Selection,

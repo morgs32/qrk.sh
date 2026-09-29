@@ -2,6 +2,7 @@ import type { IAdmissionRequest } from '@zerospin/core/identity/types';
 import { encodeRpcOutcome } from '@zerospin/core/utils/encodeRpcOutcome';
 import {
   catchZerospinError,
+  isZerospinError,
   makeZerospinError,
   type IResult,
   type IZerospinErrorJson,
@@ -24,14 +25,15 @@ export const attach: (props: {
   }): Effect.fn.Return<
     IResult<RpcStub<IBrowserSessionApi>, IZerospinErrorJson>
   > {
+    const { api, input, target: admission } = props;
     return yield* Effect.tryPromise({
       try: async () => {
-        const target = props.target.dup();
+        const target = admission.dup();
         try {
-          const attached = await props.api.runtime.attach(props.input, () =>
+          const attached = await api.runtime.attach(input, () =>
             Promise.resolve(target()),
           );
-          if (props.api.disposed) {
+          if (api.disposed) {
             attached[Symbol.dispose]();
             throw makeZerospinError({ code: 'node-tab-detached' });
           }
@@ -43,16 +45,20 @@ export const attach: (props: {
             detach?.();
             attached[Symbol.dispose]();
             target[Symbol.dispose]();
-            props.api.connections.delete(close);
+            api.connections.delete(close);
           };
           attached.detach = close;
-          props.api.connections.add(close);
+          api.connections.add(close);
           return new RpcStub<IBrowserSessionApi>(attached);
         } catch (error) {
           target[Symbol.dispose]();
           throw error;
         }
       },
-      catch: catchZerospinError({ code: 'node-attachment-failed' }),
+      // Only unclassified failures inside worker attachment receive this fallback.
+      catch: cause =>
+        isZerospinError(cause)
+          ? cause
+          : catchZerospinError({ code: 'node-attachment-failed' })(cause),
     }).pipe(encodeRpcOutcome);
   });

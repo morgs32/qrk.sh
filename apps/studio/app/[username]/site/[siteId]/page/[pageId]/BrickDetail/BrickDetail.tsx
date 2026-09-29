@@ -1,5 +1,8 @@
 "use client";
 
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+
 import { modulesHash } from "@qrk.sh/library";
 import { useLibrarySession } from "@qrk.sh/library/createLibraryStandaloneSession";
 import { GridItemPreview } from "@qrk.sh/library/GridItemPreview";
@@ -9,9 +12,6 @@ import { isNonEmptySpec, type Spec } from "@json-render/core";
 import { useLiveQuery } from "@zerospin/react";
 import { Schema } from "effect";
 import { ArrowLeft, X } from "lucide-react";
-import { Link } from "react-router";
-import { href } from "react-router";
-import { useNavigate } from "react-router";
 
 import { Button } from "@/components/ui/button";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
@@ -30,7 +30,7 @@ function isBrickId(value: string): value is `brk_${string}` {
 export function BrickDetail() {
   const { activeBreakpoint } = useWallViewport();
   const breakpoint = activeBreakpoint ?? "sm";
-  const navigate = useNavigate();
+  const router = useRouter();
   const params = useValidatedParams(ParamsSchema);
   const session = useLibrarySession();
   const brickId = isBrickId(params.brickId) ? params.brickId : null;
@@ -83,7 +83,12 @@ export function BrickDetail() {
             size="icon"
             className="cursor-pointer"
             aria-label="Close drawer"
-            onClick={() => navigate(href("/:username/site/:siteId/page/:pageId", { ...params }))}
+            onClick={() =>
+              router.push(
+                `/${encodeURIComponent(params.username)}/site/${encodeURIComponent(params.siteId)}/page/${encodeURIComponent(params.pageId)}`,
+              { scroll: false },
+              )
+            }
           >
             <X className="size-4" />
           </Button>
@@ -97,7 +102,10 @@ export function BrickDetail() {
         placement === undefined ||
         spec === undefined ? (
           <div className="px-6 pt-6" data-testid="brick-not-found">
-            <Link to={href("/:username/site/:siteId/page/:pageId/brick-group", params)}>
+            <Link
+              scroll={false}
+              href={`/${encodeURIComponent(params.username)}/site/${encodeURIComponent(params.siteId)}/page/${encodeURIComponent(params.pageId)}/brick-group`}
+            >
               All modules
             </Link>
             <h1 className="mb-2 mt-8 text-4xl tracking-tight">Brick not found</h1>
@@ -109,10 +117,8 @@ export function BrickDetail() {
           <section data-testid="brick-detail-pane">
             <div className="px-6 pt-6">
               <Link
-                to={href("/:username/site/:siteId/page/:pageId/brick-group/:groupName", {
-                  ...params,
-                  groupName: brick.def.moduleId,
-                })}
+              scroll={false}
+                href={`/${encodeURIComponent(params.username)}/site/${encodeURIComponent(params.siteId)}/page/${encodeURIComponent(params.pageId)}/brick-group/${encodeURIComponent(brick.def.moduleId)}`}
                 className="inline-flex items-center gap-2 text-sm"
               >
                 <ArrowLeft aria-hidden className="size-4" />

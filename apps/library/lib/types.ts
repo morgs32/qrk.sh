@@ -35,6 +35,8 @@ export type IModule<MODULE extends string> = {
     registry?: ComponentRegistry;
     w?: number;
     h?: number;
+    minW?: number;
+    minH?: number;
   };
   stateShape: IShape;
   defaultState: unknown;

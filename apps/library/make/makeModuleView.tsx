@@ -28,7 +28,10 @@ function makeInitialState(state: unknown): Record<string, unknown> {
   return {};
 }
 
-function assertBothOrNeitherWh(context: string, overlay: { w?: number; h?: number }) {
+function assertBreakpointSize(
+  context: string,
+  overlay: { w?: number; h?: number; minW?: number; minH?: number },
+) {
   const hasW = overlay.w !== undefined;
   const hasH = overlay.h !== undefined;
   if (hasW !== hasH) {
@@ -39,6 +42,21 @@ function assertBothOrNeitherWh(context: string, overlay: { w?: number; h?: numbe
   }
   if (hasH && (overlay.h === undefined || overlay.h < 1 || !Number.isInteger(overlay.h))) {
     throw new Error(`makeModuleView: ${context} h must be an integer ≥ 1`);
+  }
+  if (
+    overlay.minW !== undefined &&
+    (!Number.isInteger(overlay.minW) || overlay.minW < 1 || overlay.minW > 8)
+  ) {
+    throw new Error(`makeModuleView: ${context} minW must be an integer between 1 and 8`);
+  }
+  if (overlay.minH !== undefined && (!Number.isInteger(overlay.minH) || overlay.minH < 1)) {
+    throw new Error(`makeModuleView: ${context} minH must be an integer ≥ 1`);
+  }
+  if (overlay.w !== undefined && overlay.minW !== undefined && overlay.w < overlay.minW) {
+    throw new Error(`makeModuleView: ${context} w must be ≥ minW`);
+  }
+  if (overlay.h !== undefined && overlay.minH !== undefined && overlay.h < overlay.minH) {
+    throw new Error(`makeModuleView: ${context} h must be ≥ minH`);
   }
 }
 
@@ -109,16 +127,18 @@ export function makeModuleView<
       };
       w?: number;
       h?: number;
+      minW?: number;
+      minH?: number;
     };
   },
 ) {
   if (view.default.generator !== undefined && module.catalog === undefined) {
     throw new Error(`makeModuleView: ${JSON.stringify(module.id)} has no catalog; omit generator`);
   }
-  assertBothOrNeitherWh(`${JSON.stringify(module.id)}.sm`, view.sm ?? {});
-  assertBothOrNeitherWh(`${JSON.stringify(module.id)}.md`, view.md ?? {});
-  assertBothOrNeitherWh(`${JSON.stringify(module.id)}.lg`, view.lg ?? {});
-  assertBothOrNeitherWh(`${JSON.stringify(module.id)}.xl`, view.xl ?? {});
+  assertBreakpointSize(`${JSON.stringify(module.id)}.sm`, view.sm ?? {});
+  assertBreakpointSize(`${JSON.stringify(module.id)}.md`, view.md ?? {});
+  assertBreakpointSize(`${JSON.stringify(module.id)}.lg`, view.lg ?? {});
+  assertBreakpointSize(`${JSON.stringify(module.id)}.xl`, view.xl ?? {});
 
   const decodeState = Schema.decodeUnknownSync(
     makeEffectSchema<MODULE["stateShape"]>(module.stateShape),
@@ -160,6 +180,8 @@ export function makeModuleView<
       registry: generator?.registry,
       w: overlay?.w,
       h: overlay?.h,
+      minW: overlay?.minW,
+      minH: overlay?.minH,
     };
   }
 

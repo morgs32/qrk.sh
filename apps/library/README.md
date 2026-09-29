@@ -85,7 +85,24 @@ export const bioView = makeComponentView(bioComponent, {
 Descriptors stay separate from React implementations so backend module imports
 remain independent of view code. Optional `sm` / `md` / `lg` / `xl` overlays merge onto `default`
 (component, generator, declared `w`/`h`). Grid sizing is measured at preview/drag
-time unless both `w` and `h` are declared on that overlay. A new drag waits for
+time unless both `w` and `h` are declared on that overlay. Each overlay also accepts
+independently optional `minW` and `minH` in grid units:
+
+```ts
+sm: { w: 8, h: 4, minW: 4, minH: 2 }, // Initial size and resize minimums.
+md: { minW: 3 }, // Measured width starts at three columns or wider.
+```
+
+Minimums apply to measured initial sizes and wall resizing, with a one-unit floor
+when omitted. They do not inherit between breakpoints. Minimums must be positive
+integers, `minW` cannot exceed eight columns, and declared `w`/`h` cannot be below
+their corresponding minimum. Invalid configuration throws during view construction.
+All Library and Studio previews apply the same sizing rules. The wall derives
+resize constraints from the active module view; placements persist only geometry.
+Existing saved sizes remain unchanged until the user resizes; configuring minimums
+does not automatically enlarge or migrate saved bricks.
+
+A new drag waits for
 all four breakpoint defaults; measured widths are limited to the wall's eight
 columns. `addBrick.program` resolves all four layouts using the drop X/Y and each
 breakpoint's own size. The caller supplies `dropPosition`, `placementSizes`, and

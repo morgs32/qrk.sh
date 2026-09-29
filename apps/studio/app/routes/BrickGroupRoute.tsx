@@ -92,17 +92,23 @@ function BrickGroupRouteBody(props: {
 
   const sizes = BREAKPOINTS.map((entry) => {
     const entryView = brickModule.viewFor(entry.id);
+    const measured = measuredUnits[entry.id];
     return entryView.w !== undefined && entryView.h !== undefined
       ? { w: entryView.w, h: entryView.h }
-      : measuredUnits[entry.id];
+      : measured === undefined
+        ? undefined
+        : {
+            w: Math.min(8, Math.max(measured.w, entryView.minW ?? 1)),
+            h: Math.max(measured.h, entryView.minH ?? 1),
+          };
   });
   const placementSizes =
     sizes[0] && sizes[1] && sizes[2] && sizes[3]
       ? { sm: sizes[0], md: sizes[1], lg: sizes[2], xl: sizes[3] }
       : null;
   const activeSize = placementSizes?.[breakpoint];
-  const w = activeSize?.w ?? 1;
-  const h = activeSize?.h ?? 1;
+  const w = activeSize?.w ?? view.minW ?? 1;
+  const h = activeSize?.h ?? view.minH ?? 1;
   const brickDefForDrag =
     placementSizes === null
       ? null

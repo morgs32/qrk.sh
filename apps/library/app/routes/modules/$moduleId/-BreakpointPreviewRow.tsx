@@ -74,8 +74,8 @@ export function BreakpointPreviewRow({
   const measuredH = intrinsicSize
     ? minGridUnits(entry.gridItemWidth, intrinsicSize.heightPx)
     : undefined;
-  const dragW = hasDeclaredSize ? declaredW : Math.min(8, measuredW ?? 1);
-  const dragH = hasDeclaredSize ? declaredH : (measuredH ?? 1);
+  const dragW = hasDeclaredSize ? declaredW : Math.min(8, Math.max(measuredW ?? 1, view.minW ?? 1));
+  const dragH = hasDeclaredSize ? declaredH : Math.max(measuredH ?? 1, view.minH ?? 1);
   const sizes = BREAKPOINTS.map((breakpointEntry) => {
     const breakpointView = brick.viewFor(breakpointEntry.id);
     const measured = dimensions[breakpointEntry.id];
@@ -84,8 +84,17 @@ export function BreakpointPreviewRow({
       : measured === undefined
         ? undefined
         : {
-            w: Math.min(8, minGridUnits(breakpointEntry.gridItemWidth, measured.widthPx)),
-            h: minGridUnits(breakpointEntry.gridItemWidth, measured.heightPx),
+            w: Math.min(
+              8,
+              Math.max(
+                minGridUnits(breakpointEntry.gridItemWidth, measured.widthPx),
+                breakpointView.minW ?? 1,
+              ),
+            ),
+            h: Math.max(
+              minGridUnits(breakpointEntry.gridItemWidth, measured.heightPx),
+              breakpointView.minH ?? 1,
+            ),
           };
   });
   const placementSizes =

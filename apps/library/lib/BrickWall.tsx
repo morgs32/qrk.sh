@@ -109,11 +109,17 @@ export function BrickWall(props: {
         <GridLayout
           width={gridWidth}
           style={dragging ? { transform: `translateY(-${dragScrollTop}px)` } : undefined}
-          layout={layout.map((item) => ({
-            ...item,
-            isDraggable: true,
-            isResizable: true,
-          }))}
+          layout={layout.map((item) => {
+            const brickRow = bricks.find((candidate) => candidate.id === item.i);
+            const view = brickRow && modulesHash[brickRow.moduleId].viewFor(breakpoint);
+            return {
+              ...item,
+              minW: view?.minW,
+              minH: view?.minH,
+              isDraggable: true,
+              isResizable: true,
+            };
+          })}
           autoSize
           className="grid-layout min-h-[calc(100dvh-3.5rem)]"
           compactor={noCompactor}

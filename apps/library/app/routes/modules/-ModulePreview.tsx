@@ -47,15 +47,18 @@ export function ModulePreview(props: {
       ? { w: entryView.w, h: entryView.h }
       : measured === undefined
         ? undefined
-        : { w: Math.min(8, measured.w), h: measured.h };
+        : {
+            w: Math.min(8, Math.max(measured.w, entryView.minW ?? 1)),
+            h: Math.max(measured.h, entryView.minH ?? 1),
+          };
   });
   const placementSizes =
     sizes[0] && sizes[1] && sizes[2] && sizes[3]
       ? { sm: sizes[0], md: sizes[1], lg: sizes[2], xl: sizes[3] }
       : null;
   const activeSize = placementSizes?.[breakpoint];
-  const dragW = activeSize?.w ?? 1;
-  const dragH = activeSize?.h ?? 1;
+  const dragW = activeSize?.w ?? view.minW ?? 1;
+  const dragH = activeSize?.h ?? view.minH ?? 1;
   const brickDefForDrag =
     placementSizes === null
       ? null

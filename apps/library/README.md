@@ -56,10 +56,34 @@ Worker/RPC declarations. Neither build deploys the app.
 `modulesHash` exposes each library module by its registered kebab-case id, with
 no arbitrary-string index signature. Module URLs decode their ID against the
 brick model enum before passing it through route context; unknown IDs remain 404s.
-Internal previews, state updates, and drag callbacks retain the registered ID union. `defineModule` owns
-identity, catalog, `stateShape`, and `defaultState`. `makeModuleView` attaches the
-authored React brick and, when ready, a json-render `generator` (`registry` +
-`defaultSpec`). Optional `sm` / `md` / `lg` / `xl` overlays merge onto `default`
+Internal previews, state updates, and drag callbacks retain the registered ID union.
+`defineModule` declares identity; `makeModuleVersion` owns the catalog, `stateShape`,
+and `defaultState`. `makeModuleView` infers authored callback props from that state
+shape and decodes incoming state before rendering, preserving extra provider fields.
+Its authored wrappers are created once and reused by previews and placed bricks.
+It also attaches a json-render `generator` (`registry` + `defaultSpec`).
+
+`makeComponentView` binds display markup to a `defineComponent` descriptor. Its
+`.Component` accepts inferred flat props; its `.RegistryComponent` decodes resolved
+JSON-render props against the same descriptor before rendering `.Component` through
+JSX and forwarding children. Missing or invalid props surface schema errors rather
+than handwritten fallback values. Both components retain stable identities. Use
+member expressions directly so no file-scope component aliases are needed:
+
+```tsx
+export const bioView = makeComponentView(bioComponent, {
+  component(props) {
+    const { bio } = props;
+    return bio ? <p>{bio}</p> : null;
+  },
+});
+
+// Authored markup: <bioView.Component bio={state.data.bio} />
+// Registry entry: Bio: bioView.RegistryComponent
+```
+
+Descriptors stay separate from React implementations so backend module imports
+remain independent of view code. Optional `sm` / `md` / `lg` / `xl` overlays merge onto `default`
 (component, generator, declared `w`/`h`). Grid sizing is measured at preview/drag
 time unless both `w` and `h` are declared on that overlay. A new drag waits for
 all four breakpoint defaults; measured widths are limited to the wall's eight
@@ -71,8 +95,9 @@ regardless of array order, and rejects stale snapshots with conflict 409 before 
 The program validates all resolved outputs, then creates the brick and four placements
 and updates displaced visible neighbors. Hidden and unaffected placements retain their
 geometry. This is a fresh `addBrick` version `1.0.0` baseline with no historical adapter;
-old payloads and pending commands require the authorized document reset. Module previews may retain extra provider fields; a drop
-persists only fields declared by that module's state shape.
+old payloads and pending commands require the authorized document reset. Dragged state
+reaches the strict `addBrick` guard without projection; extra provider fields are
+rejected there even when they were retained by preview state decoding.
 
 `Layout` initializes the module-level `librarySession` with
 `useInitializeStandaloneSession`. Its `qrk-library` backup key persists the
@@ -113,7 +138,7 @@ only). Its shared `IDraggedBrick` payload preserves the registered module ID
 from both Library previews and both Studio drawer views through to `addBrick`.
 `makeModuleViewLibrary` ties each registry key to its module and definition IDs;
 known keys return a module, while arbitrary route strings can return `undefined`.
-The wall uses this trusted identity directly and still decodes the dragged state.
+The wall uses this trusted identity directly; the contract validates the dragged state.
 Drop / resize / remove go through contracts on the owning session — not
 Zustand `bricksById`.
 

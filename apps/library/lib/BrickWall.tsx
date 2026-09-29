@@ -3,8 +3,6 @@ import { useLayoutEffect, useRef, useState } from "react";
 import { isNonEmptySpec } from "@json-render/core";
 import { prefixId } from "@zerospin/core/models/prefixId";
 import { stageCommand, useLiveQuery } from "@zerospin/react";
-import { makeEffectSchema } from "@zerospin/schema";
-import { Result, Schema } from "effect";
 import GridLayout, { noCompactor } from "react-grid-layout";
 
 import { libraryModule } from "../libraryModule/libraryModule";
@@ -163,18 +161,7 @@ export function BrickWall(props: {
               return;
             }
 
-            const catalog = modulesHash[brickDef.moduleId];
             const moduleId = brickDef.moduleId;
-            // Previews can retain provider fields that are not part of the brick's state.
-            const state = Schema.decodeUnknownResult(
-              Schema.toType(makeEffectSchema(catalog.stateShape)),
-            )(brickDef.state, { onExcessProperty: "ignore" });
-            if (Result.isFailure(state)) {
-              reportCommandError({
-                message: `addBrick state failed ${moduleId} decode: ${state.failure.message}`,
-              });
-              return;
-            }
 
             const idSuffix = crypto.randomUUID().replace(/-/g, "");
             const brickId = prefixId(libraryModule.models.brick, idSuffix);
@@ -192,7 +179,7 @@ export function BrickWall(props: {
                 wallId,
                 brickId,
                 moduleId,
-                state: structuredClone(state.success),
+                state: structuredClone(brickDef.state),
                 spec: structuredClone(brickDef.spec),
                 dropPosition: { x: item.x, y: item.y },
                 placementSizes: brickDef.placementSizes,

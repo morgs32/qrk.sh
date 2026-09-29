@@ -1,44 +1,20 @@
 import { defineRegistry } from "@json-render/react";
 
 import { layoutRegistryComponents } from "../../../lib/jsonRender/layoutRegistryComponents";
-import {
-  RepoDescription as RepoDescriptionLeaf,
-  RepoForks as RepoForksLeaf,
-  RepoLanguage as RepoLanguageLeaf,
-  RepoName as RepoNameLeaf,
-  RepoStars as RepoStarsLeaf,
-} from "../GitHubRepo/GitHubRepo";
+import { repoNameView } from "../GitHubRepo/components/RepoName";
+import { repoDescriptionView } from "../GitHubRepo/components/RepoDescription";
+import { repoStarsView } from "../GitHubRepo/components/RepoStars";
+import { repoForksView } from "../GitHubRepo/components/RepoForks";
+import { repoLanguageView } from "../GitHubRepo/components/RepoLanguage";
 import { githubRepoV1 } from "../githubRepoV1";
 
 export const { registry } = defineRegistry(githubRepoV1.catalog, {
   components: {
     ...layoutRegistryComponents,
-    RepoName: ({ props }: { props: Record<string, unknown> }) => (
-      <RepoNameLeaf name={typeof props.name === "string" ? props.name : ""} />
-    ),
-    RepoDescription: ({ props }: { props: Record<string, unknown> }) => (
-      <RepoDescriptionLeaf
-        description={
-          typeof props.description === "string" || props.description === null
-            ? props.description
-            : null
-        }
-      />
-    ),
-    RepoStars: ({ props }: { props: Record<string, unknown> }) => (
-      <RepoStarsLeaf
-        stargazers_count={typeof props.stargazers_count === "number" ? props.stargazers_count : 0}
-      />
-    ),
-    RepoForks: ({ props }: { props: Record<string, unknown> }) => (
-      <RepoForksLeaf forks_count={typeof props.forks_count === "number" ? props.forks_count : 0} />
-    ),
-    RepoLanguage: ({ props }: { props: Record<string, unknown> }) => (
-      <RepoLanguageLeaf
-        language={
-          typeof props.language === "string" || props.language === null ? props.language : null
-        }
-      />
-    ),
+    RepoName: repoNameView.RegistryComponent,
+    RepoDescription: repoDescriptionView.RegistryComponent,
+    RepoStars: repoStarsView.RegistryComponent,
+    RepoForks: repoForksView.RegistryComponent,
+    RepoLanguage: repoLanguageView.RegistryComponent,
   },
 });

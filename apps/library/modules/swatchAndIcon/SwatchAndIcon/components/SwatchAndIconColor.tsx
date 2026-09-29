@@ -1,12 +1,16 @@
-import type { ReactNode } from "react";
+import { makeComponentView } from "../../../../make/makeComponentView";
+import { swatchAndIconColorComponent } from "../../generator/SwatchAndIconColorComponent";
 
-export function SwatchAndIconColor(props: { color: string; children?: ReactNode }) {
-  return (
-    <div
-      className="flex h-full w-full items-center justify-center"
-      style={{ backgroundColor: props.color }}
-    >
-      {props.children}
-    </div>
-  );
-}
+export const swatchAndIconColorView = makeComponentView(swatchAndIconColorComponent, {
+  component(props) {
+    const { color, children } = props;
+    return (
+      <div
+        className="flex h-full w-full items-center justify-center"
+        style={{ backgroundColor: color }}
+      >
+        {children}
+      </div>
+    );
+  },
+});

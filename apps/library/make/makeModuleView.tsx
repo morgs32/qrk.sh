@@ -8,7 +8,9 @@ import {
   VisibilityProvider,
   type ComponentRegistry,
 } from "@json-render/react";
-import { type IShape } from "@zerospin/schema";
+import { makeEffectSchema, type InferDecodedRow, type IShape } from "@zerospin/schema";
+import { Schema } from "effect";
+import { mapValues } from "es-toolkit";
 
 const emptySpec: Spec = {
   root: "empty",
@@ -92,9 +94,7 @@ export function makeModuleView<
   module: MODULE,
   view: {
     default: {
-      component: {
-        bivarianceHack(props: { state: unknown }): ReactNode;
-      }["bivarianceHack"];
+      component: (props: { state: InferDecodedRow<MODULE["stateShape"]> }) => ReactNode;
       generator?: {
         registry: ComponentRegistry;
         defaultSpec: Spec;
@@ -102,9 +102,7 @@ export function makeModuleView<
     };
   } & {
     [K in "sm" | "md" | "lg" | "xl"]?: {
-      component?: {
-        bivarianceHack(props: { state: unknown }): ReactNode;
-      }["bivarianceHack"];
+      component?: (props: { state: InferDecodedRow<MODULE["stateShape"]> }) => ReactNode;
       generator?: {
         registry?: ComponentRegistry;
         defaultSpec?: Spec;
@@ -122,6 +120,31 @@ export function makeModuleView<
   assertBothOrNeitherWh(`${JSON.stringify(module.id)}.lg`, view.lg ?? {});
   assertBothOrNeitherWh(`${JSON.stringify(module.id)}.xl`, view.xl ?? {});
 
+  const decodeState = Schema.decodeUnknownSync(
+    makeEffectSchema<MODULE["stateShape"]>(module.stateShape),
+  );
+  const authoredByComponent = new Map<
+    typeof view.default.component,
+    (props: { state: unknown }) => ReactNode
+  >();
+  const authoredComponents = mapValues(
+    { sm: view.sm, md: view.md, lg: view.lg, xl: view.xl },
+    (overlay) => {
+      const Component = overlay?.component ?? view.default.component;
+      const existing = authoredByComponent.get(Component);
+      if (existing !== undefined) {
+        return existing;
+      }
+      function Authored(props: { state: unknown }) {
+        const { state } = props;
+        const decoded = decodeState(state, { onExcessProperty: "preserve" });
+        return <Component state={decoded} />;
+      }
+      authoredByComponent.set(Component, Authored);
+      return Authored;
+    },
+  );
+
   function viewFor(breakpoint: "sm" | "md" | "lg" | "xl") {
     const overlay = view[breakpoint];
     const generator = resolvedGenerator(
@@ -132,7 +155,7 @@ export function makeModuleView<
       overlay?.generator,
     );
     return {
-      component: overlay?.component ?? view.default.component,
+      component: authoredComponents[breakpoint],
       spec: generator?.defaultSpec ?? emptySpec,
       registry: generator?.registry,
       w: overlay?.w,
@@ -140,22 +163,19 @@ export function makeModuleView<
     };
   }
 
-  function Brick(propsForBrick: {
-    state?: unknown;
-    breakpoint: "sm" | "md" | "lg" | "xl";
-    spec: Spec;
-  }) {
-    const resolved = viewFor(propsForBrick.breakpoint);
+  function Brick(props: { state?: unknown; breakpoint: "sm" | "md" | "lg" | "xl"; spec: Spec }) {
+    const { state, breakpoint, spec } = props;
+    const resolved = viewFor(breakpoint);
     const Authored = resolved.component;
     if (resolved.registry === undefined) {
-      return <Authored state={propsForBrick.state} />;
+      return <Authored state={state} />;
     }
-    const initialState = makeInitialState(propsForBrick.state);
+    const initialState = makeInitialState(state);
     return (
       <StateProvider initialState={initialState}>
         <VisibilityProvider>
           <ActionProvider handlers={{}}>
-            <Renderer spec={propsForBrick.spec} registry={resolved.registry} />
+            <Renderer spec={spec} registry={resolved.registry} />
           </ActionProvider>
         </VisibilityProvider>
       </StateProvider>

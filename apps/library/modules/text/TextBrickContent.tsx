@@ -2,11 +2,8 @@
 
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import type { Schema } from "effect";
-
-import { TiptapDocSchema } from "../../lib/TiptapDocSchema";
-
-type TiptapDoc = Schema.Schema.Type<typeof TiptapDocSchema>;
+import { makeComponentView } from "../../make/makeComponentView";
+import { textBrickComponent } from "./generator/TextBrickComponent";
 
 const emptyPlaceholder = {
   type: "doc",
@@ -18,31 +15,33 @@ const emptyPlaceholder = {
   ],
 };
 
-export function TextBrickContent(props: { content: TiptapDoc | null }) {
-  const editor = useEditor(
-    {
-      extensions: [StarterKit],
-      content:
-        props.content === null ? emptyPlaceholder : JSON.parse(JSON.stringify(props.content)),
-      editable: false,
-      immediatelyRender: false,
-      editorProps: {
-        attributes: {
-          "aria-label": "Text content",
-          class: "min-h-0 px-4 py-3 outline-none",
+export const textBrickContentView = makeComponentView(textBrickComponent, {
+  component(props) {
+    const { content } = props;
+    const editor = useEditor(
+      {
+        extensions: [StarterKit],
+        content: content === null ? emptyPlaceholder : JSON.parse(JSON.stringify(content)),
+        editable: false,
+        immediatelyRender: false,
+        editorProps: {
+          attributes: {
+            "aria-label": "Text content",
+            class: "min-h-0 px-4 py-3 outline-none",
+          },
         },
       },
-    },
-    [props.content],
-  );
+      [content],
+    );
 
-  if (editor === null) {
-    return null;
-  }
+    if (editor === null) {
+      return null;
+    }
 
-  return (
-    <div className="size-full min-h-0 overflow-auto bg-background">
-      <EditorContent editor={editor} />
-    </div>
-  );
-}
+    return (
+      <div className="size-full min-h-0 overflow-auto bg-background">
+        <EditorContent editor={editor} />
+      </div>
+    );
+  },
+});

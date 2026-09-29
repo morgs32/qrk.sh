@@ -132,9 +132,7 @@ it('durably stages prepared mutations while leaving resource rows authoritative'
           expect(
             decoded.mutations.map(mutation => JSON.parse(mutation.operation)),
           ).toMatchObject([{ encodedAttributes: { value: 7 } }]);
-          expect(
-            db.db.query.machineGame?.findFirst().sync(),
-          ).toBeUndefined();
+          expect(db.db.query.machineGame?.findFirst().sync()).toBeUndefined();
         } finally {
           program.mockRestore();
         }

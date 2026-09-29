@@ -13,12 +13,12 @@ import { eq } from 'drizzle-orm';
 import { Effect } from 'effect';
 
 import { AggregateVersionRepo } from '../AggregateVersionRepo/AggregateVersionRepo.js';
+import { getAggregateMachineRepo } from '../machineRepoNames.js';
 import {
   makeFanoutQueue,
   type IFanoutRepo,
 } from '../makeFanoutQueue/makeFanoutQueue.js';
 import { makeFixedDORepo } from '../makeFixedDORepo/makeFixedDORepo.js';
-import { getAggregateMachineRepo } from '../machineRepoNames.js';
 
 import {
   prepareAdmission,
@@ -38,26 +38,31 @@ export class AggregateChain
   implements IFanoutRepo<'admissionResultsFanout', AggregateVersionRepo>
 {
   async #readyMachines(aggregateVersion: string) {
-    const machines: Readonly<Record<string, IAnyMachineDeclaration>> = config.system.machines;
-    const matching = Object.entries(machines).filter(([, machine]) =>
-      'services' in machine.source &&
-      machine.source.name === this.key.aggregateName &&
-      machine.source.version === aggregateVersion,
+    const machines: Readonly<Record<string, IAnyMachineDeclaration>> =
+      config.system.machines;
+    const matching = Object.entries(machines).filter(
+      ([, machine]) =>
+        'services' in machine.source &&
+        machine.source.name === this.key.aggregateName &&
+        machine.source.version === aggregateVersion,
     );
     if (matching.length === 0) return;
     await config.system.runtime.runPromise(
-      Effect.forEach(matching, ([machineName]) => Effect.gen({ self: this }, function* () {
-        const repo = yield* getAggregateMachineRepo({
-          key: {
-            systemId: this.key.systemId,
-            aggregateName: this.key.aggregateName,
-            aggregateId: this.key.aggregateId,
-            machineName,
-          },
-        });
-        yield* makeAsync<Awaited<ReturnType<typeof repo.ready>>>(() => repo.ready())
-          .pipe(Effect.flatMap(readRpcEnvelope));
-      })).pipe(Effect.provide(AsyncLive)),
+      Effect.forEach(matching, ([machineName]) =>
+        Effect.gen({ self: this }, function* () {
+          const repo = yield* getAggregateMachineRepo({
+            key: {
+              systemId: this.key.systemId,
+              aggregateName: this.key.aggregateName,
+              aggregateId: this.key.aggregateId,
+              machineName,
+            },
+          });
+          yield* makeAsync<Awaited<ReturnType<typeof repo.ready>>>(() =>
+            repo.ready(),
+          ).pipe(Effect.flatMap(readRpcEnvelope));
+        }),
+      ).pipe(Effect.provide(AsyncLive)),
     );
   }
   /**
@@ -153,20 +158,24 @@ export class AggregateChain
           });
         }
         const prepared = yield* prepareAdmission({
-            commands: [props.command],
-            aggregateVersion: props.aggregateVersion,
-            machineOutput: true,
-            machineMode: props.mode,
-            db: this.db,
-            key: this.key,
-          });
+          commands: [props.command],
+          aggregateVersion: props.aggregateVersion,
+          machineOutput: true,
+          machineMode: props.mode,
+          db: this.db,
+          key: this.key,
+        });
         const [receipt] = yield* this.#admissionResultsFanout.drainAfter(() =>
           admitCommandsTx(this.db, prepared),
         );
-        if (receipt === undefined) return yield* makeZerospinError('machine-admission-missing');
+        if (receipt === undefined) {
+          return yield* makeZerospinError('machine-admission-missing');
+        }
         return { commandId: receipt.id, accepted: true as const };
       }).pipe(
-        Effect.ensuring(Effect.sync(() => this.#admissionResultsFanout.drain())),
+        Effect.ensuring(
+          Effect.sync(() => this.#admissionResultsFanout.drain()),
+        ),
         Effect.provide(AsyncLive),
         makeRpcEnvelope,
       ),

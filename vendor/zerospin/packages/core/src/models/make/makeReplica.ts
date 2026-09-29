@@ -37,7 +37,11 @@ export function makeReplica(props: {
   serviceName: string;
   serviceVersion: string;
 }): unknown {
-  assertSameCoreInstance({ value: props.sourceModel, expected: Model, kind: 'Model' });
+  assertSameCoreInstance({
+    value: props.sourceModel,
+    expected: Model,
+    kind: 'Model',
+  });
   const { sourceModel, serviceName, serviceVersion } = Schema.decodeUnknownSync(
     MakeReplicaPropsSchema,
     {

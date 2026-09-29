@@ -1,7 +1,7 @@
+import type { IStateMap } from '@zerospin/core/machine/types';
 import { Schema } from 'effect';
 
 import { RouteContractViolation } from './RouteContractViolation.js';
-import type { IStateMap } from '@zerospin/core/machine/types';
 
 type IStateValue = { readonly stateName: string };
 

@@ -1,13 +1,14 @@
 import type { IAnyMachineDeclaration } from '@zerospin/core/machine/types';
-import { makeMachineRepo } from 'system-worker/makeMachineRepo/makeMachineRepo';
 import config from 'config';
 import {
   aggregateMachineNamePattern,
   serviceMachineNamePattern,
 } from 'system-worker/machineRepoNames';
+import { makeMachineRepo } from 'system-worker/makeMachineRepo/makeMachineRepo';
 import { systemWorkerAbbreviations } from 'system-worker/systemWorkerAbbreviations';
 
-const machines: Readonly<Record<string, IAnyMachineDeclaration>> = config.system.machines;
+const machines: Readonly<Record<string, IAnyMachineDeclaration>> =
+  config.system.machines;
 
 export const AggregateMachineRepo = makeMachineRepo({
   sourceKind: 'aggregate',
@@ -17,8 +18,11 @@ export const AggregateMachineRepo = makeMachineRepo({
   managedRuntime: config.system.runtime,
   resolveMachine: key => {
     const machine = machines[key.machineName];
-    if (machine === undefined || !('services' in machine.source) ||
-      machine.source.name !== key.aggregateName) {
+    if (
+      machine === undefined ||
+      !('services' in machine.source) ||
+      machine.source.name !== key.aggregateName
+    ) {
       throw new Error(`Unknown aggregate machine ${key.machineName}`);
     }
     return machine;
@@ -33,8 +37,11 @@ export const ServiceMachineRepo = makeMachineRepo({
   managedRuntime: config.system.runtime,
   resolveMachine: key => {
     const machine = machines[key.machineName];
-    if (machine === undefined || 'services' in machine.source ||
-      machine.source.name !== key.serviceName) {
+    if (
+      machine === undefined ||
+      'services' in machine.source ||
+      machine.source.name !== key.serviceName
+    ) {
       throw new Error(`Unknown service machine ${key.machineName}`);
     }
     return machine;

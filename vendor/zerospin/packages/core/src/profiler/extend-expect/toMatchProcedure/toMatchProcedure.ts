@@ -3,8 +3,9 @@ import { Schema } from 'effect';
 import { assert, type Equals } from 'tsafe';
 import { expect } from 'vitest';
 
-import { isProfiler } from './isProfiler/isProfiler.ts';
 import type { ZerospinProfile } from '../../make/makeProfilerLayer/makeProfilerLayer.ts';
+
+import { isProfiler } from './isProfiler/isProfiler.ts';
 
 export type IProcedureCall = readonly [
   (...args: any[]) => any,

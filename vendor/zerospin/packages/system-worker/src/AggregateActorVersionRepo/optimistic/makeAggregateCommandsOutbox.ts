@@ -81,13 +81,22 @@ export const makeAggregateCommandsOutbox = (props: {
               ),
           );
           const startedAt = new Date();
-          const receipt = yield* makeAsync<Awaited<ReturnType<AggregateChain['admitCommands']>>>(
-            () => chain.admitCommands({ aggregateVersion: key.aggregateVersion, commands: [command] }),
+          const receipt = yield* makeAsync<
+            Awaited<ReturnType<AggregateChain['admitCommands']>>
+          >(() =>
+            chain.admitCommands({
+              aggregateVersion: key.aggregateVersion,
+              commands: [command],
+            }),
           ).pipe(
             Effect.flatMap(readRpcEnvelope),
-            Effect.flatMap(receipts => receipts[0] === undefined
-              ? Effect.fail(makeZerospinError('aggregate-admission-receipt-missing'))
-              : Effect.succeed(receipts[0])),
+            Effect.flatMap(receipts =>
+              receipts[0] === undefined
+                ? Effect.fail(
+                    makeZerospinError('aggregate-admission-receipt-missing'),
+                  )
+                : Effect.succeed(receipts[0]),
+            ),
             Effect.catchIf(
               error =>
                 typeof error === 'object' &&

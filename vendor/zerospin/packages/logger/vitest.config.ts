@@ -13,6 +13,7 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
+    passWithNoTests: true,
     exclude: ['**/node_modules/**', '**/dist/**', 'specs/workerd/**'],
     globals: true,
   },

@@ -9,8 +9,8 @@ import type {
 } from '../../../aggregate/types.ts';
 import { getAggregateActorVersion } from '../../../aggregateActor/getAggregateActorVersion.ts';
 import { AsyncLive } from '../../../async/AsyncLive.ts';
-import type { IModel } from '../../../models/types.ts';
 import type { IAnyMachineDeclaration } from '../../../machine/types.ts';
+import type { IModel } from '../../../models/types.ts';
 import type {
   IAnyService,
   IAnyVersionedService,
@@ -57,26 +57,32 @@ type SystemRequirements<
     Readonly<Record<string, IAnyAuthoredAggregate>>
   >,
 > = {
-      [NAME in keyof AGGREGATES]: {
-        [VERSION in keyof AGGREGATES[NAME]]: RequiredServices<
-          NonNullable<AGGREGATES[NAME][VERSION]['__guardRequirements']>
-        >;
-      }[keyof AGGREGATES[NAME]];
-    }[keyof AGGREGATES];
+  [NAME in keyof AGGREGATES]: {
+    [VERSION in keyof AGGREGATES[NAME]]: RequiredServices<
+      NonNullable<AGGREGATES[NAME][VERSION]['__guardRequirements']>
+    >;
+  }[keyof AGGREGATES[NAME]];
+}[keyof AGGREGATES];
 
-type MachineRequirements<MACHINES extends Record<string, IAnyMachineDeclaration>> = {
+type MachineRequirements<
+  MACHINES extends Record<string, IAnyMachineDeclaration>,
+> = {
   [NAME in keyof MACHINES]: {
-    [STATE in keyof MACHINES[NAME]['routes']]:
-      MACHINES[NAME]['routes'][STATE] extends {
-        readonly onActivation: (...args: never[]) => Effect.Effect<unknown, unknown, infer SERVICES>;
-      }
-        ? SERVICES
-        : never;
+    [STATE in keyof MACHINES[NAME]['routes']]: MACHINES[NAME]['routes'][STATE] extends {
+      readonly onActivation: (
+        ...args: never[]
+      ) => Effect.Effect<unknown, unknown, infer SERVICES>;
+    }
+      ? SERVICES
+      : never;
   }[keyof MACHINES[NAME]['routes']];
 }[keyof MACHINES];
 
 type ApplicationRequirements<
-  AGGREGATES extends Record<string, Readonly<Record<string, IAnyAuthoredAggregate>>>,
+  AGGREGATES extends Record<
+    string,
+    Readonly<Record<string, IAnyAuthoredAggregate>>
+  >,
   MACHINES extends Record<string, IAnyMachineDeclaration>,
 > = SystemRequirements<AGGREGATES> | MachineRequirements<MACHINES>;
 
@@ -201,24 +207,43 @@ export function makeSystem(props: {
 
   for (const [machineName, machine] of Object.entries(machines)) {
     const source = machine.source;
-    const registered = 'services' in source
-      ? Object.values(authoredAggregates[source.name] ?? {}).includes(source)
-      : Object.values(authoredServices[source.name]?.versions ?? {}).includes(source);
+    const registered =
+      'services' in source
+        ? Object.values(authoredAggregates[source.name] ?? {}).includes(source)
+        : Object.values(authoredServices[source.name]?.versions ?? {}).includes(
+            source,
+          );
     if (!registered) {
-      throw new Error(`Machine ${machineName} source is not registered in this system`);
+      throw new Error(
+        `Machine ${machineName} source is not registered in this system`,
+      );
     }
-    for (const [selectionName, selection] of Object.entries(machine.selections)) {
+    for (const [selectionName, selection] of Object.entries(
+      machine.selections,
+    )) {
       if (!Object.values(source.models).includes(selection.model)) {
-        throw new Error(`Machine ${machineName} selection ${selectionName} does not belong to its source`);
+        throw new Error(
+          `Machine ${machineName} selection ${selectionName} does not belong to its source`,
+        );
       }
     }
     for (const [bindingName, binding] of Object.entries(machine.contracts)) {
       const target = binding.target;
-      const targetRegistered = 'services' in target
-        ? Object.values(authoredAggregates[target.name] ?? {}).includes(target)
-        : Object.values(authoredServices[target.name]?.versions ?? {}).includes(target);
-      if (!targetRegistered || !Object.values(target.contracts).includes(binding.contract)) {
-        throw new Error(`Machine ${machineName} contract ${bindingName} is not bound to a registered target`);
+      const targetRegistered =
+        'services' in target
+          ? Object.values(authoredAggregates[target.name] ?? {}).includes(
+              target,
+            )
+          : Object.values(
+              authoredServices[target.name]?.versions ?? {},
+            ).includes(target);
+      if (
+        !targetRegistered ||
+        !Object.values(target.contracts).includes(binding.contract)
+      ) {
+        throw new Error(
+          `Machine ${machineName} contract ${bindingName} is not bound to a registered target`,
+        );
       }
     }
   }

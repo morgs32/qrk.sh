@@ -1,11 +1,17 @@
 import type { IAnyAuthoredAggregate } from '@zerospin/core/aggregate/types';
 import type { IContract } from '@zerospin/core/contracts/types';
-import { Model } from '@zerospin/core/models/defineModel';
-import { captureActorSelections, makeActorDbVersion } from '@zerospin/core/models/make/makeActorDbVersion';
-import type { IModel } from '@zerospin/core/models/types';
-import { execute, makeMachine } from '@zerospin/core/machine/makeMachine/makeMachine';
+import {
+  execute,
+  makeMachine,
+} from '@zerospin/core/machine/makeMachine/makeMachine';
 import { makeState } from '@zerospin/core/machine/makeState/makeState';
 import type { IMachineDb } from '@zerospin/core/machine/types';
+import { Model } from '@zerospin/core/models/defineModel';
+import {
+  captureActorSelections,
+  makeActorDbVersion,
+} from '@zerospin/core/models/make/makeActorDbVersion';
+import type { IModel } from '@zerospin/core/models/types';
 import { makeAbbreviationIdSchema } from '@zerospin/schema';
 import { Effect, Schema } from 'effect';
 
@@ -39,14 +45,20 @@ const Fields = {
   aggregateId: Schema.String,
   claims: Schema.Record(Schema.String, Schema.Unknown),
 };
-const Idle = makeState({ stateName: 'idle', input: { handled: Schema.Array(Schema.String) } });
+const Idle = makeState({
+  stateName: 'idle',
+  input: { handled: Schema.Array(Schema.String) },
+});
 const Operating = makeState({ stateName: 'operating', input: Fields });
 
 /** Executes each new packing or shipping request and records its terminal observation. */
 export function makeFulfillmentOperationMachine(props: {
   source: ISource;
   serviceVersion: string;
-  claimsForUser: (props: { db: IMachineDb<ISource>; userId: string }) => Readonly<Record<string, unknown>>;
+  claimsForUser: (props: {
+    db: IMachineDb<ISource>;
+    userId: string;
+  }) => Readonly<Record<string, unknown>>;
 }) {
   const { source, serviceVersion, claimsForUser } = props;
   const fulfillmentModel = source.models.fulfillment;
@@ -66,23 +78,38 @@ export function makeFulfillmentOperationMachine(props: {
   const fulfillmentQuery = authoringDb.query.fulfillment;
   const operationQuery = authoringDb.query.fulfillmentOperation;
   const userQuery = authoringDb.query.user;
-  if (fulfillmentQuery === undefined || operationQuery === undefined || userQuery === undefined) {
+  if (
+    fulfillmentQuery === undefined ||
+    operationQuery === undefined ||
+    userQuery === undefined
+  ) {
     throw new Error('Fulfillment operation source models are missing');
   }
-  const selections = captureActorSelections(authoringDb, {
-    fulfillment: fulfillmentQuery.findMany(),
-    fulfillmentOperation: operationQuery.findMany(),
-    user: userQuery.findMany(),
-  }, Schema.Struct({}));
-  const operations = (db: IMachineDb<ISource>) => Schema.decodeUnknownSync(Schema.Array(Operation))(
-    db.query.fulfillmentOperation?.findMany().sync(),
+  const selections = captureActorSelections(
+    authoringDb,
+    {
+      fulfillment: fulfillmentQuery.findMany(),
+      fulfillmentOperation: operationQuery.findMany(),
+      user: userQuery.findMany(),
+    },
+    Schema.Struct({}),
   );
+  const operations = (db: IMachineDb<ISource>) =>
+    Schema.decodeUnknownSync(Schema.Array(Operation))(
+      db.query.fulfillmentOperation?.findMany().sync(),
+    );
   const next = (db: IMachineDb<ISource>, handled: readonly string[]) => {
-    const rows = new Map(Schema.decodeUnknownSync(Schema.Array(Fulfillment))(
-      db.query.fulfillment?.findMany().sync(),
-    ).map(row => [row.id, row]));
-    const operation = operations(db).find(row =>
-      row.status === 'requested' && !handled.includes(row.id) && rows.has(row.fulfillmentId));
+    const rows = new Map(
+      Schema.decodeUnknownSync(Schema.Array(Fulfillment))(
+        db.query.fulfillment?.findMany().sync(),
+      ).map(row => [row.id, row]),
+    );
+    const operation = operations(db).find(
+      row =>
+        row.status === 'requested' &&
+        !handled.includes(row.id) &&
+        rows.has(row.fulfillmentId),
+    );
     if (operation === undefined) return undefined;
     const fulfillment = rows.get(operation.fulfillmentId);
     if (fulfillment === undefined) return undefined;
@@ -108,56 +135,62 @@ export function makeFulfillmentOperationMachine(props: {
       },
     },
     states: { idle: Idle, operating: Operating, reporting: Reporting },
-    onBootstrap: ({ db }) => Idle.make({
-      handled: operations(db).filter(row => row.status === 'requested').map(row => row.id),
-    }),
+    onBootstrap: ({ db }) =>
+      Idle.make({
+        handled: operations(db)
+          .filter(row => row.status === 'requested')
+          .map(row => row.id),
+      }),
     routes: {
       idle: { onCommand: ({ origin, db }) => next(db, origin.handled) },
       operating: {
         onCommand: () => undefined,
-        onActivation: ({ origin }) => Effect.gen(function* () {
-          const client = yield* FulfillmentClient;
-          const result = yield* client.operate({
-            serviceVersion,
-            operationId: origin.operationId,
-            fulfillmentId: origin.fulfillmentId,
-            action: origin.action,
-            requestId: origin.requestId,
-            purchaseId: origin.purchaseId,
-            userId: origin.userId,
-            aggregateId: origin.aggregateId,
-          });
-          return Reporting.make({
-            handled: origin.handled,
-            operationId: origin.operationId,
-            fulfillmentId: origin.fulfillmentId,
-            action: origin.action,
-            requestId: origin.requestId,
-            purchaseId: origin.purchaseId,
-            userId: origin.userId,
-            aggregateId: origin.aggregateId,
-            claims: origin.claims,
-            status: result.kind === 'confirmed' ? 'succeeded' : 'failed',
-            failure: result.kind === 'rejected' ? result.reason : null,
-            fulfillment: result.kind === 'confirmed' ? result.fulfillment : null,
-          });
-        }),
+        onActivation: ({ origin }) =>
+          Effect.gen(function* () {
+            const client = yield* FulfillmentClient;
+            const result = yield* client.operate({
+              serviceVersion,
+              operationId: origin.operationId,
+              fulfillmentId: origin.fulfillmentId,
+              action: origin.action,
+              requestId: origin.requestId,
+              purchaseId: origin.purchaseId,
+              userId: origin.userId,
+              aggregateId: origin.aggregateId,
+            });
+            return Reporting.make({
+              handled: origin.handled,
+              operationId: origin.operationId,
+              fulfillmentId: origin.fulfillmentId,
+              action: origin.action,
+              requestId: origin.requestId,
+              purchaseId: origin.purchaseId,
+              userId: origin.userId,
+              aggregateId: origin.aggregateId,
+              claims: origin.claims,
+              status: result.kind === 'confirmed' ? 'succeeded' : 'failed',
+              failure: result.kind === 'rejected' ? result.reason : null,
+              fulfillment:
+                result.kind === 'confirmed' ? result.fulfillment : null,
+            });
+          }),
       },
       reporting: {
         onCommand: () => undefined,
-        command: ({ origin }) => execute({
-          binding: 'recordFulfillmentOperation',
-          aggregateId: origin.aggregateId,
-          claims: origin.claims,
-          payload: {
-            id: origin.operationId,
-            fulfillmentId: origin.fulfillmentId,
-            action: origin.action,
-            status: origin.status,
-            failure: origin.failure,
-            fulfillment: origin.fulfillment,
-          },
-        }),
+        command: ({ origin }) =>
+          execute({
+            binding: 'recordFulfillmentOperation',
+            aggregateId: origin.aggregateId,
+            claims: origin.claims,
+            payload: {
+              id: origin.operationId,
+              fulfillmentId: origin.fulfillmentId,
+              action: origin.action,
+              status: origin.status,
+              failure: origin.failure,
+              fulfillment: origin.fulfillment,
+            },
+          }),
         onResult: ({ origin, db }) => {
           const handled = [...origin.handled, origin.operationId];
           return next(db, handled) ?? Idle.make({ handled });

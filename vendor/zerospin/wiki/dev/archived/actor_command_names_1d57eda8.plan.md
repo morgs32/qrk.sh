@@ -1,6 +1,6 @@
 ---
 name: Actor command names
-overview: "Split AVR and AVC commands into aggregateCommands and serviceCommands sharing one executedIndex. Delete selectionIndex. Empty storage: no compatibility names."
+overview: 'Split AVR and AVC commands into aggregateCommands and serviceCommands sharing one executedIndex. Delete selectionIndex. Empty storage: no compatibility names.'
 todos:
   - id: agents-rule
     content: Add the Working rules bullet in AGENTS.md that deletes cruft in the area being worked instead of renaming it.
@@ -95,7 +95,6 @@ Reviewed with `use-morgs32-wiki-patterns`: scoped execution, module paths matchi
 8. Verify with the affected Nx target graph and focused materialization, queue, actor-output, session, snapshot, and resume cases. The parent has 27 worker Node failures, a Date/string recovery assertion failure, and a production Workerd fixture-import startup failure (documented in PR 23); compare touched failing tests against those known causes rather than labeling new failures pre-existing. No Shopping browser verification.
 
 Implementation order within this PR: source tables and typed merged storage readers; AVR/AVC writes and deliveries; actor state/commit/hash cutover; Core/browser resume and consumer migration; current docs and focused verification. Fixed storage must be empty; no migration or compatibility path is part of this plan.
-
 
 ## Implementation and verification — 2026-09-24
 

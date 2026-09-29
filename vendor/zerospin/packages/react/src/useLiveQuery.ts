@@ -137,6 +137,7 @@ export function useLiveQuery<
   readonly updatedAt: Date | undefined;
 };
 
+// oxlint-disable-next-line typescript/no-explicit-any -- The implementation bridges four typed overloads with different session, key, and query types.
 export function useLiveQuery(props: any): any {
   const { session, key, query, tableNames = [] } = props;
   const db = useSessionDatabase(session);

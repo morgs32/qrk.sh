@@ -1,10 +1,16 @@
 import type { IContract } from '@zerospin/core/contracts/types';
-import { captureActorSelections, makeActorDbVersion } from '@zerospin/core/models/make/makeActorDbVersion';
-import type { IModel } from '@zerospin/core/models/types';
-import type { IService } from '@zerospin/core/service/types';
-import { execute, makeMachine } from '@zerospin/core/machine/makeMachine/makeMachine';
+import {
+  execute,
+  makeMachine,
+} from '@zerospin/core/machine/makeMachine/makeMachine';
 import { makeState } from '@zerospin/core/machine/makeState/makeState';
 import type { IMachineDb } from '@zerospin/core/machine/types';
+import {
+  captureActorSelections,
+  makeActorDbVersion,
+} from '@zerospin/core/models/make/makeActorDbVersion';
+import type { IModel } from '@zerospin/core/models/types';
+import type { IService } from '@zerospin/core/service/types';
 import { makeAbbreviationIdSchema } from '@zerospin/schema';
 import { Effect, Schema } from 'effect';
 
@@ -38,10 +44,10 @@ type IShippingSource = IService<
 >;
 
 /** One service owner ships the next selected packed fulfillment after each result. */
-export function makeFulfillmentShippingMachine(
-  source: IShippingSource,
-) {
-  const selectedDb = makeActorDbVersion({ models: { fulfillment: source.models.fulfillment } });
+export function makeFulfillmentShippingMachine(source: IShippingSource) {
+  const selectedDb = makeActorDbVersion({
+    models: { fulfillment: source.models.fulfillment },
+  });
   const selections = captureActorSelections(
     selectedDb,
     { fulfillment: selectedDb.query.fulfillment.findMany() },
@@ -51,7 +57,9 @@ export function makeFulfillmentShippingMachine(
     const rows = Schema.decodeUnknownSync(Schema.Array(FulfillmentRow))(
       db.query.fulfillment.findMany().sync(),
     );
-    const row = rows.find(candidate => candidate.status === 'packed' && candidate.id !== excludeId);
+    const row = rows.find(
+      candidate => candidate.status === 'packed' && candidate.id !== excludeId,
+    );
     return row === undefined
       ? undefined
       : Preparing.make({
@@ -62,7 +70,9 @@ export function makeFulfillmentShippingMachine(
   return makeMachine({
     source,
     selections,
-    contracts: { markShipped: { contract: source.contracts.markShipped, target: source } },
+    contracts: {
+      markShipped: { contract: source.contracts.markShipped, target: source },
+    },
     states: { idle: Idle, preparing: Preparing, sending: Sending },
     onBootstrap: ({ db }) => nextPacked(db) ?? Idle.make({}),
     routes: {
@@ -74,28 +84,38 @@ export function makeFulfillmentShippingMachine(
           const rows = Schema.decodeUnknownSync(Schema.Array(FulfillmentRow))(
             db.query.fulfillment.findMany().sync(),
           );
-          return rows.some(row => row.id === origin.fulfillmentId && row.status === 'packed')
+          return rows.some(
+            row => row.id === origin.fulfillmentId && row.status === 'packed',
+          )
             ? undefined
             : Idle.make({});
         },
-        onActivation: ({ origin }) => Effect.gen(function* () {
-          const carrier = yield* Carrier;
-          const trackingId = yield* carrier({
-            id: origin.fulfillmentId,
-            ...(origin.warehouseCode === null ? {} : { warehouseCode: origin.warehouseCode }),
-          });
-          return Sending.make({ fulfillmentId: origin.fulfillmentId, trackingId });
-        }),
+        onActivation: ({ origin }) =>
+          Effect.gen(function* () {
+            const carrier = yield* Carrier;
+            const trackingId = yield* carrier({
+              id: origin.fulfillmentId,
+              ...(origin.warehouseCode === null
+                ? {}
+                : { warehouseCode: origin.warehouseCode }),
+            });
+            return Sending.make({
+              fulfillmentId: origin.fulfillmentId,
+              trackingId,
+            });
+          }),
       },
       sending: {
-        command: ({ origin }) => execute({
-          binding: 'markShipped',
-          payload: {
-            fulfillmentId: origin.fulfillmentId,
-            trackingId: origin.trackingId,
-          },
-        }),
-        onResult: ({ origin, db }) => nextPacked(db, origin.fulfillmentId) ?? Idle.make({}),
+        command: ({ origin }) =>
+          execute({
+            binding: 'markShipped',
+            payload: {
+              fulfillmentId: origin.fulfillmentId,
+              trackingId: origin.trackingId,
+            },
+          }),
+        onResult: ({ origin, db }) =>
+          nextPacked(db, origin.fulfillmentId) ?? Idle.make({}),
       },
     },
   });

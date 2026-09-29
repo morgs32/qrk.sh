@@ -5,10 +5,7 @@ import type {
   IEncodedCommand,
 } from '@zerospin/core/contracts/types';
 import { readRpcEnvelope } from '@zerospin/core/utils/readRpcEnvelope';
-import {
-  isZerospinError,
-  makeZerospinError,
-} from '@zerospin/error';
+import { isZerospinError, makeZerospinError } from '@zerospin/error';
 import { makeRpcEnvelope } from '@zerospin/logger';
 import config from 'config';
 import { eq, isNotNull } from 'drizzle-orm';
@@ -243,8 +240,11 @@ export class AggregateActorVersionRepo extends makeFixedDORepo({
       ) =>
         this.#actorWrites.withPermits(1)(
           this.#actorCommandsOutbox.drainAfter(() =>
-            applyExecutedCommands({ rows: delivery.rows, db: this.db, key: this.key })
-              .pipe(Effect.scoped),
+            applyExecutedCommands({
+              rows: delivery.rows,
+              db: this.db,
+              key: this.key,
+            }).pipe(Effect.scoped),
           ),
         ),
     });

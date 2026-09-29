@@ -1,6 +1,13 @@
+import {
+  makeFulfillmentOperationMachine,
+  makePaidFulfillmentMachine,
+} from '@zerospin/fulfillment/server';
+import {
+  makeAcceptPurchaseMachine,
+  makePurchasePaymentMachine,
+  makePurchasePromotionMachine,
+} from '@zerospin/purchase/server';
 import * as sdk from '@zerospin/sdk';
-import { makeAcceptPurchaseMachine, makePurchasePaymentMachine, makePurchasePromotionMachine } from '@zerospin/purchase/server';
-import { makeFulfillmentOperationMachine, makePaidFulfillmentMachine } from '@zerospin/fulfillment/server';
 import { Layer, Schema } from 'effect';
 
 import { shopperAggregateV2 } from './aggregates/shopper/shopperAggregateV2';
@@ -11,17 +18,25 @@ import { PromotionProviderLive } from './PromotionProviderLive';
 import { appServiceV1 } from './services/app/appServiceV1';
 import { fulfillmentService } from './services/fulfillment/fulfillmentService';
 import { promotionService } from './services/promotion/promotionService';
-const userIdentity = Schema.Struct({ id: Schema.String, clerkUserId: Schema.String });
-const claimsForPurchaseUser = ({ db, userId }: {
-  db: Parameters<Parameters<typeof makeAcceptPurchaseMachine>[0]['claimsForUser']>[0]['db'];
+const userIdentity = Schema.Struct({
+  id: Schema.String,
+  clerkUserId: Schema.String,
+});
+const claimsForPurchaseUser = ({
+  db,
+  userId,
+}: {
+  db: Parameters<
+    Parameters<typeof makeAcceptPurchaseMachine>[0]['claimsForUser']
+  >[0]['db'];
   userId: string;
 }) => {
-    const users = Schema.decodeUnknownSync(Schema.Array(userIdentity))(
-      db.query.user?.findMany().sync(),
-    );
-    const user = users.find(row => row.id === userId);
-    if (user === undefined) throw new Error(`Purchase user ${userId} is missing`);
-    return { clerkUserId: user.clerkUserId };
+  const users = Schema.decodeUnknownSync(Schema.Array(userIdentity))(
+    db.query.user?.findMany().sync(),
+  );
+  const user = users.find(row => row.id === userId);
+  if (user === undefined) throw new Error(`Purchase user ${userId} is missing`);
+  return { clerkUserId: user.clerkUserId };
 };
 const acceptPurchase = makeAcceptPurchaseMachine({
   source: shopperAggregateV2,
@@ -43,7 +58,9 @@ const requestPaidFulfillment = makePaidFulfillmentMachine({
       db.query.user?.findMany().sync(),
     );
     const user = users.find(row => row.id === userId);
-    if (user === undefined) throw new Error(`Fulfillment user ${userId} is missing`);
+    if (user === undefined) {
+      throw new Error(`Fulfillment user ${userId} is missing`);
+    }
     return { clerkUserId: user.clerkUserId };
   },
 });
@@ -55,7 +72,9 @@ const operateFulfillment = makeFulfillmentOperationMachine({
       db.query.user?.findMany().sync(),
     );
     const user = users.find(row => row.id === userId);
-    if (user === undefined) throw new Error(`Fulfillment user ${userId} is missing`);
+    if (user === undefined) {
+      throw new Error(`Fulfillment user ${userId} is missing`);
+    }
     return { clerkUserId: user.clerkUserId };
   },
 });
@@ -77,5 +96,11 @@ export const system = sdk.makeSystem({
     app: appServiceV1,
     promotion: promotionService,
   },
-  machines: { acceptPurchase, processPayment, purchasePromotion, requestPaidFulfillment, operateFulfillment },
+  machines: {
+    acceptPurchase,
+    processPayment,
+    purchasePromotion,
+    requestPaidFulfillment,
+    operateFulfillment,
+  },
 });

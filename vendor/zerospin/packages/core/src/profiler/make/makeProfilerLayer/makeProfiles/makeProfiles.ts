@@ -1,7 +1,7 @@
 import type { ReadableSpan } from '@opentelemetry/sdk-trace-base';
 
-import { ZerospinProfile } from '../makeProfilerLayer.ts';
 import type { IMetadataStore } from '../../../MetadataProcessor.ts';
+import { ZerospinProfile } from '../makeProfilerLayer.ts';
 
 export const makeProfiles = (props: {
   metadataBySpanId: Map<string, IMetadataStore>;

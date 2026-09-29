@@ -171,7 +171,10 @@ export type ISystemSpec = Readonly<{
         sourceName: string;
         sourceVersion: string;
         selections: Readonly<
-          Record<string, Readonly<{ modelName: string; query: ISelectionQuery }>>
+          Record<
+            string,
+            Readonly<{ modelName: string; query: ISelectionQuery }>
+          >
         >;
         contracts: Readonly<
           Record<
@@ -186,7 +189,13 @@ export type ISystemSpec = Readonly<{
         >;
         states: Readonly<Record<string, unknown>>;
         routes: Readonly<
-          Record<string, Readonly<{ work: 'idle' | 'waiting' | 'activation' | 'command'; onCommand: boolean }>>
+          Record<
+            string,
+            Readonly<{
+              work: 'idle' | 'waiting' | 'activation' | 'command';
+              onCommand: boolean;
+            }>
+          >
         >;
       }>
     >

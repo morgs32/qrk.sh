@@ -102,17 +102,22 @@ export class ServiceChain
             serviceVersion: props.command.serviceVersion,
           },
         });
-        return yield* makeAsync<Awaited<ReturnType<ServiceVersionRepo['execute']>>>(
-          () => repo.execute({ serviceIndex: receipt.serviceIndex }),
-        )
-          .pipe(Effect.flatMap(readRpcEnvelope));
+        return yield* makeAsync<
+          Awaited<ReturnType<ServiceVersionRepo['execute']>>
+        >(() => repo.execute({ serviceIndex: receipt.serviceIndex })).pipe(
+          Effect.flatMap(readRpcEnvelope),
+        );
       }).pipe(Effect.provide(AsyncLive), makeRpcEnvelope),
     );
   }
 
   readonly #admit = (
     command: IEncodedCommand<IServiceCommand>,
-    machine?: Readonly<{ machineName: string; bindingName: string; mode: 'push' | 'execute' }>,
+    machine?: Readonly<{
+      machineName: string;
+      bindingName: string;
+      mode: 'push' | 'execute';
+    }>,
   ) =>
     this.#admissionWrites.withPermits(1)(
       Effect.gen({ self: this }, function* () {

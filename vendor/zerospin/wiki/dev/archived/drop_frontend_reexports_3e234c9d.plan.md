@@ -43,8 +43,8 @@ Public apps already import `makeAggregateFrontend` / `makeServiceFrontend` from 
 Point the React barrel at the defining modules:
 
 ```ts
-export { makeAggregateFrontend } from "@zerospin/core/frontendController/makeAggregateFrontend";
-export { makeServiceFrontend } from "@zerospin/core/frontendController/makeServiceFrontend";
+export { makeAggregateFrontend } from '@zerospin/core/frontendController/makeAggregateFrontend';
+export { makeServiceFrontend } from '@zerospin/core/frontendController/makeServiceFrontend';
 ```
 
 Then delete the two pass-through files and switch the remaining in-package callers to those core paths:

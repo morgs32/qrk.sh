@@ -5,12 +5,18 @@ import { defineContract } from '@zerospin/core/contracts/defineContract';
 import { makeContractVersion } from '@zerospin/core/contracts/make/makeContractVersion';
 import { makeActorIdentity } from '@zerospin/core/identity/make/makeActorIdentity/makeActorIdentity';
 import { MachineClaimsSchema } from '@zerospin/core/machine/MachineClaimsSchema';
+import {
+  execute,
+  makeMachine,
+} from '@zerospin/core/machine/makeMachine/makeMachine';
+import { makeState } from '@zerospin/core/machine/makeState/makeState';
 import { defineModel } from '@zerospin/core/models/defineModel';
-import { captureActorSelections, makeActorDbVersion } from '@zerospin/core/models/make/makeActorDbVersion';
+import {
+  captureActorSelections,
+  makeActorDbVersion,
+} from '@zerospin/core/models/make/makeActorDbVersion';
 import { makeModelVersion } from '@zerospin/core/models/make/makeModelVersion';
 import { ContractError } from '@zerospin/error';
-import { execute, makeMachine } from '@zerospin/core/machine/makeMachine/makeMachine';
-import { makeState } from '@zerospin/core/machine/makeState/makeState';
 import { makeAbbreviationIdSchema, primitives } from '@zerospin/schema';
 import { Context, Effect, Schema } from 'effect';
 
@@ -35,21 +41,18 @@ const payload = {
   id: primitives.foreignKey({ abbreviation: 'gam' }),
   value: primitives.integer(),
 };
-export const createGame = makeContractVersion(
-  defineContract('machineCreate'),
-  {
-    version: '1.0.0',
-    models: { machineGame: game },
-    payload,
-    program: ({ models, payload }) =>
-      models.machineGame
-        .create({
-          resourceId: payload.id,
-          attributes: { value: payload.value, turn: 'X' },
-        })
-        .pipe(Effect.map(mutation => [mutation])),
-  },
-);
+export const createGame = makeContractVersion(defineContract('machineCreate'), {
+  version: '1.0.0',
+  models: { machineGame: game },
+  payload,
+  program: ({ models, payload }) =>
+    models.machineGame
+      .create({
+        resourceId: payload.id,
+        attributes: { value: payload.value, turn: 'X' },
+      })
+      .pipe(Effect.map(mutation => [mutation])),
+});
 export const playX = makeContractVersion(defineContract('machinePlayX'), {
   version: '1.0.0',
   models: { machineGame: game },
@@ -120,31 +123,57 @@ export const machineGame = makeAggregateVersion(
 const Idle = makeState({ stateName: 'idle', input: {} });
 const Deciding = makeState({
   stateName: 'deciding',
-  input: { aggregateId: Schema.String, gameId: makeAbbreviationIdSchema('gam'), value: Schema.Int },
+  input: {
+    aggregateId: Schema.String,
+    gameId: makeAbbreviationIdSchema('gam'),
+    value: Schema.Int,
+  },
 });
 const Sending = makeState({
   stateName: 'sending',
-  input: { aggregateId: Schema.String, gameId: makeAbbreviationIdSchema('gam'), value: Schema.Int },
-});
-const readNext = (db: { query: { machineGame: { findMany: () => { sync: () => unknown } } } }, aggregateId: string) => {
-  const rows = Schema.decodeUnknownSync(Schema.Array(Schema.Struct({
-    id: makeAbbreviationIdSchema('gam'),
-    turn: Schema.String,
+  input: {
+    aggregateId: Schema.String,
+    gameId: makeAbbreviationIdSchema('gam'),
     value: Schema.Int,
-  })))(db.query.machineGame.findMany().sync());
+  },
+});
+const readNext = (
+  db: { query: { machineGame: { findMany: () => { sync: () => unknown } } } },
+  aggregateId: string,
+) => {
+  const rows = Schema.decodeUnknownSync(
+    Schema.Array(
+      Schema.Struct({
+        id: makeAbbreviationIdSchema('gam'),
+        turn: Schema.String,
+        value: Schema.Int,
+      }),
+    ),
+  )(db.query.machineGame.findMany().sync());
   const row = rows.find(candidate => candidate.turn === 'O');
-  return row === undefined ? undefined : Deciding.make({ aggregateId, gameId: row.id, value: row.value });
+  return row === undefined
+    ? undefined
+    : Deciding.make({ aggregateId, gameId: row.id, value: row.value });
 };
 export const computerTurn = makeMachine({
   source: machineGame,
-  selections: captureActorSelections(db, {
-    machineGame: db.query.machineGame.findMany(),
-  }, Schema.Struct({})),
+  selections: captureActorSelections(
+    db,
+    {
+      machineGame: db.query.machineGame.findMany(),
+    },
+    Schema.Struct({}),
+  ),
   contracts: { machinePlayO: { contract: playO, target: machineGame } },
   states: { idle: Idle, deciding: Deciding, sending: Sending },
   onBootstrap: () => Idle.make({}),
   routes: {
-    idle: { onCommand: ({ db, command }) => 'aggregateId' in command ? readNext(db, command.aggregateId) : undefined },
+    idle: {
+      onCommand: ({ db, command }) =>
+        'aggregateId' in command
+          ? readNext(db, command.aggregateId)
+          : undefined,
+    },
     deciding: {
       onCommand: ({ db, origin }) => {
         const next = readNext(db, origin.aggregateId);
@@ -154,20 +183,26 @@ export const computerTurn = makeMachine({
             ? undefined
             : next;
       },
-      onActivation: ({ origin }) => Effect.gen(function* () {
-        const decide = yield* MachineDecision;
-        const value = yield* decide(origin.value);
-        return value === null
-          ? Idle.make({})
-          : Sending.make({ aggregateId: origin.aggregateId, gameId: origin.gameId, value });
-      }),
+      onActivation: ({ origin }) =>
+        Effect.gen(function* () {
+          const decide = yield* MachineDecision;
+          const value = yield* decide(origin.value);
+          return value === null
+            ? Idle.make({})
+            : Sending.make({
+                aggregateId: origin.aggregateId,
+                gameId: origin.gameId,
+                value,
+              });
+        }),
     },
     sending: {
-      command: ({ origin }) => execute({
-        binding: 'machinePlayO',
-        aggregateId: origin.aggregateId,
-        payload: { id: origin.gameId, value: origin.value },
-      }),
+      command: ({ origin }) =>
+        execute({
+          binding: 'machinePlayO',
+          aggregateId: origin.aggregateId,
+          payload: { id: origin.gameId, value: origin.value },
+        }),
       onResult: () => Idle.make({}),
     },
   },

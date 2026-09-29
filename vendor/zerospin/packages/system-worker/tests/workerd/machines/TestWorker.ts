@@ -1,12 +1,29 @@
+import {
+  aggregateMachineNamePattern,
+  serviceMachineNamePattern,
+} from '../../../src/machineRepoNames.js';
 import { makeMachineRepo } from '../../../src/makeMachineRepo/makeMachineRepo.js';
-import config from './MachineSystem.js';
-import { aggregateMachineNamePattern, serviceMachineNamePattern } from '../../../src/machineRepoNames.js';
 import { systemWorkerAbbreviations } from '../../../src/systemWorkerAbbreviations.js';
 
-export { AggregateChain, AggregateVersionChain, AggregateVersionRepo, ServiceChain, ServiceVersionChain, ServiceVersionRepo, SystemRepo, SystemLogRepo, SystemLogAgent } from '../../../src/index.js';
+import config from './MachineSystem.js';
+
+export {
+  AggregateChain,
+  AggregateVersionChain,
+  AggregateVersionRepo,
+  ServiceChain,
+  ServiceVersionChain,
+  ServiceVersionRepo,
+  SystemRepo,
+  SystemLogRepo,
+  SystemLogAgent,
+} from '../../../src/index.js';
 
 export const AggregateMachineRepo: ReturnType<
-  typeof makeMachineRepo<'/:systemId/:aggregateName/:aggregateId/:machineName', 'AGGREGATE_MACHINE_REPO'>
+  typeof makeMachineRepo<
+    '/:systemId/:aggregateName/:aggregateId/:machineName',
+    'AGGREGATE_MACHINE_REPO'
+  >
 > = makeMachineRepo({
   sourceKind: 'aggregate',
   namespaceBinding: 'AGGREGATE_MACHINE_REPO',
@@ -17,7 +34,10 @@ export const AggregateMachineRepo: ReturnType<
 });
 
 export const ServiceMachineRepo: ReturnType<
-  typeof makeMachineRepo<'/:systemId/:serviceName/:machineName', 'SERVICE_MACHINE_REPO'>
+  typeof makeMachineRepo<
+    '/:systemId/:serviceName/:machineName',
+    'SERVICE_MACHINE_REPO'
+  >
 > = makeMachineRepo({
   sourceKind: 'service',
   namespaceBinding: 'SERVICE_MACHINE_REPO',

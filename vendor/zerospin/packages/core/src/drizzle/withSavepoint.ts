@@ -47,7 +47,7 @@ export const withSavepoint = Effect.fn('withSavepoint')(function* <
         : never
     >();
 
-  const rollback = {};
+  const rollback = new Error('savepoint-rollback');
   let captured: Exit.Exit<SUCCESS, ERROR> | undefined;
   const exit = yield* Effect.try({
     try: () => {
@@ -73,6 +73,7 @@ export const withSavepoint = Effect.fn('withSavepoint')(function* <
         });
       } catch (cause) {
         if (cause === rollback && captured !== undefined) return captured;
+        // oxlint-disable-next-line eslint/no-throw-literal -- Preserve the original savepoint failure for Effect.try.
         throw cause;
       }
     },

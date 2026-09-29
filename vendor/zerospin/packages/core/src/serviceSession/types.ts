@@ -10,7 +10,6 @@ import type { ICommand } from '../contracts/types.ts';
 import type {
   IDb,
   IDbConfig,
-  IDrizzleRelationsFromModels,
   IResourceDbConfig,
   IResourceDrizzleSchemasFromModels,
   IWaSqliteDrizzleDb,

@@ -32,10 +32,11 @@ function makeAddBrick() {
 }
 
 function makeBrickModel() {
-  return makeModelVersion(
-    defineModel({ name: 'brick', abbreviation: 'brk' }),
-    { version: '1.0.0', attributes: {}, indexes: [] },
-  );
+  return makeModelVersion(defineModel({ name: 'brick', abbreviation: 'brk' }), {
+    version: '1.0.0',
+    attributes: {},
+    indexes: [],
+  });
 }
 
 describe('duplicate core instance diagnostics', () => {
@@ -76,6 +77,8 @@ describe('duplicate core instance diagnostics', () => {
     const contract = makeAddBrick();
     Object.setPrototypeOf(contract, Object.prototype);
     Reflect.deleteProperty(contract, Symbol.for('@zerospin/core/Contract'));
-    expect(() => makeSessionWithContract(contract)).toThrow('Expected <Declaration>');
+    expect(() => makeSessionWithContract(contract)).toThrow(
+      'Expected <Declaration>',
+    );
   });
 });

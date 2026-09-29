@@ -2,9 +2,7 @@ import { RoutePattern } from '@remix-run/route-pattern';
 import { defineAggregate } from '@zerospin/core/aggregate/defineAggregate';
 import { makeAggregateVersion } from '@zerospin/core/aggregate/make/makeAggregateVersion';
 import { defineAggregateActor } from '@zerospin/core/aggregateActor/defineAggregateActor';
-import {
-  makeAggregateActorVersion,
-} from '@zerospin/core/aggregateActor/make/makeAggregateActorVersion/makeAggregateActorVersion';
+import { makeAggregateActorVersion } from '@zerospin/core/aggregateActor/make/makeAggregateActorVersion/makeAggregateActorVersion';
 import { defineContract } from '@zerospin/core/contracts/defineContract';
 import { makeContractVersion } from '@zerospin/core/contracts/make/makeContractVersion';
 import type { IDb, IResourceDbConfig } from '@zerospin/core/drizzle/types';
@@ -19,9 +17,7 @@ import {
   makeFulfillmentGuards,
   makeFulfillmentModule,
 } from '@zerospin/fulfillment/server';
-import {
-  makePurchaseModule,
-} from '@zerospin/purchase/server';
+import { makePurchaseModule } from '@zerospin/purchase/server';
 import { primitives } from '@zerospin/schema';
 import { Effect, Schema } from 'effect';
 
@@ -240,21 +236,27 @@ const actorQueries = {
     },
   }),
 };
-const shopper = makeAggregateActorVersion(defineAggregateActor({ name: 'shopper' }), {
-  version: '1.0.0',
-  authentication: 'none',
-  db,
-  identity,
-  contracts: actorContracts,
-  queries: actorQueries,
-});
-export const purchaseAggregate = makeAggregateVersion(defineAggregate({ name: 'purchaseUser' }), {
-  version: '1.0.0',
-  models: { user, cart, cartItem, product },
-  contracts: { prepareCart, removeFromCart },
-  modules: { purchase, fulfillment },
-  actors: { shopper },
-  guards: {
-    shopper: makeFulfillmentGuards(fulfillment),
+const shopper = makeAggregateActorVersion(
+  defineAggregateActor({ name: 'shopper' }),
+  {
+    version: '1.0.0',
+    authentication: 'none',
+    db,
+    identity,
+    contracts: actorContracts,
+    queries: actorQueries,
   },
-});
+);
+export const purchaseAggregate = makeAggregateVersion(
+  defineAggregate({ name: 'purchaseUser' }),
+  {
+    version: '1.0.0',
+    models: { user, cart, cartItem, product },
+    contracts: { prepareCart, removeFromCart },
+    modules: { purchase, fulfillment },
+    actors: { shopper },
+    guards: {
+      shopper: makeFulfillmentGuards(fulfillment),
+    },
+  },
+);

@@ -1,8 +1,8 @@
 import type { ReadableSpan } from '@opentelemetry/sdk-trace-base';
 import { makeZerospinError } from '@zerospin/error';
 
-import { ZerospinProfile } from '../makeProfilerLayer.ts';
 import type { IMetadataStore } from '../../../MetadataProcessor.ts';
+import { ZerospinProfile } from '../makeProfilerLayer.ts';
 
 // TODO: This should
 export const makeCallstack = (props: {

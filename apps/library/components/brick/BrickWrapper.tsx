@@ -15,7 +15,7 @@ export function BrickWrapper({
     <div
       {...props}
       className={cn(
-        "qrk-bricks relative flex h-full min-h-0 min-w-0 w-full overflow-hidden bg-white [&_svg]:select-none",
+        "qrk-bricks relative flex h-full min-h-0 min-w-0 w-full overflow-hidden [&_svg]:select-none",
         "@container flex-col",
         brickStackGapClass,
         className,

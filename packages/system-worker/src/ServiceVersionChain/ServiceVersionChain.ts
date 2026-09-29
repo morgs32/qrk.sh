@@ -1,10 +1,13 @@
 import { Effect } from 'effect';
 
 import { AggregateVersionRepo } from '../AggregateVersionRepo/AggregateVersionRepo.js';
+import {
+  getServiceMachineRepo,
+  serviceMachineNameUtils,
+} from '../machineRepoNames.js';
 import { makeFanoutQueue } from '../makeFanoutQueue/makeFanoutQueue.js';
 import { makeFixedDORepo } from '../makeFixedDORepo/makeFixedDORepo.js';
 import { makeOutboxSubscriber } from '../makeOutboxSubscriber/makeOutboxSubscriber.js';
-import { getServiceMachineRepo, serviceMachineNameUtils } from '../machineRepoNames.js';
 import { ServiceActorVersionRepo } from '../ServiceActorVersionRepo/ServiceActorVersionRepo.js';
 import { serviceActorVersionRepoFixedDORepoConfig } from '../ServiceActorVersionRepo/serviceActorVersionRepoFixedDORepoConfig.js';
 

@@ -411,8 +411,9 @@ export const onMessage = Effect.fn('AggregateActorVersionChain.onMessage')(
       if (
         page.commands.length < 64 &&
         deliveredThroughExecutedIndex === page.tip
-      )
+      ) {
         break;
+      }
       if (page.commands.length === 0) {
         stateRequired();
         return;

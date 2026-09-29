@@ -1,6 +1,11 @@
 import type { IZerospinErrorJson } from '@zerospin/error';
 import type { IRpcEnvelope } from '@zerospin/logger';
-import type { IAggregateCommand, IEncodedCommand, IServiceCommand } from '../contracts/types.js';
+
+import type {
+  IAggregateCommand,
+  IEncodedCommand,
+  IServiceCommand,
+} from '../contracts/types.js';
 
 export type IMachineSourceDelivery = Readonly<{
   rows: readonly unknown[];
@@ -19,7 +24,9 @@ export interface IAggregateMachineReceiver {
     revision: number;
     mode: 'push' | 'execute';
     bindingName: string;
-    command: IEncodedCommand<IAggregateCommand> | IEncodedCommand<IServiceCommand>;
+    command:
+      | IEncodedCommand<IAggregateCommand>
+      | IEncodedCommand<IServiceCommand>;
   }): PromiseLike<IRpcEnvelope<boolean, IZerospinErrorJson>>;
   machineResultsFanoutSubscriber(sourceKey: {
     systemId: string;
@@ -35,7 +42,9 @@ export interface IServiceMachineReceiver {
     revision: number;
     mode: 'push' | 'execute';
     bindingName: string;
-    command: IEncodedCommand<IAggregateCommand> | IEncodedCommand<IServiceCommand>;
+    command:
+      | IEncodedCommand<IAggregateCommand>
+      | IEncodedCommand<IServiceCommand>;
   }): PromiseLike<IRpcEnvelope<boolean, IZerospinErrorJson>>;
   machineResultsFanoutSubscriber(sourceKey: {
     systemId: string;

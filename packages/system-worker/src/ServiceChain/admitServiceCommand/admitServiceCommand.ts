@@ -18,8 +18,8 @@ import { Effect, Schema } from 'effect';
 import { isEqual } from 'es-toolkit';
 
 import { checkAdmission } from '../../checkAdmission.js';
-import { serviceChainDbConfig } from '../serviceChainDbConfig.js';
 import { verifyMachineFrozenCommand } from '../../verifyMachineFrozenCommand.js';
+import { serviceChainDbConfig } from '../serviceChainDbConfig.js';
 
 export const prepareServiceAdmission = Effect.fn(
   'ServiceChain.prepareServiceAdmission',
@@ -27,7 +27,11 @@ export const prepareServiceAdmission = Effect.fn(
   command: IEncodedCommand<IServiceCommand>;
   db: IDb;
   key: { systemId: string; serviceName: string };
-  machine?: Readonly<{ machineName: string; bindingName: string; mode: 'push' | 'execute' }>;
+  machine?: Readonly<{
+    machineName: string;
+    bindingName: string;
+    mode: 'push' | 'execute';
+  }>;
 }) {
   const startedAt = new Date();
   const { command, db, key } = props;
@@ -55,7 +59,9 @@ export const prepareServiceAdmission = Effect.fn(
   }
   const machineContract = addressed.contracts[command.commandName];
   if (props.machine !== undefined) {
-    if (machineContract === undefined) return yield* makeZerospinError('machine-contract-forbidden');
+    if (machineContract === undefined) {
+      return yield* makeZerospinError('machine-contract-forbidden');
+    }
     yield* verifyMachineFrozenCommand({
       command,
       mode: props.machine.mode,

@@ -4,7 +4,6 @@ import { Effect, Schema } from 'effect';
 
 import { Model } from '../../models/defineModel.ts';
 import type { IModel } from '../../models/types.ts';
-
 import type { IModelMutations } from '../types.ts';
 
 /** Bind mutation construction to the contract's exact authored model version. */

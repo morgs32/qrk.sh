@@ -119,8 +119,9 @@ export const getActorCommands = Effect.fn(
         decoded.completionNodeId === props.nodeId &&
         decoded.completionSessionName === props.definition.name &&
         isEqual(decoded.completionClaims, props.definition.claims);
-      if (row.executedIndex <= props.afterExecutedIndex && !ownsCompletion)
+      if (row.executedIndex <= props.afterExecutedIndex && !ownsCompletion) {
         continue;
+      }
       if (row.executedIndex > executedThrough) {
         if (row.executedIndex !== executedThrough + 1) {
           return yield* Effect.fail(

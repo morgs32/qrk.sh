@@ -3,8 +3,8 @@ import type { IsUnion } from 'type-fest';
 import { PrimitiveKind } from './primitiveKind.ts';
 import { primitives } from './primitives.ts';
 import type {
-  IAnyTable,
   IAnyRefDescriptor,
+  IAnyTable,
   IAnyTables,
   IIntegerDescriptor,
   INamedRefDescriptor,
@@ -108,8 +108,9 @@ export function resolveTableReferences(tables: IAnyTables): IAnyTables {
       if (
         descriptor.kind !== PrimitiveKind.Ref ||
         typeof descriptor.table !== 'string'
-      )
+      ) {
         continue;
+      }
       const target = Object.hasOwn(tables, descriptor.table)
         ? tables[descriptor.table]
         : undefined;

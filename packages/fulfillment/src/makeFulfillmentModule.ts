@@ -7,10 +7,7 @@ import type { IContract } from '@zerospin/core/contracts/types';
 import type { IClaimsSchema } from '@zerospin/core/identity/types';
 import type { IModel } from '@zerospin/core/models/types';
 import { ContractError } from '@zerospin/error';
-import {
-  primitives,
-  type IAnyShape,
-} from '@zerospin/schema';
+import { primitives, type IAnyShape } from '@zerospin/schema';
 import '@zerospin/server-only';
 import { Effect, Schema } from 'effect';
 

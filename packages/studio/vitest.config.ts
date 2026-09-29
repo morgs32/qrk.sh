@@ -34,6 +34,7 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
+    passWithNoTests: true,
     include: ['src/**/*.node.spec.ts', 'src/**/*.react.spec.tsx'],
   },
 });

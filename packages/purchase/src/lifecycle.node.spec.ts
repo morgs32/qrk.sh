@@ -380,7 +380,9 @@ it('rejects expired promotions and stale receipts after confirmed removal', asyn
       checkoutId: 'chk_test',
     });
     await execute(purchase.contracts.recordPromotion, {
-      ...receipt, status: 'released', finalizeRemoval: true,
+      ...receipt,
+      status: 'released',
+      finalizeRemoval: true,
     });
     expect(db.query.checkout.findFirst().sync()?.status).toBe('removed');
     await expect(

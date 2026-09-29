@@ -12,9 +12,7 @@ import {
 
 export const makeAggregateSessionLockKey = Effect.fn(
   'makeAggregateSessionLockKey',
-)(function* (
-  lock: IAggregateSessionLock,
-): Effect.fn.Return<string, IAnyError> {
+)(function* (lock: IAggregateSessionLock): Effect.fn.Return<string, IAnyError> {
   const encoded = yield* Schema.encodeEffect(AggregateSessionLockSchema)(lock, {
     onExcessProperty: 'error',
   }).pipe(

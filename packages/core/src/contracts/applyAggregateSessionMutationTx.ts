@@ -35,10 +35,11 @@ export const applyAggregateSessionMutationTx = Effect.fn(
 
   const table = mutation.model.drizzleSchema;
   const query = tx.query[mutation.model.modelName];
-  if (query === undefined)
+  if (query === undefined) {
     throw new Error(
       `Missing registered model query: ${mutation.model.modelName}`,
     );
+  }
   const previousRow = query
     .findFirst({ where: { id: mutation.resourceId } } as Parameters<
       typeof query.findFirst

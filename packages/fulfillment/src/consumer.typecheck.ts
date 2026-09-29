@@ -39,7 +39,8 @@ export const fulfillmentExample = makeService({
 });
 
 export const fulfillmentTarget = fulfillmentExample.versions['1.0.1'];
-export const shippingMachine = makeFulfillmentShippingMachine(fulfillmentTarget);
+export const shippingMachine =
+  makeFulfillmentShippingMachine(fulfillmentTarget);
 export const providedFulfillmentSystem = makeSystem({
   name: 'fulfillment-example',
   aggregates: {},

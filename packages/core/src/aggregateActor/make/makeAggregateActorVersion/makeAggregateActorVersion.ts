@@ -132,14 +132,14 @@ export type IAggregateActorDeclaration<
     AUTHORIZE_REQUIREMENTS
   >;
 } & {
-    guards?: IOwnerGuards<
-      NoInfer<CONTRACTS>,
-      DB['models'],
-      IDENTITY['claimsSchema']['Type'],
-      'actor',
-      unknown
-    >;
-  } & ({} extends GUARDS ? { guards?: GUARDS } : { guards: GUARDS });
+  guards?: IOwnerGuards<
+    NoInfer<CONTRACTS>,
+    DB['models'],
+    IDENTITY['claimsSchema']['Type'],
+    'actor',
+    unknown
+  >;
+} & ({} extends GUARDS ? { guards?: GUARDS } : { guards: GUARDS });
 
 export type IAggregateActorVersion<
   NAME extends string,
@@ -288,7 +288,11 @@ export function constructAggregateActorVersion<
   AUTHORIZE
 > {
   for (const contract of Object.values(props.contracts)) {
-    assertSameCoreInstance({ value: contract, expected: Contract, kind: 'Contract' });
+    assertSameCoreInstance({
+      value: contract,
+      expected: Contract,
+      kind: 'Contract',
+    });
   }
   const name = Schema.decodeUnknownSync(
     Schema.Struct({ name: Schema.String }),

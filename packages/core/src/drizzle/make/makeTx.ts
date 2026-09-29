@@ -49,7 +49,7 @@ export function makeTx(name: string, options?: { rollback: 'always' }) {
       const body = (tx: ITx<CONFIG>) => Effect.gen(() => program(tx, ...args));
       const context =
         yield* Effect.context<Effect.Services<ReturnType<typeof body>>>();
-      const rollback = {};
+      const rollback = new Error('transaction-rollback');
       let captured:
         | Exit.Exit<SUCCESS, Effect.Error<ReturnType<typeof body>>>
         | undefined;
@@ -86,6 +86,7 @@ export function makeTx(name: string, options?: { rollback: 'always' }) {
           } catch (cause) {
             // Only the exact sentinel can turn a completed rollback into a result.
             if (cause === rollback && captured !== undefined) return captured;
+            // oxlint-disable-next-line eslint/no-throw-literal -- Preserve the original transaction failure for Effect.try.
             throw cause;
           } finally {
             inTxAlready = false;

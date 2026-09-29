@@ -3,9 +3,7 @@
   "version": "0.1.0",
   "private": false,
   "type": "module",
-  "sideEffects": [
-    "**/*.css"
-  ],
+  "sideEffects": false,
   "files": [
     "dist"
   ],
@@ -18,7 +16,7 @@
   },
   "scripts": {
     "clean": "rimraf dist tsconfig.tsbuildinfo",
-    "lib": "pnpm run clean && tsc -b tsconfig.json && node -e \"require('node:fs').copyFileSync('src/ZerospinRouteErrorBoundary.css', 'dist/ZerospinRouteErrorBoundary.css')\"",
+    "lib": "pnpm run clean && tsc -b tsconfig.json",
     "ts": "tsc -p tsconfig.etc.json --noEmit",
     "prepublishOnly": "pnpm run lib",
     "format": "oxfmt package.json project.json tsconfig.json tsconfig.etc.json vitest.config.ts src",

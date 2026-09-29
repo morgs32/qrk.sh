@@ -188,8 +188,9 @@ export const applyExecutedCommandsTx = makeTx(
             }
           : command.execution,
     };
-    const committed = 'aggregateIndex' in command
-      ? yield* commitAggregateActorCommandTx({
+    const committed =
+      'aggregateIndex' in command
+        ? yield* commitAggregateActorCommandTx({
             ...projection,
             disposition:
               command.execution.status === 'succeeded' ? 'success' : 'failure',
@@ -216,12 +217,12 @@ export const applyExecutedCommandsTx = makeTx(
               command.actorVersion === key.actorVersion
                 ? command.sessionName
                 : null,
-        })
-      : yield* commitServiceActorCommandTx({
-          ...projection,
-          disposition:
-            command.execution.status === 'succeeded' ? 'success' : 'failure',
-        });
+          })
+        : yield* commitServiceActorCommandTx({
+            ...projection,
+            disposition:
+              command.execution.status === 'succeeded' ? 'success' : 'failure',
+          });
     const saved = commandRowForSource(tx, command);
     if (saved !== undefined) {
       tx.update(aggregateActorVersionRepoDbConfig.schema.pendingCommands)

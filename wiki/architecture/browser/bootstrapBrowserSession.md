@@ -30,6 +30,19 @@ sequenceDiagram
   Node-->>Tab: committed snapshot and changes
 ```
 
+## Startup failures
+
+Aggregate and service bootstrap preserve existing Zerospin errors, including their
+code, message, status, extra, and available local cause. Unexpected connection
+construction exceptions use `node-connection-failed`; unexpected readiness
+exceptions use `session-initialization-failed`. Readiness includes server admission
+before creating the SharedWorker and tab projection after worker attachment.
+
+`node-attachment-failed` is reserved for unclassified exceptions inside
+`SharedWorkerApi.attach`. Classified identity, authentication, storage, and
+detachment errors retain their original codes. RPC serialization continues to
+omit stack and cause; preserving an error does not recover remote diagnostics.
+
 ## Source
 
 - [Connection lifecycle](../../../packages/browser/src/connectBrowserNode.ts)

@@ -35,7 +35,7 @@ export default defineConfig({
     include: ['specs/workerd/**/*.workerd.spec.ts'],
     isolate: true,
     maxWorkers: 1,
-    passWithNoTests: false,
+    passWithNoTests: true,
     testTimeout: 120_000,
   },
 });

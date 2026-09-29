@@ -1,7 +1,7 @@
+import { makeState } from '@zerospin/core/machine/makeState/makeState';
 import { Schema } from 'effect';
 import { describe, expect, it } from 'vitest';
 
-import { makeState } from '@zerospin/core/machine/makeState/makeState';
 import { RouteContractViolation } from '../RouteContractViolation.js';
 import { validateProgramSuccess } from '../validateProgramSuccess.js';
 

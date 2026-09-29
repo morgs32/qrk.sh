@@ -34,8 +34,19 @@ import {
   mapParseError,
   prettyUnknownFailure,
 } from '@zerospin/error';
-import { Carrier, makeFulfillmentOperationMachine, makeFulfillmentShippingMachine, makePaidFulfillmentMachine } from '@zerospin/fulfillment/server';
-import { makeAcceptPurchaseMachine, makePurchasePaymentMachine, makePurchasePromotionMachine, PaymentProvider, PromotionProvider } from '@zerospin/purchase/server';
+import {
+  Carrier,
+  makeFulfillmentOperationMachine,
+  makeFulfillmentShippingMachine,
+  makePaidFulfillmentMachine,
+} from '@zerospin/fulfillment/server';
+import {
+  makeAcceptPurchaseMachine,
+  makePurchasePaymentMachine,
+  makePurchasePromotionMachine,
+  PaymentProvider,
+  PromotionProvider,
+} from '@zerospin/purchase/server';
 import { primitives } from '@zerospin/schema';
 import { Effect, Layer, Schema } from 'effect';
 import invariant from 'tiny-invariant';
@@ -983,16 +994,23 @@ export const system = makeSystem({
         providerReference: `fixture_${request.paymentIntentId}`,
       }),
     ),
-    Layer.succeed(PromotionProvider, request => Effect.succeed({
-      kind: 'confirmed' as const,
-      receipt: {
-        status: request.action === 'reserve' ? 'reserved' as const
-          : request.action === 'commit' ? 'committed' as const
-            : request.action === 'redeem' ? 'redeemed' as const : 'released' as const,
-        expiresAt: request.action === 'reserve' ? Date.now() + 60_000 : null,
-        purchaseId: request.action === 'reserve' ? null : request.purchaseId,
-      },
-    })),
+    Layer.succeed(PromotionProvider, request =>
+      Effect.succeed({
+        kind: 'confirmed' as const,
+        receipt: {
+          status:
+            request.action === 'reserve'
+              ? ('reserved' as const)
+              : request.action === 'commit'
+                ? ('committed' as const)
+                : request.action === 'redeem'
+                  ? ('redeemed' as const)
+                  : ('released' as const),
+          expiresAt: request.action === 'reserve' ? Date.now() + 60_000 : null,
+          purchaseId: request.action === 'reserve' ? null : request.purchaseId,
+        },
+      }),
+    ),
   ),
   aggregates: {
     purchaseUser: { '1.0.0': purchaseAggregate },
@@ -1296,7 +1314,9 @@ export const system = makeSystem({
     operateFulfillment,
     finishStartedJob,
     computerTurn,
-    shipping: makeFulfillmentShippingMachine(fulfillmentService.versions['1.0.1']),
+    shipping: makeFulfillmentShippingMachine(
+      fulfillmentService.versions['1.0.1'],
+    ),
   },
   name: 'system-worker',
 });

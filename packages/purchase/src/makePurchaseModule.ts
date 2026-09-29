@@ -82,7 +82,6 @@ const makePurchaseModuleImpl = <
       recordPromotion: recordWorkflowPromotion,
       failCheckout,
     },
-
   };
 };
 

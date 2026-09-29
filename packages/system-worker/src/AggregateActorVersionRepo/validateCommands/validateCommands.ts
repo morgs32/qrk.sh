@@ -73,7 +73,9 @@ export const validateCommands = Effect.fn(
         key: command.commandName,
         recordKind: 'actor contracts',
       });
-      const claims = yield* Schema.decodeUnknownEffect(actor.identity.claimsSchema)(command.claims);
+      const claims = yield* Schema.decodeUnknownEffect(
+        actor.identity.claimsSchema,
+      )(command.claims);
       const payload = yield* decodePayload(contract, { command });
       const checked = yield* Effect.gen(function* () {
         yield* runContractGuard({

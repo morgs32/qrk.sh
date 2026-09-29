@@ -36,8 +36,7 @@ These snippets are **illustrative target behavior, not implemented APIs or final
      selections: { game: selectedGame },
      contracts: { playO },
      states: { idle: Idle, choosing: Choosing, submitting: Submitting },
-     onBootstrap: ({ db }) =>
-       Idle.make({ lastObservedGameId: readGameId(db) }),
+     onBootstrap: ({ db }) => Idle.make({ lastObservedGameId: readGameId(db) }),
      routes: computerTurnRoutes,
    });
 

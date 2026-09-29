@@ -1,6 +1,9 @@
 import { expect } from 'vitest';
 
-import { toMatchProcedure, type IProcedureCall } from './toMatchProcedure/toMatchProcedure.ts';
+import {
+  toMatchProcedure,
+  type IProcedureCall,
+} from './toMatchProcedure/toMatchProcedure.ts';
 
 expect.extend({
   toMatchProcedure,

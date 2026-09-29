@@ -1,7 +1,10 @@
 import { it } from '@effect/vitest';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/make/makeDbConfig/makeDbConfig';
-import { makePurchasePaymentMachine, PaymentProvider } from '@zerospin/purchase/server';
+import {
+  makePurchasePaymentMachine,
+  PaymentProvider,
+} from '@zerospin/purchase/server';
 import { Effect, Exit, Fiber, Schema } from 'effect';
 import * as TestClock from 'effect/testing/TestClock';
 import { expect } from 'vitest';
@@ -16,31 +19,37 @@ const recordIntentObservation =
 
 it.effect(
   'keeps the accepted payment identifiers through the provider delay',
-  () => Effect.gen(function* () {
-    const pay = yield* PaymentProvider;
-    let completed = false;
-    const fiber = yield* pay({
-      paymentIntentId: 'pmt_1',
-      purchaseId: 'pur_1',
-      quote: {
-        currency: 'usd',
-        items: [],
-        subtotalAmount: 100,
-        discountAmount: 0,
-        promotionReservationId: null,
-        totalAmount: 100,
-      },
-    }).pipe(
-      Effect.tap(() => Effect.sync(() => { completed = true; })),
-      Effect.forkChild,
-    );
-    yield* TestClock.adjust('4999 millis');
-    expect(completed).toBe(false);
-    yield* TestClock.adjust('1 millis');
-    expect(yield* Fiber.join(fiber)).toMatchObject({
-      outcome: 'succeeded', providerReference: 'mock_pmt_1',
-    });
-  }).pipe(Effect.provide(PaymentProviderLive)),
+  () =>
+    Effect.gen(function* () {
+      const pay = yield* PaymentProvider;
+      let completed = false;
+      const fiber = yield* pay({
+        paymentIntentId: 'pmt_1',
+        purchaseId: 'pur_1',
+        quote: {
+          currency: 'usd',
+          items: [],
+          subtotalAmount: 100,
+          discountAmount: 0,
+          promotionReservationId: null,
+          totalAmount: 100,
+        },
+      }).pipe(
+        Effect.tap(() =>
+          Effect.sync(() => {
+            completed = true;
+          }),
+        ),
+        Effect.forkChild,
+      );
+      yield* TestClock.adjust('4999 millis');
+      expect(completed).toBe(false);
+      yield* TestClock.adjust('1 millis');
+      expect(yield* Fiber.join(fiber)).toMatchObject({
+        outcome: 'succeeded',
+        providerReference: 'mock_pmt_1',
+      });
+    }).pipe(Effect.provide(PaymentProviderLive)),
 );
 
 it.effect(
@@ -163,6 +172,7 @@ it('binds the payment machine to the final shopper contract', () => {
     claimsForUser: () => ({ clerkUserId: 'user_1' }),
   });
   expect(machine.source).toBe(shopperAggregateV2);
-  expect(machine.contracts.recordPaymentObservation.contract)
-    .toBe(shopperAggregateV2.contracts.recordPaymentObservation);
+  expect(machine.contracts.recordPaymentObservation.contract).toBe(
+    shopperAggregateV2.contracts.recordPaymentObservation,
+  );
 });

@@ -249,14 +249,14 @@ describe("QRK system", () => {
       );
       const rejected = yield* runContractGuard({
         contract: createUser,
-        queryDb: db,
+        db,
         claims: { aggregateId: "acct_owner", clerkUserId: "owner" },
         payload: { id: "usr_other", clerkUserId: "other", username: null, displayName: null },
       }).pipe(Effect.flip);
       expect(rejected).toMatchObject({ code: "create-user-identity-mismatch", status: 403 });
       yield* runContractGuard({
         contract: createUser,
-        queryDb: db,
+        db,
         claims: { aggregateId: "acct_owner", clerkUserId: "owner" },
         payload: {
           id: "usr_independent_owner",

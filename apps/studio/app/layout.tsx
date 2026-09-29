@@ -3,7 +3,6 @@ import localFont from "next/font/local";
 import type { ReactNode } from "react";
 import App from "./App";
 import "./globals.css";
-import "./LoadingWorkspace/LoadingWorkspace.css";
 import "./tiptap/styles/_variables.scss";
 import "./tiptap/styles/_keyframe-animations.scss";
 

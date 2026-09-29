@@ -34,13 +34,9 @@ const createPagePayload = {
 export const createPageV1 = makeContractVersion(createPage, {
   payload: createPagePayload,
   models: { site: Site, user: User, page: Page },
-  guard: Effect.fn("createPage.guard")(function* ({
-    claims,
-    queryDb: db,
-    payload,
-  }: {
+  guard: Effect.fn("createPage.guard")(function* (props: {
     claims: Readonly<Record<string, unknown>> | null;
-    queryDb: Readonly<
+    db: Readonly<
       Pick<
         IDb<IResourceDbConfig<{ site: typeof Site; user: typeof User }, Record<never, never>>>,
         "query"
@@ -48,6 +44,7 @@ export const createPageV1 = makeContractVersion(createPage, {
     >;
     payload: InferCommandPayload<typeof createPagePayload>;
   }) {
+    const { claims, db, payload } = props;
     const clerkUserId = claims?.clerkUserId;
     if (typeof clerkUserId !== "string") {
       return yield* new ZerospinError({

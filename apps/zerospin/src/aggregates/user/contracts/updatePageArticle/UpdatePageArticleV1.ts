@@ -19,13 +19,9 @@ const updatePageArticlePayload = {
 export const updatePageArticleV1 = makeContractVersion(updatePageArticle, {
   payload: updatePageArticlePayload,
   models: { user: User, site: Site, page: Page },
-  guard: Effect.fn("updatePageArticle.guard")(function* ({
-    claims,
-    queryDb: db,
-    payload,
-  }: {
+  guard: Effect.fn("updatePageArticle.guard")(function* (props: {
     claims: Readonly<Record<string, unknown>> | null;
-    queryDb: Readonly<
+    db: Readonly<
       Pick<
         IDb<
           IResourceDbConfig<
@@ -42,6 +38,7 @@ export const updatePageArticleV1 = makeContractVersion(updatePageArticle, {
     >;
     payload: InferCommandPayload<typeof updatePageArticlePayload>;
   }) {
+    const { claims, db, payload } = props;
     const clerkUserId = claims?.clerkUserId;
 
     if (typeof clerkUserId !== "string") {

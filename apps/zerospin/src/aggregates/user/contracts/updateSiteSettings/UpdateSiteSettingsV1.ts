@@ -34,13 +34,9 @@ const updateSiteSettingsPayload = {
 export const updateSiteSettingsV1 = makeContractVersion(updateSiteSettings, {
   payload: updateSiteSettingsPayload,
   models: { user: User, site: Site },
-  guard: Effect.fn("updateSiteSettings.guard")(function* ({
-    claims,
-    queryDb: db,
-    payload,
-  }: {
+  guard: Effect.fn("updateSiteSettings.guard")(function* (props: {
     claims: Readonly<Record<string, unknown>> | null;
-    queryDb: Readonly<
+    db: Readonly<
       Pick<
         IDb<
           IResourceDbConfig<
@@ -56,6 +52,7 @@ export const updateSiteSettingsV1 = makeContractVersion(updateSiteSettings, {
     >;
     payload: InferCommandPayload<typeof updateSiteSettingsPayload>;
   }) {
+    const { claims, db, payload } = props;
     const clerkUserId = claims?.clerkUserId;
 
     if (typeof clerkUserId !== "string") {

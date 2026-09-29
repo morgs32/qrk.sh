@@ -264,8 +264,13 @@ describe("site and page creation contracts", () => {
 
   it.effect("rejects site program execution without an authenticated user", () =>
     Effect.gen(function* () {
+      const dbConfig = makeResourceDbConfig({ models: userSessionDefinition.models });
+      const db = yield* makeProvisionedInMemoryWasmSqliteDb({ dbConfig }).pipe(
+        Effect.provide(AsyncLive),
+      );
       const error = yield* createSite
         .program({
+          db,
           claims: null,
           payload: {
             id: "sit_unauthenticated",
@@ -281,7 +286,7 @@ describe("site and page creation contracts", () => {
         code: "create-site-user-mismatch",
         status: 403,
       });
-    }),
+    }).pipe(Effect.scoped),
   );
 
   it.effect("rejects a site payload without userId", () =>
@@ -348,7 +353,7 @@ describe("user frontend creation guards", () => {
       yield* guard({
         failures: {},
         claims: { clerkUserId: "site_guard_user" },
-        queryDb: db,
+        db,
         payload: {
           id: "sit_site_guard_user",
           userId,
@@ -362,7 +367,7 @@ describe("user frontend creation guards", () => {
         const error = yield* guard({
           failures: {},
           claims: { clerkUserId: authenticatedIdentityKey },
-          queryDb: db,
+          db,
           payload: {
             id: "sit_site_guard_user",
             userId,
@@ -430,7 +435,7 @@ describe("user frontend creation guards", () => {
       yield* guard({
         failures: {},
         claims: { clerkUserId: "page_guard_user" },
-        queryDb: db,
+        db,
         payload: {
           id: "pag_page_guard_user",
           siteId,
@@ -446,7 +451,7 @@ describe("user frontend creation guards", () => {
         const error = yield* guard({
           failures: {},
           claims: { clerkUserId: authenticatedIdentityKey },
-          queryDb: db,
+          db,
           payload: {
             id: "pag_page_guard_user",
             siteId,

@@ -20,17 +20,14 @@ const createUserPayload = {
 export const createUserV1 = makeContractVersion(createUser, {
   payload: createUserPayload,
   models: { user: User },
-  guard: Effect.fn("createUser.guard")(function* ({
-    claims,
-    payload,
-    queryDb: db,
-  }: {
+  guard: Effect.fn("createUser.guard")(function* (props: {
     claims: Readonly<Record<string, unknown>> | null;
-    queryDb: Readonly<
+    db: Readonly<
       Pick<IDb<IResourceDbConfig<{ user: typeof User }, Record<never, never>>>, "query">
     >;
     payload: InferCommandPayload<typeof createUserPayload>;
   }) {
+    const { claims, db, payload } = props;
     const clerkUserId = claims?.clerkUserId;
 
     if (claims !== null && payload.clerkUserId !== clerkUserId) {

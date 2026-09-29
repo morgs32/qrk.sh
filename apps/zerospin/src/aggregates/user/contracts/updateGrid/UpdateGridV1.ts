@@ -43,13 +43,9 @@ const updateGridPayload = {
 export const updateGridV1 = makeContractVersion(updateGrid, {
   payload: updateGridPayload,
   models: { brick: Brick, grid: Grid, page: Page, site: Site, user: User },
-  guard: Effect.fn("updateGrid.guard")(function* ({
-    claims,
-    queryDb: db,
-    payload,
-  }: {
+  guard: Effect.fn("updateGrid.guard")(function* (props: {
     claims: Readonly<Record<string, unknown>> | null;
-    queryDb: Readonly<
+    db: Readonly<
       Pick<
         IDb<
           IResourceDbConfig<
@@ -68,6 +64,7 @@ export const updateGridV1 = makeContractVersion(updateGrid, {
     >;
     payload: InferCommandPayload<typeof updateGridPayload>;
   }) {
+    const { claims, db, payload } = props;
     const clerkUserId = claims?.clerkUserId;
     if (typeof clerkUserId !== "string") {
       return yield* new ZerospinError({

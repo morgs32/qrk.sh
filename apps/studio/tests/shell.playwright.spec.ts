@@ -11,7 +11,7 @@ test("server-rendered dashboard navbar survives without JavaScript", async ({ br
     await expect(header.getByRole("link", { name: "Home" })).toHaveText("qrk.sh");
     await expect(header.getByLabel("Loading account")).toBeVisible();
     expect(await header.evaluate((element) => element.getBoundingClientRect().height)).toBe(64);
-    await expect(page.getByRole("status")).toContainText("Loading");
+    await expect(page.getByText(/Loading\s+workspace/)).toHaveCount(0);
   } finally { await context.close(); }
 });
 
@@ -25,6 +25,7 @@ test("deep editor URLs server-render the custom-wordmark skeleton", async ({ bro
       const header = page.getByTestId("site-navbar");
       await expect(header).toHaveCount(1);
       await expect(header.getByLabel("Loading site name")).toBeVisible();
+      await expect(page.getByText(/Loading\s+workspace/)).toHaveCount(0);
       expect(await header.evaluate((element) => element.getBoundingClientRect().height)).toBe(64);
       expect(new URL(page.url()).searchParams.get("retained")).toBe("yes");
     }

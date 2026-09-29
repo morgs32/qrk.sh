@@ -23,7 +23,12 @@ describe("aggregate Grid contracts", () => {
       const firstBrickId = "brck_contract_create_first";
       const secondBrickId = "brck_contract_create_second";
 
+      const dbConfig = makeResourceDbConfig({ models: userSessionDefinition.models });
+      const db = yield* makeProvisionedInMemoryWasmSqliteDb({ dbConfig }).pipe(
+        Effect.provide(AsyncLive),
+      );
       const mutations = yield* createGrid.program({
+        db,
         claims: null,
         payload: {
           id: gridId,
@@ -115,7 +120,12 @@ describe("aggregate Grid contracts", () => {
 
   it.effect("createGrid with no Bricks emits only the Grid mutation", () =>
     Effect.gen(function* () {
+      const dbConfig = makeResourceDbConfig({ models: userSessionDefinition.models });
+      const db = yield* makeProvisionedInMemoryWasmSqliteDb({ dbConfig }).pipe(
+        Effect.provide(AsyncLive),
+      );
       const mutations = yield* createGrid.program({
+        db,
         claims: null,
         payload: {
           id: "grd_contract_create_empty",
@@ -142,7 +152,12 @@ describe("aggregate Grid contracts", () => {
       const deletedBrickId = "brck_contract_update_deleted";
       const expectedRevision = 3;
 
+      const dbConfig = makeResourceDbConfig({ models: userSessionDefinition.models });
+      const db = yield* makeProvisionedInMemoryWasmSqliteDb({ dbConfig }).pipe(
+        Effect.provide(AsyncLive),
+      );
       const mutations = yield* updateGrid.program({
+        db,
         claims: null,
         payload: {
           id: gridId,
@@ -257,7 +272,12 @@ describe("aggregate Grid contracts", () => {
     Effect.gen(function* () {
       const gridId = "grd_contract_brick_only_update";
       const brickId = "brck_contract_brick_only_update";
+      const dbConfig = makeResourceDbConfig({ models: userSessionDefinition.models });
+      const db = yield* makeProvisionedInMemoryWasmSqliteDb({ dbConfig }).pipe(
+        Effect.provide(AsyncLive),
+      );
       const mutations = yield* updateGrid.program({
+        db,
         claims: null,
         payload: {
           id: gridId,
@@ -305,7 +325,12 @@ describe("aggregate Grid contracts", () => {
 
   it.effect("updateGrid emits no mutation for an unchanged Grid and unchanged Bricks", () =>
     Effect.gen(function* () {
+      const dbConfig = makeResourceDbConfig({ models: userSessionDefinition.models });
+      const db = yield* makeProvisionedInMemoryWasmSqliteDb({ dbConfig }).pipe(
+        Effect.provide(AsyncLive),
+      );
       const mutations = yield* updateGrid.program({
+        db,
         claims: null,
         payload: {
           id: "grd_contract_update_none",
@@ -404,14 +429,14 @@ describe("user frontend Grid guards", () => {
       yield* createGuard({
         failures: {},
         claims: { clerkUserId: "grid_guard_user" },
-        queryDb: db,
+        db,
         payload: { id: gridId, pageId, name: "Home grid", columnCount: 8, bricks: [] },
       });
       for (const authenticatedIdentityKey of ["different_grid_user", null]) {
         const ownershipError = yield* createGuard({
           failures: {},
           claims: { clerkUserId: authenticatedIdentityKey },
-          queryDb: db,
+          db,
           payload: { id: gridId, pageId, name: "Home grid", columnCount: 8, bricks: [] },
         }).pipe(Effect.flip);
         expect(ownershipError).toMatchObject({ code: "create-grid-user-mismatch", status: 403 });
@@ -421,7 +446,7 @@ describe("user frontend Grid guards", () => {
       const noncanonicalGridError = yield* createGuard({
         failures: {},
         claims: { clerkUserId: "grid_guard_user" },
-        queryDb: db,
+        db,
         payload: {
           id: "grd_grid_guard_noncanonical",
           pageId,
@@ -439,7 +464,7 @@ describe("user frontend Grid guards", () => {
       const noncanonicalBrickError = yield* createGuard({
         failures: {},
         claims: { clerkUserId: "grid_guard_user" },
-        queryDb: db,
+        db,
         payload: {
           id: gridId,
           pageId,
@@ -507,7 +532,7 @@ describe("user frontend Grid guards", () => {
       yield* guard({
         failures: {},
         claims: { clerkUserId: "grid_guard_user" },
-        queryDb: db,
+        db,
         payload: {
           id: gridId,
           name: "Renamed grid",
@@ -522,7 +547,7 @@ describe("user frontend Grid guards", () => {
         const ownershipError = yield* guard({
           failures: {},
           claims: { clerkUserId: authenticatedIdentityKey },
-          queryDb: db,
+          db,
           payload: {
             id: gridId,
             name: "Renamed grid",
@@ -540,7 +565,7 @@ describe("user frontend Grid guards", () => {
       const error = yield* guard({
         failures: {},
         claims: { clerkUserId: "grid_guard_user" },
-        queryDb: db,
+        db,
         payload: {
           id: gridId,
           name: "Home grid",
@@ -574,7 +599,7 @@ describe("user frontend Grid guards", () => {
       const noncanonicalUpdateItemError = yield* guard({
         failures: {},
         claims: { clerkUserId: "grid_guard_user" },
-        queryDb: db,
+        db,
         payload: {
           id: gridId,
           name: "Home grid",
@@ -608,7 +633,7 @@ describe("user frontend Grid guards", () => {
       const foreignIdentityError = yield* guard({
         failures: {},
         claims: { clerkUserId: "grid_guard_user" },
-        queryDb: db,
+        db,
         payload: {
           id: gridId,
           name: "Home grid",
@@ -642,7 +667,7 @@ describe("user frontend Grid guards", () => {
       const incompleteSnapshotError = yield* guard({
         failures: {},
         claims: { clerkUserId: "grid_guard_user" },
-        queryDb: db,
+        db,
         payload: {
           id: gridId,
           name: "Home grid",
@@ -663,7 +688,7 @@ describe("user frontend Grid guards", () => {
       const staleSnapshotError = yield* guard({
         failures: {},
         claims: { clerkUserId: "grid_guard_user" },
-        queryDb: db,
+        db,
         payload: {
           id: gridId,
           name: "Home grid",

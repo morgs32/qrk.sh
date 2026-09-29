@@ -27,17 +27,14 @@ const createSitePayload = {
 export const createSiteV1 = makeContractVersion(createSite, {
   payload: createSitePayload,
   models: { user: User, site: Site },
-  guard: Effect.fn("createSite.guard")(function* ({
-    claims,
-    queryDb: db,
-    payload,
-  }: {
+  guard: Effect.fn("createSite.guard")(function* (props: {
     claims: Readonly<Record<string, unknown>> | null;
-    queryDb: Readonly<
+    db: Readonly<
       Pick<IDb<IResourceDbConfig<{ user: typeof User }, Record<never, never>>>, "query">
     >;
     payload: InferCommandPayload<typeof createSitePayload>;
   }) {
+    const { claims, db, payload } = props;
     const clerkUserId = claims?.clerkUserId;
 
     if (typeof clerkUserId !== "string") {

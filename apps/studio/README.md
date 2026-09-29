@@ -73,7 +73,7 @@ The separate React Router/Motion example remains an independent example, not an 
 
 ## Article block dragging
 
-Hover over an article block to reveal its grip on the left, then drag the grip to reorder it. Lists and blockquotes move as whole blocks; nested items do not get separate handles. Moves use the editor's existing undo/redo and autosave flow, preserving image size and alignment. Drops follow the article document schema, which requires a leading heading.
+Hover over an article block to reveal its grip on the left, then drag the grip to reorder it. Lists and blockquotes move as whole blocks; nested items do not get separate handles. Moves use the editor's existing undo/redo and autosave flow, preserving image size and alignment. Articles can begin with any supported block; a leading heading is optional.
 
 ## Article images
 

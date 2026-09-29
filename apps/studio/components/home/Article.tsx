@@ -1,7 +1,6 @@
 "use client";
 
 import { useAuth } from "@clerk/nextjs";
-import Document from "@tiptap/extension-document";
 import DragHandle from "@tiptap/extension-drag-handle-react";
 import { Highlight } from "@tiptap/extension-highlight";
 import { TaskItem, TaskList } from "@tiptap/extension-list";
@@ -16,7 +15,6 @@ import { stageCommand } from "@zerospin/react";
 import { ZerospinError } from "@zerospin/sdk/browser";
 import { Schema } from "effect";
 import { GripVertical } from "lucide-react";
-import { useState } from "react";
 import { toast } from "sonner";
 import ImageResize from "tiptap-extension-resize-image";
 
@@ -41,23 +39,6 @@ const ParamsSchema = Schema.Struct({
   pageId: Schema.TemplateLiteral(["pag_", Schema.String]),
 });
 
-const ArticleDocument = Document.extend({
-  content: "heading block+",
-});
-
-function isSelectionInRequiredHeading(editor: {
-  state: {
-    selection: { $from: { index: (depth: number) => number } };
-    doc: { firstChild: { type: { name: string } } | null };
-  };
-}): boolean {
-  const firstChild = editor.state.doc.firstChild;
-  if (firstChild === null || firstChild.type.name !== "heading") {
-    return false;
-  }
-  return editor.state.selection.$from.index(0) === 0;
-}
-
 export function Article() {
   const { getToken } = useAuth();
   const params = useValidatedParams(ParamsSchema);
@@ -65,14 +46,11 @@ export function Article() {
   const page = usePageStore((state) => state.page);
   const article = page?.id === params.pageId ? page.article : undefined;
   const setArticle = usePageStore((state) => state.setArticle);
-  const [inRequiredHeading, setInRequiredHeading] = useState(true);
 
   const editor = useEditor(
     {
       extensions: [
-        ArticleDocument,
         StarterKit.configure({
-          document: false,
           horizontalRule: false,
           trailingNode: {
             node: "paragraph",
@@ -189,12 +167,6 @@ export function Article() {
           toast.error(new ZerospinError(result.failure).message);
         }
       },
-      onSelectionUpdate: ({ editor: updatedEditor }) => {
-        setInRequiredHeading(isSelectionInRequiredHeading(updatedEditor));
-      },
-      onCreate: ({ editor: createdEditor }) => {
-        setInRequiredHeading(isSelectionInRequiredHeading(createdEditor));
-      },
       editorProps: {
         attributes: {
           autocomplete: "off",
@@ -216,7 +188,7 @@ export function Article() {
   return (
     <EditorContext.Provider value={{ editor }}>
       <div className="flex min-h-full w-full flex-col bg-background">
-        <ArticleToolbar editor={editor} inRequiredHeading={inRequiredHeading} />
+        <ArticleToolbar editor={editor} />
         <div className="w-full px-6 py-16">
           {/* The extension positions the handle and owns native dragging. */}
           <DragHandle editor={editor} nested={false}>

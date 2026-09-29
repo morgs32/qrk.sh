@@ -25,18 +25,13 @@ import { HighlighterIcon } from "@/app/tiptap/icons/highlighter-icon";
 import { LinkIcon } from "@/app/tiptap/icons/link-icon";
 import { useIsBreakpoint } from "@/app/tiptap/hooks/use-is-breakpoint";
 
-const bodyLockedProps = (locked: boolean) =>
-  locked ? ({ disabled: true, "data-disabled": true } as const) : ({} as const);
-
 function MainToolbarContent(props: {
   editor: Editor;
-  bodyLocked: boolean;
   onHighlighterClick: () => void;
   onLinkClick: () => void;
   isMobile: boolean;
 }) {
-  const { editor, bodyLocked, onHighlighterClick, onLinkClick, isMobile } = props;
-  const locked = bodyLockedProps(bodyLocked);
+  const { editor, onHighlighterClick, onLinkClick, isMobile } = props;
   const canInsertImage = useEditorState({
     editor,
     selector: ({ editor: currentEditor }) =>
@@ -48,8 +43,8 @@ function MainToolbarContent(props: {
       <Spacer />
 
       <ToolbarGroup>
-        <UndoRedoButton action="undo" {...locked} />
-        <UndoRedoButton action="redo" {...locked} />
+        <UndoRedoButton action="undo" />
+        <UndoRedoButton action="redo" />
       </ToolbarGroup>
 
       <ToolbarSeparator />
@@ -59,46 +54,42 @@ function MainToolbarContent(props: {
         <ListDropdownMenu
           modal={false}
           types={["bulletList", "orderedList", "taskList"]}
-          {...locked}
         />
-        <BlockquoteButton {...locked} />
-        <CodeBlockButton {...locked} />
+        <BlockquoteButton />
+        <CodeBlockButton />
       </ToolbarGroup>
 
       <ToolbarSeparator />
 
       <ToolbarGroup>
-        <MarkButton type="bold" {...locked} />
-        <MarkButton type="italic" {...locked} />
-        <MarkButton type="strike" {...locked} />
-        <MarkButton type="code" {...locked} />
-        <MarkButton type="underline" {...locked} />
+        <MarkButton type="bold" />
+        <MarkButton type="italic" />
+        <MarkButton type="strike" />
+        <MarkButton type="code" />
+        <MarkButton type="underline" />
         {!isMobile ? (
-          <ColorHighlightPopover {...locked} />
+          <ColorHighlightPopover />
         ) : (
-          <ColorHighlightPopoverButton
-            onClick={bodyLocked ? undefined : onHighlighterClick}
-            {...locked}
-          />
+          <ColorHighlightPopoverButton onClick={onHighlighterClick} />
         )}
         {!isMobile ? (
-          <LinkPopover {...locked} />
+          <LinkPopover />
         ) : (
-          <LinkButton onClick={bodyLocked ? undefined : onLinkClick} {...locked} />
+          <LinkButton onClick={onLinkClick} />
         )}
       </ToolbarGroup>
 
       <ToolbarSeparator />
 
       <ToolbarGroup>
-        <TextAlignDropdownMenu modal={false} {...locked} />
+        <TextAlignDropdownMenu modal={false} />
         <Button
           type="button"
           variant="ghost"
           tooltip="Add image"
           aria-label="Add image"
-          disabled={bodyLocked || !canInsertImage}
-          data-disabled={bodyLocked || !canInsertImage}
+          disabled={!canInsertImage}
+          data-disabled={!canInsertImage}
           onClick={() => editor.chain().focus().setImageUploadNode().run()}
         >
           <ImagePlusIcon className="tiptap-button-icon" />
@@ -137,13 +128,13 @@ function MobileToolbarContent({
   );
 }
 
-export function ArticleToolbar(props: { editor: Editor; inRequiredHeading: boolean }) {
-  const { editor, inRequiredHeading } = props;
+export function ArticleToolbar(props: { editor: Editor }) {
+  const { editor } = props;
   const isMobile = useIsBreakpoint();
   const [mobileView, setMobileView] = useState<"main" | "highlighter" | "link">("main");
   const toolbarRef = useRef<HTMLDivElement>(null);
 
-  if ((!isMobile || inRequiredHeading) && mobileView !== "main") {
+  if (!isMobile && mobileView !== "main") {
     setMobileView("main");
   }
 
@@ -153,7 +144,6 @@ export function ArticleToolbar(props: { editor: Editor; inRequiredHeading: boole
         {mobileView === "main" ? (
           <MainToolbarContent
             editor={editor}
-            bodyLocked={inRequiredHeading}
             onHighlighterClick={() => setMobileView("highlighter")}
             onLinkClick={() => setMobileView("link")}
             isMobile={isMobile}

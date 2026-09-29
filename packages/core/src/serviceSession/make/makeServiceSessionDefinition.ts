@@ -1,6 +1,7 @@
 import { type ITypeError } from '@zerospin/schema';
 import { Schema } from 'effect';
 
+import { assertSameCoreInstance } from '../../assertSameCoreInstance.ts';
 import { assertValidModels } from '../../models/assertValidModels.ts';
 import { Model } from '../../models/defineModel.ts';
 import type {
@@ -74,6 +75,9 @@ export function makeServiceSessionDefinition<
         : MODELS[K];
     };
 }) {
+  for (const model of Object.values(props.models)) {
+    assertSameCoreInstance({ value: model, expected: Model, kind: 'Model' });
+  }
   Schema.decodeUnknownSync(ServiceSessionPropsSchema, {
     onExcessProperty: 'error',
   })(props);

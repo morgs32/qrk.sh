@@ -280,13 +280,15 @@ Neither factory takes `systemName` as an owner-level prop.
 - [`authorization.node.spec.ts`](../../packages/core/src/aggregate/authorization.node.spec.ts) — verifies optional authorization, supplied failures, and upgrade inheritance, replacement, and removal.
 - [`authorizeAggregateSession.ts`](../../packages/system-worker/src/AggregateVersionRepo/authorizeAggregateSession/authorizeAggregateSession.ts) — skips omitted checks and runs supplied authorization against owner-local model queries.
 
-Aggregate actor versions select callable contracts from their host's canonical declarations. Aggregate versions combine optional named `modules` with flat `models`, `contracts`, and `automations`, rejecting duplicate names and deriving service pins from the effective replicas. Contract model aliases are compared by their underlying model identities: mutation models must appear in the actor's database, and registered models must match the aggregate's canonical versions. Service and session registrations retain `{ contract }` bindings.
+Aggregate actor versions select callable contracts from their host's canonical declarations. Aggregate versions combine optional named `modules` with flat `models` and `contracts`, rejecting duplicate names and deriving service pins from the effective replicas. Contract model aliases are compared by their underlying model identities: mutation models must appear in the actor's database, and registered models must match the aggregate's canonical versions. Service and session registrations retain `{ contract }` bindings.
 
-`updateAggregateActorVersion(previous, changes)` inherits omitted declaration fields and merges supplied `contracts`, `queries`, `guards`, and `automations` by key. Supplied entries replace matching keys; an empty map preserves existing entries. Database, identity, and authorization overrides replace inherited values, and the complete merged declaration receives the same constructor validation.
+`updateAggregateActorVersion(previous, changes)` inherits omitted declaration fields and merges supplied `contracts`, `queries`, and `guards` by key. Supplied entries replace matching keys; an empty map preserves existing entries. Database, identity, and authorization overrides replace inherited values, and the complete merged declaration receives the same constructor validation.
 
 Authored `queries` are native `actorDb.query.model.findMany(...)` queries. `makeActorDbVersion({ models })` pins the database graph without opening storage. `makeActorIdentity({ claims, actorPath })` derives identity codecs from the path and exposes typed `sql.placeholder(name)` inputs. The actor captures SQL, serializable bindings, and row mapping once at construction as `actor.selections`.
 
-Contracts may declare a reusable claims schema and a shared synchronous `guard({ payload, claims, queryDb })`. Execution validates claims once before callbacks. Local staging and pending replay run the guard before the program; authoritative execution prepares the program, then runs the guard inside the mutation transaction before applying mutations. Both callbacks use the same validated claims. Guard business failures use the executing contract's failure codec and explicit historical adapters.
+Contracts may declare a reusable claims schema and a shared synchronous `guard({ payload, claims, db })`. Execution validates claims once before callbacks. Local staging and pending replay run the guard before the program; authoritative execution prepares the program, then runs the guard inside the mutation transaction before applying mutations. Both callbacks use the same validated claims. Guard business failures use the executing contract's failure codec and explicit historical adapters.
+
+Contract programs retain mutation-array results. Database queries observe the invocation state before those mutations are applied. Session validation calculates without applying writes; staging and replay use local state, with replay using its active transaction. Aggregate and service materializers recalculate from their own state and commit each command before preparing the next. The client allocation is not retained as command intent.
 
 Changing an actor's database requires rebuilding its queries against that definition. Selections have no independent identity or version; the actor version locks their compiled SQL and bindings along with model bindings.
 
@@ -346,7 +348,7 @@ persistence, and session inputs retain their normal boundary validation.
 - [`makeSystem.ts`](../../packages/core/src/system/make/makeSystem/makeSystem.ts) — resolves services before aggregates and assembles the owner registries into the completed `ISystem` graph.
 
 Contract programs receive `{ payload, models, claims }`. Guards receive
-`queryDb`. Browser execution uses the session's full claims; aggregate
+`db`. Browser execution uses the session's full claims; aggregate
 execution preserves the admitted command's full claims, including actor
 claims for trusted sessionless commands. Service programs receive `null`. The
 claims are an invocation argument and does not belong in command payloads.
@@ -355,7 +357,7 @@ Aggregate contracts resolve only through the recorded actor name/version and tha
 
 `makeSystem({ layer })` supplies server capabilities through one managed `system.runtime`; aggregates, services, and actors do not own layers. `makeSession` supplies a separate browser session layer. The executing contract version supplies the shared state guard; historical payload adapters remain on contracts. These executable values are excluded from specs and locks.
 
-Guards read the invocation database through `queryDb`. Programs receive decoded
+Guards and programs read the invocation database through the query-only `db` interface, typed from declared models. Programs receive decoded
 claims as an argument. Aggregate sessionless execution retains validated
 actor claims. Service commands pass `null` claims. There is no execution tag map.
 
@@ -876,7 +878,7 @@ Autonomous actor APIs and their identity rules are deferred.
 - [`executeCommands.ts`](../../packages/system-worker/src/AggregateVersionRepo/executeCommands/executeCommands.ts) — invocation binding and retained command provenance.
 
 Aggregate sessions bind `actorName` and `actorVersion`, and declare the
-matching claims schema. Browser sessions compose optional named `modules` with flat declarations before constructing their effective model and contract bindings. Duplicate names are rejected. Browser sessions reject automations; service sessions expose authoritative models only and reject contracts. Browser session layers supply browser adapters;
+matching claims schema. Browser sessions compose optional named `modules` with flat declarations before constructing their effective model and contract bindings. Duplicate names are rejected. Service sessions expose authoritative models only and reject contracts. Browser session layers supply browser adapters;
 server actor modules never enter the browser import graph. Session model
 schemas can include aggregate models needed by contract mutations, while only
 selection filters determine visible server rows. Locks validate exact aggregate

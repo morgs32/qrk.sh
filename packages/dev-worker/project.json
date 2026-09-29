@@ -21,13 +21,6 @@
           "projects": ["@zerospin/fixtures"]
         }
       ]
-    },
-    "test:workerd": {
-      "executor": "nx:run-script",
-      "options": {
-        "script": "test:workerd"
-      },
-      "dependsOn": ["lib", "^lib"]
     }
   }
 }

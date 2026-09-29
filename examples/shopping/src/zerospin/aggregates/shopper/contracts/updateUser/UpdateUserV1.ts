@@ -30,9 +30,8 @@ export const updateUserV1 = sdk.makeContractVersion(updateUser, {
     failures,
     payload,
     claims,
-    queryDb,
+    db,
   }) {
-    const db = queryDb;
     const resource = yield* Effect.try({
       try: () =>
         db.query.user.findFirst({ where: { id: { eq: payload.id } } }).sync(),
@@ -49,7 +48,7 @@ export const updateUserV1 = sdk.makeContractVersion(updateUser, {
       );
     }
 
-    const user = queryDb.query.user
+    const user = db.query.user
       .findFirst({ where: { clerkUserId: { eq: claims.clerkUserId } } })
       .sync();
     if (user?.id !== resource.id) {

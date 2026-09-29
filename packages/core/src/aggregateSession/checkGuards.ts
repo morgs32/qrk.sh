@@ -66,7 +66,7 @@ export function checkGuards(props: {
     return resources.runtime.runSync(
       runContractGuard({
         contract,
-        queryDb: state.db,
+        db: state.db,
         payload: props.payload,
         claims: state.claims,
       }).pipe(

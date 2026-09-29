@@ -3,6 +3,7 @@ import type { IEncodedShape, InferIdFromAbbreviation } from '@zerospin/schema';
 import type { Brand, JsonSchema, ManagedRuntime } from 'effect';
 
 import type { IAnyAggregate, IAnyAggregates } from '../aggregate/types.ts';
+import type { IAnyMachineDeclaration } from '../machine/types.ts';
 import type { ISelectionQuery } from '../models/SelectionQuerySchema.ts';
 import type {
   IEncodedResourceShape,
@@ -43,6 +44,8 @@ export type IRepoType =
   | 'ServiceActorVersionChain'
   | 'AggregateActorVersionRepo'
   | 'ServiceActorVersionRepo'
+  | 'AggregateMachineRepo'
+  | 'ServiceMachineRepo'
   | 'SystemLogRepo';
 
 export type IRepoRegistration = Readonly<{
@@ -119,18 +122,6 @@ export type ISystemSpec = Readonly<{
                 string,
                 ISystemActorSpec & {
                   contracts: Readonly<Record<string, ISystemContractSpec>>;
-                  automations: Readonly<
-                    Record<
-                      string,
-                      {
-                        name: string;
-                        on: { commandName: string; version: string };
-                        contracts: Readonly<
-                          Record<string, ISystemContractSpec>
-                        >;
-                      }
-                    >
-                  >;
                 }
               >
             >;
@@ -172,6 +163,34 @@ export type ISystemSpec = Readonly<{
       >
     >
   >;
+  machines: Readonly<
+    Record<
+      string,
+      Readonly<{
+        sourceKind: 'aggregate' | 'service';
+        sourceName: string;
+        sourceVersion: string;
+        selections: Readonly<
+          Record<string, Readonly<{ modelName: string; query: ISelectionQuery }>>
+        >;
+        contracts: Readonly<
+          Record<
+            string,
+            Readonly<{
+              targetKind: 'aggregate' | 'service';
+              targetName: string;
+              targetVersion: string;
+              contract: ISystemContractSpec;
+            }>
+          >
+        >;
+        states: Readonly<Record<string, unknown>>;
+        routes: Readonly<
+          Record<string, Readonly<{ work: 'idle' | 'waiting' | 'activation' | 'command'; onCommand: boolean }>>
+        >;
+      }>
+    >
+  >;
 }>;
 
 export type ISystemLogLevel = 'debug' | 'info' | 'warn' | 'error';
@@ -200,6 +219,9 @@ export type ISystem<
     Record<string, IAnyServices>
   >,
   SYSTEM_NAME extends string = string,
+  MACHINES extends Readonly<Record<string, IAnyMachineDeclaration>> = Readonly<
+    Record<string, IAnyMachineDeclaration>
+  >,
 > = {
   readonly runtime: ManagedRuntime.ManagedRuntime<unknown, IAnyError>;
   readonly name: SYSTEM_NAME;
@@ -209,4 +231,5 @@ export type ISystem<
   readonly services: Readonly<
     SERVICES & Record<string, Readonly<Record<string, IAnyService>>>
   >;
+  readonly machines: Readonly<MACHINES>;
 };

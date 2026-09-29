@@ -1,4 +1,3 @@
-import type { IAnyAutomation } from '../automation/types.ts';
 import type { IAnyContracts } from '../contracts/types.ts';
 import type { IAnyModels } from '../models/types.ts';
 
@@ -6,13 +5,9 @@ import type { IAnyModels } from '../models/types.ts';
 export type IDeclarationModule<
   MODELS extends IAnyModels = IAnyModels,
   CONTRACTS extends IAnyContracts = IAnyContracts,
-  AUTOMATIONS extends Readonly<Record<string, IAnyAutomation>> = Readonly<
-    Record<string, IAnyAutomation>
-  >,
 > = {
   readonly models: MODELS;
   readonly contracts: CONTRACTS;
-  readonly automations: AUTOMATIONS;
 };
 
 export type IAnyDeclarationModule = IDeclarationModule;
@@ -56,17 +51,12 @@ type IModuleDuplicates<
 export type IAssertDistinctDeclarations<
   MODELS,
   CONTRACTS,
-  AUTOMATIONS,
   MODULES extends Readonly<Record<string, IAnyDeclarationModule>>,
 > = {
   [NAME in keyof MODULES]: {
     [KIND in keyof IAnyDeclarationModule]: {
       [KEY in IModuleDuplicates<
-        KIND extends 'models'
-          ? MODELS
-          : KIND extends 'contracts'
-            ? CONTRACTS
-            : AUTOMATIONS,
+        KIND extends 'models' ? MODELS : CONTRACTS,
         MODULES,
         KIND,
         NAME

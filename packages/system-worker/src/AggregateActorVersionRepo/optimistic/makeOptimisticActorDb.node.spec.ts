@@ -4,7 +4,7 @@ import { encodeMutation } from '@zerospin/core/contracts/encodeAppliedMutation';
 import { makeModelMutations } from '@zerospin/core/contracts/make/makeModelMutations';
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/make/makeDbConfig/makeDbConfig';
 import { makeTx } from '@zerospin/core/drizzle/make/makeTx';
-import { game } from '@zerospin/fixtures/system-worker/workerd/automationFixture';
+import { game } from '@zerospin/fixtures/system-worker/workerd/machineFixture';
 import { Effect } from 'effect';
 import { expect, it } from 'vitest';
 
@@ -15,7 +15,7 @@ import { makeOptimisticActorDb } from './makeOptimisticActorDb.js';
 it('rebuilds optimism over newer authoritative rows without changing them', async () => {
   const scope = Effect.scoped(
     Effect.gen(function* () {
-      const models = { automationGame: game };
+      const models = { machineGame: game };
       const authoritative = yield* makeActorSnapshotDb(
         makeResourceDbConfig({ models }),
       );
@@ -51,12 +51,12 @@ it('rebuilds optimism over newer authoritative rows without changing them', asyn
           ],
         });
       const first = yield* rebuild();
-      expect(first.db.query.automationGame?.findFirst().sync()).toMatchObject({
+      expect(first.db.query.machineGame?.findFirst().sync()).toMatchObject({
         turn: 'O',
         value: 1,
       });
       expect(
-        authoritative.db.query.automationGame?.findFirst().sync(),
+        authoritative.db.query.machineGame?.findFirst().sync(),
       ).toMatchObject({
         turn: 'X',
         value: 1,
@@ -75,7 +75,7 @@ it('rebuilds optimism over newer authoritative rows without changing them', asyn
         });
       })(authoritative.db);
       const second = yield* rebuild();
-      expect(second.db.query.automationGame?.findFirst().sync()).toMatchObject({
+      expect(second.db.query.machineGame?.findFirst().sync()).toMatchObject({
         turn: 'O',
         value: 2,
       });

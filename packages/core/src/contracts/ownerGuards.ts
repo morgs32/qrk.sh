@@ -14,7 +14,7 @@ export type IOwnerGuards<
   REQUIREMENTS = never,
 > = {
   readonly [K in keyof CONTRACTS]?: (props: {
-    queryDb: string extends keyof MODELS
+    db: string extends keyof MODELS
       ? Readonly<Pick<IDb, 'query'>>
       : Readonly<
           Pick<IDb<IResourceDbConfig<MODELS, Record<never, never>>>, 'query'>

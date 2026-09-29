@@ -19,7 +19,6 @@ export const gameSession = makeSession({
   actorVersion: '1.0.0',
   models: { game },
   contracts: { createGame, playX },
-  automations: {},
   claimsSchema,
   layer: applicationLayer,
   systemName: 'tic-tac-toe',

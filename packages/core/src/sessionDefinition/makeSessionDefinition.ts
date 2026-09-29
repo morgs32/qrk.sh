@@ -1,5 +1,6 @@
 import { Schema, SchemaAST } from 'effect';
 
+import { assertSameCoreInstance } from '../assertSameCoreInstance.ts';
 import { Contract } from '../contracts/make/makeContractVersion.ts';
 import type { IAnyContracts, IContract } from '../contracts/types.ts';
 import type { IClaimsSchema } from '../identity/types.ts';
@@ -61,6 +62,12 @@ export function makeSessionDefinition(props: {
     models,
     systemName,
   } = props;
+  for (const model of Object.values(models)) {
+    assertSameCoreInstance({ value: model, expected: Model, kind: 'Model' });
+  }
+  for (const contract of Object.values(props.contracts ?? {})) {
+    assertSameCoreInstance({ value: contract, expected: Contract, kind: 'Contract' });
+  }
   assertValidModels({ models, context: 'makeSession' });
   const common = {
     sessionName,

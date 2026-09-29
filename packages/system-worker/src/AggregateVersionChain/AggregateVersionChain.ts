@@ -8,6 +8,7 @@ import { aggregateActorVersionRepoFixedDORepoConfig } from '../AggregateActorVer
 import { makeFanoutQueue } from '../makeFanoutQueue/makeFanoutQueue.js';
 import { makeFixedDORepo } from '../makeFixedDORepo/makeFixedDORepo.js';
 import { makeOutboxSubscriber } from '../makeOutboxSubscriber/makeOutboxSubscriber.js';
+import { aggregateMachineNameUtils, getAggregateMachineRepo } from '../machineRepoNames.js';
 import { readExecutedCommandsPage } from '../readExecutedCommandsPage/readExecutedCommandsPage.js';
 
 import { aggregateVersionChainFixedDORepoConfig } from './aggregateVersionChainFixedDORepoConfig.js';
@@ -67,11 +68,48 @@ export class AggregateVersionChain extends makeFixedDORepo({
     // 1 — reuse the existing private queue/subscriber instance
     return this.#executionResultsFanout;
   }
+  readonly #machineResultsFanout = makeFanoutQueue({
+    concurrency: 100,
+    name: 'machineResultsFanout',
+    db: this.db,
+    key: this.key,
+    alarmRegistry: this.alarmRegistry,
+    schema: this.schema,
+    subscribersTableName: 'machineResultsSubscribers',
+    subscriberNameUtils: aggregateMachineNameUtils,
+    entriesTableName: 'aggregateCommands',
+    indexColumnName: 'executedIndex',
+    readPage: (
+      page,
+    ): {
+      rows: readonly { row: IExecutedCommandRow; index: number }[];
+      lastIndex: number;
+    } =>
+      readExecutedCommandsPage({
+        db: this.db,
+        aggregateCommands: this.schema.aggregateCommands,
+        serviceCommands: this.schema.serviceCommands,
+        ...page,
+      }),
+    getRepo: getAggregateMachineRepo,
+  });
+  get machineResultsFanout() {
+    return this.#machineResultsFanout;
+  }
   readonly #executedCommandsSubscriber = makeOutboxSubscriber({
     name: 'executedCommands',
     receive: (rows: Parameters<typeof receiveExecutedCommands>[0]['rows']) =>
-      this.#executionResultsFanout.drainAfter(() =>
-        receiveExecutedCommands({ rows, db: this.db, key: this.key }),
+      Effect.gen({ self: this }, function* () {
+        yield* this.alarmRegistry.hold('machineResultsFanout');
+        return yield* this.#executionResultsFanout.drainAfter(() =>
+          receiveExecutedCommands({ rows, db: this.db, key: this.key }),
+        );
+      }).pipe(
+        Effect.ensuring(
+          Effect.sync(() => {
+            this.#machineResultsFanout.drain();
+          }),
+        ),
       ),
   });
   /*

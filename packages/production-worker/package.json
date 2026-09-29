@@ -18,7 +18,6 @@
   "scripts": {
     "clean": "rimraf dist tsconfig.tsbuildinfo",
     "lib": "pnpm run clean && tsc -b tsconfig.json",
-    "test:workerd": "vitest run --config vitest.production.config.ts",
     "ts": "tsc -p tsconfig.json --noEmit",
     "lint": "oxlint . --format stylish"
   },
@@ -32,13 +31,10 @@
     "system-worker": "workspace:*"
   },
   "devDependencies": {
-    "@cloudflare/vitest-plugin": "^1.1.2",
     "@types/node": "^25.9.4",
-    "@zerospin/dev-worker": "workspace:*",
     "@zerospin/fixtures": "workspace:*",
     "effect": "rc",
-    "rimraf": "^6.1.3",
-    "vitest": "^4.1.5"
+    "rimraf": "^6.1.3"
   },
   "peerDependencies": {
     "effect": "^4.0.0-rc.111"

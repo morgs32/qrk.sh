@@ -16,7 +16,7 @@ export type IFulfillmentOwnership<
   HOST extends { purchase: IModel; user: IModel; cart: IModel },
   CLAIMS extends IClaimsSchema,
 > = (props: {
-  queryDb: Readonly<
+  db: Readonly<
     Pick<
       IDb<
         IResourceDbConfig<
@@ -95,20 +95,20 @@ export const makeFulfillmentFrontendModule = <
           code: 'fulfillment-operation-conflict',
         }),
       },
-      guard: Effect.fn(function* ({ queryDb, claims, payload, failures }) {
+      guard: Effect.fn(function* ({ db, claims, payload, failures }) {
         const row = Schema.decodeUnknownSync(
           Schema.toType(Schema.Array(fulfillment.resourceSchema)),
-        )(queryDb.query.fulfillment.findMany().sync()).find(
+        )(db.query.fulfillment.findMany().sync()).find(
           row => row.id === payload.fulfillmentId,
         );
         const operations = Schema.decodeUnknownSync(
           Schema.toType(Schema.Array(fulfillmentOperation.resourceSchema)),
-        )(queryDb.query.fulfillmentOperation.findMany().sync());
+        )(db.query.fulfillmentOperation.findMany().sync());
         const owner =
           row === undefined
             ? undefined
             : resolvePurchaseOwner({
-                queryDb,
+                db,
                 claims,
                 purchaseId: row.purchaseId,
               });
@@ -150,6 +150,5 @@ export const makeFulfillmentFrontendModule = <
   return {
     models: { fulfillment, fulfillmentOperation },
     contracts: { requestPacking, requestShipping },
-    automations: {},
   };
 };

@@ -38,30 +38,37 @@ export function checkClaimsInference() {
     claims: userClaims,
     models: { user },
     payload: { name: primitives.text() },
-    guard: Effect.fn('renameUser.guard')(function* ({
-      claims,
-      payload,
-      queryDb,
-    }) {
+    guard: Effect.fn('renameUser.guard')(function* ({ claims, payload, db }) {
       assert<Equals<typeof claims.subject, string>>();
       assert<Equals<typeof payload.name, string>>();
-      assert<Equals<keyof typeof queryDb.query, 'user'>>();
+      assert<Equals<keyof typeof db.query, 'user'>>();
       // @ts-expect-error Only declared claims are available.
       void claims.role;
       // @ts-expect-error Only declared payload fields are available.
       void payload.missing;
       // @ts-expect-error Only declared models are queryable.
-      void queryDb.query.missing;
+      void db.query.missing;
       yield* Effect.void;
     }),
     program: Effect.fn('renameUser.program')(function* ({
       claims,
       payload,
       models,
+      db,
     }) {
       assert<Equals<typeof claims.subject, string>>();
       assert<Equals<typeof payload.name, string>>();
       assert<Equals<keyof typeof models, 'user'>>();
+      assert<Equals<keyof typeof db.query, 'user'>>();
+      assert<Equals<keyof typeof db, 'query'>>();
+      const row = db.query.user.findFirst().sync();
+      if (row) {
+        assert<Equals<typeof row.name, string>>();
+      }
+      // @ts-expect-error Programs cannot write directly.
+      void db.insert;
+      // @ts-expect-error Programs cannot query undeclared models.
+      void db.query.missing;
       yield* Effect.void;
       return [];
     }),
@@ -89,19 +96,29 @@ export function checkClaimsInference() {
     claims: userClaims,
     payload: { nickname: primitives.text() },
     up: ({ payload }) => Effect.succeed({ ...payload, nickname: payload.name }),
-    guard: Effect.fn('renameUserV2.guard')(function* ({
-      claims,
-      payload,
-      queryDb,
-    }) {
+    guard: Effect.fn('renameUserV2.guard')(function* ({ claims, payload, db }) {
       assert<Equals<typeof claims.subject, string>>();
       assert<Equals<typeof payload.nickname, string>>();
-      assert<Equals<keyof typeof queryDb.query, 'user'>>();
+      assert<Equals<keyof typeof db.query, 'user'>>();
       // @ts-expect-error Upgrades retain the declared claims requirement.
       void claims.role;
       yield* Effect.void;
     }),
-    program: () => Effect.succeed([]),
+    program: ({ db }) => {
+      assert<Equals<keyof typeof db.query, 'user'>>();
+      assert<Equals<keyof typeof db, 'query'>>();
+      return Effect.succeed([]);
+    },
+  });
+  upgradeContractVersion(first, {
+    version: '3.0.0',
+    models: { user: null, member: user },
+    payload: {},
+    up: ({ payload }) => Effect.succeed(payload),
+    program: ({ db }) => {
+      assert<Equals<keyof typeof db.query, 'member'>>();
+      return Effect.succeed([]);
+    },
   });
 }
 
@@ -178,7 +195,7 @@ describe('contract claims', () => {
       const guarded = await Effect.runPromise(
         runContractGuard({
           contract,
-          queryDb: { query: {} },
+          db: { query: {} },
           payload: {},
           claims,
         }).pipe(Effect.result),
@@ -189,6 +206,7 @@ describe('contract claims', () => {
       });
       const programmed = await Effect.runPromise(
         makeMutations({
+          db: { query: {} },
           contract,
           models: {},
           command: {
@@ -209,7 +227,7 @@ describe('contract claims', () => {
     await Effect.runPromise(
       runContractGuard({
         contract,
-        queryDb: { query: {} },
+        db: { query: {} },
         payload: {},
         claims: { subject: 'alice', role: 'admin' },
       }),
@@ -235,13 +253,14 @@ describe('contract claims', () => {
     await Effect.runPromise(
       runContractGuard({
         contract,
-        queryDb: { query: {} },
+        db: { query: {} },
         payload: {},
         claims: null,
       }),
     );
     await Effect.runPromise(
       makeMutations({
+        db: { query: {} },
         contract,
         models: {},
         command: {

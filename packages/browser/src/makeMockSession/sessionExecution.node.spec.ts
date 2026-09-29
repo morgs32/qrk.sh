@@ -1,4 +1,5 @@
 import { it } from '@effect/vitest';
+import { applyAggregateActorCommand } from '@zerospin/core/aggregateSession/applyAggregateActorCommand/applyAggregateActorCommand';
 import { checkGuards } from '@zerospin/core/aggregateSession/checkGuards';
 import { replayPendingCommandsTx } from '@zerospin/core/aggregateSession/replayPendingCommandsTx';
 import { sessionRepoDbConfig } from '@zerospin/core/aggregateSession/sessionRepoDbConfig';
@@ -45,10 +46,10 @@ describe('session runtime execution', () => {
           payload: {},
           failures: {},
           claims,
-          guard: Effect.fn(function* ({ claims, queryDb }) {
+          guard: Effect.fn(function* ({ claims, db }) {
             seen.push(yield* Capability);
             expect(claims.user).toBe('owner');
-            expect(queryDb.query.item.findMany().sync()).toEqual([]);
+            expect(db.query.item.findMany().sync()).toEqual([]);
           }),
           program: Effect.fn(function* ({ models, claims }) {
             const capability = yield* Capability;
@@ -139,6 +140,171 @@ describe('session runtime execution', () => {
           expect(seen.every(value => value === capability)).toBe(true);
           expect(acquired).toBe(1);
           expect(ids).toHaveLength(3);
+        } finally {
+          yield* Effect.promise(() => session.dispose());
+        }
+      }),
+  );
+
+  it.effect(
+    'recalculates mutations and reconciles selected server results and rejection',
+    () =>
+      Effect.gen(function* () {
+        const increment = makeContractVersion(defineContract('increment'), {
+          version: '1.0.0',
+          models: { item },
+          payload: {},
+          program: Effect.fn(function* ({ db, models }) {
+            const before = db.query.item.findFirst().sync()?.value ?? 0;
+            const mutation = yield* models.item.update({
+              resourceId: 'itm_test',
+              attributes: { value: before + 1 },
+            });
+            expect(db.query.item.findFirst().sync()?.value).toBe(before);
+            return [mutation];
+          }),
+        });
+        const session = makeMockAggregateSession({
+          definition: {
+            kind: 'aggregate',
+            aggregateName: 'test',
+            aggregateVersion: '1.0.0',
+            actorName: 'writer',
+            actorVersion: '1.0.0',
+            sessionName: 'writer',
+            models: { item },
+            contracts: { increment },
+            claimsSchema: claims,
+          },
+          claims: { aggregateId: 'acct_test', user: 'owner' },
+        });
+        try {
+          yield* Effect.promise(() => session.initialize());
+          const state = session.store.getState();
+          if (
+            !state.isInitialized ||
+            !state.db ||
+            !state.schema ||
+            !state.sessionId
+          ) {
+            throw new Error('Session not ready');
+          }
+          const { db, schema, sessionId } = state;
+          const now = new Date();
+          db.insert(schema.item)
+            .values({
+              id: 'itm_test',
+              modelName: 'item',
+              version: '1.0.0',
+              createdAt: now,
+              updatedAt: now,
+              value: 10,
+            })
+            .run();
+          expect(
+            yield* validateSessionCommand({
+              session,
+              contractName: 'increment',
+              payload: {},
+            }),
+          ).toEqual({ _tag: 'Success', success: undefined });
+          expect(db.query.item.findFirst().sync()?.value).toBe(10);
+          session.setExecutionResources({
+            sessionId,
+            runtime: session.runtime,
+            settleLocally: false,
+          });
+          const staged = [];
+          for (let i = 0; i < 2; i++) {
+            const result = stageCommand({
+              session,
+              contractName: 'increment',
+              payload: {},
+            });
+            if (result._tag === 'Failure') throw new Error('Staging failed');
+            staged.push(result.success);
+          }
+          expect(db.query.item.findFirst().sync()?.value).toBe(12);
+          // Restore a different authoritative base, then replay both pending commands.
+          db.update(schema.item).set({ value: 20 }).run();
+          db.transaction(tx =>
+            session.runtime.runSync(
+              replayPendingCommandsTx({ tx, definition: session.definition }),
+            ),
+          );
+          expect(db.query.item.findFirst().sync()?.value).toBe(22);
+          const selected = db.select().from(schema.item).get();
+          const first = staged[0];
+          const second = staged[1];
+          if (!selected || !first || !second) {
+            throw new Error('Missing staged state');
+          }
+          const completedAt = new Date();
+          const admission = {
+            status: 'succeeded' as const,
+            startedAt: completedAt,
+            completedAt,
+          };
+          const common = {
+            nodeId: null,
+            nodeIndex: null,
+            admission,
+          };
+          expect(
+            yield* applyAggregateActorCommand({
+              db,
+              definition: session.definition,
+              models: session.definition.models,
+              sessionId,
+              command: {
+                ...common,
+                id: first.id,
+                executedIndex: 1,
+                aggregateIndex: 1,
+                executedHash: 'a'.repeat(64),
+                actorDelta: {
+                  upserted: [{ ...selected, value: 30 }],
+                  deleted: [],
+                },
+                execution: {
+                  status: 'succeeded',
+                  startedAt: completedAt,
+                  completedAt,
+                },
+              },
+            }),
+          ).toBe('applied');
+          expect(db.query.item.findFirst().sync()?.value).toBe(31);
+          expect(
+            yield* applyAggregateActorCommand({
+              db,
+              definition: session.definition,
+              models: session.definition.models,
+              sessionId,
+              command: {
+                ...common,
+                id: second.id,
+                executedIndex: 2,
+                aggregateIndex: 2,
+                executedHash: 'b'.repeat(64),
+                actorDelta: { upserted: [], deleted: [] },
+                execution: {
+                  status: 'failed',
+                  startedAt: completedAt,
+                  completedAt,
+                  failure: {
+                    _tag: 'ZerospinError',
+                    code: 'unavailable',
+                    scope: 'aggregate',
+                    message: 'Policy unavailable',
+                    status: null,
+                    extra: null,
+                  },
+                },
+              },
+            }),
+          ).toBe('applied');
+          expect(db.query.item.findFirst().sync()?.value).toBe(30);
         } finally {
           yield* Effect.promise(() => session.dispose());
         }

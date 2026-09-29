@@ -18,8 +18,8 @@ const next = makePurchaseFrontendModule(
       product: productReplicaV1,
     },
     claimsSchema: shopperClaims,
-    resolveUserId: ({ queryDb, claims }) =>
-      queryDb.query.user
+    resolveUserId: ({ db, claims }) =>
+      db.query.user
         .findFirst({ where: { clerkUserId: { eq: claims.clerkUserId } } })
         .sync()?.id,
     readQuantity: item => item.quantity,
@@ -63,5 +63,4 @@ export const purchaseFrontendV3 = {
     cancelPurchase: purchaseFrontend.contracts.cancelPurchase,
     removePromotion: purchaseFrontend.contracts.removePromotion,
   },
-  automations: {},
 };

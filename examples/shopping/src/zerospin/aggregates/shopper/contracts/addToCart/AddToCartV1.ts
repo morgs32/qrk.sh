@@ -69,21 +69,21 @@ export const addToCartV1 = sdk.makeContractVersion(addToCart, {
     failures,
     payload,
     claims,
-    queryDb,
+    db,
   }) {
     return yield* canEditCart({
       failures,
       cartId: payload.cartId,
-      cart: queryDb.query.cart
+      cart: db.query.cart
         .findFirst({ where: { id: { eq: payload.cartId } } })
         .sync(),
-      user: queryDb.query.user
+      user: db.query.user
         .findFirst({
           where: { clerkUserId: { eq: claims.clerkUserId } },
         })
         .sync(),
       hasPendingPurchase:
-        queryDb.query.checkout
+        db.query.checkout
           .findFirst({
             where: {
               cartId: { eq: payload.cartId },
@@ -91,7 +91,7 @@ export const addToCartV1 = sdk.makeContractVersion(addToCart, {
             },
           })
           .sync() !== undefined ||
-        queryDb.query.purchase
+        db.query.purchase
           .findFirst({
             where: {
               cartId: { eq: payload.cartId },

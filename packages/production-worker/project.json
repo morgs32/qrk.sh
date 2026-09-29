@@ -10,7 +10,6 @@
           "target": "lib",
           "projects": [
             "@zerospin/core",
-            "@zerospin/dev-worker",
             "@zerospin/error",
             "@zerospin/logger",
             "@zerospin/schema",
@@ -22,15 +21,6 @@
           "projects": ["@zerospin/fixtures"]
         }
       ]
-    },
-    "test:workerd": {
-      "executor": "nx:run-commands",
-      "options": {
-        "commands": ["vitest run --config vitest.production.config.ts"],
-        "parallel": false,
-        "cwd": "{projectRoot}"
-      },
-      "dependsOn": ["lib", "^lib"]
     }
   }
 }

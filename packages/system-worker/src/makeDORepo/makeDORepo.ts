@@ -44,6 +44,10 @@ import type { SystemLogRepo } from '../SystemLogRepo/SystemLogRepo.js';
 import type { SystemRepo } from '../SystemRepo/SystemRepo.js';
 
 import type { IRepoNameUtils } from './makeRepoNameUtils.js';
+import type {
+  IAggregateMachineReceiver,
+  IServiceMachineReceiver,
+} from '@zerospin/core/machine/receiver';
 
 const { system } = config;
 
@@ -98,6 +102,12 @@ declare global {
       >;
       SERVICE_ACTOR_VERSION_CHAIN: DurableObjectNamespace<
         Rpc.DurableObjectBranded & ServiceActorVersionChain
+      >;
+      AGGREGATE_MACHINE_REPO: DurableObjectNamespace<
+        Rpc.DurableObjectBranded & IAggregateMachineReceiver
+      >;
+      SERVICE_MACHINE_REPO: DurableObjectNamespace<
+        Rpc.DurableObjectBranded & IServiceMachineReceiver
       >;
       SYSTEM_LOG_REPO: DurableObjectNamespace<
         Rpc.DurableObjectBranded & SystemLogRepo

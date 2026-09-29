@@ -67,7 +67,9 @@ exact definition across the aggregate's supported versions before decoding claim
 Capabilities come from the shared system runtime. Identity and read-only
 queries are explicit callback arguments. Actor-scoped contract and actor guards
 run during AAVR staging; AVR runs aggregate guards inside the authoritative
-command transaction. Portable programs and aggregate guards complete synchronously. Trusted
+command transaction. After shared mutations apply, an aggregate version's optional
+command extension reads that transaction and contributes mutations to the same
+command history and final delta. Portable programs, aggregate guards, and extensions complete synchronously. Trusted
 sessionless commands retain explicit actor identity and validated claims.
 Declared refusals follow retained failure
 publication and optimistic reconciliation.

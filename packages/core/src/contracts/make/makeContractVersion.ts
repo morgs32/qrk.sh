@@ -15,6 +15,8 @@ import {
 import { Effect, Schema } from 'effect';
 import { mapValues } from 'es-toolkit';
 
+import { assertSameCoreInstance } from '../../assertSameCoreInstance.ts';
+
 import type { IDb, IResourceDbConfig } from '../../drizzle/types.ts';
 import { Model } from '../../models/defineModel.ts';
 import type {
@@ -51,13 +53,21 @@ export type InferContractProgram<
   MUTATIONS = IMutations,
   REQUIREMENTS = never,
   ERROR extends IContractFailure = IContractFailure,
-> = (props: {
-  claims: Readonly<Record<string, unknown>> | null;
-  payload: IsErasedPayloadShape<PAYLOAD> extends true
-    ? // oxlint-disable-next-line typescript/no-explicit-any -- erased payload shape intentionally accepts any payload
-      any
-    : InferCommandPayload<PAYLOAD>;
-}) => Effect.Effect<MUTATIONS, ERROR, REQUIREMENTS>;
+  MODELS extends IAnyModels = IAnyModels,
+> = {
+  bivarianceHack(props: {
+    db: string extends keyof MODELS
+      ? Readonly<Pick<IDb, 'query'>>
+      : Readonly<
+          Pick<IDb<IResourceDbConfig<MODELS, Record<never, never>>>, 'query'>
+        >;
+    claims: Readonly<Record<string, unknown>> | null;
+    payload: IsErasedPayloadShape<PAYLOAD> extends true
+      ? // oxlint-disable-next-line typescript/no-explicit-any -- erased payload shape intentionally accepts any payload
+        any
+      : InferCommandPayload<PAYLOAD>;
+  }): Effect.Effect<MUTATIONS, ERROR, REQUIREMENTS>;
+}['bivarianceHack'];
 
 type IContractProgramFn<
   PAYLOAD extends IAnyShape,
@@ -69,6 +79,9 @@ type IContractProgramFn<
   FAILURES extends IFailures = IFailures,
   DEFAULT_FAILURES extends IFailures = Record<never, never>,
 > = (props: {
+  db: Readonly<
+    Pick<IDb<IResourceDbConfig<MODELS, Record<never, never>>>, 'query'>
+  >;
   claims: CLAIMS;
   failures: [FAILURES] extends [never] ? DEFAULT_FAILURES : NoInfer<FAILURES>;
   models: [MODELS] extends [never]
@@ -135,6 +148,7 @@ const ContractProgramSchema = Schema.declare(
   (
     input: unknown,
   ): input is (props: {
+    db: Readonly<Pick<IDb, 'query'>>;
     payload: unknown;
     claims: Readonly<Record<string, unknown>> | null;
     models: Readonly<Record<string, IModelMutations<IModel>>>;
@@ -182,7 +196,7 @@ const MakeVersionPropsSchema = Schema.Struct({
       (
         input: unknown,
       ): input is (props: {
-        queryDb: Readonly<Pick<IDb, 'query'>>;
+        db: Readonly<Pick<IDb, 'query'>>;
         payload: unknown;
         claims: Readonly<Record<string, unknown>> | null;
         failures: IFailures;
@@ -207,7 +221,11 @@ const MakeVersionPropsSchema = Schema.Struct({
   program: Schema.optionalKey(ContractProgramSchema),
 });
 
+const contractIdentity = Symbol.for('@zerospin/core/Contract');
+
 export class Contract {
+  readonly [contractIdentity] = true;
+
   get previous(): IContract | undefined {
     return upgradeEdges.get(this)?.parent;
   }
@@ -252,7 +270,7 @@ export function makeContractVersion<
       failures: [FAILURE] extends [never]
         ? Record<never, never>
         : NoInfer<FAILURE>;
-      queryDb: string extends keyof MODELS
+      db: string extends keyof MODELS
         ? Readonly<Pick<IDb, 'query'>>
         : Readonly<
             Pick<IDb<IResourceDbConfig<MODELS, Record<never, never>>>, 'query'>
@@ -326,7 +344,7 @@ export function makeContractVersion<
       failures: [FAILURE] extends [never]
         ? Record<never, never>
         : NoInfer<FAILURE>;
-      queryDb: string extends keyof MODELS
+      db: string extends keyof MODELS
         ? Readonly<Pick<IDb, 'query'>>
         : Readonly<
             Pick<IDb<IResourceDbConfig<MODELS, Record<never, never>>>, 'query'>
@@ -390,6 +408,14 @@ function makeVersion(
   inheritedFailures?: IFailures,
 ) {
   // 1 — Strictly decode the current definition and its optional program.
+  if (typeof props === 'object' && props !== null && 'models' in props) {
+    const models = props.models;
+    if (typeof models === 'object' && models !== null) {
+      for (const model of Object.values(models)) {
+        assertSameCoreInstance({ value: model, expected: Model, kind: 'Model' });
+      }
+    }
+  }
   const decodedProps = Schema.decodeUnknownSync(MakeVersionPropsSchema, {
     onExcessProperty: 'error',
   })(props);
@@ -410,8 +436,9 @@ function makeVersion(
     inheritedFailures ?? Object.freeze({ ...decodedProps.failures });
   getFailuresCodec(failures);
   const authoredProgram = decodedProps.program ?? noOpProgram;
-  const program: IContract['program'] = ({ payload, claims }) =>
+  const program: IContract['program'] = ({ payload, claims, db }) =>
     authoredProgram({
+      db,
       payload,
       claims,
       models: modelMutations,
@@ -506,7 +533,7 @@ export function upgradeContractVersion<
     claims?: never;
     guard?: (props: {
       failures: [FAILURE] extends [never] ? PREVIOUS_FAILURE : NoInfer<FAILURE>;
-      queryDb: Readonly<
+      db: Readonly<
         Pick<
           IDb<
             IResourceDbConfig<
@@ -742,7 +769,7 @@ export function upgradeContractVersion<
     claims: CLAIMS;
     guard?: (props: {
       failures: [FAILURE] extends [never] ? PREVIOUS_FAILURE : NoInfer<FAILURE>;
-      queryDb: Readonly<
+      db: Readonly<
         Pick<
           IDb<
             IResourceDbConfig<
@@ -936,6 +963,14 @@ export function upgradeContractVersion(
   contract: IContract,
   input: unknown,
 ): IContract {
+  if (typeof input === 'object' && input !== null && 'models' in input) {
+    const models = input.models;
+    if (typeof models === 'object' && models !== null) {
+      for (const model of Object.values(models)) {
+        assertSameCoreInstance({ value: model, expected: Model, kind: 'Model' });
+      }
+    }
+  }
   const props = Schema.decodeUnknownSync(
     Schema.Struct({
       ...MakeVersionPropsSchema.fields,

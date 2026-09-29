@@ -7,7 +7,6 @@ import { Effect } from 'effect';
 
 import { userClaims, type shopperClaims } from '../../claims';
 
-import { removeFromCartV3 } from './contracts/removeFromCart/RemoveFromCartV3';
 import { purchase } from './purchase';
 import { purchaseFrontendV3 } from './purchaseFrontendV3';
 const nextObservation = makeRecordIntentObservation<
@@ -17,8 +16,8 @@ const nextObservation = makeRecordIntentObservation<
 >({
   frontend: purchaseFrontendV3,
   selectionIdentitySchema: userClaims,
-  resolveUserId: ({ queryDb, claims }) =>
-    queryDb.query.user
+  resolveUserId: ({ db, claims }) =>
+    db.query.user
       .findFirst({ where: { clerkUserId: { eq: claims.clerkUserId } } })
       .sync()?.id,
 });
@@ -39,15 +38,13 @@ const recordPaymentObservation = sdk.upgradeContractVersion(
 export const purchaseV3 = makePurchaseModule<
   typeof purchaseFrontendV3.contracts.confirmCheckout.models,
   typeof shopperClaims,
-  typeof userClaims,
-  typeof removeFromCartV3
+  typeof userClaims
 >({
   frontend: purchaseFrontendV3,
   recordPaymentObservation,
   selectionIdentitySchema: userClaims,
-  resolveUserId: ({ queryDb, claims }) =>
-    queryDb.query.user
+  resolveUserId: ({ db, claims }) =>
+    db.query.user
       .findFirst({ where: { clerkUserId: { eq: claims.clerkUserId } } })
       .sync()?.id,
-  cartContracts: { removeFromCart: removeFromCartV3 },
 });

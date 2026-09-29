@@ -38,9 +38,6 @@
       "path": "./packages/production-worker"
     },
     {
-      "path": "./packages/dispatch-worker"
-    },
-    {
       "path": "./packages/backup-worker"
     },
     {

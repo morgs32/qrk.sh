@@ -19,7 +19,7 @@ import { Effect, Schema } from 'effect';
  * checks that its installing actor is present is not a seam.
  * Refusing adapters return declared failures; missing wiring is a configuration defect.
  * Guards may suspend without an execution DB. Programs and their capabilities
- * are synchronous. Guards receive the invocation database as `queryDb`.
+ * are synchronous. Guards receive the invocation database as `db`.
  * Claims include partition-identifying fields and additional authenticated fields.
  * makeActorIdentity({ claims, actorPath }) derives identitySchema from actorPath
  * and retains the complete claimsSchema. Contracts declare reusable claims schemas.

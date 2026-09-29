@@ -18,7 +18,6 @@ import { Effect } from 'effect';
 import type { IExecutedCommandRow } from '../../AggregateVersionChain/types.js';
 import { genesisExecutedHash } from '../../executedDispositionHash/executedDispositionHash.js';
 import { aggregateActorVersionRepoDbConfig } from '../aggregateActorVersionRepoDbConfig.js';
-import { enqueueAutomationReactionsTx } from '../automations/enqueueAutomationReactionsTx.js';
 import { commitAggregateActorCommandTx } from '../commitAggregateActorCommandTx/commitAggregateActorCommandTx.js';
 import { commitServiceActorCommandTx } from '../commitServiceActorCommandTx/commitServiceActorCommandTx.js';
 import { readSelectedResources } from '../readSelectedResources.js';
@@ -189,9 +188,8 @@ export const applyExecutedCommandsTx = makeTx(
             }
           : command.execution,
     };
-    const committed =
-      'aggregateIndex' in command
-        ? yield* commitAggregateActorCommandTx({
+    const committed = 'aggregateIndex' in command
+      ? yield* commitAggregateActorCommandTx({
             ...projection,
             disposition:
               command.execution.status === 'succeeded' ? 'success' : 'failure',
@@ -218,29 +216,12 @@ export const applyExecutedCommandsTx = makeTx(
               command.actorVersion === key.actorVersion
                 ? command.sessionName
                 : null,
-          })
-        : yield* commitServiceActorCommandTx({
-            ...projection,
-            disposition:
-              command.execution.status === 'succeeded' ? 'success' : 'failure',
-          });
-    if (
-      committed.changed &&
-      command.execution.status === 'succeeded' &&
-      'aggregateIndex' in command &&
-      !('serviceName' in row)
-    ) {
-      yield* enqueueAutomationReactionsTx({
-        tx,
-        actor: view,
-        command: {
-          ...command,
-          payload: row.payload,
-        },
-        executedIndex: cursor,
-        key,
-      });
-    }
+        })
+      : yield* commitServiceActorCommandTx({
+          ...projection,
+          disposition:
+            command.execution.status === 'succeeded' ? 'success' : 'failure',
+        });
     const saved = commandRowForSource(tx, command);
     if (saved !== undefined) {
       tx.update(aggregateActorVersionRepoDbConfig.schema.pendingCommands)

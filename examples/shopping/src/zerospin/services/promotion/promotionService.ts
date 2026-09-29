@@ -17,7 +17,6 @@ export const promotionService = sdk.makeService({
         releasePromotion,
         redeemPromotion,
       },
-      automations: {},
     },
   },
   queries: {

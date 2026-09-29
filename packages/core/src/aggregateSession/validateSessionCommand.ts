@@ -58,12 +58,13 @@ export function validateSessionCommand(props: {
       let localId = 0;
       yield* runContractGuard({
         contract,
-        queryDb: state.db,
+        db: state.db,
         payload: props.payload,
         claims: state.claims,
       }).pipe(
         Effect.andThen(
           makeMutations({
+            db: state.db,
             contract,
             models: props.session.definition.models,
             command: {

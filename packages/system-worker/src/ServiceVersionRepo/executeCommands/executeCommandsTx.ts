@@ -95,7 +95,7 @@ export const executeCommandsTx = makeTx('ServiceVersionRepo.executeCommandsTx')(
         if (contract !== undefined) {
           const guarded = yield* runContractGuard({
             contract,
-            queryDb: tx,
+            db: tx,
             payload: prepared.success.payload,
             claims: null,
           }).pipe(

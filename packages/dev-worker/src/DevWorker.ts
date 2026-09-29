@@ -18,6 +18,7 @@ export { SystemLogRepo } from 'system-worker';
 export { ServiceChain } from 'system-worker';
 export { ServiceActorVersionChain } from 'system-worker';
 export { SystemRepo } from 'system-worker';
+export { AggregateMachineRepo, ServiceMachineRepo } from './machineRepos.js';
 
 // oxlint-disable-next-line import/no-default-export -- Cloudflare Worker entrypoints are default exports.
 export default class DevWorker extends WorkerEntrypoint {

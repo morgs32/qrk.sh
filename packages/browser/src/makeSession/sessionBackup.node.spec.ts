@@ -139,7 +139,6 @@ describe('live session backup ownership', () => {
       actorVersion: '1.0.0',
       models: {},
       contracts: {},
-      automations: {},
       claimsSchema: claims,
       layer: Layer.mergeAll(
         apiLayer,
@@ -195,7 +194,6 @@ describe('live session backup ownership', () => {
       actorVersion: '1.0.0',
       models: {},
       contracts: {},
-      automations: {},
       claimsSchema: claims,
       layer,
     });
@@ -214,7 +212,6 @@ describe('live session backup ownership', () => {
       actorVersion: '1.0.0',
       models: {},
       contracts: {},
-      automations: {},
       claimsSchema: claims,
       layer,
     });
@@ -233,7 +230,6 @@ describe('live session backup ownership', () => {
       actorVersion: '1.0.0',
       models: {},
       contracts: {},
-      automations: {},
       claimsSchema: claims,
       layer,
     });

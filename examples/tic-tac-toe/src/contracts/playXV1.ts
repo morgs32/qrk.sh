@@ -20,9 +20,9 @@ export const playX = sdk.makeContractVersion(sdk.defineContract('playX'), {
     failures,
     payload,
     claims,
-    queryDb,
+    db,
   }) {
-    const current = queryDb.query.game
+    const current = db.query.game
       .findFirst({ where: { id: { eq: payload.id } } })
       .sync();
     if (

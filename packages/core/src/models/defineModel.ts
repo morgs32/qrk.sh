@@ -11,7 +11,11 @@ const replicaMetadata = new WeakMap<
   }>
 >();
 
+const modelIdentity = Symbol.for('@zerospin/core/Model');
+
 export class Model {
+  readonly [modelIdentity] = true;
+
   get sourceModel(): IModel | undefined {
     return replicaMetadata.get(this)?.sourceModel;
   }

@@ -192,7 +192,7 @@ export function checkModuleLayerTypes() {
     ...liveAggregate,
     contracts: {},
     modules: {
-      guarded: { models: {}, contracts: { guarded }, automations: {} },
+      guarded: { models: {}, contracts: { guarded } },
     },
     systemName: 'test',
   };

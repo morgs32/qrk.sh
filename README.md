@@ -25,11 +25,11 @@ flowchart TD
   subgraph packagesLayer["packages"]
     errorPkg["@zerospin/error"]
     corePkg["@zerospin/core"]
-    systemPkg["@zerospin/system"]
+    browserPkg["@zerospin/browser"]
+    backupWorkerPkg["@zerospin/backup-worker"]
     systemWorkerPkg["system-worker"]
     devWorkerPkg["@zerospin/dev-worker"]
     productionWorkerPkg["@zerospin/production-worker"]
-    dispatchWorkerPkg["@zerospin/dispatch-worker (private)"]
     loggerPkg["@zerospin/logger"]
     serverOnlyPkg["@zerospin/server-only"]
     devtoolsPkg["@zerospin/devtools"]
@@ -49,30 +49,44 @@ flowchart TD
   corePkg --> errorPkg
   cliPkg --> devWorkerPkg
   cliPkg --> productionWorkerPkg
-  dispatchWorkerPkg --> systemWorkerPkg
-  dispatchWorkerPkg --> corePkg
   devWorkerPkg --> corePkg
   devWorkerPkg --> systemWorkerPkg
   productionWorkerPkg --> corePkg
   productionWorkerPkg --> systemWorkerPkg
-  systemWorkerPkg --> systemPkg
   systemWorkerPkg --> corePkg
-  systemPkg --> corePkg
+  browserPkg --> corePkg
+  browserPkg --> backupWorkerPkg
   loggerPkg --> errorPkg
   serverOnlyPkg --> corePkg
   reactPkg --> devtoolsPkg
   reactPkg --> corePkg
+  reactPkg --> browserPkg
   reactPkg --> liveQueryPkg
   liveQueryPkg --> corePkg
   sdkPkg --> corePkg
 ```
 
+### Workers and configuration
+
+- `@zerospin/browser` owns the SharedWorker used by synchronized browser sessions.
+  Applications create its entrypoint with `makeSharedWorker`.
+- `@zerospin/backup-worker` provides the separate IndexedDB backup worker used by
+  standalone browser sessions. Its Vite plugin serves the worker and SQLite WASM.
+- `@zerospin/dev-worker` provides the CLI's local Worker entrypoint, generated
+  Wrangler configuration, and public workerd testing helpers.
+- `@zerospin/production-worker` provides the CLI's deployment entrypoint, including
+  production key checks and Worker version response metadata.
+- `system-worker` implements the server APIs and Durable Objects used by both
+  backend entrypoints.
+
+`config` is a build-time module alias to the selected application's configuration,
+not a workspace package. Worker typechecks use the small configuration fixture in
+`@zerospin/fixtures`; Wrangler resolves the alias to the application's module.
+
 ## Package exports and type resolution
 
-- For ordinary workspace libraries in `packages/` published as `@zerospin/*`,
-  `types` should resolve to `src/*` files (not `dist/*`). This keeps TypeScript
-  and Nx typecheck flows fast while still allowing runtime imports to target
-  build outputs.
+- Package exports generally resolve declarations and runtime imports to `dist/*`.
+  TypeScript project references and Nx build prerequisites provide those outputs.
 - `@zerospin/dev-worker` and `@zerospin/production-worker` intentionally expose
   compiled `dist/*` entrypoints because the CLI passes their resolved Worker
   modules to Wrangler. Their Nx dependency graph builds those outputs before

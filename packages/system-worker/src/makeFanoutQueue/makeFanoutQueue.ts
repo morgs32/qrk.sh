@@ -14,7 +14,7 @@ import {
   type IZerospinErrorJson,
 } from '@zerospin/error';
 import { makeRpcEnvelope, type IRpcEnvelope } from '@zerospin/logger';
-import { RpcTarget } from 'capnweb';
+import { RpcTarget } from 'cloudflare:workers';
 import config from 'config';
 import {
   and,

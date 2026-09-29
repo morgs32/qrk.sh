@@ -58,7 +58,6 @@ const fixture = Effect.fn(function* (count: number, interleaved = false) {
           claims,
           serviceName: null,
           serviceVersion: null,
-          automationName: null,
           executedIndex: index,
           aggregateIndex: index,
           serviceIndex: null,

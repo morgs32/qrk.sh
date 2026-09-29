@@ -59,6 +59,20 @@ export const serviceVersionChainDbConfig = makeDbConfig({
         }),
       },
     }),
+    machineResultsSubscribers: makeTable({
+      name: 'machineResultsSubscribers',
+      shape: {
+        serviceMachineRepoName: primitives.primaryKey({
+          abbreviation: systemWorkerAbbreviations.serviceMachineRepo,
+        }),
+        machineName: primitives.text(),
+        currentIndex: primitives.integer({ nullable: true }),
+        failure: primitives.json({
+          schema: PublicFailureSchema,
+          nullable: true,
+        }),
+      },
+    }),
     aggregateSubscribers: makeTable({
       name: 'aggregateSubscribers',
       shape: {

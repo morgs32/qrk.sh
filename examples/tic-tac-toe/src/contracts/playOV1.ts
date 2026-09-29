@@ -1,13 +1,14 @@
 import * as sdk from '@zerospin/sdk/browser';
+import { MachineClaimsSchema } from '@zerospin/core/machine/MachineClaimsSchema';
 import { Effect } from 'effect';
 
-import { claimsSchema, game, outcome } from '../gameV1';
+import { game, outcome } from '../gameV1';
 import { isValidMove } from '../isValidMove';
 
 export const playO = sdk.makeContractVersion(sdk.defineContract('playO'), {
   version: '1.0.0',
   models: { game },
-  claims: claimsSchema,
+  claims: MachineClaimsSchema,
   failures: {
     invalidMove: sdk.ContractError.schema({ code: 'invalid-move' }),
   },
@@ -20,14 +21,14 @@ export const playO = sdk.makeContractVersion(sdk.defineContract('playO'), {
     failures,
     payload,
     claims,
-    queryDb,
+    db,
   }) {
-    const current = queryDb.query.game
+    const current = db.query.game
       .findFirst({ where: { id: { eq: payload.id } } })
       .sync();
     if (
       claims === null ||
-      claims.instanceId !== payload.id ||
+      claims.machineName !== 'computerTurn' ||
       !isValidMove(current, payload, 'O')
     ) {
       return yield* failures.invalidMove.make({ extra: null });

@@ -1,4 +1,3 @@
-import { makeAutomation } from '@zerospin/core/automation/makeAutomation';
 import { defineContract } from '@zerospin/core/contracts/defineContract';
 import {
   makeContractVersion,
@@ -7,9 +6,8 @@ import {
 import type { IContract } from '@zerospin/core/contracts/types';
 import type { IClaimsSchema } from '@zerospin/core/identity/types';
 import type { IModel } from '@zerospin/core/models/types';
-import { ContractError, makeZerospinError } from '@zerospin/error';
+import { ContractError } from '@zerospin/error';
 import {
-  makeAbbreviationIdSchema,
   primitives,
   type IAnyShape,
 } from '@zerospin/schema';
@@ -17,7 +15,6 @@ import '@zerospin/server-only';
 import { Effect, Schema } from 'effect';
 
 import { fulfillmentStateConflict } from './failures.js';
-import { FulfillmentClient } from './FulfillmentClient.js';
 import type {
   IFulfillmentOwnership,
   makeFulfillmentFrontendModule,
@@ -61,10 +58,10 @@ export const makeFulfillmentModule = <
         }),
       },
       payload: { fulfillment: primitives.json({ schema: sourceSchema }) },
-      guard: Effect.fn(function* ({ queryDb, claims, payload, failures }) {
+      guard: Effect.fn(function* ({ db, claims, payload, failures }) {
         const row = payload.fulfillment;
         const owner = resolvePurchaseOwner({
-          queryDb,
+          db,
           claims,
           purchaseId: row.purchaseId,
         });
@@ -109,22 +106,22 @@ export const makeFulfillmentModule = <
           nullable: true,
         }),
       },
-      guard: Effect.fn(function* ({ queryDb, claims, payload, failures }) {
+      guard: Effect.fn(function* ({ db, claims, payload, failures }) {
         const row = Schema.decodeUnknownSync(
           Schema.toType(Schema.Array(fulfillment.resourceSchema)),
-        )(queryDb.query.fulfillment.findMany().sync()).find(
+        )(db.query.fulfillment.findMany().sync()).find(
           row => row.id === payload.fulfillmentId,
         );
         const operation = Schema.decodeUnknownSync(
           Schema.toType(Schema.Array(fulfillmentOperation.resourceSchema)),
-        )(queryDb.query.fulfillmentOperation.findMany().sync()).find(
+        )(db.query.fulfillmentOperation.findMany().sync()).find(
           row => row.id === payload.id,
         );
         const owner =
           row === undefined
             ? undefined
             : resolvePurchaseOwner({
-                queryDb,
+                db,
                 claims,
                 purchaseId: row.purchaseId,
               });
@@ -166,91 +163,6 @@ export const makeFulfillmentModule = <
           .pipe(Effect.map(mutation => [mutation])),
     },
   );
-  const requestPaidFulfillment = makeAutomation({
-    name: 'requestPaidFulfillment',
-    on: options.paid,
-    contracts: { enrollFulfillment },
-    program: Effect.fn(function* ({ db, on, contracts }) {
-      if (!('aggregateId' in on) || on.payload.outcome !== 'succeeded') {
-        return null;
-      }
-      const checkout = Schema.decodeUnknownSync(
-        Schema.Array(
-          Schema.Struct({
-            id: makeAbbreviationIdSchema('chk'),
-            userId: makeAbbreviationIdSchema('usr'),
-            purchaseId: Schema.NullOr(makeAbbreviationIdSchema('pur')),
-            status: Schema.String,
-          }),
-        ),
-      )(db.query.checkout.findMany().sync()).find(
-        row => row.id === on.payload.checkoutId,
-      );
-      if (
-        checkout?.status !== 'paid' ||
-        checkout.purchaseId === null ||
-        checkout.purchaseId !== on.payload.purchaseId
-      ) {
-        return null;
-      }
-      const client = yield* FulfillmentClient;
-      const result = yield* client.request({
-        serviceVersion: fulfillment.serviceVersion,
-        requestId: `purchase:${checkout.purchaseId}`,
-        purchaseId: checkout.purchaseId,
-        userId: checkout.userId,
-        aggregateId: on.aggregateId,
-      });
-      if (result.kind === 'rejected') {
-        return yield* makeZerospinError({
-          code: 'fulfillment-request-rejected',
-          message: result.reason,
-        });
-      }
-      return contracts.enrollFulfillment({ fulfillment: result.fulfillment });
-    }),
-  });
-  const makeOperation = <
-    const NAME extends 'packFulfillment' | 'shipFulfillment',
-  >(
-    name: NAME,
-    on: typeof requestPacking | typeof requestShipping,
-  ) =>
-    makeAutomation({
-      name,
-      on,
-      contracts: { recordFulfillmentOperation },
-      program: Effect.fn(function* ({ db, on, contracts }) {
-        const row = Schema.decodeUnknownSync(
-          Schema.toType(Schema.Array(fulfillment.resourceSchema)),
-        )(db.query.fulfillment.findMany().sync()).find(
-          row => row.id === on.payload.fulfillmentId,
-        );
-        if (row === undefined) return null;
-        const client = yield* FulfillmentClient;
-        const action = name === 'packFulfillment' ? 'pack' : 'ship';
-        const result = yield* client.operate({
-          serviceVersion: fulfillment.serviceVersion,
-          operationId: on.payload.id,
-          fulfillmentId: row.id,
-          action,
-          requestId: row.requestId,
-          purchaseId: row.purchaseId,
-          userId: row.userId,
-          aggregateId: row.aggregateId,
-        });
-        return contracts.recordFulfillmentOperation({
-          id: on.payload.id,
-          fulfillmentId: row.id,
-          action,
-          status: result.kind === 'confirmed' ? 'succeeded' : 'failed',
-          failure: result.kind === 'rejected' ? result.reason : null,
-          fulfillment: result.kind === 'confirmed' ? result.fulfillment : null,
-        });
-      }),
-    });
-  const packFulfillment = makeOperation('packFulfillment', requestPacking);
-  const shipFulfillment = makeOperation('shipFulfillment', requestShipping);
   return {
     models: frontend.models,
     contracts: {
@@ -259,6 +171,5 @@ export const makeFulfillmentModule = <
       enrollFulfillment,
       recordFulfillmentOperation,
     },
-    automations: { requestPaidFulfillment, packFulfillment, shipFulfillment },
   };
 };

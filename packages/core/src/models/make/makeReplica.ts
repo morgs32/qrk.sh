@@ -1,6 +1,7 @@
 import { primitives } from '@zerospin/schema';
 import { Schema } from 'effect';
 
+import { assertSameCoreInstance } from '../../assertSameCoreInstance.ts';
 import { defineModel, Model } from '../defineModel.ts';
 import type { IModel, IModelReplica } from '../types.ts';
 
@@ -36,6 +37,7 @@ export function makeReplica(props: {
   serviceName: string;
   serviceVersion: string;
 }): unknown {
+  assertSameCoreInstance({ value: props.sourceModel, expected: Model, kind: 'Model' });
   const { sourceModel, serviceName, serviceVersion } = Schema.decodeUnknownSync(
     MakeReplicaPropsSchema,
     {

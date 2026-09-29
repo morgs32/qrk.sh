@@ -1,5 +1,4 @@
 import { makeFulfillmentGuards } from '@zerospin/fulfillment/server';
-import { makePurchaseGuards } from '@zerospin/purchase/server';
 import * as sdk from '@zerospin/sdk';
 
 import { provisionerV1 } from './actors/provisionerV1';
@@ -38,11 +37,6 @@ export const shopperAggregateV3 = sdk.upgradeAggregateVersion(
       updateCartItemQuantity: updateCartItemQuantityV3,
     },
     actors: { provisioner: provisionerV1, shopper: shopperActorV3 },
-    guards: {
-      shopper: {
-        ...makePurchaseGuards(purchase),
-        ...makeFulfillmentGuards(fulfillment),
-      },
-    },
+    guards: { shopper: makeFulfillmentGuards(fulfillment) },
   },
 );

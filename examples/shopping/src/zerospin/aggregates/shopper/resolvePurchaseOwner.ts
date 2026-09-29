@@ -4,11 +4,11 @@ import { type cartV1 } from './models/cart/CartV1';
 import { type userV1 } from './models/user/UserV1';
 import { type purchaseFrontend } from './purchaseFrontend';
 export const resolvePurchaseOwner = ({
-  queryDb,
+  db,
   claims,
   purchaseId,
 }: {
-  queryDb: Pick<
+  db: Pick<
     sdk.IDb<
       sdk.IResourceDbConfig<
         {
@@ -24,15 +24,15 @@ export const resolvePurchaseOwner = ({
   claims: { clerkUserId: string };
   purchaseId: string;
 }) => {
-  const user = queryDb.query.user
+  const user = db.query.user
     .findFirst({ where: { clerkUserId: { eq: claims.clerkUserId } } })
     .sync();
-  const purchase = queryDb.query.purchase
+  const purchase = db.query.purchase
     .findMany()
     .sync()
     .find(row => row.id === purchaseId);
   if (user === undefined || purchase === undefined) return undefined;
-  const cart = queryDb.query.cart
+  const cart = db.query.cart
     .findFirst({ where: { id: { eq: purchase.cartId } } })
     .sync();
   return cart?.userId === user.id

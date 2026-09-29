@@ -1,5 +1,6 @@
 import { makeMutations } from '@zerospin/core/contracts/make/makeMutations';
 import type { ICommand, IContract } from '@zerospin/core/contracts/types';
+import type { IDb } from '@zerospin/core/drizzle/types';
 import type { IAnyModels } from '@zerospin/core/models/types';
 import { Effect } from 'effect';
 
@@ -12,11 +13,15 @@ import { Effect } from 'effect';
  */
 export const runAggregateContract = Effect.fn('runAggregateContract')(
   function* (props: {
+    db: Readonly<Pick<IDb, 'query'>>;
+    claims: Readonly<Record<string, unknown>> | null;
     command: ICommand;
     contract: IContract;
     models: IAnyModels;
   }) {
     return yield* makeMutations({
+      db: props.db,
+      claims: props.claims,
       command: props.command,
       contract: props.contract,
       models: props.models,
@@ -26,11 +31,15 @@ export const runAggregateContract = Effect.fn('runAggregateContract')(
 
 export const runServiceContract = Effect.fn('runServiceContract')(
   function* (props: {
+    db: Readonly<Pick<IDb, 'query'>>;
+    claims: Readonly<Record<string, unknown>> | null;
     command: ICommand;
     contract: IContract;
     models: IAnyModels;
   }) {
     return yield* makeMutations({
+      db: props.db,
+      claims: props.claims,
       command: props.command,
       contract: props.contract,
       models: props.models,

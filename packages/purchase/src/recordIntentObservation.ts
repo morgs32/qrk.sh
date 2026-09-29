@@ -78,7 +78,7 @@ export const makeRecordIntentObservation = <
       guard: Effect.fn('recordPaymentObservation.guard')(function* ({
         payload,
         claims,
-        queryDb: db,
+        db,
         failures,
       }) {
         const checkout = Schema.decodeUnknownSync(
@@ -104,7 +104,7 @@ export const makeRecordIntentObservation = <
         );
         if (
           checkout === undefined ||
-          checkout.userId !== resolveUserId({ queryDb: db, claims }) ||
+          checkout.userId !== resolveUserId({ db, claims }) ||
           checkout?.purchaseId !== payload.purchaseId ||
           purchase === undefined ||
           intent?.purchaseId !== purchase.id ||

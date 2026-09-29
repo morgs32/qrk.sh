@@ -3,7 +3,6 @@ import { Effect, Schema } from 'effect';
 import { assert, type Equals } from 'tsafe';
 import { describe, expect, it } from 'vitest';
 
-import { makeAutomation } from '../../../automation/makeAutomation.ts';
 import { defineContract } from '../../../contracts/defineContract.ts';
 import { makeContractVersion } from '../../../contracts/make/makeContractVersion.ts';
 import { makeActorIdentity } from '../../../identity/make/makeActorIdentity/makeActorIdentity.ts';
@@ -34,17 +33,10 @@ const ping = makeContractVersion(defineContract('ping'), {
   payload: {},
   models: {},
 });
-const automation = makeAutomation({
-  name: 'observePing',
-  on: ping,
-  contracts: {},
-  program: () => Effect.succeed(null),
-});
 assert<Equals<typeof actor.name, 'human'>>();
 assert<Equals<typeof actor.version, '1.0.0'>>();
 assert<Equals<typeof actor.db, typeof db>>();
 assert<Equals<typeof actor.identity, typeof identity>>();
-assert<Equals<typeof actor.automations, {}>>();
 
 describe('makeAggregateActorVersion', () => {
   it('retains exact declarations and defaults absent maps to empty maps', () => {
@@ -52,7 +44,6 @@ describe('makeAggregateActorVersion', () => {
     expect(actor.identity).toBe(identity);
     expect(actor.queries).toEqual({});
     expect(actor.selections).toEqual({});
-    expect(actor.automations).toEqual({});
     expect(actor.guards).toEqual({});
   });
 
@@ -72,7 +63,7 @@ describe('makeAggregateActorVersion', () => {
     ).toThrow();
   });
 
-  it('rejects mismatched contract and automation keys', () => {
+  it('rejects mismatched contract keys', () => {
     expect(() =>
       makeAggregateActorVersion(
         { name: 'human' },
@@ -87,20 +78,6 @@ describe('makeAggregateActorVersion', () => {
         },
       ),
     ).toThrow('Actor contract key wrong must match ping');
-    expect(() =>
-      makeAggregateActorVersion(
-        { name: 'human' },
-        {
-          authentication: 'none',
-          version: '1.0.0',
-          db,
-          identity,
-          queries: {},
-          contracts: {},
-          automations: { wrong: automation },
-        },
-      ),
-    ).toThrow('Automation key wrong must match observePing');
   });
 
   it('rejects guards without a declared command', () => {

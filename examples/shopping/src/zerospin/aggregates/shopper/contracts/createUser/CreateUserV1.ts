@@ -22,12 +22,7 @@ export const createUserV1 = sdk.makeContractVersion(createUser, {
   },
 
   models: { user: userV1 },
-  guard: Effect.fn('createUserV1.guard')(function* ({
-    failures,
-    claims,
-    queryDb,
-  }) {
-    const db = queryDb;
+  guard: Effect.fn('createUserV1.guard')(function* ({ failures, claims, db }) {
     const resource = yield* Effect.try({
       try: () =>
         db.query.user

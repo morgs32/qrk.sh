@@ -1,7 +1,6 @@
 import type { IAnyError } from '@zerospin/error';
 import type { Effect } from 'effect';
 
-import type { IAnyAutomation } from '../automation/types.ts';
 import type { IAnyOwnerGuard } from '../contracts/ownerGuards.ts';
 import type { IAnyContracts } from '../contracts/types.ts';
 import type { IDb } from '../drizzle/types.ts';
@@ -35,7 +34,6 @@ export type IAnyAggregateActorVersion = {
   readonly queries: IActorQueries;
   readonly selections: IAggregateActorSelections;
   readonly contracts: IAnyContracts;
-  readonly automations: Readonly<Record<string, IAnyAutomation>>;
   readonly guards: Readonly<Record<string, IAnyOwnerGuard | undefined>>;
   readonly __contractRequirements?: unknown;
   readonly identity: IActorIdentity;

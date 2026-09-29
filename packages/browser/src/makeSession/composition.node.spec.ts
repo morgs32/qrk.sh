@@ -24,8 +24,8 @@ const observed = makeContractVersion(defineContract('observed'), {
   models: { item },
   payload: {},
 });
-const data = { models: { item }, contracts: {}, automations: {} };
-const commands = { models: {}, contracts: { observed }, automations: {} };
+const data = { models: { item }, contracts: {} };
+const commands = { models: {}, contracts: { observed } };
 const common = {
   systemName: 'test',
   sessionName: 'test',
@@ -118,7 +118,7 @@ describe('browser session declaration composition', () => {
         );
       },
       ...service,
-      modules: { empty: { models: {}, contracts: {}, automations: {} } },
+      modules: { empty: { models: {}, contracts: {} } },
       models: { item },
     });
     for (const session of [flat, modular, mixed]) {
@@ -159,19 +159,7 @@ describe('browser session declaration composition', () => {
       serviceVersion: '1.0.0',
     });
     for (const modular of [false, true]) {
-      const automated = {
-        models: {},
-        contracts: {},
-        automations: { forbidden: {} },
-      };
       const withReplica = { ...data, models: { item: replica } };
-      for (const base of [aggregate, service]) {
-        expect(() =>
-          Reflect.apply(makeSession, undefined, [
-            { ...base, ...(modular ? { modules: { automated } } : automated) },
-          ]),
-        ).toThrow('cannot contain automations');
-      }
       expect(() =>
         Reflect.apply(makeSession, undefined, [
           { ...service, ...(modular ? { modules: { commands } } : commands) },

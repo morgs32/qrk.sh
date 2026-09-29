@@ -3,6 +3,7 @@ import { getTableConfig, type SQLiteTable } from 'drizzle-orm/sqlite-core';
 /** Returns CREATE TABLE and index SQL for a single Drizzle SQLite table. */
 export function makeTableProvisioningStatements(
   table: SQLiteTable,
+  options?: { foreignKeys?: boolean },
 ): readonly string[] {
   const tableConfig = getTableConfig(table);
   const hasTableLevelPrimaryKey = tableConfig.primaryKeys.length > 0;
@@ -56,7 +57,7 @@ export function makeTableProvisioningStatements(
   const tableDefinition = [
     ...columnLines,
     ...primaryKeyLines,
-    ...foreignKeyLines,
+    ...(options?.foreignKeys === false ? [] : foreignKeyLines),
   ].join(',\n  ');
 
   const statements: string[] = [

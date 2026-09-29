@@ -34,7 +34,6 @@ it('keeps one command ID in distinct aggregate and service source scopes', async
         nodeIndex: null,
         serviceName: null,
         serviceVersion: null,
-        automationName: null,
         aggregateIndex: null,
         serviceIndex: null,
         admission: null,

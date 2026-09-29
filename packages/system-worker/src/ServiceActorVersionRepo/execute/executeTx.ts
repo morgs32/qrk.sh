@@ -144,14 +144,11 @@ export const executeTx = makeTx('ServiceActorVersionRepo.executeTx')(function* (
         payload: row.payload,
         serviceName: command.serviceName,
         serviceVersion: command.serviceVersion,
-        automationName: existing?.automationName ?? null,
         serviceIndex: command.serviceIndex,
         admission: command.admission,
         execution: command.execution,
         dispositionHash: command.dispositionHash,
-        // The constructor-validated private binding has no browser publication.
-        actorServiceIndex:
-          key.actorName === '__service' ? null : command.serviceIndex,
+        actorServiceIndex: command.serviceIndex,
         actorDelta: {
           upserted: [...inserted, ...updated],
           deleted,
@@ -180,59 +177,6 @@ export const executeTx = makeTx('ServiceActorVersionRepo.executeTx')(function* (
           ),
         )
         .run();
-      tx.update(serviceActorVersionRepoDbConfig.schema.pendingCommands)
-        .set({ resolvedAt: new Date() })
-        .where(
-          eq(
-            serviceActorVersionRepoDbConfig.schema.pendingCommands.commandRowId,
-            existing.rowId,
-          ),
-        )
-        .run();
-    }
-    const registration = tx
-      .select()
-      .from(serviceActorVersionRepoDbConfig.schema.automationState)
-      .where(eq(serviceActorVersionRepoDbConfig.schema.automationState.id, 1))
-      .get();
-    if (
-      key.actorName === '__service' &&
-      registration !== undefined &&
-      command.serviceIndex > registration.startIndex &&
-      command.serviceVersion === key.serviceVersion &&
-      command.execution.status === 'succeeded' &&
-      (inserted.length > 0 || updated.length > 0 || deleted.length > 0)
-    ) {
-      for (const automation of Object.values(service.automations)) {
-        if (automation.on.commandName !== command.commandName) continue;
-        let version = automation.on;
-        while (
-          version.version !== command.contractVersion &&
-          version.previous !== undefined
-        ) {
-          version = version.previous;
-        }
-        if (version.version !== command.contractVersion) continue;
-        tx.insert(serviceActorVersionRepoDbConfig.schema.automationGroups)
-          .values({ serviceIndex: command.serviceIndex, status: 'open' })
-          .onConflictDoNothing()
-          .run();
-        tx.insert(serviceActorVersionRepoDbConfig.schema.automationRuns)
-          .values(
-            yield* serviceActorVersionRepoDbConfig.tables.automationRuns.encodeRow(
-              {
-                serviceIndex: command.serviceIndex,
-                automationName: automation.name,
-                programStatus: 'pending',
-                outputCommandRowId: null,
-                programFailure: null,
-                stagingFailure: null,
-              },
-            ),
-          )
-          .onConflictDoNothing()
-          .run();
-      }
     }
     tx.insert(serviceActorVersionRepoDbConfig.schema.actorState)
       .values({

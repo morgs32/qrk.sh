@@ -75,7 +75,6 @@ const aggregateFields = (row: IAggregateRow) => ({
     ? {}
     : { aggregateVersion: row.aggregateVersion }),
   nodeId: row.nodeId,
-  automationName: row.automationName,
   actorName: row.actorName,
   actorVersion: row.actorVersion,
   claims: row.claims,
@@ -121,7 +120,6 @@ const aggregateEncodedFields = (
   systemName: row.systemName,
   aggregateVersion: row.aggregateVersion,
   nodeId: row.nodeId,
-  automationName: row.automationName,
   actorName: row.actorName,
   actorVersion: row.actorVersion,
   claims: row.claims,

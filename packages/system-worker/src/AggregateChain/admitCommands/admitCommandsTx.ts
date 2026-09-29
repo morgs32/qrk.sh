@@ -104,7 +104,6 @@ const retain = makeTx('AggregateChain.admitCommandsTx')(function* (
       .values({
         ...(yield* aggregateChainDbConfig.tables.commands.encodeRow({
           ...command,
-          automationName: command.automationName ?? null,
           aggregateVersion:
             'aggregateVersion' in command ? command.aggregateVersion : null,
           aggregateIndex: index,

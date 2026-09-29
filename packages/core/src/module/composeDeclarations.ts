@@ -8,7 +8,6 @@ export function composeDeclarations(
 ): IAnyDeclarationModule {
   const models = { ...props.models };
   const contracts = { ...props.contracts };
-  const automations = { ...props.automations };
   for (const [moduleName, module] of Object.entries(props.modules ?? {})) {
     for (const name of Object.keys(module.models)) {
       if (Object.hasOwn(models, name)) {
@@ -24,14 +23,6 @@ export function composeDeclarations(
       }
     }
     Object.assign(contracts, module.contracts);
-    for (const name of Object.keys(module.automations)) {
-      if (Object.hasOwn(automations, name)) {
-        throw new Error(
-          `Duplicate automation declaration ${name} in ${moduleName}`,
-        );
-      }
-    }
-    Object.assign(automations, module.automations);
   }
-  return { models, contracts, automations };
+  return { models, contracts };
 }

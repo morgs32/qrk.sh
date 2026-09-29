@@ -93,13 +93,14 @@ export const replayPendingCommandsTx = Effect.fn('replayPendingCommandsTx')(
           Effect.gen(function* () {
             const made = yield* runContractGuard({
               contract,
-              queryDb: replayTx,
+              db: replayTx,
               claims,
               payload,
             })
               .pipe(
                 Effect.andThen(
                   makeMutations({
+                    db: replayTx,
                     contract,
                     models: definition.models,
                     command: { ...command, payload },

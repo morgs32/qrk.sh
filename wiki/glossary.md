@@ -1,6 +1,6 @@
 ---
 title: Glossary
-updated: 2026-09-26
+updated: 2026-09-28
 ---
 
 # Glossary
@@ -8,7 +8,7 @@ updated: 2026-09-26
 ## System
 
 The authored application definition produced by `makeSystem`: identity,
-aggregate and service models, contracts, queries, actors, and authored
+aggregate and service models, contracts, queries, actors, machines, and authored
 sessions. Versions belong to the individual definitions; the System has no
 root version.
 
@@ -16,26 +16,26 @@ root version.
 
 ## domain module
 
-A plain factory result with `models`, `contracts`, and `automations` collections. Aggregate versions and browser sessions compose optional named `modules` alongside flat declarations; service composition versions attach a complete bundle. The module has no separate runtime identity, storage owner, or version axis. Composition rejects duplicate declaration keys without renaming or overriding them. Browser sessions reject automations; service sessions also reject contracts and replicas.
+A plain factory result with `models` and `contracts` collections. Aggregate versions and browser sessions compose optional named `modules` alongside flat declarations; service composition versions attach a complete bundle. The module has no separate runtime identity, storage owner, or version axis. Composition rejects duplicate declaration keys without renaming or overriding them. Service sessions reject contracts and replicas.
 
 - [`composeDeclarations.ts`](../packages/core/src/module/composeDeclarations.ts) — factory-owned composition rejects duplicate keys before combining module and local collections.
 - [`makeAggregateVersion.ts`](../packages/core/src/aggregate/make/makeAggregateVersion.ts) — combines local declarations and modules, then derives service pins from the effective models.
 - [`makeService.ts`](../packages/core/src/service/make/makeService.ts) — installs independently authored complete service compositions.
 
-## automation
+## machine actor
 
-An authored `makeAutomation` declaration observes a confirmed command, reads the selected state captured by its actor, and returns either a permitted contract command or explicit `null`. Effect layers provide external dependencies. AAVR runs aggregate automations; an internal SAVR actor runs service automations without a browser session.
+A system-registered durable owner bound to one concrete aggregate or service source version. Its instance key identifies the system, source family, machine name, and aggregate ID when the source is an aggregate. The source version is a separately persisted pin. Each machine retains a selected source projection, cursor, private schema-bearing State, and at most one frozen outgoing command per State revision. Source fanout acknowledges each occurrence after the machine commits its projection, State decision, and cursor together.
 
-- [`makeAutomation.ts`](../packages/core/src/automation/makeAutomation.ts) — validates trigger and permitted output declarations.
-- [`makeActorAutomations.ts`](../packages/system-worker/src/AggregateActorVersionRepo/automations/makeActorAutomations.ts) — executes aggregate actor invocations and stages saved output.
-- [`makeServiceAutomations.ts`](../packages/system-worker/src/ServiceActorVersionRepo/automations/makeServiceAutomations.ts) — executes service invocations and stages saved output.
+- [`makeMachine.ts`](../packages/core/src/machine/makeMachine/makeMachine.ts) — validates source, selections, bound contracts, States, and exclusive work forms.
+- [`makeMachineRepo.ts`](../packages/system-worker/src/makeMachineRepo/makeMachineRepo.ts) — owns durable receipt, activation, deadlines, command dispatch, and recovery.
+- [`machineRepoNames.ts`](../packages/system-worker/src/machineRepoNames.ts) — addresses aggregate and service machine owners.
 
-## automation run and group
+## machine State and operation
 
-One run records an automation's pending, started, succeeded, failed, interrupted, or empty invocation outcome and references a saved output command when one exists. A group belongs to one confirmed occurrence. Its gate completes after sibling outcomes and output staging are durable; later admission and authoritative execution continue separately. Restart never invokes an already started run without a saved result again.
+A State entry validates its encoded value and advances a revision. Its route may react to a source command, wait until one absolute deadline, run an asynchronous activation, or freeze a command and receive a result. The operation row retains status, failure, command bytes, and outcome so restart can continue the same logical work. A late completion cannot transition a newer State revision.
 
-- [`aggregateActorVersionRepoDbConfig.ts`](../packages/system-worker/src/AggregateActorVersionRepo/aggregateActorVersionRepoDbConfig.ts) — stores aggregate groups, runs, and saved-command references.
-- [`serviceActorVersionRepoDbConfig.ts`](../packages/system-worker/src/ServiceActorVersionRepo/serviceActorVersionRepoDbConfig.ts) — stores the corresponding service state.
+- [`makeState.ts`](../packages/core/src/machine/makeState/makeState.ts) — constructs schema-bearing States.
+- [`machineDbConfig.ts`](../packages/system-worker/src/makeMachineRepo/machineDbConfig.ts) — defines source, selected projection, State, and operation storage.
 
 ## declaration version and composition version
 
@@ -323,9 +323,9 @@ An aggregate actor that owns provisioning contracts such as user creation. Provi
 
 ## invocation arguments
 
-Guards receive the invocation database as `queryDb`. Programs receive decoded identity as an argument. Aggregate commands require claims. Service commands pass `null`. Ordinary layers supply capabilities. There is no execution tag map.
+Guards and contract programs receive the invocation database as `db`, exposing only synchronous queries typed from their declared models. Programs also receive decoded identity and return mutation arrays; they cannot write through this interface. Aggregate commands require claims. Service commands pass `null`. Ordinary layers supply capabilities. There is no execution tag map.
 
-Programs and all their dependencies must finish synchronously. They observe existing local state before any returned mutation or new replica enrollment. Suspension is interrupted and recorded as an execution failure. Materializers commit each command before running the next program.
+Programs and all their dependencies must finish synchronously. They observe existing local state before any returned mutation or new replica enrollment. Suspension is interrupted and recorded as an execution failure. Materializers commit each command before running the next program. Client staging and pending replay calculate against local state; authoritative execution recalculates against its own materialization, so results can differ.
 
 - [`runProgram.ts`](../packages/core/src/execution/runProgram.ts) — enforces synchronous completion and preserves domain failures.
 

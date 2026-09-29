@@ -9,7 +9,6 @@
         {
           "target": "lib",
           "projects": [
-            "@zerospin/backup-worker",
             "@zerospin/browser",
             "@zerospin/core",
             "@zerospin/devtools",

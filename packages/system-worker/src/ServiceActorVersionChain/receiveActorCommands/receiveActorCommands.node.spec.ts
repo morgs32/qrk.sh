@@ -23,7 +23,6 @@ describe('service actor publication', () => {
             payload: '{}',
             serviceName: 'example',
             serviceVersion: '1.0.0',
-            automationName: null,
             serviceIndex: 1,
             admission: null,
             execution: null,

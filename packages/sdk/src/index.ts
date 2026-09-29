@@ -1,8 +1,12 @@
-export { makeAutomation } from '@zerospin/core/automation/makeAutomation';
+export { execute, makeMachine, push } from '@zerospin/core/machine/makeMachine/makeMachine';
+export { makeState } from '@zerospin/core/machine/makeState/makeState';
 export type {
-  IAutomation,
-  IAutomationOutput,
-} from '@zerospin/core/automation/types';
+  IAnyMachine,
+  IMachineExecuteResult,
+  IMachinePushReceipt,
+  InferMachineValue,
+  InferStateValue,
+} from '@zerospin/core/machine/types';
 export { makeGuard } from '@zerospin/core/guards/make/makeGuard';
 export { defineAggregate } from '@zerospin/core/aggregate/defineAggregate';
 export {

@@ -1,11 +1,9 @@
 import { RoutePattern } from '@remix-run/route-pattern';
 import { defineAggregate } from '@zerospin/core/aggregate/defineAggregate';
 import { makeAggregateVersion } from '@zerospin/core/aggregate/make/makeAggregateVersion';
-import type { IAuthoredAggregate } from '@zerospin/core/aggregate/types';
 import { defineAggregateActor } from '@zerospin/core/aggregateActor/defineAggregateActor';
 import {
   makeAggregateActorVersion,
-  type IAggregateActorVersion,
 } from '@zerospin/core/aggregateActor/make/makeAggregateActorVersion/makeAggregateActorVersion';
 import { defineContract } from '@zerospin/core/contracts/defineContract';
 import { makeContractVersion } from '@zerospin/core/contracts/make/makeContractVersion';
@@ -22,7 +20,6 @@ import {
   makeFulfillmentModule,
 } from '@zerospin/fulfillment/server';
 import {
-  makePurchaseGuards,
   makePurchaseModule,
 } from '@zerospin/purchase/server';
 import { primitives } from '@zerospin/schema';
@@ -61,30 +58,27 @@ const purchase: ReturnType<
   typeof makePurchaseModule<
     typeof purchaseHost,
     typeof purchaseIdentity,
-    typeof purchaseIdentity,
-    typeof removeFromCart
+    typeof purchaseIdentity
   >
 > = makePurchaseModule<
   typeof purchaseHost,
   typeof purchaseIdentity,
-  typeof purchaseIdentity,
-  typeof removeFromCart
+  typeof purchaseIdentity
 >({
   frontend: purchaseFrontend,
   selectionIdentitySchema: purchaseIdentity,
-  resolveUserId: ({ queryDb, claims }) =>
-    queryDb.query.user
+  resolveUserId: ({ db, claims }) =>
+    db.query.user
       .findMany()
       .sync()
       .find(user => user.id === claims.userId)?.id,
-  cartContracts: { removeFromCart },
 });
 const resolvePurchaseOwner = ({
-  queryDb,
+  db,
   claims,
   purchaseId,
 }: {
-  queryDb: Pick<
+  db: Pick<
     IDb<
       IResourceDbConfig<
         {
@@ -100,12 +94,12 @@ const resolvePurchaseOwner = ({
   claims: { aggregateId: string; userId: string };
   purchaseId: string;
 }) => {
-  const row = queryDb.query.purchase
+  const row = db.query.purchase
     .findMany()
     .sync()
     .find(row => row.id === purchaseId);
   if (!row) return undefined;
-  const owner = queryDb.query.cart
+  const owner = db.query.cart
     .findFirst({ where: { id: { eq: row.cartId } } })
     .sync();
   return owner?.userId === claims.userId
@@ -203,11 +197,6 @@ const actorContracts = {
   requestPacking: fulfillment.contracts.requestPacking,
   requestShipping: fulfillment.contracts.requestShipping,
 };
-const actorAutomations: typeof purchase.automations &
-  typeof fulfillment.automations = {
-  ...purchase.automations,
-  ...fulfillment.automations,
-};
 const actorQueries = {
   user: db.query.user.findMany({
     where: { id: { eq: identity.sql.placeholder('userId') } },
@@ -251,56 +240,21 @@ const actorQueries = {
     },
   }),
 };
-const shopper: IAggregateActorVersion<
-  'shopper',
-  '1.0.0',
-  typeof db,
-  typeof identity,
-  typeof actorQueries,
-  typeof actorContracts,
-  never,
-  never,
-  typeof actorAutomations
-> = makeAggregateActorVersion(defineAggregateActor({ name: 'shopper' }), {
+const shopper = makeAggregateActorVersion(defineAggregateActor({ name: 'shopper' }), {
   version: '1.0.0',
   authentication: 'none',
   db,
   identity,
   contracts: actorContracts,
-  automations: actorAutomations,
   queries: actorQueries,
 });
-export const purchaseAggregate: IAuthoredAggregate<
-  'purchaseUser',
-  typeof db.models,
-  { shopper: typeof shopper },
-  '1.0.0',
-  never,
-  typeof purchase.contracts &
-    typeof fulfillment.contracts & {
-      prepareCart: typeof prepareCart;
-      removeFromCart: typeof removeFromCart;
-    },
-  typeof shopper.automations
-> = makeAggregateVersion<
-  'purchaseUser',
-  typeof purchaseHost,
-  { prepareCart: typeof prepareCart; removeFromCart: typeof removeFromCart },
-  {},
-  { shopper: typeof shopper },
-  '1.0.0',
-  never,
-  { purchase: typeof purchase; fulfillment: typeof fulfillment }
->(defineAggregate({ name: 'purchaseUser' }), {
+export const purchaseAggregate = makeAggregateVersion(defineAggregate({ name: 'purchaseUser' }), {
   version: '1.0.0',
   models: { user, cart, cartItem, product },
   contracts: { prepareCart, removeFromCart },
   modules: { purchase, fulfillment },
   actors: { shopper },
   guards: {
-    shopper: {
-      ...makePurchaseGuards(purchase),
-      ...makeFulfillmentGuards(fulfillment),
-    },
+    shopper: makeFulfillmentGuards(fulfillment),
   },
 });

@@ -44,15 +44,8 @@ export const serviceActorVersionRepoFixedDORepoConfig = makeFixedDORepoConfig({
       recordKind: 'listed versions',
     });
 
-    // 3 — validate the binding before constructing its resource schema.
-    // Only the private service-automation binding skips authored actor resolution.
-    if (
-      key.actorName !== '__service' ||
-      key.actorVersion !== key.serviceVersion ||
-      key.actorPath !== '/'
-    ) {
-      yield* resolveServiceActorView(version, key);
-    }
+    // 3 — validate the actor binding before constructing its resource schema.
+    yield* resolveServiceActorView(version, key);
     // Supply the exact selected service model registry
     return makeResourceDbConfig({
       otherTables: serviceActorVersionRepoDbConfig.tables,

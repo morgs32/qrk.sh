@@ -22,7 +22,6 @@ export const makeUserFrontendModuleV1 = <const MODEL extends IModel>(options: {
   return {
     models: { fulfillment },
     contracts: {},
-    automations: {},
   };
 };
 

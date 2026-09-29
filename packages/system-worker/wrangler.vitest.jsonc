@@ -21,6 +21,8 @@
         "class_name": "MigratableDORepoFixture",
       },
       { "name": "SYSTEM_REPO", "class_name": "SystemRepo" },
+      { "name": "AGGREGATE_MACHINE_REPO", "class_name": "AggregateMachineRepo" },
+      { "name": "SERVICE_MACHINE_REPO", "class_name": "ServiceMachineRepo" },
       {
         "name": "AGGREGATE_VERSION_REPO",
         "class_name": "AggregateVersionRepo",
@@ -75,6 +77,8 @@
       "storage": "sqlite",
     },
     "SystemRepo": { "type": "durable-object", "storage": "sqlite" },
+    "AggregateMachineRepo": { "type": "durable-object", "storage": "sqlite" },
+    "ServiceMachineRepo": { "type": "durable-object", "storage": "sqlite" },
     "AggregateVersionRepo": {
       "type": "durable-object",
       "storage": "sqlite",

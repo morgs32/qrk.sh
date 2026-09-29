@@ -1,15 +1,28 @@
 import { applyAggregateMutationTx } from '@zerospin/core/contracts/applyAggregateMutationTx';
+import { assertMutationsUseModels } from '@zerospin/core/contracts/assertMutationsUseModels';
 import {
   AggregateExecutedCommandSchema,
   type AggregateChainedCommandSchema,
 } from '@zerospin/core/contracts/CommandSchema';
-import { encodeAppliedMutation } from '@zerospin/core/contracts/encodeAppliedMutation';
-import { type IFailure } from '@zerospin/core/contracts/failureCodec';
+import {
+  encodeAppliedMutation,
+  encodeMutation,
+} from '@zerospin/core/contracts/encodeAppliedMutation';
+import {
+  encodeFailure,
+  type IFailure,
+} from '@zerospin/core/contracts/failureCodec';
+import { makeModelMutations } from '@zerospin/core/contracts/make/makeModelMutations';
 import { prepareReplayAppliedMutation } from '@zerospin/core/contracts/prepareReplayAppliedMutation';
-import type { IEncodedMutation } from '@zerospin/core/contracts/types';
+import type {
+  IAnyMutation,
+  IContract,
+  IEncodedMutation,
+} from '@zerospin/core/contracts/types';
 import { makeTx } from '@zerospin/core/drizzle/make/makeTx';
 import type { IDb, IResourceDbConfig, ITx } from '@zerospin/core/drizzle/types';
 import { withSavepoint } from '@zerospin/core/drizzle/withSavepoint';
+import { runProgram } from '@zerospin/core/execution/runProgram';
 import { EncodedResourceSchema } from '@zerospin/core/models/EncodedResourceSchema';
 import type {
   IAnyModels,
@@ -27,6 +40,7 @@ import {
 import type config from 'config';
 import { eq } from 'drizzle-orm';
 import { Effect, Result, Schema } from 'effect';
+import { mapValues } from 'es-toolkit';
 
 import { advanceDispositionHash } from '../../aggregateDispositionHash/aggregateDispositionHash.js';
 import { aggregateVersionRepoDbConfig } from '../aggregateVersionRepoDbConfig.js';
@@ -53,8 +67,10 @@ export const executeCommandsTx = makeTx(
       startedAt: Date;
       mutations: readonly IEncodedMutation[];
       failure: IFailure | null;
+      contract: IContract | null;
+      payload: unknown;
       guard: (
-        queryDb: Readonly<Pick<IDb, 'query'>>,
+        db: Readonly<Pick<IDb, 'query'>>,
       ) => Effect.Effect<void, IFailure | IAnyError, unknown>;
     }[];
     aggregate: (typeof config.system.aggregates)[string][string];
@@ -150,20 +166,16 @@ export const executeCommandsTx = makeTx(
                       }),
                     ),
                   );
-                  // Preserve program order, including replicas; dependency failures roll back this savepoint.
-                  for (const mutation of prepared.mutations) {
-                    const decodedMutation = yield* prepareReplayAppliedMutation(
-                      {
-                        mutation,
-                        controller: aggregate,
-                      },
-                    );
-                    if (decodedMutation.operationName !== 'replicate') {
+                  const applyAndStore = (
+                    mutation: IAnyMutation,
+                    mutationIndex: number,
+                  ) =>
+                    Effect.gen(function* () {
                       const appliedMutation = yield* applyAggregateMutationTx({
                         tx: commandTx,
-                        mutation: decodedMutation,
+                        mutation,
                         commandId: command.id,
-                        mutationIndex: mutation.mutationIndex,
+                        mutationIndex,
                         appliedAt: startedAt,
                       });
                       const encoded = yield* encodeAppliedMutation({
@@ -173,7 +185,7 @@ export const executeCommandsTx = makeTx(
                         yield* aggregateVersionRepoDbConfig.tables.mutations
                           .encodeRow({
                             ...encoded,
-                            id: `${executedIndex + 1}/${mutation.mutationIndex}`,
+                            id: `${executedIndex + 1}/${mutationIndex}`,
                             executedIndex: executedIndex + 1,
                           })
                           .pipe(
@@ -186,6 +198,20 @@ export const executeCommandsTx = makeTx(
                         .insert(aggregateVersionRepoDbConfig.schema.mutations)
                         .values(bytes)
                         .run();
+                    });
+                  // Preserve program order, including replicas; dependency failures roll back this savepoint.
+                  for (const mutation of prepared.mutations) {
+                    const decodedMutation = yield* prepareReplayAppliedMutation(
+                      {
+                        mutation,
+                        controller: aggregate,
+                      },
+                    );
+                    if (decodedMutation.operationName !== 'replicate') {
+                      yield* applyAndStore(
+                        decodedMutation,
+                        mutation.mutationIndex,
+                      );
                       continue;
                     }
                     const { serviceName, serviceVersion, serviceIndex } =
@@ -266,33 +292,110 @@ export const executeCommandsTx = makeTx(
                         }),
                       );
                     } else {
-                      const appliedMutation = yield* applyAggregateMutationTx({
-                        tx: commandTx,
-                        mutation: decodedMutation,
+                      yield* applyAndStore(
+                        decodedMutation,
+                        mutation.mutationIndex,
+                      );
+                    }
+                  }
+                  const extension = aggregate.extensions[command.commandName];
+                  if (extension !== undefined && prepared.contract !== null) {
+                    const contract = prepared.contract;
+                    const extensionMutations = yield* runProgram(
+                      extension({
+                        db: commandTx,
+                        models: mapValues(aggregate.models, makeModelMutations),
+                        payload: prepared.payload,
+                        failures: contract.failures,
+                      }),
+                    ).pipe(
+                      Effect.catch(failure =>
+                        typeof failure === 'object' &&
+                        failure !== null &&
+                        'scope' in failure &&
+                        failure.scope === 'aggregate'
+                          ? encodeFailure(contract, failure).pipe(
+                              Effect.flatMap(encoded => {
+                                authoredRejection = encoded;
+                                return Effect.fail(encoded);
+                              }),
+                            )
+                          : Effect.fail(failure),
+                      ),
+                    );
+                    if (!Array.isArray(extensionMutations)) {
+                      return yield* Effect.fail(
+                        makeZerospinError('aggregate-extension-result-invalid'),
+                      );
+                    }
+                    yield* assertMutationsUseModels({
+                      mutations: extensionMutations,
+                      models: aggregate.models,
+                      commandName: command.commandName,
+                    });
+                    const nextMutationIndex = prepared.mutations.reduce(
+                      (next, mutation) =>
+                        Math.max(next, mutation.mutationIndex + 1),
+                      0,
+                    );
+                    for (const [
+                      offset,
+                      mutation,
+                    ] of extensionMutations.entries()) {
+                      if (mutation.operationName === 'replicate') {
+                        return yield* Effect.fail(
+                          makeZerospinError(
+                            'aggregate-extension-replication-unsupported',
+                          ),
+                        );
+                      }
+                      const mutationIndex = nextMutationIndex + offset;
+                      const encodedMutation = yield* encodeMutation({
                         commandId: command.id,
-                        mutationIndex: mutation.mutationIndex,
-                        appliedAt: startedAt,
+                        mutationIndex,
+                        mutation,
                       });
-                      const encoded = yield* encodeAppliedMutation({
-                        mutation: appliedMutation,
-                      });
-                      const bytes =
-                        yield* aggregateVersionRepoDbConfig.tables.mutations
-                          .encodeRow({
-                            ...encoded,
-                            id: `${executedIndex + 1}/${mutation.mutationIndex}`,
-                            executedIndex: executedIndex + 1,
-                          })
-                          .pipe(
-                            mapParseError({
-                              code: 'mutation-row-encode-failed',
-                              prefix: 'Invalid applied mutation',
-                            }),
+                      const identity = `${encodedMutation.modelName}\0${encodedMutation.resourceId}`;
+                      if (!before.has(identity)) {
+                        const model =
+                          aggregate.models[encodedMutation.modelName];
+                        if (model === undefined) {
+                          return yield* Effect.fail(
+                            makeZerospinError('aggregate-delta-model-missing'),
                           );
-                      commandTx
-                        .insert(aggregateVersionRepoDbConfig.schema.mutations)
-                        .values(bytes)
-                        .run();
+                        }
+                        const row = commandTx
+                          .select()
+                          .from(model.drizzleSchema)
+                          .where(
+                            eq(
+                              model.drizzleSchema.id,
+                              encodedMutation.resourceId,
+                            ),
+                          )
+                          .get();
+                        before.set(identity, {
+                          modelName: encodedMutation.modelName,
+                          resourceId: encodedMutation.resourceId,
+                          resource:
+                            row === undefined
+                              ? undefined
+                              : yield* Schema.decodeUnknownEffect(
+                                  Schema.toType(EncodedResourceSchema),
+                                )(row).pipe(
+                                  mapParseError({
+                                    code: 'aggregate-delta-invalid',
+                                    prefix: 'Invalid preceding resource',
+                                  }),
+                                ),
+                        });
+                      }
+                      const decodedMutation =
+                        yield* prepareReplayAppliedMutation({
+                          mutation: encodedMutation,
+                          controller: aggregate,
+                        });
+                      yield* applyAndStore(decodedMutation, mutationIndex);
                     }
                   }
                 }),
@@ -317,7 +420,7 @@ export const executeCommandsTx = makeTx(
 
     const executionFailure = Result.isFailure(applied)
       ? yield* Schema.decodeUnknownEffect(PublicFailureSchema)(
-          'cause' in applied.failure
+          isZerospinError(applied.failure) && 'cause' in applied.failure
             ? yield* encodeError(applied.failure)
             : applied.failure,
         ).pipe(
@@ -416,7 +519,6 @@ export const executeCommandsTx = makeTx(
     const bytes = yield* aggregateVersionRepoDbConfig.tables.aggregateCommands
       .encodeRow({
         ...terminal,
-        automationName: terminal.automationName ?? null,
         aggregateVersion:
           'aggregateVersion' in terminal ? terminal.aggregateVersion : null,
         executedIndex: ++executedIndex,

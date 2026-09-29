@@ -3,7 +3,7 @@ import { makeResourceDbConfig } from '@zerospin/core/drizzle/make/makeDbConfig/m
 import { defineModel } from '@zerospin/core/models/defineModel';
 import { makeModelVersion } from '@zerospin/core/models/make/makeModelVersion';
 import { makeService } from '@zerospin/core/service/make/makeService';
-import { serviceAutomation } from '@zerospin/fixtures/system-worker/workerd/serviceAutomation';
+import { serviceMachine } from '@zerospin/fixtures/system-worker/workerd/serviceMachine';
 import { primitives } from '@zerospin/schema';
 import { Effect, Schema } from 'effect';
 import { expect, it } from 'vitest';
@@ -12,7 +12,7 @@ import { makeActorSnapshotDb } from '../AggregateActorVersionRepo/validateComman
 
 import { readServiceResources } from './readServiceResources.js';
 
-const service = serviceAutomation.versions['1.0.0'];
+const service = serviceMachine.versions['1.0.0'];
 const key = {
   actorName: '__service',
   actorVersion: service.version,
@@ -46,7 +46,7 @@ it('exports encoded JSON from the private service actor', async () => {
   );
   const jsonService = makeService({
     name: 'jsonService',
-    module: { '1.0.0': { models: { item }, contracts: {}, automations: {} } },
+    module: { '1.0.0': { models: { item }, contracts: {} } },
   }).versions['1.0.0'];
   if (jsonService === undefined)
     throw new Error('JSON service version missing');

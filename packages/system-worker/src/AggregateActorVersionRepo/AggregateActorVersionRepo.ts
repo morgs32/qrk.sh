@@ -8,9 +8,8 @@ import { readRpcEnvelope } from '@zerospin/core/utils/readRpcEnvelope';
 import {
   isZerospinError,
   makeZerospinError,
-  type IZerospinErrorJson,
 } from '@zerospin/error';
-import { makeRpcEnvelope, type IRpcEnvelope } from '@zerospin/logger';
+import { makeRpcEnvelope } from '@zerospin/logger';
 import config from 'config';
 import { eq, isNotNull } from 'drizzle-orm';
 import { Effect, Semaphore } from 'effect';
@@ -26,7 +25,6 @@ import { makeOutboxQueue } from '../makeOutboxQueue/makeOutboxQueue.js';
 import { aggregateActorVersionRepoDbConfig } from './aggregateActorVersionRepoDbConfig.js';
 import { aggregateActorVersionRepoFixedDORepoConfig } from './aggregateActorVersionRepoFixedDORepoConfig.js';
 import { applyExecutedCommands } from './applyExecutedCommands/applyExecutedCommands.js';
-import { makeActorAutomations } from './automations/makeActorAutomations.js';
 import { catchup } from './catchup/catchup.js';
 import { getProjectionReadiness } from './getProjectionReadiness/getProjectionReadiness.js';
 import { getSnapshot } from './getSnapshot/getSnapshot.js';
@@ -44,71 +42,10 @@ export class AggregateActorVersionRepo extends makeFixedDORepo({
     aggregateActorVersionRepoFixedDORepoConfig;
 
   override onDOActivation() {
-    void this.#automationGroupRecovery;
-    return onDOActivation({ repo: this }).pipe(
-      Effect.andThen(this.#automations.initialize),
-      Effect.andThen(
-        this.#confirmedGroups.withPermits(1)(this.#resumeAutomationGroups),
-      ),
-    );
+    return onDOActivation({ repo: this });
   }
 
   readonly #actorWrites = Effect.runSync(Semaphore.make(1));
-  readonly #confirmedGroups = Effect.runSync(Semaphore.make(1));
-
-  readonly #automations = makeActorAutomations({
-    db: this.db,
-    key: this.key,
-    actorWrites: this.#actorWrites,
-    stageOutputs: ({ commands, executedIndex }) =>
-      this.#aggregateCommandsOutbox.drainAfter(() =>
-        stageActorCommandsWithRetry({
-          db: this.db,
-          key: this.key,
-          commands,
-          automationExecutedIndex: executedIndex,
-          actorWrites: this.#actorWrites,
-        }).pipe(
-          Effect.scoped,
-          Effect.mapError(error =>
-            isZerospinError(error)
-              ? error
-              : makeZerospinError({
-                  code: 'actor-staging-failed',
-                  cause: String(error),
-                }),
-          ),
-        ),
-      ),
-  });
-
-  readonly #resumeAutomationGroups = this.#automations.resume().pipe(
-    Effect.andThen(this.alarmRegistry.release('actorAutomationGroups')),
-    Effect.mapError(error =>
-      isZerospinError(error)
-        ? error
-        : makeZerospinError({
-            code: 'actor-automation-recovery-failed',
-            cause: String(error),
-          }),
-    ),
-  );
-
-  readonly #automationGroupRecovery = this.alarmRegistry.register(
-    'actorAutomationGroups',
-    this.#confirmedGroups
-      .withPermits(1)(this.#resumeAutomationGroups)
-      .pipe(
-        Effect.mapError(error =>
-          isZerospinError(error)
-            ? error
-            : makeZerospinError({
-                code: 'actor-automation-recovery-failed',
-                cause: String(error),
-              }),
-        ),
-      ),
-  );
 
   readonly #aggregateCommandsOutbox = makeAggregateCommandsOutbox({
     db: this.db,
@@ -118,7 +55,6 @@ export class AggregateActorVersionRepo extends makeFixedDORepo({
 
   async stageCommands(props: {
     commands: readonly IEncodedCommand<IAggregateCommand>[];
-    automationExecutedIndex?: number;
   }) {
     return config.system.runtime.runPromise(
       this.#aggregateCommandsOutbox
@@ -305,64 +241,13 @@ export class AggregateActorVersionRepo extends makeFixedDORepo({
           Parameters<typeof applyExecutedCommands>[0]['rows'][number]
         >,
       ) =>
-        Effect.gen({ self: this }, function* () {
-          yield* this.#confirmedGroups.withPermits(1)(
-            Effect.gen({ self: this }, function* () {
-              yield* this.#resumeAutomationGroups;
-              for (const row of delivery.rows) {
-                const projectedIndex =
-                  this.db
-                    .select()
-                    .from(aggregateActorVersionRepoDbConfig.schema.actorState)
-                    .where(
-                      eq(
-                        aggregateActorVersionRepoDbConfig.schema.actorState.id,
-                        1,
-                      ),
-                    )
-                    .get()?.executedIndex ?? 0;
-                if (row.executedIndex <= projectedIndex) continue;
-                yield* this.alarmRegistry.hold('actorAutomationGroups');
-                const captured = yield* this.#actorWrites.withPermits(1)(
-                  this.#actorCommandsOutbox.drainAfter(() =>
-                    Effect.gen({ self: this }, function* () {
-                      yield* applyExecutedCommands({
-                        rows: [row],
-                        db: this.db,
-                        key: this.key,
-                      });
-                      return yield* this.#automations.capture(
-                        row.executedIndex,
-                      );
-                    }).pipe(Effect.scoped),
-                  ),
-                );
-                yield* this.#automations.runGroup(captured);
-                yield* this.alarmRegistry.release('actorAutomationGroups');
-              }
-            }),
-          );
-        }).pipe(
-          Effect.mapError(error =>
-            isZerospinError(error)
-              ? error
-              : makeZerospinError({
-                  code: 'actor-automation-receive-failed',
-                  cause: String(error),
-                }),
+        this.#actorWrites.withPermits(1)(
+          this.#actorCommandsOutbox.drainAfter(() =>
+            applyExecutedCommands({ rows: delivery.rows, db: this.db, key: this.key })
+              .pipe(Effect.scoped),
           ),
         ),
     });
-  }
-  async getAutomationOutput(reference: {
-    automationName: string;
-    executedIndex: number;
-  }): Promise<
-    IRpcEnvelope<IEncodedCommand<IAggregateCommand>, IZerospinErrorJson>
-  > {
-    return config.system.runtime.runPromise(
-      this.#automations.getOutput(reference).pipe(makeRpcEnvelope),
-    );
   }
 
   /*

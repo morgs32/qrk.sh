@@ -27,7 +27,6 @@ const row = () =>
     claims: { userId: 'one' },
     serviceName: null,
     serviceVersion: null,
-    automationName: null,
     executedIndex: 1,
     aggregateIndex: 1,
     serviceIndex: null,

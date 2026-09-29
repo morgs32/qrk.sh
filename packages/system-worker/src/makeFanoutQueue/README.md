@@ -133,7 +133,7 @@ that read an older tip cannot clear a newer producer's recovery. Admission does 
 wait for the delivery semaphore or remote receipts. The finalizer finishes producer
 bookkeeping before launching delivery; a cold queue reads durable history.
 See the [producer recovery tests](./makeFanoutQueue.node.spec.ts) and
-[live automation fanout test](../AggregateActorVersionRepo/automations/automations.workerd.spec.ts).
+[live machine fanout test](../makeMachineRepo/makeMachineRepo.workerd.spec.ts).
 
 Enrollment holds the queue wakeup before committing, then starts delivery. A
 finished queue releases only its own lease; other queues may still need the shared

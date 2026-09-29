@@ -38,9 +38,8 @@ export const removeFromCartV3 = sdk.upgradeContractVersion(removeFromCartV2, {
     failures,
     payload,
     claims,
-    queryDb,
+    db,
   }) {
-    const db = queryDb;
     const item = db.query.cartItem
       .findFirst({ where: { id: { eq: payload.id } } })
       .sync();
@@ -52,16 +51,16 @@ export const removeFromCartV3 = sdk.upgradeContractVersion(removeFromCartV2, {
     yield* canEditCart({
       failures,
       cartId: item.cartId,
-      cart: queryDb.query.cart
+      cart: db.query.cart
         .findFirst({ where: { id: { eq: item.cartId } } })
         .sync(),
-      user: queryDb.query.user
+      user: db.query.user
         .findFirst({
           where: { clerkUserId: { eq: claims.clerkUserId } },
         })
         .sync(),
       hasPendingPurchase:
-        queryDb.query.checkout
+        db.query.checkout
           .findFirst({
             where: {
               cartId: { eq: item.cartId },
@@ -69,7 +68,7 @@ export const removeFromCartV3 = sdk.upgradeContractVersion(removeFromCartV2, {
             },
           })
           .sync() !== undefined ||
-        queryDb.query.purchase
+        db.query.purchase
           .findFirst({
             where: {
               cartId: { eq: item.cartId },

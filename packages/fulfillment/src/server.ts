@@ -1,5 +1,3 @@
-import { makeAutomation } from '@zerospin/core/automation/makeAutomation';
-import type { IAutomation } from '@zerospin/core/automation/types';
 import { defineContract } from '@zerospin/core/contracts/defineContract';
 import {
   makeContractVersion,
@@ -21,7 +19,7 @@ import type { IAnyModels, IModel } from '@zerospin/core/models/types';
 import { ContractError, type IAnyError } from '@zerospin/error';
 import { primitives, type ITextDescriptor } from '@zerospin/schema';
 import '@zerospin/server-only';
-import { Context, Effect, Schema } from 'effect';
+import { Effect, Schema } from 'effect';
 
 import {
   makeFulfillmentModelV1,
@@ -29,10 +27,7 @@ import {
 } from './portable.js';
 export { makeFulfillmentRequester } from './requestFulfillment.js';
 
-export class Carrier extends Context.Service<
-  Carrier,
-  (fulfillment: { id: string; warehouseCode?: string }) => Effect.Effect<string>
->()('Carrier') {}
+export { Carrier } from './Carrier.js';
 
 const requestPayload = {
   fulfillmentId: primitives.foreignKey({ abbreviation: 'ful' }),
@@ -79,11 +74,11 @@ const makeDefaultBundle = (fulfillment = makeFulfillmentModelV1()) => {
       stale: ContractError.schema({ code: 'fulfillment-state-conflict' }),
     },
     guard: Effect.fn('fulfillment.markPacked.guard')(function* ({
-      queryDb,
+      db,
       payload,
       failures,
     }) {
-      const row = queryDb.query.fulfillment
+      const row = db.query.fulfillment
         .findFirst({ where: { id: { eq: payload.fulfillmentId } } })
         .sync();
       if (row?.status !== 'requested') {
@@ -109,11 +104,11 @@ const makeDefaultBundle = (fulfillment = makeFulfillmentModelV1()) => {
       stale: ContractError.schema({ code: 'fulfillment-state-conflict' }),
     },
     guard: Effect.fn('fulfillment.markShipped.guard')(function* ({
-      queryDb,
+      db,
       payload,
       failures,
     }) {
-      const row = queryDb.query.fulfillment
+      const row = db.query.fulfillment
         .findFirst({ where: { id: { eq: payload.fulfillmentId } } })
         .sync();
       if (row?.status !== 'packed') {
@@ -133,26 +128,9 @@ const makeDefaultBundle = (fulfillment = makeFulfillmentModelV1()) => {
         mutation => [mutation],
       ),
   });
-  const ship = makeAutomation({
-    name: 'ship',
-    on: markPacked,
-    contracts: { markShipped },
-    program: Effect.fn('fulfillment.ship')(function* ({ db, on, contracts }) {
-      const row = db.query.fulfillment
-        .findFirst({ where: { id: { eq: on.payload.fulfillmentId } } })
-        .sync();
-      if (row === undefined || row.status !== 'packed') return null;
-      const carrier = yield* Carrier;
-      return contracts.markShipped({
-        fulfillmentId: row.id,
-        trackingId: yield* carrier({ id: row.id }),
-      });
-    }),
-  });
   return {
     models: { fulfillment },
     contracts: { requestFulfillment, markPacked, markShipped },
-    automations: { ship },
   };
 };
 
@@ -294,75 +272,14 @@ const makeWarehouseBundleBase = (options: IWarehouseConstructionOptions) => {
         mutation => [mutation],
       ),
   });
-  const ship = makeAutomation({
-    name: 'ship',
-    on: markPacked,
-    contracts: { markShipped },
-    program: Effect.fn('fulfillment.ship')(function* ({ db, on, contracts }) {
-      const row = db.query.fulfillment
-        .findFirst({ where: { id: { eq: on.payload.fulfillmentId } } })
-        .sync();
-      if (row === undefined || row.status !== 'packed') return null;
-      const carrier = yield* Carrier;
-      return contracts.markShipped({
-        fulfillmentId: row.id,
-        trackingId: yield* carrier({
-          id: row.id,
-          warehouseCode: row.warehouseCode,
-        }),
-      });
-    }),
-  });
   return {
     models: { fulfillment },
     contracts: { requestFulfillment, markPacked, markShipped },
-    automations: { ship },
   };
 };
 
-type IShippingHandler<
-  A extends { program: (...args: never[]) => unknown },
-  R,
-> = (
-  props: Parameters<A['program']>[0],
-) => Effect.Effect<Effect.Success<ReturnType<A['program']>>, IAnyError, R>;
-
-type IShippingBundle<
-  B extends {
-    models: IAnyModels;
-    contracts:
-      | ReturnType<typeof makeDefaultBundle>['contracts']
-      | ReturnType<typeof makeWarehouseBundleBase>['contracts']
-      | ReturnType<typeof makeReplacedDefaultBundleBase>['contracts'];
-    automations: {
-      ship: {
-        on: B['contracts']['markPacked'];
-        contracts: { markShipped: B['contracts']['markShipped'] };
-      };
-    };
-  },
-  R,
-> = {
-  models: B['models'];
-  contracts: B['contracts'];
-  automations: {
-    ship: IAutomation<
-      'ship',
-      B['contracts']['markPacked'],
-      { markShipped: B['contracts']['markShipped'] },
-      R
-    >;
-  };
-};
-
-type IDefaultOptions<R = Carrier> = {
+type IDefaultOptions = {
   sourceModel?: ReturnType<typeof makeFulfillmentModelV1>;
-  automations?: {
-    ship?: IShippingHandler<
-      ReturnType<typeof makeDefaultBundle>['automations']['ship'],
-      R
-    >;
-  };
 };
 type IReplacementOptions = {
   contracts: {
@@ -399,47 +316,11 @@ const makeReplacedDefaultBundleBase = (options: IReplacementOptions) => {
         })
         .pipe(Effect.map(mutations => [...mutations])),
   });
-  const ship = makeAutomation({
-    name: 'ship',
-    on: markPacked,
-    contracts: { markShipped: base.contracts.markShipped },
-    program: Effect.fn('fulfillment.ship')(function* ({ db, on, contracts }) {
-      const row = db.query.fulfillment
-        .findFirst({
-          where: { id: { eq: on.payload.fulfillmentId } },
-        })
-        .sync();
-      if (row === undefined || row.status !== 'packed') return null;
-      const carrier = yield* Carrier;
-      return contracts.markShipped({
-        fulfillmentId: row.id,
-        trackingId: yield* carrier({ id: row.id }),
-      });
-    }),
-  });
   return {
     models: base.models,
     contracts: { ...base.contracts, markPacked },
-    automations: { ship },
   };
 };
-type IReplacedDefaultOptions<R = Carrier> = IReplacementOptions & {
-  automations?: {
-    ship?: IShippingHandler<
-      ReturnType<typeof makeReplacedDefaultBundleBase>['automations']['ship'],
-      R
-    >;
-  };
-};
-type IWarehouseOptions<R = Carrier> = IWarehouseConstructionOptions & {
-  automations?: {
-    ship?: IShippingHandler<
-      ReturnType<typeof makeWarehouseBundleBase>['automations']['ship'],
-      R
-    >;
-  };
-};
-
 const optionsSchema = Schema.Struct({
   sourceModel: Schema.optionalKey(
     Schema.declare(
@@ -482,35 +363,25 @@ const optionsSchema = Schema.Struct({
       }),
     }),
   ),
-  automations: Schema.optionalKey(
-    Schema.Struct({
-      ship: Schema.optionalKey(
-        Schema.declare(
-          (value: unknown): value is (...args: never[]) => unknown =>
-            typeof value === 'function',
-        ),
-      ),
-    }),
-  ),
 });
 
 export function makeFulfillmentServiceModuleV1(): ReturnType<
   typeof makeDefaultBundle
 >;
-export function makeFulfillmentServiceModuleV1<R = Carrier>(
-  options: IWarehouseOptions<R>,
-): IShippingBundle<ReturnType<typeof makeWarehouseBundleBase>, R>;
-export function makeFulfillmentServiceModuleV1<R = Carrier>(
-  options: IReplacedDefaultOptions<R>,
-): IShippingBundle<ReturnType<typeof makeReplacedDefaultBundleBase>, R>;
-export function makeFulfillmentServiceModuleV1<R = Carrier>(
-  options: IDefaultOptions<R>,
-): IShippingBundle<ReturnType<typeof makeDefaultBundle>, R>;
+export function makeFulfillmentServiceModuleV1(
+  options: IWarehouseConstructionOptions,
+): ReturnType<typeof makeWarehouseBundleBase>;
+export function makeFulfillmentServiceModuleV1(
+  options: IReplacementOptions,
+): ReturnType<typeof makeReplacedDefaultBundleBase>;
+export function makeFulfillmentServiceModuleV1(
+  options: IDefaultOptions,
+): ReturnType<typeof makeDefaultBundle>;
 export function makeFulfillmentServiceModuleV1(
   options?:
-    | IDefaultOptions<unknown>
-    | IWarehouseOptions<unknown>
-    | IReplacedDefaultOptions<unknown>,
+    | IDefaultOptions
+    | IWarehouseConstructionOptions
+    | IReplacementOptions,
 ) {
   Schema.decodeUnknownSync(optionsSchema, { onExcessProperty: 'error' })(
     options ?? {},
@@ -531,54 +402,15 @@ export function makeFulfillmentServiceModuleV1(
         'Warehouse customization requires the markPacked warehouse payload',
       );
     }
-    const bundle = makeWarehouseBundleBase(options);
-    const handler = options.automations?.ship;
-    if (handler === undefined) return bundle;
-    return {
-      ...bundle,
-      automations: {
-        ship: makeAutomation({
-          name: 'ship',
-          on: bundle.contracts.markPacked,
-          contracts: { markShipped: bundle.contracts.markShipped },
-          program: handler,
-        }),
-      },
-    };
+    return makeWarehouseBundleBase(options);
   }
   if (options !== undefined && 'contracts' in options) {
     if (options.contracts.markPacked.replace === undefined) {
       throw new Error('Packing extension requires warehouse customization');
     }
-    const bundle = makeReplacedDefaultBundleBase(options);
-    const handler = options.automations?.ship;
-    if (handler === undefined) return bundle;
-    return {
-      ...bundle,
-      automations: {
-        ship: makeAutomation({
-          name: 'ship',
-          on: bundle.contracts.markPacked,
-          contracts: { markShipped: bundle.contracts.markShipped },
-          program: handler,
-        }),
-      },
-    };
+    return makeReplacedDefaultBundleBase(options);
   }
-  const bundle = makeDefaultBundle(options?.sourceModel);
-  const handler = options?.automations?.ship;
-  if (handler === undefined) return bundle;
-  return {
-    ...bundle,
-    automations: {
-      ship: makeAutomation({
-        name: 'ship',
-        on: bundle.contracts.markPacked,
-        contracts: { markShipped: bundle.contracts.markShipped },
-        program: handler,
-      }),
-    },
-  };
+  return makeDefaultBundle(options?.sourceModel);
 }
 
 /** Bind a user-owned replica to one selected fulfillment composition. */
@@ -600,7 +432,6 @@ export const makeUserAggregateModuleV1 = <
   return {
     models: { fulfillment },
     contracts: {},
-    automations: {},
   };
 };
 
@@ -619,10 +450,12 @@ export const makeUserActorModuleV1 = <
     fulfillment: options.selectFulfillment(options.db, options.claims),
   },
   contracts: {},
-  automations: {},
 });
 
 export { FulfillmentClient } from './FulfillmentClient.js';
 export { makeFulfillmentModule } from './makeFulfillmentModule.js';
+export { makeFulfillmentShippingMachine } from './makeFulfillmentShippingMachine.js';
+export { makePaidFulfillmentMachine } from './makePaidFulfillmentMachine.js';
+export { makeFulfillmentOperationMachine } from './makeFulfillmentOperationMachine.js';
 
 export { makeFulfillmentGuards } from './makeFulfillmentGuards.js';

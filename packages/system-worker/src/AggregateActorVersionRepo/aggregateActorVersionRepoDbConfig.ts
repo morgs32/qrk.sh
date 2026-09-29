@@ -32,7 +32,6 @@ export const aggregateActorVersionRepoDbConfig = makeDbConfig({
         nodeIndex: primitives.integer({ nullable: true }),
         serviceName: primitives.text({ nullable: true }),
         serviceVersion: primitives.text({ nullable: true }),
-        automationName: primitives.text({ nullable: true }),
         aggregateIndex: primitives.integer({ nullable: true }),
         serviceIndex: primitives.integer({ nullable: true }),
         admission: primitives.json({
@@ -125,60 +124,6 @@ export const aggregateActorVersionRepoDbConfig = makeDbConfig({
         {
           name: 'pendingCommands_commandRowId',
           columns: ['commandRowId'],
-          unique: true,
-        },
-      ],
-    }),
-    automationState: makeTable({
-      name: 'automationState',
-      shape: {
-        id: primitives.integer({ primaryKey: true }),
-        startIndex: primitives.integer(),
-      },
-    }),
-    automationGroups: makeTable({
-      name: 'automationGroups',
-      shape: {
-        executedIndex: primitives.integer({ primaryKey: true }),
-        status: primitives.text(),
-      },
-    }),
-    automationRuns: makeTable({
-      name: 'automationRuns',
-      shape: {
-        executedIndex: primitives.ref({
-          table: 'automationGroups',
-          column: 'executedIndex',
-          relation: 'group',
-          inverse: 'runs',
-        }),
-        automationName: primitives.text(),
-        programStatus: primitives.text(),
-        outputCommandRowId: primitives.ref({
-          table: 'commands',
-          column: 'rowId',
-          relation: 'output',
-          inverse: 'run',
-          nullable: true,
-        }),
-        programFailure: primitives.json({
-          schema: PublicFailureSchema,
-          nullable: true,
-        }),
-        stagingFailure: primitives.json({
-          schema: PublicFailureSchema,
-          nullable: true,
-        }),
-      },
-      indexes: [
-        {
-          name: 'automationRuns_identity',
-          columns: ['executedIndex', 'automationName'],
-          unique: true,
-        },
-        {
-          name: 'automationRuns_output',
-          columns: ['outputCommandRowId'],
           unique: true,
         },
       ],

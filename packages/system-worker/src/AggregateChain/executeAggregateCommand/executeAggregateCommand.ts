@@ -14,7 +14,8 @@ export const executeAggregateCommand = Effect.fn(
   'AggregateChain.executeAggregateCommand',
 )(function* (props: {
   aggregateVersion: string;
-  automationOutput?: boolean;
+  machineOutput?: boolean;
+  machineMode?: 'push' | 'execute';
   command: Parameters<typeof admitCommands>[0]['commands'][number];
   db: Parameters<typeof admitCommands>[0]['db'];
   key: Parameters<typeof admitCommands>[0]['key'];

@@ -108,12 +108,10 @@ export function makeSession<
       NoInfer<CONTRACTS>,
       NoInfer<IComposedDeclarations<MODELS, MODULES, 'models'>>
     >;
-  automations?: Readonly<Record<string, never>>;
   modules?: MODULES &
     IAssertDistinctDeclarations<
       NoInfer<MODELS>,
       NoInfer<CONTRACTS>,
-      {},
       NoInfer<MODULES>
     > & {
       [K in keyof MODULES]: {
@@ -125,7 +123,6 @@ export function makeSession<
           NoInfer<MODULES[K]['contracts']>,
           NoInfer<IComposedDeclarations<MODELS, MODULES, 'models'>>
         >;
-        automations: Readonly<Record<string, never>>;
       };
     };
   layer: APP_LAYER &
@@ -191,16 +188,14 @@ export function makeSession<
         NoInfer<IComposedDeclarations<MODELS, MODULES, 'models'>>
       >;
     contracts?: Readonly<Record<string, never>>;
-    automations?: Readonly<Record<string, never>>;
     modules?: MODULES &
-      IAssertDistinctDeclarations<NoInfer<MODELS>, {}, {}, NoInfer<MODULES>> & {
+      IAssertDistinctDeclarations<NoInfer<MODELS>, {}, NoInfer<MODULES>> & {
         [K in keyof MODULES]: {
           models: IAssertServiceModels<
             NoInfer<MODULES[K]['models']>,
             NoInfer<IComposedDeclarations<MODELS, MODULES, 'models'>>
           >;
           contracts: Readonly<Record<string, never>>;
-          automations: Readonly<Record<string, never>>;
         };
       };
     layer: APP_LAYER;
@@ -245,10 +240,7 @@ export function makeSession(props: unknown): unknown {
   if ('module' in input) {
     throw new Error('Unknown session property module');
   }
-  const { models, contracts, automations } = composeDeclarations(input);
-  if (Object.keys(automations).length !== 0) {
-    throw new Error('Browser sessions cannot contain automations');
-  }
+  const { models, contracts } = composeDeclarations(input);
   if (input.kind === 'service' && Object.keys(contracts).length !== 0) {
     throw new Error('Service sessions cannot contain contracts');
   }

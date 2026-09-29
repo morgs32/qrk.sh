@@ -62,7 +62,7 @@ export const makeRecordWorkflowPromotion = <
       guard: Effect.fn('recordPromotion.guard')(function* ({
         payload,
         claims,
-        queryDb: db,
+        db,
         failures,
       }) {
         const checkout = Schema.decodeUnknownSync(
@@ -81,7 +81,7 @@ export const makeRecordWorkflowPromotion = <
         );
         if (
           checkout === undefined ||
-          checkout.userId !== resolveUserId({ queryDb: db, claims }) ||
+          checkout.userId !== resolveUserId({ db, claims }) ||
           checkout?.promotionReservationId !== payload.id ||
           promotion?.cartId !== checkout.cartId
         ) {

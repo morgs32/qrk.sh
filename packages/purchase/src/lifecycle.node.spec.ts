@@ -5,14 +5,12 @@ import type { IContract } from '@zerospin/core/contracts/types';
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/make/makeDbConfig/makeDbConfig';
 import { makeProvisionedInMemorySqljsDb } from '@zerospin/core/drizzle/make/makeProvisionedInMemorySqljsDb/makeProvisionedInMemorySqljsDb';
 import type { IAnyModels } from '@zerospin/core/models/types';
-import { makeZerospinError } from '@zerospin/error';
 import type { IAnyShape } from '@zerospin/schema';
 import { Effect } from 'effect';
 import { expect, it } from 'vitest';
 
 import { purchaseFrontend, purchaseHost } from './browserConsumer.typecheck.js';
 import { purchase } from './consumer.typecheck.js';
-import { PromotionProvider } from './providers.js';
 import { makePurchaseQuote } from './quote.js';
 
 const claims = { aggregateId: 'acct_test', userId: 'usr_test' };
@@ -104,7 +102,7 @@ async function fixture() {
     if (contract.guard) {
       await Effect.runPromise(
         contract.guard({
-          queryDb: db,
+          db,
           claims: owner,
           payload,
           failures: contract.failures,
@@ -112,7 +110,7 @@ async function fixture() {
       );
     }
     const mutations = await Effect.runPromise(
-      contract.program({ claims: owner, payload }),
+      contract.program({ db, claims: owner, payload }),
     );
     db.transaction(tx =>
       Effect.runSync(
@@ -305,20 +303,10 @@ it('requires a committed promotion before purchase creation and records redempti
   }
 });
 
-it('keeps canonical frontend declarations and final automation contract references', () => {
+it('keeps canonical frontend model and contract declarations', () => {
   expect(purchase.models).toBe(purchaseFrontend.models);
   for (const [name, contract] of Object.entries(purchaseFrontend.contracts)) {
     expect(purchase.contracts).toHaveProperty(name, contract);
-  }
-  for (const automation of Object.values(purchase.automations)) {
-    expect(
-      Object.values(purchase.contracts).some(
-        contract => contract === automation.on,
-      ),
-    ).toBe(automation.name !== 'releaseCartPromotions');
-    for (const contract of Object.values(automation.contracts)) {
-      expect(Object.values(purchase.contracts)).toContain(contract);
-    }
   }
 });
 
@@ -391,127 +379,13 @@ it('rejects expired promotions and stale receipts after confirmed removal', asyn
     await execute(purchase.contracts.removePromotion, {
       checkoutId: 'chk_test',
     });
-    await execute(purchase.contracts.recordPromotionReleases, {
-      receipts: [{ ...receipt, status: 'released', finalizeRemoval: true }],
+    await execute(purchase.contracts.recordPromotion, {
+      ...receipt, status: 'released', finalizeRemoval: true,
     });
     expect(db.query.checkout.findFirst().sync()?.status).toBe('removed');
     await expect(
       execute(purchase.contracts.recordPromotion, receipt),
     ).rejects.toThrow();
-  } finally {
-    if (
-      '$client' in db &&
-      db.$client instanceof Object &&
-      'close' in db.$client &&
-      typeof db.$client.close === 'function'
-    ) {
-      db.$client.close();
-    }
-  }
-});
-
-it('retries partially successful remote releases and returns one complete local batch', async () => {
-  const { db, config, execute } = await fixture();
-  try {
-    const now = new Date();
-    const base = { version: '1.0.0', createdAt: now, updatedAt: now };
-    for (const suffix of ['one', 'two']) {
-      db.insert(config.schema.cartPromotion)
-        .values({
-          ...base,
-          id: `prv_${suffix}`,
-          modelName: 'cartPromotion',
-          cartId: 'crt_test',
-          status: 'reserved',
-          expiresAt: Date.now() + 60000,
-          purchaseId: null,
-        })
-        .run();
-      db.insert(config.schema.checkout)
-        .values({
-          ...base,
-          id: `chk_${suffix}`,
-          modelName: 'checkout',
-          userId: 'usr_test',
-          cartId: 'crt_test',
-          promotionReservationId: `prv_${suffix}`,
-          purchaseId: null,
-          firstPaymentIntentId: null,
-          quote: null,
-          status: 'removing',
-          failure: null,
-        })
-        .run();
-    }
-    const released = new Set<string>();
-    let fail = true;
-    const automation = purchase.automations.releaseCartPromotions;
-    const run = () =>
-      Effect.runPromise(
-        automation
-          .program({
-            db,
-            on: {
-              id: 'cmd_remove',
-              commandName: 'removeFromCart',
-              contractVersion: '1.0.0',
-              systemName: 'test',
-              aggregateId: 'acct_test',
-              aggregateName: 'shopper',
-              aggregateVersion: '1.0.0',
-              actorName: 'shopper',
-              actorVersion: '1.0.0',
-              claims,
-              nodeId: null,
-              nodeIndex: null,
-              sessionName: null,
-              payload: { releaseCheckoutIds: ['chk_one', 'chk_two'] },
-            },
-            contracts: {
-              recordPromotionReleases: payload => ({
-                contract: purchase.contracts.recordPromotionReleases,
-                payload,
-              }),
-            },
-          })
-          .pipe(
-            Effect.provideService(PromotionProvider, request => {
-              if (request.reservationId === 'prv_two' && fail) {
-                fail = false;
-                return Effect.fail(makeZerospinError('response-unavailable'));
-              }
-              released.add(request.reservationId);
-              return Effect.succeed({
-                kind: 'confirmed',
-                receipt: {
-                  status: 'released',
-                  expiresAt: null,
-                  purchaseId: null,
-                },
-              });
-            }),
-          ),
-      );
-    await expect(run()).rejects.toThrow();
-    expect([...released]).toEqual(['prv_one']);
-    expect(
-      db.query.checkout
-        .findMany()
-        .sync()
-        .every(row => row.status === 'removing'),
-    ).toBe(true);
-    const output = await run();
-    expect(output?.payload.receipts).toHaveLength(2);
-    if (output) {
-      await execute(output.contract, output.payload);
-    }
-    expect([...released].sort()).toEqual(['prv_one', 'prv_two']);
-    expect(
-      db.query.checkout
-        .findMany()
-        .sync()
-        .every(row => row.status === 'removed'),
-    ).toBe(true);
   } finally {
     if (
       '$client' in db &&

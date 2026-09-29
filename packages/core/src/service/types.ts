@@ -1,7 +1,6 @@
 import type { IAnyError } from '@zerospin/error';
 import { type Effect, type Schema } from 'effect';
 
-import type { IAnyAutomation } from '../automation/types.ts';
 import type { IAnyContracts } from '../contracts/types.ts';
 import type { IDb, IResourceDbConfig } from '../drizzle/types.ts';
 import type { IAnyModels } from '../models/types.ts';
@@ -68,16 +67,12 @@ export type IService<
     IAnyServiceActorVersion
   >,
   VERSION extends string = string,
-  AUTOMATIONS extends Readonly<Record<string, IAnyAutomation>> = Readonly<
-    Record<string, IAnyAutomation>
-  >,
 > = {
   readonly actors: Readonly<ACTORS>;
   readonly name: NAME;
   readonly version: VERSION;
   readonly models: Readonly<MODELS>;
   readonly contracts: Readonly<CONTRACTS>;
-  readonly automations: Readonly<AUTOMATIONS>;
   readonly queries: Readonly<QUERIES>;
 };
 
@@ -87,7 +82,6 @@ export type IAnyService = {
   readonly version: string;
   readonly models: IAnyModels;
   readonly contracts: IAnyContracts;
-  readonly automations: Readonly<Record<string, IAnyAutomation>>;
   readonly queries: Readonly<Record<string, IAnyServiceQuery>>;
 };
 
@@ -113,8 +107,7 @@ export type IVersionedService<
       MODULES[VERSION]['contracts'],
       Record<string, IAnyServiceQuery>,
       VERSION extends keyof ACTORS ? NonNullable<ACTORS[VERSION]> : {},
-      VERSION,
-      MODULES[VERSION]['automations']
+      VERSION
     >;
   };
 };

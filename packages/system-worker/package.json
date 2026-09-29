@@ -120,6 +120,18 @@
       "import": "./src/makeDORepo/makeDORepo.ts",
       "default": "./src/makeDORepo/makeDORepo.ts"
     },
+    "./machineRepoNames": {
+      "types": "./src/machineRepoNames.ts",
+      "workerd": "./src/machineRepoNames.ts",
+      "import": "./src/machineRepoNames.ts",
+      "default": "./src/machineRepoNames.ts"
+    },
+    "./systemWorkerAbbreviations": {
+      "types": "./src/systemWorkerAbbreviations.ts",
+      "workerd": "./src/systemWorkerAbbreviations.ts",
+      "import": "./src/systemWorkerAbbreviations.ts",
+      "default": "./src/systemWorkerAbbreviations.ts"
+    },
     "./makeAlarmRegistry/makeAlarmRegistry": {
       "types": "./src/makeAlarmRegistry/makeAlarmRegistry.ts",
       "workerd": "./src/makeAlarmRegistry/makeAlarmRegistry.ts",
@@ -137,6 +149,30 @@
       "workerd": "./src/makeOutboxSubscriber/makeOutboxSubscriber.ts",
       "import": "./src/makeOutboxSubscriber/makeOutboxSubscriber.ts",
       "default": "./src/makeOutboxSubscriber/makeOutboxSubscriber.ts"
+    },
+    "./makeMachineRepo/makeMachineRepo": {
+      "types": "./src/makeMachineRepo/makeMachineRepo.ts",
+      "workerd": "./src/makeMachineRepo/makeMachineRepo.ts",
+      "import": "./src/makeMachineRepo/makeMachineRepo.ts",
+      "default": "./src/makeMachineRepo/makeMachineRepo.ts"
+    },
+    "./makeMachineRepo/types": {
+      "types": "./src/makeMachineRepo/types.ts",
+      "workerd": "./src/makeMachineRepo/types.ts",
+      "import": "./src/makeMachineRepo/types.ts",
+      "default": "./src/makeMachineRepo/types.ts"
+    },
+    "./makeMachineRepo/RouteContractViolation": {
+      "types": "./src/makeMachineRepo/RouteContractViolation.ts",
+      "workerd": "./src/makeMachineRepo/RouteContractViolation.ts",
+      "import": "./src/makeMachineRepo/RouteContractViolation.ts",
+      "default": "./src/makeMachineRepo/RouteContractViolation.ts"
+    },
+    "./makeFanoutSubscriber/makeFanoutSubscriber": {
+      "types": "./src/makeFanoutSubscriber/makeFanoutSubscriber.ts",
+      "workerd": "./src/makeFanoutSubscriber/makeFanoutSubscriber.ts",
+      "import": "./src/makeFanoutSubscriber/makeFanoutSubscriber.ts",
+      "default": "./src/makeFanoutSubscriber/makeFanoutSubscriber.ts"
     }
   },
   "scripts": {

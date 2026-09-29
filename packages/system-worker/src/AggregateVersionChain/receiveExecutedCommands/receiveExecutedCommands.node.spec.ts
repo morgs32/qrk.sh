@@ -23,7 +23,6 @@ const aggregateCommand = () =>
     systemName: 'test',
     aggregateVersion: 'v1',
     nodeId: null,
-    automationName: null,
     actorName: 'owner',
     actorVersion: 'v1',
     claims: { aggregateId: 'acct_one' },

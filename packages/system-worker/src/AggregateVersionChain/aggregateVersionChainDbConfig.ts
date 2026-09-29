@@ -40,7 +40,6 @@ export const aggregateVersionChainDbConfig = makeDbConfig({
         systemName: primitives.text(),
         aggregateVersion: primitives.text({ nullable: true }),
         nodeId: primitives.text({ nullable: true }),
-        automationName: primitives.text({ nullable: true }),
         actorName: primitives.text(),
         actorVersion: primitives.text(),
         claims: primitives.json({
@@ -80,6 +79,20 @@ export const aggregateVersionChainDbConfig = makeDbConfig({
           abbreviation: systemWorkerAbbreviations.aggregateActorVersionRepo,
         }),
         actorPath: primitives.text(),
+        currentIndex: primitives.integer({ nullable: true }),
+        failure: primitives.json({
+          schema: PublicFailureSchema,
+          nullable: true,
+        }),
+      },
+    }),
+    machineResultsSubscribers: makeTable({
+      name: 'machineResultsSubscribers',
+      shape: {
+        aggregateMachineRepoName: primitives.primaryKey({
+          abbreviation: systemWorkerAbbreviations.aggregateMachineRepo,
+        }),
+        machineName: primitives.text(),
         currentIndex: primitives.integer({ nullable: true }),
         failure: primitives.json({
           schema: PublicFailureSchema,

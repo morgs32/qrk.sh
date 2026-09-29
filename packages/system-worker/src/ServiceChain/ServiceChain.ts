@@ -5,10 +5,10 @@ import type {
   IServiceCommand,
 } from '@zerospin/core/contracts/types';
 import { readRpcEnvelope } from '@zerospin/core/utils/readRpcEnvelope';
-import { makeZerospinError, type IZerospinErrorJson } from '@zerospin/error';
+import { type IZerospinErrorJson } from '@zerospin/error';
 import { makeRpcEnvelope, type IRpcEnvelope } from '@zerospin/logger';
 import config from 'config';
-import { desc, eq } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { Effect, Semaphore } from 'effect';
 
 import {
@@ -71,98 +71,57 @@ export class ServiceChain
     command: IEncodedCommand<IServiceCommand>;
   }): Promise<IRpcEnvelope<IServiceAdmissionReceipt, IZerospinErrorJson>> {
     return config.system.runtime.runPromise(
-      this.#admit(props.command, false).pipe(
+      this.#admit(props.command).pipe(
         Effect.provide(AsyncLive),
         makeRpcEnvelope,
       ),
     );
   }
 
-  /** Resolve a saved output from its internal owner before retaining it. */
-  async executeAutomationCommand(props: {
-    serviceVersion: string;
-    serviceIndex: number;
-    automationName: string;
-  }): Promise<IRpcEnvelope<IServiceAdmissionReceipt, IZerospinErrorJson>> {
+  /** Machine-owned capability; binding and target are checked before admission. */
+  async submitMachineCommand(props: {
+    machineName: string;
+    bindingName: string;
+    mode: 'push' | 'execute';
+    command: IEncodedCommand<IServiceCommand>;
+  }) {
     return config.system.runtime.runPromise(
       Effect.gen({ self: this }, function* () {
-        const { ServiceActorVersionRepo } = yield* Effect.promise(
-          () => import('../ServiceActorVersionRepo/ServiceActorVersionRepo.js'),
-        );
-        const actor = yield* ServiceActorVersionRepo.getRepo({
+        const receipt = yield* this.#admit(props.command, {
+          machineName: props.machineName,
+          bindingName: props.bindingName,
+          mode: props.mode,
+        });
+        if (props.mode === 'push') {
+          return { commandId: receipt.id, accepted: true as const };
+        }
+        const repo = yield* ServiceVersionRepo.getRepo({
           key: {
             systemId: this.key.systemId,
             serviceName: this.key.serviceName,
-            serviceVersion: props.serviceVersion,
-            actorName: '__service',
-            actorVersion: props.serviceVersion,
-            actorPath: '/',
+            serviceVersion: props.command.serviceVersion,
           },
         });
-        const command = yield* makeAsync(() =>
-          actor.getAutomationOutput({
-            serviceIndex: props.serviceIndex,
-            automationName: props.automationName,
-          }),
-        ).pipe(Effect.flatMap(readRpcEnvelope));
-        if (
-          command.serviceName !== this.key.serviceName ||
-          command.serviceVersion !== props.serviceVersion
-        ) {
-          return yield* makeZerospinError('service-automation-target-mismatch');
-        }
-        return yield* this.#admit(command, true);
+        return yield* makeAsync<Awaited<ReturnType<ServiceVersionRepo['execute']>>>(
+          () => repo.execute({ serviceIndex: receipt.serviceIndex }),
+        )
+          .pipe(Effect.flatMap(readRpcEnvelope));
       }).pipe(Effect.provide(AsyncLive), makeRpcEnvelope),
     );
   }
 
   readonly #admit = (
     command: IEncodedCommand<IServiceCommand>,
-    automationOutput: boolean,
+    machine?: Readonly<{ machineName: string; bindingName: string; mode: 'push' | 'execute' }>,
   ) =>
     this.#admissionWrites.withPermits(1)(
       Effect.gen({ self: this }, function* () {
         const prepared = yield* prepareServiceAdmission({
           command,
-          automationOutput,
+          ...(machine === undefined ? {} : { machine }),
           db: this.db,
           key: this.key,
         });
-        const service =
-          config.system.services[this.key.serviceName]?.[
-            command.serviceVersion
-          ];
-        if (
-          service !== undefined &&
-          Object.keys(service.automations).length > 0
-        ) {
-          const startIndex =
-            this.db
-              .select({
-                serviceIndex: serviceChainDbConfig.schema.commands.serviceIndex,
-              })
-              .from(serviceChainDbConfig.schema.commands)
-              .orderBy(desc(serviceChainDbConfig.schema.commands.serviceIndex))
-              .limit(1)
-              .get()?.serviceIndex ?? 0;
-          const { ServiceActorVersionRepo } = yield* Effect.promise(
-            () =>
-              import('../ServiceActorVersionRepo/ServiceActorVersionRepo.js'),
-          );
-          const actor = yield* ServiceActorVersionRepo.getRepo({
-            key: {
-              systemId: this.key.systemId,
-              serviceName: this.key.serviceName,
-              serviceVersion: command.serviceVersion,
-              actorName: '__service',
-              actorVersion: command.serviceVersion,
-              actorPath: '/',
-            },
-          });
-          yield* makeAsync(() =>
-            actor.registerAutomations({ startIndex }),
-          ).pipe(Effect.flatMap(readRpcEnvelope));
-        }
         return yield* this.#admissionResultsFanout.drainAfter(() =>
           retainServiceCommand({ ...prepared, db: this.db }),
         );

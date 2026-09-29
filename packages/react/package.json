@@ -32,7 +32,6 @@
     "@opentelemetry/core": "^2.7.1",
     "@opentelemetry/sdk-trace-node": "^2.7.1",
     "@remix-run/route-pattern": "^0.22.1",
-    "@zerospin/backup-worker": "workspace:*",
     "@zerospin/browser": "workspace:*",
     "@zerospin/core": "workspace:*",
     "@zerospin/devtools": "workspace:*",

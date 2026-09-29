@@ -254,7 +254,6 @@ export const system = makeSystem({
           moveItem,
           updateList,
         },
-        automations: {},
 
         actors: {
           default: makeAggregateActorVersion(

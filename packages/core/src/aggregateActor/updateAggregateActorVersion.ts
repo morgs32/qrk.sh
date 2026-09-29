@@ -1,10 +1,6 @@
 import { Schema, type Effect } from 'effect';
 
-import type {
-  IActorCommandGuards,
-  IAnyAutomation,
-} from '../automation/types.ts';
-import type { IAnyOwnerGuard } from '../contracts/ownerGuards.ts';
+import type { IAnyOwnerGuard, IOwnerGuards } from '../contracts/ownerGuards.ts';
 import type { IAnyContracts } from '../contracts/types.ts';
 import type { IAggregateAuthentication } from '../identity/types.ts';
 import type {
@@ -37,7 +33,6 @@ const ChangesSchema = Schema.Struct({
   authentication: Schema.optionalKey(Schema.Unknown),
   queries: Schema.optionalKey(Schema.Unknown),
   contracts: Schema.optionalKey(Schema.Unknown),
-  automations: Schema.optionalKey(Schema.Unknown),
   guards: Schema.optionalKey(Schema.Unknown),
   authorize: Schema.optionalKey(Schema.Unknown),
 });
@@ -58,7 +53,6 @@ export function updateAggregateActorVersion<
     PREVIOUS['identity'],
   const QUERIES extends IActorQueries = {},
   const CONTRACTS extends IAnyContracts = {},
-  const AUTOMATIONS extends Readonly<Record<string, IAnyAutomation>> = {},
   const GUARDS extends Readonly<Record<string, IAnyOwnerGuard | undefined>> =
     {},
   const AUTHORIZE extends IAnyAggregateActorVersion['authorize'] = NonNullable<
@@ -87,14 +81,11 @@ export function updateAggregateActorVersion<
         : never);
     queries?: QUERIES & ValidActorQueries<DB['models'], QUERIES>;
     contracts?: CONTRACTS;
-    automations?: AUTOMATIONS;
     guards?: GUARDS &
-      IActorCommandGuards<
+      IOwnerGuards<
         NoInfer<Merge<PREVIOUS['contracts'], CONTRACTS>>,
-        NoInfer<Merge<PREVIOUS['automations'], AUTOMATIONS>>,
         DB['models'],
         IDENTITY['claimsSchema']['Type'],
-        IDENTITY['identitySchema']['Type'],
         'actor',
         GUARD_REQUIREMENTS
       >;
@@ -123,12 +114,10 @@ export function updateAggregateActorVersion<
     >
       ? unknown
       : { contracts: never }) &
-    (Merge<PREVIOUS['guards'], GUARDS> extends IActorCommandGuards<
+    (Merge<PREVIOUS['guards'], GUARDS> extends IOwnerGuards<
       Merge<PREVIOUS['contracts'], CONTRACTS>,
-      Merge<PREVIOUS['automations'], AUTOMATIONS>,
       DB['models'],
       IDENTITY['claimsSchema']['Type'],
-      IDENTITY['identitySchema']['Type'],
       'actor',
       ActorGuardRequirements<Merge<PREVIOUS['guards'], GUARDS>>
     >
@@ -143,7 +132,6 @@ export function updateAggregateActorVersion<
   Merge<PREVIOUS['contracts'], CONTRACTS>,
   AuthorizeRequirements<AUTHORIZE>,
   ActorGuardRequirements<Merge<PREVIOUS['guards'], GUARDS>>,
-  Merge<PREVIOUS['automations'], AUTOMATIONS>,
   Merge<PREVIOUS['guards'], GUARDS>,
   AUTHORIZE
 > {
@@ -169,7 +157,6 @@ export function updateAggregateActorVersion<
     Merge<PREVIOUS['contracts'], CONTRACTS>,
     AuthorizeRequirements<AUTHORIZE>,
     ActorGuardRequirements<Merge<PREVIOUS['guards'], GUARDS>>,
-    Merge<PREVIOUS['automations'], AUTOMATIONS>,
     Merge<PREVIOUS['guards'], GUARDS>,
     AUTHORIZE
   >(
@@ -184,7 +171,6 @@ export function updateAggregateActorVersion<
         : { authorize: fields.authorize }),
       queries: merge(previous.queries, changes.queries),
       contracts: merge(previous.contracts, changes.contracts),
-      automations: merge(previous.automations, changes.automations),
       guards: merge(previous.guards, changes.guards),
     },
   );

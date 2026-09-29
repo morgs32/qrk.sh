@@ -10,6 +10,8 @@ import config from 'config';
 import { Effect } from 'effect';
 
 import { ServiceChain } from '../../ServiceChain/ServiceChain.js';
+import { getServiceMachineRepo, serviceMachineNameUtils } from '../../machineRepoNames.js';
+import type { IAnyMachineDeclaration } from '@zerospin/core/machine/types';
 
 const { system } = config;
 
@@ -37,5 +39,19 @@ export const initialize = Effect.fn('SystemRepo.initialize')(function* (props: {
         message: `Failed to initialize ServiceChain ${name}`,
       }),
     ).pipe(Effect.flatMap(envelope => readRpcEnvelope(envelope)));
+  }
+  const machines: Readonly<Record<string, IAnyMachineDeclaration>> = system.machines;
+  for (const [machineName, machine] of Object.entries(machines)) {
+    if ('services' in machine.source) continue;
+    const key = { systemId, serviceName: machine.source.name, machineName };
+    const name = yield* serviceMachineNameUtils.makeName(key);
+    const repo = yield* getServiceMachineRepo({ key });
+    yield* makeAsync<IRpcEnvelope<void, IZerospinErrorJson>, IAnyError>(
+      () => repo.ready(),
+      catchZerospinError({
+        code: 'system-repo-initialize-service-machine-failed',
+        message: `Failed to initialize ServiceMachineRepo ${name}`,
+      }),
+    ).pipe(Effect.flatMap(readRpcEnvelope));
   }
 });

@@ -4,6 +4,7 @@ import { AggregateVersionRepo } from '../AggregateVersionRepo/AggregateVersionRe
 import { makeFanoutQueue } from '../makeFanoutQueue/makeFanoutQueue.js';
 import { makeFixedDORepo } from '../makeFixedDORepo/makeFixedDORepo.js';
 import { makeOutboxSubscriber } from '../makeOutboxSubscriber/makeOutboxSubscriber.js';
+import { getServiceMachineRepo, serviceMachineNameUtils } from '../machineRepoNames.js';
 import { ServiceActorVersionRepo } from '../ServiceActorVersionRepo/ServiceActorVersionRepo.js';
 import { serviceActorVersionRepoFixedDORepoConfig } from '../ServiceActorVersionRepo/serviceActorVersionRepoFixedDORepoConfig.js';
 
@@ -37,6 +38,22 @@ export class ServiceVersionChain extends makeFixedDORepo({
     // 1 — reuse the existing private queue/subscriber instance
     return this.#executionResultsFanout;
   }
+  readonly #machineResultsFanout = makeFanoutQueue({
+    concurrency: 100,
+    name: 'machineResultsFanout',
+    db: this.db,
+    key: this.key,
+    alarmRegistry: this.alarmRegistry,
+    schema: this.schema,
+    subscribersTableName: 'machineResultsSubscribers',
+    subscriberNameUtils: serviceMachineNameUtils,
+    entriesTableName: 'commands',
+    indexColumnName: 'serviceIndex',
+    getRepo: getServiceMachineRepo,
+  });
+  get machineResultsFanout() {
+    return this.#machineResultsFanout;
+  }
   readonly #serviceResultsToAggregatesFanout = makeFanoutQueue({
     concurrency: 100,
     name: 'serviceResultsToAggregatesFanout',
@@ -58,12 +75,14 @@ export class ServiceVersionChain extends makeFixedDORepo({
     receive: (rows: Parameters<typeof receiveResults>[0]['rows']) =>
       Effect.gen({ self: this }, function* () {
         yield* this.alarmRegistry.hold('executionResultsFanout');
+        yield* this.alarmRegistry.hold('machineResultsFanout');
         yield* this.alarmRegistry.hold('serviceResultsToAggregatesFanout');
         yield* receiveResults({ rows, db: this.db, key: this.key });
       }).pipe(
         Effect.ensuring(
           Effect.sync(() => {
             this.#executionResultsFanout.drain();
+            this.#machineResultsFanout.drain();
             this.#serviceResultsToAggregatesFanout.drain();
           }),
         ),

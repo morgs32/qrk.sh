@@ -2,7 +2,7 @@ import type { Async } from '@zerospin/core/async/Async';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { type IAnyError, type IZerospinErrorJson } from '@zerospin/error';
 import { makeRpcEnvelope, type IRpcEnvelope } from '@zerospin/logger';
-import { RpcTarget } from 'capnweb';
+import { RpcTarget } from 'cloudflare:workers';
 import config from 'config';
 import { Effect } from 'effect';
 

@@ -29,10 +29,6 @@ describe('fulfillment service factory', () => {
       },
     });
     expect(module.contracts.markPacked.previous?.version).toBe('1.0.0');
-    expect(module.automations.ship.on).toBe(module.contracts.markPacked);
-    expect(module.automations.ship.contracts.markShipped).toBe(
-      module.contracts.markShipped,
-    );
     expect(module.contracts.requestFulfillment.models.fulfillment).toBe(
       module.models.fulfillment,
     );

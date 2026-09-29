@@ -42,7 +42,6 @@ export const shopperSession = makeSession({
     updateCartItemQuantity: updateCartItemQuantityV1,
     updateUser: updateUserV1,
   },
-  automations: {},
   layer: applicationLayer,
   systemName: 'shopping',
 });

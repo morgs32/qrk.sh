@@ -1,22 +1,19 @@
-import { createHref } from '@remix-run/route-pattern/href';
 import { resolveAggregateActorVersion } from '@zerospin/core/aggregateActor/getAggregateActorVersion';
-import { makeAsync } from '@zerospin/core/async/make/makeAsync';
-import { getCommandContracts } from '@zerospin/core/automation/getCommandContracts';
 import { EncodedAggregateCommandSchema } from '@zerospin/core/contracts/CommandSchema';
+import { MachineClaimsSchema } from '@zerospin/core/machine/MachineClaimsSchema';
 import type {
   IAggregateCommand,
   IEncodedCommand,
 } from '@zerospin/core/contracts/types';
 import type { IDb } from '@zerospin/core/drizzle/types';
-import { readRpcEnvelope } from '@zerospin/core/utils/readRpcEnvelope';
 import { makeZerospinError, mapParseError } from '@zerospin/error';
 import config from 'config';
 import { eq } from 'drizzle-orm';
 import { Effect, Schema } from 'effect';
 
-import { AggregateActorVersionRepo } from '../../AggregateActorVersionRepo/AggregateActorVersionRepo.js';
 import { checkAdmission } from '../../checkAdmission.js';
 import { aggregateChainDbConfig } from '../aggregateChainDbConfig.js';
+import { verifyMachineFrozenCommand } from '../../verifyMachineFrozenCommand.js';
 
 import { admitCommandsTx } from './admitCommandsTx.js';
 
@@ -37,7 +34,8 @@ export const prepareAdmission = Effect.fn('AggregateChain.prepareAdmission')(
   function* (props: {
     commands: readonly IEncodedCommand<IAggregateCommand>[];
     aggregateVersion: string;
-    automationOutput?: boolean;
+    machineOutput?: boolean;
+    machineMode?: 'push' | 'execute';
     db: IDb;
     key: { systemId: string; aggregateId: string; aggregateName: string };
   }) {
@@ -50,11 +48,9 @@ export const prepareAdmission = Effect.fn('AggregateChain.prepareAdmission')(
     const preparedCommands = yield* Effect.forEach(commands, command =>
       Effect.gen(function* () {
         const startedAt = new Date();
-        if (
-          command.automationName != null &&
-          (!props.automationOutput || command.nodeId !== null)
-        ) {
-          return yield* makeZerospinError('automation-authority-required');
+        if (command.actorName === '__machine' &&
+          (!props.machineOutput || command.nodeId !== null)) {
+          return yield* makeZerospinError('machine-authority-required');
         }
         // 2 — reject aggregateId or aggregateName mismatches
         if (
@@ -83,6 +79,42 @@ export const prepareAdmission = Effect.fn('AggregateChain.prepareAdmission')(
           .get();
         const duplicate = retained !== undefined || checked.has(command.id);
         if (!duplicate) {
+          if (command.actorName === '__machine') {
+            const claims = yield* Schema.decodeUnknownEffect(MachineClaimsSchema, {
+              onExcessProperty: 'error',
+            })(command.claims);
+            if (claims.aggregateId !== key.aggregateId || props.machineMode === undefined) {
+              return yield* makeZerospinError('machine-contract-forbidden');
+            }
+            yield* verifyMachineFrozenCommand({
+              command,
+              mode: props.machineMode,
+              bindingName: claims.bindingName,
+              systemId: key.systemId,
+              machineName: claims.machineName,
+            });
+            const contract = config.system.aggregates[key.aggregateName]?.[props.aggregateVersion]
+              ?.contracts[command.commandName];
+            if (contract === undefined) return yield* makeZerospinError('machine-contract-forbidden');
+            yield* checkAdmission({
+              command,
+              claims: command.claims,
+              owners: [{
+                contracts: [contract],
+                identity: { claimsSchema: MachineClaimsSchema },
+              }],
+            });
+            checked.add(command.id);
+            return {
+              command,
+              admission: {
+                status: 'succeeded' as const,
+                startedAt,
+                completedAt: new Date(),
+              },
+              duplicate: false,
+            };
+          }
           const actor = yield* resolveAggregateActorVersion(
             config.system.aggregates[key.aggregateName] ?? {},
             command,
@@ -95,10 +127,10 @@ export const prepareAdmission = Effect.fn('AggregateChain.prepareAdmission')(
           yield* checkAdmission({
             command,
             claims: command.claims,
-            ...(command.automationName == null ? { actor } : {}),
+            actor,
             owners: [
               {
-                contracts: Object.values(getCommandContracts(actor, command)),
+                contracts: Object.values(actor.contracts),
                 identity: {
                   claimsSchema: actor.identity.identitySchema,
                 },
@@ -124,37 +156,6 @@ export const prepareAdmission = Effect.fn('AggregateChain.prepareAdmission')(
       }),
     );
 
-    // Admission used to activate actor subscriptions indirectly through guard
-    // validation. Explicitly activate automation owners without asking them to
-    // validate state or influencing the admission decision.
-    for (const entry of preparedCommands) {
-      const actor = yield* resolveAggregateActorVersion(
-        config.system.aggregates[key.aggregateName] ?? {},
-        entry.command,
-      );
-      if (Object.keys(actor.automations).length === 0) continue;
-      const selection = yield* Schema.decodeUnknownEffect(
-        actor.identity.identitySchema,
-      )(entry.command.claims);
-      const actorPath = createHref(
-        actor.identity.pattern,
-        yield* Schema.decodeUnknownEffect(
-          Schema.Record(Schema.String, Schema.String),
-        )(selection),
-      );
-      const repo = yield* AggregateActorVersionRepo.getRepo({
-        key: {
-          ...key,
-          aggregateVersion: props.aggregateVersion,
-          actorName: actor.name,
-          actorVersion: actor.version,
-          actorPath,
-        },
-      });
-      yield* makeAsync<Awaited<ReturnType<AggregateActorVersionRepo['ready']>>>(
-        () => repo.ready(),
-      ).pipe(Effect.flatMap(readRpcEnvelope));
-    }
     return preparedCommands;
   },
 );

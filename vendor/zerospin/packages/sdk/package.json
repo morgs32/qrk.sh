@@ -26,7 +26,7 @@
   "scripts": {
     "clean": "rimraf dist tsconfig.tsbuildinfo",
     "lib": "pnpm run clean && tsc -b tsconfig.json",
-    "test": "vitest run src/*.node.spec.ts",
+    "test": "vitest run src/*.node.spec.ts --passWithNoTests",
     "watch": "tsc -b tsconfig.json --watch",
     "prepublishOnly": "pnpm run lib"
   },

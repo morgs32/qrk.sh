@@ -51,9 +51,8 @@ export const updateCartItemQuantityV1 = sdk.makeContractVersion(
       failures,
       payload,
       claims,
-      queryDb,
+      db,
     }) {
-      const db = queryDb;
       const resource = yield* Effect.try({
         try: () =>
           db.query.cartItem
@@ -75,16 +74,16 @@ export const updateCartItemQuantityV1 = sdk.makeContractVersion(
       yield* canEditCart({
         failures,
         cartId: resource.cartId,
-        cart: queryDb.query.cart
+        cart: db.query.cart
           .findFirst({ where: { id: { eq: resource.cartId } } })
           .sync(),
-        user: queryDb.query.user
+        user: db.query.user
           .findFirst({
             where: { clerkUserId: { eq: claims.clerkUserId } },
           })
           .sync(),
         hasPendingPurchase:
-          queryDb.query.checkout
+          db.query.checkout
             .findFirst({
               where: {
                 cartId: { eq: resource.cartId },
@@ -92,7 +91,7 @@ export const updateCartItemQuantityV1 = sdk.makeContractVersion(
               },
             })
             .sync() !== undefined ||
-          queryDb.query.purchase
+          db.query.purchase
             .findFirst({
               where: {
                 cartId: { eq: resource.cartId },

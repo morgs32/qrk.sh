@@ -17,7 +17,7 @@ import { Effect, type Cause } from 'effect';
  * database checks. Payload and identity are Effect schemas; program is a
  * named Effect.fn with inferred { db, payload, identity }. Invocation
  * accepts decoded inputs without decoding again. Each owner callback supplies
- * its queryDb as db and retains responsibility for the allowed failure scope.
+ * its db as db and retains responsibility for the allowed failure scope.
  *
  * Use direct callbacks: contract.guard, actor.guards[commandName], and
  * aggregate.guards[actorName][commandName]. Ownership determines scope; do not

@@ -78,7 +78,7 @@ export type IUserLookup<
   HOST extends IPurchaseHostModels,
   CLAIMS extends IClaimsSchema,
 > = (props: {
-  queryDb: Readonly<
+  db: Readonly<
     Pick<
       IDb<IResourceDbConfig<{ user: HOST['user'] }, Record<never, never>>>,
       'query'

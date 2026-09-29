@@ -20,7 +20,6 @@ export const shopperAggregateV1 = sdk.makeAggregateVersion(shopper, {
     purchase: {
       models: purchaseFrontend.models,
       contracts: {},
-      automations: {},
     },
   },
   models: {
@@ -36,7 +35,6 @@ export const shopperAggregateV1 = sdk.makeAggregateVersion(shopper, {
     addToCart: addToCartV1,
     removeFromCart: removeFromCartV1,
   },
-  automations: {},
   actors: {
     provisioner: provisionerV1,
     shopper: shopperActorV1,

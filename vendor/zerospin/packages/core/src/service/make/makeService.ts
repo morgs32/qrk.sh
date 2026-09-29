@@ -3,7 +3,6 @@ import { Schema } from 'effect';
 import { mapValues } from 'es-toolkit';
 
 import { assertSameCoreInstance } from '../../assertSameCoreInstance.ts';
-import { AutomationSchema } from '../../automation/makeAutomation.ts';
 import { Contract } from '../../contracts/make/makeContractVersion.ts';
 import type { IContract } from '../../contracts/types.ts';
 import { assertValidModels } from '../../models/assertValidModels.ts';
@@ -36,7 +35,6 @@ const CanonicalContractSchema = Schema.declare(
 const ModuleSchema = Schema.Struct({
   models: Schema.Record(Schema.String, CanonicalModelSchema),
   contracts: Schema.Record(Schema.String, CanonicalContractSchema),
-  automations: Schema.Record(Schema.String, AutomationSchema),
 });
 const serviceSemVerPattern =
   /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/;
@@ -142,7 +140,7 @@ export function makeService(props: unknown): unknown {
     if (!serviceSemVerPattern.test(version)) {
       throw new Error(`Invalid service composition version ${version}`);
     }
-    const { models, contracts, automations } = module;
+    const { models, contracts } = module;
     assertValidModels({ models, context: `makeService: ${name}@${version}` });
     for (const [modelName, model] of Object.entries(models)) {
       if (Model.isReplica(model)) {
@@ -165,31 +163,7 @@ export function makeService(props: unknown): unknown {
         }
       }
     }
-    for (const [automationName, automation] of Object.entries(automations)) {
-      if (automationName !== automation.name) {
-        throw new Error(
-          `Automation key ${automationName} must match ${automation.name}`,
-        );
-      }
-      if (contracts[automation.on.commandName] !== automation.on) {
-        throw new Error(
-          `Automation ${automationName} trigger must reference its final contract`,
-        );
-      }
-      for (const output of Object.values(automation.contracts)) {
-        if (contracts[output.commandName] !== output) {
-          throw new Error(
-            `Automation ${automationName} output must reference its final contract`,
-          );
-        }
-      }
-    }
     const actors = actorVersions[version] ?? {};
-    if (Object.hasOwn(actors, '__service')) {
-      throw new Error(
-        `Actor name __service is reserved for ${name}@${version} automations`,
-      );
-    }
     for (const [actorName, actor] of Object.entries(actors)) {
       if (actorName !== actor.name) {
         throw new Error(`Actor key ${actorName} must match ${actor.name}`);
@@ -224,7 +198,6 @@ export function makeService(props: unknown): unknown {
       version,
       models,
       contracts,
-      automations,
       queries,
     });
   });

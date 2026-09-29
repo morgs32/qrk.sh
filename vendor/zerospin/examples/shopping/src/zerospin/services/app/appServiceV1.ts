@@ -55,7 +55,6 @@ export const appServiceV1 = sdk.makeService({
         createProduct: createProductV1,
         deleteProduct: deleteProductV1,
       },
-      automations: {},
     },
   },
   queries: {

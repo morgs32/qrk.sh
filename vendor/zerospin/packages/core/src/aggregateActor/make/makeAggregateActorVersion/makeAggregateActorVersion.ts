@@ -1,11 +1,6 @@
 import { Schema, SchemaAST, type Effect } from 'effect';
 
 import { assertSameCoreInstance } from '../../../assertSameCoreInstance.ts';
-import { AutomationSchema } from '../../../automation/makeAutomation.ts';
-import type {
-  IActorCommandGuards,
-  IAnyAutomation,
-} from '../../../automation/types.ts';
 import type { AssertContractMutationsInModels } from '../../../contracts/assertMutationsUseModels.ts';
 import { Contract } from '../../../contracts/make/makeContractVersion.ts';
 import '@zerospin/server-only';
@@ -13,6 +8,7 @@ import '@zerospin/server-only';
 import {
   OwnerGuardsSchema,
   type IAnyOwnerGuard,
+  type IOwnerGuards,
 } from '../../../contracts/ownerGuards.ts';
 import type { IAnyContracts, IContract } from '../../../contracts/types.ts';
 import { AuthenticationPolicySchema } from '../../../identity/AuthenticationPolicySchema.ts';
@@ -46,9 +42,6 @@ const FunctionSchema = Schema.declare(
     typeof input === 'function',
 );
 const DeclarationSchema = Schema.Struct({
-  automations: Schema.optionalKey(
-    Schema.Record(Schema.String, AutomationSchema),
-  ),
   guards: Schema.optionalKey(OwnerGuardsSchema),
   version: Schema.String.check(
     Schema.isPattern(
@@ -109,7 +102,6 @@ export type IAggregateActorDeclaration<
   QUERIES extends IActorQueries,
   CONTRACTS extends IAnyContracts,
   AUTHORIZE_REQUIREMENTS,
-  AUTOMATIONS extends Readonly<Record<string, IAnyAutomation>>,
   GUARDS extends Readonly<Record<string, IAnyOwnerGuard | undefined>>,
   CREDENTIALS extends Schema.Codec<unknown, unknown> = Schema.Codec<
     unknown,
@@ -139,15 +131,11 @@ export type IAggregateActorDeclaration<
     IDENTITY['claimsSchema']['Type'],
     AUTHORIZE_REQUIREMENTS
   >;
-} & ({} extends AUTOMATIONS
-  ? { automations?: AUTOMATIONS }
-  : { automations: AUTOMATIONS }) & {
-    guards?: IActorCommandGuards<
+} & {
+    guards?: IOwnerGuards<
       NoInfer<CONTRACTS>,
-      NoInfer<AUTOMATIONS>,
       DB['models'],
       IDENTITY['claimsSchema']['Type'],
-      IDENTITY['identitySchema']['Type'],
       'actor',
       unknown
     >;
@@ -162,14 +150,11 @@ export type IAggregateActorVersion<
   CONTRACTS extends IAnyContracts,
   AUTHORIZE_REQUIREMENTS,
   GUARD_REQUIREMENTS,
-  AUTOMATIONS extends Readonly<Record<string, IAnyAutomation>>,
   GUARDS extends Readonly<Record<string, IAnyOwnerGuard | undefined>> =
-    IActorCommandGuards<
+    IOwnerGuards<
       CONTRACTS,
-      AUTOMATIONS,
       DB['models'],
       IDENTITY['claimsSchema']['Type'],
-      IDENTITY['identitySchema']['Type'],
       'actor',
       GUARD_REQUIREMENTS
     >,
@@ -195,12 +180,10 @@ export type IAggregateActorVersion<
     IDENTITY['identitySchema']['Type']
   >;
   readonly contracts: CONTRACTS;
-  readonly automations: AUTOMATIONS;
   readonly guards: GUARDS;
   readonly __contractRequirements?:
     | Effect.Services<ReturnType<CONTRACTS[keyof CONTRACTS]['program']>>
-    | GUARD_REQUIREMENTS
-    | Effect.Services<ReturnType<AUTOMATIONS[keyof AUTOMATIONS]['program']>>;
+    | GUARD_REQUIREMENTS;
   readonly authorize?: AUTHORIZE;
   readonly __authorizeRequirements?: AUTHORIZE_REQUIREMENTS;
 };
@@ -214,7 +197,6 @@ export function makeAggregateActorVersion<
   const QUERIES extends IActorQueries,
   const CONTRACTS extends IAnyContracts,
   AUTHORIZE_REQUIREMENTS = never,
-  const AUTOMATIONS extends Readonly<Record<string, IAnyAutomation>> = {},
   const GUARDS extends Readonly<Record<string, IAnyOwnerGuard | undefined>> =
     {},
 >(
@@ -226,7 +208,6 @@ export function makeAggregateActorVersion<
     QUERIES,
     CONTRACTS,
     AUTHORIZE_REQUIREMENTS,
-    AUTOMATIONS,
     GUARDS,
     CREDENTIALS
   >,
@@ -240,7 +221,6 @@ export function makeAggregateActorVersion<
     CONTRACTS,
     AUTHORIZE_REQUIREMENTS,
     ActorGuardRequirements<GUARDS>,
-    AUTOMATIONS,
     GUARDS
   >
 > {
@@ -253,7 +233,6 @@ export function makeAggregateActorVersion<
     CONTRACTS,
     AUTHORIZE_REQUIREMENTS,
     ActorGuardRequirements<GUARDS>,
-    AUTOMATIONS,
     GUARDS
   >(actorDefinition, props);
 }
@@ -268,14 +247,11 @@ export function constructAggregateActorVersion<
   const CONTRACTS extends IAnyContracts,
   AUTHORIZE_REQUIREMENTS = never,
   GUARD_REQUIREMENTS = never,
-  const AUTOMATIONS extends Readonly<Record<string, IAnyAutomation>> = {},
   const GUARDS extends Readonly<Record<string, IAnyOwnerGuard | undefined>> =
-    IActorCommandGuards<
+    IOwnerGuards<
       CONTRACTS,
-      AUTOMATIONS,
       DB['models'],
       IDENTITY['claimsSchema']['Type'],
-      IDENTITY['identitySchema']['Type'],
       'actor',
       GUARD_REQUIREMENTS
     >,
@@ -296,7 +272,6 @@ export function constructAggregateActorVersion<
     >;
     queries: QUERIES;
     contracts: CONTRACTS;
-    automations?: AUTOMATIONS;
     guards?: GUARDS;
     authorize?: AUTHORIZE;
   },
@@ -309,7 +284,6 @@ export function constructAggregateActorVersion<
   CONTRACTS,
   AUTHORIZE_REQUIREMENTS,
   GUARD_REQUIREMENTS,
-  AUTOMATIONS,
   GUARDS,
   AUTHORIZE
 > {
@@ -323,38 +297,8 @@ export function constructAggregateActorVersion<
   const decoded = Schema.decodeUnknownSync(DeclarationSchema, {
     onExcessProperty: 'error',
   })(props);
-  for (const [key, automation] of Object.entries(decoded.automations ?? {})) {
-    if (key !== automation.name) {
-      throw new Error(`Automation key ${key} must match ${automation.name}`);
-    }
-    for (const contract of [
-      automation.on,
-      ...Object.values(automation.contracts),
-    ]) {
-      for (const model of Object.values(contract.models)) {
-        if (!Object.values(decoded.db.models).includes(model)) {
-          throw new Error(
-            `Automation ${key} model ${model.modelName} must belong to its actor database`,
-          );
-        }
-      }
-    }
-    for (const contract of Object.values(automation.contracts)) {
-      if (contract.claims !== undefined) {
-        assertClaimsRequirements(
-          decoded.identity.identitySchema,
-          contract.claims,
-        );
-      }
-    }
-  }
   for (const key of Object.keys(decoded.guards ?? {})) {
-    if (
-      !(key in decoded.contracts) &&
-      !Object.values(decoded.automations ?? {}).some(
-        automation => key in automation.contracts,
-      )
-    ) {
+    if (!(key in decoded.contracts)) {
       throw new Error(`Unknown actor guard command ${key}`);
     }
   }
@@ -405,7 +349,6 @@ export function constructAggregateActorVersion<
       ),
     ),
     contracts: Object.freeze({ ...props.contracts }),
-    automations: Object.freeze(Object.assign({}, props.automations)),
     guards: Object.freeze(Object.assign({}, props.guards)),
     ...(props.authorize === undefined ? {} : { authorize: props.authorize }),
   });

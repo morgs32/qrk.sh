@@ -33,7 +33,6 @@ export const fulfillmentService = makeService({
     '1.0.0': {
       models: manual.models,
       contracts: manual.contracts,
-      automations: {},
     },
     '1.0.1': makeFulfillmentServiceModuleV1({
       models: {

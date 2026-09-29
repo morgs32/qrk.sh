@@ -35,6 +35,6 @@ const row = Effect.runSync(program(db));
 
 `useLiveQuery({ session, query })` subscribes to this `db` and its `$client`.
 Its callback type exposes model-only relational queries, without internal tables
-or mutation methods. Guard parameters named `queryDb` likewise receive the
-invocation database or transaction as a restricted query capability. Backups,
+or mutation methods. Guard and contract program parameters named `db` likewise receive the
+invocation database or transaction as a restricted query capability. Programs return mutations for the execution path to apply; constructing a mutation does not change subsequent query results. Backups,
 selection exports, and transport envelopes retain their encoded formats.

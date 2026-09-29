@@ -48,7 +48,6 @@ export const system = makeSystem({
         version: '2.0.0',
         models: {},
         contracts: { createUser },
-        automations: {},
 
         actors: {
           default: makeAggregateActorVersion(
@@ -89,7 +88,6 @@ export const system = makeSystem({
         '2.0.0': {
           models: {},
           contracts: { createProduct },
-          automations: {},
         },
       },
     }),

@@ -202,9 +202,9 @@ export interface IContract<
   readonly claims?: CLAIMS;
   readonly guard?: {
     bivarianceHack(
-      props: Parameters<InferContractProgram<PAYLOAD>>[0] & {
+      props: Omit<Parameters<InferContractProgram<PAYLOAD>>[0], 'db'> & {
         failures: FAILURE;
-        queryDb: string extends keyof MODELS
+        db: string extends keyof MODELS
           ? Readonly<Pick<IDb, 'query'>>
           : Readonly<
               Pick<
@@ -250,7 +250,8 @@ export interface IContract<
     PAYLOAD,
     MUTATIONS,
     PROGRAM_REQUIREMENTS,
-    PROGRAM_ERROR
+    PROGRAM_ERROR,
+    MODELS
   >;
   readonly spec: IContractSpec;
   readonly __mutations?: MUTATIONS;
@@ -297,7 +298,6 @@ export type IAggregateCommand<
   SYSTEM_NAME extends string = string,
 > = COMMAND &
   Readonly<{
-    automationName?: string | null;
     aggregateId: string;
     aggregateName: AGGREGATE_NAME;
     systemName: SYSTEM_NAME;

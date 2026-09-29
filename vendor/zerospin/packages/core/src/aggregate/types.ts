@@ -1,11 +1,44 @@
+import type { IFrameworkError } from '@zerospin/error';
+import type { Effect } from 'effect';
+
 import type { IAnyAggregateActorVersion } from '../aggregateActor/types.ts';
+import type { IAnyOwnerGuard, IOwnerGuards } from '../contracts/ownerGuards.ts';
 import type {
-  IActorCommandGuards,
-  IAnyAutomation,
-} from '../automation/types.ts';
-import type { IAnyOwnerGuard } from '../contracts/ownerGuards.ts';
-import type { IAnyContracts } from '../contracts/types.ts';
-import type { IAnyModels } from '../models/types.ts';
+  IAnyContracts,
+  IAnyMutation,
+  IModelMutations,
+  InferFailure,
+} from '../contracts/types.ts';
+import type { IDb, IResourceDbConfig } from '../drizzle/types.ts';
+import type { IAnyModels, InferCommandPayload } from '../models/types.ts';
+
+export type IAggregateExtensions<
+  CONTRACTS extends IAnyContracts,
+  MODELS extends IAnyModels,
+> = {
+  readonly [K in keyof CONTRACTS]?: (props: {
+    db: string extends keyof MODELS
+      ? Readonly<Pick<IDb, 'query'>>
+      : Readonly<
+          Pick<IDb<IResourceDbConfig<MODELS, Record<never, never>>>, 'query'>
+        >;
+    models: { readonly [M in keyof MODELS]: IModelMutations<MODELS[M]> };
+    payload: InferCommandPayload<CONTRACTS[K]['payload']>;
+    failures: CONTRACTS[K]['failures'];
+  }) => Effect.Effect<
+    readonly IAnyMutation[],
+    | IFrameworkError
+    | Extract<InferFailure<CONTRACTS[K]>, { readonly scope: 'aggregate' }>,
+    unknown
+  >;
+};
+
+export type IAnyAggregateExtension = {
+  bivarianceHack(
+    // oxlint-disable-next-line typescript/no-explicit-any -- authored callbacks are checked before registry erasure
+    props: any,
+  ): Effect.Effect<readonly IAnyMutation[], unknown, unknown>;
+}['bivarianceHack'];
 
 export type IAuthoredAggregate<
   NAME extends string = string,
@@ -17,9 +50,6 @@ export type IAuthoredAggregate<
   VERSION extends string = string,
   GUARD_REQUIREMENTS = never,
   CONTRACTS extends IAnyContracts = IAnyContracts,
-  AUTOMATIONS extends Readonly<Record<string, IAnyAutomation>> = Readonly<
-    Record<string, IAnyAutomation>
-  >,
 > = {
   readonly __guardRequirements?: GUARD_REQUIREMENTS;
   readonly name: NAME;
@@ -27,15 +57,13 @@ export type IAuthoredAggregate<
   readonly services: Readonly<Record<string, string>>;
   readonly models: Readonly<MODELS>;
   readonly contracts: Readonly<CONTRACTS>;
-  readonly automations: Readonly<AUTOMATIONS>;
+  readonly extensions: IAggregateExtensions<CONTRACTS, MODELS>;
   readonly actors: Readonly<ACTORS>;
   readonly guards: {
-    readonly [K in keyof ACTORS]?: IActorCommandGuards<
+    readonly [K in keyof ACTORS]?: IOwnerGuards<
       ACTORS[K]['contracts'],
-      ACTORS[K]['automations'],
       MODELS,
       ACTORS[K]['identity']['claimsSchema']['Type'],
-      ACTORS[K]['identity']['identitySchema']['Type'],
       'aggregate',
       GUARD_REQUIREMENTS
     >;
@@ -49,7 +77,9 @@ export type IAnyAuthoredAggregate = {
   readonly services: Readonly<Record<string, string>>;
   readonly models: IAnyModels;
   readonly contracts: IAnyContracts;
-  readonly automations: Readonly<Record<string, IAnyAutomation>>;
+  readonly extensions: Readonly<
+    Record<string, IAnyAggregateExtension | undefined>
+  >;
   readonly actors: Readonly<Record<string, IAnyAggregateActorVersion>>;
   readonly guards: Readonly<
     Record<

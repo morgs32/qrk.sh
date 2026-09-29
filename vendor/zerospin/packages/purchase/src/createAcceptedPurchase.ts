@@ -61,7 +61,7 @@ export const makeCreateAcceptedPurchase = <
       guard: Effect.fn('createAcceptedPurchase.guard')(function* ({
         payload,
         claims,
-        queryDb: db,
+        db,
         failures,
       }) {
         const checkout = Schema.decodeUnknownSync(
@@ -73,7 +73,7 @@ export const makeCreateAcceptedPurchase = <
         );
         if (
           checkout === undefined ||
-          checkout.userId !== resolveUserId({ queryDb: db, claims }) ||
+          checkout.userId !== resolveUserId({ db, claims }) ||
           checkout?.cartId !== payload.cartId ||
           checkout.purchaseId !== payload.id ||
           checkout.firstPaymentIntentId !== payload.paymentIntentId ||

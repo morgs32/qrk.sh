@@ -75,7 +75,6 @@ export const decodeRetainedAggregateCommand = Effect.fn(
     nodeId: row.nodeId,
     sessionName: row.sessionName,
     nodeIndex: row.nodeIndex,
-    automationName: row.automationName,
     ...(row.nodeId === null ? { aggregateVersion: row.aggregateVersion } : {}),
   }).pipe(
     mapParseError({
@@ -111,20 +110,12 @@ export const readPendingActorCommands = Effect.fn('readPendingActorCommands')(
             saved,
           );
         const command = yield* decodeRetainedAggregateCommand(retained);
-        const run = db
-          .select()
-          .from(tables.automationRuns)
-          .where(
-            eq(tables.automationRuns.outputCommandRowId, stage.commandRowId),
-          )
-          .get();
         return {
           ...stage,
           ...command,
           aggregateVersion,
           aggregateIndex: retained.aggregateIndex,
           admission: retained.admission,
-          automationExecutedIndex: run?.executedIndex ?? null,
         };
       }),
     ).pipe(
@@ -172,7 +163,6 @@ export const commandRowInput = (props: {
     nodeIndex: aggregate ? command.nodeIndex : null,
     serviceName: aggregate ? null : command.serviceName,
     serviceVersion: aggregate ? null : command.serviceVersion,
-    automationName: aggregate ? (command.automationName ?? null) : null,
     aggregateIndex: 'aggregateIndex' in command ? command.aggregateIndex : null,
     serviceIndex: 'serviceIndex' in command ? command.serviceIndex : null,
     admission: 'admission' in command ? command.admission : null,

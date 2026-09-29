@@ -12,7 +12,6 @@ export const fulfillmentService = sdk.makeService({
     '1.0.0': {
       models: fulfillment.models,
       contracts: fulfillment.contracts,
-      automations: {},
     },
   },
   queries: {

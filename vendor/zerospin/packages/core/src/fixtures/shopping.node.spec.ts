@@ -22,6 +22,7 @@ it.effect(
         cartItem.spec.propertiesShape,
       );
       const added = yield* makeMutations({
+        db: { query: {} },
         contract: addItem,
         models: cart.models,
         command: {
@@ -41,6 +42,7 @@ it.effect(
         },
       ]);
       const changed = yield* makeMutations({
+        db: { query: {} },
         contract: changeQuantity,
         models: cart.models,
         command: {
@@ -60,6 +62,7 @@ it.effect(
         },
       ]);
       const removed = yield* makeMutations({
+        db: { query: {} },
         contract: removeItem,
         models: cart.models,
         command: {
@@ -88,6 +91,7 @@ it.effect(
         for (const quantity of [0, -1, 1.5]) {
           const result = yield* Effect.exit(
             makeMutations({
+              db: { query: {} },
               contract,
               models: cart.models,
               command: {

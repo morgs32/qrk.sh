@@ -2,7 +2,7 @@ import type { Async } from '@zerospin/core/async/Async';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/make/makeDbConfig/makeDbConfig';
 import { makeZerospinError } from '@zerospin/error';
-import { game } from '@zerospin/fixtures/system-worker/workerd/automationFixture';
+import { game } from '@zerospin/fixtures/system-worker/workerd/machineFixture';
 import { Effect, type Scope } from 'effect';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -21,7 +21,7 @@ describe('outbox drainAfter', () => {
       Effect.gen(function* () {
         const { db } = yield* makeActorSnapshotDb(
           makeResourceDbConfig({
-            models: { automationGame: game },
+            models: { machineGame: game },
             otherTables: aggregateActorVersionRepoDbConfig.tables,
           }),
         );
@@ -78,7 +78,7 @@ describe('outbox drainAfter', () => {
       Effect.gen(function* () {
         const { db } = yield* makeActorSnapshotDb(
           makeResourceDbConfig({
-            models: { automationGame: game },
+            models: { machineGame: game },
             otherTables: aggregateActorVersionRepoDbConfig.tables,
           }),
         );
@@ -152,7 +152,7 @@ describe('outbox drainAfter', () => {
       Effect.gen(function* () {
         const { db } = yield* makeActorSnapshotDb(
           makeResourceDbConfig({
-            models: { automationGame: game },
+            models: { machineGame: game },
             otherTables: aggregateActorVersionRepoDbConfig.tables,
           }),
         );
@@ -269,7 +269,7 @@ describe('outbox drainAfter', () => {
       Effect.gen(function* () {
         const { db } = yield* makeActorSnapshotDb(
           makeResourceDbConfig({
-            models: { automationGame: game },
+            models: { machineGame: game },
             otherTables: aggregateActorVersionRepoDbConfig.tables,
           }),
         );

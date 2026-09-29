@@ -3,13 +3,8 @@ import '@zerospin/server-only';
 
 import { assertSameCoreInstance } from '../../assertSameCoreInstance.ts';
 import { AggregateActorVersionSchema } from '../../aggregateActor/make/makeAggregateActorVersion/makeAggregateActorVersion.ts';
-import { AutomationSchema } from '../../automation/makeAutomation.ts';
-import type {
-  IActorCommandGuards,
-  IAnyAutomation,
-} from '../../automation/types.ts';
 import { Contract } from '../../contracts/make/makeContractVersion.ts';
-import { OwnerGuardsSchema } from '../../contracts/ownerGuards.ts';
+import { OwnerGuardsSchema, type IOwnerGuards } from '../../contracts/ownerGuards.ts';
 import type { IAnyContracts, IContract } from '../../contracts/types.ts';
 import { assertValidModels } from '../../models/assertValidModels.ts';
 import { Model } from '../../models/defineModel.ts';
@@ -25,7 +20,11 @@ import type {
   IAssertDistinctDeclarations,
   IComposedDeclarations,
 } from '../../module/types.ts';
-import type { IAnyAuthoredAggregate, IAuthoredAggregate } from '../types.ts';
+import type {
+  IAggregateExtensions,
+  IAnyAuthoredAggregate,
+  IAuthoredAggregate,
+} from '../types.ts';
 
 const CanonicalModelSchema = Schema.declare(
   (input: unknown): input is IModel => input instanceof Model,
@@ -36,7 +35,6 @@ const CanonicalContractSchema = Schema.declare(
 const DeclarationModuleSchema = Schema.Struct({
   models: Schema.Record(Schema.String, CanonicalModelSchema),
   contracts: Schema.Record(Schema.String, CanonicalContractSchema),
-  automations: Schema.Record(Schema.String, AutomationSchema),
 });
 
 const AggregatePropsSchema = Schema.Struct({
@@ -68,7 +66,15 @@ const AggregatePropsSchema = Schema.Struct({
   ),
   models: Schema.optionalKey(DeclarationModuleSchema.fields.models),
   contracts: Schema.optionalKey(DeclarationModuleSchema.fields.contracts),
-  automations: Schema.optionalKey(DeclarationModuleSchema.fields.automations),
+  extensions: Schema.optionalKey(
+    Schema.Record(
+      Schema.String,
+      Schema.declare(
+        (value: unknown): value is (...args: never[]) => unknown =>
+          typeof value === 'function',
+      ),
+    ),
+  ),
   actors: Schema.Record(Schema.String, AggregateActorVersionSchema),
 });
 class Aggregate {}
@@ -82,7 +88,6 @@ export function makeAggregateVersion<
   const NAME extends string,
   const MODELS extends IAnyModels = {},
   const CONTRACTS extends IAnyContracts = {},
-  const AUTOMATIONS extends Readonly<Record<string, IAnyAutomation>> = {},
   const ACTORS extends IAnyAuthoredAggregate['actors'] = {},
   const VERSION extends string = string,
   GUARD_REQUIREMENTS = never,
@@ -97,7 +102,6 @@ export function makeAggregateVersion<
       IAssertDistinctDeclarations<
         NoInfer<MODELS>,
         NoInfer<CONTRACTS>,
-        NoInfer<AUTOMATIONS>,
         NoInfer<MODULES>
       > & {
         [K in keyof MODULES]: {
@@ -113,15 +117,16 @@ export function makeAggregateVersion<
         NoInfer<IComposedDeclarations<MODELS, MODULES, 'models'>>
       >;
     contracts?: CONTRACTS;
-    automations?: AUTOMATIONS;
+    extensions?: IAggregateExtensions<
+      NoInfer<IComposedDeclarations<CONTRACTS, MODULES, 'contracts'>>,
+      NoInfer<IComposedDeclarations<MODELS, MODULES, 'models'>>
+    >;
     // Guard callbacks consume the inferred models and actors; they do not define them.
     guards?: {
-      readonly [K in keyof NoInfer<ACTORS>]?: IActorCommandGuards<
+      readonly [K in keyof NoInfer<ACTORS>]?: IOwnerGuards<
         NoInfer<ACTORS[K]['contracts']>,
-        NoInfer<ACTORS[K]['automations']>,
         NoInfer<IComposedDeclarations<MODELS, MODULES, 'models'>>,
         NoInfer<ACTORS[K]['identity']['claimsSchema']['Type']>,
-        NoInfer<ACTORS[K]['identity']['identitySchema']['Type']>,
         'aggregate',
         GUARD_REQUIREMENTS
       >;
@@ -149,8 +154,7 @@ export function makeAggregateVersion<
   ACTORS,
   VERSION,
   GUARD_REQUIREMENTS,
-  IComposedDeclarations<CONTRACTS, MODULES, 'contracts'>,
-  IComposedDeclarations<AUTOMATIONS, MODULES, 'automations'>
+  IComposedDeclarations<CONTRACTS, MODULES, 'contracts'>
 >;
 
 export function makeAggregateVersion(
@@ -201,7 +205,7 @@ export function makeAggregateVersion(
     )(identity),
   };
   const { name, version, actors } = decoded;
-  const { models, contracts, automations } = composeDeclarations(decoded);
+  const { models, contracts } = composeDeclarations(decoded);
   const services: Record<string, string> = {};
   for (const [modelName, model] of Object.entries(models)) {
     if (!Model.isReplica(model)) continue;
@@ -230,23 +234,9 @@ export function makeAggregateVersion(
       }
     }
   }
-  for (const [automationName, automation] of Object.entries(automations)) {
-    if (automationName !== automation.name) {
-      throw new Error(
-        `Automation key ${automationName} must match ${automation.name}`,
-      );
-    }
-    if (contracts[automation.on.commandName] !== automation.on) {
-      throw new Error(
-        `Automation ${automationName} trigger must reference its final contract`,
-      );
-    }
-    for (const output of Object.values(automation.contracts)) {
-      if (contracts[output.commandName] !== output) {
-        throw new Error(
-          `Automation ${automationName} output must reference its final contract`,
-        );
-      }
+  for (const commandName of Object.keys(decoded.extensions ?? {})) {
+    if (!(commandName in contracts)) {
+      throw new Error(`Unknown aggregate extension command ${commandName}`);
     }
   }
 
@@ -278,15 +268,6 @@ export function makeAggregateVersion(
         );
       }
     }
-    for (const [automationName, automation] of Object.entries(
-      actor.automations,
-    )) {
-      if (automations[automationName] !== automation) {
-        throw new Error(
-          `Actor ${actorName} automation ${automationName} must reference the aggregate declarations`,
-        );
-      }
-    }
   }
 
   for (const [actorName, guards] of Object.entries(decoded.guards ?? {})) {
@@ -295,12 +276,7 @@ export function makeAggregateVersion(
       throw new Error(`Unknown guard actor ${actorName}`);
     }
     for (const command of Object.keys(guards)) {
-      if (
-        !(command in actor.contracts) &&
-        !Object.values(actor.automations).some(
-          automation => command in automation.contracts,
-        )
-      ) {
+      if (!(command in actor.contracts)) {
         throw new Error(
           `Unknown aggregate guard command ${actorName}.${command}`,
         );
@@ -313,7 +289,7 @@ export function makeAggregateVersion(
     version,
     models,
     contracts,
-    automations,
+    extensions: decoded.extensions ?? {},
     services,
     actors,
   };
@@ -329,7 +305,6 @@ export function upgradeAggregateVersion<
   const NAME extends string,
   const MODELS extends IAnyModels = {},
   const CONTRACTS extends IAnyContracts = {},
-  const AUTOMATIONS extends Readonly<Record<string, IAnyAutomation>> = {},
   const ACTORS extends IAnyAuthoredAggregate['actors'] = {},
   const VERSION extends string = string,
   GUARD_REQUIREMENTS = never,
@@ -341,7 +316,6 @@ export function upgradeAggregateVersion<
       NAME,
       MODELS,
       CONTRACTS,
-      AUTOMATIONS,
       ACTORS,
       VERSION,
       GUARD_REQUIREMENTS,
@@ -354,8 +328,7 @@ export function upgradeAggregateVersion<
   ACTORS,
   VERSION,
   GUARD_REQUIREMENTS,
-  IComposedDeclarations<CONTRACTS, MODULES, 'contracts'>,
-  IComposedDeclarations<AUTOMATIONS, MODULES, 'automations'>
+  IComposedDeclarations<CONTRACTS, MODULES, 'contracts'>
 >;
 
 export function upgradeAggregateVersion(

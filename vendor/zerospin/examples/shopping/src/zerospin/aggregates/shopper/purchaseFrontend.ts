@@ -14,8 +14,8 @@ export const purchaseFrontend = makePurchaseFrontendModule({
     product: productReplicaV1,
   },
   claimsSchema: shopperClaims,
-  resolveUserId: ({ queryDb, claims }) =>
-    queryDb.query.user
+  resolveUserId: ({ db, claims }) =>
+    db.query.user
       .findFirst({ where: { clerkUserId: { eq: claims.clerkUserId } } })
       .sync()?.id,
   readQuantity: item => item.amount,

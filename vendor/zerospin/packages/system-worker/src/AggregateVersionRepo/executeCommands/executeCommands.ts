@@ -1,5 +1,4 @@
 import { resolveAggregateActorVersion } from '@zerospin/core/aggregateActor/getAggregateActorVersion';
-import { getCommandContracts } from '@zerospin/core/automation/getCommandContracts';
 import {
   AggregateChainedCommandSchema,
   EncodedAggregateCommandSchema,
@@ -13,6 +12,7 @@ import type { IContract } from '@zerospin/core/contracts/types';
 import { validateAggregateCommand } from '@zerospin/core/contracts/validateAggregateCommand';
 import type { IDb } from '@zerospin/core/drizzle/types';
 import { EncodedResourceSchema } from '@zerospin/core/models/EncodedResourceSchema';
+import { MachineClaimsSchema } from '@zerospin/core/machine/MachineClaimsSchema';
 import { getByKeyOrThrow } from '@zerospin/core/utils/getByKeyOrThrow';
 import {
   encodeError,
@@ -126,28 +126,43 @@ export const executeCommands = Effect.fn(
                     mutations: [],
                     failure: null,
                     guard: () => Effect.void,
+                    contract: null,
+                    payload: null,
                   };
                 }
                 const infrastructure: { failure: IAnyError | null } = {
                   failure: null,
                 };
                 const prepared = yield* Effect.gen(function* () {
-                  const actor = yield* resolveAggregateActorVersion(
-                    latestAggregate,
-                    command,
-                  );
-                  const sourceContract = yield* getByKeyOrThrow({
-                    record: getCommandContracts(actor, command),
-                    key: command.commandName,
-                    recordKind: 'actor-contract',
-                  });
-                  const targetActor = aggregate.actors[actor.name];
-                  const contract =
-                    targetActor === undefined
+                  const machineClaims = command.actorName === '__machine'
+                    ? yield* Schema.decodeUnknownEffect(MachineClaimsSchema)(command.claims).pipe(
+                        mapParseError({
+                          code: 'command-claims-unsupported',
+                          prefix: 'Unsupported machine command claims',
+                        }),
+                      )
+                    : null;
+                  const actor = machineClaims === null
+                    ? yield* resolveAggregateActorVersion(latestAggregate, command)
+                    : null;
+                  const targetContract = aggregate.contracts[command.commandName];
+                  if (machineClaims !== null &&
+                    (targetContract === undefined || machineClaims.aggregateId !== key.aggregateId)) {
+                    return yield* makeZerospinError('machine-contract-forbidden');
+                  }
+                  const sourceContract = actor === null
+                    ? targetContract!
+                    : yield* getByKeyOrThrow({
+                        record: actor.contracts,
+                        key: command.commandName,
+                        recordKind: 'actor-contract',
+                      });
+                  const targetActor = actor === null ? null : aggregate.actors[actor.name];
+                  const contract = actor === null
+                    ? targetContract
+                    : targetActor === undefined || targetActor === null
                       ? undefined
-                      : getCommandContracts(targetActor, command)[
-                          command.commandName
-                        ];
+                      : targetActor.contracts[command.commandName];
                   if (contract === undefined) {
                     return yield* Effect.fail(
                       makeZerospinError('actor-contract-unsupported'),
@@ -172,21 +187,20 @@ export const executeCommands = Effect.fn(
                     );
                   }
                   const payload = yield* decodePayload(contract, { command });
-                  const claims = yield* Schema.decodeUnknownEffect(
-                    command.automationName == null
-                      ? actor.identity.claimsSchema
-                      : actor.identity.identitySchema,
-                  )(command.claims, {
-                    onExcessProperty: 'error',
-                  }).pipe(
-                    mapParseError({
-                      code: 'command-claims-unsupported',
-                      prefix:
-                        'Saved command identity is unsupported by this aggregate version',
-                    }),
-                  );
+                  const claims = actor === null
+                    ? machineClaims!
+                    : yield* Schema.decodeUnknownEffect(actor.identity.claimsSchema)(command.claims, {
+                        onExcessProperty: 'error',
+                      }).pipe(
+                        mapParseError({
+                          code: 'command-claims-unsupported',
+                          prefix:
+                            'Saved command identity is unsupported by this aggregate version',
+                        }),
+                      );
 
                   const made = yield* makeMutations({
+                    db,
                     claims,
                     contract,
                     models: aggregate.models,
@@ -298,13 +312,15 @@ export const executeCommands = Effect.fn(
 
                   return {
                     mutations: mutations.filter(mutation => mutation !== null),
-                    guard: (queryDb: Readonly<Pick<IDb, 'query'>>) =>
+                    contract,
+                    payload,
+                    guard: (db: Readonly<Pick<IDb, 'query'>>) =>
                       Effect.gen(function* () {
                         yield* validateAggregateCommand({
                           aggregate,
-                          actorName: actor.name,
+                          actorName: actor?.name ?? '__machine',
                           contract,
-                          queryDb,
+                          db,
                           payload,
                           claims,
                         });
@@ -358,6 +374,12 @@ export const executeCommands = Effect.fn(
                   guard: Result.isSuccess(prepared)
                     ? prepared.success.guard
                     : () => Effect.void,
+                  contract: Result.isSuccess(prepared)
+                    ? prepared.success.contract
+                    : null,
+                  payload: Result.isSuccess(prepared)
+                    ? prepared.success.payload
+                    : null,
                 };
               }),
             ).pipe(Effect.provideContext(context));

@@ -11,7 +11,7 @@ import {
 } from '@zerospin/error';
 import { makeRpcEnvelope, type IRpcEnvelope } from '@zerospin/logger';
 import type { CuidFactory } from '@zerospin/schema';
-import { RpcTarget } from 'capnweb';
+import { RpcTarget } from 'cloudflare:workers';
 import config from 'config';
 import { Effect } from 'effect';
 

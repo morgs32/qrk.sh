@@ -21,7 +21,7 @@ const terminalAdmissionCodes = new Set([
   'node-admission-index-mismatch',
 ]);
 
-/** Submit already staged commands without entering automation programs or preparation. */
+/** Submit already staged commands through authoritative admission. */
 export const makeAggregateCommandsOutbox = (props: {
   db: IDb;
   key: {
@@ -81,65 +81,13 @@ export const makeAggregateCommandsOutbox = (props: {
               ),
           );
           const startedAt = new Date();
-          const receipt = yield* Effect.gen(function* () {
-            return yield* command.automationName == null
-              ? makeAsync<Awaited<ReturnType<AggregateChain['admitCommands']>>>(
-                  () =>
-                    chain.admitCommands({
-                      aggregateVersion: key.aggregateVersion,
-                      commands: [command],
-                    }),
-                ).pipe(
-                  Effect.flatMap(readRpcEnvelope),
-                  Effect.flatMap(receipts =>
-                    receipts[0] === undefined
-                      ? Effect.fail(
-                          makeZerospinError(
-                            'aggregate-admission-receipt-missing',
-                          ),
-                        )
-                      : Effect.succeed(receipts[0]),
-                  ),
-                )
-              : Effect.gen(function* () {
-                  const automationName = command.automationName;
-                  const run = db
-                    .select()
-                    .from(
-                      aggregateActorVersionRepoDbConfig.schema.automationRuns,
-                    )
-                    .where(
-                      eq(
-                        aggregateActorVersionRepoDbConfig.schema.automationRuns
-                          .outputCommandRowId,
-                        stage.commandRowId,
-                      ),
-                    )
-                    .get();
-                  const executedIndex = run?.executedIndex;
-                  if (
-                    automationName == null ||
-                    executedIndex === undefined ||
-                    run?.automationName !== automationName ||
-                    run.programStatus !== 'succeeded'
-                  ) {
-                    return yield* makeZerospinError(
-                      'automation-output-reference-missing',
-                    );
-                  }
-                  return yield* makeAsync<
-                    Awaited<
-                      ReturnType<AggregateChain['executeAutomationCommand']>
-                    >
-                  >(() =>
-                    chain.executeAutomationCommand({
-                      ...key,
-                      automationName,
-                      executedIndex,
-                    }),
-                  ).pipe(Effect.flatMap(readRpcEnvelope));
-                });
-          }).pipe(
+          const receipt = yield* makeAsync<Awaited<ReturnType<AggregateChain['admitCommands']>>>(
+            () => chain.admitCommands({ aggregateVersion: key.aggregateVersion, commands: [command] }),
+          ).pipe(
+            Effect.flatMap(readRpcEnvelope),
+            Effect.flatMap(receipts => receipts[0] === undefined
+              ? Effect.fail(makeZerospinError('aggregate-admission-receipt-missing'))
+              : Effect.succeed(receipts[0])),
             Effect.catchIf(
               error =>
                 typeof error === 'object' &&

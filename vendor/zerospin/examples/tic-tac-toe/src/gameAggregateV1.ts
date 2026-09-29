@@ -3,7 +3,6 @@ import { makeAggregateVersion } from '@zerospin/core/aggregate/make/makeAggregat
 import { makeZerospinError } from '@zerospin/error';
 import { Effect } from 'effect';
 
-import { computerTurn } from './computerTurn';
 import { createGame } from './contracts/createGameV1';
 import { playO } from './contracts/playOV1';
 import { playX } from './contracts/playXV1';
@@ -17,33 +16,21 @@ export const aggregate = makeAggregateVersion(
     version: '1.0.0',
     models: { game },
     contracts: { createGame, playX, playO },
-    automations: { computerTurn },
     actors: { human },
     guards: {
       human: {
         playX: Effect.fn('game.authoritativePlayX')(function* ({
-          queryDb,
+          db,
           payload,
           claims,
         }) {
-          const current = queryDb.query.game
+          const current = db.query.game
             .findFirst({ where: { id: { eq: payload.id } } })
             .sync();
           if (
             claims.instanceId !== payload.id ||
             !isValidMove(current, payload, 'X')
           ) {
-            return yield* makeZerospinError('invalid-move');
-          }
-        }),
-        playO: Effect.fn('game.authoritativePlayO')(function* ({
-          queryDb,
-          payload,
-        }) {
-          const current = queryDb.query.game
-            .findFirst({ where: { id: { eq: payload.id } } })
-            .sync();
-          if (!isValidMove(current, payload, 'O')) {
             return yield* makeZerospinError('invalid-move');
           }
         }),

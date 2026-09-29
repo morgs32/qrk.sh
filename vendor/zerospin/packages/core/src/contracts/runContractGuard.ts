@@ -14,7 +14,7 @@ import { validatePayload } from './validatePayload.ts';
 
 export function runContractGuard<CONTRACT extends IContract>(props: {
   contract: CONTRACT;
-  queryDb: Readonly<Pick<IDb, 'query'>>;
+  db: Readonly<Pick<IDb, 'query'>>;
   payload: unknown;
   claims: Readonly<Record<string, unknown>> | null;
 }): Effect.Effect<
@@ -24,12 +24,12 @@ export function runContractGuard<CONTRACT extends IContract>(props: {
 >;
 export function runContractGuard(props: {
   contract: IContract;
-  queryDb: Readonly<Pick<IDb, 'query'>>;
+  db: Readonly<Pick<IDb, 'query'>>;
   payload: unknown;
   claims: Readonly<Record<string, unknown>> | null;
 }) {
   return Effect.gen(function* () {
-    const { contract, queryDb } = props;
+    const { contract, db } = props;
     const payload = yield* validatePayload(contract, {
       version: contract.version,
       payload: props.payload,
@@ -51,7 +51,7 @@ export function runContractGuard(props: {
       Effect.suspend(
         () =>
           contract.guard?.({
-            queryDb,
+            db,
             payload,
             claims,
             failures: contract.failures,

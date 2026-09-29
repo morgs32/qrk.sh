@@ -50,6 +50,8 @@ export const getRepoRegistrations = Effect.fn(
               'AggregateVersionRepo',
               'AggregateActorVersionRepo',
               'ServiceActorVersionRepo',
+              'AggregateMachineRepo',
+              'ServiceMachineRepo',
               'ServiceVersionRepo',
               'AggregateChain',
               'AggregateVersionChain',

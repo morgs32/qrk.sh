@@ -34,17 +34,18 @@ import {
   mapParseError,
   prettyUnknownFailure,
 } from '@zerospin/error';
-import { Carrier } from '@zerospin/fulfillment/server';
-import { PaymentProvider, PromotionProvider } from '@zerospin/purchase/server';
+import { Carrier, makeFulfillmentOperationMachine, makeFulfillmentShippingMachine, makePaidFulfillmentMachine } from '@zerospin/fulfillment/server';
+import { makeAcceptPurchaseMachine, makePurchasePaymentMachine, makePurchasePromotionMachine, PaymentProvider, PromotionProvider } from '@zerospin/purchase/server';
 import { primitives } from '@zerospin/schema';
 import { Effect, Layer, Schema } from 'effect';
 import invariant from 'tiny-invariant';
 
 import {
-  AutomationDecision,
-  automationGame,
-} from '../workerd/automationFixture.ts';
-import { serviceAutomation } from '../workerd/serviceAutomation.ts';
+  computerTurn,
+  MachineDecision,
+  machineGame,
+} from '../workerd/machineFixture.ts';
+import { finishStartedJob, serviceMachine } from '../workerd/serviceMachine.ts';
 
 import { admissionAggregate, admissionService } from './admission.ts';
 import { fulfillmentService } from './fulfillmentService.ts';
@@ -302,12 +303,12 @@ const createItem = makeContractVersion(defineContract('createItem'), {
 });
 
 export const updateList = makeContractVersion(defineContract('updateList'), {
-  guard: ({ payload, queryDb }) =>
+  guard: ({ payload, db }) =>
     Effect.gen(function* () {
       // 1 — query by payload.id and encode query failures as fixture-list-query-failed
       const list = yield* Effect.try({
         try: () =>
-          queryDb.query.list
+          db.query.list
             .findFirst({
               where: { id: { eq: payload.id } },
             })
@@ -479,10 +480,10 @@ const replicateProduct = makeContractVersion(
         code: 'replica-guard-rejected',
       }),
     },
-    guard: ({ failures, payload, queryDb }) =>
+    guard: ({ failures, payload, db }) =>
       Effect.gen(function* () {
         if (payload.product.name.startsWith('guard-')) {
-          const replica = queryDb.query.productReplica
+          const replica = db.query.productReplica
             .findFirst({ where: { id: payload.product.id } })
             .sync();
           if (
@@ -806,7 +807,6 @@ const app = makeService({
     '1.0.0': {
       models: { catalogSettings, product },
       contracts: { createProduct, deleteProduct, updateProduct },
-      automations: {},
     },
   },
   queries: {
@@ -882,7 +882,6 @@ const inventory = makeService({
     '1.0.0': {
       models: { stock },
       contracts: { createStock, updateStock },
-      automations: {},
     },
   },
 });
@@ -947,9 +946,31 @@ const actorIdentity6 = makeActorIdentity({
   }),
   actorPath: RoutePattern.parse('/:userId/:role'),
 });
+const acceptPurchase = makeAcceptPurchaseMachine({
+  source: purchaseAggregate,
+  claimsForUser: ({ userId }) => ({ userId }),
+});
+const processPayment = makePurchasePaymentMachine({
+  source: purchaseAggregate,
+  claimsForUser: ({ userId }) => ({ userId }),
+});
+const purchasePromotion = makePurchasePromotionMachine({
+  source: purchaseAggregate,
+  claimsForUser: ({ userId }) => ({ userId }),
+});
+const requestPaidFulfillment = makePaidFulfillmentMachine({
+  source: purchaseAggregate,
+  serviceVersion: '1.0.0',
+  claimsForUser: ({ userId }) => ({ userId }),
+});
+const operateFulfillment = makeFulfillmentOperationMachine({
+  source: purchaseAggregate,
+  serviceVersion: '1.0.0',
+  claimsForUser: ({ userId }) => ({ userId }),
+});
 export const system = makeSystem({
   layer: Layer.mergeAll(
-    Layer.succeed(AutomationDecision, value =>
+    Layer.succeed(MachineDecision, value =>
       Effect.succeed(value === 13 ? 99 : value),
     ),
     Layer.succeed(Carrier, fulfillment =>
@@ -962,20 +983,26 @@ export const system = makeSystem({
         providerReference: `fixture_${request.paymentIntentId}`,
       }),
     ),
-    Layer.succeed(PromotionProvider, () =>
-      Effect.die('Promotions are tested in the purchase package'),
-    ),
+    Layer.succeed(PromotionProvider, request => Effect.succeed({
+      kind: 'confirmed' as const,
+      receipt: {
+        status: request.action === 'reserve' ? 'reserved' as const
+          : request.action === 'commit' ? 'committed' as const
+            : request.action === 'redeem' ? 'redeemed' as const : 'released' as const,
+        expiresAt: request.action === 'reserve' ? Date.now() + 60_000 : null,
+        purchaseId: request.action === 'reserve' ? null : request.purchaseId,
+      },
+    })),
   ),
   aggregates: {
     purchaseUser: { '1.0.0': purchaseAggregate },
     admission: { '1.0.0': admissionAggregate },
-    automationGame: { '1.0.0': automationGame },
+    machineGame: { '1.0.0': machineGame },
     notes: {
       '0.8.0': makeAggregateVersion(defineAggregate({ name: 'notes' }), {
         version: '0.8.0',
         models: { user: userVersion, preference },
         contracts: { createUser },
-        automations: {},
         actors: {
           default: notesSelection,
         },
@@ -984,7 +1011,6 @@ export const system = makeSystem({
         version: '0.9.0',
         models: { user: userVersion, preference },
         contracts: { createUser },
-        automations: {},
         actors: {
           default: notesSelection,
         },
@@ -993,7 +1019,6 @@ export const system = makeSystem({
         version: '1.0.0',
         models: { user: userVersion, preference },
         contracts: { createUser },
-        automations: {},
         actors: {
           default: notesSelection,
         },
@@ -1033,7 +1058,6 @@ export const system = makeSystem({
           renameList,
           updateList,
         },
-        automations: {},
 
         actors: {
           role: makeAggregateActorVersion(
@@ -1255,15 +1279,24 @@ export const system = makeSystem({
               },
             ),
           },
-          automations: {},
         },
       },
     }),
     admission: admissionService,
     app,
     inventory,
-    serviceAutomation,
+    serviceMachine,
     fulfillment: fulfillmentService,
+  },
+  machines: {
+    acceptPurchase,
+    processPayment,
+    purchasePromotion,
+    requestPaidFulfillment,
+    operateFulfillment,
+    finishStartedJob,
+    computerTurn,
+    shipping: makeFulfillmentShippingMachine(fulfillmentService.versions['1.0.1']),
   },
   name: 'system-worker',
 });

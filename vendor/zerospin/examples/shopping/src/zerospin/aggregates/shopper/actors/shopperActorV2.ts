@@ -38,7 +38,6 @@ const db = sdk.makeActorDbVersion({
 export const shopperActorV2 = sdk.updateAggregateActorVersion(shopperActorV1, {
   db,
   version: '2.0.0',
-  automations: { ...purchase.automations, ...fulfillment.automations },
   contracts: {
     requestPacking: fulfillment.contracts.requestPacking,
     requestShipping: fulfillment.contracts.requestShipping,

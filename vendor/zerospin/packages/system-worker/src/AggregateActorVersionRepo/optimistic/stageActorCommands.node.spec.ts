@@ -1,6 +1,9 @@
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/make/makeDbConfig/makeDbConfig';
-import { game } from '@zerospin/fixtures/system-worker/workerd/automationFixture';
+import {
+  game,
+  playX,
+} from '@zerospin/fixtures/system-worker/workerd/machineFixture';
 import { Effect } from 'effect';
 import { expect, it, vi } from 'vitest';
 
@@ -15,25 +18,25 @@ vi.mock('config', async () => {
     await import('@zerospin/core/system/make/makeSystem/makeSystem');
   const { makeSystemConfig } =
     await import('@zerospin/core/system/make/makeSystemConfig');
-  const { automationGame, AutomationDecision } =
-    await import('@zerospin/fixtures/system-worker/workerd/automationFixture');
+  const { machineGame, MachineDecision } =
+    await import('@zerospin/fixtures/system-worker/workerd/machineFixture');
   const { Effect, Layer } = await import('effect');
   return {
     default: makeSystemConfig(
       makeSystem({
-        name: 'automations',
-        aggregates: { automationGame: { '1.0.0': automationGame } },
-        layer: Layer.succeed(AutomationDecision, () => Effect.succeed(null)),
+        name: 'machines',
+        aggregates: { machineGame: { '1.0.0': machineGame } },
+        layer: Layer.succeed(MachineDecision, () => Effect.succeed(null)),
       }),
-      { systemId: 'sys_automations' },
+      { systemId: 'sys_machines' },
     ),
   };
 });
 
 const key = {
-  systemId: 'sys_automations',
+  systemId: 'sys_machines',
   aggregateId: 'acct_game',
-  aggregateName: 'automationGame',
+  aggregateName: 'machineGame',
   aggregateVersion: '1.0.0',
   actorName: 'human',
   actorVersion: '1.0.0',
@@ -46,19 +49,19 @@ it('durably stages prepared mutations while leaving resource rows authoritative'
       Effect.gen(function* () {
         const db = yield* makeActorSnapshotDb(
           makeResourceDbConfig({
-            models: { automationGame: game },
+            models: { machineGame: game },
             otherTables: aggregateActorVersionRepoDbConfig.tables,
           }),
         );
         const command = {
           id: 'cmd_staged' as const,
-          commandName: 'automationCreate',
+          commandName: 'machineCreate',
           contractVersion: '1.0.0',
           payload: JSON.stringify({ id: 'gam_selected', value: 3 }),
           aggregateId: key.aggregateId,
           aggregateName: key.aggregateName,
           aggregateVersion: key.aggregateVersion,
-          systemName: 'automations',
+          systemName: 'machines',
           actorName: key.actorName,
           actorVersion: key.actorVersion,
           claims: {
@@ -77,7 +80,7 @@ it('durably stages prepared mutations while leaving resource rows authoritative'
         expect(result).toEqual([
           { commandId: command.id, stagingFailure: null },
         ]);
-        expect(db.db.query.automationGame?.findFirst().sync()).toBeUndefined();
+        expect(db.db.query.machineGame?.findFirst().sync()).toBeUndefined();
         const pending =
           yield* aggregateActorVersionRepoDbConfig.tables.pendingCommands.decodeRow(
             db.db
@@ -86,9 +89,58 @@ it('durably stages prepared mutations while leaving resource rows authoritative'
               .get(),
           );
         expect(pending.mutations).toHaveLength(1);
+        const originalProgram = playX.program;
+        const program = vi.spyOn(playX, 'program').mockImplementation(props => {
+          const before = props.db.query.machineGame.findFirst().sync();
+          if (!before) throw new Error('Missing optimistic game');
+          return originalProgram({
+            ...props,
+            payload: {
+              ...props.payload,
+              value: before.value + props.payload.value,
+            },
+          });
+        });
+        try {
+          const second = yield* stageActorCommands({
+            db: db.db,
+            key,
+            commands: [
+              {
+                ...command,
+                id: 'cmd_increment',
+                commandName: 'machinePlayX',
+                payload: JSON.stringify({ id: 'gam_selected', value: 4 }),
+              },
+            ],
+          });
+          expect(second).toEqual([
+            { commandId: 'cmd_increment', stagingFailure: null },
+          ]);
+          expect(program).toHaveBeenCalledOnce();
+          const rows = db.db
+            .select()
+            .from(aggregateActorVersionRepoDbConfig.schema.pendingCommands)
+            .all();
+          const secondRow = rows
+            .toSorted((a, b) => a.stageIndex - b.stageIndex)
+            .at(-1);
+          const decoded =
+            yield* aggregateActorVersionRepoDbConfig.tables.pendingCommands.decodeRow(
+              secondRow,
+            );
+          expect(
+            decoded.mutations.map(mutation => JSON.parse(mutation.operation)),
+          ).toMatchObject([{ encodedAttributes: { value: 7 } }]);
+          expect(
+            db.db.query.machineGame?.findFirst().sync(),
+          ).toBeUndefined();
+        } finally {
+          program.mockRestore();
+        }
         const optimistic = yield* makeOptimisticActorDb({
           authoritativeDb: db.db,
-          models: { automationGame: game },
+          models: { machineGame: game },
           pending: [
             {
               commandId: command.id,
@@ -98,7 +150,7 @@ it('durably stages prepared mutations while leaving resource rows authoritative'
           ],
         });
         expect(
-          optimistic.db.query.automationGame?.findFirst().sync(),
+          optimistic.db.query.machineGame?.findFirst().sync(),
         ).toMatchObject({
           id: 'gam_selected',
           value: 3,

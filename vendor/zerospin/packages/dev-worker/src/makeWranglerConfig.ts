@@ -30,6 +30,8 @@ export function makeWranglerConfig(props: {
       class_name: 'AggregateVersionChain',
     },
     { name: 'SERVICE_VERSION_CHAIN', class_name: 'ServiceVersionChain' },
+    { name: 'AGGREGATE_MACHINE_REPO', class_name: 'AggregateMachineRepo' },
+    { name: 'SERVICE_MACHINE_REPO', class_name: 'ServiceMachineRepo' },
     {
       name: 'AGGREGATE_ACTOR_VERSION_REPO',
       class_name: 'AggregateActorVersionRepo',

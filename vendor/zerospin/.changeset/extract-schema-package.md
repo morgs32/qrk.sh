@@ -6,8 +6,6 @@
 '@zerospin/production-worker': patch
 '@zerospin/react': patch
 '@zerospin/sdk': patch
-'@zerospin/shared-worker': patch
-'system': patch
 'system-worker': patch
 ---
 

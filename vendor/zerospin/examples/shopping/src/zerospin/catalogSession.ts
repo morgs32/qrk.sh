@@ -20,7 +20,6 @@ export const catalogSession = makeSession({
   sessionName: 'appSession',
   models: { product: productV1 },
   contracts: {},
-  automations: {},
   layer: applicationLayer,
   systemName: 'shopping',
 });

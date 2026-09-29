@@ -1,11 +1,7 @@
 # Aggregate actor version repository
 
-This Durable Object projects confirmed aggregate occurrences into one actor's selected graph, stages caller and automation commands optimistically, and publishes confirmed actor output. It owns actor contract and actor guard checks at staging. Aggregate guards run later in the authoritative aggregate version repository transaction.
+This Durable Object projects terminal aggregate occurrences into one browser actor's selected graph, stages caller commands optimistically, and publishes confirmed actor output. It checks actor contracts and actor guards when staging; the aggregate version repository applies authoritative contract and aggregate guards before execution.
 
-`commands` retains the full source-scoped encoded command and lifecycle results. Saved automation outputs occupy rows before confirmation; confirmation fills the same row. `pendingCommands` stores an internal command-row reference plus prepared replay operations. Open automation groups wait for sibling results and output staging before the next confirmed occurrence is projected. Siblings use isolated snapshots of the same selected state. Recovery interrupts started runs without a saved result and stages saved outputs without invoking their programs again.
+`commands` retains complete source-scoped command rows and lifecycle results. `pendingCommands` stores references to retained rows and prepared replay operations. Unresolved rows reconstruct disposable optimistic state for caller staging. The aggregate command outbox submits retained staged rows to AggregateChain; the actor command outbox publishes confirmed selected deltas. Browser snapshots read confirmed resources and their cursor.
 
-The aggregate command outbox submits retained staged rows to the aggregate chain. The actor command outbox publishes confirmed selected deltas. It retains acknowledged command rows, and browser snapshots read confirmed resources and their cursor.
-
-Actor scratch snapshots instantiate the bundled sql.js WASM module with its browser loader, which supports workerd's missing `self.location`. They do not fetch WASM from a URL.
-
-See [AggregateActorVersionRepo.ts](AggregateActorVersionRepo.ts), [retainedCommands.ts](retainedCommands.ts), and [automation lifecycle](automations/README.md). Fixed-schema changes require empty storage.
+Machine actors have separate system-level owners and source fanout subscribers. Their private State and frozen commands are stored in the machine repository, outside this browser actor projection. See [machine repository](../makeMachineRepo/README.md) and [retainedCommands.ts](retainedCommands.ts). Changed fixed schemas require empty storage.

@@ -1,5 +1,4 @@
 import { resolveAggregateActorVersion } from '@zerospin/core/aggregateActor/getAggregateActorVersion';
-import { getCommandContracts } from '@zerospin/core/automation/getCommandContracts';
 import { applyAggregateMutationTx } from '@zerospin/core/contracts/applyAggregateMutationTx';
 import { decodePayload } from '@zerospin/core/contracts/decodePayload/decodePayload';
 import { encodeMutation } from '@zerospin/core/contracts/encodeAppliedMutation';
@@ -53,7 +52,6 @@ export const stageActorCommands = Effect.fn(
     actorPath: string;
   };
   commands: readonly IEncodedCommand<IAggregateCommand>[];
-  automationExecutedIndex?: number;
   actorWrites?: Effect.Success<ReturnType<typeof Semaphore.make>>;
 }) {
   const { db, key, commands } = props;
@@ -105,14 +103,6 @@ export const stageActorCommands = Effect.fn(
     ) {
       return yield* makeZerospinError('staging-actor-mismatch');
     }
-    if (
-      (props.automationExecutedIndex === undefined &&
-        command.automationName != null) ||
-      (props.automationExecutedIndex !== undefined &&
-        command.automationName == null)
-    ) {
-      return yield* makeZerospinError('automation-authority-required');
-    }
     const duplicate = existing.find(row => row.id === command.id);
     if (duplicate !== undefined) {
       if (
@@ -131,7 +121,6 @@ export const stageActorCommands = Effect.fn(
             nodeId: duplicate.nodeId,
             sessionName: duplicate.sessionName,
             nodeIndex: duplicate.nodeIndex,
-            automationName: duplicate.automationName,
           },
           {
             commandName: command.commandName,
@@ -150,7 +139,6 @@ export const stageActorCommands = Effect.fn(
             nodeId: command.nodeId,
             sessionName: command.sessionName,
             nodeIndex: command.nodeIndex,
-            automationName: command.automationName ?? null,
           },
         )
       ) {
@@ -168,20 +156,16 @@ export const stageActorCommands = Effect.fn(
       continue;
     }
     const contract = yield* getByKeyOrThrow({
-      record: getCommandContracts(actor, command),
+      record: actor.contracts,
       key: command.commandName,
       recordKind: 'actor contracts',
     });
-    const claims = yield* Schema.decodeUnknownEffect(
-      command.automationName == null
-        ? actor.identity.claimsSchema
-        : actor.identity.identitySchema,
-    )(command.claims);
+    const claims = yield* Schema.decodeUnknownEffect(actor.identity.claimsSchema)(command.claims);
     const payload = yield* decodePayload(contract, { command });
     const attempted = yield* Effect.gen(function* () {
       yield* runContractGuard({
         contract,
-        queryDb: scratch.db,
+        db: scratch.db,
         payload,
         claims,
       });
@@ -189,7 +173,7 @@ export const stageActorCommands = Effect.fn(
         Effect.suspend(
           () =>
             actor.guards[command.commandName]?.({
-              queryDb: scratch.db,
+              db: scratch.db,
               payload,
               claims,
               failures: contract.failures,
@@ -205,6 +189,7 @@ export const stageActorCommands = Effect.fn(
         ),
       );
       const made = yield* makeMutations({
+        db: scratch.db,
         contract,
         models: aggregate.models,
         command: { ...command, payload },

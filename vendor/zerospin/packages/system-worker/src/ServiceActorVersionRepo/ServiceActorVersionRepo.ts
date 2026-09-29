@@ -1,16 +1,11 @@
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { makeAsync } from '@zerospin/core/async/make/makeAsync';
-import { EncodedServiceCommandSchema } from '@zerospin/core/contracts/CommandSchema';
-import type {
-  IEncodedCommand,
-  IServiceCommand,
-} from '@zerospin/core/contracts/types';
 import { readRpcEnvelope } from '@zerospin/core/utils/readRpcEnvelope';
-import { makeZerospinError, type IZerospinErrorJson } from '@zerospin/error';
-import { makeRpcEnvelope, type IRpcEnvelope } from '@zerospin/logger';
+import { makeZerospinError } from '@zerospin/error';
+import { makeRpcEnvelope } from '@zerospin/logger';
 import config from 'config';
 import { eq, isNotNull } from 'drizzle-orm';
-import { Effect, Schema, Semaphore } from 'effect';
+import { Effect } from 'effect';
 
 import type { IFanoutDelivery } from '../makeFanoutQueue/makeFanoutQueue.js';
 import { makeFanoutSubscriber } from '../makeFanoutSubscriber/makeFanoutSubscriber.js';
@@ -18,10 +13,8 @@ import { makeFixedDORepo } from '../makeFixedDORepo/makeFixedDORepo.js';
 import { makeOutboxQueue } from '../makeOutboxQueue/makeOutboxQueue.js';
 import { ServiceActorVersionChain } from '../ServiceActorVersionChain/ServiceActorVersionChain.js';
 import { serviceActorVersionChainDbConfig } from '../ServiceActorVersionChain/serviceActorVersionChainDbConfig.js';
-import { ServiceChain } from '../ServiceChain/ServiceChain.js';
 import { ServiceVersionChain } from '../ServiceVersionChain/ServiceVersionChain.js';
 
-import { makeServiceAutomations } from './automations/makeServiceAutomations.js';
 import { catchup } from './catchup/catchup.js';
 import { execute } from './execute/execute.js';
 import { getProjectionReadiness } from './getProjectionReadiness/getProjectionReadiness.js';
@@ -35,180 +28,8 @@ export class ServiceActorVersionRepo extends makeFixedDORepo({
 }) {
   static override readonly fixedDORepoConfig =
     serviceActorVersionRepoFixedDORepoConfig;
-  // Serialize confirmed groups and recovery; programs hold no SQL transaction.
-  readonly #automationGate = Semaphore.makeUnsafe(1);
-  readonly #serviceAutomationCatchup = this.alarmRegistry.register(
-    'serviceAutomationCatchup',
-    Effect.gen({ self: this }, function* () {
-      yield* this.#automations
-        .resume()
-        .pipe(this.#automationGate.withPermits(1));
-      yield* onDOActivation({ repo: this });
-      yield* this.alarmRegistry.release('serviceAutomationCatchup');
-    }).pipe(
-      Effect.mapError(error =>
-        makeZerospinError({
-          code: 'service-automation-catchup-failed',
-          cause: String(error),
-        }),
-      ),
-    ),
-  );
   override onDOActivation() {
-    void this.#serviceAutomationCatchup;
-    // Construction validated the private tuple; registration owns its recovery alarm.
-    if (this.key.actorName === '__service') return Effect.void;
     return onDOActivation({ repo: this });
-  }
-
-  readonly #automations = makeServiceAutomations({
-    db: this.db,
-    key: this.key,
-    stageOutputs: serviceIndex =>
-      this.#pendingCommandsOutbox
-        .drainAfter(() =>
-          this.#automations.stage(serviceIndex).pipe(Effect.scoped),
-        )
-        .pipe(
-          Effect.mapError(error =>
-            makeZerospinError({
-              code: 'service-automation-staging-failed',
-              cause: String(error),
-            }),
-          ),
-        ),
-  });
-
-  readonly #pendingCommandsOutbox = makeOutboxQueue({
-    indexColumnName: 'stageIndex',
-    name: 'servicePendingCommandsOutbox',
-    db: this.db,
-    outboxTable: serviceActorVersionRepoDbConfig.schema.pendingCommands,
-    alarmRegistry: this.alarmRegistry,
-    retention: 'retain',
-    deliver: rows =>
-      Effect.gen({ self: this }, function* () {
-        const chain = yield* ServiceChain.getRepo({
-          key: {
-            systemId: this.key.systemId,
-            serviceName: this.key.serviceName,
-          },
-        });
-        for (const pending of rows) {
-          const commandRowId = yield* Schema.decodeUnknownEffect(
-            Schema.TemplateLiteral(['row_', Schema.String]),
-          )(pending.commandRowId);
-          const runs = serviceActorVersionRepoDbConfig.schema.automationRuns;
-          const invocation = this.db
-            .select()
-            .from(runs)
-            .where(eq(runs.outputCommandRowId, commandRowId))
-            .get();
-          if (invocation === undefined) {
-            return yield* makeZerospinError('service-pending-command-missing');
-          }
-          yield* makeAsync(() =>
-            chain.executeAutomationCommand({
-              serviceVersion: this.key.serviceVersion,
-              serviceIndex: invocation.serviceIndex,
-              automationName: invocation.automationName,
-            }),
-          ).pipe(Effect.flatMap(readRpcEnvelope));
-        }
-      }).pipe(
-        Effect.mapError(error =>
-          makeZerospinError({
-            code: 'service-command-delivery-failed',
-            cause: String(error),
-          }),
-        ),
-      ),
-  });
-
-  async registerAutomations(props: { startIndex: number }) {
-    return config.system.runtime.runPromise(
-      Effect.gen({ self: this }, function* () {
-        if (
-          this.key.actorName !== '__service' ||
-          this.key.actorVersion !== this.key.serviceVersion ||
-          this.key.actorPath !== '/'
-        ) {
-          return yield* makeZerospinError('service-automation-actor-required');
-        }
-        const table = serviceActorVersionRepoDbConfig.schema.automationState;
-        this.db
-          .insert(table)
-          .values({ id: 1, startIndex: props.startIndex })
-          .onConflictDoNothing()
-          .run();
-        yield* this.alarmRegistry.hold('serviceAutomationCatchup');
-      }).pipe(makeRpcEnvelope),
-    );
-  }
-
-  async getAutomationOutput(props: {
-    serviceIndex: number;
-    automationName: string;
-  }): Promise<
-    IRpcEnvelope<IEncodedCommand<IServiceCommand>, IZerospinErrorJson>
-  > {
-    return config.system.runtime.runPromise(
-      Effect.gen({ self: this }, function* () {
-        if (this.key.actorName !== '__service') {
-          return yield* makeZerospinError('service-automation-actor-required');
-        }
-        const runs = serviceActorVersionRepoDbConfig.schema.automationRuns;
-        const run = this.db
-          .select()
-          .from(runs)
-          .where(eq(runs.serviceIndex, props.serviceIndex))
-          .all()
-          .find(row => row.automationName === props.automationName);
-        if (
-          run?.programStatus !== 'succeeded' ||
-          run.outputCommandRowId === null
-        ) {
-          return yield* makeZerospinError('automation-output-not-found');
-        }
-        const commandRowId = yield* Schema.decodeUnknownEffect(
-          Schema.TemplateLiteral(['row_', Schema.String]),
-        )(run.outputCommandRowId);
-        const row = this.db
-          .select()
-          .from(serviceActorVersionRepoDbConfig.schema.commands)
-          .where(
-            eq(
-              serviceActorVersionRepoDbConfig.schema.commands.rowId,
-              commandRowId,
-            ),
-          )
-          .get();
-        if (row === undefined || row.automationName !== props.automationName) {
-          return yield* makeZerospinError('automation-output-not-found');
-        }
-        return yield* Schema.decodeUnknownEffect(EncodedServiceCommandSchema)({
-          id: row.id,
-          commandName: row.commandName,
-          contractVersion: row.contractVersion,
-          payload: row.payload,
-          serviceName: row.serviceName,
-          serviceVersion: row.serviceVersion,
-        });
-      }).pipe(makeRpcEnvelope),
-    );
-  }
-
-  async flushAutomationOutputs(props: {
-    throughStageIndex: number;
-  }): Promise<IRpcEnvelope<void, IZerospinErrorJson>> {
-    return config.system.runtime.runPromise(
-      Effect.gen({ self: this }, function* () {
-        if (this.key.actorName !== '__service') {
-          return yield* makeZerospinError('service-automation-actor-required');
-        }
-        yield* this.#pendingCommandsOutbox.drain(props.throughStageIndex);
-      }).pipe(Effect.provide(AsyncLive), makeRpcEnvelope),
-    );
   }
 
   readonly #actorCommandsOutbox = makeOutboxQueue({
@@ -312,31 +133,8 @@ export class ServiceActorVersionRepo extends makeFixedDORepo({
           Parameters<typeof execute>[0]['rows'][number]
         >,
       ) =>
-        Effect.gen({ self: this }, function* () {
-          yield* this.#automations.resume();
-          for (const row of delivery.rows) {
-            const cursor =
-              this.db
-                .select()
-                .from(serviceActorVersionRepoDbConfig.schema.actorState)
-                .where(
-                  eq(serviceActorVersionRepoDbConfig.schema.actorState.id, 1),
-                )
-                .get()?.serviceIndex ?? 0;
-            if (row.serviceIndex <= cursor) continue;
-            yield* this.#actorCommandsOutbox.drainAfter(() =>
-              execute({ rows: [row], db: this.db, key: this.key }),
-            );
-            yield* this.#automations.run(row.serviceIndex);
-          }
-        }).pipe(
-          this.#automationGate.withPermits(1),
-          Effect.mapError(error =>
-            makeZerospinError({
-              code: 'service-automation-receive-failed',
-              cause: String(error),
-            }),
-          ),
+        this.#actorCommandsOutbox.drainAfter(() =>
+          execute({ rows: delivery.rows, db: this.db, key: this.key }),
         ),
     });
   }

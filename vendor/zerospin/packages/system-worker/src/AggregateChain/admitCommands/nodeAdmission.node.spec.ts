@@ -142,7 +142,6 @@ describe('node admission and retained outcome replay', () => {
                   sessionName: 'editor',
                   serviceName: null,
                   serviceVersion: null,
-                  automationName: null,
                   aggregateIndex: index,
                   serviceIndex: null,
                   dispositionHash: null,

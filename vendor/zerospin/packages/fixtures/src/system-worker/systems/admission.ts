@@ -39,7 +39,6 @@ export const admissionAggregate = makeAggregateVersion(
     version: '1.0.0',
     models: {},
     contracts: {},
-    automations: {},
     actors: {
       direct: makeAggregateActorVersion(
         { name: 'direct' },
@@ -69,7 +68,7 @@ export const admissionAggregate = makeAggregateVersion(
 export const admissionService = makeService({
   name: 'admission',
   module: {
-    '1.0.0': { models: {}, contracts: {}, automations: {} },
+    '1.0.0': { models: {}, contracts: {} },
   },
   actors: {
     '1.0.0': {

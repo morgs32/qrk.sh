@@ -1,5 +1,4 @@
 import { resolveAggregateActorVersion } from '@zerospin/core/aggregateActor/getAggregateActorVersion';
-import { getCommandContracts } from '@zerospin/core/automation/getCommandContracts';
 import { decodePayload } from '@zerospin/core/contracts/decodePayload/decodePayload';
 import {
   encodeBusinessFailure,
@@ -70,20 +69,16 @@ export const validateCommands = Effect.fn(
         return yield* makeZerospinError('validation-actor-mismatch');
       }
       const contract = yield* getByKeyOrThrow({
-        record: getCommandContracts(actor, command),
+        record: actor.contracts,
         key: command.commandName,
         recordKind: 'actor contracts',
       });
-      const claims = yield* Schema.decodeUnknownEffect(
-        command.automationName == null
-          ? actor.identity.claimsSchema
-          : actor.identity.identitySchema,
-      )(command.claims);
+      const claims = yield* Schema.decodeUnknownEffect(actor.identity.claimsSchema)(command.claims);
       const payload = yield* decodePayload(contract, { command });
       const checked = yield* Effect.gen(function* () {
         yield* runContractGuard({
           contract,
-          queryDb: optimistic.db,
+          db: optimistic.db,
           payload,
           claims,
         });
@@ -91,7 +86,7 @@ export const validateCommands = Effect.fn(
           Effect.suspend(
             () =>
               actor.guards[command.commandName]?.({
-                queryDb: optimistic.db,
+                db: optimistic.db,
                 payload,
                 claims,
                 failures: contract.failures,

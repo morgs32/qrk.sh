@@ -61,10 +61,10 @@ export const makePurchaseFrontendModule = <
       guard: Effect.fn('confirmCheckout.guard')(function* ({
         payload,
         claims,
-        queryDb: db,
+        db,
         failures,
       }) {
-        const userId = resolveUserId({ queryDb: db, claims });
+        const userId = resolveUserId({ db, claims });
         const cart = Schema.decodeUnknownSync(
           Schema.Array(Schema.toType(makeEffectSchema(cartV1.propertiesShape))),
         )(db.query.cart.findMany().sync()).find(
@@ -289,7 +289,7 @@ export const makePurchaseFrontendModule = <
       guard: Effect.fn('initiatePayment.guard')(function* ({
         payload,
         claims,
-        queryDb: db,
+        db,
         failures,
       }) {
         const checkout = Schema.decodeUnknownSync(
@@ -308,7 +308,7 @@ export const makePurchaseFrontendModule = <
         );
         if (
           checkout === undefined ||
-          checkout.userId !== resolveUserId({ queryDb: db, claims }) ||
+          checkout.userId !== resolveUserId({ db, claims }) ||
           checkout.purchaseId !== payload.purchaseId ||
           purchase === undefined
         ) {
@@ -404,7 +404,7 @@ export const makePurchaseFrontendModule = <
       guard: Effect.fn('cancelPurchase.guard')(function* ({
         payload,
         claims,
-        queryDb: db,
+        db,
         failures,
       }) {
         const checkout = Schema.decodeUnknownSync(
@@ -423,7 +423,7 @@ export const makePurchaseFrontendModule = <
         );
         if (
           checkout === undefined ||
-          checkout.userId !== resolveUserId({ queryDb: db, claims }) ||
+          checkout.userId !== resolveUserId({ db, claims }) ||
           checkout.purchaseId !== payload.purchaseId ||
           purchase === undefined
         ) {
@@ -494,10 +494,10 @@ export const makePurchaseFrontendModule = <
       guard: Effect.fn('applyPromotion.guard')(function* ({
         payload,
         claims,
-        queryDb: db,
+        db,
         failures,
       }) {
-        const userId = resolveUserId({ queryDb: db, claims });
+        const userId = resolveUserId({ db, claims });
         const cart = Schema.decodeUnknownSync(
           Schema.Array(Schema.toType(makeEffectSchema(cartV1.propertiesShape))),
         )(db.query.cart.findMany().sync()).find(
@@ -631,19 +631,19 @@ export const makePurchaseFrontendModule = <
       guard: Effect.fn('removePromotion.guard')(function* ({
         payload,
         claims,
-        queryDb,
+        db,
         failures,
       }) {
         const row = Schema.decodeUnknownSync(
           Schema.Array(
             Schema.toType(makeEffectSchema(checkoutV1.propertiesShape)),
           ),
-        )(queryDb.query.checkout.findMany().sync()).find(
+        )(db.query.checkout.findMany().sync()).find(
           row => row.id === payload.checkoutId,
         );
         if (
           row === undefined ||
-          row.userId !== resolveUserId({ queryDb, claims }) ||
+          row.userId !== resolveUserId({ db, claims }) ||
           row.promotionReservationId === null ||
           !['promotion', 'failed', 'removing'].includes(row.status)
         ) {
@@ -672,6 +672,5 @@ export const makePurchaseFrontendModule = <
       applyPromotion: applyCheckoutPromotion,
       removePromotion: removeCheckoutPromotion,
     },
-    automations: {},
   };
 };

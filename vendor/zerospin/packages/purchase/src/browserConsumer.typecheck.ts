@@ -69,8 +69,8 @@ export const purchaseIdentity = Schema.Struct({
 export const purchaseFrontend = makePurchaseFrontendModule({
   models: purchaseHost,
   claimsSchema: purchaseIdentity,
-  resolveUserId: ({ queryDb, claims }) =>
-    queryDb.query.user
+  resolveUserId: ({ db, claims }) =>
+    db.query.user
       .findMany()
       .sync()
       .find(user => user.id === claims.userId)?.id,

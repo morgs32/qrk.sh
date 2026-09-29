@@ -178,13 +178,14 @@ export function stageCommand<
 
     const madeMutations = yield* runContractGuard({
       contract,
-      queryDb: state.db,
+      db: state.db,
       claims: state.claims,
       payload: command.payload,
     })
       .pipe(
         Effect.andThen(
           makeMutations({
+            db: state.db,
             claims: state.claims,
             contract,
             models: definition.models,

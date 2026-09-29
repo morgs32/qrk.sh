@@ -7,6 +7,7 @@ import {
 import type { CuidFactory } from '@zerospin/schema';
 import { Effect, Schema } from 'effect';
 
+import type { IDb } from '../../drizzle/types.ts';
 import { runProgram } from '../../execution/runProgram.ts';
 import type { IAnyModels } from '../../models/types.ts';
 import { assertMutationsUseModels } from '../assertMutationsUseModels.ts';
@@ -21,6 +22,7 @@ import type {
 import { validatePayload } from '../validatePayload.ts';
 
 export function makeMutations<CONTRACT extends IContract>(props: {
+  db: Readonly<Pick<IDb, 'query'>>;
   contract: CONTRACT;
   models: IAnyModels;
   command: ICommand;
@@ -34,6 +36,7 @@ export function makeMutations<CONTRACT extends IContract>(props: {
   Effect.Services<ReturnType<CONTRACT['program']>>
 >;
 export function makeMutations(props: {
+  db: Readonly<Pick<IDb, 'query'>>;
   contract: IContract;
   models: IAnyModels;
   command: ICommand;
@@ -42,6 +45,7 @@ export function makeMutations(props: {
   return make(props);
 }
 const make = Effect.fn('makeMutations')(function* (props: {
+  db: Readonly<Pick<IDb, 'query'>>;
   contract: IContract;
   models: IAnyModels;
   command: ICommand;
@@ -75,6 +79,7 @@ const make = Effect.fn('makeMutations')(function* (props: {
         );
   const commandMutations = yield* runProgram(
     contract.program({
+      db: props.db,
       payload,
       claims,
     }),

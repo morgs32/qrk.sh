@@ -148,6 +148,8 @@ it.each(['replica-first', 'reference-first'] as const)(
               startedAt,
               mutations,
               failure: null,
+              contract: null,
+              payload: null,
               guard: () => Effect.void,
             },
           ],
@@ -274,6 +276,8 @@ it('retains admission rejection as skipped execution, and rolls back infrastruct
             startedAt,
             mutations: [],
             failure: null,
+            contract: null,
+            payload: null,
             guard: () =>
               Effect.sync(() => {
                 guarded = true;
@@ -321,6 +325,8 @@ it('retains admission rejection as skipped execution, and rolls back infrastruct
             startedAt,
             mutations: [],
             failure: null,
+            contract: null,
+            payload: null,
             guard: () => Effect.fail(makeZerospinError('storage-unavailable')),
           },
         ],
@@ -347,6 +353,8 @@ it('retains admission rejection as skipped execution, and rolls back infrastruct
             startedAt,
             mutations: [],
             failure,
+            contract: null,
+            payload: null,
             guard: () => Effect.void,
           },
         ],

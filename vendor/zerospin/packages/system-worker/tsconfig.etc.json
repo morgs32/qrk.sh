@@ -20,11 +20,14 @@
   "include": [
     "src/**/*.spec.ts",
     "src/**/*.spec.tsx",
+    "tests/workerd/machines/**/*.ts",
     "vitest-env.d.ts",
     "worker-configuration.d.ts",
     "env-types.d.ts",
     "vitest.node.config.ts",
-    "vitest.workerd.config.ts"
+    "vitest.workerd.config.ts",
+    "vitest.config.workerd-machine.ts",
+    "vitest.config.workerd-system.ts"
   ],
   "exclude": [],
   "references": [

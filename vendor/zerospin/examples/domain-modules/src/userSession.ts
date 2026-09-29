@@ -20,16 +20,14 @@ const fulfillment = makeFulfillmentFrontendModule({
     purchase: purchase.models.purchase,
   },
   claimsSchema: purchaseIdentity,
-  resolvePurchaseOwner: ({ queryDb, claims, purchaseId }) => {
-    const row = queryDb.query.purchase
+  resolvePurchaseOwner: ({ db, claims, purchaseId }) => {
+    const row = db.query.purchase
       .findMany()
       .sync()
       .find(row => row.id === purchaseId);
     const cart =
       row &&
-      queryDb.query.cart
-        .findFirst({ where: { id: { eq: row.cartId } } })
-        .sync();
+      db.query.cart.findFirst({ where: { id: { eq: row.cartId } } }).sync();
     return cart?.userId === claims.userId && row
       ? {
           userId: claims.userId,

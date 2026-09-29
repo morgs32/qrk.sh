@@ -48,8 +48,6 @@
   "scripts": {
     "clean": "rimraf dist tsconfig.tsbuildinfo",
     "lib": "pnpm run clean && tsc -b tsconfig.json",
-    "test": "vitest run --config vitest.config.ts --passWithNoTests",
-    "test:workerd": "vitest run --config vitest.workerd.config.ts",
     "ts": "tsc -p tsconfig.json --noEmit",
     "lint": "oxlint . --format stylish"
   },

@@ -46,19 +46,17 @@ export const makeFailCheckout = <
     guard: Effect.fn('failCheckout.guard')(function* ({
       payload,
       claims,
-      queryDb,
+      db,
       failures,
     }) {
       const row = Schema.decodeUnknownSync(
         Schema.Array(
           Schema.toType(makeEffectSchema(checkoutV1.propertiesShape)),
         ),
-      )(queryDb.query.checkout.findMany().sync()).find(
-        row => row.id === payload.id,
-      );
+      )(db.query.checkout.findMany().sync()).find(row => row.id === payload.id);
       if (
         row === undefined ||
-        row.userId !== resolveUserId({ queryDb, claims }) ||
+        row.userId !== resolveUserId({ db, claims }) ||
         row?.status !== payload.expected
       ) {
         return yield* failures.conflict.make({

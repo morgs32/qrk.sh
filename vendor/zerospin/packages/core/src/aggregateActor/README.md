@@ -5,7 +5,7 @@ Browser actors use `makeAggregateActorVersion` and register under an aggregate's
 queries, contracts, optional authorization, and guards. Contracts must use
 models from the actor database and accept its identity shape.
 Construction validates the declaration, then retains the original typed
-database, identity, queries, contracts, callbacks, and automations.
+database, identity, queries, contracts, and callbacks.
 
 `makeActorDbVersion` supplies the `queries` used to compile actor selections. The actor's
 identity schema requires a string `aggregateId`; its actor schema supplies
@@ -14,7 +14,7 @@ resolve the exact actor name and version before accessing selected resources or
 submitting commands.
 
 `updateAggregateActorVersion` inherits omitted declaration fields and merges
-queries, contracts, guards, and automations by key. Supplied entries replace
+queries, contracts, and guards by key. Supplied entries replace
 matching keys; empty maps preserve inherited entries. Database, identity,
 and authorization overrides replace their inherited values. The complete merged
 declaration is validated, including that queries belong to the selected database.
@@ -23,36 +23,8 @@ Deployed historical versions retain their own declarations.
 Actor lock metadata records identity schemas, models, selections, and
 contracts. Fixed schema changes require empty storage during pre-release.
 
-## Durable automations
+## Durable machine actors
 
-An actor can register server-side `automations` alongside its browser-callable
-`contracts`. Each `makeAutomation({ name, on, contracts, program })` observes a
-contract and returns one declared output command or `null` from an Effect.
-`program({ db, on, contracts })` receives selected read-only queries, the typed
-triggering command, and constructors for its permitted output contracts.
-Constructing an output does not submit it.
+System-level machine declarations observe an aggregate version independently of browser actor instances. A machine owns its source cursor, selected projection, private State, and frozen outgoing command in a separate Durable Object. Its bound contracts do not become browser-callable merely because the machine can submit them. The aggregate contract guard and authoritative command admission still run for machine output.
 
-Automation output contracts are separate permissions: declaring `playO` on a
-automation does not expose it to browser callers. Output identity contains
-the actor's selection claims, not the triggering session's full identity.
-Declaration checks reject output contracts requiring unavailable claims. Actor
-and aggregate guards include automation-only command names and type their
-identity as selection claims. Contract and applicable owner guards still run.
-
-Automations observe successful matching commands from any actor only when those
-commands change their selection. First initialization catches up selected state
-and records a starting position before admitting the first command. Historical
-catch-up does not invoke new automations; restarts recover existing work. No open
-browser is needed after registration.
-
-Each automation runs in order for each actor instance. Its program reads a fresh
-selected snapshot when an attempt begins, not the historical state at the
-triggering command. Other automations and projection updates can proceed while
-it awaits external work. A program can run again after interruption before its
-result is saved. Once saved, the runtime retries that same command identity and
-payload without rerunning the program. Returning `null` is durable completion.
-A terminal guard rejection completes the reaction; infrastructure failures
-retain pending work for alarm recovery.
-
-Automation names form part of output identities; the accepted system spec records their observed and
-output contracts. Changed fixed schemas require empty storage during pre-release.
+See [machine runtime](../../../system-worker/src/makeMachineRepo/README.md) and [machine declarations](../machine/README.md) for the current lifecycle. Changed fixed schemas require empty storage during pre-release.

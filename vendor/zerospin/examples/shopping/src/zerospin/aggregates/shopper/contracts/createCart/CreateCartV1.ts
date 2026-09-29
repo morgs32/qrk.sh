@@ -32,9 +32,8 @@ export const createCartV1 = sdk.makeContractVersion(createCart, {
     failures,
     payload,
     claims,
-    queryDb,
+    db,
   }) {
-    const db = queryDb;
     const resource = yield* Effect.try({
       try: () =>
         db.query.user
@@ -53,7 +52,7 @@ export const createCartV1 = sdk.makeContractVersion(createCart, {
       );
     }
 
-    const user = queryDb.query.user
+    const user = db.query.user
       .findFirst({ where: { clerkUserId: { eq: claims.clerkUserId } } })
       .sync();
     if (user?.id !== resource.id) {

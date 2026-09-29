@@ -9,8 +9,8 @@ import type {
 } from '../../../aggregate/types.ts';
 import { getAggregateActorVersion } from '../../../aggregateActor/getAggregateActorVersion.ts';
 import { AsyncLive } from '../../../async/AsyncLive.ts';
-import type { IAnyAutomation } from '../../../automation/types.ts';
 import type { IModel } from '../../../models/types.ts';
+import type { IAnyMachineDeclaration } from '../../../machine/types.ts';
 import type {
   IAnyService,
   IAnyVersionedService,
@@ -51,39 +51,34 @@ type RequiredServices<REQUIREMENTS> = [{}] extends [REQUIREMENTS]
   ? never
   : REQUIREMENTS;
 
-type AutomationRequirements<
-  AUTOMATIONS extends Readonly<Record<string, IAnyAutomation>>,
-> = {
-  [NAME in keyof AUTOMATIONS]: ReturnType<
-    AUTOMATIONS[NAME]['program']
-  > extends Effect.Effect<unknown, IAnyError, infer REQUIREMENTS>
-    ? RequiredServices<REQUIREMENTS>
-    : never;
-}[keyof AUTOMATIONS];
-
 type SystemRequirements<
   AGGREGATES extends Record<
     string,
     Readonly<Record<string, IAnyAuthoredAggregate>>
   >,
-  SERVICES extends Record<string, IAnyVersionedService>,
-> =
-  | {
+> = {
       [NAME in keyof AGGREGATES]: {
-        [VERSION in keyof AGGREGATES[NAME]]:
-          | RequiredServices<
-              NonNullable<AGGREGATES[NAME][VERSION]['__guardRequirements']>
-            >
-          | AutomationRequirements<AGGREGATES[NAME][VERSION]['automations']>;
-      }[keyof AGGREGATES[NAME]];
-    }[keyof AGGREGATES]
-  | {
-      [NAME in keyof SERVICES]: {
-        [VERSION in keyof SERVICES[NAME]['versions']]: AutomationRequirements<
-          SERVICES[NAME]['versions'][VERSION]['automations']
+        [VERSION in keyof AGGREGATES[NAME]]: RequiredServices<
+          NonNullable<AGGREGATES[NAME][VERSION]['__guardRequirements']>
         >;
-      }[keyof SERVICES[NAME]['versions']];
-    }[keyof SERVICES];
+      }[keyof AGGREGATES[NAME]];
+    }[keyof AGGREGATES];
+
+type MachineRequirements<MACHINES extends Record<string, IAnyMachineDeclaration>> = {
+  [NAME in keyof MACHINES]: {
+    [STATE in keyof MACHINES[NAME]['routes']]:
+      MACHINES[NAME]['routes'][STATE] extends {
+        readonly onActivation: (...args: never[]) => Effect.Effect<unknown, unknown, infer SERVICES>;
+      }
+        ? SERVICES
+        : never;
+  }[keyof MACHINES[NAME]['routes']];
+}[keyof MACHINES];
+
+type ApplicationRequirements<
+  AGGREGATES extends Record<string, Readonly<Record<string, IAnyAuthoredAggregate>>>,
+  MACHINES extends Record<string, IAnyMachineDeclaration>,
+> = SystemRequirements<AGGREGATES> | MachineRequirements<MACHINES>;
 
 export function makeSystem<
   SYSTEM_NAME extends string,
@@ -93,6 +88,7 @@ export function makeSystem<
   >,
   APP_SERVICES = never,
   const SERVICES extends Record<string, IAnyVersionedService> = {},
+  const MACHINES extends Record<string, IAnyMachineDeclaration> = {},
 >(
   props: {
     name: SYSTEM_NAME;
@@ -107,18 +103,20 @@ export function makeSystem<
     services?: SERVICES & {
       [NAME in keyof NoInfer<SERVICES> & string]: { name: NAME };
     };
-  } & ([SystemRequirements<AGGREGATES, SERVICES>] extends [never]
+    machines?: MACHINES;
+  } & ([ApplicationRequirements<AGGREGATES, MACHINES>] extends [never]
     ? { layer?: Layer.Layer<APP_SERVICES, IAnyError> }
     : {
         layer: Layer.Layer<
-          APP_SERVICES | SystemRequirements<AGGREGATES, SERVICES>,
+          APP_SERVICES | ApplicationRequirements<AGGREGATES, MACHINES>,
           IAnyError
         >;
       }),
 ): ISystem<
   IResolvedAggregates<AGGREGATES>,
   IResolvedServices<SERVICES>,
-  SYSTEM_NAME
+  SYSTEM_NAME,
+  MACHINES
 >;
 
 export function makeSystem(props: {
@@ -126,12 +124,14 @@ export function makeSystem(props: {
   layer?: Layer.Any;
   aggregates: Record<string, Readonly<Record<string, IAnyAuthoredAggregate>>>;
   services?: Record<string, IAnyVersionedService>;
+  machines?: Record<string, IAnyMachineDeclaration>;
 }): unknown {
   const {
     layer = Layer.empty,
     name,
     aggregates: authoredAggregates,
     services: authoredServices,
+    machines,
   } = decodeSystemProps(props);
   const runtime = ManagedRuntime.make(
     Layer.mergeAll(
@@ -196,7 +196,32 @@ export function makeSystem(props: {
     name,
     aggregates,
     services,
+    machines,
   };
+
+  for (const [machineName, machine] of Object.entries(machines)) {
+    const source = machine.source;
+    const registered = 'services' in source
+      ? Object.values(authoredAggregates[source.name] ?? {}).includes(source)
+      : Object.values(authoredServices[source.name]?.versions ?? {}).includes(source);
+    if (!registered) {
+      throw new Error(`Machine ${machineName} source is not registered in this system`);
+    }
+    for (const [selectionName, selection] of Object.entries(machine.selections)) {
+      if (!Object.values(source.models).includes(selection.model)) {
+        throw new Error(`Machine ${machineName} selection ${selectionName} does not belong to its source`);
+      }
+    }
+    for (const [bindingName, binding] of Object.entries(machine.contracts)) {
+      const target = binding.target;
+      const targetRegistered = 'services' in target
+        ? Object.values(authoredAggregates[target.name] ?? {}).includes(target)
+        : Object.values(authoredServices[target.name]?.versions ?? {}).includes(target);
+      if (!targetRegistered || !Object.values(target.contracts).includes(binding.contract)) {
+        throw new Error(`Machine ${machineName} contract ${bindingName} is not bound to a registered target`);
+      }
+    }
+  }
 
   for (const versions of Object.values(aggregates)) {
     for (const aggregate of Object.values(versions)) {

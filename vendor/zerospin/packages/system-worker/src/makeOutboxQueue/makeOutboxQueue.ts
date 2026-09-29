@@ -9,7 +9,7 @@ import {
   type IAnyError,
   type IZerospinErrorJson,
 } from '@zerospin/error';
-import { RpcTarget } from 'capnweb';
+import { RpcTarget } from 'cloudflare:workers';
 import config from 'config';
 import {
   and,

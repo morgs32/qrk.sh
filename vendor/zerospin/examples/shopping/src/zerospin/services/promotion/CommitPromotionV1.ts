@@ -35,10 +35,10 @@ export const commitPromotion = sdk.makeContractVersion(
     guard: Effect.fn('commitPromotion.guard')(function* ({
       failures,
       payload,
-      queryDb,
+      db,
     }) {
       yield* yield* PromotionDevelopment;
-      const row = queryDb.query.promotionReservation
+      const row = db.query.promotionReservation
         .findFirst({ where: { id: { eq: payload.id } } })
         .sync();
       if (

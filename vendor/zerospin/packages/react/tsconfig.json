@@ -44,9 +44,6 @@
   ],
   "references": [
     {
-      "path": "../backup-worker"
-    },
-    {
       "path": "../browser"
     },
     {

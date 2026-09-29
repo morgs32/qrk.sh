@@ -134,6 +134,7 @@ export const executeCommands = Effect.fn('ServiceVersionRepo.executeCommands')(
                     command: source,
                   });
                   const made = yield* makeMutations({
+                    db,
                     claims: null,
                     contract,
                     models: service.models,

@@ -17,7 +17,6 @@ const positiveIndexSchema = Schema.Number.check(
 );
 
 const UnknownAggregateCommandBaseSchema = Schema.Struct({
-  automationName: Schema.optionalKey(Schema.NullOr(Schema.String)),
   id: makeAbbreviationIdSchema('cmd'),
   commandName: Schema.String,
   payload: Schema.Unknown,
@@ -66,7 +65,6 @@ export const EncodedServiceCommandSchema = Schema.Struct({
 }) satisfies Schema.Codec<IEncodedCommand<IServiceCommand>, any>;
 
 const EncodedAggregateCommandBaseSchema = Schema.Struct({
-  automationName: Schema.optionalKey(Schema.NullOr(Schema.String)),
   id: makeAbbreviationIdSchema('cmd'),
   commandName: Schema.String,
   payload: Schema.String,

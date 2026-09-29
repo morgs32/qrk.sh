@@ -74,17 +74,6 @@ export const SystemSpecSchema = Schema.Struct({
           Schema.String,
           Schema.Struct({
             contracts: Schema.Record(Schema.String, contractSchema),
-            automations: Schema.Record(
-              Schema.String,
-              Schema.Struct({
-                name: Schema.String,
-                on: Schema.Struct({
-                  commandName: Schema.String,
-                  version: Schema.String,
-                }),
-                contracts: Schema.Record(Schema.String, contractSchema),
-              }),
-            ),
             name: Schema.String,
             version: Schema.String,
             authentication: Schema.Union([
@@ -149,5 +138,34 @@ export const SystemSpecSchema = Schema.Struct({
         queries: Schema.Record(Schema.String, querySchema),
       }),
     ),
+  ),
+  machines: Schema.Record(
+    Schema.String,
+    Schema.Struct({
+      sourceKind: Schema.Literals(['aggregate', 'service']),
+      sourceName: Schema.String,
+      sourceVersion: Schema.String,
+      selections: Schema.Record(
+        Schema.String,
+        Schema.Struct({ modelName: Schema.String, query: SelectionQuerySchema }),
+      ),
+      contracts: Schema.Record(
+        Schema.String,
+        Schema.Struct({
+          targetKind: Schema.Literals(['aggregate', 'service']),
+          targetName: Schema.String,
+          targetVersion: Schema.String,
+          contract: contractSchema,
+        }),
+      ),
+      states: Schema.Record(Schema.String, Schema.Unknown),
+      routes: Schema.Record(
+        Schema.String,
+        Schema.Struct({
+          work: Schema.Literals(['idle', 'waiting', 'activation', 'command']),
+          onCommand: Schema.Boolean,
+        }),
+      ),
+    }),
   ),
 });

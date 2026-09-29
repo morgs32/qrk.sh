@@ -1,6 +1,6 @@
 import { makeSystem } from '@zerospin/core/system/make/makeSystem/makeSystem';
 
-import { deterministicComputerMove } from './computerTurn';
+import { computerTurn, deterministicComputerMove } from './computerTurn';
 import { aggregate } from './gameAggregateV1';
 
 export const system = makeSystem({
@@ -12,4 +12,5 @@ export const system = makeSystem({
     },
   },
   services: {},
+  machines: { computerTurn },
 });

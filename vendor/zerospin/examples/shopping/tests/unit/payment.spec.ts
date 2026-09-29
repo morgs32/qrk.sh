@@ -1,6 +1,7 @@
 import { it } from '@effect/vitest';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/make/makeDbConfig/makeDbConfig';
+import { makePurchasePaymentMachine, PaymentProvider } from '@zerospin/purchase/server';
 import { Effect, Exit, Fiber, Schema } from 'effect';
 import * as TestClock from 'effect/testing/TestClock';
 import { expect } from 'vitest';
@@ -9,100 +10,37 @@ import { makeActorSnapshotDb } from '../../../../packages/system-worker/src/Aggr
 import { ClerkUserIdSchema } from '../../src/zerospin/aggregates/shopper/models/user/UserV1';
 import { purchase as purchaseModule } from '../../src/zerospin/aggregates/shopper/purchase';
 import { shopperAggregateV2 } from '../../src/zerospin/aggregates/shopper/shopperAggregateV2';
-import { shopperAggregateV3 } from '../../src/zerospin/aggregates/shopper/shopperAggregateV3';
 import { PaymentProviderLive } from '../../src/zerospin/PaymentProviderLive';
-const processPayment = purchaseModule.automations.processPayment;
 const recordIntentObservation =
   purchaseModule.contracts.recordPaymentObservation;
 
 it.effect(
-  'retains the accepted payment identifiers and waits five seconds before returning completion',
-  () =>
-    Effect.gen(function* () {
-      const dbConfig = makeResourceDbConfig({
-        models: shopperAggregateV2.models,
-      });
-      const scratch = yield* makeActorSnapshotDb(dbConfig);
-      let completed = false;
-      const fiber = yield* processPayment
-        .program({
-          db: scratch.db,
-          on: {
-            id: 'cmd_accepted',
-            commandName: 'createAcceptedPurchase',
-            contractVersion: '1.0.0',
-            systemName: 'shopping',
-            aggregateName: 'shopper',
-            aggregateId: 'acct_1',
-            aggregateVersion: '2.0.0',
-            actorName: 'shopper',
-            actorVersion: '2.0.0',
-            claims: { clerkUserId: 'user_1' },
-            nodeId: null,
-            nodeIndex: null,
-            sessionName: null,
-            payload: {
-              checkoutId: 'chk_1',
-              id: 'pur_1',
-              paymentIntentId: 'pmt_1',
-              cartId: 'crt_1',
-              expectedExisting: false,
-              quote: {
-                currency: 'usd',
-                items: [
-                  {
-                    cartItemId: 'cit_1',
-                    productId: 'prd_1',
-                    name: 'Test',
-                    quantity: 1,
-                    unitAmount: 100,
-                  },
-                ],
-                subtotalAmount: 100,
-                discountAmount: 0,
-                promotionReservationId: null,
-                totalAmount: 100,
-              },
-            },
-          },
-          contracts: {
-            recordPaymentObservation: payload => ({
-              contract: recordIntentObservation,
-              payload,
-            }),
-          },
-        })
-        .pipe(
-          Effect.tap(() =>
-            Effect.sync(() => {
-              completed = true;
-            }),
-          ),
-          Effect.forkChild,
-        );
-      yield* TestClock.adjust('4999 millis');
-      expect(completed).toBe(false);
-      yield* TestClock.adjust('1 millis');
-      const result = yield* Fiber.join(fiber);
-      expect(result).toMatchObject({
-        contract: recordIntentObservation,
-        payload: {
-          checkoutId: 'chk_1',
-          purchaseId: 'pur_1',
-          paymentIntentId: 'pmt_1',
-          outcome: 'succeeded',
-          expected: 'pending',
-          providerReference: 'mock_pmt_1',
-          cartItemIds: ['cit_1'],
-        },
-      });
-      expect(shopperAggregateV2.actors.shopper.contracts).not.toHaveProperty(
-        'recordPaymentObservation',
-      );
-      expect(shopperAggregateV2.automations.processPayment).toBe(
-        processPayment,
-      );
-    }).pipe(Effect.provide(AsyncLive), Effect.provide(PaymentProviderLive)),
+  'keeps the accepted payment identifiers through the provider delay',
+  () => Effect.gen(function* () {
+    const pay = yield* PaymentProvider;
+    let completed = false;
+    const fiber = yield* pay({
+      paymentIntentId: 'pmt_1',
+      purchaseId: 'pur_1',
+      quote: {
+        currency: 'usd',
+        items: [],
+        subtotalAmount: 100,
+        discountAmount: 0,
+        promotionReservationId: null,
+        totalAmount: 100,
+      },
+    }).pipe(
+      Effect.tap(() => Effect.sync(() => { completed = true; })),
+      Effect.forkChild,
+    );
+    yield* TestClock.adjust('4999 millis');
+    expect(completed).toBe(false);
+    yield* TestClock.adjust('1 millis');
+    expect(yield* Fiber.join(fiber)).toMatchObject({
+      outcome: 'succeeded', providerReference: 'mock_pmt_1',
+    });
+  }).pipe(Effect.provide(PaymentProviderLive)),
 );
 
 it.effect(
@@ -180,9 +118,9 @@ it.effect(
       scratch.db.insert(dbConfig.schema.checkout).values(checkout).run();
       scratch.db.insert(dbConfig.schema.purchase).values(purchase).run();
       scratch.db.insert(dbConfig.schema.paymentIntent).values(intent).run();
-      const guard = shopperAggregateV2.guards.shopper!.recordPaymentObservation;
+      const guard = recordIntentObservation.guard;
       const input: Parameters<NonNullable<typeof guard>>[0] = {
-        queryDb: scratch.db,
+        db: scratch.db,
         claims: {
           clerkUserId: Schema.decodeUnknownSync(ClerkUserIdSchema)('user_1'),
         },
@@ -219,13 +157,12 @@ it.effect(
     }).pipe(Effect.provide(AsyncLive), Effect.provide(PaymentProviderLive)),
 );
 
-it('binds each supported shopper version to its final automation contracts', () => {
-  for (const aggregate of [shopperAggregateV2, shopperAggregateV3]) {
-    expect(aggregate.automations.acceptPurchase.on).toBe(
-      aggregate.contracts.confirmCheckout,
-    );
-    expect(
-      aggregate.automations.processPayment.contracts.recordPaymentObservation,
-    ).toBe(aggregate.contracts.recordPaymentObservation);
-  }
+it('binds the payment machine to the final shopper contract', () => {
+  const machine = makePurchasePaymentMachine({
+    source: shopperAggregateV2,
+    claimsForUser: () => ({ clerkUserId: 'user_1' }),
+  });
+  expect(machine.source).toBe(shopperAggregateV2);
+  expect(machine.contracts.recordPaymentObservation.contract)
+    .toBe(shopperAggregateV2.contracts.recordPaymentObservation);
 });

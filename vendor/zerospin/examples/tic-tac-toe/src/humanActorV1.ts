@@ -3,7 +3,6 @@ import { makeAggregateActorVersion } from '@zerospin/core/aggregateActor/make/ma
 import { makeActorIdentity } from '@zerospin/core/identity/make/makeActorIdentity/makeActorIdentity';
 import { makeActorDbVersion } from '@zerospin/core/models/make/makeActorDbVersion';
 
-import { computerTurn } from './computerTurn';
 import { createGame } from './contracts/createGameV1';
 import { playX } from './contracts/playXV1';
 import { claimsSchema, game } from './gameV1';
@@ -24,6 +23,5 @@ export const human = makeAggregateActorVersion(
       }),
     },
     contracts: { createGame, playX },
-    automations: { computerTurn },
   },
 );

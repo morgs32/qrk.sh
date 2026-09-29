@@ -41,7 +41,7 @@ export const reservePromotion = sdk.makeContractVersion(
     models: { promotionReservation: promotionReservationV1 },
     guard: Effect.fn('reservePromotion.guard')(function* ({
       failures,
-      queryDb,
+      db,
       payload,
     }) {
       yield* yield* PromotionDevelopment;
@@ -56,7 +56,7 @@ export const reservePromotion = sdk.makeContractVersion(
           message: 'Reservation deadline is no longer valid.',
         });
       }
-      const rows = queryDb.query.promotionReservation.findMany().sync();
+      const rows = db.query.promotionReservation.findMany().sync();
       const existing = rows.find(row => row.id === payload.id);
       if ((existing === undefined) !== (payload.expected === null)) {
         return yield* failures.conflict.make({

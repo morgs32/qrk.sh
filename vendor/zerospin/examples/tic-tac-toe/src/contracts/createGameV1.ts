@@ -17,12 +17,12 @@ export const createGame = sdk.makeContractVersion(
       failures,
       payload,
       claims,
-      queryDb,
+      db,
     }) {
       if (
         claims === null ||
         payload.id !== claims.instanceId ||
-        queryDb.query.game.findFirst().sync() !== undefined
+        db.query.game.findFirst().sync() !== undefined
       ) {
         return yield* failures.invalidMove.make({ extra: null });
       }

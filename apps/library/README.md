@@ -113,10 +113,12 @@ placeholder() {
 },
 ```
 
-Image is the first opt-in. Catalog previews retain their example state and measured
-sizes. On a new drop, `BrickWall` stores null for modules with a placeholder while
-preserving the dragged spec and placement sizes; other modules copy the dragged
-state. The shared renderer selects the placeholder only for exact null, before
+Image is the first opt-in. The Library drawer's **Display placeholders** checkbox
+starts unchecked and switches eligible catalog previews between their example state
+and placeholder without changing preview measurements or drag data. The choice lasts
+until reload. On a new drop, `BrickWall` stores null for modules with a placeholder
+while preserving the dragged spec and placement sizes; other modules copy the
+dragged state. The shared renderer selects the placeholder only for exact null, before
 state decoding or JSON-render execution. Empty strings, objects, and collections
 still take the normal rendering path. Valid empty specs do not hide placeholders.
 Existing configured bricks are not reset.

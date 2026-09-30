@@ -8,12 +8,13 @@ export const Route = createFileRoute("/modules/")({
 });
 
 function ModulesPage() {
-  const { activeBreakpoint } = useWallViewport();
+  const { activeBreakpoint, displayPlaceholders } = useWallViewport();
   const breakpoint = activeBreakpoint ?? "sm";
 
   return (
     <ModuleFilmstrip
       breakpoint={breakpoint}
+      displayPlaceholders={displayPlaceholders}
       renderModuleLink={(brickModule) => (
         <Link
           to="/modules/$moduleId"

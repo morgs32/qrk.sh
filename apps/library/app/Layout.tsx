@@ -215,7 +215,14 @@ function LayoutBody(props: {
   const navigate = useNavigate();
   const params = useParams({ strict: false });
   const wallViewportStore = useWallViewportStoreApi();
-  const { regionRef, availableWidth, activeBreakpoint, setSelectedBreakpoint } = useWallViewport();
+  const {
+    regionRef,
+    availableWidth,
+    activeBreakpoint,
+    setSelectedBreakpoint,
+    displayPlaceholders,
+    setDisplayPlaceholders,
+  } = useWallViewport();
   const reducedMotion = useReducedMotion() ?? false;
   const [activeText, setActiveText] = useState<{
     brickId: string;
@@ -495,16 +502,26 @@ function LayoutBody(props: {
                     </>
                   ) : null}
                 </nav>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="cursor-pointer"
-                  aria-label="Close drawer"
-                  onClick={closeDrawer}
-                >
-                  <X aria-hidden />
-                </Button>
+                <div className="flex shrink-0 items-center gap-3">
+                  <label className="flex cursor-pointer items-center gap-2 text-xs">
+                    <input
+                      type="checkbox"
+                      checked={displayPlaceholders}
+                      onChange={(event) => setDisplayPlaceholders(event.target.checked)}
+                    />
+                    Display placeholders
+                  </label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="cursor-pointer"
+                    aria-label="Close drawer"
+                    onClick={closeDrawer}
+                  >
+                    <X aria-hidden />
+                  </Button>
+                </div>
               </div>
               <div className="min-h-0 flex-1 overflow-hidden">
                 <div className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden">

@@ -10,9 +10,10 @@ import { DraggableBrick } from "./DraggableBrick";
 export function ModulePreview(props: {
   brickModule: (typeof modulesHash)[keyof typeof modulesHash];
   breakpoint: (typeof BREAKPOINTS)[number]["id"];
+  displayPlaceholders: boolean;
   moduleLink: ReactNode;
 }) {
-  const { brickModule, breakpoint, moduleLink } = props;
+  const { brickModule, breakpoint, displayPlaceholders, moduleLink } = props;
   const { def, component: BrickComponent } = brickModule;
   const view = brickModule.viewFor(breakpoint);
   const spec = view.spec;
@@ -110,7 +111,11 @@ export function ModulePreview(props: {
             data-brick-drawer-module-id={def.moduleId}
           >
             <div className="brick-drag-content size-full">
-              <BrickComponent breakpoint={breakpoint} state={def.state} spec={spec} />
+              <BrickComponent
+                breakpoint={breakpoint}
+                state={displayPlaceholders && brickModule.placeholder !== undefined ? null : def.state}
+                spec={spec}
+              />
             </div>
           </DraggableBrick>
         </GridItemPreview>

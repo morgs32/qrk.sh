@@ -255,7 +255,7 @@ html body[data-scroll-locked] {
   pointer-events: none;
 }
 
-/* Route snapshots animate only the drawer; the editor remains live underneath. */
+/* Only outgoing drawer content is snapshotted; the persistent shell uses CSS. */
 ::view-transition {
   pointer-events: none;
 }
@@ -263,31 +263,20 @@ html body[data-scroll-locked] {
 ::view-transition-new(root) {
   animation: none;
 }
-::view-transition-group(.drawer-bottom-in),
 ::view-transition-group(.drawer-bottom-out) {
   animation-duration: 300ms;
   animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
 }
-::view-transition-new(.drawer-bottom-in) {
-  animation: drawer-bottom-in 300ms cubic-bezier(0, 0, 0.2, 1) both;
-}
 ::view-transition-old(.drawer-bottom-out) {
   animation: drawer-bottom-out 300ms cubic-bezier(0, 0, 0.2, 1) both;
-}
-@keyframes drawer-bottom-in {
-  from {
-    transform: translateY(100%);
-  }
-  to {
-    transform: translateY(0);
-  }
 }
 @keyframes drawer-bottom-out {
   from {
     transform: translateY(0);
   }
   to {
-    transform: translateY(100%);
+    /* Match the shell, including its border, rather than the inner content height. */
+    transform: translateY(50dvh);
   }
 }
 @media (prefers-reduced-motion: reduce) {

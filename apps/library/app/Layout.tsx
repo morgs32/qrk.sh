@@ -238,6 +238,70 @@ function LayoutBody(props: {
     () => location.pathname !== "/" || location.searchStr.length > 0,
   );
   const [drawerOpenForLocationKey, setDrawerOpenForLocationKey] = useState(locationKey);
+
+  const editorScroll = useRef<HTMLDivElement>(null);
+  const drawerSpace = useRef<HTMLDivElement>(null);
+  const hasReservedDrawerSpace = useRef(false);
+
+  useLayoutEffect(() => {
+    const scroll = editorScroll.current;
+    const space = drawerSpace.current;
+    if (scroll === null || space === null) return;
+
+    // Change only trailing space, leaving the wall's percentage height intact.
+    const previousTop = scroll.scrollTop;
+    const previousMax = Math.max(0, scroll.scrollHeight - scroll.clientHeight);
+    const wasAtBottom =
+      hasReservedDrawerSpace.current && previousMax > 0 && Math.abs(previousMax - previousTop) <= 1;
+    space.style.paddingBottom = drawerOpen ? "50dvh" : "0px";
+    const nextMax = Math.max(0, scroll.scrollHeight - scroll.clientHeight);
+    scroll.scrollTop = wasAtBottom ? nextMax : Math.min(Math.max(previousTop, 0), nextMax);
+    hasReservedDrawerSpace.current = true;
+
+    let position = {
+      top: scroll.scrollTop,
+      max: nextMax,
+      viewportHeight: scroll.clientHeight,
+      reservedHeight: space.getBoundingClientRect().height,
+    };
+    function rememberScroll() {
+      // A resize may clamp scrollTop before its observer runs. Keep the old anchor.
+      if (
+        scroll === null ||
+        space === null ||
+        scroll.clientHeight !== position.viewportHeight ||
+        space.getBoundingClientRect().height !== position.reservedHeight
+      )
+        return;
+      position.top = scroll.scrollTop;
+      position.max = Math.max(0, scroll.scrollHeight - scroll.clientHeight);
+    }
+    const observer = new ResizeObserver(() => {
+      const viewportHeight = scroll.clientHeight;
+      const reservedHeight = space.getBoundingClientRect().height;
+      if (
+        viewportHeight === position.viewportHeight &&
+        reservedHeight === position.reservedHeight
+      ) {
+        // Content growth updates the anchor measurement without following it.
+        rememberScroll();
+        return;
+      }
+      const max = Math.max(0, scroll.scrollHeight - viewportHeight);
+      const atBottom = position.max > 0 && Math.abs(position.max - position.top) <= 1;
+      scroll.scrollTop = atBottom ? max : Math.min(Math.max(position.top, 0), max);
+      position = { top: scroll.scrollTop, max, viewportHeight, reservedHeight };
+    });
+    scroll.addEventListener("scroll", rememberScroll, { passive: true });
+    observer.observe(scroll);
+    observer.observe(space);
+    if (space.previousElementSibling !== null) observer.observe(space.previousElementSibling);
+    return () => {
+      scroll.removeEventListener("scroll", rememberScroll);
+      observer.disconnect();
+    };
+  }, [drawerOpen]);
+
   const hasMeasuredRef = useRef(false);
   const previousBreakpointRef = useRef<(typeof BREAKPOINTS)[number]["id"] | null>(null);
   const [fromBreakpoint, setFromBreakpoint] = useState<(typeof BREAKPOINTS)[number]["id"] | null>(
@@ -349,17 +413,15 @@ function LayoutBody(props: {
   return (
     <main className="relative h-dvh overflow-hidden">
       <Toaster />
-      <div
-        className={cn(
-          "grid h-full overflow-hidden transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0,0,0.2,1)] motion-reduce:transition-none",
-          drawerOpen ? "grid-rows-[minmax(0,1fr)_50dvh]" : "grid-rows-[minmax(0,1fr)_0dvh]",
-        )}
-      >
+      <div className="h-full overflow-hidden">
         <div
-          ref={regionRef}
+          ref={(element) => {
+            editorScroll.current = element;
+            return regionRef(element);
+          }}
           data-testid="grid-region"
           data-brick-scroll-root=""
-          className="relative min-h-0 min-w-0 overflow-x-hidden overflow-y-auto pt-14"
+          className="relative h-full min-h-0 min-w-0 overflow-x-hidden overflow-y-auto pt-14"
         >
           {availableWidth > 0 && availableWidth < BREAKPOINTS[0].previewWidth && (
             <p className="p-4" role="status">
@@ -463,73 +525,72 @@ function LayoutBody(props: {
               );
             })}
           </div>
+          <div ref={drawerSpace} data-editor-drawer-space aria-hidden />
         </div>
         <div className="min-h-0 overflow-hidden">
-          {drawerOpen ? (
-            <Drawer
-              side="bottom"
-              layoutMode="flow"
-              aria-label={drawerTitle}
-              className="border-zinc-300 bg-white"
-            >
-              <div className="flex shrink-0 items-center justify-between gap-4 border-b border-border/60 px-4 py-2.5">
-                <nav aria-label="Drawer breadcrumbs" className="flex min-w-0 items-center gap-2">
-                  <Link to="/modules">Bricks</Link>
-                  {moduleLabel !== undefined && breadcrumbModuleId !== undefined ? (
-                    <>
-                      <span aria-hidden className="text-muted-foreground">
-                        /
-                      </span>
-                      {brickId !== undefined ? (
-                        <Link
-                          to="/modules/$moduleId"
-                          params={{ moduleId: breadcrumbModuleId }}
-                          className="truncate"
-                        >
-                          {moduleLabel}
-                        </Link>
-                      ) : (
-                        <span className="truncate">{moduleLabel}</span>
-                      )}
-                      {brickId !== undefined ? (
-                        <>
-                          <span aria-hidden className="text-muted-foreground">
-                            /
-                          </span>
-                          <span className="truncate">{`~${brickId.slice(-5)}`}</span>
-                        </>
-                      ) : null}
-                    </>
-                  ) : null}
-                </nav>
-                <div className="flex shrink-0 items-center gap-3">
-                  <label className="flex cursor-pointer items-center gap-2 text-xs">
-                    <input
-                      type="checkbox"
-                      checked={displayPlaceholders}
-                      onChange={(event) => setDisplayPlaceholders(event.target.checked)}
-                    />
-                    Display placeholders
-                  </label>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="cursor-pointer"
-                    aria-label="Close drawer"
-                    onClick={closeDrawer}
-                  >
-                    <X aria-hidden />
-                  </Button>
-                </div>
+          <Drawer
+            side="bottom"
+            open={drawerOpen}
+            aria-label={drawerTitle}
+            className="border-zinc-300 bg-white"
+          >
+            <div className="flex shrink-0 items-center justify-between gap-4 border-b border-border/60 px-4 py-2.5">
+              <nav aria-label="Drawer breadcrumbs" className="flex min-w-0 items-center gap-2">
+                <Link to="/modules">Bricks</Link>
+                {moduleLabel !== undefined && breadcrumbModuleId !== undefined ? (
+                  <>
+                    <span aria-hidden className="text-muted-foreground">
+                      /
+                    </span>
+                    {brickId !== undefined ? (
+                      <Link
+                        to="/modules/$moduleId"
+                        params={{ moduleId: breadcrumbModuleId }}
+                        className="truncate"
+                      >
+                        {moduleLabel}
+                      </Link>
+                    ) : (
+                      <span className="truncate">{moduleLabel}</span>
+                    )}
+                    {brickId !== undefined ? (
+                      <>
+                        <span aria-hidden className="text-muted-foreground">
+                          /
+                        </span>
+                        <span className="truncate">{`~${brickId.slice(-5)}`}</span>
+                      </>
+                    ) : null}
+                  </>
+                ) : null}
+              </nav>
+              <div className="flex shrink-0 items-center gap-3">
+                <label className="flex cursor-pointer items-center gap-2 text-xs">
+                  <input
+                    type="checkbox"
+                    checked={displayPlaceholders}
+                    onChange={(event) => setDisplayPlaceholders(event.target.checked)}
+                  />
+                  Display placeholders
+                </label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="cursor-pointer"
+                  aria-label="Close drawer"
+                  onClick={closeDrawer}
+                >
+                  <X aria-hidden />
+                </Button>
               </div>
-              <div className="min-h-0 flex-1 overflow-hidden">
-                <div className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden">
-                  <div className="min-h-0 min-w-0 flex-1 overflow-y-auto">{children}</div>
-                </div>
+            </div>
+            <div className="min-h-0 flex-1 overflow-hidden">
+              <div className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden">
+                <div className="min-h-0 min-w-0 flex-1 overflow-y-auto">{children}</div>
               </div>
-            </Drawer>
-          ) : null}
+            </div>
+          </Drawer>
         </div>
       </div>
       <div className="pointer-events-none fixed inset-x-0 top-3 z-80 flex justify-center px-2 lg:bottom-6 lg:top-auto">

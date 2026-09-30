@@ -27,11 +27,14 @@ test("brick routes retain the bottom shell, grid, and encoded history", async ({
     .getByRole("link", { name: "Modules", exact: true })
     .click();
   await bottom.getByRole("link", { name: "Close drawer" }).click();
-  await expect(bottom).toHaveCount(0);
+  await expect(bottom).toBeHidden();
+  await expect(bottom).toHaveCount(1);
   await page.getByRole("link", { name: "Add bricks" }).click();
   await expect(bottom).toBeVisible();
+  expect(await shell!.evaluate((element) => element.isConnected)).toBe(true);
   await page.goBack();
-  await expect(bottom).toHaveCount(0);
+  await expect(bottom).toBeHidden();
+  await expect(bottom).toHaveCount(1);
   await page.goForward();
   await expect(bottom).toBeVisible();
   expect(await grid!.evaluate((element) => element.isConnected)).toBe(true);
@@ -60,7 +63,9 @@ test("brick routes retain the bottom shell, grid, and encoded history", async ({
 });
 
 for (const width of [1440, 390]) {
-  test(`drawer reserves half the viewport at ${width}px`, async ({ page }) => {
+  test(`drawer overlays half the viewport without shrinking the editor at ${width}px`, async ({
+    page,
+  }) => {
     await page.setViewportSize({ width, height: 900 });
     await page.goto(base);
     const editor = page.locator("[data-editor-region]");
@@ -73,7 +78,8 @@ for (const width of [1440, 390]) {
       .toBe(450);
     await expect
       .poll(() => editor.evaluate((element) => Math.round(element.getBoundingClientRect().height)))
-      .toBe(Math.round(fullHeight - 450));
+      .toBe(Math.round(fullHeight));
+    await expect(page.locator("[data-editor-drawer-space]")).toHaveCSS("padding-bottom", "450px");
     await expect(page.getByRole("link", { name: "Add bricks" })).toHaveCount(0);
     const toolbar = page.getByRole("toolbar", { name: "Breakpoints", exact: true });
     await expect(toolbar.getByRole("button")).toHaveText(["sm", "md", "lg", "xl"]);
@@ -320,7 +326,8 @@ test("reduced motion preserves navigation without positional drawer animation", 
     )
     .toBe(360);
   await page.locator('[data-drawer="bottom"]').getByRole("link", { name: "Close drawer" }).click();
-  await expect(page.locator("[data-drawer]")).toHaveCount(0);
+  await expect(page.locator("[data-drawer]")).toBeHidden();
+  await expect(page.locator("[data-drawer]")).toHaveCount(1);
   await expect(page.getByTestId("grid-layout")).toBeVisible();
 });
 
@@ -335,5 +342,100 @@ test("drawer navigation works without native view transitions", async ({ page })
   await page.getByRole("link", { name: "Add bricks" }).click();
   await expect(page.locator('[data-drawer="bottom"]')).toBeVisible();
   await page.getByRole("link", { name: "Close drawer" }).click();
-  await expect(page.locator("[data-drawer]")).toHaveCount(0);
+  await expect(page.locator("[data-drawer]")).toBeHidden();
+  await expect(page.locator("[data-drawer]")).toHaveCount(1);
+});
+
+for (const startingPosition of ["top", "middle", "bottom"]) {
+  test(`drawer preserves the editor's ${startingPosition} scroll anchor`, async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(base);
+    const scroll = page.locator("[data-site-right-scroll]");
+    await expect(scroll).toBeVisible();
+    // Give the existing wall a stable long-page geometry without writing user data.
+    await page.addStyleTag({ content: '[data-testid="grid-layout"] { min-height: 4000px; }' });
+    const before = await scroll.evaluate((element, position) => {
+      const max = element.scrollHeight - element.clientHeight;
+      element.scrollTop = position === "bottom" ? max : position === "middle" ? 500 : 0;
+      return element.scrollTop;
+    }, startingPosition);
+    await page.getByRole("link", { name: "Add bricks", exact: true }).click();
+    const drawer = page.locator('[data-drawer="bottom"]');
+    await expect(drawer).toHaveAttribute("data-state", "open");
+    await expect
+      .poll(() => scroll.evaluate((element) => element.scrollTop))
+      .toBe(before + (startingPosition === "bottom" ? 450 : 0));
+    // Viewport changes preserve bottom alignment only for an already pinned reader.
+    await page.setViewportSize({ width: 1440, height: 800 });
+    await expect(page.locator("[data-editor-drawer-space]")).toHaveCSS("padding-bottom", "400px");
+    await expect
+      .poll(() => scroll.evaluate((element) => element.scrollTop))
+      .toBe(before + (startingPosition === "bottom" ? 500 : 0));
+    // Closing must respect scrolling performed while open, not restore the old offset.
+    await scroll.evaluate((element) => {
+      element.scrollTop = 250;
+    });
+    await drawer.getByRole("link", { name: "Close drawer", exact: true }).click();
+    await expect(drawer).toBeHidden();
+    await expect(scroll).toHaveJSProperty("scrollTop", 250);
+    await expect(page.locator("[data-editor-drawer-space]")).toHaveCSS("padding-bottom", "0px");
+  });
+}
+
+test("short editor pages and direct drawer links do not force a bottom scroll", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(base);
+  const scroll = page.locator("[data-site-right-scroll]");
+  await expect(scroll).toBeVisible();
+  await page.addStyleTag({
+    content:
+      '[data-testid="grid-layout"] { height: 0 !important; min-height: 0 !important; overflow: hidden; }',
+  });
+  await page.getByRole("link", { name: "Add bricks", exact: true }).click();
+  await expect(page.locator('[data-drawer="bottom"]')).toHaveAttribute("data-state", "open");
+  await expect(scroll).toHaveJSProperty("scrollTop", 0);
+  await page.goto(base + "/modules");
+  await expect(page.locator("[data-editor-drawer-space]")).toHaveCSS("padding-bottom", "450px");
+  await expect(scroll).toHaveJSProperty("scrollTop", 0);
+});
+
+test("closing restores focus and removes the persistent drawer from keyboard access", async ({
+  page,
+}) => {
+  await page.goto(base);
+  const opener = page.getByRole("link", { name: "Add bricks", exact: true });
+  await opener.focus();
+  await opener.press("Enter");
+  const drawer = page.locator('[data-drawer="bottom"]');
+  await drawer.getByRole("link", { name: "Close drawer", exact: true }).click();
+  await expect(drawer).toHaveAttribute("inert", "");
+  await expect(drawer).toHaveAttribute("aria-hidden", "true");
+  await expect(drawer).toBeHidden();
+  await expect(opener).toBeFocused();
+});
+
+test("content growth does not turn a previous bottom position into sticky scrolling", async ({
+  page,
+}) => {
+  await page.goto(base + "/modules");
+  const scroll = page.locator("[data-site-right-scroll]");
+  await expect(scroll).toBeVisible();
+  await page.addStyleTag({ content: '[data-testid="grid-layout"] { min-height: 4000px; }' });
+  const previousTop = await scroll.evaluate((element) => {
+    element.scrollTop = element.scrollHeight;
+    return element.scrollTop;
+  });
+  await page.addStyleTag({ content: '[data-testid="grid-layout"] { min-height: 5000px; }' });
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+      }),
+  );
+  await expect(scroll).toHaveJSProperty("scrollTop", previousTop);
+  await page.setViewportSize({ width: 1280, height: 600 });
+  await expect(page.locator("[data-editor-drawer-space]")).toHaveCSS("padding-bottom", "300px");
+  await expect(scroll).toHaveJSProperty("scrollTop", previousTop);
 });

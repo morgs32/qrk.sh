@@ -2,7 +2,7 @@
 
 import { useMemo, type ReactNode } from "react";
 import { useSelectedLayoutSegments } from "next/navigation";
-import { cn } from "cn";
+import { Drawer } from "@qrk.sh/library/Drawer";
 
 import { useUser } from "@clerk/nextjs";
 import {
@@ -45,17 +45,22 @@ export default function EditorLayout(props: { children: ReactNode }) {
   return (
     <LibraryEditorSession key={documentKey} documentKey={documentKey}>
       <WallViewportProvider>
-        <div
-          data-editor-split
-          className={cn(
-            "grid h-full min-h-0 overflow-hidden transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0,0,0.2,1)] motion-reduce:transition-none",
-            drawerOpen ? "grid-rows-[minmax(0,1fr)_50dvh]" : "grid-rows-[minmax(0,1fr)_0dvh]",
-          )}
-        >
-          <div data-editor-region className="min-h-0 overflow-hidden">
+        <div data-editor-split className="relative h-full min-h-0 overflow-hidden">
+          <div data-editor-region className="h-full min-h-0 overflow-hidden">
             <MainColumns />
           </div>
-          <div className="min-h-0 overflow-hidden">{children}</div>
+          <Drawer
+            side="bottom"
+            open={drawerOpen}
+            animated={
+              drawerOpen ||
+              (typeof document !== "undefined" &&
+                typeof document.startViewTransition === "function")
+            }
+            aria-label="Workspace drawer"
+          >
+            {children}
+          </Drawer>
         </div>
         <Toolbars />
       </WallViewportProvider>

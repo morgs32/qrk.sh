@@ -74,10 +74,20 @@ contains the Library-only routes and layout, not exported application screens.
 | `/bricks.css`                     | `bricks.css`                                | Shared brick styles                                       |
 
 Studio imports `Drawer` directly from `@qrk.sh/library/Drawer`; Library's own app
-imports `../lib/Drawer`. Drawer owns the surface and optional Motion animation,
-not routing, breadcrumbs, or settings actions. Flow mode disables its Motion slide.
-Library animates its surrounding grid rows; Studio adds React view transitions in
-its own client route layout. The drawer is no longer exported by Web.
+imports `../lib/Drawer`. Supplying `open` keeps the shared shell mounted and uses a
+300ms CSS transform for visibility. Library passes its existing local open state,
+including closing without changing the URL. The bottom drawer overlays `50dvh`;
+the editor remains full-height with matching trailing padding. Padding changes
+preserve the current offset, or follow the new bottom when already within 1px of
+it, with clamping on close. Initial deep links do not force a bottom scroll.
+Viewport-height changes use the same rule; ordinary content growth does not.
+
+Library retains live drawer content through exit, then releases it. Reopening
+interrupts cleanup. Closed shells are inert and hidden from assistive technology;
+reduced motion skips the animation. Studio preserves outgoing route pixels with
+its exit-only ViewTransition. Existing Drawer callers without `open` retain the
+optional Motion/flow behavior. Drawer does not own routing, breadcrumbs, or
+settings actions. This replaces plan 007's animated grid-row reservation.
 
 Library and Studio share `ModuleFilmstrip`, including module previews, four-breakpoint
 measurement, and `DraggableBrick`. Each app supplies its own module links through

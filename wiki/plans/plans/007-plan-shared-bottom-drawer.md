@@ -2,6 +2,8 @@
 
 Status: implemented; verification remains partially blocked. Keep this plan active until the outstanding checks below pass.
 
+The persistent overlay drawer design (012) supersedes this plan's animated grid-row reservation and Studio snapshot entrance. Its implementation moves the shell into the persistent editor layout and reserves scroll space with padding. The unrelated outstanding verification recorded below remains historical evidence, not a requirement to restore the old geometry.
+
 ## Implementation
 
 1. Move Web's Drawer module unchanged to Library's `lib/Drawer.tsx`, preserving Drawer and DrawerPresence. Add `/Drawer` as an explicit package export and Vite library entry; externalize the existing framer-motion dependency. Remove the old Web export. Library imports its defining source; Studio imports the public subpath.

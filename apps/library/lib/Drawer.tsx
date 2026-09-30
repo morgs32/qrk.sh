@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, type ReactNode } from "react";
+import { Fragment, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { cn } from "cn";
 
@@ -38,6 +38,7 @@ const sideClassName = {
 export function Drawer(props: {
   side: "left" | "right" | "bottom";
   animated?: boolean;
+  open?: boolean;
   children: ReactNode;
   className?: string;
   layoutMode?: "overlay" | "flow";
@@ -49,19 +50,107 @@ export function Drawer(props: {
     className,
     layoutMode = "overlay",
     animated = true,
+    open,
     "aria-label": ariaLabel,
   } = props;
   const reducedMotion = useReducedMotion();
+  const surface = useRef<HTMLDivElement>(null);
+  const returnFocus = useRef<HTMLElement | null>(null);
+  const hadFocus = useRef(false);
+  const [present, setPresent] = useState(open ?? true);
+  if (open === true && !present) setPresent(true);
+
+  useLayoutEffect(() => {
+    const element = surface.current;
+    if (open === undefined || element === null) return;
+    if (open) {
+      const active = document.activeElement;
+      if (active instanceof HTMLElement && active !== document.body && !element.contains(active)) {
+        returnFocus.current = active;
+      }
+      return;
+    }
+
+    // Route navigation can remove the focused child before this effect runs.
+    if (
+      hadFocus.current &&
+      (document.activeElement === document.body || element.contains(document.activeElement))
+    ) {
+      const previous = returnFocus.current;
+      const target = previous?.isConnected
+        ? previous
+        : previous instanceof HTMLAnchorElement
+          ? [...document.querySelectorAll("a")].find((link) => link.href === previous.href)
+          : undefined;
+      target?.focus({ preventScroll: true });
+    }
+    hadFocus.current = false;
+
+    // No transition event fires for reduced motion or a reversal before first paint.
+    if (
+      !animated ||
+      reducedMotion ||
+      !element
+        .getAnimations()
+        .some(
+          (animation) =>
+            animation instanceof CSSTransition && animation.transitionProperty === "transform",
+        )
+    )
+      setPresent(false);
+  }, [open, animated, reducedMotion]);
+
   const isFlow = layoutMode === "flow";
-  const motionProps = isFlow || !animated ? undefined : sideMotion[side];
+  const motionProps = open !== undefined || isFlow || !animated ? undefined : sideMotion[side];
 
   return (
     <motion.div
+      ref={surface}
       key={`${side}-drawer`}
       data-drawer={side}
       role="dialog"
       aria-label={ariaLabel}
-      aria-hidden={false}
+      data-state={open === undefined ? undefined : open ? "open" : "closed"}
+      aria-hidden={open === false}
+      inert={open === false}
+      onFocusCapture={() => {
+        hadFocus.current = true;
+      }}
+      onBlurCapture={(event) => {
+        if (
+          event.relatedTarget instanceof Node &&
+          !event.currentTarget.contains(event.relatedTarget)
+        ) {
+          hadFocus.current = false;
+        }
+      }}
+      onTransitionEnd={(event) => {
+        if (
+          event.target === event.currentTarget &&
+          event.propertyName === "transform" &&
+          open === false
+        ) {
+          setPresent(false);
+        }
+      }}
+      style={
+        open === undefined
+          ? undefined
+          : {
+              ...(side === "bottom" ? { top: "auto", height: "50dvh" } : {}),
+              transform: open
+                ? "translate(0, 0)"
+                : side === "bottom"
+                  ? "translateY(100%)"
+                  : side === "left"
+                    ? "translateX(-100%)"
+                    : "translateX(100%)",
+              transition:
+                animated && !reducedMotion ? "transform 300ms cubic-bezier(0, 0, 0.2, 1)" : "none",
+              visibility: open || present ? "visible" : "hidden",
+              pointerEvents: open ? undefined : "none",
+            }
+      }
       initial={motionProps?.initial}
       animate={motionProps?.animate}
       exit={motionProps?.exit}
@@ -72,7 +161,9 @@ export function Drawer(props: {
         className,
       )}
     >
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">{children}</div>
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+        {open === undefined || open || present ? children : null}
+      </div>
     </motion.div>
   );
 }

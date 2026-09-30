@@ -1,7 +1,7 @@
 # Persistent overlay drawer design
 
 **Date:** 2026-09-29
-**Status:** Implemented; authenticated automated browser verification outstanding
+**Status:** Implemented and archived at user direction; authenticated automated browser verification is tracked in [TODOs](../../../TODOS.md).
 
 ## Problem Statement
 

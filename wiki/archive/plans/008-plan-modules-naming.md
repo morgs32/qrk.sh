@@ -1,6 +1,6 @@
 # Rename Studio's brick-group catalog to modules
 
-Status: implemented; authenticated Playwright verification remains blocked. Keep active until that suite is verified.
+Status: implemented and archived at user direction; authenticated Playwright verification remains in [TODOs](../../../TODOS.md).
 
 ## Implementation
 
@@ -42,7 +42,7 @@ const {
 1. Update existing Studio catalog, detail, drawer, grid, and history checks. Extend shell checks for the new URLs, encoded detail segments, and both removed URL forms.
 2. Regenerate Next route types; run Studio typecheck and lint through `pnpm nx`, plus affected formatting and diff checks.
 3. Run affected Studio Playwright checks with valid authentication and an existing editor. Manually verify Add bricks, module detail, breadcrumb return, and close. Record missing fixtures and unrelated runtime failures as blockers.
-4. Search active source and documentation for stale names, allowing intentional old-URL rejection checks and this rename record. Do not modify or run Library tests. Archive this plan only after implementation and verification.
+4. Search active source and documentation for stale names, allowing intentional old-URL rejection checks and this rename record. Do not modify or run Library tests. Outstanding authenticated verification is tracked in [TODOs](../../../TODOS.md).
 
 ## Verification results, 2026-09-29
 

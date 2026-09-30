@@ -2,9 +2,9 @@
 
 **Date:** 2026-09-29
 
-**Status:** Superseded by [011 — Inline Text editing](011-plan-text-brick-editing.md); not completed.
+**Status:** Superseded by [011 — Inline Text editing](011-plan-text-brick-editing.md); not completed. Archived at user direction.
 
-**Design:** [`../archived/010-spec-responsive-article-layout.md`](../archived/010-spec-responsive-article-layout.md)
+**Design:** [010 spec](../specs/010-spec-responsive-article-layout.md)
 
 ## Goal and boundaries
 

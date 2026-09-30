@@ -60,7 +60,7 @@ export interface UploadOptions {
    * @param {AbortSignal} signal - Signal that can be used to abort the upload
    * @returns {Promise<string>} Promise resolving to the URL of the uploaded file
    */
-  upload: (
+  upload?: (
     file: File,
     onProgress: (event: { progress: number }) => void,
     signal: AbortSignal,
@@ -95,6 +95,7 @@ function useFileUpload(options: UploadOptions) {
   }, []);
 
   const uploadFile = async (file: File): Promise<string | null> => {
+    if (!options.upload) return null;
     if (file.size === 0) {
       options.onError?.(new Error("Uploaded file is empty"));
       return null;
@@ -136,10 +137,6 @@ function useFileUpload(options: UploadOptions) {
     setFileItems((prev) => [...prev, newFileItem]);
 
     try {
-      if (!options.upload) {
-        throw new Error("Upload function is not defined");
-      }
-
       const url = await options.upload(
         file,
         (event: { progress: number }) => {
@@ -452,7 +449,8 @@ export const ImageUploadNode: React.FC<NodeViewProps> = (props) => {
   const { fileItems, uploadFiles, removeFileItem, clearAllFiles } = useFileUpload(uploadOptions);
 
   const handleUpload = async (files: File[]) => {
-    if (!editor.isEditable || uploading.current || fileItems.length > 0) return;
+    if (!extension.options.upload || !editor.isEditable || uploading.current || fileItems.length > 0)
+      return;
     uploading.current = true;
     try {
       const urls = await uploadFiles(files);
@@ -499,13 +497,19 @@ export const ImageUploadNode: React.FC<NodeViewProps> = (props) => {
   };
 
   const handleClick = () => {
-    if (editor.isEditable && inputRef.current && fileItems.length === 0) {
+    if (extension.options.upload && editor.isEditable && inputRef.current && fileItems.length === 0) {
       inputRef.current.value = "";
       inputRef.current.click();
     }
   };
 
   const hasFiles = fileItems.length > 0;
+
+  if (!extension.options.upload) {
+    return (
+      <NodeViewWrapper className="tiptap-image-upload">Uploads temporarily disabled</NodeViewWrapper>
+    );
+  }
 
   if (!editor.isEditable) {
     return <NodeViewWrapper className="tiptap-image-upload">Image upload</NodeViewWrapper>;

@@ -1,5 +1,7 @@
 # Article image uploads, resizing, and alignment
 
+Status: Superseded by [plan 011](011-plan-text-brick-editing.md), which removed the article and moved image editing into Text bricks. Archived at user direction; the former article browser checks no longer apply.
+
 ## Goal
 
 Insert an image upload placeholder from the article toolbar, upload through the existing authenticated API Worker into R2, and persist the resulting URL and block presentation in the existing article JSON. Positioning means left, center, or right alignment.
@@ -52,7 +54,7 @@ Insert an image upload placeholder from the article toolbar, upload through the 
 3. Check file input/drop, progress, cancellation/removal, invalid input, authentication failure, and retry.
 4. Confirm Worker/R2 upload and retrieval.
 5. Check resize, left/center/right alignment, move, undo/redo, and JSON reload persistence; existing images and narrow widths must render correctly.
-6. Do not write or run library tests. Archive only after implementation and verification are complete.
+6. Do not write or run library tests. The article was later removed by plan 011, so its outstanding browser checks no longer apply.
 
 ## Defaults
 
@@ -65,4 +67,4 @@ Reuse existing API contracts and public R2 URLs; no database migration. Empty pl
 3. Scoped lint passed for all four changed TypeScript files. The five touched source/style files were formatted; image SCSS compiled successfully.
 4. A temporary JSDOM integration harness mounted the actual Article, toolbar, upload node and resize extension, with Clerk/session persistence and XMLHttpRequest replaced at their boundaries. It passed required-heading protection, cursor insertion, MIME/empty/size validation, file selection and drop, progress callbacks, authentication/HTTP/malformed-response failures and retry, URL persistence, left/center/right controls, width resizing, undo/redo, JSON reload, cancellation, node deletion, late completion and unmount cancellation. This verifies application behavior with simulated network/authentication; it does not claim a live Clerk upload or browser geometry check. The existing duplicate Underline extension warning remains outside scope.
 5. `pnpm nx run @qrk.sh/api:test:workerd` passed all five existing tests, including upload into the local R2 binding and byte-for-byte retrieval through the returned URL. Clerk token verification is mocked by that existing suite.
-6. Live browser verification remains blocked: Chrome returned `ERR_BLOCKED_BY_CLIENT` for the local Studio preview. Actual authenticated browser upload, drag repositioning, full reload through Zerospin, and visual/narrow-screen checks remain unverified. Keep this plan active until those checks can run. No library tests were written or run.
+6. Live browser verification was blocked: Chrome returned `ERR_BLOCKED_BY_CLIENT` for the local Studio preview. Actual authenticated browser upload, drag repositioning, full reload through Zerospin, and visual/narrow-screen checks for the former article editor were unverified. No library tests were written or run.

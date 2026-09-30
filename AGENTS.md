@@ -10,6 +10,7 @@
 
 ## Approval and code conventions
 
+- Modules own their module-specific behavior. Before adding module-specific logic or dependencies to application code or shared module contracts, warn the user, identify the proposed coupling, and explain why the module cannot own it.
 - Ask before introducing abstractions, single-call wrappers, barrels, re-exports, or concision refactors; provide the proposed name, purpose, and exact call sites. Import symbols from their defining modules.
 - Ask before adding named types or interfaces; provide the name, shape, and use sites. Inline single-use shapes and follow [named-type guidance](./wiki/patterns/typescript/named-types.md); do not export a type just to share a small parent/child shape.
 - Never add `ALLOWED_CAST` without explicit human authorization. Read the relevant code before adding or retaining casts; ask if a necessary cast requires a marker. No assertion chains that hide mismatches; use `as const` only when requested or demonstrably required.
@@ -37,7 +38,10 @@ Direct source edits are allowed in `vendor/zerospin`, but they must eventually b
 
 ## Plans
 
-Keep specs at `wiki/plans/specs/XXX-spec-<topic>.md` and implementation plans at `wiki/plans/plans/XXX-plan-<topic>.md`. Use one above the highest existing three-digit prefix for new specs; reuse the spec number/topic for its plan. Revise in place, use ordered steps and numbered review findings, archive specs after conversion, and archive plans only after implementation and verification.
+Use `$spec` to resolve unsettled design decisions and write implementation plans at `wiki/plans/XXX-plan-<topic>.md`. Do not create new spec files; existing specs remain under `wiki/specs/` and `wiki/archive/specs/`. Record a settled decision in `wiki/adrs/` only when it is hard to reverse, surprising without context, and the result of a real trade-off. If no glossary exists, ask before creating one. Revise plans in place and use ordered steps and numbered review findings.
+
+Move plans to `wiki/archive/plans/` when no work remains: verified completion or user-approved cancellation/supersession, with any continuing work linked. Mark a replaced ADR **Superseded** and link its successor; move it to `wiki/archive/adrs/` only when it no longer governs anything and archival is wanted. Completing a plan does not retire its ADRs.
+At the end of each implementation, try to archive its completed plan if one exists. If it cannot be archived, explain why and ask the user how to resolve the blocker.
 Plans created by agents must include gratuitous annotated examples and annotated code snippets.
 
 <!-- nx configuration start-->

@@ -139,4 +139,4 @@ When the article is off in the effective page preview, the base toolbar does not
 ## Further Notes
 
 1. Current source is authoritative: Compose exists despite the older removal plan.
-2. This design was converted to `wiki/plans/plans/010-plan-responsive-article-layout.md`; no issue was created.
+2. This design was converted to [plan 010](../plans/010-plan-responsive-article-layout.md), which was later superseded and archived; no issue was created.

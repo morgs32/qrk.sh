@@ -13,5 +13,5 @@ export const textBrickComponent = defineComponent({
     }),
   },
   description:
-    "Tiptap document; editable when placed in a wall. Bind content from module data ($state /content).",
+    "Tiptap document rendered as read-only HTML. Bind content from module data ($state /content).",
 });

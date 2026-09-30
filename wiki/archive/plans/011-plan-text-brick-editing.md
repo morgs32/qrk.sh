@@ -1,6 +1,27 @@
 # 011 — Inline Text editing in the standalone wall
 
-**Status:** Implemented; active pending authenticated Studio and upload verification.
+**Status:** Implemented for Studio; Library's inline host was superseded by [plan 014](014-plan-library-drawer-text-editing.md). Archived at user direction; authenticated Studio and upload checks are in [TODOs](../../../TODOS.md).
+
+## Current host split — 2026-09-30
+
+The ordered steps and 2026-09-29 verification record below describe the original inline implementation. Plan 014 replaces Library's wall activation, immediate Text staging, breakpoint exit, and outside-click deactivation with drawer-local editing. Studio retains those inline behaviors. The wall's natural-height measurement and inactive-pane guard remain in Library; they react only to committed content. Remaining drawer, Studio, and upload checks are tracked in [TODOs](../../../TODOS.md).
+
+```tsx
+// Library, step 1 — Both activation paths open this brick's detail route.
+onDoubleClick={() => navigate({ to: "/bricks/$brickId", params: { brickId } })}
+// Library, step 2 — The drawer Form writes only its own draft; JSON has another draft.
+<Form state={textDraft} onChange={setTextDraft} uploadImage={uploadImage} onError={setError} />
+// Library, step 3 — Save stages one complete state and stays in the drawer;
+// Cancel discards only the Text draft. Closing discards both drafts.
+```
+
+```tsx
+// Studio, step 1 — The wall host activates an inline editor for its brick.
+onTextEditStart(brickId);
+// Studio, step 2 — Each changed document stages immediately through the
+// existing onDocumentChange callback; its floating toolbar stays on the wall.
+onDocumentChange(document);
+```
 
 ## Summary
 
@@ -51,7 +72,7 @@ Extend BrickWall with controlled Text activation, active-pane status, and upload
 2. Verify growth/shrink, rounding, width changes, images/fonts, collision chains, retained gaps, Compact, no gesture/observer races, and shared content/independent breakpoint geometry.
 3. Update backend checks for reduced contracts and article removal while preserving ownership checks.
 4. Run affected Nx tsc/lint, Studio/Library builds, Studio test:e2e and backend test:workerd, scoped formatting, and diff checks. Never add/modify/run Library tests. Manually check its four panes.
-5. Require real server readiness and authenticated identity for browser verification. Record blockers, never reset storage automatically, and keep this plan active until verification completes.
+5. Require real server readiness and authenticated identity for browser verification. Record blockers and never reset storage automatically. Outstanding checks are tracked in [TODOs](../../../TODOS.md).
 
 ## Exclusions
 

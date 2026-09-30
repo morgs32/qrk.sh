@@ -5,7 +5,8 @@ import { useParams } from "next/navigation";
 import type { ReactNode } from "react";
 import { modulesHash } from "@qrk.sh/library";
 import { libraryModule } from "@qrk.sh/library/libraryModule";
-import { useLibrarySession } from "@qrk.sh/library/createLibraryStandaloneSession";
+import { userSession } from "@/zerospin/userSession";
+import { pageV1 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
 import { makeModelIdSchema } from "@zerospin/core/models/make/makeModelIdSchema";
 import { makeEffectSchema } from "@zerospin/schema";
 import { useLiveQuery } from "@zerospin/react";
@@ -28,14 +29,22 @@ export default function BrickDrawerLayout(props: { children: ReactNode }) {
     moduleId?: string;
     brickId?: string;
   }>();
-  const session = useLibrarySession();
+  const session = userSession;
   const decodedBrickId = Schema.decodeUnknownResult(makeModelIdSchema(libraryModule.models.brick))(
     brickId,
   );
+  const decodedPageId = Schema.decodeUnknownResult(makeModelIdSchema(Page))(pageId);
+  const { data: page } = useLiveQuery({
+    session,
+    key: Result.isSuccess(decodedPageId) ? decodedPageId.success : null,
+    query: (db, id) => db.query.page.findFirst({ where: { id: { eq: id ?? "pag_missing" } } }),
+  });
   const brickQuery = useLiveQuery({
     session,
-    key: Result.isSuccess(decodedBrickId) ? decodedBrickId.success : null,
-    query: (db, id) => db.query.brick.findFirst({ where: { id: { eq: id ?? "brk_missing" } } }),
+    key: { brickId: Result.isSuccess(decodedBrickId) ? decodedBrickId.success : null, wallId: page?.wallId },
+    query: (db, { brickId: id, wallId }) => db.query.brick.findFirst({
+      where: { id: { eq: id ?? "brk_missing" }, wallId: { eq: wallId ?? "wal_missing" } },
+    }),
   });
   const decodedModule = Schema.decodeUnknownResult(
     makeEffectSchema({ moduleId: libraryModule.models.brick.attributes.moduleId }),

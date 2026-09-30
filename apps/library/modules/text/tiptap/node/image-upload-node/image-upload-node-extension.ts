@@ -117,6 +117,7 @@ export const ImageUploadNode = Node.create<ImageUploadNodeOptions>({
       setImageUploadNode:
         (options) =>
         ({ commands }) => {
+          if (!this.options.upload) return false;
           return commands.insertContent({
             type: this.name,
             attrs: options,
@@ -131,6 +132,7 @@ export const ImageUploadNode = Node.create<ImageUploadNodeOptions>({
   addKeyboardShortcuts() {
     return {
       Enter: ({ editor }) => {
+        if (!this.options.upload) return false;
         const { selection } = editor.state;
         const { nodeAfter } = selection.$from;
 

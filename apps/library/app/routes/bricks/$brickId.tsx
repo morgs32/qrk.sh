@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { isNonEmptySpec } from "@json-render/core";
 import { Schema } from "effect";
+import { makeEffectSchema } from "@zerospin/schema";
 import { newSyncRpcSession } from "@zerospin/core/utils/getApi/newSyncRpcSession/newSyncRpcSession";
 import { stageCommand, useLiveQuery } from "@zerospin/react";
 import { collapseAllNested, defaultStyles, JsonView } from "react-json-view-lite";
@@ -15,6 +16,7 @@ import { libraryModule } from "../../../libraryModule/libraryModule";
 import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
 import { modulesHash } from "../../../lib/modulesHash";
+import type { IModule } from "../../../lib/types";
 import { useWallViewport } from "../../../lib/WallViewportProvider";
 import type { LibraryApi } from "../../../worker/LibraryApi.public";
 import type { IScrapeError } from "../../../worker/types.public";
@@ -42,10 +44,15 @@ const specContractByModuleId = {
 } as const;
 
 function BrickDetail() {
+  const { brickId: brickIdParam } = Route.useParams();
+  if (!isBrickId(brickIdParam)) throw notFound();
+  return <BrickDetailContent key={brickIdParam} brickId={brickIdParam} />;
+}
+
+function BrickDetailContent(props: { brickId: `brk_${string}` }) {
+  const { brickId } = props;
   const { activeBreakpoint } = useWallViewport();
   const breakpoint = activeBreakpoint ?? "sm";
-  const { brickId: brickIdParam } = Route.useParams();
-  const brickId = isBrickId(brickIdParam) ? brickIdParam : null;
   const session = useLibrarySession();
   const [generatePrompt, setGeneratePrompt] = useState("");
   const [isGeneratingSpec, setIsGeneratingSpec] = useState(false);
@@ -53,13 +60,18 @@ function BrickDetail() {
   const [generateRequestError, setGenerateRequestError] = useState<string>();
   const [commandError, setCommandError] = useState<string | null>(null);
   const [stateDraft, setStateDraft] = useState<string | null>(null);
+  const [formDraft, setFormDraft] = useState<{ state: unknown } | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [jsonCommandError, setJsonCommandError] = useState<string | null>(null);
+  const [acceptedState, setAcceptedState] = useState<{ state: unknown } | null>(null);
+  const [editorEpoch, setEditorEpoch] = useState(0);
 
   const brickQuery = useLiveQuery({
     session,
     key: brickId,
     query: (db, queriedBrickId) =>
       db.query.brick.findFirst({
-        where: { id: { eq: queriedBrickId ?? "brk_missing" } },
+        where: { id: { eq: queriedBrickId } },
       }),
   });
   const placementQuery = useLiveQuery({
@@ -83,7 +95,17 @@ function BrickDetail() {
   });
 
   const brickRow = brickQuery.data;
-  if (brickId === null || brickRow === undefined) {
+  useEffect(() => {
+    if (
+      acceptedState !== null &&
+      brickRow !== undefined &&
+      JSON.stringify(brickRow.state) === JSON.stringify(acceptedState.state)
+    ) {
+      setAcceptedState(null);
+    }
+  }, [acceptedState, brickRow]);
+
+  if (brickRow === undefined) {
     throw notFound();
   }
 
@@ -92,11 +114,28 @@ function BrickDetail() {
     throw notFound();
   }
 
-  const brickModule = modulesHash[brickRow.moduleId];
+  const brickModule: IModule<typeof brickRow.moduleId> = modulesHash[brickRow.moduleId];
 
   const brickState = brickRow.state;
-  const committedStateJson = JSON.stringify(brickState, null, 2);
+  const committedState = acceptedState?.state ?? brickState;
+  const committedStateJson = JSON.stringify(committedState, null, 2);
   const stateEditorValue = stateDraft ?? committedStateJson;
+  const StateSchema = Schema.toType(makeEffectSchema(brickModule.stateShape));
+  const stateSchema = brickModule.hasPlaceholder ? Schema.NullOr(StateSchema) : StateSchema;
+  let parsedJson: unknown = null;
+  let jsonError: string | null = null;
+  try {
+    parsedJson = Schema.decodeUnknownSync(stateSchema)(JSON.parse(stateEditorValue), {
+      onExcessProperty: "ignore",
+    });
+  } catch (cause) {
+    jsonError = cause instanceof Error ? cause.message : "Invalid state JSON";
+  }
+  const formState = formDraft?.state ?? committedState;
+  const formDirty = JSON.stringify(formState) !== JSON.stringify(committedState);
+  const jsonDirty = jsonError === null && JSON.stringify(parsedJson) !== JSON.stringify(committedState);
+  const Form = brickModule.Form;
+
   const hasJsonRender = brickModule.registry !== undefined;
   const rawSpec = placement.spec;
   const placementSpec =
@@ -130,8 +169,76 @@ function BrickDetail() {
                 {commandError}
               </div>
             ) : null}
+            {Form !== undefined ? (
+              <OrderedSection label="Text">
+                <div className="flex flex-col gap-3 py-4">
+                  <Form
+                    key={editorEpoch}
+                    state={formState}
+                    onChange={(state) => {
+                      setFormDraft({ state });
+                      setFormError(null);
+                    }}
+                  />
+                  {formError !== null ? (
+                    <div className="rounded-md border border-red-200 bg-red-50 p-3" role="alert">
+                      {formError}
+                    </div>
+                  ) : null}
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      disabled={!formDirty}
+                      onClick={() => {
+                        try {
+                          const result = stageCommand({
+                            session,
+                            contractName: "updateBrickState",
+                            payload: {
+                              brickId: brickRow.id,
+                              moduleId: brickRow.moduleId,
+                              state: formState,
+                            },
+                          });
+                          if (result._tag === "Failure") {
+                            setFormError(
+                              result.failure.message ??
+                                result.failure.code ??
+                                "Failed to save Text",
+                            );
+                            return;
+                          }
+                          setAcceptedState({ state: formState });
+                          setFormDraft(null);
+                          setFormError(null);
+                        } catch (cause) {
+                          setFormError(cause instanceof Error ? cause.message : String(cause));
+                        }
+                      }}
+                    >
+                      Save text
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setFormDraft(null);
+                        setFormError(null);
+                        setEditorEpoch((epoch) => epoch + 1);
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              </OrderedSection>
+            ) : null}
             {hasJsonRender ? (
-              <OrderedSection data-testid="brick-detail-pane" label="Generate spec">
+              <OrderedSection
+                className={Form === undefined ? undefined : "mt-10"}
+                data-testid="brick-detail-pane"
+                label="Generate spec"
+              >
                 <form
                   className="flex flex-col items-start gap-2 py-5"
                   onSubmit={(event) => {
@@ -214,7 +321,10 @@ function BrickDetail() {
                 ) : null}
               </OrderedSection>
             ) : null}
-            <OrderedSection className={hasJsonRender ? "mt-10" : undefined} label="Options">
+            <OrderedSection
+              className={hasJsonRender || Form !== undefined ? "mt-10" : undefined}
+              label="Options"
+            >
               <div className="flex flex-wrap gap-2 py-4">
                 <Button
                   type="button"
@@ -260,12 +370,17 @@ function BrickDetail() {
                 className="flex flex-col gap-2 py-4"
                 onSubmit={(event) => {
                   event.preventDefault();
+                  if (Form !== undefined && (jsonError !== null || !jsonDirty)) return;
                   let parsed: unknown;
-                  try {
-                    parsed = JSON.parse(stateEditorValue);
-                  } catch (cause) {
-                    setCommandError(cause instanceof Error ? cause.message : "Invalid JSON");
-                    return;
+                  if (Form !== undefined) {
+                    parsed = parsedJson;
+                  } else {
+                    try {
+                      parsed = JSON.parse(stateEditorValue);
+                    } catch (cause) {
+                      setCommandError(cause instanceof Error ? cause.message : "Invalid JSON");
+                      return;
+                    }
                   }
                   const result = stageCommand({
                     session,
@@ -277,12 +392,16 @@ function BrickDetail() {
                     },
                   });
                   if (result._tag === "Failure") {
-                    setCommandError(
-                      result.failure.message ?? result.failure.code ?? "Failed to update state",
-                    );
+                    const message =
+                      result.failure.message ?? result.failure.code ?? "Failed to update state";
+                    if (Form !== undefined) setJsonCommandError(message);
+                    else setCommandError(message);
                     return;
                   }
-                  setCommandError(null);
+                  if (Form !== undefined) {
+                    setAcceptedState({ state: parsed });
+                    setJsonCommandError(null);
+                  } else setCommandError(null);
                   setStateDraft(null);
                 }}
               >
@@ -295,9 +414,36 @@ function BrickDetail() {
                   value={stateEditorValue}
                   onChange={(event) => {
                     setStateDraft(event.target.value);
+                    setJsonCommandError(null);
                   }}
                 />
-                <Button type="submit">Save state</Button>
+                {Form !== undefined && jsonError !== null ? (
+                  <div className="rounded-md border border-red-200 bg-red-50 p-3" role="alert">
+                    {jsonError}
+                  </div>
+                ) : null}
+                {Form !== undefined && jsonCommandError !== null ? (
+                  <div className="rounded-md border border-red-200 bg-red-50 p-3" role="alert">
+                    {jsonCommandError}
+                  </div>
+                ) : null}
+                <div className="flex gap-2">
+                  <Button type="submit" disabled={Form !== undefined && !jsonDirty}>
+                    Save state
+                  </Button>
+                  {Form !== undefined ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setStateDraft(null);
+                        setJsonCommandError(null);
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                  ) : null}
+                </div>
               </form>
             </OrderedSection>
             <OrderedSection className="mt-10" label="Brick Definition">

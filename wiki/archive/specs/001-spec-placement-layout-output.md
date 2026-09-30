@@ -1,7 +1,7 @@
 # Placement layout constructors design
 
 **Date:** 2026-09-19  
-**Status:** Approved for planning
+**Status:** Implemented and archived at user direction; remaining verification is tracked in [TODOs](../../../TODOS.md).
 
 ## Problem Statement
 
@@ -75,3 +75,9 @@ guarantees. Idempotence is not an additional guarantee of this change.
 1. Prefix `001` was available when this spec was saved.
 2. The user separately authorized source implementation on 2026-09-20. No
    implementation-plan document is requested.
+
+## Reconciliation record — 2026-09-30
+
+1. Source inspection found `makeCollisionResolvedLayout` and `makeCompactLayout` in the existing layout module. Both clone their working inputs and project the result to fresh `{ i, x, y, w, h }` objects without an explicit `Layout` return annotation.
+2. Add, show, and compact contract writers use their returned items directly as `gridItem`. The former local `toStoredGridItem` helper is absent. [Library placement architecture](../../architecture/browser/LibraryGridItem.md) describes the same five-field output.
+3. This archival pass did not rerun Library typechecking or lint, or exercise the edge cases in the testing decisions above. Those checks are tracked in [TODOs](../../../TODOS.md); no Library tests were written or run.

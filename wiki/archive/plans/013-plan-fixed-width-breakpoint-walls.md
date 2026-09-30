@@ -2,9 +2,9 @@
 
 **Date:** 2026-09-29
 
-**Status:** Implemented; browser acceptance blocked by editor authentication.
+**Status:** Implemented and archived at user direction; browser acceptance checks are tracked in [TODOs](../../../TODOS.md).
 
-**Source:** [Approved design](../archived/013-spec-fixed-width-breakpoint-walls.md).
+**Source:** [Approved design](../specs/013-spec-fixed-width-breakpoint-walls.md).
 
 ## Outcome and constraints
 
@@ -124,7 +124,7 @@
 
 2. Studio's Playwright configuration can build/start its production server, or use a verified existing server through its configured environment variables. Use actual Next/Vite readiness signals and an authenticated editor fixture. The existing suites contain e2e route defaults; reuse the configured editor route/storage state and align the affected suites where necessary. Do not claim success from a login page or unrelated shell tests, reset user storage, or repair unrelated auth/runtime failures.
 3. Confirm the new JavaScript and declaration export resolves in Studio, check changed-file formatting and whitespace, and record results and blockers here. Run no Library test targets and no unrelated whole-repository quality pass.
-4. Keep this plan active until implementation and all required verification are complete. Its source spec is archived after this plan is written; archive the plan only after verified completion. No code changes or test execution are part of authoring this document.
+4. Its source spec was archived after this plan was written. Outstanding verification was transferred to [TODOs](../../../TODOS.md) when this implemented plan was archived at user direction. No code changes or test execution were part of authoring this document.
 
 ## Verification record
 

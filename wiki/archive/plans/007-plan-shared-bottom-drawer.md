@@ -1,6 +1,6 @@
 # One shared Drawer, one Studio drawer route group
 
-Status: implemented; verification remains partially blocked. Keep this plan active until the outstanding checks below pass.
+Status: implemented; drawer geometry was superseded by [spec 012](../specs/012-spec-persistent-overlay-drawer.md). Archived at user direction with outstanding checks in [TODOs](../../../TODOS.md).
 
 The persistent overlay drawer design (012) supersedes this plan's animated grid-row reservation and Studio snapshot entrance. Its implementation moves the shell into the persistent editor layout and reserves scroll space with padding. The unrelated outstanding verification recorded below remains historical evidence, not a requirement to restore the old geometry.
 
@@ -43,4 +43,4 @@ import { Drawer } from "@qrk.sh/library/Drawer";
 
 1. Resolve the existing Library contract-guard API incompatibility in separate work; rerun Library build/typecheck and successful drag/placed-brick checks.
 2. Supply valid Playwright authentication and an existing editor URL; rerun the affected Studio drawer, modules, and brick-detail suite across the configured browsers.
-3. Restore Library app readiness and manually check its drawer. Archive this plan only after the remaining verification succeeds.
+3. Restore Library app readiness and manually check its drawer. These outstanding checks are tracked in [TODOs](../../../TODOS.md).

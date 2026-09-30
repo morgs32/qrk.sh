@@ -1,11 +1,13 @@
 "use client";
 
 import { modulesHash } from "@qrk.sh/library";
-import { useLibrarySession } from "@qrk.sh/library/createLibraryStandaloneSession";
+import { userSession } from "@/zerospin/userSession";
+import { pageV1 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
 import { GridItemPreview } from "@qrk.sh/library/GridItemPreview";
 import { libraryModule } from "@qrk.sh/library/libraryModule";
 import { useWallViewport } from "@qrk.sh/library/WallViewportProvider";
 import { isNonEmptySpec } from "@json-render/core";
+import { makeModelIdSchema } from "@zerospin/core/models/make/makeModelIdSchema";
 import { useLiveQuery } from "@zerospin/react";
 import { Schema } from "effect";
 
@@ -14,7 +16,7 @@ import { useValidatedParams } from "@/hooks/useValidatedParams";
 const ParamsSchema = Schema.Struct({
   username: Schema.String,
   siteId: Schema.String,
-  pageId: Schema.String,
+  pageId: makeModelIdSchema(Page),
   brickId: Schema.String,
 });
 
@@ -26,20 +28,25 @@ export function BrickDetail() {
   const { activeBreakpoint } = useWallViewport();
   const breakpoint = activeBreakpoint ?? "sm";
   const params = useValidatedParams(ParamsSchema);
-  const session = useLibrarySession();
+  const session = userSession;
+  const { data: page } = useLiveQuery({
+    session,
+    key: params.pageId,
+    query: (db, pageId) => db.query.page.findFirst({ where: { id: { eq: pageId } } }),
+  });
   const brickId = isBrickId(params.brickId) ? params.brickId : null;
 
   const brickQuery = useLiveQuery({
     session,
-    key: brickId,
-    query: (db, queriedBrickId) =>
+    key: { brickId, wallId: page?.wallId },
+    query: (db, { brickId: queriedBrickId, wallId }) =>
       db.query.brick.findFirst({
-        where: { id: { eq: queriedBrickId ?? "brk_missing" } },
+        where: { id: { eq: queriedBrickId ?? "brk_missing" }, wallId: { eq: wallId ?? "wal_missing" } },
       }),
   });
   const placementQuery = useLiveQuery({
     session,
-    key: { brickId, breakpoint },
+    key: { brickId: brickQuery.data?.id ?? null, breakpoint },
     query: (db, { brickId: queriedBrickId, breakpoint: queriedBreakpoint }) =>
       db.query.placement.findFirst({
         where: {

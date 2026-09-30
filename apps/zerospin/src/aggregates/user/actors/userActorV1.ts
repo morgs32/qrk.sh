@@ -1,3 +1,4 @@
+import { libraryModule } from "@qrk.sh/library/libraryModule";
 import { RoutePattern } from "@remix-run/route-pattern";
 import {
   defineAggregateActor,
@@ -12,15 +13,11 @@ import { Effect } from "effect";
 import { userClaims } from "../../../claims";
 import { signature } from "../../../signature";
 import { userProvisionerV1 } from "./userProvisionerV1";
-import { createGridV1 as createGrid } from "../contracts/createGrid/CreateGridV1";
 import { createPageV1 as createPage } from "../contracts/createPage/CreatePageV1";
 import { createSiteV1 as createSite } from "../contracts/createSite/CreateSiteV1";
 import { createUserV1 as createUser } from "../contracts/createUser/CreateUserV1";
-import { updateGridV1 as updateGrid } from "../contracts/updateGrid/UpdateGridV1";
 import { updatePageSettingsV1 as updatePageSettings } from "../contracts/updatePageSettings/UpdatePageSettingsV1";
 import { updateSiteSettingsV1 as updateSiteSettings } from "../contracts/updateSiteSettings/UpdateSiteSettingsV1";
-import { brickV1 as Brick } from "../models/brick/BrickV1";
-import { gridV1 as Grid } from "../models/grid/GridV1";
 import { pageV1 as Page } from "../models/page/PageV1";
 import { siteV1 as Site } from "../models/site/SiteV1";
 import { userV1 as User } from "../models/user/UserV1";
@@ -30,7 +27,7 @@ const identity = makeActorIdentity({
   actorPath: RoutePattern.parse("/:clerkUserId"),
 });
 const db = makeActorDbVersion({
-  models: { brick: Brick, grid: Grid, page: Page, site: Site, user: User },
+  models: { ...libraryModule.models, page: Page, site: Site, user: User },
 });
 
 export const userActorV1 = makeAggregateActorVersion(defineAggregateActor({ name: "web" }), {
@@ -89,26 +86,32 @@ export const userActorV1 = makeAggregateActorVersion(defineAggregateActor({ name
     }),
   },
   contracts: {
-    createGrid,
+    ...libraryModule.contracts,
     createPage,
     createSite,
-    updateGrid,
     updatePageSettings,
     updateSiteSettings,
   },
   queries: {
+    wall: db.query.wall.findMany({
+      where: {
+        pages: { site: { user: { clerkUserId: { eq: identity.sql.placeholder("clerkUserId") } } } },
+      },
+    }),
     brick: db.query.brick.findMany({
       where: {
-        grid: {
-          page: {
-            site: { user: { clerkUserId: { eq: identity.sql.placeholder("clerkUserId") } } },
-          },
+        wall: {
+          pages: { site: { user: { clerkUserId: { eq: identity.sql.placeholder("clerkUserId") } } } },
         },
       },
     }),
-    grid: db.query.grid.findMany({
+    placement: db.query.placement.findMany({
       where: {
-        page: { site: { user: { clerkUserId: { eq: identity.sql.placeholder("clerkUserId") } } } },
+        brick: {
+          wall: {
+            pages: { site: { user: { clerkUserId: { eq: identity.sql.placeholder("clerkUserId") } } } },
+          },
+        },
       },
     }),
     page: db.query.page.findMany({

@@ -112,6 +112,10 @@ export function makeModuleView<
 >(
   module: MODULE,
   view: {
+    form?: (props: {
+      state: InferDecodedRow<MODULE["stateShape"]>;
+      onChange: (state: InferDecodedRow<MODULE["stateShape"]>) => void;
+    }) => ReactNode;
     default: {
       component: (props: { state: InferDecodedRow<MODULE["stateShape"]> }) => ReactNode;
       placeholder?: () => ReactNode;
@@ -150,6 +154,9 @@ export function makeModuleView<
   const decodeState = Schema.decodeUnknownSync(
     makeEffectSchema<MODULE["stateShape"]>(module.stateShape),
   );
+  const decodeFormState = Schema.decodeUnknownSync(
+    Schema.toType(makeEffectSchema<MODULE["stateShape"]>(module.stateShape)),
+  );
   const authoredByComponent = new Map<
     typeof view.default.component,
     (props: { state: unknown }) => ReactNode
@@ -171,6 +178,16 @@ export function makeModuleView<
       return Authored;
     },
   );
+
+  function Form(props: {
+    state: unknown;
+    onChange: (state: unknown) => void;
+  }) {
+    const { state, onChange } = props;
+    if (view.form === undefined) return null;
+    const decoded = decodeFormState(state, { onExcessProperty: "ignore" });
+    return view.form({ state: decoded, onChange });
+  }
 
   function viewFor(breakpoint: "sm" | "md" | "lg" | "xl") {
     const overlay = view[breakpoint];
@@ -224,6 +241,7 @@ export function makeModuleView<
     defaultState: module.defaultState,
     defaultSpec,
     placeholder: view.default.placeholder,
+    ...(view.form === undefined ? {} : { Form }),
     ...(registry === undefined ? {} : { registry }),
     viewFor,
     component: Brick,

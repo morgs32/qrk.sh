@@ -194,8 +194,8 @@
     "patterns/typescript",
     "patterns/index.md",
     "patterns",
-    "plans/specs/001-spec-placement-layout-output.md",
-    "plans/specs",
+    "specs/001-spec-placement-layout-output.md",
+    "specs",
     "plans",
     "brick-layout-conventions.md"
   ]

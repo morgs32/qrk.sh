@@ -1,6 +1,7 @@
+import { libraryModule } from "@qrk.sh/library/libraryModule";
 import type { IDb, IResourceDbConfig } from "@zerospin/core/drizzle/types";
 import type { InferCommandPayload } from "@zerospin/core/models/types";
-import { makeContractVersion, primitives, ZerospinError } from "@zerospin/sdk/browser";
+import { makeContractVersion, prefixId, primitives, ZerospinError } from "@zerospin/sdk/browser";
 import { Effect } from "effect";
 import { pageV1 as Page } from "../../models/page/PageV1";
 import { siteV1 as Site } from "../../models/site/SiteV1";
@@ -24,7 +25,7 @@ const createPagePayload = {
 
 export const createPageV1 = makeContractVersion(createPage, {
   payload: createPagePayload,
-  models: { site: Site, user: User, page: Page },
+  models: { site: Site, user: User, page: Page, wall: libraryModule.models.wall },
   guard: Effect.fn("createPage.guard")(function* (props: {
     claims: Readonly<Record<string, unknown>> | null;
     db: Readonly<
@@ -78,10 +79,14 @@ export const createPageV1 = makeContractVersion(createPage, {
   }),
   program: ({ payload, models }) => {
     const { id, siteId, slug, title, description } = payload;
+    // Create the wall before the page that references it in the same command.
+    const wallId = prefixId(libraryModule.models.wall, id);
     return Effect.all([
+      models.wall.create({ resourceId: wallId, attributes: { label: "Library" } }),
       models.page.create({
         resourceId: id,
         attributes: {
+          wallId,
           siteId,
           slug,
           title,

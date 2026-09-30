@@ -4,7 +4,6 @@ import { Drawer } from "../lib/Drawer";
 import { Link, useLocation, useMatch, useNavigate, useParams } from "@tanstack/react-router";
 import { prefixId } from "@zerospin/core/models/prefixId";
 import { stageCommand, useInitializeStandaloneSession, useLiveQuery } from "@zerospin/react";
-import { Schema } from "effect";
 import { useReducedMotion } from "framer-motion";
 import { RotateCcw, X } from "lucide-react";
 import { toast } from "sonner";
@@ -136,11 +135,6 @@ function LayoutBody(props: {
     setDisplayPlaceholders,
   } = useWallViewport();
   const reducedMotion = useReducedMotion() ?? false;
-  const [activeText, setActiveText] = useState<{
-    brickId: string;
-    breakpoint: "sm" | "md" | "lg" | "xl";
-  } | null>(null);
-  if (activeText !== null && activeText.breakpoint !== activeBreakpoint) setActiveText(null);
   const moduleMatch = useMatch({ from: "/modules/$moduleId", shouldThrow: false });
   const moduleId = moduleMatch?.status === "success" ? moduleMatch.context.moduleId : undefined;
   const brickId = params.brickId;
@@ -283,7 +277,35 @@ function LayoutBody(props: {
 
   function closeDrawer() {
     setDrawerOpen(false);
+    if (brickId !== undefined) void navigate({ to: "/" });
   }
+
+  useEffect(() => {
+    if (brickId !== undefined && bricksQuery.data !== undefined && brickRow === undefined) {
+      queueMicrotask(() => {
+        setDrawerOpen(false);
+        void navigate({ to: "/" });
+      });
+    }
+  }, [brickId, brickRow, bricksQuery.data, navigate]);
+
+  useEffect(() => {
+    if (!drawerOpen || brickId === undefined) return;
+    function escape(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      const popoverOpen = document.querySelector(
+        ".tiptap-popover[data-state=open], .tiptap-dropdown-menu-content[data-state=open]",
+      );
+      queueMicrotask(() => {
+        if (!event.defaultPrevented && !popoverOpen) {
+          setDrawerOpen(false);
+          void navigate({ to: "/" });
+        }
+      });
+    }
+    document.addEventListener("keydown", escape, true);
+    return () => document.removeEventListener("keydown", escape, true);
+  }, [drawerOpen, brickId, navigate]);
 
   function compactActiveLayout() {
     if (activeBreakpoint === null || gridGesture) {
@@ -365,65 +387,10 @@ function LayoutBody(props: {
                     breakpoint={row.id}
                     gridWidth={row.previewWidth}
                     isActive={isActive}
-                    activeTextBrickId={
-                      isActive && activeText?.breakpoint === row.id ? activeText.brickId : null
-                    }
-                    onTextEditStart={(brickId) => {
-                      setActiveText({ brickId, breakpoint: row.id });
-                      setDrawerOpen(false);
-                      void navigate({ to: "/" });
-                    }}
-                    onTextEditEnd={() =>
-                      setActiveText((current) => (current?.breakpoint === row.id ? null : current))
-                    }
                     onGestureChange={setGridGesture}
-                    uploadImage={async (file, onProgress, signal) => {
-                      signal?.throwIfAborted();
-                      const formData = new FormData();
-                      formData.set("file", file);
-
-                      return new Promise<string>((resolve, reject) => {
-                        const request = new XMLHttpRequest();
-                        request.open("POST", "/upload");
-                        request.responseType = "json";
-                        request.upload.onprogress = (event) => {
-                          if (event.lengthComputable) {
-                            onProgress?.({
-                              progress: Math.round((event.loaded / event.total) * 100),
-                            });
-                          }
-                        };
-                        request.onload = () => {
-                          try {
-                            if (request.status < 200 || request.status >= 300) {
-                              const body = Schema.decodeUnknownSync(
-                                Schema.Struct({ message: Schema.String }),
-                              )(request.response);
-                              reject(new Error(body.message));
-                              return;
-                            }
-                            const body = Schema.decodeUnknownSync(
-                              Schema.Struct({ url: Schema.String }),
-                            )(request.response);
-                            resolve(body.url);
-                          } catch {
-                            reject(
-                              new Error(`Upload failed (${request.status}): invalid response`),
-                            );
-                          }
-                        };
-                        request.onerror = () =>
-                          reject(new Error("Image upload failed. Check your connection."));
-                        request.onabort = () =>
-                          reject(new DOMException("Upload cancelled", "AbortError"));
-                        const abort = () => request.abort();
-                        signal?.addEventListener("abort", abort, { once: true });
-                        request.onloadend = () => signal?.removeEventListener("abort", abort);
-                        request.send(formData);
-                      });
-                    }}
                     onCommandError={(message) => toast.error(message)}
                     onBrickActivate={({ brickId: activatedBrickId }) => {
+                      setDrawerOpen(true);
                       void navigate({
                         to: "/bricks/$brickId",
                         params: {
@@ -498,7 +465,9 @@ function LayoutBody(props: {
             </div>
             <div className="min-h-0 flex-1 overflow-hidden">
               <div className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden">
-                <div className="min-h-0 min-w-0 flex-1 overflow-y-auto">{children}</div>
+                <div className="min-h-0 min-w-0 flex-1 overflow-y-auto">
+                  {drawerOpen || brickId === undefined ? children : null}
+                </div>
               </div>
             </div>
           </Drawer>

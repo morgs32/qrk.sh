@@ -1,0 +1,73 @@
+# TODOs
+
+## Text brick HTML display
+
+Deferred manual checks from [archived plan 015](wiki/archive/plans/015-plan-text-brick-html-display.md). Library tests must not be written or run.
+
+- [ ] Verify delayed network image loading updates generated HTML's natural height and the active pane's grid height after the image loads, without inactive or outgoing panes staging height updates.
+- [ ] Place another brick below a Text brick, save content that grows into it, and verify collision displacement. Shrinking Text should leave neighboring bricks in place.
+- [ ] Verify Text width resizing through the edge handle, including height remeasurement after gesture completion. Browser-driven resize attempts had no observable effect, so this remains unverified.
+
+## Library drawer Text editing
+
+Deferred manual checks for [archived plan 014](wiki/archive/plans/014-plan-library-drawer-text-editing.md). Library tests must not be written or run.
+
+- [ ] Verify Redo, block dragging, image resizing, and that Text Cancel clears canceled undo history after reopening.
+- [ ] Verify clicking the wall while a draft is dirty leaves it intact, activating the current brick route explicitly reopens the drawer, and deleting the brick discards drafts.
+- [ ] Verify a dirty Text or JSON draft survives committed-state echoes, including an older echo after the other section saves.
+- [ ] Force failed Text and JSON `updateBrickState` staging and verify each section retains its draft, stays open, and shows its own error.
+- [ ] Verify saved content shrinking and collision layout, including that inactive or outgoing breakpoint panes never stage height updates.
+- [ ] Verify Generate spec and visibility actions remain independent of unsaved Text and JSON drafts.
+- [ ] Verify authenticated Studio still uses inline Text editing, its floating toolbar, outside-click deactivation, and immediate staging.
+
+## Studio and Library drawer
+
+Deferred checks from [archived plan 007](wiki/archive/plans/007-plan-shared-bottom-drawer.md) and [archived spec 012](wiki/archive/specs/012-spec-persistent-overlay-drawer.md).
+
+- [ ] Recheck the Library `queryDb`/`db` contract-guard blocker recorded in plan 007. If it remains, resolve it in separate work; rerun Library build/typecheck and verify a module-preview drop creates a brick and placed-brick navigation works.
+- [ ] On a ready Library app, manually check its drawer, including placement and navigation.
+- [ ] With valid Playwright storage state and an existing editor URL, run the complete affected Studio drawer, modules, and brick-detail suites across configured browsers. Check persistent shell identity, route-to-route navigation, Back/Forward and interrupted history, focus, reduced motion, and behavior without View Transitions.
+- [ ] In the authenticated Studio editor, check the remaining drawers and Back/Forward navigation; visit and refresh the old `/compose` URL to confirm the not-found screen. This carries the live navigation check from [archived plan 004](wiki/archive/plans/004-plan-remove-compose.md).
+
+## Studio modules naming
+
+Deferred checks from [archived plan 008](wiki/archive/plans/008-plan-modules-naming.md).
+
+- [ ] With authenticated Studio Playwright fixtures, run the catalog, detail, drawer, grid, and history checks. Verify placed-brick navigation back to module detail and shell identity/history behavior.
+
+## Text uploads temporarily disabled
+
+[Plan 016](wiki/archive/plans/016-plan-disable-text-uploads.md) records the implementation and passing typecheck, lint, and manual browser checks. Uploads remain disabled inside Text; existing images and editing controls remain supported.
+
+- [ ] Implement future Text uploads inside the module without application upload callbacks, request tracking, or upload-specific Save gating. Warn before proposing new module-specific application coupling.
+
+## Studio Text editing and uploads
+
+Deferred checks from [archived plan 011](wiki/archive/plans/011-plan-text-brick-editing.md).
+
+- [ ] In an authenticated Studio editor, verify inline Text activation, drawer closure, focus and popovers, Escape/outside-click exit, formatting, block and image gestures, previews, selection/undo, immediate command staging, failure recovery, navigation, and reload after backup readiness.
+- [ ] When module-owned Text uploads are implemented, verify real completion, progress, cancellation, and late-completion rejection in the supported editors, including exit/deletion cases. Text uploads are currently disabled; do not restore application-owned upload wiring. Historical upload verification remains in the archived plans.
+- [ ] Assess compatibility of existing Studio storage containing the removed V2/article contract against a working identity and backend; the earlier identity failure prevented this check.
+
+## Fixed-width breakpoint walls
+
+Deferred checks from [archived plan 013](wiki/archive/plans/013-plan-fixed-width-breakpoint-walls.md).
+
+- [ ] With an authenticated Studio editor, run the affected Drawers, Grid, and TextEditing Playwright suites across configured browsers. Cover fixed widths and centering, mounted wall identity, transition direction/reversal and reduced motion, selection fallback/recovery, below-360px behavior, and native drag/resize/drop cancellation and cleanup.
+- [ ] Verify drawer anchoring and scroll after drag, Text activation and exit across breakpoint changes, and that hidden/outgoing panes never write measured heights.
+- [ ] Manually verify Library gesture deferral, cancellation, drop, resize, scroll, and transition behavior across breakpoint changes. Do not write or run Library tests.
+
+## Per-breakpoint placement sizes
+
+Deferred acceptance from [archived spec 003](wiki/archive/specs/003-spec-breakpoint-default-placement-size.md). Do not write or run Library tests.
+
+- [ ] In a ready Library app, drop a module at XL from the filmstrip and module detail, including a generated spec. Compare all four new placement sizes with their declared or measured preview defaults and check that a drag waits for all four sizes.
+- [ ] Repeat from the Studio module drawer in an authenticated editor. Check that the drop X/Y starts at the chosen grid cell, subject to bounds and collision resolution, and that existing bricks keep their geometry.
+- [ ] Confirm a stale visible-layout snapshot rejects the drop before mutation. Run Library typechecking and lint when the placement implementation is next changed.
+
+## Placement layout constructors
+
+Deferred verification from [archived spec 001](wiki/archive/specs/001-spec-placement-layout-output.md). Do not write or run Library tests.
+
+- [ ] Inspect `makeCompactLayout` and `makeCollisionResolvedLayout` outputs and their add/show/compact callers for exactly `{ i, x, y, w, h }`, fresh objects, unchanged inputs, and preserved geometry and neighbor handling.
+- [ ] Check empty compaction plus incoming-item insertion and replacement paths. Run Library typechecking and lint when the placement implementation is next changed.

@@ -1,18 +1,18 @@
 "use client";
 
-import { useAuth } from "@clerk/nextjs";
 import { useState } from "react";
 import { toast } from "sonner";
-import { useRouter, useSelectedLayoutSegments } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useReducedMotion } from "framer-motion";
 
 import { BrickWall } from "@qrk.sh/library/BrickWall";
 import { BREAKPOINTS } from "@qrk.sh/library/breakpoints";
 import { WallBreakpointPane } from "@qrk.sh/library/WallBreakpointPane";
-import { useLibrarySession } from "@qrk.sh/library/createLibraryStandaloneSession";
-import { libraryModule } from "@qrk.sh/library/libraryModule";
+import { userSession } from "@/zerospin/userSession";
+import { pageV1 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
 import { useWallViewport } from "@qrk.sh/library/WallViewportProvider";
-import { prefixId } from "@zerospin/core/models/prefixId";
+import { makeModelIdSchema } from "@zerospin/core/models/make/makeModelIdSchema";
+import { useLiveQuery } from "@zerospin/react";
 import { Schema } from "effect";
 
 import { useValidatedParams } from "@/hooks/useValidatedParams";
@@ -20,27 +20,19 @@ import { useValidatedParams } from "@/hooks/useValidatedParams";
 const ParamsSchema = Schema.Struct({
   username: Schema.String,
   siteId: Schema.String,
-  pageId: Schema.String,
+  pageId: makeModelIdSchema(Page),
 });
-
-const WALL_ID = prefixId(libraryModule.models.wall, "library");
 
 export function Grid() {
   const { activeBreakpoint, setGridGesture } = useWallViewport();
-  const session = useLibrarySession();
+  const session = userSession;
   const params = useValidatedParams(ParamsSchema);
+  const { data: page } = useLiveQuery({
+    session,
+    key: params.pageId,
+    query: (db, pageId) => db.query.page.findFirst({ where: { id: { eq: pageId } } }),
+  });
   const router = useRouter();
-  const segments = useSelectedLayoutSegments();
-  const route = segments.find((segment) => !segment.startsWith("("));
-  const [pendingText, setPendingText] = useState<{
-    brickId: string;
-    breakpoint: "sm" | "md" | "lg" | "xl";
-  } | null>(null);
-  const { getToken } = useAuth();
-  const [activeText, setActiveText] = useState<{
-    brickId: string;
-    breakpoint: "sm" | "md" | "lg" | "xl";
-  } | null>(null);
   const reducedMotion = useReducedMotion() ?? false;
   const [transition, setTransition] = useState<{
     active: (typeof BREAKPOINTS)[number]["id"] | null;
@@ -64,14 +56,7 @@ export function Grid() {
   }
   const fromBreakpoint = transition.active === activeBreakpoint ? transition.from : null;
   const direction = transition.active === activeBreakpoint ? transition.direction : 0;
-  if (activeText !== null && activeText.breakpoint !== activeBreakpoint) setActiveText(null);
-  if (pendingText !== null && pendingText.breakpoint !== activeBreakpoint) setPendingText(null);
-
-  if (pendingText !== null && route === undefined && pendingText.breakpoint === activeBreakpoint) {
-    setActiveText(pendingText);
-    setPendingText(null);
-  }
-
+  if (page?.wallId === undefined || page.wallId === null) return null;
   return (
     <div className="min-h-full w-full" data-testid="grid-region">
       <div className="relative min-h-full w-full" data-testid="grid-layout">
@@ -99,75 +84,13 @@ export function Grid() {
             >
               <BrickWall
                 session={session}
-                wallId={WALL_ID}
+                wallId={page.wallId}
                 breakpoint={row.id}
                 gridWidth={row.previewWidth}
                 isActive={isActive}
-                activeTextBrickId={
-                  isActive && activeText?.breakpoint === row.id ? activeText.brickId : null
-                }
+                showTextEditAction={false}
                 onGestureChange={setGridGesture}
                 onCommandError={(message) => toast.error(message)}
-                onTextEditStart={(brickId) => {
-                  setPendingText({ brickId, breakpoint: row.id });
-                  router.push(
-                    `/${encodeURIComponent(params.username)}/site/${encodeURIComponent(params.siteId)}/page/${encodeURIComponent(params.pageId)}`,
-                    { scroll: false },
-                  );
-                }}
-                onTextEditEnd={() =>
-                  setActiveText((current) => (current?.breakpoint === row.id ? null : current))
-                }
-                uploadImage={async (file, onProgress, signal) => {
-                  signal?.throwIfAborted();
-                  const sessionToken = await getToken();
-                  signal?.throwIfAborted();
-                  if (!sessionToken) throw new Error("Sign in to upload images");
-
-                  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
-                  if (!apiBaseUrl) throw new Error("NEXT_PUBLIC_API_URL is required");
-
-                  const formData = new FormData();
-                  formData.set("file", file);
-                  formData.set("siteId", params.siteId);
-
-                  return new Promise<string>((resolve, reject) => {
-                    const request = new XMLHttpRequest();
-                    request.open("POST", `${apiBaseUrl.replace(/\/$/, "")}/upload`);
-                    request.setRequestHeader("Authorization", `Bearer ${sessionToken}`);
-                    request.responseType = "json";
-                    request.upload.onprogress = (event) => {
-                      if (event.lengthComputable) {
-                        onProgress?.({ progress: Math.round((event.loaded / event.total) * 100) });
-                      }
-                    };
-                    request.onload = () => {
-                      try {
-                        if (request.status < 200 || request.status >= 300) {
-                          const body = Schema.decodeUnknownSync(
-                            Schema.Struct({ message: Schema.String }),
-                          )(request.response);
-                          reject(new Error(body.message));
-                          return;
-                        }
-                        const body = Schema.decodeUnknownSync(
-                          Schema.Struct({ url: Schema.String }),
-                        )(request.response);
-                        resolve(body.url);
-                      } catch {
-                        reject(new Error(`Upload failed (${request.status}): invalid response`));
-                      }
-                    };
-                    request.onerror = () =>
-                      reject(new Error("Image upload failed. Check your connection."));
-                    request.onabort = () =>
-                      reject(new DOMException("Upload cancelled", "AbortError"));
-                    const abort = () => request.abort();
-                    signal?.addEventListener("abort", abort, { once: true });
-                    request.onloadend = () => signal?.removeEventListener("abort", abort);
-                    request.send(formData);
-                  });
-                }}
                 onBrickActivate={({ brickId }) => {
                   void router.push(
                     `/${encodeURIComponent(params.username)}/site/${encodeURIComponent(params.siteId)}/page/${encodeURIComponent(params.pageId)}/brick/${encodeURIComponent(brickId)}`,

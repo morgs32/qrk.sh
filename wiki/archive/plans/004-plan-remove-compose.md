@@ -1,7 +1,7 @@
 # Remove Compose from Studio
 
 **Date:** 2026-09-29
-**Status:** Implemented; live browser verification pending
+**Status:** Superseded by [plan 011](011-plan-text-brick-editing.md) and archived at user direction. Compose removal and its not-found route remain current; outstanding live navigation checks are tracked in [TODOs](../../../TODOS.md).
 
 Remove the Compose feature completely: its bottom-toolbar button, `/compose` URL and route, right-hand drawer, feature components, draft state, and styles. Interpret “root” in the browser comment as the Compose route. The main article editor and brick grid remain, along with Add bricks, Set breakpoints, Page settings, and Site settings.
 
@@ -77,11 +77,11 @@ Remove the Compose feature completely: its bottom-toolbar button, `/compose` URL
 3. Use the existing authenticated editor session to confirm the toolbar order, main text editor, brick grid, remaining drawers, and Back/Forward behavior. Visit the old `/compose` URL and refresh to verify the existing not-found screen.
 4. Check hydration with an isolated copy of a pre-removal draft containing `composeBlocks`. Confirm other draft fields survive and decoded state omits Compose data; confirm a subsequent write omits it from persistence. Do not clear or overwrite the user's live drafts for this check.
 5. Run the focused Studio drawer Playwright file when its existing authenticated test prerequisites are available, using the configured Nx target and an isolated test page. If authentication or stale unrelated assertions block execution, report that limitation and the manual results without claiming the suite passed.
-6. Review the final diff for scoped deletions and preservation of pre-existing WIP. Archive this plan only after implementation and verification are complete.
+6. Review the final diff for scoped deletions and preservation of pre-existing WIP. Outstanding live checks were moved to [TODOs](../../../TODOS.md) when this plan was archived at user direction.
 
 ## Implementation check
 
 1. Studio typechecking and lint passed on 2026-09-29.
 2. An isolated rehydration of a version 3 draft with `composeBlocks` retained its title, description, and layout, stripped the Compose field, and omitted it on the next persistence write.
 3. The open editor showed the five remaining toolbar links and its article and brick grid after the source change. Further live navigation was blocked by a Vite import overlay for `ZerospinRouteErrorBoundary.css` while Nx rebuilt that vendor package. The CSS file was restored by the build, but the running dev server still showed the overlay after reload. The authenticated Playwright storage-state prerequisite is not set in this shell.
-4. The plan stays active until the old `/compose` URL and remaining drawers are checked in the live browser or authenticated Playwright run.
+4. The old `/compose` URL and remaining drawer navigation checks were moved to [TODOs](../../../TODOS.md) at archival.

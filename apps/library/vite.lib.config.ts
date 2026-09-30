@@ -27,6 +27,7 @@ export default defineConfig(({ mode }) => {
           GridItemPreview: "lib/GridItemPreview.tsx",
           MeasuredBrickWrapper: "components/brick/MeasuredBrickWrapper.tsx",
           WallViewportProvider: "lib/WallViewportProvider.tsx",
+          WallBreakpointPane: "lib/WallBreakpointPane.tsx",
           breakpoints: "lib/breakpoints.ts",
           BrickWall: "lib/BrickWall.tsx",
           brickDragStore: "lib/brickDragStore.ts",

@@ -1,4 +1,4 @@
-import type { ComponentProps } from "react";
+import { useEffect, useRef, type ComponentProps } from "react";
 
 import { brickDragStore, type IDraggedBrick } from "./brickDragStore";
 
@@ -8,6 +8,21 @@ export function DraggableBrick(
   } & Omit<ComponentProps<"div">, "draggable" | "onDragStart" | "onDragEnd">,
 ) {
   const { brickDef, children, className, ...rest } = props;
+  const published = useRef<IDraggedBrick | null>(null);
+  useEffect(
+    () => () => {
+      if (published.current !== null && brickDragStore.getState().brickDef === published.current) {
+        brickDragStore.getState().setBrickDef(null);
+      }
+    },
+    [],
+  );
+  function clearPublished() {
+    if (published.current !== null && brickDragStore.getState().brickDef === published.current) {
+      brickDragStore.getState().setBrickDef(null);
+    }
+    published.current = null;
+  }
   return (
     <div
       {...rest}
@@ -18,7 +33,9 @@ export function DraggableBrick(
           event.preventDefault();
           return;
         }
-        brickDragStore.getState().setBrickDef(structuredClone(brickDef));
+        const payload = structuredClone(brickDef);
+        published.current = payload;
+        brickDragStore.getState().setBrickDef(payload);
         const surface = event.currentTarget;
         if (surface) {
           const bounds = surface.getBoundingClientRect();
@@ -32,7 +49,7 @@ export function DraggableBrick(
         event.dataTransfer.setData("text/plain", brickDef.moduleId);
       }}
       onDragEnd={() => {
-        brickDragStore.getState().setBrickDef(null);
+        clearPublished();
       }}
     >
       {children}

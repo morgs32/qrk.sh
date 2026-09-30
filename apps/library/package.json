@@ -22,6 +22,10 @@
       "types": "./dist/lib/WallViewportProvider.d.ts",
       "import": "./dist/WallViewportProvider.js"
     },
+    "./WallBreakpointPane": {
+      "types": "./dist/lib/WallBreakpointPane.d.ts",
+      "import": "./dist/WallBreakpointPane.js"
+    },
     "./breakpoints": {
       "types": "./dist/lib/breakpoints.d.ts",
       "import": "./dist/breakpoints.js"

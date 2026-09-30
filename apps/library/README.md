@@ -65,6 +65,7 @@ contains the Library-only routes and layout, not exported application screens.
 | `/BrickWall`                      | `lib/BrickWall.tsx`                         | Interactive wall                                          |
 | `/GridItemPreview`                | `lib/GridItemPreview.tsx`                   | Preview geometry                                          |
 | `/WallViewportProvider`           | `lib/WallViewportProvider.tsx`              | Viewport provider and hooks                               |
+| `/WallBreakpointPane`             | `lib/WallBreakpointPane.tsx`                | Shared directional fixed-width wall pane                  |
 | `/breakpoints`                    | `lib/breakpoints.ts`                        | Breakpoint definitions and sizing                         |
 | `/brickDragStore`                 | `lib/brickDragStore.ts`                     | Shared drag state                                         |
 | `/TiptapDocSchema`                | `lib/TiptapDocSchema.ts`                    | Article document schema                                   |
@@ -221,6 +222,13 @@ downward, including collisions caused by that displacement. **Compact layout** r
 an explicit command. Library reset calls the standalone session's `reset()` to replace its
 backup with the original seed and remounts the viewport. Viewport preference persists in
 localStorage (`qrk-bricks-library-viewport-v1`).
+
+Four fixed-width walls (360, 720, 1080, and 1440px) remain mounted around one
+session. The selected breakpoint returns when it fits again; otherwise the
+largest fitting wall is displayed. During catalog drags and grid drag/resize
+gestures, selection and available width update while the displayed wall waits
+for completion. Below 360px, the insufficient-width message appears as soon as
+the gesture ends; a fitting wall returns immediately when space recovers.
 
 Library's backup-worker Vite plugin serves `/__zerospin/backup-worker.js` and
 `/__zerospin/wa-sqlite-async.wasm` during development and emits them into the

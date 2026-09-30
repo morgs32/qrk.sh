@@ -1,9 +1,17 @@
 "use client";
 
-import { createContext, useContext, useState, type ReactNode, type RefCallback } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+  type RefCallback,
+} from "react";
 import { create, useStore } from "zustand";
 
-import { BREAKPOINTS, resolveBreakpoint } from "./breakpoints";
+import { BREAKPOINTS } from "./breakpoints";
+import { brickDragStore } from "./brickDragStore";
 import { useElementWidthRef } from "./useElementWidthRef";
 
 function createWallViewportStore(initialState?: {
@@ -11,22 +19,56 @@ function createWallViewportStore(initialState?: {
 }) {
   return create<{
     selectedBreakpoint: (typeof BREAKPOINTS)[number]["id"] | null;
+    activeBreakpoint: (typeof BREAKPOINTS)[number]["id"] | null;
     availableWidth: number;
-    wallWidth: number;
+    gridGesture: boolean;
+    catalogDragActive: boolean;
     displayPlaceholders: boolean;
     setSelectedBreakpoint: (breakpoint: (typeof BREAKPOINTS)[number]["id"] | null) => void;
     setDisplayPlaceholders: (displayPlaceholders: boolean) => void;
     setAvailableWidth: (width: number) => void;
-    setWallWidth: (width: number) => void;
+    setGridGesture: (active: boolean) => void;
+    setCatalogDragActive: (active: boolean) => void;
   }>()((set) => ({
     selectedBreakpoint: initialState?.selectedBreakpoint ?? null,
+    activeBreakpoint: null,
     availableWidth: 0,
-    wallWidth: 0,
+    gridGesture: false,
+    catalogDragActive: false,
     displayPlaceholders: false,
-    setSelectedBreakpoint: (breakpoint) => set({ selectedBreakpoint: breakpoint }),
+    setSelectedBreakpoint: (selectedBreakpoint) =>
+      set((state) => ({
+        selectedBreakpoint,
+        activeBreakpoint:
+          state.gridGesture || state.catalogDragActive
+            ? state.activeBreakpoint
+            : resolveActiveBreakpoint(selectedBreakpoint, state.availableWidth),
+      })),
     setDisplayPlaceholders: (displayPlaceholders) => set({ displayPlaceholders }),
-    setAvailableWidth: (width) => set({ availableWidth: width }),
-    setWallWidth: (width) => set({ wallWidth: width }),
+    setAvailableWidth: (availableWidth) =>
+      set((state) => ({
+        availableWidth,
+        activeBreakpoint:
+          state.gridGesture || state.catalogDragActive
+            ? state.activeBreakpoint
+            : resolveActiveBreakpoint(state.selectedBreakpoint, availableWidth),
+      })),
+    setGridGesture: (gridGesture) =>
+      set((state) => ({
+        gridGesture,
+        activeBreakpoint:
+          gridGesture || state.catalogDragActive
+            ? state.activeBreakpoint
+            : resolveActiveBreakpoint(state.selectedBreakpoint, state.availableWidth),
+      })),
+    setCatalogDragActive: (catalogDragActive) =>
+      set((state) => ({
+        catalogDragActive,
+        activeBreakpoint:
+          catalogDragActive || state.gridGesture
+            ? state.activeBreakpoint
+            : resolveActiveBreakpoint(state.selectedBreakpoint, state.availableWidth),
+      })),
   }));
 }
 
@@ -51,7 +93,6 @@ function resolveActiveBreakpoint(
 const WallViewportContext = createContext<{
   store: ReturnType<typeof createWallViewportStore>;
   regionRef: RefCallback<HTMLElement>;
-  wallRef: RefCallback<HTMLElement>;
 } | null>(null);
 
 export function WallViewportProvider(props: {
@@ -63,13 +104,16 @@ export function WallViewportProvider(props: {
   const regionRef = useElementWidthRef((width) => {
     store.getState().setAvailableWidth(width);
   });
-  const wallRef = useElementWidthRef((width) => {
-    store.getState().setWallWidth(width);
-  });
+  useEffect(() => {
+    const forward = (state: ReturnType<typeof brickDragStore.getState>) => {
+      store.getState().setCatalogDragActive(state.brickDef !== null);
+    };
+    const unsubscribe = brickDragStore.subscribe(forward);
+    forward(brickDragStore.getState());
+    return unsubscribe;
+  }, [store]);
 
-  return (
-    <WallViewportContext value={{ store, regionRef, wallRef }}>{children}</WallViewportContext>
-  );
+  return <WallViewportContext value={{ store, regionRef }}>{children}</WallViewportContext>;
 }
 
 export function useWallViewportStoreApi() {
@@ -88,12 +132,12 @@ export function useWallViewport() {
 
   const selectedBreakpoint = useStore(value.store, (state) => state.selectedBreakpoint);
   const availableWidth = useStore(value.store, (state) => state.availableWidth);
-  const wallWidth = useStore(value.store, (state) => state.wallWidth);
+  const activeBreakpoint = useStore(value.store, (state) => state.activeBreakpoint);
+  const gridGesture = useStore(value.store, (state) => state.gridGesture);
   const displayPlaceholders = useStore(value.store, (state) => state.displayPlaceholders);
   const setSelectedBreakpoint = useStore(value.store, (state) => state.setSelectedBreakpoint);
+  const setGridGesture = useStore(value.store, (state) => state.setGridGesture);
   const setDisplayPlaceholders = useStore(value.store, (state) => state.setDisplayPlaceholders);
-  const activeBreakpoint = resolveActiveBreakpoint(selectedBreakpoint, availableWidth);
-  const wallBreakpoint = wallWidth > 0 ? resolveBreakpoint(wallWidth) : null;
 
   return {
     selectedBreakpoint,
@@ -101,10 +145,9 @@ export function useWallViewport() {
     displayPlaceholders,
     setDisplayPlaceholders,
     availableWidth,
-    wallWidth,
-    wallBreakpoint,
     activeBreakpoint,
+    gridGesture,
+    setGridGesture,
     regionRef: value.regionRef,
-    wallRef: value.wallRef,
   };
 }

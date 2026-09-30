@@ -38,7 +38,7 @@ export default defineConfig(({ mode }) => {
     plugins: [
       backupWorkerPlugin(),
       tailwindcss(),
-      cloudflare({ viteEnvironment: { name: "ssr" } }),
+      cloudflare({ viteEnvironment: { name: "ssr" }, inspectorPort: 9231 }),
       tanstackStart({
         srcDirectory: "app",
         client: { entry: "./client.tsx" },

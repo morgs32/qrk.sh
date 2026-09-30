@@ -48,9 +48,9 @@ The page layout keeps site/page drafts, `MainColumns`, the grid, and the library
 
 The drawer overlays the bottom `50dvh` on desktop and mobile. The editor stays full-height; a trailing element adds the same amount of real padding without changing the wall's minimum height. On opening, closing, and reserved-height changes, scrollable editors within 1px of the bottom follow the new bottom; other offsets are preserved and clamped. Initial deep links do not force a bottom scroll. Padding and scroll corrections are immediate, and later content growth does not trigger bottom following.
 
-On every `(bricks)` and Page Settings route, a breakpoint-only toolbar sits `1.5rem` above the drawer, centered over the complete wall composition. **sm / md / lg / xl** select **360 / 720 / 1080 / 1440px** page previews; widths larger than the available composition are disabled. Below 360px, the page shows its insufficient-width message. Selection survives preview-route navigation in the mounted editor session. Leaving preview routes restores fluid page sizing without replacing the wall; returning to a preview route reuses the selection when it fits. The separate `/breakpoints` route retains its close action.
+On every `(bricks)` route, a breakpoint-only toolbar sits `1.5rem` above the drawer, centered over the complete wall composition. **sm / md / lg / xl** select **360 / 720 / 1080 / 1440px** fixed-width walls; widths larger than the available composition are disabled. The four walls stay mounted around one editor session on every editor route. Page Settings displays no breakpoint toolbar. The separate `/breakpoints` route retains its close action. Selection survives drawer navigation and returns when it fits again; otherwise the largest fitting wall is displayed. Catalog drags and wall drag/resize gestures defer the displayed change until completion. Below 360px, the insufficient-width message appears after any active gesture ends and a fitting wall returns immediately when space recovers.
 
-The page contains one full-width wall and one vertical scroll region. Page Settings retains title/description Save/Cancel, and Site Settings keeps its existing persistence. The selected preview sizes the entire wall; brick previews follow its actual rendered width. There is no article, Compose route, or scrolling-mode setting.
+The page contains one full-width scroll region and four centered fixed-width walls. Page Settings retains title/description Save/Cancel, and Site Settings keeps its existing persistence. Brick previews follow the active wall width. There is no article, Compose route, or scrolling-mode setting.
 
 Studio imports the shared `Drawer` from `@qrk.sh/library/Drawer` and passes `open`. Its shell slides with a 300ms CSS transform; editor height and padding do not animate. The route-level React `ViewTransition` preserves only outgoing content for exit, with matching translation and easing. Opening and navigation between drawer routes have no snapshot entrance. Browsers without native View Transitions close immediately. Reduced motion skips positional animation. Closed drawers are inert, hidden from assistive technology, and release their content after exit; focus returns to the opener when it is still appropriate. The transition overlay allows pointer events through. This supersedes plan 007's animated grid-row reservation and snapshot entrance; its unrelated verification items remain separate.
 
@@ -58,7 +58,7 @@ The modules catalog uses `@qrk.sh/library/ModuleFilmstrip`, the same horizontal
 filmstrip as Library. Each module column scrolls vertically; previews use the
 active breakpoint and shared drag payload. Studio supplies Next links to its
 `/modules/[moduleId]` detail routes. The catalog lives at `/modules` under the
-page editor, with a **Modules** breadcrumb and the **Add bricks** toolbar action.
+page editor, with a **Bricks** breadcrumb and the **Add bricks** toolbar action.
 The previous catalog URLs are removed without redirects.
 
 ## Browser checks

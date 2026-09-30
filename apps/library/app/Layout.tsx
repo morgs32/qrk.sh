@@ -4,9 +4,8 @@ import { Drawer } from "../lib/Drawer";
 import { Link, useLocation, useMatch, useNavigate, useParams } from "@tanstack/react-router";
 import { prefixId } from "@zerospin/core/models/prefixId";
 import { stageCommand, useInitializeStandaloneSession, useLiveQuery } from "@zerospin/react";
-import { cn } from "cn";
 import { Schema } from "effect";
-import { motion, useAnimationControls, useReducedMotion } from "framer-motion";
+import { useReducedMotion } from "framer-motion";
 import { RotateCcw, X } from "lucide-react";
 import { toast } from "sonner";
 
@@ -14,6 +13,7 @@ import { Button } from "../components/ui/button";
 import { Toaster } from "../components/ui/sonner";
 import { BREAKPOINTS } from "../lib/breakpoints";
 import { BrickWall } from "../lib/BrickWall";
+import { WallBreakpointPane } from "../lib/WallBreakpointPane";
 import { brickDragStore } from "../lib/brickDragStore";
 import { modulesHash } from "../lib/modulesHash";
 import {
@@ -28,11 +28,6 @@ import { librarySession } from "./librarySession";
 
 const WALL_ID = prefixId(libraryModule.models.wall, "library");
 const LIBRARY_VIEWPORT_STORAGE_NAME = "qrk-bricks-library-viewport-v1";
-
-const wallSlideTransition = {
-  duration: 0.3,
-  ease: [0, 0, 0.2, 1] as const,
-};
 
 function readSelectedBreakpoint(persistedState: object): (typeof BREAKPOINTS)[number]["id"] | null {
   if (
@@ -87,91 +82,6 @@ function breakpointIndex(id: (typeof BREAKPOINTS)[number]["id"]) {
   return BREAKPOINTS.findIndex((row) => row.id === id);
 }
 
-function LibraryWallPane(props: {
-  children: ReactNode;
-  previewWidth: number;
-  isActive: boolean;
-  isOutgoing: boolean;
-  isOnStage: boolean;
-  isTransitioning: boolean;
-  direction: 1 | -1 | 0;
-  reducedMotion: boolean;
-  onOutgoingComplete: () => void;
-}) {
-  const {
-    children,
-    previewWidth,
-    isActive,
-    isOutgoing,
-    isOnStage,
-    isTransitioning,
-    direction,
-    reducedMotion,
-    onOutgoingComplete,
-  } = props;
-  const controls = useAnimationControls();
-  const onOutgoingCompleteRef = useRef(onOutgoingComplete);
-  useEffect(() => {
-    onOutgoingCompleteRef.current = onOutgoingComplete;
-  });
-
-  useLayoutEffect(() => {
-    let cancelled = false;
-
-    async function run() {
-      if (!isOnStage) {
-        await controls.set({ x: 0 });
-        return;
-      }
-
-      if (reducedMotion || direction === 0 || !isTransitioning) {
-        await controls.set({ x: 0 });
-        if (isOutgoing && !cancelled) {
-          onOutgoingCompleteRef.current();
-        }
-        return;
-      }
-
-      if (isOutgoing) {
-        const exitX = direction === 1 ? "-100%" : "100%";
-        await controls.start({ x: exitX, transition: wallSlideTransition });
-        if (!cancelled) {
-          onOutgoingCompleteRef.current();
-        }
-        return;
-      }
-
-      if (isActive) {
-        const enterX = direction === 1 ? "100%" : "-100%";
-        await controls.set({ x: enterX });
-        if (cancelled) {
-          return;
-        }
-        await controls.start({ x: 0, transition: wallSlideTransition });
-      }
-    }
-
-    void run();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [controls, direction, isActive, isOnStage, isOutgoing, isTransitioning, reducedMotion]);
-
-  return (
-    <motion.div
-      animate={controls}
-      hidden={!isOnStage}
-      inert={!isActive}
-      className={cn(isOutgoing && "absolute inset-x-0 top-0", isActive && "relative w-full")}
-    >
-      <div className="mx-auto" style={{ width: previewWidth }}>
-        {children}
-      </div>
-    </motion.div>
-  );
-}
-
 export function Layout(props: { children: ReactNode }) {
   const { children } = props;
   const [sessionKey, setSessionKey] = useState(0);
@@ -219,6 +129,8 @@ function LayoutBody(props: {
     regionRef,
     availableWidth,
     activeBreakpoint,
+    gridGesture,
+    setGridGesture,
     setSelectedBreakpoint,
     displayPlaceholders,
     setDisplayPlaceholders,
@@ -228,7 +140,6 @@ function LayoutBody(props: {
     brickId: string;
     breakpoint: "sm" | "md" | "lg" | "xl";
   } | null>(null);
-  const [gridGesture, setGridGesture] = useState(false);
   if (activeText !== null && activeText.breakpoint !== activeBreakpoint) setActiveText(null);
   const moduleMatch = useMatch({ from: "/modules/$moduleId", shouldThrow: false });
   const moduleId = moduleMatch?.status === "success" ? moduleMatch.context.moduleId : undefined;
@@ -302,12 +213,27 @@ function LayoutBody(props: {
     };
   }, [drawerOpen]);
 
-  const hasMeasuredRef = useRef(false);
-  const previousBreakpointRef = useRef<(typeof BREAKPOINTS)[number]["id"] | null>(null);
-  const [fromBreakpoint, setFromBreakpoint] = useState<(typeof BREAKPOINTS)[number]["id"] | null>(
-    null,
-  );
-  const [direction, setDirection] = useState<1 | -1 | 0>(0);
+  const [transition, setTransition] = useState<{
+    active: (typeof BREAKPOINTS)[number]["id"] | null;
+    from: (typeof BREAKPOINTS)[number]["id"] | null;
+    direction: 1 | -1 | 0;
+    version: number;
+  }>({ active: null, from: null, direction: 0, version: 0 });
+  if (transition.active !== activeBreakpoint) {
+    setTransition({
+      active: activeBreakpoint,
+      from: transition.active !== null && activeBreakpoint !== null ? transition.active : null,
+      direction:
+        transition.active !== null && activeBreakpoint !== null
+          ? breakpointIndex(activeBreakpoint) > breakpointIndex(transition.active)
+            ? 1
+            : -1
+          : 0,
+      version: transition.version + 1,
+    });
+  }
+  const fromBreakpoint = transition.active === activeBreakpoint ? transition.from : null;
+  const direction = transition.active === activeBreakpoint ? transition.direction : 0;
 
   const placementsQuery = useLiveQuery({
     session,
@@ -335,26 +261,6 @@ function LayoutBody(props: {
       setDrawerOpen(true);
     }
   }
-
-  useEffect(() => {
-    if (activeBreakpoint === null) {
-      return;
-    }
-    if (!hasMeasuredRef.current) {
-      hasMeasuredRef.current = true;
-      previousBreakpointRef.current = activeBreakpoint;
-      return;
-    }
-    const previous = previousBreakpointRef.current;
-    previousBreakpointRef.current = activeBreakpoint;
-    if (previous === null || previous === activeBreakpoint) {
-      return;
-    }
-    const previousIndex = breakpointIndex(previous);
-    const nextIndex = breakpointIndex(activeBreakpoint);
-    setFromBreakpoint(previous);
-    setDirection(nextIndex > previousIndex ? 1 : -1);
-  }, [activeBreakpoint]);
 
   useEffect(() => {
     function persist() {
@@ -423,7 +329,7 @@ function LayoutBody(props: {
           data-brick-scroll-root=""
           className="relative h-full min-h-0 min-w-0 overflow-x-hidden overflow-y-auto pt-14"
         >
-          {availableWidth > 0 && availableWidth < BREAKPOINTS[0].previewWidth && (
+          {availableWidth > 0 && activeBreakpoint === null && (
             <p className="p-4" role="status">
               At least {BREAKPOINTS[0].previewWidth}px is needed to preview the grid.
             </p>
@@ -435,8 +341,9 @@ function LayoutBody(props: {
               const isOnStage = isActive || isOutgoing;
               const isTransitioning = fromBreakpoint !== null;
               return (
-                <LibraryWallPane
+                <WallBreakpointPane
                   key={row.id}
+                  breakpoint={row.id}
                   previewWidth={row.previewWidth}
                   isActive={isActive}
                   isOutgoing={isOutgoing}
@@ -445,7 +352,11 @@ function LayoutBody(props: {
                   direction={direction}
                   reducedMotion={reducedMotion}
                   onOutgoingComplete={() => {
-                    setFromBreakpoint((current) => (current === row.id ? null : current));
+                    setTransition((current) =>
+                      current.version === transition.version && current.from === row.id
+                        ? { ...current, from: null }
+                        : current,
+                    );
                   }}
                 >
                   <BrickWall
@@ -521,7 +432,7 @@ function LayoutBody(props: {
                       });
                     }}
                   />
-                </LibraryWallPane>
+                </WallBreakpointPane>
               );
             })}
           </div>

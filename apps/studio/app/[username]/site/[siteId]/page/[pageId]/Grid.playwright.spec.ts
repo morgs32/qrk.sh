@@ -1,6 +1,6 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
-const pageBase = "/e2e/site/e2e/page/home";
+const pageBase = process.env.PLAYWRIGHT_EDITOR_PATH ?? "/e2e/site/e2e/page/home";
 
 function drawerBrickPreviewSlot(page: Page, moduleId: string) {
   return page.locator(`[data-brick-drawer-brick-slot][data-brick-drawer-module-id="${moduleId}"]`);
@@ -24,11 +24,110 @@ function centerDistance(
 }
 
 test.describe("Site grid drag", () => {
+  test("placed brick drag and resize defer wall changes until release", async ({ page }) => {
+    await page.setViewportSize({ width: 1600, height: 900 });
+    await page.goto(`${pageBase}/modules`);
+    const toolbar = page.getByRole("toolbar", { name: "Breakpoints", exact: true });
+    await toolbar.getByRole("button", { name: "md preview width" }).click();
+    const grid = page.locator('[data-wall-active="true"] .grid-layout');
+    const slot = drawerBrickPreviewSlot(page, "swatch-and-icon").first();
+    await slot.dragTo(grid, { targetPosition: { x: 100, y: 80 }, steps: 24 });
+    const brick = page.locator('[data-wall-active="true"] [data-brick="swatch-and-icon"]').first();
+    await expect(brick).toBeVisible();
+    const id = await brick.getAttribute("data-brick-id");
+    expect(id).not.toBeNull();
+
+    const dragBox = await brick.boundingBox();
+    if (!dragBox) throw new Error("Missing placed brick");
+    await page.mouse.move(dragBox.x + dragBox.width / 2, dragBox.y + dragBox.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(dragBox.x + dragBox.width / 2 + 80, dragBox.y + dragBox.height / 2 + 80, {
+      steps: 12,
+    });
+    await toolbar
+      .getByRole("button", { name: "lg preview width" })
+      .evaluate((button: HTMLButtonElement) => button.click());
+    await toolbar
+      .getByRole("button", { name: "sm preview width" })
+      .evaluate((button: HTMLButtonElement) => button.click());
+    await page.setViewportSize({ width: 900, height: 900 });
+    await expect(page.locator('[data-wall-breakpoint="md"]')).toHaveAttribute(
+      "data-wall-active",
+      "true",
+    );
+    await page.mouse.up();
+    await expect(page.locator('[data-wall-breakpoint="sm"]')).toHaveAttribute(
+      "data-wall-active",
+      "true",
+    );
+
+    await page.setViewportSize({ width: 1600, height: 900 });
+    await toolbar.getByRole("button", { name: "md preview width" }).click();
+    const resize = page
+      .locator(`[data-wall-active="true"] [data-brick-id="${id}"] .react-resizable-handle`)
+      .first();
+    await expect(resize).toBeVisible();
+    const resizeBox = await resize.boundingBox();
+    if (!resizeBox) throw new Error("Missing resize handle");
+    await page.mouse.move(resizeBox.x + resizeBox.width / 2, resizeBox.y + resizeBox.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(
+      resizeBox.x + resizeBox.width / 2 + 60,
+      resizeBox.y + resizeBox.height / 2 + 60,
+      { steps: 12 },
+    );
+    await toolbar
+      .getByRole("button", { name: "sm preview width" })
+      .evaluate((button: HTMLButtonElement) => button.click());
+    await expect(page.locator('[data-wall-breakpoint="md"]')).toHaveAttribute(
+      "data-wall-active",
+      "true",
+    );
+    await page.mouse.up();
+    await expect(page.locator('[data-wall-breakpoint="sm"]')).toHaveAttribute(
+      "data-wall-active",
+      "true",
+    );
+    await expect(page.locator(`[data-wall-active="true"] [data-brick-id="${id}"]`)).toBeVisible();
+  });
+
+  test("catalog drag defers the displayed wall until cancellation", async ({ page }) => {
+    await page.setViewportSize({ width: 1600, height: 900 });
+    await page.goto(`${pageBase}/modules`);
+    const toolbar = page.getByRole("toolbar", { name: "Breakpoints", exact: true });
+    await toolbar.getByRole("button", { name: "md preview width" }).click();
+    const slot = drawerBrickPreviewSlot(page, "swatch-and-icon").first();
+    await expect(slot).toBeVisible();
+    const box = await slot.boundingBox();
+    if (!box) throw new Error("Missing catalog drag source");
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width / 2 + 35, box.y + box.height / 2 + 35, { steps: 8 });
+    await toolbar
+      .getByRole("button", { name: "lg preview width" })
+      .evaluate((button: HTMLButtonElement) => button.click());
+    await toolbar
+      .getByRole("button", { name: "sm preview width" })
+      .evaluate((button: HTMLButtonElement) => button.click());
+    await page.setViewportSize({ width: 900, height: 900 });
+    await expect(page.locator('[data-wall-breakpoint="md"]')).toHaveAttribute(
+      "data-wall-active",
+      "true",
+    );
+    await page.keyboard.press("Escape");
+    await page.mouse.up();
+    await expect(page.locator('[data-wall-breakpoint="sm"]')).toHaveAttribute(
+      "data-wall-active",
+      "true",
+    );
+    await expect(page.locator('[data-wall-active="true"]')).toHaveJSProperty("clientWidth", 360);
+  });
+
   test("dragging a drawer brick onto the grid creates a new instance", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto(`${pageBase}/modules`, { waitUntil: "load" });
 
-    const grid = page.locator(".grid-layout");
+    const grid = page.locator('[data-wall-active="true"] .grid-layout');
     await expect(grid).toBeVisible({ timeout: 90_000 });
 
     const newBricks = gridLocateByBrickIdentity(grid, "swatch-and-icon");
@@ -59,7 +158,7 @@ test.describe("Site grid drag", () => {
     await page.goto(`${pageBase}/modules`, { waitUntil: "load" });
 
     const layout = page.getByTestId("grid-layout");
-    const grid = page.locator(".grid-layout");
+    const grid = page.locator('[data-wall-active="true"] .grid-layout');
     await expect(grid).toBeVisible({ timeout: 90_000 });
     await expect(layout).toBeVisible();
 
@@ -119,7 +218,7 @@ test.describe("Site grid drag", () => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto(`${pageBase}/modules`, { waitUntil: "load" });
 
-    const grid = page.locator(".grid-layout");
+    const grid = page.locator('[data-wall-active="true"] .grid-layout');
     await expect(grid).toBeVisible({ timeout: 90_000 });
 
     const bricks = gridLocateByBrickIdentity(grid, "swatch-and-icon");
@@ -142,7 +241,7 @@ test.describe("Site grid drag", () => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto(pageBase, { waitUntil: "load" });
 
-    const grid = page.locator(".grid-layout");
+    const grid = page.locator('[data-wall-active="true"] .grid-layout');
     await expect(grid).toBeVisible({ timeout: 90_000 });
     await expect(gridLocateByBrickIdentity(grid, "text")).toHaveCount(0);
   });
@@ -153,7 +252,7 @@ test.describe("Site grid drag", () => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto(`${pageBase}/modules`, { waitUntil: "load" });
 
-    const grid = page.locator(".grid-layout");
+    const grid = page.locator('[data-wall-active="true"] .grid-layout');
     await expect(grid).toBeVisible({ timeout: 90_000 });
 
     const text4x4Bricks = gridLocateByBrickIdentity(grid, "text");
@@ -183,7 +282,7 @@ test.describe("Site grid drag", () => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto(`${pageBase}/modules`, { waitUntil: "load" });
 
-    const grid = page.locator(".grid-layout");
+    const grid = page.locator('[data-wall-active="true"] .grid-layout');
     await expect(grid).toBeVisible({ timeout: 90_000 });
 
     const slot = drawerBrickPreviewSlot(page, "text").first();

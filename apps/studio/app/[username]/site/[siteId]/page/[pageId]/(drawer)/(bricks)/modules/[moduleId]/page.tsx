@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { modulesHash } from "@qrk.sh/library";
 import { libraryModule } from "@qrk.sh/library/libraryModule";
@@ -12,6 +12,7 @@ import { BREAKPOINTS, minGridUnits } from "@qrk.sh/library/breakpoints";
 import { GridItemPreview } from "@qrk.sh/library/GridItemPreview";
 import { MeasuredBrickWrapper } from "@qrk.sh/library/MeasuredBrickWrapper";
 import { brickDragStore } from "@qrk.sh/library/brickDragStore";
+import type { IDraggedBrick } from "@qrk.sh/library/brickDragStore";
 import { Tabs } from "radix-ui";
 
 import { CodeText } from "@/app/[username]/site/[siteId]/page/[pageId]/Modules/CodeText";
@@ -20,8 +21,8 @@ import { MetadataField } from "@/app/[username]/site/[siteId]/page/[pageId]/Modu
 import { BRICK_DRAG_MIME } from "@/components/home/useBrickDrawerStore";
 
 export default function ModuleRoute() {
-  const { wallBreakpoint } = useWallViewport();
-  const breakpoint = wallBreakpoint ?? "sm";
+  const { activeBreakpoint } = useWallViewport();
+  const breakpoint = activeBreakpoint ?? "sm";
   const params = useParams<{
     username: string;
     siteId: string;
@@ -53,6 +54,21 @@ function ModuleRouteBody(props: {
   breakpoint: "sm" | "md" | "lg" | "xl";
 }) {
   const { brickModule, breakpoint } = props;
+  const published = useRef<IDraggedBrick | null>(null);
+  useEffect(
+    () => () => {
+      if (published.current !== null && brickDragStore.getState().brickDef === published.current) {
+        brickDragStore.getState().setBrickDef(null);
+      }
+    },
+    [],
+  );
+  function clearPublished() {
+    if (published.current !== null && brickDragStore.getState().brickDef === published.current) {
+      brickDragStore.getState().setBrickDef(null);
+    }
+    published.current = null;
+  }
   const BrickComponent = brickModule.component;
   const view = brickModule.viewFor(breakpoint);
   const [measuredUnits, setMeasuredUnits] = useState<
@@ -119,13 +135,15 @@ function ModuleRouteBody(props: {
           event.preventDefault();
           return;
         }
-        brickDragStore.getState().setBrickDef(structuredClone(brickDefForDrag));
+        const payload = structuredClone(brickDefForDrag);
+        published.current = payload;
+        brickDragStore.getState().setBrickDef(payload);
         event.dataTransfer.setData(BRICK_DRAG_MIME, JSON.stringify(brickDefForDrag));
         event.dataTransfer.effectAllowed = "copy";
         event.dataTransfer.setData("text/plain", brickModule.def.moduleId);
       }}
       onDragEnd={() => {
-        brickDragStore.getState().setBrickDef(null);
+        clearPublished();
       }}
     >
       <div className="brick-drag-content size-full">

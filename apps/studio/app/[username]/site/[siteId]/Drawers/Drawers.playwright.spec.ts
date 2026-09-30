@@ -15,7 +15,7 @@ test("brick routes retain the bottom shell, grid, and encoded history", async ({
   await page.locator("[data-module-link]").first().click();
   await expect(page.getByRole("toolbar", { name: "Breakpoints", exact: true })).toBeVisible();
   await expect(page.getByRole("navigation", { name: "Drawer breadcrumbs" })).toContainText(
-    "Modules",
+    "Bricks",
   );
   expect(
     await shell!.evaluate(
@@ -24,7 +24,7 @@ test("brick routes retain the bottom shell, grid, and encoded history", async ({
   ).toBe(true);
   await page
     .getByRole("navigation", { name: "Drawer breadcrumbs" })
-    .getByRole("link", { name: "Modules", exact: true })
+    .getByRole("link", { name: "Bricks", exact: true })
     .click();
   await bottom.getByRole("link", { name: "Close drawer" }).click();
   await expect(bottom).toBeHidden();
@@ -48,7 +48,7 @@ test("brick routes retain the bottom shell, grid, and encoded history", async ({
   const detailShell = await bottom.elementHandle();
   await page
     .getByRole("navigation", { name: "Drawer breadcrumbs" })
-    .getByRole("link", { name: "Modules", exact: true })
+    .getByRole("link", { name: "Bricks", exact: true })
     .click();
   expect(
     await detailShell!.evaluate(
@@ -115,15 +115,19 @@ for (const width of [1440, 390]) {
   });
 }
 
-test("breakpoint selection resizes the whole wall without replacing it", async ({ page }) => {
+test("breakpoint selection keeps four centered walls and one editor session", async ({ page }) => {
   await page.setViewportSize({ width: 3200, height: 900 });
   await page.goto(base);
   const grid = page.getByTestId("grid-layout");
   await expect(grid).toBeVisible();
   const gridElement = await grid.elementHandle();
-  const wallElement = await page
-    .getByRole("region", { name: "Brick grid", exact: true })
-    .elementHandle();
+  const walls = page.locator("[data-wall-breakpoint]");
+  await expect(walls).toHaveCount(4);
+  const wallElements = await Promise.all(
+    ["sm", "md", "lg", "xl"].map((id) =>
+      page.locator(`[data-wall-breakpoint="${id}"]`).elementHandle(),
+    ),
+  );
   const region = page.getByTestId("grid-region");
   const composition = page.getByTestId("page-composition");
   const initialWidth = await region.evaluate((element) => element.getBoundingClientRect().width);
@@ -131,22 +135,34 @@ test("breakpoint selection resizes the whole wall without replacing it", async (
   const toolbar = page.getByRole("toolbar", { name: "Breakpoints", exact: true });
 
   // Assert rendered widths, so a selected-looking button alone cannot pass.
-  for (const [id, pageWidth, wallWidth, wallBreakpoint] of [
-    ["sm", 360, 360, "sm"],
-    ["md", 720, 720, "md"],
-    ["lg", 1080, 1080, "lg"],
-    ["xl", 1440, 1440, "xl"],
+  for (const [id, wallWidth] of [
+    ["sm", 360],
+    ["md", 720],
+    ["lg", 1080],
+    ["xl", 1440],
   ]) {
     const button = toolbar.getByRole("button", { name: `${id} preview width`, exact: true });
     await button.click();
     await expect(button).toHaveAttribute("aria-pressed", "true");
     await expect
       .poll(() => composition.evaluate((element) => element.getBoundingClientRect().width))
-      .toBe(pageWidth);
+      .toBe(initialWidth);
+    const wall = page.locator(`[data-wall-breakpoint="${id}"]`);
+    await expect(wall).toHaveAttribute("data-wall-active", "true");
     await expect
-      .poll(() => grid.evaluate((element) => element.getBoundingClientRect().width))
+      .poll(() => wall.evaluate((element) => element.getBoundingClientRect().width))
       .toBe(wallWidth);
-    await expect(grid).toHaveAttribute("data-wall-breakpoint", String(wallBreakpoint));
+    await expect
+      .poll(() =>
+        wall.evaluate((element) => {
+          const parent = element.closest('[data-testid="grid-layout"]');
+          if (!parent) return null;
+          const bounds = element.getBoundingClientRect();
+          const stage = parent.getBoundingClientRect();
+          return Math.abs(bounds.left + bounds.width / 2 - (stage.left + stage.width / 2));
+        }),
+      )
+      .toBeLessThanOrEqual(1);
   }
 
   await toolbar.getByRole("button", { name: "md preview width", exact: true }).click();
@@ -156,7 +172,11 @@ test("breakpoint selection resizes the whole wall without replacing it", async (
   ).toHaveAttribute("aria-pressed", "true");
   await page.goBack();
   await expect
-    .poll(() => grid.evaluate((element) => element.getBoundingClientRect().width))
+    .poll(() =>
+      page
+        .locator('[data-wall-active="true"]')
+        .evaluate((element) => element.getBoundingClientRect().width),
+    )
     .toBe(720);
   await page.goForward();
   await expect(
@@ -165,10 +185,16 @@ test("breakpoint selection resizes the whole wall without replacing it", async (
   await page.getByRole("link", { name: "Close drawer", exact: true }).click();
   await expect(toolbar).toHaveCount(0);
   await expect
-    .poll(() => grid.evaluate((element) => element.getBoundingClientRect().width))
-    .toBe(initialWidth);
+    .poll(() =>
+      page
+        .locator('[data-wall-active="true"]')
+        .evaluate((element) => element.getBoundingClientRect().width),
+    )
+    .toBe(720);
   expect(await gridElement!.evaluate((element) => element.isConnected)).toBe(true);
-  expect(await wallElement!.evaluate((element) => element.isConnected)).toBe(true);
+  for (const wallElement of wallElements) {
+    expect(await wallElement!.evaluate((element) => element.isConnected)).toBe(true);
+  }
   await page.getByRole("link", { name: "Add bricks" }).click();
   await expect(
     toolbar.getByRole("button", { name: "md preview width", exact: true }),
@@ -181,7 +207,11 @@ test("breakpoint selection resizes the whole wall without replacing it", async (
     toolbar.getByRole("button", { name: "md preview width", exact: true }),
   ).toHaveAttribute("aria-pressed", "true");
   await expect
-    .poll(() => grid.evaluate((element) => element.getBoundingClientRect().width))
+    .poll(() =>
+      page
+        .locator('[data-wall-active="true"]')
+        .evaluate((element) => element.getBoundingClientRect().width),
+    )
     .toBe(720);
   await page.setViewportSize({ width: 3200, height: 900 });
   await expect(
@@ -189,15 +219,14 @@ test("breakpoint selection resizes the whole wall without replacing it", async (
   ).toHaveAttribute("aria-pressed", "true");
 });
 
-test("page settings shares breakpoint controls; the dedicated route retains its close action", async ({
+test("page settings hides breakpoint controls; the dedicated route retains its close action", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1600, height: 900 });
   const toolbar = page.getByRole("toolbar", { name: "Breakpoints", exact: true });
   await page.goto(`${base}/page-settings`);
   await expect(page.getByTestId("grid-layout")).toBeVisible();
-  await expect(toolbar).toBeVisible();
-  await expect(toolbar.getByRole("button", { name: "Close", exact: true })).toHaveCount(0);
+  await expect(toolbar).toHaveCount(0);
   for (const route of ["site-settings"]) {
     await page.goto(`${base}/${route}`);
     await expect(page.getByTestId("grid-layout")).toBeVisible();
@@ -209,12 +238,104 @@ test("page settings shares breakpoint controls; the dedicated route retains its 
   await toolbar.getByRole("button", { name: "sm preview width", exact: true }).click();
   await expect
     .poll(() =>
-      page.getByTestId("grid-layout").evaluate((element) => element.getBoundingClientRect().width),
+      page
+        .locator('[data-wall-active="true"]')
+        .evaluate((element) => element.getBoundingClientRect().width),
     )
     .toBe(360);
   await toolbar.getByRole("button", { name: "Close", exact: true }).click();
   await expect(page).toHaveURL(base);
   await expect(toolbar).toHaveCount(0);
+});
+
+test("selected wall falls back and returns as available width changes", async ({ page }) => {
+  await page.setViewportSize({ width: 1000, height: 900 });
+  await page.goto(`${base}/modules`);
+  const toolbar = page.getByRole("toolbar", { name: "Breakpoints", exact: true });
+  await toolbar.getByRole("button", { name: "md preview width" }).click();
+  await expect(page.locator('[data-wall-breakpoint="md"]')).toHaveAttribute(
+    "data-wall-active",
+    "true",
+  );
+  await page.setViewportSize({ width: 600, height: 900 });
+  await expect(page.locator('[data-wall-breakpoint="sm"]')).toHaveAttribute(
+    "data-wall-active",
+    "true",
+  );
+  await page.setViewportSize({ width: 1000, height: 900 });
+  await expect(page.locator('[data-wall-breakpoint="md"]')).toHaveAttribute(
+    "data-wall-active",
+    "true",
+  );
+  await page.setViewportSize({ width: 320, height: 900 });
+  await expect(page.getByRole("status").filter({ hasText: "At least 360px" })).toBeVisible();
+  await expect(page.locator('[data-wall-active="true"]')).toHaveCount(0);
+  await page.setViewportSize({ width: 400, height: 900 });
+  await expect(page.locator('[data-wall-breakpoint="sm"]')).toHaveAttribute(
+    "data-wall-active",
+    "true",
+  );
+});
+
+test("wall transitions cancel obsolete exits and reduced motion settles immediately", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 2000, height: 900 });
+  await page.goto(`${base}/breakpoints`);
+  const toolbar = page.getByRole("toolbar", { name: "Breakpoints", exact: true });
+  const sm = toolbar.getByRole("button", { name: "sm preview width" });
+  const md = toolbar.getByRole("button", { name: "md preview width" });
+  const lg = toolbar.getByRole("button", { name: "lg preview width" });
+  await md.click();
+  await expect(page.locator('[data-wall-breakpoint="md"]')).toHaveAttribute(
+    "data-wall-active",
+    "true",
+  );
+  await lg.click();
+  await expect
+    .poll(() =>
+      page
+        .locator('[data-wall-breakpoint="lg"]')
+        .evaluate((element) => getComputedStyle(element.parentElement!).transform),
+    )
+    .not.toBe("none");
+  await md.click();
+  await expect(page.locator('[data-wall-breakpoint="md"]')).toHaveAttribute(
+    "data-wall-active",
+    "true",
+  );
+  await lg.click();
+  await sm.click();
+  await expect(page.locator('[data-wall-breakpoint="sm"]')).toHaveAttribute(
+    "data-wall-active",
+    "true",
+  );
+  await expect
+    .poll(() =>
+      page
+        .locator('[data-wall-breakpoint="sm"]')
+        .evaluate((element) => getComputedStyle(element.parentElement!).transform),
+    )
+    .toBe("none");
+  await expect(page.locator('[data-wall-breakpoint="md"]').locator("..")).toHaveAttribute(
+    "hidden",
+    "",
+  );
+  await expect(page.locator('[data-wall-breakpoint="lg"]').locator("..")).toHaveAttribute(
+    "hidden",
+    "",
+  );
+
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await lg.click();
+  await expect(page.locator('[data-wall-breakpoint="lg"]')).toHaveAttribute(
+    "data-wall-active",
+    "true",
+  );
+  await expect(page.locator('[data-wall-breakpoint="sm"]').locator("..")).toHaveAttribute(
+    "hidden",
+    "",
+  );
 });
 
 test("wall-only page previews retain metadata settings", async ({ page }) => {
@@ -223,6 +344,9 @@ test("wall-only page previews retain metadata settings", async ({ page }) => {
   const toolbar = page.getByRole("toolbar", { name: "Breakpoints", exact: true });
   await expect(page.getByLabel("Title", { exact: true })).toBeVisible();
   await expect(page.getByRole("switch", { name: "Show article" })).toHaveCount(0);
+  await expect(toolbar).toHaveCount(0);
+  await page.getByRole("button", { name: "Close drawer" }).click();
+  await page.goto(`${base}/breakpoints`);
   for (const [breakpoint, width] of [
     ["sm", 360],
     ["md", 720],
@@ -230,14 +354,16 @@ test("wall-only page previews retain metadata settings", async ({ page }) => {
     ["xl", 1440],
   ] as const) {
     await toolbar.getByRole("button", { name: `${breakpoint} preview width` }).click();
-    await expect(page.getByTestId("page-composition")).toHaveJSProperty("clientWidth", width);
-    await expect(page.getByTestId("grid-layout")).toHaveJSProperty("clientWidth", width);
-    await expect(page.getByTestId("grid-layout")).toHaveAttribute(
-      "data-wall-breakpoint",
-      breakpoint,
+    await expect(page.locator(`[data-wall-breakpoint="${breakpoint}"]`)).toHaveJSProperty(
+      "clientWidth",
+      width,
+    );
+    await expect(page.locator(`[data-wall-breakpoint="${breakpoint}"]`)).toHaveAttribute(
+      "data-wall-active",
+      "true",
     );
   }
-  await page.getByRole("button", { name: "Close drawer" }).click();
+  await toolbar.getByRole("button", { name: "Close", exact: true }).click();
   await expect(page.getByRole("link", { name: "Compose" })).toHaveCount(0);
   await expect(page.getByLabel("Article content")).toHaveCount(0);
 });
@@ -322,7 +448,9 @@ test("reduced motion preserves navigation without positional drawer animation", 
   await toolbar.getByRole("button", { name: "sm preview width", exact: true }).click();
   await expect
     .poll(() =>
-      page.getByTestId("grid-layout").evaluate((element) => element.getBoundingClientRect().width),
+      page
+        .locator('[data-wall-active="true"]')
+        .evaluate((element) => element.getBoundingClientRect().width),
     )
     .toBe(360);
   await page.locator('[data-drawer="bottom"]').getByRole("link", { name: "Close drawer" }).click();

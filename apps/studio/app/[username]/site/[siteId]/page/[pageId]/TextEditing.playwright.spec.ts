@@ -7,7 +7,7 @@ test("Text edits stay local, preserve their editor, resize naturally, and restor
 }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto(`${base}/modules`);
-  const grid = page.getByRole("region", { name: "Brick grid" });
+  const grid = page.locator('[data-wall-active="true"] [aria-label="Brick grid"]');
   await expect(grid).toBeVisible();
   const source = page
     .locator('[data-brick-drawer-brick-slot][data-brick-drawer-module-id="text"]')
@@ -54,15 +54,15 @@ test("Text edits stay local, preserve their editor, resize naturally, and restor
   // Wait on the existing session backup status rather than treating staging as durability.
   await expect(grid).toHaveAttribute("data-backup-status", "ready");
   await page.reload();
-  await expect(page.locator(`[data-brick-id="${id}"]`).getByLabel("Text content")).toContainText(
-    "Final local Text draft",
-  );
+  await expect(
+    page.locator(`[data-wall-active="true"] [data-brick-id="${id}"]`).getByLabel("Text content"),
+  ).toContainText("Final local Text draft");
 });
 
 test("Text toolbar popovers and file picker retain editing; Escape ends it", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto(`${base}/modules`);
-  const grid = page.getByRole("region", { name: "Brick grid" });
+  const grid = page.locator('[data-wall-active="true"] [aria-label="Brick grid"]');
   await expect(grid).toBeVisible();
   await page
     .locator('[data-brick-drawer-brick-slot][data-brick-drawer-module-id="text"]')
@@ -96,7 +96,7 @@ test("Text block dragging and image resizing preserve editing; previews cannot e
     .first();
   await expect(source.getByLabel("Text content")).toHaveAttribute("contenteditable", "false");
   await expect(source.getByRole("button", { name: "Edit text" })).toHaveCount(0);
-  const grid = page.getByRole("region", { name: "Brick grid" });
+  const grid = page.locator('[data-wall-active="true"] [aria-label="Brick grid"]');
   await source.dragTo(grid, { targetPosition: { x: 70, y: 90 }, steps: 20 });
   const brick = grid.locator('[data-brick="text"]').last();
   await brick.getByRole("button", { name: "Edit text" }).click();

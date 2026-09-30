@@ -203,11 +203,19 @@ export function BrickWall(props: {
     onGestureChange?.(true);
   }
   function endGesture() {
+    if (!gesture.current) return;
     gesture.current = false;
     heights.current.clear();
     setMeasurementEpoch((epoch) => epoch + 1);
     onGestureChange?.(false);
   }
+
+  useEffect(
+    () => () => {
+      if (gesture.current) onGestureChange?.(false);
+    },
+    [onGestureChange],
+  );
 
   return (
     <section
@@ -258,19 +266,20 @@ export function BrickWall(props: {
           }}
           onResizeStart={beginGesture}
           onResizeStop={(nextLayout) => {
-            const result = stageCommand({
-              session,
-              contractName: "updateLayoutAtBreakpoint",
-              payload: {
-                wallId,
-                breakpoint,
-                layout: nextLayout.map(makeGridItem),
-              },
-            });
-            if (result._tag === "Failure") {
-              reportCommandError(result.failure);
+            try {
+              const result = stageCommand({
+                session,
+                contractName: "updateLayoutAtBreakpoint",
+                payload: {
+                  wallId,
+                  breakpoint,
+                  layout: nextLayout.map(makeGridItem),
+                },
+              });
+              if (result._tag === "Failure") reportCommandError(result.failure);
+            } finally {
+              endGesture();
             }
-            endGesture();
           }}
           dropConfig={{
             enabled: isActive && !isTextEditing,
@@ -301,34 +310,39 @@ export function BrickWall(props: {
               xl: visibleLayoutAt("xl"),
             };
 
-            const result = stageCommand({
-              session,
-              contractName: "addBrick",
-              payload: {
-                wallId,
-                brickId,
-                moduleId,
-                state:
-                  modulesHash[moduleId].placeholder !== undefined
-                    ? null
-                    : structuredClone(brickDef.state),
-                spec: structuredClone(brickDef.spec),
-                dropPosition: { x: item.x, y: item.y },
-                placementSizes: brickDef.placementSizes,
-                visibleLayouts,
-              },
-            });
-            if (result._tag === "Failure") {
-              reportCommandError(result.failure);
-            } else if ("failure" in result.success && result.success.failure != null) {
-              const failure = result.success.failure;
-              reportCommandError(
-                typeof failure === "object" && failure !== null && "message" in failure
-                  ? { message: String(failure.message) }
-                  : { message: "addBrick failed" },
-              );
+            try {
+              const result = stageCommand({
+                session,
+                contractName: "addBrick",
+                payload: {
+                  wallId,
+                  brickId,
+                  moduleId,
+                  state:
+                    modulesHash[moduleId].placeholder !== undefined
+                      ? null
+                      : structuredClone(brickDef.state),
+                  spec: structuredClone(brickDef.spec),
+                  dropPosition: { x: item.x, y: item.y },
+                  placementSizes: brickDef.placementSizes,
+                  visibleLayouts,
+                },
+              });
+              if (result._tag === "Failure") {
+                reportCommandError(result.failure);
+              } else if ("failure" in result.success && result.success.failure != null) {
+                const failure = result.success.failure;
+                reportCommandError(
+                  typeof failure === "object" && failure !== null && "message" in failure
+                    ? { message: String(failure.message) }
+                    : { message: "addBrick failed" },
+                );
+              }
+            } finally {
+              if (brickDragStore.getState().brickDef === brickDef) {
+                brickDragStore.getState().setBrickDef(null);
+              }
             }
-            brickDragStore.getState().setBrickDef(null);
           }}
           onDragStart={() => {
             // RGL also starts a synthetic gesture for its external-drop placeholder.
@@ -362,52 +376,59 @@ export function BrickWall(props: {
             setOutsideBrickId(outside ? item.i : null);
           }}
           onDragStop={(nextLayout, _oldItem, item, _placeholder, event) => {
-            const bounds = containerRef.current?.getBoundingClientRect();
-            const pointer =
-              event instanceof MouseEvent
-                ? event
-                : event instanceof TouchEvent
-                  ? event.changedTouches[0]
-                  : undefined;
-            const outside =
-              bounds &&
-              pointer &&
-              (pointer.clientX < bounds.left ||
-                pointer.clientX > bounds.right ||
-                pointer.clientY < bounds.top ||
-                pointer.clientY > bounds.bottom);
-            if (outside && item) {
-              const brickRow = bricks.find((candidate) => candidate.id === item.i);
-              if (brickRow !== undefined) {
+            try {
+              const bounds = containerRef.current?.getBoundingClientRect();
+              const pointer =
+                event instanceof MouseEvent
+                  ? event
+                  : event instanceof TouchEvent
+                    ? event.changedTouches[0]
+                    : undefined;
+              const outside =
+                bounds &&
+                pointer &&
+                (pointer.clientX < bounds.left ||
+                  pointer.clientX > bounds.right ||
+                  pointer.clientY < bounds.top ||
+                  pointer.clientY > bounds.bottom);
+              if (outside && item) {
+                const brickRow = bricks.find((candidate) => candidate.id === item.i);
+                if (brickRow !== undefined) {
+                  const result = stageCommand({
+                    session,
+                    contractName: "removeBrick",
+                    payload: {
+                      brickId: brickRow.id,
+                      wallId,
+                    },
+                  });
+                  if (result._tag === "Failure") {
+                    reportCommandError(result.failure);
+                  }
+                }
+              } else {
                 const result = stageCommand({
                   session,
-                  contractName: "removeBrick",
+                  contractName: "updateLayoutAtBreakpoint",
                   payload: {
-                    brickId: brickRow.id,
                     wallId,
+                    breakpoint,
+                    layout: nextLayout.map(makeGridItem),
                   },
                 });
                 if (result._tag === "Failure") {
                   reportCommandError(result.failure);
                 }
               }
-            } else {
-              const result = stageCommand({
-                session,
-                contractName: "updateLayoutAtBreakpoint",
-                payload: {
-                  wallId,
-                  breakpoint,
-                  layout: nextLayout.map(makeGridItem),
-                },
-              });
-              if (result._tag === "Failure") {
-                reportCommandError(result.failure);
+            } finally {
+              if (scrollRootRef.current) {
+                scrollRootRef.current.scrollTop = dragScrollTop;
+                scrollRootRef.current.style.overflow = "";
               }
+              setOutsideBrickId(null);
+              setDragging(false);
+              endGesture();
             }
-            setOutsideBrickId(null);
-            setDragging(false);
-            endGesture();
           }}
         >
           {layout.map((layoutItem) => {

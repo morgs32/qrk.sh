@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { Spec } from "@json-render/core";
 import { cn } from "cn";
@@ -9,6 +9,7 @@ import { MeasuredBrickWrapper } from "../../../../components/brick/MeasuredBrick
 import { GridItemPreview } from "../../../../lib/GridItemPreview";
 import { BREAKPOINTS, minGridUnits } from "../../../../lib/breakpoints";
 import { brickDragStore } from "../../../../lib/brickDragStore";
+import type { IDraggedBrick } from "../../../../lib/brickDragStore";
 import { modulesHash } from "../../../../lib/modulesHash";
 
 export function BreakpointPreviewRow({
@@ -35,6 +36,21 @@ export function BreakpointPreviewRow({
       Record<(typeof BREAKPOINTS)[number]["id"], { widthPx: number; heightPx: number }>
     >;
   }>();
+  const published = useRef<IDraggedBrick | null>(null);
+  useEffect(
+    () => () => {
+      if (published.current !== null && brickDragStore.getState().brickDef === published.current) {
+        brickDragStore.getState().setBrickDef(null);
+      }
+    },
+    [],
+  );
+  function clearPublished() {
+    if (published.current !== null && brickDragStore.getState().brickDef === published.current) {
+      brickDragStore.getState().setBrickDef(null);
+    }
+    published.current = null;
+  }
   const dimensions =
     measurement !== undefined && measurement.state === moduleState && measurement.specs === specs
       ? measurement.dimensions
@@ -116,14 +132,16 @@ export function BreakpointPreviewRow({
           event.preventDefault();
           return;
         }
-        brickDragStore.getState().setBrickDef({
+        const payload = {
           ...brick.def,
           w: dragW,
           h: dragH,
           placementSizes,
           state: structuredClone(moduleState),
           spec: structuredClone(spec),
-        });
+        };
+        published.current = payload;
+        brickDragStore.getState().setBrickDef(payload);
         const surface = event.currentTarget;
         if (surface) {
           const bounds = surface.getBoundingClientRect();
@@ -136,7 +154,7 @@ export function BreakpointPreviewRow({
         event.dataTransfer.effectAllowed = "copy";
         event.dataTransfer.setData("text/plain", brick.def.moduleId);
       }}
-      onDragEnd={() => brickDragStore.getState().setBrickDef(null)}
+      onDragEnd={clearPublished}
     >
       <div className="brick-drag-content size-full select-none">
         <BrickComponent breakpoint={entry.id} state={moduleState} spec={spec} />

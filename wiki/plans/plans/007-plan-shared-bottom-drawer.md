@@ -22,7 +22,7 @@ import { Drawer } from "@qrk.sh/library/Drawer";
   <Drawer side="bottom" layoutMode="flow" animated={false} aria-label="Workspace drawer">
     {children}
   </Drawer>
-</ViewTransition>
+</ViewTransition>;
 ```
 
 1. Catalog → module → placed brick: the bottom shell persists; only breadcrumb/content changes. Existing brick identity and payloads remain intact.

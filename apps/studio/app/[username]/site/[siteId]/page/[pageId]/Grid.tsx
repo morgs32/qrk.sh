@@ -1,11 +1,14 @@
 "use client";
 
 import { useAuth } from "@clerk/nextjs";
-import { useLayoutEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { useRouter, useSelectedLayoutSegments } from "next/navigation";
+import { useReducedMotion } from "framer-motion";
 
 import { BrickWall } from "@qrk.sh/library/BrickWall";
+import { BREAKPOINTS } from "@qrk.sh/library/breakpoints";
+import { WallBreakpointPane } from "@qrk.sh/library/WallBreakpointPane";
 import { useLibrarySession } from "@qrk.sh/library/createLibraryStandaloneSession";
 import { libraryModule } from "@qrk.sh/library/libraryModule";
 import { useWallViewport } from "@qrk.sh/library/WallViewportProvider";
@@ -23,116 +26,158 @@ const ParamsSchema = Schema.Struct({
 const WALL_ID = prefixId(libraryModule.models.wall, "library");
 
 export function Grid() {
-  const { wallRef, wallWidth, wallBreakpoint } = useWallViewport();
+  const { activeBreakpoint, setGridGesture } = useWallViewport();
   const session = useLibrarySession();
   const params = useValidatedParams(ParamsSchema);
   const router = useRouter();
   const segments = useSelectedLayoutSegments();
   const route = segments.find((segment) => !segment.startsWith("("));
-  const region = useRef<HTMLDivElement>(null);
-  const [pendingTextId, setPendingTextId] = useState<string | null>(null);
+  const [pendingText, setPendingText] = useState<{
+    brickId: string;
+    breakpoint: "sm" | "md" | "lg" | "xl";
+  } | null>(null);
   const { getToken } = useAuth();
   const [activeText, setActiveText] = useState<{
     brickId: string;
     breakpoint: "sm" | "md" | "lg" | "xl";
   } | null>(null);
-  if (activeText !== null && activeText.breakpoint !== wallBreakpoint) setActiveText(null);
-
-  useLayoutEffect(() => {
-    if (pendingTextId === null || route !== undefined || wallBreakpoint === null) return;
-    if (Math.abs((region.current?.getBoundingClientRect().width ?? 0) - wallWidth) > 1) return;
-    let cancelled = false;
-    // Wait for the base route's actual wall width before choosing the editing breakpoint.
-    queueMicrotask(() => {
-      if (cancelled) return;
-      setActiveText({ brickId: pendingTextId, breakpoint: wallBreakpoint });
-      setPendingTextId(null);
+  const reducedMotion = useReducedMotion() ?? false;
+  const [transition, setTransition] = useState<{
+    active: (typeof BREAKPOINTS)[number]["id"] | null;
+    from: (typeof BREAKPOINTS)[number]["id"] | null;
+    direction: 1 | -1 | 0;
+    version: number;
+  }>({ active: null, from: null, direction: 0, version: 0 });
+  if (transition.active !== activeBreakpoint) {
+    setTransition({
+      active: activeBreakpoint,
+      from: transition.active !== null && activeBreakpoint !== null ? transition.active : null,
+      direction:
+        transition.active !== null && activeBreakpoint !== null
+          ? BREAKPOINTS.findIndex((row) => row.id === activeBreakpoint) >
+            BREAKPOINTS.findIndex((row) => row.id === transition.active)
+            ? 1
+            : -1
+          : 0,
+      version: transition.version + 1,
     });
-    return () => {
-      cancelled = true;
-    };
-  }, [pendingTextId, route, wallBreakpoint, wallWidth]);
+  }
+  const fromBreakpoint = transition.active === activeBreakpoint ? transition.from : null;
+  const direction = transition.active === activeBreakpoint ? transition.direction : 0;
+  if (activeText !== null && activeText.breakpoint !== activeBreakpoint) setActiveText(null);
+  if (pendingText !== null && pendingText.breakpoint !== activeBreakpoint) setPendingText(null);
+
+  if (pendingText !== null && route === undefined && pendingText.breakpoint === activeBreakpoint) {
+    setActiveText(pendingText);
+    setPendingText(null);
+  }
 
   return (
-    <div ref={wallRef} className="min-h-full w-full" data-testid="grid-region">
-      <div
-        ref={region}
-        className="min-h-full w-full"
-        data-testid="grid-layout"
-        data-wall-breakpoint={wallBreakpoint ?? "sm"}
-      >
-        <BrickWall
-          session={session}
-          wallId={WALL_ID}
-          breakpoint={wallBreakpoint ?? "sm"}
-          gridWidth={wallWidth}
-          activeTextBrickId={activeText?.breakpoint === wallBreakpoint ? activeText.brickId : null}
-          isActive={wallWidth > 0}
-          onCommandError={(message) => toast.error(message)}
-          onTextEditStart={(brickId) => {
-            setPendingTextId(brickId);
-            router.push(
-              `/${encodeURIComponent(params.username)}/site/${encodeURIComponent(params.siteId)}/page/${encodeURIComponent(params.pageId)}`,
-              { scroll: false },
-            );
-          }}
-          onTextEditEnd={() => setActiveText(null)}
-          uploadImage={async (file, onProgress, signal) => {
-            signal?.throwIfAborted();
-            const sessionToken = await getToken();
-            signal?.throwIfAborted();
-            if (!sessionToken) throw new Error("Sign in to upload images");
-
-            const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
-            if (!apiBaseUrl) throw new Error("NEXT_PUBLIC_API_URL is required");
-
-            const formData = new FormData();
-            formData.set("file", file);
-            formData.set("siteId", params.siteId);
-
-            return new Promise<string>((resolve, reject) => {
-              const request = new XMLHttpRequest();
-              request.open("POST", `${apiBaseUrl.replace(/\/$/, "")}/upload`);
-              request.setRequestHeader("Authorization", `Bearer ${sessionToken}`);
-              request.responseType = "json";
-              request.upload.onprogress = (event) => {
-                if (event.lengthComputable) {
-                  onProgress?.({ progress: Math.round((event.loaded / event.total) * 100) });
+    <div className="min-h-full w-full" data-testid="grid-region">
+      <div className="relative min-h-full w-full" data-testid="grid-layout">
+        {BREAKPOINTS.map((row) => {
+          const isActive = activeBreakpoint === row.id;
+          const isOutgoing = fromBreakpoint === row.id && !isActive;
+          return (
+            <WallBreakpointPane
+              key={row.id}
+              breakpoint={row.id}
+              previewWidth={row.previewWidth}
+              isActive={isActive}
+              isOutgoing={isOutgoing}
+              isOnStage={isActive || isOutgoing}
+              isTransitioning={fromBreakpoint !== null}
+              direction={direction}
+              reducedMotion={reducedMotion}
+              onOutgoingComplete={() => {
+                setTransition((current) =>
+                  current.version === transition.version && current.from === row.id
+                    ? { ...current, from: null }
+                    : current,
+                );
+              }}
+            >
+              <BrickWall
+                session={session}
+                wallId={WALL_ID}
+                breakpoint={row.id}
+                gridWidth={row.previewWidth}
+                isActive={isActive}
+                activeTextBrickId={
+                  isActive && activeText?.breakpoint === row.id ? activeText.brickId : null
                 }
-              };
-              request.onload = () => {
-                try {
-                  if (request.status < 200 || request.status >= 300) {
-                    const body = Schema.decodeUnknownSync(
-                      Schema.Struct({ message: Schema.String }),
-                    )(request.response);
-                    reject(new Error(body.message));
-                    return;
-                  }
-                  const body = Schema.decodeUnknownSync(Schema.Struct({ url: Schema.String }))(
-                    request.response,
+                onGestureChange={setGridGesture}
+                onCommandError={(message) => toast.error(message)}
+                onTextEditStart={(brickId) => {
+                  setPendingText({ brickId, breakpoint: row.id });
+                  router.push(
+                    `/${encodeURIComponent(params.username)}/site/${encodeURIComponent(params.siteId)}/page/${encodeURIComponent(params.pageId)}`,
+                    { scroll: false },
                   );
-                  resolve(body.url);
-                } catch {
-                  reject(new Error(`Upload failed (${request.status}): invalid response`));
+                }}
+                onTextEditEnd={() =>
+                  setActiveText((current) => (current?.breakpoint === row.id ? null : current))
                 }
-              };
-              request.onerror = () =>
-                reject(new Error("Image upload failed. Check your connection."));
-              request.onabort = () => reject(new DOMException("Upload cancelled", "AbortError"));
-              const abort = () => request.abort();
-              signal?.addEventListener("abort", abort, { once: true });
-              request.onloadend = () => signal?.removeEventListener("abort", abort);
-              request.send(formData);
-            });
-          }}
-          onBrickActivate={({ brickId }) => {
-            void router.push(
-              `/${encodeURIComponent(params.username)}/site/${encodeURIComponent(params.siteId)}/page/${encodeURIComponent(params.pageId)}/brick/${encodeURIComponent(brickId)}`,
-              { scroll: false },
-            );
-          }}
-        />
+                uploadImage={async (file, onProgress, signal) => {
+                  signal?.throwIfAborted();
+                  const sessionToken = await getToken();
+                  signal?.throwIfAborted();
+                  if (!sessionToken) throw new Error("Sign in to upload images");
+
+                  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
+                  if (!apiBaseUrl) throw new Error("NEXT_PUBLIC_API_URL is required");
+
+                  const formData = new FormData();
+                  formData.set("file", file);
+                  formData.set("siteId", params.siteId);
+
+                  return new Promise<string>((resolve, reject) => {
+                    const request = new XMLHttpRequest();
+                    request.open("POST", `${apiBaseUrl.replace(/\/$/, "")}/upload`);
+                    request.setRequestHeader("Authorization", `Bearer ${sessionToken}`);
+                    request.responseType = "json";
+                    request.upload.onprogress = (event) => {
+                      if (event.lengthComputable) {
+                        onProgress?.({ progress: Math.round((event.loaded / event.total) * 100) });
+                      }
+                    };
+                    request.onload = () => {
+                      try {
+                        if (request.status < 200 || request.status >= 300) {
+                          const body = Schema.decodeUnknownSync(
+                            Schema.Struct({ message: Schema.String }),
+                          )(request.response);
+                          reject(new Error(body.message));
+                          return;
+                        }
+                        const body = Schema.decodeUnknownSync(
+                          Schema.Struct({ url: Schema.String }),
+                        )(request.response);
+                        resolve(body.url);
+                      } catch {
+                        reject(new Error(`Upload failed (${request.status}): invalid response`));
+                      }
+                    };
+                    request.onerror = () =>
+                      reject(new Error("Image upload failed. Check your connection."));
+                    request.onabort = () =>
+                      reject(new DOMException("Upload cancelled", "AbortError"));
+                    const abort = () => request.abort();
+                    signal?.addEventListener("abort", abort, { once: true });
+                    request.onloadend = () => signal?.removeEventListener("abort", abort);
+                    request.send(formData);
+                  });
+                }}
+                onBrickActivate={({ brickId }) => {
+                  void router.push(
+                    `/${encodeURIComponent(params.username)}/site/${encodeURIComponent(params.siteId)}/page/${encodeURIComponent(params.pageId)}/brick/${encodeURIComponent(brickId)}`,
+                    { scroll: false },
+                  );
+                }}
+              />
+            </WallBreakpointPane>
+          );
+        })}
       </div>
     </div>
   );

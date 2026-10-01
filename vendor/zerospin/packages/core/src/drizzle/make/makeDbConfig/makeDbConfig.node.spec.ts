@@ -11,8 +11,10 @@ import { makeModelVersion } from '../../../models/make/makeModelVersion.ts';
 import { makeReplica } from '../../../models/make/makeReplica.ts';
 
 import { makeDbConfig, makeResourceDbConfig } from './makeDbConfig.ts';
-import { makeTableProvisioningSQL } from '../../provisionDb/provisionDbTx/makeTableProvisioningSQL/makeTableProvisioningSQL.ts';
-import { makeTableProvisioningStatements } from '../../provisionDb/provisionDbTx/makeTableProvisioningSQL/makeTableProvisioningSQL.ts';
+import {
+  makeTableProvisioningSQL,
+  makeTableProvisioningStatements,
+} from '../../provisionDb/provisionDbTx/makeTableProvisioningSQL/makeTableProvisioningSQL.ts';
 import { makeInMemorySQLite3 } from '../makeInMemorySQLite3/makeInMemorySQLite3.ts';
 import { makeWaSqliteDrizzle } from '../makeProvisionedInMemoryWasmSqliteDb/makeInMemoryWasmSqliteDb/makeWaSqliteDrizzle/makeWaSqliteDrizzle.ts';
 import { sessionRepoDbConfig } from '../../../aggregateSession/sessionRepoDbConfig.ts';

@@ -1,4 +1,5 @@
 import { makeAsync } from '@zerospin/core/async/make/makeAsync';
+import type { IAnyMachineDeclaration } from '@zerospin/core/machine/types';
 import { readRpcEnvelope } from '@zerospin/core/utils/readRpcEnvelope';
 import {
   catchZerospinError,
@@ -9,9 +10,11 @@ import type { IRpcEnvelope } from '@zerospin/logger';
 import config from 'config';
 import { Effect } from 'effect';
 
+import {
+  getServiceMachineRepo,
+  serviceMachineNameUtils,
+} from '../../machineRepoNames.js';
 import { ServiceChain } from '../../ServiceChain/ServiceChain.js';
-import { getServiceMachineRepo, serviceMachineNameUtils } from '../../machineRepoNames.js';
-import type { IAnyMachineDeclaration } from '@zerospin/core/machine/types';
 
 const { system } = config;
 
@@ -40,7 +43,8 @@ export const initialize = Effect.fn('SystemRepo.initialize')(function* (props: {
       }),
     ).pipe(Effect.flatMap(envelope => readRpcEnvelope(envelope)));
   }
-  const machines: Readonly<Record<string, IAnyMachineDeclaration>> = system.machines;
+  const machines: Readonly<Record<string, IAnyMachineDeclaration>> =
+    system.machines;
   for (const [machineName, machine] of Object.entries(machines)) {
     if ('services' in machine.source) continue;
     const key = { systemId, serviceName: machine.source.name, machineName };

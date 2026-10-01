@@ -44,7 +44,9 @@ it('resolves the resource schema for an authored service actor', async () => {
 });
 
 it('rejects an invalid authored actor path', async () => {
-  expect(await resolveBinding({ ...key, actorPath: '/too/many/segments' })).toEqual({
+  expect(
+    await resolveBinding({ ...key, actorPath: '/too/many/segments' }),
+  ).toEqual({
     tables: [],
     error: 'actor-path-invalid',
   });

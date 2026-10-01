@@ -5,16 +5,17 @@
  */
 
 import type { IAnyMachineDeclaration } from '@zerospin/core/machine/types';
-import { makeMachineRepo } from 'system-worker/makeMachineRepo/makeMachineRepo';
 import {
   aggregateMachineNamePattern,
   serviceMachineNamePattern,
 } from 'system-worker/machineRepoNames';
+import { makeMachineRepo } from 'system-worker/makeMachineRepo/makeMachineRepo';
 import { systemWorkerAbbreviations } from 'system-worker/systemWorkerAbbreviations';
 
 import config from './systems/system.ts';
 
-const machines: Readonly<Record<string, IAnyMachineDeclaration>> = config.system.machines;
+const machines: Readonly<Record<string, IAnyMachineDeclaration>> =
+  config.system.machines;
 export const AggregateMachineRepo = makeMachineRepo({
   sourceKind: 'aggregate',
   namespaceBinding: 'AGGREGATE_MACHINE_REPO',
@@ -23,8 +24,13 @@ export const AggregateMachineRepo = makeMachineRepo({
   managedRuntime: config.system.runtime,
   resolveMachine: key => {
     const machine = machines[key.machineName];
-    if (machine === undefined || !('services' in machine.source) ||
-      machine.source.name !== key.aggregateName) throw new Error(`Unknown aggregate machine ${key.machineName}`);
+    if (
+      machine === undefined ||
+      !('services' in machine.source) ||
+      machine.source.name !== key.aggregateName
+    ) {
+      throw new Error(`Unknown aggregate machine ${key.machineName}`);
+    }
     return machine;
   },
 });
@@ -36,8 +42,13 @@ export const ServiceMachineRepo = makeMachineRepo({
   managedRuntime: config.system.runtime,
   resolveMachine: key => {
     const machine = machines[key.machineName];
-    if (machine === undefined || 'services' in machine.source ||
-      machine.source.name !== key.serviceName) throw new Error(`Unknown service machine ${key.machineName}`);
+    if (
+      machine === undefined ||
+      'services' in machine.source ||
+      machine.source.name !== key.serviceName
+    ) {
+      throw new Error(`Unknown service machine ${key.machineName}`);
+    }
     return machine;
   },
 });

@@ -111,23 +111,23 @@ The transaction formerly inside `applyAggregateActorCommand.ts` now lives in
 [`applyAggregateActorCommandTx.ts`](./packages/core/src/aggregateSession/applyAggregateActorCommand/applyAggregateActorCommandTx/applyAggregateActorCommandTx.ts);
 the measurements below predate that extraction.
 
-| Complexity | File                                                                                                                |
-| ---------: | ------------------------------------------------------------------------------------------------------------------- |
-|        160 | [`bootstrapAggregateSession.ts`](./packages/browser/src/bootstrapAggregateSession.ts)                               |
-|        135 | [`AggregateActorVersionRepo/catchup.ts`](./packages/system-worker/src/AggregateActorVersionRepo/catchup/catchup.ts) |
-|        125 | [`primitiveMaps.ts`](./packages/schema/src/primitiveMaps.ts)                                                        |
-|         53 | [`defineModel.ts`](./packages/core/src/models/defineModel.ts)                                                       |
-|        589 | [`makeModelVersion.ts`](./packages/core/src/models/make/makeModelVersion.ts)                                             |
-|        110 | [`AggregateVersionRepo/execute.ts`](./packages/system-worker/src/AggregateVersionRepo/execute/execute.ts)           |
-|        106 | [`prepareReplayAppliedMutation.ts`](./packages/core/src/contracts/prepareReplayAppliedMutation.ts)                  |
-|        103 | [`bootstrapServiceSession.ts`](./packages/browser/src/bootstrapServiceSession.ts)                                   |
-|         93 | [`makeDrizzleRelationsFromTables.ts`](./packages/core/src/drizzle/make/makeDbConfig/makeDrizzleRelationsFromTables/makeDrizzleRelationsFromTables.ts)                |
-|         92 | [`encodeAppliedMutation.ts`](./packages/core/src/contracts/encodeAppliedMutation.ts)                                |
-|        629 | [`makeContractVersion.ts`](./packages/core/src/contracts/make/makeContractVersion.ts)                                    |
-|         88 | [`applyAggregateActorCommand.ts`](./packages/core/src/aggregateSession/applyAggregateActorCommand/applyAggregateActorCommand.ts)                        |
-|         86 | [`makeLiveQuery.ts`](./packages/live-query/src/makeLiveQuery.ts)                                                    |
-|         84 | [`SessionsLogsRoute.tsx`](./packages/devtools/src/sessions/sessions/sessionId/logs/SessionsLogsRoute.tsx)           |
-|         72 | [`ZerospinDevtools.tsx`](./packages/devtools/src/ZerospinDevtools.tsx)                                              |
+| Complexity | File                                                                                                                                                  |
+| ---------: | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+|        160 | [`bootstrapAggregateSession.ts`](./packages/browser/src/bootstrapAggregateSession.ts)                                                                 |
+|        135 | [`AggregateActorVersionRepo/catchup.ts`](./packages/system-worker/src/AggregateActorVersionRepo/catchup/catchup.ts)                                   |
+|        125 | [`primitiveMaps.ts`](./packages/schema/src/primitiveMaps.ts)                                                                                          |
+|         53 | [`defineModel.ts`](./packages/core/src/models/defineModel.ts)                                                                                         |
+|        589 | [`makeModelVersion.ts`](./packages/core/src/models/make/makeModelVersion.ts)                                                                          |
+|        110 | [`AggregateVersionRepo/execute.ts`](./packages/system-worker/src/AggregateVersionRepo/execute/execute.ts)                                             |
+|        106 | [`prepareReplayAppliedMutation.ts`](./packages/core/src/contracts/prepareReplayAppliedMutation.ts)                                                    |
+|        103 | [`bootstrapServiceSession.ts`](./packages/browser/src/bootstrapServiceSession.ts)                                                                     |
+|         93 | [`makeDrizzleRelationsFromTables.ts`](./packages/core/src/drizzle/make/makeDbConfig/makeDrizzleRelationsFromTables/makeDrizzleRelationsFromTables.ts) |
+|         92 | [`encodeAppliedMutation.ts`](./packages/core/src/contracts/encodeAppliedMutation.ts)                                                                  |
+|        629 | [`makeContractVersion.ts`](./packages/core/src/contracts/make/makeContractVersion.ts)                                                                 |
+|         88 | [`applyAggregateActorCommand.ts`](./packages/core/src/aggregateSession/applyAggregateActorCommand/applyAggregateActorCommand.ts)                      |
+|         86 | [`makeLiveQuery.ts`](./packages/live-query/src/makeLiveQuery.ts)                                                                                      |
+|         84 | [`SessionsLogsRoute.tsx`](./packages/devtools/src/sessions/sessions/sessionId/logs/SessionsLogsRoute.tsx)                                             |
+|         72 | [`ZerospinDevtools.tsx`](./packages/devtools/src/ZerospinDevtools.tsx)                                                                                |
 
 ## Versioned actors — deferred verification
 

@@ -9,7 +9,6 @@ import { makeEffectSchema, type IAnyShape } from '@zerospin/schema';
 import { Effect, Schema } from 'effect';
 
 import type { InferCommandPayload } from '../../../models/types.ts';
-
 import type { IContract } from '../../types.ts';
 
 export function adaptPayload<

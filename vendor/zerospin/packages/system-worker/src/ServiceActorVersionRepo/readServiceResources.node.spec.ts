@@ -48,8 +48,9 @@ it('exports encoded JSON from the private service actor', async () => {
     name: 'jsonService',
     module: { '1.0.0': { models: { item }, contracts: {} } },
   }).versions['1.0.0'];
-  if (jsonService === undefined)
+  if (jsonService === undefined) {
     throw new Error('JSON service version missing');
+  }
   const rows = await Effect.runPromise(
     Effect.gen(function* () {
       const config = makeResourceDbConfig({ models: { item } });

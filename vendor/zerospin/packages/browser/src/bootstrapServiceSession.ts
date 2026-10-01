@@ -16,6 +16,7 @@ import type {
 } from '@zerospin/core/serviceSession/types';
 import {
   catchZerospinError,
+  isZerospinError,
   makeZerospinError,
   type IAnyError,
   type IResult,
@@ -159,7 +160,10 @@ export const bootstrapServiceSession = Effect.fn('bootstrapServiceSession')(
           },
           reconnect: async () => {},
         }),
-      catch: catchZerospinError({ code: 'node-connection-failed' }),
+      catch: cause =>
+        isZerospinError(cause)
+          ? cause
+          : catchZerospinError({ code: 'node-connection-failed' })(cause),
     });
     yield* Effect.addFinalizer(() =>
       Effect.promise(async () => {
@@ -169,7 +173,13 @@ export const bootstrapServiceSession = Effect.fn('bootstrapServiceSession')(
     );
     yield* Effect.tryPromise({
       try: connection.ready,
-      catch: catchZerospinError({ code: 'node-attachment-failed' }),
+      // Readiness includes admission before the worker and projection after attachment.
+      catch: cause =>
+        isZerospinError(cause)
+          ? cause
+          : catchZerospinError({ code: 'session-initialization-failed' })(
+              cause,
+            ),
     });
     return {
       clearAuthentication: async () => {

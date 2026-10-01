@@ -21,7 +21,10 @@
         "class_name": "MigratableDORepoFixture",
       },
       { "name": "SYSTEM_REPO", "class_name": "SystemRepo" },
-      { "name": "AGGREGATE_MACHINE_REPO", "class_name": "AggregateMachineRepo" },
+      {
+        "name": "AGGREGATE_MACHINE_REPO",
+        "class_name": "AggregateMachineRepo",
+      },
       { "name": "SERVICE_MACHINE_REPO", "class_name": "ServiceMachineRepo" },
       {
         "name": "AGGREGATE_VERSION_REPO",

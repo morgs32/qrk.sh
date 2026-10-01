@@ -9,6 +9,14 @@ The authorized actor socket carries aggregate command admission,
 missed own outcomes, and live selected-resource updates. Tickets bind the exact
 aggregate/service version, actor, identity, session, and lock.
 
+Aggregate actor chains persist each admitted lock in `connectionLocks`, keyed by
+PartyServer connection ID. WebSocket attachments contain only compact admission
+state, so model and contract schemas do not consume the 16 KiB attachment budget.
+Replay, push admission, and live delivery resolve the lock from the chain's SQLite
+database, including after hibernation. Missing locks require a fresh snapshot;
+connection close removes the row. Changed fixed schemas require fresh development
+storage; there is no compatibility path for old attachment state.
+
 ## Trigger
 
 A node submits direct identity or fresh credentials, fetches a snapshot, creates a ticket,

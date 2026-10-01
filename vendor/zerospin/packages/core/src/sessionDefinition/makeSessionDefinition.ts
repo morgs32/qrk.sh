@@ -66,7 +66,11 @@ export function makeSessionDefinition(props: {
     assertSameCoreInstance({ value: model, expected: Model, kind: 'Model' });
   }
   for (const contract of Object.values(props.contracts ?? {})) {
-    assertSameCoreInstance({ value: contract, expected: Contract, kind: 'Contract' });
+    assertSameCoreInstance({
+      value: contract,
+      expected: Contract,
+      kind: 'Contract',
+    });
   }
   assertValidModels({ models, context: 'makeSession' });
   const common = {

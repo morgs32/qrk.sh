@@ -1,10 +1,13 @@
 import { Schema } from 'effect';
 import '@zerospin/server-only';
 
-import { assertSameCoreInstance } from '../../assertSameCoreInstance.ts';
 import { AggregateActorVersionSchema } from '../../aggregateActor/make/makeAggregateActorVersion/makeAggregateActorVersion.ts';
+import { assertSameCoreInstance } from '../../assertSameCoreInstance.ts';
 import { Contract } from '../../contracts/make/makeContractVersion.ts';
-import { OwnerGuardsSchema, type IOwnerGuards } from '../../contracts/ownerGuards.ts';
+import {
+  OwnerGuardsSchema,
+  type IOwnerGuards,
+} from '../../contracts/ownerGuards.ts';
 import type { IAnyContracts, IContract } from '../../contracts/types.ts';
 import { assertValidModels } from '../../models/assertValidModels.ts';
 import { Model } from '../../models/defineModel.ts';
@@ -178,7 +181,11 @@ export function makeAggregateVersion(
         'contracts' in declaration ? declaration.contracts : undefined;
       if (typeof models === 'object' && models !== null) {
         for (const model of Object.values(models)) {
-          assertSameCoreInstance({ value: model, expected: Model, kind: 'Model' });
+          assertSameCoreInstance({
+            value: model,
+            expected: Model,
+            kind: 'Model',
+          });
         }
       }
       if (typeof contracts === 'object' && contracts !== null) {

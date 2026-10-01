@@ -1,4 +1,8 @@
-export { execute, makeMachine, push } from '@zerospin/core/machine/makeMachine/makeMachine';
+export {
+  execute,
+  makeMachine,
+  push,
+} from '@zerospin/core/machine/makeMachine/makeMachine';
 export { makeState } from '@zerospin/core/machine/makeState/makeState';
 export type {
   IAnyMachine,

@@ -1,4 +1,4 @@
-/** Return final ordinary declarations from a domain factory. Aggregates and browser sessions
+/** Return final ordinary declarations from a domain factory. Aggregates and browser sessions (including makeStandaloneSession)
  * compose named modules with local declarations and reject duplicate keys across models,
  * contracts, and automations, even if both values are the same object. Static collisions
  * fail typechecking; dynamic maps receive the same checks at runtime.

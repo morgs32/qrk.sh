@@ -1,6 +1,9 @@
-import { applyExecutionDeltaTx } from '@zerospin/core/contracts/applyExecutionDeltaTx';
 import { AdmissionResultSchema } from '@zerospin/core/contracts/AdmissionResultSchema';
-import { AggregateExecutedCommandSchema, ServiceExecutedCommandSchema } from '@zerospin/core/contracts/CommandSchema';
+import { applyExecutionDeltaTx } from '@zerospin/core/contracts/applyExecutionDeltaTx';
+import {
+  AggregateExecutedCommandSchema,
+  ServiceExecutedCommandSchema,
+} from '@zerospin/core/contracts/CommandSchema';
 import { encodePayload } from '@zerospin/core/contracts/encodePayload';
 import { ExecutionResultSchema } from '@zerospin/core/contracts/ExecutionResultSchema';
 import { makeTx } from '@zerospin/core/drizzle/make/makeTx';
@@ -13,10 +16,13 @@ import { and, eq, getTableName, sql } from 'drizzle-orm';
 import type { SQLiteTable } from 'drizzle-orm/sqlite-core';
 import { Effect, Schema } from 'effect';
 
-import { validateProgramSuccess } from './validateProgramSuccess.js';
 import { canonicalJson } from './canonicalJson.js';
-import type { makeMachineDbConfig, makeMachineSelectedDbConfig } from './machineDbConfig.js';
+import type {
+  makeMachineDbConfig,
+  makeMachineSelectedDbConfig,
+} from './machineDbConfig.js';
 import type { IRuntimeRoute, IStateRow, IStateValue } from './types.js';
+import { validateProgramSuccess } from './validateProgramSuccess.js';
 
 type IDbConfig = ReturnType<typeof makeMachineDbConfig>;
 type ISelectedDbConfig = ReturnType<typeof makeMachineSelectedDbConfig>;
@@ -54,7 +60,9 @@ export const enterMachineStateTx = Effect.fn('MachineRepo.enterStateTx')(
       result: destination,
       path,
     });
-    const route = machine.routes[valid.value.stateName] as IRuntimeRoute | undefined;
+    const route = machine.routes[valid.value.stateName] as
+      | IRuntimeRoute
+      | undefined;
     const encoded = yield* Schema.encodeUnknownEffect(
       Schema.toCodecJson(valid.state.schema),
     )(valid.value).pipe(Effect.scoped);
@@ -68,9 +76,12 @@ export const enterMachineStateTx = Effect.fn('MachineRepo.enterStateTx')(
     }
     let commandJson: string | null = null;
     if (route?.command !== undefined) {
-      const description = yield* Schema.decodeUnknownEffect(CommandDescriptionSchema, {
-        onExcessProperty: 'error',
-      })(route.command({ origin: valid.value }));
+      const description = yield* Schema.decodeUnknownEffect(
+        CommandDescriptionSchema,
+        {
+          onExcessProperty: 'error',
+        },
+      )(route.command({ origin: valid.value }));
       const binding = machine.contracts[description.binding];
       if (binding === undefined) {
         return yield* makeZerospinError('machine-contract-forbidden');
@@ -108,10 +119,12 @@ export const enterMachineStateTx = Effect.fn('MachineRepo.enterStateTx')(
       .run();
     tx.update(props.schema.machineOperations)
       .set({ status: 'cancelled' })
-      .where(and(
-        eq(props.schema.machineOperations.revision, previous.revision),
-        eq(props.schema.machineOperations.kind, 'activation'),
-      ))
+      .where(
+        and(
+          eq(props.schema.machineOperations.revision, previous.revision),
+          eq(props.schema.machineOperations.kind, 'activation'),
+        ),
+      )
       .run();
     if (route?.onActivation !== undefined || route?.command !== undefined) {
       tx.insert(props.schema.machineOperations)
@@ -164,23 +177,38 @@ export const applyMachineOccurrenceTx = makeTx('MachineRepo.applyOccurrence')(
     if (typeof row !== 'object' || row === null) {
       return yield* makeZerospinError('machine-source-row-invalid');
     }
-    const claims = 'claims' in row
-      ? yield* Schema.decodeUnknownEffect(
-          Schema.fromJsonString(Schema.Record(Schema.String, Schema.Unknown)),
-        )(row.claims)
-      : undefined;
-    const normalized = { ...row, admission, execution, ...(claims === undefined ? {} : { claims }) };
-    const occurrence = 'aggregateId' in row
-      ? yield* Schema.decodeUnknownEffect(Schema.toType(AggregateExecutedCommandSchema))(normalized)
-      : yield* Schema.decodeUnknownEffect(Schema.toType(ServiceExecutedCommandSchema))(normalized);
-    const index = sourceKind === 'aggregate'
-      ? retained.executedIndex
-      : retained.serviceIndex;
+    const claims =
+      'claims' in row
+        ? yield* Schema.decodeUnknownEffect(
+            Schema.fromJsonString(Schema.Record(Schema.String, Schema.Unknown)),
+          )(row.claims)
+        : undefined;
+    const normalized = {
+      ...row,
+      admission,
+      execution,
+      ...(claims === undefined ? {} : { claims }),
+    };
+    const occurrence =
+      'aggregateId' in row
+        ? yield* Schema.decodeUnknownEffect(
+            Schema.toType(AggregateExecutedCommandSchema),
+          )(normalized)
+        : yield* Schema.decodeUnknownEffect(
+            Schema.toType(ServiceExecutedCommandSchema),
+          )(normalized);
+    const index =
+      sourceKind === 'aggregate'
+        ? retained.executedIndex
+        : retained.serviceIndex;
     if (index === undefined || !Number.isSafeInteger(index) || index < 1) {
       return yield* makeZerospinError('machine-source-index-invalid');
     }
-    const state = tx.select().from(props.schema.machineState)
-      .where(eq(props.schema.machineState.id, 1)).get();
+    const state = tx
+      .select()
+      .from(props.schema.machineState)
+      .where(eq(props.schema.machineState.id, 1))
+      .get();
     if (state === undefined) {
       return yield* makeZerospinError('machine-state-missing');
     }
@@ -209,7 +237,8 @@ export const applyMachineOccurrenceTx = makeTx('MachineRepo.applyOccurrence')(
     }
     for (const resource of Object.values(selected)) {
       const model = machine.source.models[resource.modelName];
-      const table: SQLiteTable | undefined = props.selectedSchema[resource.modelName];
+      const table: SQLiteTable | undefined =
+        props.selectedSchema[resource.modelName];
       if (model === undefined || table === undefined) {
         return yield* makeZerospinError('machine-selected-model-unavailable');
       }
@@ -229,8 +258,17 @@ export const applyMachineOccurrenceTx = makeTx('MachineRepo.applyOccurrence')(
       };
       const entries = Object.entries(values);
       tx.run(sql`INSERT INTO ${sql.identifier(getTableName(table))}
-        (${sql.join(entries.map(([key]) => sql.identifier(key)), sql.raw(', '))})
-        VALUES (${sql.join(entries.map(([, value]) => sql`${value instanceof Date ? value.getTime() : value}`), sql.raw(', '))})`);
+        (${sql.join(
+          entries.map(([key]) => sql.identifier(key)),
+          sql.raw(', '),
+        )})
+        VALUES (${sql.join(
+          entries.map(
+            ([, value]) =>
+              sql`${value instanceof Date ? value.getTime() : value}`,
+          ),
+          sql.raw(', '),
+        )})`);
     }
     if (props.react && state.revision >= 0) {
       const current = machine.states[state.stateName];
@@ -241,8 +279,14 @@ export const applyMachineOccurrenceTx = makeTx('MachineRepo.applyOccurrence')(
         Schema.toCodecJson(current.schema),
       )(JSON.parse(state.stateJson)).pipe(Effect.scoped);
       const origin = decodedOrigin as IStateValue;
-      const route = machine.routes[state.stateName] as IRuntimeRoute | undefined;
-      const destination = route?.onCommand?.({ origin, db: props.selectedDb, command: occurrence });
+      const route = machine.routes[state.stateName] as
+        | IRuntimeRoute
+        | undefined;
+      const destination = route?.onCommand?.({
+        origin,
+        db: props.selectedDb,
+        command: occurrence,
+      });
       if (destination !== undefined) {
         yield* enterMachineStateTx({
           tx,

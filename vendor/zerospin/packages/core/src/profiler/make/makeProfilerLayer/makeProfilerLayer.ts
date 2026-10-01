@@ -11,10 +11,11 @@ import { Context, Effect, Layer } from 'effect';
 import { groupBy } from 'es-toolkit';
 import invariant from 'tiny-invariant';
 
+import { MetadataProcessor, type IMetadata } from '../../MetadataProcessor.ts';
+
 import { InMemorySpanExporter } from './InMemorySpanProcessor/InMemorySpanProcessor.ts';
 import { makeCallstack } from './makeCallstack/makeCallstack.ts';
 import { makeProfiles } from './makeProfiles/makeProfiles.ts';
-import { MetadataProcessor, type IMetadata } from '../../MetadataProcessor.ts';
 import { MultiSpanProcessor } from './MultiSpanProcessor/MultiSpanProcessor.ts';
 import { StartOrderProcessor } from './StartOrderProcessor/StartOrderProcessor.ts';
 

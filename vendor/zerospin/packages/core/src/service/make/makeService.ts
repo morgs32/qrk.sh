@@ -104,7 +104,11 @@ export function makeService(props: unknown): unknown {
           'contracts' in declaration ? declaration.contracts : undefined;
         if (typeof models === 'object' && models !== null) {
           for (const model of Object.values(models)) {
-            assertSameCoreInstance({ value: model, expected: Model, kind: 'Model' });
+            assertSameCoreInstance({
+              value: model,
+              expected: Model,
+              kind: 'Model',
+            });
           }
         }
         if (typeof contracts === 'object' && contracts !== null) {

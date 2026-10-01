@@ -159,13 +159,14 @@ export function makeSystemSpec<
           throw new TypeError('Machine route must be an object');
         }
         return {
-          work: 'command' in route
-            ? ('command' as const)
-            : 'onActivation' in route
-              ? ('activation' as const)
-              : 'wakeAt' in route
-                ? ('waiting' as const)
-                : ('idle' as const),
+          work:
+            'command' in route
+              ? ('command' as const)
+              : 'onActivation' in route
+                ? ('activation' as const)
+                : 'wakeAt' in route
+                  ? ('waiting' as const)
+                  : ('idle' as const),
           onCommand: 'onCommand' in route,
         };
       }),

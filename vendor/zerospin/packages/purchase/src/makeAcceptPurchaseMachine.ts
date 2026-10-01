@@ -1,17 +1,28 @@
 import type { IAnyAuthoredAggregate } from '@zerospin/core/aggregate/types';
 import type { IContract } from '@zerospin/core/contracts/types';
-import { captureActorSelections, makeActorDbVersion } from '@zerospin/core/models/make/makeActorDbVersion';
-import type { IModel } from '@zerospin/core/models/types';
-import { execute, makeMachine } from '@zerospin/core/machine/makeMachine/makeMachine';
+import {
+  execute,
+  makeMachine,
+} from '@zerospin/core/machine/makeMachine/makeMachine';
 import { makeState } from '@zerospin/core/machine/makeState/makeState';
 import type { IMachineDb } from '@zerospin/core/machine/types';
+import {
+  captureActorSelections,
+  makeActorDbVersion,
+} from '@zerospin/core/models/make/makeActorDbVersion';
+import type { IModel } from '@zerospin/core/models/types';
 import { makeAbbreviationIdSchema } from '@zerospin/schema';
 import { Schema } from 'effect';
 
 import { PurchaseQuoteSchema } from './quote.js';
 
 type ISource = IAnyAuthoredAggregate & {
-  models: { checkout: IModel; purchase: IModel; user: IModel; cartPromotion: IModel };
+  models: {
+    checkout: IModel;
+    purchase: IModel;
+    user: IModel;
+    cartPromotion: IModel;
+  };
   contracts: { createAcceptedPurchase: IContract };
 };
 const Checkout = Schema.Struct({
@@ -51,7 +62,10 @@ const Creating = makeState({
 /** Accept every new checkout exactly once while one frozen command is in flight. */
 export function makeAcceptPurchaseMachine(props: {
   source: ISource;
-  claimsForUser: (props: { db: IMachineDb<ISource>; userId: string }) => Readonly<Record<string, unknown>>;
+  claimsForUser: (props: {
+    db: IMachineDb<ISource>;
+    userId: string;
+  }) => Readonly<Record<string, unknown>>;
 }) {
   const { source, claimsForUser } = props;
   const authoringDb = makeActorDbVersion({ models: source.models });
@@ -59,35 +73,64 @@ export function makeAcceptPurchaseMachine(props: {
   const purchaseQuery = authoringDb.query.purchase;
   const userQuery = authoringDb.query.user;
   const promotionQuery = authoringDb.query.cartPromotion;
-  if (checkoutQuery === undefined || purchaseQuery === undefined || userQuery === undefined || promotionQuery === undefined) {
+  if (
+    checkoutQuery === undefined ||
+    purchaseQuery === undefined ||
+    userQuery === undefined ||
+    promotionQuery === undefined
+  ) {
     throw new Error('Purchase machine source models are missing');
   }
-  const selections = captureActorSelections(authoringDb, {
-    checkout: checkoutQuery.findMany(),
-    purchase: purchaseQuery.findMany(),
-    user: userQuery.findMany(),
-    cartPromotion: promotionQuery.findMany(),
-  }, Schema.Struct({}));
-  const checkouts = (db: IMachineDb<ISource>) => Schema.decodeUnknownSync(Schema.Array(Checkout))(
-    db.query.checkout?.findMany().sync(),
+  const selections = captureActorSelections(
+    authoringDb,
+    {
+      checkout: checkoutQuery.findMany(),
+      purchase: purchaseQuery.findMany(),
+      user: userQuery.findMany(),
+      cartPromotion: promotionQuery.findMany(),
+    },
+    Schema.Struct({}),
   );
-  const next = (db: IMachineDb<ISource>, handled: readonly string[], aggregateId: string) => {
-    const existing = new Set(Schema.decodeUnknownSync(Schema.Array(Purchase))(
-      db.query.purchase?.findMany().sync(),
-    ).map(row => row.id));
-    const promotions = new Map(Schema.decodeUnknownSync(Schema.Array(Promotion))(
-      db.query.cartPromotion?.findMany().sync(),
-    ).map(row => [row.id, row]));
-    const checkout = checkouts(db).find(row =>
-      row.status === 'accepted' && row.purchaseId !== null &&
-      row.firstPaymentIntentId !== null && row.quote !== null &&
-      (row.promotionReservationId === null || (
-        promotions.get(row.promotionReservationId)?.status === 'committed' &&
-        promotions.get(row.promotionReservationId)?.purchaseId === row.purchaseId
-      )) &&
-      !existing.has(row.purchaseId) && !handled.includes(row.id));
-    if (checkout === undefined || checkout.purchaseId === null ||
-      checkout.firstPaymentIntentId === null || checkout.quote === null) return undefined;
+  const checkouts = (db: IMachineDb<ISource>) =>
+    Schema.decodeUnknownSync(Schema.Array(Checkout))(
+      db.query.checkout?.findMany().sync(),
+    );
+  const next = (
+    db: IMachineDb<ISource>,
+    handled: readonly string[],
+    aggregateId: string,
+  ) => {
+    const existing = new Set(
+      Schema.decodeUnknownSync(Schema.Array(Purchase))(
+        db.query.purchase?.findMany().sync(),
+      ).map(row => row.id),
+    );
+    const promotions = new Map(
+      Schema.decodeUnknownSync(Schema.Array(Promotion))(
+        db.query.cartPromotion?.findMany().sync(),
+      ).map(row => [row.id, row]),
+    );
+    const checkout = checkouts(db).find(
+      row =>
+        row.status === 'accepted' &&
+        row.purchaseId !== null &&
+        row.firstPaymentIntentId !== null &&
+        row.quote !== null &&
+        (row.promotionReservationId === null ||
+          (promotions.get(row.promotionReservationId)?.status === 'committed' &&
+            promotions.get(row.promotionReservationId)?.purchaseId ===
+              row.purchaseId)) &&
+        !existing.has(row.purchaseId) &&
+        !handled.includes(row.id),
+    );
+    if (
+      checkout === undefined ||
+      checkout.purchaseId === null ||
+      checkout.firstPaymentIntentId === null ||
+      checkout.quote === null
+    ) {
+      return undefined;
+    }
     return Creating.make({
       handled: [...handled],
       checkoutId: checkout.id,
@@ -102,33 +145,43 @@ export function makeAcceptPurchaseMachine(props: {
   return makeMachine({
     source,
     selections,
-    contracts: { createAcceptedPurchase: {
-      contract: source.contracts.createAcceptedPurchase,
-      target: source,
-    } },
+    contracts: {
+      createAcceptedPurchase: {
+        contract: source.contracts.createAcceptedPurchase,
+        target: source,
+      },
+    },
     states: { idle: Idle, creating: Creating },
-    onBootstrap: ({ db }) => Idle.make({ handled: checkouts(db).map(row => row.id) }),
+    onBootstrap: ({ db }) =>
+      Idle.make({ handled: checkouts(db).map(row => row.id) }),
     routes: {
-      idle: { onCommand: ({ origin, db, command }) =>
-        'aggregateId' in command ? next(db, origin.handled, command.aggregateId) : undefined },
+      idle: {
+        onCommand: ({ origin, db, command }) =>
+          'aggregateId' in command
+            ? next(db, origin.handled, command.aggregateId)
+            : undefined,
+      },
       creating: {
         onCommand: () => undefined,
-        command: ({ origin }) => execute({
-          binding: 'createAcceptedPurchase',
-          aggregateId: origin.aggregateId,
-          claims: origin.claims,
-          payload: {
-            checkoutId: origin.checkoutId,
-            id: origin.purchaseId,
-            paymentIntentId: origin.paymentIntentId,
-            cartId: origin.cartId,
-            quote: origin.quote,
-            expectedExisting: false,
-          },
-        }),
+        command: ({ origin }) =>
+          execute({
+            binding: 'createAcceptedPurchase',
+            aggregateId: origin.aggregateId,
+            claims: origin.claims,
+            payload: {
+              checkoutId: origin.checkoutId,
+              id: origin.purchaseId,
+              paymentIntentId: origin.paymentIntentId,
+              cartId: origin.cartId,
+              quote: origin.quote,
+              expectedExisting: false,
+            },
+          }),
         onResult: ({ origin, db }) => {
           const handled = [...origin.handled, origin.checkoutId];
-          return next(db, handled, origin.aggregateId) ?? Idle.make({ handled });
+          return (
+            next(db, handled, origin.aggregateId) ?? Idle.make({ handled })
+          );
         },
       },
     },

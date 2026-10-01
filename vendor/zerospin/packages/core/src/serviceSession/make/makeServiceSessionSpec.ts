@@ -1,5 +1,6 @@
-import { makeServiceSessionLock } from './makeServiceSessionLock.ts';
 import type { IServiceSessionDefinition } from '../types.ts';
+
+import { makeServiceSessionLock } from './makeServiceSessionLock.ts';
 
 export function makeServiceSessionSpec(
   definition: Omit<IServiceSessionDefinition, 'systemName'>,

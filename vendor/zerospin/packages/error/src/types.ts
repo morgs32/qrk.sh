@@ -1,9 +1,10 @@
+import type { ZerospinError } from './ScopedError.js';
+
 export type IResult<SUCCESS = unknown, FAILURE = unknown> =
   | Readonly<{ _tag: 'Success'; success: SUCCESS }>
   | Readonly<{ _tag: 'Failure'; failure: FAILURE }>;
 
-export type IZerospinError<T extends string = string> =
-  import('./ScopedError.js').ZerospinError<T>;
+export type IZerospinError<T extends string = string> = ZerospinError<T>;
 
 export type IAnyError = IZerospinError<string>;
 

@@ -34,7 +34,8 @@ declare module 'cloudflare:workers' {
       Rpc.DurableObjectBranded & import('system-worker').ServiceActorVersionRepo
     >;
     AGGREGATE_MACHINE_REPO: DurableObjectNamespace<
-      Rpc.DurableObjectBranded & import('./machineRepos.js').AggregateMachineRepo
+      Rpc.DurableObjectBranded &
+        import('./machineRepos.js').AggregateMachineRepo
     >;
     SERVICE_MACHINE_REPO: DurableObjectNamespace<
       Rpc.DurableObjectBranded & import('./machineRepos.js').ServiceMachineRepo

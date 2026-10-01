@@ -25,8 +25,9 @@ export const readServiceResources = Effect.fn('readServiceResources')(
             const entries: [string, IEncodedResourceShape][] = [];
             for (const modelName of Object.keys(models)) {
               const model = models[modelName];
-              if (model === undefined)
+              if (model === undefined) {
                 throw new Error(`Missing service model: ${modelName}`);
+              }
               for (const resource of db
                 .select()
                 .from(model.drizzleSchema)

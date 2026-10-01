@@ -1,4 +1,3 @@
-import type { IAggregateSessionLock } from '@zerospin/core/aggregateSession/AggregateSessionLockSchema';
 import type { Async } from '@zerospin/core/async/Async';
 import { makeAsync } from '@zerospin/core/async/make/makeAsync';
 import { EncodedAggregateCommandSchema } from '@zerospin/core/contracts/CommandSchema';
@@ -60,10 +59,9 @@ export const onMessage = Effect.fn('AggregateActorVersionChain.onMessage')(
       actorPath: string;
       claims: Readonly<Record<string, unknown>>;
       sessionName: string;
-      aggregateSessionLock: IAggregateSessionLock;
     }>;
     message: WSMessage;
-    db: IDb;
+    db: IDb<typeof aggregateActorVersionChainDbConfig>;
     key: {
       aggregateVersion: string;
       systemId: string;
@@ -97,6 +95,17 @@ export const onMessage = Effect.fn('AggregateActorVersionChain.onMessage')(
       state.actorPath !== key.actorPath ||
       typeof message !== 'string'
     ) {
+      stateRequired();
+      return;
+    }
+
+    // Resolve the admitted lock from durable storage, including after hibernation.
+    const retainedLock = db.query.connectionLocks
+      .findFirst({
+        where: { connectionId: { eq: connection.id } },
+      })
+      .sync();
+    if (retainedLock === undefined) {
       stateRequired();
       return;
     }
@@ -184,7 +193,7 @@ export const onMessage = Effect.fn('AggregateActorVersionChain.onMessage')(
         }
 
         const selectedContract =
-          state.aggregateSessionLock.contracts[command.commandName];
+          retainedLock.lock.contracts[command.commandName];
         if (
           selectedContract === undefined ||
           selectedContract.commandName !== command.commandName ||
@@ -377,7 +386,7 @@ export const onMessage = Effect.fn('AggregateActorVersionChain.onMessage')(
         definition: {
           name: state.sessionName,
           claims: state.claims,
-          lock: state.aggregateSessionLock,
+          lock: retainedLock.lock,
         },
       });
       if (page.tip < deliveredThroughExecutedIndex) {
@@ -411,8 +420,9 @@ export const onMessage = Effect.fn('AggregateActorVersionChain.onMessage')(
       if (
         page.commands.length < 64 &&
         deliveredThroughExecutedIndex === page.tip
-      )
+      ) {
         break;
+      }
       if (page.commands.length === 0) {
         stateRequired();
         return;

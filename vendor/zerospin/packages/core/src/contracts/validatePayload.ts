@@ -74,7 +74,10 @@ export function validatePayload(
         continue;
       }
       const value = encodedPayload[key];
-      if (value === null || value === undefined) {
+      if (
+        value === undefined ||
+        (value === null && descriptor.nullable === true)
+      ) {
         continue;
       }
       encodedPayload[key] = yield* Schema.encodeEffect(

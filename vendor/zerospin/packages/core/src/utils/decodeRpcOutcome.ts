@@ -1,6 +1,6 @@
 import {
-  makeZerospinError,
   encodeError,
+  makeZerospinError,
   type IResult,
   type IZerospinErrorJson,
 } from '@zerospin/error';

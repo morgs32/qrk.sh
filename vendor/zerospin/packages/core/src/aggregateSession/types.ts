@@ -26,7 +26,6 @@ import type {
 import type {
   IDb,
   IDbConfig,
-  IDrizzleRelationsFromModels,
   IResourceDbConfig,
   IResourceDrizzleSchemasFromModels,
   IWaSqliteDrizzleDb,

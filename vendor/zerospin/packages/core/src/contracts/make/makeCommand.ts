@@ -8,7 +8,6 @@ import type {
 } from '../../models/types.ts';
 import { coreAbbreviations } from '../../utils/coreAbbreviations.ts';
 import type { Prettify } from '../../utils/types';
-
 import type { ICommand, IContract } from '../types.ts';
 import { validatePayload } from '../validatePayload.ts';
 

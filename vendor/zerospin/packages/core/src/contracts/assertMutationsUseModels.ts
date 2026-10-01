@@ -26,7 +26,11 @@ export const assertMutationsUseModels = Effect.fn('assertMutationsUseModels')(
 
     for (const mutation of mutations) {
       if (mutation !== null && typeof mutation === 'object') {
-        assertSameCoreInstance({ value: mutation.model, expected: Model, kind: 'Model' });
+        assertSameCoreInstance({
+          value: mutation.model,
+          expected: Model,
+          kind: 'Model',
+        });
       }
       if (
         mutation === null ||

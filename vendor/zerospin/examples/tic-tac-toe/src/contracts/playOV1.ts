@@ -1,5 +1,5 @@
-import * as sdk from '@zerospin/sdk/browser';
 import { MachineClaimsSchema } from '@zerospin/core/machine/MachineClaimsSchema';
+import * as sdk from '@zerospin/sdk/browser';
 import { Effect } from 'effect';
 
 import { game, outcome } from '../gameV1';

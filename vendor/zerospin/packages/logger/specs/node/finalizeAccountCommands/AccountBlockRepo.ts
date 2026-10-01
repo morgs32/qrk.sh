@@ -8,7 +8,7 @@ import {
 } from '@zerospin/logger';
 import { Effect, Result, Schema, Tracer } from 'effect';
 
-import { actorRepo } from './ActorRepo.ts';
+import { actorRepo } from './actorRepo.ts';
 import { harness, queuedJobs } from './queuedJobs.ts';
 
 const wrappedActorRepo = makeTraceableRpcTarget(actorRepo);

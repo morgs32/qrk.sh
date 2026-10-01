@@ -11,8 +11,8 @@ import { prepareReplayAppliedMutation } from '@zerospin/core/contracts/prepareRe
 import type { IContract } from '@zerospin/core/contracts/types';
 import { validateAggregateCommand } from '@zerospin/core/contracts/validateAggregateCommand';
 import type { IDb } from '@zerospin/core/drizzle/types';
-import { EncodedResourceSchema } from '@zerospin/core/models/EncodedResourceSchema';
 import { MachineClaimsSchema } from '@zerospin/core/machine/MachineClaimsSchema';
+import { EncodedResourceSchema } from '@zerospin/core/models/EncodedResourceSchema';
 import { getByKeyOrThrow } from '@zerospin/core/utils/getByKeyOrThrow';
 import {
   encodeError,
@@ -134,35 +134,51 @@ export const executeCommands = Effect.fn(
                   failure: null,
                 };
                 const prepared = yield* Effect.gen(function* () {
-                  const machineClaims = command.actorName === '__machine'
-                    ? yield* Schema.decodeUnknownEffect(MachineClaimsSchema)(command.claims).pipe(
-                        mapParseError({
-                          code: 'command-claims-unsupported',
-                          prefix: 'Unsupported machine command claims',
-                        }),
-                      )
-                    : null;
-                  const actor = machineClaims === null
-                    ? yield* resolveAggregateActorVersion(latestAggregate, command)
-                    : null;
-                  const targetContract = aggregate.contracts[command.commandName];
-                  if (machineClaims !== null &&
-                    (targetContract === undefined || machineClaims.aggregateId !== key.aggregateId)) {
-                    return yield* makeZerospinError('machine-contract-forbidden');
+                  const machineClaims =
+                    command.actorName === '__machine'
+                      ? yield* Schema.decodeUnknownEffect(MachineClaimsSchema)(
+                          command.claims,
+                        ).pipe(
+                          mapParseError({
+                            code: 'command-claims-unsupported',
+                            prefix: 'Unsupported machine command claims',
+                          }),
+                        )
+                      : null;
+                  const actor =
+                    machineClaims === null
+                      ? yield* resolveAggregateActorVersion(
+                          latestAggregate,
+                          command,
+                        )
+                      : null;
+                  const targetContract =
+                    aggregate.contracts[command.commandName];
+                  if (
+                    machineClaims !== null &&
+                    (targetContract === undefined ||
+                      machineClaims.aggregateId !== key.aggregateId)
+                  ) {
+                    return yield* makeZerospinError(
+                      'machine-contract-forbidden',
+                    );
                   }
-                  const sourceContract = actor === null
-                    ? targetContract!
-                    : yield* getByKeyOrThrow({
-                        record: actor.contracts,
-                        key: command.commandName,
-                        recordKind: 'actor-contract',
-                      });
-                  const targetActor = actor === null ? null : aggregate.actors[actor.name];
-                  const contract = actor === null
-                    ? targetContract
-                    : targetActor === undefined || targetActor === null
-                      ? undefined
-                      : targetActor.contracts[command.commandName];
+                  const sourceContract =
+                    actor === null
+                      ? targetContract!
+                      : yield* getByKeyOrThrow({
+                          record: actor.contracts,
+                          key: command.commandName,
+                          recordKind: 'actor-contract',
+                        });
+                  const targetActor =
+                    actor === null ? null : aggregate.actors[actor.name];
+                  const contract =
+                    actor === null
+                      ? targetContract
+                      : targetActor === undefined || targetActor === null
+                        ? undefined
+                        : targetActor.contracts[command.commandName];
                   if (contract === undefined) {
                     return yield* Effect.fail(
                       makeZerospinError('actor-contract-unsupported'),
@@ -187,17 +203,20 @@ export const executeCommands = Effect.fn(
                     );
                   }
                   const payload = yield* decodePayload(contract, { command });
-                  const claims = actor === null
-                    ? machineClaims!
-                    : yield* Schema.decodeUnknownEffect(actor.identity.claimsSchema)(command.claims, {
-                        onExcessProperty: 'error',
-                      }).pipe(
-                        mapParseError({
-                          code: 'command-claims-unsupported',
-                          prefix:
-                            'Saved command identity is unsupported by this aggregate version',
-                        }),
-                      );
+                  const claims =
+                    actor === null
+                      ? machineClaims!
+                      : yield* Schema.decodeUnknownEffect(
+                          actor.identity.claimsSchema,
+                        )(command.claims, {
+                          onExcessProperty: 'error',
+                        }).pipe(
+                          mapParseError({
+                            code: 'command-claims-unsupported',
+                            prefix:
+                              'Saved command identity is unsupported by this aggregate version',
+                          }),
+                        );
 
                   const made = yield* makeMutations({
                     db,

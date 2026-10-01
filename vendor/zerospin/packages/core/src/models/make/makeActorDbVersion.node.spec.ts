@@ -34,8 +34,9 @@ it('encodes selected JSON rows after applying a decoded predicate', async () => 
   const client = new SQL.Database();
   try {
     for (const table of Object.values(config.schema)) {
-      for (const statement of makeTableProvisioningStatements(table))
+      for (const statement of makeTableProvisioningStatements(table)) {
         client.run(statement);
+      }
     }
     const db = drizzle(client, { relations: config.relations });
     const now = new Date('2026-09-28T00:00:00.000Z');

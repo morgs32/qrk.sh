@@ -16,7 +16,6 @@ import { Effect, Schema } from 'effect';
 import { mapValues } from 'es-toolkit';
 
 import { assertSameCoreInstance } from '../../assertSameCoreInstance.ts';
-
 import type { IDb, IResourceDbConfig } from '../../drizzle/types.ts';
 import { Model } from '../../models/defineModel.ts';
 import type {
@@ -412,7 +411,11 @@ function makeVersion(
     const models = props.models;
     if (typeof models === 'object' && models !== null) {
       for (const model of Object.values(models)) {
-        assertSameCoreInstance({ value: model, expected: Model, kind: 'Model' });
+        assertSameCoreInstance({
+          value: model,
+          expected: Model,
+          kind: 'Model',
+        });
       }
     }
   }
@@ -967,7 +970,11 @@ export function upgradeContractVersion(
     const models = input.models;
     if (typeof models === 'object' && models !== null) {
       for (const model of Object.values(models)) {
-        assertSameCoreInstance({ value: model, expected: Model, kind: 'Model' });
+        assertSameCoreInstance({
+          value: model,
+          expected: Model,
+          kind: 'Model',
+        });
       }
     }
   }

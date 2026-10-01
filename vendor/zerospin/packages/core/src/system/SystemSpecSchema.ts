@@ -147,7 +147,10 @@ export const SystemSpecSchema = Schema.Struct({
       sourceVersion: Schema.String,
       selections: Schema.Record(
         Schema.String,
-        Schema.Struct({ modelName: Schema.String, query: SelectionQuerySchema }),
+        Schema.Struct({
+          modelName: Schema.String,
+          query: SelectionQuerySchema,
+        }),
       ),
       contracts: Schema.Record(
         Schema.String,

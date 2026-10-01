@@ -3,8 +3,8 @@ import { readRpcEnvelope } from '@zerospin/core/utils/readRpcEnvelope';
 import {
   catchZerospinError,
   isZerospinError,
-  ZerospinErrorJsonSchema,
   makeZerospinError,
+  ZerospinErrorJsonSchema,
   type IAnyError,
   type IZerospinErrorJson,
 } from '@zerospin/error';

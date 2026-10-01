@@ -20,6 +20,12 @@ import type {
   IEncodedResourceShape,
   InferResource,
 } from '@zerospin/core/models/types';
+import { composeDeclarations } from '@zerospin/core/module/composeDeclarations';
+import type {
+  IAnyDeclarationModule,
+  IAssertDistinctDeclarations,
+  IComposedDeclarations,
+} from '@zerospin/core/module/types';
 import { makeSessionDefinition } from '@zerospin/core/sessionDefinition/makeSessionDefinition';
 import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
 import { zerospinDevtoolsStore } from '@zerospin/devtools/zerospinDevtoolsStore';
@@ -175,9 +181,10 @@ export function makeStandaloneSession<
   const ACTOR_NAME extends string,
   const ACTOR_VERSION extends string,
   const SESSION_NAME extends string,
-  const MODELS extends IAnyModels,
-  const CONTRACTS extends IAnyContracts,
   const CLAIMS extends IClaimsSchema,
+  const MODELS extends IAnyModels = {},
+  const CONTRACTS extends IAnyContracts = {},
+  const MODULES extends Readonly<Record<string, IAnyDeclarationModule>> = {},
   APP_LAYER extends Layer.Layer<never, IAnyError> = Layer.Layer<never>,
 >(
   props: {
@@ -188,17 +195,53 @@ export function makeStandaloneSession<
     actorVersion: ACTOR_VERSION;
     sessionName: SESSION_NAME;
     claimsSchema: CLAIMS;
-    models: MODELS & IAssertValidModels<NoInfer<MODELS>>;
+    models?: MODELS &
+      IAssertValidModels<
+        NoInfer<MODELS>,
+        NoInfer<IComposedDeclarations<MODELS, MODULES, 'models'>>
+      >;
     layer?: APP_LAYER;
-    contracts: CONTRACTS & {
+    contracts?: CONTRACTS & {
       [K in keyof CONTRACTS & string]: K extends CONTRACTS[K]['commandName']
-        ? AssertContractMutationsInModels<CONTRACTS[K], NoInfer<MODELS>>
+        ? AssertContractMutationsInModels<
+            CONTRACTS[K],
+            NoInfer<IComposedDeclarations<MODELS, MODULES, 'models'>>
+          >
         : ITypeError<`Bad contract "${K}". The key in contracts should be the commandName`>;
     };
+    modules?: MODULES &
+      IAssertDistinctDeclarations<
+        NoInfer<MODELS>,
+        NoInfer<CONTRACTS>,
+        NoInfer<MODULES>
+      > & {
+        [K in keyof MODULES]: {
+          models: IAssertValidModels<
+            NoInfer<MODULES[K]['models']>,
+            NoInfer<IComposedDeclarations<MODELS, MODULES, 'models'>>
+          >;
+          contracts: {
+            [
+              C in keyof MODULES[K]['contracts'] & string
+            ]: C extends MODULES[K]['contracts'][C]['commandName']
+              ? AssertContractMutationsInModels<
+                  NoInfer<MODULES[K]['contracts'][C]>,
+                  NoInfer<IComposedDeclarations<MODELS, MODULES, 'models'>>
+                >
+              : ITypeError<`Bad contract "${C}". The key in contracts should be the commandName`>;
+          };
+        };
+      };
     claims: NoInfer<CLAIMS>['Type'];
-    resources?: Partial<{
-      [K in keyof MODELS]: readonly InferResource<MODELS[K]>[];
-    }>;
+    resources?: NoInfer<
+      Partial<{
+        [
+          K in keyof IComposedDeclarations<MODELS, MODULES, 'models'>
+        ]: readonly InferResource<
+          IComposedDeclarations<MODELS, MODULES, 'models'>[K]
+        >[];
+      }>
+    >;
     key: string;
   } & ([
     Exclude<
@@ -207,7 +250,7 @@ export function makeStandaloneSession<
           string,
           string,
           string,
-          NoInfer<CONTRACTS>
+          NoInfer<IComposedDeclarations<CONTRACTS, MODULES, 'contracts'>>
         >['__initializeRequirements']
       >,
       ISessionRuntimeServices | Scope.Scope
@@ -222,7 +265,7 @@ export function makeStandaloneSession<
                 string,
                 string,
                 string,
-                NoInfer<CONTRACTS>
+                NoInfer<IComposedDeclarations<CONTRACTS, MODULES, 'contracts'>>
               >['__initializeRequirements']
             >,
             ISessionRuntimeServices | Scope.Scope
@@ -235,8 +278,8 @@ export function makeStandaloneSession<
     typeof STANDALONE_SYSTEM_NAME,
     AGGREGATE_NAME,
     SESSION_NAME,
-    CONTRACTS,
-    MODELS,
+    IComposedDeclarations<CONTRACTS, MODULES, 'contracts'>,
+    IComposedDeclarations<MODELS, MODULES, 'models'>,
     AGGREGATE_VERSION,
     CLAIMS
   > & { readonly actorName: ACTOR_NAME; readonly actorVersion: ACTOR_VERSION }
@@ -249,28 +292,46 @@ export function makeStandaloneSession<
 };
 
 export function makeStandaloneSession(props: unknown): unknown {
-  const input = props as Parameters<typeof makeSessionDefinition>[0] & {
-    key: string;
-    layer?: Layer.Layer<unknown, IAnyError>;
-    claims: Readonly<Record<string, unknown>>;
-    resources?: Partial<
-      Record<string, readonly InferResource<IAnyModels[string]>[]>
-    >;
-  };
   const {
     key,
     layer = Layer.empty,
     claims: fixtureClaims,
     resources: fixtureResources = {},
-  } = input;
+    models: localModels = {},
+    contracts: localContracts = {},
+    modules = {},
+    ...input
+  } = props as Omit<
+    Parameters<typeof makeSessionDefinition>[0],
+    'models' | 'contracts'
+  > &
+    Partial<IAnyDeclarationModule> & {
+      modules?: Readonly<Record<string, IAnyDeclarationModule>>;
+      key: string;
+      layer?: Layer.Layer<unknown, IAnyError>;
+      claims: Readonly<Record<string, unknown>>;
+      resources?: Partial<
+        Record<string, readonly InferResource<IAnyModels[string]>[]>
+      >;
+    };
+  if ('module' in input) {
+    throw new Error('Unknown session property module');
+  }
   if (key === '') {
     throw makeZerospinError({
       code: 'standalone-session-key-invalid',
       message: 'Standalone session key must be nonempty',
     });
   }
+  const { models, contracts } = composeDeclarations({
+    models: localModels,
+    contracts: localContracts,
+    modules,
+  });
   const selected = makeSessionDefinition({
     ...input,
+    models,
+    contracts,
     systemName: STANDALONE_SYSTEM_NAME,
   });
   if (selected.kind !== 'aggregate') {

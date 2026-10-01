@@ -1,10 +1,13 @@
 import { defineContract } from '@zerospin/core/contracts/defineContract';
 import { makeContractVersion } from '@zerospin/core/contracts/make/makeContractVersion';
+import {
+  execute,
+  makeMachine,
+} from '@zerospin/core/machine/makeMachine/makeMachine';
+import { makeState } from '@zerospin/core/machine/makeState/makeState';
 import { defineModel } from '@zerospin/core/models/defineModel';
 import { makeModelVersion } from '@zerospin/core/models/make/makeModelVersion';
 import { makeService } from '@zerospin/core/service/make/makeService';
-import { execute, makeMachine } from '@zerospin/core/machine/makeMachine/makeMachine';
-import { makeState } from '@zerospin/core/machine/makeState/makeState';
 import { makeAbbreviationIdSchema, primitives } from '@zerospin/schema';
 import { Effect, Schema } from 'effect';
 
@@ -78,20 +81,26 @@ export const finishStartedJob = makeMachine({
   routes: {
     idle: {
       onCommand: ({ command }) => {
-        if (command.commandName !== 'startJob' || command.execution.status !== 'succeeded') {
+        if (
+          command.commandName !== 'startJob' ||
+          command.execution.status !== 'succeeded'
+        ) {
           return undefined;
         }
         const payload = Schema.decodeUnknownSync(
-          Schema.fromJsonString(Schema.Struct({ id: makeAbbreviationIdSchema('job') })),
+          Schema.fromJsonString(
+            Schema.Struct({ id: makeAbbreviationIdSchema('job') }),
+          ),
         )(command.payload);
         return Finishing.make({ jobId: payload.id });
       },
     },
     finishing: {
-      command: ({ origin }) => execute({
-        binding: 'finishJob',
-        payload: { id: origin.jobId },
-      }),
+      command: ({ origin }) =>
+        execute({
+          binding: 'finishJob',
+          payload: { id: origin.jobId },
+        }),
       onResult: () => Idle.make({}),
     },
   },

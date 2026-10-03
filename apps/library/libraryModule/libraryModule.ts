@@ -66,6 +66,6 @@ export const libraryModule = {
     updateLinkSpecAtBreakpoint: moduleContracts.updateLinkSpecAtBreakpoint,
     updateMapPlaceSpecAtBreakpoint: moduleContracts.updateMapPlaceSpecAtBreakpoint,
     updateSwatchAndIconSpecAtBreakpoint: moduleContracts.updateSwatchAndIconSpecAtBreakpoint,
-    updateTextSpecAtBreakpoint: moduleContracts.updateTextSpecAtBreakpoint,
+    updateArticleSpecAtBreakpoint: moduleContracts.updateArticleSpecAtBreakpoint,
   },
 };

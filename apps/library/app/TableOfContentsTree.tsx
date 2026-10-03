@@ -9,7 +9,7 @@ const entries = [
   { id: "layouts", label: "Layouts", branch: "│ ├ ", section: "" },
   { id: "navigation", label: "Navigation", branch: "│ └ ", section: "" },
   { id: "bricks", label: "Bricks", branch: "└ ", section: "" },
-  { id: "text", label: "Text", branch: "  ├ ", section: "" },
+  { id: "article", label: "Article", branch: "  ├ ", section: "" },
   { id: "images", label: "Images", branch: "  └ ", section: "" },
   { id: "publishing", label: "Publishing", branch: "", section: "03" },
   { id: "domains", label: "Custom domains", branch: "└ ", section: "" },

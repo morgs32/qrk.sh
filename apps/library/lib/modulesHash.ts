@@ -9,7 +9,7 @@ import { instagramView } from "../modules/instagram/instagramView";
 import { linkView } from "../modules/link/linkView";
 import { mapPlaceView } from "../modules/mapPlace/mapPlaceView";
 import { swatchAndIconView } from "../modules/swatchAndIcon/swatchAndIconView";
-import { textView } from "../modules/text/textView";
+import { articleView } from "../modules/article/articleView";
 
 export const modulesHash = makeModuleViewLibrary<IBackendLibrary>(backendLibrary, {
   "swatch-and-icon": swatchAndIconView,
@@ -21,5 +21,5 @@ export const modulesHash = makeModuleViewLibrary<IBackendLibrary>(backendLibrary
   instagram: instagramView,
   link: linkView,
   "map-place": mapPlaceView,
-  text: textView,
+  article: articleView,
 });

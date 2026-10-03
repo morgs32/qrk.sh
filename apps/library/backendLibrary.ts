@@ -8,7 +8,7 @@ import { instagramV1 } from "./modules/instagram/instagramV1";
 import { linkV1 } from "./modules/link/linkV1";
 import { mapPlaceV1 } from "./modules/mapPlace/mapPlaceV1";
 import { swatchAndIconV1 } from "./modules/swatchAndIcon/swatchAndIconV1";
-import { textV1 } from "./modules/text/textV1";
+import { articleV1 } from "./modules/article/articleV1";
 
 export const backendLibrary = makeBackendLibrary({
   "swatch-and-icon": swatchAndIconV1,
@@ -20,7 +20,7 @@ export const backendLibrary = makeBackendLibrary({
   instagram: instagramV1,
   link: linkV1,
   "map-place": mapPlaceV1,
-  text: textV1,
+  article: articleV1,
 });
 
 export type IBackendLibrary = typeof backendLibrary;

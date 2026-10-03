@@ -1,6 +1,7 @@
 import { handleR2Asset } from "@qrk.sh/r2-assets";
 import { newWorkersRpcResponse } from "capnweb";
 
+import { BackendRepo } from "./BackendRepo";
 import {
   ALLOWED_ORIGINS,
   emptyCorsResponse,
@@ -10,7 +11,6 @@ import {
 } from "./http";
 import { handleUpload } from "./handleUpload";
 import { FigmaBackend } from "./modules/figmaThumbnail/FigmaBackend";
-import { GitHubBackend } from "./modules/githubProfile/GitHubBackend";
 import { BrowserHost } from "./modules/instagram/BrowserHost";
 import { InstagramBackend } from "./modules/instagram/InstagramBackend";
 import { LibraryApi } from "./modules/LibraryApi";
@@ -19,9 +19,9 @@ import { GooglePlacesBackend } from "./modules/mapPlace/GooglePlacesBackend";
 import { StreamlineBackend } from "./modules/swatchAndIcon/StreamlineBackend";
 
 export {
+  BackendRepo,
   BrowserHost,
   FigmaBackend,
-  GitHubBackend,
   GooglePlacesBackend,
   InstagramBackend,
   LinkBackend,

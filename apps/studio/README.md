@@ -30,7 +30,7 @@ Place local values in `apps/studio/.env.local`:
 - `NEXT_PUBLIC_ZEROSPIN_API_URL`
 - `NEXT_PUBLIC_ZEROSPIN_PUBLISHABLE_KEY`
 - `PUBLIC_MAPBOX_TOKEN`
-- `NEXT_PUBLIC_API_URL` (required Text image upload API URL)
+- `NEXT_PUBLIC_API_URL` (required Article image upload API URL)
 
 Clerk uses its Next.js integration; nuqs uses its Next App Router adapter. Sign-in and sign-up remain web-owned routes and retain `/replace` as their fallback destination. Web performs signed-out redirects, Studio retains its client guard, and Zerospin retains backend authorization. No server-side Zerospin queries or new authentication rules are introduced.
 
@@ -51,6 +51,18 @@ The drawer overlays the bottom `50dvh` on desktop and mobile. The editor stays f
 On every `(bricks)` route, a breakpoint-only toolbar sits `1.5rem` above the drawer, centered over the complete wall composition. **sm / md / lg / xl** select **360 / 720 / 1080 / 1440px** fixed-width walls; widths larger than the available composition are disabled. The four walls stay mounted around one editor session on every editor route. Page Settings displays no breakpoint toolbar. The separate `/breakpoints` route retains its close action. Selection survives drawer navigation and returns when it fits again; otherwise the largest fitting wall is displayed. Catalog drags and wall drag/resize gestures defer the displayed change until completion. Below 360px, the insufficient-width message appears after any active gesture ends and a fitting wall returns immediately when space recovers.
 
 The page contains one full-width scroll region and four centered fixed-width walls. Page Settings retains title/description Save/Cancel, and Site Settings keeps its existing persistence. Brick previews follow the active wall width. There is no article, Compose route, or scrolling-mode setting.
+
+The shared `WallBreakpointPane` adds a 48px muted-gray browser header and thin
+inset frame. sm/md show a Safari-like mobile address pill; lg/xl show desktop
+window dots and a centered address bar. Both display static `qrk.sh` and remain
+noninteractive and hidden from assistive technology. Chrome slides and scrolls
+with the wall, including scroll compensation while dragging, preserves its
+exact 360/720/1080/1440px content width, and allows
+drags beyond the frame. The scroll root sets `--wall-top-offset: 4rem` to match
+Studio's 64px site header; the pane sets `--wall-chrome-height: 3rem`.
+`BrickWall` subtracts both inherited offsets from its viewport minimum height,
+with 3.5rem and zero fallbacks respectively, so an empty wall adds no scrolling
+and drawer scroll anchoring is preserved.
 
 Studio imports the shared `Drawer` from `@qrk.sh/library/Drawer` and passes `open`. Its shell slides with a 300ms CSS transform; editor height and padding do not animate. The route-level React `ViewTransition` preserves only outgoing content for exit, with matching translation and easing. Opening and navigation between drawer routes have no snapshot entrance. Browsers without native View Transitions close immediately. Reduced motion skips positional animation. Closed drawers are inert, hidden from assistive technology, and release their content after exit; focus returns to the opener when it is still appropriate. The transition overlay allows pointer events through. This supersedes plan 007's animated grid-row reservation and snapshot entrance; its unrelated verification items remain separate.
 
@@ -79,21 +91,24 @@ Authenticated drawer checks require `PLAYWRIGHT_STORAGE_STATE` pointing to a val
 
 The separate React Router/Motion example remains an independent example, not an acceptance gate for Studio's Next navigation.
 
-## Inline Text editing
+## Inline Article editing
 
-Studio currently routes brick activation to the read-only detail drawer and suppresses the shared **Edit text** action. The shared Library Text editor supports a floating toolbar, block reordering, and immediate command staging, but Studio does not currently expose its editing entry point or a brick visibility control. Catalog and detail previews are read-only.
+Studio currently routes brick activation to the read-only detail drawer and suppresses the shared **Edit article** action. Article state has separate required title and subtitle strings and a Tiptap body; generated ArticleBrick specs bind all three fields. This hard schema change does not migrate existing content-only articles. The shared Library drawer editor uses a flat toolbar and centered writing column, supports block reordering, and saves local drafts explicitly, but Studio does not currently expose its editing entry point or a brick visibility control. Catalog and detail previews are read-only.
 
-Each document change stages `updateBrickState` immediately in the authenticated `userSession`. Library wall, brick, and placement commands use its existing live push and synchronization lifecycle; there is no separate wall Save or autosave. Failed staging is reported and the editor retains its document while mounted, retrying on the next edit or editing exit. Page and Site Settings continue to save through their existing commands.
+Library drawer edits remain local until Save stages `updateBrickState`; failed saves retain the draft and show an error. Studio currently exposes Article previews only. Studio wall, brick, and placement commands use the authenticated `userSession` and its existing live push and synchronization lifecycle. Page and Site Settings continue to save through their existing commands.
 
 Each Page references its own Library wall, created atomically by `createPage` with ID `prefixId(libraryModule.models.wall, pageId)`. The grid and brick drawer scope queries to that wall. `ZerospinUserProvider` owns session initialization and disposal, and `UserLayout` waits for initialization before mounting the editor. Changing pages does not dispose the user session.
 
 This is a fresh-content cutover: legacy grid/brick rows and standalone Studio backups are not migrated. Old standalone backups remain untouched. Incompatible development backend and live-session storage must be reset separately; no automatic reset or lazy wall creation is performed.
 
-Text bricks resize horizontally outside editing; their height follows natural content. Browser measurements round up to whole grid rows, displace overlapping neighbors on growth, and preserve gaps on shrink. Measurement writes pause during wall gestures and resume from the completed layout. Content is shared across breakpoints; placement and measured height are separate per breakpoint. Changing breakpoint finishes editing without recreating the wall session.
+Article bricks use normal grid resizing and keep their saved height regardless of
+content, image loads, or width changes. Their module-owned white shell fills the
+placement and clips overflowing content. Content remains shared across breakpoints;
+placement sizes remain separate per breakpoint.
 
-## Text images
+## Article images
 
-**Add image** inserts an upload placeholder. Choose or drop one PNG, JPEG, WebP, or SVG up to 5 MiB. Progress, cancellation, and errors use the existing upload implementation. Leaving editing, changing breakpoint, deleting the brick, or leaving the editor cancels pending requests; late completion cannot insert content. Completed image nodes, including size and alignment, persist in the Text brick's content. Images shrink to fit the brick width.
+**Add image** inserts an upload placeholder. Choose or drop one PNG, JPEG, WebP, or SVG up to 5 MiB. Progress, cancellation, and errors use the existing upload implementation. Leaving editing, changing breakpoint, deleting the brick, or leaving the editor cancels pending requests; late completion cannot insert content. Completed image nodes, including size and alignment, persist in the Article brick's content. Images shrink to fit the brick width.
 
 Set `NEXT_PUBLIC_API_URL` to the unified `api` Worker origin; local development uses `http://127.0.0.1:8787`. Run `pnpm nx run @qrk.sh/api:dev` separately. The API Worker verifies the Clerk bearer token using `CLERK_SECRET_KEY` and `CLERK_AUTHORIZED_PARTY`, stores the bytes in its `QRKSH` R2 binding, and returns a URL built from `R2_PUBLIC_BASE_URL`. The configured authorized party and CORS origins must match the browser origin. `/assets` serves local R2 objects through the Worker; `/assets/library/*` uses the retained Library `ASSETS` bucket. Production can use the configured public R2 host. Clerk secrets stay on the Worker.
 

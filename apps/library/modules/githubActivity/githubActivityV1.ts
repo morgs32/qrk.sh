@@ -49,6 +49,7 @@ const defaultData = {
 
 export const githubActivityV1 = makeModuleVersion(githubActivity, {
   version: "1.0.0",
+  hasPlaceholder: true,
   components: {
     BrickShell: brickShellComponent,
     BrickBody: brickBodyComponent,

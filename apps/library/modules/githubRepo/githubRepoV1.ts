@@ -37,6 +37,7 @@ const defaultData = {
 
 export const githubRepoV1 = makeModuleVersion(githubRepo, {
   version: "1.0.0",
+  hasPlaceholder: true,
   components: {
     BrickShell: brickShellComponent,
     BrickBody: brickBodyComponent,

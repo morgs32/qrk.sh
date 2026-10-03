@@ -45,7 +45,7 @@ function contentFromChatCompletion(body: unknown): string {
   return message.content;
 }
 
-function specFromModelText(text: string): unknown {
+function specFromModelText(text: string, currentSpec: Spec | null): unknown {
   const trimmed = text.trim();
   const fenceMatch = /^```(?:json)?\s*([\s\S]*?)```$/.exec(trimmed);
   const body = fenceMatch === null ? trimmed : fenceMatch[1].trim();
@@ -57,7 +57,7 @@ function specFromModelText(text: string): unknown {
   } catch {
     // Standalone catalog prompts ask for JSONL patches.
   }
-  return compileSpecStream(body);
+  return compileSpecStream(body, currentSpec === null ? {} : structuredClone(currentSpec));
 }
 
 export async function generateSpec(props: {
@@ -155,7 +155,7 @@ export async function generateSpec(props: {
         },
       };
     }
-    const spec = specFromModelText(contentFromChatCompletion(responseBody));
+    const spec = specFromModelText(contentFromChatCompletion(responseBody), currentSpec);
     const validated = catalog.validate(spec);
     if (!validated.success || validated.data === undefined || !isNonEmptySpec(validated.data)) {
       return {

@@ -89,7 +89,7 @@ export function Grid() {
                 breakpoint={row.id}
                 gridWidth={row.previewWidth}
                 isActive={isActive}
-                showTextEditAction={false}
+                showArticleEditAction={false}
                 onGestureChange={setGridGesture}
                 onCommandError={(message) => toast.error(message)}
                 onBrickActivate={({ brickId }) => {

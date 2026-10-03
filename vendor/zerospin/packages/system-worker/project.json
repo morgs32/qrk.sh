@@ -69,6 +69,14 @@
         "command": "node scripts/checkActorStaging.mjs",
         "cwd": "{projectRoot}"
       }
+    },
+    "repo-lifecycle:check": {
+      "dependsOn": ["^lib"],
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node scripts/checkRepoLifecycle.mjs",
+        "cwd": "{projectRoot}"
+      }
     }
   }
 }

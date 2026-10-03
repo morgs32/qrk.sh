@@ -237,16 +237,16 @@ test.describe("Site grid drag", () => {
     await expect(bricks).toHaveCount(0);
   });
 
-  test("empty wall has no text bricks until one is dropped", async ({ page }) => {
+  test("empty wall has no article bricks until one is dropped", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto(pageBase, { waitUntil: "load" });
 
     const grid = page.locator('[data-wall-active="true"] .grid-layout');
     await expect(grid).toBeVisible({ timeout: 90_000 });
-    await expect(gridLocateByBrickIdentity(grid, "text")).toHaveCount(0);
+    await expect(gridLocateByBrickIdentity(grid, "article")).toHaveCount(0);
   });
 
-  test("dragging a Text brick from the drawer onto the grid adds a sample instance", async ({
+  test("dragging a Article brick from the drawer onto the grid adds a sample instance", async ({
     page,
   }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
@@ -255,14 +255,14 @@ test.describe("Site grid drag", () => {
     const grid = page.locator('[data-wall-active="true"] .grid-layout');
     await expect(grid).toBeVisible({ timeout: 90_000 });
 
-    const text4x4Bricks = gridLocateByBrickIdentity(grid, "text");
-    await expect(text4x4Bricks).toHaveCount(0);
+    const article4x4Bricks = gridLocateByBrickIdentity(grid, "article");
+    await expect(article4x4Bricks).toHaveCount(0);
 
     await expect(page.getByLabel("Workspace drawer")).toBeVisible();
-    await page.getByLabel("Search bricks").fill("Text brick");
-    await expect(page.getByText("Text brick").first()).toBeVisible();
+    await page.getByLabel("Search bricks").fill("Article brick");
+    await expect(page.getByText("Article brick").first()).toBeVisible();
 
-    const slot = drawerBrickPreviewSlot(page, "text").first();
+    const slot = drawerBrickPreviewSlot(page, "article").first();
     await expect(slot).toBeVisible();
 
     const gridBox = await grid.boundingBox();
@@ -275,17 +275,17 @@ test.describe("Site grid drag", () => {
       steps: 24,
     });
 
-    await expect(text4x4Bricks).toHaveCount(1, { timeout: 15_000 });
+    await expect(article4x4Bricks).toHaveCount(1, { timeout: 15_000 });
   });
 
-  test("dropped text bricks can be reordered within the grid", async ({ page }) => {
+  test("dropped article bricks can be reordered within the grid", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto(`${pageBase}/modules`, { waitUntil: "load" });
 
     const grid = page.locator('[data-wall-active="true"] .grid-layout');
     await expect(grid).toBeVisible({ timeout: 90_000 });
 
-    const slot = drawerBrickPreviewSlot(page, "text").first();
+    const slot = drawerBrickPreviewSlot(page, "article").first();
     await expect(slot).toBeVisible();
     const gridBox = await grid.boundingBox();
     expect(gridBox).not.toBeNull();
@@ -305,11 +305,11 @@ test.describe("Site grid drag", () => {
       steps: 24,
     });
 
-    const textBricks = gridLocateByBrickIdentity(grid, "text");
-    await expect(textBricks).toHaveCount(2, { timeout: 15_000 });
+    const articleBricks = gridLocateByBrickIdentity(grid, "article");
+    await expect(articleBricks).toHaveCount(2, { timeout: 15_000 });
 
-    const first = textBricks.nth(0);
-    const second = textBricks.nth(1);
+    const first = articleBricks.nth(0);
+    const second = articleBricks.nth(1);
     const boxA = await first.boundingBox();
     const boxB = await second.boundingBox();
     expect(boxA).not.toBeNull();

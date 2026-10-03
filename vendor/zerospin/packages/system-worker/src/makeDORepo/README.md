@@ -8,27 +8,45 @@ sibling is [`makeMigratableDORepo`](../makeMigratableDORepo/makeMigratableDORepo
 ## Construction and activation
 
 The [constructor](./makeDORepo.ts) creates `alarmRegistry` before derived fields
-initialize, then resolves the physical name, parsed key, and database config.
+initialize, then resolves the physical name and parsed key. An optional
+`validateKey({ key })` Effect runs synchronously before database config resolution.
 `namespaceBinding` selects the DO namespace; `nameUtils` defines the physical
 name/key contract. `getRepo({ key })` only resolves a stub. It does not initialize
 the receiver or establish authorization.
+
+The common base has no application `config` dependency. `makeFixedDORepo` supplies
+the existing aggregate/service version validation and SystemRepo registration,
+and owns the system namespace declarations. `makeMigratableDORepo` supplies
+neither hook, so a standalone Worker can import the factory and its config builder
+from their defining `system-worker/makeMigratableDORepo/*` paths without a system
+config alias. Consumers augment `Cloudflare.DORepoNamespaces` with their bindings.
+`repoType` belongs only to fixed configuration and SystemRepo registration.
+
+`makeMigratableDORepoConfig` accepts an optional `abbreviation`, defaulting to
+`null`. Omitted or null abbreviations produce an unprefixed physical name;
+a string adds an exact `<abbreviation>_` prefix that name parsing also requires.
+For `/global`, omission produces `global`, while `abbreviation: 'br'` produces
+`br_global`. The fixed config builder continues to accept `undefined` for no
+prefix. Changing the prefix changes the name used to look up the Durable Object.
 
 Derived queue fields can register their lazy drains immediately. Registration
 does not read database rows or start delivery. The constructor's concurrency
 block defers startup until derived fields exist, then runs:
 
-1. Serialize the executing Worker's aggregate and service definitions and call
-   SystemRepo's `registerRepo({ registration, spec })`. Every definition must
-   match an existing immutable lock before registration succeeds. SystemRepo
-   does not register with itself.
+1. Run optional `registerRepo({ name, schema })` before storage access. The fixed
+   factory serializes the executing Worker's aggregate and service definitions
+   and calls SystemRepo's `registerRepo({ registration, spec })`. Every definition
+   must match an existing immutable lock before registration succeeds. SystemRepo
+   omits `repoType` and does not register with itself. Migratable Repos skip this
+   system-specific step.
 2. Enable SQLite foreign keys and apply the selected schema policy. Fixed Repos
    provision only an unmarked database; migratable Repos apply migrations.
 3. Bootstrap when required, recording `_isBootstrapped` only after success.
 4. The Repo's named `onDOActivation()` Effect.
 
-Registration means a known instance with accepted definitions; it remains if
-subsequent provisioning, bootstrap, or subscription fails. Rejection touches no
-Repo storage, schema, marker, or subscription. Cold reopen and alarm-driven
+For fixed system Repos, registration means a known instance with accepted
+definitions; it remains if subsequent provisioning, bootstrap, or subscription
+fails. Rejection touches no Repo storage, schema, marker, or subscription. Cold reopen and alarm-driven
 activation run the same guard, including when the bootstrap marker exists.
 The calling Worker supplies the candidate spec: SystemRepo may be assigned to
 an incumbent Worker version during production preflight.

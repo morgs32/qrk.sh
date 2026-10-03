@@ -14,18 +14,23 @@ import { GripVertical } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef } from "react";
 import ImageResize from "tiptap-extension-resize-image";
 
-import { TextToolbar } from "./TextToolbar";
+import { ArticleToolbar } from "./ArticleToolbar";
 import { HorizontalRule } from "./tiptap/node/horizontal-rule-node/horizontal-rule-node-extension";
 import { ImageUploadNode } from "./tiptap/node/image-upload-node/image-upload-node-extension";
-import "./text-editor.scss";
+import "./article-font.css";
+import "./article-editor.scss";
 
-export function TextEditorControl(props: {
+export function ArticleEditorControl(props: {
+  title: string;
+  subtitle: string;
   value: JSONContent | null;
   drawer: {
+    onTitleChange: (title: string) => void;
+    onSubtitleChange: (subtitle: string) => void;
     onChange: (document: JSONContent) => void;
   };
 }) {
-  const { value, drawer } = props;
+  const { title, subtitle, value, drawer } = props;
   const current = useRef(drawer);
   useLayoutEffect(() => {
     current.current = drawer;
@@ -36,6 +41,7 @@ export function TextEditorControl(props: {
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
+        heading: { levels: [2, 3, 4] },
         horizontalRule: false,
         underline: false,
         trailingNode: { node: "paragraph", notAfter: ["paragraph"] },
@@ -63,8 +69,8 @@ export function TextEditorControl(props: {
     immediatelyRender: false,
     editorProps: {
       attributes: {
-        "aria-label": "Text content",
-        class: "qrk-text-editor outline-none",
+        "aria-label": "Article content",
+        class: "qrk-article-editor outline-none",
       },
     },
     onCreate: ({ editor: created }) => {
@@ -101,15 +107,35 @@ export function TextEditorControl(props: {
   if (!editor) return null;
   return (
     <EditorContext.Provider value={{ editor }}>
-      <div className="qrk-bricks qrk-text-controls">
-        <TextToolbar editor={editor} />
+      <div className="qrk-bricks qrk-article-controls">
+        <ArticleToolbar editor={editor} />
       </div>
-      <div className="qrk-text-surface">
-        <div className="qrk-text-document">
+      <div className="qrk-article-surface qrk-article-writing-column">
+        <input
+          className="qrk-article-title-input"
+          aria-label="Article title"
+          placeholder="Title"
+          required
+          pattern={".*\\S.*"}
+          title="Enter a title containing more than whitespace."
+          value={title}
+          onChange={(event) => drawer.onTitleChange(event.target.value)}
+        />
+        <input
+          className="qrk-article-subtitle-input"
+          aria-label="Article subtitle"
+          placeholder="Add a subtitle…"
+          required
+          pattern={".*\\S.*"}
+          title="Enter a subtitle containing more than whitespace."
+          value={subtitle}
+          onChange={(event) => drawer.onSubtitleChange(event.target.value)}
+        />
+        <div className="qrk-article-document">
           <EditorContent editor={editor} />
         </div>
         <DragHandle editor={editor} nested={false}>
-          <div title="Drag block" aria-label="Drag block" className="qrk-text-block-handle">
+          <div title="Drag block" aria-label="Drag block" className="qrk-article-block-handle">
             <GripVertical size={20} />
           </div>
         </DragHandle>

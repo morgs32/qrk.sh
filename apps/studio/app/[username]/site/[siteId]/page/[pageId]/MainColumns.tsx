@@ -90,7 +90,7 @@ export function MainColumns() {
       <div hidden={insufficientWidth} className="h-full w-full" data-testid="page-composition">
         <div
           ref={editorScroll}
-          className="h-full min-h-0 overflow-y-auto"
+          className="h-full min-h-0 overflow-y-auto [--wall-top-offset:4rem]"
           data-site-right-scroll
           data-brick-scroll-root
         >

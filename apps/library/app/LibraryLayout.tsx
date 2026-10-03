@@ -102,7 +102,7 @@ export function LibraryLayout(props: { children: ReactNode }) {
     // Client startup only; keep the standalone session's module identity intact.
     if (devtoolsLoaded.current) return;
     devtoolsLoaded.current = true;
-    void loadDevtools({ defaultOpen: true });
+    void loadDevtools({ defaultOpen: false });
   }, []);
   if (resetError !== null) throw resetError;
   if (!isInitialized) {
@@ -266,7 +266,11 @@ function LayoutBody(props: {
   const breadcrumbModuleId = moduleId ?? brickRow?.moduleId;
   const moduleLabel =
     breadcrumbModuleId !== undefined ? modulesHash[breadcrumbModuleId].label : undefined;
-  const drawerTitle = moduleLabel !== undefined ? `Bricks / ${moduleLabel}` : "Bricks";
+  const isBrickAdmin = brickId !== undefined && pathname === `/bricks/${brickId}/admin`;
+  const drawerTitle =
+    moduleLabel !== undefined
+      ? `Bricks / ${moduleLabel}${isBrickAdmin ? " / Admin" : ""}`
+      : "Bricks";
 
   if (locationKey !== drawerOpenForLocationKey) {
     setDrawerOpenForLocationKey(locationKey);
@@ -368,7 +372,7 @@ function LayoutBody(props: {
           }}
           data-testid="grid-region"
           data-brick-scroll-root=""
-          className="relative h-full min-h-0 min-w-0 overflow-x-hidden overflow-y-auto pt-14"
+          className="relative h-full min-h-0 min-w-0 overflow-x-hidden overflow-y-auto pt-[var(--wall-top-offset)] [--wall-top-offset:6rem] lg:[--wall-top-offset:3.5rem]"
         >
           {availableWidth > 0 && activeBreakpoint === null && (
             <p className="p-4" role="status">
@@ -452,7 +456,23 @@ function LayoutBody(props: {
                         <span aria-hidden className="text-muted-foreground">
                           /
                         </span>
-                        <span className="truncate">{`~${brickId.slice(-5)}`}</span>
+                        {isBrickAdmin ? (
+                          <Link href={`/bricks/${brickId}`} scroll={false} className="truncate">
+                            {`~${brickId.slice(-5)}`}
+                          </Link>
+                        ) : (
+                          <span className="truncate">{`~${brickId.slice(-5)}`}</span>
+                        )}
+                        <span aria-hidden className="text-muted-foreground">
+                          /
+                        </span>
+                        {isBrickAdmin ? (
+                          <span aria-current="page">Admin</span>
+                        ) : (
+                          <Link href={`/bricks/${brickId}/admin`} scroll={false}>
+                            Admin
+                          </Link>
+                        )}
                       </>
                     ) : null}
                   </>
@@ -489,7 +509,13 @@ function LayoutBody(props: {
           </Drawer>
         </div>
       </div>
-      <div className="pointer-events-none fixed inset-x-0 top-3 z-80 flex justify-center px-2 lg:bottom-6 lg:top-auto">
+      <div
+        className="pointer-events-none fixed inset-x-0 top-3 z-80 flex justify-center px-2 lg:bottom-6 lg:top-auto"
+        style={{
+          ...(drawerOpen ? { top: "auto", bottom: "calc(50dvh + 1.5rem)" } : {}),
+          transition: reducedMotion ? "none" : "bottom 300ms cubic-bezier(0, 0, 0.2, 1)",
+        }}
+      >
         <div
           role="toolbar"
           aria-label="Grid controls"

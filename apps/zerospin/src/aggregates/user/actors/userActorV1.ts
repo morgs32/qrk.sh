@@ -92,7 +92,7 @@ export const userActorV1 = makeAggregateActorVersion(defineAggregateActor({ name
     updatePageSettings,
     updateSiteSettings,
   },
-  queries: {
+  selections: {
     wall: db.query.wall.findMany({
       where: {
         pages: { site: { user: { clerkUserId: { eq: identity.sql.placeholder("clerkUserId") } } } },

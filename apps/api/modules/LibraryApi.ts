@@ -1,9 +1,15 @@
 import { RpcTarget } from "capnweb";
 import type { Spec } from "@json-render/core";
+import { Layer, ManagedRuntime } from "effect";
 
+import { encodeRpc } from "./encodeRpc";
 import { generateSpec } from "./generateSpec";
+import { getGitHubProfile } from "./githubProfile/getGitHubProfile";
+import { getGitHubRepo } from "./githubRepo/getGitHubRepo";
+import type { IGitHubRepoPayload, IGitHubScrapePayload, IRpcEither } from "./types";
 
 const GLOBAL_BACKEND_NAME = "global";
+const managedRuntime = ManagedRuntime.make(Layer.empty);
 
 export class LibraryApi extends RpcTarget {
   constructor(private readonly workerEnv: Env) {
@@ -14,8 +20,16 @@ export class LibraryApi extends RpcTarget {
     return this.workerEnv.INSTAGRAM_BACKEND.getByName(GLOBAL_BACKEND_NAME);
   }
 
-  githubBackend() {
-    return this.workerEnv.GITHUB_BACKEND.getByName(GLOBAL_BACKEND_NAME);
+  getGitHubProfile(url: string): Promise<IRpcEither<IGitHubScrapePayload>> {
+    return managedRuntime.runPromise(
+      getGitHubProfile({ url, token: this.workerEnv.GITHUB_TOKEN }).pipe(encodeRpc),
+    );
+  }
+
+  getGitHubRepo(url: string): Promise<IRpcEither<IGitHubRepoPayload>> {
+    return managedRuntime.runPromise(
+      getGitHubRepo({ url, token: this.workerEnv.GITHUB_TOKEN }).pipe(encodeRpc),
+    );
   }
 
   figmaBackend() {

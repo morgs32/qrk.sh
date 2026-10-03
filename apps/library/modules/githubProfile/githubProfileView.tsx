@@ -14,9 +14,13 @@ import { followersView } from "./GitHubProfile/components/Followers";
 import { followingView } from "./GitHubProfile/components/Following";
 import { locationView } from "./GitHubProfile/components/Location";
 import { publicReposView } from "./GitHubProfile/components/PublicRepos";
+import { GitHubProfilePlaceholder } from "./GitHubProfilePlaceholder";
 
 export const githubProfileView = makeModuleView(githubProfileV1, {
   default: {
+    placeholder() {
+      return <GitHubProfilePlaceholder />;
+    },
     component(props) {
       const { state } = props;
       return (

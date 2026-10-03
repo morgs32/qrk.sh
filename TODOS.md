@@ -1,24 +1,19 @@
 # TODOs
 
-## Text brick HTML display
+## Brick form and Admin route verification
 
-Deferred manual checks from [archived plan 015](wiki/archive/plans/015-plan-text-brick-html-display.md). Library tests must not be written or run.
+- [x] Verified form-only rendering, successful Article/JSON Save, Cancel, validation/errors and failed-Save draft retention, empty no-form body, exact null restoration, Admin sections and visibility, breadcrumb/pencil navigation, direct Admin reload, Back/Forward, and route draft discard. Generated updates stage `updateArticleSpecAtBreakpoint`; API now applies edit patches to the supplied current spec. Standalone ownership releases on pagehide and reacquires on visible pageshow; final reload and subsequent writes passed after rebuilding dependencies and restarting Next. Library/API typecheck and lint, browser build/typecheck, and upstream browser lint passed. No Library tests were added or run. Original Article content and all four placements were restored; verification bricks remain hidden.
 
-- [ ] Verify delayed network image loading updates generated HTML's natural height and the active pane's grid height after the image loads, without inactive or outgoing panes staging height updates.
-- [ ] Place another brick below a Text brick, save content that grows into it, and verify collision displacement. Shrinking Text should leave neighboring bricks in place.
-- [ ] Verify Text width resizing through the edge handle, including height remeasurement after gesture completion. Browser-driven resize attempts had no observable effect, so this remains unverified.
-
-## Library drawer Text editing
+## Library drawer Article editing
 
 Deferred manual checks for [archived plan 014](wiki/archive/plans/014-plan-library-drawer-text-editing.md). Library tests must not be written or run.
 
-- [ ] Verify Redo, block dragging, image resizing, and that Text Cancel clears canceled undo history after reopening.
+- [ ] Verify Redo, block dragging, image resizing, and that Article Cancel clears canceled undo history after reopening.
 - [ ] Verify clicking the wall while a draft is dirty leaves it intact, activating the current brick route explicitly reopens the drawer, and deleting the brick discards drafts.
-- [ ] Verify a dirty Text or JSON draft survives committed-state echoes, including an older echo after the other section saves.
-- [ ] Force failed Text and JSON `updateBrickState` staging and verify each section retains its draft, stays open, and shows its own error.
-- [ ] Verify saved content shrinking and collision layout, including that inactive or outgoing breakpoint panes never stage height updates.
-- [ ] Verify Generate spec and visibility actions remain independent of unsaved Text and JSON drafts.
-- [ ] Verify authenticated Studio still uses inline Text editing, its floating toolbar, outside-click deactivation, and immediate staging.
+- [ ] Verify a dirty Article or JSON draft survives committed-state echoes, including an older echo after the other section saves.
+- [ ] Force failed Article and JSON `updateBrickState` staging and verify each section retains its draft, stays open, and shows its own error.
+- [ ] Verify Generate spec and visibility actions remain independent of unsaved Article and JSON drafts.
+- [ ] Verify authenticated Studio still uses inline Article editing, its floating toolbar, outside-click deactivation, and immediate staging.
 
 ## Studio and Library drawer
 
@@ -35,26 +30,26 @@ Deferred checks from [archived plan 008](wiki/archive/plans/008-plan-modules-nam
 
 - [ ] With authenticated Studio Playwright fixtures, run the catalog, detail, drawer, grid, and history checks. Verify placed-brick navigation back to module detail and shell identity/history behavior.
 
-## Text uploads temporarily disabled
+## Article uploads temporarily disabled
 
-[Plan 016](wiki/archive/plans/016-plan-disable-text-uploads.md) records the implementation and passing typecheck, lint, and manual browser checks. Uploads remain disabled inside Text; existing images and editing controls remain supported.
+[Plan 016](wiki/archive/plans/016-plan-disable-text-uploads.md) records the implementation and passing typecheck, lint, and manual browser checks. Uploads remain disabled inside Article; existing images and editing controls remain supported.
 
-- [ ] Implement future Text uploads inside the module without application upload callbacks, request tracking, or upload-specific Save gating. Warn before proposing new module-specific application coupling.
+- [ ] Implement future Article uploads inside the module without application upload callbacks, request tracking, or upload-specific Save gating. Warn before proposing new module-specific application coupling.
 
-## Studio Text editing and uploads
+## Studio Article editing and uploads
 
 Deferred checks from [archived plan 011](wiki/archive/plans/011-plan-text-brick-editing.md).
 
-- [ ] In an authenticated Studio editor, verify inline Text activation, drawer closure, focus and popovers, Escape/outside-click exit, formatting, block and image gestures, previews, selection/undo, immediate command staging, failure recovery, navigation, and reload after backup readiness.
-- [ ] When module-owned Text uploads are implemented, verify real completion, progress, cancellation, and late-completion rejection in the supported editors, including exit/deletion cases. Text uploads are currently disabled; do not restore application-owned upload wiring. Historical upload verification remains in the archived plans.
+- [ ] In an authenticated Studio editor, verify inline Article activation, drawer closure, focus and popovers, Escape/outside-click exit, formatting, block and image gestures, previews, selection/undo, immediate command staging, failure recovery, navigation, and reload after backup readiness.
+- [ ] When module-owned Article uploads are implemented, verify real completion, progress, cancellation, and late-completion rejection in the supported editors, including exit/deletion cases. Article uploads are currently disabled; do not restore application-owned upload wiring. Historical upload verification remains in the archived plans.
 - [ ] Assess compatibility of existing Studio storage containing the removed V2/article contract against a working identity and backend; the earlier identity failure prevented this check.
 
 ## Fixed-width breakpoint walls
 
 Deferred checks from [archived plan 013](wiki/archive/plans/013-plan-fixed-width-breakpoint-walls.md).
 
-- [ ] With an authenticated Studio editor, run the affected Drawers, Grid, and TextEditing Playwright suites across configured browsers. Cover fixed widths and centering, mounted wall identity, transition direction/reversal and reduced motion, selection fallback/recovery, below-360px behavior, and native drag/resize/drop cancellation and cleanup.
-- [ ] Verify drawer anchoring and scroll after drag, Text activation and exit across breakpoint changes, and that hidden/outgoing panes never write measured heights.
+- [ ] With an authenticated Studio editor, run the affected Drawers, Grid, and ArticleEditing Playwright suites across configured browsers. Cover fixed widths and centering, mounted wall identity, transition direction/reversal and reduced motion, selection fallback/recovery, below-360px behavior, and native drag/resize/drop cancellation and cleanup.
+- [ ] Verify drawer anchoring and scroll after drag, Article activation and exit across breakpoint changes.
 - [ ] Manually verify Library gesture deferral, cancellation, drop, resize, scroll, and transition behavior across breakpoint changes. Do not write or run Library tests.
 
 ## Per-breakpoint placement sizes
@@ -71,3 +66,7 @@ Deferred verification from [archived spec 001](wiki/archive/specs/001-spec-place
 
 - [ ] Inspect `makeCompactLayout` and `makeCollisionResolvedLayout` outputs and their add/show/compact callers for exactly `{ i, x, y, w, h }`, fresh objects, unchanged inputs, and preserved geometry and neighbor handling.
 - [ ] Check empty compaction plus incoming-item insertion and replacement paths. Run Library typechecking and lint when the placement implementation is next changed.
+
+## Article hard rename verification
+
+- [x] Verified a new Article drop, drawer edit/Save, generated spec updates through `updateArticleSpecAtBreakpoint`, and manual grid resizing without automatic height adjustment. The complete example retains its heading, paragraphs, and four ordered items. Library build and Library/Studio typecheck and lint passed; final Library/API typecheck and lint also passed. Original configured Article content and geometry were preserved.

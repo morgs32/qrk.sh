@@ -37,31 +37,51 @@ browser configuration.
 
 ## Routes and ownership
 
-| Route | Behavior |
-| --- | --- |
-| `/rpc` | Existing `LibraryApi` methods and authentication behavior |
-| `POST /upload` | Clerk bearer-token authentication; writes to `QRKSH` |
-| `/assets/library/*` | Reads original Library image keys from `ASSETS` |
-| Other `/assets/*` | Reads API upload keys from `QRKSH` |
+| Route               | Behavior                                                  |
+| ------------------- | --------------------------------------------------------- |
+| `/rpc`              | Existing `LibraryApi` methods and authentication behavior |
+| `POST /upload`      | Clerk bearer-token authentication; writes to `QRKSH`      |
+| `/assets/library/*` | Reads original Library image keys from `ASSETS`           |
+| Other `/assets/*`   | Reads API upload keys from `QRKSH`                        |
 
 `OPTIONS` retains API preflight handling. CORS allows the existing application
 origins plus Library's localhost and loopback origins on port 4100. Uploads
 retain the existing multipart contract, supported image types, 5 MiB limit,
 error responses, and returned asset URL. Library's former anonymous upload
-endpoint is removed; the Library Text upload controls remain disabled.
+endpoint is removed; the Library Article upload controls remain disabled.
 
-`LibraryApi` and generation live in API. Backend classes and their provider
-helpers live under matching `modules` folders: `instagram`, `githubProfile`,
-`figmaThumbnail`, `mapPlace`, `link`, and `swatchAndIcon`. `BrowserHost` stays with
-Instagram's browser scraping; GitHub repository fetching and URL normalization
-live under `githubRepo`. These implementations keep their class names,
-RPC methods, and cache behavior. Their later consolidation is outside this move.
+`LibraryApi` and generation live in API. `getGitHubProfile(url)` and
+`getGitHubRepo(url)` fetch upstream on every call. GitHub module programs own URL
+normalization, provider calls, validation, and retention. Profiles keep their
+existing fields and contribution calendar; repositories return the existing five
+fields. Only a fully successful response is retained. Upstream errors return the
+existing error and leave the previous response untouched.
+
+Spec generation accepts a full spec or JSONL patches. Edits apply patches to a
+copy of the supplied current spec, retaining its root and unchanged elements;
+the resulting spec must pass the module catalog's validation before returning.
+
+`BACKEND_REPO` binds the storage-only `BackendRepo` singleton named `global`.
+Its initial SQL migration creates `responses(key TEXT NOT NULL UNIQUE, payload
+TEXT NOT NULL)`. `storeResponse` validates JSON, encodes through the table codec,
+and synchronously upserts one row. Keys are `github-profile:${canonicalUrl}` and
+`github-repo:${canonicalUrl}`. The last successful write wins, including
+overlapping requests. Requests await retention; envelope failures and transport
+rejections log `backend-response-retention-failed` and still return fetched data.
+Stored responses never satisfy a fetch request, and have no TTL or timestamps.
+
+Other provider Backends retain their existing methods and caching behavior in
+their matching `modules` folders. `BrowserHost` stays with Instagram's browser
+scraping. Their consolidation follows separate provider migrations.
 Linktree scraping continues in `@qrk.sh/scraper`.
 
 Wrangler configuration, generated `Env`, browser binding, both R2 bindings, and
-Durable Object migrations belong to API. The `api` Worker identity provisions
-fresh provider-cache namespaces, retaining the existing classes and storage
-kinds. Existing local state directories and uploaded R2 bytes are preserved.
+Durable Object migrations belong to API. The local `v1` bootstrap replaces
+`GitHubBackend` with SQLite `BackendRepo`; old GitHub cache entries are not copied.
+Other current migration lists remain unchanged. Rewriting this local baseline
+does not reset a deployed namespace: Cloudflare applies each migration tag once
+per environment ([migration reference](https://developers.cloudflare.com/durable-objects/reference/durable-object-class-migrations-legacy/#migration-wrangler-configuration)).
+Existing local state directories and uploaded R2 bytes are preserved.
 Local Library `ASSETS` data is copied into API's `.wrangler/state/v3/r2` using
 SQLite backup and blob copies; its original state remains intact. API's existing
 `QRKSH` data stays in place. Documents containing absolute
@@ -79,5 +99,7 @@ pnpm nx run @qrk.sh/api:test:workerd
 ```
 
 `types` regenerates Worker bindings. `build` checks Wrangler bundling without
-deployment. API's existing upload tests remain its test gate. Library's tests
+deployment. API's Workerd tests cover uploads and GitHub fetch/retention behavior.
+The owning system-worker `repo-lifecycle:check` uses disposable Workerd state for
+standalone migrations, restarts, rollback, and fixed-repo admission. Library's tests
 are not written, modified, or run as part of this migration.

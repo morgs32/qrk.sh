@@ -31,7 +31,9 @@ the Library browser build.
 
 Module definitions, catalogs, views, aggregate behavior, and browser RPC
 declarations stay here. API owns `LibraryApi`, `BrowserHost`, generation,
-provider helpers, and module backend Durable Objects. Client imports retain the
+provider helpers, and module backend Durable Objects. GitHub uses direct
+`getGitHubProfile` and `getGitHubRepo` methods, with successful upstream responses
+retained by API's storage-only `BackendRepo`. Client imports retain the
 existing `worker/*.public.d.ts` paths, so Worker implementation types do not
 become part of the brick library's public declarations. Linktree scraping stays
 in the separate `@qrk.sh/scraper` Worker (`apps/scraper`).
@@ -61,7 +63,8 @@ Worker/RPC declarations. Neither build deploys the app.
 
 After `build:app`, run `pnpm nx run @qrk.sh/library:preview` to serve the built
 Next app on port 4100 alongside the local API Worker. The UI routes are
-`/`, `/modules`, `/modules/[moduleId]`, and `/bricks/[brickId]`. App Router navigation
+`/`, `/modules`, `/modules/[moduleId]`, `/bricks/[brickId]`, and
+`/bricks/[brickId]/admin`. App Router navigation
 retains the wall, drawer, standalone session, and viewport providers; route-specific
 module and brick drafts keep their existing remount boundaries. The document title
 remains `QRK.SH Library`, with diagnostic error and not-found screens.
@@ -81,7 +84,7 @@ contains the Library-only routes and layout, not exported application screens.
 | `/BrickWall`                      | `lib/BrickWall.tsx`                         | Interactive wall                                          |
 | `/GridItemPreview`                | `lib/GridItemPreview.tsx`                   | Preview geometry                                          |
 | `/WallViewportProvider`           | `lib/WallViewportProvider.tsx`              | Viewport provider and hooks                               |
-| `/WallBreakpointPane`             | `lib/WallBreakpointPane.tsx`                | Shared directional fixed-width wall pane                  |
+| `/WallBreakpointPane`             | `lib/WallBreakpointPane.tsx`                | Shared fixed-width wall pane with browser chrome           |
 | `/breakpoints`                    | `lib/breakpoints.ts`                        | Breakpoint definitions and sizing                         |
 | `/brickDragStore`                 | `lib/brickDragStore.ts`                     | Shared drag state                                         |
 | `/TiptapDocSchema`                | `lib/TiptapDocSchema.ts`                    | Article document schema                                   |
@@ -106,12 +109,25 @@ its exit-only ViewTransition. Existing Drawer callers without `open` retain the
 optional Motion/flow behavior. Drawer does not own routing, breadcrumbs, or
 settings actions. This replaces plan 007's animated grid-row reservation.
 
+Library's grid controls float 24px above the open drawer. Closing the drawer
+restores their usual position; their desktop movement follows the drawer's
+300ms transition and skips animation for reduced motion.
+
 Library and Studio share `ModuleFilmstrip`, including module previews, four-breakpoint
 measurement, and `DraggableBrick`. Each app supplies its own module links through
 `renderModuleLink`; the shared catalog has no router dependency. Columns scroll
 vertically within a horizontal strip. Module detail screens remain app-owned.
 
 ## Modules and interaction
+
+GitHub Activity constrains its calendar to the brick shell's available width.
+Only the contribution grid and month labels scroll horizontally; Mon/Wed/Fri
+and the color legend stay fixed. Edge fades apply only to the scrolling grid:
+the left fade appears while older activity is offscreen, and the right fade appears
+while newer activity is offscreen. Both disappear when the full grid fits.
+The scrollbar stays hidden while horizontal scrolling remains available.
+The calendar initially scrolls to the rightmost, most recent activity; subsequent
+manual scrolling keeps the chosen position.
 
 `modulesHash` exposes each library module by its registered kebab-case id, with
 no arbitrary-string index signature. Module URLs decode their ID against the
@@ -140,7 +156,36 @@ placeholder() {
 },
 ```
 
-Image is the first opt-in. The Library drawer's **Display placeholders** checkbox
+Image, GitHub Activity, GitHub Profile, GitHub Repo, Instagram, Link, and Figma
+Thumbnail opt in. Figma Thumbnail uses its module-owned
+`FigmaThumbnailPlaceholder` with skeleton thumbnail and title, keeping the Figma
+icon and label visible. New drops store `state: null`, while its populated
+`defaultState` remains for catalog previews. Its skeleton respects reduced motion
+and contains no outbound link.
+Link uses its module-owned `LinkPlaceholder` with skeleton icon, URL, title,
+and hero image. New drops store `state: null`, while its populated `defaultState`
+remains for catalog previews. Its skeleton respects reduced motion and contains
+no outbound link.
+Instagram uses its module-owned `InstagramPlaceholder` with a skeleton four-post
+grid, icon, username, follower count, and follow button. New drops store
+`state: null`, while its populated `defaultState` remains for catalog previews.
+Its skeleton respects reduced motion and contains no outbound link.
+GitHub Repo uses
+its module-owned `GitHubRepoPlaceholder` with skeleton repository name,
+description, stars, forks, and language. New drops store `state: null`, while its
+populated `defaultState` remains for catalog previews. Its skeleton respects
+reduced motion.
+GitHub Profile uses its
+module-owned `GitHubProfilePlaceholder` with skeleton avatar, username, profile
+details, and statistics. New drops store `state: null`, while its populated
+`defaultState` remains for catalog previews. Its skeleton respects reduced motion.
+GitHub Activity uses its module-owned
+`GitHubActivityPlaceholder` with skeleton month and weekday labels, contribution
+squares, and legend. New GitHub Activity drops store `state: null`, with no payload
+or contribution data until configured; its populated `defaultState` remains for
+catalog previews. The skeleton respects reduced motion.
+
+The Library drawer's **Display placeholders** checkbox
 starts unchecked and switches eligible catalog previews between their example state
 and placeholder without changing preview measurements or drag data. The choice lasts
 until reload. On a new drop, `BrickWall` stores null for modules with a placeholder
@@ -214,6 +259,10 @@ Existing bricks are normalized on their next state update; there is no bulk migr
 `LibraryLayout` initializes the module-level `librarySession` with
 `useInitializeStandaloneSession`. Its `qrk-library` backup key persists the
 `wal_library` document across reloads and initialization registers it with DevTools.
+Navigation releases backup ownership on `pagehide`; a visible `pageshow`
+reacquires it when returning through browser history. Saved bricks are retained.
+DevTools defaults to closed; its trigger remains available and saved DevTools
+visibility preferences still apply.
 Restored resources take precedence over the initial seed. Studio uses its authenticated
 `userSession`, with a separate wall referenced by each page. It no longer constructs
 standalone sessions or reads their per-page IndexedDB backups.
@@ -246,6 +295,19 @@ gestures, selection and available width update while the displayed wall waits
 for completion. Below 360px, the insufficient-width message appears as soon as
 the gesture ends; a fitting wall returns immediately when space recovers.
 
+`WallBreakpointPane` frames each wall with decorative browser chrome: sm/md use
+a Safari-like mobile address pill; lg/xl use desktop window dots and a centered
+address bar. Both display static `qrk.sh` and remain noninteractive and hidden
+from assistive technology. The 48px muted-gray header and thin inset frame leave
+the 360/720/1080/1440px content widths unchanged and allow drags beyond the frame.
+The chrome slides and scrolls with its wall, including the existing scroll
+compensation while dragging. Library reserves 6rem above the
+wall below lg, keeping wrapped controls clear of the chrome, and 3.5rem at lg.
+The scroll root uses inherited `--wall-top-offset` for this padding; the pane
+sets `--wall-chrome-height: 3rem`. `BrickWall` subtracts both offsets from its
+viewport minimum height, with 3.5rem and zero fallbacks respectively, so an
+empty wall remains one viewport tall without extra scrolling.
+
 Library and Studio copy the same built backup assets into their public directories:
 `/__zerospin/backup-worker.js` and `/__zerospin/wa-sqlite-async.wasm`. Next's webpack
 build also emits the standalone session's separate synchronous SQLite WASM asset.
@@ -262,12 +324,61 @@ Zustand `bricksById`.
 Placed bricks drag from their entire surface and resize using the grid library's default
 bottom-right handle. Module and configuration previews also drag from their entire surface.
 
-## Text editing in the brick drawer
+## Article editing in the brick drawer
 
-Text bricks and previews always display HTML generated in the browser from committed Tiptap JSON, without an editor instance. Serialization errors reach the existing error boundary. Saved image widths are retained and task checkboxes are disabled. Placed Text bricks remain read-only on Library's wall. Double-click or **Edit text** opens the brick-detail drawer, with a Text form as the first root outline section and Shared state JSON as another. Each section has its own draft and Save/Cancel controls. Unsaved Text and JSON edits stay independent and do not change wall content. A section's Save stages one complete `updateBrickState` command and leaves the drawer open; the last successful Save wins if both drafts differ. Its Cancel discards only that section's draft. Invalid JSON remains visible with an error and disables JSON Save, without blocking Text Save. Unchanged content, including the editor's empty-document normalization, cannot be saved.
+The rich text module uses **Article** and the `article` module ID.
+Its default width is 8 grid columns on sm/md and 4 on lg/xl.
+Article content uses Open Sans in brick previews and the drawer editor, loaded
+through the module's stylesheet. Code blocks retain their monospace font.
+Placed bricks expose a small pencil icon button labelled **Edit article**.
+Its catalog example and new drops start with “Actually good advice,” including
+the introductory paragraphs and numbered criteria. This is a hard rename without
+legacy aliases or data migration; old `text` bricks,
+`TextBrick` specs, and Text command history may no longer load.
 
-The toolbar sits above the drawer document. Formatting, selection, undo/redo, block dragging, and image resizing remain available. Escape first dismisses an editor popover; otherwise it closes the drawer. Closing, navigating away, or deleting the brick discards both drafts. Clicking the wall alone does not discard a draft. Reopening starts from committed state. The drawer editor and its drafts survive a breakpoint switch because Text content is shared across breakpoints. Studio no longer exposes inline Text editing or a Text edit button; ordinary brick-detail navigation remains available. `BrickWall.showTextEditAction` defaults to true for Library; Studio sets it to false. `TextEditorControl` is drawer-only.
+Article state stores required `title` and `subtitle` strings separately from the
+nullable Tiptap body `content`. The module form uses plain text title/subtitle
+inputs above a writing column capped at 720px, with a flat, centered toolbar.
+Brick title/subtitle/body spacing matches the form's text spacing.
+Body headings are H2–H4. Standard HTML form validation blocks Save when either
+metadata field is empty or contains only whitespace; Admin retains schema-based
+JSON validation. This is a hard schema change without migration or fallback:
+old content-only Article state and specs may no longer load. No saved data is reset.
+The bundled example uses “Actually good advice” as its title and the introductory
+paragraph as its subtitle, retaining all four numbered criteria and the closing
+paragraph in its body. Generated `ArticleBrick` specs bind `/title`, `/subtitle`,
+and `/content` separately.
 
-The HTML display observes Text's natural border-box height after generation, including padding and later image loads, and rounds up to square grid rows at the actual width. Growth resolves collisions without compacting gaps; shrink leaves neighbors in place. Measurements are batched against current geometry, paused during grid gestures, and repeated after the gesture commits. Compact is disabled during a gesture. Only the active pane writes automatic heights.
+Article bricks and previews render their title and subtitle above HTML generated
+in the browser from committed Tiptap JSON. Serialization errors reach the existing error boundary, saved image
+widths are retained, and task checkboxes are disabled. Placed bricks remain read-only.
+Double-click or the **Edit article** pencil opens `/bricks/<brickId>`, which shows
+only the module form and Save/Cancel controls, without headings or an outline.
+Modules without forms have an empty drawer body.
 
-Text uploads are temporarily disabled inside the Text module. All Tiptap extensions remain registered, Add image is disabled, and existing upload placeholders show “Uploads temporarily disabled” without a file picker or dropzone. Existing images still display and can be resized in the drawer. The application and shared module form contract carry only form state and changes; they no longer provide upload callbacks or track upload progress, cancellation, or Save gating. Upload endpoints remain available for unrelated features. The existing standalone backup lifecycle provides local durability after Save. Consumers of the built package load `@qrk.sh/library/text-editor.css` alongside `bricks.css` for editor and portaled-control styles.
+The **Admin** breadcrumb links to `/bricks/<brickId>/admin`, containing Generate
+spec, Options, Shared state JSON, and Brick Definition. Admin's brick-ID breadcrumb
+returns to the form page. Both routes retain the persistent wall and drawer shell.
+Admin is a UI route, not an authorization boundary.
+
+Form and JSON drafts belong to their respective routes. Save stages one complete
+`updateBrickState` command and leaves the current page open; Cancel discards that
+page's draft. Failed saves retain the draft and show an error. Article's Admin JSON
+editor validates state, disables Save for invalid or unchanged values, and keeps
+invalid input visible. Placeholder-capable modules still accept null. Closing,
+navigating between form and Admin, changing brick, or deleting the brick discards
+unsaved drafts. Breakpoint switches retain the form draft.
+
+The drawer toolbar sticks to the top of the scrolling form and retains formatting,
+selection, undo/redo, block dragging, and image resizing. Escape first dismisses
+an editor popover, then closes the drawer.
+Studio suppresses the shared edit action with `BrickWall.showArticleEditAction`;
+`ArticleEditorControl` remains drawer-only.
+
+Article brick height stays at its saved placement size. Content changes, image loads,
+and width changes do not measure or update grid height. Users resize bricks through
+the normal grid handles. The module-owned shell fills the brick with a white
+background and clips overflowing content; the editor surface does not paint the
+background.
+
+Article uploads are temporarily disabled inside the Article module. All Tiptap extensions remain registered, Add image is disabled, and existing upload placeholders show “Uploads temporarily disabled” without a file picker or dropzone. Existing images still display and can be resized in the drawer. The application and shared module form contract carry only form state and changes; they no longer provide upload callbacks or track upload progress, cancellation, or Save gating. Upload endpoints remain available for unrelated features. The existing standalone backup lifecycle provides local durability after Save. Consumers of the built package load `@qrk.sh/library/article-editor.css` alongside `bricks.css` for editor and portaled-control styles.

@@ -54,16 +54,19 @@ export const createUserV1 = makeContractVersion(createUser, {
   }),
   program: ({ payload, models }) => {
     const { id, clerkUserId, username, displayName } = payload;
-    return Effect.all([
-      models.user.create({
-        resourceId: id,
-        attributes: {
-          clerkUserId,
-          username,
-          displayName,
-        },
-      }),
-    ]);
+    return Effect.all(
+      [
+        models.user.create({
+          resourceId: id,
+          attributes: {
+            clerkUserId,
+            username,
+            displayName,
+          },
+        }),
+      ],
+      { discard: true },
+    );
   },
   version: "1.0.0",
 });

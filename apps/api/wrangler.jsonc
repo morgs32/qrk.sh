@@ -25,7 +25,7 @@
     "bindings": [
       { "name": "BROWSER_HOST", "class_name": "BrowserHost" },
       { "name": "INSTAGRAM_BACKEND", "class_name": "InstagramBackend" },
-      { "name": "GITHUB_BACKEND", "class_name": "GitHubBackend" },
+      { "name": "BACKEND_REPO", "class_name": "BackendRepo" },
       { "name": "FIGMA_BACKEND", "class_name": "FigmaBackend" },
       { "name": "GOOGLE_PLACES_BACKEND", "class_name": "GooglePlacesBackend" },
       { "name": "LINK_BACKEND", "class_name": "LinkBackend" },
@@ -34,11 +34,12 @@
   },
   "migrations": [
     {
+      // Local bootstrap: BackendRepo replaces GitHubBackend.
       "tag": "v1",
       "new_classes": ["BrowserHost", "StreamlineBackend"],
       "new_sqlite_classes": [
+        "BackendRepo",
         "InstagramBackend",
-        "GitHubBackend",
         "FigmaBackend",
         "GooglePlacesBackend",
         "LinkBackend",

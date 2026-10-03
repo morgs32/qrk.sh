@@ -3,9 +3,11 @@ import { primitives } from "@zerospin/schema";
 import { TiptapDocSchema } from "../../../lib/TiptapDocSchema";
 import { defineComponent } from "../../../make/defineComponent";
 
-export const textBrickComponent = defineComponent({
-  type: "TextBrick",
+export const articleBrickComponent = defineComponent({
+  type: "ArticleBrick",
   props: {
+    title: primitives.text(),
+    subtitle: primitives.text(),
     content: primitives.json({
       nullable: true,
       defaultValue: null,
@@ -13,5 +15,5 @@ export const textBrickComponent = defineComponent({
     }),
   },
   description:
-    "Tiptap document rendered as read-only HTML. Bind content from module data ($state /content).",
+    "Article title, subtitle, and Tiptap body rendered read-only. Bind title, subtitle, and content from module data ($state /title, /subtitle, /content).",
 });

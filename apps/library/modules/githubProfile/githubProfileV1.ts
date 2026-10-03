@@ -71,6 +71,7 @@ const defaultData = {
 
 export const githubProfileV1 = makeModuleVersion(githubProfile, {
   version: "1.0.0",
+  hasPlaceholder: true,
   components: {
     BrickShell: brickShellComponent,
     BrickBody: brickBodyComponent,

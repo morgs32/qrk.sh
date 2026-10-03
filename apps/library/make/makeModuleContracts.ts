@@ -72,12 +72,12 @@ export function makeModuleContracts(props: {
       placement: props.placement,
       components: props.library["swatch-and-icon"].components,
     }),
-    updateTextSpecAtBreakpoint: makeModuleSpecContractVersion({
-      commandName: "updateTextSpecAtBreakpoint",
-      moduleId: "text",
+    updateArticleSpecAtBreakpoint: makeModuleSpecContractVersion({
+      commandName: "updateArticleSpecAtBreakpoint",
+      moduleId: "article",
       brick: props.brick,
       placement: props.placement,
-      components: props.library["text"].components,
+      components: props.library["article"].components,
     }),
   };
 }

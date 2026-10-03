@@ -63,7 +63,7 @@
       "import": "./dist/TiptapDocSchema.js"
     },
     "./bricks.css": "./dist/bricks.css",
-    "./text-editor.css": "./dist/text-editor.css"
+    "./article-editor.css": "./dist/article-editor.css"
   },
   "scripts": {
     "dev": "next dev --webpack --hostname 127.0.0.1 --port 4100",

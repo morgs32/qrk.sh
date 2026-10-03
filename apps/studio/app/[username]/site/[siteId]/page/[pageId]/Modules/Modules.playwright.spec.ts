@@ -7,11 +7,11 @@ function drawerBrickPreviewSlot(page: Page, moduleId: string) {
 }
 
 test.describe("Modules", () => {
-  test("Text brick drawer shows one resizable catalog", async ({ page }) => {
+  test("Article brick drawer shows one resizable catalog", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto(`${pageBase}/modules`, { waitUntil: "load" });
 
-    await expect(drawerBrickPreviewSlot(page, "text")).toHaveCount(1);
+    await expect(drawerBrickPreviewSlot(page, "article")).toHaveCount(1);
     await expect(page.locator("[data-brick-drawer-view]")).toHaveCount(0);
   });
 });

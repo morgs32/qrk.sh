@@ -11,9 +11,13 @@ import { repoDescriptionView } from "./GitHubRepo/components/RepoDescription";
 import { repoStarsView } from "./GitHubRepo/components/RepoStars";
 import { repoForksView } from "./GitHubRepo/components/RepoForks";
 import { repoLanguageView } from "./GitHubRepo/components/RepoLanguage";
+import { GitHubRepoPlaceholder } from "./GitHubRepoPlaceholder";
 
 export const githubRepoView = makeModuleView(githubRepoV1, {
   default: {
+    placeholder() {
+      return <GitHubRepoPlaceholder />;
+    },
     component(props) {
       const { state } = props;
       return (

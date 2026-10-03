@@ -45,6 +45,7 @@ const defaultData = {
 
 export const instagramV1 = makeModuleVersion(instagram, {
   version: "1.0.0",
+  hasPlaceholder: true,
   components: {
     BrickShell: brickShellComponent,
     BrickBody: brickBodyComponent,

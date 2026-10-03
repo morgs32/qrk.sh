@@ -72,6 +72,8 @@ flowchart TD
   Applications create its entrypoint with `makeSharedWorker`.
 - `@zerospin/backup-worker` provides the separate IndexedDB backup worker used by
   standalone browser sessions. Its Vite plugin serves the worker and SQLite WASM.
+  Standalone sessions release backup ownership on `pagehide` and reacquire it on
+  visible `pageshow`, including when returning from the back/forward cache.
 - `@zerospin/dev-worker` provides the CLI's local Worker entrypoint, generated
   Wrangler configuration, and public workerd testing helpers.
 - `@zerospin/production-worker` provides the CLI's deployment entrypoint, including

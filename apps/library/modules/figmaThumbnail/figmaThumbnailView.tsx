@@ -5,9 +5,13 @@ import { figmaThumbnailV1 } from "./figmaThumbnailV1";
 import { figmaCardView } from "./FigmaCard";
 import { figmaThumbnailBandView } from "./FigmaThumbnailBand";
 import { figmaMediaFooterView } from "./FigmaMediaFooter";
+import { FigmaThumbnailPlaceholder } from "./FigmaThumbnailPlaceholder";
 
 export const figmaThumbnailView = makeModuleView(figmaThumbnailV1, {
   default: {
+    placeholder() {
+      return <FigmaThumbnailPlaceholder />;
+    },
     component(props) {
       const { state } = props;
       return (

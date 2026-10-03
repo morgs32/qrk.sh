@@ -7,7 +7,7 @@
  *
  * `wrangler types` runs with `--include-env=false`; when the Wrangler binding
  * configuration changes, update the non-namespace fields here and
- * DORepoNamespaces in src/makeDORepo/makeDORepo.ts.
+ * system DORepoNamespaces in src/makeFixedDORepo/makeFixedDORepo.ts.
  */
 declare namespace Cloudflare {
   interface Env extends DORepoNamespaces {

@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 const base = process.env.PLAYWRIGHT_EDITOR_PATH ?? "/e2e/site/e2e/page/home";
 
-test("Text edits stay local, preserve their editor, resize naturally, and restore", async ({
+test("Article edits stay local, preserve their editor, resize naturally, and restore", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
@@ -10,17 +10,17 @@ test("Text edits stay local, preserve their editor, resize naturally, and restor
   const grid = page.locator('[data-wall-active="true"] [aria-label="Brick grid"]');
   await expect(grid).toBeVisible();
   const source = page
-    .locator('[data-brick-drawer-brick-slot][data-brick-drawer-module-id="text"]')
+    .locator('[data-brick-drawer-brick-slot][data-brick-drawer-module-id="article"]')
     .first();
   await expect(source).toBeVisible();
   await source.dragTo(grid, { targetPosition: { x: 50, y: 70 }, steps: 20 });
-  const brick = grid.locator('[data-brick="text"]').last();
+  const brick = grid.locator('[data-brick="article"]').last();
   const id = await brick.getAttribute("data-brick-id");
   expect(id).not.toBeNull();
-  await brick.getByRole("button", { name: "Edit text" }).click();
+  await brick.getByRole("button", { name: "Edit article" }).click();
   await expect(page).toHaveURL(base);
   await expect(page.getByLabel("Workspace drawer")).toHaveCount(0);
-  const content = brick.getByLabel("Text content");
+  const content = brick.getByLabel("Article content");
   await expect(content).toHaveAttribute("contenteditable", "true");
   const originalEditor = await content.elementHandle();
   const serverWallWrites: string[] = [];
@@ -31,20 +31,20 @@ test("Text edits stay local, preserve their editor, resize naturally, and restor
     )
       serverWallWrites.push(request.url());
   });
-  await content.fill("Local Text draft");
+  await content.fill("Local Article draft");
   await content.press("End");
   await page.getByLabel("Bold", { exact: true }).click();
   await content.pressSequentially(" bold");
   await expect(content.locator("strong")).toHaveText(" bold");
   await page.getByRole("button", { name: /^Undo/ }).click();
-  await expect(content).toContainText("Local Text draft");
+  await expect(content).toContainText("Local Article draft");
   expect(await originalEditor!.evaluate((element) => element.isConnected)).toBe(true);
   const startingRows = Number(await brick.getAttribute("data-grid-h"));
   await content.fill(Array.from({ length: 25 }, (_, i) => `Line ${i}`).join("\n"));
   await expect
     .poll(async () => Number(await brick.getAttribute("data-grid-h")))
     .toBeGreaterThan(startingRows);
-  await content.fill("Final local Text draft");
+  await content.fill("Final local Article draft");
   await expect
     .poll(async () => Number(await brick.getAttribute("data-grid-h")))
     .toBeLessThan(startingRows + 2);
@@ -55,22 +55,22 @@ test("Text edits stay local, preserve their editor, resize naturally, and restor
   await expect(grid).toHaveAttribute("data-backup-status", "ready");
   await page.reload();
   await expect(
-    page.locator(`[data-wall-active="true"] [data-brick-id="${id}"]`).getByLabel("Text content"),
-  ).toContainText("Final local Text draft");
+    page.locator(`[data-wall-active="true"] [data-brick-id="${id}"]`).getByLabel("Article content"),
+  ).toContainText("Final local Article draft");
 });
 
-test("Text toolbar popovers and file picker retain editing; Escape ends it", async ({ page }) => {
+test("Article toolbar popovers and file picker retain editing; Escape ends it", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto(`${base}/modules`);
   const grid = page.locator('[data-wall-active="true"] [aria-label="Brick grid"]');
   await expect(grid).toBeVisible();
   await page
-    .locator('[data-brick-drawer-brick-slot][data-brick-drawer-module-id="text"]')
+    .locator('[data-brick-drawer-brick-slot][data-brick-drawer-module-id="article"]')
     .first()
     .dragTo(grid, { targetPosition: { x: 60, y: 80 }, steps: 20 });
-  const brick = grid.locator('[data-brick="text"]').last();
-  await brick.getByRole("button", { name: "Edit text" }).click();
-  const content = brick.getByLabel("Text content");
+  const brick = grid.locator('[data-brick="article"]').last();
+  await brick.getByRole("button", { name: "Edit article" }).click();
+  const content = brick.getByLabel("Article content");
   await content.fill("Choose a link");
   await page.getByLabel("Link", { exact: true }).click();
   await expect(page.locator(".tiptap-popover")).toBeVisible();
@@ -86,21 +86,21 @@ test("Text toolbar popovers and file picker retain editing; Escape ends it", asy
   await expect(content).toHaveAttribute("contenteditable", "false");
 });
 
-test("Text block dragging and image resizing preserve editing; previews cannot edit", async ({
+test("Article block dragging and image resizing preserve editing; previews cannot edit", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1600, height: 1100 });
   await page.goto(`${base}/modules`);
   const source = page
-    .locator('[data-brick-drawer-brick-slot][data-brick-drawer-module-id="text"]')
+    .locator('[data-brick-drawer-brick-slot][data-brick-drawer-module-id="article"]')
     .first();
-  await expect(source.getByLabel("Text content")).toHaveAttribute("contenteditable", "false");
-  await expect(source.getByRole("button", { name: "Edit text" })).toHaveCount(0);
+  await expect(source.getByLabel("Article content")).toHaveAttribute("contenteditable", "false");
+  await expect(source.getByRole("button", { name: "Edit article" })).toHaveCount(0);
   const grid = page.locator('[data-wall-active="true"] [aria-label="Brick grid"]');
   await source.dragTo(grid, { targetPosition: { x: 70, y: 90 }, steps: 20 });
-  const brick = grid.locator('[data-brick="text"]').last();
-  await brick.getByRole("button", { name: "Edit text" }).click();
-  const content = brick.getByLabel("Text content");
+  const brick = grid.locator('[data-brick="article"]').last();
+  await brick.getByRole("button", { name: "Edit article" }).click();
+  const content = brick.getByLabel("Article content");
   await content.fill("First block");
   await content.press("End");
   await content.press("Enter");

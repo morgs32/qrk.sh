@@ -1,19 +1,23 @@
 import { makeModuleView } from "../../make/makeModuleView";
 import { TiptapDocSchema } from "../../lib/TiptapDocSchema";
 import { Schema } from "effect";
-import { registry } from "./generator/TextJsonRenderRegistry";
+import { registry } from "./generator/ArticleJsonRenderRegistry";
 import { defaultSpec } from "./generator/defaultSpec";
-import { textV1 } from "./textV1";
-import { textBrickContentView } from "./TextBrickContent";
-import { TextEditorControl } from "./TextEditorControl";
+import { articleV1 } from "./articleV1";
+import { articleBrickContentView } from "./ArticleBrickContent";
+import { ArticleEditorControl } from "./ArticleEditorControl";
 
-export const textView = makeModuleView(textV1, {
+export const articleView = makeModuleView(articleV1, {
   form(props) {
     const { state, onChange } = props;
     return (
-      <TextEditorControl
+      <ArticleEditorControl
+        title={state.title}
+        subtitle={state.subtitle}
         value={state.content === null ? null : JSON.parse(JSON.stringify(state.content))}
         drawer={{
+          onTitleChange: (title) => onChange({ ...state, title }),
+          onSubtitleChange: (subtitle) => onChange({ ...state, subtitle }),
           onChange: (content) =>
             onChange({ ...state, content: Schema.decodeUnknownSync(TiptapDocSchema)(content) }),
         }}
@@ -23,12 +27,18 @@ export const textView = makeModuleView(textV1, {
   default: {
     component(props) {
       const { state } = props;
-      return <textBrickContentView.Component content={state.content} />;
+      return (
+        <articleBrickContentView.Component
+          title={state.title}
+          subtitle={state.subtitle}
+          content={state.content}
+        />
+      );
     },
     generator: { registry, defaultSpec },
   },
   sm: { w: 8, h: 2 },
-  md: { w: 4, h: 4 },
+  md: { w: 8, h: 4 },
   lg: { w: 4, h: 4 },
   xl: { w: 4, h: 4 },
 });

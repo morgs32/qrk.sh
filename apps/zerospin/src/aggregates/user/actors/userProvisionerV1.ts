@@ -53,7 +53,7 @@ export const userProvisionerV1 = makeAggregateActorVersion(
       }),
     },
     contracts: { createUser: createUserV1 },
-    queries: {
+    selections: {
       user: db.query.user.findMany({
         where: { clerkUserId: { eq: identity.sql.placeholder("clerkUserId") } },
       }),

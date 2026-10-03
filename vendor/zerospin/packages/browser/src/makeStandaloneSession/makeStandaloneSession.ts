@@ -438,13 +438,15 @@ export function makeStandaloneSession(props: unknown): unknown {
 
         const acquireSignal = yield* Queue.unbounded<void>();
         let released = false;
+        let pageActive = true;
         let forceSeed = options.forceSeed;
         let registeredSessionId: typeof coreSession.sessionId = null;
         let ownership: { revoked: boolean; scope: Scope.Closeable } | null =
           null;
         const events = new AbortController();
+        // Navigation releases ownership, including documents retained in the back/forward cache.
         // A hidden startup cannot publish; hiding a current owner does not revoke it.
-        for (const event of ['visibilitychange', 'focus', 'pageshow']) {
+        for (const event of ['visibilitychange', 'focus', 'pageshow', 'pagehide']) {
           const target = event === 'visibilitychange' ? document : globalThis;
           target.addEventListener(
             event,
@@ -455,6 +457,18 @@ export function makeStandaloneSession(props: unknown): unknown {
               ) {
                 return;
               }
+              if (event === 'pagehide') {
+                pageActive = false;
+                if (ownership !== null) {
+                  ownership.revoked = true;
+                  db.$client.onCommittedTransaction = null;
+                  coreSession.store.setState({ sessionStatus: 'superseded' });
+                  Effect.runFork(Scope.close(ownership.scope, Exit.void));
+                }
+                return;
+              }
+              if (event === 'pageshow') pageActive = true;
+              if (!pageActive) return;
               if (document.visibilityState !== 'visible') {
                 if (
                   ownership !== null &&
@@ -525,6 +539,7 @@ export function makeStandaloneSession(props: unknown): unknown {
           yield* Queue.take(acquireSignal);
           if (
             released ||
+            !pageActive ||
             document.visibilityState !== 'visible' ||
             coreSession.store.getState().sessionStatus === 'failed' ||
             (published &&

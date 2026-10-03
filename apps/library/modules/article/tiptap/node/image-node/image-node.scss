@@ -21,7 +21,7 @@
 
   // The resize extension gives the container a pixel width. Let it shrink with
   // the brick while keeping the saved width for wider screens.
-  &.qrk-text-editor div:has(> img):not([data-resize-image-ui]) {
+  &.qrk-article-editor div:has(> img):not([data-resize-image-ui]) {
     max-width: 100%;
     min-width: 0;
   }

@@ -5,9 +5,13 @@ import { linkV1 } from "./linkV1";
 import { linkCardView } from "./LinkCard";
 import { linkCopyView } from "./LinkCopy";
 import { linkHeroImageView } from "./LinkHeroImage";
+import { LinkPlaceholder } from "./LinkPlaceholder";
 
 export const linkView = makeModuleView(linkV1, {
   default: {
+    placeholder() {
+      return <LinkPlaceholder />;
+    },
     component(props) {
       const { state } = props;
       return (

@@ -17,10 +17,9 @@ export declare class LibraryApi extends RpcTarget {
     scrape(url: string): Promise<IRpcEither<IInstagramScrapePayload>>;
   };
 
-  githubBackend(): RpcTarget & {
-    getProfile(url: string): Promise<IRpcEither<IGitHubScrapePayload>>;
-    getRepo(url: string): Promise<IRpcEither<IGitHubRepoPayload>>;
-  };
+  getGitHubProfile(url: string): Promise<IRpcEither<IGitHubScrapePayload>>;
+
+  getGitHubRepo(url: string): Promise<IRpcEither<IGitHubRepoPayload>>;
 
   figmaBackend(): RpcTarget & {
     getThumbnail(url: string): Promise<IRpcEither<IFigmaFilePreviewPayload>>;

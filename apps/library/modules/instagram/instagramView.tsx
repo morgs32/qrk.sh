@@ -5,9 +5,13 @@ import { instagramV1 } from "./instagramV1";
 import { instagramCardView } from "./InstagramCard";
 import { instagramPostGridView } from "./InstagramPostGrid";
 import { instagramMediaFooterView } from "./InstagramMediaFooter";
+import { InstagramPlaceholder } from "./InstagramPlaceholder";
 
 export const instagramView = makeModuleView(instagramV1, {
   default: {
+    placeholder() {
+      return <InstagramPlaceholder />;
+    },
     component(props) {
       const { state } = props;
       return (

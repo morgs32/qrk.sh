@@ -5,7 +5,6 @@ import { type Editor, useEditorState } from "@tiptap/react";
 
 import { Button } from "./tiptap/ui-primitive/button/button";
 import { ImagePlusIcon } from "./tiptap/icons/image-plus-icon";
-import { Spacer } from "./tiptap/ui-primitive/spacer/spacer";
 import { Toolbar, ToolbarGroup, ToolbarSeparator } from "./tiptap/ui-primitive/toolbar/toolbar";
 import { HeadingDropdownMenu } from "./tiptap/ui/heading-dropdown-menu/heading-dropdown-menu";
 import { ListDropdownMenu } from "./tiptap/ui/list-dropdown-menu/list-dropdown-menu";
@@ -40,8 +39,6 @@ function MainToolbarContent(props: {
 
   return (
     <>
-      <Spacer />
-
       <ToolbarGroup>
         <UndoRedoButton action="undo" />
         <UndoRedoButton action="redo" />
@@ -50,7 +47,7 @@ function MainToolbarContent(props: {
       <ToolbarSeparator />
 
       <ToolbarGroup>
-        <HeadingDropdownMenu modal={false} levels={[1, 2, 3, 4]} />
+        <HeadingDropdownMenu modal={false} levels={[2, 3, 4]} />
         <ListDropdownMenu modal={false} types={["bulletList", "orderedList", "taskList"]} />
         <BlockquoteButton />
         <CodeBlockButton />
@@ -88,8 +85,6 @@ function MainToolbarContent(props: {
           <ImagePlusIcon className="tiptap-button-icon" />
         </Button>
       </ToolbarGroup>
-
-      <Spacer />
     </>
   );
 }
@@ -104,7 +99,7 @@ function MobileToolbarContent({
   return (
     <>
       <ToolbarGroup>
-        <Button variant="ghost" onClick={onBack}>
+        <Button type="button" variant="ghost" onClick={onBack}>
           <ArrowLeftIcon className="tiptap-button-icon" />
           {type === "highlighter" ? (
             <HighlighterIcon className="tiptap-button-icon" />
@@ -121,7 +116,7 @@ function MobileToolbarContent({
   );
 }
 
-export function TextToolbar(props: { editor: Editor }) {
+export function ArticleToolbar(props: { editor: Editor }) {
   const { editor } = props;
   const isMobile = useIsBreakpoint();
   const [mobileView, setMobileView] = useState<"main" | "highlighter" | "link">("main");
@@ -132,8 +127,8 @@ export function TextToolbar(props: { editor: Editor }) {
   }
 
   return (
-    <div className="border border-border bg-background rounded-md shadow-md">
-      <Toolbar ref={toolbarRef} variant="floating">
+    <div className="qrk-article-toolbar">
+      <Toolbar ref={toolbarRef} variant="floating" data-plain="true">
         {mobileView === "main" ? (
           <MainToolbarContent
             editor={editor}

@@ -6,24 +6,19 @@ import { TaskItem, TaskList } from "@tiptap/extension-list";
 import { TextAlign } from "@tiptap/extension-text-align";
 import { Underline } from "@tiptap/extension-underline";
 import StarterKit from "@tiptap/starter-kit";
-import { useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import ImageResize from "tiptap-extension-resize-image";
 import { makeComponentView } from "../../make/makeComponentView";
-import { textBrickComponent } from "./generator/TextBrickComponent";
-import { TextBrickEditingContext } from "./TextBrickEditingContext";
+import { articleBrickComponent } from "./generator/ArticleBrickComponent";
+import { BrickShell } from "../../components/brick/BrickShell";
 import { HorizontalRule } from "./tiptap/node/horizontal-rule-node/horizontal-rule-node-extension";
 import { ImageUploadNode } from "./tiptap/node/image-upload-node/image-upload-node-extension";
-import "./text-editor.scss";
+import "./article-font.css";
+import "./article-editor.scss";
 
-export const textBrickContentView = makeComponentView(textBrickComponent, {
+export const articleBrickContentView = makeComponentView(articleBrickComponent, {
   component(props) {
-    const { content } = props;
-    const editing = useContext(TextBrickEditingContext);
-    const current = useRef(editing);
-    useLayoutEffect(() => {
-      current.current = editing;
-    });
-    const documentRef = useRef<HTMLDivElement>(null);
+    const { title, subtitle, content } = props;
     const source = JSON.stringify(content ?? { type: "doc", content: [{ type: "paragraph" }] });
     const [rendered, setRendered] = useState<
       { source: string; html: string } | { source: string; error: unknown } | null
@@ -37,6 +32,7 @@ export const textBrickContentView = makeComponentView(textBrickComponent, {
         try {
           const html = generateHTML(JSON.parse(source), [
             StarterKit.configure({
+              heading: { levels: [2, 3, 4] },
               horizontalRule: false,
               underline: false,
               trailingNode: { node: "paragraph", notAfter: ["paragraph"] },
@@ -79,35 +75,21 @@ export const textBrickContentView = makeComponentView(textBrickComponent, {
       };
     }, [source]);
 
-    // 2 — Measure committed markup only, including later image loads and width changes.
-    useLayoutEffect(() => {
-      const element = documentRef.current;
-      if (!element || !editing?.isActive || rendered?.source !== source || !("html" in rendered))
-        return;
-      const measure = () => {
-        if (element.getClientRects().length === 0 || element.getBoundingClientRect().width <= 0)
-          return;
-        current.current?.onNaturalHeight(element.getBoundingClientRect().height);
-      };
-      const observer = new ResizeObserver(measure);
-      observer.observe(element, { box: "border-box" });
-      measure();
-      return () => observer.disconnect();
-    }, [rendered, source, editing?.isActive, editing?.measurementEpoch]);
-
     if (rendered?.source === source && "error" in rendered) throw rendered.error;
     return (
-      <div className="qrk-text-surface">
-        <div ref={documentRef} className="qrk-text-document">
+      <BrickShell className="overflow-hidden bg-white">
+        <div className="qrk-article-document qrk-article-readonly">
+          <h1 className="qrk-article-title">{title}</h1>
+          <p className="qrk-article-subtitle">{subtitle}</p>
           <div
-            aria-label="Text content"
-            className="tiptap ProseMirror qrk-text-editor readonly"
+            aria-label="Article content"
+            className="tiptap ProseMirror qrk-article-editor readonly"
             dangerouslySetInnerHTML={{
               __html: rendered && "html" in rendered ? rendered.html : "",
             }}
           />
         </div>
-      </div>
+      </BrickShell>
     );
   },
 });

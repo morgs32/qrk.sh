@@ -1,4 +1,4 @@
-import "@qrk.sh/library/text-editor.css";
+import "@qrk.sh/library/article-editor.css";
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import type { ReactNode } from "react";

@@ -4,8 +4,10 @@ export const defaultSpec: Spec = {
   root: "brick-1",
   elements: {
     "brick-1": {
-      type: "TextBrick",
+      type: "ArticleBrick",
       props: {
+        title: { $state: "/title" },
+        subtitle: { $state: "/subtitle" },
         content: { $state: "/content" },
       },
     },

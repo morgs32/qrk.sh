@@ -1,7 +1,6 @@
 import {
   EncodedAggregateCommandSchema,
-  type AggregateExecutedCommandSchema,
-  type ServiceExecutedCommandSchema,
+  type AggregateTerminalCommandSchema,
 } from '@zerospin/core/contracts/CommandSchema';
 import type {
   IAggregateCommand,
@@ -30,31 +29,19 @@ export const commandRowForSource = (
     id: string;
     aggregateId?: string;
     aggregateName?: string;
-    serviceName?: string;
   },
 ) =>
-  'serviceName' in command && command.serviceName !== undefined
-    ? db
-        .select()
-        .from(tables.commands)
-        .where(
-          and(
-            eq(tables.commands.serviceName, command.serviceName),
-            eq(tables.commands.id, command.id),
-          ),
-        )
-        .get()
-    : db
-        .select()
-        .from(tables.commands)
-        .where(
-          and(
-            eq(tables.commands.aggregateName, command.aggregateName ?? ''),
-            eq(tables.commands.aggregateId, command.aggregateId ?? ''),
-            eq(tables.commands.id, command.id),
-          ),
-        )
-        .get();
+  db
+    .select()
+    .from(tables.commands)
+    .where(
+      and(
+        eq(tables.commands.aggregateName, command.aggregateName ?? ''),
+        eq(tables.commands.aggregateId, command.aggregateId ?? ''),
+        eq(tables.commands.id, command.id),
+      ),
+    )
+    .get();
 
 export const decodeRetainedAggregateCommand = Effect.fn(
   'decodeRetainedAggregateCommand',
@@ -66,6 +53,7 @@ export const decodeRetainedAggregateCommand = Effect.fn(
     commandName: row.commandName,
     contractVersion: row.contractVersion,
     payload: row.payload,
+    asyncInput: row.asyncInput,
     aggregateId: row.aggregateId,
     aggregateName: row.aggregateName,
     systemName: row.systemName,
@@ -88,13 +76,13 @@ export const readPendingActorCommands = Effect.fn('readPendingActorCommands')(
   function* (db: IDb, aggregateVersion: string) {
     const pending = db
       .select()
-      .from(tables.pendingCommands)
-      .orderBy(tables.pendingCommands.stageIndex)
+      .from(tables.stagedCommands)
+      .orderBy(tables.stagedCommands.stageIndex)
       .all();
     return yield* Effect.forEach(pending, row =>
       Effect.gen(function* () {
         const stage =
-          yield* aggregateActorVersionRepoDbConfig.tables.pendingCommands.decodeRow(
+          yield* aggregateActorVersionRepoDbConfig.tables.stagedCommands.decodeRow(
             row,
           );
         const saved = db
@@ -135,8 +123,7 @@ export const commandRowInput = (props: {
   rowId: `row_${string}`;
   command:
     | IEncodedCommand<IAggregateCommand>
-    | typeof AggregateExecutedCommandSchema.Type
-    | typeof ServiceExecutedCommandSchema.Type;
+    | typeof AggregateTerminalCommandSchema.Type;
   aggregateVersion?: string;
 }) => {
   const { rowId, command } = props;
@@ -147,6 +134,7 @@ export const commandRowInput = (props: {
     commandName: command.commandName,
     contractVersion: command.contractVersion,
     payload: command.payload,
+    asyncInput: command.asyncInput ?? null,
     aggregateId: aggregate ? command.aggregateId : null,
     aggregateName: aggregate ? command.aggregateName : null,
     aggregateVersion: aggregate
@@ -161,19 +149,12 @@ export const commandRowInput = (props: {
     nodeId: aggregate ? command.nodeId : null,
     sessionName: aggregate ? command.sessionName : null,
     nodeIndex: aggregate ? command.nodeIndex : null,
-    serviceName: aggregate ? null : command.serviceName,
-    serviceVersion: aggregate ? null : command.serviceVersion,
     aggregateIndex: 'aggregateIndex' in command ? command.aggregateIndex : null,
-    serviceIndex: 'serviceIndex' in command ? command.serviceIndex : null,
     admission: 'admission' in command ? command.admission : null,
     execution: 'execution' in command ? command.execution : null,
     dispositionHash:
       'dispositionHash' in command ? command.dispositionHash : null,
     executedIndex: null,
     executedHash: null,
-    actorAggregateIndex: null,
-    actorDelta: null,
-    acknowledgedAt: null,
-    lastDeliveryFailure: null,
   };
 };

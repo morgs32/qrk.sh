@@ -16,6 +16,14 @@
           ]
         }
       ]
+    },
+    "agent-preview:check": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["lib"],
+      "options": {
+        "command": "pnpm exec tsx src/fixtures/agentPreview.ts",
+        "cwd": "packages/browser"
+      }
     }
   }
 }

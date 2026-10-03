@@ -8,7 +8,7 @@ import type {
   IAggregateSessionDefinition,
 } from '@zerospin/core/aggregateSession/types';
 import { makeAsync } from '@zerospin/core/async/make/makeAsync';
-import type { AssertContractMutationsInModels } from '@zerospin/core/contracts/assertMutationsUseModels';
+import type { AssertContractOperationsInModels } from '@zerospin/core/contracts/assertOperationsUseModels';
 import type { IAnyContracts } from '@zerospin/core/contracts/types';
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/make/makeDbConfig/makeDbConfig';
 import { makeProvisionedInMemoryWasmSqliteDb } from '@zerospin/core/drizzle/make/makeProvisionedInMemoryWasmSqliteDb/makeProvisionedInMemoryWasmSqliteDb';
@@ -203,7 +203,7 @@ export function makeStandaloneSession<
     layer?: APP_LAYER;
     contracts?: CONTRACTS & {
       [K in keyof CONTRACTS & string]: K extends CONTRACTS[K]['commandName']
-        ? AssertContractMutationsInModels<
+        ? AssertContractOperationsInModels<
             CONTRACTS[K],
             NoInfer<IComposedDeclarations<MODELS, MODULES, 'models'>>
           >
@@ -221,10 +221,9 @@ export function makeStandaloneSession<
             NoInfer<IComposedDeclarations<MODELS, MODULES, 'models'>>
           >;
           contracts: {
-            [
-              C in keyof MODULES[K]['contracts'] & string
-            ]: C extends MODULES[K]['contracts'][C]['commandName']
-              ? AssertContractMutationsInModels<
+            [C in keyof MODULES[K]['contracts'] &
+              string]: C extends MODULES[K]['contracts'][C]['commandName']
+              ? AssertContractOperationsInModels<
                   NoInfer<MODULES[K]['contracts'][C]>,
                   NoInfer<IComposedDeclarations<MODELS, MODULES, 'models'>>
                 >
@@ -235,9 +234,11 @@ export function makeStandaloneSession<
     claims: NoInfer<CLAIMS>['Type'];
     resources?: NoInfer<
       Partial<{
-        [
-          K in keyof IComposedDeclarations<MODELS, MODULES, 'models'>
-        ]: readonly InferResource<
+        [K in keyof IComposedDeclarations<
+          MODELS,
+          MODULES,
+          'models'
+        >]: readonly InferResource<
           IComposedDeclarations<MODELS, MODULES, 'models'>[K]
         >[];
       }>

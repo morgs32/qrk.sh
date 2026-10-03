@@ -1,10 +1,7 @@
-import { useState } from 'react';
-
 import { makeId } from '@zerospin/core/models/make/makeId';
 import type { InferResource } from '@zerospin/core/models/types';
 import { NanoIdFactory } from '@zerospin/core/utils/NanoIdFactory';
-import { stageCommand, useLiveQuery } from '@zerospin/react';
-import { checkGuards } from '@zerospin/sdk/browser';
+import { stageServiceCommand, useLiveQuery } from '@zerospin/react';
 import { Effect } from 'effect';
 import { ShoppingCart } from 'lucide-react';
 
@@ -19,25 +16,19 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { cartV1 } from '@/zerospin/aggregates/shopper/models/cart/CartV1';
-import { cartItemV2 } from '@/zerospin/aggregates/shopper/models/cartItem/CartItemV2';
-import { type userV1 } from '@/zerospin/aggregates/shopper/models/user/UserV1';
-import { type productV1 } from '@/zerospin/services/app/models/product/ProductV1';
+import { useCartCommand } from '@/hooks/useCartCommand';
+import type { IClerkUserId } from '@/zerospin/claims';
+import { ensureCart } from '@/zerospin/ensureCart';
+import { cartItemV1 } from '@/zerospin/services/marketplace/models/cartItem/CartItemV1';
+import { type productV1 } from '@/zerospin/services/marketplace/models/product/ProductV1';
 import { shopperSession } from '@/zerospin/shopperSession';
 
 export function ProductCard(props: {
   product: InferResource<typeof productV1>;
-  userId: InferResource<typeof userV1>['id'];
+  userId: IClerkUserId;
 }) {
   const { product, userId } = props;
-  const [error, setError] = useState<string | null>(null);
-  useLiveQuery({
-    session: shopperSession,
-    query: db =>
-      db.query.checkout.findFirst({
-        where: { status: { in: ['accepted', 'paying', 'declined'] } },
-      }),
-  });
+  const { pending, error, submit } = useCartCommand();
   const { data: cart } = useLiveQuery({
     session: shopperSession,
     query: db => db.query.cart.findFirst(),
@@ -75,17 +66,10 @@ export function ProductCard(props: {
         ) : (
           <Button
             disabled={
-              (cart?.id === undefined
-                ? Effect.runSync(
-                    checkGuards({
-                      session: shopperSession,
-                      contractName: 'createCart',
-                      payload: { id: 'crt_preview', userId },
-                    }),
-                  )
-                : Effect.runSync(
-                    checkGuards({
-                      session: shopperSession,
+              pending ||
+              shopperSession.can(
+                cart
+                  ? {
                       contractName: 'addToCart',
                       payload: {
                         cartItemId: 'cit_preview',
@@ -93,48 +77,35 @@ export function ProductCard(props: {
                         product,
                         amount: 1,
                       },
-                    }),
-                  )) !== null
+                    }
+                  : {
+                      contractName: 'createCart',
+                      payload: { id: 'crt_preview', userId },
+                    },
+              )._tag === 'Failure'
             }
             className="self-end"
             size="sm"
             variant="outline"
-            onClick={() => {
-              setError(null);
-              let cartId = cart?.id;
-              if (!cartId) {
-                const result = stageCommand({
+            onClick={() =>
+              void submit(async record => {
+                const cartId = await ensureCart(userId);
+                const result = await stageServiceCommand({
                   session: shopperSession,
-                  contractName: 'createCart',
+                  contractName: 'addToCart',
                   payload: {
-                    id: Effect.runSync(
-                      makeId(cartV1).pipe(Effect.provide(NanoIdFactory)),
+                    cartItemId: Effect.runSync(
+                      makeId(cartItemV1).pipe(Effect.provide(NanoIdFactory)),
                     ),
-                    userId,
+                    cartId,
+                    product,
+                    amount: 1,
                   },
                 });
-                if (result._tag === 'Failure') {
-                  setError(result.failure.message);
-                  return;
-                }
-                cartId = result.success.payload.id;
-              }
-              const result = stageCommand({
-                session: shopperSession,
-                contractName: 'addToCart',
-                payload: {
-                  cartItemId: Effect.runSync(
-                    makeId(cartItemV2).pipe(Effect.provide(NanoIdFactory)),
-                  ),
-                  cartId,
-                  product,
-                  amount: 1,
-                },
-              });
-              if (result._tag === 'Failure') {
-                setError(result.failure.message);
-              }
-            }}
+                if (result._tag === 'Failure') throw result.failure;
+                record(result.success.id);
+              })
+            }
           >
             <ShoppingCart className="mr-1.5 h-4 w-4" />
             Add to cart

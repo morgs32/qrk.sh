@@ -1,20 +1,19 @@
 import {
-  PrimitiveKind,
-  type IAnyTable,
-  type IAnyTables,
+PrimitiveKind,
+type IAnyTables
 } from '@zerospin/schema';
 import {
-  defineRelations,
-  type AnyRelation,
-  type AnyRelations,
-  type RelationsBuilder,
-  type RelationsBuilderColumnBase,
+defineRelations,
+type AnyRelation,
+type AnyRelations,
+type RelationsBuilder,
+type RelationsBuilderColumnBase,
 } from 'drizzle-orm';
 
 import type { IAnyModels } from '../../../../models/types.ts';
 
-import { makeDrizzleSchemasRecordFromTables } from '../../makeDrizzleSchemasRecordFromTables.ts';
 import type { IDrizzleRelationsFromModels } from '../../../types.ts';
+import { makeDrizzleSchemasRecordFromTables } from '../../makeDrizzleSchemasRecordFromTables.ts';
 
 /**
  * Derives and validates all Drizzle relations from one concrete table graph.
@@ -28,13 +27,11 @@ import type { IDrizzleRelationsFromModels } from '../../../types.ts';
 export function makeDrizzleRelationsFromTables<TABLES extends IAnyTables, DECODED extends boolean = false>(
   tables: TABLES,
   physicalTableNames?: Partial<Record<keyof TABLES & string, string>>,
-  tableAliases?: ReadonlyMap<unknown, IAnyTable>,
   decodeJson?: DECODED,
 ): IDrizzleRelationsFromModels<IAnyModels, TABLES, DECODED>;
 export function makeDrizzleRelationsFromTables<TABLES extends IAnyTables>(
   tables: TABLES,
   physicalTableNames: Partial<Record<keyof TABLES & string, string>> = {},
-  tableAliases: ReadonlyMap<unknown, IAnyTable> = new Map(),
   decodeJson = false,
 ): AnyRelations {
   const tableKeys: (keyof TABLES & string)[] = [];
@@ -115,7 +112,7 @@ export function makeDrizzleRelationsFromTables<TABLES extends IAnyTables>(
       }
 
       const targetTableKey = tableKeyByObject.get(
-        tableAliases.get(descriptor.table) ?? descriptor.table,
+        descriptor.table,
       );
       if (targetTableKey === undefined) {
         throw new Error(
@@ -242,7 +239,6 @@ export function makeDrizzleRelationsFromTables<TABLES extends IAnyTables>(
   const schema = makeDrizzleSchemasRecordFromTables(
     tables,
     physicalTableNames,
-    tableAliases,
     decodeJson,
   );
 
@@ -266,7 +262,7 @@ export function makeDrizzleRelationsFromTables<TABLES extends IAnyTables>(
           continue;
         }
         const targetTableKey = tableKeyByObject.get(
-          tableAliases.get(descriptor.table) ?? descriptor.table,
+          descriptor.table,
         );
         if (targetTableKey === undefined) {
           throw new Error(

@@ -13,8 +13,11 @@ Retain the complete encoded command throughout admission, execution, source
 chains, source outboxes/RPCs, and source journals. Selection instead derives a
 new minimal selected-command occurrence: opaque source command ID, selected
 position and source watermark, `upserted`/`deleted` changes, the relevant
-session-history hash, and any privately deliverable failure. The browser
-stores that selected occurrence as the local command's outcome; it never
+session-history hash, and any privately deliverable terminal failure. The browser command itself has only
+`id`, `commandName`, `delta`, and `failure`; positions and hashes are envelope fields. The browser
+resolves its own journal by command ID and retains the first resolving
+position, hash, and selected delta. Repeated occurrences apply new deltas while
+preserving that outcome. Covered historical outcomes do not reapply deltas. It never
 reconstructs a chained source command. See
 `system-worker/preserve-command-payloads-across-chains.ts` and
 `contracts/iencoded-command-at-boundary-only.ts`.

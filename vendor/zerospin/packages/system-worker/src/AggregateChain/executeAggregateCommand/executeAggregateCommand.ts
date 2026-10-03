@@ -14,8 +14,6 @@ export const executeAggregateCommand = Effect.fn(
   'AggregateChain.executeAggregateCommand',
 )(function* (props: {
   aggregateVersion: string;
-  machineOutput?: boolean;
-  machineMode?: 'push' | 'execute';
   command: Parameters<typeof admitCommands>[0]['commands'][number];
   db: Parameters<typeof admitCommands>[0]['db'];
   key: Parameters<typeof admitCommands>[0]['key'];
@@ -32,11 +30,11 @@ export const executeAggregateCommand = Effect.fn(
     commands: [props.command],
   });
 
-  // Selection remains explicit on retries.
+  // Retries retain the original execution selection.
 
   // 3 — extend the admitted-chain key with aggregateVersion
   const repo = yield* AggregateVersionRepo.getRepo({
-    key: { ...props.key, aggregateVersion },
+    key: { ...props.key, aggregateVersion: receipt!.originalExecutionVersion },
   });
 
   // 4 — execute through receipt.aggregateIndex and decode its terminal result

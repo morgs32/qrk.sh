@@ -7,7 +7,6 @@
  * Import the preceding version when upgrading. Keep supporting schemas, guards,
  * and adapters with their owner unless shared; put shared checks in separate
  * modules. Registry modules may import versions to assemble bindings.
- * A domain factory may construct its final model, contract, and automation
  * declarations together when customization binds those declarations to one another.
  * Return the plain bundle; do not introduce a separate runtime module owner.
  * Keep makeActorDbVersion inside its actor's file when local to that actor;
@@ -19,7 +18,6 @@
  */
 // createPurchaseV2.ts
 import { createPurchaseV1 } from './createPurchaseV1';
-
 export const createPurchaseV2 = upgradeContractVersion(createPurchaseV1, {
   version: '2.0.0',
   // Declare this version's payload, failures, guards, and adapters here.

@@ -4,7 +4,7 @@ import type { IRpcRequest } from '@zerospin/logger';
 import { RpcTarget } from 'capnweb';
 
 import { createWebSocketTicket } from './createWebSocketTicket/createWebSocketTicket.js';
-import { getActorCommands } from './getActorCommands/getActorCommands.js';
+import { getActorOutputs } from './getActorOutputs/getActorOutputs.js';
 import { getSnapshot } from './getSnapshot/getSnapshot.js';
 
 export class ServiceSessionApi extends RpcTarget {
@@ -50,7 +50,7 @@ export class ServiceSessionApi extends RpcTarget {
    *
    * 1. Run the bound domain operation.
    */
-  async getSnapshot(request: IRpcRequest<[]>) {
+  async getSnapshot(request: IRpcRequest<[{ nodeId: string | null }]>) {
     // 1 — run getSnapshot with the instance-bound dependencies
     return this.#runtime.runPromise(
       getSnapshot({ request, authResults: this.#authResults }),
@@ -64,14 +64,14 @@ export class ServiceSessionApi extends RpcTarget {
    *
    * 1. Run the bound domain operation.
    */
-  async getActorCommands(
+  async getActorOutputs(
     request: IRpcRequest<
-      [{ afterServiceIndex: number; serviceVersion: string }]
+      [{ afterExecutedIndex: number; serviceVersion: string }]
     >,
   ) {
-    // 1 — run getActorCommands with the instance-bound dependencies
+    // 1 — run getActorOutputs with the instance-bound dependencies
     return this.#runtime.runPromise(
-      getActorCommands({ request, authResults: this.#authResults }),
+      getActorOutputs({ request, authResults: this.#authResults }),
     );
   }
 

@@ -1,13 +1,16 @@
 import { makeAsync } from '@zerospin/core/async/make/makeAsync';
-import { ServiceExecutedCommandSchema } from '@zerospin/core/contracts/CommandSchema';
+import { ServiceTerminalCommandSchema } from '@zerospin/core/contracts/CommandSchema';
+import type { IDb } from '@zerospin/core/drizzle/types';
 import { readRpcEnvelope } from '@zerospin/core/utils/readRpcEnvelope';
 import { makeZerospinError, mapParseError } from '@zerospin/error';
+import { eq } from 'drizzle-orm';
 import { Effect, Schema } from 'effect';
 
 import { genesisDispositionHash } from '../../serviceDispositionHash/serviceDispositionHash.js';
-import { ServiceVersionChain } from '../../ServiceVersionChain/ServiceVersionChain.js';
+import type { ServiceVersionChain } from '../../ServiceVersionChain/ServiceVersionChain.js';
 import { serviceVersionChainDbConfig } from '../../ServiceVersionChain/serviceVersionChainDbConfig.js';
 import type { ServiceVersionRepo } from '../ServiceVersionRepo.js';
+import { serviceVersionRepoDbConfig } from '../serviceVersionRepoDbConfig.js';
 /** Complete execution and durable VSC publication through one fixed checkpoint. */
 /*
  * Cutover asks a version-owned service materializer to execute and durably
@@ -25,7 +28,12 @@ import type { ServiceVersionRepo } from '../ServiceVersionRepo.js';
 export const flush = Effect.fn('ServiceVersionRepo.flush')(function* (props: {
   serviceIndex: number;
   repo: Pick<ServiceVersionRepo, 'execute'>;
-  executionResultsOutbox: ServiceVersionRepo['executionResultsOutbox'];
+  executedCommandOutbox: Pick<
+    ServiceVersionRepo['executedCommandOutbox'],
+    'drain'
+  >;
+  chain: Pick<ServiceVersionChain, 'getServiceResult'>;
+  db: IDb;
   key: {
     systemId: string;
     serviceName: string;
@@ -56,22 +64,23 @@ export const flush = Effect.fn('ServiceVersionRepo.flush')(function* (props: {
     props.repo.execute({ serviceIndex: props.serviceIndex }),
   ).pipe(Effect.flatMap(envelope => readRpcEnvelope(envelope)));
 
-  // 4 — drain results only through the requested serviceIndex
-  yield* props.executionResultsOutbox.drain(props.serviceIndex);
-
-  // 5 — request exactly the position that was flushed
-  const chain = yield* ServiceVersionChain.getRepo({
-    key: props.key,
-  });
-  const queue = yield* makeAsync(() => chain.executionResultsFanout);
-  const page = yield* makeAsync(() =>
-    queue.getPage({
-      afterIndex: props.serviceIndex - 1,
-      maxIndex: props.serviceIndex,
-    }),
-  ).pipe(Effect.flatMap(envelope => readRpcEnvelope(envelope)));
-  const row = page.rows[0];
-
+  // 4 — drain the merged local order through this command's execution position
+  const publication = props.db
+    .select()
+    .from(serviceVersionRepoDbConfig.schema.executedCommandOutbox)
+    .where(
+      eq(
+        serviceVersionRepoDbConfig.schema.executedCommandOutbox.serviceIndex,
+        props.serviceIndex,
+      ),
+    )
+    .get();
+  if (publication !== undefined) {
+    yield* props.executedCommandOutbox.drain(publication.executedIndex);
+  }
+  const row = yield* makeAsync(() =>
+    props.chain.getServiceResult(props.serviceIndex),
+  ).pipe(Effect.flatMap(readRpcEnvelope));
   // 6 — require the returned serviceIndex to equal the requested checkpoint
   if (row === undefined || row.serviceIndex !== props.serviceIndex) {
     return yield* Effect.fail(
@@ -87,7 +96,7 @@ export const flush = Effect.fn('ServiceVersionRepo.flush')(function* (props: {
     .decodeRow(row)
     .pipe(
       Effect.flatMap(
-        Schema.decodeUnknownEffect(Schema.toType(ServiceExecutedCommandSchema)),
+        Schema.decodeUnknownEffect(Schema.toType(ServiceTerminalCommandSchema)),
       ),
     )
     .pipe(

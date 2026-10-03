@@ -28,7 +28,7 @@ import { SystemLogRepo } from '../../SystemLogRepo/SystemLogRepo.js';
  * 1. Validate the request arguments.
  * 2. Return invalid arguments immediately.
  * 3. Resolve the admitted aggregate owner.
- * 4. Select the admitted version and its shared user replica.
+ * 4. Select the admitted version and its actor projection.
  * 5. Collect and settle the domain operation.
  * 6. Encode the settled domain outcome.
  * 7. Persist telemetry and determine the trace link.

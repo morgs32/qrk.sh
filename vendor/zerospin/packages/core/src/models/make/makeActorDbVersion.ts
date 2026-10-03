@@ -16,16 +16,16 @@ import type { IAnyModels, IModel } from '../types.ts';
 
 class AuthoringSession extends SQLiteSession {
   prepareQuery(): never {
-    throw new Error('Actor database definitions cannot execute queries');
+    throw new Error('Actor database definitions cannot execute selections');
   }
 }
-export interface IActorQueryHKT extends SQLiteRelationalQueryHKTBase {
-  _type: ActorQuery<this['result']>;
+export interface IActorSelectionHKT extends SQLiteRelationalQueryHKTBase {
+  _type: ActorSelection<this['result']>;
 }
 
 /** Drizzle query construction is connection-free; only this adapter touches its compiler internals. */
-export class ActorQuery<TResult = unknown> extends SQLiteRelationalQuery<
-  IActorQueryHKT,
+export class ActorSelection<TResult = unknown> extends SQLiteRelationalQuery<
+  IActorSelectionHKT,
   TResult
 > {
   private readonly queryMode: string;
@@ -169,7 +169,7 @@ export type IActorDbVersion<M extends IAnyModels = IAnyModels> = Readonly<{
       'sync',
       IResourceDbConfig<M, Record<never, never>>['relations'],
       IResourceDbConfig<M, Record<never, never>>['relations'][K],
-      IActorQueryHKT
+      IActorSelectionHKT
     >;
   };
 }>;
@@ -185,6 +185,11 @@ export function makeActorDbVersion<const M extends IAnyModels>(props: {
 }): IActorDbVersion<M>;
 export function makeActorDbVersion(props: { models: IAnyModels }): unknown {
   const models = Object.freeze({ ...props.models });
+  for (const name of Object.keys(models)) {
+    if (['models', 'config', 'query'].includes(name)) {
+      throw new Error(`Actor database model name ${name} is reserved`);
+    }
+  }
   const config = makeResourceDbConfig({ models });
   const dialect = new SQLiteDialect();
   const session = new AuthoringSession(dialect);
@@ -199,22 +204,26 @@ export function makeActorDbVersion(props: { models: IAnyModels }): unknown {
         dialect,
         session,
         true,
-        ActorQuery,
+        ActorSelection,
       ),
     ]),
   );
-  const db = Object.freeze({ models, config, query: Object.freeze(query) });
+  const db = Object.freeze({
+    models,
+    config,
+    query: Object.freeze(query),
+  });
   actorDbs.add(db);
   return db;
 }
 
-export type IActorQueries = Readonly<Record<string, ActorQuery>>;
-export type IActorSelections<
+export type IActorSelections = Readonly<Record<string, ActorSelection>>;
+export type ICapturedActorSelections<
   MODELS extends IAnyModels,
-  QUERIES extends IActorQueries,
+  SELECTIONS extends IActorSelections,
   IDENTITY = Readonly<Record<string, string>>,
 > = {
-  readonly [K in keyof QUERIES]: ISelection<
+  readonly [K in keyof SELECTIONS]: ISelection<
     K extends keyof MODELS ? MODELS[K] : IModel,
     IDENTITY
   >;
@@ -228,16 +237,16 @@ export type ISelection<
   readonly query: ISelectionQuery;
   all(db: Pick<IDb, '_'>, identity: IDENTITY): unknown;
 };
-export type ValidActorQueries<
+export type ValidActorSelections<
   MODELS extends IAnyModels,
-  QUERIES extends IActorQueries,
+  SELECTIONS extends IActorSelections,
 > = {
-  [K in keyof QUERIES]: K extends keyof MODELS
-    ? QUERIES[K]['_']['result'] extends {
+  [K in keyof SELECTIONS]: K extends keyof MODELS
+    ? SELECTIONS[K]['_']['result'] extends {
         [C in keyof MODELS[K]['table']['shape']]: unknown;
       }[]
       ? Exclude<
-          keyof QUERIES[K]['_']['result'][number],
+          keyof SELECTIONS[K]['_']['result'][number],
           keyof MODELS[K]['table']['shape']
         > extends never
         ? unknown
@@ -248,22 +257,22 @@ export type ValidActorQueries<
 
 export function captureActorSelections<
   DB extends IAnyActorDbVersion,
-  QUERIES extends IActorQueries,
+  SELECTIONS extends IActorSelections,
   S extends IClaimsSchema,
 >(
   db: DB,
-  queries: QUERIES,
+  selections: SELECTIONS,
   identity: S,
-): IActorSelections<DB['models'], QUERIES, S['Type']>;
+): ICapturedActorSelections<DB['models'], SELECTIONS, S['Type']>;
 export function captureActorSelections(
   db: IAnyActorDbVersion,
-  queries: IActorQueries,
+  selections: IActorSelections,
   identity: IClaimsSchema,
 ): Record<string, ISelection> {
   return Object.fromEntries(
-    Object.entries(queries).map(([key, query]) => {
+    Object.entries(selections).map(([key, query]) => {
       const model = db.models[key];
-      if (model === undefined || !(query instanceof ActorQuery)) {
+      if (model === undefined || !(query instanceof ActorSelection)) {
         throw new Error(`Invalid actor selection ${key}`);
       }
       return [key, query.capture({ db, model, key, identity })];

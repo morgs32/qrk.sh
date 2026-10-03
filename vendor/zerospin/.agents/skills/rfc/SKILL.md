@@ -2,7 +2,7 @@
 name: rfc
 description: >-
   Create or revise Zerospin architecture Requests for Comments under
-  wiki/dev/rfcs/. Use when the user says RFC, Request for Comments, architecture
+  wiki/rfcs/. Use when the user says RFC, Request for Comments, architecture
   proposal, proposed architecture, design RFC, or asks for a proposal with
   Drizzle schema tables, Mermaid workflows, sequence diagrams, and annotated
   steps.
@@ -24,7 +24,7 @@ generated documentation of behavior at HEAD and do not authorize code changes.
    abstractions, public contracts, named domain concepts, and runtime/trust
    boundary changes; do not re-ask for requested or approved decisions or
    ordinary implementation details.
-3. Create or update exactly one Markdown file under `wiki/dev/rfcs/`. Use a
+3. Create or update exactly one Markdown file under `wiki/rfcs/`. Use a
    concise, descriptive filename and update an existing RFC for the same
    proposal rather than creating a serial copy.
 4. State the problem and goal concisely, then show the proposed architecture.
@@ -104,12 +104,12 @@ For every schema table:
 2. Do not present speculative table, method, type, or error names as settled.
 3. Do not add alternate designs merely to appear comprehensive; record only
    alternatives the discussion actually needs.
-4. Do not put RFCs under `wiki/dev/plans/`, `wiki/architecture/`, or
-   `wiki/dev/diagrams/`.
+4. Do not put RFCs under `wiki/plans/`, `wiki/architecture/`, or
+   `wiki/diagrams/`.
 
 ## Done when
 
-1. One RFC exists under `wiki/dev/rfcs/`.
+1. One RFC exists under `wiki/rfcs/`.
 2. Its problem and goal are concise.
 3. Architecturally relevant Drizzle state is represented with schema tables.
 4. Ordering-sensitive behavior has a focused diagram with matching annotations.

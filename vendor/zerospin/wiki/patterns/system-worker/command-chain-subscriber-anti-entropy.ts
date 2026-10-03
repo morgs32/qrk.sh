@@ -1,12 +1,11 @@
 /**
  * Subscriber-owned catch-up commits bounded pages before live enrollment.
  *
- * AAC and SC send complete admitted envelopes to VAR and VSR. Their
+ * AC sends complete admitted command envelopes to VAR; SC sends admitted envelopes to VSR. Their
  * source-bound subscribers execute supplied rows and share the same receive
- * Effect with pull catch-up. VAFC and VSFC send complete terminal envelopes
- * to replicas, which replay retained mutations without authored programs.
- * VAR and ActorVAR independently consume their pinned VSFC service histories;
- * SC does not route finalized service occurrences through AAC.
+ * Effect with pull catch-up. AVC and SVC send complete terminal envelopes
+ * to actor projections, which replay retained operations without authored programs.
+ * ActorVAR projects only AVC outputs.
  *
  * Each `${queueName}Subscriber(sourceKey)` target binds one source queue,
  * enrollment key, and durable receiver cursor. `catchup(index?)` requests
@@ -22,14 +21,12 @@
  * source enrollment. Empty history at zero succeeds; missing history below the
  * destination and non-advancing receipts fail rather than recurse indefinitely.
  *
- * Replica snapshot paths delegate paging to these source-bound subscribers.
- * Resource-specific repair behind an already advanced service cursor remains
- * with the owner, as do version registration and terminal-result recovery.
+ * Actor snapshot paths delegate paging to these source-bound subscribers.
  * See `i-fanout-repo.ts` for the factory and accessor contracts.
  *
  * @bad Treat the envelope's lastIndex as acknowledgement of its whole history.
  * @bad Advance the subscriber frontier before local state and output commit.
- * @bad Re-execute authored code in a terminal-history replica.
+ * @bad Re-execute authored code in a terminal-history actor projection.
  * @bad Keep a second transport paging loop in a Repo.
  * @bad Call AggregateVersionRepo.catchup; that RPC is deleted.
  */

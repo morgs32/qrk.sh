@@ -2,12 +2,6 @@
   "extends": ["../../.oxlintrc.json"],
   "overrides": [
     {
-      "files": ["tests/**/*.ts", "tests/**/*.tsx"],
-      "rules": {
-        "eslint/no-restricted-imports": "off"
-      }
-    },
-    {
       "files": ["src/types.ts"],
       "rules": {
         "typescript/triple-slash-reference": "off"
@@ -16,8 +10,7 @@
   ],
   "env": {
     "browser": true,
-    "node": true,
-    "vitest": true
+    "node": true
   },
   "globals": {
     "Blob": "readonly",

@@ -5,7 +5,7 @@ import type {
   IContract,
   IEncodedCommand,
 } from '@zerospin/core/contracts/types';
-import { makeZerospinError, mapParseError } from '@zerospin/error';
+import { encodeError, makeZerospinError, mapParseError } from '@zerospin/error';
 import { Effect, Schema } from 'effect';
 
 /** Validate the submitted payload and claims before retaining the original command. */
@@ -19,15 +19,27 @@ export const checkAdmission = Effect.fn('checkAdmission')(function* (props: {
   actor?: IAnyAggregateActorVersion | undefined;
 }) {
   const { command, owners, actor, claims } = props;
+  if (command.asyncInput != null) {
+    return yield* makeZerospinError('public-async-command-forbidden');
+  }
   for (const owner of owners) {
     for (const candidate of owner.contracts) {
-      if (candidate.commandName !== command.commandName) continue;
+      if (candidate.commandName !== command.commandName) {
+        continue;
+      }
+      if (candidate.async !== undefined) {
+        return yield* makeZerospinError('public-async-command-forbidden');
+      }
       let contract: IContract | undefined = candidate;
       while (contract !== undefined) {
-        if (contract.version === command.contractVersion) break;
+        if (contract.version === command.contractVersion) {
+          break;
+        }
         contract = contract.previous;
       }
-      if (contract === undefined) continue;
+      if (contract === undefined) {
+        continue;
+      }
       yield* decodePayload(contract, { command });
       const claimsSchema =
         actor === undefined
@@ -62,3 +74,24 @@ export const checkAdmission = Effect.fn('checkAdmission')(function* (props: {
     }),
   );
 });
+
+/** Retain a terminal rejection for valid, addressed inputs without running their program. */
+export const prepareAdmissionResult = Effect.fn('prepareAdmissionResult')(
+  function* (
+    props: Parameters<typeof checkAdmission>[0] & { startedAt: Date },
+  ) {
+    const result = yield* checkAdmission(props).pipe(Effect.result);
+    return result._tag === 'Failure'
+      ? {
+          status: 'failed' as const,
+          startedAt: props.startedAt,
+          completedAt: new Date(),
+          failure: yield* encodeError(result.failure),
+        }
+      : {
+          status: 'succeeded' as const,
+          startedAt: props.startedAt,
+          completedAt: new Date(),
+        };
+  },
+);

@@ -9,8 +9,7 @@ import { CuidFactory } from '@zerospin/schema';
 import { Context, Effect } from 'effect';
 
 import { getFailuresCodec } from '../contracts/failures.ts';
-import { makeMutations } from '../contracts/make/makeMutations.ts';
-import { runContractGuard } from '../contracts/runContractGuard.ts';
+import { makeOperations } from '../contracts/make/makeOperations.ts';
 import type { InferFailure } from '../contracts/types.ts';
 import { runProgram } from '../execution/runProgram.ts';
 import type { InferPayloadInput } from '../models/types.ts';
@@ -21,7 +20,6 @@ import type {
   IAggregateSession,
   IAggregateSessionDefinition,
 } from './types.ts';
-
 export function validateSessionCommand<
   DEFINITION extends IAggregateSessionDefinition,
   NAME extends keyof DEFINITION['contracts'] & string,
@@ -56,26 +54,18 @@ export function validateSessionCommand(props: {
       const application = yield* resources.runtime.contextEffect;
       const context = Context.makeUnsafe<unknown>(application.mapUnsafe);
       let localId = 0;
-      yield* runContractGuard({
-        contract,
+      yield* makeOperations({
         db: state.db,
-        payload: props.payload,
+        contract,
+        models: props.session.definition.models,
+        command: {
+          id: 'cmd_validation',
+          commandName: contract.commandName,
+          contractVersion: contract.version,
+          payload: props.payload,
+        },
         claims: state.claims,
       }).pipe(
-        Effect.andThen(
-          makeMutations({
-            db: state.db,
-            contract,
-            models: props.session.definition.models,
-            command: {
-              id: 'cmd_validation',
-              commandName: contract.commandName,
-              contractVersion: contract.version,
-              payload: props.payload,
-            },
-            claims: state.claims,
-          }),
-        ),
         runProgram,
         Effect.provideService(CuidFactory, () =>
           Effect.sync(() => `validation${++localId}`),

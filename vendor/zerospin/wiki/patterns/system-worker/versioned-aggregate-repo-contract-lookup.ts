@@ -1,4 +1,4 @@
-import type { IAnyAggregates } from '@zerospin/core/aggregate/types';
+import type { IAggregateRegistry } from '@zerospin/core/aggregate/types';
 import { getAggregateActorVersion } from '@zerospin/core/aggregateActor/getAggregateActorVersion';
 
 /**
@@ -9,7 +9,7 @@ import { getAggregateActorVersion } from '@zerospin/core/aggregateActor/getAggre
  * @bad Substitute the latest actor for a retained command's actor version.
  */
 export function resolveAggregateContract(props: {
-  versions: IAnyAggregates;
+  versions: IAggregateRegistry;
   command: { actorName: string; actorVersion: string; commandName: string };
 }) {
   const actor = getAggregateActorVersion(props.versions, props.command);

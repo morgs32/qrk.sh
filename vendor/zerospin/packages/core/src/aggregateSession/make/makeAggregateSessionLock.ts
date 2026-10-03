@@ -1,6 +1,7 @@
 import type { IEncodedShape } from '@zerospin/schema';
 import { Schema } from 'effect';
 
+import { publicContracts } from '../../contracts/asyncContract.ts';
 import type { IAggregateSessionLock } from '../AggregateSessionLockSchema.ts';
 import type { IAggregateSessionDefinition } from '../types.ts';
 
@@ -45,16 +46,18 @@ export const makeAggregateSessionLock = (
       commandName: string;
       version: string;
       payloadShape: Readonly<IEncodedShape>;
+      resultJsonSchema: unknown;
       failureJsonSchema: unknown;
     }
   > = {};
   for (const [contractKey, contract] of Object.entries(
-    definition.contracts,
+    publicContracts(definition.contracts),
   ).toSorted(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey))) {
     contracts[contractKey] = {
       commandName: contract.commandName,
       version: contract.version,
       payloadShape: contract.spec.payloadShape,
+      resultJsonSchema: structuredClone(contract.spec.resultJsonSchema),
       failureJsonSchema: structuredClone(contract.spec.failureJsonSchema),
     };
   }

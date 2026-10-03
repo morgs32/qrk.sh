@@ -1,6 +1,6 @@
-import { applyAggregateMutationTx } from '@zerospin/core/contracts/applyAggregateMutationTx';
-import { prepareReplayAppliedMutation } from '@zerospin/core/contracts/prepareReplayAppliedMutation';
-import type { IEncodedMutation } from '@zerospin/core/contracts/types';
+import { applyOperationTx } from '@zerospin/core/contracts/applyOperationTx';
+import { prepareReplayAppliedOperation } from '@zerospin/core/contracts/prepareReplayAppliedOperation';
+import type { IEncodedOperation } from '@zerospin/core/contracts/types';
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/make/makeDbConfig/makeDbConfig';
 import { makeTx } from '@zerospin/core/drizzle/make/makeTx';
 import type { IDb } from '@zerospin/core/drizzle/types';
@@ -18,7 +18,7 @@ export const makeOptimisticActorDb = Effect.fn('makeOptimisticActorDb')(
     pending: readonly {
       commandId: string;
       appliedAt: Date;
-      mutations: readonly IEncodedMutation[];
+      operations: readonly IEncodedOperation[];
     }[];
   }) {
     const { authoritativeDb, models, pending } = props;
@@ -37,21 +37,21 @@ export const makeOptimisticActorDb = Effect.fn('makeOptimisticActorDb')(
     const unappliedCommandIds: string[] = [];
     for (const command of pending) {
       const replayed = yield* makeTx('ActorOptimism.replay')(function* (tx) {
-        for (const encoded of command.mutations) {
+        for (const encoded of command.operations) {
           if (encoded.commandId !== command.commandId) {
             return yield* Effect.die(
-              new Error('Pending mutation belongs to a different command'),
+              new Error('Pending operation belongs to a different command'),
             );
           }
-          const mutation = yield* prepareReplayAppliedMutation({
-            mutation: encoded,
+          const operation = yield* prepareReplayAppliedOperation({
+            operation: encoded,
             controller: { models },
           });
-          yield* applyAggregateMutationTx({
+          yield* applyOperationTx({
             tx,
-            mutation,
+            operation,
             commandId: command.commandId,
-            mutationIndex: encoded.mutationIndex,
+            operationIndex: encoded.operationIndex,
             appliedAt: command.appliedAt,
           });
         }
@@ -61,8 +61,8 @@ export const makeOptimisticActorDb = Effect.fn('makeOptimisticActorDb')(
       if (
         isZerospinError(failure) &&
         [
-          'mutation-row-not-found',
-          'mutation-referential-integrity-failed',
+          'operation-row-not-found',
+          'operation-referential-integrity-failed',
           'service-resource-deleted',
         ].includes(failure.code)
       ) {

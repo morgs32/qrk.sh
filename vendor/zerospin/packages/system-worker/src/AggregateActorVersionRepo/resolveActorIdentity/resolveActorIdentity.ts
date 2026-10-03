@@ -26,7 +26,7 @@ export const resolveActorIdentity = Effect.fn('resolveActorIdentity')(
       catch: () =>
         makeZerospinError({
           code: 'actor-path-invalid',
-          message: 'Invalid replica actor path',
+          message: 'Invalid actor path',
         }),
     });
     const selectedClaims = yield* Schema.decodeUnknownEffect(
@@ -52,7 +52,7 @@ export const resolveActorIdentity = Effect.fn('resolveActorIdentity')(
       return yield* Effect.fail(
         makeZerospinError({
           code: 'actor-path-noncanonical',
-          message: 'Replica actor path must be canonical',
+          message: 'Actor path must be canonical',
         }),
       );
     }

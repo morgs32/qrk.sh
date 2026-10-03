@@ -1,0 +1,106 @@
+.command-chain-stage {
+  position: relative;
+  min-height: 720px;
+  overflow: auto;
+  background: var(--panel);
+}
+
+.command-chain-table {
+  position: absolute;
+  left: 28%;
+  top: 50%;
+  transform: translateY(calc(-3.5lh));
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: calc(84ch + 27px);
+  font-size: 12px;
+  line-height: 1.2;
+  color: var(--subtle);
+}
+
+.command-chain-table caption {
+  position: relative;
+  z-index: 1;
+  padding-bottom: 2px;
+  text-align: left;
+  background: var(--panel);
+}
+
+.command-chain-cell-content.is-entering {
+  animation: command-chain-fade 700ms ease-out both;
+}
+
+.command-chain-cell-content.is-entering > span {
+  animation: command-chain-slide 700ms ease-out both;
+}
+
+@keyframes command-chain-fade {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes command-chain-slide {
+  from {
+    transform: translateY(-100%);
+  }
+
+  to {
+    transform: translateY(0);
+  }
+}
+
+.command-chain-table td {
+  width: 14ch;
+  min-width: 14ch;
+  height: 24px;
+  padding: 2px;
+  white-space: nowrap;
+  border: 0.5px solid var(--subtle);
+  background: var(--panel);
+}
+
+.command-chain-cell-content {
+  display: block;
+  clip-path: inset(0);
+}
+
+.command-chain-cell-content > span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition:
+    filter 600ms,
+    opacity 600ms;
+}
+
+.command-chain-table .is-blurred {
+  filter: blur(4px);
+  opacity: 0.7;
+}
+
+.command-chain-table .is-sharp {
+  color: var(--ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .command-chain-cell-content.is-entering,
+  .command-chain-cell-content.is-entering > span {
+    animation: none;
+  }
+
+  .command-chain-cell-content > span {
+    transition: none;
+  }
+}
+
+@media (max-width: 800px) {
+  .command-chain-table td:nth-child(4),
+  .command-chain-table td:nth-child(6) {
+    display: none;
+  }
+}

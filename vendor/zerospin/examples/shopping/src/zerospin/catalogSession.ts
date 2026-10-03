@@ -1,10 +1,10 @@
-import { makeSession } from '@zerospin/browser';
+import { makeServiceSession } from '@zerospin/browser';
 
 import { applicationLayer } from './applicationLayer';
 import { clerkCredentialsSchema, userClaims } from './claims';
-import { productV1 } from './services/app/models/product/ProductV1';
+import { productV1 } from './services/marketplace/models/product/ProductV1';
 
-export const catalogSession = makeSession({
+export const catalogSession = makeServiceSession({
   sharedWorker: ({ name }) =>
     new SharedWorker(new URL('./zerospin.worker.ts', import.meta.url), {
       type: 'module',
@@ -12,14 +12,12 @@ export const catalogSession = makeSession({
     }),
   claimsSchema: userClaims,
   credentialsSchema: clerkCredentialsSchema,
-  kind: 'service',
-  actorName: 'default',
+  actorName: 'catalog',
   actorVersion: '1.0.0',
   serviceVersion: '1.0.0',
-  serviceName: 'app',
-  sessionName: 'appSession',
+  serviceName: 'marketplace',
+  sessionName: 'catalogSession',
   models: { product: productV1 },
-  contracts: {},
   layer: applicationLayer,
   systemName: 'shopping',
 });

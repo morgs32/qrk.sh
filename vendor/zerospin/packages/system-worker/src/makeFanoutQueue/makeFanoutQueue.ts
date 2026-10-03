@@ -8,6 +8,7 @@ import {
   encodeError,
   isZerospinError,
   makeZerospinError,
+  mapParseError,
   prettyUnknownFailure,
   stringifyZerospinError,
   type IAnyError,
@@ -44,6 +45,7 @@ import {
   Queue,
   References,
   Result,
+  Schema,
   Semaphore,
 } from 'effect';
 
@@ -75,9 +77,13 @@ export type IFanoutQueue<
   getPage(props: {
     afterIndex: number;
     maxIndex?: number;
+    subscriberKey?: Readonly<Record<string, string>>;
   }): Promise<IRpcEnvelope<IFanoutDelivery<ROW>, IZerospinErrorJson>>;
   subscribe(
     props: MatchParams<PATTERN> & { currentIndex: number | null },
+  ): Promise<IRpcEnvelope<void, IZerospinErrorJson>>;
+  resumeSubscriber(
+    props: MatchParams<PATTERN>,
   ): Promise<IRpcEnvelope<void, IZerospinErrorJson>>;
 };
 
@@ -182,10 +188,24 @@ export const makeFanoutQueue = <
   subscribersTableName: SUBSCRIBERS_TABLE_NAME;
   entriesTableName: ENTRIES_TABLE_NAME;
   indexColumnName: INDEX_COLUMN_NAME;
-  readPage?: (page: { afterIndex: number; maxIndex?: number }) => {
-    rows: readonly { row: ADDITIONAL_ROW; index: number }[];
-    lastIndex: number;
-  };
+  subscriberScoped?: boolean;
+  readPage?: (page: {
+    afterIndex: number;
+    maxIndex?: number;
+    subscriberKey?: Readonly<Record<string, string>>;
+  }) =>
+    | {
+        rows: readonly { row: ADDITIONAL_ROW; index: number }[];
+        lastIndex: number;
+      }
+    | Effect.Effect<
+        {
+          rows: readonly { row: ADDITIONAL_ROW; index: number }[];
+          lastIndex: number;
+        },
+        IAnyError,
+        Async
+      >;
   /** Subscriber page size and simultaneous deliveries; a positive integer. */
   concurrency: number;
   /** Additional predicates ANDed with queue eligibility before the page limit. */
@@ -193,18 +213,21 @@ export const makeFanoutQueue = <
   subscriberNameUtils: IRepoNameUtils<PATTERN>;
   /** Owner identity; only fields also present on subscribe params are checked. */
   key: SOURCE_KEY;
+  ownerKeyFields?: readonly (keyof SOURCE_KEY)[];
   getRepo: (props: { key: MatchParams<NoInfer<PATTERN>> }) => Effect.Effect<
     {
       readonly [K in `${NoInfer<NAME>}Subscriber`]: (
         sourceKey: NoInfer<SOURCE_KEY>,
-      ) => PromiseLike<{
-        receive(
-          delivery: IFanoutDelivery<
-            | InferSelectModel<NoInfer<SCHEMA[ENTRIES_TABLE_NAME]>>
-            | NoInfer<ADDITIONAL_ROW>
-          >,
-        ): PromiseLike<IRpcEnvelope<void, IZerospinErrorJson>>;
-      }>;
+      ) => PromiseLike<
+        Disposable & {
+          receive(
+            delivery: IFanoutDelivery<
+              | InferSelectModel<NoInfer<SCHEMA[ENTRIES_TABLE_NAME]>>
+              | NoInfer<ADDITIONAL_ROW>
+            >,
+          ): PromiseLike<IRpcEnvelope<void, IZerospinErrorJson>>;
+        }
+      >;
     },
     IAnyError | IZerospinErrorJson,
     Async
@@ -230,7 +253,9 @@ export const makeFanoutQueue = <
     subscribersWhere = [],
     subscriberNameUtils,
     key,
+    ownerKeyFields,
     readPage,
+    subscriberScoped = false,
   } = props;
 
   const subscriberTable = schema[subscribersTableName];
@@ -241,9 +266,13 @@ export const makeFanoutQueue = <
   const getSuffix = Effect.fn(`${name}.getSuffix`)(function* (page: {
     afterIndex: number;
     maxIndex?: number;
+    subscriberKey?: Readonly<Record<string, string>>;
   }) {
     yield* Effect.void;
-    if (readPage !== undefined) return readPage(page);
+    if (readPage !== undefined) {
+      const result = readPage(page);
+      return yield* Effect.isEffect(result) ? result : Effect.succeed(result);
+    }
     return {
       rows: db
         .select({ row: getTableColumns(entriesTable), index: indexColumn })
@@ -327,15 +356,19 @@ export const makeFanoutQueue = <
         .run();
     });
 
-  // 5 — compare shared owner key fields, encode the name, and advance enrollment
-  const enroll = (
-    subscribeProps: MatchParams<PATTERN> & {
-      currentIndex: number | null;
-    },
-  ): Effect.Effect<void, IAnyError, Async> =>
+  // 5 — enforce owner identity for enrollment and explicit recovery
+  const getSubscriberName = (
+    params: object,
+  ): Effect.Effect<string, IAnyError, Async> =>
     Effect.gen(function* () {
-      const { currentIndex, ...params } = subscribeProps;
+      const requiredFields =
+        ownerKeyFields === undefined
+          ? undefined
+          : new Set<string>(ownerKeyFields.map(String));
       for (const [field, expected] of Object.entries(key)) {
+        if (requiredFields !== undefined && !requiredFields.has(field)) {
+          continue;
+        }
         if (!(field in params)) {
           continue;
         }
@@ -348,9 +381,17 @@ export const makeFanoutQueue = <
           );
         }
       }
-      const subscriberName = yield* subscriberNameUtils.makeName(
-        params as never,
-      );
+      return yield* subscriberNameUtils.makeName(params as never);
+    });
+
+  const enroll = (
+    subscribeProps: MatchParams<PATTERN> & {
+      currentIndex: number | null;
+    },
+  ): Effect.Effect<void, IAnyError, Async> =>
+    Effect.gen(function* () {
+      const { currentIndex, ...params } = subscribeProps;
+      const subscriberName = yield* getSubscriberName(params);
       yield* Effect.try({
         try: () =>
           db.transaction(tx => {
@@ -396,6 +437,41 @@ export const makeFanoutQueue = <
             : makeZerospinError({
                 code: 'fanout-subscriber-enroll-failed',
                 message: `Failed to enroll fanout subscriber ${subscriberName}`,
+                cause: prettyUnknownFailure(cause),
+              }),
+      });
+    });
+
+  const resumeSubscriber = (
+    params: MatchParams<PATTERN>,
+  ): Effect.Effect<void, IAnyError, Async> =>
+    Effect.gen(function* () {
+      const subscriberName = yield* getSubscriberName(params);
+      yield* alarmRegistry.hold(name);
+      yield* Effect.try({
+        try: () => {
+          const subscriber = db
+            .select({ failure: subscriberTable.failure })
+            .from(subscriberTable as never)
+            .where(eq(subscriberIdColumn, subscriberName as never))
+            .get();
+          if (subscriber === undefined || subscriber.failure === null) {
+            throw makeZerospinError({
+              code: 'fanout-subscriber-not-failed',
+              message: `Fanout subscriber ${subscriberName} has no terminal failure to resume`,
+            });
+          }
+          db.update(subscriberTable as never)
+            .set({ failure: null } as never)
+            .where(eq(subscriberIdColumn, subscriberName as never))
+            .run();
+        },
+        catch: cause =>
+          isZerospinError(cause)
+            ? cause
+            : makeZerospinError({
+                code: 'fanout-subscriber-resume-failed',
+                message: `Failed to resume fanout subscriber ${subscriberName}`,
                 cause: prettyUnknownFailure(cause),
               }),
       });
@@ -468,6 +544,7 @@ export const makeFanoutQueue = <
           // 7 — scoped children cannot outlive the serialized drain
           yield* alarmRegistry.hold(name);
           const pending = new Set<unknown>();
+          const unavailable = new Set<unknown>();
           const completions = yield* Queue.make<{
             id: unknown;
             exit: Exit.Exit<void, IAnyError>;
@@ -482,23 +559,52 @@ export const makeFanoutQueue = <
           for (;;) {
             const subscribers =
               pending.size < concurrency
-                ? getSubscribers(Math.min(lastIndex, unavailableAfter), pending)
+                ? getSubscribers(
+                    Math.min(lastIndex, unavailableAfter),
+                    new Set([...pending, ...unavailable]),
+                  )
                 : [];
             for (const subscriber of subscribers) {
               const cursor = subscriber.currentIndex ?? 0;
               if (cursor >= unavailableAfter) break;
 
+              const subscriberId = (subscriber as Record<string, unknown>)[
+                idColumnName
+              ];
+              if (typeof subscriberId !== 'string') {
+                return yield* makeZerospinError(
+                  'fanout-subscriber-name-invalid',
+                );
+              }
+              const receiverKey =
+                yield* subscriberNameUtils.parseName(subscriberId);
               // 8 — an older subscriber or an exhausted page requires a new suffix
-              if (cursor < afterIndex || cursor >= maxIndex) {
+              if (
+                subscriberScoped ||
+                cursor < afterIndex ||
+                cursor >= maxIndex
+              ) {
                 afterIndex = cursor;
                 const page = yield* getSuffix({
                   afterIndex: cursor,
                   maxIndex: lastIndex,
+                  subscriberKey: yield* Schema.decodeUnknownEffect(
+                    Schema.Record(Schema.String, Schema.String),
+                  )(receiverKey).pipe(
+                    mapParseError({
+                      code: 'fanout-subscriber-key-invalid',
+                      prefix: 'Invalid subscriber key',
+                    }),
+                  ),
                 });
                 rows = page.rows.filter(row => row.index <= lastIndex);
                 pageLastIndex = page.lastIndex;
                 const last = rows.at(-1);
                 if (last === undefined) {
+                  if (subscriberScoped) {
+                    unavailable.add(subscriberId);
+                    continue;
+                  }
                   // A later wakeup may expose finalized rows without increasing lastIndex.
                   unavailableAfter = cursor;
                   maxIndex = cursor;
@@ -531,11 +637,13 @@ export const makeFanoutQueue = <
                   const subscriberKey =
                     yield* subscriberNameUtils.parseName(id);
                   const repo = yield* getRepo({ key: subscriberKey });
-                  const receiver = yield* makeAsync(() =>
-                    repo[subscriberProperty](key),
-                  );
-                  yield* makeAsync(() => receiver.receive(delivery)).pipe(
-                    Effect.flatMap(envelope => readRpcEnvelope(envelope)),
+                  yield* Effect.acquireUseRelease(
+                    makeAsync(() => repo[subscriberProperty](key)),
+                    receiver =>
+                      makeAsync(() => receiver.receive(delivery)).pipe(
+                        Effect.flatMap(envelope => readRpcEnvelope(envelope)),
+                      ),
+                    receiver => Effect.sync(() => receiver[Symbol.dispose]()),
                   );
                   yield* setCurrentIndex(subscriber, deliveredThrough);
                 }).pipe(
@@ -582,7 +690,10 @@ export const makeFanoutQueue = <
             }
 
             // 10 — consume completions before reselecting; persistence failure aborts
-            if (pending.size === 0) break;
+            if (pending.size === 0) {
+              if (subscriberScoped && subscribers.length > 0) continue;
+              break;
+            }
             for (const completion of yield* Queue.takeAll(completions)) {
               if (Exit.isFailure(completion.exit)) {
                 return yield* Effect.failCause(completion.exit.cause);
@@ -612,7 +723,11 @@ export const makeFanoutQueue = <
       };
     }
 
-    async getPage(pageProps: { afterIndex: number; maxIndex?: number }) {
+    async getPage(pageProps: {
+      afterIndex: number;
+      maxIndex?: number;
+      subscriberKey?: Readonly<Record<string, string>>;
+    }) {
       return config.system.runtime.runPromise(
         getSuffix(pageProps).pipe(
           Effect.map(page => ({
@@ -640,6 +755,17 @@ export const makeFanoutQueue = <
       if (result.result._tag === 'Success') {
         this.drain();
       }
+      return result;
+    }
+
+    async resumeSubscriber(params: MatchParams<PATTERN>) {
+      const result = await config.system.runtime.runPromise(
+        resumeSubscriber(params).pipe(
+          Effect.provide(AsyncLive),
+          makeRpcEnvelope,
+        ),
+      );
+      if (result.result._tag === 'Success') this.drain();
       return result;
     }
   }

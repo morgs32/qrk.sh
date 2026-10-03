@@ -1,7 +1,7 @@
-import { AggregateActorCommandSchema } from '@zerospin/core/aggregateSession/AggregateActorCommandSchema/AggregateActorCommandSchema';
+import { AggregateActorOutputSchema } from '@zerospin/core/aggregateSession/AggregateActorCommandSchema/AggregateActorCommandSchema';
 import { AdmissionResultSchema } from '@zerospin/core/contracts/AdmissionResultSchema';
 import type { INodeCommand, Node } from '@zerospin/core/Node/Node';
-import { ServiceActorCommandSchema } from '@zerospin/core/serviceSession/ServiceActorCommandSchema';
+import { ServiceActorOutputSchema } from '@zerospin/core/serviceSession/ServiceSessionWireSchema';
 import { makeZerospinError } from '@zerospin/error';
 import { Schema } from 'effect';
 
@@ -134,8 +134,10 @@ export class NodeSynchronization {
                   executedHash: checkpoint.executedHash,
                 }
               : {
-                  serviceIndex: checkpoint.executedIndex,
+                  executedIndex: checkpoint.executedIndex,
                   serviceHash: checkpoint.executedHash,
+                  nodeIndex: before.metadata.outcomeIndex,
+                  nodeId: before.metadata.nodeId,
                 },
           ),
         );
@@ -154,27 +156,20 @@ export class NodeSynchronization {
             if (message.type === 'state-required') {
               throw makeZerospinError({ code: 'node-snapshot-required' });
             }
-            if (message.type === 'aggregateActorCommand') {
+            if (message.type === 'aggregateActorOutput') {
               const command = Schema.decodeUnknownSync(
-                AggregateActorCommandSchema,
-              )(message.command);
-              await this.node.receiveCommand(command);
-            } else if (message.type === 'serviceActorCommand') {
-              const command = Schema.decodeUnknownSync(
-                ServiceActorCommandSchema,
-              )(message.command);
-              await this.node.receiveCommand({
-                id: command.id,
-                nodeId: null,
-                nodeIndex: null,
-                aggregateIndex: 0,
-                executedIndex: command.serviceIndex,
-                executedHash: command.serviceHash,
-                actorDelta: command.actorDelta,
-                admission: null,
-                execution: null,
-              });
-            } else if (message.type === 'aggregateCommandAdmission') {
+                AggregateActorOutputSchema,
+              )(message.output);
+              await this.node.receiveAggregateOutput(command);
+            } else if (message.type === 'serviceActorOutput') {
+              const output = Schema.decodeUnknownSync(ServiceActorOutputSchema)(
+                message.output,
+              );
+              await this.node.receiveServiceOutput(output);
+            } else if (
+              message.type === 'aggregateCommandAdmission' ||
+              message.type === 'serviceCommandAdmission'
+            ) {
               const receipt = Schema.decodeUnknownSync(
                 Schema.Struct({
                   commandId: Schema.String,
@@ -193,7 +188,8 @@ export class NodeSynchronization {
                     success: Schema.Struct({
                       id: Schema.TemplateLiteral(['cmd_', Schema.String]),
                       nodeIndex: Schema.Number,
-                      aggregateIndex: Schema.Number,
+                      aggregateIndex: Schema.optionalKey(Schema.Number),
+                      serviceIndex: Schema.optionalKey(Schema.Number),
                       admission: Schema.toEncoded(AdmissionResultSchema),
                     }),
                   }),
@@ -231,7 +227,20 @@ export class NodeSynchronization {
                   this.node.connectionState('blocked', result.failure);
                 }
               } else {
-                await this.node.admitted(result.success);
+                const ownerIndex =
+                  this.request.kind === 'aggregate'
+                    ? result.success.aggregateIndex
+                    : result.success.serviceIndex;
+                if (
+                  ownerIndex === undefined ||
+                  !Number.isSafeInteger(ownerIndex) ||
+                  ownerIndex < 1
+                ) {
+                  throw makeZerospinError({
+                    code: 'node-admission-reply-invalid',
+                  });
+                }
+                await this.node.admitted({ ...result.success, ownerIndex });
                 pending.resolve();
               }
             } else if (message.type === 'replay-complete') {
@@ -243,7 +252,7 @@ export class NodeSynchronization {
               )(
                 this.request.kind === 'aggregate'
                   ? message.executedIndex
-                  : message.serviceIndex,
+                  : message.executedIndex,
               );
               const committed = await this.node.snapshot();
               if (
@@ -310,8 +319,8 @@ export class NodeSynchronization {
           commandName,
           payload,
           contractVersion,
-          aggregateId,
-          aggregateName,
+          targetId,
+          targetName,
           actorName,
           actorVersion,
           sessionName,
@@ -335,22 +344,43 @@ export class NodeSynchronization {
           };
           socket.send(
             JSON.stringify({
-              type: 'pushAggregateCommand',
-              command: {
-                id,
-                nodeId,
-                nodeIndex,
-                commandName,
-                payload,
-                contractVersion,
-                aggregateId,
-                aggregateName,
-                actorName,
-                actorVersion,
-                sessionName,
-                claims,
-                systemName: this.request.systemName,
-              },
+              type:
+                this.request.kind === 'aggregate'
+                  ? 'pushAggregateCommand'
+                  : 'pushServiceCommand',
+              command:
+                this.request.kind === 'service'
+                  ? {
+                      id,
+                      commandName,
+                      payload,
+                      contractVersion,
+                      serviceName: targetName,
+                      serviceVersion: this.request.targetVersion,
+                      caller: {
+                        actorName,
+                        actorVersion,
+                        sessionName,
+                        claims,
+                        nodeId,
+                        nodeIndex,
+                      },
+                    }
+                  : {
+                      id,
+                      nodeId,
+                      nodeIndex,
+                      commandName,
+                      payload,
+                      contractVersion,
+                      aggregateId: targetId,
+                      aggregateName: targetName,
+                      actorName,
+                      actorVersion,
+                      sessionName,
+                      claims,
+                      systemName: this.request.systemName,
+                    },
             }),
           );
         });

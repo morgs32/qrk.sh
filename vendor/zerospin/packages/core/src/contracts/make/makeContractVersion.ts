@@ -11,6 +11,7 @@ import {
   type IAnyShape,
   type IPrimaryKeyDescriptor,
   type IPrimitiveDescriptor,
+  type ITypeError,
 } from '@zerospin/schema';
 import { Effect, Schema } from 'effect';
 import { mapValues } from 'es-toolkit';
@@ -31,25 +32,29 @@ import {
   type IFailures,
 } from '../failures.ts';
 import type {
-  IAnyMutation,
   IContract,
   IContractFailure,
-  IModelMutations,
+  IModelOperations,
 } from '../types.ts';
 
-import { makeModelMutations } from './makeModelMutations.ts';
+import { makeModelOperations } from './makeModelOperations.ts';
 
-export type IMutations = readonly IAnyMutation[];
+type IResultSchemaType<S> = [S] extends [never]
+  ? void
+  : S extends Schema.Codec<infer A, unknown>
+    ? A
+    : void;
 
-export type MutationValues<MUTATIONS> =
-  MUTATIONS extends readonly (infer ITEM)[] ? ITEM : never;
+type IValidProgramResult<A, S> = [A] extends [IResultSchemaType<S>]
+  ? unknown
+  : ITypeError<'Contract program result must match its declared result codec (void when omitted)'>;
 
 type IsErasedPayloadShape<PAYLOAD extends IAnyShape> =
   string extends keyof PAYLOAD ? true : false;
 
 export type InferContractProgram<
   PAYLOAD extends IAnyShape = IAnyShape,
-  MUTATIONS = IMutations,
+  RESULT = unknown,
   REQUIREMENTS = never,
   ERROR extends IContractFailure = IContractFailure,
   MODELS extends IAnyModels = IAnyModels,
@@ -61,16 +66,17 @@ export type InferContractProgram<
           Pick<IDb<IResourceDbConfig<MODELS, Record<never, never>>>, 'query'>
         >;
     claims: Readonly<Record<string, unknown>> | null;
+    external?: unknown;
     payload: IsErasedPayloadShape<PAYLOAD> extends true
       ? // oxlint-disable-next-line typescript/no-explicit-any -- erased payload shape intentionally accepts any payload
         any
       : InferCommandPayload<PAYLOAD>;
-  }): Effect.Effect<MUTATIONS, ERROR, REQUIREMENTS>;
+  }): Effect.Effect<RESULT, ERROR, REQUIREMENTS>;
 }['bivarianceHack'];
 
 type IContractProgramFn<
   PAYLOAD extends IAnyShape,
-  MUTATIONS,
+  RESULT,
   MODELS extends IAnyModels,
   REQUIREMENTS = never,
   ERROR extends IContractFailure = IContractFailure,
@@ -85,9 +91,9 @@ type IContractProgramFn<
   failures: [FAILURES] extends [never] ? DEFAULT_FAILURES : NoInfer<FAILURES>;
   models: [MODELS] extends [never]
     ? Record<never, never>
-    : { readonly [K in keyof MODELS]: IModelMutations<MODELS[K]> };
+    : { readonly [K in keyof MODELS]: IModelOperations<MODELS[K]> };
   payload: InferCommandPayload<PAYLOAD>;
-}) => Effect.Effect<MUTATIONS, ERROR, REQUIREMENTS>;
+}) => Effect.Effect<RESULT, ERROR, REQUIREMENTS>;
 
 /**
  * Contract payload fields only — excludes {@link IAnyRefDescriptor}.
@@ -113,8 +119,7 @@ const upgradeEdges = new WeakMap<
 
 const nextVersions = new WeakMap<object, IContract>();
 
-const noOpProgram = (_props: { payload: unknown }) =>
-  Effect.succeed([] as const);
+const noOpProgram = (_props: { payload: unknown }) => Effect.void;
 
 const semVerPattern =
   /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/;
@@ -150,10 +155,10 @@ const ContractProgramSchema = Schema.declare(
     db: Readonly<Pick<IDb, 'query'>>;
     payload: unknown;
     claims: Readonly<Record<string, unknown>> | null;
-    models: Readonly<Record<string, IModelMutations<IModel>>>;
+    models: Readonly<Record<string, IModelOperations<IModel>>>;
     failures: IFailures;
   }) => Effect.Effect<
-    IMutations,
+    unknown,
     IFrameworkError | Extract<IScopedError, { scope: 'contract' }>,
     unknown
   > => typeof input === 'function',
@@ -217,6 +222,11 @@ const MakeVersionPropsSchema = Schema.Struct({
   ),
   payload: Schema.Record(Schema.String, PayloadFieldDescriptorSchema),
   version: ContractSemVerSchema,
+  result: Schema.optionalKey(
+    Schema.declare((input: unknown): input is Schema.Codec<unknown, unknown> =>
+      Schema.isSchema(input),
+    ),
+  ),
   program: Schema.optionalKey(ContractProgramSchema),
 });
 
@@ -248,7 +258,8 @@ export function makeContractVersion<
   COMMAND_NAME extends string,
   PAYLOAD extends Record<string, IPayloadFieldDescriptor>,
   const VERSION extends string,
-  MUTATIONS extends IMutations = readonly [],
+  RESULT_SCHEMA extends Schema.Codec<unknown, unknown> | undefined = undefined,
+  PROGRAM_RESULT = IResultSchemaType<RESULT_SCHEMA>,
   MODELS extends IAnyModels = Record<never, never>,
   const FAILURE extends IFailures = Record<never, never>,
   PROGRAM_REQUIREMENTS = never,
@@ -287,15 +298,17 @@ export function makeContractVersion<
     payload: PAYLOAD;
     version: VERSION;
 
+    result?: RESULT_SCHEMA;
     program?: IContractProgramFn<
       PAYLOAD,
-      MUTATIONS,
+      PROGRAM_RESULT,
       MODELS,
       PROGRAM_REQUIREMENTS,
       PROGRAM_ERROR,
       Readonly<Record<string, unknown>> | null,
       FAILURE
-    >;
+    > &
+      IValidProgramResult<PROGRAM_RESULT, NoInfer<RESULT_SCHEMA>>;
   },
 ): IContract<
   COMMAND_NAME,
@@ -307,7 +320,7 @@ export function makeContractVersion<
       : never;
   },
   VERSION,
-  MUTATIONS,
+  IResultSchemaType<RESULT_SCHEMA>,
   { [K in VERSION]: Readonly<PAYLOAD> },
   MODELS,
   PROGRAM_REQUIREMENTS | GUARD_REQUIREMENTS,
@@ -322,7 +335,8 @@ export function makeContractVersion<
   COMMAND_NAME extends string,
   PAYLOAD extends Record<string, IPayloadFieldDescriptor>,
   const VERSION extends string,
-  MUTATIONS extends IMutations = readonly [],
+  RESULT_SCHEMA extends Schema.Codec<unknown, unknown> | undefined = undefined,
+  PROGRAM_RESULT = IResultSchemaType<RESULT_SCHEMA>,
   MODELS extends IAnyModels = Record<never, never>,
   const FAILURE extends IFailures = Record<never, never>,
   PROGRAM_REQUIREMENTS = never,
@@ -361,15 +375,17 @@ export function makeContractVersion<
     payload: PAYLOAD;
     version: VERSION;
 
+    result?: RESULT_SCHEMA;
     program?: IContractProgramFn<
       PAYLOAD,
-      MUTATIONS,
+      PROGRAM_RESULT,
       MODELS,
       PROGRAM_REQUIREMENTS,
       PROGRAM_ERROR,
       CLAIMS['Type'],
       FAILURE
-    >;
+    > &
+      IValidProgramResult<PROGRAM_RESULT, NoInfer<RESULT_SCHEMA>>;
   },
 ): IContract<
   COMMAND_NAME,
@@ -381,7 +397,7 @@ export function makeContractVersion<
       : never;
   },
   VERSION,
-  MUTATIONS,
+  IResultSchemaType<RESULT_SCHEMA>,
   { [K in VERSION]: Readonly<PAYLOAD> },
   MODELS,
   PROGRAM_REQUIREMENTS | GUARD_REQUIREMENTS,
@@ -394,7 +410,7 @@ export function makeContractVersion<
 
 /*
  * 1. Validate and snapshot the authored payload and program.
- * 2. Bind the authored program to this definition's model mutations.
+ * 2. Bind the authored program to this definition's model operations.
  * 3. Expose authored content and the serializable specification.
  */
 export function makeContractVersion(command: Command, props: unknown): unknown {
@@ -432,9 +448,11 @@ function makeVersion(
         : { ...descriptor };
   }
 
-  // 2 — Bind the authored program to this definition's model mutations.
+  // 2 — Bind the authored program to this definition's model operations.
   const models = { ...decodedProps.models };
-  const modelMutations = mapValues(models, makeModelMutations);
+  const modelOperations = mapValues(models, model =>
+    makeModelOperations(model),
+  );
   const failures =
     inheritedFailures ?? Object.freeze({ ...decodedProps.failures });
   getFailuresCodec(failures);
@@ -444,7 +462,7 @@ function makeVersion(
       db,
       payload,
       claims,
-      models: modelMutations,
+      models: modelOperations,
       failures,
     });
   // 3 — Expose authored content and the serializable specification.
@@ -452,6 +470,10 @@ function makeVersion(
     commandName,
     version,
     payloadShape: encodeShape(payload),
+    resultJsonSchema:
+      decodedProps.result === undefined
+        ? null
+        : Schema.toJsonSchemaDocument(decodedProps.result),
     failureJsonSchema:
       Object.keys(failures).length === 0
         ? null
@@ -471,6 +493,9 @@ function makeVersion(
     version,
     spec,
     program,
+    ...(decodedProps.result === undefined
+      ? {}
+      : { result: decodedProps.result }),
   };
   const contract = Object.assign(new Contract(), fields);
   return contract;
@@ -494,11 +519,10 @@ export function upgradeContractVersion<
   COMMAND_NAME extends string,
   PAYLOAD extends IAnyShape,
   VERSION extends string,
-  MUTATIONS,
+  RESULT,
   PAYLOADS extends Record<string, IAnyShape>,
   PATCH extends Record<string, IPayloadFieldDescriptor | null>,
   const NEXT_VERSION extends string,
-  NEXT_MUTATIONS extends IMutations,
   MODELS extends IAnyModels,
   PREVIOUS_FAILURE extends IFailures,
   FAILURES extends Record<string, IFailures>,
@@ -518,12 +542,14 @@ export function upgradeContractVersion<
     unknown
   > = Schema.Codec<Readonly<Record<string, unknown>> | null, unknown>,
   GUARD_REQUIREMENTS = never,
+  RESULT_SCHEMA extends Schema.Codec<unknown, unknown> | undefined = undefined,
+  PROGRAM_RESULT = IResultSchemaType<RESULT_SCHEMA>,
 >(
   contract: IContract<
     COMMAND_NAME,
     PAYLOAD,
     VERSION,
-    MUTATIONS,
+    RESULT,
     PAYLOADS,
     MODELS,
     HISTORICAL_PROGRAM_REQUIREMENTS,
@@ -626,6 +652,7 @@ export function upgradeContractVersion<
       Parameters<InferContractProgram<PAYLOAD>>[0]['payload'],
       IAnyError
     >;
+    result?: RESULT_SCHEMA;
     program: IContractProgramFn<
       {
         readonly [K in keyof PAYLOAD | keyof PATCH as K extends keyof PATCH
@@ -642,7 +669,7 @@ export function upgradeContractVersion<
             ? PAYLOAD[K]
             : never;
       },
-      NEXT_MUTATIONS,
+      PROGRAM_RESULT,
       {
         readonly [K in
           | keyof MODELS
@@ -661,7 +688,8 @@ export function upgradeContractVersion<
       Readonly<Record<string, unknown>> | null,
       FAILURE,
       PREVIOUS_FAILURE
-    >;
+    > &
+      IValidProgramResult<PROGRAM_RESULT, NoInfer<RESULT_SCHEMA>>;
   },
 ): string extends NEXT_VERSION
   ? IContract
@@ -685,7 +713,7 @@ export function upgradeContractVersion<
               : never;
         },
         NEXT_VERSION,
-        NEXT_MUTATIONS,
+        IResultSchemaType<RESULT_SCHEMA>,
         PAYLOADS & {
           [K in NEXT_VERSION]: {
             readonly [K in keyof PAYLOAD | keyof PATCH as K extends keyof PATCH
@@ -730,11 +758,10 @@ export function upgradeContractVersion<
   COMMAND_NAME extends string,
   PAYLOAD extends IAnyShape,
   VERSION extends string,
-  MUTATIONS,
+  RESULT,
   PAYLOADS extends Record<string, IAnyShape>,
   PATCH extends Record<string, IPayloadFieldDescriptor | null>,
   const NEXT_VERSION extends string,
-  NEXT_MUTATIONS extends IMutations,
   MODELS extends IAnyModels,
   PREVIOUS_FAILURE extends IFailures,
   FAILURES extends Record<string, IFailures>,
@@ -754,12 +781,14 @@ export function upgradeContractVersion<
     unknown
   > = Schema.Codec<Readonly<Record<string, unknown>> | null, unknown>,
   GUARD_REQUIREMENTS = never,
+  RESULT_SCHEMA extends Schema.Codec<unknown, unknown> | undefined = undefined,
+  PROGRAM_RESULT = IResultSchemaType<RESULT_SCHEMA>,
 >(
   contract: IContract<
     COMMAND_NAME,
     PAYLOAD,
     VERSION,
-    MUTATIONS,
+    RESULT,
     PAYLOADS,
     MODELS,
     HISTORICAL_PROGRAM_REQUIREMENTS,
@@ -862,6 +891,7 @@ export function upgradeContractVersion<
       Parameters<InferContractProgram<PAYLOAD>>[0]['payload'],
       IAnyError
     >;
+    result?: RESULT_SCHEMA;
     program: IContractProgramFn<
       {
         readonly [K in keyof PAYLOAD | keyof PATCH as K extends keyof PATCH
@@ -878,7 +908,7 @@ export function upgradeContractVersion<
             ? PAYLOAD[K]
             : never;
       },
-      NEXT_MUTATIONS,
+      PROGRAM_RESULT,
       {
         readonly [K in
           | keyof MODELS
@@ -897,7 +927,8 @@ export function upgradeContractVersion<
       CLAIMS['Type'],
       FAILURE,
       PREVIOUS_FAILURE
-    >;
+    > &
+      IValidProgramResult<PROGRAM_RESULT, NoInfer<RESULT_SCHEMA>>;
   },
 ): string extends NEXT_VERSION
   ? IContract
@@ -921,7 +952,7 @@ export function upgradeContractVersion<
               : never;
         },
         NEXT_VERSION,
-        NEXT_MUTATIONS,
+        IResultSchemaType<RESULT_SCHEMA>,
         PAYLOADS & {
           [K in NEXT_VERSION]: {
             readonly [K in keyof PAYLOAD | keyof PATCH as K extends keyof PATCH
@@ -1051,6 +1082,7 @@ export function upgradeContractVersion(
       payload: nextPayload,
       version: props.version,
       program: props.program,
+      ...(props.result === undefined ? {} : { result: props.result }),
       ...(props.claims === undefined ? {} : { claims: props.claims }),
       ...(props.guard === undefined ? {} : { guard: props.guard }),
       failures: props.failures ?? contract.failures,

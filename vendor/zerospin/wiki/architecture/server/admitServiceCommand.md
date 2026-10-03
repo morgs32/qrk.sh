@@ -1,102 +1,87 @@
 ---
 title: Service Command Admission
-updated: 2026-09-22
+updated: 2026-10-02
 ---
 
 # Service Command Admission
 
-`SystemApi.admitServiceCommand` retains one encoded service command and returns
-`{ ...command, serviceIndex, admission }`. The receipt acknowledges durable admission and
-ordering; execution proceeds independently through the materializer fanout.
-
-Service admission validates the original submitted contract payload and identity before SQLite retention. Retained IDs recover the original command and completed admission result, including its timestamps. Admission stores stable command fields and a JSON admission result. SVR evaluates the shared contract guard synchronously inside the command transaction before mutations, and retains `execution.failure` on a declared execution rejection.
-
-- [`checkAdmission.ts`](../../../packages/system-worker/src/checkAdmission.ts) — selects and validates the submitted contract version without evaluating state guards.
+`SystemApi.executeServiceCommand` admits one encoded service command and waits for its terminal result from the explicitly selected service version. The internal `ServiceChain.admitServiceCommand` call returns the retained command, `serviceIndex`, and completed `admission`; that return acknowledges admission only. The public SystemApi method continues through execution before responding.
 
 ## Trigger
 
-1. A secret-key caller submits a complete encoded service command through SystemApi.
-   - [`admitServiceCommand.ts:13-44`](../../../packages/system-worker/src/SystemApi/admitServiceCommand/admitServiceCommand.ts#L13-L44) — Validates the command with `EncodedServiceCommandSchema` through the linked RPC handler.
+1. An authorized SystemApi caller supplies `{ serviceVersion, command }`. The capability supplies `systemId`; it is not accepted from the command.
+   - [`executeServiceCommand.ts`](../../../packages/system-worker/src/SystemApi/executeServiceCommand/executeServiceCommand.ts) — validates the request, selected execution version, and submitted contract version.
+2. The handler admits the command through its ServiceChain, then executes through the assigned `serviceIndex` in the requested ServiceVersionRepo.
+   - [`executeServiceCommand.ts`](../../../packages/system-worker/src/SystemApi/executeServiceCommand/executeServiceCommand.ts) — decodes both RPC responses with `readRpcEnvelope`.
 
 ```mermaid
 sequenceDiagram
   participant Caller
   participant SystemApi
   participant ServiceChain
-  autonumber 1
-  Caller->>SystemApi: systemApi.admitServiceCommand(...)
-  autonumber 2
+  participant ServiceVersionRepo
+  autonumber
+  Caller->>SystemApi: systemApi.executeServiceCommand(...)
   SystemApi->>ServiceChain: chain.admitServiceCommand(...)
-  Note over ServiceChain: Hold fanout alarm, retain input or recover receipt
-  autonumber 3
-  ServiceChain-->>SystemApi: encoded admission receipt
-  autonumber 4
-  SystemApi-->>Caller: linked receipt envelope
+  Note over ServiceChain: Validate input, retain command and admission position atomically
+  ServiceChain-->>SystemApi: encoded admitted command and serviceIndex
+  SystemApi->>ServiceVersionRepo: repo.execute(...)
+  Note over ServiceVersionRepo: Catch up through serviceIndex, recover retained terminal result
+  ServiceVersionRepo-->>SystemApi: encoded executed command
+  SystemApi-->>Caller: linked terminal result envelope
 ```
 
 ## Annotated workflow steps
 
-1. SystemApi validates the submitted command and resolves the owner by `{ systemId, serviceName }`. The granted capability supplies `systemId`; the caller's command supplies `serviceName`.
-   - [`admitServiceCommand.ts:42-58`](../../../packages/system-worker/src/SystemApi/admitServiceCommand/admitServiceCommand.ts#L42-L58) — Combines capability-bound deployment identity with the decoded service name.
-2. After its constructor activation gate opens, ServiceChain uses `admissionResultsFanout.drainAfter` to schedule recovery before admitting the command in a synchronous database transaction.
-   - [`ServiceChain.ts:78-85`](../../../packages/system-worker/src/ServiceChain/ServiceChain.ts#L78-L85) — Schedules recovery before synchronous admission; delivery starts after the producer settles.
-   - [`admitServiceCommand.ts`](../../../packages/system-worker/src/ServiceChain/admitServiceCommand/admitServiceCommand.ts) — Checks the service name and returns the retained command, including its `serviceIndex`.
-3. The chain returns that command after retention or a repeated id. It does not await materialization.
-4. SystemApi decodes the chain response and returns it through the linked RPC handler.
-   - [`admitServiceCommand.ts:60-62`](../../../packages/system-worker/src/SystemApi/admitServiceCommand/admitServiceCommand.ts#L60-L62) — Forwards the command and decodes the encoded owner result under the granted capability.
+1. SystemApi validates the request against `EncodedServiceCommandSchema`, resolves the selected service version, and checks its contract lineage.
+   - [`executeServiceCommand.ts:40-78`](../../../packages/system-worker/src/SystemApi/executeServiceCommand/executeServiceCommand.ts#L40-L78) — combines capability-bound `systemId` with the decoded service name and checks the authored contract version. (`packages/system-worker/src/SystemApi/executeServiceCommand/executeServiceCommand.ts:40-78`)
+2. ServiceChain serializes admission preparation and retention. Its fanout queue holds recovery before the synchronous producer runs, then starts delivery after the producer settles.
+   - [`ServiceChain.ts:138-164`](../../../packages/system-worker/src/ServiceChain/ServiceChain.ts#L138-L164) — serializes admission preparation and durable retention under the admission permit. (`packages/system-worker/src/ServiceChain/ServiceChain.ts:138-164`)
+3. The local transaction returns the retained admission, including its original index on an identical retry. It does not wait for materialization.
+   - [`retainServiceCommand.ts:20-53`](../../../packages/system-worker/src/ServiceChain/admitServiceCommand/retainServiceCommand.ts#L20-L53) — returns original admission and index on retry, then validates contiguous node provenance before insertion. (`packages/system-worker/src/ServiceChain/admitServiceCommand/retainServiceCommand.ts:20-53`)
+4. SystemApi asks the explicitly selected ServiceVersionRepo to execute through that admission position.
+   - [`executeServiceCommand.ts:80-97`](../../../packages/system-worker/src/SystemApi/executeServiceCommand/executeServiceCommand.ts#L80-L97) — decodes admission, constructs the version-specific Repo key, and calls `repo.execute`. (`packages/system-worker/src/SystemApi/executeServiceCommand/executeServiceCommand.ts:80-97`)
+5. Execution catches up through the requested position and returns the retained terminal command. If publication has removed the local outbox row, it recovers the same result from ServiceVersionChain.
+   - [`execute.ts:37-87`](../../../packages/system-worker/src/ServiceVersionRepo/execute/execute.ts#L37-L87) — reads the local command or calls `chain.getServiceResult`, then validates `ExecutedServiceCommandSchema`. (`packages/system-worker/src/ServiceVersionRepo/execute/execute.ts:37-87`)
+6. SystemApi returns the terminal result through its existing linked RPC boundary.
+   - [`makeApiHandler.ts:77-120`](../../../packages/system-worker/src/SystemApi/makeApiHandler/makeApiHandler.ts#L77-L120) — retains the settled handler result while separately recording telemetry and constructing the optional trace link. (`packages/system-worker/src/SystemApi/makeApiHandler/makeApiHandler.ts:77-120`)
 
-## Asynchronous execution and recovery
+## Admission validation and retries
 
-The materializer fanout sends each complete admitted page to the registered
-materializer's `admissionResultsFanoutSubscriber(sourceKey)` target,
-where `sourceKey` is SC's bound `{ systemId, serviceName }`. Delivery is
-`receive({ rows, lastIndex })`; `lastIndex` describes the source's whole committed
-deliverable tip, independently of the bounded page.
-It excludes invalidated and terminally failed subscribers before pagination and
-keeps fetching pages until caught up or awaiting source work. Successful receipt
-advances delivery to the last received row's position, never to the envelope tip; the submitting caller does not
-receive that execution outcome. Background work can overlap receipt delivery.
+The command's `serviceVersion` identifies its submitted service composition. The request's `serviceVersion` explicitly selects the execution composition. Admission validates the command against its addressed composition; execution resolves the program in the selected materializer. These are separate checks.
 
-- [`ServiceChain.ts:36-53`](../../../packages/system-worker/src/ServiceChain/ServiceChain.ts#L36-L53) — Binds the commands table and fanoutIndex column, materializer lookup, and invalidation predicate to the queue.
-- [`makeFanoutQueue.ts:466-488`](../../../packages/system-worker/src/makeFanoutQueue/makeFanoutQueue.ts#L466-L488) — Resolves the persisted subscriber's named capability and writes the whole-page cursor only after successful receipt.
-- [`ServiceVersionRepo.ts:70-124`](../../../packages/system-worker/src/ServiceVersionRepo/ServiceVersionRepo.ts#L70-L124) — Executes supplied rows under the execution permit and schedules durable result publication on exit.
-- [`ServiceChain.ts`](../../../packages/system-worker/src/ServiceChain/ServiceChain.ts) — Returns the admission receipt after drainAfter schedules recovery, commits input, and starts background delivery.
+- [`admitServiceCommand.ts`](../../../packages/system-worker/src/ServiceChain/admitServiceCommand/admitServiceCommand.ts) — checks the bound service name, complete encoded command, addressed composition, submitted payload, and exact retained command identity.
+- [`executeCommands.ts`](../../../packages/system-worker/src/ServiceVersionRepo/executeCommands/executeCommands.ts) — resolves the selected service's contract and prepares its operations.
 
-A service materializer calls its source-bound subscriber's `subscribe()` during
-activation. Resource, authorization, query, and snapshot reads use `catchup()`
-without re-enrollment. Activation catches up through one fixed destination
-and then enrolls the materializer's bound
-`{ systemId, serviceName, serviceVersion }` and committed cursor, including when
-that historical version was never the authored current version. The owner supplies
-all three fields; the source queue checks `systemId` and `serviceName` against its
-own identity. Paging and enrollment run outside the receiver execution permit.
+- [`checkAdmission.ts`](../../../packages/system-worker/src/checkAdmission.ts) — validates the submitted contract payload and any supplied claims without running state guards.
+- [`executeCommandsTx.ts`](../../../packages/system-worker/src/ServiceVersionRepo/executeCommands/executeCommandsTx.ts) — evaluates the service contract guard and applies the command under the synchronous transaction.
 
-- [`ServiceVersionRepo.ts:182-284`](../../../packages/system-worker/src/ServiceVersionRepo/ServiceVersionRepo.ts#L182-L284) — Subscribes during activation; resource reads catch up before taking the execution permit.
-- [`ServiceChain.ts:36-47`](../../../packages/system-worker/src/ServiceChain/ServiceChain.ts#L36-L47) — Binds the admitted source identity and version-bearing materializer name parser to generic fanout enrollment.
-- [`makeFanoutQueue.ts:315-375`](../../../packages/system-worker/src/makeFanoutQueue/makeFanoutQueue.ts#L315-L375) — Checks shared owner fields, preserves terminal failure, and inserts the version and cursor from the subscriber key.
-- [`makeFanoutSubscriber.ts:79-128`](../../../packages/system-worker/src/makeFanoutSubscriber/makeFanoutSubscriber.ts#L79-L128) — Captures one destination and applies pages until durable progress covers it.
-- [`makeFanoutSubscriber.ts:153-169`](../../../packages/system-worker/src/makeFanoutSubscriber/makeFanoutSubscriber.ts#L153-L169) — Enrolls the completed cursor only after bounded catch-up succeeds.
+Contract guards only validate: they fail or return void. Every admitted successful execution runs its program, which can emit zero operations and return its declared result. The command transaction revalidates access and guard before applying outputs. Same-command delivery retries reuse retained outcomes.
 
-The Durable Object alarm awaits the materializer queue's drain, which reads the persisted admitted tip itself. Every successful subscription retains the recovery alarm and starts delivery after committing its independent enrollment transaction, including on a cold queue.
-Execution history remains available separately from the admission receipt.
+A mismatched service, unsupported version, forbidden actor, or conflicting command ID fails at the boundary without allocating a new position. A valid addressed command with rejected payload/contract admission retains the rejection and proceeds through skipped execution. An identical retry returns the original admission and timestamps. Retrying public execution then recovers that selected version's terminal result rather than rerunning an already consumed command.
 
-- [`makeDORepo.ts`](../../../packages/system-worker/src/makeDORepo/makeDORepo.ts) — Runs the registered materializer drain through the shared registry without an owner-side tip query.
-- [`makeFanoutQueue.ts:564-577`](../../../packages/system-worker/src/makeFanoutQueue/makeFanoutQueue.ts#L564-L577) — Retains recovery before enrollment and starts delivery without taking the drain permit.
-- [`ServiceVersionChain.ts`](../../../packages/system-worker/src/ServiceVersionChain/ServiceVersionChain.ts) — Exposes retained terminal service history through `executionResultsFanout.getPage`.
+## Delivery, transactions, and recovery
 
-See [fanout scheduling and terminal failures](./admitCommands.md#fanout-scheduling-and-terminal-failures) for permanent subscriber failures and queue-owned persisted-tip discovery.
+ServiceChain stores admitted `commands` in `serviceIndex` order. Activation reconciles all bundled service versions into `serviceSubscribers`, preserving their existing cursors and failures while marking absent versions inactive. Its `admissionResultsFanout` sends complete admitted rows to each active, unfailed materializer's `admissionResultsFanoutSubscriber(sourceKey)`.
 
-## Admission failures and retries
+- [`onDOActivation.ts`](../../../packages/system-worker/src/ServiceChain/onDOActivation/onDOActivation.ts) — updates deployed membership in one local transaction.
+- [`ServiceChain.ts`](../../../packages/system-worker/src/ServiceChain/ServiceChain.ts) — binds `commands`, `serviceIndex`, and the `active` predicate to the fanout queue.
+- [`ServiceVersionRepo.ts`](../../../packages/system-worker/src/ServiceVersionRepo/ServiceVersionRepo.ts) — verifies the source key, reads `head.serviceIndex`, and executes received rows under the owner permit.
 
-A mismatched service name, invalid encoding, or conflicting input for a retained
-command ID fails admission. An identical retry returns the original index.
-Execution success or rejection is a later outcome, not a field in the receipt.
+- [`makeTx.ts`](../../../packages/core/src/drizzle/make/makeTx.ts) — executes the transaction Effect synchronously and rolls back failures or suspension.
+- [Service execution](./serviceExecution.md) — details owned execution and subsequent actor projection.
 
-- [`admitServiceCommand.ts:13-25`](../../../packages/system-worker/src/ServiceChain/admitServiceCommand/admitServiceCommand.ts#L13-L25) — Separates admission checks and database failure handling from receipt construction.
-- [`admitServiceCommand.node.spec.ts:10-30`](../../../packages/system-worker/src/ServiceChain/admitServiceCommand/admitServiceCommand.node.spec.ts#L10-L30) — Verifies unprepared input retention, exact retry receipts, and rejected inputs without consumed positions.
-- [`serviceExecution.workerd.spec.ts:17-103`](../../../packages/system-worker/src/serviceExecution.workerd.spec.ts#L17-L103) — Observes asynchronous execution and publication without directly executing the materializer, then recovers the same admission receipt after cold activation.
+Service execution retains `serviceIndex` for admission and `executedIndex` for terminal history. ServiceVersionChain retains commands, owned operations and execution positions. Its remaining fanout supplies service actor projections and sessions.
+
+- [`serviceVersionChainDbConfig.ts`](../../../packages/system-worker/src/ServiceVersionChain/serviceVersionChainDbConfig.ts) — defines the retained result storage and merged execution index.
+
+Fanout acknowledges only the delivered page tail after successful durable receipt. A lost acknowledgement can redeliver already committed results, which receivers validate against retained original inputs and operation bodies before skipping. Terminal subscriber failures remain stopped across activation and enrollment; outboxes retain their separate delivery retry policy. See [fanout scheduling and terminal failures](./admitCommands.md#fanout-scheduling-and-terminal-failures).
 
 ## Callers
 
-- [`seedFn.ts:126-153`](../../../packages/cli/src/seed/seedFn.ts#L126-L153) — Submits service seeds and reports submitted command counts.
+- [`seedFn.ts`](../../../packages/cli/src/seed/seedFn.ts) — executes service seed commands through `systemApi.executeServiceCommand`.
 - [Aggregate command admission](./admitCommands.md)
+
+## Contract return values
+
+Programs yield model operations into a fresh execution-owned collector and return a value checked by their optional result codec. Successful command history retains the encoded result and actual executing contract version in the existing execution JSON column, atomically with owned resource writes. Omitted result codecs require void and store null. Failed application retains no successful result. Result codecs and programs complete synchronously.

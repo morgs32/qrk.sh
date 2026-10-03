@@ -1,6 +1,7 @@
 import { makeAbbreviationIdSchema } from '@zerospin/schema';
 import { Exit, ManagedRuntime, Schema } from 'effect';
 
+import { AgentSchema } from '../agent/makeAgent.ts';
 import { coreAbbreviations } from '../utils/coreAbbreviations.ts';
 
 import type { ISystem, ISystemConfig } from './types.ts';
@@ -15,6 +16,7 @@ export const ZerospinConfigSchema = Schema.declare<ISystemConfig>(
           Schema.is(
             Schema.Struct({
               name: Schema.String,
+              agents: Schema.Record(Schema.String, AgentSchema),
               runtime: Schema.declare(ManagedRuntime.isManagedRuntime),
               aggregates: Schema.Record(
                 Schema.String,

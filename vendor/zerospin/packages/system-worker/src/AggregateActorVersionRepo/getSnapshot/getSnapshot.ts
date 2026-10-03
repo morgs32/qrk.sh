@@ -8,10 +8,10 @@ import { getByKeyOrThrow } from '@zerospin/core/utils/getByKeyOrThrow';
 import { readRpcEnvelope } from '@zerospin/core/utils/readRpcEnvelope';
 import { makeZerospinError, mapParseError } from '@zerospin/error';
 import config from 'config';
-import { and, eq } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { Effect, Schema } from 'effect';
-import { isEqual } from 'es-toolkit';
 
+import { AggregateActorVersionChain } from '../../AggregateActorVersionChain/AggregateActorVersionChain.js';
 import { AggregateVersionRepo } from '../../AggregateVersionRepo/AggregateVersionRepo.js';
 import { genesisExecutedHash } from '../../executedDispositionHash/executedDispositionHash.js';
 import type { AggregateActorVersionRepo } from '../AggregateActorVersionRepo.js';
@@ -24,12 +24,12 @@ import { resolveActorIdentity } from '../resolveActorIdentity/resolveActorIdenti
 const { system } = config;
 /** Snapshot graph and cursor together, then wait for publication after the read transaction. */
 /*
- * Session snapshots capture selected state, its cursor, and the requesting
- * node's resolved prefix together, then publish through that resource cursor.
- * Publication waits occur after the synchronous capture transaction completes.
+ * Session snapshots capture selected state and its cursor together, then publish
+ * through that cursor and read the requesting node's resolved prefix from durable
+ * actor-chain history at the same checkpoint. RPCs run outside the transaction.
  *
  * 1. Check the requested view identity.
- * 2. Catch the replica up to retained history.
+ * 2. Catch the actor projection up to retained history.
  * 3. Capture state and its cursor together.
  * 4. Use the resources captured with the cursor.
  * 5. Publish through the captured cursor.
@@ -50,13 +50,13 @@ export const getSnapshot = Effect.fn('AggregateActorVersionRepo.getSnapshot')(
         claims: Readonly<Record<string, unknown>>;
         nodeId: string | null;
       };
-      actorCommandsOutbox: Pick<
-        AggregateActorVersionRepo['actorCommandsOutbox'],
+      browserCommandOutbox: Pick<
+        AggregateActorVersionRepo['browserCommandOutbox'],
         'drain'
       >;
     },
   ) {
-    const { key, requested, subscriber, db, actorCommandsOutbox } = props;
+    const { key, requested, subscriber, db, browserCommandOutbox } = props;
 
     // 1 — compare aggregateId, aggregateName, and actorPath with the bound key
     if (
@@ -68,7 +68,7 @@ export const getSnapshot = Effect.fn('AggregateActorVersionRepo.getSnapshot')(
     ) {
       return yield* Effect.fail(
         makeZerospinError({
-          code: 'replica-state-target-mismatch',
+          code: 'projection-state-target-mismatch',
           message: 'State request does not match the bound view',
         }),
       );
@@ -118,46 +118,10 @@ export const getSnapshot = Effect.fn('AggregateActorVersionRepo.getSnapshot')(
         const resources = yield* readSelectedResources({
           db: tx,
           models: aggregate.models,
-          selections: view.selections,
+          selections: view.capturedSelections,
           identity,
         });
-        const rows =
-          requested.nodeId === null
-            ? []
-            : tx
-                .select({
-                  nodeIndex:
-                    aggregateActorVersionRepoDbConfig.schema.commands.nodeIndex,
-                  claims:
-                    aggregateActorVersionRepoDbConfig.schema.commands.claims,
-                })
-                .from(aggregateActorVersionRepoDbConfig.schema.commands)
-                .where(
-                  and(
-                    eq(
-                      aggregateActorVersionRepoDbConfig.schema.commands.nodeId,
-                      requested.nodeId,
-                    ),
-                    eq(
-                      aggregateActorVersionRepoDbConfig.schema.commands
-                        .sessionName,
-                      requested.sessionName,
-                    ),
-                  ),
-                )
-                .orderBy(
-                  aggregateActorVersionRepoDbConfig.schema.commands.nodeIndex,
-                )
-                .all();
-        let resolvedThrough = 0;
-        for (const row of rows) {
-          if (!isEqual(JSON.parse(row.claims ?? 'null'), requested.claims)) {
-            continue;
-          }
-          if (row.nodeIndex !== resolvedThrough + 1) break;
-          resolvedThrough = row.nodeIndex;
-        }
-        return { state, resources, resolvedThrough };
+        return { state, resources };
       },
     )(db);
 
@@ -168,7 +132,20 @@ export const getSnapshot = Effect.fn('AggregateActorVersionRepo.getSnapshot')(
     const executedHash = captured.state?.executedHash ?? genesisExecutedHash();
 
     // 5 — drain the actor-command outbox after the capture transaction
-    yield* actorCommandsOutbox.drain(executedIndex);
+    yield* browserCommandOutbox.drain(executedIndex);
+    const chain = yield* AggregateActorVersionChain.getRepo({ key });
+    const nodeId = requested.nodeId;
+    const resolvedThrough =
+      nodeId === null
+        ? 0
+        : yield* makeAsync(() =>
+            chain.getResolvedThrough({
+              nodeId,
+              sessionName: requested.sessionName,
+              claims: requested.claims,
+              throughExecutedIndex: executedIndex,
+            }),
+          ).pipe(Effect.flatMap(readRpcEnvelope));
     // 6 — return the captured node watermark alongside resources and their checkpoint
     return yield* Schema.decodeUnknownEffect(
       Schema.toType(
@@ -190,11 +167,11 @@ export const getSnapshot = Effect.fn('AggregateActorVersionRepo.getSnapshot')(
       executedIndex,
       executedHash,
       sessionName: requested.sessionName,
-      resolvedThrough: captured.resolvedThrough,
+      resolvedThrough,
       resources,
     }).pipe(
       mapParseError({
-        code: 'replica-state-invalid',
+        code: 'projection-state-invalid',
         prefix: 'Invalid definition snapshot',
       }),
     );

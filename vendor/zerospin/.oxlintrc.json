@@ -5,8 +5,7 @@
   "jsPlugins": ["eslint-plugin-perfectionist"],
   "env": {
     "browser": true,
-    "node": true,
-    "vitest": true
+    "node": true
   },
   "globals": {
     "Blob": "readonly",
@@ -117,18 +116,6 @@
       }
     },
     {
-      "files": [
-        "**/*.spec.ts",
-        "**/*.spec.tsx",
-        "**/*.test.ts",
-        "**/*.test.tsx"
-      ],
-      "rules": {
-        "typescript/consistent-type-imports": "off",
-        "typescript/no-explicit-any": "off"
-      }
-    },
-    {
       "files": ["**/*.d.ts"],
       "rules": {
         "typescript/consistent-type-imports": "off",
@@ -180,7 +167,7 @@
       }
     },
     {
-      "files": ["**/*.config.d.ts", "packages/devtools/vitest.config.d.ts"],
+      "files": ["**/*.config.d.ts"],
       "rules": {
         "import/no-default-export": "off"
       }

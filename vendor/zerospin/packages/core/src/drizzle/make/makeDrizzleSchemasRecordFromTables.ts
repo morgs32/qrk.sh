@@ -1,9 +1,8 @@
 import {
-  makeDrizzleSchemaFromTable,
-  makeTable,
-  type IAnyDrizzleSchemas,
-  type IAnyTable,
-  type IAnyTables,
+makeDrizzleSchemaFromTable,
+makeTable,
+type IAnyDrizzleSchemas,
+type IAnyTables
 } from '@zerospin/schema';
 import { getTableConfig } from 'drizzle-orm/sqlite-core';
 
@@ -12,7 +11,6 @@ import type { InferDrizzleSchemaFromTables } from '../types.ts';
 export function makeDrizzleSchemasRecordFromTables<TABLES extends IAnyTables, DECODED extends boolean = false>(
   tables: TABLES,
   physicalTableNames: Partial<Record<keyof TABLES & string, string>> = {},
-  tableAliases: ReadonlyMap<unknown, IAnyTable> = new Map(),
   decodeJson?: DECODED,
 ): InferDrizzleSchemaFromTables<TABLES, DECODED> {
   const tableKeysByIdentity = new Map<unknown, string>();
@@ -47,7 +45,7 @@ export function makeDrizzleSchemasRecordFromTables<TABLES extends IAnyTables, DE
           }),
       descriptor => () => {
         const targetTableKey = tableKeysByIdentity.get(
-          tableAliases.get(descriptor.table) ?? descriptor.table,
+          descriptor.table,
         );
         if (targetTableKey === undefined) {
           throw new Error(

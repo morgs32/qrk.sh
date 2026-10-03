@@ -6,13 +6,13 @@ import { createStore } from 'zustand/vanilla';
 
 import type { ISessionId } from '../../aggregateSession/types.ts';
 import type { IAnyModels } from '../../models/types.ts';
+import { canServiceCommand } from '../stageServiceCommand.ts';
 import type {
   IInitializedServiceSessionState,
   IServiceSession,
   IServiceSessionDefinition,
   IServiceSessionState,
 } from '../types.ts';
-
 /**
  * Synchronous service session construction. Creates the stable store only —
  * no ManagedRuntime, SQLite, or backup. Bind a session ID before publishing
@@ -26,7 +26,6 @@ export function makeServiceSession<
   models: MODELS;
 }): IServiceSession<DEFINITION, MODELS> {
   const { definition, models } = props;
-
   const store = createStore<
     IServiceSessionState<MODELS, DEFINITION['claimsSchema']['Type']>
   >((set, get) => {
@@ -74,7 +73,6 @@ export function makeServiceSession<
         return batch;
       },
     };
-
     return {
       sessionId: null,
       claims: null,
@@ -85,7 +83,7 @@ export function makeServiceSession<
       schema: null,
       models: null,
       isInitialized: false,
-      serviceIndex: null,
+      executedIndex: null,
       serviceHash: null,
       serviceVersion: null,
       sessionStatus: 'bootstrapping',
@@ -97,7 +95,6 @@ export function makeServiceSession<
       telemetryCollector,
     };
   });
-
   const onInitialized = (
     handler: (props: {
       state: IInitializedServiceSessionState<
@@ -111,7 +108,6 @@ export function makeServiceSession<
       handler({ state });
       return () => {};
     }
-
     const unsubscribe = store.subscribe(next => {
       if (next.isInitialized && next.db !== null && next.schema !== null) {
         unsubscribe();
@@ -122,8 +118,8 @@ export function makeServiceSession<
     });
     return unsubscribe;
   };
-
-  return {
+  const session: IServiceSession<DEFINITION, MODELS> = {
+    can: props => canServiceCommand(session, props),
     definition,
     models,
     setSessionId(sessionId: ISessionId) {
@@ -135,4 +131,5 @@ export function makeServiceSession<
     onInitialized,
     store,
   };
+  return session;
 }

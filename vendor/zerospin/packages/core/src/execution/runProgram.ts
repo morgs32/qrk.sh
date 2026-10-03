@@ -1,7 +1,7 @@
 import { makeZerospinError } from '@zerospin/error';
 import { Cause, Effect, Exit } from 'effect';
 
-/** Stop suspended work before returning a local failure or applying any mutations. */
+/** Stop suspended work before returning a local failure or applying any operations. */
 export const runProgram = Effect.fn('runProgram')(function* <A, E, R>(
   program: Effect.Effect<A, E, R>,
 ) {

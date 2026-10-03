@@ -96,7 +96,9 @@ export const bootstrapAggregateSession = Effect.fn('bootstrapAggregateSession')(
         });
       }
       // A lost reply may be retried after the outcome has already arrived.
-      if (retained.executedIndex !== null) await refresh();
+      if (retained.executedIndex !== null) {
+        await refresh();
+      }
       return { commandId: retained.id };
     };
     let refresh = async () => {};
@@ -125,11 +127,13 @@ export const bootstrapAggregateSession = Effect.fn('bootstrapAggregateSession')(
             const accepted = new Set(
               snapshot.unresolvedCommands.map(command => command.id),
             );
-            for (const id of accepted) uncertain.delete(id);
+            for (const id of accepted) {
+              uncertain.delete(id);
+            }
             db.transaction(tx => {
               tx.run(sql`PRAGMA defer_foreign_keys = ON`);
               tx.delete(
-                sessionRepoDbConfig.schema.optimisticAppliedMutations,
+                sessionRepoDbConfig.schema.optimisticAppliedOperations,
               ).run();
               tx.delete(sessionRepoDbConfig.schema.commands).run();
               for (const model of Object.values(models)) {
@@ -147,7 +151,7 @@ export const bootstrapAggregateSession = Effect.fn('bootstrapAggregateSession')(
               const commands = [
                 ...snapshot.unresolvedCommands.map(command => ({
                   command,
-                  pushIndex: command.aggregateIndex,
+                  pushIndex: command.ownerIndex,
                 })),
                 ...[...uncertain.values()].map(command => ({
                   command,
@@ -160,8 +164,8 @@ export const bootstrapAggregateSession = Effect.fn('bootstrapAggregateSession')(
                   commandName: command.commandName,
                   payload: command.payload,
                   contractVersion: command.contractVersion,
-                  aggregateId: command.aggregateId,
-                  aggregateName: command.aggregateName,
+                  aggregateId: command.targetId,
+                  aggregateName: command.targetName,
                   actorName: command.actorName,
                   actorVersion: command.actorVersion,
                   sessionName: command.sessionName,
@@ -170,14 +174,7 @@ export const bootstrapAggregateSession = Effect.fn('bootstrapAggregateSession')(
                   sessionId,
                   sessionIndex: index + 1,
                   pushIndex,
-                  admission:
-                    'admission' in command
-                      ? command.admission
-                      : { status: 'pending' },
-                  execution:
-                    'execution' in command
-                      ? command.execution
-                      : { status: 'pending' },
+                  failure: 'failure' in command ? command.failure : null,
                 });
                 tx.insert(sessionRepoDbConfig.schema.commands)
                   .values(
@@ -199,7 +196,7 @@ export const bootstrapAggregateSession = Effect.fn('bootstrapAggregateSession')(
                   actorName: definition.actorName,
                   actorVersion: definition.actorVersion,
                   nextSessionIndex: commands.length + 1,
-                  aggregateIndex: snapshot.metadata.aggregateIndex,
+                  aggregateIndex: snapshot.metadata.ownerIndex,
                   executedIndex: snapshot.metadata.executedIndex,
                   executedHash: snapshot.metadata.executedHash,
                   pushIndex: 0,
@@ -230,7 +227,7 @@ export const bootstrapAggregateSession = Effect.fn('bootstrapAggregateSession')(
               schema: dbConfig.schema,
               models,
               isInitialized: true,
-              aggregateIndex: snapshot.metadata.aggregateIndex,
+              aggregateIndex: snapshot.metadata.ownerIndex,
               executedIndex: snapshot.metadata.executedIndex,
               executedHash: snapshot.metadata.executedHash,
               pushIndex: snapshot.metadata.outcomeIndex,
@@ -257,7 +254,9 @@ export const bootstrapAggregateSession = Effect.fn('bootstrapAggregateSession')(
             });
           },
           reconnect: async () => {
-            for (const command of uncertain.values()) await accept(command);
+            for (const command of uncertain.values()) {
+              await accept(command);
+            }
           },
         }),
       catch: cause =>
@@ -294,8 +293,8 @@ export const bootstrapAggregateSession = Effect.fn('bootstrapAggregateSession')(
           commandName: staged.commandName,
           payload: staged.payload,
           contractVersion: staged.contractVersion,
-          aggregateId: staged.aggregateId,
-          aggregateName: staged.aggregateName,
+          targetId: staged.aggregateId,
+          targetName: staged.aggregateName,
           actorName: staged.actorName,
           actorVersion: staged.actorVersion,
           sessionName: staged.sessionName,

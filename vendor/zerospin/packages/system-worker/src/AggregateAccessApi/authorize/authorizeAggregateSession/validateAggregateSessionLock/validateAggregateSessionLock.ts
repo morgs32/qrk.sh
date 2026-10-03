@@ -8,14 +8,11 @@ import { encodeShape } from '@zerospin/schema';
 import config from 'config';
 import { Effect, Schema } from 'effect';
 import { isEqual } from 'es-toolkit';
-
 const { system } = config;
-
 type IAggregateSessionModel = IAggregateSessionLock['models'][string];
 type IAggregateSessionContract = IAggregateSessionLock['contracts'][string];
 type IAggregateSessionSpecModel = IAggregateSessionSpec['models'][string];
 type IAggregateSessionSpecContract = IAggregateSessionSpec['contracts'][string];
-
 /*
  * Session admission validates the submitted aggregate lock against authored
  * definitions here. Selected aggregate definitions must match exactly; the
@@ -47,11 +44,9 @@ export const validateAggregateSessionLock = Effect.fn(
 > {
   const { aggregateSessionLock, aggregateName, sessionName, aggregateVersion } =
     props;
-
   // 1 — derive the lock key used in unsupported-definition errors
   const aggregateSessionLockKey =
     yield* makeAggregateSessionLockKey(aggregateSessionLock);
-
   // 2 — reject missing aggregate versions
   const aggregate = system.aggregates[aggregateName]?.[aggregateVersion];
   if (aggregate === undefined) {
@@ -72,21 +67,10 @@ export const validateAggregateSessionLock = Effect.fn(
       }),
     );
   }
-
   const actor = yield* resolveAggregateActorVersion(
     { [aggregate.version]: aggregate },
     aggregateSessionLock,
   );
-
-  if (
-    actor.authentication !== 'none' &&
-    (actor.authentication?.credentialsSchema === undefined ||
-      actor.authentication.authenticate === undefined)
-  ) {
-    return yield* Effect.fail(
-      makeZerospinError('actor-session-binding-forbidden'),
-    );
-  }
   if (
     !isEqual(aggregateSessionLock.claims, {
       claimsJsonSchema: Schema.toJsonSchemaDocument(
@@ -102,7 +86,6 @@ export const validateAggregateSessionLock = Effect.fn(
       }),
     );
   }
-
   // 3 — compare the requested definition identity
   if (aggregateSessionLock.sessionName !== sessionName) {
     return yield* Effect.fail(
@@ -122,7 +105,6 @@ export const validateAggregateSessionLock = Effect.fn(
       }),
     );
   }
-
   // 4 — collect the exact selected model definitions
   const resolvedModels: Record<string, IAggregateSessionModel> = {};
   const selectedSpecModels: Record<string, IAggregateSessionSpecModel> = {};
@@ -201,7 +183,6 @@ export const validateAggregateSessionLock = Effect.fn(
     resolvedModels[modelKey] = requestedModel;
     selectedSpecModels[modelKey] = requestedModel;
   }
-
   // 6 — resolve selected names from actor.contracts
   const resolvedContracts: Record<string, IAggregateSessionContract> = {};
   const selectedSpecContracts: Record<string, IAggregateSessionSpecContract> =
@@ -216,7 +197,8 @@ export const validateAggregateSessionLock = Effect.fn(
       contract === undefined
         ? undefined
         : yield* getVersion(contract, requestedContract.version);
-    const definition = selectedContract?.spec;
+    const definition = (selectedContract?.mapping?.original ?? selectedContract)
+      ?.spec;
     if (contract === undefined || definition === undefined) {
       return yield* Effect.fail(
         makeZerospinError({
@@ -239,6 +221,7 @@ export const validateAggregateSessionLock = Effect.fn(
       version: definition.version,
       payloadShape: definition.payloadShape,
       failureJsonSchema: definition.failureJsonSchema,
+      resultJsonSchema: definition.resultJsonSchema,
     };
     if (!isEqual(resolvedContract, requestedContract)) {
       return yield* Effect.fail(
@@ -266,7 +249,7 @@ export const validateAggregateSessionLock = Effect.fn(
             extra: {
               aggregateSessionLockKey,
               definitionPath: `contracts.${contractKey}.models.${modelName}`,
-              reason: 'mutation-model-missing',
+              reason: 'operation-model-missing',
             },
           }),
         );
@@ -278,7 +261,6 @@ export const validateAggregateSessionLock = Effect.fn(
       models: definition.models,
     };
   }
-
   // 8 — reject any remaining difference from the submitted lock
   const resolvedLock = {
     actorName: actor.name,
@@ -306,7 +288,6 @@ export const validateAggregateSessionLock = Effect.fn(
       }),
     );
   }
-
   // 9 — replace model and contract definitions with the checked selections
   return {
     aggregateSessionLock: resolvedLock,

@@ -1,5 +1,9 @@
 # Service actor version repository
 
-This Durable Object projects terminal service occurrences for one authored service actor binding. It owns the actor's selected resource tables, source cursor, and publication of selected deltas through the service actor chain. Browser session snapshots and catch-up use its confirmed projection.
+This Durable Object projects complete service command results for one authored actor binding. It owns confirmed selected resources and a consumed `executedIndex`; the actor chain owns retained browser delivery history.
 
-Service machine actors are separate system-level Durable Objects. The service version chain retains one ordered terminal occurrence feed and delivers it to each machine through its own subscriber row and fanout queue. The machine repository owns private State, selected projection, and any frozen outgoing command. See [machine repository](../makeMachineRepo/README.md) and [executeTx.ts](execute/executeTx.ts). Changed fixed schemas require empty storage.
+[Execution](execute/execute.ts) prepares locally retained owned operation bodies before [the transaction](execute/executeTx.ts) applies them in order. Projection replay applies retained operations without invoking the originating program. Resources, checkpoint, and a flat `IBrowserCommand` in `browserCommandOutbox` commit together. A failed page rolls back; already committed positions skip on redelivery.
+
+The [repository](ServiceActorVersionRepo.ts) delivers pending browser commands to the bound actor chain. After durable receiver retention it deletes the acknowledged rows; the alarm resumes interrupted delivery. The chain’s `browserCommands` preserve private node outcomes, empty projection positions, and restart/reconnect history independently of this queue.
+
+[Forwarding fixtures](../fixtures/commandForwarding.ts) verify local actor replay across original-owner types. [Actor delivery fixtures](../fixtures/actorDelivery.ts) verify private outcomes, repeated IDs, and contiguous browser history. Changed fixed schemas require empty storage.

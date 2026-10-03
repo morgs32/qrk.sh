@@ -107,20 +107,19 @@ export const reservePromotion = sdk.makeContractVersion(
     }),
     program: ({ payload, models }) =>
       Effect.gen(function* () {
-        if (payload.expected !== null) return [];
-        return [
-          yield* models.promotionReservation.create({
-            resourceId: payload.id,
-            attributes: {
-              promotionId,
-              aggregateId: payload.aggregateId,
-              cartId: payload.cartId,
-              purchaseId: null,
-              expiresAt: payload.expiresAt,
-              status: payload.available ? 'reserved' : 'denied',
-            },
-          }),
-        ];
+        if (payload.expected !== null) return;
+        yield* models.promotionReservation.create({
+          resourceId: payload.id,
+          attributes: {
+            promotionId,
+            aggregateId: payload.aggregateId,
+            cartId: payload.cartId,
+            purchaseId: null,
+            expiresAt: payload.expiresAt,
+            status: payload.available ? 'reserved' : 'denied',
+          },
+        });
+        return;
       }),
   },
 );

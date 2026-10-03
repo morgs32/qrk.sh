@@ -28,7 +28,7 @@ const aggregateCommandOccurrenceShape = {
   aggregateIndex: primitives.integer({ primaryKey: true }),
   commandId: primitives.text({ unique: true }),
   canonicalBytes: primitives.text(),
-  acknowledgedAt: primitives.date(),
+  executedAt: primitives.date(),
   result: primitives.text({ nullable: true }),
 } as const;
 

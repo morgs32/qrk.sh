@@ -1,20 +1,18 @@
 import { encodedShapeSchema } from '@zerospin/schema';
 import { Schema } from 'effect';
 
+import { AgentQuerySchema } from '../agent/AgentQuerySchema.ts';
 import { SelectionQuerySchema } from '../models/SelectionQuerySchema.ts';
-
 const identitySchema = Schema.Struct({
   claimsJsonSchema: Schema.Unknown,
   identityJsonSchema: Schema.Unknown,
   pattern: Schema.String,
 });
-
 const indexSchema = Schema.Struct({
   name: Schema.String,
   columns: Schema.Array(Schema.String),
   unique: Schema.optionalKey(Schema.Boolean),
 });
-
 const modelSchema = Schema.Struct({
   modelName: Schema.String,
   abbreviation: Schema.String,
@@ -22,12 +20,19 @@ const modelSchema = Schema.Struct({
   properties: encodedShapeSchema,
   indexes: Schema.Array(indexSchema),
 });
-
-const contractSchema = Schema.Struct({
+const authoritativeContractSchema = Schema.Struct({
+  async: Schema.optionalKey(
+    Schema.Struct({
+      externalJsonSchema: Schema.Unknown,
+      timeoutMs: Schema.Number,
+      retryDelayMs: Schema.Number,
+    }),
+  ),
   commandName: Schema.String,
   version: Schema.String,
   payloadShape: encodedShapeSchema,
   failureJsonSchema: Schema.Unknown,
+  resultJsonSchema: Schema.Unknown,
   failureSchemas: Schema.Record(Schema.String, Schema.Unknown),
   models: Schema.Record(
     Schema.String,
@@ -48,6 +53,19 @@ const contractSchema = Schema.Struct({
     }),
   ),
 });
+const contractSchema = Schema.Struct({
+  ...authoritativeContractSchema.fields,
+  original: Schema.optionalKey(
+    Schema.Struct({
+      commandName: Schema.String,
+      version: Schema.String,
+      payloadShape: encodedShapeSchema,
+      failureJsonSchema: Schema.Unknown,
+      resultJsonSchema: Schema.Unknown,
+      models: authoritativeContractSchema.fields.models,
+    }),
+  ),
+});
 
 const querySchema = Schema.Struct({
   name: Schema.String,
@@ -58,9 +76,20 @@ const querySchema = Schema.Struct({
     definitions: Schema.Record(Schema.String, Schema.Any),
   }),
 });
-
 export const SystemSpecSchema = Schema.Struct({
   systemName: Schema.String,
+  agents: Schema.Record(
+    Schema.String,
+    Schema.Struct({
+      name: Schema.String,
+      aggregateName: Schema.String,
+      aggregateVersion: Schema.String,
+      actorName: Schema.String,
+      actorVersion: Schema.String,
+      query: AgentQuerySchema,
+      models: Schema.Record(Schema.String, modelSchema),
+    }),
+  ),
   aggregates: Schema.Record(
     Schema.String,
     Schema.Record(
@@ -68,7 +97,6 @@ export const SystemSpecSchema = Schema.Struct({
       Schema.Struct({
         name: Schema.String,
         version: Schema.String,
-        services: Schema.Record(Schema.String, Schema.String),
         models: Schema.Record(Schema.String, modelSchema),
         actors: Schema.Record(
           Schema.String,
@@ -78,7 +106,14 @@ export const SystemSpecSchema = Schema.Struct({
             version: Schema.String,
             authentication: Schema.Union([
               Schema.Literal('none'),
+              Schema.Literal('system'),
               Schema.Struct({ credentialsJsonSchema: Schema.Unknown }),
+              Schema.Struct({
+                service: Schema.Struct({
+                  name: Schema.String,
+                  version: Schema.String,
+                }),
+              }),
             ]),
             identity: identitySchema,
             models: Schema.Record(
@@ -110,11 +145,18 @@ export const SystemSpecSchema = Schema.Struct({
         actors: Schema.Record(
           Schema.String,
           Schema.Struct({
+            contracts: Schema.Record(Schema.String, contractSchema),
             name: Schema.String,
             version: Schema.String,
             authentication: Schema.Union([
               Schema.Literal('none'),
               Schema.Struct({ credentialsJsonSchema: Schema.Unknown }),
+              Schema.Struct({
+                service: Schema.Struct({
+                  name: Schema.String,
+                  version: Schema.String,
+                }),
+              }),
             ]),
             identity: identitySchema,
             models: Schema.Record(
@@ -138,37 +180,5 @@ export const SystemSpecSchema = Schema.Struct({
         queries: Schema.Record(Schema.String, querySchema),
       }),
     ),
-  ),
-  machines: Schema.Record(
-    Schema.String,
-    Schema.Struct({
-      sourceKind: Schema.Literals(['aggregate', 'service']),
-      sourceName: Schema.String,
-      sourceVersion: Schema.String,
-      selections: Schema.Record(
-        Schema.String,
-        Schema.Struct({
-          modelName: Schema.String,
-          query: SelectionQuerySchema,
-        }),
-      ),
-      contracts: Schema.Record(
-        Schema.String,
-        Schema.Struct({
-          targetKind: Schema.Literals(['aggregate', 'service']),
-          targetName: Schema.String,
-          targetVersion: Schema.String,
-          contract: contractSchema,
-        }),
-      ),
-      states: Schema.Record(Schema.String, Schema.Unknown),
-      routes: Schema.Record(
-        Schema.String,
-        Schema.Struct({
-          work: Schema.Literals(['idle', 'waiting', 'activation', 'command']),
-          onCommand: Schema.Boolean,
-        }),
-      ),
-    }),
   ),
 });

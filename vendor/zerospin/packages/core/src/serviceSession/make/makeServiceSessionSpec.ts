@@ -17,7 +17,7 @@ export function makeServiceSessionSpec(
     sessionName: definition.sessionName,
     modelNames,
     models: serviceSessionLock.models,
-    contracts: {},
+    contracts: serviceSessionLock.contracts,
     serviceSessionLock,
   };
 }

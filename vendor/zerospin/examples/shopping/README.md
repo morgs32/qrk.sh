@@ -1,38 +1,79 @@
 # Shopping
 
-## Identity
+Shopping demonstrates a marketplace-owned catalog and carts. `marketplace@1.0.0`
+owns `product`, `cart`, and `cartItem`; each cart has one unique, non-null `userId`
+containing the verified Clerk subject. Cart items reference the local cart and
+product and retain `amount`. Product prices retain the example's existing units
+(the displayed USD amount, not cents).
 
-Set `CLERK_JWT_KEY` to the Clerk instance's PEM verification key and `CLERK_AUTHORIZED_PARTIES` to the allowed session origins. The browser sends a Clerk session token; the worker verifies it and derives `clerkUserId`. Identity provisions the customer through the server-only provisioner. Customer sessions select only that customer's resources.
+## Identity and selection
 
-## Checkout
+Set `CLERK_JWT_KEY` to the Clerk instance's PEM verification key and
+`CLERK_AUTHORIZED_PARTIES` to the allowed session origins. The worker verifies the
+Clerk session token before deriving `clerkUserId`. There is no User row or
+provisioning command.
 
-Run the local configuration with `pnpm nx run shopping:dev`. The purchase module owns checkout progression, payment attempts, and promotion receipt handling.
+The authenticated `catalog` actor selects all products and exposes no commands.
+The authenticated `shopper` actor selects only her cart, its items, and products
+referenced by those items. Every cart command has an actor ownership guard that
+runs again during authoritative execution, plus an ordinary guard for local
+staging and pending replay. Removing the last reference deselects that product
+from the shopper projection while preserving it in the marketplace catalog.
 
-Confirmation authoritatively checks the customer, cart, current product replicas, and reviewed quote. It writes a checkout with stable purchase and first payment-intent IDs and an immutable accepted quote. The cart becomes frozen immediately, before a purchase exists. Registered machines commit any required promotion, create the purchase and first intent, and record the payment provider's observation.
+`catalogSession` and `shopperSession` are marketplace service sessions. They
+import browser-safe ordinary declarations. UI availability uses the service
+session's `can`; submissions await durable command staging, block duplicates
+while pending, and display staging and authoritative failures. First-cart creation
+is shared across product cards and waits for the local cart projection before
+staging a referencing item.
 
-Purchase rows describe the payment obligation; payment-intent rows retain individual collection attempts. The domain commands still enforce intent history, uncertainty, and terminal outcomes. V2 is the active example; V3 retains its quantity-based cart-item schema.
+## Mapped add-to-cart
 
-## Promotions
+The ordinary `addToCartV1` queries its invocation database. If the payload's
+product is absent locally, it emits product creation before cart-item creation.
+An existing product is never updated by this command. Its explicit result is
+`null`.
 
-The purchase promotion machine coordinates reserve, commit, redeem, and release through `PromotionProviderLive`. The provider uses the promotion service's authored ledger query and waits for authoritative command completion before returning receipts. Capacity and expiration remain service guards. Discounted purchase creation follows confirmed commitment; payment success redeems it. Removal, cancellation, and failed acceptance release it. `PromotionDevelopmentLive` retains the configured simulation delay.
+The server registers `mappedAddToCartV1` on both marketplace and its shopper
+actor. The mapper checks the authoritative product in pre-application state and
+rejects with the ordinary contract's `productNotFound` failure when absent.
+Success forwards the base result through an explicit `Schema.Null` codec and
+emits no further operations. Rejection applies neither proposed product nor item
+creation. Authoritative selection replaces predicted product data; unresolved
+commands rebase over that selection in the same projection transaction. There
+are no async cart contracts or product replicas.
 
-## Storage and checks
+## Purchases and preview
 
-This hard cutover requires empty backend and browser storage. No migration or automatic reset is provided. Existing local storage is not deleted by these changes. Use a fresh system identity/storage before running the changed schema.
+`user@1.0.0` is a per-user aggregate with ID `acct_${clerkUserId}`. Its authenticated
+`user` actor rejects an aggregate ID inconsistent with the verified subject and
+selects purchases and purchase items without exposing writing contracts.
+`purchase.total` is an integer. Each `purchaseItem` has a local purchase reference,
+an external marketplace product ID, snapshot name/price, and integer quantity.
+It has no product relation or replica.
 
-```sh
-pnpm nx run shopping:tsc:typecheck
-pnpm nx run shopping:lint
-pnpm nx run shopping:test --run
-pnpm nx run shopping:build
-```
+The system-only `purchaseItemPreview` actor and `purchaseItems` agent retain the
+aggregate preview infrastructure and filter purchase items by `quantity > 0`.
+Fixture data verifies the read-only preview; the application currently creates
+no purchases. Checkout, purchase creation, payment, fulfillment, and purchase UI
+remain deferred. Promotion behavior is unchanged.
 
-The system provides typed payment, promotion, and fulfillment capabilities to its registered machines.
+## Storage and verification
 
-## Payment and manual fulfillment
+This is a hard cutover. Changed fixed schemas require empty backend and browser
+storage, including previous service/aggregate state, browser Nodes and cached
+sessions. No deprecated rows, compatibility versions, or translation paths are
+retained. Reset disposable storage before running the new declarations.
 
-A confirmed checkout is observed by `acceptPurchase`, which creates its purchase and first payment intent. The payment machine waits five seconds on the server, then submits the private payment observation command. A declined attempt can use `retryPayment`, with the same delay and a new intent. Authoritative checks reject mismatched customers, purchases, and stale intents; the browser cannot submit completion commands.
+Run the scoped Nx checks with dependencies:
 
-`/fulfillment` queries the signed-in shopper's enrolled fulfillment replicas and persisted operation instances. Pack and Ship create guarded requests; registered machines submit service commands and record confirmed success or failure. Uncertain transport leaves the operation pending. A retry after a confirmed failure creates a new operation ID. Service subscriptions propagate packing, shipping, and deterministic simulated tracking information across reloads. Purchase status remains `paid`.
+1. `pnpm nx run-many -t ts lint build agent-preview:check marketplace:check -p shopping`.
+2. `shopping:marketplace:check` covers staging with absent/existing products,
+   mapped success and atomic rejection, preserved authoritative product fields,
+   two-user selection and command denial, reconciliation/rebase, last-reference
+   removal, per-user aggregate authorization, and durable staging completion.
+3. `shopping:agent-preview:check` covers the purchase preview declaration,
+   manifest, filtered fixture rows, and local purchase snapshot relations.
 
-V2 remains active in the system and browser session. V1 retains only the purchase models it needs, while V3 explicitly upgrades quantity-dependent contracts from their V2 predecessors. The package frontend/server compositions share canonical model and public contract objects.
+Shopping prohibits browser tests and browser-driven verification. These checks
+use contracts and in-memory SQLite without browser acquisition.

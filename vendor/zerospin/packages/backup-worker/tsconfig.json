@@ -38,7 +38,7 @@
     "types": ["node", "vite/client"]
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["**/*.spec.ts", "**/*.node.spec.ts"],
+  "exclude": [],
   "references": [
     {
       "path": "../core"

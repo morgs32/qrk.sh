@@ -1,15 +1,17 @@
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { makeAsync } from '@zerospin/core/async/make/makeAsync';
+import type { IAsyncCommand } from '@zerospin/core/contracts/AsyncCommandSchema';
 import type {
   IEncodedCommand,
   IServiceCommand,
 } from '@zerospin/core/contracts/types';
 import { readRpcEnvelope } from '@zerospin/core/utils/readRpcEnvelope';
-import { type IZerospinErrorJson } from '@zerospin/error';
+import { makeZerospinError, type IZerospinErrorJson } from '@zerospin/error';
 import { makeRpcEnvelope, type IRpcEnvelope } from '@zerospin/logger';
 import config from 'config';
 import { eq } from 'drizzle-orm';
 import { Effect, Semaphore } from 'effect';
+import { isEqual } from 'es-toolkit';
 
 import {
   makeFanoutQueue,
@@ -19,18 +21,14 @@ import { makeFixedDORepo } from '../makeFixedDORepo/makeFixedDORepo.js';
 import { ServiceVersionRepo } from '../ServiceVersionRepo/ServiceVersionRepo.js';
 import { serviceVersionRepoFixedDORepoConfig } from '../ServiceVersionRepo/serviceVersionRepoFixedDORepoConfig.js';
 
-import {
-  prepareServiceAdmission,
-  retainServiceCommand,
-} from './admitServiceCommand/admitServiceCommand.js';
+import { prepareServiceAdmission } from './admitServiceCommand/admitServiceCommand.js';
+import { retainServiceCommand } from './admitServiceCommand/retainServiceCommand.js';
 import { onDOActivation } from './onDOActivation/onDOActivation.js';
 import { serviceChainDbConfig } from './serviceChainDbConfig.js';
 import { serviceChainFixedDORepoConfig } from './serviceChainFixedDORepoConfig.js';
-
 type IServiceAdmissionReceipt = Effect.Success<
   ReturnType<typeof retainServiceCommand>
 >;
-
 export class ServiceChain
   extends makeFixedDORepo({
     namespaceBinding: 'SERVICE_CHAIN',
@@ -67,69 +65,86 @@ export class ServiceChain
       alarms: this.alarmRegistry,
     });
   }
-  async admitServiceCommand(props: {
-    command: IEncodedCommand<IServiceCommand>;
-  }): Promise<IRpcEnvelope<IServiceAdmissionReceipt, IZerospinErrorJson>> {
+  async admitAsyncCommand(props: {
+    ownerVersion: string;
+    command: IAsyncCommand;
+  }) {
     return config.system.runtime.runPromise(
-      this.#admit(props.command).pipe(
+      Effect.gen({ self: this }, function* () {
+        const repo = yield* ServiceVersionRepo.getRepo({
+          key: {
+            systemId: this.key.systemId,
+            serviceName: this.key.serviceName,
+            serviceVersion: props.ownerVersion,
+          },
+        });
+        const expected = yield* makeAsync<
+          Awaited<ReturnType<ServiceVersionRepo['getPreparedAsyncCommand']>>
+        >(() =>
+          repo.getPreparedAsyncCommand({ commandId: props.command.id }),
+        ).pipe(Effect.flatMap(readRpcEnvelope));
+        const command = expected;
+        const { ownerKind, ...delivered } = props.command;
+        if (ownerKind !== 'service') {
+          return yield* makeZerospinError('async-command-owner-mismatch');
+        }
+        const { ownerKind: expectedKind, ...expectedCommand } = expected;
+        if (
+          expectedKind !== ownerKind ||
+          !isEqual(delivered, expectedCommand)
+        ) {
+          return yield* makeZerospinError(
+            'async-command-recorded-input-mismatch',
+          );
+        }
+        const input = command.asyncInput;
+        if (input == null || command.id !== props.command.id) {
+          return yield* makeZerospinError('async-input-required');
+        }
+        return yield* this.#admissionWrites.withPermits(1)(
+          Effect.gen({ self: this }, function* () {
+            const prepared = yield* prepareServiceAdmission({
+              command,
+              trustedAsync: true,
+              db: this.db,
+              key: this.key,
+            });
+            return yield* this.#admissionResultsFanout.drainAfter(() =>
+              retainServiceCommand({ ...prepared, db: this.db }),
+            );
+          }),
+        );
+      }).pipe(
+        Effect.mapError(error =>
+          makeZerospinError({
+            code: 'async-admission-failed',
+            cause: String(error),
+          }),
+        ),
         Effect.provide(AsyncLive),
         makeRpcEnvelope,
       ),
     );
   }
 
-  /** Machine-owned capability; binding and target are checked before admission. */
-  async submitMachineCommand(props: {
-    machineName: string;
-    bindingName: string;
-    mode: 'push' | 'execute';
+  async admitServiceCommand(props: {
     command: IEncodedCommand<IServiceCommand>;
-  }) {
+  }): Promise<IRpcEnvelope<IServiceAdmissionReceipt, IZerospinErrorJson>> {
     return config.system.runtime.runPromise(
-      Effect.gen({ self: this }, function* () {
-        const receipt = yield* this.#admit(props.command, {
-          machineName: props.machineName,
-          bindingName: props.bindingName,
-          mode: props.mode,
-        });
-        if (props.mode === 'push') {
-          return { commandId: receipt.id, accepted: true as const };
-        }
-        const repo = yield* ServiceVersionRepo.getRepo({
-          key: {
-            systemId: this.key.systemId,
-            serviceName: this.key.serviceName,
-            serviceVersion: props.command.serviceVersion,
-          },
-        });
-        return yield* makeAsync<
-          Awaited<ReturnType<ServiceVersionRepo['execute']>>
-        >(() => repo.execute({ serviceIndex: receipt.serviceIndex })).pipe(
-          Effect.flatMap(readRpcEnvelope),
-        );
-      }).pipe(Effect.provide(AsyncLive), makeRpcEnvelope),
+      this.#admissionWrites
+        .withPermits(1)(
+          Effect.gen({ self: this }, function* () {
+            const prepared = yield* prepareServiceAdmission({
+              command: props.command,
+              db: this.db,
+              key: this.key,
+            });
+            return yield* this.#admissionResultsFanout.drainAfter(() =>
+              retainServiceCommand({ ...prepared, db: this.db }),
+            );
+          }),
+        )
+        .pipe(Effect.provide(AsyncLive), makeRpcEnvelope),
     );
   }
-
-  readonly #admit = (
-    command: IEncodedCommand<IServiceCommand>,
-    machine?: Readonly<{
-      machineName: string;
-      bindingName: string;
-      mode: 'push' | 'execute';
-    }>,
-  ) =>
-    this.#admissionWrites.withPermits(1)(
-      Effect.gen({ self: this }, function* () {
-        const prepared = yield* prepareServiceAdmission({
-          command,
-          ...(machine === undefined ? {} : { machine }),
-          db: this.db,
-          key: this.key,
-        });
-        return yield* this.#admissionResultsFanout.drainAfter(() =>
-          retainServiceCommand({ ...prepared, db: this.db }),
-        );
-      }),
-    );
 }

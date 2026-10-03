@@ -1,25 +1,21 @@
-import { applyMutationTx } from '@zerospin/core/contracts/applyMutationTx';
+import { applyOperationTx } from '@zerospin/core/contracts/applyOperationTx';
+import { validateAsyncValues } from '@zerospin/core/contracts/asyncInputCodec';
 import {
-  ServiceExecutedCommandSchema,
+  ServiceTerminalCommandSchema,
   type ServiceChainedCommandSchema,
 } from '@zerospin/core/contracts/CommandSchema';
-import { encodeAppliedMutation } from '@zerospin/core/contracts/encodeAppliedMutation';
 import {
   encodeFailure,
   type IFailure,
 } from '@zerospin/core/contracts/failureCodec';
 import { runContractGuard } from '@zerospin/core/contracts/runContractGuard';
-import type { IAnyMutation } from '@zerospin/core/contracts/types';
+import type { IContractOutput } from '@zerospin/core/contracts/types';
+import { validateServiceCommand } from '@zerospin/core/contracts/validateServiceCommand';
 import { makeTx } from '@zerospin/core/drizzle/make/makeTx';
 import type { IResourceDbConfig, ITx } from '@zerospin/core/drizzle/types';
 import { withSavepoint } from '@zerospin/core/drizzle/withSavepoint';
 import { runProgram } from '@zerospin/core/execution/runProgram';
-import { EncodedResourceSchema } from '@zerospin/core/models/EncodedResourceSchema';
-import type {
-  IAnyModels,
-  IEncodedDeletedResourceShape,
-  IEncodedResourceShape,
-} from '@zerospin/core/models/types';
+import type { IAnyModels } from '@zerospin/core/models/types';
 import {
   encodeError,
   isZerospinError,
@@ -32,12 +28,14 @@ import type config from 'config';
 import { eq } from 'drizzle-orm';
 import { Effect, Result, Schema } from 'effect';
 
+import { prepareAsyncOperation } from '../../asyncOperations/prepareAsyncOperation.js';
+import { forwardCommand } from '../../forwardedCommands.js';
+import { encodeOwnedOperation } from '../../ownedOperations.js';
 import {
   advanceDispositionHash,
   genesisDispositionHash,
 } from '../../serviceDispositionHash/serviceDispositionHash.js';
 import { serviceVersionRepoDbConfig } from '../serviceVersionRepoDbConfig.js';
-
 /** Commit prepared service commands, resource changes, terminal results, and the execution head together. */
 export const executeCommandsTx = makeTx('ServiceVersionRepo.executeCommandsTx')(
   function* (
@@ -50,19 +48,24 @@ export const executeCommandsTx = makeTx('ServiceVersionRepo.executeCommandsTx')(
         command: typeof ServiceChainedCommandSchema.Type;
         prepared: Result.Result<
           {
+            contractVersion: string;
             payload: unknown;
-            mutations: readonly IAnyMutation[];
+            operations: readonly IContractOutput[];
+            encodedResult: typeof Schema.Json.Type;
           },
           IFailure
         >;
         startedAt: Date;
       }[];
       service: (typeof config.system.services)[string][string];
-      key: { systemId: string; serviceName: string; serviceVersion: string };
+      key: {
+        systemId: string;
+        serviceName: string;
+        serviceVersion: string;
+      };
     },
   ) {
     const { cursor, inputs, service, key } = props;
-
     const live = tx
       .select()
       .from(serviceVersionRepoDbConfig.schema.head)
@@ -77,36 +80,58 @@ export const executeCommandsTx = makeTx('ServiceVersionRepo.executeCommandsTx')(
       );
     }
     let dispositionHash = live?.dispositionHash ?? genesisDispositionHash();
+    let executedIndex = live?.executedIndex ?? 0;
     for (const { command, prepared, startedAt } of inputs) {
-      const beforeByResource = new Map<
-        string,
-        IEncodedResourceShape | undefined
-      >();
-      const modelNameByResource = new Map<string, string>();
-      const resourceIdByResource = new Map<string, string>();
       let guardFailure: IFailure | null = null;
       if (
         command.admission.status === 'succeeded' &&
         Result.isSuccess(prepared)
       ) {
-        const contract = Object.values(service.contracts).find(
-          candidate => candidate.commandName === command.commandName,
-        );
+        const contract =
+          command.asyncInput != null && command.caller !== null
+            ? service.actors[command.caller.actorName]?.contracts[
+                command.commandName
+              ]
+            : Object.values(service.contracts).find(
+                candidate => candidate.commandName === command.commandName,
+              );
         if (contract !== undefined) {
-          const guarded = yield* runContractGuard({
+          const external =
+            command.asyncInput == null
+              ? undefined
+              : (yield* validateAsyncValues(
+                  contract,
+                  JSON.parse(command.payload),
+                  command.asyncInput.external,
+                )).external;
+          const guarded = yield* validateServiceCommand({
+            service,
+            caller: command.caller,
             contract,
             db: tx,
             payload: prepared.success.payload,
-            claims: null,
-          }).pipe(
-            runProgram,
-            Effect.catch(failure =>
-              encodeFailure(contract, failure).pipe(
-                Effect.flatMap(Effect.fail),
+            ...(contract.async === undefined ? {} : { external }),
+          })
+            .pipe(
+              Effect.flatMap(() =>
+                runContractGuard({
+                  contract,
+                  db: tx,
+                  payload: prepared.success.payload,
+                  claims: command.caller?.claims ?? null,
+                  ...(contract.async === undefined ? {} : { external }),
+                }),
               ),
-            ),
-            Effect.result,
-          );
+            )
+            .pipe(
+              runProgram,
+              Effect.catch(failure =>
+                encodeFailure(contract, failure).pipe(
+                  Effect.flatMap(Effect.fail),
+                ),
+              ),
+              Effect.result,
+            );
           if (Result.isFailure(guarded)) {
             if (!('scope' in guarded.failure)) {
               return yield* Effect.fail(makeZerospinError(guarded.failure));
@@ -134,91 +159,86 @@ export const executeCommandsTx = makeTx('ServiceVersionRepo.executeCommandsTx')(
                   program: Effect.fn('ServiceVersionRepo.execute.command')(
                     function* ({ tx: commandTx }) {
                       for (const [
-                        mutationIndex,
-                        mutation,
-                      ] of prepared.success.mutations.entries()) {
-                        if (mutation.operationName === 'replicate') {
-                          return yield* Effect.fail(
-                            makeZerospinError({
-                              code: 'service-contract-cannot-replicate-resource',
-                              message: `Service contract ${command.commandName} cannot emit replicate`,
-                            }),
-                          );
-                        }
-                        const resourceKey = `${mutation.model.modelName}\u0000${mutation.resourceId}`;
-                        if (!beforeByResource.has(resourceKey)) {
-                          const beforeRow = commandTx
-                            .select()
-                            .from(mutation.model.drizzleSchema)
-                            .where(
-                              eq(
-                                mutation.model.drizzleSchema.id,
-                                mutation.resourceId,
-                              ),
+                        operationIndex,
+                        operation,
+                      ] of prepared.success.operations.entries()) {
+                        if (operation.operationName === 'async') {
+                          const original =
+                            command.serviceVersion === key.serviceVersion;
+                          const encoded = yield* prepareAsyncOperation({
+                            operation,
+                            commandId: command.id,
+                            operationIndex,
+                            committedAt: startedAt,
+                            original,
+                            actor:
+                              command.caller === null
+                                ? undefined
+                                : service.actors[command.caller.actorName],
+                            claims: command.caller?.claims ?? null,
+                          });
+                          commandTx
+                            .insert(
+                              serviceVersionRepoDbConfig.schema.asyncOperations,
                             )
-                            .get();
-                          beforeByResource.set(
-                            resourceKey,
-                            beforeRow === undefined
-                              ? undefined
-                              : yield* Schema.decodeUnknownEffect(
-                                  Schema.toType(EncodedResourceSchema),
-                                )(beforeRow).pipe(
-                                  mapParseError({
-                                    code: 'service-before-resource-invalid',
-                                    prefix: `Failed to decode ${mutation.model.modelName}.${mutation.resourceId}`,
-                                  }),
-                                ),
+                            .values({
+                              ...encoded,
+                              serviceIndex: command.serviceIndex,
+                            })
+                            .run();
+                          continue;
+                        }
+                        if (
+                          service.models[operation.model.modelName] !==
+                          operation.model
+                        ) {
+                          return yield* makeZerospinError(
+                            'service-operation-out-of-scope',
                           );
                         }
-                        modelNameByResource.set(
-                          resourceKey,
-                          mutation.model.modelName,
-                        );
-                        resourceIdByResource.set(
-                          resourceKey,
-                          mutation.resourceId,
-                        );
-                        const appliedMutation = yield* applyMutationTx({
+                        yield* applyOperationTx({
                           tx: commandTx,
-                          mutation,
+                          operation,
                           commandId: command.id,
-                          mutationIndex,
+                          operationIndex,
                           appliedAt: startedAt,
                         });
-                        const encoded = yield* encodeAppliedMutation({
-                          mutation: appliedMutation,
+                        const encoded = yield* encodeOwnedOperation({
+                          output: operation,
+                          commandId: command.id,
+                          operationIndex,
                         });
                         const bytes =
-                          yield* serviceVersionRepoDbConfig.tables.mutations
+                          yield* serviceVersionRepoDbConfig.tables.modelOperations
                             .encodeRow({
                               ...encoded,
-                              id: `${command.serviceIndex}/${mutationIndex}`,
+
                               serviceIndex: command.serviceIndex,
+                              committedAt: startedAt,
                             })
                             .pipe(
                               mapParseError({
-                                code: 'mutation-row-encode-failed',
-                                prefix: 'Invalid applied mutation',
+                                code: 'operation-row-encode-failed',
+                                prefix: 'Invalid retained owned operation',
                               }),
                             );
                         commandTx
-                          .insert(serviceVersionRepoDbConfig.schema.mutations)
+                          .insert(
+                            serviceVersionRepoDbConfig.schema.modelOperations,
+                          )
                           .values(bytes)
                           .run();
                       }
                     },
                   ),
                 }).pipe(Effect.result);
-
       if (
         Result.isFailure(applied) &&
         applied.failure !== guardFailure &&
         !(Result.isFailure(prepared) && applied.failure === prepared.failure) &&
         ![
-          'mutation-row-not-found',
-          'mutation-referential-integrity-failed',
-          'service-contract-cannot-replicate-resource',
+          'operation-row-not-found',
+          'operation-referential-integrity-failed',
         ].includes(isZerospinError(applied.failure) ? applied.failure.code : '')
       ) {
         return yield* Effect.fail(
@@ -227,8 +247,7 @@ export const executeCommandsTx = makeTx('ServiceVersionRepo.executeCommandsTx')(
             : makeZerospinError('unexpected-business-failure'),
         );
       }
-
-      // 9 — compare touched resources only after successful mutation application
+      // Settle the command outcome after operation application or savepoint rollback.
       const executionFailure = Result.isFailure(applied)
         ? yield* Schema.decodeUnknownEffect(PublicFailureSchema)(
             'cause' in applied.failure
@@ -241,60 +260,6 @@ export const executeCommandsTx = makeTx('ServiceVersionRepo.executeCommandsTx')(
             }),
           )
         : null;
-      const inserted: IEncodedResourceShape[] = [];
-      const updated: IEncodedResourceShape[] = [];
-      const deleted: IEncodedDeletedResourceShape[] = [];
-      if (Result.isSuccess(applied)) {
-        for (const [resourceKey, before] of beforeByResource) {
-          const modelName = modelNameByResource.get(resourceKey);
-          const resourceId = resourceIdByResource.get(resourceKey);
-          const model =
-            modelName === undefined ? undefined : service.models[modelName];
-          if (
-            modelName === undefined ||
-            resourceId === undefined ||
-            model === undefined
-          ) {
-            return yield* Effect.fail(
-              makeZerospinError({
-                code: 'service-delta-metadata-missing',
-                message: `Service delta metadata is missing for ${resourceKey}`,
-              }),
-            );
-          }
-          const afterRow = tx
-            .select()
-            .from(model.drizzleSchema)
-            .where(eq(model.drizzleSchema.id, resourceId))
-            .get();
-          if (afterRow === undefined) {
-            if (before !== undefined) {
-              deleted.push({
-                ...before,
-                updatedAt: startedAt,
-                deletedAt: startedAt,
-              });
-            }
-            continue;
-          }
-          const after = yield* Schema.decodeUnknownEffect(
-            Schema.toType(EncodedResourceSchema),
-          )(afterRow).pipe(
-            mapParseError({
-              code: 'service-after-resource-invalid',
-              prefix: `Failed to decode ${modelName}.${resourceId}`,
-            }),
-          );
-          if (before === undefined) {
-            inserted.push(after);
-          } else if (
-            JSON.stringify(Schema.encodeSync(EncodedResourceSchema)(before)) !==
-            JSON.stringify(Schema.encodeSync(EncodedResourceSchema)(after))
-          ) {
-            updated.push(after);
-          }
-        }
-      }
       dispositionHash = advanceDispositionHash({
         failure:
           command.admission.status === 'failed'
@@ -308,10 +273,9 @@ export const executeCommandsTx = makeTx('ServiceVersionRepo.executeCommandsTx')(
             ? 'failure'
             : 'success',
       });
-
-      // 10 — encode success mutations or an empty delta with the settled failure
+      // Retain the terminal outcome alongside retained owned operations.
       const terminal = yield* Schema.decodeUnknownEffect(
-        Schema.toType(ServiceExecutedCommandSchema),
+        Schema.toType(ServiceTerminalCommandSchema),
       )({
         ...command,
         dispositionHash,
@@ -321,9 +285,14 @@ export const executeCommandsTx = makeTx('ServiceVersionRepo.executeCommandsTx')(
             : executionFailure === null
               ? {
                   status: 'succeeded',
+                  contractVersion: Result.isSuccess(prepared)
+                    ? prepared.success.contractVersion
+                    : command.contractVersion,
+                  result: Result.isSuccess(prepared)
+                    ? prepared.success.encodedResult
+                    : null,
                   startedAt,
                   completedAt: new Date(),
-                  executionDelta: { inserted, updated, deleted },
                 }
               : {
                   status: 'failed',
@@ -337,13 +306,12 @@ export const executeCommandsTx = makeTx('ServiceVersionRepo.executeCommandsTx')(
           prefix: `Failed to create service result ${command.serviceIndex}`,
         }),
       );
-
       const bytes = yield* serviceVersionRepoDbConfig.tables.commands
         .encodeRow({
           ...terminal,
+          asyncInput: terminal.asyncInput ?? null,
+          executedIndex: ++executedIndex,
           executionVersion: key.serviceVersion,
-          acknowledgedAt: null,
-          lastDeliveryFailure: null,
         })
         .pipe(
           mapParseError({
@@ -352,16 +320,26 @@ export const executeCommandsTx = makeTx('ServiceVersionRepo.executeCommandsTx')(
           }),
         );
       tx.insert(serviceVersionRepoDbConfig.schema.commands).values(bytes).run();
+      tx.insert(serviceVersionRepoDbConfig.schema.executedCommandOutbox)
+        .values({
+          executedIndex,
+          serviceIndex: command.serviceIndex,
+          ...forwardCommand(bytes),
+          lastDeliveryFailure: null,
+        })
+        .run();
       tx.insert(serviceVersionRepoDbConfig.schema.head)
         .values({
           singletonId: 1,
           serviceIndex: command.serviceIndex,
+          executedIndex,
           dispositionHash,
         })
         .onConflictDoUpdate({
           target: serviceVersionRepoDbConfig.schema.head.singletonId,
           set: {
             serviceIndex: command.serviceIndex,
+            executedIndex,
             dispositionHash,
           },
         })

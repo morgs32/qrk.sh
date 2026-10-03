@@ -1,35 +1,61 @@
+import { makeRpcEnvelope } from '@zerospin/logger';
+import config from 'config';
+import { eq } from 'drizzle-orm';
 import { Effect } from 'effect';
 
-import { AggregateVersionRepo } from '../AggregateVersionRepo/AggregateVersionRepo.js';
 import {
-  getServiceMachineRepo,
-  serviceMachineNameUtils,
-} from '../machineRepoNames.js';
-import { makeFanoutQueue } from '../makeFanoutQueue/makeFanoutQueue.js';
+  makeFanoutQueue,
+  type IFanoutQueue,
+} from '../makeFanoutQueue/makeFanoutQueue.js';
 import { makeFixedDORepo } from '../makeFixedDORepo/makeFixedDORepo.js';
 import { makeOutboxSubscriber } from '../makeOutboxSubscriber/makeOutboxSubscriber.js';
 import { ServiceActorVersionRepo } from '../ServiceActorVersionRepo/ServiceActorVersionRepo.js';
 import { serviceActorVersionRepoFixedDORepoConfig } from '../ServiceActorVersionRepo/serviceActorVersionRepoFixedDORepoConfig.js';
 
+import {
+  readServiceResultsPage,
+  type IServiceResult,
+} from './readServiceResultsPage.js';
 import { receiveResults } from './receiveResults/receiveResults.js';
+import type { serviceVersionChainDbConfig } from './serviceVersionChainDbConfig.js';
 import { serviceVersionChainFixedDORepoConfig } from './serviceVersionChainFixedDORepoConfig.js';
+type IExecutionFanout = IFanoutQueue<
+  'executionResultsFanout',
+  '/:systemId/:serviceName/:serviceVersion/:actorName/:actorVersion/:actorPath',
+  | IServiceResult
+  | typeof serviceVersionChainDbConfig.schema.commands.$inferSelect
+>;
+
 export class ServiceVersionChain extends makeFixedDORepo({
   namespaceBinding: 'SERVICE_VERSION_CHAIN',
   fixedDORepoConfig: serviceVersionChainFixedDORepoConfig,
 }) {
   static override readonly fixedDORepoConfig =
     serviceVersionChainFixedDORepoConfig;
-  readonly #executionResultsFanout = makeFanoutQueue({
+  /** Locate an own command by admission position independently of merged result order. */
+  async getServiceResult(serviceIndex: number) {
+    return config.system.runtime.runPromise(
+      Effect.sync(() =>
+        this.db
+          .select()
+          .from(this.schema.commands)
+          .where(eq(this.schema.commands.serviceIndex, serviceIndex))
+          .get(),
+      ).pipe(makeRpcEnvelope),
+    );
+  }
+  readonly #executionResultsFanout: IExecutionFanout = makeFanoutQueue({
     concurrency: 100,
     name: 'executionResultsFanout',
     db: this.db,
     key: this.key,
     alarmRegistry: this.alarmRegistry,
     schema: this.schema,
-    subscribersTableName: 'executedCommandsFanoutSubscribers',
+    subscribersTableName: 'executionResultsFanoutSubscribers',
     subscriberNameUtils: serviceActorVersionRepoFixedDORepoConfig.nameUtils,
     entriesTableName: 'commands',
-    indexColumnName: 'serviceIndex',
+    indexColumnName: 'executedIndex',
+    readPage: page => readServiceResultsPage({ db: this.db, ...page }),
     getRepo: ServiceActorVersionRepo.getRepo,
   });
   /*
@@ -37,67 +63,32 @@ export class ServiceVersionChain extends makeFixedDORepo({
    *
    * 1. Return the bound capability.
    */
-  get executionResultsFanout() {
+  get executionResultsFanout(): IExecutionFanout {
     // 1 — reuse the existing private queue/subscriber instance
     return this.#executionResultsFanout;
   }
-  readonly #machineResultsFanout = makeFanoutQueue({
-    concurrency: 100,
-    name: 'machineResultsFanout',
-    db: this.db,
-    key: this.key,
-    alarmRegistry: this.alarmRegistry,
-    schema: this.schema,
-    subscribersTableName: 'machineResultsSubscribers',
-    subscriberNameUtils: serviceMachineNameUtils,
-    entriesTableName: 'commands',
-    indexColumnName: 'serviceIndex',
-    getRepo: getServiceMachineRepo,
-  });
-  get machineResultsFanout() {
-    return this.#machineResultsFanout;
-  }
-  readonly #serviceResultsToAggregatesFanout = makeFanoutQueue({
-    concurrency: 100,
-    name: 'serviceResultsToAggregatesFanout',
-    db: this.db,
-    key: this.key,
-    alarmRegistry: this.alarmRegistry,
-    schema: this.schema,
-    subscribersTableName: 'aggregateSubscribers',
-    subscriberNameUtils: AggregateVersionRepo.fixedDORepoConfig.nameUtils,
-    entriesTableName: 'commands',
-    indexColumnName: 'serviceIndex',
-    getRepo: AggregateVersionRepo.getRepo,
-  });
-  get serviceResultsToAggregatesFanout() {
-    return this.#serviceResultsToAggregatesFanout;
-  }
-  readonly #resultsSubscriber = makeOutboxSubscriber({
-    name: 'results',
+
+  readonly #executedCommandSubscriber = makeOutboxSubscriber({
+    name: 'executedCommand',
     receive: (rows: Parameters<typeof receiveResults>[0]['rows']) =>
       Effect.gen({ self: this }, function* () {
         yield* this.alarmRegistry.hold('executionResultsFanout');
-        yield* this.alarmRegistry.hold('machineResultsFanout');
-        yield* this.alarmRegistry.hold('serviceResultsToAggregatesFanout');
         yield* receiveResults({ rows, db: this.db, key: this.key });
       }).pipe(
         Effect.ensuring(
           Effect.sync(() => {
             this.#executionResultsFanout.drain();
-            this.#machineResultsFanout.drain();
-            this.#serviceResultsToAggregatesFanout.drain();
           }),
         ),
       ),
   });
   /*
-   * Exposes the already bound resultsSubscriber capability from ServiceVersionChain.
+   * Exposes the already bound executedCommandSubscriber capability from ServiceVersionChain.
    *
    * 1. Return the bound capability.
    */
-  get resultsSubscriber() {
+  get executedCommandSubscriber() {
     // 1 — reuse the existing private queue/subscriber instance
-    return this.#resultsSubscriber;
+    return this.#executedCommandSubscriber;
   }
 }

@@ -20,7 +20,7 @@ const { system } = config;
  *
  * 1. Resolve the bound service.
  * 2. Select the bound service snapshot.
- * 3. Validate the actor binding and build version-owned replica storage.
+ * 3. Validate the actor binding and build version-owned actor projection storage.
  */
 export const serviceActorVersionRepoFixedDORepoConfig = makeFixedDORepoConfig({
   abbreviation: systemWorkerAbbreviations.serviceActorVersionRepo,

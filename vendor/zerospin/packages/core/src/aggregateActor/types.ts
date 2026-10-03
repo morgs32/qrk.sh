@@ -7,7 +7,7 @@ import type { IDb } from '../drizzle/types.ts';
 import type { IActorIdentity } from '../identity/make/makeActorIdentity/makeActorIdentity.ts';
 import type { IAggregateAuthentication } from '../identity/types.ts';
 import type {
-  IActorQueries,
+  IActorSelections,
   IAnyActorDbVersion,
   ISelection,
 } from '../models/make/makeActorDbVersion.ts';
@@ -31,8 +31,8 @@ export type IAnyAggregateActorVersion = {
   readonly name: string;
   readonly version: string;
   readonly db: IAnyActorDbVersion;
-  readonly queries: IActorQueries;
-  readonly selections: IAggregateActorSelections;
+  readonly selections: IActorSelections;
+  readonly capturedSelections: IAggregateActorSelections;
   readonly contracts: IAnyContracts;
   readonly guards: Readonly<Record<string, IAnyOwnerGuard | undefined>>;
   readonly __contractRequirements?: unknown;

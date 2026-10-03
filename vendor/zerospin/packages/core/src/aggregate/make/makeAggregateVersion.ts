@@ -3,13 +3,13 @@ import '@zerospin/server-only';
 
 import { AggregateActorVersionSchema } from '../../aggregateActor/make/makeAggregateActorVersion/makeAggregateActorVersion.ts';
 import { assertSameCoreInstance } from '../../assertSameCoreInstance.ts';
+import { assertActorAsyncContracts } from '../../contracts/asyncContract.ts';
 import { Contract } from '../../contracts/make/makeContractVersion.ts';
 import {
   OwnerGuardsSchema,
   type IOwnerGuards,
 } from '../../contracts/ownerGuards.ts';
 import type { IAnyContracts, IContract } from '../../contracts/types.ts';
-import { assertValidModels } from '../../models/assertValidModels.ts';
 import { Model } from '../../models/defineModel.ts';
 import { assertSelectionQueryModels } from '../../models/makeSelection.ts';
 import type {
@@ -23,11 +23,7 @@ import type {
   IAssertDistinctDeclarations,
   IComposedDeclarations,
 } from '../../module/types.ts';
-import type {
-  IAggregateExtensions,
-  IAnyAuthoredAggregate,
-  IAuthoredAggregate,
-} from '../types.ts';
+import type { IAnyAuthoredAggregate, IAuthoredAggregate } from '../types.ts';
 
 const CanonicalModelSchema = Schema.declare(
   (input: unknown): input is IModel => input instanceof Model,
@@ -69,15 +65,6 @@ const AggregatePropsSchema = Schema.Struct({
   ),
   models: Schema.optionalKey(DeclarationModuleSchema.fields.models),
   contracts: Schema.optionalKey(DeclarationModuleSchema.fields.contracts),
-  extensions: Schema.optionalKey(
-    Schema.Record(
-      Schema.String,
-      Schema.declare(
-        (value: unknown): value is (...args: never[]) => unknown =>
-          typeof value === 'function',
-      ),
-    ),
-  ),
   actors: Schema.Record(Schema.String, AggregateActorVersionSchema),
 });
 class Aggregate {}
@@ -120,10 +107,6 @@ export function makeAggregateVersion<
         NoInfer<IComposedDeclarations<MODELS, MODULES, 'models'>>
       >;
     contracts?: CONTRACTS;
-    extensions?: IAggregateExtensions<
-      NoInfer<IComposedDeclarations<CONTRACTS, MODULES, 'contracts'>>,
-      NoInfer<IComposedDeclarations<MODELS, MODULES, 'models'>>
-    >;
     // Guard callbacks consume the inferred models and actors; they do not define them.
     guards?: {
       readonly [K in keyof NoInfer<ACTORS>]?: IOwnerGuards<
@@ -137,8 +120,8 @@ export function makeAggregateVersion<
     actors: ACTORS & {
       [K in keyof ACTORS]: {
         name: K;
-        selections: {
-          [M in keyof ACTORS[K]['selections']]: {
+        capturedSelections: {
+          [M in keyof ACTORS[K]['capturedSelections']]: {
             model: M extends keyof IComposedDeclarations<
               MODELS,
               MODULES,
@@ -213,40 +196,19 @@ export function makeAggregateVersion(
   };
   const { name, version, actors } = decoded;
   const { models, contracts } = composeDeclarations(decoded);
-  const services: Record<string, string> = {};
-  for (const [modelName, model] of Object.entries(models)) {
-    if (!Model.isReplica(model)) continue;
-    const previous = services[model.serviceName];
-    if (previous !== undefined && previous !== model.serviceVersion) {
-      throw new Error(`Conflicting service versions for replica ${modelName}`);
-    }
-    services[model.serviceName] = model.serviceVersion;
-  }
-  assertValidModels({
-    models,
-    context: `makeAggregateVersion: ${name}`,
-  });
-
-  for (const [contractName, contract] of Object.entries(contracts)) {
-    if (contractName !== contract.commandName) {
-      throw new Error(
-        `Contract key ${contractName} must match ${contract.commandName}`,
-      );
-    }
-    for (const model of Object.values(contract.models)) {
+  assertActorAsyncContracts(contracts);
+  for (const contract of Object.values(contracts)) {
+    for (const model of [
+      ...Object.values(contract.models),
+      ...Object.values(contract.mapping?.models ?? {}),
+    ]) {
       if (models[model.modelName] !== model) {
         throw new Error(
-          `Contract ${contractName} model ${model.modelName} must belong to aggregate ${name}`,
+          `Contract ${contract.commandName} model ${model.modelName} must belong to aggregate ${name}@${version}`,
         );
       }
     }
   }
-  for (const commandName of Object.keys(decoded.extensions ?? {})) {
-    if (!(commandName in contracts)) {
-      throw new Error(`Unknown aggregate extension command ${commandName}`);
-    }
-  }
-
   for (const [actorName, actor] of Object.entries(actors)) {
     if (actorName !== actor.name) {
       throw new Error(
@@ -260,7 +222,9 @@ export function makeAggregateVersion(
         );
       }
     }
-    for (const [modelName, filter] of Object.entries(actor.selections)) {
+    for (const [modelName, filter] of Object.entries(
+      actor.capturedSelections,
+    )) {
       if (filter.model !== models[modelName]) {
         throw new Error(
           `Actor ${actorName}.${modelName} must be the same object as models.${modelName}`,
@@ -296,8 +260,6 @@ export function makeAggregateVersion(
     version,
     models,
     contracts,
-    extensions: decoded.extensions ?? {},
-    services,
     actors,
   };
   const aggregate = Object.assign(

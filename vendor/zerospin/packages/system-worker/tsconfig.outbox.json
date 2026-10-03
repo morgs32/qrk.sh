@@ -7,5 +7,6 @@
     "src/managedRuntime.ts",
     "worker-configuration.d.ts"
   ],
-  "exclude": []
+  "exclude": [],
+  "references": []
 }

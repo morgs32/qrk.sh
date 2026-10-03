@@ -4,8 +4,8 @@ import { readRpcEnvelope } from '@zerospin/core/utils/readRpcEnvelope';
 import { makeZerospinError } from '@zerospin/error';
 import { makeRpcEnvelope } from '@zerospin/logger';
 import config from 'config';
-import { eq, isNotNull } from 'drizzle-orm';
-import { Effect } from 'effect';
+import { eq } from 'drizzle-orm';
+import { Effect, Semaphore } from 'effect';
 
 import type { IFanoutDelivery } from '../makeFanoutQueue/makeFanoutQueue.js';
 import { makeFanoutSubscriber } from '../makeFanoutSubscriber/makeFanoutSubscriber.js';
@@ -32,41 +32,30 @@ export class ServiceActorVersionRepo extends makeFixedDORepo({
     return onDOActivation({ repo: this });
   }
 
-  readonly #actorCommandsOutbox = makeOutboxQueue({
-    indexColumnName: 'actorServiceIndex',
-    name: 'actorCommandsOutbox',
+  readonly #actorWrites = Semaphore.makeUnsafe(1);
+
+  readonly #browserCommandOutbox = makeOutboxQueue({
+    indexColumnName: 'executedIndex',
+    name: 'browserCommandOutbox',
     db: this.db,
-    outboxTable: serviceActorVersionRepoDbConfig.schema.commands,
-    where: isNotNull(
-      serviceActorVersionRepoDbConfig.schema.commands.actorServiceIndex,
-    ),
+    outboxTable: serviceActorVersionRepoDbConfig.schema.browserCommandOutbox,
     alarmRegistry: this.alarmRegistry,
-    retention: 'retain',
+
     deliver: rows =>
       Effect.gen({ self: this }, function* () {
         const chain = yield* ServiceActorVersionChain.getRepo({
           key: this.key,
         });
-        const receiver = yield* makeAsync(() => chain.actorCommandsSubscriber);
+        const receiver = yield* makeAsync(() => chain.browserCommandSubscriber);
         const output = yield* Effect.forEach(rows, row =>
           Effect.gen(function* () {
             const decoded =
-              yield* serviceActorVersionRepoDbConfig.tables.commands.decodeRow(
+              yield* serviceActorVersionRepoDbConfig.tables.browserCommandOutbox.decodeRow(
                 row,
               );
-            if (
-              decoded.actorServiceIndex === null ||
-              decoded.serviceHash === null ||
-              decoded.actorDelta === null
-            ) {
-              return yield* makeZerospinError(
-                'service-actor-output-incomplete',
-              );
-            }
-            return yield* serviceActorVersionChainDbConfig.tables.commands.encodeRow(
+            return yield* serviceActorVersionChainDbConfig.tables.browserCommands.encodeRow(
               {
                 ...decoded,
-                acknowledgedAt: null,
                 lastDeliveryFailure: null,
               },
             );
@@ -89,12 +78,12 @@ export class ServiceActorVersionRepo extends makeFixedDORepo({
    *
    * 1. Return the bound capability.
    */
-  get actorCommandsOutbox() {
+  get browserCommandOutbox() {
     // 1 — reuse the existing private queue/subscriber instance
-    return this.#actorCommandsOutbox;
+    return this.#browserCommandOutbox;
   }
   /*
-   * Bind one selected service source to the replica's durable projection cursor.
+   * Bind one selected service source to the actor projection's durable cursor.
    * Pulled and pushed pages share synchronous replay transactions and an output alarm.
    */
   executionResultsFanoutSubscriber(
@@ -114,7 +103,7 @@ export class ServiceActorVersionRepo extends makeFixedDORepo({
     ) {
       throw makeZerospinError({
         code: 'fanout-source-key-mismatch',
-        message: 'Service source does not match the bound replica',
+        message: 'Service source does not match the bound actor projection',
       });
     }
     return makeFanoutSubscriber({
@@ -127,25 +116,27 @@ export class ServiceActorVersionRepo extends makeFixedDORepo({
           .select()
           .from(serviceActorVersionRepoDbConfig.schema.actorState)
           .where(eq(serviceActorVersionRepoDbConfig.schema.actorState.id, 1))
-          .get()?.serviceIndex ?? 0,
+          .get()?.executedIndex ?? 0,
       receive: (
         delivery: IFanoutDelivery<
           Parameters<typeof execute>[0]['rows'][number]
         >,
       ) =>
-        this.#actorCommandsOutbox.drainAfter(() =>
-          execute({ rows: delivery.rows, db: this.db, key: this.key }),
+        this.#actorWrites.withPermit(
+          this.#browserCommandOutbox.drainAfter(() =>
+            execute({ rows: delivery.rows, db: this.db, key: this.key }),
+          ),
         ),
     });
   }
   /*
-   * Snapshot reads catch this replica up through a bounded VSC tip, then enroll
+   * Snapshot reads catch this actor projection up through a bounded VSC tip, then enroll
    * at the committed projection cursor. Replay uses the live receive operation
    * and holds a durable alarm lease for the outputs it creates.
    *
    * 1. Run the bound domain operation.
    */
-  async catchup(props?: { throughServiceIndex?: number }) {
+  async catchup(props?: { throughExecutedIndex?: number }) {
     // 1 — run catchup with the instance-bound dependencies and encode its RPC outcome
     return config.system.runtime.runPromise(
       catchup({
@@ -168,13 +159,13 @@ export class ServiceActorVersionRepo extends makeFixedDORepo({
         db: this.db,
         key: this.key,
         requested: props,
-        actorCommandsOutbox: this.#actorCommandsOutbox,
+        browserCommandOutbox: this.#browserCommandOutbox,
         subscriber: this.executionResultsFanoutSubscriber(this.key),
       }).pipe(Effect.provide(AsyncLive), makeRpcEnvelope),
     );
   }
   /*
-   * Replica callers inspect the locally committed projection cursor.
+   * Projection callers inspect the locally committed projection cursor.
    * This reader reports local progress; publication durability is checked separately
    * by the snapshot path.
    *

@@ -1,46 +1,33 @@
-import { makeSession } from '@zerospin/browser';
+import { makeServiceSession } from '@zerospin/browser';
 
-import { addToCartV2 } from './aggregates/shopper/contracts/addToCart/AddToCartV2';
-import { createCartV1 } from './aggregates/shopper/contracts/createCart/CreateCartV1';
-import { removeFromCartV2 } from './aggregates/shopper/contracts/removeFromCart/removeFromCartV2';
-import { updateCartItemQuantityV1 } from './aggregates/shopper/contracts/updateCartItemQuantity/UpdateCartItemQuantityV1';
-import { updateUserV1 } from './aggregates/shopper/contracts/updateUser/UpdateUserV1';
-import { fulfillmentFrontend } from './aggregates/shopper/fulfillmentFrontend';
-import { cartV1 } from './aggregates/shopper/models/cart/CartV1';
-import { cartItemV2 } from './aggregates/shopper/models/cartItem/CartItemV2';
-import { productReplicaV1 } from './aggregates/shopper/models/productReplica/ProductReplicaV1';
-import { userV1 } from './aggregates/shopper/models/user/UserV1';
-import { purchaseFrontend } from './aggregates/shopper/purchaseFrontend';
 import { applicationLayer } from './applicationLayer';
-import { clerkCredentialsSchema, shopperClaims } from './claims';
-
-export const shopperSession = makeSession({
+import { clerkCredentialsSchema, userClaims } from './claims';
+import { addToCartV1 } from './services/marketplace/contracts/addToCart/AddToCartV1';
+import { createCartV1 } from './services/marketplace/contracts/createCart/CreateCartV1';
+import { removeFromCartV1 } from './services/marketplace/contracts/removeFromCart/RemoveFromCartV1';
+import { updateCartItemQuantityV1 } from './services/marketplace/contracts/updateCartItemQuantity/UpdateCartItemQuantityV1';
+import { cartV1 } from './services/marketplace/models/cart/CartV1';
+import { cartItemV1 } from './services/marketplace/models/cartItem/CartItemV1';
+import { productV1 } from './services/marketplace/models/product/ProductV1';
+export const shopperSession = makeServiceSession({
   sharedWorker: ({ name }) =>
     new SharedWorker(new URL('./zerospin.worker.ts', import.meta.url), {
       type: 'module',
       name,
     }),
-  claimsSchema: shopperClaims,
+  claimsSchema: userClaims,
   credentialsSchema: clerkCredentialsSchema,
-  kind: 'aggregate',
   actorName: 'shopper',
-  actorVersion: '2.0.0',
-  aggregateVersion: '2.0.0',
-  aggregateName: 'shopper',
+  actorVersion: '1.0.0',
+  serviceName: 'marketplace',
+  serviceVersion: '1.0.0',
   sessionName: 'shopperSession',
-  modules: { purchase: purchaseFrontend, fulfillment: fulfillmentFrontend },
-  models: {
-    cart: cartV1,
-    cartItem: cartItemV2,
-    product: productReplicaV1,
-    user: userV1,
-  },
+  models: { cart: cartV1, cartItem: cartItemV1, product: productV1 },
   contracts: {
-    addToCart: addToCartV2,
     createCart: createCartV1,
-    removeFromCart: removeFromCartV2,
+    addToCart: addToCartV1,
+    removeFromCart: removeFromCartV1,
     updateCartItemQuantity: updateCartItemQuantityV1,
-    updateUser: updateUserV1,
   },
   layer: applicationLayer,
   systemName: 'shopping',

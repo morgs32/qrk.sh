@@ -3,7 +3,8 @@ import { fileURLToPath } from 'node:url';
 import type { IRepoType, ISystemSpec } from '@zerospin/core/system/types';
 import { getApi } from '@zerospin/core/utils/getApi/getApi';
 import { makeTelemetryCollector, makeTelemetryLayer } from '@zerospin/logger';
-import { Effect } from 'effect';
+import { makeAbbreviationIdSchema } from '@zerospin/schema';
+import { Effect, Schema } from 'effect';
 import type { GatewayApi } from 'system-worker/GatewayApi/GatewayApi';
 import { createServer } from 'vite';
 
@@ -42,7 +43,8 @@ export const startStudio = Effect.fn('startStudio')(function* (props: {
               const url = new URL(request.url ?? '/', 'http://studio.local');
               if (
                 request.method !== 'GET' ||
-                !url.pathname.startsWith('/api/repos/')
+                (!url.pathname.startsWith('/api/repos/') &&
+                  !url.pathname.startsWith('/api/agents/'))
               ) {
                 next();
                 return;
@@ -66,7 +68,51 @@ export const startStudio = Effect.fn('startStudio')(function* (props: {
                 );
                 let data: unknown;
 
-                if (segments.length === 3) {
+                if (url.pathname === '/api/agents/ids') {
+                  data = await Effect.runPromise(
+                    systemApi
+                      .getAgentAggregateIds({
+                        aggregateName:
+                          url.searchParams.get('aggregateName') ?? '',
+                        aggregateVersion:
+                          url.searchParams.get('aggregateVersion') ?? '',
+                      })
+                      .pipe(
+                        Effect.withSpan('Studio.getAgentAggregateIds', {
+                          root: true,
+                        }),
+                        Effect.provide(makeTelemetryLayer(collector)),
+                      ),
+                  );
+                } else if (url.pathname === '/api/agents/open') {
+                  const aggregateId = url.searchParams.get('aggregateId');
+                  const opened = await Effect.runPromise(
+                    systemApi
+                      .openAgentPreview({
+                        agentName: url.searchParams.get('agentName') ?? '',
+                        aggregateId: Schema.decodeUnknownSync(
+                          makeAbbreviationIdSchema('acct'),
+                        )(aggregateId),
+                      })
+                      .pipe(
+                        Effect.withSpan('Studio.openAgentPreview', {
+                          root: true,
+                        }),
+                        Effect.provide(makeTelemetryLayer(collector)),
+                      ),
+                  );
+                  const socketUrl = new URL(zerospinApiUrl);
+                  socketUrl.protocol =
+                    socketUrl.protocol === 'https:' ? 'wss:' : 'ws:';
+                  socketUrl.pathname = '/ws-aggregate-session-commands';
+                  socketUrl.search = '';
+                  socketUrl.searchParams.set('ticket', opened.ticket);
+                  data = {
+                    snapshot: opened.snapshot,
+                    webSocketUrl: socketUrl.toString(),
+                  };
+                  response.setHeader('Cache-Control', 'no-store');
+                } else if (segments.length === 3) {
                   // 3 — preserve explicit repository-list routing under one caller root
                   switch (repoType) {
                     case 'SystemRepo':

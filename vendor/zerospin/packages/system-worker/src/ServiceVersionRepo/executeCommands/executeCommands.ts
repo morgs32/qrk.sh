@@ -1,10 +1,15 @@
 import {
+  decodeAsyncInput,
+  validateAsyncValues,
+} from '@zerospin/core/contracts/asyncInputCodec';
+import {
   EncodedServiceCommandSchema,
   ServiceChainedCommandSchema,
 } from '@zerospin/core/contracts/CommandSchema';
 import { decodePayload } from '@zerospin/core/contracts/decodePayload/decodePayload';
 import { encodeFailure } from '@zerospin/core/contracts/failureCodec';
-import { makeMutations } from '@zerospin/core/contracts/make/makeMutations';
+import { makeOperations } from '@zerospin/core/contracts/make/makeOperations';
+import { validateServiceCommand } from '@zerospin/core/contracts/validateServiceCommand';
 import type { IDb } from '@zerospin/core/drizzle/types';
 import { getByKeyOrThrow } from '@zerospin/core/utils/getByKeyOrThrow';
 import {
@@ -18,18 +23,21 @@ import config from 'config';
 import { eq } from 'drizzle-orm';
 import { Effect, Result, Schema, type Context } from 'effect';
 
+import {} from '../../ownedOperations.js';
 import { serviceChainDbConfig } from '../../ServiceChain/serviceChainDbConfig.js';
 import { serviceVersionRepoDbConfig } from '../serviceVersionRepoDbConfig.js';
 
 import { executeCommandsTx } from './executeCommandsTx.js';
-
 const { system } = config;
-
 /** Caller holds the execution permit; prepare before atomically committing the new suffix. */
 export const executeCommands = Effect.fn('ServiceVersionRepo.executeCommands')(
   function* (props: {
     db: IDb;
-    key: { systemId: string; serviceName: string; serviceVersion: string };
+    key: {
+      systemId: string;
+      serviceName: string;
+      serviceVersion: string;
+    };
     rows: readonly (typeof serviceChainDbConfig.schema.commands.$inferSelect)[];
   }) {
     const { db, key, rows: inputRows } = props;
@@ -51,7 +59,9 @@ export const executeCommands = Effect.fn('ServiceVersionRepo.executeCommands')(
       }
     }
     const rows = inputRows.filter(row => row.serviceIndex > cursor);
-    if (rows.length === 0) return;
+    if (rows.length === 0) {
+      return;
+    }
     const latestService = yield* getByKeyOrThrow({
       record: system.services,
       key: key.serviceName,
@@ -64,7 +74,6 @@ export const executeCommands = Effect.fn('ServiceVersionRepo.executeCommands')(
     });
     const context: Context.Context<unknown> =
       yield* system.runtime.contextEffect;
-
     for (const row of rows) {
       const inputs = yield* Effect.forEach([row], row =>
         Effect.gen(function* () {
@@ -87,7 +96,7 @@ export const executeCommands = Effect.fn('ServiceVersionRepo.executeCommands')(
             );
           const source = yield* Schema.decodeUnknownEffect(
             EncodedServiceCommandSchema,
-          )(row).pipe(
+          )(decoded).pipe(
             mapParseError({
               code: 'service-input-invalid',
               prefix: 'Invalid admitted service input',
@@ -117,11 +126,23 @@ export const executeCommands = Effect.fn('ServiceVersionRepo.executeCommands')(
           );
           const prepared =
             command.admission.status === 'failed'
-              ? Result.succeed({ payload: undefined, mutations: [] })
+              ? Result.succeed({
+                  payload: undefined,
+                  operations: [],
+                  encodedResult: null,
+                  result: undefined,
+                  contractVersion: command.contractVersion,
+                })
               : yield* Effect.gen(function* () {
-                  const contract = Object.values(service.contracts).find(
-                    candidate => candidate.commandName === source.commandName,
-                  );
+                  const contract =
+                    command.asyncInput != null && command.caller !== null
+                      ? service.actors[command.caller.actorName]?.contracts[
+                          source.commandName
+                        ]
+                      : Object.values(service.contracts).find(
+                          candidate =>
+                            candidate.commandName === source.commandName,
+                        );
                   if (!contract) {
                     return yield* Effect.fail(
                       makeZerospinError({
@@ -130,15 +151,74 @@ export const executeCommands = Effect.fn('ServiceVersionRepo.executeCommands')(
                       }),
                     );
                   }
-                  const payload = yield* decodePayload(contract, {
-                    command: source,
-                  });
-                  const made = yield* makeMutations({
+                  let encodedAsyncPayload: unknown;
+                  let asyncValues:
+                    | { payload: unknown; external: unknown }
+                    | undefined;
+                  if (command.asyncInput != null) {
+                    const producer =
+                      latestService[source.serviceVersion]?.actors[
+                        command.caller?.actorName ?? ''
+                      ];
+                    const producingContract =
+                      producer?.contracts[source.commandName];
+                    if (
+                      producer?.version !== command.caller?.actorVersion ||
+                      producingContract?.version !== source.contractVersion ||
+                      producingContract.async === undefined ||
+                      contract.async === undefined
+                    ) {
+                      return yield* makeZerospinError(
+                        'async-contract-kind-mismatch',
+                      );
+                    }
+                    encodedAsyncPayload = yield* Schema.decodeUnknownEffect(
+                      Schema.fromJsonString(Schema.Json),
+                    )(source.payload).pipe(
+                      mapParseError({
+                        code: 'async-payload-json-invalid',
+                        prefix: 'Invalid frozen input',
+                      }),
+                    );
+                    yield* decodeAsyncInput(
+                      producingContract,
+                      encodedAsyncPayload,
+                      command.asyncInput,
+                    );
+                    asyncValues = yield* validateAsyncValues(
+                      contract,
+                      encodedAsyncPayload,
+                      command.asyncInput.external,
+                    );
+                  } else if (contract.async !== undefined) {
+                    return yield* makeZerospinError('async-input-required');
+                  }
+                  const payload =
+                    asyncValues === undefined
+                      ? yield* decodePayload(contract, { command: source })
+                      : asyncValues.payload;
+                  yield* validateServiceCommand({
+                    service,
+                    caller: command.caller,
+                    contract,
                     db,
-                    claims: null,
+                    payload,
+                    ...(asyncValues === undefined
+                      ? {}
+                      : { external: asyncValues.external }),
+                  });
+                  const made = yield* makeOperations({
+                    db,
+                    claims: command.caller?.claims ?? null,
                     contract,
                     models: service.models,
-                    command: { ...source, payload },
+                    command: {
+                      ...source,
+                      payload:
+                        asyncValues === undefined
+                          ? payload
+                          : encodedAsyncPayload,
+                    },
                   }).pipe(
                     Effect.catch(failure =>
                       encodeFailure(contract, failure).pipe(
@@ -155,7 +235,14 @@ export const executeCommands = Effect.fn('ServiceVersionRepo.executeCommands')(
           if (
             Result.isFailure(prepared) &&
             !('scope' in prepared.failure) &&
-            !unsupportedVersion
+            !unsupportedVersion &&
+            ![
+              'contract-program-result-invalid',
+              'contract-result-encode-failed',
+              'contract-result-encoding-invalid',
+              'program-must-be-synchronous',
+              'contract-guard-result-invalid',
+            ].includes(prepared.failure.code)
           ) {
             return yield* Effect.fail(
               makeZerospinError({

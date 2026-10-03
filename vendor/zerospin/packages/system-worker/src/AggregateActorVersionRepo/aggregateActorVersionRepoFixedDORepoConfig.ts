@@ -23,7 +23,7 @@ const { system } = config;
  *
  * 1. Resolve the bound aggregate.
  * 2. Select the bound aggregate snapshot.
- * 3. Build version-owned replica storage.
+ * 3. Build version-owned actor projection storage.
  */
 export const aggregateActorVersionRepoFixedDORepoConfig = makeFixedDORepoConfig(
   {
@@ -62,7 +62,7 @@ export const aggregateActorVersionRepoFixedDORepoConfig = makeFixedDORepoConfig(
         catch: () =>
           makeZerospinError({
             code: 'actor-path-invalid',
-            message: 'Invalid replica actor path',
+            message: 'Invalid actor path',
           }),
       });
       const selection = yield* Schema.decodeUnknownEffect(
@@ -70,7 +70,7 @@ export const aggregateActorVersionRepoFixedDORepoConfig = makeFixedDORepoConfig(
       )(matched?.params, { onExcessProperty: 'error' }).pipe(
         mapParseError({
           code: 'actor-path-invalid',
-          prefix: 'Invalid replica selection fields',
+          prefix: 'Invalid actor selection fields',
         }),
       );
       const encoded = yield* Schema.encodeEffect(view.identity.identitySchema)(
@@ -96,7 +96,7 @@ export const aggregateActorVersionRepoFixedDORepoConfig = makeFixedDORepoConfig(
         return yield* Effect.fail(
           makeZerospinError({
             code: 'actor-path-noncanonical',
-            message: 'Replica actor path must be canonical',
+            message: 'Actor path must be canonical',
           }),
         );
       }

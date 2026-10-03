@@ -7,7 +7,7 @@ import { Effect, type Cause } from 'effect';
  *
  * ContractError belongs to contract guards/programs on session or AAVR snapshot
  * data; programs construct mutations without database access. ActorError belongs to actor
- * guards on the whole AAVR replica. AggregateError belongs to aggregate guards
+ * guards on the whole AAVR actor projection. AggregateError belongs to aggregate guards
  * inside the authoritative AVR mutation transaction, never predictive checks.
  *
  * Declare every guard as a named Effect.fn, including callbacks that only

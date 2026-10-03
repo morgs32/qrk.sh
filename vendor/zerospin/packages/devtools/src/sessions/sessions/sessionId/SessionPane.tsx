@@ -255,17 +255,17 @@ function ServiceSessionPane(props: {
     session.getBackupState,
     session.getBackupState,
   );
-  const serviceIndex = useSyncExternalStore(
+  const executedIndex = useSyncExternalStore(
     session.subscribe,
-    session.getServiceIndex,
-    session.getServiceIndex,
+    session.getExecutedIndex,
+    session.getExecutedIndex,
   );
   const rows: ISessionStateRows = [
     { key: 'sessionStatus', value: sessionStatus },
     ...(backupState === null
       ? []
       : [{ key: 'backupState.status', value: backupState.status }]),
-    { key: 'serviceIndex', value: serviceIndex },
+    { key: 'executedIndex', value: executedIndex },
     ...(backupState === null
       ? []
       : [{ key: 'backupState.failure', value: backupState.failure }]),

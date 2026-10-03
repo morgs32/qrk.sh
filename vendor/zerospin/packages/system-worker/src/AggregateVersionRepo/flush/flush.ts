@@ -1,32 +1,20 @@
 import { makeAsync } from '@zerospin/core/async/make/makeAsync';
-import { AggregateExecutedCommandSchema } from '@zerospin/core/contracts/CommandSchema';
 import { readRpcEnvelope } from '@zerospin/core/utils/readRpcEnvelope';
-import { makeZerospinError, mapParseError } from '@zerospin/error';
-import { Effect, Schema } from 'effect';
+import { makeZerospinError } from '@zerospin/error';
+import { eq } from 'drizzle-orm';
+import { Effect } from 'effect';
 
 import { genesisDispositionHash } from '../../aggregateDispositionHash/aggregateDispositionHash.js';
 import { AggregateVersionChain } from '../../AggregateVersionChain/AggregateVersionChain.js';
-import { aggregateVersionChainDbConfig } from '../../AggregateVersionChain/aggregateVersionChainDbConfig.js';
 import type { AggregateVersionRepo } from '../AggregateVersionRepo.js';
-/** Complete execution and durable VAC publication through one fixed checkpoint. */
-/*
- * Cutover asks a version-owned aggregate materializer to execute and durably
- * publish one fixed checkpoint. The returned identity and disposition hash come
- * from retained VAC history after executedCommands-outbox acknowledgement.
- *
- * 1. Validate the checkpoint.
- * 2. Return the empty-history checkpoint.
- * 3. Execute through the checkpoint.
- * 4. Wait for bounded durable publication.
- * 5. Read the retained checkpoint from VAC.
- * 6. Reject missing published history.
- * 7. Decode and return checkpoint identity.
- */
+import { aggregateVersionRepoDbConfig } from '../aggregateVersionRepoDbConfig.js';
+
+/** Flush a shared input checkpoint, including source-only positions, without manufacturing command completion. */
 export const flush = Effect.fn('AggregateVersionRepo.flush')(function* (props: {
   aggregateIndex: number;
-  repo: Pick<AggregateVersionRepo, 'execute'>;
-  executionResultsOutbox: Pick<
-    AggregateVersionRepo['executionResultsOutbox'],
+  repo: Pick<AggregateVersionRepo, 'db' | 'admissionResultsFanoutSubscriber'>;
+  executedCommandOutbox: Pick<
+    AggregateVersionRepo['executedCommandOutbox'],
     'drain'
   >;
   key: {
@@ -36,72 +24,35 @@ export const flush = Effect.fn('AggregateVersionRepo.flush')(function* (props: {
     aggregateVersion: string;
   };
 }) {
-  // 1 — require a nonnegative safe aggregateIndex
-  if (!Number.isSafeInteger(props.aggregateIndex) || props.aggregateIndex < 0) {
-    return yield* Effect.fail(
-      makeZerospinError({
-        code: 'aggregate-flush-index-invalid',
-        message: 'Flush requires a nonnegative index',
-      }),
-    );
+  const { aggregateIndex, repo, key, executedCommandOutbox } = props;
+  if (!Number.isSafeInteger(aggregateIndex) || aggregateIndex < 0) {
+    return yield* makeZerospinError('aggregate-flush-index-invalid');
   }
-
-  // 2 — use a null commandId and genesis disposition hash at zero
-  if (props.aggregateIndex === 0) {
+  if (aggregateIndex === 0) {
     return {
-      aggregateIndex: 0,
+      aggregateIndex,
       commandId: null,
       dispositionHash: genesisDispositionHash(),
     };
   }
-
-  // 3 — await repo.execute before draining its commands outbox
-  const executed = yield* makeAsync(() =>
-    props.repo.execute({ aggregateIndex: props.aggregateIndex }),
-  ).pipe(Effect.flatMap(envelope => readRpcEnvelope(envelope)));
-
-  // 4 — drain output through this aggregate result’s executedIndex
-  yield* props.executionResultsOutbox.drain(executed.executedIndex);
-
-  // 5 — request exactly the position that was flushed
-  const chain = yield* AggregateVersionChain.getRepo({
-    key: props.key,
-  });
-  const row = yield* makeAsync<
-    Awaited<ReturnType<AggregateVersionChain['getAggregateResult']>>
-  >(() => chain.getAggregateResult(props.aggregateIndex)).pipe(
-    Effect.flatMap(readRpcEnvelope),
-  );
-
-  // 6 — require the returned aggregateIndex to equal the requested checkpoint
-  if (row === undefined || row.aggregateIndex !== props.aggregateIndex) {
-    return yield* Effect.fail(
-      makeZerospinError({
-        code: 'aggregate-flush-publication-missing',
-        message: 'Flush checkpoint has not been published',
-      }),
-    );
+  yield* makeAsync(() =>
+    repo.admissionResultsFanoutSubscriber(key).catchup(aggregateIndex),
+  ).pipe(Effect.flatMap(readRpcEnvelope));
+  const head = repo.db
+    .select()
+    .from(aggregateVersionRepoDbConfig.schema.head)
+    .where(eq(aggregateVersionRepoDbConfig.schema.head.singletonId, 1))
+    .get();
+  if (head === undefined || head.aggregateIndex < aggregateIndex) {
+    return yield* makeZerospinError('aggregate-flush-input-missing');
   }
-
-  // 7 — return aggregateIndex, commandId, and dispositionHash from the retained executedCommand
-  const command = yield* aggregateVersionChainDbConfig.tables.aggregateCommands
-    .decodeRow(row)
-    .pipe(
-      Effect.flatMap(
-        Schema.decodeUnknownEffect(
-          Schema.toType(AggregateExecutedCommandSchema),
-        ),
-      ),
-    )
-    .pipe(
-      mapParseError({
-        code: 'aggregate-flush-result-invalid',
-        prefix: 'Invalid flush checkpoint',
-      }),
-    );
-  return {
-    aggregateIndex: command.aggregateIndex,
-    commandId: command.id,
-    dispositionHash: command.dispositionHash,
-  };
+  yield* executedCommandOutbox.drain(head.executedIndex);
+  const chain = yield* AggregateVersionChain.getRepo({ key });
+  const checkpoint = yield* makeAsync(() =>
+    chain.getInputCheckpoint(aggregateIndex),
+  ).pipe(Effect.flatMap(readRpcEnvelope));
+  if (checkpoint === null) {
+    return yield* makeZerospinError('aggregate-flush-publication-missing');
+  }
+  return checkpoint;
 });

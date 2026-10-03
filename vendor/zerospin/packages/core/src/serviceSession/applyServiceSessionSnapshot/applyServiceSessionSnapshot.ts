@@ -9,7 +9,7 @@ import { isEqual } from 'es-toolkit';
 
 import type { ISessionId } from '../../aggregateSession/types.ts';
 import { getByKeyOrThrow } from '../../utils/getByKeyOrThrow.ts';
-import { ServiceSessionSnapshotSchema } from '../ServiceActorCommandSchema.ts';
+import { ServiceSessionSnapshotSchema } from '../ServiceSessionWireSchema.ts';
 import type {
   IServiceSessionDefinition,
   IServiceSessionDrizzleDb,

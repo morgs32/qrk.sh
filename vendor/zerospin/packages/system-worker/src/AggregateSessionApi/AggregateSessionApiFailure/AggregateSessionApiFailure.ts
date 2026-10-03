@@ -6,7 +6,7 @@ import type { AggregateSessionApi } from '../AggregateSessionApi.js';
 
 import { createWebSocketTicket } from './createWebSocketTicket/createWebSocketTicket.js';
 import { executeServiceQuery } from './executeServiceQuery/executeServiceQuery.js';
-import { getActorCommands } from './getActorCommands/getActorCommands.js';
+import { getActorOutputs } from './getActorOutputs/getActorOutputs.js';
 import { getSnapshot } from './getSnapshot/getSnapshot.js';
 
 export class AggregateSessionApiFailure extends RpcTarget {
@@ -47,15 +47,15 @@ export class AggregateSessionApiFailure extends RpcTarget {
   }
 
   /*
-   * AggregateSessionApiFailure.getActorCommands answers a rejected capability with its retained admission error.
+   * AggregateSessionApiFailure.getActorOutputs answers a rejected capability with its retained admission error.
    *
    * 1. Run the bound domain operation.
    */
-  async getActorCommands(
-    request: Parameters<AggregateSessionApi['getActorCommands']>[0],
-  ): ReturnType<AggregateSessionApi['getActorCommands']> {
-    // 1 — run getActorCommands with the retained admission error
-    return Effect.runPromise(getActorCommands({ request, error: this.error }));
+  async getActorOutputs(
+    request: Parameters<AggregateSessionApi['getActorOutputs']>[0],
+  ): ReturnType<AggregateSessionApi['getActorOutputs']> {
+    // 1 — run getActorOutputs with the retained admission error
+    return Effect.runPromise(getActorOutputs({ request, error: this.error }));
   }
 
   /*

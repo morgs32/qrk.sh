@@ -8,7 +8,6 @@ export const EncodedResourceSchema: Schema.Codec<
 > = Schema.StructWithRest(
   Schema.Struct({
     createdAt: Schema.DateFromString,
-    deletedAt: Schema.optional(Schema.NullOr(Schema.DateFromString)),
     id: Schema.String,
     modelName: Schema.String,
     updatedAt: Schema.DateFromString,

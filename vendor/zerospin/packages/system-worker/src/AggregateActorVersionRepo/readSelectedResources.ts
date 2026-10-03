@@ -34,7 +34,7 @@ export const readSelectedResources = Effect.fn('readSelectedResources')(
           Schema.decodeUnknownEffect(Schema.toType(model.resourceSchema))(row),
         ),
         mapParseError({
-          code: 'replica-projected-resource-invalid',
+          code: 'projection-projected-resource-invalid',
           prefix: 'Invalid selected aggregate resource',
         }),
       );
@@ -42,14 +42,14 @@ export const readSelectedResources = Effect.fn('readSelectedResources')(
         decoded,
       ).pipe(
         mapParseError({
-          code: 'replica-projected-resource-invalid',
+          code: 'projection-projected-resource-invalid',
           prefix: 'Invalid selected aggregate resource',
         }),
       );
       nextGraph.push(
         yield* Schema.decodeUnknownEffect(EncodedResourceSchema)(encoded).pipe(
           mapParseError({
-            code: 'replica-projected-resource-invalid',
+            code: 'projection-projected-resource-invalid',
             prefix: 'Invalid selected aggregate resource',
           }),
         ),

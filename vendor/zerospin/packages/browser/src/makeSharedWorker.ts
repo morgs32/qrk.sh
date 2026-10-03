@@ -17,7 +17,6 @@ import { openNodeStorage } from './Node/openNodeStorage.ts';
 import { sessionDiscovery } from './Node/sessionDiscovery.ts';
 import { SharedWorkerApi } from './SharedWorkerApi/SharedWorkerApi.ts';
 import { sharedWorkerVersion } from './sharedWorkerVersion.ts';
-
 const attachmentSchema = Schema.Struct({
   request: NodeRequestSchema,
   claims: Schema.Record(Schema.String, Schema.Unknown),
@@ -32,12 +31,11 @@ const attachmentSchema = Schema.Struct({
       executedIndex: Schema.Number,
       executedHash: Schema.String,
       resolvedThrough: Schema.Number,
-      aggregateIndex: Schema.Number,
+      ownerIndex: Schema.Number,
       resources: Schema.Array(Schema.toType(EncodedResourceSchema)),
     }),
   ),
 });
-
 /** One named worker owns one durable node; each port owns only its attached session. */
 export function makeSharedWorker({ sqliteWasmUrl }: { sqliteWasmUrl: string }) {
   const { name } = Schema.decodeUnknownSync(
@@ -72,7 +70,6 @@ export function makeSharedWorker({ sqliteWasmUrl }: { sqliteWasmUrl: string }) {
     })
     .catch(locked.reject);
   void locked.promise.catch(() => undefined);
-
   const runtime: ConstructorParameters<typeof SharedWorkerApi>[0] = {
     async ready() {
       await locked.promise;

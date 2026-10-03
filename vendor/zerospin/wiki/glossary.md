@@ -1,48 +1,41 @@
 ---
 title: Glossary
-updated: 2026-09-28
+updated: 2026-10-02
 ---
 
 # Glossary
 
 ## System
 
-The authored application definition produced by `makeSystem`: identity,
-aggregate and service models, contracts, queries, actors, machines, and authored
-sessions. Versions belong to the individual definitions; the System has no
-root version.
-
 - [`system.ts`](../examples/shopping/src/zerospin/system.ts) — Defines the Shopping System and its versioned aggregate and service definitions.
 
 ## domain module
 
-A plain factory result with `models` and `contracts` collections. Aggregate versions and browser sessions compose optional named `modules` alongside flat declarations; service composition versions attach a complete bundle. The module has no separate runtime identity, storage owner, or version axis. Composition rejects duplicate declaration keys without renaming or overriding them. Service sessions reject contracts and replicas.
-
 - [`composeDeclarations.ts`](../packages/core/src/module/composeDeclarations.ts) — factory-owned composition rejects duplicate keys before combining module and local collections.
-- [`makeAggregateVersion.ts`](../packages/core/src/aggregate/make/makeAggregateVersion.ts) — combines local declarations and modules, then derives service pins from the effective models.
-- [`makeService.ts`](../packages/core/src/service/make/makeService.ts) — installs independently authored complete service compositions.
+- [`makeAggregateVersion.ts`](../packages/core/src/aggregate/make/makeAggregateVersion.ts) — combines local declarations and modules, validates the effective owned-model inventory.
+- [`makeServiceVersion.ts`](../packages/core/src/service/make/makeServiceVersion.ts) — installs independently authored complete service compositions.
 
-## machine actor
+## service
 
-A system-registered durable owner bound to one concrete aggregate or service source version. Its instance key identifies the system, source family, machine name, and aggregate ID when the source is an aggregate. The source version is a separately persisted pin. Each machine retains a selected source projection, cursor, private schema-bearing State, and at most one frozen outgoing command per State revision. Source fanout acknowledges each occurrence after the machine commits its projection, State decision, and cursor together.
+A versioned owner created with `defineService` and `makeServiceVersion`. It owns its models, contracts, queries, and actors. Commands operate on exact owned models. Its retained terminal history supplies actor projections and service sessions.
 
-- [`makeMachine.ts`](../packages/core/src/machine/makeMachine/makeMachine.ts) — validates source, selections, bound contracts, States, and exclusive work forms.
-- [`makeMachineRepo.ts`](../packages/system-worker/src/makeMachineRepo/makeMachineRepo.ts) — owns durable receipt, activation, deadlines, command dispatch, and recovery.
-- [`machineRepoNames.ts`](../packages/system-worker/src/machineRepoNames.ts) — addresses aggregate and service machine owners.
+## receiving obligation pin
 
-## machine State and operation
+The retained receiving service composition for one logical source owner, obligation type, and request ID. Producer version is provenance and is excluded from identity. A service's ordinary request declaration identifies its intake contract, identity field, and actor. Payment intake and processing share this scope; the source actor's service authentication declares their initial receiving version. Fulfillment takes its initial destination from the verified checkout invocation, including in manual compositions. ServiceChain retains the original binding after completion. Intake command admission and execution ownership checks prevent another receiving version from independently accepting or processing the same request.
 
-A State entry validates its encoded value and advances a revision. Its route may react to a source command, wait until one absolute deadline, run an asynchronous activation, or freeze a command and receive a result. The operation row retains status, failure, command bytes, and outcome so restart can continue the same logical work. A late completion cannot transition a newer State revision.
+The pin also retains the first admitted request command ID. An authenticated repeat with identical immutable facts recovers that command's original receiving version and result; changed facts conflict. A new producer version does not rewrite the retained invocation or create another obligation.
 
-- [`makeState.ts`](../packages/core/src/machine/makeState/makeState.ts) — constructs schema-bearing States.
-- [`machineDbConfig.ts`](../packages/system-worker/src/makeMachineRepo/machineDbConfig.ts) — defines source, selected projection, State, and operation storage.
+- [`admitServiceCommand.ts`](../packages/system-worker/src/ServiceChain/admitServiceCommand/admitServiceCommand.ts) — atomic first intake and original-command resolution.
+
+## service-owned payment attempt
+
+An ordinary immutable request accepted by the payment service from a source payment intent. It retains the accepted quote, original cart-item IDs, stable provider key, provider evidence revision, and acknowledged reporting revision. Uncertainty requires reconciliation of that same request; it does not permit replacement collection. Confirmed decline allows an explicitly new source intent. Known success can be reported again without calling the provider.
 
 ## declaration version and composition version
 
-A model, contract, or actor declaration has its own schema/behavior version. A complete service composition has a separate version key in `makeService(...).versions`. Factory names such as `makeFulfillmentServiceModuleV1` identify a construction recipe and do not imply the composition's version. A replica pins one concrete source service composition and the exact source model declaration.
+A model, contract, or actor declaration has its own schema/behavior version. A complete service composition has its own exact version in `makeServiceVersion`. Factory names such as `makeFulfillmentServiceModuleV1` identify a construction recipe and do not imply the composition's version.
 
-- [`makeService.ts`](../packages/core/src/service/make/makeService.ts) — produces literal-keyed service versions.
-- [`makeReplica.ts`](../packages/core/src/models/make/makeReplica.ts) — pins source service and model versions.
+- [`makeServiceVersion.ts`](../packages/core/src/service/make/makeServiceVersion.ts) — produces literal-keyed service versions.
 
 ## systemId
 
@@ -59,7 +52,7 @@ application state.
 - [`SystemRepo.ts`](../packages/system-worker/src/SystemRepo/SystemRepo.ts) — addresses the singleton SystemRepo by the decoded configured system id.
 - [`AggregateChain.ts`](../packages/system-worker/src/AggregateChain/AggregateChain.ts) — includes `systemId` in aggregate-chain instance identity and configures one fixed schema.
 - [`types.ts`](../packages/core/src/aggregateSession/types.ts), [`types.ts`](../packages/core/src/serviceSession/types.ts) — define aggregate and service session snapshots and session state without `systemId`.
-- [`nodeKey.ts`](../packages/browser/src/Node/nodeKey.ts) — hashes backend/system, encoded authentication, target, and the complete definition lock. Standalone sessions retain a separate backup key.
+- [`nodeKey.ts`](../packages/core/src/Node/nodeKey.ts) — hashes backend/system, encoded authentication, target, and the complete definition lock. Standalone sessions retain a separate backup key.
 
 ## Repo
 
@@ -105,11 +98,9 @@ selection supplies the aggregate name/version; identity supplies
 `aggregateId`, encoded identity, and the canonical derived
 `actorPath`; authorization supplies `sessionName` and the lock. Tickets retain those fields
 for the ActorVAC socket, which admits commands only after history validation
-and returns AC receipts on that same socket. `getSnapshot({ pendingCommandIds })` supplies a
-version-pinned `IAggregateSessionSnapshot`; `getActorCommands({
-afterSelectionIndex, aggregateVersion })` supplies retained
-`IAggregateActorCommand` history and its tip without resubmitting bound owner
-fields.
+and returns AC admission acknowledgements on that same socket. `getSnapshot({ nodeId })` supplies a version-pinned
+`IAggregateSessionSnapshot` and node reconciliation watermark; `getActorOutputs`
+supplies retained browser command occurrences without resubmitting bound owner fields.
 
 - [`onMessage.ts`](../packages/system-worker/src/AggregateActorVersionChain/onMessage/onMessage.ts) — Defines the current ownership and execution contract.
 
@@ -128,161 +119,100 @@ method.
 - [`ServiceAccessApi.authorize`](../packages/system-worker/src/ServiceAccessApi/authorize/authorize.ts) — authorizes verified service access and constructs the session capability.
 - [`ServiceSessionApi.ts`](../packages/system-worker/src/ServiceSessionApi/ServiceSessionApi.ts) — exposes snapshots, actor-command history, and one-time ticket operations without a push method.
 
+## aggregate registry and service registry
+
 ## command chain
 
-A durable ordered history owner. AC retains admitted aggregate inputs. VAC retains terminal execution entries per aggregate version. ActorVAC retains complete confirmed command rows at independent actor positions. ServiceChain and VSC retain service admission and terminal execution outcomes; the service actor chain retains complete confirmed service command rows. Actor-chain delivery projects the selected browser representation.
+A durable ordered history owner. AC retains admitted aggregate commands; SC retains admitted service commands. AVC and SVC retain full original command fields and ordered operation bodies at each receiving position. Actor repos retain command history separately from the selected outputs delivered by actor chains.
 
-- [`aggregateChainDbConfig.ts`](../packages/system-worker/src/AggregateChain/aggregateChainDbConfig.ts) — Stores immutable aggregate inputs with their admitted position and canonical bytes.
-- [`aggregateActorVersionChainDbConfig.ts`](../packages/system-worker/src/AggregateActorVersionChain/aggregateActorVersionChainDbConfig.ts) — Stores each session output by its independent primary-key position and retains its aggregate watermark.
+- [`readOwnerResultsPage.ts`](../packages/system-worker/src/readOwnerResultsPage/readOwnerResultsPage.ts) — pages retained owned command occurrences by execution position.
+- [`readServiceResultsPage.ts`](../packages/system-worker/src/ServiceVersionChain/readServiceResultsPage.ts) — pages the service's complete receiving order.
 
-## actor command
+## browser command
 
-A public selected occurrence projected from a complete retained source command. The public `IAggregateActorCommand` contains only
-`id`, `executedIndex`, the consumed `aggregateIndex` watermark, `actorDelta`
-(`IActorDelta`), privately deliverable nullable `failure`, and `executedHash`.
-`IServiceActorCommand` contains only `id`, `serviceIndex`, `actorDelta`
-(`IActorDelta`), and `serviceHash`. Actor version repos and chains retain the
-unfiltered selection diff as `actorDelta` alongside original command input.
-Delivery filters it through the session lock, and the session stores the filtered copy as `actorDelta`.
-Neither public shape exposes source payloads, provenance, full execution metadata,
-repeated target identity, or `systemId`. `AggregateActorCommandSchema` and
-`ServiceActorCommandSchema` are the strict codecs for those two public shapes.
+A browser-delivered `IBrowserCommand` containing only `id`, `commandName`, selected `delta`, and nullable terminal `failure`. Its delivery envelope holds occurrence position, owner progress, and checkpoint hash. The browser resolves a matching unresolved submitted command by ID; another occurrence preserves the first recorded outcome. Failure is exposed only to the submitting node/session/claims.
 
-- [`AggregateActorCommandSchema.ts`](../packages/core/src/aggregateSession/AggregateActorCommandSchema/AggregateActorCommandSchema.ts) — defines `IAggregateActorCommand`'s strict codec and `AggregateSessionSnapshotSchema`.
-- [`ServiceActorCommandSchema.ts`](../packages/core/src/serviceSession/ServiceActorCommandSchema.ts) — defines `IServiceActorCommand`'s strict codec and `ServiceSessionSnapshotSchema`.
-- [`getActorCommands.ts`](../packages/system-worker/src/AggregateActorVersionChain/getActorCommands/getActorCommands.ts) — filters the delta by the session lock and exposes failure only to the exact private completion owner.
-- [`filterServiceActorCommand.ts`](../packages/core/src/serviceSession/filterServiceActorCommand.ts) — filters a service delta without changing its ID, position, or history hash.
+- [`BrowserCommandSchema.ts`](../packages/core/src/contracts/BrowserCommandSchema.ts) — defines the shared browser contract.
+- [`Node.ts`](../packages/core/src/Node/Node.ts) — correlates IDs and commits resources, outcomes, and checkpoints together.
 
 ## IActorDelta
 
-`{ upserted, deleted }` for one actor-selection occurrence. Stored `actorDelta`
-is the unfiltered selection diff. Session `actorDelta` is that same shape
-after session-lock filtering. Local session outcomes stay on `stagedDelta`
-(`{ inserted, updated, deleted, mutations }`). Execution results stay on
-`executionDelta` (`{ inserted, updated, deleted }` with full deleted resources).
-
-- [`types.ts`](../packages/core/src/aggregateSession/types.ts) — defines the exact `IActorDelta` shape.
-- [`applyAggregateActorCommandTx.ts`](../packages/core/src/aggregateSession/applyAggregateActorCommand/applyAggregateActorCommandTx/applyAggregateActorCommandTx.ts) — applies aggregate selected upserts/deletes with journal reconciliation and checkpoint advancement.
-- [`applyServiceActorCommandTx.ts`](../packages/core/src/serviceSession/applyServiceActorCommand/applyServiceActorCommandTx/applyServiceActorCommandTx.ts) — applies service selected upserts/deletes with service checkpoint advancement.
+`{ upserted, deleted }` for one actor-selection occurrence. Actor repos compute the selection diff. Browser delivery exposes it as `IBrowserCommand.delta` after applying the authenticated session model lock. Local optimistic results retain `stagedDelta`. Authoritative server histories retain ordered owned operation bodies and terminal results.
 
 ## session snapshot
 
-The complete server-owned selected state used for browser creation or repair.
-`IAggregateSessionSnapshot` contains aggregate/session identity, decoded
-identity, aggregate version, aggregate and selection checkpoints,
-resources, and exact-owner reconciliation `actorCommands` for requested
-pending IDs. `IServiceSessionSnapshot` contains service/session identity,
-decoded identity, service version, the service index/hash checkpoint, and
-resources. Neither snapshot carries `systemId`.
+The selected resources and checkpoint captured together by an actor repo. Aggregate snapshots contain aggregate/actor/session identity, `aggregateIndex`, `executedIndex`, `executedHash`, resources, and `resolvedThrough` for the requesting node's contiguous terminal command prefix. Service snapshots contain service/actor/session identity, resources, `executedIndex`, and `serviceHash`. Neither includes `systemId` or an embedded command history.
 
 - [`types.ts`](../packages/core/src/aggregateSession/types.ts) — defines `IAggregateSessionSnapshot`.
 - [`types.ts`](../packages/core/src/serviceSession/types.ts) — defines `IServiceSessionSnapshot`.
-- [`AggregateActorCommandSchema.ts`](../packages/core/src/aggregateSession/AggregateActorCommandSchema/AggregateActorCommandSchema.ts) — defines `AggregateSessionSnapshotSchema` from the actor-command codec and exact snapshot fields.
-- [`ServiceActorCommandSchema.ts`](../packages/core/src/serviceSession/ServiceActorCommandSchema.ts) — defines `ServiceSessionSnapshotSchema` from the service actor-command codec and exact snapshot fields.
-- [`applyAggregateSessionSnapshotTx.ts`](../packages/core/src/aggregateSession/applyAggregateSessionSnapshot/applyAggregateSessionSnapshotTx/applyAggregateSessionSnapshotTx.ts) — installs aggregate resources and reconciles exact-owner pending commands without reapplying their already-reflected deltas.
-- [`applyServiceSessionSnapshotTx.ts`](../packages/core/src/serviceSession/applyServiceSessionSnapshot/applyServiceSessionSnapshotTx/applyServiceSessionSnapshotTx.ts) — replaces service resources and commits the versioned checkpoint atomically.
+- [`getSnapshot.ts`](../packages/system-worker/src/AggregateActorVersionRepo/getSnapshot/getSnapshot.ts) — captures resources/checkpoint, publishes through it, then reads the private outcome prefix from retained actor-chain history.
+- [`applyServiceSessionSnapshotTx.ts`](../packages/core/src/serviceSession/applyServiceSessionSnapshot/applyServiceSessionSnapshotTx/applyServiceSessionSnapshotTx.ts) — atomically installs service resources and their checkpoint.
 
 ## actorCommands
 
-This name is used for selected-delivery collections, not physical tables.
-A ActorVAR or FVSR `commands` outbox durably stages newly derived minimal occurrences for
-its actor-command chain and deletes acknowledged rows after delivery. An
-`IAggregateSessionSnapshot.actorCommands` value is instead the bounded,
-exact-owner reconciliation subset requested by `pendingCommandIds`; it is not a
-copy of the outbox and its deltas are not applied after snapshot resources are
-installed. A `getActorCommands` result is retained chain history after an
-explicit session cursor.
+An aggregate actor’s `commands` and `stagedCommands` retain command lifecycle and unresolved optimistic work. Both actor repos deliver flat browser commands through `browserCommandOutbox`; actor chains retain acknowledged occurrences in `browserCommands`. `getActorOutputs` reads that receiving history. Snapshots return resources and checkpoints without embedding command history.
 
-- [`AggregateActorVersionRepo.ts`](../packages/system-worker/src/AggregateActorVersionRepo/AggregateActorVersionRepo.ts) — owns aggregate actor-command outbox delivery.
-- [`ServiceActorVersionRepo.ts`](../packages/system-worker/src/ServiceActorVersionRepo/ServiceActorVersionRepo.ts) — owns service actor-command outbox delivery.
-- [`getSnapshot.ts`](../packages/system-worker/src/AggregateActorVersionRepo/getSnapshot/getSnapshot.ts) — obtains only requested exact-owner reconciliation occurrences through the captured selection position.
+- [`AggregateActorVersionRepo.ts`](../packages/system-worker/src/AggregateActorVersionRepo/AggregateActorVersionRepo.ts) — owns staged commands and selected-output publication.
+- [`ServiceActorVersionRepo.ts`](../packages/system-worker/src/ServiceActorVersionRepo/ServiceActorVersionRepo.ts) — publishes service actor outputs in local execution order.
 
-## pendingCommandIds
+## actor staging
 
-The opaque IDs of restored local aggregate commands whose optimistic mutation
-rows are still unresolved. The browser supplies them only to aggregate
-`getSnapshot`; ActorVAC returns matching exact-owner selected occurrences
-through the snapshot's captured `executedIndex` so the local journal can
-complete or fail those commands while the snapshot itself supplies resource
-state.
+Durable preparation of a caller command against an aggregate actor's derived optimistic state. Successful staging retains its original input, prepared model operations, and ordered submission work together. Confirmed resource rows remain authoritative. Admission delivery can finish while the staging journal remains unresolved; terminal projection or a recognized admission refusal resolves its optimistic contribution. Reconstructing optimism applies retained operations with their captured IDs and timestamps.
 
-- [`fetchAggregateSessionSnapshot.ts`](../packages/browser/src/fetchAggregateSessionSnapshot.ts) — sends pending command IDs through the authorized aggregate session capability.
-- [`getSnapshot.ts`](../packages/system-worker/src/AggregateActorVersionRepo/getSnapshot/getSnapshot.ts) — performs indexed, cursor-bounded owner reconciliation.
+- [`stageActorCommands.ts`](../packages/system-worker/src/AggregateActorVersionRepo/optimistic/stageActorCommands.ts) — prepares original contract output and commits accepted staging with its submission work.
+- [`makeOptimisticActorDb.ts`](../packages/system-worker/src/AggregateActorVersionRepo/optimistic/makeOptimisticActorDb.ts) — rebuilds the actor's derived view from confirmed resources and unresolved operations.
+
+## resolvedThrough
+
+Aggregate snapshot reconciliation uses a node identity and contiguous `resolvedThrough` watermark. The browser journal reconciles its own commands through that watermark; projection and node-outcome cursors remain independent during replay.
+
+- [`fetchAggregateSessionSnapshot.ts`](../packages/browser/src/fetchAggregateSessionSnapshot.ts) — requests a snapshot with `nodeId`.
+- [`getSnapshot.ts`](../packages/system-worker/src/AggregateActorVersionRepo/getSnapshot/getSnapshot.ts) — derives the requesting node’s contiguous resolved prefix from retained actor-chain history at the captured snapshot checkpoint.
 
 ## aggregate and service Repos
 
-Durable resource-state owners. VAR prepares and executes admitted commands per aggregate version. ActorVAR replays those terminal entries into aggregate replica state and emits one minimal actor command per input position. Service Repos retain their separate role.
+Durable resource-state owners. VAR prepares and executes admitted commands per aggregate version. ActorVAR replays locally retained command operations into the aggregate actor projection and emits one selected output per local execution position. Service Repos retain their separate role.
 
 - [`applyExecutedCommands.ts`](../packages/system-worker/src/AggregateActorVersionRepo/applyExecutedCommands/applyExecutedCommands.ts) — Defines the current ownership and execution contract.
 
 ## suffix
 
-A bounded contiguous page after a consumer cursor. Transport page boundaries do not merge command semantics or allocate batch identities. AC and VAC supply SQL-limited suffixes; ActorVAR commits one output per command.
+A bounded contiguous page after a consumer cursor. Transport page boundaries do not merge command semantics or allocate batch identities. AC and VAC supply SQL-limited suffixes; ActorVAR commits one selected output per retained owner result.
 
 - [`makeFanoutQueue.ts`](../packages/system-worker/src/makeFanoutQueue/makeFanoutQueue.ts) — Reads complete rows after the exclusive cursor with a 64-row limit and an optional inclusive upper bound.
 
 ## executedIndex
 
-The single contiguous position shared by AVR/AVC executed source rows and
-the actor output derived from each row. AVR's `head.executedIndex` allocates it
-across `aggregateCommands` and `serviceCommands`. It advances for both kinds,
-including commands with an empty delta. Snapshots and WebSocket resume use this
-position. Service-derived entries have `failure: null` and no private completion
-owner.
-
-- [`types.ts`](../packages/core/src/aggregateSession/types.ts) — defines the executed position and aggregate watermark on actor commands and complete snapshots.
-- [`applyAggregateActorCommandTx.ts`](../packages/core/src/aggregateSession/applyAggregateActorCommand/applyAggregateActorCommandTx/applyAggregateActorCommandTx.ts) — requires contiguous executed progress while rejecting a decreasing aggregate watermark.
-- [`bootstrapAggregateSession.ts`](../packages/browser/src/bootstrapAggregateSession.ts) — Sends the snapshot session position to resume the socket.
+A contiguous terminal command position within one version history. Failed commands and empty selections still advance it. Actor projections and session synchronization retain this order separately from browser node command positions.
 
 ## executedHash
 
-The rolling commitment to aggregate selected session history. ActorVAR
-advances it for every selected occurrence using the previous hash,
-`executedIndex`, underlying command ID, and true success/failure disposition.
-The browser persists and returns the index/hash checkpoint but cannot recompute
-it because another origin's failure may be delivered as `null`.
+The rolling commitment to aggregate selected history. Each receiving position extends it with the original command ID and the local disposition. Imported application uses the original identity rather than a manufactured receiving command ID. The index/hash advances even when the selected delta is empty. Private terminal failures remain server-filtered.
 
-- [`executedDispositionHash.ts`](../packages/system-worker/src/executedDispositionHash/executedDispositionHash.ts) — defines genesis and next-hash computation for the selected history.
-- [`bootstrapAggregateSession.ts`](../packages/browser/src/bootstrapAggregateSession.ts) — sends and persists the executed index/hash checkpoint during recovery.
+- [`applyExecutedCommandsTx.ts`](../packages/system-worker/src/AggregateActorVersionRepo/applyExecutedCommands/applyExecutedCommandsTx.ts) — extends history using original command identity.
 
 ## serviceHash
 
-The rolling commitment to one versioned service's terminal disposition history.
-VSR advances it from the previous hash, `serviceIndex`, command ID, and true
-success/failure disposition. FVSR carries that upstream commitment unchanged on
-every minimal service actor command, including failed, empty, or
-session-filtered-empty positions. The browser persists `{ serviceIndex,
-serviceHash }` and returns both on WebSocket resume. FSC compares that checkpoint
-with its durable `commands` row at the supplied index; a missing or mismatched
-hash requires complete snapshot replacement rather than replaying from an
-untrusted position.
+The commitment to a service's terminal command dispositions. It advances from the previous hash, admitted `serviceIndex`, command ID, and disposition. Service actor outputs and snapshots carry `{ executedIndex, serviceHash }`.
 
-- [`serviceDispositionHash.ts`](../packages/system-worker/src/serviceDispositionHash/serviceDispositionHash.ts) — defines the selected service history's genesis and next-hash computation.
-- [`serviceActorVersionChainDbConfig.ts`](../packages/system-worker/src/ServiceActorVersionChain/serviceActorVersionChainDbConfig.ts) — retains each selected occurrence and its `serviceHash` by `serviceIndex`.
-- [`onMessage.ts`](../packages/system-worker/src/ServiceActorVersionChain/onMessage/onMessage.ts) — validates the browser index/hash checkpoint before replay.
-- [`bootstrapServiceSession.ts`](../packages/browser/src/bootstrapServiceSession.ts) — sends, applies, and persists the service index/hash checkpoint during recovery and live delivery.
+## chain input order
+
+AC orders admitted aggregate commands. Original terminal results attach to existing command positions; replaying versions wait for that result before executing their own program against their own owned state.
 
 ## aggregateIndex
 
-The ordered aggregate-command position. On an aggregate session output or
-snapshot it is the latest consumed aggregate position, which can remain
-unchanged across several session outputs. The command journal's `pushIndex`
+The ordered shared aggregate input position, containing admitted commands. On an aggregate session output or
+snapshot it is the latest consumed shared input position. The command journal's `pushIndex`
 records the aggregate admission receipt rather than session output progress.
 
-- [`applyAggregateActorCommandTx.ts`](../packages/core/src/aggregateSession/applyAggregateActorCommand/applyAggregateActorCommandTx/applyAggregateActorCommandTx.ts) — commits the actor command's aggregate watermark and executed position.
-- [`bootstrapAggregateSession.ts`](../packages/browser/src/bootstrapAggregateSession.ts) — Checks the receipt's command ID and writes its admitted aggregate position to that journal occurrence.
+- [`Node.ts`](../packages/core/src/Node/Node.ts) — commits the actor command's aggregate watermark and executed position.
+- [`NodeSynchronization.ts`](../packages/browser/src/Node/NodeSynchronization.ts) — validates the admission acknowledgement against the pending command and saves its original admission position in Node.
 
 ## disposition
 
 The success or failure of an aggregate occurrence. VAR folds ordered command positions, IDs, and dispositions into a rolling SHA-256 hash. The comparison deliberately excludes resulting state and mutation bytes.
 
 - [`aggregateDispositionHash.ts`](../packages/system-worker/src/aggregateDispositionHash/aggregateDispositionHash.ts) — Defines the current ownership and execution contract.
-
-## cutover
-
-AC adopts its bundled configured base as durable desired intent during activation. Its alarm compares that intent with the applied base, requiring forward numeric version order; nonempty chains sample the admitted index and await base and desired VAR flushes in parallel. Matching command IDs and disposition hashes at that checkpoint allow a compare-and-set of the base version. Promotion atomically clears `cutoverFailure`; divergence persists candidate invalidation and that diagnostic. Infrastructure failures retain alarm recovery. Direct retries use only the applied base.
-
-- [`cutover.ts`](../packages/system-worker/src/AggregateChain/cutover/cutover.ts) — Defines the current ownership and execution contract.
 
 ## session lock
 
@@ -311,21 +241,27 @@ A complete-row Drizzle `findMany()` query owned by an actor version. Its capture
 
 A synchronous contract callback run during local staging, pending replay, and authoritative execution before mutations. A named guard version declares payload and business-failure codecs and exposes a typed Effect service; layers provide its implementation. Aggregate layers override matching actor defaults on the server. Browser sessions use local implementations. Authoritative guards run inside the mutation transaction, with current database and identity services. Admission does not run guards or retain separate guard verdicts.
 
-- [`makeGuardVersion.ts`](../packages/core/src/guards/makeGuardVersion.ts) — defines version-specific services and validates payloads and failures.
-- [`makeMutations.ts`](../packages/core/src/contracts/make/makeMutations.ts) — prepares the shared guard and validates contract identity once.
+- [`makeOperations.ts`](../packages/core/src/contracts/make/makeOperations.ts) — prepares the shared guard and validates contract identity once.
 - [`executeCommandsTx.ts`](../packages/system-worker/src/AggregateVersionRepo/executeCommands/executeCommandsTx.ts) — retains failures with normal command history and leaves rejected mutations unapplied.
 
-## provisioner
+## marketplace
 
-An aggregate actor that owns provisioning contracts such as user creation. Provisioner and operator currently use the explicit credential verification and actor identity API; autonomous actor APIs and identity rules are deferred.
+Shopping's service that owns the product catalog and each verified shopper's cart and cart items. Catalog actors read all products; shopper actors read only their cart, its items, and referenced products.
 
-- [`provisionerV1.ts`](../examples/shopping/src/zerospin/aggregates/shopper/actors/provisionerV1.ts) — selects the intended user by Clerk identity and owns user creation.
+- [`marketplaceServiceV1.ts`](../examples/shopping/src/zerospin/services/marketplace/marketplaceServiceV1.ts) — owns the catalog and carts.
+
+## per-user purchase aggregate
+
+Shopping's `user` aggregate, one per verified Clerk subject. Purchases belong to that aggregate; purchase items reference their local purchase and retain an external product ID and a name/price snapshot. Purchase creation and checkout remain deferred.
+
+- [`userAggregateV1.ts`](../examples/shopping/src/zerospin/aggregates/user/userAggregateV1.ts) — declares purchases and purchase items.
+- [`userActorV1.ts`](../examples/shopping/src/zerospin/aggregates/user/actors/userActorV1.ts) — authorizes the aggregate identity derived from the verified subject.
 
 ## invocation arguments
 
-Guards and contract programs receive the invocation database as `db`, exposing only synchronous queries typed from their declared models. Programs also receive decoded identity and return mutation arrays; they cannot write through this interface. Aggregate commands require claims. Service commands pass `null`. Ordinary layers supply capabilities. There is no execution tag map.
+Guards and contract programs receive the invocation database as `db`, exposing only synchronous queries typed from their declared models. Programs also receive decoded identity, emit operations through their model methods, and return a value matching their optional result codec; they cannot write through this interface. Aggregate commands require claims. Authenticated service commands receive verified caller claims; direct service commands can pass `null`. Ordinary layers supply capabilities. There is no execution tag map.
 
-Programs and all their dependencies must finish synchronously. They observe existing local state before any returned mutation or new replica enrollment. Suspension is interrupted and recorded as an execution failure. Materializers commit each command before running the next program. Client staging and pending replay calculate against local state; authoritative execution recalculates against its own materialization, so results can differ.
+Programs and all their dependencies must finish synchronously. They observe existing local state before any emitted operation. Suspension is interrupted and recorded as an execution failure. Materializers commit each command before running the next program. Client staging and pending replay calculate against local state; authoritative execution recalculates against its own materialization, so results can differ.
 
 - [`runProgram.ts`](../packages/core/src/execution/runProgram.ts) — enforces synchronous completion and preserves domain failures.
 
@@ -354,7 +290,7 @@ VAR commits the terminal occurrence, prepared execution entry, resource state, a
 
 - [`executeCommandsTx.ts`](../packages/system-worker/src/AggregateVersionRepo/executeCommands/executeCommandsTx.ts) — Commits each terminal execution entry to the results outbox together with aggregate resources and the disposition head.
 
-## main-thread session replica
+## main-thread session database
 
 One tab-owned synchronous SQLite view and stable session/store. Synchronized
 sessions replay unresolved node commands followed by uncertain local submissions.
@@ -371,7 +307,7 @@ full definition. Its prefixed `nodeId`, generated once with `makeIdFromAbbreviat
 atomically with command retention. It owns confirmed resources, flat command
 history, authentication coordination, shared push state, and server synchronization.
 
-- [`Node.ts`](../packages/browser/src/Node/Node.ts)
+- [`Node.ts`](../packages/core/src/Node/Node.ts)
 - [`makeSharedWorker.ts`](../packages/browser/src/makeSharedWorker.ts)
 
 ## IndexedDB backup worker
@@ -382,3 +318,55 @@ batches. Synchronized sessions use durable nodes.
 
 - [`backupWorker.entry.ts`](../packages/backup-worker/src/backupWorker.entry.ts)
 - [`makeStandaloneSession.ts`](../packages/browser/src/makeStandaloneSession/makeStandaloneSession.ts)
+
+## contract result
+
+The value returned by one successful contract program, independently of its emitted operations. Its authored version declares an optional result codec; omission means no value, encoded as null. Original local staging retains its result through replay. A server mapping validates the original result before running its mapper and declares a separate, required authoritative result codec. Browser staging and definition locks use the original declaration. Authoritative success retains its own result and executing contract version, atomically with owned output application.
+
+## Agent
+
+A named System declaration binding one exact aggregate version and a dedicated
+system-only aggregate actor version to a serializable query of complete
+projected model rows. The current Studio preview observes that view without
+executing instructions or submitting commands.
+
+- [`makeAgent.ts`](../packages/core/src/agent/makeAgent.ts) — declares the binding and model-row query.
+- [`makeSystem.ts`](../packages/core/src/system/make/makeSystem/makeSystem.ts) — validates registered aggregate/actor versions and the projected query model.
+
+## Agent session
+
+One agent's read-only view of one aggregate ID for the lifetime of an open
+Studio view. Closing or switching the view releases the session; reopening
+begins with a fresh snapshot. Its displayed connection state distinguishes
+current stream delivery from retained rows during recovery.
+
+- [`makeAgentSession.ts`](../packages/browser/src/makeAgentSession.ts) — owns transient snapshot/stream observation and disposal.
+- [`AgentPreview.tsx`](../packages/studio/src/AgentPreview.tsx) — displays live model rows and connection state.
+
+## executed aggregate command / executed service command
+
+A terminal server command classified by its original owner. It retains the original input, provenance, admission position, and success, rejection, or execution failure. Forwarding preserves that owner; version execution positions and actor/session projections remain separate local facts.
+
+## staged aggregate command
+
+An aggregate command prepared against the actor’s optimistic view, with its staging time and ordered optimistic operations. Admission delivery can complete while the command remains unresolved in the actor journal.
+
+## mapped contract
+
+A server declaration made with `mapContractVersion`. It retains an ordinary contract's identity, payload adaptations, guards, and business failures, then appends synchronous mapper emissions after its base output. The mapper sees immutable base output and pre-application state through its declared model scope. Its required result codec owns authoritative output; owner/actor versions pin mapped behavior. Capability references never register contracts implicitly.
+
+- [`mapContractVersion.ts`](../packages/core/src/contracts/make/mapContractVersion.ts) — declares model and async emission capabilities.
+
+## async operation
+
+An explicit emission containing an exact async contract name/version and encoded payload. Its identity is `(commandId, operationIndex)` in the retained owner/version history. Combined `modelOperations` and `asyncOperations` reconstruct complete output in original index order. Only original execution initializes producer lifecycle beside the emission; replay and received history retain immutable output with no production authority. Actor projections skip async entries while preserving model indexes.
+
+- [`asyncOperationsDbConfig.ts`](../packages/system-worker/src/asyncOperations/asyncOperationsDbConfig.ts) — immutable emission and producer-owned lifecycle fields.
+
+## async command
+
+A private backend continuation with its async contract's own payload and immutable external observation. The producing VersionRepo reconstructs it from retained async data and its owner key, without the initiating command row. Admission assigns its ordinary owner position independently of producer work and delivery position. Replay uses the admitted input and observation; continuation rejection never authorizes producer repetition.
+
+## command outbox
+
+Pending durable command delivery to one destination. Acknowledgement follows durable receiver retention and deletes the delivered rows. Receiving history and unresolved optimistic work survive independently. Original aggregate execution enqueues separate version-history and original-result destinations; each acknowledges independently.

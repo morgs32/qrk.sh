@@ -1,26 +1,18 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema-jsonc.json",
-  // Default mode includes tests as importers, so exports only referenced from specs look "used".
-  // Run `pnpm knip:production` to analyze shippable code only (--production --include-entry-exports).
   "include": ["files", "exports", "types"],
   "ignore": [
     "vendor/**",
     "wiki/**",
     "**/*.config.{js,cjs,mjs,ts,tsx}",
-    "**/vitest*.{js,cjs,mjs,ts,tsx}",
     "**/*GlobalSetup.{js,cjs,mjs,ts,tsx}",
-    "**/vitest-env.d.ts",
     ".agents/skills/**",
     ".github/skills/**",
   ],
-  // *RepoTables.ts: shapes/tables used only inside the same module
   "ignoreExportsUsedInFile": true,
   "ignoreIssues": {
     "**/components/ui/**": ["exports"],
     "examples/shopping/src/components/ui/**": ["exports"],
-    "packages/fixtures/src/sync/FixtureStateRepo.ts": ["exports"],
-    "packages/fixtures/src/sync/FixtureSyncAgent.ts": ["exports"],
-    "packages/fixtures/src/sync/worker.ts": ["exports"],
     "packages/system-worker/src/types.ts": ["types"],
   },
   "workspaces": {
@@ -41,14 +33,11 @@
       "entry": [
         "src/zerospin/session.worker.ts",
         "zerospin.config.ts",
-        "vitest.config.ts",
-        // Imported by zerospin.config.ts
         "src/zerospin/system.ts",
         "src/zerospin/seeds.ts",
         "src/zerospin/models.ts",
       ],
-      "ignoreFiles": ["vitest-env.d.ts"],
-      "vitest": true,
+      "ignoreFiles": [],
       "next": true,
     },
     "examples/parking": {
@@ -56,16 +45,13 @@
         "src/zerospin/provider.session.worker.ts",
         "src/zerospin/owner.session.worker.ts",
         "zerospin.config.ts",
-        "vitest.config.ts",
         "src/zerospin/system.ts",
         "src/zerospin/seeds.ts",
         "src/zerospin/models.ts",
         "src/zerospin/sessions.ts",
       ],
-      "ignoreFiles": ["vitest-env.d.ts"],
-      "vitest": true,
+      "ignoreFiles": [],
       "next": true,
-      "playwright": true,
     },
     "packages/core": {
       "entry": [
@@ -78,34 +64,15 @@
         "!**/*.{spec,node.spec,typecheck,bench,test,test-d,spec-d,d}.ts!",
         "!**/*.{spec,node.spec,typecheck,bench,test,test-d,spec-d,d}.tsx!",
       ],
-      "vitest": true,
     },
     "packages/cli": {
       "entry": ["src/cli.tsx", "src/commands/**/*.tsx", "src/commands/**/*.ts"],
-      "vitest": true,
     },
     "packages/dev-worker": {
-      "entry": [
-        "src/DevWorker.ts",
-        "src/emptySeeds.ts",
-        // Selected through ignored Workerd Vitest and Wrangler config string paths.
-        "tests/workerd/DevWorker.restart.fixture.worker.ts",
-        "tests/workerd/DevWorker.system-repo.workerd.spec.ts",
-        // Loaded as the custom seeds module through a node:path config value.
-        "tests/workerd/devSeeds.fixture.ts",
-      ],
-      "vitest": true,
+      "entry": ["src/DevWorker.ts", "src/emptySeeds.ts"],
     },
     "packages/production-worker": {
-      "entry": [
-        // Resolved with node:path beside the exported ProductionWorker entrypoint.
-        "src/emptySeeds.ts",
-        // Selected through ignored Vitest and Wrangler config string paths.
-        "tests/workerd/ProductionWorker.system-repo.workerd.spec.ts",
-        // Loaded as the custom seeds module through a node:path config value.
-        "tests/workerd/productionSeeds.fixture.ts",
-      ],
-      "vitest": true,
+      "entry": ["src/emptySeeds.ts"],
     },
     "packages/devtools": {
       "entry": [
@@ -113,60 +80,37 @@
         "src/types.ts",
         "src/zerospinDevtoolsStore.ts",
       ],
-      "vitest": true,
     },
     "packages/live-query": {
       "entry": ["src/makeLiveQuery.ts"],
-      "vitest": true,
     },
     "packages/logger": {
-      "entry": [
-        // Wrangler main whose named exports register the workerd fixture classes.
-        "specs/workerd/finalizeAccountCommands/SystemApi.ts",
-      ],
-      "vitest": true,
+      "entry": ["specs/workerd/finalizeAccountCommands/SystemApi.ts"],
     },
     "packages/error": {
       "entry": ["src/index.ts"],
-      "vitest": true,
     },
     "packages/react": {
-      "entry": ["src/index.ts", "vitest.setup.ts!"],
-      "vitest": true,
+      "entry": ["src/index.ts"],
     },
     "packages/sdk": {
       "entry": ["src/index.ts"],
-      "vitest": true,
     },
     "packages/system": {
       "entry": ["src/index.ts"],
-      "vitest": true,
     },
     "packages/sync": {
-      "entry": [
-        // Selected by ignored custom Vitest config include globs.
-        "e2e/Sync.useAgent.platform.playwright.spec.tsx",
-        "e2e/Sync.useAgent.playwright.spec.tsx",
-        "e2e/Sync.workerd.spec.ts",
-        // Referenced as the ignored Wrangler dispatch config's main string path.
-        "../fixtures/src/sync/dispatchWorker.ts",
-      ],
-      "vitest": true,
+      "entry": [],
     },
     "packages/system-worker": {
-      "entry": [
-        "../fixtures/src/system-worker/TestWorker.ts",
-        "vitest.workerd.config.ts",
-        "vitest.node.config.ts",
-      ],
+      "entry": [],
       "paths": {
-        "config": ["../fixtures/src/system-worker/systems/system.ts"],
+        "config": [],
       },
       "ignore": ["worker.d.ts"],
-      "ignoreFiles": ["vitest.workerd.config.ts"],
-      "vitest": true,
+      "ignoreFiles": [],
       "wrangler": {
-        "config": ["wrangler.jsonc", "wrangler.vitest.jsonc"],
+        "config": ["wrangler.jsonc"],
       },
     },
   },

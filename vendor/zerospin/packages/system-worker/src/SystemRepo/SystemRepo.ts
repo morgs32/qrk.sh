@@ -102,6 +102,17 @@ export class SystemRepo extends makeFixedDORepo({
       }
     });
     super(ctx, workerEnv);
+    this.alarmRegistry.register(
+      'initializeServices',
+      this.#initializeServices.pipe(
+        Effect.mapError(error =>
+          makeZerospinError({
+            code: 'service-initialization-failed',
+            cause: String(error),
+          }),
+        ),
+      ),
+    );
   }
 
   /*
@@ -182,17 +193,26 @@ export class SystemRepo extends makeFixedDORepo({
   }
 
   /*
-   * Explicit initialization awaits authored service-chain readiness.
+   * Explicit initialization awaits service chains and their version owners.
    *
    * 1. Run the bound domain operation.
    */
+  readonly #initializeServices = initialize({
+    serviceChains: this.env.SERVICE_CHAIN,
+    systemId: this.key.systemId,
+  }).pipe(
+    Effect.andThen(() => this.alarmRegistry.release('initializeServices')),
+  );
+
   initialize() {
-    // 1 — run initialize with the instance-bound dependencies and encode its RPC outcome
     return config.system.runtime.runPromise(
-      initialize({
-        serviceChains: this.env.SERVICE_CHAIN,
-        systemId: this.key.systemId,
-      }).pipe(Effect.provide(AsyncLive), makeRpcEnvelope),
+      this.alarmRegistry
+        .hold('initializeServices')
+        .pipe(
+          Effect.andThen(this.#initializeServices),
+          Effect.provide(AsyncLive),
+          makeRpcEnvelope,
+        ),
     );
   }
 

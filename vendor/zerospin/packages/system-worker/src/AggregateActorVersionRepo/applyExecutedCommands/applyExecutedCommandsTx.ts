@@ -1,30 +1,28 @@
 import { resolveAggregateActorVersion } from '@zerospin/core/aggregateActor/getAggregateActorVersion';
-import { applyAggregateMutationTx } from '@zerospin/core/contracts/applyAggregateMutationTx';
-import { applyExecutionDeltaTx } from '@zerospin/core/contracts/applyExecutionDeltaTx';
-import {
-  type AggregateExecutedCommandSchema,
-  type ServiceExecutedCommandSchema,
-} from '@zerospin/core/contracts/CommandSchema';
-import { prepareReplayAppliedMutation } from '@zerospin/core/contracts/prepareReplayAppliedMutation';
+import type { IAggregateActorOutput } from '@zerospin/core/aggregateSession/types';
+import { applyOperationTx } from '@zerospin/core/contracts/applyOperationTx';
+import { prepareReplayAppliedOperation } from '@zerospin/core/contracts/prepareReplayAppliedOperation';
 import { makeTx } from '@zerospin/core/drizzle/make/makeTx';
 import type { IResourceDbConfig, ITx } from '@zerospin/core/drizzle/types';
-import { Model } from '@zerospin/core/models/defineModel';
 import type { IAnyModels } from '@zerospin/core/models/types';
-import { makeZerospinError } from '@zerospin/error';
+import { makeZerospinError, mapParseError } from '@zerospin/error';
 import type config from 'config';
 import { eq, sql } from 'drizzle-orm';
-import { Effect } from 'effect';
 
-import type { IExecutedCommandRow } from '../../AggregateVersionChain/types.js';
-import { genesisExecutedHash } from '../../executedDispositionHash/executedDispositionHash.js';
+import { aggregateVersionChainDbConfig } from '../../AggregateVersionChain/aggregateVersionChainDbConfig.js';
+import {
+  advanceExecutedHash,
+  genesisExecutedHash,
+} from '../../executedDispositionHash/executedDispositionHash.js';
+import { decodeOwnedOperation } from '../../ownedOperations.js';
 import { aggregateActorVersionRepoDbConfig } from '../aggregateActorVersionRepoDbConfig.js';
-import { commitAggregateActorCommandTx } from '../commitAggregateActorCommandTx/commitAggregateActorCommandTx.js';
-import { commitServiceActorCommandTx } from '../commitServiceActorCommandTx/commitServiceActorCommandTx.js';
+import { commitActorProjectionTx } from '../commitActorProjectionTx/commitActorProjectionTx.js';
 import { readSelectedResources } from '../readSelectedResources.js';
 import { resolveActorIdentity } from '../resolveActorIdentity/resolveActorIdentity.js';
-import { commandRowForSource } from '../retainedCommands.js';
+import { commandRowForSource, commandRowInput } from '../retainedCommands.js';
 
-/** Atomically install aggregate executed deltas and enroll replica copies into one selected stream. */
+import type { IResolvedActorInput } from './applyExecutedCommands.js';
+/** Replay the owner's complete local order and publish selected outputs in one transaction. */
 export const applyExecutedCommandsTx = makeTx(
   'AggregateActorVersionRepo.applyExecutedCommandsTx',
 )(function* (
@@ -35,12 +33,7 @@ export const applyExecutedCommandsTx = makeTx(
     >
   >,
   props: {
-    inputs: Array<{
-      row: IExecutedCommandRow;
-      command:
-        | typeof AggregateExecutedCommandSchema.Type
-        | typeof ServiceExecutedCommandSchema.Type;
-    }>;
+    inputs: readonly IResolvedActorInput[];
     aggregate: (typeof config.system.aggregates)[string][string];
     key: {
       systemId: string;
@@ -64,179 +57,206 @@ export const applyExecutedCommandsTx = makeTx(
     actorVersion: key.actorVersion,
     actorPath: key.actorPath,
   });
-
-  // Owned rows can reference replicas installed later in this same materialization.
   tx.run(sql.raw('PRAGMA defer_foreign_keys = ON;'));
-  const state = tx
+  const head = tx
     .select()
     .from(aggregateActorVersionRepoDbConfig.schema.actorState)
     .where(eq(aggregateActorVersionRepoDbConfig.schema.actorState.id, 1))
     .get();
-  let cursor = state?.executedIndex ?? 0;
-  let aggregateIndex = state?.aggregateIndex ?? 0;
-  let executedHash = state?.executedHash ?? genesisExecutedHash();
+  let cursor = head?.executedIndex ?? 0;
+  let aggregateIndex = head?.aggregateIndex ?? 0;
+  let executedHash = head?.executedHash ?? genesisExecutedHash();
   let graph = yield* readSelectedResources({
     db: tx,
     models: aggregate.models,
-    selections: view.selections,
+    selections: view.capturedSelections,
     identity,
   });
-
   for (const input of inputs) {
-    const { row, command } = input;
-    if (row.executedIndex <= cursor) {
+    if (input.executedIndex <= cursor) {
       continue;
     }
-    if (row.executedIndex !== cursor + 1) {
-      return yield* Effect.fail(
-        makeZerospinError({
-          code: 'replica-command-index-gap',
-          message: `Expected command ${cursor + 1}, received ${row.executedIndex}`,
-        }),
-      );
+    if (input.executedIndex !== cursor + 1) {
+      return yield* makeZerospinError('projection-result-index-gap');
     }
-    if (
-      row.executionVersion !== key.aggregateVersion ||
-      command.dispositionHash === null ||
-      ('aggregateIndex' in command &&
-        (command.aggregateId !== key.aggregateId ||
-          command.aggregateName !== key.aggregateName))
-    ) {
-      return yield* Effect.fail(
-        makeZerospinError({
-          code: 'replica-command-invalid',
-          message:
-            'Replica input is not its bound terminal aggregate occurrence',
-        }),
-      );
-    }
-
-    if (command.execution.status === 'succeeded') {
-      const owned = (resource: { modelName: string }) => {
-        const model = aggregate.models[resource.modelName];
-        return model === undefined || !Model.isReplica(model);
-      };
-      yield* applyExecutionDeltaTx({
-        tx,
-        models: aggregate.models,
-        executionDelta: {
-          inserted: command.execution.executionDelta.inserted.filter(owned),
-          updated: command.execution.executionDelta.updated.filter(owned),
-          deleted: command.execution.executionDelta.deleted.filter(owned),
-        },
-      });
-    }
-
-    if (command.execution.status === 'succeeded') {
-      for (const [mutationIndex, resource] of [
-        ...command.execution.executionDelta.inserted,
-        ...command.execution.executionDelta.updated,
-        ...command.execution.executionDelta.deleted,
-      ].entries()) {
-        const model = aggregate.models[resource.modelName];
-        if (model === undefined || !Model.isReplica(model)) continue;
-        const mutation = yield* prepareReplayAppliedMutation({
-          controller: aggregate,
-          mutation: {
-            modelName: resource.modelName,
-            modelVersion: resource.version,
-            resourceId: resource.id,
-            operationName: 'replicate',
-            operation: JSON.stringify({
-              serviceName: model.serviceName,
-              serviceVersion: aggregate.services[model.serviceName],
-              serviceIndex: resource.serviceIndex,
-              resource,
-            }),
-          },
-        });
-        if (mutation !== null) {
-          yield* applyAggregateMutationTx({
-            tx,
-            mutation,
-            commandId: command.id,
-            mutationIndex,
-            appliedAt: command.execution.startedAt,
-          });
+    let output: Omit<IAggregateActorOutput, 'command'> & {
+      command: Omit<IAggregateActorOutput['command'], 'delta'>;
+    };
+    let ownerClaims: Readonly<Record<string, unknown>> | null = null;
+    let ownerSessionName: string | null = null;
+    let nodeId: string | null = null;
+    let nodeIndex: number | null = null;
+    {
+      const { command: row, decodedCommand: command } = input;
+      if (
+        row.executedIndex !== input.executedIndex ||
+        row.executionVersion !== key.aggregateVersion ||
+        command.dispositionHash === null ||
+        command.aggregateId !== key.aggregateId ||
+        command.aggregateName !== key.aggregateName
+      ) {
+        return yield* makeZerospinError('projection-command-invalid');
+      }
+      if (
+        command.execution.status !== 'succeeded' &&
+        input.operations.length > 0
+      ) {
+        return yield* makeZerospinError('projection-operation-invalid');
+      }
+      for (const [ordinal, operationRow] of input.operations.entries()) {
+        if ('asyncContractName' in operationRow) {
+          yield* aggregateVersionChainDbConfig.tables.asyncOperations
+            .decodeRow(operationRow)
+            .pipe(
+              mapParseError({
+                code: 'projection-async-invalid',
+                prefix: 'Invalid async output',
+              }),
+            );
+          if (
+            operationRow.commandId !== row.id ||
+            operationRow.executedIndex !== input.executedIndex ||
+            operationRow.operationIndex !== ordinal
+          ) {
+            return yield* makeZerospinError(
+              'projection-async-association-invalid',
+            );
+          }
+          continue;
         }
+        yield* aggregateVersionChainDbConfig.tables.modelOperations
+          .decodeRow(operationRow)
+          .pipe(
+            mapParseError({
+              code: 'projection-operation-invalid',
+              prefix: 'Invalid owned aggregate output',
+            }),
+          );
+        if (
+          operationRow.commandId !== row.id ||
+          operationRow.executedIndex !== input.executedIndex ||
+          operationRow.operationIndex !== ordinal
+        ) {
+          return yield* makeZerospinError('projection-operation-invalid');
+        }
+        const output = yield* decodeOwnedOperation(operationRow);
+        const model = aggregate.models[output.modelName];
+        if (model === undefined) {
+          continue;
+        }
+
+        if (model.version !== output.modelVersion) {
+          return yield* makeZerospinError(
+            'projection-operation-model-mismatch',
+          );
+        }
+        const operation = yield* prepareReplayAppliedOperation({
+          controller: aggregate,
+          operation: output,
+        });
+        yield* applyOperationTx({
+          tx,
+          operation,
+          commandId: row.id,
+          operationIndex: ordinal,
+          appliedAt: operationRow.committedAt,
+        });
+      }
+      aggregateIndex = command.aggregateIndex;
+      executedHash = advanceExecutedHash({
+        previousExecutedHash: executedHash,
+        executedIndex: input.executedIndex,
+        commandId: command.id,
+        disposition:
+          command.execution.status === 'succeeded' ? 'success' : 'failure',
+        failure:
+          command.admission.status === 'failed'
+            ? command.admission.failure
+            : command.execution.status === 'failed'
+              ? command.execution.failure
+              : null,
+      });
+      const ownsCompletion =
+        command.nodeId !== null &&
+        command.sessionName !== null &&
+        command.actorName === key.actorName &&
+        command.actorVersion === key.actorVersion;
+      if (ownsCompletion) {
+        nodeId = command.nodeId;
+        nodeIndex = command.nodeIndex;
+        ownerClaims = command.claims;
+        ownerSessionName = command.sessionName;
+      }
+      output = {
+        aggregateIndex,
+        executedIndex: input.executedIndex,
+        executedHash,
+        command: {
+          id: command.id,
+          commandName: command.commandName,
+          failure: ownsCompletion
+            ? command.admission.status === 'failed'
+              ? command.admission.failure
+              : command.execution.status === 'failed'
+                ? command.execution.failure
+                : null
+            : null,
+        },
+      };
+      const saved = commandRowForSource(tx, command);
+      const retained = yield* aggregateActorVersionRepoDbConfig.tables.commands
+        .encodeRow({
+          ...commandRowInput({
+            rowId: saved?.rowId ?? `row_${crypto.randomUUID()}`,
+            command,
+            aggregateVersion: key.aggregateVersion,
+          }),
+          executedIndex: input.executedIndex,
+          executedHash,
+        })
+        .pipe(
+          mapParseError({
+            code: 'projection-command-invalid',
+            prefix: 'Invalid retained aggregate command',
+          }),
+        );
+      tx.insert(aggregateActorVersionRepoDbConfig.schema.commands)
+        .values(retained)
+        .onConflictDoUpdate({
+          target: aggregateActorVersionRepoDbConfig.schema.commands.rowId,
+          set: retained,
+        })
+        .run();
+      if (saved !== undefined) {
+        tx.update(aggregateActorVersionRepoDbConfig.schema.stagedCommands)
+          .set({ resolvedAt: new Date() })
+          .where(
+            eq(
+              aggregateActorVersionRepoDbConfig.schema.stagedCommands
+                .commandRowId,
+              saved.rowId,
+            ),
+          )
+          .run();
       }
     }
-
-    cursor = row.executedIndex;
-    if ('aggregateIndex' in command) {
-      aggregateIndex = command.aggregateIndex;
-    }
-    const projection = {
+    cursor = input.executedIndex;
+    const committed = yield* commitActorProjectionTx({
       tx,
       models: aggregate.models,
-      selections: view.selections,
+      selections: view.capturedSelections,
       identity,
       aggregateVersion: key.aggregateVersion,
       graph,
-      previousExecutedHash: executedHash,
+      executedHash,
       aggregateIndex,
       executedIndex: cursor,
-      commandId: command.id,
-      sourceCommand: command,
-      admission: command.admission,
-      execution:
-        command.execution.status === 'succeeded'
-          ? {
-              status: 'succeeded' as const,
-              startedAt: command.execution.startedAt,
-              completedAt: command.execution.completedAt,
-            }
-          : command.execution,
-    };
-    const committed =
-      'aggregateIndex' in command
-        ? yield* commitAggregateActorCommandTx({
-            ...projection,
-            disposition:
-              command.execution.status === 'succeeded' ? 'success' : 'failure',
-            nodeId:
-              command.actorName === key.actorName &&
-              command.actorVersion === key.actorVersion
-                ? command.nodeId
-                : null,
-            nodeIndex:
-              command.actorName === key.actorName &&
-              command.actorVersion === key.actorVersion
-                ? command.nodeIndex
-                : null,
-            ownerClaims:
-              command.nodeId !== null &&
-              command.sessionName !== null &&
-              command.actorName === key.actorName &&
-              command.actorVersion === key.actorVersion
-                ? command.claims
-                : null,
-            ownerSessionName:
-              command.nodeId !== null &&
-              command.actorName === key.actorName &&
-              command.actorVersion === key.actorVersion
-                ? command.sessionName
-                : null,
-          })
-        : yield* commitServiceActorCommandTx({
-            ...projection,
-            disposition:
-              command.execution.status === 'succeeded' ? 'success' : 'failure',
-          });
-    const saved = commandRowForSource(tx, command);
-    if (saved !== undefined) {
-      tx.update(aggregateActorVersionRepoDbConfig.schema.pendingCommands)
-        .set({ resolvedAt: new Date() })
-        .where(
-          eq(
-            aggregateActorVersionRepoDbConfig.schema.pendingCommands
-              .commandRowId,
-            saved.rowId,
-          ),
-        )
-        .run();
-    }
-    executedHash = committed.executedHash;
+      output,
+      ownerClaims,
+      ownerSessionName,
+      nodeId,
+      nodeIndex,
+    });
     graph = committed.graph;
   }
 });

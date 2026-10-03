@@ -1,125 +1,60 @@
-import { useState } from 'react';
-
 import type { InferResource } from '@zerospin/core/models/types';
-import { stageCommand, useLiveQuery } from '@zerospin/react';
-import { checkGuards } from '@zerospin/sdk/browser';
-import { Effect } from 'effect';
+import { stageServiceCommand } from '@zerospin/react';
 import { Minus, Plus, Trash2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
-import { type cartItemV2 } from '@/zerospin/aggregates/shopper/models/cartItem/CartItemV2';
+import { useCartCommand } from '@/hooks/useCartCommand';
+import { type cartItemV1 } from '@/zerospin/services/marketplace/models/cartItem/CartItemV1';
 import { shopperSession } from '@/zerospin/shopperSession';
 
 interface IProps {
-  cartItemId: InferResource<typeof cartItemV2>['id'];
+  cartItemId: InferResource<typeof cartItemV1>['id'];
   amount: number;
 }
 
 export function CartItemQuantityControls({ amount, cartItemId }: IProps) {
-  const [error, setError] = useState<string | null>(null);
-  useLiveQuery({
-    session: shopperSession,
-    query: db =>
-      db.query.checkout.findFirst({
-        where: { status: { in: ['accepted', 'paying', 'declined'] } },
-      }),
-  });
-  const { data: removal } = useLiveQuery({
-    session: shopperSession,
-    query: db =>
-      db.query.cartItem.findFirst({
-        where: { id: { eq: cartItemId } },
-        with: { cart: { with: { items: true, checkouts: true } } },
-      }),
-  });
-  const releaseCheckoutIds =
-    removal?.cart?.items.length === 1
-      ? removal.cart.checkouts
-          .filter(
-            row =>
-              row.promotionReservationId !== null &&
-              (row.status === 'promotion' || row.status === 'failed'),
-          )
-          .map(row => row.id)
-      : [];
-  const removeFailure = Effect.runSync(
-    checkGuards({
-      session: shopperSession,
+  const { pending, error, submit } = useCartCommand();
+  const removeFailure =
+    shopperSession.can({
       contractName: 'removeFromCart',
-      payload: { id: cartItemId, releaseCheckoutIds },
-    }),
-  );
+      payload: { id: cartItemId },
+    })._tag === 'Failure';
   const quantityFailure = (nextAmount: number) =>
-    Effect.runSync(
-      checkGuards({
-        session: shopperSession,
-        contractName: 'updateCartItemQuantity',
-        payload: { cartItemId, amount: nextAmount },
-      }),
-    );
-  const onDecrement = () => {
-    setError(null);
-    if (amount <= 1) {
-      const result = stageCommand({
+    shopperSession.can({
+      contractName: 'updateCartItemQuantity',
+      payload: { cartItemId, amount: nextAmount },
+    })._tag === 'Failure';
+  const remove = () =>
+    void submit(async record => {
+      const result = await stageServiceCommand({
         session: shopperSession,
         contractName: 'removeFromCart',
-        payload: { id: cartItemId, releaseCheckoutIds },
+        payload: { id: cartItemId },
       });
-      if (result._tag === 'Failure') {
-        setError(result.failure.message);
-      }
-      return;
-    }
-    const result = stageCommand({
-      session: shopperSession,
-      contractName: 'updateCartItemQuantity',
-      payload: {
-        cartItemId,
-        amount: amount - 1,
-      },
+      if (result._tag === 'Failure') throw result.failure;
+      record(result.success.id);
     });
-    if (result._tag === 'Failure') {
-      setError(result.failure.message);
-    }
-  };
-
-  const onIncrement = () => {
-    setError(null);
-    const result = stageCommand({
-      session: shopperSession,
-      contractName: 'updateCartItemQuantity',
-      payload: {
-        cartItemId,
-        amount: amount + 1,
-      },
+  const quantity = (amount: number) =>
+    void submit(async record => {
+      const result = await stageServiceCommand({
+        session: shopperSession,
+        contractName: 'updateCartItemQuantity',
+        payload: { cartItemId, amount },
+      });
+      if (result._tag === 'Failure') throw result.failure;
+      record(result.success.id);
     });
-    if (result._tag === 'Failure') {
-      setError(result.failure.message);
-    }
-  };
-
-  const onRemove = () => {
-    setError(null);
-    const result = stageCommand({
-      session: shopperSession,
-      contractName: 'removeFromCart',
-      payload: { id: cartItemId, releaseCheckoutIds },
-    });
-    if (result._tag === 'Failure') {
-      setError(result.failure.message);
-    }
-  };
 
   return (
     <div className="flex flex-wrap items-center justify-end gap-1">
       <Button
         disabled={
-          (amount <= 1 ? removeFailure : quantityFailure(amount - 1)) !== null
+          pending || (amount <= 1 ? removeFailure : quantityFailure(amount - 1))
         }
         variant="outline"
         size="icon"
         className="h-8 w-8"
-        onClick={onDecrement}
+        onClick={() => (amount <= 1 ? remove() : quantity(amount - 1))}
       >
         <Minus className="h-3 w-3" />
       </Button>
@@ -127,20 +62,20 @@ export function CartItemQuantityControls({ amount, cartItemId }: IProps) {
         {amount}
       </span>
       <Button
-        disabled={quantityFailure(amount + 1) !== null}
+        disabled={pending || quantityFailure(amount + 1)}
         variant="outline"
         size="icon"
         className="h-8 w-8"
-        onClick={onIncrement}
+        onClick={() => quantity(amount + 1)}
       >
         <Plus className="h-3 w-3" />
       </Button>
       <Button
-        disabled={removeFailure !== null}
+        disabled={pending || removeFailure}
         variant="ghost"
         size="icon"
         className="h-8 w-8 text-destructive hover:text-destructive"
-        onClick={onRemove}
+        onClick={remove}
       >
         <Trash2 className="h-4 w-4" />
       </Button>

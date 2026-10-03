@@ -8,7 +8,7 @@ import type {
   IAggregateSessionDefinition,
 } from '@zerospin/core/aggregateSession/types';
 import { makeAsync } from '@zerospin/core/async/make/makeAsync';
-import type { AssertContractMutationsInModels } from '@zerospin/core/contracts/assertMutationsUseModels';
+import type { AssertContractOperationsInModels } from '@zerospin/core/contracts/assertOperationsUseModels';
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/make/makeDbConfig/makeDbConfig';
 import { makeProvisionedInMemoryWasmSqliteDb } from '@zerospin/core/drizzle/make/makeProvisionedInMemoryWasmSqliteDb/makeProvisionedInMemoryWasmSqliteDb';
 import type { IAnyModels, InferResource } from '@zerospin/core/models/types';
@@ -54,7 +54,7 @@ export function makeMockAggregateSession<
       contracts: {
         [K in keyof DEFINITION['contracts'] &
           string]: K extends DEFINITION['contracts'][K]['commandName']
-          ? AssertContractMutationsInModels<
+          ? AssertContractOperationsInModels<
               DEFINITION['contracts'][K],
               NoInfer<MODELS>
             >

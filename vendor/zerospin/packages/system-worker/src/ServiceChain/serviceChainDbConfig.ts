@@ -1,10 +1,11 @@
 import { AdmissionResultSchema } from '@zerospin/core/contracts/AdmissionResultSchema';
+import { AsyncCommandInputSchema } from '@zerospin/core/contracts/AsyncCommandInputSchema';
+import { ServiceCallerSchema } from '@zerospin/core/contracts/ServiceCallerSchema';
 import { makeDbConfig } from '@zerospin/core/drizzle/make/makeDbConfig/makeDbConfig';
 import { PublicFailureSchema } from '@zerospin/error';
 import { makeTable, primitives } from '@zerospin/schema';
 
 import { systemWorkerAbbreviations } from '../systemWorkerAbbreviations.js';
-
 export const serviceChainDbConfig = makeDbConfig({
   tables: {
     commands: makeTable({
@@ -12,7 +13,15 @@ export const serviceChainDbConfig = makeDbConfig({
       shape: {
         id: primitives.text({ unique: true }),
         commandName: primitives.text(),
+        caller: primitives.json({
+          schema: ServiceCallerSchema,
+          nullable: true,
+        }),
         payload: primitives.text(),
+        asyncInput: primitives.json({
+          schema: AsyncCommandInputSchema,
+          nullable: true,
+        }),
         contractVersion: primitives.text(),
         serviceName: primitives.text(),
         serviceVersion: primitives.text(),

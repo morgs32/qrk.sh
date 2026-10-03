@@ -1,18 +1,23 @@
 import type { IDb } from '@zerospin/core/drizzle/types';
 import { getByKeyOrThrow } from '@zerospin/core/utils/getByKeyOrThrow';
+import { makeZerospinError } from '@zerospin/error';
 import config from 'config';
 import { Effect } from 'effect';
 
+import type { IServiceResult } from '../../ServiceVersionChain/readServiceResultsPage.js';
 import type { serviceVersionChainDbConfig } from '../../ServiceVersionChain/serviceVersionChainDbConfig.js';
 
 import { executeTx } from './executeTx.js';
 
+export type IResolvedServiceResult = IServiceResult;
 const { system } = config;
-
 /** Replay one immutable result at a time; projection failure rolls back the whole delivery page. */
 export const execute = Effect.fn('ServiceActorVersionRepo.execute')(
   function* (props: {
-    rows: readonly (typeof serviceVersionChainDbConfig.schema.commands.$inferSelect)[];
+    rows: readonly (
+      | IServiceResult
+      | typeof serviceVersionChainDbConfig.schema.commands.$inferSelect
+    )[];
     db: IDb;
     key: {
       systemId: string;
@@ -34,6 +39,18 @@ export const execute = Effect.fn('ServiceActorVersionRepo.execute')(
       key: key.serviceVersion,
       recordKind: 'listed versions',
     });
-    yield* executeTx(db, { rows, service, key });
+    const results: IResolvedServiceResult[] = [];
+    for (const row of rows) {
+      if (!('kind' in row)) {
+        return yield* makeZerospinError('service-projection-result-missing');
+      }
+      if (!Array.isArray(row.operations)) {
+        return yield* makeZerospinError(
+          'service-projection-operations-missing',
+        );
+      }
+      results.push(row);
+    }
+    yield* executeTx(db, { rows: results, service, key });
   },
 );

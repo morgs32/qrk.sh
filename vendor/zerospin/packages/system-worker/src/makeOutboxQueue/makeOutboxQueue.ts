@@ -17,7 +17,6 @@ import {
   getTableColumns,
   inArray,
   isNotNull,
-  isNull,
   lte,
   type InferSelectModel,
   type SQL,
@@ -53,7 +52,6 @@ export const makeOutboxQueue = <
   INDEX extends string,
   TABLE extends SQLiteTable &
     Record<INDEX, AnySQLiteColumn<{ data: number; notNull: boolean }>> & {
-      acknowledgedAt: AnySQLiteColumn<{ data: Date | null; notNull: false }>;
       lastDeliveryFailure: AnySQLiteColumn<{
         data: string | null;
         notNull: false;
@@ -68,17 +66,13 @@ export const makeOutboxQueue = <
   outboxTable: TABLE;
   indexColumnName: INDEX;
   alarmRegistry: IAlarmRegistry;
-  retention: 'retain' | 'delete';
   storage?: {
     hasPending(): boolean;
     readPage(
       throughIndex?: number,
     ): readonly { row: ADDITIONAL_ROW; index: number }[];
     recordFailure(indices: readonly number[], failure: string): void;
-    acknowledge(
-      indices: readonly number[],
-      retention: 'retain' | 'delete',
-    ): void;
+    acknowledge(indices: readonly number[]): void;
   };
   deliver(
     rows: readonly (InferSelectModel<TABLE> | NoInfer<ADDITIONAL_ROW>)[],
@@ -89,7 +83,6 @@ export const makeOutboxQueue = <
     db,
     outboxTable,
     alarmRegistry,
-    retention,
     deliver,
     indexColumnName,
     storage,
@@ -143,7 +136,7 @@ export const makeOutboxQueue = <
       );
     };
 
-    // 2 — look for one row with acknowledgedAt null
+    // 2 — look for one pending delivery row
     readonly hasPending = Effect.fn(`${name}.hasPending`)(function* () {
       yield* Effect.void;
       if (storage !== undefined) return storage.hasPending();
@@ -151,13 +144,7 @@ export const makeOutboxQueue = <
         db
           .select({ index: indexColumn })
           .from(outboxTable)
-          .where(
-            and(
-              where,
-              isNotNull(indexColumn),
-              isNull(outboxTable.acknowledgedAt),
-            ),
-          )
+          .where(and(where, isNotNull(indexColumn)))
           .limit(1)
           .get() !== undefined
       );
@@ -184,7 +171,6 @@ export const makeOutboxQueue = <
                       and(
                         where,
                         isNotNull(indexColumn),
-                        isNull(outboxTable.acknowledgedAt),
                         throughIndex === undefined
                           ? undefined
                           : lte(indexColumn, throughIndex),
@@ -246,19 +232,11 @@ export const makeOutboxQueue = <
               return yield* Effect.fail(failure);
             }
 
-            // 9 — delete the exact page or retain it with acknowledgedAt and cleared failure
+            // 9 — delete exactly the durably acknowledged page
             if (storage !== undefined) {
-              storage.acknowledge(
-                rows.map(row => row.index),
-                retention,
-              );
-            } else if (retention === 'delete') {
-              db.delete(outboxTable).where(page).run();
+              storage.acknowledge(rows.map(row => row.index));
             } else {
-              db.update<SQLiteTable>(outboxTable)
-                .set({ acknowledgedAt: new Date(), lastDeliveryFailure: null })
-                .where(page)
-                .run();
+              db.delete(outboxTable).where(page).run();
             }
           }
         }),

@@ -3,16 +3,11 @@
   "compilerOptions": {
     "rootDir": "../..",
     "noEmit": true,
-    "types": ["node", "vitest/globals"],
+    "types": ["node"],
     "composite": false,
     "incremental": false
   },
-  "include": [
-    "src/**/*.spec.ts",
-    "src/**/*.spec.tsx",
-    "vitest.config.ts",
-    "vitest.integration.config.ts"
-  ],
+  "include": [],
   "references": [
     {
       "path": "./tsconfig.json"

@@ -18,7 +18,7 @@ occurrence; command history and resource state are separate durable owners.
 ```mermaid
 flowchart TB
   Source["Authored System + current Repo schemas"] --> Worker["DevWorker / ProductionWorker"]
-  Browser["React + main-thread session replicas"] --> Gateway[GatewayApi]
+  Browser["React + main-thread session databases"] --> Gateway[GatewayApi]
   Browser --> BackupWorker["Stable SharedWorker: BackupWorkerApi + BackupDbApi"]
   BackupWorker --> IndexedDB[(IDBBatchAtomicVFS backups)]
   Operator["server caller"] --> Gateway
@@ -112,7 +112,7 @@ fence, reopen, or compatibility path.
 
 ## Browser convergence and backup
 
-Each selected session owns an in-memory wa-sqlite replica, finalized-output
+Each selected session owns an in-memory wa-sqlite database, finalized-output
 socket, and recovery loop on the page main thread. Aggregate recovery fetches
 a published ActorVAR snapshot, pins its aggregateVersion in the ticket, and replays
 ActorVAC outputs strictly after the captured session cursor. Snapshot resolved

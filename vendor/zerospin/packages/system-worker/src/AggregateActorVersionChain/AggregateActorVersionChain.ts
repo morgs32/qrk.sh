@@ -15,17 +15,18 @@ import {
   type WSMessage,
 } from 'partyserver';
 
-import { deliverActorCommand } from '../deliverActorCommand/deliverActorCommand.js';
+import { deliverActorOutput } from '../deliverActorOutput/deliverActorOutput.js';
 import { makeFixedDORepo } from '../makeFixedDORepo/makeFixedDORepo.js';
 import { makeFixedDORepoConfig } from '../makeFixedDORepo/makeFixedDORepoConfig.js';
 import { makeOutboxSubscriber } from '../makeOutboxSubscriber/makeOutboxSubscriber.js';
 import { systemWorkerAbbreviations } from '../systemWorkerAbbreviations.js';
 
 import { aggregateActorVersionChainDbConfig } from './aggregateActorVersionChainDbConfig.js';
-import { getActorCommands } from './getActorCommands/getActorCommands.js';
+import { getActorOutputs } from './getActorOutputs/getActorOutputs.js';
+import { getResolvedThrough } from './getResolvedThrough.js';
 import { onConnect } from './onConnect/onConnect.js';
 import { onMessage } from './onMessage/onMessage.js';
-import { receiveActorCommands } from './receiveActorCommands/receiveActorCommands.js';
+import { receiveActorOutputs } from './receiveActorOutputs/receiveActorOutputs.js';
 
 const aggregateActorVersionChainFixedDORepoConfig = makeFixedDORepoConfig({
   abbreviation: systemWorkerAbbreviations.aggregateActorVersionChain,
@@ -124,14 +125,21 @@ export class AggregateActorVersionChain extends makeFixedDORepo({
 
   static override readonly fixedDORepoConfig =
     aggregateActorVersionChainFixedDORepoConfig;
+  async getResolvedThrough(
+    props: Omit<Parameters<typeof getResolvedThrough>[0], 'db'>,
+  ) {
+    return config.system.runtime.runPromise(
+      getResolvedThrough({ ...props, db: this.db }).pipe(makeRpcEnvelope),
+    );
+  }
 
-  readonly #actorCommandsSubscriber = makeOutboxSubscriber({
-    name: 'actorCommands',
-    receive: (rows: Parameters<typeof receiveActorCommands>[0]['rows']) =>
-      receiveActorCommands({
+  readonly #browserCommandSubscriber = makeOutboxSubscriber({
+    name: 'browserCommand',
+    receive: (rows: Parameters<typeof receiveActorOutputs>[0]['rows']) =>
+      receiveActorOutputs({
         rows,
         db: this.db,
-        broadcast: ({ command, claims, sessionName }) => {
+        broadcast: ({ output, claims, sessionName, nodeId }) => {
           for (const connection of this.getConnections<{
             phase: 'awaiting-resume' | 'replaying' | 'live';
             nodeId?: string;
@@ -150,7 +158,9 @@ export class AggregateActorVersionChain extends makeFixedDORepo({
               continue;
             }
             const state = connection.state;
-            if (state?.phase !== 'live') continue;
+            if (state?.phase !== 'live') {
+              continue;
+            }
             try {
               const retainedLock = this.db.query.connectionLocks
                 .findFirst({
@@ -164,33 +174,24 @@ export class AggregateActorVersionChain extends makeFixedDORepo({
               const ownsCompletion =
                 isEqual(claims, state.claims) &&
                 sessionName === state.sessionName &&
-                command.nodeId === state.nodeId;
-              // Validate the public envelope; JSON sockets carry the original codec bytes.
+                nodeId === state.nodeId;
               const delivered = Effect.runSync(
-                deliverActorCommand({
+                deliverActorOutput({
                   ...state,
                   aggregateSessionLock: retainedLock.lock,
-                  command: {
-                    ...command,
-                    admission: ownsCompletion ? command.admission : null,
-                    execution: ownsCompletion ? command.execution : null,
+                  output: {
+                    ...output,
+                    command: {
+                      ...output.command,
+                      failure: ownsCompletion ? output.command.failure : null,
+                    },
                   },
                 }),
               );
               connection.send(
                 JSON.stringify({
-                  type: 'aggregateActorCommand',
-                  command: {
-                    id: command.id,
-                    nodeId: ownsCompletion ? command.nodeId : null,
-                    nodeIndex: ownsCompletion ? command.nodeIndex : null,
-                    aggregateIndex: command.aggregateIndex,
-                    executedIndex: command.executedIndex,
-                    executedHash: command.executedHash,
-                    actorDelta: delivered.actorDelta,
-                    admission: delivered.admission,
-                    execution: delivered.execution,
-                  },
+                  type: 'aggregateActorOutput',
+                  output: delivered,
                 }),
               );
             } catch {
@@ -201,13 +202,13 @@ export class AggregateActorVersionChain extends makeFixedDORepo({
       }),
   });
   /*
-   * Exposes the already bound actorCommandsSubscriber capability from AggregateActorVersionChain.
+   * Exposes the already bound browserCommandSubscriber capability from AggregateActorVersionChain.
    *
    * 1. Return the bound capability.
    */
-  get actorCommandsSubscriber() {
+  get browserCommandSubscriber() {
     // 1 — reuse the existing private queue/subscriber instance
-    return this.#actorCommandsSubscriber;
+    return this.#browserCommandSubscriber;
   }
 
   /*
@@ -217,12 +218,12 @@ export class AggregateActorVersionChain extends makeFixedDORepo({
    *
    * 1. Run the bound domain operation.
    */
-  async getActorCommands(
-    props: Omit<Parameters<typeof getActorCommands>[0], 'db'>,
+  async getActorOutputs(
+    props: Omit<Parameters<typeof getActorOutputs>[0], 'db'>,
   ) {
-    // 1 — run getActorCommands with the instance-bound dependencies and encode its RPC outcome
+    // 1 — run getActorOutputs with the instance-bound dependencies and encode its RPC outcome
     return config.system.runtime.runPromise(
-      getActorCommands({
+      getActorOutputs({
         ...props,
         db: this.db,
       }).pipe(makeRpcEnvelope),
@@ -278,7 +279,7 @@ export class AggregateActorVersionChain extends makeFixedDORepo({
 
   /*
    * The aggregate definition log admits unchanged commands only on its validated live
-   * socket and returns linked admission receipts alongside selected delivery.
+   * socket and returns linked admission admittedCommands alongside selected delivery.
    * It handles the initial resume message by replaying missing executions and
    * owned results in one ordered stream before marking the connection live.
    * Invalid state or an unavailable cursor requests a fresh snapshot and closes

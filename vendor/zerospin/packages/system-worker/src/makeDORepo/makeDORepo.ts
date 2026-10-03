@@ -8,10 +8,6 @@ import type {
   IDbConfigRelations,
   IDbConfigSchema,
 } from '@zerospin/core/drizzle/types';
-import type {
-  IAggregateMachineReceiver,
-  IServiceMachineReceiver,
-} from '@zerospin/core/machine/receiver';
 import type { IRepoTableData, IRepoType } from '@zerospin/core/system/types';
 import { readRpcEnvelope } from '@zerospin/core/utils/readRpcEnvelope';
 import {
@@ -102,12 +98,6 @@ declare global {
       >;
       SERVICE_ACTOR_VERSION_CHAIN: DurableObjectNamespace<
         Rpc.DurableObjectBranded & ServiceActorVersionChain
-      >;
-      AGGREGATE_MACHINE_REPO: DurableObjectNamespace<
-        Rpc.DurableObjectBranded & IAggregateMachineReceiver
-      >;
-      SERVICE_MACHINE_REPO: DurableObjectNamespace<
-        Rpc.DurableObjectBranded & IServiceMachineReceiver
       >;
       SYSTEM_LOG_REPO: DurableObjectNamespace<
         Rpc.DurableObjectBranded & SystemLogRepo

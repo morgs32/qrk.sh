@@ -1,4 +1,8 @@
-import { type IAnyError, type IZerospinErrorJson } from '@zerospin/error';
+import {
+  encodeError,
+  type IAnyError,
+  type IZerospinErrorJson,
+} from '@zerospin/error';
 import { RpcTarget } from 'capnweb';
 import { Effect } from 'effect';
 
@@ -496,5 +500,29 @@ export class SystemApiFailure extends RpcTarget {
   ): ReturnType<SystemApi['makeSystemSpec']> {
     // 1 — run makeSystemSpec with the retained admission error
     return Effect.runPromise(makeSystemSpec({ request, error: this.error }));
+  }
+  async openAgentPreview(
+    _request: Parameters<SystemApi['openAgentPreview']>[0],
+  ): ReturnType<SystemApi['openAgentPreview']> {
+    return Effect.runPromise(
+      encodeError(this.error).pipe(
+        Effect.map(failure => ({
+          result: { _tag: 'Failure' as const, failure },
+          link: null,
+        })),
+      ),
+    );
+  }
+  async getAgentAggregateIds(
+    _request: Parameters<SystemApi['getAgentAggregateIds']>[0],
+  ): ReturnType<SystemApi['getAgentAggregateIds']> {
+    return Effect.runPromise(
+      encodeError(this.error).pipe(
+        Effect.map(failure => ({
+          result: { _tag: 'Failure' as const, failure },
+          link: null,
+        })),
+      ),
+    );
   }
 }

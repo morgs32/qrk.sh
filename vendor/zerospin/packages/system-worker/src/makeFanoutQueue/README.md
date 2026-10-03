@@ -13,9 +13,16 @@ subscriber table, receiver name utilities/lookup, owner key, concurrency, and
 inherited alarm registry. Optional `subscribersWhere` predicates further restrict
 eligible destinations, such as excluding invalidated materializers.
 
+An optional `readPage` supplies complete result rows when history spans command
+and receipt tables. The [service result reader](../ServiceVersionChain/readServiceResultsPage.ts)
+pages the merged `executedIndex` order and includes each command's entire captured
+operation list or the complete receipt. Its 64-result limit never splits one
+result into operation deliveries.
+
 The owner exposes one queue through a prototype getter. Its RPC methods are
-`getPage({ afterIndex, maxIndex? })` and
-`subscribe(receiverKey & { currentIndex })`. Local `drain(): Promise<void>`
+`getPage({ afterIndex, maxIndex? })`,
+`subscribe(receiverKey & { currentIndex })`, and
+`resumeSubscriber(receiverKey)`. Local `drain(): Promise<void>`
 starts immediately; it is not a queue RPC or an enqueue API. The source retains
 pending work in its own tables before asking the queue to deliver it.
 
@@ -56,7 +63,7 @@ from subscribing to its service feed. See [Repo activation](../makeDORepo/README
 
 ## Why enrollment cannot take the drain semaphore
 
-Drain serialization protects delivery scheduling while remote receipt is pending.
+Drain serialization protects delivery scheduling while remote delivery is pending.
 Sharing that semaphore with enrollment would introduce this cycle:
 
 ```mermaid
@@ -94,7 +101,7 @@ durable acknowledgements, and failure of the initial recovery alarm.
 ## Durable acknowledgement and failures
 
 Successful `receive` acknowledges the last delivered row only after receiver
-state commits. A crash after receipt but before acknowledgement can redeliver
+state commits. A crash after that commit but before acknowledgement can redeliver
 that page; receiver replay must recognize committed occurrences. Registration
 or a returned page tip does not prove receipt.
 
@@ -103,6 +110,8 @@ a terminal failure for that subscriber. Healthy subscribers continue. Later
 drains exclude failed subscribers, and enrollment rejects them without clearing
 the failure. Failure to persist that terminal outcome aborts the drain with its
 alarm lease retained. These rules also apply when a receiver's activation fails.
+
+Failed subscribers retain their failure and acknowledged cursor. Healthy actor and materializer subscribers continue independently.
 
 ## Alarm ownership and interruption
 
@@ -125,15 +134,6 @@ continuation. This boundary does not roll back arbitrary side effects: the calle
 transaction owns rollback. Scheduling failure prevents callback invocation and
 background delivery. Producer failure or interruption still launches a drain
 for any committed rows.
-
-A producer increments an active count before scheduling and advances a revision when
-it settles. A drain captures that revision with its persisted-tip read and clears
-its lease only if no producer is active and the revision is unchanged. Thus a drain
-that read an older tip cannot clear a newer producer's recovery. Admission does not
-wait for the delivery semaphore or remote receipts. The finalizer finishes producer
-bookkeeping before launching delivery; a cold queue reads durable history.
-See the [producer recovery tests](./makeFanoutQueue.node.spec.ts) and
-[live machine fanout test](../makeMachineRepo/makeMachineRepo.workerd.spec.ts).
 
 Enrollment holds the queue wakeup before committing, then starts delivery. A
 finished queue releases only its own lease; other queues may still need the shared

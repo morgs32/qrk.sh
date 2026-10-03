@@ -1,10 +1,14 @@
 import { makeDbConfig } from '@zerospin/core/drizzle/make/makeDbConfig/makeDbConfig';
+import { makeTable } from '@zerospin/schema';
 
 import { serviceActorVersionRepoDbConfig } from '../ServiceActorVersionRepo/serviceActorVersionRepoDbConfig.js';
 
-/** Retain the source command shape; browser delivery projects only permitted fields. */
+/** Retain each selected local execution with original command identity. */
 export const serviceActorVersionChainDbConfig = makeDbConfig({
   tables: {
-    commands: serviceActorVersionRepoDbConfig.tables.commands,
+    browserCommands: makeTable({
+      name: 'browserCommands',
+      shape: serviceActorVersionRepoDbConfig.tables.browserCommandOutbox.shape,
+    }),
   },
 });

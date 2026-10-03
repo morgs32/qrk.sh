@@ -4,7 +4,7 @@ import { Effect } from 'effect';
 
 import { aggregateActorVersionRepoDbConfig } from '../aggregateActorVersionRepoDbConfig.js';
 /*
- * Replica callers inspect the locally committed projection cursor.
+ * Projection callers inspect the locally committed projection cursor.
  * This reader reports local progress; publication durability is checked separately
  * by the snapshot path.
  *

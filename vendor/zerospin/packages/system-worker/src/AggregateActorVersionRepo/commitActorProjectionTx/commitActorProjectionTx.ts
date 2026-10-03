@@ -1,8 +1,4 @@
-import type { IAggregateActorCommand } from '@zerospin/core/aggregateSession/types';
-import type {
-  AggregateExecutedCommandSchema,
-  ServiceExecutedCommandSchema,
-} from '@zerospin/core/contracts/CommandSchema';
+import type { IAggregateActorOutput } from '@zerospin/core/aggregateSession/types';
 import type { ITx } from '@zerospin/core/drizzle/types';
 import type { ISelection } from '@zerospin/core/models/makeSelection';
 import type {
@@ -15,7 +11,6 @@ import { Effect } from 'effect';
 
 import { aggregateActorVersionRepoDbConfig } from '../aggregateActorVersionRepoDbConfig.js';
 import { readSelectedResources } from '../readSelectedResources.js';
-import { commandRowForSource, commandRowInput } from '../retainedCommands.js';
 
 /** Select the identity graph, emit one actor command, and checkpoint the projection. */
 export const commitActorProjectionTx = Effect.fn('commitActorProjectionTx')(
@@ -29,12 +24,9 @@ export const commitActorProjectionTx = Effect.fn('commitActorProjectionTx')(
     executedIndex: number;
     executedHash: string;
     aggregateIndex: number;
-    commandId: IAggregateActorCommand['id'];
-    sourceCommand:
-      | typeof AggregateExecutedCommandSchema.Type
-      | typeof ServiceExecutedCommandSchema.Type;
-    admission: IAggregateActorCommand['admission'];
-    execution: IAggregateActorCommand['execution'];
+    output: Omit<IAggregateActorOutput, 'command'> & {
+      command: Omit<IAggregateActorOutput['command'], 'delta'>;
+    };
     ownerClaims: Readonly<Record<string, unknown>> | null;
     ownerSessionName: string | null;
     nodeId: string | null;
@@ -90,34 +82,28 @@ export const commitActorProjectionTx = Effect.fn('commitActorProjectionTx')(
         })),
     };
 
-    const existing = commandRowForSource(tx, props.sourceCommand);
-    const rowId = existing?.rowId ?? `row_${crypto.randomUUID()}`;
-    const output = yield* aggregateActorVersionRepoDbConfig.tables.commands
-      .encodeRow({
-        ...commandRowInput({
-          rowId,
-          command: props.sourceCommand,
-          aggregateVersion,
-        }),
-        executedIndex,
-        executedHash,
-        actorAggregateIndex: aggregateIndex,
-        actorDelta,
-        acknowledgedAt: null,
-        lastDeliveryFailure: null,
-      })
-      .pipe(
-        mapParseError({
-          code: 'replica-output-invalid',
-          prefix: 'Failed to encode definition output',
-        }),
-      );
-    tx.insert(aggregateActorVersionRepoDbConfig.schema.commands)
-      .values(output)
-      .onConflictDoUpdate({
-        target: aggregateActorVersionRepoDbConfig.schema.commands.rowId,
-        set: output,
-      })
+    const retained =
+      yield* aggregateActorVersionRepoDbConfig.tables.browserCommandOutbox
+        .encodeRow({
+          executedIndex,
+          executedHash,
+          aggregateIndex,
+          ...props.output.command,
+          delta: actorDelta,
+          completionNodeId: props.nodeId,
+          completionNodeIndex: props.nodeIndex,
+          completionClaims: props.ownerClaims,
+          completionSessionName: props.ownerSessionName,
+          lastDeliveryFailure: null,
+        })
+        .pipe(
+          mapParseError({
+            code: 'projection-output-invalid',
+            prefix: 'Failed to encode actor output',
+          }),
+        );
+    tx.insert(aggregateActorVersionRepoDbConfig.schema.browserCommandOutbox)
+      .values(retained)
       .run();
     tx.insert(aggregateActorVersionRepoDbConfig.schema.actorState)
       .values({

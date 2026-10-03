@@ -1,0 +1,84 @@
+{
+  "key": "quickstart-schema",
+  "chartOfAccounts": {
+    "defaultConsistencyConfig": {
+      "totalBalanceUpdates": "strong"
+    },
+    "defaultCurrencyMode": "multi",
+    "accounts": [
+      {
+        "key": "assets",
+        "type": "asset"
+      },
+      {
+        "key": "liabilities",
+        "type": "liability"
+      },
+      {
+        "key": "income",
+        "type": "income"
+      },
+      {
+        "key": "expense",
+        "type": "expense"
+      }
+    ]
+  },
+  "ledgerEntries": {
+    "types": [
+      {
+        "type": "simple-entry",
+        "lines": [
+          {
+            "key": "line-WPZ6bsw08YyW",
+            "account": {
+              "path": "assets"
+            },
+            "currency": {
+              "code": "USD"
+            },
+            "amount": "{{gross_amount}}"
+          },
+          {
+            "key": "line-m4spJaQWFqnw",
+            "account": {
+              "path": "liabilities"
+            },
+            "currency": {
+              "code": "USD"
+            },
+            "amount": "{{gross_amount}}-{{fee_revenue}}"
+          },
+          {
+            "key": "line-bvZiWSE69k4m",
+            "account": {
+              "path": "income"
+            },
+            "currency": {
+              "code": "USD"
+            },
+            "amount": "{{fee_revenue}}"
+          }
+        ]
+      }
+    ]
+  },
+  "scenes": [
+    {
+      "name": "Simple Scenario",
+      "events": [
+        {
+          "eventType": "entry",
+          "entry": {
+            "type": "simple-entry",
+            "typeVersion": 1,
+            "parameters": {
+              "fee_revenue": "250",
+              "gross_amount": "10000"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

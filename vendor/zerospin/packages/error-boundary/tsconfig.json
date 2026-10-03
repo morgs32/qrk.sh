@@ -36,7 +36,7 @@
     "types": ["node", "vite/client"]
   },
   "include": ["src"],
-  "exclude": ["**/*.spec.ts", "**/*.spec.tsx"],
+  "exclude": [],
   "references": [
     {
       "path": "../error"

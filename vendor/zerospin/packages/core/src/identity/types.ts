@@ -29,6 +29,7 @@ export type IAggregateAuthentication<
   I extends IClaimsSchema = IClaimsSchema,
 > =
   | 'none'
+  | 'system'
   | Readonly<{
       credentialsSchema: C;
       authenticate(props: {

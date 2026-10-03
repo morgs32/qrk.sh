@@ -3,7 +3,9 @@ import { makeAbbreviationIdSchema } from '@zerospin/schema';
 import { Schema, Tuple } from 'effect';
 
 import { AdmissionResultSchema } from './AdmissionResultSchema.ts';
+import { AsyncCommandInputSchema } from './AsyncCommandInputSchema.ts';
 import { ExecutionResultSchema } from './ExecutionResultSchema.ts';
+import { ServiceCallerSchema } from './ServiceCallerSchema.ts';
 import type {
   IAggregateCommand,
   IEncodedCommand,
@@ -20,6 +22,7 @@ const UnknownAggregateCommandBaseSchema = Schema.Struct({
   id: makeAbbreviationIdSchema('cmd'),
   commandName: Schema.String,
   payload: Schema.Unknown,
+  asyncInput: Schema.optionalKey(Schema.NullOr(AsyncCommandInputSchema)),
   contractVersion: Schema.String,
   aggregateId: Schema.String,
   aggregateName: Schema.String,
@@ -50,24 +53,29 @@ export const UnknownServiceCommandSchema = Schema.Struct({
   id: makeAbbreviationIdSchema('cmd'),
   commandName: Schema.String,
   payload: Schema.Unknown,
+  asyncInput: Schema.optionalKey(Schema.NullOr(AsyncCommandInputSchema)),
   contractVersion: Schema.String,
   serviceName: Schema.String,
   serviceVersion: Schema.String,
+  caller: Schema.NullOr(ServiceCallerSchema),
 }) satisfies Schema.Codec<IServiceCommand, any>;
 
 export const EncodedServiceCommandSchema = Schema.Struct({
   id: makeAbbreviationIdSchema('cmd'),
   commandName: Schema.String,
   payload: Schema.String,
+  asyncInput: Schema.optionalKey(Schema.NullOr(AsyncCommandInputSchema)),
   contractVersion: Schema.String,
   serviceName: Schema.String,
   serviceVersion: Schema.String,
+  caller: Schema.NullOr(ServiceCallerSchema),
 }) satisfies Schema.Codec<IEncodedCommand<IServiceCommand>, any>;
 
 const EncodedAggregateCommandBaseSchema = Schema.Struct({
   id: makeAbbreviationIdSchema('cmd'),
   commandName: Schema.String,
   payload: Schema.String,
+  asyncInput: Schema.optionalKey(Schema.NullOr(AsyncCommandInputSchema)),
   contractVersion: Schema.String,
   aggregateId: Schema.String,
   aggregateName: Schema.String,
@@ -98,6 +106,7 @@ export const EncodedSessionCommandSchema = Schema.Struct({
   id: makeAbbreviationIdSchema('cmd'),
   commandName: Schema.String,
   payload: Schema.String,
+  asyncInput: Schema.optionalKey(Schema.NullOr(AsyncCommandInputSchema)),
   contractVersion: Schema.String,
   aggregateId: Schema.String,
   aggregateName: Schema.String,
@@ -134,22 +143,8 @@ export const AggregateChainedCommandSchema =
     ),
   );
 
-/** Authoritative replication copy read by a version-owned materializer. */
-export const ReplicatedResourceMutationSchema = Schema.Struct({
-  modelName: Schema.String,
-  modelVersion: Schema.String,
-  operationName: Schema.Literal('replicate'),
-  resourceId: Schema.String,
-  operation: Schema.Struct({
-    serviceName: Schema.String,
-    serviceVersion: Schema.String,
-    serviceIndex: Schema.Number,
-    resource: Schema.Unknown,
-  }),
-});
-
 /** Completed results include admission rejections without claiming execution took place. */
-export const AggregateExecutedCommandSchema =
+export const AggregateTerminalCommandSchema =
   AggregateChainedCommandSchema.mapMembers(
     Tuple.map(
       Schema.fieldsAssign({
@@ -169,7 +164,7 @@ export const AggregateExecutedCommandSchema =
         'Execution is skipped exactly when admission failed',
     ),
   );
-export const ServiceExecutedCommandSchema = Schema.fieldsAssign({
+export const ServiceTerminalCommandSchema = Schema.fieldsAssign({
   dispositionHash: LowercaseSha256Schema,
   execution: Schema.Union([
     ExecutionResultSchema.members[1],

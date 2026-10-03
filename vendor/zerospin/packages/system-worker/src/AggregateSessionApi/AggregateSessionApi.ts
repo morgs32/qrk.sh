@@ -6,7 +6,7 @@ import { RpcTarget } from 'capnweb';
 
 import { createWebSocketTicket } from './createWebSocketTicket/createWebSocketTicket.js';
 import { executeServiceQuery } from './executeServiceQuery/executeServiceQuery.js';
-import { getActorCommands } from './getActorCommands/getActorCommands.js';
+import { getActorOutputs } from './getActorOutputs/getActorOutputs.js';
 import { getSnapshot } from './getSnapshot/getSnapshot.js';
 import { validateActorCommand } from './validateActorCommand/validateActorCommand.js';
 
@@ -67,14 +67,14 @@ export class AggregateSessionApi extends RpcTarget {
     );
   }
 
-  async getActorCommands(
+  async getActorOutputs(
     request: IRpcRequest<
       [{ afterExecutedIndex: number; aggregateVersion: string }]
     >,
   ) {
-    // 1 — run getActorCommands with the instance-bound dependencies
+    // 1 — run getActorOutputs with the instance-bound dependencies
     return this.#runtime.runPromise(
-      getActorCommands({ request, authResults: this.#authResults }),
+      getActorOutputs({ request, authResults: this.#authResults }),
     );
   }
 
@@ -97,9 +97,9 @@ export class AggregateSessionApi extends RpcTarget {
   }
 
   /*
-   * The aggregate definition capability selects the current base version and
-   * requests its user/definition snapshot from ReplicaRepo. The Replica
-   * Repo owns catch-up and projected state.
+   * The aggregate session capability requests its admitted version and actor
+   * snapshot from AggregateActorVersionRepo. The repo owns catch-up and
+   * actor projection state.
    *
    * 1. Run the bound domain operation.
    */

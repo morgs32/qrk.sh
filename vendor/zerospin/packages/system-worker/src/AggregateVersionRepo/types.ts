@@ -1,9 +1,12 @@
+import { type readAggregateVersionRepoOutput } from '../asyncOperations/readOperationOutput.js';
+
 import type { aggregateVersionRepoDbConfig } from './aggregateVersionRepoDbConfig.js';
-
-export type IExecutedCommandOutboxRow =
-  | typeof aggregateVersionRepoDbConfig.schema.aggregateCommands.$inferSelect
-  | typeof aggregateVersionRepoDbConfig.schema.serviceCommands.$inferSelect;
-
-export type IExecutedCommandDelivery = IExecutedCommandOutboxRow & {
-  mutations: readonly (typeof aggregateVersionRepoDbConfig.schema.mutations.$inferSelect)[];
-};
+export type IExecutedCommandOutboxRow = Readonly<{
+  kind: 'command';
+  executedIndex: number;
+  command: typeof aggregateVersionRepoDbConfig.schema.executedCommandOutbox.$inferSelect;
+}>;
+export type IExecutedCommandDelivery = IExecutedCommandOutboxRow &
+  Readonly<{
+    operations: ReturnType<typeof readAggregateVersionRepoOutput>;
+  }>;

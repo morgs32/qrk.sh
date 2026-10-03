@@ -1,5 +1,6 @@
 import { mapValues } from 'es-toolkit';
 
+import { publicContracts } from '../../contracts/asyncContract.ts';
 import type { IAggregateSessionDefinition } from '../types.ts';
 
 import { makeAggregateSessionLock } from './makeAggregateSessionLock.ts';
@@ -9,15 +10,19 @@ export function makeAggregateSessionSpec(
 ) {
   const aggregateSessionLock = makeAggregateSessionLock(definition);
   const modelNames: readonly string[] = definition.modelNames.toSorted();
-  const contracts = mapValues(definition.contracts, contract => {
-    return {
-      commandName: contract.spec.commandName,
-      version: contract.spec.version,
-      payloadShape: structuredClone(contract.spec.payloadShape),
-      failureJsonSchema: structuredClone(contract.spec.failureJsonSchema),
-      models: structuredClone(contract.spec.models),
-    };
-  });
+  const contracts = mapValues(
+    publicContracts(definition.contracts),
+    contract => {
+      return {
+        commandName: contract.spec.commandName,
+        version: contract.spec.version,
+        payloadShape: structuredClone(contract.spec.payloadShape),
+        failureJsonSchema: structuredClone(contract.spec.failureJsonSchema),
+        resultJsonSchema: structuredClone(contract.spec.resultJsonSchema),
+        models: structuredClone(contract.spec.models),
+      };
+    },
+  );
 
   return {
     actorName: definition.actorName,

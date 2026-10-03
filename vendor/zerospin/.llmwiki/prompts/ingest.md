@@ -18,8 +18,10 @@ update the wiki so it reflects the code at HEAD.
 - For UI code, do not describe runtime behavior unless a test file confirms it.
 - When the diff contradicts an existing page, add a `> CONTRADICTION:` blockquote,
   fix the page, and note both sides in `log.md`.
-- Do NOT commit anything. The hook commits generated pages outside `wiki/dev/**`
-  for you.
+- Do NOT commit anything. The hook commits generated pages for you. Exclude
+  the human-authored `wiki/plans/`, `wiki/adrs/`, `wiki/archive/`,
+  `wiki/handoffs/`, `wiki/specs/`, `wiki/rfcs/`, `wiki/research/`, and
+  `wiki/diagrams/` trees.
 - `wiki/glossary.md` uses one `## Term` ATX heading per entry; never a definition table and never HTML ids.
 - Inbound glossary links use the exact heading text as the fragment (for example `glossary.md#systemName`), not a lowercased GitHub slug.
 - After each glossary term's definition, list citations as unordered bullets. Each bullet is one working Markdown source citation followed by an em dash and one sentence naming the term-relevant fact at that range. Do not comma-separate citations. Do not restate the definition.

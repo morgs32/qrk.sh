@@ -1,6 +1,6 @@
 ---
 title: Authored System and Static Worker
-updated: 2026-09-26
+updated: 2026-10-02
 ---
 
 # Authored System and Static Worker
@@ -22,18 +22,11 @@ imports its selected command module separately.
 
 - [`makeWranglerConfig.ts`](../../packages/dev-worker/src/makeWranglerConfig.ts) — binds the direct `config` alias.
 - [`loadZerospinConfigFn.ts`](../../packages/cli/src/deploy/loadZerospinConfigFn.ts) — loads TypeScript with project aliases and validates live capabilities.
-- [`e2eFn.spec.ts`](../../packages/cli/src/e2e/e2eFn.spec.ts) — runs the shared fixture through the CLI and workerd using the direct config alias.
 
-Worker tsconfigs map `config` to the isolated configuration fixture and reference
-its declaration project. Worker builds still replace that module with the selected
-application configuration through Wrangler. There is no `config` workspace package.
-
-- [`config.ts`](../../packages/fixtures/src/config/config.ts) — default-exports the inferred compile-time configuration.
-- [`tsconfig.config.json`](../../packages/fixtures/tsconfig.config.json) — builds only this fixture, without test workers or purchase/fulfillment scenarios.
+Worker tsconfigs map `config` to the System Worker declaration for the injected application module. Worker builds resolve that module to the selected application configuration through Wrangler. There is no `config` workspace package.
 
 ## Generated backend configuration
 
-The CLI and workerd test setup share `makeWranglerConfig`. It derives
 `zerospin-${system.name}`, validates the resulting Worker name, and owns the
 entrypoint, config alias, compatibility settings, static DO bindings, SQLite
 exports, observability defaults, environment, and production version metadata.
@@ -45,19 +38,15 @@ Project configuration exposes `systemId`; it has no Wrangler overrides.
 Generated Wrangler configs live in unique directories under
 `.wrangler/zerospin/`. CLI scopes and the test plugin dispose generated files;
 local dev persistence remains in `dev-worker/<systemId>` under that same root.
-Dev and tests resolve `.env`/`.dev.vars` against the project root using Wrangler's
 loader. Deployment continues to load project keys separately and writes a
 scoped mode-0600 secrets file.
 
 - [`devFn.ts`](../../packages/cli/src/dev/devFn.ts) — preserves the selected system's persistence path and binds project-root local variables.
 - [`deployWranglerFn.ts`](../../packages/cli/src/deploy/deployWranglerFn.ts) — generates production configuration and separate secrets with scoped cleanup.
-- [`makeWorkerdVitestConfig.ts`](../../packages/dev-worker/src/vitest/makeWorkerdVitestConfig.ts) — generates test configuration, supports internal fixture entrypoints/bindings, and disposes its files.
 
-Workerd tests explicitly receive the project `config` and need no prior CLI run.
 Shopping owns its session hosting configuration, but has no backend Worker,
 backend Wrangler files, or generated backend type declarations.
 
-- [`vitest.zerospin.config.ts`](../../examples/shopping/vitest.zerospin.config.ts) — passes Shopping's configuration to the test helper.
 - [`vite.config.ts`](../../examples/shopping/vite.config.ts) — retains the app-owned session Wrangler configuration.
 - [`tsconfig.json`](../../examples/shopping/tsconfig.json) — checks application sources without generated backend declarations.
 
@@ -120,8 +109,7 @@ this guard and no longer stores an original spec in `head`.
 - [`makeDORepo.ts`](../../packages/system-worker/src/makeDORepo/makeDORepo.ts) — guards the concurrency block before SQLite setup or marker reads.
 - [`registerRepo.ts`](../../packages/system-worker/src/SystemRepo/registerRepo/registerRepo.ts) — checks accepted definitions before writing table metadata.
 - [`registerReposTx.ts`](../../packages/system-worker/src/SystemRepo/registerRepos/registerReposTx.ts) — applies the same prerequisite to atomic bulk registration.
-- [`onDOActivation.ts`](../../packages/system-worker/src/AggregateVersionRepo/onDOActivation/onDOActivation.ts) — initializes the genesis execution head and then sources.
-- [`activationGuard.node.spec.ts`](../../packages/system-worker/src/makeDORepo/activationGuard.node.spec.ts) — checks rejection before storage and bootstrap/restart recovery.
+- [`onDOActivation.ts`](../../packages/system-worker/src/AggregateVersionRepo/onDOActivation/onDOActivation.ts) — initializes the genesis execution head.
 
 This is a hard cutover requiring fresh SystemRepo and affected AVR storage.
 There is no adoption, fallback decoder, or translation migration for existing
@@ -139,14 +127,12 @@ formats the route key and resolves the namespace stub when run. Passing the
 static directly to a queue preserves its captured binding and name contract.
 
 - [`makeDORepo.ts`](../../packages/system-worker/src/makeDORepo/makeDORepo.ts) — Declares the namespace type map and implements the captured static lookup.
-- [`makeDORepo.node.spec.ts`](../../packages/system-worker/src/makeDORepo/makeDORepo.node.spec.ts) — Verifies lazy lookup, exact names, detached calls, and failure behavior without readiness or authorization calls.
 
 SystemRepo uses the configured system ID as its unprefixed name. Its constructor
 validates singleton identity before common Repo initialization; obtaining a stub
 alone does not validate that identity.
 
 - [`SystemRepo.ts`](../../packages/system-worker/src/SystemRepo/SystemRepo.ts) — Checks the configured name and system-ID schema before calling the common constructor.
-- [`makeDORepo.workerd.spec.ts`](../../packages/system-worker/src/makeDORepo/makeDORepo.workerd.spec.ts) — Exercises configured singleton access and rejects other identities at activation.
 
 ## Shared alarm dispatch
 
@@ -175,13 +161,11 @@ sequenceDiagram
 
 1. Cloudflare delivers the inherited alarm after activation completes. A registered custom superclass alarm preserves its own initialization and hook.
    - [`makeDORepo.ts`](../../packages/system-worker/src/makeDORepo/makeDORepo.ts) — Creates the registry before derived fields and registers a bound custom superclass alarm when present.
-   - [`makeFixedDORepo.workerd.spec.ts`](../../packages/system-worker/src/makeFixedDORepo/makeFixedDORepo.workerd.spec.ts) — Exercises reconstructed registrations, retained work, activation ordering, and the PartyServer superclass hook.
 2. The base dispatches every registered operation, even when no in-memory leases survived a cold activation. Drains read durable progress; subscriptions have already completed during activation.
    - [`makeFanoutQueue.ts`](../../packages/system-worker/src/makeFanoutQueue/makeFanoutQueue.ts) — Registers the internal serialized fanout drain without changing the public Promise-based drain.
    - [`makeOutboxQueue.ts`](../../packages/system-worker/src/makeOutboxQueue/makeOutboxQueue.ts) — Registers unbounded outbox recovery while retaining bounded explicit drains.
 3. Dispatch captures each operation's full outcome without cancelling sibling operations, then combines failures. Hold and release continue to coordinate the shared scheduled wakeup.
    - [`makeAlarmRegistry.ts`](../../packages/system-worker/src/makeAlarmRegistry/makeAlarmRegistry.ts) — Maintains separate registrations and leases and combines failure causes after concurrent dispatch settles.
-   - [`makeAlarmRegistry.node.spec.ts`](../../packages/system-worker/src/makeAlarmRegistry/makeAlarmRegistry.node.spec.ts) — Verifies inert registration, independent failures and defects, and release while another operation remains pending.
 4. The inherited alarm resolves only after dispatch completes and rejects on failure without an RPC result envelope.
    - [`makeDORepo.ts`](../../packages/system-worker/src/makeDORepo/makeDORepo.ts) — Runs registry dispatch through the configured runtime with AsyncLive and propagates rejection.
 
@@ -197,13 +181,10 @@ become inactive. No System spec publication or subscription is involved.
 
 ## Recovery and inspection
 
-AVR's activation initializes and subscribes every service declared by its selected
-aggregate snapshot. Its alarm resumes result publication. AC owns its admitted-command destination; AVR has no automatic AC
-catch-up-and-subscribe callback. Direct execution catches up explicitly through the requested admitted index.
+AVR initializes its local execution head and recovers pending publication. AC reconciles the deployed aggregate versions as admitted-command destinations. Direct execution catches up through the requested admitted index.
 
-- [`onDOActivation.ts`](../../packages/system-worker/src/AggregateVersionRepo/onDOActivation/onDOActivation.ts) — Initializes declared source cursors and subscribes without an execution permit; existing progress survives reactivation.
-- [`execute.ts`](../../packages/system-worker/src/AggregateVersionRepo/execute/execute.ts) — Catches up through the requested admitted index and returns retained terminal results.
-- [`onDOActivation.workerd.spec.ts`](../../packages/system-worker/src/AggregateVersionRepo/onDOActivation/onDOActivation.workerd.spec.ts) — Verifies failed receipt and alarm recovery do not self-enroll with AC.
+- [`onDOActivation.ts`](../../packages/system-worker/src/AggregateVersionRepo/onDOActivation/onDOActivation.ts) — initializes retained execution state and recovers pending external work.
+- [`execute.ts`](../../packages/system-worker/src/AggregateVersionRepo/execute/execute.ts) — catches up and returns retained terminal results.
 
 Inspection reads explicit Repo registrations, including their retained table
 names. Definition locks are retained separately from these registrations; inspection does not infer unactivated instances from locks.
@@ -227,7 +208,6 @@ External tables, schema objects, and opaque defaults retain their identity;
 
 - [`makeTable.ts`](../../packages/schema/src/makeTable.ts) — constructs the table-owned graph after self-reference resolution.
 - [`primitives.ts`](../../packages/schema/src/primitives.ts) — checks the target is a Table instance before inspecting its primary key.
-- [`makeTable.node.spec.ts`](../../packages/schema/src/makeTable.node.spec.ts) — verifies ownership, self-reference identity, and rejection of structural targets.
 - [`IdentitySchema.ts`](../../packages/core/src/identity/make/makeActorIdentity/IdentitySchema/IdentitySchema.ts) — validates aggregate and service identity declarations and reversible selection patterns.
 - [`makeModelVersion.ts`](../../packages/core/src/models/make/makeModelVersion.ts) — resolves the Model-owned table, then attaches owned descriptors, shapes, indexes, and the table object.
 - [`makeModelVersion.ts`](../../packages/core/src/models/make/makeModelVersion.ts) — builds the serializable model spec.
@@ -235,15 +215,9 @@ External tables, schema objects, and opaque defaults retain their identity;
 The authoring factories produce canonical instances of
 `Model`, `Contract`, `Service`, and `Aggregate`.
 `makeSession` constructs a live session from direct configuration. Its internal
-definition builders validate models and contracts and construct lock inputs. `makeReplica` creates another canonical `Model` and registers its
-provenance after construction. The `Service` and `Aggregate` constructors stay
-private to their factory modules.
+definition builders validate models and contracts and construct lock inputs. The `Service` and `Aggregate` constructors stay private to their factory modules.
 
-- [`defineModel.ts`](../../packages/core/src/models/defineModel.ts) — stores replica provenance in a module-private `WeakMap` outside the instance.
-- [`defineModel.ts`](../../packages/core/src/models/defineModel.ts) — declares inherited non-enumerable getters, one-shot `markReplica`, and `Model.isReplica`.
-- [`makeModelVersion.ts`](../../packages/core/src/models/make/makeModelVersion.ts) — constructs the canonical `Model` instance.
-- [`makeReplica.ts`](../../packages/core/src/models/make/makeReplica.ts) — accepts only a canonical source `Model` and rejects nested replicas.
-- [`makeReplica.ts`](../../packages/core/src/models/make/makeReplica.ts) — constructs the replica through `makeModelVersion`, then registers exact source and service name after the instance exists.
+- [`makeModelVersion.ts`](../../packages/core/src/models/make/makeModelVersion.ts) — constructs the canonical owned `Model`.
 - [`makeSessionDefinition.ts`](../../packages/core/src/sessionDefinition/makeSessionDefinition.ts) — internally constructs and validates aggregate session definitions from plain constructor fields.
 - [`makeServiceSessionDefinition.ts`](../../packages/core/src/serviceSession/make/makeServiceSessionDefinition.ts) — authors the service session definition without `systemName`.
 - [`makeService.ts`](../../packages/core/src/service/make/makeService.ts) — keeps `Service` private while exposing its internal canonical-instance schema.
@@ -277,20 +251,19 @@ Neither factory takes `systemName` as an owner-level prop.
 - [`makeService.ts`](../../packages/core/src/service/make/makeService.ts) — constructs the canonical `Service`.
 - [`makeAggregateVersion.ts`](../../packages/core/src/aggregate/make/makeAggregateVersion.ts) — constructs the decoded aggregate registries it owns.
 - [`makeAggregateVersion.ts`](../../packages/core/src/aggregate/make/makeAggregateVersion.ts) — constructs the canonical `Aggregate`.
-- [`authorization.node.spec.ts`](../../packages/core/src/aggregate/authorization.node.spec.ts) — verifies optional authorization, supplied failures, and upgrade inheritance, replacement, and removal.
 - [`authorizeAggregateSession.ts`](../../packages/system-worker/src/AggregateVersionRepo/authorizeAggregateSession/authorizeAggregateSession.ts) — skips omitted checks and runs supplied authorization against owner-local model queries.
 
-Aggregate actor versions select callable contracts from their host's canonical declarations. Aggregate versions combine optional named `modules` with flat `models` and `contracts`, rejecting duplicate names and deriving service pins from the effective replicas. Contract model aliases are compared by their underlying model identities: mutation models must appear in the actor's database, and registered models must match the aggregate's canonical versions. Service and session registrations retain `{ contract }` bindings.
+Aggregate actor versions select callable contracts from their host's canonical declarations. Aggregate versions combine optional named `modules` with flat `models` and `contracts`, rejecting duplicate names. Contract model aliases are compared by their underlying model identities: mutation models must appear in the actor's database, and registered models must match the aggregate's canonical versions. Service and session registrations retain `{ contract }` bindings.
 
-`updateAggregateActorVersion(previous, changes)` inherits omitted declaration fields and merges supplied `contracts`, `queries`, and `guards` by key. Supplied entries replace matching keys; an empty map preserves existing entries. Database, identity, and authorization overrides replace inherited values, and the complete merged declaration receives the same constructor validation.
+`updateAggregateActorVersion(previous, changes)` inherits omitted declaration fields and merges supplied `contracts`, `selections`, and `guards` by key. Supplied entries replace matching keys; an empty map preserves existing entries. Database, identity, and authorization overrides replace inherited values, and the complete merged declaration receives the same constructor validation.
 
-Authored `queries` are native `actorDb.query.model.findMany(...)` queries. `makeActorDbVersion({ models })` pins the database graph without opening storage. `makeActorIdentity({ claims, actorPath })` derives identity codecs from the path and exposes typed `sql.placeholder(name)` inputs. The actor captures SQL, serializable bindings, and row mapping once at construction as `actor.selections`.
+Authored `selections` are native `actorDb.query.model.findMany(...)` queries. `makeActorDbVersion({ models })` pins the database graph without opening storage. `makeActorIdentity({ claims, actorPath })` derives identity codecs from the path and exposes typed `sql.placeholder(name)` inputs. The actor captures SQL, serializable bindings, and row mapping once at construction as `actor.capturedSelections`.
 
 Contracts may declare a reusable claims schema and a shared synchronous `guard({ payload, claims, db })`. Execution validates claims once before callbacks. Local staging and pending replay run the guard before the program; authoritative execution prepares the program, then runs the guard inside the mutation transaction before applying mutations. Both callbacks use the same validated claims. Guard business failures use the executing contract's failure codec and explicit historical adapters.
 
 Contract programs retain mutation-array results. Database queries observe the invocation state before those mutations are applied. Session validation calculates without applying writes; staging and replay use local state, with replay using its active transaction. Aggregate and service materializers recalculate from their own state and commit each command before preparing the next. The client allocation is not retained as command intent.
 
-Changing an actor's database requires rebuilding its queries against that definition. Selections have no independent identity or version; the actor version locks their compiled SQL and bindings along with model bindings.
+Changing an actor's database requires rebuilding its selections against that definition. Selections have no independent identity or version; the actor version locks their compiled SQL and bindings along with model bindings.
 
 `defineGuard({ name })` and `makeGuardVersion(identity, { version, payload, failure })` declare a typed capability. `.guard(payload)` requires that exact name/version; `.make(implementation)` supplies a layer and preserves its dependencies. Aggregate implementations override actor defaults, with actor fallback for other capabilities. Actor layers are scoped to an invocation; database and identity services bind to that invocation. Browser sessions supply their own layers.
 
@@ -299,53 +272,34 @@ Changing an actor's database requires rebuilding its queries against that defini
 - [`makeAggregateActorVersion.ts`](../../packages/core/src/aggregateActor/make/makeAggregateActorVersion/makeAggregateActorVersion.ts) — validates actor contract, selection, and identity composition.
 - [`makeActorDbVersion.ts`](../../packages/core/src/models/make/makeActorDbVersion.ts) — constructs native relational queries and captures transaction-local execution.
 - [`makeGuardVersion.ts`](../../packages/core/src/guards/makeGuardVersion.ts) — validates named guard inputs and failures and retains implementation dependencies.
-- [`makeMutations.ts`](../../packages/core/src/contracts/make/makeMutations.ts) — validates claims once and shares the guard between local and authoritative execution.
+- [`makeOperations.ts`](../../packages/core/src/contracts/make/makeOperations.ts) — validates claims once and shares the guard between local and authoritative execution.
 
-Declare a shared identity with `defineAggregate({ name: 'shopper' })`, which
+Declare a shared identity with `defineAggregate({ name: 'user' })`, which
 returns `{ name }`. Construct each version with
-`makeAggregateVersion(shopper, props)`; the version props do not repeat the name.
+`makeAggregateVersion(user, props)`; the version props do not repeat the name.
 
 - [`defineAggregate.ts`](../../packages/core/src/aggregate/defineAggregate.ts) — validates and constructs the shared name identity.
 - [`index.ts`](../../packages/sdk/src/index.ts) — explicitly exports server authoring functions.
 
 Each aggregate owns one exact SemVer version. Its flat declarations and optional
 `modules` contribute one effective inventory; duplicate declaration names are
-errors, including duplicates that reference the same object. Replica models
-supply service-version pins. Replicas from one service must agree on its version.
+errors, including duplicates that reference the same object.
 `upgradeAggregateVersion(previous, props)` retains the aggregate name and builds
 an independent version from complete declarations through the same composition
 and validation path. Omitted collections are empty, not inherited; earlier
 aggregate instances remain unchanged.
 Services also own one exact version. Register older service definitions explicitly in `makeSystem`; service definitions and specs contain no `historicalDefinitions`.
 
-- [`makeAggregateVersion.ts`](../../packages/core/src/aggregate/make/makeAggregateVersion.ts) — composes and validates independent aggregate versions and derives replica service pins.
+- [`makeAggregateVersion.ts`](../../packages/core/src/aggregate/make/makeAggregateVersion.ts) — composes and validates independent aggregate versions.
 - [`makeCommand.ts`](../../packages/core/src/makeCommand.ts) — exposes `makeCommand(service, { contractName, payload })` with the selected contract’s payload type and service metadata.
 - [`makeSystemSpec.ts`](../../packages/core/src/system/make/makeSystemSpec.ts) — serializes each registered service definition without history arrays.
 - [`makeCommand.ts`](../../packages/core/src/makeCommand.ts) — constructs typed commands from the selected contract binding and aggregate metadata.
-- [`makeSystemSpec.ts`](../../packages/core/src/system/make/makeSystemSpec.ts) — serializes each aggregate's exact version and service pins without aggregate history.
-- [`upgrade.node.spec.ts`](../../packages/core/src/aggregate/upgrade.node.spec.ts) — checks independent upgrades, removals, validation and upgraded command construction.
+- [`makeSystemSpec.ts`](../../packages/core/src/system/make/makeSystemSpec.ts) — serializes each aggregate's exact version without aggregate history.
 
-`makeReplica` requires an explicit `modelVersion`. That version must equal `sourceModel.version`; the replica uses that exact source schema. Each aggregate definition pins every replicated service by version. System assembly requires the pinned service snapshot to exist and its corresponding model version to match the replica exactly.
+Parent factories decode canonical owner instances. System assembly checks owner registry names and exclusive service-model ownership; aggregates have no inferred service pins. RPC, persistence, and session inputs retain their boundary validation.
 
-- [`makeReplica.ts`](../../packages/core/src/models/make/makeReplica.ts) — Builds the replica from the exact source model and rejects a mismatched version.
-- [`resolveSystemAggregate.ts`](../../packages/core/src/system/make/makeSystem/resolveSystemAggregate/resolveSystemAggregate.ts) — Validates aggregate service pins and exact source-model version equality.
-- [`service-model-ownership.node.spec.ts`](../../packages/core/src/system/tests/service-model-ownership.node.spec.ts) — Covers missing pins, unsupported service snapshots, and model-version mismatches.
-
-Parent factories do not repeat their children's validation. `makeSystem` first
-rejects structural owner copies by decoding only canonical `Service` and
-`Aggregate` instances. Its thin resolvers enforce only graph relationships:
-registry key equals owner name, each source-model object has one service owner, every aggregate
-replica points to the exact source object in its named service, aggregate code
-does not directly reuse a service source, and every service pin resolves to
-an existing service version. It assembles identity, the owner registries,
-and each resolved Aggregate snapshot into the final System graph. Runtime RPC,
-persistence, and session inputs retain their normal boundary validation.
-
-- [`decodeSystemProps.ts`](../../packages/core/src/system/make/makeSystem/decodeSystemProps/decodeSystemProps.ts) — decodes canonical owner instances and defaults omitted services to an empty record.
-- [`resolveSystemService.ts`](../../packages/core/src/system/make/makeSystem/resolveSystemService/resolveSystemService.ts) — checks service key/name and exclusive source-model ownership before returning the same `Service`.
-- [`resolveSystemAggregate.ts`](../../packages/core/src/system/make/makeSystem/resolveSystemAggregate/resolveSystemAggregate.ts) — checks aggregate key/name and source/replica provenance.
-- [`resolveSystemAggregate.ts`](../../packages/core/src/system/make/makeSystem/resolveSystemAggregate/resolveSystemAggregate.ts) — validates service pins and returns the original Aggregate definition.
-- [`makeSystem.ts`](../../packages/core/src/system/make/makeSystem/makeSystem.ts) — resolves services before aggregates and assembles the owner registries into the completed `ISystem` graph.
+- [`resolveSystemService.ts`](../../packages/core/src/system/make/makeSystem/resolveSystemService/resolveSystemService.ts) — checks service registry identity and model ownership.
+- [`resolveSystemAggregate.ts`](../../packages/core/src/system/make/makeSystem/resolveSystemAggregate/resolveSystemAggregate.ts) — checks aggregate registry identity.
 
 Contract programs receive `{ payload, models, claims }`. Guards receive
 `db`. Browser execution uses the session's full claims; aggregate
@@ -365,7 +319,6 @@ actor claims. Service commands pass `null` claims. There is no execution tag map
 Admission validates payloads and claims without running state guards.
 
 - [`makeSystem.ts`](../../packages/core/src/system/make/makeSystem/makeSystem.ts) — constructs the shared runtime with default and authored capabilities.
-- [`systemRuntime.node.spec.ts`](../../packages/core/src/system/systemRuntime.node.spec.ts) — verifies runtime lifetime, isolation, failure cleanup, and synchronous capability acquisition.
 
 `makeSession({ layer, ... })` composes application services and framework defaults
 into its own lazy `session.runtime`. It accepts models, contracts, owner and actor
@@ -399,12 +352,10 @@ sessions acquire neither backup infrastructure nor live transport. Standalone
 - [`BrowserBackup.ts`](../../packages/browser/src/BrowserBackup/BrowserBackup.ts) — shares only backup infrastructure and scopes key claims to sessions.
 - [`makeSession.ts`](../../packages/browser/src/makeSession/makeSession.ts) — composes live aggregate/service sessions from a single layer.
 - [`stageCommand.ts`](../../packages/core/src/aggregateSession/stageCommand/stageCommand.ts) — executes against the active runtime with invocation-specific bindings.
-- [`sessionLifecycle.node.spec.ts`](../../packages/browser/src/makeMockSession/sessionLifecycle.node.spec.ts) — verifies resource lifetime, isolation, cancellation, and remount ordering.
-- [`sessionExecution.node.spec.ts`](../../packages/browser/src/makeMockSession/sessionExecution.node.spec.ts) — verifies capability reuse through guards, validation, staging, and replay.
 
 Server command batches acquire `makeSystem` application services and then the
 selected aggregate or service layer before entering a synchronous transaction.
-Programs return arrays or tuples of portable mutations synchronously; `[]` is a valid no-op result. Array order is application order, including requested replicas. Server guards validate current state before those mutations are applied. Scoped resources close on success,
+Programs yield model operations synchronously into a fresh runner-owned collector and return a value matching their optional `result` codec. Emission order is application order. A program may emit no operations. Without a result codec it returns void, retained as null. Server guards validate current state before those mutations are applied. Scoped resources close on success,
 failure, or interruption, and the next batch acquires fresh instances. Acquisition
 failure prevents transaction execution and remains retryable. Existing framework
 runtimes remain at RPC entrypoints; Durable Object constructors acquire no
@@ -413,9 +364,8 @@ retain their existing behavior.
 
 - [`executeCommands.ts`](../../packages/system-worker/src/AggregateVersionRepo/executeCommands/executeCommands.ts) — acquires application services and aggregate capabilities outside the transaction.
 - [`executeCommands.ts`](../../packages/system-worker/src/ServiceVersionRepo/executeCommands/executeCommands.ts) — acquires application and service capabilities per batch before transaction execution.
-- [`preparedPayload.node.spec.ts`](../../packages/system-worker/src/preparedPayload.node.spec.ts) — verifies defaults, overrides, fresh acquisition, rollback, and resource cleanup on failed acquisition or interruption.
 
-`runProgram` executes the program and its dependencies to a synchronous exit. Domain failures retain the normal failed command outcome; suspended work is interrupted before it can resume. Session staging commits without an asynchronous gap. AVR and SVR prepare and commit one command before starting the next program. AVR reads requested replicas after the program, outside SQLite, then atomically commits mutations and terminal history. Programs cannot observe their own returned mutations or newly requested replicas.
+`runProgram` executes the program and its dependencies to a synchronous exit. Domain failures retain the normal failed command outcome; suspended work is interrupted before it can resume. Session staging commits without an asynchronous gap. AVR and SVR prepare and commit one command before starting the next program. AVR atomically commits owned operations and terminal history. Programs observe state before their emitted operations apply.
 
 - [`runProgram.ts`](../../packages/core/src/execution/runProgram.ts) — preserves domain failures and rejects suspension.
 - [`stageCommand.ts`](../../packages/core/src/aggregateSession/stageCommand/stageCommand.ts) — performs synchronous optimistic staging.
@@ -431,25 +381,7 @@ identity. System assembly validates graph relationships and preserves the canoni
 queries remain on their owning Service. Mutation after construction can invalidate validated decisions or diverge from
 generated locks; owner factories do not generally enforce runtime immutability. Captured selection query definitions are normalized, cloned, and recursively frozen.
 
-- [`makeService.node.spec.ts`](../../packages/core/src/service/makeService.node.spec.ts) — verifies service snapshots retain caller-input isolation.
-- [`makeAggregate.node.spec.ts`](../../packages/core/src/aggregate/makeAggregate.node.spec.ts) — verifies aggregate leaf identity and owned registry snapshots.
-- [`schema-validated.node.spec.ts`](../../packages/core/src/system/tests/schema-validated.node.spec.ts) — verifies Service and Aggregate identity, nested identity, and System registries.
-
-Replica provenance is not an instance field. `Model` stores one
-`{ sourceModel, serviceName }` tuple in a module-private `WeakMap`; inherited,
-non-enumerable prototype getters preserve direct typed property access.
-`Model.isReplica` is the canonical discriminator and `Model.markReplica` is
-one-shot. Because every canonical Model inherits `sourceModel`, the `in`
-operator is not a valid discriminator. Canonical metadata is deliberately
-absent from own keys, object spread, and JSON serialization.
-
-- [`defineModel.ts`](../../packages/core/src/models/defineModel.ts) — registers one-shot provenance and discriminates replicas from the WeakMap, not own fields.
-- [`makeReplica.node.spec.ts`](../../packages/core/src/models/makeReplica.node.spec.ts) — verifies direct getters, non-enumerability, assignment resistance, one-shot registration, canonical discrimination, and spread/JSON omission.
-
-AAVR replays against the exact version's canonical aggregate models and uses
-`Model.isReplica` to recognize resources delivered independently from pinned SVC histories.
-
-- [`applyExecutedCommands.ts`](../../packages/system-worker/src/AggregateActorVersionRepo/applyExecutedCommands/applyExecutedCommands.ts) — Uses canonical model provenance when replaying service resources.
+Models bind exact owner schemas. Contract operations use registered model identity; actor projections replay owned outputs from their version chain. Session locks serialize the selected model shapes without external-source metadata.
 
 Downstream lookup-and-trust starts from the completed `ISystem`. Development
 and deployment bind the root configuration module as the `config` module alias. The
@@ -647,7 +579,6 @@ submission failures produce errors.
 
 - [`seedFn.ts`](../../packages/cli/src/seed/seedFn.ts) — loads the module and its named array, validates its commands, and submits the complete encoded commands through `executeAggregateCommand` or `executeServiceCommand`.
 - [`seeds.ts`](../../examples/shopping/src/zerospin/seeds.ts) — provides the ID factory and synchronously constructs the command array.
-- [`seedFn.spec.ts`](../../packages/cli/src/seed/seedFn.spec.ts) — covers relative and absolute paths, array exports, owner versions, validation before submission, and failures.
 
 Commands constructed by an aggregate or service definition retain that definition's
 `aggregateVersion` or `serviceVersion`, independently of `contractVersion`. The CLI
@@ -658,7 +589,7 @@ or a dependency ordering mechanism, and submission failure can leave partial wor
 - [`makeAggregateCommand.ts`](../../packages/core/src/aggregate/make/makeAggregateCommand.ts) — retains the aggregate version with direct command provenance.
 - [`makeCommand.ts`](../../packages/core/src/makeCommand.ts) — retains the service version with the constructed command.
 - [`seedFn.ts`](../../packages/cli/src/seed/seedFn.ts) — validates all commands before concurrent RPC submission and reports the submitted count.
-- [`seeds.ts`](../../examples/shopping/src/zerospin/seeds.ts) — Shopping resolves twelve `makeCommand(appServiceV1, ...)` Effects into its `seeds` array using `NanoIdFactory`.
+- [`seeds.ts`](../../examples/shopping/src/zerospin/seeds.ts) — Shopping resolves twelve `makeCommand(marketplaceServiceV1, ...)` Effects into its `seeds` array using `NanoIdFactory`.
 
 `makeId(model)` returns a lazy Effect that generates a model-prefixed ID
 through `CuidFactory`. `prefixId(model, suffix)` synchronously prefixes an
@@ -713,10 +644,10 @@ declaration does not migrate stored resources or retain historical adapters.
 Contract versions declare `models: { cart: cartV1 }`. Their authored programs receive
 `models.cart.create({ resourceId, attributes })` and the other mutation factories,
 bound to that exact model definition. Model definitions themselves expose no mutation
-constructors. `makeContractVersion` infers mutations from its optional program result;
+constructors. `makeContractVersion` infers operation types from the program’s Effect requirements independently of its returned result;
 it has no `mutations` schema property. Every mutation retains its bound model and version.
 
-- [`makeModelMutations.ts`](../../packages/core/src/contracts/make/makeModelMutations.ts) — binds mutation construction, validation, and replica provenance to one model.
+- [`makeModelOperations.ts`](../../packages/core/src/contracts/make/makeModelOperations.ts) — binds mutation construction, and validation to one model.
 - [`types.ts`](../../packages/core/src/contracts/types.ts) — defines model-specific mutation utility arguments and results.
 
 Contract upgrades inherit model bindings by key. A model value adds or replaces a
@@ -736,7 +667,7 @@ encoding validates that exact version and does not adapt historical resources.
 - [`makeServiceSessionSpec.ts`](../../packages/core/src/serviceSession/make/makeServiceSessionSpec.ts) — builds service model locks from the exact session definitions.
 
 - [`makeContractVersion.ts`](../../packages/core/src/contracts/make/makeContractVersion.ts) — Infers the program result and rejects obsolete declaration properties.
-- [`makeMutations.ts`](../../packages/core/src/contracts/make/makeMutations.ts) — Flattens the program result in return order and checks model ownership.
+- [`makeOperations.ts`](../../packages/core/src/contracts/make/makeOperations.ts) — Collects emitted operations, checks ownership, and validates/encodes the independent result before application.
 - [`prepareReplayAppliedMutation.ts`](../../packages/core/src/contracts/prepareReplayAppliedMutation.ts) — Uses operation codecs and model constructors during replay.
 
 ## Contract upgrades
@@ -784,26 +715,25 @@ version, with no historical-definition arrays.
 - [`makeAggregateSession.ts`](../../packages/core/src/aggregateSession/make/makeAggregateSession.ts) — uses the bound contract version for validation, guards, and optimistic execution.
 - [`makeAggregateSessionSpec.ts`](../../packages/core/src/aggregateSession/make/makeAggregateSessionSpec.ts) — derives contract locks directly from aggregate session bindings.
 - [`validateAggregateSessionLock.ts`](../../packages/system-worker/src/AggregateAccessApi/authorize/authorizeAggregateSession/validateAggregateSessionLock/validateAggregateSessionLock.ts) — checks the submitted aggregate session lock once during admission.
-- [`makeContractVersion.node.spec.ts`](../../packages/core/src/contracts/makeContractVersion.node.spec.ts) — verifies both directions, generated identities, adapter failures, and default session bindings.
 
 ## Actor-owned aggregate identity
 
 `defineAggregateActor({ name })` and `makeAggregateActorVersion(identity, props)` author one
 named view. An actor version receives a database definition and actor identity,
 which owns its identity schema, derived selection schema, and path; its separate `authentication` policy selects direct identity admission or credential verification. It also owns optional session-admission `authorize`, capability
-`layer`, identity-service registration, and `queries` containing existing
+`layer`, identity-service registration, and `selections` containing existing
 model queries. Services use the separate `defineServiceActor` and
 `makeServiceActorVersion` APIs for the same ownership boundary.
 
-Aggregate versions register `{ shopper: shopperActorV1, operator: operatorActorV1 }`.
+Shopping’s user aggregate registers `{ user: userActorV1, purchaseItemPreview: purchaseItemPreviewV1 }`; its shopper actor belongs to marketplace.
 Aggregate versions expose their named definitions through `actors`. Each actor
-version exposes its authored query map through `queries` and compiled model/query map through `selections`; aggregate `models` remain
+version exposes its authored selection map through `selections` and captured model/selection map through `capturedSelections`; aggregate `models` remain
 the registered model definitions.
 
 Registry keys equal actor names, and filter models must be the aggregate's
 exact registered model objects. Omitted filters expose no rows. Aggregate upgrades
 inherit omitted registrations, replace supplied registrations, and remove entries
-marked `null`. Actor update helpers inherit omitted fields and merge authored queries by key. Aggregates retain canonical models,
+marked `null`. Actor update helpers inherit omitted fields and merge authored selections by key. Aggregates retain canonical models,
 database registration, and shared capability layers; actor versions own contracts.
 
 Sessions receive a browser-safe `claimsSchema`; verified sessions also receive
@@ -825,7 +755,7 @@ const identity = sdk.makeActorIdentity({
   actorPath: RoutePattern.parse('/:userId'),
 });
 const db = sdk.makeActorDbVersion({ models: { user: User, list: List } });
-const queries = {
+const selections = {
   list: db.query.list.findMany({
     where: { user: { id: { eq: identity.sql.placeholder('userId') } } },
   }),
@@ -882,7 +812,7 @@ matching claims schema. Browser sessions compose optional named `modules` with f
 server actor modules never enter the browser import graph. Session model
 schemas can include aggregate models needed by contract mutations, while only
 selection filters determine visible server rows. Locks validate exact aggregate
-model definitions and the selected identity declaration. Replica keys,
+model definitions and the selected identity declaration. Actor projection keys,
 snapshots, sessions, locks, and tickets include the actor identity, so equal
 path parameters do not join different actors.
 
@@ -894,7 +824,7 @@ This cutover changes fixed command, session metadata, ticket, and authored-spec
 schemas. Affected server storage and browser journals/backups require empty storage;
 there is no compatibility decoder or translation migration. Nothing automatically
 deletes existing state. Drizzle selection verification is recorded in the
-[implementation spec](../dev/archived/004-spec-drizzle-actor-selections.md#implementation-verification).
+[implementation spec](../archive/specs/004-spec-drizzle-actor-selections.md#implementation-verification).
 
 Mutation replay requires the exact registered model name and version. Aggregate and service definitions do not accept mutation adapter registries.
 
@@ -910,7 +840,6 @@ and canonical implementation classes remain internal.
 
 - [`index.ts`](../../packages/sdk/src/index.ts) — defines the complete root allowlist, including `makeCommand` and `makeSystemConfig`.
 - [`index.ts`](../../packages/sdk/src/browser/index.ts) — defines the shared allowlist without server factories.
-- [`authoring.node.spec.ts`](../../packages/sdk/src/authoring.node.spec.ts) — verifies runtime allowlists, browser isolation, commands, and configuration identity.
 
 `makeCommand(service, props)` selects a service contract and derives service name
 and version from the definition. `makeCommand(aggregate, props)` selects a bound
@@ -944,25 +873,53 @@ Use `defineAggregateActor` / `makeAggregateActorVersion` for aggregates and
 versions in the owner's `actors` registry. The two actor kinds are distinct;
 service actors do not require `aggregateId` or receive aggregate provisioning capabilities.
 
-`updateServiceActorVersion(previous, changes)` creates a new declaration with the same name and a required `version`. Omitted identity fields, authorization, queries, layer, and execution inherit from the previous actor. Supplied `queries` merge by key: omitted entries inherit, supplied entries replace matching keys, and an empty map preserves existing entries. Other supplied fields replace wholesale. The complete declaration is validated by `makeServiceActorVersion`. This helper is server-only and does not migrate storage.
+`updateServiceActorVersion(previous, changes)` creates a new declaration with the same name and a required `version`. Omitted identity fields, authorization, selections, layer, and execution inherit from the previous actor. Supplied `selections` merge by key: omitted entries inherit, supplied entries replace matching keys, and an empty map preserves existing entries. Other supplied fields replace wholesale. The complete declaration is validated by `makeServiceActorVersion`. This helper is server-only and does not migrate storage.
 
-Actors own identity, optional authorization, authored resource `queries`, and compiled `selections`.
+Actors own identity, optional authorization, authored resource `selections`, and `capturedSelections`.
 Sessions import claims and optional credentials schemas directly.
 `makeActorIdentity` derives the selection schema from `actorPath` parameters;
 there is no separately authored partition schema. Only this subset parameterizes selection queries.
 
 Both session kinds pin `actorName` and `actorVersion` in their locks. Service
-actor replicas and chains use `{ systemId, serviceName, serviceVersion, actorName,
+actor projections and chains use `{ systemId, serviceName, serviceVersion, actorName,
 actorVersion, actorPath }`. Sessions sharing this identity share projection and
 history; `sessionName` remains connection/admission metadata. Each connection's
 lock still limits the models delivered to that session.
 
-Service projection replays source deltas, evaluates actor selections, and commits
-selected changes with source progress atomically. Every service position emits an
+Service projection replays retained owned operations, evaluates actor selections, and commits
+selected changes with its actor checkpoint atomically. Every service position emits an
 output, including empty selected deltas. Snapshot reads evaluate the same actor view.
-Changing any actor identity field cannot reuse another view's replica or browser
+Changing any actor identity field cannot reuse another view's actor projection or browser
 lock key. This is an empty-storage cutover, with no aliases or conversion migration.
 
 - [`makeServiceActorVersion.ts`](../../packages/core/src/serviceActor/make/makeServiceActorVersion.ts) — service actor declarations and actor schema constraints.
-- [`resolveServiceActorView.ts`](../../packages/system-worker/src/ServiceActorVersionRepo/resolveServiceActorView.ts) — canonical actor-path decoding for service replicas.
+- [`resolveServiceActorView.ts`](../../packages/system-worker/src/ServiceActorVersionRepo/resolveServiceActorView.ts) — canonical actor-path decoding for service actor projections.
 - [`executeTx.ts`](../../packages/system-worker/src/ServiceActorVersionRepo/execute/executeTx.ts) — atomic selected projection and progress.
+
+## Contract result codecs
+
+Each contract version may declare a `result` Effect codec; each upgrade declares its own codec rather than inheriting one. Contract specs expose `resultJsonSchema`, propagated into system specs and session locks. The codec defines `InferContractResult`; emitted operation requirements define `InferContractOperations`. The runner supplies the internal collector while ordinary program services remain caller requirements.
+
+The codec must encode JSON and complete synchronously without caller services. Existing JSON command envelopes retain `staging.result` for the original local invocation and successful `execution.result` for authoritative execution. Pending replay preserves the original staging value. Success includes the actual executing `contractVersion`, which can differ from the submitted command’s version. History remains encoded; `resolveContractResult` checks command identity and version before decoding with the supplied contract. Completion delivery remains private to its originating caller.
+
+The collector is append-only within a run: caught failures and internal retries preserve earlier successful emissions. Whole-program failure discards the output buffer. Collection does not apply operations, so queries observe pre-application state.
+
+## Studio agent declarations
+
+The System's named `agents` registry binds each declaration to an exact
+registered aggregate and actor version, with one serializable model-row query.
+Composition rejects unregistered bindings, models outside the actor projection,
+and invalid literal filter fields/types. A preview actor uses aggregate-only
+claims/path, `authentication: 'system'`, and an empty contract registry. Ordinary
+application admission and aggregate-session authorization reject that policy.
+
+The System manifest carries agent bindings, query descriptions and encoded
+projection model metadata. Studio's existing secret-key broker resolves only a
+declared agent and registered aggregate ID, obtains the existing actor snapshot,
+and issues a single-use ticket for its actor output stream. The browser receives
+no system secret or command capability. Preview sessions and their SQLite state
+exist only while their view is open; the actor projection remains the existing
+AggregateActorVersionRepo/Chain. There are no new agent projection owners.
+
+- [`agentPreview.ts`](../../packages/system-worker/src/SystemApi/agentPreview.ts) — bounds administrative preview access to declared bindings and registered aggregates.
+- [`Studio README`](../../packages/studio/README.md) — documents the implemented declaration, query and lifecycle behavior.

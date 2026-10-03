@@ -1,5 +1,12 @@
-import type { aggregateVersionChainDbConfig } from './aggregateVersionChainDbConfig.js';
+import { type readAggregateVersionChainOutput } from '../asyncOperations/readOperationOutput.js';
 
+import type { aggregateVersionChainDbConfig } from './aggregateVersionChainDbConfig.js';
+export type IResolvedExecutedCommandRow = Readonly<{
+  kind: 'command';
+  executedIndex: number;
+  command: typeof aggregateVersionChainDbConfig.schema.aggregateCommands.$inferSelect;
+  operations: ReturnType<typeof readAggregateVersionChainOutput>;
+}>;
 export type IExecutedCommandRow =
-  | typeof aggregateVersionChainDbConfig.schema.aggregateCommands.$inferSelect
-  | typeof aggregateVersionChainDbConfig.schema.serviceCommands.$inferSelect;
+  | IResolvedExecutedCommandRow
+  | typeof aggregateVersionChainDbConfig.schema.aggregateCommands.$inferSelect;

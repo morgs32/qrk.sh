@@ -5,18 +5,15 @@ import type {
   IEncodedCommand,
 } from '@zerospin/core/contracts/types';
 import type { IDb } from '@zerospin/core/drizzle/types';
-import { MachineClaimsSchema } from '@zerospin/core/machine/MachineClaimsSchema';
 import { makeZerospinError, mapParseError } from '@zerospin/error';
 import config from 'config';
 import { eq } from 'drizzle-orm';
 import { Effect, Schema } from 'effect';
 
-import { checkAdmission } from '../../checkAdmission.js';
-import { verifyMachineFrozenCommand } from '../../verifyMachineFrozenCommand.js';
+import { prepareAdmissionResult } from '../../checkAdmission.js';
 import { aggregateChainDbConfig } from '../aggregateChainDbConfig.js';
 
 import { admitCommandsTx } from './admitCommandsTx.js';
-
 /** Admission freezes the complete input occurrence; each VAR owns its preparation. */
 /*
  * AggregateChain durably orders complete aggregate inputs and returns
@@ -33,26 +30,34 @@ import { admitCommandsTx } from './admitCommandsTx.js';
 export const prepareAdmission = Effect.fn('AggregateChain.prepareAdmission')(
   function* (props: {
     commands: readonly IEncodedCommand<IAggregateCommand>[];
+    trustedAsync?: true;
     aggregateVersion: string;
-    machineOutput?: boolean;
-    machineMode?: 'push' | 'execute';
     db: IDb;
-    key: { systemId: string; aggregateId: string; aggregateName: string };
+    key: {
+      systemId: string;
+      aggregateId: string;
+      aggregateName: string;
+    };
   }) {
-    const { db, key, commands } = props;
-
+    const { db, key, commands, aggregateVersion } = props;
     // 1 — an empty batch needs no transaction
-    if (commands.length === 0) return [];
-
+    if (commands.length === 0) {
+      return [];
+    }
+    if (
+      config.system.aggregates[key.aggregateName]?.[aggregateVersion] ===
+      undefined
+    ) {
+      return yield* makeZerospinError(
+        'aggregate-execution-version-unsupported',
+      );
+    }
     const checked = new Set<string>();
     const preparedCommands = yield* Effect.forEach(commands, command =>
       Effect.gen(function* () {
         const startedAt = new Date();
-        if (
-          command.actorName === '__machine' &&
-          (!props.machineOutput || command.nodeId !== null)
-        ) {
-          return yield* makeZerospinError('machine-authority-required');
+        if (command.asyncInput != null && props.trustedAsync !== true) {
+          return yield* makeZerospinError('public-async-command-forbidden');
         }
         // 2 — reject aggregateId or aggregateName mismatches
         if (
@@ -66,7 +71,6 @@ export const prepareAdmission = Effect.fn('AggregateChain.prepareAdmission')(
             }),
           );
         }
-
         // 3 — validate the declared aggregate input fields
         yield* Schema.encodeEffect(EncodedAggregateCommandSchema)(command).pipe(
           mapParseError({
@@ -80,55 +84,15 @@ export const prepareAdmission = Effect.fn('AggregateChain.prepareAdmission')(
           .where(eq(aggregateChainDbConfig.schema.commands.id, command.id))
           .get();
         const duplicate = retained !== undefined || checked.has(command.id);
+        const admission = {
+          status: 'succeeded' as const,
+          startedAt,
+          completedAt: new Date(),
+        };
+        let checkedAdmission: Effect.Success<
+          ReturnType<typeof prepareAdmissionResult>
+        > = admission;
         if (!duplicate) {
-          if (command.actorName === '__machine') {
-            const claims = yield* Schema.decodeUnknownEffect(
-              MachineClaimsSchema,
-              {
-                onExcessProperty: 'error',
-              },
-            )(command.claims);
-            if (
-              claims.aggregateId !== key.aggregateId ||
-              props.machineMode === undefined
-            ) {
-              return yield* makeZerospinError('machine-contract-forbidden');
-            }
-            yield* verifyMachineFrozenCommand({
-              command,
-              mode: props.machineMode,
-              bindingName: claims.bindingName,
-              systemId: key.systemId,
-              machineName: claims.machineName,
-            });
-            const contract =
-              config.system.aggregates[key.aggregateName]?.[
-                props.aggregateVersion
-              ]?.contracts[command.commandName];
-            if (contract === undefined) {
-              return yield* makeZerospinError('machine-contract-forbidden');
-            }
-            yield* checkAdmission({
-              command,
-              claims: command.claims,
-              owners: [
-                {
-                  contracts: [contract],
-                  identity: { claimsSchema: MachineClaimsSchema },
-                },
-              ],
-            });
-            checked.add(command.id);
-            return {
-              command,
-              admission: {
-                status: 'succeeded' as const,
-                startedAt,
-                completedAt: new Date(),
-              },
-              duplicate: false,
-            };
-          }
           const actor = yield* resolveAggregateActorVersion(
             config.system.aggregates[key.aggregateName] ?? {},
             command,
@@ -138,30 +102,31 @@ export const prepareAdmission = Effect.fn('AggregateChain.prepareAdmission')(
               makeZerospinError('aggregate-command-target-mismatch'),
             );
           }
-          yield* checkAdmission({
-            command,
-            claims: command.claims,
-            actor,
-            owners: [
-              {
-                contracts: Object.values(actor.contracts),
-                identity: {
-                  claimsSchema: actor.identity.identitySchema,
+          if (props.trustedAsync !== true) {
+            checkedAdmission = yield* prepareAdmissionResult({
+              startedAt,
+              command,
+              claims: command.claims,
+              actor,
+              owners: [
+                {
+                  contracts: Object.values(actor.contracts),
+                  identity: {
+                    claimsSchema: actor.identity.identitySchema,
+                  },
                 },
-              },
-            ],
-          });
+              ],
+            });
+          }
         }
         checked.add(command.id);
         return {
           command,
+          originalExecutionVersion:
+            retained?.originalExecutionVersion ?? aggregateVersion,
           admission:
             retained === undefined
-              ? {
-                  status: 'succeeded' as const,
-                  startedAt,
-                  completedAt: new Date(),
-                }
+              ? checkedAdmission
               : (yield* aggregateChainDbConfig.tables.commands.decodeRow(
                   retained,
                 )).admission,
@@ -169,11 +134,9 @@ export const prepareAdmission = Effect.fn('AggregateChain.prepareAdmission')(
         };
       }),
     );
-
     return preparedCommands;
   },
 );
-
 export const admitCommands = Effect.fn('AggregateChain.admitCommands')(
   function* (props: Parameters<typeof prepareAdmission>[0]) {
     const prepared = yield* prepareAdmission(props);

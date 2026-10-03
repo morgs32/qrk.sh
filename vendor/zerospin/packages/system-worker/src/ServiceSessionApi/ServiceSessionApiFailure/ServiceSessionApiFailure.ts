@@ -5,7 +5,7 @@ import { Effect } from 'effect';
 import type { ServiceSessionApi } from '../ServiceSessionApi.js';
 
 import { createWebSocketTicket } from './createWebSocketTicket/createWebSocketTicket.js';
-import { getActorCommands } from './getActorCommands/getActorCommands.js';
+import { getActorOutputs } from './getActorOutputs/getActorOutputs.js';
 import { getSnapshot } from './getSnapshot/getSnapshot.js';
 
 export class ServiceSessionApiFailure extends RpcTarget {
@@ -32,15 +32,15 @@ export class ServiceSessionApiFailure extends RpcTarget {
   }
 
   /*
-   * ServiceSessionApiFailure.getActorCommands answers a rejected capability with its retained admission error.
+   * ServiceSessionApiFailure.getActorOutputs answers a rejected capability with its retained admission error.
    *
    * 1. Run the bound domain operation.
    */
-  async getActorCommands(
-    request: Parameters<ServiceSessionApi['getActorCommands']>[0],
-  ): ReturnType<ServiceSessionApi['getActorCommands']> {
-    // 1 — run getActorCommands with the retained admission error
-    return Effect.runPromise(getActorCommands({ request, error: this.error }));
+  async getActorOutputs(
+    request: Parameters<ServiceSessionApi['getActorOutputs']>[0],
+  ): ReturnType<ServiceSessionApi['getActorOutputs']> {
+    // 1 — run getActorOutputs with the retained admission error
+    return Effect.runPromise(getActorOutputs({ request, error: this.error }));
   }
 
   /*

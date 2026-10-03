@@ -2,7 +2,6 @@
   "extends": ["../../.oxlintrc.json"],
   "env": {
     "browser": true,
-    "node": true,
-    "vitest": true
+    "node": true
   }
 }

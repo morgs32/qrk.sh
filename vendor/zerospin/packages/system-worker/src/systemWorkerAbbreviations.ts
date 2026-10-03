@@ -11,7 +11,5 @@ export const systemWorkerAbbreviations = {
   serviceChain: 'sc',
   aggregateActorVersionChain: 'aavc',
   serviceActorVersionChain: 'savc',
-  aggregateMachineRepo: 'amr',
-  serviceMachineRepo: 'smr',
   systemLogRepo: 'syslogrepo',
 };

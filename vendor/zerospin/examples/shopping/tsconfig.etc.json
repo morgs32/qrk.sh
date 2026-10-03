@@ -4,7 +4,6 @@
     "rootDir": ".",
     "noEmit": true,
     "paths": {
-      "cloudflare:workers": ["./tests/unit/cloudflareWorkers.ts"],
       "*": ["./*"],
       "@/*": ["./src/*"],
       "@zerospin/backup-worker": [
@@ -14,27 +13,16 @@
         "./node_modules/vite-plugin-pwa/react.d.ts"
       ]
     },
-    "types": [
-      "vite/client",
-      "node",
-      "vitest/globals",
-      "./src/cloudflare-workers.d.ts"
-    ]
+    "types": ["vite/client", "node", "./src/cloudflare-workers.d.ts"]
   },
   "include": [
     "zerospin.config.ts",
-    "e2e.playwright.config.ts",
-    "e2e.preview.playwright.config.ts",
     "e2e/**/*.ts",
-    "vitest.*.config.ts",
-    "vitest.setup.ts",
     "vite.config.ts",
-    "tests/**/*.ts",
-    "tests/**/*.tsx",
     "*.jsonc",
     "*.d.ts"
   ],
-  "exclude": ["dist", "node_modules", "tests/workerd/**"],
+  "exclude": ["dist", "node_modules"],
   "references": [
     {
       "path": "../../packages/react"

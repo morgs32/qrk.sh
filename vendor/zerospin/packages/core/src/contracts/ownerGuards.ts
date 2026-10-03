@@ -4,7 +4,8 @@ import { Schema, type Effect } from 'effect';
 import type { IDb, IResourceDbConfig } from '../drizzle/types.ts';
 import type { IAnyModels, InferCommandPayload } from '../models/types.ts';
 
-import type { IAnyContracts, InferFailure } from './types.ts';
+import type { FailureType } from './failures.ts';
+import type { IAnyContracts } from './types.ts';
 
 export type IOwnerGuards<
   CONTRACTS extends IAnyContracts,
@@ -20,12 +21,21 @@ export type IOwnerGuards<
           Pick<IDb<IResourceDbConfig<MODELS, Record<never, never>>>, 'query'>
         >;
     payload: InferCommandPayload<CONTRACTS[K]['payload']>;
+    external?: CONTRACTS[K] extends {
+      readonly async: {
+        readonly external: {
+          readonly result: infer X extends Schema.Codec<unknown, unknown>;
+        };
+      };
+    }
+      ? X['Type']
+      : never;
     claims: CLAIMS;
     failures: CONTRACTS[K]['failures'];
   }) => Effect.Effect<
     void,
     | IFrameworkError
-    | Extract<InferFailure<CONTRACTS[K]>, { readonly scope: SCOPE }>,
+    | Extract<FailureType<CONTRACTS[K]['failures']>, { readonly scope: SCOPE }>,
     REQUIREMENTS
   >;
 };

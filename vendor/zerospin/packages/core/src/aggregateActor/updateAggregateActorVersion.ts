@@ -4,9 +4,9 @@ import type { IAnyOwnerGuard, IOwnerGuards } from '../contracts/ownerGuards.ts';
 import type { IAnyContracts } from '../contracts/types.ts';
 import type { IAggregateAuthentication } from '../identity/types.ts';
 import type {
-  IActorQueries,
+  IActorSelections,
   IAnyActorDbVersion,
-  ValidActorQueries,
+  ValidActorSelections,
 } from '../models/make/makeActorDbVersion.ts';
 
 import {
@@ -31,7 +31,7 @@ const ChangesSchema = Schema.Struct({
   db: Schema.optionalKey(Schema.Unknown),
   identity: Schema.optionalKey(Schema.Unknown),
   authentication: Schema.optionalKey(Schema.Unknown),
-  queries: Schema.optionalKey(Schema.Unknown),
+  selections: Schema.optionalKey(Schema.Unknown),
   contracts: Schema.optionalKey(Schema.Unknown),
   guards: Schema.optionalKey(Schema.Unknown),
   authorize: Schema.optionalKey(Schema.Unknown),
@@ -51,7 +51,7 @@ export function updateAggregateActorVersion<
   const DB extends IAnyActorDbVersion = PREVIOUS['db'],
   const IDENTITY extends IAnyAggregateActorVersion['identity'] =
     PREVIOUS['identity'],
-  const QUERIES extends IActorQueries = {},
+  const SELECTIONS extends IActorSelections = {},
   const CONTRACTS extends IAnyContracts = {},
   const GUARDS extends Readonly<Record<string, IAnyOwnerGuard | undefined>> =
     {},
@@ -79,7 +79,7 @@ export function updateAggregateActorVersion<
       }
         ? unknown
         : never);
-    queries?: QUERIES & ValidActorQueries<DB['models'], QUERIES>;
+    selections?: SELECTIONS & ValidActorSelections<DB['models'], SELECTIONS>;
     contracts?: CONTRACTS;
     guards?: GUARDS &
       IOwnerGuards<
@@ -101,12 +101,12 @@ export function updateAggregateActorVersion<
     (Same<AUTHORIZE, NonNullable<PREVIOUS['authorize']>> extends true
       ? unknown
       : { authorize: AUTHORIZE }) &
-    (Merge<PREVIOUS['queries'], QUERIES> extends ValidActorQueries<
+    (Merge<PREVIOUS['selections'], SELECTIONS> extends ValidActorSelections<
       DB['models'],
-      Merge<PREVIOUS['queries'], QUERIES>
+      Merge<PREVIOUS['selections'], SELECTIONS>
     >
       ? unknown
-      : { queries: never }) &
+      : { selections: never }) &
     (Merge<PREVIOUS['contracts'], CONTRACTS> extends ValidActorContracts<
       Merge<PREVIOUS['contracts'], CONTRACTS>,
       DB['models'],
@@ -128,7 +128,7 @@ export function updateAggregateActorVersion<
   VERSION,
   DB,
   IDENTITY,
-  Merge<PREVIOUS['queries'], QUERIES>,
+  Merge<PREVIOUS['selections'], SELECTIONS>,
   Merge<PREVIOUS['contracts'], CONTRACTS>,
   AuthorizeRequirements<AUTHORIZE>,
   ActorGuardRequirements<Merge<PREVIOUS['guards'], GUARDS>>,
@@ -153,7 +153,7 @@ export function updateAggregateActorVersion<
     VERSION,
     DB,
     IDENTITY,
-    Merge<PREVIOUS['queries'], QUERIES>,
+    Merge<PREVIOUS['selections'], SELECTIONS>,
     Merge<PREVIOUS['contracts'], CONTRACTS>,
     AuthorizeRequirements<AUTHORIZE>,
     ActorGuardRequirements<Merge<PREVIOUS['guards'], GUARDS>>,
@@ -169,7 +169,7 @@ export function updateAggregateActorVersion<
       ...(fields.authorize === undefined
         ? {}
         : { authorize: fields.authorize }),
-      queries: merge(previous.queries, changes.queries),
+      selections: merge(previous.selections, changes.selections),
       contracts: merge(previous.contracts, changes.contracts),
       guards: merge(previous.guards, changes.guards),
     },

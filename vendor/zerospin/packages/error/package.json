@@ -23,23 +23,16 @@
     "ts": "tsc -p tsconfig.etc.json --noEmit",
     "watch": "tsc -b tsconfig.json --watch",
     "prepublishOnly": "pnpm run lib",
-    "test": "vitest",
     "lint": "oxlint . --format stylish",
-    "test:watch": "vitest watch",
-    "test:coverage": "vitest run --coverage",
     "knip": "knip"
   },
   "dependencies": {},
   "devDependencies": {
     "@effect/language-service": "^0.87.2",
     "@types/node": "^25.6.2",
-    "@vitest/coverage-v8": "^4.1.5",
-    "@vitest/pretty-format": "^4.1.5",
     "effect": "rc",
-    "jsdom": "^29.1.1",
     "knip": "^6.12.2",
-    "rimraf": "^6.1.3",
-    "vitest": "^4.1.5"
+    "rimraf": "^6.1.3"
   },
   "peerDependencies": {
     "effect": "^4.0.0-rc.111"

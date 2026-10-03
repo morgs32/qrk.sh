@@ -6,21 +6,18 @@ import { promotionReservationV1 } from './models';
 import { redeemPromotion } from './RedeemPromotionV1';
 import { releasePromotion } from './ReleasePromotionV1';
 import { reservePromotion } from './ReservePromotionV1';
-export const promotionService = sdk.makeService({
-  name: 'promotion',
-  module: {
-    '1.0.0': {
-      models: { promotionReservation: promotionReservationV1 },
-      contracts: {
-        reservePromotion,
-        commitPromotion,
-        releasePromotion,
-        redeemPromotion,
-      },
+export const promotionService = sdk.makeServiceVersion(
+  sdk.defineService({ name: 'promotion' }),
+  {
+    version: '1.0.0',
+    models: { promotionReservation: promotionReservationV1 },
+    contracts: {
+      reservePromotion,
+      commitPromotion,
+      releasePromotion,
+      redeemPromotion,
     },
-  },
-  queries: {
-    '1.0.0': {
+    queries: {
       ledger: {
         paramsSchema: Schema.Struct({}),
         query: Effect.fn(function* ({
@@ -45,4 +42,4 @@ export const promotionService = sdk.makeService({
       },
     },
   },
-});
+);

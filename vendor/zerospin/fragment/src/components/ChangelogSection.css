@@ -1,0 +1,31 @@
+.change-title {
+  display: block;
+  color: var(--subtle);
+  font-size: 15px;
+  line-height: 1.25;
+  padding-top: 14px;
+}
+.change-card:hover .change-title {
+  color: var(--ink);
+}
+.changelog {
+  padding-top: 115px;
+}
+.change-card {
+  flex: 1 0 0;
+  min-width: 0;
+  scroll-snap-align: start;
+}
+.month-tile {
+  height: 122px;
+  background: var(--panel);
+  display: grid;
+  place-items: center;
+  font-size: 15px;
+}
+
+@media (max-width: 800px) {
+  .change-card {
+    flex: 0 0 52%;
+  }
+}

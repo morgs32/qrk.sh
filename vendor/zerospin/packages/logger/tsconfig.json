@@ -40,7 +40,7 @@
     "types": ["node"]
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["**/*.spec.ts"],
+  "exclude": [],
   "references": [
     {
       "path": "../error"

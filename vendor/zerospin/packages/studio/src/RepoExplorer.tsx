@@ -214,20 +214,13 @@ export function RepoExplorer() {
                     .flatMap(versions => Object.values(versions))
                     .map(aggregate => (
                       <li key={`${aggregate.name}@${aggregate.version}`}>
-                        {aggregate.name}: {aggregate.version}
+                        <Link
+                          className="underline"
+                          to={`/agents/${encodeURIComponent(aggregate.name)}/${encodeURIComponent(aggregate.version)}`}
+                        >
+                          {aggregate.name}: {aggregate.version}
+                        </Link>
                         <ol className="ml-5 mt-1 list-[lower-alpha] space-y-1">
-                          <li>
-                            service pins
-                            <ol className="ml-5 list-decimal">
-                              {Object.entries(aggregate.services).map(
-                                ([serviceName, serviceVersion]) => (
-                                  <li key={serviceName}>
-                                    {serviceName}: {serviceVersion}
-                                  </li>
-                                ),
-                              )}
-                            </ol>
-                          </li>
                           <li>
                             models
                             <ol className="ml-5 list-decimal">

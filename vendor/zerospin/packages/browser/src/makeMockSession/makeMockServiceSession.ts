@@ -24,7 +24,6 @@ import { makeSessionLifecycle } from '../makeSessionLifecycle';
 import type { IZerospinRuntime } from '../sessionRuntime';
 
 import { encodeFixtureResources } from './encodeFixtureResources';
-
 const MOCK_SYSTEM_NAME = 'mock';
 /**
  * Detached fixture session. Construction is synchronous and acquires no
@@ -36,19 +35,24 @@ export function makeMockServiceSession<
   APP_LAYER extends Layer.Layer<never, IAnyError> = Layer.Layer<never>,
   MODELS extends IAnyModels = DEFINITION['models'],
 >(props: {
-  definition: DEFINITION & { models: MODELS };
+  definition: DEFINITION & {
+    models: MODELS;
+  };
   layer?: APP_LAYER;
   claims: DEFINITION['claimsSchema']['Type'];
   resources?: Partial<{
     [K in keyof MODELS]: readonly InferResource<MODELS[K]>[];
   }>;
-}): IServiceSession<DEFINITION & { systemName: typeof MOCK_SYSTEM_NAME }> & {
+}): IServiceSession<
+  DEFINITION & {
+    systemName: typeof MOCK_SYSTEM_NAME;
+  }
+> & {
   readonly runtime: IZerospinRuntime<Layer.Success<APP_LAYER>>;
   readonly systemName: typeof MOCK_SYSTEM_NAME;
   initialize(): Promise<void>;
   dispose(): Promise<void>;
 };
-
 export function makeMockServiceSession(props: {
   definition: Omit<IServiceSessionDefinition, 'systemName'>;
   layer?: Layer.Layer<never, IAnyError>;
@@ -66,12 +70,10 @@ export function makeMockServiceSession(props: {
   const definition: typeof authoredDefinition & {
     systemName: typeof MOCK_SYSTEM_NAME;
   } = { ...authoredDefinition, systemName: MOCK_SYSTEM_NAME };
-
   const coreSession = makeServiceSession<typeof definition>({
     definition,
     models: definition.models,
   });
-
   const lifecycle = makeSessionLifecycle({
     layer,
     infrastructure: Layer.empty,
@@ -87,7 +89,7 @@ export function makeMockServiceSession(props: {
         serviceName: null,
         sessionName: null,
         serviceSessionLockKey: null,
-        serviceIndex: null,
+        executedIndex: null,
         serviceHash: null,
         serviceVersion: null,
         backupState: { status: 'released', failure: null },
@@ -101,7 +103,6 @@ export function makeMockServiceSession(props: {
           abbreviation: coreAbbreviations.session,
         });
         coreSession.setSessionId(sessionId);
-
         const claims = yield* Schema.encodeEffect(definition.claimsSchema)(
           fixtureClaims,
         ).pipe(
@@ -130,7 +131,6 @@ export function makeMockServiceSession(props: {
               }),
             ).pipe(Effect.asVoid, Effect.ignore),
         );
-
         const serviceSessionLockKey = yield* makeServiceSessionLockKey(
           makeServiceSessionLock(definition),
         );
@@ -138,7 +138,6 @@ export function makeMockServiceSession(props: {
           models,
           resources: fixtureResources,
         });
-
         yield* applyServiceSessionSnapshot({
           definition,
           sessionId,
@@ -146,19 +145,20 @@ export function makeMockServiceSession(props: {
           db,
           models,
           snapshot: {
+            resolvedThrough: 0,
+            serviceIndex: 0,
             actorName: definition.actorName,
             actorVersion: definition.actorVersion,
             claims: fixtureClaims,
             serviceName: definition.serviceName,
             sessionName: definition.sessionName,
-            serviceIndex: 0,
+            executedIndex: 0,
             serviceHash:
               'f31c0c51be861af11225611526c9e2b73ab453f449950aa4ad4eaad22c522dbc',
             serviceVersion: definition.serviceVersion,
             resources,
           },
         });
-
         coreSession.store.setState({
           sessionId,
           claims: Schema.decodeUnknownSync(definition.claimsSchema)(claims),
@@ -169,7 +169,7 @@ export function makeMockServiceSession(props: {
           schema: dbConfig.schema,
           models,
           isInitialized: true,
-          serviceIndex: 0,
+          executedIndex: 0,
           serviceHash:
             'f31c0c51be861af11225611526c9e2b73ab453f449950aa4ad4eaad22c522dbc',
           serviceVersion: definition.serviceVersion,
@@ -179,13 +179,11 @@ export function makeMockServiceSession(props: {
             failure: null,
           },
         });
-
         ready();
         return yield* Effect.never;
       }),
     );
   const dispose = lifecycle.dispose;
-
   return Object.defineProperty(
     Object.assign(coreSession, {
       systemName: MOCK_SYSTEM_NAME,

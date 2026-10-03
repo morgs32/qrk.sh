@@ -3,32 +3,15 @@
   "compilerOptions": {
     "rootDir": "../..",
     "noEmit": true,
-    "types": [
-      "@cloudflare/vitest-plugin/types",
-      "node",
-      "vite/client",
-      "vitest/globals",
-      "./worker-configuration.d.ts"
-    ],
+    "types": ["node", "vite/client", "./worker-configuration.d.ts"],
     "paths": {
-      "config": ["../fixtures/src/config/config.ts"]
+      "config": ["./src/config.d.ts"]
     },
     "composite": false,
     "incremental": false,
     "allowImportingTsExtensions": true
   },
-  "include": [
-    "src/**/*.spec.ts",
-    "src/**/*.spec.tsx",
-    "tests/workerd/machines/**/*.ts",
-    "vitest-env.d.ts",
-    "worker-configuration.d.ts",
-    "env-types.d.ts",
-    "vitest.node.config.ts",
-    "vitest.workerd.config.ts",
-    "vitest.config.workerd-machine.ts",
-    "vitest.config.workerd-system.ts"
-  ],
+  "include": ["worker-configuration.d.ts", "env-types.d.ts"],
   "exclude": [],
   "references": [
     {
@@ -39,9 +22,6 @@
     },
     {
       "path": "../../packages/error"
-    },
-    {
-      "path": "../fixtures/tsconfig.config.json"
     }
   ]
 }

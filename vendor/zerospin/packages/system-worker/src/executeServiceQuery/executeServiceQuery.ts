@@ -48,7 +48,6 @@ export const executeServiceQuery = Effect.fn(
     serviceName,
     claims,
     serviceVersion: inputServiceVersion,
-    aggregateVersion,
   } = props;
 
   // 1 — inspect aggregateId, aggregateName, claims, sessionName, and aggregateSessionLock
@@ -78,14 +77,7 @@ export const executeServiceQuery = Effect.fn(
   }
 
   // 3 — use configured systemId and the caller serviceName
-  const serviceVersion =
-    aggregateName === undefined
-      ? inputServiceVersion
-      : (yield* getByKeyOrThrow({
-          record: system.aggregates[aggregateName] ?? {},
-          key: aggregateVersion ?? '',
-          recordKind: 'aggregate versions',
-        })).services[serviceName];
+  const serviceVersion = inputServiceVersion;
   yield* getByKeyOrThrow({
     record: system.services[serviceName] ?? {},
     key: serviceVersion ?? '',

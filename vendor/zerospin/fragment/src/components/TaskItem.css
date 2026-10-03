@@ -1,0 +1,117 @@
+.task-item {
+  --task-item-width: 260px;
+  position: absolute;
+  left: 42%;
+  top: 42%;
+  width: var(--task-item-width);
+  height: calc(3 * 1.12em);
+  color: #fff;
+  font-size: 28px;
+  line-height: 1.12;
+  white-space: nowrap;
+  transition: width 900ms cubic-bezier(0.22, 1, 0.36, 1);
+  animation: task-item-float 12s ease-in-out infinite;
+}
+
+.task-item--collapsed {
+  width: 0;
+}
+
+.task-item__panel {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: #101010;
+}
+
+.task-item__content {
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: var(--task-item-width);
+}
+
+.task-item__row {
+  position: relative;
+  height: 1.12em;
+  padding: 0 4px;
+  overflow: hidden;
+  border-bottom: 1px solid #4a4a4a;
+}
+
+.task-item__row:last-child {
+  border-bottom: 0;
+}
+.task-item__indicator {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  left: calc(100% + 8px);
+  width: 1em;
+  height: 1.12em;
+  background: #101010;
+  transition:
+    top 500ms ease,
+    opacity 300ms ease;
+}
+.task-item__indicator--hidden {
+  opacity: 0;
+}
+.task-item__indicator .character-status-indicator {
+  font-size: 0.8em;
+  line-height: 1;
+  height: 1em;
+}
+
+.task-item__caret {
+  display: inline-block;
+  width: 1px;
+  height: 0.8em;
+  margin-left: 2px;
+  vertical-align: -0.08em;
+  background: currentColor;
+  animation: task-item-caret-blink 1600ms steps(1) infinite;
+}
+
+@keyframes task-item-caret-blink {
+  50% {
+    opacity: 0;
+  }
+}
+@keyframes task-item-float {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(38px, -28px);
+  }
+}
+
+@media (max-width: 800px) {
+  .task-item {
+    --task-item-width: 175px;
+    font-size: 18px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .task-item {
+    animation: none;
+    transition: none;
+  }
+  .task-item__indicator {
+    transition: none;
+  }
+  .task-item__caret {
+    animation: none;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .task-item__indicator .character-status-indicator::after {
+    animation-duration: 6s, 6s;
+  }
+  .task-item__indicator .character-status-indicator.is-complete::after {
+    animation-duration: 1200ms;
+  }
+}

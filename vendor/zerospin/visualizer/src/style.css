@@ -1366,7 +1366,7 @@ select {
     gap: 10px;
   }
   .scenario-picker {
-    flex: 1;
+    flex: 1 1 100%;
     min-width: 0;
   }
   .scenario-picker select {
@@ -1376,6 +1376,7 @@ select {
   }
   .playback-controls {
     margin-left: 0;
+    width: 100%;
   }
   .step-counter {
     margin-left: auto;

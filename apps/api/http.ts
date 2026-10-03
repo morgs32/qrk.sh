@@ -1,8 +1,8 @@
-import type { IApiEnv } from "./types";
-
 export const ALLOWED_ORIGINS: readonly string[] = [
   "http://127.0.0.1:3001",
   "http://localhost:3001",
+  "http://127.0.0.1:4100",
+  "http://localhost:4100",
   "https://www.qrk.sh",
   "https://qrk.sh",
 ];
@@ -15,19 +15,12 @@ export function corsHeaders(request: Request): Headers {
     headers.set("Vary", "Origin");
   }
   headers.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  headers.set(
-    "Access-Control-Allow-Headers",
-    "Authorization, Content-Type",
-  );
+  headers.set("Access-Control-Allow-Headers", "Authorization, Content-Type");
   headers.set("Access-Control-Max-Age", "86400");
   return headers;
 }
 
-export function jsonResponse(
-  request: Request,
-  body: unknown,
-  status: number,
-): Response {
+export function jsonResponse(request: Request, body: unknown, status: number): Response {
   const headers = corsHeaders(request);
   headers.set("Content-Type", "application/json");
   return new Response(JSON.stringify(body), { status, headers });
@@ -49,14 +42,15 @@ export function getBearerToken(request: Request): string | null {
   return match[1] ?? null;
 }
 
-export async function requireClerkUserId(
-  request: Request,
-  env: IApiEnv,
-): Promise<string> {
+export async function requireClerkUserId(request: Request, env: Env): Promise<string> {
   const { verifyToken } = await import("@clerk/backend");
   const sessionToken = getBearerToken(request);
   if (sessionToken === null) {
-    throw new UploadHttpError(401, "missing-authorization", "Authorization Bearer token is required");
+    throw new UploadHttpError(
+      401,
+      "missing-authorization",
+      "Authorization Bearer token is required",
+    );
   }
 
   try {
@@ -65,14 +59,22 @@ export async function requireClerkUserId(
       authorizedParties: [env.CLERK_AUTHORIZED_PARTY],
     });
     if (typeof verified.sub !== "string" || verified.sub.length === 0) {
-      throw new UploadHttpError(401, "invalid-token", "The Clerk session token is missing a subject");
+      throw new UploadHttpError(
+        401,
+        "invalid-token",
+        "The Clerk session token is missing a subject",
+      );
     }
     return verified.sub;
   } catch (cause) {
     if (cause instanceof UploadHttpError) {
       throw cause;
     }
-    throw new UploadHttpError(401, "invalid-token", "The Clerk session token could not be verified");
+    throw new UploadHttpError(
+      401,
+      "invalid-token",
+      "The Clerk session token could not be verified",
+    );
   }
 }
 

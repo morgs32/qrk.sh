@@ -5,7 +5,7 @@ import { useEffect, useRef } from "react";
 import { makeComponentView } from "../../make/makeComponentView";
 import { mapCanvasComponent } from "./generator/MapCanvasComponent";
 
-const MAPBOX_TOKEN = import.meta.env.PUBLIC_MAPBOX_TOKEN;
+const MAPBOX_TOKEN = process.env.PUBLIC_MAPBOX_TOKEN;
 
 export const mapCanvasView = makeComponentView(mapCanvasComponent, {
   component(props) {

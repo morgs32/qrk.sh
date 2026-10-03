@@ -16,19 +16,20 @@ export function makeRemoveBrickContract(props: {
   brick: ReturnType<typeof makeBrickModel>;
   placement: ReturnType<typeof makePlacementModel>;
 }) {
+  const { wall, brick, placement } = props;
   const removeBrickPayload = {
     brickId: primitives.foreignKey({
-      abbreviation: props.brick.abbreviation,
+      abbreviation: brick.abbreviation,
     }),
-    wallId: primitives.foreignKey({ abbreviation: props.wall.abbreviation }),
+    wallId: primitives.foreignKey({ abbreviation: wall.abbreviation }),
   };
 
   return makeContractVersion(removeBrick, {
     payload: removeBrickPayload,
     models: {
-      wall: props.wall,
-      brick: props.brick,
-      placement: props.placement,
+      wall,
+      brick,
+      placement,
     },
     version: "1.0.0",
     guard: Effect.fn("removeBrick.guard")(function* ({
@@ -77,26 +78,18 @@ export function makeRemoveBrickContract(props: {
     }),
     program: ({ payload, models }) =>
       Effect.gen(function* () {
-        const mutations = [];
-
         for (const breakpoint of ["sm", "md", "lg", "xl"] as Array<"sm" | "md" | "lg" | "xl">) {
-          mutations.push(
-            yield* models.placement.delete({
-              resourceId: makePlacementId(
-                payload.brickId,
-                breakpoint,
-              ) as InferIdFromAbbreviation<"plc">,
-            }),
-          );
+          yield* models.placement.delete({
+            resourceId: makePlacementId(
+              payload.brickId,
+              breakpoint,
+            ) as InferIdFromAbbreviation<"plc">,
+          });
         }
 
-        mutations.push(
-          yield* models.brick.delete({
-            resourceId: payload.brickId as InferIdFromAbbreviation<"brk">,
-          }),
-        );
-
-        return mutations;
+        yield* models.brick.delete({
+          resourceId: payload.brickId as InferIdFromAbbreviation<"brk">,
+        });
       }),
   });
 }

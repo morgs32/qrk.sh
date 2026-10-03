@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "wrangler dev",
+    "dev": "wrangler dev --ip 127.0.0.1 --port 8787 --inspector-port 9231",
+    "build": "wrangler deploy --dry-run --outdir dist",
     "lint": "vp lint --config ../../.oxlintrc.json .",
     "tsc": "tsc -p tsconfig.json --noEmit",
     "types": "wrangler types ./worker-configuration.d.ts",
@@ -12,7 +13,13 @@
   },
   "dependencies": {
     "@clerk/backend": "^3.8.5",
-    "@qrk.sh/r2-assets": "workspace:*"
+    "@cloudflare/puppeteer": "^1.1.0",
+    "@json-render/core": "^0.20.0",
+    "@qrk.sh/library": "workspace:*",
+    "@qrk.sh/r2-assets": "workspace:*",
+    "capnweb": "^0.12.0",
+    "drizzle-orm": "1.0.0-rc.4",
+    "effect": "rc"
   },
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "^0.16.3",

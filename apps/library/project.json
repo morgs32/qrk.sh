@@ -4,21 +4,19 @@
   "targets": {
     "dev": {
       "continuous": true,
-      "dependsOn": ["^lib"]
+      "dependsOn": ["^lib", { "projects": ["@qrk.sh/api"], "target": "dev" }]
+    },
+    "preview": {
+      "continuous": true,
+      "dependsOn": [{ "projects": ["@qrk.sh/api"], "target": "dev" }]
     },
     "tsc": {
-      "dependsOn": ["^lib", "tsc:worker"]
+      "dependsOn": ["^lib"]
     },
     "build": {
       "dependsOn": ["^lib"]
     },
     "build:app": {
-      "dependsOn": ["^lib"]
-    },
-    "tsc:worker": {
-      "dependsOn": ["^lib"]
-    },
-    "test:workerd": {
       "dependsOn": ["^lib"]
     }
   }

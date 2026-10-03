@@ -2,6 +2,7 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "allowImportingTsExtensions": false,
+    "types": ["vite/client", "node", "react/canary"],
     "declaration": true,
     "declarationMap": true,
     "emitDeclarationOnly": true,
@@ -10,5 +11,18 @@
     "rootDir": "."
   },
   "include": ["**/*.ts", "**/*.tsx"],
-  "exclude": ["app/**", "worker/**", "vite*.ts", "dist", "build", "node_modules", "test-results"]
+  "exclude": [
+    "app/**",
+    "worker/**",
+    "vite*.ts",
+    "next.config.ts",
+    "next-env.d.ts",
+    ".next",
+    "dist",
+    "build",
+    "node_modules",
+    "test-results",
+    "cloudflare-test.d.ts",
+    "vitest.worker.config.ts"
+  ]
 }

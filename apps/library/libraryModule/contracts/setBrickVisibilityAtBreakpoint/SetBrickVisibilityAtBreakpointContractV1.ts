@@ -27,9 +27,10 @@ export function makeSetBrickVisibilityAtBreakpointContract(props: {
   brick: ReturnType<typeof makeBrickModel>;
   placement: ReturnType<typeof makePlacementModel>;
 }) {
+  const { brick, placement } = props;
   const setBrickVisibilityAtBreakpointPayload = {
     brickId: primitives.foreignKey({
-      abbreviation: props.brick.abbreviation,
+      abbreviation: brick.abbreviation,
     }),
     breakpoint: primitives.enum({
       values: ["sm", "md", "lg", "xl"],
@@ -45,8 +46,8 @@ export function makeSetBrickVisibilityAtBreakpointContract(props: {
   return makeContractVersion(setBrickVisibilityAtBreakpoint, {
     payload: setBrickVisibilityAtBreakpointPayload,
     models: {
-      brick: props.brick,
-      placement: props.placement,
+      brick,
+      placement,
     },
     version: "1.0.0",
     guard: Effect.fn("setBrickVisibilityAtBreakpoint.guard")(function* ({
@@ -211,60 +212,52 @@ export function makeSetBrickVisibilityAtBreakpointContract(props: {
     program: ({ payload, models }) =>
       Effect.gen(function* () {
         if (payload.currentlyVisible === payload.isVisible) {
-          return [];
+          return;
         }
 
         if (!payload.isVisible) {
-          return [
-            yield* models.placement.update({
-              resourceId: makePlacementId(
-                payload.brickId,
-                payload.breakpoint,
-              ) as InferIdFromAbbreviation<"plc">,
-              attributes: {
-                isVisible: false,
-              },
-            }),
-          ];
+          yield* models.placement.update({
+            resourceId: makePlacementId(
+              payload.brickId,
+              payload.breakpoint,
+            ) as InferIdFromAbbreviation<"plc">,
+            attributes: {
+              isVisible: false,
+            },
+          });
+          return;
         }
 
         const resolved = makeCollisionResolvedLayout({
           visibleLayout: payload.otherVisibleLayout,
           incoming: cloneLayoutItem(payload.savedGridItem),
         });
-        const mutations = [];
 
         for (const item of resolved) {
           if (item.i === payload.brickId) {
-            mutations.push(
-              yield* models.placement.update({
-                resourceId: makePlacementId(
-                  payload.brickId,
-                  payload.breakpoint,
-                ) as InferIdFromAbbreviation<"plc">,
-                attributes: {
-                  isVisible: true,
-                  gridItem: item,
-                } as Partial<InferDecodedRow<(typeof props.placement)["attributes"]>>,
-              }),
-            );
-            continue;
-          }
-
-          mutations.push(
             yield* models.placement.update({
               resourceId: makePlacementId(
-                item.i,
+                payload.brickId,
                 payload.breakpoint,
               ) as InferIdFromAbbreviation<"plc">,
               attributes: {
+                isVisible: true,
                 gridItem: item,
-              } as Partial<InferDecodedRow<(typeof props.placement)["attributes"]>>,
-            }),
-          );
-        }
+              } as Partial<InferDecodedRow<(typeof placement)["attributes"]>>,
+            });
+            continue;
+          }
 
-        return mutations;
+          yield* models.placement.update({
+            resourceId: makePlacementId(
+              item.i,
+              payload.breakpoint,
+            ) as InferIdFromAbbreviation<"plc">,
+            attributes: {
+              gridItem: item,
+            } as Partial<InferDecodedRow<(typeof placement)["attributes"]>>,
+          });
+        }
       }),
   });
 }

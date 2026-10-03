@@ -6,8 +6,8 @@
     "noEmit": true,
     "skipLibCheck": true,
     "strict": true,
-    "types": ["node", "@cloudflare/vitest-pool-workers"]
+    "types": ["./worker-configuration.d.ts", "node", "@cloudflare/vitest-pool-workers"]
   },
-  "include": ["*.ts", "*.d.ts"],
+  "include": ["*.ts", "*.d.ts", "modules/**/*.ts"],
   "exclude": ["node_modules", ".wrangler", "vitest.*.config.ts"]
 }

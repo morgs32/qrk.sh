@@ -105,7 +105,9 @@ attachment. Offline reopening requires that exact previously verified identity
 and session lock. Runtime versions use separate storage; pending commands in an
 older version are not migrated or deleted.
 
-API runs on port 8787 and Zerospin on port 8788. Set
+The `api` Worker runs on port 8787 (inspector 9231) and Zerospin on port 8788. API
+owns module RPCs, Clerk-authenticated uploads, and asset serving. See
+[API's README](apps/api/README.md) for bindings and private provider settings. Set
 `NEXT_PUBLIC_ZEROSPIN_API_URL=http://127.0.0.1:8788/` in `apps/studio/.env.local`.
 
 To run only the library app and build its dependencies:
@@ -113,6 +115,11 @@ To run only the library app and build its dependencies:
 ```bash
 pnpm nx run @qrk.sh/library:dev
 ```
+
+Library uses Next.js App Router with webpack on port 4100. Its Nx target starts
+the unified API Worker on port 8787. Next forwards `/rpc`, `/upload`, and
+`/assets/*` to API, preserving same-origin client URLs. Its reusable Vite library
+build remains separate for Studio consumers and API's catalog registry.
 
 To run the dashboard and site app instead:
 
@@ -127,6 +134,12 @@ Build and start either app with Nx: `pnpm nx run @qrk.sh/web:build` and
 Studio uses webpack and writes `.next`; its production server defaults to port
 3001 (`PORT` overrides it). Keep web on port 3000 with `APP_ORIGIN` pointing to
 Studio.
+
+For Library, run `pnpm nx run @qrk.sh/library:build:app`, then
+`pnpm nx run @qrk.sh/library:preview`. Preview serves `.next` on port 4100 and
+starts the local API Worker. See [Library's README](apps/library/README.md)
+for the backend-origin setting. API retains the existing R2 buckets; previously
+saved absolute URLs using port 4101 need their origin updated separately.
 
 ## Deployment
 

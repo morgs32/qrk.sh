@@ -55,8 +55,10 @@ export type IAggregateSessionDefinition<
     | ExcludeOperationSink<
         Effect.Services<ReturnType<CONTRACTS[keyof CONTRACTS]['program']>>
       >
-    | Effect.Services<
-        ReturnType<NonNullable<CONTRACTS[keyof CONTRACTS]['guard']>>
+    | ExcludeOperationSink<
+        Effect.Services<
+          ReturnType<NonNullable<CONTRACTS[keyof CONTRACTS]['guard']>>
+        >
       >
     | Scope.Scope;
   kind: 'aggregate';

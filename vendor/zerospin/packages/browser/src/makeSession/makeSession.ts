@@ -43,7 +43,9 @@ import { makeAdmissionProvider } from './makeAdmissionProvider';
 type AggregateSessionRequirements<CONTRACTS extends IAnyContracts> = {
   [K in keyof CONTRACTS]:
     | ExcludeOperationSink<Effect.Services<ReturnType<CONTRACTS[K]['program']>>>
-    | Effect.Services<ReturnType<NonNullable<CONTRACTS[K]['guard']>>>;
+    | ExcludeOperationSink<
+        Effect.Services<ReturnType<NonNullable<CONTRACTS[K]['guard']>>>
+      >;
 }[keyof CONTRACTS];
 
 type IAssertSessionContracts<

@@ -1,6 +1,6 @@
 import type { IDb } from "@zerospin/core/drizzle/types";
 import { makeContractVersion } from "@zerospin/core/contracts/make/makeContractVersion";
-import type { IModelMutations } from "@zerospin/core/contracts/types";
+import type { IModelOperations } from "@zerospin/core/contracts/types";
 import type { InferCommandPayload } from "@zerospin/core/models/types";
 import { mapParseError, ZerospinError } from "@zerospin/error";
 import {
@@ -84,7 +84,7 @@ export function makeUpdateBrickStateContract<
       models,
     }: {
       payload: InferCommandPayload<typeof updateBrickStatePayload>;
-      models: { brick: IModelMutations<typeof brick> };
+      models: { brick: IModelOperations<typeof brick> };
     }) {
       const brickModule = library[payload.moduleId];
       const StateSchema = Schema.toType(makeEffectSchema(brickModule.stateShape));
@@ -96,14 +96,12 @@ export function makeUpdateBrickStateContract<
           prefix: `updateBrickState state failed ${payload.moduleId} decode`,
         }),
       );
-      return [
-        yield* models.brick.update({
-          resourceId: payload.brickId as InferIdFromAbbreviation<"brk">,
-          attributes: {
-            state: structuredClone(decodedState),
-          },
-        }),
-      ];
+      yield* models.brick.update({
+        resourceId: payload.brickId as InferIdFromAbbreviation<"brk">,
+        attributes: {
+          state: structuredClone(decodedState),
+        },
+      });
     }),
   });
 }

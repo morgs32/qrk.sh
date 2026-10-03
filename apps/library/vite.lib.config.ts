@@ -15,7 +15,7 @@ export default defineConfig(({ mode }) => {
 
   return {
     define: {
-      "import.meta.env.PUBLIC_MAPBOX_TOKEN": JSON.stringify(mapboxToken),
+      "process.env.PUBLIC_MAPBOX_TOKEN": JSON.stringify(mapboxToken),
     },
     plugins: [react()],
     build: {
@@ -32,6 +32,7 @@ export default defineConfig(({ mode }) => {
           BrickWall: "lib/BrickWall.tsx",
           brickDragStore: "lib/brickDragStore.ts",
           libraryModule: "libraryModule/libraryModule.ts",
+          backendLibrary: "backendLibrary.ts",
           createLibraryStandaloneSession: "session/createLibraryStandaloneSession.ts",
           TiptapDocSchema: "lib/TiptapDocSchema.ts",
         },

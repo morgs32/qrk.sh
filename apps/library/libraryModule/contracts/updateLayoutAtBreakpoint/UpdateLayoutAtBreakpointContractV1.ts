@@ -25,8 +25,9 @@ export function makeUpdateLayoutAtBreakpointContract(props: {
   brick: ReturnType<typeof makeBrickModel>;
   placement: ReturnType<typeof makePlacementModel>;
 }) {
+  const { wall, brick, placement } = props;
   const updateLayoutAtBreakpointPayload = {
-    wallId: primitives.foreignKey({ abbreviation: props.wall.abbreviation }),
+    wallId: primitives.foreignKey({ abbreviation: wall.abbreviation }),
     breakpoint: primitives.enum({
       values: ["sm", "md", "lg", "xl"],
     }),
@@ -38,9 +39,9 @@ export function makeUpdateLayoutAtBreakpointContract(props: {
   return makeContractVersion(updateLayoutAtBreakpoint, {
     payload: updateLayoutAtBreakpointPayload,
     models: {
-      wall: props.wall,
-      brick: props.brick,
-      placement: props.placement,
+      wall,
+      brick,
+      placement,
     },
     version: "1.0.0",
     guard: Effect.fn("updateLayoutAtBreakpoint.guard")(function* ({
@@ -146,21 +147,17 @@ export function makeUpdateLayoutAtBreakpointContract(props: {
     }),
     program: ({ payload, models }) =>
       Effect.gen(function* () {
-        const mutations = [];
         for (const item of payload.layout) {
-          mutations.push(
-            yield* models.placement.update({
-              resourceId: makePlacementId(
-                item.i,
-                payload.breakpoint,
-              ) as InferIdFromAbbreviation<"plc">,
-              attributes: {
-                gridItem: structuredClone(item),
-              } as Partial<InferDecodedRow<(typeof props.placement)["attributes"]>>,
-            }),
-          );
+          yield* models.placement.update({
+            resourceId: makePlacementId(
+              item.i,
+              payload.breakpoint,
+            ) as InferIdFromAbbreviation<"plc">,
+            attributes: {
+              gridItem: structuredClone(item),
+            } as Partial<InferDecodedRow<(typeof placement)["attributes"]>>,
+          });
         }
-        return mutations;
       }),
   });
 }

@@ -1,6 +1,6 @@
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",
-  "name": "qrk-api",
+  "name": "api",
   "main": "./Worker.ts",
   "compatibility_date": "2026-05-14",
   "compatibility_flags": ["nodejs_compat"],
@@ -9,6 +9,10 @@
       "binding": "QRKSH",
       "bucket_name": "qrksh",
     },
+    {
+      "binding": "ASSETS",
+      "bucket_name": "assets",
+    },
   ],
   "vars": {
     // Local/Miniflare: path is resolved against the Worker origin → GET /assets/*.
@@ -16,4 +20,29 @@
     "R2_PUBLIC_BASE_URL": "/assets",
     "CLERK_AUTHORIZED_PARTY": "http://127.0.0.1:3001",
   },
+  "browser": { "binding": "BROWSER" },
+  "durable_objects": {
+    "bindings": [
+      { "name": "BROWSER_HOST", "class_name": "BrowserHost" },
+      { "name": "INSTAGRAM_BACKEND", "class_name": "InstagramBackend" },
+      { "name": "GITHUB_BACKEND", "class_name": "GitHubBackend" },
+      { "name": "FIGMA_BACKEND", "class_name": "FigmaBackend" },
+      { "name": "GOOGLE_PLACES_BACKEND", "class_name": "GooglePlacesBackend" },
+      { "name": "LINK_BACKEND", "class_name": "LinkBackend" },
+      { "name": "STREAMLINE_BACKEND", "class_name": "StreamlineBackend" },
+    ],
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_classes": ["BrowserHost", "StreamlineBackend"],
+      "new_sqlite_classes": [
+        "InstagramBackend",
+        "GitHubBackend",
+        "FigmaBackend",
+        "GooglePlacesBackend",
+        "LinkBackend",
+      ],
+    },
+  ],
 }

@@ -1,9 +1,9 @@
 # Library
 
-The brick library, TanStack Start app, and scraper backend share this package.
-Vite+ runs TanStack Start and the Cloudflare Worker together through
-`@cloudflare/vite-plugin`, following the
-[Cloudflare TanStack Start guide](https://developers.cloudflare.com/workers/framework-guides/web-apps/tanstack-start/).
+This package owns the reusable brick library and Next.js App Router UI. Next
+uses webpack, matching Studio. The Cloudflare Worker backend lives in
+[`apps/api`](../api/README.md); Nx starts both development servers and builds
+their dependencies.
 
 From the repository root:
 
@@ -11,29 +11,36 @@ From the repository root:
 pnpm nx run @qrk.sh/library:dev
 ```
 
-Open `http://127.0.0.1:4100`. The form calls `/rpc` on that same
-server. A separate scraper process and `SCRAPER_URL` are no longer needed.
-This command runs locally and does not deploy anything.
+Open `http://127.0.0.1:4100`. Next forwards `/rpc`, `/upload`, and `/assets/*` to
+the API Worker at `http://127.0.0.1:8787`; its inspector listens on port 9231.
+Browser callers keep their same-origin URLs. This command runs locally and does
+not deploy anything. `pnpm nx run @qrk.sh/api:dev` runs the backend alone.
 
 ## Configuration
 
 Put local settings in `apps/library/.env.local`:
 
 - `PUBLIC_MAPBOX_TOKEN` is required for the library app and is exposed to the browser.
-- `GITHUB_TOKEN`, `FIGMA_TOKEN`, `GOOGLE_PLACES_API_KEY`, `STREAMLINE_API_KEY`,
-  and `OPENAI_API_KEY` are private Worker credentials for their respective
-  providers.
+- `LIBRARY_WORKER_ORIGIN` optionally changes Next's backend destination; it defaults
+  to `http://127.0.0.1:8787` and is server-only. Set it before building the app when
+  using a different backend origin in production.
 
-The Cloudflare plugin loads the private settings as Worker bindings. Only the
-Mapbox token is explicitly included in the browser build.
+Private provider credentials belong in `apps/api/.env.local`, where Wrangler
+loads them as Worker bindings. Only the Mapbox token is explicitly included in
+the Library browser build.
 
-`wrangler.jsonc` retains the `library` Worker identity, browser binding, Durable
-Object bindings, and migrations. Local cache data lives under `.wrangler/state`.
-The Worker implementation and its tests live in `worker`, with module-owned
-`*Backend` Durable Objects under `modules/<moduleFolder>/`. Client imports
-use the existing `*.public.d.ts` contracts so Worker implementation types do not
-become part of the brick library's public declarations. Linktree scraping lives
+Module definitions, catalogs, views, aggregate behavior, and browser RPC
+declarations stay here. API owns `LibraryApi`, `BrowserHost`, generation,
+provider helpers, and module backend Durable Objects. Client imports retain the
+existing `worker/*.public.d.ts` paths, so Worker implementation types do not
+become part of the brick library's public declarations. Linktree scraping stays
 in the separate `@qrk.sh/scraper` Worker (`apps/scraper`).
+
+API retains the `ASSETS` bucket for `/assets/library/*` and serves other asset
+keys from `QRKSH`. Uploads now require Clerk authentication. Existing image bytes
+and local state directories remain preserved, with local `ASSETS` data copied
+to API's state. Saved absolute port-4101 URLs need their origin updated
+separately; authored documents are not rewritten.
 
 ## Checks and builds
 
@@ -44,12 +51,20 @@ pnpm nx run @qrk.sh/library:build:app
 pnpm nx run @qrk.sh/library:build
 ```
 
-`tsc` checks both browser and Worker code. Library tests are intentionally not
-maintained for now (see root `AGENTS.md`).
+`tsc` checks Library browser and shared module code. API checks its Worker code
+separately. Library tests are intentionally not maintained or run (see root
+`AGENTS.md`).
 
-`build:app` produces the TanStack Start Worker app via the Cloudflare Vite plugin.
+`build:app` produces the Next app in `.next`.
 `build` produces the reusable brick library in `dist`, including its public
 Worker/RPC declarations. Neither build deploys the app.
+
+After `build:app`, run `pnpm nx run @qrk.sh/library:preview` to serve the built
+Next app on port 4100 alongside the local API Worker. The UI routes are
+`/`, `/modules`, `/modules/[moduleId]`, and `/bricks/[brickId]`. App Router navigation
+retains the wall, drawer, standalone session, and viewport providers; route-specific
+module and brick drafts keep their existing remount boundaries. The document title
+remains `QRK.SH Library`, with diagnostic error and not-found screens.
 
 ## Public exports and shared UI
 
@@ -60,6 +75,7 @@ contains the Library-only routes and layout, not exported application screens.
 | Import under `@qrk.sh/library`    | Defining source                             | Purpose                                                   |
 | --------------------------------- | ------------------------------------------- | --------------------------------------------------------- |
 | package root                      | `lib/index.ts`                              | Small barrel: `modulesHash`, `IModule`, `IModuleBrickDef` |
+| `/backendLibrary`                 | `backendLibrary.ts`                         | Module catalog registry used by API generation            |
 | `/ModuleFilmstrip`                | `lib/ModuleFilmstrip.tsx`                   | Shared horizontal module catalog                          |
 | `/Drawer`                         | `lib/Drawer.tsx`                            | Shared Drawer and existing DrawerPresence                 |
 | `/BrickWall`                      | `lib/BrickWall.tsx`                         | Interactive wall                                          |
@@ -99,7 +115,7 @@ vertically within a horizontal strip. Module detail screens remain app-owned.
 
 `modulesHash` exposes each library module by its registered kebab-case id, with
 no arbitrary-string index signature. Module URLs decode their ID against the
-brick model enum before passing it through route context; unknown IDs remain 404s.
+brick model enum before rendering the module page; unknown IDs remain 404s.
 Internal previews, state updates, and drag callbacks retain the registered ID union.
 `defineModule` declares identity; `makeModuleVersion` owns the catalog, `stateShape`,
 and `defaultState`. `makeModuleView` infers authored callback props from that state
@@ -195,7 +211,7 @@ mutation. Spec validation remains strict.
 Pending updates without it must be resubmitted against the current `1.0.0` baseline.
 Existing bricks are normalized on their next state update; there is no bulk migration.
 
-`Layout` initializes the module-level `librarySession` with
+`LibraryLayout` initializes the module-level `librarySession` with
 `useInitializeStandaloneSession`. Its `qrk-library` backup key persists the
 `wal_library` document across reloads and initialization registers it with DevTools.
 Restored resources take precedence over the initial seed. Studio uses its authenticated
@@ -230,9 +246,9 @@ gestures, selection and available width update while the displayed wall waits
 for completion. Below 360px, the insufficient-width message appears as soon as
 the gesture ends; a fitting wall returns immediately when space recovers.
 
-Library's backup-worker Vite plugin serves `/__zerospin/backup-worker.js` and
-`/__zerospin/wa-sqlite-async.wasm` during development and emits them into the
-application build. Studio copies the same built assets into its public directory.
+Library and Studio copy the same built backup assets into their public directories:
+`/__zerospin/backup-worker.js` and `/__zerospin/wa-sqlite-async.wasm`. Next's webpack
+build also emits the standalone session's separate synchronous SQLite WASM asset.
 
 HTML5 catalog drag is a module-level `brickDragStore` (`brickDef` / `setBrickDef`
 only). Its shared `IDraggedBrick` payload preserves the registered module ID

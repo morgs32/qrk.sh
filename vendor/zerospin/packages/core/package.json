@@ -21,6 +21,11 @@
       "import": "./dist/aggregate/make/makeAggregateCommand.js",
       "default": "./dist/aggregate/make/makeAggregateCommand.js"
     },
+    "./async/Async": {
+      "types": "./src/async/Async.ts",
+      "import": "./dist/async/Async.js",
+      "default": "./dist/async/Async.js"
+    },
     "./*": {
       "types": "./dist/*.d.ts",
       "import": "./dist/*.js",

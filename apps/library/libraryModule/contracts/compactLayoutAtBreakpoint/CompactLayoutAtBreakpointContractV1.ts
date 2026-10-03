@@ -25,8 +25,9 @@ export function makeCompactLayoutAtBreakpointContract(props: {
   brick: ReturnType<typeof makeBrickModel>;
   placement: ReturnType<typeof makePlacementModel>;
 }) {
+  const { wall, brick, placement } = props;
   const compactLayoutAtBreakpointPayload = {
-    wallId: primitives.foreignKey({ abbreviation: props.wall.abbreviation }),
+    wallId: primitives.foreignKey({ abbreviation: wall.abbreviation }),
     breakpoint: primitives.enum({
       values: ["sm", "md", "lg", "xl"],
     }),
@@ -38,9 +39,9 @@ export function makeCompactLayoutAtBreakpointContract(props: {
   return makeContractVersion(compactLayoutAtBreakpoint, {
     payload: compactLayoutAtBreakpointPayload,
     models: {
-      wall: props.wall,
-      brick: props.brick,
-      placement: props.placement,
+      wall,
+      brick,
+      placement,
     },
     version: "1.0.0",
     guard: Effect.fn("compactLayoutAtBreakpoint.guard")(function* ({
@@ -147,21 +148,17 @@ export function makeCompactLayoutAtBreakpointContract(props: {
     program: ({ payload, models }) =>
       Effect.gen(function* () {
         const compacted = makeCompactLayout(payload.visibleLayout);
-        const mutations = [];
         for (const item of compacted) {
-          mutations.push(
-            yield* models.placement.update({
-              resourceId: makePlacementId(
-                item.i,
-                payload.breakpoint,
-              ) as InferIdFromAbbreviation<"plc">,
-              attributes: {
-                gridItem: item,
-              } as Partial<InferDecodedRow<(typeof props.placement)["attributes"]>>,
-            }),
-          );
+          yield* models.placement.update({
+            resourceId: makePlacementId(
+              item.i,
+              payload.breakpoint,
+            ) as InferIdFromAbbreviation<"plc">,
+            attributes: {
+              gridItem: item,
+            } as Partial<InferDecodedRow<(typeof placement)["attributes"]>>,
+          });
         }
-        return mutations;
       }),
   });
 }

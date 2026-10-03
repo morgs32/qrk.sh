@@ -1,6 +1,6 @@
 import type { IDb } from "@zerospin/core/drizzle/types";
 import { makeContractVersion } from "@zerospin/core/contracts/make/makeContractVersion";
-import type { IModelMutations } from "@zerospin/core/contracts/types";
+import type { IModelOperations } from "@zerospin/core/contracts/types";
 import type { InferCommandPayload } from "@zerospin/core/models/types";
 import { mapParseError, ZerospinError } from "@zerospin/error";
 import {
@@ -244,8 +244,8 @@ export function makeAddBrickContract<
     }: {
       payload: InferCommandPayload<typeof addBrickPayload>;
       models: {
-        brick: IModelMutations<typeof brick>;
-        placement: IModelMutations<typeof placement>;
+        brick: IModelOperations<typeof brick>;
+        placement: IModelOperations<typeof placement>;
       };
     }) {
       const resolvedLayouts = { ...payload.visibleLayouts };
@@ -272,7 +272,6 @@ export function makeAddBrickContract<
         resolvedLayouts[breakpoint] = layout;
       }
 
-      const mutations = [];
       const brickModule = library[payload.moduleId];
       const StateSchema = Schema.toType(makeEffectSchema(brickModule.stateShape));
       const decodedState = yield* Schema.decodeUnknownEffect(
@@ -286,37 +285,33 @@ export function makeAddBrickContract<
       const clonedState = structuredClone(decodedState);
       const clonedSpec = structuredClone(payload.spec);
 
-      mutations.push(
-        yield* models.brick.create({
-          resourceId: payload.brickId as InferIdFromAbbreviation<"brk">,
-          attributes: {
-            wallId: payload.wallId as InferIdFromAbbreviation<"wal">,
-            moduleId: payload.moduleId,
-            state: clonedState,
-          },
-        }),
-      );
+      yield* models.brick.create({
+        resourceId: payload.brickId as InferIdFromAbbreviation<"brk">,
+        attributes: {
+          wallId: payload.wallId as InferIdFromAbbreviation<"wal">,
+          moduleId: payload.moduleId,
+          state: clonedState,
+        },
+      });
 
       for (const breakpoint of ["sm", "md", "lg", "xl"] as Array<"sm" | "md" | "lg" | "xl">) {
         const layout = resolvedLayouts[breakpoint];
 
         for (const item of layout) {
           if (item.i === payload.brickId) {
-            mutations.push(
-              yield* models.placement.create({
-                resourceId: makePlacementId(
-                  payload.brickId,
-                  breakpoint,
-                ) as InferIdFromAbbreviation<"plc">,
-                attributes: {
-                  brickId: payload.brickId as InferIdFromAbbreviation<"brk">,
-                  breakpoint,
-                  spec: structuredClone(clonedSpec),
-                  gridItem: item,
-                  isVisible: true,
-                } as InferDecodedRow<(typeof placement)["attributes"]>,
-              }),
-            );
+            yield* models.placement.create({
+              resourceId: makePlacementId(
+                payload.brickId,
+                breakpoint,
+              ) as InferIdFromAbbreviation<"plc">,
+              attributes: {
+                brickId: payload.brickId as InferIdFromAbbreviation<"brk">,
+                breakpoint,
+                spec: structuredClone(clonedSpec),
+                gridItem: item,
+                isVisible: true,
+              } as InferDecodedRow<(typeof placement)["attributes"]>,
+            });
             continue;
           }
 
@@ -332,18 +327,14 @@ export function makeAddBrickContract<
             continue;
           }
 
-          mutations.push(
-            yield* models.placement.update({
-              resourceId: makePlacementId(item.i, breakpoint) as InferIdFromAbbreviation<"plc">,
-              attributes: {
-                gridItem: item,
-              } as Partial<InferDecodedRow<(typeof placement)["attributes"]>>,
-            }),
-          );
+          yield* models.placement.update({
+            resourceId: makePlacementId(item.i, breakpoint) as InferIdFromAbbreviation<"plc">,
+            attributes: {
+              gridItem: item,
+            } as Partial<InferDecodedRow<(typeof placement)["attributes"]>>,
+          });
         }
       }
-
-      return mutations;
     }),
   });
 }

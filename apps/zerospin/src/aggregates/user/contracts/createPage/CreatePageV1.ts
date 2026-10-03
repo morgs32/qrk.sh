@@ -77,13 +77,14 @@ export const createPageV1 = makeContractVersion(createPage, {
       });
     }
   }),
-  program: ({ payload, models }) => {
+  program: (props) => {
+    const { payload, models } = props;
     const { id, siteId, slug, title, description } = payload;
     // Create the wall before the page that references it in the same command.
     const wallId = prefixId(libraryModule.models.wall, id);
-    return Effect.all([
-      models.wall.create({ resourceId: wallId, attributes: { label: "Library" } }),
-      models.page.create({
+    return Effect.gen(function* () {
+      yield* models.wall.create({ resourceId: wallId, attributes: { label: "Library" } });
+      yield* models.page.create({
         resourceId: id,
         attributes: {
           wallId,
@@ -92,8 +93,8 @@ export const createPageV1 = makeContractVersion(createPage, {
           title,
           description,
         },
-      }),
-    ]);
+      });
+    });
   },
   version: "1.0.0",
 });

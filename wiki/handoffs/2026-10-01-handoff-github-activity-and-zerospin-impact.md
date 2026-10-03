@@ -32,7 +32,7 @@ The earlier requirements, result-command acceptance example, and acceptance matr
 3. **Studio's live-session foundation exists.** [Plan 017](../plans/017-plan-studio-live-session.md) records the implementation, verification, and remaining manual checks. Current Studio Grid and BrickDetail use `userSession`; the user aggregate composes Library models/contracts. Library itself remains standalone. Do not repeat this migration or infer that GitHub Activity's new form/refresh controls already exist.
 4. **GitHub Activity remains a sample renderer.** Its [declaration](../../apps/library/modules/githubActivity/githubActivityV1.ts) uses `makeModuleVersion`, nests `payload` and `data` inside `state`, and supplies generated contribution samples. Its [view](../../apps/library/modules/githubActivity/githubActivityView.tsx) has no payload form; both the view and [generator spec](../../apps/library/modules/githubActivity/generator/defaultSpec.ts) read `data.contributions`.
 5. **Generic Library storage/editing is still whole-state based.** The brick model stores `moduleId`, `wallId`, and unknown JSON `state`; `makeModuleView` gives a form `state`/`onChange(state)`; `updateBrickState` validates the selected module's schema and replaces the state. There is no separate machine-module payload/result authority in these contracts.
-6. **Backend access exists, but its freshness contract is insufficient.** [GitHubBackend](../../apps/library/modules/githubProfile/GitHubBackend.ts) exposes `getProfile(url)` through Library RPC. It caches for 24 hours and returns an expired cached result while refreshing in the background. A successful RPC therefore does not prove that this refresh cycle obtained fresh contributions.
+6. **Backend access exists, but its freshness contract is insufficient.** [GitHubBackend](../../apps/api/modules/githubProfile/GitHubBackend.ts) exposes `getProfile(url)` through Library RPC. It caches for 24 hours and returns an expired cached result while refreshing in the background. A successful RPC therefore does not prove that this refresh cycle obtained fresh contributions.
 7. **Verification provenance:** upstream Plan 022 reports completed Node, Workerd, typecheck, lint, and consumer-build acceptance; Plan 017 records its own checks and limitations. This handoff inspected current source and those records. It did not rerun their suites or perform a live GitHub fetch. Upstream acceptance is not QRK integration acceptance.
 
 ## Prior QRK requirements — ownership mechanisms reopened above
@@ -224,8 +224,8 @@ For Library, use typechecking, lint, builds when needed for consumer imports, an
 11. [apps/library/libraryModule/contracts/updateBrickState/UpdateBrickStateContractV1.ts](../../apps/library/libraryModule/contracts/updateBrickState/UpdateBrickStateContractV1.ts)
 12. [apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts](../../apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts)
 13. [apps/library/libraryModule/contracts/removeBrick/RemoveBrickContractV1.ts](../../apps/library/libraryModule/contracts/removeBrick/RemoveBrickContractV1.ts)
-14. [apps/library/modules/githubProfile/GitHubBackend.ts](../../apps/library/modules/githubProfile/GitHubBackend.ts)
-15. [apps/library/worker/LibraryApi.ts](../../apps/library/worker/LibraryApi.ts)
+14. [apps/api/modules/githubProfile/GitHubBackend.ts](../../apps/api/modules/githubProfile/GitHubBackend.ts)
+15. [apps/api/modules/LibraryApi.ts](../../apps/api/modules/LibraryApi.ts)
 16. [apps/library/app/routes/bricks/$brickId.tsx](../../apps/library/app/routes/bricks/$brickId.tsx)
 17. [apps/library/session/createLibraryStandaloneSession.ts](../../apps/library/session/createLibraryStandaloneSession.ts)
 18. [apps/studio/zerospin/userSession.ts](../../apps/studio/zerospin/userSession.ts)

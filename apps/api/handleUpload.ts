@@ -1,7 +1,6 @@
 import { makePublicObjectUrl } from "@qrk.sh/r2-assets";
 
 import { UploadHttpError } from "./http";
-import type { IApiEnv } from "./types";
 
 const MAX_BYTES = 5 * 1024 * 1024;
 
@@ -14,18 +13,18 @@ const CONTENT_TYPE_TO_EXT: Readonly<Record<string, string>> = {
 
 const SITE_ID_PATTERN = /^sit_[A-Za-z0-9_-]+$/;
 
-export async function handleUpload(request: Request, env: IApiEnv, clerkUserId: string): Promise<{
+export async function handleUpload(
+  request: Request,
+  env: Env,
+  clerkUserId: string,
+): Promise<{
   key: string;
   url: string;
   contentType: string;
 }> {
   const contentTypeHeader = request.headers.get("Content-Type") ?? "";
   if (!contentTypeHeader.toLowerCase().includes("multipart/form-data")) {
-    throw new UploadHttpError(
-      400,
-      "invalid-content-type",
-      "Expected multipart/form-data",
-    );
+    throw new UploadHttpError(400, "invalid-content-type", "Expected multipart/form-data");
   }
 
   const formData = await request.formData();

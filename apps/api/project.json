@@ -2,14 +2,19 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "name": "@qrk.sh/api",
   "targets": {
+    "build": {
+      "dependsOn": ["^lib", { "projects": ["@qrk.sh/library"], "target": "build" }],
+      "outputs": ["{projectRoot}/dist"]
+    },
     "tsc": {
-      "dependsOn": ["^lib"]
+      "dependsOn": ["^lib", { "projects": ["@qrk.sh/library"], "target": "build" }]
     },
     "test:workerd": {
-      "dependsOn": ["^lib"]
+      "dependsOn": ["^lib", { "projects": ["@qrk.sh/library"], "target": "build" }]
     },
     "dev": {
-      "continuous": true
+      "continuous": true,
+      "dependsOn": ["^lib", { "projects": ["@qrk.sh/library"], "target": "build" }]
     }
   }
 }

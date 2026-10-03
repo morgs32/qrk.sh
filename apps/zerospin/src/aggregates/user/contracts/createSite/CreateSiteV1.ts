@@ -59,7 +59,8 @@ export const createSiteV1 = makeContractVersion(createSite, {
       });
     }
   }),
-  program: ({ payload, models, claims }) => {
+  program: (props) => {
+    const { payload, models, claims } = props;
     const clerkUserId = claims?.clerkUserId;
     if (typeof clerkUserId !== "string") {
       return Effect.fail(
@@ -71,20 +72,18 @@ export const createSiteV1 = makeContractVersion(createSite, {
       );
     }
     const { id, slug, name, description } = payload;
-    return Effect.all([
-      models.site.create({
-        resourceId: id,
-        attributes: {
-          userId: payload.userId,
-          slug,
-          name,
-          description,
-          logoUrl: null,
-          faviconLightUrl: null,
-          faviconDarkUrl: null,
-        },
-      }),
-    ]);
+    return models.site.create({
+      resourceId: id,
+      attributes: {
+        userId: payload.userId,
+        slug,
+        name,
+        description,
+        logoUrl: null,
+        faviconLightUrl: null,
+        faviconDarkUrl: null,
+      },
+    });
   },
   version: "1.0.0",
 });

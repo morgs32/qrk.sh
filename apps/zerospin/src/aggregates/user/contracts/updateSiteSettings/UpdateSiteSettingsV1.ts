@@ -94,18 +94,18 @@ export const updateSiteSettingsV1 = makeContractVersion(updateSiteSettings, {
       });
     }
   }),
-  program: ({ payload, models }) =>
-    Effect.all([
-      models.site.update({
-        resourceId: payload.id,
-        attributes: {
-          name: payload.name,
-          description: payload.description,
-          logoUrl: payload.logoUrl,
-          faviconLightUrl: payload.faviconLightUrl,
-          faviconDarkUrl: payload.faviconDarkUrl,
-        },
-      }),
-    ]),
+  program: (props) => {
+    const { payload, models } = props;
+    return models.site.update({
+      resourceId: payload.id,
+      attributes: {
+        name: payload.name,
+        description: payload.description,
+        logoUrl: payload.logoUrl,
+        faviconLightUrl: payload.faviconLightUrl,
+        faviconDarkUrl: payload.faviconDarkUrl,
+      },
+    });
+  },
   version: "1.0.0",
 });

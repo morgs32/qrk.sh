@@ -50,6 +50,10 @@
       "types": "./dist/libraryModule/libraryModule.d.ts",
       "import": "./dist/libraryModule.js"
     },
+    "./backendLibrary": {
+      "types": "./dist/backendLibrary.d.ts",
+      "import": "./dist/backendLibrary.js"
+    },
     "./createLibraryStandaloneSession": {
       "types": "./dist/session/createLibraryStandaloneSession.d.ts",
       "import": "./dist/createLibraryStandaloneSession.js"
@@ -62,26 +66,21 @@
     "./text-editor.css": "./dist/text-editor.css"
   },
   "scripts": {
-    "dev": "vp dev",
-    "preview": "vp preview --host 127.0.0.1 --port 4100 --strictPort",
+    "dev": "next dev --webpack --hostname 127.0.0.1 --port 4100",
+    "preview": "next start --hostname 127.0.0.1 --port 4100",
     "build": "vp build --config vite.lib.config.ts && cp bricks.css dist/ && mkdir -p dist/worker && cp worker/*.public.d.ts dist/worker/ && tsc -p tsconfig.build.json --emitDeclarationOnly",
     "tsc": "tsc --noEmit",
     "lint": "vp lint --config .oxlintrc.json .",
     "format": "vp fmt --config ../../.oxfmtrc.json .",
     "format:check": "vp fmt --config ../../.oxfmtrc.json --check .",
-    "build:app": "vp build",
-    "test:workerd": "vitest run --config vitest.worker.config.ts",
-    "types": "wrangler types ./worker-configuration.d.ts",
-    "tsc:worker": "tsc -p tsconfig.worker.json"
+    "build:app": "next build --webpack"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
     "@chenglou/pretext": "^0.0.9",
-    "@cloudflare/puppeteer": "^1.1.0",
     "@floating-ui/react": "^0.27.20",
     "@json-render/core": "^0.20.0",
     "@json-render/react": "^0.20.0",
-    "@qrk.sh/r2-assets": "workspace:*",
     "@qrk.sh/web": "workspace:*",
     "@radix-ui/react-dropdown-menu": "^2.1.24",
     "@radix-ui/react-popover": "^1.1.15",
@@ -89,14 +88,15 @@
     "@radix-ui/react-toggle": "^1.1.18",
     "@radix-ui/react-toggle-group": "^1.1.19",
     "@remix-run/route-pattern": "^0.22.1",
-    "@tanstack/react-router": "^1.170.36",
-    "@tanstack/react-start": "^1.168.54",
     "@tiptap/core": "^3.31.3",
+    "@tiptap/extension-collaboration": "3.31.3",
     "@tiptap/extension-drag-handle": "3.31.3",
     "@tiptap/extension-drag-handle-react": "3.31.3",
     "@tiptap/extension-highlight": "^3.31.3",
     "@tiptap/extension-horizontal-rule": "^3.31.3",
+    "@tiptap/extension-image": "3.31.3",
     "@tiptap/extension-list": "^3.31.3",
+    "@tiptap/extension-node-range": "3.31.3",
     "@tiptap/extension-placeholder": "^3.31.3",
     "@tiptap/extension-text-align": "^3.31.3",
     "@tiptap/extension-typography": "^3.31.3",
@@ -105,6 +105,7 @@
     "@tiptap/pm": "^3.31.3",
     "@tiptap/react": "^3.31.3",
     "@tiptap/starter-kit": "^3.31.3",
+    "@tiptap/y-tiptap": "^3.0.9",
     "@unpic/react": "1.0.2",
     "@zerospin/browser": "workspace:*",
     "@zerospin/core": "workspace:*",
@@ -117,13 +118,13 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cn": "^0.3.0",
-    "drizzle-orm": "1.0.0-rc.4",
     "effect": "rc",
     "es-toolkit": "^1.45.1",
     "framer-motion": "13.2.0",
     "json-edit-react": "^1.30.2",
     "lucide-react": "^1.7.0",
     "mapbox-gl": "^3.18.1",
+    "next": "16.3.4",
     "react-activity-calendar": "^3.2.1",
     "react-colorful": "^5.8.1",
     "react-grid-layout": "^2.2.3",
@@ -136,10 +137,9 @@
     "zustand": "^5.0.14"
   },
   "devDependencies": {
-    "@cloudflare/vite-plugin": "1.54.9",
     "@cloudflare/vitest-pool-workers": "^0.16.20",
     "@tailwindcss/cli": "4.3.3",
-    "@tailwindcss/vite": "4.3.3",
+    "@tailwindcss/postcss": "4.3.3",
     "@types/mapbox-gl": "^3.5.0",
     "@types/node": "^25.5.2",
     "@types/react": "^19.2.14",
@@ -154,8 +154,7 @@
     "typescript": "^6.0.2",
     "vite": "npm:@voidzero-dev/vite-plus-core@1.0.0",
     "vite-plus": "1.0.0",
-    "vitest": "4.1.11",
-    "wrangler": "4.131.2"
+    "vitest": "4.1.11"
   },
   "peerDependencies": {
     "react": "19.2.7",

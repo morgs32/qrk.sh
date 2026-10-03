@@ -11,7 +11,22 @@ import { libraryModule } from "../libraryModule/libraryModule";
 
 const fixtureDate = new Date("2026-01-01T00:00:00.000Z");
 
-export function createLibraryStandaloneSession(props: { key: string; wallId: `wal_${string}` }) {
+export function createLibraryStandaloneSession(props: {
+  key: string;
+  wallId: `wal_${string}`;
+}): ReturnType<
+  typeof makeStandaloneSession<
+    "library",
+    "1.0.0",
+    "library",
+    "1.0.0",
+    "library",
+    Schema.Struct<{ readonly aggregateId: typeof Schema.String }>,
+    Record<never, never>,
+    Record<never, never>,
+    { readonly library: typeof libraryModule }
+  >
+> {
   const { key, wallId } = props;
   return makeStandaloneSession({
     key,

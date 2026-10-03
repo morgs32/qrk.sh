@@ -1,7 +1,6 @@
 import type { IDb } from "@zerospin/core/drizzle/types";
 import { defineContract } from "@zerospin/core/contracts/defineContract";
 import { makeContractVersion } from "@zerospin/core/contracts/make/makeContractVersion";
-import type { IModelMutations } from "@zerospin/core/contracts/types";
 import { ZerospinError } from "@zerospin/error";
 import { primitives, type InferDecodedRow, type InferIdFromAbbreviation } from "@zerospin/schema";
 import { Effect } from "effect";
@@ -23,12 +22,13 @@ export function makeModuleSpecContractVersion<
   placement: ReturnType<typeof makePlacementModel>;
   components: Record<string, ReturnType<typeof defineComponent>>;
 }) {
-  const command = defineContract(props.commandName);
-  const SpecDocumentSchema = makeModuleSpecDocumentSchema(props.components);
+  const { commandName, moduleId, brick, placement, components } = props;
+  const command = defineContract(commandName);
+  const SpecDocumentSchema = makeModuleSpecDocumentSchema(components);
 
   const payload = {
     brickId: primitives.foreignKey({
-      abbreviation: props.brick.abbreviation,
+      abbreviation: brick.abbreviation,
     }),
     breakpoint: primitives.enum({
       values: ["sm", "md", "lg", "xl"],
@@ -39,11 +39,11 @@ export function makeModuleSpecContractVersion<
   return makeContractVersion(command, {
     payload,
     models: {
-      brick: props.brick,
-      placement: props.placement,
+      brick,
+      placement,
     },
     version: "1.0.0",
-    guard: Effect.fn(`${props.commandName}.guard`)(function* ({
+    guard: Effect.fn(`${commandName}.guard`)(function* ({
       db,
       payload: guardPayload,
     }: {
@@ -62,16 +62,16 @@ export function makeModuleSpecContractVersion<
 
       if (brickRow === undefined) {
         return yield* new ZerospinError({
-          code: `update-${props.moduleId}-spec-brick-not-found`,
+          code: `update-${moduleId}-spec-brick-not-found`,
           message: `brick ${guardPayload.brickId} was not found`,
           status: 404,
         });
       }
 
-      if (brickRow.moduleId !== props.moduleId) {
+      if (brickRow.moduleId !== moduleId) {
         return yield* new ZerospinError({
-          code: `update-${props.moduleId}-spec-module-mismatch`,
-          message: `brick ${guardPayload.brickId} belongs to module ${brickRow.moduleId}, not ${props.moduleId}`,
+          code: `update-${moduleId}-spec-module-mismatch`,
+          message: `brick ${guardPayload.brickId} belongs to module ${brickRow.moduleId}, not ${moduleId}`,
           status: 400,
         });
       }
@@ -85,25 +85,23 @@ export function makeModuleSpecContractVersion<
 
       if (placement === undefined) {
         return yield* new ZerospinError({
-          code: `update-${props.moduleId}-spec-placement-not-found`,
+          code: `update-${moduleId}-spec-placement-not-found`,
           message: `placement ${expectedPlacementId} was not found`,
           status: 404,
         });
       }
     }),
-    program: ({ payload: programPayload, models: programModels }) => {
-      const placementMutations = programModels.placement as IModelMutations<typeof props.placement>;
-      return Effect.all([
-        placementMutations.update({
-          resourceId: makePlacementId(
-            programPayload.brickId,
-            programPayload.breakpoint,
-          ) as InferIdFromAbbreviation<"plc">,
-          attributes: {
-            spec: structuredClone(programPayload.spec),
-          } as Partial<InferDecodedRow<(typeof props.placement)["attributes"]>>,
-        }),
-      ]);
-    },
+    program: Effect.fn(`${commandName}.program`)(function* (props) {
+      const { payload: programPayload, models: programModels } = props;
+      yield* programModels.placement.update({
+        resourceId: makePlacementId(
+          programPayload.brickId,
+          programPayload.breakpoint,
+        ) as InferIdFromAbbreviation<"plc">,
+        attributes: {
+          spec: structuredClone(programPayload.spec),
+        } as Partial<InferDecodedRow<(typeof placement)["attributes"]>>,
+      });
+    }),
   });
 }

@@ -106,15 +106,15 @@ export const updatePageSettingsV1 = makeContractVersion(updatePageSettings, {
       });
     }
   }),
-  program: ({ payload, models }) =>
-    Effect.all([
-      models.page.update({
-        resourceId: payload.id,
-        attributes: {
-          title: payload.title,
-          description: payload.description,
-        },
-      }),
-    ]),
+  program: (props) => {
+    const { payload, models } = props;
+    return models.page.update({
+      resourceId: payload.id,
+      attributes: {
+        title: payload.title,
+        description: payload.description,
+      },
+    });
+  },
   version: "1.0.0",
 });

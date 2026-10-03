@@ -198,14 +198,14 @@ Existing bricks are normalized on their next state update; there is no bulk migr
 `Layout` initializes the module-level `librarySession` with
 `useInitializeStandaloneSession`. Its `qrk-library` backup key persists the
 `wal_library` document across reloads and initialization registers it with DevTools.
-Restored resources take precedence over the initial seed. Studio retains
-`createLibraryStandaloneSession({ key, wallId })` and
-`useInitializeStandaloneSession`, using
-`JSON.stringify(["studio", user.id, siteId, pageId])` to isolate each document's
-IndexedDB backup. Restored Studio resources take precedence over its seed.
+Restored resources take precedence over the initial seed. Studio uses its authenticated
+`userSession`, with a separate wall referenced by each page. It no longer constructs
+standalone sessions or reads their per-page IndexedDB backups.
 
 Shared consumers (`LibrarySessionContext`, `useLibrarySession`, and `BrickWall`)
-use `ILibrarySession`, inferred from `createLibraryStandaloneSession`. The shared
+use `ILibrarySession`, the aggregate-session surface with Library models and contracts.
+It accepts both the standalone Library session and Studio's larger live user session,
+without requiring standalone initialization or reset methods. The shared
 `libraryModule` exports only models and flat command contracts. Session construction
 owns identity, claims, initialization, and disposal.
 
@@ -214,8 +214,8 @@ owns identity, claims, initialization, and disposal.
 
 Committed layout is Wall → Brick → Placement via aggregate contracts
 (`addBrick`, layout/visibility/remove/compact, `updateBrickState`, and per-module
-spec-at-breakpoint). Commands commit synchronously; Studio
-`backupState: ready` confirms backup durability. Shared state lives on the brick row; each placement stores a
+spec-at-breakpoint). Commands stage synchronously. Studio pushes through its live
+user session; `backupState: ready` describes local backup durability, not server acknowledgement. Shared state lives on the brick row; each placement stores a
 complete Spec, grid item, and visibility. `BrickWall` uses `noCompactor` to avoid
 closing gaps automatically. Dropping a brick displaces overlapping visible neighbors
 downward, including collisions caused by that displacement. **Compact layout** runs

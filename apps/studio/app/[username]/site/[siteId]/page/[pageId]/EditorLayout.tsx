@@ -35,25 +35,23 @@ export default function EditorLayout(props: { children: ReactNode }) {
 
   return (
     <WallViewportProvider key={documentKey}>
-        <div data-editor-split className="relative h-full min-h-0 overflow-hidden">
-          <div data-editor-region className="h-full min-h-0 overflow-hidden">
-            <MainColumns />
-          </div>
-          <Drawer
-            side="bottom"
-            open={drawerOpen}
-            animated={
-              drawerOpen ||
-              (typeof document !== "undefined" &&
-                typeof document.startViewTransition === "function")
-            }
-            aria-label="Workspace drawer"
-          >
-            {children}
-          </Drawer>
+      <div data-editor-split className="relative h-full min-h-0 overflow-hidden">
+        <div data-editor-region className="h-full min-h-0 overflow-hidden">
+          <MainColumns />
         </div>
-        <Toolbars />
+        <Drawer
+          side="bottom"
+          open={drawerOpen}
+          animated={
+            drawerOpen ||
+            (typeof document !== "undefined" && typeof document.startViewTransition === "function")
+          }
+          aria-label="Workspace drawer"
+        >
+          {children}
+        </Drawer>
+      </div>
+      <Toolbars />
     </WallViewportProvider>
   );
 }
-

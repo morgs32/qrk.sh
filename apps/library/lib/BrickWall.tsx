@@ -1,4 +1,3 @@
-import type { IAggregateSessionDefinition } from "@zerospin/core/aggregateSession/types";
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import { isNonEmptySpec } from "@json-render/core";
@@ -35,12 +34,8 @@ function commandErrorMessage(failure: { message?: string; code?: string }) {
   return "Command failed";
 }
 
-export function BrickWall<
-  DEFINITION extends IAggregateSessionDefinition<
-    string, string, string, typeof libraryModule.contracts, typeof libraryModule.models
-  >,
->(props: {
-  session: ILibrarySession<DEFINITION>;
+export function BrickWall(props: {
+  session: ILibrarySession;
   wallId: `wal_${string}`;
   breakpoint: "sm" | "md" | "lg" | "xl";
   gridWidth: number;

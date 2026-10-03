@@ -34,7 +34,12 @@ rejects duplicate subjects with `user-already-exists`, which authentication
 accepts as successful provisioning.
 Other admission or execution failures prevent session initialization.
 
-The web actor filters User → Site → Page → Grid → Brick rows by Clerk identity.
+The web actor selects User → Site → Page → Wall → Brick → Placement rows by Clerk
+identity. Wall, Brick, Placement, and their editing contracts are supplied by
+`@qrk.sh/library/libraryModule`. QRK owns the Page's `wallId` reference; `createPage`
+creates that deterministic wall and the Page in one command. Legacy Grid/Brick
+snapshot contracts have been removed. There is no migration or lazy wall provisioning.
+Standalone Studio backups remain untouched by this cutover.
 Studio's explicit `userSession` uses the matching V1 web actor and React-owned
 initialization/disposal. Models live under `aggregates/user/models/<model>/`,
 and contracts under `aggregates/user/contracts/<command>/`.

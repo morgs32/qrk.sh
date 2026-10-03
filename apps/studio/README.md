@@ -81,9 +81,13 @@ The separate React Router/Motion example remains an independent example, not an 
 
 ## Inline Text editing
 
-Double-click a placed Text brick or use **Edit text** to edit it. Opening the editor closes the drawer through the base page route. The local floating toolbar provides headings, lists and nested tasks, marks, links, highlighting, alignment, images, and undo/redo. Block grips reorder document blocks; wall drag/drop/resize is disabled while editing. Click outside the editor and its controls, move focus outside, or press Escape to finish; an open popover consumes Escape first. The native file picker does not finish editing. Catalog and detail previews are read-only.
+Studio currently routes brick activation to the read-only detail drawer and suppresses the shared **Edit text** action. The shared Library Text editor supports a floating toolbar, block reordering, and immediate command staging, but Studio does not currently expose its editing entry point or a brick visibility control. Catalog and detail previews are read-only.
 
-Each document change stages `updateBrickState` immediately in the page's existing standalone session. There is no throttle or server wall autosave. The session's IndexedDB backup restores local edits after reload; `backupState: ready` confirms durability. Failed staging is reported and the editor retains its document while mounted, retrying on the next edit or editing exit. Server-side wall Save remains future work. Page and Site Settings continue to save through their existing server commands.
+Each document change stages `updateBrickState` immediately in the authenticated `userSession`. Library wall, brick, and placement commands use its existing live push and synchronization lifecycle; there is no separate wall Save or autosave. Failed staging is reported and the editor retains its document while mounted, retrying on the next edit or editing exit. Page and Site Settings continue to save through their existing commands.
+
+Each Page references its own Library wall, created atomically by `createPage` with ID `prefixId(libraryModule.models.wall, pageId)`. The grid and brick drawer scope queries to that wall. `ZerospinUserProvider` owns session initialization and disposal, and `UserLayout` waits for initialization before mounting the editor. Changing pages does not dispose the user session.
+
+This is a fresh-content cutover: legacy grid/brick rows and standalone Studio backups are not migrated. Old standalone backups remain untouched. Incompatible development backend and live-session storage must be reset separately; no automatic reset or lazy wall creation is performed.
 
 Text bricks resize horizontally outside editing; their height follows natural content. Browser measurements round up to whole grid rows, displace overlapping neighbors on growth, and preserve gaps on shrink. Measurement writes pause during wall gestures and resume from the completed layout. Content is shared across breakpoints; placement and measured height are separate per breakpoint. Changing breakpoint finishes editing without recreating the wall session.
 

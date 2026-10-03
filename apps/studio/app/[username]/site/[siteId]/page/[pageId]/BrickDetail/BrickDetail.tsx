@@ -41,7 +41,10 @@ export function BrickDetail() {
     key: { brickId, wallId: page?.wallId },
     query: (db, { brickId: queriedBrickId, wallId }) =>
       db.query.brick.findFirst({
-        where: { id: { eq: queriedBrickId ?? "brk_missing" }, wallId: { eq: wallId ?? "wal_missing" } },
+        where: {
+          id: { eq: queriedBrickId ?? "brk_missing" },
+          wallId: { eq: wallId ?? "wal_missing" },
+        },
       }),
   });
   const placementQuery = useLiveQuery({

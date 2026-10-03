@@ -2,9 +2,9 @@
 
 ## Working rules
 
-- Complete the requested behavior in one pass: no stubs, no-op hooks, or deferred wiring. Use mock data when requested; add no unrequested functionality.
-- Preserve unrelated WIP, intentional local wiring, and relevant comments. Do not refactor, prettify, add dependencies, stabilize unfinished glue, or fix adjacent failures outside scope. Report unrelated failures and suggest alternatives without implementing them.
-- Read existing code before editing; prefer targeted edits, reuse current context, and skip files over 100 KB unless required. Keep control flow simple and explicit; do not change unrelated component props or function arguments.
+- Use `$implement` for approved work and unfinished verification. Use mock data when requested; add no unrequested functionality.
+- Preserve intentional local wiring. Do not refactor, prettify, add dependencies, stabilize unfinished glue, or fix adjacent failures outside scope.
+- Prefer targeted edits, reuse current context, and skip files over 100 KB unless required. Keep control flow simple and explicit; do not change unrelated component props or function arguments.
 - Be terse, concrete, and accurate. Treat the user as an expert, label uncertainty, and show only relevant code excerpts. Every question is blocking until explicitly answered or withdrawn.
 - Keep affected documentation current. User instructions override this file.
 
@@ -33,15 +33,13 @@ Direct source edits are allowed in `vendor/zerospin`, but they must eventually b
 
 ## Verification
 
-- Verify requested changes before declaring completion. For `@qrk.sh/library` / `apps/library`, never write, run, restore, or maintain tests; use typechecking, lint, and manual checks only.
-- For long-running servers, wait for actual readiness, never a fixed sleep or process exit: Wrangler `Ready on http://`, Next.js `Ready in` or its local URL. Inspect other servers' output for their readiness signal; if absent, report the terminal tail and stop.
+- For `@qrk.sh/library` / `apps/library`, never write, run, restore, or maintain tests; use typechecking, lint, and manual checks only.
 
 ## Plans
 
 Use `$spec` to resolve unsettled design decisions and write implementation plans at `wiki/plans/XXX-plan-<topic>.md`. Do not create new spec files; existing specs remain under `wiki/specs/` and `wiki/archive/specs/`. Record a settled decision in `wiki/adrs/` only when it is hard to reverse, surprising without context, and the result of a real trade-off. If no glossary exists, ask before creating one. Revise plans in place and use ordered steps and numbered review findings.
 
-Move plans to `wiki/archive/plans/` when no work remains: verified completion or user-approved cancellation/supersession, with any continuing work linked. Mark a replaced ADR **Superseded** and link its successor; move it to `wiki/archive/adrs/` only when it no longer governs anything and archival is wanted. Completing a plan does not retire its ADRs.
-At the end of each implementation, try to archive its completed plan if one exists. If it cannot be archived, explain why and ask the user how to resolve the blocker.
+Follow `$implement` for plan completion and archival. Mark a replaced ADR **Superseded** and link its successor; move it to `wiki/archive/adrs/` only when it no longer governs anything and archival is wanted. Completing a plan does not retire its ADRs.
 Plans created by agents must include gratuitous annotated examples and annotated code snippets.
 
 <!-- nx configuration start-->

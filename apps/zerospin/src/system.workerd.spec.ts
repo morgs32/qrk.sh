@@ -245,10 +245,11 @@ describe("QRK system", () => {
       expect(aggregate.contracts.createUser).toBe(createUser);
       expect(Object.keys(aggregate.actors.web.selections).sort()).toEqual([
         "brick",
-        "grid",
         "page",
+        "placement",
         "site",
         "user",
+        "wall",
       ]);
       const dbConfig = makeResourceDbConfig({ models: aggregate.models });
       const db = yield* makeProvisionedInMemoryWasmSqliteDb({ dbConfig }).pipe(

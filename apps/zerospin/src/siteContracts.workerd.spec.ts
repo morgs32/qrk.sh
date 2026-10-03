@@ -1,3 +1,4 @@
+import { userActorV1 } from "./aggregates/user/actors/userActorV1";
 import { makeSessionDefinition } from "@zerospin/core/sessionDefinition/makeSessionDefinition";
 import { validatePayload } from "@zerospin/core/contracts/validatePayload";
 import { prefixId } from "@zerospin/sdk/browser";
@@ -15,8 +16,7 @@ import { describe, expect } from "vitest";
 
 import { createPageV1 as createPage } from "./aggregates/user/contracts/createPage/CreatePageV1";
 import { createSiteV1 as createSite } from "./aggregates/user/contracts/createSite/CreateSiteV1";
-import { gridV1 as Grid } from "./aggregates/user/models/grid/GridV1";
-import { brickV1 as Brick } from "./aggregates/user/models/brick/BrickV1";
+import { libraryModule } from "@qrk.sh/library/libraryModule";
 import { siteV1 as Site } from "./aggregates/user/models/site/SiteV1";
 import { userV1 as User } from "./aggregates/user/models/user/UserV1";
 import { userSessionDefinition } from "./aggregates/user/userSessionDefinition";
@@ -179,83 +179,161 @@ describe("site and page creation contracts", () => {
       expect(missingPageId._tag).toBe("Failure");
       expect(db.select().from(dbConfig.schema.page).all()).toHaveLength(1);
 
-      const gridId = prefixId(Grid, `${stagedPage.success.payload.id}/main`);
-      const brickId = prefixId(Brick, `${gridId}/first`);
-      const grid = stageCommand({
-        session,
-        contractName: "createGrid",
-        payload: {
-          id: gridId,
-          pageId: stagedPage.success.payload.id,
-          name: "Home grid",
-          columnCount: 8,
-          bricks: [
-            {
-              id: brickId,
-              brickKey: "first",
-              x: 0,
-              y: 0,
-              w: 4,
-              h: 4,
-              groupId: "text-brick",
-              catalogId: "default",
-              viewId: "4x4",
-            },
-          ],
-        },
-      });
-      expect(grid._tag).toBe("Success");
-      const originalGrid = db.select().from(dbConfig.schema.grid).all();
-      const originalBricks = db.select().from(dbConfig.schema.brick).all();
-      const invalidUpdate = stageCommand({
-        session,
-        contractName: "updateGrid",
-        payload: {
-          id: gridId,
-          name: "Must not be saved",
-          columnCount: 12,
-          gridIntent: "update",
-          expectedRevision: 0,
-          bricks: [],
-          deletedBrickIds: [],
-        },
-      });
-      expect(invalidUpdate).toMatchObject({
-        _tag: "Failure",
-        failure: { code: "update-grid-incomplete-snapshot" },
-      });
-      expect(db.select().from(dbConfig.schema.grid).all()).toEqual(originalGrid);
-      expect(db.select().from(dbConfig.schema.brick).all()).toEqual(originalBricks);
+      const wallId = prefixId(libraryModule.models.wall, stagedPage.success.payload.id);
+      expect(pageRows[0]?.wallId).toBe(wallId);
+      expect(db.select().from(dbConfig.schema.wall).all()).toMatchObject([{ id: wallId }]);
 
+      const added = stageCommand({
+        session,
+        contractName: "addBrick",
+        payload: {
+          wallId,
+          brickId: "brk_live_first",
+          moduleId: "swatch-and-icon",
+          state: { payload: { hash: "" }, data: { name: "Test", svg: "<svg/>" } },
+          spec: {
+            root: "color",
+            elements: {
+              color: { type: "SwatchAndIconColor", props: { color: "#123456" }, children: [] },
+            },
+          },
+          dropPosition: { x: 0, y: 0 },
+          visibleLayouts: { sm: [], md: [], lg: [], xl: [] },
+          placementSizes: {
+            sm: { w: 2, h: 2 },
+            md: { w: 2, h: 2 },
+            lg: { w: 2, h: 2 },
+            xl: { w: 2, h: 2 },
+          },
+        },
+      });
+      expect(added._tag).toBe("Success");
+      if (added._tag === "Failure") throw new Error(added.failure.message);
+      expect(db.query.brick.findMany().sync()).toMatchObject([{ id: "brk_live_first", wallId }]);
+      expect(db.query.placement.findMany().sync()).toHaveLength(4);
       const updated = stageCommand({
         session,
-        contractName: "updateGrid",
+        contractName: "updateBrickState",
         payload: {
-          id: gridId,
-          name: "Home grid",
-          columnCount: 8,
-          gridIntent: "none",
-          expectedRevision: 0,
-          bricks: [
-            {
-              intent: "update",
-              id: brickId,
-              brickKey: "first",
-              x: 4,
-              y: 0,
-              w: 4,
-              h: 4,
-              groupId: "text-brick",
-              catalogId: "default",
-              viewId: "4x4",
-            },
-          ],
-          deletedBrickIds: [],
+          brickId: "brk_live_first",
+          moduleId: "swatch-and-icon",
+          state: { payload: { hash: "changed" }, data: { name: "Updated", svg: "<svg/>" } },
         },
       });
       expect(updated._tag).toBe("Success");
-      expect(db.select().from(dbConfig.schema.grid).all()[0]?.revision).toBe(1);
-      expect(db.select().from(dbConfig.schema.brick).all()[0]?.x).toBe(4);
+      expect(db.query.brick.findFirst().sync()?.state).toMatchObject({ data: { name: "Updated" } });
+      const invalid = stageCommand({
+        session,
+        contractName: "updateBrickState",
+        payload: {
+          brickId: "brk_live_first",
+          moduleId: "swatch-and-icon",
+          state: { invalid: true },
+        },
+      });
+      expect(invalid._tag).toBe("Failure");
+      expect(db.query.brick.findFirst().sync()?.state).toMatchObject({ data: { name: "Updated" } });
+      const secondPage = stageCommand({
+        session,
+        contractName: "createPage",
+        payload: { id: "pag_second", siteId, slug: "second" },
+      });
+      expect(secondPage._tag).toBe("Success");
+      expect(db.query.page.findFirst({ where: { id: { eq: "pag_second" } } }).sync()?.wallId).toBe(
+        "wal_pag_second",
+      );
+      expect(
+        db.query.brick.findMany({ where: { wallId: { eq: "wal_pag_second" } } }).sync(),
+      ).toEqual([]);
+
+      // Mixed-owner rows exercise the actual actor selections, not a copied query.
+      const owner = db.select().from(dbConfig.schema.user).get();
+      const site = db.select().from(dbConfig.schema.site).get();
+      const page = db.select().from(dbConfig.schema.page).get();
+      const wall = db.select().from(dbConfig.schema.wall).get();
+      const brick = db.select().from(dbConfig.schema.brick).get();
+      if (!owner || !site || !page || !wall || !brick) throw new Error("Missing staged resources");
+      db.insert(dbConfig.schema.user)
+        .values({ ...owner, id: "usr_other", clerkUserId: "other" })
+        .run();
+      db.insert(dbConfig.schema.site)
+        .values({ ...site, id: "sit_other", userId: "usr_other" })
+        .run();
+      db.insert(dbConfig.schema.wall)
+        .values({ ...wall, id: "wal_other" })
+        .run();
+      db.insert(dbConfig.schema.page)
+        .values({ ...page, id: "pag_other", siteId: "sit_other", wallId: "wal_other" })
+        .run();
+      db.insert(dbConfig.schema.brick)
+        .values({ ...brick, id: "brk_other", wallId: "wal_other" })
+        .run();
+      for (const placement of db.select().from(dbConfig.schema.placement).all()) {
+        db.insert(dbConfig.schema.placement)
+          .values({
+            ...placement,
+            id: prefixId(libraryModule.models.placement, `other/${placement.breakpoint}`),
+            brickId: "brk_other",
+          })
+          .run();
+      }
+      const selections = userActorV1.selections;
+      const identity = { clerkUserId: "site_contract_user" };
+      expect(selections.wall.all(db, identity)).toMatchObject([
+        { id: wallId },
+        { id: "wal_pag_second" },
+      ]);
+      expect(selections.brick.all(db, identity)).toMatchObject([{ id: "brk_live_first" }]);
+      expect(selections.placement.all(db, identity)).toHaveLength(4);
+      expect(selections.wall.all(db, { clerkUserId: "other" })).toMatchObject([
+        { id: "wal_other" },
+      ]);
+      expect(selections.brick.all(db, { clerkUserId: "other" })).toMatchObject([
+        { id: "brk_other" },
+      ]);
+      expect(selections.placement.all(db, { clerkUserId: "other" })).toHaveLength(4);
+      expect(selections.wall.all(db, { clerkUserId: "missing" })).toEqual([]);
+      expect(selections.brick.all(db, { clerkUserId: "missing" })).toEqual([]);
+      expect(selections.placement.all(db, { clerkUserId: "missing" })).toEqual([]);
+
+      // Visibility changes stay on one placement; removal deletes all of the brick's placements.
+      const hidden = stageCommand({
+        session,
+        contractName: "setBrickVisibilityAtBreakpoint",
+        payload: {
+          brickId: "brk_live_first",
+          breakpoint: "lg",
+          isVisible: false,
+          currentlyVisible: true,
+          savedGridItem: { i: "brk_live_first", x: 0, y: 0, w: 2, h: 2 },
+          otherVisibleLayout: [],
+        },
+      });
+      expect(hidden._tag).toBe("Success");
+      expect(
+        db.query.placement.findMany({ where: { brickId: { eq: "brk_live_first" } } }).sync(),
+      ).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ breakpoint: "lg", isVisible: false }),
+          expect.objectContaining({ breakpoint: "sm", isVisible: true }),
+        ]),
+      );
+      const wrongWall = stageCommand({
+        session,
+        contractName: "removeBrick",
+        payload: { brickId: "brk_live_first", wallId: "wal_pag_second" },
+      });
+      expect(wrongWall._tag).toBe("Failure");
+      const removed = stageCommand({
+        session,
+        contractName: "removeBrick",
+        payload: { brickId: "brk_live_first", wallId },
+      });
+      expect(removed._tag).toBe("Success");
+      expect(selections.brick.all(db, identity)).toEqual([]);
+      expect(selections.placement.all(db, identity)).toEqual([]);
+      expect(selections.brick.all(db, { clerkUserId: "other" })).toHaveLength(1);
+      expect(selections.placement.all(db, { clerkUserId: "other" })).toHaveLength(4);
     }).pipe(Effect.scoped),
   );
 

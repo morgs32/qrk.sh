@@ -101,7 +101,9 @@ export const userActorV1 = makeAggregateActorVersion(defineAggregateActor({ name
     brick: db.query.brick.findMany({
       where: {
         wall: {
-          pages: { site: { user: { clerkUserId: { eq: identity.sql.placeholder("clerkUserId") } } } },
+          pages: {
+            site: { user: { clerkUserId: { eq: identity.sql.placeholder("clerkUserId") } } },
+          },
         },
       },
     }),
@@ -109,7 +111,9 @@ export const userActorV1 = makeAggregateActorVersion(defineAggregateActor({ name
       where: {
         brick: {
           wall: {
-            pages: { site: { user: { clerkUserId: { eq: identity.sql.placeholder("clerkUserId") } } } },
+            pages: {
+              site: { user: { clerkUserId: { eq: identity.sql.placeholder("clerkUserId") } } },
+            },
           },
         },
       },

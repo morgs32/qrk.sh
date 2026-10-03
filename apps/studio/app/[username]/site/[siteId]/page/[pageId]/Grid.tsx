@@ -56,7 +56,8 @@ export function Grid() {
   }
   const fromBreakpoint = transition.active === activeBreakpoint ? transition.from : null;
   const direction = transition.active === activeBreakpoint ? transition.direction : 0;
-  if (page?.wallId === undefined || page.wallId === null) return null;
+  const wallId = page?.wallId;
+  if (wallId === undefined || wallId === null) return null;
   return (
     <div className="min-h-full w-full" data-testid="grid-region">
       <div className="relative min-h-full w-full" data-testid="grid-layout">
@@ -84,7 +85,7 @@ export function Grid() {
             >
               <BrickWall
                 session={session}
-                wallId={page.wallId}
+                wallId={wallId}
                 breakpoint={row.id}
                 gridWidth={row.previewWidth}
                 isActive={isActive}

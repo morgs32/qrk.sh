@@ -41,10 +41,14 @@ export default function BrickDrawerLayout(props: { children: ReactNode }) {
   });
   const brickQuery = useLiveQuery({
     session,
-    key: { brickId: Result.isSuccess(decodedBrickId) ? decodedBrickId.success : null, wallId: page?.wallId },
-    query: (db, { brickId: id, wallId }) => db.query.brick.findFirst({
-      where: { id: { eq: id ?? "brk_missing" }, wallId: { eq: wallId ?? "wal_missing" } },
-    }),
+    key: {
+      brickId: Result.isSuccess(decodedBrickId) ? decodedBrickId.success : null,
+      wallId: page?.wallId,
+    },
+    query: (db, { brickId: id, wallId }) =>
+      db.query.brick.findFirst({
+        where: { id: { eq: id ?? "brk_missing" }, wallId: { eq: wallId ?? "wal_missing" } },
+      }),
   });
   const decodedModule = Schema.decodeUnknownResult(
     makeEffectSchema({ moduleId: libraryModule.models.brick.attributes.moduleId }),

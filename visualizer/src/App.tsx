@@ -115,9 +115,9 @@ function Workbench({ initialScenario }: { initialScenario: IScenario }) {
     setQuery('');
   };
   const inspectStep = () => {
-    const contractEntity = entities.find(
-      entity => entity.contractId === step?.contractId,
-    );
+    const contractEntity = step?.contractId
+      ? entities.find(entity => entity.contractId === step.contractId)
+      : undefined;
     const firstTable = step?.focus.find(id =>
       tables.some(table => table.id === id),
     );

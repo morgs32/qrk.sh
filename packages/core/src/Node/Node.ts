@@ -5,11 +5,11 @@ import { getTableConfig } from 'drizzle-orm/sqlite-core';
 import type { SqliteRemoteDatabase } from 'drizzle-orm/sqlite-proxy';
 import { Effect, Schema } from 'effect';
 
-import type { IAggregateActorCommand } from '../aggregateSession/types.ts';
-import { AdmissionResultSchema } from '../contracts/AdmissionResultSchema.ts';
-import { ExecutionSummarySchema } from '../contracts/ExecutionSummarySchema.ts';
+import type { IAggregateActorOutput } from '../aggregateSession/types.ts';
+import type { AdmissionResultSchema } from '../contracts/AdmissionResultSchema.ts';
 import { makeTableProvisioningStatements } from '../drizzle/provisionDb/provisionDbTx/makeTableProvisioningSQL/makeTableProvisioningSQL.ts';
 import { EncodedResourceSchema } from '../models/EncodedResourceSchema.ts';
+import type { IServiceActorOutput } from '../serviceSession/types.ts';
 import { coreAbbreviations } from '../utils/coreAbbreviations.ts';
 import { NanoIdFactory } from '../utils/NanoIdFactory.ts';
 
@@ -23,27 +23,53 @@ import type {
   INodeRecovery,
   INodeResource,
 } from './types.ts';
-
 export type INodeCommand = typeof nodeCommands.$inferSelect & {
   nodeId: string;
 };
 export type INodeSnapshot = {
+  commandHistory?: readonly INodeCommand[];
   identity: INodeDefinition['identity'];
   state: ReturnType<Node['status']>;
   metadata: typeof nodeMetadata.$inferSelect;
   resources: readonly INodeResource[];
   unresolvedCommands: readonly INodeCommand[];
 };
+type INodeExecution = {
+  id: INodeOutcome['id'];
+  commandName: string;
+  ownerIndex: number;
+  executedIndex: number;
+  executedHash: string;
+  actorDelta: INodeOutcome['actorDelta'];
+  failure: INodeOutcome['failure'];
+};
 export type INodeChange =
-  | { type: 'resnapshot' }
-  | { type: 'state'; state: ReturnType<Node['status']> }
-  | { type: 'snapshot'; snapshot: INodeSnapshot }
-  | { type: 'accepted'; command: INodeCommand }
-  | { type: 'outcome'; outcome: INodeOutcome }
-  | { type: 'pushPaused'; pushPaused: boolean }
+  | {
+      type: 'resnapshot';
+    }
+  | {
+      type: 'state';
+      state: ReturnType<Node['status']>;
+    }
+  | {
+      type: 'snapshot';
+      snapshot: INodeSnapshot;
+    }
+  | {
+      type: 'accepted';
+      command: INodeCommand;
+    }
+  | {
+      type: 'outcome';
+      outcome: INodeOutcome;
+    }
+  | {
+      type: 'pushPaused';
+      pushPaused: boolean;
+    }
   | {
       type: 'execution';
-      command: IAggregateActorCommand;
+      command: INodeExecution;
       outcome: INodeOutcome | null;
     };
 type INodeSubscriber = {
@@ -52,7 +78,6 @@ type INodeSubscriber = {
   sending: boolean;
   receive(change: INodeChange): Promise<void>;
 };
-
 /** Owns committed state. Only database work runs inside the serialization boundary. */
 export class Node {
   private serial: Promise<unknown> = Promise.resolve();
@@ -68,7 +93,6 @@ export class Node {
   private suspended = false;
   private synchronization = 'offline';
   private connectionFailure: string | null = null;
-
   connectionState(state: string, failure?: unknown): void {
     if (state === 'authenticating') {
       this.authenticationState = 'authenticating';
@@ -82,14 +106,12 @@ export class Node {
     this.connectionFailure = failure === undefined ? null : String(failure);
     this.publish({ type: 'state', state: this.status() });
   }
-
   constructor(
     readonly db: SqliteRemoteDatabase,
     readonly definition: INodeDefinition,
   ) {
     this.tables = makeNodeResourceTables(definition.lock.models);
   }
-
   private serialized<T>(work: () => Promise<T>): Promise<T> {
     const result = this.serial.then(work).catch(error => {
       if (!isZerospinError(error)) {
@@ -101,7 +123,6 @@ export class Node {
     this.serial = result.catch(() => undefined);
     return result;
   }
-
   private async transaction<T>(work: () => Promise<T>): Promise<T> {
     await this.db.run(sql`BEGIN IMMEDIATE`);
     try {
@@ -113,7 +134,6 @@ export class Node {
       throw error;
     }
   }
-
   async initialize(create = true): Promise<boolean> {
     let created = false;
     await this.serialized(() =>
@@ -121,10 +141,10 @@ export class Node {
         const [existing] = await this.db.values<[number]>(
           sql`PRAGMA user_version`,
         );
-        const tables = await this.db.all<{ name: string }>(
-          sql`SELECT name FROM sqlite_master WHERE type = 'table'`,
-        );
-        if (tables.length > 0 && existing?.[0] !== 5) {
+        const tables = await this.db.all<{
+          name: string;
+        }>(sql`SELECT name FROM sqlite_master WHERE type = 'table'`);
+        if (tables.length > 0 && existing?.[0] !== 7) {
           throw makeZerospinError({ code: 'node-storage-reset-required' });
         }
         if (tables.length > 0) {
@@ -139,7 +159,9 @@ export class Node {
           }
           return;
         }
-        if (!create) throw makeZerospinError({ code: 'node-storage-missing' });
+        if (!create) {
+          throw makeZerospinError({ code: 'node-storage-missing' });
+        }
         created = true;
         for (const table of [
           nodeMetadata,
@@ -161,7 +183,7 @@ export class Node {
           initialized: false,
           nextNodeIndex: 1,
           outcomeIndex: 0,
-          aggregateIndex: 0,
+          ownerIndex: 0,
           executedIndex: 0,
           executedHash: [
             ...new Uint8Array(
@@ -175,12 +197,11 @@ export class Node {
             .join(''),
           pushPaused: false,
         });
-        await this.db.run(sql`PRAGMA user_version = 5`);
+        await this.db.run(sql`PRAGMA user_version = 7`);
       }),
     );
     return created;
   }
-
   private async metadata() {
     const metadata = await this.db
       .select()
@@ -193,11 +214,9 @@ export class Node {
     }
     return metadata;
   }
-
   snapshot() {
     return this.serialized(() => this.readSnapshot());
   }
-
   private async readSnapshot(): Promise<INodeSnapshot> {
     const metadata = await this.metadata();
     const resources: INodeResource[] = [];
@@ -220,24 +239,26 @@ export class Node {
       .from(nodeCommands)
       .where(isNull(nodeCommands.executedIndex))
       .orderBy(nodeCommands.nodeIndex);
+    const history = await this.db
+      .select()
+      .from(nodeCommands)
+      .orderBy(sql`${nodeCommands.nodeIndex} desc`)
+      .limit(50);
     return {
+      commandHistory: history.map(command => ({
+        ...command,
+        nodeId: metadata.nodeId,
+      })),
       identity: this.definition.identity,
       state: this.status(),
       metadata,
       resources,
-      unresolvedCommands: commands
-        .filter(
-          command =>
-            command.admission.status !== 'failed' &&
-            command.execution.status === 'pending',
-        )
-        .map(command => ({
-          ...command,
-          nodeId: metadata.nodeId,
-        })),
+      unresolvedCommands: commands.map(command => ({
+        ...command,
+        nodeId: metadata.nodeId,
+      })),
     };
   }
-
   /** Registration and snapshot capture are one serialized operation. Delivery never holds SQLite. */
   async subscribe(receive: INodeSubscriber['receive']): Promise<() => void> {
     const subscriber: INodeSubscriber = {
@@ -253,28 +274,32 @@ export class Node {
     });
     return () => this.detach(subscriber);
   }
-
   private detach(subscriber: INodeSubscriber): void {
     subscriber.closed = true;
     subscriber.pending.length = 0;
     this.subscribers.delete(subscriber);
   }
-
   private enqueue(subscriber: INodeSubscriber, change: INodeChange): void {
-    if (subscriber.closed) return;
+    if (subscriber.closed) {
+      return;
+    }
     if (subscriber.pending.length >= 64) {
       subscriber.pending = [{ type: 'resnapshot' }];
       return;
     }
     subscriber.pending.push(change);
-    if (subscriber.sending) return;
+    if (subscriber.sending) {
+      return;
+    }
     subscriber.sending = true;
     // Start callbacks in a later task, outside the committing operation.
     void Promise.resolve().then(async () => {
       try {
         while (!subscriber.closed) {
           const next = subscriber.pending.shift();
-          if (next === undefined) break;
+          if (next === undefined) {
+            break;
+          }
           await subscriber.receive(next);
         }
       } catch {
@@ -284,11 +309,11 @@ export class Node {
       }
     });
   }
-
   private publish(change: INodeChange): void {
-    for (const subscriber of this.subscribers) this.enqueue(subscriber, change);
+    for (const subscriber of this.subscribers) {
+      this.enqueue(subscriber, change);
+    }
   }
-
   async accept(command: INodeCommandInput): Promise<INodeCommand> {
     return this.serialized(async () => {
       const metadata = await this.metadata();
@@ -311,9 +336,8 @@ export class Node {
       }
       const identity = this.definition.identity;
       if (
-        identity.kind !== 'aggregate' ||
-        command.aggregateId !== identity.targetId ||
-        command.aggregateName !== identity.targetName ||
+        command.targetId !== identity.targetId ||
+        command.targetName !== identity.targetName ||
         command.actorName !== identity.actorName ||
         command.actorVersion !== identity.actorVersion ||
         command.sessionName !== identity.sessionName ||
@@ -333,8 +357,7 @@ export class Node {
             .values({
               ...command,
               nodeIndex,
-              admission: { status: 'pending' },
-              execution: { status: 'pending' },
+              failure: null,
             })
             .returning();
           if (row === undefined) {
@@ -355,7 +378,6 @@ export class Node {
       }
     });
   }
-
   async history(props: {
     afterNodeIndex: number;
     limit: number;
@@ -380,7 +402,6 @@ export class Node {
       return rows.map(row => ({ ...row, nodeId }));
     });
   }
-
   async setPushPaused(pushPaused: boolean): Promise<void> {
     await this.serialized(async () => {
       await this.db
@@ -390,7 +411,6 @@ export class Node {
       this.publish({ type: 'pushPaused', pushPaused });
     });
   }
-
   async nextPush(manual = false): Promise<INodeCommand | null> {
     return this.serialized(async () => {
       const metadata = await this.metadata();
@@ -402,11 +422,13 @@ export class Node {
       ) {
         throw makeZerospinError({ code: 'node-push-blocked' });
       }
-      if (!manual && metadata.pushPaused) return null;
+      if (!manual && metadata.pushPaused) {
+        return null;
+      }
       const command = await this.db
         .select()
         .from(nodeCommands)
-        .where(isNull(nodeCommands.aggregateIndex))
+        .where(isNull(nodeCommands.ownerIndex))
         .orderBy(nodeCommands.nodeIndex)
         .limit(1)
         .all()
@@ -416,7 +438,6 @@ export class Node {
         : { ...command, nodeId: metadata.nodeId };
     });
   }
-
   /** Resend a retained unresolved prefix requested by admission; never change node positions. */
   async reconcileAdmission(expectedNodeIndex: number): Promise<void> {
     await this.serialized(async () => {
@@ -430,7 +451,7 @@ export class Node {
       }
       await this.db
         .update(nodeCommands)
-        .set({ aggregateIndex: null })
+        .set({ ownerIndex: null })
         .where(
           and(
             gte(nodeCommands.nodeIndex, expectedNodeIndex),
@@ -439,11 +460,10 @@ export class Node {
         );
     });
   }
-
   async admitted(props: {
     id: INodeCommandInput['id'];
     nodeIndex: number;
-    aggregateIndex: number;
+    ownerIndex: number;
     admission: typeof AdmissionResultSchema.Encoded;
   }): Promise<void> {
     if (
@@ -462,41 +482,26 @@ export class Node {
       if (
         row === undefined ||
         row.nodeIndex !== props.nodeIndex ||
-        (row.aggregateIndex !== null &&
-          row.aggregateIndex !== props.aggregateIndex)
+        (row.ownerIndex !== null && row.ownerIndex !== props.ownerIndex)
       ) {
         throw makeZerospinError({ code: 'node-admission-conflict' });
       }
       await this.db
         .update(nodeCommands)
         .set({
-          aggregateIndex: props.aggregateIndex,
-          ...(row.admission.status === 'pending'
-            ? {
-                admission: props.admission,
-                ...(props.admission.status === 'failed'
-                  ? {
-                      execution: {
-                        status: 'skipped' as const,
-                        reason: 'admission-failed' as const,
-                      },
-                    }
-                  : {}),
-              }
-            : {}),
+          ownerIndex: props.ownerIndex,
         })
         .where(eq(nodeCommands.id, props.id));
       this.publish({ type: 'resnapshot' });
     });
   }
-
   /** Snapshot state remains private until its complete outcome prefix can commit with it. */
   async beginRecovery(snapshot: INodeRecovery): Promise<void> {
     await this.serialized(async () => {
       const metadata = await this.metadata();
       if (
-        !Number.isSafeInteger(snapshot.aggregateIndex) ||
-        snapshot.aggregateIndex < 0 ||
+        !Number.isSafeInteger(snapshot.ownerIndex) ||
+        snapshot.ownerIndex < 0 ||
         !Number.isSafeInteger(snapshot.resolvedThrough) ||
         snapshot.resolvedThrough < 0 ||
         !Number.isSafeInteger(snapshot.executedIndex) ||
@@ -512,7 +517,6 @@ export class Node {
       await this.finishRecovery();
     });
   }
-
   private async validateOutcome(outcome: INodeOutcome) {
     const metadata = await this.metadata();
     const row = await this.db
@@ -522,53 +526,49 @@ export class Node {
       .all()
       .then(rows => rows[0]);
     if (
-      outcome.admission === null ||
-      outcome.execution === null ||
-      !['succeeded', 'failed'].includes(outcome.admission.status) ||
-      !['succeeded', 'failed', 'skipped'].includes(outcome.execution.status) ||
       metadata.nodeId !== outcome.nodeId ||
       row?.id !== outcome.id ||
-      (row.aggregateIndex !== null &&
-        row.aggregateIndex !== outcome.aggregateIndex) ||
+      row.commandName !== outcome.commandName ||
       (row.executedIndex !== null &&
         (row.executedIndex !== outcome.executedIndex ||
-          row.executedHash !== outcome.executedHash))
+          row.executedHash !== outcome.executedHash ||
+          JSON.stringify(row.failure) !== JSON.stringify(outcome.failure)))
     ) {
       throw makeZerospinError({ code: 'node-outcome-conflict' });
     }
-    return {
-      row,
-      admission: Schema.encodeSync(AdmissionResultSchema)(outcome.admission),
-      execution: Schema.encodeSync(ExecutionSummarySchema)(outcome.execution),
-    };
+    return { row };
   }
 
   private async recordOutcome(outcome: INodeOutcome): Promise<void> {
-    const { row, admission, execution } = await this.validateOutcome(outcome);
-    if (row.executedIndex !== null) return;
+    const { row } = await this.validateOutcome(outcome);
+    if (row.executedIndex !== null) {
+      return;
+    }
     await this.db
       .update(nodeCommands)
       .set({
-        aggregateIndex: outcome.aggregateIndex,
+        ownerIndex: outcome.ownerIndex,
         executedIndex: outcome.executedIndex,
         executedHash: outcome.executedHash,
         actorDelta: outcome.actorDelta,
-        admission,
-        execution,
+        failure: outcome.failure,
       })
       .where(eq(nodeCommands.id, outcome.id));
   }
-
   private async finishRecovery(): Promise<void> {
     const recovery = this.recovery;
-    if (recovery === null) return;
+    if (recovery === null) {
+      return;
+    }
     const metadata = await this.metadata();
     for (
       let index = metadata.outcomeIndex + 1;
       index <= recovery.snapshot.resolvedThrough;
       index++
     ) {
-      if (!recovery.outcomes.has(index)) return;
+      if (!recovery.outcomes.has(index)) {
+        return;
+      }
     }
     await this.transaction(async () => {
       for (const outcome of recovery.outcomes.values()) {
@@ -588,7 +588,7 @@ export class Node {
         .update(nodeMetadata)
         .set({
           outcomeIndex: recovery.snapshot.resolvedThrough,
-          aggregateIndex: recovery.snapshot.aggregateIndex,
+          ownerIndex: recovery.snapshot.ownerIndex,
           executedIndex: recovery.snapshot.executedIndex,
           executedHash: recovery.snapshot.executedHash,
           initialized: true,
@@ -598,21 +598,63 @@ export class Node {
     this.recovery = null;
     this.publish({ type: 'snapshot', snapshot: await this.readSnapshot() });
   }
-
-  /** Reconcile owned results independently from resource execution, in one commit when both are new. */
-  async receiveCommand(command: IAggregateActorCommand): Promise<void> {
+  /** The submitted journal identifies terminal outcomes by command ID. */
+  async receiveAggregateOutput(output: IAggregateActorOutput): Promise<void> {
+    return this.receiveExecution({
+      id: output.command.id,
+      commandName: output.command.commandName,
+      ownerIndex: output.aggregateIndex,
+      executedIndex: output.executedIndex,
+      executedHash: output.executedHash,
+      actorDelta: output.command.delta,
+      failure: output.command.failure,
+    });
+  }
+  async receiveServiceOutput(output: IServiceActorOutput): Promise<void> {
+    return this.receiveExecution({
+      id: output.command.id,
+      commandName: output.command.commandName,
+      ownerIndex: output.serviceIndex,
+      executedIndex: output.executedIndex,
+      executedHash: output.serviceHash,
+      actorDelta: output.command.delta,
+      failure: output.command.failure,
+    });
+  }
+  private async receiveExecution(command: INodeExecution): Promise<void> {
     await this.serialized(async () => {
       const metadata = await this.metadata();
+      const submitted = await this.db
+        .select()
+        .from(nodeCommands)
+        .where(eq(nodeCommands.id, command.id))
+        .all()
+        .then(rows => rows[0]);
+      if (submitted !== undefined) {
+        if (
+          submitted.commandName !== command.commandName ||
+          (submitted.executedIndex === command.executedIndex &&
+            (submitted.executedHash !== command.executedHash ||
+              JSON.stringify(submitted.actorDelta) !==
+                JSON.stringify(command.actorDelta) ||
+              JSON.stringify(submitted.failure) !==
+                JSON.stringify(command.failure)))
+        ) {
+          throw makeZerospinError({ code: 'node-outcome-conflict' });
+        }
+      }
       const outcome =
-        command.nodeId === metadata.nodeId && command.nodeIndex !== null
-          ? {
+        submitted === undefined || submitted.executedIndex !== null
+          ? null
+          : {
               ...command,
+              ownerIndex: submitted.ownerIndex ?? command.ownerIndex,
               nodeId: metadata.nodeId,
-              nodeIndex: command.nodeIndex,
-            }
-          : null;
-      // Validate owned duplicates even when their resource position is covered.
-      if (outcome !== null) await this.validateOutcome(outcome);
+              nodeIndex: submitted.nodeIndex,
+            };
+      if (outcome !== null) {
+        await this.validateOutcome(outcome);
+      }
       if (this.recovery !== null) {
         if (command.executedIndex > this.recovery.snapshot.executedIndex) {
           throw makeZerospinError({ code: 'node-recovery-incomplete' });
@@ -629,9 +671,12 @@ export class Node {
           if (
             prior !== undefined &&
             (prior.id !== outcome.id ||
-              prior.aggregateIndex !== outcome.aggregateIndex ||
+              prior.ownerIndex !== outcome.ownerIndex ||
               prior.executedIndex !== outcome.executedIndex ||
-              prior.executedHash !== outcome.executedHash)
+              prior.executedHash !== outcome.executedHash ||
+              JSON.stringify(prior.actorDelta) !==
+                JSON.stringify(outcome.actorDelta) ||
+              JSON.stringify(prior.failure) !== JSON.stringify(outcome.failure))
           ) {
             throw makeZerospinError({ code: 'node-outcome-conflict' });
           }
@@ -714,11 +759,13 @@ export class Node {
             .values(resource)
             .onConflictDoUpdate({ target: id, set: resource });
         }
-        if (missingOutcome !== null) await this.recordOutcome(missingOutcome);
+        if (missingOutcome !== null) {
+          await this.recordOutcome(missingOutcome);
+        }
         await this.db
           .update(nodeMetadata)
           .set({
-            aggregateIndex: command.aggregateIndex,
+            ownerIndex: command.ownerIndex,
             executedIndex: command.executedIndex,
             executedHash: command.executedHash,
             outcomeIndex: missingOutcome?.nodeIndex ?? metadata.outcomeIndex,
@@ -728,7 +775,6 @@ export class Node {
       this.publish({ type: 'execution', command, outcome: missingOutcome });
     });
   }
-
   status() {
     return {
       localAvailability:
@@ -751,7 +797,6 @@ export class Node {
           : String(this.persistenceFailure),
     };
   }
-
   async authenticated(
     identity: INodeDefinition['identity'],
     current: () => boolean = () => true,
@@ -773,14 +818,12 @@ export class Node {
       this.publish({ type: 'state', state: this.status() });
     });
   }
-
   async rejectAuthentication(): Promise<void> {
     await this.serialized(async () => {
       this.authenticationRejected = true;
       this.publish({ type: 'state', state: this.status() });
     });
   }
-
   async clearAuthentication(): Promise<void> {
     await this.serialized(async () => {
       this.suspended = true;

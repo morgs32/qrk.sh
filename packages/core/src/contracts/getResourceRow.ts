@@ -30,8 +30,8 @@ export const getResourceRow = Effect.fn('getResourceRow')(function* <
   if (row === undefined) {
     return yield* Effect.fail(
       makeZerospinError({
-        code: 'mutation-row-not-found',
-        message: `Cannot apply ${operationName} mutation on missing row "${resourceId}"`,
+        code: 'operation-row-not-found',
+        message: `Cannot apply ${operationName} operation on missing row "${resourceId}"`,
         extra: { modelName: model.modelName, resourceId },
       }),
     );
@@ -39,8 +39,8 @@ export const getResourceRow = Effect.fn('getResourceRow')(function* <
   if (!('updatedAt' in row) || !(row.updatedAt instanceof Date)) {
     return yield* Effect.fail(
       makeZerospinError({
-        code: 'mutation-row-invalid-updated-at',
-        message: `Cannot apply ${operationName} mutation on row "${resourceId}" without updatedAt`,
+        code: 'operation-row-invalid-updated-at',
+        message: `Cannot apply ${operationName} operation on row "${resourceId}" without updatedAt`,
         extra: { modelName: model.modelName, resourceId },
       }),
     );

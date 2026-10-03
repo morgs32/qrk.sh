@@ -30,8 +30,6 @@ type IReservedKeys =
   // Framework property keys that are not allowed as user attributes.
   | 'aggregateIndex'
   | 'createdAt'
-  | 'deletedAt'
-  | 'serviceIndex'
   | 'id'
   | 'modelName'
   | 'updatedAt'
@@ -368,8 +366,6 @@ export function makeModelVersion<
           if (
             key in declaredAttributes &&
             (key === 'createdAt' ||
-              key === 'deletedAt' ||
-              key === 'serviceIndex' ||
               key === 'id' ||
               key === 'modelName' ||
               key === 'updatedAt' ||

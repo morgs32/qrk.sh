@@ -40,13 +40,7 @@
     "types": ["node"]
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.d.ts"],
-  "exclude": [
-    "**/*.spec.ts",
-    "**/*.spec.tsx",
-    "**/*.node.spec.ts",
-    "**/*.react.spec.ts",
-    "**/*.react.spec.tsx"
-  ],
+  "exclude": [],
   "references": [
     {
       "path": "../schema"

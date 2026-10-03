@@ -33,12 +33,6 @@
           }
         ]
       }
-    },
-    {
-      "files": ["tests/**/*.ts", "tests/**/*.tsx"],
-      "rules": {
-        "eslint/no-restricted-imports": "off"
-      }
     }
   ],
   "globals": {
@@ -71,7 +65,6 @@
   },
   "env": {
     "browser": true,
-    "node": true,
-    "vitest": true
+    "node": true
   }
 }

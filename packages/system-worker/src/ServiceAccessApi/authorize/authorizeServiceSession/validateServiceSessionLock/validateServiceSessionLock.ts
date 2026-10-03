@@ -7,12 +7,9 @@ import { encodeShape } from '@zerospin/schema';
 import config from 'config';
 import { Effect, Schema } from 'effect';
 import { isEqual } from 'es-toolkit';
-
 const { system } = config;
-
 type IServiceSessionModel = IServiceSessionLock['models'][string];
 type IServiceSessionSpecModel = IServiceSessionSpec['models'][string];
-
 /*
  * Session admission validates the submitted service lock against authored
  * definitions here. Supported definitions must match exactly; the result
@@ -42,11 +39,9 @@ export const validateServiceSessionLock = Effect.fn(
 > {
   const { sessionName, serviceSessionLock, serviceName, serviceVersion } =
     props;
-
   // 1 — derive the lock key used in unsupported-definition errors
   const serviceSessionLockKey =
     yield* makeServiceSessionLockKey(serviceSessionLock);
-
   // 2 — reject missing service or sessionName definitions
   const service = system.services[serviceName]?.[serviceVersion];
   if (service === undefined) {
@@ -86,7 +81,6 @@ export const validateServiceSessionLock = Effect.fn(
       }),
     );
   }
-
   if (serviceSessionLock.sessionName !== sessionName) {
     return yield* Effect.fail(
       makeZerospinError({
@@ -105,13 +99,32 @@ export const validateServiceSessionLock = Effect.fn(
       }),
     );
   }
-
+  const contracts: Record<string, IServiceSessionLock['contracts'][string]> =
+    {};
+  for (const [name, requested] of Object.entries(
+    serviceSessionLock.contracts,
+  )) {
+    const contract = actor.contracts[name];
+    if (contract === undefined || contract.version !== requested.version) {
+      return yield* makeZerospinError('service-session-contract-forbidden');
+    }
+    contracts[name] = {
+      commandName: contract.commandName,
+      version: contract.version,
+      payloadShape: (contract.mapping?.original ?? contract).spec.payloadShape,
+      resultJsonSchema: structuredClone(
+        (contract.mapping?.original ?? contract).spec.resultJsonSchema,
+      ),
+      failureJsonSchema: (contract.mapping?.original ?? contract).spec
+        .failureJsonSchema,
+    };
+  }
   const resolvedModels: Record<string, IServiceSessionModel> = {};
   const selectedSpecModels: Record<string, IServiceSessionSpecModel> = {};
   for (const [modelKey, requestedModel] of Object.entries(
     serviceSessionLock.models,
   )) {
-    const model = actor.selections[modelKey]?.model;
+    const model = actor.capturedSelections[modelKey]?.model;
     if (model === undefined) {
       return yield* Effect.fail(
         makeZerospinError({
@@ -181,7 +194,6 @@ export const validateServiceSessionLock = Effect.fn(
     resolvedModels[modelKey] = requestedModel;
     selectedSpecModels[modelKey] = requestedModel;
   }
-
   // 6 — reject any remaining difference from the submitted lock
   const resolvedLock = {
     actorName: actor.name,
@@ -189,6 +201,7 @@ export const validateServiceSessionLock = Effect.fn(
     claims: serviceSessionLock.claims,
     sessionName,
     models: resolvedModels,
+    contracts,
   };
   if (!isEqual(resolvedLock, serviceSessionLock)) {
     return yield* Effect.fail(
@@ -208,7 +221,6 @@ export const validateServiceSessionLock = Effect.fn(
       }),
     );
   }
-
   return {
     serviceSessionLock: resolvedLock,
     sessionSpec: {
@@ -220,7 +232,7 @@ export const validateServiceSessionLock = Effect.fn(
       sessionName,
       models: selectedSpecModels,
       modelNames: Object.keys(selectedSpecModels).toSorted(),
-      contracts: {},
+      contracts,
       serviceSessionLock: resolvedLock,
     },
   };

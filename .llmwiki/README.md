@@ -2,7 +2,7 @@
 
 Post-commit hook (`.llmwiki/ingest.sh`) updates `wiki/` from code diffs. **This document is the operating manual** for ingest, lint, and manual wiki edits — there is no separate schema file.
 
-**During ingest:** Source of truth is code at `HEAD`. Modify only generated documentation under `wiki/` (the hook commits it for you). These restrictions apply to ingest, not ordinary implementation or development-document work. `wiki/dev/**` is human-authored development material and is excluded from ingest, lint, staging, and wiki commits. Produce draft reference docs, not polished product copy. Prefer `> TODO-VERIFY:` over fabricated claims.
+**During ingest:** Source of truth is code at `HEAD`. Modify only generated documentation under `wiki/` (the hook commits it for you). These restrictions apply to ingest, not ordinary implementation or development-document work. The human-authored `wiki/plans/`, `wiki/adrs/`, `wiki/archive/`, `wiki/handoffs/`, `wiki/specs/`, `wiki/rfcs/`, `wiki/research/`, and `wiki/diagrams/` trees are excluded from ingest, lint, staging, and wiki commits. Produce draft reference docs, not polished product copy. Prefer `> TODO-VERIFY:` over fabricated claims.
 
 **Before ingest:** Read `.llmwiki/config.yml` (enabled doc types, include/exclude globs) and `wiki/index.md`.
 
@@ -43,6 +43,6 @@ updated: YYYY-MM-DD
 11. After each `wiki/glossary.md` term's definition, list citations as unordered bullets. Each bullet is one working Markdown source citation followed by an em dash and one sentence naming the term-relevant fact at that range. Do not comma-separate citations. Do not restate the definition.
 12. On `wiki/architecture/**` pages, list every source citation as an unordered bullet; these bullets satisfy the claim's citation requirement instead of a trailing parenthetical link list. Each bullet is one working Markdown source citation followed by an em dash and one sentence naming the range-relevant fact at that range — the call, check, or return that range uniquely performs. Do not comma-separate citations. Do not restate the parent paragraph or numbered step. Nested bullets under Trigger and Annotated numbered items follow the same shape.
 
-**Ingest output:** Update affected generated pages outside `wiki/dev/**`; create pages for new public surface when doc type enabled; refresh glossary/index/overview when warranted. Do not commit — hook does `wiki: update (<sha>)`.
+**Ingest output:** Update affected generated pages outside the human-authored trees listed above; create pages for new public surface when doc type enabled; refresh glossary/index/overview when warranted. Do not commit — hook does `wiki: update (<sha>)`.
 
 Manual architecture edits: use [update-architecture](https://github.com/morgs32/wip/blob/main/skills/update-architecture/SKILL.md).

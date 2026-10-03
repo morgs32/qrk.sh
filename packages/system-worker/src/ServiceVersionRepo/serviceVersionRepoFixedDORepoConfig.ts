@@ -43,7 +43,9 @@ export const serviceVersionRepoFixedDORepoConfig = makeFixedDORepoConfig({
 
     // 2 — supply exactly the service-owned models
     return makeResourceDbConfig({
-      otherTables: serviceVersionRepoDbConfig.tables,
+      otherTables: {
+        ...serviceVersionRepoDbConfig.tables,
+      },
       models: service.models,
     });
   }),

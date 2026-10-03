@@ -193,14 +193,27 @@ if ! "$CLI" -p < "$STATE_DIR/ingest-prompt.md" > "$STATE_DIR/ingest-output.log" 
   exit 1
 fi
 
-# Commit generated wiki pages if anything changed. Plans are human-authored and
-# must never be swept into an ingest commit.
-if git diff --quiet -- wiki/ ':(exclude)wiki/dev/**' && git diff --cached --quiet -- wiki/ ':(exclude)wiki/dev/**'; then
+# Commit generated wiki pages only. Human-authored work and decision records
+# must never be swept into an ingest commit, even if they are already staged.
+# Retain the old dev exclusion so an uncommitted layout migration stays out too.
+WIKI_PATHS=(
+  wiki/
+  ':(exclude)wiki/plans/**'
+  ':(exclude)wiki/adrs/**'
+  ':(exclude)wiki/archive/**'
+  ':(exclude)wiki/handoffs/**'
+  ':(exclude)wiki/specs/**'
+  ':(exclude)wiki/rfcs/**'
+  ':(exclude)wiki/research/**'
+  ':(exclude)wiki/diagrams/**'
+  ':(exclude)wiki/dev/**'
+)
+if git diff --quiet -- "${WIKI_PATHS[@]}" && git diff --cached --quiet -- "${WIKI_PATHS[@]}"; then
   echo "[$(date '+%F %T')] CLI ran but no wiki changes produced"
 else
-  git add -- wiki/ ':(exclude)wiki/dev/**'
+  git add -- "${WIKI_PATHS[@]}"
   # Skip hooks on our own commit to avoid recursion. The env var is a second line of defence.
-  git -c core.hooksPath=/dev/null commit -m "wiki: update ($HEAD_SHORT)" -m "Ingested commit $HEAD_SHA: $SUBJECT"
+  git -c core.hooksPath=/dev/null commit -m "wiki: update ($HEAD_SHORT)" -m "Ingested commit $HEAD_SHA: $SUBJECT" -- "${WIKI_PATHS[@]}"
   echo "[$(date '+%F %T')] wiki committed"
 fi
 

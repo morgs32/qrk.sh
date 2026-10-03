@@ -20,9 +20,7 @@
     "prepublishOnly": "pnpm run lib",
     "format": "oxfmt",
     "format:check": "oxfmt --check",
-    "lint": "oxlint --deny-warnings",
-    "test": "vitest",
-    "test:integration": "vitest run --config vitest.integration.config.ts"
+    "lint": "oxlint --deny-warnings"
   },
   "dependencies": {
     "@effect/platform-node-shared": "rc",
@@ -45,16 +43,13 @@
     "react": "19.2.7",
     "react-dom": "19.2.7",
     "system-worker": "workspace:*",
-    "vitest": "^4.1.5",
     "zod": "^4.4.3"
   },
   "devDependencies": {
     "@effect/language-service": "^0.87.2",
-    "@effect/vitest": "rc",
     "@remix-run/route-pattern": "^0.22.1",
     "@types/node": "^25.6.2",
     "@types/react": "^19.2.14",
-    "@zerospin/fixtures": "workspace:*",
     "effect": "rc",
     "oxlint": "^1.63.0",
     "rimraf": "^6.1.3"

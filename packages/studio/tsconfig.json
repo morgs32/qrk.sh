@@ -36,8 +36,10 @@
     "types": ["node", "vite/client"]
   },
   "include": ["src"],
-  "exclude": ["**/*.spec.ts"],
+  "exclude": [],
   "references": [
+    { "path": "../browser" },
+    { "path": "../react" },
     {
       "path": "../system-worker"
     },

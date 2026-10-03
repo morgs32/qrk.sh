@@ -120,12 +120,6 @@
       "import": "./src/makeDORepo/makeDORepo.ts",
       "default": "./src/makeDORepo/makeDORepo.ts"
     },
-    "./machineRepoNames": {
-      "types": "./src/machineRepoNames.ts",
-      "workerd": "./src/machineRepoNames.ts",
-      "import": "./src/machineRepoNames.ts",
-      "default": "./src/machineRepoNames.ts"
-    },
     "./systemWorkerAbbreviations": {
       "types": "./src/systemWorkerAbbreviations.ts",
       "workerd": "./src/systemWorkerAbbreviations.ts",
@@ -150,24 +144,6 @@
       "import": "./src/makeOutboxSubscriber/makeOutboxSubscriber.ts",
       "default": "./src/makeOutboxSubscriber/makeOutboxSubscriber.ts"
     },
-    "./makeMachineRepo/makeMachineRepo": {
-      "types": "./src/makeMachineRepo/makeMachineRepo.ts",
-      "workerd": "./src/makeMachineRepo/makeMachineRepo.ts",
-      "import": "./src/makeMachineRepo/makeMachineRepo.ts",
-      "default": "./src/makeMachineRepo/makeMachineRepo.ts"
-    },
-    "./makeMachineRepo/types": {
-      "types": "./src/makeMachineRepo/types.ts",
-      "workerd": "./src/makeMachineRepo/types.ts",
-      "import": "./src/makeMachineRepo/types.ts",
-      "default": "./src/makeMachineRepo/types.ts"
-    },
-    "./makeMachineRepo/RouteContractViolation": {
-      "types": "./src/makeMachineRepo/RouteContractViolation.ts",
-      "workerd": "./src/makeMachineRepo/RouteContractViolation.ts",
-      "import": "./src/makeMachineRepo/RouteContractViolation.ts",
-      "default": "./src/makeMachineRepo/RouteContractViolation.ts"
-    },
     "./makeFanoutSubscriber/makeFanoutSubscriber": {
       "types": "./src/makeFanoutSubscriber/makeFanoutSubscriber.ts",
       "workerd": "./src/makeFanoutSubscriber/makeFanoutSubscriber.ts",
@@ -179,9 +155,6 @@
     "clean": "rimraf dist tsconfig.tsbuildinfo",
     "lib": "pnpm run clean && tsc -b tsconfig.json --emitDeclarationOnly",
     "ts": "tsc -p tsconfig.etc.json --noEmit",
-    "test": "vitest run --config vitest.node.config.ts",
-    "test:workerd": "vitest run --config vitest.workerd.config.ts",
-    "test:watch": "vitest --config vitest.node.config.ts",
     "types": "wrangler types -c ./wrangler.jsonc --include-env=false",
     "lint": "oxlint . --format stylish"
   },
@@ -207,10 +180,8 @@
     "tsafe": "^1.8.12"
   },
   "devDependencies": {
-    "@cloudflare/vitest-plugin": "^1.1.2",
     "@effect/language-service": "^0.87.2",
     "@effect/opentelemetry": "rc",
-    "@effect/vitest": "rc",
     "@opentelemetry/sdk-logs": "^0.217.0",
     "@opentelemetry/sdk-metrics": "^2.7.1",
     "@opentelemetry/sdk-trace-base": "^2.7.1",
@@ -220,18 +191,13 @@
     "@types/react-dom": "^19.2.3",
     "@types/sql.js": "^1.4.11",
     "@vitejs/plugin-react": "^6.0.1",
-    "@vitest/coverage-v8": "^4.1.5",
-    "@zerospin/fixtures": "workspace:*",
     "effect": "rc",
-    "happy-dom": "^20.9.0",
-    "jsdom": "^29.1.1",
     "knip": "^6.12.2",
     "react": "19.2.7",
     "react-dom": "19.2.7",
     "rimraf": "^6.1.3",
     "tsx": "^4.21.0",
     "vite": "^8.0.11",
-    "vitest": "^4.1.5",
     "wrangler": "^4.127.1"
   },
   "peerDependencies": {

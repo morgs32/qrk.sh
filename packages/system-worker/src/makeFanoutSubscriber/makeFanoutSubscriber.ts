@@ -1,7 +1,6 @@
 import type { Async } from '@zerospin/core/async/Async';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { makeAsync } from '@zerospin/core/async/make/makeAsync';
-import type { MonotonicFactory } from '@zerospin/core/services/MonotonicFactory';
 import { readRpcEnvelope } from '@zerospin/core/utils/readRpcEnvelope';
 import {
   catchZerospinError,
@@ -10,7 +9,6 @@ import {
   type IZerospinErrorJson,
 } from '@zerospin/error';
 import { makeRpcEnvelope, type IRpcEnvelope } from '@zerospin/logger';
-import type { CuidFactory } from '@zerospin/schema';
 import { RpcTarget } from 'cloudflare:workers';
 import config from 'config';
 import { Effect } from 'effect';
@@ -43,26 +41,30 @@ export const makeFanoutSubscriber = <
   key: KEY;
   getRepo: (props: { key: SOURCE_KEY }) => Effect.Effect<
     {
-      readonly [K in NAME]: PromiseLike<{
-        getPage(props: {
-          afterIndex: number;
-          maxIndex?: number;
-        }): PromiseLike<IRpcEnvelope<IFanoutDelivery<ROW>, IZerospinErrorJson>>;
-        subscribe(
-          props: KEY & { currentIndex: number | null },
-        ): PromiseLike<IRpcEnvelope<void, IZerospinErrorJson>>;
-      }>;
+      readonly [K in NAME]: PromiseLike<
+        Disposable & {
+          getPage(props: {
+            afterIndex: number;
+            maxIndex?: number;
+            subscriberKey?: Readonly<Record<string, string>>;
+          }): PromiseLike<
+            IRpcEnvelope<IFanoutDelivery<ROW>, IZerospinErrorJson>
+          >;
+          subscribe(
+            props: KEY & { currentIndex: number | null },
+          ): PromiseLike<IRpcEnvelope<void, IZerospinErrorJson>>;
+        }
+      >;
     },
     IAnyError | IZerospinErrorJson,
     Async
   >;
   getCurrentIndex: () => number;
-  receive: (
-    delivery: IFanoutDelivery<NoInfer<ROW>>,
-  ) => Effect.Effect<
+  receive: (delivery: IFanoutDelivery<NoInfer<ROW>>) => Effect.Effect<
     void,
     IAnyError | IZerospinErrorJson,
-    Async | CuidFactory | MonotonicFactory
+    // Owner codecs and synchronous reactions use the configured system runtime.
+    unknown
   >;
 }): RpcTarget & {
   readonly name: NAME;
@@ -92,51 +94,61 @@ export const makeFanoutSubscriber = <
     let cursor = yield* currentIndex;
     if (index !== undefined && cursor >= index) return;
     const repo = yield* getRepo({ key: sourceKey });
-    const queue = yield* makeAsync(() => repo[name]);
-    let destination = index;
-    for (;;) {
-      const requestedCursor = cursor;
-      const delivery = yield* makeAsync(() =>
-        queue.getPage({
-          afterIndex: cursor,
-          ...(destination === undefined ? {} : { maxIndex: destination }),
-        }),
-      ).pipe(Effect.flatMap(envelope => readRpcEnvelope(envelope)));
-      if (!Number.isSafeInteger(delivery.lastIndex) || delivery.lastIndex < 0) {
-        return yield* Effect.fail(
-          makeZerospinError({
-            code: 'fanout-catchup-tip-invalid',
-            message: 'The source returned an invalid deliverable tip',
-          }),
-        );
-      }
-      destination ??= delivery.lastIndex;
-      // A concurrent push can commit while the source page is in flight.
-      cursor = yield* currentIndex;
-      if (cursor >= destination) return;
-      if (delivery.rows.length === 0) {
-        return yield* Effect.fail(
-          makeZerospinError({
-            code: 'fanout-catchup-history-missing',
-            message: `Fanout history is unavailable after ${cursor} through ${destination}`,
-          }),
-        );
-      }
+    return yield* Effect.acquireUseRelease(
+      makeAsync(() => repo[name]),
+      queue =>
+        Effect.gen(function* () {
+          let destination = index;
+          for (;;) {
+            const requestedCursor = cursor;
+            const delivery = yield* makeAsync(() =>
+              queue.getPage({
+                afterIndex: cursor,
+                subscriberKey: key,
+                ...(destination === undefined ? {} : { maxIndex: destination }),
+              }),
+            ).pipe(Effect.flatMap(envelope => readRpcEnvelope(envelope)));
+            if (
+              !Number.isSafeInteger(delivery.lastIndex) ||
+              delivery.lastIndex < 0
+            ) {
+              return yield* Effect.fail(
+                makeZerospinError({
+                  code: 'fanout-catchup-tip-invalid',
+                  message: 'The source returned an invalid deliverable tip',
+                }),
+              );
+            }
+            destination ??= delivery.lastIndex;
+            // A concurrent push can commit while the source page is in flight.
+            cursor = yield* currentIndex;
+            if (cursor >= destination) return;
+            if (delivery.rows.length === 0) {
+              return yield* Effect.fail(
+                makeZerospinError({
+                  code: 'fanout-catchup-history-missing',
+                  message: `Fanout history is unavailable after ${cursor} through ${destination}`,
+                }),
+              );
+            }
 
-      // 3 — the owner serializes and durably commits both pulled and pushed rows
-      yield* receive(delivery);
-      const committed = yield* currentIndex;
-      if (committed >= destination) return;
-      if (committed <= requestedCursor) {
-        return yield* Effect.fail(
-          makeZerospinError({
-            code: 'fanout-catchup-no-progress',
-            message: `Fanout receipt did not advance the committed cursor after ${cursor}`,
-          }),
-        );
-      }
-      cursor = committed;
-    }
+            // 3 — the owner serializes and durably commits both pulled and pushed rows
+            yield* receive(delivery);
+            const committed = yield* currentIndex;
+            if (committed >= destination) return;
+            if (committed <= requestedCursor) {
+              return yield* Effect.fail(
+                makeZerospinError({
+                  code: 'fanout-catchup-no-progress',
+                  message: `Fanout receipt did not advance the committed cursor after ${cursor}`,
+                }),
+              );
+            }
+            cursor = committed;
+          }
+        }),
+      queue => Effect.sync(() => queue[Symbol.dispose]()),
+    );
   });
 
   // 4 — public methods are thin RPC boundaries over the bound owner operations
@@ -170,13 +182,17 @@ export const makeFanoutSubscriber = <
           yield* catchup(index);
           const cursor = yield* currentIndex;
           const repo = yield* getRepo({ key: sourceKey });
-          const queue = yield* makeAsync(() => repo[name]);
-          yield* makeAsync(() =>
-            queue.subscribe({
-              ...key,
-              currentIndex: cursor === 0 ? null : cursor,
-            }),
-          ).pipe(Effect.flatMap(envelope => readRpcEnvelope(envelope)));
+          yield* Effect.acquireUseRelease(
+            makeAsync(() => repo[name]),
+            queue =>
+              makeAsync(() =>
+                queue.subscribe({
+                  ...key,
+                  currentIndex: cursor === 0 ? null : cursor,
+                }),
+              ).pipe(Effect.flatMap(envelope => readRpcEnvelope(envelope))),
+            queue => Effect.sync(() => queue[Symbol.dispose]()),
+          );
         }).pipe(Effect.provide(AsyncLive), makeRpcEnvelope),
       );
     }

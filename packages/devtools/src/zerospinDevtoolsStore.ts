@@ -68,7 +68,7 @@ export const zerospinDevtoolsStore = createStore<IZerospinDevtoolsStoreState>()(
           getNodeState: () => session.store.getState().nodeState,
           getBackupState: () => session.store.getState().backupState,
           getTelemetry: () => session.store.getState().telemetry,
-          getServiceIndex: () => session.store.getState().serviceIndex,
+          getExecutedIndex: () => session.store.getState().executedIndex,
           getModelAttributes: modelName =>
             Object.entries(session.definition.models).find(
               ([name]) => name === modelName,

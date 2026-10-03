@@ -7,22 +7,20 @@ import {
 import { sql } from 'drizzle-orm';
 import { Context, Effect, Result, Schema } from 'effect';
 
-import { applyAggregateSessionMutationTx } from '../contracts/applyAggregateSessionMutationTx.ts';
+import { applyOperationTx } from '../contracts/applyOperationTx.ts';
 import { decodePayload } from '../contracts/decodePayload/decodePayload.ts';
 import {
-  encodeAppliedMutation,
-  EncodedAppliedMutationSchema,
-} from '../contracts/encodeAppliedMutation.ts';
+  encodeAppliedOperation,
+  EncodedAppliedOperationSchema,
+} from '../contracts/encodeAppliedOperation.ts';
 import { encodeFailure } from '../contracts/failureCodec.ts';
-import { makeMutations } from '../contracts/make/makeMutations.ts';
-import { runContractGuard } from '../contracts/runContractGuard.ts';
+import { makeOperations } from '../contracts/make/makeOperations.ts';
 import type { ITx } from '../drizzle/types.ts';
 import { withSavepoint } from '../drizzle/withSavepoint.ts';
 import { runProgram } from '../execution/runProgram.ts';
 
 import { sessionRepoDbConfig } from './sessionRepoDbConfig.ts';
 import type { IAggregateSessionDefinition } from './types.ts';
-
 /** Re-derive pending commands in submission order; only inverse bookkeeping survives each replay. */
 export const replayPendingCommandsTx = Effect.fn('replayPendingCommandsTx')(
   function* (props: {
@@ -55,10 +53,7 @@ export const replayPendingCommandsTx = Effect.fn('replayPendingCommandsTx')(
           }),
         );
       // Selected outcomes are retained journal history, not pending work.
-      if (
-        command.execution.status !== 'pending' ||
-        command.admission.status === 'failed'
-      ) {
+      if (command.executedIndex !== null) {
         continue;
       }
       const contract = definition.contracts[command.commandName];
@@ -91,62 +86,57 @@ export const replayPendingCommandsTx = Effect.fn('replayPendingCommandsTx')(
         tx,
         program: ({ tx: replayTx }) =>
           Effect.gen(function* () {
-            const made = yield* runContractGuard({
-              contract,
+            const made = yield* makeOperations({
               db: replayTx,
+              contract,
+              models: definition.models,
+              command: { ...command, payload },
               claims,
-              payload,
-            })
-              .pipe(
-                Effect.andThen(
-                  makeMutations({
-                    db: replayTx,
-                    contract,
-                    models: definition.models,
-                    command: { ...command, payload },
-                    claims,
-                  }),
-                ),
-              )
-              .pipe(
-                runProgram,
-                Effect.provideContext(context),
-                Effect.catch(failure =>
-                  encodeFailure(contract, failure).pipe(
-                    Effect.flatMap(retained =>
-                      retained.scope !== undefined
-                        ? Effect.fail(
-                            makeZerospinError(
-                              'pending-command-business-failure',
-                            ),
-                          )
-                        : Effect.fail(makeZerospinError(retained)),
-                    ),
+            }).pipe(
+              runProgram,
+              Effect.provideContext(context),
+              Effect.catch(failure =>
+                encodeFailure(contract, failure).pipe(
+                  Effect.flatMap(retained =>
+                    retained.scope !== undefined
+                      ? Effect.fail(
+                          makeZerospinError('pending-command-business-failure'),
+                        )
+                      : Effect.fail(makeZerospinError(retained)),
                   ),
                 ),
-              );
-            const mutations = [];
-            for (const [mutationIndex, mutation] of made.mutations.entries()) {
-              const applied = yield* applyAggregateSessionMutationTx({
+              ),
+            );
+            const operations = [];
+            for (const [
+              operationIndex,
+              operation,
+            ] of made.operations.entries()) {
+              if (operation.operationName === 'async') {
+                return yield* makeZerospinError(
+                  'browser-async-operation-forbidden',
+                );
+              }
+              const applied = yield* applyOperationTx({
                 tx: replayTx,
-                mutation,
+                operation,
                 commandId: command.id,
-                mutationIndex,
+                operationIndex,
                 appliedAt: command.staging.startedAt,
               });
-              mutations.push(
-                yield* encodeAppliedMutation({ mutation: applied }),
+              operations.push(
+                yield* encodeAppliedOperation({ operation: applied }),
               );
             }
-            return mutations;
+            return operations;
           }),
       }).pipe(Effect.provideContext(context), Effect.result);
       if (
         Result.isFailure(replayed) &&
         ![
           'pending-command-business-failure',
-          'mutation-row-not-found',
-          'mutation-referential-integrity-failed',
+          'operation-row-not-found',
+          'operation-referential-integrity-failed',
           'service-resource-deleted',
         ].includes(
           isZerospinError(replayed.failure) ? replayed.failure.code : '',
@@ -154,20 +144,20 @@ export const replayPendingCommandsTx = Effect.fn('replayPendingCommandsTx')(
       ) {
         return yield* Effect.fail(replayed.failure);
       }
-      const mutations = yield* Schema.encodeEffect(
-        Schema.fromJsonString(Schema.Array(EncodedAppliedMutationSchema)),
+      const operations = yield* Schema.encodeEffect(
+        Schema.fromJsonString(Schema.Array(EncodedAppliedOperationSchema)),
       )(Result.isSuccess(replayed) ? replayed.success : []).pipe(
         mapParseError({
-          code: 'session-optimistic-mutations-encode-failed',
+          code: 'session-optimistic-operations-encode-failed',
           prefix: 'Failed to encode rebased optimism',
         }),
       );
-      tx.insert(sessionRepoDbConfig.schema.optimisticAppliedMutations)
-        .values({ commandId: command.id, mutations })
+      tx.insert(sessionRepoDbConfig.schema.optimisticAppliedOperations)
+        .values({ commandId: command.id, operations })
         .onConflictDoUpdate({
           target:
-            sessionRepoDbConfig.schema.optimisticAppliedMutations.commandId,
-          set: { mutations },
+            sessionRepoDbConfig.schema.optimisticAppliedOperations.commandId,
+          set: { operations },
         })
         .run();
     }

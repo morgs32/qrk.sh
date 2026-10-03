@@ -1,6 +1,7 @@
 import * as sdk from '@zerospin/sdk/browser';
 import { Effect } from 'effect';
 
+import { computerOperations } from '../computerOperations';
 import { claimsSchema, game } from '../gameV1';
 
 export const createGame = sdk.makeContractVersion(
@@ -33,6 +34,16 @@ export const createGame = sdk.makeContractVersion(
           resourceId: payload.id,
           attributes: { board: '.........', turn: 'X', outcome: 'playing' },
         })
-        .pipe(Effect.map(mutation => [mutation])),
+        .pipe(
+          Effect.map(operation => [
+            operation,
+            computerOperations.operations.created({
+              id: payload.id,
+              board: '.........',
+              turn: 'X',
+              outcome: 'playing',
+            }),
+          ]),
+        ),
   },
 );

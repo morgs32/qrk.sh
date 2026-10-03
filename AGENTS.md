@@ -8,13 +8,19 @@ Changed fixed schemas require empty storage. Never preserve deprecated rows thro
 
 ## Working rules
 
+- Avoid the ambiguous word “target” when a specific domain term is available. Name the referenced entity and qualify its identity fields. For example, use “async contract name/version, such as `asyncProcessPayment@1.0.0`, within the retained owner/actor context” instead of “target name/version”; that phrase could otherwise mean an actor, service, or delivery destination.
+
+- Please remember that we are using transaction boundaries whenever possible, synchronous ones even.
+
+- Do not soften well-supported conclusions out of humility or a desire to agree. Make sound architectural arguments firmly, explain concrete failure modes, and treat correctness requirements as requirements—not optional caveats. Reconsider when evidence changes, not merely when challenged. Express genuine uncertainty precisely.
+
 - Take initiative to make this repo more obvious. In the area you are working, remove redundancy and bloat: duplicates, unused paths, and names that hide what the thing is. Delete that cruft. Do not rename it and keep it, and do not explain it as a second concept.
 
-- Use `$patterns` and the [local index](./wiki/patterns/index.md); local rules take precedence. Follow [scoped execution](../wip/skills/patterns/references/patterns/tooling/scoped-execution.md), reusing relevant context.
-- Finish the requested behavior, preserve unrelated WIP and relevant comments, and keep affected docs current. Be concise and explicit about uncertainty; distinguish current code from intended architecture.
-- Resolve unsettled design choices through [spec](../wip/skills/spec/SKILL.md); do not re-approve settled decisions or require specs for ordinary fixes.
+- Use `$patterns` and the [local index](./wiki/patterns/index.md); local rules take precedence. Follow [scoped execution](../wiki/skills/use-morgs32-wiki-patterns/references/patterns/tooling/scoped-execution.md), reusing relevant context.
+- Use `$implement` for approved work and unfinished verification. Be concise and explicit about uncertainty; distinguish current code from intended architecture.
+- Resolve unsettled design choices through [spec](../wiki/skills/spec/SKILL.md); do not re-approve settled decisions. Write plans for agreed work, keep domain terms in `wiki/glossary.md`, and record only qualifying decisions in `wiki/adrs/`. Do not create new spec files.
 - Never add `ALLOWED_CAST` without explicit user authorization; ask if a necessary cast requires it.
-- Keep development documents in `wiki/dev/`, following [spec](../wip/skills/spec/SKILL.md#document-conventions) and [handoff](../wip/skills/handoff/SKILL.md#destination-and-lifecycle) conventions.
+- Keep active plans in `wiki/plans/`. Follow `$implement` for completion and archival, [spec](../wiki/skills/spec/SKILL.md#document-conventions) for plan conventions, and [handoff](../wiki/skills/handoff/SKILL.md#destination-and-lifecycle) for handoffs. Keep governing ADRs in `wiki/adrs/`; mark a replaced ADR **Superseded** and link its successor. Move it to `wiki/archive/adrs/` only when it no longer governs anything and archival is wanted.
 
 <!-- nx configuration start-->
 <!-- Leave the start & end comments to automatically receive updates. -->

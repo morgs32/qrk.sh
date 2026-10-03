@@ -19,11 +19,13 @@ const retain = makeTx('AggregateChain.admitCommandsTx')(function* (
   preparedCommands: readonly {
     command: IEncodedCommand<IAggregateCommand>;
     admission: typeof AdmissionResultSchema.Type;
+    originalExecutionVersion: string;
   }[],
 ) {
   const { commands } = aggregateChainDbConfig.schema;
   const admitted: (IEncodedCommand<IAggregateCommand> & {
     aggregateIndex: number;
+    originalExecutionVersion: string;
     admission: typeof AdmissionResultSchema.Type;
   })[] = [];
 
@@ -36,7 +38,11 @@ const retain = makeTx('AggregateChain.admitCommandsTx')(function* (
       .limit(1)
       .get()?.index ?? 0;
 
-  for (const { command, admission } of preparedCommands) {
+  for (const {
+    command,
+    admission,
+    originalExecutionVersion,
+  } of preparedCommands) {
     // A repeated id returns the command already stored, including one inserted
     // earlier in this batch.
     const retained = tx
@@ -46,6 +52,19 @@ const retain = makeTx('AggregateChain.admitCommandsTx')(function* (
       .get();
     if (retained !== undefined) {
       if (
+        retained.commandName !== command.commandName ||
+        retained.contractVersion !== command.contractVersion ||
+        retained.payload !== command.payload ||
+        retained.aggregateName !== command.aggregateName ||
+        retained.aggregateId !== command.aggregateId ||
+        retained.systemName !== command.systemName ||
+        retained.aggregateVersion !==
+          ('aggregateVersion' in command ? command.aggregateVersion : null) ||
+        !isEqual(
+          retained.asyncInput === null ? null : JSON.parse(retained.asyncInput),
+          command.asyncInput ?? null,
+        ) ||
+        retained.nodeIndex !== command.nodeIndex ||
         retained.nodeId !== command.nodeId ||
         retained.sessionName !== command.sessionName ||
         retained.actorName !== command.actorName ||
@@ -64,6 +83,7 @@ const retain = makeTx('AggregateChain.admitCommandsTx')(function* (
       admitted.push({
         ...original,
         aggregateIndex: decoded.aggregateIndex,
+        originalExecutionVersion: decoded.originalExecutionVersion,
         admission: decoded.admission,
       });
       continue;
@@ -99,19 +119,29 @@ const retain = makeTx('AggregateChain.admitCommandsTx')(function* (
     }
 
     index += 1;
+    if (!Number.isSafeInteger(index)) {
+      return yield* makeZerospinError('aggregate-input-index-exhausted');
+    }
     // Store the command fields once as an aggregate occurrence.
     tx.insert(commands)
       .values({
         ...(yield* aggregateChainDbConfig.tables.commands.encodeRow({
           ...command,
+          asyncInput: command.asyncInput ?? null,
           aggregateVersion:
             'aggregateVersion' in command ? command.aggregateVersion : null,
           aggregateIndex: index,
+          originalExecutionVersion,
           admission,
         })),
       })
       .run();
-    admitted.push({ ...command, aggregateIndex: index, admission });
+    admitted.push({
+      ...command,
+      aggregateIndex: index,
+      originalExecutionVersion,
+      admission,
+    });
   }
   return admitted;
 });
@@ -121,7 +151,9 @@ export const admitCommandsTx = Effect.fn('AggregateChain.admitCommandsTx')(
     db: Parameters<typeof retain>[0],
     commands: Parameters<typeof retain>[1],
   ) {
-    if (commands.length === 0) return [];
+    if (commands.length === 0) {
+      return [];
+    }
     return yield* retain(db, commands).pipe(
       Effect.mapError(error =>
         !('code' in error) || error.code === 'drizzle-transaction-failed'

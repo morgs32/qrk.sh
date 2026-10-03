@@ -92,23 +92,12 @@ import { readExecutedCommandsPage } from '../../../packages/system-worker/src/re
  * or database transaction across page requests or source enrollment. Subscription
  * is awaited inside onDOActivation, before the activation gate opens.
  *
- * AC activation adopts bundled config as desiredBaseAggregateVersion, initializing
- * the applied base only for a new chain. A retained cutover alarm compares and
- * promotes outside activation. Config-only changes leave authored System specs unchanged.
- * Historical service materializers enroll during onDOActivation through subscriber.subscribe without
- * a separate initialization RPC. Subscription order grants no promotion order;
- * cutover requires a numerically newer major/minor/patch version.
- * VAR and VSR retain terminal result recovery around subscriber catch-up.
- * Receive commits supplied admitted rows under the owner's execution permit and
- * schedules result publication.
- * VAR and ActorVAR initialize services.lastIndex from their selected snapshot
- * aggregate.services at activation, preserving existing source progress. Resource
- * membership is the replica row or tombstone; its serviceIndex is independent.
- * Creating a copy never creates subscriptions or rewinds the source
- * cursor. Late-resource repair still reads history behind an advanced source
- * cursor. Explicit reads catchup without re-enrollment; alarms only drain queues.
- * Receivers tolerate committed-prefix redelivery after interruption, without
- * exposing partial acknowledgement in the fanout contract. Outboxes are unchanged.
+ * AC activation reconciles deployed version membership without resetting cursors.
+ * Its subscriber-scoped shared input pages expose unfinished commands only to
+ * their persisted original executor; replay versions wait for original terminal
+ * retention. VAR reruns authored programs against owned state. Actor repos project
+ * terminal AVC output history.
+ * Receivers tolerate committed-prefix redelivery without partial acknowledgement.
  *
  * The outbox pair follows the same owner class convention:
  * `IOutboxRepo<'queueName'>` exposes `makeOutboxQueue` from a private field
@@ -117,8 +106,8 @@ import { readExecutedCommandsPage } from '../../../packages/system-worker/src/re
  * parameter is inferred from the sender's full Drizzle row.
  *
  * Outbox owners insert stable integer `executedIndex` rows in their own domain
- * transactions, with nullable `acknowledgedAt` and `lastDeliveryFailure`.
- * The factory owns SQL LIMIT 64 paging, exact-page retain/delete acknowledgement,
+ * transactions, with nullable `lastDeliveryFailure`.
+ * The factory owns SQL LIMIT 64 paging, exact-page deletion on acknowledgement,
  * retries and alarm leases. `deliver(rows)` binds one receiver;
  * there is no enqueue RPC, subscriber registry or row-dependent routing.
  * Outbox drainAfter() arms recovery before the producer, then launches drain()
@@ -190,7 +179,7 @@ export class AggregateVersionChain
   readonly #executionResultsFanout = makeFanoutQueue({
     name: 'executionResultsFanout',
     concurrency: 100,
-    subscriberNameUtils: replicaNameUtils,
+    subscriberNameUtils: actorRepoNameUtils,
     key: {
       systemId: 'sys',
       aggregateId: 'acct',
@@ -266,7 +255,7 @@ export class AggregateActorVersionRepo extends RpcTarget {
   }
 }
 
-declare const replicaNameUtils: {
+declare const actorRepoNameUtils: {
   makeName(params: Record<string, string>): Effect.Effect<string>;
   parseName(name: string): Effect.Effect<Record<string, string>>;
 };
@@ -274,7 +263,7 @@ declare const replicaNameUtils: {
 declare function makeFanoutQueue(props: {
   name: 'executionResultsFanout';
   concurrency: number;
-  subscriberNameUtils: typeof replicaNameUtils;
+  subscriberNameUtils: typeof actorRepoNameUtils;
   key: Record<string, string>;
   db: IDb;
   schema: typeof aggregateVersionChainDbConfig.schema;

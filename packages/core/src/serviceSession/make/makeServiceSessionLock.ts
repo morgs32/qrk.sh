@@ -1,6 +1,7 @@
 import type { IEncodedShape } from '@zerospin/schema';
 import { Schema } from 'effect';
 
+import { publicContracts } from '../../contracts/asyncContract.ts';
 import type { IServiceSessionLock } from '../ServiceSessionLockSchema.ts';
 import type { IServiceSessionDefinition } from '../types.ts';
 
@@ -39,6 +40,28 @@ export const makeServiceSessionLock = (
     };
   }
 
+  const contracts: Record<
+    string,
+    {
+      commandName: string;
+      version: string;
+      payloadShape: Readonly<IEncodedShape>;
+      failureJsonSchema: unknown;
+      resultJsonSchema: unknown;
+    }
+  > = {};
+  for (const [contractKey, contract] of Object.entries(
+    publicContracts(definition.contracts),
+  ).toSorted(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey))) {
+    contracts[contractKey] = {
+      commandName: contract.commandName,
+      version: contract.version,
+      payloadShape: contract.spec.payloadShape,
+      failureJsonSchema: structuredClone(contract.spec.failureJsonSchema),
+      resultJsonSchema: structuredClone(contract.spec.resultJsonSchema),
+    };
+  }
+
   return {
     sessionName: definition.sessionName,
     actorName: definition.actorName,
@@ -47,5 +70,6 @@ export const makeServiceSessionLock = (
       claimsJsonSchema: Schema.toJsonSchemaDocument(definition.claimsSchema),
     },
     models,
+    contracts,
   };
 };

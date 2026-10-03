@@ -39,7 +39,7 @@
     "types": ["node"]
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["**/*.spec.ts", "**/*.node.spec.ts"],
+  "exclude": [],
   "references": [
     {
       "path": "../schema"

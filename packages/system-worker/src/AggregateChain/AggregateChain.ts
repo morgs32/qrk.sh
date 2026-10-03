@@ -1,24 +1,31 @@
+import type { Async } from '@zerospin/core/async/Async';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { makeAsync } from '@zerospin/core/async/make/makeAsync';
+import type { IAsyncCommand } from '@zerospin/core/contracts/AsyncCommandSchema';
+import type { AggregateTerminalCommandSchema } from '@zerospin/core/contracts/CommandSchema';
 import type {
   IAggregateCommand,
   IEncodedCommand,
 } from '@zerospin/core/contracts/types';
-import type { IAnyMachineDeclaration } from '@zerospin/core/machine/types';
 import { readRpcEnvelope } from '@zerospin/core/utils/readRpcEnvelope';
-import { makeZerospinError } from '@zerospin/error';
-import { makeRpcEnvelope } from '@zerospin/logger';
+import {
+  makeZerospinError,
+  type IAnyError,
+  type IZerospinErrorJson,
+} from '@zerospin/error';
+import { makeRpcEnvelope, type IRpcEnvelope } from '@zerospin/logger';
 import config from 'config';
 import { eq } from 'drizzle-orm';
 import { Effect } from 'effect';
+import { isEqual } from 'es-toolkit';
 
 import { AggregateVersionRepo } from '../AggregateVersionRepo/AggregateVersionRepo.js';
-import { getAggregateMachineRepo } from '../machineRepoNames.js';
 import {
   makeFanoutQueue,
   type IFanoutRepo,
 } from '../makeFanoutQueue/makeFanoutQueue.js';
 import { makeFixedDORepo } from '../makeFixedDORepo/makeFixedDORepo.js';
+import { makeOutboxSubscriber } from '../makeOutboxSubscriber/makeOutboxSubscriber.js';
 
 import {
   prepareAdmission,
@@ -29,6 +36,8 @@ import { aggregateChainDbConfig } from './aggregateChainDbConfig.js';
 import { aggregateChainFixedDORepoConfig } from './aggregateChainFixedDORepoConfig.js';
 import { executeAggregateCommand } from './executeAggregateCommand/executeAggregateCommand.js';
 import { onDOActivation } from './onDOActivation/onDOActivation.js';
+import { readInputsPage } from './readInputsPage/readInputsPage.js';
+import { receiveOriginalResults } from './receiveOriginalResults/receiveOriginalResults.js';
 
 export class AggregateChain
   extends makeFixedDORepo({
@@ -37,39 +46,24 @@ export class AggregateChain
   })
   implements IFanoutRepo<'admissionResultsFanout', AggregateVersionRepo>
 {
-  async #readyMachines(aggregateVersion: string) {
-    const machines: Readonly<Record<string, IAnyMachineDeclaration>> =
-      config.system.machines;
-    const matching = Object.entries(machines).filter(
-      ([, machine]) =>
-        'services' in machine.source &&
-        machine.source.name === this.key.aggregateName &&
-        machine.source.version === aggregateVersion,
-    );
-    if (matching.length === 0) return;
-    await config.system.runtime.runPromise(
-      Effect.forEach(matching, ([machineName]) =>
-        Effect.gen({ self: this }, function* () {
-          const repo = yield* getAggregateMachineRepo({
-            key: {
-              systemId: this.key.systemId,
-              aggregateName: this.key.aggregateName,
-              aggregateId: this.key.aggregateId,
-              machineName,
-            },
-          });
-          yield* makeAsync<Awaited<ReturnType<typeof repo.ready>>>(() =>
-            repo.ready(),
-          ).pipe(Effect.flatMap(readRpcEnvelope));
-        }),
-      ).pipe(Effect.provide(AsyncLive)),
-    );
+  readonly #executedAggregateCommandSubscriber = makeOutboxSubscriber({
+    name: 'executedAggregateCommand',
+    receive: (
+      rows: Parameters<typeof receiveOriginalResults>[1],
+    ): Effect.Effect<void, IAnyError, Async> =>
+      this.#admissionResultsFanout.drainAfter(() =>
+        receiveOriginalResults(this.db, rows),
+      ),
+  });
+  get executedAggregateCommandSubscriber() {
+    return this.#executedAggregateCommandSubscriber;
   }
+
   /**
    * Fanout: AggregateChain → AggregateVersionRepo.
    *
    * WHO: aggregateVersionRepos.
-   * LOG: commands (every row deliverable).
+   * LOG: shared entries, with version-specific original/replay readiness.
    * DELIVER: VAR subscriber.receive(delivery); acknowledgement follows its durable commit.
    * ENROLL: Activation reconciles the deployed versions without resetting progress.
    */
@@ -81,6 +75,8 @@ export class AggregateChain
     db: this.db,
     entriesTableName: 'commands',
     indexColumnName: 'aggregateIndex',
+    subscriberScoped: true,
+    readPage: page => readInputsPage({ db: this.db, ...page }),
     subscribersTableName: 'aggregateVersionRepos',
     subscribersWhere: [
       eq(aggregateChainDbConfig.schema.aggregateVersionRepos.active, true),
@@ -98,12 +94,73 @@ export class AggregateChain
   }
 
   /** Adopt bundled intent and retain recovery before this activation admits events. */
+
   override onDOActivation() {
     return onDOActivation({
       db: this.db,
       key: this.key,
       alarms: this.alarmRegistry,
     });
+  }
+  async admitAsyncCommand(props: {
+    ownerVersion: string;
+    command: IAsyncCommand;
+  }) {
+    return config.system.runtime.runPromise(
+      Effect.gen({ self: this }, function* () {
+        const repo = yield* AggregateVersionRepo.getRepo({
+          key: {
+            systemId: this.key.systemId,
+            aggregateName: this.key.aggregateName,
+            aggregateVersion: props.ownerVersion,
+            aggregateId: this.key.aggregateId,
+          },
+        });
+        const expected = yield* makeAsync<
+          Awaited<ReturnType<AggregateVersionRepo['getPreparedAsyncCommand']>>
+        >(() =>
+          repo.getPreparedAsyncCommand({ commandId: props.command.id }),
+        ).pipe(Effect.flatMap(readRpcEnvelope));
+        const command = expected;
+        const { ownerKind, ...delivered } = props.command;
+        if (ownerKind !== 'aggregate') {
+          return yield* makeZerospinError('async-command-owner-mismatch');
+        }
+        const { ownerKind: expectedKind, ...expectedCommand } = expected;
+        if (
+          expectedKind !== ownerKind ||
+          !isEqual(delivered, expectedCommand)
+        ) {
+          return yield* makeZerospinError(
+            'async-command-recorded-input-mismatch',
+          );
+        }
+        const input = command.asyncInput;
+        if (input == null || command.id !== props.command.id) {
+          return yield* makeZerospinError('async-input-required');
+        }
+        const prepared = yield* prepareAdmission({
+          commands: [command],
+          aggregateVersion: props.ownerVersion,
+          trustedAsync: true,
+          db: this.db,
+          key: this.key,
+        });
+        const retained = yield* this.#admissionResultsFanout.drainAfter(() =>
+          admitCommandsTx(this.db, prepared),
+        );
+        return retained[0];
+      }).pipe(
+        Effect.mapError(error =>
+          makeZerospinError({
+            code: 'async-admission-failed',
+            cause: String(error),
+          }),
+        ),
+        Effect.provide(AsyncLive),
+        makeRpcEnvelope,
+      ),
+    );
   }
 
   /*
@@ -123,58 +180,12 @@ export class AggregateChain
       ? { commands: C; aggregateVersion: string }
       : never,
   ) {
-    await this.#readyMachines(props.aggregateVersion);
     const result = await config.system.runtime.runPromise(
       prepareAdmission({ ...props, db: this.db, key: this.key }).pipe(
         Effect.flatMap(prepared =>
           this.#admissionResultsFanout.drainAfter(() =>
             admitCommandsTx(this.db, prepared),
           ),
-        ),
-        Effect.provide(AsyncLive),
-        makeRpcEnvelope,
-      ),
-    );
-    return result;
-  }
-
-  /** Machine-owned capability; admission rechecks the registered binding. */
-  async submitMachineCommand(props: {
-    aggregateVersion: string;
-    mode: 'push' | 'execute';
-    command: IEncodedCommand<IAggregateCommand>;
-  }) {
-    const result = await config.system.runtime.runPromise(
-      Effect.gen({ self: this }, function* () {
-        yield* this.alarmRegistry.hold('admissionResultsFanout');
-        if (props.mode === 'execute') {
-          return yield* executeAggregateCommand({
-            aggregateVersion: props.aggregateVersion,
-            command: props.command,
-            machineOutput: true,
-            machineMode: props.mode,
-            db: this.db,
-            key: this.key,
-          });
-        }
-        const prepared = yield* prepareAdmission({
-          commands: [props.command],
-          aggregateVersion: props.aggregateVersion,
-          machineOutput: true,
-          machineMode: props.mode,
-          db: this.db,
-          key: this.key,
-        });
-        const [receipt] = yield* this.#admissionResultsFanout.drainAfter(() =>
-          admitCommandsTx(this.db, prepared),
-        );
-        if (receipt === undefined) {
-          return yield* makeZerospinError('machine-admission-missing');
-        }
-        return { commandId: receipt.id, accepted: true as const };
-      }).pipe(
-        Effect.ensuring(
-          Effect.sync(() => this.#admissionResultsFanout.drain()),
         ),
         Effect.provide(AsyncLive),
         makeRpcEnvelope,
@@ -195,8 +206,12 @@ export class AggregateChain
   async executeAggregateCommand(props: {
     aggregateVersion: string;
     command: IEncodedCommand<IAggregateCommand>;
-  }) {
-    await this.#readyMachines(props.aggregateVersion);
+  }): Promise<
+    IRpcEnvelope<
+      typeof AggregateTerminalCommandSchema.Type & { executedIndex: number },
+      IZerospinErrorJson
+    >
+  > {
     // 1 — retain delivery before admitting the command
     await config.system.runtime.runPromise(
       this.alarmRegistry

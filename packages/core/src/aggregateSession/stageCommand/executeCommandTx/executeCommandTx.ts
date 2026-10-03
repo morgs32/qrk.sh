@@ -2,13 +2,14 @@ import { makeZerospinError, mapParseError } from '@zerospin/error';
 import { eq, sql } from 'drizzle-orm';
 import { Effect, Schema } from 'effect';
 
-import { applyAggregateSessionMutationTx } from '../../../contracts/applyAggregateSessionMutationTx.ts';
+import { applyOperationTx } from '../../../contracts/applyOperationTx.ts';
 import {
-  encodeAppliedMutation,
-  EncodedAppliedMutationSchema,
-} from '../../../contracts/encodeAppliedMutation.ts';
-import type { makeMutations } from '../../../contracts/make/makeMutations.ts';
+  encodeAppliedOperation,
+  EncodedAppliedOperationSchema,
+} from '../../../contracts/encodeAppliedOperation.ts';
+import type { makeOperations } from '../../../contracts/make/makeOperations.ts';
 import type {
+  IAnyOperation,
   IEncodedCommand,
   ISessionCommandInput,
 } from '../../../contracts/types.ts';
@@ -19,16 +20,18 @@ import type { IAnyModels } from '../../../models/types.ts';
 import { dutils } from '../../../utils/dutils.ts';
 import { sessionRepoDbConfig } from '../../sessionRepoDbConfig.ts';
 import type { IInitializedSessionState, ISessionId } from '../../types.ts';
-
 /** Commit one complete local occurrence and its next position; only live execution retains pending optimism. */
 export const executeCommandTx = makeTx('executeCommandTx')(function* <
-  COMMAND extends ISessionCommandInput & Readonly<{ pushIndex: null }>,
+  COMMAND extends ISessionCommandInput &
+    Readonly<{
+      pushIndex: null;
+    }>,
 >(
   tx: ITx,
   props: {
     settleLocally?: boolean;
     sessionId: ISessionId;
-    madeMutations: Effect.Success<ReturnType<typeof makeMutations>>;
+    madeOperations: Effect.Success<ReturnType<typeof makeOperations>>;
     encodedCommand: IEncodedCommand<COMMAND>;
     startedAt: Date;
     state: Pick<
@@ -40,14 +43,13 @@ export const executeCommandTx = makeTx('executeCommandTx')(function* <
 ) {
   const {
     sessionId,
-    madeMutations,
+    madeOperations,
     encodedCommand,
     startedAt,
     state,
     command,
     settleLocally,
   } = props;
-
   const metadata = tx
     .select()
     .from(sessionRepoDbConfig.schema.sessionMetadata)
@@ -80,59 +82,55 @@ export const executeCommandTx = makeTx('executeCommandTx')(function* <
       }),
     );
   }
-
-  const encodedMutations = [];
-  const inserted = new Map<
-    string,
-    (typeof madeMutations.mutations)[number]['model']
-  >();
-  const updated = new Map<
-    string,
-    (typeof madeMutations.mutations)[number]['model']
-  >();
+  const encodedOperations = [];
+  const inserted = new Map<string, IAnyOperation['model']>();
+  const updated = new Map<string, IAnyOperation['model']>();
   const deleted = new Map<
     string,
-    Readonly<{ id: string; modelName: string }>
+    Readonly<{
+      id: string;
+      modelName: string;
+    }>
   >();
-
-  for (const [mutationIndex, mutation] of madeMutations.mutations.entries()) {
-    const appliedMutation = yield* applyAggregateSessionMutationTx({
+  for (const [
+    operationIndex,
+    operation,
+  ] of madeOperations.operations.entries()) {
+    if (operation.operationName === 'async') {
+      return yield* makeZerospinError('browser-async-operation-forbidden');
+    }
+    const appliedOperation = yield* applyOperationTx({
       tx,
-      mutation,
+      operation,
       commandId: command.id,
-      mutationIndex,
+      operationIndex,
       appliedAt: startedAt,
     });
-    const encodedMutation = yield* encodeAppliedMutation({
-      mutation: appliedMutation,
+    const encodedOperation = yield* encodeAppliedOperation({
+      operation: appliedOperation,
     });
-    encodedMutations.push(encodedMutation);
-    const key = `${mutation.model.modelName}\u0000${mutation.resourceId}`;
-    if (mutation.operationName === 'delete') {
+    encodedOperations.push(encodedOperation);
+    const key = `${operation.model.modelName}\u0000${operation.resourceId}`;
+    if (operation.operationName === 'delete') {
       if (inserted.delete(key)) {
         updated.delete(key);
         deleted.delete(key);
       } else {
         updated.delete(key);
         deleted.set(key, {
-          id: mutation.resourceId,
-          modelName: mutation.model.modelName,
+          id: operation.resourceId,
+          modelName: operation.model.modelName,
         });
       }
-    } else if (
-      mutation.operationName === 'create' ||
-      (mutation.operationName === 'replicate' &&
-        appliedMutation.inverseOperation === null)
-    ) {
-      inserted.set(key, mutation.model);
+    } else if (operation.operationName === 'create') {
+      inserted.set(key, operation.model);
       updated.delete(key);
       deleted.delete(key);
     } else if (!inserted.has(key)) {
-      updated.set(key, mutation.model);
+      updated.set(key, operation.model);
       deleted.delete(key);
     }
   }
-
   const insertedResources = [];
   for (const [key, model] of inserted) {
     const id = key.slice(key.indexOf('\u0000') + 1);
@@ -141,7 +139,9 @@ export const executeCommandTx = makeTx('executeCommandTx')(function* <
       .from(model.drizzleSchema)
       .where(eq(model.drizzleSchema.id, id))
       .get();
-    if (row === undefined) continue;
+    if (row === undefined) {
+      continue;
+    }
     insertedResources.push(
       yield* Schema.decodeUnknownEffect(Schema.toType(EncodedResourceSchema))(
         row,
@@ -161,7 +161,9 @@ export const executeCommandTx = makeTx('executeCommandTx')(function* <
       .from(model.drizzleSchema)
       .where(eq(model.drizzleSchema.id, id))
       .get();
-    if (row === undefined) continue;
+    if (row === undefined) {
+      continue;
+    }
     updatedResources.push(
       yield* Schema.decodeUnknownEffect(Schema.toType(EncodedResourceSchema))(
         row,
@@ -173,31 +175,31 @@ export const executeCommandTx = makeTx('executeCommandTx')(function* <
       ),
     );
   }
-
   const stagedDelta = {
     inserted: insertedResources,
     updated: updatedResources,
     deleted: [...deleted.values()],
-    mutations: encodedMutations,
+    operations: encodedOperations,
   };
   const encodedOccurrence = {
     ...encodedCommand,
     sessionIndex,
-    staging: { startedAt, completedAt: yield* dutils.date(), stagedDelta },
-    admission: settleLocally
-      ? { status: 'skipped' as const, reason: 'local-only' as const }
-      : { status: 'pending' as const },
-    execution: settleLocally
-      ? { status: 'skipped' as const, reason: 'local-only' as const }
-      : { status: 'pending' as const },
+    staging: {
+      result: madeOperations.encodedResult,
+      startedAt,
+      completedAt: yield* dutils.date(),
+      stagedDelta,
+    },
+    failure: null,
   };
   const commandBytes = yield* sessionRepoDbConfig.tables.commands
     .encodeRow({
       ...encodedOccurrence,
+      failure: null,
       actorDelta: null,
       aggregateIndex: null,
-      executedIndex: null,
-      executedHash: null,
+      executedIndex: settleLocally ? state.executedIndex : null,
+      executedHash: settleLocally ? state.executedHash : null,
     })
     .pipe(
       mapParseError({
@@ -205,26 +207,26 @@ export const executeCommandTx = makeTx('executeCommandTx')(function* <
         prefix: 'Failed to encode locally terminal command',
       }),
     );
-
   tx.insert(sessionRepoDbConfig.schema.commands)
     .values({
       ...commandBytes,
     })
     .run();
   if (!settleLocally) {
-    const encodedMutationJson = yield* Schema.encodeEffect(
-      Schema.fromJsonString(Schema.Array(EncodedAppliedMutationSchema)),
-    )(encodedMutations).pipe(
+    const encodedOperationJson = yield* Schema.encodeEffect(
+      Schema.fromJsonString(Schema.Array(EncodedAppliedOperationSchema)),
+    )(encodedOperations).pipe(
       mapParseError({
-        code: 'session-optimistic-mutations-encode-failed',
-        prefix: 'Failed to encode optimistic session mutations',
+        code: 'session-optimistic-operations-encode-failed',
+        prefix: 'Failed to encode optimistic session operations',
       }),
     );
-    tx.insert(sessionRepoDbConfig.schema.optimisticAppliedMutations)
-      .values({ commandId: command.id, mutations: encodedMutationJson })
+    tx.insert(sessionRepoDbConfig.schema.optimisticAppliedOperations)
+      .values({ commandId: command.id, operations: encodedOperationJson })
       .onConflictDoUpdate({
-        target: sessionRepoDbConfig.schema.optimisticAppliedMutations.commandId,
-        set: { mutations: sql`excluded.mutations` },
+        target:
+          sessionRepoDbConfig.schema.optimisticAppliedOperations.commandId,
+        set: { operations: sql`excluded.operations` },
       })
       .run();
   }
@@ -244,14 +246,12 @@ export const executeCommandTx = makeTx('executeCommandTx')(function* <
       set: { nextSessionIndex },
     })
     .run();
-
   return {
     command: {
       ...command,
       sessionIndex,
       staging: encodedOccurrence.staging,
-      admission: encodedOccurrence.admission,
-      execution: encodedOccurrence.execution,
+      failure: encodedOccurrence.failure,
     },
     encodedCommand: encodedOccurrence,
   };

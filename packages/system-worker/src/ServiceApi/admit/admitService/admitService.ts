@@ -14,9 +14,7 @@ import { Cause, Effect, Exit, Schema } from 'effect';
 import { isEqual } from 'es-toolkit';
 
 import { SystemLogRepo } from '../../../SystemLogRepo/SystemLogRepo.js';
-
 const { system } = config;
-
 /** Authenticate one service version, retaining an independent durable audit attempt. */
 export const admitService = Effect.fn('ServiceApi.admitService', {
   root: true,
@@ -45,7 +43,6 @@ export const admitService = Effect.fn('ServiceApi.admitService', {
   const log = yield* SystemLogRepo.getRepo({
     key: { systemId: env.ZEROSPIN_SYSTEM_ID },
   });
-
   return yield* Effect.uninterruptibleMask(restore =>
     Effect.gen(function* () {
       const { attemptId } = yield* makeAsync(() =>
@@ -54,7 +51,6 @@ export const admitService = Effect.fn('ServiceApi.admitService', {
           serviceVersion: props.serviceVersion,
         }),
       ).pipe(Effect.flatMap(envelope => readRpcEnvelope(envelope)));
-
       const settled = yield* restore(
         Effect.gen(function* () {
           const request = yield* Schema.decodeUnknownEffect(
@@ -82,6 +78,11 @@ export const admitService = Effect.fn('ServiceApi.admitService', {
                 );
               }
               return request.claims;
+            }
+            if ('service' in policy) {
+              return yield* makeZerospinError(
+                'service-caller-session-forbidden',
+              );
             }
             if (!('credentials' in request)) {
               return yield* Effect.fail(
@@ -118,7 +119,7 @@ export const admitService = Effect.fn('ServiceApi.admitService', {
               prefix: 'Claims could not be encoded',
             }),
           );
-          // Only explicitly declared selection claims cross into selection callbacks or replica names.
+          // Only explicitly declared selection claims cross into selection callbacks or projection identities.
           const selected = Object.fromEntries(
             Object.keys(definition.identitySchema.fields).map(field => [
               field,
@@ -220,7 +221,6 @@ export const admitService = Effect.fn('ServiceApi.admitService', {
           };
         }),
       ).pipe(Effect.exit);
-
       // Interrupted admission leaves its already-persisted attempt unfinished.
       if (Exit.isFailure(settled)) {
         if (Cause.hasInterrupts(settled.cause)) {

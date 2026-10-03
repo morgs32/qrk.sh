@@ -12,18 +12,7 @@ export function ProductList() {
     query: db => db.query.product.findMany(),
   });
 
-  const { data: user } = useLiveQuery({
-    session: shopperSession,
-    key: { clerkUserId: claims.clerkUserId ?? undefined },
-    query: (db, { clerkUserId }) =>
-      db.query.user.findFirst({
-        where: { clerkUserId: { eq: clerkUserId } },
-      }),
-  });
-
-  if (user === undefined) {
-    return null;
-  }
+  if (!claims.clerkUserId) return null;
 
   if (!products) {
     return null;
@@ -41,7 +30,11 @@ export function ProductList() {
       </div>
       <div className="grid grid-cols-1 gap-4 @sm:grid-cols-2 @xl:grid-cols-3 @5xl:grid-cols-4">
         {products.map(product => (
-          <ProductCard key={product.id} product={product} userId={user.id} />
+          <ProductCard
+            key={product.id}
+            product={product}
+            userId={claims.clerkUserId}
+          />
         ))}
       </div>
     </section>

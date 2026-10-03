@@ -75,28 +75,28 @@ export const redeemPromotion = sdk.makeContractVersion(
       Effect.gen(function* () {
         const row = payload.expected;
         if (row === null) {
-          return [
-            yield* models.promotionReservation.create({
-              resourceId: payload.id,
-              attributes: {
-                promotionId,
-                aggregateId: payload.aggregateId,
-                cartId: payload.cartId,
-                expiresAt: 0,
-                purchaseId: null,
-                status: 'released',
-              },
-            }),
-          ];
+          yield* models.promotionReservation.create({
+            resourceId: payload.id,
+            attributes: {
+              promotionId,
+              aggregateId: payload.aggregateId,
+              cartId: payload.cartId,
+              expiresAt: 0,
+              purchaseId: null,
+              status: 'released',
+            },
+          });
+          return;
         }
-        return row.status === 'redeemed'
-          ? []
-          : [
-              yield* models.promotionReservation.update({
-                resourceId: payload.id,
-                attributes: { status: 'redeemed' },
-              }),
-            ];
+        if (row.status === 'redeemed') {
+          return;
+        } else {
+          yield* models.promotionReservation.update({
+            resourceId: payload.id,
+            attributes: { status: 'redeemed' },
+          });
+          return;
+        }
       }),
   },
 );

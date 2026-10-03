@@ -1,7 +1,7 @@
 import { keyboardModifiers } from '../store.js';
 import type { IKeyboardKey, IModifierKey } from '../types.js';
 
-import { getAllPermutations } from './sanitize.js';
+import { getAllPeroperations } from './sanitize.js';
 
 /** Expands CtrlOrMeta into separate Control and Meta variants */
 export const normalizeHotkey = (
@@ -19,10 +19,10 @@ export const normalizeHotkey = (
 };
 
 /**
- * Generates all keyboard permutations for a given hotkey configuration
+ * Generates all keyboard peroperations for a given hotkey configuration
  * Handles CtrlOrMeta expansion and creates all possible combinations
  */
-export const getHotkeyPermutations = (
+export const getHotkeyPeroperations = (
   hotkey: Array<IKeyboardKey>,
 ): Array<Array<IKeyboardKey>> => {
   const normalizedHotkeys = normalizeHotkey(hotkey);
@@ -41,20 +41,20 @@ export const getHotkeyPermutations = (
       return [nonModifiers];
     }
 
-    const allModifierCombinations = getAllPermutations(modifiers);
+    const allModifierCombinations = getAllPeroperations(modifiers);
     return allModifierCombinations.map(combo => [...combo, ...nonModifiers]);
   });
 };
 
-/** Checks if the currently pressed keys match any of the hotkey permutations */
+/** Checks if the currently pressed keys match any of the hotkey peroperations */
 export const isHotkeyCombinationPressed = (
   keys: Array<string>,
   hotkey: Array<IKeyboardKey>,
 ): boolean => {
-  const permutations = getHotkeyPermutations(hotkey);
+  const peroperations = getHotkeyPeroperations(hotkey);
   const pressedKeys = keys.map(key => key.toUpperCase());
 
-  return permutations.some(
+  return peroperations.some(
     combo =>
       // every key in the combo must be pressed
       combo.every(key => pressedKeys.includes(String(key).toUpperCase())) &&

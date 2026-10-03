@@ -16,7 +16,7 @@ const checkPurchase = makeGuard({
     user: userV1,
     purchase: purchaseV1,
     purchaseItem: purchaseItemV1,
-    product: productReplicaV1,
+    product: productV1,
     cartPromotion: cartPromotionV1,
   },
   payload: PurchaseCheckSchema,

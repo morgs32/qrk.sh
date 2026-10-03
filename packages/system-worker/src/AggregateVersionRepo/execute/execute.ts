@@ -1,5 +1,5 @@
 import { makeAsync } from '@zerospin/core/async/make/makeAsync';
-import { AggregateExecutedCommandSchema } from '@zerospin/core/contracts/CommandSchema';
+import { AggregateTerminalCommandSchema } from '@zerospin/core/contracts/CommandSchema';
 import type { IDb } from '@zerospin/core/drizzle/types';
 import { readRpcEnvelope } from '@zerospin/core/utils/readRpcEnvelope';
 import {
@@ -59,22 +59,23 @@ export const execute = Effect.fn('AggregateVersionRepo.execute')(
     // 3 — decode the exact aggregateIndex already committed by this version
     const pending = db
       .select()
-      .from(aggregateVersionRepoDbConfig.schema.aggregateCommands)
+      .from(aggregateVersionRepoDbConfig.schema.executedCommandOutbox)
       .where(
         eq(
-          aggregateVersionRepoDbConfig.schema.aggregateCommands.aggregateIndex,
+          aggregateVersionRepoDbConfig.schema.executedCommandOutbox
+            .aggregateIndex,
           aggregateIndex,
         ),
       )
       .get();
     if (pending !== undefined) {
       const command =
-        yield* aggregateVersionRepoDbConfig.tables.aggregateCommands
+        yield* aggregateVersionRepoDbConfig.tables.executedCommandOutbox
           .decodeRow(pending)
           .pipe(
             Effect.flatMap(
               Schema.decodeUnknownEffect(
-                Schema.toType(AggregateExecutedCommandSchema),
+                Schema.toType(AggregateTerminalCommandSchema),
               ),
             ),
           )
@@ -110,7 +111,7 @@ export const execute = Effect.fn('AggregateVersionRepo.execute')(
         .pipe(
           Effect.flatMap(
             Schema.decodeUnknownEffect(
-              Schema.toType(AggregateExecutedCommandSchema),
+              Schema.toType(AggregateTerminalCommandSchema),
             ),
           ),
         )

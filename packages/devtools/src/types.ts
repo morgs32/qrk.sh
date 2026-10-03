@@ -101,7 +101,7 @@ export interface IDevtoolsServiceSessionEntry {
     IServiceSession['store']['getState']
   >['backupState'];
   readonly getTelemetry: () => ITelemetryBatch;
-  readonly getServiceIndex: () => number | null;
+  readonly getExecutedIndex: () => number | null;
   readonly getModelAttributes: (
     modelName: string,
   ) => Readonly<Record<string, unknown>> | undefined;

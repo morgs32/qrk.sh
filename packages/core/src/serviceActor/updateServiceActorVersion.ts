@@ -1,9 +1,9 @@
 import { Schema, type Effect } from 'effect';
 
 import type {
-  IActorQueries,
+  IActorSelections,
   IAnyActorDbVersion,
-  ValidActorQueries,
+  ValidActorSelections,
 } from '../models/make/makeActorDbVersion.ts';
 
 import {
@@ -13,14 +13,14 @@ import {
 import type { IAnyServiceActorVersion } from './types.ts';
 type Merge<A, B> = Omit<A, keyof B> & B;
 
-/** Inherit declaration fields; merge queries by key. A changed database requires queries constructed from that database. */
+/** Inherit declaration fields; merge selections by key. A changed database requires selections constructed from that database. */
 export function updateServiceActorVersion<
   const PREVIOUS extends IAnyServiceActorVersion,
   const VERSION extends string,
   const DB extends IAnyActorDbVersion = PREVIOUS['db'],
   const IDENTITY extends IAnyServiceActorVersion['identity'] =
     PREVIOUS['identity'],
-  const QUERIES extends IActorQueries = {},
+  const SELECTIONS extends IActorSelections = {},
   AUTHORIZE_REQUIREMENTS = Effect.Services<
     ReturnType<NonNullable<PREVIOUS['authorize']>>
   >,
@@ -32,7 +32,7 @@ export function updateServiceActorVersion<
   previous: PREVIOUS,
   changes: {
     version: VERSION;
-    queries?: QUERIES & ValidActorQueries<DB['models'], QUERIES>;
+    selections?: SELECTIONS & ValidActorSelections<DB['models'], SELECTIONS>;
   } & Partial<
     Omit<
       Parameters<
@@ -42,11 +42,11 @@ export function updateServiceActorVersion<
           VERSION,
           DB,
           IDENTITY,
-          Merge<PREVIOUS['queries'], QUERIES>,
+          Merge<PREVIOUS['selections'], SELECTIONS>,
           AUTHORIZE_REQUIREMENTS
         >
       >[1],
-      'queries'
+      'selections'
     >
   >,
 ): ReturnType<
@@ -56,7 +56,7 @@ export function updateServiceActorVersion<
     VERSION,
     DB,
     IDENTITY,
-    Merge<PREVIOUS['queries'], QUERIES>,
+    Merge<PREVIOUS['selections'], SELECTIONS>,
     AUTHORIZE_REQUIREMENTS
   >
 >;
@@ -76,13 +76,13 @@ export function updateServiceActorVersion(
       authentication: actor.authentication,
       ...(actor.authorize === undefined ? {} : { authorize: actor.authorize }),
       ...overrides,
-      queries: {
-        ...actor.queries,
-        ...(overrides.queries === undefined
+      selections: {
+        ...actor.selections,
+        ...(overrides.selections === undefined
           ? {}
           : Schema.decodeUnknownSync(
               Schema.Record(Schema.String, Schema.Unknown),
-            )(overrides.queries)),
+            )(overrides.selections)),
       },
     },
   ]);

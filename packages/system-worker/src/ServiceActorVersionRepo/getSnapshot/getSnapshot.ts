@@ -2,7 +2,7 @@ import { makeAsync } from '@zerospin/core/async/make/makeAsync';
 import { makeTx } from '@zerospin/core/drizzle/make/makeTx';
 import type { IResourceDbConfig, ITx } from '@zerospin/core/drizzle/types';
 import type { IAnyModels } from '@zerospin/core/models/types';
-import { ServiceSessionSnapshotSchema } from '@zerospin/core/serviceSession/ServiceActorCommandSchema';
+import { ServiceSessionSnapshotSchema } from '@zerospin/core/serviceSession/ServiceSessionWireSchema';
 import { getByKeyOrThrow } from '@zerospin/core/utils/getByKeyOrThrow';
 import { readRpcEnvelope } from '@zerospin/core/utils/readRpcEnvelope';
 import { makeZerospinError, mapParseError } from '@zerospin/error';
@@ -24,7 +24,7 @@ import { serviceActorVersionRepoDbConfig } from '../serviceActorVersionRepoDbCon
  * Publication waits occur after the synchronous capture transaction completes.
  *
  * 1. Check the requested view identity.
- * 2. Catch the replica up to retained history.
+ * 2. Catch the actor projection up to retained history.
  * 3. Capture state together.
  * 4. Use the resources captured with the cursor.
  * 5. Publish through the captured cursor.
@@ -42,8 +42,8 @@ export const getSnapshot = Effect.fn('ServiceActorVersionRepo.getSnapshot')(
         actorName: string;
         actorVersion: string;
       };
-      actorCommandsOutbox: Pick<
-        ServiceActorVersionRepo['actorCommandsOutbox'],
+      browserCommandOutbox: Pick<
+        ServiceActorVersionRepo['browserCommandOutbox'],
         'drain'
       >;
     },
@@ -52,11 +52,10 @@ export const getSnapshot = Effect.fn('ServiceActorVersionRepo.getSnapshot')(
       key,
       requested,
       subscriber,
-      throughServiceIndex,
+      throughExecutedIndex,
       db,
-      actorCommandsOutbox,
+      browserCommandOutbox,
     } = props;
-
     // 1 — compare serviceName, actor identity, and actorPath with the bound key
     if (
       requested.serviceName !== key.serviceName ||
@@ -66,18 +65,16 @@ export const getSnapshot = Effect.fn('ServiceActorVersionRepo.getSnapshot')(
     ) {
       return yield* Effect.fail(
         makeZerospinError({
-          code: 'replica-state-target-mismatch',
+          code: 'projection-state-target-mismatch',
           message: 'State request does not match the bound view',
         }),
       );
     }
-
     // 2 — replay through the captured VSC tip
     yield* catchup({
       subscriber,
-      throughServiceIndex,
+      throughExecutedIndex,
     });
-
     const versions = yield* getByKeyOrThrow({
       record: config.system.services,
       key: key.serviceName,
@@ -104,41 +101,45 @@ export const getSnapshot = Effect.fn('ServiceActorVersionRepo.getSnapshot')(
           .where(eq(serviceActorVersionRepoDbConfig.schema.actorState.id, 1))
           .get();
         const resources = yield* readServiceResources(tx, service, key);
-        return { state, resources };
+        return {
+          state,
+          resources,
+        };
       },
     )(db);
-
     // 4 — use the resources captured with the cursor
     const resources = captured.resources;
-    const serviceIndex = captured.state?.serviceIndex ?? 0;
+    const executedIndex = captured.state?.executedIndex ?? 0;
     const serviceHash = captured.state?.serviceHash ?? genesisDispositionHash();
-
     // 5 — drain the actor-command outbox after the capture transaction
-    yield* actorCommandsOutbox.drain(serviceIndex);
+    yield* browserCommandOutbox.drain(executedIndex);
     const chain = yield* ServiceActorVersionChain.getRepo({
       key,
     });
     const published = yield* makeAsync<
-      Awaited<ReturnType<ServiceActorVersionChain['getActorCommands']>>
-    >(() => chain.getActorCommands({ afterServiceIndex: serviceIndex })).pipe(
+      Awaited<ReturnType<ServiceActorVersionChain['getActorOutputs']>>
+    >(() => chain.getActorOutputs({ afterExecutedIndex: executedIndex })).pipe(
       Effect.flatMap(envelope => readRpcEnvelope(envelope)),
     );
-
     // 6 — reject a FSC tip behind the captured snapshot index
-    if (published.tip < serviceIndex) {
+    if (published.tip < executedIndex) {
       return yield* Effect.fail(
         makeZerospinError({
-          code: 'replica-state-publication-pending',
+          code: 'projection-state-publication-pending',
           message: 'Snapshot cursor has not been durably published',
         }),
       );
     }
-
     // 7 — include bound identity, versions, cursor, and captured resources
     return yield* Schema.decodeUnknownEffect(
       Schema.toType(
         ServiceSessionSnapshotSchema.mapFields(
-          ({ claims: _identity, sessionName: _sessionName, ...fields }) => ({
+          ({
+            claims: _identity,
+            sessionName: _sessionName,
+            resolvedThrough: _resolved,
+            ...fields
+          }) => ({
             ...fields,
             actorPath: Schema.String,
             actorName: Schema.String,
@@ -152,12 +153,13 @@ export const getSnapshot = Effect.fn('ServiceActorVersionRepo.getSnapshot')(
       actorPath: key.actorPath,
       actorName: key.actorName,
       actorVersion: key.actorVersion,
-      serviceIndex,
+      executedIndex,
       serviceHash,
+      serviceIndex: captured.state?.serviceIndex ?? 0,
       resources,
     }).pipe(
       mapParseError({
-        code: 'replica-state-invalid',
+        code: 'projection-state-invalid',
         prefix: 'Invalid definition snapshot',
       }),
     );

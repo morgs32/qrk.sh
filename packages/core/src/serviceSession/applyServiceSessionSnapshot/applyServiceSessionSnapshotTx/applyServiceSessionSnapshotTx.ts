@@ -42,14 +42,14 @@ export const applyServiceSessionSnapshotTx = makeTx(
   tx.insert(serviceSessionMetadataDrizzleSchema)
     .values({
       sessionId,
-      serviceIndex: snapshot.serviceIndex,
+      executedIndex: snapshot.executedIndex,
       serviceHash: snapshot.serviceHash,
       serviceVersion: snapshot.serviceVersion,
     })
     .onConflictDoUpdate({
       target: serviceSessionMetadataDrizzleSchema.sessionId,
       set: {
-        serviceIndex: snapshot.serviceIndex,
+        executedIndex: snapshot.executedIndex,
         serviceHash: snapshot.serviceHash,
         serviceVersion: snapshot.serviceVersion,
       },

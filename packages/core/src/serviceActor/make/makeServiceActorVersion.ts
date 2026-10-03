@@ -1,23 +1,30 @@
 import { Schema } from 'effect';
 
+import type { ValidActorContracts } from '../../aggregateActor/make/makeAggregateActorVersion/makeAggregateActorVersion.ts';
+import { assertActorAsyncContracts } from '../../contracts/asyncContract.ts';
+import { Contract } from '../../contracts/make/makeContractVersion.ts';
+import {
+  OwnerGuardsSchema,
+  type IOwnerGuards,
+} from '../../contracts/ownerGuards.ts';
+import type { IAnyContracts, IContract } from '../../contracts/types.ts';
 import { AuthenticationPolicySchema } from '../../identity/AuthenticationPolicySchema.ts';
 import type { IServiceAuthentication } from '../../identity/types.ts';
 import '@zerospin/server-only';
 
 import {
   ActorDbSchema,
-  ActorQuery,
+  ActorSelection,
   captureActorSelections,
-  type IActorQueries,
   type IActorSelections,
   type IAnyActorDbVersion,
-  type ValidActorQueries,
+  type ICapturedActorSelections,
+  type ValidActorSelections,
 } from '../../models/make/makeActorDbVersion.ts';
 import type {
   IAnyServiceActorVersion,
   IServiceActorAuthorization,
 } from '../types.ts';
-
 class ServiceActorVersion {
   readonly kind = 'service';
 }
@@ -45,26 +52,37 @@ const DeclarationSchema = Schema.Struct({
       'sql' in input,
   ),
   authentication: AuthenticationPolicySchema,
-  queries: Schema.Record(
-    Schema.String,
-    Schema.declare(
-      (input: unknown): input is ActorQuery => input instanceof ActorQuery,
+  contracts: Schema.optionalKey(
+    Schema.Record(
+      Schema.String,
+      Schema.declare(
+        (value: unknown): value is IContract => value instanceof Contract,
+      ),
     ),
   ),
-
+  guards: Schema.optionalKey(OwnerGuardsSchema),
+  selections: Schema.Record(
+    Schema.String,
+    Schema.declare(
+      (input: unknown): input is ActorSelection =>
+        input instanceof ActorSelection,
+    ),
+  ),
   authorize: Schema.optionalKey(FunctionSchema),
 });
-
 export function makeServiceActorVersion<
   const CREDENTIALS extends Schema.Codec<unknown, unknown>,
   const NAME extends string,
   const VERSION extends string,
   const DB extends IAnyActorDbVersion,
   const IDENTITY extends IAnyServiceActorVersion['identity'],
-  const QUERIES extends IActorQueries,
+  const SELECTIONS extends IActorSelections,
   AUTHORIZE_REQUIREMENTS = never,
+  const CONTRACTS extends IAnyContracts = {},
 >(
-  actorDefinition: { name: NAME },
+  actorDefinition: {
+    name: NAME;
+  },
   props: {
     version: VERSION;
     db: DB;
@@ -73,8 +91,20 @@ export function makeServiceActorVersion<
       CREDENTIALS,
       IDENTITY['claimsSchema']
     >;
-    queries: QUERIES & ValidActorQueries<DB['models'], QUERIES>;
-
+    contracts?: CONTRACTS &
+      ValidActorContracts<
+        CONTRACTS,
+        DB['models'],
+        IDENTITY['claimsSchema']['Type']
+      >;
+    guards?: IOwnerGuards<
+      CONTRACTS,
+      DB['models'],
+      IDENTITY['claimsSchema']['Type'],
+      'actor',
+      AUTHORIZE_REQUIREMENTS
+    >;
+    selections: SELECTIONS & ValidActorSelections<DB['models'], SELECTIONS>;
     authorize?: IServiceActorAuthorization<
       IDENTITY['claimsSchema']['Type'],
       AUTHORIZE_REQUIREMENTS
@@ -82,6 +112,14 @@ export function makeServiceActorVersion<
   },
 ): NoInfer<{
   readonly kind: 'service';
+  readonly contracts: CONTRACTS;
+  readonly guards: IOwnerGuards<
+    CONTRACTS,
+    DB['models'],
+    IDENTITY['claimsSchema']['Type'],
+    'actor',
+    AUTHORIZE_REQUIREMENTS
+  >;
   readonly name: NAME;
   readonly version: VERSION;
   readonly db: DB;
@@ -90,10 +128,10 @@ export function makeServiceActorVersion<
     CREDENTIALS,
     IDENTITY['claimsSchema']
   >;
-  readonly queries: QUERIES;
-  readonly selections: IActorSelections<
+  readonly selections: SELECTIONS;
+  readonly capturedSelections: ICapturedActorSelections<
     DB['models'],
-    QUERIES,
+    SELECTIONS,
     IDENTITY['identitySchema']['Type']
   >;
   readonly authorize?: IServiceActorAuthorization<
@@ -103,7 +141,9 @@ export function makeServiceActorVersion<
   readonly __authorizeRequirements?: AUTHORIZE_REQUIREMENTS;
 }>;
 export function makeServiceActorVersion(
-  actorDefinition: { name: string },
+  actorDefinition: {
+    name: string;
+  },
   props: unknown,
 ): unknown {
   const name = Schema.decodeUnknownSync(
@@ -113,6 +153,19 @@ export function makeServiceActorVersion(
   const decoded = Schema.decodeUnknownSync(DeclarationSchema, {
     onExcessProperty: 'error',
   })(props);
+  assertActorAsyncContracts(decoded.contracts ?? {});
+  for (const contract of Object.values(decoded.contracts ?? {})) {
+    for (const model of [
+      ...Object.values(contract.models),
+      ...Object.values(contract.mapping?.models ?? {}),
+    ]) {
+      if (!Object.values(decoded.db.models).includes(model)) {
+        throw new Error(
+          `Service actor ${name} contract ${contract.commandName} model must belong to its database`,
+        );
+      }
+    }
+  }
   const identity = decoded.identity;
   return Object.assign(new ServiceActorVersion(), {
     name,
@@ -120,11 +173,13 @@ export function makeServiceActorVersion(
     db: decoded.db,
     identity,
     authentication: decoded.authentication,
-    queries: Object.freeze({ ...decoded.queries }),
-    selections: Object.freeze(
+    contracts: Object.freeze({ ...decoded.contracts }),
+    guards: Object.freeze({ ...decoded.guards }),
+    selections: Object.freeze({ ...decoded.selections }),
+    capturedSelections: Object.freeze(
       captureActorSelections(
         decoded.db,
-        decoded.queries,
+        decoded.selections,
         identity.identitySchema,
       ),
     ),

@@ -2,10 +2,9 @@ import { verifyToken } from '@clerk/backend';
 import { makeZerospinError, mapParseError } from '@zerospin/error';
 import { Effect, Schema } from 'effect';
 
-import { ClerkUserIdSchema } from './aggregates/shopper/models/user/UserV1';
-import { type clerkCredentialsSchema } from './claims';
+import { ClerkUserIdSchema, type clerkCredentialsSchema } from './claims';
 
-/** Verify the session before deriving claims or issuing a provisioning command. */
+/** Verify the session before deriving actor claims. */
 export const verifyClerkIdentity = Effect.fn('verifyClerkIdentity')(function* (
   credentials: typeof clerkCredentialsSchema.Type,
 ) {

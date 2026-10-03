@@ -1,5 +1,6 @@
 import {
   isZerospinError,
+  makeZerospinError,
   mapParseError,
   type IAnyError,
 } from '@zerospin/error';
@@ -16,6 +17,7 @@ export function runContractGuard<CONTRACT extends IContract>(props: {
   contract: CONTRACT;
   db: Readonly<Pick<IDb, 'query'>>;
   payload: unknown;
+  external?: unknown;
   claims: Readonly<Record<string, unknown>> | null;
 }): Effect.Effect<
   void,
@@ -26,14 +28,18 @@ export function runContractGuard(props: {
   contract: IContract;
   db: Readonly<Pick<IDb, 'query'>>;
   payload: unknown;
+  external?: unknown;
   claims: Readonly<Record<string, unknown>> | null;
 }) {
   return Effect.gen(function* () {
     const { contract, db } = props;
-    const payload = yield* validatePayload(contract, {
-      version: contract.version,
-      payload: props.payload,
-    });
+    const payload =
+      contract.async === undefined
+        ? yield* validatePayload(contract, {
+            version: contract.version,
+            payload: props.payload,
+          })
+        : props.payload;
     const claims =
       contract.claims === undefined
         ? props.claims
@@ -47,7 +53,7 @@ export function runContractGuard(props: {
               }),
             ),
           );
-    yield* runProgram(
+    return yield* runProgram(
       Effect.suspend(
         () =>
           contract.guard?.({
@@ -55,9 +61,17 @@ export function runContractGuard(props: {
             payload,
             claims,
             failures: contract.failures,
+            ...(contract.async === undefined
+              ? {}
+              : { external: props.external }),
           }) ?? Effect.void,
       ),
     ).pipe(
+      Effect.flatMap(result =>
+        result === undefined
+          ? Effect.void
+          : Effect.fail(makeZerospinError('contract-guard-result-invalid')),
+      ),
       Effect.catch(failure =>
         isZerospinError(failure) && !('scope' in failure)
           ? Effect.fail(failure)

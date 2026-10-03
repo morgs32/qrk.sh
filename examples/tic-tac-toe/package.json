@@ -8,7 +8,6 @@
     "build": "vite build",
     "zerospin:dev": "zerospin dev --port 3006",
     "ts": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run",
     "lint": "oxlint src --format stylish"
   },
   "dependencies": {
@@ -31,7 +30,6 @@
     "@vitejs/plugin-react": "^6.0.1",
     "@zerospin/backup-worker": "workspace:*",
     "@zerospin/cli": "workspace:*",
-    "vite": "^8.0.11",
-    "vitest": "^4.1.5"
+    "vite": "^8.0.11"
   }
 }

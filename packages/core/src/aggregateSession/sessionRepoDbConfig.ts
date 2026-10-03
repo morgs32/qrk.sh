@@ -1,12 +1,11 @@
+import { PublicFailureSchema } from '@zerospin/error';
 import { makeTable, primitives } from '@zerospin/schema';
 import { Schema } from 'effect';
 
-import { AdmissionResultSchema } from '../contracts/AdmissionResultSchema.ts';
-import { EncodedAppliedMutationSchema } from '../contracts/encodeAppliedMutation.ts';
-import { ExecutionSummarySchema } from '../contracts/ExecutionSummarySchema.ts';
+import { EncodedAppliedOperationSchema } from '../contracts/encodeAppliedOperation.ts';
 import { makeDbConfig } from '../drizzle/make/makeDbConfig/makeDbConfig.ts';
+import { ActorDeltaSchema } from '../models/ActorDeltaSchema.ts';
 
-import { ActorDeltaSchema } from './AggregateActorCommandSchema/AggregateActorCommandSchema.ts';
 import { StagingResultSchema } from './StagingResultSchema.ts';
 
 export const sessionRepoDbConfig = makeDbConfig({
@@ -30,8 +29,10 @@ export const sessionRepoDbConfig = makeDbConfig({
         sessionIndex: primitives.integer(),
         pushIndex: primitives.integer({ nullable: true }),
         staging: primitives.json({ schema: StagingResultSchema }),
-        admission: primitives.json({ schema: AdmissionResultSchema }),
-        execution: primitives.json({ schema: ExecutionSummarySchema }),
+        failure: primitives.json({
+          schema: PublicFailureSchema,
+          nullable: true,
+        }),
         actorDelta: primitives.json({
           schema: ActorDeltaSchema,
           nullable: true,
@@ -49,12 +50,12 @@ export const sessionRepoDbConfig = makeDbConfig({
       ],
     }),
 
-    optimisticAppliedMutations: makeTable({
-      name: 'optimisticAppliedMutations',
+    optimisticAppliedOperations: makeTable({
+      name: 'optimisticAppliedOperations',
       shape: {
         commandId: primitives.primaryKey({ abbreviation: 'cmd' }),
-        mutations: primitives.json({
-          schema: Schema.Array(EncodedAppliedMutationSchema),
+        operations: primitives.json({
+          schema: Schema.Array(EncodedAppliedOperationSchema),
         }),
       },
     }),

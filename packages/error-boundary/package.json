@@ -19,10 +19,9 @@
     "lib": "pnpm run clean && tsc -b tsconfig.json",
     "ts": "tsc -p tsconfig.etc.json --noEmit",
     "prepublishOnly": "pnpm run lib",
-    "format": "oxfmt package.json project.json tsconfig.json tsconfig.etc.json vitest.config.ts src",
-    "format:check": "oxfmt --check package.json project.json tsconfig.json tsconfig.etc.json vitest.config.ts src",
-    "lint": "oxlint . --format stylish",
-    "test": "vitest run --config vitest.config.ts"
+    "format": "oxfmt package.json project.json tsconfig.json tsconfig.etc.json src",
+    "format:check": "oxfmt --check package.json project.json tsconfig.json tsconfig.etc.json src",
+    "lint": "oxlint . --format stylish"
   },
   "dependencies": {
     "@zerospin/error": "workspace:*",
@@ -30,18 +29,15 @@
   },
   "devDependencies": {
     "@effect/language-service": "^0.87.2",
-    "@testing-library/react": "^16.3.2",
     "@types/node": "^25.6.2",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
-    "jsdom": "^29.1.1",
     "oxlint": "^1.63.0",
     "react": "19.2.7",
     "react-dom": "19.2.7",
     "react-router": "^8.3.0",
     "rimraf": "^6.1.3",
-    "vite": "^8.0.11",
-    "vitest": "^4.1.5"
+    "vite": "^8.0.11"
   },
   "peerDependencies": {
     "react": ">=18",

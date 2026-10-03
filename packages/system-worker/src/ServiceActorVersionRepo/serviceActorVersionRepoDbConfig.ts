@@ -1,70 +1,47 @@
-import { AdmissionResultSchema } from '@zerospin/core/contracts/AdmissionResultSchema';
-import { ExecutionResultSchema } from '@zerospin/core/contracts/ExecutionResultSchema';
+import { ServiceCallerSchema } from '@zerospin/core/contracts/ServiceCallerSchema';
 import { makeDbConfig } from '@zerospin/core/drizzle/make/makeDbConfig/makeDbConfig';
-import { ServiceActorCommandSchema } from '@zerospin/core/serviceSession/ServiceActorCommandSchema';
+import { ActorDeltaSchema } from '@zerospin/core/models/ActorDeltaSchema';
 import { PublicFailureSchema } from '@zerospin/error';
 import { makeTable, primitives } from '@zerospin/schema';
 
+import { serviceVersionChainDbConfig } from '../ServiceVersionChain/serviceVersionChainDbConfig.js';
 export const serviceActorVersionRepoDbConfig = makeDbConfig({
   tables: {
+    commands: serviceVersionChainDbConfig.tables.commands,
+    asyncOperations: serviceVersionChainDbConfig.tables.asyncOperations,
+    modelOperations: serviceVersionChainDbConfig.tables.modelOperations,
     actorState: makeTable({
       name: 'actorState',
       shape: {
         id: primitives.integer({ primaryKey: true }),
-        serviceIndex: primitives.integer(),
+        executedIndex: primitives.integer(),
         serviceHash: primitives.text(),
+        serviceIndex: primitives.integer(),
         serviceVersion: primitives.text(),
       },
     }),
-    commands: makeTable({
-      name: 'commands',
+    browserCommandOutbox: makeTable({
+      name: 'browserCommandOutbox',
       shape: {
-        rowId: primitives.primaryKey({ abbreviation: 'row' }),
+        executedIndex: primitives.integer({ primaryKey: true }),
         id: primitives.text(),
         commandName: primitives.text(),
-        contractVersion: primitives.text(),
-        payload: primitives.text(),
-        serviceName: primitives.text(),
-        serviceVersion: primitives.text(),
-        serviceIndex: primitives.integer({ nullable: true }),
-        admission: primitives.json({
-          schema: AdmissionResultSchema,
+        caller: primitives.json({
+          schema: ServiceCallerSchema,
           nullable: true,
         }),
-        execution: primitives.json({
-          schema: ExecutionResultSchema,
+        serviceIndex: primitives.integer(),
+        failure: primitives.json({
+          schema: PublicFailureSchema,
           nullable: true,
         }),
-        dispositionHash: primitives.text({ nullable: true }),
-        actorServiceIndex: primitives.integer({ nullable: true }),
-        serviceHash: primitives.text({ nullable: true }),
-        actorDelta: primitives.json({
-          schema: ServiceActorCommandSchema.fields.actorDelta,
-          nullable: true,
-        }),
-        acknowledgedAt: primitives.date({ nullable: true }),
+        delta: primitives.json({ schema: ActorDeltaSchema }),
+        serviceHash: primitives.text(),
         lastDeliveryFailure: primitives.json({
           schema: PublicFailureSchema,
           nullable: true,
         }),
       },
-      indexes: [
-        {
-          name: 'commands_source_identity',
-          columns: ['serviceName', 'id'],
-          unique: true,
-        },
-        {
-          name: 'commands_service_index',
-          columns: ['serviceIndex'],
-          unique: true,
-        },
-        {
-          name: 'commands_actor_service_index',
-          columns: ['actorServiceIndex'],
-          unique: true,
-        },
-      ],
     }),
   },
 });

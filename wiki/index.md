@@ -11,7 +11,7 @@ Organised by category. Pages are `[[wiki-links]]` without the `.md` extension.
 
 ## Getting oriented
 
-- [[overview|SystemRepo Durable Architecture]] — how authoring, fixed-schema command chains, Repos, and browser replicas interact
+- [[overview|SystemRepo Durable Architecture]] — how authoring, fixed-schema command chains, Repos, and browser session databases interact
 - [[glossary]] — domain terms discovered from the code
 - [[log]] — chronological record of every ingest, lint, and query
 
@@ -36,8 +36,6 @@ Organised by category. Pages are `[[wiki-links]]` without the `.md` extension.
 
 ### Server
 
-- [[architecture/server/executeAggregateCommand]] — one direct aggregate command through terminal history and singular client delivery
-
 ## Decisions
 
 _No pages yet._
@@ -50,4 +48,4 @@ _No pages yet._
 
 _No pages yet. One page is created per significant source file or module as the codebase grows._
 
-- [[architecture/server/serviceExecution]] — versioned service execution, cutover ranges, replication adaptation, and session delivery
+- [[architecture/server/serviceExecution]] — service command execution, retained history, actor projections, and session snapshots

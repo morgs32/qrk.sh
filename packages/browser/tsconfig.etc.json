@@ -7,15 +7,9 @@
     "allowImportingTsExtensions": true,
     "rootDir": "../..",
     "noEmit": true,
-    "types": ["node", "vite/client", "vitest/globals"]
+    "types": ["node", "vite/client"]
   },
-  "include": [
-    "src/**/*.spec.ts",
-    "vitest.config.ts",
-    "tests/**/*.ts",
-    "playwright.config.ts",
-    "tsup.config.ts"
-  ],
+  "include": ["tsup.config.ts"],
   "references": [
     {
       "path": "./tsconfig.json"

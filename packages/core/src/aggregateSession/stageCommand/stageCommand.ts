@@ -14,11 +14,11 @@ import { Context, Effect, Schema } from 'effect';
 import { encodeCommand } from '../../contracts/encodeCommand.ts';
 import { encodeFailure, resolveFailure } from '../../contracts/failureCodec.ts';
 import { getFailuresCodec } from '../../contracts/failures.ts';
-import { makeMutations } from '../../contracts/make/makeMutations.ts';
-import { runContractGuard } from '../../contracts/runContractGuard.ts';
+import { makeOperations } from '../../contracts/make/makeOperations.ts';
 import type {
   IEncodedCommand,
   InferCommand,
+  InferContractResult,
   ISessionCommand,
 } from '../../contracts/types.ts';
 import { validatePayload } from '../../contracts/validatePayload.ts';
@@ -35,7 +35,6 @@ import type {
 
 import { executeCommandTx } from './executeCommandTx/executeCommandTx.ts';
 import { makeSessionCommand } from './makeSessionCommand/makeSessionCommand.ts';
-
 /**
  * Stage a local aggregate command: validate, run the synchronous program, optimistic mutate, and
  * commit the complete encoded occurrence. Real sessions hand off to delivery
@@ -81,23 +80,23 @@ export function stageCommand<
       ),
     );
   }
-
   const { definition } = session;
   const { runtime, executeAggregateSessionCommand } = resources;
-
   const context = Context.makeUnsafe<unknown>(
     runtime.runSync(Effect.context()).mapUnsafe,
   );
-
   const stage = Effect.fn('stageCommand')(function* (): Effect.fn.Return<
     Readonly<{
       command: ISessionCommand<
         InferCommand<
           DEFINITION['contracts'][CONTRACT_NAME],
           DEFINITION['contracts'][CONTRACT_NAME]['version']
-        >
+        >,
+        InferContractResult<DEFINITION['contracts'][CONTRACT_NAME]>
       > &
-        Readonly<{ sessionIndex: number }>;
+        Readonly<{
+          sessionIndex: number;
+        }>;
       encodedCommand: IEncodedCommand<
         ISessionCommand<
           InferCommand<
@@ -105,7 +104,10 @@ export function stageCommand<
             DEFINITION['contracts'][CONTRACT_NAME]['version']
           >
         > &
-          Readonly<{ sessionIndex: number; pushIndex: null }>
+          Readonly<{
+            sessionIndex: number;
+            pushIndex: null;
+          }>
       > | null;
     }>,
     IAnyError,
@@ -141,7 +143,6 @@ export function stageCommand<
       );
     }
     const sessionId = state.sessionId;
-
     const contract = yield* getByKeyOrThrow<
       DEFINITION['contracts'],
       CONTRACT_NAME
@@ -175,48 +176,45 @@ export function stageCommand<
       version,
     });
     const encodedCommand = yield* encodeCommand({ contract, command });
-
-    const madeMutations = yield* runContractGuard({
-      contract,
+    const madeOperations = yield* makeOperations({
       db: state.db,
       claims: state.claims,
-      payload: command.payload,
-    })
-      .pipe(
-        Effect.andThen(
-          makeMutations({
-            db: state.db,
-            claims: state.claims,
-            contract,
-            models: definition.models,
-            command,
-          }),
+      contract,
+      models: definition.models,
+      command,
+    }).pipe(
+      runProgram,
+      Effect.catch(failure =>
+        encodeFailure(contract, failure).pipe(
+          Effect.flatMap(failure => resolveFailure(contract, failure)),
+          Effect.flatMap(Effect.fail),
         ),
-      )
-      .pipe(
-        runProgram,
-        Effect.catch(failure =>
-          encodeFailure(contract, failure).pipe(
-            Effect.flatMap(failure => resolveFailure(contract, failure)),
-            Effect.flatMap(Effect.fail),
-          ),
-        ),
-      );
-
-    return yield* executeCommandTx(state.db, {
+      ),
+    );
+    const executed = yield* executeCommandTx(state.db, {
       settleLocally: resources.settleLocally === true,
       sessionId,
-      madeMutations,
+      madeOperations,
       encodedCommand,
       startedAt,
       state,
       command,
     });
+    return {
+      ...executed,
+      command: {
+        ...executed.command,
+        staging: { ...executed.command.staging, result: madeOperations.result },
+      },
+    };
   });
-
   let committedCommand:
     | IEncodedCommand<
-        ISessionCommand & Readonly<{ sessionIndex: number; pushIndex: null }>
+        ISessionCommand &
+          Readonly<{
+            sessionIndex: number;
+            pushIndex: null;
+          }>
       >
     | undefined;
   const telemetryCollector = session.store.getState().telemetryCollector;
@@ -234,7 +232,6 @@ export function stageCommand<
       encodeRpcOutcome,
     ),
   );
-
   if (
     executeAggregateSessionCommand !== undefined &&
     resources.settleLocally !== true &&

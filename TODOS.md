@@ -44,7 +44,7 @@
 
 Per the user's 2026-09-20 instruction, leave all further test work in TODO.
 Retain completed test changes and the observed results in
-[Spec 086](./wiki/dev/archived/086-spec-standalone-sessions-and-test-organization.md#implementation-record).
+[Spec 086](./wiki/archive/specs/086-spec-standalone-sessions-and-test-organization.md#implementation-record).
 
 1. Complete any remaining standalone journal and Chromium acceptance coverage
    listed in the spec, including failure, reset, ownership, and recovery races.
@@ -76,17 +76,17 @@ requirements; unrelated changes alone do not establish completion.
    [aggregate admission](./wiki/architecture/server/admitCommands.md),
    [aggregate execution](./wiki/architecture/server/executeAggregateCommand.md),
    and [AggregateChain comments](./packages/system-worker/src/AggregateChain/AggregateChain.ts).
-   [Plan 075](./wiki/dev/archived/075-plan-configured-aggregate-base-versions.md)
+   [Plan 075](./wiki/archive/plans/075-plan-configured-aggregate-base-versions.md)
    is superseded by explicit aggregate-version selection and deployed-version
    membership. Do not restore desired/applied base promotion or its tests.
 2. Check and repair the twelve existing broken documentation links recorded by
-   [Plan 085](./wiki/dev/archived/085-plan-single-socket-aggregate-session-admission.md#implementation-and-verification--2026-09-20).
+   [Plan 085](./wiki/archive/plans/085-plan-single-socket-aggregate-session-admission.md#implementation-and-verification--2026-09-20).
    Recount against current files rather than assuming the historical list is
    unchanged. Repair the Graft installation's missing
    `@nanonets/graft/dist/claude/init.js` module, then refresh its graph. The
    startup failure was reproduced during this closeout review.
 3. Within the existing [Spec 086 review backlog](#spec-086--deferred-tests-and-verification),
-   reconcile [Plan 072's browser acceptance matrix](./wiki/dev/archived/072-plan-shared-indexeddb-backups-and-session-handoff.md#acceptance-matrix)
+   reconcile [Plan 072's browser acceptance matrix](./wiki/archive/handoffs/072-plan-shared-indexeddb-backups-and-session-handoff.md#acceptance-matrix)
    against current runtime/session ownership: takeover and visibility races,
    dispatch/commit/reply uncertainty, backup restoration and journal identity,
    independent keys, and offline/emitted-asset recovery. Preserve recorded
@@ -183,8 +183,8 @@ implementation. Archival does not claim acceptance checks passed. Historical
 failures in the plans must be rechecked against current source before treating
 them as current blockers. No application storage was reset.
 
-1. [Plan 005](./wiki/dev/archived/005-plan-scoped-command-validation-and-yieldable-errors.md): finish the applicable declaration inference/scope proofs, runtime/JSON boundary audit, snapshot isolation and rollback cases, sequential pending-prefix admission, duplicate/interruption recovery, and ordered authoritative guard/savepoint acceptance checks. Exhaustive aggregate failure implementation coverage remains deferred; Plan 007 supersedes failure adapters.
-2. [Plan 007](./wiki/dev/archived/007-plan-failure-recognition.md): complete integrated recognition, serialization, delivery/replay, and persisted recovery checks. Recheck the recorded definition JSON-error assertions, Shopping fixture IDs, SDK export inventory, and worker execution-guard fixture failures without assuming the historical failures persist.
+1. [Plan 005](wiki/archive/plans/005-plan-scoped-command-validation-and-yieldable-errors.md): finish the applicable declaration inference/scope proofs, runtime/JSON boundary audit, snapshot isolation and rollback cases, sequential pending-prefix admission, duplicate/interruption recovery, and ordered authoritative guard/savepoint acceptance checks. Exhaustive aggregate failure implementation coverage remains deferred; Plan 007 supersedes failure adapters.
+2. [Plan 007](wiki/archive/plans/007-plan-failure-recognition.md): complete integrated recognition, serialization, delivery/replay, and persisted recovery checks. Recheck the recorded definition JSON-error assertions, Shopping fixture IDs, SDK export inventory, and worker execution-guard fixture failures without assuming the historical failures persist.
 3. Run the applicable scoped Nx typecheck/test/lint/build checks against the integrated checkout, resolve current targets, and record actual results. Preserve unrelated WIP and the existing empty-storage requirements. Repair any implementation defects those checks reveal without restoring superseded APIs or compatibility paths.
 
 ## Specs 001/002/004 — deferred verification
@@ -193,6 +193,6 @@ Archived on 2026-09-23 after reviewing current implementation and superseding
 plans. Preserve historical test records; recheck old failures before treating
 them as current. Do not restore superseded guard, error, or selection APIs.
 
-1. [Spec 001](./wiki/dev/archived/001-spec-command-guards-and-execution-services.md): verify applicable version-owned replication, snapshot-ahead enrollment, tombstones, empty deltas, duplicate/gap handling, publication retry, interleaved materialization, and snapshot/reconnect recovery. Use Plan 005's current guard/admission design for its overlapping acceptance checks.
-2. [Spec 002](./wiki/dev/archived/002-spec-typed-business-failures-and-rpc-envelopes.md): carry remaining integrated error/RPC/telemetry verification through the Plan 005/007 backlog above; retain provenance and telemetry-failure isolation checks. Plain-object runtime errors and version-adapter acceptance cases are superseded.
-3. [Spec 004](./wiki/dev/archived/004-spec-drizzle-actor-selections.md): complete any outstanding browser/DO SQLite selection and handshake-isolation acceptance checks; recheck the historical React mock-session lifecycle failure before claiming broader validation. Respect the current prohibition on Shopping browser verification.
+1. [Spec 001](wiki/archive/specs/001-spec-command-guards-and-execution-services.md): verify applicable version-owned replication, snapshot-ahead enrollment, tombstones, empty deltas, duplicate/gap handling, publication retry, interleaved materialization, and snapshot/reconnect recovery. Use Plan 005's current guard/admission design for its overlapping acceptance checks.
+2. [Spec 002](wiki/archive/specs/002-spec-typed-business-failures-and-rpc-envelopes.md): carry remaining integrated error/RPC/telemetry verification through the Plan 005/007 backlog above; retain provenance and telemetry-failure isolation checks. Plain-object runtime errors and version-adapter acceptance cases are superseded.
+3. [Spec 004](wiki/archive/specs/004-spec-drizzle-actor-selections.md): complete any outstanding browser/DO SQLite selection and handshake-isolation acceptance checks; recheck the historical React mock-session lifecycle failure before claiming broader validation. Respect the current prohibition on Shopping browser verification.

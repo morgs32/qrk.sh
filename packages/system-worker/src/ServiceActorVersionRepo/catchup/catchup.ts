@@ -12,15 +12,15 @@ import type { ServiceActorVersionRepo } from '../ServiceActorVersionRepo.js';
  */
 export const catchup = Effect.fn('ServiceActorVersionRepo.catchup')(
   function* (props: {
-    throughServiceIndex?: number | undefined;
+    throughExecutedIndex?: number | undefined;
     subscriber: Pick<
       ReturnType<ServiceActorVersionRepo['executionResultsFanoutSubscriber']>,
       'catchup'
     >;
   }) {
-    const { subscriber, throughServiceIndex } = props;
+    const { subscriber, throughExecutedIndex } = props;
     // 1 — subscriber-owned catch-up commits its fixed destination without re-enrollment
-    yield* makeAsync(() => subscriber.catchup(throughServiceIndex)).pipe(
+    yield* makeAsync(() => subscriber.catchup(throughExecutedIndex)).pipe(
       Effect.flatMap(envelope => readRpcEnvelope(envelope)),
     );
   },

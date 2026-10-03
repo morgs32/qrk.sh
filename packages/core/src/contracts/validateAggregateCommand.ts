@@ -6,10 +6,9 @@ import type { IDb } from '../drizzle/types.ts';
 import { runProgram } from '../execution/runProgram.ts';
 
 import { validateFailure } from './failureCodec.ts';
-import { runContractGuard } from './runContractGuard.ts';
 import type { IContract } from './types.ts';
 
-/** Authoritative only: the caller must apply mutations in the same savepoint. */
+/** Authoritative only: the caller must apply operations in the same savepoint. */
 export const validateAggregateCommand = Effect.fn('validateAggregateCommand')(
   function* (props: {
     aggregate: IAnyAuthoredAggregate;
@@ -17,17 +16,9 @@ export const validateAggregateCommand = Effect.fn('validateAggregateCommand')(
     contract: IContract;
     db: Readonly<Pick<IDb, 'query'>>;
     payload: unknown;
+    external?: unknown;
     claims: Readonly<Record<string, unknown>>;
   }) {
-    if (props.actorName === '__machine') {
-      yield* runContractGuard({
-        contract: props.contract,
-        db: props.db,
-        payload: props.payload,
-        claims: props.claims,
-      });
-      return;
-    }
     const guard =
       props.aggregate.guards[props.actorName]?.[props.contract.commandName];
     yield* runProgram(
@@ -36,6 +27,9 @@ export const validateAggregateCommand = Effect.fn('validateAggregateCommand')(
           guard?.({
             db: props.db,
             payload: props.payload,
+            ...(props.contract.async === undefined
+              ? {}
+              : { external: props.external }),
             claims: props.claims,
             failures: props.contract.failures,
           }) ?? Effect.void,

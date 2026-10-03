@@ -30,7 +30,7 @@ export const applyAggregateSessionSnapshotTx = makeTx(
   yield* Effect.sync(() => {
     tx.run(sql.raw('PRAGMA defer_foreign_keys = ON;'));
   });
-  tx.delete(sessionRepoDbConfig.schema.optimisticAppliedMutations).run();
+  tx.delete(sessionRepoDbConfig.schema.optimisticAppliedOperations).run();
   const metadata = tx
     .select()
     .from(sessionRepoDbConfig.schema.sessionMetadata)

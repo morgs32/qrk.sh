@@ -5,7 +5,7 @@ import type { IAnyModels } from '@zerospin/core/models/types';
 import { Effect } from 'effect';
 
 /**
- * Pass the registered models into contract execution; validate exact model membership and replica operation compatibility.
+ * Pass the registered models into contract execution; validate exact model membership.
  * Browser session constructors also apply `AssertContractMutationsInModels` to its client-side contracts.
  *
  * @bad Let a service contract mutate an aggregate-only model and wait for persistence to fail.

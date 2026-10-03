@@ -1,3 +1,4 @@
+import { requireApplicationActorAuthentication } from '@zerospin/core/aggregateActor/requireApplicationActorAuthentication';
 import { resolveAggregateActorVersion } from '@zerospin/core/aggregateActor/getAggregateActorVersion';
 import type { IDb } from '@zerospin/core/drizzle/types';
 import type { IAggregateId } from '@zerospin/core/models/types';
@@ -58,6 +59,7 @@ export const authorizeAggregateSession = Effect.fn(
     { [aggregate.version]: aggregate },
     { actorName, actorVersion },
   );
+  yield* requireApplicationActorAuthentication(actor.authentication);
   if (actor.authorize === undefined) return;
 
   // 3 — copy only aggregate model queries and reject missing query bindings

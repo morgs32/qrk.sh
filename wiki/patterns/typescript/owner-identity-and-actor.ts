@@ -28,12 +28,12 @@ import { Effect, Schema } from 'effect';
  * Sessions bind actorName/version and declare their claims schema.
  * Browser/session layers supply browser adapters without importing server actors.
  * A model schema may support program mutations without exposing any server rows;
- * only entries in actor.selections participate in projection.
+ * only entries in actor.capturedSelections participate in projection.
  *
  * Commands retain exact actor name/version and encoded claims. Resolve that
  * definition across supported aggregate versions, including on replay; never use latest.
  * Internal commands have null authenticated provenance and explicit internal adapters.
- * Replica identity includes actor name/version before the canonical path.
+ * Actor projection identity includes actor name/version before the canonical path.
  * @bad Merge all identities into one role union or inject unrelated identity tags with null.
  * @bad Capture an invocation's database or claims in a shared long-lived adapter.
  * @bad Treat an omitted model filter as unrestricted visibility.
@@ -59,7 +59,7 @@ export const shopperActorV1 = makeAggregateActorVersion(
         }),
     },
     contracts: {},
-    queries: {},
+    selections: {},
   },
 );
 export const shopper = makeAggregateVersion(

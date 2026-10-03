@@ -1,7 +1,7 @@
 import { makeAsync } from '@zerospin/core/async/make/makeAsync';
 import { EncodedResourceSchema } from '@zerospin/core/models/EncodedResourceSchema';
-import { ServiceSessionSnapshotSchema } from '@zerospin/core/serviceSession/ServiceActorCommandSchema';
 import type { IServiceSessionLock } from '@zerospin/core/serviceSession/ServiceSessionLockSchema';
+import { ServiceSessionSnapshotSchema } from '@zerospin/core/serviceSession/ServiceSessionWireSchema';
 import type { IServiceSessionSnapshot } from '@zerospin/core/serviceSession/types';
 import type { ISystemId } from '@zerospin/core/system/types';
 import { readRpcEnvelope } from '@zerospin/core/utils/readRpcEnvelope';
@@ -22,13 +22,13 @@ import {
 import { env } from 'cloudflare:workers';
 import { Effect, Exit, Result, Schema } from 'effect';
 
+import { ServiceActorVersionChain } from '../../ServiceActorVersionChain/ServiceActorVersionChain.js';
 import { ServiceActorVersionRepo } from '../../ServiceActorVersionRepo/ServiceActorVersionRepo.js';
 import { ServiceChain } from '../../ServiceChain/ServiceChain.js';
 import { ServiceVersionRepo } from '../../ServiceVersionRepo/ServiceVersionRepo.js';
 import { SystemLogRepo } from '../../SystemLogRepo/SystemLogRepo.js';
 
 import { encodeServiceSessionResource } from './encodeServiceSessionResource/encodeServiceSessionResource.js';
-
 /*
  * The service definition capability requests its snapshot from
  * ServiceActorVersionRepo and adapts resources to the exact
@@ -47,7 +47,13 @@ import { encodeServiceSessionResource } from './encodeServiceSessionResource/enc
  */
 export const getSnapshot = Effect.fn('ServiceSessionApi.getSnapshot')(
   function* (props: {
-    request: IRpcRequest<[]>;
+    request: IRpcRequest<
+      [
+        {
+          nodeId: string | null;
+        },
+      ]
+    >;
     authResults: {
       readonly claims: Readonly<Record<string, unknown>>;
       readonly actorPath: string;
@@ -59,10 +65,15 @@ export const getSnapshot = Effect.fn('ServiceSessionApi.getSnapshot')(
     };
   }) {
     const { authResults, request } = props;
-
     // 1 — decode request.args and reject excess fields
     const validatedArgs = yield* Schema.decodeUnknownEffect(
-      Schema.toType(Schema.mutable(Schema.Tuple([]))),
+      Schema.toType(
+        Schema.mutable(
+          Schema.Tuple([
+            Schema.Struct({ nodeId: Schema.NullOr(Schema.NonEmptyString) }),
+          ]),
+        ),
+      ),
     )(request.args, { onExcessProperty: 'error' }).pipe(
       mapParseError({
         code: 'service-session-api-arguments-invalid',
@@ -70,7 +81,6 @@ export const getSnapshot = Effect.fn('ServiceSessionApi.getSnapshot')(
       }),
       Effect.result,
     );
-
     // 2 — encode the validation failure with a null trace link
     if (Result.isFailure(validatedArgs)) {
       return {
@@ -80,7 +90,6 @@ export const getSnapshot = Effect.fn('ServiceSessionApi.getSnapshot')(
         link: null,
       };
     }
-
     // 3 — collect and settle the operation under the API root span
     const settled = yield* Effect.gen(function* () {
       const {
@@ -90,7 +99,6 @@ export const getSnapshot = Effect.fn('ServiceSessionApi.getSnapshot')(
         claims,
         actorPath,
       } = authResults;
-
       // 4 — open ServiceActorVersionRepo with the supplied view fields
       const serviceVersion = authResults.serviceVersion;
       const admitted = yield* ServiceChain.getRepo({
@@ -116,7 +124,6 @@ export const getSnapshot = Effect.fn('ServiceSessionApi.getSnapshot')(
           actorVersion: serviceSessionLock.actorVersion,
         },
       });
-
       // 5 — decode the success snapshot or encoded ZerospinError before readRpcEnvelope
       const canonicalSnapshotUnknown = yield* makeAsync(() =>
         serviceSessionRepo.getSnapshot({
@@ -136,6 +143,7 @@ export const getSnapshot = Effect.fn('ServiceSessionApi.getSnapshot')(
                   ({
                     claims: _identity,
                     sessionName: _sessionName,
+                    resolvedThrough: _resolvedThrough,
                     ...fields
                   }) => ({
                     ...fields,
@@ -162,7 +170,6 @@ export const getSnapshot = Effect.fn('ServiceSessionApi.getSnapshot')(
       const canonicalSnapshot = yield* readRpcEnvelope(
         canonicalSnapshotEncoded,
       );
-
       // 6 — skip models absent from the lock and validate each adapted encoded resource
       const resources: IServiceSessionSnapshot['resources'][number][] = [];
       for (const resource of canonicalSnapshot.resources) {
@@ -194,14 +201,41 @@ export const getSnapshot = Effect.fn('ServiceSessionApi.getSnapshot')(
         );
         resources.push(adapted.resource);
       }
-
+      const nodeId = validatedArgs.success[0].nodeId;
+      const history = yield* ServiceActorVersionChain.getRepo({
+        key: {
+          systemId: authResults.systemId,
+          serviceName,
+          serviceVersion,
+          actorPath,
+          actorName: serviceSessionLock.actorName,
+          actorVersion: serviceSessionLock.actorVersion,
+        },
+      });
+      const checkpoint =
+        nodeId === null
+          ? { resolvedThrough: 0, serviceIndex: 0 }
+          : yield* makeAsync<
+              Awaited<ReturnType<ServiceActorVersionChain['getNodeOutcomes']>>
+            >(() =>
+              history.getNodeOutcomes({
+                nodeId,
+                sessionName,
+                claims,
+                afterNodeIndex: 0,
+                throughExecutedIndex: canonicalSnapshot.executedIndex,
+                models: serviceSessionLock.models,
+              }),
+            ).pipe(Effect.flatMap(readRpcEnvelope));
       // 7 — retain the snapshot cursor and full claims
       return {
+        resolvedThrough: checkpoint.resolvedThrough,
+        serviceIndex: canonicalSnapshot.serviceIndex,
         serviceName: canonicalSnapshot.serviceName,
         serviceVersion: canonicalSnapshot.serviceVersion,
         actorName: canonicalSnapshot.actorName,
         actorVersion: canonicalSnapshot.actorVersion,
-        serviceIndex: canonicalSnapshot.serviceIndex,
+        executedIndex: canonicalSnapshot.executedIndex,
         serviceHash: canonicalSnapshot.serviceHash,
         sessionName,
         claims,
@@ -211,10 +245,8 @@ export const getSnapshot = Effect.fn('ServiceSessionApi.getSnapshot')(
       Effect.withSpan('ServiceSessionApi.getSnapshot', { root: true }),
       makeRpcEnvelope,
     );
-
     // 8 — preserve success or typed failure before attempting telemetry persistence
     const result = settled.result;
-
     // 9 — emit a link only after persistence succeeds and the root span matches this method
     const batch = settled.telemetry;
     const persisted = yield* Effect.gen(function* () {
@@ -243,7 +275,6 @@ export const getSnapshot = Effect.fn('ServiceSessionApi.getSnapshot')(
             kind: 'causedBy',
           }
         : null;
-
     // 10 — return the domain result even when no trace link can be emitted
     return { result, link };
   },

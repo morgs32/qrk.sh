@@ -21,8 +21,6 @@
     "ts": "tsc -p tsconfig.etc.json --noEmit",
     "watch": "tsc -b tsconfig.json --watch",
     "prepublishOnly": "pnpm run lib",
-    "test": "vitest run --config vitest.config.ts",
-    "test:watch": "vitest --config vitest.config.ts",
     "lint": "oxlint . --format stylish"
   },
   "dependencies": {
@@ -35,10 +33,8 @@
   "devDependencies": {
     "@effect/language-service": "^0.87.2",
     "@types/node": "^25.6.2",
-    "@vitest/coverage-v8": "^4.1.5",
     "effect": "rc",
-    "rimraf": "^6.1.3",
-    "vitest": "^4.1.5"
+    "rimraf": "^6.1.3"
   },
   "peerDependencies": {
     "effect": "^4.0.0-rc.111"

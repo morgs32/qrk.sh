@@ -31,6 +31,7 @@ export const AggregateSessionLockSchema = Schema.Struct({
       version: Schema.String,
       payloadShape: encodedShapeSchema,
       failureJsonSchema: Schema.Unknown,
+      resultJsonSchema: Schema.Unknown,
     }),
   ),
 });

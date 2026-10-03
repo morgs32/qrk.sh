@@ -1,0 +1,61 @@
+.install-command-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+  padding: 18px;
+  border-radius: 12px;
+  background: #18191f;
+  color: #f4f4f6;
+  font-family: FragmentMono, monospace;
+}
+
+.install-command-label {
+  padding-right: 64px;
+  color: #848590;
+  font-size: 12px;
+  line-height: 1.25;
+  text-transform: uppercase;
+}
+
+.install-command-code {
+  overflow-wrap: anywhere;
+  padding-right: 64px;
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.4;
+  color: inherit;
+}
+
+.install-command-copy {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  padding: 6px 10px;
+  border: 1px solid #d5d5db;
+  border-radius: 5px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.install-command-copy:hover,
+.install-command-copy:focus-visible {
+  background: #303139;
+}
+
+.install-command-status:empty {
+  display: none;
+}
+
+.install-command-status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

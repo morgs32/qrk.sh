@@ -10,7 +10,7 @@ export const tryParseJson = <T>(json: string | null): T | undefined => {
 export const uppercaseFirstLetter = (value: string) =>
   value.charAt(0).toUpperCase() + value.slice(1);
 
-export const getAllPermutations = <T>(arr: Array<T>) => {
+export const getAllPeroperations = <T>(arr: Array<T>) => {
   const res: Array<Array<T>> = [];
 
   function permutate(arr: Array<T>, start: number) {

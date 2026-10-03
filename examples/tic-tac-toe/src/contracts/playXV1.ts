@@ -1,6 +1,7 @@
 import * as sdk from '@zerospin/sdk/browser';
 import { Effect } from 'effect';
 
+import { computerOperations } from '../computerOperations';
 import { claimsSchema, game, outcome } from '../gameV1';
 import { isValidMove } from '../isValidMove';
 
@@ -47,6 +48,16 @@ export const playX = sdk.makeContractVersion(sdk.defineContract('playX'), {
           outcome: outcome(board),
         },
       })
-      .pipe(Effect.map(mutation => [mutation]));
+      .pipe(
+        Effect.map(operation => [
+          operation,
+          computerOperations.operations.moved({
+            id: payload.id,
+            board,
+            turn: 'O',
+            outcome: outcome(board),
+          }),
+        ]),
+      );
   },
 });

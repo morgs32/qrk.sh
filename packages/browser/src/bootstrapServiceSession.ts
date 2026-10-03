@@ -1,19 +1,29 @@
 import type { Async } from '@zerospin/core/async/Async';
+import { applyOperationTx } from '@zerospin/core/contracts/applyOperationTx';
+import { encodeCommand } from '@zerospin/core/contracts/encodeCommand';
+import { makeOperations } from '@zerospin/core/contracts/make/makeOperations';
+import type { IContractOutput } from '@zerospin/core/contracts/types';
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/make/makeDbConfig/makeDbConfig';
 import { makeProvisionedInMemoryWasmSqliteDb } from '@zerospin/core/drizzle/make/makeProvisionedInMemoryWasmSqliteDb/makeProvisionedInMemoryWasmSqliteDb';
+import type { ITx } from '@zerospin/core/drizzle/types';
+import { runProgram } from '@zerospin/core/execution/runProgram';
 import { assertSessionClaims } from '@zerospin/core/identity/assertSessionClaims';
 import type { IAdmissionRequest } from '@zerospin/core/identity/types';
 import type { INodeCommand } from '@zerospin/core/Node/Node';
+import type { INodeCommandInput } from '@zerospin/core/Node/types';
 import { makeServiceSessionLockKey } from '@zerospin/core/serviceSession/make/makeServiceSessionLockKey';
 import { makeServiceSessionSpec } from '@zerospin/core/serviceSession/make/makeServiceSessionSpec';
 import {
   serviceSessionMetadataDrizzleSchema,
   serviceSessionRepoTables,
 } from '@zerospin/core/serviceSession/serviceSessionRepoTables';
+import { bindServiceSessionExecution } from '@zerospin/core/serviceSession/stageServiceCommand';
 import type {
   IServiceSession,
   IServiceSessionDefinition,
 } from '@zerospin/core/serviceSession/types';
+import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
+import { encodeRpcOutcome } from '@zerospin/core/utils/encodeRpcOutcome';
 import {
   catchZerospinError,
   isZerospinError,
@@ -22,11 +32,12 @@ import {
   type IResult,
   type IZerospinErrorJson,
 } from '@zerospin/error';
-import { getTableName, sql } from 'drizzle-orm';
-import { Effect, Schema, type Scope } from 'effect';
+import { makeEffectSchema, makeIdFromAbbreviation } from '@zerospin/schema';
+import { getTableName } from 'drizzle-orm';
+import { Context, Effect, Schema, type Scope } from 'effect';
 
 import { connectBrowserNode, nodeResult } from './connectBrowserNode.ts';
-
+import { replaceServiceProjectionTx } from './replaceServiceProjectionTx.ts';
 export const bootstrapServiceSession = Effect.fn('bootstrapServiceSession')(
   function* <D extends IServiceSessionDefinition>(props: {
     serviceVersion: string;
@@ -59,6 +70,10 @@ export const bootstrapServiceSession = Effect.fn('bootstrapServiceSession')(
       expectedClaims,
       sharedWorker,
     } = props;
+    const context = Context.makeUnsafe<unknown>(
+      (yield* Effect.context()).mapUnsafe,
+    );
+    const runSync = Effect.runSyncWith(context);
     const definition = session.definition;
     const models = session.models;
     const sessionId = session.sessionId;
@@ -72,6 +87,75 @@ export const bootstrapServiceSession = Effect.fn('bootstrapServiceSession')(
       otherTables: serviceSessionRepoTables,
     });
     const db = yield* makeProvisionedInMemoryWasmSqliteDb({ dbConfig });
+    const predict = (
+      command: INodeCommandInput,
+      claims = session.store.getState().claims,
+    ) => {
+      const contract = definition.contracts[command.commandName];
+      if (
+        contract === undefined ||
+        contract.version !== command.contractVersion
+      ) {
+        throw makeZerospinError({
+          code: 'service-session-contract-unavailable',
+        });
+      }
+      const payload = Schema.decodeUnknownSync(
+        Schema.fromJsonString(makeEffectSchema(contract.payload)),
+      )(command.payload);
+      return runSync(
+        makeOperations({
+          db,
+          contract,
+          models,
+          command: { ...command, payload },
+          claims,
+        }).pipe(runProgram),
+      );
+    };
+    const project = (
+      tx: ITx,
+      command: INodeCommandInput,
+      outputs: readonly {
+        operationIndex: number;
+        operation: IContractOutput;
+      }[],
+    ) => {
+      for (const { operationIndex, operation } of outputs) {
+        if (operation.operationName === 'async') {
+          throw makeZerospinError('browser-async-operation-forbidden');
+        }
+        const appliedAt = new Date(command.staging.startedAt);
+
+        runSync(
+          applyOperationTx({
+            tx,
+            operation,
+            commandId: command.id,
+            operationIndex,
+            appliedAt,
+          }),
+        );
+      }
+    };
+    const validatePrediction = (command: INodeCommandInput) => {
+      const rolledBack = new Error('Rollback local command preview');
+      let encodedResult: typeof Schema.Json.Type = null;
+      try {
+        db.transaction(tx => {
+          const predicted = predict(command);
+          encodedResult = predicted.encodedResult;
+          const outputs = predicted.operations.map(
+            (operation, operationIndex) => ({ operation, operationIndex }),
+          );
+          project(tx, command, outputs);
+          throw rolledBack;
+        });
+      } catch (cause) {
+        if (cause !== rolledBack) throw cause;
+      }
+      return encodedResult;
+    };
     const connection = yield* Effect.tryPromise({
       try: () =>
         connectBrowserNode({
@@ -94,30 +178,23 @@ export const bootstrapServiceSession = Effect.fn('bootstrapServiceSession')(
             )(snapshot.identity.claims);
             assertSessionClaims(expectedClaims, acceptedClaims);
             db.transaction(tx => {
-              tx.run(sql`PRAGMA defer_foreign_keys = ON`);
-              for (const model of Object.values(models)) {
-                tx.delete(model.drizzleSchema).run();
-              }
-              for (const resource of snapshot.resources) {
-                const model = models[resource.modelName];
-                if (model === undefined) {
-                  throw makeZerospinError({
-                    code: 'node-resource-model-invalid',
-                  });
-                }
-                tx.insert(model.drizzleSchema).values(resource).run();
-              }
+              replaceServiceProjectionTx(tx, {
+                models,
+                resources: snapshot.resources,
+                pending: snapshot.unresolvedCommands,
+                predict: command => predict(command, acceptedClaims).operations,
+              });
               tx.insert(serviceSessionMetadataDrizzleSchema)
                 .values({
                   sessionId,
                   serviceVersion: definition.serviceVersion,
-                  serviceIndex: snapshot.metadata.executedIndex,
+                  executedIndex: snapshot.metadata.executedIndex,
                   serviceHash: snapshot.metadata.executedHash,
                 })
                 .onConflictDoUpdate({
                   target: serviceSessionMetadataDrizzleSchema.sessionId,
                   set: {
-                    serviceIndex: snapshot.metadata.executedIndex,
+                    executedIndex: snapshot.metadata.executedIndex,
                     serviceHash: snapshot.metadata.executedHash,
                   },
                 })
@@ -134,7 +211,11 @@ export const bootstrapServiceSession = Effect.fn('bootstrapServiceSession')(
               schema: dbConfig.schema,
               models,
               isInitialized: true,
-              serviceIndex: snapshot.metadata.executedIndex,
+              commandHistory: snapshot.commandHistory ?? [],
+              pendingCommandIds: snapshot.unresolvedCommands.map(
+                command => command.id,
+              ),
+              executedIndex: snapshot.metadata.executedIndex,
               serviceHash: snapshot.metadata.executedHash,
               sessionStatus: snapshot.state.blockedWork ? 'failed' : 'current',
               backupState: null,
@@ -181,6 +262,90 @@ export const bootstrapServiceSession = Effect.fn('bootstrapServiceSession')(
               cause,
             ),
     });
+    const prepare = ({
+      contractName,
+      payload,
+    }: {
+      contractName: string;
+      payload: unknown;
+    }) =>
+      Effect.gen(function* () {
+        const state = session.store.getState();
+        if (!state.isInitialized || state.sessionStatus !== 'current') {
+          return yield* makeZerospinError({
+            code: 'service-session-not-current',
+          });
+        }
+        const contract = definition.contracts[contractName];
+        if (contract === undefined) {
+          return yield* makeZerospinError({
+            code: 'service-session-contract-unavailable',
+          });
+        }
+        const stagedAt = new Date().toISOString();
+        const command = yield* encodeCommand({
+          contract,
+          command: {
+            id: yield* makeIdFromAbbreviation({
+              abbreviation: coreAbbreviations.command,
+            }),
+            commandName: contract.commandName,
+            contractVersion: contract.version,
+            payload,
+            claims: yield* Schema.encodeEffect(definition.claimsSchema)(
+              state.claims,
+            ),
+            targetId: state.serviceName,
+            targetName: state.serviceName,
+            actorName: definition.actorName,
+            actorVersion: definition.actorVersion,
+            sessionName: definition.sessionName,
+            staging: {
+              result: null,
+              startedAt: stagedAt,
+              completedAt: stagedAt,
+              stagedDelta: {
+                inserted: [],
+                updated: [],
+                deleted: [],
+                operations: [],
+              },
+            },
+          },
+        });
+        const result = yield* Effect.try({
+          try: () => validatePrediction(command),
+          catch: cause =>
+            isZerospinError(cause)
+              ? cause
+              : catchZerospinError({ code: 'service-command-staging-failed' })(
+                  cause,
+                ),
+        });
+        return { ...command, staging: { ...command.staging, result } };
+      });
+    const unbind = bindServiceSessionExecution(session, {
+      can: props =>
+        runSync(prepare(props).pipe(Effect.asVoid, encodeRpcOutcome)),
+      stage: async props => {
+        const staged = runSync(prepare(props).pipe(encodeRpcOutcome));
+        if (staged._tag === 'Failure') return staged;
+        try {
+          nodeResult(await connection.node.accept(staged.success));
+          return staged;
+        } catch (cause) {
+          return {
+            _tag: 'Failure',
+            failure: isZerospinError(cause)
+              ? cause
+              : catchZerospinError({ code: 'service-command-handoff-failed' })(
+                  cause,
+                ),
+          };
+        }
+      },
+    });
+    yield* Effect.addFinalizer(() => Effect.sync(unbind));
     return {
       clearAuthentication: async () => {
         nodeResult(await connection.node.clearAuthentication());

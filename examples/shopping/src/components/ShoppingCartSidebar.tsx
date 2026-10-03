@@ -1,7 +1,8 @@
+import { useSyncExternalStore } from 'react';
+
 import { useClaims, useLiveQuery } from '@zerospin/react';
 
 import { CartItemQuantityControls } from './CartItemQuantityControls';
-import { PurchasePanel } from './PurchasePanel';
 
 import {
   Sidebar,
@@ -14,38 +15,40 @@ import { shopperSession } from '@/zerospin/shopperSession';
 
 export function ShoppingCartSidebar() {
   const claims = useClaims(shopperSession);
+  const state = useSyncExternalStore(
+    shopperSession.store.subscribe,
+    shopperSession.store.getState,
+  );
+  const commandFailure = state.commandHistory?.findLast(
+    command => command.failure !== null,
+  )?.failure;
 
-  const { data: userRow } = useLiveQuery({
+  const { data: cart } = useLiveQuery({
     session: shopperSession,
     key: { clerkUserId: claims.clerkUserId ?? undefined },
     query: (db, { clerkUserId }) =>
-      db.query.user.findFirst({
-        where: { clerkUserId: { eq: clerkUserId } },
-        with: {
-          cart: {
-            with: {
-              items: {
-                with: {
-                  product: true,
-                },
-              },
-            },
-          },
-        },
+      db.query.cart.findFirst({
+        where: { userId: { eq: clerkUserId } },
+        with: { items: { with: { product: true } } },
       }),
   });
 
-  const cartItems = userRow?.cart?.items ?? [];
+  const cartItems = cart?.items ?? [];
 
   return (
     <Sidebar side="right" collapsible="offcanvas">
       <SidebarHeader className="gap-2 border-b border-sidebar-border p-4">
         <span className="text-lg font-semibold">Cart</span>
         <span className="text-muted-foreground text-xs leading-snug">
-          Review items before checkout (demo).
+          Review and update your cart (demo).
         </span>
       </SidebarHeader>
       <SidebarContent className="min-w-0 overflow-y-auto">
+        {commandFailure ? (
+          <p className="p-3 text-destructive" role="alert">
+            {commandFailure.message}
+          </p>
+        ) : null}
         <div className="flex min-w-0 flex-col gap-2 p-3">
           {cartItems.length === 0 ? (
             <p className="text-muted-foreground py-8 text-center text-sm leading-relaxed">
@@ -72,7 +75,6 @@ export function ShoppingCartSidebar() {
               ))}
             </div>
           )}
-          <PurchasePanel />
         </div>
       </SidebarContent>
       <SidebarFooter className="shrink-0 border-t border-sidebar-border p-4">

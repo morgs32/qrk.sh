@@ -38,15 +38,12 @@
     ],
     "types": ["node"],
     "paths": {
-      "config": ["../fixtures/src/config/config.ts"]
+      "config": ["../system-worker/src/config.d.ts"]
     }
   },
   "include": ["src"],
-  "exclude": ["**/*.spec.ts", "**/*.spec.tsx"],
+  "exclude": [],
   "references": [
-    {
-      "path": "../fixtures/tsconfig.config.json"
-    },
     {
       "path": "../system-worker"
     },

@@ -29,7 +29,7 @@ export const drainDeliveryOutbox = Effect.fn('LedgerRepo.drainDeliveryOutbox')(
     outbox: {
       readFirstPending(): { id: string; payload: unknown } | undefined;
       hasPending(): boolean;
-      markAcknowledged(props: { acknowledgedAt: Date; id: string }): void;
+      deleteAcknowledged(id: string): void;
       recordDiagnostic(props: {
         failure: typeof PublicFailureSchema.Type;
         id: string;
@@ -70,10 +70,7 @@ export const drainDeliveryOutbox = Effect.fn('LedgerRepo.drainDeliveryOutbox')(
                 });
                 return;
               }
-              props.outbox.markAcknowledged({
-                id: pending.id,
-                acknowledgedAt: new Date(),
-              });
+              props.outbox.deleteAcknowledged(pending.id);
             }),
           hasPending: () => Effect.sync(() => props.outbox.hasPending()),
         },

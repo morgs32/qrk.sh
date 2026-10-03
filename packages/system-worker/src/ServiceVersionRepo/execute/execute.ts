@@ -1,5 +1,5 @@
 import { makeAsync } from '@zerospin/core/async/make/makeAsync';
-import { ServiceExecutedCommandSchema } from '@zerospin/core/contracts/CommandSchema';
+import { ServiceTerminalCommandSchema } from '@zerospin/core/contracts/CommandSchema';
 import type { IDb } from '@zerospin/core/drizzle/types';
 import { readRpcEnvelope } from '@zerospin/core/utils/readRpcEnvelope';
 import {
@@ -56,14 +56,9 @@ export const execute = Effect.fn('ServiceVersionRepo.execute')(
       .get();
     if (retained === undefined) {
       const chain = yield* ServiceVersionChain.getRepo({ key });
-      const queue = yield* makeAsync(() => chain.executionResultsFanout);
-      const page = yield* makeAsync(() =>
-        queue.getPage({
-          afterIndex: serviceIndex - 1,
-          maxIndex: serviceIndex,
-        }),
-      ).pipe(Effect.flatMap(envelope => readRpcEnvelope(envelope)));
-      retained = page.rows[0];
+      retained = yield* makeAsync(() =>
+        chain.getServiceResult(serviceIndex),
+      ).pipe(Effect.flatMap(readRpcEnvelope));
       rowTable = serviceVersionChainDbConfig.tables.commands;
     }
     if (retained === undefined) {
@@ -79,7 +74,7 @@ export const execute = Effect.fn('ServiceVersionRepo.execute')(
       .pipe(
         Effect.flatMap(
           Schema.decodeUnknownEffect(
-            Schema.toType(ServiceExecutedCommandSchema),
+            Schema.toType(ServiceTerminalCommandSchema),
           ),
         ),
       )

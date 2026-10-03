@@ -1,18 +1,19 @@
 import { resolveAggregateActorVersion } from '@zerospin/core/aggregateActor/getAggregateActorVersion';
 import {
+  decodeAsyncInput,
+  validateAsyncValues,
+} from '@zerospin/core/contracts/asyncInputCodec';
+import {
   AggregateChainedCommandSchema,
   EncodedAggregateCommandSchema,
 } from '@zerospin/core/contracts/CommandSchema';
 import { decodePayload } from '@zerospin/core/contracts/decodePayload/decodePayload';
-import { encodeMutation } from '@zerospin/core/contracts/encodeAppliedMutation';
 import { encodeFailure } from '@zerospin/core/contracts/failureCodec';
-import { makeMutations } from '@zerospin/core/contracts/make/makeMutations';
-import { prepareReplayAppliedMutation } from '@zerospin/core/contracts/prepareReplayAppliedMutation';
+import { makeOperations } from '@zerospin/core/contracts/make/makeOperations';
+import { runContractGuard } from '@zerospin/core/contracts/runContractGuard';
 import type { IContract } from '@zerospin/core/contracts/types';
 import { validateAggregateCommand } from '@zerospin/core/contracts/validateAggregateCommand';
 import type { IDb } from '@zerospin/core/drizzle/types';
-import { MachineClaimsSchema } from '@zerospin/core/machine/MachineClaimsSchema';
-import { EncodedResourceSchema } from '@zerospin/core/models/EncodedResourceSchema';
 import { getByKeyOrThrow } from '@zerospin/core/utils/getByKeyOrThrow';
 import {
   encodeError,
@@ -20,20 +21,17 @@ import {
   makeZerospinError,
   mapParseError,
   PublicFailureSchema,
-  type IAnyError,
 } from '@zerospin/error';
 import config from 'config';
 import { eq } from 'drizzle-orm';
 import { Effect, Result, Schema, type Context, type Semaphore } from 'effect';
 
 import { aggregateChainDbConfig } from '../../AggregateChain/aggregateChainDbConfig.js';
+import { encodeOwnedOperation } from '../../ownedOperations.js';
 import { aggregateVersionRepoDbConfig } from '../aggregateVersionRepoDbConfig.js';
-import { getReplicatedResources } from '../getReplicatedResources/getReplicatedResources.js';
 
 import { executeCommandsTx } from './executeCommandsTx.js';
-
 const { system } = config;
-
 /** Prepare supplied admitted rows and atomically commit contiguous version-owned results.
  * Committed rows are skipped under the execution permit; a later failure preserves the committed prefix.
  *
@@ -54,7 +52,9 @@ export const executeCommands = Effect.fn(
     aggregateVersion: string;
   };
 }) {
-  if (props.commands.length === 0) return;
+  if (props.commands.length === 0) {
+    return;
+  }
   const { db, key, execution, commands } = props;
   const latestAggregate = yield* getByKeyOrThrow({
     record: system.aggregates,
@@ -66,7 +66,6 @@ export const executeCommands = Effect.fn(
     key: key.aggregateVersion,
     recordKind: 'listed versions',
   });
-
   // 1 — re-read the durable head after acquiring the execution permit
   yield* execution.withPermits(1)(
     Effect.gen(function* () {
@@ -78,11 +77,12 @@ export const executeCommands = Effect.fn(
       const tail = commands.filter(
         row => row.aggregateIndex > (head?.aggregateIndex ?? 0),
       );
-      if (tail.length === 0) return;
+      if (tail.length === 0) {
+        return;
+      }
       const context: Context.Context<unknown> =
         yield* system.runtime.contextEffect;
-
-      // 2 — adapt one payload, run its synchronous program, and read pinned replica copies
+      // 2 — adapt one payload, run its synchronous program, prepare owned operations
       for (const row of tail) {
         yield* Effect.scoped(
           Effect.gen(function* () {
@@ -123,62 +123,31 @@ export const executeCommands = Effect.fn(
                   return {
                     command,
                     startedAt,
-                    mutations: [],
+                    operations: [],
+                    originalExecutionVersion: row.originalExecutionVersion,
+                    encodedResult: null,
+                    contractVersion: command.contractVersion,
                     failure: null,
                     guard: () => Effect.void,
                     contract: null,
                     payload: null,
                   };
                 }
-                const infrastructure: { failure: IAnyError | null } = {
-                  failure: null,
-                };
                 const prepared = yield* Effect.gen(function* () {
-                  const machineClaims =
-                    command.actorName === '__machine'
-                      ? yield* Schema.decodeUnknownEffect(MachineClaimsSchema)(
-                          command.claims,
-                        ).pipe(
-                          mapParseError({
-                            code: 'command-claims-unsupported',
-                            prefix: 'Unsupported machine command claims',
-                          }),
-                        )
-                      : null;
-                  const actor =
-                    machineClaims === null
-                      ? yield* resolveAggregateActorVersion(
-                          latestAggregate,
-                          command,
-                        )
-                      : null;
-                  const targetContract =
-                    aggregate.contracts[command.commandName];
-                  if (
-                    machineClaims !== null &&
-                    (targetContract === undefined ||
-                      machineClaims.aggregateId !== key.aggregateId)
-                  ) {
-                    return yield* makeZerospinError(
-                      'machine-contract-forbidden',
-                    );
-                  }
-                  const sourceContract =
-                    actor === null
-                      ? targetContract!
-                      : yield* getByKeyOrThrow({
-                          record: actor.contracts,
-                          key: command.commandName,
-                          recordKind: 'actor-contract',
-                        });
-                  const targetActor =
-                    actor === null ? null : aggregate.actors[actor.name];
+                  const actor = yield* resolveAggregateActorVersion(
+                    latestAggregate,
+                    command,
+                  );
+                  const sourceContract = yield* getByKeyOrThrow({
+                    record: actor.contracts,
+                    key: command.commandName,
+                    recordKind: 'actor-contract',
+                  });
+                  const targetActor = aggregate.actors[actor.name];
                   const contract =
-                    actor === null
-                      ? targetContract
-                      : targetActor === undefined || targetActor === null
-                        ? undefined
-                        : targetActor.contracts[command.commandName];
+                    targetActor === undefined || targetActor === null
+                      ? undefined
+                      : targetActor.contracts[command.commandName];
                   if (contract === undefined) {
                     return yield* Effect.fail(
                       makeZerospinError('actor-contract-unsupported'),
@@ -197,33 +166,95 @@ export const executeCommands = Effect.fn(
                       ancestor = ancestor.previous;
                     }
                   }
-                  if (ancestor === undefined) {
+                  if (
+                    ancestor === undefined &&
+                    (contract.async === undefined ||
+                      sourceContract.async === undefined)
+                  ) {
                     return yield* Effect.fail(
                       makeZerospinError('actor-contract-lineage-unsupported'),
                     );
                   }
-                  const payload = yield* decodePayload(contract, { command });
-                  const claims =
-                    actor === null
-                      ? machineClaims!
-                      : yield* Schema.decodeUnknownEffect(
-                          actor.identity.claimsSchema,
-                        )(command.claims, {
-                          onExcessProperty: 'error',
-                        }).pipe(
-                          mapParseError({
-                            code: 'command-claims-unsupported',
-                            prefix:
-                              'Saved command identity is unsupported by this aggregate version',
-                          }),
-                        );
-
-                  const made = yield* makeMutations({
+                  let encodedAsyncPayload: unknown;
+                  let asyncValues:
+                    | { payload: unknown; external: unknown }
+                    | undefined;
+                  if (command.asyncInput != null) {
+                    if (
+                      sourceContract.async === undefined ||
+                      sourceContract.version !== command.contractVersion ||
+                      contract.async === undefined
+                    ) {
+                      return yield* makeZerospinError(
+                        'async-contract-kind-mismatch',
+                      );
+                    }
+                    encodedAsyncPayload = yield* Schema.decodeUnknownEffect(
+                      Schema.fromJsonString(Schema.Json),
+                    )(command.payload).pipe(
+                      mapParseError({
+                        code: 'async-payload-json-invalid',
+                        prefix: 'Invalid frozen input',
+                      }),
+                    );
+                    yield* decodeAsyncInput(
+                      sourceContract,
+                      encodedAsyncPayload,
+                      command.asyncInput,
+                    );
+                    asyncValues = yield* validateAsyncValues(
+                      contract,
+                      encodedAsyncPayload,
+                      command.asyncInput.external,
+                    );
+                  } else if (contract.async !== undefined) {
+                    return yield* makeZerospinError('async-input-required');
+                  }
+                  const payload =
+                    asyncValues === undefined
+                      ? yield* decodePayload(contract, { command })
+                      : asyncValues.payload;
+                  const claims = yield* Schema.decodeUnknownEffect(
+                    actor.identity.claimsSchema,
+                  )(command.claims, {
+                    onExcessProperty: 'error',
+                  }).pipe(
+                    mapParseError({
+                      code: 'command-claims-unsupported',
+                      prefix:
+                        'Saved command identity is unsupported by this aggregate version',
+                    }),
+                  );
+                  // Owner access checks still apply to an exact business repeat.
+                  yield* validateAggregateCommand({
+                    aggregate,
+                    actorName: actor.name,
+                    contract,
+                    db,
+                    payload,
+                    claims,
+                    ...(asyncValues === undefined
+                      ? {}
+                      : { external: asyncValues.external }),
+                  }).pipe(
+                    Effect.catch(failure =>
+                      encodeFailure(contract, failure).pipe(
+                        Effect.flatMap(Effect.fail),
+                      ),
+                    ),
+                  );
+                  const made = yield* makeOperations({
                     db,
                     claims,
                     contract,
                     models: aggregate.models,
-                    command: { ...command, payload },
+                    command: {
+                      ...command,
+                      payload:
+                        asyncValues === undefined
+                          ? payload
+                          : encodedAsyncPayload,
+                    },
                   }).pipe(
                     Effect.catch(failure =>
                       encodeFailure(contract, failure).pipe(
@@ -232,116 +263,50 @@ export const executeCommands = Effect.fn(
                     ),
                     Effect.provideContext(context),
                   );
-                  const captured = yield* getReplicatedResources({
-                    systemId: key.systemId,
-                    mutations: made.mutations,
-                    services: aggregate.services,
-                    db,
-                  }).pipe(
-                    Effect.tapError(error =>
-                      Effect.sync(() => {
-                        if (
-                          ![
-                            'aggregate-replicated-resource-missing',
-                            'replicated-service-resource-not-found',
-                          ].includes(error.code)
-                        ) {
-                          infrastructure.failure = error;
-                        }
-                      }),
-                    ),
-                  );
-                  const mutations = yield* Effect.forEach(
-                    made.mutations,
-                    (mutation, mutationIndex) =>
-                      Effect.gen(function* () {
-                        if (mutation.operationName !== 'replicate') {
-                          return yield* encodeMutation({
-                            commandId: command.id,
-                            mutationIndex,
-                            mutation,
-                          });
-                        }
-                        const snapshot = captured.find(
-                          entry =>
-                            entry.modelName === mutation.model.modelName &&
-                            entry.resourceId === mutation.resourceId &&
-                            entry.operation.serviceName ===
-                              mutation.operation.serviceName,
-                        );
-                        if (snapshot === undefined) {
-                          return yield* Effect.fail(
-                            makeZerospinError({
-                              code: 'aggregate-command-chain-replicated-resource-missing',
-                              message: `Missing prepared resource ${mutation.model.modelName}.${mutation.resourceId}`,
-                            }),
-                          );
-                        }
-                        const resource = yield* Schema.decodeUnknownEffect(
-                          Schema.toType(EncodedResourceSchema),
-                        )(snapshot.operation.resource).pipe(
-                          mapParseError({
-                            code: 'aggregate-replication-resource-invalid',
-                            prefix: 'Invalid captured service resource',
-                          }),
-                        );
-                        const prepared = yield* prepareReplayAppliedMutation({
-                          controller: aggregate,
-                          mutation: {
-                            modelName: resource.modelName,
-                            modelVersion: resource.version,
-                            resourceId: resource.id,
-                            operationName: 'replicate',
-                            operation: JSON.stringify({
-                              serviceName: snapshot.operation.serviceName,
-                              serviceVersion: snapshot.operation.serviceVersion,
-                              serviceIndex: snapshot.operation.serviceIndex,
-                              resource: {
-                                ...resource,
-                                deletedAt: resource.deletedAt ?? null,
-                              },
-                            }),
-                          },
-                        });
-                        if (prepared === null) return null;
-                        if (prepared.operationName !== 'replicate') {
-                          return yield* Effect.fail(
-                            makeZerospinError({
-                              code: 'replica-source-mutation-invalid',
-                              message:
-                                'Replica initialization must produce a replica resource mutation',
-                            }),
-                          );
-                        }
-                        return yield* encodeMutation({
-                          commandId: command.id,
-                          mutationIndex,
-                          mutation: {
-                            ...prepared,
-                            operation: {
-                              ...prepared.operation,
-                              serviceName: snapshot.operation.serviceName,
-                              serviceVersion: snapshot.operation.serviceVersion,
-                              serviceIndex: snapshot.operation.serviceIndex,
-                            },
-                          },
-                        });
-                      }),
-                  );
-
                   return {
-                    mutations: mutations.filter(mutation => mutation !== null),
+                    encodedResult: made.encodedResult,
+                    contractVersion: made.contractVersion,
+                    operations: yield* Effect.forEach(
+                      made.operations,
+                      (operation, operationIndex) =>
+                        Effect.gen(function* () {
+                          if (operation.operationName === 'async') {
+                            return {
+                              ...operation,
+                              commandId: command.id,
+                              operationIndex,
+                            };
+                          }
+                          return yield* encodeOwnedOperation({
+                            output: operation,
+                            commandId: command.id,
+                            operationIndex,
+                          });
+                        }),
+                    ),
                     contract,
                     payload,
                     guard: (db: Readonly<Pick<IDb, 'query'>>) =>
                       Effect.gen(function* () {
                         yield* validateAggregateCommand({
                           aggregate,
-                          actorName: actor?.name ?? '__machine',
+                          actorName: actor.name,
                           contract,
                           db,
                           payload,
                           claims,
+                          ...(asyncValues === undefined
+                            ? {}
+                            : { external: asyncValues.external }),
+                        });
+                        return yield* runContractGuard({
+                          contract,
+                          db,
+                          payload,
+                          claims,
+                          ...(asyncValues === undefined
+                            ? {}
+                            : { external: asyncValues.external }),
                         });
                       }).pipe(
                         Effect.catch(failure =>
@@ -359,8 +324,11 @@ export const executeCommands = Effect.fn(
                   Result.isFailure(prepared) &&
                   !('scope' in prepared.failure) &&
                   ![
-                    'aggregate-replicated-resource-missing',
-                    'replicated-service-resource-not-found',
+                    'contract-program-result-invalid',
+                    'contract-result-encode-failed',
+                    'contract-result-encoding-invalid',
+                    'program-must-be-synchronous',
+                    'contract-guard-result-invalid',
                     'actor-contract-unsupported',
                     'actor-contract-lineage-unsupported',
                   ].includes(prepared.failure.code)
@@ -369,15 +337,19 @@ export const executeCommands = Effect.fn(
                     makeZerospinError(prepared.failure),
                   );
                 }
-                if (infrastructure.failure !== null) {
-                  return yield* Effect.fail(infrastructure.failure);
-                }
                 return {
                   command,
                   startedAt,
-                  mutations: Result.isSuccess(prepared)
-                    ? prepared.success.mutations
+                  originalExecutionVersion: row.originalExecutionVersion,
+                  operations: Result.isSuccess(prepared)
+                    ? prepared.success.operations
                     : [],
+                  encodedResult: Result.isSuccess(prepared)
+                    ? prepared.success.encodedResult
+                    : null,
+                  contractVersion: Result.isSuccess(prepared)
+                    ? prepared.success.contractVersion
+                    : command.contractVersion,
                   failure: Result.isFailure(prepared)
                     ? yield* Schema.decodeUnknownEffect(PublicFailureSchema)(
                         'cause' in prepared.failure
@@ -402,7 +374,6 @@ export const executeCommands = Effect.fn(
                 };
               }),
             ).pipe(Effect.provideContext(context));
-
             // 3 — commit this command before starting the next program
             yield* executeCommandsTx(db, {
               head,

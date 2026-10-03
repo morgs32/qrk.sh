@@ -15,11 +15,10 @@ import {
 import type { StoreApi } from 'zustand';
 
 import type { INodeState } from '../aggregateSession/NodeState.ts';
-import type { AdmissionResultSchema } from '../contracts/AdmissionResultSchema.ts';
-import type { ExecutionSummarySchema } from '../contracts/ExecutionSummarySchema.ts';
+import type { IBrowserCommand } from '../contracts/BrowserCommandSchema.ts';
+import type { ExcludeOperationSink } from '../contracts/operationSink.ts';
 import type {
   IAnyContracts,
-  ICommand,
   IEncodedCommand,
   ISessionCommand,
 } from '../contracts/types.ts';
@@ -53,7 +52,9 @@ export type IAggregateSessionDefinition<
   > = Schema.Struct<Readonly<Record<string, Schema.Codec<unknown, unknown>>>>,
 > = Readonly<{
   readonly __initializeRequirements?:
-    | Effect.Services<ReturnType<CONTRACTS[keyof CONTRACTS]['program']>>
+    | ExcludeOperationSink<
+        Effect.Services<ReturnType<CONTRACTS[keyof CONTRACTS]['program']>>
+      >
     | Effect.Services<
         ReturnType<NonNullable<CONTRACTS[keyof CONTRACTS]['guard']>>
       >
@@ -111,21 +112,13 @@ export type IActorDelta = Readonly<{
   deleted: readonly IRef[];
 }>;
 
-export type IAggregateActorCommand = Readonly<{
-  nodeId: string | null;
-  nodeIndex: number | null;
-  /** Bound-version encoding for local persistence, present only on delivered business refusals. */
-
-  id: ICommand['id'];
+export type IAggregateActorOutput = Readonly<{
   executedIndex: number;
   aggregateIndex: number;
-  actorDelta: IActorDelta;
-  admission: typeof AdmissionResultSchema.Type | null;
-  execution: typeof ExecutionSummarySchema.Type | null;
   executedHash: string;
+  command: IBrowserCommand;
 }>;
 
-/** Complete server-owned aggregate session state used for creation and repair. */
 export type IAggregateSessionSnapshot = Readonly<{
   aggregateId: IAggregateId;
   claims: Readonly<Record<string, unknown>>;

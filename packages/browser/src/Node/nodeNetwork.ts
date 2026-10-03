@@ -67,6 +67,7 @@ export const nodeNetwork = (
               serviceName: request.targetName,
               serviceVersion: request.targetVersion,
               serviceSessionLock: request.lock,
+              nodeId,
             }),
           ),
     ticket: () =>

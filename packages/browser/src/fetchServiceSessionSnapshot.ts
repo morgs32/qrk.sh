@@ -26,6 +26,7 @@ export const fetchServiceSessionSnapshot = Effect.fn(
   serviceVersion: string;
   sessionName: string;
   serviceSessionLock: IServiceSessionLock;
+  nodeId: string | null;
 }): Effect.fn.Return<
   IServiceSessionSnapshot,
   IAnyError | IZerospinErrorJson,
@@ -62,5 +63,5 @@ export const fetchServiceSessionSnapshot = Effect.fn(
         serviceSessionLock,
       }),
   );
-  return yield* sessionApi.getSnapshot();
+  return yield* sessionApi.getSnapshot({ nodeId: props.nodeId });
 }, annotateFunctionSpan);

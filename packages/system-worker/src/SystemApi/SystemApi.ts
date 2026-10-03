@@ -12,6 +12,7 @@ import type {
 import type { IRpcRequest } from '@zerospin/logger';
 import { RpcTarget } from 'capnweb';
 
+import { getAgentAggregateIds, openAgentPreview } from './agentPreview.js';
 import { checkSystemSpec } from './checkSystemSpec/checkSystemSpec.js';
 import { executeAggregateCommand } from './executeAggregateCommand/executeAggregateCommand.js';
 import { executeSelectQuery } from './executeSelectQuery/executeSelectQuery.js';
@@ -51,7 +52,6 @@ export class SystemApi extends RpcTarget {
     readonly systemId: ISystemId;
   };
   readonly #runtime: ISystem['runtime'];
-
   /*
    * Constructs SystemApi with its bound runtime and instance state.
    *
@@ -66,7 +66,20 @@ export class SystemApi extends RpcTarget {
     };
     this.#runtime = runtime;
   }
-
+  async openAgentPreview(
+    request: IRpcRequest<[{ agentName: string; aggregateId: IAggregateId }]>,
+  ) {
+    return this.#runtime.runPromise(
+      openAgentPreview({ request, authResults: this.#authResults }),
+    );
+  }
+  async getAgentAggregateIds(
+    request: IRpcRequest<[{ aggregateName: string; aggregateVersion: string }]>,
+  ) {
+    return this.#runtime.runPromise(
+      getAgentAggregateIds({ request, authResults: this.#authResults }),
+    );
+  }
   /*
    * Reports that the granted SystemApi handler is callable.
    *
@@ -78,7 +91,6 @@ export class SystemApi extends RpcTarget {
       healthcheck({ request, authResults: this.#authResults }),
     );
   }
-
   /** Wake every known command chain after deploy so constructors pick up the current spec. */
   /*
    * SystemApi asks the configured SystemRepo to initialize its catalog chains.
@@ -91,7 +103,6 @@ export class SystemApi extends RpcTarget {
       initialize({ request, authResults: this.#authResults }),
     );
   }
-
   /*
    * SystemApi exposes named authored service queries to secret-key callers.
    * The worker query path resolves and executes the query in its owning service.
@@ -115,7 +126,6 @@ export class SystemApi extends RpcTarget {
       executeServiceQuery({ request, authResults: this.#authResults }),
     );
   }
-
   /** One aggregate command enters its ordered command chain. */
   /*
    * Secret-key callers submit a complete encoded aggregate command through
@@ -142,7 +152,6 @@ export class SystemApi extends RpcTarget {
       }),
     );
   }
-
   /** Select-only SQL against aggregate SQLite: System Worker Effect → `AggregateVersionRepo`. */
   /*
    * SystemApi routes secret-key SQL reads to the aggregate current base VAR.
@@ -167,7 +176,6 @@ export class SystemApi extends RpcTarget {
       executeSelectQuery({ request, authResults: this.#authResults }),
     );
   }
-
   /*
    * Secret-key callers submit a complete encoded service command through
    * SystemApi. This boundary routes to ServiceChain and returns its
@@ -177,7 +185,12 @@ export class SystemApi extends RpcTarget {
    */
   async executeServiceCommand(
     request: IRpcRequest<
-      [{ serviceVersion: string; command: IEncodedCommand<IServiceCommand> }]
+      [
+        {
+          serviceVersion: string;
+          command: IEncodedCommand<IServiceCommand>;
+        },
+      ]
     >,
   ) {
     // 1 — run executeServiceCommand with the instance-bound dependencies
@@ -185,7 +198,6 @@ export class SystemApi extends RpcTarget {
       executeServiceCommand({ request, authResults: this.#authResults }),
     );
   }
-
   /*
    * SystemApi lists SystemRepo instances recorded in its deployment
    * catalog. Inspection reads registrations from SystemRepo instead of
@@ -199,7 +211,6 @@ export class SystemApi extends RpcTarget {
       getSystemRepos({ request, authResults: this.#authResults }),
     );
   }
-
   /*
    * SystemApi exposes registered SystemRepo tables to secret-key
    * inspection callers. The catalog check precedes the Repo lookup; systemId
@@ -208,14 +219,20 @@ export class SystemApi extends RpcTarget {
    * 1. Run the bound domain operation.
    */
   async getSystemRepoTableRows(
-    request: IRpcRequest<[{ repoName: string; tableName: string }]>,
+    request: IRpcRequest<
+      [
+        {
+          repoName: string;
+          tableName: string;
+        },
+      ]
+    >,
   ) {
     // 1 — run getSystemRepoTableRows with the instance-bound dependencies
     return this.#runtime.runPromise(
       getSystemRepoTableRows({ request, authResults: this.#authResults }),
     );
   }
-
   /*
    * SystemApi lists AggregateVersionRepo instances recorded in its deployment
    * catalog. Inspection reads registrations from SystemRepo instead of
@@ -232,7 +249,6 @@ export class SystemApi extends RpcTarget {
       }),
     );
   }
-
   /*
    * SystemApi exposes registered AggregateVersionRepo tables to secret-key
    * inspection callers. The catalog check precedes the Repo lookup; systemId
@@ -241,7 +257,14 @@ export class SystemApi extends RpcTarget {
    * 1. Run the bound domain operation.
    */
   async getAggregateVersionRepoTableRows(
-    request: IRpcRequest<[{ repoName: string; tableName: string }]>,
+    request: IRpcRequest<
+      [
+        {
+          repoName: string;
+          tableName: string;
+        },
+      ]
+    >,
   ) {
     // 1 — run getAggregateVersionRepoTableRows with the instance-bound dependencies
     return this.#runtime.runPromise(
@@ -251,7 +274,6 @@ export class SystemApi extends RpcTarget {
       }),
     );
   }
-
   /*
    * SystemApi lists AggregateActorVersionRepo instances recorded in its deployment
    * catalog. Inspection reads registrations from SystemRepo instead of
@@ -268,7 +290,6 @@ export class SystemApi extends RpcTarget {
       }),
     );
   }
-
   /*
    * SystemApi exposes registered AggregateActorVersionRepo tables to secret-key
    * inspection callers. The catalog check precedes the Repo lookup; systemId
@@ -277,7 +298,14 @@ export class SystemApi extends RpcTarget {
    * 1. Run the bound domain operation.
    */
   async getAggregateActorVersionRepoTableRows(
-    request: IRpcRequest<[{ repoName: string; tableName: string }]>,
+    request: IRpcRequest<
+      [
+        {
+          repoName: string;
+          tableName: string;
+        },
+      ]
+    >,
   ) {
     // 1 — run getAggregateActorVersionRepoTableRows with the instance-bound dependencies
     return this.#runtime.runPromise(
@@ -287,7 +315,6 @@ export class SystemApi extends RpcTarget {
       }),
     );
   }
-
   /*
    * SystemApi lists ServiceActorVersionRepo instances recorded in its deployment
    * catalog. Inspection reads registrations from SystemRepo instead of
@@ -304,7 +331,6 @@ export class SystemApi extends RpcTarget {
       }),
     );
   }
-
   /*
    * SystemApi exposes registered ServiceActorVersionRepo tables to secret-key
    * inspection callers. The catalog check precedes the Repo lookup; systemId
@@ -313,7 +339,14 @@ export class SystemApi extends RpcTarget {
    * 1. Run the bound domain operation.
    */
   async getServiceActorVersionRepoTableRows(
-    request: IRpcRequest<[{ repoName: string; tableName: string }]>,
+    request: IRpcRequest<
+      [
+        {
+          repoName: string;
+          tableName: string;
+        },
+      ]
+    >,
   ) {
     // 1 — run getServiceActorVersionRepoTableRows with the instance-bound dependencies
     return this.#runtime.runPromise(
@@ -323,7 +356,6 @@ export class SystemApi extends RpcTarget {
       }),
     );
   }
-
   /*
    * SystemApi lists ServiceVersionRepo instances recorded in its deployment
    * catalog. Inspection reads registrations from SystemRepo instead of
@@ -340,7 +372,6 @@ export class SystemApi extends RpcTarget {
       }),
     );
   }
-
   /*
    * SystemApi exposes registered ServiceVersionRepo tables to secret-key
    * inspection callers. The catalog check precedes the Repo lookup; systemId
@@ -349,7 +380,14 @@ export class SystemApi extends RpcTarget {
    * 1. Run the bound domain operation.
    */
   async getServiceVersionRepoTableRows(
-    request: IRpcRequest<[{ repoName: string; tableName: string }]>,
+    request: IRpcRequest<
+      [
+        {
+          repoName: string;
+          tableName: string;
+        },
+      ]
+    >,
   ) {
     // 1 — run getServiceVersionRepoTableRows with the instance-bound dependencies
     return this.#runtime.runPromise(
@@ -359,7 +397,6 @@ export class SystemApi extends RpcTarget {
       }),
     );
   }
-
   /*
    * SystemApi lists AggregateChain instances recorded in its deployment
    * catalog. Inspection reads registrations from SystemRepo instead of
@@ -373,7 +410,6 @@ export class SystemApi extends RpcTarget {
       getAggregateChains({ request, authResults: this.#authResults }),
     );
   }
-
   /*
    * SystemApi exposes registered AggregateChain tables to secret-key
    * inspection callers. The catalog check precedes the Repo lookup; systemId
@@ -382,7 +418,14 @@ export class SystemApi extends RpcTarget {
    * 1. Run the bound domain operation.
    */
   async getAggregateChainTableRows(
-    request: IRpcRequest<[{ repoName: string; tableName: string }]>,
+    request: IRpcRequest<
+      [
+        {
+          repoName: string;
+          tableName: string;
+        },
+      ]
+    >,
   ) {
     // 1 — run getAggregateChainTableRows with the instance-bound dependencies
     return this.#runtime.runPromise(
@@ -392,7 +435,6 @@ export class SystemApi extends RpcTarget {
       }),
     );
   }
-
   /*
    * SystemApi lists AggregateActorVersionChain instances recorded in its deployment
    * catalog. Inspection reads registrations from SystemRepo instead of
@@ -409,7 +451,6 @@ export class SystemApi extends RpcTarget {
       }),
     );
   }
-
   /*
    * SystemApi exposes registered AggregateActorVersionChain tables to secret-key
    * inspection callers. The catalog check precedes the Repo lookup; systemId
@@ -418,7 +459,14 @@ export class SystemApi extends RpcTarget {
    * 1. Run the bound domain operation.
    */
   async getAggregateActorVersionChainTableRows(
-    request: IRpcRequest<[{ repoName: string; tableName: string }]>,
+    request: IRpcRequest<
+      [
+        {
+          repoName: string;
+          tableName: string;
+        },
+      ]
+    >,
   ) {
     // 1 — run getAggregateActorVersionChainTableRows with the instance-bound dependencies
     return this.#runtime.runPromise(
@@ -428,7 +476,6 @@ export class SystemApi extends RpcTarget {
       }),
     );
   }
-
   /*
    * SystemApi lists AggregateVersionChain instances recorded in its deployment
    * catalog. Inspection reads registrations from SystemRepo instead of
@@ -454,7 +501,6 @@ export class SystemApi extends RpcTarget {
       }),
     );
   }
-
   /*
    * SystemApi exposes registered AggregateVersionChain tables to secret-key
    * inspection callers. The catalog check precedes the Repo lookup; systemId
@@ -463,7 +509,14 @@ export class SystemApi extends RpcTarget {
    * 1. Run the bound domain operation.
    */
   async getAggregateVersionChainTableRows(
-    request: IRpcRequest<[{ repoName: string; tableName: string }]>,
+    request: IRpcRequest<
+      [
+        {
+          repoName: string;
+          tableName: string;
+        },
+      ]
+    >,
   ) {
     // 1 — run getAggregateVersionChainTableRows with the instance-bound dependencies
     return this.#runtime.runPromise(
@@ -474,7 +527,14 @@ export class SystemApi extends RpcTarget {
     );
   }
   async getServiceVersionChainTableRows(
-    request: IRpcRequest<[{ repoName: string; tableName: string }]>,
+    request: IRpcRequest<
+      [
+        {
+          repoName: string;
+          tableName: string;
+        },
+      ]
+    >,
   ) {
     // 1 — run getServiceVersionChainTableRows with the instance-bound dependencies
     return this.#runtime.runPromise(
@@ -484,6 +544,7 @@ export class SystemApi extends RpcTarget {
       }),
     );
   }
+  /** Retry a failed aggregate or service source feeding a service from its retained cursor. */
 
   /*
    * SystemApi lists ServiceActorVersionChain instances recorded in its deployment
@@ -501,7 +562,6 @@ export class SystemApi extends RpcTarget {
       }),
     );
   }
-
   /*
    * SystemApi exposes registered ServiceActorVersionChain tables to secret-key
    * inspection callers. The catalog check precedes the Repo lookup; systemId
@@ -510,7 +570,14 @@ export class SystemApi extends RpcTarget {
    * 1. Run the bound domain operation.
    */
   async getServiceActorVersionChainTableRows(
-    request: IRpcRequest<[{ repoName: string; tableName: string }]>,
+    request: IRpcRequest<
+      [
+        {
+          repoName: string;
+          tableName: string;
+        },
+      ]
+    >,
   ) {
     // 1 — run getServiceActorVersionChainTableRows with the instance-bound dependencies
     return this.#runtime.runPromise(
@@ -520,7 +587,6 @@ export class SystemApi extends RpcTarget {
       }),
     );
   }
-
   /*
    * SystemApi lists ServiceChain instances recorded in its deployment
    * catalog. Inspection reads registrations from SystemRepo instead of
@@ -534,7 +600,6 @@ export class SystemApi extends RpcTarget {
       getServiceChains({ request, authResults: this.#authResults }),
     );
   }
-
   /*
    * SystemApi exposes registered ServiceChain tables to secret-key
    * inspection callers. The catalog check precedes the Repo lookup; systemId
@@ -543,7 +608,14 @@ export class SystemApi extends RpcTarget {
    * 1. Run the bound domain operation.
    */
   async getServiceChainTableRows(
-    request: IRpcRequest<[{ repoName: string; tableName: string }]>,
+    request: IRpcRequest<
+      [
+        {
+          repoName: string;
+          tableName: string;
+        },
+      ]
+    >,
   ) {
     // 1 — run getServiceChainTableRows with the instance-bound dependencies
     return this.#runtime.runPromise(
@@ -553,7 +625,6 @@ export class SystemApi extends RpcTarget {
       }),
     );
   }
-
   /*
    * SystemApi lists SystemLogRepo instances recorded in its deployment
    * catalog. Inspection reads registrations from SystemRepo instead of
@@ -567,7 +638,6 @@ export class SystemApi extends RpcTarget {
       getSystemLogRepos({ request, authResults: this.#authResults }),
     );
   }
-
   /*
    * SystemApi exposes registered SystemLogRepo tables to secret-key
    * inspection callers. The catalog check precedes the Repo lookup; systemId
@@ -576,7 +646,14 @@ export class SystemApi extends RpcTarget {
    * 1. Run the bound domain operation.
    */
   async getSystemLogRepoTableRows(
-    request: IRpcRequest<[{ repoName: string; tableName: string }]>,
+    request: IRpcRequest<
+      [
+        {
+          repoName: string;
+          tableName: string;
+        },
+      ]
+    >,
   ) {
     // 1 — run getSystemLogRepoTableRows with the instance-bound dependencies
     return this.#runtime.runPromise(
@@ -586,14 +663,12 @@ export class SystemApi extends RpcTarget {
       }),
     );
   }
-
   /** Accept this executing Worker's authored aggregate and service definitions. */
   async checkSystemSpec(request: IRpcRequest<[]>) {
     return this.#runtime.runPromise(
       checkSystemSpec({ request, authResults: this.#authResults }),
     );
   }
-
   /** Return deployed system spec snapshot. */
   /*
    * SystemApi returns the authored deployment spec for inspection callers.

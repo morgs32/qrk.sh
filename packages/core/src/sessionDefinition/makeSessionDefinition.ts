@@ -1,6 +1,7 @@
 import { Schema, SchemaAST } from 'effect';
 
 import { assertSameCoreInstance } from '../assertSameCoreInstance.ts';
+import { publicContracts } from '../contracts/asyncContract.ts';
 import { Contract } from '../contracts/make/makeContractVersion.ts';
 import type { IAnyContracts, IContract } from '../contracts/types.ts';
 import type { IClaimsSchema } from '../identity/types.ts';
@@ -95,7 +96,7 @@ export function makeSessionDefinition(props: {
         ...common,
         aggregateName: props.aggregateName,
         aggregateVersion: props.aggregateVersion,
-        contracts: props.contracts,
+        contracts: publicContracts(props.contracts),
       },
       { onExcessProperty: 'error' },
     );
@@ -131,7 +132,7 @@ export function makeSessionDefinition(props: {
       kind: 'aggregate' as const,
       systemName,
       claimsSchema,
-      contracts: { ...props.contracts },
+      contracts: publicContracts(props.contracts ?? {}),
       models: { ...models },
       modelNames: Object.keys(models),
     };

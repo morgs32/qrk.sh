@@ -6,7 +6,7 @@ import { Effect } from 'effect';
  * public method to a same-named foldered Effect.fn.
  *
  * PartitionApi/PartitionApi.ts
- * PartitionApi/acquireAggregateSessionReplica/acquireAggregateSessionReplica.ts
+ * PartitionApi/acquireSessionDatabase/acquireSessionDatabase.ts
  *
  * Exception: IFanoutRepo owners inline `makeFanoutQueue` on the class (`#field`
  * + prototype getter). IFanoutSubscriberRepo owners inline `makeFanoutSubscriber`
@@ -27,7 +27,7 @@ import { Effect } from 'effect';
  *
  * @bad Keep a full RPC workflow inline in the RpcTarget class.
  * @bad Exempt an Api, gateway, provider, or failure target because it is not a Repo.
- * @bad Import `acquireAggregateSessionReplica` under an alias when the class already supplies scope.
+ * @bad Import `acquireSessionDatabase` under an alias when the class already supplies scope.
  * @bad Create an `index.ts` barrel just to re-export the method file.
  * @bad Create a method folder for an IFanoutRepo queue or its nested `subscribe`.
  * @bad Create a method folder for an IFanoutSubscriberRepo or its nested `receive`.
@@ -40,9 +40,9 @@ export class PartitionApi extends RpcTarget {
     super();
   }
 
-  async acquireAggregateSessionReplica(props: { sessionName: string }) {
+  async acquireSessionDatabase(props: { sessionName: string }) {
     return this.runtime.runPromise(
-      acquireAggregateSessionReplica({
+      acquireSessionDatabase({
         sessionName: props.sessionName,
         db: this.db,
       }).pipe(settleResult),
@@ -50,17 +50,17 @@ export class PartitionApi extends RpcTarget {
   }
 }
 
-export const acquireAggregateSessionReplica = Effect.fn(
-  'PartitionApi.acquireAggregateSessionReplica',
+export const acquireSessionDatabase = Effect.fn(
+  'PartitionApi.acquireSessionDatabase',
 )(function* (props: { sessionName: string; db: unknown }) {
-  return yield* acquireReplica(props);
+  return yield* acquireDatabase(props);
 });
 
 declare const managedRuntime: {
   runPromise(effect: unknown): Promise<unknown>;
 };
 declare function settleResult(effect: unknown): unknown;
-declare function acquireReplica(props: {
+declare function acquireDatabase(props: {
   sessionName: string;
   db: unknown;
 }): Effect.Effect<void>;

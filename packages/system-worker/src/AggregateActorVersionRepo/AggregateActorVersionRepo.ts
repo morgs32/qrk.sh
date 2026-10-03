@@ -5,14 +5,13 @@ import type {
   IEncodedCommand,
 } from '@zerospin/core/contracts/types';
 import { readRpcEnvelope } from '@zerospin/core/utils/readRpcEnvelope';
-import { isZerospinError, makeZerospinError } from '@zerospin/error';
+import { makeZerospinError } from '@zerospin/error';
 import { makeRpcEnvelope } from '@zerospin/logger';
 import config from 'config';
-import { eq, isNotNull } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { Effect, Semaphore } from 'effect';
 
 import { AggregateActorVersionChain } from '../AggregateActorVersionChain/AggregateActorVersionChain.js';
-import { aggregateActorVersionChainDbConfig } from '../AggregateActorVersionChain/aggregateActorVersionChainDbConfig.js';
 import { AggregateVersionChain } from '../AggregateVersionChain/AggregateVersionChain.js';
 import type { IFanoutDelivery } from '../makeFanoutQueue/makeFanoutQueue.js';
 import { makeFanoutSubscriber } from '../makeFanoutSubscriber/makeFanoutSubscriber.js';
@@ -26,7 +25,7 @@ import { catchup } from './catchup/catchup.js';
 import { getProjectionReadiness } from './getProjectionReadiness/getProjectionReadiness.js';
 import { getSnapshot } from './getSnapshot/getSnapshot.js';
 import { onDOActivation } from './onDOActivation/onDOActivation.js';
-import { makeAggregateCommandsOutbox } from './optimistic/makeAggregateCommandsOutbox.js';
+import { makeStagedAggregateCommandOutbox } from './optimistic/makeStagedAggregateCommandOutbox.js';
 import { stageActorCommandsWithRetry } from './optimistic/stageActorCommands.js';
 import { commandRowForSource } from './retainedCommands.js';
 import { validateCommands } from './validateCommands/validateCommands.js';
@@ -44,7 +43,7 @@ export class AggregateActorVersionRepo extends makeFixedDORepo({
 
   readonly #actorWrites = Effect.runSync(Semaphore.make(1));
 
-  readonly #aggregateCommandsOutbox = makeAggregateCommandsOutbox({
+  readonly #stagedAggregateCommandOutbox = makeStagedAggregateCommandOutbox({
     db: this.db,
     key: this.key,
     alarmRegistry: this.alarmRegistry,
@@ -54,7 +53,7 @@ export class AggregateActorVersionRepo extends makeFixedDORepo({
     commands: readonly IEncodedCommand<IAggregateCommand>[];
   }) {
     return config.system.runtime.runPromise(
-      this.#aggregateCommandsOutbox
+      this.#stagedAggregateCommandOutbox
         .drainAfter(() =>
           stageActorCommandsWithRetry({
             ...props,
@@ -70,7 +69,7 @@ export class AggregateActorVersionRepo extends makeFixedDORepo({
   async getStagedAdmission(props: { commandId: string }) {
     return config.system.runtime.runPromise(
       Effect.gen({ self: this }, function* () {
-        const table = aggregateActorVersionRepoDbConfig.schema.pendingCommands;
+        const table = aggregateActorVersionRepoDbConfig.schema.stagedCommands;
         const commandTable = aggregateActorVersionRepoDbConfig.schema.commands;
         const saved = commandRowForSource(this.db, {
           id: props.commandId,
@@ -88,7 +87,7 @@ export class AggregateActorVersionRepo extends makeFixedDORepo({
         if (retained === undefined) {
           return yield* makeZerospinError('staged-command-not-found');
         }
-        yield* this.#aggregateCommandsOutbox.drain(retained.stageIndex);
+        yield* this.#stagedAggregateCommandOutbox.drain(retained.stageIndex);
         const submitted = this.db
           .select()
           .from(table)
@@ -125,67 +124,27 @@ export class AggregateActorVersionRepo extends makeFixedDORepo({
     );
   }
 
-  readonly #actorCommandsOutbox = makeOutboxQueue({
+  readonly #browserCommandOutbox = makeOutboxQueue({
     indexColumnName: 'executedIndex',
-    name: 'actorCommandsOutbox',
+    name: 'browserCommandOutbox',
     db: this.db,
-    outboxTable: aggregateActorVersionRepoDbConfig.schema.commands,
-    where: isNotNull(
-      aggregateActorVersionRepoDbConfig.schema.commands.executedIndex,
-    ),
+    outboxTable: aggregateActorVersionRepoDbConfig.schema.browserCommandOutbox,
     alarmRegistry: this.alarmRegistry,
-    retention: 'retain',
+
     deliver: rows =>
       Effect.gen({ self: this }, function* () {
         const chain = yield* AggregateActorVersionChain.getRepo({
           key: this.key,
         });
-        const receiver = yield* makeAsync(() => chain.actorCommandsSubscriber);
-        const key = this.key;
-        const output = yield* Effect.forEach(rows, stored =>
-          Effect.gen(function* () {
-            const row =
-              yield* aggregateActorVersionRepoDbConfig.tables.commands.decodeRow(
-                stored,
-              );
-            if (
-              row.executedIndex === null ||
-              row.executedHash === null ||
-              row.actorAggregateIndex === null ||
-              row.actorDelta === null
-            ) {
-              return yield* makeZerospinError('actor-output-incomplete');
-            }
-            const owned =
-              row.nodeId !== null &&
-              row.sessionName !== null &&
-              row.actorName === key.actorName &&
-              row.actorVersion === key.actorVersion;
-            return yield* aggregateActorVersionChainDbConfig.tables.commands.encodeRow(
-              {
-                ...row,
-                acknowledgedAt: null,
-                lastDeliveryFailure: null,
-                completionNodeId: owned ? row.nodeId : null,
-                completionNodeIndex: owned ? row.nodeIndex : null,
-                completionClaims: owned ? row.claims : null,
-                completionSessionName: owned ? row.sessionName : null,
-              },
-            );
-          }),
-        ).pipe(
-          Effect.mapError(error =>
-            isZerospinError(error)
-              ? error
-              : makeZerospinError({
-                  code: 'actor-output-invalid',
-                  cause: String(error),
-                }),
+        const receiver = yield* makeAsync(() => chain.browserCommandSubscriber);
+        yield* makeAsync(() =>
+          receiver.receive(
+            rows.map(row => ({
+              ...row,
+              lastDeliveryFailure: null,
+            })),
           ),
-        );
-        yield* makeAsync(() => receiver.receive(output)).pipe(
-          Effect.flatMap(envelope => readRpcEnvelope(envelope)),
-        );
+        ).pipe(Effect.flatMap(readRpcEnvelope));
       }),
   });
   /*
@@ -193,9 +152,9 @@ export class AggregateActorVersionRepo extends makeFixedDORepo({
    *
    * 1. Return the bound capability.
    */
-  get actorCommandsOutbox() {
+  get browserCommandOutbox() {
     // 1 — reuse the existing private queue/subscriber instance
-    return this.#actorCommandsOutbox;
+    return this.#browserCommandOutbox;
   }
   /*
    * Bind selected aggregate delivery and catch-up to the durable projection cursor.
@@ -219,7 +178,7 @@ export class AggregateActorVersionRepo extends makeFixedDORepo({
     ) {
       throw makeZerospinError({
         code: 'fanout-source-key-mismatch',
-        message: 'Aggregate source does not match the bound replica',
+        message: 'Aggregate source does not match the bound actor projection',
       });
     }
     return makeFanoutSubscriber({
@@ -239,7 +198,7 @@ export class AggregateActorVersionRepo extends makeFixedDORepo({
         >,
       ) =>
         this.#actorWrites.withPermits(1)(
-          this.#actorCommandsOutbox.drainAfter(() =>
+          this.#browserCommandOutbox.drainAfter(() =>
             applyExecutedCommands({
               rows: delivery.rows,
               db: this.db,
@@ -251,7 +210,7 @@ export class AggregateActorVersionRepo extends makeFixedDORepo({
   }
 
   /*
-   * Snapshot reads catch this replica up through a bounded VAC tip, then enroll
+   * Snapshot reads catch this actor projection up through a bounded VAC tip, then enroll
    * at the committed projection cursor. Replay uses the live receive operation
    * and holds durable alarm leases for the outputs it creates.
    *
@@ -281,12 +240,12 @@ export class AggregateActorVersionRepo extends makeFixedDORepo({
         key: this.key,
         requested: props,
         subscriber: this.executionResultsFanoutSubscriber(this.key),
-        actorCommandsOutbox: this.#actorCommandsOutbox,
+        browserCommandOutbox: this.#browserCommandOutbox,
       }).pipe(Effect.provide(AsyncLive), makeRpcEnvelope),
     );
   }
   /*
-   * Replica callers inspect the locally committed projection cursor.
+   * Projection callers inspect the locally committed projection cursor.
    * This reader reports local progress; publication durability is checked separately
    * by the snapshot path.
    *

@@ -1,19 +1,18 @@
 import { resolveAggregateActorVersion } from '@zerospin/core/aggregateActor/getAggregateActorVersion';
-import { applyAggregateMutationTx } from '@zerospin/core/contracts/applyAggregateMutationTx';
+import { applyOperationTx } from '@zerospin/core/contracts/applyOperationTx';
 import { decodePayload } from '@zerospin/core/contracts/decodePayload/decodePayload';
-import { encodeMutation } from '@zerospin/core/contracts/encodeAppliedMutation';
+import { encodeOperation } from '@zerospin/core/contracts/encodeAppliedOperation';
 import {
   encodeBusinessFailure,
   validateFailure,
   type IFailure,
 } from '@zerospin/core/contracts/failureCodec';
-import { makeMutations } from '@zerospin/core/contracts/make/makeMutations';
-import { prepareReplayAppliedMutation } from '@zerospin/core/contracts/prepareReplayAppliedMutation';
-import { runContractGuard } from '@zerospin/core/contracts/runContractGuard';
+import { makeOperations } from '@zerospin/core/contracts/make/makeOperations';
+import { prepareReplayAppliedOperation } from '@zerospin/core/contracts/prepareReplayAppliedOperation';
 import type {
   IAggregateCommand,
   IEncodedCommand,
-  IEncodedMutation,
+  IEncodedOperation,
 } from '@zerospin/core/contracts/types';
 import { makeTx } from '@zerospin/core/drizzle/make/makeTx';
 import type { IDb } from '@zerospin/core/drizzle/types';
@@ -26,7 +25,6 @@ import { eq } from 'drizzle-orm';
 import { Effect, Result, Schema, type Semaphore } from 'effect';
 import { isEqual } from 'es-toolkit';
 
-import { getReplicatedResources } from '../../AggregateVersionRepo/getReplicatedResources/getReplicatedResources.js';
 import { aggregateActorVersionRepoDbConfig } from '../aggregateActorVersionRepoDbConfig.js';
 import {
   commandRowForSource,
@@ -36,7 +34,6 @@ import {
 } from '../retainedCommands.js';
 
 import { makeOptimisticActorDb } from './makeOptimisticActorDb.js';
-
 /** Stage against a disposable optimistic view; commit only prepared operations and delivery work. */
 export const stageActorCommands = Effect.fn(
   'AggregateActorVersionRepo.stageActorCommands',
@@ -64,7 +61,7 @@ export const stageActorCommands = Effect.fn(
     { [aggregate.version]: aggregate },
     key,
   );
-  const table = aggregateActorVersionRepoDbConfig.schema.pendingCommands;
+  const table = aggregateActorVersionRepoDbConfig.schema.stagedCommands;
   const confirmedIndex =
     db
       .select()
@@ -80,17 +77,19 @@ export const stageActorCommands = Effect.fn(
       .map(row => ({
         commandId: row.id,
         appliedAt: row.stagedAt,
-        mutations: row.mutations,
+        operations: row.operations,
       })),
   });
   const context = yield* config.system.runtime.contextEffect;
   const staged: {
     command: IEncodedCommand<IAggregateCommand>;
     stagedAt: Date;
-    mutations: IEncodedMutation[];
+    operations: IEncodedOperation[];
   }[] = [];
-  const outcomes: { commandId: string; stagingFailure: IFailure | null }[] = [];
-
+  const outcomes: {
+    commandId: string;
+    stagingFailure: IFailure | null;
+  }[] = [];
   for (const command of commands) {
     if (
       command.aggregateId !== key.aggregateId ||
@@ -165,12 +164,6 @@ export const stageActorCommands = Effect.fn(
     )(command.claims);
     const payload = yield* decodePayload(contract, { command });
     const attempted = yield* Effect.gen(function* () {
-      yield* runContractGuard({
-        contract,
-        db: scratch.db,
-        payload,
-        claims,
-      });
       yield* runProgram(
         Effect.suspend(
           () =>
@@ -190,80 +183,49 @@ export const stageActorCommands = Effect.fn(
               ),
         ),
       );
-      const made = yield* makeMutations({
+      const made = yield* makeOperations({
         db: scratch.db,
-        contract,
+        contract: contract.mapping?.original ?? contract,
         models: aggregate.models,
         command: { ...command, payload },
         claims,
       });
-      const captured = yield* getReplicatedResources({
-        systemId: key.systemId,
-        mutations: made.mutations,
-        services: aggregate.services,
-      });
-      const mutations = yield* Effect.forEach(
-        made.mutations,
-        (mutation, mutationIndex) =>
-          Effect.gen(function* () {
-            const snapshot =
-              mutation.operationName === 'replicate'
-                ? captured.find(
-                    copy =>
-                      copy.modelName === mutation.model.modelName &&
-                      copy.resourceId === mutation.resourceId &&
-                      copy.operation.serviceName ===
-                        mutation.operation.serviceName,
-                  )
-                : undefined;
-            if (
-              mutation.operationName === 'replicate' &&
-              snapshot === undefined
-            ) {
-              return yield* makeZerospinError(
-                'staging-replica-snapshot-missing',
-              );
-            }
-            const prepared =
-              snapshot === undefined
-                ? mutation
-                : yield* prepareReplayAppliedMutation({
-                    controller: aggregate,
-                    mutation: {
-                      ...snapshot,
-                      operation: JSON.stringify(snapshot.operation),
-                    },
-                  });
-            return yield* encodeMutation({
-              commandId: command.id,
-              mutationIndex,
-              mutation: prepared,
-            });
+      const operations: IEncodedOperation[] = [];
+      for (const [operationIndex, operation] of made.operations.entries()) {
+        if (operation.operationName === 'async') {
+          return yield* makeZerospinError('staging-async-operation-forbidden');
+        }
+        operations.push(
+          yield* encodeOperation({
+            commandId: command.id,
+            operationIndex,
+            operation,
           }),
-      );
+        );
+      }
       const stagedAt = new Date();
       yield* makeTx('ActorStaging.preview')(function* (tx) {
         yield* withSavepoint({
           tx,
           program: ({ tx: candidateTx }) =>
-            Effect.forEach(mutations, encoded =>
+            Effect.forEach(operations, encoded =>
               Effect.gen(function* () {
-                const mutation = yield* prepareReplayAppliedMutation({
-                  mutation: encoded,
+                const operation = yield* prepareReplayAppliedOperation({
+                  operation: encoded,
                   controller: aggregate,
                 });
-                yield* applyAggregateMutationTx({
+                yield* applyOperationTx({
                   tx: candidateTx,
-                  mutation,
+                  operation,
                   commandId: command.id,
-                  mutationIndex: encoded.mutationIndex,
+                  operationIndex: encoded.operationIndex,
                   appliedAt: stagedAt,
                 });
               }),
             ),
         });
       })(scratch.db);
-      return { command, stagedAt, mutations };
+      return { command, stagedAt, operations };
     }).pipe(Effect.provideContext(context), Effect.result);
     if (Result.isFailure(attempted)) {
       if (
@@ -284,7 +246,6 @@ export const stageActorCommands = Effect.fn(
     staged.push(attempted.success);
     outcomes.push({ commandId: command.id, stagingFailure: null });
   }
-
   if (staged.length === 0) return outcomes;
   const commit = makeTx('ActorStaging.commit')(function* (tx) {
     let stageIndex = existing.at(-1)?.stageIndex ?? 0;
@@ -308,7 +269,7 @@ export const stageActorCommands = Effect.fn(
       return yield* makeZerospinError('staging-basis-changed');
     }
     for (const entry of staged) {
-      const { command, stagedAt, mutations } = entry;
+      const { command, stagedAt, operations } = entry;
       stageIndex += 1;
       const saved = commandRowForSource(tx, command);
       let commandRowId: `row_${string}`;
@@ -337,18 +298,34 @@ export const stageActorCommands = Effect.fn(
         }
       }
       const row =
-        yield* aggregateActorVersionRepoDbConfig.tables.pendingCommands.encodeRow(
+        yield* aggregateActorVersionRepoDbConfig.tables.stagedCommands.encodeRow(
           {
             stageIndex,
             commandRowId,
             stagedAt,
-            mutations,
+            operations,
             resolvedAt: null,
-            acknowledgedAt: null,
-            lastDeliveryFailure: null,
           },
         );
       tx.insert(table).values(row).run();
+      const queuedCommand = tx
+        .select()
+        .from(aggregateActorVersionRepoDbConfig.schema.commands)
+        .where(
+          eq(
+            aggregateActorVersionRepoDbConfig.schema.commands.rowId,
+            commandRowId,
+          ),
+        )
+        .get();
+      if (queuedCommand === undefined) {
+        return yield* makeZerospinError('saved-actor-command-missing');
+      }
+      tx.insert(
+        aggregateActorVersionRepoDbConfig.schema.stagedAggregateCommandOutbox,
+      )
+        .values({ ...queuedCommand, ...row, lastDeliveryFailure: null })
+        .run();
     }
   })(db);
   yield* props.actorWrites === undefined
@@ -356,7 +333,6 @@ export const stageActorCommands = Effect.fn(
     : props.actorWrites.withPermits(1)(commit);
   return outcomes;
 });
-
 /** Preparation may race a confirmed projection or another staged batch; rebuild from the new basis. */
 export const stageActorCommandsWithRetry = (
   props: Parameters<typeof stageActorCommands>[0],

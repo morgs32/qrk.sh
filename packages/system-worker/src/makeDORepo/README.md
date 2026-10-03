@@ -53,31 +53,11 @@ fields, bootstrap failures, activation failures, and cold alarm ordering.
 receiver's durable cursor. This is a startup prerequisite, not alarm work.
 Explicit reads may subsequently call `catchup(index?)` without subscribing again.
 
-AC initializes its base/feed cursor and subscribes to SystemRepo's version
-feed. VAR and ActorVAR select the aggregate snapshot using their physical
-`aggregateName` and `aggregateVersion`; that snapshot already declares every
-service dependency in `aggregate.services`. For each service target,
-`systemId` comes from the Repo key, while `serviceName` and `serviceVersion` come
-from the selected authored snapshot.
-
-Activation inserts missing `services` rows with `lastIndex: 0` and preserves existing
-progress. Service pins stay in the selected definition. A later command can insert
-a replica row with its own `serviceIndex` without discovering
-a new service or rewinding the feed cursor. Service list order does not change an aggregate's authored pin. VAR does not
-subscribe itself to AC, and VSR does not subscribe itself to SC: each chain
-reconciles its admitted-command destinations from the deployed version list.
-
-- [AC activation](../AggregateChain/onDOActivation/onDOActivation.ts)
-- [VAR activation](../AggregateVersionRepo/onDOActivation/onDOActivation.ts)
-- [SC activation](../ServiceChain/onDOActivation/onDOActivation.ts)
-- [FVSR activation](../ServiceActorVersionRepo/onDOActivation/onDOActivation.ts)
-- [ActorVAR activation](../AggregateActorVersionRepo/onDOActivation/onDOActivation.ts)
-- [Declared-source and restart tests](../AggregateActorVersionRepo/AggregateActorVersionRepo.workerd.spec.ts)
-- [Pinned service replication tests](../pinnedServiceReplicas.workerd.spec.ts)
+Aggregate and service chains reconcile deployed command destinations without resetting durable cursors. Actor projections catch up their owner result history before enrolling for live delivery. Materializers recover pending publication and external work; they have no resource-source enrollment.
 
 The activation gate is held during subscription, but **execution permits and
 database transactions must not span its remote paging or enrollment calls**.
-Local receipt needs those execution permits. Source enrollment must also be
+Local receipt needs those execution permits. Fanout enrollment must also be
 independent of source delivery's semaphore; otherwise a source draining to a
 cold receiver can wait on the receiver that is subscribing back to it. The
 [fanout README](../makeFanoutQueue/README.md) explains that cycle.

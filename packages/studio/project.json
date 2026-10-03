@@ -5,6 +5,24 @@
     "lib": {
       "inputs": ["default", "^default", "{projectRoot}/tsconfig.json"],
       "outputs": ["{projectRoot}/dist"]
+    },
+    "preview:build": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["lib"],
+      "outputs": ["{projectRoot}/dist/preview"],
+      "options": {
+        "command": "pnpm exec vite build --outDir dist/preview",
+        "cwd": "packages/studio"
+      }
+    },
+    "agent-fixture:serve": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["lib"],
+      "continuous": true,
+      "options": {
+        "command": "pnpm exec vite --host 127.0.0.1 --port 5199 --strictPort",
+        "cwd": "packages/studio"
+      }
     }
   }
 }

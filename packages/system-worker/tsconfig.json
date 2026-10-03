@@ -37,7 +37,7 @@
     ],
     "types": ["node", "./worker-configuration.d.ts"],
     "paths": {
-      "config": ["../fixtures/src/config/config.ts"]
+      "config": ["./src/config.d.ts"]
     }
   },
   "include": [
@@ -46,15 +46,7 @@
     "worker-configuration.d.ts",
     "env-types.d.ts"
   ],
-  "exclude": [
-    "**/*.spec.ts",
-    "**/*.spec.tsx",
-    "**/*.node.spec.ts",
-    "**/*.react.spec.ts",
-    "**/*.react.spec.tsx",
-    "**/*.workerd.spec.ts",
-    "tests/workerd/**"
-  ],
+  "exclude": [],
   "references": [
     {
       "path": "../schema"
@@ -67,9 +59,6 @@
     },
     {
       "path": "../core"
-    },
-    {
-      "path": "../fixtures/tsconfig.config.json"
     }
   ]
 }

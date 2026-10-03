@@ -1,0 +1,182 @@
+<!-- Imported from the user-supplied Quickstart HTML export. -->
+<section id="quickstart"><h1><span>A </span>Quickstart</h1><div class="docs-topic"><section id="overview"><div><div><h2><span>a. </span>Overview</h2></div><div><p>To get started developing with <span><span>FRAGMENT</span></span>:</p><ol>
+<li>Design your Schema</li>
+<li>Generate an SDK</li>
+<li>Deploy your Ledger</li>
+<li>Integrate the API</li>
+</ol><p>Get started by <a href="/guides/quickstart#use-the-mcp">using the MCP</a> or <a href="/guides/quickstart#follow-the-guide">following the guide</a>.</p></div></div></section><section id="use-the-mcp"><div><div><h2><span>b. </span>Use the MCP</h2></div><div><p>Open the <a href="https://dashboard.fragment.dev/go/s/mcp">dashboard</a> and create a new MCP Connection. Paste the following prompt into your preferred AI tool:</p><div><div><div class="docs-code"><button type="button" data-copy-code="">Copy</button><pre>Use the Fragment MCP to read the quickstart-mcp guide, then follow it end to end.</pre></div></div></div><p>After this is done you&#x27;ll have a script that demonstrates the integration against a <span><span>FRAGMENT</span></span> Ledger.</p><div><span>Next steps</span><div><ul>
+<li><a href="/handbook/accounting-101">Design a Schema</a> to fit your use-case</li>
+<li>Go to production by <a href="https://fragment.dev/guides/embed-in-ci">embedding <span><span>FRAGMENT</span></span> into your CI</a></li>
+<li><a href="https://fragment.dev/guides/import-data">Migrate your existing ledger</a> to <span><span>FRAGMENT</span></span></li>
+</ul></div></div></div></div></section><section id="follow-the-guide"><div><div><h2><span>c. </span>Follow the guide</h2></div><div><section id="follow-the-guide-design-your-schema" class="docs-subpage"><span><span>Design your Schema</span></span><div><p>A Schema customizes a <span><span>FRAGMENT</span></span> Ledger for a specific use-case. <a href="/assets/quickstart-schema.json" download="quickstart-schema.json">Download</a> this toy Schema to begin the quickstart:</p><div><div><div><div><div><div><div><span>quickstart-schema.json  </span></div></div></div><div><div class="docs-code"><button type="button" data-copy-code="">Copy</button><pre>{
+  &quot;key&quot;: &quot;quickstart-schema&quot;,
+  &quot;chartOfAccounts&quot;: {
+    &quot;defaultConsistencyConfig&quot;: {
+      &quot;totalBalanceUpdates&quot;: &quot;strong&quot;
+    },
+    &quot;defaultCurrencyMode&quot;: &quot;multi&quot;,
+    &quot;accounts&quot;: [
+      {
+        &quot;key&quot;: &quot;assets&quot;,
+        &quot;type&quot;: &quot;asset&quot;
+      },
+      {
+        &quot;key&quot;: &quot;liabilities&quot;,
+        &quot;type&quot;: &quot;liability&quot;
+      },
+      {
+        &quot;key&quot;: &quot;income&quot;,
+        &quot;type&quot;: &quot;income&quot;
+      },
+      {
+        &quot;key&quot;: &quot;expense&quot;,
+        &quot;type&quot;: &quot;expense&quot;
+      }
+    ]
+  },
+  &quot;ledgerEntries&quot;: {
+    &quot;types&quot;: [
+      {
+        &quot;type&quot;: &quot;simple-entry&quot;,
+        &quot;lines&quot;: [
+          {
+            &quot;key&quot;: &quot;line-WPZ6bsw08YyW&quot;,
+            &quot;account&quot;: {
+              &quot;path&quot;: &quot;assets&quot;
+            },
+            &quot;currency&quot;: {
+              &quot;code&quot;: &quot;USD&quot;
+            },
+            &quot;amount&quot;: &quot;{{gross_amount}}&quot;
+          },
+          {
+            &quot;key&quot;: &quot;line-m4spJaQWFqnw&quot;,
+            &quot;account&quot;: {
+              &quot;path&quot;: &quot;liabilities&quot;
+            },
+            &quot;currency&quot;: {
+              &quot;code&quot;: &quot;USD&quot;
+            },
+            &quot;amount&quot;: &quot;{{gross_amount}}-{{fee_revenue}}&quot;
+          },
+          {
+            &quot;key&quot;: &quot;line-bvZiWSE69k4m&quot;,
+            &quot;account&quot;: {
+              &quot;path&quot;: &quot;income&quot;
+            },
+            &quot;currency&quot;: {
+              &quot;code&quot;: &quot;USD&quot;
+            },
+            &quot;amount&quot;: &quot;{{fee_revenue}}&quot;
+          }
+        ]
+      }
+    ]
+  },
+  &quot;scenes&quot;: [
+    {
+      &quot;name&quot;: &quot;Simple Scenario&quot;,
+      &quot;events&quot;: [
+        {
+          &quot;eventType&quot;: &quot;entry&quot;,
+          &quot;entry&quot;: {
+            &quot;type&quot;: &quot;simple-entry&quot;,
+            &quot;typeVersion&quot;: 1,
+            &quot;parameters&quot;: {
+              &quot;fee_revenue&quot;: &quot;250&quot;,
+              &quot;gross_amount&quot;: &quot;10000&quot;
+            }
+          }
+        }
+      ]
+    }
+  ]
+}</pre></div></div></div><div>  </div></div></div></div></div></section><section id="follow-the-guide-generate-an-sdk" class="docs-subpage"><span><span>Generate an SDK</span></span><div><p>Generate a strongly-typed SDK specific to your Schema using the <span><span>FRAGMENT</span></span> CLI.</p><ol>
+<li>
+<p>Install the CLI via NPM or Homebrew:</p>
+<div><div><div><div><div><span>npm</span></div></div><div><div class="docs-code"><button type="button" data-copy-code="">Copy</button><pre>npm install -g @fragment-dev/cli</pre></div></div></div></div></div>
+<div><div><div><div><div><span>homebrew</span></div></div><div><div class="docs-code"><button type="button" data-copy-code="">Copy</button><pre>brew tap fragment-dev/tap &amp;&amp;\
+  brew install fragment-dev/tap/fragment-cli</pre></div></div></div></div></div>
+</li>
+<li>
+<p>Authenticate the CLI against your <span><span>FRAGMENT</span></span> workspace:</p>
+<div><div><div><div><div><div><div class="docs-code"><button type="button" data-copy-code="">Copy</button><pre>fragment login</pre></div></div></div></div></div></div></div>
+</li>
+<li>
+<p>Generate an SDK for your language:</p>
+<div><div><div><div class="docs-code-label">TypeScript</div></div></div><div><div><div><div><div><div><div><div class="docs-code"><button type="button" data-copy-code="">Copy</button><pre>fragment gen-graphql \
+  --path=quickstart-schema.jsonc \
+  --output=queries.graphql &amp;&amp;\
+npm install --save @fragment-dev/node-client &amp;&amp;\
+npx fragment-node-client-codegen \
+  --input=queries.graphql \
+  --outputFilename=fragment-client.ts</pre></div></div></div></div></div></div></div></div></div>
+</li>
+<li>
+<p>Create an API client in the <a href="https://dashboard.fragment.dev/">dashboard</a>.</p>
+</li>
+<li>
+<p>Initialize your <span><span>FRAGMENT</span></span> client using the generated SDK and API client credentials:</p>
+<div><div><div><div class="docs-code-label">quickstart.ts</div></div></div><div><div><div><div><div><div><div><div class="docs-code"><button type="button" data-copy-code="">Copy</button><pre>import {
+  createFragmentClient
+} from &#x27;@fragment-dev/node-client&#x27;;
+import {
+  getSdk
+} from &#x27;./fragment-client&#x27;;
+
+const fragment = createFragmentClient({
+  params: {
+    clientId: &quot;&lt;Client ID&gt;&quot;,
+    clientSecret: &quot;&lt;Client Secret&gt;&quot;,
+    apiUrl: &quot;&lt;API URL&gt;&quot;,
+    authUrl: &quot;&lt;OAuth URL&gt;&quot;,
+    scope: &quot;&lt;OAuth Scope&gt;&quot;,
+  },
+  getSdk,
+});</pre></div></div></div></div></div></div></div></div></div>
+</li>
+</ol></div></section><section id="follow-the-guide-deploy-your-ledger" class="docs-subpage"><span><span>Deploy your Ledger</span></span><div><p>To deploy your Ledger:</p><ol>
+<li>Store the Schema</li>
+<li>Create a Ledger from the Schema</li>
+</ol><div><div><div><div class="docs-code-label">quickstart.ts</div></div></div><div><div><div><div><div><div><div><div class="docs-code"><button type="button" data-copy-code="">Copy</button><pre>import { readFileSync } from &#x27;node:fs&#x27;;
+
+// Load the Schema you downloaded with `fragment get-schema`.
+const schema = JSON.parse(
+  readFileSync(&#x27;quickstart-schema.jsonc&#x27;, &#x27;utf8&#x27;)
+);
+
+const { storeSchema } = await fragment.storeSchema({
+  schema,
+})
+
+const { createLedger } = await fragment.createLedger({
+  ik: `test-ledger`,
+  ledger: {
+    name: `quickstart ledger`,
+  },
+  schemaKey: schema.key,
+})</pre></div></div></div></div></div></div></div></div></div></div></section><section id="follow-the-guide-integrate-the-api" class="docs-subpage"><span><span>Integrate the API</span></span><div><p>Begin integrating the API into your product by:</p><ol>
+<li>Posting a Ledger Entry</li>
+<li>Reading a Ledger Account&#x27;s balance</li>
+</ol><div><div><div><div class="docs-code-label">quickstart.ts</div></div></div><div><div><div><div><div><div><div><div class="docs-code"><button type="button" data-copy-code="">Copy</button><pre>import { ReadBalanceConsistencyMode } from &#x27;@fragment-dev/node-client/types&#x27;;
+// Post the `simple-entry` Ledger Entry type
+// with the required parameters
+const { addLedgerEntry } = await fragment.PostSimpleEntry({
+  ik: `quickstart-entry`,
+  // The Ledger the Ledger Entry should post to.
+  ledgerIk: `test-ledger`,
+  gross_amount: &#x27;10000&#x27;, // $100.00
+  fee_revenue: &#x27;250&#x27;, // $2.50
+})
+
+const { ledgerAccount } = await fragment.getLedgerAccountBalance({
+  ledgerIk: `test-ledger`,
+  path: `income`,
+  balanceConsistencyMode: ReadBalanceConsistencyMode.Strong,
+})
+
+console.log(ledgerAccount.balance);</pre></div></div></div></div></div></div></div></div></div></div></section><section id="follow-the-guide-next-steps" class="docs-subpage"><span><span>Next steps</span></span><div><div><span>Next steps</span><div><ul>
+<li><a href="/handbook/accounting-101">Design a Schema</a> to fit your use-case</li>
+<li>Go to production by <a href="https://fragment.dev/guides/embed-in-ci">embedding <span><span>FRAGMENT</span></span> into your CI</a></li>
+<li><a href="https://fragment.dev/guides/import-data">Migrate your existing ledger</a> to <span><span>FRAGMENT</span></span></li>
+</ul></div></div></div></section></div></div></section></div></section>

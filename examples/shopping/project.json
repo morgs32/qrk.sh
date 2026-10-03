@@ -38,29 +38,20 @@
       },
       "dependsOn": ["^lib"]
     },
-    "test:playwright": {
-      "executor": "nx:run-script",
+    "agent-preview:check": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["^lib"],
       "options": {
-        "script": "test:playwright"
+        "command": "pnpm exec tsx --tsconfig tsconfig.json src/zerospin/fixtures/purchaseItemAgent.ts",
+        "cwd": "examples/shopping"
       }
     },
-    "test:playwright:preview": {
-      "executor": "nx:run-script",
+    "marketplace:check": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["^lib"],
       "options": {
-        "script": "test:playwright:preview"
-      }
-    },
-    "test:e2e": {
-      "executor": "nx:run-script",
-      "options": {
-        "script": "test:e2e"
-      },
-      "dependsOn": ["^lib", "zerospin:dev"]
-    },
-    "test:playwright:ui": {
-      "executor": "nx:run-script",
-      "options": {
-        "script": "test:playwright:ui"
+        "command": "pnpm exec tsx --tsconfig tsconfig.json src/zerospin/fixtures/marketplace.ts",
+        "cwd": "examples/shopping"
       }
     }
   }

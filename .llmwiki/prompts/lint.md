@@ -7,8 +7,9 @@ each fix.
 ## Steps
 
 1. Read `AGENTS.md`, the [LLM Wiki ingest manual](../README.md), and `.llmwiki/config.yml`.
-2. Walk `wiki/**/*.md`, excluding the human-authored `wiki/dev/**` tree, and
-   check for:
+2. Walk `wiki/**/*.md`, excluding the human-authored `wiki/plans/`,
+   `wiki/adrs/`, `wiki/archive/`, `wiki/handoffs/`, `wiki/specs/`, `wiki/rfcs/`,
+   `wiki/research/`, and `wiki/diagrams/` trees, and check for:
    - **Orphan pages** — no inbound `[[wiki-link]]` from any other page.
    - **Stale `TODO-VERIFY` blocks** — blocks older than 30 days that are still unresolved.
    - **Unresolved `CONTRADICTION` blocks** — ever flagged, never cleaned up.

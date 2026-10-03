@@ -2,6 +2,7 @@ import { createHref } from '@remix-run/route-pattern/href';
 import { createMatcher } from '@remix-run/route-pattern/match';
 import { makeAggregateCommand } from '@zerospin/core/aggregate/make/makeAggregateCommand';
 import { resolveAggregateActorVersion } from '@zerospin/core/aggregateActor/getAggregateActorVersion';
+import { requireApplicationActorAuthentication } from '@zerospin/core/aggregateActor/requireApplicationActorAuthentication';
 import { makeAsync } from '@zerospin/core/async/make/makeAsync';
 import { encodeCommand } from '@zerospin/core/contracts/encodeCommand';
 import { AdmissionRequestSchema } from '@zerospin/core/identity/AdmissionRequestSchema';
@@ -19,9 +20,7 @@ import { isEqual } from 'es-toolkit';
 import { stageDirectActorCommand } from '../../../AggregateActorVersionRepo/stageDirectActorCommand.js';
 import { AggregateChain } from '../../../AggregateChain/AggregateChain.js';
 import { SystemLogRepo } from '../../../SystemLogRepo/SystemLogRepo.js';
-
 const { system } = config;
-
 /** Authenticate one aggregate version, retaining an independent durable audit attempt. */
 export const admitAggregate = Effect.fn('AggregateApi.admitAggregate', {
   root: true,
@@ -47,11 +46,12 @@ export const admitAggregate = Effect.fn('AggregateApi.admitAggregate', {
     props,
   );
   const definition = selectedDefinition.identity;
-  const policy = selectedDefinition.authentication;
+  const policy = yield* requireApplicationActorAuthentication(
+    selectedDefinition.authentication,
+  );
   const log = yield* SystemLogRepo.getRepo({
     key: { systemId: env.ZEROSPIN_SYSTEM_ID },
   });
-
   return yield* Effect.uninterruptibleMask(restore =>
     Effect.gen(function* () {
       const { attemptId } = yield* makeAsync(() =>
@@ -60,7 +60,6 @@ export const admitAggregate = Effect.fn('AggregateApi.admitAggregate', {
           aggregateVersion: props.aggregateVersion,
         }),
       ).pipe(Effect.flatMap(envelope => readRpcEnvelope(envelope)));
-
       const settled = yield* restore(
         Effect.gen(function* () {
           const request = yield* Schema.decodeUnknownEffect(
@@ -88,6 +87,11 @@ export const admitAggregate = Effect.fn('AggregateApi.admitAggregate', {
                 );
               }
               return request.claims;
+            }
+            if ('service' in policy) {
+              return yield* makeZerospinError(
+                'service-caller-session-forbidden',
+              );
             }
             if (!('credentials' in request)) {
               return yield* Effect.fail(
@@ -218,7 +222,7 @@ export const admitAggregate = Effect.fn('AggregateApi.admitAggregate', {
               prefix: 'Claims could not be encoded',
             }),
           );
-          // Only explicitly declared selection claims cross into selection callbacks or replica names.
+          // Only explicitly declared selection claims cross into selection callbacks or projection identities.
           const selected = Object.fromEntries(
             Object.keys(definition.identitySchema.fields).map(field => [
               field,
@@ -322,7 +326,6 @@ export const admitAggregate = Effect.fn('AggregateApi.admitAggregate', {
           };
         }),
       ).pipe(Effect.exit);
-
       // Interrupted admission leaves its already-persisted attempt unfinished.
       if (Exit.isFailure(settled)) {
         if (Cause.hasInterrupts(settled.cause)) {

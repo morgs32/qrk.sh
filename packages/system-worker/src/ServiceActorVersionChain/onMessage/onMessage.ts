@@ -1,14 +1,23 @@
+import type { Async } from '@zerospin/core/async/Async';
 import type { IDb } from '@zerospin/core/drizzle/types';
-import { filterServiceActorCommand } from '@zerospin/core/serviceSession/filterServiceActorCommand';
+import { filterServiceActorOutput } from '@zerospin/core/serviceSession/filterServiceActorOutput';
 import type { IServiceSessionLock } from '@zerospin/core/serviceSession/ServiceSessionLockSchema';
-import { catchZerospinError, type IAnyError } from '@zerospin/error';
+import {
+  catchZerospinError,
+  makeZerospinError,
+  mapParseError,
+  type IAnyError,
+} from '@zerospin/error';
 import { eq } from 'drizzle-orm';
 import { Effect, Result, Schema } from 'effect';
 import type { Connection, WSMessage } from 'partyserver';
 
 import { genesisDispositionHash } from '../../serviceDispositionHash/serviceDispositionHash.js';
-import { getActorCommands } from '../getActorCommands/getActorCommands.js';
+import { getActorOutputs } from '../getActorOutputs/getActorOutputs.js';
+import { getNodeOutcomes } from '../getNodeOutcomes.js';
 import { serviceActorVersionChainDbConfig } from '../serviceActorVersionChainDbConfig.js';
+
+import { pushServiceCommand } from './pushServiceCommand.js';
 
 /*
  * The service definition log handles the one initial resume message by
@@ -29,6 +38,7 @@ export const onMessage = Effect.fn('ServiceActorVersionChain.onMessage')(
   function* (props: {
     connection: Connection<{
       phase: 'awaiting-resume' | 'replaying' | 'live';
+      nodeId?: string | null;
       serviceName: string;
       serviceVersion: string;
       actorPath: string;
@@ -46,7 +56,7 @@ export const onMessage = Effect.fn('ServiceActorVersionChain.onMessage')(
       actorName: string;
       actorVersion: string;
     };
-  }): Effect.fn.Return<void, IAnyError> {
+  }): Effect.fn.Return<void, IAnyError, Async> {
     const { connection, db, key, message } = props;
 
     // 1 — capture the checked target and connection phase
@@ -58,6 +68,23 @@ export const onMessage = Effect.fn('ServiceActorVersionChain.onMessage')(
       connection.close(4003, 'state-required');
     };
 
+    if (state?.phase === 'live' && typeof message === 'string') {
+      const incoming = yield* Schema.decodeUnknownEffect(
+        Schema.fromJsonString(
+          Schema.Struct({
+            type: Schema.Literal('pushServiceCommand'),
+            command: Schema.Unknown,
+          }),
+        ),
+      )(message, { onExcessProperty: 'error' }).pipe(Effect.result);
+      if (Result.isSuccess(incoming)) {
+        yield* pushServiceCommand({
+          ...props,
+          input: incoming.success.command,
+        });
+        return;
+      }
+    }
     // 3 — check target fields, phase, and a string message
     if (
       state === null ||
@@ -78,7 +105,9 @@ export const onMessage = Effect.fn('ServiceActorVersionChain.onMessage')(
     const decodedResume = yield* Schema.decodeUnknownEffect(
       Schema.fromJsonString(
         Schema.Struct({
-          serviceIndex: Schema.Number.check(
+          nodeId: Schema.NullOr(Schema.NonEmptyString),
+          nodeIndex: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
+          executedIndex: Schema.Number.check(
             Schema.isInt(),
             Schema.isGreaterThanOrEqualTo(0),
           ),
@@ -92,9 +121,9 @@ export const onMessage = Effect.fn('ServiceActorVersionChain.onMessage')(
     }
 
     // 5 — compare the retained hash at the exact resume cursor
-    const resumeServiceIndex = decodedResume.success.serviceIndex;
+    const resumeExecutedIndex = decodedResume.success.executedIndex;
     const resumeServiceHash = decodedResume.success.serviceHash;
-    if (resumeServiceIndex === 0) {
+    if (resumeExecutedIndex === 0) {
       if (resumeServiceHash !== genesisDispositionHash()) {
         stateRequired();
         return;
@@ -103,13 +132,14 @@ export const onMessage = Effect.fn('ServiceActorVersionChain.onMessage')(
       const checkpoint = db
         .select({
           serviceHash:
-            serviceActorVersionChainDbConfig.schema.commands.serviceHash,
+            serviceActorVersionChainDbConfig.schema.browserCommands.serviceHash,
         })
-        .from(serviceActorVersionChainDbConfig.schema.commands)
+        .from(serviceActorVersionChainDbConfig.schema.browserCommands)
         .where(
           eq(
-            serviceActorVersionChainDbConfig.schema.commands.actorServiceIndex,
-            resumeServiceIndex,
+            serviceActorVersionChainDbConfig.schema.browserCommands
+              .executedIndex,
+            resumeExecutedIndex,
           ),
         )
         .get();
@@ -123,32 +153,85 @@ export const onMessage = Effect.fn('ServiceActorVersionChain.onMessage')(
     }
 
     // 6 — keep the admitted target while replaying retained output
-    connection.setState({ ...state, phase: 'replaying' });
+    const caller = { ...state, nodeId: decodedResume.success.nodeId };
+    connection.setState({ ...caller, phase: 'replaying' });
 
-    // 7 — reject a cursor beyond the tip and advance only after each send
-    let deliveredThroughServiceIndex = resumeServiceIndex;
-    for (;;) {
-      const page = yield* getActorCommands({
-        afterServiceIndex: deliveredThroughServiceIndex,
-        db,
-      });
-      if (page.tip < deliveredThroughServiceIndex) {
-        stateRequired();
-        return;
-      }
-      for (const command of page.commands) {
-        if (command.serviceIndex !== deliveredThroughServiceIndex + 1) {
+    if (caller.nodeId !== null) {
+      let afterNodeIndex = decodedResume.success.nodeIndex;
+      for (;;) {
+        const page = yield* getNodeOutcomes({
+          db,
+          nodeId: caller.nodeId,
+          sessionName: caller.sessionName,
+          claims: caller.claims,
+          afterNodeIndex,
+          throughExecutedIndex: resumeExecutedIndex,
+          models: caller.serviceSessionLock.models,
+        });
+        for (const output of page.outputs) {
+          connection.send(
+            JSON.stringify({ type: 'serviceActorOutput', output }),
+          );
+        }
+        afterNodeIndex = page.nodeThrough;
+        if (afterNodeIndex >= page.resolvedThrough) {
+          break;
+        }
+        if (page.outputs.length === 0) {
           stateRequired();
           return;
         }
+      }
+    }
+    // 7 — reject a cursor beyond the tip and advance only after each send
+    let deliveredThroughExecutedIndex = resumeExecutedIndex;
+    for (;;) {
+      const page = yield* getActorOutputs({
+        afterExecutedIndex: deliveredThroughExecutedIndex,
+        db,
+      });
+      if (page.tip < deliveredThroughExecutedIndex) {
+        stateRequired();
+        return;
+      }
+      for (const output of page.outputs) {
+        if (output.executedIndex !== deliveredThroughExecutedIndex + 1) {
+          stateRequired();
+          return;
+        }
+        const retained = db
+          .select()
+          .from(serviceActorVersionChainDbConfig.schema.browserCommands)
+          .where(
+            eq(
+              serviceActorVersionChainDbConfig.schema.browserCommands
+                .executedIndex,
+              output.executedIndex,
+            ),
+          )
+          .get();
+        if (retained === undefined) {
+          return yield* makeZerospinError('session-output-missing');
+        }
+        const owner =
+          (yield* serviceActorVersionChainDbConfig.tables.browserCommands
+            .decodeRow(retained)
+            .pipe(
+              mapParseError({
+                code: 'session-output-invalid',
+                prefix: 'Invalid retained output owner',
+              }),
+            )).caller;
         yield* Effect.try({
           try: () =>
             connection.send(
               JSON.stringify({
-                type: 'serviceActorCommand',
-                command: filterServiceActorCommand(
-                  command,
+                type: 'serviceActorOutput',
+                output: filterServiceActorOutput(
+                  output,
                   state.serviceSessionLock.models,
+                  caller,
+                  owner,
                 ),
               }),
             ),
@@ -157,22 +240,24 @@ export const onMessage = Effect.fn('ServiceActorVersionChain.onMessage')(
             message: 'Failed to replay an service definition command',
           }),
         });
-        deliveredThroughServiceIndex = command.serviceIndex;
+        deliveredThroughExecutedIndex = output.executedIndex;
       }
-      if (deliveredThroughServiceIndex === page.tip) break;
-      if (page.commands.length === 0) {
+      if (deliveredThroughExecutedIndex === page.tip) {
+        break;
+      }
+      if (page.outputs.length === 0) {
         stateRequired();
         return;
       }
     }
 
-    // 8 — send the final serviceIndex then set phase live
+    // 8 — send the final executedIndex then set phase live
     connection.send(
       JSON.stringify({
         type: 'replay-complete',
-        serviceIndex: deliveredThroughServiceIndex,
+        executedIndex: deliveredThroughExecutedIndex,
       }),
     );
-    connection.setState({ ...state, phase: 'live' });
+    connection.setState({ ...caller, phase: 'live' });
   },
 );

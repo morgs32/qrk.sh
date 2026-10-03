@@ -17,7 +17,7 @@ export const human = makeAggregateActorVersion(
     version: '1.0.0',
     db,
     identity,
-    queries: {
+    selections: {
       game: db.query.game.findMany({
         where: { id: { eq: identity.sql.placeholder('instanceId') } },
       }),

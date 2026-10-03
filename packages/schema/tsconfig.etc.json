@@ -7,9 +7,9 @@
     "allowImportingTsExtensions": true,
     "noEmit": true,
     "rewriteRelativeImportExtensions": false,
-    "types": ["node", "vitest/globals"]
+    "types": ["node"]
   },
-  "include": ["src/**/*.spec.ts", "vitest.config.ts"],
+  "include": [],
   "exclude": [],
   "references": [
     {

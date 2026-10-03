@@ -17,14 +17,27 @@
         }
       ]
     },
-    "test": {
-      "dependsOn": ["lib", "^lib"]
-    },
     "watch": {
       "continuous": true
     },
     "dev": {
       "continuous": true
+    },
+    "agent-preview:check": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["lib"],
+      "options": {
+        "command": "pnpm exec tsx src/agent/fixtures/agentDeclarations.ts",
+        "cwd": "packages/core"
+      }
+    },
+    "node-outcomes:check": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["lib"],
+      "options": {
+        "command": "pnpm exec tsx src/Node/fixtures/commandOutcomes.ts",
+        "cwd": "packages/core"
+      }
     }
   }
 }

@@ -9,7 +9,7 @@ export const PromotionDevelopmentLive = Layer.succeed(
       return yield* Effect.fail(
         sdk.makeZerospinError({
           code: 'promotion-simulation-disabled',
-          message: 'The checkout simulator is available only in development.',
+          message: 'The promotion simulator is available only in development.',
         }),
       );
     }

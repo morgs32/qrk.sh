@@ -16,24 +16,57 @@
         },
         {
           "target": "config:lib",
-          "projects": ["@zerospin/fixtures"]
+          "projects": []
         }
       ]
     },
     "dev": {
       "continuous": true
     },
-    "test:workerd": {
-      "executor": "nx:run-script",
-      "dependsOn": ["^lib"],
-      "options": {
-        "script": "test:workerd"
-      }
-    },
     "static-cutover:check": {
       "executor": "nx:run-commands",
       "options": {
         "command": "node scripts/checkStaticCutover.mjs",
+        "cwd": "{projectRoot}"
+      }
+    },
+    "contract-programs:check": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["^lib"],
+      "options": {
+        "command": "pnpm exec tsx src/fixtures/contractPrograms.ts",
+        "cwd": "packages/system-worker"
+      }
+    },
+    "async-contracts:check": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["^lib"],
+      "options": {
+        "command": "pnpm exec tsx src/fixtures/asyncContracts.ts",
+        "cwd": "packages/system-worker"
+      }
+    },
+    "async-contracts:runtime-check": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["^lib"],
+      "options": {
+        "command": "node scripts/checkAsyncContractsRuntime.mjs",
+        "cwd": "packages/system-worker"
+      }
+    },
+    "command-history:restart:check": {
+      "dependsOn": ["^lib"],
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node scripts/checkDurableCommandHistory.mjs",
+        "cwd": "{projectRoot}"
+      }
+    },
+    "actor-staging:check": {
+      "dependsOn": ["^lib"],
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node scripts/checkActorStaging.mjs",
         "cwd": "{projectRoot}"
       }
     }

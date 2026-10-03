@@ -4,7 +4,7 @@ import { Effect } from 'effect';
 
 import type { AggregateActorVersionRepo } from '../AggregateActorVersionRepo.js';
 
-/** The selected replica subscribes only to VAR's ordered output. */
+/** The actor projection subscribes only to VAR's ordered output. */
 export const onDOActivation = Effect.fn(
   'AggregateActorVersionRepo.onDOActivation',
 )(function* (props: {

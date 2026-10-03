@@ -1,14 +1,13 @@
 /**
- * Name deltas for the owner and phase of the command occurrence.
- * Use stagedDelta for tab-local execution and optimistic replay,
- * executionDelta for authoritative execution, and actorDelta for selected resources.
- * Filtering selected resources keeps the actorDelta field name.
- * Failed staging retains no command. Admission rejection skips execution.
- * Each failed phase owns one PublicFailureSchema value, with no nested JSON string.
- * Local-only sessions skip admission/execution; timestamps exist only for attempted phases.
+ * Keep stagedDelta with local staging and actorDelta with retained projection state.
+ * Browser IBrowserCommand exposes the session-filtered IActorDelta as delta.
+ * Its only other fields are id, commandName, and nullable terminal failure.
+ * Position, owner progress, and checkpoint hash belong to the delivery envelope.
+ * Server admission/execution results and timestamps remain server-side.
+ * Captures survive business rejection; committed outputs do not.
  *
- * @bad Call an actor command field delta or deliveredDelta.
- * @bad Rename actorDelta during delivery to a tab or node.
+ * @bad Add completion flags, phase summaries, or owner fields to IBrowserCommand.
+ * @bad Replace the original command ID with an occurrence ID.
  */
 export type ICommandDeltas = {
   staging: { startedAt: Date; completedAt: Date; stagedDelta: unknown };
@@ -16,7 +15,6 @@ export type ICommandDeltas = {
     status: 'succeeded';
     startedAt: Date;
     completedAt: Date;
-    executionDelta: unknown;
   };
   actorDelta: { upserted: readonly unknown[]; deleted: readonly unknown[] };
 };

@@ -1,12 +1,20 @@
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { makeAsync } from '@zerospin/core/async/make/makeAsync';
+import type { ServiceTerminalCommandSchema } from '@zerospin/core/contracts/CommandSchema';
 import { readRpcEnvelope } from '@zerospin/core/utils/readRpcEnvelope';
-import { makeZerospinError } from '@zerospin/error';
-import { makeRpcEnvelope } from '@zerospin/logger';
+import { makeZerospinError, type IZerospinErrorJson } from '@zerospin/error';
+import { makeRpcEnvelope, type IRpcEnvelope } from '@zerospin/logger';
 import config from 'config';
-import { and, asc, eq, inArray, isNull, lte } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 import { Effect, Semaphore } from 'effect';
 
+import { asyncOperationsDbConfig } from '../asyncOperations/asyncOperationsDbConfig.js';
+import { makeAsyncOperations } from '../asyncOperations/makeAsyncOperations.js';
+import {
+  makePreparedServiceCommand,
+  readPreparedAsyncWork,
+  resolveWorkContract,
+} from '../asyncOperations/readPreparedAsyncCommand.js';
 import type {
   IFanoutDelivery,
   IFanoutSubscriberRepo,
@@ -23,7 +31,10 @@ import { execute } from './execute/execute.js';
 import { executeCommands } from './executeCommands/executeCommands.js';
 import { executeServiceQuery } from './executeServiceQuery/executeServiceQuery.js';
 import { flush } from './flush/flush.js';
-import { getReplicatedResources } from './getReplicatedResources/getReplicatedResources.js';
+import {
+  readExecutedCommandsPage,
+  type IExecutedCommandDelivery,
+} from './readExecutedCommandsPage.js';
 import { serviceVersionRepoDbConfig } from './serviceVersionRepoDbConfig.js';
 import { serviceVersionRepoFixedDORepoConfig } from './serviceVersionRepoFixedDORepoConfig.js';
 export class ServiceVersionRepo
@@ -31,96 +42,176 @@ export class ServiceVersionRepo
     namespaceBinding: 'SERVICE_VERSION_REPO',
     fixedDORepoConfig: serviceVersionRepoFixedDORepoConfig,
   })
-  implements IFanoutSubscriberRepo<{ name: 'admissionResultsFanout' }>
+  implements
+    IFanoutSubscriberRepo<{
+      name: 'admissionResultsFanout';
+    }>
 {
   static override readonly fixedDORepoConfig =
     serviceVersionRepoFixedDORepoConfig;
 
-  readonly #execution = Semaphore.makeUnsafe(1);
-  readonly #executionResultsOutbox = makeOutboxQueue({
-    indexColumnName: 'serviceIndex',
-    name: 'executionResultsOutbox',
+  readonly #asyncCommandOutbox = makeOutboxQueue({
+    name: 'asyncCommandOutbox',
     db: this.db,
-    outboxTable: serviceVersionRepoDbConfig.schema.commands,
     alarmRegistry: this.alarmRegistry,
-    retention: 'delete',
+    outboxTable: asyncOperationsDbConfig.schema.asyncCommandOutbox,
+    indexColumnName: 'outboxIndex',
+
+    deliver: rows =>
+      Effect.gen({ self: this }, function* () {
+        const chain = yield* ServiceChain.getRepo({
+          key: {
+            systemId: this.key.systemId,
+            serviceName: this.key.serviceName,
+          },
+        });
+        for (const row of rows) {
+          const work = yield* readPreparedAsyncWork(
+            this.db,
+            row.asyncCommandId,
+          );
+          const owner =
+            config.system.services[this.key.serviceName]?.[
+              this.key.serviceVersion
+            ];
+          if (owner === undefined) {
+            return yield* makeZerospinError('async-owner-unavailable');
+          }
+          const contract = yield* resolveWorkContract(owner, work);
+          const command = yield* makePreparedServiceCommand(
+            work,
+            contract,
+            this.key,
+          );
+          yield* makeAsync<
+            Awaited<ReturnType<ServiceChain['admitAsyncCommand']>>
+          >(() =>
+            chain.admitAsyncCommand({
+              ownerVersion: this.key.serviceVersion,
+              command,
+            }),
+          ).pipe(Effect.flatMap(readRpcEnvelope));
+        }
+      }),
+  });
+  readonly #asyncOperations = makeAsyncOperations({
+    db: this.db,
+    alarms: this.alarmRegistry,
+    resolve: work =>
+      Effect.gen({ self: this }, function* () {
+        const owner =
+          config.system.services[this.key.serviceName]?.[
+            this.key.serviceVersion
+          ];
+        if (owner === undefined) {
+          return yield* makeZerospinError('async-operation-owner-unavailable');
+        }
+        return yield* resolveWorkContract(owner, work);
+      }),
+    run: program =>
+      config.system.runtime.runPromise(program.pipe(Effect.provide(AsyncLive))),
+    background: promise => this.ctx.waitUntil(promise),
+    deliver: () => this.#asyncCommandOutbox.drain(),
+  });
+  async getPreparedAsyncCommand(props: { commandId: string }) {
+    return config.system.runtime.runPromise(
+      Effect.gen({ self: this }, function* () {
+        const work = yield* readPreparedAsyncWork(this.db, props.commandId);
+        const owner =
+          config.system.services[this.key.serviceName]?.[
+            this.key.serviceVersion
+          ];
+        if (owner === undefined) {
+          return yield* makeZerospinError('async-operation-owner-unavailable');
+        }
+        const contract = yield* resolveWorkContract(owner, work);
+        return yield* makePreparedServiceCommand(work, contract, this.key);
+      }).pipe(makeRpcEnvelope),
+    );
+  }
+  readonly #execution = Semaphore.makeUnsafe(1);
+
+  override onDOActivation() {
+    return this.#asyncOperations.recover();
+  }
+  readonly #executedCommandOutbox = makeOutboxQueue({
+    indexColumnName: 'executedIndex',
+    name: 'executedCommandOutbox',
+    db: this.db,
+    outboxTable: serviceVersionRepoDbConfig.schema.executedCommandOutbox,
+    alarmRegistry: this.alarmRegistry,
+
     storage: {
-      readPage: throughIndex =>
-        this.db
-          .select()
-          .from(serviceVersionRepoDbConfig.schema.commands)
-          .where(
-            and(
-              isNull(serviceVersionRepoDbConfig.schema.commands.acknowledgedAt),
-              throughIndex === undefined
-                ? undefined
-                : lte(
-                    serviceVersionRepoDbConfig.schema.commands.serviceIndex,
-                    throughIndex,
-                  ),
-            ),
-          )
-          .orderBy(asc(serviceVersionRepoDbConfig.schema.commands.serviceIndex))
-          .limit(64)
-          .all()
-          .map(row => ({
-            index: row.serviceIndex,
-            row: {
-              ...row,
-              mutations: this.db
-                .select()
-                .from(serviceVersionRepoDbConfig.schema.mutations)
-                .where(
-                  eq(
-                    serviceVersionRepoDbConfig.schema.mutations.serviceIndex,
-                    row.serviceIndex,
-                  ),
-                )
-                .orderBy(
-                  asc(
-                    serviceVersionRepoDbConfig.schema.mutations.mutationIndex,
-                  ),
-                )
-                .all(),
-            },
-          })),
+      readPage: throughIndex => readExecutedCommandsPage(this.db, throughIndex),
       hasPending: () =>
         this.db
           .select({
-            index: serviceVersionRepoDbConfig.schema.commands.serviceIndex,
+            index:
+              serviceVersionRepoDbConfig.schema.executedCommandOutbox
+                .executedIndex,
           })
-          .from(serviceVersionRepoDbConfig.schema.commands)
-          .where(
-            isNull(serviceVersionRepoDbConfig.schema.commands.acknowledgedAt),
-          )
+          .from(serviceVersionRepoDbConfig.schema.executedCommandOutbox)
+
           .limit(1)
           .get() !== undefined,
       recordFailure: (indices, failure) => {
         this.db
-          .update(serviceVersionRepoDbConfig.schema.commands)
+          .update(serviceVersionRepoDbConfig.schema.executedCommandOutbox)
           .set({ lastDeliveryFailure: failure })
           .where(
-            inArray(serviceVersionRepoDbConfig.schema.commands.serviceIndex, [
-              ...indices,
-            ]),
+            inArray(
+              serviceVersionRepoDbConfig.schema.executedCommandOutbox
+                .executedIndex,
+              [...indices],
+            ),
           )
           .run();
       },
       acknowledge: indices => {
         this.db.transaction(tx => {
-          tx.delete(serviceVersionRepoDbConfig.schema.mutations)
+          const serviceIndices = tx
+            .select({
+              serviceIndex:
+                serviceVersionRepoDbConfig.schema.executedCommandOutbox
+                  .serviceIndex,
+            })
+            .from(serviceVersionRepoDbConfig.schema.executedCommandOutbox)
             .where(
               inArray(
-                serviceVersionRepoDbConfig.schema.mutations.serviceIndex,
+                serviceVersionRepoDbConfig.schema.executedCommandOutbox
+                  .executedIndex,
                 [...indices],
               ),
             )
-            .run();
-          tx.delete(serviceVersionRepoDbConfig.schema.commands)
+            .all()
+            .map(row => row.serviceIndex)
+            .filter((index): index is number => index !== null);
+          if (serviceIndices.length > 0) {
+            tx.delete(serviceVersionRepoDbConfig.schema.modelOperations)
+              .where(
+                inArray(
+                  serviceVersionRepoDbConfig.schema.modelOperations
+                    .serviceIndex,
+                  serviceIndices,
+                ),
+              )
+              .run();
+            tx.delete(serviceVersionRepoDbConfig.schema.commands)
+              .where(
+                inArray(
+                  serviceVersionRepoDbConfig.schema.commands.serviceIndex,
+                  serviceIndices,
+                ),
+              )
+              .run();
+          }
+          tx.delete(serviceVersionRepoDbConfig.schema.executedCommandOutbox)
             .where(
-              inArray(serviceVersionRepoDbConfig.schema.commands.serviceIndex, [
-                ...indices,
-              ]),
+              inArray(
+                serviceVersionRepoDbConfig.schema.executedCommandOutbox
+                  .executedIndex,
+                [...indices],
+              ),
             )
             .run();
         });
@@ -128,27 +219,30 @@ export class ServiceVersionRepo
     },
     deliver: rows =>
       Effect.gen({ self: this }, function* () {
-        const deliveries: (typeof serviceVersionRepoDbConfig.schema.commands.$inferSelect & {
-          mutations: readonly (typeof serviceVersionRepoDbConfig.schema.mutations.$inferSelect)[];
-        })[] = [];
+        const deliveries: IExecutedCommandDelivery[] = [];
         for (const row of rows) {
-          if (!('mutations' in row) || !Array.isArray(row.mutations)) {
-            return yield* makeZerospinError('execution-mutations-missing');
+          if (!('kind' in row)) {
+            return yield* makeZerospinError('service-publication-invalid');
           }
-          deliveries.push({ ...row, mutations: row.mutations });
+          deliveries.push(row);
         }
         const chain = yield* ServiceVersionChain.getRepo({
           key: this.key,
         });
-        const receiver = yield* makeAsync(() => chain.resultsSubscriber);
-        yield* makeAsync(() => receiver.receive(deliveries)).pipe(
-          Effect.flatMap(envelope => readRpcEnvelope(envelope)),
+        yield* Effect.acquireUseRelease(
+          makeAsync(() => chain.executedCommandSubscriber),
+          receiver =>
+            makeAsync(() => receiver.receive(deliveries)).pipe(
+              Effect.flatMap(envelope => readRpcEnvelope(envelope)),
+            ),
+          receiver => Effect.sync(() => receiver[Symbol.dispose]()),
         );
       }),
   });
-  get executionResultsOutbox() {
-    return this.#executionResultsOutbox;
+  get executedCommandOutbox() {
+    return this.#executedCommandOutbox;
   }
+
   admissionResultsFanoutSubscriber(sourceKey: {
     systemId: string;
     serviceName: string;
@@ -185,18 +279,24 @@ export class ServiceVersionRepo
       }: IFanoutDelivery<
         Parameters<typeof executeCommands>[0]['rows'][number]
       >) =>
-        this.#executionResultsOutbox.drainAfter(() =>
-          Effect.gen({ self: this }, function* () {
-            yield* this.#execution.withPermits(1)(
-              executeCommands({ db: this.db, key: this.key, rows }),
-            );
-          }),
+        this.#asyncOperations.afterExecution(() =>
+          this.#executedCommandOutbox.drainAfter(() =>
+            Effect.gen({ self: this }, function* () {
+              yield* this.#execution.withPermits(1)(
+                executeCommands({ db: this.db, key: this.key, rows }),
+              );
+            }),
+          ),
         ),
     });
   }
-  async execute(props: { serviceIndex: number }) {
+  async execute(props: {
+    serviceIndex: number;
+  }): Promise<
+    IRpcEnvelope<typeof ServiceTerminalCommandSchema.Type, IZerospinErrorJson>
+  > {
     return config.system.runtime.runPromise(
-      this.#executionResultsOutbox
+      this.#executedCommandOutbox
         .drainAfter(() =>
           Effect.gen({ self: this }, function* () {
             return yield* execute({
@@ -215,11 +315,16 @@ export class ServiceVersionRepo
   }
   async flush(serviceIndex: number) {
     return config.system.runtime.runPromise(
-      flush({
-        serviceIndex,
-        repo: this,
-        executionResultsOutbox: this.#executionResultsOutbox,
-        key: this.key,
+      Effect.gen({ self: this }, function* () {
+        const chain = yield* ServiceVersionChain.getRepo({ key: this.key });
+        return yield* flush({
+          serviceIndex,
+          repo: this,
+          chain,
+          executedCommandOutbox: this.#executedCommandOutbox,
+          db: this.db,
+          key: this.key,
+        });
       }).pipe(Effect.provide(AsyncLive), makeRpcEnvelope),
     );
   }
@@ -230,7 +335,7 @@ export class ServiceVersionRepo
     >,
   ) {
     return config.system.runtime.runPromise(
-      this.#executionResultsOutbox
+      this.#executedCommandOutbox
         .drainAfter(() =>
           Effect.gen({ self: this }, function* () {
             yield* makeAsync(() =>
@@ -259,7 +364,7 @@ export class ServiceVersionRepo
     >,
   ) {
     return config.system.runtime.runPromise(
-      this.#executionResultsOutbox
+      this.#executedCommandOutbox
         .drainAfter(() =>
           Effect.gen({ self: this }, function* () {
             yield* makeAsync(() =>
@@ -276,33 +381,6 @@ export class ServiceVersionRepo
                 db: this.db,
               }),
             );
-          }),
-        )
-        .pipe(Effect.provide(AsyncLive), makeRpcEnvelope),
-    );
-  }
-  async getReplicatedResources(
-    props: Omit<
-      Parameters<typeof getReplicatedResources>[0],
-      'db' | 'serviceVersion' | 'serviceName'
-    >,
-  ) {
-    return config.system.runtime.runPromise(
-      this.#executionResultsOutbox
-        .drainAfter(() =>
-          Effect.gen({ self: this }, function* () {
-            yield* makeAsync(() =>
-              this.admissionResultsFanoutSubscriber({
-                systemId: this.key.systemId,
-                serviceName: this.key.serviceName,
-              }).catchup(),
-            ).pipe(Effect.flatMap(envelope => readRpcEnvelope(envelope)));
-            return yield* getReplicatedResources({
-              ...props,
-              serviceName: this.key.serviceName,
-              serviceVersion: this.key.serviceVersion,
-              db: this.db,
-            });
           }),
         )
         .pipe(Effect.provide(AsyncLive), makeRpcEnvelope),

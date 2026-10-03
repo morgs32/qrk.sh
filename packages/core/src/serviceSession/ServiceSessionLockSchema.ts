@@ -1,6 +1,8 @@
 import { encodedShapeSchema } from '@zerospin/schema';
 import { Schema } from 'effect';
 
+import { AggregateSessionLockSchema } from '../aggregateSession/AggregateSessionLockSchema.ts';
+
 export const ServiceSessionLockSchema = Schema.Struct({
   sessionName: Schema.String,
   actorName: Schema.String,
@@ -8,6 +10,7 @@ export const ServiceSessionLockSchema = Schema.Struct({
   claims: Schema.Struct({
     claimsJsonSchema: Schema.Unknown,
   }),
+  contracts: AggregateSessionLockSchema.fields.contracts,
   models: Schema.Record(
     Schema.String,
     Schema.Struct({

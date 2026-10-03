@@ -3,6 +3,7 @@ import { makeAggregateVersion } from '@zerospin/core/aggregate/make/makeAggregat
 import { makeZerospinError } from '@zerospin/error';
 import { Effect } from 'effect';
 
+import { computerOperator } from './computerOperatorV1';
 import { createGame } from './contracts/createGameV1';
 import { playO } from './contracts/playOV1';
 import { playX } from './contracts/playXV1';
@@ -16,7 +17,7 @@ export const aggregate = makeAggregateVersion(
     version: '1.0.0',
     models: { game },
     contracts: { createGame, playX, playO },
-    actors: { human },
+    actors: { human, computerOperator },
     guards: {
       human: {
         playX: Effect.fn('game.authoritativePlayX')(function* ({

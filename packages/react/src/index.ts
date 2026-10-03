@@ -1,3 +1,4 @@
+export { stageServiceCommand } from '@zerospin/core/serviceSession/stageServiceCommand';
 export { stageCommand } from '@zerospin/core/aggregateSession/stageCommand/stageCommand';
 export { loadDevtools } from './loadDevtools/loadDevtools.js';
 export { useClaims } from './useClaims.js';

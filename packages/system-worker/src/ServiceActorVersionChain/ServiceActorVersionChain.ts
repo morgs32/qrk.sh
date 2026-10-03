@@ -1,5 +1,6 @@
 import { RoutePattern } from '@remix-run/route-pattern';
-import { filterServiceActorCommand } from '@zerospin/core/serviceSession/filterServiceActorCommand';
+import { AsyncLive } from '@zerospin/core/async/AsyncLive';
+import { filterServiceActorOutput } from '@zerospin/core/serviceSession/filterServiceActorOutput';
 import type { IServiceSessionLock } from '@zerospin/core/serviceSession/ServiceSessionLockSchema';
 import { makeZerospinError } from '@zerospin/error';
 import { makeRpcEnvelope } from '@zerospin/logger';
@@ -18,10 +19,11 @@ import { makeOutboxSubscriber } from '../makeOutboxSubscriber/makeOutboxSubscrib
 import { resolveServiceActorView } from '../ServiceActorVersionRepo/resolveServiceActorView.js';
 import { systemWorkerAbbreviations } from '../systemWorkerAbbreviations.js';
 
-import { getActorCommands } from './getActorCommands/getActorCommands.js';
+import { getActorOutputs } from './getActorOutputs/getActorOutputs.js';
+import { getNodeOutcomes } from './getNodeOutcomes.js';
 import { onConnect } from './onConnect/onConnect.js';
 import { onMessage } from './onMessage/onMessage.js';
-import { receiveActorCommands } from './receiveActorCommands/receiveActorCommands.js';
+import { receiveActorOutputs } from './receiveActorOutputs/receiveActorOutputs.js';
 import { serviceActorVersionChainDbConfig } from './serviceActorVersionChainDbConfig.js';
 
 const serviceActorVersionChainFixedDORepoConfig = makeFixedDORepoConfig({
@@ -55,15 +57,16 @@ export class ServiceActorVersionChain extends makeFixedDORepo({
   static override readonly fixedDORepoConfig =
     serviceActorVersionChainFixedDORepoConfig;
 
-  readonly #actorCommandsSubscriber = makeOutboxSubscriber({
-    name: 'actorCommands',
-    receive: (rows: Parameters<typeof receiveActorCommands>[0]['rows']) =>
-      receiveActorCommands({
+  readonly #browserCommandSubscriber = makeOutboxSubscriber({
+    name: 'browserCommand',
+    receive: (rows: Parameters<typeof receiveActorOutputs>[0]['rows']) =>
+      receiveActorOutputs({
         rows,
         db: this.db,
-        broadcast: command => {
+        broadcast: (output, owner) => {
           for (const connection of this.getConnections<{
             phase: 'awaiting-resume' | 'replaying' | 'live';
+            nodeId?: string | null;
             serviceName: string;
             serviceVersion: string;
             actorPath: string;
@@ -72,35 +75,39 @@ export class ServiceActorVersionChain extends makeFixedDORepo({
             serviceSessionLock: IServiceSessionLock;
           }>()) {
             if (connection.state?.phase === 'replaying') {
-              connection.close(1012, 'service-session-command-replay-raced');
+              connection.close(1012, 'service-session-output-replay-raced');
               continue;
             }
-            if (connection.state?.phase !== 'live') continue;
+            if (connection.state?.phase !== 'live') {
+              continue;
+            }
             try {
               connection.send(
                 JSON.stringify({
-                  type: 'serviceActorCommand',
-                  command: filterServiceActorCommand(
-                    command,
+                  type: 'serviceActorOutput',
+                  output: filterServiceActorOutput(
+                    output,
                     connection.state.serviceSessionLock.models,
+                    connection.state,
+                    owner,
                   ),
                 }),
               );
             } catch {
-              connection.close(1011, 'service-session-command-send-failed');
+              connection.close(1011, 'service-session-output-send-failed');
             }
           }
         },
       }),
   });
   /*
-   * Exposes the already bound actorCommandsSubscriber capability from ServiceActorVersionChain.
+   * Exposes the already bound browserCommandSubscriber capability from ServiceActorVersionChain.
    *
    * 1. Return the bound capability.
    */
-  get actorCommandsSubscriber() {
+  get browserCommandSubscriber() {
     // 1 — reuse the existing private queue/subscriber instance
-    return this.#actorCommandsSubscriber;
+    return this.#browserCommandSubscriber;
   }
 
   /*
@@ -110,13 +117,21 @@ export class ServiceActorVersionChain extends makeFixedDORepo({
    *
    * 1. Run the bound domain operation.
    */
-  async getActorCommands(props: { afterServiceIndex: number }) {
-    const { afterServiceIndex } = props;
-
-    // 1 — run getActorCommands with the instance-bound dependencies and encode its RPC outcome
+  async getNodeOutcomes(
+    props: Omit<Parameters<typeof getNodeOutcomes>[0], 'db'>,
+  ) {
     return config.system.runtime.runPromise(
-      getActorCommands({
-        afterServiceIndex,
+      getNodeOutcomes({ ...props, db: this.db }).pipe(makeRpcEnvelope),
+    );
+  }
+
+  async getActorOutputs(props: { afterExecutedIndex: number }) {
+    const { afterExecutedIndex } = props;
+
+    // 1 — run getActorOutputs with the instance-bound dependencies and encode its RPC outcome
+    return config.system.runtime.runPromise(
+      getActorOutputs({
+        afterExecutedIndex,
         db: this.db,
       }).pipe(makeRpcEnvelope),
     );
@@ -132,6 +147,7 @@ export class ServiceActorVersionChain extends makeFixedDORepo({
   async onConnect(
     connection: Connection<{
       phase: 'awaiting-resume' | 'replaying' | 'live';
+      nodeId?: string | null;
       serviceName: string;
       serviceVersion: string;
       actorPath: string;
@@ -157,6 +173,7 @@ export class ServiceActorVersionChain extends makeFixedDORepo({
   async onMessage(
     connection: Connection<{
       phase: 'awaiting-resume' | 'replaying' | 'live';
+      nodeId?: string | null;
       serviceName: string;
       serviceVersion: string;
       actorPath: string;
@@ -174,6 +191,7 @@ export class ServiceActorVersionChain extends makeFixedDORepo({
         db: this.db,
         key: this.key,
       }).pipe(
+        Effect.provide(AsyncLive),
         Effect.catch(() =>
           Effect.sync(() =>
             connection.close(1011, 'service-session-command-replay-failed'),

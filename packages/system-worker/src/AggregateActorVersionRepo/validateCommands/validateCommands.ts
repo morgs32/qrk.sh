@@ -54,7 +54,7 @@ export const validateCommands = Effect.fn(
       .map(row => ({
         commandId: row.id,
         appliedAt: row.stagedAt,
-        mutations: row.mutations,
+        operations: row.operations,
       })),
   });
   const context = yield* config.system.runtime.contextEffect;

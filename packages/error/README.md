@@ -69,19 +69,6 @@ const error = new ZerospinError({
 Use `ZerospinError.makeClass` when a named error class always has the same
 code and optionally the same default message:
 
-```typescript
-class StaleMachineStateError extends ZerospinError.makeClass({
-  code: 'zmachine-state-stale',
-  message: 'Cannot update or transition an unmounted machine state',
-}) {}
-
-const stale = new StaleMachineStateError();
-const contextual = new StaleMachineStateError({
-  cause: 'State revision 4 is no longer mounted',
-  message: 'Cannot update state revision 4',
-});
-```
-
 The class code cannot be overridden. An instance message overrides the class
 default; when both are omitted, the code is used as the message. Instances keep
 the common `_tag: 'ZerospinError'`. Named subclass identity is local to the

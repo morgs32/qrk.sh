@@ -3,9 +3,9 @@
   "compilerOptions": {
     "rootDir": ".",
     "noEmit": true,
-    "types": ["node", "vite/client", "vitest/globals"]
+    "types": ["node", "vite/client"]
   },
-  "include": ["src/**/*.spec.ts", "src/**/*.spec.tsx", "vitest.config.ts"],
+  "include": [],
   "references": [
     {
       "path": "./tsconfig.json"

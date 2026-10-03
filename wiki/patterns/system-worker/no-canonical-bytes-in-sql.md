@@ -1,7 +1,7 @@
 # Never store canonical bytes in SQL
 
 Storing canonical bytes of anything in a SQL database is absolutely prohibited.
-This includes admission records, command histories, outboxes, replica projection
+This includes admission records, command histories, outboxes, actor projection
 checkpoints, and browser SQL journals. A different column name or SQL type does
 not make a canonical JSON string, text value, or blob acceptable.
 

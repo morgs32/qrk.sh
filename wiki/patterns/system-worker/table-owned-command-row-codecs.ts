@@ -11,7 +11,7 @@ const dbConfig = makeDbConfig({
         actorDelta: primitives.json({
           schema: Schema.Struct({ changed: Schema.Array(Schema.String) }),
         }),
-        acknowledgedAt: primitives.date({ nullable: true }),
+        lastDeliveryFailure: primitives.text({ nullable: true }),
       },
     }),
   },
@@ -34,19 +34,19 @@ export const readCommand = (row: unknown) =>
 export const writeCommand = (row: {
   id: `cmd_${string}`;
   actorDelta: { readonly changed: readonly string[] };
-  acknowledgedAt: Date | null;
+  lastDeliveryFailure: string | null;
 }) => dbConfig.tables.commands.encodeRow(row);
 
-export const encodeDeliveryPatch = (date: Date) =>
+export const encodeDeliveryPatch = (failure: string | null) =>
   Schema.encodeEffect(
-    makeEffectSchema(dbConfig.tables.commands.shape).fields.acknowledgedAt,
-  )(date);
+    makeEffectSchema(dbConfig.tables.commands.shape).fields.lastDeliveryFailure,
+  )(failure);
 
 export const example = Effect.gen(function* () {
   const decoded = yield* readCommand({
     id: 'cmd_one',
     actorDelta: '{"changed":[]}',
-    acknowledgedAt: null,
+    lastDeliveryFailure: null,
   });
   return yield* writeCommand(decoded);
 });

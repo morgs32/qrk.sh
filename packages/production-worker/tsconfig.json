@@ -37,16 +37,13 @@
       "@zerospin/core/*": ["../core/src/*"],
       "system-worker/*": ["../../packages/system-worker/src/*"],
       "system-worker": ["../../packages/system-worker/src/index.ts"],
-      "config": ["../fixtures/src/config/config.ts"]
+      "config": ["../system-worker/src/config.d.ts"]
     }
   },
   "include": ["src/**/*.ts", "src/**/*.d.ts"],
   "references": [
     {
       "path": "../system-worker"
-    },
-    {
-      "path": "../fixtures/tsconfig.config.json"
     },
     {
       "path": "../schema"

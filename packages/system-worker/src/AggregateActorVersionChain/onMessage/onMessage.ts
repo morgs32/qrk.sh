@@ -1,4 +1,3 @@
-import type { IAggregateSessionLock } from '@zerospin/core/aggregateSession/AggregateSessionLockSchema';
 import type { Async } from '@zerospin/core/async/Async';
 import { makeAsync } from '@zerospin/core/async/make/makeAsync';
 import { EncodedAggregateCommandSchema } from '@zerospin/core/contracts/CommandSchema';
@@ -27,11 +26,11 @@ import { AggregateActorVersionRepo } from '../../AggregateActorVersionRepo/Aggre
 import { genesisExecutedHash } from '../../executedDispositionHash/executedDispositionHash.js';
 import { SystemLogRepo } from '../../SystemLogRepo/SystemLogRepo.js';
 import { aggregateActorVersionChainDbConfig } from '../aggregateActorVersionChainDbConfig.js';
-import { getActorCommands } from '../getActorCommands/getActorCommands.js';
+import { getActorOutputs } from '../getActorOutputs/getActorOutputs.js';
 
 /*
  * The aggregate definition log validates resume, then admits complete commands over
- * its live socket and returns linked receipts without blocking selected delivery.
+ * its live socket and returns linked admittedCommands without blocking selected delivery.
  * It validates the initial resume checkpoint, then replays missing executions
  * and owned results in one ordered stream before marking the connection live.
  * Invalid state, an unavailable cursor, or a mismatched hash requests a fresh
@@ -60,10 +59,9 @@ export const onMessage = Effect.fn('AggregateActorVersionChain.onMessage')(
       actorPath: string;
       claims: Readonly<Record<string, unknown>>;
       sessionName: string;
-      aggregateSessionLock: IAggregateSessionLock;
     }>;
     message: WSMessage;
-    db: IDb;
+    db: IDb<typeof aggregateActorVersionChainDbConfig>;
     key: {
       aggregateVersion: string;
       systemId: string;
@@ -97,6 +95,17 @@ export const onMessage = Effect.fn('AggregateActorVersionChain.onMessage')(
       state.actorPath !== key.actorPath ||
       typeof message !== 'string'
     ) {
+      stateRequired();
+      return;
+    }
+
+    // Resolve the admitted lock from durable storage, including after hibernation.
+    const retainedLock = db.query.connectionLocks
+      .findFirst({
+        where: { connectionId: { eq: connection.id } },
+      })
+      .sync();
+    if (retainedLock === undefined) {
       stateRequired();
       return;
     }
@@ -184,7 +193,7 @@ export const onMessage = Effect.fn('AggregateActorVersionChain.onMessage')(
         }
 
         const selectedContract =
-          state.aggregateSessionLock.contracts[command.commandName];
+          retainedLock.lock.contracts[command.commandName];
         if (
           selectedContract === undefined ||
           selectedContract.commandName !== command.commandName ||
@@ -275,7 +284,10 @@ export const onMessage = Effect.fn('AggregateActorVersionChain.onMessage')(
           Effect.gen(function* () {
             return {
               result: yield* encodeError(error).pipe(
-                Effect.map(failure => ({ _tag: 'Failure' as const, failure })),
+                Effect.map(failure => ({
+                  _tag: 'Failure' as const,
+                  failure,
+                })),
               ),
               link: null,
             };
@@ -339,12 +351,14 @@ export const onMessage = Effect.fn('AggregateActorVersionChain.onMessage')(
       const checkpoint = db
         .select({
           executedHash:
-            aggregateActorVersionChainDbConfig.schema.commands.executedHash,
+            aggregateActorVersionChainDbConfig.schema.browserCommands
+              .executedHash,
         })
-        .from(aggregateActorVersionChainDbConfig.schema.commands)
+        .from(aggregateActorVersionChainDbConfig.schema.browserCommands)
         .where(
           eq(
-            aggregateActorVersionChainDbConfig.schema.commands.executedIndex,
+            aggregateActorVersionChainDbConfig.schema.browserCommands
+              .executedIndex,
             resumeExecutedIndex,
           ),
         )
@@ -369,7 +383,7 @@ export const onMessage = Effect.fn('AggregateActorVersionChain.onMessage')(
     let outcomeIndex = decodedResume.success.nodeIndex;
     let deliveredThroughExecutedIndex = resumeExecutedIndex;
     for (;;) {
-      const page = yield* getActorCommands({
+      const page = yield* getActorOutputs({
         afterExecutedIndex: deliveredThroughExecutedIndex,
         nodeId: decodedResume.success.nodeId,
         afterNodeIndex: outcomeIndex,
@@ -377,20 +391,19 @@ export const onMessage = Effect.fn('AggregateActorVersionChain.onMessage')(
         definition: {
           name: state.sessionName,
           claims: state.claims,
-          lock: state.aggregateSessionLock,
+          lock: retainedLock.lock,
         },
       });
       if (page.tip < deliveredThroughExecutedIndex) {
         stateRequired();
         return;
       }
-      for (const command of page.commands) {
+      for (const command of page.outputs) {
         const newExecution =
           command.executedIndex > deliveredThroughExecutedIndex;
         if (
-          (newExecution &&
-            command.executedIndex !== deliveredThroughExecutedIndex + 1) ||
-          (command.nodeIndex !== null && command.nodeIndex !== outcomeIndex + 1)
+          newExecution &&
+          command.executedIndex !== deliveredThroughExecutedIndex + 1
         ) {
           stateRequired();
           return;
@@ -398,23 +411,25 @@ export const onMessage = Effect.fn('AggregateActorVersionChain.onMessage')(
         yield* Effect.try({
           try: () =>
             connection.send(
-              JSON.stringify({ type: 'aggregateActorCommand', command }),
+              JSON.stringify({ type: 'aggregateActorOutput', output: command }),
             ),
           catch: catchZerospinError({
             code: 'aggregate-session-command-send-failed',
             message: 'Failed to replay an aggregate definition command',
           }),
         });
-        if (newExecution) deliveredThroughExecutedIndex = command.executedIndex;
-        if (command.nodeIndex !== null) outcomeIndex = command.nodeIndex;
+        if (newExecution) {
+          deliveredThroughExecutedIndex = command.executedIndex;
+        }
       }
+      outcomeIndex = page.nodeThrough;
       if (
-        page.commands.length < 64 &&
+        page.outputs.length < 64 &&
         deliveredThroughExecutedIndex === page.tip
       ) {
         break;
       }
-      if (page.commands.length === 0) {
+      if (page.outputs.length === 0) {
         stateRequired();
         return;
       }

@@ -16,24 +16,17 @@
     "clean": "rimraf dist tsconfig.tsbuildinfo",
     "lib": "pnpm run clean && tsc -b tsconfig.json",
     "ts": "tsc -p tsconfig.etc.json --noEmit",
-    "test": "vitest run --config vitest.config.ts",
-    "test:vitest:browser": "vitest run --config vitest.playwright.config.ts",
-    "test:vitest:browser:platform": "vitest run --config vitest.playwright.platform.config.ts",
-    "e2e": "vitest run --config vitest.workerd.config.ts && vitest run --config vitest.playwright.config.ts",
     "lint": "oxlint . --format stylish"
   },
   "dependencies": {
     "agents": "^0.17.0"
   },
   "devDependencies": {
-    "@cloudflare/vitest-plugin": "^1.1.2",
     "@effect/language-service": "^0.87.2",
     "@types/node": "^25.6.2",
     "@types/react": "^19.2.17",
-    "@vitest/browser-playwright": "^4.1.5",
     "@zerospin/core": "workspace:*",
     "@zerospin/error": "workspace:*",
-    "@zerospin/fixtures": "workspace:*",
     "@zerospin/logger": "workspace:*",
     "capnweb": "^0.12.0",
     "cloudflare": "^6.1.0",
@@ -41,8 +34,6 @@
     "react": "19.2.7",
     "react-dom": "19.2.7",
     "rimraf": "^6.1.3",
-    "vitest": "^4.1.5",
-    "vitest-browser-react": "^2.2.0",
     "wrangler": "^4.127.1"
   }
 }

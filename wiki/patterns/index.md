@@ -4,15 +4,9 @@ Keyword → pattern file routing. Code shows good; `@bad` JSDoc tags document an
 
 ## declarations
 
-- [Declaration casing](typescript/declaration-casing.md): camelCase domain declarations and filenames; PascalCase classes, Effect tags, React contexts, and JSX tags; preserve constants, schema values, Effect layers, state-machine states, and type naming.
-- [One versioned declaration per file](declarations/one-version-per-file.ts): model version, contract version, aggregate version, aggregate actor version, service actor version, service version, system version, makeActorDbVersion, version ownership, shared guards, registries.
-- [Plain domain modules](declarations/plain-domain-modules.ts): domain factories, final model and contract objects, checked collection merges, aggregate and service attachment, automations.
-
 ## system-worker
 
-- [Automation group recovery](system-worker/automation-group-recovery.md): captured optimistic views, sibling failures, service recovery serialization, terminal staging rejections.
-
-- [Repo schema, activation, and alarms](system-worker/repo-lifecycle.md): makeFixedDORepo, makeMigratableDORepo, onDOActivation, alarmRegistry, source subscriptions.
+- [Repo schema, activation, and alarms](system-worker/repo-lifecycle.md): makeFixedDORepo, makeMigratableDORepo, onDOActivation, alarmRegistry, materializer and actor fanout.
 - [Identity and SystemRepo ownership](system-worker/identity-and-ownership.md): exact tuple fields, identity versus admission, SystemRepo responsibilities.
 - [Never store canonical bytes in SQL](system-worker/no-canonical-bytes-in-sql.md): canonicalBytes, canonical JSON, SQL blobs, command rows, projection checkpoints, replay, deduplication, hashes; requires deep architectural design discussion.
 
@@ -24,23 +18,22 @@ Keyword → pattern file routing. Code shows good; `@bad` JSDoc tags document an
 | makeDeliveryQueue, default retry, outbox diagnostic, no retry counters                                                                                                                                                                                                                                            | `system-worker/effect-retry-no-persisted-counters.ts`             |
 | aggregate Repo, actor.contracts, recorded actor lineage, contract lookup                                                                                                                                                                                                                                          | `system-worker/versioned-aggregate-repo-contract-lookup.ts`       |
 | command chain admission, Repo execution, terminal history, subscriber fanout                                                                                                                                                                                                                                      | `system-worker/aggregate-chain-materialization.ts`                |
-| complete command occurrence, chain, outbox, RPC, websocket, replica journal                                                                                                                                                                                                                                       | `system-worker/preserve-command-payloads-across-chains.ts`        |
+| complete command occurrence, chain, outbox, RPC, websocket, session journal                                                                                                                                                                                                                                       | `system-worker/preserve-command-payloads-across-chains.ts`        |
 | repo DB init, table graph, makeDbConfig                                                                                                                                                                                                                                                                           | `system-worker/repo-db-init-merged-schema.ts`                     |
 | makeFixedDORepoConfig, getDbConfig, contextual callbacks                                                                                                                                                                                                                                                          | `system-worker/make-fixed-do-repo-config-contextual-callbacks.ts` |
 | repo abbreviation, persisted \*RepoName, delivery                                                                                                                                                                                                                                                                 | `system-worker/persist-prefixed-repo-name-delivery.ts`            |
 | makeAsync, readResult, IResult inference                                                                                                                                                                                                                                                                          | `system-worker/makeasync-infer-rpc-success.ts`                    |
 | commands insert, SQL variables limit                                                                                                                                                                                                                                                                              | `system-worker/commands-inserts-one-row-per-statement.ts`         |
 | Repo.getRepo, namespaceBinding, DORepoNamespaces, SystemRepo singleton                                                                                                                                                                                                                                            | `system-worker/repo-lookup-ownership.ts`                          |
-| vitest node workerd, spec suffix                                                                                                                                                                                                                                                                                  | `system-worker/vitest-runtime-boundaries.ts`                      |
 | Repo.getRepo, namespaceBinding, fixedDORepoConfig statics                                                                                                                                                                                                                                                         | `system-worker/use-fixed-do-repo-config-static-access.ts`         |
 | inline non-public repo helper                                                                                                                                                                                                                                                                                     | `system-worker/inline-small-repo-logic-into-do-method.ts`         |
 | IOutboxRepo, IOutboxSubscriberRepo, makeOutboxQueue, makeOutboxSubscriber, IFanoutRepo, IFanoutSubscriberRepo, IFanoutDelivery, fanout queue getter, sourceKey method accessor, getPage, fixed-destination catchup, subscribe, makeFanoutQueue, makeFanoutSubscriber, inline queue, no one-consumer queue factory | `system-worker/i-fanout-repo.ts`                                  |
 | Repo JSDoc, architecture sync                                                                                                                                                                                                                                                                                     | `system-worker/repo-and-api-jsdoc-in-sync.ts`                     |
 | AggregateActorVersionRepo push, optimistic journal, aggregate forwarding                                                                                                                                                                                                                                          | `system-worker/aggregate-session-admission.ts`                    |
-| AggregateActorVersionRepo selection, source replica, projection, optimistic replay                                                                                                                                                                                                                                | `system-worker/versioned-aggregate-replica-owned-projection.ts`   |
+| AggregateActorVersionRepo selection, actor projection, optimistic replay                                                                                                                                                                                                                                          | `system-worker/versioned-aggregate-actor-owned-projection.ts`     |
 | makeTx program, explicit db and tx arguments, typed transaction                                                                                                                                                                                                                                                   | `system-worker/maketx-program-effect-fn.ts`                       |
 | Table.decodeRow, Table.encodeRow, dbConfig.tables, complete SQL row, partial field codec, encoded transfer                                                                                                                                                                                                        | `system-worker/table-owned-command-row-codecs.ts`                 |
-| staging, admission, execution, structured failure, stagedDelta, executionDelta, actorDelta, selected resource naming                                                                                                                                                                                              | `system-worker/command-delta-names.ts`                            |
+| staging, admission, execution, structured failure, stagedDelta, owned operations, actorDelta, selected resource naming                                                                                                                                                                                            | `system-worker/command-delta-names.ts`                            |
 | makeTx atomic writes, single statement write                                                                                                                                                                                                                                                                      | `system-worker/maketx-only-for-atomic-multi-statement-writes.ts`  |
 | Effect.sync drizzle, sync db query, tx.select                                                                                                                                                                                                                                                                     | `tooling/sync-drizzle-no-effect-sync.ts`                          |
 | read-only Drizzle, makeTx                                                                                                                                                                                                                                                                                         | `system-worker/read-only-drizzle-on-db-not-maketx.ts`             |
@@ -66,22 +59,20 @@ Keyword → pattern file routing. Code shows good; `@bad` JSDoc tags document an
 
 - [Explicit failures at each use site](contracts/explicit-failures-at-use-site.ts): failures, camelCase, inline error schemas, injected constructors, default null extra, declared errors.
 
-| Keywords                                                              | File                                                   |
-| --------------------------------------------------------------------- | ------------------------------------------------------ |
-| Effect.all program                                                    | `contracts/contract-program-effect-all.ts`             |
-| makeContractVersion mutation only                                     | `contracts/make-contract-mutation-only-return.ts`      |
-| registry model scope, contract mutations                              | `contracts/contract-mutations-stay-in-owner-models.ts` |
-| IEncodedCommand boundary                                              | `contracts/iencoded-command-at-boundary-only.ts`       |
-| omit program payload-only                                             | `contracts/omit-program-not-dummy-yields.ts`           |
-| upgradeContractVersion, up, down, Effect.fn, fixture, spec, typecheck | `contracts/upgrade-payload-edges-effect-fn.ts`         |
+| Keywords                                                                                                                                       | File                                                   |
+| ---------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| Effect.gen, operation emission, result codec, synchronous collector, mapContractVersion, explicit async capabilities, original staging, replay | `contracts/contract-program-emission-and-result.ts`    |
+| registry model scope, contract mutations                                                                                                       | `contracts/contract-mutations-stay-in-owner-models.ts` |
+| IEncodedCommand boundary                                                                                                                       | `contracts/iencoded-command-at-boundary-only.ts`       |
+| omit program payload-only                                                                                                                      | `contracts/omit-program-not-dummy-yields.ts`           |
+| upgradeContractVersion, up, down, Effect.fn, fixture, spec, typecheck                                                                          | `contracts/upgrade-payload-edges-effect-fn.ts`         |
 
 ## models
 
 - [Explicit models at each use site](models/explicit-models-at-use-site.ts): models, model maps, commonModels, purchaseGuardModels, model spreads, guard dependencies, authored declarations.
 
-| Keywords                                                                                                                  | File                                        |
-| ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
-| makeReplica, authoritative service model, aggregate replica, replica tombstone, Model.isReplica, immutable authored model | `models/authoritative-model-and-replica.ts` |
+| Keywords | File |
+| -------- | ---- |
 
 ## react
 
@@ -113,12 +104,8 @@ Keyword → pattern file routing. Code shows good; `@bad` JSDoc tags document an
 
 ## testing
 
-| Keywords                                                                                                                          | File                                               |
-| --------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
-| test organization, runtime lanes, Node, workerd, React, Playwright, typecheck                                                     | `testing/runtime-lanes.md`                         |
-| shopping, cart, core fixtures, browser test setup, Node storage, dependency cycles                                                | `testing/core-shopping-fixtures.md`                |
-| test DB fixture, assertion readback, makeTx                                                                                       | `testing/direct-db-in-test-fixtures-not-maketx.ts` |
-| malformed props, RPC seam, Schema.SchemaError, schema catalog, JSON.stringify loss, journal replay, outbox decode, public handler | `testing/malformed-props-at-rpc-seam.ts`           |
+| Keywords | File |
+| -------- | ---- |
 
 ## cli
 

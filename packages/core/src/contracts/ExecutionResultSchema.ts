@@ -1,16 +1,15 @@
 import { PublicFailureSchema } from '@zerospin/error';
 import { Schema } from 'effect';
 
-import { ExecutionDeltaSchema } from '../models/ExecutionDeltaSchema.ts';
-
-/** Authoritative execution data is retained only by the executing owner and its chain. */
+/** Terminal execution outcome; committed owned outputs are retained separately. */
 export const ExecutionResultSchema = Schema.Union([
   Schema.Struct({ status: Schema.Literal('pending') }),
   Schema.Struct({
     status: Schema.Literal('succeeded'),
+    contractVersion: Schema.String,
+    result: Schema.Json,
     startedAt: Schema.DateFromString,
     completedAt: Schema.DateFromString,
-    executionDelta: ExecutionDeltaSchema,
   }),
   Schema.Struct({
     status: Schema.Literal('failed'),

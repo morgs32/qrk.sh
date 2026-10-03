@@ -2,10 +2,10 @@ import { RoutePattern } from '@remix-run/route-pattern';
 import { createHref } from '@remix-run/route-pattern/href';
 import { createMatcher } from '@remix-run/route-pattern/match';
 import { resolveAggregateActorVersion } from '@zerospin/core/aggregateActor/getAggregateActorVersion';
-import type { IAggregateSessionLock } from '@zerospin/core/aggregateSession/AggregateSessionLockSchema';
 import { makeZerospinError, mapParseError } from '@zerospin/error';
 import { makeRpcEnvelope } from '@zerospin/logger';
 import config from 'config';
+import { eq } from 'drizzle-orm';
 import { Effect, Schema } from 'effect';
 import { isEqual } from 'es-toolkit';
 import {
@@ -144,7 +144,6 @@ export class AggregateActorVersionChain extends makeFixedDORepo({
             actorPath: string;
             claims: Readonly<Record<string, unknown>>;
             sessionName: string;
-            aggregateSessionLock: IAggregateSessionLock;
           }>()) {
             if (connection.state?.phase === 'replaying') {
               connection.close(1012, 'aggregate-session-command-replay-raced');
@@ -153,6 +152,15 @@ export class AggregateActorVersionChain extends makeFixedDORepo({
             const state = connection.state;
             if (state?.phase !== 'live') continue;
             try {
+              const retainedLock = this.db.query.connectionLocks
+                .findFirst({
+                  where: { connectionId: { eq: connection.id } },
+                })
+                .sync();
+              if (retainedLock === undefined) {
+                connection.close(4003, 'state-required');
+                continue;
+              }
               const ownsCompletion =
                 isEqual(claims, state.claims) &&
                 sessionName === state.sessionName &&
@@ -161,6 +169,7 @@ export class AggregateActorVersionChain extends makeFixedDORepo({
               const delivered = Effect.runSync(
                 deliverActorCommand({
                   ...state,
+                  aggregateSessionLock: retainedLock.lock,
                   command: {
                     ...command,
                     admission: ownsCompletion ? command.admission : null,
@@ -240,14 +249,31 @@ export class AggregateActorVersionChain extends makeFixedDORepo({
       actorPath: string;
       claims: Readonly<Record<string, unknown>>;
       sessionName: string;
-      aggregateSessionLock: IAggregateSessionLock;
     }>,
     context: ConnectionContext,
   ): Promise<void> {
     // 1 — run onConnect with the instance-bound dependencies
     return config.system.runtime.runPromise(
-      onConnect({ connection, request: context.request, key: this.key }),
+      onConnect({
+        connection,
+        request: context.request,
+        key: this.key,
+        db: this.db,
+      }),
     );
+  }
+
+  onClose(connection: Connection): void {
+    this.db
+      .delete(aggregateActorVersionChainDbConfig.schema.connectionLocks)
+      .where(
+        eq(
+          aggregateActorVersionChainDbConfig.schema.connectionLocks
+            .connectionId,
+          connection.id,
+        ),
+      )
+      .run();
   }
 
   /*
@@ -273,7 +299,6 @@ export class AggregateActorVersionChain extends makeFixedDORepo({
       actorPath: string;
       claims: Readonly<Record<string, unknown>>;
       sessionName: string;
-      aggregateSessionLock: IAggregateSessionLock;
     }>,
     message: WSMessage,
   ): Promise<void> {

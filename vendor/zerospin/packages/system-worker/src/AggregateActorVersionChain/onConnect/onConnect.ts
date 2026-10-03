@@ -1,9 +1,9 @@
-import {
-  AggregateSessionLockSchema,
-  type IAggregateSessionLock,
-} from '@zerospin/core/aggregateSession/AggregateSessionLockSchema';
+import { AggregateSessionLockSchema } from '@zerospin/core/aggregateSession/AggregateSessionLockSchema';
+import type { IDb } from '@zerospin/core/drizzle/types';
 import { Effect, Result, Schema } from 'effect';
 import type { Connection } from 'partyserver';
+
+import { aggregateActorVersionChainDbConfig } from '../aggregateActorVersionChainDbConfig.js';
 
 /*
  * The aggregate definition log accepts SystemRepo-forwarded upgrade context.
@@ -14,7 +14,7 @@ import type { Connection } from 'partyserver';
  * 2. Reject a missing or invalid lock.
  * 3. Check the lock's actor against this log.
  * 4. Decode identity.
- * 5. Retain admission while awaiting resume.
+ * 5. Persist the lock by connection ID and retain compact admission state while awaiting resume.
  */
 export const onConnect = Effect.fn('AggregateActorVersionChain.onConnect')(
   function* (props: {
@@ -30,9 +30,9 @@ export const onConnect = Effect.fn('AggregateActorVersionChain.onConnect')(
       actorPath: string;
       claims: Readonly<Record<string, unknown>>;
       sessionName: string;
-      aggregateSessionLock: IAggregateSessionLock;
     }>;
     request: Request;
+    db: IDb<typeof aggregateActorVersionChainDbConfig>;
     key: {
       aggregateVersion: string;
       systemId: string;
@@ -43,7 +43,7 @@ export const onConnect = Effect.fn('AggregateActorVersionChain.onConnect')(
       actorPath: string;
     };
   }) {
-    const { connection, key, request } = props;
+    const { connection, db, key, request } = props;
     yield* Effect.void;
 
     // 1 — reject excess fields while decoding AggregateSessionLockSchema
@@ -77,7 +77,17 @@ export const onConnect = Effect.fn('AggregateActorVersionChain.onConnect')(
       return;
     }
 
-    // 5 — store phase awaiting-resume from the repo key and the lock
+    // 5 — persist the admitted lock outside the size-limited WebSocket attachment.
+    db.insert(aggregateActorVersionChainDbConfig.schema.connectionLocks)
+      .values(
+        yield* aggregateActorVersionChainDbConfig.tables.connectionLocks.encodeRow(
+          {
+            connectionId: connection.id,
+            lock: aggregateSessionLockResult.success,
+          },
+        ),
+      )
+      .run();
     connection.setState({
       phase: 'awaiting-resume',
       claims: claimsResult.success,
@@ -88,7 +98,6 @@ export const onConnect = Effect.fn('AggregateActorVersionChain.onConnect')(
       actorVersion: key.actorVersion,
       actorPath: key.actorPath,
       sessionName: aggregateSessionLockResult.success.sessionName,
-      aggregateSessionLock: aggregateSessionLockResult.success,
     });
   },
 );

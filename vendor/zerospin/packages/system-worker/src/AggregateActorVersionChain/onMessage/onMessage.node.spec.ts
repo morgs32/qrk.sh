@@ -7,6 +7,7 @@ import { makeActorSnapshotDb } from '../../AggregateActorVersionRepo/validateCom
 import { genesisExecutedHash } from '../../executedDispositionHash/executedDispositionHash.js';
 import { aggregateActorVersionChainDbConfig } from '../aggregateActorVersionChainDbConfig.js';
 import { getActorCommands } from '../getActorCommands/getActorCommands.js';
+import { onConnect } from '../onConnect/onConnect.js';
 
 import { onMessage } from './onMessage.js';
 
@@ -34,6 +35,13 @@ const key = {
 
 const fixture = Effect.fn(function* (count: number, interleaved = false) {
   const { db } = yield* makeActorSnapshotDb(aggregateActorVersionChainDbConfig);
+  db.insert(aggregateActorVersionChainDbConfig.schema.connectionLocks)
+    .values(
+      yield* aggregateActorVersionChainDbConfig.tables.connectionLocks.encodeRow(
+        { connectionId: 'connection', lock },
+      ),
+    )
+    .run();
   for (let index = 1; index <= count; index++) {
     const other = interleaved && index > 70 && index % 2 === 0;
     const nodeId = other ? 'node_other' : 'node_one';
@@ -117,14 +125,10 @@ const fixture = Effect.fn(function* (count: number, interleaved = false) {
       phase: 'awaiting-resume',
       claims,
       sessionName: 'editor',
-      aggregateSessionLock: lock,
     },
     setState(next) {
       const resolved = typeof next === 'function' ? next(this.state) : next;
-      this.state =
-        resolved === null
-          ? null
-          : { ...resolved, claims, aggregateSessionLock: lock };
+      this.state = resolved === null ? null : { ...resolved, claims };
       return this.state;
     },
     send(message) {
@@ -158,6 +162,55 @@ const fixture = Effect.fn(function* (count: number, interleaved = false) {
 });
 
 describe('one actor command subscription with two cursors', () => {
+  it('keeps a large admitted lock durable while the hibernating attachment stays compact', async () => {
+    await Effect.runPromise(
+      Effect.gen(function* () {
+        const { db, connection, resume } = yield* fixture(0);
+        db.delete(
+          aggregateActorVersionChainDbConfig.schema.connectionLocks,
+        ).run();
+        const largeLock = {
+          ...lock,
+          claims: { claimsJsonSchema: { description: 'x'.repeat(100_000) } },
+        };
+        yield* onConnect({
+          db,
+          connection,
+          key,
+          request: new Request('https://example.test', {
+            headers: {
+              'x-zerospin-aggregate-session-lock': JSON.stringify(largeLock),
+              'x-zerospin-claims': JSON.stringify(claims),
+            },
+          }),
+        });
+        expect(JSON.stringify(connection.state).length).toBeLessThan(16_384);
+        expect(connection.state).not.toHaveProperty('aggregateSessionLock');
+        expect(db.query.connectionLocks.findFirst().sync()?.lock).toEqual(
+          largeLock,
+        );
+        // No in-memory lock is carried into replay; only durable rows and attachment state remain.
+        yield* resume(0);
+        expect(connection.state?.phase).toBe('live');
+        expect(connection.close).not.toHaveBeenCalled();
+      }).pipe(Effect.scoped, Effect.provide(AsyncLive)),
+    );
+  });
+
+  it('requires a fresh snapshot when the durable connection lock is missing', async () => {
+    await Effect.runPromise(
+      Effect.gen(function* () {
+        const { db, connection, sent, resume } = yield* fixture(0);
+        db.delete(
+          aggregateActorVersionChainDbConfig.schema.connectionLocks,
+        ).run();
+        yield* resume(0);
+        expect(sent).toEqual([{ type: 'state-required' }]);
+        expect(connection.close).toHaveBeenCalledWith(4003, 'state-required');
+      }).pipe(Effect.scoped, Effect.provide(AsyncLive)),
+    );
+  });
+
   it('fills ownership-filtered pages and crosses the snapshot once in execution order', async () => {
     await Effect.runPromise(
       Effect.gen(function* () {

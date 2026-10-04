@@ -9,6 +9,7 @@ import { makePlacementId } from "../../models/placement/makePlacementId";
 import {
   cloneLayoutItem,
   makeCollisionResolvedLayout,
+  makeCompactLayout,
   findVisibleLayoutError,
 } from "../../resolveVisibleCollisions";
 import { makeBrickModel } from "../../models/brick/makeBrickModel";
@@ -209,8 +210,9 @@ export function makeSetBrickVisibilityAtBreakpointContract(props: {
         }
       }
     }),
-    program: ({ payload, models }) =>
-      Effect.gen(function* () {
+    program: (props) => {
+      const { payload, models, db } = props;
+      return Effect.gen(function* () {
         if (payload.currentlyVisible === payload.isVisible) {
           return;
         }
@@ -225,6 +227,59 @@ export function makeSetBrickVisibilityAtBreakpointContract(props: {
               isVisible: false,
             },
           });
+
+          const brickRow = db.query.brick
+            .findFirst({ where: { id: { eq: payload.brickId } } })
+            .sync();
+          if (brickRow === undefined) {
+            return;
+          }
+          const wallBricks = db.query.brick
+            .findMany({ where: { wallId: { eq: brickRow.wallId } } })
+            .sync();
+          const visiblePlacements = [];
+          for (const wallBrick of wallBricks) {
+            // Emitted updates are not applied to db during this program.
+            if (wallBrick.id === payload.brickId) {
+              continue;
+            }
+            const wallPlacement = db.query.placement
+              .findFirst({
+                where: { id: { eq: makePlacementId(wallBrick.id, payload.breakpoint) } },
+              })
+              .sync();
+            if (wallPlacement !== undefined && wallPlacement.isVisible) {
+              visiblePlacements.push(wallPlacement);
+            }
+          }
+
+          const compacted = makeCompactLayout(
+            visiblePlacements.map((wallPlacement) => wallPlacement.gridItem),
+          );
+          for (const item of compacted) {
+            const stored = visiblePlacements.find(
+              (wallPlacement) => wallPlacement.gridItem.i === item.i,
+            )?.gridItem;
+            if (
+              stored?.i === item.i &&
+              stored.x === item.x &&
+              stored.y === item.y &&
+              stored.w === item.w &&
+              stored.h === item.h
+            ) {
+              continue;
+            }
+
+            yield* models.placement.update({
+              resourceId: makePlacementId(
+                item.i,
+                payload.breakpoint,
+              ) as InferIdFromAbbreviation<"plc">,
+              attributes: {
+                gridItem: item,
+              } as Partial<InferDecodedRow<(typeof placement)["attributes"]>>,
+            });
+          }
           return;
         }
 
@@ -248,6 +303,21 @@ export function makeSetBrickVisibilityAtBreakpointContract(props: {
             continue;
           }
 
+          const stored = db.query.placement
+            .findFirst({
+              where: { id: { eq: makePlacementId(item.i, payload.breakpoint) } },
+            })
+            .sync()?.gridItem;
+          if (
+            stored?.i === item.i &&
+            stored.x === item.x &&
+            stored.y === item.y &&
+            stored.w === item.w &&
+            stored.h === item.h
+          ) {
+            continue;
+          }
+
           yield* models.placement.update({
             resourceId: makePlacementId(
               item.i,
@@ -258,6 +328,7 @@ export function makeSetBrickVisibilityAtBreakpointContract(props: {
             } as Partial<InferDecodedRow<(typeof placement)["attributes"]>>,
           });
         }
-      }),
+      });
+    },
   });
 }

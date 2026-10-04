@@ -24,7 +24,7 @@ const ParamsSchema = Schema.Struct({
 });
 
 export function Grid() {
-  const { activeBreakpoint, setGridGesture } = useWallViewport();
+  const { activeBreakpoint, gridGesture, setGridGesture } = useWallViewport();
   const session = userSession;
   const params = useValidatedParams(ParamsSchema);
   const { data: page } = useLiveQuery({
@@ -89,6 +89,7 @@ export function Grid() {
                 breakpoint={row.id}
                 gridWidth={row.previewWidth}
                 isActive={isActive}
+                gridGestureActive={gridGesture}
                 showArticleEditAction={false}
                 onGestureChange={setGridGesture}
                 onCommandError={(message) => toast.error(message)}

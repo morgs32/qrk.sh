@@ -1,6 +1,6 @@
 # Brick layout conventions
 
-**updated:** 2026-09-20
+**updated:** 2026-10-03
 
 ## Grid identity
 
@@ -11,22 +11,32 @@
 
 ## Session-backed walls
 
-Library `Layout` and Studio site editor both render
-[`BrickWall`](../apps/library/lib/BrickWall.tsx) against a persisted
-Standalone session using `libraryModule`:
+Library `LibraryLayout` and Studio's page editor render
+[`BrickWall`](../apps/library/lib/BrickWall.tsx) against sessions exposing
+`libraryModule` models and contracts:
 
-- Hardcoded `WALL_ID = prefixId(libraryModule.models.wall, "library")`
-  (`wal_library`) in each app — do not import a shared wall id from
-  `@qrk.sh/library`.
-- Layout / EditorLayout: `createLibraryStandaloneSession({ key, wallId })`,
-  `useInitializeStandaloneSession`, gate on `isInitialized`.
-- Library uses `JSON.stringify(["library"])`; Studio uses
-  `JSON.stringify(["studio", user.id, siteId, pageId])`, with Clerk supplying
-  `user.id` and route parameters supplying `siteId` and `pageId`.
-- Reset calls `session.reset()` to replace the saved document with its original seeds.
+- Library initializes module-level `librarySession` with
+  `useInitializeStandaloneSession` and gates on `isInitialized`. Its
+  `qrk-library` backup stores `wal_library`, seeded through
+  `prefixId(libraryModule.models.wall, "library")`.
+- Studio uses authenticated live `userSession` and the current page's `wallId`.
+  `JSON.stringify(["studio", user.id, siteId, pageId])` keys its viewport provider,
+  not a standalone session or per-page backup.
+- Library reset calls `session.reset()` to replace its saved document with
+  the original seeds; Studio data remains separate.
 - Drop / move / resize / remove / compact: aggregate contracts via
   `stageCommand`. No Zustand `bricksById` wall state.
-- `noCompactor` on the grid; compact is an explicit command.
+- `verticalCompactor` on the grid packs drag/resize feedback. Module contracts
+  compact saved geometry: add/show after collision resolution, layout updates
+  before saving, hide at its breakpoint, and remove at all four breakpoints.
+- Mounted walls normalize existing gaps through `compactLayoutAtBreakpoint`,
+  including inactive panes. Compare geometry by brick ID and stage only changes;
+  defer during grid gestures or catalog drags and report failures without retrying
+  unchanged input. There is no manual **Compact layout** toolbar action.
+- Add snapshots retain stored geometry, not compacted grid-preview positions.
+  Hide/remove derive visible survivors from stored rows, explicitly excluding
+  the target because emitted operations accumulate before application.
+  Skip unchanged placement writes and preserve hidden geometry and Specs.
 
 Transient HTML5 drag payload only: `brickDragStore` (`brickDef` /
 `setBrickDef`). See [LibraryBrickDrop](./architecture/browser/LibraryBrickDrop.md).
@@ -39,5 +49,5 @@ visibility). Shared module state lives on the brick row.
 
 ## Studio detail
 
-Brick detail reads brick + placement with `useLiveQuery` on the same mock
-session EditorLayout initialized — not a client Zustand map.
+Brick detail reads brick + placement with `useLiveQuery` on the same live
+`userSession` as the page wall.

@@ -8,12 +8,7 @@ import { useParams, usePathname, useRouter, useSearchParams } from "next/navigat
 import { Result, Schema } from "effect";
 import { makeEffectSchema } from "@zerospin/schema";
 import { prefixId } from "@zerospin/core/models/prefixId";
-import {
-  loadDevtools,
-  stageCommand,
-  useInitializeStandaloneSession,
-  useLiveQuery,
-} from "@zerospin/react";
+import { loadDevtools, useInitializeStandaloneSession, useLiveQuery } from "@zerospin/react";
 import { useReducedMotion } from "framer-motion";
 import { RotateCcw, X } from "lucide-react";
 import { toast } from "sonner";
@@ -248,10 +243,6 @@ function LayoutBody(props: {
   const fromBreakpoint = transition.active === activeBreakpoint ? transition.from : null;
   const direction = transition.active === activeBreakpoint ? transition.direction : 0;
 
-  const placementsQuery = useLiveQuery({
-    session,
-    query: (db) => db.query.placement.findMany(),
-  });
   const bricksQuery = useLiveQuery({
     session,
     query: (db) =>
@@ -330,37 +321,6 @@ function LayoutBody(props: {
     return () => document.removeEventListener("keydown", escape, true);
   }, [drawerOpen, brickId, router]);
 
-  function compactActiveLayout() {
-    if (activeBreakpoint === null || gridGesture) {
-      return;
-    }
-    const brickIds = new Set((bricksQuery.data ?? []).map((candidate) => candidate.id));
-    const visibleLayout = (placementsQuery.data ?? []).flatMap((placement) => {
-      if (
-        placement.breakpoint !== activeBreakpoint ||
-        !placement.isVisible ||
-        placement.brickId === null ||
-        !brickIds.has(placement.brickId)
-      ) {
-        return [];
-      }
-      return [placement.gridItem];
-    });
-    const result = stageCommand({
-      session,
-      contractName: "compactLayoutAtBreakpoint",
-      payload: {
-        wallId: WALL_ID,
-        breakpoint: activeBreakpoint,
-        visibleLayout,
-      },
-    });
-    if (result._tag === "Failure") {
-      toast.error(result.failure.message ?? result.failure.code ?? "Compact failed");
-      return;
-    }
-  }
-
   return (
     <main className="relative h-dvh overflow-hidden">
       <Toaster />
@@ -404,19 +364,28 @@ function LayoutBody(props: {
                     );
                   }}
                 >
-                  <BrickWall
-                    session={session}
-                    wallId={WALL_ID}
-                    breakpoint={row.id}
-                    gridWidth={row.previewWidth}
-                    isActive={isActive}
-                    onGestureChange={setGridGesture}
-                    onCommandError={(message) => toast.error(message)}
-                    onBrickActivate={({ brickId: activatedBrickId }) => {
-                      setDrawerOpen(true);
-                      router.push(`/bricks/${activatedBrickId}`, { scroll: false });
-                    }}
-                  />
+                  <div className="[--wall-chrome-height:7rem]">
+                    <div
+                      aria-hidden="true"
+                      className="pointer-events-none relative flex h-16 translate-y-[var(--wall-drag-scroll-offset,0px)] items-center border-b border-border bg-background px-6"
+                    >
+                      <span className="text-sm font-medium">qrk.sh</span>
+                    </div>
+                    <BrickWall
+                      session={session}
+                      wallId={WALL_ID}
+                      breakpoint={row.id}
+                      gridWidth={row.previewWidth}
+                      isActive={isActive}
+                      gridGestureActive={gridGesture}
+                      onGestureChange={setGridGesture}
+                      onCommandError={(message) => toast.error(message)}
+                      onBrickActivate={({ brickId: activatedBrickId }) => {
+                        setDrawerOpen(true);
+                        router.push(`/bricks/${activatedBrickId}`, { scroll: false });
+                      }}
+                    />
+                  </div>
                 </WallBreakpointPane>
               );
             })}
@@ -536,16 +505,6 @@ function LayoutBody(props: {
             }}
           >
             Bricks
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-8 px-2"
-            disabled={activeBreakpoint === null || gridGesture}
-            onClick={compactActiveLayout}
-          >
-            Compact layout
           </Button>
           <Button
             type="button"

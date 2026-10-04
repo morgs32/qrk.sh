@@ -2,10 +2,11 @@ import type { IDb } from "@zerospin/core/drizzle/types";
 import { makeContractVersion } from "@zerospin/core/contracts/make/makeContractVersion";
 import type { InferCommandPayload } from "@zerospin/core/models/types";
 import { ZerospinError } from "@zerospin/error";
-import { primitives, type InferIdFromAbbreviation } from "@zerospin/schema";
+import { primitives, type InferDecodedRow, type InferIdFromAbbreviation } from "@zerospin/schema";
 import { Effect } from "effect";
 
 import { makePlacementId } from "../../models/placement/makePlacementId";
+import { makeCompactLayout } from "../../resolveVisibleCollisions";
 import { makeBrickModel } from "../../models/brick/makeBrickModel";
 import { makePlacementModel } from "../../models/placement/placementModelV1";
 import { wallModelV1 } from "../../models/wall/wallModelV1";
@@ -76,8 +77,15 @@ export function makeRemoveBrickContract(props: {
         });
       }
     }),
-    program: ({ payload, models }) =>
-      Effect.gen(function* () {
+    program: (props) => {
+      const { payload, models, db } = props;
+      return Effect.gen(function* () {
+        // Emitted deletes are not applied to db during this program.
+        const wallBricks = db.query.brick
+          .findMany({ where: { wallId: { eq: payload.wallId } } })
+          .sync()
+          .filter((brickRow) => brickRow.id !== payload.brickId);
+
         for (const breakpoint of ["sm", "md", "lg", "xl"] as Array<"sm" | "md" | "lg" | "xl">) {
           yield* models.placement.delete({
             resourceId: makePlacementId(
@@ -85,11 +93,47 @@ export function makeRemoveBrickContract(props: {
               breakpoint,
             ) as InferIdFromAbbreviation<"plc">,
           });
+
+          const visiblePlacements = [];
+          for (const wallBrick of wallBricks) {
+            const wallPlacement = db.query.placement
+              .findFirst({ where: { id: { eq: makePlacementId(wallBrick.id, breakpoint) } } })
+              .sync();
+            if (wallPlacement !== undefined && wallPlacement.isVisible) {
+              visiblePlacements.push(wallPlacement);
+            }
+          }
+
+          const compacted = makeCompactLayout(
+            visiblePlacements.map((wallPlacement) => wallPlacement.gridItem),
+          );
+          for (const item of compacted) {
+            const stored = visiblePlacements.find(
+              (wallPlacement) => wallPlacement.gridItem.i === item.i,
+            )?.gridItem;
+            if (
+              stored?.i === item.i &&
+              stored.x === item.x &&
+              stored.y === item.y &&
+              stored.w === item.w &&
+              stored.h === item.h
+            ) {
+              continue;
+            }
+
+            yield* models.placement.update({
+              resourceId: makePlacementId(item.i, breakpoint) as InferIdFromAbbreviation<"plc">,
+              attributes: {
+                gridItem: item,
+              } as Partial<InferDecodedRow<(typeof placement)["attributes"]>>,
+            });
+          }
         }
 
         yield* models.brick.delete({
           resourceId: payload.brickId as InferIdFromAbbreviation<"brk">,
         });
-      }),
+      });
+    },
   });
 }

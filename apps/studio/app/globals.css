@@ -241,11 +241,6 @@ html body[data-scroll-locked] {
   opacity: 0.8;
 }
 
-.grid-layout .react-grid-placeholder {
-  background: color-mix(in oklch, var(--destructive) 45%, transparent);
-  opacity: 1;
-}
-
 /* Tiptap placeholder */
 .tiptap p.is-editor-empty:first-child::before {
   color: var(--muted-foreground);

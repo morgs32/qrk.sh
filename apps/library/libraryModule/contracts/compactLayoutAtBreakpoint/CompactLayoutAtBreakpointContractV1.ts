@@ -145,10 +145,26 @@ export function makeCompactLayoutAtBreakpointContract(props: {
         });
       }
     }),
-    program: ({ payload, models }) =>
-      Effect.gen(function* () {
+    program: (props) => {
+      const { payload, models, db } = props;
+      return Effect.gen(function* () {
         const compacted = makeCompactLayout(payload.visibleLayout);
         for (const item of compacted) {
+          const stored = db.query.placement
+            .findFirst({
+              where: { id: { eq: makePlacementId(item.i, payload.breakpoint) } },
+            })
+            .sync()?.gridItem;
+          if (
+            stored?.i === item.i &&
+            stored.x === item.x &&
+            stored.y === item.y &&
+            stored.w === item.w &&
+            stored.h === item.h
+          ) {
+            continue;
+          }
+
           yield* models.placement.update({
             resourceId: makePlacementId(
               item.i,
@@ -159,6 +175,7 @@ export function makeCompactLayoutAtBreakpointContract(props: {
             } as Partial<InferDecodedRow<(typeof placement)["attributes"]>>,
           });
         }
-      }),
+      });
+    },
   });
 }

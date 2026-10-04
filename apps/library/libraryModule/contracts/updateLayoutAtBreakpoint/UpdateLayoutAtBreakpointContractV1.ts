@@ -6,7 +6,7 @@ import { primitives, type InferDecodedRow, type InferIdFromAbbreviation } from "
 import { Effect, Schema } from "effect";
 
 import { makePlacementId } from "../../models/placement/makePlacementId";
-import { findVisibleLayoutError } from "../../resolveVisibleCollisions";
+import { makeCompactLayout, findVisibleLayoutError } from "../../resolveVisibleCollisions";
 import { makeBrickModel } from "../../models/brick/makeBrickModel";
 import { makePlacementModel } from "../../models/placement/placementModelV1";
 import { wallModelV1 } from "../../models/wall/wallModelV1";
@@ -145,9 +145,26 @@ export function makeUpdateLayoutAtBreakpointContract(props: {
         });
       }
     }),
-    program: ({ payload, models }) =>
-      Effect.gen(function* () {
-        for (const item of payload.layout) {
+    program: (props) => {
+      const { payload, models, db } = props;
+      return Effect.gen(function* () {
+        const compacted = makeCompactLayout(payload.layout);
+        for (const item of compacted) {
+          const stored = db.query.placement
+            .findFirst({
+              where: { id: { eq: makePlacementId(item.i, payload.breakpoint) } },
+            })
+            .sync()?.gridItem;
+          if (
+            stored?.i === item.i &&
+            stored.x === item.x &&
+            stored.y === item.y &&
+            stored.w === item.w &&
+            stored.h === item.h
+          ) {
+            continue;
+          }
+
           yield* models.placement.update({
             resourceId: makePlacementId(
               item.i,
@@ -158,6 +175,7 @@ export function makeUpdateLayoutAtBreakpointContract(props: {
             } as Partial<InferDecodedRow<(typeof placement)["attributes"]>>,
           });
         }
-      }),
+      });
+    },
   });
 }

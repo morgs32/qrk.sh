@@ -5,9 +5,10 @@ import { isNonEmptySpec } from "@json-render/core";
 import { Schema } from "effect";
 import { prefixId } from "@zerospin/core/models/prefixId";
 import { stageCommand, useLiveQuery } from "@zerospin/react";
-import GridLayout, { noCompactor } from "react-grid-layout";
+import GridLayout, { verticalCompactor } from "react-grid-layout";
 
 import { libraryModule } from "../libraryModule/libraryModule";
+import { makeCompactLayout } from "../libraryModule/resolveVisibleCollisions";
 import type { ILibrarySession } from "../session/createLibraryStandaloneSession";
 import { BrickWrapper } from "../components/brick/BrickWrapper";
 import { brickDragStore } from "./brickDragStore";
@@ -39,6 +40,7 @@ export function BrickWall(props: {
   breakpoint: "sm" | "md" | "lg" | "xl";
   gridWidth: number;
   isActive?: boolean;
+  gridGestureActive?: boolean;
   showArticleEditAction?: boolean;
   onGestureChange?: (active: boolean) => void;
   onBrickActivate?: (args: { moduleId: keyof typeof modulesHash; brickId: string }) => void;
@@ -50,6 +52,7 @@ export function BrickWall(props: {
     breakpoint,
     gridWidth,
     isActive = true,
+    gridGestureActive = false,
     showArticleEditAction = true,
     onGestureChange,
     onBrickActivate,
@@ -60,9 +63,16 @@ export function BrickWall(props: {
     () => session.store.getState().backupState?.status ?? "released",
     () => "released",
   );
+  const catalogDragActive = useSyncExternalStore(
+    brickDragStore.subscribe,
+    () => brickDragStore.getState().brickDef !== null,
+    () => false,
+  );
   const gesture = useRef(false);
+  const normalizationAttempt = useRef<{ session: ILibrarySession; snapshot: string } | null>(null);
   const containerRef = useRef<HTMLElement>(null);
   const scrollRootRef = useRef<HTMLElement | null>(null);
+  const [gestureActive, setGestureActive] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [outsideBrickId, setOutsideBrickId] = useState<string | null>(null);
   const [dragScrollTop, setDragScrollTop] = useState(0);
@@ -78,6 +88,83 @@ export function BrickWall(props: {
     session,
     query: (db) => db.query.placement.findMany(),
   });
+
+  useEffect(() => {
+    if (
+      gestureActive ||
+      gridGestureActive ||
+      gesture.current ||
+      catalogDragActive ||
+      brickDragStore.getState().brickDef !== null ||
+      bricksQuery.error ||
+      placementsQuery.error
+    ) {
+      return;
+    }
+    const db = session.store.getState().db;
+    if (db === null) return;
+
+    // Read one current baseline rather than persisting RGL's temporary geometry.
+    const currentBricks = db.query.brick.findMany({ where: { wallId: { eq: wallId } } }).sync();
+    const currentBrickIds = new Set(currentBricks.map((brick) => brick.id));
+    const visibleLayout = db.query.placement
+      .findMany({ where: { breakpoint: { eq: breakpoint }, isVisible: { eq: true } } })
+      .sync()
+      .flatMap((placement) =>
+        placement.brickId !== null && currentBrickIds.has(placement.brickId)
+          ? [makeGridItem(placement.gridItem)]
+          : [],
+      );
+    const compacted = makeCompactLayout(visibleLayout);
+    const changed = compacted.some((item) => {
+      const previous = visibleLayout.find((candidate) => candidate.i === item.i);
+      return (
+        previous?.x !== item.x ||
+        previous.y !== item.y ||
+        previous.w !== item.w ||
+        previous.h !== item.h
+      );
+    });
+    if (!changed) {
+      normalizationAttempt.current = null;
+      return;
+    }
+
+    const snapshot = JSON.stringify([
+      wallId,
+      breakpoint,
+      [...visibleLayout].sort((left, right) => left.i.localeCompare(right.i)),
+    ]);
+    if (
+      normalizationAttempt.current?.session === session &&
+      normalizationAttempt.current.snapshot === snapshot
+    ) {
+      return;
+    }
+    normalizationAttempt.current = { session, snapshot };
+    const result = stageCommand({
+      session,
+      contractName: "compactLayoutAtBreakpoint",
+      payload: { wallId, breakpoint, visibleLayout },
+    });
+    if (result._tag === "Failure") {
+      const message = commandErrorMessage(result.failure);
+      if (onCommandError) onCommandError(message);
+      else window.alert(message);
+    }
+  }, [
+    session,
+    wallId,
+    breakpoint,
+    bricksQuery.data,
+    bricksQuery.error,
+    placementsQuery.data,
+    placementsQuery.error,
+    gestureActive,
+    gridGestureActive,
+    catalogDragActive,
+    onCommandError,
+  ]);
 
   useLayoutEffect(() => {
     if (!dragging && scrollRootRef.current) {
@@ -118,11 +205,13 @@ export function BrickWall(props: {
 
   function beginGesture() {
     gesture.current = true;
+    setGestureActive(true);
     onGestureChange?.(true);
   }
   function endGesture() {
     if (!gesture.current) return;
     gesture.current = false;
+    setGestureActive(false);
     onGestureChange?.(false);
   }
 
@@ -141,7 +230,7 @@ export function BrickWall(props: {
       ref={containerRef}
       data-backup-status={backupStatus}
       aria-label="Brick grid"
-      className="bg-black"
+      className="bg-white"
     >
       {outsideBrickId && (
         <div
@@ -167,8 +256,8 @@ export function BrickWall(props: {
             };
           })}
           autoSize
-          className="grid-layout bg-black min-h-[calc(100dvh-var(--wall-top-offset,3.5rem)-var(--wall-chrome-height,0px))]"
-          compactor={noCompactor}
+          className="grid-layout bg-white min-h-[calc(100dvh-var(--wall-top-offset,3.5rem)-var(--wall-chrome-height,0px))]"
+          compactor={verticalCompactor}
           gridConfig={{
             cols: 8,
             rowHeight,
@@ -272,7 +361,10 @@ export function BrickWall(props: {
             const scrollTop = scrollRootRef.current?.scrollTop ?? 0;
             setDragScrollTop(scrollTop);
             if (scrollRootRef.current) {
-              scrollRootRef.current.style.setProperty("--wall-drag-scroll-offset", `${-scrollTop}px`);
+              scrollRootRef.current.style.setProperty(
+                "--wall-drag-scroll-offset",
+                `${-scrollTop}px`,
+              );
               scrollRootRef.current.style.overflow = "visible";
             }
             setDragging(true);

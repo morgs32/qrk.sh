@@ -241,9 +241,10 @@ breakpoint's own size. The caller supplies `dropPosition`, `placementSizes`, and
 `visibleLayouts` snapshots from session placements; grid-proposed neighbor positions
 are ignored. The guard requires snapshots to match stored visible geometry exactly,
 regardless of array order, and rejects stale snapshots with conflict 409 before mutation.
-The program validates all resolved outputs, then creates the brick and four placements
-and updates displaced visible neighbors. Hidden and unaffected placements retain their
-geometry. This is a fresh `addBrick` version `1.0.0` baseline with no historical adapter;
+The program resolves collisions and vertically compacts each breakpoint before
+validating its output, then creates the brick and four placements and updates only
+visible neighbors whose geometry changed. Hidden and unaffected placements retain
+their geometry. This is a fresh `addBrick` version `1.0.0` baseline with no historical adapter;
 old payloads and pending commands require the authorized document reset. Module defaults,
 preview state, and authored rendering discard undeclared fields during decoding.
 `addBrick` and `updateBrickState` validate declared state fields while ignoring extras;
@@ -281,10 +282,20 @@ Committed layout is Wall → Brick → Placement via aggregate contracts
 (`addBrick`, layout/visibility/remove/compact, `updateBrickState`, and per-module
 spec-at-breakpoint). Commands stage synchronously. Studio pushes through its live
 user session; `backupState: ready` describes local backup durability, not server acknowledgement. Shared state lives on the brick row; each placement stores a
-complete Spec, grid item, and visibility. `BrickWall` uses `noCompactor` to avoid
-closing gaps automatically. Dropping a brick displaces overlapping visible neighbors
-downward, including collisions caused by that displacement. **Compact layout** runs
-an explicit command. Library reset calls the standalone session's `reset()` to replace its
+complete Spec, grid item, and visibility. `BrickWall` uses `verticalCompactor` for
+packed drag/resize feedback. Module contracts compact before persisting geometry:
+add/show resolve collisions first, layout updates compact their payload, hide compacts
+visible survivors at its breakpoint, and remove compacts survivors at all four
+breakpoints. Hide/remove read stored rows and explicitly exclude the target because
+emitted operations are not applied during the contract program. Geometry updates skip
+unchanged placements; hiding retains the hidden brick's saved geometry and Spec.
+
+Each mounted wall, including inactive breakpoint panes, normalizes existing gaps
+through `compactLayoutAtBreakpoint`. It compares stored geometry by brick ID, defers
+during grid gestures or catalog drags, and stages only changed layouts. Failed attempts
+use the existing command error callback and do not repeatedly retry unchanged input.
+The Library toolbar no longer has a **Compact layout** button. Library reset calls the
+standalone session's `reset()` to replace its
 backup with the original seed and remounts the viewport. Viewport preference persists in
 localStorage (`qrk-bricks-library-viewport-v1`).
 
@@ -295,17 +306,27 @@ gestures, selection and available width update while the displayed wall waits
 for completion. Below 360px, the insufficient-width message appears as soon as
 the gesture ends; a fitting wall returns immediately when space recovers.
 
+Library and Studio use a white wall canvas at all four breakpoints. Shared
+`bricks.css` styles the grid placeholder during brick dragging, catalog drops,
+and resizing with a light-gray background, 24px rounded corners, and a subtle
+inset shadow. Placeholder dimensions, positioning, and transitions retain the
+grid's existing behavior.
+
 `WallBreakpointPane` frames each wall with decorative browser chrome: sm/md use
 a Safari-like mobile address pill; lg/xl use desktop window dots and a centered
 address bar. Both display static `qrk.sh` and remain noninteractive and hidden
 from assistive technology. The 48px muted-gray header and thin inset frame leave
 the 360/720/1080/1440px content widths unchanged and allow drags beyond the frame.
-The chrome slides and scrolls with its wall, including the existing scroll
-compensation while dragging. Library reserves 6rem above the
+Library adds a decorative 64px navbar below the address bar, matching Studio's
+page-navbar height and showing a static `qrk.sh` label. It is noninteractive and
+hidden from assistive technology. The chrome and navbar slide and scroll with
+their wall, including the existing scroll compensation while dragging.
+Library reserves 6rem above the
 wall below lg, keeping wrapped controls clear of the chrome, and 3.5rem at lg.
 The scroll root uses inherited `--wall-top-offset` for this padding; the pane
-sets `--wall-chrome-height: 3rem`. `BrickWall` subtracts both offsets from its
-viewport minimum height, with 3.5rem and zero fallbacks respectively, so an
+sets `--wall-chrome-height: 3rem`. Library overrides that value to `7rem` around
+its navbar and wall to account for both bars. `BrickWall` subtracts both offsets
+from its viewport minimum height, with 3.5rem and zero fallbacks respectively, so an
 empty wall remains one viewport tall without extra scrolling.
 
 Library and Studio copy the same built backup assets into their public directories:
@@ -328,8 +349,10 @@ bottom-right handle. Module and configuration previews also drag from their enti
 
 The rich text module uses **Article** and the `article` module ID.
 Its default width is 8 grid columns on sm/md and 4 on lg/xl.
-Article content uses Open Sans in brick previews and the drawer editor, loaded
-through the module's stylesheet. Code blocks retain their monospace font.
+Article titles and subtitles use the platform system sans-serif font (San
+Francisco on macOS). Body text uses Spectral at 19px with 1.6 line spacing in
+brick previews and the drawer editor, loaded through the module's stylesheet.
+Code blocks retain their monospace font.
 Placed bricks expose a small pencil icon button labelled **Edit article**.
 Its catalog example and new drops start with “Actually good advice,” including
 the introductory paragraphs and numbered criteria. This is a hard rename without
@@ -338,8 +361,16 @@ legacy aliases or data migration; old `text` bricks,
 
 Article state stores required `title` and `subtitle` strings separately from the
 nullable Tiptap body `content`. The module form uses plain text title/subtitle
-inputs above a writing column capped at 720px, with a flat, centered toolbar.
-Brick title/subtitle/body spacing matches the form's text spacing.
+inputs in a centered writing column, with a flat, centered toolbar.
+Article content has no horizontal padding. Narrow views use 16px top padding
+and 16px outer gutters. At `md` (720px) and above, both the viewport and brick
+container must qualify for 32px vertical padding and 30px outer gutters.
+The drawer uses the same responsive insets based on viewport width, retaining
+its existing 660px desktop text measure.
+Titles use 32px/36px bold text; subtitles use 18px/24px muted text, with a 12px
+title-to-subtitle gap and 36px before the body. The drawer retains its smaller
+mobile title. These fonts and spacing follow the
+[Experimental History article](https://www.experimental-history.com/p/the-strangest-idea-in-the-world).
 Body headings are H2–H4. Standard HTML form validation blocks Save when either
 metadata field is empty or contains only whitespace; Admin retains schema-based
 JSON validation. This is a hard schema change without migration or fallback:

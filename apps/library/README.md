@@ -342,7 +342,7 @@ for completion. Below 360px, the insufficient-width message appears as soon as
 the gesture ends; a fitting wall returns immediately when space recovers.
 
 Library and Studio use a white wall canvas at all four breakpoints. `BrickWall`
-reserves 8px on both sides of the grid for hover clearance. Row heights use the
+reserves 6px on both sides of the grid for hover clearance. Row heights use the
 inner grid width to keep cells square.
 Shared `bricks.css` styles the grid placeholder during brick dragging, catalog drops,
 and resizing with a light-gray background, square corners, and a subtle
@@ -385,9 +385,9 @@ Placed bricks drag from their entire surface and resize using white pill anchors
 with a thin black border at the four edge midpoints. The anchors follow the floating
 surface on hover, remain visible during resizing, and stay visible on touch devices.
 The stationary square outline appears only during resizing; hover uses the lifted
-surface's border. The left anchor is hidden at the first column, the right anchor
-at the last column, and the top anchor at the first row; the bottom anchor remains
-available so the wall can grow. These controls belong
+surface's border. Every edge keeps its anchor, including at the grid boundaries.
+Resizing clamps to the grid's left, right, and top boundaries and the module's
+minimum width and height; the bottom edge can grow the wall. These controls belong
 to the active wall and retain grid snapping, module minimum sizes, vertical
 compaction, and the existing layout persistence. Module and configuration previews
 also drag from their entire surface.

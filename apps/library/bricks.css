@@ -180,20 +180,6 @@
   }
 }
 
-/* Preserve mounted handle geometry/listeners while suppressing wall boundaries. */
-.grid-layout
-  > .react-grid-item.brick-drag-surface[data-grid-x="0"]
-  > .react-resizable-handle.react-resizable-handle-w,
-.grid-layout
-  > .react-grid-item.brick-drag-surface[data-grid-y="0"]
-  > .react-resizable-handle.react-resizable-handle-n,
-.grid-layout
-  > .react-grid-item.brick-drag-surface[data-wall-right-edge="true"]
-  > .react-resizable-handle.react-resizable-handle-e {
-  visibility: hidden;
-  pointer-events: none;
-}
-
 /* Keep the drag hit target stationary while its direct visual surface lifts. */
 .brick-hover-target > .brick-hover-surface {
   position: relative;
@@ -240,8 +226,7 @@
   z-index: auto;
 }
 
-.grid-layout:has(> .react-draggable-dragging, > .resizing)
-  > .brick-hover-target {
+.grid-layout:has(> .react-draggable-dragging, > .resizing) > .brick-hover-target {
   --brick-hover-active: 0;
 }
 

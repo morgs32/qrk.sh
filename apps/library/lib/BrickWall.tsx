@@ -201,7 +201,7 @@ export function BrickWall(props: {
   }
 
   const layout = visibleLayoutAt(breakpoint);
-  const gridPadding = 8;
+  const gridPadding = 6;
   const rowHeight = (gridWidth - gridPadding * 2) / 8;
 
   function beginGesture() {

@@ -201,8 +201,7 @@ export function BrickWall(props: {
   }
 
   const layout = visibleLayoutAt(breakpoint);
-  const gridPadding = 6;
-  const rowHeight = (gridWidth - gridPadding * 2) / 8;
+  const rowHeight = gridWidth / 8;
 
   function beginGesture() {
     gesture.current = true;
@@ -263,7 +262,7 @@ export function BrickWall(props: {
             cols: 8,
             rowHeight,
             margin: [0, 0],
-            containerPadding: [gridPadding, 0],
+            containerPadding: [0, 0],
             maxRows: Number.POSITIVE_INFINITY,
           }}
           dragConfig={{

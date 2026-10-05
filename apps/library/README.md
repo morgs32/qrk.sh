@@ -69,9 +69,22 @@ retains the wall, drawer, standalone session, and viewport providers; route-spec
 module and brick drafts keep their existing remount boundaries. The document title
 remains `QRK.SH Library`, with diagnostic error and not-found screens.
 
-The GitHub Profile brick drawer has a local URL-or-username draft form. Username
-input shows the full `https://github.com/<username>` URL as feedback. This form
-does not fetch a profile or save brick state; closing the drawer discards its draft.
+The GitHub Profile and GitHub Activity brick drawers accept a profile URL or username and show the
+full `https://github.com/<username>` URL as feedback for usernames. Save is enabled
+only when the normalized profile URL differs from the saved URL. Saving fetches
+`getGitHubProfile` through an explicit SWR mutation, then stages one
+`updateBrickState` command containing both `state.payload.url` and `state.data`.
+Activity keeps only the fetched contribution calendar in `state.data`.
+
+The GitHub Repo drawer accepts a full `https://github.com/<owner>/<repo>` URL only.
+It removes a trailing `.git`, lowercases the owner, preserves the repository name's
+case, and ignores query strings, fragments, and trailing slashes. Save fetches
+`getGitHubRepo` through an explicit SWR mutation when the normalized URL changes,
+then stages one `updateBrickState` command containing the URL and repository data.
+
+All three forms disable input and Save while fetching. Fetch, validation, or
+command failures leave the saved brick state and draft intact. Closing
+the drawer discards unsaved input.
 
 ## Storybook
 
@@ -94,8 +107,8 @@ position-aware option casts its shadow away from the viewport center and moves
 the surface toward it; direction updates on scroll, resize, layout changes, and
 pointer entry or focus. Each option has browser chrome around a clipped viewport,
 with the bricks flush against its edges. Reduced motion removes lift and
-animation. Bold shadow is selected for the shared brick UI; the other treatments
-remain available for comparison.
+animation. These treatments remain available for comparison; the shared brick
+UI uses an immediate inset border.
 
 ## Public exports and shared UI
 
@@ -148,11 +161,11 @@ vertically within a horizontal strip. Module detail screens remain app-owned.
 
 ## Modules and interaction
 
-Wall bricks and fixed-size catalog/detail previews use the selected bold hover:
-a 5px lift toward the top-left, a 10px solid shadow, and a 2px dark edge over
-180ms. Their stationary cells own pointer hover and keyboard focus emphasis;
-only the inner surface moves. Wall hover pauses during grid dragging or resizing,
-and reduced motion keeps the shadow and edge without movement or animation.
+Wall bricks and fixed-size catalog/detail previews show a 2px dark inset border
+immediately on pointer hover or keyboard focus. Their cells, surfaces, and resize
+handles stay stationary, with no hover lift, outward shadow, or transition.
+Wall hover pauses during grid dragging or resizing. Reduced motion uses the
+same immediate border.
 Intrinsic measurement hosts retain their existing sizing behavior.
 
 GitHub Activity constrains its calendar to the brick shell's available width.
@@ -342,12 +355,13 @@ for completion. Below 360px, the insufficient-width message appears as soon as
 the gesture ends; a fitting wall returns immediately when space recovers.
 
 Library and Studio use a white wall canvas at all four breakpoints. `BrickWall`
-reserves 6px on both sides of the grid for hover clearance. Row heights use the
-inner grid width to keep cells square.
+has no horizontal grid padding, so bricks meet both wall edges. Row heights use
+the full grid width divided by eight to keep cells square.
 Shared `bricks.css` styles the grid placeholder during brick dragging, catalog drops,
 and resizing with a light-gray background, square corners, and a subtle
 inset shadow. Placeholder dimensions, positioning, and transitions retain the
-grid's existing behavior.
+grid's existing behavior. During resizing, the active brick and its anchors stay
+above the placeholder.
 
 `WallBreakpointPane` frames each wall with decorative browser chrome: sm/md use
 a Safari-like mobile address pill; lg/xl use desktop window dots and a centered
@@ -382,7 +396,8 @@ Drop / resize / remove go through contracts on the owning session — not
 Zustand `bricksById`.
 
 Placed bricks drag from their entire surface and resize using white pill anchors
-with a thin black border at the four edge midpoints. The anchors follow the floating
+with a thin black border at the four edge midpoints, aligned parallel to each edge.
+The anchors follow the floating
 surface on hover, remain visible during resizing, and stay visible on touch devices.
 The stationary square outline appears only during resizing; hover uses the lifted
 surface's border. Every edge keeps its anchor, including at the grid boundaries.

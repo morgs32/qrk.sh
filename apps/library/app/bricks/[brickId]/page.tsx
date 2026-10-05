@@ -12,6 +12,8 @@ import { modulesHash } from "../../../lib/modulesHash";
 import { useWallViewport } from "../../../lib/WallViewportProvider";
 import { useLibrarySession } from "../../../session/createLibraryStandaloneSession";
 import { GitHubProfileForm } from "../../../modules/githubProfile/GitHubProfileForm";
+import { GitHubRepoForm } from "../../../modules/githubRepo/GitHubRepoForm";
+import { GitHubActivityForm } from "../../../modules/githubActivity/GitHubActivityForm";
 
 export default function BrickDetail() {
   const params = useParams();
@@ -71,7 +73,77 @@ function BrickDetailContent(props: { brickId: `brk_${string}` }) {
 
   const brickModule = modulesHash[brickRow.moduleId];
   if (brickRow.moduleId === "github-profile") {
-    return <GitHubProfileForm />;
+    return (
+      <GitHubProfileForm
+        state={acceptedState?.state ?? brickRow.state}
+        onSave={(state) => {
+          const result = stageCommand({
+            session,
+            contractName: "updateBrickState",
+            payload: {
+              brickId: brickRow.id,
+              moduleId: brickRow.moduleId,
+              state,
+            },
+          });
+          if (result._tag === "Failure") {
+            throw new Error(
+              result.failure.message ?? result.failure.code ?? "Failed to save GitHub Profile",
+            );
+          }
+          setAcceptedState({ state });
+        }}
+      />
+    );
+  }
+
+  if (brickRow.moduleId === "github-repo") {
+    return (
+      <GitHubRepoForm
+        state={acceptedState?.state ?? brickRow.state}
+        onSave={(state) => {
+          const result = stageCommand({
+            session,
+            contractName: "updateBrickState",
+            payload: {
+              brickId: brickRow.id,
+              moduleId: brickRow.moduleId,
+              state,
+            },
+          });
+          if (result._tag === "Failure") {
+            throw new Error(
+              result.failure.message ?? result.failure.code ?? "Failed to save GitHub Repo",
+            );
+          }
+          setAcceptedState({ state });
+        }}
+      />
+    );
+  }
+  if (brickRow.moduleId === "github-activity") {
+    return (
+      <GitHubActivityForm
+        state={acceptedState?.state ?? brickRow.state}
+        onSave={(state) => {
+          const result = stageCommand({
+            session,
+            contractName: "updateBrickState",
+            payload: {
+              brickId: brickRow.id,
+              moduleId: brickRow.moduleId,
+              state,
+            },
+          });
+          if (result._tag === "Failure") {
+            throw new Error(
+              result.failure.message ?? result.failure.code ?? "Failed to save GitHub Activity",
+            );
+          }
+          setAcceptedState({ state });
+        }}
+      />
+    );
   }
 
   const committedState = acceptedState?.state ?? brickRow.state;

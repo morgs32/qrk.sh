@@ -13,6 +13,9 @@
   "include": ["**/*.ts", "**/*.tsx"],
   "exclude": [
     "app/**",
+    ".storybook/**",
+    "**/*.stories.ts",
+    "**/*.stories.tsx",
     "worker/**",
     "vite*.ts",
     "next.config.ts",
@@ -20,6 +23,7 @@
     ".next",
     "dist",
     "build",
+    "storybook-static",
     "node_modules",
     "test-results",
     "cloudflare-test.d.ts",

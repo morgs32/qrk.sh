@@ -201,7 +201,8 @@ export function BrickWall(props: {
   }
 
   const layout = visibleLayoutAt(breakpoint);
-  const rowHeight = gridWidth / 8;
+  const gridPadding = 8;
+  const rowHeight = (gridWidth - gridPadding * 2) / 8;
 
   function beginGesture() {
     gesture.current = true;
@@ -262,7 +263,7 @@ export function BrickWall(props: {
             cols: 8,
             rowHeight,
             margin: [0, 0],
-            containerPadding: [0, 0],
+            containerPadding: [gridPadding, 0],
             maxRows: Number.POSITIVE_INFINITY,
           }}
           dragConfig={{
@@ -270,6 +271,10 @@ export function BrickWall(props: {
             cancel: ".qrk-article-edit",
             bounded: false,
             threshold: 3,
+          }}
+          resizeConfig={{
+            enabled: isActive,
+            handles: ["n", "e", "s", "w"],
           }}
           onResizeStart={beginGesture}
           onResizeStop={(nextLayout) => {
@@ -480,13 +485,14 @@ export function BrickWall(props: {
                   style={{
                     opacity: outsideBrickId === layoutItem.i ? 0.4 : 1,
                   }}
-                  className="brick-drag-surface size-full"
+                  className="brick-drag-surface brick-hover-target size-full"
                   data-brick={catalog.def.moduleId}
                   data-brick-id={layoutItem.i}
                   data-grid-x={layoutItem.x}
                   data-grid-y={layoutItem.y}
                   data-grid-w={layoutItem.w}
                   data-grid-h={layoutItem.h}
+                  data-wall-right-edge={layoutItem.x + layoutItem.w === 8}
                   onDoubleClick={() => {
                     if (!isActive) return;
                     onBrickActivate?.({
@@ -495,7 +501,7 @@ export function BrickWall(props: {
                     });
                   }}
                 >
-                  <div className="relative size-full">
+                  <div className="brick-hover-surface relative size-full">
                     {brickRow.moduleId === "article" && isActive && showArticleEditAction && (
                       <button
                         type="button"

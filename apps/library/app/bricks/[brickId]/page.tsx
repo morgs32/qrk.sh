@@ -11,6 +11,7 @@ import { Button } from "../../../components/ui/button";
 import { modulesHash } from "../../../lib/modulesHash";
 import { useWallViewport } from "../../../lib/WallViewportProvider";
 import { useLibrarySession } from "../../../session/createLibraryStandaloneSession";
+import { GitHubProfileForm } from "../../../modules/githubProfile/GitHubProfileForm";
 
 export default function BrickDetail() {
   const params = useParams();
@@ -69,6 +70,10 @@ function BrickDetailContent(props: { brickId: `brk_${string}` }) {
   }
 
   const brickModule = modulesHash[brickRow.moduleId];
+  if (brickRow.moduleId === "github-profile") {
+    return <GitHubProfileForm />;
+  }
+
   const committedState = acceptedState?.state ?? brickRow.state;
   const formState = formDraft?.state ?? committedState;
   const formDirty = JSON.stringify(formState) !== JSON.stringify(committedState);

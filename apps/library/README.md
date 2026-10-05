@@ -69,6 +69,34 @@ retains the wall, drawer, standalone session, and viewport providers; route-spec
 module and brick drafts keep their existing remount boundaries. The document title
 remains `QRK.SH Library`, with diagnostic error and not-found screens.
 
+The GitHub Profile brick drawer has a local URL-or-username draft form. Username
+input shows the full `https://github.com/<username>` URL as feedback. This form
+does not fetch a profile or save brick state; closing the drawer discards its draft.
+
+## Storybook
+
+```sh
+pnpm nx run @qrk.sh/library:storybook
+pnpm nx run @qrk.sh/library:build-storybook
+```
+
+Open `http://127.0.0.1:6007`; Studio's Storybook uses port 6006. Library Storybook
+runs independently of the Next app and API Worker, using Vite and the Library
+app's global styles and fonts. Stories live alongside their components in
+`components/`, `lib/`, and `modules/`. The static build goes to
+`apps/library/storybook-static/`. Storybook configuration and stories are
+excluded from the reusable package's declaration build.
+
+**Library / Brick hover transitions** compares background tint with five hard-shadow
+options: the original, tight, bold, tinted, and position-aware shadows. Hover or
+focus a preview, or enable **Hold hover state** to compare the emphasis. The
+position-aware option casts its shadow away from the viewport center and moves
+the surface toward it; direction updates on scroll, resize, layout changes, and
+pointer entry or focus. Each option has browser chrome around a clipped viewport,
+with the bricks flush against its edges. Reduced motion removes lift and
+animation. Bold shadow is selected for the shared brick UI; the other treatments
+remain available for comparison.
+
 ## Public exports and shared UI
 
 `package.json` lists the public subpaths and `vite.lib.config.ts` maps each one to
@@ -119,6 +147,13 @@ measurement, and `DraggableBrick`. Each app supplies its own module links throug
 vertically within a horizontal strip. Module detail screens remain app-owned.
 
 ## Modules and interaction
+
+Wall bricks and fixed-size catalog/detail previews use the selected bold hover:
+a 5px lift toward the top-left, a 10px solid shadow, and a 2px dark edge over
+180ms. Their stationary cells own pointer hover and keyboard focus emphasis;
+only the inner surface moves. Wall hover pauses during grid dragging or resizing,
+and reduced motion keeps the shadow and edge without movement or animation.
+Intrinsic measurement hosts retain their existing sizing behavior.
 
 GitHub Activity constrains its calendar to the brick shell's available width.
 Only the contribution grid and month labels scroll horizontally; Mon/Wed/Fri
@@ -306,9 +341,11 @@ gestures, selection and available width update while the displayed wall waits
 for completion. Below 360px, the insufficient-width message appears as soon as
 the gesture ends; a fitting wall returns immediately when space recovers.
 
-Library and Studio use a white wall canvas at all four breakpoints. Shared
-`bricks.css` styles the grid placeholder during brick dragging, catalog drops,
-and resizing with a light-gray background, 24px rounded corners, and a subtle
+Library and Studio use a white wall canvas at all four breakpoints. `BrickWall`
+reserves 8px on both sides of the grid for hover clearance. Row heights use the
+inner grid width to keep cells square.
+Shared `bricks.css` styles the grid placeholder during brick dragging, catalog drops,
+and resizing with a light-gray background, square corners, and a subtle
 inset shadow. Placeholder dimensions, positioning, and transitions retain the
 grid's existing behavior.
 
@@ -316,7 +353,9 @@ grid's existing behavior.
 a Safari-like mobile address pill; lg/xl use desktop window dots and a centered
 address bar. Both display static `qrk.sh` and remain noninteractive and hidden
 from assistive technology. The 48px muted-gray header and thin inset frame leave
-the 360/720/1080/1440px content widths unchanged and allow drags beyond the frame.
+the 360/720/1080/1440px frame widths unchanged. The frame clips horizontal
+hover and drag overflow while leaving vertical overflow visible; drag gestures
+can still continue beyond the frame.
 Library adds a decorative 64px navbar below the address bar, matching Studio's
 page-navbar height and showing a static `qrk.sh` label. It is noninteractive and
 hidden from assistive technology. The chrome and navbar slide and scroll with
@@ -342,8 +381,16 @@ The wall uses this trusted identity directly; the contract validates the dragged
 Drop / resize / remove go through contracts on the owning session — not
 Zustand `bricksById`.
 
-Placed bricks drag from their entire surface and resize using the grid library's default
-bottom-right handle. Module and configuration previews also drag from their entire surface.
+Placed bricks drag from their entire surface and resize using white pill anchors
+with a thin black border at the four edge midpoints. The anchors follow the floating
+surface on hover, remain visible during resizing, and stay visible on touch devices.
+The stationary square outline appears only during resizing; hover uses the lifted
+surface's border. The left anchor is hidden at the first column, the right anchor
+at the last column, and the top anchor at the first row; the bottom anchor remains
+available so the wall can grow. These controls belong
+to the active wall and retain grid snapping, module minimum sizes, vertical
+compaction, and the existing layout persistence. Module and configuration previews
+also drag from their entire surface.
 
 ## Article editing in the brick drawer
 

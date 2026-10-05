@@ -57,8 +57,9 @@ inset frame. sm/md show a Safari-like mobile address pill; lg/xl show desktop
 window dots and a centered address bar. Both display static `qrk.sh` and remain
 noninteractive and hidden from assistive technology. Chrome slides and scrolls
 with the wall, including scroll compensation while dragging, preserves its
-exact 360/720/1080/1440px content width, and allows
-drags beyond the frame. The scroll root sets `--wall-top-offset: 4rem` to match
+exact 360/720/1080/1440px content width, and clips horizontal hover and drag
+overflow while leaving vertical overflow visible. Drag gestures can still
+continue beyond the frame. The scroll root sets `--wall-top-offset: 4rem` to match
 Studio's 64px site header; the pane sets `--wall-chrome-height: 3rem`.
 `BrickWall` subtracts both inherited offsets from its viewport minimum height,
 with 3.5rem and zero fallbacks respectively, so an empty wall adds no scrolling

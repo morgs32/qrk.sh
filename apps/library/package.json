@@ -73,7 +73,9 @@
     "lint": "vp lint --config .oxlintrc.json .",
     "format": "vp fmt --config ../../.oxfmtrc.json .",
     "format:check": "vp fmt --config ../../.oxfmtrc.json --check .",
-    "build:app": "next build --webpack"
+    "build:app": "next build --webpack",
+    "storybook": "storybook dev -p 6007 --host 127.0.0.1",
+    "build-storybook": "storybook build"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
@@ -138,8 +140,12 @@
   },
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "^0.16.20",
+    "@storybook/addon-a11y": "^10.6.0",
+    "@storybook/addon-docs": "^10.6.0",
+    "@storybook/react-vite": "^10.6.0",
     "@tailwindcss/cli": "4.3.3",
     "@tailwindcss/postcss": "4.3.3",
+    "@tailwindcss/vite": "4.3.3",
     "@types/mapbox-gl": "^3.5.0",
     "@types/node": "^25.5.2",
     "@types/react": "^19.2.14",
@@ -150,6 +156,7 @@
     "react": "19.2.7",
     "react-dom": "19.2.7",
     "sass-embedded": "^1.104.1",
+    "storybook": "^10.6.0",
     "tailwindcss": "4.3.3",
     "typescript": "^6.0.2",
     "vite": "npm:@voidzero-dev/vite-plus-core@1.0.0",

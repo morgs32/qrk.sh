@@ -18,6 +18,13 @@
     },
     "build:app": {
       "dependsOn": ["^lib"]
+    },
+    "storybook": {
+      "continuous": true,
+      "dependsOn": ["^lib"]
+    },
+    "build-storybook": {
+      "dependsOn": ["^lib"]
     }
   }
 }

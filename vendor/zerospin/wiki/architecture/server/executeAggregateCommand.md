@@ -1,6 +1,52 @@
 ---
 title: Aggregate Command Execution
-updated: 2026-10-02
+updated: 2026-10-05
+sources:
+  - path: packages/system-worker/src/SystemApi/executeAggregateCommand/executeAggregateCommand.ts
+    sha: 782f14812aa3f1a2e24f0afc0f67a90a5e258f0e
+    lines: 1-112
+  - path: packages/system-worker/src/AggregateChain/executeAggregateCommand/executeAggregateCommand.ts
+    sha: 90d5041376daf766370b22c8b6079695689fc193
+    lines: 1-44
+  - path: packages/system-worker/src/AggregateVersionRepo/execute/execute.ts
+    sha: 33e25bf73d9440071e723f3e419b9c8ee5fe34d9
+    lines: 1-126
+  - path: packages/system-worker/src/AggregateChain/AggregateChain.ts
+    sha: b8d35d56d7839fc53aa291017b2cce9d247edb27
+    lines: 1-237
+  - path: packages/system-worker/src/AggregateVersionRepo/executeCommands/executeCommandsTx.ts
+    sha: 96e4e7997222064af1f193d2ba7513e3ede67275
+    lines: 1-332
+  - path: packages/system-worker/src/AggregateVersionRepo/deleteDeliveredAggregateMaterial.ts
+    sha: c9e8a35f787e6a5c2ed611c66764270766c48d27
+    lines: 1-31
+  - path: packages/system-worker/src/AggregateVersionRepo/flush/flush.ts
+    sha: 79fc755e3fb878ad18a743deaf5ac44a1e2a5fec
+    lines: 1-58
+  - path: packages/core/src/aggregateActor/getAggregateActorVersion.ts
+    sha: c5880d423634f9f6718fa1368c04ec2655e6d76f
+    lines: 1-44
+  - path: packages/core/src/system/make/makeSystem/makeSystem.ts
+    sha: ae87e074b9f0ba5a09b39560a98dd9dd0ffb2307
+    lines: 1-373
+  - path: packages/system-worker/src/asyncOperations/README.md
+    sha: 9633ff073d796483dc8f24f0e091bcc6be17d980
+    lines: 1-13
+  - path: packages/core/src/contracts/prepareContractInput.ts
+    sha: 2342b4dd0e075d840522584cd6113f164115fdd3
+    lines: 1-78
+  - path: packages/core/src/contracts/make/makeOperations.ts
+    sha: 71e161056ad3ff1614f996247d0c157b88578644
+    lines: 1-189
+  - path: packages/system-worker/src/asyncOperations/readOperationOutput.ts
+    sha: 66902d47e9a088fe453c821ead06c00557495489
+    lines: 1-157
+  - path: packages/system-worker/src/asyncOperations/makeAsyncOperations.ts
+    sha: f5c7cd069676dcda0aba4fd008f0a8ad324db977
+    lines: 1-299
+  - path: packages/system-worker/src/AggregateVersionRepo/executeCommands/executeCommands.ts
+    sha: 7872e8e4490919ccc57d09c549274e012f094209
+    lines: 1-378
 ---
 
 # Aggregate Command Execution
@@ -72,6 +118,12 @@ return the retained result without changing either timestamp.
 
 ## Contract return values
 
+Execution decodes the wire payload and authenticated claims, then prepares the contract input once. The guard and program receive the same payload defaults and domain values. Before applying operations, the transaction reruns actor authorization and the contract guard against its database using that prepared input.
+
+- [`executeCommands.ts:203-255`](../../../packages/system-worker/src/AggregateVersionRepo/executeCommands/executeCommands.ts#L203-L255) — decodes input, prepares it once, and runs authorization and the contract program.
+- [`executeCommands.ts:279-302`](../../../packages/system-worker/src/AggregateVersionRepo/executeCommands/executeCommands.ts#L279-L302) — retains a guard recheck with the prepared input.
+- [`executeCommandsTx.ts:118-130`](../../../packages/system-worker/src/AggregateVersionRepo/executeCommands/executeCommandsTx.ts#L118-L130) — runs that recheck inside the business savepoint before applying operations.
+
 The runner collects typed operation emissions independently of the program return value. It validates and encodes the optional result codec before resource application. Successful terminal history retains the encoded result and actual executing contract version atomically with owned operations; failed application retains no successful result. Same-command retries reuse that retained outcome.
 
 ## Mapped output and async lifecycle
@@ -80,8 +132,10 @@ Server execution runs the ordinary program, validates its original result, then 
 
 Successful application commits model changes, complete output and eligible async lifecycle with terminal history. `modelOperations` and `asyncOperations` share `(commandId, operationIndex)` identity; readers merge immutable output by that index. Original execution alone allocates child IDs and retains actor authority. Replay runs the full mapped program but applies only model operations and retains async emissions with null lifecycle. Actor projections skip async entries without renumbering model operations.
 
-Producer execution starts after commit. Observation recording, deadline clearing and minimal child-command delivery enqueue share one synchronous transaction. Retained async rows survive source publication cleanup. Child reconstruction uses frozen payload, observation, exact actor/contract pins and Repo identity; it does not require a source command row. Continuation rejection preserves recorded evidence. See [async operation lifecycle](../../../packages/system-worker/src/asyncOperations/README.md).
+The external contract's `external.request({ payload })` starts after commit and returns a value validated by `external.response`. Recording `response` and `responseRecordedAt`, clearing the deadline, and enqueuing minimal child-command delivery share one synchronous transaction. Retained async rows survive source publication cleanup. Child reconstruction uses frozen payload, response, exact actor/contract pins and Repo identity; it does not require a source command row. The synchronous continuation receives `{ payload, response }`; rejection preserves that recorded response. See [async operation lifecycle](../../../packages/system-worker/src/asyncOperations/README.md).
 
-- [`makeOperations.ts`](../../../packages/core/src/contracts/make/makeOperations.ts) — base validation, immutable mapper input and authoritative result validation.
+- [`makeExternalContract.ts`](../../../packages/core/src/contracts/make/makeExternalContract.ts) — declares the external request, response codec, and synchronous continuation.
+- [`prepareContractInput.ts`](../../../packages/core/src/contracts/prepareContractInput.ts) — prepares payload defaults, contract claims, and recorded response once; transaction guard rechecks reuse those values.
+- [`makeOperations.ts`](../../../packages/core/src/contracts/make/makeOperations.ts) — runs prepared guard and program input, collects operations, and validates base and mapped results.
 - [`readOperationOutput.ts`](../../../packages/system-worker/src/asyncOperations/readOperationOutput.ts) — ordered complete output across physical tables.
-- [`makeAsyncOperations.ts`](../../../packages/system-worker/src/asyncOperations/makeAsyncOperations.ts) — concurrent production, atomic observation retention and recovery.
+- [`makeAsyncOperations.ts`](../../../packages/system-worker/src/asyncOperations/makeAsyncOperations.ts) — concurrent production, atomic response retention and recovery.

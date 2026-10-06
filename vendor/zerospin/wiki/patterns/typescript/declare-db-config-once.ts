@@ -17,7 +17,7 @@
  * @bad Extracting a one-table field map into another constant or file.
  */
 import { makeDbConfig } from '@zerospin/core/drizzle/make/makeDbConfig/makeDbConfig';
-import { makeTable, primitives } from '@zerospin/schema';
+import { makeTable, primitives } from '@zerospin/shapes';
 
 export const orderRepoDbConfig = makeDbConfig({
   tables: {

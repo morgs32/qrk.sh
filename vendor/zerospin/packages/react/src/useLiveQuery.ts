@@ -1,6 +1,5 @@
 import { useMemo, useRef, useSyncExternalStore } from 'react';
 
-import type { IAgentDatabase, IAgentSession } from '@zerospin/core/agent/types';
 import type {
   IAggregateSession,
   IAggregateSessionDefinition,
@@ -131,17 +130,6 @@ export function useLiveQuery<
   session: IServiceSession<DEFINITION, MODELS>;
   key?: undefined;
   query: (db: IModelQueryDb<MODELS>) => QUERY;
-  tableNames?: readonly string[];
-}): {
-  readonly data: QUERY['_']['result'];
-  readonly error: Error | undefined;
-  readonly updatedAt: Date | undefined;
-};
-
-export function useLiveQuery<KEY, QUERY extends ILiveRelationalQuery>(props: {
-  session: IAgentSession;
-  key?: KEY;
-  query: (db: IAgentDatabase, key: KEY) => QUERY;
   tableNames?: readonly string[];
 }): {
   readonly data: QUERY['_']['result'];

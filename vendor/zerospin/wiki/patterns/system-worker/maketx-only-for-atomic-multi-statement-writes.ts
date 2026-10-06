@@ -1,6 +1,6 @@
 import { makeTx } from '@zerospin/core/drizzle/make/makeTx';
 import type { IDb, ITx } from '@zerospin/core/drizzle/types';
-import type { IAnyDrizzleSchema } from '@zerospin/schema';
+import type { IAnyDrizzleSchema } from '@zerospin/shapes';
 import { Effect } from 'effect';
 
 /**

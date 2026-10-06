@@ -1,25 +1,38 @@
 import {
+  catchZerospinError,
+  encodeError,
   makeZerospinError,
+  PublicFailureSchema,
+  recognizeZerospinError,
   type IAnyError,
   type IResult,
   type IZerospinErrorJson,
 } from '@zerospin/error';
-import { Effect } from 'effect';
+import { Effect, Schema } from 'effect';
 
+import { resolveFailure } from '../contracts/failureCodec.ts';
 import { resolveContractResult } from '../contracts/resultCodec.ts';
 import type { InferContractResult } from '../contracts/types.ts';
 import type { InferPayloadInput } from '../models/types.ts';
-import type { INodeCommandInput } from '../Node/types.ts';
+import type { IServiceNodeCommandInput } from '../ServiceNode/types.ts';
 import { getByKeyOrThrow } from '../utils/getByKeyOrThrow.ts';
 
-import type { IServiceSession, IServiceSessionDefinition } from './types.ts';
+import type {
+  IServiceSession,
+  IServiceSessionCommand,
+  IServiceSessionDefinition,
+  IServiceStageFailure,
+} from './types.ts';
 
 type Stage = (props: {
   contractName: string;
   payload: unknown;
-}) => Promise<IResult<INodeCommandInput, IAnyError | IZerospinErrorJson>>;
+}) => IResult<IServiceNodeCommandInput, IAnyError | IZerospinErrorJson>;
 type Execution = {
   stage: Stage;
+  accept(
+    command: IServiceNodeCommandInput,
+  ): Promise<IResult<void, IAnyError | IZerospinErrorJson>>;
   can(props: {
     contractName: string;
     payload: unknown;
@@ -39,7 +52,7 @@ export function bindServiceSessionExecution(
 }
 
 /** Resolves successfully only after the offline command is durably accepted by its Node. */
-export async function stageServiceCommand<
+export function stageServiceCommand<
   D extends IServiceSessionDefinition,
   K extends keyof D['contracts'] & string,
 >(props: {
@@ -50,25 +63,79 @@ export async function stageServiceCommand<
   >;
 }): Promise<
   IResult<
-    Omit<INodeCommandInput, 'staging'> & {
-      readonly staging: Omit<INodeCommandInput['staging'], 'result'> & {
-        readonly result: InferContractResult<D['contracts'][K]>;
-      };
-    },
+    IServiceSessionCommand<InferContractResult<D['contracts'][K]>>,
     IAnyError | IZerospinErrorJson
   >
-> {
+>;
+export function stageServiceCommand(props: {
+  session: IServiceSession;
+  contractName: string;
+  payload: unknown;
+}) {
+  return props.session.stageCommand(props);
+}
+
+export async function stageBoundServiceSessionCommand(props: {
+  session: { readonly definition: IServiceSessionDefinition };
+  contractName: string;
+  payload: unknown;
+  onStageFailure(event: IServiceStageFailure): void;
+}): Promise<IResult<IServiceSessionCommand, IAnyError | IZerospinErrorJson>> {
   const execute = executions.get(props.session);
   if (execute === undefined) {
-    return Promise.resolve({
-      _tag: 'Failure',
-      failure: makeZerospinError({ code: 'service-session-not-ready' }),
-    });
+    const failure = Effect.runSync(
+      encodeError(
+        makeZerospinError({ code: 'service-session-not-ready' }),
+      ).pipe(
+        Effect.map(encoded => recognizeZerospinError(Schema.Never, encoded)),
+      ),
+    );
+    props.onStageFailure({ contractName: props.contractName, failure });
+    return { _tag: 'Failure', failure };
   }
-  const staged = await execute.stage(props);
-  if (staged._tag === 'Failure') return staged;
+  let staged;
+  try {
+    const result = execute.stage(props);
+    if (result._tag === 'Failure') {
+      const encoded = Schema.decodeUnknownSync(PublicFailureSchema)(
+        'toJson' in result.failure
+          ? Effect.runSync(encodeError(result.failure))
+          : result.failure,
+      );
+      const contract = props.session.definition.contracts[props.contractName];
+      const failure =
+        contract === undefined
+          ? recognizeZerospinError(Schema.Never, encoded)
+          : Effect.runSync(resolveFailure(contract, encoded));
+      staged = { _tag: 'Failure' as const, failure };
+    } else {
+      staged = result;
+    }
+  } catch (cause) {
+    const failure = Effect.runSync(
+      encodeError(
+        catchZerospinError({
+          code: 'service-command-staging-exception',
+          message: 'Command staging failed',
+        })(cause),
+      ).pipe(
+        Effect.map(encoded => recognizeZerospinError(Schema.Never, encoded)),
+      ),
+    );
+    props.onStageFailure({ contractName: props.contractName, failure });
+    throw cause;
+  }
+  if (staged._tag === 'Failure') {
+    props.onStageFailure({
+      contractName: props.contractName,
+      failure: staged.failure,
+    });
+    return staged;
+  }
+  const accepted = await execute.accept(staged.success);
+  if (accepted._tag === 'Failure') return accepted;
   const decoded = Effect.runSync(
-    getByKeyOrThrow<D['contracts'], K>({
+    getByKeyOrThrow({
       record: props.session.definition.contracts,
       key: props.contractName,
       recordKind: 'contracts',

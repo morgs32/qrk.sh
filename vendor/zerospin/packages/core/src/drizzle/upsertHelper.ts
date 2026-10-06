@@ -3,7 +3,7 @@ import type {
   IAnyShape,
   IAnyTables,
   IDrizzleSchema,
-} from '@zerospin/schema';
+} from '@zerospin/shapes';
 import { getTableColumns, sql, type InferInsertModel } from 'drizzle-orm';
 import type { SQLiteAsyncDatabase } from 'drizzle-orm/sqlite-core/async/db';
 import { mapValues } from 'es-toolkit';

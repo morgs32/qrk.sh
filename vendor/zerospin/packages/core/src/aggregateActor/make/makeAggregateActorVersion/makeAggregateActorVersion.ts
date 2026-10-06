@@ -2,7 +2,7 @@ import { Schema, SchemaAST, type Effect } from 'effect';
 
 import { assertSameCoreInstance } from '../../../assertSameCoreInstance.ts';
 import type { AssertContractOperationsInModels } from '../../../contracts/assertOperationsUseModels.ts';
-import { assertActorAsyncContracts } from '../../../contracts/asyncContract.ts';
+import { assertActorExternalContracts } from '../../../contracts/externalContract.ts';
 import { Contract } from '../../../contracts/make/makeContractVersion.ts';
 import type { ExcludeOperationSink } from '../../../contracts/operationSink.ts';
 import '@zerospin/server-only';
@@ -314,7 +314,7 @@ export function constructAggregateActorVersion<
       throw new Error(`Unknown actor guard command ${key}`);
     }
   }
-  assertActorAsyncContracts(decoded.contracts);
+  assertActorExternalContracts(decoded.contracts);
   const identity = decoded.identity;
   const field = identity.claimsSchema.fields.aggregateId;
   const ast = field === undefined ? undefined : SchemaAST.toType(field.ast);

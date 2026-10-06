@@ -5,7 +5,7 @@ import type { IEncodedResourceShape } from '@zerospin/core/models/types';
 import type { IAnyService } from '@zerospin/core/service/types';
 import { getByKeyOrThrow } from '@zerospin/core/utils/getByKeyOrThrow';
 import { mapParseError } from '@zerospin/error';
-import { makeEffectSchema } from '@zerospin/schema';
+import { makeEffectSchema } from '@zerospin/shapes';
 import { Effect, Schema } from 'effect';
 
 import { resolveServiceActorView } from './resolveServiceActorView.js';

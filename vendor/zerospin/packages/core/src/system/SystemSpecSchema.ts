@@ -1,7 +1,6 @@
-import { encodedShapeSchema } from '@zerospin/schema';
+import { encodedShapeSchema } from '@zerospin/shapes';
 import { Schema } from 'effect';
 
-import { AgentQuerySchema } from '../agent/AgentQuerySchema.ts';
 import { SelectionQuerySchema } from '../models/SelectionQuerySchema.ts';
 const identitySchema = Schema.Struct({
   claimsJsonSchema: Schema.Unknown,
@@ -21,9 +20,9 @@ const modelSchema = Schema.Struct({
   indexes: Schema.Array(indexSchema),
 });
 const authoritativeContractSchema = Schema.Struct({
-  async: Schema.optionalKey(
+  external: Schema.optionalKey(
     Schema.Struct({
-      externalJsonSchema: Schema.Unknown,
+      responseJsonSchema: Schema.Unknown,
       timeoutMs: Schema.Number,
       retryDelayMs: Schema.Number,
     }),
@@ -86,7 +85,23 @@ export const SystemSpecSchema = Schema.Struct({
       aggregateVersion: Schema.String,
       actorName: Schema.String,
       actorVersion: Schema.String,
-      query: AgentQuerySchema,
+      sessionName: Schema.String,
+      claimsJsonSchema: Schema.Unknown,
+      contracts: Schema.Record(Schema.String, contractSchema),
+      selections: Schema.Record(
+        Schema.String,
+        Schema.Struct({
+          modelName: Schema.String,
+          query: SelectionQuerySchema,
+        }),
+      ),
+      contractBindings: Schema.Record(
+        Schema.String,
+        Schema.Struct({
+          modelName: Schema.String,
+          bind: Schema.Record(Schema.String, Schema.String),
+        }),
+      ),
       models: Schema.Record(Schema.String, modelSchema),
     }),
   ),

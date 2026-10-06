@@ -1,6 +1,6 @@
 import { makeDbConfig } from '@zerospin/core/drizzle/make/makeDbConfig/makeDbConfig';
 import { PublicFailureSchema } from '@zerospin/error';
-import { makeTable, primitives } from '@zerospin/schema';
+import { makeTable, primitives } from '@zerospin/shapes';
 import { Schema } from 'effect';
 
 export const asyncOperationShape = {
@@ -34,8 +34,8 @@ export const asyncOperationsDbConfig = makeDbConfig({
           schema: Schema.Record(Schema.String, Schema.Unknown),
           nullable: true,
         }),
-        external: primitives.json({ schema: Schema.Json, nullable: true }),
-        externalRecordedAt: primitives.date({ nullable: true }),
+        response: primitives.json({ schema: Schema.Json, nullable: true }),
+        responseRecordedAt: primitives.date({ nullable: true }),
         nextRunAt: primitives.date({ nullable: true }),
         lastProducerFailure: primitives.json({
           schema: PublicFailureSchema,
@@ -77,8 +77,8 @@ export const asyncOperationLifecycleCodec =
           (row.actorName === null &&
             row.actorVersion === null &&
             row.claims === null &&
-            row.external === null &&
-            row.externalRecordedAt === null &&
+            row.response === null &&
+            row.responseRecordedAt === null &&
             row.nextRunAt === null &&
             row.lastProducerFailure === null) ||
           'Replay output must have no producer lifecycle'
@@ -92,8 +92,8 @@ export const asyncOperationLifecycleCodec =
         return 'Production requires complete retained actor authority';
       }
       return (
-        (row.externalRecordedAt === null
-          ? row.external === null && row.nextRunAt !== null
+        (row.responseRecordedAt === null
+          ? row.response === null && row.nextRunAt !== null
           : row.nextRunAt === null) ||
         'Production deadline and observation recording must agree'
       );

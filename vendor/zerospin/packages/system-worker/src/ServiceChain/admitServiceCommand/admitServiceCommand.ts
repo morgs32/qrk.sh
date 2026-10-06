@@ -27,7 +27,7 @@ export const prepareServiceAdmission = Effect.fn(
 }) {
   const startedAt = new Date();
   const { command, db, key } = props;
-  if (command.asyncInput != null && props.trustedAsync !== true) {
+  if (command.response !== undefined && props.trustedAsync !== true) {
     return yield* makeZerospinError('public-async-command-forbidden');
   }
   if (command.serviceName !== key.serviceName) {
@@ -67,12 +67,12 @@ export const prepareServiceAdmission = Effect.fn(
           commandName: saved.commandName,
           contractVersion: saved.contractVersion,
           payload: saved.payload,
-          asyncInput: saved.asyncInput,
+          response: saved.response,
           serviceName: saved.serviceName,
           serviceVersion: saved.serviceVersion,
           caller: saved.caller,
         },
-        { ...command, asyncInput: command.asyncInput ?? null },
+        { ...command, response: command.response ?? null },
       )
     ) {
       return yield* makeZerospinError('service-command-identity-mismatch');

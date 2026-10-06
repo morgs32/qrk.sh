@@ -10,7 +10,7 @@ import { defineModel } from '@zerospin/core/models/defineModel';
 import { makeActorDbVersion } from '@zerospin/core/models/make/makeActorDbVersion';
 import { makeModelVersion } from '@zerospin/core/models/make/makeModelVersion';
 import { ActorError } from '@zerospin/error';
-import { primitives } from '@zerospin/schema';
+import { primitives } from '@zerospin/shapes';
 import { Effect, ManagedRuntime, Schema } from 'effect';
 
 export const stagingCalls = { guard: 0, program: 0, mapper: 0 };

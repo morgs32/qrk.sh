@@ -26,7 +26,7 @@ sequenceDiagram
 ## Annotated workflow steps
 
 1. Session staging saves its optimistic operations and original staging result.
-   - [`executeCommandTx.ts:207-228`](../../packages/core/src/aggregateSession/stageCommand/executeCommandTx/executeCommandTx.ts#L207-L228) — retains staging result and ordered optimistic operations. (`packages/core/src/aggregateSession/stageCommand/executeCommandTx/executeCommandTx.ts:207-228`)
+   - [`stageSessionCommandTx.ts:23-59`](../../packages/core/src/aggregateSession/stageCommand/stageSessionCommandTx/stageSessionCommandTx.ts#L23-L59) — retains the command occurrence and ordered inverse operations inside one transaction. (`packages/core/src/aggregateSession/stageCommand/stageSessionCommandTx/stageSessionCommandTx.ts:23-59`)
 2. The node owns durable ordered push and server synchronization.
    - [`NodeSynchronization.ts:338-357`](../../packages/browser/src/Node/NodeSynchronization.ts#L338-L357) — sends the staged command over the bound socket. (`packages/browser/src/Node/NodeSynchronization.ts:338-357`)
 3. Actor staging retains prepared operations and durable admission work.
@@ -44,6 +44,6 @@ sequenceDiagram
 9. Actor history preserves selected delivery and private command outcomes.
    - [`getActorOutputs.ts:56-83`](../../packages/system-worker/src/AggregateActorVersionChain/getActorOutputs/getActorOutputs.ts#L56-L83) — pages retained browser outputs and missing private completions. (`packages/system-worker/src/AggregateActorVersionChain/getActorOutputs/getActorOutputs.ts:56-83`)
 10. Browser replay keeps the original staging result while rebuilding optimism.
-    - [`replayPendingCommandsTx.ts:115-126`](../../packages/core/src/aggregateSession/replayPendingCommandsTx.ts#L115-L126) — reapplies prepared optimistic operations in the replay transaction. (`packages/core/src/aggregateSession/replayPendingCommandsTx.ts:115-126`)
+    - [`replayPendingCommandsTx.ts:149-191`](../../packages/core/src/aggregateSession/replayPendingCommandsTx.ts#L149-L191) — prepares input once, recalculates operations, and reapplies optimism in the active replay transaction. (`packages/core/src/aggregateSession/replayPendingCommandsTx.ts:149-191`)
 
 Services use the same owned-execution → version-history → actor-projection → session boundary. Async-contract WIP remains independent. Changed fixed schemas require empty storage.

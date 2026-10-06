@@ -3,7 +3,7 @@ import {
   mapParseError,
   type IAnyError,
 } from '@zerospin/error';
-import { makeEffectSchema } from '@zerospin/schema';
+import { makeEffectSchema } from '@zerospin/shapes';
 import { Effect, Schema } from 'effect';
 
 import type { InferCommandPayload } from '../../models/types.ts';

@@ -3,7 +3,7 @@ import { getGraph } from '@zerospin/core/models/getGraph';
 import type { IEncodedResourceShape } from '@zerospin/core/models/types';
 import { getByKeyOrThrow } from '@zerospin/core/utils/getByKeyOrThrow';
 import { mapParseError } from '@zerospin/error';
-import { makeEffectSchema } from '@zerospin/schema';
+import { makeEffectSchema } from '@zerospin/shapes';
 import { Effect, Schema } from 'effect';
 
 /** Read and encode the selected resources from the current resource tables. */

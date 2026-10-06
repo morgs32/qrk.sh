@@ -1,5 +1,8 @@
 import { useRef, useState, useSyncExternalStore } from 'react';
 
+import { makeZerospinError } from '@zerospin/error';
+import { useLiveQueryOnDb } from '@zerospin/react/useLiveQueryOnDb';
+
 import { shopperSession } from '@/zerospin/shopperSession';
 
 /** Keep a submission pending until durable staging; retain authoritative failures. */
@@ -12,9 +15,27 @@ export function useCartCommand() {
     shopperSession.store.subscribe,
     shopperSession.store.getState,
   );
-  const failure = state.commandHistory?.findLast(
-    command => commandIds.includes(command.id) && command.failure !== null,
-  )?.failure;
+  if (!state.isInitialized) {
+    throw makeZerospinError({ code: 'service-session-not-ready' });
+  }
+  const { data: commands } = useLiveQueryOnDb({
+    db: state.db,
+    tableNames: ['commands'],
+    query: db =>
+      db.query.commands.findMany({ orderBy: { sessionIndex: 'asc' } }),
+  });
+  const failure = commandIds
+    .map(id =>
+      commands.find(command => command.id === id && command.payload !== null),
+    )
+    .map(command =>
+      command?.admission?.status === 'failed'
+        ? command.admission.failure
+        : command?.execution?.status === 'failed'
+          ? command.execution.failure
+          : null,
+    )
+    .findLast(failure => failure !== null);
   return {
     pending,
     error: error ?? failure?.message ?? null,

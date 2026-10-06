@@ -1,11 +1,10 @@
 import { useEffect, useMemo, useRef } from 'react';
 
-import type {
-  ILiveRelationalQuery,
-  IWaSqliteClient,
-} from '@zerospin/core/drizzle/types';
+import type { IWaSqliteClient } from '@zerospin/core/drizzle/types';
 import { makeLiveQuery } from '@zerospin/live-query/makeLiveQuery';
 import { useStore } from 'zustand/react';
+
+type ILiveQuery = Parameters<typeof makeLiveQuery>[0]['query'];
 
 function stableTableNamesEquals(
   left: readonly string[],
@@ -19,7 +18,7 @@ function stableTableNamesEquals(
 
 /*
  * 1. Keep the latest caller callbacks without rebuilding for identity-only changes.
- * 2. Build the Drizzle query when the database, key value, or watched tables change.
+ * 2. Build the synchronous query when the database or key changes.
  * 3. Create one vanilla live-query store for that built query.
  * 4. Subscribe during the React effect lifecycle and release on replacement/unmount.
  * 5. Return the selected vanilla store state to the React consumer.
@@ -27,7 +26,7 @@ function stableTableNamesEquals(
 export function useLiveQueryOnDb<
   DB extends { $client: IWaSqliteClient },
   KEY,
-  QUERY extends ILiveRelationalQuery,
+  QUERY extends ILiveQuery,
 >(props: {
   query: (db: DB, key: KEY) => QUERY;
   db: DB;
@@ -40,7 +39,7 @@ export function useLiveQueryOnDb<
 };
 export function useLiveQueryOnDb<
   DB extends { $client: IWaSqliteClient },
-  QUERY extends ILiveRelationalQuery,
+  QUERY extends ILiveQuery,
 >(props: {
   query: (db: DB) => QUERY;
   db: DB;
@@ -53,7 +52,7 @@ export function useLiveQueryOnDb<
 };
 export function useLiveQueryOnDb<
   DB extends { $client: IWaSqliteClient },
-  QUERY extends ILiveRelationalQuery,
+  QUERY extends ILiveQuery,
 >(props: {
   query: (db: DB, key?: unknown) => QUERY;
   db: DB;

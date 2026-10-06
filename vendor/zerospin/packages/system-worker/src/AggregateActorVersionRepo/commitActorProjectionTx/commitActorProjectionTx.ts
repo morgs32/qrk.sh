@@ -1,4 +1,4 @@
-import type { IAggregateActorOutput } from '@zerospin/core/aggregateSession/types';
+import type { IAggregateBrowserCommand } from '@zerospin/core/aggregateSession/types';
 import type { ITx } from '@zerospin/core/drizzle/types';
 import type { ISelection } from '@zerospin/core/models/makeSelection';
 import type {
@@ -24,9 +24,7 @@ export const commitActorProjectionTx = Effect.fn('commitActorProjectionTx')(
     executedIndex: number;
     executedHash: string;
     aggregateIndex: number;
-    output: Omit<IAggregateActorOutput, 'command'> & {
-      command: Omit<IAggregateActorOutput['command'], 'delta'>;
-    };
+    output: Omit<IAggregateBrowserCommand, 'delta'>;
     ownerClaims: Readonly<Record<string, unknown>> | null;
     ownerSessionName: string | null;
     nodeId: string | null;
@@ -85,10 +83,7 @@ export const commitActorProjectionTx = Effect.fn('commitActorProjectionTx')(
     const retained =
       yield* aggregateActorVersionRepoDbConfig.tables.browserCommandOutbox
         .encodeRow({
-          executedIndex,
-          executedHash,
-          aggregateIndex,
-          ...props.output.command,
+          ...props.output,
           delta: actorDelta,
           completionNodeId: props.nodeId,
           completionNodeIndex: props.nodeIndex,

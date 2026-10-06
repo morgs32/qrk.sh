@@ -3,7 +3,7 @@ import {
   mapParseError,
   type IAnyError,
 } from '@zerospin/error';
-import { makeAbbreviationIdSchema, PrimitiveKind } from '@zerospin/schema';
+import { makeAbbreviationIdSchema, PrimitiveKind } from '@zerospin/shapes';
 import { Effect, Schema, Struct } from 'effect';
 import { mapValues, pick } from 'es-toolkit';
 

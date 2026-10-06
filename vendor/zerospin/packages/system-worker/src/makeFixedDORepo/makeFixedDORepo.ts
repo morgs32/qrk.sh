@@ -8,18 +8,24 @@ import type {
   IDbConfigRelations,
   IDbConfigSchema,
 } from '@zerospin/core/drizzle/types';
-import type { IRepoTableData } from '@zerospin/core/system/types';
+import type {
+  IRepoRegistration,
+  IRepoTableData,
+} from '@zerospin/core/system/types';
+import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
 import { readRpcEnvelope } from '@zerospin/core/utils/readRpcEnvelope';
 import {
   makeZerospinError,
+  mapParseError,
   type IAnyError,
   type IZerospinErrorJson,
 } from '@zerospin/error';
 import type { IRpcEnvelope } from '@zerospin/logger';
+import { makeAbbreviationIdSchema } from '@zerospin/shapes';
 import { env, type DurableObject } from 'cloudflare:workers';
 import config from 'config';
 import { getTableName } from 'drizzle-orm';
-import { Effect } from 'effect';
+import { Effect, Schema } from 'effect';
 
 import type { AggregateActorVersionChain } from '../AggregateActorVersionChain/AggregateActorVersionChain.js';
 import type { AggregateActorVersionRepo } from '../AggregateActorVersionRepo/AggregateActorVersionRepo.js';
@@ -59,7 +65,8 @@ declare global {
           | 'createServiceSessionWebSocketTicket'
           | 'consumeServiceSessionWebSocketTicket'
           | 'registerRepo'
-          | 'registerRepos'
+          | 'getAggregateIds'
+          | 'hasAggregate'
           | 'getRepoRegistrations'
           | 'getRepoTableRows'
         >;
@@ -218,6 +225,16 @@ export function makeFixedDORepo<
     }) {
       const { key } = props;
       if (
+        repoType === 'AggregateChain' &&
+        (!('systemId' in key) || key.systemId !== env.ZEROSPIN_SYSTEM_ID)
+      ) {
+        return yield* makeZerospinError({
+          code: 'repo-system-id-mismatch',
+          message:
+            'AggregateChain must belong to the configured SystemRepo systemId',
+        });
+      }
+      if (
         'aggregateVersion' in key &&
         'aggregateName' in key &&
         typeof key.aggregateVersion === 'string' &&
@@ -259,23 +276,55 @@ export function makeFixedDORepo<
       }
     }),
     registerRepo: Effect.fn('FixedDORepo.registerRepo')(function* (props: {
+      key: MatchParams<PATTERN>;
       name: string;
       schema: IDbConfigSchema<CONFIG>;
     }) {
-      const { name, schema } = props;
+      const { key, name, schema } = props;
       // SystemRepo's fixed config omits repoType to avoid self-registration.
       if (repoType === undefined) {
         return;
+      }
+      let registration: IRepoRegistration;
+      if (repoType === 'AggregateChain') {
+        if (
+          !('aggregateName' in key) ||
+          typeof key.aggregateName !== 'string' ||
+          !('aggregateId' in key) ||
+          typeof key.aggregateId !== 'string'
+        ) {
+          return yield* makeZerospinError({
+            code: 'aggregate-chain-identity-missing',
+            message:
+              'AggregateChain registration requires aggregateName and aggregateId',
+          });
+        }
+        registration = {
+          repoType,
+          repoName: name,
+          tableNames: Object.values(schema).map(getTableName),
+          aggregateName: key.aggregateName,
+          aggregateId: yield* Schema.decodeUnknownEffect(
+            makeAbbreviationIdSchema(coreAbbreviations.aggregate),
+          )(key.aggregateId).pipe(
+            mapParseError({
+              code: 'aggregate-chain-identity-invalid',
+              prefix: 'AggregateChain physical name has an invalid aggregateId',
+            }),
+          ),
+        };
+      } else {
+        registration = {
+          repoType,
+          repoName: name,
+          tableNames: Object.values(schema).map(getTableName),
+        };
       }
       const spec = yield* getSystemSpec();
       yield* makeAsync<IRpcEnvelope<void, IZerospinErrorJson>>(() =>
         env.SYSTEM_REPO.getByName(env.ZEROSPIN_SYSTEM_ID).registerRepo({
           spec,
-          registration: {
-            repoType,
-            repoName: name,
-            tableNames: Object.values(schema).map(getTableName),
-          },
+          registration,
         }),
       ).pipe(Effect.flatMap(envelope => readRpcEnvelope(envelope)));
     }),

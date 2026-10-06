@@ -69,6 +69,7 @@ export function makeDORepo<
     key: MatchParams<PATTERN>;
   }) => Effect.Effect<void, IAnyError, SERVICES>;
   registerRepo?: (props: {
+    key: MatchParams<PATTERN>;
     name: string;
     schema: IDbConfigSchema<CONFIG>;
   }) => Effect.Effect<void, IAnyError | IZerospinErrorJson, SERVICES | Async>;
@@ -237,7 +238,7 @@ export function makeDORepo<
           Effect.gen({ self: this }, function* () {
             // 6 — allow the factory to register or admit the Repo before storage access
             if (registerRepo !== undefined) {
-              yield* registerRepo({ name, schema });
+              yield* registerRepo({ key, name, schema });
             }
 
             ctx.storage.sql.exec('PRAGMA foreign_keys = ON;');

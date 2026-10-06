@@ -9,7 +9,7 @@
     "noEmit": true,
     "types": ["node", "vite/client"]
   },
-  "include": [],
+  "include": ["tests/**/*.ts", "tests/**/*.tsx", "vitest.config.ts"],
   "references": [
     {
       "path": "./tsconfig.json"

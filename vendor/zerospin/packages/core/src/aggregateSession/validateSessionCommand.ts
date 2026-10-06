@@ -1,96 +1,30 @@
-import {
-  encodeError,
-  makeZerospinError,
-  recognizeZerospinError,
-  type IRecognizedFailure,
-  type IResult,
-} from '@zerospin/error';
-import { CuidFactory } from '@zerospin/schema';
-import { Context, Effect } from 'effect';
+import type { IRecognizedFailure, IResult } from '@zerospin/error';
+import { Effect } from 'effect';
 
-import { getFailuresCodec } from '../contracts/failures.ts';
-import { makeOperations } from '../contracts/make/makeOperations.ts';
 import type { InferFailure } from '../contracts/types.ts';
-import { runProgram } from '../execution/runProgram.ts';
 import type { InferPayloadInput } from '../models/types.ts';
-import { MonotonicFactory } from '../services/MonotonicFactory.ts';
 
-import { getAggregateSessionExecutionResources } from './make/makeAggregateSession.ts';
+import { validateBoundAggregateSessionCommand } from './bindAggregateSession.ts';
 import type {
   IAggregateSession,
   IAggregateSessionDefinition,
 } from './types.ts';
+
+/** Evaluate the bound program without applying its collected operations or consuming IDs. */
 export function validateSessionCommand<
-  DEFINITION extends IAggregateSessionDefinition,
-  NAME extends keyof DEFINITION['contracts'] & string,
+  D extends IAggregateSessionDefinition,
+  K extends keyof D['contracts'] & string,
 >(props: {
-  session: IAggregateSession<DEFINITION>;
-  contractName: NAME;
-  payload: InferPayloadInput<DEFINITION['contracts'][NAME]['payload']>;
+  session: IAggregateSession<D>;
+  contractName: K;
+  payload: InferPayloadInput<D['contracts'][K]['payload']>;
 }): Effect.Effect<
-  IResult<void, IRecognizedFailure<InferFailure<DEFINITION['contracts'][NAME]>>>
+  IResult<void, IRecognizedFailure<InferFailure<D['contracts'][K]>>>
 >;
 export function validateSessionCommand(props: {
   session: IAggregateSession;
   contractName: string;
   payload: unknown;
 }) {
-  return Effect.suspend(() => {
-    const resources = getAggregateSessionExecutionResources(props.session);
-    const state = props.session.store.getState();
-    const contract = props.session.definition.contracts[props.contractName];
-    const evaluate = Effect.gen(function* () {
-      if (
-        resources === undefined ||
-        !state.isInitialized ||
-        state.db === null ||
-        state.sessionStatus !== 'current'
-      ) {
-        return yield* makeZerospinError('aggregate-session-not-ready');
-      }
-      if (contract === undefined) {
-        return yield* makeZerospinError('contract-not-found');
-      }
-      const application = yield* resources.runtime.contextEffect;
-      const context = Context.makeUnsafe<unknown>(application.mapUnsafe);
-      let localId = 0;
-      yield* makeOperations({
-        db: state.db,
-        contract,
-        models: props.session.definition.models,
-        command: {
-          id: 'cmd_validation',
-          commandName: contract.commandName,
-          contractVersion: contract.version,
-          payload: props.payload,
-        },
-        claims: state.claims,
-      }).pipe(
-        runProgram,
-        Effect.provideService(CuidFactory, () =>
-          Effect.sync(() => `validation${++localId}`),
-        ),
-        Effect.provideService(MonotonicFactory, () =>
-          Effect.sync(() => `validation${++localId}`),
-        ),
-        Effect.provideContext(context),
-      );
-    });
-    return evaluate.pipe(
-      Effect.matchEffect({
-        onSuccess: () =>
-          Effect.succeed({ _tag: 'Success' as const, success: undefined }),
-        onFailure: failure =>
-          encodeError(failure).pipe(
-            Effect.map(failure => ({
-              _tag: 'Failure' as const,
-              failure: recognizeZerospinError(
-                getFailuresCodec(contract?.failures ?? {}),
-                failure,
-              ),
-            })),
-          ),
-      }),
-    );
-  });
+  return Effect.sync(() => validateBoundAggregateSessionCommand(props));
 }

@@ -1,8 +1,13 @@
 import { applyAggregateSessionSnapshot } from '@zerospin/core/aggregateSession/applyAggregateSessionSnapshot/applyAggregateSessionSnapshot';
+import {
+  bindAggregateSession,
+  releaseAggregateSession,
+} from '@zerospin/core/aggregateSession/bindAggregateSession';
 import { makeAggregateSession } from '@zerospin/core/aggregateSession/make/makeAggregateSession';
 import { makeAggregateSessionLockKey } from '@zerospin/core/aggregateSession/make/makeAggregateSessionLockKey';
 import { makeAggregateSessionSpec } from '@zerospin/core/aggregateSession/make/makeAggregateSessionSpec';
 import { sessionRepoDbConfig } from '@zerospin/core/aggregateSession/sessionRepoDbConfig';
+import { executeLocalSessionCommandTx } from '@zerospin/core/aggregateSession/stageCommand/executeLocalSessionCommandTx/executeLocalSessionCommandTx';
 import type {
   IAggregateSession,
   IAggregateSessionDefinition,
@@ -40,18 +45,18 @@ import {
   makeAbbreviationIdSchema,
   makeIdFromAbbreviation,
   type ITypeError,
-} from '@zerospin/schema';
+} from '@zerospin/shapes';
 import { getTableName, sql } from 'drizzle-orm';
 import {
   Cause,
   Effect,
   Exit,
-  Layer,
   Queue,
   Result,
   Schema,
   Scope,
   Semaphore,
+  type Layer,
 } from 'effect';
 
 import { BrowserBackup } from '../BrowserBackup/BrowserBackup';
@@ -295,7 +300,7 @@ export function makeStandaloneSession<
 export function makeStandaloneSession(props: unknown): unknown {
   const {
     key,
-    layer = Layer.empty,
+    layer,
     claims: fixtureClaims,
     resources: fixtureResources = {},
     models: localModels = {},
@@ -349,11 +354,12 @@ export function makeStandaloneSession(props: unknown): unknown {
   let resetInFlight: Promise<void> | null = null;
   let resetEpoch = 0;
 
-  const lifecycle = makeSessionLifecycle({
+  const lifecycle = makeSessionLifecycle<unknown, BrowserBackup>({
     layer,
+    telemetryCollector: coreSession.store.getState().telemetryCollector,
     infrastructure: BrowserBackup.layer,
     onDispose: () => {
-      coreSession.clearExecutionResources();
+      releaseAggregateSession(coreSession);
       coreSession.store.setState({
         actorName: null,
         actorVersion: null,
@@ -446,7 +452,12 @@ export function makeStandaloneSession(props: unknown): unknown {
         const events = new AbortController();
         // Navigation releases ownership, including documents retained in the back/forward cache.
         // A hidden startup cannot publish; hiding a current owner does not revoke it.
-        for (const event of ['visibilitychange', 'focus', 'pageshow', 'pagehide']) {
+        for (const event of [
+          'visibilitychange',
+          'focus',
+          'pageshow',
+          'pagehide',
+        ]) {
           const target = event === 'visibilitychange' ? document : globalThis;
           target.addEventListener(
             event,
@@ -723,12 +734,6 @@ export function makeStandaloneSession(props: unknown): unknown {
                 sql`INSERT INTO __zerospin_backup_identity (backupKey, claims) VALUES (${backupKey}, ${JSON.stringify(claims)})`,
               );
             }
-            coreSession.setExecutionResources({
-              sessionId,
-              settleLocally: true,
-              runtime,
-            });
-
             const transactionQueue =
               yield* Queue.unbounded<readonly ICommittedSqlStatement[]>();
             let backupAccepting = true;
@@ -812,9 +817,9 @@ export function makeStandaloneSession(props: unknown): unknown {
               yield* repairBackup;
               forceSeed = false;
             } else {
-              // Persist the new session identity before commands can add metadata.
+              // The new live identity retains the restored row positions and allocator.
               db.update(sessionRepoDbConfig.schema.sessionMetadata)
-                .set({ sessionId, nextSessionIndex: 1 })
+                .set({ sessionId })
                 .run();
               while (Queue.sizeUnsafe(transactionQueue) > 0) {
                 const statements = yield* Queue.take(transactionQueue);
@@ -903,26 +908,33 @@ export function makeStandaloneSession(props: unknown): unknown {
               );
             }
 
-            coreSession.store.setState({
-              actorName: definition.actorName,
-              actorVersion: definition.actorVersion,
+            bindAggregateSession({
+              session: coreSession,
+              runtime,
+              commitCommand: executeLocalSessionCommandTx,
+              state: {
+                actorName: definition.actorName,
+                actorVersion: definition.actorVersion,
 
-              aggregateId,
-              aggregateName: definition.aggregateName,
-              claims: Schema.decodeUnknownSync(definition.claimsSchema)(claims),
-              db,
-              aggregateIndex: metadata.aggregateIndex,
-              executedIndex: metadata.executedIndex,
-              executedHash: metadata.executedHash,
-              pushIndex: metadata.pushIndex,
-              sessionName: definition.sessionName,
-              aggregateSessionLockKey,
-              isInitialized: true,
-              models,
-              schema: dbConfig.schema,
-              sessionId,
-              sessionStatus: 'current',
-              backupState: { status: 'ready', failure: null },
+                aggregateId,
+                aggregateName: definition.aggregateName,
+                claims: Schema.decodeUnknownSync(definition.claimsSchema)(
+                  claims,
+                ),
+                db,
+                aggregateIndex: metadata.aggregateIndex,
+                executedIndex: metadata.executedIndex,
+                executedHash: metadata.executedHash,
+                pushIndex: metadata.pushIndex,
+                sessionName: definition.sessionName,
+                aggregateSessionLockKey,
+                isInitialized: true,
+                models,
+                schema: dbConfig.schema,
+                sessionId,
+                sessionStatus: 'current',
+                backupState: { status: 'ready', failure: null },
+              },
             });
             db.$client.flushTableChanges(
               new Set(

@@ -56,7 +56,7 @@ export const prepareAdmission = Effect.fn('AggregateChain.prepareAdmission')(
     const preparedCommands = yield* Effect.forEach(commands, command =>
       Effect.gen(function* () {
         const startedAt = new Date();
-        if (command.asyncInput != null && props.trustedAsync !== true) {
+        if (command.response !== undefined && props.trustedAsync !== true) {
           return yield* makeZerospinError('public-async-command-forbidden');
         }
         // 2 — reject aggregateId or aggregateName mismatches

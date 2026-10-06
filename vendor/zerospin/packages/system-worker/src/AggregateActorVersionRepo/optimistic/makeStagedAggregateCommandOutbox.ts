@@ -4,7 +4,7 @@ import { StagedAggregateCommandSchema } from '@zerospin/core/contracts/StagedAgg
 import type { IDb } from '@zerospin/core/drizzle/types';
 import { readRpcEnvelope } from '@zerospin/core/utils/readRpcEnvelope';
 import { encodeError, makeZerospinError, mapParseError } from '@zerospin/error';
-import { makeAbbreviationIdSchema } from '@zerospin/schema';
+import { makeAbbreviationIdSchema } from '@zerospin/shapes';
 import { eq } from 'drizzle-orm';
 import { Effect, Schema } from 'effect';
 

@@ -1,14 +1,14 @@
 import assert from 'node:assert/strict';
 
 import type { IAggregateSessionLock } from '@zerospin/core/aggregateSession/AggregateSessionLockSchema';
-import type { IAggregateActorOutput } from '@zerospin/core/aggregateSession/types';
+import type { IAggregateBrowserCommand } from '@zerospin/core/aggregateSession/types';
 import { makeProvisionedInMemorySqljsDb } from '@zerospin/core/drizzle/make/makeProvisionedInMemorySqljsDb/makeProvisionedInMemorySqljsDb';
 import { Effect } from 'effect';
 
 import { aggregateActorVersionChainDbConfig } from '../AggregateActorVersionChain/aggregateActorVersionChainDbConfig.js';
-import { getActorOutputs } from '../AggregateActorVersionChain/getActorOutputs/getActorOutputs.js';
+import { getBrowserCommands } from '../AggregateActorVersionChain/getBrowserCommands/getBrowserCommands.js';
 import { getResolvedThrough } from '../AggregateActorVersionChain/getResolvedThrough.js';
-import { receiveActorOutputs } from '../AggregateActorVersionChain/receiveActorOutputs/receiveActorOutputs.js';
+import { receiveBrowserCommands } from '../AggregateActorVersionChain/receiveBrowserCommands/receiveBrowserCommands.js';
 import { aggregateActorVersionRepoDbConfig } from '../AggregateActorVersionRepo/aggregateActorVersionRepoDbConfig.js';
 import {
   commandRowInput,
@@ -42,28 +42,50 @@ export const verifyActorDelivery = Effect.fn('verifyActorDelivery')(
     for (let index = 1; index <= 5; index++) {
       const own = index === 1 || index === 3;
       const id = index === 4 ? 'cmd_1' : (`cmd_${index}` as const);
-      const output: IAggregateActorOutput = {
+      const output: IAggregateBrowserCommand = {
         executedIndex: index,
         aggregateIndex: index,
         executedHash: index.toString(16).padStart(64, '0'),
-        command: {
-          id,
-          commandName: 'change',
-          failure: index === 1 || index === 2 ? failure : null,
-          delta: {
-            upserted: [],
-            deleted:
-              index === 2 ? [{ modelName: 'secret', id: 'itm_secret' }] : [],
-          },
+
+        id,
+        commandName: 'change',
+        admission:
+          index === 1 || index === 2
+            ? {
+                status: 'failed',
+                startedAt: new Date(10),
+                completedAt: new Date(11),
+                failure,
+              }
+            : own
+              ? {
+                  status: 'succeeded',
+                  startedAt: new Date(10),
+                  completedAt: new Date(11),
+                }
+              : null,
+        execution:
+          index === 1 || index === 2
+            ? { status: 'skipped', reason: 'admission-failed' }
+            : own
+              ? {
+                  status: 'succeeded',
+                  startedAt: new Date(12),
+                  completedAt: new Date(13),
+                  contractVersion: '1.0.0',
+                  result: { index },
+                }
+              : null,
+        delta: {
+          upserted: [],
+          deleted:
+            index === 2 ? [{ modelName: 'secret', id: 'itm_secret' }] : [],
         },
       };
       const row =
         yield* aggregateActorVersionChainDbConfig.tables.browserCommands.encodeRow(
           {
-            executedIndex: index,
-            aggregateIndex: index,
-            executedHash: output.executedHash,
-            ...output.command,
+            ...output,
             completionNodeId: own
               ? 'node_one'
               : index === 2
@@ -100,11 +122,19 @@ export const verifyActorDelivery = Effect.fn('verifyActorDelivery')(
       .insert(aggregateActorVersionRepoDbConfig.schema.browserCommandOutbox)
       .values(deliveries)
       .run();
-    yield* receiveActorOutputs({ db, rows: deliveries, broadcast: () => {} });
+    yield* receiveBrowserCommands({
+      db,
+      rows: deliveries,
+      broadcast: () => {},
+    });
     producer
       .delete(aggregateActorVersionRepoDbConfig.schema.browserCommandOutbox)
       .run();
-    yield* receiveActorOutputs({ db, rows: deliveries, broadcast: () => {} });
+    yield* receiveBrowserCommands({
+      db,
+      rows: deliveries,
+      broadcast: () => {},
+    });
     assert.equal(
       producer
         .select()
@@ -140,7 +170,7 @@ export const verifyActorDelivery = Effect.fn('verifyActorDelivery')(
       commandName: 'change',
       contractVersion: '1.0.0',
       payload: '{}',
-      asyncInput: null,
+      response: null,
       aggregateId: 'agg_one',
       aggregateName: 'order',
       aggregateVersion: '1.0.0',
@@ -190,7 +220,7 @@ export const verifyActorDelivery = Effect.fn('verifyActorDelivery')(
     console.log(
       'PASS: admission delivery deletion preserves unresolved staging journal and monotonic stage positions',
     );
-    const historical = yield* getActorOutputs({
+    const historical = yield* getBrowserCommands({
       db,
       afterExecutedIndex: 5,
       afterNodeIndex: 0,
@@ -198,13 +228,28 @@ export const verifyActorDelivery = Effect.fn('verifyActorDelivery')(
       definition,
     });
     assert.deepEqual(
-      historical.outputs.map(output => output.executedIndex),
+      historical.commands.map(output => output.executedIndex),
       [1, 3],
     );
-    assert.equal(historical.outputs[0]?.command.failure?.code, 'private');
+    assert.equal(historical.commands[0]?.admission?.status, 'failed');
     assert.equal(historical.nodeThrough, 2);
     assert.equal(historical.tip, 5);
-    const combined = yield* getActorOutputs({
+    const snapshotOutcomes = yield* getBrowserCommands({
+      db,
+      afterExecutedIndex: 2,
+      throughExecutedIndex: 2,
+      afterNodeIndex: 0,
+      nodeId: 'node_one',
+      definition,
+    });
+    assert.deepEqual(
+      snapshotOutcomes.commands.map(output => output.executedIndex),
+      [1],
+    );
+    assert.equal(snapshotOutcomes.nodeThrough, 1);
+    assert.equal(snapshotOutcomes.tip, 2);
+    assert.equal(snapshotOutcomes.commands[0]?.admission?.status, 'failed');
+    const combined = yield* getBrowserCommands({
       db,
       afterExecutedIndex: 2,
       afterNodeIndex: 0,
@@ -212,31 +257,32 @@ export const verifyActorDelivery = Effect.fn('verifyActorDelivery')(
       definition,
     });
     assert.deepEqual(
-      combined.outputs.map(output => output.executedIndex),
+      combined.commands.map(output => output.executedIndex),
       [1, 3, 4, 5],
     );
-    assert.equal(combined.outputs[2]?.command.id, 'cmd_1');
-    const publicPage = yield* getActorOutputs({
+    assert.equal(combined.commands[2]?.id, 'cmd_1');
+    const publicPage = yield* getBrowserCommands({
       db,
       afterExecutedIndex: 0,
       definition,
     });
     assert.deepEqual(
-      publicPage.outputs.map(output => output.executedIndex),
+      publicPage.commands.map(output => output.executedIndex),
       [1, 2, 3, 4, 5],
     );
     assert.ok(
-      publicPage.outputs.every(
+      publicPage.commands.every(
         output =>
-          output.command.failure === null &&
-          output.command.delta.deleted.length === 0,
+          output.admission === null &&
+          output.execution === null &&
+          output.delta.deleted.length === 0,
       ),
     );
     assert.ok(
-      publicPage.outputs.every(
+      publicPage.commands.every(
         output =>
-          Object.keys(output.command).sort().join(',') ===
-          'commandName,delta,failure,id',
+          Object.keys(output).sort().join(',') ===
+          'admission,aggregateIndex,commandName,delta,executedHash,executedIndex,execution,id',
       ),
     );
     for (const changed of [
@@ -244,13 +290,13 @@ export const verifyActorDelivery = Effect.fn('verifyActorDelivery')(
       { ...definition, claims: { subject: 'other' } },
     ]) {
       assert.equal(
-        (yield* getActorOutputs({
+        (yield* getBrowserCommands({
           db,
           afterExecutedIndex: 5,
           afterNodeIndex: 0,
           nodeId: 'node_one',
           definition: changed,
-        })).outputs.length,
+        })).commands.length,
         0,
       );
     }
@@ -264,7 +310,8 @@ export const verifyActorDelivery = Effect.fn('verifyActorDelivery')(
           id: 'cmd_gap',
           commandName: 'change',
           delta: { upserted: [], deleted: [] },
-          failure: null,
+          admission: null,
+          execution: null,
           completionNodeId: null,
           completionNodeIndex: null,
           completionSessionName: null,
@@ -276,7 +323,7 @@ export const verifyActorDelivery = Effect.fn('verifyActorDelivery')(
       .values(gap)
       .run();
     assert.equal(
-      (yield* getActorOutputs({ db, afterExecutedIndex: 0 }).pipe(
+      (yield* getBrowserCommands({ db, afterExecutedIndex: 0 }).pipe(
         Effect.result,
       ))._tag,
       'Failure',
@@ -302,7 +349,33 @@ export const verifyActorDelivery = Effect.fn('verifyActorDelivery')(
                   : 'c'.repeat(64)
                 : 'b'.repeat(64),
               delta: { upserted: [], deleted: [] },
-              failure: index === 1 ? failure : null,
+              admission:
+                index === 1
+                  ? {
+                      status: 'failed',
+                      startedAt: new Date(10),
+                      completedAt: new Date(11),
+                      failure,
+                    }
+                  : own
+                    ? {
+                        status: 'succeeded',
+                        startedAt: new Date(10),
+                        completedAt: new Date(11),
+                      }
+                    : null,
+              execution:
+                index === 1
+                  ? { status: 'skipped', reason: 'admission-failed' }
+                  : own
+                    ? {
+                        status: 'succeeded',
+                        startedAt: new Date(12),
+                        completedAt: new Date(13),
+                        contractVersion: '1.0.0',
+                        result: { index },
+                      }
+                    : null,
               caller: own
                 ? {
                     actorName: 'actor',
@@ -329,11 +402,11 @@ export const verifyActorDelivery = Effect.fn('verifyActorDelivery')(
       models: {},
     });
     assert.deepEqual(
-      serviceReplay.outputs.map(output => output.executedIndex),
+      serviceReplay.commands.map(output => output.executedIndex),
       [1, 3],
     );
     assert.equal(serviceReplay.nodeThrough, 2);
-    assert.equal(serviceReplay.outputs[0]?.command.failure?.code, 'private');
+    assert.equal(serviceReplay.commands[0]?.admission?.status, 'failed');
     assert.equal(
       (yield* getNodeOutcomes({
         db: serviceDb,
@@ -343,7 +416,7 @@ export const verifyActorDelivery = Effect.fn('verifyActorDelivery')(
         afterNodeIndex: 0,
         throughExecutedIndex: 3,
         models: {},
-      })).outputs.length,
+      })).commands.length,
       0,
     );
     assert.equal(

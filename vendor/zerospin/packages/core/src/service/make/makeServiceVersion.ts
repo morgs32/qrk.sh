@@ -3,7 +3,7 @@ import '@zerospin/server-only';
 import { mapValues } from 'es-toolkit';
 
 import { assertSameCoreInstance } from '../../assertSameCoreInstance.ts';
-import { assertActorAsyncContracts } from '../../contracts/asyncContract.ts';
+import { assertActorExternalContracts } from '../../contracts/externalContract.ts';
 import { Contract } from '../../contracts/make/makeContractVersion.ts';
 import type { IAnyContracts, IContract } from '../../contracts/types.ts';
 import { assertValidModels } from '../../models/assertValidModels.ts';
@@ -117,7 +117,7 @@ export function makeServiceVersion(
   if (!serviceSemVerPattern.test(version)) {
     throw new Error(`Invalid service version ${version}`);
   }
-  assertActorAsyncContracts(contracts);
+  assertActorExternalContracts(contracts);
   assertValidModels({
     models,
     context: `makeServiceVersion: ${name}@${version}`,

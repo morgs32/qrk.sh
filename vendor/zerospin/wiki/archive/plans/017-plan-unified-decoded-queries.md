@@ -35,7 +35,7 @@
    Keep `tables` and `schema` on the existing encoded path.
 2. Reuse `makeDrizzleRelationsFromTables`,
    `makeDrizzleSchemasRecordFromTables`, and the existing per-column codecs in
-   `packages/schema/src/primitiveMaps.ts`. Build separate relational column
+   `packages/shapes/src/primitiveMaps.ts`. Build separate relational column
    objects; never modify mappers on `model.drizzleSchema` or `config.schema`.
    Do not add another database factory or per-query postprocessing wrapper.
 3. In `packages/core/src/drizzle/types.ts`, make the configuration's relation
@@ -164,7 +164,7 @@ from `/Users/morgs32/GitHub/zerospin`.
    by the plan, preserving Nx dependency execution and caching. No separate
    overlapping dependency builds are needed.
 
-   Add `@zerospin/schema` to the first graph if its codec/type implementation
+   Add `@zerospin/shapes` to the first graph if its codec/type implementation
    changes. Add other owners only when the consumer audit identifies relevant
    changes. Do not use a whole-repository polish pass to repair unrelated work.
 

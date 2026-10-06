@@ -9,7 +9,7 @@ import {
   type IServiceSessionLock,
 } from '@zerospin/core/serviceSession/ServiceSessionLockSchema';
 import { catchZerospinError, mapParseError } from '@zerospin/error';
-import type { IAnyDrizzleSchema } from '@zerospin/schema';
+import type { IAnyDrizzleSchema } from '@zerospin/shapes';
 import { lte, type AnyColumn } from 'drizzle-orm';
 import { Effect, Schema } from 'effect';
 

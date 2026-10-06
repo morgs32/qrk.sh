@@ -1,4 +1,4 @@
-import { encodedShapeSchema } from '@zerospin/schema';
+import { encodedShapeSchema } from '@zerospin/shapes';
 import { Schema } from 'effect';
 
 export const AggregateSessionLockSchema = Schema.Struct({

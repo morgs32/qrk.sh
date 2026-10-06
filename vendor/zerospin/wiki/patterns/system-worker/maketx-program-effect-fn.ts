@@ -1,7 +1,7 @@
 import { makeDbConfig } from '@zerospin/core/drizzle/make/makeDbConfig/makeDbConfig';
 import { makeTx } from '@zerospin/core/drizzle/make/makeTx';
 import type { IDb, ITx } from '@zerospin/core/drizzle/types';
-import { makeTable, primitives } from '@zerospin/schema';
+import { makeTable, primitives } from '@zerospin/shapes';
 
 const subscriberDbConfig = makeDbConfig({
   tables: {

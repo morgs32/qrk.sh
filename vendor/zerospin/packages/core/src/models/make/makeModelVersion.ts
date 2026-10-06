@@ -12,7 +12,7 @@ import {
   type IPrimaryKeyDescriptor,
   type IShape,
   type ITypeError,
-} from '@zerospin/schema';
+} from '@zerospin/shapes';
 import { Schema } from 'effect';
 import { mapValues } from 'es-toolkit';
 /* oxlint-disable typescript/no-explicit-any -- complete resolved definitions span model-specific resource shapes */

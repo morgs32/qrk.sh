@@ -3,7 +3,7 @@
 Convert Zerospin `IShape` descriptors to Zod object schemas.
 
 ```ts
-import { primitives } from '@zerospin/schema';
+import { primitives } from '@zerospin/shapes';
 import { makeZodSchema } from '@zerospin/zod';
 import { z } from 'zod';
 

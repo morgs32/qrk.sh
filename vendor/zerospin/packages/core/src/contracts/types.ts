@@ -5,7 +5,7 @@ import {
   type IEncodedShape,
   type InferDecodedRow,
   type InferIdFromAbbreviation,
-} from '@zerospin/schema';
+} from '@zerospin/shapes';
 import type { Effect, Schema } from 'effect';
 
 import type { StagingResultSchema } from '../aggregateSession/StagingResultSchema.ts';
@@ -19,12 +19,10 @@ import type {
 } from '../models/types.ts';
 
 import type { AdmissionResultSchema } from './AdmissionResultSchema.ts';
-import type { IAsyncCommandInput } from './AsyncCommandInputSchema.ts';
-import type { IAsyncContractDefinition } from './asyncContract.ts';
-import type { IBrowserCommand } from './BrowserCommandSchema.ts';
 import type { ICreateOperation } from './createOperation.ts';
 import type { IDeleteOperation } from './deleteOperation.ts';
 import type { ExecutionResultSchema } from './ExecutionResultSchema.ts';
+import type { IExternalContractDefinition } from './externalContract.ts';
 import type { FailureJson, FailureType, IFailures } from './failures.ts';
 import type { InferContractProgram } from './make/makeContractVersion.ts';
 import type {
@@ -194,12 +192,12 @@ export interface IContract<
   > = Schema.Codec<Readonly<Record<string, unknown>> | null, unknown>,
 > {
   readonly mapping?: IContractMapping;
-  readonly async?: IAsyncContractDefinition;
+  readonly external?: IExternalContractDefinition;
   readonly claims?: CLAIMS;
   readonly guard?: {
     bivarianceHack(
       props: Omit<Parameters<InferContractProgram<PAYLOAD>>[0], 'db'> & {
-        external?: unknown;
+        response?: unknown;
         failures: FAILURE;
         db: string extends keyof MODELS
           ? Readonly<Pick<IDb, 'query'>>
@@ -270,7 +268,7 @@ export type ICommand<
   commandName: COMMAND_NAME;
   contractVersion: CONTRACT_VERSION;
   payload: PAYLOAD;
-  asyncInput?: IAsyncCommandInput | null;
+  response?: typeof Schema.Json.Type;
 }>;
 export type ISessionId = InferIdFromAbbreviation<'sesn'>;
 /** Encode payload to string immediately before persisting a command row. */
@@ -331,19 +329,21 @@ export type IServiceCommand<
     serviceVersion: string;
     caller: typeof ServiceCallerSchema.Type | null;
   }>;
-export type ISessionCommandInput<COMMAND extends ICommand = ICommand> =
-  COMMAND &
-    Readonly<{
-      aggregateId: string;
-      aggregateName: string;
-      claims: Readonly<Record<string, unknown>>;
-      actorName: string;
-      actorVersion: string;
-      sessionName: string;
-      sessionId: ISessionId;
-      pushIndex: number | null;
-    }>;
-/** A successfully staged session command owns its original local result and later server results. */
+export type ISessionCommandInput<COMMAND extends ICommand = ICommand> = Omit<
+  COMMAND,
+  'response'
+> &
+  Readonly<{
+    aggregateId: string;
+    aggregateName: string;
+    claims: Readonly<Record<string, unknown>>;
+    actorName: string;
+    actorVersion: string;
+    sessionName: string;
+    sessionId: ISessionId;
+    pushIndex: number | null;
+  }>;
+/** A successfully staged session command owns its original local result. */
 export type ISessionCommand<
   COMMAND extends ICommand = ICommand,
   RESULT = typeof Schema.Json.Type,
@@ -353,7 +353,6 @@ export type ISessionCommand<
     staging: Omit<typeof StagingResultSchema.Type, 'result'> & {
       readonly result: RESULT;
     };
-    failure: IBrowserCommand['failure'];
   }>;
 export type IChainedCommand<COMMAND extends ICommand = ICommand> = COMMAND &
   Readonly<{

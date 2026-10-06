@@ -2,7 +2,7 @@ import { RoutePattern } from '@remix-run/route-pattern';
 import { makeDbConfig } from '@zerospin/core/drizzle/make/makeDbConfig/makeDbConfig';
 import type { IDb } from '@zerospin/core/drizzle/types';
 import { prettyUnknownFailure } from '@zerospin/error';
-import { makeTable, primitives } from '@zerospin/schema';
+import { makeTable, primitives } from '@zerospin/shapes';
 import { env } from 'cloudflare:workers';
 import { Effect, Layer, ManagedRuntime } from 'effect';
 

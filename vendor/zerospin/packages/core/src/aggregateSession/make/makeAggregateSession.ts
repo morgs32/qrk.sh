@@ -1,61 +1,30 @@
 import {
-  makeZerospinError,
-  type IAnyError,
-  type IZerospinErrorJson,
+  catchZerospinError,
+  encodeError,
+  recognizeZerospinError,
 } from '@zerospin/error';
 import {
   emptyTelemetryBatch,
   type ITelemetryCollector,
 } from '@zerospin/logger';
-import type { CuidFactory } from '@zerospin/schema';
-import { type Effect, type ManagedRuntime } from 'effect';
+import { Effect, Schema } from 'effect';
 import { createStore } from 'zustand/vanilla';
 
-import type {
-  IEncodedCommand,
-  ISessionCommand,
-} from '../../contracts/types.ts';
-import { makeId } from '../../models/make/makeId.ts';
-import type { MonotonicFactory } from '../../services/MonotonicFactory.ts';
+import {
+  makeBoundAggregateSessionId,
+  stageBoundAggregateSessionCommand,
+} from '../bindAggregateSession.ts';
 import type {
   IAggregateSession,
   IAggregateSessionDefinition,
+  IAggregateStageFailure,
   IInitializedSessionState,
-  ISessionId,
   ISessionState,
 } from '../types.ts';
 
-type IExecutionResources = {
-  sessionId: ISessionId;
-  settleLocally?: boolean;
-  runtime: ManagedRuntime.ManagedRuntime<
-    CuidFactory | MonotonicFactory,
-    IAnyError
-  >;
-  executeAggregateSessionCommand?: (props: {
-    command: IEncodedCommand<
-      ISessionCommand & Readonly<{ sessionIndex: number; pushIndex: null }>
-    >;
-  }) => Effect.Effect<
-    Readonly<{ commandId: string }>,
-    IAnyError | IZerospinErrorJson
-  >;
-};
-
-const executionResourcesBySession = new WeakMap<
-  IAggregateSession<IAggregateSessionDefinition>,
-  IExecutionResources
->();
-
-export function getAggregateSessionExecutionResources(
-  session: IAggregateSession<IAggregateSessionDefinition>,
-): IExecutionResources | undefined {
-  return executionResourcesBySession.get(session);
-}
-
 /**
  * Synchronous aggregate session construction. Creates the stable store only —
- * no ManagedRuntime, layers, SQLite, or backup. Bind execution resources before
+ * no ManagedRuntime, layers, SQLite, or backup. Initialization binds command operations before
  * publishing readiness; stageCommand fails while unbound.
  */
 export function makeAggregateSession<
@@ -147,12 +116,12 @@ export function makeAggregateSession<
     }) => void,
   ): (() => void) => {
     const state = store.getState();
-    if (state.isInitialized && state.db !== null && state.schema !== null) {
+    if (state.isInitialized) {
       handler({ state });
       return () => {};
     }
     const unsubscribe = store.subscribe(next => {
-      if (next.isInitialized && next.db !== null && next.schema !== null) {
+      if (next.isInitialized) {
         unsubscribe();
         queueMicrotask(() => {
           handler({ state: next });
@@ -162,31 +131,61 @@ export function makeAggregateSession<
     return unsubscribe;
   };
 
+  const stageFailureListeners = new Set<
+    (event: IAggregateStageFailure) => void
+  >();
+  const notifyStageFailure = (event: IAggregateStageFailure) => {
+    for (const listener of [...stageFailureListeners]) {
+      try {
+        listener(event);
+      } catch (error) {
+        console.error('Aggregate session failure observer threw', error);
+      }
+    }
+  };
   const session: IAggregateSession<DEFINITION> = {
-    makeId(model) {
-      const resources = executionResourcesBySession.get(
-        session as IAggregateSession<IAggregateSessionDefinition>,
-      );
-      if (resources === undefined) {
-        throw makeZerospinError({
-          code: 'aggregate-session-not-ready',
-          message:
-            'Model ID generation requires bound session execution resources',
+    onStageFailure(handler) {
+      stageFailureListeners.add(handler);
+      return () => {
+        stageFailureListeners.delete(handler);
+      };
+    },
+    stageCommand(commandProps) {
+      let result;
+      try {
+        result = stageBoundAggregateSessionCommand({
+          session,
+          ...commandProps,
+        });
+      } catch (cause) {
+        const failure = Effect.runSync(
+          encodeError(
+            catchZerospinError({
+              code: 'aggregate-command-staging-exception',
+              message: 'Command staging failed',
+            })(cause),
+          ).pipe(
+            Effect.map(encoded =>
+              recognizeZerospinError(Schema.Never, encoded),
+            ),
+          ),
+        );
+        notifyStageFailure({
+          contractName: commandProps.contractName,
+          failure,
+        });
+        throw cause;
+      }
+      if (result._tag === 'Failure') {
+        notifyStageFailure({
+          contractName: commandProps.contractName,
+          failure: result.failure,
         });
       }
-      return resources.runtime.runSync(makeId(model));
+      return result;
     },
-    setExecutionResources(resources) {
-      executionResourcesBySession.set(
-        session as IAggregateSession<IAggregateSessionDefinition>,
-        resources,
-      );
-      store.setState({ sessionId: resources.sessionId });
-    },
-    clearExecutionResources() {
-      executionResourcesBySession.delete(
-        session as IAggregateSession<IAggregateSessionDefinition>,
-      );
+    makeId(model) {
+      return makeBoundAggregateSessionId(session, model);
     },
     definition,
     onInitialized,

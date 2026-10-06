@@ -1,13 +1,20 @@
 import { RoutePattern } from '@remix-run/route-pattern';
+import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { makeDbConfig } from '@zerospin/core/drizzle/make/makeDbConfig/makeDbConfig';
 import type { IDb } from '@zerospin/core/drizzle/types';
 import { makeSystemSpec } from '@zerospin/core/system/make/makeSystemSpec';
 import { prettyUnknownFailure } from '@zerospin/error';
-import { makeTable, primitives } from '@zerospin/schema';
-import { Effect } from 'effect';
+import {
+  makeAbbreviationIdSchema,
+  makeTable,
+  primitives,
+} from '@zerospin/shapes';
+import { Effect, Schema } from 'effect';
 
 import { makeFixedDORepo } from '../makeFixedDORepo/makeFixedDORepo.js';
 import { makeFixedDORepoConfig } from '../makeFixedDORepo/makeFixedDORepoConfig.js';
+import { getAgentAggregateIds } from '../SystemApi/agentSession.js';
+import { SystemRepo } from '../SystemRepo/SystemRepo.js';
 
 import { system } from './repoLifecycleConfig.js';
 
@@ -19,6 +26,12 @@ declare global {
       };
       REPO_LIFECYCLE_SERVICE: {
         getByName(name: string): { fetch(request: Request): Promise<Response> };
+      };
+      REPO_LIFECYCLE_CHAIN: {
+        getByName(name: string): { fetch(request: Request): Promise<Response> };
+      };
+      REPO_LIFECYCLE_SYSTEM: {
+        getByName(name: string): Pick<RepoLifecycleSystem, 'fetch'>;
       };
     }
   }
@@ -34,6 +47,51 @@ const dbConfig = makeDbConfig({
     }),
   },
 });
+
+/** Adds failure injection and raw catalog inspection only to this disposable Worker. */
+export class RepoLifecycleSystem extends SystemRepo {
+  override fetch(request: Request) {
+    const action = new URL(request.url).pathname.split('/')[2];
+    if (action === 'fail-aggregate-write') {
+      this.ctx.storage.sql.exec(
+        "CREATE TRIGGER fail_aggregate_registration BEFORE INSERT ON aggregates WHEN NEW.aggregateId = 'acct_rollback' BEGIN SELECT RAISE(ABORT, 'injected aggregate registration failure'); END",
+      );
+    }
+    if (action === 'allow-aggregate-write') {
+      this.ctx.storage.sql.exec('DROP TRIGGER fail_aggregate_registration');
+    }
+    return Promise.resolve(
+      Response.json({
+        repos: this.ctx.storage.sql
+          .exec('SELECT * FROM repos ORDER BY repoType, repoName')
+          .toArray(),
+        aggregates: this.ctx.storage.sql
+          .exec('SELECT * FROM aggregates ORDER BY aggregateName, aggregateId')
+          .toArray(),
+      }),
+    );
+  }
+}
+
+/** Exercises AggregateChain identity registration through the real fixed factory. */
+export class RepoLifecycleChain extends makeFixedDORepo({
+  namespaceBinding: 'REPO_LIFECYCLE_CHAIN',
+  fixedDORepoConfig: makeFixedDORepoConfig({
+    abbreviation: 'ac',
+    repoType: 'AggregateChain',
+    namePattern: RoutePattern.parse('/:systemId/:aggregateId/:aggregateName'),
+    managedRuntime: system.runtime,
+    dbConfig,
+  }),
+}) {
+  fetch(_request: Request) {
+    return Promise.resolve(
+      Response.json({
+        bootstrapped: this.ctx.storage.kv.get('_isBootstrapped') ?? null,
+      }),
+    );
+  }
+}
 
 /** The real fixed factory must obtain admission before provisioning or bootstrap. */
 export class RepoLifecycleAggregate extends makeFixedDORepo({
@@ -106,9 +164,9 @@ export class RepoLifecycleService extends makeFixedDORepo({
 
 export const repoLifecycleFixedWorker = {
   async fetch(request: Request, workerEnv: Cloudflare.Env) {
-    const [, action, name = 'lifecycle', version = '1.0.0'] = new URL(
-      request.url,
-    ).pathname.split('/');
+    const url = new URL(request.url);
+    const [, action, name = 'lifecycle', version = '1.0.0'] =
+      url.pathname.split('/');
     const systemRepo = workerEnv.SYSTEM_REPO.getByName(
       workerEnv.ZEROSPIN_SYSTEM_ID,
     );
@@ -127,10 +185,74 @@ export const repoLifecycleFixedWorker = {
           registrations: await systemRepo.getRepoRegistrations({
             repoType: 'SystemRepo',
           }),
-          aggregates: await systemRepo.getRepoRegistrations({
+          aggregateVersions: await systemRepo.getRepoRegistrations({
             repoType: 'AggregateVersionRepo',
           }),
+          aggregateChains: await systemRepo.getRepoRegistrations({
+            repoType: 'AggregateChain',
+          }),
         });
+      }
+      if (action === 'registry') {
+        return await workerEnv.REPO_LIFECYCLE_SYSTEM.getByName(
+          workerEnv.ZEROSPIN_SYSTEM_ID,
+        ).fetch(request);
+      }
+      if (action === 'catalog') {
+        return Response.json({
+          aggregateIds: await systemRepo.getAggregateIds({
+            aggregateName: name,
+          }),
+          exists: await systemRepo.hasAggregate({
+            aggregateName: name,
+            aggregateId: Schema.decodeUnknownSync(
+              makeAbbreviationIdSchema('acct'),
+            )(version),
+          }),
+        });
+      }
+      if (action === 'agent-ids') {
+        return Response.json(
+          await system.runtime.runPromise(
+            getAgentAggregateIds({
+              request: {
+                args: [{ aggregateName: name, aggregateVersion: version }],
+                traceContext: null,
+              },
+              authResults: { systemId: workerEnv.ZEROSPIN_SYSTEM_ID },
+            }).pipe(Effect.provide(AsyncLive)),
+          ),
+        );
+      }
+      if (action === 'chain' || action === 'register-chain') {
+        const aggregateId = version;
+        const repoName = system.runtime.runSync(
+          RepoLifecycleChain.fixedDORepoConfig.nameUtils.makeName({
+            systemId:
+              url.searchParams.get('systemId') ?? workerEnv.ZEROSPIN_SYSTEM_ID,
+            aggregateId,
+            aggregateName: name,
+          }),
+        );
+        if (action === 'register-chain') {
+          return Response.json(
+            await systemRepo.registerRepo({
+              spec: makeSystemSpec({ system }),
+              registration: {
+                repoType: 'AggregateChain',
+                repoName,
+                tableNames: ['records'],
+                aggregateName: name,
+                aggregateId: Schema.decodeUnknownSync(
+                  makeAbbreviationIdSchema('acct'),
+                )(aggregateId),
+              },
+            }),
+          );
+        }
+        return await workerEnv.REPO_LIFECYCLE_CHAIN.getByName(repoName).fetch(
+          request,
+        );
       }
       if (action === 'aggregate') {
         const repoName = system.runtime.runSync(

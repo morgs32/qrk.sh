@@ -6,6 +6,16 @@
       "inputs": ["default", "^default", "{projectRoot}/tsconfig.json"],
       "outputs": ["{projectRoot}/dist"]
     },
+    "storybook": {
+      "dependsOn": ["^lib"],
+      "continuous": true
+    },
+    "build-storybook": {
+      "dependsOn": ["^lib"],
+      "cache": true,
+      "inputs": ["default", "^default"],
+      "outputs": ["{projectRoot}/storybook-static"]
+    },
     "preview:build": {
       "executor": "nx:run-commands",
       "dependsOn": ["lib"],
@@ -15,12 +25,11 @@
         "cwd": "packages/studio"
       }
     },
-    "agent-fixture:serve": {
+    "agent-rpc:check": {
       "executor": "nx:run-commands",
       "dependsOn": ["lib"],
-      "continuous": true,
       "options": {
-        "command": "pnpm exec vite --host 127.0.0.1 --port 5199 --strictPort",
+        "command": "node scripts/checkAgentRpc.mjs",
         "cwd": "packages/studio"
       }
     }

@@ -7,7 +7,7 @@ import { defineModel } from '@zerospin/core/models/defineModel';
 import { makeModelVersion } from '@zerospin/core/models/make/makeModelVersion';
 import type { IAnyService } from '@zerospin/core/service/types';
 import { makeRpcEnvelope } from '@zerospin/logger';
-import { primitives } from '@zerospin/schema';
+import { primitives } from '@zerospin/shapes';
 import { Effect, Schema } from 'effect';
 
 import {
@@ -20,7 +20,7 @@ import {
   advanceDispositionHash,
   genesisDispositionHash,
 } from '../serviceDispositionHash/serviceDispositionHash.js';
-import { receiveResults } from '../ServiceVersionChain/receiveResults/receiveResults.js';
+import { receiveExecutedCommands } from '../ServiceVersionChain/receiveExecutedCommands/receiveExecutedCommands.js';
 import { serviceVersionChainDbConfig } from '../ServiceVersionChain/serviceVersionChainDbConfig.js';
 import { flush } from '../ServiceVersionRepo/flush/flush.js';
 import { serviceVersionRepoDbConfig } from '../ServiceVersionRepo/serviceVersionRepoDbConfig.js';
@@ -47,7 +47,7 @@ export const verifyCommandForwarding = Effect.fn('verifyCommandForwarding')(
       id: 'cmd_original',
       commandName: 'createProduct',
       payload: '{"input":"original"}',
-      asyncInput: null,
+      response: null,
       contractVersion: '1.0.0',
       caller: null,
       serviceName: 'catalog',
@@ -283,7 +283,7 @@ export const verifyCommandForwarding = Effect.fn('verifyCommandForwarding')(
         drain: () =>
           Effect.gen(function* () {
             flushDeliveries++;
-            yield* receiveResults({
+            yield* receiveExecutedCommands({
               db: flushHistory,
               key: { serviceName: 'catalog', serviceVersion: '1.0.0' },
               rows: [

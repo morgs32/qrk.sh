@@ -20,7 +20,7 @@ import {
   prettyUnknownFailure,
 } from '@zerospin/error';
 import { makeRpcEnvelope } from '@zerospin/logger';
-import { makeAbbreviationIdSchema } from '@zerospin/schema';
+import { makeAbbreviationIdSchema } from '@zerospin/shapes';
 import config from 'config';
 import { getTableColumns } from 'drizzle-orm';
 import { Effect, Schema } from 'effect';
@@ -35,10 +35,11 @@ import { consumeServiceSessionWebSocketTicket } from './consumeServiceSessionWeb
 import { createAggregateSessionWebSocketTicket } from './createAggregateSessionWebSocketTicket/createAggregateSessionWebSocketTicket.js';
 import { createServiceSessionWebSocketTicket } from './createServiceSessionWebSocketTicket/createServiceSessionWebSocketTicket.js';
 import { fetch } from './fetch/fetch.js';
+import { getAggregateIds } from './getAggregateIds/getAggregateIds.js';
 import { getRepoRegistrations } from './getRepoRegistrations/getRepoRegistrations.js';
+import { hasAggregate } from './hasAggregate/hasAggregate.js';
 import { initialize } from './initialize/initialize.js';
 import { registerRepo } from './registerRepo/registerRepo.js';
-import { registerRepos } from './registerRepos/registerRepos.js';
 import { systemRepoDbConfig } from './systemRepoDbConfig.js';
 
 export class SystemRepo extends makeFixedDORepo({
@@ -336,6 +337,7 @@ export class SystemRepo extends makeFixedDORepo({
 
   /*
    * Repo startup requires accepted definitions before recording its physical instance and table names in SystemRepo.
+   * AggregateChain registration also records its aggregate name and ID in the same transaction.
    * A repeated registration updates table metadata for the same repoType/repoName.
    *
    * 1. Run the bound domain operation.
@@ -348,42 +350,28 @@ export class SystemRepo extends makeFixedDORepo({
       registerRepo({
         spec,
         db: this.db,
-        repoTable: systemRepoDbConfig.schema.repos,
         registration,
       }).pipe(makeRpcEnvelope),
     );
   }
 
-  /*
-   * Session initialization registers its projection and retained output log
-   * as one catalog transaction. The pair must belong to the same aggregate or
-   * service definition topology.
-   *
-   * 1. Run the bound domain operation.
-   */
-  registerRepos(props: {
-    spec: ISystemSpec;
-    sessionRepo: {
-      repoType: 'AggregateActorVersionRepo' | 'ServiceActorVersionRepo';
-      repoName: string;
-      tableNames: readonly string[];
-    };
-    finalizedCommandChain: {
-      repoType: 'AggregateActorVersionChain' | 'ServiceActorVersionChain';
-      repoName: string;
-      tableNames: readonly string[];
-    };
-  }) {
-    const { finalizedCommandChain, sessionRepo, spec } = props;
-
-    // 1 — run registerRepos with the instance-bound dependencies and encode its RPC outcome
+  /** List registered aggregate IDs without decoding physical Repo addresses. */
+  getAggregateIds(props: { aggregateName: string }) {
     return config.system.runtime.runPromise(
-      registerRepos({
-        spec,
+      getAggregateIds({
         db: this.db,
-        repoTable: systemRepoDbConfig.schema.repos,
-        sessionRepo,
-        finalizedCommandChain,
+        aggregateName: props.aggregateName,
+      }).pipe(makeRpcEnvelope),
+    );
+  }
+
+  /** Check registration for the exact aggregate name and ID in this system. */
+  hasAggregate(props: { aggregateName: string; aggregateId: IAggregateId }) {
+    return config.system.runtime.runPromise(
+      hasAggregate({
+        db: this.db,
+        aggregateName: props.aggregateName,
+        aggregateId: props.aggregateId,
       }).pipe(makeRpcEnvelope),
     );
   }

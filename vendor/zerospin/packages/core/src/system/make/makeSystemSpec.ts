@@ -11,12 +11,30 @@ export function makeSystemSpec<
     systemName: system.name,
     agents: mapValues(system.agents, (agent, name) => ({
       name,
-      aggregateName: agent.aggregate.name,
-      aggregateVersion: agent.aggregate.version,
-      actorName: agent.actor.name,
-      actorVersion: agent.actor.version,
-      query: structuredClone(agent.query),
-      models: mapValues(agent.actor.db.models, model => ({
+      aggregateName: agent.aggregateName,
+      aggregateVersion: agent.aggregateVersion,
+      actorName: agent.actorName,
+      actorVersion: agent.actorVersion,
+      sessionName: agent.sessionName,
+      claimsJsonSchema: Schema.toJsonSchemaDocument(agent.claimsSchema),
+      contracts: mapValues(agent.contracts, contract => ({
+        commandName: contract.commandName,
+        version: contract.version,
+        models: structuredClone(contract.spec.models),
+        payloadShape: structuredClone(contract.spec.payloadShape),
+        failureJsonSchema: structuredClone(contract.spec.failureJsonSchema),
+        resultJsonSchema: structuredClone(contract.spec.resultJsonSchema),
+        failureSchemas: failureSchemas(contract),
+      })),
+      selections: mapValues(agent.capturedSelections, selection => ({
+        modelName: selection.model.modelName,
+        query: structuredClone(selection.query),
+      })),
+      contractBindings: mapValues(agent.contractBindings, binding => ({
+        modelName: binding.model.modelName,
+        bind: { ...binding.bind },
+      })),
+      models: mapValues(agent.models, model => ({
         modelName: model.modelName,
         abbreviation: model.abbreviation,
         version: model.version,
@@ -43,7 +61,7 @@ export function makeSystemSpec<
         })),
         actors: mapValues(aggregate.actors, actor => ({
           contracts: mapValues(actor.contracts, contract => ({
-            ...asyncSpec(contract),
+            ...externalSpec(contract),
             commandName: contract.spec.commandName,
             failureSchemas: failureSchemas(contract),
             version: contract.spec.version,
@@ -88,7 +106,7 @@ export function makeSystemSpec<
         version: service.version,
         actors: mapValues(service.actors, actor => ({
           contracts: mapValues(actor.contracts, contract => ({
-            ...asyncSpec(contract),
+            ...externalSpec(contract),
             commandName: contract.spec.commandName,
             failureSchemas: failureSchemas(contract),
             version: contract.spec.version,
@@ -167,22 +185,20 @@ function failureSchemas(
   return schemas;
 }
 
-function asyncSpec(contract: IContract) {
+function externalSpec(contract: IContract) {
   const mapped =
     contract.mapping === undefined
       ? {}
       : { original: structuredClone(contract.mapping.original.spec) };
-  const declaration = contract.async;
+  const declaration = contract.external;
   return declaration === undefined
     ? mapped
     : {
         ...mapped,
-        async: {
-          externalJsonSchema: Schema.toJsonSchemaDocument(
-            declaration.external.result,
-          ),
-          timeoutMs: declaration.external.timeoutMs,
-          retryDelayMs: declaration.external.retryDelayMs,
+        external: {
+          responseJsonSchema: Schema.toJsonSchemaDocument(declaration.response),
+          timeoutMs: declaration.timeoutMs,
+          retryDelayMs: declaration.retryDelayMs,
         },
       };
 }

@@ -17,7 +17,7 @@ import type {
   ITextDescriptor,
   ITypeError,
   PrimitiveKind,
-} from '@zerospin/schema';
+} from '@zerospin/shapes';
 /* oxlint-disable typescript/no-explicit-any -- Effect Schema encoded type / generic defaults */
 import type { Schema } from 'effect';
 import type { Brand } from 'effect/Brand';

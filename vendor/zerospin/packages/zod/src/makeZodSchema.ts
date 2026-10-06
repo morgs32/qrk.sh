@@ -3,7 +3,7 @@ import {
   type IAnyPrimitiveDescriptor,
   type IPrimitiveDescriptorDecoded,
   type IShape,
-} from '@zerospin/schema';
+} from '@zerospin/shapes';
 import { Schema } from 'effect';
 import { mapValues } from 'es-toolkit';
 import { z } from 'zod';

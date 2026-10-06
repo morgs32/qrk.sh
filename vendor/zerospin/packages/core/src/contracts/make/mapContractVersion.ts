@@ -11,7 +11,7 @@ import type {
 } from '../../models/types.ts';
 import '@zerospin/server-only';
 
-import type { IAsyncContractDefinition } from '../asyncContract.ts';
+import type { IExternalContractDefinition } from '../externalContract.ts';
 import {
   emitOperation,
   type InferEmittedOperations,
@@ -56,7 +56,10 @@ export function mapContractVersion<
   C extends IContract,
   const M extends IAnyModels,
   const A extends Readonly<
-    Record<string, IContract & { readonly async: IAsyncContractDefinition }>
+    Record<
+      string,
+      IContract & { readonly external: IExternalContractDefinition }
+    >
   >,
   S extends Schema.Codec<unknown, unknown>,
   R = never,
@@ -110,7 +113,7 @@ export function mapContractVersion(input: unknown): unknown {
     Schema.Struct({
       contractVersion: Schema.declare(
         (v: unknown): v is IContract =>
-          v instanceof Contract && !('async' in v) && !('mapping' in v),
+          v instanceof Contract && !('external' in v) && !('mapping' in v),
       ),
       operations: Schema.Struct({
         models: Schema.Record(
@@ -121,7 +124,7 @@ export function mapContractVersion(input: unknown): unknown {
           Schema.String,
           Schema.declare(
             (v: unknown): v is IContract =>
-              v instanceof Contract && 'async' in v,
+              v instanceof Contract && 'external' in v,
           ),
         ),
       }),

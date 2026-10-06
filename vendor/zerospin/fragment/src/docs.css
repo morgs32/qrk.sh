@@ -7,37 +7,104 @@
   font-size: 16px;
   line-height: 1.3;
 }
-.docs-nav { position: sticky; top: 96px; }
-.docs-nav a { display: block; }
-.docs-nav-topic { margin: 24px 0 0 2ch; }
-.docs-nav-sections { padding-left: 2ch; color: var(--subtle); }
-.docs-nav a:hover, .docs-nav a:focus-visible { color: var(--ink); }
-.docs-content { min-width: 0; overflow-wrap: anywhere; }
-.docs-content section { scroll-margin-top: 96px; }
-.docs-topic { padding: 40px 0 0 2ch; }
-.docs-topic > section + section { margin-top: 64px; }
-.docs-content h2 { margin-bottom: 24px; }
-.docs-content h2 span, #quickstart > h1 > span { color: var(--subtle); }
-.docs-content p { margin-bottom: 24px; }
-.docs-content ol, .docs-content ul { padding-left: 3ch; margin: 0 0 24px; }
-.docs-content a { text-decoration: underline; text-underline-offset: 3px; }
-.docs-subpage { margin: 32px 0; }
-.docs-subpage > span { display: block; margin-bottom: 24px; }
-.docs-code { position: relative; margin: 12px 0 24px; background: var(--panel); }
-.docs-code pre { padding: 40px 20px 20px; margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; }
-.docs-code button { position: absolute; right: 12px; top: 10px; border: 0; background: transparent; cursor: pointer; color: var(--subtle); }
-.docs-code-label { color: var(--subtle); margin-top: 16px; }
-.docs-copy-status { position: fixed; bottom: 16px; right: 24px; background: var(--canvas); max-width: calc(100% - 48px); }
-.docs-copy-status:empty { display: none; }
+.docs-nav {
+  position: sticky;
+  top: 96px;
+}
+.docs-content {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.docs-content section {
+  scroll-margin-top: 96px;
+}
+.docs-topic {
+  padding: 40px 0 0 2ch;
+}
+.docs-topic > section + section {
+  margin-top: 64px;
+}
+.docs-content h2 {
+  margin-bottom: 24px;
+}
+.docs-content h2 span,
+#quickstart > h1 > span {
+  color: var(--subtle);
+}
+.docs-content p {
+  margin-bottom: 24px;
+}
+.docs-content ol,
+.docs-content ul {
+  padding-left: 3ch;
+  margin: 0 0 24px;
+}
+.docs-content a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.docs-subpage {
+  margin: 32px 0;
+}
+.docs-subpage > span {
+  display: block;
+  margin-bottom: 24px;
+}
+.docs-code {
+  position: relative;
+  margin: 12px 0 24px;
+  background: var(--panel);
+}
+.docs-code pre {
+  padding: 40px 20px 20px;
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font: inherit;
+}
+.docs-code button {
+  position: absolute;
+  right: 12px;
+  top: 10px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  color: var(--subtle);
+}
+.docs-code-label {
+  color: var(--subtle);
+  margin-top: 16px;
+}
+.docs-copy-status {
+  position: fixed;
+  bottom: 16px;
+  right: 24px;
+  background: var(--canvas);
+  max-width: calc(100% - 48px);
+}
+.docs-copy-status:empty {
+  display: none;
+}
 @media (max-width: 700px) {
-  .docs-layout { grid-template-columns: minmax(0, 1fr); padding-block: 24px; gap: 48px; }
-  .docs-nav { position: static; }
-  .docs-topic { padding-left: 0; }
-  .docs-layout .docs-content { font-size: 14px; }
-  .docs-layout + * { min-width: 0; }
+  .docs-layout {
+    grid-template-columns: minmax(0, 1fr);
+    padding-block: 24px;
+    gap: 48px;
+  }
+  .docs-nav {
+    position: static;
+  }
+  .docs-topic {
+    padding-left: 0;
+  }
+  .docs-layout .docs-content {
+    font-size: 14px;
+  }
+  .docs-layout + * {
+    min-width: 0;
+  }
 }
 
-.docs-nav-topic { margin-bottom: 24px; }
 .accounting-content {
   --colour-asset-green: 42 167 103;
   --colour-liability-red: 227 80 80;
@@ -51,11 +118,22 @@
   --colour-inactive-bl: 160 160 160;
   --colour-inactive-br: 135 135 135;
 }
-.accounting-content :where(div, span, svg) { border-style: solid; border-width: 0; }
-.accounting-content p { margin-bottom: 0; }
-.accounting-content h2 { margin-bottom: 0; }
-.accounting-content h1 > span { color: var(--subtle); }
-.accounting-content svg { vertical-align: middle; }
+.accounting-content :where(div, span, svg) {
+  border-style: solid;
+  border-width: 0;
+}
+.accounting-content p {
+  margin-bottom: 0;
+}
+.accounting-content h2 {
+  margin-bottom: 0;
+}
+.accounting-content h1 > span {
+  color: var(--subtle);
+}
+.accounting-content svg {
+  vertical-align: middle;
+}
 :root[data-theme='dark'] .accounting-content {
   --colour-main: 240 240 240;
   --colour-negative: 32 32 32;

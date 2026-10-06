@@ -7,7 +7,8 @@ packages:
   - 'packages/*'
   - 'examples/*'
   - 'fragment'
-  - 'visualizer'
+  - 'fragment/ui'
+  - 'explorer'
 allowBuilds:
   '@clerk/shared': true
   '@parcel/watcher': true

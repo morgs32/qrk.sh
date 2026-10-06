@@ -3,7 +3,7 @@ import { makeDbConfig } from '@zerospin/core/drizzle/make/makeDbConfig/makeDbCon
 import { ServiceSessionLockSchema } from '@zerospin/core/serviceSession/ServiceSessionLockSchema';
 import { SystemSpecSchema } from '@zerospin/core/system/SystemSpecSchema';
 import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
-import { makeTable, primitives, type IAnyTables } from '@zerospin/schema';
+import { makeTable, primitives, type IAnyTables } from '@zerospin/shapes';
 import { Schema } from 'effect';
 
 export const systemRepoDbConfig = makeDbConfig({
@@ -131,6 +131,22 @@ export const systemRepoDbConfig = makeDbConfig({
         {
           name: 'serviceSessionWebSocketTickets_ticketHash_unique',
           columns: ['ticketHash'],
+          unique: true,
+        },
+      ],
+    }),
+    aggregates: makeTable({
+      name: 'aggregates',
+      shape: {
+        aggregateName: primitives.text(),
+        aggregateId: primitives.foreignKey({
+          abbreviation: coreAbbreviations.aggregate,
+        }),
+      },
+      indexes: [
+        {
+          name: 'aggregates_aggregate_name_aggregate_id_unique',
+          columns: ['aggregateName', 'aggregateId'],
           unique: true,
         },
       ],

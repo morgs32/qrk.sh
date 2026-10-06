@@ -1,6 +1,6 @@
 import type { IDb } from '@zerospin/core/drizzle/types';
 import { makeZerospinError } from '@zerospin/error';
-import { makeIdFromAbbreviation } from '@zerospin/schema';
+import { makeIdFromAbbreviation } from '@zerospin/shapes';
 import { Effect } from 'effect';
 
 import { systemLogRepoDbConfig } from '../systemLogRepoDbConfig.js';

@@ -1,5 +1,5 @@
 import { makeDbConfig } from '@zerospin/core/drizzle/make/makeDbConfig/makeDbConfig';
-import { makeTable } from '@zerospin/schema';
+import { makeTable } from '@zerospin/shapes';
 
 import { serviceActorVersionRepoDbConfig } from '../ServiceActorVersionRepo/serviceActorVersionRepoDbConfig.js';
 

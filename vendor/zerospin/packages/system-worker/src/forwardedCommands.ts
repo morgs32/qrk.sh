@@ -1,5 +1,4 @@
 import { AdmissionResultSchema } from '@zerospin/core/contracts/AdmissionResultSchema';
-import { AsyncCommandInputSchema } from '@zerospin/core/contracts/AsyncCommandInputSchema';
 import {
   ExecutedCommandSchema,
   type IEncodedExecutedCommand,
@@ -7,7 +6,7 @@ import {
 import { ExecutionResultSchema } from '@zerospin/core/contracts/ExecutionResultSchema';
 import { ServiceCallerSchema } from '@zerospin/core/contracts/ServiceCallerSchema';
 import { mapParseError } from '@zerospin/error';
-import { primitives } from '@zerospin/schema';
+import { primitives } from '@zerospin/shapes';
 import { Effect, Schema } from 'effect';
 
 import type { aggregateVersionChainDbConfig } from './AggregateVersionChain/aggregateVersionChainDbConfig.js';
@@ -18,8 +17,8 @@ export const forwardedCommandShape = {
   id: primitives.text(),
   commandName: primitives.text(),
   payload: primitives.text(),
-  asyncInput: primitives.json({
-    schema: AsyncCommandInputSchema,
+  response: primitives.json({
+    schema: Schema.Json,
     nullable: true,
   }),
   contractVersion: primitives.text(),
@@ -81,7 +80,7 @@ function commandFields(command: IExecutedCommandSource) {
     id: command.id,
     commandName: command.commandName,
     payload: command.payload,
-    asyncInput: command.asyncInput ?? null,
+    response: command.response ?? null,
     contractVersion: command.contractVersion,
     ownerKind:
       ('ownerKind' in command ? command.ownerKind : undefined) ??

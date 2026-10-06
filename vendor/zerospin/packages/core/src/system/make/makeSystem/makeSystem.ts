@@ -1,17 +1,21 @@
 import type { IAnyError } from '@zerospin/error';
-import { PrimitiveKind } from '@zerospin/schema';
 import '@zerospin/server-only';
-import { Layer, ManagedRuntime, type Effect } from 'effect';
-import { mapValues } from 'es-toolkit';
+import { Layer, ManagedRuntime, Schema, type Effect } from 'effect';
+import { isEqual, mapValues } from 'es-toolkit';
 
-import type { IAgent } from '../../../agent/makeAgent.ts';
+import { assertAgentContract } from '../../../agent/makeAgentContract.ts';
+import { isAgentCapturedSelection } from '../../../agent/makeAgentSessionDefinition.ts';
+import type { IAgentSessionDefinition } from '../../../agent/types.ts';
 import type {
   IAggregate,
   IAnyAuthoredAggregate,
 } from '../../../aggregate/types.ts';
 import { getAggregateActorVersion } from '../../../aggregateActor/getAggregateActorVersion.ts';
+import { sessionRepoDbConfig } from '../../../aggregateSession/sessionRepoDbConfig.ts';
 import { AsyncLive } from '../../../async/AsyncLive.ts';
+import { publicContracts } from '../../../contracts/externalContract.ts';
 import type { IContract } from '../../../contracts/types.ts';
+import { captureActorSelections } from '../../../models/make/makeActorDbVersion.ts';
 import type { IModel } from '../../../models/types.ts';
 import type { IAnyService } from '../../../service/types.ts';
 import { getServiceActorVersion } from '../../../serviceActor/getServiceActorVersion.ts';
@@ -64,12 +68,10 @@ type ExternalRequirements<
     [V in keyof OWNERS[N]]: {
       [A in keyof OWNERS[N][V]['actors']]: {
         [C in keyof OWNERS[N][V]['actors'][A]['contracts']]: OWNERS[N][V]['actors'][A]['contracts'][C] extends {
-          readonly async: {
-            readonly external: {
-              readonly program: infer P extends (
-                ...args: never[]
-              ) => Effect.Effect<unknown, unknown, unknown>;
-            };
+          readonly external: {
+            readonly request: infer P extends (
+              ...args: never[]
+            ) => Effect.Effect<unknown, unknown, unknown>;
           };
         }
           ? Effect.Services<ReturnType<P>>
@@ -102,7 +104,9 @@ export function makeSystem<
 >(
   props: {
     name: SYSTEM_NAME;
-    agents?: Readonly<Record<string, IAgent>>;
+    agents?: Readonly<
+      Record<string, { readonly definition: IAgentSessionDefinition }>
+    >;
     aggregates: AGGREGATES & {
       [NAME in keyof NoInfer<AGGREGATES> & string]: {
         [VERSION in keyof AGGREGATES[NAME] & string]: {
@@ -143,7 +147,9 @@ export function makeSystem<
 >;
 export function makeSystem(props: {
   name: string;
-  agents?: Readonly<Record<string, IAgent>>;
+  agents?: Readonly<
+    Record<string, { readonly definition: IAgentSessionDefinition }>
+  >;
   layer?: Layer.Any;
   aggregates: Record<string, Readonly<Record<string, IAnyAuthoredAggregate>>>;
   services?: Record<string, Readonly<Record<string, IAnyService>>>;
@@ -151,7 +157,7 @@ export function makeSystem(props: {
   const {
     layer = Layer.empty,
     name,
-    agents,
+    agents: agentSessions,
     aggregates: authoredAggregates,
     services: authoredServices,
   } = decodeSystemProps(props);
@@ -209,6 +215,7 @@ export function makeSystem(props: {
         });
       }),
   );
+  const agents = mapValues(agentSessions, session => session.definition);
   const system = {
     agents,
     runtime,
@@ -228,73 +235,135 @@ export function makeSystem(props: {
   }
   for (const [agentName, agent] of Object.entries(agents)) {
     const aggregate =
-      authoredAggregates[agent.aggregate.name]?.[agent.aggregate.version];
-    if (aggregate !== agent.aggregate) {
+      authoredAggregates[agent.aggregateName]?.[agent.aggregateVersion];
+    if (aggregate === undefined || agent.systemName !== name) {
       throw new Error(
         `Agent ${agentName} aggregate is not registered at its exact version`,
       );
     }
     const actor = getAggregateActorVersion(
       { [aggregate.version]: aggregate },
-      { actorName: agent.actor.name, actorVersion: agent.actor.version },
+      { actorName: agent.actorName, actorVersion: agent.actorVersion },
     );
-    if (actor !== agent.actor) {
-      throw new Error(
-        `Agent ${agentName} actor is not registered at its exact version`,
-      );
-    }
     if (
       actor.authentication !== 'system' ||
-      Object.keys(actor.contracts).length !== 0 ||
       actor.identity.pattern.source !== '/' ||
       Object.keys(actor.identity.claimsSchema.fields).some(
         field => field !== 'aggregateId',
       )
     ) {
       throw new Error(
-        `Agent ${agentName} requires a system-only, command-free actor with aggregate-only identity`,
+        `Agent ${agentName} requires a system-only actor with aggregate-only identity`,
       );
     }
-    if (Object.hasOwn(actor.db.models, '_agentCheckpoint')) {
-      throw new Error(`Agent ${agentName} uses a reserved model name`);
-    }
-    const model = actor.db.models[agent.query.modelName];
-    if (model === undefined) {
+    if (
+      !isEqual(
+        Schema.toJsonSchemaDocument(actor.identity.claimsSchema),
+        Schema.toJsonSchemaDocument(agent.claimsSchema),
+      )
+    ) {
       throw new Error(
-        `Agent ${agentName} query model is outside the actor projection`,
+        `Agent ${agentName} claims differ from the registered actor`,
       );
     }
-    for (const field of Object.keys(agent.query.where ?? {})) {
-      const descriptor = model.spec.propertiesShape[field];
-      if (
-        !Object.hasOwn(model.spec.propertiesShape, field) ||
-        descriptor === undefined
-      ) {
+    if (
+      Object.keys(agent.models).length !==
+        Object.keys(aggregate.models).length ||
+      Object.keys(agent.db.models).length !==
+        Object.keys(aggregate.models).length ||
+      Object.keys(actor.db.models).length !==
+        Object.keys(aggregate.models).length
+    ) {
+      throw new Error(
+        `Agent ${agentName} requires every aggregate domain model`,
+      );
+    }
+    for (const [modelName, model] of Object.entries(aggregate.models)) {
+      if (Object.hasOwn(sessionRepoDbConfig.schema, modelName)) {
         throw new Error(
-          `Agent ${agentName} query field ${field} is outside the model`,
+          `Agent ${agentName} uses reserved session model ${modelName}`,
         );
       }
-      for (const [operator, value] of Object.entries(
-        agent.query.where?.[field] ?? {},
-      )) {
-        if (operator === 'isNull' || operator === 'isNotNull') continue;
-        const valid =
-          descriptor.kind === PrimitiveKind.Date
-            ? typeof value === 'string' && !Number.isNaN(Date.parse(value))
-            : descriptor.kind === PrimitiveKind.Integer ||
-                descriptor.kind === PrimitiveKind.Number ||
-                (descriptor.kind === PrimitiveKind.Ref &&
-                  descriptor.targetKind === PrimitiveKind.Integer)
-              ? typeof value === 'number'
-              : descriptor.kind === PrimitiveKind.Boolean
-                ? typeof value === 'boolean' &&
-                  (operator === 'eq' || operator === 'ne')
-                : typeof value === 'string';
-        if (!valid) {
-          throw new Error(
-            `Agent ${agentName} query has an invalid literal for ${field}.${operator}`,
-          );
-        }
+      if (
+        agent.models[modelName] !== model ||
+        agent.db.models[modelName] !== model ||
+        actor.db.models[modelName] !== model
+      ) {
+        throw new Error(
+          `Agent ${agentName} model ${modelName} is not the canonical aggregate model`,
+        );
+      }
+      const selected = actor.selections[modelName];
+      if (selected === undefined || !selected.selectsAllRows()) {
+        throw new Error(
+          `Agent ${agentName} requires full-row actor selection for ${modelName}`,
+        );
+      }
+    }
+    const permitted = publicContracts(actor.contracts);
+    for (const [contractName, contract] of Object.entries(agent.contracts)) {
+      if (
+        contract.external !== undefined ||
+        contract.mapping !== undefined ||
+        permitted[contractName] !== contract
+      ) {
+        throw new Error(
+          `Agent ${agentName} contract ${contractName} is not the actor's exact ordinary contract`,
+        );
+      }
+    }
+    const capturedSelections = captureActorSelections(
+      agent.db,
+      agent.selections,
+      agent.claimsSchema,
+    );
+    if (
+      Object.keys(capturedSelections).length !==
+        Object.keys(agent.capturedSelections).length ||
+      Object.keys(agent.contracts).length !==
+        Object.keys(agent.contractBindings).length
+    ) {
+      throw new Error(
+        `Agent ${agentName} declarations do not match their normalized metadata`,
+      );
+    }
+    for (const [selectionName, selected] of Object.entries(
+      capturedSelections,
+    )) {
+      const captured = agent.capturedSelections[selectionName];
+      if (
+        !isAgentCapturedSelection(captured) ||
+        captured.models !== agent.db.models ||
+        captured.model !== aggregate.models[selectionName] ||
+        !isEqual(captured.query, selected.query)
+      ) {
+        throw new Error(
+          `Agent ${agentName} selection ${selectionName} is not its canonical model selection`,
+        );
+      }
+    }
+    for (const [contractName, binding] of Object.entries(
+      agent.contractBindings,
+    )) {
+      const contractVersion = agent.contracts[contractName];
+      if (contractVersion === undefined) {
+        throw new Error(
+          `Agent ${agentName} binding ${contractName} has no ordinary contract`,
+        );
+      }
+      assertAgentContract({
+        contractVersion,
+        model: binding.model,
+        bind: binding.bind,
+      });
+      if (
+        agent.models[binding.model.modelName] !== binding.model ||
+        agent.capturedSelections[binding.model.modelName]?.model !==
+          binding.model
+      ) {
+        throw new Error(
+          `Agent ${agentName} binding ${contractName} must use its exact selected model`,
+        );
       }
     }
   }

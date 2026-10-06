@@ -8,7 +8,7 @@ import {
   makeEffectSchema,
   PrimitiveKind,
   type IAnyShape,
-} from '@zerospin/schema';
+} from '@zerospin/shapes';
 import { Effect, Schema } from 'effect';
 
 import type {

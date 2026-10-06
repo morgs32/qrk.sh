@@ -2,6 +2,26 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "name": "shopping",
   "targets": {
+    "test:workerd": {
+      "dependsOn": [
+        {
+          "target": "lib",
+          "projects": [
+            "@zerospin/browser",
+            "@zerospin/dev-worker",
+            "@zerospin/sdk"
+          ]
+        }
+      ]
+    },
+    "agents:cold-check": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["^lib"],
+      "options": {
+        "command": "pnpm exec tsx --tsconfig tsconfig.json src/zerospin/fixtures/coldAgents.ts",
+        "cwd": "examples/shopping"
+      }
+    },
     "build": {
       "dependsOn": ["^lib"]
     },
@@ -42,7 +62,7 @@
       "executor": "nx:run-commands",
       "dependsOn": ["^lib"],
       "options": {
-        "command": "pnpm exec tsx --tsconfig tsconfig.json src/zerospin/fixtures/purchaseItemAgent.ts",
+        "command": "pnpm exec tsx --tsconfig tsconfig.json src/zerospin/fixtures/fulfillment.ts",
         "cwd": "examples/shopping"
       }
     },
@@ -51,6 +71,22 @@
       "dependsOn": ["^lib"],
       "options": {
         "command": "pnpm exec tsx --tsconfig tsconfig.json src/zerospin/fixtures/marketplace.ts",
+        "cwd": "examples/shopping"
+      }
+    },
+    "checkout:check": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["^lib"],
+      "options": {
+        "command": "pnpm exec tsx --tsconfig tsconfig.json src/zerospin/fixtures/checkoutEndpoint.ts",
+        "cwd": "examples/shopping"
+      }
+    },
+    "local-backend:check": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["^lib"],
+      "options": {
+        "command": "pnpm exec tsx --tsconfig tsconfig.json src/zerospin/fixtures/localBackend.ts",
         "cwd": "examples/shopping"
       }
     }

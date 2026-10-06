@@ -1,7 +1,7 @@
 import {
   makeAbbreviationIdSchema,
   type InferIdFromAbbreviation,
-} from '@zerospin/schema';
+} from '@zerospin/shapes';
 import type { Schema } from 'effect';
 
 import type { IModel } from '../types.ts';

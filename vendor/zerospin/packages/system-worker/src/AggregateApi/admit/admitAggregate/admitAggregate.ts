@@ -11,7 +11,7 @@ import type { IAdmissionRequest } from '@zerospin/core/identity/types';
 import { NanoIdFactory } from '@zerospin/core/utils/NanoIdFactory';
 import { readRpcEnvelope } from '@zerospin/core/utils/readRpcEnvelope';
 import { makeZerospinError, mapParseError } from '@zerospin/error';
-import { makeAbbreviationIdSchema } from '@zerospin/schema';
+import { makeAbbreviationIdSchema } from '@zerospin/shapes';
 import { env } from 'cloudflare:workers';
 import config from 'config';
 import { Cause, Effect, Exit, Schema } from 'effect';

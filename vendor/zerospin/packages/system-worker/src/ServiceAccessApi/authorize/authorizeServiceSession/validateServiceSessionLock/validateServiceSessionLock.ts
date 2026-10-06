@@ -3,7 +3,7 @@ import { makeServiceSessionLockKey } from '@zerospin/core/serviceSession/make/ma
 import type { IServiceSessionSpec } from '@zerospin/core/serviceSession/make/makeServiceSessionSpec';
 import type { IServiceSessionLock } from '@zerospin/core/serviceSession/ServiceSessionLockSchema';
 import { makeZerospinError, type IAnyError } from '@zerospin/error';
-import { encodeShape } from '@zerospin/schema';
+import { encodeShape } from '@zerospin/shapes';
 import config from 'config';
 import { Effect, Schema } from 'effect';
 import { isEqual } from 'es-toolkit';

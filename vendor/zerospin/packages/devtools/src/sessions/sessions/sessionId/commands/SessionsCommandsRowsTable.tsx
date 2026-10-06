@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useState } from 'react';
+import { memo, useMemo, useState } from 'react';
 
 import {
   flexRender,
@@ -7,12 +7,14 @@ import {
   type VisibilityState,
 } from '@tanstack/react-table';
 import { getInitializedStateOrThrow } from '@zerospin/core/aggregateSession/getInitializedStateOrThrow';
-import type { IAggregateSession } from '@zerospin/core/aggregateSession/types';
-import { useStore } from 'zustand/react';
+import { sessionRepoDbConfig } from '@zerospin/core/aggregateSession/sessionRepoDbConfig';
+import type {
+  IAggregateSession,
+  IAggregateSessionDefinition,
+} from '@zerospin/core/aggregateSession/types';
 
-import type { IDevtoolsAggregateSessionEntry } from '../../../../types';
+import type { IDevtoolsServiceSessionEntry } from '../../../../types';
 import { useLiveQueryOnDb } from '../../../../useLiveQueryOnDb';
-import { zerospinDevtoolsStore } from '../../../../zerospinDevtoolsStore';
 import { SessionsDataCell } from '../../../SessionsDataCell';
 import { sessionsDatabaseTabStyles } from '../database/sessionsDatabaseTabStyles';
 
@@ -24,15 +26,15 @@ import {
   truncateCommandDisplayText,
 } from './sessionsCommandsTableColumns';
 
-const SessionsCommandsTableBody = memo(
+export const SessionsCommandsTableBody = memo(
   function SessionsCommandsTableBody(props: {
     rows: Readonly<Record<string, unknown>>[];
-    node?: boolean;
+    service?: boolean;
   }) {
-    const { rows, node = false } = props;
+    const { rows, service = false } = props;
     const columns = useMemo(
-      () => makeSessionsCommandsTableColumns(node),
-      [node],
+      () => makeSessionsCommandsTableColumns(service),
+      [service],
     );
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(
       {},
@@ -47,7 +49,7 @@ const SessionsCommandsTableBody = memo(
         size: 120,
       },
       getCoreRowModel: getCoreRowModel(),
-      getRowId: row => String(row.id),
+      getRowId: row => String(row.sessionIndex),
       onColumnVisibilityChange: setColumnVisibility,
       state: {
         columnVisibility,
@@ -124,15 +126,20 @@ const SessionsCommandsTableBody = memo(
   },
 );
 
-function LocalCommandsRowsTable(props: {
-  readonly session: IAggregateSession;
-}) {
+function LocalCommandsRowsTable<
+  DEFINITION extends IAggregateSessionDefinition,
+>(props: { readonly session: IAggregateSession<DEFINITION> }) {
   const { session } = props;
   const { db } = getInitializedStateOrThrow({ session });
   const { data: rows, error } = useLiveQueryOnDb({
     db,
     deps: [],
-    query: db => db.query.commands!.findMany(),
+    query: db =>
+      db
+        .select()
+        .from(sessionRepoDbConfig.schema.commands)
+        .orderBy(sessionRepoDbConfig.schema.commands.sessionIndex)
+        .$dynamic(),
     tableNames: ['commands'],
   });
 
@@ -153,81 +160,29 @@ function LocalCommandsRowsTable(props: {
   return <SessionsCommandsTableBody rows={rows} />;
 }
 
-function NodeCommandsRowsTable(props: {
-  history: NonNullable<IDevtoolsAggregateSessionEntry['history']>;
-}) {
-  const { history } = props;
-  const [after, setAfter] = useState(0);
-  const [revision, setRevision] = useState(0);
-  const [rows, setRows] = useState<Readonly<Record<string, unknown>>[]>([]);
-  const [failure, setFailure] = useState('');
-  const [loading, setLoading] = useState(true);
-  useEffect(() => {
-    let current = true;
-    setLoading(true);
-    void history({ afterNodeIndex: after, limit: 50 })
-      .then(
-        page => {
-          if (current) {
-            setRows([...page]);
-            setFailure('');
-          }
-        },
-        error => {
-          if (current) setFailure(String(error));
-        },
-      )
-      .finally(() => {
-        if (current) setLoading(false);
-      });
-    return () => {
-      current = false;
-    };
-  }, [history, after, revision]);
-  const last = rows.at(-1)?.nodeIndex;
-  return (
-    <>
-      <div style={sessionsDatabaseTabStyles.tableToolbar}>
-        <button
-          disabled={loading}
-          onClick={() => {
-            setAfter(0);
-            setRevision(value => value + 1);
-          }}
-        >
-          Refresh
-        </button>
-        <button
-          disabled={loading || rows.length < 50 || typeof last !== 'number'}
-          onClick={() => {
-            if (typeof last === 'number') setAfter(last);
-          }}
-        >
-          Next 50
-        </button>
-        <span>
-          {loading
-            ? 'Loading…'
-            : `${rows.length} commands after nodeIndex ${after}`}
-        </span>
-        {failure && <span role="alert">{failure}</span>}
-      </div>
-      <SessionsCommandsTableBody rows={rows} node />
-    </>
-  );
+export function SessionsCommandsRowsTable<
+  DEFINITION extends IAggregateSessionDefinition,
+>(props: { readonly session: IAggregateSession<DEFINITION> }) {
+  return <LocalCommandsRowsTable {...props} />;
 }
 
-export function SessionsCommandsRowsTable(props: {
-  readonly session: IAggregateSession;
+export function ServiceCommandsRowsTable(props: {
+  readonly session: IDevtoolsServiceSessionEntry;
 }) {
-  const history = useStore(zerospinDevtoolsStore, state =>
-    props.session.sessionId === null
-      ? undefined
-      : state.aggregateSessionsById.get(props.session.sessionId)?.history,
-  );
-  return history === undefined ? (
-    <LocalCommandsRowsTable {...props} />
-  ) : (
-    <NodeCommandsRowsTable history={history} />
-  );
+  const db = props.session.getCommandDb();
+  if (db === null) throw new Error('Service session is not initialized');
+  const { data: rows, error } = useLiveQueryOnDb({
+    db,
+    deps: [],
+    query: db =>
+      db.query.commands!.findMany({ orderBy: { sessionIndex: 'asc' } }),
+    tableNames: ['commands'],
+  });
+  if (error !== undefined)
+    return (
+      <p style={sessionsDatabaseTabStyles.errorText}>
+        Failed to load rows: {error.message}
+      </p>
+    );
+  return <SessionsCommandsTableBody rows={rows} service />;
 }

@@ -2,7 +2,7 @@ import type {
   InferDecodedRow,
   InferIdFromAbbreviation,
   IShape,
-} from '@zerospin/schema';
+} from '@zerospin/shapes';
 
 import type { IModel } from '../models/types.ts';
 

@@ -1,17 +1,13 @@
-import type { IAnyError, IZerospinErrorJson } from '@zerospin/error';
-import type { ITelemetryBatch, ITelemetryCollector } from '@zerospin/logger';
 import type {
-  CuidFactory,
-  InferIdFromAbbreviation,
-  IShape,
-} from '@zerospin/schema';
+  IAnyError,
+  IRecognizedFailure,
+  IResult,
+  IZerospinErrorJson,
+} from '@zerospin/error';
+import type { ITelemetryBatch, ITelemetryCollector } from '@zerospin/logger';
+import type { InferIdFromAbbreviation, IShape } from '@zerospin/shapes';
 import type { AnyRelations } from 'drizzle-orm';
-import {
-  type Effect,
-  type ManagedRuntime,
-  type Schema,
-  type Scope,
-} from 'effect';
+import { type Effect, type Schema, type Scope } from 'effect';
 import type { StoreApi } from 'zustand';
 
 import type { INodeState } from '../aggregateSession/NodeState.ts';
@@ -19,7 +15,7 @@ import type { IBrowserCommand } from '../contracts/BrowserCommandSchema.ts';
 import type { ExcludeOperationSink } from '../contracts/operationSink.ts';
 import type {
   IAnyContracts,
-  IEncodedCommand,
+  ICommand,
   ISessionCommand,
 } from '../contracts/types.ts';
 import type {
@@ -36,7 +32,6 @@ import type {
   IModel,
   IRef,
 } from '../models/types.ts';
-import type { MonotonicFactory } from '../services/MonotonicFactory.ts';
 
 import { type sessionRepoDbConfig } from './sessionRepoDbConfig.ts';
 
@@ -114,12 +109,12 @@ export type IActorDelta = Readonly<{
   deleted: readonly IRef[];
 }>;
 
-export type IAggregateActorOutput = Readonly<{
-  executedIndex: number;
-  aggregateIndex: number;
-  executedHash: string;
-  command: IBrowserCommand;
-}>;
+export type IAggregateBrowserCommand = IBrowserCommand &
+  Readonly<{
+    executedIndex: number;
+    aggregateIndex: number;
+    executedHash: string;
+  }>;
 
 export type IAggregateSessionSnapshot = Readonly<{
   aggregateId: IAggregateId;
@@ -218,9 +213,23 @@ type ISessionStoreApi<
   CLAIMS = Readonly<Record<string, unknown>>,
 > = StoreApi<ISessionState<MODELS, CLAIMS>>;
 
+export type IAggregateStageFailure = Readonly<{
+  contractName: string;
+  failure: IRecognizedFailure<IAnyError>;
+}>;
+
 export type IAggregateSession<
   DEFINITION extends IAggregateSessionDefinition = IAggregateSessionDefinition,
 > = {
+  onStageFailure(handler: (event: IAggregateStageFailure) => void): () => void;
+  /** Internal staging boundary used by the typed stageCommand API. */
+  stageCommand(props: {
+    contractName: string;
+    payload: unknown;
+  }): IResult<
+    ISessionCommand<ICommand, unknown>,
+    IRecognizedFailure<IAnyError>
+  >;
   definition: DEFINITION;
 
   /**
@@ -242,28 +251,6 @@ export type IAggregateSession<
   makeId<ATTRIBUTES extends IShape, ABBREVIATION extends string>(
     model: IModel<ATTRIBUTES, ABBREVIATION>,
   ): InferIdFromAbbreviation<ABBREVIATION>;
-  /**
-   * Bind guard/runtime/delivery resources before publishing readiness.
-   * Cleared during disposal; staging fails while unbound.
-   */
-  setExecutionResources(resources: {
-    sessionId: ISessionId;
-    /** Standalone commands settle locally without retaining active optimism. */
-    settleLocally?: boolean;
-    runtime: ManagedRuntime.ManagedRuntime<
-      CuidFactory | MonotonicFactory,
-      IAnyError
-    >;
-    executeAggregateSessionCommand?: (props: {
-      command: IEncodedCommand<
-        ISessionCommand & Readonly<{ sessionIndex: number; pushIndex: null }>
-      >;
-    }) => Effect.Effect<
-      Readonly<{ commandId: string }>,
-      IAnyError | IZerospinErrorJson
-    >;
-  }): void;
-  clearExecutionResources(): void;
   store: ISessionStoreApi<
     DEFINITION['models'],
     DEFINITION['claimsSchema']['Type']

@@ -1,6 +1,5 @@
-import { PublicFailureSchema } from '@zerospin/error';
 /* oxlint-disable typescript/no-explicit-any -- Effect Schema encoded types are invariant. */
-import { makeAbbreviationIdSchema } from '@zerospin/schema';
+import { makeAbbreviationIdSchema } from '@zerospin/shapes';
 import { Schema } from 'effect';
 
 import { BrowserCommandSchema } from '../../contracts/BrowserCommandSchema.ts';
@@ -9,7 +8,7 @@ import { EncodedResourceSchema } from '../../models/EncodedResourceSchema.ts';
 import { coreAbbreviations } from '../../utils/coreAbbreviations.ts';
 import { StagingResultSchema } from '../StagingResultSchema.ts';
 import type {
-  IAggregateActorOutput,
+  IAggregateBrowserCommand,
   IAggregateSessionSnapshot,
 } from '../types.ts';
 
@@ -27,17 +26,15 @@ const LowercaseSha256Schema = Schema.String.check(
   Schema.isPattern(/^[a-f0-9]{64}$/u),
 );
 
-export const AggregateActorOutputSchema = Schema.Struct({
+export const AggregateBrowserCommandSchema = Schema.fieldsAssign({
   executedIndex: positiveIndexSchema,
   aggregateIndex: nonNegativeIndexSchema,
   executedHash: LowercaseSha256Schema,
-  command: BrowserCommandSchema,
-}) satisfies Schema.Codec<IAggregateActorOutput, any>;
+})(BrowserCommandSchema) satisfies Schema.Codec<IAggregateBrowserCommand, any>;
 
 export const SessionCommandSchema = Schema.fieldsAssign({
   sessionIndex: positiveIndexSchema,
   staging: StagingResultSchema,
-  failure: Schema.NullOr(PublicFailureSchema),
 })(EncodedSessionCommandSchema);
 
 export const AggregateSessionSnapshotSchema = Schema.Struct({

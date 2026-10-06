@@ -1,5 +1,4 @@
 import { applyOperationTx } from '@zerospin/core/contracts/applyOperationTx';
-import { validateAsyncValues } from '@zerospin/core/contracts/asyncInputCodec';
 import {
   ServiceTerminalCommandSchema,
   type ServiceChainedCommandSchema,
@@ -8,8 +7,12 @@ import {
   encodeFailure,
   type IFailure,
 } from '@zerospin/core/contracts/failureCodec';
+import type { IPreparedContractInput } from '@zerospin/core/contracts/prepareContractInput';
 import { runContractGuard } from '@zerospin/core/contracts/runContractGuard';
-import type { IContractOutput } from '@zerospin/core/contracts/types';
+import type {
+  IContract,
+  IContractOutput,
+} from '@zerospin/core/contracts/types';
 import { validateServiceCommand } from '@zerospin/core/contracts/validateServiceCommand';
 import { makeTx } from '@zerospin/core/drizzle/make/makeTx';
 import type { IResourceDbConfig, ITx } from '@zerospin/core/drizzle/types';
@@ -36,6 +39,15 @@ import {
   genesisDispositionHash,
 } from '../../serviceDispositionHash/serviceDispositionHash.js';
 import { serviceVersionRepoDbConfig } from '../serviceVersionRepoDbConfig.js';
+
+export type IPreparedServiceExecution = Readonly<{
+  contract: IContract | null;
+  contractVersion: string;
+  input: IPreparedContractInput;
+  operations: readonly IContractOutput[];
+  encodedResult: typeof Schema.Json.Type;
+}>;
+
 /** Commit prepared service commands, resource changes, terminal results, and the execution head together. */
 export const executeCommandsTx = makeTx('ServiceVersionRepo.executeCommandsTx')(
   function* (
@@ -46,15 +58,7 @@ export const executeCommandsTx = makeTx('ServiceVersionRepo.executeCommandsTx')(
       cursor: number;
       inputs: readonly {
         command: typeof ServiceChainedCommandSchema.Type;
-        prepared: Result.Result<
-          {
-            contractVersion: string;
-            payload: unknown;
-            operations: readonly IContractOutput[];
-            encodedResult: typeof Schema.Json.Type;
-          },
-          IFailure
-        >;
+        prepared: Result.Result<IPreparedServiceExecution, IFailure>;
         startedAt: Date;
       }[];
       service: (typeof config.system.services)[string][string];
@@ -87,39 +91,24 @@ export const executeCommandsTx = makeTx('ServiceVersionRepo.executeCommandsTx')(
         command.admission.status === 'succeeded' &&
         Result.isSuccess(prepared)
       ) {
-        const contract =
-          command.asyncInput != null && command.caller !== null
-            ? service.actors[command.caller.actorName]?.contracts[
-                command.commandName
-              ]
-            : Object.values(service.contracts).find(
-                candidate => candidate.commandName === command.commandName,
-              );
-        if (contract !== undefined) {
-          const external =
-            command.asyncInput == null
-              ? undefined
-              : (yield* validateAsyncValues(
-                  contract,
-                  JSON.parse(command.payload),
-                  command.asyncInput.external,
-                )).external;
+        const contract = prepared.success.contract;
+        if (contract !== null) {
           const guarded = yield* validateServiceCommand({
             service,
             caller: command.caller,
             contract,
             db: tx,
-            payload: prepared.success.payload,
-            ...(contract.async === undefined ? {} : { external }),
+            payload: prepared.success.input.payload,
+            ...(contract.external === undefined
+              ? {}
+              : { response: prepared.success.input.response }),
           })
             .pipe(
               Effect.flatMap(() =>
                 runContractGuard({
                   contract,
                   db: tx,
-                  payload: prepared.success.payload,
-                  claims: command.caller?.claims ?? null,
-                  ...(contract.async === undefined ? {} : { external }),
+                  input: prepared.success.input,
                 }),
               ),
             )
@@ -309,7 +298,7 @@ export const executeCommandsTx = makeTx('ServiceVersionRepo.executeCommandsTx')(
       const bytes = yield* serviceVersionRepoDbConfig.tables.commands
         .encodeRow({
           ...terminal,
-          asyncInput: terminal.asyncInput ?? null,
+          response: terminal.response ?? null,
           executedIndex: ++executedIndex,
           executionVersion: key.serviceVersion,
         })

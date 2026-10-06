@@ -1,10 +1,10 @@
 import { defineContract } from '@zerospin/core/contracts/defineContract';
-import { makeAsyncContract } from '@zerospin/core/contracts/make/makeAsyncContract';
 import { makeContractVersion } from '@zerospin/core/contracts/make/makeContractVersion';
+import { makeExternalContract } from '@zerospin/core/contracts/make/makeExternalContract';
 import { mapContractVersion } from '@zerospin/core/contracts/make/mapContractVersion';
 import { defineModel } from '@zerospin/core/models/defineModel';
 import { makeModelVersion } from '@zerospin/core/models/make/makeModelVersion';
-import { primitives } from '@zerospin/schema';
+import { primitives } from '@zerospin/shapes';
 import { Effect, Schema } from 'effect';
 
 /**
@@ -42,17 +42,18 @@ export const createItem = makeContractVersion(defineContract('createItem'), {
 
 /**
  * Append server output through explicit capabilities and require a mapped result codec.
- * Register the same mapped and async declarations explicitly on owner and actor.
+ * Register the same mapped and external declarations explicitly on owner and actor.
+ * External requests return the typed response recorded for the synchronous continuation.
  * Browser staging/locks use createItem; authoritative execution uses mappedCreateItem.
  * Replay records mapper emissions but applies only model operations.
  * @bad Infer async registration from capabilities or trigger producers with after.
  * @bad Derive async payloads from a source result or run producers during replay.
  */
-export const asyncObserveItem = makeAsyncContract({
+export const asyncObserveItem = makeExternalContract({
   name: 'asyncObserveItem',
   version: '1.0.0',
   payload: { itemId: primitives.foreignKey({ abbreviation: 'itm' }) },
-  external: { result: Schema.Null, program: () => Effect.succeed(null) },
+  external: { response: Schema.Null, request: () => Effect.succeed(null) },
   program: () => Effect.void,
 });
 export const mappedCreateItem = mapContractVersion({

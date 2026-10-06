@@ -1,6 +1,6 @@
 ---
 title: Glossary
-updated: 2026-10-02
+updated: 2026-10-03
 ---
 
 # Glossary
@@ -8,6 +8,22 @@ updated: 2026-10-02
 ## System
 
 - [`system.ts`](../examples/shopping/src/zerospin/system.ts) — Defines the Shopping System and its versioned aggregate and service definitions.
+
+## shape
+
+A map from field names to primitive descriptors. It defines a row's values,
+nullability, and relationships, and is used for table properties and contract
+payloads.
+
+- [`types.ts`](../packages/shapes/src/types.ts) — defines shapes, primitive descriptors, and inferred row values.
+
+## ShapeForm
+
+A generated form whose shape defines its fields and submitted values. Editable
+drafts remain separate from the decoded row delivered after whole-form
+validation.
+
+- [`ShapeForm.tsx`](../packages/react/src/primitives/ShapeForm.tsx) — owns form drafts, shape validation, and decoded submission.
 
 ## domain module
 
@@ -52,7 +68,7 @@ application state.
 - [`SystemRepo.ts`](../packages/system-worker/src/SystemRepo/SystemRepo.ts) — addresses the singleton SystemRepo by the decoded configured system id.
 - [`AggregateChain.ts`](../packages/system-worker/src/AggregateChain/AggregateChain.ts) — includes `systemId` in aggregate-chain instance identity and configures one fixed schema.
 - [`types.ts`](../packages/core/src/aggregateSession/types.ts), [`types.ts`](../packages/core/src/serviceSession/types.ts) — define aggregate and service session snapshots and session state without `systemId`.
-- [`nodeKey.ts`](../packages/core/src/Node/nodeKey.ts) — hashes backend/system, encoded authentication, target, and the complete definition lock. Standalone sessions retain a separate backup key.
+- [`sessionKey.ts`](../packages/core/src/Node/sessionKey.ts) — hashes the bound definition, backend/system scope, versioned owner identity, and complete authenticated claims. Standalone sessions retain a separate backup key.
 
 ## Repo
 
@@ -65,11 +81,12 @@ four domain Repos, and SystemLogRepo.
 
 ## SystemRepo
 
-The singleton Repo keyed by `{ systemId }`. It owns Repo inspection, and single-use session WebSocket tickets; it also routes
+The singleton Repo keyed by `{ systemId }`. It owns registered aggregate instances
+identified by `{ aggregateName, aggregateId }`, Repo inspection, and single-use session WebSocket tickets; it also routes
 WebSocket traffic to actor-command chains and SystemLogRepo.
 
-- [`systemRepoDbConfig.ts`](../packages/system-worker/src/SystemRepo/systemRepoDbConfig.ts) — Defines session tickets and Repo registrations.
-- [`SystemRepo.ts`](../packages/system-worker/src/SystemRepo/SystemRepo.ts) — Exposes one-time tickets and Repo inspection.
+- [`systemRepoDbConfig.ts`](../packages/system-worker/src/SystemRepo/systemRepoDbConfig.ts) — Defines aggregate identities, session tickets, and Repo registrations.
+- [`SystemRepo.ts`](../packages/system-worker/src/SystemRepo/SystemRepo.ts) — Exposes aggregate-ID lookup, one-time tickets, and Repo inspection.
 - [`fetch.ts`](../packages/system-worker/src/SystemRepo/fetch/fetch.ts) — routes system logs and both singular actor-command sockets.
 
 ## GatewayApi
@@ -99,7 +116,7 @@ selection supplies the aggregate name/version; identity supplies
 `actorPath`; authorization supplies `sessionName` and the lock. Tickets retain those fields
 for the ActorVAC socket, which admits commands only after history validation
 and returns AC admission acknowledgements on that same socket. `getSnapshot({ nodeId })` supplies a version-pinned
-`IAggregateSessionSnapshot` and node reconciliation watermark; `getActorOutputs`
+`IAggregateSessionSnapshot` and node reconciliation watermark; `getBrowserCommands`
 supplies retained browser command occurrences without resubmitting bound owner fields.
 
 - [`onMessage.ts`](../packages/system-worker/src/AggregateActorVersionChain/onMessage/onMessage.ts) — Defines the current ownership and execution contract.
@@ -111,13 +128,13 @@ serviceName, serviceVersion, identity, actorPath, sessionName,
 serviceSessionLock }`. Worker configuration supplies `systemId`; gateway
 selection supplies service name/version; identity supplies encoded
 identity and the canonical derived `actorPath`; authorization supplies
-`sessionName` and the lock. It serves `IServiceSessionSnapshot`, filtered
-`IServiceActorCommand` history through `getActorCommands({
-afterServiceIndex, serviceVersion })`, and WebSocket tickets without a push
-method.
+`sessionName` and the lock. It serves `IServiceSessionSnapshot`, filtered `IServiceBrowserCommand` history
+through `getBrowserCommands({ afterExecutedIndex })`, and WebSocket tickets.
+The authenticated service socket admits ordinary service commands independently
+of this snapshot/history capability.
 
 - [`ServiceAccessApi.authorize`](../packages/system-worker/src/ServiceAccessApi/authorize/authorize.ts) — authorizes verified service access and constructs the session capability.
-- [`ServiceSessionApi.ts`](../packages/system-worker/src/ServiceSessionApi/ServiceSessionApi.ts) — exposes snapshots, actor-command history, and one-time ticket operations without a push method.
+- [`ServiceSessionApi.ts`](../packages/system-worker/src/ServiceSessionApi/ServiceSessionApi.ts) — exposes snapshots, concrete browser-command history, and one-time ticket operations.
 
 ## aggregate registry and service registry
 
@@ -130,10 +147,10 @@ A durable ordered history owner. AC retains admitted aggregate commands; SC reta
 
 ## browser command
 
-A browser-delivered `IBrowserCommand` containing only `id`, `commandName`, selected `delta`, and nullable terminal `failure`. Its delivery envelope holds occurrence position, owner progress, and checkpoint hash. The browser resolves a matching unresolved submitted command by ID; another occurrence preserves the first recorded outcome. Failure is exposed only to the submitting node/session/claims.
+A terminal command with the shared `IBrowserCommand` fields `id`, `commandName`, selected `delta`, `admission`, and `execution`. `IAggregateBrowserCommand` adds `executedIndex`, `executedHash`, and `aggregateIndex`; `IServiceBrowserCommand` adds `executedIndex`, `serviceHash`, and `serviceIndex`. Delivery uses direct commands or direct arrays. Execution position identifies each occurrence independently of command ID. Matching input settles once, while later repeated-ID occurrences preserve the originating submission's first terminal result. Admission and execution keep their existing status, timing, failure, and result fields for the submitting Node/session/claims. Both are null for other recipients. Private input and claims remain server-side.
 
 - [`BrowserCommandSchema.ts`](../packages/core/src/contracts/BrowserCommandSchema.ts) — defines the shared browser contract.
-- [`Node.ts`](../packages/core/src/Node/Node.ts) — correlates IDs and commits resources, outcomes, and checkpoints together.
+- [`AggregateNode.ts`](../packages/core/src/AggregateNode/AggregateNode.ts) and [`ServiceNode.ts`](../packages/core/src/ServiceNode/ServiceNode.ts) — retain distinct execution occurrences and commit resources, outcomes, and checkpoints together.
 
 ## IActorDelta
 
@@ -141,7 +158,7 @@ A browser-delivered `IBrowserCommand` containing only `id`, `commandName`, selec
 
 ## session snapshot
 
-The selected resources and checkpoint captured together by an actor repo. Aggregate snapshots contain aggregate/actor/session identity, `aggregateIndex`, `executedIndex`, `executedHash`, resources, and `resolvedThrough` for the requesting node's contiguous terminal command prefix. Service snapshots contain service/actor/session identity, resources, `executedIndex`, and `serviceHash`. Neither includes `systemId` or an embedded command history.
+The selected resources and checkpoint captured together by an actor repo. Aggregate snapshots contain aggregate/actor/session identity, `aggregateIndex`, `executedIndex`, `executedHash`, resources, and `resolvedThrough` for the requesting node's contiguous terminal command prefix. Service snapshots contain service/actor/session identity, resources, `serviceIndex`, `executedIndex`, `serviceHash`, and the requesting Node's `resolvedThrough`. Neither includes `systemId` or an embedded command history.
 
 - [`types.ts`](../packages/core/src/aggregateSession/types.ts) — defines `IAggregateSessionSnapshot`.
 - [`types.ts`](../packages/core/src/serviceSession/types.ts) — defines `IServiceSessionSnapshot`.
@@ -150,7 +167,7 @@ The selected resources and checkpoint captured together by an actor repo. Aggreg
 
 ## actorCommands
 
-An aggregate actor’s `commands` and `stagedCommands` retain command lifecycle and unresolved optimistic work. Both actor repos deliver flat browser commands through `browserCommandOutbox`; actor chains retain acknowledged occurrences in `browserCommands`. `getActorOutputs` reads that receiving history. Snapshots return resources and checkpoints without embedding command history.
+An aggregate actor’s `commands` and `stagedCommands` retain command lifecycle and unresolved optimistic work. Both actor repos deliver flat browser commands through `browserCommandOutbox`; actor chains retain acknowledged occurrences in `browserCommands`. `getBrowserCommands` reads that receiving history. Snapshots return resources and checkpoints without embedding command history.
 
 - [`AggregateActorVersionRepo.ts`](../packages/system-worker/src/AggregateActorVersionRepo/AggregateActorVersionRepo.ts) — owns staged commands and selected-output publication.
 - [`ServiceActorVersionRepo.ts`](../packages/system-worker/src/ServiceActorVersionRepo/ServiceActorVersionRepo.ts) — publishes service actor outputs in local execution order.
@@ -164,7 +181,7 @@ Durable preparation of a caller command against an aggregate actor's derived opt
 
 ## resolvedThrough
 
-Aggregate snapshot reconciliation uses a node identity and contiguous `resolvedThrough` watermark. The browser journal reconciles its own commands through that watermark; projection and node-outcome cursors remain independent during replay.
+Aggregate and service snapshot reconciliation use a Node identity and contiguous `resolvedThrough` watermark. The browser journal reconciles its own commands through that watermark; projection and node-outcome cursors remain independent during replay.
 
 - [`fetchAggregateSessionSnapshot.ts`](../packages/browser/src/fetchAggregateSessionSnapshot.ts) — requests a snapshot with `nodeId`.
 - [`getSnapshot.ts`](../packages/system-worker/src/AggregateActorVersionRepo/getSnapshot/getSnapshot.ts) — derives the requesting node’s contiguous resolved prefix from retained actor-chain history at the captured snapshot checkpoint.
@@ -191,6 +208,13 @@ The rolling commitment to aggregate selected history. Each receiving position ex
 
 - [`applyExecutedCommandsTx.ts`](../packages/system-worker/src/AggregateActorVersionRepo/applyExecutedCommands/applyExecutedCommandsTx.ts) — extends history using original command identity.
 
+## serviceIndex
+
+The admitted input position in one service's command order. On a service browser terminal or snapshot it is the latest consumed numeric service input watermark, independent of the actor's `executedIndex` and `serviceHash`. A staged row's nullable `admissionIndex` records that submission's acceptance separately from projection progress. Zero means no consumed service input.
+
+- [`retainServiceCommand.ts`](../packages/system-worker/src/ServiceChain/admitServiceCommand/retainServiceCommand.ts) — allocates and retains service admission positions.
+- [`serviceNodeTables.ts`](../packages/core/src/ServiceNode/serviceNodeTables.ts) — retains the numeric service projection watermark.
+
 ## serviceHash
 
 The commitment to a service's terminal command dispositions. It advances from the previous hash, admitted `serviceIndex`, command ID, and disposition. Service actor outputs and snapshots carry `{ executedIndex, serviceHash }`.
@@ -201,12 +225,10 @@ AC orders admitted aggregate commands. Original terminal results attach to exist
 
 ## aggregateIndex
 
-The ordered shared aggregate input position, containing admitted commands. On an aggregate session output or
-snapshot it is the latest consumed shared input position. The command journal's `pushIndex`
-records the aggregate admission receipt rather than session output progress.
+The ordered shared aggregate input position, containing admitted commands. On an aggregate browser command or snapshot it is the latest consumed shared input position. A staged journal row's `admissionIndex` records its own acceptance separately from this projection watermark.
 
-- [`Node.ts`](../packages/core/src/Node/Node.ts) — commits the actor command's aggregate watermark and executed position.
-- [`NodeSynchronization.ts`](../packages/browser/src/Node/NodeSynchronization.ts) — validates the admission acknowledgement against the pending command and saves its original admission position in Node.
+- [`AggregateNode.ts`](../packages/core/src/AggregateNode/AggregateNode.ts) — commits aggregate watermark and execution position with the terminal occurrence.
+- [`AggregateNodeSynchronization.ts`](../packages/browser/src/AggregateNode/AggregateNodeSynchronization.ts) — validates the admission control against the pending command and records its original admission position.
 
 ## disposition
 
@@ -218,7 +240,7 @@ The success or failure of an aggregate occurrence. VAR folds ordered command pos
 
 An authored, signed description of the exact session schema and query surface.
 Gateway validates the lock and requires authorization to return the same exact
-target before constructing a session capability.
+versioned owner and actor identity before constructing a session capability.
 
 - [`AggregateAccessApi.authorize`](../packages/system-worker/src/AggregateAccessApi/authorize/authorize.ts) — decodes the aggregate session lock before authorization.
 - [`ServiceAccessApi.authorize`](../packages/system-worker/src/ServiceAccessApi/authorize/authorize.ts) — decodes the service session lock.
@@ -241,7 +263,8 @@ A complete-row Drizzle `findMany()` query owned by an actor version. Its capture
 
 A synchronous contract callback run during local staging, pending replay, and authoritative execution before mutations. A named guard version declares payload and business-failure codecs and exposes a typed Effect service; layers provide its implementation. Aggregate layers override matching actor defaults on the server. Browser sessions use local implementations. Authoritative guards run inside the mutation transaction, with current database and identity services. Admission does not run guards or retain separate guard verdicts.
 
-- [`makeOperations.ts`](../packages/core/src/contracts/make/makeOperations.ts) — prepares the shared guard and validates contract identity once.
+- [`prepareContractInput.ts`](../packages/core/src/contracts/prepareContractInput.ts) — prepares payload and contract claims once for both callbacks.
+- [`runContractGuard.ts`](../packages/core/src/contracts/runContractGuard.ts) — runs the shared guard with prepared input and the supplied invocation database.
 - [`executeCommandsTx.ts`](../packages/system-worker/src/AggregateVersionRepo/executeCommands/executeCommandsTx.ts) — retains failures with normal command history and leaves rejected mutations unapplied.
 
 ## marketplace
@@ -252,7 +275,7 @@ Shopping's service that owns the product catalog and each verified shopper's car
 
 ## per-user purchase aggregate
 
-Shopping's `user` aggregate, one per verified Clerk subject. Purchases belong to that aggregate; purchase items reference their local purchase and retain an external product ID and a name/price snapshot. Purchase creation and checkout remain deferred.
+Shopping's `user` aggregate, one per verified Clerk subject. Purchases belong to that aggregate; purchase items reference their local purchase and retain an external product ID, name, price and quantity snapshot. Marketplace checkout freezes authoritative cart items and delivers the purchase to this aggregate through retained async work.
 
 - [`userAggregateV1.ts`](../examples/shopping/src/zerospin/aggregates/user/userAggregateV1.ts) — declares purchases and purchase items.
 - [`userActorV1.ts`](../examples/shopping/src/zerospin/aggregates/user/actors/userActorV1.ts) — authorizes the aggregate identity derived from the verified subject.
@@ -268,21 +291,20 @@ Programs and all their dependencies must finish synchronously. They observe exis
 ## mounted session
 
 A caller-owned session from `makeSession` / `makeMockAggregateSession` / `makeMockServiceSession` after
-`initialize` or `useInitializeSession` has published readiness. The session
-object retains its authored session and Zustand store; shared runtime and
-backup are borrowed, not owned. Concurrent active initialization on the same
-session is rejected.
+`initialize`, `useInitializeAggregateSession`, or `useInitializeServiceSession` has published readiness. The session
+object retains its authored session and Zustand store. Each activation owns its runtime and application services; backup infrastructure is shared. Initialization binds complete command behavior before publishing readiness, and disposal revokes it before teardown. Concurrent active initialization on the same session is rejected.
 
 - [`makeSession.ts`](../packages/browser/src/makeSession/makeSession.ts) — imperative browser composition; construction is sync and acquires no resources.
-- [`useInitializeSession.ts`](../packages/react/src/useInitializeSession/useInitializeSession.ts) — effect-owned startup/disposal with Zustand-backed readiness.
+- [`useInitializeAggregateSession.ts`](../packages/react/src/useInitializeAggregateSession/useInitializeAggregateSession.ts) — effect-owned aggregate startup/disposal and failure subscriptions.
+- [`useInitializeServiceSession.ts`](../packages/react/src/useInitializeServiceSession/useInitializeServiceSession.ts) — effect-owned service startup/disposal with Zustand-backed readiness.
 
 ## WebSocket ticket
 
 A short-lived, single-use opaque token persisted by SystemRepo for one exact
-actor-command chain and authenticated session target. The browser
+actor-command chain and authenticated versioned session identity. The browser
 exchanges it at the singular-command Worker WebSocket route.
 
-- [`systemRepoDbConfig.ts`](../packages/system-worker/src/SystemRepo/systemRepoDbConfig.ts) — defines the aggregate and service ticket rows with exact target fields and chain name.
+- [`systemRepoDbConfig.ts`](../packages/system-worker/src/SystemRepo/systemRepoDbConfig.ts) — defines aggregate and service ticket rows with exact owner/actor identity fields and chain name.
 
 ## command finalization
 
@@ -294,20 +316,52 @@ VAR commits the terminal occurrence, prepared execution entry, resource state, a
 
 One tab-owned synchronous SQLite view and stable session/store. Synchronized
 sessions replay unresolved node commands followed by uncertain local submissions.
-A node snapshot rebuilds confirmed resources and optimism without copying completed
-history into the tab.
+Fresh initialization captures confirmed resources, checkpoints, unresolved staged input, and the starting change cursor once. That starts the session's observation window. Incremental imports retain every observed occurrence, rebase optimism synchronously, and advance the tab cursor only on commit. Reconnect, navigation, and DevTools toggling preserve the current session's resource tables and observation history.
 
 - [`bootstrapAggregateSession.ts`](../packages/browser/src/bootstrapAggregateSession.ts)
 - [`bootstrapServiceSession.ts`](../packages/browser/src/bootstrapServiceSession.ts)
 
+## sessionKey
+
+The canonical SHA-256 commitment to the bound session definition, backend/system scope, versioned owner identity, and complete authenticated claims. Aggregate identity includes aggregate name/version/ID; service identity includes service name/version. The worker name combines its domain, compiled sharedWorkerVersion, and sessionKey; attachment verifies the bound identity again.
+
+- [`sessionKey.ts`](../packages/core/src/Node/sessionKey.ts) — canonical hashing.
+- [`sharedWorkerNames.ts`](../packages/browser/src/sharedWorkerNames.ts) — shared RoutePattern construction and parsing.
+
+## nodeIndex
+
+The local submission position assigned when a Node first durably accepts a command. Positions begin at one and retain the same `nodeId` through retry and reopen. Foreign terminal commands and later repeated-ID occurrences allocate no local submission position. The retained `nextNodeIndex` is the next available position: it starts at one, assigns the current value to a new local submission, and advances to that value plus one in the same transaction.
+
+- [`AggregateNode.ts`](../packages/core/src/AggregateNode/AggregateNode.ts), [`ServiceNode.ts`](../packages/core/src/ServiceNode/ServiceNode.ts) — allocate submission positions with durable command retention.
+
+## journalIndex
+
+The stable primary key of a retained Node journal row. It is independent of command ID, so distinct executions of a repeated ID remain separate rows. The originating local submission keeps its first terminal outcome; later occurrences allocate new journal rows without another local submission position.
+
+## sessionIndex
+
+The stable primary key and first-retention position of every command row in one session database. Locally staged commands, received staged input, and terminal-only history share this sequence. Updates and duplicate delivery preserve the position; a distinct repeated-ID execution receives a new position. It describes retention order, not originating-session provenance or Node submission order. Restoring retained history preserves the sequence even when the live session identity changes; fresh history starts at one.
+
+- [`sessionRepoDbConfig.ts`](../packages/core/src/aggregateSession/sessionRepoDbConfig.ts), [`serviceSessionRepoTables.ts`](../packages/core/src/serviceSession/serviceSessionRepoTables.ts) — session command and inverse-operation row identities.
+
+## changeIndex
+
+The durable order of Node journal mutations and the tab's committed observation cursor. `afterChangeIndex` resumes an existing tab. Fresh initialization captures its starting cursor with resources, checkpoints, and unresolved commands. Each subscriber independently recovers bounded pages from SQLite and advances only after its application callback commits.
+
+## admissionIndex
+
+The nullable retained acceptance position on staged input: aggregate admission position for aggregate commands or service admission position for service commands. It records acceptance alone. It does not settle execution or advance the contiguous originating outcome cursor.
+
+## outcomeIndex
+
+The largest contiguous `nodeIndex` prefix whose originating local submissions have terminal results. It advances transactionally with terminal settlement and remains independent of execution progress, because replay may include historical outcomes already covered by resource checkpoints.
+
 ## durable browser node
 
-A SharedWorker-owned persistent SQLite database for one authenticated target and
-full definition. Its prefixed `nodeId`, generated once with `makeIdFromAbbreviation`, survives restart; `nodeIndex` is allocated
-atomically with command retention. It owns confirmed resources, flat command
-history, authentication coordination, shared push state, and server synchronization.
+A concrete `AggregateNode` or `ServiceNode` owns one SharedWorker persistent SQLite database for its bound session definition, versioned owner identity, and complete claims. Each owns its schema, journal, authentication integration, synchronization, and recovery. Its prefixed `nodeId` survives restart. Local acceptance allocates `nodeIndex` atomically; each row has an independent `journalIndex` and each mutation a durable `changeIndex`. One authenticated baseline initializes fresh storage; later connections resume committed execution and outcome cursors. Conflicts preserve storage and block synchronization.
 
-- [`Node.ts`](../packages/core/src/Node/Node.ts)
+- [`AggregateNode.ts`](../packages/core/src/AggregateNode/AggregateNode.ts)
+- [`ServiceNode.ts`](../packages/core/src/ServiceNode/ServiceNode.ts)
 - [`makeSharedWorker.ts`](../packages/browser/src/makeSharedWorker.ts)
 
 ## IndexedDB backup worker
@@ -325,23 +379,54 @@ The value returned by one successful contract program, independently of its emit
 
 ## Agent
 
-A named System declaration binding one exact aggregate version and a dedicated
-system-only aggregate actor version to a serializable query of complete
-projected model rows. The current Studio preview observes that view without
-executing instructions or submitting commands.
+A named, cold aggregate session exported by the project's browser-safe
+`agents.ts` and registered in its System. Its declaration binds exact aggregate
+and system-only admin actor versions, an actor-style database with its runtime
+models, displayed model selections, and row-bound ordinary contracts. System
+composition checks canonical models, captured selections and mapped-original
+contract bindings. Several sessions may use the same admin actor.
 
-- [`makeAgent.ts`](../packages/core/src/agent/makeAgent.ts) — declares the binding and model-row query.
-- [`makeSystem.ts`](../packages/core/src/system/make/makeSystem/makeSystem.ts) — validates registered aggregate/actor versions and the projected query model.
+- [`makeAgentSession.ts`](../packages/browser/src/makeAgentSession.ts) — constructs the cold session, captured selections and ordinary contract bindings.
+- [`makeSystem.ts`](../packages/core/src/system/make/makeSystem/makeSystem.ts) — validates exact registered bindings.
 
 ## Agent session
 
-One agent's read-only view of one aggregate ID for the lifetime of an open
-Studio view. Closing or switching the view releases the session; reopening
-begins with a fresh snapshot. Its displayed connection state distinguishes
-current stream delivery from retained rows during recovery.
+One ordinary aggregate session initialized for one registered aggregate ID for
+the lifetime of an open Studio view. It stages ordinary contracts transactionally
+in memory, retains their optimistic inverse operations and command identities,
+and pushes them through the bounded aggregate-session socket. Reconnect recovers
+owned command outcomes before installing a snapshot and replaying pending work.
+Closing or switching the view disposes SQLite, the stream and the command journal.
 
-- [`makeAgentSession.ts`](../packages/browser/src/makeAgentSession.ts) — owns transient snapshot/stream observation and disposal.
-- [`AgentPreview.tsx`](../packages/studio/src/AgentPreview.tsx) — displays live model rows and connection state.
+- [`makeAgentSession.ts`](../packages/browser/src/makeAgentSession.ts) — owns initialization and disposal without a durable Node, backup or SharedWorker.
+- [`AgentPreview.tsx`](../packages/studio/src/AgentPreview.tsx) — displays live rows, ordinary contract controls and connection state.
+
+## Agent contract
+
+A cold declaration from `makeAgentContract({ contractVersion, model, bind })`
+that attaches an ordinary contract to rows of one displayed model selection.
+Each binding maps a payload field to a compatible decoded row field. Studio
+shows these values read-only and renders the remaining payload fields with
+`ShapeForm`. Normalization retains the original ordinary contract object;
+the declaration adds presentation metadata, not a separate execution capability.
+
+- [`makeAgentContract.ts`](../packages/core/src/agent/makeAgentContract.ts) — validates and freezes row binding metadata.
+
+## Completed purchase
+
+A Shopping purchase with authoritative successful payment evidence and
+`paymentState: 'paid'`. A committed pending purchase is not completed. Decline
+retains the frozen purchase/items and never restores the consumed cart. Tracking
+labels and carrier status remain separate from payment; completed purchases stay
+visible throughout tracking changes.
+
+## Tracking refresh
+
+A manually requested carrier observation for a ready label. The ordinary
+`updateTrackingInfo` command reserves one sequence and coalesces concurrent work;
+its private continuation validates the frozen label identity and sequence before
+applying the recorded evidence. Shopping's example reports `in_transit` for
+sequence 1 and `delivered` for later sequences.
 
 ## executed aggregate command / executed service command
 
@@ -357,15 +442,21 @@ A server declaration made with `mapContractVersion`. It retains an ordinary cont
 
 - [`mapContractVersion.ts`](../packages/core/src/contracts/make/mapContractVersion.ts) — declares model and async emission capabilities.
 
+## external contract
+
+A server declaration made with `makeExternalContract`. Its `external.request({ payload })` performs the external work and returns a value validated by `external.response`. The producer records that returned value as immutable `response`, together with `responseRecordedAt` and pending delivery, before the synchronous `program({ payload, response })` executes. The contract's top-level `result` describes the continuation's return value. Emission provenance remains on the retained async operation; browser sessions neither supply nor receive the recorded response.
+
+- [`makeExternalContract.ts`](../packages/core/src/contracts/make/makeExternalContract.ts) — declares the external request, response codec, and synchronous continuation.
+
 ## async operation
 
-An explicit emission containing an exact async contract name/version and encoded payload. Its identity is `(commandId, operationIndex)` in the retained owner/version history. Combined `modelOperations` and `asyncOperations` reconstruct complete output in original index order. Only original execution initializes producer lifecycle beside the emission; replay and received history retain immutable output with no production authority. Actor projections skip async entries while preserving model indexes.
+An explicit emission containing an exact external contract name/version and encoded payload. Its identity is `(commandId, operationIndex)` in the retained owner/version history. Combined `modelOperations` and `asyncOperations` reconstruct complete output in original index order. Only original execution initializes producer lifecycle beside the emission; replay and received history retain immutable output with no production authority. Actor projections skip async entries while preserving model indexes.
 
 - [`asyncOperationsDbConfig.ts`](../packages/system-worker/src/asyncOperations/asyncOperationsDbConfig.ts) — immutable emission and producer-owned lifecycle fields.
 
 ## async command
 
-A private backend continuation with its async contract's own payload and immutable external observation. The producing VersionRepo reconstructs it from retained async data and its owner key, without the initiating command row. Admission assigns its ordinary owner position independently of producer work and delivery position. Replay uses the admitted input and observation; continuation rejection never authorizes producer repetition.
+A private backend continuation of an external contract, with its own `payload` and immutable recorded `response` as direct fields. The producing VersionRepo reconstructs it from retained async data and its owner key, without the initiating command row. Admission assigns its ordinary owner position independently of producer work and delivery position. Replay uses the admitted payload and response; continuation rejection never authorizes producer repetition.
 
 ## command outbox
 

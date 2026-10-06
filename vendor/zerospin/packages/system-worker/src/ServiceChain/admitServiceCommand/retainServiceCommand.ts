@@ -37,8 +37,8 @@ const retain = makeTx('ServiceChain.retainServiceCommand')(function* (
     )(retained);
     if (
       !isEqual(
-        { ...command, asyncInput: command.asyncInput ?? null },
-        { ...props.command, asyncInput: props.command.asyncInput ?? null },
+        { ...command, response: command.response ?? null },
+        { ...props.command, response: props.command.response ?? null },
       )
     ) {
       return yield* makeZerospinError('service-command-identity-mismatch');
@@ -91,12 +91,17 @@ const retain = makeTx('ServiceChain.retainServiceCommand')(function* (
       .get()?.serviceIndex ?? 0) + 1;
   const bytes = yield* serviceChainDbConfig.tables.commands.encodeRow({
     ...props.command,
-    asyncInput: props.command.asyncInput ?? null,
+    response: props.command.response ?? null,
     admission: props.admission,
     serviceIndex,
   });
   tx.insert(commands).values(bytes).run();
-  return { ...props.command, serviceIndex, admission: props.admission };
+  return {
+    ...props.command,
+    response: props.command.response ?? null,
+    serviceIndex,
+    admission: props.admission,
+  };
 });
 export const retainServiceCommand = Effect.fn(
   'ServiceChain.retainServiceCommand',

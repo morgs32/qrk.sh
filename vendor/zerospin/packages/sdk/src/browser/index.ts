@@ -54,7 +54,7 @@ export {
   type IZerospinError,
   type IZerospinErrorJson,
 } from '@zerospin/error';
-export { CuidFactory, primitives } from '@zerospin/schema';
+export { CuidFactory, primitives } from '@zerospin/shapes';
 export { ZEROSPIN_SDK_VERSION } from '../version.js';
 
 export { resolveContractResult } from '@zerospin/core/contracts/resultCodec';
@@ -62,3 +62,4 @@ export type {
   InferContractOperations,
   InferContractResult,
 } from '@zerospin/core/contracts/types';
+export { makeActorDbVersion } from '@zerospin/core/models/make/makeActorDbVersion';

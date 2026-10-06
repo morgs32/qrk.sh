@@ -2,8 +2,6 @@
 
 `wiki/plans/` is the shared queue of work for people and agents.
 
-As of 2026-10-02, [plan 011](../archive/plans/011-plan-actor-staging-and-gated-listener-execution.md) records supersession of the listener scheduler and completion of the surviving actor staging, delivery, snapshot and Node recovery verification. Its legacy specs [008](../archive/specs/008-spec-durable-actor-listeners.md) and [010](../archive/specs/010-spec-command-lifecycle-results.md) are archived; no active legacy specs remain. The concurrent [visualizer plan 032](032-plan-react-flow-visualizer.md) and [Shopping fulfillment handoff](../handoffs/2026-10-02-handoff-shopping-fulfillment-studio.md) remain active. Governing ADRs remain active.
-
 | Path                     | Contents                                                                                                    |
 | ------------------------ | ----------------------------------------------------------------------------------------------------------- |
 | `wiki/plans/`            | Implementation plans (`XXX-plan-<topic>.md`)                                                                |

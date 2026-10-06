@@ -1,32 +1,5 @@
-@font-face {
-  font-family: FragmentMono;
-  src: url('/assets/FragmentMono.otf') format('opentype');
-  font-display: swap;
-}
-@font-face {
-  font-family: FragmentSans;
-  src: url('/assets/FragmentSans-Regular.otf') format('opentype');
-  font-display: swap;
-}
-:root {
-  font-family: FragmentMono, monospace;
-  color: #111;
-  background: #f4f4f4;
-  font-synthesis: none;
-  --canvas: #f4f4f4;
-  --panel: #fff;
-  --ink: #111;
-  --subtle: #999;
-  --line: #dedede;
-}
-:root[data-theme='dark'] {
-  color-scheme: dark;
-  --canvas: #111;
-  --panel: #202020;
-  --ink: #f0f0f0;
-  --subtle: #888;
-  --line: #444;
-}
+@import '@zerospin/fragment-ui/styles.css';
+
 * {
   box-sizing: border-box;
 }

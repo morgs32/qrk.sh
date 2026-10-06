@@ -1,6 +1,337 @@
 ---
 title: Authored System and Static Worker
-updated: 2026-10-02
+updated: 2026-10-05
+sources:
+  - path: packages/core/src/aggregateSession/stageCommand/executeLocalSessionCommandTx/executeLocalSessionCommandTx.ts
+    sha: 26cc95a92eebae6561a7c4cc5e5aa45aec5e409a
+    lines: 1-42
+  - path: packages/core/src/aggregateSession/stageCommand/stageSessionCommandTx/stageSessionCommandTx.ts
+    sha: 76b862816542d9cf2efee50997bcb6ee1b8906c9
+    lines: 1-58
+  - path: packages/core/src/contracts/prepareContractInput.ts
+    sha: 2342b4dd0e075d840522584cd6113f164115fdd3
+    lines: 1-78
+  - path: packages/core/src/aggregateSession/bindAggregateSession.ts
+    sha: f73095ded0ac8704a3f6b4449caecc25f5acc7ac
+    lines: 1-322
+  - path: packages/browser/src/makeAgentSession.ts
+    sha: 39e7081848cb648e20fbd3d58defd23d78181ff8
+    lines: 1-741
+  - path: packages/studio/src/AgentPreview.tsx
+    sha: b4e6d72aa48a5f8230fe1d39e8c4cd1d5ca39ad0
+    lines: 1-447
+  - path: examples/shopping/src/zerospin/seeds.ts
+    sha: 38d7b656bcd7949f3c03381264ae756606b3e5ea
+    lines: 1-131
+  - path: examples/shopping/tsconfig.json
+    sha: 9da40fec725e6b75704f687fb69968606aa2647d
+    lines: 1-89
+  - path: examples/shopping/vite.config.ts
+    sha: 7a2060628813b9a204e24c182ecc9cca91cf4ab3
+    lines: 1-60
+  - path: examples/shopping/zerospin.config.ts
+    sha: 0afa1e1c5ac46327569edad9cdde27069f5296b8
+    lines: 1-7
+  - path: packages/browser/src/BrowserBackup/BrowserBackup.ts
+    sha: 507e240db1635c2b4e7c554a05c9c36850928dda
+    lines: 1-60
+  - path: packages/browser/src/makeSession/makeSession.ts
+    sha: 2c4128cdf8dfd45bbff860c3db14158bb9ec8335
+    lines: 1-377
+  - path: packages/browser/src/makeSessionLifecycle.ts
+    sha: 52ecfa5719ed2b0c879a48e58c2ace02a4c20095
+    lines: 1-197
+  - path: packages/cli/src/ProcedureStep/ProcedureStepError.tsx
+    sha: 459070793621d352a61bb7cc5f3e9f8dbcabb5ae
+    lines: 1-62
+  - path: packages/cli/src/commands/deploy.tsx
+    sha: 767135152cd7002ea399a9999195f2e19f84049b
+    lines: 1-20
+  - path: packages/cli/src/commands/dev.tsx
+    sha: 54bcf5fe5f43deff361193c40540ee9edc4094aa
+    lines: 1-38
+  - path: packages/cli/src/deploy/DeployWrangler.tsx
+    sha: 2a88da78d56b3df60f08c0a342f71db313633221
+    lines: 1-66
+  - path: packages/cli/src/deploy/deployWranglerFn.ts
+    sha: 973e38e984ca15585da0442d56775ee2b2166d3d
+    lines: 1-760
+  - path: packages/cli/src/deploy/loadConfigFn.ts
+    sha: 87c61d5cff11e42a2af0a224f853de42c54efcd1
+    lines: 1-51
+  - path: packages/cli/src/deploy/loadZerospinConfigFn.ts
+    sha: f626cd3d8fe9f471b910077c24494609838108f3
+    lines: 1-63
+  - path: packages/cli/src/dev/Dev.tsx
+    sha: 95749061f0678e6f83323848df523a8c635c8c16
+    lines: 1-43
+  - path: packages/cli/src/dev/devFn.ts
+    sha: 374bb6962e687275744ea24ad566a3ae8a45d011
+    lines: 1-360
+  - path: packages/cli/src/seed/seedFn.ts
+    sha: 2a85681b5dfad1c1be86162723bbec43b440e3b5
+    lines: 1-242
+  - path: packages/core/src/aggregate/defineAggregate.ts
+    sha: 9bce51a37ee48491633f8b46c8409656b5cc34d3
+    lines: 1-11
+  - path: packages/core/src/aggregate/make/makeAggregateCommand.ts
+    sha: 481b768ac1a12eea4d4ff08f4e041e5b34f7586d
+    lines: 1-106
+  - path: packages/core/src/aggregate/make/makeAggregateVersion.ts
+    sha: 5abfea5f8603db26dd091ee03dd69a06c6cd45cd
+    lines: 1-311
+  - path: packages/core/src/aggregateActor/getAggregateActorVersion.ts
+    sha: c5880d423634f9f6718fa1368c04ec2655e6d76f
+    lines: 1-44
+  - path: packages/core/src/aggregateActor/make/makeAggregateActorVersion/makeAggregateActorVersion.ts
+    sha: a0a12335112dff09bbd7fff4d3417b0df3d33e40
+    lines: 1-371
+  - path: packages/core/src/aggregateSession/make/makeAggregateSession.ts
+    sha: ca1cb5985e961cd91d028b263a8af9c7888d3ae7
+    lines: 1-199
+  - path: packages/core/src/aggregateSession/make/makeAggregateSessionLock.ts
+    sha: 34b1d1aaa761b9dd8077c13f4aac4c19e93aec2a
+    lines: 1-75
+  - path: packages/core/src/aggregateSession/make/makeAggregateSessionSpec.ts
+    sha: 4bfc7c1b5505f8d21873879042dd352af5d7b553
+    lines: 1-41
+  - path: packages/core/src/aggregateSession/stageCommand/stageCommand.ts
+    sha: 5db67f1382030af8236ead0cedd7aa8359e5a364
+    lines: 1-38
+  - path: packages/core/src/aggregateSession/types.ts
+    sha: f62398b5b8d1fbcb42c48632a8aee88883796934
+    lines: 1-258
+  - path: packages/core/src/aggregateSession/validateSessionCommand.ts
+    sha: 18bbf76579fbfb3a97da977df11cc76260b83b2a
+    lines: 1-30
+  - path: packages/core/src/contracts/decodePayload/adaptPayload/adaptPayload.ts
+    sha: ad15d1509d2b7cb0b176d3fdcb1225704d14cc34
+    lines: 1-110
+  - path: packages/core/src/contracts/decodePayload/decodePayload.ts
+    sha: dfeb61c87b47d142d8248b5e3965c93b3272d032
+    lines: 1-111
+  - path: packages/core/src/contracts/defineContract.ts
+    sha: 122690feb541737279e072ff4c663fc5f07e3991
+    lines: 1-12
+  - path: packages/core/src/contracts/encodePayload.ts
+    sha: 9d5af2e4940d858811a0f5f7cf4dd9ff9482e6a2
+    lines: 1-75
+  - path: packages/core/src/contracts/failureCodec.ts
+    sha: 71d74a0e5a263709e7f1bdc20ca1d9231b7b9b94
+    lines: 1-126
+  - path: packages/core/src/contracts/getVersion.ts
+    sha: 7384dfe995bac26070eac54c7d501264f3b8f2ed
+    lines: 1-34
+  - path: packages/core/src/contracts/make/makeContractVersion.ts
+    sha: 48d1194dfb09d3b013516706ea5723eb1785e18a
+    lines: 1-1099
+  - path: packages/core/src/contracts/make/makeModelOperations.ts
+    sha: dee048eaa16077bc0d3a8ee5e5ecc389cc5ee9df
+    lines: 1-91
+  - path: packages/core/src/contracts/make/makeOperations.ts
+    sha: 71e161056ad3ff1614f996247d0c157b88578644
+    lines: 1-189
+  - path: packages/core/src/contracts/types.ts
+    sha: d14c56911b65ae946ddb3dc8831fb7daf2e43b87
+    lines: 1-374
+  - path: packages/core/src/contracts/validatePayload.ts
+    sha: f0c1bdbfd8b42ebe4cecb501757b90245b2fd084
+    lines: 1-102
+  - path: packages/core/src/execution/runProgram.ts
+    sha: 800e4049ce9240cf26069410abf06bbbd15c08bd
+    lines: 1-24
+  - path: packages/core/src/identity/make/makeActorIdentity/IdentitySchema/IdentitySchema.ts
+    sha: 577f4bef07b0655817cb742cebde37868091a210
+    lines: 1-121
+  - path: packages/core/src/makeCommand.ts
+    sha: 88cdd79e226561b8734d43783f886b455ececb2f
+    lines: 1-163
+  - path: packages/core/src/models/defineModel.ts
+    sha: 90c73388468f0a1759bbf39d8b272405c1fcb764
+    lines: 1-18
+  - path: packages/core/src/models/encodeResource.ts
+    sha: f146c1b32e742324f27177fcc1991cd206c789a1
+    lines: 1-57
+  - path: packages/core/src/models/make/makeActorDbVersion.ts
+    sha: d29b61d122c7c630f90f873fff7792224eb203f9
+    lines: 1-291
+  - path: packages/core/src/models/make/makeId.ts
+    sha: 7ed13984d55a43af22b77f3c6e853de41b4592e5
+    lines: 1-11
+  - path: packages/core/src/models/make/makeModelVersion.ts
+    sha: 1da23ef0754d5365775ac95c8735efb9808f9fa7
+    lines: 1-568
+  - path: packages/core/src/models/prefixId.ts
+    sha: f9bcf9a79fa7c60f30f3e11b5c51ebbd12dfdc3e
+    lines: 1-10
+  - path: packages/core/src/models/requireVersion.ts
+    sha: fe7a72709261abb784829742d6f298a3051add2b
+    lines: 1-23
+  - path: packages/core/src/models/types.ts
+    sha: 1dcf6b8cdf25a1fe385177ccc114d02f3b2641c5
+    lines: 1-331
+  - path: packages/core/src/serviceActor/make/makeServiceActorVersion.ts
+    sha: badb7c0b9c0faaaf6bf769f4c73cc2676a948cfe
+    lines: 1-190
+  - path: packages/core/src/serviceSession/make/makeServiceSessionDefinition.ts
+    sha: 799b0d4fdf99e77df921edc09209c2c853741ba4
+    lines: 1-111
+  - path: packages/core/src/serviceSession/make/makeServiceSessionSpec.ts
+    sha: f1f04f1cbbc60aac6639ccf3f3d4be091b9d217e
+    lines: 1-25
+  - path: packages/core/src/serviceSession/types.ts
+    sha: 43f0b6f36d2f410f64cdd15738f5b9ea0b2f1ecb
+    lines: 1-165
+  - path: packages/core/src/sessionDefinition/makeSessionDefinition.ts
+    sha: 5091eb11234c23815509ca06d6660198bb2ebdad
+    lines: 1-162
+  - path: packages/core/src/system/ZerospinConfigSchema.ts
+    sha: 77e02115ad192d0c80543b7d625d4a44db299c40
+    lines: 1-40
+  - path: packages/core/src/system/make/makeSystem/makeSystem.ts
+    sha: ae87e074b9f0ba5a09b39560a98dd9dd0ffb2307
+    lines: 1-373
+  - path: packages/core/src/system/make/makeSystem/resolveSystemAggregate/resolveSystemAggregate.ts
+    sha: 15a9d2e4fee60fe5a626b794ee9a7fda08175e21
+    lines: 1-17
+  - path: packages/core/src/system/make/makeSystem/resolveSystemService/resolveSystemService.ts
+    sha: 7b0e73edd32ce8760ea32e1fb00102651f982a81
+    lines: 1-44
+  - path: packages/core/src/system/make/makeSystemConfig.ts
+    sha: bde9500ac4b0208183af22017724ce17545cdeae
+    lines: 1-13
+  - path: packages/core/src/system/make/makeSystemSpec.ts
+    sha: b7464f6864f386b44fa21cbf2dd3d05c43395c21
+    lines: 1-206
+  - path: packages/core/src/system/types.ts
+    sha: d05644779e644701bdca4c5251fdf9b1400e2e6c
+    lines: 1-261
+  - path: packages/dev-worker/src/DevWorker.ts
+    sha: f0454bee1920940e0a0b39f325a6b41e681fd7a6
+    lines: 1-40
+  - path: packages/dev-worker/src/makeWranglerConfig.ts
+    sha: 47a8eaa6bdb45e4d07e3905ca0d688a075ca0ab2
+    lines: 1-80
+  - path: packages/production-worker/src/ProductionWorker.ts
+    sha: 86e31fc2126527de53e448b44c353bad55d6fcf7
+    lines: 1-76
+  - path: packages/sdk/src/browser/index.ts
+    sha: 08a932cedc1a36e2378562d4ed1beb46fb2950fa
+    lines: 1-65
+  - path: packages/sdk/src/index.ts
+    sha: 4879bb68e8a5b324a7e0568179965800d2ba7b6b
+    lines: 1-102
+  - path: packages/shapes/src/makeTable.ts
+    sha: 882ba105cfb522bb7c1d47a4ca2e549d5a855f6b
+    lines: 1-141
+  - path: packages/shapes/src/primitiveMaps.ts
+    sha: e968f62a66855e02fe87b35ca6f9454e35581b1d
+    lines: 1-586
+  - path: packages/shapes/src/primitives.ts
+    sha: a6588dacc0f8339008a7bbfaef15659a0b8773eb
+    lines: 1-843
+  - path: packages/studio/README.md
+    sha: 67498bf4f8169ab9a16d3b13a1638993e3aaab39
+    lines: 1-178
+  - path: packages/system-worker/src/AggregateAccessApi/authorize/authorizeAggregateSession/validateAggregateSessionLock/validateAggregateSessionLock.ts
+    sha: 508f27c015acac62fc4ea31f54cc5fbfe7648b1d
+    lines: 1-307
+  - path: packages/system-worker/src/AggregateApi/admit/admitAggregate/admitAggregate.ts
+    sha: 6c924bf0dfab106a9e35823bb2a21256b57fab96
+    lines: 1-357
+  - path: packages/system-worker/src/AggregateChain/onDOActivation/onDOActivation.ts
+    sha: eefc32cfcc78df16c4a9e67acfd075daf931b88c
+    lines: 1-61
+  - path: packages/system-worker/src/AggregateVersionRepo/AggregateVersionRepo.ts
+    sha: a44888c5d092d50901f8716a519fc2b38bf22535
+    lines: 1-547
+  - path: packages/system-worker/src/AggregateVersionRepo/aggregateVersionRepoDbConfig.ts
+    sha: 4fbff1507a4dca84b426f85ab1383da543d25dc0
+    lines: 1-89
+  - path: packages/system-worker/src/AggregateVersionRepo/authorizeAggregateSession/authorizeAggregateSession.ts
+    sha: 49f0ddaa448e8be17268a74ed8f8450e283b95ac
+    lines: 1-105
+  - path: packages/system-worker/src/AggregateVersionRepo/execute/execute.ts
+    sha: 33e25bf73d9440071e723f3e419b9c8ee5fe34d9
+    lines: 1-126
+  - path: packages/system-worker/src/AggregateVersionRepo/executeCommands/executeCommands.ts
+    sha: 7872e8e4490919ccc57d09c549274e012f094209
+    lines: 1-378
+  - path: packages/system-worker/src/AggregateVersionRepo/onDOActivation/onDOActivation.ts
+    sha: c5d891955311969d39cb4f7b9a8ee8eedcec71f1
+    lines: 1-30
+  - path: packages/system-worker/src/ServiceActorVersionRepo/execute/executeTx.ts
+    sha: b68b2797d7c4cf8a91c9e896ff1a7ebe5bd51913
+    lines: 1-268
+  - path: packages/system-worker/src/ServiceActorVersionRepo/resolveServiceActorView.ts
+    sha: 66776b3cfdb38b965acf4b7a08d95947cdf9a3f9
+    lines: 1-59
+  - path: packages/system-worker/src/ServiceVersionRepo/executeCommands/executeCommands.ts
+    sha: 16ad9ebb93241020f412a764ca9bd049d661ff2b
+    lines: 1-281
+  - path: packages/system-worker/src/ServiceVersionRepo/executeServiceQuery/executeServiceQuery.ts
+    sha: 00389aaf8fb2d106b96253c1cf093808953db896
+    lines: 1-87
+  - path: packages/system-worker/src/SystemApi/agentSession.ts
+    sha: f665270ab2bcfdcbc707c47b546d66514556d5f5
+    lines: 1-208
+  - path: packages/system-worker/src/SystemApi/checkSystemSpec/checkSystemSpec.ts
+    sha: 56bde9f9dec3274e6d176afc285d4d4ca0ae85c5
+    lines: 1-36
+  - path: packages/system-worker/src/SystemRepo/SystemRepo.ts
+    sha: caf54be44cdeb81277b0fb888f349b61272d09d2
+    lines: 1-399
+  - path: packages/system-worker/src/SystemRepo/assertAcceptedSpec/assertAcceptedSpec.ts
+    sha: c210fe0a6f2c9741d4565bab12c4881bd74feada
+    lines: 1-36
+  - path: packages/system-worker/src/SystemRepo/checkSystemSpec/checkSystemSpec.ts
+    sha: c0a660e97eca2b5fc63b58baec17caf50156d20a
+    lines: 1-215
+  - path: packages/system-worker/src/SystemRepo/getAggregateIds/getAggregateIds.ts
+    sha: d607fc38cc3786c745a80c4ca918c0daef9b2114
+    lines: 1-26
+  - path: packages/system-worker/src/SystemRepo/getRepoRegistrations/getRepoRegistrations.ts
+    sha: 0512815429de496ca3ed0f5e3a90c42cc5a2a9ed
+    lines: 1-80
+  - path: packages/system-worker/src/SystemRepo/hasAggregate/hasAggregate.ts
+    sha: 1699c1a4d36b4e957dc0368d309910c0167dba18
+    lines: 1-36
+  - path: packages/system-worker/src/SystemRepo/initialize/initialize.ts
+    sha: a681fa6cfdd63af827c9b7cc282401fa7a414876
+    lines: 1-54
+  - path: packages/system-worker/src/SystemRepo/registerRepo/registerRepo.ts
+    sha: 731cd8b4801ba20c96b7f239d1b0ddbe83c00ca2
+    lines: 1-132
+  - path: packages/system-worker/src/SystemRepo/systemRepoDbConfig.ts
+    sha: 2b8257beef286526dfa7e76c3bc9595787bfcc7f
+    lines: 1-172
+  - path: packages/system-worker/src/checkAdmission.ts
+    sha: 4c18c8c433ed57ea25e5df1461df29b88ee83e60
+    lines: 1-97
+  - path: packages/system-worker/src/executeServiceQuery/executeServiceQuery.ts
+    sha: 32fdcea68321f3529d807d4c67013f6da9b9de62
+    lines: 1-110
+  - path: packages/system-worker/src/getSystemSpec/getSystemSpec.ts
+    sha: 7f5d11890b0c54a1ca5169d5cb74bac4eeb75822
+    lines: 1-30
+  - path: packages/system-worker/src/index.ts
+    sha: b9785bc21f1b4ff45f3301e46af98dae7f8cc168
+    lines: 1-13
+  - path: packages/system-worker/src/makeAlarmRegistry/makeAlarmRegistry.ts
+    sha: 91d1eca5869544672ad8a03c86e172f3673cb28e
+    lines: 1-86
+  - path: packages/system-worker/src/makeDORepo/makeDORepo.ts
+    sha: 85919cbeba93ce7760ac17d0a4423e5586a5e6c0
+    lines: 1-309
+  - path: packages/system-worker/src/makeFanoutQueue/makeFanoutQueue.ts
+    sha: 1fca471b0bb790a5e172af4c59faba872aca0ccd
+    lines: 1-779
+  - path: packages/system-worker/src/makeFixedDORepo/makeFixedDORepo.ts
+    sha: 179c0065e9a226752f2b4e83a4cf2d4c4cabdf03
+    lines: 1-337
+  - path: packages/system-worker/src/makeOutboxQueue/makeOutboxQueue.ts
+    sha: c28a7981bb0d84acc7f956c9305a07804216808c
+    lines: 1-251
 ---
 
 # Authored System and Static Worker
@@ -98,7 +429,7 @@ patch array in `extra.changes`.
 - [`ProcedureStepError.tsx`](../../packages/cli/src/ProcedureStep/ProcedureStepError.tsx) — renders the mismatch message and structured error details inline in the terminal.
 - [`makeSystemSpec.ts`](../../packages/core/src/system/make/makeSystemSpec.ts) — defines the serialized aggregate/service fields.
 
-Every common Repo activation serializes its executing bundle and requests
+Every fixed system Repo activation serializes its executing bundle and requests
 `registerRepo({ registration, spec })` before accessing storage, provisioning,
 bootstrap, or subscriptions. Registration requires existing matching locks;
 it never accepts new definitions. A recorded instance remains known if later
@@ -106,9 +437,18 @@ initialization fails. SystemRepo is exempt from self-registration. Cold restarts
 and alarms pass through the same guard. AVR initializes its execution head after
 this guard and no longer stores an original spec in `head`.
 
+AggregateChain supplies its aggregate name and validated ID from the parsed
+physical key, whose `systemId` must match the configured system. Registration
+atomically upserts its `repos` metadata and inserts one `aggregates` row per
+name/ID pair in SystemRepo. Other Repo kinds do not create aggregate identities.
+The owning SystemRepo provides system scope; aggregate version and actor identity
+are not part of the aggregate row. Listing IDs and checking exact membership
+query this table directly, independently of admission audit history.
+
 - [`makeDORepo.ts`](../../packages/system-worker/src/makeDORepo/makeDORepo.ts) — guards the concurrency block before SQLite setup or marker reads.
-- [`registerRepo.ts`](../../packages/system-worker/src/SystemRepo/registerRepo/registerRepo.ts) — checks accepted definitions before writing table metadata.
-- [`registerReposTx.ts`](../../packages/system-worker/src/SystemRepo/registerRepos/registerReposTx.ts) — applies the same prerequisite to atomic bulk registration.
+- [`registerRepo.ts`](../../packages/system-worker/src/SystemRepo/registerRepo/registerRepo.ts) — checks accepted definitions before committing Repo metadata and aggregate identity together.
+- [`getAggregateIds.ts`](../../packages/system-worker/src/SystemRepo/getAggregateIds/getAggregateIds.ts) — queries registered IDs by aggregate name in stable ID order.
+- [`hasAggregate.ts`](../../packages/system-worker/src/SystemRepo/hasAggregate/hasAggregate.ts) — checks exact aggregate name/ID membership in the owning system.
 - [`onDOActivation.ts`](../../packages/system-worker/src/AggregateVersionRepo/onDOActivation/onDOActivation.ts) — initializes the genesis execution head.
 
 This is a hard cutover requiring fresh SystemRepo and affected AVR storage.
@@ -206,8 +546,8 @@ index containers, resolves self references, and retains the owned data on the in
 External tables, schema objects, and opaque defaults retain their identity;
 `primitives.ref` rejects structural table objects.
 
-- [`makeTable.ts`](../../packages/schema/src/makeTable.ts) — constructs the table-owned graph after self-reference resolution.
-- [`primitives.ts`](../../packages/schema/src/primitives.ts) — checks the target is a Table instance before inspecting its primary key.
+- [`makeTable.ts`](../../packages/shapes/src/makeTable.ts) — constructs the table-owned graph after self-reference resolution.
+- [`primitives.ts`](../../packages/shapes/src/primitives.ts) — checks the target is a Table instance before inspecting its primary key.
 - [`IdentitySchema.ts`](../../packages/core/src/identity/make/makeActorIdentity/IdentitySchema/IdentitySchema.ts) — validates aggregate and service identity declarations and reversible selection patterns.
 - [`makeModelVersion.ts`](../../packages/core/src/models/make/makeModelVersion.ts) — resolves the Model-owned table, then attaches owned descriptors, shapes, indexes, and the table object.
 - [`makeModelVersion.ts`](../../packages/core/src/models/make/makeModelVersion.ts) — builds the serializable model spec.
@@ -259,9 +599,11 @@ Aggregate actor versions select callable contracts from their host's canonical d
 
 Authored `selections` are native `actorDb.query.model.findMany(...)` queries. `makeActorDbVersion({ models })` pins the database graph without opening storage. `makeActorIdentity({ claims, actorPath })` derives identity codecs from the path and exposes typed `sql.placeholder(name)` inputs. The actor captures SQL, serializable bindings, and row mapping once at construction as `actor.capturedSelections`.
 
-Contracts may declare a reusable claims schema and a shared synchronous `guard({ payload, claims, db })`. Execution validates claims once before callbacks. Local staging and pending replay run the guard before the program; authoritative execution prepares the program, then runs the guard inside the mutation transaction before applying mutations. Both callbacks use the same validated claims. Guard business failures use the executing contract's failure codec and explicit historical adapters.
+Contracts may declare a reusable claims schema and a shared synchronous `guard({ payload, claims, db })`. `prepareContractInput` applies payload defaults, projects decoded contract claims, and validates a recorded external response once per execution. Guards and programs require that prepared input and receive the same payload and claims, plus `response` for external contracts. Local staging and pending replay run the guard before the program; authoritative execution also rechecks the guard against the transaction database before applying operations. That recheck reuses the prepared input. Guard business failures use the executing contract's failure codec and explicit historical adapters.
 
-Contract programs retain mutation-array results. Database queries observe the invocation state before those mutations are applied. Session validation calculates without applying writes; staging and replay use local state, with replay using its active transaction. Aggregate and service materializers recalculate from their own state and commit each command before preparing the next. The client allocation is not retained as command intent.
+`makeExternalContract` declares `external.request({ payload })` and its `external.response` codec. The producer records the request's returned value as immutable `response` before the synchronous continuation receives `{ payload, response }`. The contract's top-level `result` remains the continuation's return value. Recorded responses stay in full server history; browser sessions neither supply nor receive them.
+
+Contract programs emit operations and return their separate typed result. Database queries observe the invocation state before those operations are applied. Session validation calculates without applying writes; staging and replay use local state, with replay using its active transaction. Aggregate and service materializers recalculate from their own state and commit each command before preparing the next. The client allocation is not retained as command intent.
 
 Changing an actor's database requires rebuilding its selections against that definition. Selections have no independent identity or version; the actor version locks their compiled SQL and bindings along with model bindings.
 
@@ -272,7 +614,9 @@ Changing an actor's database requires rebuilding its selections against that def
 - [`makeAggregateActorVersion.ts`](../../packages/core/src/aggregateActor/make/makeAggregateActorVersion/makeAggregateActorVersion.ts) — validates actor contract, selection, and identity composition.
 - [`makeActorDbVersion.ts`](../../packages/core/src/models/make/makeActorDbVersion.ts) — constructs native relational queries and captures transaction-local execution.
 - [`makeGuardVersion.ts`](../../packages/core/src/guards/makeGuardVersion.ts) — validates named guard inputs and failures and retains implementation dependencies.
-- [`makeOperations.ts`](../../packages/core/src/contracts/make/makeOperations.ts) — validates claims once and shares the guard between local and authoritative execution.
+- [`makeExternalContract.ts`](../../packages/core/src/contracts/make/makeExternalContract.ts) — declares the external request, response codec, and synchronous continuation.
+- [`prepareContractInput.ts`](../../packages/core/src/contracts/prepareContractInput.ts) — prepares payload defaults, contract claims, and recorded response before guard or program execution.
+- [`makeOperations.ts`](../../packages/core/src/contracts/make/makeOperations.ts) — consumes prepared input, runs the guard and program, and collects ordered operations with the typed result.
 
 Declare a shared identity with `defineAggregate({ name: 'user' })`, which
 returns `{ name }`. Construct each version with
@@ -329,12 +673,9 @@ Local commands omit `systemName`; the worker stamps it on admitted commands.
 
 Each live, standalone, or mock session owns its application-layer acquisitions.
 Construction creates the runtime and stable store synchronously without acquiring
-resources. Initialization awaits the layer before publishing readiness. Commands,
-guards, validation, and replay reuse those services; command execution remains
-synchronous. Callers may run Effects through `session.runtime` directly.
+resources. Initialization composes the collector, logger, and tracer after application services, preserving authored loggers. It binds staging, guards, validation, and ID generation before publishing readiness. Decoded authenticated claims and their encoded identity are captured once per activation; each command receives its own encoded claims copy. Commands, guards, validation, and replay reuse the runtime services; command execution remains synchronous. Callers may run Effects through `session.runtime` directly.
 
-`dispose()` stops session work, closes its resources, clears execution bindings,
-and disposes the runtime. It also releases services acquired directly before
+`dispose()` immediately revokes command bindings, then stops session work, closes its resources, and disposes the runtime. It also releases services acquired directly before
 initialization. A later initialization waits for cleanup and replaces the runtime
 while preserving the session/store object. The getter retains the disposed runtime
 until that replacement; captured old runtime references stay disposed. React
@@ -351,7 +692,8 @@ sessions acquire neither backup infrastructure nor live transport. Standalone
 - [`makeSessionLifecycle.ts`](../../packages/browser/src/makeSessionLifecycle.ts) — owns admission, cancellation, runtime replacement, and ordered teardown.
 - [`BrowserBackup.ts`](../../packages/browser/src/BrowserBackup/BrowserBackup.ts) — shares only backup infrastructure and scopes key claims to sessions.
 - [`makeSession.ts`](../../packages/browser/src/makeSession/makeSession.ts) — composes live aggregate/service sessions from a single layer.
-- [`stageCommand.ts`](../../packages/core/src/aggregateSession/stageCommand/stageCommand.ts) — executes against the active runtime with invocation-specific bindings.
+- [`bindAggregateSession.ts`](../../packages/core/src/aggregateSession/bindAggregateSession.ts) — captures identity and installs complete command behavior before publishing initialized state.
+- [`stageCommand.ts`](../../packages/core/src/aggregateSession/stageCommand/stageCommand.ts) — retains the synchronous typed public entrypoint for bound staging.
 
 Server command batches acquire `makeSystem` application services and then the
 selected aggregate or service layer before entering a synchronous transaction.
@@ -368,8 +710,11 @@ retain their existing behavior.
 `runProgram` executes the program and its dependencies to a synchronous exit. Domain failures retain the normal failed command outcome; suspended work is interrupted before it can resume. Session staging commits without an asynchronous gap. AVR and SVR prepare and commit one command before starting the next program. AVR atomically commits owned operations and terminal history. Programs observe state before their emitted operations apply.
 
 - [`runProgram.ts`](../../packages/core/src/execution/runProgram.ts) — preserves domain failures and rejects suspension.
-- [`stageCommand.ts`](../../packages/core/src/aggregateSession/stageCommand/stageCommand.ts) — performs synchronous optimistic staging.
+- [`stageSessionCommandTx.ts`](../../packages/core/src/aggregateSession/stageCommand/stageSessionCommandTx/stageSessionCommandTx.ts) — commits pending command occurrences, resource changes, inverse operations, and sequence progress together.
+- [`executeLocalSessionCommandTx.ts`](../../packages/core/src/aggregateSession/stageCommand/executeLocalSessionCommandTx/executeLocalSessionCommandTx.ts) — commits a locally completed occurrence without retaining pending optimism.
 - [`checkAdmission.ts`](../../packages/system-worker/src/checkAdmission.ts) — validates the submitted payload and claims before materializer adaptation.
+
+Aggregate staging returns the decoded command and typed local result after commit. The transaction constructs the encoded occurrence used by persistence and delivery. Staging failures are encoded and recognized once after rollback; unexpected precommit exceptions notify and rethrow. Delivery owns forking, receipts, uncertainty, and transport failure reporting, so a handoff failure preserves the successful local staging result.
 
 The React application factory accepts authored sessions directly.
 Configured name and system checks live in
@@ -617,7 +962,7 @@ contract payload ID. Non-nullable IDs are required; decoding never generates the
 validate prefixed IDs without creating SQL relations; `primitives.ref` owns concrete
 table relations.
 
-- [`primitiveMaps.ts`](../../packages/schema/src/primitiveMaps.ts) — decodes required prefixed IDs and maps foreign-key primitives to text columns.
+- [`primitiveMaps.ts`](../../packages/shapes/src/primitiveMaps.ts) — decodes required prefixed IDs and maps foreign-key primitives to text columns.
 - [`makeContractVersion.ts`](../../packages/core/src/contracts/make/makeContractVersion.ts) — admits foreign-key payload descriptors and rejects raw table primary keys.
 - [`index.ts`](../../packages/sdk/src/browser/index.ts) — explicitly exports shared model authoring functions.
 - [`defineModel.ts`](../../packages/core/src/models/defineModel.ts) — validates and snapshots the model identity.
@@ -725,7 +1070,7 @@ which owns its identity schema, derived selection schema, and path; its separate
 model queries. Services use the separate `defineServiceActor` and
 `makeServiceActorVersion` APIs for the same ownership boundary.
 
-Shopping’s user aggregate registers `{ user: userActorV1, purchaseItemPreview: purchaseItemPreviewV1 }`; its shopper actor belongs to marketplace.
+Shopping’s user aggregate registers `{ user: userActorV1, admin: adminActorV1 }`; its shopper actor belongs to marketplace. The system-only admin actor selects every domain row for transient Studio sessions, while each session binds its ordinary contracts.
 Aggregate versions expose their named definitions through `actors`. Each actor
 version exposes its authored selection map through `selections` and captured model/selection map through `capturedSelections`; aggregate `models` remain
 the registered model definitions.
@@ -906,20 +1251,35 @@ The collector is append-only within a run: caught failures and internal retries 
 
 ## Studio agent declarations
 
-The System's named `agents` registry binds each declaration to an exact
-registered aggregate and actor version, with one serializable model-row query.
-Composition rejects unregistered bindings, models outside the actor projection,
-and invalid literal filter fields/types. A preview actor uses aggregate-only
-claims/path, `authentication: 'system'`, and an empty contract registry. Ordinary
-application admission and aggregate-session authorization reject that policy.
+The project's browser-safe `agents.ts` exports cold `makeAgentSession` values,
+one session per file. Its System imports the same values and retains their
+definitions. Composition checks exact registered aggregate/admin actor versions,
+canonical full-view models, ordinary contracts against mapped originals, claims,
+captured actor-style selections and row contract bindings. The admin actor uses aggregate-only claims/path
+and `authentication: 'system'`; ordinary application authentication rejects it.
 
-The System manifest carries agent bindings, query descriptions and encoded
-projection model metadata. Studio's existing secret-key broker resolves only a
-declared agent and registered aggregate ID, obtains the existing actor snapshot,
-and issues a single-use ticket for its actor output stream. The browser receives
-no system secret or command capability. Preview sessions and their SQLite state
-exist only while their view is open; the actor projection remains the existing
-AggregateActorVersionRepo/Chain. There are no new agent projection owners.
+The System manifest carries descriptors while Studio loads executable sessions
+through Vite. Its secret-key broker resolves a declared session and registered
+aggregate ID, captures the existing actor snapshot and the requesting node's
+completed command outcomes at that cursor, and issues a single-use bounded socket
+ticket. The lock includes the session's ordinary contracts and excludes private
+async continuations. The browser receives no system secret.
 
-- [`agentPreview.ts`](../../packages/system-worker/src/SystemApi/agentPreview.ts) — bounds administrative preview access to declared bindings and registered aggregates.
-- [`Studio README`](../../packages/studio/README.md) — documents the implemented declaration, query and lifecycle behavior.
+The initialized session reuses ordinary local staging, optimistic inverses,
+pending replay and authoritative reconciliation. SQLite and its journal exist
+only while the view is open. Reconnect retains resources and observation history,
+resumes committed execution and contiguous originating outcome cursors, and
+imports direct missing commands while resubmitting uncertain input unchanged. The actor projection remains AggregateActorVersionRepo/Chain.
+
+The agent's `db` supplies its canonical models. Its `selections` use the same
+connection-free `findMany` declarations as actors and determine the displayed
+tables and rows. Studio executes the captured selections against session SQLite
+and reruns them after relevant committed model changes. Agent contract wrappers
+attach ordinary contracts to selected models and bind fixed payload values from
+their decoded rows. Unbound payload inputs use the shared `ShapeForm`; ordinary
+staging remains responsible for payload validation and business eligibility.
+
+- [`agentSession.ts`](../../packages/system-worker/src/SystemApi/agentSession.ts) — bounds administrative session access and snapshot outcome recovery.
+- [`makeAgentSession.ts`](../../packages/browser/src/makeAgentSession.ts) — keeps an initialized memory projection during reconnect and imports missing direct commands transactionally.
+- [`AgentPreview.tsx`](../../packages/studio/src/AgentPreview.tsx) — observes the retained commands table through live queries and keys journal occurrences independently of command ID.
+- [`Studio README`](../../packages/studio/README.md) — documents the implemented selections, row commands and lifecycle behavior.

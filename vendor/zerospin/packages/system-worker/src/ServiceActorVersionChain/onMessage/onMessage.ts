@@ -1,7 +1,8 @@
 import type { Async } from '@zerospin/core/async/Async';
 import type { IDb } from '@zerospin/core/drizzle/types';
-import { filterServiceActorOutput } from '@zerospin/core/serviceSession/filterServiceActorOutput';
+import { filterServiceBrowserCommand } from '@zerospin/core/serviceSession/filterServiceBrowserCommand';
 import type { IServiceSessionLock } from '@zerospin/core/serviceSession/ServiceSessionLockSchema';
+import type { IServiceBrowserCommand } from '@zerospin/core/serviceSession/types';
 import {
   catchZerospinError,
   makeZerospinError,
@@ -13,7 +14,7 @@ import { Effect, Result, Schema } from 'effect';
 import type { Connection, WSMessage } from 'partyserver';
 
 import { genesisDispositionHash } from '../../serviceDispositionHash/serviceDispositionHash.js';
-import { getActorOutputs } from '../getActorOutputs/getActorOutputs.js';
+import { getBrowserCommands } from '../getBrowserCommands/getBrowserCommands.js';
 import { getNodeOutcomes } from '../getNodeOutcomes.js';
 import { serviceActorVersionChainDbConfig } from '../serviceActorVersionChainDbConfig.js';
 
@@ -168,16 +169,12 @@ export const onMessage = Effect.fn('ServiceActorVersionChain.onMessage')(
           throughExecutedIndex: resumeExecutedIndex,
           models: caller.serviceSessionLock.models,
         });
-        for (const output of page.outputs) {
-          connection.send(
-            JSON.stringify({ type: 'serviceActorOutput', output }),
-          );
-        }
+        connection.send(JSON.stringify(page.commands));
         afterNodeIndex = page.nodeThrough;
         if (afterNodeIndex >= page.resolvedThrough) {
           break;
         }
-        if (page.outputs.length === 0) {
+        if (page.commands.length === 0) {
           stateRequired();
           return;
         }
@@ -186,7 +183,7 @@ export const onMessage = Effect.fn('ServiceActorVersionChain.onMessage')(
     // 7 — reject a cursor beyond the tip and advance only after each send
     let deliveredThroughExecutedIndex = resumeExecutedIndex;
     for (;;) {
-      const page = yield* getActorOutputs({
+      const page = yield* getBrowserCommands({
         afterExecutedIndex: deliveredThroughExecutedIndex,
         db,
       });
@@ -194,7 +191,8 @@ export const onMessage = Effect.fn('ServiceActorVersionChain.onMessage')(
         stateRequired();
         return;
       }
-      for (const output of page.outputs) {
+      const commands: IServiceBrowserCommand[] = [];
+      for (const output of page.commands) {
         if (output.executedIndex !== deliveredThroughExecutedIndex + 1) {
           stateRequired();
           return;
@@ -222,30 +220,27 @@ export const onMessage = Effect.fn('ServiceActorVersionChain.onMessage')(
                 prefix: 'Invalid retained output owner',
               }),
             )).caller;
-        yield* Effect.try({
-          try: () =>
-            connection.send(
-              JSON.stringify({
-                type: 'serviceActorOutput',
-                output: filterServiceActorOutput(
-                  output,
-                  state.serviceSessionLock.models,
-                  caller,
-                  owner,
-                ),
-              }),
-            ),
-          catch: catchZerospinError({
-            code: 'service-session-command-send-failed',
-            message: 'Failed to replay an service definition command',
-          }),
-        });
+        commands.push(
+          filterServiceBrowserCommand(
+            output,
+            state.serviceSessionLock.models,
+            caller,
+            owner,
+          ),
+        );
         deliveredThroughExecutedIndex = output.executedIndex;
       }
+      yield* Effect.try({
+        try: () => connection.send(JSON.stringify(commands)),
+        catch: catchZerospinError({
+          code: 'service-session-command-send-failed',
+          message: 'Failed to replay service browser commands',
+        }),
+      });
       if (deliveredThroughExecutedIndex === page.tip) {
         break;
       }
-      if (page.outputs.length === 0) {
+      if (page.commands.length === 0) {
         stateRequired();
         return;
       }

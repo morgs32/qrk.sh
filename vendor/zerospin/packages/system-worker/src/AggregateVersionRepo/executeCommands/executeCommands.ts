@@ -1,15 +1,13 @@
 import { resolveAggregateActorVersion } from '@zerospin/core/aggregateActor/getAggregateActorVersion';
 import {
-  decodeAsyncInput,
-  validateAsyncValues,
-} from '@zerospin/core/contracts/asyncInputCodec';
-import {
   AggregateChainedCommandSchema,
   EncodedAggregateCommandSchema,
 } from '@zerospin/core/contracts/CommandSchema';
 import { decodePayload } from '@zerospin/core/contracts/decodePayload/decodePayload';
+import { validateExternalResponse } from '@zerospin/core/contracts/externalResponseCodec';
 import { encodeFailure } from '@zerospin/core/contracts/failureCodec';
 import { makeOperations } from '@zerospin/core/contracts/make/makeOperations';
+import { prepareContractInput } from '@zerospin/core/contracts/prepareContractInput';
 import { runContractGuard } from '@zerospin/core/contracts/runContractGuard';
 import type { IContract } from '@zerospin/core/contracts/types';
 import { validateAggregateCommand } from '@zerospin/core/contracts/validateAggregateCommand';
@@ -168,52 +166,50 @@ export const executeCommands = Effect.fn(
                   }
                   if (
                     ancestor === undefined &&
-                    (contract.async === undefined ||
-                      sourceContract.async === undefined)
+                    (contract.external === undefined ||
+                      sourceContract.external === undefined)
                   ) {
                     return yield* Effect.fail(
                       makeZerospinError('actor-contract-lineage-unsupported'),
                     );
                   }
                   let encodedAsyncPayload: unknown;
-                  let asyncValues:
-                    | { payload: unknown; external: unknown }
-                    | undefined;
-                  if (command.asyncInput != null) {
+                  if (sourceContract.external !== undefined) {
+                    if (command.response === undefined) {
+                      return yield* makeZerospinError(
+                        'external-response-required',
+                      );
+                    }
                     if (
-                      sourceContract.async === undefined ||
                       sourceContract.version !== command.contractVersion ||
-                      contract.async === undefined
+                      contract.external === undefined
                     ) {
                       return yield* makeZerospinError(
-                        'async-contract-kind-mismatch',
+                        'external-contract-kind-mismatch',
                       );
                     }
                     encodedAsyncPayload = yield* Schema.decodeUnknownEffect(
                       Schema.fromJsonString(Schema.Json),
                     )(command.payload).pipe(
                       mapParseError({
-                        code: 'async-payload-json-invalid',
+                        code: 'external-payload-json-invalid',
                         prefix: 'Invalid frozen input',
                       }),
                     );
-                    yield* decodeAsyncInput(
+                    yield* validateExternalResponse(
                       sourceContract,
                       encodedAsyncPayload,
-                      command.asyncInput,
+                      command.response,
                     );
-                    asyncValues = yield* validateAsyncValues(
-                      contract,
-                      encodedAsyncPayload,
-                      command.asyncInput.external,
+                  } else if (contract.external !== undefined) {
+                    return yield* makeZerospinError(
+                      'external-contract-kind-mismatch',
                     );
-                  } else if (contract.async !== undefined) {
-                    return yield* makeZerospinError('async-input-required');
                   }
-                  const payload =
-                    asyncValues === undefined
+                  const decodedPayload =
+                    sourceContract.external === undefined
                       ? yield* decodePayload(contract, { command })
-                      : asyncValues.payload;
+                      : encodedAsyncPayload;
                   const claims = yield* Schema.decodeUnknownEffect(
                     actor.identity.claimsSchema,
                   )(command.claims, {
@@ -225,6 +221,12 @@ export const executeCommands = Effect.fn(
                         'Saved command identity is unsupported by this aggregate version',
                     }),
                   );
+                  const input = yield* prepareContractInput({
+                    contract,
+                    command: { ...command, payload: decodedPayload },
+                    claims,
+                  });
+                  const { payload } = input;
                   // Owner access checks still apply to an exact business repeat.
                   yield* validateAggregateCommand({
                     aggregate,
@@ -233,9 +235,9 @@ export const executeCommands = Effect.fn(
                     db,
                     payload,
                     claims,
-                    ...(asyncValues === undefined
+                    ...(contract.external === undefined
                       ? {}
-                      : { external: asyncValues.external }),
+                      : { response: input.response }),
                   }).pipe(
                     Effect.catch(failure =>
                       encodeFailure(contract, failure).pipe(
@@ -245,16 +247,10 @@ export const executeCommands = Effect.fn(
                   );
                   const made = yield* makeOperations({
                     db,
-                    claims,
                     contract,
                     models: aggregate.models,
-                    command: {
-                      ...command,
-                      payload:
-                        asyncValues === undefined
-                          ? payload
-                          : encodedAsyncPayload,
-                    },
+                    command,
+                    input,
                   }).pipe(
                     Effect.catch(failure =>
                       encodeFailure(contract, failure).pipe(
@@ -295,19 +291,11 @@ export const executeCommands = Effect.fn(
                           db,
                           payload,
                           claims,
-                          ...(asyncValues === undefined
+                          ...(contract.external === undefined
                             ? {}
-                            : { external: asyncValues.external }),
+                            : { response: input.response }),
                         });
-                        return yield* runContractGuard({
-                          contract,
-                          db,
-                          payload,
-                          claims,
-                          ...(asyncValues === undefined
-                            ? {}
-                            : { external: asyncValues.external }),
-                        });
+                        return yield* runContractGuard({ contract, db, input });
                       }).pipe(
                         Effect.catch(failure =>
                           isZerospinError(failure) && !('scope' in failure)

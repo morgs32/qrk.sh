@@ -1,13 +1,13 @@
 import type { IAnyError } from '@zerospin/error';
 import { Layer, Schema } from 'effect';
 
-import { AgentSchema } from '../../../../agent/makeAgent.ts';
+import { AgentSessionSchema } from '../../../../agent/AgentSessionSchema.ts';
 import { AggregateSchema } from '../../../../aggregate/make/makeAggregateVersion.ts';
 import { ServiceVersionSchema } from '../../../../service/make/makeServiceVersion.ts';
 
 const SystemPropsSchema = Schema.Struct({
   name: Schema.String,
-  agents: Schema.optionalKey(Schema.Record(Schema.String, AgentSchema)),
+  agents: Schema.optionalKey(Schema.Record(Schema.String, AgentSessionSchema)),
   layer: Schema.optionalKey(
     Schema.declare((input: unknown): input is Layer.Layer<unknown, IAnyError> =>
       Layer.isLayer(input),

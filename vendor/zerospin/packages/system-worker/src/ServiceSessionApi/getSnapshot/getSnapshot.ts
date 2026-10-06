@@ -104,7 +104,7 @@ export const getSnapshot = Effect.fn('ServiceSessionApi.getSnapshot')(
       const admitted = yield* ServiceChain.getRepo({
         key: { systemId: authResults.systemId, serviceName },
       });
-      const queue = yield* makeAsync(() => admitted.admissionResultsFanout);
+      const queue = yield* makeAsync(() => admitted.admittedCommandsFanout);
       const inputs = yield* makeAsync(() =>
         queue.getPage({ afterIndex: 0, maxIndex: 0 }),
       ).pipe(Effect.flatMap(envelope => readRpcEnvelope(envelope)));

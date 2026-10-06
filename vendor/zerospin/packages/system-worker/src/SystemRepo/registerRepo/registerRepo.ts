@@ -3,6 +3,7 @@
  * Registers one concrete Durable Object repo and its local SQLite tables.
  */
 
+import { makeTx } from '@zerospin/core/drizzle/make/makeTx';
 import type { IDb, ITx } from '@zerospin/core/drizzle/types';
 import { SystemSpecSchema } from '@zerospin/core/system/SystemSpecSchema';
 import type {
@@ -10,8 +11,7 @@ import type {
   ISystemSpec,
 } from '@zerospin/core/system/types';
 import { makeZerospinError, mapParseError } from '@zerospin/error';
-import type { IAnyDrizzleSchema } from '@zerospin/schema';
-import { and, eq, type AnyColumn } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { Effect, Schema } from 'effect';
 
 import { assertAcceptedSpec } from '../assertAcceptedSpec/assertAcceptedSpec.js';
@@ -22,20 +22,15 @@ import { systemRepoDbConfig } from '../systemRepoDbConfig.js';
  * A repeated registration updates table metadata for the same repoType/repoName.
  *
  * 1. Require every bundled aggregate/service definition to be accepted.
- * 2. Upsert the physical Repo registration.
+ * 2. Commit the physical Repo metadata and AggregateChain identity together.
  */
 export const registerRepo = Effect.fn('SystemRepo.registerRepo')(
   function* (props: {
-    db: IDb | ITx;
-    repoTable: IAnyDrizzleSchema & {
-      repoType: AnyColumn;
-      repoName: AnyColumn;
-      tableNames: AnyColumn;
-    };
+    db: IDb<typeof systemRepoDbConfig>;
     registration: IRepoRegistration;
     spec: ISystemSpec;
   }) {
-    const { db, registration, repoTable, spec: inputSpec } = props;
+    const { db, registration, spec: inputSpec } = props;
     const spec = yield* Schema.decodeUnknownEffect(SystemSpecSchema)(
       inputSpec,
       { onExcessProperty: 'error' },
@@ -46,7 +41,7 @@ export const registerRepo = Effect.fn('SystemRepo.registerRepo')(
       }),
     );
 
-    // 1 — immutable locks make these reads safe before the single registration write
+    // 1 — immutable locks make these reads safe before the registration transaction
     for (const { kind, definitions, table, codec } of [
       {
         kind: 'aggregate',
@@ -104,16 +99,34 @@ export const registerRepo = Effect.fn('SystemRepo.registerRepo')(
       }
     }
 
-    // 2 — JSON-encode tableNames and update only that field on a matching composite key
-    db.insert(repoTable)
-      .values({
-        ...registration,
-        tableNames: JSON.stringify(registration.tableNames),
-      })
-      .onConflictDoUpdate({
-        target: [repoTable.repoType, repoTable.repoName],
-        set: { tableNames: JSON.stringify(registration.tableNames) },
-      })
-      .run();
+    // 2 — both catalog writes commit together; repeated activation refreshes only table metadata
+    yield* makeTx('SystemRepo.registerRepo.transaction')(function* (
+      tx: ITx<typeof systemRepoDbConfig>,
+    ) {
+      tx.insert(systemRepoDbConfig.schema.repos)
+        .values({
+          repoType: registration.repoType,
+          repoName: registration.repoName,
+          tableNames: JSON.stringify(registration.tableNames),
+        })
+        .onConflictDoUpdate({
+          target: [
+            systemRepoDbConfig.schema.repos.repoType,
+            systemRepoDbConfig.schema.repos.repoName,
+          ],
+          set: { tableNames: JSON.stringify(registration.tableNames) },
+        })
+        .run();
+
+      if (registration.repoType === 'AggregateChain') {
+        tx.insert(systemRepoDbConfig.schema.aggregates)
+          .values({
+            aggregateName: registration.aggregateName,
+            aggregateId: registration.aggregateId,
+          })
+          .onConflictDoNothing()
+          .run();
+      }
+    })(db);
   },
 );

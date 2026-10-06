@@ -19,7 +19,7 @@
       }
     },
     {
-      "files": ["**/zerospin.config.ts"],
+      "files": ["**/zerospin.config.ts", "agents.ts"],
       "rules": {
         "eslint/no-restricted-imports": [
           "error",
@@ -28,6 +28,22 @@
               {
                 "group": ["**/src/**", "!./src/**"],
                 "message": "Project configs may import their local source. Use package entrypoints for other packages."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["test/**/*.ts"],
+      "rules": {
+        "eslint/no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["**/src/**", "!../src/**", "!../../src/**"],
+                "message": "Shopping tests may import local source. Use package entrypoints for other packages."
               }
             ]
           }

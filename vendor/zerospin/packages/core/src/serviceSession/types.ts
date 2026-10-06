@@ -1,4 +1,9 @@
-import type { IAnyError, IResult, IZerospinErrorJson } from '@zerospin/error';
+import type {
+  IAnyError,
+  IRecognizedFailure,
+  IResult,
+  IZerospinErrorJson,
+} from '@zerospin/error';
 import type { ITelemetryBatch, ITelemetryCollector } from '@zerospin/logger';
 import type { AnyRelations } from 'drizzle-orm';
 import type { Schema } from 'effect';
@@ -20,7 +25,7 @@ import type {
   IEncodedResourceShape,
   InferPayloadInput,
 } from '../models/types.ts';
-import type { INodeCommand } from '../Node/Node.ts';
+import type { IServiceNodeCommandInput } from '../ServiceNode/types.ts';
 
 import {
   type serviceSessionRepoSchema,
@@ -59,12 +64,12 @@ export type IServiceSessionWaSqliteDb<
   MODELS extends IAnyModels = IAnyModels,
   RELATIONS extends AnyRelations = AnyRelations,
 > = IWaSqliteDrizzleDb<IDbConfig<IServiceSessionSchema<MODELS>, RELATIONS>>;
-export type IServiceActorOutput = Readonly<{
-  executedIndex: number;
-  serviceHash: string;
-  serviceIndex: number;
-  command: IBrowserCommand;
-}>;
+export type IServiceBrowserCommand = IBrowserCommand &
+  Readonly<{
+    executedIndex: number;
+    serviceHash: string;
+    serviceIndex: number;
+  }>;
 
 export type IServiceSessionSnapshot = Readonly<{
   resolvedThrough: number;
@@ -95,12 +100,11 @@ export type IInitializedServiceSessionState<
   schema: IServiceSessionSchema<MODELS>;
   models: MODELS;
   isInitialized: true;
+  serviceIndex: number;
   executedIndex: number;
   serviceHash: string;
   serviceVersion: string;
   sessionStatus: 'bootstrapping' | 'current' | 'failed' | 'released';
-  commandHistory?: readonly INodeCommand[];
-  pendingCommandIds?: readonly string[];
   nodeState?: INodeState | null;
   backupState: Readonly<{
     status: 'pending' | 'ready' | 'repairing' | 'failed' | 'released';
@@ -124,12 +128,11 @@ export type IServiceSessionState<
       schema: null;
       models: null;
       isInitialized: false;
+      serviceIndex: null;
       executedIndex: null;
       serviceHash: null;
       serviceVersion: null;
       sessionStatus: 'bootstrapping' | 'current' | 'failed' | 'released';
-      commandHistory?: readonly INodeCommand[];
-      pendingCommandIds?: readonly string[];
       nodeState?: INodeState | null;
       backupState: Readonly<{
         status: 'pending' | 'ready' | 'repairing' | 'failed' | 'released';
@@ -138,10 +141,27 @@ export type IServiceSessionState<
       telemetry: ITelemetryBatch;
       telemetryCollector: ITelemetryCollector;
     }>;
+export type IServiceStageFailure = Readonly<{
+  contractName: string;
+  failure: IRecognizedFailure<IAnyError>;
+}>;
+export type IServiceSessionCommand<RESULT = unknown> = Omit<
+  IServiceNodeCommandInput,
+  'staging'
+> &
+  Readonly<{
+    staging: Omit<IServiceNodeCommandInput['staging'], 'result'> &
+      Readonly<{ result: RESULT }>;
+  }>;
 export type IServiceSession<
   DEFINITION extends IServiceSessionDefinition = IServiceSessionDefinition,
   MODELS extends IAnyModels = DEFINITION['models'],
 > = Readonly<{
+  onStageFailure(handler: (event: IServiceStageFailure) => void): () => void;
+  stageCommand(props: {
+    contractName: string;
+    payload: unknown;
+  }): Promise<IResult<IServiceSessionCommand, IAnyError | IZerospinErrorJson>>;
   can<K extends keyof DEFINITION['contracts'] & string>(props: {
     contractName: K;
     payload: InferPayloadInput<

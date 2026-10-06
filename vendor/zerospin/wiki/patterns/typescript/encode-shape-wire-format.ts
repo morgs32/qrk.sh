@@ -1,9 +1,9 @@
-import { primitives } from '@zerospin/schema';
+import { primitives } from '@zerospin/shapes';
 import {
   PrimitiveKind,
   type IAnyShape,
   type IEncodedShape,
-} from '@zerospin/schema';
+} from '@zerospin/shapes';
 import { Schema } from 'effect';
 import { mapValues } from 'es-toolkit';
 

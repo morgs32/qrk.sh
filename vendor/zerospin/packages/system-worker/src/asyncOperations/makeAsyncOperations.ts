@@ -9,7 +9,7 @@ import {
   mapParseError,
   type IAnyError,
 } from '@zerospin/error';
-import { makeEffectSchema } from '@zerospin/schema';
+import { makeEffectSchema } from '@zerospin/shapes';
 import { and, asc, eq, isNotNull, isNull } from 'drizzle-orm';
 import { Cause, Effect, Schema } from 'effect';
 
@@ -26,10 +26,10 @@ const { asyncOperations, asyncCommandOutbox, asyncCommandOutboxHead } =
   asyncOperationsDbConfig.schema;
 
 /** Capture evidence and enqueue in the same synchronous transaction. */
-export const recordExternal = makeTx('recordExternal')(function* (
+export const recordResponse = makeTx('recordResponse')(function* (
   tx: ITx,
   commandId: `cmd_${string}`,
-  external: typeof Schema.Json.Type,
+  response: typeof Schema.Json.Type,
   at: Date,
 ) {
   const row = tx
@@ -40,7 +40,7 @@ export const recordExternal = makeTx('recordExternal')(function* (
   if (row === undefined) {
     return yield* makeZerospinError('async-operation-missing');
   }
-  if (row.externalRecordedAt !== null) return;
+  if (row.responseRecordedAt !== null) return;
   const work = yield* Schema.decodeUnknownEffect(asyncOperationLifecycleCodec)(
     row,
   ).pipe(
@@ -60,8 +60,8 @@ export const recordExternal = makeTx('recordExternal')(function* (
   }
   const captured = yield* Schema.encodeEffect(asyncOperationLifecycleCodec)({
     ...work,
-    external,
-    externalRecordedAt: at,
+    response,
+    responseRecordedAt: at,
     lastProducerFailure: null,
     nextRunAt: null,
   }).pipe(
@@ -124,7 +124,7 @@ export function makeAsyncOperations(props: {
       .where(
         and(
           isNotNull(asyncOperations.asyncCommandId),
-          isNull(asyncOperations.externalRecordedAt),
+          isNull(asyncOperations.responseRecordedAt),
           isNotNull(asyncOperations.nextRunAt),
         ),
       )
@@ -146,7 +146,7 @@ export function makeAsyncOperations(props: {
     let delay = 1_000;
     yield* Effect.gen(function* () {
       const contract = yield* resolve(work);
-      const definition = contract.async;
+      const definition = contract.external;
       if (
         definition === undefined ||
         contract.commandName !== work.asyncContractName ||
@@ -154,7 +154,7 @@ export function makeAsyncOperations(props: {
       ) {
         return yield* makeZerospinError('async-operation-definition-mismatch');
       }
-      delay = definition.external.retryDelayMs;
+      delay = definition.retryDelayMs;
       if (work.asyncCommandId === null) {
         return yield* makeZerospinError('async-production-ineligible');
       }
@@ -171,12 +171,12 @@ export function makeAsyncOperations(props: {
       );
       // Persist a recovery deadline, never a claim, generation, or attempt token.
       db.update(asyncOperations)
-        .set({ nextRunAt: new Date(now() + definition.external.timeoutMs) })
+        .set({ nextRunAt: new Date(now() + definition.timeoutMs) })
         .where(eq(asyncOperations.asyncCommandId, work.asyncCommandId))
         .run();
       yield* reschedule();
       const result = yield* Effect.suspend(() =>
-        definition.external.program({ payload }),
+        definition.request({ payload }),
       ).pipe(
         Effect.provideService(operationSink(), {
           emit: () => {
@@ -184,34 +184,33 @@ export function makeAsyncOperations(props: {
           },
         }),
         // Effect.timeout interrupts and awaits the losing fiber, including finalizers.
-        Effect.timeout(definition.external.timeoutMs),
+        Effect.timeout(definition.timeoutMs),
       );
       const validated = yield* runProgram(
-        Schema.decodeUnknownEffect(Schema.toType(definition.external.result))(
-          result,
-          { onExcessProperty: 'error' },
-        ).pipe(
+        Schema.decodeUnknownEffect(Schema.toType(definition.response))(result, {
+          onExcessProperty: 'error',
+        }).pipe(
           mapParseError({
-            code: 'external-result-invalid',
-            prefix: 'Invalid external result',
+            code: 'external-response-invalid',
+            prefix: 'Invalid external response',
           }),
         ),
       );
       const encoded = yield* runProgram(
-        Schema.encodeEffect(definition.external.result)(validated).pipe(
+        Schema.encodeEffect(definition.response)(validated).pipe(
           mapParseError({
-            code: 'external-result-encode-failed',
-            prefix: 'Cannot encode external result',
+            code: 'external-response-encode-failed',
+            prefix: 'Cannot encode external response',
           }),
         ),
       );
       const json = yield* Schema.decodeUnknownEffect(Schema.Json)(encoded).pipe(
         mapParseError({
-          code: 'external-result-json-invalid',
-          prefix: 'External result must encode as JSON',
+          code: 'external-response-json-invalid',
+          prefix: 'External response must encode as JSON',
         }),
       );
-      yield* recordExternal(db, work.asyncCommandId, json, new Date(now()));
+      yield* recordResponse(db, work.asyncCommandId, json, new Date(now()));
     }).pipe(
       Effect.catchCause(cause =>
         Effect.gen(function* () {
@@ -220,7 +219,7 @@ export function makeAsyncOperations(props: {
             .from(asyncOperations)
             .where(eq(asyncOperations.asyncCommandId, work.asyncCommandId))
             .get();
-          if (current?.externalRecordedAt != null) return;
+          if (current?.responseRecordedAt != null) return;
           const failure = yield* encodeError(
             makeZerospinError({
               code: 'external-producer-failed',
@@ -254,7 +253,7 @@ export function makeAsyncOperations(props: {
       .where(
         and(
           isNotNull(asyncOperations.asyncCommandId),
-          isNull(asyncOperations.externalRecordedAt),
+          isNull(asyncOperations.responseRecordedAt),
           isNotNull(asyncOperations.nextRunAt),
         ),
       )

@@ -6,7 +6,7 @@ import { RpcTarget } from 'capnweb';
 
 import { createWebSocketTicket } from './createWebSocketTicket/createWebSocketTicket.js';
 import { executeServiceQuery } from './executeServiceQuery/executeServiceQuery.js';
-import { getActorOutputs } from './getActorOutputs/getActorOutputs.js';
+import { getBrowserCommands } from './getBrowserCommands/getBrowserCommands.js';
 import { getSnapshot } from './getSnapshot/getSnapshot.js';
 import { validateActorCommand } from './validateActorCommand/validateActorCommand.js';
 
@@ -67,14 +67,14 @@ export class AggregateSessionApi extends RpcTarget {
     );
   }
 
-  async getActorOutputs(
+  async getBrowserCommands(
     request: IRpcRequest<
       [{ afterExecutedIndex: number; aggregateVersion: string }]
     >,
   ) {
-    // 1 — run getActorOutputs with the instance-bound dependencies
+    // 1 — run getBrowserCommands with the instance-bound dependencies
     return this.#runtime.runPromise(
-      getActorOutputs({ request, authResults: this.#authResults }),
+      getBrowserCommands({ request, authResults: this.#authResults }),
     );
   }
 

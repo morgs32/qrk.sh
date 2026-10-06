@@ -33,7 +33,7 @@ Derived queue fields can register their lazy drains immediately. Registration
 does not read database rows or start delivery. The constructor's concurrency
 block defers startup until derived fields exist, then runs:
 
-1. Run optional `registerRepo({ name, schema })` before storage access. The fixed
+1. Run optional `registerRepo({ key, name, schema })` before storage access. The fixed
    factory serializes the executing Worker's aggregate and service definitions
    and calls SystemRepo's `registerRepo({ registration, spec })`. Every definition
    must match an existing immutable lock before registration succeeds. SystemRepo
@@ -50,6 +50,15 @@ fails. Rejection touches no Repo storage, schema, marker, or subscription. Cold 
 activation run the same guard, including when the bootstrap marker exists.
 The calling Worker supplies the candidate spec: SystemRepo may be assigned to
 an incumbent Worker version during production preflight.
+
+AggregateChain registration forwards its parsed aggregate name and validated
+aggregate ID. Its physical `systemId` must match the configured system before
+registration. SystemRepo commits the generic Repo metadata and a dedicated
+`aggregates` identity row in one synchronous transaction. The unique name/ID
+pair is scoped by the owning SystemRepo, independent of aggregate versions or
+actor Repos. ID discovery and exact membership query this table directly;
+they do not parse physical Repo names or infer identities from admission logs.
+Adding this table changes SystemRepo's fixed schema and requires empty storage.
 
 [`SystemApi.checkSystemSpec`](../SystemApi/checkSystemSpec/checkSystemSpec.ts)
 accepts the executing bundle first. Development does this on initial load and

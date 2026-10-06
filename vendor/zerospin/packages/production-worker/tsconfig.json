@@ -46,7 +46,7 @@
       "path": "../system-worker"
     },
     {
-      "path": "../schema"
+      "path": "../shapes"
     },
     {
       "path": "../logger"

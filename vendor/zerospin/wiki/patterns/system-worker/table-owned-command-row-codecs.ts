@@ -1,5 +1,5 @@
 import { makeDbConfig } from '@zerospin/core/drizzle/make/makeDbConfig/makeDbConfig';
-import { makeEffectSchema, makeTable, primitives } from '@zerospin/schema';
+import { makeEffectSchema, makeTable, primitives } from '@zerospin/shapes';
 import { Effect, Schema } from 'effect';
 
 const dbConfig = makeDbConfig({

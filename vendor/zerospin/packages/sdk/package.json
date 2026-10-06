@@ -32,7 +32,7 @@
   "dependencies": {
     "@zerospin/core": "workspace:*",
     "@zerospin/error": "workspace:*",
-    "@zerospin/schema": "workspace:*"
+    "@zerospin/shapes": "workspace:*"
   },
   "devDependencies": {
     "@effect/language-service": "^0.87.2",

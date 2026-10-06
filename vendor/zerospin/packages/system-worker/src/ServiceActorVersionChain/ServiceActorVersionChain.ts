@@ -1,6 +1,6 @@
 import { RoutePattern } from '@remix-run/route-pattern';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
-import { filterServiceActorOutput } from '@zerospin/core/serviceSession/filterServiceActorOutput';
+import { filterServiceBrowserCommand } from '@zerospin/core/serviceSession/filterServiceBrowserCommand';
 import type { IServiceSessionLock } from '@zerospin/core/serviceSession/ServiceSessionLockSchema';
 import { makeZerospinError } from '@zerospin/error';
 import { makeRpcEnvelope } from '@zerospin/logger';
@@ -19,11 +19,11 @@ import { makeOutboxSubscriber } from '../makeOutboxSubscriber/makeOutboxSubscrib
 import { resolveServiceActorView } from '../ServiceActorVersionRepo/resolveServiceActorView.js';
 import { systemWorkerAbbreviations } from '../systemWorkerAbbreviations.js';
 
-import { getActorOutputs } from './getActorOutputs/getActorOutputs.js';
+import { getBrowserCommands } from './getBrowserCommands/getBrowserCommands.js';
 import { getNodeOutcomes } from './getNodeOutcomes.js';
 import { onConnect } from './onConnect/onConnect.js';
 import { onMessage } from './onMessage/onMessage.js';
-import { receiveActorOutputs } from './receiveActorOutputs/receiveActorOutputs.js';
+import { receiveBrowserCommands } from './receiveBrowserCommands/receiveBrowserCommands.js';
 import { serviceActorVersionChainDbConfig } from './serviceActorVersionChainDbConfig.js';
 
 const serviceActorVersionChainFixedDORepoConfig = makeFixedDORepoConfig({
@@ -59,8 +59,8 @@ export class ServiceActorVersionChain extends makeFixedDORepo({
 
   readonly #browserCommandSubscriber = makeOutboxSubscriber({
     name: 'browserCommand',
-    receive: (rows: Parameters<typeof receiveActorOutputs>[0]['rows']) =>
-      receiveActorOutputs({
+    receive: (rows: Parameters<typeof receiveBrowserCommands>[0]['rows']) =>
+      receiveBrowserCommands({
         rows,
         db: this.db,
         broadcast: (output, owner) => {
@@ -83,15 +83,14 @@ export class ServiceActorVersionChain extends makeFixedDORepo({
             }
             try {
               connection.send(
-                JSON.stringify({
-                  type: 'serviceActorOutput',
-                  output: filterServiceActorOutput(
+                JSON.stringify(
+                  filterServiceBrowserCommand(
                     output,
                     connection.state.serviceSessionLock.models,
                     connection.state,
                     owner,
                   ),
-                }),
+                ),
               );
             } catch {
               connection.close(1011, 'service-session-output-send-failed');
@@ -125,12 +124,12 @@ export class ServiceActorVersionChain extends makeFixedDORepo({
     );
   }
 
-  async getActorOutputs(props: { afterExecutedIndex: number }) {
+  async getBrowserCommands(props: { afterExecutedIndex: number }) {
     const { afterExecutedIndex } = props;
 
-    // 1 — run getActorOutputs with the instance-bound dependencies and encode its RPC outcome
+    // 1 — run getBrowserCommands with the instance-bound dependencies and encode its RPC outcome
     return config.system.runtime.runPromise(
-      getActorOutputs({
+      getBrowserCommands({
         afterExecutedIndex,
         db: this.db,
       }).pipe(makeRpcEnvelope),

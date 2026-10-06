@@ -1,24 +1,21 @@
 import {
   isZerospinError,
   makeZerospinError,
-  mapParseError,
   type IAnyError,
 } from '@zerospin/error';
-import { Effect, Schema } from 'effect';
+import { Effect } from 'effect';
 
 import type { IDb } from '../drizzle/types.ts';
 import { runProgram } from '../execution/runProgram.ts';
 
 import { validateFailure } from './failureCodec.ts';
+import type { IPreparedContractInput } from './prepareContractInput.ts';
 import type { IContract, InferFailure } from './types.ts';
-import { validatePayload } from './validatePayload.ts';
 
 export function runContractGuard<CONTRACT extends IContract>(props: {
   contract: CONTRACT;
   db: Readonly<Pick<IDb, 'query'>>;
-  payload: unknown;
-  external?: unknown;
-  claims: Readonly<Record<string, unknown>> | null;
+  input: IPreparedContractInput<CONTRACT>;
 }): Effect.Effect<
   void,
   IAnyError | InferFailure<CONTRACT>,
@@ -27,43 +24,17 @@ export function runContractGuard<CONTRACT extends IContract>(props: {
 export function runContractGuard(props: {
   contract: IContract;
   db: Readonly<Pick<IDb, 'query'>>;
-  payload: unknown;
-  external?: unknown;
-  claims: Readonly<Record<string, unknown>> | null;
+  input: IPreparedContractInput;
 }) {
   return Effect.gen(function* () {
-    const { contract, db } = props;
-    const payload =
-      contract.async === undefined
-        ? yield* validatePayload(contract, {
-            version: contract.version,
-            payload: props.payload,
-          })
-        : props.payload;
-    const claims =
-      contract.claims === undefined
-        ? props.claims
-        : yield* runProgram(
-            Schema.decodeUnknownEffect(Schema.toType(contract.claims))(
-              props.claims,
-            ).pipe(
-              mapParseError({
-                code: 'contract-claims-invalid',
-                prefix: 'Invalid contract claims',
-              }),
-            ),
-          );
+    const { contract, db, input } = props;
     return yield* runProgram(
       Effect.suspend(
         () =>
           contract.guard?.({
             db,
-            payload,
-            claims,
+            ...input,
             failures: contract.failures,
-            ...(contract.async === undefined
-              ? {}
-              : { external: props.external }),
           }) ?? Effect.void,
       ),
     ).pipe(

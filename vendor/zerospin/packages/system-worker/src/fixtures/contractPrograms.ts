@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import { makeAggregateSessionLock } from '@zerospin/core/aggregateSession/make/makeAggregateSessionLock';
 import { replayPendingCommandsTx } from '@zerospin/core/aggregateSession/replayPendingCommandsTx';
 import { sessionRepoDbConfig } from '@zerospin/core/aggregateSession/sessionRepoDbConfig';
-import { executeCommandTx } from '@zerospin/core/aggregateSession/stageCommand/executeCommandTx/executeCommandTx';
 import { stageCommand } from '@zerospin/core/aggregateSession/stageCommand/stageCommand';
+import { stageSessionCommandTx } from '@zerospin/core/aggregateSession/stageCommand/stageSessionCommandTx/stageSessionCommandTx';
 import { StagingResultSchema } from '@zerospin/core/aggregateSession/StagingResultSchema';
 import type { IAggregateSession } from '@zerospin/core/aggregateSession/types';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
@@ -16,10 +16,12 @@ import {
   upgradeContractVersion,
 } from '@zerospin/core/contracts/make/makeContractVersion';
 import { makeOperations } from '@zerospin/core/contracts/make/makeOperations';
+import { prepareContractInput } from '@zerospin/core/contracts/prepareContractInput';
 import {
   encodeContractResult,
   resolveContractResult,
 } from '@zerospin/core/contracts/resultCodec';
+import { runContractGuard } from '@zerospin/core/contracts/runContractGuard';
 import type {
   IContract,
   InferContractOperations,
@@ -32,16 +34,16 @@ import { makeTx } from '@zerospin/core/drizzle/make/makeTx';
 import { defineModel } from '@zerospin/core/models/defineModel';
 import { makeModelVersion } from '@zerospin/core/models/make/makeModelVersion';
 import type { IAnyModels } from '@zerospin/core/models/types';
-import { filterServiceActorOutput } from '@zerospin/core/serviceSession/filterServiceActorOutput';
+import { filterServiceBrowserCommand } from '@zerospin/core/serviceSession/filterServiceBrowserCommand';
 import { makeServiceSession } from '@zerospin/core/serviceSession/make/makeServiceSession';
 import { makeServiceSessionLock } from '@zerospin/core/serviceSession/make/makeServiceSessionLock';
 import {
   bindServiceSessionExecution,
   stageServiceCommand,
 } from '@zerospin/core/serviceSession/stageServiceCommand';
-import type { IServiceActorOutput } from '@zerospin/core/serviceSession/types';
+import type { IServiceBrowserCommand } from '@zerospin/core/serviceSession/types';
 import { makeZerospinError } from '@zerospin/error';
-import { primitives } from '@zerospin/schema';
+import { primitives } from '@zerospin/shapes';
 import { Context, Effect, Result, Schema, SchemaGetter } from 'effect';
 import { assert as assertType, type Equals } from 'tsafe';
 
@@ -136,22 +138,31 @@ await Effect.runPromise(
     yield* verifyActorDelivery();
     yield* verifyAdmissionTerminal();
     yield* verifyCommandForwarding();
-    const db = yield* makeProvisionedInMemorySqljsDb({
-      dbConfig: makeResourceDbConfig({ models: { item }, otherTables: {} }),
+    const dbConfig = makeResourceDbConfig({
+      models: { item },
+      otherTables: {},
     });
+    const db = yield* makeProvisionedInMemorySqljsDb({ dbConfig });
     const run = <C extends IContract>(value: C) =>
-      makeOperations({
-        db,
-        models: { item },
+      prepareContractInput({
         contract: value,
-        command: {
-          id: 'cmd_test',
-          commandName: value.commandName,
-          contractVersion: value.version,
-          payload: {},
-        },
+        command: { payload: {} },
         claims: null,
-      });
+      }).pipe(
+        Effect.flatMap(input =>
+          makeOperations({
+            db,
+            models: { item },
+            contract: value,
+            command: {
+              id: 'cmd_test',
+              commandName: value.commandName,
+              contractVersion: value.version,
+            },
+            input,
+          }).pipe(Effect.map(made => ({ ...made, input }))),
+        ),
+      );
     assertType<
       Equals<Effect.Services<ReturnType<typeof run<typeof contract>>>, Label>
     >();
@@ -299,6 +310,111 @@ await Effect.runPromise(
     const guardFailure = yield* run(invalidGuard).pipe(Effect.result);
     assert.ok(guardFailure._tag === 'Failure');
     assert.equal(guardFailure.failure.code, 'contract-guard-result-invalid');
+    let payloadDecodes = 0;
+    let payloadEncodes = 0;
+    let claimsChecks = 0;
+    const datePayload = Schema.String.pipe(
+      Schema.decodeTo(Schema.Date, {
+        decode: SchemaGetter.transform(value => {
+          payloadDecodes++;
+          return new Date(value);
+        }),
+        encode: SchemaGetter.transform(value => {
+          payloadEncodes++;
+          return value.toISOString();
+        }),
+      }),
+    );
+    const preparedClaims = Schema.Struct({
+      at: Schema.DateFromString.check(
+        Schema.makeFilter(() => {
+          claimsChecks++;
+          return true;
+        }),
+      ),
+    });
+    const authenticatedClaims = yield* Schema.decodeUnknownEffect(
+      preparedClaims,
+    )({ at: new Date(0).toISOString() });
+    claimsChecks = 0;
+    const guardPayloads: unknown[] = [];
+    const guardClaims: unknown[] = [];
+    const guardNames: (string | undefined)[] = [];
+    const preparedContract = makeContractVersion(defineContract('prepared'), {
+      version: '1.0.0',
+      models: { item },
+      claims: preparedClaims,
+      payload: {
+        at: primitives.json({ schema: datePayload }),
+        label: primitives.text({ defaultValue: 'default' }),
+      },
+      result: Schema.DateFromString,
+      guard: ({ db, payload, claims }) =>
+        Effect.sync(() => {
+          guardPayloads.push(payload);
+          guardClaims.push(claims);
+          guardNames.push(db.query.item.findFirst().sync()?.name);
+        }),
+      program: ({ payload, claims }) =>
+        Effect.sync(() => {
+          assert.equal(payload, guardPayloads[0]);
+          assert.equal(claims, guardClaims[0]);
+          assert.equal(payload.label, 'default');
+          assert.ok(payload.at instanceof Date);
+          assert.ok(claims.at instanceof Date);
+          return payload.at;
+        }),
+    });
+    const input = yield* prepareContractInput({
+      contract: preparedContract,
+      command: { payload: { at: new Date(0) } },
+      claims: authenticatedClaims,
+    });
+    const preparedCounts = { payloadDecodes, payloadEncodes, claimsChecks };
+    assert.equal(payloadDecodes, 1);
+    assert.equal(payloadEncodes, 1);
+    assert.equal(claimsChecks, 1);
+    const preparedOutput = yield* makeOperations({
+      db,
+      contract: preparedContract,
+      models: { item },
+      command: {
+        id: 'cmd_prepared',
+        commandName: preparedContract.commandName,
+        contractVersion: preparedContract.version,
+      },
+      input,
+    });
+    assert.ok(preparedOutput.result instanceof Date);
+    assert.equal(preparedOutput.encodedResult, new Date(0).toISOString());
+    db.insert(dbConfig.schema.item)
+      .values({
+        id: 'itm_guard',
+        name: 'committed',
+        modelName: item.modelName,
+        version: item.version,
+        createdAt: new Date(0),
+        updatedAt: new Date(0),
+      })
+      .run();
+    yield* makeTx('fixture.preparedGuard')(function* (tx) {
+      yield* runContractGuard({ contract: preparedContract, db: tx, input });
+    })(db);
+    assert.deepEqual(guardNames, [undefined, 'committed']);
+    assert.equal(guardPayloads[1], guardPayloads[0]);
+    assert.equal(guardClaims[1], guardClaims[0]);
+    assert.deepEqual(
+      { payloadDecodes, payloadEncodes, claimsChecks },
+      preparedCounts,
+    );
+    db.delete(item.drizzleSchema).run();
+    const invalidClaims = yield* prepareContractInput({
+      contract: preparedContract,
+      command: { payload: { at: new Date(0) } },
+      claims: { at: 'still-encoded' },
+    }).pipe(Effect.result);
+    assert.ok(Result.isFailure(invalidClaims));
+    assert.equal(invalidClaims.failure.code, 'contract-claims-invalid');
     assert.equal(contract.spec.resultJsonSchema !== null, true);
     assert.equal(noResult.spec.resultJsonSchema, null);
     const echo = makeContractVersion(defineContract('echo'), {
@@ -347,10 +463,10 @@ await Effect.runPromise(
       pushIndex: null,
       claims: {},
     };
-    const staged = yield* executeCommandTx(sessionDb, {
+    const staged = yield* stageSessionCommandTx(sessionDb, {
+      contract: echo,
       sessionId: sessionCommand.sessionId,
       command: sessionCommand,
-      encodedCommand: { ...sessionCommand, payload: '{}' },
       madeOperations: yield* run(echo).pipe(
         Effect.provideService(Label, 'original'),
       ),
@@ -364,8 +480,9 @@ await Effect.runPromise(
     });
     const local = yield* resolveContractResult(echo, {
       ...sessionCommand,
-      result: staged.command.staging.result,
+      result: staged.encodedCommand.staging.result,
     });
+    assert.ok(staged.command.staging.result.at instanceof Date);
     assert.equal(local.label, 'original');
     assert.ok(local.at instanceof Date);
     const assertStageType = (session: IAggregateSession<typeof definition>) => {
@@ -421,7 +538,8 @@ await Effect.runPromise(
     let stageCalls = 0;
     const unbind = bindServiceSessionExecution(serviceSession, {
       can: () => ({ _tag: 'Success', success: undefined }),
-      stage: async () => {
+      accept: async () => ({ _tag: 'Success', success: undefined }),
+      stage: () => {
         stageCalls++;
         return {
           _tag: 'Success',
@@ -430,8 +548,7 @@ await Effect.runPromise(
             commandName: echo.commandName,
             payload: '{}',
             contractVersion: echo.version,
-            targetId: 'service',
-            targetName: 'service',
+            serviceName: 'service',
             actorName: 'actor',
             actorVersion: '1.0.0',
             sessionName: 'session',
@@ -515,11 +632,12 @@ await Effect.runPromise(
         {
           command: admitted,
           startedAt: new Date(2),
-          prepared: Result.succeed(
-            yield* run(echo).pipe(
+          prepared: Result.succeed({
+            ...(yield* run(echo).pipe(
               Effect.provideService(Label, 'authoritative'),
-            ),
-          ),
+            )),
+            contract: echo,
+          }),
         },
       ],
     });
@@ -550,7 +668,10 @@ await Effect.runPromise(
             serviceIndex: 2,
           },
           startedAt: new Date(3),
-          prepared: Result.succeed(yield* run(broken)),
+          prepared: Result.succeed({
+            ...(yield* run(broken)),
+            contract: broken,
+          }),
         },
       ],
     });
@@ -563,14 +684,23 @@ await Effect.runPromise(
     assert.ok(serviceFailure);
     assert.equal(JSON.parse(serviceFailure.execution).status, 'failed');
     assert.equal('result' in JSON.parse(serviceFailure.execution), false);
-    const output: IServiceActorOutput = {
+    const output: IServiceBrowserCommand = {
       serviceIndex: 1,
       executedIndex: 1,
       serviceHash: '0'.repeat(64),
-      command: {
-        id: 'cmd_private',
-        commandName: 'echo',
-        delta: { upserted: [], deleted: [] },
+
+      id: 'cmd_private',
+      commandName: 'echo',
+      delta: { upserted: [], deleted: [] },
+      admission: {
+        status: 'succeeded',
+        startedAt: new Date(0),
+        completedAt: new Date(1),
+      },
+      execution: {
+        status: 'failed',
+        startedAt: new Date(2),
+        completedAt: new Date(3),
         failure: {
           _tag: 'ZerospinError',
           code: 'private-failure',
@@ -588,33 +718,44 @@ await Effect.runPromise(
       nodeIndex: 1,
       claims: {},
     };
-    const hidden = filterServiceActorOutput(
+    const hidden = filterServiceBrowserCommand(
       output,
       {},
       { nodeId: 'other', sessionName: 'session', claims: {} },
       owner,
     );
-    assert.equal(hidden.command.failure, null);
+    assert.equal(hidden.admission, null);
+    assert.equal(hidden.execution, null);
     assert.deepEqual(
-      Object.keys(hidden.command).sort(),
-      ['delta', 'failure', 'id', 'commandName'].sort(),
+      Object.keys(hidden).sort(),
+      [
+        'delta',
+        'admission',
+        'execution',
+        'id',
+        'commandName',
+        'executedIndex',
+        'serviceHash',
+        'serviceIndex',
+      ].sort(),
     );
     for (const caller of [
       { nodeId: 'owner', sessionName: 'other', claims: {} },
       { nodeId: 'owner', sessionName: 'session', claims: { different: true } },
     ]) {
       assert.equal(
-        filterServiceActorOutput(output, {}, caller, owner).command.failure,
+        filterServiceBrowserCommand(output, {}, caller, owner).execution,
         null,
       );
     }
-    const visible = filterServiceActorOutput(
+    const visible = filterServiceBrowserCommand(
       output,
       {},
       { nodeId: 'owner', sessionName: 'session', claims: {} },
       owner,
     );
-    assert.deepEqual(visible.command.failure, output.command.failure);
+    assert.deepEqual(visible.admission, output.admission);
+    assert.deepEqual(visible.execution, output.execution);
     console.log(
       'PASS: exact result/operation/service types, fresh ordered collectors, codec round trips, failure/retry semantics and synchronous execution',
     );

@@ -143,13 +143,13 @@ for (const stage of ['source', 'provider', 'record', 'admission']) {
       state => {
         if (stage === 'source') {
           return (
-            state.work.length === 1 && state.work[0].externalRecordedAt === null
+            state.work.length === 1 && state.work[0].responseRecordedAt === null
           );
         }
         if (stage === 'provider') {
           return (
             state.provider[0]?.calls >= 1 &&
-            state.work[0]?.externalRecordedAt === null
+            state.work[0]?.responseRecordedAt === null
           );
         }
         if (stage === 'record') {

@@ -18,7 +18,7 @@ import {
   makeAbbreviationIdSchema,
   makeIdFromAbbreviation,
   type CuidFactory,
-} from '@zerospin/schema';
+} from '@zerospin/shapes';
 import { max, sql } from 'drizzle-orm';
 import { Effect, Schema } from 'effect';
 

@@ -4,7 +4,7 @@ import type { IRpcRequest } from '@zerospin/logger';
 import { RpcTarget } from 'capnweb';
 
 import { createWebSocketTicket } from './createWebSocketTicket/createWebSocketTicket.js';
-import { getActorOutputs } from './getActorOutputs/getActorOutputs.js';
+import { getBrowserCommands } from './getBrowserCommands/getBrowserCommands.js';
 import { getSnapshot } from './getSnapshot/getSnapshot.js';
 
 export class ServiceSessionApi extends RpcTarget {
@@ -64,14 +64,14 @@ export class ServiceSessionApi extends RpcTarget {
    *
    * 1. Run the bound domain operation.
    */
-  async getActorOutputs(
+  async getBrowserCommands(
     request: IRpcRequest<
       [{ afterExecutedIndex: number; serviceVersion: string }]
     >,
   ) {
-    // 1 — run getActorOutputs with the instance-bound dependencies
+    // 1 — run getBrowserCommands with the instance-bound dependencies
     return this.#runtime.runPromise(
-      getActorOutputs({ request, authResults: this.#authResults }),
+      getBrowserCommands({ request, authResults: this.#authResults }),
     );
   }
 

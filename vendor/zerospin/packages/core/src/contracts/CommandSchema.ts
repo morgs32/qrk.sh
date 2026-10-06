@@ -1,9 +1,8 @@
 /* oxlint-disable typescript/no-explicit-any -- Effect Schema encoded types are invariant. */
-import { makeAbbreviationIdSchema } from '@zerospin/schema';
+import { makeAbbreviationIdSchema } from '@zerospin/shapes';
 import { Schema, Tuple } from 'effect';
 
 import { AdmissionResultSchema } from './AdmissionResultSchema.ts';
-import { AsyncCommandInputSchema } from './AsyncCommandInputSchema.ts';
 import { ExecutionResultSchema } from './ExecutionResultSchema.ts';
 import { ServiceCallerSchema } from './ServiceCallerSchema.ts';
 import type {
@@ -22,7 +21,7 @@ const UnknownAggregateCommandBaseSchema = Schema.Struct({
   id: makeAbbreviationIdSchema('cmd'),
   commandName: Schema.String,
   payload: Schema.Unknown,
-  asyncInput: Schema.optionalKey(Schema.NullOr(AsyncCommandInputSchema)),
+  response: Schema.optionalKey(Schema.Json),
   contractVersion: Schema.String,
   aggregateId: Schema.String,
   aggregateName: Schema.String,
@@ -53,7 +52,7 @@ export const UnknownServiceCommandSchema = Schema.Struct({
   id: makeAbbreviationIdSchema('cmd'),
   commandName: Schema.String,
   payload: Schema.Unknown,
-  asyncInput: Schema.optionalKey(Schema.NullOr(AsyncCommandInputSchema)),
+  response: Schema.optionalKey(Schema.Json),
   contractVersion: Schema.String,
   serviceName: Schema.String,
   serviceVersion: Schema.String,
@@ -64,7 +63,7 @@ export const EncodedServiceCommandSchema = Schema.Struct({
   id: makeAbbreviationIdSchema('cmd'),
   commandName: Schema.String,
   payload: Schema.String,
-  asyncInput: Schema.optionalKey(Schema.NullOr(AsyncCommandInputSchema)),
+  response: Schema.optionalKey(Schema.Json),
   contractVersion: Schema.String,
   serviceName: Schema.String,
   serviceVersion: Schema.String,
@@ -75,7 +74,7 @@ const EncodedAggregateCommandBaseSchema = Schema.Struct({
   id: makeAbbreviationIdSchema('cmd'),
   commandName: Schema.String,
   payload: Schema.String,
-  asyncInput: Schema.optionalKey(Schema.NullOr(AsyncCommandInputSchema)),
+  response: Schema.optionalKey(Schema.Json),
   contractVersion: Schema.String,
   aggregateId: Schema.String,
   aggregateName: Schema.String,
@@ -106,7 +105,6 @@ export const EncodedSessionCommandSchema = Schema.Struct({
   id: makeAbbreviationIdSchema('cmd'),
   commandName: Schema.String,
   payload: Schema.String,
-  asyncInput: Schema.optionalKey(Schema.NullOr(AsyncCommandInputSchema)),
   contractVersion: Schema.String,
   aggregateId: Schema.String,
   aggregateName: Schema.String,

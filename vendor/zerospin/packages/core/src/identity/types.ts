@@ -1,5 +1,5 @@
 import type { IAnyError } from '@zerospin/error';
-import type { CuidFactory } from '@zerospin/schema';
+import type { CuidFactory } from '@zerospin/shapes';
 import type { Effect, Schema } from 'effect';
 
 import type { IAnyAggregateActorVersion } from '../aggregateActor/types.ts';

@@ -12,7 +12,7 @@ import type {
 import type { IRpcRequest } from '@zerospin/logger';
 import { RpcTarget } from 'capnweb';
 
-import { getAgentAggregateIds, openAgentPreview } from './agentPreview.js';
+import { getAgentAggregateIds, openAgentSession } from './agentSession.js';
 import { checkSystemSpec } from './checkSystemSpec/checkSystemSpec.js';
 import { executeAggregateCommand } from './executeAggregateCommand/executeAggregateCommand.js';
 import { executeSelectQuery } from './executeSelectQuery/executeSelectQuery.js';
@@ -66,11 +66,13 @@ export class SystemApi extends RpcTarget {
     };
     this.#runtime = runtime;
   }
-  async openAgentPreview(
-    request: IRpcRequest<[{ agentName: string; aggregateId: IAggregateId }]>,
+  async openAgentSession(
+    request: IRpcRequest<
+      [{ agentName: string; aggregateId: IAggregateId; nodeId: string }]
+    >,
   ) {
     return this.#runtime.runPromise(
-      openAgentPreview({ request, authResults: this.#authResults }),
+      openAgentSession({ request, authResults: this.#authResults }),
     );
   }
   async getAgentAggregateIds(

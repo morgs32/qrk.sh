@@ -6,9 +6,11 @@ import ts from 'typescript';
 
 const packages = resolve(import.meta.dirname, '../..');
 const forbidden = [
+  /\b(?:asyncInput|AsyncCommandInputSchema|IAsyncCommandInput|makeAsyncContract|IAsyncContractDefinition|decodeAsyncInput|validateAsyncValues)\b/u,
   /\breceipts\s*:/u,
   /kind:\s*['"]receipt['"]/u,
   /\bcompletedCommands\b/u,
+  /\b(?:IAggregateActorOutput|IServiceActorOutput|AggregateActorOutputSchema|ServiceActorOutputSchema|INodeCommandInput|definitionKey|getActorOutputs)\b/u,
   /SourceReceiptOperationsSchema/u,
   /resolveReceiptOperations/u,
   /\b(?:aggregateCommandsOutbox|actorOutputsOutbox|executionOutbox|originalResultsOutbox|commandOutbox|IForwardedCommand)\b/u,
@@ -57,26 +59,82 @@ function visit(node) {
   ts.forEachChild(node, visit);
 }
 visit(parsed);
-assert.deepEqual(properties, ['commandName', 'delta', 'failure', 'id']);
+assert.deepEqual(properties, [
+  'admission',
+  'commandName',
+  'delta',
+  'execution',
+  'id',
+]);
 const replay = await readFile(
   resolve(
     packages,
-    'system-worker/src/ServiceActorVersionRepo/execute/readImportedOperations.ts',
+    'system-worker/src/ServiceActorVersionRepo/execute/executeTx.ts',
   ),
   'utf8',
 );
 assert(
   !/getRepo|makeAsync|readRpcEnvelope|config/u.test(replay),
-  'Imported replay must use local retained operations',
+  'Actor replay transaction must use local retained operations',
 );
+assert.match(replay, /row\.operations\.entries\(\)/u);
+assert.match(replay, /prepareReplayAppliedOperation\(/u);
 for (const path of [
-  'core/src/Node/nodeTables.ts',
+  'core/src/AggregateNode/aggregateNodeTables.ts',
+  'core/src/ServiceNode/serviceNodeTables.ts',
+  'core/src/serviceSession/serviceSessionRepoTables.ts',
   'core/src/aggregateSession/sessionRepoDbConfig.ts',
 ]) {
   const history = await readFile(resolve(packages, path), 'utf8');
+  assert.match(
+    history,
+    /\badmission:/u,
+    `${path}: browser history must retain command admission`,
+  );
+  assert.match(
+    history,
+    /\bexecution:/u,
+    `${path}: browser history must retain command execution`,
+  );
   assert(
-    !/\b(?:admission|execution):/u.test(history),
-    `${path}: browser history retains phase summaries`,
+    !/\bfailure:/u.test(history),
+    `${path}: command phases must not collapse into a single failure`,
+  );
+}
+for (const [kind, domainIndex, domainHash] of [
+  ['Aggregate', 'aggregateIndex', 'executedHash'],
+  ['Service', 'serviceIndex', 'serviceHash'],
+]) {
+  const path = `core/src/${kind}Node/${kind.toLowerCase()}NodeTables.ts`;
+  const history = await readFile(resolve(packages, path), 'utf8');
+  assert.match(history, /journalIndex: integer\(\)\.primaryKey/u);
+  assert.match(history, /changeIndex: integer\(\)\.notNull\(\)\.unique\(\)/u);
+  assert.match(history, /nodeIndex: integer\(\)\.unique\(\)/u);
+  assert.match(history, /executedIndex: integer\(\)\.unique\(\)/u);
+  assert.match(history, /sessionKey: text\(\)\.notNull\(\)/u);
+  assert.match(history, new RegExp(`${domainIndex}: integer`, 'u'));
+  assert.match(history, new RegExp(`${domainHash}: text`, 'u'));
+  assert(
+    !/id: text\(\)[^\n]*primaryKey|\b(?:targetId|targetName)\b/u.test(history),
+    `${path}: concrete journal identity must remain independent of command ID`,
+  );
+}
+for (const path of [
+  'core/src/aggregateSession/sessionRepoDbConfig.ts',
+  'core/src/serviceSession/serviceSessionRepoTables.ts',
+]) {
+  const history = await readFile(resolve(packages, path), 'utf8');
+  assert.equal(
+    history.match(
+      /sessionIndex:\s*primitives\.integer\(\{\s*primaryKey:\s*true\s*\}\)/gu,
+    )?.length,
+    2,
+    `${path}: commands and optimism must both use the session row key`,
+  );
+  assert.match(history, /nextSessionIndex:\s*primitives\.integer\(\)/u);
+  assert(
+    !/\b(?:journalIndex|nextJournalIndex)\b/u.test(history),
+    `${path}: session history must use its sole retained-row coordinate`,
   );
 }
 const queue = await readFile(
@@ -99,5 +157,5 @@ assert(
   'Browser outbox commands must be flat',
 );
 console.log(
-  'PASS: command occurrences, minimal browser commands, local replay, terminal browser journals',
+  'PASS: command occurrences, minimal disclosed command fields, local replay, concrete terminal browser journals',
 );

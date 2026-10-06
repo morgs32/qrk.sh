@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 
 import { useAuth, useUser } from '@clerk/react-router';
 import { makeZerospinError } from '@zerospin/error';
-import { useInitializeSession } from '@zerospin/react';
+import { useInitializeServiceSession } from '@zerospin/react';
 import { Effect } from 'effect';
 import { Navigate, Outlet } from 'react-router';
 
@@ -46,11 +46,12 @@ function ZerospinSessions(props: { children: ReactNode }) {
     );
 
   // Mount both initialization hooks before the loading gate.
-  const shopper = useInitializeSession({
+  const shopper = useInitializeServiceSession({
     session: shopperSession,
     getCredentials,
   });
-  const catalog = useInitializeSession({
+
+  const catalog = useInitializeServiceSession({
     session: catalogSession,
     getCredentials,
   });

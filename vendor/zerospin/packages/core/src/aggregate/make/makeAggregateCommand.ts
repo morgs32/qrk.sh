@@ -1,5 +1,5 @@
 import type { IAnyError } from '@zerospin/error';
-import type { CuidFactory } from '@zerospin/schema';
+import type { CuidFactory } from '@zerospin/shapes';
 import { Effect } from 'effect';
 
 import { makeCommand } from '../../contracts/make/makeCommand.ts';

@@ -14,7 +14,7 @@ import {
   prettyUnknownFailure,
   type IAnyError,
 } from '@zerospin/error';
-import type { InferDecodedRow } from '@zerospin/schema';
+import type { InferDecodedRow } from '@zerospin/shapes';
 import { eq } from 'drizzle-orm';
 import { Effect, Schema, Struct } from 'effect';
 import { pick } from 'es-toolkit';

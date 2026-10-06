@@ -17,9 +17,9 @@ import { makeRpcEnvelope, type IRpcEnvelope } from '@zerospin/logger';
 import config from 'config';
 import { eq } from 'drizzle-orm';
 import { Effect } from 'effect';
-import { isEqual } from 'es-toolkit';
 
 import { AggregateVersionRepo } from '../AggregateVersionRepo/AggregateVersionRepo.js';
+import { verifyPreparedAsyncCommand } from '../asyncOperations/readPreparedAsyncCommand.js';
 import {
   makeFanoutQueue,
   type IFanoutRepo,
@@ -37,22 +37,22 @@ import { aggregateChainFixedDORepoConfig } from './aggregateChainFixedDORepoConf
 import { executeAggregateCommand } from './executeAggregateCommand/executeAggregateCommand.js';
 import { onDOActivation } from './onDOActivation/onDOActivation.js';
 import { readInputsPage } from './readInputsPage/readInputsPage.js';
-import { receiveOriginalResults } from './receiveOriginalResults/receiveOriginalResults.js';
+import { receiveExecutedAggregateCommands } from './receiveExecutedAggregateCommands/receiveExecutedAggregateCommands.js';
 
 export class AggregateChain
   extends makeFixedDORepo({
     namespaceBinding: 'AGGREGATE_CHAIN',
     fixedDORepoConfig: aggregateChainFixedDORepoConfig,
   })
-  implements IFanoutRepo<'admissionResultsFanout', AggregateVersionRepo>
+  implements IFanoutRepo<'admittedCommandsFanout', AggregateVersionRepo>
 {
   readonly #executedAggregateCommandSubscriber = makeOutboxSubscriber({
     name: 'executedAggregateCommand',
     receive: (
-      rows: Parameters<typeof receiveOriginalResults>[1],
+      rows: Parameters<typeof receiveExecutedAggregateCommands>[1],
     ): Effect.Effect<void, IAnyError, Async> =>
-      this.#admissionResultsFanout.drainAfter(() =>
-        receiveOriginalResults(this.db, rows),
+      this.#admittedCommandsFanout.drainAfter(() =>
+        receiveExecutedAggregateCommands(this.db, rows),
       ),
   });
   get executedAggregateCommandSubscriber() {
@@ -67,9 +67,9 @@ export class AggregateChain
    * DELIVER: VAR subscriber.receive(delivery); acknowledgement follows its durable commit.
    * ENROLL: Activation reconciles the deployed versions without resetting progress.
    */
-  readonly #admissionResultsFanout = makeFanoutQueue({
+  readonly #admittedCommandsFanout = makeFanoutQueue({
     concurrency: 100,
-    name: 'admissionResultsFanout',
+    name: 'admittedCommandsFanout',
     alarmRegistry: this.alarmRegistry,
     schema: this.schema,
     db: this.db,
@@ -87,10 +87,10 @@ export class AggregateChain
   });
 
   /*
-   * Exposes the already bound admissionResultsFanout capability from AggregateChain.
+   * Exposes the already bound admittedCommandsFanout capability from AggregateChain.
    */
-  get admissionResultsFanout() {
-    return this.#admissionResultsFanout;
+  get admittedCommandsFanout() {
+    return this.#admittedCommandsFanout;
   }
 
   /** Adopt bundled intent and retain recovery before this activation admits events. */
@@ -121,24 +121,10 @@ export class AggregateChain
         >(() =>
           repo.getPreparedAsyncCommand({ commandId: props.command.id }),
         ).pipe(Effect.flatMap(readRpcEnvelope));
-        const command = expected;
-        const { ownerKind, ...delivered } = props.command;
-        if (ownerKind !== 'aggregate') {
-          return yield* makeZerospinError('async-command-owner-mismatch');
-        }
-        const { ownerKind: expectedKind, ...expectedCommand } = expected;
-        if (
-          expectedKind !== ownerKind ||
-          !isEqual(delivered, expectedCommand)
-        ) {
-          return yield* makeZerospinError(
-            'async-command-recorded-input-mismatch',
-          );
-        }
-        const input = command.asyncInput;
-        if (input == null || command.id !== props.command.id) {
-          return yield* makeZerospinError('async-input-required');
-        }
+        const command = yield* verifyPreparedAsyncCommand(
+          expected,
+          props.command,
+        );
         const prepared = yield* prepareAdmission({
           commands: [command],
           aggregateVersion: props.ownerVersion,
@@ -146,7 +132,7 @@ export class AggregateChain
           db: this.db,
           key: this.key,
         });
-        const retained = yield* this.#admissionResultsFanout.drainAfter(() =>
+        const retained = yield* this.#admittedCommandsFanout.drainAfter(() =>
           admitCommandsTx(this.db, prepared),
         );
         return retained[0];
@@ -183,7 +169,7 @@ export class AggregateChain
     const result = await config.system.runtime.runPromise(
       prepareAdmission({ ...props, db: this.db, key: this.key }).pipe(
         Effect.flatMap(prepared =>
-          this.#admissionResultsFanout.drainAfter(() =>
+          this.#admittedCommandsFanout.drainAfter(() =>
             admitCommandsTx(this.db, prepared),
           ),
         ),
@@ -215,7 +201,7 @@ export class AggregateChain
     // 1 — retain delivery before admitting the command
     await config.system.runtime.runPromise(
       this.alarmRegistry
-        .hold('admissionResultsFanout')
+        .hold('admittedCommandsFanout')
         .pipe(Effect.provide(AsyncLive)),
     );
 
@@ -225,7 +211,7 @@ export class AggregateChain
         // 3 — wake from the persisted tip, including prior work after admission failure
         Effect.ensuring(
           Effect.sync(() => {
-            this.#admissionResultsFanout.drain();
+            this.#admittedCommandsFanout.drain();
           }),
         ),
         Effect.provide(AsyncLive),

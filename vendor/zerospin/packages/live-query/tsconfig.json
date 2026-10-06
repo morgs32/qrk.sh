@@ -37,7 +37,7 @@
       "path": "../core"
     },
     {
-      "path": "../schema"
+      "path": "../shapes"
     }
   ]
 }

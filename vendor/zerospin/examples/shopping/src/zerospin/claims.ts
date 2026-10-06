@@ -12,3 +12,6 @@ export const userAggregateClaims = Schema.Struct({
 });
 export const userAggregateId = (clerkUserId: IClerkUserId) =>
   `acct_${clerkUserId}`;
+export const adminClaims = Schema.Struct({
+  aggregateId: Schema.String.check(Schema.isPattern(/^acct_.+/)),
+});

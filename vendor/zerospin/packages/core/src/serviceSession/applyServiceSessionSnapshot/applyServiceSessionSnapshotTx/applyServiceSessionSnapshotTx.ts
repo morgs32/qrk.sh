@@ -1,4 +1,4 @@
-import { sql } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { Effect } from 'effect';
 
 import type { ISessionId } from '../../../aggregateSession/types.ts';
@@ -21,6 +21,11 @@ export const applyServiceSessionSnapshotTx = makeTx(
   },
 ) {
   const { models, snapshot, sessionId } = props;
+  const metadata = tx
+    .select()
+    .from(serviceSessionMetadataDrizzleSchema)
+    .where(eq(serviceSessionMetadataDrizzleSchema.sessionId, sessionId))
+    .get();
 
   yield* Effect.sync(() => {
     tx.run(sql.raw('PRAGMA defer_foreign_keys = ON;'));
@@ -42,6 +47,11 @@ export const applyServiceSessionSnapshotTx = makeTx(
   tx.insert(serviceSessionMetadataDrizzleSchema)
     .values({
       sessionId,
+      actorName: snapshot.actorName,
+      actorVersion: snapshot.actorVersion,
+      nextSessionIndex: metadata?.nextSessionIndex ?? 1,
+      changeIndex: metadata?.changeIndex ?? 0,
+      serviceIndex: snapshot.serviceIndex,
       executedIndex: snapshot.executedIndex,
       serviceHash: snapshot.serviceHash,
       serviceVersion: snapshot.serviceVersion,
@@ -49,6 +59,7 @@ export const applyServiceSessionSnapshotTx = makeTx(
     .onConflictDoUpdate({
       target: serviceSessionMetadataDrizzleSchema.sessionId,
       set: {
+        serviceIndex: snapshot.serviceIndex,
         executedIndex: snapshot.executedIndex,
         serviceHash: snapshot.serviceHash,
         serviceVersion: snapshot.serviceVersion,

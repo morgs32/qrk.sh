@@ -1,7 +1,7 @@
 import {
   makeDrizzleSchemaFromEncodedTable,
   type IEncodedShape,
-} from '@zerospin/schema';
+} from '@zerospin/shapes';
 
 export function makeNodeResourceTables(
   models: Readonly<

@@ -5,7 +5,7 @@ import { getVersion } from '@zerospin/core/contracts/getVersion';
 import { getByKeyOrThrow } from '@zerospin/core/utils/getByKeyOrThrow';
 import { readRpcEnvelope } from '@zerospin/core/utils/readRpcEnvelope';
 import { makeZerospinError, mapParseError } from '@zerospin/error';
-import { makeAbbreviationIdSchema } from '@zerospin/schema';
+import { makeAbbreviationIdSchema } from '@zerospin/shapes';
 import config from 'config';
 import { Effect, Schema, type Context } from 'effect';
 

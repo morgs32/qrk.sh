@@ -3,7 +3,7 @@ import '@zerospin/server-only';
 
 import { AggregateActorVersionSchema } from '../../aggregateActor/make/makeAggregateActorVersion/makeAggregateActorVersion.ts';
 import { assertSameCoreInstance } from '../../assertSameCoreInstance.ts';
-import { assertActorAsyncContracts } from '../../contracts/asyncContract.ts';
+import { assertActorExternalContracts } from '../../contracts/externalContract.ts';
 import { Contract } from '../../contracts/make/makeContractVersion.ts';
 import {
   OwnerGuardsSchema,
@@ -196,7 +196,7 @@ export function makeAggregateVersion(
   };
   const { name, version, actors } = decoded;
   const { models, contracts } = composeDeclarations(decoded);
-  assertActorAsyncContracts(contracts);
+  assertActorExternalContracts(contracts);
   for (const contract of Object.values(contracts)) {
     for (const model of [
       ...Object.values(contract.models),

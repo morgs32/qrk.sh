@@ -1,8 +1,10 @@
+import { AdmissionResultSchema } from '@zerospin/core/contracts/AdmissionResultSchema';
+import { ExecutionResultSchema } from '@zerospin/core/contracts/ExecutionResultSchema';
 import { ServiceCallerSchema } from '@zerospin/core/contracts/ServiceCallerSchema';
 import { makeDbConfig } from '@zerospin/core/drizzle/make/makeDbConfig/makeDbConfig';
 import { ActorDeltaSchema } from '@zerospin/core/models/ActorDeltaSchema';
 import { PublicFailureSchema } from '@zerospin/error';
-import { makeTable, primitives } from '@zerospin/schema';
+import { makeTable, primitives } from '@zerospin/shapes';
 
 import { serviceVersionChainDbConfig } from '../ServiceVersionChain/serviceVersionChainDbConfig.js';
 export const serviceActorVersionRepoDbConfig = makeDbConfig({
@@ -31,8 +33,12 @@ export const serviceActorVersionRepoDbConfig = makeDbConfig({
           nullable: true,
         }),
         serviceIndex: primitives.integer(),
-        failure: primitives.json({
-          schema: PublicFailureSchema,
+        admission: primitives.json({
+          schema: AdmissionResultSchema,
+          nullable: true,
+        }),
+        execution: primitives.json({
+          schema: ExecutionResultSchema,
           nullable: true,
         }),
         delta: primitives.json({ schema: ActorDeltaSchema }),

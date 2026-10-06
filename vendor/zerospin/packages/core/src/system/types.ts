@@ -1,13 +1,13 @@
 import type { IAnyError } from '@zerospin/error';
-import type { IEncodedShape, InferIdFromAbbreviation } from '@zerospin/schema';
+import type { IEncodedShape, InferIdFromAbbreviation } from '@zerospin/shapes';
 import type { Brand, JsonSchema, ManagedRuntime } from 'effect';
 
-import type { IAgentQuery } from '../agent/AgentQuerySchema.ts';
-import type { IAgent } from '../agent/makeAgent.ts';
+import type { IAgentSessionDefinition } from '../agent/types.ts';
 import type { IAggregateRegistry, IAnyAggregate } from '../aggregate/types.ts';
 import type { IContractSpec } from '../contracts/types.ts';
 import type { ISelectionQuery } from '../models/SelectionQuerySchema.ts';
 import type {
+  IAggregateId,
   IEncodedResourceShape,
   IModelSpec,
   IRef,
@@ -41,10 +41,19 @@ export type IRepoType =
   | 'ServiceActorVersionRepo'
   | 'SystemLogRepo';
 export type IRepoRegistration = Readonly<{
-  repoType: IRepoType;
   repoName: string;
   tableNames: readonly string[];
-}>;
+}> &
+  (
+    | Readonly<{
+        repoType: 'AggregateChain';
+        aggregateName: string;
+        aggregateId: IAggregateId;
+      }>
+    | Readonly<{
+        repoType: Exclude<IRepoType, 'AggregateChain'>;
+      }>
+  );
 export type IRepoTableData = Readonly<{
   columns: readonly Readonly<{
     name: string;
@@ -75,8 +84,8 @@ type ISystemContractSpec = Readonly<{
   readonly failureSchemas: Readonly<Record<string, unknown>>;
   readonly models: Readonly<Record<string, IModelSpec>>;
   original?: IContractSpec;
-  async?: Readonly<{
-    externalJsonSchema: unknown;
+  external?: Readonly<{
+    responseJsonSchema: unknown;
     timeoutMs: number;
     retryDelayMs: number;
   }>;
@@ -126,7 +135,27 @@ export type IAgentSpec = Readonly<{
   aggregateVersion: string;
   actorName: string;
   actorVersion: string;
-  query: IAgentQuery;
+  sessionName: string;
+  claimsJsonSchema: unknown;
+  contracts: Readonly<Record<string, ISystemContractSpec>>;
+  selections: Readonly<
+    Record<
+      string,
+      Readonly<{
+        modelName: string;
+        query: ISelectionQuery;
+      }>
+    >
+  >;
+  contractBindings: Readonly<
+    Record<
+      string,
+      Readonly<{
+        modelName: string;
+        bind: Readonly<Record<string, string>>;
+      }>
+    >
+  >;
   models: Readonly<Record<string, ISystemModelSpec>>;
 }>;
 export type ISystemSpec = Readonly<{
@@ -220,7 +249,7 @@ export type ISystem<
   >,
   SYSTEM_NAME extends string = string,
 > = {
-  readonly agents: Readonly<Record<string, IAgent>>;
+  readonly agents: Readonly<Record<string, IAgentSessionDefinition>>;
   readonly runtime: ManagedRuntime.ManagedRuntime<unknown, IAnyError>;
   readonly name: SYSTEM_NAME;
   readonly aggregates: Readonly<

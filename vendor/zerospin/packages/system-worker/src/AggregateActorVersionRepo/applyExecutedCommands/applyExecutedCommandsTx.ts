@@ -1,5 +1,5 @@
 import { resolveAggregateActorVersion } from '@zerospin/core/aggregateActor/getAggregateActorVersion';
-import type { IAggregateActorOutput } from '@zerospin/core/aggregateSession/types';
+import type { IAggregateBrowserCommand } from '@zerospin/core/aggregateSession/types';
 import { applyOperationTx } from '@zerospin/core/contracts/applyOperationTx';
 import { prepareReplayAppliedOperation } from '@zerospin/core/contracts/prepareReplayAppliedOperation';
 import { makeTx } from '@zerospin/core/drizzle/make/makeTx';
@@ -79,9 +79,7 @@ export const applyExecutedCommandsTx = makeTx(
     if (input.executedIndex !== cursor + 1) {
       return yield* makeZerospinError('projection-result-index-gap');
     }
-    let output: Omit<IAggregateActorOutput, 'command'> & {
-      command: Omit<IAggregateActorOutput['command'], 'delta'>;
-    };
+    let output: Omit<IAggregateBrowserCommand, 'delta'>;
     let ownerClaims: Readonly<Record<string, unknown>> | null = null;
     let ownerSessionName: string | null = null;
     let nodeId: string | null = null;
@@ -191,17 +189,10 @@ export const applyExecutedCommandsTx = makeTx(
         aggregateIndex,
         executedIndex: input.executedIndex,
         executedHash,
-        command: {
-          id: command.id,
-          commandName: command.commandName,
-          failure: ownsCompletion
-            ? command.admission.status === 'failed'
-              ? command.admission.failure
-              : command.execution.status === 'failed'
-                ? command.execution.failure
-                : null
-            : null,
-        },
+        id: command.id,
+        commandName: command.commandName,
+        admission: ownsCompletion ? command.admission : null,
+        execution: ownsCompletion ? command.execution : null,
       };
       const saved = commandRowForSource(tx, command);
       const retained = yield* aggregateActorVersionRepoDbConfig.tables.commands

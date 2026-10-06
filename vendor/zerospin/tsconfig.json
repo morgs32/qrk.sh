@@ -11,7 +11,7 @@
       "path": "./packages/devtools"
     },
     {
-      "path": "./packages/fixtures/tsconfig.config.json"
+      "path": "./fragment/ui"
     },
     {
       "path": "./packages/error"
@@ -50,7 +50,7 @@
       "path": "./packages/sync"
     },
     {
-      "path": "./packages/schema"
+      "path": "./packages/shapes"
     },
     {
       "path": "./packages/zod"

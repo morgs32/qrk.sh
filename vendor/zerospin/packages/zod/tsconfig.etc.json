@@ -16,7 +16,7 @@
       "path": "./tsconfig.json"
     },
     {
-      "path": "../schema"
+      "path": "../shapes"
     }
   ]
 }

@@ -5,6 +5,10 @@ import { Effect } from 'effect';
 import { clerkCredentialsSchema, userClaims } from '../../../claims';
 import { verifyClerkIdentity } from '../../../verifyClerkIdentity';
 import { mappedAddToCartV1 } from '../contracts/addToCart/mappedAddToCartV1';
+import {
+  asyncCreatePurchaseV1,
+  mappedCheckoutV1,
+} from '../contracts/checkout/mappedCheckoutV1';
 import { createCartV1 } from '../contracts/createCart/CreateCartV1';
 import { removeFromCartV1 } from '../contracts/removeFromCart/RemoveFromCartV1';
 import { updateCartItemQuantityV1 } from '../contracts/updateCartItemQuantity/UpdateCartItemQuantityV1';
@@ -33,6 +37,8 @@ export const shopperActorV1 = sdk.makeServiceActorVersion(
         ),
     },
     contracts: {
+      checkout: mappedCheckoutV1,
+      asyncCreatePurchase: asyncCreatePurchaseV1,
       createCart: createCartV1,
       addToCart: mappedAddToCartV1,
       removeFromCart: removeFromCartV1,

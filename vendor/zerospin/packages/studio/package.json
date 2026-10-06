@@ -24,9 +24,11 @@
     "lib": "pnpm run clean && tsc -b tsconfig.json",
     "ts": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.etc.json --noEmit",
     "prepublishOnly": "pnpm run lib",
-    "format": "oxfmt package.json project.json tsconfig.json tsconfig.etc.json vite.config.ts src",
-    "format:check": "oxfmt --check package.json project.json tsconfig.json tsconfig.etc.json vite.config.ts src",
-    "lint": "oxlint . --format stylish"
+    "format": "oxfmt package.json project.json tsconfig.json tsconfig.etc.json vite.config.ts src .storybook stories",
+    "format:check": "oxfmt --check package.json project.json tsconfig.json tsconfig.etc.json vite.config.ts src .storybook stories",
+    "lint": "oxlint src vite.config.ts .storybook stories scripts --ignore-pattern '**/mockServiceWorker.js' --format stylish",
+    "storybook": "storybook dev --port 6007 --no-open --exact-port",
+    "build-storybook": "storybook build --output-dir storybook-static"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
@@ -37,17 +39,21 @@
     "@zerospin/core": "workspace:*",
     "@zerospin/error": "workspace:*",
     "@zerospin/error-boundary": "workspace:*",
+    "@zerospin/fragment-ui": "workspace:*",
     "@zerospin/logger": "workspace:*",
     "@zerospin/react": "workspace:*",
-    "@zerospin/schema": "workspace:*",
+    "@zerospin/shapes": "workspace:*",
+    "capnweb": "0.12.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "drizzle-orm": "1.0.0-rc.4",
     "lucide-react": "^1.24.0",
     "react": "19.2.7",
     "react-dom": "19.2.7",
     "react-json-view-lite": "^2.5.0",
     "react-resizable-panels": "^4.12.1",
     "react-router": "^8.3.0",
+    "swr": "2.3.4",
     "system-worker": "workspace:*",
     "tailwind-merge": "^3.6.0",
     "tailwindcss": "^4.3.0",
@@ -55,14 +61,23 @@
   },
   "devDependencies": {
     "@effect/language-service": "^0.87.2",
+    "@storybook/react-vite": "10.6.1",
     "@types/node": "^25.6.2",
     "@types/react": "^19.2.14",
     "@types/react-dom": "19.2.3",
     "effect": "rc",
+    "msw": "3.0.2",
+    "msw-storybook-addon": "3.0.3",
     "oxlint": "^1.63.0",
-    "rimraf": "^6.1.3"
+    "rimraf": "^6.1.3",
+    "storybook": "10.6.1"
   },
   "peerDependencies": {
     "effect": "^4.0.0-rc.111"
+  },
+  "msw": {
+    "workerDirectory": [
+      ".storybook/public"
+    ]
   }
 }

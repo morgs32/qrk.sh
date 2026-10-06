@@ -15,18 +15,18 @@ import {
   type WSMessage,
 } from 'partyserver';
 
-import { deliverActorOutput } from '../deliverActorOutput/deliverActorOutput.js';
+import { filterAggregateBrowserCommand } from '../filterAggregateBrowserCommand/filterAggregateBrowserCommand.js';
 import { makeFixedDORepo } from '../makeFixedDORepo/makeFixedDORepo.js';
 import { makeFixedDORepoConfig } from '../makeFixedDORepo/makeFixedDORepoConfig.js';
 import { makeOutboxSubscriber } from '../makeOutboxSubscriber/makeOutboxSubscriber.js';
 import { systemWorkerAbbreviations } from '../systemWorkerAbbreviations.js';
 
 import { aggregateActorVersionChainDbConfig } from './aggregateActorVersionChainDbConfig.js';
-import { getActorOutputs } from './getActorOutputs/getActorOutputs.js';
+import { getBrowserCommands } from './getBrowserCommands/getBrowserCommands.js';
 import { getResolvedThrough } from './getResolvedThrough.js';
 import { onConnect } from './onConnect/onConnect.js';
 import { onMessage } from './onMessage/onMessage.js';
-import { receiveActorOutputs } from './receiveActorOutputs/receiveActorOutputs.js';
+import { receiveBrowserCommands } from './receiveBrowserCommands/receiveBrowserCommands.js';
 
 const aggregateActorVersionChainFixedDORepoConfig = makeFixedDORepoConfig({
   abbreviation: systemWorkerAbbreviations.aggregateActorVersionChain,
@@ -125,6 +125,7 @@ export class AggregateActorVersionChain extends makeFixedDORepo({
 
   static override readonly fixedDORepoConfig =
     aggregateActorVersionChainFixedDORepoConfig;
+
   async getResolvedThrough(
     props: Omit<Parameters<typeof getResolvedThrough>[0], 'db'>,
   ) {
@@ -135,8 +136,8 @@ export class AggregateActorVersionChain extends makeFixedDORepo({
 
   readonly #browserCommandSubscriber = makeOutboxSubscriber({
     name: 'browserCommand',
-    receive: (rows: Parameters<typeof receiveActorOutputs>[0]['rows']) =>
-      receiveActorOutputs({
+    receive: (rows: Parameters<typeof receiveBrowserCommands>[0]['rows']) =>
+      receiveBrowserCommands({
         rows,
         db: this.db,
         broadcast: ({ output, claims, sessionName, nodeId }) => {
@@ -176,24 +177,17 @@ export class AggregateActorVersionChain extends makeFixedDORepo({
                 sessionName === state.sessionName &&
                 nodeId === state.nodeId;
               const delivered = Effect.runSync(
-                deliverActorOutput({
+                filterAggregateBrowserCommand({
                   ...state,
                   aggregateSessionLock: retainedLock.lock,
                   output: {
                     ...output,
-                    command: {
-                      ...output.command,
-                      failure: ownsCompletion ? output.command.failure : null,
-                    },
+                    admission: ownsCompletion ? output.admission : null,
+                    execution: ownsCompletion ? output.execution : null,
                   },
                 }),
               );
-              connection.send(
-                JSON.stringify({
-                  type: 'aggregateActorOutput',
-                  output: delivered,
-                }),
-              );
+              connection.send(JSON.stringify(delivered));
             } catch {
               connection.close(1011, 'aggregate-session-command-send-failed');
             }
@@ -218,12 +212,12 @@ export class AggregateActorVersionChain extends makeFixedDORepo({
    *
    * 1. Run the bound domain operation.
    */
-  async getActorOutputs(
-    props: Omit<Parameters<typeof getActorOutputs>[0], 'db'>,
+  async getBrowserCommands(
+    props: Omit<Parameters<typeof getBrowserCommands>[0], 'db'>,
   ) {
-    // 1 — run getActorOutputs with the instance-bound dependencies and encode its RPC outcome
+    // 1 — run getBrowserCommands with the instance-bound dependencies and encode its RPC outcome
     return config.system.runtime.runPromise(
-      getActorOutputs({
+      getBrowserCommands({
         ...props,
         db: this.db,
       }).pipe(makeRpcEnvelope),

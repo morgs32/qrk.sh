@@ -1,8 +1,11 @@
 import { useSyncExternalStore } from 'react';
 
+import { makeZerospinError } from '@zerospin/error';
 import { useClaims, useLiveQuery } from '@zerospin/react';
+import { useLiveQueryOnDb } from '@zerospin/react/useLiveQueryOnDb';
 
 import { CartItemQuantityControls } from './CartItemQuantityControls';
+import { CheckoutButton } from './CheckoutButton';
 
 import {
   Sidebar,
@@ -19,9 +22,24 @@ export function ShoppingCartSidebar() {
     shopperSession.store.subscribe,
     shopperSession.store.getState,
   );
-  const commandFailure = state.commandHistory?.findLast(
-    command => command.failure !== null,
-  )?.failure;
+  if (!state.isInitialized) {
+    throw makeZerospinError({ code: 'service-session-not-ready' });
+  }
+  const { data: commands } = useLiveQueryOnDb({
+    db: state.db,
+    tableNames: ['commands'],
+    query: db =>
+      db.query.commands.findMany({ orderBy: { sessionIndex: 'asc' } }),
+  });
+  const commandFailure = commands
+    .map(command =>
+      command.admission?.status === 'failed'
+        ? command.admission.failure
+        : command.execution?.status === 'failed'
+          ? command.execution.failure
+          : null,
+    )
+    .findLast(failure => failure !== null);
 
   const { data: cart } = useLiveQuery({
     session: shopperSession,
@@ -92,6 +110,13 @@ export function ShoppingCartSidebar() {
               ),
             )}
           </p>
+        ) : null}
+        {cart ? (
+          <CheckoutButton
+            cartId={cart.id}
+            shopperId={claims.clerkUserId ?? ''}
+            hasItems={cartItems.length > 0}
+          />
         ) : null}
       </SidebarFooter>
       <SidebarRail />

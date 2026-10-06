@@ -14,7 +14,7 @@
             "@zerospin/error",
             "@zerospin/logger",
             "@zerospin/production-worker",
-            "@zerospin/schema",
+            "@zerospin/shapes",
             "@zerospin/studio",
             "system-worker"
           ]

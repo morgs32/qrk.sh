@@ -113,7 +113,9 @@ export function ModulePreview(props: {
             <div className="brick-drag-content size-full">
               <BrickComponent
                 breakpoint={breakpoint}
-                state={displayPlaceholders && brickModule.placeholder !== undefined ? null : def.state}
+                state={
+                  displayPlaceholders && brickModule.placeholder !== undefined ? null : def.state
+                }
                 spec={spec}
               />
             </div>

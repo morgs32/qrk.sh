@@ -8,9 +8,6 @@
     "ts": {
       "dependsOn": ["lib", "^lib"]
     },
-    "tsc": {
-      "dependsOn": ["^lib"]
-    },
     "test": {
       "dependsOn": ["lib", "^lib"]
     },

@@ -112,6 +112,7 @@ export function makeModuleView<
 >(
   module: MODULE,
   view: {
+    measureOnSave?: boolean;
     form?: (props: {
       state: InferDecodedRow<MODULE["stateShape"]>;
       onChange: (state: InferDecodedRow<MODULE["stateShape"]>) => void;
@@ -179,10 +180,7 @@ export function makeModuleView<
     },
   );
 
-  function Form(props: {
-    state: unknown;
-    onChange: (state: unknown) => void;
-  }) {
+  function Form(props: { state: unknown; onChange: (state: unknown) => void }) {
     const { state, onChange } = props;
     if (view.form === undefined) return null;
     const decoded = decodeFormState(state, { onExcessProperty: "ignore" });
@@ -240,6 +238,7 @@ export function makeModuleView<
     stateShape: module.stateShape,
     defaultState: module.defaultState,
     defaultSpec,
+    measureOnSave: view.measureOnSave ?? false,
     placeholder: view.default.placeholder,
     ...(view.form === undefined ? {} : { Form }),
     ...(registry === undefined ? {} : { registry }),

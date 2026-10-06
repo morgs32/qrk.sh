@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "lint": "vp lint --config ../../.oxlintrc.json .",
-    "tsc": "tsc -p tsconfig.json --noEmit",
+    "ts": "tsc -p tsconfig.json --noEmit",
     "types": "wrangler types ./worker-configuration.d.ts",
     "test:workerd": "vitest run --config vitest.worker.config.ts",
     "test:live": "SCRAPER_LIVE_TESTS=1 vitest run --config vitest.live.config.ts"

@@ -47,10 +47,10 @@ The selected breakpoint represents the latest request. The active breakpoint rep
    // Stable keys retain a separate wall for each breakpoint.
    <WallBreakpointPane key={row.id} /* existing animation props */>
      <BrickWall
-       session={session}                    // One editor session.
+       session={session} // One editor session.
        wallId={WALL_ID}
-       breakpoint={row.id}                   // Permanent pane ownership.
-       gridWidth={row.previewWidth}          // Fixed width on every route.
+       breakpoint={row.id} // Permanent pane ownership.
+       gridWidth={row.previewWidth} // Fixed width on every route.
        isActive={activeBreakpoint === row.id} // Interaction and measurement gate.
      />
    </WallBreakpointPane>

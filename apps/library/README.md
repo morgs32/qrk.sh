@@ -47,13 +47,13 @@ separately; authored documents are not rewritten.
 ## Checks and builds
 
 ```sh
-pnpm nx run @qrk.sh/library:tsc
+pnpm nx run @qrk.sh/library:ts
 pnpm nx run @qrk.sh/library:lint
 pnpm nx run @qrk.sh/library:build:app
 pnpm nx run @qrk.sh/library:build
 ```
 
-`tsc` checks Library browser and shared module code. API checks its Worker code
+`ts` checks Library browser and shared module code. API checks its Worker code
 separately. Library tests are intentionally not maintained or run (see root
 `AGENTS.md`).
 
@@ -73,21 +73,21 @@ The GitHub Profile and GitHub Activity brick drawers accept a profile URL or use
 full `https://github.com/<username>` URL as feedback for usernames. Save is enabled
 only when the normalized profile URL differs from the saved URL. Saving fetches
 `getGitHubProfile` through an explicit SWR mutation, then stages one
-`updateBrickState` command containing both `state.payload.url` and `state.data`.
+`updateBrick` command containing both `state.payload.url` and `state.data`.
 Activity keeps only the fetched contribution calendar in `state.data`.
 
 The GitHub Repo drawer accepts a full `https://github.com/<owner>/<repo>` URL only.
 It removes a trailing `.git`, lowercases the owner, preserves the repository name's
 case, and ignores query strings, fragments, and trailing slashes. Save fetches
 `getGitHubRepo` through an explicit SWR mutation when the normalized URL changes,
-then stages one `updateBrickState` command containing the URL and repository data.
+then stages one `updateBrick` command containing the URL and repository data.
 
 The Figma Thumbnail drawer accepts HTTPS Figma document URLs for designs, files,
 boards, slides, decks, and prototypes. It normalizes the host to `www.figma.com`,
 maps `file` to `design` and `deck` to `slides`, and ignores document names, query
 strings, and fragments. Save is enabled only when the normalized document URL
 changes. Saving fetches `figmaBackend().getThumbnail` through an explicit SWR
-mutation, then stages one `updateBrickState` containing `state.payload.url` and
+mutation, then stages one `updateBrick` containing `state.payload.url` and
 the fetched title, document URL, and thumbnail metadata in `state.data`.
 Node selections use the whole document's thumbnail.
 
@@ -96,7 +96,7 @@ URLs, normalizing them to `https://www.instagram.com/<username>`. Save remains
 enabled for any valid profile, including the saved URL, so each Save explicitly
 refreshes the profile. `getInstagramProfile` scrapes fresh data and stores its
 avatar and zero to four ordered post images in API's R2 bucket before returning.
-The form validates the complete module state and stages one `updateBrickState`.
+The form validates the complete module state and stages one `updateBrick`.
 State, authored views, and generated grid specs use `data.postImageUrls` directly;
 the grid keeps its two-by-two layout and is omitted for an empty array. The old
 four separate post-image fields are no longer accepted.
@@ -104,9 +104,12 @@ Existing local Instagram grid specs were converted once, preserving fixture IDs,
 placement geometry, null states, and unrelated data. The previous standalone
 backup was retained. Runtime code performs no conversion of legacy state or specs.
 
-These forms disable input and Save while fetching. Fetch, validation, or
-command failures leave the saved brick state and draft intact. Closing
-the drawer discards unsaved input.
+Each URL form's explicit SWR mutation fetches metadata, validates the complete
+state, and awaits its `onSave` callback. Input and Save remain disabled through
+fetching, optional measurement, and staging. Fetch, validation, measurement, or
+command failures retain the draft, saved state, and saved measurements. Successful
+Save keeps the drawer open; closing discards unsaved input and prevents a pending
+Save from staging after the editor unmounts.
 
 ## Storybook
 
@@ -300,7 +303,8 @@ when omitted. They do not inherit between breakpoints. Minimums must be positive
 integers, `minW` cannot exceed eight columns, and declared `w`/`h` cannot be below
 their corresponding minimum. Invalid configuration throws during view construction.
 All Library and Studio previews apply the same sizing rules. The wall derives
-resize constraints from the active module view; placements persist only geometry.
+resize constraints from the active module view. Placement grid geometry remains
+separate from its saved pixel measurements.
 Existing saved sizes remain unchanged until the user resizes; configuring minimums
 does not automatically enlarge or migrate saved bricks.
 
@@ -317,19 +321,53 @@ visible neighbors whose geometry changed. Hidden and unaffected placements retai
 their geometry. This is a fresh `addBrick` version `1.0.0` baseline with no historical adapter;
 old payloads and pending commands require the authorized document reset. Module defaults,
 preview state, and authored rendering discard undeclared fields during decoding.
-`addBrick` and `updateBrickState` validate declared state fields while ignoring extras;
+`addBrick` and `updateBrick` validate declared state fields while ignoring extras;
 their programs decode again and persist the decoded state. Both accept and persist
 null only for modules declaring `hasPlaceholder: true`. The existing Library JSON
 state editor can save valid state to replace a placeholder, or null to restore it.
 Invalid declared fields and null for other modules still reject the command before
 mutation. Spec validation remains strict.
-`updateBrickState` requires `moduleId`, checked against the stored brick before decoding.
+`updateBrick` requires `moduleId`, checked against the stored brick before decoding.
 Pending updates without it must be resubmitted against the current `1.0.0` baseline.
 Existing bricks are normalized on their next state update; there is no bulk migration.
 
+A module view may set `measureOnSave: true`; the default is false, and Figma
+Thumbnail opts in. `useUpdateBrick({ brickId })` owns an explicit SWR mutation and
+returns `updateBrick(state)`, `measurementHost`, and `isMutating`. The brick drawer
+and Admin render the hidden host and await the mutation. It renders proposed state
+against each placement's actual Spec and breakpoint, including hidden placements,
+using the existing `MeasuredBrickWrapper` and unconstrained CSS. It captures the
+wrapper's rounded dimensions without adding image-specific sizing or load waits.
+Before staging it rereads the brick and placement specs, rejecting changed specs
+or deleted bricks. Closing cancels pending measurement. The forms keep their
+module-specific fetching and state schemas; their mutations await this shared Save.
+
+Each placement stores nullable `measured: { widthPx, heightPx }`, with positive
+integer CSS-pixel values and a null default. The brick stores shared state rather
+than a breakpoint map. `updateBrick` accepts `measurements: null` or a complete
+`sm`/`md`/`lg`/`xl` map; the map is transport-only. One command atomically writes
+the decoded brick state and each placement's measurement, preserving `gridItem`,
+visibility, and Spec. A null map clears all four measurements. New placements start
+with null, and spec-at-breakpoint commands clear the affected placement's measurement.
+
+```ts
+{
+  // Measured content size in CSS pixels.
+  measured: { widthPx: 320, heightPx: 268 },
+  // Placement geometry remains in grid units.
+  gridItem: { i: brickId, x: 0, y: 0, w: 4, h: 3 },
+}
+```
+
 `LibraryLayout` initializes the module-level `librarySession` with
-`useInitializeStandaloneSession`. Its `qrk-library` backup key persists the
-`wal_library` document across reloads and initialization registers it with DevTools.
+`useInitializeStandaloneSession`. Its `qrk-library` backup namespace includes the
+model/contract definition hash and persists `wal_library` across reloads of that
+definition. Initialization registers it with DevTools. Adding `placement.measured`
+and renaming the state update contract to `updateBrick` changes the hash: after reload the authorized reset starts
+from the existing empty-wall seed, with no saved bricks, placements, or command
+history. Old definition backups remain stored but unused; no migration, key bump,
+or vendor reset code is needed. This reset applies to Library standalone sessions;
+Studio's server-backed walls remain separate.
 Navigation releases backup ownership on `pagehide`; a visible `pageshow`
 reacquires it when returning through browser history. Saved bricks are retained.
 DevTools defaults to closed; its trigger remains available and saved DevTools
@@ -346,13 +384,13 @@ without requiring standalone initialization or reset methods. The shared
 owns identity, claims, initialization, and disposal.
 
 `useLiveQuery` reads the session's `db`, returning model-decoded `state`,
-`spec`, and `gridItem` values. Components consume these values directly. Explicit writes and backups use encoded SQLite values; relational queries decode model fields.
+`spec`, `measured`, and `gridItem` values. Components consume these values directly. Explicit writes and backups use encoded SQLite values; relational queries decode model fields.
 
 Committed layout is Wall → Brick → Placement via aggregate contracts
-(`addBrick`, layout/visibility/remove/compact, `updateBrickState`, and per-module
+(`addBrick`, layout/visibility/remove/compact, `updateBrick`, and per-module
 spec-at-breakpoint). Commands stage synchronously. Studio pushes through its live
 user session; `backupState: ready` describes local backup durability, not server acknowledgement. Shared state lives on the brick row; each placement stores a
-complete Spec, grid item, and visibility. `BrickWall` uses `verticalCompactor` for
+complete Spec, nullable pixel measurement, grid item, and visibility. `BrickWall` uses `verticalCompactor` for
 packed drag/resize feedback. Module contracts compact before persisting geometry:
 add/show resolve collisions first, layout updates compact their payload, hide compacts
 visible survivors at its breakpoint, and remove compacts survivors at all four
@@ -458,7 +496,8 @@ mobile title. These fonts and spacing follow the
 Body headings are H2–H4. Standard HTML form validation blocks Save when either
 metadata field is empty or contains only whitespace; Admin retains schema-based
 JSON validation. This is a hard schema change without migration or fallback:
-old content-only Article state and specs may no longer load. No saved data is reset.
+old content-only Article state and specs may no longer load. Standalone persistence
+uses the definition reset described above.
 The bundled example uses “Actually good advice” as its title and the introductory
 paragraph as its subtitle, retaining all four numbered criteria and the closing
 paragraph in its body. Generated `ArticleBrick` specs bind `/title`, `/subtitle`,
@@ -477,8 +516,10 @@ returns to the form page. Both routes retain the persistent wall and drawer shel
 Admin is a UI route, not an authorization boundary.
 
 Form and JSON drafts belong to their respective routes. Save stages one complete
-`updateBrickState` command and leaves the current page open; Cancel discards that
-page's draft. Failed saves retain the draft and show an error. Article's Admin JSON
+`updateBrick` command and leaves the current page open; Cancel discards that
+page's draft. Save awaits optional placement measurements through SWR before staging;
+its pending controls cover the whole operation. Failed saves retain the draft and
+show an error. Article's Admin JSON
 editor validates state, disables Save for invalid or unchanged values, and keeps
 invalid input visible. Placeholder-capable modules still accept null. Closing,
 navigating between form and Admin, changing brick, or deleting the brick discards

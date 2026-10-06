@@ -59,7 +59,9 @@ test("Article edits stay local, preserve their editor, resize naturally, and res
   ).toContainText("Final local Article draft");
 });
 
-test("Article toolbar popovers and file picker retain editing; Escape ends it", async ({ page }) => {
+test("Article toolbar popovers and file picker retain editing; Escape ends it", async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto(`${base}/modules`);
   const grid = page.locator('[data-wall-active="true"] [aria-label="Brick grid"]');

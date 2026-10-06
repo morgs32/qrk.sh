@@ -4,8 +4,8 @@
 
 Configured vendor origins are recorded here and in `AGENTS.md`:
 
-| Prefix | Origin | Branch |
-| --- | --- | --- |
+| Prefix            | Origin        | Branch |
+| ----------------- | ------------- | ------ |
 | `vendor/zerospin` | `../zerospin` | `main` |
 
 Use `$update-vendor` for squashed pulls from the sibling checkout.

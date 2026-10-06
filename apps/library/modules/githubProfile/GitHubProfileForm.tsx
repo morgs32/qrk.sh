@@ -11,7 +11,10 @@ import { Input } from "../../components/ui/input";
 import type { LibraryApi } from "../../worker/LibraryApi.public";
 import { githubProfileV1 } from "./githubProfileV1";
 
-export function GitHubProfileForm(props: { state: unknown; onSave: (state: unknown) => void }) {
+export function GitHubProfileForm(props: {
+  state: unknown;
+  onSave: (state: unknown) => Promise<void>;
+}) {
   const { state, onSave } = props;
   const StateSchema = Schema.NullOr(Schema.toType(makeEffectSchema(githubProfileV1.stateShape)));
   const savedState = Schema.decodeUnknownSync(StateSchema)(state, {
@@ -53,7 +56,11 @@ export function GitHubProfileForm(props: { state: unknown; onSave: (state: unkno
       if (result._tag === "Left") {
         throw new Error(result.left.message);
       }
-      return result.right;
+      const nextState = Schema.decodeUnknownSync(StateSchema)(
+        { payload: { url: arg }, data: result.right },
+        { onExcessProperty: "ignore" },
+      );
+      await onSave(nextState);
     },
     { revalidate: false },
   );
@@ -71,12 +78,7 @@ export function GitHubProfileForm(props: { state: unknown; onSave: (state: unkno
         const submittedUrl = normalizedUrl;
         setSaveError(undefined);
         try {
-          const fetchedProfile = await trigger(submittedUrl);
-          const nextState = Schema.decodeUnknownSync(StateSchema)(
-            { payload: { url: submittedUrl }, data: fetchedProfile },
-            { onExcessProperty: "ignore" },
-          );
-          onSave(nextState);
+          await trigger(submittedUrl);
         } catch (cause) {
           setSaveError(cause instanceof Error ? cause.message : String(cause));
         }

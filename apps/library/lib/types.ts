@@ -16,12 +16,11 @@ export type IModule<MODULE extends string> = {
   registry?: ComponentRegistry;
   defaultSpec: Spec;
   hasPlaceholder: boolean;
+  /** Capture unconstrained placement dimensions before saving brick state. */
+  measureOnSave: boolean;
   /** Display-only markup for an explicitly unconfigured brick (state === null). */
   placeholder?: () => ReactNode;
-  Form?: (props: {
-    state: unknown;
-    onChange: (state: unknown) => void;
-  }) => ReactNode;
+  Form?: (props: { state: unknown; onChange: (state: unknown) => void }) => ReactNode;
   def: IModuleBrickDef<MODULE>;
   /**
    * Render boundaries supply the brick state document; components without a

@@ -244,12 +244,12 @@ sequenceDiagram
 
 ## Callers
 
-| Direction                                | Symbol                        | Owner                                                                                                                                                    |
-| ---------------------------------------- | ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| RGL item → five fields (UI payload)      | `makeGridItem`                | local in [`BrickWall.tsx`](../../../apps/library/lib/BrickWall.tsx)                                                                                      |
-| collision resolution → five-field layout | `makeCollisionResolvedLayout` | [`resolveVisibleCollisions.ts`](../../../apps/library/libraryModule/resolveVisibleCollisions.ts)                                                         |
-| compaction → five-field layout           | `makeCompactLayout`           | [`resolveVisibleCollisions.ts`](../../../apps/library/libraryModule/resolveVisibleCollisions.ts)                                                         |
-| visible layout → error or null           | `findVisibleLayoutError`      | [`resolveVisibleCollisions.ts`](../../../apps/library/libraryModule/resolveVisibleCollisions.ts)                                                         |
+| Direction                                | Symbol                        | Owner                                                                                            |
+| ---------------------------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------ |
+| RGL item → five fields (UI payload)      | `makeGridItem`                | local in [`BrickWall.tsx`](../../../apps/library/lib/BrickWall.tsx)                              |
+| collision resolution → five-field layout | `makeCollisionResolvedLayout` | [`resolveVisibleCollisions.ts`](../../../apps/library/libraryModule/resolveVisibleCollisions.ts) |
+| compaction → five-field layout           | `makeCompactLayout`           | [`resolveVisibleCollisions.ts`](../../../apps/library/libraryModule/resolveVisibleCollisions.ts) |
+| visible layout → error or null           | `findVisibleLayoutError`      | [`resolveVisibleCollisions.ts`](../../../apps/library/libraryModule/resolveVisibleCollisions.ts) |
 
 `updateLayoutAtBreakpoint` payload items are already `makeGridItem`'d by
 BrickWall. Add, show, compact, hide, and remove persist layout-constructor outputs

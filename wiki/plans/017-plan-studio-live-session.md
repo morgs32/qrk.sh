@@ -35,7 +35,9 @@ where: { id: { eq: brickId }, wallId: { eq: page.wallId } }
 // Library's exact contracts/models preserve command payload and query inference.
 type ILibrarySession = IAggregateSession<
   IAggregateSessionDefinition<
-    string, string, string,
+    string,
+    string,
+    string,
     typeof libraryModule.contracts,
     typeof libraryModule.models
   >
@@ -46,9 +48,11 @@ type ILibrarySession = IAggregateSession<
 // Full locks can exceed workerd's 16 KB WebSocket attachment limit.
 // Keep the lock in durable SQL storage; the existing connection ID resolves it
 // for resume, command admission, and broadcasts after hibernation.
-const retainedLock = db.query.connectionLocks.findFirst({
-  where: { connectionId: { eq: connection.id } },
-}).sync();
+const retainedLock = db.query.connectionLocks
+  .findFirst({
+    where: { connectionId: { eq: connection.id } },
+  })
+  .sync();
 // A missing row closes the connection with the existing state-required failure.
 // onClose deletes the retained row.
 ```

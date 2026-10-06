@@ -7,14 +7,13 @@ import { encodeFailure } from "@zerospin/core/contracts/failureCodec";
 import { AsyncLive } from "@zerospin/core/async/AsyncLive";
 import { makeAsync } from "@zerospin/core/async/make/makeAsync";
 import { makeResourceDbConfig } from "@zerospin/core/drizzle/make/makeDbConfig/makeDbConfig";
-import { makeProvisionedInMemoryWasmSqliteDb } from "@zerospin/core/drizzle/make/makeProvisionedInMemoryWasmSqliteDb/makeProvisionedInMemoryWasmSqliteDb";
+import { makeProvisionedInMemorySqljsDb } from "@zerospin/core/drizzle/make/makeProvisionedInMemorySqljsDb/makeProvisionedInMemorySqljsDb";
 import { makeAggregateId } from "@zerospin/sdk";
 import { ZerospinError } from "@zerospin/sdk";
 import { NanoIdFactory } from "@zerospin/core/utils/NanoIdFactory";
 import { readRpcEnvelope } from "@zerospin/core/utils/readRpcEnvelope";
 import { makeSystemSpec } from "@zerospin/core/system/make/makeSystemSpec";
 import { AggregateChain, SystemRepo, AggregateVersionRepo } from "system-worker";
-import { getTableName } from "drizzle-orm";
 import { DateTime, Effect, Schema } from "effect";
 import { describe, expect, vi, beforeAll } from "vitest";
 
@@ -40,7 +39,7 @@ describe("QRK system", () => {
           () => import("./aggregates/user/actors/userActorV1"),
         );
         const authentication = userActorV1.authentication;
-        if (authentication === "none") throw new Error("User actor must authenticate");
+        if (typeof authentication === "string") throw new Error("User actor must authenticate");
         const authenticate = authentication.authenticate;
         const systemRepo = yield* SystemRepo.getRepo({ key: { systemId: "sys_qrk_sh_1" } });
         yield* makeAsync<Awaited<ReturnType<SystemRepo["checkSystemSpec"]>>>(() =>
@@ -65,17 +64,18 @@ describe("QRK system", () => {
           const executeCommand: Parameters<typeof authenticate>[0]["executeCommand"] = Effect.fn(
             "test.executeAuthenticationCommand",
           )(function* (props) {
+            const { actor, claims, payload, contract } = props;
             const command = yield* makeAggregateCommand({
               contract: createUser,
-              actorName: props.actor.name,
-              actorVersion: props.actor.version,
-              claims: props.claims,
+              actorName: actor.name,
+              actorVersion: actor.version,
+              claims,
               aggregateId: key.aggregateId,
               aggregateName: "user",
               aggregateVersion: "1.0.0",
               systemName: "qrk-sh",
               payload: yield* Schema.decodeUnknownEffect(makeEffectSchema(createUser.payload))(
-                props.payload,
+                payload,
               ).pipe(
                 Effect.mapError(
                   (cause) =>
@@ -83,7 +83,7 @@ describe("QRK system", () => {
                 ),
               ),
             });
-            const encoded = yield* encodeCommand({ contract: props.contract, command });
+            const encoded = yield* encodeCommand({ contract, command });
             const attempt: (typeof attempts)[number] = { id: command.id, failureCode: null };
             attempts.push(attempt);
             // Provisioning carries the authenticated claims and provisioner actor.
@@ -155,7 +155,7 @@ describe("QRK system", () => {
           >(() =>
             repo.executeSelectQuery({
               query: {
-                rawSql: `SELECT "${dbConfig.schema.user.id.name}" AS "id", "${dbConfig.schema.user.clerkUserId.name}" AS "clerkUserId" FROM "${getTableName(dbConfig.schema.user)}"`,
+                rawSql: `SELECT "${dbConfig.schema.user.id.name}" AS "id", "${dbConfig.schema.user.clerkUserId.name}" AS "clerkUserId" FROM "${dbConfig.tables.user.name}"`,
                 params: [],
                 method: "all",
               },
@@ -182,20 +182,21 @@ describe("QRK system", () => {
         () => import("./aggregates/user/actors/userActorV1"),
       );
       const authentication = userActorV1.authentication;
-      if (authentication === "none") throw new Error("User actor must authenticate");
+      if (typeof authentication === "string") throw new Error("User actor must authenticate");
       const authenticate = authentication.authenticate;
       const now = DateTime.toDateUtc(yield* DateTime.now);
       const failure = yield* authenticate({
         credentials: { sessionToken: "user_rejected_provisioning" },
-        executeCommand: (props) =>
-          Effect.gen(function* () {
+        executeCommand: (props) => {
+          const { actor, claims, payload } = props;
+          return Effect.gen(function* () {
             const command = yield* makeAggregateCommand({
               contract: createUser,
-              actorName: props.actor.name,
-              actorVersion: props.actor.version,
-              claims: props.claims,
+              actorName: actor.name,
+              actorVersion: actor.version,
+              claims,
               payload: yield* Schema.decodeUnknownEffect(makeEffectSchema(createUser.payload))(
-                props.payload,
+                payload,
               ).pipe(
                 Effect.mapError(
                   (cause) =>
@@ -227,7 +228,8 @@ describe("QRK system", () => {
                 ),
               },
             };
-          }),
+          });
+        },
       }).pipe(Effect.flip);
       expect(failure.code).toBe("user-provisioning-failed");
     }).pipe(Effect.provide(AsyncLive), Effect.provide(NanoIdFactory)),
@@ -252,25 +254,29 @@ describe("QRK system", () => {
         "wall",
       ]);
       const dbConfig = makeResourceDbConfig({ models: aggregate.models });
-      const db = yield* makeProvisionedInMemoryWasmSqliteDb({ dbConfig }).pipe(
+      const db = yield* makeProvisionedInMemorySqljsDb({ dbConfig }).pipe(
         Effect.provide(AsyncLive),
       );
       const rejected = yield* runContractGuard({
         contract: createUser,
         db,
-        claims: { aggregateId: "acct_owner", clerkUserId: "owner" },
-        payload: { id: "usr_other", clerkUserId: "other", username: null, displayName: null },
+        input: {
+          claims: { aggregateId: "acct_owner", clerkUserId: "owner" },
+          payload: { id: "usr_other", clerkUserId: "other", username: null, displayName: null },
+        },
       }).pipe(Effect.flip);
       expect(rejected).toMatchObject({ code: "create-user-identity-mismatch", status: 403 });
       yield* runContractGuard({
         contract: createUser,
         db,
-        claims: { aggregateId: "acct_owner", clerkUserId: "owner" },
-        payload: {
-          id: "usr_independent_owner",
-          clerkUserId: "owner",
-          username: null,
-          displayName: null,
+        input: {
+          claims: { aggregateId: "acct_owner", clerkUserId: "owner" },
+          payload: {
+            id: "usr_independent_owner",
+            clerkUserId: "owner",
+            username: null,
+            displayName: null,
+          },
         },
       });
     }).pipe(Effect.scoped),
@@ -283,7 +289,7 @@ describe("QRK system", () => {
       );
       expect(malformed._tag).toBe("Failure");
       const authentication = system.aggregates.user["1.0.0"].actors.web.authentication;
-      if (authentication === "none") throw new Error("User actor must authenticate");
+      if (typeof authentication === "string") throw new Error("User actor must authenticate");
       const failure = yield* authentication
         .authenticate({
           credentials: { sessionToken: "invalid-token" },

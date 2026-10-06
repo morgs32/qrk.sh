@@ -449,7 +449,12 @@ export const ImageUploadNode: React.FC<NodeViewProps> = (props) => {
   const { fileItems, uploadFiles, removeFileItem, clearAllFiles } = useFileUpload(uploadOptions);
 
   const handleUpload = async (files: File[]) => {
-    if (!extension.options.upload || !editor.isEditable || uploading.current || fileItems.length > 0)
+    if (
+      !extension.options.upload ||
+      !editor.isEditable ||
+      uploading.current ||
+      fileItems.length > 0
+    )
       return;
     uploading.current = true;
     try {
@@ -497,7 +502,12 @@ export const ImageUploadNode: React.FC<NodeViewProps> = (props) => {
   };
 
   const handleClick = () => {
-    if (extension.options.upload && editor.isEditable && inputRef.current && fileItems.length === 0) {
+    if (
+      extension.options.upload &&
+      editor.isEditable &&
+      inputRef.current &&
+      fileItems.length === 0
+    ) {
       inputRef.current.value = "";
       inputRef.current.click();
     }
@@ -507,7 +517,9 @@ export const ImageUploadNode: React.FC<NodeViewProps> = (props) => {
 
   if (!extension.options.upload) {
     return (
-      <NodeViewWrapper className="tiptap-image-upload">Uploads temporarily disabled</NodeViewWrapper>
+      <NodeViewWrapper className="tiptap-image-upload">
+        Uploads temporarily disabled
+      </NodeViewWrapper>
     );
   }
 

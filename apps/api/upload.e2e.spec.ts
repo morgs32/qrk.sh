@@ -28,9 +28,7 @@ describe("POST /upload", () => {
     expect(await response.json()).toMatchObject({
       code: "missing-authorization",
     });
-    expect(response.headers.get("Access-Control-Allow-Origin")).toBe(
-      "http://127.0.0.1:3001",
-    );
+    expect(response.headers.get("Access-Control-Allow-Origin")).toBe("http://127.0.0.1:3001");
   });
 
   it("rejects invalid tokens", async () => {
@@ -115,9 +113,7 @@ describe("POST /upload", () => {
     });
 
     expect(response.status).toBe(204);
-    expect(response.headers.get("Access-Control-Allow-Origin")).toBe(
-      "http://127.0.0.1:3001",
-    );
+    expect(response.headers.get("Access-Control-Allow-Origin")).toBe("http://127.0.0.1:3001");
   });
 });
 

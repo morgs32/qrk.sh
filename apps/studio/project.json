@@ -24,7 +24,7 @@
       "dependsOn": ["^lib"]
     },
     "typecheck": {
-      "command": "pnpm run tsc",
+      "command": "pnpm run ts",
       "options": {
         "cwd": "apps/studio"
       },

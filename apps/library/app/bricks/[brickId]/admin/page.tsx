@@ -21,6 +21,7 @@ import { Input } from "../../../../components/ui/input";
 import { modulesHash } from "../../../../lib/modulesHash";
 import type { IModule } from "../../../../lib/types";
 import { useWallViewport } from "../../../../lib/WallViewportProvider";
+import { useUpdateBrick } from "../../../../lib/useUpdateBrick";
 import type { LibraryApi } from "../../../../worker/LibraryApi.public";
 import type { IScrapeError } from "../../../../worker/types.public";
 import { useLibrarySession } from "../../../../session/createLibraryStandaloneSession";
@@ -52,6 +53,7 @@ function BrickAdminContent(props: { brickId: `brk_${string}` }) {
   const { activeBreakpoint } = useWallViewport();
   const breakpoint = activeBreakpoint ?? "sm";
   const session = useLibrarySession();
+  const { updateBrick, measurementHost, isMutating } = useUpdateBrick({ brickId });
   const [generatePrompt, setGeneratePrompt] = useState("");
   const [isGeneratingSpec, setIsGeneratingSpec] = useState(false);
   const [generateError, setGenerateError] = useState<IScrapeError>();
@@ -150,6 +152,7 @@ function BrickAdminContent(props: { brickId: `brk_${string}` }) {
 
   return (
     <OrderedDoc>
+      {measurementHost}
       <div className="flex flex-col gap-8 px-6 lg:flex-row lg:gap-10 lg:px-8">
         <aside className="hidden shrink-0 self-start pt-6 lg:sticky lg:top-0 lg:block lg:pt-8">
           <OrderedOutline />
@@ -289,9 +292,11 @@ function BrickAdminContent(props: { brickId: `brk_${string}` }) {
             <OrderedSection className="mt-10" label="Shared state">
               <form
                 className="flex flex-col gap-2 py-4"
-                onSubmit={(event) => {
+                aria-busy={isMutating}
+                onSubmit={async (event) => {
                   event.preventDefault();
-                  if (Form !== undefined && (jsonError !== null || !jsonDirty)) return;
+                  if (isMutating || (Form !== undefined && (jsonError !== null || !jsonDirty)))
+                    return;
                   let parsed: unknown;
                   if (Form !== undefined) {
                     parsed = parsedJson;
@@ -303,27 +308,19 @@ function BrickAdminContent(props: { brickId: `brk_${string}` }) {
                       return;
                     }
                   }
-                  const result = stageCommand({
-                    session,
-                    contractName: "updateBrickState",
-                    payload: {
-                      brickId: brickRow.id,
-                      moduleId: brickRow.moduleId,
-                      state: parsed,
-                    },
-                  });
-                  if (result._tag === "Failure") {
+                  try {
+                    await updateBrick(parsed);
+                    if (Form !== undefined) {
+                      setAcceptedState({ state: parsed });
+                      setJsonCommandError(null);
+                    } else setCommandError(null);
+                    setStateDraft(null);
+                  } catch (cause) {
                     const message =
-                      result.failure.message ?? result.failure.code ?? "Failed to update state";
+                      cause instanceof Error ? cause.message : "Failed to update brick";
                     if (Form !== undefined) setJsonCommandError(message);
                     else setCommandError(message);
-                    return;
                   }
-                  if (Form !== undefined) {
-                    setAcceptedState({ state: parsed });
-                    setJsonCommandError(null);
-                  } else setCommandError(null);
-                  setStateDraft(null);
                 }}
               >
                 <label className="block font-medium" htmlFor="shared-state-editor">
@@ -331,6 +328,7 @@ function BrickAdminContent(props: { brickId: `brk_${string}` }) {
                 </label>
                 <textarea
                   id="shared-state-editor"
+                  disabled={isMutating}
                   className="min-h-48 w-full rounded border border-border bg-white p-2 font-mono text-sm"
                   value={stateEditorValue}
                   onChange={(event) => {
@@ -349,13 +347,14 @@ function BrickAdminContent(props: { brickId: `brk_${string}` }) {
                   </div>
                 ) : null}
                 <div className="flex gap-2">
-                  <Button type="submit" disabled={Form !== undefined && !jsonDirty}>
-                    Save state
+                  <Button type="submit" disabled={isMutating || (Form !== undefined && !jsonDirty)}>
+                    {isMutating ? "Saving…" : "Save state"}
                   </Button>
                   {Form !== undefined ? (
                     <Button
                       type="button"
                       variant="outline"
+                      disabled={isMutating}
                       onClick={() => {
                         setStateDraft(null);
                         setJsonCommandError(null);

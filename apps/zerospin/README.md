@@ -8,11 +8,13 @@ Put local authentication settings in this directory's `.env.local` (see
 `.env.example`). The CLI discovers environment files from this project root.
 Workerd tests provide isolated test credentials in `vitest.workerd.config.ts`
 and generate their configuration without a prior CLI run.
+Session fixtures instantiate a precompiled wa-sqlite module. The test loader uses
+that module's own URL instead of its generated browser-only `self.location` lookup.
 
 Run the checks from the repository root:
 
 ```sh
-pnpm nx run @qrk.sh/zerospin:tsc
+pnpm nx run @qrk.sh/zerospin:ts
 pnpm nx run @qrk.sh/zerospin:test:workerd
 ```
 

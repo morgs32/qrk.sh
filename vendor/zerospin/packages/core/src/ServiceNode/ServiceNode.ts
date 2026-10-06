@@ -412,12 +412,14 @@ export class ServiceNode {
                 pushPaused: metadata.pushPaused,
               };
             });
-            if (state !== null && !subscriber.closed)
+            if (state !== null && !subscriber.closed) {
               await subscriber.sink.state(state);
+            }
           }
           const page = await this.serialized(async () => {
-            if (subscriber.closed)
+            if (subscriber.closed) {
               return { commands: [], throughChangeIndex: subscriber.cursor };
+            }
             const { nodeId } = await this.metadata();
             const rows = await this.db
               .select()

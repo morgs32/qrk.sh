@@ -115,7 +115,7 @@ move does not rewrite authored documents.
 
 ```sh
 pnpm nx run @qrk.sh/api:types
-pnpm nx run @qrk.sh/api:tsc
+pnpm nx run @qrk.sh/api:ts
 pnpm nx run @qrk.sh/api:lint
 pnpm nx run @qrk.sh/api:build
 pnpm nx run @qrk.sh/api:test:workerd

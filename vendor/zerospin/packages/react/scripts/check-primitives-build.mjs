@@ -5,8 +5,8 @@ import {
   existsSync,
   mkdirSync,
   mkdtempSync,
-  readFileSync,
   readdirSync,
+  readFileSync,
   realpathSync,
   rmSync,
   symlinkSync,
@@ -69,8 +69,9 @@ async function stopWatcher() {
     watcher === undefined ||
     watcher.exitCode !== null ||
     watcher.signalCode !== null
-  )
+  ) {
     return;
+  }
   const closed = new Promise(fulfill => watcher.once('exit', fulfill));
   watcher.kill('SIGTERM');
   await closed;

@@ -8,14 +8,14 @@
   "durable_objects": {
     "bindings": [
       { "name": "BROWSER_HOST", "class_name": "BrowserHost" },
-      { "name": "LINKTREE_REPO", "class_name": "LinktreeRepo" }
-    ]
+      { "name": "LINKTREE_REPO", "class_name": "LinktreeRepo" },
+    ],
   },
   "migrations": [
     {
       "tag": "v1",
       "new_classes": ["BrowserHost"],
-      "new_sqlite_classes": ["LinktreeRepo"]
-    }
-  ]
+      "new_sqlite_classes": ["LinktreeRepo"],
+    },
+  ],
 }

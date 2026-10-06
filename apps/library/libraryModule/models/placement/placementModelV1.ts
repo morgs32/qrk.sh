@@ -20,10 +20,11 @@ const placementSpecSchema = Schema.Struct({
 });
 
 export function makePlacementModel(props: { brick: ReturnType<typeof makeBrickModel> }) {
+  const { brick } = props;
   return makeModelVersion(placement, {
     attributes: {
       brickId: primitives.ref({
-        table: props.brick.table,
+        table: brick.table,
         relation: "brick",
         inverse: "placements",
       }),
@@ -31,6 +32,14 @@ export function makePlacementModel(props: { brick: ReturnType<typeof makeBrickMo
         values: ["sm", "md", "lg", "xl"],
       }),
       spec: primitives.json({ schema: placementSpecSchema }),
+      measured: primitives.json({
+        nullable: true,
+        defaultValue: null,
+        schema: Schema.Struct({
+          widthPx: Schema.Int.check(Schema.isGreaterThan(0)),
+          heightPx: Schema.Int.check(Schema.isGreaterThan(0)),
+        }),
+      }),
       gridItem: primitives.json({ schema: gridItemSchema }),
       isVisible: primitives.boolean(),
     },

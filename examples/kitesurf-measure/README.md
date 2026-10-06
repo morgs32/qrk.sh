@@ -18,9 +18,9 @@ pnpm install
 
 Fill `wrangler.jsonc` vars:
 
-| Var | Purpose |
-| --- | --- |
-| `CLOUDFLARE_ACCOUNT_ID` | Account id in the scrape URL |
+| Var                     | Purpose                                                                                                          |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `CLOUDFLARE_ACCOUNT_ID` | Account id in the scrape URL                                                                                     |
 | `PUBLIC_EXAMPLE_ORIGIN` | Public origin Kitesurf navigates to (no trailing slash), e.g. `https://kitesurf-measure.<subdomain>.workers.dev` |
 
 Set the Browser Rendering API token as a secret (token needs **Browser Rendering — Edit**):
@@ -61,11 +61,11 @@ pnpm nx run @qrk.sh/kitesurf-measure:deploy
 _Fill in after a live Kitesurf run:_
 
 | Breakpoint | Local px (w×h) | Kitesurf px (w×h) | Δ px | Grid agree? |
-| --- | --- | --- | --- | --- |
-| sm | | | | |
-| md | | | | |
-| lg | | | | |
-| xl | | | | |
+| ---------- | -------------- | ----------------- | ---- | ----------- |
+| sm         |                |                   |      |             |
+| md         |                |                   |      |             |
+| lg         |                |                   |      |             |
+| xl         |                |                   |      |             |
 
 Notes:
 

@@ -8,6 +8,7 @@ import { figmaMediaFooterView } from "./FigmaMediaFooter";
 import { FigmaThumbnailPlaceholder } from "./FigmaThumbnailPlaceholder";
 
 export const figmaThumbnailView = makeModuleView(figmaThumbnailV1, {
+  measureOnSave: true,
   default: {
     placeholder() {
       return <FigmaThumbnailPlaceholder />;

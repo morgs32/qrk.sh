@@ -4,7 +4,7 @@ import { makeAddBrickContract } from "./contracts/addBrick/AddBrickContractV1";
 import { makeCompactLayoutAtBreakpointContract } from "./contracts/compactLayoutAtBreakpoint/CompactLayoutAtBreakpointContractV1";
 import { makeRemoveBrickContract } from "./contracts/removeBrick/RemoveBrickContractV1";
 import { makeSetBrickVisibilityAtBreakpointContract } from "./contracts/setBrickVisibilityAtBreakpoint/SetBrickVisibilityAtBreakpointContractV1";
-import { makeUpdateBrickStateContract } from "./contracts/updateBrickState/UpdateBrickStateContractV1";
+import { makeUpdateBrickContract } from "./contracts/updateBrick/UpdateBrickContractV1";
 import { makeUpdateLayoutAtBreakpointContract } from "./contracts/updateLayoutAtBreakpoint/UpdateLayoutAtBreakpointContractV1";
 import { makeBrickModel } from "./models/brick/makeBrickModel";
 import { makePlacementModel } from "./models/placement/placementModelV1";
@@ -34,9 +34,10 @@ const compactLayoutAtBreakpoint = makeCompactLayoutAtBreakpointContract({
   brick,
   placement,
 });
-const updateBrickState = makeUpdateBrickStateContract({
+const updateBrick = makeUpdateBrickContract({
   library: backendLibrary,
   brick,
+  placement,
 });
 const moduleContracts = makeModuleContracts({
   library: backendLibrary,
@@ -56,7 +57,7 @@ export const libraryModule = {
     setBrickVisibilityAtBreakpoint,
     removeBrick,
     compactLayoutAtBreakpoint,
-    updateBrickState,
+    updateBrick,
     updateFigmaThumbnailSpecAtBreakpoint: moduleContracts.updateFigmaThumbnailSpecAtBreakpoint,
     updateGithubActivitySpecAtBreakpoint: moduleContracts.updateGithubActivitySpecAtBreakpoint,
     updateGithubProfileSpecAtBreakpoint: moduleContracts.updateGithubProfileSpecAtBreakpoint,

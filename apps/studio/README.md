@@ -9,7 +9,7 @@ Run from the repository root:
 ```sh
 pnpm nx run @qrk.sh/studio:dev
 pnpm nx run @qrk.sh/studio:build
-pnpm nx run @qrk.sh/studio:typecheck
+pnpm nx run @qrk.sh/studio:ts
 pnpm nx run @qrk.sh/studio:lint
 pnpm nx run @qrk.sh/studio:start
 pnpm nx run @qrk.sh/studio:storybook
@@ -96,7 +96,7 @@ The separate React Router/Motion example remains an independent example, not an 
 
 Studio currently routes brick activation to the read-only detail drawer and suppresses the shared **Edit article** action. Article state has separate required title and subtitle strings and a Tiptap body; generated ArticleBrick specs bind all three fields. This hard schema change does not migrate existing content-only articles. The shared Library drawer editor uses a flat toolbar and centered writing column, supports block reordering, and saves local drafts explicitly, but Studio does not currently expose its editing entry point or a brick visibility control. Catalog and detail previews are read-only.
 
-Library drawer edits remain local until Save stages `updateBrickState`; failed saves retain the draft and show an error. Studio currently exposes Article previews only. Studio wall, brick, and placement commands use the authenticated `userSession` and its existing live push and synchronization lifecycle. Page and Site Settings continue to save through their existing commands.
+Library drawer edits remain local until Save stages `updateBrick`; failed saves retain the draft and show an error. Studio currently exposes Article previews only. Studio wall, brick, and placement commands use the authenticated `userSession` and its existing live push and synchronization lifecycle. Page and Site Settings continue to save through their existing commands.
 
 Each Page references its own Library wall, created atomically by `createPage` with ID `prefixId(libraryModule.models.wall, pageId)`. The grid and brick drawer scope queries to that wall. `ZerospinUserProvider` owns session initialization and disposal, and `UserLayout` waits for initialization before mounting the editor. Changing pages does not dispose the user session.
 

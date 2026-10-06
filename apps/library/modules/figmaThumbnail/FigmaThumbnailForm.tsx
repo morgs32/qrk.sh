@@ -11,7 +11,10 @@ import { Input } from "../../components/ui/input";
 import type { LibraryApi } from "../../worker/LibraryApi.public";
 import { figmaThumbnailV1 } from "./figmaThumbnailV1";
 
-export function FigmaThumbnailForm(props: { state: unknown; onSave: (state: unknown) => void }) {
+export function FigmaThumbnailForm(props: {
+  state: unknown;
+  onSave: (state: unknown) => Promise<void>;
+}) {
   const { state, onSave } = props;
   const StateSchema = Schema.NullOr(Schema.toType(makeEffectSchema(figmaThumbnailV1.stateShape)));
   const savedState = Schema.decodeUnknownSync(StateSchema)(state, {
@@ -63,7 +66,11 @@ export function FigmaThumbnailForm(props: { state: unknown; onSave: (state: unkn
       if (result._tag === "Left") {
         throw new Error(result.left.message);
       }
-      return result.right;
+      const nextState = Schema.decodeUnknownSync(StateSchema)(
+        { payload: { url: arg }, data: result.right },
+        { onExcessProperty: "ignore" },
+      );
+      await onSave(nextState);
     },
     { revalidate: false },
   );
@@ -81,12 +88,7 @@ export function FigmaThumbnailForm(props: { state: unknown; onSave: (state: unkn
         const submittedUrl = normalizedUrl;
         setSaveError(undefined);
         try {
-          const fetchedMetadata = await trigger(submittedUrl);
-          const nextState = Schema.decodeUnknownSync(StateSchema)(
-            { payload: { url: submittedUrl }, data: fetchedMetadata },
-            { onExcessProperty: "ignore" },
-          );
-          onSave(nextState);
+          await trigger(submittedUrl);
         } catch (cause) {
           setSaveError(cause instanceof Error ? cause.message : String(cause));
         }

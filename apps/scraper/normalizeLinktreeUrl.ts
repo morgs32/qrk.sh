@@ -11,9 +11,13 @@ export const normalizeLinktreeUrl = Effect.fn("normalizeLinktreeUrl")(function* 
         message: "Scrape URL must be a valid URL",
       }),
   });
-  const pathSegments = parsed.pathname.split("/").filter(segment => segment.length > 0);
+  const pathSegments = parsed.pathname.split("/").filter((segment) => segment.length > 0);
 
-  if (parsed.protocol !== "https:" || parsed.hostname !== "linktr.ee" || pathSegments.length !== 1) {
+  if (
+    parsed.protocol !== "https:" ||
+    parsed.hostname !== "linktr.ee" ||
+    pathSegments.length !== 1
+  ) {
     return yield* new ScrapeError({
       code: "invalid-scrape-request",
       message: "Linktree scrapes require https://linktr.ee/<profile>",

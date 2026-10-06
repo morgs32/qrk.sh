@@ -4,12 +4,13 @@ import { useState } from "react";
 import { notFound, useParams } from "next/navigation";
 import { makeModelIdSchema } from "@zerospin/core/models/make/makeModelIdSchema";
 import { Result, Schema } from "effect";
-import { stageCommand, useLiveQuery } from "@zerospin/react";
+import { useLiveQuery } from "@zerospin/react";
 
 import { libraryModule } from "../../../libraryModule/libraryModule";
 import { Button } from "../../../components/ui/button";
 import { modulesHash } from "../../../lib/modulesHash";
 import { useWallViewport } from "../../../lib/WallViewportProvider";
+import { useUpdateBrick } from "../../../lib/useUpdateBrick";
 import { useLibrarySession } from "../../../session/createLibraryStandaloneSession";
 import { GitHubProfileForm } from "../../../modules/githubProfile/GitHubProfileForm";
 import { GitHubRepoForm } from "../../../modules/githubRepo/GitHubRepoForm";
@@ -31,6 +32,7 @@ function BrickDetailContent(props: { brickId: `brk_${string}` }) {
   const { activeBreakpoint } = useWallViewport();
   const breakpoint = activeBreakpoint ?? "sm";
   const session = useLibrarySession();
+  const { updateBrick, measurementHost, isMutating } = useUpdateBrick({ brickId });
   const [formDraft, setFormDraft] = useState<{ state: unknown } | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [acceptedState, setAcceptedState] = useState<{ state: unknown } | null>(null);
@@ -76,125 +78,75 @@ function BrickDetailContent(props: { brickId: `brk_${string}` }) {
   const brickModule = modulesHash[brickRow.moduleId];
   if (brickRow.moduleId === "github-profile") {
     return (
-      <GitHubProfileForm
-        state={acceptedState?.state ?? brickRow.state}
-        onSave={(state) => {
-          const result = stageCommand({
-            session,
-            contractName: "updateBrickState",
-            payload: {
-              brickId: brickRow.id,
-              moduleId: brickRow.moduleId,
-              state,
-            },
-          });
-          if (result._tag === "Failure") {
-            throw new Error(
-              result.failure.message ?? result.failure.code ?? "Failed to save GitHub Profile",
-            );
-          }
-          setAcceptedState({ state });
-        }}
-      />
+      <>
+        {measurementHost}
+        <GitHubProfileForm
+          state={acceptedState?.state ?? brickRow.state}
+          onSave={async (state) => {
+            await updateBrick(state);
+            setAcceptedState({ state });
+          }}
+        />
+      </>
     );
   }
 
   if (brickRow.moduleId === "github-repo") {
     return (
-      <GitHubRepoForm
-        state={acceptedState?.state ?? brickRow.state}
-        onSave={(state) => {
-          const result = stageCommand({
-            session,
-            contractName: "updateBrickState",
-            payload: {
-              brickId: brickRow.id,
-              moduleId: brickRow.moduleId,
-              state,
-            },
-          });
-          if (result._tag === "Failure") {
-            throw new Error(
-              result.failure.message ?? result.failure.code ?? "Failed to save GitHub Repo",
-            );
-          }
-          setAcceptedState({ state });
-        }}
-      />
+      <>
+        {measurementHost}
+        <GitHubRepoForm
+          state={acceptedState?.state ?? brickRow.state}
+          onSave={async (state) => {
+            await updateBrick(state);
+            setAcceptedState({ state });
+          }}
+        />
+      </>
     );
   }
   if (brickRow.moduleId === "github-activity") {
     return (
-      <GitHubActivityForm
-        state={acceptedState?.state ?? brickRow.state}
-        onSave={(state) => {
-          const result = stageCommand({
-            session,
-            contractName: "updateBrickState",
-            payload: {
-              brickId: brickRow.id,
-              moduleId: brickRow.moduleId,
-              state,
-            },
-          });
-          if (result._tag === "Failure") {
-            throw new Error(
-              result.failure.message ?? result.failure.code ?? "Failed to save GitHub Activity",
-            );
-          }
-          setAcceptedState({ state });
-        }}
-      />
+      <>
+        {measurementHost}
+        <GitHubActivityForm
+          state={acceptedState?.state ?? brickRow.state}
+          onSave={async (state) => {
+            await updateBrick(state);
+            setAcceptedState({ state });
+          }}
+        />
+      </>
     );
   }
 
   if (brickRow.moduleId === "figma-thumbnail") {
     return (
-      <FigmaThumbnailForm
-        state={acceptedState?.state ?? brickRow.state}
-        onSave={(state) => {
-          const result = stageCommand({
-            session,
-            contractName: "updateBrickState",
-            payload: {
-              brickId: brickRow.id,
-              moduleId: brickRow.moduleId,
-              state,
-            },
-          });
-          if (result._tag === "Failure") {
-            throw new Error(
-              result.failure.message ?? result.failure.code ?? "Failed to save Figma Thumbnail",
-            );
-          }
-          setAcceptedState({ state });
-        }}
-      />
+      <>
+        {measurementHost}
+        <FigmaThumbnailForm
+          state={acceptedState?.state ?? brickRow.state}
+          onSave={async (state) => {
+            await updateBrick(state);
+            setAcceptedState({ state });
+          }}
+        />
+      </>
     );
   }
 
   if (brickRow.moduleId === "instagram") {
     return (
-      <InstagramForm
-        state={acceptedState?.state ?? brickRow.state}
-        onSave={(state) => {
-          const result = stageCommand({
-            session,
-            contractName: "updateBrickState",
-            payload: {
-              brickId: brickRow.id,
-              moduleId: brickRow.moduleId,
-              state,
-            },
-          });
-          if (result._tag === "Failure") {
-            throw new Error(
-              result.failure.message ?? result.failure.code ?? "Failed to save Instagram",
-            );
-          }
-          setAcceptedState({ state });
-        }}
-      />
+      <>
+        {measurementHost}
+        <InstagramForm
+          state={acceptedState?.state ?? brickRow.state}
+          onSave={async (state) => {
+            await updateBrick(state);
+            setAcceptedState({ state });
+          }}
+        />
+      </>
     );
   }
 
@@ -205,63 +157,56 @@ function BrickDetailContent(props: { brickId: `brk_${string}` }) {
   if (Form === undefined) return null;
 
   return (
-    <form
-      onSubmit={(event) => {
-        event.preventDefault();
-        if (!formDirty) return;
-        try {
-          const result = stageCommand({
-            session,
-            contractName: "updateBrickState",
-            payload: {
-              brickId: brickRow.id,
-              moduleId: brickRow.moduleId,
-              state: formState,
-            },
-          });
-          if (result._tag === "Failure") {
-            setFormError(result.failure.message ?? result.failure.code ?? "Failed to save Article");
-            return;
-          }
-          setAcceptedState({ state: formState });
-          setFormDraft(null);
-          setFormError(null);
-        } catch (cause) {
-          setFormError(cause instanceof Error ? cause.message : String(cause));
-        }
-      }}
-    >
-      <div className="flex flex-col gap-3">
-        <Form
-          key={editorEpoch}
-          state={formState}
-          onChange={(state) => {
-            setFormDraft({ state });
+    <>
+      {measurementHost}
+      <form
+        aria-busy={isMutating}
+        onSubmit={async (event) => {
+          event.preventDefault();
+          if (!formDirty || isMutating) return;
+          try {
+            await updateBrick(formState);
+            setAcceptedState({ state: formState });
+            setFormDraft(null);
             setFormError(null);
-          }}
-        />
-        {formError !== null ? (
-          <div className="rounded-md border border-red-200 bg-red-50 p-3" role="alert">
-            {formError}
-          </div>
-        ) : null}
-        <div className="flex gap-2">
-          <Button type="submit" disabled={!formDirty}>
-            Save article
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => {
-              setFormDraft(null);
+          } catch (cause) {
+            setFormError(cause instanceof Error ? cause.message : String(cause));
+          }
+        }}
+      >
+        <div className="flex flex-col gap-3" inert={isMutating}>
+          <Form
+            key={editorEpoch}
+            state={formState}
+            onChange={(state) => {
+              setFormDraft({ state });
               setFormError(null);
-              setEditorEpoch((epoch) => epoch + 1);
             }}
-          >
-            Cancel
-          </Button>
+          />
+          {formError !== null ? (
+            <div className="rounded-md border border-red-200 bg-red-50 p-3" role="alert">
+              {formError}
+            </div>
+          ) : null}
+          <div className="flex gap-2">
+            <Button type="submit" disabled={!formDirty || isMutating}>
+              {isMutating ? "Saving…" : "Save article"}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isMutating}
+              onClick={() => {
+                setFormDraft(null);
+                setFormError(null);
+                setEditorEpoch((epoch) => epoch + 1);
+              }}
+            >
+              Cancel
+            </Button>
+          </div>
         </div>
-      </div>
-    </form>
+      </form>
+    </>
   );
 }

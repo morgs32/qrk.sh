@@ -47,8 +47,7 @@ async function measureWithKitesurf(env: Env, breakpoint: string) {
   if (accountId === undefined || accountId.length === 0) {
     return jsonResponse(
       {
-        error:
-          "Missing CLOUDFLARE_ACCOUNT_ID. Set it in wrangler.jsonc vars before deploying.",
+        error: "Missing CLOUDFLARE_ACCOUNT_ID. Set it in wrangler.jsonc vars before deploying.",
       },
       500,
     );
@@ -117,11 +116,7 @@ async function measureWithKitesurf(env: Env, breakpoint: string) {
     );
   }
 
-  if (
-    upstreamJson === null ||
-    typeof upstreamJson !== "object" ||
-    Array.isArray(upstreamJson)
-  ) {
+  if (upstreamJson === null || typeof upstreamJson !== "object" || Array.isArray(upstreamJson)) {
     return jsonResponse(
       { error: `Unexpected scrape payload shape (HTTP ${upstream.status}).` },
       502,
@@ -144,9 +139,7 @@ async function measureWithKitesurf(env: Env, breakpoint: string) {
         : undefined;
     return jsonResponse(
       {
-        error:
-          messageFromErrors ??
-          `Browser Rendering scrape failed with HTTP ${upstream.status}.`,
+        error: messageFromErrors ?? `Browser Rendering scrape failed with HTTP ${upstream.status}.`,
         details: upstreamJson,
       },
       502,
@@ -225,9 +218,7 @@ export default {
     }
 
     const breakpoint =
-      "breakpoint" in body && typeof body.breakpoint === "string"
-        ? body.breakpoint
-        : undefined;
+      "breakpoint" in body && typeof body.breakpoint === "string" ? body.breakpoint : undefined;
     if (breakpoint === undefined) {
       return jsonResponse({ error: 'Missing string "breakpoint" field.' }, 400);
     }

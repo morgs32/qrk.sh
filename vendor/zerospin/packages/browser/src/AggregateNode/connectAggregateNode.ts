@@ -258,8 +258,9 @@ export async function connectAggregateNode(props: {
             'node-authentication-cancelled',
             'node-signed-out',
           ].includes(code)
-        )
+        ) {
           return;
+        }
         const authenticationRejected =
           (error instanceof Error &&
             'status' in error &&

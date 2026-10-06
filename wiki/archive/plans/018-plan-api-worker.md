@@ -35,9 +35,7 @@
    }
 
    // 2 — Existing Library image keys select the bucket that owns their bytes.
-   const bucket = url.pathname.startsWith("/assets/library/")
-     ? env.ASSETS
-     : env.QRKSH;
+   const bucket = url.pathname.startsWith("/assets/library/") ? env.ASSETS : env.QRKSH;
    ```
 
 3. Move Wrangler configuration, bindings, provider credentials, generated

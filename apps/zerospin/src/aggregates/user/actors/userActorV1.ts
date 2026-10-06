@@ -36,9 +36,10 @@ export const userActorV1 = makeAggregateActorVersion(defineAggregateActor({ name
   db,
   authentication: {
     credentialsSchema: signature,
-    authenticate: Effect.fn("userActor.authenticate")(function* ({ credentials, executeCommand }) {
+    authenticate: Effect.fn("userActor.authenticate")(function* (props) {
+      const { credentials, executeCommand } = props;
       const authentication = userProvisionerV1.authentication;
-      if (authentication === "none") {
+      if (typeof authentication === "string") {
         return yield* new ZerospinError({
           code: "user-provisioner-authentication-required",
           message: "The provisioner must authenticate Clerk credentials",

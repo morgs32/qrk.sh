@@ -93,12 +93,9 @@ export function AgentPreview<DEFINITION extends IAgentSessionDefinition>({
           <span>{agent.name}</span>
         </>
       )}
-      <span
-        role="status"
-        className="ml-auto shrink-0 text-xs text-muted-foreground"
-      >
+      <output className="ml-auto shrink-0 text-xs text-muted-foreground">
         Connection: {connection.status}
-      </span>
+      </output>
     </>
   );
   const connectionError =
@@ -230,9 +227,9 @@ function AgentResults<DEFINITION extends IAgentSessionDefinition>({
       error={errors || null}
       onRefresh={() => setRefreshKey(key => key + 1)}
       status={
-        <span role="status" className="text-xs text-muted-foreground">
+        <output className="text-xs text-muted-foreground">
           {rows.data?.length ?? 0} results
-        </span>
+        </output>
       }
       emptyMessage="No matching rows."
       actions={
@@ -378,13 +375,15 @@ function CommandPanel<DEFINITION extends IAgentSessionDefinition>({
           ))}
         </dl>
         {row === undefined && (
-          <p role="status">This row is no longer in the selection.</p>
+          <output className="block">
+            This row is no longer in the selection.
+          </output>
         )}
         {disabled && row !== undefined && (
-          <p role="status">
+          <output className="block">
             Submission is disabled until the session is live and delivery is
             resolved.
-          </p>
+          </output>
         )}
         <ShapeForm
           shape={shape}
@@ -432,13 +431,13 @@ function CommandPanel<DEFINITION extends IAgentSessionDefinition>({
           }}
         />
         {command !== undefined && (
-          <p
-            role="status"
+          <output
+            className="block"
             data-command-id={command.id}
             data-session-index={command.sessionIndex}
           >
             {contractName}: {commandStatus(command)}
-          </p>
+          </output>
         )}
         <ul className="space-y-1 border-t pt-3" aria-label="Session commands">
           {commands

@@ -1,10 +1,6 @@
 import { useEffect, useState } from "react";
 
-import {
-  BREAKPOINTS,
-  isBreakpointId,
-  resolveBreakpointEntry,
-} from "./breakpoints";
+import { BREAKPOINTS, isBreakpointId, resolveBreakpointEntry } from "./breakpoints";
 import { PopulatedGitHubProfileBrick } from "./PopulatedGitHubProfileBrick";
 
 function readBreakpointFromSearch(): (typeof BREAKPOINTS)[number]["id"] {
@@ -16,8 +12,7 @@ function readBreakpointFromSearch(): (typeof BREAKPOINTS)[number]["id"] {
 export function RenderPage() {
   const breakpoint = readBreakpointFromSearch();
   const entry = resolveBreakpointEntry(breakpoint);
-  const invalidBreakpointMessage =
-    entry === undefined ? `Unknown breakpoint: ${breakpoint}` : null;
+  const invalidBreakpointMessage = entry === undefined ? `Unknown breakpoint: ${breakpoint}` : null;
   const [readyState, setReadyState] = useState<"pending" | "ok" | "failed">(
     invalidBreakpointMessage === null ? "pending" : "failed",
   );

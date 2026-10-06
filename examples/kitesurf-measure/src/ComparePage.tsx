@@ -1,11 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import {
-  BREAKPOINTS,
-  isBreakpointId,
-  minGridUnits,
-  resolveBreakpointEntry,
-} from "./breakpoints";
+import { BREAKPOINTS, isBreakpointId, minGridUnits, resolveBreakpointEntry } from "./breakpoints";
 
 function readSize(element: Element) {
   const bounds = element.getBoundingClientRect();
@@ -54,8 +49,7 @@ function waitForIframeReady(iframe: HTMLIFrameElement) {
 }
 
 export function ComparePage() {
-  const [breakpoint, setBreakpoint] =
-    useState<(typeof BREAKPOINTS)[number]["id"]>("sm");
+  const [breakpoint, setBreakpoint] = useState<(typeof BREAKPOINTS)[number]["id"]>("sm");
   const [localSize, setLocalSize] = useState<{
     widthPx: number;
     heightPx: number;
@@ -110,11 +104,7 @@ export function ComparePage() {
         body: JSON.stringify({ breakpoint }),
       });
       const payload: unknown = await response.json();
-      if (
-        payload === null ||
-        typeof payload !== "object" ||
-        Array.isArray(payload)
-      ) {
+      if (payload === null || typeof payload !== "object" || Array.isArray(payload)) {
         throw new Error("Measure endpoint returned a non-object body.");
       }
 
@@ -169,8 +159,8 @@ export function ComparePage() {
       <header style={{ display: "grid", gap: 8 }}>
         <h1 style={{ margin: 0, fontSize: 20 }}>Kitesurf brick measurement</h1>
         <p style={{ margin: 0, color: "#52525b" }}>
-          Compare local browser dimensions of the GitHub profile brick with Cloudflare
-          Kitesurf scrape measurements.
+          Compare local browser dimensions of the GitHub profile brick with Cloudflare Kitesurf
+          scrape measurements.
         </p>
       </header>
 

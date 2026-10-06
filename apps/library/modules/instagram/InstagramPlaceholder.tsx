@@ -8,10 +8,7 @@ export function InstagramPlaceholder() {
       <div className="relative min-h-[200px] min-w-[200px] flex-1 overflow-hidden bg-zinc-200">
         <div className="absolute inset-0 grid grid-cols-2 grid-rows-2 gap-px">
           {Array.from({ length: 4 }, (_, index) => (
-            <Skeleton
-              key={index}
-              className="size-full rounded-none motion-reduce:animate-none"
-            />
+            <Skeleton key={index} className="size-full rounded-none motion-reduce:animate-none" />
           ))}
         </div>
       </div>

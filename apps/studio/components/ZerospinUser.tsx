@@ -4,7 +4,8 @@ import { makeAggregateId } from "@zerospin/core/utils/make/makeAggregateId";
 import { prettyUnknownFailure } from "@zerospin/error";
 
 import { RedirectToSignIn, useAuth, useUser } from "@clerk/nextjs";
-import { loadDevtools, useInitializeSession } from "@zerospin/react";
+import { loadDevtools } from "@zerospin/react/loadDevtools/loadDevtools";
+import { useInitializeAggregateSession } from "@zerospin/react/useInitializeAggregateSession/useInitializeAggregateSession";
 import { ZerospinError } from "@zerospin/sdk/browser";
 import { Effect } from "effect";
 import { useEffect, useSyncExternalStore, type ReactNode } from "react";
@@ -23,7 +24,7 @@ export function useZerospinUserInitializedState() {
 function ZerospinUserInitializedStateProvider(props: { clerkUserId: string }) {
   const { clerkUserId } = props;
   const { getToken } = useAuth();
-  useInitializeSession({
+  useInitializeAggregateSession({
     session: userSession,
     expectedClaims: {
       aggregateId: makeAggregateId({ id: clerkUserId }),

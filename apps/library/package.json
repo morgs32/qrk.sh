@@ -69,7 +69,7 @@
     "dev": "next dev --webpack --hostname 127.0.0.1 --port 4100",
     "preview": "next start --hostname 127.0.0.1 --port 4100",
     "build": "vp build --config vite.lib.config.ts && cp bricks.css dist/ && mkdir -p dist/worker && cp worker/*.public.d.ts dist/worker/ && tsc -p tsconfig.build.json --emitDeclarationOnly",
-    "tsc": "tsc --noEmit",
+    "ts": "tsc --noEmit",
     "lint": "vp lint --config .oxlintrc.json .",
     "format": "vp fmt --config ../../.oxfmtrc.json .",
     "format:check": "vp fmt --config ../../.oxfmtrc.json --check .",

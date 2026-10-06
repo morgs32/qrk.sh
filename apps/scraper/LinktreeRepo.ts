@@ -50,7 +50,11 @@ export class LinktreeRepo extends DurableObject<IScraperEnv> {
       return normalized;
     }
     const canonicalUrl = normalized.right;
-    const cached = this.#db.select().from(linktreeCache).where(eq(linktreeCache.url, canonicalUrl)).get();
+    const cached = this.#db
+      .select()
+      .from(linktreeCache)
+      .where(eq(linktreeCache.url, canonicalUrl))
+      .get();
     if (cached !== undefined && cached.expiresAt > Date.now()) {
       return { _tag: "Right", right: cached.payload };
     }
@@ -58,31 +62,75 @@ export class LinktreeRepo extends DurableObject<IScraperEnv> {
     const existingScrape = this.#inFlightScrapes.get(canonicalUrl);
     if (cached !== undefined) {
       if (existingScrape === undefined) {
-        const refreshPromise = this.env.BROWSER_HOST.getByName(GLOBAL_BROWSER_HOST_NAME).scrapeLinktree(canonicalUrl).then(async result => {
-          if (result._tag === "Left") {
-            return result;
-          }
-          const decoded = await Effect.runPromise(Schema.decodeUnknownEffect(Schema.fromJsonString(LinktreePayloadSchema))(result.right, { onExcessProperty: "preserve" }).pipe(
-            Effect.mapError(() => new ScrapeError({ code: "unsupported-page-shape", message: "BrowserHost returned an invalid Linktree payload" })),
-            encodeRpc,
-          ));
-          if (decoded._tag === "Right") {
-            const refreshedAt = Date.now();
-            this.#db.insert(linktreeCache).values({ url: canonicalUrl, payload: decoded.right, refreshedAt, expiresAt: refreshedAt + CACHE_TTL_MS }).onConflictDoUpdate({ target: linktreeCache.url, set: { payload: decoded.right, refreshedAt, expiresAt: refreshedAt + CACHE_TTL_MS } }).run();
-          }
-          return decoded;
-        }).catch((cause): IRpcEither<ILinktreeScrapePayload> => ({
-          _tag: "Left",
-          left: { code: "scrape-persistence-failed", message: `Linktree refresh failed: ${String(cause)}` },
-        }));
+        const refreshPromise = this.env.BROWSER_HOST.getByName(GLOBAL_BROWSER_HOST_NAME)
+          .scrapeLinktree(canonicalUrl)
+          .then(async (result) => {
+            if (result._tag === "Left") {
+              return result;
+            }
+            const decoded = await Effect.runPromise(
+              Schema.decodeUnknownEffect(Schema.fromJsonString(LinktreePayloadSchema))(
+                result.right,
+                { onExcessProperty: "preserve" },
+              ).pipe(
+                Effect.mapError(
+                  () =>
+                    new ScrapeError({
+                      code: "unsupported-page-shape",
+                      message: "BrowserHost returned an invalid Linktree payload",
+                    }),
+                ),
+                encodeRpc,
+              ),
+            );
+            if (decoded._tag === "Right") {
+              const refreshedAt = Date.now();
+              this.#db
+                .insert(linktreeCache)
+                .values({
+                  url: canonicalUrl,
+                  payload: decoded.right,
+                  refreshedAt,
+                  expiresAt: refreshedAt + CACHE_TTL_MS,
+                })
+                .onConflictDoUpdate({
+                  target: linktreeCache.url,
+                  set: {
+                    payload: decoded.right,
+                    refreshedAt,
+                    expiresAt: refreshedAt + CACHE_TTL_MS,
+                  },
+                })
+                .run();
+            }
+            return decoded;
+          })
+          .catch((cause): IRpcEither<ILinktreeScrapePayload> => ({
+            _tag: "Left",
+            left: {
+              code: "scrape-persistence-failed",
+              message: `Linktree refresh failed: ${String(cause)}`,
+            },
+          }));
         this.#inFlightScrapes.set(canonicalUrl, refreshPromise);
-        this.ctx.waitUntil(refreshPromise.then(result => {
-          if (result._tag === "Left") {
-            console.error(JSON.stringify({ event: "scraper-background-refresh-failed", repo: "LinktreeRepo", url: canonicalUrl, error: result.left }));
-          }
-        }).finally(() => {
-          this.#inFlightScrapes.delete(canonicalUrl);
-        }));
+        this.ctx.waitUntil(
+          refreshPromise
+            .then((result) => {
+              if (result._tag === "Left") {
+                console.error(
+                  JSON.stringify({
+                    event: "scraper-background-refresh-failed",
+                    repo: "LinktreeRepo",
+                    url: canonicalUrl,
+                    error: result.left,
+                  }),
+                );
+              }
+            })
+            .finally(() => {
+              this.#inFlightScrapes.delete(canonicalUrl);
+            }),
+        );
       }
       return { _tag: "Right", right: cached.payload };
     }
@@ -90,23 +138,51 @@ export class LinktreeRepo extends DurableObject<IScraperEnv> {
     if (existingScrape !== undefined) {
       return existingScrape;
     }
-    const scrapePromise = this.env.BROWSER_HOST.getByName(GLOBAL_BROWSER_HOST_NAME).scrapeLinktree(canonicalUrl).then(async result => {
-      if (result._tag === "Left") {
-        return result;
-      }
-      const decoded = await Effect.runPromise(Schema.decodeUnknownEffect(Schema.fromJsonString(LinktreePayloadSchema))(result.right, { onExcessProperty: "preserve" }).pipe(
-        Effect.mapError(() => new ScrapeError({ code: "unsupported-page-shape", message: "BrowserHost returned an invalid Linktree payload" })),
-        encodeRpc,
-      ));
-      if (decoded._tag === "Right") {
-        const refreshedAt = Date.now();
-        this.#db.insert(linktreeCache).values({ url: canonicalUrl, payload: decoded.right, refreshedAt, expiresAt: refreshedAt + CACHE_TTL_MS }).onConflictDoUpdate({ target: linktreeCache.url, set: { payload: decoded.right, refreshedAt, expiresAt: refreshedAt + CACHE_TTL_MS } }).run();
-      }
-      return decoded;
-    }).catch((cause): IRpcEither<ILinktreeScrapePayload> => ({
-      _tag: "Left",
-      left: { code: "scrape-persistence-failed", message: `Linktree scrape failed: ${String(cause)}` },
-    }));
+    const scrapePromise = this.env.BROWSER_HOST.getByName(GLOBAL_BROWSER_HOST_NAME)
+      .scrapeLinktree(canonicalUrl)
+      .then(async (result) => {
+        if (result._tag === "Left") {
+          return result;
+        }
+        const decoded = await Effect.runPromise(
+          Schema.decodeUnknownEffect(Schema.fromJsonString(LinktreePayloadSchema))(result.right, {
+            onExcessProperty: "preserve",
+          }).pipe(
+            Effect.mapError(
+              () =>
+                new ScrapeError({
+                  code: "unsupported-page-shape",
+                  message: "BrowserHost returned an invalid Linktree payload",
+                }),
+            ),
+            encodeRpc,
+          ),
+        );
+        if (decoded._tag === "Right") {
+          const refreshedAt = Date.now();
+          this.#db
+            .insert(linktreeCache)
+            .values({
+              url: canonicalUrl,
+              payload: decoded.right,
+              refreshedAt,
+              expiresAt: refreshedAt + CACHE_TTL_MS,
+            })
+            .onConflictDoUpdate({
+              target: linktreeCache.url,
+              set: { payload: decoded.right, refreshedAt, expiresAt: refreshedAt + CACHE_TTL_MS },
+            })
+            .run();
+        }
+        return decoded;
+      })
+      .catch((cause): IRpcEither<ILinktreeScrapePayload> => ({
+        _tag: "Left",
+        left: {
+          code: "scrape-persistence-failed",
+          message: `Linktree scrape failed: ${String(cause)}`,
+        },
+      }));
     this.#inFlightScrapes.set(canonicalUrl, scrapePromise);
     try {
       return await scrapePromise;

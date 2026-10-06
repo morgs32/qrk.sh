@@ -12,9 +12,7 @@ export function FigmaThumbnailPlaceholder() {
         />
         <MediaFooter
           overline="Figma"
-          heading={
-            <Skeleton aria-hidden="true" className="h-6 w-3/4 motion-reduce:animate-none" />
-          }
+          heading={<Skeleton aria-hidden="true" className="h-6 w-3/4 motion-reduce:animate-none" />}
           icon={
             <svg aria-label="Figma" className="h-8 w-6 shrink-0" viewBox="0 0 24 36">
               <path d="M6 0h6v12H6a6 6 0 0 1 0-12Z" fill="#F24E1E" />

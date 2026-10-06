@@ -11,7 +11,10 @@ import { Input } from "../../components/ui/input";
 import type { LibraryApi } from "../../worker/LibraryApi.public";
 import { githubRepoV1 } from "./githubRepoV1";
 
-export function GitHubRepoForm(props: { state: unknown; onSave: (state: unknown) => void }) {
+export function GitHubRepoForm(props: {
+  state: unknown;
+  onSave: (state: unknown) => Promise<void>;
+}) {
   const { state, onSave } = props;
   const StateSchema = Schema.NullOr(Schema.toType(makeEffectSchema(githubRepoV1.stateShape)));
   const savedState = Schema.decodeUnknownSync(StateSchema)(state, {
@@ -51,14 +54,19 @@ export function GitHubRepoForm(props: { state: unknown; onSave: (state: unknown)
   );
   const { trigger, isMutating } = useSWRMutation(
     "/rpc:getGitHubRepo",
-    async (_key, options: { arg: string }) => {
+    async (_key, options: { arg: { submittedInput: string; submittedUrl: string } }) => {
       const { arg } = options;
+      const { submittedInput, submittedUrl } = arg;
       using api = newSyncRpcSession<LibraryApi>("/rpc");
-      const result = await api.getGitHubRepo(arg);
+      const result = await api.getGitHubRepo(submittedInput);
       if (result._tag === "Left") {
         throw new Error(result.left.message);
       }
-      return result.right;
+      const nextState = Schema.decodeUnknownSync(StateSchema)(
+        { payload: { url: submittedUrl }, data: result.right },
+        { onExcessProperty: "ignore" },
+      );
+      await onSave(nextState);
     },
     { revalidate: false },
   );
@@ -77,12 +85,7 @@ export function GitHubRepoForm(props: { state: unknown; onSave: (state: unknown)
         const submittedUrl = normalizedUrl;
         setSaveError(undefined);
         try {
-          const fetchedRepo = await trigger(submittedInput);
-          const nextState = Schema.decodeUnknownSync(StateSchema)(
-            { payload: { url: submittedUrl }, data: fetchedRepo },
-            { onExcessProperty: "ignore" },
-          );
-          onSave(nextState);
+          await trigger({ submittedInput, submittedUrl });
         } catch (cause) {
           setSaveError(cause instanceof Error ? cause.message : String(cause));
         }

@@ -1,15 +1,17 @@
 {
   "private": true,
   "scripts": {
-    "dev": "nx run-many -t dev -p @qrk.sh/zerospin @qrk.sh/library @qrk.sh/studio @qrk.sh/api @qrk.sh/web --parallel=5"
+    "dev": "nx run-many -t dev -p @qrk.sh/zerospin @qrk.sh/library @qrk.sh/studio @qrk.sh/api @qrk.sh/web --parallel=5",
+    "ts": "nx run-many -t ts --all --nxBail"
+  },
+  "dependencies": {
+    "framer-motion": "13.2.0"
   },
   "devDependencies": {
+    "@typescript/native": "npm:typescript@^7.0.2",
     "effect": "rc",
     "nx": "23.1.0",
     "typescript": "^6.0.2"
   },
-  "packageManager": "pnpm@10.33.0",
-  "dependencies": {
-    "framer-motion": "13.2.0"
-  }
+  "packageManager": "pnpm@10.33.0"
 }

@@ -76,10 +76,10 @@
    // 2 — Every pane permanently owns one breakpoint and retains its wall.
    <WallBreakpointPane key={row.id} /* existing animation props */>
      <BrickWall
-       session={session}                     // Shared editor session.
+       session={session} // Shared editor session.
        wallId={WALL_ID}
-       breakpoint={row.id}                    // Never retarget this instance.
-       gridWidth={row.previewWidth}           // Fixed even on the base route.
+       breakpoint={row.id} // Never retarget this instance.
+       gridWidth={row.previewWidth} // Fixed even on the base route.
        isActive={activeBreakpoint === row.id} // Only this wall may interact/measure.
      />
    </WallBreakpointPane>

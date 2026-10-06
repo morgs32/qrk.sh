@@ -49,4 +49,3 @@ Status: Approved and converted into plan 002. This archived specification record
 3. Verify identical builds hash identically, runtime/WASM changes alter the hash, and unrelated frontend/source-map changes do not. Test isolation with genuinely distinct runtime builds.
 4. Run affected Nx build/type/lint/unit/browser checks, QRK Studio/web checks, and manual development/production worker/WASM loading through ordinary assets. Never add/run QRK library-app tests or Shopping browser tests.
 5. Audit removed names/endpoints and current docs. Record actual verification and blockers below; keep this plan active until implementation and verification finish.
-

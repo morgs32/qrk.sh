@@ -18,8 +18,6 @@ export function resolveBreakpointEntry(breakpoint: string) {
   return undefined;
 }
 
-export function isBreakpointId(
-  value: string,
-): value is (typeof BREAKPOINTS)[number]["id"] {
+export function isBreakpointId(value: string): value is (typeof BREAKPOINTS)[number]["id"] {
   return BREAKPOINTS.some((entry) => entry.id === value);
 }

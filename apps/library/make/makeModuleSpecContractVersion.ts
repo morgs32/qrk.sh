@@ -100,6 +100,7 @@ export function makeModuleSpecContractVersion<
         ) as InferIdFromAbbreviation<"plc">,
         attributes: {
           spec: structuredClone(programPayload.spec),
+          measured: null,
         } as Partial<InferDecodedRow<(typeof placement)["attributes"]>>,
       });
     }),

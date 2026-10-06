@@ -60,8 +60,9 @@ export const importServiceCommandTx = Effect.fn('importServiceCommandTx')(
       .from(sessionMetadata)
       .where(eq(sessionMetadata.sessionId, sessionId))
       .get();
-    if (metadata === undefined)
+    if (metadata === undefined) {
       return yield* makeZerospinError('session-metadata-missing');
+    }
     const terminal = 'executedIndex' in command;
     const rows = tx
       .select()
@@ -120,14 +121,16 @@ export const importServiceCommandTx = Effect.fn('importServiceCommandTx')(
       if (
         command.executedIndex === metadata.executedIndex &&
         command.serviceHash !== metadata.serviceHash
-      )
+      ) {
         return yield* makeZerospinError('service-session-checkpoint-conflict');
+      }
       if (
         command.executedIndex > metadata.executedIndex &&
         (command.executedIndex !== metadata.executedIndex + 1 ||
           command.serviceIndex < metadata.serviceIndex)
-      )
+      ) {
         return yield* makeZerospinError('service-session-command-index-gap');
+      }
       local = rows.find(
         row => row.id === command.id && row.executedIndex === null,
       );
@@ -137,8 +140,9 @@ export const importServiceCommandTx = Effect.fn('importServiceCommandTx')(
         command.actorVersion !== definition.actorVersion ||
         command.serviceName !== definition.serviceName ||
         command.sessionName !== definition.sessionName
-      )
+      ) {
         return yield* makeZerospinError('pending-command-actor-mismatch');
+      }
       local ??= rows.find(
         row => row.id === command.id && row.executedIndex === null,
       );
@@ -307,11 +311,12 @@ export const importServiceCommandTx = Effect.fn('importServiceCommandTx')(
           .run();
       }
     }
-    if (local === undefined)
+    if (local === undefined) {
       tx.update(sessionMetadata)
         .set({ nextSessionIndex })
         .where(eq(sessionMetadata.sessionId, sessionId))
         .run();
+    }
     yield* replayPendingServiceCommandsTx({ tx, definition });
     return 'applied' as const;
   },
@@ -326,13 +331,14 @@ const importPageTx = makeTx('importServiceNodeCommands')(function* (
     throughChangeIndex?: number;
   },
 ) {
-  for (const command of props.commands)
+  for (const command of props.commands) {
     yield* importServiceCommandTx({
       tx,
       definition: props.definition,
       sessionId: props.sessionId,
       command,
     });
+  }
   const { serviceSessionMetadata: sessionMetadata } =
     serviceSessionRepoDbConfig.schema;
   if (props.throughChangeIndex !== undefined) {
@@ -344,8 +350,9 @@ const importPageTx = makeTx('importServiceNodeCommands')(function* (
     if (
       metadata === undefined ||
       props.throughChangeIndex < metadata.changeIndex
-    )
+    ) {
       return yield* makeZerospinError('session-change-index-regression');
+    }
     tx.update(sessionMetadata)
       .set({ changeIndex: props.throughChangeIndex })
       .where(eq(sessionMetadata.sessionId, props.sessionId))
@@ -356,8 +363,9 @@ const importPageTx = makeTx('importServiceNodeCommands')(function* (
     .from(sessionMetadata)
     .where(eq(sessionMetadata.sessionId, props.sessionId))
     .get();
-  if (metadata === undefined)
+  if (metadata === undefined) {
     return yield* makeZerospinError('session-metadata-missing');
+  }
   return metadata;
 });
 

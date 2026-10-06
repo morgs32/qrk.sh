@@ -4,11 +4,20 @@ import { validatePayload } from "@zerospin/core/contracts/validatePayload";
 import { prefixId } from "@zerospin/sdk/browser";
 import { it } from "@effect/vitest";
 import { AsyncLive } from "@zerospin/core/async/AsyncLive";
+import { makeAsync } from "@zerospin/core/async/make/makeAsync";
+import SQLiteFactory from "@livestore/wa-sqlite/dist/wa-sqlite.mjs";
+import wasm from "@livestore/wa-sqlite/dist/wa-sqlite.wasm";
 import { makeResourceDbConfig } from "@zerospin/core/drizzle/make/makeDbConfig/makeDbConfig";
-import { makeProvisionedInMemoryWasmSqliteDb } from "@zerospin/core/drizzle/make/makeProvisionedInMemoryWasmSqliteDb/makeProvisionedInMemoryWasmSqliteDb";
+import { makeProvisionedInMemorySqljsDb } from "@zerospin/core/drizzle/make/makeProvisionedInMemorySqljsDb/makeProvisionedInMemorySqljsDb";
+import { makeInMemorySQLite3 } from "@zerospin/core/drizzle/make/makeInMemorySQLite3/makeInMemorySQLite3";
+import { makeWaSqliteDrizzle } from "@zerospin/core/drizzle/make/makeProvisionedInMemoryWasmSqliteDb/makeInMemoryWasmSqliteDb/makeWaSqliteDrizzle/makeWaSqliteDrizzle";
+import { provisionDb } from "@zerospin/core/drizzle/provisionDb/provisionDb";
+import { bindAggregateSession } from "@zerospin/core/aggregateSession/bindAggregateSession";
 import { makeAggregateSession } from "@zerospin/core/aggregateSession/make/makeAggregateSession";
 import { sessionRepoDbConfig } from "@zerospin/core/aggregateSession/sessionRepoDbConfig";
 import { stageCommand } from "@zerospin/core/aggregateSession/stageCommand/stageCommand";
+import { stageSessionCommandTx } from "@zerospin/core/aggregateSession/stageCommand/stageSessionCommandTx/stageSessionCommandTx";
+import { operationSink } from "@zerospin/core/contracts/operationSink";
 import { NanoIdFactory } from "@zerospin/core/utils/NanoIdFactory";
 import { UlidMonotonicFactory } from "@zerospin/core/utils/UlidMonotonicFactory";
 import { DateTime, Effect, Layer, ManagedRuntime, Result } from "effect";
@@ -31,9 +40,25 @@ describe("site and page creation contracts", () => {
         otherTables: sessionRepoDbConfig.tables,
       });
       const { schema } = dbConfig;
-      const db = yield* makeProvisionedInMemoryWasmSqliteDb({ dbConfig }).pipe(
-        Effect.provide(AsyncLive),
+      const client = yield* Effect.acquireRelease(
+        makeAsync(() =>
+          makeInMemorySQLite3(() =>
+            SQLiteFactory({
+              instantiateWasm(
+                imports: WebAssembly.Imports,
+                receiveInstance: (instance: WebAssembly.Instance) => void,
+              ) {
+                const instance = new WebAssembly.Instance(wasm, imports);
+                receiveInstance(instance);
+                return instance.exports;
+              },
+            }),
+          ),
+        ).pipe(Effect.provide(AsyncLive)),
+        (client) => Effect.sync(() => client.sqlite3.close(client.db)),
       );
+      const db = makeWaSqliteDrizzle(client, dbConfig);
+      yield* provisionDb({ db, schema });
 
       db.insert(dbConfig.schema.user)
         .values({
@@ -58,33 +83,34 @@ describe("site and page creation contracts", () => {
       const session = makeAggregateSession({
         definition: { ...definition, ...userSessionDefinition },
       });
-      session.setExecutionResources({
+      bindAggregateSession({
+        session,
         runtime,
-        sessionId,
-      });
-      session.store.setState({
-        ...session.store.getState(),
-        sessionId,
-        aggregateId: "acct_site_contract_user",
-        aggregateName: userSessionDefinition.aggregateName,
-        claims: {
+        commitCommand: stageSessionCommandTx,
+        state: {
+          ...session.store.getState(),
+          sessionId,
           aggregateId: "acct_site_contract_user",
-          clerkUserId: "site_contract_user",
+          aggregateName: userSessionDefinition.aggregateName,
+          claims: {
+            aggregateId: "acct_site_contract_user",
+            clerkUserId: "site_contract_user",
+          },
+          sessionName: userSessionDefinition.sessionName,
+          aggregateSessionLockKey: "site-contract-lock-key",
+          db,
+          schema,
+          models: userSessionDefinition.models,
+          isInitialized: true,
+          aggregateIndex: 0,
+          executedIndex: 0,
+          executedHash: "",
+          actorName: "web",
+          actorVersion: userSessionDefinition.actorVersion,
+          pushIndex: 0,
+          sessionStatus: "current",
+          backupState: { status: "ready", failure: null },
         },
-        sessionName: userSessionDefinition.sessionName,
-        aggregateSessionLockKey: "site-contract-lock-key",
-        db,
-        schema,
-        models: userSessionDefinition.models,
-        isInitialized: true,
-        aggregateIndex: 0,
-        executedIndex: 0,
-        executedHash: "",
-        actorName: "web",
-        actorVersion: userSessionDefinition.actorVersion,
-        pushIndex: 0,
-        sessionStatus: "current",
-        backupState: { status: "ready", failure: null },
       });
 
       const staged = stageCommand({
@@ -213,22 +239,24 @@ describe("site and page creation contracts", () => {
       expect(db.query.placement.findMany().sync()).toHaveLength(4);
       const updated = stageCommand({
         session,
-        contractName: "updateBrickState",
+        contractName: "updateBrick",
         payload: {
           brickId: "brk_live_first",
           moduleId: "swatch-and-icon",
           state: { payload: { hash: "changed" }, data: { name: "Updated", svg: "<svg/>" } },
+          measurements: null,
         },
       });
       expect(updated._tag).toBe("Success");
       expect(db.query.brick.findFirst().sync()?.state).toMatchObject({ data: { name: "Updated" } });
       const invalid = stageCommand({
         session,
-        contractName: "updateBrickState",
+        contractName: "updateBrick",
         payload: {
           brickId: "brk_live_first",
           moduleId: "swatch-and-icon",
           state: { invalid: true },
+          measurements: null,
         },
       });
       expect(invalid._tag).toBe("Failure");
@@ -277,7 +305,7 @@ describe("site and page creation contracts", () => {
           })
           .run();
       }
-      const selections = userActorV1.selections;
+      const selections = userActorV1.capturedSelections;
       const identity = { clerkUserId: "site_contract_user" };
       expect(selections.wall.all(db, identity)).toMatchObject([
         { id: wallId },
@@ -340,7 +368,7 @@ describe("site and page creation contracts", () => {
   it.effect("rejects site program execution without an authenticated user", () =>
     Effect.gen(function* () {
       const dbConfig = makeResourceDbConfig({ models: userSessionDefinition.models });
-      const db = yield* makeProvisionedInMemoryWasmSqliteDb({ dbConfig }).pipe(
+      const db = yield* makeProvisionedInMemorySqljsDb({ dbConfig }).pipe(
         Effect.provide(AsyncLive),
       );
       const error = yield* createSite
@@ -355,7 +383,14 @@ describe("site and page creation contracts", () => {
             description: null,
           },
         })
-        .pipe(Effect.flip);
+        .pipe(
+          Effect.provideService(operationSink(), {
+            emit: () => {
+              throw new Error("Unauthenticated program must not emit operations");
+            },
+          }),
+          Effect.flip,
+        );
 
       expect(error).toMatchObject({
         code: "create-site-user-mismatch",
@@ -402,7 +437,7 @@ describe("user frontend creation guards", () => {
       const dbConfig = makeResourceDbConfig({
         models: userSessionDefinition.models,
       });
-      const db = yield* makeProvisionedInMemoryWasmSqliteDb({ dbConfig }).pipe(
+      const db = yield* makeProvisionedInMemorySqljsDb({ dbConfig }).pipe(
         Effect.provide(AsyncLive),
       );
 
@@ -467,7 +502,7 @@ describe("user frontend creation guards", () => {
       const dbConfig = makeResourceDbConfig({
         models: userSessionDefinition.models,
       });
-      const db = yield* makeProvisionedInMemoryWasmSqliteDb({ dbConfig }).pipe(
+      const db = yield* makeProvisionedInMemorySqljsDb({ dbConfig }).pipe(
         Effect.provide(AsyncLive),
       );
 
@@ -550,9 +585,25 @@ describe("user frontend creation guards", () => {
         otherTables: sessionRepoDbConfig.tables,
       });
       const { schema } = dbConfig;
-      const db = yield* makeProvisionedInMemoryWasmSqliteDb({ dbConfig }).pipe(
-        Effect.provide(AsyncLive),
+      const client = yield* Effect.acquireRelease(
+        makeAsync(() =>
+          makeInMemorySQLite3(() =>
+            SQLiteFactory({
+              instantiateWasm(
+                imports: WebAssembly.Imports,
+                receiveInstance: (instance: WebAssembly.Instance) => void,
+              ) {
+                const instance = new WebAssembly.Instance(wasm, imports);
+                receiveInstance(instance);
+                return instance.exports;
+              },
+            }),
+          ),
+        ).pipe(Effect.provide(AsyncLive)),
+        (client) => Effect.sync(() => client.sqlite3.close(client.db)),
       );
+      const db = makeWaSqliteDrizzle(client, dbConfig);
+      yield* provisionDb({ db, schema });
 
       db.insert(dbConfig.schema.user)
         .values({
@@ -577,34 +628,35 @@ describe("user frontend creation guards", () => {
       const session = makeAggregateSession({
         definition: { ...definition, ...userSessionDefinition },
       });
-      session.setExecutionResources({
+      bindAggregateSession({
+        session,
         runtime,
-        sessionId,
-      });
-      session.store.setState({
-        ...session.store.getState(),
-        sessionId,
-        aggregateId: "acct_update_site_settings_user",
-        aggregateName: userSessionDefinition.aggregateName,
-        claims: {
+        commitCommand: stageSessionCommandTx,
+        state: {
+          ...session.store.getState(),
+          sessionId,
           aggregateId: "acct_update_site_settings_user",
-          clerkUserId: "update_site_settings_user",
-        },
+          aggregateName: userSessionDefinition.aggregateName,
+          claims: {
+            aggregateId: "acct_update_site_settings_user",
+            clerkUserId: "update_site_settings_user",
+          },
 
-        sessionName: userSessionDefinition.sessionName,
-        aggregateSessionLockKey: "update-site-settings-lock-key",
-        db,
-        schema,
-        models: userSessionDefinition.models,
-        isInitialized: true,
-        aggregateIndex: 0,
-        executedIndex: 0,
-        executedHash: "",
-        actorName: "web",
-        actorVersion: userSessionDefinition.actorVersion,
-        pushIndex: 0,
-        sessionStatus: "current",
-        backupState: { status: "ready", failure: null },
+          sessionName: userSessionDefinition.sessionName,
+          aggregateSessionLockKey: "update-site-settings-lock-key",
+          db,
+          schema,
+          models: userSessionDefinition.models,
+          isInitialized: true,
+          aggregateIndex: 0,
+          executedIndex: 0,
+          executedHash: "",
+          actorName: "web",
+          actorVersion: userSessionDefinition.actorVersion,
+          pushIndex: 0,
+          sessionStatus: "current",
+          backupState: { status: "ready", failure: null },
+        },
       });
 
       const staged = stageCommand({
@@ -668,9 +720,25 @@ describe("user frontend creation guards", () => {
         otherTables: sessionRepoDbConfig.tables,
       });
       const { schema } = dbConfig;
-      const db = yield* makeProvisionedInMemoryWasmSqliteDb({ dbConfig }).pipe(
-        Effect.provide(AsyncLive),
+      const client = yield* Effect.acquireRelease(
+        makeAsync(() =>
+          makeInMemorySQLite3(() =>
+            SQLiteFactory({
+              instantiateWasm(
+                imports: WebAssembly.Imports,
+                receiveInstance: (instance: WebAssembly.Instance) => void,
+              ) {
+                const instance = new WebAssembly.Instance(wasm, imports);
+                receiveInstance(instance);
+                return instance.exports;
+              },
+            }),
+          ),
+        ).pipe(Effect.provide(AsyncLive)),
+        (client) => Effect.sync(() => client.sqlite3.close(client.db)),
       );
+      const db = makeWaSqliteDrizzle(client, dbConfig);
+      yield* provisionDb({ db, schema });
 
       db.insert(dbConfig.schema.user)
         .values({
@@ -695,34 +763,35 @@ describe("user frontend creation guards", () => {
       const session = makeAggregateSession({
         definition: { ...definition, ...userSessionDefinition },
       });
-      session.setExecutionResources({
+      bindAggregateSession({
+        session,
         runtime,
-        sessionId,
-      });
-      session.store.setState({
-        ...session.store.getState(),
-        sessionId,
-        aggregateId: "acct_update_page_settings_user",
-        aggregateName: userSessionDefinition.aggregateName,
-        claims: {
+        commitCommand: stageSessionCommandTx,
+        state: {
+          ...session.store.getState(),
+          sessionId,
           aggregateId: "acct_update_page_settings_user",
-          clerkUserId: "update_page_settings_user",
-        },
+          aggregateName: userSessionDefinition.aggregateName,
+          claims: {
+            aggregateId: "acct_update_page_settings_user",
+            clerkUserId: "update_page_settings_user",
+          },
 
-        sessionName: userSessionDefinition.sessionName,
-        aggregateSessionLockKey: "update-page-settings-lock-key",
-        db,
-        schema,
-        models: userSessionDefinition.models,
-        isInitialized: true,
-        aggregateIndex: 0,
-        executedIndex: 0,
-        executedHash: "",
-        actorName: "web",
-        actorVersion: userSessionDefinition.actorVersion,
-        pushIndex: 0,
-        sessionStatus: "current",
-        backupState: { status: "ready", failure: null },
+          sessionName: userSessionDefinition.sessionName,
+          aggregateSessionLockKey: "update-page-settings-lock-key",
+          db,
+          schema,
+          models: userSessionDefinition.models,
+          isInitialized: true,
+          aggregateIndex: 0,
+          executedIndex: 0,
+          executedHash: "",
+          actorName: "web",
+          actorVersion: userSessionDefinition.actorVersion,
+          pushIndex: 0,
+          sessionStatus: "current",
+          backupState: { status: "ready", failure: null },
+        },
       });
 
       const stagedSite = stageCommand({
@@ -749,17 +818,20 @@ describe("user frontend creation guards", () => {
         throw new Error(stagedPage.failure.message);
       }
 
-      session.store.setState((state) =>
-        state.isInitialized
-          ? {
-              ...state,
-              claims: {
-                aggregateId: "acct_update_page_settings_user",
-                clerkUserId: "another_user",
-              },
-            }
-          : state,
-      );
+      const ownerState = session.store.getState();
+      if (!ownerState.isInitialized) throw new Error("Expected initialized page settings session");
+      bindAggregateSession({
+        session,
+        runtime,
+        commitCommand: stageSessionCommandTx,
+        state: {
+          ...ownerState,
+          claims: {
+            aggregateId: "acct_update_page_settings_user",
+            clerkUserId: "another_user",
+          },
+        },
+      });
       const denied = stageCommand({
         session,
         contractName: "updatePageSettings",
@@ -770,17 +842,12 @@ describe("user frontend creation guards", () => {
         },
       });
       expect(denied._tag).toBe("Failure");
-      session.store.setState((state) =>
-        state.isInitialized
-          ? {
-              ...state,
-              claims: {
-                aggregateId: "acct_update_page_settings_user",
-                clerkUserId: "update_page_settings_user",
-              },
-            }
-          : state,
-      );
+      bindAggregateSession({
+        session,
+        runtime,
+        commitCommand: stageSessionCommandTx,
+        state: ownerState,
+      });
 
       const updated = stageCommand({
         session,

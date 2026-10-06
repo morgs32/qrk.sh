@@ -308,6 +308,7 @@ export function makeAddBrickContract<
                 brickId: payload.brickId as InferIdFromAbbreviation<"brk">,
                 breakpoint,
                 spec: structuredClone(clonedSpec),
+                measured: null,
                 gridItem: item,
                 isVisible: true,
               } as InferDecodedRow<(typeof placement)["attributes"]>,

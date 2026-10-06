@@ -68,10 +68,7 @@ export async function handleR2Asset(props: {
   }
 
   const headers = corsHeaders(props.request, props.allowedOrigins);
-  headers.set(
-    "Content-Type",
-    object.httpMetadata?.contentType ?? "application/octet-stream",
-  );
+  headers.set("Content-Type", object.httpMetadata?.contentType ?? "application/octet-stream");
   if (object.httpEtag !== undefined && object.httpEtag.length > 0) {
     headers.set("ETag", object.httpEtag);
   }
@@ -90,10 +87,7 @@ function corsHeaders(request: Request, allowedOrigins: readonly string[]): Heade
     headers.set("Vary", "Origin");
   }
   headers.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  headers.set(
-    "Access-Control-Allow-Headers",
-    "Authorization, Content-Type",
-  );
+  headers.set("Access-Control-Allow-Headers", "Authorization, Content-Type");
   headers.set("Access-Control-Max-Age", "86400");
   return headers;
 }

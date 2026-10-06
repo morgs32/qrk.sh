@@ -26,8 +26,8 @@
     "tailwindcss": "4.3.3",
     "typescript": "^6.0.2",
     "vite": "npm:@voidzero-dev/vite-plus-core@1.0.0",
-    "wrangler": "4.131.2",
-    "vite-plus": "1.0.0"
+    "vite-plus": "1.0.0",
+    "wrangler": "4.131.2"
   },
   "nx": {
     "targets": {

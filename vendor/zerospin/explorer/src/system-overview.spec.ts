@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   connections,
+  declarations,
   entities,
   repos,
   schemaCaptureSummary,
@@ -64,14 +65,16 @@ describe('single infrastructure canvas and schema boundaries', () => {
 
   it('keeps every connection on the canvas with valid component or table endpoints', () => {
     const routes = connections.filter(
-      connection => connection.kind !== 'relationship',
+      connection =>
+        connection.kind !== 'relationship' &&
+        connection.kind !== 'field-mapping',
     );
     expect(systemOverviewScope.connections).toEqual(connections);
     expect(new Set(connections.map(connection => connection.id)).size).toBe(
       connections.length,
     );
     const nodeIds = new Set(
-      [...repos, ...entities, ...tables].map(node => node.id),
+      [...repos, ...entities, ...tables, ...declarations].map(node => node.id),
     );
     for (const connection of systemOverviewScope.connections) {
       expect(nodeIds.has(connection.source)).toBe(true);
@@ -83,8 +86,8 @@ describe('single infrastructure canvas and schema boundaries', () => {
     for (const connection of routes) {
       expect(componentIds.has(connection.source)).toBe(true);
       expect(componentIds.has(connection.destination)).toBe(true);
-      expect(connection.sourceColumn).toBeUndefined();
-      expect(connection.destinationColumn).toBeUndefined();
+      expect(connection.sourceField).toBeUndefined();
+      expect(connection.destinationField).toBeUndefined();
     }
   });
 
@@ -179,8 +182,8 @@ describe('single infrastructure canvas and schema boundaries', () => {
       expect(reference).toMatchObject({
         source: table.id,
         destination: destinationId,
-        sourceColumn: column.name,
-        destinationColumn: column.reference?.column,
+        sourceField: column.name,
+        destinationField: column.reference?.column,
       });
       expect(
         tables
@@ -203,6 +206,70 @@ describe('single infrastructure canvas and schema boundaries', () => {
         ),
       ).toBe(true);
     }
+  });
+
+  it('maps only the 13 staged aggregate properties retained by the commands table', () => {
+    const mappings = connections.filter(
+      connection => connection.kind === 'field-mapping',
+    );
+    const fields = [
+      'id',
+      'commandName',
+      'contractVersion',
+      'payload',
+      'aggregateId',
+      'aggregateName',
+      'claims',
+      'actorName',
+      'actorVersion',
+      'sessionName',
+      'sessionId',
+      'sessionIndex',
+      'staging',
+    ];
+    expect(mappings).toHaveLength(13);
+    expect(
+      mappings.map(connection => [
+        connection.source,
+        connection.sourceField,
+        connection.destination,
+        connection.destinationField,
+      ]),
+    ).toEqual(
+      fields.map(field => [
+        'aggregate-staged-command',
+        field,
+        'aggregate-session/commands',
+        field,
+      ]),
+    );
+    for (const mapping of mappings) {
+      expect(
+        declarations
+          .find(declaration => declaration.id === mapping.source)
+          ?.properties.some(property => property.name === mapping.sourceField),
+      ).toBe(true);
+      expect(
+        tables
+          .find(table => table.id === mapping.destination)
+          ?.columns.some(column => column.name === mapping.destinationField),
+      ).toBe(true);
+    }
+    expect(mappings.some(mapping => mapping.sourceField === 'pushIndex')).toBe(
+      false,
+    );
+    expect(
+      mappings.some(mapping => mapping.source === 'service-staged-command'),
+    ).toBe(false);
+    expect(
+      mappings.find(mapping => mapping.sourceField === 'payload')?.label,
+    ).toContain('contract-encoded text');
+    expect(
+      mappings.find(mapping => mapping.sourceField === 'claims')?.label,
+    ).toContain('JSON encoding');
+    expect(
+      mappings.find(mapping => mapping.sourceField === 'staging')?.label,
+    ).toContain('original encoded result and string timestamps');
   });
 
   it('contains generic identities and package schemas without Shopping fixtures', () => {

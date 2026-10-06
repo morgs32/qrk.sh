@@ -27,11 +27,7 @@
       "indexes": [
         {
           "name": "lockedAggregateActorVersions_identity_unique",
-          "columns": [
-            "aggregateName",
-            "name",
-            "version"
-          ],
+          "columns": ["aggregateName", "name", "version"],
           "unique": true
         }
       ]
@@ -63,11 +59,7 @@
       "indexes": [
         {
           "name": "lockedServiceActorVersions_identity_unique",
-          "columns": [
-            "serviceName",
-            "name",
-            "version"
-          ],
+          "columns": ["serviceName", "name", "version"],
           "unique": true
         }
       ]
@@ -95,10 +87,7 @@
       "indexes": [
         {
           "name": "lockedAggregateVersions_name_version_unique",
-          "columns": [
-            "name",
-            "version"
-          ],
+          "columns": ["name", "version"],
           "unique": true
         }
       ]
@@ -126,10 +115,7 @@
       "indexes": [
         {
           "name": "lockedServiceVersions_name_version_unique",
-          "columns": [
-            "name",
-            "version"
-          ],
+          "columns": ["name", "version"],
           "unique": true
         }
       ]
@@ -193,9 +179,7 @@
       "indexes": [
         {
           "name": "aggregateSessionWebSocketTickets_ticketHash_unique",
-          "columns": [
-            "ticketHash"
-          ],
+          "columns": ["ticketHash"],
           "unique": true
         }
       ]
@@ -247,9 +231,7 @@
       "indexes": [
         {
           "name": "serviceSessionWebSocketTickets_ticketHash_unique",
-          "columns": [
-            "ticketHash"
-          ],
+          "columns": ["ticketHash"],
           "unique": true
         }
       ]
@@ -273,10 +255,7 @@
       "indexes": [
         {
           "name": "aggregates_aggregate_name_aggregate_id_unique",
-          "columns": [
-            "aggregateName",
-            "aggregateId"
-          ],
+          "columns": ["aggregateName", "aggregateId"],
           "unique": true
         }
       ]
@@ -304,10 +283,7 @@
       "indexes": [
         {
           "name": "repos_repo_type_repo_name_unique",
-          "columns": [
-            "repoType",
-            "repoName"
-          ],
+          "columns": ["repoType", "repoName"],
           "unique": true
         }
       ]
@@ -434,15 +410,11 @@
       "indexes": [
         {
           "name": "logs_logIndex_idx",
-          "columns": [
-            "logIndex"
-          ]
+          "columns": ["logIndex"]
         },
         {
           "name": "logs_source_idx",
-          "columns": [
-            "source"
-          ]
+          "columns": ["source"]
         }
       ]
     },
@@ -497,21 +469,15 @@
       "indexes": [
         {
           "name": "telemetrySpans_traceId_idx",
-          "columns": [
-            "traceId"
-          ]
+          "columns": ["traceId"]
         },
         {
           "name": "telemetrySpans_parentSpanId_idx",
-          "columns": [
-            "parentSpanId"
-          ]
+          "columns": ["parentSpanId"]
         },
         {
           "name": "telemetrySpans_endedAt_idx",
-          "columns": [
-            "endedAt"
-          ]
+          "columns": ["endedAt"]
         }
       ]
     },
@@ -571,21 +537,15 @@
       "indexes": [
         {
           "name": "telemetryLogs_traceId_idx",
-          "columns": [
-            "traceId"
-          ]
+          "columns": ["traceId"]
         },
         {
           "name": "telemetryLogs_spanId_idx",
-          "columns": [
-            "spanId"
-          ]
+          "columns": ["spanId"]
         },
         {
           "name": "telemetryLogs_createdAt_idx",
-          "columns": [
-            "createdAt"
-          ]
+          "columns": ["createdAt"]
         }
       ]
     },
@@ -634,21 +594,15 @@
       "indexes": [
         {
           "name": "telemetryLinks_traceId_idx",
-          "columns": [
-            "traceId"
-          ]
+          "columns": ["traceId"]
         },
         {
           "name": "telemetryLinks_spanId_idx",
-          "columns": [
-            "spanId"
-          ]
+          "columns": ["spanId"]
         },
         {
           "name": "telemetryLinks_priorTraceId_idx",
-          "columns": [
-            "priorTraceId"
-          ]
+          "columns": ["priorTraceId"]
         }
       ]
     }
@@ -724,10 +678,7 @@
       "indexes": [
         {
           "name": "command_operation",
-          "columns": [
-            "commandId",
-            "operationIndex"
-          ],
+          "columns": ["commandId", "operationIndex"],
           "unique": true
         }
       ]
@@ -779,10 +730,7 @@
       "indexes": [
         {
           "name": "model_command_operation",
-          "columns": [
-            "commandId",
-            "operationIndex"
-          ],
+          "columns": ["commandId", "operationIndex"],
           "unique": true
         }
       ]
@@ -877,10 +825,7 @@
       "indexes": [
         {
           "name": "commands_node",
-          "columns": [
-            "nodeId",
-            "nodeIndex"
-          ],
+          "columns": ["nodeId", "nodeIndex"],
           "unique": true
         }
       ]
@@ -1007,10 +952,7 @@
       "indexes": [
         {
           "name": "command_operation",
-          "columns": [
-            "commandId",
-            "operationIndex"
-          ],
+          "columns": ["commandId", "operationIndex"],
           "unique": true
         }
       ]
@@ -1106,10 +1048,7 @@
       "indexes": [
         {
           "name": "model_command_operation",
-          "columns": [
-            "commandId",
-            "operationIndex"
-          ],
+          "columns": ["commandId", "operationIndex"],
           "unique": true
         }
       ]
@@ -1402,10 +1341,7 @@
       "indexes": [
         {
           "name": "command_operation",
-          "columns": [
-            "commandId",
-            "operationIndex"
-          ],
+          "columns": ["commandId", "operationIndex"],
           "unique": true
         }
       ]
@@ -1457,10 +1393,7 @@
       "indexes": [
         {
           "name": "model_command_operation",
-          "columns": [
-            "commandId",
-            "operationIndex"
-          ],
+          "columns": ["commandId", "operationIndex"],
           "unique": true
         }
       ]
@@ -1790,33 +1723,22 @@
       "indexes": [
         {
           "name": "commands_aggregate_identity",
-          "columns": [
-            "aggregateName",
-            "aggregateId",
-            "id"
-          ],
+          "columns": ["aggregateName", "aggregateId", "id"],
           "unique": true
         },
         {
           "name": "commands_aggregate_index",
-          "columns": [
-            "aggregateIndex"
-          ],
+          "columns": ["aggregateIndex"],
           "unique": true
         },
         {
           "name": "commands_executed_index",
-          "columns": [
-            "executedIndex"
-          ],
+          "columns": ["executedIndex"],
           "unique": true
         },
         {
           "name": "commands_node",
-          "columns": [
-            "nodeId",
-            "nodeIndex"
-          ],
+          "columns": ["nodeId", "nodeIndex"],
           "unique": true
         }
       ]
@@ -1889,9 +1811,7 @@
       "indexes": [
         {
           "name": "stagedCommands_commandRowId",
-          "columns": [
-            "commandRowId"
-          ],
+          "columns": ["commandRowId"],
           "unique": true
         }
       ]
@@ -2015,9 +1935,7 @@
       "indexes": [
         {
           "name": "connectionLocks_connectionId",
-          "columns": [
-            "connectionId"
-          ],
+          "columns": ["connectionId"],
           "unique": true
         }
       ]
@@ -2093,10 +2011,7 @@
       "indexes": [
         {
           "name": "browserCommands_completion_node",
-          "columns": [
-            "completionNodeId",
-            "completionNodeIndex"
-          ],
+          "columns": ["completionNodeId", "completionNodeIndex"],
           "unique": true
         }
       ]
@@ -2274,10 +2189,7 @@
       "indexes": [
         {
           "name": "command_operation",
-          "columns": [
-            "commandId",
-            "operationIndex"
-          ],
+          "columns": ["commandId", "operationIndex"],
           "unique": true
         }
       ]
@@ -2373,10 +2285,7 @@
       "indexes": [
         {
           "name": "model_command_operation",
-          "columns": [
-            "commandId",
-            "operationIndex"
-          ],
+          "columns": ["commandId", "operationIndex"],
           "unique": true
         }
       ]
@@ -2661,10 +2570,7 @@
       "indexes": [
         {
           "name": "command_operation",
-          "columns": [
-            "commandId",
-            "operationIndex"
-          ],
+          "columns": ["commandId", "operationIndex"],
           "unique": true
         }
       ]
@@ -2716,10 +2622,7 @@
       "indexes": [
         {
           "name": "model_command_operation",
-          "columns": [
-            "commandId",
-            "operationIndex"
-          ],
+          "columns": ["commandId", "operationIndex"],
           "unique": true
         }
       ]
@@ -2943,10 +2846,7 @@
       "indexes": [
         {
           "name": "command_operation",
-          "columns": [
-            "commandId",
-            "operationIndex"
-          ],
+          "columns": ["commandId", "operationIndex"],
           "unique": true
         }
       ]
@@ -2998,10 +2898,7 @@
       "indexes": [
         {
           "name": "model_command_operation",
-          "columns": [
-            "commandId",
-            "operationIndex"
-          ],
+          "columns": ["commandId", "operationIndex"],
           "unique": true
         }
       ]

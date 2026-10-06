@@ -1,6 +1,7 @@
 export type IOwner = 'system' | 'aggregate' | 'service' | 'browser';
 export type IConnectionKind =
   | 'relationship'
+  | 'field-mapping'
   | 'session-execute'
   | 'session-stage'
   | 'projection'
@@ -50,19 +51,36 @@ export type IEntity = {
   source: ISource;
   position: { x: number; y: number };
 };
+export type ITypeProperty = {
+  name: string;
+  type: string;
+  description?: string;
+  optional?: boolean;
+};
+export type ITypeDeclaration = {
+  id: string;
+  name: string;
+  variableName: string;
+  owner: IOwner;
+  repoId: string;
+  properties: readonly ITypeProperty[];
+  description: string;
+  source: ISource;
+};
 export type IConnection = {
   id: string;
   source: string;
   destination: string;
   kind: IConnectionKind;
   label: string;
-  sourceColumn?: string;
-  destinationColumn?: string;
+  sourceField?: string;
+  destinationField?: string;
 };
 export type IGraphScope = {
   repos: readonly IRepo[];
   tables: readonly ITable[];
   entities: readonly IEntity[];
+  declarations: readonly ITypeDeclaration[];
   connections: readonly IConnection[];
 };
 export type IRow = Record<string, unknown>;

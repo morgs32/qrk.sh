@@ -53,8 +53,20 @@ local to Explorer in `src/components/ui`. Theme tokens and diagram colors live i
 The root canvas shows repos, sessions, concrete SharedWorkers, websocket
 capabilities and access APIs together. Every repo and browser database contains
 full table cards with all columns and types. Owner and connection filters narrow
-the canvas. Connections start with Session stageCommand only. Hover or focus a
+the canvas. Filtered connections start with Session stageCommand only. Hover or focus a
 filter row to use Only and select that option alone within its section.
+
+TypeScript `stagedCommand` cards sit to the left of the aggregate and service
+session databases, with violet headers and TS icons. They show the current
+`ISessionCommand<COMMAND, RESULT>` and `IServiceSessionCommand<RESULT>` return
+types. Select either card to inspect its properties and source. Type declarations
+are separate from the database table catalog and follow the browser owner filter.
+
+Thirteen violet curves connect aggregate `stagedCommand` properties to their
+corresponding `commands` columns. These mappings stay visible independently of
+connection filters. `pushIndex` has no corresponding command column and remains
+unconnected. Payload, claims and staging links describe their encoding in the
+accessible connection descriptions.
 
 Session executeCommand shows local-only standalone/mock aggregate execution,
 labelled with its current implementation, `executeLocalSessionCommandTx`.
@@ -71,8 +83,8 @@ Boundaries follow the visible components when filtering owners.
 Select a table for its purpose, schema, indexes, empty rows and source location.
 Declared column references connect the corresponding table rows. Pan, zoom,
 fit-all and locate-selection controls help move around the canvas. Repo and
-session cards fit their table group on screen when clicked; table and cell
-connection anchors stay hidden.
+session cards fit their tables and associated TypeScript declaration on screen
+when clicked; table and cell connection anchors stay hidden.
 
 ## Schema provenance
 
@@ -82,6 +94,8 @@ and service session schemas. Each table records its source path and line.
 `src/data/architecture.ts` adds generic ownership, identity fields and connections;
 `src/data/table-purposes.ts` describes each captured table's role. The root canvas
 uses this complete catalog directly and supplies empty rows for inspection.
+`src/data/staged-commands.ts` records the source-grounded TypeScript staging
+declarations separately; update these when their return types change.
 
 Refresh the capture after infrastructure schema changes:
 

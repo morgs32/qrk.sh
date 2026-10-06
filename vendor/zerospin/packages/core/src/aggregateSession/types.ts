@@ -1,7 +1,6 @@
 import type {
   IAnyError,
   IRecognizedFailure,
-  IResult,
   IZerospinErrorJson,
 } from '@zerospin/error';
 import type { ITelemetryBatch, ITelemetryCollector } from '@zerospin/logger';
@@ -13,11 +12,7 @@ import type { StoreApi } from 'zustand';
 import type { INodeState } from '../aggregateSession/NodeState.ts';
 import type { IBrowserCommand } from '../contracts/BrowserCommandSchema.ts';
 import type { ExcludeOperationSink } from '../contracts/operationSink.ts';
-import type {
-  IAnyContracts,
-  ICommand,
-  ISessionCommand,
-} from '../contracts/types.ts';
+import type { IAnyContracts } from '../contracts/types.ts';
 import type {
   IDb,
   IDbConfig,
@@ -222,15 +217,7 @@ export type IAggregateSession<
   DEFINITION extends IAggregateSessionDefinition = IAggregateSessionDefinition,
 > = {
   onStageFailure(handler: (event: IAggregateStageFailure) => void): () => void;
-  /** Internal staging boundary used by the typed stageCommand API. */
-  stageCommand(props: {
-    contractName: string;
-    payload: unknown;
-  }): IResult<
-    ISessionCommand<ICommand, unknown>,
-    IRecognizedFailure<IAnyError>
-  >;
-  definition: DEFINITION;
+  readonly definition: DEFINITION;
 
   /**
    * One-shot readiness callback. Registration after initialization invokes

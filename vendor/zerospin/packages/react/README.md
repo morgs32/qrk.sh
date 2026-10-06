@@ -84,6 +84,43 @@ const result = stageCommand({ session: studentSession, contractName, payload });
 if (result._tag === 'Success') closeDraft();
 ```
 
+## DevTools
+
+Mount one `ZerospinDevtoolsLoader` near the application root so the DevTools
+shell stays mounted across route changes. The component is available from
+`@zerospin/react` and its defining module:
+
+```tsx
+import type { ReactNode } from 'react';
+import { ZerospinDevtoolsLoader } from '@zerospin/react/ZerospinDevtoolsLoader';
+
+export default function RootLayout(props: { children: ReactNode }) {
+  const { children } = props;
+  return (
+    <html lang="en">
+      <body>
+        {children}
+        {process.env.NODE_ENV === 'development' && <ZerospinDevtoolsLoader />}
+      </body>
+    </html>
+  );
+}
+```
+
+The caller chooses when to include DevTools; the component has no environment
+gate. For Vite, use `import.meta.env.DEV` as the development condition.
+
+`defaultOpen` defaults to `false` and is read once when the component mounts.
+Changing it while mounted does not toggle or reload the shell; remount the
+component to apply a different initial value. Initialization runs after React
+commit and skips effects canceled during StrictMode replay. Cleanup disposes
+the shell, including a load that finishes after unmount. Load failures are
+logged without interrupting the application.
+
+`loadDevtools({ defaultOpen })` remains available for imperative callers. Await
+its returned handle to call `open()` and release the shell with `dispose()`
+when its owner ends.
+
 ## Shape forms
 
 ```tsx

@@ -42,7 +42,11 @@ import {
   stageServiceCommand,
 } from '@zerospin/core/serviceSession/stageServiceCommand';
 import type { IServiceBrowserCommand } from '@zerospin/core/serviceSession/types';
-import { makeZerospinError } from '@zerospin/error';
+import {
+  ContractError,
+  makeZerospinError,
+  type IRecognizedFailure,
+} from '@zerospin/error';
 import { primitives } from '@zerospin/shapes';
 import { Context, Effect, Result, Schema, SchemaGetter } from 'effect';
 import { assert as assertType, type Equals } from 'tsafe';
@@ -340,6 +344,10 @@ await Effect.runPromise(
     const guardPayloads: unknown[] = [];
     const guardClaims: unknown[] = [];
     const guardNames: (string | undefined)[] = [];
+    const DateRejected = ContractError.schema({
+      code: 'date-rejected',
+      extra: Schema.Struct({ at: Schema.DateFromString }),
+    });
     const preparedContract = makeContractVersion(defineContract('prepared'), {
       version: '1.0.0',
       models: { item },
@@ -349,6 +357,7 @@ await Effect.runPromise(
         label: primitives.text({ defaultValue: 'default' }),
       },
       result: Schema.DateFromString,
+      failures: { dateRejected: DateRejected },
       guard: ({ db, payload, claims }) =>
         Effect.sync(() => {
           guardPayloads.push(payload);
@@ -485,13 +494,25 @@ await Effect.runPromise(
     assert.ok(staged.command.staging.result.at instanceof Date);
     assert.equal(local.label, 'original');
     assert.ok(local.at instanceof Date);
-    const assertStageType = (session: IAggregateSession<typeof definition>) => {
+    const stageDefinition = {
+      ...definition,
+      contracts: { echo, prepared: preparedContract },
+    };
+    const assertStageType = (
+      session: IAggregateSession<typeof stageDefinition>,
+      contractName: 'echo' | 'prepared',
+    ) => {
+      assertType<
+        Equals<Extract<keyof typeof session, 'stageCommand'>, never>
+      >();
       const result = stageCommand({
         session,
         contractName: 'echo',
         payload: {},
       });
       if (result._tag === 'Success') {
+        assertType<Equals<typeof result.success.commandName, 'echo'>>();
+        assertType<Equals<typeof result.success.contractVersion, '1.0.0'>>();
         assertType<
           Equals<
             typeof result.success.staging.result,
@@ -499,8 +520,77 @@ await Effect.runPromise(
           >
         >();
       }
+      const preparedResult = stageCommand({
+        session,
+        contractName: 'prepared',
+        payload: { at: new Date(0) },
+      });
+      if (preparedResult._tag === 'Success') {
+        assertType<
+          Equals<typeof preparedResult.success.commandName, 'prepared'>
+        >();
+        assertType<
+          Equals<typeof preparedResult.success.contractVersion, '1.0.0'>
+        >();
+        assertType<
+          Equals<
+            typeof preparedResult.success.payload,
+            { readonly at: Date; readonly label: string }
+          >
+        >();
+        assertType<
+          Equals<typeof preparedResult.success.staging.result, Date>
+        >();
+      } else {
+        assertType<
+          Equals<
+            typeof preparedResult.failure,
+            IRecognizedFailure<typeof DateRejected.Type>
+          >
+        >();
+      }
+      stageCommand({
+        session,
+        // @ts-expect-error Staging only accepts contracts declared by the session.
+        contractName: 'missing',
+        payload: {},
+      });
+      stageCommand({
+        session,
+        contractName: 'prepared',
+        // @ts-expect-error Transformed payloads accept decoded Date values.
+        payload: { at: 'still-encoded' },
+      });
+      stageCommand({
+        session,
+        contractName: 'prepared',
+        // @ts-expect-error Required payload fields cannot be omitted.
+        payload: {},
+      });
+      const unionResult = stageCommand({
+        session,
+        contractName,
+        payload: { at: new Date(0) },
+      });
+      if (unionResult._tag === 'Success') {
+        assertType<
+          Equals<typeof unionResult.success.commandName, 'echo' | 'prepared'>
+        >();
+        assertType<
+          Equals<
+            typeof unionResult.success.staging.result,
+            { readonly label: string; readonly at: Date } | Date
+          >
+        >();
+      }
     };
     void assertStageType;
+    const assertErasedStageType = (
+      session: IAggregateSession,
+      contractName: string,
+      payload: Record<string, unknown>,
+    ) => stageCommand({ session, contractName, payload });
+    void assertErasedStageType;
     const journal = sessionDb
       .select()
       .from(sessionRepoDbConfig.schema.commands)

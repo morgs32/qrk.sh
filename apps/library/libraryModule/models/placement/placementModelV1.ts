@@ -1,5 +1,5 @@
 import { makeModelVersion } from "@zerospin/core/models/make/makeModelVersion";
-import { primitives } from "@zerospin/schema";
+import { primitives } from "@zerospin/shapes";
 import { Schema } from "effect";
 
 import { makeBrickModel } from "../brick/makeBrickModel";

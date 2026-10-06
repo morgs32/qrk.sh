@@ -49,7 +49,7 @@ export default defineConfig(({ mode }) => {
           "@zerospin/browser",
           /^@zerospin\/core(?:\/|$)/,
           "@zerospin/react",
-          "@zerospin/schema",
+          "@zerospin/shapes",
           "class-variance-authority",
           "cn",
           "effect",

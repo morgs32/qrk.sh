@@ -1,6 +1,6 @@
 import { defineCatalog, type Catalog } from "@json-render/core";
 import { schema } from "@json-render/react/schema";
-import { primitives, type InferDecodedRow, type IShape } from "@zerospin/schema";
+import { primitives, type InferDecodedRow, type IShape } from "@zerospin/shapes";
 import { descriptorToZod, makeZodSchema } from "@zerospin/zod";
 import { mapValues } from "es-toolkit";
 

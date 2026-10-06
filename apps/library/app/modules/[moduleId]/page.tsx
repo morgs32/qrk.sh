@@ -11,7 +11,7 @@ import { collapseAllNested, defaultStyles, JsonView } from "react-json-view-lite
 import { OrderedBody } from "@qrk.sh/web/library/OrderedBody";
 import { OrderedDoc, OrderedSection } from "@qrk.sh/web/library/OrderedDoc";
 import { OrderedOutline } from "@qrk.sh/web/library/OrderedOutline";
-import { makeEffectSchema } from "@zerospin/schema";
+import { makeEffectSchema } from "@zerospin/shapes";
 import { Result, Schema } from "effect";
 
 import { libraryModule } from "../../../libraryModule/libraryModule";

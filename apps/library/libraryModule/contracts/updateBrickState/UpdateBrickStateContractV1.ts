@@ -8,7 +8,7 @@ import {
   primitives,
   type InferIdFromAbbreviation,
   type IShape,
-} from "@zerospin/schema";
+} from "@zerospin/shapes";
 import { Effect, Schema } from "effect";
 
 import { makeBrickModel } from "../../models/brick/makeBrickModel";

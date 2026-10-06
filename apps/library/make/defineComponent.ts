@@ -1,4 +1,4 @@
-import type { IShape } from "@zerospin/schema";
+import type { IShape } from "@zerospin/shapes";
 
 /** Authored json-render component vocab: primitives props; catalog zod via defineModule. */
 export function defineComponent<const TYPE extends string, const PROPS extends IShape>(props: {

@@ -6,7 +6,7 @@ import { Drawer } from "../lib/Drawer";
 import Link from "next/link";
 import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Result, Schema } from "effect";
-import { makeEffectSchema } from "@zerospin/schema";
+import { makeEffectSchema } from "@zerospin/shapes";
 import { prefixId } from "@zerospin/core/models/prefixId";
 import { loadDevtools, useInitializeStandaloneSession, useLiveQuery } from "@zerospin/react";
 import { useReducedMotion } from "framer-motion";

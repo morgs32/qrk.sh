@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 
-import { makeEffectSchema } from "@zerospin/schema";
+import { makeEffectSchema } from "@zerospin/shapes";
 import { Schema } from "effect";
 import { create } from "zustand";
 

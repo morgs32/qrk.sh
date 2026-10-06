@@ -1,4 +1,4 @@
-import { makeEffectSchema, primitives } from "@zerospin/schema";
+import { makeEffectSchema, primitives } from "@zerospin/shapes";
 
 import {
   brickBodyComponent,

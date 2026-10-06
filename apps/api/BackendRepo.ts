@@ -2,7 +2,7 @@ import { RoutePattern } from "@remix-run/route-pattern";
 import { makeDbConfig } from "@zerospin/core/drizzle/make/makeDbConfig/makeDbConfig";
 import { catchZerospinError, type IZerospinErrorJson } from "@zerospin/error";
 import { makeRpcEnvelope, type IRpcEnvelope } from "@zerospin/logger";
-import { makeTable, primitives } from "@zerospin/schema";
+import { makeTable, primitives } from "@zerospin/shapes";
 import { Effect, Layer, ManagedRuntime, Schema } from "effect";
 import { makeMigratableDORepo } from "system-worker/makeMigratableDORepo/makeMigratableDORepo";
 import { makeMigratableDORepoConfig } from "system-worker/makeMigratableDORepo/makeMigratableDORepoConfig";

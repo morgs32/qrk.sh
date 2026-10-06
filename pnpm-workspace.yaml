@@ -3,7 +3,7 @@ packages:
   - "examples/*"
   - "packages/*"
   - "vendor/zerospin/packages/*"
-  - "vendor/zerospin/vendor/epluribus-machina"
+  - "vendor/zerospin/fragment/ui"
 
 patchedDependencies:
   sql.js@1.14.1: vendor/zerospin/patches/sql.js@1.14.1.patch
@@ -14,16 +14,13 @@ overrides:
   "@zerospin/devtools": "workspace:*"
   "@zerospin/error": "workspace:*"
   "@zerospin/react": "workspace:*"
-  "@zerospin/schema": "workspace:*"
+  "@zerospin/shapes": "workspace:*"
   "@zerospin/sdk": "workspace:*"
   "@zerospin/zod": "workspace:*"
   "system-worker": "workspace:*"
-  "@zerospin/dispatch-worker": "workspace:*"
-  "@zerospin/frontend": "workspace:*"
   "@zerospin/live-query": "workspace:*"
   "@zerospin/logger": "workspace:*"
   "@zerospin/server-only": "workspace:*"
-  "@zerospin/shared-worker": "workspace:*"
   "@zerospin/studio": "workspace:*"
   "effect": "4.0.0-rc.112"
   "react": "19.2.7"

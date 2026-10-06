@@ -1,7 +1,7 @@
 "use client";
 
 import { newSyncRpcSession } from "@zerospin/core/utils/getApi/newSyncRpcSession/newSyncRpcSession";
-import { makeEffectSchema } from "@zerospin/schema";
+import { makeEffectSchema } from "@zerospin/shapes";
 import { Schema } from "effect";
 import { useId, useState } from "react";
 import useSWRMutation from "swr/mutation";

@@ -1,4 +1,4 @@
-import { primitives } from "@zerospin/schema";
+import { primitives } from "@zerospin/shapes";
 
 import { defineComponent } from "../../../make/defineComponent";
 

@@ -2,7 +2,7 @@ import type { IDb } from "@zerospin/core/drizzle/types";
 import { defineContract } from "@zerospin/core/contracts/defineContract";
 import { makeContractVersion } from "@zerospin/core/contracts/make/makeContractVersion";
 import { ZerospinError } from "@zerospin/error";
-import { primitives, type InferDecodedRow, type InferIdFromAbbreviation } from "@zerospin/schema";
+import { primitives, type InferDecodedRow, type InferIdFromAbbreviation } from "@zerospin/shapes";
 import { Effect } from "effect";
 
 import { makeBrickModel } from "../libraryModule/models/brick/makeBrickModel";

@@ -1,4 +1,4 @@
-import type { InferDecodedRow, IShape } from "@zerospin/schema";
+import type { InferDecodedRow, IShape } from "@zerospin/shapes";
 
 import type { IJsonValue } from "../worker/types.public";
 import { decodeDefaultData } from "./decodeDefaultData";

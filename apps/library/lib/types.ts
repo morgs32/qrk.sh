@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 
 import type { Catalog, Spec } from "@json-render/core";
 import type { ComponentRegistry } from "@json-render/react";
-import type { IShape } from "@zerospin/schema";
+import type { IShape } from "@zerospin/shapes";
 
 /** A library module: state document, authored component, optional json-render. */
 export type IModule<MODULE extends string> = {

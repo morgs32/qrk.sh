@@ -1,4 +1,4 @@
-import { makeEffectSchema, type InferDecodedRow, type IShape } from "@zerospin/schema";
+import { makeEffectSchema, type InferDecodedRow, type IShape } from "@zerospin/shapes";
 import { Schema } from "effect";
 
 import type { IJsonValue } from "../worker/types.public";

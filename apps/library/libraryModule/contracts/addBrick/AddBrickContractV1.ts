@@ -9,7 +9,7 @@ import {
   type InferDecodedRow,
   type InferIdFromAbbreviation,
   type IShape,
-} from "@zerospin/schema";
+} from "@zerospin/shapes";
 import { Effect, Schema } from "effect";
 
 import type { defineComponent } from "../../../make/defineComponent";

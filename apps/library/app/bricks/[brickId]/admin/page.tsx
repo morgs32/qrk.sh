@@ -6,7 +6,7 @@ import { notFound, useParams } from "next/navigation";
 import { makeModelIdSchema } from "@zerospin/core/models/make/makeModelIdSchema";
 import { isNonEmptySpec } from "@json-render/core";
 import { Result, Schema } from "effect";
-import { makeEffectSchema } from "@zerospin/schema";
+import { makeEffectSchema } from "@zerospin/shapes";
 import { newSyncRpcSession } from "@zerospin/core/utils/getApi/newSyncRpcSession/newSyncRpcSession";
 import { stageCommand, useLiveQuery } from "@zerospin/react";
 import { collapseAllNested, defaultStyles, JsonView } from "react-json-view-lite";

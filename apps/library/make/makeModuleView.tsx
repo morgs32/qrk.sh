@@ -8,7 +8,7 @@ import {
   VisibilityProvider,
   type ComponentRegistry,
 } from "@json-render/react";
-import { makeEffectSchema, type InferDecodedRow, type IShape } from "@zerospin/schema";
+import { makeEffectSchema, type InferDecodedRow, type IShape } from "@zerospin/shapes";
 import { Schema } from "effect";
 import { mapValues } from "es-toolkit";
 

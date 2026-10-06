@@ -8,7 +8,7 @@ import { libraryModule } from "@qrk.sh/library/libraryModule";
 import { userSession } from "@/zerospin/userSession";
 import { pageV1 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
 import { makeModelIdSchema } from "@zerospin/core/models/make/makeModelIdSchema";
-import { makeEffectSchema } from "@zerospin/schema";
+import { makeEffectSchema } from "@zerospin/shapes";
 import { useLiveQuery } from "@zerospin/react";
 import { Result, Schema } from "effect";
 import { X } from "lucide-react";

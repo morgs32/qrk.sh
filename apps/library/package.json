@@ -114,7 +114,7 @@
     "@zerospin/devtools": "workspace:*",
     "@zerospin/error": "workspace:*",
     "@zerospin/react": "workspace:*",
-    "@zerospin/schema": "workspace:*",
+    "@zerospin/shapes": "workspace:*",
     "@zerospin/zod": "workspace:*",
     "capnweb": "^0.12.0",
     "class-variance-authority": "^0.7.1",

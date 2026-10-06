@@ -1,4 +1,4 @@
-import { primitives } from "@zerospin/schema";
+import { primitives } from "@zerospin/shapes";
 
 import { TiptapDocSchema } from "../../../lib/TiptapDocSchema";
 import { defineComponent } from "../../../make/defineComponent";

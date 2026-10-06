@@ -1,4 +1,4 @@
-import { makeEffectSchema, type IShape } from "@zerospin/schema";
+import { makeEffectSchema, type IShape } from "@zerospin/shapes";
 import { Schema } from "effect";
 import { mapValues } from "es-toolkit";
 

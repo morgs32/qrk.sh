@@ -1,7 +1,7 @@
 import type { PropsWithChildren, ReactNode } from "react";
 
 import type { BaseComponentProps } from "@json-render/react";
-import { makeEffectSchema, type InferDecodedRow, type IShape } from "@zerospin/schema";
+import { makeEffectSchema, type InferDecodedRow, type IShape } from "@zerospin/shapes";
 import { Schema } from "effect";
 
 /** Bind display markup to a descriptor and adapt resolved JSON-render props once. */

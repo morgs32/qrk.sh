@@ -1,4 +1,4 @@
-import { makeEffectSchema } from "@zerospin/schema";
+import { makeEffectSchema } from "@zerospin/shapes";
 import { makeAggregateCommand } from "@zerospin/core/aggregate/make/makeAggregateCommand";
 import { encodeCommand } from "@zerospin/core/contracts/encodeCommand";
 import { it } from "@effect/vitest";

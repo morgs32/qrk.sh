@@ -11,7 +11,7 @@
             "@zerospin/devtools",
             "@zerospin/error",
             "@zerospin/logger",
-            "@zerospin/schema",
+            "@zerospin/shapes",
             "system-worker"
           ]
         }

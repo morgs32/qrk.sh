@@ -1,6 +1,55 @@
 ---
 title: Service Command Admission
-updated: 2026-10-02
+updated: 2026-10-05
+sources:
+  - path: packages/cli/src/seed/seedFn.ts
+    sha: 2a85681b5dfad1c1be86162723bbec43b440e3b5
+    lines: 1-242
+  - path: packages/core/src/drizzle/make/makeTx.ts
+    sha: 8c2efa8f1180de92bf6d3fb7c3531eae7bd5cfbc
+    lines: 1-120
+  - path: packages/system-worker/src/ServiceActorVersionChain/ServiceActorVersionChain.ts
+    sha: a6a5bfad0a1544dd8007fd1258449b49fcce2522
+    lines: 1-202
+  - path: packages/system-worker/src/ServiceActorVersionChain/onMessage/pushServiceCommand.ts
+    sha: 6dacd161c254aa033a4e0549261597f667a240f3
+    lines: 1-68
+  - path: packages/system-worker/src/ServiceChain/ServiceChain.ts
+    sha: 9e3f2108be8568d614d22ca39f96d41b4fb0f8a6
+    lines: 1-150
+  - path: packages/system-worker/src/ServiceChain/admitServiceCommand/admitServiceCommand.ts
+    sha: 91955270d15a3871b590e568a36c3e10ebcb545b
+    lines: 1-117
+  - path: packages/system-worker/src/ServiceChain/admitServiceCommand/retainServiceCommand.ts
+    sha: 9d1afba239180be754966e1f9778e3dec28c5a0b
+    lines: 1-119
+  - path: packages/system-worker/src/ServiceChain/onDOActivation/onDOActivation.ts
+    sha: b993cb096c76a3516d02c953c8db05c4921ad663
+    lines: 1-61
+  - path: packages/system-worker/src/ServiceVersionChain/serviceVersionChainDbConfig.ts
+    sha: de947b5f5389a463abe5e049ec8cb302b11ae5da
+    lines: 1-76
+  - path: packages/system-worker/src/ServiceVersionRepo/ServiceVersionRepo.ts
+    sha: 8299a996955406af4bee21feddbb1d75a80fa2ea
+    lines: 1-389
+  - path: packages/system-worker/src/ServiceVersionRepo/execute/execute.ts
+    sha: 06727f2b53a2ff7be702d0ef046fc13cbb31bc48
+    lines: 1-89
+  - path: packages/system-worker/src/ServiceVersionRepo/executeCommands/executeCommands.ts
+    sha: 2b751172b1a6c2984a3de6126d0ca9a7c85083eb
+    lines: 1-283
+  - path: packages/system-worker/src/ServiceVersionRepo/executeCommands/executeCommandsTx.ts
+    sha: 5247a27444a8ff02b878622f4f84fceec7711848
+    lines: 1-349
+  - path: packages/system-worker/src/SystemApi/executeServiceCommand/executeServiceCommand.ts
+    sha: 9bc884b585bc936af726913a4f89cc43103ae83a
+    lines: 1-104
+  - path: packages/system-worker/src/SystemApi/makeApiHandler/makeApiHandler.ts
+    sha: 1c4ac55c45bccd0b7e420b8097ed7304909fa49c
+    lines: 1-122
+  - path: packages/system-worker/src/checkAdmission.ts
+    sha: 4c18c8c433ed57ea25e5df1461df29b88ee83e60
+    lines: 1-97
 ---
 
 # Service Command Admission
@@ -36,7 +85,7 @@ sequenceDiagram
 1. SystemApi validates the request against `EncodedServiceCommandSchema`, resolves the selected service version, and checks its contract lineage.
    - [`executeServiceCommand.ts:40-78`](../../../packages/system-worker/src/SystemApi/executeServiceCommand/executeServiceCommand.ts#L40-L78) — combines capability-bound `systemId` with the decoded service name and checks the authored contract version. (`packages/system-worker/src/SystemApi/executeServiceCommand/executeServiceCommand.ts:40-78`)
 2. ServiceChain serializes admission preparation and retention. Its fanout queue holds recovery before the synchronous producer runs, then starts delivery after the producer settles.
-   - [`ServiceChain.ts:138-164`](../../../packages/system-worker/src/ServiceChain/ServiceChain.ts#L138-L164) — serializes admission preparation and durable retention under the admission permit. (`packages/system-worker/src/ServiceChain/ServiceChain.ts:138-164`)
+   - [`ServiceChain.ts:130-149`](../../../packages/system-worker/src/ServiceChain/ServiceChain.ts#L130-L149) — serializes admission preparation and durable retention under the admission permit. (`packages/system-worker/src/ServiceChain/ServiceChain.ts:130-149`)
 3. The local transaction returns the retained admission, including its original index on an identical retry. It does not wait for materialization.
    - [`retainServiceCommand.ts:20-53`](../../../packages/system-worker/src/ServiceChain/admitServiceCommand/retainServiceCommand.ts#L20-L53) — returns original admission and index on retry, then validates contiguous node provenance before insertion. (`packages/system-worker/src/ServiceChain/admitServiceCommand/retainServiceCommand.ts:20-53`)
 4. SystemApi asks the explicitly selected ServiceVersionRepo to execute through that admission position.
@@ -62,7 +111,7 @@ A mismatched service, unsupported version, forbidden actor, or conflicting comma
 
 ## Delivery, transactions, and recovery
 
-ServiceChain stores admitted `commands` in `serviceIndex` order. Activation reconciles all bundled service versions into `serviceSubscribers`, preserving their existing cursors and failures while marking absent versions inactive. Its `admissionResultsFanout` sends complete admitted rows to each active, unfailed materializer's `admissionResultsFanoutSubscriber(sourceKey)`.
+ServiceChain stores admitted `commands` in `serviceIndex` order. Activation reconciles all bundled service versions into `serviceSubscribers`, preserving their existing cursors and failures while marking absent versions inactive. Its `admittedCommandsFanout` sends complete admitted rows to each active, unfailed materializer's `admittedCommandsFanoutSubscriber(sourceKey)`.
 
 - [`onDOActivation.ts`](../../../packages/system-worker/src/ServiceChain/onDOActivation/onDOActivation.ts) — updates deployed membership in one local transaction.
 - [`ServiceChain.ts`](../../../packages/system-worker/src/ServiceChain/ServiceChain.ts) — binds `commands`, `serviceIndex`, and the `active` predicate to the fanout queue.
@@ -85,3 +134,31 @@ Fanout acknowledges only the delivered page tail after successful durable receip
 ## Contract return values
 
 Programs yield model operations into a fresh execution-owned collector and return a value checked by their optional result codec. Successful command history retains the encoded result and actual executing contract version in the existing execution JSON column, atomically with owned resource writes. Omitted result codecs require void and store null. Failed application retains no successful result. Result codecs and programs complete synchronously.
+
+## Browser service admission
+
+A service Node pushes on its authenticated service socket. The socket success control is `{ type: 'serviceCommandAdmission', id, nodeIndex, admissionIndex, admission }`; failure is `{ type: 'serviceCommandAdmissionFailed', id, failure }`. `admissionIndex` is the retained service admission position. These controls update staged acceptance; terminal progress comes from direct commands.
+
+```mermaid
+sequenceDiagram
+  participant Synchronization as ServiceNodeSynchronization
+  participant ActorChain as ServiceActorVersionChain
+  participant ServiceChain
+  ActorChain->>ActorChain: validate bound service capability
+  ActorChain->>ServiceChain: chain.admitServiceCommand(...)
+  ActorChain-->>Synchronization: service admission control
+  ActorChain-->>Synchronization: direct service terminal command
+```
+
+## Annotated workflow steps
+
+1. The actor chain validates the submitted input against the retained socket capability.
+   - [`pushServiceCommand.ts:26-47`](../../../packages/system-worker/src/ServiceActorVersionChain/onMessage/pushServiceCommand.ts#L26-L47) — The service socket validates Node/session/claims, service identity, actor, and selected contract before admission. (`packages/system-worker/src/ServiceActorVersionChain/onMessage/pushServiceCommand.ts:26-47`)
+2. It requests retained service admission without rerunning a consumed command.
+   - [`pushServiceCommand.ts:44-51`](../../../packages/system-worker/src/ServiceActorVersionChain/onMessage/pushServiceCommand.ts#L44-L51) — ServiceChain admits the exact submitted command through its telemetry RPC boundary. (`packages/system-worker/src/ServiceActorVersionChain/onMessage/pushServiceCommand.ts:44-51`)
+3. It returns the explicit admission control independently of execution.
+   - [`pushServiceCommand.ts:49-67`](../../../packages/system-worker/src/ServiceActorVersionChain/onMessage/pushServiceCommand.ts#L49-L67) — The receipt exposes id/nodeIndex/admissionIndex/admission; failures expose the encoded public failure. (`packages/system-worker/src/ServiceActorVersionChain/onMessage/pushServiceCommand.ts:49-67`)
+4. Live terminal publication returns the selected direct command after retained actor receipt.
+   - [`ServiceActorVersionChain.ts:85-95`](../../../packages/system-worker/src/ServiceActorVersionChain/ServiceActorVersionChain.ts#L85-L95) — Live service connections receive direct commands filtered with their authenticated model lock and retained caller ownership. (`packages/system-worker/src/ServiceActorVersionChain/ServiceActorVersionChain.ts:85-95`)
+
+The service terminal is `IServiceBrowserCommand { id, commandName, delta, failure, executedIndex, serviceHash, serviceIndex }`. Input, claims, authoritative results, and timing stay private. Failure requires the originating Node/session/claims; all sessions receive only the models allowed by their lock. Replay delivers direct arrays and preserves both execution and originating outcome cursors. [Session WebSocket](../browser/SessionWebSocket.md) describes retained Node recovery.

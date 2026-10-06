@@ -49,16 +49,20 @@ export const pushServiceCommand = Effect.fn('ServiceSession.pushCommand')(
       return {
         id: command.id,
         nodeIndex: caller.nodeIndex,
-        serviceIndex: receipt.serviceIndex,
+        admissionIndex: receipt.serviceIndex,
         admission: receipt.admission,
       };
     }).pipe(encodeRpcOutcome);
     props.connection.send(
-      JSON.stringify({
-        type: 'serviceCommandAdmission',
-        commandId: command.id,
-        result,
-      }),
+      JSON.stringify(
+        result._tag === 'Success'
+          ? { type: 'serviceCommandAdmission', ...result.success }
+          : {
+              type: 'serviceCommandAdmissionFailed',
+              id: command.id,
+              failure: result.failure,
+            },
+      ),
     );
   },
 );

@@ -1,5 +1,6 @@
 import type { MatchParams } from '@remix-run/route-pattern/match';
 import type { Async } from '@zerospin/core/async/Async';
+import { makeAsync } from '@zerospin/core/async/make/makeAsync';
 import { provisionDb } from '@zerospin/core/drizzle/provisionDb/provisionDb';
 import type {
   IDb,
@@ -7,22 +8,115 @@ import type {
   IDbConfigRelations,
   IDbConfigSchema,
 } from '@zerospin/core/drizzle/types';
-import type { IRepoTableData } from '@zerospin/core/system/types';
-import { type IAnyError, type IZerospinErrorJson } from '@zerospin/error';
+import type {
+  IRepoRegistration,
+  IRepoTableData,
+} from '@zerospin/core/system/types';
+import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
+import { readRpcEnvelope } from '@zerospin/core/utils/readRpcEnvelope';
+import {
+  makeZerospinError,
+  mapParseError,
+  type IAnyError,
+  type IZerospinErrorJson,
+} from '@zerospin/error';
 import type { IRpcEnvelope } from '@zerospin/logger';
-import type { DurableObject } from 'cloudflare:workers';
-import { Effect } from 'effect';
+import { makeAbbreviationIdSchema } from '@zerospin/shapes';
+import { env, type DurableObject } from 'cloudflare:workers';
+import config from 'config';
+import { getTableName } from 'drizzle-orm';
+import { Effect, Schema } from 'effect';
 
+import type { AggregateActorVersionChain } from '../AggregateActorVersionChain/AggregateActorVersionChain.js';
+import type { AggregateActorVersionRepo } from '../AggregateActorVersionRepo/AggregateActorVersionRepo.js';
+import type { AggregateChain } from '../AggregateChain/AggregateChain.js';
+import type { AggregateVersionChain } from '../AggregateVersionChain/AggregateVersionChain.js';
+import type { AggregateVersionRepo } from '../AggregateVersionRepo/AggregateVersionRepo.js';
+import { getSystemSpec } from '../getSystemSpec/getSystemSpec.js';
 import type { IAlarmRegistry } from '../makeAlarmRegistry/makeAlarmRegistry.js';
 import { makeDORepo } from '../makeDORepo/makeDORepo.js';
+import type { ServiceActorVersionChain } from '../ServiceActorVersionChain/ServiceActorVersionChain.js';
+import type { ServiceActorVersionRepo } from '../ServiceActorVersionRepo/ServiceActorVersionRepo.js';
+import type { ServiceChain } from '../ServiceChain/ServiceChain.js';
+import type { ServiceVersionChain } from '../ServiceVersionChain/ServiceVersionChain.js';
+import type { ServiceVersionRepo } from '../ServiceVersionRepo/ServiceVersionRepo.js';
+import type { SystemLogAgent } from '../SystemLogAgent/SystemLogAgent.js';
+import type { SystemLogRepo } from '../SystemLogRepo/SystemLogRepo.js';
+import type { SystemRepo } from '../SystemRepo/SystemRepo.js';
 
 import type { IFixedDORepoConfig } from './types.js';
+
+const { system } = config;
+
+/** Namespace names stay explicit so deriving the base never inspects its subclasses. */
+declare global {
+  namespace Cloudflare {
+    interface DORepoNamespaces {
+      SYSTEM_REPO: {
+        getByName(
+          name: string,
+          options?: DurableObjectNamespaceGetDurableObjectOptions,
+        ): Pick<
+          SystemRepo,
+          | 'initialize'
+          | 'checkSystemSpec'
+          | 'createAggregateSessionWebSocketTicket'
+          | 'consumeAggregateSessionWebSocketTicket'
+          | 'createServiceSessionWebSocketTicket'
+          | 'consumeServiceSessionWebSocketTicket'
+          | 'registerRepo'
+          | 'getAggregateIds'
+          | 'hasAggregate'
+          | 'getRepoRegistrations'
+          | 'getRepoTableRows'
+        >;
+      };
+      AGGREGATE_VERSION_REPO: DurableObjectNamespace<
+        Rpc.DurableObjectBranded & AggregateVersionRepo
+      >;
+      SERVICE_VERSION_REPO: DurableObjectNamespace<
+        Rpc.DurableObjectBranded & ServiceVersionRepo
+      >;
+      AGGREGATE_CHAIN: DurableObjectNamespace<
+        Rpc.DurableObjectBranded & AggregateChain
+      >;
+      AGGREGATE_VERSION_CHAIN: DurableObjectNamespace<
+        Rpc.DurableObjectBranded & AggregateVersionChain
+      >;
+      SERVICE_VERSION_CHAIN: DurableObjectNamespace<
+        Rpc.DurableObjectBranded & ServiceVersionChain
+      >;
+      AGGREGATE_ACTOR_VERSION_REPO: DurableObjectNamespace<
+        Rpc.DurableObjectBranded & AggregateActorVersionRepo
+      >;
+      AGGREGATE_ACTOR_VERSION_CHAIN: DurableObjectNamespace<
+        Rpc.DurableObjectBranded & AggregateActorVersionChain
+      >;
+      SERVICE_CHAIN: DurableObjectNamespace<
+        Rpc.DurableObjectBranded & ServiceChain
+      >;
+      SERVICE_ACTOR_VERSION_REPO: DurableObjectNamespace<
+        Rpc.DurableObjectBranded & ServiceActorVersionRepo
+      >;
+      SERVICE_ACTOR_VERSION_CHAIN: DurableObjectNamespace<
+        Rpc.DurableObjectBranded & ServiceActorVersionChain
+      >;
+      SYSTEM_LOG_REPO: DurableObjectNamespace<
+        Rpc.DurableObjectBranded & SystemLogRepo
+      >;
+      SYSTEM_LOG_AGENT: DurableObjectNamespace<
+        Rpc.DurableObjectBranded & SystemLogAgent
+      >;
+    }
+  }
+}
 
 /** Path-named Durable Object Repo with provision-once schema and bootstrap lifecycle. */
 /*
  * Production Repo classes use this provision-once schema lifecycle.
- * makeDORepo owns name parsing and bootstrap marking; this factory skips all
- * schema work on activations whose successful bootstrap marker is retained.
+ * makeDORepo owns name parsing and bootstrap marking. This factory supplies
+ * system key validation and admission, then skips schema work on activations
+ * whose successful bootstrap marker is retained.
  *
  * 1. Bind the fixed Repo configuration.
  * 2. Define the provision-once schema policy.
@@ -119,12 +213,121 @@ export function makeFixedDORepo<
     },
   );
 
-  // 5 — pass initializeSchema alongside the fixed configuration
+  // 5 — supply system validation and admission alongside the fixed schema policy
+  const { repoType } = fixedDORepoConfig;
   const FixedDORepoBase = makeDORepo({
     baseClass,
     namespaceBinding,
     ...fixedDORepoConfig,
     initializeSchema,
+    validateKey: Effect.fn('FixedDORepo.validateKey')(function* (props: {
+      key: MatchParams<PATTERN>;
+    }) {
+      const { key } = props;
+      if (
+        repoType === 'AggregateChain' &&
+        (!('systemId' in key) || key.systemId !== env.ZEROSPIN_SYSTEM_ID)
+      ) {
+        return yield* makeZerospinError({
+          code: 'repo-system-id-mismatch',
+          message:
+            'AggregateChain must belong to the configured SystemRepo systemId',
+        });
+      }
+      if (
+        'aggregateVersion' in key &&
+        'aggregateName' in key &&
+        typeof key.aggregateVersion === 'string' &&
+        typeof key.aggregateName === 'string'
+      ) {
+        if (
+          !Object.hasOwn(
+            system.aggregates[key.aggregateName] ?? {},
+            key.aggregateVersion,
+          )
+        ) {
+          return yield* Effect.fail(
+            makeZerospinError({
+              code: 'aggregate-version-unavailable',
+              message: 'Aggregate version is not listed in this deployment',
+            }),
+          );
+        }
+      }
+      if (
+        'serviceVersion' in key &&
+        'serviceName' in key &&
+        typeof key.serviceVersion === 'string' &&
+        typeof key.serviceName === 'string'
+      ) {
+        if (
+          !Object.hasOwn(
+            system.services[key.serviceName] ?? {},
+            key.serviceVersion,
+          )
+        ) {
+          return yield* Effect.fail(
+            makeZerospinError({
+              code: 'service-version-unavailable',
+              message: 'Service version is not listed in this deployment',
+            }),
+          );
+        }
+      }
+    }),
+    registerRepo: Effect.fn('FixedDORepo.registerRepo')(function* (props: {
+      key: MatchParams<PATTERN>;
+      name: string;
+      schema: IDbConfigSchema<CONFIG>;
+    }) {
+      const { key, name, schema } = props;
+      // SystemRepo's fixed config omits repoType to avoid self-registration.
+      if (repoType === undefined) {
+        return;
+      }
+      let registration: IRepoRegistration;
+      if (repoType === 'AggregateChain') {
+        if (
+          !('aggregateName' in key) ||
+          typeof key.aggregateName !== 'string' ||
+          !('aggregateId' in key) ||
+          typeof key.aggregateId !== 'string'
+        ) {
+          return yield* makeZerospinError({
+            code: 'aggregate-chain-identity-missing',
+            message:
+              'AggregateChain registration requires aggregateName and aggregateId',
+          });
+        }
+        registration = {
+          repoType,
+          repoName: name,
+          tableNames: Object.values(schema).map(getTableName),
+          aggregateName: key.aggregateName,
+          aggregateId: yield* Schema.decodeUnknownEffect(
+            makeAbbreviationIdSchema(coreAbbreviations.aggregate),
+          )(key.aggregateId).pipe(
+            mapParseError({
+              code: 'aggregate-chain-identity-invalid',
+              prefix: 'AggregateChain physical name has an invalid aggregateId',
+            }),
+          ),
+        };
+      } else {
+        registration = {
+          repoType,
+          repoName: name,
+          tableNames: Object.values(schema).map(getTableName),
+        };
+      }
+      const spec = yield* getSystemSpec();
+      yield* makeAsync<IRpcEnvelope<void, IZerospinErrorJson>>(() =>
+        env.SYSTEM_REPO.getByName(env.ZEROSPIN_SYSTEM_ID).registerRepo({
+          spec,
+          registration,
+        }),
+      ).pipe(Effect.flatMap(envelope => readRpcEnvelope(envelope)));
+    }),
   });
 
   // 6 — retain static fixedDORepoConfig; startup and readiness belong to makeDORepo

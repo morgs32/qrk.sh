@@ -7,16 +7,22 @@ import { twMerge } from 'tailwind-merge';
 
 const Combobox = ComboboxPrimitive.Root;
 
-function ComboboxInput(props: ComboboxPrimitive.Input.Props) {
+function ComboboxInput({
+  triggerLabel,
+  ...props
+}: ComboboxPrimitive.Input.Props & { triggerLabel: string }) {
   return (
-    <div className="flex h-9 w-full items-center rounded-md border border-input bg-transparent shadow-xs focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50">
+    <div
+      data-slot="combobox-input-wrapper"
+      className="flex h-9 w-full items-center rounded-md border border-input bg-transparent shadow-xs focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50"
+    >
       <ComboboxPrimitive.Input
         data-slot="combobox-input"
         className="h-full min-w-0 flex-1 bg-transparent px-3 py-1 text-sm outline-none placeholder:text-muted-foreground"
         {...props}
       />
       <ComboboxPrimitive.Trigger
-        aria-label="Open repo search"
+        aria-label={triggerLabel}
         className="flex h-full w-9 items-center justify-center text-muted-foreground"
       >
         <ChevronDownIcon className="size-4" />
@@ -27,10 +33,13 @@ function ComboboxInput(props: ComboboxPrimitive.Input.Props) {
 
 function ComboboxContent({
   className,
+  portalContainer,
   ...props
-}: ComboboxPrimitive.Popup.Props) {
+}: ComboboxPrimitive.Popup.Props & {
+  portalContainer?: ComboboxPrimitive.Portal.Props['container'];
+}) {
   return (
-    <ComboboxPrimitive.Portal>
+    <ComboboxPrimitive.Portal container={portalContainer}>
       <ComboboxPrimitive.Positioner
         side="bottom"
         sideOffset={6}

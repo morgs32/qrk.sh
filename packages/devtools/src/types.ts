@@ -5,6 +5,7 @@ import type {
 import type {
   IServiceSession,
   IServiceSessionDefinition,
+  IServiceSessionWaSqliteDb,
 } from '@zerospin/core/serviceSession/types';
 import type { IResult, IZerospinErrorJson } from '@zerospin/error';
 import type { ITelemetryBatch } from '@zerospin/logger';
@@ -56,10 +57,6 @@ export interface IProfilerProfile {
 
 export interface IDevtoolsAggregateSessionEntry {
   readonly session: IAggregateSession;
-  readonly history?: (page: {
-    afterNodeIndex: number;
-    limit: number;
-  }) => Promise<readonly Readonly<Record<string, unknown>>[]>;
   readonly getPushPaused?: () => Promise<IResult<boolean, IZerospinErrorJson>>;
   readonly setPushPaused?: (props: {
     pushPaused: boolean;
@@ -89,6 +86,10 @@ export interface IDevtoolsServiceSessionEntry {
   readonly sessionName: string;
   readonly modelNames: readonly string[];
   readonly subscribe: (listener: () => void) => () => void;
+  readonly getCommandDb: () => Pick<
+    IServiceSessionWaSqliteDb,
+    'query' | '$client'
+  > | null;
   readonly getClaims: () => Readonly<Record<string, unknown>> | null;
   readonly getIsInitialized: () => boolean;
   readonly getSessionStatus: () => ReturnType<

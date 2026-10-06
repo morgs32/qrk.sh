@@ -22,7 +22,7 @@ const command = {
   serviceVersion: '1.0.0',
   serviceIndex: 7,
   executionVersion: '1.0.0',
-  asyncInput: null,
+  response: null,
   dispositionHash: '0'.repeat(64),
   caller: null,
   admission: JSON.stringify({
@@ -130,7 +130,7 @@ export class PendingAggregateHistory extends DurableObject<FixtureEnv> {
                 commandName: 'change',
                 contractVersion: '1.0.0',
                 payload: '{"original":true}',
-                asyncInput: null,
+                response: null,
                 aggregateId: 'agg_one',
                 aggregateName: 'order',
                 aggregateVersion: '1.0.0',

@@ -1,11 +1,13 @@
 import { PublicFailureSchema } from '@zerospin/error';
-import { makeTable, primitives } from '@zerospin/schema';
+import { makeTable, primitives } from '@zerospin/shapes';
 import { Schema } from 'effect';
 
+import { AdmissionResultSchema } from '../contracts/AdmissionResultSchema.ts';
+import { ExecutionResultSchema } from '../contracts/ExecutionResultSchema.ts';
 import { ActorDeltaSchema } from '../models/ActorDeltaSchema.ts';
 
-import { AggregateActorOutputSchema } from './AggregateActorCommandSchema/AggregateActorCommandSchema.ts';
-import type { IAggregateActorOutput } from './types.ts';
+import { AggregateBrowserCommandSchema } from './AggregateActorCommandSchema/AggregateActorCommandSchema.ts';
+import type { IAggregateBrowserCommand } from './types.ts';
 
 /** Public projection output and its optional private command-completion recipient. */
 export const aggregateBrowserCommandsTable = makeTable({
@@ -17,7 +19,14 @@ export const aggregateBrowserCommandsTable = makeTable({
     id: primitives.text(),
     commandName: primitives.text(),
     delta: primitives.json({ schema: ActorDeltaSchema }),
-    failure: primitives.json({ schema: PublicFailureSchema, nullable: true }),
+    admission: primitives.json({
+      schema: AdmissionResultSchema,
+      nullable: true,
+    }),
+    execution: primitives.json({
+      schema: ExecutionResultSchema,
+      nullable: true,
+    }),
     completionNodeId: primitives.text({ nullable: true }),
     completionNodeIndex: primitives.integer({ nullable: true }),
     completionSessionName: primitives.text({ nullable: true }),
@@ -39,18 +48,19 @@ export const aggregateBrowserCommandsTable = makeTable({
   ],
 });
 
-export function makeAggregateActorOutput(
+export function makeAggregateBrowserCommand(
   row: typeof aggregateBrowserCommandsTable.codec.Type,
-): IAggregateActorOutput {
-  return Schema.decodeUnknownSync(Schema.toType(AggregateActorOutputSchema))({
-    executedIndex: row.executedIndex,
-    aggregateIndex: row.aggregateIndex,
-    executedHash: row.executedHash,
-    command: {
+): IAggregateBrowserCommand {
+  return Schema.decodeUnknownSync(Schema.toType(AggregateBrowserCommandSchema))(
+    {
+      executedIndex: row.executedIndex,
+      aggregateIndex: row.aggregateIndex,
+      executedHash: row.executedHash,
       id: row.id,
       commandName: row.commandName,
       delta: row.delta,
-      failure: row.failure,
+      admission: row.admission,
+      execution: row.execution,
     },
-  });
+  );
 }

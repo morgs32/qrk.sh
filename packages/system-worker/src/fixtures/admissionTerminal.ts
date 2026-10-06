@@ -5,7 +5,7 @@ import { defineContract } from '@zerospin/core/contracts/defineContract';
 import { makeContractVersion } from '@zerospin/core/contracts/make/makeContractVersion';
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/make/makeDbConfig/makeDbConfig';
 import { makeProvisionedInMemorySqljsDb } from '@zerospin/core/drizzle/make/makeProvisionedInMemorySqljsDb/makeProvisionedInMemorySqljsDb';
-import { primitives } from '@zerospin/schema';
+import { primitives } from '@zerospin/shapes';
 import { Effect, Result, Schema } from 'effect';
 
 import { admitCommandsTx } from '../AggregateChain/admitCommands/admitCommandsTx.js';
@@ -28,7 +28,6 @@ export const verifyAdmissionTerminal = Effect.fn('verifyAdmissionTerminal')(
     });
     const command = {
       id: 'cmd_admission' as const,
-      asyncInput: null,
       commandName: 'change',
       contractVersion: '1.0.0',
       payload: '{"value":"invalid"}',
@@ -122,7 +121,6 @@ export const verifyAdmissionTerminal = Effect.fn('verifyAdmissionTerminal')(
 
     const serviceCommand = {
       id: 'cmd_service_rejected' as const,
-      asyncInput: null,
       commandName: 'change',
       contractVersion: '1.0.0',
       payload: command.payload,
@@ -183,8 +181,9 @@ export const verifyAdmissionTerminal = Effect.fn('verifyAdmissionTerminal')(
           },
           startedAt: new Date(1),
           prepared: Result.succeed({
+            contract: null,
             contractVersion: '1.0.0',
-            payload: null,
+            input: { payload: null, claims: null },
             operations: [],
             encodedResult: null,
           }),

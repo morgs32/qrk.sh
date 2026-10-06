@@ -51,7 +51,7 @@
       "path": "../studio"
     },
     {
-      "path": "../schema"
+      "path": "../shapes"
     },
     {
       "path": "../production-worker"
@@ -64,6 +64,9 @@
     },
     {
       "path": "../core"
+    },
+    {
+      "path": "../logger"
     }
   ]
 }

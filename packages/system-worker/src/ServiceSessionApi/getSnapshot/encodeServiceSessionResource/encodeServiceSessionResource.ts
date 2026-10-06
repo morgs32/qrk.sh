@@ -6,7 +6,7 @@ import {
   mapParseError,
   type IAnyError,
 } from '@zerospin/error';
-import { makeEffectSchema } from '@zerospin/schema';
+import { makeEffectSchema } from '@zerospin/shapes';
 import config from 'config';
 import { Effect, Schema } from 'effect';
 

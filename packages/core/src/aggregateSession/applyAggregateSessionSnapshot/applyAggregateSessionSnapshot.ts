@@ -3,14 +3,16 @@ import {
   mapParseError,
   type IAnyError,
 } from '@zerospin/error';
-import { makeEffectSchema } from '@zerospin/schema';
+import { makeEffectSchema } from '@zerospin/shapes';
 import { Effect, Schema } from 'effect';
 import { isEqual } from 'es-toolkit';
 
 import type { IDrizzleRelationsFromModels } from '../../drizzle/types.ts';
 import { getByKeyOrThrow } from '../../utils/getByKeyOrThrow.ts';
 import { AggregateSessionSnapshotSchema } from '../AggregateActorCommandSchema/AggregateActorCommandSchema.ts';
+import type { IAggregateSessionReplayRequirements } from '../replayPendingCommandsTx.ts';
 import type {
+  IAggregateBrowserCommand,
   IAggregateSessionDefinition,
   IAggregateSessionSnapshot,
   ISessionDrizzleDb,
@@ -32,7 +34,12 @@ export const applyAggregateSessionSnapshot = Effect.fn(
   snapshot: IAggregateSessionSnapshot;
   aggregateId: IAggregateSessionSnapshot['aggregateId'];
   claims: IAggregateSessionSnapshot['claims'];
-}): Effect.fn.Return<void, IAnyError> {
+  outcomes?: readonly IAggregateBrowserCommand[];
+}): Effect.fn.Return<
+  void,
+  IAnyError,
+  IAggregateSessionReplayRequirements<DEFINITION>
+> {
   const { aggregateId, db, definition, snapshot, models, sessionId, claims } =
     props;
 
@@ -93,5 +100,6 @@ export const applyAggregateSessionSnapshot = Effect.fn(
     sessionId,
     models,
     definition,
+    ...(props.outcomes === undefined ? {} : { outcomes: props.outcomes }),
   });
 });

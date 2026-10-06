@@ -16,7 +16,7 @@ export const validateAggregateCommand = Effect.fn('validateAggregateCommand')(
     contract: IContract;
     db: Readonly<Pick<IDb, 'query'>>;
     payload: unknown;
-    external?: unknown;
+    response?: unknown;
     claims: Readonly<Record<string, unknown>>;
   }) {
     const guard =
@@ -27,9 +27,9 @@ export const validateAggregateCommand = Effect.fn('validateAggregateCommand')(
           guard?.({
             db: props.db,
             payload: props.payload,
-            ...(props.contract.async === undefined
+            ...(props.contract.external === undefined
               ? {}
-              : { external: props.external }),
+              : { response: props.response }),
             claims: props.claims,
             failures: props.contract.failures,
           }) ?? Effect.void,

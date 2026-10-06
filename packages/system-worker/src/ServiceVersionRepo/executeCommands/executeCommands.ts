@@ -1,14 +1,15 @@
 import {
-  decodeAsyncInput,
-  validateAsyncValues,
-} from '@zerospin/core/contracts/asyncInputCodec';
-import {
   EncodedServiceCommandSchema,
   ServiceChainedCommandSchema,
 } from '@zerospin/core/contracts/CommandSchema';
 import { decodePayload } from '@zerospin/core/contracts/decodePayload/decodePayload';
-import { encodeFailure } from '@zerospin/core/contracts/failureCodec';
+import { validateExternalResponse } from '@zerospin/core/contracts/externalResponseCodec';
+import {
+  encodeFailure,
+  type IFailure,
+} from '@zerospin/core/contracts/failureCodec';
 import { makeOperations } from '@zerospin/core/contracts/make/makeOperations';
+import { prepareContractInput } from '@zerospin/core/contracts/prepareContractInput';
 import { validateServiceCommand } from '@zerospin/core/contracts/validateServiceCommand';
 import type { IDb } from '@zerospin/core/drizzle/types';
 import { getByKeyOrThrow } from '@zerospin/core/utils/getByKeyOrThrow';
@@ -18,16 +19,19 @@ import {
   makeZerospinError,
   mapParseError,
   PublicFailureSchema,
+  type IAnyError,
 } from '@zerospin/error';
 import config from 'config';
 import { eq } from 'drizzle-orm';
 import { Effect, Result, Schema, type Context } from 'effect';
 
-import {} from '../../ownedOperations.js';
 import { serviceChainDbConfig } from '../../ServiceChain/serviceChainDbConfig.js';
 import { serviceVersionRepoDbConfig } from '../serviceVersionRepoDbConfig.js';
 
-import { executeCommandsTx } from './executeCommandsTx.js';
+import {
+  executeCommandsTx,
+  type IPreparedServiceExecution,
+} from './executeCommandsTx.js';
 const { system } = config;
 /** Caller holds the execution permit; prepare before atomically committing the new suffix. */
 export const executeCommands = Effect.fn('ServiceVersionRepo.executeCommands')(
@@ -124,18 +128,28 @@ export const executeCommands = Effect.fn('ServiceVersionRepo.executeCommands')(
               prefix: 'Invalid admitted service command',
             }),
           );
-          const prepared =
+          const prepared: Result.Result<
+            IPreparedServiceExecution,
+            IFailure | IAnyError
+          > =
             command.admission.status === 'failed'
               ? Result.succeed({
-                  payload: undefined,
+                  contract: null,
+                  input: { payload: undefined, claims: null },
                   operations: [],
                   encodedResult: null,
-                  result: undefined,
                   contractVersion: command.contractVersion,
                 })
               : yield* Effect.gen(function* () {
+                  const producer =
+                    latestService[source.serviceVersion]?.actors[
+                      command.caller?.actorName ?? ''
+                    ];
+                  const producingContract =
+                    producer?.contracts[source.commandName];
                   const contract =
-                    command.asyncInput != null && command.caller !== null
+                    producingContract?.external !== undefined &&
+                    command.caller !== null
                       ? service.actors[command.caller.actorName]?.contracts[
                           source.commandName
                         ]
@@ -152,73 +166,65 @@ export const executeCommands = Effect.fn('ServiceVersionRepo.executeCommands')(
                     );
                   }
                   let encodedAsyncPayload: unknown;
-                  let asyncValues:
-                    | { payload: unknown; external: unknown }
-                    | undefined;
-                  if (command.asyncInput != null) {
-                    const producer =
-                      latestService[source.serviceVersion]?.actors[
-                        command.caller?.actorName ?? ''
-                      ];
-                    const producingContract =
-                      producer?.contracts[source.commandName];
+                  if (producingContract?.external !== undefined) {
+                    if (command.response === undefined) {
+                      return yield* makeZerospinError(
+                        'external-response-required',
+                      );
+                    }
                     if (
                       producer?.version !== command.caller?.actorVersion ||
                       producingContract?.version !== source.contractVersion ||
-                      producingContract.async === undefined ||
-                      contract.async === undefined
+                      contract.external === undefined
                     ) {
                       return yield* makeZerospinError(
-                        'async-contract-kind-mismatch',
+                        'external-contract-kind-mismatch',
                       );
                     }
                     encodedAsyncPayload = yield* Schema.decodeUnknownEffect(
                       Schema.fromJsonString(Schema.Json),
                     )(source.payload).pipe(
                       mapParseError({
-                        code: 'async-payload-json-invalid',
+                        code: 'external-payload-json-invalid',
                         prefix: 'Invalid frozen input',
                       }),
                     );
-                    yield* decodeAsyncInput(
+                    yield* validateExternalResponse(
                       producingContract,
                       encodedAsyncPayload,
-                      command.asyncInput,
+                      command.response,
                     );
-                    asyncValues = yield* validateAsyncValues(
-                      contract,
-                      encodedAsyncPayload,
-                      command.asyncInput.external,
+                  } else if (contract.external !== undefined) {
+                    return yield* makeZerospinError(
+                      'external-contract-kind-mismatch',
                     );
-                  } else if (contract.async !== undefined) {
-                    return yield* makeZerospinError('async-input-required');
                   }
-                  const payload =
-                    asyncValues === undefined
+                  const decodedPayload =
+                    producingContract?.external === undefined
                       ? yield* decodePayload(contract, { command: source })
-                      : asyncValues.payload;
+                      : encodedAsyncPayload;
+                  const input = yield* prepareContractInput({
+                    contract,
+                    command: { ...command, payload: decodedPayload },
+                    claims: command.caller?.claims ?? null,
+                  });
+                  const { payload } = input;
                   yield* validateServiceCommand({
                     service,
                     caller: command.caller,
                     contract,
                     db,
                     payload,
-                    ...(asyncValues === undefined
+                    ...(contract.external === undefined
                       ? {}
-                      : { external: asyncValues.external }),
+                      : { response: input.response }),
                   });
                   const made = yield* makeOperations({
                     db,
-                    claims: command.caller?.claims ?? null,
                     contract,
                     models: service.models,
-                    command: {
-                      ...source,
-                      payload:
-                        asyncValues === undefined
-                          ? payload
-                          : encodedAsyncPayload,
-                    },
+                    command: source,
+                    input,
                   }).pipe(
                     Effect.catch(failure =>
                       encodeFailure(contract, failure).pipe(
@@ -226,7 +232,7 @@ export const executeCommands = Effect.fn('ServiceVersionRepo.executeCommands')(
                       ),
                     ),
                   );
-                  return made;
+                  return { ...made, input, contract };
                 }).pipe(Effect.result);
           const unsupportedVersion =
             Result.isFailure(prepared) &&

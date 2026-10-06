@@ -4,7 +4,7 @@
   "targets": {
     "lib": {
       "inputs": ["default", "^default", "{projectRoot}/tsconfig.json"],
-      "outputs": ["{projectRoot}/dist"],
+      "outputs": ["{projectRoot}/dist", "{projectRoot}/tsconfig.tsbuildinfo"],
       "dependsOn": [
         {
           "target": "lib",
@@ -15,7 +15,7 @@
             "@zerospin/error",
             "@zerospin/live-query",
             "@zerospin/logger",
-            "@zerospin/schema",
+            "@zerospin/shapes",
             "@zerospin/sdk"
           ]
         }
@@ -23,6 +23,12 @@
     },
     "watch": {
       "continuous": true
+    },
+    "test": {
+      "dependsOn": ["lib"]
+    },
+    "primitives:check": {
+      "dependsOn": ["lib"]
     }
   }
 }

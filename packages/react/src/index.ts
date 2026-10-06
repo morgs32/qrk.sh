@@ -3,6 +3,7 @@ export { stageCommand } from '@zerospin/core/aggregateSession/stageCommand/stage
 export { loadDevtools } from './loadDevtools/loadDevtools.js';
 export { useClaims } from './useClaims.js';
 export { useInitializeMockSession } from './useInitializeMockSession/useInitializeMockSession.js';
-export { useInitializeSession } from './useInitializeSession/useInitializeSession.js';
+export { useInitializeAggregateSession } from './useInitializeAggregateSession/useInitializeAggregateSession.js';
+export { useInitializeServiceSession } from './useInitializeServiceSession/useInitializeServiceSession.js';
 export { useInitializeStandaloneSession } from './useInitializeStandaloneSession/useInitializeStandaloneSession.js';
 export { useLiveQuery } from './useLiveQuery.js';

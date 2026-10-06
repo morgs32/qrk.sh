@@ -1,11 +1,14 @@
-declare namespace Cloudflare {
-  interface Env {
-    CLERK_JWT_KEY?: string;
-    CLERK_AUTHORIZED_PARTIES?: string;
-    ZEROSPIN_ENVIRONMENT: 'dev' | 'production';
-  }
-}
+import '../../../packages/system-worker/worker-configuration';
 
-declare module 'cloudflare:workers' {
-  export const env: Cloudflare.Env;
+declare global {
+  namespace Cloudflare {
+    interface Env {
+      CLERK_JWT_KEY?: string;
+      CLERK_AUTHORIZED_PARTIES?: string;
+      ZEROSPIN_API_URL?: string;
+      ZEROSPIN_SECRET_KEY?: string;
+      ASSETS: { fetch(request: Request): Promise<Response> };
+      ZEROSPIN_ENVIRONMENT: 'dev' | 'production';
+    }
+  }
 }

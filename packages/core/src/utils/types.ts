@@ -2,7 +2,7 @@
 
 import type { IAnyError } from '@zerospin/error';
 import type { IRpcEnvelope } from '@zerospin/logger';
-import type { ITypeError } from '@zerospin/schema';
+import type { ITypeError } from '@zerospin/shapes';
 import type { Effect } from 'effect';
 
 import type { Async } from '../async/Async.ts';

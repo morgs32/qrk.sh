@@ -1,4 +1,4 @@
-import type { InferIdFromAbbreviation } from '@zerospin/schema';
+import type { InferIdFromAbbreviation } from '@zerospin/shapes';
 
 import type { IModel } from '../models/types.ts';
 

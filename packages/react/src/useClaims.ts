@@ -15,7 +15,7 @@ import { makeZerospinError } from '@zerospin/error';
 /**
  * Returns the published session claims. Throws while the store is
  * still unpublished — mount only under an initialized gate such as
- * useInitializeSession.
+ * useInitializeAggregateSession or useInitializeServiceSession.
  */
 export function useClaims<DEFINITION extends IAggregateSessionDefinition>(
   session: IAggregateSession<DEFINITION>,

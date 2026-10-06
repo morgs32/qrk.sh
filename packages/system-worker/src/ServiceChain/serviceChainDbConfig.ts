@@ -1,9 +1,9 @@
 import { AdmissionResultSchema } from '@zerospin/core/contracts/AdmissionResultSchema';
-import { AsyncCommandInputSchema } from '@zerospin/core/contracts/AsyncCommandInputSchema';
 import { ServiceCallerSchema } from '@zerospin/core/contracts/ServiceCallerSchema';
 import { makeDbConfig } from '@zerospin/core/drizzle/make/makeDbConfig/makeDbConfig';
 import { PublicFailureSchema } from '@zerospin/error';
-import { makeTable, primitives } from '@zerospin/schema';
+import { makeTable, primitives } from '@zerospin/shapes';
+import { Schema } from 'effect';
 
 import { systemWorkerAbbreviations } from '../systemWorkerAbbreviations.js';
 export const serviceChainDbConfig = makeDbConfig({
@@ -18,8 +18,8 @@ export const serviceChainDbConfig = makeDbConfig({
           nullable: true,
         }),
         payload: primitives.text(),
-        asyncInput: primitives.json({
-          schema: AsyncCommandInputSchema,
+        response: primitives.json({
+          schema: Schema.Json,
           nullable: true,
         }),
         contractVersion: primitives.text(),

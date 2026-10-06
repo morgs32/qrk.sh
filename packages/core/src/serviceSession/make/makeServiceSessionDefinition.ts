@@ -1,7 +1,7 @@
 import { Schema } from 'effect';
 
 import { assertSameCoreInstance } from '../../assertSameCoreInstance.ts';
-import { publicContracts } from '../../contracts/asyncContract.ts';
+import { publicContracts } from '../../contracts/externalContract.ts';
 import { Contract } from '../../contracts/make/makeContractVersion.ts';
 import type { IAnyContracts, IContract } from '../../contracts/types.ts';
 import { assertValidModels } from '../../models/assertValidModels.ts';

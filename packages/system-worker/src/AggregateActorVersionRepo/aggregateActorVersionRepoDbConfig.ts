@@ -1,11 +1,10 @@
 import { aggregateBrowserCommandsTable } from '@zerospin/core/aggregateSession/aggregateBrowserCommandsTable';
 import { AdmissionResultSchema } from '@zerospin/core/contracts/AdmissionResultSchema';
-import { AsyncCommandInputSchema } from '@zerospin/core/contracts/AsyncCommandInputSchema';
 import { EncodedOperationSchema } from '@zerospin/core/contracts/encodeAppliedOperation';
 import { ExecutionResultSchema } from '@zerospin/core/contracts/ExecutionResultSchema';
 import { makeDbConfig } from '@zerospin/core/drizzle/make/makeDbConfig/makeDbConfig';
 import { PublicFailureSchema } from '@zerospin/error';
-import { makeTable, primitives } from '@zerospin/schema';
+import { makeTable, primitives } from '@zerospin/shapes';
 import { Schema } from 'effect';
 
 const actorCommandTable = makeTable({
@@ -16,8 +15,8 @@ const actorCommandTable = makeTable({
     commandName: primitives.text(),
     contractVersion: primitives.text(),
     payload: primitives.text(),
-    asyncInput: primitives.json({
-      schema: AsyncCommandInputSchema,
+    response: primitives.json({
+      schema: Schema.Json,
       nullable: true,
     }),
     aggregateId: primitives.text({ nullable: true }),
@@ -120,7 +119,6 @@ export const aggregateActorVersionRepoDbConfig = makeDbConfig({
         commandName: actorCommandTable.shape.commandName,
         contractVersion: actorCommandTable.shape.contractVersion,
         payload: actorCommandTable.shape.payload,
-        asyncInput: actorCommandTable.shape.asyncInput,
         aggregateId: actorCommandTable.shape.aggregateId,
         aggregateName: actorCommandTable.shape.aggregateName,
         aggregateVersion: actorCommandTable.shape.aggregateVersion,

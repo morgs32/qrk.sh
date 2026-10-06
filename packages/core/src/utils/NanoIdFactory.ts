@@ -1,4 +1,4 @@
-import { CuidFactory } from '@zerospin/schema';
+import { CuidFactory } from '@zerospin/shapes';
 import { Effect, Layer } from 'effect';
 import { nanoid } from 'nanoid';
 

@@ -25,11 +25,15 @@ import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
 import { encodeRpcOutcome } from '@zerospin/core/utils/encodeRpcOutcome';
 import { zerospinDevtoolsStore } from '@zerospin/devtools/zerospinDevtoolsStore';
 import type { IAnyError } from '@zerospin/error';
-import { makeTelemetryLayer } from '@zerospin/logger';
-import { makeIdFromAbbreviation, type ITypeError } from '@zerospin/schema';
+import { makeIdFromAbbreviation, type ITypeError } from '@zerospin/shapes';
 import { Effect, Layer, Redacted, type Schema } from 'effect';
 
 import { bootstrapServiceSession } from '../bootstrapServiceSession.ts';
+import type {
+  IBrowserSessionFailureCallbacks,
+  IBrowserSessionFailureSubscriptions,
+  ISessionCommandFailure,
+} from '../failureTypes.ts';
 import { makeAdmissionProvider } from '../makeSession/makeAdmissionProvider';
 import { makeSessionLifecycle } from '../makeSessionLifecycle';
 import type { IZerospinRuntime } from '../sessionRuntime';
@@ -103,15 +107,18 @@ export function makeServiceSession<
     readonly actorVersion: ACTOR_VERSION;
     readonly contracts: IComposedDeclarations<CONTRACTS, MODULES, 'contracts'>;
   }
-> & {
-  readonly runtime: IZerospinRuntime<Layer.Success<APP_LAYER>>;
-  readonly systemName: SYSTEM_NAME;
-  readonly claimsSchema: CLAIMS;
-  readonly credentialsSchema?: CREDENTIALS;
-  initialize(props: ISessionInitialization<CLAIMS, CREDENTIALS>): Promise<void>;
-  dispose(): Promise<void>;
-  clearAuthentication(): Promise<void>;
-};
+> &
+  IBrowserSessionFailureSubscriptions & {
+    readonly runtime: IZerospinRuntime<Layer.Success<APP_LAYER>>;
+    readonly systemName: SYSTEM_NAME;
+    readonly claimsSchema: CLAIMS;
+    readonly credentialsSchema?: CREDENTIALS;
+    initialize(
+      props: ISessionInitialization<CLAIMS, CREDENTIALS>,
+    ): Promise<void>;
+    dispose(): Promise<void>;
+    clearAuthentication(): Promise<void>;
+  };
 export function makeServiceSession(props: unknown): unknown {
   const input = props as Omit<
     Parameters<typeof makeServiceSessionDefinition>[0],
@@ -148,8 +155,47 @@ export function makeServiceSession(props: unknown): unknown {
     definition,
     models: definition.models,
   });
+  const admissionFailures = new Set<(event: ISessionCommandFailure) => void>();
+  const executionFailures = new Set<(event: ISessionCommandFailure) => void>();
+  const connectionFailures = new Set<(event: { message: string }) => void>();
+  const persistenceFailures = new Set<(event: { message: string }) => void>();
+  const authenticationFailures = new Set<
+    (event: { message: string }) => void
+  >();
+  const protocolFailures = new Set<(event: { message: string }) => void>();
+  const subscribe = <EVENT>(
+    listeners: Set<(event: EVENT) => void>,
+    handler: (event: EVENT) => void,
+  ) => {
+    listeners.add(handler);
+    return () => {
+      listeners.delete(handler);
+    };
+  };
+  const notify = <EVENT>(
+    listeners: Set<(event: EVENT) => void>,
+    event: EVENT,
+  ) => {
+    for (const listener of [...listeners]) {
+      try {
+        listener(event);
+      } catch (error) {
+        console.error('Browser service session failure observer threw', error);
+      }
+    }
+  };
+  const failureCallbacks: IBrowserSessionFailureCallbacks = {
+    onAdmissionFailure: event => notify(admissionFailures, event),
+    onExecutionFailure: event => notify(executionFailures, event),
+    onSharedWorkerConnectionFailure: event => notify(connectionFailures, event),
+    onSharedWorkerPersistenceFailure: event =>
+      notify(persistenceFailures, event),
+    onAuthenticationFailure: event => notify(authenticationFailures, event),
+    onServerProtocolFailure: event => notify(protocolFailures, event),
+  };
   const lifecycle = makeSessionLifecycle({
     layer,
+    telemetryCollector: coreSession.store.getState().telemetryCollector,
     infrastructure: Layer.empty,
     onDispose: () => {
       coreSession.store.setState({
@@ -183,7 +229,7 @@ export function makeServiceSession(props: unknown): unknown {
       credentialsSchema,
       initialization: initializeProps,
     });
-    return lifecycle.initialize(({ runtime, ready }) =>
+    return lifecycle.initialize(({ runtime, ready, signal }) =>
       Effect.gen(function* () {
         const sessionId = yield* makeIdFromAbbreviation({
           abbreviation: coreAbbreviations.session,
@@ -203,11 +249,9 @@ export function makeServiceSession(props: unknown): unknown {
             ),
           expectedClaims: admission.claims,
           sharedWorker,
-        }).pipe(
-          Effect.provide(
-            makeTelemetryLayer(coreSession.store.getState().telemetryCollector),
-          ),
-        );
+          failureCallbacks,
+          signal,
+        });
         clearAuthentication = bootstrap.clearAuthentication;
         zerospinDevtoolsStore.getState().addServiceSession({
           session: coreSession,
@@ -248,6 +292,22 @@ export function makeServiceSession(props: unknown): unknown {
   const dispose = lifecycle.dispose;
   return Object.defineProperty(
     Object.assign(coreSession, {
+      onAdmissionFailure: (handler: (event: ISessionCommandFailure) => void) =>
+        subscribe(admissionFailures, handler),
+      onExecutionFailure: (handler: (event: ISessionCommandFailure) => void) =>
+        subscribe(executionFailures, handler),
+      onSharedWorkerConnectionFailure: (
+        handler: (event: { message: string }) => void,
+      ) => subscribe(connectionFailures, handler),
+      onSharedWorkerPersistenceFailure: (
+        handler: (event: { message: string }) => void,
+      ) => subscribe(persistenceFailures, handler),
+      onAuthenticationFailure: (
+        handler: (event: { message: string }) => void,
+      ) => subscribe(authenticationFailures, handler),
+      onServerProtocolFailure: (
+        handler: (event: { message: string }) => void,
+      ) => subscribe(protocolFailures, handler),
       systemName,
       claimsSchema,
       credentialsSchema,

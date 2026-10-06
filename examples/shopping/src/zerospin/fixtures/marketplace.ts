@@ -1,23 +1,26 @@
 import assert from 'node:assert/strict';
 
-import { replaceServiceProjectionTx } from '@zerospin/browser/replaceServiceProjectionTx';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { applyOperationTx } from '@zerospin/core/contracts/applyOperationTx';
 import { makeOperations } from '@zerospin/core/contracts/make/makeOperations';
+import { prepareContractInput } from '@zerospin/core/contracts/prepareContractInput';
 import { validateServiceCommand } from '@zerospin/core/contracts/validateServiceCommand';
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/make/makeDbConfig/makeDbConfig';
 import { makeProvisionedInMemorySqljsDb } from '@zerospin/core/drizzle/make/makeProvisionedInMemorySqljsDb/makeProvisionedInMemorySqljsDb';
 import { EncodedResourceSchema } from '@zerospin/core/models/EncodedResourceSchema';
 import type { IEncodedResourceShape } from '@zerospin/core/models/types';
-import type { INodeCommandInput } from '@zerospin/core/Node/types';
+import type { IServiceNodeCommandInput } from '@zerospin/core/ServiceNode/types';
+import { importServiceNodeCommands } from '@zerospin/core/serviceSession/importServiceNodeCommands';
+import { initializeServiceNodeProjection } from '@zerospin/core/serviceSession/initializeServiceNodeProjection';
 import { makeServiceSession } from '@zerospin/core/serviceSession/make/makeServiceSession';
 import { makeServiceSessionDefinition } from '@zerospin/core/serviceSession/make/makeServiceSessionDefinition';
 import { makeServiceSessionLock } from '@zerospin/core/serviceSession/make/makeServiceSessionLock';
+import { serviceSessionRepoDbConfig } from '@zerospin/core/serviceSession/serviceSessionRepoTables';
 import {
   bindServiceSessionExecution,
   stageServiceCommand,
 } from '@zerospin/core/serviceSession/stageServiceCommand';
-import { makeEffectSchema } from '@zerospin/schema';
+import { makeEffectSchema } from '@zerospin/shapes';
 import { Context, Effect, Result, Schema } from 'effect';
 
 import { userActorV1 } from '../aggregates/user/actors/userActorV1';
@@ -114,12 +117,20 @@ await Effect.runPromise(
       id: `cmd_${string}` = 'cmd_fixture',
     ) =>
       Effect.runSync(
-        makeOperations({
-          db,
-          contract,
-          models,
-          command: command(contract, value, id),
-          claims,
+        Effect.gen(function* () {
+          const occurrence = command(contract, value, id);
+          const input = yield* prepareContractInput({
+            contract,
+            command: occurrence,
+            claims,
+          });
+          return yield* makeOperations({
+            db,
+            contract,
+            models,
+            command: occurrence,
+            input,
+          });
         }),
       );
     const apply = (
@@ -365,16 +376,38 @@ await Effect.runPromise(
       3,
     );
 
-    // Exercise the production replacement/rebase seam without acquiring a browser.
-    const input = (id: `cmd_${string}`, value: unknown): INodeCommandInput => ({
+    const authored = makeServiceSessionDefinition({
+      actorName: 'shopper',
+      actorVersion: '1.0.0',
+      serviceName: 'marketplace',
+      serviceVersion: '1.0.0',
+      sessionName: 'shopperSession',
+      claimsSchema: userClaims,
+      contracts,
+      models,
+    });
+    const definition = { ...authored, contracts, systemName: 'shopping' };
+    // Exercise the production incremental journal/rebase seam without acquiring a browser.
+    const replicaConfig = makeResourceDbConfig({
+      models,
+      otherTables: serviceSessionRepoDbConfig.tables,
+    });
+    const replica = yield* makeProvisionedInMemorySqljsDb({
+      dbConfig: replicaConfig,
+    });
+    const sessionId = 'sesn_marketplace_fixture' as const;
+
+    const input = (
+      id: `cmd_${string}`,
+      value: unknown,
+    ): IServiceNodeCommandInput => ({
       id,
       commandName: 'addToCart',
       payload: JSON.stringify(
         Schema.encodeUnknownSync(makeEffectSchema(addToCartV1.payload))(value),
       ),
       contractVersion: '1.0.0',
-      targetId: '',
-      targetName: 'marketplace',
+      serviceName: 'marketplace',
       actorName: 'shopper',
       actorVersion: '1.0.0',
       sessionName: 'shopperSession',
@@ -392,84 +425,167 @@ await Effect.runPromise(
           Schema.Array(Schema.toType(EncodedResourceSchema)),
         )(shopperActorV1.capturedSelections[name]!.all(owner, alice)),
       );
-    const replace = (pending: readonly INodeCommandInput[]) =>
-      local.transaction(tx =>
-        replaceServiceProjectionTx(tx, {
-          models,
-          resources: resources(),
-          pending,
-          predict: command =>
-            collect(
-              tx,
-              addToCartV1,
-              Schema.decodeUnknownSync(
-                Schema.fromJsonString(makeEffectSchema(addToCartV1.payload)),
-              )(command.payload),
-              alice,
-              command.id,
-            ).operations,
+    yield* initializeServiceNodeProjection({
+      db: replica,
+      definition,
+      sessionId,
+      snapshot: {
+        identity: {
+          apiUrl: 'http://fixture',
+          publishableKey: 'fixture',
+          systemName: 'shopping',
+          serviceName: 'marketplace',
+          serviceVersion: '1.0.0',
+          actorName: 'shopper',
+          actorVersion: '1.0.0',
+          sessionName: 'shopperSession',
+          claims: alice,
+          definitionHash: '0'.repeat(64),
+        },
+        metadata: {
+          serviceIndex: 0,
+          executedIndex: 0,
+          serviceHash: '0'.repeat(64),
+          changeIndex: 0,
+        },
+        resources: resources(),
+        unresolvedCommands: [],
+      },
+    });
+    let executedIndex = 0;
+    let nodeIndex = 0;
+    let changeIndex = 0;
+    let retainedPending: readonly IServiceNodeCommandInput[] = [];
+    const synchronize = (pending: readonly IServiceNodeCommandInput[]) => {
+      const settled = retainedPending.map(command => ({
+        id: command.id,
+        commandName: command.commandName,
+        delta: { upserted: [], deleted: [] },
+        admission: {
+          status: 'succeeded' as const,
+          startedAt: new Date(0),
+          completedAt: new Date(1),
+        },
+        execution: {
+          status: 'failed' as const,
+          startedAt: new Date(2),
+          completedAt: new Date(3),
+          failure: {
+            _tag: 'ZerospinError' as const,
+            code: 'fixture-rejected',
+            message: 'Rejected fixture prediction',
+            status: null,
+            extra: null,
+          },
+        },
+        executedIndex: ++executedIndex,
+        serviceIndex: executedIndex,
+        serviceHash: String(executedIndex).padStart(64, '0'),
+      }));
+      const confirmed = resources();
+      const selectedIds = new Set(confirmed.map(row => row.id));
+      const deleted = (['cart', 'cartItem', 'product'] as const).flatMap(
+        modelName =>
+          replica
+            .select({ id: replicaConfig.schema[modelName].id })
+            .from(replicaConfig.schema[modelName])
+            .all()
+            .filter(row => !selectedIds.has(row.id))
+            .map(row => ({ id: row.id, modelName })),
+      );
+      const command = {
+        id: `cmd_selected_${++executedIndex}` as const,
+        commandName: 'selectedRefresh',
+        delta: { upserted: confirmed, deleted },
+        admission: null,
+        execution: null,
+        executedIndex,
+        serviceIndex: executedIndex,
+        serviceHash: String(executedIndex).padStart(64, '0'),
+      };
+      Effect.runSync(
+        importServiceNodeCommands({
+          db: replica,
+          definition,
+          sessionId,
+          commands: [
+            ...settled,
+            command,
+            ...pending.map(command => ({
+              ...command,
+              nodeId: 'node_marketplace_fixture',
+              nodeIndex: ++nodeIndex,
+              admissionIndex: null,
+            })),
+          ],
+          throughChangeIndex: ++changeIndex,
         }),
       );
-    replace([]);
-    assert.equal(local.query.product.findMany().sync().length, 1);
-    assert.equal(local.query.product.findFirst().sync()?.name, product.name);
+      retainedPending = pending;
+    };
+    synchronize([]);
+    assert.equal(replica.query.product.findMany().sync().length, 1);
+    assert.equal(replica.query.product.findFirst().sync()?.name, product.name);
     assert.equal(
-      local.query.cartItem.findFirst({ with: { product: true } }).sync()
+      replica.query.cartItem.findFirst({ with: { product: true } }).sync()
         ?.product.price,
       20,
     );
-    // Rejection clears the prediction; an unresolved second command rebases over authoritative rows.
-    apply(local, addToCartV1, missing);
-    replace([
-      input('cmd_application_failure', { ...missing, cartItemId: 'cit_one' }),
+    // A declared cart guard refusal contributes no prediction; the next command still rebases.
+    synchronize([
+      input('cmd_rebase_guard_refused', {
+        ...missing,
+        cartId: 'crt_bob',
+        cartItemId: 'cit_refused',
+      }),
       input('cmd_pending', { ...payload, cartItemId: 'cit_pending' }),
     ]);
     assert.equal(
-      local.query.product
+      replica.query.product
         .findFirst({ where: { id: { eq: 'prd_missing' } } })
         .sync(),
       undefined,
     );
     assert.equal(
-      local.query.cartItem
+      replica.query.cartItem
         .findFirst({ where: { id: { eq: 'cit_missing' } } })
         .sync(),
       undefined,
     );
-    assert.equal(local.query.cartItem.findMany().sync().length, 2);
-    assert.equal(local.query.product.findMany().sync().length, 1);
-    assert.equal(local.query.product.findFirst().sync()?.name, product.name);
+    assert.equal(replica.query.cartItem.findMany().sync().length, 2);
+    assert.equal(replica.query.product.findMany().sync().length, 1);
+    assert.equal(replica.query.product.findFirst().sync()?.name, product.name);
     // Removing the last reference deselects its product without deleting the owner's catalog row.
     apply(owner, removeFromCartV1, { id: 'cit_one' }, alice, true);
     assert.equal(selected('product', alice).length, 0);
     assert.equal(owner.query.product.findMany().sync().length, 1);
     assert.equal(selected('product', bob).length, 1);
-    replace([]);
-    assert.equal(local.query.cartItem.findMany().sync().length, 0);
-    assert.equal(local.query.product.findMany().sync().length, 0);
+    synchronize([]);
+    assert.equal(replica.query.cartItem.findMany().sync().length, 0);
+    assert.equal(replica.query.product.findMany().sync().length, 0);
     // A pending add recreates selected product optimism after the last reference disappeared.
-    replace([
+    synchronize([
       input('cmd_after_removal', {
         ...payload,
         cartItemId: 'cit_after_removal',
       }),
     ]);
-    assert.equal(local.query.cartItem.findMany().sync().length, 1);
-    assert.equal(local.query.product.findMany().sync().length, 1);
+    assert.equal(replica.query.cartItem.findMany().sync().length, 1);
+    assert.equal(replica.query.product.findMany().sync().length, 1);
     // Rebase failure rolls back only its own emissions; subsequent pending work survives.
-    replace([
+    synchronize([
       input('cmd_invalid', { ...missing, cartId: 'crt_bob' }),
       input('cmd_valid', { ...payload, cartItemId: 'cit_valid' }),
     ]);
-    assert.equal(local.query.cartItem.findMany().sync().length, 1);
+    assert.equal(replica.query.cartItem.findMany().sync().length, 1);
     assert.equal(
-      local.query.product
+      replica.query.product
         .findFirst({ where: { id: { eq: 'prd_missing' } } })
         .sync(),
       undefined,
     );
-    replace([]);
-    assert.equal(local.query.product.findMany().sync().length, 0);
+    synchronize([]);
+    assert.equal(replica.query.product.findMany().sync().length, 0);
 
     assert.equal(userAggregateId(alice.clerkUserId), 'acct_user_alice');
     assert.notEqual(
@@ -505,32 +621,25 @@ await Effect.runPromise(
       assert.equal(denied.failure.code, 'user-aggregate-identity-mismatch');
     }
 
-    const authored = makeServiceSessionDefinition({
-      actorName: 'shopper',
-      actorVersion: '1.0.0',
-      serviceName: 'marketplace',
-      serviceVersion: '1.0.0',
-      sessionName: 'shopperSession',
-      claimsSchema: userClaims,
-      contracts,
-      models,
-    });
-    const definition = { ...authored, contracts };
     const lock = makeServiceSessionLock(definition);
     assert.deepEqual(
       lock.contracts.addToCart?.resultJsonSchema,
       addToCartV1.spec.resultJsonSchema,
     );
     const session = makeServiceSession({
-      definition: { ...definition, systemName: 'shopping' },
+      definition,
       models,
     });
     let resolveAcceptance:
-      | ((result: { _tag: 'Success'; success: INodeCommandInput }) => void)
+      | ((result: { _tag: 'Success'; success: undefined }) => void)
       | undefined;
     const unbind = bindServiceSessionExecution(session, {
       can: () => ({ _tag: 'Success', success: undefined }),
-      stage: () =>
+      stage: () => ({
+        _tag: 'Success',
+        success: input('cmd_durable', payload),
+      }),
+      accept: () =>
         new Promise(resolve => {
           resolveAcceptance = resolve;
         }),
@@ -548,7 +657,7 @@ await Effect.runPromise(
     assert.equal(completed, false);
     resolveAcceptance!({
       _tag: 'Success',
-      success: input('cmd_durable', payload),
+      success: undefined,
     });
     const durable = yield* Effect.promise(() => stagedPromise);
     assert.equal(durable._tag, 'Success');

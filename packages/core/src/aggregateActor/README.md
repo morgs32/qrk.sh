@@ -24,6 +24,8 @@ Actor lock metadata records identity schemas, models, selections, and
 contracts. Fixed schema changes require empty storage during pre-release.
 System-only aggregate actors use `authentication: 'system'`. Application
 identity admission and aggregate-session authorization reject them before any
-ordinary authorizer runs. Studio agent declarations require a dedicated actor
-with aggregate-only claims/path and no contracts, and obtain read-only
-snapshot/stream access through the secret-key SystemApi broker.
+ordinary authorizer runs. Studio sessions use a full-view admin actor with
+aggregate-only claims/path. Browser-safe session declarations bind ordinary
+contracts whose exact originals are registered on that actor. The secret-key
+SystemApi broker resolves the declaration and grants a bounded snapshot/stream
+and command ticket; private async continuations remain excluded.

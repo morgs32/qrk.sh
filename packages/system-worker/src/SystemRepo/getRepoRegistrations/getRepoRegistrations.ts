@@ -6,7 +6,7 @@
 import type { IDb } from '@zerospin/core/drizzle/types';
 import type { IRepoType } from '@zerospin/core/system/types';
 import { makeZerospinError, prettyUnknownFailure } from '@zerospin/error';
-import type { IAnyDrizzleSchema } from '@zerospin/schema';
+import type { IAnyDrizzleSchema } from '@zerospin/shapes';
 import { asc, eq, type AnyColumn } from 'drizzle-orm';
 import { Effect, Schema } from 'effect';
 

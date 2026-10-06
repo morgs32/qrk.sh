@@ -12,7 +12,7 @@ import {
   type IPrimaryKeyDescriptor,
   type IPrimitiveDescriptor,
   type ITypeError,
-} from '@zerospin/schema';
+} from '@zerospin/shapes';
 import { Effect, Schema } from 'effect';
 import { mapValues } from 'es-toolkit';
 
@@ -66,7 +66,7 @@ export type InferContractProgram<
           Pick<IDb<IResourceDbConfig<MODELS, Record<never, never>>>, 'query'>
         >;
     claims: Readonly<Record<string, unknown>> | null;
-    external?: unknown;
+    response?: unknown;
     payload: IsErasedPayloadShape<PAYLOAD> extends true
       ? // oxlint-disable-next-line typescript/no-explicit-any -- erased payload shape intentionally accepts any payload
         any

@@ -9,6 +9,7 @@ import { updateCartItemQuantityV1 } from './services/marketplace/contracts/updat
 import { cartV1 } from './services/marketplace/models/cart/CartV1';
 import { cartItemV1 } from './services/marketplace/models/cartItem/CartItemV1';
 import { productV1 } from './services/marketplace/models/product/ProductV1';
+
 export const shopperSession = makeServiceSession({
   sharedWorker: ({ name }) =>
     new SharedWorker(new URL('./zerospin.worker.ts', import.meta.url), {

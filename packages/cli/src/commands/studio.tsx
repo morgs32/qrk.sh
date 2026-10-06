@@ -21,6 +21,7 @@ export default function Studio() {
         const { config, zerospinApiUrl, zerospinSecretKey } =
           yield* loadConfigFn();
         return yield* startStudio({
+          projectRoot: process.cwd(),
           port: 5555,
           open: true,
           systemSpec: makeSystemSpec({ system: config.system }),

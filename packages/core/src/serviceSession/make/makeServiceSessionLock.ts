@@ -1,7 +1,7 @@
-import type { IEncodedShape } from '@zerospin/schema';
+import type { IEncodedShape } from '@zerospin/shapes';
 import { Schema } from 'effect';
 
-import { publicContracts } from '../../contracts/asyncContract.ts';
+import { publicContracts } from '../../contracts/externalContract.ts';
 import type { IServiceSessionLock } from '../ServiceSessionLockSchema.ts';
 import type { IServiceSessionDefinition } from '../types.ts';
 

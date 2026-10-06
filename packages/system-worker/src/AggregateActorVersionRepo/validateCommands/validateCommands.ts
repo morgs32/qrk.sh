@@ -4,6 +4,7 @@ import {
   encodeBusinessFailure,
   validateFailure,
 } from '@zerospin/core/contracts/failureCodec';
+import { prepareContractInput } from '@zerospin/core/contracts/prepareContractInput';
 import { runContractGuard } from '@zerospin/core/contracts/runContractGuard';
 import type {
   IAggregateCommand,
@@ -78,18 +79,18 @@ export const validateCommands = Effect.fn(
       )(command.claims);
       const payload = yield* decodePayload(contract, { command });
       const checked = yield* Effect.gen(function* () {
-        yield* runContractGuard({
+        const input = yield* prepareContractInput({
           contract,
-          db: optimistic.db,
-          payload,
+          command: { ...command, payload },
           claims,
         });
+        yield* runContractGuard({ contract, db: optimistic.db, input });
         yield* runProgram(
           Effect.suspend(
             () =>
               actor.guards[command.commandName]?.({
                 db: optimistic.db,
-                payload,
+                payload: input.payload,
                 claims,
                 failures: contract.failures,
               }) ?? Effect.void,

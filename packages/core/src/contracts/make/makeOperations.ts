@@ -1,18 +1,17 @@
 import {
   isZerospinError,
   makeZerospinError,
-  mapParseError,
   type IAnyError,
 } from '@zerospin/error';
-import { Effect, Schema } from 'effect';
+import { Effect, type Schema } from 'effect';
 
 import type { IDb } from '../../drizzle/types.ts';
 import { runProgram } from '../../execution/runProgram.ts';
 import type { IAnyModels } from '../../models/types.ts';
 import { assertOperationsUseModels } from '../assertOperationsUseModels.ts';
-import { validateAsyncValues } from '../asyncInputCodec.ts';
 import { validateFailure } from '../failureCodec.ts';
 import { operationSink, type ExcludeOperationSink } from '../operationSink.ts';
+import type { IPreparedContractInput } from '../prepareContractInput.ts';
 import { encodeContractResult } from '../resultCodec.ts';
 import { runContractGuard } from '../runContractGuard.ts';
 import type {
@@ -24,17 +23,15 @@ import type {
   InferContractResult,
   InferFailure,
 } from '../types.ts';
-import { validatePayload } from '../validatePayload.ts';
 export function makeOperations<CONTRACT extends IContract>(props: {
   db: Readonly<Pick<IDb, 'query'>>;
   contract: CONTRACT;
   models: IAnyModels;
-  command: ICommand;
-  claims: Readonly<Record<string, unknown>> | null;
+  command: Pick<ICommand, 'id' | 'commandName' | 'contractVersion'>;
+  input: IPreparedContractInput<CONTRACT>;
 }): Effect.Effect<
   Readonly<{
     contractVersion: string;
-    payload: unknown;
     operations: readonly InferContractOperations<CONTRACT>[];
     result: InferContractResult<CONTRACT>;
     encodedResult: typeof Schema.Json.Type;
@@ -46,8 +43,8 @@ export function makeOperations(props: {
   db: Readonly<Pick<IDb, 'query'>>;
   contract: IContract;
   models: IAnyModels;
-  command: ICommand;
-  claims: Readonly<Record<string, unknown>> | null;
+  command: Pick<ICommand, 'id' | 'commandName' | 'contractVersion'>;
+  input: IPreparedContractInput;
 }) {
   return make(props);
 }
@@ -55,12 +52,11 @@ const make = Effect.fn('makeOperations')(function* (props: {
   db: Readonly<Pick<IDb, 'query'>>;
   contract: IContract;
   models: IAnyModels;
-  command: ICommand;
-  claims: Readonly<Record<string, unknown>> | null;
+  command: Pick<ICommand, 'id' | 'commandName' | 'contractVersion'>;
+  input: IPreparedContractInput;
 }): Effect.fn.Return<
   Readonly<{
     contractVersion: string;
-    payload: unknown;
     operations: readonly IContractOutput[];
     result: unknown;
     encodedResult: typeof Schema.Json.Type;
@@ -68,57 +64,19 @@ const make = Effect.fn('makeOperations')(function* (props: {
   IContractFailure,
   unknown
 > {
-  const { contract, models, command, claims: inputClaims } = props;
-  if (contract.async === undefined && command.asyncInput != null) {
-    return yield* makeZerospinError('async-contract-kind-mismatch');
-  }
-  const asyncValues =
-    contract.async === undefined
-      ? undefined
-      : command.asyncInput == null
-        ? yield* Effect.fail(makeZerospinError('async-input-required'))
-        : yield* validateAsyncValues(
-            contract,
-            command.payload,
-            command.asyncInput.external,
-          );
-  const payload =
-    asyncValues === undefined
-      ? yield* validatePayload(contract, {
-          version: contract.version,
-          payload: command.payload,
-        })
-      : asyncValues.payload;
-  const claims =
-    contract.claims === undefined
-      ? inputClaims
-      : yield* runProgram(
-          Schema.decodeUnknownEffect(Schema.toType(contract.claims))(
-            inputClaims,
-          ).pipe(
-            mapParseError({
-              code: 'contract-claims-invalid',
-              prefix: 'Invalid contract claims',
-            }),
-          ),
-        );
+  const { contract, models, command, input } = props;
+  const { payload, claims } = input;
   yield* runContractGuard({
     contract,
     db: props.db,
-    payload,
-    claims,
-    ...(asyncValues === undefined ? {} : { external: asyncValues.external }),
+    input,
   });
   const operations: IContractOutput[] = [];
   let result = yield* runProgram(
     contract
       .program({
         db: props.db,
-        payload,
-        claims,
-        ...(asyncValues === undefined
-          ? {}
-          : { external: asyncValues.external }),
+        ...input,
       })
       .pipe(
         Effect.provideService(operationSink<IContractOutput>(), {
@@ -203,7 +161,6 @@ const make = Effect.fn('makeOperations')(function* (props: {
   });
   return {
     contractVersion: contract.version,
-    payload,
     operations,
     result,
     encodedResult,

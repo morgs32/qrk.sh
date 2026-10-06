@@ -4,7 +4,7 @@ AC owns the durable order of admitted aggregate commands. [Admission](admitComma
 
 [Input paging](readInputsPage/readInputsPage.ts) delivers an unfinished command to its original executor. Other versions wait for the saved original terminal result, then rerun their own program against owned state.
 
-[Original result retention](receiveOriginalResults/receiveOriginalResults.ts) atomically saves the terminal disposition and owned outputs. VAR's independent original-result outbox and version-history outbox recover until their respective receivers acknowledge. Duplicate retention succeeds only for identical records.
+[Receive executed aggregate commands](receiveExecutedAggregateCommands/receiveExecutedAggregateCommands.ts) atomically saves the terminal disposition and owned outputs. VAR's independent original-result outbox and version-history outbox recover until their respective receivers acknowledge. Duplicate retention succeeds only for identical records.
 
 Activation reconciles deployed materializers while preserving acknowledged cursors. Shared fanout remains for these materializers; there is no external resource intake or enrollment.
 

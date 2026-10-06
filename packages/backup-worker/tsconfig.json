@@ -45,6 +45,9 @@
     },
     {
       "path": "../error"
+    },
+    {
+      "path": "../logger"
     }
   ]
 }

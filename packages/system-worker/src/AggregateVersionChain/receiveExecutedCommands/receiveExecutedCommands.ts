@@ -7,7 +7,7 @@ import {
   mapParseError,
   prettyUnknownFailure,
 } from '@zerospin/error';
-import type { InferDecodedRow } from '@zerospin/schema';
+import type { InferDecodedRow } from '@zerospin/shapes';
 import { desc, eq } from 'drizzle-orm';
 import { Effect, Schema } from 'effect';
 import { isEqual } from 'es-toolkit';

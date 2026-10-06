@@ -8,7 +8,7 @@ import {
   mapParseError,
   type IAnyError,
 } from '@zerospin/error';
-import { makeAbbreviationIdSchema } from '@zerospin/schema';
+import { makeAbbreviationIdSchema } from '@zerospin/shapes';
 import { Effect, Schema } from 'effect';
 
 export function encodeFixtureResources<MODELS extends IAnyModels>(props: {

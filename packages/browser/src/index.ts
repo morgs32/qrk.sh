@@ -7,3 +7,5 @@ export { makeStandaloneSession } from './makeStandaloneSession/makeStandaloneSes
 export type { IZerospinRuntime } from './sessionRuntime.js';
 
 export { makeAgentSession } from './makeAgentSession.js';
+export type { IAgentSession } from '@zerospin/core/agent/types';
+export { makeAgentContract } from '@zerospin/core/agent/makeAgentContract';

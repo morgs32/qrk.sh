@@ -5,7 +5,7 @@ import {
   type IAnyError,
 } from '@zerospin/error';
 /* oxlint-disable typescript/no-explicit-any -- Erased contract payloads retain the existing runtime-validation boundary. */
-import { makeEffectSchema, type IAnyShape } from '@zerospin/schema';
+import { makeEffectSchema, type IAnyShape } from '@zerospin/shapes';
 import { Effect, Schema } from 'effect';
 
 import type { InferCommandPayload } from '../../../models/types.ts';

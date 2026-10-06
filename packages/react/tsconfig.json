@@ -45,7 +45,7 @@
       "path": "../sdk"
     },
     {
-      "path": "../schema"
+      "path": "../shapes"
     },
     {
       "path": "../logger"

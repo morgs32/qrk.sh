@@ -2,9 +2,11 @@
   "name": "@zerospin/react",
   "version": "2.0.1",
   "private": false,
-  "description": "Zerospin internal APIs (merged library)",
+  "description": "Zerospin React session hooks and shape-generated forms",
   "type": "module",
-  "sideEffects": false,
+  "sideEffects": [
+    "**/*.css"
+  ],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -16,35 +18,49 @@
       "types": "./dist/*.d.ts",
       "import": "./dist/*.js",
       "default": "./dist/*.js"
-    }
+    },
+    "./primitives": {
+      "types": "./dist/primitives.d.ts",
+      "import": "./dist/primitives.js",
+      "default": "./dist/primitives.js"
+    },
+    "./primitives.css": "./dist/primitives.css",
+    "./primitives/*": null
   },
   "scripts": {
     "clean": "rimraf dist tsconfig.tsbuildinfo",
-    "lib": "pnpm run clean && tsc -b tsconfig.json",
+    "lib": "node scripts/build.mjs",
     "ts": "tsc -p tsconfig.etc.json --noEmit",
-    "watch": "tsc -b tsconfig.json --watch",
-    "lint": "oxlint . --format stylish"
+    "watch": "node scripts/build.mjs --watch",
+    "lint": "oxlint . --format stylish",
+    "test": "vitest run --config vitest.config.ts",
+    "primitives:check": "node scripts/check-primitives-build.mjs"
   },
   "dependencies": {
+    "@base-ui/react": "^1.6.0",
     "@opentelemetry/api": "^1.9.1",
     "@opentelemetry/core": "^2.7.1",
     "@opentelemetry/sdk-trace-node": "^2.7.1",
     "@remix-run/route-pattern": "^0.22.1",
+    "@stylexjs/stylex": "0.19.1",
+    "@tanstack/react-form": "^1.33.5",
     "@zerospin/browser": "workspace:*",
     "@zerospin/core": "workspace:*",
     "@zerospin/devtools": "workspace:*",
     "@zerospin/error": "workspace:*",
     "@zerospin/live-query": "workspace:*",
     "@zerospin/logger": "workspace:*",
-    "@zerospin/schema": "workspace:*",
     "@zerospin/sdk": "workspace:*",
+    "@zerospin/shapes": "workspace:*",
     "capnweb": "^0.12.0",
     "client-only": "^0.0.1",
     "dotenv": "^17.4.2",
     "drizzle-orm": "1.0.0-rc.4",
+    "lucide-react": "^1.24.0",
     "zustand": "^5.0.13"
   },
   "devDependencies": {
+    "@babel/core": "^7.29.7",
     "@effect/language-service": "^0.87.2",
     "@effect/opentelemetry": "rc",
     "@livestore/wa-sqlite": "^1.0.5",
@@ -52,18 +68,24 @@
     "@opentelemetry/sdk-metrics": "^2.7.1",
     "@opentelemetry/sdk-trace-base": "^2.7.1",
     "@opentelemetry/sdk-trace-web": "^2.7.1",
+    "@stylexjs/babel-plugin": "0.19.1",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.7",
     "@types/node": "^25.6.2",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
     "effect": "rc",
+    "happy-dom": "^20.14.5",
     "knip": "^6.12.2",
     "react": "19.2.7",
     "react-dom": "19.2.7",
     "rimraf": "^6.1.3",
     "tsafe": "^1.8.12",
     "tsx": "^4.21.0",
-    "vite": "^8.0.11"
+    "vite": "^8.0.11",
+    "vitest": "^4.1.11"
   },
   "peerDependencies": {
     "@effect/opentelemetry": "^4.0.0-rc.111",
@@ -74,5 +96,8 @@
     "effect": "^4.0.0-rc.111",
     "react": ">=18",
     "react-dom": ">=18"
-  }
+  },
+  "files": [
+    "dist"
+  ]
 }

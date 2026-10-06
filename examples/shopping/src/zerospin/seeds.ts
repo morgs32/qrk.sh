@@ -126,6 +126,6 @@ export const seeds = Effect.runSync(
           price: 32,
         },
       }),
-    ];
+    ].map(command => ({ ...command, caller: null }));
   }).pipe(Effect.provide(sdk.NanoIdFactory)),
 );

@@ -1,8 +1,16 @@
-import { useAggregateSessionOrThrow } from '../useSession';
+import { useAggregateSession, useServiceSession } from '../useSession';
 
-import { SessionsCommandsRowsTable } from './SessionsCommandsRowsTable';
+import {
+  ServiceCommandsRowsTable,
+  SessionsCommandsRowsTable,
+} from './SessionsCommandsRowsTable';
 
 export function SessionsCommandsLayout() {
-  const session = useAggregateSessionOrThrow();
-  return <SessionsCommandsRowsTable session={session} />;
+  const aggregate = useAggregateSession();
+  const service = useServiceSession();
+  if (aggregate !== undefined)
+    return <SessionsCommandsRowsTable session={aggregate} />;
+  if (service !== undefined)
+    return <ServiceCommandsRowsTable session={service} />;
+  throw new Error('Session not found');
 }

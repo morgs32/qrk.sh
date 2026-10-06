@@ -36,6 +36,33 @@
   },
   "overrides": [
     {
+      "files": [
+        "packages/studio/.storybook/**/*.ts",
+        "packages/studio/stories/**/*.ts",
+        "packages/studio/stories/**/*.tsx"
+      ],
+      "rules": {
+        "import/no-default-export": "off",
+        "eslint/no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "@zerospin/sdk",
+                "message": "Import @zerospin/sdk only in examples/shopping. Use the matching @zerospin/core/* module elsewhere."
+              }
+            ],
+            "patterns": [
+              {
+                "group": ["**/src/**", "!../src/**"],
+                "message": "Studio stories may import their own source relatively. Use package entrypoints for other packages."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
       "files": ["**/zerospin.config.ts"],
       "rules": {
         "eslint/no-restricted-imports": [

@@ -1,4 +1,4 @@
-import { resolveTableReferences,type IAnyTables,type ICheckedTableReferences,type IResolvedTables } from '@zerospin/schema';
+import { resolveTableReferences,type IAnyTables,type ICheckedTableReferences,type IResolvedTables } from '@zerospin/shapes';
 import { Brand } from 'effect';
 import { mapValues } from 'es-toolkit';
 

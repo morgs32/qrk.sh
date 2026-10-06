@@ -1,7 +1,7 @@
 import {
 PrimitiveKind,
 type IAnyTables
-} from '@zerospin/schema';
+} from '@zerospin/shapes';
 import {
 defineRelations,
 type AnyRelation,

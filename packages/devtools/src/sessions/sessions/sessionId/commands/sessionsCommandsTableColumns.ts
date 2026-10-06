@@ -1,22 +1,25 @@
 import type { ColumnDef } from '@tanstack/react-table';
 
 const COMMAND_COLUMN_IDS = [
+  'sessionIndex',
   'id',
   'claims',
   'aggregateIndex',
+  'serviceIndex',
+  'serviceHash',
   'executedIndex',
   'executedHash',
   'staging',
-  'failure',
+  'admission',
+  'execution',
   'actorDelta',
   'nodeId',
   'nodeIndex',
   'contractVersion',
   'commandName',
   'payload',
-  'pushIndex',
+  'admissionIndex',
   'sessionId',
-  'sessionIndex',
 ] as const;
 
 type ICommandColumnId = (typeof COMMAND_COLUMN_IDS)[number];
@@ -26,7 +29,6 @@ const COPY_CELL_COLUMN_IDS: ReadonlySet<string> = new Set<ICommandColumnId>([
   'claims',
   'sessionId',
   'payload',
-  'claims',
 ]);
 
 const COLUMN_SIZES: Partial<
@@ -63,12 +65,12 @@ export function isSessionsCommandsCopyCellColumn(columnId: string): boolean {
 }
 
 export function makeSessionsCommandsTableColumns(
-  node = false,
+  service = false,
 ): ColumnDef<Record<string, unknown>>[] {
   return COMMAND_COLUMN_IDS.filter(columnId =>
-    node
-      ? !['sessionId', 'sessionIndex', 'pushIndex'].includes(columnId)
-      : !['nodeId', 'nodeIndex'].includes(columnId),
+    service
+      ? !['aggregateIndex', 'executedHash', 'sessionId'].includes(columnId)
+      : !['serviceIndex', 'serviceHash'].includes(columnId),
   ).map(columnId => {
     const sizing = COLUMN_SIZES[columnId];
 

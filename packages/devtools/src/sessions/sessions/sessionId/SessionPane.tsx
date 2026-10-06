@@ -289,6 +289,15 @@ function ServiceSessionPane(props: {
           State
         </NavLink>
         <NavLink
+          to="commands"
+          style={({ isActive }) => ({
+            ...styles.tab,
+            ...(isActive ? styles.tabActive : {}),
+          })}
+        >
+          Commands
+        </NavLink>
+        <NavLink
           to="database"
           style={({ isActive }) => ({
             ...styles.tab,

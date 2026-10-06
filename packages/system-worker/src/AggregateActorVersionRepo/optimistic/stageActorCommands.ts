@@ -8,6 +8,7 @@ import {
   type IFailure,
 } from '@zerospin/core/contracts/failureCodec';
 import { makeOperations } from '@zerospin/core/contracts/make/makeOperations';
+import { prepareContractInput } from '@zerospin/core/contracts/prepareContractInput';
 import { prepareReplayAppliedOperation } from '@zerospin/core/contracts/prepareReplayAppliedOperation';
 import type {
   IAggregateCommand,
@@ -164,12 +165,18 @@ export const stageActorCommands = Effect.fn(
     )(command.claims);
     const payload = yield* decodePayload(contract, { command });
     const attempted = yield* Effect.gen(function* () {
+      const executable = contract.mapping?.original ?? contract;
+      const input = yield* prepareContractInput({
+        contract: executable,
+        command: { ...command, payload },
+        claims,
+      });
       yield* runProgram(
         Effect.suspend(
           () =>
             actor.guards[command.commandName]?.({
               db: scratch.db,
-              payload,
+              payload: input.payload,
               claims,
               failures: contract.failures,
             }) ?? Effect.void,
@@ -185,10 +192,10 @@ export const stageActorCommands = Effect.fn(
       );
       const made = yield* makeOperations({
         db: scratch.db,
-        contract: contract.mapping?.original ?? contract,
+        contract: executable,
         models: aggregate.models,
-        command: { ...command, payload },
-        claims,
+        command,
+        input,
       });
       const operations: IEncodedOperation[] = [];
       for (const [operationIndex, operation] of made.operations.entries()) {
@@ -293,7 +300,12 @@ export const stageActorCommands = Effect.fn(
             saved,
           );
         const retainedCommand = yield* decodeRetainedAggregateCommand(decoded);
-        if (!isEqual(retainedCommand, command)) {
+        if (
+          !isEqual(retainedCommand, {
+            ...command,
+            response: command.response ?? null,
+          })
+        ) {
           return yield* makeZerospinError('staging-command-identity-mismatch');
         }
       }

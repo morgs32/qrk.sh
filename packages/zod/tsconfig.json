@@ -42,7 +42,7 @@
   "exclude": [],
   "references": [
     {
-      "path": "../schema"
+      "path": "../shapes"
     }
   ]
 }

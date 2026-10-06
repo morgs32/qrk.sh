@@ -1,5 +1,5 @@
 import type { IAnyError } from '@zerospin/error';
-import { makeIdFromAbbreviation, type CuidFactory } from '@zerospin/schema';
+import { makeIdFromAbbreviation, type CuidFactory } from '@zerospin/shapes';
 import { Effect } from 'effect';
 
 export const makeId = Effect.fn('models.makeId')(function* <

@@ -1,7 +1,7 @@
 import type { Async } from '@zerospin/core/async/Async';
 import type { MonotonicFactory } from '@zerospin/core/services/MonotonicFactory';
 import type { IAnyError } from '@zerospin/error';
-import type { CuidFactory } from '@zerospin/schema';
+import type { CuidFactory } from '@zerospin/shapes';
 import type { ManagedRuntime } from 'effect';
 
 export type ISessionRuntimeServices = Async | CuidFactory | MonotonicFactory;

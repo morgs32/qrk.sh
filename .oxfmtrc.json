@@ -6,6 +6,7 @@
     "wiki/.obsidian/**",
     "**/package.json",
     "**/worker-configuration.d.ts",
+    "packages/studio/.storybook/public/mockServiceWorker.js",
     "**/drizzle/**"
   ],
   "singleQuote": true,

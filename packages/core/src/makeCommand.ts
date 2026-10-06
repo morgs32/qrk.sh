@@ -3,7 +3,7 @@ import {
   mapParseError,
   type IAnyError,
 } from '@zerospin/error';
-import { makeAbbreviationIdSchema, type CuidFactory } from '@zerospin/schema';
+import { makeAbbreviationIdSchema, type CuidFactory } from '@zerospin/shapes';
 import { Effect, Schema } from 'effect';
 
 import { makeAggregateCommand } from './aggregate/make/makeAggregateCommand.ts';
@@ -78,7 +78,7 @@ export function makeCommand<
       AGGREGATE['name'],
       SYSTEM_NAME
     >,
-    { sessionId: null }
+    { nodeId: null }
   >,
   IAnyError,
   CuidFactory
@@ -95,7 +95,7 @@ export function makeCommand(
   },
 ): Effect.Effect<unknown, IAnyError, CuidFactory> {
   return Effect.gen(function* () {
-    if ('services' in owner) {
+    if ('guards' in owner) {
       const input = yield* Schema.decodeUnknownEffect(
         Schema.Struct({
           actorName: Schema.String,
@@ -157,6 +157,7 @@ export function makeCommand(
       ...command,
       serviceVersion: owner.version,
       serviceName: owner.name,
+      caller: null,
     };
   });
 }

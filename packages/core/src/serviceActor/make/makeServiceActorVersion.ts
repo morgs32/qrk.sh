@@ -1,7 +1,7 @@
 import { Schema } from 'effect';
 
 import type { ValidActorContracts } from '../../aggregateActor/make/makeAggregateActorVersion/makeAggregateActorVersion.ts';
-import { assertActorAsyncContracts } from '../../contracts/asyncContract.ts';
+import { assertActorExternalContracts } from '../../contracts/externalContract.ts';
 import { Contract } from '../../contracts/make/makeContractVersion.ts';
 import {
   OwnerGuardsSchema,
@@ -153,7 +153,7 @@ export function makeServiceActorVersion(
   const decoded = Schema.decodeUnknownSync(DeclarationSchema, {
     onExcessProperty: 'error',
   })(props);
-  assertActorAsyncContracts(decoded.contracts ?? {});
+  assertActorExternalContracts(decoded.contracts ?? {});
   for (const contract of Object.values(decoded.contracts ?? {})) {
     for (const model of [
       ...Object.values(contract.models),

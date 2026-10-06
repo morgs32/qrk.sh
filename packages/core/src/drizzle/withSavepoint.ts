@@ -3,7 +3,7 @@ import {
   prettyUnknownFailure,
   type IZerospinError,
 } from '@zerospin/error';
-import type { IAnyDrizzleSchemas } from '@zerospin/schema';
+import type { IAnyDrizzleSchemas } from '@zerospin/shapes';
 import type { AnyRelations } from 'drizzle-orm';
 import { Cause, Effect, Exit, Option } from 'effect';
 

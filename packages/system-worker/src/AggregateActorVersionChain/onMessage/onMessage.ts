@@ -26,7 +26,7 @@ import { AggregateActorVersionRepo } from '../../AggregateActorVersionRepo/Aggre
 import { genesisExecutedHash } from '../../executedDispositionHash/executedDispositionHash.js';
 import { SystemLogRepo } from '../../SystemLogRepo/SystemLogRepo.js';
 import { aggregateActorVersionChainDbConfig } from '../aggregateActorVersionChainDbConfig.js';
-import { getActorOutputs } from '../getActorOutputs/getActorOutputs.js';
+import { getBrowserCommands } from '../getBrowserCommands/getBrowserCommands.js';
 
 /*
  * The aggregate definition log validates resume, then admits complete commands over
@@ -299,12 +299,23 @@ export const onMessage = Effect.fn('AggregateActorVersionChain.onMessage')(
         connection.setState({ ...currentState, admissionCommandId: null });
         if (connection.readyState === 1) {
           connection.send(
-            JSON.stringify({
-              type: 'aggregateCommandAdmission',
-              commandId: command.id,
-              result: envelope.result,
-              link: envelope.link,
-            }),
+            JSON.stringify(
+              envelope.result._tag === 'Success'
+                ? {
+                    type: 'aggregateCommandAdmission',
+                    id: command.id,
+                    nodeIndex: envelope.result.success.nodeIndex,
+                    admissionIndex: envelope.result.success.aggregateIndex,
+                    admission: envelope.result.success.admission,
+                    link: envelope.link,
+                  }
+                : {
+                    type: 'aggregateCommandAdmissionFailed',
+                    id: command.id,
+                    failure: envelope.result.failure,
+                    link: envelope.link,
+                  },
+            ),
           );
         }
       }
@@ -383,7 +394,7 @@ export const onMessage = Effect.fn('AggregateActorVersionChain.onMessage')(
     let outcomeIndex = decodedResume.success.nodeIndex;
     let deliveredThroughExecutedIndex = resumeExecutedIndex;
     for (;;) {
-      const page = yield* getActorOutputs({
+      const page = yield* getBrowserCommands({
         afterExecutedIndex: deliveredThroughExecutedIndex,
         nodeId: decodedResume.success.nodeId,
         afterNodeIndex: outcomeIndex,
@@ -398,7 +409,7 @@ export const onMessage = Effect.fn('AggregateActorVersionChain.onMessage')(
         stateRequired();
         return;
       }
-      for (const command of page.outputs) {
+      for (const command of page.commands) {
         const newExecution =
           command.executedIndex > deliveredThroughExecutedIndex;
         if (
@@ -408,28 +419,25 @@ export const onMessage = Effect.fn('AggregateActorVersionChain.onMessage')(
           stateRequired();
           return;
         }
-        yield* Effect.try({
-          try: () =>
-            connection.send(
-              JSON.stringify({ type: 'aggregateActorOutput', output: command }),
-            ),
-          catch: catchZerospinError({
-            code: 'aggregate-session-command-send-failed',
-            message: 'Failed to replay an aggregate definition command',
-          }),
-        });
         if (newExecution) {
           deliveredThroughExecutedIndex = command.executedIndex;
         }
       }
+      yield* Effect.try({
+        try: () => connection.send(JSON.stringify(page.commands)),
+        catch: catchZerospinError({
+          code: 'aggregate-session-command-send-failed',
+          message: 'Failed to replay aggregate browser commands',
+        }),
+      });
       outcomeIndex = page.nodeThrough;
       if (
-        page.outputs.length < 64 &&
+        page.commands.length < 64 &&
         deliveredThroughExecutedIndex === page.tip
       ) {
         break;
       }
-      if (page.outputs.length === 0) {
+      if (page.commands.length === 0) {
         stateRequired();
         return;
       }

@@ -17,7 +17,7 @@ import {
   type IRpcRequest,
   type ISpanLinkRecord,
 } from '@zerospin/logger';
-import { makeAbbreviationIdSchema } from '@zerospin/schema';
+import { makeAbbreviationIdSchema } from '@zerospin/shapes';
 import config from 'config';
 import { Effect, Exit, Result, Schema } from 'effect';
 

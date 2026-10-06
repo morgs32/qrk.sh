@@ -16,7 +16,7 @@ import {
   readServiceResultsPage,
   type IServiceResult,
 } from './readServiceResultsPage.js';
-import { receiveResults } from './receiveResults/receiveResults.js';
+import { receiveExecutedCommands } from './receiveExecutedCommands/receiveExecutedCommands.js';
 import type { serviceVersionChainDbConfig } from './serviceVersionChainDbConfig.js';
 import { serviceVersionChainFixedDORepoConfig } from './serviceVersionChainFixedDORepoConfig.js';
 type IExecutionFanout = IFanoutQueue<
@@ -70,10 +70,10 @@ export class ServiceVersionChain extends makeFixedDORepo({
 
   readonly #executedCommandSubscriber = makeOutboxSubscriber({
     name: 'executedCommand',
-    receive: (rows: Parameters<typeof receiveResults>[0]['rows']) =>
+    receive: (rows: Parameters<typeof receiveExecutedCommands>[0]['rows']) =>
       Effect.gen({ self: this }, function* () {
         yield* this.alarmRegistry.hold('executionResultsFanout');
-        yield* receiveResults({ rows, db: this.db, key: this.key });
+        yield* receiveExecutedCommands({ rows, db: this.db, key: this.key });
       }).pipe(
         Effect.ensuring(
           Effect.sync(() => {

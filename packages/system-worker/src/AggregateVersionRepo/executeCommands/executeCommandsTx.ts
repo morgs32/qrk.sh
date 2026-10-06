@@ -295,7 +295,7 @@ export const executeCommandsTx = makeTx(
       yield* aggregateVersionRepoDbConfig.tables.executedCommandOutbox
         .encodeRow({
           ...terminal,
-          asyncInput: terminal.asyncInput ?? null,
+          response: terminal.response ?? null,
           aggregateVersion:
             'aggregateVersion' in terminal ? terminal.aggregateVersion : null,
           executedIndex: ++executedIndex,

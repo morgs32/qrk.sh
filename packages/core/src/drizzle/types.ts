@@ -3,7 +3,7 @@ import type {
   IAnyRefDescriptor,
   IAnyTables,
   IDrizzleSchema,
-} from '@zerospin/schema';
+} from '@zerospin/shapes';
 import type { AnyRelations, Many, One } from 'drizzle-orm';
 import type { SQLiteAsyncDatabase } from 'drizzle-orm/sqlite-core/async/db';
 import type { SQLiteSyncRelationalQuery } from 'drizzle-orm/sqlite-core/async/query';

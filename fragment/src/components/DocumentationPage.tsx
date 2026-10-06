@@ -1,11 +1,16 @@
 import { useState } from 'react';
 
+import { Outline, OutlineItem } from '@zerospin/fragment-ui/Outline';
+
 import '../docs.css';
 
 const topics = [
   {
-    id: 'accounting', group: '1 Handbook', title: 'A Accounting 101',
-    href: '/handbook/accounting-101', anchor: 'accounting-101',
+    id: 'accounting',
+    group: '1 Handbook',
+    title: 'A Accounting 101',
+    href: '/handbook/accounting-101',
+    anchor: 'accounting-101',
     sections: [
       ['ledger-accounts', 'a. Ledger Accounts'],
       ['ledger-entries', 'b. Ledger Entries'],
@@ -19,8 +24,11 @@ const topics = [
     ],
   },
   {
-    id: 'quickstart', group: '2 Guides', title: 'A Quickstart',
-    href: '/guides/quickstart', anchor: 'quickstart',
+    id: 'quickstart',
+    group: '2 Guides',
+    title: 'A Quickstart',
+    href: '/guides/quickstart',
+    anchor: 'quickstart',
     sections: [
       ['overview', 'a. Overview'],
       ['use-the-mcp', 'b. Use the MCP'],
@@ -29,14 +37,22 @@ const topics = [
   },
 ] as const;
 
-export function DocumentationPage({ page, html }: { page: 'accounting' | 'quickstart'; html: string }) {
+export function DocumentationPage({
+  page,
+  html,
+}: {
+  page: 'accounting' | 'quickstart';
+  html: string;
+}) {
   const [copyStatus, setCopyStatus] = useState('');
 
   return (
     <>
       <header className="site-header">
         <div className="page-width header-inner">
-          <a className="wordmark" href="/">ZEROSPIN</a>
+          <a className="wordmark" href="/">
+            ZEROSPIN
+          </a>
           <nav className="header-nav" aria-label="Primary navigation">
             <a href="/guides/quickstart">Documentation</a>
           </nav>
@@ -44,21 +60,42 @@ export function DocumentationPage({ page, html }: { page: 'accounting' | 'quicks
       </header>
       <div className="page-width docs-layout">
         <nav className="docs-nav" aria-label="Documentation">
-          {topics.map(topic => (
-            <div key={topic.id}>
-              <a href={topic.href} aria-current={page === topic.id ? 'page' : undefined}>{topic.group}</a>
-              {page === topic.id && (
-                <div className="docs-nav-topic">
-                  <a href={`#${topic.anchor}`}>{topic.title}</a>
-                  <div className="docs-nav-sections">
-                    {topic.sections.map(([id, label]) => <a key={id} href={`#${id}`}>{label}</a>)}
-                  </div>
-                </div>
-              )}
-            </div>
-          ))}
+          <Outline>
+            {topics.map(topic => (
+              <OutlineItem
+                key={topic.id}
+                label={
+                  <a
+                    href={topic.href}
+                    aria-current={page === topic.id ? 'page' : undefined}
+                  >
+                    {topic.group}
+                  </a>
+                }
+              >
+                {page === topic.id && (
+                  <Outline>
+                    <OutlineItem
+                      label={<a href={`#${topic.anchor}`}>{topic.title}</a>}
+                    >
+                      <Outline muted>
+                        {topic.sections.map(([id, label]) => (
+                          <OutlineItem
+                            key={id}
+                            label={<a href={`#${id}`}>{label}</a>}
+                          />
+                        ))}
+                      </Outline>
+                    </OutlineItem>
+                  </Outline>
+                )}
+              </OutlineItem>
+            ))}
+          </Outline>
         </nav>
-        <main className={`docs-content${page === 'accounting' ? ' accounting-content' : ''}`}>
+        <main
+          className={`docs-content${page === 'accounting' ? ' accounting-content' : ''}`}
+        >
           <div
             onClick={async event => {
               const target = event.target;
@@ -70,12 +107,16 @@ export function DocumentationPage({ page, html }: { page: 'accounting' | 'quicks
                 await navigator.clipboard.writeText(code.textContent ?? '');
                 setCopyStatus('Copied to clipboard.');
               } catch {
-                setCopyStatus('Could not copy. Select the code and copy it manually.');
+                setCopyStatus(
+                  'Could not copy. Select the code and copy it manually.',
+                );
               }
             }}
             dangerouslySetInnerHTML={{ __html: html }}
           />
-          <p className="docs-copy-status" role="status">{copyStatus}</p>
+          <p className="docs-copy-status" role="status">
+            {copyStatus}
+          </p>
         </main>
       </div>
     </>

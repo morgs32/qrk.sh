@@ -1,15 +1,19 @@
-import { AsyncCommandInputSchema } from '@zerospin/core/contracts/AsyncCommandInputSchema';
-import { decodeAsyncInput } from '@zerospin/core/contracts/asyncInputCodec';
+import {
+  AsyncCommandSchema,
+  type IAsyncCommand,
+} from '@zerospin/core/contracts/AsyncCommandSchema';
 import {
   EncodedAggregateCommandSchema,
   EncodedServiceCommandSchema,
 } from '@zerospin/core/contracts/CommandSchema';
+import { validateExternalResponse } from '@zerospin/core/contracts/externalResponseCodec';
 import type { IContract } from '@zerospin/core/contracts/types';
 import type { IDb } from '@zerospin/core/drizzle/types';
 import { makeZerospinError, mapParseError } from '@zerospin/error';
-import { makeAbbreviationIdSchema } from '@zerospin/schema';
+import { makeAbbreviationIdSchema } from '@zerospin/shapes';
 import { eq } from 'drizzle-orm';
 import { Effect, Schema } from 'effect';
+import { isEqual } from 'es-toolkit';
 
 import { aggregateVersionRepoDbConfig } from '../AggregateVersionRepo/aggregateVersionRepoDbConfig.js';
 
@@ -18,6 +22,30 @@ import {
   asyncOperationsDbConfig,
 } from './asyncOperationsDbConfig.js';
 import type { IAsyncOperations } from './makeAsyncOperations.js';
+
+/** Admission accepts only the complete child reconstructed from recorded production evidence. */
+export const verifyPreparedAsyncCommand = Effect.fn(
+  'verifyPreparedAsyncCommand',
+)(function* <EXPECTED extends IAsyncCommand>(
+  expected: EXPECTED,
+  delivered: unknown,
+) {
+  const command = yield* Schema.decodeUnknownEffect(AsyncCommandSchema)(
+    delivered,
+  ).pipe(
+    mapParseError({
+      code: 'external-response-invalid',
+      prefix: 'Invalid external command',
+    }),
+  );
+  if (command.ownerKind !== expected.ownerKind) {
+    return yield* makeZerospinError('async-command-owner-mismatch');
+  }
+  if (!isEqual(delivered, expected)) {
+    return yield* makeZerospinError('async-command-recorded-input-mismatch');
+  }
+  return expected;
+});
 
 export const resolveWorkContract = Effect.fn('resolveWorkContract')(function* (
   owner: {
@@ -35,7 +63,7 @@ export const resolveWorkContract = Effect.fn('resolveWorkContract')(function* (
   if (
     actor?.version !== work.actorVersion ||
     contract?.version !== work.asyncContractVersion ||
-    contract.async === undefined
+    contract.external === undefined
   ) {
     return yield* makeZerospinError('async-operation-definition-unavailable');
   }
@@ -69,7 +97,7 @@ export const readPreparedAsyncWork = Effect.fn('readPreparedAsyncWork')(
         prefix: 'Invalid work row',
       }),
     );
-    if (work.externalRecordedAt === null) {
+    if (work.responseRecordedAt === null) {
       return yield* makeZerospinError('async-operation-not-recorded');
     }
     return work;
@@ -110,14 +138,10 @@ export const readPreparedAggregateAsyncWork = Effect.fn(
         prefix: 'Invalid retained aggregate async operation',
       }),
     );
-  if (work.externalRecordedAt === null || work.systemName === null) {
+  if (work.responseRecordedAt === null || work.systemName === null) {
     return yield* makeZerospinError('async-operation-not-recorded');
   }
   return work;
-});
-const privateInput = (work: IAsyncOperations) => ({
-  sourceCommandId: work.commandId,
-  external: work.external,
 });
 export const makePreparedAggregateCommand = Effect.fn(
   'makePreparedAggregateCommand',
@@ -126,15 +150,15 @@ export const makePreparedAggregateCommand = Effect.fn(
   contract: IContract,
   key: { aggregateId: string; aggregateName: string; aggregateVersion: string },
 ) {
-  const asyncInput = yield* Schema.decodeUnknownEffect(AsyncCommandInputSchema)(
-    privateInput(work),
+  const response = yield* Schema.decodeUnknownEffect(Schema.Json)(
+    work.response,
   ).pipe(
     mapParseError({
-      code: 'async-input-invalid',
+      code: 'external-response-invalid',
       prefix: 'Invalid recorded input',
     }),
   );
-  yield* decodeAsyncInput(contract, work.payload, asyncInput);
+  yield* validateExternalResponse(contract, work.payload, response);
   const command = yield* Schema.decodeUnknownEffect(
     EncodedAggregateCommandSchema,
   )({
@@ -142,7 +166,7 @@ export const makePreparedAggregateCommand = Effect.fn(
     commandName: work.asyncContractName,
     contractVersion: work.asyncContractVersion,
     payload: JSON.stringify(work.payload),
-    asyncInput,
+    response,
     ...key,
     systemName: work.systemName,
     actorName: work.actorName,
@@ -157,7 +181,7 @@ export const makePreparedAggregateCommand = Effect.fn(
       prefix: 'Invalid prepared command',
     }),
   );
-  return { ...command, asyncInput, ownerKind: 'aggregate' as const };
+  return { ...command, response, ownerKind: 'aggregate' as const };
 });
 export const makePreparedServiceCommand = Effect.fn(
   'makePreparedServiceCommand',
@@ -166,15 +190,15 @@ export const makePreparedServiceCommand = Effect.fn(
   contract: IContract,
   key: { serviceName: string; serviceVersion: string },
 ) {
-  const asyncInput = yield* Schema.decodeUnknownEffect(AsyncCommandInputSchema)(
-    privateInput(work),
+  const response = yield* Schema.decodeUnknownEffect(Schema.Json)(
+    work.response,
   ).pipe(
     mapParseError({
-      code: 'async-input-invalid',
+      code: 'external-response-invalid',
       prefix: 'Invalid recorded input',
     }),
   );
-  yield* decodeAsyncInput(contract, work.payload, asyncInput);
+  yield* validateExternalResponse(contract, work.payload, response);
   const command = yield* Schema.decodeUnknownEffect(
     EncodedServiceCommandSchema,
   )({
@@ -182,7 +206,7 @@ export const makePreparedServiceCommand = Effect.fn(
     commandName: work.asyncContractName,
     contractVersion: work.asyncContractVersion,
     payload: JSON.stringify(work.payload),
-    asyncInput,
+    response,
     ...key,
     caller: {
       actorName: work.actorName,
@@ -198,5 +222,5 @@ export const makePreparedServiceCommand = Effect.fn(
       prefix: 'Invalid prepared command',
     }),
   );
-  return { ...command, asyncInput, ownerKind: 'service' as const };
+  return { ...command, response, ownerKind: 'service' as const };
 });

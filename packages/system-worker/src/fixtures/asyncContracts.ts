@@ -5,21 +5,25 @@ import { makeAggregateVersion } from '@zerospin/core/aggregate/make/makeAggregat
 import { makeAggregateActorVersion } from '@zerospin/core/aggregateActor/make/makeAggregateActorVersion/makeAggregateActorVersion';
 import { makeAggregateSessionLock } from '@zerospin/core/aggregateSession/make/makeAggregateSessionLock';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
-import {
-  assertActorAsyncContracts,
-  publicContracts,
-  type InferAsyncPayload,
-} from '@zerospin/core/contracts/asyncContract';
-import { decodeAsyncInput } from '@zerospin/core/contracts/asyncInputCodec';
+import { EncodedAggregateCommandSchema } from '@zerospin/core/contracts/CommandSchema';
 import { defineContract } from '@zerospin/core/contracts/defineContract';
-import { makeAsyncContract } from '@zerospin/core/contracts/make/makeAsyncContract';
+import {
+  assertActorExternalContracts,
+  publicContracts,
+  type InferExternalPayload,
+} from '@zerospin/core/contracts/externalContract';
+import { validateExternalResponse } from '@zerospin/core/contracts/externalResponseCodec';
 import {
   makeContractVersion,
   upgradeContractVersion,
 } from '@zerospin/core/contracts/make/makeContractVersion';
+import { makeExternalContract } from '@zerospin/core/contracts/make/makeExternalContract';
 import { makeOperations } from '@zerospin/core/contracts/make/makeOperations';
 import { mapContractVersion } from '@zerospin/core/contracts/make/mapContractVersion';
+import { prepareContractInput } from '@zerospin/core/contracts/prepareContractInput';
 import type { InferContractResult } from '@zerospin/core/contracts/types';
+import { validateAggregateCommand } from '@zerospin/core/contracts/validateAggregateCommand';
+import { validateServiceCommand } from '@zerospin/core/contracts/validateServiceCommand';
 import { makeProvisionedInMemorySqljsDb } from '@zerospin/core/drizzle/make/makeProvisionedInMemorySqljsDb/makeProvisionedInMemorySqljsDb';
 import { makeTx } from '@zerospin/core/drizzle/make/makeTx';
 import { makeActorIdentity } from '@zerospin/core/identity/make/makeActorIdentity/makeActorIdentity';
@@ -31,28 +35,34 @@ import { makeSystem } from '@zerospin/core/system/make/makeSystem/makeSystem';
 import { makeSystemSpec } from '@zerospin/core/system/make/makeSystemSpec';
 import { SystemSpecSchema } from '@zerospin/core/system/SystemSpecSchema';
 import { type IAnyError } from '@zerospin/error';
-import { primitives } from '@zerospin/schema';
+import { primitives } from '@zerospin/shapes';
 import { eq } from 'drizzle-orm';
 import { Context, Effect, Layer, ManagedRuntime, Result, Schema } from 'effect';
 import { assert as assertType, type Equals } from 'tsafe';
 
 import { admitCommandsTx } from '../AggregateChain/admitCommands/admitCommandsTx.js';
 import { aggregateChainDbConfig } from '../AggregateChain/aggregateChainDbConfig.js';
+import { receiveExecutedAggregateCommands } from '../AggregateChain/receiveExecutedAggregateCommands/receiveExecutedAggregateCommands.js';
 import { genesisDispositionHash } from '../aggregateDispositionHash/aggregateDispositionHash.js';
 import { aggregateVersionRepoDbConfig } from '../AggregateVersionRepo/aggregateVersionRepoDbConfig.js';
 import { executeCommandsTx as executeAggregateTx } from '../AggregateVersionRepo/executeCommands/executeCommandsTx.js';
 import { asyncOperationsDbConfig } from '../asyncOperations/asyncOperationsDbConfig.js';
 import {
   makeAsyncOperations,
-  recordExternal,
+  recordResponse,
 } from '../asyncOperations/makeAsyncOperations.js';
 import { prepareAsyncOperation } from '../asyncOperations/prepareAsyncOperation.js';
+import {
+  readAggregateChainOutput,
+  readAggregateVersionRepoOutput,
+} from '../asyncOperations/readOperationOutput.js';
 import {
   makePreparedAggregateCommand,
   makePreparedServiceCommand,
   readPreparedAggregateAsyncWork,
   readPreparedAsyncWork,
   resolveWorkContract,
+  verifyPreparedAsyncCommand,
 } from '../asyncOperations/readPreparedAsyncCommand.js';
 import { checkAdmission } from '../checkAdmission.js';
 import { makeAlarmRegistry } from '../makeAlarmRegistry/makeAlarmRegistry.js';
@@ -81,26 +91,28 @@ class Provider extends Context.Service<
   Provider,
   { observe(intent: string): Effect.Effect<typeof Observation.Type, IAnyError> }
 >()('AsyncContractsFixture.Provider') {}
-const asyncApply = makeAsyncContract({
+const asyncApply = makeExternalContract({
   name: 'asyncApply',
   version: '1.0.0',
   payload: { intent: primitives.text() },
   external: {
-    result: Observation,
+    response: Observation,
     timeoutMs: 20,
     retryDelayMs: 5,
-    program: ({ payload }) =>
+    request: ({ payload }) =>
       Provider.use(provider => provider.observe(payload.intent)),
   },
   result: Schema.Number,
-  program: ({ payload, external }) =>
-    Effect.succeed(payload.intent.length + (external?.value ?? 0)),
+  program: ({ payload, response }) =>
+    Effect.succeed(payload.intent.length + (response?.value ?? 0)),
 });
-assertType<Equals<InferAsyncPayload<typeof asyncApply>, { intent: string }>>();
+assertType<
+  Equals<InferExternalPayload<typeof asyncApply>, { intent: string }>
+>();
 assertType<Equals<InferContractResult<typeof asyncApply>, number>>();
 assertType<
   Equals<
-    Effect.Services<ReturnType<typeof asyncApply.async.external.program>>,
+    Effect.Services<ReturnType<typeof asyncApply.external.request>>,
     Provider
   >
 >();
@@ -131,6 +143,14 @@ const actor = makeAggregateActorVersion(
     db: actorDb,
     selections: {},
     contracts: { begin: mappedSource, asyncApply },
+    guards: {
+      asyncApply: ({ payload, response }) =>
+        Effect.sync(() => {
+          assertType<Equals<typeof response, typeof Observation.Type>>();
+          assert.equal(payload.intent, 'null');
+          assert.equal(response, null);
+        }),
+    },
   },
 );
 const aggregate = makeAggregateVersion(
@@ -151,6 +171,14 @@ const serviceActor = makeServiceActorVersion(
     db: actorDb,
     selections: {},
     contracts: { begin: mappedSource, asyncApply },
+    guards: {
+      asyncApply: ({ payload, response }) =>
+        Effect.sync(() => {
+          assertType<Equals<typeof response, typeof Observation.Type>>();
+          assert.equal(payload.intent, 'null');
+          assert.equal(response, null);
+        }),
+    },
   },
 );
 const service = makeServiceVersion(
@@ -162,9 +190,9 @@ const service = makeServiceVersion(
     actors: { operator: serviceActor },
   },
 );
-assert.throws(() => assertActorAsyncContracts({ begin: mappedSource }));
+assert.throws(() => assertActorExternalContracts({ begin: mappedSource }));
 assert.throws(() =>
-  assertActorAsyncContracts({
+  assertActorExternalContracts({
     begin: mappedSource,
     asyncApply: { ...asyncApply },
   }),
@@ -214,7 +242,7 @@ const spec = makeSystemSpec({ system });
 assert.deepEqual(Schema.decodeUnknownSync(SystemSpecSchema)(spec), spec);
 assert.equal(
   spec.aggregates.fixture?.['2.0.0']?.actors.operator?.contracts.asyncApply
-    ?.async?.timeoutMs,
+    ?.external?.timeoutMs,
   20,
 );
 
@@ -277,7 +305,7 @@ const sourceCommand = {
   nodeId: null,
   nodeIndex: null,
   sessionName: null,
-  asyncInput: null,
+  response: null,
 };
 const admission = {
   status: 'succeeded' as const,
@@ -326,6 +354,57 @@ await run(
     ],
   }),
 );
+const admittedSource = await run(
+  admitCommandsTx(chainDb, [
+    {
+      command: sourceCommand,
+      originalExecutionVersion: key.aggregateVersion,
+      admission,
+    },
+  ]),
+);
+const sourceAdmission = admittedSource[0];
+assert.ok(sourceAdmission);
+const executedSource = db
+  .select()
+  .from(aggregateVersionRepoDbConfig.schema.executedAggregateCommandOutbox)
+  .where(
+    eq(
+      aggregateVersionRepoDbConfig.schema.executedAggregateCommandOutbox.id,
+      sourceCommand.id,
+    ),
+  )
+  .get();
+assert.ok(executedSource);
+assert.equal(sourceAdmission.aggregateIndex, executedSource.aggregateIndex);
+const sourceOutputs = readAggregateVersionRepoOutput(db, sourceCommand.id);
+assert.equal(sourceOutputs.length, 1);
+const sourceOutput = sourceOutputs[0];
+assert.ok(sourceOutput && 'asyncContractName' in sourceOutput);
+assert.equal('aggregateIndex' in sourceOutput, false);
+const { executedIndex: sourceExecutedIndex, ...sourceEmission } = sourceOutput;
+assert.equal(sourceExecutedIndex, executedSource.executedIndex);
+const sourceDelivery = {
+  kind: 'command' as const,
+  command: executedSource,
+  executedIndex: executedSource.executedIndex,
+  operations: sourceOutputs,
+};
+await run(receiveExecutedAggregateCommands(chainDb, [sourceDelivery]));
+await run(receiveExecutedAggregateCommands(chainDb, [sourceDelivery]));
+const retainedResults = chainDb
+  .select()
+  .from(aggregateChainDbConfig.schema.results)
+  .all();
+assert.equal(retainedResults.length, 1);
+assert.equal(
+  retainedResults[0]?.aggregateIndex,
+  sourceAdmission.aggregateIndex,
+);
+assert.equal(retainedResults[0]?.executedIndex, executedSource.executedIndex);
+assert.deepEqual(readAggregateChainOutput(chainDb, sourceCommand.id), [
+  { ...sourceEmission, aggregateIndex: sourceAdmission.aggregateIndex },
+]);
 const workRows = () =>
   db.select().from(asyncOperationsDbConfig.schema.asyncOperations).all();
 assert.equal(workRows().length, 1);
@@ -416,7 +495,7 @@ await runner.settle();
 late.resolve({ value: 999 });
 await Promise.resolve();
 assert.equal(
-  workRows().find(row => row.commandId === 'cmd_source')?.externalRecordedAt,
+  workRows().find(row => row.commandId === 'cmd_source')?.responseRecordedAt,
   null,
 );
 const slow = workRows().find(row => row.commandId === 'cmd_source');
@@ -437,7 +516,7 @@ assert.equal(admitted, 3);
 const recorded = await run(
   readPreparedAggregateAsyncWork(db, slow.asyncCommandId!),
 );
-assert.deepEqual(recorded.external, { value: 7 });
+assert.deepEqual(recorded.response, { value: 7 });
 const child = await run(
   makePreparedAggregateCommand(recorded, asyncApply, key),
 );
@@ -460,18 +539,34 @@ const repeat = await run(
   ]),
 );
 assert.equal(first[0]?.aggregateIndex, repeat[0]?.aggregateIndex);
-assert.deepEqual(Object.keys(child.asyncInput).sort(), [
-  'external',
-  'sourceCommandId',
-]);
+assert.deepEqual(child.response, { value: 7 });
+assert.equal('sourceCommandId' in child, false);
 assert.equal(child.id, recorded.asyncCommandId);
+await run(verifyPreparedAsyncCommand(child, child));
+const { response: omittedResponse, ...missingResponseChild } = child;
+assert.deepEqual(omittedResponse, { value: 7 });
+await assert.rejects(
+  run(verifyPreparedAsyncCommand(child, missingResponseChild)),
+);
+await assert.rejects(
+  run(
+    verifyPreparedAsyncCommand(child, { ...child, response: { value: 999 } }),
+  ),
+);
+await assert.rejects(
+  run(
+    validateExternalResponse(asyncApply, recorded.payload, {
+      value: 'invalid',
+    }),
+  ),
+);
 await assert.rejects(
   run(
     admitCommandsTx(chainDb, [
       {
         command: {
           ...child,
-          asyncInput: { ...child.asyncInput!, external: null },
+          response: null,
         },
         admission,
         originalExecutionVersion: key.aggregateVersion,
@@ -491,33 +586,52 @@ await assert.rejects(
 await assert.rejects(
   run(
     checkAdmission({
-      command: { ...child, asyncInput: null },
+      command: { ...child, response: null },
       owners: [{ contracts: Object.values(actor.contracts) }],
       claims: child.claims,
     }),
   ),
 );
-const target = makeAsyncContract({
+await assert.rejects(
+  run(
+    checkAdmission({
+      command: { ...sourceCommand, response: null },
+      owners: [{ contracts: Object.values(actor.contracts) }],
+      claims: sourceCommand.claims,
+    }),
+  ),
+);
+const target = makeExternalContract({
   name: 'asyncApply',
   version: '2.0.0',
   payload: { intent: primitives.text() },
   external: {
-    result: Observation,
-    program: () => {
+    response: Observation,
+    request: () => {
       throw new Error('Replay must not call the provider');
     },
   },
   result: Schema.Number,
-  program: ({ external }) => Effect.succeed((external?.value ?? 0) * 2),
+  program: ({ response }) => Effect.succeed((response?.value ?? 0) * 2),
 });
-await run(decodeAsyncInput(asyncApply, recorded.payload, child.asyncInput!));
+await run(
+  validateExternalResponse(asyncApply, recorded.payload, child.response!),
+);
 const applied = await run(
-  makeOperations({
-    contract: target,
-    db,
-    models: {},
-    claims: child.claims,
-    command: { ...child, payload: recorded.payload },
+  Effect.gen(function* () {
+    const input = yield* prepareContractInput({
+      contract: target,
+      command: { ...child, payload: recorded.payload },
+      claims: child.claims,
+    });
+    const made = yield* makeOperations({
+      contract: target,
+      db,
+      models: {},
+      command: { ...child },
+      input,
+    });
+    return { ...made, input };
   }),
 );
 assert.equal(applied.encodedResult, 14);
@@ -542,12 +656,107 @@ const nullWork = workRows().find(row => row.commandId === 'cmd_null');
 assert.ok(nullWork);
 assert.equal(
   (await run(readPreparedAggregateAsyncWork(db, nullWork.asyncCommandId!)))
-    .external,
+    .response,
   null,
 );
 assert.ok(
-  workRows().find(row => row.commandId === 'cmd_null')?.externalRecordedAt,
+  workRows().find(row => row.commandId === 'cmd_null')?.responseRecordedAt,
 );
+const nullChild = await run(
+  makePreparedAggregateCommand(
+    await run(readPreparedAggregateAsyncWork(db, nullWork.asyncCommandId!)),
+    asyncApply,
+    key,
+  ),
+);
+assert.equal(nullChild.response, null);
+await run(verifyPreparedAsyncCommand(nullChild, nullChild));
+assert.equal(
+  (
+    await run(
+      prepareContractInput({
+        contract: asyncApply,
+        command: { ...nullChild, payload: { intent: 'null' } },
+        claims: nullChild.claims,
+      }),
+    )
+  ).response,
+  null,
+);
+
+await run(
+  validateAggregateCommand({
+    aggregate,
+    actorName: actor.name,
+    contract: asyncApply,
+    db,
+    payload: { intent: 'null' },
+    claims: nullChild.claims,
+    response: null,
+  }),
+);
+
+// An admitted continuation owns its complete replay input independently of its source and producer row.
+chainDb
+  .delete(aggregateChainDbConfig.schema.commands)
+  .where(eq(aggregateChainDbConfig.schema.commands.id, sourceCommand.id))
+  .run();
+db.delete(aggregateVersionRepoDbConfig.schema.executedCommandOutbox)
+  .where(
+    eq(
+      aggregateVersionRepoDbConfig.schema.executedCommandOutbox.id,
+      sourceCommand.id,
+    ),
+  )
+  .run();
+db.delete(aggregateVersionRepoDbConfig.schema.executedAggregateCommandOutbox)
+  .where(
+    eq(
+      aggregateVersionRepoDbConfig.schema.executedAggregateCommandOutbox.id,
+      sourceCommand.id,
+    ),
+  )
+  .run();
+db.delete(asyncOperationsDbConfig.schema.asyncOperations)
+  .where(
+    eq(asyncOperationsDbConfig.schema.asyncOperations.asyncCommandId, child.id),
+  )
+  .run();
+await assert.rejects(run(readPreparedAggregateAsyncWork(db, child.id)));
+const retainedChild = await run(
+  aggregateChainDbConfig.tables.commands
+    .decodeRow(
+      chainDb
+        .select()
+        .from(aggregateChainDbConfig.schema.commands)
+        .where(eq(aggregateChainDbConfig.schema.commands.id, child.id))
+        .get(),
+    )
+    .pipe(
+      Effect.flatMap(
+        Schema.decodeUnknownEffect(
+          Schema.toType(EncodedAggregateCommandSchema),
+        ),
+      ),
+    ),
+);
+const replayAfterCleanup = await run(
+  Effect.gen(function* () {
+    const input = yield* prepareContractInput({
+      contract: target,
+      command: { ...retainedChild, payload: JSON.parse(retainedChild.payload) },
+      claims: retainedChild.claims,
+    });
+    return yield* makeOperations({
+      contract: target,
+      db,
+      models: {},
+      command: retainedChild,
+      input,
+    });
+  }),
+);
+assert.equal(replayAfterCleanup.encodedResult, 14);
 
 // A failed enqueue rolls the observation marker back with it; deleting a row never reuses the sequence.
 await run(addWork(db, 'cmd_rollback', 'rollback'));
@@ -569,16 +778,16 @@ db.insert(asyncOperationsDbConfig.schema.asyncCommandOutbox)
   )
   .run();
 await assert.rejects(
-  run(recordExternal(db, rollback.asyncCommandId!, { value: 8 }, new Date())),
+  run(recordResponse(db, rollback.asyncCommandId!, { value: 8 }, new Date())),
 );
 assert.equal(
   workRows().find(row => row.asyncCommandId === rollback.asyncCommandId!)
-    ?.externalRecordedAt,
+    ?.responseRecordedAt,
   null,
 );
 db.delete(asyncOperationsDbConfig.schema.asyncCommandOutbox).run();
 await run(
-  recordExternal(db, rollback.asyncCommandId!, { value: 8 }, new Date()),
+  recordResponse(db, rollback.asyncCommandId!, { value: 8 }, new Date()),
 );
 assert.equal(
   db.select().from(asyncOperationsDbConfig.schema.asyncCommandOutboxHead).get()!
@@ -586,11 +795,11 @@ assert.equal(
   beforeIndex + 1,
 );
 await run(
-  recordExternal(db, rollback.asyncCommandId!, { value: 900 }, new Date()),
+  recordResponse(db, rollback.asyncCommandId!, { value: 900 }, new Date()),
 );
 assert.deepEqual(
   (await run(readPreparedAggregateAsyncWork(db, rollback.asyncCommandId!)))
-    .external,
+    .response,
   { value: 8 },
 );
 
@@ -630,8 +839,12 @@ await run(
           serviceIndex: 1,
         },
         prepared: Result.succeed({
+          contract: mappedSource,
           contractVersion: source.version,
-          payload: { intent: 'service' },
+          input: {
+            payload: { intent: 'service' },
+            claims: { aggregateId: 'acct_fixture' },
+          },
           operations: [
             {
               operationName: 'async',
@@ -657,7 +870,7 @@ const servicePendingWork = serviceDb
   .get();
 assert.ok(servicePendingWork);
 await run(
-  recordExternal(
+  recordResponse(
     serviceDb,
     servicePendingWork.asyncCommandId!,
     { value: 42 },
@@ -680,11 +893,74 @@ const serviceQueued = await run(
 );
 assert.equal(serviceQueued.ownerKind, 'service');
 assert.equal(serviceQueued.id, serviceRecorded.asyncCommandId);
-assert.deepEqual(Object.keys(serviceQueued.asyncInput).sort(), [
-  'external',
-  'sourceCommandId',
-]);
+assert.deepEqual(serviceQueued.response, { value: 42 });
+assert.equal('sourceCommandId' in serviceQueued, false);
 assert.deepEqual(serviceQueued.caller?.claims, serviceRecorded.claims);
+await run(verifyPreparedAsyncCommand(serviceQueued, serviceQueued));
+const { response: omittedServiceResponse, ...missingServiceResponse } =
+  serviceQueued;
+assert.deepEqual(omittedServiceResponse, { value: 42 });
+await assert.rejects(
+  run(verifyPreparedAsyncCommand(serviceQueued, missingServiceResponse)),
+);
+await assert.rejects(
+  run(
+    verifyPreparedAsyncCommand(serviceQueued, {
+      ...serviceQueued,
+      response: { value: 999 },
+    }),
+  ),
+);
+const serviceNullEmission = await run(
+  prepareAsyncOperation({
+    operation: {
+      operationName: 'async',
+      contract: asyncApply,
+      payload: { intent: 'null' },
+    },
+    commandId: 'cmd_service_null',
+    operationIndex: 0,
+    committedAt: new Date(),
+    original: true,
+    actor: serviceActor,
+    claims: { aggregateId: key.aggregateId },
+  }),
+);
+serviceDb
+  .insert(serviceVersionRepoDbConfig.schema.asyncOperations)
+  .values({ ...serviceNullEmission, serviceIndex: 2 })
+  .run();
+assert.ok(serviceNullEmission.asyncCommandId);
+await run(
+  recordResponse(
+    serviceDb,
+    serviceNullEmission.asyncCommandId,
+    null,
+    new Date(),
+  ),
+);
+const serviceNullWork = await run(
+  readPreparedAsyncWork(serviceDb, serviceNullEmission.asyncCommandId),
+);
+assert.ok(serviceNullWork.responseRecordedAt);
+const serviceNullCommand = await run(
+  makePreparedServiceCommand(serviceNullWork, asyncApply, {
+    serviceName: service.name,
+    serviceVersion: service.version,
+  }),
+);
+assert.equal(serviceNullCommand.response, null);
+await run(verifyPreparedAsyncCommand(serviceNullCommand, serviceNullCommand));
+await run(
+  validateServiceCommand({
+    service,
+    caller: serviceNullCommand.caller,
+    contract: asyncApply,
+    db: serviceDb,
+    payload: { intent: 'null' },
+    response: null,
+  }),
+);
 console.log(
   'PASS: complete canonical async service command retains frozen input and caller without duplicate aggregate provenance',
 );

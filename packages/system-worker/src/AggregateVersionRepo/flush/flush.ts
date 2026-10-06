@@ -12,7 +12,7 @@ import { aggregateVersionRepoDbConfig } from '../aggregateVersionRepoDbConfig.js
 /** Flush a shared input checkpoint, including source-only positions, without manufacturing command completion. */
 export const flush = Effect.fn('AggregateVersionRepo.flush')(function* (props: {
   aggregateIndex: number;
-  repo: Pick<AggregateVersionRepo, 'db' | 'admissionResultsFanoutSubscriber'>;
+  repo: Pick<AggregateVersionRepo, 'db' | 'admittedCommandsFanoutSubscriber'>;
   executedCommandOutbox: Pick<
     AggregateVersionRepo['executedCommandOutbox'],
     'drain'
@@ -36,7 +36,7 @@ export const flush = Effect.fn('AggregateVersionRepo.flush')(function* (props: {
     };
   }
   yield* makeAsync(() =>
-    repo.admissionResultsFanoutSubscriber(key).catchup(aggregateIndex),
+    repo.admittedCommandsFanoutSubscriber(key).catchup(aggregateIndex),
   ).pipe(Effect.flatMap(readRpcEnvelope));
   const head = repo.db
     .select()

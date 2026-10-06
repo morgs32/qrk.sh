@@ -1,7 +1,7 @@
 import { encodeOperation } from '@zerospin/core/contracts/encodeAppliedOperation';
 import type { IAnyOperation } from '@zerospin/core/contracts/types';
 import { mapParseError, type IAnyError } from '@zerospin/error';
-import { primitives } from '@zerospin/schema';
+import { primitives } from '@zerospin/shapes';
 import { Effect, Schema } from 'effect';
 export const ownedOperationShape = {
   commandId: primitives.text(),

@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 import {
   stageCommand,
-  useInitializeSession,
+  useInitializeAggregateSession,
   useLiveQuery,
 } from '@zerospin/react';
 import * as sdk from '@zerospin/sdk/browser';
@@ -18,7 +18,7 @@ localStorage.setItem('tic-tac-toe-game', token);
 const id = sdk.prefixId(game, token);
 const claims = { aggregateId: `acct_${token}`, instanceId: id };
 function App() {
-  const status = useInitializeSession({
+  const status = useInitializeAggregateSession({
     session: gameSession,
     claims,
   });

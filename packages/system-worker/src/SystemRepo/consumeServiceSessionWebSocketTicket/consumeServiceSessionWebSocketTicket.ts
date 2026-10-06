@@ -9,7 +9,7 @@ import {
   makeZerospinError,
   mapParseError,
 } from '@zerospin/error';
-import type { IAnyDrizzleSchema } from '@zerospin/schema';
+import type { IAnyDrizzleSchema } from '@zerospin/shapes';
 import { eq, type AnyColumn } from 'drizzle-orm';
 import { Effect, Schema } from 'effect';
 

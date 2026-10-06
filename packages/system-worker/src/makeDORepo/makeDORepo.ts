@@ -8,104 +8,26 @@ import type {
   IDbConfigRelations,
   IDbConfigSchema,
 } from '@zerospin/core/drizzle/types';
-import type { IRepoTableData, IRepoType } from '@zerospin/core/system/types';
-import { readRpcEnvelope } from '@zerospin/core/utils/readRpcEnvelope';
-import {
-  makeZerospinError,
-  type IAnyError,
-  type IZerospinErrorJson,
-} from '@zerospin/error';
+import type { IRepoTableData } from '@zerospin/core/system/types';
+import type { IAnyError, IZerospinErrorJson } from '@zerospin/error';
 import { makeRpcEnvelope, type IRpcEnvelope } from '@zerospin/logger';
 import { DurableObject, env } from 'cloudflare:workers';
-import config from 'config';
-import { getTableName } from 'drizzle-orm';
 import { Effect, type ManagedRuntime } from 'effect';
 import invariant from 'tiny-invariant';
 
-import type { AggregateActorVersionChain } from '../AggregateActorVersionChain/AggregateActorVersionChain.js';
-import type { AggregateActorVersionRepo } from '../AggregateActorVersionRepo/AggregateActorVersionRepo.js';
-import type { AggregateChain } from '../AggregateChain/AggregateChain.js';
-import type { AggregateVersionChain } from '../AggregateVersionChain/AggregateVersionChain.js';
-import type { AggregateVersionRepo } from '../AggregateVersionRepo/AggregateVersionRepo.js';
-import { getSystemSpec } from '../getSystemSpec/getSystemSpec.js';
 import {
   makeAlarmRegistry,
   type IAlarmRegistry,
 } from '../makeAlarmRegistry/makeAlarmRegistry.js';
-import type { ServiceActorVersionChain } from '../ServiceActorVersionChain/ServiceActorVersionChain.js';
-import type { ServiceActorVersionRepo } from '../ServiceActorVersionRepo/ServiceActorVersionRepo.js';
-import type { ServiceChain } from '../ServiceChain/ServiceChain.js';
-import type { ServiceVersionChain } from '../ServiceVersionChain/ServiceVersionChain.js';
-import type { ServiceVersionRepo } from '../ServiceVersionRepo/ServiceVersionRepo.js';
-import type { SystemLogAgent } from '../SystemLogAgent/SystemLogAgent.js';
-import type { SystemLogRepo } from '../SystemLogRepo/SystemLogRepo.js';
-import type { SystemRepo } from '../SystemRepo/SystemRepo.js';
 
 import { getRepoTableRows } from './getRepoTableRows/getRepoTableRows.js';
 import { makeDurableDb } from './makeDurableDb.js';
 import type { IRepoNameUtils } from './makeRepoNameUtils.js';
 
-const { system } = config;
-
-/** Namespace names stay explicit so deriving the base never inspects its subclasses. */
+/** Repo factories and consumers augment their own namespace bindings. */
 declare global {
   namespace Cloudflare {
-    interface DORepoNamespaces {
-      SYSTEM_REPO: {
-        getByName(
-          name: string,
-          options?: DurableObjectNamespaceGetDurableObjectOptions,
-        ): Pick<
-          SystemRepo,
-          | 'initialize'
-          | 'checkSystemSpec'
-          | 'createAggregateSessionWebSocketTicket'
-          | 'consumeAggregateSessionWebSocketTicket'
-          | 'createServiceSessionWebSocketTicket'
-          | 'consumeServiceSessionWebSocketTicket'
-          | 'registerRepo'
-          | 'registerRepos'
-          | 'getRepoRegistrations'
-          | 'getRepoTableRows'
-        >;
-      };
-      AGGREGATE_VERSION_REPO: DurableObjectNamespace<
-        Rpc.DurableObjectBranded & AggregateVersionRepo
-      >;
-      SERVICE_VERSION_REPO: DurableObjectNamespace<
-        Rpc.DurableObjectBranded & ServiceVersionRepo
-      >;
-      AGGREGATE_CHAIN: DurableObjectNamespace<
-        Rpc.DurableObjectBranded & AggregateChain
-      >;
-      AGGREGATE_VERSION_CHAIN: DurableObjectNamespace<
-        Rpc.DurableObjectBranded & AggregateVersionChain
-      >;
-      SERVICE_VERSION_CHAIN: DurableObjectNamespace<
-        Rpc.DurableObjectBranded & ServiceVersionChain
-      >;
-      AGGREGATE_ACTOR_VERSION_REPO: DurableObjectNamespace<
-        Rpc.DurableObjectBranded & AggregateActorVersionRepo
-      >;
-      AGGREGATE_ACTOR_VERSION_CHAIN: DurableObjectNamespace<
-        Rpc.DurableObjectBranded & AggregateActorVersionChain
-      >;
-      SERVICE_CHAIN: DurableObjectNamespace<
-        Rpc.DurableObjectBranded & ServiceChain
-      >;
-      SERVICE_ACTOR_VERSION_REPO: DurableObjectNamespace<
-        Rpc.DurableObjectBranded & ServiceActorVersionRepo
-      >;
-      SERVICE_ACTOR_VERSION_CHAIN: DurableObjectNamespace<
-        Rpc.DurableObjectBranded & ServiceActorVersionChain
-      >;
-      SYSTEM_LOG_REPO: DurableObjectNamespace<
-        Rpc.DurableObjectBranded & SystemLogRepo
-      >;
-      SYSTEM_LOG_AGENT: DurableObjectNamespace<
-        Rpc.DurableObjectBranded & SystemLogAgent
-      >;
-    }
+    interface DORepoNamespaces {}
   }
 }
 
@@ -122,7 +44,7 @@ const IS_BOOTSTRAPPED_KV_KEY = '_isBootstrapped';
  * 3. Construct the Repo instance surface.
  * 4. Initialize instance state synchronously.
  * 5. Serialize asynchronous startup.
- * 6. Require accepted definitions and register the known instance.
+ * 6. Run optional registration before touching storage.
  * 7. Apply the selected schema policy.
  * 8. Run and mark first bootstrap.
  * 9. Complete the subclass activation hook.
@@ -143,7 +65,14 @@ export function makeDORepo<
         ctx: DurableObjectState,
         env: Cloudflare.Env,
       ) => DurableObject<Cloudflare.Env> & Rpc.DurableObjectBranded);
-  repoType: IRepoType | undefined;
+  validateKey?: (props: {
+    key: MatchParams<PATTERN>;
+  }) => Effect.Effect<void, IAnyError, SERVICES>;
+  registerRepo?: (props: {
+    key: MatchParams<PATTERN>;
+    name: string;
+    schema: IDbConfigSchema<CONFIG>;
+  }) => Effect.Effect<void, IAnyError | IZerospinErrorJson, SERVICES | Async>;
   managedRuntime: ManagedRuntime.ManagedRuntime<SERVICES, IAnyError>;
   nameUtils: IRepoNameUtils<PATTERN>;
   dbConfig: (props: {
@@ -207,7 +136,8 @@ export function makeDORepo<
     managedRuntime,
     nameUtils,
     namespaceBinding,
-    repoType,
+    registerRepo,
+    validateKey,
   } = props;
 
   // 1 — use the supplied baseClass or Cloudflare DurableObject
@@ -222,45 +152,8 @@ export function makeDORepo<
     invariant(name, 'DORepo must be accessed via getByName');
 
     const key = yield* nameUtils.parseName(name);
-    if (
-      'aggregateVersion' in key &&
-      'aggregateName' in key &&
-      typeof key.aggregateVersion === 'string' &&
-      typeof key.aggregateName === 'string'
-    ) {
-      if (
-        !Object.hasOwn(
-          system.aggregates[key.aggregateName] ?? {},
-          key.aggregateVersion,
-        )
-      ) {
-        return yield* Effect.fail(
-          makeZerospinError({
-            code: 'aggregate-version-unavailable',
-            message: 'Aggregate version is not listed in this deployment',
-          }),
-        );
-      }
-    }
-    if (
-      'serviceVersion' in key &&
-      'serviceName' in key &&
-      typeof key.serviceVersion === 'string' &&
-      typeof key.serviceName === 'string'
-    ) {
-      if (
-        !Object.hasOwn(
-          system.services[key.serviceName] ?? {},
-          key.serviceVersion,
-        )
-      ) {
-        return yield* Effect.fail(
-          makeZerospinError({
-            code: 'service-version-unavailable',
-            message: 'Service version is not listed in this deployment',
-          }),
-        );
-      }
+    if (validateKey !== undefined) {
+      yield* validateKey({ key });
     }
     const resolvedDbConfig = yield* dbConfigFn({
       key,
@@ -288,7 +181,8 @@ export function makeDORepo<
     static readonly getRepo = Effect.fn('DORepo.getRepo')(function* (props: {
       key: Parameters<IRepoNameUtils<PATTERN>['makeName']>[0];
     }) {
-      const name = yield* nameUtils.makeName(props.key);
+      const { key } = props;
+      const name = yield* nameUtils.makeName(key);
       const namespaces: {
         [K in keyof Cloudflare.DORepoNamespaces]: {
           getByName(
@@ -342,19 +236,9 @@ export function makeDORepo<
 
         await managedRuntime.runPromise(
           Effect.gen({ self: this }, function* () {
-            // 6 — reject unaccepted definitions before any storage access or initialization
-            if (repoType !== undefined) {
-              const spec = yield* getSystemSpec();
-              yield* makeAsync<IRpcEnvelope<void, IZerospinErrorJson>>(() =>
-                env.SYSTEM_REPO.getByName(env.ZEROSPIN_SYSTEM_ID).registerRepo({
-                  spec,
-                  registration: {
-                    repoType,
-                    repoName: name,
-                    tableNames: Object.values(schema).map(getTableName),
-                  },
-                }),
-              ).pipe(Effect.flatMap(envelope => readRpcEnvelope(envelope)));
+            // 6 — allow the factory to register or admit the Repo before storage access
+            if (registerRepo !== undefined) {
+              yield* registerRepo({ key, name, schema });
             }
 
             ctx.storage.sql.exec('PRAGMA foreign_keys = ON;');
@@ -411,8 +295,8 @@ export function makeDORepo<
     }
 
     getRepoTableRows(props: { tableName: string }) {
-      // 10 — provide AsyncLive and encode getRepoTableRows at the RPC boundary
       const { tableName } = props;
+      // 10 — provide AsyncLive and encode getRepoTableRows at the RPC boundary
       return managedRuntime.runPromise(
         getRepoTableRows({
           db: this.db,

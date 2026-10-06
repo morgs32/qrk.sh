@@ -8,7 +8,6 @@ import type {
   IDbConfigRelations,
   IDbConfigSchema,
 } from '@zerospin/core/drizzle/types';
-import type { IRepoType } from '@zerospin/core/system/types';
 import type { IAnyError } from '@zerospin/error';
 import { Effect, type ManagedRuntime } from 'effect';
 
@@ -19,7 +18,7 @@ import type {
   IMigratableDORepoMigration,
 } from './types.js';
 
-/** MigratableDORepo configuration: fixed config fields plus ordered SQL migrations. */
+/** MigratableDORepo configuration: storage lifecycle fields plus ordered SQL migrations. */
 /*
  * Repo declarations normalize their migratable lifecycle configuration here.
  * The result binds name utilities, runtime, database resolution, and bootstrap
@@ -38,8 +37,7 @@ export function makeMigratableDORepoConfig<
   GET_DB_CONFIG_ERROR extends IAnyError = IAnyError,
   BOOTSTRAP_ERROR extends IAnyError = IAnyError,
 >(props: {
-  abbreviation: string | undefined;
-  repoType?: IRepoType;
+  abbreviation?: string | null;
   namePattern: RoutePattern<PATTERN>;
   managedRuntime: ManagedRuntime.ManagedRuntime<SERVICES, IAnyError>;
   dbConfig:
@@ -67,13 +65,12 @@ export function makeMigratableDORepoConfig<
   BOOTSTRAP_ERROR
 > {
   const {
-    abbreviation,
+    abbreviation = null,
     bootstrap,
     dbConfig,
     managedRuntime,
     migrations,
     namePattern,
-    repoType,
   } = props;
 
   // 1 — create matching makeName and parseName operations
@@ -91,9 +88,8 @@ export function makeMigratableDORepoConfig<
     }) => Effect.succeed(dbConfig);
   })();
 
-  // 3 — retain repoType, pattern source, managedRuntime, and normalized dbConfig
+  // 3 — retain pattern source, managedRuntime, and normalized dbConfig
   return {
-    repoType,
     namePattern: namePattern.source,
     managedRuntime,
     nameUtils,

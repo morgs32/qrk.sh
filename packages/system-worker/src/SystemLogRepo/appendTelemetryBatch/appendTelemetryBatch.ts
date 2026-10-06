@@ -7,7 +7,7 @@ import type { IDb } from '@zerospin/core/drizzle/types';
 import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
 import { mapParseError, type IAnyError } from '@zerospin/error';
 import type { ITelemetryBatch } from '@zerospin/logger';
-import { makeAbbreviationIdSchema } from '@zerospin/schema';
+import { makeAbbreviationIdSchema } from '@zerospin/shapes';
 import { Effect, Schema } from 'effect';
 
 import { appendTelemetryBatchTx } from './appendTelemetryBatchTx.js';

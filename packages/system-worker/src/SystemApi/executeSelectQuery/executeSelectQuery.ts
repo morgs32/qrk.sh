@@ -3,7 +3,7 @@ import { getByKeyOrThrow } from '@zerospin/core/utils/getByKeyOrThrow';
 import { readRpcEnvelope } from '@zerospin/core/utils/readRpcEnvelope';
 import { mapParseError, ZerospinErrorJsonSchema } from '@zerospin/error';
 import { TelemetryBatchSchema } from '@zerospin/logger';
-import { makeAbbreviationIdSchema } from '@zerospin/schema';
+import { makeAbbreviationIdSchema } from '@zerospin/shapes';
 import config from 'config';
 import { Effect, Schema, type Context } from 'effect';
 

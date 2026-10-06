@@ -1,5 +1,7 @@
+import type { AdmissionResultSchema } from '@zerospin/core/contracts/AdmissionResultSchema';
 import { applyOperationTx } from '@zerospin/core/contracts/applyOperationTx';
 import { ServiceTerminalCommandSchema } from '@zerospin/core/contracts/CommandSchema';
+import type { ExecutionResultSchema } from '@zerospin/core/contracts/ExecutionResultSchema';
 import { prepareReplayAppliedOperation } from '@zerospin/core/contracts/prepareReplayAppliedOperation';
 import type { ServiceCallerSchema } from '@zerospin/core/contracts/ServiceCallerSchema';
 import { makeTx } from '@zerospin/core/drizzle/make/makeTx';
@@ -10,11 +12,7 @@ import type {
   IEncodedResourceShape,
 } from '@zerospin/core/models/types';
 import type { IAnyService } from '@zerospin/core/service/types';
-import {
-  makeZerospinError,
-  mapParseError,
-  type PublicFailureSchema,
-} from '@zerospin/error';
+import { makeZerospinError, mapParseError } from '@zerospin/error';
 import { eq } from 'drizzle-orm';
 import { Effect, Schema } from 'effect';
 
@@ -66,7 +64,8 @@ export const executeTx = makeTx('ServiceActorVersionRepo.executeTx')(function* (
       );
     }
     let caller: typeof ServiceCallerSchema.Type | null = null;
-    let failure: typeof PublicFailureSchema.Type | null = null;
+    let admission: typeof AdmissionResultSchema.Type | null = null;
+    let execution: typeof ExecutionResultSchema.Type | null = null;
 
     {
       const { command: retained } = row;
@@ -85,12 +84,8 @@ export const executeTx = makeTx('ServiceActorVersionRepo.executeTx')(function* (
         );
       caller = command.caller;
       serviceIndex = command.serviceIndex;
-      failure =
-        command.admission.status === 'failed'
-          ? command.admission.failure
-          : command.execution.status === 'failed'
-            ? command.execution.failure
-            : null;
+      admission = command.admission;
+      execution = command.execution;
       if (
         retained.executedIndex !== row.executedIndex ||
         retained.executionVersion !== key.serviceVersion ||
@@ -231,7 +226,8 @@ export const executeTx = makeTx('ServiceActorVersionRepo.executeTx')(function* (
           commandName: row.command.commandName,
           caller,
           serviceIndex,
-          failure,
+          admission,
+          execution,
           delta: {
             upserted: [...inserted, ...updated],
             deleted,

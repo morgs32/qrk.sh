@@ -5,7 +5,7 @@ import {
 import type { ISystem } from '@zerospin/core/system/types';
 import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
 import { makeZerospinError, mapParseError } from '@zerospin/error';
-import { makeAbbreviationIdSchema } from '@zerospin/schema';
+import { makeAbbreviationIdSchema } from '@zerospin/shapes';
 import { env } from 'cloudflare:workers';
 import { Effect, Schema } from 'effect';
 

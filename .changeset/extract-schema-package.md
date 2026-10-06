@@ -1,5 +1,5 @@
 ---
-'@zerospin/schema': minor
+'@zerospin/shapes': minor
 '@zerospin/core': major
 '@zerospin/cli': patch
 '@zerospin/dev-worker': patch
@@ -10,6 +10,6 @@
 ---
 
 Extract primitive descriptors, table definitions, row inference, ID factories,
-and Effect and Drizzle schema mappings into the standalone `@zerospin/schema`
+and Effect and Drizzle schema mappings into the standalone `@zerospin/shapes`
 package. The moved modules are no longer exported from `@zerospin/core`; import
-their public surface from the `@zerospin/schema` package root.
+their public surface from the `@zerospin/shapes` package root.

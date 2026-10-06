@@ -117,10 +117,10 @@ export const getSnapshot = Effect.fn('ServiceActorVersionRepo.getSnapshot')(
       key,
     });
     const published = yield* makeAsync<
-      Awaited<ReturnType<ServiceActorVersionChain['getActorOutputs']>>
-    >(() => chain.getActorOutputs({ afterExecutedIndex: executedIndex })).pipe(
-      Effect.flatMap(envelope => readRpcEnvelope(envelope)),
-    );
+      Awaited<ReturnType<ServiceActorVersionChain['getBrowserCommands']>>
+    >(() =>
+      chain.getBrowserCommands({ afterExecutedIndex: executedIndex }),
+    ).pipe(Effect.flatMap(envelope => readRpcEnvelope(envelope)));
     // 6 — reject a FSC tip behind the captured snapshot index
     if (published.tip < executedIndex) {
       return yield* Effect.fail(

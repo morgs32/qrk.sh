@@ -51,13 +51,16 @@ export type IRepoNameUtils<PATTERN extends string> = {
  * 7. Return both sides of the name contract.
  */
 export function makeRepoNameUtils<const PATTERN extends string>(props: {
-  abbreviation: string | undefined;
+  abbreviation: string | null | undefined;
   namePattern: RoutePattern<PATTERN>;
 }): IRepoNameUtils<PATTERN> {
   const { abbreviation, namePattern } = props;
 
   // 1 — append an underscore only when an abbreviation is configured
-  const prefix = abbreviation === undefined ? '' : `${abbreviation}_`;
+  const prefix =
+    abbreviation === null || abbreviation === undefined
+      ? ''
+      : `${abbreviation}_`;
   const matcher = createMatcher(namePattern);
 
   // 2 — create the route href, remove the leading slash, and prepend the exact prefix

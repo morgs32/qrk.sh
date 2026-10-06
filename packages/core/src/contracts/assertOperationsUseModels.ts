@@ -1,5 +1,5 @@
 import { makeZerospinError, type IAnyError } from '@zerospin/error';
-import type { ITypeError } from '@zerospin/schema';
+import type { ITypeError } from '@zerospin/shapes';
 import { Effect } from 'effect';
 
 import { assertSameCoreInstance } from '../assertSameCoreInstance.ts';

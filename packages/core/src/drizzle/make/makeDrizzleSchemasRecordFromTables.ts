@@ -3,7 +3,7 @@ makeDrizzleSchemaFromTable,
 makeTable,
 type IAnyDrizzleSchemas,
 type IAnyTables
-} from '@zerospin/schema';
+} from '@zerospin/shapes';
 import { getTableConfig } from 'drizzle-orm/sqlite-core';
 
 import type { InferDrizzleSchemaFromTables } from '../types.ts';

@@ -61,8 +61,8 @@ const retain = makeTx('AggregateChain.admitCommandsTx')(function* (
         retained.aggregateVersion !==
           ('aggregateVersion' in command ? command.aggregateVersion : null) ||
         !isEqual(
-          retained.asyncInput === null ? null : JSON.parse(retained.asyncInput),
-          command.asyncInput ?? null,
+          retained.response === null ? null : JSON.parse(retained.response),
+          command.response ?? null,
         ) ||
         retained.nodeIndex !== command.nodeIndex ||
         retained.nodeId !== command.nodeId ||
@@ -127,7 +127,7 @@ const retain = makeTx('AggregateChain.admitCommandsTx')(function* (
       .values({
         ...(yield* aggregateChainDbConfig.tables.commands.encodeRow({
           ...command,
-          asyncInput: command.asyncInput ?? null,
+          response: command.response ?? null,
           aggregateVersion:
             'aggregateVersion' in command ? command.aggregateVersion : null,
           aggregateIndex: index,
@@ -138,6 +138,7 @@ const retain = makeTx('AggregateChain.admitCommandsTx')(function* (
       .run();
     admitted.push({
       ...command,
+      response: command.response ?? null,
       aggregateIndex: index,
       originalExecutionVersion,
       admission,

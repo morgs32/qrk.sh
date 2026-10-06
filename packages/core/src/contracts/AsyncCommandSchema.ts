@@ -1,6 +1,5 @@
 import { Schema, Tuple } from 'effect';
 
-import { AsyncCommandInputSchema } from './AsyncCommandInputSchema.ts';
 import {
   EncodedAggregateCommandSchema,
   EncodedServiceCommandSchema,
@@ -10,13 +9,13 @@ export const AsyncCommandSchema = Schema.Union([
     Tuple.map(
       Schema.fieldsAssign({
         ownerKind: Schema.Literal('aggregate'),
-        asyncInput: AsyncCommandInputSchema,
+        response: Schema.Json,
       }),
     ),
   ).members,
   Schema.fieldsAssign({
     ownerKind: Schema.Literal('service'),
-    asyncInput: AsyncCommandInputSchema,
+    response: Schema.Json,
   })(EncodedServiceCommandSchema),
 ]);
 export type IAsyncCommand = typeof AsyncCommandSchema.Type;

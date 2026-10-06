@@ -28,7 +28,7 @@
     "noUnusedParameters": false,
     "incremental": true,
     "composite": false,
-    "rootDir": "./src",
+    "rootDir": ".",
     "types": [
       "vite/client",
       "node",
@@ -59,7 +59,7 @@
       "path": "../../packages/devtools"
     },
     {
-      "path": "../../packages/schema"
+      "path": "../../packages/shapes"
     },
     {
       "path": "../../packages/browser"

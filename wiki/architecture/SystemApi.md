@@ -51,10 +51,18 @@ definitions were accepted; it may remain even when later initialization fails.
 The spec-inspection RPC serializes the executing Worker independently of the
 retained lock tables and requires no accepted child Repo.
 
+Studio agent discovery lists IDs from SystemRepo's dedicated `aggregates` table,
+filtered by aggregate name and sorted by ID. The requested aggregate version
+must still be available in the executing bundle; versions do not partition
+aggregate instance identity. Agent session opening checks exact name/ID
+membership before opening its actor projection. These operations use SQL
+identity queries rather than decoding generic Repo registrations.
+
 - [`getRepoRegistrations.ts`](../../packages/system-worker/src/SystemRepo/getRepoRegistrations/getRepoRegistrations.ts) — reads persisted registrations by Repo kind and decodes table names.
 - [`registerRepo.ts`](../../packages/system-worker/src/SystemRepo/registerRepo/registerRepo.ts) — requires accepted locks before inserting the known instance.
 - [`SystemApi.ts`](../../packages/system-worker/src/SystemApi/SystemApi.ts) — declares the registration and table-row inspection pairs.
 - [`makeSystemSpec.ts`](../../packages/system-worker/src/SystemApi/makeSystemSpec/makeSystemSpec.ts) — returns the executing bundle's spec with child telemetry persistence disabled.
+- [`agentSession.ts`](../../packages/system-worker/src/SystemApi/agentSession.ts) — lists aggregate IDs and checks registered aggregate identity through SystemRepo.
 
 Studio's Admin view displays each aggregate's exact version, service pins, model versions, and contract versions.
 

@@ -6,8 +6,9 @@ import type { AggregateSessionApi } from '../AggregateSessionApi.js';
 
 import { createWebSocketTicket } from './createWebSocketTicket/createWebSocketTicket.js';
 import { executeServiceQuery } from './executeServiceQuery/executeServiceQuery.js';
-import { getActorOutputs } from './getActorOutputs/getActorOutputs.js';
+import { getBrowserCommands } from './getBrowserCommands/getBrowserCommands.js';
 import { getSnapshot } from './getSnapshot/getSnapshot.js';
+import { validateActorCommand } from './validateActorCommand/validateActorCommand.js';
 
 export class AggregateSessionApiFailure extends RpcTarget {
   /*
@@ -18,6 +19,14 @@ export class AggregateSessionApiFailure extends RpcTarget {
   constructor(private readonly error: IAnyError | IZerospinErrorJson) {
     // 1 — construct the base and retain the supplied capability state
     super();
+  }
+
+  async validateActorCommand(
+    request: Parameters<AggregateSessionApi['validateActorCommand']>[0],
+  ): ReturnType<AggregateSessionApi['validateActorCommand']> {
+    return Effect.runPromise(
+      validateActorCommand({ request, error: this.error }),
+    );
   }
 
   /*
@@ -47,15 +56,17 @@ export class AggregateSessionApiFailure extends RpcTarget {
   }
 
   /*
-   * AggregateSessionApiFailure.getActorOutputs answers a rejected capability with its retained admission error.
+   * AggregateSessionApiFailure.getBrowserCommands answers a rejected capability with its retained admission error.
    *
    * 1. Run the bound domain operation.
    */
-  async getActorOutputs(
-    request: Parameters<AggregateSessionApi['getActorOutputs']>[0],
-  ): ReturnType<AggregateSessionApi['getActorOutputs']> {
-    // 1 — run getActorOutputs with the retained admission error
-    return Effect.runPromise(getActorOutputs({ request, error: this.error }));
+  async getBrowserCommands(
+    request: Parameters<AggregateSessionApi['getBrowserCommands']>[0],
+  ): ReturnType<AggregateSessionApi['getBrowserCommands']> {
+    // 1 — run getBrowserCommands with the retained admission error
+    return Effect.runPromise(
+      getBrowserCommands({ request, error: this.error }),
+    );
   }
 
   /*

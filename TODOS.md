@@ -1,5 +1,6 @@
 # Todos
 
+- Add spec acceptance to `/explorer`: show SystemRepo's accepted aggregate/service definitions and the Repo activation checks before registration and initialization, separately from caller authentication and session authorization.
 - Verify that transport preserves decoded application values across every supported RPC boundary, including signatures and authentication claims. Application-facing APIs should use decoded types; test round trips for supported non-JSON values and explicitly identify unsupported values. Check persistence and hashing separately from transport.
 - Decide whether aggregate-version invalidation should also prevent pull-based catch-up. Explicit VAR execution can pull retained history while AC excludes invalidated destinations from pushes. VAR alarms no longer subscribe to AC.
 - Audit the other fanout owners and subscribers for correct delivery, durable acknowledgement, and failure/resume logic; verify queue/subscriber `RpcTarget` getters, `.receive(rows)` delivery, and matching `IFanoutRepo<NAME, SUBSCRIBER>` / `IFanoutSubscriberRepo<QUEUE>` implementations.
@@ -115,7 +116,7 @@ the measurements below predate that extraction.
 | ---------: | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
 |        160 | [`bootstrapAggregateSession.ts`](./packages/browser/src/bootstrapAggregateSession.ts)                                                                 |
 |        135 | [`AggregateActorVersionRepo/catchup.ts`](./packages/system-worker/src/AggregateActorVersionRepo/catchup/catchup.ts)                                   |
-|        125 | [`primitiveMaps.ts`](./packages/schema/src/primitiveMaps.ts)                                                                                          |
+|        125 | [`primitiveMaps.ts`](./packages/shapes/src/primitiveMaps.ts)                                                                                          |
 |         53 | [`defineModel.ts`](./packages/core/src/models/defineModel.ts)                                                                                         |
 |        589 | [`makeModelVersion.ts`](./packages/core/src/models/make/makeModelVersion.ts)                                                                          |
 |        110 | [`AggregateVersionRepo/execute.ts`](./packages/system-worker/src/AggregateVersionRepo/execute/execute.ts)                                             |

@@ -3,7 +3,7 @@ import {
   primitives,
   type IAnyTables,
   type IShape,
-} from '@zerospin/schema';
+} from '@zerospin/shapes';
 
 /**
  * Use `satisfies` alone for `IShape` / `IAnyTables`; reserve plain `as const` for readonly command-occurrence parity.

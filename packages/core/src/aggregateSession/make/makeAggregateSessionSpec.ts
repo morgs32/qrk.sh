@@ -1,6 +1,6 @@
 import { mapValues } from 'es-toolkit';
 
-import { publicContracts } from '../../contracts/asyncContract.ts';
+import { publicContracts } from '../../contracts/externalContract.ts';
 import type { IAggregateSessionDefinition } from '../types.ts';
 
 import { makeAggregateSessionLock } from './makeAggregateSessionLock.ts';

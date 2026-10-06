@@ -1,11 +1,11 @@
 import type { IDb } from '@zerospin/core/drizzle/types';
-import { filterServiceActorOutput } from '@zerospin/core/serviceSession/filterServiceActorOutput';
+import { filterServiceBrowserCommand } from '@zerospin/core/serviceSession/filterServiceBrowserCommand';
 import { makeZerospinError, mapParseError } from '@zerospin/error';
 import { and, asc, lte, sql } from 'drizzle-orm';
 import { Effect } from 'effect';
 import { isEqual } from 'es-toolkit';
 
-import { decodeActorOutput } from './decodeActorOutput.js';
+import { decodeServiceBrowserCommand } from './decodeServiceBrowserCommand.js';
 import { serviceActorVersionChainDbConfig } from './serviceActorVersionChainDbConfig.js';
 
 /** Recover private command outcomes independently of projection progress. */
@@ -66,8 +66,8 @@ export const getNodeOutcomes = Effect.fn(
     resolvedThrough = owner.nodeIndex;
     if (resolvedThrough > props.afterNodeIndex && outputs.length < 64) {
       outputs.push(
-        filterServiceActorOutput(
-          yield* decodeActorOutput(row),
+        filterServiceBrowserCommand(
+          yield* decodeServiceBrowserCommand(row),
           props.models,
           props,
           owner,
@@ -79,7 +79,7 @@ export const getNodeOutcomes = Effect.fn(
     return yield* makeZerospinError('node-recovery-checkpoint-invalid');
   }
   return {
-    outputs,
+    commands: outputs,
     resolvedThrough,
     nodeThrough: Math.min(
       resolvedThrough,

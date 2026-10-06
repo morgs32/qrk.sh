@@ -16,6 +16,8 @@ Changed fixed schemas require empty storage. Never preserve deprecated rows thro
 
 - Take initiative to make this repo more obvious. In the area you are working, remove redundancy and bloat: duplicates, unused paths, and names that hide what the thing is. Delete that cruft. Do not rename it and keep it, and do not explain it as a second concept.
 
+- When weighing a smaller change against a clearer data model or architecture, **always prioritize the clearer data model or architecture**.
+
 - Use `$patterns` and the [local index](./wiki/patterns/index.md); local rules take precedence. Follow [scoped execution](../wiki/skills/use-morgs32-wiki-patterns/references/patterns/tooling/scoped-execution.md), reusing relevant context.
 - Use `$implement` for approved work and unfinished verification. Be concise and explicit about uncertainty; distinguish current code from intended architecture.
 - Resolve unsettled design choices through [spec](../wiki/skills/spec/SKILL.md); do not re-approve settled decisions. Write plans for agreed work, keep domain terms in `wiki/glossary.md`, and record only qualifying decisions in `wiki/adrs/`. Do not create new spec files.

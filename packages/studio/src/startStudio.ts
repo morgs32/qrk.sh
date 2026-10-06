@@ -1,29 +1,41 @@
+import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import type { IRepoType, ISystemSpec } from '@zerospin/core/system/types';
 import { getApi } from '@zerospin/core/utils/getApi/getApi';
 import { makeTelemetryCollector, makeTelemetryLayer } from '@zerospin/logger';
-import { makeAbbreviationIdSchema } from '@zerospin/schema';
+import { makeAbbreviationIdSchema } from '@zerospin/shapes';
+import { nodeHttpBatchRpcResponse } from 'capnweb';
 import { Effect, Schema } from 'effect';
 import type { GatewayApi } from 'system-worker/GatewayApi/GatewayApi';
-import { createServer } from 'vite';
+import { createServer, searchForWorkspaceRoot } from 'vite';
+
+import { StudioAgentApi } from './StudioAgentApi/StudioAgentApi.js';
 
 /*
  * 1. Create request-local telemetry for administrative API calls.
  * 2. Resolve the concrete SystemApi capability without exposing its secret.
  * 3. Route repository-list requests explicitly through a traced caller root.
  * 4. Route table-row requests explicitly through a traced caller root.
- * 5. Return only decoded repository data to the browser.
+ * 5. Return only repository data and encoded aggregate-ID outcomes to the browser.
  * 6. Discard the caller telemetry batch after every handled response.
  */
 export const startStudio = Effect.fn('startStudio')(function* (props: {
+  projectRoot: string;
   port: number;
   open: boolean;
   systemSpec: ISystemSpec;
   zerospinApiUrl: string;
   zerospinSecretKey: string;
 }) {
-  const { open, port, systemSpec, zerospinApiUrl, zerospinSecretKey } = props;
+  const {
+    open,
+    port,
+    projectRoot,
+    systemSpec,
+    zerospinApiUrl,
+    zerospinSecretKey,
+  } = props;
   const host = '127.0.0.1';
   const root = fileURLToPath(new URL('../', import.meta.url));
 
@@ -35,12 +47,43 @@ export const startStudio = Effect.fn('startStudio')(function* (props: {
         ),
       },
       root,
+      resolve: {
+        alias: {
+          'virtual:zerospin-studio-agents': path.resolve(
+            projectRoot,
+            'agents.ts',
+          ),
+        },
+      },
       plugins: [
         {
-          name: 'zerospin-studio-repo-api',
+          name: 'zerospin-studio-api',
           configureServer(viteServer) {
             viteServer.middlewares.use(async (request, response, next) => {
               const url = new URL(request.url ?? '/', 'http://studio.local');
+              if (
+                request.method === 'POST' &&
+                url.pathname === '/api/agents/rpc'
+              ) {
+                try {
+                  await nodeHttpBatchRpcResponse(
+                    request,
+                    response,
+                    new StudioAgentApi({
+                      zerospinApiUrl,
+                      zerospinSecretKey,
+                    }),
+                  );
+                } catch {
+                  if (!response.headersSent) {
+                    response.statusCode = 500;
+                    response.setHeader('Content-Type', 'text/plain');
+                  }
+                  response.end('Failed to handle Studio RPC request');
+                }
+                return;
+              }
+
               if (
                 request.method !== 'GET' ||
                 (!url.pathname.startsWith('/api/repos/') &&
@@ -68,34 +111,19 @@ export const startStudio = Effect.fn('startStudio')(function* (props: {
                 );
                 let data: unknown;
 
-                if (url.pathname === '/api/agents/ids') {
-                  data = await Effect.runPromise(
-                    systemApi
-                      .getAgentAggregateIds({
-                        aggregateName:
-                          url.searchParams.get('aggregateName') ?? '',
-                        aggregateVersion:
-                          url.searchParams.get('aggregateVersion') ?? '',
-                      })
-                      .pipe(
-                        Effect.withSpan('Studio.getAgentAggregateIds', {
-                          root: true,
-                        }),
-                        Effect.provide(makeTelemetryLayer(collector)),
-                      ),
-                  );
-                } else if (url.pathname === '/api/agents/open') {
+                if (url.pathname === '/api/agents/open') {
                   const aggregateId = url.searchParams.get('aggregateId');
                   const opened = await Effect.runPromise(
                     systemApi
-                      .openAgentPreview({
+                      .openAgentSession({
                         agentName: url.searchParams.get('agentName') ?? '',
+                        nodeId: url.searchParams.get('nodeId') ?? '',
                         aggregateId: Schema.decodeUnknownSync(
                           makeAbbreviationIdSchema('acct'),
                         )(aggregateId),
                       })
                       .pipe(
-                        Effect.withSpan('Studio.openAgentPreview', {
+                        Effect.withSpan('Studio.openAgentSession', {
                           root: true,
                         }),
                         Effect.provide(makeTelemetryLayer(collector)),
@@ -109,6 +137,8 @@ export const startStudio = Effect.fn('startStudio')(function* (props: {
                   socketUrl.searchParams.set('ticket', opened.ticket);
                   data = {
                     snapshot: opened.snapshot,
+                    outcomes: opened.outcomes,
+                    resolvedThrough: opened.resolvedThrough,
                     webSocketUrl: socketUrl.toString(),
                   };
                   response.setHeader('Cache-Control', 'no-store');
@@ -497,6 +527,7 @@ export const startStudio = Effect.fn('startStudio')(function* (props: {
         open,
         port,
         strictPort: true,
+        fs: { allow: [searchForWorkspaceRoot(root), projectRoot] },
       },
     });
 

@@ -53,7 +53,7 @@ export const decodeRetainedAggregateCommand = Effect.fn(
     commandName: row.commandName,
     contractVersion: row.contractVersion,
     payload: row.payload,
-    asyncInput: row.asyncInput,
+    response: row.response,
     aggregateId: row.aggregateId,
     aggregateName: row.aggregateName,
     systemName: row.systemName,
@@ -97,7 +97,11 @@ export const readPendingActorCommands = Effect.fn('readPendingActorCommands')(
           yield* aggregateActorVersionRepoDbConfig.tables.commands.decodeRow(
             saved,
           );
-        const command = yield* decodeRetainedAggregateCommand(retained);
+        const { response, ...command } =
+          yield* decodeRetainedAggregateCommand(retained);
+        if (response != null) {
+          return yield* makeZerospinError('public-async-command-forbidden');
+        }
         return {
           ...stage,
           ...command,
@@ -134,7 +138,7 @@ export const commandRowInput = (props: {
     commandName: command.commandName,
     contractVersion: command.contractVersion,
     payload: command.payload,
-    asyncInput: command.asyncInput ?? null,
+    response: command.response ?? null,
     aggregateId: aggregate ? command.aggregateId : null,
     aggregateName: aggregate ? command.aggregateName : null,
     aggregateVersion: aggregate

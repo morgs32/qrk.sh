@@ -20,7 +20,7 @@ export {
   resolveSessionFailure,
 } from '@zerospin/core/contracts/failureCodec';
 export { mapContractVersion } from '@zerospin/core/contracts/make/mapContractVersion';
-export { makeAsyncContract } from '@zerospin/core/contracts/make/makeAsyncContract';
+export { makeExternalContract } from '@zerospin/core/contracts/make/makeExternalContract';
 export {
   makeContractVersion,
   upgradeContractVersion,
@@ -83,7 +83,7 @@ export {
   type IZerospinError,
   type IZerospinErrorJson,
 } from '@zerospin/error';
-export { CuidFactory, primitives } from '@zerospin/schema';
+export { CuidFactory, primitives } from '@zerospin/shapes';
 export { ZEROSPIN_SDK_VERSION } from './version.js';
 
 export { resolveContractResult } from '@zerospin/core/contracts/resultCodec';
@@ -91,8 +91,6 @@ export type {
   InferContractOperations,
   InferContractResult,
 } from '@zerospin/core/contracts/types';
-
-export { makeAgent } from '@zerospin/core/agent/makeAgent';
 
 export type { IBrowserCommand } from '@zerospin/core/contracts/BrowserCommandSchema';
 

@@ -8,7 +8,7 @@ import {
   ZerospinErrorSchema,
 } from '@zerospin/error';
 import { TelemetryBatchSchema } from '@zerospin/logger';
-import { makeAbbreviationIdSchema } from '@zerospin/schema';
+import { makeAbbreviationIdSchema } from '@zerospin/shapes';
 import { Effect, Schema } from 'effect';
 
 import { SystemLogRepo } from '../../SystemLogRepo/SystemLogRepo.js';

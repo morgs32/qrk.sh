@@ -4,7 +4,7 @@ import { makeAggregateSessionLockKey } from '@zerospin/core/aggregateSession/mak
 import type { IAggregateSessionSpec } from '@zerospin/core/aggregateSession/make/makeAggregateSessionSpec';
 import { getVersion } from '@zerospin/core/contracts/getVersion';
 import { makeZerospinError, type IAnyError } from '@zerospin/error';
-import { encodeShape } from '@zerospin/schema';
+import { encodeShape } from '@zerospin/shapes';
 import config from 'config';
 import { Effect, Schema } from 'effect';
 import { isEqual } from 'es-toolkit';

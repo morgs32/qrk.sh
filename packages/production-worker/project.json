@@ -12,7 +12,7 @@
             "@zerospin/core",
             "@zerospin/error",
             "@zerospin/logger",
-            "@zerospin/schema",
+            "@zerospin/shapes",
             "system-worker"
           ]
         },

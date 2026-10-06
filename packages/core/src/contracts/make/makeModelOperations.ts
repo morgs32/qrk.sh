@@ -1,5 +1,5 @@
 import { mapParseError } from '@zerospin/error';
-import { makeEffectSchema } from '@zerospin/schema';
+import { makeEffectSchema } from '@zerospin/shapes';
 import { Effect, Schema } from 'effect';
 
 import type { IModel } from '../../models/types.ts';

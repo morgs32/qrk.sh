@@ -501,9 +501,9 @@ export class SystemApiFailure extends RpcTarget {
     // 1 — run makeSystemSpec with the retained admission error
     return Effect.runPromise(makeSystemSpec({ request, error: this.error }));
   }
-  async openAgentPreview(
-    _request: Parameters<SystemApi['openAgentPreview']>[0],
-  ): ReturnType<SystemApi['openAgentPreview']> {
+  async openAgentSession(
+    _request: Parameters<SystemApi['openAgentSession']>[0],
+  ): ReturnType<SystemApi['openAgentSession']> {
     return Effect.runPromise(
       encodeError(this.error).pipe(
         Effect.map(failure => ({

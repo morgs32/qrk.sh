@@ -38,6 +38,16 @@ export class ActorSelection<TResult = unknown> extends SQLiteRelationalQuery<
     this.rootTable = args[2];
   }
 
+  selectsAllRows(): boolean {
+    return (
+      this.queryMode === 'many' &&
+      (this.config === true ||
+        (this.config.where === undefined &&
+          (!('limit' in this.config) || this.config.limit === undefined) &&
+          this.config.offset === undefined))
+    );
+  }
+
   capture(props: {
     db: IAnyActorDbVersion;
     model: IModel;

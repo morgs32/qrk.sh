@@ -3,7 +3,8 @@
  * Import a shared application layer from a separate module. Keep operation IDs and
  * initialization in the caller. Import and pass the session value directly.
  * Let the session own its runtime; read session.runtime again after reinitializing.
- * Let useInitializeSession own initialization and disposal after React commit.
+ * Let useInitializeAggregateSession or useInitializeServiceSession own initialization
+ * and disposal after React commit.
  * On session replacement, cleanup invokes disposal before the next initialization
  * without awaiting disposal. Entry modules own root.unmount() on hot reload.
  *

@@ -5,23 +5,24 @@ import { makeAggregateVersion } from '@zerospin/core/aggregate/make/makeAggregat
 import { makeAggregateActorVersion } from '@zerospin/core/aggregateActor/make/makeAggregateActorVersion/makeAggregateActorVersion';
 import { makeAggregateSessionLock } from '@zerospin/core/aggregateSession/make/makeAggregateSessionLock';
 import { sessionRepoDbConfig } from '@zerospin/core/aggregateSession/sessionRepoDbConfig';
-import { executeCommandTx } from '@zerospin/core/aggregateSession/stageCommand/executeCommandTx/executeCommandTx';
+import { stageSessionCommandTx } from '@zerospin/core/aggregateSession/stageCommand/stageSessionCommandTx/stageSessionCommandTx';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
-import {
-  assertActorAsyncContracts,
-  publicContracts,
-} from '@zerospin/core/contracts/asyncContract';
-import { decodeAsyncInput } from '@zerospin/core/contracts/asyncInputCodec';
 import { decodePayload } from '@zerospin/core/contracts/decodePayload/decodePayload';
 import { defineContract } from '@zerospin/core/contracts/defineContract';
+import {
+  assertActorExternalContracts,
+  publicContracts,
+} from '@zerospin/core/contracts/externalContract';
+import { validateExternalResponse } from '@zerospin/core/contracts/externalResponseCodec';
 import { encodeFailure } from '@zerospin/core/contracts/failureCodec';
-import { makeAsyncContract } from '@zerospin/core/contracts/make/makeAsyncContract';
 import {
   Contract,
   makeContractVersion,
 } from '@zerospin/core/contracts/make/makeContractVersion';
+import { makeExternalContract } from '@zerospin/core/contracts/make/makeExternalContract';
 import { makeOperations } from '@zerospin/core/contracts/make/makeOperations';
 import { mapContractVersion } from '@zerospin/core/contracts/make/mapContractVersion';
+import { prepareContractInput } from '@zerospin/core/contracts/prepareContractInput';
 import { resolveContractResult } from '@zerospin/core/contracts/resultCodec';
 import type {
   IAnyContracts,
@@ -39,19 +40,19 @@ import type { IAnyModels } from '@zerospin/core/models/types';
 import { makeServiceVersion } from '@zerospin/core/service/make/makeServiceVersion';
 import { makeServiceActorVersion } from '@zerospin/core/serviceActor/make/makeServiceActorVersion';
 import { ContractError } from '@zerospin/error';
-import { primitives } from '@zerospin/schema';
+import { primitives } from '@zerospin/shapes';
 import { Effect, ManagedRuntime, Result, Schema } from 'effect';
 import { assert as assertType, type Equals } from 'tsafe';
 
 import { genesisDispositionHash } from '../aggregateDispositionHash/aggregateDispositionHash.js';
 import { aggregateVersionChainDbConfig } from '../AggregateVersionChain/aggregateVersionChainDbConfig.js';
-import { receiveExecutedCommands } from '../AggregateVersionChain/receiveExecutedCommands/receiveExecutedCommands.js';
+import { receiveExecutedCommands as receiveAggregateExecutedCommands } from '../AggregateVersionChain/receiveExecutedCommands/receiveExecutedCommands.js';
 import { aggregateVersionRepoDbConfig } from '../AggregateVersionRepo/aggregateVersionRepoDbConfig.js';
 import { executeCommandsTx as executeAggregate } from '../AggregateVersionRepo/executeCommands/executeCommandsTx.js';
 import { asyncOperationLifecycleCodec } from '../asyncOperations/asyncOperationsDbConfig.js';
 import {
   makeAsyncOperations,
-  recordExternal,
+  recordResponse,
 } from '../asyncOperations/makeAsyncOperations.js';
 import {
   readAggregateVersionChainOutput,
@@ -65,7 +66,7 @@ import {
 } from '../asyncOperations/readPreparedAsyncCommand.js';
 import { makeAlarmRegistry } from '../makeAlarmRegistry/makeAlarmRegistry.js';
 import { encodeOwnedOperation } from '../ownedOperations.js';
-import { receiveResults } from '../ServiceVersionChain/receiveResults/receiveResults.js';
+import { receiveExecutedCommands as receiveServiceExecutedCommands } from '../ServiceVersionChain/receiveExecutedCommands/receiveExecutedCommands.js';
 import { serviceVersionChainDbConfig } from '../ServiceVersionChain/serviceVersionChainDbConfig.js';
 import { executeCommandsTx as executeService } from '../ServiceVersionRepo/executeCommands/executeCommandsTx.js';
 import { readExecutedCommandsPage } from '../ServiceVersionRepo/readExecutedCommandsPage.js';
@@ -91,7 +92,7 @@ export const verifyMappedContracts = Effect.fn('verifyMappedContracts')(
     const ownerModels: IAnyModels = models;
     const order: string[] = [];
     let producers = 0;
-    const asyncObserve = makeAsyncContract({
+    const asyncObserve = makeExternalContract({
       name: 'asyncObserve',
       version: '1.0.0',
       payload: {
@@ -99,8 +100,8 @@ export const verifyMappedContracts = Effect.fn('verifyMappedContracts')(
         at: primitives.json({ schema: Schema.DateFromString }),
       },
       external: {
-        result: Schema.Null,
-        program: ({ payload }) =>
+        response: Schema.Null,
+        request: ({ payload }) =>
           Effect.sync(() => {
             assert.ok(payload.at instanceof Date);
             producers++;
@@ -110,13 +111,13 @@ export const verifyMappedContracts = Effect.fn('verifyMappedContracts')(
       failures: { rejected: ContractError.schema({ code: 'rejected' }) },
       program: ({ failures }) => failures.rejected.make(),
     });
-    const asyncSendReceipt = makeAsyncContract({
+    const asyncSendReceipt = makeExternalContract({
       name: 'asyncSendReceipt',
       version: '1.0.0',
       payload: { value: primitives.text() },
       external: {
-        result: Schema.Null,
-        program: () =>
+        response: Schema.Null,
+        request: () =>
           Effect.sync(() => {
             producers++;
             return null;
@@ -208,9 +209,9 @@ export const verifyMappedContracts = Effect.fn('verifyMappedContracts')(
       );
     };
     const aggregate = makeOwner('1.0.0', mapped);
-    assert.throws(() => assertActorAsyncContracts({ write: mapped }));
+    assert.throws(() => assertActorExternalContracts({ write: mapped }));
     assert.throws(() =>
-      assertActorAsyncContracts({
+      assertActorExternalContracts({
         write: mapped,
         asyncObserve: { ...asyncObserve },
       }),
@@ -243,12 +244,20 @@ export const verifyMappedContracts = Effect.fn('verifyMappedContracts')(
       contractVersion: base.version,
       payload: { reject: false },
     };
-    const output = yield* makeOperations({
-      contract: mapped,
-      db,
-      models,
-      command,
-      claims: { aggregateId: 'agg_one' },
+    const output = yield* Effect.gen(function* () {
+      const input = yield* prepareContractInput({
+        contract: mapped,
+        command,
+        claims: { aggregateId: 'agg_one' },
+      });
+      const made = yield* makeOperations({
+        contract: mapped,
+        db,
+        models,
+        command,
+        input,
+      });
+      return { ...made, input };
     });
     assert.deepEqual(order, ['base', 'mapper']);
     assert.deepEqual(
@@ -273,12 +282,20 @@ export const verifyMappedContracts = Effect.fn('verifyMappedContracts')(
     );
     assert.ok(
       Result.isFailure(
-        yield* makeOperations({
-          contract: mapped,
-          db,
-          models,
-          command: { ...command, payload: { reject: true } },
-          claims: { aggregateId: 'agg_one' },
+        yield* Effect.gen(function* () {
+          const input = yield* prepareContractInput({
+            contract: mapped,
+            command: { ...command, payload: { reject: true } },
+            claims: { aggregateId: 'agg_one' },
+          });
+          const made = yield* makeOperations({
+            contract: mapped,
+            db,
+            models,
+            command: { ...command },
+            input,
+          });
+          return { ...made, input };
         }).pipe(Effect.result),
       ),
     );
@@ -297,12 +314,20 @@ export const verifyMappedContracts = Effect.fn('verifyMappedContracts')(
     });
     assert.ok(
       Result.isFailure(
-        yield* makeOperations({
-          contract: { ...invalidMapped, result: Schema.Number },
-          db,
-          models,
-          command,
-          claims: { aggregateId: 'agg_one' },
+        yield* Effect.gen(function* () {
+          const input = yield* prepareContractInput({
+            contract: { ...invalidMapped, result: Schema.Number },
+            command,
+            claims: { aggregateId: 'agg_one' },
+          });
+          const made = yield* makeOperations({
+            contract: { ...invalidMapped, result: Schema.Number },
+            db,
+            models,
+            command,
+            input,
+          });
+          return { ...made, input };
         }).pipe(Effect.result),
       ),
     );
@@ -312,12 +337,20 @@ export const verifyMappedContracts = Effect.fn('verifyMappedContracts')(
       result: Schema.String,
       program: () => Effect.promise(async () => 'bad'),
     });
-    const suspendedResult = yield* makeOperations({
-      contract: suspended,
-      db,
-      models,
-      command,
-      claims: { aggregateId: 'agg_one' },
+    const suspendedResult = yield* Effect.gen(function* () {
+      const input = yield* prepareContractInput({
+        contract: suspended,
+        command,
+        claims: { aggregateId: 'agg_one' },
+      });
+      const made = yield* makeOperations({
+        contract: suspended,
+        db,
+        models,
+        command,
+        input,
+      });
+      return { ...made, input };
     }).pipe(Effect.result);
     assert.ok(Result.isFailure(suspendedResult));
     assert.equal(suspendedResult.failure.code, 'program-must-be-synchronous');
@@ -336,12 +369,20 @@ export const verifyMappedContracts = Effect.fn('verifyMappedContracts')(
     });
     assert.ok(
       Result.isFailure(
-        yield* makeOperations({
-          contract: invalidBase,
-          db,
-          models,
-          command,
-          claims: { aggregateId: 'agg_one' },
+        yield* Effect.gen(function* () {
+          const input = yield* prepareContractInput({
+            contract: invalidBase,
+            command,
+            claims: { aggregateId: 'agg_one' },
+          });
+          const made = yield* makeOperations({
+            contract: invalidBase,
+            db,
+            models,
+            command,
+            input,
+          });
+          return { ...made, input };
         }).pipe(Effect.result),
       ),
     );
@@ -380,16 +421,24 @@ export const verifyMappedContracts = Effect.fn('verifyMappedContracts')(
       claims: { aggregateId: 'agg_one' },
       pushIndex: null,
     };
-    const staged = yield* executeCommandTx(stagingDb, {
+    const staged = yield* stageSessionCommandTx(stagingDb, {
+      contract: base,
       sessionId: stagingCommand.sessionId,
       command: stagingCommand,
-      encodedCommand: { ...stagingCommand, payload: '{"reject":false}' },
-      madeOperations: yield* makeOperations({
-        contract: base,
-        db: stagingDb,
-        models,
-        command,
-        claims: { aggregateId: 'agg_one' },
+      madeOperations: yield* Effect.gen(function* () {
+        const input = yield* prepareContractInput({
+          contract: base,
+          command,
+          claims: { aggregateId: 'agg_one' },
+        });
+        const made = yield* makeOperations({
+          contract: base,
+          db: stagingDb,
+          models,
+          command,
+          input,
+        });
+        return { ...made, input };
       }),
       startedAt: new Date(0),
       state: {
@@ -417,7 +466,7 @@ export const verifyMappedContracts = Effect.fn('verifyMappedContracts')(
       nodeId: null,
       nodeIndex: null,
       sessionName: null,
-      asyncInput: null,
+      response: null,
       aggregateIndex: 1,
       admission,
       execution: { status: 'pending' as const },
@@ -497,14 +546,22 @@ export const verifyMappedContracts = Effect.fn('verifyMappedContracts')(
       executedIndex: 1,
       operations: retained,
     };
-    const rejectedOutput = yield* makeOperations({
-      contract: mapped,
-      db: yield* makeProvisionedInMemorySqljsDb({
-        dbConfig: makeResourceDbConfig({ models: ownerModels }),
-      }),
-      models,
-      command: { ...command, payload: { reject: true } },
-      claims: { aggregateId: 'agg_one' },
+    const rejectedOutput = yield* Effect.gen(function* () {
+      const input = yield* prepareContractInput({
+        contract: mapped,
+        command: { ...command, payload: { reject: true } },
+        claims: { aggregateId: 'agg_one' },
+      });
+      const made = yield* makeOperations({
+        contract: mapped,
+        db: yield* makeProvisionedInMemorySqljsDb({
+          dbConfig: makeResourceDbConfig({ models: ownerModels }),
+        }),
+        models,
+        command: { ...command },
+        input,
+      });
+      return { ...made, input };
     }).pipe(Effect.result);
     assert.ok(Result.isFailure(rejectedOutput));
     const rejectedFailure = yield* encodeFailure(
@@ -574,15 +631,23 @@ export const verifyMappedContracts = Effect.fn('verifyMappedContracts')(
     const chainDb = yield* makeProvisionedInMemorySqljsDb({
       dbConfig: aggregateVersionChainDbConfig,
     });
-    yield* receiveExecutedCommands({ db: chainDb, key, rows: [delivery] });
-    yield* receiveExecutedCommands({ db: chainDb, key, rows: [delivery] });
+    yield* receiveAggregateExecutedCommands({
+      db: chainDb,
+      key,
+      rows: [delivery],
+    });
+    yield* receiveAggregateExecutedCommands({
+      db: chainDb,
+      key,
+      rows: [delivery],
+    });
     assert.deepEqual(
       readAggregateVersionChainOutput(chainDb, command.id),
       retained,
     );
     assert.ok(
       Result.isFailure(
-        yield* receiveExecutedCommands({
+        yield* receiveAggregateExecutedCommands({
           db: chainDb,
           key,
           rows: [{ ...delivery, operations: [...retained, retained[1]!] }],
@@ -628,12 +693,20 @@ export const verifyMappedContracts = Effect.fn('verifyMappedContracts')(
       .insert(aggregateVersionRepoDbConfig.schema.head)
       .values(head)
       .run();
-    const replayOutput = yield* makeOperations({
-      contract: updated,
-      db: replayDb,
-      models,
-      command,
-      claims: { aggregateId: 'agg_one' },
+    const replayOutput = yield* Effect.gen(function* () {
+      const input = yield* prepareContractInput({
+        contract: updated,
+        command,
+        claims: { aggregateId: 'agg_one' },
+      });
+      const made = yield* makeOperations({
+        contract: updated,
+        db: replayDb,
+        models,
+        command,
+        input,
+      });
+      return { ...made, input };
     });
     yield* executeAggregate(replayDb, {
       head,
@@ -709,12 +782,20 @@ export const verifyMappedContracts = Effect.fn('verifyMappedContracts')(
     });
     freshDb.insert(aggregateVersionRepoDbConfig.schema.head).values(head).run();
     const freshCommand = { ...command, id: 'cmd_fresh' as const };
-    const freshOutput = yield* makeOperations({
-      contract: updated,
-      db: freshDb,
-      models,
-      command: freshCommand,
-      claims: { aggregateId: 'agg_one' },
+    const freshOutput = yield* Effect.gen(function* () {
+      const input = yield* prepareContractInput({
+        contract: updated,
+        command: freshCommand,
+        claims: { aggregateId: 'agg_one' },
+      });
+      const made = yield* makeOperations({
+        contract: updated,
+        db: freshDb,
+        models,
+        command: freshCommand,
+        input,
+      });
+      return { ...made, input };
     });
     yield* executeAggregate(freshDb, {
       head,
@@ -776,7 +857,7 @@ export const verifyMappedContracts = Effect.fn('verifyMappedContracts')(
         .from(aggregateVersionRepoDbConfig.schema.asyncOperations)
         .all()
         .every(
-          row => row.externalRecordedAt !== null && row.nextRunAt === null,
+          row => row.responseRecordedAt !== null && row.nextRunAt === null,
         ),
     );
     // Source publication cleanup preserves the producer's immutable inputs and authority.
@@ -784,7 +865,7 @@ export const verifyMappedContracts = Effect.fn('verifyMappedContracts')(
     db.delete(
       aggregateVersionRepoDbConfig.schema.executedAggregateCommandOutbox,
     ).run();
-    yield* recordExternal(
+    yield* recordResponse(
       db,
       originalRows[0]!.asyncCommandId!,
       null,
@@ -794,14 +875,15 @@ export const verifyMappedContracts = Effect.fn('verifyMappedContracts')(
       db,
       originalRows[0]!.asyncCommandId!,
     );
-    const decoded = yield* decodeAsyncInput(asyncObserve, recorded.payload, {
-      sourceCommandId: command.id,
-      external: recorded.external,
-    });
+    const decoded = yield* validateExternalResponse(
+      asyncObserve,
+      recorded.payload,
+      recorded.response,
+    );
     assert.ok(decoded.payload.at instanceof Date);
     assert.equal(recorded.actorName, 'operator');
     assert.deepEqual(recorded.claims, { aggregateId: 'agg_one' });
-    assert.equal(originalRows[1]!.externalRecordedAt, null);
+    assert.equal(originalRows[1]!.responseRecordedAt, null);
     assert.ok(
       Result.isFailure(
         yield* Schema.decodeUnknownEffect(asyncOperationLifecycleCodec)({
@@ -820,23 +902,30 @@ export const verifyMappedContracts = Effect.fn('verifyMappedContracts')(
       ),
       'replay output cannot retain production lifecycle',
     );
-    const childInput = {
-      sourceCommandId: command.id,
-      external: null,
-    };
-    const rejectedContinuation = yield* makeOperations({
-      contract: asyncObserve,
-      db,
-      models,
-      command: {
-        ...command,
-        id: recorded.asyncCommandId!,
-        commandName: asyncObserve.commandName,
-        contractVersion: asyncObserve.version,
-        payload: decoded.payload,
-        asyncInput: childInput,
-      },
-      claims: recorded.claims,
+    const childResponse = null;
+    const rejectedContinuation = yield* Effect.gen(function* () {
+      const input = yield* prepareContractInput({
+        contract: asyncObserve,
+        command: {
+          ...command,
+          payload: decoded.payload,
+          response: childResponse,
+        },
+        claims: recorded.claims,
+      });
+      const made = yield* makeOperations({
+        contract: asyncObserve,
+        db,
+        models,
+        command: {
+          ...command,
+          id: recorded.asyncCommandId!,
+          commandName: asyncObserve.commandName,
+          contractVersion: asyncObserve.version,
+        },
+        input,
+      });
+      return { ...made, input };
     }).pipe(Effect.result);
     assert.ok(Result.isFailure(rejectedContinuation));
     const continuationFailure = yield* encodeFailure(
@@ -855,7 +944,7 @@ export const verifyMappedContracts = Effect.fn('verifyMappedContracts')(
             commandName: asyncObserve.commandName,
             contractVersion: asyncObserve.version,
             payload: JSON.stringify(recorded.payload),
-            asyncInput: childInput,
+            response: childResponse,
             aggregateIndex: 4,
           },
           originalExecutionVersion: key.aggregateVersion,
@@ -921,7 +1010,7 @@ export const verifyMappedContracts = Effect.fn('verifyMappedContracts')(
       admission,
       execution: { status: 'pending' as const },
       dispositionHash: null,
-      asyncInput: null,
+      response: null,
     };
     yield* executeService(serviceDb, {
       cursor: 0,
@@ -934,7 +1023,7 @@ export const verifyMappedContracts = Effect.fn('verifyMappedContracts')(
       inputs: [
         {
           command: serviceInput,
-          prepared: Result.succeed(output),
+          prepared: Result.succeed({ ...output, contract: mapped }),
           startedAt: new Date(0),
         },
       ],
@@ -956,6 +1045,7 @@ export const verifyMappedContracts = Effect.fn('verifyMappedContracts')(
           },
           prepared: Result.succeed({
             ...output,
+            contract: mapped,
             operations: failingOperations,
           }),
           startedAt: new Date(0),
@@ -992,12 +1082,12 @@ export const verifyMappedContracts = Effect.fn('verifyMappedContracts')(
     const deliveries = readExecutedCommandsPage(serviceDb).map(
       entry => entry.row,
     );
-    yield* receiveResults({
+    yield* receiveServiceExecutedCommands({
       db: serviceHistory,
       key: { serviceName: 'fixture', serviceVersion: '1.0.0' },
       rows: deliveries,
     });
-    yield* receiveResults({
+    yield* receiveServiceExecutedCommands({
       db: serviceHistory,
       key: { serviceName: 'fixture', serviceVersion: '1.0.0' },
       rows: deliveries,
@@ -1025,7 +1115,7 @@ export const verifyMappedContracts = Effect.fn('verifyMappedContracts')(
       .select()
       .from(serviceVersionRepoDbConfig.schema.asyncOperations)
       .get()!;
-    yield* recordExternal(
+    yield* recordResponse(
       serviceDb,
       serviceEmission.asyncCommandId!,
       null,
@@ -1051,9 +1141,7 @@ export const verifyMappedContracts = Effect.fn('verifyMappedContracts')(
             commandName: asyncObserve.commandName,
             contractVersion: asyncObserve.version,
             payload: JSON.stringify(serviceObservation.payload),
-            asyncInput: {
-              ...childInput,
-            },
+            response: childResponse,
             serviceIndex: 4,
           },
           prepared: Result.fail(continuationFailure),
@@ -1067,19 +1155,20 @@ export const verifyMappedContracts = Effect.fn('verifyMappedContracts')(
       'service continuation rejection preserves immutable recorded observation',
     );
     // Replay does not translate private payloads through ordinary adaptation edges.
-    const incompatible = makeAsyncContract({
+    const incompatible = makeExternalContract({
       name: 'asyncObserve',
       version: '2.0.0',
       payload: { replacement: primitives.integer() },
-      external: { result: Schema.Null, program: () => Effect.succeed(null) },
+      external: { response: Schema.Null, request: () => Effect.succeed(null) },
       program: () => Effect.void,
     });
     assert.ok(
       Result.isFailure(
-        yield* decodeAsyncInput(incompatible, recorded.payload, {
-          sourceCommandId: command.id,
-          external: null,
-        }).pipe(Effect.result),
+        yield* validateExternalResponse(
+          incompatible,
+          recorded.payload,
+          null,
+        ).pipe(Effect.result),
       ),
     );
     const decodedOrdinary = yield* decodePayload(mapped, {

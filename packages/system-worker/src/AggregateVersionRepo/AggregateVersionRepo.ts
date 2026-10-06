@@ -93,7 +93,7 @@ export class AggregateVersionRepo
   })
   implements
     IFanoutSubscriberRepo<{
-      readonly name: 'admissionResultsFanout';
+      readonly name: 'admittedCommandsFanout';
     }>
 {
   static override readonly fixedDORepoConfig =
@@ -357,13 +357,13 @@ export class AggregateVersionRepo
       }),
   });
   /** Receive admitted rows through a source-bound fanout subscriber capability. */
-  admissionResultsFanoutSubscriber(sourceKey: {
+  admittedCommandsFanoutSubscriber(sourceKey: {
     systemId: string;
     aggregateId: string;
     aggregateName: string;
   }): ReturnType<
     typeof makeFanoutSubscriber<
-      'admissionResultsFanout',
+      'admittedCommandsFanout',
       typeof sourceKey,
       typeof this.key,
       IChainInput | typeof aggregateChainDbConfig.schema.commands.$inferSelect
@@ -380,7 +380,7 @@ export class AggregateVersionRepo
       });
     }
     return makeFanoutSubscriber({
-      name: 'admissionResultsFanout',
+      name: 'admittedCommandsFanout',
       sourceKey,
       key: this.key,
       getRepo: AggregateChain.getRepo,
@@ -455,7 +455,7 @@ export class AggregateVersionRepo
             ...props,
             db: this.db,
             key: this.key,
-            subscriber: this.admissionResultsFanoutSubscriber({
+            subscriber: this.admittedCommandsFanoutSubscriber({
               systemId: this.key.systemId,
               aggregateId: this.key.aggregateId,
               aggregateName: this.key.aggregateName,
@@ -489,7 +489,7 @@ export class AggregateVersionRepo
       this.#drainExecutionAfter(() =>
         Effect.gen({ self: this }, function* () {
           yield* makeAsync(() =>
-            this.admissionResultsFanoutSubscriber(this.key).catchup(),
+            this.admittedCommandsFanoutSubscriber(this.key).catchup(),
           ).pipe(Effect.flatMap(readRpcEnvelope));
           const executedIndex =
             this.db

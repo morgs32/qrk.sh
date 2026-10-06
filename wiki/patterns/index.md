@@ -61,7 +61,7 @@ Keyword → pattern file routing. Code shows good; `@bad` JSDoc tags document an
 
 | Keywords                                                                                                                                       | File                                                   |
 | ---------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
-| Effect.gen, operation emission, result codec, synchronous collector, mapContractVersion, explicit async capabilities, original staging, replay | `contracts/contract-program-emission-and-result.ts`    |
+| Effect.gen, operation emission, result codec, synchronous collector, mapContractVersion, makeExternalContract, external request, response, original staging, replay | `contracts/contract-program-emission-and-result.ts`    |
 | registry model scope, contract mutations                                                                                                       | `contracts/contract-mutations-stay-in-owner-models.ts` |
 | IEncodedCommand boundary                                                                                                                       | `contracts/iencoded-command-at-boundary-only.ts`       |
 | omit program payload-only                                                                                                                      | `contracts/omit-program-not-dummy-yields.ts`           |
@@ -76,12 +76,14 @@ Keyword → pattern file routing. Code shows good; `@bad` JSDoc tags document an
 
 ## react
 
-- [One session per file](react/one-session-per-file.ts): makeSession, makeSessions, gameSession, session declarations, module-level session values, no session factories, applicationLayer, session.runtime, useInitializeSession, dispose/reinitialize, HMR, root.unmount, operation IDs.
+- [One session per file](react/one-session-per-file.ts): makeSession, makeSessions, gameSession, session declarations, module-level session values, no session factories, applicationLayer, session.runtime, useInitializeAggregateSession, useInitializeServiceSession, dispose/reinitialize, HMR, root.unmount, operation IDs.
 
 | Keywords                                                                | File                                          |
 | ----------------------------------------------------------------------- | --------------------------------------------- |
 | stageCommand, local execution, optimistic UI, no pending state          | `react/no-pending-ui-for-local-execution.tsx` |
 | frontend binding, makeAggregateFrontend, makeServiceFrontend, FrontendV | `react/versioned-frontend-binding.ts`         |
+| Outline, OrderedOutline, section headings, Admin, Repos, local counters | `react/outline-section-headings.tsx`          |
+| useSWR, newSyncRpcSession, using, query keys, mutate, focus, reconnect  | `react/swr-rpc-queries.tsx`                   |
 
 ## error
 

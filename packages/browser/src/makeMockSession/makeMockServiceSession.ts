@@ -17,7 +17,7 @@ import {
   mapParseError,
   type IAnyError,
 } from '@zerospin/error';
-import { makeIdFromAbbreviation } from '@zerospin/schema';
+import { makeIdFromAbbreviation } from '@zerospin/shapes';
 import { Effect, Layer, Schema } from 'effect';
 
 import { makeSessionLifecycle } from '../makeSessionLifecycle';
@@ -76,6 +76,7 @@ export function makeMockServiceSession(props: {
   });
   const lifecycle = makeSessionLifecycle({
     layer,
+    telemetryCollector: coreSession.store.getState().telemetryCollector,
     infrastructure: Layer.empty,
     onDispose: () => {
       coreSession.store.setState({

@@ -19,7 +19,7 @@ export const checkAdmission = Effect.fn('checkAdmission')(function* (props: {
   actor?: IAnyAggregateActorVersion | undefined;
 }) {
   const { command, owners, actor, claims } = props;
-  if (command.asyncInput != null) {
+  if (command.response !== undefined) {
     return yield* makeZerospinError('public-async-command-forbidden');
   }
   for (const owner of owners) {
@@ -27,7 +27,7 @@ export const checkAdmission = Effect.fn('checkAdmission')(function* (props: {
       if (candidate.commandName !== command.commandName) {
         continue;
       }
-      if (candidate.async !== undefined) {
+      if (candidate.external !== undefined) {
         return yield* makeZerospinError('public-async-command-forbidden');
       }
       let contract: IContract | undefined = candidate;

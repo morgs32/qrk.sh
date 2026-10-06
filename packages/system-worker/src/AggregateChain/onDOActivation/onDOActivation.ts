@@ -29,7 +29,7 @@ export const onDOActivation = Effect.fn('AggregateChain.onDOActivation')(
           return { aggregateVersionRepoName, aggregateVersion };
         }),
     );
-    yield* props.alarms.hold('admissionResultsFanout');
+    yield* props.alarms.hold('admittedCommandsFanout');
     yield* Effect.try({
       try: () =>
         props.db.transaction(tx => {

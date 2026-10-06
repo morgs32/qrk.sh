@@ -2,6 +2,7 @@ import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { NanoIdFactory } from '@zerospin/core/utils/NanoIdFactory';
 import { UlidMonotonicFactory } from '@zerospin/core/utils/UlidMonotonicFactory';
 import { makeZerospinError, type IAnyError } from '@zerospin/error';
+import { makeTelemetryLayer, type ITelemetryCollector } from '@zerospin/logger';
 import {
   Cause,
   Effect,
@@ -19,37 +20,44 @@ import type {
 
 /** One reusable session owns successive, independently disposed runtime lifetimes. */
 export function makeSessionLifecycle<APP_SERVICES, INFRASTRUCTURE>(props: {
-  layer: Layer.Layer<APP_SERVICES, IAnyError>;
+  layer: Layer.Layer<APP_SERVICES, IAnyError> | undefined;
   infrastructure: Layer.Layer<INFRASTRUCTURE, IAnyError>;
+  telemetryCollector: ITelemetryCollector;
   onDispose(): void;
 }) {
-  const { layer, infrastructure, onDispose } = props;
-  if (Object.getPrototypeOf(layer) !== Object.getPrototypeOf(Layer.empty)) {
+  const { layer, infrastructure, telemetryCollector, onDispose } = props;
+  if (
+    layer !== undefined &&
+    Object.getPrototypeOf(layer) !== Object.getPrototypeOf(Layer.empty)
+  ) {
     throw makeZerospinError({
       code: 'zerospin-app-effect-runtime-mismatch',
       message:
         'The application layer was created by a different Effect runtime than Zerospin Browser. Ensure the app and Zerospin resolve to the same Effect installation, then rebuild.',
     });
   }
+  const baseLayer = Layer.mergeAll(
+    NanoIdFactory,
+    UlidMonotonicFactory,
+    AsyncLive,
+    infrastructure,
+    ...(layer === undefined ? [] : [layer]),
+  );
   const makeRuntime = () =>
     ManagedRuntime.make(
-      Layer.mergeAll(
-        NanoIdFactory,
-        UlidMonotonicFactory,
-        AsyncLive,
-        infrastructure,
-        layer,
+      makeTelemetryLayer(telemetryCollector).pipe(
+        Layer.provideMerge(baseLayer),
       ),
     );
   type IRuntime = IZerospinRuntime<APP_SERVICES | INFRASTRUCTURE>;
   type IAttempt = {
+    controller: AbortController;
     runtime: IRuntime | null;
     scope: Scope.Closeable;
     fiber: Fiber.Fiber<unknown, unknown> | null;
     ready: PromiseWithResolvers<void>;
     previousCleanup: Promise<void>;
     cleanup: Promise<void> | null;
-    canceled: boolean;
   };
   let runtime = makeRuntime();
   let runtimeDisposed = false;
@@ -58,7 +66,7 @@ export function makeSessionLifecycle<APP_SERVICES, INFRASTRUCTURE>(props: {
 
   const close = (attempt: IAttempt): Promise<void> => {
     if (attempt.cleanup !== null) return attempt.cleanup;
-    attempt.canceled = true;
+    attempt.controller.abort();
     attempt.ready.reject(
       makeZerospinError({
         code: 'session-initialization-canceled',
@@ -67,6 +75,12 @@ export function makeSessionLifecycle<APP_SERVICES, INFRASTRUCTURE>(props: {
     );
     if (active === attempt) active = null;
     if (attempt.runtime === runtime) runtimeDisposed = true;
+    let releaseFailure: { cause: unknown } | undefined;
+    try {
+      onDispose();
+    } catch (cause) {
+      releaseFailure = { cause };
+    }
     const closing = (async () => {
       try {
         await attempt.previousCleanup;
@@ -77,13 +91,10 @@ export function makeSessionLifecycle<APP_SERVICES, INFRASTRUCTURE>(props: {
           }
           await Effect.runPromise(Scope.close(attempt.scope, Exit.void));
         } finally {
-          try {
-            onDispose();
-          } finally {
-            await attempt.runtime?.dispose();
-          }
+          await attempt.runtime?.dispose();
         }
       }
+      if (releaseFailure !== undefined) throw releaseFailure.cause;
     })();
     attempt.cleanup = closing;
     cleanup = closing;
@@ -95,13 +106,13 @@ export function makeSessionLifecycle<APP_SERVICES, INFRASTRUCTURE>(props: {
     // Disposal can cancel an admission while it is still waiting for earlier cleanup.
     void ready.promise.catch(() => undefined);
     return {
+      controller: new AbortController(),
       runtime: runtimeDisposed ? null : runtime,
       scope: Scope.makeUnsafe(),
       fiber: null,
       ready,
       previousCleanup: cleanup.catch(() => undefined),
       cleanup: null,
-      canceled: false,
     };
   };
 
@@ -112,6 +123,7 @@ export function makeSessionLifecycle<APP_SERVICES, INFRASTRUCTURE>(props: {
     initialize(
       start: (props: {
         runtime: IRuntime;
+        signal: AbortSignal;
         ready(): void;
       }) => Effect.Effect<
         unknown,
@@ -130,7 +142,9 @@ export function makeSessionLifecycle<APP_SERVICES, INFRASTRUCTURE>(props: {
       return (async () => {
         try {
           await attempt.previousCleanup;
-          if (attempt.canceled) return await attempt.ready.promise;
+          if (attempt.controller.signal.aborted) {
+            return await attempt.ready.promise;
+          }
           if (attempt.runtime === null) {
             runtime = makeRuntime();
             runtimeDisposed = false;
@@ -141,8 +155,11 @@ export function makeSessionLifecycle<APP_SERVICES, INFRASTRUCTURE>(props: {
             Effect.suspend(() =>
               start({
                 runtime: ownedRuntime,
+                signal: attempt.controller.signal,
                 ready: () => {
-                  if (!attempt.canceled) attempt.ready.resolve();
+                  if (!attempt.controller.signal.aborted) {
+                    attempt.ready.resolve();
+                  }
                 },
               }),
             ).pipe(Scope.provide(attempt.scope)),
@@ -162,7 +179,7 @@ export function makeSessionLifecycle<APP_SERVICES, INFRASTRUCTURE>(props: {
             }
           });
           await attempt.ready.promise;
-          if (attempt.canceled) {
+          if (attempt.controller.signal.aborted) {
             throw makeZerospinError('session-initialization-canceled');
           }
         } catch (error) {

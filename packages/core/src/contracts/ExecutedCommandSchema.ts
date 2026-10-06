@@ -1,8 +1,7 @@
-import { makeAbbreviationIdSchema } from '@zerospin/schema';
+import { makeAbbreviationIdSchema } from '@zerospin/shapes';
 import { Schema } from 'effect';
 
 import { AdmissionResultSchema } from './AdmissionResultSchema.ts';
-import { AsyncCommandInputSchema } from './AsyncCommandInputSchema.ts';
 import { ExecutionResultSchema } from './ExecutionResultSchema.ts';
 import { ServiceCallerSchema } from './ServiceCallerSchema.ts';
 
@@ -12,7 +11,7 @@ const common = {
   commandName: Schema.NonEmptyString,
   contractVersion: Schema.NonEmptyString,
   payload: Schema.String,
-  asyncInput: Schema.NullOr(Schema.fromJsonString(AsyncCommandInputSchema)),
+  response: Schema.NullOr(Schema.fromJsonString(Schema.Json)),
   admission: Schema.fromJsonString(
     Schema.Union([
       AdmissionResultSchema.members[1],

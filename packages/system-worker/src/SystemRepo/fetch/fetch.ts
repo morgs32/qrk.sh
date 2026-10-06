@@ -2,7 +2,7 @@ import type { Async } from '@zerospin/core/async/Async';
 import { makeAsync } from '@zerospin/core/async/make/makeAsync';
 import type { IDb } from '@zerospin/core/drizzle/types';
 import type { IAnyError } from '@zerospin/error';
-import type { IAnyDrizzleSchema } from '@zerospin/schema';
+import type { IAnyDrizzleSchema } from '@zerospin/shapes';
 import { env } from 'cloudflare:workers';
 import type { AnyColumn } from 'drizzle-orm';
 import { Effect, Result } from 'effect';

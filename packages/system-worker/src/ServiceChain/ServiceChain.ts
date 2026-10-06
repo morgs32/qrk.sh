@@ -11,8 +11,8 @@ import { makeRpcEnvelope, type IRpcEnvelope } from '@zerospin/logger';
 import config from 'config';
 import { eq } from 'drizzle-orm';
 import { Effect, Semaphore } from 'effect';
-import { isEqual } from 'es-toolkit';
 
+import { verifyPreparedAsyncCommand } from '../asyncOperations/readPreparedAsyncCommand.js';
 import {
   makeFanoutQueue,
   type IFanoutRepo,
@@ -34,13 +34,13 @@ export class ServiceChain
     namespaceBinding: 'SERVICE_CHAIN',
     fixedDORepoConfig: serviceChainFixedDORepoConfig,
   })
-  implements IFanoutRepo<'admissionResultsFanout', ServiceVersionRepo>
+  implements IFanoutRepo<'admittedCommandsFanout', ServiceVersionRepo>
 {
   static override readonly fixedDORepoConfig = serviceChainFixedDORepoConfig;
   readonly #admissionWrites = Effect.runSync(Semaphore.make(1));
-  readonly #admissionResultsFanout = makeFanoutQueue({
+  readonly #admittedCommandsFanout = makeFanoutQueue({
     concurrency: 100,
-    name: 'admissionResultsFanout',
+    name: 'admittedCommandsFanout',
     db: this.db,
     key: this.key,
     alarmRegistry: this.alarmRegistry,
@@ -54,8 +54,8 @@ export class ServiceChain
       eq(serviceChainDbConfig.schema.serviceSubscribers.active, true),
     ],
   });
-  get admissionResultsFanout() {
-    return this.#admissionResultsFanout;
+  get admittedCommandsFanout() {
+    return this.#admittedCommandsFanout;
   }
   /** Establish the base and authored materializer before serving this activation. */
   override onDOActivation() {
@@ -83,24 +83,10 @@ export class ServiceChain
         >(() =>
           repo.getPreparedAsyncCommand({ commandId: props.command.id }),
         ).pipe(Effect.flatMap(readRpcEnvelope));
-        const command = expected;
-        const { ownerKind, ...delivered } = props.command;
-        if (ownerKind !== 'service') {
-          return yield* makeZerospinError('async-command-owner-mismatch');
-        }
-        const { ownerKind: expectedKind, ...expectedCommand } = expected;
-        if (
-          expectedKind !== ownerKind ||
-          !isEqual(delivered, expectedCommand)
-        ) {
-          return yield* makeZerospinError(
-            'async-command-recorded-input-mismatch',
-          );
-        }
-        const input = command.asyncInput;
-        if (input == null || command.id !== props.command.id) {
-          return yield* makeZerospinError('async-input-required');
-        }
+        const command = yield* verifyPreparedAsyncCommand(
+          expected,
+          props.command,
+        );
         return yield* this.#admissionWrites.withPermits(1)(
           Effect.gen({ self: this }, function* () {
             const prepared = yield* prepareServiceAdmission({
@@ -109,7 +95,7 @@ export class ServiceChain
               db: this.db,
               key: this.key,
             });
-            return yield* this.#admissionResultsFanout.drainAfter(() =>
+            return yield* this.#admittedCommandsFanout.drainAfter(() =>
               retainServiceCommand({ ...prepared, db: this.db }),
             );
           }),
@@ -139,7 +125,7 @@ export class ServiceChain
               db: this.db,
               key: this.key,
             });
-            return yield* this.#admissionResultsFanout.drainAfter(() =>
+            return yield* this.#admittedCommandsFanout.drainAfter(() =>
               retainServiceCommand({ ...prepared, db: this.db }),
             );
           }),

@@ -1,6 +1,100 @@
 ---
 title: Aggregate Command Admission and Result Delivery
-updated: 2026-10-02
+updated: 2026-10-05
+sources:
+  - path: packages/core/src/contracts/ExecutedCommandSchema.ts
+    sha: 5db6f7161c0a7bcc9e6b18974f340312fe819dd2
+    lines: 1-100
+  - path: packages/core/src/drizzle/make/makeTx.ts
+    sha: 8c2efa8f1180de92bf6d3fb7c3531eae7bd5cfbc
+    lines: 1-120
+  - path: packages/core/src/serviceSession/filterServiceBrowserCommand.ts
+    sha: f54a782416bba4c9b978369a5217eddf692121e5
+    lines: 1-40
+  - path: packages/system-worker/scripts/checkActorStaging.mjs
+    sha: 786b302cdbae3b1404b3e9b49b6a7c892932a106
+    lines: 1-276
+  - path: packages/system-worker/src/AggregateActorVersionChain/aggregateActorVersionChainDbConfig.ts
+    sha: 97b461f1a9bfe571444b2b777a129565bfc6500e
+    lines: 1-25
+  - path: packages/system-worker/src/AggregateActorVersionChain/getBrowserCommands/getBrowserCommands.ts
+    sha: 7d310c965b0c0b38a692e95a917029c777bedd3c
+    lines: 1-235
+  - path: packages/system-worker/src/AggregateActorVersionChain/getResolvedThrough.ts
+    sha: 333c1695fb2dbb1d1839e3db631546587cdce167
+    lines: 1-60
+  - path: packages/system-worker/src/AggregateActorVersionChain/onMessage/onMessage.ts
+    sha: 81eacb88d0b747a664800db61d29841a8d6aef82
+    lines: 1-459
+  - path: packages/system-worker/src/AggregateActorVersionRepo/AggregateActorVersionRepo.ts
+    sha: 08d4f75e5bdb508a9cf0e9a0aebc745bce8436d9
+    lines: 1-274
+  - path: packages/system-worker/src/AggregateActorVersionRepo/aggregateActorVersionRepoDbConfig.ts
+    sha: 865d675fcd3866f5c9c89068ab1db83c64c33133
+    lines: 1-145
+  - path: packages/system-worker/src/AggregateActorVersionRepo/aggregateActorVersionRepoFixedDORepoConfig.ts
+    sha: 4c9c05cb5ccd305341db6c04d48ffb9b40669dea
+    lines: 1-111
+  - path: packages/system-worker/src/AggregateActorVersionRepo/getSnapshot/getSnapshot.ts
+    sha: 32eaf1360bb1edf5af4fd2e8a20e2828c5263e58
+    lines: 1-179
+  - path: packages/system-worker/src/AggregateActorVersionRepo/onDOActivation/onDOActivation.ts
+    sha: b851d43a6ec46e3b40077dd933b59784de38bbcc
+    lines: 1-19
+  - path: packages/system-worker/src/AggregateActorVersionRepo/optimistic/makeOptimisticActorDb.ts
+    sha: 3580fc6056651a988b27d014d95739f955851979
+    lines: 1-77
+  - path: packages/system-worker/src/AggregateActorVersionRepo/optimistic/makeStagedAggregateCommandOutbox.ts
+    sha: 9884386d290b146b951f2253ba9d5745e8e1ad64
+    lines: 1-179
+  - path: packages/system-worker/src/AggregateActorVersionRepo/optimistic/stageActorCommands.ts
+    sha: 6020f28297c3d79ec03ad85011543b8a46debadb
+    lines: 1-346
+  - path: packages/system-worker/src/AggregateChain/AggregateChain.ts
+    sha: b8d35d56d7839fc53aa291017b2cce9d247edb27
+    lines: 1-237
+  - path: packages/system-worker/src/AggregateChain/admitCommands/admitCommandsTx.ts
+    sha: 0e8c88299028317e1ee89a392a7861dbc291711d
+    lines: 1-169
+  - path: packages/system-worker/src/AggregateChain/executeAggregateCommand/executeAggregateCommand.ts
+    sha: 90d5041376daf766370b22c8b6079695689fc193
+    lines: 1-44
+  - path: packages/system-worker/src/AggregateChain/onDOActivation/onDOActivation.ts
+    sha: eefc32cfcc78df16c4a9e67acfd075daf931b88c
+    lines: 1-61
+  - path: packages/system-worker/src/AggregateVersionChain/aggregateVersionChainDbConfig.ts
+    sha: 20010c40406aeaba09895217a5d04cc4310db8d7
+    lines: 1-83
+  - path: packages/system-worker/src/AggregateVersionRepo/AggregateVersionRepo.ts
+    sha: a44888c5d092d50901f8716a519fc2b38bf22535
+    lines: 1-547
+  - path: packages/system-worker/src/AggregateVersionRepo/aggregateVersionRepoDbConfig.ts
+    sha: 4fbff1507a4dca84b426f85ab1383da543d25dc0
+    lines: 1-89
+  - path: packages/system-worker/src/AggregateVersionRepo/deleteDeliveredAggregateMaterial.ts
+    sha: c9e8a35f787e6a5c2ed611c66764270766c48d27
+    lines: 1-31
+  - path: packages/system-worker/src/AggregateVersionRepo/executeCommands/executeCommands.ts
+    sha: 2c354449c668ead70ca2ef227b0c16275bbe79ca
+    lines: 1-396
+  - path: packages/system-worker/src/AggregateVersionRepo/executeCommands/executeCommandsTx.ts
+    sha: 96e4e7997222064af1f193d2ba7513e3ede67275
+    lines: 1-332
+  - path: packages/system-worker/src/ServiceChain/onDOActivation/onDOActivation.ts
+    sha: b993cb096c76a3516d02c953c8db05c4921ad663
+    lines: 1-61
+  - path: packages/system-worker/src/filterAggregateBrowserCommand/filterAggregateBrowserCommand.ts
+    sha: bc10325b220472df944da0fcf660f8a5c4ef71d4
+    lines: 1-31
+  - path: packages/system-worker/src/makeFanoutQueue/makeFanoutQueue.ts
+    sha: 1fca471b0bb790a5e172af4c59faba872aca0ccd
+    lines: 1-779
+  - path: packages/system-worker/src/makeFanoutSubscriber/makeFanoutSubscriber.ts
+    sha: 857440d27169fb4bfade867c3d0c105b5883302b
+    lines: 1-202
+  - path: packages/system-worker/src/makeOutboxQueue/makeOutboxQueue.ts
+    sha: c28a7981bb0d84acc7f956c9305a07804216808c
+    lines: 1-251
 ---
 
 # Aggregate Command Admission and Result Delivery
@@ -83,7 +177,7 @@ The staged-command outbox can delete after admission acknowledgement while the s
 | AggregateActorVersionRepo                 | `stagedAggregateCommandOutbox`   | `IStagedAggregateCommand`                                                   | AggregateChain                    |
 | AggregateVersionRepo / ServiceVersionRepo | `executedCommandOutbox`          | `IExecutedAggregateCommand` or `IExecutedServiceCommand`, by original owner | Corresponding version chain       |
 | Original AggregateVersionRepo             | `executedAggregateCommandOutbox` | `IExecutedAggregateCommand`                                                 | AggregateChain                    |
-| Both actor version repos                  | `browserCommandOutbox`           | `IBrowserCommand`                                                           | Corresponding actor version chain |
+| Both actor version repos                  | `browserCommandOutbox`           | `IAggregateBrowserCommand` / `IServiceBrowserCommand`                       | Corresponding actor version chain |
 | Both version repos                        | `asyncCommandOutbox`             | `IAsyncCommand`                                                             | Corresponding admission chain     |
 
 Each pending row stores flat command fields and required occurrence, recipient, and delivery metadata. Associated normalized operations remain available until every delivery requiring them acknowledges. Acknowledgement deletes exactly the delivered page after the receiver commits durable history. Lost acknowledgements retry identical commands; conflicting retries fail without advancing progress. Original aggregate execution enqueues both destinations in one synchronous transaction; replay do not enqueue another original return.
@@ -97,12 +191,12 @@ The actor’s `stagedCommands` journal preserves unresolved optimistic operation
 
 ## Command occurrences and positions
 
-| Storage                                        | Contents and order                                                 |
-| ---------------------------------------------- | ------------------------------------------------------------------ |
-| AggregateChain `commands`                      | Admitted aggregate commands by `aggregateIndex`                    |
-| AVR / AVC `aggregateCommands` and `operations` | Terminal aggregate commands and their ordered owned operations     |
-| AVR / AVC merged result feed                   | Complete command occurrences by aggregate-local `executedIndex`    |
-| AAVR `outputs` / AAVC `outputs`                | Minimal browser command and checkpoint envelope by `executedIndex` |
+| Storage                                              | Contents and order                                              |
+| ---------------------------------------------------- | --------------------------------------------------------------- |
+| AggregateChain `commands`                            | Admitted aggregate commands by `aggregateIndex`                 |
+| AVR / AVC `aggregateCommands` and `operations`       | Terminal aggregate commands and their ordered owned operations  |
+| AVR / AVC merged result feed                         | Complete command occurrences by aggregate-local `executedIndex` |
+| AAVR `browserCommandOutbox` / AAVC `browserCommands` | Flat aggregate browser commands by `executedIndex`              |
 
 - [`aggregateVersionRepoDbConfig.ts`](../../../packages/system-worker/src/AggregateVersionRepo/aggregateVersionRepoDbConfig.ts) — defines original command, operation, receiving head, storage.
 - [`aggregateVersionChainDbConfig.ts`](../../../packages/system-worker/src/AggregateVersionChain/aggregateVersionChainDbConfig.ts) — defines durable published result history.
@@ -119,7 +213,7 @@ Contract guards only validate: they fail or return void. Every admitted successf
 - [`stageActorCommands.ts`](../../../packages/system-worker/src/AggregateActorVersionRepo/optimistic/stageActorCommands.ts) — evaluates actor and contract guards before retaining prepared optimism.
 - [`executeCommands.ts`](../../../packages/system-worker/src/AggregateVersionRepo/executeCommands/executeCommands.ts) — holds the execution permit across preparation and commits each command through `executeCommandsTx`.
 
-## Projection state and actor outputs
+## Projection state and browser commands
 
 Actors apply retained owned operations against their pinned model versions. The operation, selection delta, browser output, and checkpoint share one local transaction.
 
@@ -137,12 +231,12 @@ flowchart TD
   end
 ```
 
-Resource writes, `actorDelta`, the output row, and the checkpoint commit together. Each terminal command advances the actor's `executedIndex`, `executedHash`, and aggregate watermark. Service actors use the corresponding `executedIndex` and `serviceHash` checkpoint.
+Resource writes, `actorDelta`, the output row, and the checkpoint commit together. Each terminal command advances the actor's `executedIndex`, `executedHash`, and aggregate watermark. Service actors retain `executedIndex`, `serviceHash`, and numeric `serviceIndex` checkpoints.
 
-Submitted ownership metadata stays server-side. Delivery explicitly constructs `IBrowserCommand { id, commandName, delta, failure }`, applies the authenticated model lock, and exposes failure only to the submitting node/session/claims. Occurrence position, owner progress, and hash remain in the envelope. The browser resolves its own journal by ID and preserves the first outcome across later occurrences.
+Submitted ownership metadata stays server-side. Aggregate delivery constructs `IAggregateBrowserCommand { id, commandName, delta, admission, execution, executedIndex, executedHash, aggregateIndex }`; service delivery constructs the corresponding command with `executedIndex`, `serviceHash`, and `serviceIndex`. The authenticated model lock filters the delta. The submitting Node/session/claims receives the existing admission and execution status, timing, failure, and result fields; both phase fields are null for other recipients. Private input and claims are absent. Each execution position identifies a distinct occurrence; the originating submission preserves its first terminal outcome even when its ID appears again.
 
-- [`deliverActorOutput.ts`](../../../packages/system-worker/src/deliverActorOutput/deliverActorOutput.ts) — constructs the selected browser aggregate command.
-- [`filterServiceActorOutput.ts`](../../../packages/core/src/serviceSession/filterServiceActorOutput.ts) — filters service deltas and private terminal failure.
+- [`filterAggregateBrowserCommand.ts`](../../../packages/system-worker/src/filterAggregateBrowserCommand/filterAggregateBrowserCommand.ts) — constructs the selected browser aggregate command.
+- [`filterServiceBrowserCommand.ts`](../../../packages/core/src/serviceSession/filterServiceBrowserCommand.ts) — filters service deltas and private terminal failure.
 
 ## Deployed destination enrollment and explicit versions
 
@@ -226,3 +320,31 @@ Changed fixed schemas require empty storage. No compatibility decoder or automat
 ## Contract return values
 
 Programs yield model operations into a fresh execution-owned collector and return a value checked by their optional result codec. Successful command history retains the encoded result and actual executing contract version in the existing execution JSON column, atomically with owned resource writes. Omitted result codecs require void and store null. Failed application retains no successful result. Result codecs and programs complete synchronously.
+
+## Browser admission and terminal delivery
+
+The browser socket separates admission controls from terminal commands. An aggregate admission success is `{ type: 'aggregateCommandAdmission', id, nodeIndex, admissionIndex, admission, link }`; admission failure is `{ type: 'aggregateCommandAdmissionFailed', id, failure, link }`. `admissionIndex` is the retained aggregate admission position. The telemetry link is retained independently of the settled domain admission. Neither acknowledgement settles a Node submission or advances terminal execution progress.
+
+```mermaid
+sequenceDiagram
+  participant Synchronization as AggregateNodeSynchronization
+  participant ActorChain as AggregateActorVersionChain
+  participant ActorRepo as AggregateActorVersionRepo
+  ActorChain->>ActorRepo: repo.stageCommands(...)
+  ActorChain-->>Synchronization: aggregate admission control
+  ActorChain->>ActorChain: getBrowserCommands(...)
+  ActorChain-->>Synchronization: direct browser command array
+```
+
+## Annotated workflow steps
+
+1. The actor chain prepares ordinary browser input in its bound actor before resolving saved admission.
+   - [`onMessage.ts:228-245`](../../../packages/system-worker/src/AggregateActorVersionChain/onMessage/onMessage.ts#L228-L245) — Aggregate staging retains original input before the outbox resolves admission. (`packages/system-worker/src/AggregateActorVersionChain/onMessage/onMessage.ts:228-245`)
+2. The socket returns an explicit admission control with the original ID and Node position.
+   - [`onMessage.ts:305-321`](../../../packages/system-worker/src/AggregateActorVersionChain/onMessage/onMessage.ts#L305-L321) — Success discloses id, nodeIndex, admissionIndex, admission, and telemetry link; failure carries public failure and link. (`packages/system-worker/src/AggregateActorVersionChain/onMessage/onMessage.ts:305-321`)
+3. The actor chain reads retained terminal commands and the authenticated selected view.
+   - [`getBrowserCommands.ts:187-195`](../../../packages/system-worker/src/AggregateActorVersionChain/getBrowserCommands/getBrowserCommands.ts#L187-L195) — Retained history explicitly constructs the seven public aggregate command fields and filters failure by completion ownership. (`packages/system-worker/src/AggregateActorVersionChain/getBrowserCommands/getBrowserCommands.ts:187-195`)
+4. Replay sends the direct bounded command array.
+   - [`onMessage.ts:427-432`](../../../packages/system-worker/src/AggregateActorVersionChain/onMessage/onMessage.ts#L427-L432) — Bounded replay sends direct command arrays without terminal wrappers. (`packages/system-worker/src/AggregateActorVersionChain/onMessage/onMessage.ts:427-432`)
+
+Live delivery sends one direct terminal command. Replay sends arrays in retained execution order, including missing originating outcomes covered by a Node's resource checkpoint. See [concrete Node replay](../browser/SessionWebSocket.md) for atomic resource application, historical settlement, independent outcome progress, and conflict behavior.

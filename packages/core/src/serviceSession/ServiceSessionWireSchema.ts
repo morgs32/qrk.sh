@@ -4,7 +4,10 @@ import { Schema } from 'effect';
 import { BrowserCommandSchema } from '../contracts/BrowserCommandSchema.ts';
 import { EncodedResourceSchema } from '../models/EncodedResourceSchema.ts';
 
-import type { IServiceActorOutput, IServiceSessionSnapshot } from './types.ts';
+import type {
+  IServiceBrowserCommand,
+  IServiceSessionSnapshot,
+} from './types.ts';
 const positiveIndexSchema = Schema.Number.check(
   Schema.isInt(),
   Schema.isGreaterThan(0),
@@ -16,12 +19,11 @@ const nonNegativeIndexSchema = Schema.Number.check(
 const ServiceHashSchema = Schema.String.check(
   Schema.isPattern(/^[a-f0-9]{64}$/u),
 );
-export const ServiceActorOutputSchema = Schema.Struct({
+export const ServiceBrowserCommandSchema = Schema.fieldsAssign({
   executedIndex: positiveIndexSchema,
   serviceHash: ServiceHashSchema,
   serviceIndex: nonNegativeIndexSchema,
-  command: BrowserCommandSchema,
-}) satisfies Schema.Codec<IServiceActorOutput, any>;
+})(BrowserCommandSchema) satisfies Schema.Codec<IServiceBrowserCommand, any>;
 export const ServiceSessionSnapshotSchema = Schema.Struct({
   resolvedThrough: nonNegativeIndexSchema,
   serviceIndex: nonNegativeIndexSchema,

@@ -4,7 +4,7 @@ import type { IContract } from '@zerospin/core/contracts/types';
 import { runProgram } from '@zerospin/core/execution/runProgram';
 import { NanoIdFactory } from '@zerospin/core/utils/NanoIdFactory';
 import { makeZerospinError, mapParseError } from '@zerospin/error';
-import { makeIdFromAbbreviation } from '@zerospin/schema';
+import { makeIdFromAbbreviation } from '@zerospin/shapes';
 import { Effect, Schema } from 'effect';
 
 import { asyncOperationLifecycleCodec } from './asyncOperationsDbConfig.js';
@@ -31,7 +31,7 @@ export const prepareAsyncOperation = Effect.fn('prepareAsyncOperation')(
       return yield* makeZerospinError('async-production-authority-missing');
     }
     if (
-      operation.contract.async === undefined ||
+      operation.contract.external === undefined ||
       actor?.contracts[operation.contract.commandName] !== operation.contract
     ) {
       return yield* makeZerospinError('async-emission-unregistered');
@@ -65,8 +65,8 @@ export const prepareAsyncOperation = Effect.fn('prepareAsyncOperation')(
       actorName: props.original ? actor.name : null,
       actorVersion: props.original ? actor.version : null,
       claims: props.original ? props.claims : null,
-      external: null,
-      externalRecordedAt: null,
+      response: null,
+      responseRecordedAt: null,
       nextRunAt: props.original ? props.committedAt : null,
       lastProducerFailure: null,
     }).pipe(

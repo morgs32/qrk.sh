@@ -5,10 +5,12 @@ import { Effect, Schema } from 'effect';
 import { ClerkUserIdSchema, type clerkCredentialsSchema } from './claims';
 
 /** Verify the session before deriving actor claims. */
-export const verifyClerkIdentity = Effect.fn('verifyClerkIdentity')(function* (
+export const verifyClerkIdentityWithEnv = Effect.fn(
+  'verifyClerkIdentityWithEnv',
+)(function* (
   credentials: typeof clerkCredentialsSchema.Type,
+  env: { CLERK_JWT_KEY?: string; CLERK_AUTHORIZED_PARTIES?: string },
 ) {
-  const { env } = yield* Effect.promise(() => import('cloudflare:workers'));
   const authorizedParties = env.CLERK_AUTHORIZED_PARTIES?.split(',')
     .map(value => value.trim())
     .filter(Boolean);
@@ -39,4 +41,11 @@ export const verifyClerkIdentity = Effect.fn('verifyClerkIdentity')(function* (
       prefix: 'Invalid verified Clerk subject',
     }),
   );
+});
+
+export const verifyClerkIdentity = Effect.fn('verifyClerkIdentity')(function* (
+  credentials: typeof clerkCredentialsSchema.Type,
+) {
+  const { env } = yield* Effect.promise(() => import('cloudflare:workers'));
+  return yield* verifyClerkIdentityWithEnv(credentials, env);
 });

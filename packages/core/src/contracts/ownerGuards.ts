@@ -14,25 +14,24 @@ export type IOwnerGuards<
   SCOPE extends IScopedError['scope'],
   REQUIREMENTS = never,
 > = {
-  readonly [K in keyof CONTRACTS]?: (props: {
-    db: string extends keyof MODELS
-      ? Readonly<Pick<IDb, 'query'>>
-      : Readonly<
-          Pick<IDb<IResourceDbConfig<MODELS, Record<never, never>>>, 'query'>
-        >;
-    payload: InferCommandPayload<CONTRACTS[K]['payload']>;
-    external?: CONTRACTS[K] extends {
-      readonly async: {
-        readonly external: {
-          readonly result: infer X extends Schema.Codec<unknown, unknown>;
-        };
+  readonly [K in keyof CONTRACTS]?: (
+    props: {
+      db: string extends keyof MODELS
+        ? Readonly<Pick<IDb, 'query'>>
+        : Readonly<
+            Pick<IDb<IResourceDbConfig<MODELS, Record<never, never>>>, 'query'>
+          >;
+      payload: InferCommandPayload<CONTRACTS[K]['payload']>;
+      claims: CLAIMS;
+      failures: CONTRACTS[K]['failures'];
+    } & (CONTRACTS[K] extends {
+      readonly external: {
+        readonly response: infer X extends Schema.Codec<unknown, unknown>;
       };
     }
-      ? X['Type']
-      : never;
-    claims: CLAIMS;
-    failures: CONTRACTS[K]['failures'];
-  }) => Effect.Effect<
+      ? { response: X['Type'] }
+      : Record<never, never>),
+  ) => Effect.Effect<
     void,
     | IFrameworkError
     | Extract<FailureType<CONTRACTS[K]['failures']>, { readonly scope: SCOPE }>,

@@ -20,12 +20,12 @@ export const validateServiceCommand = Effect.fn('validateServiceCommand')(
     contract: IContract;
     db: Readonly<Pick<IDb, 'query'>>;
     payload: unknown;
-    external?: unknown;
+    response?: unknown;
   }) {
     if (props.caller === null) return;
     const actor = props.service.actors[props.caller.actorName];
     if (
-      (props.contract.async === undefined &&
+      (props.contract.external === undefined &&
         actor?.version !== props.caller.actorVersion) ||
       actor?.contracts[props.contract.commandName] !== props.contract
     ) {
@@ -45,9 +45,9 @@ export const validateServiceCommand = Effect.fn('validateServiceCommand')(
           actor!.guards[props.contract.commandName]?.({
             db: props.db,
             payload: props.payload,
-            ...(props.contract.async === undefined
+            ...(props.contract.external === undefined
               ? {}
-              : { external: props.external }),
+              : { response: props.response }),
             claims,
             failures: props.contract.failures,
           }) ?? Effect.void,

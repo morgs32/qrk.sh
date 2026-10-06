@@ -1,9 +1,8 @@
 import { AdmissionResultSchema } from '@zerospin/core/contracts/AdmissionResultSchema';
-import { AsyncCommandInputSchema } from '@zerospin/core/contracts/AsyncCommandInputSchema';
 import { ExecutionResultSchema } from '@zerospin/core/contracts/ExecutionResultSchema';
 import { makeDbConfig } from '@zerospin/core/drizzle/make/makeDbConfig/makeDbConfig';
 import { PublicFailureSchema } from '@zerospin/error';
-import { makeTable, primitives } from '@zerospin/schema';
+import { makeTable, primitives } from '@zerospin/shapes';
 import { Schema } from 'effect';
 
 import {
@@ -48,8 +47,8 @@ export const aggregateChainDbConfig = makeDbConfig({
         id: primitives.text({ unique: true }),
         commandName: primitives.text(),
         payload: primitives.text(),
-        asyncInput: primitives.json({
-          schema: AsyncCommandInputSchema,
+        response: primitives.json({
+          schema: Schema.Json,
           nullable: true,
         }),
         contractVersion: primitives.text(),

@@ -1,7 +1,12 @@
 import type { Async } from '@zerospin/core/async/Async';
 import { applyOperationTx } from '@zerospin/core/contracts/applyOperationTx';
 import { encodeCommand } from '@zerospin/core/contracts/encodeCommand';
+import {
+  resolveFailure,
+  type IFailure,
+} from '@zerospin/core/contracts/failureCodec';
 import { makeOperations } from '@zerospin/core/contracts/make/makeOperations';
+import { prepareContractInput } from '@zerospin/core/contracts/prepareContractInput';
 import type { IContractOutput } from '@zerospin/core/contracts/types';
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/make/makeDbConfig/makeDbConfig';
 import { makeProvisionedInMemoryWasmSqliteDb } from '@zerospin/core/drizzle/make/makeProvisionedInMemoryWasmSqliteDb/makeProvisionedInMemoryWasmSqliteDb';
@@ -9,16 +14,19 @@ import type { ITx } from '@zerospin/core/drizzle/types';
 import { runProgram } from '@zerospin/core/execution/runProgram';
 import { assertSessionClaims } from '@zerospin/core/identity/assertSessionClaims';
 import type { IAdmissionRequest } from '@zerospin/core/identity/types';
-import type { INodeCommand } from '@zerospin/core/Node/Node';
-import type { INodeCommandInput } from '@zerospin/core/Node/types';
+import type { IServiceNodeSnapshot } from '@zerospin/core/ServiceNode/ServiceNode';
+import type { IServiceNodeCommandInput } from '@zerospin/core/ServiceNode/types';
+import {
+  importServiceNodeCommands,
+  stageServiceCommandTx,
+} from '@zerospin/core/serviceSession/importServiceNodeCommands';
+import { initializeServiceNodeProjection } from '@zerospin/core/serviceSession/initializeServiceNodeProjection';
 import { makeServiceSessionLockKey } from '@zerospin/core/serviceSession/make/makeServiceSessionLockKey';
 import { makeServiceSessionSpec } from '@zerospin/core/serviceSession/make/makeServiceSessionSpec';
-import {
-  serviceSessionMetadataDrizzleSchema,
-  serviceSessionRepoTables,
-} from '@zerospin/core/serviceSession/serviceSessionRepoTables';
+import { serviceSessionRepoTables } from '@zerospin/core/serviceSession/serviceSessionRepoTables';
 import { bindServiceSessionExecution } from '@zerospin/core/serviceSession/stageServiceCommand';
 import type {
+  IServiceBrowserCommand,
   IServiceSession,
   IServiceSessionDefinition,
 } from '@zerospin/core/serviceSession/types';
@@ -28,16 +36,20 @@ import {
   catchZerospinError,
   isZerospinError,
   makeZerospinError,
+  recognizeZerospinError,
   type IAnyError,
   type IResult,
   type IZerospinErrorJson,
 } from '@zerospin/error';
-import { makeEffectSchema, makeIdFromAbbreviation } from '@zerospin/schema';
-import { getTableName } from 'drizzle-orm';
+import { makeEffectSchema, makeIdFromAbbreviation } from '@zerospin/shapes';
 import { Context, Effect, Schema, type Scope } from 'effect';
 
-import { connectBrowserNode, nodeResult } from './connectBrowserNode.ts';
-import { replaceServiceProjectionTx } from './replaceServiceProjectionTx.ts';
+import type {
+  IBrowserSessionFailureCallbacks,
+  ISessionCommandFailure,
+} from './failureTypes.ts';
+import { restoreRpcError } from './Node/publicRpcError.ts';
+import { connectServiceNode } from './ServiceNode/connectServiceNode.ts';
 export const bootstrapServiceSession = Effect.fn('bootstrapServiceSession')(
   function* <D extends IServiceSessionDefinition>(props: {
     serviceVersion: string;
@@ -49,14 +61,12 @@ export const bootstrapServiceSession = Effect.fn('bootstrapServiceSession')(
       IResult<IAdmissionRequest, IAnyError | IZerospinErrorJson>
     >;
     sharedWorker: (props: { name: string }) => SharedWorker;
+    failureCallbacks: IBrowserSessionFailureCallbacks;
+    signal: AbortSignal;
     expectedClaims?: Readonly<Record<string, unknown>> | undefined;
   }): Effect.fn.Return<
     {
       clearAuthentication(): Promise<void>;
-      history(page: {
-        afterNodeIndex: number;
-        limit: number;
-      }): Promise<readonly INodeCommand[]>;
     },
     IAnyError,
     Async | Scope.Scope
@@ -69,6 +79,8 @@ export const bootstrapServiceSession = Effect.fn('bootstrapServiceSession')(
       getAdmission,
       expectedClaims,
       sharedWorker,
+      failureCallbacks,
+      signal,
     } = props;
     const context = Context.makeUnsafe<unknown>(
       (yield* Effect.context()).mapUnsafe,
@@ -80,6 +92,8 @@ export const bootstrapServiceSession = Effect.fn('bootstrapServiceSession')(
     if (sessionId === null) {
       return yield* makeZerospinError({ code: 'service-session-not-ready' });
     }
+    let disposed = false;
+    const current = () => !disposed && !signal.aborted;
     const lock = makeServiceSessionSpec(definition).serviceSessionLock;
     const serviceSessionLockKey = yield* makeServiceSessionLockKey(lock);
     const dbConfig = makeResourceDbConfig({
@@ -88,7 +102,7 @@ export const bootstrapServiceSession = Effect.fn('bootstrapServiceSession')(
     });
     const db = yield* makeProvisionedInMemoryWasmSqliteDb({ dbConfig });
     const predict = (
-      command: INodeCommandInput,
+      command: IServiceNodeCommandInput,
       claims = session.store.getState().claims,
     ) => {
       const contract = definition.contracts[command.commandName];
@@ -104,18 +118,26 @@ export const bootstrapServiceSession = Effect.fn('bootstrapServiceSession')(
         Schema.fromJsonString(makeEffectSchema(contract.payload)),
       )(command.payload);
       return runSync(
-        makeOperations({
-          db,
-          contract,
-          models,
-          command: { ...command, payload },
-          claims,
+        Effect.gen(function* () {
+          const decodedCommand = { ...command, payload };
+          const input = yield* prepareContractInput({
+            contract,
+            command: decodedCommand,
+            claims,
+          });
+          return yield* makeOperations({
+            db,
+            contract,
+            models,
+            command: decodedCommand,
+            input,
+          });
         }).pipe(runProgram),
       );
     };
     const project = (
       tx: ITx,
-      command: INodeCommandInput,
+      command: IServiceNodeCommandInput,
       outputs: readonly {
         operationIndex: number;
         operation: IContractOutput;
@@ -138,7 +160,7 @@ export const bootstrapServiceSession = Effect.fn('bootstrapServiceSession')(
         );
       }
     };
-    const validatePrediction = (command: INodeCommandInput) => {
+    const validatePrediction = (command: IServiceNodeCommandInput) => {
       const rolledBack = new Error('Rollback local command preview');
       let encodedResult: typeof Schema.Json.Type = null;
       try {
@@ -156,112 +178,124 @@ export const bootstrapServiceSession = Effect.fn('bootstrapServiceSession')(
       }
       return encodedResult;
     };
-    const connection = yield* Effect.tryPromise({
-      try: () =>
-        connectBrowserNode({
-          request: {
-            kind: 'service',
-            apiUrl,
-            publishableKey,
-            systemName,
-            targetName: definition.serviceName,
-            targetVersion: definition.serviceVersion,
-            sessionName: definition.sessionName,
-            lock,
+    const uncertain = new Map<string, IServiceNodeCommandInput>();
+    const originatingCommands = new Map<string, string>();
+    let blockedNotified = false;
+    const notifyCommandFailure = (
+      event: { commandId: string; commandName: string; failure: IFailure },
+      notify: ((event: ISessionCommandFailure) => void) | undefined,
+    ) => {
+      const { commandId, commandName, failure } = event;
+      if (!current() || originatingCommands.get(commandId) !== commandName) {
+        return;
+      }
+      let recognized: ISessionCommandFailure['failure'];
+      try {
+        const contract = definition.contracts[commandName];
+        recognized =
+          contract === undefined
+            ? recognizeZerospinError(Schema.Never, failure)
+            : Effect.runSync(resolveFailure(contract, failure));
+      } catch (error) {
+        console.error('Cannot recognize service command failure', error);
+        return;
+      }
+      originatingCommands.delete(commandId);
+      notify?.({ commandId, commandName, failure: recognized });
+    };
+    const observeCommand = (command: IServiceBrowserCommand) => {
+      if (originatingCommands.get(command.id) !== command.commandName) return;
+      if (command.admission?.status === 'failed') {
+        notifyCommandFailure(
+          {
+            commandId: command.id,
+            commandName: command.commandName,
+            failure: command.admission.failure,
           },
-          getAdmission,
-          sharedWorker,
-          expectedClaims,
-          receive: async snapshot => {
-            const acceptedClaims = Schema.decodeUnknownSync(
-              definition.claimsSchema,
-            )(snapshot.identity.claims);
-            assertSessionClaims(expectedClaims, acceptedClaims);
-            db.transaction(tx => {
-              replaceServiceProjectionTx(tx, {
-                models,
-                resources: snapshot.resources,
-                pending: snapshot.unresolvedCommands,
-                predict: command => predict(command, acceptedClaims).operations,
-              });
-              tx.insert(serviceSessionMetadataDrizzleSchema)
-                .values({
-                  sessionId,
-                  serviceVersion: definition.serviceVersion,
-                  executedIndex: snapshot.metadata.executedIndex,
-                  serviceHash: snapshot.metadata.executedHash,
-                })
-                .onConflictDoUpdate({
-                  target: serviceSessionMetadataDrizzleSchema.sessionId,
-                  set: {
-                    executedIndex: snapshot.metadata.executedIndex,
-                    serviceHash: snapshot.metadata.executedHash,
-                  },
-                })
-                .run();
-            });
-            session.store.setState({
-              sessionId,
-              claims: acceptedClaims,
-              serviceName: definition.serviceName,
-              serviceVersion: definition.serviceVersion,
-              sessionName: definition.sessionName,
-              serviceSessionLockKey,
-              db,
-              schema: dbConfig.schema,
-              models,
-              isInitialized: true,
-              commandHistory: snapshot.commandHistory ?? [],
-              pendingCommandIds: snapshot.unresolvedCommands.map(
-                command => command.id,
-              ),
-              executedIndex: snapshot.metadata.executedIndex,
-              serviceHash: snapshot.metadata.executedHash,
-              sessionStatus: snapshot.state.blockedWork ? 'failed' : 'current',
-              backupState: null,
-              nodeState: {
-                ...snapshot.state,
-                nodeId: snapshot.metadata.nodeId,
-                nodeIndex: snapshot.metadata.nextNodeIndex - 1,
-                outcomeIndex: snapshot.metadata.outcomeIndex,
-                uncertainHandoffs: 0,
-                pushPaused: snapshot.metadata.pushPaused,
-              },
-            });
-            db.$client.flushTableChanges(
-              new Set(Object.values(dbConfig.schema).map(getTableName)),
-            );
+          failureCallbacks.onAdmissionFailure,
+        );
+      } else if (command.execution?.status === 'failed') {
+        notifyCommandFailure(
+          {
+            commandId: command.id,
+            commandName: command.commandName,
+            failure: command.execution.failure,
           },
-          state: state => {
-            const prior = session.store.getState().nodeState;
-            session.store.setState({
-              sessionStatus: state.blockedWork ? 'failed' : 'current',
-              ...(prior == null ? {} : { nodeState: { ...prior, ...state } }),
-            });
-          },
-          reconnect: async () => {},
-        }),
-      catch: cause =>
-        isZerospinError(cause)
-          ? cause
-          : catchZerospinError({ code: 'node-connection-failed' })(cause),
-    });
-    yield* Effect.addFinalizer(() =>
-      Effect.promise(async () => {
-        await connection.dispose();
-        db.$client.sqlite3.close(db.$client.db);
-      }),
-    );
-    yield* Effect.tryPromise({
-      try: connection.ready,
-      // Readiness includes admission before the worker and projection after attachment.
-      catch: cause =>
-        isZerospinError(cause)
-          ? cause
-          : catchZerospinError({ code: 'session-initialization-failed' })(
-              cause,
-            ),
-    });
+          failureCallbacks.onExecutionFailure,
+        );
+      } else if (command.execution?.status === 'succeeded') {
+        originatingCommands.delete(command.id);
+      }
+    };
+    const observeNodeState = (state: IServiceNodeSnapshot['state']) => {
+      if (!current()) return;
+      if (!state.blockedWork) {
+        blockedNotified = false;
+        return;
+      }
+      if (state.admissionRejection != null) {
+        blockedNotified = true;
+        notifyCommandFailure(
+          state.admissionRejection,
+          failureCallbacks.onAdmissionFailure,
+        );
+        return;
+      }
+      if (state.authentication === 'signed-out') {
+        blockedNotified = true;
+        return;
+      }
+      if (blockedNotified || !state.failure) return;
+      if (state.localAvailability === 'failed') {
+        blockedNotified = true;
+        failureCallbacks.onSharedWorkerPersistenceFailure?.({
+          message: state.failure,
+        });
+      } else if (state.authentication === 'rejected') {
+        blockedNotified = true;
+        failureCallbacks.onAuthenticationFailure?.({ message: state.failure });
+      } else if (
+        state.localAvailability === 'available' &&
+        state.synchronization === 'blocked'
+      ) {
+        blockedNotified = true;
+        failureCallbacks.onServerProtocolFailure?.({ message: state.failure });
+      }
+    };
+    const sharedWorkerConnectionFailed = (event: { message: string }) => {
+      if (!current() || blockedNotified) return;
+      blockedNotified = true;
+      failureCallbacks.onSharedWorkerConnectionFailure?.(event);
+    };
+    let connection: Awaited<ReturnType<typeof connectServiceNode>>;
+    const accept = async (command: IServiceNodeCommandInput) => {
+      const receipt = await connection.node
+        .accept(command)
+        .catch(restoreRpcError);
+      if (receipt.id !== command.id) {
+        throw makeZerospinError({
+          code: 'node-acceptance-receipt-invalid',
+          message:
+            'Node acceptance receipt does not match the submitted command',
+        });
+      }
+      if (!current()) return receipt;
+      uncertain.delete(command.id);
+      const state = session.store.getState().nodeState;
+      if (state != null) {
+        try {
+          session.store.setState({
+            nodeState: { ...state, uncertainHandoffs: uncertain.size },
+          });
+        } catch (cause) {
+          console.error(
+            'Service session acceptance state observer threw',
+            cause,
+          );
+        }
+      }
+      return receipt;
+    };
     const prepare = ({
       contractName,
       payload,
@@ -295,8 +329,7 @@ export const bootstrapServiceSession = Effect.fn('bootstrapServiceSession')(
             claims: yield* Schema.encodeEffect(definition.claimsSchema)(
               state.claims,
             ),
-            targetId: state.serviceName,
-            targetName: state.serviceName,
+            serviceName: state.serviceName,
             actorName: definition.actorName,
             actorVersion: definition.actorVersion,
             sessionName: definition.sessionName,
@@ -327,12 +360,57 @@ export const bootstrapServiceSession = Effect.fn('bootstrapServiceSession')(
     const unbind = bindServiceSessionExecution(session, {
       can: props =>
         runSync(prepare(props).pipe(Effect.asVoid, encodeRpcOutcome)),
-      stage: async props => {
+      stage: props => {
+        if (!current()) {
+          return {
+            _tag: 'Failure',
+            failure: makeZerospinError('service-session-not-ready'),
+          };
+        }
         const staged = runSync(prepare(props).pipe(encodeRpcOutcome));
         if (staged._tag === 'Failure') return staged;
         try {
-          nodeResult(await connection.node.accept(staged.success));
-          return staged;
+          runSync(
+            stageServiceCommandTx({
+              db,
+              definition,
+              sessionId,
+              command: staged.success,
+            }),
+          );
+        } catch (cause) {
+          return {
+            _tag: 'Failure',
+            failure: isZerospinError(cause)
+              ? cause
+              : catchZerospinError({ code: 'service-command-staging-failed' })(
+                  cause,
+                ),
+          };
+        }
+        originatingCommands.set(staged.success.id, staged.success.commandName);
+        uncertain.set(staged.success.id, staged.success);
+        try {
+          const state = session.store.getState().nodeState;
+          if (state != null) {
+            session.store.setState({
+              nodeState: { ...state, uncertainHandoffs: uncertain.size },
+            });
+          }
+        } catch (cause) {
+          // Publication cannot turn an already committed command into a staging failure.
+          console.error(
+            'Service session command handoff state observer threw',
+            cause,
+          );
+        }
+        return { _tag: 'Success' as const, success: staged.success };
+      },
+      accept: async command => {
+        try {
+          if (!current()) throw makeZerospinError('service-session-not-ready');
+          await accept(command);
+          return { _tag: 'Success', success: undefined };
         } catch (cause) {
           return {
             _tag: 'Failure',
@@ -346,12 +424,144 @@ export const bootstrapServiceSession = Effect.fn('bootstrapServiceSession')(
       },
     });
     yield* Effect.addFinalizer(() => Effect.sync(unbind));
+    connection = yield* Effect.tryPromise({
+      try: () =>
+        connectServiceNode({
+          request: {
+            apiUrl,
+            publishableKey,
+            systemName,
+            serviceName: definition.serviceName,
+            serviceVersion: definition.serviceVersion,
+            sessionName: definition.sessionName,
+            lock,
+          },
+          getAdmission,
+          sharedWorker,
+          expectedClaims,
+          sharedWorkerConnectionFailure: failure => {
+            if (current()) sharedWorkerConnectionFailed(failure);
+          },
+          initialize: async snapshot => {
+            if (!current()) return;
+            const acceptedClaims = Schema.decodeUnknownSync(
+              definition.claimsSchema,
+            )(snapshot.identity.claims);
+            assertSessionClaims(expectedClaims, acceptedClaims);
+            runSync(
+              initializeServiceNodeProjection({
+                db,
+                definition,
+                sessionId,
+                snapshot,
+              }),
+            );
+            session.store.setState({
+              sessionId,
+              claims: acceptedClaims,
+              serviceName: definition.serviceName,
+              serviceVersion: definition.serviceVersion,
+              sessionName: definition.sessionName,
+              serviceSessionLockKey,
+              db,
+              schema: dbConfig.schema,
+              models,
+              isInitialized: true,
+              serviceIndex: snapshot.metadata.serviceIndex,
+              executedIndex: snapshot.metadata.executedIndex,
+              serviceHash: snapshot.metadata.serviceHash,
+              sessionStatus: snapshot.state.blockedWork
+                ? 'failed'
+                : snapshot.state.localAvailability === 'available'
+                  ? 'current'
+                  : 'bootstrapping',
+              backupState: null,
+              nodeState: {
+                ...snapshot.state,
+                nodeId: snapshot.metadata.nodeId,
+                nodeIndex: snapshot.metadata.nextNodeIndex - 1,
+                outcomeIndex: snapshot.metadata.outcomeIndex,
+                uncertainHandoffs: uncertain.size,
+                pushPaused: snapshot.metadata.pushPaused,
+              },
+            });
+            blockedNotified = snapshot.state.blockedWork;
+            observeNodeState(snapshot.state);
+          },
+          commands: async (commands, throughChangeIndex) => {
+            if (!current()) return;
+            const progress = runSync(
+              importServiceNodeCommands({
+                db,
+                definition,
+                sessionId,
+                commands,
+                throughChangeIndex,
+              }),
+            );
+            for (const command of commands) uncertain.delete(command.id);
+            const prior = session.store.getState().nodeState;
+            session.store.setState({
+              ...progress,
+              ...(prior == null
+                ? {}
+                : {
+                    nodeState: { ...prior, uncertainHandoffs: uncertain.size },
+                  }),
+            });
+            for (const command of commands) {
+              if ('executedIndex' in command) observeCommand(command);
+            }
+          },
+          state: state => {
+            if (!current()) return;
+            const prior = session.store.getState().nodeState;
+            session.store.setState({
+              sessionStatus: state.blockedWork
+                ? 'failed'
+                : state.localAvailability === 'available'
+                  ? 'current'
+                  : 'bootstrapping',
+              ...(prior == null ? {} : { nodeState: { ...prior, ...state } }),
+            });
+            observeNodeState(state);
+          },
+          reconnect: async () => {
+            for (const command of uncertain.values()) {
+              if (!current()) return;
+              await accept(command);
+            }
+          },
+        }),
+      catch: cause =>
+        isZerospinError(cause)
+          ? cause
+          : catchZerospinError({ code: 'node-connection-failed' })(cause),
+    });
+    yield* Effect.addFinalizer(() =>
+      Effect.promise(async () => {
+        disposed = true;
+        try {
+          await connection.dispose();
+        } finally {
+          db.$client.sqlite3.close(db.$client.db);
+        }
+      }),
+    );
+    yield* Effect.tryPromise({
+      try: connection.ready,
+      // Readiness includes admission before the worker and projection after attachment.
+      catch: cause =>
+        isZerospinError(cause)
+          ? cause
+          : catchZerospinError({ code: 'session-initialization-failed' })(
+              cause,
+            ),
+    });
     return {
       clearAuthentication: async () => {
-        nodeResult(await connection.node.clearAuthentication());
+        await connection.node.clearAuthentication().catch(restoreRpcError);
       },
-      history: async (page: { afterNodeIndex: number; limit: number }) =>
-        nodeResult(await connection.node.history(page)),
     };
   },
 );

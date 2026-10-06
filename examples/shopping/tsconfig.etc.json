@@ -17,8 +17,10 @@
   },
   "include": [
     "zerospin.config.ts",
+    "agents.ts",
     "e2e/**/*.ts",
     "vite.config.ts",
+    "vitest.workerd.config.ts",
     "*.jsonc",
     "*.d.ts"
   ],

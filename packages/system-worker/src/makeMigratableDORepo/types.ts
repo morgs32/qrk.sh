@@ -5,7 +5,6 @@ import type {
   IDbConfigRelations,
   IDbConfigSchema,
 } from '@zerospin/core/drizzle/types';
-import type { IRepoType } from '@zerospin/core/system/types';
 import type { IAnyError } from '@zerospin/error';
 import type { Effect, ManagedRuntime } from 'effect';
 
@@ -24,7 +23,6 @@ export type IMigratableDORepoConfig<
   GET_DB_CONFIG_ERROR extends IAnyError = IAnyError,
   BOOTSTRAP_ERROR extends IAnyError = IAnyError,
 > = {
-  readonly repoType: IRepoType | undefined;
   readonly namePattern: string;
   managedRuntime: ManagedRuntime.ManagedRuntime<SERVICES, IAnyError>;
   nameUtils: IRepoNameUtils<PATTERN>;

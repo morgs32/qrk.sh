@@ -1,6 +1,6 @@
 import { makeDbConfig } from '@zerospin/core/drizzle/make/makeDbConfig/makeDbConfig';
 import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
-import { makeTable, primitives, type IAnyTables } from '@zerospin/schema';
+import { makeTable, primitives, type IAnyTables } from '@zerospin/shapes';
 import { Schema } from 'effect';
 
 const telemetrySpansTable = makeTable({

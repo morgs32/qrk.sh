@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 
-import { AggregateActorOutputSchema } from '@zerospin/core/aggregateSession/AggregateActorCommandSchema/AggregateActorCommandSchema';
+import { AggregateBrowserCommandSchema } from '@zerospin/core/aggregateSession/AggregateActorCommandSchema/AggregateActorCommandSchema';
 import {
   AggregateTerminalCommandSchema,
   EncodedAggregateCommandSchema,
@@ -18,7 +18,7 @@ import { eq, sql } from 'drizzle-orm';
 import { Effect, Result, Schema } from 'effect';
 
 import { aggregateActorVersionChainDbConfig } from '../AggregateActorVersionChain/aggregateActorVersionChainDbConfig.js';
-import { receiveActorOutputs } from '../AggregateActorVersionChain/receiveActorOutputs/receiveActorOutputs.js';
+import { receiveBrowserCommands } from '../AggregateActorVersionChain/receiveBrowserCommands/receiveBrowserCommands.js';
 import { aggregateActorVersionRepoDbConfig } from '../AggregateActorVersionRepo/aggregateActorVersionRepoDbConfig.js';
 import { applyExecutedCommands } from '../AggregateActorVersionRepo/applyExecutedCommands/applyExecutedCommands.js';
 import { getSnapshot } from '../AggregateActorVersionRepo/getSnapshot/getSnapshot.js';
@@ -137,7 +137,6 @@ export class ActorStaging extends DurableObject<IEnv> {
       commandName: 'change',
       contractVersion: '1.0.0',
       payload: JSON.stringify({ amount, expected, create, active }),
-      asyncInput: null,
       aggregateId: key.aggregateId,
       aggregateName: key.aggregateName,
       aggregateVersion: key.aggregateVersion,
@@ -286,7 +285,7 @@ export class ActorStaging extends DurableObject<IEnv> {
       const row = await run(
         aggregateVersionChainDbConfig.tables.aggregateCommands.encodeRow({
           ...terminal,
-          asyncInput: terminal.asyncInput ?? null,
+          response: terminal.response ?? null,
           aggregateVersion: key.aggregateVersion,
           executedIndex: 1,
           executionVersion: '1.0.0',
@@ -474,15 +473,15 @@ export class StagingPublication extends DurableObject<IEnv> {
     );
     await runFixture(
       runtime,
-      receiveActorOutputs({
+      receiveBrowserCommands({
         db,
         rows,
         broadcast: ({ output }) => {
-          const wire = Schema.encodeSync(AggregateActorOutputSchema)(output);
-          for (const resource of output.command.delta.upserted) {
+          const wire = Schema.encodeSync(AggregateBrowserCommandSchema)(output);
+          for (const resource of output.delta.upserted) {
             assert.ok(resource.createdAt instanceof Date);
           }
-          for (const resource of wire.command.delta.upserted) {
+          for (const resource of wire.delta.upserted) {
             assert.equal(typeof resource.createdAt, 'string');
           }
         },

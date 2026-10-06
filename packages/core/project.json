@@ -11,7 +11,7 @@
           "projects": [
             "@zerospin/error",
             "@zerospin/logger",
-            "@zerospin/schema",
+            "@zerospin/shapes",
             "@zerospin/server-only"
           ]
         }

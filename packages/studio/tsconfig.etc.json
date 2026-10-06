@@ -5,7 +5,12 @@
     "noEmit": true,
     "types": ["node", "vite/client"]
   },
-  "include": ["vite.config.ts"],
+  "include": [
+    "vite.config.ts",
+    ".storybook/**/*.ts",
+    "stories/**/*.tsx",
+    "stories/**/*.ts"
+  ],
   "references": [
     {
       "path": "./tsconfig.json"

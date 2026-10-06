@@ -6,15 +6,16 @@ import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { AdmissionResultSchema } from '@zerospin/core/contracts/AdmissionResultSchema';
 import { EncodedAggregateCommandSchema } from '@zerospin/core/contracts/CommandSchema';
 import { defineContract } from '@zerospin/core/contracts/defineContract';
-import { makeAsyncContract } from '@zerospin/core/contracts/make/makeAsyncContract';
 import { makeContractVersion } from '@zerospin/core/contracts/make/makeContractVersion';
+import { makeExternalContract } from '@zerospin/core/contracts/make/makeExternalContract';
 import { makeOperations } from '@zerospin/core/contracts/make/makeOperations';
 import { mapContractVersion } from '@zerospin/core/contracts/make/mapContractVersion';
+import { prepareContractInput } from '@zerospin/core/contracts/prepareContractInput';
 import { provisionDb } from '@zerospin/core/drizzle/provisionDb/provisionDb';
 import { makeActorIdentity } from '@zerospin/core/identity/make/makeActorIdentity/makeActorIdentity';
 import { makeActorDbVersion } from '@zerospin/core/models/make/makeActorDbVersion';
 import { makeZerospinError } from '@zerospin/error';
-import { primitives } from '@zerospin/schema';
+import { primitives } from '@zerospin/shapes';
 import { DurableObject } from 'cloudflare:workers';
 import { Context, Effect, Layer, ManagedRuntime, Schema, Tuple } from 'effect';
 
@@ -52,19 +53,19 @@ const begin = makeContractVersion(defineContract('begin'), {
   result: Schema.Struct({ intent: Schema.String }),
   program: ({ payload }) => Effect.succeed(payload),
 });
-const apply = makeAsyncContract({
+const apply = makeExternalContract({
   name: 'asyncApply',
   version: '1.0.0',
   payload: { intent: primitives.text() },
   external: {
-    result: Schema.Struct({ receipt: Schema.String }),
+    response: Schema.Struct({ receipt: Schema.String }),
     timeoutMs: 500,
     retryDelayMs: 100,
-    program: ({ payload }) =>
+    request: ({ payload }) =>
       ObservationProvider.use(provider => provider.observe(payload.intent)),
   },
   result: Schema.String,
-  program: ({ external }) => Effect.succeed(external.receipt),
+  program: ({ response }) => Effect.succeed(response.receipt),
 });
 const mappedBegin = mapContractVersion({
   contractVersion: begin,
@@ -255,12 +256,20 @@ export class AsyncOwner extends DurableObject<IEnv> {
           const output = yield* Effect.promise(() =>
             runFixture(
               this.executionRuntime,
-              makeOperations({
-                contract: apply,
-                db: this.db,
-                models: {},
-                claims: work.claims,
-                command: { ...command, payload: work.payload },
+              Effect.gen({ self: this }, function* () {
+                const input = yield* prepareContractInput({
+                  contract: apply,
+                  command: { ...command, payload: work.payload },
+                  claims: work.claims,
+                });
+                const made = yield* makeOperations({
+                  contract: apply,
+                  db: this.db,
+                  models: {},
+                  command: { ...command },
+                  input,
+                });
+                return { ...made, input };
               }),
             ),
           );
@@ -281,7 +290,7 @@ export class AsyncOwner extends DurableObject<IEnv> {
                     startedAt: new Date(),
                     originalExecutionVersion: key.aggregateVersion,
                     contract: apply,
-                    payload: output.payload,
+                    payload: output.input.payload,
                     contractVersion: apply.version,
                     encodedResult: output.encodedResult,
                     operations: [],
@@ -353,7 +362,7 @@ export class AsyncOwner extends DurableObject<IEnv> {
       nodeId: null,
       nodeIndex: null,
       sessionName: null,
-      asyncInput: null,
+      response: null,
     };
     const retained = Schema.decodeUnknownSync(admittedSchema)(
       await this.env.CHAIN.getByName('fixture').admit(command),

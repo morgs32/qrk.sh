@@ -1,3 +1,4 @@
+import { releaseAggregateSession } from '@zerospin/core/aggregateSession/bindAggregateSession';
 import { makeAggregateSession } from '@zerospin/core/aggregateSession/make/makeAggregateSession';
 import type {
   IAggregateSession,
@@ -26,12 +27,16 @@ import { makeSessionDefinition } from '@zerospin/core/sessionDefinition/makeSess
 import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
 import { encodeRpcOutcome } from '@zerospin/core/utils/encodeRpcOutcome';
 import { zerospinDevtoolsStore } from '@zerospin/devtools/zerospinDevtoolsStore';
-import { makeZerospinError, type IAnyError } from '@zerospin/error';
-import { makeTelemetryLayer } from '@zerospin/logger';
-import { makeIdFromAbbreviation, type ITypeError } from '@zerospin/schema';
+import type { IAnyError } from '@zerospin/error';
+import { makeIdFromAbbreviation, type ITypeError } from '@zerospin/shapes';
 import { Effect, Layer, Redacted, type Schema, type Scope } from 'effect';
 
 import { bootstrapAggregateSession } from '../bootstrapAggregateSession.ts';
+import type {
+  IBrowserSessionFailureCallbacks,
+  IBrowserSessionFailureSubscriptions,
+  ISessionCommandFailure,
+} from '../failureTypes.ts';
 import { makeSessionLifecycle } from '../makeSessionLifecycle';
 import type {
   ISessionRuntimeServices,
@@ -43,7 +48,9 @@ import { makeAdmissionProvider } from './makeAdmissionProvider';
 type AggregateSessionRequirements<CONTRACTS extends IAnyContracts> = {
   [K in keyof CONTRACTS]:
     | ExcludeOperationSink<Effect.Services<ReturnType<CONTRACTS[K]['program']>>>
-    | Effect.Services<ReturnType<NonNullable<CONTRACTS[K]['guard']>>>;
+    | ExcludeOperationSink<
+        Effect.Services<ReturnType<NonNullable<CONTRACTS[K]['guard']>>>
+      >;
 }[keyof CONTRACTS];
 
 type IAssertSessionContracts<
@@ -133,15 +140,18 @@ export function makeSession<
     AGGREGATE_VERSION,
     CLAIMS
   > & { readonly actorName: ACTOR_NAME; readonly actorVersion: ACTOR_VERSION }
-> & {
-  readonly runtime: IZerospinRuntime<Layer.Success<APP_LAYER>>;
-  readonly systemName: SYSTEM_NAME;
-  readonly claimsSchema: CLAIMS;
-  readonly credentialsSchema?: CREDENTIALS;
-  initialize(props: ISessionInitialization<CLAIMS, CREDENTIALS>): Promise<void>;
-  dispose(): Promise<void>;
-  clearAuthentication(): Promise<void>;
-};
+> &
+  IBrowserSessionFailureSubscriptions & {
+    readonly runtime: IZerospinRuntime<Layer.Success<APP_LAYER>>;
+    readonly systemName: SYSTEM_NAME;
+    readonly claimsSchema: CLAIMS;
+    readonly credentialsSchema?: CREDENTIALS;
+    initialize(
+      props: ISessionInitialization<CLAIMS, CREDENTIALS>,
+    ): Promise<void>;
+    dispose(): Promise<void>;
+    clearAuthentication(): Promise<void>;
+  };
 
 export function makeSession(props: unknown): unknown {
   const input = props as Omit<
@@ -172,12 +182,54 @@ export function makeSession(props: unknown): unknown {
   const coreSession = makeAggregateSession({
     definition,
   });
+  const admissionFailures = new Set<(event: ISessionCommandFailure) => void>();
+  const executionFailures = new Set<(event: ISessionCommandFailure) => void>();
+  const connectionFailures = new Set<(event: { message: string }) => void>();
+  const persistenceFailures = new Set<(event: { message: string }) => void>();
+  const authenticationFailures = new Set<
+    (event: { message: string }) => void
+  >();
+  const protocolFailures = new Set<(event: { message: string }) => void>();
+  const subscribe = <EVENT>(
+    listeners: Set<(event: EVENT) => void>,
+    handler: (event: EVENT) => void,
+  ) => {
+    listeners.add(handler);
+    return () => {
+      listeners.delete(handler);
+    };
+  };
+  const notify = <EVENT>(
+    listeners: Set<(event: EVENT) => void>,
+    event: EVENT,
+  ) => {
+    for (const listener of [...listeners]) {
+      try {
+        listener(event);
+      } catch (error) {
+        console.error(
+          'Aggregate browser session failure observer threw',
+          error,
+        );
+      }
+    }
+  };
+  const failureCallbacks: IBrowserSessionFailureCallbacks = {
+    onAdmissionFailure: event => notify(admissionFailures, event),
+    onExecutionFailure: event => notify(executionFailures, event),
+    onSharedWorkerConnectionFailure: event => notify(connectionFailures, event),
+    onSharedWorkerPersistenceFailure: event =>
+      notify(persistenceFailures, event),
+    onAuthenticationFailure: event => notify(authenticationFailures, event),
+    onServerProtocolFailure: event => notify(protocolFailures, event),
+  };
 
   const lifecycle = makeSessionLifecycle({
     layer,
+    telemetryCollector: coreSession.store.getState().telemetryCollector,
     infrastructure: Layer.empty,
     onDispose: () => {
-      coreSession.clearExecutionResources();
+      releaseAggregateSession(coreSession);
       coreSession.store.setState({
         actorName: null,
         actorVersion: null,
@@ -214,36 +266,17 @@ export function makeSession(props: unknown): unknown {
       credentialsSchema,
       initialization: initializeProps,
     });
-    return lifecycle.initialize(({ runtime, ready }) =>
+    return lifecycle.initialize(({ runtime, ready, signal }) =>
       Effect.gen(function* () {
         const sessionId = yield* makeIdFromAbbreviation({
           abbreviation: coreAbbreviations.session,
         });
-        let executeAggregateSessionCommand: NonNullable<
-          Parameters<
-            typeof coreSession.setExecutionResources
-          >[0]['executeAggregateSessionCommand']
-        > | null = null;
-        coreSession.setExecutionResources({
-          sessionId,
-          runtime,
-          executeAggregateSessionCommand: executeProps =>
-            executeAggregateSessionCommand === null
-              ? Effect.fail(
-                  makeZerospinError({
-                    code: 'aggregate-session-not-ready',
-                    message:
-                      'Command staging started before the aggregate session was ready',
-                  }),
-                )
-              : executeAggregateSessionCommand(executeProps),
-        });
-
         const apiUrl = yield* ZerospinApiUrl;
         const publishableKey = Redacted.value(yield* PublishableKey);
         const bootstrap = yield* bootstrapAggregateSession({
-          aggregateVersion: definition.aggregateVersion,
           session: coreSession,
+          sessionId,
+          runtime,
           apiUrl,
           publishableKey,
           systemName,
@@ -253,18 +286,13 @@ export function makeSession(props: unknown): unknown {
             ),
           expectedClaims: admission.claims,
           sharedWorker,
-        }).pipe(
-          Effect.provide(
-            makeTelemetryLayer(coreSession.store.getState().telemetryCollector),
-          ),
-        );
-        executeAggregateSessionCommand =
-          bootstrap.executeAggregateSessionCommand;
+          failureCallbacks,
+          signal,
+        });
         clearAuthentication = bootstrap.clearAuthentication;
 
         const devtoolsEntry = {
           session: coreSession,
-          history: bootstrap.history,
           getPushPaused: () =>
             runtime.runPromise(bootstrap.getPushPaused.pipe(encodeRpcOutcome)),
           setPushPaused: (pushPausedProps: { pushPaused: boolean }) =>
@@ -311,10 +339,25 @@ export function makeSession(props: unknown): unknown {
   };
   const dispose = lifecycle.dispose;
 
-  // Same object identity as the core session so stageCommand WeakMap lookups
-  // and DevTools registration share one session reference.
+  // Browser methods extend the stable core session shared with DevTools.
   return Object.defineProperty(
     Object.assign(coreSession, {
+      onAdmissionFailure: (handler: (event: ISessionCommandFailure) => void) =>
+        subscribe(admissionFailures, handler),
+      onExecutionFailure: (handler: (event: ISessionCommandFailure) => void) =>
+        subscribe(executionFailures, handler),
+      onSharedWorkerConnectionFailure: (
+        handler: (event: { message: string }) => void,
+      ) => subscribe(connectionFailures, handler),
+      onSharedWorkerPersistenceFailure: (
+        handler: (event: { message: string }) => void,
+      ) => subscribe(persistenceFailures, handler),
+      onAuthenticationFailure: (
+        handler: (event: { message: string }) => void,
+      ) => subscribe(authenticationFailures, handler),
+      onServerProtocolFailure: (
+        handler: (event: { message: string }) => void,
+      ) => subscribe(protocolFailures, handler),
       systemName,
       claimsSchema,
       credentialsSchema,

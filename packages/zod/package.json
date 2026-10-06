@@ -24,7 +24,7 @@
     "lint": "oxlint . --format stylish"
   },
   "dependencies": {
-    "@zerospin/schema": "workspace:*",
+    "@zerospin/shapes": "workspace:*",
     "es-toolkit": "^1.46.1"
   },
   "devDependencies": {

@@ -7,7 +7,7 @@
     "allowImportingTsExtensions": true,
     "rootDir": "../..",
     "noEmit": true,
-    "types": ["node", "vite/client"]
+    "types": ["node"]
   },
   "include": ["tsup.config.ts"],
   "references": [
@@ -27,7 +27,7 @@
       "path": "../logger"
     },
     {
-      "path": "../schema"
+      "path": "../shapes"
     },
     {
       "path": "../system-worker"

@@ -1,8 +1,13 @@
 import { applyAggregateSessionSnapshot } from '@zerospin/core/aggregateSession/applyAggregateSessionSnapshot/applyAggregateSessionSnapshot';
+import {
+  bindAggregateSession,
+  releaseAggregateSession,
+} from '@zerospin/core/aggregateSession/bindAggregateSession';
 import { makeAggregateSession } from '@zerospin/core/aggregateSession/make/makeAggregateSession';
 import { makeAggregateSessionLock } from '@zerospin/core/aggregateSession/make/makeAggregateSessionLock';
 import { makeAggregateSessionLockKey } from '@zerospin/core/aggregateSession/make/makeAggregateSessionLockKey';
 import { sessionRepoDbConfig } from '@zerospin/core/aggregateSession/sessionRepoDbConfig';
+import { executeLocalSessionCommandTx } from '@zerospin/core/aggregateSession/stageCommand/executeLocalSessionCommandTx/executeLocalSessionCommandTx';
 import type {
   IAggregateSession,
   IAggregateSessionDefinition,
@@ -23,7 +28,7 @@ import {
   makeAbbreviationIdSchema,
   makeIdFromAbbreviation,
   type ITypeError,
-} from '@zerospin/schema';
+} from '@zerospin/shapes';
 import { Effect, Layer, Schema, type Scope } from 'effect';
 
 import { makeSessionLifecycle } from '../makeSessionLifecycle';
@@ -110,7 +115,7 @@ export function makeMockAggregateSession<
 
 export function makeMockAggregateSession(props: {
   definition: Omit<IAggregateSessionDefinition, 'systemName' | 'modelNames'>;
-  layer?: Layer.Layer<never, IAnyError>;
+  layer?: Layer.Layer<unknown, IAnyError>;
   claims: Readonly<Record<string, unknown>>;
   resources?: Partial<
     Record<string, readonly InferResource<IAnyModels[string]>[]>
@@ -118,7 +123,7 @@ export function makeMockAggregateSession(props: {
 }): unknown {
   const {
     definition: authoredDefinition,
-    layer = Layer.empty,
+    layer,
     claims: fixtureClaims,
     resources: fixtureResources = {},
   } = props;
@@ -131,11 +136,12 @@ export function makeMockAggregateSession(props: {
   }
   const coreSession = makeAggregateSession<typeof definition>({ definition });
 
-  const lifecycle = makeSessionLifecycle({
+  const lifecycle = makeSessionLifecycle<unknown, never>({
     layer,
+    telemetryCollector: coreSession.store.getState().telemetryCollector,
     infrastructure: Layer.empty,
     onDispose: () => {
-      coreSession.clearExecutionResources();
+      releaseAggregateSession(coreSession);
       coreSession.store.setState({
         actorName: null,
         actorVersion: null,
@@ -165,13 +171,6 @@ export function makeMockAggregateSession(props: {
         const sessionId = yield* makeIdFromAbbreviation({
           abbreviation: coreAbbreviations.session,
         });
-        // No executeAggregateSessionCommand — staging stays local.
-        coreSession.setExecutionResources({
-          sessionId,
-          runtime,
-          settleLocally: true,
-        });
-
         const claims = yield* Schema.encodeEffect(definition.claimsSchema)(
           fixtureClaims,
         ).pipe(
@@ -242,29 +241,34 @@ export function makeMockAggregateSession(props: {
           models,
         });
 
-        coreSession.store.setState({
-          actorName: definition.actorName,
-          actorVersion: definition.actorVersion,
+        bindAggregateSession({
+          session: coreSession,
+          runtime,
+          commitCommand: executeLocalSessionCommandTx,
+          state: {
+            actorName: definition.actorName,
+            actorVersion: definition.actorVersion,
 
-          aggregateId,
-          aggregateName: definition.aggregateName,
-          claims: Schema.decodeUnknownSync(definition.claimsSchema)(claims),
-          db,
-          aggregateIndex: 0,
-          executedIndex: 0,
-          executedHash:
-            '76e4e2d226c914c939d1f2b94550195f0dad064d8ca8d448a7101b458ced9ce0',
-          pushIndex: 0,
-          sessionName: definition.sessionName,
-          aggregateSessionLockKey,
-          isInitialized: true,
-          models,
-          schema: dbConfig.schema,
-          sessionId,
-          sessionStatus: 'current',
-          backupState: {
-            status: 'ready',
-            failure: null,
+            aggregateId,
+            aggregateName: definition.aggregateName,
+            claims: Schema.decodeUnknownSync(definition.claimsSchema)(claims),
+            db,
+            aggregateIndex: 0,
+            executedIndex: 0,
+            executedHash:
+              '76e4e2d226c914c939d1f2b94550195f0dad064d8ca8d448a7101b458ced9ce0',
+            pushIndex: 0,
+            sessionName: definition.sessionName,
+            aggregateSessionLockKey,
+            isInitialized: true,
+            models,
+            schema: dbConfig.schema,
+            sessionId,
+            sessionStatus: 'current',
+            backupState: {
+              status: 'ready',
+              failure: null,
+            },
           },
         });
 

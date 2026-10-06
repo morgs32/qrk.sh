@@ -6,12 +6,16 @@ import { createStore } from 'zustand/vanilla';
 
 import type { ISessionId } from '../../aggregateSession/types.ts';
 import type { IAnyModels } from '../../models/types.ts';
-import { canServiceCommand } from '../stageServiceCommand.ts';
+import {
+  canServiceCommand,
+  stageBoundServiceSessionCommand,
+} from '../stageServiceCommand.ts';
 import type {
   IInitializedServiceSessionState,
   IServiceSession,
   IServiceSessionDefinition,
   IServiceSessionState,
+  IServiceStageFailure,
 } from '../types.ts';
 /**
  * Synchronous service session construction. Creates the stable store only —
@@ -83,6 +87,7 @@ export function makeServiceSession<
       schema: null,
       models: null,
       isInitialized: false,
+      serviceIndex: null,
       executedIndex: null,
       serviceHash: null,
       serviceVersion: null,
@@ -118,7 +123,31 @@ export function makeServiceSession<
     });
     return unsubscribe;
   };
+  const stageFailureListeners = new Set<
+    (event: IServiceStageFailure) => void
+  >();
+  const notifyStageFailure = (event: IServiceStageFailure) => {
+    for (const listener of [...stageFailureListeners]) {
+      try {
+        listener(event);
+      } catch (error) {
+        console.error('Service session failure observer threw', error);
+      }
+    }
+  };
   const session: IServiceSession<DEFINITION, MODELS> = {
+    onStageFailure(handler) {
+      stageFailureListeners.add(handler);
+      return () => {
+        stageFailureListeners.delete(handler);
+      };
+    },
+    stageCommand: commandProps =>
+      stageBoundServiceSessionCommand({
+        session,
+        ...commandProps,
+        onStageFailure: notifyStageFailure,
+      }),
     can: props => canServiceCommand(session, props),
     definition,
     models,

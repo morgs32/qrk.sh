@@ -49,7 +49,7 @@
   "exclude": [],
   "references": [
     {
-      "path": "../schema"
+      "path": "../shapes"
     },
     {
       "path": "../logger"

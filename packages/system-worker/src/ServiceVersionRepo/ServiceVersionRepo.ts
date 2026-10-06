@@ -44,7 +44,7 @@ export class ServiceVersionRepo
   })
   implements
     IFanoutSubscriberRepo<{
-      name: 'admissionResultsFanout';
+      name: 'admittedCommandsFanout';
     }>
 {
   static override readonly fixedDORepoConfig =
@@ -243,12 +243,12 @@ export class ServiceVersionRepo
     return this.#executedCommandOutbox;
   }
 
-  admissionResultsFanoutSubscriber(sourceKey: {
+  admittedCommandsFanoutSubscriber(sourceKey: {
     systemId: string;
     serviceName: string;
   }): ReturnType<
     typeof makeFanoutSubscriber<
-      'admissionResultsFanout',
+      'admittedCommandsFanout',
       typeof sourceKey,
       typeof this.key,
       typeof serviceChainDbConfig.schema.commands.$inferSelect
@@ -264,7 +264,7 @@ export class ServiceVersionRepo
       });
     }
     return makeFanoutSubscriber({
-      name: 'admissionResultsFanout',
+      name: 'admittedCommandsFanout',
       sourceKey,
       key: this.key,
       getRepo: ServiceChain.getRepo,
@@ -303,7 +303,7 @@ export class ServiceVersionRepo
               ...props,
               db: this.db,
               key: this.key,
-              subscriber: this.admissionResultsFanoutSubscriber({
+              subscriber: this.admittedCommandsFanoutSubscriber({
                 systemId: this.key.systemId,
                 serviceName: this.key.serviceName,
               }),
@@ -339,7 +339,7 @@ export class ServiceVersionRepo
         .drainAfter(() =>
           Effect.gen({ self: this }, function* () {
             yield* makeAsync(() =>
-              this.admissionResultsFanoutSubscriber({
+              this.admittedCommandsFanoutSubscriber({
                 systemId: this.key.systemId,
                 serviceName: this.key.serviceName,
               }).catchup(),
@@ -368,7 +368,7 @@ export class ServiceVersionRepo
         .drainAfter(() =>
           Effect.gen({ self: this }, function* () {
             yield* makeAsync(() =>
-              this.admissionResultsFanoutSubscriber({
+              this.admittedCommandsFanoutSubscriber({
                 systemId: this.key.systemId,
                 serviceName: this.key.serviceName,
               }).catchup(),

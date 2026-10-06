@@ -82,7 +82,29 @@ case, and ignores query strings, fragments, and trailing slashes. Save fetches
 `getGitHubRepo` through an explicit SWR mutation when the normalized URL changes,
 then stages one `updateBrickState` command containing the URL and repository data.
 
-All three forms disable input and Save while fetching. Fetch, validation, or
+The Figma Thumbnail drawer accepts HTTPS Figma document URLs for designs, files,
+boards, slides, decks, and prototypes. It normalizes the host to `www.figma.com`,
+maps `file` to `design` and `deck` to `slides`, and ignores document names, query
+strings, and fragments. Save is enabled only when the normalized document URL
+changes. Saving fetches `figmaBackend().getThumbnail` through an explicit SWR
+mutation, then stages one `updateBrickState` containing `state.payload.url` and
+the fetched title, document URL, and thumbnail metadata in `state.data`.
+Node selections use the whole document's thumbnail.
+
+The Instagram drawer accepts usernames, `@usernames`, and HTTPS Instagram profile
+URLs, normalizing them to `https://www.instagram.com/<username>`. Save remains
+enabled for any valid profile, including the saved URL, so each Save explicitly
+refreshes the profile. `getInstagramProfile` scrapes fresh data and stores its
+avatar and zero to four ordered post images in API's R2 bucket before returning.
+The form validates the complete module state and stages one `updateBrickState`.
+State, authored views, and generated grid specs use `data.postImageUrls` directly;
+the grid keeps its two-by-two layout and is omitted for an empty array. The old
+four separate post-image fields are no longer accepted.
+Existing local Instagram grid specs were converted once, preserving fixture IDs,
+placement geometry, null states, and unrelated data. The previous standalone
+backup was retained. Runtime code performs no conversion of legacy state or specs.
+
+These forms disable input and Save while fetching. Fetch, validation, or
 command failures leave the saved brick state and draft intact. Closing
 the drawer discards unsaved input.
 
@@ -125,7 +147,7 @@ contains the Library-only routes and layout, not exported application screens.
 | `/BrickWall`                      | `lib/BrickWall.tsx`                         | Interactive wall                                          |
 | `/GridItemPreview`                | `lib/GridItemPreview.tsx`                   | Preview geometry                                          |
 | `/WallViewportProvider`           | `lib/WallViewportProvider.tsx`              | Viewport provider and hooks                               |
-| `/WallBreakpointPane`             | `lib/WallBreakpointPane.tsx`                | Shared fixed-width wall pane with browser chrome           |
+| `/WallBreakpointPane`             | `lib/WallBreakpointPane.tsx`                | Shared fixed-width wall pane with browser chrome          |
 | `/breakpoints`                    | `lib/breakpoints.ts`                        | Breakpoint definitions and sizing                         |
 | `/brickDragStore`                 | `lib/brickDragStore.ts`                     | Shared drag state                                         |
 | `/TiptapDocSchema`                | `lib/TiptapDocSchema.ts`                    | Article document schema                                   |

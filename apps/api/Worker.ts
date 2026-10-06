@@ -12,7 +12,6 @@ import {
 import { handleUpload } from "./handleUpload";
 import { FigmaBackend } from "./modules/figmaThumbnail/FigmaBackend";
 import { BrowserHost } from "./modules/instagram/BrowserHost";
-import { InstagramBackend } from "./modules/instagram/InstagramBackend";
 import { LibraryApi } from "./modules/LibraryApi";
 import { LinkBackend } from "./modules/link/LinkBackend";
 import { GooglePlacesBackend } from "./modules/mapPlace/GooglePlacesBackend";
@@ -23,7 +22,6 @@ export {
   BrowserHost,
   FigmaBackend,
   GooglePlacesBackend,
-  InstagramBackend,
   LinkBackend,
   StreamlineBackend,
 };
@@ -36,7 +34,7 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
   }
 
   if (url.pathname === "/rpc") {
-    return newWorkersRpcResponse(request, new LibraryApi(env));
+    return newWorkersRpcResponse(request, new LibraryApi(env, request));
   }
 
   const assetResponse = await handleR2Asset({

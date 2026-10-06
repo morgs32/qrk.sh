@@ -17,10 +17,7 @@ export const instagramView = makeModuleView(instagramV1, {
       return (
         <instagramCardView.Component username={state.data.username}>
           <instagramPostGridView.Component
-            postImageUrl1={state.data.postImageUrl1}
-            postImageUrl2={state.data.postImageUrl2}
-            postImageUrl3={state.data.postImageUrl3}
-            postImageUrl4={state.data.postImageUrl4}
+            postImageUrls={state.data.postImageUrls}
             username={state.data.username}
           />
           <instagramMediaFooterView.Component

@@ -8,13 +8,10 @@ import type {
 } from "./types";
 
 export const InstagramPayloadSchema = Schema.Struct({
-  username: Schema.String,
-  profileImageUrl: Schema.String,
-  followersText: Schema.String,
-  postImageUrl1: Schema.String,
-  postImageUrl2: Schema.String,
-  postImageUrl3: Schema.String,
-  postImageUrl4: Schema.String,
+  username: Schema.NonEmptyString,
+  profileImageUrl: Schema.NonEmptyString,
+  followersText: Schema.NonEmptyString,
+  postImageUrls: Schema.Array(Schema.NonEmptyString).check(Schema.isMaxLength(4)),
 }) satisfies Schema.Schema<IInstagramScrapePayload>;
 
 export const GitHubPayloadSchema = Schema.Struct({

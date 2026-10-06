@@ -6,18 +6,35 @@ import { encodeRpc } from "./encodeRpc";
 import { generateSpec } from "./generateSpec";
 import { getGitHubProfile } from "./githubProfile/getGitHubProfile";
 import { getGitHubRepo } from "./githubRepo/getGitHubRepo";
-import type { IGitHubRepoPayload, IGitHubScrapePayload, IRpcEither } from "./types";
+import { getInstagramProfile } from "./instagram/getInstagramProfile";
+import type {
+  IGitHubRepoPayload,
+  IGitHubScrapePayload,
+  IInstagramScrapePayload,
+  IRpcEither,
+} from "./types";
 
 const GLOBAL_BACKEND_NAME = "global";
 const managedRuntime = ManagedRuntime.make(Layer.empty);
 
 export class LibraryApi extends RpcTarget {
-  constructor(private readonly workerEnv: Env) {
+  constructor(
+    private readonly workerEnv: Env,
+    private readonly request: Request,
+  ) {
     super();
   }
 
-  instagramBackend() {
-    return this.workerEnv.INSTAGRAM_BACKEND.getByName(GLOBAL_BACKEND_NAME);
+  getInstagramProfile(url: string): Promise<IRpcEither<IInstagramScrapePayload>> {
+    return managedRuntime.runPromise(
+      getInstagramProfile({
+        url,
+        request: this.request,
+        browserHost: this.workerEnv.BROWSER_HOST,
+        bucket: this.workerEnv.QRKSH,
+        publicBaseUrl: this.workerEnv.R2_PUBLIC_BASE_URL,
+      }).pipe(encodeRpc),
+    );
   }
 
   getGitHubProfile(url: string): Promise<IRpcEither<IGitHubScrapePayload>> {

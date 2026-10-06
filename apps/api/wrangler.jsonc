@@ -20,11 +20,10 @@
     "R2_PUBLIC_BASE_URL": "/assets",
     "CLERK_AUTHORIZED_PARTY": "http://127.0.0.1:3001",
   },
-  "browser": { "binding": "BROWSER" },
+  "browser": { "binding": "BROWSER", "remote": true },
   "durable_objects": {
     "bindings": [
       { "name": "BROWSER_HOST", "class_name": "BrowserHost" },
-      { "name": "INSTAGRAM_BACKEND", "class_name": "InstagramBackend" },
       { "name": "BACKEND_REPO", "class_name": "BackendRepo" },
       { "name": "FIGMA_BACKEND", "class_name": "FigmaBackend" },
       { "name": "GOOGLE_PLACES_BACKEND", "class_name": "GooglePlacesBackend" },
@@ -37,13 +36,7 @@
       // Local bootstrap: BackendRepo replaces GitHubBackend.
       "tag": "v1",
       "new_classes": ["BrowserHost", "StreamlineBackend"],
-      "new_sqlite_classes": [
-        "BackendRepo",
-        "InstagramBackend",
-        "FigmaBackend",
-        "GooglePlacesBackend",
-        "LinkBackend",
-      ],
+      "new_sqlite_classes": ["BackendRepo", "FigmaBackend", "GooglePlacesBackend", "LinkBackend"],
     },
   ],
 }

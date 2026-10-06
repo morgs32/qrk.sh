@@ -14,6 +14,8 @@ import { useLibrarySession } from "../../../session/createLibraryStandaloneSessi
 import { GitHubProfileForm } from "../../../modules/githubProfile/GitHubProfileForm";
 import { GitHubRepoForm } from "../../../modules/githubRepo/GitHubRepoForm";
 import { GitHubActivityForm } from "../../../modules/githubActivity/GitHubActivityForm";
+import { FigmaThumbnailForm } from "../../../modules/figmaThumbnail/FigmaThumbnailForm";
+import { InstagramForm } from "../../../modules/instagram/InstagramForm";
 
 export default function BrickDetail() {
   const params = useParams();
@@ -138,6 +140,56 @@ function BrickDetailContent(props: { brickId: `brk_${string}` }) {
           if (result._tag === "Failure") {
             throw new Error(
               result.failure.message ?? result.failure.code ?? "Failed to save GitHub Activity",
+            );
+          }
+          setAcceptedState({ state });
+        }}
+      />
+    );
+  }
+
+  if (brickRow.moduleId === "figma-thumbnail") {
+    return (
+      <FigmaThumbnailForm
+        state={acceptedState?.state ?? brickRow.state}
+        onSave={(state) => {
+          const result = stageCommand({
+            session,
+            contractName: "updateBrickState",
+            payload: {
+              brickId: brickRow.id,
+              moduleId: brickRow.moduleId,
+              state,
+            },
+          });
+          if (result._tag === "Failure") {
+            throw new Error(
+              result.failure.message ?? result.failure.code ?? "Failed to save Figma Thumbnail",
+            );
+          }
+          setAcceptedState({ state });
+        }}
+      />
+    );
+  }
+
+  if (brickRow.moduleId === "instagram") {
+    return (
+      <InstagramForm
+        state={acceptedState?.state ?? brickRow.state}
+        onSave={(state) => {
+          const result = stageCommand({
+            session,
+            contractName: "updateBrickState",
+            payload: {
+              brickId: brickRow.id,
+              moduleId: brickRow.moduleId,
+              state,
+            },
+          });
+          if (result._tag === "Failure") {
+            throw new Error(
+              result.failure.message ?? result.failure.code ?? "Failed to save Instagram",
             );
           }
           setAcceptedState({ state });

@@ -10,7 +10,7 @@ export const parseInstagramPayload = Effect.fn("parseInstagramPayload")(function
 }) {
   const { payload: inputPayload, username } = props;
   const payload = yield* Schema.decodeUnknownEffect(InstagramPayloadSchema)(inputPayload, {
-    onExcessProperty: "preserve",
+    onExcessProperty: "ignore",
   }).pipe(
     Effect.mapError(
       () =>
@@ -44,92 +44,150 @@ export const scrapeInstagram = Effect.fn("scrapeInstagram")(function* (props: {
       }),
   });
   const username = new URL(url).pathname.slice(1);
-  return yield* Effect.tryPromise({
-    try: async () => {
-      await page.goto(url, { waitUntil: "networkidle2", timeout: 30_000 });
-      const title = await page.title();
-      if (/login|challenge|private/i.test(title)) {
-        throw new ScrapeError({
-          code: "profile-unavailable",
-          message: "Instagram profile is not publicly available",
+  return yield* Effect.gen(function* () {
+    const browserPayloadText = yield* Effect.tryPromise({
+      try: async () => {
+        const navigationResponse = await page.goto(url, {
+          waitUntil: "networkidle2",
+          timeout: 30_000,
         });
-      }
-      const browserPayloadText = await page.evaluate(async (profileUsername) => {
-        const description =
-          document.querySelector('meta[property="og:description"]')?.getAttribute("content") ?? "";
-        const profileImageUrl =
-          document.querySelector('meta[property="og:image"]')?.getAttribute("content") ?? "";
-        const followersMatch = description.match(/^([\d,.]+[KMB]?) Followers/i);
-        const timelineResponse = await fetch(
-          `/api/v1/feed/user/${profileUsername}/username/?count=12`,
-          {
-            headers: { "x-ig-app-id": "936619743392459" },
-          },
-        );
-        return JSON.stringify({
-          username: profileUsername,
-          profileImageUrl,
-          followersText: followersMatch?.[1] ?? "",
-          timelineText: await timelineResponse.text(),
+        const pagePath = new URL(page.url()).pathname;
+        if (
+          navigationResponse?.ok() === false ||
+          /^\/(?:accounts\/login|challenge)(?:\/|$)/.test(pagePath)
+        ) {
+          throw new ScrapeError({
+            code: "profile-unavailable",
+            message: "Instagram profile is not publicly available",
+          });
+        }
+        return await page.evaluate(() => {
+          const description =
+            document.querySelector('meta[property="og:description"]')?.getAttribute("content") ??
+            "";
+          const followersMatch = description.match(/^([\d,.]+[KMB]?) Followers/i);
+          const profiles: unknown[] = [];
+          for (const script of Array.from(
+            document.querySelectorAll('script[type="application/json"]'),
+          )) {
+            let json: unknown;
+            try {
+              json = JSON.parse(script.textContent ?? "");
+            } catch {
+              continue;
+            }
+            const remaining: unknown[] = [json];
+            while (remaining.length > 0) {
+              const value = remaining.pop();
+              if (value === null || typeof value !== "object") continue;
+              for (const [key, nested] of Object.entries(value)) {
+                if (key === "xig_user_by_username") {
+                  profiles.push(nested);
+                } else if (nested !== null && typeof nested === "object") {
+                  remaining.push(nested);
+                }
+              }
+            }
+          }
+          return JSON.stringify({
+            followersText: followersMatch?.[1] ?? "",
+            profiles,
+          });
         });
-      }, username);
-      const browserPayload = await Effect.runPromise(
-        Schema.decodeUnknownEffect(
-          Schema.fromJsonString(
+      },
+      catch: (cause) =>
+        cause instanceof ScrapeError
+          ? cause
+          : new ScrapeError({
+              code: "scrape-transient-failure",
+              message: `Instagram navigation failed: ${String(cause)}`,
+              retryable: true,
+            }),
+    });
+    const browserPayload = yield* Schema.decodeUnknownEffect(
+      Schema.fromJsonString(
+        Schema.Struct({
+          followersText: Schema.NonEmptyString,
+          profiles: Schema.Array(
             Schema.Struct({
-              username: Schema.String,
-              profileImageUrl: Schema.String,
-              followersText: Schema.String,
-              timelineText: Schema.fromJsonString(
-                Schema.Struct({
-                  items: Schema.Array(
-                    Schema.Struct({
-                      image_versions2: Schema.Struct({
-                        candidates: Schema.Array(Schema.Struct({ url: Schema.String })),
+              username: Schema.optional(Schema.NonEmptyString),
+              profile_pic_url: Schema.optional(Schema.NonEmptyString),
+              follower_count: Schema.optional(Schema.Int.check(Schema.isGreaterThanOrEqualTo(0))),
+              is_private: Schema.optional(Schema.Boolean),
+              is_unpublished: Schema.optional(Schema.Boolean),
+              polaris_ordered_timeline_connection: Schema.optional(
+                Schema.NullOr(
+                  Schema.Struct({
+                    edges: Schema.Array(
+                      Schema.Struct({
+                        node: Schema.Struct({
+                          display_uri: Schema.NullOr(Schema.NonEmptyString),
+                        }),
                       }),
-                    }),
-                  ),
-                }),
+                    ),
+                  }),
+                ),
               ),
             }),
           ),
-        )(browserPayloadText),
-      );
-      const payload: unknown = {
-        username: browserPayload.username,
-        profileImageUrl: browserPayload.profileImageUrl,
-        followersText: browserPayload.followersText,
-        postImageUrl1:
-          browserPayload.timelineText.items[0]?.image_versions2.candidates[0]?.url ?? "",
-        postImageUrl2:
-          browserPayload.timelineText.items[1]?.image_versions2.candidates[0]?.url ?? "",
-        postImageUrl3:
-          browserPayload.timelineText.items[2]?.image_versions2.candidates[0]?.url ?? "",
-        postImageUrl4:
-          browserPayload.timelineText.items[3]?.image_versions2.candidates[0]?.url ?? "",
-      };
-      if (
-        browserPayload.profileImageUrl.length === 0 ||
-        browserPayload.followersText.length === 0 ||
-        browserPayload.timelineText.items[0]?.image_versions2.candidates[0]?.url === undefined ||
-        browserPayload.timelineText.items[1]?.image_versions2.candidates[0]?.url === undefined ||
-        browserPayload.timelineText.items[2]?.image_versions2.candidates[0]?.url === undefined ||
-        browserPayload.timelineText.items[3]?.image_versions2.candidates[0]?.url === undefined
-      ) {
-        throw new ScrapeError({
-          code: "unsupported-page-shape",
-          message: "Instagram public profile card data was incomplete",
-        });
-      }
-      return await Effect.runPromise(parseInstagramPayload({ payload, username }));
-    },
-    catch: (cause) =>
-      cause instanceof ScrapeError
-        ? cause
-        : new ScrapeError({
-            code: "scrape-transient-failure",
-            message: `Instagram navigation failed: ${String(cause)}`,
-            retryable: true,
+        }),
+      ),
+    )(browserPayloadText, { onExcessProperty: "ignore" }).pipe(
+      Effect.mapError(
+        () =>
+          new ScrapeError({
+            code: "unsupported-page-shape",
+            message: "Instagram page did not expose supported public profile data",
           }),
+      ),
+    );
+    const profile = browserPayload.profiles.find(
+      (candidate) =>
+        candidate.username !== undefined &&
+        candidate.profile_pic_url !== undefined &&
+        candidate.follower_count !== undefined,
+    );
+    if (
+      profile === undefined ||
+      profile.username === undefined ||
+      profile.profile_pic_url === undefined
+    ) {
+      return yield* new ScrapeError({
+        code: "unsupported-page-shape",
+        message: "Instagram public profile card data was incomplete",
+      });
+    }
+    if (profile.is_private === true || profile.is_unpublished === true) {
+      return yield* new ScrapeError({
+        code: "profile-unavailable",
+        message: "Instagram profile is not publicly available",
+      });
+    }
+    const timeline = browserPayload.profiles.find(
+      (candidate) =>
+        candidate.polaris_ordered_timeline_connection !== undefined &&
+        candidate.polaris_ordered_timeline_connection !== null,
+    )?.polaris_ordered_timeline_connection;
+    if (timeline === undefined || timeline === null) {
+      return yield* new ScrapeError({
+        code: "unsupported-page-shape",
+        message: "Instagram page did not expose a supported public profile feed",
+      });
+    }
+    const postImageUrls = timeline.edges
+      .flatMap((edge) => {
+        const imageUrl = edge.node.display_uri;
+        return imageUrl === undefined || imageUrl === null ? [] : [imageUrl];
+      })
+      .slice(0, 4);
+    return yield* parseInstagramPayload({
+      payload: {
+        username: profile.username,
+        profileImageUrl: profile.profile_pic_url,
+        followersText: browserPayload.followersText,
+        postImageUrls,
+      },
+      username,
+    });
   }).pipe(Effect.ensuring(Effect.promise(() => page.close())));
 });

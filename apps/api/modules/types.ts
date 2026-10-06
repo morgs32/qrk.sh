@@ -10,10 +10,7 @@ export type IInstagramScrapePayload = Readonly<{
   username: string;
   profileImageUrl: string;
   followersText: string;
-  postImageUrl1: string;
-  postImageUrl2: string;
-  postImageUrl3: string;
-  postImageUrl4: string;
+  postImageUrls: readonly string[];
 }>;
 
 export type IGitHubScrapePayload = Readonly<{

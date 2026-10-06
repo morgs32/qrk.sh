@@ -13,9 +13,7 @@ import type {
 } from "./types.public";
 
 export declare class LibraryApi extends RpcTarget {
-  instagramBackend(): RpcTarget & {
-    scrape(url: string): Promise<IRpcEither<IInstagramScrapePayload>>;
-  };
+  getInstagramProfile(url: string): Promise<IRpcEither<IInstagramScrapePayload>>;
 
   getGitHubProfile(url: string): Promise<IRpcEither<IGitHubScrapePayload>>;
 

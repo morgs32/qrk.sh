@@ -14,10 +14,7 @@ export const defaultSpec: Spec = {
       type: "InstagramPostGrid",
       props: {
         username: { $state: "/data/username" },
-        postImageUrl1: { $state: "/data/postImageUrl1" },
-        postImageUrl2: { $state: "/data/postImageUrl2" },
-        postImageUrl3: { $state: "/data/postImageUrl3" },
-        postImageUrl4: { $state: "/data/postImageUrl4" },
+        postImageUrls: { $state: "/data/postImageUrls" },
       },
     },
     "footer-1": {

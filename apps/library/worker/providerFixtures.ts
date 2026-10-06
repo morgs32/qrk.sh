@@ -2,10 +2,12 @@ export const instagramFixture = {
   username: "creator",
   profileImageUrl: "https://example.com/profile.jpg",
   followersText: "12.2K",
-  postImageUrl1: "https://example.com/post-1.jpg",
-  postImageUrl2: "https://example.com/post-2.jpg",
-  postImageUrl3: "https://example.com/post-3.jpg",
-  postImageUrl4: "https://example.com/post-4.jpg",
+  postImageUrls: [
+    "https://example.com/post-1.jpg",
+    "https://example.com/post-2.jpg",
+    "https://example.com/post-3.jpg",
+    "https://example.com/post-4.jpg",
+  ],
 };
 
 export const tikTokFixture = {

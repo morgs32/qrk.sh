@@ -45,7 +45,10 @@ describe("LibraryApi GitHub response retention", () => {
   });
 
   it("fetches each profile request and retains its extra fields and contributions", async () => {
-    const api = new LibraryApi({ ...env, GITHUB_TOKEN: "github-test-token" });
+    const api = new LibraryApi(
+      { ...env, GITHUB_TOKEN: "github-test-token" },
+      new Request("http://api.test/rpc"),
+    );
     const firstProfile = {
       login: "morgs32",
       name: "Morgan",
@@ -132,7 +135,10 @@ describe("LibraryApi GitHub response retention", () => {
   });
 
   it("fetches each repository request and replaces only that response key", async () => {
-    const api = new LibraryApi({ ...env, GITHUB_TOKEN: "github-test-token" });
+    const api = new LibraryApi(
+      { ...env, GITHUB_TOKEN: "github-test-token" },
+      new Request("http://api.test/rpc"),
+    );
     const firstRepo = {
       name: "qrk.sh",
       description: null,
@@ -172,7 +178,10 @@ describe("LibraryApi GitHub response retention", () => {
   });
 
   it("retains profile and repository responses under separate keys", async () => {
-    const api = new LibraryApi({ ...env, GITHUB_TOKEN: "github-test-token" });
+    const api = new LibraryApi(
+      { ...env, GITHUB_TOKEN: "github-test-token" },
+      new Request("http://api.test/rpc"),
+    );
     const profile = { login: "morgs32", name: "Morgan" };
     const repo = {
       name: "qrk.sh",
@@ -221,7 +230,10 @@ describe("LibraryApi GitHub response retention", () => {
   });
 
   it("returns contribution failures without replacing a previously retained profile", async () => {
-    const api = new LibraryApi({ ...env, GITHUB_TOKEN: "github-test-token" });
+    const api = new LibraryApi(
+      { ...env, GITHUB_TOKEN: "github-test-token" },
+      new Request("http://api.test/rpc"),
+    );
     const previousProfile = { login: "morgs32", name: "Previous profile", contributions: [] };
     const stub = env.BACKEND_REPO.getByName("global");
     const stored = await stub.storeResponse({
@@ -262,7 +274,10 @@ describe("LibraryApi GitHub response retention", () => {
    * 3. Fetch again and prove that retained data does not serve the request.
    */
   it("preserves retained responses across eviction while still fetching upstream", async () => {
-    const api = new LibraryApi({ ...env, GITHUB_TOKEN: "github-test-token" });
+    const api = new LibraryApi(
+      { ...env, GITHUB_TOKEN: "github-test-token" },
+      new Request("http://api.test/rpc"),
+    );
     const repo = {
       name: "qrk.sh",
       description: null,
@@ -303,7 +318,10 @@ describe("LibraryApi GitHub response retention", () => {
   });
 
   it("returns fetched data and logs a typed retention failure", async () => {
-    const api = new LibraryApi({ ...env, GITHUB_TOKEN: "github-test-token" });
+    const api = new LibraryApi(
+      { ...env, GITHUB_TOKEN: "github-test-token" },
+      new Request("http://api.test/rpc"),
+    );
     const repo = {
       name: "qrk.sh",
       description: null,
@@ -333,7 +351,10 @@ describe("LibraryApi GitHub response retention", () => {
   });
 
   it("returns fetched data and logs a rejected retention transport", async () => {
-    const api = new LibraryApi({ ...env, GITHUB_TOKEN: "github-test-token" });
+    const api = new LibraryApi(
+      { ...env, GITHUB_TOKEN: "github-test-token" },
+      new Request("http://api.test/rpc"),
+    );
     const repo = {
       name: "qrk.sh",
       description: null,
@@ -377,7 +398,10 @@ describe("LibraryApi GitHub response retention", () => {
    * 3. Complete retention and receive the fetched response.
    */
   it("waits for the retention attempt before returning fetched data", async () => {
-    const api = new LibraryApi({ ...env, GITHUB_TOKEN: "github-test-token" });
+    const api = new LibraryApi(
+      { ...env, GITHUB_TOKEN: "github-test-token" },
+      new Request("http://api.test/rpc"),
+    );
     const repo = {
       name: "qrk.sh",
       description: null,
@@ -435,7 +459,10 @@ describe("LibraryApi GitHub response retention", () => {
    * 3. Finish the first request last and check that the final write wins.
    */
   it("uses completion order for overlapping requests to the same response key", async () => {
-    const api = new LibraryApi({ ...env, GITHUB_TOKEN: "github-test-token" });
+    const api = new LibraryApi(
+      { ...env, GITHUB_TOKEN: "github-test-token" },
+      new Request("http://api.test/rpc"),
+    );
     const firstRepo = {
       name: "qrk.sh",
       description: "First request",

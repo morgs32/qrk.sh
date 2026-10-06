@@ -91,7 +91,7 @@ function Workbench() {
       <div className="explorer-title">
         <span className="eyebrow">Explore the system</span>
         <h1>Repos & sessions.</h1>
-        <p>Framework tables and connections on one canvas.</p>
+        <p>Framework tables, types and connections on one canvas.</p>
       </div>
       <div className="filter-section">
         <div className="section-label">
@@ -120,7 +120,10 @@ function Workbench() {
               <span>{ownerNames[owner]}</span>
               <Badge variant="secondary" className="filter-count">
                 {systemOverviewScope.repos.filter(repo => repo.owner === owner)
-                  .length ||
+                  .length +
+                  systemOverviewScope.declarations.filter(
+                    declaration => declaration.owner === owner,
+                  ).length ||
                   systemOverviewScope.entities.filter(
                     entity => entity.owner === owner,
                   ).length}

@@ -31,6 +31,7 @@ import type {
 } from './make/mapContractVersion.ts';
 import type { IMoveOperation } from './moveOperation.ts';
 import type {
+  ExcludeOperationSink,
   InferEmittedOperations,
   IOperationSink,
 } from './operationSink.ts';
@@ -217,7 +218,7 @@ export interface IContract<
             scope: 'contract';
           }
         >,
-      PROGRAM_REQUIREMENTS
+      ExcludeOperationSink<PROGRAM_REQUIREMENTS>
     >;
   }['bivarianceHack'];
   readonly failures: FAILURE;

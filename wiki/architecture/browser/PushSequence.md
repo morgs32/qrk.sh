@@ -1,13 +1,13 @@
 ---
 title: Concrete Node Command Admission
-updated: 2026-10-05
+updated: 2026-10-06
 sources:
   - path: packages/core/src/aggregateSession/stageCommand/stageCommand.ts
-    sha: 5db67f1382030af8236ead0cedd7aa8359e5a364
-    lines: 16-38
+    sha: 77d93eac90a03335ebfefa5fd274aa4d3c7f54e3
+    lines: 17-57
   - path: packages/core/src/aggregateSession/bindAggregateSession.ts
-    sha: f73095ded0ac8704a3f6b4449caecc25f5acc7ac
-    lines: 190-217
+    sha: e6a4fd31c384931c200c58e52b16cacb511e4a0e
+    lines: 200-227
   - path: packages/core/src/aggregateSession/stageCommand/stageSessionCommandTx/stageSessionCommandTx.ts
     sha: 3950baaf99e6185b22d0eb452ea1969fb497b22e
     lines: 21-50
@@ -67,7 +67,7 @@ Local staging, durable Node acceptance, server admission, and terminal execution
 
 ## Trigger
 
-1. `stageCommand` delegates to the bound aggregate operation; it or `stageServiceCommand` prepares an ordinary concrete contract against the current tab projection.
+1. The standalone `stageCommand({ session, contractName, payload })` delegates to the bound aggregate operation; it or `stageServiceCommand` prepares an ordinary concrete contract against the current tab projection.
 2. The bound operation commits optimism before the delivery owner submits the encoded command to the attached Node.
 3. Concrete synchronization pushes retained unresolved input in Node order, respecting shared pause or manual push state.
 
@@ -98,12 +98,12 @@ sequenceDiagram
 ## Annotated workflow steps
 
 1. Stage the local contract and commit its optimistic resource operations and inverse bookkeeping.
-   - [`bindAggregateSession.ts:190-204`](../../../packages/core/src/aggregateSession/bindAggregateSession.ts#L190-L204) — The bound aggregate operation prepares operations synchronously and invokes its concrete command transaction. (`packages/core/src/aggregateSession/bindAggregateSession.ts:190-204`)
+   - [`bindAggregateSession.ts:200-214`](../../../packages/core/src/aggregateSession/bindAggregateSession.ts#L200-L214) — The bound aggregate operation prepares operations synchronously and invokes its concrete command transaction. (`packages/core/src/aggregateSession/bindAggregateSession.ts:200-214`)
    - [`stageSessionCommandTx.ts:21-50`](../../../packages/core/src/aggregateSession/stageCommand/stageSessionCommandTx/stageSessionCommandTx.ts#L21-L50) — Pending staging applies resource operations and inserts the encoded command and inverse bookkeeping in one transaction. (`packages/core/src/aggregateSession/stageCommand/stageSessionCommandTx/stageSessionCommandTx.ts:21-50`)
    - [`bootstrapServiceSession.ts:370-407`](../../../packages/browser/src/bootstrapServiceSession.ts#L370-L407) — The synchronous service staging handler commits the prepared local command and retains its uncertain handoff before returning success. (`packages/browser/src/bootstrapServiceSession.ts:370-407`)
 
 2. Hand the unchanged staged command to the attached browser capability.
-   - [`bindAggregateSession.ts:207-217`](../../../packages/core/src/aggregateSession/bindAggregateSession.ts#L207-L217) — Delivery begins only after the synchronous transaction succeeds; the caller retains its local result if handoff throws. (`packages/core/src/aggregateSession/bindAggregateSession.ts:207-217`)
+   - [`bindAggregateSession.ts:219-227`](../../../packages/core/src/aggregateSession/bindAggregateSession.ts#L219-L227) — Delivery begins only after the synchronous transaction succeeds; the caller retains its local result if handoff throws. (`packages/core/src/aggregateSession/bindAggregateSession.ts:219-227`)
    - [`bootstrapAggregateSession.ts:212-249`](../../../packages/browser/src/bootstrapAggregateSession.ts#L212-L249) — The delivery owner retains handoff uncertainty and forks acceptance through its runtime. (`packages/browser/src/bootstrapAggregateSession.ts:212-249`)
    - [`bootstrapAggregateSession.ts:190-200`](../../../packages/browser/src/bootstrapAggregateSession.ts#L190-L200) — The aggregate bootstrap awaits acceptance and verifies the receipt's command ID. (`packages/browser/src/bootstrapAggregateSession.ts:190-200`)
    - [`bootstrapServiceSession.ts:271-281`](../../../packages/browser/src/bootstrapServiceSession.ts#L271-L281) — The service bootstrap awaits acceptance and verifies the receipt's command ID. (`packages/browser/src/bootstrapServiceSession.ts:271-281`)

@@ -1,23 +1,14 @@
 import {
-  catchZerospinError,
-  encodeError,
-  recognizeZerospinError,
-} from '@zerospin/error';
-import {
   emptyTelemetryBatch,
   type ITelemetryCollector,
 } from '@zerospin/logger';
-import { Effect, Schema } from 'effect';
 import { createStore } from 'zustand/vanilla';
 
-import {
-  makeBoundAggregateSessionId,
-  stageBoundAggregateSessionCommand,
-} from '../bindAggregateSession.ts';
+import { makeBoundAggregateSessionId } from '../bindAggregateSession.ts';
+import { onStageFailure } from '../stageCommand/stageFailureListeners.ts';
 import type {
   IAggregateSession,
   IAggregateSessionDefinition,
-  IAggregateStageFailure,
   IInitializedSessionState,
   ISessionState,
 } from '../types.ts';
@@ -131,58 +122,9 @@ export function makeAggregateSession<
     return unsubscribe;
   };
 
-  const stageFailureListeners = new Set<
-    (event: IAggregateStageFailure) => void
-  >();
-  const notifyStageFailure = (event: IAggregateStageFailure) => {
-    for (const listener of [...stageFailureListeners]) {
-      try {
-        listener(event);
-      } catch (error) {
-        console.error('Aggregate session failure observer threw', error);
-      }
-    }
-  };
   const session: IAggregateSession<DEFINITION> = {
     onStageFailure(handler) {
-      stageFailureListeners.add(handler);
-      return () => {
-        stageFailureListeners.delete(handler);
-      };
-    },
-    stageCommand(commandProps) {
-      let result;
-      try {
-        result = stageBoundAggregateSessionCommand({
-          session,
-          ...commandProps,
-        });
-      } catch (cause) {
-        const failure = Effect.runSync(
-          encodeError(
-            catchZerospinError({
-              code: 'aggregate-command-staging-exception',
-              message: 'Command staging failed',
-            })(cause),
-          ).pipe(
-            Effect.map(encoded =>
-              recognizeZerospinError(Schema.Never, encoded),
-            ),
-          ),
-        );
-        notifyStageFailure({
-          contractName: commandProps.contractName,
-          failure,
-        });
-        throw cause;
-      }
-      if (result._tag === 'Failure') {
-        notifyStageFailure({
-          contractName: commandProps.contractName,
-          failure: result.failure,
-        });
-      }
-      return result;
+      return onStageFailure(session, handler);
     },
     makeId(model) {
       return makeBoundAggregateSessionId(session, model);

@@ -1,38 +1,57 @@
-import type { IRecognizedFailure, IResult } from '@zerospin/error';
+import {
+  catchZerospinError,
+  encodeError,
+  recognizeZerospinError,
+} from '@zerospin/error';
+import { Effect, Schema } from 'effect';
 
-import type {
-  InferCommand,
-  InferContractResult,
-  InferFailure,
-  ISessionCommand,
-} from '../../contracts/types.ts';
 import type { InferPayloadInput } from '../../models/types.ts';
+import { stageBoundAggregateSessionCommand } from '../bindAggregateSession.ts';
 import type {
   IAggregateSession,
   IAggregateSessionDefinition,
 } from '../types.ts';
 
+import { notifyStageFailure } from './stageFailureListeners.ts';
+
 /** Commit local staging synchronously; the bound delivery owner handles its handoff. */
 export function stageCommand<
-  D extends IAggregateSessionDefinition,
-  K extends keyof D['contracts'] & string,
+  DEFINITION extends IAggregateSessionDefinition,
+  CONTRACT_NAME extends keyof DEFINITION['contracts'] & string,
 >(props: {
-  session: IAggregateSession<D>;
-  contractName: K;
+  session: IAggregateSession<DEFINITION>;
+  contractName: CONTRACT_NAME;
   payload: InferPayloadInput<
-    NonNullable<D['contracts'][K]['__payloads']>[D['contracts'][K]['version']]
+    NonNullable<
+      DEFINITION['contracts'][CONTRACT_NAME]['__payloads']
+    >[DEFINITION['contracts'][CONTRACT_NAME]['version']]
   >;
-}): IResult<
-  ISessionCommand<
-    InferCommand<D['contracts'][K]>,
-    InferContractResult<D['contracts'][K]>
-  >,
-  IRecognizedFailure<InferFailure<D['contracts'][K]>>
->;
-export function stageCommand(props: {
-  session: IAggregateSession;
-  contractName: string;
-  payload: unknown;
 }) {
-  return props.session.stageCommand(props);
+  let result;
+  try {
+    result = stageBoundAggregateSessionCommand(props);
+  } catch (cause) {
+    const failure = Effect.runSync(
+      encodeError(
+        catchZerospinError({
+          code: 'aggregate-command-staging-exception',
+          message: 'Command staging failed',
+        })(cause),
+      ).pipe(
+        Effect.map(encoded => recognizeZerospinError(Schema.Never, encoded)),
+      ),
+    );
+    notifyStageFailure(props.session, {
+      contractName: props.contractName,
+      failure,
+    });
+    throw cause;
+  }
+  if (result._tag === 'Failure') {
+    notifyStageFailure(props.session, {
+      contractName: props.contractName,
+      failure: result.failure,
+    });
+  }
+  return result;
 }

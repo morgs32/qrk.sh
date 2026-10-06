@@ -414,12 +414,14 @@ export class AggregateNode {
                 pushPaused: metadata.pushPaused,
               };
             });
-            if (state !== null && !subscriber.closed)
+            if (state !== null && !subscriber.closed) {
               await subscriber.sink.state(state);
+            }
           }
           const page = await this.serialized(async () => {
-            if (subscriber.closed)
+            if (subscriber.closed) {
               return { commands: [], throughChangeIndex: subscriber.cursor };
+            }
             const { nodeId } = await this.metadata();
             const rows = await this.db
               .select()
@@ -877,8 +879,9 @@ export class AggregateNode {
   }
 
   connectionState(state: string, failure?: unknown): void {
-    if (state === 'online' && this.checkpointConflict === null)
+    if (state === 'online' && this.checkpointConflict === null) {
       this.admissionRejection = null;
+    }
     if (state === 'authenticating') {
       this.authenticationState = 'authenticating';
     } else if (

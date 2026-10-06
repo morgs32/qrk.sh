@@ -1,6 +1,6 @@
 ---
 title: Authored System and Static Worker
-updated: 2026-10-05
+updated: 2026-10-06
 sources:
   - path: packages/core/src/aggregateSession/stageCommand/executeLocalSessionCommandTx/executeLocalSessionCommandTx.ts
     sha: 26cc95a92eebae6561a7c4cc5e5aa45aec5e409a
@@ -12,8 +12,8 @@ sources:
     sha: 2342b4dd0e075d840522584cd6113f164115fdd3
     lines: 1-78
   - path: packages/core/src/aggregateSession/bindAggregateSession.ts
-    sha: f73095ded0ac8704a3f6b4449caecc25f5acc7ac
-    lines: 1-322
+    sha: e6a4fd31c384931c200c58e52b16cacb511e4a0e
+    lines: 1-359
   - path: packages/browser/src/makeAgentSession.ts
     sha: 39e7081848cb648e20fbd3d58defd23d78181ff8
     lines: 1-741
@@ -87,8 +87,8 @@ sources:
     sha: a0a12335112dff09bbd7fff4d3417b0df3d33e40
     lines: 1-371
   - path: packages/core/src/aggregateSession/make/makeAggregateSession.ts
-    sha: ca1cb5985e961cd91d028b263a8af9c7888d3ae7
-    lines: 1-199
+    sha: 4d9973281ac1069d3226952de8c2952db3e09b6d
+    lines: 1-141
   - path: packages/core/src/aggregateSession/make/makeAggregateSessionLock.ts
     sha: 34b1d1aaa761b9dd8077c13f4aac4c19e93aec2a
     lines: 1-75
@@ -96,11 +96,11 @@ sources:
     sha: 4bfc7c1b5505f8d21873879042dd352af5d7b553
     lines: 1-41
   - path: packages/core/src/aggregateSession/stageCommand/stageCommand.ts
-    sha: 5db67f1382030af8236ead0cedd7aa8359e5a364
-    lines: 1-38
+    sha: 77d93eac90a03335ebfefa5fd274aa4d3c7f54e3
+    lines: 1-57
   - path: packages/core/src/aggregateSession/types.ts
-    sha: f62398b5b8d1fbcb42c48632a8aee88883796934
-    lines: 1-258
+    sha: fe3071dfa7f21a0c2f1b43d334a308d63947e79e
+    lines: 1-245
   - path: packages/core/src/aggregateSession/validateSessionCommand.ts
     sha: 18bbf76579fbfb3a97da977df11cc76260b83b2a
     lines: 1-30
@@ -675,6 +675,8 @@ Each live, standalone, or mock session owns its application-layer acquisitions.
 Construction creates the runtime and stable store synchronously without acquiring
 resources. Initialization composes the collector, logger, and tracer after application services, preserving authored loggers. It binds staging, guards, validation, and ID generation before publishing readiness. Decoded authenticated claims and their encoded identity are captured once per activation; each command receives its own encoded claims copy. Commands, guards, validation, and replay reuse the runtime services; command execution remains synchronous. Callers may run Effects through `session.runtime` directly.
 
+Aggregate command staging uses the standalone `stageCommand({ session, contractName, payload })` function. Its selected contract determines the payload, local result, and recognized failure types. The session retains the `onStageFailure` lifecycle subscription; the standalone staging entrypoint notifies those observers when staging fails.
+
 `dispose()` immediately revokes command bindings, then stops session work, closes its resources, and disposes the runtime. It also releases services acquired directly before
 initialization. A later initialization waits for cleanup and replaces the runtime
 while preserving the session/store object. The getter retains the disposed runtime
@@ -693,7 +695,7 @@ sessions acquire neither backup infrastructure nor live transport. Standalone
 - [`BrowserBackup.ts`](../../packages/browser/src/BrowserBackup/BrowserBackup.ts) — shares only backup infrastructure and scopes key claims to sessions.
 - [`makeSession.ts`](../../packages/browser/src/makeSession/makeSession.ts) — composes live aggregate/service sessions from a single layer.
 - [`bindAggregateSession.ts`](../../packages/core/src/aggregateSession/bindAggregateSession.ts) — captures identity and installs complete command behavior before publishing initialized state.
-- [`stageCommand.ts`](../../packages/core/src/aggregateSession/stageCommand/stageCommand.ts) — retains the synchronous typed public entrypoint for bound staging.
+- [`stageCommand.ts`](../../packages/core/src/aggregateSession/stageCommand/stageCommand.ts) — owns the synchronous typed public entrypoint and failure notifications for bound staging.
 
 Server command batches acquire `makeSystem` application services and then the
 selected aggregate or service layer before entering a synchronous transaction.

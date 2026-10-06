@@ -354,6 +354,7 @@ function expectUnchanged(f: Awaited<ReturnType<typeof fixture>>) {
 describe('bound aggregate staging', () => {
   it('rejects staging, guard checks, and validation before initialization and after release', async () => {
     const f = await fixture({ bind: false });
+    expect(f.session).not.toHaveProperty('stageCommand');
     const props = {
       session: f.session,
       contractName: 'add' as const,
@@ -371,6 +372,7 @@ describe('bound aggregate staging', () => {
       failure: { code: 'aggregate-session-not-ready' },
     });
     f.bind();
+    expect(f.session).not.toHaveProperty('stageCommand');
     f.release();
     expect(stageCommand(props)).toMatchObject({
       _tag: 'Failure',
@@ -420,6 +422,44 @@ describe('bound aggregate staging', () => {
     );
     expect(f.session.store.getState().isInitialized).toBe(false);
     expectUnchanged(f);
+  });
+
+  it('rejects a contract replaced on the exposed definition after binding', async () => {
+    const f = await fixture();
+    const observer = vi.fn<Parameters<typeof f.session.onStageFailure>[0]>();
+    const unsubscribe = f.session.onStageFailure(observer);
+    const alteredProgram = vi.fn(() => Effect.void);
+    Object.defineProperty(f.session, 'definition', {
+      value: {
+        ...f.session.definition,
+        contracts: {
+          ...f.session.definition.contracts,
+          add: { ...add, program: alteredProgram },
+        },
+      },
+    });
+    try {
+      const rejected = stageCommand({
+        session: f.session,
+        contractName: 'add',
+        payload: { amount: 3 },
+      });
+      expect(rejected._tag).toBe('Failure');
+      if (rejected._tag !== 'Failure') {
+        throw new Error('Expected rejection of the replaced contract');
+      }
+      expect(rejected.failure.code).toBe('contract-not-found');
+      expect(alteredProgram).not.toHaveBeenCalled();
+      expect(seenClaims).toHaveLength(0);
+      expect(observer).toHaveBeenCalledExactlyOnceWith({
+        contractName: 'add',
+        failure: rejected.failure,
+      });
+      expect(observer.mock.calls[0]?.[0].failure).toBe(rejected.failure);
+      expectUnchanged(f);
+    } finally {
+      unsubscribe();
+    }
   });
 
   it.each(['released', 'superseded', 'failed', 'bootstrapping'] as const)(
@@ -604,6 +644,11 @@ describe('bound aggregate staging', () => {
 
   it('notifies an unexpected precommit exception once and rethrows the original error', async () => {
     const f = await fixture();
+    const diagnostic = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const observerError = new Error('Failure observer exception');
+    const stopThrowing = f.session.onStageFailure(() => {
+      throw observerError;
+    });
     const observer = vi.fn<Parameters<typeof f.session.onStageFailure>[0]>();
     const unsubscribe = f.session.onStageFailure(observer);
     const originalError = new Error('Unexpected staging runtime exception');
@@ -627,10 +672,16 @@ describe('bound aggregate staging', () => {
         contractName: 'add',
         failure: { code: 'aggregate-command-staging-exception' },
       });
+      expect(diagnostic).toHaveBeenCalledExactlyOnceWith(
+        'Aggregate session failure observer threw',
+        observerError,
+      );
       expectUnchanged(f);
     } finally {
       runSync.mockRestore();
       unsubscribe();
+      stopThrowing();
+      diagnostic.mockRestore();
     }
   });
 

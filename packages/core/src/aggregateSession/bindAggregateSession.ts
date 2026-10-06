@@ -16,9 +16,11 @@ import { makeOperations } from '../contracts/make/makeOperations.ts';
 import { prepareContractInput } from '../contracts/prepareContractInput.ts';
 import { runContractGuard } from '../contracts/runContractGuard.ts';
 import type {
-  ICommand,
   IContract,
   IEncodedCommand,
+  InferCommand,
+  InferContractResult,
+  InferFailure,
   ISessionCommand,
 } from '../contracts/types.ts';
 import { runProgram } from '../execution/runProgram.ts';
@@ -39,9 +41,14 @@ import type {
 
 type ICommandProps = { contractName: string; payload: unknown };
 type IBoundOperations = {
-  stage(
-    props: ICommandProps,
-  ): IResult<ISessionCommand<ICommand, unknown>, IRecognizedFailure<IAnyError>>;
+  stage<CONTRACT extends IContract>(props: {
+    contractName: string;
+    contract: CONTRACT | undefined;
+    payload: unknown;
+  }): IResult<
+    ISessionCommand<InferCommand<CONTRACT>, InferContractResult<CONTRACT>>,
+    IRecognizedFailure<InferFailure<CONTRACT>>
+  >;
   checkGuards(props: ICommandProps): IRecognizedFailure<IAnyError> | null;
   validate(props: ICommandProps): IResult<void, IRecognizedFailure<IAnyError>>;
   makeId: IAggregateSession['makeId'];
@@ -66,9 +73,9 @@ const recognizeFrameworkFailure = (failure: unknown) =>
     Effect.map(encoded => recognizeZerospinError(Schema.Never, encoded)),
   );
 
-function settle<A, E, R>(
-  contract: IContract | undefined,
-  program: Effect.Effect<A, E, R>,
+function settle<CONTRACT extends IContract, SUCCESS, FAILURE, REQUIREMENTS>(
+  contract: CONTRACT | undefined,
+  program: Effect.Effect<SUCCESS, FAILURE, REQUIREMENTS>,
 ) {
   return program.pipe(
     Effect.matchEffect({
@@ -155,12 +162,15 @@ export function bindAggregateSession(props: {
       return current;
     },
   );
-  const prepare = Effect.fn('prepareSessionCommand')(function* (
-    commandProps: ICommandProps,
-  ) {
+  const prepare = Effect.fn('prepareSessionCommand')(function* <
+    CONTRACT extends IContract,
+  >(commandProps: ICommandProps & { contract: CONTRACT | undefined }) {
     const current = yield* requireCurrentState();
-    const contract = definition.contracts[commandProps.contractName];
-    if (contract === undefined) {
+    const { contract } = commandProps;
+    if (
+      contract === undefined ||
+      contract !== definition.contracts[commandProps.contractName]
+    ) {
       return yield* makeZerospinError('contract-not-found');
     }
     const input = yield* prepareContractInput({
@@ -170,12 +180,12 @@ export function bindAggregateSession(props: {
     });
     return { current, contract, input };
   });
-  const stage = Effect.fn('stageCommand')(function* (
-    commandProps: ICommandProps,
-  ) {
+  const stage = Effect.fn('stageCommand')(function* <
+    CONTRACT extends IContract,
+  >(commandProps: ICommandProps & { contract: CONTRACT | undefined }) {
     const startedAt = yield* dutils.date();
     const { current, contract, input } = yield* prepare(commandProps);
-    const command = yield* makeSessionCommand({
+    const command = yield* makeSessionCommand<CONTRACT, CONTRACT['version']>({
       aggregateId,
       aggregateName: definition.aggregateName,
       actorName: definition.actorName,
@@ -205,7 +215,7 @@ export function bindAggregateSession(props: {
   });
   const operations: IBoundOperations = {
     stage(commandProps) {
-      const contract = definition.contracts[commandProps.contractName];
+      const { contract } = commandProps;
       const outcome = runtime.runSync(settle(contract, stage(commandProps)));
       if (outcome._tag === 'Failure') return outcome;
       try {
@@ -217,12 +227,16 @@ export function bindAggregateSession(props: {
       return { _tag: 'Success', success: outcome.success.command };
     },
     checkGuards(commandProps) {
-      const contract = definition.contracts[commandProps.contractName];
+      const sessionContract = definition.contracts[commandProps.contractName];
       const outcome = runtime.runSync(
         settle(
-          contract,
+          sessionContract,
           Effect.gen(function* () {
-            const { contract, input } = yield* prepare(commandProps);
+            const { contract, input } = yield* prepare({
+              contractName: commandProps.contractName,
+              contract: sessionContract,
+              payload: commandProps.payload,
+            });
             yield* runContractGuard({ contract, db, input });
           }),
         ),
@@ -230,13 +244,17 @@ export function bindAggregateSession(props: {
       return outcome._tag === 'Failure' ? outcome.failure : null;
     },
     validate(commandProps) {
-      const contract = definition.contracts[commandProps.contractName];
+      const sessionContract = definition.contracts[commandProps.contractName];
       let localId = 0;
       return runtime.runSync(
         settle(
-          contract,
+          sessionContract,
           Effect.gen(function* () {
-            const { contract, input } = yield* prepare(commandProps);
+            const { contract, input } = yield* prepare({
+              contractName: commandProps.contractName,
+              contract: sessionContract,
+              payload: commandProps.payload,
+            });
             yield* makeOperations({
               contract,
               db,
@@ -283,11 +301,30 @@ const notReady = () =>
     recognizeFrameworkFailure(makeZerospinError('aggregate-session-not-ready')),
   );
 
-export function stageBoundAggregateSessionCommand(
-  props: { session: IAggregateSession } & ICommandProps,
-) {
+export function stageBoundAggregateSessionCommand<
+  DEFINITION extends IAggregateSessionDefinition,
+  CONTRACT_NAME extends keyof DEFINITION['contracts'] & string,
+>(props: {
+  session: IAggregateSession<DEFINITION>;
+  contractName: CONTRACT_NAME;
+  payload: unknown;
+}): IResult<
+  ISessionCommand<
+    InferCommand<DEFINITION['contracts'][CONTRACT_NAME]>,
+    InferContractResult<DEFINITION['contracts'][CONTRACT_NAME]>
+  >,
+  IRecognizedFailure<InferFailure<DEFINITION['contracts'][CONTRACT_NAME]>>
+> {
   const operations = operationsBySession.get(props.session);
-  if (operations !== undefined) return operations.stage(props);
+  if (operations !== undefined) {
+    const contracts: DEFINITION['contracts'] =
+      props.session.definition.contracts;
+    return operations.stage<DEFINITION['contracts'][CONTRACT_NAME]>({
+      contractName: props.contractName,
+      contract: contracts[props.contractName],
+      payload: props.payload,
+    });
+  }
   const failure = notReady();
   return { _tag: 'Failure' as const, failure };
 }

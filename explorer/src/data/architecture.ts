@@ -7,7 +7,10 @@ import type {
 } from '../types';
 
 import schemaSnapshot from './schema-snapshot.json';
+import { declarations } from './staged-commands';
 import { tablePurposes } from './table-purposes';
+
+export { declarations } from './staged-commands';
 
 const worker = 'packages/system-worker/src';
 const aggregateIdentity =
@@ -594,22 +597,57 @@ function declaredReferences(): IConnection[] {
         destination,
         kind: 'relationship',
         label: `${column.name} → ${column.reference.column}`,
-        sourceColumn: column.name,
-        destinationColumn: column.reference.column,
+        sourceField: column.name,
+        destinationField: column.reference.column,
       });
     }
   }
   return links;
 }
+
+// applySessionCommandTx builds these fields and stageSessionCommandTx encodes
+// the row before inserting it into aggregateSession/sessionRepoDbConfig commands.
+function aggregateStagedCommandMappings(): IConnection[] {
+  const fields = [
+    { name: 'id' },
+    { name: 'commandName' },
+    { name: 'contractVersion' },
+    { name: 'payload', encoding: 'contract-encoded text' },
+    { name: 'aggregateId' },
+    { name: 'aggregateName' },
+    { name: 'claims', encoding: 'JSON encoding' },
+    { name: 'actorName' },
+    { name: 'actorVersion' },
+    { name: 'sessionName' },
+    { name: 'sessionId' },
+    { name: 'sessionIndex' },
+    {
+      name: 'staging',
+      encoding: 'JSON with original encoded result and string timestamps',
+    },
+  ];
+  return fields.map(field => ({
+    id: `field-map:aggregate-staged-command:${field.name}`,
+    source: 'aggregate-staged-command',
+    destination: 'aggregate-session/commands',
+    kind: 'field-mapping',
+    label: `stagedCommand.${field.name} → commands.${field.name}${field.encoding ? `; ${field.encoding}` : ''}`,
+    sourceField: field.name,
+    destinationField: field.name,
+  }));
+}
+
 export const connections: readonly IConnection[] = [
   ...routes,
   ...declaredReferences(),
+  ...aggregateStagedCommandMappings(),
 ];
 
 export const systemOverviewScope: IGraphScope = {
   repos,
   tables,
   entities,
+  declarations,
   connections,
 };
 

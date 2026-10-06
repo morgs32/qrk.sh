@@ -44,8 +44,9 @@ const initializeTx = makeTx('initializeServiceNodeProjection')(function* (
   tx.run(sql.raw('PRAGMA defer_foreign_keys = ON;'));
   const { serviceSessionMetadata: sessionMetadata } =
     serviceSessionRepoDbConfig.schema;
-  if (tx.select().from(sessionMetadata).get() !== undefined)
+  if (tx.select().from(sessionMetadata).get() !== undefined) {
     return yield* makeZerospinError('session-projection-already-initialized');
+  }
   const { definition, sessionId, snapshot } = props;
   for (const resource of snapshot.resources) {
     const model = yield* getByKeyOrThrow({
@@ -75,11 +76,13 @@ const initializeTx = makeTx('initializeServiceNodeProjection')(function* (
       changeIndex: snapshot.metadata.changeIndex,
     })
     .run();
-  for (const command of snapshot.unresolvedCommands)
+  for (const command of snapshot.unresolvedCommands) {
     yield* importServiceCommandTx({ tx, definition, sessionId, command });
+  }
   const metadata = tx.select().from(sessionMetadata).get();
-  if (metadata === undefined)
+  if (metadata === undefined) {
     return yield* makeZerospinError('session-metadata-missing');
+  }
   return metadata;
 });
 

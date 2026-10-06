@@ -154,8 +154,9 @@ function compileAndPublish() {
     const absolutePath = sourcePaths.get(
       canonicalPath(resolve(dirname(stagedBuildInfoPath), fileName)),
     );
-    if (absolutePath === undefined || /\.d\.[cm]?ts$/.test(absolutePath))
+    if (absolutePath === undefined || /\.d\.[cm]?ts$/.test(absolutePath)) {
       continue;
+    }
     const sourcePath = relative(sourceDirectory, absolutePath);
     const javascriptExtension = sourcePath.endsWith('.mts')
       ? '.mjs'
@@ -207,8 +208,9 @@ function compileAndPublish() {
         fileName === join(outputDirectory, 'primitives.js') ||
         fileName.startsWith(`${primitivesOutputDirectory}${sep}`)
       )
-    )
+    ) {
       continue;
+    }
     const inputMap = emitted.get(`${fileName}.map`);
     const result = transformSync(contents, {
       babelrc: false,
@@ -234,8 +236,9 @@ function compileAndPublish() {
         ],
       ],
     });
-    if (result?.code === undefined || result.code === null)
+    if (result?.code === undefined || result.code === null) {
       throw new Error(`StyleX did not emit ${fileName}`);
+    }
     rules.push(...(result.metadata.stylex ?? []));
     const mapComment =
       inputMap === undefined
@@ -246,10 +249,11 @@ function compileAndPublish() {
       `${result.code.replace(/\n?\/\/# sourceMappingURL=.*$/m, '')}${mapComment}\n`,
     );
     if (inputMap !== undefined) {
-      if (result.map === undefined || result.map === null)
+      if (result.map === undefined || result.map === null) {
         throw new Error(
           `StyleX did not preserve the source map for ${fileName}`,
         );
+      }
       result.map.file = basename(fileName);
       compiled.set(`${fileName}.map`, JSON.stringify(result.map));
     }
@@ -272,8 +276,9 @@ function compileAndPublish() {
 
   // The compiler has one watcher. Each successful cycle synchronously transforms
   // the complete stylesheet before publishing any JavaScript or declarations.
-  for (const [fileName, contents] of compiled)
+  for (const [fileName, contents] of compiled) {
     writeAtomically(fileName, contents);
+  }
   for (const fileName of listFiles(outputDirectory)) {
     if (!compiled.has(fileName)) rmSync(fileName);
   }
@@ -302,19 +307,22 @@ function compileAndPublish() {
       /^lib\..*\.d\.ts$/.test(fileName) ? fileName : remapBuildPath(fileName),
     );
     for (const key of ['packageJsons', 'missingPackageJsons']) {
-      if (buildInfo[key] !== undefined)
+      if (buildInfo[key] !== undefined) {
         buildInfo[key] = [...new Set(buildInfo[key].map(remapBuildPath))];
+      }
     }
-    if (buildInfo.latestChangedDtsFile !== undefined)
+    if (buildInfo.latestChangedDtsFile !== undefined) {
       buildInfo.latestChangedDtsFile = remapBuildPath(
         buildInfo.latestChangedDtsFile,
       );
+    }
     buildInfo.options.outDir = `./${relative(buildInfoDirectory, outputDirectory).split(sep).join('/')}`;
     buildInfo.options.rootDir = `./${relative(buildInfoDirectory, sourceDirectory).split(sep).join('/')}`;
-    if (parsedConfig.options.tsBuildInfoFile === undefined)
+    if (parsedConfig.options.tsBuildInfoFile === undefined) {
       delete buildInfo.options.tsBuildInfoFile;
-    else
+    } else {
       buildInfo.options.tsBuildInfoFile = `./${relative(buildInfoDirectory, buildInfoPath).split(sep).join('/')}`;
+    }
     writeAtomically(buildInfoPath, JSON.stringify(buildInfo));
   }
   process.stdout.write('Compiled React primitives and primitives.css.\n');

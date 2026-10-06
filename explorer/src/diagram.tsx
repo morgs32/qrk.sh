@@ -38,7 +38,9 @@ import type {
   IRepo,
   ISnapshot,
   ITable,
+  ITypeDeclaration,
 } from './types';
+import { TypeScriptIcon } from './TypeScriptIcon';
 
 export const ownerNames: Record<IOwner, string> = {
   system: 'System',
@@ -54,6 +56,7 @@ export const ownerColors: Record<IOwner, string> = {
 };
 export const connectionNames: Record<IConnectionKind, string> = {
   relationship: 'Declared reference',
+  'field-mapping': 'Field mapping',
   'session-execute': 'Session executeCommand',
   'session-stage': 'Session stageCommand',
   projection: 'History & projection',
@@ -63,6 +66,7 @@ export const connectionNames: Record<IConnectionKind, string> = {
 };
 export const connectionColors: Record<IConnectionKind, string> = {
   relationship: 'var(--connection-relationship)',
+  'field-mapping': 'var(--type-accent)',
   'session-execute': 'var(--connection-session-execute)',
   'session-stage': 'var(--connection-session-stage)',
   projection: 'var(--connection-projection)',
@@ -81,6 +85,7 @@ type ITableData = {
   rows: number;
 };
 type IEntityData = { entity: IEntity };
+type IDeclarationData = { declaration: ITypeDeclaration };
 type IOwnerBoundaryData = {
   owner: IOwner;
   name: string;
@@ -89,8 +94,14 @@ type IOwnerBoundaryData = {
 type IRepoNode = Node<IRepoData, 'repo'>;
 type ITableNode = Node<ITableData, 'table'>;
 type IEntityNode = Node<IEntityData, 'entity'>;
+type IDeclarationNode = Node<IDeclarationData, 'declaration'>;
 type IOwnerBoundaryNode = Node<IOwnerBoundaryData, 'owner-boundary'>;
-type IFlowNode = IRepoNode | ITableNode | IEntityNode | IOwnerBoundaryNode;
+type IFlowNode =
+  | IRepoNode
+  | ITableNode
+  | IEntityNode
+  | IDeclarationNode
+  | IOwnerBoundaryNode;
 
 function SessionExecuteEdge({
   id,
@@ -238,6 +249,39 @@ function EntityNode({ data }: NodeProps<IEntityNode>) {
   );
 }
 
+function DeclarationNode({ data }: NodeProps<IDeclarationNode>) {
+  const { declaration } = data;
+  return (
+    <Card className="table-card declaration-card">
+      <header>
+        <TypeScriptIcon />
+        <strong>{declaration.variableName}</strong>
+        <Badge variant="outline" className="declaration-type">
+          <code>{declaration.name}</code>
+        </Badge>
+      </header>
+      <div className="table-columns">
+        {declaration.properties.map(property => (
+          <div className="column-row type-card-property" key={property.name}>
+            <span className="column-name" title={property.description}>
+              {property.name}
+              {property.optional ? '?' : ''}
+            </span>
+            <code className="column-type" title={property.type}>
+              {property.type}
+            </code>
+            <Handle
+              type="source"
+              position={Position.Right}
+              id={`out-${property.name}`}
+            />
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
 function OwnerBoundaryNode({ data }: NodeProps<IOwnerBoundaryNode>) {
   const { zoom } = useViewport();
   return (
@@ -260,10 +304,12 @@ const nodeTypes = {
   repo: RepoNode,
   table: TableNode,
   entity: EntityNode,
+  declaration: DeclarationNode,
   'owner-boundary': OwnerBoundaryNode,
 };
 const edgeTypes = { 'session-execute': SessionExecuteEdge };
 const tableWidth = 380;
+const declarationWidth = 600;
 const initialFitViewOptions = { padding: 0.12, maxZoom: 0.55 };
 
 function makeRepoTables(
@@ -404,7 +450,25 @@ function makeOverviewNodes(
     ariaLabel: `${entity.kind}: ${entity.name}`,
     data: { entity },
   }));
-  return [...repoNodes, ...entityNodes];
+  const declarationNodes: IDeclarationNode[] = scope.declarations.map(
+    declaration => {
+      const repoPosition = positions.get(declaration.repoId)!;
+      const height = 62 + declaration.properties.length * 26;
+      return {
+        id: declaration.id,
+        type: 'declaration',
+        position: {
+          x: repoPosition.x - declarationWidth - 160,
+          y: repoPosition.y + 146,
+        },
+        width: declarationWidth,
+        height,
+        ariaLabel: `${declaration.variableName}, TypeScript type ${declaration.name}. Enter to inspect.`,
+        data: { declaration },
+      };
+    },
+  );
+  return [...repoNodes, ...entityNodes, ...declarationNodes];
 }
 
 /** Frame only visible components, so owner filters never leave empty groups. */
@@ -413,14 +477,27 @@ function makeOwnerBoundaryNodes(
 ): IOwnerBoundaryNode[] {
   const groups = new Map<
     string,
-    { owner: IOwner; name: string; components: (IRepoNode | IEntityNode)[] }
+    {
+      owner: IOwner;
+      name: string;
+      components: (IRepoNode | IEntityNode | IDeclarationNode)[];
+    }
   >();
   for (const node of nodes) {
-    if (node.hidden || (node.type !== 'repo' && node.type !== 'entity')) {
+    if (
+      node.hidden ||
+      (node.type !== 'repo' &&
+        node.type !== 'entity' &&
+        node.type !== 'declaration')
+    ) {
       continue;
     }
     const owner =
-      node.type === 'repo' ? node.data.repo.owner : node.data.entity.owner;
+      node.type === 'repo'
+        ? node.data.repo.owner
+        : node.type === 'entity'
+          ? node.data.entity.owner
+          : node.data.declaration.owner;
     const id = node.id.endsWith('-node') ? 'shared-worker' : owner;
     const name =
       id === 'shared-worker'
@@ -484,7 +561,7 @@ export function Diagram({
   reducedMotion: boolean;
   scope?: IGraphScope;
 }) {
-  const { repos, tables, entities, connections } = scope;
+  const { repos, tables, entities, declarations, connections } = scope;
   const { theme } = useTheme();
   const flow = useReactFlow<IFlowNode>();
   const allNodes = useMemo(
@@ -504,6 +581,11 @@ export function Diagram({
       visibleIds.add(entity.id);
     }
   }
+  for (const declaration of declarations) {
+    if (owners.has(declaration.owner)) {
+      visibleIds.add(declaration.id);
+    }
+  }
   const componentNodes = allNodes.map(node => ({
     ...node,
     hidden: !visibleIds.has(node.id),
@@ -513,7 +595,7 @@ export function Diagram({
   const edges: Edge[] = connections
     .filter(
       connection =>
-        kinds.has(connection.kind) &&
+        (connection.kind === 'field-mapping' || kinds.has(connection.kind)) &&
         visibleIds.has(connection.source) &&
         visibleIds.has(connection.destination),
     )
@@ -522,21 +604,24 @@ export function Diagram({
         id: connection.id,
         source: connection.source,
         target: connection.destination,
-        sourceHandle: connection.sourceColumn
-          ? `out-${connection.sourceColumn}`
+        sourceHandle: connection.sourceField
+          ? `out-${connection.sourceField}`
           : connection.kind === 'session-execute'
             ? 'execute-out'
             : 'out',
-        targetHandle: connection.destinationColumn
-          ? `in-${connection.destinationColumn}`
+        targetHandle: connection.destinationField
+          ? `in-${connection.destinationField}`
           : connection.kind === 'session-execute'
             ? 'execute-in'
             : 'in',
         type:
           connection.kind === 'session-execute'
             ? 'session-execute'
-            : 'smoothstep',
-        label: connection.label,
+            : connection.kind === 'field-mapping'
+              ? 'default'
+              : 'smoothstep',
+        label:
+          connection.kind === 'field-mapping' ? undefined : connection.label,
         ariaLabel: `${connectionNames[connection.kind]}: ${connection.label}`,
         markerEnd: {
           type: MarkerType.ArrowClosed,
@@ -544,10 +629,11 @@ export function Diagram({
         },
         style: {
           stroke: connectionColors[connection.kind],
-          strokeWidth: 1.8,
+          strokeWidth: connection.kind === 'field-mapping' ? 1.2 : 1.8,
           opacity: 'var(--edge-opacity)',
           strokeDasharray:
-            connection.kind === 'relationship'
+            connection.kind === 'relationship' ||
+            connection.kind === 'field-mapping'
               ? undefined
               : connection.kind === 'async'
                 ? '8 5'
@@ -577,7 +663,8 @@ export function Diagram({
     <div className="diagram" style={{ background: 'var(--canvas-background)' }}>
       <div className="canvas-toolbar">
         <span className="canvas-label">
-          <span className="live-dot" /> {tables.length} TABLES · ONE CANVAS
+          <span className="live-dot" /> {tables.length} TABLES ·{' '}
+          {declarations.length} TYPES · ONE CANVAS
         </span>
         <div>
           <Tooltip>
@@ -621,7 +708,12 @@ export function Diagram({
         onNodeClick={(_event, node) => {
           onSelect(node.id);
           if (node.type === 'repo') {
-            fit([node.id]);
+            fit([
+              node.id,
+              ...declarations
+                .filter(declaration => declaration.repoId === node.id)
+                .map(declaration => declaration.id),
+            ]);
           }
         }}
         onNodesChange={changes => {
@@ -671,7 +763,9 @@ export function Diagram({
             const table = tables.find(item => item.id === node.id);
             const owner =
               repos.find(item => item.id === (table?.repoId ?? node.id))
-                ?.owner ?? entities.find(item => item.id === node.id)?.owner;
+                ?.owner ??
+              entities.find(item => item.id === node.id)?.owner ??
+              declarations.find(item => item.id === node.id)?.owner;
             return owner ? ownerColors[owner] : 'var(--muted-foreground)';
           }}
           maskColor="var(--minimap-mask)"

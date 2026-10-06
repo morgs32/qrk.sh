@@ -52,8 +52,9 @@ export const importAggregateCommandTx = Effect.fn('importAggregateCommandTx')(
       .from(sessionMetadata)
       .where(eq(sessionMetadata.sessionId, sessionId))
       .get();
-    if (metadata === undefined)
+    if (metadata === undefined) {
       return yield* makeZerospinError('session-metadata-missing');
+    }
     const terminal = 'executedIndex' in command;
     const rows = tx
       .select()
@@ -110,16 +111,18 @@ export const importAggregateCommandTx = Effect.fn('importAggregateCommandTx')(
       if (
         command.executedIndex === metadata.executedIndex &&
         command.executedHash !== metadata.executedHash
-      )
+      ) {
         return yield* makeZerospinError(
           'aggregate-session-checkpoint-conflict',
         );
+      }
       if (
         command.executedIndex > metadata.executedIndex &&
         (command.executedIndex !== metadata.executedIndex + 1 ||
           command.aggregateIndex < metadata.aggregateIndex)
-      )
+      ) {
         return yield* makeZerospinError('aggregate-session-command-index-gap');
+      }
       local = rows.find(
         row => row.id === command.id && row.executedIndex === null,
       );
@@ -129,8 +132,9 @@ export const importAggregateCommandTx = Effect.fn('importAggregateCommandTx')(
         command.actorVersion !== definition.actorVersion ||
         command.aggregateName !== definition.aggregateName ||
         command.sessionName !== definition.sessionName
-      )
+      ) {
         return yield* makeZerospinError('pending-command-actor-mismatch');
+      }
       local ??= rows.find(
         row => row.id === command.id && row.executedIndex === null,
       );
@@ -300,11 +304,12 @@ export const importAggregateCommandTx = Effect.fn('importAggregateCommandTx')(
           .run();
       }
     }
-    if (local === undefined)
+    if (local === undefined) {
       tx.update(sessionMetadata)
         .set({ nextSessionIndex })
         .where(eq(sessionMetadata.sessionId, sessionId))
         .run();
+    }
     yield* replayPendingCommandsTx({ tx, definition });
     return 'applied' as const;
   },
@@ -319,13 +324,14 @@ const importPageTx = makeTx('importAggregateNodeCommands')(function* (
     throughChangeIndex?: number;
   },
 ) {
-  for (const command of props.commands)
+  for (const command of props.commands) {
     yield* importAggregateCommandTx({
       tx,
       definition: props.definition,
       sessionId: props.sessionId,
       command,
     });
+  }
   const { sessionMetadata } = sessionRepoDbConfig.schema;
   if (props.throughChangeIndex !== undefined) {
     const metadata = tx
@@ -336,8 +342,9 @@ const importPageTx = makeTx('importAggregateNodeCommands')(function* (
     if (
       metadata === undefined ||
       props.throughChangeIndex < metadata.changeIndex
-    )
+    ) {
       return yield* makeZerospinError('session-change-index-regression');
+    }
     tx.update(sessionMetadata)
       .set({ changeIndex: props.throughChangeIndex })
       .where(eq(sessionMetadata.sessionId, props.sessionId))
@@ -348,8 +355,9 @@ const importPageTx = makeTx('importAggregateNodeCommands')(function* (
     .from(sessionMetadata)
     .where(eq(sessionMetadata.sessionId, props.sessionId))
     .get();
-  if (metadata === undefined)
+  if (metadata === undefined) {
     return yield* makeZerospinError('session-metadata-missing');
+  }
   return metadata;
 });
 

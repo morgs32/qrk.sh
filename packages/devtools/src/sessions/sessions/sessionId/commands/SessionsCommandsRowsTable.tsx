@@ -178,11 +178,12 @@ export function ServiceCommandsRowsTable(props: {
       db.query.commands!.findMany({ orderBy: { sessionIndex: 'asc' } }),
     tableNames: ['commands'],
   });
-  if (error !== undefined)
+  if (error !== undefined) {
     return (
       <p style={sessionsDatabaseTabStyles.errorText}>
         Failed to load rows: {error.message}
       </p>
     );
+  }
   return <SessionsCommandsTableBody rows={rows} service />;
 }

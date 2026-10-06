@@ -15,10 +15,6 @@
             "@zerospin/shapes",
             "system-worker"
           ]
-        },
-        {
-          "target": "config:lib",
-          "projects": []
         }
       ]
     }

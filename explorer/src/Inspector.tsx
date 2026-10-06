@@ -11,7 +11,15 @@ import {
 
 import { systemOverviewScope } from './data/architecture';
 import { ownerColors, ownerNames } from './diagram';
-import type { IGraphScope, IRow, ISnapshot, ISource, ITable } from './types';
+import type {
+  IGraphScope,
+  IRow,
+  ISnapshot,
+  ISource,
+  ITable,
+  ITypeDeclaration,
+} from './types';
+import { TypeScriptIcon } from './TypeScriptIcon';
 import { useMobile } from './useMobile';
 
 import { Badge } from '@/components/ui/badge';
@@ -195,6 +203,59 @@ function TableDetails({
   );
 }
 
+function TypeDetails({ declaration }: { declaration: ITypeDeclaration }) {
+  return (
+    <>
+      <Badge variant="secondary" className="type-declaration-badge">
+        <TypeScriptIcon />
+        <code>{declaration.name}</code>
+      </Badge>
+      <p className="inspector-description">{declaration.description}</p>
+      <Tabs defaultValue="properties" className="inspector-details">
+        <TabsList className="inspector-tabs" aria-label="Type details">
+          <TabsTrigger value="properties">
+            <Columns3 />
+            Properties
+          </TabsTrigger>
+          <TabsTrigger value="source">
+            <FileCode2 />
+            Source
+          </TabsTrigger>
+        </TabsList>
+        <TabsContent value="properties" className="inspector-tab-content">
+          <p className="inspector-description">
+            {declaration.properties.length} properties · current TypeScript
+            declaration
+          </p>
+          <div className="schema-list type-properties">
+            {declaration.properties.map(property => (
+              <div className="schema-field" key={property.name}>
+                <div>
+                  <strong>{property.name}</strong>
+                  <code>{property.type}</code>
+                </div>
+                <div className="schema-constraints">
+                  <Badge variant="outline">
+                    {property.optional ? 'Optional' : 'Required'}
+                  </Badge>
+                </div>
+                {property.description && (
+                  <p className="type-property-description">
+                    {property.description}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        </TabsContent>
+        <TabsContent value="source" className="inspector-tab-content">
+          <Source source={declaration.source} />
+        </TabsContent>
+      </Tabs>
+    </>
+  );
+}
+
 export function Inspector({
   selectedId,
   snapshot,
@@ -209,18 +270,28 @@ export function Inspector({
   scope?: IGraphScope;
 }) {
   const mobile = useMobile();
-  const { tables, repos, entities: scopedEntities } = scope;
+  const { tables, declarations, repos, entities: scopedEntities } = scope;
   const table = tables.find(item => item.id === selectedId);
-  const repo = repos.find(item => item.id === (table?.repoId ?? selectedId));
+  const declaration = declarations.find(item => item.id === selectedId);
+  const repo = repos.find(
+    item => item.id === (table?.repoId ?? declaration?.repoId ?? selectedId),
+  );
   const entity = scopedEntities.find(item => item.id === selectedId);
-  if (!table && !repo && !entity) return null;
-  const title = table?.name ?? entity?.name ?? repo?.name ?? selectedId;
-  const owner = repo?.owner ?? entity?.owner;
+  if (!table && !declaration && !repo && !entity) return null;
+  const title =
+    table?.name ??
+    declaration?.variableName ??
+    entity?.name ??
+    repo?.name ??
+    selectedId;
+  const owner = declaration?.owner ?? repo?.owner ?? entity?.owner;
   const kind = table
     ? 'Table inspector'
-    : repo
-      ? 'Repo inspector'
-      : 'Entity inspector';
+    : declaration
+      ? 'Type inspector'
+      : repo
+        ? 'Repo inspector'
+        : 'Entity inspector';
   const content = (
     <div className="inspector-content">
       {owner && (
@@ -234,6 +305,8 @@ export function Inspector({
       )}
       {table ? (
         <TableDetails key={table.id} table={table} snapshot={snapshot} />
+      ) : declaration ? (
+        <TypeDetails key={declaration.id} declaration={declaration} />
       ) : repo ? (
         <>
           <p className="inspector-description">{repo.description}</p>
@@ -294,7 +367,9 @@ export function Inspector({
             <span className="eyebrow">{kind}</span>
             <SheetTitle className="inspector-title">{title}</SheetTitle>
             <SheetDescription className="sr-only">
-              Schema, example rows and source details for {title}.
+              {declaration
+                ? `TypeScript properties and source details for ${title}.`
+                : `Schema, example rows and source details for ${title}.`}
             </SheetDescription>
           </SheetHeader>
           {content}

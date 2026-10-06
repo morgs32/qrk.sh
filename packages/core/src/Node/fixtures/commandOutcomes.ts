@@ -223,8 +223,9 @@ async function AggregateCases(): Promise<void> {
       initialize: async () => undefined,
       state: async () => undefined,
       async commands(commands) {
-        for (const command of commands)
+        for (const command of commands) {
           if ('executedIndex' in command) replayed.push(command);
+        }
         retryDelivered.resolve();
       },
     },
@@ -317,9 +318,11 @@ async function AggregateCases(): Promise<void> {
       },
       commands: async commands => {
         pendingCommands.push(...commands);
-        for (const command of commands)
-          if ('executedIndex' in command)
+        for (const command of commands) {
+          if ('executedIndex' in command) {
             firstTerminalDelivered.resolve(command);
+          }
+        }
         pendingDelivered.resolve();
       },
     },
@@ -691,10 +694,11 @@ async function AggregateCases(): Promise<void> {
     resolvedThrough: 0,
     resources: [],
   });
-  for (let index = 1; index <= 60; index++)
+  for (let index = 1; index <= 60; index++) {
     await catchupNode.receiveCommand(
       AggregateCommand(index, `cmd_catchup_${index}`, index),
     );
+  }
   let releaseCatchup: () => void = () => undefined;
   const catchupGate = new Promise<void>(resolve => {
     releaseCatchup = resolve;
@@ -871,8 +875,9 @@ async function ServiceCases(): Promise<void> {
       initialize: async () => undefined,
       state: async () => undefined,
       async commands(commands) {
-        for (const command of commands)
+        for (const command of commands) {
           if ('executedIndex' in command) replayed.push(command);
+        }
         retryDelivered.resolve();
       },
     },
@@ -965,9 +970,11 @@ async function ServiceCases(): Promise<void> {
       },
       commands: async commands => {
         pendingCommands.push(...commands);
-        for (const command of commands)
-          if ('executedIndex' in command)
+        for (const command of commands) {
+          if ('executedIndex' in command) {
             firstTerminalDelivered.resolve(command);
+          }
+        }
         pendingDelivered.resolve();
       },
     },
@@ -1338,10 +1345,11 @@ async function ServiceCases(): Promise<void> {
     resolvedThrough: 0,
     resources: [],
   });
-  for (let index = 1; index <= 60; index++)
+  for (let index = 1; index <= 60; index++) {
     await catchupNode.receiveCommand(
       ServiceCommand(index, `cmd_catchup_${index}`, index),
     );
+  }
   let releaseCatchup: () => void = () => undefined;
   const catchupGate = new Promise<void>(resolve => {
     releaseCatchup = resolve;

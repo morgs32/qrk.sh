@@ -84,9 +84,9 @@ export function AggregateAgentSearch({
         ))}
       </Outline>
       {loading && (
-        <p role="status" className="mt-1 text-sm text-muted-foreground">
+        <output className="mt-1 block text-sm text-muted-foreground">
           Loading aggregate IDs…
-        </p>
+        </output>
       )}
       {error !== undefined && (
         <div className="mt-1 text-sm">
@@ -105,9 +105,9 @@ export function AggregateAgentSearch({
         </div>
       )}
       {!loading && error === undefined && ids.length === 0 && (
-        <p role="status" className="mt-1 text-sm text-muted-foreground">
+        <output className="mt-1 block text-sm text-muted-foreground">
           No registered aggregate IDs.
-        </p>
+        </output>
       )}
     </>
   );

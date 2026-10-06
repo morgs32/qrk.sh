@@ -18,10 +18,6 @@
             "@zerospin/studio",
             "system-worker"
           ]
-        },
-        {
-          "target": "config:lib",
-          "projects": []
         }
       ]
     },

@@ -14,7 +14,7 @@ export function SiteHeader() {
   return (
     <header
       data-testid="site-navbar"
-      className="z-50 flex h-16 shrink-0 items-center justify-between border-b border-border bg-background px-6"
+      className="qrk-responsive-insets z-50 flex h-16 shrink-0 items-center justify-between border-b border-border bg-background [padding-inline:var(--qrk-inset-inline)]"
     >
       {isInitialized ? (
         <Wordmark />

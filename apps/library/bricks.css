@@ -1,5 +1,19 @@
 @import "mapbox-gl/dist/mapbox-gl.css";
 
+.qrk-responsive-insets {
+  --qrk-inset-inline: 16px;
+  --qrk-inset-block: 16px;
+}
+
+@media (min-width: 720px) {
+  @container (min-width: 720px) {
+    .qrk-responsive-insets {
+      --qrk-inset-inline: 30px;
+      --qrk-inset-block: 32px;
+    }
+  }
+}
+
 .grid-layout .react-grid-item.react-grid-placeholder {
   background: #f7f7f7;
   opacity: 1;

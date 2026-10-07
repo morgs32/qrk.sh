@@ -85,7 +85,7 @@ export function Grid() {
               }}
             >
               <div className="[--wall-chrome-height:7rem]">
-                <div className="translate-y-[var(--wall-drag-scroll-offset,0px)]">
+                <div className="@container translate-y-[var(--wall-drag-scroll-offset,0px)]">
                   <SiteHeader />
                 </div>
                 <BrickWall

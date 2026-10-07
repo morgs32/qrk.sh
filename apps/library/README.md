@@ -184,7 +184,9 @@ restores their usual position; their desktop movement follows the drawer's
 Library and Studio share `ModuleFilmstrip`, including module previews, four-breakpoint
 measurement, and `DraggableBrick`. Each app supplies its own module links through
 `renderModuleLink`; the shared catalog has no router dependency. Columns scroll
-vertically within a horizontal strip. Module detail screens remain app-owned.
+vertically within a horizontal strip. Module headings span their columns edge
+to edge and stick to the top while previews scroll underneath. Module detail
+screens remain app-owned.
 
 ## Modules and interaction
 
@@ -491,11 +493,14 @@ legacy aliases or data migration; old `text` bricks,
 Article state stores required `title` and `subtitle` strings separately from the
 nullable Tiptap body `content`. The module form uses plain text title/subtitle
 inputs in a centered writing column, with a flat, centered toolbar.
-Article content has no horizontal padding. Narrow views use 16px top padding
-and 16px outer gutters. At `md` (720px) and above, both the viewport and brick
-container must qualify for 32px vertical padding and 30px outer gutters.
-The drawer uses the same responsive insets based on viewport width, retaining
-its existing 660px desktop text measure.
+Article content has no horizontal padding. Read-only documents use the shared
+`qrk-responsive-insets` class from `bricks.css`: `--qrk-inset-inline` supplies
+16px outer gutters and `--qrk-inset-block` supplies 16px vertical padding.
+When both the document viewport and nearest query container reach 720px, those
+values become 30px and 32px respectively. Studio's site navbar consumes the
+inline inset only; Library's decorative navbar keeps its existing spacing.
+The drawer retains its separate viewport-based insets and existing 660px
+desktop text measure.
 Titles use 32px/36px bold text; subtitles use 18px/24px muted text, with a 12px
 title-to-subtitle gap and 36px before the body. The drawer retains its smaller
 mobile title. These fonts and spacing follow the

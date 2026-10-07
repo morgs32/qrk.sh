@@ -40,7 +40,7 @@ Clerk uses its Next.js integration; nuqs uses its Next App Router adapter. Sign-
 
 The root layout mounts the shared `ZerospinDevtoolsLoader` in development with the panel initially closed. Its lifetime spans route navigation and authentication changes; the loader owns cleanup when the application unmounts.
 
-The dashboard layout renders the `qrk.sh` header in the initial HTML and reserves a 40 px account slot with a shadcn skeleton. The site editor, including its 64 px navbar, appears only once the browser session is ready; the initial HTML has no site navbar or site-name skeleton. Each breakpoint pane owns the complete navbar inside its browser frame, beneath the address bar and above `BrickWall`. The existing `Wordmark` subscribes to site data and preserves settings draft previews. Site data, drafts, SQLite, and editing remain browser-owned.
+The dashboard layout renders the `qrk.sh` header in the initial HTML and reserves a 40 px account slot with a shadcn skeleton. The site editor, including its 64 px navbar, appears only once the browser session is ready; the initial HTML has no site navbar or site-name skeleton. Each breakpoint pane owns the complete navbar inside its browser frame, beneath the address bar and above `BrickWall`. `Grid` makes the existing navbar wrapper a query container. `SiteHeader` uses Library's shared `qrk-responsive-insets` class and `--qrk-inset-inline`: 16px gutters become 30px when both the document viewport and wrapper reach 720px, preserving its 64px height and chrome offset. The existing `Wordmark` subscribes to site data and preserves settings draft previews. Site data, drafts, SQLite, and editing remain browser-owned.
 
 ## Routes and transitions
 
@@ -77,8 +77,9 @@ and drawer scroll anchoring is preserved.
 Studio imports the shared `Drawer` from `@qrk.sh/library/Drawer` and passes `open`. Its shell slides with a 300ms CSS transform; editor height and padding do not animate. The route-level React `ViewTransition` preserves only outgoing content for exit, with matching translation and easing. Opening and navigation between drawer routes have no snapshot entrance. Browsers without native View Transitions close immediately. Reduced motion skips positional animation. Closed drawers are inert, hidden from assistive technology, and release their content after exit; focus returns to the opener when it is still appropriate. The transition overlay allows pointer events through. This supersedes plan 007's animated grid-row reservation and snapshot entrance; its unrelated verification items remain separate.
 
 The modules catalog uses `@qrk.sh/library/ModuleFilmstrip`, the same horizontal
-filmstrip as Library. Each module column scrolls vertically; previews use the
-active breakpoint and shared drag payload. Studio supplies Next links to its
+filmstrip as Library. Each module column scrolls vertically beneath its full-width
+sticky heading; previews use the active breakpoint and shared drag payload.
+Studio supplies Next links to its
 `/modules/[moduleId]` detail routes. The catalog lives at `/modules` under the
 page editor, with a **Bricks** breadcrumb and the **Add bricks** toolbar action.
 The previous catalog URLs are removed without redirects.

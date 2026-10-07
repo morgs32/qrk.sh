@@ -78,7 +78,7 @@ export const articleBrickContentView = makeComponentView(articleBrickComponent, 
     if (rendered?.source === source && "error" in rendered) throw rendered.error;
     return (
       <BrickShell className="overflow-hidden bg-white">
-        <div className="qrk-article-document qrk-article-readonly">
+        <div className="qrk-article-document qrk-article-readonly qrk-responsive-insets">
           <h1 className="qrk-article-title">{title}</h1>
           <p className="qrk-article-subtitle">{subtitle}</p>
           <div

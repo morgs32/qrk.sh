@@ -78,12 +78,14 @@ export function ModulePreview(props: {
     <div
       data-module-entry={brickModule.id}
       className={cn(
-        "flex h-full min-h-0 w-max shrink-0 flex-col overflow-y-auto overscroll-y-contain px-8",
-        exceedsWallWidth ? "border border-red-200 bg-red-50" : "border-r border-zinc-200",
+        "flex h-full min-h-0 w-max shrink-0 flex-col overflow-y-auto overscroll-y-contain",
+        exceedsWallWidth ? "border border-red-200 bg-red-50" : "border-r border-zinc-200 bg-zinc-100",
       )}
     >
-      <h2 className="m-0 shrink-0 py-4 font-normal">{moduleLink}</h2>
-      <div className="relative pb-16">
+      <h2 className="sticky top-0 z-10 m-0 shrink-0 bg-inherit px-8 py-4 font-normal">
+        {moduleLink}
+      </h2>
+      <div className="relative px-8 pb-16">
         <div
           aria-hidden
           className="pointer-events-none absolute overflow-hidden"

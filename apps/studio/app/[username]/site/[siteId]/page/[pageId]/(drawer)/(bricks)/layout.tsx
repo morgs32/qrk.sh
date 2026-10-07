@@ -62,7 +62,7 @@ export default function BrickDrawerLayout(props: { children: ReactNode }) {
       <header className="flex shrink-0 items-center justify-between gap-4 border-b border-border/60 px-4 py-2.5">
         <nav aria-label="Drawer breadcrumbs" className="flex min-w-0 items-center gap-2">
           <Link href={`${base}/modules`} scroll={false}>
-            Bricks
+            Drag a brick onto your page
           </Link>
           {moduleId !== undefined && moduleLabel !== undefined ? (
             <>

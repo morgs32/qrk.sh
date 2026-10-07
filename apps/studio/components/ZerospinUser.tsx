@@ -4,11 +4,10 @@ import { makeAggregateId } from "@zerospin/core/utils/make/makeAggregateId";
 import { prettyUnknownFailure } from "@zerospin/error";
 
 import { RedirectToSignIn, useAuth, useUser } from "@clerk/nextjs";
-import { loadDevtools } from "@zerospin/react/loadDevtools/loadDevtools";
 import { useInitializeAggregateSession } from "@zerospin/react/useInitializeAggregateSession/useInitializeAggregateSession";
 import { ZerospinError } from "@zerospin/sdk/browser";
 import { Effect } from "effect";
-import { useEffect, useSyncExternalStore, type ReactNode } from "react";
+import { useSyncExternalStore, type ReactNode } from "react";
 import { userSession } from "@/zerospin/userSession";
 
 export function useZerospinUserInitializedState() {
@@ -45,21 +44,6 @@ function ZerospinUserInitializedStateProvider(props: { clerkUserId: string }) {
           }),
       }),
   });
-  useEffect(() => {
-    if (process.env.NODE_ENV !== "development") return;
-    let disposed = false;
-    let dispose: (() => void) | undefined;
-    void loadDevtools({ defaultOpen: false })
-      .then((devtools) => {
-        if (disposed) devtools.dispose();
-        else dispose = devtools.dispose;
-      })
-      .catch(console.error);
-    return () => {
-      disposed = true;
-      dispose?.();
-    };
-  }, []);
   return null;
 }
 

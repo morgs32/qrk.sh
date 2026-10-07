@@ -38,6 +38,8 @@ Clerk uses its Next.js integration; nuqs uses its Next App Router adapter. Sign-
 
 `app/layout.tsx` owns the document, global/reset styles, metadata, and preloaded local Silkscreen and Space Mono fonts. `App` holds the client providers. The username layout keeps one session initializer mounted across Studio navigation; `UserLayout` gates only data-dependent content.
 
+The root layout mounts the shared `ZerospinDevtoolsLoader` in development with the panel initially closed. Its lifetime spans route navigation and authentication changes; the loader owns cleanup when the application unmounts.
+
 The dashboard layout renders the `qrk.sh` header in the initial HTML and reserves a 40 px account slot with a shadcn skeleton. The site layout renders its 64 px navbar with a fixed-height site-name skeleton. Once the browser session is ready, the existing `Wordmark` subscribes to site data and preserves settings draft previews. During initialization, `UserLayout` renders no content below the navbar; session-dependent content appears once the session is ready. Site data, drafts, SQLite, and editing remain browser-owned.
 
 ## Routes and transitions

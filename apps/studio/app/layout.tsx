@@ -1,4 +1,5 @@
 import "@qrk.sh/library/article-editor.css";
+import { ZerospinDevtoolsLoader } from "@zerospin/react/ZerospinDevtoolsLoader";
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import type { ReactNode } from "react";
@@ -42,6 +43,7 @@ export default function RootLayout(props: { children: ReactNode }) {
     <html lang="en">
       <body className={`${spaceMono.variable} ${silkscreen.variable} font-sans antialiased`}>
         <App>{children}</App>
+        {process.env.NODE_ENV === "development" && <ZerospinDevtoolsLoader defaultOpen={false} />}
       </body>
     </html>
   );

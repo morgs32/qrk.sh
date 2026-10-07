@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense, type ReactNode } from "react";
+import { ZerospinDevtoolsLoader } from "@zerospin/react/ZerospinDevtoolsLoader";
 
 import { LibraryLayout } from "./LibraryLayout";
 import "./globals.css";
@@ -16,6 +17,7 @@ export default function RootLayout(props: { children: ReactNode }) {
             <LibraryLayout>{children}</LibraryLayout>
           </Suspense>
         </div>
+        <ZerospinDevtoolsLoader defaultOpen={false} />
       </body>
     </html>
   );

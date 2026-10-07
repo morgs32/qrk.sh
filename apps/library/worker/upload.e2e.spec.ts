@@ -47,12 +47,9 @@ describe("POST /upload and GET /assets/*", () => {
   });
 
   it("returns 404 for a missing asset key", async () => {
-    const response = await SELF.fetch(
-      "https://library.invalid/assets/library/missing.png",
-      {
-        method: "GET",
-      },
-    );
+    const response = await SELF.fetch("https://library.invalid/assets/library/missing.png", {
+      method: "GET",
+    });
     expect(response.status).toBe(404);
   });
 });

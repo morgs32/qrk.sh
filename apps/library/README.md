@@ -69,6 +69,8 @@ retains the wall, drawer, standalone session, and viewport providers; route-spec
 module and brick drafts keep their existing remount boundaries. The document title
 remains `QRK.SH Library`, with diagnostic error and not-found screens.
 
+The root layout mounts the shared `ZerospinDevtoolsLoader` in every environment with the panel initially closed. It stays mounted across route navigation and standalone-session resets, and owns cleanup when the application unmounts.
+
 The GitHub Profile and GitHub Activity brick drawers accept a profile URL or username and show the
 full `https://github.com/<username>` URL as feedback for usernames. Save is enabled
 only when the normalized profile URL differs from the saved URL. Saving fetches

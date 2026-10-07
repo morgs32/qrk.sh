@@ -8,7 +8,7 @@ import { useParams, usePathname, useRouter, useSearchParams } from "next/navigat
 import { Result, Schema } from "effect";
 import { makeEffectSchema } from "@zerospin/shapes";
 import { prefixId } from "@zerospin/core/models/prefixId";
-import { loadDevtools, useInitializeStandaloneSession, useLiveQuery } from "@zerospin/react";
+import { useInitializeStandaloneSession, useLiveQuery } from "@zerospin/react";
 import { useReducedMotion } from "framer-motion";
 import { RotateCcw, X } from "lucide-react";
 import { toast } from "sonner";
@@ -90,15 +90,8 @@ export function LibraryLayout(props: { children: ReactNode }) {
   const { children } = props;
   const [sessionKey, setSessionKey] = useState(0);
   const [resetError, setResetError] = useState<unknown>(null);
-  const devtoolsLoaded = useRef(false);
   const session = librarySession;
   const { isInitialized } = useInitializeStandaloneSession({ session });
-  useEffect(() => {
-    // Client startup only; keep the standalone session's module identity intact.
-    if (devtoolsLoaded.current) return;
-    devtoolsLoaded.current = true;
-    void loadDevtools({ defaultOpen: false });
-  }, []);
   if (resetError !== null) throw resetError;
   if (!isInitialized) {
     return null;

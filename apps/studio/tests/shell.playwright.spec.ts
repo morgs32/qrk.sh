@@ -20,7 +20,7 @@ test("server-rendered dashboard navbar survives without JavaScript", async ({
   }
 });
 
-test("deep editor URLs server-render the custom-wordmark skeleton", async ({
+test("deep editor URLs wait for session readiness before rendering the site navbar", async ({
   browser,
   baseURL,
 }) => {
@@ -40,15 +40,13 @@ test("deep editor URLs server-render the custom-wordmark skeleton", async ({
         `/shell-check/site/sit_check/page/pag_check${suffix}?retained=yes`,
       );
       expect(response?.status()).toBe(200);
-      const header = page.getByTestId("site-navbar");
-      await expect(header).toHaveCount(1);
-      await expect(header.getByLabel("Loading site name")).toBeVisible();
+      await expect(page.getByTestId("site-navbar")).toHaveCount(0);
+      await expect(page.getByLabel("Loading site name")).toHaveCount(0);
       await expect(page.getByText(/Loading\s+workspace/)).toHaveCount(0);
-      expect(await header.evaluate((element) => element.getBoundingClientRect().height)).toBe(64);
       expect(new URL(page.url()).searchParams.get("retained")).toBe("yes");
     }
     await page.reload();
-    await expect(page.getByTestId("site-navbar")).toHaveCount(1);
+    await expect(page.getByTestId("site-navbar")).toHaveCount(0);
   } finally {
     await context.close();
   }

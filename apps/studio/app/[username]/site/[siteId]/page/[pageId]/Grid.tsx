@@ -16,6 +16,7 @@ import { useLiveQuery } from "@zerospin/react";
 import { Schema } from "effect";
 
 import { useValidatedParams } from "@/hooks/useValidatedParams";
+import { SiteHeader } from "../../SiteHeader";
 
 const ParamsSchema = Schema.Struct({
   username: Schema.String,
@@ -83,23 +84,28 @@ export function Grid() {
                 );
               }}
             >
-              <BrickWall
-                session={session}
-                wallId={wallId}
-                breakpoint={row.id}
-                gridWidth={row.previewWidth}
-                isActive={isActive}
-                gridGestureActive={gridGesture}
-                showArticleEditAction={false}
-                onGestureChange={setGridGesture}
-                onCommandError={(message) => toast.error(message)}
-                onBrickActivate={({ brickId }) => {
-                  void router.push(
-                    `/${encodeURIComponent(params.username)}/site/${encodeURIComponent(params.siteId)}/page/${encodeURIComponent(params.pageId)}/brick/${encodeURIComponent(brickId)}`,
-                    { scroll: false },
-                  );
-                }}
-              />
+              <div className="[--wall-chrome-height:7rem]">
+                <div className="translate-y-[var(--wall-drag-scroll-offset,0px)]">
+                  <SiteHeader />
+                </div>
+                <BrickWall
+                  session={session}
+                  wallId={wallId}
+                  breakpoint={row.id}
+                  gridWidth={row.previewWidth}
+                  isActive={isActive}
+                  gridGestureActive={gridGesture}
+                  showArticleEditAction={false}
+                  onGestureChange={setGridGesture}
+                  onCommandError={(message) => toast.error(message)}
+                  onBrickActivate={({ brickId }) => {
+                    void router.push(
+                      `/${encodeURIComponent(params.username)}/site/${encodeURIComponent(params.siteId)}/page/${encodeURIComponent(params.pageId)}/brick/${encodeURIComponent(brickId)}`,
+                      { scroll: false },
+                    );
+                  }}
+                />
+              </div>
             </WallBreakpointPane>
           );
         })}

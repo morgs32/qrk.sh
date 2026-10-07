@@ -433,14 +433,19 @@ the 360/720/1080/1440px frame widths unchanged. The frame clips horizontal
 hover and drag overflow while leaving vertical overflow visible; drag gestures
 can still continue beyond the frame.
 Library adds a decorative 64px navbar below the address bar, matching Studio's
-page-navbar height and showing a static `qrk.sh` label. It is noninteractive and
-hidden from assistive technology. The chrome and navbar slide and scroll with
-their wall, including the existing scroll compensation while dragging.
+complete page navbar in the same position above `BrickWall` and showing a static
+`qrk.sh` label. Library's navbar is noninteractive and hidden from assistive
+technology; Studio's appears with the initialized editor and preserves its
+navigation and site-name draft previews. The chrome and navbar slide and scroll
+with their wall, including the existing scroll compensation while dragging.
 Library reserves 6rem above the
 wall below lg, keeping wrapped controls clear of the chrome, and 3.5rem at lg.
 The scroll root uses inherited `--wall-top-offset` for this padding; the pane
-sets `--wall-chrome-height: 3rem`. Library overrides that value to `7rem` around
-its navbar and wall to account for both bars. `BrickWall` subtracts both offsets
+sets `--wall-chrome-height: 3rem`. Both apps override that value to `7rem` around
+their navbar and wall to account for both bars; Studio adds 32px above the frame
+and 86px below it, leaving 24px above and below its 38px toolbar. Its external
+`--wall-top-offset: calc(7.25rem + 2px)` accounts for both padding amounts.
+`BrickWall` subtracts both offsets
 from its viewport minimum height, with 3.5rem and zero fallbacks respectively, so an
 empty wall remains one viewport tall without extra scrolling.
 

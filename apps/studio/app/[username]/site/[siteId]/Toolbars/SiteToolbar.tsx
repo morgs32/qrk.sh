@@ -44,9 +44,9 @@ export function SiteToolbar() {
           <BottomToolbar>
             <>
               <ToolbarButton
-                label="Leave"
+                label="Exit"
                 icon={<ArrowLeft className="h-3.5 w-3.5" />}
-                tooltip="Leave"
+                tooltip="Exit"
                 href={`/${encodeURIComponent(username)}`}
                 className="h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
               />

@@ -40,7 +40,7 @@ Clerk uses its Next.js integration; nuqs uses its Next App Router adapter. Sign-
 
 The root layout mounts the shared `ZerospinDevtoolsLoader` in development with the panel initially closed. Its lifetime spans route navigation and authentication changes; the loader owns cleanup when the application unmounts.
 
-The dashboard layout renders the `qrk.sh` header in the initial HTML and reserves a 40 px account slot with a shadcn skeleton. The site layout renders its 64 px navbar with a fixed-height site-name skeleton. Once the browser session is ready, the existing `Wordmark` subscribes to site data and preserves settings draft previews. During initialization, `UserLayout` renders no content below the navbar; session-dependent content appears once the session is ready. Site data, drafts, SQLite, and editing remain browser-owned.
+The dashboard layout renders the `qrk.sh` header in the initial HTML and reserves a 40 px account slot with a shadcn skeleton. The site editor, including its 64 px navbar, appears only once the browser session is ready; the initial HTML has no site navbar or site-name skeleton. Each breakpoint pane owns the complete navbar inside its browser frame, beneath the address bar and above `BrickWall`. The existing `Wordmark` subscribes to site data and preserves settings draft previews. Site data, drafts, SQLite, and editing remain browser-owned.
 
 ## Routes and transitions
 
@@ -61,8 +61,15 @@ noninteractive and hidden from assistive technology. Chrome slides and scrolls
 with the wall, including scroll compensation while dragging, preserves its
 exact 360/720/1080/1440px content width, and clips horizontal hover and drag
 overflow while leaving vertical overflow visible. Drag gestures can still
-continue beyond the frame. The scroll root sets `--wall-top-offset: 4rem` to match
-Studio's 64px site header; the pane sets `--wall-chrome-height: 3rem`.
+continue beyond the frame. The 64px site navbar slides and scrolls with the
+frame, including drag-scroll compensation. Inactive panes keep their navbar
+copies hidden or inert with the rest of the pane. The scroll root adds 32px
+above the frame and 86px below it, leaving 24px between the frame and the 38px
+toolbar, matching the toolbar's 24px bottom gap. It sets
+`--wall-top-offset: calc(7.25rem + 2px)` to account for the combined padding;
+Studio overrides the pane's default
+`--wall-chrome-height: 3rem` to `7rem` around the navbar and wall, accounting for
+the 48px browser bar and 64px navbar.
 `BrickWall` subtracts both inherited offsets from its viewport minimum height,
 with 3.5rem and zero fallbacks respectively, so an empty wall adds no scrolling
 and drawer scroll anchoring is preserved.
@@ -78,7 +85,7 @@ The previous catalog URLs are removed without redirects.
 
 ## Browser checks
 
-Playwright builds and starts Next on port 3333 by default. The shell checks disable JavaScript to verify initial navbar HTML, deep links, refresh, not-found behavior, styles, and asset MIME types in Chromium, Firefox, and WebKit:
+Playwright builds and starts Next on port 3333 by default. The shell checks disable JavaScript to verify the initial dashboard navbar, the absence of the session-dependent site navbar, deep links, refresh, not-found behavior, styles, and asset MIME types in Chromium, Firefox, and WebKit:
 
 ```sh
 pnpm nx run @qrk.sh/studio:test:e2e -- tests/shell.playwright.spec.ts

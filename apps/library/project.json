@@ -4,27 +4,24 @@
   "targets": {
     "dev": {
       "continuous": true,
-      "dependsOn": ["^lib", { "projects": ["@qrk.sh/api"], "target": "dev" }]
+      "dependsOn": [
+        {
+          "projects": ["@qrk.sh/api"],
+          "target": "dev"
+        }
+      ]
     },
     "preview": {
       "continuous": true,
-      "dependsOn": [{ "projects": ["@qrk.sh/api"], "target": "dev" }]
-    },
-    "tsc": {
-      "dependsOn": ["^lib"]
-    },
-    "build": {
-      "dependsOn": ["^lib"]
-    },
-    "build:app": {
-      "dependsOn": ["^lib"]
+      "dependsOn": [
+        {
+          "projects": ["@qrk.sh/api"],
+          "target": "dev"
+        }
+      ]
     },
     "storybook": {
-      "continuous": true,
-      "dependsOn": ["^lib"]
-    },
-    "build-storybook": {
-      "dependsOn": ["^lib"]
+      "continuous": true
     }
   }
 }

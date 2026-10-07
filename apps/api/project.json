@@ -3,18 +3,38 @@
   "name": "@qrk.sh/api",
   "targets": {
     "build": {
-      "dependsOn": ["^lib", { "projects": ["@qrk.sh/library"], "target": "build" }],
+      "dependsOn": [
+        {
+          "projects": ["@qrk.sh/library"],
+          "target": "build"
+        }
+      ],
       "outputs": ["{projectRoot}/dist"]
     },
-    "tsc": {
-      "dependsOn": ["^lib", { "projects": ["@qrk.sh/library"], "target": "build" }]
-    },
     "test:workerd": {
-      "dependsOn": ["^lib", { "projects": ["@qrk.sh/library"], "target": "build" }]
+      "dependsOn": [
+        {
+          "projects": ["@qrk.sh/library"],
+          "target": "build"
+        }
+      ]
     },
     "dev": {
       "continuous": true,
-      "dependsOn": ["^lib", { "projects": ["@qrk.sh/library"], "target": "build" }]
+      "dependsOn": [
+        {
+          "projects": ["@qrk.sh/library"],
+          "target": "build"
+        }
+      ]
+    },
+    "ts": {
+      "dependsOn": [
+        {
+          "projects": ["@qrk.sh/library"],
+          "target": "build"
+        }
+      ]
     }
   }
 }

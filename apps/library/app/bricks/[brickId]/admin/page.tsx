@@ -8,7 +8,7 @@ import { isNonEmptySpec } from "@json-render/core";
 import { Result, Schema } from "effect";
 import { makeEffectSchema } from "@zerospin/shapes";
 import { newSyncRpcSession } from "@zerospin/core/utils/getApi/newSyncRpcSession/newSyncRpcSession";
-import { stageCommand, useLiveQuery } from "@zerospin/react";
+import { executeStandaloneAggregateCommand, useLiveQuery } from "@zerospin/react";
 import { collapseAllNested, defaultStyles, JsonView } from "react-json-view-lite";
 
 import { OrderedBody } from "@qrk.sh/web/library/OrderedBody";
@@ -191,7 +191,7 @@ function BrickAdminContent(props: { brickId: `brk_${string}` }) {
                           return;
                         }
                         const specContractName = specContractByModuleId[targetModuleId];
-                        const commandResult = stageCommand({
+                        const commandResult = executeStandaloneAggregateCommand({
                           session,
                           contractName: specContractName,
                           payload: {
@@ -262,7 +262,7 @@ function BrickAdminContent(props: { brickId: `brk_${string}` }) {
                         return [otherPlacement.gridItem];
                       },
                     );
-                    const result = stageCommand({
+                    const result = executeStandaloneAggregateCommand({
                       session,
                       contractName: "setBrickVisibilityAtBreakpoint",
                       payload: {

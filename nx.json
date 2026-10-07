@@ -3,17 +3,5 @@
   "defaultBase": "main",
   "defaultProject": "@qrk.sh/studio",
   "plugins": ["nx/plugins/package-json"],
-  "analytics": false,
-  "targetDefaults": {
-    "ts": {
-      "dependsOn": ["lib", "^lib"]
-    },
-    "test": {
-      "dependsOn": ["lib", "^lib"]
-    },
-    "lib": {
-      "dependsOn": ["^lib"],
-      "cache": true
-    }
-  }
+  "analytics": false
 }

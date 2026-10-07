@@ -59,7 +59,14 @@ separately. Library tests are intentionally not maintained or run (see root
 
 `build:app` produces the Next app in `.next`.
 `build` produces the reusable brick library in `dist`, including its public
-Worker/RPC declarations. Neither build deploys the app.
+Worker/RPC declarations. Neither build deploys the app or rebuilds installed Zerospin packages. Fresh
+checkout installation requires the populated local registry described in the
+[root README](../../README.md#zerospin-packages).
+
+Old standalone backups can reject the current SQLite schema. For manual checks
+with empty storage, use `http://qrk-package-cutover.localhost:4100/` in the existing
+Chrome profile. This gives Library a separate local origin while preserving
+backups on `localhost:4100` and `127.0.0.1:4100`; it does not migrate their rows.
 
 After `build:app`, run `pnpm nx run @qrk.sh/library:preview` to serve the built
 Next app on port 4100 alongside the local API Worker. The UI routes are
@@ -387,13 +394,19 @@ without requiring standalone initialization or reset methods. The shared
 `libraryModule` exports only models and flat command contracts. Session construction
 owns identity, claims, initialization, and disposal.
 
+Command execution belongs to each app's session lifecycle. Library passes
+`executeStandaloneAggregateCommand` into the shared `BrickWall`; Studio passes
+`stageAggregateCommand`. The wall calls that required `executeCommand` prop
+directly. Library-only state/spec editors execute standalone commands, while
+Studio's dashboard and settings stage aggregate commands for the live owner.
+
 `useLiveQuery` reads the session's `db`, returning model-decoded `state`,
 `spec`, `measured`, and `gridItem` values. Components consume these values directly. Explicit writes and backups use encoded SQLite values; relational queries decode model fields.
 
 Committed layout is Wall → Brick → Placement via aggregate contracts
 (`addBrick`, layout/visibility/remove/compact, `updateBrick`, and per-module
-spec-at-breakpoint). Commands stage synchronously. Studio pushes through its live
-user session; `backupState: ready` describes local backup durability, not server acknowledgement. Shared state lives on the brick row; each placement stores a
+spec-at-breakpoint). Commands run synchronously: Library commits completed local
+execution, while Studio stages optimism and pushes through its live user session; `backupState: ready` describes local backup durability, not server acknowledgement. Shared state lives on the brick row; each placement stores a
 complete Spec, nullable pixel measurement, grid item, and visibility. `BrickWall` uses `verticalCompactor` for
 packed drag/resize feedback. Module contracts compact before persisting geometry:
 add/show resolve collisions first, layout updates compact their payload, hide compacts
@@ -451,7 +464,8 @@ and 86px below it, leaving 24px above and below its 38px toolbar. Its external
 from its viewport minimum height, with 3.5rem and zero fallbacks respectively, so an
 empty wall remains one viewport tall without extra scrolling.
 
-Library and Studio copy the same built backup assets into their public directories:
+Library and Studio resolve the same installed backup-worker package exports and
+copy their bytes into their public directories:
 `/__zerospin/backup-worker.js` and `/__zerospin/wa-sqlite-async.wasm`. Next's webpack
 build also emits the standalone session's separate synchronous SQLite WASM asset.
 

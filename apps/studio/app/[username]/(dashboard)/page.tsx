@@ -7,7 +7,7 @@ import { makeId } from "@zerospin/sdk/browser";
 import { useState } from "react";
 import { Schema } from "effect";
 import { toast } from "sonner";
-import { useLiveQuery, stageCommand } from "@zerospin/react";
+import { useLiveQuery, stageAggregateCommand } from "@zerospin/react";
 import { ZerospinError } from "@zerospin/sdk/browser";
 
 import { siteV1 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV1";
@@ -99,7 +99,7 @@ export default function UsernameDashboardPage() {
                         toast.error("Your session is not ready");
                         return;
                       }
-                      const siteResult = stageCommand({
+                      const siteResult = stageAggregateCommand({
                         session,
                         contractName: "createSite",
                         payload: {
@@ -114,7 +114,7 @@ export default function UsernameDashboardPage() {
                       }
 
                       const siteId = siteResult.success.payload.id;
-                      const pageResult = stageCommand({
+                      const pageResult = stageAggregateCommand({
                         session,
                         contractName: "createPage",
                         payload: {

@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 
-import { stageCommand } from "@zerospin/react";
+import { stageAggregateCommand } from "@zerospin/react";
 import { ZerospinError } from "@zerospin/sdk/browser";
 import { Schema } from "effect";
 import { FileText, Globe, X } from "lucide-react";
@@ -112,7 +112,7 @@ export function PageSettings() {
                   return;
                 }
 
-                const result = stageCommand({
+                const result = stageAggregateCommand({
                   session,
                   contractName: "updatePageSettings",
                   payload: {

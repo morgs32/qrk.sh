@@ -12,11 +12,10 @@ import { makeProvisionedInMemorySqljsDb } from "@zerospin/core/drizzle/make/make
 import { makeInMemorySQLite3 } from "@zerospin/core/drizzle/make/makeInMemorySQLite3/makeInMemorySQLite3";
 import { makeWaSqliteDrizzle } from "@zerospin/core/drizzle/make/makeProvisionedInMemoryWasmSqliteDb/makeInMemoryWasmSqliteDb/makeWaSqliteDrizzle/makeWaSqliteDrizzle";
 import { provisionDb } from "@zerospin/core/drizzle/provisionDb/provisionDb";
-import { bindAggregateSession } from "@zerospin/core/aggregateSession/bindAggregateSession";
+import { makeAggregateSessionActivation } from "@zerospin/core/aggregateSession/makeAggregateSessionActivation";
 import { makeAggregateSession } from "@zerospin/core/aggregateSession/make/makeAggregateSession";
 import { sessionRepoDbConfig } from "@zerospin/core/aggregateSession/sessionRepoDbConfig";
-import { stageCommand } from "@zerospin/core/aggregateSession/stageCommand/stageCommand";
-import { stageSessionCommandTx } from "@zerospin/core/aggregateSession/stageCommand/stageSessionCommandTx/stageSessionCommandTx";
+import { stageAggregateCommand } from "@zerospin/core/aggregateSession/stageCommand/stageAggregateCommand";
 import { operationSink } from "@zerospin/core/contracts/operationSink";
 import { NanoIdFactory } from "@zerospin/core/utils/NanoIdFactory";
 import { UlidMonotonicFactory } from "@zerospin/core/utils/UlidMonotonicFactory";
@@ -83,37 +82,47 @@ describe("site and page creation contracts", () => {
       const session = makeAggregateSession({
         definition: { ...definition, ...userSessionDefinition },
       });
-      bindAggregateSession({
-        session,
-        runtime,
-        commitCommand: stageSessionCommandTx,
-        state: {
-          ...session.store.getState(),
-          sessionId,
-          aggregateId: "acct_site_contract_user",
-          aggregateName: userSessionDefinition.aggregateName,
-          claims: {
-            aggregateId: "acct_site_contract_user",
-            clerkUserId: "site_contract_user",
-          },
-          sessionName: userSessionDefinition.sessionName,
-          aggregateSessionLockKey: "site-contract-lock-key",
+      session.store.setState({
+        ...session.store.getState(),
+        activation: makeAggregateSessionActivation({
+          declaration: session.definition,
           db,
-          schema,
-          models: userSessionDefinition.models,
-          isInitialized: true,
-          aggregateIndex: 0,
-          executedIndex: 0,
-          executedHash: "",
-          actorName: "web",
-          actorVersion: userSessionDefinition.actorVersion,
-          pushIndex: 0,
-          sessionStatus: "current",
-          backupState: { status: "ready", failure: null },
+          runtime,
+          admitted: {
+            sessionId,
+            aggregateId: "acct_site_contract_user",
+            actorName: definition.actorName,
+            actorVersion: definition.actorVersion,
+            claims: {
+              aggregateId: "acct_site_contract_user",
+              clerkUserId: "site_contract_user",
+            },
+          },
+        }),
+        sessionId,
+        aggregateId: "acct_site_contract_user",
+        aggregateName: userSessionDefinition.aggregateName,
+        claims: {
+          aggregateId: "acct_site_contract_user",
+          clerkUserId: "site_contract_user",
         },
+        sessionName: userSessionDefinition.sessionName,
+        aggregateSessionLockKey: "site-contract-lock-key",
+        db,
+        schema,
+        models: userSessionDefinition.models,
+        isInitialized: true,
+        aggregateIndex: 0,
+        executedIndex: 0,
+        executedHash: "",
+        actorName: "web",
+        actorVersion: userSessionDefinition.actorVersion,
+        pushIndex: 0,
+        sessionStatus: "current",
+        backupState: { status: "ready", failure: null },
       });
 
-      const staged = stageCommand({
+      const staged = stageAggregateCommand({
         session,
         contractName: "createSite",
         payload: { id: "sit_site_contract", userId },
@@ -149,7 +158,7 @@ describe("site and page creation contracts", () => {
         }),
       );
 
-      const missingSiteId = stageCommand({
+      const missingSiteId = stageAggregateCommand({
         session,
         contractName: "createSite",
         // @ts-expect-error Caller-supplied IDs are required; also verify runtime rejection.
@@ -159,7 +168,7 @@ describe("site and page creation contracts", () => {
       expect(db.select().from(dbConfig.schema.site).all()).toHaveLength(1);
 
       const siteId = staged.success.payload.id;
-      const stagedPage = stageCommand({
+      const stagedPage = stageAggregateCommand({
         session,
         contractName: "createPage",
         payload: {
@@ -196,7 +205,7 @@ describe("site and page creation contracts", () => {
         }),
       );
 
-      const missingPageId = stageCommand({
+      const missingPageId = stageAggregateCommand({
         session,
         contractName: "createPage",
         // @ts-expect-error Caller-supplied IDs are required; also verify runtime rejection.
@@ -209,7 +218,7 @@ describe("site and page creation contracts", () => {
       expect(pageRows[0]?.wallId).toBe(wallId);
       expect(db.select().from(dbConfig.schema.wall).all()).toMatchObject([{ id: wallId }]);
 
-      const added = stageCommand({
+      const added = stageAggregateCommand({
         session,
         contractName: "addBrick",
         payload: {
@@ -237,7 +246,7 @@ describe("site and page creation contracts", () => {
       if (added._tag === "Failure") throw new Error(added.failure.message);
       expect(db.query.brick.findMany().sync()).toMatchObject([{ id: "brk_live_first", wallId }]);
       expect(db.query.placement.findMany().sync()).toHaveLength(4);
-      const updated = stageCommand({
+      const updated = stageAggregateCommand({
         session,
         contractName: "updateBrick",
         payload: {
@@ -249,7 +258,7 @@ describe("site and page creation contracts", () => {
       });
       expect(updated._tag).toBe("Success");
       expect(db.query.brick.findFirst().sync()?.state).toMatchObject({ data: { name: "Updated" } });
-      const invalid = stageCommand({
+      const invalid = stageAggregateCommand({
         session,
         contractName: "updateBrick",
         payload: {
@@ -261,7 +270,7 @@ describe("site and page creation contracts", () => {
       });
       expect(invalid._tag).toBe("Failure");
       expect(db.query.brick.findFirst().sync()?.state).toMatchObject({ data: { name: "Updated" } });
-      const secondPage = stageCommand({
+      const secondPage = stageAggregateCommand({
         session,
         contractName: "createPage",
         payload: { id: "pag_second", siteId, slug: "second" },
@@ -325,7 +334,7 @@ describe("site and page creation contracts", () => {
       expect(selections.placement.all(db, { clerkUserId: "missing" })).toEqual([]);
 
       // Visibility changes stay on one placement; removal deletes all of the brick's placements.
-      const hidden = stageCommand({
+      const hidden = stageAggregateCommand({
         session,
         contractName: "setBrickVisibilityAtBreakpoint",
         payload: {
@@ -346,13 +355,13 @@ describe("site and page creation contracts", () => {
           expect.objectContaining({ breakpoint: "sm", isVisible: true }),
         ]),
       );
-      const wrongWall = stageCommand({
+      const wrongWall = stageAggregateCommand({
         session,
         contractName: "removeBrick",
         payload: { brickId: "brk_live_first", wallId: "wal_pag_second" },
       });
       expect(wrongWall._tag).toBe("Failure");
-      const removed = stageCommand({
+      const removed = stageAggregateCommand({
         session,
         contractName: "removeBrick",
         payload: { brickId: "brk_live_first", wallId },
@@ -628,38 +637,48 @@ describe("user frontend creation guards", () => {
       const session = makeAggregateSession({
         definition: { ...definition, ...userSessionDefinition },
       });
-      bindAggregateSession({
-        session,
-        runtime,
-        commitCommand: stageSessionCommandTx,
-        state: {
-          ...session.store.getState(),
-          sessionId,
-          aggregateId: "acct_update_site_settings_user",
-          aggregateName: userSessionDefinition.aggregateName,
-          claims: {
-            aggregateId: "acct_update_site_settings_user",
-            clerkUserId: "update_site_settings_user",
-          },
-
-          sessionName: userSessionDefinition.sessionName,
-          aggregateSessionLockKey: "update-site-settings-lock-key",
+      session.store.setState({
+        ...session.store.getState(),
+        activation: makeAggregateSessionActivation({
+          declaration: session.definition,
           db,
-          schema,
-          models: userSessionDefinition.models,
-          isInitialized: true,
-          aggregateIndex: 0,
-          executedIndex: 0,
-          executedHash: "",
-          actorName: "web",
-          actorVersion: userSessionDefinition.actorVersion,
-          pushIndex: 0,
-          sessionStatus: "current",
-          backupState: { status: "ready", failure: null },
+          runtime,
+          admitted: {
+            sessionId,
+            aggregateId: "acct_update_site_settings_user",
+            actorName: definition.actorName,
+            actorVersion: definition.actorVersion,
+            claims: {
+              aggregateId: "acct_update_site_settings_user",
+              clerkUserId: "update_site_settings_user",
+            },
+          },
+        }),
+        sessionId,
+        aggregateId: "acct_update_site_settings_user",
+        aggregateName: userSessionDefinition.aggregateName,
+        claims: {
+          aggregateId: "acct_update_site_settings_user",
+          clerkUserId: "update_site_settings_user",
         },
+
+        sessionName: userSessionDefinition.sessionName,
+        aggregateSessionLockKey: "update-site-settings-lock-key",
+        db,
+        schema,
+        models: userSessionDefinition.models,
+        isInitialized: true,
+        aggregateIndex: 0,
+        executedIndex: 0,
+        executedHash: "",
+        actorName: "web",
+        actorVersion: userSessionDefinition.actorVersion,
+        pushIndex: 0,
+        sessionStatus: "current",
+        backupState: { status: "ready", failure: null },
       });
 
-      const staged = stageCommand({
+      const staged = stageAggregateCommand({
         session,
         contractName: "createSite",
         payload: { id: "sit_update_site_settings", userId },
@@ -669,7 +688,7 @@ describe("user frontend creation guards", () => {
         throw new Error(staged.failure.message);
       }
 
-      const updated = stageCommand({
+      const updated = stageAggregateCommand({
         session,
         contractName: "updateSiteSettings",
         payload: {
@@ -763,38 +782,48 @@ describe("user frontend creation guards", () => {
       const session = makeAggregateSession({
         definition: { ...definition, ...userSessionDefinition },
       });
-      bindAggregateSession({
-        session,
-        runtime,
-        commitCommand: stageSessionCommandTx,
-        state: {
-          ...session.store.getState(),
-          sessionId,
-          aggregateId: "acct_update_page_settings_user",
-          aggregateName: userSessionDefinition.aggregateName,
-          claims: {
-            aggregateId: "acct_update_page_settings_user",
-            clerkUserId: "update_page_settings_user",
-          },
-
-          sessionName: userSessionDefinition.sessionName,
-          aggregateSessionLockKey: "update-page-settings-lock-key",
+      session.store.setState({
+        ...session.store.getState(),
+        activation: makeAggregateSessionActivation({
+          declaration: session.definition,
           db,
-          schema,
-          models: userSessionDefinition.models,
-          isInitialized: true,
-          aggregateIndex: 0,
-          executedIndex: 0,
-          executedHash: "",
-          actorName: "web",
-          actorVersion: userSessionDefinition.actorVersion,
-          pushIndex: 0,
-          sessionStatus: "current",
-          backupState: { status: "ready", failure: null },
+          runtime,
+          admitted: {
+            sessionId,
+            aggregateId: "acct_update_page_settings_user",
+            actorName: definition.actorName,
+            actorVersion: definition.actorVersion,
+            claims: {
+              aggregateId: "acct_update_page_settings_user",
+              clerkUserId: "update_page_settings_user",
+            },
+          },
+        }),
+        sessionId,
+        aggregateId: "acct_update_page_settings_user",
+        aggregateName: userSessionDefinition.aggregateName,
+        claims: {
+          aggregateId: "acct_update_page_settings_user",
+          clerkUserId: "update_page_settings_user",
         },
+
+        sessionName: userSessionDefinition.sessionName,
+        aggregateSessionLockKey: "update-page-settings-lock-key",
+        db,
+        schema,
+        models: userSessionDefinition.models,
+        isInitialized: true,
+        aggregateIndex: 0,
+        executedIndex: 0,
+        executedHash: "",
+        actorName: "web",
+        actorVersion: userSessionDefinition.actorVersion,
+        pushIndex: 0,
+        sessionStatus: "current",
+        backupState: { status: "ready", failure: null },
       });
 
-      const stagedSite = stageCommand({
+      const stagedSite = stageAggregateCommand({
         session,
         contractName: "createSite",
         payload: { id: "sit_update_page_settings", userId },
@@ -804,7 +833,7 @@ describe("user frontend creation guards", () => {
         throw new Error(stagedSite.failure.message);
       }
 
-      const stagedPage = stageCommand({
+      const stagedPage = stageAggregateCommand({
         session,
         contractName: "createPage",
         payload: {
@@ -820,19 +849,29 @@ describe("user frontend creation guards", () => {
 
       const ownerState = session.store.getState();
       if (!ownerState.isInitialized) throw new Error("Expected initialized page settings session");
-      bindAggregateSession({
-        session,
-        runtime,
-        commitCommand: stageSessionCommandTx,
-        state: {
-          ...ownerState,
-          claims: {
-            aggregateId: "acct_update_page_settings_user",
-            clerkUserId: "another_user",
+      session.store.setState({
+        ...ownerState,
+        activation: makeAggregateSessionActivation({
+          declaration: session.definition,
+          db,
+          runtime,
+          admitted: {
+            sessionId: ownerState.sessionId,
+            aggregateId: ownerState.aggregateId,
+            actorName: ownerState.actorName,
+            actorVersion: ownerState.actorVersion,
+            claims: {
+              aggregateId: "acct_update_page_settings_user",
+              clerkUserId: "another_user",
+            },
           },
+        }),
+        claims: {
+          aggregateId: "acct_update_page_settings_user",
+          clerkUserId: "another_user",
         },
       });
-      const denied = stageCommand({
+      const denied = stageAggregateCommand({
         session,
         contractName: "updatePageSettings",
         payload: {
@@ -842,14 +881,9 @@ describe("user frontend creation guards", () => {
         },
       });
       expect(denied._tag).toBe("Failure");
-      bindAggregateSession({
-        session,
-        runtime,
-        commitCommand: stageSessionCommandTx,
-        state: ownerState,
-      });
+      session.store.setState(ownerState);
 
-      const updated = stageCommand({
+      const updated = stageAggregateCommand({
         session,
         contractName: "updatePageSettings",
         payload: {

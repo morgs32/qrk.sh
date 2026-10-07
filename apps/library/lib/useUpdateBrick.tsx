@@ -3,7 +3,7 @@
 import type { Spec } from "@json-render/core";
 import { isNonEmptySpec } from "@json-render/core";
 import type { InferCommandPayload } from "@zerospin/core/models/types";
-import { stageCommand } from "@zerospin/react";
+import { executeStandaloneAggregateCommand } from "@zerospin/react";
 import { makeEffectSchema } from "@zerospin/shapes";
 import { Schema } from "effect";
 import { catchError, type ErrorInfo } from "next/error";
@@ -197,7 +197,7 @@ export function useUpdateBrick(props: { brickId: `brk_${string}` }) {
       ) {
         throw new Error("Placement specs changed during Save; save again");
       }
-      const result = stageCommand({
+      const result = executeStandaloneAggregateCommand({
         session,
         contractName: "updateBrick",
         payload: { brickId, moduleId: brick.moduleId, state, measurements },

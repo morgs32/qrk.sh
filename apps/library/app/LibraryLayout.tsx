@@ -8,7 +8,11 @@ import { useParams, usePathname, useRouter, useSearchParams } from "next/navigat
 import { Result, Schema } from "effect";
 import { makeEffectSchema } from "@zerospin/shapes";
 import { prefixId } from "@zerospin/core/models/prefixId";
-import { useInitializeStandaloneSession, useLiveQuery } from "@zerospin/react";
+import {
+  executeStandaloneAggregateCommand,
+  useInitializeStandaloneSession,
+  useLiveQuery,
+} from "@zerospin/react";
 import { useReducedMotion } from "framer-motion";
 import { RotateCcw, X } from "lucide-react";
 import { toast } from "sonner";
@@ -366,6 +370,7 @@ function LayoutBody(props: {
                     </div>
                     <BrickWall
                       session={session}
+                      executeCommand={executeStandaloneAggregateCommand}
                       wallId={WALL_ID}
                       breakpoint={row.id}
                       gridWidth={row.previewWidth}

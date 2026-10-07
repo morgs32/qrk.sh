@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 /* oxlint-disable next/no-img-element -- Studio uses Vite, so Next image optimization is unavailable. */
 
 import { useAuth } from "@clerk/nextjs";
-import { stageCommand } from "@zerospin/react";
+import { stageAggregateCommand } from "@zerospin/react";
 import { ZerospinError } from "@zerospin/sdk/browser";
 import { Schema } from "effect";
 import { Globe, X } from "lucide-react";
@@ -231,7 +231,7 @@ export function SiteSettings() {
                   return;
                 }
 
-                const result = stageCommand({
+                const result = stageAggregateCommand({
                   session,
                   contractName: "updateSiteSettings",
                   payload: {

@@ -12,7 +12,7 @@ import { userSession } from "@/zerospin/userSession";
 import { pageV1 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
 import { useWallViewport } from "@qrk.sh/library/WallViewportProvider";
 import { makeModelIdSchema } from "@zerospin/core/models/make/makeModelIdSchema";
-import { useLiveQuery } from "@zerospin/react";
+import { stageAggregateCommand, useLiveQuery } from "@zerospin/react";
 import { Schema } from "effect";
 
 import { useValidatedParams } from "@/hooks/useValidatedParams";
@@ -90,6 +90,7 @@ export function Grid() {
                 </div>
                 <BrickWall
                   session={session}
+                  executeCommand={stageAggregateCommand}
                   wallId={wallId}
                   breakpoint={row.id}
                   gridWidth={row.previewWidth}

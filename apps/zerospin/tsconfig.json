@@ -12,13 +12,7 @@
     "paths": {
       "config": ["./zerospin.config.ts"]
     },
-    "exactOptionalPropertyTypes": true,
-    "disableSourceOfProjectReferenceRedirect": true
+    "exactOptionalPropertyTypes": true
   },
-  "include": ["src/**/*.ts", "*.ts"],
-  "references": [
-    {
-      "path": "../../vendor/zerospin/packages/system-worker"
-    }
-  ]
+  "include": ["src/**/*.ts", "*.ts"]
 }

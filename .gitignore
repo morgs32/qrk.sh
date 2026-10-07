@@ -2,6 +2,7 @@
 
 # dependencies
 .npmrc
+!/.npmrc
 node_modules
 .pnp
 .pnp.js

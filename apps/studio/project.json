@@ -5,7 +5,10 @@
     "dev": {
       "continuous": true,
       "dependsOn": [
-        "^lib",
+        {
+          "projects": ["@qrk.sh/library"],
+          "target": "build"
+        },
         {
           "projects": ["@qrk.sh/web"],
           "target": "dev"
@@ -21,21 +24,49 @@
       ]
     },
     "build": {
-      "dependsOn": ["^lib"]
+      "dependsOn": [
+        {
+          "projects": ["@qrk.sh/library"],
+          "target": "build"
+        }
+      ]
     },
     "typecheck": {
       "command": "pnpm run ts",
       "options": {
         "cwd": "apps/studio"
       },
-      "dependsOn": ["^lib"]
+      "dependsOn": [
+        {
+          "projects": ["@qrk.sh/library"],
+          "target": "build"
+        }
+      ]
     },
     "storybook": {
       "continuous": true,
-      "dependsOn": ["^lib"]
+      "dependsOn": [
+        {
+          "projects": ["@qrk.sh/library"],
+          "target": "build"
+        }
+      ]
     },
     "build-storybook": {
-      "dependsOn": ["^lib"]
+      "dependsOn": [
+        {
+          "projects": ["@qrk.sh/library"],
+          "target": "build"
+        }
+      ]
+    },
+    "ts": {
+      "dependsOn": [
+        {
+          "projects": ["@qrk.sh/library"],
+          "target": "build"
+        }
+      ]
     }
   }
 }

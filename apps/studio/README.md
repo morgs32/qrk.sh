@@ -20,6 +20,16 @@ Web listens on port 3000 and proxies Studio routes to `APP_ORIGIN` (default `htt
 
 Studio's Next chunks, fonts, worker, and WASM use `/studio-static/_next/`. Web excludes that namespace from authentication and proxies it to Studio. The existing backup-worker and WASM artifacts remain at `/__zerospin/`. Referenced `/assets/` public files have explicit mappings in Studio's Next configuration; missing files return 404. There is no Vite module or HMR routing.
 
+Studio resolves backup-worker JavaScript/WASM and browser SQLite WASM from
+installed `3.0.1` package exports. Its Nx builds and checks build QRK's reusable
+Library first; they never build or change installed Zerospin artifacts. Fresh
+checkout installation requires the populated local registry described in the
+[root README](../../README.md#zerospin-packages).
+
+Superseded retained command rows require empty backend storage. Preserve the old
+directory using the quarantine procedure in the [backend README](../zerospin/README.md)
+before starting the current runtime. Existing browser backups remain untouched.
+
 `build` writes `.next`; `start` runs the Next production server on port 3001 (`PORT` overrides it). Production must run both Next applications and preserve these proxy routes. Deployment is not configured here.
 
 ## Environment
@@ -81,7 +91,7 @@ filmstrip as Library. Each module column scrolls vertically beneath its full-wid
 sticky heading; previews use the active breakpoint and shared drag payload.
 Studio supplies Next links to its
 `/modules/[moduleId]` detail routes. The catalog lives at `/modules` under the
-page editor, with a **Bricks** breadcrumb and the **Add bricks** toolbar action.
+page editor, with a **Drag a brick onto your page** breadcrumb and the **Add bricks** toolbar action.
 The previous catalog URLs are removed without redirects.
 
 ## Browser checks

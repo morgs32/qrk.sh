@@ -18,10 +18,23 @@ pnpm nx run @qrk.sh/zerospin:ts
 pnpm nx run @qrk.sh/zerospin:test:workerd
 ```
 
-For this V1 cutover, start local development with `zerospin dev --clean` from
-this directory after building its dependencies. The regular `dev` target does
-not reset storage. Existing backend and browser storage must be reset separately;
-this cutover provides no compatibility decoder or migration for old rows.
+QRK installs the CLI and runtime packages at `3.0.1` from the populated local
+registry described in the [root README](../../README.md#zerospin-packages). Nx
+builds QRK's reusable Library before backend checks and development; it does not
+rebuild installed Zerospin files.
+
+The package cutover requires empty storage for superseded retained command and
+SQLite schemas. The regular `dev` target does not reset storage. Stop development
+before moving `.wrangler/zerospin/dev-worker/sys_qrk_sh_1` into a uniquely named
+directory under `.wrangler/zerospin/backups/`. Starting the normal Nx `dev`
+target then creates current storage while preserving the old directory for
+recovery. Do not use `--clean` when the old data must be preserved.
+
+Browser backups are scoped by origin. Verification can use a fresh loopback
+hostname in the existing Chrome profile, preserving its login and all previous
+origin databases. Old backend or browser rows have no compatibility decoder or
+migration; restoring an old directory does not make those rows readable by the
+new packages.
 
 ## Source layout
 

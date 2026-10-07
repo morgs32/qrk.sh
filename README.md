@@ -1,16 +1,18 @@
 # qrk.sh
 
-## Vendor
+## Zerospin packages
 
-Configured vendor origins are recorded here and in `AGENTS.md`:
+Zerospin owns its source, builds, and releases in the sibling `../zerospin`
+checkout. QRK installs exact `3.0.1` packages from the local Verdaccio registry;
+there is no vendored Zerospin source or consumer-side Zerospin build.
 
-| Prefix            | Origin        | Branch |
-| ----------------- | ------------- | ------ |
-| `vendor/zerospin` | `../zerospin` | `main` |
-
-Use `$update-vendor` for squashed pulls from the sibling checkout.
-The root pnpm workspace applies Zerospin's vendored sql.js patch so Cloudflare
-Workers can initialize actor snapshot databases without `self.location`.
+The credential-free project `.npmrc` routes all dependencies through
+`http://127.0.0.1:4873/`, including the unscoped `system-worker`. The registry
+serves Zerospin packages locally and proxies ordinary third-party packages to
+npm. QRK retains the sql.js `1.14.1` patch in `patches/` so Cloudflare Workers can
+initialize actor snapshot databases without `self.location`.
+The workspace pins both Effect and `@effect/platform-node-shared` to
+`4.0.0-rc.112`; their runtime versions must stay aligned for the Zerospin CLI.
 
 Two Next.js apps with App Router:
 
@@ -51,21 +53,26 @@ More detail and test patterns: [docs/styleguide/component-and-file-naming.md](do
 ### Prerequisites
 
 - Node.js 20.9.0 or later
-- pnpm (recommended) or npm/yarn
+- pnpm `10.33.0`, as pinned by the root `packageManager`
 
 ### Installation
 
-1. Clone the repository and install dependencies:
+1. Start the populated local registry from the Zerospin checkout, then install
+   QRK dependencies from the QRK root:
 
    ```bash
-   pnpm install
-   ln -s ../../node_modules vendor/zerospin/node_modules
+   # In ../zerospin; leave this process running.
+   pnpm nx run zerospin:local-registry
+
+   # In QRK; the registry must already contain the locked release.
+   pnpm install --frozen-lockfile
    ```
 
-   Install dependencies from the QRK root. On a fresh checkout, the symlink
-   lets vendored build scripts use the root toolchain. Avoid a separate install
-   inside `vendor/zerospin`: duplicate dependency instances can cause actor-path
-   validation to fail when `zerospin dev` loads the app configuration.
+   On the first registry bootstrap, install, build, verify, and publish the
+   release in Zerospin before installing QRK. Follow Zerospin's package release
+   instructions. Existing registry storage survives restarts. A fresh checkout
+   requires the running registry with the locked `3.0.1` packages; hosted
+   distribution and deployment-machine bootstrap are not configured here.
 
 2. Start the homepage:
 
@@ -75,11 +82,16 @@ More detail and test patterns: [docs/styleguide/component-and-file-naming.md](do
 
 3. Open http://localhost:3000
 
-To run all app development servers and build their dependencies:
+To run all five app development servers and build QRK's reusable Library:
 
 ```bash
 pnpm dev
 ```
+
+For pre-cutover development data, follow the [backend storage quarantine](apps/zerospin/README.md)
+and [Library fresh-origin check](apps/library/README.md) instructions. Superseded
+retained commands and SQLite schemas require empty storage; old data is preserved
+separately and has no compatibility migration.
 
 Studio owns `apps/studio/zerospin/zerospin.worker.ts`, which calls
 `makeSharedWorker({ sqliteWasmUrl })`. `userSession` supplies a lazy worker factory;
@@ -88,7 +100,9 @@ Studio uses webpack in Next development and production builds to bundle the
 worker and its `new URL(..., import.meta.url)` SQLite WASM asset. Studio listens
 on port 3001 behind web on port 3000. Web proxies Studio's isolated
 `/studio-static/_next/` asset namespace and its `/__zerospin/` backup-worker
-artifacts. Existing `/assets/` public-file URLs have explicit Studio mappings.
+artifacts. Next resolves the exported backup-worker assets and browser SQLite
+WASM from installed packages, preserving those public URLs. Existing `/assets/` public-file URLs have explicit
+Studio mappings.
 Vite remains only for Studio Storybook.
 
 Studio server-renders the document, fonts, and navigation before its browser
@@ -110,7 +124,7 @@ owns module RPCs, Clerk-authenticated uploads, and asset serving. See
 [API's README](apps/api/README.md) for bindings and private provider settings. Set
 `NEXT_PUBLIC_ZEROSPIN_API_URL=http://127.0.0.1:8788/` in `apps/studio/.env.local`.
 
-To run only the library app and build its dependencies:
+To run the Library app and its API Worker:
 
 ```bash
 pnpm nx run @qrk.sh/library:dev

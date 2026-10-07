@@ -23,13 +23,18 @@
 
 ## Patterns
 
-Use `$use-morgs32-wiki-patterns` for TypeScript, Effect, RPC, React/Next.js, Cloudflare, runtime, testing, naming, and code-shape work, including proposed capabilities or coordination mechanisms. Read only relevant references. This file and the [local index](./wiki/patterns/index.md) take precedence; consult the [Zerospin index](./vendor/zerospin/wiki/patterns/index.md) for domain guidance.
+Use `$use-morgs32-wiki-patterns` for TypeScript, Effect, RPC, React/Next.js, Cloudflare, runtime, testing, naming, and code-shape work, including proposed capabilities or coordination mechanisms. Read only relevant references. This file and the [local index](./wiki/patterns/index.md) take precedence; consult the [upstream Zerospin index](../zerospin/wiki/patterns/index.md) when the sibling checkout is available for domain guidance.
 
 <!-- patterns configuration end-->
 
-## Vendors
+## Zerospin packages and vendors
 
-Direct source edits are allowed in `vendor/zerospin`, but they must eventually be synced to the upstream Zerospin repository (`../zerospin`). This exception takes precedence over `$update-vendor`'s read-only rule for that vendor. Treat all other `vendor/**` paths as read-only: make their source changes upstream, commit and push there, then pull through `$update-vendor`; never author direct edits or subtree-push for those vendors here. Use the prefix, origin, and branch in [README.md](./README.md) for vendor syncs. The pull workflow may restore existing consumer metadata verbatim. Keep consumer integrations outside vendors.
+Zerospin source and releases belong to the sibling `../zerospin` checkout.
+QRK consumes exact package versions from the local registry; never edit installed
+Zerospin files or rebuild them in this consumer. Make upstream fixes in Zerospin,
+release a new package version, and update QRK's dependencies and lockfile.
+Treat any `vendor/**` paths as read-only and use `$update-vendor` for configured
+vendor operations. Keep consumer integrations outside vendors.
 
 ## Verification
 

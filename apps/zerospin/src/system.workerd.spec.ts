@@ -18,6 +18,7 @@ import { DateTime, Effect, Schema } from "effect";
 import { describe, expect, vi, beforeAll } from "vitest";
 
 import { userSessionDefinition } from "./aggregates/user/userSessionDefinition";
+import { userAggregateV1 } from "./aggregates/user/UserV1";
 import { createUserV1 as createUser } from "./aggregates/user/contracts/createUser/CreateUserV1";
 import { signature } from "./signature";
 import { system } from "./system";
@@ -65,14 +66,20 @@ describe("QRK system", () => {
             "test.executeAuthenticationCommand",
           )(function* (props) {
             const { actor, claims, payload, contract } = props;
-            const command = yield* makeAggregateCommand({
-              contract: createUser,
-              actorName: actor.name,
-              actorVersion: actor.version,
-              claims,
+            expect(actor.name).toBe("provisioner");
+            expect(actor.version).toBe(userAggregateV1.actors.provisioner.version);
+            const command = yield* makeAggregateCommand(userAggregateV1, {
+              contractName: "createUser",
+              actorName: "provisioner",
+              claims: yield* Schema.decodeUnknownEffect(
+                userAggregateV1.actors.provisioner.identity.claimsSchema,
+              )(claims).pipe(
+                Effect.mapError(
+                  (cause) =>
+                    new ZerospinError({ code: "test-invalid-claims", message: String(cause) }),
+                ),
+              ),
               aggregateId: key.aggregateId,
-              aggregateName: "user",
-              aggregateVersion: "1.0.0",
               systemName: "qrk-sh",
               payload: yield* Schema.decodeUnknownEffect(makeEffectSchema(createUser.payload))(
                 payload,
@@ -190,11 +197,19 @@ describe("QRK system", () => {
         executeCommand: (props) => {
           const { actor, claims, payload } = props;
           return Effect.gen(function* () {
-            const command = yield* makeAggregateCommand({
-              contract: createUser,
-              actorName: actor.name,
-              actorVersion: actor.version,
-              claims,
+            expect(actor.name).toBe("provisioner");
+            expect(actor.version).toBe(userAggregateV1.actors.provisioner.version);
+            const command = yield* makeAggregateCommand(userAggregateV1, {
+              contractName: "createUser",
+              actorName: "provisioner",
+              claims: yield* Schema.decodeUnknownEffect(
+                userAggregateV1.actors.provisioner.identity.claimsSchema,
+              )(claims).pipe(
+                Effect.mapError(
+                  (cause) =>
+                    new ZerospinError({ code: "test-invalid-claims", message: String(cause) }),
+                ),
+              ),
               payload: yield* Schema.decodeUnknownEffect(makeEffectSchema(createUser.payload))(
                 payload,
               ).pipe(
@@ -204,8 +219,6 @@ describe("QRK system", () => {
                 ),
               ),
               aggregateId: "acct_user_rejected_provisioning",
-              aggregateName: "user",
-              aggregateVersion: "1.0.0",
               systemName: "qrk-sh",
             });
             const encoded = yield* encodeCommand({ contract: createUser, command });

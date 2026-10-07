@@ -4,7 +4,7 @@ import { Pencil } from "lucide-react";
 import { isNonEmptySpec } from "@json-render/core";
 import { Schema } from "effect";
 import { prefixId } from "@zerospin/core/models/prefixId";
-import { stageCommand, useLiveQuery } from "@zerospin/react";
+import { useLiveQuery, type stageAggregateCommand } from "@zerospin/react";
 import GridLayout, { verticalCompactor } from "react-grid-layout";
 
 import { libraryModule } from "../libraryModule/libraryModule";
@@ -36,6 +36,7 @@ function commandErrorMessage(failure: { message?: string; code?: string }) {
 
 export function BrickWall(props: {
   session: ILibrarySession;
+  executeCommand: typeof stageAggregateCommand;
   wallId: `wal_${string}`;
   breakpoint: "sm" | "md" | "lg" | "xl";
   gridWidth: number;
@@ -48,6 +49,7 @@ export function BrickWall(props: {
 }) {
   const {
     session,
+    executeCommand,
     wallId,
     breakpoint,
     gridWidth,
@@ -142,7 +144,7 @@ export function BrickWall(props: {
       return;
     }
     normalizationAttempt.current = { session, snapshot };
-    const result = stageCommand({
+    const result = executeCommand({
       session,
       contractName: "compactLayoutAtBreakpoint",
       payload: { wallId, breakpoint, visibleLayout },
@@ -154,6 +156,7 @@ export function BrickWall(props: {
     }
   }, [
     session,
+    executeCommand,
     wallId,
     breakpoint,
     bricksQuery.data,
@@ -278,7 +281,7 @@ export function BrickWall(props: {
           onResizeStart={beginGesture}
           onResizeStop={(nextLayout) => {
             try {
-              const result = stageCommand({
+              const result = executeCommand({
                 session,
                 contractName: "updateLayoutAtBreakpoint",
                 payload: {
@@ -322,7 +325,7 @@ export function BrickWall(props: {
             };
 
             try {
-              const result = stageCommand({
+              const result = executeCommand({
                 session,
                 contractName: "addBrick",
                 payload: {
@@ -410,7 +413,7 @@ export function BrickWall(props: {
               if (outside && item) {
                 const brickRow = bricks.find((candidate) => candidate.id === item.i);
                 if (brickRow !== undefined) {
-                  const result = stageCommand({
+                  const result = executeCommand({
                     session,
                     contractName: "removeBrick",
                     payload: {
@@ -423,7 +426,7 @@ export function BrickWall(props: {
                   }
                 }
               } else {
-                const result = stageCommand({
+                const result = executeCommand({
                   session,
                   contractName: "updateLayoutAtBreakpoint",
                   payload: {

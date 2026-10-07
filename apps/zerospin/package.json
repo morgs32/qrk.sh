@@ -12,21 +12,21 @@
     "@clerk/backend": "^3.8.5",
     "@qrk.sh/library": "workspace:*",
     "@remix-run/route-pattern": "^0.22.1",
-    "@zerospin/core": "workspace:*",
-    "@zerospin/error": "workspace:*",
-    "@zerospin/sdk": "workspace:*",
-    "@zerospin/shapes": "workspace:*",
+    "@zerospin/core": "3.0.1",
+    "@zerospin/error": "3.0.1",
+    "@zerospin/sdk": "3.0.1",
+    "@zerospin/shapes": "3.0.1",
     "capnweb": "^0.12.0",
     "effect": "rc",
-    "system-worker": "workspace:*"
+    "system-worker": "3.0.1"
   },
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "^0.16.3",
     "@effect/vitest": "rc",
     "@livestore/wa-sqlite": "^1.0.5",
     "@types/node": "^25.5.2",
-    "@zerospin/cli": "workspace:*",
-    "@zerospin/dev-worker": "workspace:*",
+    "@zerospin/cli": "3.0.1",
+    "@zerospin/dev-worker": "3.0.1",
     "cloudflare": "^6.1.0",
     "drizzle-orm": "1.0.0-rc.4",
     "typescript": "^6.0.2",
@@ -39,17 +39,32 @@
       "dev": {
         "continuous": true,
         "dependsOn": [
-          "^lib"
+          {
+            "projects": [
+              "@qrk.sh/library"
+            ],
+            "target": "build"
+          }
         ]
       },
       "test:workerd": {
         "dependsOn": [
-          "^lib"
+          {
+            "projects": [
+              "@qrk.sh/library"
+            ],
+            "target": "build"
+          }
         ]
       },
       "ts": {
         "dependsOn": [
-          "^lib"
+          {
+            "projects": [
+              "@qrk.sh/library"
+            ],
+            "target": "build"
+          }
         ]
       }
     }

@@ -2,10 +2,22 @@ import { Schema } from "effect";
 
 import type { ILinktreeScrapePayload } from "./types";
 
-export const LinktreePayloadSchema = Schema.Struct({
-  props: Schema.Struct({
-    pageProps: Schema.Struct({
-      account: Schema.Struct({ username: Schema.String }),
-    }),
+// Explicit rest schemas retain the complete provider JSON in Effect v4.
+export const LinktreePayloadSchema = Schema.StructWithRest(
+  Schema.Struct({
+    props: Schema.StructWithRest(
+      Schema.Struct({
+        pageProps: Schema.StructWithRest(
+          Schema.Struct({
+            account: Schema.StructWithRest(Schema.Struct({ username: Schema.String }), [
+              Schema.JsonObject,
+            ]),
+          }),
+          [Schema.JsonObject],
+        ),
+      }),
+      [Schema.JsonObject],
+    ),
   }),
-}) satisfies Schema.Schema<ILinktreeScrapePayload>;
+  [Schema.JsonObject],
+) satisfies Schema.Schema<ILinktreeScrapePayload>;

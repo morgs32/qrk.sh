@@ -7,8 +7,9 @@ patchedDependencies:
   sql.js@1.14.1: patches/sql.js@1.14.1.patch
 
 overrides:
-  "effect": "4.0.0-rc.112"
-  "@effect/platform-node-shared": "4.0.0-rc.112"
+  "effect": "4.0.2"
+  "@effect/platform-node-shared": "4.0.2"
+  "@effect/vitest": "4.0.2"
   "react": "19.2.7"
   "react-dom": "19.2.7"
   "vite": "npm:@voidzero-dev/vite-plus-core@1.0.0"

@@ -14,18 +14,24 @@ export const InstagramPayloadSchema = Schema.Struct({
   postImageUrls: Schema.Array(Schema.NonEmptyString).check(Schema.isMaxLength(4)),
 }) satisfies Schema.Schema<IInstagramScrapePayload>;
 
-export const GitHubPayloadSchema = Schema.Struct({
-  login: Schema.String,
-  contributions: Schema.optional(
-    Schema.Array(
-      Schema.Struct({
-        date: Schema.String,
-        count: Schema.Int,
-        level: Schema.Literals([0, 1, 2, 3, 4]),
-      }),
+export const GitHubPayloadSchema = Schema.StructWithRest(
+  Schema.Struct({
+    login: Schema.String,
+    contributions: Schema.optional(
+      Schema.Array(
+        Schema.StructWithRest(
+          Schema.Struct({
+            date: Schema.String,
+            count: Schema.Int,
+            level: Schema.Literals([0, 1, 2, 3, 4]),
+          }),
+          [Schema.JsonObject],
+        ),
+      ),
     ),
-  ),
-}) satisfies Schema.Schema<IGitHubScrapePayload>;
+  }),
+  [Schema.JsonObject],
+) satisfies Schema.Schema<IGitHubScrapePayload>;
 
 export const GitHubRepoPayloadSchema = Schema.Struct({
   name: Schema.String,
@@ -44,10 +50,13 @@ export const LinkPreviewSchema = Schema.Struct({
   iconUrl: Schema.String,
 }) satisfies Schema.Schema<ILinkPreview>;
 
-export const FigmaFilePreviewPayloadSchema = Schema.Struct({
-  title: Schema.String,
-  url: Schema.String,
-  thumbnail_url: Schema.optional(Schema.NullOr(Schema.String)),
-  thumbnail_width: Schema.optional(Schema.NullOr(Schema.Int)),
-  thumbnail_height: Schema.optional(Schema.NullOr(Schema.Int)),
-});
+export const FigmaFilePreviewPayloadSchema = Schema.StructWithRest(
+  Schema.Struct({
+    title: Schema.String,
+    url: Schema.String,
+    thumbnail_url: Schema.optional(Schema.NullOr(Schema.String)),
+    thumbnail_width: Schema.optional(Schema.NullOr(Schema.Int)),
+    thumbnail_height: Schema.optional(Schema.NullOr(Schema.Int)),
+  }),
+  [Schema.JsonObject],
+);

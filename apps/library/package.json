@@ -120,7 +120,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cn": "^0.3.0",
-    "effect": "rc",
+    "effect": "4.0.2",
     "es-toolkit": "^1.45.1",
     "framer-motion": "13.2.0",
     "json-edit-react": "^1.30.2",

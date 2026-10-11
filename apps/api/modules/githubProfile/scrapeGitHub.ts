@@ -8,9 +8,7 @@ export const parseGitHubPayload = Effect.fn("parseGitHubPayload")(function* (pro
   login: string;
 }) {
   const { payload: inputPayload, login } = props;
-  const payload = yield* Schema.decodeUnknownEffect(GitHubPayloadSchema)(inputPayload, {
-    onExcessProperty: "preserve",
-  }).pipe(
+  const payload = yield* Schema.decodeUnknownEffect(GitHubPayloadSchema)(inputPayload).pipe(
     Effect.mapError(
       () =>
         new ScrapeError({

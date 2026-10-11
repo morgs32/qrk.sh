@@ -7,9 +7,9 @@ import type { IFigmaFilePreviewPayload } from "../types";
 export const parseFigmaFilePreviewPayload = Effect.fn("parseFigmaFilePreviewPayload")(
   function* (props: { payload: unknown; canonicalUrl: string }) {
     const { payload: inputPayload, canonicalUrl } = props;
-    const payload = yield* Schema.decodeUnknownEffect(FigmaFilePreviewPayloadSchema)(inputPayload, {
-      onExcessProperty: "preserve",
-    }).pipe(
+    const payload = yield* Schema.decodeUnknownEffect(FigmaFilePreviewPayloadSchema)(
+      inputPayload,
+    ).pipe(
       Effect.mapError(
         () =>
           new ScrapeError({

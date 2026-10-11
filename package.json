@@ -9,7 +9,7 @@
   },
   "devDependencies": {
     "@typescript/native": "npm:typescript@^7.0.2",
-    "effect": "rc",
+    "effect": "4.0.2",
     "nx": "23.1.0",
     "typescript": "^6.0.2"
   },

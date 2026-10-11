@@ -11,8 +11,9 @@ The credential-free project `.npmrc` routes all dependencies through
 serves Zerospin packages locally and proxies ordinary third-party packages to
 npm. QRK retains the sql.js `1.14.1` patch in `patches/` so Cloudflare Workers can
 initialize actor snapshot databases without `self.location`.
-The workspace pins both Effect and `@effect/platform-node-shared` to
-`4.0.0-rc.112`; their runtime versions must stay aligned for the Zerospin CLI.
+The workspace pins Effect, `@effect/platform-node-shared`, and `@effect/vitest`
+to `4.0.2`; their versions must stay aligned for the Zerospin CLI and tests.
+Effect is installed from the registry; no Effect source is vendored.
 
 Two Next.js apps with App Router:
 

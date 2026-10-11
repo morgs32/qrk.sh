@@ -8,17 +8,16 @@ export const parseLinktreePayload = Effect.fn("parseLinktreePayload")(function* 
   json: string;
   username: string;
 }) {
+  const { json, username } = props;
   const parsed = yield* Effect.try({
-    try: (): unknown => JSON.parse(props.json),
+    try: (): unknown => JSON.parse(json),
     catch: () =>
       new ScrapeError({
         code: "unsupported-page-shape",
         message: "Linktree __NEXT_DATA__ was malformed",
       }),
   });
-  const payload = yield* Schema.decodeUnknownEffect(LinktreePayloadSchema)(parsed, {
-    onExcessProperty: "preserve",
-  }).pipe(
+  const payload = yield* Schema.decodeUnknownEffect(LinktreePayloadSchema)(parsed).pipe(
     Effect.mapError(
       () =>
         new ScrapeError({
@@ -27,7 +26,7 @@ export const parseLinktreePayload = Effect.fn("parseLinktreePayload")(function* 
         }),
     ),
   );
-  if (payload.props.pageProps.account.username.toLowerCase() !== props.username.toLowerCase()) {
+  if (payload.props.pageProps.account.username.toLowerCase() !== username.toLowerCase()) {
     return yield* new ScrapeError({
       code: "profile-identity-mismatch",
       message: "Linktree payload did not match the requested profile",

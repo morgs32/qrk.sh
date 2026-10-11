@@ -71,7 +71,6 @@ export class LinktreeRepo extends DurableObject<IScraperEnv> {
             const decoded = await Effect.runPromise(
               Schema.decodeUnknownEffect(Schema.fromJsonString(LinktreePayloadSchema))(
                 result.right,
-                { onExcessProperty: "preserve" },
               ).pipe(
                 Effect.mapError(
                   () =>
@@ -145,9 +144,9 @@ export class LinktreeRepo extends DurableObject<IScraperEnv> {
           return result;
         }
         const decoded = await Effect.runPromise(
-          Schema.decodeUnknownEffect(Schema.fromJsonString(LinktreePayloadSchema))(result.right, {
-            onExcessProperty: "preserve",
-          }).pipe(
+          Schema.decodeUnknownEffect(Schema.fromJsonString(LinktreePayloadSchema))(
+            result.right,
+          ).pipe(
             Effect.mapError(
               () =>
                 new ScrapeError({

@@ -17,12 +17,12 @@
     "@zerospin/sdk": "3.0.1",
     "@zerospin/shapes": "3.0.1",
     "capnweb": "^0.12.0",
-    "effect": "rc",
+    "effect": "4.0.2",
     "system-worker": "3.0.1"
   },
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "^0.16.3",
-    "@effect/vitest": "rc",
+    "@effect/vitest": "4.0.2",
     "@livestore/wa-sqlite": "^1.0.5",
     "@types/node": "^25.5.2",
     "@zerospin/cli": "3.0.1",

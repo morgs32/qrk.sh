@@ -1,7 +1,8 @@
-import type { IDb, IResourceDbConfig } from "@zerospin/core/drizzle/types";
-import type { InferCommandPayload } from "@zerospin/core/models/types";
-import { makeContractVersion, primitives, ZerospinError } from "@zerospin/sdk/browser";
-import { Effect } from "effect";
+import { ContractError } from "@zerospin/error";
+import * as sdk from "@zerospin/sdk/browser";
+
+import { makeAggregateContractVersion, primitives } from "@zerospin/sdk/browser";
+import { Channel, Effect } from "effect";
 import { siteV1 as Site } from "../../models/site/SiteV1";
 import { userV1 as User } from "../../models/user/UserV1";
 
@@ -31,80 +32,64 @@ const updateSiteSettingsPayload = {
   }),
 };
 
-export const updateSiteSettingsV1 = makeContractVersion(updateSiteSettings, {
+export const updateSiteSettingsV1 = makeAggregateContractVersion(updateSiteSettings, {
+  failures: {
+    updateSiteSettingsUserMismatch: ContractError.schema({
+      code: "update-site-settings-user-mismatch",
+    }),
+    updateSiteSettingsNotFound: ContractError.schema({ code: "update-site-settings-not-found" }),
+  },
+
   payload: updateSiteSettingsPayload,
   models: { user: User, site: Site },
-  guard: Effect.fn("updateSiteSettings.guard")(function* (props: {
-    claims: Readonly<Record<string, unknown>> | null;
-    db: Readonly<
-      Pick<
-        IDb<
-          IResourceDbConfig<
-            {
-              site: typeof Site;
-              user: typeof User;
-            },
-            Record<never, never>
-          >
-        >,
-        "query"
-      >
-    >;
-    payload: InferCommandPayload<typeof updateSiteSettingsPayload>;
-  }) {
-    const { claims, db, payload } = props;
-    const clerkUserId = claims?.clerkUserId;
+  guard: (props) => {
+    const { failures, claims, db, payload } = props;
+    return Effect.gen(function* () {
+      const clerkUserId = claims?.clerkUserId;
 
-    if (typeof clerkUserId !== "string") {
-      return yield* new ZerospinError({
-        code: "update-site-settings-user-mismatch",
-        message: "Updating site settings requires an authenticated user",
-        status: 403,
-      });
-    }
+      if (typeof clerkUserId !== "string") {
+        return yield* failures.updateSiteSettingsUserMismatch.make({
+          message: "Updating site settings requires an authenticated user",
+          status: 403,
+        });
+      }
 
-    const site = db.query.site
-      .findFirst({
-        where: { id: { eq: payload.id } },
-      })
-      .sync();
+      const site = yield* sdk.findFirst({ db, model: Site, where: { id: { eq: payload.id } } });
 
-    if (site === undefined) {
-      return yield* new ZerospinError({
-        code: "update-site-settings-not-found",
-        message: `Site ${payload.id} was not found`,
-        status: 404,
-      });
-    }
+      if (site === undefined) {
+        return yield* failures.updateSiteSettingsNotFound.make({
+          message: `Site ${payload.id} was not found`,
+          status: 404,
+        });
+      }
 
-    const user =
-      site.userId === null
-        ? undefined
-        : db.query.user
-            .findFirst({
-              where: { id: { eq: site.userId } },
-            })
-            .sync();
+      const user =
+        site.userId === null
+          ? undefined
+          : yield* sdk.findFirst({ db, model: User, where: { id: { eq: site.userId } } });
 
-    if (user === undefined || user.clerkUserId !== clerkUserId) {
-      return yield* new ZerospinError({
-        code: "update-site-settings-user-mismatch",
-        message: `Site ${payload.id} does not belong to identity ${clerkUserId}`,
-        status: 403,
-      });
-    }
-  }),
+      if (user === undefined || user.clerkUserId !== clerkUserId) {
+        return yield* failures.updateSiteSettingsUserMismatch.make({
+          message: `Site ${payload.id} does not belong to identity ${clerkUserId}`,
+          status: 403,
+        });
+      }
+    });
+  },
   program: (props) => {
-    const { payload, models } = props;
-    return models.site.update({
-      resourceId: payload.id,
-      attributes: {
-        name: payload.name,
-        description: payload.description,
-        logoUrl: payload.logoUrl,
-        faviconLightUrl: payload.faviconLightUrl,
-        faviconDarkUrl: payload.faviconDarkUrl,
-      },
+    const { payload } = props;
+    return Channel.suspend(() => {
+      return sdk.makeUpdateOperation({
+        model: Site,
+        resourceId: payload.id,
+        attributes: {
+          name: payload.name,
+          description: payload.description,
+          logoUrl: payload.logoUrl,
+          faviconLightUrl: payload.faviconLightUrl,
+          faviconDarkUrl: payload.faviconDarkUrl,
+        },
+      });
     });
   },
   version: "1.0.0",

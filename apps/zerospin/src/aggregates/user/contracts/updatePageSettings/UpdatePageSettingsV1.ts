@@ -1,7 +1,8 @@
-import type { IDb, IResourceDbConfig } from "@zerospin/core/drizzle/types";
-import type { InferCommandPayload } from "@zerospin/core/models/types";
-import { makeContractVersion, primitives, ZerospinError } from "@zerospin/sdk/browser";
-import { Effect } from "effect";
+import { ContractError } from "@zerospin/error";
+import * as sdk from "@zerospin/sdk/browser";
+
+import { makeAggregateContractVersion, primitives } from "@zerospin/sdk/browser";
+import { Channel, Effect } from "effect";
 import { pageV1 as Page } from "../../models/page/PageV1";
 import { siteV1 as Site } from "../../models/site/SiteV1";
 import { userV1 as User } from "../../models/user/UserV1";
@@ -20,100 +21,80 @@ const updatePageSettingsPayload = {
   }),
 };
 
-export const updatePageSettingsV1 = makeContractVersion(updatePageSettings, {
+export const updatePageSettingsV1 = makeAggregateContractVersion(updatePageSettings, {
+  failures: {
+    updatePageSettingsUserMismatch: ContractError.schema({
+      code: "update-page-settings-user-mismatch",
+    }),
+    updatePageSettingsNotFound: ContractError.schema({ code: "update-page-settings-not-found" }),
+    updatePageSettingsSiteNotFound: ContractError.schema({
+      code: "update-page-settings-site-not-found",
+    }),
+  },
+
   payload: updatePageSettingsPayload,
   models: { user: User, site: Site, page: Page },
-  guard: Effect.fn("updatePageSettings.guard")(function* (props: {
-    claims: Readonly<Record<string, unknown>> | null;
-    db: Readonly<
-      Pick<
-        IDb<
-          IResourceDbConfig<
-            {
-              page: typeof Page;
-              site: typeof Site;
-              user: typeof User;
-            },
-            Record<never, never>
-          >
-        >,
-        "query"
-      >
-    >;
-    payload: InferCommandPayload<typeof updatePageSettingsPayload>;
-  }) {
-    const { claims, db, payload } = props;
-    const clerkUserId = claims?.clerkUserId;
+  guard: (props) => {
+    const { failures, claims, db, payload } = props;
+    return Effect.gen(function* () {
+      const clerkUserId = claims?.clerkUserId;
 
-    if (typeof clerkUserId !== "string") {
-      return yield* new ZerospinError({
-        code: "update-page-settings-user-mismatch",
-        message: "Updating page settings requires an authenticated user",
-        status: 403,
-      });
-    }
+      if (typeof clerkUserId !== "string") {
+        return yield* failures.updatePageSettingsUserMismatch.make({
+          message: "Updating page settings requires an authenticated user",
+          status: 403,
+        });
+      }
 
-    const page = db.query.page
-      .findFirst({
-        where: { id: { eq: payload.id } },
-      })
-      .sync();
+      const page = yield* sdk.findFirst({ db, model: Page, where: { id: { eq: payload.id } } });
 
-    if (page === undefined) {
-      return yield* new ZerospinError({
-        code: "update-page-settings-not-found",
-        message: `Page ${payload.id} was not found`,
-        status: 404,
-      });
-    }
+      if (page === undefined) {
+        return yield* failures.updatePageSettingsNotFound.make({
+          message: `Page ${payload.id} was not found`,
+          status: 404,
+        });
+      }
 
-    if (page.siteId === null) {
-      return yield* new ZerospinError({
-        code: "update-page-settings-site-not-found",
-        message: `Page ${payload.id} has no site`,
-        status: 404,
-      });
-    }
+      if (page.siteId === null) {
+        return yield* failures.updatePageSettingsSiteNotFound.make({
+          message: `Page ${payload.id} has no site`,
+          status: 404,
+        });
+      }
 
-    const site = db.query.site
-      .findFirst({
-        where: { id: { eq: page.siteId } },
-      })
-      .sync();
+      const site = yield* sdk.findFirst({ db, model: Site, where: { id: { eq: page.siteId } } });
 
-    if (site === undefined) {
-      return yield* new ZerospinError({
-        code: "update-page-settings-site-not-found",
-        message: `Site ${page.siteId} was not found`,
-        status: 404,
-      });
-    }
+      if (site === undefined) {
+        return yield* failures.updatePageSettingsSiteNotFound.make({
+          message: `Site ${page.siteId} was not found`,
+          status: 404,
+        });
+      }
 
-    const user =
-      site.userId === null
-        ? undefined
-        : db.query.user
-            .findFirst({
-              where: { id: { eq: site.userId } },
-            })
-            .sync();
+      const user =
+        site.userId === null
+          ? undefined
+          : yield* sdk.findFirst({ db, model: User, where: { id: { eq: site.userId } } });
 
-    if (user === undefined || user.clerkUserId !== clerkUserId) {
-      return yield* new ZerospinError({
-        code: "update-page-settings-user-mismatch",
-        message: `Page ${payload.id} does not belong to identity ${clerkUserId}`,
-        status: 403,
-      });
-    }
-  }),
+      if (user === undefined || user.clerkUserId !== clerkUserId) {
+        return yield* failures.updatePageSettingsUserMismatch.make({
+          message: `Page ${payload.id} does not belong to identity ${clerkUserId}`,
+          status: 403,
+        });
+      }
+    });
+  },
   program: (props) => {
-    const { payload, models } = props;
-    return models.page.update({
-      resourceId: payload.id,
-      attributes: {
-        title: payload.title,
-        description: payload.description,
-      },
+    const { payload } = props;
+    return Channel.suspend(() => {
+      return sdk.makeUpdateOperation({
+        model: Page,
+        resourceId: payload.id,
+        attributes: {
+          title: payload.title,
+          description: payload.description,
+        },
+      });
     });
   },
   version: "1.0.0",

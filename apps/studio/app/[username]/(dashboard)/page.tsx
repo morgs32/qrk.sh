@@ -1,5 +1,7 @@
 "use client";
 
+import { stageAggregateSessionCommand } from "@zerospin/core/aggregateSession/stageCommand/stageAggregateSessionCommand";
+
 import Link from "next/link";
 
 import { makeId } from "@zerospin/sdk/browser";
@@ -7,7 +9,7 @@ import { makeId } from "@zerospin/sdk/browser";
 import { useState } from "react";
 import { Schema } from "effect";
 import { toast } from "sonner";
-import { useLiveQuery, stageAggregateCommand } from "@zerospin/react";
+import { useLiveQuery } from "@zerospin/react";
 import { ZerospinError } from "@zerospin/sdk/browser";
 
 import { siteV1 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV1";
@@ -23,7 +25,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { userSession } from "@/zerospin/userSession";
+import { UserApp } from "@/zerospin/userSession";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 
 const ParamsSchema = Schema.Struct({
@@ -32,18 +34,18 @@ const ParamsSchema = Schema.Struct({
 
 export default function UsernameDashboardPage() {
   const { username } = useValidatedParams(ParamsSchema);
-  const session = userSession;
+  const session = UserApp.useInitializedSession();
   const [createSiteOpen, setCreateSiteOpen] = useState(false);
   const [siteName, setSiteName] = useState("");
   const { data: user, error } = useLiveQuery({
-    session: userSession,
+    session,
     query: (db) => {
       const state = session.store.getState();
-      if (!state.isInitialized) {
+      if (state.initialized === null) {
         throw new Error("Your session is not ready");
       }
       return db.query.user.findFirst({
-        where: { clerkUserId: { eq: state.claims.clerkUserId } },
+        where: { clerkUserId: { eq: state.initialized.claims.clerkUserId } },
         with: { sites: { with: { pages: true } } },
       });
     },
@@ -95,15 +97,15 @@ export default function UsernameDashboardPage() {
                         return;
                       }
                       const state = session.store.getState();
-                      if (!state.isInitialized) {
+                      if (state.initialized === null) {
                         toast.error("Your session is not ready");
                         return;
                       }
-                      const siteResult = stageAggregateCommand({
+                      const siteResult = stageAggregateSessionCommand({
                         session,
                         contractName: "createSite",
                         payload: {
-                          id: session.runtime.runSync(makeId(Site)),
+                          id: session.runSync(makeId(Site)),
                           userId: user.id,
                           name,
                         },
@@ -114,11 +116,11 @@ export default function UsernameDashboardPage() {
                       }
 
                       const siteId = siteResult.success.payload.id;
-                      const pageResult = stageAggregateCommand({
+                      const pageResult = stageAggregateSessionCommand({
                         session,
                         contractName: "createPage",
                         payload: {
-                          id: session.runtime.runSync(makeId(Page)),
+                          id: session.runSync(makeId(Page)),
                           siteId,
                           slug: "home",
                         },

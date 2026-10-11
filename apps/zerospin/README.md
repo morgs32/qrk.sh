@@ -18,7 +18,7 @@ pnpm nx run @qrk.sh/zerospin:ts
 pnpm nx run @qrk.sh/zerospin:test:workerd
 ```
 
-QRK installs the CLI and runtime packages at `3.0.1` from the populated local
+QRK installs the CLI and runtime packages at `4.0.2` from the populated local
 registry described in the [root README](../../README.md#zerospin-packages). Nx
 builds QRK's reusable Library before backend checks and development; it does not
 rebuild installed Zerospin files.
@@ -41,11 +41,11 @@ new packages.
 `src/system.ts` registers only user aggregate `1.0.0`. All current models and
 contracts start at `1.0.0`; older declaration versions have been removed.
 
-`userActorV1` verifies Clerk through `userProvisionerV1`, then awaits `createUser`
+`userActorV1` verifies Clerk through `userProvisionerV1`, then its authorization awaits `createUser`
 under that provisioner actor and verified identity. Each attempt generates an
 independent User resource ID (`usr_…`); `identity.clerkUserId` remains the Clerk
 subject. The provisioner guard runs inside the aggregate command transaction and
-rejects duplicate subjects with `user-already-exists`, which authentication
+rejects duplicate subjects with `user-already-exists`, which authorization
 accepts as successful provisioning.
 Other admission or execution failures prevent session initialization.
 
@@ -54,7 +54,12 @@ identity. Wall, Brick, Placement, and their editing contracts are supplied by
 `@qrk.sh/library/libraryModule`. QRK owns the Page's `wallId` reference; `createPage`
 creates that deterministic wall and the Page in one command. Legacy Grid/Brick
 snapshot contracts have been removed. There is no migration or lazy wall provisioning.
-Standalone Studio backups remain untouched by this cutover.
-Studio's explicit `userSession` uses the matching V1 web actor and React-owned
-initialization/disposal. Models live under `aggregates/user/models/<model>/`,
+Existing Studio browser databases remain untouched by this code cutover.
+Studio's `userSessionRelease` uses the matching V1 web actor. Its `UserApp.Initializer`
+owns initialization and disposal for each Clerk identity. Models live under `aggregates/user/models/<model>/`,
 and contracts under `aggregates/user/contracts/<command>/`.
+
+The private provisioner owner guard owns identity and duplicate-user decisions in
+one admission transaction. Its declared aggregate failures retain their domain
+codes. Browser editing guards declare contract failures; programs return lazy
+operation Channels. The web actor does not expose `createUser`.

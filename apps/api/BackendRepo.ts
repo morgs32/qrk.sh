@@ -4,6 +4,7 @@ import { catchZerospinError, type IZerospinErrorJson } from "@zerospin/error";
 import { makeRpcEnvelope, type IRpcEnvelope } from "@zerospin/logger";
 import { makeTable, primitives } from "@zerospin/shapes";
 import { Effect, Layer, ManagedRuntime, Schema } from "effect";
+import { DurableObject } from "cloudflare:workers";
 import { makeMigratableDORepo } from "system-worker/makeMigratableDORepo/makeMigratableDORepo";
 import { makeMigratableDORepoConfig } from "system-worker/makeMigratableDORepo/makeMigratableDORepoConfig";
 
@@ -16,11 +17,11 @@ const responses = makeTable({
   },
 });
 
-const backendRepo = makeMigratableDORepo({
+const backendRepo = makeMigratableDORepo(DurableObject<Cloudflare.Env>, {
   namespaceBinding: "BACKEND_REPO",
+  managedRuntime,
   migratableDORepoConfig: makeMigratableDORepoConfig({
     namePattern: RoutePattern.parse("/global"),
-    managedRuntime,
     dbConfig: makeDbConfig({ tables: { responses } }),
     migrations: [
       {
@@ -57,7 +58,7 @@ export class BackendRepo extends backendRepo {
         });
       }).pipe(
         Effect.mapError(catchZerospinError({ code: "backend-response-store-failed" })),
-        makeRpcEnvelope,
+        (program) => makeRpcEnvelope(program),
       ),
     );
   }

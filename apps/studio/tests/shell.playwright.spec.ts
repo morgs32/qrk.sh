@@ -52,7 +52,7 @@ test("deep editor URLs wait for session readiness before rendering the site navb
   }
 });
 
-test("Next serves isolated assets and preserves backup worker URLs", async ({ request }) => {
+test("Next serves isolated assets", async ({ request }) => {
   const response = await request.get("/shell-check");
   const html = await response.text();
   expect(html).toContain('data-testid="dashboard-navbar"');
@@ -68,8 +68,6 @@ test("Next serves isolated assets and preserves backup worker URLs", async ({ re
   for (const [path, contentType] of [
     ["/assets/site-settings-social-preview.png", "image/png"],
     ["/assets/favicon.ico", "image/"],
-    ["/__zerospin/backup-worker.js", "javascript"],
-    ["/__zerospin/wa-sqlite-async.wasm", "application/wasm"],
   ]) {
     const asset = await request.get(path);
     expect(asset.status(), path).toBe(200);

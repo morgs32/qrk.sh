@@ -1,8 +1,9 @@
-import type { IDb } from "@zerospin/core/drizzle/types";
-import { defineContract } from "@zerospin/core/contracts/defineContract";
-import { makeContractVersion } from "@zerospin/core/contracts/make/makeContractVersion";
+import { findFirst } from "@zerospin/core/contracts/findFirst";
+import { makeUpdateOperation } from "@zerospin/core/contracts/make/makeUpdateOperation";
+import { defineAggregateContract } from "@zerospin/core/contracts/defineAggregateContract";
+import { makeAggregateContractVersion } from "@zerospin/core/contracts/make/makeAggregateContractVersion";
 import { ZerospinError } from "@zerospin/error";
-import { primitives, type InferDecodedRow, type InferIdFromAbbreviation } from "@zerospin/shapes";
+import { primitives } from "@zerospin/shapes";
 import { Effect } from "effect";
 
 import { makeBrickModel } from "../libraryModule/models/brick/makeBrickModel";
@@ -23,7 +24,7 @@ export function makeModuleSpecContractVersion<
   components: Record<string, ReturnType<typeof defineComponent>>;
 }) {
   const { commandName, moduleId, brick, placement, components } = props;
-  const command = defineContract(commandName);
+  const command = defineAggregateContract(commandName);
   const SpecDocumentSchema = makeModuleSpecDocumentSchema(components);
 
   const payload = {
@@ -36,29 +37,21 @@ export function makeModuleSpecContractVersion<
     spec: primitives.json({ schema: SpecDocumentSchema }),
   };
 
-  return makeContractVersion(command, {
+  return makeAggregateContractVersion(command, {
     payload,
     models: {
       brick,
       placement,
     },
     version: "1.0.0",
-    guard: Effect.fn(`${commandName}.guard`)(function* ({
-      db,
-      payload: guardPayload,
-    }: {
-      claims: Readonly<Record<string, unknown>> | null;
-      db: Readonly<Pick<IDb, "query">>;
-      payload: {
-        brickId: string;
-        breakpoint: "sm" | "md" | "lg" | "xl";
-      };
-    }) {
-      const brickRow = db.query.brick
-        .findFirst({
-          where: { id: { eq: guardPayload.brickId } },
-        })
-        .sync();
+    guard: Effect.fn(`${commandName}.guard`)(function* (props) {
+      const { db, payload: guardPayload } = props;
+
+      const brickRow = yield* findFirst({
+        db: db,
+        model: brick,
+        where: { id: { eq: guardPayload.brickId } },
+      });
 
       if (brickRow === undefined) {
         return yield* new ZerospinError({
@@ -77,13 +70,13 @@ export function makeModuleSpecContractVersion<
       }
 
       const expectedPlacementId = makePlacementId(guardPayload.brickId, guardPayload.breakpoint);
-      const placement = db.query.placement
-        .findFirst({
-          where: { id: { eq: expectedPlacementId } },
-        })
-        .sync();
+      const placementRow = yield* findFirst({
+        db: db,
+        model: placement,
+        where: { id: { eq: expectedPlacementId } },
+      });
 
-      if (placement === undefined) {
+      if (placementRow === undefined) {
         return yield* new ZerospinError({
           code: `update-${moduleId}-spec-placement-not-found`,
           message: `placement ${expectedPlacementId} was not found`,
@@ -91,18 +84,13 @@ export function makeModuleSpecContractVersion<
         });
       }
     }),
-    program: Effect.fn(`${commandName}.program`)(function* (props) {
-      const { payload: programPayload, models: programModels } = props;
-      yield* programModels.placement.update({
-        resourceId: makePlacementId(
-          programPayload.brickId,
-          programPayload.breakpoint,
-        ) as InferIdFromAbbreviation<"plc">,
-        attributes: {
-          spec: structuredClone(programPayload.spec),
-          measured: null,
-        } as Partial<InferDecodedRow<(typeof placement)["attributes"]>>,
+    program: (props) => {
+      const { payload: programPayload } = props;
+      return makeUpdateOperation({
+        model: placement,
+        resourceId: makePlacementId(programPayload.brickId, programPayload.breakpoint),
+        attributes: { spec: structuredClone(programPayload.spec), measured: null },
       });
-    }),
+    },
   });
 }

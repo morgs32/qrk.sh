@@ -1,19 +1,8 @@
 import type { NextConfig } from "next";
-import { copyFileSync, mkdirSync } from "node:fs";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 
 const require = createRequire(import.meta.url);
-
-// Preserve the backup worker's existing public URLs and bytes.
-const backupAssets = new URL("./public/__zerospin/", import.meta.url);
-mkdirSync(backupAssets, { recursive: true });
-for (const [source, destination] of [
-  ["@zerospin/backup-worker/backup-worker.js", "backup-worker.js"],
-  ["@zerospin/backup-worker/wa-sqlite-async.wasm", "wa-sqlite-async.wasm"],
-]) {
-  copyFileSync(require.resolve(source), new URL(destination, backupAssets));
-}
 
 const nextConfig: NextConfig = {
   assetPrefix: "/studio-static",

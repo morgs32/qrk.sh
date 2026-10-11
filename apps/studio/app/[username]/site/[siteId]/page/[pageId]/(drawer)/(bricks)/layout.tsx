@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import type { ReactNode } from "react";
 import { modulesHash } from "@qrk.sh/library";
 import { libraryModule } from "@qrk.sh/library/libraryModule";
-import { userSession } from "@/zerospin/userSession";
+import { UserApp } from "@/zerospin/userSession";
 import { pageV1 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
 import { makeModelIdSchema } from "@zerospin/core/models/make/makeModelIdSchema";
 import { makeEffectSchema } from "@zerospin/shapes";
@@ -29,7 +29,7 @@ export default function BrickDrawerLayout(props: { children: ReactNode }) {
     moduleId?: string;
     brickId?: string;
   }>();
-  const session = userSession;
+  const session = UserApp.useInitializedSession();
   const decodedBrickId = Schema.decodeUnknownResult(makeModelIdSchema(libraryModule.models.brick))(
     brickId,
   );

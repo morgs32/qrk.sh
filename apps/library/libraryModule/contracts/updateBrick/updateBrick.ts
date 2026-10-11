@@ -1,3 +1,3 @@
-import { defineContract } from "@zerospin/core/contracts/defineContract";
+import { defineAggregateContract } from "@zerospin/core/contracts/defineAggregateContract";
 
-export const updateBrick = defineContract("updateBrick");
+export const updateBrick = defineAggregateContract("updateBrick");

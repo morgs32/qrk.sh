@@ -370,22 +370,20 @@ with null, and spec-at-breakpoint commands clear the affected placement's measur
 }
 ```
 
-`LibraryLayout` initializes the module-level `librarySession` with
-`useInitializeStandaloneSession`. Its `qrk-library` backup namespace includes the
-model/contract definition hash and persists `wal_library` across reloads of that
-definition. Initialization registers it with DevTools. Adding `placement.measured`
-and renaming the state update contract to `updateBrick` changes the hash: after reload the authorized reset starts
-from the existing empty-wall seed, with no saved bricks, placements, or command
-history. Old definition backups remain stored but unused; no migration, key bump,
-or vendor reset code is needed. This reset applies to Library standalone sessions;
-Studio's server-backed walls remain separate.
-Navigation releases backup ownership on `pagehide`; a visible `pageshow`
-reacquires it when returning through browser history. Saved bricks are retained.
-DevTools defaults to closed; its trigger remains available and saved DevTools
-visibility preferences still apply.
-Restored resources take precedence over the initial seed. Studio uses its authenticated
-`userSession`, with a separate wall referenced by each page. It no longer constructs
-standalone sessions or reads their per-page IndexedDB backups.
+`LibraryApp` is created from the pure `librarySessionRelease`. `LibraryLayout` mounts
+its `Initializer`, which owns a fresh browser facade and starts it after commit.
+The initialized content suspends until SQLite is ready; server rendering does
+not wait for a browser-only initialization Promise. The `qrk-library` namespace
+persists the seeded `wal_library` through the SharedWorker's owned IndexedDB VFS.
+Worker identity includes the exact session release; changed fixed schemas require
+empty storage and do not read or translate deprecated rows. Preserve earlier
+origins and use the fresh-origin check above before the first current start.
+
+Closing the last connection drains the owned Node and closes its SQLite storage
+before releasing the namespace lease. Restored resources take precedence over
+the initial seed. DevTools defaults to closed and retains its visibility preference.
+Studio uses its authenticated `UserApp` initialized session, with a separate wall
+referenced by each Page.
 
 Shared consumers (`LibrarySessionContext`, `useLibrarySession`, and `BrickWall`)
 use `ILibrarySession`, the aggregate-session surface with Library models and contracts.
@@ -394,19 +392,20 @@ without requiring standalone initialization or reset methods. The shared
 `libraryModule` exports only models and flat command contracts. Session construction
 owns identity, claims, initialization, and disposal.
 
-Command execution belongs to each app's session lifecycle. Library passes
-`executeStandaloneAggregateCommand` into the shared `BrickWall`; Studio passes
-`stageAggregateCommand`. The wall calls that required `executeCommand` prop
-directly. Library-only state/spec editors execute standalone commands, while
-Studio's dashboard and settings stage aggregate commands for the live owner.
+Command execution belongs to each app's session lifecycle. Both apps pass
+`stageAggregateSessionCommand` into the shared `BrickWall`. The wall calls that required
+`executeCommand` prop directly. The Library worker executes staged originals locally;
+Studio's worker admits and synchronizes them with the authenticated owner.
 
-`useLiveQuery` reads the session's `db`, returning model-decoded `state`,
+`useLiveQuery` reads the session's `initialized.db`, returning model-decoded `state`,
 `spec`, `measured`, and `gridItem` values. Components consume these values directly. Explicit writes and backups use encoded SQLite values; relational queries decode model fields.
 
 Committed layout is Wall → Brick → Placement via aggregate contracts
 (`addBrick`, layout/visibility/remove/compact, `updateBrick`, and per-module
 spec-at-breakpoint). Commands run synchronously: Library commits completed local
-execution, while Studio stages optimism and pushes through its live user session; `backupState: ready` describes local backup durability, not server acknowledgement. Shared state lives on the brick row; each placement stores a
+execution, while Studio stages optimism and pushes through its live user session.
+Local staging durability and server finalization are distinct. Shared state lives
+on the brick row; each placement stores a
 complete Spec, nullable pixel measurement, grid item, and visibility. `BrickWall` uses `verticalCompactor` for
 packed drag/resize feedback. Module contracts compact before persisting geometry:
 add/show resolve collisions first, layout updates compact their payload, hide compacts
@@ -464,10 +463,11 @@ and 86px below it, leaving 24px above and below its 38px toolbar. Its external
 from its viewport minimum height, with 3.5rem and zero fallbacks respectively, so an
 empty wall remains one viewport tall without extra scrolling.
 
-Library and Studio resolve the same installed backup-worker package exports and
-copy their bytes into their public directories:
-`/__zerospin/backup-worker.js` and `/__zerospin/wa-sqlite-async.wasm`. Next's webpack
-build also emits the standalone session's separate synchronous SQLite WASM asset.
+Library and Studio resolve browser SQLite WASM from the installed Zerospin
+`4.0.2` package exports. Next's webpack build emits the standalone session's
+synchronous asset and the connected SharedWorker's async asset. Persistent Node
+storage belongs to the SharedWorker's IndexedDB-backed SQLite namespace;
+no separate backup worker or public backup-worker assets remain.
 
 HTML5 catalog drag is a module-level `brickDragStore` (`brickDef` / `setBrickDef`
 only). Its shared `IDraggedBrick` payload preserves the registered module ID

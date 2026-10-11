@@ -1,6 +1,16 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { stageAggregateSessionCommand } from "@zerospin/core/aggregateSession/stageCommand/stageAggregateSessionCommand";
+
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  Suspense,
+  type ReactNode,
+} from "react";
 
 import { Drawer } from "../lib/Drawer";
 import Link from "next/link";
@@ -8,11 +18,7 @@ import { useParams, usePathname, useRouter, useSearchParams } from "next/navigat
 import { Result, Schema } from "effect";
 import { makeEffectSchema } from "@zerospin/shapes";
 import { prefixId } from "@zerospin/core/models/prefixId";
-import {
-  executeStandaloneAggregateCommand,
-  useInitializeStandaloneSession,
-  useLiveQuery,
-} from "@zerospin/react";
+import { useLiveQuery } from "@zerospin/react";
 import { useReducedMotion } from "framer-motion";
 import { RotateCcw, X } from "lucide-react";
 import { toast } from "sonner";
@@ -32,7 +38,7 @@ import {
 import { LibrarySessionContext } from "../session/createLibraryStandaloneSession";
 import { libraryModule } from "../libraryModule/libraryModule";
 
-import { librarySession } from "./librarySession";
+import { LibraryApp, librarySessionInputs } from "./librarySession";
 
 const WALL_ID = prefixId(libraryModule.models.wall, "library");
 const LIBRARY_VIEWPORT_STORAGE_NAME = "qrk-bricks-library-viewport-v1";
@@ -92,14 +98,22 @@ function breakpointIndex(id: (typeof BREAKPOINTS)[number]["id"]) {
 
 export function LibraryLayout(props: { children: ReactNode }) {
   const { children } = props;
+  const mounted = useSyncExternalStore(subscribeToClientMount, readClientMount, readServerMount);
+  return (
+    <LibraryApp.Initializer {...librarySessionInputs}>
+      <Suspense fallback={null}>
+        {mounted ? <InitializedLibraryLayout>{children}</InitializedLibraryLayout> : null}
+      </Suspense>
+    </LibraryApp.Initializer>
+  );
+}
+
+function InitializedLibraryLayout(props: { children: ReactNode }) {
+  const { children } = props;
   const [sessionKey, setSessionKey] = useState(0);
   const [resetError, setResetError] = useState<unknown>(null);
-  const session = librarySession;
-  const { isInitialized } = useInitializeStandaloneSession({ session });
+  const session = LibraryApp.useInitializedSession();
   if (resetError !== null) throw resetError;
-  if (!isInitialized) {
-    return null;
-  }
 
   return (
     <LibrarySessionContext value={session}>
@@ -125,7 +139,7 @@ export function LibraryLayout(props: { children: ReactNode }) {
 
 function LayoutBody(props: {
   children: ReactNode;
-  session: typeof librarySession;
+  session: ReturnType<typeof LibraryApp.useInitializedSession>;
   onResetSession: () => void;
 }) {
   const { children, session, onResetSession } = props;
@@ -370,7 +384,7 @@ function LayoutBody(props: {
                     </div>
                     <BrickWall
                       session={session}
-                      executeCommand={executeStandaloneAggregateCommand}
+                      executeCommand={stageAggregateSessionCommand}
                       wallId={WALL_ID}
                       breakpoint={row.id}
                       gridWidth={row.previewWidth}
@@ -542,4 +556,14 @@ function LayoutBody(props: {
       </div>
     </main>
   );
+}
+
+function subscribeToClientMount() {
+  return () => {};
+}
+function readClientMount() {
+  return true;
+}
+function readServerMount() {
+  return false;
 }

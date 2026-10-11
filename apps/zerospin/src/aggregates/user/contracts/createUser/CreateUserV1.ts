@@ -1,7 +1,7 @@
-import type { IDb, IResourceDbConfig } from "@zerospin/core/drizzle/types";
-import type { InferCommandPayload } from "@zerospin/core/models/types";
-import { makeContractVersion, primitives, ZerospinError } from "@zerospin/sdk/browser";
-import { Effect } from "effect";
+import * as sdk from "@zerospin/sdk/browser";
+
+import { makeAggregateContractVersion, primitives } from "@zerospin/sdk/browser";
+import { AggregateError } from "@zerospin/error";
 import { userV1 as User } from "../../models/user/UserV1";
 
 import { createUser } from "./createUser";
@@ -17,56 +17,21 @@ const createUserPayload = {
   }),
 };
 
-export const createUserV1 = makeContractVersion(createUser, {
+export const createUserV1 = makeAggregateContractVersion(createUser, {
   payload: createUserPayload,
   models: { user: User },
-  guard: Effect.fn("createUser.guard")(function* (props: {
-    claims: Readonly<Record<string, unknown>> | null;
-    db: Readonly<
-      Pick<IDb<IResourceDbConfig<{ user: typeof User }, Record<never, never>>>, "query">
-    >;
-    payload: InferCommandPayload<typeof createUserPayload>;
-  }) {
-    const { claims, db, payload } = props;
-    const clerkUserId = claims?.clerkUserId;
-
-    if (claims !== null && payload.clerkUserId !== clerkUserId) {
-      return yield* new ZerospinError({
-        code: "create-user-identity-mismatch",
-        message: `User ${payload.id} does not match authenticated identity ${clerkUserId}`,
-        status: 403,
-      });
-    }
-
-    const user = db.query.user
-      .findFirst({
-        where: { clerkUserId: { eq: payload.clerkUserId } },
-      })
-      .sync();
-
-    if (user !== undefined) {
-      return yield* new ZerospinError({
-        code: "user-already-exists",
-        message: `A user already exists for Clerk user ${payload.clerkUserId}`,
-        status: 409,
-      });
-    }
-  }),
-  program: ({ payload, models }) => {
+  failures: {
+    userAlreadyExists: AggregateError.schema({ code: "user-already-exists" }),
+    createUserIdentityMismatch: AggregateError.schema({ code: "create-user-identity-mismatch" }),
+  },
+  program: (props) => {
+    const { payload } = props;
     const { id, clerkUserId, username, displayName } = payload;
-    return Effect.all(
-      [
-        models.user.create({
-          resourceId: id,
-          attributes: {
-            clerkUserId,
-            username,
-            displayName,
-          },
-        }),
-      ],
-      { discard: true },
-    );
+    return sdk.makeCreateOperation({
+      model: User,
+      resourceId: id,
+      attributes: { clerkUserId, username, displayName },
+    });
   },
   version: "1.0.0",
 });

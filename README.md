@@ -3,14 +3,16 @@
 ## Zerospin packages
 
 Zerospin owns its source, builds, and releases in the sibling `../zerospin`
-checkout. QRK installs exact `3.0.1` packages from the local Verdaccio registry;
+checkout. QRK installs exact `4.0.2` packages from the local Verdaccio registry;
 there is no vendored Zerospin source or consumer-side Zerospin build.
 
 The credential-free project `.npmrc` routes all dependencies through
 `http://127.0.0.1:4873/`, including the unscoped `system-worker`. The registry
 serves Zerospin packages locally and proxies ordinary third-party packages to
-npm. QRK retains the sql.js `1.14.1` patch in `patches/` so Cloudflare Workers can
-initialize actor snapshot databases without `self.location`.
+npm. The framework supplies its SQL.js runtime. The existing Workerd initializer
+resolves the asm build for in-memory test databases, without host filesystem access.
+Cloudflare Worker types and Zod peers match across Library and the backend so
+they resolve the same Core and Drizzle package instances.
 The workspace pins Effect, `@effect/platform-node-shared`, and `@effect/vitest`
 to `4.0.2`; their versions must stay aligned for the Zerospin CLI and tests.
 Effect is installed from the registry; no Effect source is vendored.
@@ -33,12 +35,12 @@ Brick groups are defined under `apps/library/groups/`.
 3. Placed bricks retain their own **`brickId`**. Library bricks and backend brick records store **`groupId`** and **`catalogId`**.
 
 This is a hard terminology cutover: old backend state must be reset before reuse.
-`libraryModule` exports the shared models and flat command contracts. Library and
-Studio construct standalone sessions with their own identity and storage keys.
+`libraryModule` exports the shared models and flat command contracts. Library
+uses its standalone release; Studio uses the authenticated user release.
 
 Model and contract versions remain unchanged. Library viewport preference
-uses `qrk-bricks-library-viewport-v1`. Library and Studio walls are owned by
-standalone sessions with IndexedDB backups, not persisted Zustand brick maps.
+uses `qrk-bricks-library-viewport-v1`. Wall rows live in each initialized session's
+SQLite replica, with SharedWorker-owned IndexedDB persistence.
 
 More detail and test patterns: [docs/styleguide/component-and-file-naming.md](docs/styleguide/component-and-file-naming.md).
 
@@ -72,7 +74,7 @@ More detail and test patterns: [docs/styleguide/component-and-file-naming.md](do
    On the first registry bootstrap, install, build, verify, and publish the
    release in Zerospin before installing QRK. Follow Zerospin's package release
    instructions. Existing registry storage survives restarts. A fresh checkout
-   requires the running registry with the locked `3.0.1` packages; hosted
+   requires the running registry with the locked `4.0.2` packages; hosted
    distribution and deployment-machine bootstrap are not configured here.
 
 2. Start the homepage:
@@ -95,19 +97,19 @@ retained commands and SQLite schemas require empty storage; old data is preserve
 separately and has no compatibility migration.
 
 Studio owns `apps/studio/zerospin/zerospin.worker.ts`, which calls
-`makeSharedWorker({ sqliteWasmUrl })`. `userSession` supplies a lazy worker factory;
+`makeSharedWorker({ sqliteWasmUrl })`. `userSessionRelease` supplies a lazy worker factory;
 Zerospin chooses its name from the runtime version and persistent session identity.
 Studio uses webpack in Next development and production builds to bundle the
 worker and its `new URL(..., import.meta.url)` SQLite WASM asset. Studio listens
 on port 3001 behind web on port 3000. Web proxies Studio's isolated
-`/studio-static/_next/` asset namespace and its `/__zerospin/` backup-worker
-artifacts. Next resolves the exported backup-worker assets and browser SQLite
-WASM from installed packages, preserving those public URLs. Existing `/assets/` public-file URLs have explicit
+`/studio-static/_next/` asset namespace. Next bundles the SharedWorker and its
+SQLite WASM from the installed browser package. Existing `/assets/` public-file URLs have explicit
 Studio mappings.
 Vite remains only for Studio Storybook.
 
 Studio server-renders the document, fonts, and navigation before its browser
-session initializes. The dashboard shows `qrk.sh`; the site navbar reserves its
+session initializes. `UserApp.Initializer` owns a fresh facade for its Clerk binding;
+ready readers suspend until that facade publishes its initialized database. The dashboard shows `qrk.sh`; the site navbar reserves its
 custom wordmark with a skeleton. Browser-owned data and editor drafts stay under
 the content readiness gate. Persistent App Router layouts retain the editor
 across drawers; native React View Transitions animate drawer entry and snapshot
@@ -160,4 +162,4 @@ saved absolute URLs using port 4101 need their origin updated separately.
 
 Deploy both Next.js apps and route `/`, `/sign-in(.*)`, `/sign-up(.*)`, `/replace`, `/ordered-body`, and `/ordered-outline` to `@qrk.sh/web`; route the remaining application paths to `@qrk.sh/studio`.
 
-Preserve the `/studio-static/`, `/assets/`, and `/__zerospin/` proxy routes in production.
+Preserve the `/studio-static/` and `/assets/` proxy routes in production.

@@ -1,45 +1,37 @@
-import { Schema } from "effect";
+import { RoutePattern } from "@remix-run/route-pattern";
 import { createContext, useContext } from "react";
 
 import type {
   IAggregateSession,
-  IAggregateSessionDefinition,
+  IAggregateSessionRelease,
 } from "@zerospin/core/aggregateSession/types";
-import { makeStandaloneSession } from "@zerospin/browser";
+import { makeBrowserSession, makeStandaloneSessionRelease } from "@zerospin/browser";
+import type { IBrowserSession } from "@zerospin/browser/makeBrowserSession/types";
 
 import { libraryModule } from "../libraryModule/libraryModule";
+import { librarySessionDeclaration } from "./librarySessionDeclaration";
 
 const fixtureDate = new Date("2026-01-01T00:00:00.000Z");
+
+export const librarySessionRelease = makeStandaloneSessionRelease({
+  ...librarySessionDeclaration,
+  sharedWorker: (props) => {
+    const { name } = props;
+    return new SharedWorker(new URL("./librarySession.worker.ts", import.meta.url), {
+      type: "module",
+      name,
+    });
+  },
+});
 
 export function createLibraryStandaloneSession(props: {
   key: string;
   wallId: `wal_${string}`;
-}): ReturnType<
-  typeof makeStandaloneSession<
-    "library",
-    "1.0.0",
-    "library",
-    "1.0.0",
-    "library",
-    Schema.Struct<{ readonly aggregateId: typeof Schema.String }>,
-    Record<never, never>,
-    Record<never, never>,
-    { readonly library: typeof libraryModule }
-  >
-> {
+}): IBrowserSession<typeof librarySessionRelease> {
   const { key, wallId } = props;
-  return makeStandaloneSession({
-    key,
-    modules: {
-      library: libraryModule,
-    },
-    kind: "aggregate",
-    aggregateName: "library",
-    aggregateVersion: "1.0.0",
-    actorName: "library",
-    actorVersion: "1.0.0",
-    sessionName: "library",
-    claimsSchema: Schema.Struct({ aggregateId: Schema.String }),
+  return makeBrowserSession({
+    sessionRelease: librarySessionRelease,
+    backupPath: RoutePattern.parse("/" + encodeURIComponent(key)),
     claims: { aggregateId: "acct_1" },
     resources: {
       wall: [
@@ -57,21 +49,20 @@ export function createLibraryStandaloneSession(props: {
 }
 
 export type ILibrarySession = IAggregateSession<
-  IAggregateSessionDefinition<
+  IAggregateSessionRelease<
     string,
     string,
     string,
     typeof libraryModule.contracts,
     typeof libraryModule.models
-  >
+  >,
+  never
 >;
 
 export const LibrarySessionContext = createContext<ILibrarySession | null>(null);
 
 export function useLibrarySession() {
   const session = useContext(LibrarySessionContext);
-  if (session === null) {
-    throw new Error("useLibrarySession requires LibrarySessionContext");
-  }
+  if (session === null) throw new Error("useLibrarySession requires LibrarySessionContext");
   return session;
 }

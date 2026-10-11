@@ -1,3 +1,3 @@
-import { defineContract } from "@zerospin/sdk/browser";
+import { defineAggregateContract } from "@zerospin/sdk/browser";
 
-export const updateSiteSettings = defineContract("updateSiteSettings");
+export const updateSiteSettings = defineAggregateContract("updateSiteSettings");

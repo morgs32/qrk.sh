@@ -8,10 +8,6 @@ const nextConfig: NextConfig = {
       beforeFiles: [
         { source: "/studio-static/:path*", destination: `${appOrigin}/studio-static/:path*` },
         {
-          source: "/__zerospin/:path*",
-          destination: `${appOrigin}/__zerospin/:path*`,
-        },
-        {
           source: "/assets/:path*",
           destination: `${appOrigin}/assets/:path*`,
         },

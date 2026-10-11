@@ -1,25 +1,31 @@
 import { userActorV1 } from "./aggregates/user/actors/userActorV1";
-import { makeSessionDefinition } from "@zerospin/core/sessionDefinition/makeSessionDefinition";
+import { makeAggregateSessionRelease } from "@zerospin/core/sessionRelease/makeAggregateSessionRelease";
 import { validatePayload } from "@zerospin/core/contracts/validatePayload";
 import { prefixId } from "@zerospin/sdk/browser";
 import { it } from "@effect/vitest";
-import { AsyncLive } from "@zerospin/core/async/AsyncLive";
-import { makeAsync } from "@zerospin/core/async/make/makeAsync";
 import SQLiteFactory from "@livestore/wa-sqlite/dist/wa-sqlite.mjs";
 import wasm from "@livestore/wa-sqlite/dist/wa-sqlite.wasm";
 import { makeResourceDbConfig } from "@zerospin/core/drizzle/make/makeDbConfig/makeDbConfig";
 import { makeProvisionedInMemorySqljsDb } from "@zerospin/core/drizzle/make/makeProvisionedInMemorySqljsDb/makeProvisionedInMemorySqljsDb";
 import { makeInMemorySQLite3 } from "@zerospin/core/drizzle/make/makeInMemorySQLite3/makeInMemorySQLite3";
-import { makeWaSqliteDrizzle } from "@zerospin/core/drizzle/make/makeProvisionedInMemoryWasmSqliteDb/makeInMemoryWasmSqliteDb/makeWaSqliteDrizzle/makeWaSqliteDrizzle";
+import { makeSqliteDrizzle } from "@zerospin/core/drizzle/make/makeSqliteDrizzle";
 import { provisionDb } from "@zerospin/core/drizzle/provisionDb/provisionDb";
-import { makeAggregateSessionActivation } from "@zerospin/core/aggregateSession/makeAggregateSessionActivation";
+import { makeInitializedAggregateSession } from "@zerospin/core/aggregateSession/makeInitializedAggregateSession";
+import {
+  GENESIS_EXECUTED_PREIMAGE,
+  hashDisposition,
+} from "@zerospin/core/contracts/dispositionHash";
 import { makeAggregateSession } from "@zerospin/core/aggregateSession/make/makeAggregateSession";
 import { sessionRepoDbConfig } from "@zerospin/core/aggregateSession/sessionRepoDbConfig";
-import { stageAggregateCommand } from "@zerospin/core/aggregateSession/stageCommand/stageAggregateCommand";
-import { operationSink } from "@zerospin/core/contracts/operationSink";
+import { stageAggregateSessionCommand } from "@zerospin/core/aggregateSession/stageCommand/stageAggregateSessionCommand";
+import { makeContractReadDb } from "@zerospin/core/contracts/make/makeContractReadDb";
+import { SessionFailures } from "@zerospin/core/sessionFailures/SessionFailures";
+import type { CuidFactory } from "@zerospin/shapes";
+import type { MonotonicFactory } from "@zerospin/core/services/MonotonicFactory";
+import { TelemetryCollector } from "@zerospin/logger";
 import { NanoIdFactory } from "@zerospin/core/utils/NanoIdFactory";
 import { UlidMonotonicFactory } from "@zerospin/core/utils/UlidMonotonicFactory";
-import { DateTime, Effect, Layer, ManagedRuntime, Result } from "effect";
+import { Channel, DateTime, Effect, Layer, ManagedRuntime, Result } from "effect";
 import { describe, expect } from "vitest";
 
 import { createPageV1 as createPage } from "./aggregates/user/contracts/createPage/CreatePageV1";
@@ -38,9 +44,8 @@ describe("site and page creation contracts", () => {
         models: userSessionDefinition.models,
         otherTables: sessionRepoDbConfig.tables,
       });
-      const { schema } = dbConfig;
       const client = yield* Effect.acquireRelease(
-        makeAsync(() =>
+        Effect.promise(() =>
           makeInMemorySQLite3(() =>
             SQLiteFactory({
               instantiateWasm(
@@ -53,11 +58,11 @@ describe("site and page creation contracts", () => {
               },
             }),
           ),
-        ).pipe(Effect.provide(AsyncLive)),
+        ),
         (client) => Effect.sync(() => client.sqlite3.close(client.db)),
       );
-      const db = makeWaSqliteDrizzle(client, dbConfig);
-      yield* provisionDb({ db, schema });
+      const db = makeSqliteDrizzle(client, dbConfig);
+      yield* provisionDb({ db, definition: dbConfig.definition });
 
       db.insert(dbConfig.schema.user)
         .values({
@@ -73,56 +78,58 @@ describe("site and page creation contracts", () => {
         .run();
 
       const sessionId = "sesn_site_contract";
-      const runtime = yield* Effect.acquireRelease(
-        Effect.sync(() => ManagedRuntime.make(Layer.mergeAll(NanoIdFactory, UlidMonotonicFactory))),
-        (runtime) => runtime.disposeEffect,
-      );
-      const definition = makeSessionDefinition({ ...userSessionDefinition, systemName: "qrk-sh" });
+      let runtime: ManagedRuntime.ManagedRuntime<
+        CuidFactory | MonotonicFactory | SessionFailures | TelemetryCollector,
+        never
+      >;
+      const definition = makeAggregateSessionRelease({
+        ...userSessionDefinition,
+        systemName: "qrk-sh",
+      });
       if (definition.kind !== "aggregate") throw new Error("Expected aggregate session definition");
       const session = makeAggregateSession({
-        definition: { ...definition, ...userSessionDefinition },
+        sessionRelease: { ...definition, ...userSessionDefinition },
+        execution: {
+          runSync: (program) => runtime.runSync(program),
+          runPromise: (program) => runtime.runPromise(program),
+        },
+      });
+      runtime = yield* Effect.acquireRelease(
+        Effect.sync(() =>
+          ManagedRuntime.make(
+            Layer.mergeAll(
+              NanoIdFactory,
+              UlidMonotonicFactory,
+              Layer.succeed(SessionFailures, session.failures),
+              Layer.succeed(TelemetryCollector, session.store.getState().telemetryCollector),
+            ),
+          ),
+        ),
+        (runtime) => runtime.disposeEffect,
+      );
+      const initialized = yield* makeInitializedAggregateSession({
+        declaration: session.sessionRelease,
+        db,
+        admitted: {
+          sessionId,
+          aggregateId: "acct_site_contract_user",
+          actorName: definition.actorName,
+          actorVersion: definition.actorVersion,
+          claims: {
+            aggregateId: "acct_site_contract_user",
+            clerkUserId: "site_contract_user",
+          },
+        },
       });
       session.store.setState({
         ...session.store.getState(),
-        activation: makeAggregateSessionActivation({
-          declaration: session.definition,
-          db,
-          runtime,
-          admitted: {
-            sessionId,
-            aggregateId: "acct_site_contract_user",
-            actorName: definition.actorName,
-            actorVersion: definition.actorVersion,
-            claims: {
-              aggregateId: "acct_site_contract_user",
-              clerkUserId: "site_contract_user",
-            },
-          },
-        }),
-        sessionId,
-        aggregateId: "acct_site_contract_user",
-        aggregateName: userSessionDefinition.aggregateName,
-        claims: {
-          aggregateId: "acct_site_contract_user",
-          clerkUserId: "site_contract_user",
-        },
-        sessionName: userSessionDefinition.sessionName,
-        aggregateSessionLockKey: "site-contract-lock-key",
-        db,
-        schema,
-        models: userSessionDefinition.models,
-        isInitialized: true,
+        initialized,
         aggregateIndex: 0,
-        executedIndex: 0,
-        executedHash: "",
-        actorName: "web",
-        actorVersion: userSessionDefinition.actorVersion,
+        dispositionHash: yield* Effect.promise(() => hashDisposition(GENESIS_EXECUTED_PREIMAGE)),
         pushIndex: 0,
-        sessionStatus: "current",
-        backupState: { status: "ready", failure: null },
       });
 
-      const staged = stageAggregateCommand({
+      const staged = stageAggregateSessionCommand({
         session,
         contractName: "createSite",
         payload: { id: "sit_site_contract", userId },
@@ -158,17 +165,17 @@ describe("site and page creation contracts", () => {
         }),
       );
 
-      const missingSiteId = stageAggregateCommand({
+      // @ts-expect-error Caller-supplied IDs are required; also verify runtime rejection.
+      const missingSiteId = stageAggregateSessionCommand({
         session,
         contractName: "createSite",
-        // @ts-expect-error Caller-supplied IDs are required; also verify runtime rejection.
         payload: {},
       });
       expect(missingSiteId._tag).toBe("Failure");
       expect(db.select().from(dbConfig.schema.site).all()).toHaveLength(1);
 
       const siteId = staged.success.payload.id;
-      const stagedPage = stageAggregateCommand({
+      const stagedPage = stageAggregateSessionCommand({
         session,
         contractName: "createPage",
         payload: {
@@ -205,10 +212,10 @@ describe("site and page creation contracts", () => {
         }),
       );
 
-      const missingPageId = stageAggregateCommand({
+      // @ts-expect-error Caller-supplied IDs are required; also verify runtime rejection.
+      const missingPageId = stageAggregateSessionCommand({
         session,
         contractName: "createPage",
-        // @ts-expect-error Caller-supplied IDs are required; also verify runtime rejection.
         payload: { siteId, slug: "missing-id" },
       });
       expect(missingPageId._tag).toBe("Failure");
@@ -218,7 +225,7 @@ describe("site and page creation contracts", () => {
       expect(pageRows[0]?.wallId).toBe(wallId);
       expect(db.select().from(dbConfig.schema.wall).all()).toMatchObject([{ id: wallId }]);
 
-      const added = stageAggregateCommand({
+      const added = stageAggregateSessionCommand({
         session,
         contractName: "addBrick",
         payload: {
@@ -246,7 +253,7 @@ describe("site and page creation contracts", () => {
       if (added._tag === "Failure") throw new Error(added.failure.message);
       expect(db.query.brick.findMany().sync()).toMatchObject([{ id: "brk_live_first", wallId }]);
       expect(db.query.placement.findMany().sync()).toHaveLength(4);
-      const updated = stageAggregateCommand({
+      const updated = stageAggregateSessionCommand({
         session,
         contractName: "updateBrick",
         payload: {
@@ -258,7 +265,7 @@ describe("site and page creation contracts", () => {
       });
       expect(updated._tag).toBe("Success");
       expect(db.query.brick.findFirst().sync()?.state).toMatchObject({ data: { name: "Updated" } });
-      const invalid = stageAggregateCommand({
+      const invalid = stageAggregateSessionCommand({
         session,
         contractName: "updateBrick",
         payload: {
@@ -270,7 +277,7 @@ describe("site and page creation contracts", () => {
       });
       expect(invalid._tag).toBe("Failure");
       expect(db.query.brick.findFirst().sync()?.state).toMatchObject({ data: { name: "Updated" } });
-      const secondPage = stageAggregateCommand({
+      const secondPage = stageAggregateSessionCommand({
         session,
         contractName: "createPage",
         payload: { id: "pag_second", siteId, slug: "second" },
@@ -334,7 +341,7 @@ describe("site and page creation contracts", () => {
       expect(selections.placement.all(db, { clerkUserId: "missing" })).toEqual([]);
 
       // Visibility changes stay on one placement; removal deletes all of the brick's placements.
-      const hidden = stageAggregateCommand({
+      const hidden = stageAggregateSessionCommand({
         session,
         contractName: "setBrickVisibilityAtBreakpoint",
         payload: {
@@ -355,13 +362,13 @@ describe("site and page creation contracts", () => {
           expect.objectContaining({ breakpoint: "sm", isVisible: true }),
         ]),
       );
-      const wrongWall = stageAggregateCommand({
+      const wrongWall = stageAggregateSessionCommand({
         session,
         contractName: "removeBrick",
         payload: { brickId: "brk_live_first", wallId: "wal_pag_second" },
       });
       expect(wrongWall._tag).toBe("Failure");
-      const removed = stageAggregateCommand({
+      const removed = stageAggregateSessionCommand({
         session,
         contractName: "removeBrick",
         payload: { brickId: "brk_live_first", wallId },
@@ -377,12 +384,12 @@ describe("site and page creation contracts", () => {
   it.effect("rejects site program execution without an authenticated user", () =>
     Effect.gen(function* () {
       const dbConfig = makeResourceDbConfig({ models: userSessionDefinition.models });
-      const db = yield* makeProvisionedInMemorySqljsDb({ dbConfig }).pipe(
-        Effect.provide(AsyncLive),
-      );
+      const db = yield* makeProvisionedInMemorySqljsDb({ dbConfig });
       const error = yield* createSite
         .program({
-          db,
+          db: makeContractReadDb({ db, models: createSite.models }),
+          failures: createSite.failures,
+          aggregateId: "acct_site_program",
           claims: null,
           payload: {
             id: "sit_unauthenticated",
@@ -392,14 +399,7 @@ describe("site and page creation contracts", () => {
             description: null,
           },
         })
-        .pipe(
-          Effect.provideService(operationSink(), {
-            emit: () => {
-              throw new Error("Unauthenticated program must not emit operations");
-            },
-          }),
-          Effect.flip,
-        );
+        .pipe(Channel.runCollect, Effect.flip);
 
       expect(error).toMatchObject({
         code: "create-site-user-mismatch",
@@ -446,9 +446,7 @@ describe("user frontend creation guards", () => {
       const dbConfig = makeResourceDbConfig({
         models: userSessionDefinition.models,
       });
-      const db = yield* makeProvisionedInMemorySqljsDb({ dbConfig }).pipe(
-        Effect.provide(AsyncLive),
-      );
+      const db = yield* makeProvisionedInMemorySqljsDb({ dbConfig });
 
       db.insert(dbConfig.schema.user)
         .values({
@@ -469,9 +467,10 @@ describe("user frontend creation guards", () => {
       }
 
       yield* guard({
-        failures: {},
+        aggregateId: "acct_guard_user",
+        failures: createSite.failures,
         claims: { clerkUserId: "site_guard_user" },
-        db,
+        db: makeContractReadDb({ db, models: createSite.models }),
         payload: {
           id: "sit_site_guard_user",
           userId,
@@ -483,9 +482,10 @@ describe("user frontend creation guards", () => {
 
       for (const authenticatedIdentityKey of ["different_site_user", null]) {
         const error = yield* guard({
-          failures: {},
+          aggregateId: "acct_guard_user",
+          failures: createSite.failures,
           claims: { clerkUserId: authenticatedIdentityKey },
-          db,
+          db: makeContractReadDb({ db, models: createSite.models }),
           payload: {
             id: "sit_site_guard_user",
             userId,
@@ -511,9 +511,7 @@ describe("user frontend creation guards", () => {
       const dbConfig = makeResourceDbConfig({
         models: userSessionDefinition.models,
       });
-      const db = yield* makeProvisionedInMemorySqljsDb({ dbConfig }).pipe(
-        Effect.provide(AsyncLive),
-      );
+      const db = yield* makeProvisionedInMemorySqljsDb({ dbConfig });
 
       db.insert(dbConfig.schema.user)
         .values({
@@ -551,9 +549,10 @@ describe("user frontend creation guards", () => {
       }
 
       yield* guard({
-        failures: {},
+        aggregateId: "acct_guard_user",
+        failures: createPage.failures,
         claims: { clerkUserId: "page_guard_user" },
-        db,
+        db: makeContractReadDb({ db, models: createPage.models }),
         payload: {
           id: "pag_page_guard_user",
           siteId,
@@ -565,9 +564,10 @@ describe("user frontend creation guards", () => {
 
       for (const authenticatedIdentityKey of ["different_page_user", null]) {
         const error = yield* guard({
-          failures: {},
+          aggregateId: "acct_guard_user",
+          failures: createPage.failures,
           claims: { clerkUserId: authenticatedIdentityKey },
-          db,
+          db: makeContractReadDb({ db, models: createPage.models }),
           payload: {
             id: "pag_page_guard_user",
             siteId,
@@ -593,9 +593,8 @@ describe("user frontend creation guards", () => {
         models: userSessionDefinition.models,
         otherTables: sessionRepoDbConfig.tables,
       });
-      const { schema } = dbConfig;
       const client = yield* Effect.acquireRelease(
-        makeAsync(() =>
+        Effect.promise(() =>
           makeInMemorySQLite3(() =>
             SQLiteFactory({
               instantiateWasm(
@@ -608,11 +607,11 @@ describe("user frontend creation guards", () => {
               },
             }),
           ),
-        ).pipe(Effect.provide(AsyncLive)),
+        ),
         (client) => Effect.sync(() => client.sqlite3.close(client.db)),
       );
-      const db = makeWaSqliteDrizzle(client, dbConfig);
-      yield* provisionDb({ db, schema });
+      const db = makeSqliteDrizzle(client, dbConfig);
+      yield* provisionDb({ db, definition: dbConfig.definition });
 
       db.insert(dbConfig.schema.user)
         .values({
@@ -628,57 +627,58 @@ describe("user frontend creation guards", () => {
         .run();
 
       const sessionId = "sesn_update_site_settings";
-      const runtime = yield* Effect.acquireRelease(
-        Effect.sync(() => ManagedRuntime.make(Layer.mergeAll(NanoIdFactory, UlidMonotonicFactory))),
-        (runtime) => runtime.disposeEffect,
-      );
-      const definition = makeSessionDefinition({ ...userSessionDefinition, systemName: "qrk-sh" });
+      let runtime: ManagedRuntime.ManagedRuntime<
+        CuidFactory | MonotonicFactory | SessionFailures | TelemetryCollector,
+        never
+      >;
+      const definition = makeAggregateSessionRelease({
+        ...userSessionDefinition,
+        systemName: "qrk-sh",
+      });
       if (definition.kind !== "aggregate") throw new Error("Expected aggregate session definition");
       const session = makeAggregateSession({
-        definition: { ...definition, ...userSessionDefinition },
+        sessionRelease: { ...definition, ...userSessionDefinition },
+        execution: {
+          runSync: (program) => runtime.runSync(program),
+          runPromise: (program) => runtime.runPromise(program),
+        },
+      });
+      runtime = yield* Effect.acquireRelease(
+        Effect.sync(() =>
+          ManagedRuntime.make(
+            Layer.mergeAll(
+              NanoIdFactory,
+              UlidMonotonicFactory,
+              Layer.succeed(SessionFailures, session.failures),
+              Layer.succeed(TelemetryCollector, session.store.getState().telemetryCollector),
+            ),
+          ),
+        ),
+        (runtime) => runtime.disposeEffect,
+      );
+      const initialized = yield* makeInitializedAggregateSession({
+        declaration: session.sessionRelease,
+        db,
+        admitted: {
+          sessionId,
+          aggregateId: "acct_update_site_settings_user",
+          actorName: definition.actorName,
+          actorVersion: definition.actorVersion,
+          claims: {
+            aggregateId: "acct_update_site_settings_user",
+            clerkUserId: "update_site_settings_user",
+          },
+        },
       });
       session.store.setState({
         ...session.store.getState(),
-        activation: makeAggregateSessionActivation({
-          declaration: session.definition,
-          db,
-          runtime,
-          admitted: {
-            sessionId,
-            aggregateId: "acct_update_site_settings_user",
-            actorName: definition.actorName,
-            actorVersion: definition.actorVersion,
-            claims: {
-              aggregateId: "acct_update_site_settings_user",
-              clerkUserId: "update_site_settings_user",
-            },
-          },
-        }),
-        sessionId,
-        aggregateId: "acct_update_site_settings_user",
-        aggregateName: userSessionDefinition.aggregateName,
-        claims: {
-          aggregateId: "acct_update_site_settings_user",
-          clerkUserId: "update_site_settings_user",
-        },
-
-        sessionName: userSessionDefinition.sessionName,
-        aggregateSessionLockKey: "update-site-settings-lock-key",
-        db,
-        schema,
-        models: userSessionDefinition.models,
-        isInitialized: true,
+        initialized,
         aggregateIndex: 0,
-        executedIndex: 0,
-        executedHash: "",
-        actorName: "web",
-        actorVersion: userSessionDefinition.actorVersion,
+        dispositionHash: yield* Effect.promise(() => hashDisposition(GENESIS_EXECUTED_PREIMAGE)),
         pushIndex: 0,
-        sessionStatus: "current",
-        backupState: { status: "ready", failure: null },
       });
 
-      const staged = stageAggregateCommand({
+      const staged = stageAggregateSessionCommand({
         session,
         contractName: "createSite",
         payload: { id: "sit_update_site_settings", userId },
@@ -688,7 +688,7 @@ describe("user frontend creation guards", () => {
         throw new Error(staged.failure.message);
       }
 
-      const updated = stageAggregateCommand({
+      const updated = stageAggregateSessionCommand({
         session,
         contractName: "updateSiteSettings",
         payload: {
@@ -738,9 +738,8 @@ describe("user frontend creation guards", () => {
         models: userSessionDefinition.models,
         otherTables: sessionRepoDbConfig.tables,
       });
-      const { schema } = dbConfig;
       const client = yield* Effect.acquireRelease(
-        makeAsync(() =>
+        Effect.promise(() =>
           makeInMemorySQLite3(() =>
             SQLiteFactory({
               instantiateWasm(
@@ -753,11 +752,11 @@ describe("user frontend creation guards", () => {
               },
             }),
           ),
-        ).pipe(Effect.provide(AsyncLive)),
+        ),
         (client) => Effect.sync(() => client.sqlite3.close(client.db)),
       );
-      const db = makeWaSqliteDrizzle(client, dbConfig);
-      yield* provisionDb({ db, schema });
+      const db = makeSqliteDrizzle(client, dbConfig);
+      yield* provisionDb({ db, definition: dbConfig.definition });
 
       db.insert(dbConfig.schema.user)
         .values({
@@ -773,57 +772,58 @@ describe("user frontend creation guards", () => {
         .run();
 
       const sessionId = "sesn_update_page_settings";
-      const runtime = yield* Effect.acquireRelease(
-        Effect.sync(() => ManagedRuntime.make(Layer.mergeAll(NanoIdFactory, UlidMonotonicFactory))),
-        (runtime) => runtime.disposeEffect,
-      );
-      const definition = makeSessionDefinition({ ...userSessionDefinition, systemName: "qrk-sh" });
+      let runtime: ManagedRuntime.ManagedRuntime<
+        CuidFactory | MonotonicFactory | SessionFailures | TelemetryCollector,
+        never
+      >;
+      const definition = makeAggregateSessionRelease({
+        ...userSessionDefinition,
+        systemName: "qrk-sh",
+      });
       if (definition.kind !== "aggregate") throw new Error("Expected aggregate session definition");
       const session = makeAggregateSession({
-        definition: { ...definition, ...userSessionDefinition },
+        sessionRelease: { ...definition, ...userSessionDefinition },
+        execution: {
+          runSync: (program) => runtime.runSync(program),
+          runPromise: (program) => runtime.runPromise(program),
+        },
+      });
+      runtime = yield* Effect.acquireRelease(
+        Effect.sync(() =>
+          ManagedRuntime.make(
+            Layer.mergeAll(
+              NanoIdFactory,
+              UlidMonotonicFactory,
+              Layer.succeed(SessionFailures, session.failures),
+              Layer.succeed(TelemetryCollector, session.store.getState().telemetryCollector),
+            ),
+          ),
+        ),
+        (runtime) => runtime.disposeEffect,
+      );
+      const initialized = yield* makeInitializedAggregateSession({
+        declaration: session.sessionRelease,
+        db,
+        admitted: {
+          sessionId,
+          aggregateId: "acct_update_page_settings_user",
+          actorName: definition.actorName,
+          actorVersion: definition.actorVersion,
+          claims: {
+            aggregateId: "acct_update_page_settings_user",
+            clerkUserId: "update_page_settings_user",
+          },
+        },
       });
       session.store.setState({
         ...session.store.getState(),
-        activation: makeAggregateSessionActivation({
-          declaration: session.definition,
-          db,
-          runtime,
-          admitted: {
-            sessionId,
-            aggregateId: "acct_update_page_settings_user",
-            actorName: definition.actorName,
-            actorVersion: definition.actorVersion,
-            claims: {
-              aggregateId: "acct_update_page_settings_user",
-              clerkUserId: "update_page_settings_user",
-            },
-          },
-        }),
-        sessionId,
-        aggregateId: "acct_update_page_settings_user",
-        aggregateName: userSessionDefinition.aggregateName,
-        claims: {
-          aggregateId: "acct_update_page_settings_user",
-          clerkUserId: "update_page_settings_user",
-        },
-
-        sessionName: userSessionDefinition.sessionName,
-        aggregateSessionLockKey: "update-page-settings-lock-key",
-        db,
-        schema,
-        models: userSessionDefinition.models,
-        isInitialized: true,
+        initialized,
         aggregateIndex: 0,
-        executedIndex: 0,
-        executedHash: "",
-        actorName: "web",
-        actorVersion: userSessionDefinition.actorVersion,
+        dispositionHash: yield* Effect.promise(() => hashDisposition(GENESIS_EXECUTED_PREIMAGE)),
         pushIndex: 0,
-        sessionStatus: "current",
-        backupState: { status: "ready", failure: null },
       });
 
-      const stagedSite = stageAggregateCommand({
+      const stagedSite = stageAggregateSessionCommand({
         session,
         contractName: "createSite",
         payload: { id: "sit_update_page_settings", userId },
@@ -833,7 +833,7 @@ describe("user frontend creation guards", () => {
         throw new Error(stagedSite.failure.message);
       }
 
-      const stagedPage = stageAggregateCommand({
+      const stagedPage = stageAggregateSessionCommand({
         session,
         contractName: "createPage",
         payload: {
@@ -848,30 +848,26 @@ describe("user frontend creation guards", () => {
       }
 
       const ownerState = session.store.getState();
-      if (!ownerState.isInitialized) throw new Error("Expected initialized page settings session");
+      if (ownerState.initialized === null)
+        throw new Error("Expected initialized page settings session");
       session.store.setState({
         ...ownerState,
-        activation: makeAggregateSessionActivation({
-          declaration: session.definition,
+        initialized: yield* makeInitializedAggregateSession({
+          declaration: session.sessionRelease,
           db,
-          runtime,
           admitted: {
-            sessionId: ownerState.sessionId,
-            aggregateId: ownerState.aggregateId,
-            actorName: ownerState.actorName,
-            actorVersion: ownerState.actorVersion,
+            sessionId: "sesn_foreign_page_settings",
+            aggregateId: ownerState.initialized.aggregateId,
+            actorName: session.sessionRelease.actorName,
+            actorVersion: session.sessionRelease.actorVersion,
             claims: {
               aggregateId: "acct_update_page_settings_user",
               clerkUserId: "another_user",
             },
           },
         }),
-        claims: {
-          aggregateId: "acct_update_page_settings_user",
-          clerkUserId: "another_user",
-        },
       });
-      const denied = stageAggregateCommand({
+      const denied = stageAggregateSessionCommand({
         session,
         contractName: "updatePageSettings",
         payload: {
@@ -883,7 +879,7 @@ describe("user frontend creation guards", () => {
       expect(denied._tag).toBe("Failure");
       session.store.setState(ownerState);
 
-      const updated = stageAggregateCommand({
+      const updated = stageAggregateSessionCommand({
         session,
         contractName: "updatePageSettings",
         payload: {

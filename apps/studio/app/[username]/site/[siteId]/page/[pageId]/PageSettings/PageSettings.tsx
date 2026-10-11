@@ -1,8 +1,9 @@
 "use client";
 
+import { stageAggregateSessionCommand } from "@zerospin/core/aggregateSession/stageCommand/stageAggregateSessionCommand";
+
 import { useRouter } from "next/navigation";
 
-import { stageAggregateCommand } from "@zerospin/react";
 import { ZerospinError } from "@zerospin/sdk/browser";
 import { Schema } from "effect";
 import { FileText, Globe, X } from "lucide-react";
@@ -12,7 +13,7 @@ import { toast } from "sonner";
 import { usePageStore } from "../pageStore";
 
 import { useZerospinUserInitializedState } from "@/components/ZerospinUser";
-import { userSession } from "@/zerospin/userSession";
+import { UserApp } from "@/zerospin/userSession";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -41,7 +42,7 @@ function emptyToNull(value: string): string | null {
 export function PageSettings() {
   const params = useValidatedParams(ParamsSchema);
   const router = useRouter();
-  const session = userSession;
+  const session = UserApp.useInitializedSession();
   const { db } = useZerospinUserInitializedState();
   const pageDraft = usePageStore((state) => state.page);
   const setTitle = usePageStore((state) => state.setTitle);
@@ -107,12 +108,12 @@ export function PageSettings() {
               size="sm"
               onClick={() => {
                 const state = session.store.getState();
-                if (!state.isInitialized) {
+                if (state.initialized === null) {
                   toast.error("Your session is not ready");
                   return;
                 }
 
-                const result = stageAggregateCommand({
+                const result = stageAggregateSessionCommand({
                   session,
                   contractName: "updatePageSettings",
                   payload: {

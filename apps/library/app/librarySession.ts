@@ -1,22 +1,17 @@
-import { Schema } from "effect";
-import { makeStandaloneSession } from "@zerospin/browser";
+"use client";
+
+import { RoutePattern } from "@remix-run/route-pattern";
+import { makeReactApp } from "@zerospin/react";
+import { librarySessionRelease } from "../session/createLibraryStandaloneSession";
 import { prefixId } from "@zerospin/core/models/prefixId";
 import { libraryModule } from "../libraryModule/libraryModule";
 
 const fixtureDate = new Date("2026-01-01T00:00:00.000Z");
 
-export const librarySession = makeStandaloneSession({
-  key: "qrk-library",
-  modules: {
-    library: libraryModule,
-  },
-  kind: "aggregate",
-  aggregateName: "library",
-  aggregateVersion: "1.0.0",
-  actorName: "library",
-  actorVersion: "1.0.0",
-  sessionName: "library",
-  claimsSchema: Schema.Struct({ aggregateId: Schema.String }),
+export const LibraryApp = makeReactApp(librarySessionRelease);
+
+export const librarySessionInputs = {
+  backupPath: RoutePattern.parse("/qrk-library"),
   claims: { aggregateId: "acct_1" },
   resources: {
     wall: [
@@ -30,4 +25,4 @@ export const librarySession = makeStandaloneSession({
       },
     ],
   },
-});
+};

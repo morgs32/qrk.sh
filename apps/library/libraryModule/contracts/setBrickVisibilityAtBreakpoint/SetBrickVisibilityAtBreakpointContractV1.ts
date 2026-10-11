@@ -1,9 +1,12 @@
-import type { IDb } from "@zerospin/core/drizzle/types";
-import { makeContractVersion } from "@zerospin/core/contracts/make/makeContractVersion";
-import type { InferCommandPayload } from "@zerospin/core/models/types";
-import { ZerospinError } from "@zerospin/error";
+import { ContractError } from "@zerospin/error";
+import { findMany } from "@zerospin/core/contracts/findMany";
+import { findFirst } from "@zerospin/core/contracts/findFirst";
+import type { IOperation } from "@zerospin/core/contracts/types";
+import { makeUpdateOperation } from "@zerospin/core/contracts/make/makeUpdateOperation";
+import { makeAggregateContractVersion } from "@zerospin/core/contracts/make/makeAggregateContractVersion";
+import { mapParseError, ZerospinError } from "@zerospin/error";
 import { primitives, type InferDecodedRow, type InferIdFromAbbreviation } from "@zerospin/shapes";
-import { Effect, Schema } from "effect";
+import { Channel, Effect, Schema } from "effect";
 
 import { makePlacementId } from "../../models/placement/makePlacementId";
 import {
@@ -44,61 +47,85 @@ export function makeSetBrickVisibilityAtBreakpointContract(props: {
     }),
   };
 
-  return makeContractVersion(setBrickVisibilityAtBreakpoint, {
+  return makeAggregateContractVersion(setBrickVisibilityAtBreakpoint, {
+    failures: {
+      setBrickVisibilityBrickNotFound: ContractError.schema({
+        code: "set-brick-visibility-brick-not-found",
+      }),
+      setBrickVisibilityPlacementNotFound: ContractError.schema({
+        code: "set-brick-visibility-placement-not-found",
+      }),
+      setBrickVisibilityCurrentMismatch: ContractError.schema({
+        code: "set-brick-visibility-current-mismatch",
+      }),
+      setBrickVisibilitySavedItemMismatch: ContractError.schema({
+        code: "set-brick-visibility-saved-item-mismatch",
+      }),
+      setBrickVisibilityOtherIncludesSelf: ContractError.schema({
+        code: "set-brick-visibility-other-includes-self",
+      }),
+      setBrickVisibilityDuplicateOtherItem: ContractError.schema({
+        code: "set-brick-visibility-duplicate-other-item",
+      }),
+      setBrickVisibilityOtherNotOnWall: ContractError.schema({
+        code: "set-brick-visibility-other-not-on-wall",
+      }),
+      setBrickVisibilityOtherNotVisible: ContractError.schema({
+        code: "set-brick-visibility-other-not-visible",
+      }),
+      setBrickVisibilityOtherSetMismatch: ContractError.schema({
+        code: "set-brick-visibility-other-set-mismatch",
+      }),
+      setBrickVisibilityResolvedInvalid: ContractError.schema({
+        code: "set-brick-visibility-resolved-invalid",
+      }),
+    },
+
     payload: setBrickVisibilityAtBreakpointPayload,
     models: {
       brick,
       placement,
     },
     version: "1.0.0",
-    guard: Effect.fn("setBrickVisibilityAtBreakpoint.guard")(function* ({
-      db,
-      payload,
-    }: {
-      claims: Readonly<Record<string, unknown>> | null;
-      db: Readonly<Pick<IDb, "query">>;
-      payload: InferCommandPayload<typeof setBrickVisibilityAtBreakpointPayload>;
-    }) {
-      const brickRow = db.query.brick
-        .findFirst({
-          where: { id: { eq: payload.brickId } },
-        })
-        .sync();
+    guard: Effect.fn("setBrickVisibilityAtBreakpoint.guard")(function* (props) {
+      const { failures, db, payload } = props;
+
+      const brickRow = yield* findFirst({
+        db: db,
+        model: brick,
+        where: { id: { eq: payload.brickId } },
+      });
 
       if (brickRow === undefined) {
-        return yield* new ZerospinError({
-          code: "set-brick-visibility-brick-not-found",
+        return yield* failures.setBrickVisibilityBrickNotFound.make({
           message: `brick ${payload.brickId} was not found`,
           status: 404,
         });
       }
 
       const expectedPlacementId = makePlacementId(payload.brickId, payload.breakpoint);
-      const placement = db.query.placement
-        .findFirst({
-          where: { id: { eq: expectedPlacementId } },
-        })
-        .sync();
+      const placementRow = yield* findFirst({
+        db: db,
+        model: placement,
+        where: { id: { eq: expectedPlacementId } },
+      });
 
-      if (placement === undefined) {
-        return yield* new ZerospinError({
-          code: "set-brick-visibility-placement-not-found",
+      if (placementRow === undefined) {
+        return yield* failures.setBrickVisibilityPlacementNotFound.make({
           message: `placement ${expectedPlacementId} was not found`,
           status: 404,
         });
       }
 
-      if (placement.isVisible !== payload.currentlyVisible) {
-        return yield* new ZerospinError({
-          code: "set-brick-visibility-current-mismatch",
-          message: `placement ${expectedPlacementId} currentlyVisible must be ${placement.isVisible}`,
+      if (placementRow.isVisible !== payload.currentlyVisible) {
+        return yield* failures.setBrickVisibilityCurrentMismatch.make({
+          message: `placement ${expectedPlacementId} currentlyVisible must be ${placementRow.isVisible}`,
           status: 409,
         });
       }
 
       if (payload.savedGridItem.i !== payload.brickId) {
-        return yield* new ZerospinError({
-          code: "set-brick-visibility-saved-item-mismatch",
+        return yield* failures.setBrickVisibilitySavedItemMismatch.make({
           message: `savedGridItem.i must equal brickId ${payload.brickId}`,
           status: 400,
         });
@@ -107,44 +134,51 @@ export function makeSetBrickVisibilityAtBreakpointContract(props: {
       const otherIds = new Set<string>();
       for (const item of payload.otherVisibleLayout) {
         if (item.i === payload.brickId) {
-          return yield* new ZerospinError({
-            code: "set-brick-visibility-other-includes-self",
+          return yield* failures.setBrickVisibilityOtherIncludesSelf.make({
             message: `otherVisibleLayout must not include brick ${payload.brickId}`,
             status: 400,
           });
         }
         if (otherIds.has(item.i)) {
-          return yield* new ZerospinError({
-            code: "set-brick-visibility-duplicate-other-item",
+          return yield* failures.setBrickVisibilityDuplicateOtherItem.make({
             message: `otherVisibleLayout item ${item.i} appears more than once`,
             status: 400,
           });
         }
         otherIds.add(item.i);
 
-        const otherBrick = db.query.brick
-          .findFirst({
-            where: { id: { eq: item.i } },
-          })
-          .sync();
+        const otherBrick = yield* findFirst({
+          db: db,
+          model: brick,
+          where: {
+            id: {
+              eq: yield* Schema.decodeUnknownEffect(
+                Schema.TemplateLiteral(["brk_", Schema.String]),
+              )(item.i).pipe(
+                mapParseError({
+                  code: "set-brick-visibility-other-not-on-wall",
+                  prefix: "otherVisibleLayout item must identify a brick on the same wall",
+                }),
+              ),
+            },
+          },
+        });
         if (otherBrick === undefined || otherBrick.wallId !== brickRow.wallId) {
-          return yield* new ZerospinError({
-            code: "set-brick-visibility-other-not-on-wall",
+          return yield* failures.setBrickVisibilityOtherNotOnWall.make({
             message: `otherVisibleLayout item ${item.i} is not a brick on the same wall`,
             status: 400,
           });
         }
 
-        const otherPlacement = db.query.placement
-          .findFirst({
-            where: {
-              id: { eq: makePlacementId(item.i, payload.breakpoint) },
-            },
-          })
-          .sync();
+        const otherPlacement = yield* findFirst({
+          db: db,
+          model: placement,
+          where: {
+            id: { eq: makePlacementId(item.i, payload.breakpoint) },
+          },
+        });
         if (otherPlacement === undefined || !otherPlacement.isVisible) {
-          return yield* new ZerospinError({
-            code: "set-brick-visibility-other-not-visible",
+          return yield* failures.setBrickVisibilityOtherNotVisible.make({
             message: `otherVisibleLayout item ${item.i} is not visible at breakpoint ${payload.breakpoint}`,
             status: 400,
           });
@@ -152,41 +186,39 @@ export function makeSetBrickVisibilityAtBreakpointContract(props: {
       }
 
       if (payload.isVisible && payload.currentlyVisible !== payload.isVisible) {
-        const wallBricks = db.query.brick
-          .findMany({
-            where: { wallId: { eq: brickRow.wallId } },
-          })
-          .sync();
+        const wallBricks = yield* findMany({
+          db: db,
+          model: brick,
+          where: { wallId: { eq: brickRow.wallId } },
+        });
         const expectedOtherVisibleIds = new Set<string>();
         for (const wallBrick of wallBricks) {
           if (wallBrick.id === payload.brickId) {
             continue;
           }
-          const wallPlacement = db.query.placement
-            .findFirst({
-              where: {
-                id: {
-                  eq: makePlacementId(wallBrick.id, payload.breakpoint),
-                },
+          const wallPlacement = yield* findFirst({
+            db: db,
+            model: placement,
+            where: {
+              id: {
+                eq: makePlacementId(wallBrick.id, payload.breakpoint),
               },
-            })
-            .sync();
+            },
+          });
           if (wallPlacement !== undefined && wallPlacement.isVisible) {
             expectedOtherVisibleIds.add(wallBrick.id);
           }
         }
 
         if (otherIds.size !== expectedOtherVisibleIds.size) {
-          return yield* new ZerospinError({
-            code: "set-brick-visibility-other-set-mismatch",
+          return yield* failures.setBrickVisibilityOtherSetMismatch.make({
             message: `otherVisibleLayout must include exactly the other visible placements at breakpoint ${payload.breakpoint}`,
             status: 400,
           });
         }
         for (const brickId of expectedOtherVisibleIds) {
           if (!otherIds.has(brickId)) {
-            return yield* new ZerospinError({
-              code: "set-brick-visibility-other-set-mismatch",
+            return yield* failures.setBrickVisibilityOtherSetMismatch.make({
               message: `otherVisibleLayout is missing visible brick ${brickId}`,
               status: 400,
             });
@@ -202,8 +234,7 @@ export function makeSetBrickVisibilityAtBreakpointContract(props: {
           context: "setBrickVisibilityAtBreakpoint",
         });
         if (layoutError !== null) {
-          return yield* new ZerospinError({
-            code: "set-brick-visibility-resolved-invalid",
+          return yield* failures.setBrickVisibilityResolvedInvalid.make({
             message: layoutError,
             status: 400,
           });
@@ -211,55 +242,121 @@ export function makeSetBrickVisibilityAtBreakpointContract(props: {
       }
     }),
     program: (props) => {
-      const { payload, models, db } = props;
-      return Effect.gen(function* () {
-        if (payload.currentlyVisible === payload.isVisible) {
-          return;
-        }
+      const { payload, db } = props;
+      return Channel.unwrap(
+        Effect.gen(function* () {
+          const operations: Channel.Channel<IOperation<typeof placement>, ZerospinError, void>[] =
+            [];
+          if (payload.currentlyVisible === payload.isVisible) {
+            return Channel.empty;
+          }
 
-        if (!payload.isVisible) {
-          yield* models.placement.update({
-            resourceId: makePlacementId(
-              payload.brickId,
-              payload.breakpoint,
-            ) as InferIdFromAbbreviation<"plc">,
-            attributes: {
-              isVisible: false,
-            },
+          if (!payload.isVisible) {
+            operations.push(
+              makeUpdateOperation({
+                model: placement,
+                resourceId: makePlacementId(
+                  payload.brickId,
+                  payload.breakpoint,
+                ) as InferIdFromAbbreviation<"plc">,
+                attributes: {
+                  isVisible: false,
+                },
+              }),
+            );
+
+            const brickRow = yield* findFirst({
+              db: db,
+              model: brick,
+              where: { id: { eq: payload.brickId } },
+            });
+            if (brickRow === undefined) {
+              return Channel.fromIterable(operations).pipe(
+                Channel.flatMap((operation) => operation),
+              );
+            }
+            const wallBricks = yield* findMany({
+              db: db,
+              model: brick,
+              where: { wallId: { eq: brickRow.wallId } },
+            });
+            const visiblePlacements = [];
+            for (const wallBrick of wallBricks) {
+              // Emitted updates are not applied to db during this program.
+              if (wallBrick.id === payload.brickId) {
+                continue;
+              }
+              const wallPlacement = yield* findFirst({
+                db: db,
+                model: placement,
+                where: { id: { eq: makePlacementId(wallBrick.id, payload.breakpoint) } },
+              });
+              if (wallPlacement !== undefined && wallPlacement.isVisible) {
+                visiblePlacements.push(wallPlacement);
+              }
+            }
+
+            const compacted = makeCompactLayout(
+              visiblePlacements.map((wallPlacement) => wallPlacement.gridItem),
+            );
+            for (const item of compacted) {
+              const stored = visiblePlacements.find(
+                (wallPlacement) => wallPlacement.gridItem.i === item.i,
+              )?.gridItem;
+              if (
+                stored?.i === item.i &&
+                stored.x === item.x &&
+                stored.y === item.y &&
+                stored.w === item.w &&
+                stored.h === item.h
+              ) {
+                continue;
+              }
+
+              operations.push(
+                makeUpdateOperation({
+                  model: placement,
+                  resourceId: makePlacementId(
+                    item.i,
+                    payload.breakpoint,
+                  ) as InferIdFromAbbreviation<"plc">,
+                  attributes: {
+                    gridItem: item,
+                  } as Partial<InferDecodedRow<(typeof placement)["attributes"]>>,
+                }),
+              );
+            }
+            return Channel.fromIterable(operations).pipe(Channel.flatMap((operation) => operation));
+          }
+
+          const resolved = makeCollisionResolvedLayout({
+            visibleLayout: payload.otherVisibleLayout,
+            incoming: cloneLayoutItem(payload.savedGridItem),
           });
 
-          const brickRow = db.query.brick
-            .findFirst({ where: { id: { eq: payload.brickId } } })
-            .sync();
-          if (brickRow === undefined) {
-            return;
-          }
-          const wallBricks = db.query.brick
-            .findMany({ where: { wallId: { eq: brickRow.wallId } } })
-            .sync();
-          const visiblePlacements = [];
-          for (const wallBrick of wallBricks) {
-            // Emitted updates are not applied to db during this program.
-            if (wallBrick.id === payload.brickId) {
+          for (const item of resolved) {
+            if (item.i === payload.brickId) {
+              operations.push(
+                makeUpdateOperation({
+                  model: placement,
+                  resourceId: makePlacementId(
+                    payload.brickId,
+                    payload.breakpoint,
+                  ) as InferIdFromAbbreviation<"plc">,
+                  attributes: {
+                    isVisible: true,
+                    gridItem: item,
+                  } as Partial<InferDecodedRow<(typeof placement)["attributes"]>>,
+                }),
+              );
               continue;
             }
-            const wallPlacement = db.query.placement
-              .findFirst({
-                where: { id: { eq: makePlacementId(wallBrick.id, payload.breakpoint) } },
-              })
-              .sync();
-            if (wallPlacement !== undefined && wallPlacement.isVisible) {
-              visiblePlacements.push(wallPlacement);
-            }
-          }
 
-          const compacted = makeCompactLayout(
-            visiblePlacements.map((wallPlacement) => wallPlacement.gridItem),
-          );
-          for (const item of compacted) {
-            const stored = visiblePlacements.find(
-              (wallPlacement) => wallPlacement.gridItem.i === item.i,
-            )?.gridItem;
+            const stored = (yield* findFirst({
+              db: db,
+              model: placement,
+              where: { id: { eq: makePlacementId(item.i, payload.breakpoint) } },
+            }))?.gridItem;
             if (
               stored?.i === item.i &&
               stored.x === item.x &&
@@ -270,65 +367,23 @@ export function makeSetBrickVisibilityAtBreakpointContract(props: {
               continue;
             }
 
-            yield* models.placement.update({
-              resourceId: makePlacementId(
-                item.i,
-                payload.breakpoint,
-              ) as InferIdFromAbbreviation<"plc">,
-              attributes: {
-                gridItem: item,
-              } as Partial<InferDecodedRow<(typeof placement)["attributes"]>>,
-            });
-          }
-          return;
-        }
-
-        const resolved = makeCollisionResolvedLayout({
-          visibleLayout: payload.otherVisibleLayout,
-          incoming: cloneLayoutItem(payload.savedGridItem),
-        });
-
-        for (const item of resolved) {
-          if (item.i === payload.brickId) {
-            yield* models.placement.update({
-              resourceId: makePlacementId(
-                payload.brickId,
-                payload.breakpoint,
-              ) as InferIdFromAbbreviation<"plc">,
-              attributes: {
-                isVisible: true,
-                gridItem: item,
-              } as Partial<InferDecodedRow<(typeof placement)["attributes"]>>,
-            });
-            continue;
+            operations.push(
+              makeUpdateOperation({
+                model: placement,
+                resourceId: makePlacementId(
+                  item.i,
+                  payload.breakpoint,
+                ) as InferIdFromAbbreviation<"plc">,
+                attributes: {
+                  gridItem: item,
+                } as Partial<InferDecodedRow<(typeof placement)["attributes"]>>,
+              }),
+            );
           }
 
-          const stored = db.query.placement
-            .findFirst({
-              where: { id: { eq: makePlacementId(item.i, payload.breakpoint) } },
-            })
-            .sync()?.gridItem;
-          if (
-            stored?.i === item.i &&
-            stored.x === item.x &&
-            stored.y === item.y &&
-            stored.w === item.w &&
-            stored.h === item.h
-          ) {
-            continue;
-          }
-
-          yield* models.placement.update({
-            resourceId: makePlacementId(
-              item.i,
-              payload.breakpoint,
-            ) as InferIdFromAbbreviation<"plc">,
-            attributes: {
-              gridItem: item,
-            } as Partial<InferDecodedRow<(typeof placement)["attributes"]>>,
-          });
-        }
-      });
+          return Channel.fromIterable(operations).pipe(Channel.flatMap((operation) => operation));
+        }),
+      );
     },
   });
 }

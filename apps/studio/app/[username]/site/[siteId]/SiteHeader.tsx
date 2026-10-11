@@ -1,23 +1,21 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
-import { userSession } from "@/zerospin/userSession";
+import { Suspense } from "react";
+import { useUser } from "@clerk/nextjs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Wordmark } from "./Wordmark";
 
 export function SiteHeader() {
-  const isInitialized = useSyncExternalStore(
-    userSession.store.subscribe,
-    () => userSession.store.getState().isInitialized,
-    () => false,
-  );
+  const { isLoaded, user } = useUser();
   return (
     <header
       data-testid="site-navbar"
       className="qrk-responsive-insets z-50 flex h-16 shrink-0 items-center justify-between border-b border-border bg-background [padding-inline:var(--qrk-inset-inline)]"
     >
-      {isInitialized ? (
-        <Wordmark />
+      {isLoaded && user ? (
+        <Suspense fallback={<Skeleton className="h-5 w-32" aria-label="Loading site name" />}>
+          <Wordmark />
+        </Suspense>
       ) : (
         <Skeleton className="h-5 w-32" aria-label="Loading site name" />
       )}

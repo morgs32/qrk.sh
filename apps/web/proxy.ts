@@ -15,8 +15,7 @@ export default clerkMiddleware(async (auth, request) => {
   if (
     isPublicRoute(request) ||
     pathname.startsWith("/assets/") ||
-    pathname.startsWith("/studio-static/") ||
-    pathname.startsWith("/__zerospin/")
+    pathname.startsWith("/studio-static/")
   )
     return NextResponse.next();
   const { userId } = await auth();
@@ -27,7 +26,7 @@ export default clerkMiddleware(async (auth, request) => {
 export const config = {
   matcher: [
     // Skip Next.js internals and static files, unless found in search params
-    "/((?!_next|studio-static/|assets/|__zerospin/|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|wasm|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
+    "/((?!_next|studio-static/|assets/|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|wasm|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
     // Always run for API routes
     "/(api|trpc)(.*)",
   ],

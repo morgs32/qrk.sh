@@ -8,7 +8,7 @@
     "skipLibCheck": true,
     "strict": true,
     "allowImportingTsExtensions": true,
-    "types": ["node"],
+    "types": ["node", "@cloudflare/workers-types"],
     "paths": {
       "config": ["./zerospin.config.ts"]
     },

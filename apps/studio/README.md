@@ -18,10 +18,11 @@ pnpm nx run @qrk.sh/studio:build-storybook
 
 Web listens on port 3000 and proxies Studio routes to `APP_ORIGIN` (default `http://localhost:3001`). Studio runs on port 3001. Development and production builds use webpack so the existing native `SharedWorker(new URL(...))` factory retains its identity and bundles its SQLite WASM. Vite is retained only for Storybook.
 
-Studio's Next chunks, fonts, worker, and WASM use `/studio-static/_next/`. Web excludes that namespace from authentication and proxies it to Studio. The existing backup-worker and WASM artifacts remain at `/__zerospin/`. Referenced `/assets/` public files have explicit mappings in Studio's Next configuration; missing files return 404. There is no Vite module or HMR routing.
+Studio's Next chunks, fonts, worker, and WASM use `/studio-static/_next/`. Web excludes that namespace from authentication and proxies it to Studio. Referenced `/assets/` public files have explicit mappings in Studio's Next configuration; missing files return 404. There is no Vite module or HMR routing.
 
-Studio resolves backup-worker JavaScript/WASM and browser SQLite WASM from
-installed `3.0.1` package exports. Its Nx builds and checks build QRK's reusable
+Studio resolves the SharedWorker and browser SQLite WASM from installed
+`4.0.2` package exports. The worker owns its IndexedDB-backed SQLite namespace;
+no separate backup-worker asset is served. Its Nx builds and checks build QRK's reusable
 Library first; they never build or change installed Zerospin artifacts. Fresh
 checkout installation requires the populated local registry described in the
 [root README](../../README.md#zerospin-packages).
@@ -116,7 +117,7 @@ The separate React Router/Motion example remains an independent example, not an 
 
 Studio currently routes brick activation to the read-only detail drawer and suppresses the shared **Edit article** action. Article state has separate required title and subtitle strings and a Tiptap body; generated ArticleBrick specs bind all three fields. This hard schema change does not migrate existing content-only articles. The shared Library drawer editor uses a flat toolbar and centered writing column, supports block reordering, and saves local drafts explicitly, but Studio does not currently expose its editing entry point or a brick visibility control. Catalog and detail previews are read-only.
 
-Library drawer edits remain local until Save stages `updateBrick`; failed saves retain the draft and show an error. Studio currently exposes Article previews only. Studio wall, brick, and placement commands use the authenticated `userSession` and its existing live push and synchronization lifecycle. Page and Site Settings continue to save through their existing commands.
+Library drawer edits remain local until Save stages `updateBrick`; failed saves retain the draft and show an error. Studio currently exposes Article previews only. Studio wall, brick, and placement commands use the authenticated `UserApp` initialized session and its live push and synchronization lifecycle. Page and Site Settings continue to save through their existing commands.
 
 Each Page references its own Library wall, created atomically by `createPage` with ID `prefixId(libraryModule.models.wall, pageId)`. The grid and brick drawer scope queries to that wall. `ZerospinUserProvider` owns session initialization and disposal, and `UserLayout` waits for initialization before mounting the editor. Changing pages does not dispose the user session.
 

@@ -4,12 +4,12 @@ import { RoutePattern } from "@remix-run/route-pattern";
 import {
   defineAggregateActor,
   makeAggregateActorVersion,
-  makeActorDbVersion,
+  makeQueryDbVersion,
   makeActorIdentity,
-  makeAggregateId,
   ZerospinError,
 } from "@zerospin/sdk";
-import { Effect } from "effect";
+import { Effect, Schema } from "effect";
+import { mapParseError } from "@zerospin/error";
 
 import { userClaims } from "../../../claims";
 import { signature } from "../../../signature";
@@ -20,7 +20,7 @@ const identity = makeActorIdentity({
   claims: userClaims,
   actorPath: RoutePattern.parse("/:clerkUserId"),
 });
-const db = makeActorDbVersion({ models: { user: userV1 } });
+const db = makeQueryDbVersion({ models: { user: userV1 } });
 
 export const userProvisionerV1 = makeAggregateActorVersion(
   defineAggregateActor({ name: "provisioner" }),
@@ -30,13 +30,25 @@ export const userProvisionerV1 = makeAggregateActorVersion(
     db,
     authentication: {
       credentialsSchema: signature,
-      authenticate: Effect.fn("userProvisioner.authenticate")(function* ({ credentials }) {
+      authenticate: Effect.fn("userProvisioner.authenticate")(function* (props) {
+        const { credentials } = props;
         const { env } = yield* Effect.promise(() => import("cloudflare:workers"));
+        const { CLERK_SECRET_KEY, CLERK_AUTHORIZED_PARTY } = yield* Schema.decodeUnknownEffect(
+          Schema.Struct({
+            CLERK_SECRET_KEY: Schema.NonEmptyString,
+            CLERK_AUTHORIZED_PARTY: Schema.NonEmptyString,
+          }),
+        )(env).pipe(
+          mapParseError({
+            code: "clerk-authentication-binding-unavailable",
+            prefix: "Clerk authentication bindings are unavailable",
+          }),
+        );
         const verifiedToken = yield* Effect.tryPromise({
           try: () =>
             verifyToken(credentials.sessionToken, {
-              secretKey: env.CLERK_SECRET_KEY,
-              authorizedParties: [env.CLERK_AUTHORIZED_PARTY],
+              secretKey: CLERK_SECRET_KEY,
+              authorizedParties: [CLERK_AUTHORIZED_PARTY],
             }),
           catch: (cause) =>
             new ZerospinError({
@@ -47,7 +59,7 @@ export const userProvisionerV1 = makeAggregateActorVersion(
             }),
         });
         return {
-          aggregateId: makeAggregateId({ id: verifiedToken.sub }),
+          aggregateId: `acct_${verifiedToken.sub}`,
           clerkUserId: verifiedToken.sub,
         };
       }),

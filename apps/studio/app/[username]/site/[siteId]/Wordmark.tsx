@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { useLiveQuery } from "@zerospin/react";
 import { Schema } from "effect";
 
-import { userSession } from "@/zerospin/userSession";
+import { UserApp } from "@/zerospin/userSession";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 
 import { useSiteStore } from "./siteStore";
@@ -18,12 +18,13 @@ const ParamsSchema = Schema.Struct({
 });
 
 export function Wordmark() {
+  const session = UserApp.useInitializedSession();
   const { username, siteId, pageId } = useValidatedParams(ParamsSchema);
   const draftName = useSiteStore((state) => state.site?.name);
   const settingsOpen = usePathname().endsWith("/site-settings");
 
   const { data: site, error } = useLiveQuery({
-    session: userSession,
+    session,
     key: [siteId],
     query: (db) =>
       db.query.site.findFirst({

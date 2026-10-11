@@ -1,7 +1,10 @@
-import type { IDb } from "@zerospin/core/drizzle/types";
-import { makeContractVersion } from "@zerospin/core/contracts/make/makeContractVersion";
-import type { IModelOperations } from "@zerospin/core/contracts/types";
-import type { InferCommandPayload } from "@zerospin/core/models/types";
+import { ContractError } from "@zerospin/error";
+import { findMany } from "@zerospin/core/contracts/findMany";
+import { findFirst } from "@zerospin/core/contracts/findFirst";
+import type { IOperation } from "@zerospin/core/contracts/types";
+import { makeUpdateOperation } from "@zerospin/core/contracts/make/makeUpdateOperation";
+import { makeCreateOperation } from "@zerospin/core/contracts/make/makeCreateOperation";
+import { makeAggregateContractVersion } from "@zerospin/core/contracts/make/makeAggregateContractVersion";
 import { mapParseError, ZerospinError } from "@zerospin/error";
 import {
   makeEffectSchema,
@@ -10,7 +13,7 @@ import {
   type InferIdFromAbbreviation,
   type IShape,
 } from "@zerospin/shapes";
-import { Effect, Schema } from "effect";
+import { Channel, Effect, Schema } from "effect";
 
 import type { defineComponent } from "../../../make/defineComponent";
 import { makeModuleSpecDocumentSchema } from "../../../make/makeModuleSpecDocumentSchema";
@@ -83,7 +86,28 @@ export function makeAddBrickContract<
     }),
   };
 
-  return makeContractVersion(addBrick, {
+  return makeAggregateContractVersion(addBrick, {
+    failures: {
+      addBrickWallNotFound: ContractError.schema({ code: "add-brick-wall-not-found" }),
+      addBrickBrickExists: ContractError.schema({ code: "add-brick-brick-exists" }),
+      addBrickPlacementExists: ContractError.schema({ code: "add-brick-placement-exists" }),
+      addBrickDropPositionInvalid: ContractError.schema({
+        code: "add-brick-drop-position-invalid",
+      }),
+      addBrickPlacementSizeInvalid: ContractError.schema({
+        code: "add-brick-placement-size-invalid",
+      }),
+      addBrickVisibleLayoutConflict: ContractError.schema({
+        code: "add-brick-visible-layout-conflict",
+      }),
+      addBrickVisibleLayoutInvalid: ContractError.schema({
+        code: "add-brick-visible-layout-invalid",
+      }),
+      addBrickResolvedLayoutInvalid: ContractError.schema({
+        code: "add-brick-resolved-layout-invalid",
+      }),
+    },
+
     payload: addBrickPayload,
     models: {
       wall,
@@ -91,36 +115,29 @@ export function makeAddBrickContract<
       placement,
     },
     version: "1.0.0",
-    guard: Effect.fn("addBrick.guard")(function* ({
-      db,
-      payload,
-    }: {
-      claims: Readonly<Record<string, unknown>> | null;
-      db: Readonly<Pick<IDb, "query">>;
-      payload: InferCommandPayload<typeof addBrickPayload>;
-    }) {
-      const wall = db.query.wall
-        .findFirst({
-          where: { id: { eq: payload.wallId } },
-        })
-        .sync();
+    guard: Effect.fn("addBrick.guard")(function* (props) {
+      const { failures, db, payload } = props;
 
-      if (wall === undefined) {
-        return yield* new ZerospinError({
-          code: "add-brick-wall-not-found",
+      const wallRow = yield* findFirst({
+        db: db,
+        model: wall,
+        where: { id: { eq: payload.wallId } },
+      });
+
+      if (wallRow === undefined) {
+        return yield* failures.addBrickWallNotFound.make({
           message: `wall ${payload.wallId} was not found`,
           status: 404,
         });
       }
 
-      const existingBrick = db.query.brick
-        .findFirst({
-          where: { id: { eq: payload.brickId } },
-        })
-        .sync();
+      const existingBrick = yield* findFirst({
+        db: db,
+        model: brick,
+        where: { id: { eq: payload.brickId } },
+      });
       if (existingBrick !== undefined) {
-        return yield* new ZerospinError({
-          code: "add-brick-brick-exists",
+        return yield* failures.addBrickBrickExists.make({
           message: `brick ${payload.brickId} already exists`,
           status: 409,
         });
@@ -128,14 +145,13 @@ export function makeAddBrickContract<
 
       for (const breakpoint of ["sm", "md", "lg", "xl"] as Array<"sm" | "md" | "lg" | "xl">) {
         const placementId = makePlacementId(payload.brickId, breakpoint);
-        const existingPlacement = db.query.placement
-          .findFirst({
-            where: { id: { eq: placementId } },
-          })
-          .sync();
+        const existingPlacement = yield* findFirst({
+          db: db,
+          model: placement,
+          where: { id: { eq: placementId } },
+        });
         if (existingPlacement !== undefined) {
-          return yield* new ZerospinError({
-            code: "add-brick-placement-exists",
+          return yield* failures.addBrickPlacementExists.make({
             message: `placement ${placementId} already exists`,
             status: 409,
           });
@@ -168,8 +184,7 @@ export function makeAddBrickContract<
         !Number.isInteger(payload.dropPosition.y) ||
         payload.dropPosition.y < 0
       ) {
-        return yield* new ZerospinError({
-          code: "add-brick-drop-position-invalid",
+        return yield* failures.addBrickDropPositionInvalid.make({
           message: "dropPosition must contain nonnegative integer x and y",
           status: 400,
         });
@@ -177,28 +192,29 @@ export function makeAddBrickContract<
       for (const breakpoint of ["sm", "md", "lg", "xl"] as Array<"sm" | "md" | "lg" | "xl">) {
         const size = payload.placementSizes[breakpoint];
         if (!Number.isInteger(size.w) || size.w < 1 || !Number.isInteger(size.h) || size.h < 1) {
-          return yield* new ZerospinError({
-            code: "add-brick-placement-size-invalid",
+          return yield* failures.addBrickPlacementSizeInvalid.make({
             message: `placementSizes.${breakpoint} must contain positive integer w and h`,
             status: 400,
           });
         }
       }
 
-      const wallBricks = db.query.brick
-        .findMany({
-          where: { wallId: { eq: payload.wallId } },
-        })
-        .sync();
+      const wallBricks = yield* findMany({
+        db: db,
+        model: brick,
+        where: { wallId: { eq: payload.wallId } },
+      });
 
       for (const breakpoint of ["sm", "md", "lg", "xl"] as Array<"sm" | "md" | "lg" | "xl">) {
         const visibleItems = [];
         for (const wallBrick of wallBricks) {
-          const placement = db.query.placement
-            .findFirst({ where: { id: { eq: makePlacementId(wallBrick.id, breakpoint) } } })
-            .sync();
-          if (placement !== undefined && placement.isVisible) {
-            visibleItems.push(placement.gridItem);
+          const placementRow = yield* findFirst({
+            db: db,
+            model: placement,
+            where: { id: { eq: makePlacementId(wallBrick.id, breakpoint) } },
+          });
+          if (placementRow !== undefined && placementRow.isVisible) {
+            visibleItems.push(placementRow.gridItem);
           }
         }
 
@@ -219,8 +235,7 @@ export function makeAddBrickContract<
               ),
           )
         ) {
-          return yield* new ZerospinError({
-            code: "add-brick-visible-layout-conflict",
+          return yield* failures.addBrickVisibleLayoutConflict.make({
             message: `visibleLayouts.${breakpoint} must match the wall's current visible placements`,
             status: 409,
           });
@@ -230,112 +245,122 @@ export function makeAddBrickContract<
           context: `addBrick.visibleLayouts.${breakpoint}`,
         });
         if (layoutError !== null) {
-          return yield* new ZerospinError({
-            code: "add-brick-visible-layout-invalid",
+          return yield* failures.addBrickVisibleLayoutInvalid.make({
             message: layoutError,
             status: 400,
           });
         }
       }
     }),
-    program: Effect.fn("addBrick.program")(function* ({
-      payload,
-      models,
-    }: {
-      payload: InferCommandPayload<typeof addBrickPayload>;
-      models: {
-        brick: IModelOperations<typeof brick>;
-        placement: IModelOperations<typeof placement>;
-      };
-    }) {
-      const resolvedLayouts = { ...payload.visibleLayouts };
-      for (const breakpoint of ["sm", "md", "lg", "xl"] as Array<"sm" | "md" | "lg" | "xl">) {
-        const layout = makeCollisionResolvedLayout({
-          visibleLayout: payload.visibleLayouts[breakpoint],
-          incoming: {
-            i: payload.brickId,
-            ...payload.dropPosition,
-            ...payload.placementSizes[breakpoint],
-          },
-        });
-        const layoutError = findVisibleLayoutError({
-          layout,
-          context: `addBrick.resolvedLayouts.${breakpoint}`,
-        });
-        if (layoutError !== null) {
-          return yield* new ZerospinError({
-            code: "add-brick-resolved-layout-invalid",
-            message: layoutError,
-            status: 400,
-          });
-        }
-        resolvedLayouts[breakpoint] = layout;
-      }
+    program: (props) => {
+      const { failures, payload } = props;
+      return Channel.unwrap(
+        Effect.gen(function* () {
+          const operations: Channel.Channel<
+            IOperation<typeof brick | typeof placement>,
+            ZerospinError,
+            void
+          >[] = [];
+          const resolvedLayouts = { ...payload.visibleLayouts };
+          for (const breakpoint of ["sm", "md", "lg", "xl"] as Array<"sm" | "md" | "lg" | "xl">) {
+            const layout = makeCollisionResolvedLayout({
+              visibleLayout: payload.visibleLayouts[breakpoint],
+              incoming: {
+                i: payload.brickId,
+                ...payload.dropPosition,
+                ...payload.placementSizes[breakpoint],
+              },
+            });
+            const layoutError = findVisibleLayoutError({
+              layout,
+              context: `addBrick.resolvedLayouts.${breakpoint}`,
+            });
+            if (layoutError !== null) {
+              return yield* failures.addBrickResolvedLayoutInvalid.make({
+                message: layoutError,
+                status: 400,
+              });
+            }
+            resolvedLayouts[breakpoint] = layout;
+          }
 
-      const brickModule = library[payload.moduleId];
-      const StateSchema = Schema.toType(makeEffectSchema(brickModule.stateShape));
-      const decodedState = yield* Schema.decodeUnknownEffect(
-        brickModule.hasPlaceholder ? Schema.NullOr(StateSchema) : StateSchema,
-      )(payload.state, { onExcessProperty: "ignore" }).pipe(
-        mapParseError({
-          code: "add-brick-invalid-state",
-          prefix: `addBrick state failed ${payload.moduleId} decode`,
+          const brickModule = library[payload.moduleId];
+          const StateSchema = Schema.toType(makeEffectSchema(brickModule.stateShape));
+          const decodedState = yield* Schema.decodeUnknownEffect(
+            brickModule.hasPlaceholder ? Schema.NullOr(StateSchema) : StateSchema,
+          )(payload.state, { onExcessProperty: "ignore" }).pipe(
+            mapParseError({
+              code: "add-brick-invalid-state",
+              prefix: `addBrick state failed ${payload.moduleId} decode`,
+            }),
+          );
+          const clonedState = structuredClone(decodedState);
+          const clonedSpec = structuredClone(payload.spec);
+
+          operations.push(
+            makeCreateOperation({
+              model: brick,
+              resourceId: payload.brickId as InferIdFromAbbreviation<"brk">,
+              attributes: {
+                wallId: payload.wallId as InferIdFromAbbreviation<"wal">,
+                moduleId: payload.moduleId,
+                state: clonedState,
+              },
+            }),
+          );
+
+          for (const breakpoint of ["sm", "md", "lg", "xl"] as Array<"sm" | "md" | "lg" | "xl">) {
+            const layout = resolvedLayouts[breakpoint];
+
+            for (const item of layout) {
+              if (item.i === payload.brickId) {
+                operations.push(
+                  makeCreateOperation({
+                    model: placement,
+                    resourceId: makePlacementId(
+                      payload.brickId,
+                      breakpoint,
+                    ) as InferIdFromAbbreviation<"plc">,
+                    attributes: {
+                      brickId: payload.brickId as InferIdFromAbbreviation<"brk">,
+                      breakpoint,
+                      spec: structuredClone(clonedSpec),
+                      measured: null,
+                      gridItem: item,
+                      isVisible: true,
+                    } as InferDecodedRow<(typeof placement)["attributes"]>,
+                  }),
+                );
+                continue;
+              }
+
+              const previous = payload.visibleLayouts[breakpoint].find(
+                (visible) => visible.i === item.i,
+              );
+              if (
+                previous?.x === item.x &&
+                previous.y === item.y &&
+                previous.w === item.w &&
+                previous.h === item.h
+              ) {
+                continue;
+              }
+
+              operations.push(
+                makeUpdateOperation({
+                  model: placement,
+                  resourceId: makePlacementId(item.i, breakpoint) as InferIdFromAbbreviation<"plc">,
+                  attributes: {
+                    gridItem: item,
+                  } as Partial<InferDecodedRow<(typeof placement)["attributes"]>>,
+                }),
+              );
+            }
+          }
+
+          return Channel.fromIterable(operations).pipe(Channel.flatMap((operation) => operation));
         }),
       );
-      const clonedState = structuredClone(decodedState);
-      const clonedSpec = structuredClone(payload.spec);
-
-      yield* models.brick.create({
-        resourceId: payload.brickId as InferIdFromAbbreviation<"brk">,
-        attributes: {
-          wallId: payload.wallId as InferIdFromAbbreviation<"wal">,
-          moduleId: payload.moduleId,
-          state: clonedState,
-        },
-      });
-
-      for (const breakpoint of ["sm", "md", "lg", "xl"] as Array<"sm" | "md" | "lg" | "xl">) {
-        const layout = resolvedLayouts[breakpoint];
-
-        for (const item of layout) {
-          if (item.i === payload.brickId) {
-            yield* models.placement.create({
-              resourceId: makePlacementId(
-                payload.brickId,
-                breakpoint,
-              ) as InferIdFromAbbreviation<"plc">,
-              attributes: {
-                brickId: payload.brickId as InferIdFromAbbreviation<"brk">,
-                breakpoint,
-                spec: structuredClone(clonedSpec),
-                measured: null,
-                gridItem: item,
-                isVisible: true,
-              } as InferDecodedRow<(typeof placement)["attributes"]>,
-            });
-            continue;
-          }
-
-          const previous = payload.visibleLayouts[breakpoint].find(
-            (visible) => visible.i === item.i,
-          );
-          if (
-            previous?.x === item.x &&
-            previous.y === item.y &&
-            previous.w === item.w &&
-            previous.h === item.h
-          ) {
-            continue;
-          }
-
-          yield* models.placement.update({
-            resourceId: makePlacementId(item.i, breakpoint) as InferIdFromAbbreviation<"plc">,
-            attributes: {
-              gridItem: item,
-            } as Partial<InferDecodedRow<(typeof placement)["attributes"]>>,
-          });
-        }
-      }
-    }),
+    },
   });
 }

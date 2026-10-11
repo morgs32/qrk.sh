@@ -1,3 +1,3 @@
-import { defineContract } from "@zerospin/sdk/browser";
+import { defineAggregateContract } from "@zerospin/sdk/browser";
 
-export const createUser = defineContract("createUser");
+export const createUser = defineAggregateContract("createUser");

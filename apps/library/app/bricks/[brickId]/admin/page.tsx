@@ -1,5 +1,7 @@
 "use client";
 
+import { stageAggregateSessionCommand } from "@zerospin/core/aggregateSession/stageCommand/stageAggregateSessionCommand";
+
 import { useState } from "react";
 
 import { notFound, useParams } from "next/navigation";
@@ -8,7 +10,7 @@ import { isNonEmptySpec } from "@json-render/core";
 import { Result, Schema } from "effect";
 import { makeEffectSchema } from "@zerospin/shapes";
 import { newSyncRpcSession } from "@zerospin/core/utils/getApi/newSyncRpcSession/newSyncRpcSession";
-import { executeStandaloneAggregateCommand, useLiveQuery } from "@zerospin/react";
+import { useLiveQuery } from "@zerospin/react";
 import { collapseAllNested, defaultStyles, JsonView } from "react-json-view-lite";
 
 import { OrderedBody } from "@qrk.sh/web/library/OrderedBody";
@@ -191,7 +193,7 @@ function BrickAdminContent(props: { brickId: `brk_${string}` }) {
                           return;
                         }
                         const specContractName = specContractByModuleId[targetModuleId];
-                        const commandResult = executeStandaloneAggregateCommand({
+                        const commandResult = stageAggregateSessionCommand({
                           session,
                           contractName: specContractName,
                           payload: {
@@ -262,7 +264,7 @@ function BrickAdminContent(props: { brickId: `brk_${string}` }) {
                         return [otherPlacement.gridItem];
                       },
                     );
-                    const result = executeStandaloneAggregateCommand({
+                    const result = stageAggregateSessionCommand({
                       session,
                       contractName: "setBrickVisibilityAtBreakpoint",
                       payload: {

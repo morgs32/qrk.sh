@@ -1,9 +1,13 @@
-import type { IDb } from "@zerospin/core/drizzle/types";
-import { makeContractVersion } from "@zerospin/core/contracts/make/makeContractVersion";
-import type { InferCommandPayload } from "@zerospin/core/models/types";
+import { ContractError } from "@zerospin/error";
+import { findMany } from "@zerospin/core/contracts/findMany";
+import { findFirst } from "@zerospin/core/contracts/findFirst";
+import type { IOperation } from "@zerospin/core/contracts/types";
+import { makeUpdateOperation } from "@zerospin/core/contracts/make/makeUpdateOperation";
+import { makeDeleteOperation } from "@zerospin/core/contracts/make/makeDeleteOperation";
+import { makeAggregateContractVersion } from "@zerospin/core/contracts/make/makeAggregateContractVersion";
 import { ZerospinError } from "@zerospin/error";
 import { primitives, type InferDecodedRow, type InferIdFromAbbreviation } from "@zerospin/shapes";
-import { Effect } from "effect";
+import { Channel, Effect } from "effect";
 
 import { makePlacementId } from "../../models/placement/makePlacementId";
 import { makeCompactLayout } from "../../resolveVisibleCollisions";
@@ -25,7 +29,13 @@ export function makeRemoveBrickContract(props: {
     wallId: primitives.foreignKey({ abbreviation: wall.abbreviation }),
   };
 
-  return makeContractVersion(removeBrick, {
+  return makeAggregateContractVersion(removeBrick, {
+    failures: {
+      removeBrickWallNotFound: ContractError.schema({ code: "remove-brick-wall-not-found" }),
+      removeBrickBrickNotFound: ContractError.schema({ code: "remove-brick-brick-not-found" }),
+      removeBrickWallMismatch: ContractError.schema({ code: "remove-brick-wall-mismatch" }),
+    },
+
     payload: removeBrickPayload,
     models: {
       wall,
@@ -33,107 +43,120 @@ export function makeRemoveBrickContract(props: {
       placement,
     },
     version: "1.0.0",
-    guard: Effect.fn("removeBrick.guard")(function* ({
-      db,
-      payload,
-    }: {
-      claims: Readonly<Record<string, unknown>> | null;
-      db: Readonly<Pick<IDb, "query">>;
-      payload: InferCommandPayload<typeof removeBrickPayload>;
-    }) {
-      const wall = db.query.wall
-        .findFirst({
-          where: { id: { eq: payload.wallId } },
-        })
-        .sync();
+    guard: Effect.fn("removeBrick.guard")(function* (props) {
+      const { failures, db, payload } = props;
 
-      if (wall === undefined) {
-        return yield* new ZerospinError({
-          code: "remove-brick-wall-not-found",
+      const wallRow = yield* findFirst({
+        db: db,
+        model: wall,
+        where: { id: { eq: payload.wallId } },
+      });
+
+      if (wallRow === undefined) {
+        return yield* failures.removeBrickWallNotFound.make({
           message: `wall ${payload.wallId} was not found`,
           status: 404,
         });
       }
 
-      const brickRow = db.query.brick
-        .findFirst({
-          where: { id: { eq: payload.brickId } },
-        })
-        .sync();
+      const brickRow = yield* findFirst({
+        db: db,
+        model: brick,
+        where: { id: { eq: payload.brickId } },
+      });
 
       if (brickRow === undefined) {
-        return yield* new ZerospinError({
-          code: "remove-brick-brick-not-found",
+        return yield* failures.removeBrickBrickNotFound.make({
           message: `brick ${payload.brickId} was not found`,
           status: 404,
         });
       }
 
       if (brickRow.wallId !== payload.wallId) {
-        return yield* new ZerospinError({
-          code: "remove-brick-wall-mismatch",
+        return yield* failures.removeBrickWallMismatch.make({
           message: `brick ${payload.brickId} does not belong to wall ${payload.wallId}`,
           status: 400,
         });
       }
     }),
     program: (props) => {
-      const { payload, models, db } = props;
-      return Effect.gen(function* () {
-        // Emitted deletes are not applied to db during this program.
-        const wallBricks = db.query.brick
-          .findMany({ where: { wallId: { eq: payload.wallId } } })
-          .sync()
-          .filter((brickRow) => brickRow.id !== payload.brickId);
+      const { payload, db } = props;
+      return Channel.unwrap(
+        Effect.gen(function* () {
+          const operations: Channel.Channel<
+            IOperation<typeof placement | typeof brick>,
+            ZerospinError,
+            void
+          >[] = [];
+          // Emitted deletes are not applied to db during this program.
+          const wallBricks = (yield* findMany({
+            db: db,
+            model: brick,
+            where: { wallId: { eq: payload.wallId } },
+          })).filter((brickRow) => brickRow.id !== payload.brickId);
 
-        for (const breakpoint of ["sm", "md", "lg", "xl"] as Array<"sm" | "md" | "lg" | "xl">) {
-          yield* models.placement.delete({
-            resourceId: makePlacementId(
-              payload.brickId,
-              breakpoint,
-            ) as InferIdFromAbbreviation<"plc">,
-          });
+          for (const breakpoint of ["sm", "md", "lg", "xl"] as Array<"sm" | "md" | "lg" | "xl">) {
+            operations.push(
+              makeDeleteOperation({
+                model: placement,
+                resourceId: makePlacementId(
+                  payload.brickId,
+                  breakpoint,
+                ) as InferIdFromAbbreviation<"plc">,
+              }),
+            );
 
-          const visiblePlacements = [];
-          for (const wallBrick of wallBricks) {
-            const wallPlacement = db.query.placement
-              .findFirst({ where: { id: { eq: makePlacementId(wallBrick.id, breakpoint) } } })
-              .sync();
-            if (wallPlacement !== undefined && wallPlacement.isVisible) {
-              visiblePlacements.push(wallPlacement);
+            const visiblePlacements = [];
+            for (const wallBrick of wallBricks) {
+              const wallPlacement = yield* findFirst({
+                db: db,
+                model: placement,
+                where: { id: { eq: makePlacementId(wallBrick.id, breakpoint) } },
+              });
+              if (wallPlacement !== undefined && wallPlacement.isVisible) {
+                visiblePlacements.push(wallPlacement);
+              }
+            }
+
+            const compacted = makeCompactLayout(
+              visiblePlacements.map((wallPlacement) => wallPlacement.gridItem),
+            );
+            for (const item of compacted) {
+              const stored = visiblePlacements.find(
+                (wallPlacement) => wallPlacement.gridItem.i === item.i,
+              )?.gridItem;
+              if (
+                stored?.i === item.i &&
+                stored.x === item.x &&
+                stored.y === item.y &&
+                stored.w === item.w &&
+                stored.h === item.h
+              ) {
+                continue;
+              }
+
+              operations.push(
+                makeUpdateOperation({
+                  model: placement,
+                  resourceId: makePlacementId(item.i, breakpoint) as InferIdFromAbbreviation<"plc">,
+                  attributes: {
+                    gridItem: item,
+                  } as Partial<InferDecodedRow<(typeof placement)["attributes"]>>,
+                }),
+              );
             }
           }
 
-          const compacted = makeCompactLayout(
-            visiblePlacements.map((wallPlacement) => wallPlacement.gridItem),
+          operations.push(
+            makeDeleteOperation({
+              model: brick,
+              resourceId: payload.brickId as InferIdFromAbbreviation<"brk">,
+            }),
           );
-          for (const item of compacted) {
-            const stored = visiblePlacements.find(
-              (wallPlacement) => wallPlacement.gridItem.i === item.i,
-            )?.gridItem;
-            if (
-              stored?.i === item.i &&
-              stored.x === item.x &&
-              stored.y === item.y &&
-              stored.w === item.w &&
-              stored.h === item.h
-            ) {
-              continue;
-            }
 
-            yield* models.placement.update({
-              resourceId: makePlacementId(item.i, breakpoint) as InferIdFromAbbreviation<"plc">,
-              attributes: {
-                gridItem: item,
-              } as Partial<InferDecodedRow<(typeof placement)["attributes"]>>,
-            });
-          }
-        }
-
-        yield* models.brick.delete({
-          resourceId: payload.brickId as InferIdFromAbbreviation<"brk">,
-        });
-      });
+          return Channel.fromIterable(operations).pipe(Channel.flatMap((operation) => operation));
+        }),
+      );
     },
   });
 }

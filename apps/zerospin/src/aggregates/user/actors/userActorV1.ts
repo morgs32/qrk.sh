@@ -1,21 +1,20 @@
+import { Effect } from "effect";
+import type { CuidFactory } from "@zerospin/shapes";
+import type { IAnyError } from "@zerospin/error";
 import { libraryModule } from "@qrk.sh/library/libraryModule";
 import { RoutePattern } from "@remix-run/route-pattern";
 import {
   defineAggregateActor,
   makeAggregateActorVersion,
-  makeActorDbVersion,
+  makeQueryDbVersion,
   makeActorIdentity,
-  makeId,
-  resolveFailure,
-  ZerospinError,
 } from "@zerospin/sdk";
-import { Effect } from "effect";
 import { userClaims } from "../../../claims";
 import { signature } from "../../../signature";
 import { userProvisionerV1 } from "./userProvisionerV1";
 import { createPageV1 as createPage } from "../contracts/createPage/CreatePageV1";
 import { createSiteV1 as createSite } from "../contracts/createSite/CreateSiteV1";
-import { createUserV1 as createUser } from "../contracts/createUser/CreateUserV1";
+import { provisionAuthenticatedUser } from "./provisionAuthenticatedUser";
 import { updatePageSettingsV1 as updatePageSettings } from "../contracts/updatePageSettings/UpdatePageSettingsV1";
 import { updateSiteSettingsV1 as updateSiteSettings } from "../contracts/updateSiteSettings/UpdateSiteSettingsV1";
 import { pageV1 as Page } from "../models/page/PageV1";
@@ -26,7 +25,7 @@ const identity = makeActorIdentity({
   claims: userClaims,
   actorPath: RoutePattern.parse("/:clerkUserId"),
 });
-const db = makeActorDbVersion({
+const db = makeQueryDbVersion({
   models: { ...libraryModule.models, page: Page, site: Site, user: User },
 });
 
@@ -36,56 +35,30 @@ export const userActorV1 = makeAggregateActorVersion(defineAggregateActor({ name
   db,
   authentication: {
     credentialsSchema: signature,
-    authenticate: Effect.fn("userActor.authenticate")(function* (props) {
-      const { credentials, executeCommand } = props;
-      const authentication = userProvisionerV1.authentication;
-      if (typeof authentication === "string") {
-        return yield* new ZerospinError({
-          code: "user-provisioner-authentication-required",
-          message: "The provisioner must authenticate Clerk credentials",
-        });
-      }
-      const claims = yield* authentication.authenticate({ credentials, executeCommand });
-      const result = yield* executeCommand({
-        aggregateId: claims.aggregateId,
-        actor: userProvisionerV1,
-        claims,
-        contract: createUser,
-        payload: {
-          id: yield* makeId(User),
-          clerkUserId: claims.clerkUserId,
-          username: null,
-          displayName: null,
-        },
-      }).pipe(
-        Effect.catchIf(
-          (error) => error.code === "user-already-exists",
-          () => Effect.succeed(null),
-        ),
-      );
-      // The staging guard can reject a duplicate before execution is reached.
-      if (result === null) return claims;
-      if (result.admission.status === "failed") {
-        return yield* new ZerospinError({
-          code: "user-provisioning-failed",
-          message: "User provisioning was not admitted",
-          extra: { admission: result.admission },
-        });
-      }
-      // Repeated authentications retain the first resource ID, including after a lost response.
-      if (result.execution.status === "failed") {
-        const failure = yield* resolveFailure(createUser, result.execution.failure);
-        if (!("code" in failure) || failure.code !== "user-already-exists") {
-          return yield* new ZerospinError({
-            code: "user-provisioning-failed",
-            message: "User provisioning failed",
-            extra: { failure },
-          });
-        }
-      }
-      return claims;
-    }),
+    authenticate: (props) => {
+      const { aggregateId, credentials } = props;
+      return userProvisionerV1.authentication.authenticate({ aggregateId, credentials });
+    },
   },
+  authorize: Effect.fn("userActor.authorize")(function* (props): Effect.fn.Return<
+    void,
+    IAnyError,
+    CuidFactory
+  > {
+    const { aggregateId, claims } = props;
+    const { default: config } = yield* Effect.promise(() => import("config"));
+    const { AggregateChain } = yield* Effect.promise(() => import("system-worker"));
+    const chain = yield* AggregateChain.getRepo({
+      key: { systemId: config.systemId, aggregateId, aggregateName: "user" },
+    });
+    yield* provisionAuthenticatedUser({
+      chain,
+      systemName: config.system.name,
+      aggregateId,
+      claims,
+    });
+  }),
+
   contracts: {
     ...libraryModule.contracts,
     createPage,

@@ -1,7 +1,7 @@
 "use client";
 
 import { modulesHash } from "@qrk.sh/library";
-import { userSession } from "@/zerospin/userSession";
+import { UserApp } from "@/zerospin/userSession";
 import { pageV1 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
 import { GridItemPreview } from "@qrk.sh/library/GridItemPreview";
 import { libraryModule } from "@qrk.sh/library/libraryModule";
@@ -28,7 +28,7 @@ export function BrickDetail() {
   const { activeBreakpoint } = useWallViewport();
   const breakpoint = activeBreakpoint ?? "sm";
   const params = useValidatedParams(ParamsSchema);
-  const session = userSession;
+  const session = UserApp.useInitializedSession();
   const { data: page } = useLiveQuery({
     session,
     key: params.pageId,

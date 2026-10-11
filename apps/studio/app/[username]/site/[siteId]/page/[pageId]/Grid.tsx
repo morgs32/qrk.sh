@@ -1,5 +1,7 @@
 "use client";
 
+import { stageAggregateSessionCommand } from "@zerospin/core/aggregateSession/stageCommand/stageAggregateSessionCommand";
+
 import { useState } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -8,11 +10,11 @@ import { useReducedMotion } from "framer-motion";
 import { BrickWall } from "@qrk.sh/library/BrickWall";
 import { BREAKPOINTS } from "@qrk.sh/library/breakpoints";
 import { WallBreakpointPane } from "@qrk.sh/library/WallBreakpointPane";
-import { userSession } from "@/zerospin/userSession";
+import { UserApp } from "@/zerospin/userSession";
 import { pageV1 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
 import { useWallViewport } from "@qrk.sh/library/WallViewportProvider";
 import { makeModelIdSchema } from "@zerospin/core/models/make/makeModelIdSchema";
-import { stageAggregateCommand, useLiveQuery } from "@zerospin/react";
+import { useLiveQuery } from "@zerospin/react";
 import { Schema } from "effect";
 
 import { useValidatedParams } from "@/hooks/useValidatedParams";
@@ -26,7 +28,7 @@ const ParamsSchema = Schema.Struct({
 
 export function Grid() {
   const { activeBreakpoint, gridGesture, setGridGesture } = useWallViewport();
-  const session = userSession;
+  const session = UserApp.useInitializedSession();
   const params = useValidatedParams(ParamsSchema);
   const { data: page } = useLiveQuery({
     session,
@@ -90,7 +92,7 @@ export function Grid() {
                 </div>
                 <BrickWall
                   session={session}
-                  executeCommand={stageAggregateCommand}
+                  executeCommand={stageAggregateSessionCommand}
                   wallId={wallId}
                   breakpoint={row.id}
                   gridWidth={row.previewWidth}

@@ -1,3 +1,5 @@
-import { defineContract } from "@zerospin/core/contracts/defineContract";
+import { defineAggregateContract } from "@zerospin/core/contracts/defineAggregateContract";
 
-export const setBrickVisibilityAtBreakpoint = defineContract("setBrickVisibilityAtBreakpoint");
+export const setBrickVisibilityAtBreakpoint = defineAggregateContract(
+  "setBrickVisibilityAtBreakpoint",
+);

@@ -1,10 +1,11 @@
+import { stageAggregateSessionCommand } from "@zerospin/core/aggregateSession/stageCommand/stageAggregateSessionCommand";
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Pencil } from "lucide-react";
 
 import { isNonEmptySpec } from "@json-render/core";
 import { Schema } from "effect";
 import { prefixId } from "@zerospin/core/models/prefixId";
-import { useLiveQuery, type stageAggregateCommand } from "@zerospin/react";
+import { useLiveQuery } from "@zerospin/react";
 import GridLayout, { verticalCompactor } from "react-grid-layout";
 
 import { libraryModule } from "../libraryModule/libraryModule";
@@ -36,7 +37,7 @@ function commandErrorMessage(failure: { message?: string; code?: string }) {
 
 export function BrickWall(props: {
   session: ILibrarySession;
-  executeCommand: typeof stageAggregateCommand;
+  executeCommand: typeof stageAggregateSessionCommand;
   wallId: `wal_${string}`;
   breakpoint: "sm" | "md" | "lg" | "xl";
   gridWidth: number;
@@ -60,11 +61,6 @@ export function BrickWall(props: {
     onBrickActivate,
     onCommandError,
   } = props;
-  const backupStatus = useSyncExternalStore(
-    session.store.subscribe,
-    () => session.store.getState().backupState?.status ?? "released",
-    () => "released",
-  );
   const catalogDragActive = useSyncExternalStore(
     brickDragStore.subscribe,
     () => brickDragStore.getState().brickDef !== null,
@@ -103,8 +99,9 @@ export function BrickWall(props: {
     ) {
       return;
     }
-    const db = session.store.getState().db;
-    if (db === null) return;
+    const initialized = session.store.getState().initialized;
+    if (initialized === null) return;
+    const { db } = initialized;
 
     // Read one current baseline rather than persisting RGL's temporary geometry.
     const currentBricks = db.query.brick.findMany({ where: { wallId: { eq: wallId } } }).sync();
@@ -229,12 +226,7 @@ export function BrickWall(props: {
   );
 
   return (
-    <section
-      ref={containerRef}
-      data-backup-status={backupStatus}
-      aria-label="Brick grid"
-      className="bg-white"
-    >
+    <section ref={containerRef} aria-label="Brick grid" className="bg-white">
       {outsideBrickId && (
         <div
           role="status"

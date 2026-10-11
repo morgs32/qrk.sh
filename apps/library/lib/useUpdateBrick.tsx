@@ -1,9 +1,11 @@
 "use client";
 
+import { stageAggregateSessionCommand } from "@zerospin/core/aggregateSession/stageCommand/stageAggregateSessionCommand";
+
 import type { Spec } from "@json-render/core";
 import { isNonEmptySpec } from "@json-render/core";
 import type { InferCommandPayload } from "@zerospin/core/models/types";
-import { executeStandaloneAggregateCommand } from "@zerospin/react";
+
 import { makeEffectSchema } from "@zerospin/shapes";
 import { Schema } from "effect";
 import { catchError, type ErrorInfo } from "next/error";
@@ -68,12 +70,12 @@ export function useUpdateBrick(props: { brickId: `brk_${string}` }) {
 
       // 1. Snapshot the actual placements before rendering the proposed state.
       const sessionState = session.store.getState();
-      if (!sessionState.isInitialized) throw new Error("Library session is not ready");
-      const brick = sessionState.db.query.brick
+      if (sessionState.initialized === null) throw new Error("Library session is not ready");
+      const brick = sessionState.initialized.db.query.brick
         .findFirst({ where: { id: { eq: brickId } } })
         .sync();
       if (brick === undefined) throw new Error("Brick was deleted before saving");
-      const placements = sessionState.db.query.placement
+      const placements = sessionState.initialized.db.query.placement
         .findMany({ where: { brickId: { eq: brickId } } })
         .sync();
       if (placements.length !== BREAKPOINTS.length) {
@@ -174,14 +176,14 @@ export function useUpdateBrick(props: { brickId: `brk_${string}` }) {
         throw new Error("Brick editor closed before saving");
       }
       const currentSessionState = session.store.getState();
-      if (!currentSessionState.isInitialized) throw new Error("Library session is not ready");
-      const currentBrick = currentSessionState.db.query.brick
+      if (currentSessionState.initialized === null) throw new Error("Library session is not ready");
+      const currentBrick = currentSessionState.initialized.db.query.brick
         .findFirst({ where: { id: { eq: brickId } } })
         .sync();
       if (currentBrick === undefined || currentBrick.moduleId !== brick.moduleId) {
         throw new Error("Brick changed before saving");
       }
-      const currentPlacements = currentSessionState.db.query.placement
+      const currentPlacements = currentSessionState.initialized.db.query.placement
         .findMany({ where: { brickId: { eq: brickId } } })
         .sync();
       if (
@@ -197,7 +199,7 @@ export function useUpdateBrick(props: { brickId: `brk_${string}` }) {
       ) {
         throw new Error("Placement specs changed during Save; save again");
       }
-      const result = executeStandaloneAggregateCommand({
+      const result = stageAggregateSessionCommand({
         session,
         contractName: "updateBrick",
         payload: { brickId, moduleId: brick.moduleId, state, measurements },

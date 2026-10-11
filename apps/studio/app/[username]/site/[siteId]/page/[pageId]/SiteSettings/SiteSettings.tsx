@@ -1,11 +1,13 @@
 "use client";
 
+import { stageAggregateSessionCommand } from "@zerospin/core/aggregateSession/stageCommand/stageAggregateSessionCommand";
+
 import { useRouter } from "next/navigation";
 
 /* oxlint-disable next/no-img-element -- Studio uses Vite, so Next image optimization is unavailable. */
 
 import { useAuth } from "@clerk/nextjs";
-import { stageAggregateCommand } from "@zerospin/react";
+
 import { ZerospinError } from "@zerospin/sdk/browser";
 import { Schema } from "effect";
 import { Globe, X } from "lucide-react";
@@ -18,7 +20,7 @@ import { CopyButton } from "./CopyButton";
 import { SearchPreviewCard } from "../SearchPreviewCard";
 
 import { useZerospinUserInitializedState } from "@/components/ZerospinUser";
-import { userSession } from "@/zerospin/userSession";
+import { UserApp } from "@/zerospin/userSession";
 import { Button } from "@/components/ui/button";
 import { FieldLabel } from "@/components/ui/field-label";
 import { Input } from "@/components/ui/input";
@@ -96,7 +98,7 @@ export function SiteSettings() {
   const router = useRouter();
   const username = useUsername();
   const { getToken } = useAuth();
-  const session = userSession;
+  const session = UserApp.useInitializedSession();
   const siteId = params.siteId;
   const { db } = useZerospinUserInitializedState();
   const siteDraft = useSiteStore((state) => state.site);
@@ -226,12 +228,12 @@ export function SiteSettings() {
               size="sm"
               onClick={() => {
                 const state = session.store.getState();
-                if (!state.isInitialized) {
+                if (state.initialized === null) {
                   toast.error("Your session is not ready");
                   return;
                 }
 
-                const result = stageAggregateCommand({
+                const result = stageAggregateSessionCommand({
                   session,
                   contractName: "updateSiteSettings",
                   payload: {

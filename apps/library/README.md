@@ -464,7 +464,7 @@ from its viewport minimum height, with 3.5rem and zero fallbacks respectively, s
 empty wall remains one viewport tall without extra scrolling.
 
 Library and Studio resolve browser SQLite WASM from the installed Zerospin
-`4.0.2` package exports. Next's webpack build emits the standalone session's
+`4.0.3` package exports. Next's webpack build emits the standalone session's
 synchronous asset and the connected SharedWorker's async asset. Persistent Node
 storage belongs to the SharedWorker's IndexedDB-backed SQLite namespace;
 no separate backup worker or public backup-worker assets remain.

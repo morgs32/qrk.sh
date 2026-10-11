@@ -18,7 +18,7 @@ pnpm nx run @qrk.sh/zerospin:ts
 pnpm nx run @qrk.sh/zerospin:test:workerd
 ```
 
-QRK installs the CLI and runtime packages at `4.0.2` from the populated local
+QRK installs the CLI and runtime packages at `4.0.3` from the populated local
 registry described in the [root README](../../README.md#zerospin-packages). Nx
 builds QRK's reusable Library before backend checks and development; it does not
 rebuild installed Zerospin files.

@@ -46,17 +46,22 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     return assetResponse;
   }
 
-  if (url.pathname !== "/upload") {
+  if (url.pathname !== "/upload" && url.pathname !== "/image/upload") {
     return jsonResponse(request, { code: "not-found", message: "Not found" }, 404);
   }
 
   if (request.method !== "POST") {
-    return jsonResponse(request, { code: "method-not-allowed", message: "Use POST /upload" }, 405);
+    return jsonResponse(
+      request,
+      { code: "method-not-allowed", message: `Use POST ${url.pathname}` },
+      405,
+    );
   }
 
   try {
-    const clerkUserId = await requireClerkUserId(request, env);
-    const result = await handleUpload(request, env, clerkUserId);
+    const ownerPrefix =
+      url.pathname === "/image/upload" ? "image" : await requireClerkUserId(request, env);
+    const result = await handleUpload(request, env, ownerPrefix);
     return jsonResponse(request, result, 200);
   } catch (cause) {
     if (cause instanceof UploadHttpError) {

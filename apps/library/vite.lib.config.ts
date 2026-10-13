@@ -44,7 +44,7 @@ export default defineConfig(({ mode }) => {
         external: [
           "@json-render/core",
           "@radix-ui/react-slot",
-          "@tiptap/react",
+          /^@tiptap\//,
           "@unpic/react",
           // Share runtime classes with consumers by keeping Zerospin packages
           // and their subpath imports external.

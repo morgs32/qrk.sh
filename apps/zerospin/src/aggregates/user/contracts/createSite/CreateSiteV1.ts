@@ -2,7 +2,7 @@ import { ContractError } from "@zerospin/error";
 import * as sdk from "@zerospin/sdk/browser";
 
 import { makeAggregateContractVersion, primitives } from "@zerospin/sdk/browser";
-import { Effect, Schema } from "effect";
+import { Effect } from "effect";
 import { siteV1 as Site } from "../../models/site/SiteV1";
 import { userV1 as User } from "../../models/user/UserV1";
 
@@ -26,7 +26,7 @@ const createSitePayload = {
 };
 
 export const createSiteV1 = makeAggregateContractVersion(createSite, {
-  operations: Schema.Array(Site.operations.create),
+  operations: { createSite: Site.operations.create },
   failures: {
     createSiteUserMismatch: ContractError.schema({ code: "create-site-user-mismatch" }),
   },
@@ -60,7 +60,7 @@ export const createSiteV1 = makeAggregateContractVersion(createSite, {
     });
   },
   program: (props) => {
-    const { failures, payload, claims } = props;
+    const { operations, failures, payload, claims } = props;
     return Effect.gen(function* () {
       if (typeof claims?.clerkUserId !== "string") {
         return yield* failures.createSiteUserMismatch.make({
@@ -69,8 +69,7 @@ export const createSiteV1 = makeAggregateContractVersion(createSite, {
         });
       }
       const { id, userId, slug, name, description } = payload;
-      const operation = yield* sdk.makeCreateOperation({
-        model: Site,
+      yield* operations.createSite({
         resourceId: id,
         attributes: {
           userId,
@@ -82,7 +81,6 @@ export const createSiteV1 = makeAggregateContractVersion(createSite, {
           faviconDarkUrl: null,
         },
       });
-      return { operations: [operation], result: undefined };
     });
   },
   version: "1.0.0",

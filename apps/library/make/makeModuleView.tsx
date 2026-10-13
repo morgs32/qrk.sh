@@ -116,6 +116,8 @@ export function makeModuleView<
     form?: (props: {
       state: InferDecodedRow<MODULE["stateShape"]>;
       onChange: (state: InferDecodedRow<MODULE["stateShape"]>) => void;
+      uploadImage?: (props: { file: File; signal: AbortSignal }) => Promise<string>;
+      isUploadingImage?: boolean;
     }) => ReactNode;
     default: {
       component: (props: { state: InferDecodedRow<MODULE["stateShape"]> }) => ReactNode;
@@ -180,11 +182,16 @@ export function makeModuleView<
     },
   );
 
-  function Form(props: { state: unknown; onChange: (state: unknown) => void }) {
-    const { state, onChange } = props;
+  function Form(props: {
+    state: unknown;
+    onChange: (state: unknown) => void;
+    uploadImage?: (props: { file: File; signal: AbortSignal }) => Promise<string>;
+    isUploadingImage?: boolean;
+  }) {
+    const { state, onChange, uploadImage, isUploadingImage } = props;
     if (view.form === undefined) return null;
     const decoded = decodeFormState(state, { onExcessProperty: "ignore" });
-    return view.form({ state: decoded, onChange });
+    return view.form({ state: decoded, onChange, uploadImage, isUploadingImage });
   }
 
   function viewFor(breakpoint: "sm" | "md" | "lg" | "xl") {

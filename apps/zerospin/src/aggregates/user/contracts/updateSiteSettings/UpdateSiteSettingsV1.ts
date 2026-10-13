@@ -2,7 +2,7 @@ import { ContractError } from "@zerospin/error";
 import * as sdk from "@zerospin/sdk/browser";
 
 import { makeAggregateContractVersion, primitives } from "@zerospin/sdk/browser";
-import { Effect, Schema } from "effect";
+import { Effect } from "effect";
 import { siteV1 as Site } from "../../models/site/SiteV1";
 import { userV1 as User } from "../../models/user/UserV1";
 
@@ -33,7 +33,7 @@ const updateSiteSettingsPayload = {
 };
 
 export const updateSiteSettingsV1 = makeAggregateContractVersion(updateSiteSettings, {
-  operations: Schema.Array(Site.operations.update),
+  operations: { updateSite: Site.operations.update },
   failures: {
     updateSiteSettingsUserMismatch: ContractError.schema({
       code: "update-site-settings-user-mismatch",
@@ -78,10 +78,9 @@ export const updateSiteSettingsV1 = makeAggregateContractVersion(updateSiteSetti
     });
   },
   program: (props) => {
-    const { payload } = props;
+    const { operations, payload } = props;
     return Effect.gen(function* () {
-      const operation = yield* sdk.makeUpdateOperation({
-        model: Site,
+      yield* operations.updateSite({
         resourceId: payload.id,
         attributes: {
           name: payload.name,
@@ -91,7 +90,6 @@ export const updateSiteSettingsV1 = makeAggregateContractVersion(updateSiteSetti
           faviconDarkUrl: payload.faviconDarkUrl,
         },
       });
-      return { operations: [operation], result: undefined };
     });
   },
   version: "1.0.0",

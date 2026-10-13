@@ -20,7 +20,12 @@ export type IModule<MODULE extends string> = {
   measureOnSave: boolean;
   /** Display-only markup for an explicitly unconfigured brick (state === null). */
   placeholder?: () => ReactNode;
-  Form?: (props: { state: unknown; onChange: (state: unknown) => void }) => ReactNode;
+  Form?: (props: {
+    state: unknown;
+    onChange: (state: unknown) => void;
+    uploadImage?: (props: { file: File; signal: AbortSignal }) => Promise<string>;
+    isUploadingImage?: boolean;
+  }) => ReactNode;
   def: IModuleBrickDef<MODULE>;
   /**
    * Render boundaries supply the brick state document; components without a

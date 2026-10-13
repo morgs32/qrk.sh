@@ -1,11 +1,9 @@
 import { ContractError } from "@zerospin/error";
 import { findMany } from "@zerospin/core/contracts/findMany";
 import { findFirst } from "@zerospin/core/contracts/findFirst";
-import { makeUpdateOperation } from "@zerospin/core/contracts/make/makeUpdateOperation";
-import { makeDeleteOperation } from "@zerospin/core/contracts/make/makeDeleteOperation";
 import { makeAggregateContractVersion } from "@zerospin/core/contracts/make/makeAggregateContractVersion";
 import { primitives, type InferDecodedRow, type InferIdFromAbbreviation } from "@zerospin/shapes";
-import { Effect, Schema } from "effect";
+import { Effect } from "effect";
 
 import { makePlacementId } from "../../models/placement/makePlacementId";
 import { makeCompactLayout } from "../../resolveVisibleCollisions";
@@ -27,14 +25,12 @@ export function makeRemoveBrickContract(props: {
     wallId: primitives.foreignKey({ abbreviation: wall.abbreviation }),
   };
 
-  const operationSchema = Schema.Union([
-    brick.operations.delete,
-    placement.operations.delete,
-    placement.operations.update,
-  ]);
-
   return makeAggregateContractVersion(removeBrick, {
-    operations: Schema.Array(operationSchema),
+    operations: {
+      deleteBrick: brick.operations.delete,
+      deletePlacement: placement.operations.delete,
+      updatePlacement: placement.operations.update,
+    },
     failures: {
       removeBrickWallNotFound: ContractError.schema({ code: "remove-brick-wall-not-found" }),
       removeBrickBrickNotFound: ContractError.schema({ code: "remove-brick-brick-not-found" }),
@@ -85,10 +81,9 @@ export function makeRemoveBrickContract(props: {
       }
     }),
     program: (props) => {
-      const { payload, db } = props;
+      const { operations, payload, db } = props;
       return Effect.gen(function* () {
-        const operations: Array<typeof operationSchema.Type> = [];
-        // Returned deletes are not applied to db during this program.
+        // Recorded deletes are not applied to db during this program.
         const wallBricks = (yield* findMany({
           db: db,
           model: brick,
@@ -96,15 +91,12 @@ export function makeRemoveBrickContract(props: {
         })).filter((brickRow) => brickRow.id !== payload.brickId);
 
         for (const breakpoint of ["sm", "md", "lg", "xl"] as Array<"sm" | "md" | "lg" | "xl">) {
-          operations.push(
-            yield* makeDeleteOperation({
-              model: placement,
-              resourceId: makePlacementId(
-                payload.brickId,
-                breakpoint,
-              ) as InferIdFromAbbreviation<"plc">,
-            }),
-          );
+          yield* operations.deletePlacement({
+            resourceId: makePlacementId(
+              payload.brickId,
+              breakpoint,
+            ) as InferIdFromAbbreviation<"plc">,
+          });
 
           const visiblePlacements = [];
           for (const wallBrick of wallBricks) {
@@ -135,26 +127,18 @@ export function makeRemoveBrickContract(props: {
               continue;
             }
 
-            operations.push(
-              yield* makeUpdateOperation({
-                model: placement,
-                resourceId: makePlacementId(item.i, breakpoint) as InferIdFromAbbreviation<"plc">,
-                attributes: {
-                  gridItem: item,
-                } as Partial<InferDecodedRow<(typeof placement)["attributes"]>>,
-              }),
-            );
+            yield* operations.updatePlacement({
+              resourceId: makePlacementId(item.i, breakpoint) as InferIdFromAbbreviation<"plc">,
+              attributes: {
+                gridItem: item,
+              } as Partial<InferDecodedRow<(typeof placement)["attributes"]>>,
+            });
           }
         }
 
-        operations.push(
-          yield* makeDeleteOperation({
-            model: brick,
-            resourceId: payload.brickId as InferIdFromAbbreviation<"brk">,
-          }),
-        );
-
-        return { operations, result: undefined };
+        yield* operations.deleteBrick({
+          resourceId: payload.brickId as InferIdFromAbbreviation<"brk">,
+        });
       });
     },
   });

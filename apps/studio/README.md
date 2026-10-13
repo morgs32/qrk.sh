@@ -21,7 +21,7 @@ Web listens on port 3000 and proxies Studio routes to `APP_ORIGIN` (default `htt
 Studio's Next chunks, fonts, worker, and WASM use `/studio-static/_next/`. Web excludes that namespace from authentication and proxies it to Studio. Referenced `/assets/` public files have explicit mappings in Studio's Next configuration; missing files return 404. There is no Vite module or HMR routing.
 
 Studio resolves the SharedWorker and browser SQLite WASM from installed
-`5.0.1` package exports. The worker owns its IndexedDB-backed SQLite namespace;
+`6.0.1` package exports. The worker owns its IndexedDB-backed SQLite namespace;
 no separate backup-worker asset is served. Its Nx builds and checks build QRK's reusable
 Library first; they never build or change installed Zerospin artifacts. Fresh
 checkout installation requires the populated local registry described in the
@@ -41,17 +41,17 @@ Place local values in `apps/studio/.env.local`:
 - `NEXT_PUBLIC_ZEROSPIN_API_URL`
 - `NEXT_PUBLIC_ZEROSPIN_PUBLISHABLE_KEY`
 - `PUBLIC_MAPBOX_TOKEN`
-- `NEXT_PUBLIC_API_URL` (required Article image upload API URL)
+- `NEXT_PUBLIC_API_URL` (Image and Site Settings upload API URL)
 
 Clerk uses its Next.js integration; nuqs uses its Next App Router adapter. Sign-in and sign-up remain web-owned routes and retain `/replace` as their fallback destination. Web performs signed-out redirects, Studio retains its client guard, and Zerospin retains backend authorization. No server-side Zerospin queries or new authentication rules are introduced.
 
 ## Server shell and browser state
 
-`app/layout.tsx` owns the document, global/reset styles, metadata, and Library's shared article stylesheet. Studio's global CSS loads Fragment Mono through Library's Google Fonts import and uses it for UI text, controls, and the dashboard wordmark. The article stylesheet owns the system font for article titles and subtitles and Spectral for body text and headings. Studio adds no heading font override. Storybook imports the same global and article styles. `App` holds the client providers. The username layout keeps one session initializer mounted across Studio navigation; `UserLayout` gates only data-dependent content.
+`app/layout.tsx` owns the document, global/reset styles, metadata, and Library's shared article stylesheet. Studio's global CSS loads Fragment Mono through Library's Google Fonts import and uses it for UI text and controls. The dashboard's `QRK.SH` wordmark matches the homepage: Silkscreen 400 at 18px, loaded through `next/font/google` in `Header`. The article stylesheet owns the system font for article titles and subtitles and Spectral for body text and headings. Studio adds no heading font override. Storybook imports the same global and article styles. `App` holds the client providers. The username layout keeps one session initializer mounted across Studio navigation; `UserLayout` gates only data-dependent content.
 
 The root layout mounts the shared `ZerospinDevtoolsLoader` in development with the panel initially closed. Its lifetime spans route navigation and authentication changes; the loader owns cleanup when the application unmounts.
 
-The dashboard layout renders the fixed 64 px `qrk.sh` header in the initial HTML and reserves a 40 px account slot with a shadcn skeleton. The header is a query container; its inner flex element uses Library's shared `qrk-responsive-insets` class and `--qrk-inset-inline`: 16px gutters become 30px when both the document viewport and header reach 720px. The site editor, including its 64 px navbar, appears only once the browser session is ready; the initial HTML has no site navbar or site-name skeleton. Each breakpoint pane owns the complete navbar inside its browser frame, beneath the address bar and above `BrickWall`. `Grid` makes the existing navbar wrapper a query container. `SiteHeader` uses the same shared responsive gutters when both the document viewport and wrapper reach 720px, preserving its 64px height and chrome offset. The existing `Wordmark` subscribes to site data and preserves settings draft previews. Site data, drafts, SQLite, and editing remain browser-owned.
+The dashboard layout renders the fixed 64 px `QRK.SH` header in the initial HTML and reserves a 40 px account slot with a shadcn skeleton. The header is a query container; its inner flex element uses Library's shared `qrk-responsive-insets` class and `--qrk-inset-inline`: 16px gutters become 30px when both the document viewport and header reach 720px. The site editor, including its 64 px navbar, appears only once the browser session is ready; the initial HTML has no site navbar or site-name skeleton. Each breakpoint pane owns the complete navbar inside its browser frame, beneath the address bar and above `BrickWall`. `Grid` makes the existing navbar wrapper a query container. `SiteHeader` uses the same shared responsive gutters when both the document viewport and wrapper reach 720px, preserving its 64px height and chrome offset. The existing `Wordmark` subscribes to site data and preserves settings draft previews. Site data, drafts, SQLite, and editing remain browser-owned.
 
 ## Routes and transitions
 
@@ -72,9 +72,10 @@ inset frame. sm/md show a Safari-like mobile address pill; lg/xl show desktop
 window dots and a centered address bar. Both display static `qrk.sh` and remain
 noninteractive and hidden from assistive technology. Chrome slides and scrolls
 with the wall, including scroll compensation while dragging, preserves its
-exact 360/720/1080/1440px content width, and clips horizontal hover and drag
-overflow while leaving vertical overflow visible. Drag gestures can still
-continue beyond the frame. The 64px site navbar slides and scrolls with the
+exact 360/720/1080/1440px content width, and allows resize handles and dragged
+surfaces to overflow into surrounding gutters. Brick content stays clipped by
+its own wrapper. Editor boundaries still clip overflow at exact-fit widths;
+breakpoint fitting reserves no extra gutters. The 64px site navbar slides and scrolls with the
 frame, including drag-scroll compensation. Inactive panes keep their navbar
 copies hidden or inert with the rest of the pane. The scroll root adds 32px
 above the frame and 86px below it, leaving 24px between the frame and the 38px
@@ -117,7 +118,7 @@ The separate React Router/Motion example remains an independent example, not an 
 
 ## Inline Article editing
 
-Studio routes brick activation to the detail drawer and renders the selected Library module's `Form` when available. Image provides Image URL and Title fields; Article provides its shared editor with a flat toolbar, centered writing column, and block reordering. Unconfigured bricks initialize their form from the module's default state. Modules without a Form retain their read-only detail preview. Studio still suppresses the shared **Edit article** wall action and has no brick visibility control. Article state has separate required title and subtitle strings and a Tiptap body; generated ArticleBrick specs bind all three fields. This hard schema change does not migrate existing content-only articles. Catalog previews remain read-only.
+Studio routes brick activation to the detail drawer and renders the selected Library module's `Form` when available. Image provides a dropzone and file picker above its Image URL and Title fields; Article provides its shared editor with a flat toolbar, centered writing column, and block reordering. Unconfigured bricks initialize their form from the module's default state. Modules without a Form retain their read-only detail preview. Studio still suppresses the shared **Edit article** wall action and has no brick visibility control. Article state has separate required title and subtitle strings and a Tiptap body; generated ArticleBrick specs bind all three fields. This hard schema change does not migrate existing content-only articles. Catalog previews remain read-only.
 
 Form edits remain local until Save stages `updateBrick` through Studio's authenticated `UserApp` initialized session and its live push and synchronization lifecycle. Failed staging retains the draft and shows an error; Cancel restores the committed state. Closing or changing the selected brick discards unsaved edits, while breakpoint switches retain the draft. Page and Site Settings continue to save through their existing commands.
 
@@ -134,10 +135,10 @@ content, image loads, or width changes. Their module-owned white shell fills the
 placement and clips overflowing content. Content remains shared across breakpoints;
 placement sizes remain separate per breakpoint.
 
-## Article images
+## Image uploads
 
-**Add image** inserts an upload placeholder. Choose or drop one PNG, JPEG, WebP, or SVG up to 5 MiB. Progress, cancellation, and errors use the existing upload implementation. Leaving editing, changing breakpoint, deleting the brick, or leaving the editor cancels pending requests; late completion cannot insert content. Completed image nodes, including size and alignment, persist in the Article brick's content. Images shrink to fit the brick width.
+Drop or choose one nonempty PNG, JPEG, WebP, or SVG up to 5 MiB in the Image drawer. Upload starts immediately and updates only the draft Image URL on success; Save persists the brick state. The host supplies Clerk authentication and transport through `useSWRMutation`, and its `isMutating` flag supplies `isUploadingImage` to the module and Save button. Image owns validation, feedback, errors, and request cancellation. Fields and Save are disabled during upload; Cancel stays available, restores committed state, and aborts unfinished requests. Switching bricks or leaving the drawer also aborts pending uploads and ignores late results. Breakpoint switches retain the draft and its upload.
 
 Set `NEXT_PUBLIC_API_URL` to the unified `api` Worker origin; local development uses `http://127.0.0.1:8787`. Run `pnpm nx run @qrk.sh/api:dev` separately. The API Worker verifies the Clerk bearer token using `CLERK_SECRET_KEY` and `CLERK_AUTHORIZED_PARTY`, stores the bytes in its `QRKSH` R2 binding, and returns a URL built from `R2_PUBLIC_BASE_URL`. The configured authorized party and CORS origins must match the browser origin. `/assets` serves local R2 objects through the Worker; `/assets/library/*` uses the retained Library `ASSETS` bucket. Production can use the configured public R2 host. Clerk secrets stay on the Worker.
 
-Uploads still write assets to the server immediately. File bytes and upload progress are not part of the local document backup; reloading an unfinished upload restores its empty placeholder. Removing an image does not delete its R2 object. Article documents are not converted, and incompatible existing page storage is reported rather than reset automatically.
+Uploads write assets to R2 immediately. Cancel after an upload completes, or removing an image, does not delete the R2 object. File bytes and upload status are not part of the local brick backup. Article uploads remain disabled because its editor has no upload handler; existing Article image nodes continue to render and persist. Article documents are not converted, and incompatible existing page storage is reported rather than reset automatically.

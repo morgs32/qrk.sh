@@ -1,6 +1,7 @@
 "use client";
 
 import { modulesHash } from "@qrk.sh/library";
+import { useAuth } from "@clerk/nextjs";
 import { UserApp } from "@/zerospin/userSession";
 import { pageV1 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
 import { GridItemPreview } from "@qrk.sh/library/GridItemPreview";
@@ -11,7 +12,8 @@ import { makeModelIdSchema } from "@zerospin/core/models/make/makeModelIdSchema"
 import { stageAggregateSessionCommand } from "@zerospin/core/aggregateSession/stageCommand/stageAggregateSessionCommand";
 import { useLiveQuery } from "@zerospin/react";
 import { Schema } from "effect";
-import { useState } from "react";
+import { useLayoutEffect, useState } from "react";
+import useSWRMutation from "swr/mutation";
 
 import { Button } from "@/components/ui/button";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
@@ -31,6 +33,7 @@ export function BrickDetail() {
   const { activeBreakpoint } = useWallViewport();
   const breakpoint = activeBreakpoint ?? "sm";
   const params = useValidatedParams(ParamsSchema);
+  const { getToken } = useAuth();
   const session = UserApp.useInitializedSession();
   const [formDraft, setFormDraft] = useState<{ brickId: string; state: unknown } | null>(null);
   const [acceptedState, setAcceptedState] = useState<{ brickId: string; state: unknown } | null>(
@@ -44,6 +47,46 @@ export function BrickDetail() {
     query: (db, pageId) => db.query.page.findFirst({ where: { id: { eq: pageId } } }),
   });
   const brickId = isBrickId(params.brickId) ? params.brickId : null;
+  const {
+    trigger: uploadImage,
+    isMutating: isUploadingImage,
+    reset: resetImageUpload,
+  } = useSWRMutation(
+    ["imageUpload", params.siteId, brickId],
+    async (_key, options: { arg: { file: File; signal: AbortSignal } }) => {
+      const { file, signal } = options.arg;
+      signal.throwIfAborted();
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
+      if (!apiBaseUrl) throw new Error("NEXT_PUBLIC_API_URL is required");
+      const sessionToken = await getToken();
+      signal.throwIfAborted();
+      if (sessionToken === null) throw new Error("Sign in to upload images");
+      const formData = new FormData();
+      formData.set("file", file);
+      formData.set("siteId", params.siteId);
+      const response = await fetch(`${apiBaseUrl.replace(/\/$/, "")}/upload`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${sessionToken}` },
+        body: formData,
+        signal,
+      });
+      const body: unknown = await response.json();
+      if (!response.ok) {
+        const error = Schema.decodeUnknownSync(
+          Schema.Struct({ code: Schema.String, message: Schema.String }),
+        )(body);
+        throw new Error(error.message);
+      }
+      const result = Schema.decodeUnknownSync(
+        Schema.Struct({ key: Schema.String, url: Schema.String, contentType: Schema.String }),
+      )(body);
+      return result.url;
+    },
+    { revalidate: false },
+  );
+  useLayoutEffect(() => {
+    resetImageUpload();
+  }, [brickId, params.siteId, resetImageUpload]);
 
   const brickQuery = useLiveQuery({
     session,
@@ -134,9 +177,10 @@ export function BrickDetail() {
             {Form !== undefined ? (
               <form
                 className="mx-auto mt-8 w-full max-w-3xl px-6"
+                aria-busy={isUploadingImage}
                 onSubmit={(event) => {
                   event.preventDefault();
-                  if (!formDirty) return;
+                  if (!formDirty || isUploadingImage) return;
                   const result = stageAggregateSessionCommand({
                     session,
                     contractName: "updateBrick",
@@ -164,6 +208,8 @@ export function BrickDetail() {
                   <Form
                     key={`${brickRow.id}:${editorEpoch}`}
                     state={formState}
+                    uploadImage={uploadImage}
+                    isUploadingImage={isUploadingImage}
                     onChange={(state) => {
                       setFormDraft({ brickId: brickRow.id, state });
                       setFormError(null);
@@ -175,13 +221,14 @@ export function BrickDetail() {
                     </div>
                   ) : null}
                   <div className="flex flex-wrap gap-2">
-                    <Button type="submit" disabled={!formDirty}>
+                    <Button type="submit" disabled={!formDirty || isUploadingImage}>
                       Save
                     </Button>
                     <Button
                       type="button"
                       variant="outline"
                       onClick={() => {
+                        resetImageUpload();
                         setFormDraft(null);
                         setFormError(null);
                         setEditorEpoch((epoch) => epoch + 1);

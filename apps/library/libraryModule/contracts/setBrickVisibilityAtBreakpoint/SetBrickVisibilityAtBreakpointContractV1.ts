@@ -1,7 +1,6 @@
 import { ContractError } from "@zerospin/error";
 import { findMany } from "@zerospin/core/contracts/findMany";
 import { findFirst } from "@zerospin/core/contracts/findFirst";
-import { makeUpdateOperation } from "@zerospin/core/contracts/make/makeUpdateOperation";
 import { makeAggregateContractVersion } from "@zerospin/core/contracts/make/makeAggregateContractVersion";
 import { mapParseError } from "@zerospin/error";
 import { primitives, type InferDecodedRow, type InferIdFromAbbreviation } from "@zerospin/shapes";
@@ -47,7 +46,7 @@ export function makeSetBrickVisibilityAtBreakpointContract(props: {
   };
 
   return makeAggregateContractVersion(setBrickVisibilityAtBreakpoint, {
-    operations: Schema.Array(placement.operations.update),
+    operations: { updatePlacement: placement.operations.update },
     failures: {
       setBrickVisibilityBrickNotFound: ContractError.schema({
         code: "set-brick-visibility-brick-not-found",
@@ -242,26 +241,22 @@ export function makeSetBrickVisibilityAtBreakpointContract(props: {
       }
     }),
     program: (props) => {
-      const { payload, db } = props;
+      const { operations, payload, db } = props;
       return Effect.gen(function* () {
-        const operations: Array<typeof placement.operations.update.Type> = [];
         if (payload.currentlyVisible === payload.isVisible) {
-          return { operations, result: undefined };
+          return;
         }
 
         if (!payload.isVisible) {
-          operations.push(
-            yield* makeUpdateOperation({
-              model: placement,
-              resourceId: makePlacementId(
-                payload.brickId,
-                payload.breakpoint,
-              ) as InferIdFromAbbreviation<"plc">,
-              attributes: {
-                isVisible: false,
-              },
-            }),
-          );
+          yield* operations.updatePlacement({
+            resourceId: makePlacementId(
+              payload.brickId,
+              payload.breakpoint,
+            ) as InferIdFromAbbreviation<"plc">,
+            attributes: {
+              isVisible: false,
+            },
+          });
 
           const brickRow = yield* findFirst({
             db: db,
@@ -269,7 +264,7 @@ export function makeSetBrickVisibilityAtBreakpointContract(props: {
             where: { id: { eq: payload.brickId } },
           });
           if (brickRow === undefined) {
-            return { operations, result: undefined };
+            return;
           }
           const wallBricks = yield* findMany({
             db: db,
@@ -309,20 +304,17 @@ export function makeSetBrickVisibilityAtBreakpointContract(props: {
               continue;
             }
 
-            operations.push(
-              yield* makeUpdateOperation({
-                model: placement,
-                resourceId: makePlacementId(
-                  item.i,
-                  payload.breakpoint,
-                ) as InferIdFromAbbreviation<"plc">,
-                attributes: {
-                  gridItem: item,
-                } as Partial<InferDecodedRow<(typeof placement)["attributes"]>>,
-              }),
-            );
+            yield* operations.updatePlacement({
+              resourceId: makePlacementId(
+                item.i,
+                payload.breakpoint,
+              ) as InferIdFromAbbreviation<"plc">,
+              attributes: {
+                gridItem: item,
+              } as Partial<InferDecodedRow<(typeof placement)["attributes"]>>,
+            });
           }
-          return { operations, result: undefined };
+          return;
         }
 
         const resolved = makeCollisionResolvedLayout({
@@ -332,19 +324,16 @@ export function makeSetBrickVisibilityAtBreakpointContract(props: {
 
         for (const item of resolved) {
           if (item.i === payload.brickId) {
-            operations.push(
-              yield* makeUpdateOperation({
-                model: placement,
-                resourceId: makePlacementId(
-                  payload.brickId,
-                  payload.breakpoint,
-                ) as InferIdFromAbbreviation<"plc">,
-                attributes: {
-                  isVisible: true,
-                  gridItem: item,
-                } as Partial<InferDecodedRow<(typeof placement)["attributes"]>>,
-              }),
-            );
+            yield* operations.updatePlacement({
+              resourceId: makePlacementId(
+                payload.brickId,
+                payload.breakpoint,
+              ) as InferIdFromAbbreviation<"plc">,
+              attributes: {
+                isVisible: true,
+                gridItem: item,
+              } as Partial<InferDecodedRow<(typeof placement)["attributes"]>>,
+            });
             continue;
           }
 
@@ -363,21 +352,16 @@ export function makeSetBrickVisibilityAtBreakpointContract(props: {
             continue;
           }
 
-          operations.push(
-            yield* makeUpdateOperation({
-              model: placement,
-              resourceId: makePlacementId(
-                item.i,
-                payload.breakpoint,
-              ) as InferIdFromAbbreviation<"plc">,
-              attributes: {
-                gridItem: item,
-              } as Partial<InferDecodedRow<(typeof placement)["attributes"]>>,
-            }),
-          );
+          yield* operations.updatePlacement({
+            resourceId: makePlacementId(
+              item.i,
+              payload.breakpoint,
+            ) as InferIdFromAbbreviation<"plc">,
+            attributes: {
+              gridItem: item,
+            } as Partial<InferDecodedRow<(typeof placement)["attributes"]>>,
+          });
         }
-
-        return { operations, result: undefined };
       });
     },
   });

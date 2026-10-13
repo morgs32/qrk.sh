@@ -1,6 +1,6 @@
 # API
 
-The `api` Cloudflare Worker owns module RPCs, Clerk-authenticated uploads, and
+The `api` Cloudflare Worker owns module RPCs, image uploads, and
 asset serving. Its Nx project is `@qrk.sh/api`. The Library package retains
 module definitions, catalogs, views, aggregate behavior, and browser RPC
 declarations; API imports its catalog registry from
@@ -17,8 +17,8 @@ pnpm nx run @qrk.sh/api:dev
 Wrangler listens at `http://127.0.0.1:8787`, with its inspector on port 9231.
 Nx builds Library's reusable catalog output before starting API. Library's
 `dev` and `preview` targets also start this API target; Library Next runs on
-port 4100 and forwards `/rpc`, `/upload`, and `/assets/*` to API. The root
-development command starts the same API Worker. These commands do not deploy it.
+port 4100 and forwards `/rpc`, `/upload`, `/image/upload`, and `/assets/*` to API.
+The root development command starts the same API Worker. These commands do not deploy it.
 
 Put private provider credentials in `apps/api/.env.local`:
 
@@ -28,10 +28,14 @@ Put private provider credentials in `apps/api/.env.local`:
 - `STREAMLINE_API_KEY`
 - `OPENAI_API_KEY`
 
-Wrangler loads these as Worker bindings. Upload authentication additionally uses
+Wrangler loads these as Worker bindings. Studio upload authentication additionally uses
 `CLERK_SECRET_KEY` and `CLERK_AUTHORIZED_PARTY`. The authorized party must match
-the browser origin. `R2_PUBLIC_BASE_URL` defaults to `/assets` for local serving;
-production configuration can supply the public R2 origin. Public Mapbox settings
+the browser origin. For Studio through the web frontend at `http://localhost:3000`,
+set `CLERK_AUTHORIZED_PARTY=http://localhost:3000` in `apps/api/.env.local`;
+Wrangler's default `http://127.0.0.1:3001` supports direct Studio access when that
+origin is configured as the authorized party. `R2_PUBLIC_BASE_URL` defaults to
+`/assets` for local serving; production configuration can supply the public R2
+origin. Public Mapbox settings
 remain in Library's `.env.local`. Do not expose provider or Clerk secrets in
 browser configuration.
 
@@ -43,18 +47,24 @@ work to Cloudflare. No Instagram login is configured.
 
 ## Routes and ownership
 
-| Route               | Behavior                                                  |
-| ------------------- | --------------------------------------------------------- |
-| `/rpc`              | Existing `LibraryApi` methods and authentication behavior |
-| `POST /upload`      | Clerk bearer-token authentication; writes to `QRKSH`      |
-| `/assets/library/*` | Reads original Library image keys from `ASSETS`           |
-| Other `/assets/*`   | Reads API upload keys from `QRKSH`                        |
+| Route                | Behavior                                                  |
+| -------------------- | --------------------------------------------------------- |
+| `/rpc`               | Existing `LibraryApi` methods and authentication behavior |
+| `POST /upload`       | Studio: Clerk bearer-token authentication; writes to `QRKSH` |
+| `POST /image/upload` | Library: anonymous image uploads; writes to `QRKSH`       |
+| `/assets/library/*`  | Reads original Library image keys from `ASSETS`           |
+| Other `/assets/*`    | Reads API upload keys from `QRKSH`                        |
 
 `OPTIONS` retains API preflight handling. CORS allows the existing application
-origins plus Library's localhost and loopback origins on port 4100. Uploads
-retain the existing multipart contract, supported image types, 5 MiB limit,
-error responses, and returned asset URL. Library's former anonymous upload
-endpoint is removed; the Library Article upload controls remain disabled.
+origins, Studio's web frontend at `http://localhost:3000`, and Library's localhost
+and loopback origins on port 4100. Uploads
+retain the existing multipart `file` contract, PNG/JPEG/WebP/SVG support, 5 MiB limit,
+error responses, and returned asset URL. Studio keys are
+`<verified Clerk subject>/<siteId or _>/<uuid>.<ext>`; Library Image uploads
+omit `siteId` and use `image/_/<uuid>.<ext>`. Both routes return
+`{ key, url, contentType }` and use the same validation and asset serving.
+Completed objects remain stored when an editor cancels or replaces an image.
+The Library Article upload controls remain disabled.
 
 `LibraryApi` and generation live in API. `getGitHubProfile(url)` and
 `getGitHubRepo(url)` fetch upstream on every call. GitHub module programs own URL

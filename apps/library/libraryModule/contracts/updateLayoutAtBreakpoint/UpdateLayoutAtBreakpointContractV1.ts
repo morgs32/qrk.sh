@@ -1,7 +1,6 @@
 import { ContractError } from "@zerospin/error";
 import { findMany } from "@zerospin/core/contracts/findMany";
 import { findFirst } from "@zerospin/core/contracts/findFirst";
-import { makeUpdateOperation } from "@zerospin/core/contracts/make/makeUpdateOperation";
 import { makeAggregateContractVersion } from "@zerospin/core/contracts/make/makeAggregateContractVersion";
 import { primitives, type InferDecodedRow, type InferIdFromAbbreviation } from "@zerospin/shapes";
 import { Effect, Schema } from "effect";
@@ -38,7 +37,7 @@ export function makeUpdateLayoutAtBreakpointContract(props: {
   };
 
   return makeAggregateContractVersion(updateLayoutAtBreakpoint, {
-    operations: Schema.Array(placement.operations.update),
+    operations: { updatePlacement: placement.operations.update },
     failures: {
       updateLayoutWallNotFound: ContractError.schema({ code: "update-layout-wall-not-found" }),
       updateLayoutDuplicateItem: ContractError.schema({ code: "update-layout-duplicate-item" }),
@@ -145,9 +144,8 @@ export function makeUpdateLayoutAtBreakpointContract(props: {
       }
     }),
     program: (props) => {
-      const { payload, db } = props;
+      const { operations, payload, db } = props;
       return Effect.gen(function* () {
-        const operations: Array<typeof placement.operations.update.Type> = [];
         const compacted = makeCompactLayout(payload.layout);
         for (const item of compacted) {
           const stored = (yield* findFirst({
@@ -165,21 +163,16 @@ export function makeUpdateLayoutAtBreakpointContract(props: {
             continue;
           }
 
-          operations.push(
-            yield* makeUpdateOperation({
-              model: placement,
-              resourceId: makePlacementId(
-                item.i,
-                payload.breakpoint,
-              ) as InferIdFromAbbreviation<"plc">,
-              attributes: {
-                gridItem: structuredClone(item),
-              } as Partial<InferDecodedRow<(typeof placement)["attributes"]>>,
-            }),
-          );
+          yield* operations.updatePlacement({
+            resourceId: makePlacementId(
+              item.i,
+              payload.breakpoint,
+            ) as InferIdFromAbbreviation<"plc">,
+            attributes: {
+              gridItem: structuredClone(item),
+            } as Partial<InferDecodedRow<(typeof placement)["attributes"]>>,
+          });
         }
-
-        return { operations, result: undefined };
       });
     },
   });

@@ -1,10 +1,10 @@
 import { findFirst } from "@zerospin/core/contracts/findFirst";
-import { makeUpdateOperation } from "@zerospin/core/contracts/make/makeUpdateOperation";
+
 import { defineAggregateContract } from "@zerospin/core/contracts/defineAggregateContract";
 import { makeAggregateContractVersion } from "@zerospin/core/contracts/make/makeAggregateContractVersion";
 import { ZerospinError } from "@zerospin/error";
 import { primitives } from "@zerospin/shapes";
-import { Effect, Schema } from "effect";
+import { Effect } from "effect";
 
 import { makeBrickModel } from "../libraryModule/models/brick/makeBrickModel";
 import { makePlacementId } from "../libraryModule/models/placement/makePlacementId";
@@ -38,7 +38,7 @@ export function makeModuleSpecContractVersion<
   };
 
   return makeAggregateContractVersion(command, {
-    operations: Schema.Array(placement.operations.update),
+    operations: { updatePlacement: placement.operations.update },
     payload,
     models: {
       brick,
@@ -86,14 +86,12 @@ export function makeModuleSpecContractVersion<
       }
     }),
     program: (props) => {
-      const { payload: programPayload } = props;
+      const { operations, payload: programPayload } = props;
       return Effect.gen(function* () {
-        const operation = yield* makeUpdateOperation({
-          model: placement,
+        yield* operations.updatePlacement({
           resourceId: makePlacementId(programPayload.brickId, programPayload.breakpoint),
           attributes: { spec: structuredClone(programPayload.spec), measured: null },
         });
-        return { operations: [operation], result: undefined };
       });
     },
   });

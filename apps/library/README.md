@@ -150,6 +150,9 @@ UI uses an immediate inset border.
 its defining source. `build` emits their JavaScript and declaration files; `app/`
 contains the Library-only routes and layout, not exported application screens.
 
+Reusable builds keep `@tiptap/*` external so Article forms and their consumers
+share one Tiptap/ProseMirror runtime, including plugin keys.
+
 | Import under `@qrk.sh/library`    | Defining source                             | Purpose                                                   |
 | --------------------------------- | ------------------------------------------- | --------------------------------------------------------- |
 | package root                      | `lib/index.ts`                              | Small barrel: `modulesHash`, `IModule`, `IModuleBrickDef` |
@@ -462,9 +465,10 @@ above the placeholder.
 a Safari-like mobile address pill; lg/xl use desktop window dots and a centered
 address bar. Both display static `qrk.sh` and remain noninteractive and hidden
 from assistive technology. The 48px muted-gray header and thin inset frame leave
-the 360/720/1080/1440px frame widths unchanged. The frame clips horizontal
-hover and drag overflow while leaving vertical overflow visible; drag gestures
-can still continue beyond the frame.
+the 360/720/1080/1440px frame widths unchanged. The frame allows resize handles
+and dragged surfaces to overflow into surrounding gutters; each brick's content
+remains clipped by its own wrapper. Editor boundaries still clip overflow when
+a wall fills the available width; breakpoint fitting reserves no extra gutters.
 Library adds a decorative 64px navbar below the address bar, matching Studio's
 complete page navbar in the same position above `BrickWall` and showing a static
 `qrk.sh` label. Library's navbar is noninteractive and hidden from assistive
@@ -483,7 +487,7 @@ from its viewport minimum height, with 3.5rem and zero fallbacks respectively, s
 empty wall remains one viewport tall without extra scrolling.
 
 Library and Studio resolve browser SQLite WASM from the installed Zerospin
-`5.0.1` package exports. Next's webpack build emits the standalone session's
+`6.0.1` package exports. Next's webpack build emits the standalone session's
 synchronous asset and the connected SharedWorker's async asset. Persistent Node
 storage belongs to the SharedWorker's IndexedDB-backed SQLite namespace;
 no separate backup worker or public backup-worker assets remain.
@@ -519,6 +523,15 @@ default state. Save stages the complete state through `updateBrick`. Studio
 reuses this same Form in its authenticated brick detail drawer.
 Both drawers own one centered form column around fields and actions; Image's
 field groups fill that column, with Save/Cancel aligned to the fields' left edge.
+
+Image also offers a single-file dropzone and picker for nonempty PNG, JPEG,
+WebP, or SVG images up to 5 MiB. Selection uploads immediately; success changes
+only the draft Image URL until Save. Library uploads anonymously through
+`POST /image/upload`; Studio supplies its authenticated `/upload` operation.
+The host's SWR mutation supplies `isUploadingImage` to the form and blocks Save
+while uploading. Image owns validation, feedback, and cancellation. Cancel or
+leaving the brick aborts unfinished requests and ignores late results; completed
+R2 objects remain stored. File bytes are not included in the local backup.
 
 ## Article editing in the brick drawer
 
@@ -594,4 +607,4 @@ the normal grid handles. The module-owned shell fills the brick with a white
 background and clips overflowing content; the editor surface does not paint the
 background.
 
-Article uploads are temporarily disabled inside the Article module. All Tiptap extensions remain registered, Add image is disabled, and existing upload placeholders show “Uploads temporarily disabled” without a file picker or dropzone. Existing images still display and can be resized in the drawer. The application and shared module form contract carry only form state and changes; they no longer provide upload callbacks or track upload progress, cancellation, or Save gating. Upload endpoints remain available for unrelated features. The existing standalone backup lifecycle provides local durability after Save. Consumers of the built package load `@qrk.sh/library/article-editor.css` alongside `bricks.css` for editor and portaled-control styles.
+Article uploads are temporarily disabled inside the Article module. All Tiptap extensions remain registered, Add image is disabled, and existing upload placeholders show “Uploads temporarily disabled” without a file picker or dropzone. Existing images still display and can be resized in the drawer. The Article form and editor receive their state and change callbacks; Image's optional shared upload capability does not enable Article uploads. Upload endpoints remain available for Image and Site Settings. The existing standalone backup lifecycle provides local durability after Save. Consumers of the built package load `@qrk.sh/library/article-editor.css` alongside `bricks.css` for editor and portaled-control styles.

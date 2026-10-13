@@ -9,8 +9,15 @@ import { ImageForm } from "./ImageForm";
 
 export const imageView = makeModuleView(imageV1, {
   form(props) {
-    const { state, onChange } = props;
-    return <ImageForm state={state} onChange={onChange} />;
+    const { state, onChange, uploadImage, isUploadingImage } = props;
+    return (
+      <ImageForm
+        state={state}
+        onChange={onChange}
+        uploadImage={uploadImage}
+        isUploadingImage={isUploadingImage}
+      />
+    );
   },
   default: {
     placeholder() {

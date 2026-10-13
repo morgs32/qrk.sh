@@ -1,4 +1,5 @@
 import { env, SELF } from "cloudflare:test";
+import { Schema } from "effect";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@clerk/backend", () => ({
@@ -103,17 +104,142 @@ describe("POST /upload", () => {
     expect(Array.from(assetBytes)).toEqual(Array.from(bytes));
   });
 
-  it("answers CORS preflight", async () => {
-    const response = await SELF.fetch("https://api.invalid/upload", {
+  it.each(["http://127.0.0.1:3001", "http://localhost:3000"])(
+    "answers CORS preflight for %s",
+    async (origin) => {
+      const response = await SELF.fetch("https://api.invalid/upload", {
+        method: "OPTIONS",
+        headers: {
+          Origin: origin,
+          "Access-Control-Request-Method": "POST",
+        },
+      });
+
+      expect(response.status).toBe(204);
+      expect(response.headers.get("Access-Control-Allow-Origin")).toBe(origin);
+    },
+  );
+});
+
+describe("POST /image/upload", () => {
+  it("stores an anonymous image in QRKSH and serves its public URL", async () => {
+    const bytes = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
+    const formData = new FormData();
+    formData.set("file", new File([bytes], "photo.png", { type: "image/png" }));
+
+    const response = await SELF.fetch("https://api.invalid/image/upload", {
+      method: "POST",
+      headers: { Origin: "http://127.0.0.1:4100" },
+      body: formData,
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Access-Control-Allow-Origin")).toBe("http://127.0.0.1:4100");
+    const body = Schema.decodeUnknownSync(
+      Schema.Struct({ key: Schema.String, url: Schema.String, contentType: Schema.String }),
+    )(await response.json());
+    expect(body.contentType).toBe("image/png");
+    expect(body.key).toMatch(/^image\/_\/.+\.png$/);
+    expect(body.url).toBe(`https://api.invalid/assets/${body.key}`);
+
+    const stored = await env.QRKSH.get(body.key);
+    expect(stored).not.toBeNull();
+    if (stored === null) {
+      throw new Error("Uploaded image is missing from QRKSH");
+    }
+    expect(stored.httpMetadata?.contentType).toBe("image/png");
+    expect(new Uint8Array(await stored.arrayBuffer())).toEqual(bytes);
+    expect(await env.ASSETS.get(body.key)).toBeNull();
+
+    const assetResponse = await SELF.fetch(body.url, {
+      headers: { Origin: "http://127.0.0.1:4100" },
+    });
+    expect(assetResponse.status).toBe(200);
+    expect(assetResponse.headers.get("Content-Type")).toBe("image/png");
+    expect(new Uint8Array(await assetResponse.arrayBuffer())).toEqual(bytes);
+  });
+
+  it("rejects a non-multipart request", async () => {
+    const response = await SELF.fetch("https://api.invalid/image/upload", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ file: "photo.png" }),
+    });
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({ code: "invalid-content-type" });
+  });
+
+  it.each([
+    { name: "missing file", code: "missing-file", file: undefined },
+    { name: "string file field", code: "missing-file", file: "photo.png" },
+    {
+      name: "empty image",
+      code: "empty-file",
+      file: new File([], "photo.png", { type: "image/png" }),
+    },
+    {
+      name: "unsupported media type",
+      code: "unsupported-media-type",
+      file: new File(["GIF89a"], "photo.gif", { type: "image/gif" }),
+    },
+    {
+      name: "image over 5 MiB",
+      code: "file-too-large",
+      file: new File([new Uint8Array(5 * 1024 * 1024 + 1)], "photo.png", {
+        type: "image/png",
+      }),
+    },
+  ])("rejects $name", async (props) => {
+    const { code, file } = props;
+    const formData = new FormData();
+    if (file !== undefined) {
+      formData.set("file", file);
+    }
+    const response = await SELF.fetch("https://api.invalid/image/upload", {
+      method: "POST",
+      body: formData,
+    });
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({ code });
+  });
+
+  it("retains siteId validation", async () => {
+    const formData = new FormData();
+    formData.set("file", new File(["photo"], "photo.png", { type: "image/png" }));
+    formData.set("siteId", "invalid-site");
+    const response = await SELF.fetch("https://api.invalid/image/upload", {
+      method: "POST",
+      body: formData,
+    });
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({ code: "invalid-site-id" });
+  });
+
+  it("answers Library CORS preflight", async () => {
+    const response = await SELF.fetch("https://api.invalid/image/upload", {
       method: "OPTIONS",
       headers: {
-        Origin: "http://127.0.0.1:3001",
+        Origin: "http://127.0.0.1:4100",
         "Access-Control-Request-Method": "POST",
       },
     });
 
     expect(response.status).toBe(204);
-    expect(response.headers.get("Access-Control-Allow-Origin")).toBe("http://127.0.0.1:3001");
+    expect(response.headers.get("Access-Control-Allow-Origin")).toBe("http://127.0.0.1:4100");
+    expect(response.headers.get("Access-Control-Allow-Methods")).toContain("POST");
+  });
+});
+
+it.each(["/upload", "/image/upload"])("rejects GET %s", async (path) => {
+  const response = await SELF.fetch(`https://api.invalid${path}`);
+
+  expect(response.status).toBe(405);
+  expect(await response.json()).toEqual({
+    code: "method-not-allowed",
+    message: `Use POST ${path}`,
   });
 });
 

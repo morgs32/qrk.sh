@@ -3,7 +3,7 @@
 ## Zerospin packages
 
 Zerospin owns its source, builds, and releases in the sibling `../zerospin`
-checkout. QRK installs exact `5.0.1` packages from the local Verdaccio registry;
+checkout. QRK installs exact `6.0.1` packages from the local Verdaccio registry;
 there is no vendored Zerospin source or consumer-side Zerospin build.
 
 The credential-free project `.npmrc` routes all dependencies through
@@ -74,7 +74,7 @@ More detail and test patterns: [docs/styleguide/component-and-file-naming.md](do
    On the first registry bootstrap, install, build, verify, and publish the
    release in Zerospin before installing QRK. Follow Zerospin's package release
    instructions. Existing registry storage survives restarts. A fresh checkout
-   requires the running registry with the locked `5.0.1` packages; hosted
+   requires the running registry with the locked `6.0.1` packages; hosted
    distribution and deployment-machine bootstrap are not configured here.
 
 2. Start the homepage:
@@ -109,7 +109,7 @@ Vite remains only for Studio Storybook.
 
 Studio server-renders the document, fonts, and navigation before its browser
 session initializes. `UserApp.Initializer` owns a fresh facade for its Clerk binding;
-ready readers suspend until that facade publishes its initialized database. The dashboard shows `qrk.sh`; the site navbar reserves its
+ready readers suspend until that facade publishes its initialized database. The dashboard shows the homepage's Silkscreen `QRK.SH` wordmark; the site navbar reserves its
 custom wordmark with a skeleton. Browser-owned data and editor drafts stay under
 the content readiness gate. Persistent App Router layouts retain the editor
 across drawers; native React View Transitions animate drawer entry and snapshot

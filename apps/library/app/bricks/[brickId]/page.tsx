@@ -5,6 +5,7 @@ import { notFound, useParams } from "next/navigation";
 import { makeModelIdSchema } from "@zerospin/core/models/make/makeModelIdSchema";
 import { Result, Schema } from "effect";
 import { useLiveQuery } from "@zerospin/react";
+import useSWRMutation from "swr/mutation";
 
 import { libraryModule } from "../../../libraryModule/libraryModule";
 import { Button } from "../../../components/ui/button";
@@ -32,7 +33,38 @@ function BrickDetailContent(props: { brickId: `brk_${string}` }) {
   const { activeBreakpoint } = useWallViewport();
   const breakpoint = activeBreakpoint ?? "sm";
   const session = useLibrarySession();
-  const { updateBrick, measurementHost, isMutating } = useUpdateBrick({ brickId });
+  const { updateBrick, measurementHost, isMutating: isSaving } = useUpdateBrick({ brickId });
+  const {
+    trigger: uploadImage,
+    isMutating: isUploadingImage,
+    reset: resetImageUpload,
+  } = useSWRMutation(
+    ["imageUpload", brickId],
+    async (_key, options: { arg: { file: File; signal: AbortSignal } }) => {
+      const { file, signal } = options.arg;
+      signal.throwIfAborted();
+      const formData = new FormData();
+      formData.set("file", file);
+      const response = await fetch("/image/upload", {
+        method: "POST",
+        body: formData,
+        signal,
+      });
+      const body: unknown = await response.json();
+      if (!response.ok) {
+        const error = Schema.decodeUnknownSync(
+          Schema.Struct({ code: Schema.String, message: Schema.String }),
+        )(body);
+        throw new Error(error.message);
+      }
+      const result = Schema.decodeUnknownSync(
+        Schema.Struct({ key: Schema.String, url: Schema.String, contentType: Schema.String }),
+      )(body);
+      return result.url;
+    },
+    { revalidate: false },
+  );
+  const isBusy = isUploadingImage || isSaving;
   const [formDraft, setFormDraft] = useState<{ state: unknown } | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [acceptedState, setAcceptedState] = useState<{ state: unknown } | null>(null);
@@ -161,10 +193,10 @@ function BrickDetailContent(props: { brickId: `brk_${string}` }) {
       {measurementHost}
       <form
         className="mx-auto w-full max-w-3xl px-6"
-        aria-busy={isMutating}
+        aria-busy={isBusy}
         onSubmit={async (event) => {
           event.preventDefault();
-          if (!formDirty || isMutating) return;
+          if (!formDirty || isBusy) return;
           try {
             await updateBrick(formState);
             setAcceptedState({ state: formState });
@@ -175,10 +207,12 @@ function BrickDetailContent(props: { brickId: `brk_${string}` }) {
           }
         }}
       >
-        <div className="flex flex-col gap-6" inert={isMutating}>
+        <div className="flex flex-col gap-6" inert={isSaving}>
           <Form
             key={editorEpoch}
             state={formState}
+            uploadImage={uploadImage}
+            isUploadingImage={isUploadingImage}
             onChange={(state) => {
               setFormDraft({ state });
               setFormError(null);
@@ -190,14 +224,15 @@ function BrickDetailContent(props: { brickId: `brk_${string}` }) {
             </div>
           ) : null}
           <div className="flex flex-wrap gap-2">
-            <Button type="submit" disabled={!formDirty || isMutating}>
-              {isMutating ? "Saving…" : "Save"}
+            <Button type="submit" disabled={!formDirty || isBusy}>
+              {isSaving ? "Saving…" : "Save"}
             </Button>
             <Button
               type="button"
               variant="outline"
-              disabled={isMutating}
+              disabled={isSaving}
               onClick={() => {
+                resetImageUpload();
                 setFormDraft(null);
                 setFormError(null);
                 setEditorEpoch((epoch) => epoch + 1);

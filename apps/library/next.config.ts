@@ -28,6 +28,7 @@ const nextConfig: NextConfig = {
       beforeFiles: [
         { source: "/rpc", destination: `${workerOrigin}/rpc` },
         { source: "/upload", destination: `${workerOrigin}/upload` },
+        { source: "/image/upload", destination: `${workerOrigin}/image/upload` },
         { source: "/assets/:path*", destination: `${workerOrigin}/assets/:path*` },
       ],
       afterFiles: [],

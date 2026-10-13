@@ -11,7 +11,7 @@ test("server-rendered dashboard navbar survives without JavaScript", async ({
     await page.goto("/shell-check");
     const header = page.getByTestId("dashboard-navbar");
     await expect(header).toHaveCount(1);
-    await expect(header.getByRole("link", { name: "Home" })).toHaveText("qrk.sh");
+    await expect(header.getByRole("link", { name: "Home" })).toHaveText("QRK.SH");
     await expect(header.getByLabel("Loading account")).toBeVisible();
     expect(await header.evaluate((element) => element.getBoundingClientRect().height)).toBe(64);
     await expect(page.getByText(/Loading\s+workspace/)).toHaveCount(0);

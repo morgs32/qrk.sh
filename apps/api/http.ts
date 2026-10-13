@@ -1,4 +1,5 @@
 export const ALLOWED_ORIGINS: readonly string[] = [
+  "http://localhost:3000",
   "http://127.0.0.1:3001",
   "http://localhost:3001",
   "http://127.0.0.1:4100",

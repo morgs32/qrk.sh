@@ -1,6 +1,5 @@
 import { ContractError } from "@zerospin/error";
 import { findFirst } from "@zerospin/core/contracts/findFirst";
-import { makeUpdateOperation } from "@zerospin/core/contracts/make/makeUpdateOperation";
 import { makeAggregateContractVersion } from "@zerospin/core/contracts/make/makeAggregateContractVersion";
 import { mapParseError } from "@zerospin/error";
 import { makeEffectSchema, primitives, type IShape } from "@zerospin/shapes";
@@ -43,10 +42,11 @@ export function makeUpdateBrickContract<
     }),
   };
 
-  const operationSchema = Schema.Union([brick.operations.update, placement.operations.update]);
-
   return makeAggregateContractVersion(updateBrick, {
-    operations: Schema.Array(operationSchema),
+    operations: {
+      updateBrick: brick.operations.update,
+      updatePlacement: placement.operations.update,
+    },
     failures: {
       updateBrickBrickNotFound: ContractError.schema({ code: "update-brick-brick-not-found" }),
       updateBrickModuleMismatch: ContractError.schema({ code: "update-brick-module-mismatch" }),
@@ -119,10 +119,8 @@ export function makeUpdateBrickContract<
       }
     }),
     program: (props) => {
-      const { payload } = props;
+      const { operations, payload } = props;
       return Effect.gen(function* () {
-        const operations: Array<typeof operationSchema.Type> = [];
-
         const brickModule = library[payload.moduleId];
         const StateSchema = Schema.toType(makeEffectSchema(brickModule.stateShape));
         const decodedState = yield* Schema.decodeUnknownEffect(
@@ -133,31 +131,23 @@ export function makeUpdateBrickContract<
             prefix: `updateBrick state failed ${payload.moduleId} decode`,
           }),
         );
-        operations.push(
-          yield* makeUpdateOperation({
-            model: brick,
-            resourceId: payload.brickId,
-            attributes: {
-              state: structuredClone(decodedState),
-            },
-          }),
-        );
+        yield* operations.updateBrick({
+          resourceId: payload.brickId,
+          attributes: {
+            state: structuredClone(decodedState),
+          },
+        });
         for (const breakpoint of breakpoints) {
-          operations.push(
-            yield* makeUpdateOperation({
-              model: placement,
-              resourceId: makePlacementId(payload.brickId, breakpoint),
-              attributes: {
-                measured:
-                  payload.measurements === null
-                    ? null
-                    : structuredClone(payload.measurements[breakpoint]),
-              },
-            }),
-          );
+          yield* operations.updatePlacement({
+            resourceId: makePlacementId(payload.brickId, breakpoint),
+            attributes: {
+              measured:
+                payload.measurements === null
+                  ? null
+                  : structuredClone(payload.measurements[breakpoint]),
+            },
+          });
         }
-
-        return { operations, result: undefined };
       });
     },
   });

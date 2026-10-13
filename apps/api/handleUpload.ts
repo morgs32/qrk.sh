@@ -16,7 +16,7 @@ const SITE_ID_PATTERN = /^sit_[A-Za-z0-9_-]+$/;
 export async function handleUpload(
   request: Request,
   env: Env,
-  clerkUserId: string,
+  ownerPrefix: string,
 ): Promise<{
   key: string;
   url: string;
@@ -61,7 +61,7 @@ export async function handleUpload(
   }
 
   const objectId = crypto.randomUUID();
-  const key = `${clerkUserId}/${siteIdSegment}/${objectId}.${ext}`;
+  const key = `${ownerPrefix}/${siteIdSegment}/${objectId}.${ext}`;
   const bytes = await fileEntry.arrayBuffer();
 
   await env.QRKSH.put(key, bytes, {

@@ -28,6 +28,7 @@ export const userProvisionerV1 = makeAggregateActorVersion(
     version: "1.0.0",
     identity,
     db,
+    models: { user: userV1 },
     authentication: {
       credentialsSchema: signature,
       authenticate: Effect.fn("userProvisioner.authenticate")(function* (props) {

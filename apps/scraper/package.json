@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@cloudflare/puppeteer": "^1.1.0",
-    "@zerospin/core": "6.0.1",
+    "@zerospin/core": "7.0.0",
     "capnweb": "^0.12.0",
     "drizzle-orm": "1.0.0-rc.4",
     "effect": "4.0.2"

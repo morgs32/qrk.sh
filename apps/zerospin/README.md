@@ -18,7 +18,7 @@ pnpm nx run @qrk.sh/zerospin:ts
 pnpm nx run @qrk.sh/zerospin:test:workerd
 ```
 
-QRK installs the CLI and runtime packages at `6.0.1` from the populated local
+QRK installs the CLI and runtime packages at `7.0.0` from the populated local
 registry described in the [root README](../../README.md#zerospin-packages). Nx
 builds QRK's reusable Library before backend checks and development; it does not
 rebuild installed Zerospin files.
@@ -50,7 +50,9 @@ accepts as successful provisioning.
 Other admission or execution failures prevent session initialization.
 
 The web actor selects User → Site → Page → Wall → Brick → Placement rows by Clerk
-identity. Wall, Brick, Placement, and their editing contracts are supplied by
+identity and explicitly exposes those six model schemas. The provisioner exposes
+only User. Each actor declares its exposed models separately from its canonical
+query database and row selections. Wall, Brick, Placement, and their editing contracts are supplied by
 `@qrk.sh/library/libraryModule`. QRK owns the Page's `wallId` reference; `createPage`
 creates that deterministic wall and the Page in one command. Legacy Grid/Brick
 snapshot contracts have been removed. There is no migration or lazy wall provisioning.
@@ -62,3 +64,9 @@ and contracts under `aggregates/user/contracts/<command>/`.
 The private provisioner owner guard owns identity and duplicate-user decisions in
 one admission transaction. Its declared aggregate failures retain their domain
 codes. Browser editing guards declare contract failures; programs record deferred operations through their named descriptor map and return only their domain result. Checked evaluation produces the ordered batch and result together; reads remain on pre-application state. The web actor does not expose `createUser`.
+
+Browser command occurrences carry nullable private failures. Confirmed occurrences
+settle optimism even when their selected resource delta is empty. Canonical
+provisioning command results retain server finalization. Node storage schema 14
+and native session schema 3 require empty affected storage when upgrading to 7.0.0;
+the package update does not reset or translate existing storage.

@@ -33,6 +33,7 @@ export const userActorV1 = makeAggregateActorVersion(defineAggregateActor({ name
   version: "1.0.0",
   identity,
   db,
+  models: { ...libraryModule.models, page: Page, site: Site, user: User },
   authentication: {
     credentialsSchema: signature,
     authenticate: (props) => {

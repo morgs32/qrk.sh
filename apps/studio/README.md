@@ -21,7 +21,7 @@ Web listens on port 3000 and proxies Studio routes to `APP_ORIGIN` (default `htt
 Studio's Next chunks, fonts, worker, and WASM use `/studio-static/_next/`. Web excludes that namespace from authentication and proxies it to Studio. Referenced `/assets/` public files have explicit mappings in Studio's Next configuration; missing files return 404. There is no Vite module or HMR routing.
 
 Studio resolves the SharedWorker and browser SQLite WASM from installed
-`6.0.1` package exports. The worker owns its IndexedDB-backed SQLite namespace;
+`7.0.0` package exports. The worker owns its IndexedDB-backed SQLite namespace;
 no separate backup-worker asset is served. Its Nx builds and checks build QRK's reusable
 Library first; they never build or change installed Zerospin artifacts. Fresh
 checkout installation requires the populated local registry described in the

@@ -3,7 +3,7 @@
 ## Zerospin packages
 
 Zerospin owns its source, builds, and releases in the sibling `../zerospin`
-checkout. QRK installs exact `6.0.1` packages from the local Verdaccio registry;
+checkout. QRK installs exact `7.0.0` packages from the local Verdaccio registry;
 there is no vendored Zerospin source or consumer-side Zerospin build.
 
 The credential-free project `.npmrc` routes all dependencies through
@@ -74,7 +74,7 @@ More detail and test patterns: [docs/styleguide/component-and-file-naming.md](do
    On the first registry bootstrap, install, build, verify, and publish the
    release in Zerospin before installing QRK. Follow Zerospin's package release
    instructions. Existing registry storage survives restarts. A fresh checkout
-   requires the running registry with the locked `6.0.1` packages; hosted
+   requires the running registry with the locked `7.0.0` packages; hosted
    distribution and deployment-machine bootstrap are not configured here.
 
 2. Start the homepage:

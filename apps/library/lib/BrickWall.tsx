@@ -42,6 +42,7 @@ export function BrickWall(props: {
   breakpoint: "sm" | "md" | "lg" | "xl";
   gridWidth: number;
   isActive?: boolean;
+  selectedBrickId?: string;
   gridGestureActive?: boolean;
   showArticleEditAction?: boolean;
   onGestureChange?: (active: boolean) => void;
@@ -55,6 +56,7 @@ export function BrickWall(props: {
     breakpoint,
     gridWidth,
     isActive = true,
+    selectedBrickId,
     gridGestureActive = false,
     showArticleEditAction = true,
     onGestureChange,
@@ -343,6 +345,8 @@ export function BrickWall(props: {
                     ? { message: String(failure.message) }
                     : { message: "addBrick failed" },
                 );
+              } else {
+                onBrickActivate?.({ moduleId, brickId });
               }
             } finally {
               if (brickDragStore.getState().brickDef === brickDef) {
@@ -482,6 +486,7 @@ export function BrickWall(props: {
                   className="brick-drag-surface brick-hover-target size-full"
                   data-brick={catalog.def.moduleId}
                   data-brick-id={layoutItem.i}
+                  data-selected={isActive && selectedBrickId === layoutItem.i}
                   data-grid-x={layoutItem.x}
                   data-grid-y={layoutItem.y}
                   data-grid-w={layoutItem.w}

@@ -3,14 +3,26 @@ import { registry } from "./generator/ImageJsonRenderRegistry";
 import { defaultSpec } from "./generator/defaultSpec";
 import { imageV1 } from "./imageV1";
 import { MediaFooter } from "../../components/brick/MediaFooter";
-import { Skeleton } from "../../components/ui/skeleton";
 import { imageCardView } from "./ImageCard";
 import { imageCoverView } from "./ImageCover";
+import { ImageForm } from "./ImageForm";
 
 export const imageView = makeModuleView(imageV1, {
+  form(props) {
+    const { state, onChange } = props;
+    return <ImageForm state={state} onChange={onChange} />;
+  },
   default: {
     placeholder() {
-      return <Skeleton className="size-full" />;
+      return (
+        <imageCardView.Component>
+          <imageCoverView.Component
+            imagePosition="center"
+            imageUrl={imageV1.defaultState.imageUrl}
+            title={imageV1.defaultState.title}
+          />
+        </imageCardView.Component>
+      );
     },
     component(props) {
       const { state } = props;

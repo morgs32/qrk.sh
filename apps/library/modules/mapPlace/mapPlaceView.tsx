@@ -19,7 +19,7 @@ export const mapPlaceView = makeModuleView(mapPlaceV1, {
     },
     generator: { registry, defaultSpec },
   },
-  sm: { w: 8, h: 2 },
+  sm: { w: 8, h: 4 },
   md: { w: 4, h: 4 },
   lg: { w: 4, h: 4 },
   xl: { w: 4, h: 4 },

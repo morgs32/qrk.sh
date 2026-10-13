@@ -1,12 +1,10 @@
 import { ContractError } from "@zerospin/error";
 import { findMany } from "@zerospin/core/contracts/findMany";
 import { findFirst } from "@zerospin/core/contracts/findFirst";
-import type { IOperation } from "@zerospin/core/contracts/types";
 import { makeUpdateOperation } from "@zerospin/core/contracts/make/makeUpdateOperation";
 import { makeAggregateContractVersion } from "@zerospin/core/contracts/make/makeAggregateContractVersion";
-import { ZerospinError } from "@zerospin/error";
 import { primitives, type InferDecodedRow, type InferIdFromAbbreviation } from "@zerospin/shapes";
-import { Channel, Effect, Schema } from "effect";
+import { Effect, Schema } from "effect";
 
 import { makePlacementId } from "../../models/placement/makePlacementId";
 import { makeCompactLayout, findVisibleLayoutError } from "../../resolveVisibleCollisions";
@@ -40,6 +38,7 @@ export function makeUpdateLayoutAtBreakpointContract(props: {
   };
 
   return makeAggregateContractVersion(updateLayoutAtBreakpoint, {
+    operations: Schema.Array(placement.operations.update),
     failures: {
       updateLayoutWallNotFound: ContractError.schema({ code: "update-layout-wall-not-found" }),
       updateLayoutDuplicateItem: ContractError.schema({ code: "update-layout-duplicate-item" }),
@@ -147,44 +146,41 @@ export function makeUpdateLayoutAtBreakpointContract(props: {
     }),
     program: (props) => {
       const { payload, db } = props;
-      return Channel.unwrap(
-        Effect.gen(function* () {
-          const operations: Channel.Channel<IOperation<typeof placement>, ZerospinError, void>[] =
-            [];
-          const compacted = makeCompactLayout(payload.layout);
-          for (const item of compacted) {
-            const stored = (yield* findFirst({
-              db: db,
-              model: placement,
-              where: { id: { eq: makePlacementId(item.i, payload.breakpoint) } },
-            }))?.gridItem;
-            if (
-              stored?.i === item.i &&
-              stored.x === item.x &&
-              stored.y === item.y &&
-              stored.w === item.w &&
-              stored.h === item.h
-            ) {
-              continue;
-            }
-
-            operations.push(
-              makeUpdateOperation({
-                model: placement,
-                resourceId: makePlacementId(
-                  item.i,
-                  payload.breakpoint,
-                ) as InferIdFromAbbreviation<"plc">,
-                attributes: {
-                  gridItem: structuredClone(item),
-                } as Partial<InferDecodedRow<(typeof placement)["attributes"]>>,
-              }),
-            );
+      return Effect.gen(function* () {
+        const operations: Array<typeof placement.operations.update.Type> = [];
+        const compacted = makeCompactLayout(payload.layout);
+        for (const item of compacted) {
+          const stored = (yield* findFirst({
+            db: db,
+            model: placement,
+            where: { id: { eq: makePlacementId(item.i, payload.breakpoint) } },
+          }))?.gridItem;
+          if (
+            stored?.i === item.i &&
+            stored.x === item.x &&
+            stored.y === item.y &&
+            stored.w === item.w &&
+            stored.h === item.h
+          ) {
+            continue;
           }
 
-          return Channel.fromIterable(operations).pipe(Channel.flatMap((operation) => operation));
-        }),
-      );
+          operations.push(
+            yield* makeUpdateOperation({
+              model: placement,
+              resourceId: makePlacementId(
+                item.i,
+                payload.breakpoint,
+              ) as InferIdFromAbbreviation<"plc">,
+              attributes: {
+                gridItem: structuredClone(item),
+              } as Partial<InferDecodedRow<(typeof placement)["attributes"]>>,
+            }),
+          );
+        }
+
+        return { operations, result: undefined };
+      });
     },
   });
 }

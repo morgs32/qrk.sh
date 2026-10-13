@@ -151,7 +151,7 @@ function BrickDetailContent(props: { brickId: `brk_${string}` }) {
   }
 
   const committedState = acceptedState?.state ?? brickRow.state;
-  const formState = formDraft?.state ?? committedState;
+  const formState = formDraft?.state ?? committedState ?? brickModule.defaultState;
   const formDirty = JSON.stringify(formState) !== JSON.stringify(committedState);
   const Form = brickModule.Form;
   if (Form === undefined) return null;
@@ -160,6 +160,7 @@ function BrickDetailContent(props: { brickId: `brk_${string}` }) {
     <>
       {measurementHost}
       <form
+        className="mx-auto w-full max-w-3xl px-6"
         aria-busy={isMutating}
         onSubmit={async (event) => {
           event.preventDefault();
@@ -174,7 +175,7 @@ function BrickDetailContent(props: { brickId: `brk_${string}` }) {
           }
         }}
       >
-        <div className="flex flex-col gap-3" inert={isMutating}>
+        <div className="flex flex-col gap-6" inert={isMutating}>
           <Form
             key={editorEpoch}
             state={formState}
@@ -188,9 +189,9 @@ function BrickDetailContent(props: { brickId: `brk_${string}` }) {
               {formError}
             </div>
           ) : null}
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button type="submit" disabled={!formDirty || isMutating}>
-              {isMutating ? "Saving…" : "Save article"}
+              {isMutating ? "Saving…" : "Save"}
             </Button>
             <Button
               type="button"

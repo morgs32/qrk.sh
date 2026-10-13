@@ -25,7 +25,7 @@ import type { MonotonicFactory } from "@zerospin/core/services/MonotonicFactory"
 import { TelemetryCollector } from "@zerospin/logger";
 import { NanoIdFactory } from "@zerospin/core/utils/NanoIdFactory";
 import { UlidMonotonicFactory } from "@zerospin/core/utils/UlidMonotonicFactory";
-import { Channel, DateTime, Effect, Layer, ManagedRuntime, Result } from "effect";
+import { DateTime, Effect, Layer, ManagedRuntime, Result } from "effect";
 import { describe, expect } from "vitest";
 
 import { createPageV1 as createPage } from "./aggregates/user/contracts/createPage/CreatePageV1";
@@ -381,14 +381,13 @@ describe("site and page creation contracts", () => {
     }).pipe(Effect.scoped),
   );
 
-  it.effect("rejects site program execution without an authenticated user", () =>
+  it.effect("rejects site evaluation without an authenticated user", () =>
     Effect.gen(function* () {
       const dbConfig = makeResourceDbConfig({ models: userSessionDefinition.models });
       const db = yield* makeProvisionedInMemorySqljsDb({ dbConfig });
       const error = yield* createSite
-        .program({
+        .evaluate({
           db: makeContractReadDb({ db, models: createSite.models }),
-          failures: createSite.failures,
           aggregateId: "acct_site_program",
           claims: null,
           payload: {
@@ -399,7 +398,7 @@ describe("site and page creation contracts", () => {
             description: null,
           },
         })
-        .pipe(Channel.runCollect, Effect.flip);
+        .pipe(Effect.flip);
 
       expect(error).toMatchObject({
         code: "create-site-user-mismatch",
@@ -461,14 +460,8 @@ describe("user frontend creation guards", () => {
         })
         .run();
 
-      const guard = createSite.guard;
-      if (guard === undefined) {
-        throw new Error("Expected userSessionDefinition createSite guard");
-      }
-
-      yield* guard({
+      yield* createSite.evaluate({
         aggregateId: "acct_guard_user",
-        failures: createSite.failures,
         claims: { clerkUserId: "site_guard_user" },
         db: makeContractReadDb({ db, models: createSite.models }),
         payload: {
@@ -481,19 +474,20 @@ describe("user frontend creation guards", () => {
       });
 
       for (const authenticatedIdentityKey of ["different_site_user", null]) {
-        const error = yield* guard({
-          aggregateId: "acct_guard_user",
-          failures: createSite.failures,
-          claims: { clerkUserId: authenticatedIdentityKey },
-          db: makeContractReadDb({ db, models: createSite.models }),
-          payload: {
-            id: "sit_site_guard_user",
-            userId,
-            slug: null,
-            name: null,
-            description: null,
-          },
-        }).pipe(Effect.flip);
+        const error = yield* createSite
+          .evaluate({
+            aggregateId: "acct_guard_user",
+            claims: { clerkUserId: authenticatedIdentityKey },
+            db: makeContractReadDb({ db, models: createSite.models }),
+            payload: {
+              id: "sit_site_guard_user",
+              userId,
+              slug: null,
+              name: null,
+              description: null,
+            },
+          })
+          .pipe(Effect.flip);
 
         expect(error).toMatchObject({
           code: "create-site-user-mismatch",
@@ -543,14 +537,8 @@ describe("user frontend creation guards", () => {
         })
         .run();
 
-      const guard = createPage.guard;
-      if (guard === undefined) {
-        throw new Error("Expected userSessionDefinition createPage guard");
-      }
-
-      yield* guard({
+      yield* createPage.evaluate({
         aggregateId: "acct_guard_user",
-        failures: createPage.failures,
         claims: { clerkUserId: "page_guard_user" },
         db: makeContractReadDb({ db, models: createPage.models }),
         payload: {
@@ -563,19 +551,20 @@ describe("user frontend creation guards", () => {
       });
 
       for (const authenticatedIdentityKey of ["different_page_user", null]) {
-        const error = yield* guard({
-          aggregateId: "acct_guard_user",
-          failures: createPage.failures,
-          claims: { clerkUserId: authenticatedIdentityKey },
-          db: makeContractReadDb({ db, models: createPage.models }),
-          payload: {
-            id: "pag_page_guard_user",
-            siteId,
-            slug: "home",
-            title: null,
-            description: null,
-          },
-        }).pipe(Effect.flip);
+        const error = yield* createPage
+          .evaluate({
+            aggregateId: "acct_guard_user",
+            claims: { clerkUserId: authenticatedIdentityKey },
+            db: makeContractReadDb({ db, models: createPage.models }),
+            payload: {
+              id: "pag_page_guard_user",
+              siteId,
+              slug: "home",
+              title: null,
+              description: null,
+            },
+          })
+          .pipe(Effect.flip);
 
         expect(error).toMatchObject({
           code: "create-page-user-mismatch",

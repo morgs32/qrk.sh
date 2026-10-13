@@ -200,9 +200,13 @@ screens remain app-owned.
 Wall bricks and fixed-size catalog/detail previews show a 2px dark inset border
 immediately on pointer hover or keyboard focus. Their cells, surfaces, and resize
 handles stay stationary, with no hover lift, outward shadow, or transition.
-Wall hover pauses during grid dragging or resizing. Reduced motion uses the
-same immediate border.
+Wall hover pauses during grid dragging or resizing, and other bricks' resize
+handles stay hidden until the gesture ends. The active brick keeps its controls.
+Reduced motion uses the same immediate border.
 Intrinsic measurement hosts retain their existing sizing behavior.
+
+A successful catalog drop calls `BrickWall.onBrickActivate` for the new brick,
+opening the consuming app's detail drawer. Failed drops do not activate a brick.
 
 GitHub Activity constrains its calendar to the brick shell's available width.
 Only the contribution grid and month labels scroll horizontally; Mon/Wed/Fri
@@ -234,9 +238,17 @@ all breakpoints and receives no props.
 // In imageV1: the backend accepts null as an unconfigured Image brick.
 hasPlaceholder: true,
 
-// In imageView.default: render a shadcn Skeleton until state is supplied.
+// In imageView.default: display the sample image until state is supplied.
 placeholder() {
-  return <Skeleton className="size-full" />;
+  return (
+    <imageCardView.Component>
+      <imageCoverView.Component
+        imagePosition="center"
+        imageUrl={imageV1.defaultState.imageUrl}
+        title={imageV1.defaultState.title}
+      />
+    </imageCardView.Component>
+  );
 },
 ```
 
@@ -316,6 +328,10 @@ their corresponding minimum. Invalid configuration throws during view constructi
 All Library and Studio previews apply the same sizing rules. The wall derives
 resize constraints from the active module view. Placement grid geometry remains
 separate from its saved pixel measurements.
+Link's default width is six columns on sm/md and four on lg/xl. Its heights
+remain four rows on sm/md, two on lg, and one on xl.
+Map Place defaults to four rows at every breakpoint. Article defaults to 8×8
+on sm, 6×6 on md, and 4×4 on lg/xl.
 Existing saved sizes remain unchanged until the user resizes; configuring minimums
 does not automatically enlarge or migrate saved bricks.
 
@@ -433,6 +449,9 @@ the gesture ends; a fitting wall returns immediately when space recovers.
 Library and Studio use a white wall canvas at all four breakpoints. `BrickWall`
 has no horizontal grid padding, so bricks meet both wall edges. Row heights use
 the full grid width divided by eight to keep cells square.
+Its optional `selectedBrickId` keeps the matching brick's outline and resize handles
+visible in the active wall. Studio supplies the brick-detail route ID; hover,
+focus, and drag/resize suppression retain their existing behavior.
 Shared `bricks.css` styles the grid placeholder during brick dragging, catalog drops,
 and resizing with a light-gray background, square corners, and a subtle
 inset shadow. Placeholder dimensions, positioning, and transitions retain the
@@ -464,7 +483,7 @@ from its viewport minimum height, with 3.5rem and zero fallbacks respectively, s
 empty wall remains one viewport tall without extra scrolling.
 
 Library and Studio resolve browser SQLite WASM from the installed Zerospin
-`4.0.3` package exports. Next's webpack build emits the standalone session's
+`5.0.1` package exports. Next's webpack build emits the standalone session's
 synchronous asset and the connected SharedWorker's async asset. Persistent Node
 storage belongs to the SharedWorker's IndexedDB-backed SQLite namespace;
 no separate backup worker or public backup-worker assets remain.
@@ -481,7 +500,8 @@ Zustand `bricksById`.
 Placed bricks drag from their entire surface and resize using white pill anchors
 with a thin black border at the four edge midpoints, aligned parallel to each edge.
 The anchors follow the floating
-surface on hover, remain visible during resizing, and stay visible on touch devices.
+surface on hover, remain visible during resizing, and stay visible on touch devices
+except on other bricks while a drag or resize is active.
 The stationary square outline appears only during resizing; hover uses the lifted
 surface's border. Every edge keeps its anchor, including at the grid boundaries.
 Resizing clamps to the grid's left, right, and top boundaries and the module's
@@ -490,10 +510,21 @@ to the active wall and retain grid snapping, module minimum sizes, vertical
 compaction, and the existing layout persistence. Module and configuration previews
 also drag from their entire surface.
 
+## Image editing in the brick drawer
+
+Image exposes its module-owned `ImageForm` through the shared module registry.
+The form edits the existing Image URL and Title fields; the drawer owns local
+drafts, Save, and Cancel. Unconfigured bricks initialize from the module's
+default state. Save stages the complete state through `updateBrick`. Studio
+reuses this same Form in its authenticated brick detail drawer.
+Both drawers own one centered form column around fields and actions; Image's
+field groups fill that column, with Save/Cancel aligned to the fields' left edge.
+
 ## Article editing in the brick drawer
 
 The rich text module uses **Article** and the `article` module ID.
-Its default width is 8 grid columns on sm/md and 4 on lg/xl.
+Its default size is 8 columns by 8 rows on sm, 6 columns by 6 rows on md, and
+4 columns by 4 rows on lg/xl.
 Article titles and subtitles use the platform system sans-serif font (San
 Francisco on macOS). Body text uses Spectral at 19px with 1.6 line spacing in
 brick previews and the drawer editor, loaded through the module's stylesheet.

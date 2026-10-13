@@ -21,7 +21,7 @@ Web listens on port 3000 and proxies Studio routes to `APP_ORIGIN` (default `htt
 Studio's Next chunks, fonts, worker, and WASM use `/studio-static/_next/`. Web excludes that namespace from authentication and proxies it to Studio. Referenced `/assets/` public files have explicit mappings in Studio's Next configuration; missing files return 404. There is no Vite module or HMR routing.
 
 Studio resolves the SharedWorker and browser SQLite WASM from installed
-`4.0.3` package exports. The worker owns its IndexedDB-backed SQLite namespace;
+`5.0.1` package exports. The worker owns its IndexedDB-backed SQLite namespace;
 no separate backup-worker asset is served. Its Nx builds and checks build QRK's reusable
 Library first; they never build or change installed Zerospin artifacts. Fresh
 checkout installation requires the populated local registry described in the
@@ -47,17 +47,19 @@ Clerk uses its Next.js integration; nuqs uses its Next App Router adapter. Sign-
 
 ## Server shell and browser state
 
-`app/layout.tsx` owns the document, global/reset styles, metadata, and preloaded local Silkscreen and Space Mono fonts. `App` holds the client providers. The username layout keeps one session initializer mounted across Studio navigation; `UserLayout` gates only data-dependent content.
+`app/layout.tsx` owns the document, global/reset styles, metadata, and Library's shared article stylesheet. Studio's global CSS loads Fragment Mono through Library's Google Fonts import and uses it for UI text, controls, and the dashboard wordmark. The article stylesheet owns the system font for article titles and subtitles and Spectral for body text and headings. Studio adds no heading font override. Storybook imports the same global and article styles. `App` holds the client providers. The username layout keeps one session initializer mounted across Studio navigation; `UserLayout` gates only data-dependent content.
 
 The root layout mounts the shared `ZerospinDevtoolsLoader` in development with the panel initially closed. Its lifetime spans route navigation and authentication changes; the loader owns cleanup when the application unmounts.
 
-The dashboard layout renders the `qrk.sh` header in the initial HTML and reserves a 40 px account slot with a shadcn skeleton. The site editor, including its 64 px navbar, appears only once the browser session is ready; the initial HTML has no site navbar or site-name skeleton. Each breakpoint pane owns the complete navbar inside its browser frame, beneath the address bar and above `BrickWall`. `Grid` makes the existing navbar wrapper a query container. `SiteHeader` uses Library's shared `qrk-responsive-insets` class and `--qrk-inset-inline`: 16px gutters become 30px when both the document viewport and wrapper reach 720px, preserving its 64px height and chrome offset. The existing `Wordmark` subscribes to site data and preserves settings draft previews. Site data, drafts, SQLite, and editing remain browser-owned.
+The dashboard layout renders the fixed 64 px `qrk.sh` header in the initial HTML and reserves a 40 px account slot with a shadcn skeleton. The header is a query container; its inner flex element uses Library's shared `qrk-responsive-insets` class and `--qrk-inset-inline`: 16px gutters become 30px when both the document viewport and header reach 720px. The site editor, including its 64 px navbar, appears only once the browser session is ready; the initial HTML has no site navbar or site-name skeleton. Each breakpoint pane owns the complete navbar inside its browser frame, beneath the address bar and above `BrickWall`. `Grid` makes the existing navbar wrapper a query container. `SiteHeader` uses the same shared responsive gutters when both the document viewport and wrapper reach 720px, preserving its 64px height and chrome offset. The existing `Wordmark` subscribes to site data and preserves settings draft previews. Site data, drafts, SQLite, and editing remain browser-owned.
 
 ## Routes and transitions
 
 Filesystem routes preserve dashboards, base editors, module catalogs, module details, brick details, breakpoints, page settings, and site settings. Unknown paths render Next's not-found screen. The local error boundary preserves client diagnostics and reload behavior.
 
-The page layout keeps site/page drafts, `MainColumns`, the grid, and the library session mounted. `EditorLayout` also owns the persistent bottom drawer shell. Next's `useSelectedLayoutSegments()` supplies its `open` state through membership in the pathless `(drawer)` group. Its `(bricks)` child layout owns brick breadcrumbs and the close link; settings retain their own Save/Cancel headers. `Toolbars` reads selected layout segments to choose the route's controls.
+The brick-detail route keeps its brick selected in the active wall, with the existing outline and resize handles visible while focus or the pointer moves into the drawer. A successful catalog drop activates the new brick and opens its detail drawer for editing. Selection follows the route across refresh and breakpoint changes, and clears when leaving brick detail.
+
+The page layout keeps site/page drafts, `MainColumns`, the grid, and the library session mounted. `EditorLayout` also owns the persistent bottom drawer shell. Next's `useSelectedLayoutSegments()` supplies its `open` state through membership in the pathless `(drawer)` group. Its `(bricks)` child layout owns catalog breadcrumbs, the brick-detail heading **Update your {collectionName} brick**, a left-side underlined **← New brick** link returning to the catalog with a **/** separator before the heading, and the close link; settings retain their own Save/Cancel headers. `Toolbars` reads selected layout segments to choose the route's controls.
 
 The drawer overlays the bottom `50dvh` on desktop and mobile. The editor stays full-height; a trailing element adds the same amount of real padding without changing the wall's minimum height. On opening, closing, and reserved-height changes, scrollable editors within 1px of the bottom follow the new bottom; other offsets are preserved and clamped. Initial deep links do not force a bottom scroll. Padding and scroll corrections are immediate, and later content growth does not trigger bottom following.
 
@@ -115,9 +117,13 @@ The separate React Router/Motion example remains an independent example, not an 
 
 ## Inline Article editing
 
-Studio currently routes brick activation to the read-only detail drawer and suppresses the shared **Edit article** action. Article state has separate required title and subtitle strings and a Tiptap body; generated ArticleBrick specs bind all three fields. This hard schema change does not migrate existing content-only articles. The shared Library drawer editor uses a flat toolbar and centered writing column, supports block reordering, and saves local drafts explicitly, but Studio does not currently expose its editing entry point or a brick visibility control. Catalog and detail previews are read-only.
+Studio routes brick activation to the detail drawer and renders the selected Library module's `Form` when available. Image provides Image URL and Title fields; Article provides its shared editor with a flat toolbar, centered writing column, and block reordering. Unconfigured bricks initialize their form from the module's default state. Modules without a Form retain their read-only detail preview. Studio still suppresses the shared **Edit article** wall action and has no brick visibility control. Article state has separate required title and subtitle strings and a Tiptap body; generated ArticleBrick specs bind all three fields. This hard schema change does not migrate existing content-only articles. Catalog previews remain read-only.
 
-Library drawer edits remain local until Save stages `updateBrick`; failed saves retain the draft and show an error. Studio currently exposes Article previews only. Studio wall, brick, and placement commands use the authenticated `UserApp` initialized session and its live push and synchronization lifecycle. Page and Site Settings continue to save through their existing commands.
+Form edits remain local until Save stages `updateBrick` through Studio's authenticated `UserApp` initialized session and its live push and synchronization lifecycle. Failed staging retains the draft and shows an error; Cancel restores the committed state. Closing or changing the selected brick discards unsaved edits, while breakpoint switches retain the draft. Page and Site Settings continue to save through their existing commands.
+
+The detail form owns one centered column around module fields and Save/Cancel.
+Image uses stacked shadcn inputs that fill that column; its actions sit below
+the fields at the same left edge and wrap when needed.
 
 Each Page references its own Library wall, created atomically by `createPage` with ID `prefixId(libraryModule.models.wall, pageId)`. The grid and brick drawer scope queries to that wall. `ZerospinUserProvider` owns session initialization and disposal, and `UserLayout` waits for initialization before mounting the editor. Changing pages does not dispose the user session.
 

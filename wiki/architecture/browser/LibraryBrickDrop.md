@@ -1,6 +1,6 @@
 ---
 title: Library brick drop
-updated: 2026-10-03
+updated: 2026-10-12
 ---
 
 # Library brick drop
@@ -67,6 +67,7 @@ sequenceDiagram
   participant makeCollisionResolvedLayout
   participant makeCompactLayout
   participant models
+  participant app as Consuming app
   autonumber
   DraggableBrick->>brickDragStore: brickDragStore.getState().setBrickDef(...)
   GridLayout->>BrickWall: onDragOver()
@@ -83,6 +84,9 @@ sequenceDiagram
   program->>program: validate every resolved layout
   program->>program: decode declared state or opted-in null
   program->>models: models.brick.create(...), models.placement.create(...), models.placement.update(...)
+  opt Successful staging
+    BrickWall->>app: onBrickActivate({ moduleId, brickId })
+  end
   BrickWall->>brickDragStore: brickDragStore.getState().setBrickDef(...)
 ```
 
@@ -118,8 +122,10 @@ sequenceDiagram
     - [`AddBrickContractV1.ts:275-287`](../../../apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts#L275-L287) — ignores undeclared non-null state fields and clones the decoded state and spec. (`apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts:275-287`)
 15. Create the brick and four placements, updating only changed visible neighbors.
     - [`AddBrickContractV1.ts:288-335`](../../../apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts#L288-L335) — saves null or configured state and preserves hidden or unchanged placements. (`apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts:288-335`)
-16. Command failures are presented and the drag definition is cleared.
-    - [`BrickWall.tsx:338-352`](../../../apps/library/lib/BrickWall.tsx#L338-L352) — retains the existing error handling and clears the completed drag. (`apps/library/lib/BrickWall.tsx:338-352`)
+16. Successful staging activates the new brick through the consuming app's existing detail callback; failures are presented without activation.
+    - [`BrickWall.tsx:339-350`](../../../apps/library/lib/BrickWall.tsx#L339-L350) — reports command failures or calls `onBrickActivate` with the new module and brick IDs. (`apps/library/lib/BrickWall.tsx:339-350`)
+17. The completed drag definition is cleared.
+    - [`BrickWall.tsx:351-355`](../../../apps/library/lib/BrickWall.tsx#L351-L355) — clears the completed drag while preserving any replacement drag payload. (`apps/library/lib/BrickWall.tsx:351-355`)
 
 ## Placeholder rendering and state updates
 

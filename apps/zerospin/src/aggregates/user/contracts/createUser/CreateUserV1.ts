@@ -2,6 +2,7 @@ import * as sdk from "@zerospin/sdk/browser";
 
 import { makeAggregateContractVersion, primitives } from "@zerospin/sdk/browser";
 import { AggregateError } from "@zerospin/error";
+import { Effect, Schema } from "effect";
 import { userV1 as User } from "../../models/user/UserV1";
 
 import { createUser } from "./createUser";
@@ -18,6 +19,7 @@ const createUserPayload = {
 };
 
 export const createUserV1 = makeAggregateContractVersion(createUser, {
+  operations: Schema.Array(User.operations.create),
   payload: createUserPayload,
   models: { user: User },
   failures: {
@@ -26,11 +28,14 @@ export const createUserV1 = makeAggregateContractVersion(createUser, {
   },
   program: (props) => {
     const { payload } = props;
-    const { id, clerkUserId, username, displayName } = payload;
-    return sdk.makeCreateOperation({
-      model: User,
-      resourceId: id,
-      attributes: { clerkUserId, username, displayName },
+    return Effect.gen(function* () {
+      const { id, clerkUserId, username, displayName } = payload;
+      const operation = yield* sdk.makeCreateOperation({
+        model: User,
+        resourceId: id,
+        attributes: { clerkUserId, username, displayName },
+      });
+      return { operations: [operation], result: undefined };
     });
   },
   version: "1.0.0",

@@ -46,10 +46,9 @@ export default defineConfig(({ mode }) => {
           "@radix-ui/react-slot",
           "@tiptap/react",
           "@unpic/react",
-          "@zerospin/browser",
-          /^@zerospin\/core(?:\/|$)/,
-          "@zerospin/react",
-          "@zerospin/shapes",
+          // Share runtime classes with consumers by keeping Zerospin packages
+          // and their subpath imports external.
+          /^@zerospin\//,
           "class-variance-authority",
           "cn",
           "effect",

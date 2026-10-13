@@ -2,7 +2,7 @@ import { ContractError } from "@zerospin/error";
 import * as sdk from "@zerospin/sdk/browser";
 
 import { makeAggregateContractVersion, primitives } from "@zerospin/sdk/browser";
-import { Channel, Effect } from "effect";
+import { Effect, Schema } from "effect";
 import { siteV1 as Site } from "../../models/site/SiteV1";
 import { userV1 as User } from "../../models/user/UserV1";
 
@@ -26,6 +26,7 @@ const createSitePayload = {
 };
 
 export const createSiteV1 = makeAggregateContractVersion(createSite, {
+  operations: Schema.Array(Site.operations.create),
   failures: {
     createSiteUserMismatch: ContractError.schema({ code: "create-site-user-mismatch" }),
   },
@@ -60,30 +61,29 @@ export const createSiteV1 = makeAggregateContractVersion(createSite, {
   },
   program: (props) => {
     const { failures, payload, claims } = props;
-    return Channel.unwrap(
-      Effect.gen(function* () {
-        if (typeof claims?.clerkUserId !== "string") {
-          return yield* failures.createSiteUserMismatch.make({
-            message: "Creating a site requires an authenticated user",
-            status: 403,
-          });
-        }
-        const { id, userId, slug, name, description } = payload;
-        return sdk.makeCreateOperation({
-          model: Site,
-          resourceId: id,
-          attributes: {
-            userId,
-            slug,
-            name,
-            description,
-            logoUrl: null,
-            faviconLightUrl: null,
-            faviconDarkUrl: null,
-          },
+    return Effect.gen(function* () {
+      if (typeof claims?.clerkUserId !== "string") {
+        return yield* failures.createSiteUserMismatch.make({
+          message: "Creating a site requires an authenticated user",
+          status: 403,
         });
-      }),
-    );
+      }
+      const { id, userId, slug, name, description } = payload;
+      const operation = yield* sdk.makeCreateOperation({
+        model: Site,
+        resourceId: id,
+        attributes: {
+          userId,
+          slug,
+          name,
+          description,
+          logoUrl: null,
+          faviconLightUrl: null,
+          faviconDarkUrl: null,
+        },
+      });
+      return { operations: [operation], result: undefined };
+    });
   },
   version: "1.0.0",
 });

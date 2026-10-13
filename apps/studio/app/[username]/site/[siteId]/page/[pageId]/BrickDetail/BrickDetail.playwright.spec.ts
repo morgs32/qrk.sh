@@ -79,26 +79,25 @@ test.describe("BrickDetail route", () => {
 
     await page.goto(`${pageBase}/brick/${brickId}`, { waitUntil: "load" });
 
-    await expect(page.getByTestId("brick-detail-title")).toHaveText("Swatch and Icon", {
-      timeout: 90_000,
-    });
+    await expect(page.getByRole("navigation", { name: "Drawer breadcrumbs" })).toContainText(
+      "Update your Swatch and Icon brick",
+      { timeout: 90_000 },
+    );
   });
 
-  test("Back from brick detail opens module detail", async ({ page }) => {
+  test("Bricks from brick detail opens the catalog", async ({ page }) => {
     const brick = await dropSwatchOntoGrid(page);
     const brickId = await brick.getAttribute("data-brick-id");
     expect(brickId).toBeTruthy();
 
     await page.goto(`${pageBase}/brick/${brickId}`, { waitUntil: "load" });
 
-    await expect(page.getByTestId("brick-detail-title")).toBeVisible({
+    await expect(page.getByTestId("brick-detail-pane")).toBeVisible({
       timeout: 90_000,
     });
-    await page.getByRole("link", { name: "Swatch and Icon", exact: true }).click();
+    await page.getByRole("link", { name: "Bricks", exact: true }).click();
 
-    await expect
-      .poll(() => new URL(page.url()).pathname)
-      .toBe(`${pageBase}/modules/swatch-and-icon`);
+    await expect.poll(() => new URL(page.url()).pathname).toBe(`${pageBase}/modules`);
   });
 
   test("closing brick drawer returns to site root", async ({ page }) => {
@@ -108,7 +107,7 @@ test.describe("BrickDetail route", () => {
 
     await page.goto(`${pageBase}/brick/${brickId}`, { waitUntil: "load" });
 
-    await expect(page.getByTestId("brick-detail-title")).toBeVisible({
+    await expect(page.getByTestId("brick-detail-pane")).toBeVisible({
       timeout: 90_000,
     });
     await page.getByRole("link", { name: "Close drawer" }).click();

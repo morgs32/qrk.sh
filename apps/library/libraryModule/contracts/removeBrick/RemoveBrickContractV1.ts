@@ -1,13 +1,11 @@
 import { ContractError } from "@zerospin/error";
 import { findMany } from "@zerospin/core/contracts/findMany";
 import { findFirst } from "@zerospin/core/contracts/findFirst";
-import type { IOperation } from "@zerospin/core/contracts/types";
 import { makeUpdateOperation } from "@zerospin/core/contracts/make/makeUpdateOperation";
 import { makeDeleteOperation } from "@zerospin/core/contracts/make/makeDeleteOperation";
 import { makeAggregateContractVersion } from "@zerospin/core/contracts/make/makeAggregateContractVersion";
-import { ZerospinError } from "@zerospin/error";
 import { primitives, type InferDecodedRow, type InferIdFromAbbreviation } from "@zerospin/shapes";
-import { Channel, Effect } from "effect";
+import { Effect, Schema } from "effect";
 
 import { makePlacementId } from "../../models/placement/makePlacementId";
 import { makeCompactLayout } from "../../resolveVisibleCollisions";
@@ -29,7 +27,14 @@ export function makeRemoveBrickContract(props: {
     wallId: primitives.foreignKey({ abbreviation: wall.abbreviation }),
   };
 
+  const operationSchema = Schema.Union([
+    brick.operations.delete,
+    placement.operations.delete,
+    placement.operations.update,
+  ]);
+
   return makeAggregateContractVersion(removeBrick, {
+    operations: Schema.Array(operationSchema),
     failures: {
       removeBrickWallNotFound: ContractError.schema({ code: "remove-brick-wall-not-found" }),
       removeBrickBrickNotFound: ContractError.schema({ code: "remove-brick-brick-not-found" }),
@@ -81,82 +86,76 @@ export function makeRemoveBrickContract(props: {
     }),
     program: (props) => {
       const { payload, db } = props;
-      return Channel.unwrap(
-        Effect.gen(function* () {
-          const operations: Channel.Channel<
-            IOperation<typeof placement | typeof brick>,
-            ZerospinError,
-            void
-          >[] = [];
-          // Emitted deletes are not applied to db during this program.
-          const wallBricks = (yield* findMany({
-            db: db,
-            model: brick,
-            where: { wallId: { eq: payload.wallId } },
-          })).filter((brickRow) => brickRow.id !== payload.brickId);
+      return Effect.gen(function* () {
+        const operations: Array<typeof operationSchema.Type> = [];
+        // Returned deletes are not applied to db during this program.
+        const wallBricks = (yield* findMany({
+          db: db,
+          model: brick,
+          where: { wallId: { eq: payload.wallId } },
+        })).filter((brickRow) => brickRow.id !== payload.brickId);
 
-          for (const breakpoint of ["sm", "md", "lg", "xl"] as Array<"sm" | "md" | "lg" | "xl">) {
-            operations.push(
-              makeDeleteOperation({
-                model: placement,
-                resourceId: makePlacementId(
-                  payload.brickId,
-                  breakpoint,
-                ) as InferIdFromAbbreviation<"plc">,
-              }),
-            );
-
-            const visiblePlacements = [];
-            for (const wallBrick of wallBricks) {
-              const wallPlacement = yield* findFirst({
-                db: db,
-                model: placement,
-                where: { id: { eq: makePlacementId(wallBrick.id, breakpoint) } },
-              });
-              if (wallPlacement !== undefined && wallPlacement.isVisible) {
-                visiblePlacements.push(wallPlacement);
-              }
-            }
-
-            const compacted = makeCompactLayout(
-              visiblePlacements.map((wallPlacement) => wallPlacement.gridItem),
-            );
-            for (const item of compacted) {
-              const stored = visiblePlacements.find(
-                (wallPlacement) => wallPlacement.gridItem.i === item.i,
-              )?.gridItem;
-              if (
-                stored?.i === item.i &&
-                stored.x === item.x &&
-                stored.y === item.y &&
-                stored.w === item.w &&
-                stored.h === item.h
-              ) {
-                continue;
-              }
-
-              operations.push(
-                makeUpdateOperation({
-                  model: placement,
-                  resourceId: makePlacementId(item.i, breakpoint) as InferIdFromAbbreviation<"plc">,
-                  attributes: {
-                    gridItem: item,
-                  } as Partial<InferDecodedRow<(typeof placement)["attributes"]>>,
-                }),
-              );
-            }
-          }
-
+        for (const breakpoint of ["sm", "md", "lg", "xl"] as Array<"sm" | "md" | "lg" | "xl">) {
           operations.push(
-            makeDeleteOperation({
-              model: brick,
-              resourceId: payload.brickId as InferIdFromAbbreviation<"brk">,
+            yield* makeDeleteOperation({
+              model: placement,
+              resourceId: makePlacementId(
+                payload.brickId,
+                breakpoint,
+              ) as InferIdFromAbbreviation<"plc">,
             }),
           );
 
-          return Channel.fromIterable(operations).pipe(Channel.flatMap((operation) => operation));
-        }),
-      );
+          const visiblePlacements = [];
+          for (const wallBrick of wallBricks) {
+            const wallPlacement = yield* findFirst({
+              db: db,
+              model: placement,
+              where: { id: { eq: makePlacementId(wallBrick.id, breakpoint) } },
+            });
+            if (wallPlacement !== undefined && wallPlacement.isVisible) {
+              visiblePlacements.push(wallPlacement);
+            }
+          }
+
+          const compacted = makeCompactLayout(
+            visiblePlacements.map((wallPlacement) => wallPlacement.gridItem),
+          );
+          for (const item of compacted) {
+            const stored = visiblePlacements.find(
+              (wallPlacement) => wallPlacement.gridItem.i === item.i,
+            )?.gridItem;
+            if (
+              stored?.i === item.i &&
+              stored.x === item.x &&
+              stored.y === item.y &&
+              stored.w === item.w &&
+              stored.h === item.h
+            ) {
+              continue;
+            }
+
+            operations.push(
+              yield* makeUpdateOperation({
+                model: placement,
+                resourceId: makePlacementId(item.i, breakpoint) as InferIdFromAbbreviation<"plc">,
+                attributes: {
+                  gridItem: item,
+                } as Partial<InferDecodedRow<(typeof placement)["attributes"]>>,
+              }),
+            );
+          }
+        }
+
+        operations.push(
+          yield* makeDeleteOperation({
+            model: brick,
+            resourceId: payload.brickId as InferIdFromAbbreviation<"brk">,
+          }),
+        );
+
+        return { operations, result: undefined };
+      });
     },
   });
 }

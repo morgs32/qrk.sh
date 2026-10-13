@@ -5,17 +5,19 @@ import { Skeleton } from "@/components/ui/skeleton";
 export function Header() {
   return (
     <header
-      className="fixed top-0 left-0 right-0 z-50 flex h-16 items-center justify-between border-b border-border bg-background px-6"
+      className="fixed top-0 left-0 right-0 z-50 h-16 @container border-b border-border bg-background"
       data-testid="dashboard-navbar"
     >
-      <a href="/" aria-label="Home" className="font-[family-name:var(--font-silkscreen)] text-lg">
-        qrk.sh
-      </a>
-      <div className="size-10">
-        <UserButton
-          fallback={<Skeleton className="size-10 rounded-full" aria-label="Loading account" />}
-          appearance={{ elements: { userButtonAvatarBox: "!size-10" } }}
-        />
+      <div className="qrk-responsive-insets flex h-full w-full items-center justify-between [padding-inline:var(--qrk-inset-inline)]">
+        <a href="/" aria-label="Home" className="text-lg">
+          qrk.sh
+        </a>
+        <div className="size-10">
+          <UserButton
+            fallback={<Skeleton className="size-10 rounded-full" aria-label="Loading account" />}
+            appearance={{ elements: { userButtonAvatarBox: "!size-10" } }}
+          />
+        </div>
       </div>
     </header>
   );

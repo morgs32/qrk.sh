@@ -18,14 +18,14 @@
     "@qrk.sh/library": "workspace:*",
     "@qrk.sh/r2-assets": "workspace:*",
     "@remix-run/route-pattern": "^0.22.1",
-    "@zerospin/core": "4.0.3",
-    "@zerospin/error": "4.0.3",
-    "@zerospin/logger": "4.0.3",
-    "@zerospin/shapes": "4.0.3",
+    "@zerospin/core": "5.0.1",
+    "@zerospin/error": "5.0.1",
+    "@zerospin/logger": "5.0.1",
+    "@zerospin/shapes": "5.0.1",
     "capnweb": "^0.12.0",
     "drizzle-orm": "1.0.0-rc.4",
     "effect": "4.0.2",
-    "system-worker": "4.0.3"
+    "system-worker": "5.0.1"
   },
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "^0.16.3",

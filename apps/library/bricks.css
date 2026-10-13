@@ -178,7 +178,11 @@
 }
 
 .grid-layout
-  > .react-grid-item.brick-drag-surface:not(.react-resizable-hide):is(:hover, .resizing)
+  > .react-grid-item.brick-drag-surface:not(.react-resizable-hide):is(
+    :hover,
+    .resizing,
+    [data-selected="true"]
+  )
   > .react-resizable-handle {
   opacity: 1;
   visibility: visible;
@@ -210,6 +214,7 @@
   pointer-events: none;
 }
 
+.brick-hover-target:not(.react-draggable-dragging):not(.resizing)[data-selected="true"],
 .brick-hover-target:not(.react-draggable-dragging):not(.resizing):focus-visible,
 .brick-hover-target:not(.react-draggable-dragging):not(.resizing):has(:focus-visible) {
   --brick-hover-active: 1;
@@ -245,6 +250,15 @@
   > .brick-hover-target:not(.react-draggable-dragging):not(.resizing)
   > .brick-hover-surface {
   --brick-hover-active: 0;
+}
+
+/* Hide idle neighbors' handles while keeping the active brick's controls. */
+.grid-layout:has(> .react-draggable-dragging, > .resizing)
+  > .brick-hover-target:not(.react-draggable-dragging):not(.resizing)
+  > .react-resizable-handle {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
 }
 
 /* Catalog drag sources own HTML5 drag. Nested <a>/<img> must not start a

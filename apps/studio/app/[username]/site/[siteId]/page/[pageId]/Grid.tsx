@@ -24,6 +24,7 @@ const ParamsSchema = Schema.Struct({
   username: Schema.String,
   siteId: Schema.String,
   pageId: makeModelIdSchema(Page),
+  brickId: Schema.optional(Schema.String),
 });
 
 export function Grid() {
@@ -97,6 +98,7 @@ export function Grid() {
                   breakpoint={row.id}
                   gridWidth={row.previewWidth}
                   isActive={isActive}
+                  selectedBrickId={params.brickId}
                   gridGestureActive={gridGesture}
                   showArticleEditAction={false}
                   onGestureChange={setGridGesture}

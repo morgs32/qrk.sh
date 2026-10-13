@@ -15,17 +15,14 @@ test("brick routes retain the bottom shell, grid, and encoded history", async ({
   await page.locator("[data-module-link]").first().click();
   await expect(page.getByRole("toolbar", { name: "Breakpoints", exact: true })).toBeVisible();
   await expect(page.getByRole("navigation", { name: "Drawer breadcrumbs" })).toContainText(
-    "Bricks",
+    "Drag a brick onto your page",
   );
   expect(
     await shell!.evaluate(
       (element) => element === document.querySelector('[data-drawer="bottom"]'),
     ),
   ).toBe(true);
-  await page
-    .getByRole("navigation", { name: "Drawer breadcrumbs" })
-    .getByRole("link", { name: "Bricks", exact: true })
-    .click();
+  await page.goBack();
   await bottom.getByRole("link", { name: "Close drawer" }).click();
   await expect(bottom).toBeHidden();
   await expect(bottom).toHaveCount(1);

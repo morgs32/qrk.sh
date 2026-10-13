@@ -1,12 +1,11 @@
 import { ContractError } from "@zerospin/error";
 import { findMany } from "@zerospin/core/contracts/findMany";
 import { findFirst } from "@zerospin/core/contracts/findFirst";
-import type { IOperation } from "@zerospin/core/contracts/types";
 import { makeUpdateOperation } from "@zerospin/core/contracts/make/makeUpdateOperation";
 import { makeAggregateContractVersion } from "@zerospin/core/contracts/make/makeAggregateContractVersion";
-import { mapParseError, ZerospinError } from "@zerospin/error";
+import { mapParseError } from "@zerospin/error";
 import { primitives, type InferDecodedRow, type InferIdFromAbbreviation } from "@zerospin/shapes";
-import { Channel, Effect, Schema } from "effect";
+import { Effect, Schema } from "effect";
 
 import { makePlacementId } from "../../models/placement/makePlacementId";
 import {
@@ -48,6 +47,7 @@ export function makeSetBrickVisibilityAtBreakpointContract(props: {
   };
 
   return makeAggregateContractVersion(setBrickVisibilityAtBreakpoint, {
+    operations: Schema.Array(placement.operations.update),
     failures: {
       setBrickVisibilityBrickNotFound: ContractError.schema({
         code: "set-brick-visibility-brick-not-found",
@@ -243,120 +243,62 @@ export function makeSetBrickVisibilityAtBreakpointContract(props: {
     }),
     program: (props) => {
       const { payload, db } = props;
-      return Channel.unwrap(
-        Effect.gen(function* () {
-          const operations: Channel.Channel<IOperation<typeof placement>, ZerospinError, void>[] =
-            [];
-          if (payload.currentlyVisible === payload.isVisible) {
-            return Channel.empty;
-          }
+      return Effect.gen(function* () {
+        const operations: Array<typeof placement.operations.update.Type> = [];
+        if (payload.currentlyVisible === payload.isVisible) {
+          return { operations, result: undefined };
+        }
 
-          if (!payload.isVisible) {
-            operations.push(
-              makeUpdateOperation({
-                model: placement,
-                resourceId: makePlacementId(
-                  payload.brickId,
-                  payload.breakpoint,
-                ) as InferIdFromAbbreviation<"plc">,
-                attributes: {
-                  isVisible: false,
-                },
-              }),
-            );
+        if (!payload.isVisible) {
+          operations.push(
+            yield* makeUpdateOperation({
+              model: placement,
+              resourceId: makePlacementId(
+                payload.brickId,
+                payload.breakpoint,
+              ) as InferIdFromAbbreviation<"plc">,
+              attributes: {
+                isVisible: false,
+              },
+            }),
+          );
 
-            const brickRow = yield* findFirst({
-              db: db,
-              model: brick,
-              where: { id: { eq: payload.brickId } },
-            });
-            if (brickRow === undefined) {
-              return Channel.fromIterable(operations).pipe(
-                Channel.flatMap((operation) => operation),
-              );
-            }
-            const wallBricks = yield* findMany({
-              db: db,
-              model: brick,
-              where: { wallId: { eq: brickRow.wallId } },
-            });
-            const visiblePlacements = [];
-            for (const wallBrick of wallBricks) {
-              // Emitted updates are not applied to db during this program.
-              if (wallBrick.id === payload.brickId) {
-                continue;
-              }
-              const wallPlacement = yield* findFirst({
-                db: db,
-                model: placement,
-                where: { id: { eq: makePlacementId(wallBrick.id, payload.breakpoint) } },
-              });
-              if (wallPlacement !== undefined && wallPlacement.isVisible) {
-                visiblePlacements.push(wallPlacement);
-              }
-            }
-
-            const compacted = makeCompactLayout(
-              visiblePlacements.map((wallPlacement) => wallPlacement.gridItem),
-            );
-            for (const item of compacted) {
-              const stored = visiblePlacements.find(
-                (wallPlacement) => wallPlacement.gridItem.i === item.i,
-              )?.gridItem;
-              if (
-                stored?.i === item.i &&
-                stored.x === item.x &&
-                stored.y === item.y &&
-                stored.w === item.w &&
-                stored.h === item.h
-              ) {
-                continue;
-              }
-
-              operations.push(
-                makeUpdateOperation({
-                  model: placement,
-                  resourceId: makePlacementId(
-                    item.i,
-                    payload.breakpoint,
-                  ) as InferIdFromAbbreviation<"plc">,
-                  attributes: {
-                    gridItem: item,
-                  } as Partial<InferDecodedRow<(typeof placement)["attributes"]>>,
-                }),
-              );
-            }
-            return Channel.fromIterable(operations).pipe(Channel.flatMap((operation) => operation));
-          }
-
-          const resolved = makeCollisionResolvedLayout({
-            visibleLayout: payload.otherVisibleLayout,
-            incoming: cloneLayoutItem(payload.savedGridItem),
+          const brickRow = yield* findFirst({
+            db: db,
+            model: brick,
+            where: { id: { eq: payload.brickId } },
           });
-
-          for (const item of resolved) {
-            if (item.i === payload.brickId) {
-              operations.push(
-                makeUpdateOperation({
-                  model: placement,
-                  resourceId: makePlacementId(
-                    payload.brickId,
-                    payload.breakpoint,
-                  ) as InferIdFromAbbreviation<"plc">,
-                  attributes: {
-                    isVisible: true,
-                    gridItem: item,
-                  } as Partial<InferDecodedRow<(typeof placement)["attributes"]>>,
-                }),
-              );
+          if (brickRow === undefined) {
+            return { operations, result: undefined };
+          }
+          const wallBricks = yield* findMany({
+            db: db,
+            model: brick,
+            where: { wallId: { eq: brickRow.wallId } },
+          });
+          const visiblePlacements = [];
+          for (const wallBrick of wallBricks) {
+            // Returned updates are not applied to db during this program.
+            if (wallBrick.id === payload.brickId) {
               continue;
             }
-
-            const stored = (yield* findFirst({
+            const wallPlacement = yield* findFirst({
               db: db,
               model: placement,
-              where: { id: { eq: makePlacementId(item.i, payload.breakpoint) } },
-            }))?.gridItem;
+              where: { id: { eq: makePlacementId(wallBrick.id, payload.breakpoint) } },
+            });
+            if (wallPlacement !== undefined && wallPlacement.isVisible) {
+              visiblePlacements.push(wallPlacement);
+            }
+          }
+
+          const compacted = makeCompactLayout(
+            visiblePlacements.map((wallPlacement) => wallPlacement.gridItem),
+          );
+          for (const item of compacted) {
+            const stored = visiblePlacements.find(
+              (wallPlacement) => wallPlacement.gridItem.i === item.i,
+            )?.gridItem;
             if (
               stored?.i === item.i &&
               stored.x === item.x &&
@@ -368,7 +310,7 @@ export function makeSetBrickVisibilityAtBreakpointContract(props: {
             }
 
             operations.push(
-              makeUpdateOperation({
+              yield* makeUpdateOperation({
                 model: placement,
                 resourceId: makePlacementId(
                   item.i,
@@ -380,10 +322,63 @@ export function makeSetBrickVisibilityAtBreakpointContract(props: {
               }),
             );
           }
+          return { operations, result: undefined };
+        }
 
-          return Channel.fromIterable(operations).pipe(Channel.flatMap((operation) => operation));
-        }),
-      );
+        const resolved = makeCollisionResolvedLayout({
+          visibleLayout: payload.otherVisibleLayout,
+          incoming: cloneLayoutItem(payload.savedGridItem),
+        });
+
+        for (const item of resolved) {
+          if (item.i === payload.brickId) {
+            operations.push(
+              yield* makeUpdateOperation({
+                model: placement,
+                resourceId: makePlacementId(
+                  payload.brickId,
+                  payload.breakpoint,
+                ) as InferIdFromAbbreviation<"plc">,
+                attributes: {
+                  isVisible: true,
+                  gridItem: item,
+                } as Partial<InferDecodedRow<(typeof placement)["attributes"]>>,
+              }),
+            );
+            continue;
+          }
+
+          const stored = (yield* findFirst({
+            db: db,
+            model: placement,
+            where: { id: { eq: makePlacementId(item.i, payload.breakpoint) } },
+          }))?.gridItem;
+          if (
+            stored?.i === item.i &&
+            stored.x === item.x &&
+            stored.y === item.y &&
+            stored.w === item.w &&
+            stored.h === item.h
+          ) {
+            continue;
+          }
+
+          operations.push(
+            yield* makeUpdateOperation({
+              model: placement,
+              resourceId: makePlacementId(
+                item.i,
+                payload.breakpoint,
+              ) as InferIdFromAbbreviation<"plc">,
+              attributes: {
+                gridItem: item,
+              } as Partial<InferDecodedRow<(typeof placement)["attributes"]>>,
+            }),
+          );
+        }
+
+        return { operations, result: undefined };
+      });
     },
   });
 }

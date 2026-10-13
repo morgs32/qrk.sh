@@ -8,9 +8,12 @@ import { libraryModule } from "@qrk.sh/library/libraryModule";
 import { useWallViewport } from "@qrk.sh/library/WallViewportProvider";
 import { isNonEmptySpec } from "@json-render/core";
 import { makeModelIdSchema } from "@zerospin/core/models/make/makeModelIdSchema";
+import { stageAggregateSessionCommand } from "@zerospin/core/aggregateSession/stageCommand/stageAggregateSessionCommand";
 import { useLiveQuery } from "@zerospin/react";
 import { Schema } from "effect";
+import { useState } from "react";
 
+import { Button } from "@/components/ui/button";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 
 const ParamsSchema = Schema.Struct({
@@ -29,6 +32,12 @@ export function BrickDetail() {
   const breakpoint = activeBreakpoint ?? "sm";
   const params = useValidatedParams(ParamsSchema);
   const session = UserApp.useInitializedSession();
+  const [formDraft, setFormDraft] = useState<{ brickId: string; state: unknown } | null>(null);
+  const [acceptedState, setAcceptedState] = useState<{ brickId: string; state: unknown } | null>(
+    null,
+  );
+  const [formError, setFormError] = useState<{ brickId: string; message: string } | null>(null);
+  const [editorEpoch, setEditorEpoch] = useState(0);
   const { data: page } = useLiveQuery({
     session,
     key: params.pageId,
@@ -63,6 +72,24 @@ export function BrickDetail() {
   const placement = placementQuery.data;
   const brick = brickRow !== undefined ? modulesHash[brickRow.moduleId] : undefined;
   const BrickComponent = brick?.component;
+  const Form = brick?.Form;
+  if (
+    acceptedState !== null &&
+    brickRow !== undefined &&
+    acceptedState.brickId === brickRow.id &&
+    JSON.stringify(brickRow.state) === JSON.stringify(acceptedState.state)
+  ) {
+    setAcceptedState(null);
+  }
+  const committedState =
+    acceptedState !== null && acceptedState.brickId === brickRow?.id
+      ? acceptedState.state
+      : brickRow?.state;
+  const formState =
+    formDraft !== null && formDraft.brickId === brickRow?.id
+      ? formDraft.state
+      : (committedState ?? brick?.defaultState);
+  const formDirty = JSON.stringify(formState) !== JSON.stringify(committedState);
   const rawSpec: unknown =
     placement === undefined
       ? undefined
@@ -104,23 +131,79 @@ export function BrickDetail() {
           </div>
         ) : (
           <section data-testid="brick-detail-pane">
-            <div className="px-6 pt-6">
-              <p className="mb-0 mt-8 text-sm text-muted-foreground">Brick detail</p>
-              <h1 className="mb-1 mt-2 text-4xl tracking-tight" data-testid="brick-detail-title">
-                {brick.label}
-              </h1>
-              <p className="mt-0 font-mono text-sm text-muted-foreground">{brick.def.moduleId}</p>
-            </div>
-            <div className="mt-8 overflow-auto">
-              <GridItemPreview breakpoint={breakpoint} w={gridItem?.w ?? 1} h={gridItem?.h ?? 1}>
-                <div
-                  className="size-full qrk-bricks overflow-hidden"
-                  data-testid="selected-brick-preview"
-                >
-                  <BrickComponent breakpoint={breakpoint} state={brickRow.state} spec={spec} />
+            {Form !== undefined ? (
+              <form
+                className="mx-auto mt-8 w-full max-w-3xl px-6"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  if (!formDirty) return;
+                  const result = stageAggregateSessionCommand({
+                    session,
+                    contractName: "updateBrick",
+                    payload: {
+                      brickId: brickRow.id,
+                      moduleId: brickRow.moduleId,
+                      state: formState,
+                      measurements: null,
+                    },
+                  });
+                  if (result._tag === "Failure") {
+                    setFormError({
+                      brickId: brickRow.id,
+                      message:
+                        result.failure.message ?? result.failure.code ?? "Failed to save brick",
+                    });
+                    return;
+                  }
+                  setAcceptedState({ brickId: brickRow.id, state: formState });
+                  setFormDraft(null);
+                  setFormError(null);
+                }}
+              >
+                <div className="flex flex-col gap-6">
+                  <Form
+                    key={`${brickRow.id}:${editorEpoch}`}
+                    state={formState}
+                    onChange={(state) => {
+                      setFormDraft({ brickId: brickRow.id, state });
+                      setFormError(null);
+                    }}
+                  />
+                  {formError !== null && formError.brickId === brickRow.id ? (
+                    <div className="rounded-md border border-red-200 bg-red-50 p-3" role="alert">
+                      {formError.message}
+                    </div>
+                  ) : null}
+                  <div className="flex flex-wrap gap-2">
+                    <Button type="submit" disabled={!formDirty}>
+                      Save
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setFormDraft(null);
+                        setFormError(null);
+                        setEditorEpoch((epoch) => epoch + 1);
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
                 </div>
-              </GridItemPreview>
-            </div>
+              </form>
+            ) : (
+              <div className="mt-8 overflow-auto">
+                <GridItemPreview breakpoint={breakpoint} w={gridItem?.w ?? 1} h={gridItem?.h ?? 1}>
+                  <div
+                    className="size-full qrk-bricks overflow-hidden"
+                    data-testid="selected-brick-preview"
+                  >
+                    <BrickComponent breakpoint={breakpoint} state={brickRow.state} spec={spec} />
+                  </div>
+                </GridItemPreview>
+              </div>
+            )}
           </section>
         )}
       </div>

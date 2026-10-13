@@ -11,7 +11,7 @@ import { makeModelIdSchema } from "@zerospin/core/models/make/makeModelIdSchema"
 import { makeEffectSchema } from "@zerospin/shapes";
 import { useLiveQuery } from "@zerospin/react";
 import { Result, Schema } from "effect";
-import { X } from "lucide-react";
+import { ArrowLeft, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function BrickDrawerLayout(props: { children: ReactNode }) {
@@ -61,33 +61,38 @@ export default function BrickDrawerLayout(props: { children: ReactNode }) {
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       <header className="flex shrink-0 items-center justify-between gap-4 border-b border-border/60 px-4 py-2.5">
         <nav aria-label="Drawer breadcrumbs" className="flex min-w-0 items-center gap-2">
-          <Link href={`${base}/modules`} scroll={false}>
-            Drag a brick onto your page
-          </Link>
-          {moduleId !== undefined && moduleLabel !== undefined ? (
+          {brickId !== undefined ? (
             <>
+              <Link
+                href={`${base}/modules`}
+                scroll={false}
+                className="inline-flex shrink-0 items-center gap-1.5 underline underline-offset-4"
+              >
+                <ArrowLeft aria-hidden className="size-4" />
+                New brick
+              </Link>
               <span aria-hidden className="text-muted-foreground">
                 /
               </span>
-              {brickId === undefined ? (
-                <span className="truncate">{moduleLabel}</span>
-              ) : (
+              <span className="truncate">
+                {moduleLabel === undefined
+                  ? "Update your brick"
+                  : `Update your ${moduleLabel} brick`}
+              </span>
+            </>
+          ) : (
+            <>
+              <span>Drag a brick onto your page</span>
+              {moduleId !== undefined && moduleLabel !== undefined ? (
                 <>
-                  <Link
-                    href={`${base}/modules/${encodeURIComponent(moduleId)}`}
-                    scroll={false}
-                    className="truncate"
-                  >
-                    {moduleLabel}
-                  </Link>
                   <span aria-hidden className="text-muted-foreground">
                     /
                   </span>
-                  <span className="truncate">{`~${brickId.slice(-5)}`}</span>
+                  <span className="truncate">{moduleLabel}</span>
                 </>
-              )}
+              ) : null}
             </>
-          ) : null}
+          )}
         </nav>
         <Button asChild variant="ghost" size="icon">
           <Link href={base} scroll={false} aria-label="Close drawer">

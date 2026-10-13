@@ -1,11 +1,10 @@
 import { ContractError } from "@zerospin/error";
 import { findFirst } from "@zerospin/core/contracts/findFirst";
-import type { IOperation } from "@zerospin/core/contracts/types";
 import { makeUpdateOperation } from "@zerospin/core/contracts/make/makeUpdateOperation";
 import { makeAggregateContractVersion } from "@zerospin/core/contracts/make/makeAggregateContractVersion";
-import { mapParseError, ZerospinError } from "@zerospin/error";
+import { mapParseError } from "@zerospin/error";
 import { makeEffectSchema, primitives, type IShape } from "@zerospin/shapes";
-import { Channel, Effect, Schema } from "effect";
+import { Effect, Schema } from "effect";
 
 import { makeBrickModel } from "../../models/brick/makeBrickModel";
 import { makePlacementId } from "../../models/placement/makePlacementId";
@@ -44,7 +43,10 @@ export function makeUpdateBrickContract<
     }),
   };
 
+  const operationSchema = Schema.Union([brick.operations.update, placement.operations.update]);
+
   return makeAggregateContractVersion(updateBrick, {
+    operations: Schema.Array(operationSchema),
     failures: {
       updateBrickBrickNotFound: ContractError.schema({ code: "update-brick-brick-not-found" }),
       updateBrickModuleMismatch: ContractError.schema({ code: "update-brick-module-mismatch" }),
@@ -118,51 +120,45 @@ export function makeUpdateBrickContract<
     }),
     program: (props) => {
       const { payload } = props;
-      return Channel.unwrap(
-        Effect.gen(function* () {
-          const operations: Channel.Channel<
-            IOperation<typeof brick | typeof placement>,
-            ZerospinError,
-            void
-          >[] = [];
+      return Effect.gen(function* () {
+        const operations: Array<typeof operationSchema.Type> = [];
 
-          const brickModule = library[payload.moduleId];
-          const StateSchema = Schema.toType(makeEffectSchema(brickModule.stateShape));
-          const decodedState = yield* Schema.decodeUnknownEffect(
-            brickModule.hasPlaceholder ? Schema.NullOr(StateSchema) : StateSchema,
-          )(payload.state, { onExcessProperty: "ignore" }).pipe(
-            mapParseError({
-              code: "update-brick-invalid-state",
-              prefix: `updateBrick state failed ${payload.moduleId} decode`,
-            }),
-          );
+        const brickModule = library[payload.moduleId];
+        const StateSchema = Schema.toType(makeEffectSchema(brickModule.stateShape));
+        const decodedState = yield* Schema.decodeUnknownEffect(
+          brickModule.hasPlaceholder ? Schema.NullOr(StateSchema) : StateSchema,
+        )(payload.state, { onExcessProperty: "ignore" }).pipe(
+          mapParseError({
+            code: "update-brick-invalid-state",
+            prefix: `updateBrick state failed ${payload.moduleId} decode`,
+          }),
+        );
+        operations.push(
+          yield* makeUpdateOperation({
+            model: brick,
+            resourceId: payload.brickId,
+            attributes: {
+              state: structuredClone(decodedState),
+            },
+          }),
+        );
+        for (const breakpoint of breakpoints) {
           operations.push(
-            makeUpdateOperation({
-              model: brick,
-              resourceId: payload.brickId,
+            yield* makeUpdateOperation({
+              model: placement,
+              resourceId: makePlacementId(payload.brickId, breakpoint),
               attributes: {
-                state: structuredClone(decodedState),
+                measured:
+                  payload.measurements === null
+                    ? null
+                    : structuredClone(payload.measurements[breakpoint]),
               },
             }),
           );
-          for (const breakpoint of breakpoints) {
-            operations.push(
-              makeUpdateOperation({
-                model: placement,
-                resourceId: makePlacementId(payload.brickId, breakpoint),
-                attributes: {
-                  measured:
-                    payload.measurements === null
-                      ? null
-                      : structuredClone(payload.measurements[breakpoint]),
-                },
-              }),
-            );
-          }
+        }
 
-          return Channel.fromIterable(operations).pipe(Channel.flatMap((operation) => operation));
-        }),
-      );
+        return { operations, result: undefined };
+      });
     },
   });
 }

@@ -28,6 +28,8 @@ export const linkView = makeModuleView(linkV1, {
     },
     generator: { registry, defaultSpec },
   },
-  sm: { w: 8, h: 4 },
-  md: { w: 8, h: 4 },
+  sm: { w: 6, h: 4 },
+  md: { w: 6, h: 4 },
+  lg: { w: 4, h: 2 },
+  xl: { w: 4, h: 1 },
 });

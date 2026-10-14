@@ -99,7 +99,7 @@
   --ring: oklch(0.552 0.016 285.938);
 }
 
-/* The resize outline follows the stationary surface at its grid bounds. */
+/* The outline follows the active surface during dragging and resizing. */
 .grid-layout > .react-grid-item.brick-drag-surface::after {
   content: "";
   position: absolute;
@@ -173,7 +173,11 @@
   cursor: ew-resize;
 }
 
-.grid-layout > .react-grid-item.brick-drag-surface:not(.react-resizable-hide).resizing::after {
+.grid-layout
+  > .react-grid-item.brick-drag-surface:not(.react-resizable-hide):is(
+    .react-draggable-dragging,
+    .resizing
+  )::after {
   opacity: 1;
 }
 
@@ -252,9 +256,9 @@
   --brick-hover-active: 0;
 }
 
-/* Hide idle neighbors' handles while keeping the active brick's controls. */
+/* Only the resizing brick keeps its handles during a grid gesture. */
 .grid-layout:has(> .react-draggable-dragging, > .resizing)
-  > .brick-hover-target:not(.react-draggable-dragging):not(.resizing)
+  > .react-grid-item.brick-hover-target:not(.resizing)
   > .react-resizable-handle {
   opacity: 0;
   visibility: hidden;

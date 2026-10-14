@@ -203,8 +203,9 @@ screens remain app-owned.
 Wall bricks and fixed-size catalog/detail previews show a 2px dark inset border
 immediately on pointer hover or keyboard focus. Their cells, surfaces, and resize
 handles stay stationary, with no hover lift, outward shadow, or transition.
-Wall hover pauses during grid dragging or resizing, and other bricks' resize
-handles stay hidden until the gesture ends. The active brick keeps its controls.
+Wall hover pauses during grid dragging or resizing. The active brick keeps its
+black outline; resize handles stay hidden during dragging, and only the resizing
+brick keeps its handles until the gesture ends.
 Reduced motion uses the same immediate border.
 Intrinsic measurement hosts retain their existing sizing behavior.
 
@@ -453,7 +454,7 @@ Library and Studio use a white wall canvas at all four breakpoints. `BrickWall`
 has no horizontal grid padding, so bricks meet both wall edges. Row heights use
 the full grid width divided by eight to keep cells square.
 Its optional `selectedBrickId` keeps the matching brick's outline and resize handles
-visible in the active wall. Studio supplies the brick-detail route ID; hover,
+visible in the idle active wall. Studio supplies the brick-detail route ID; hover,
 focus, and drag/resize suppression retain their existing behavior.
 Shared `bricks.css` styles the grid placeholder during brick dragging, catalog drops,
 and resizing with a light-gray background, square corners, and a subtle
@@ -503,11 +504,10 @@ Zustand `bricksById`.
 
 Placed bricks drag from their entire surface and resize using white pill anchors
 with a thin black border at the four edge midpoints, aligned parallel to each edge.
-The anchors follow the floating
-surface on hover, remain visible during resizing, and stay visible on touch devices
-except on other bricks while a drag or resize is active.
-The stationary square outline appears only during resizing; hover uses the lifted
-surface's border. Every edge keeps its anchor, including at the grid boundaries.
+The anchors remain visible during resizing and on idle touch devices. Dragging
+hides all anchors; resizing hides other bricks' anchors.
+The square outline stays visible during dragging and resizing; hover uses the
+surface's inset border. Every edge keeps its anchor, including at the grid boundaries.
 Resizing clamps to the grid's left, right, and top boundaries and the module's
 minimum width and height; the bottom edge can grow the wall. These controls belong
 to the active wall and retain grid snapping, module minimum sizes, vertical

@@ -186,9 +186,6 @@ export default function UsernameDashboardPage() {
             </ul>
           ) : (
             <section className="flex flex-col gap-6 py-16">
-              <h2 className="max-w-xl text-xl leading-tight">
-                Make a site. Throw it out. Start over.
-              </h2>
               <div className="space-y-3 text-sm text-muted-foreground">
                 <p>Want some ideas?</p>
                 <ul className="list-disc space-y-2 pl-5">

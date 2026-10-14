@@ -5,7 +5,7 @@ export function LinkPlaceholder() {
     <div
       data-link-placeholder
       aria-hidden="true"
-      className="flex h-full min-h-0 w-full gap-4 overflow-hidden bg-sky-50"
+      className="flex h-full min-h-0 w-full gap-4 overflow-hidden bg-white"
     >
       <div className="flex min-w-0 w-1/2 shrink-0 flex-col gap-4 overflow-hidden p-4">
         <div className="flex min-w-0 shrink-0 flex-col gap-1">

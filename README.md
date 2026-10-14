@@ -3,7 +3,7 @@
 ## Zerospin packages
 
 Zerospin owns its source, builds, and releases in the sibling `../zerospin`
-checkout. QRK installs exact `7.0.0` packages from the local Verdaccio registry;
+checkout. QRK installs exact `9.0.2` packages from the local Verdaccio registry;
 there is no vendored Zerospin source or consumer-side Zerospin build.
 
 The credential-free project `.npmrc` routes all dependencies through
@@ -16,6 +16,14 @@ they resolve the same Core and Drizzle package instances.
 The workspace pins Effect, `@effect/platform-node-shared`, and `@effect/vitest`
 to `4.0.2`; their versions must stay aligned for the Zerospin CLI and tests.
 Effect is installed from the registry; no Effect source is vendored.
+
+Consumer skills ship inside the installed SDK, Browser, and React packages.
+Intent `0.5.5` is pinned in this workspace; the root permission policy enables
+those packages and the managed `AGENTS.md` block discovers their seven skills.
+After a dependency upgrade, use `pnpm exec intent install` to refresh guidance.
+Inspect available skills with `pnpm exec intent list` and load task guidance with
+`pnpm exec intent load '@zerospin/sdk#zerospin-author-feature'` (or the listed
+Browser/React skill ID). Skill content follows the installed package version.
 
 Two Next.js apps with App Router:
 
@@ -74,7 +82,7 @@ More detail and test patterns: [docs/styleguide/component-and-file-naming.md](do
    On the first registry bootstrap, install, build, verify, and publish the
    release in Zerospin before installing QRK. Follow Zerospin's package release
    instructions. Existing registry storage survives restarts. A fresh checkout
-   requires the running registry with the locked `7.0.0` packages; hosted
+   requires the running registry with the locked `9.0.2` packages; hosted
    distribution and deployment-machine bootstrap are not configured here.
 
 2. Start the homepage:

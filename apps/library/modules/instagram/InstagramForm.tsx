@@ -1,86 +1,49 @@
 "use client";
 
-import { newSyncRpcSession } from "@zerospin/core/utils/getApi/newSyncRpcSession/newSyncRpcSession";
-import { makeEffectSchema } from "@zerospin/shapes";
-import { Schema } from "effect";
+import { stageAggregateSessionCommand } from "@zerospin/core/aggregateSession/stageCommand/stageAggregateSessionCommand";
+import type { ILibrarySession } from "../../session/createLibraryStandaloneSession";
+import { normalizeInstagramInput } from "./normalizeInstagramInput";
+
+import { type InferDecodedRow } from "@zerospin/shapes";
 import { useId, useState } from "react";
-import useSWRMutation from "swr/mutation";
 
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
-import type { LibraryApi } from "../../worker/LibraryApi.public";
 import { instagramV1 } from "./instagramV1";
 
 export function InstagramForm(props: {
-  state: unknown;
-  onSave: (state: unknown) => Promise<void>;
+  state: InferDecodedRow<typeof instagramV1.stateShape> | null;
+  session: ILibrarySession;
+  brickId: `brk_${string}`;
+  onCancel: () => void;
 }) {
-  const { state, onSave } = props;
-  const StateSchema = Schema.NullOr(Schema.toType(makeEffectSchema(instagramV1.stateShape)));
-  const savedState = Schema.decodeUnknownSync(StateSchema)(state, {
-    onExcessProperty: "ignore",
-  });
+  const { state, session, brickId, onCancel } = props;
   const inputId = useId();
   const feedbackId = `${inputId}-feedback`;
-  const [profile, setProfile] = useState(savedState?.payload.url ?? "");
+  const [profileDraft, setProfile] = useState<string | null>(null);
+  const profile = profileDraft ?? state?.payload.url ?? "";
   const [saveError, setSaveError] = useState<string>();
-  const value = profile.trim();
-  const isUsername = /^@?[a-z\d._]{1,30}$/i.test(value);
-  let normalizedUrl: string | undefined;
-  try {
-    const parsed = new URL(
-      isUsername ? `https://www.instagram.com/${value.replace(/^@/, "")}` : value,
-    );
-    const pathSegments = parsed.pathname.split("/").filter((segment) => segment.length > 0);
-    if (
-      parsed.protocol === "https:" &&
-      (parsed.hostname === "instagram.com" || parsed.hostname === "www.instagram.com") &&
-      parsed.username.length === 0 &&
-      parsed.password.length === 0 &&
-      parsed.port.length === 0 &&
-      pathSegments.length === 1 &&
-      /^[a-z\d._]{1,30}$/i.test(pathSegments[0])
-    ) {
-      normalizedUrl = `https://www.instagram.com/${pathSegments[0].toLowerCase()}`;
-    }
-  } catch {
-    normalizedUrl = undefined;
-  }
-  const { trigger, isMutating } = useSWRMutation(
-    "/rpc:getInstagramProfile",
-    async (_key, options: { arg: string }) => {
-      const { arg } = options;
-      using api = newSyncRpcSession<LibraryApi>("/rpc");
-      const result = await api.getInstagramProfile(arg);
-      if (result._tag === "Left") {
-        throw new Error(result.left.message);
-      }
-      const nextState = Schema.decodeUnknownSync(StateSchema)(
-        { payload: { url: arg }, data: result.right },
-        { onExcessProperty: "ignore" },
-      );
-      await onSave(nextState);
-    },
-    { revalidate: false },
-  );
-  const canSave = normalizedUrl !== undefined && !isMutating;
+
+  const isUsername = /^@?[a-z\d._-]+$/i.test(profile.trim());
+  const normalizedUrl = normalizeInstagramInput(profile);
+  const canSave =
+    normalizedUrl !== undefined &&
+    (normalizedUrl !== state?.payload.url || state?.resolution.status === "failed");
 
   return (
     <form
-      aria-busy={isMutating}
       className="mx-auto flex max-w-md flex-col gap-2 p-4"
-      onSubmit={async (event) => {
+      onSubmit={(event) => {
         event.preventDefault();
-        if (!canSave || normalizedUrl === undefined) {
-          return;
-        }
-        const submittedUrl = normalizedUrl;
+        if (!canSave || normalizedUrl === undefined) return;
         setSaveError(undefined);
-        try {
-          await trigger(submittedUrl);
-        } catch (cause) {
-          setSaveError(cause instanceof Error ? cause.message : String(cause));
-        }
+        const result = stageAggregateSessionCommand({
+          session,
+          contractName: "configureInstagram",
+          payload: { brickId, requestId: crypto.randomUUID(), url: normalizedUrl },
+        });
+        if (result._tag === "Failure") setSaveError(result.failure.message);
+        else setProfile(null);
       }}
     >
       <label className="font-medium" htmlFor={inputId}>
@@ -91,7 +54,6 @@ export function InstagramForm(props: {
         autoCapitalize="none"
         autoComplete="off"
         autoCorrect="off"
-        disabled={isMutating}
         id={inputId}
         onChange={(event) => {
           setProfile(event.target.value);
@@ -107,14 +69,31 @@ export function InstagramForm(props: {
           ? `Profile URL: ${normalizedUrl}`
           : "Enter an Instagram profile URL or a username."}
       </p>
+      {state?.resolution.status === "resolving" ? <p role="status">Resolving…</p> : null}
+      {state?.resolution.error !== null && state?.resolution.error !== undefined ? (
+        <p role="alert">{state.resolution.error.message}</p>
+      ) : null}
       {saveError !== undefined ? (
         <p className="m-0 break-words" role="alert">
           {saveError}
         </p>
       ) : null}
-      <Button className="self-end" disabled={!canSave} type="submit">
-        {isMutating ? "Saving…" : "Save"}
-      </Button>
+      <div className="flex self-end gap-2">
+        <Button
+          onClick={() => {
+            setProfile(null);
+            setSaveError(undefined);
+            onCancel();
+          }}
+          type="button"
+          variant="outline"
+        >
+          Cancel
+        </Button>
+        <Button disabled={!canSave} type="submit">
+          Save
+        </Button>
+      </div>
     </form>
   );
 }

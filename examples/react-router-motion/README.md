@@ -31,11 +31,10 @@ No manual route table in Workspace, central content switch, router-context cloni
 
 ## Route IntelliSense
 
-The source `tsconfig.json` includes JSX and React Router's generated types. The dev server refreshes these types as routes change. To generate them without starting the server, or check the TypeScript and explicitly checked JSX:
+The source `tsconfig.json` includes JSX and React Router's generated types. The dev server refreshes these types as routes change. To generate them without starting the server:
 
 ```sh
 pnpm nx run @qrk.sh/react-router-motion:typegen
-pnpm nx run @qrk.sh/react-router-motion:typecheck
 ```
 
 `BrickDetail.jsx` uses JSDoc `import("./+types/BrickDetail").Route.ComponentProps` so `props.params.brickId` is a known string. JSX route modules can use the same annotation with their own generated filename. TypeScript route modules can use `import type { Route } from "./+types/ModuleName"` and annotate props with `Route.ComponentProps`.
@@ -44,19 +43,10 @@ For loaders, annotate arguments with `Route.LoaderArgs` or `Route.ClientLoaderAr
 
 ## Verification
 
-Run the checked-in acceptance tests through Nx:
-
-```sh
-pnpm nx run @qrk.sh/react-router-motion:test:e2e:cold -- --project=chromium
-pnpm nx run @qrk.sh/react-router-motion:test:e2e
-pnpm nx run @qrk.sh/react-router-motion:test:e2e:preview
-```
-
-The cold target forces dependency optimization on a fresh dev-server startup. The original cold failure was reproduced: Vite returned `504 Outdated Optimize Dep` for `react-dom/client` and `react-router/dom` while hydrating. Including the hydration entry and Motion in `optimizeDeps.include` prevents late discovery in the tested sequence.
-
-The tests verify same-group shell identity, retained outgoing brick parameters, close/reopen, Back/Forward, interrupted rapid navigation, and persistent input/scroll. Chromium cold and warm runs and Firefox/WebKit development runs pass. Rapid navigation has not reproduced a stranded drawer in these checked-in runs; the test waits for each URL commit before interrupting the animation, then asserts final drawer count and content.
-
-This example has synchronous route content. It does not prove the authenticated QRK editor's behavior. Inspect `window.events` for shell mount/unmount events.
+Repository tests and standalone automated checks are deferred until a test
+structure is agreed (see root `AGENTS.md`). For manual review, inspect
+`window.events` for shell mount/unmount events and use the running example to
+review drawer navigation, input, and scroll persistence.
 
 ## References
 

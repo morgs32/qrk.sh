@@ -1,3 +1,19 @@
+import { makeFigmaMeasurementContract } from "../modules/figmaThumbnail/makeFigmaMeasurementContract";
+import { makeBrickSpecGenerationContracts } from "./contracts/makeBrickSpecGenerationContracts";
+import { makeConfigureInstagramContract } from "../modules/instagram/makeConfigureInstagramContract";
+import { makeCompleteInstagramContract } from "../modules/instagram/makeCompleteInstagramContract";
+import { makeConfigureGithubActivityContract } from "../modules/githubActivity/makeConfigureGithubActivityContract";
+import { makeCompleteGithubActivityContract } from "../modules/githubActivity/makeCompleteGithubActivityContract";
+import { makeConfigureGithubProfileContract } from "../modules/githubProfile/makeConfigureGithubProfileContract";
+import { makeCompleteGithubProfileContract } from "../modules/githubProfile/makeCompleteGithubProfileContract";
+import { makeConfigureGithubRepoContract } from "../modules/githubRepo/makeConfigureGithubRepoContract";
+import { makeCompleteGithubRepoContract } from "../modules/githubRepo/makeCompleteGithubRepoContract";
+import { makeConfigureFigmaThumbnailContract } from "../modules/figmaThumbnail/makeConfigureFigmaThumbnailContract";
+import { makeCompleteFigmaThumbnailContract } from "../modules/figmaThumbnail/makeCompleteFigmaThumbnailContract";
+import { makeConfigureLinkContract } from "../modules/link/makeConfigureLinkContract";
+import { makeCompleteLinkContract } from "../modules/link/makeCompleteLinkContract";
+import { makeConfigureMapPlaceContract } from "../modules/mapPlace/makeConfigureMapPlaceContract";
+import { makeCompleteMapPlaceContract } from "../modules/mapPlace/makeCompleteMapPlaceContract";
 import { backendLibrary } from "../backendLibrary";
 import { makeModuleContracts } from "../make/makeModuleContracts";
 import { makeAddBrickContract } from "./contracts/addBrick/AddBrickContractV1";
@@ -45,13 +61,93 @@ const moduleContracts = makeModuleContracts({
   placement,
 });
 
-export const libraryModule = {
+const specGeneration = makeBrickSpecGenerationContracts({
+  library: backendLibrary,
+  brick,
+  placement,
+});
+const measureFigmaThumbnail = makeFigmaMeasurementContract({ brick, placement });
+const configureInstagram = makeConfigureInstagramContract({ brick, placement });
+const completeInstagram = makeCompleteInstagramContract({ brick, placement });
+const configureGithubActivity = makeConfigureGithubActivityContract({ brick, placement });
+const completeGithubActivity = makeCompleteGithubActivityContract({ brick, placement });
+const configureGithubProfile = makeConfigureGithubProfileContract({ brick, placement });
+const completeGithubProfile = makeCompleteGithubProfileContract({ brick, placement });
+const configureGithubRepo = makeConfigureGithubRepoContract({ brick, placement });
+const completeGithubRepo = makeCompleteGithubRepoContract({ brick, placement });
+const configureFigmaThumbnail = makeConfigureFigmaThumbnailContract({ brick, placement });
+const completeFigmaThumbnail = makeCompleteFigmaThumbnailContract({ brick, placement });
+const configureLink = makeConfigureLinkContract({ brick, placement });
+const completeLink = makeCompleteLinkContract({ brick, placement });
+const configureMapPlace = makeConfigureMapPlaceContract({ brick, placement });
+const completeMapPlace = makeCompleteMapPlaceContract({ brick, placement });
+
+export const libraryModule: {
+  models: {
+    wall: typeof wall;
+    brick: typeof brick;
+    placement: typeof placement;
+  };
+  contracts: {
+    measureFigmaThumbnail: typeof measureFigmaThumbnail;
+    generateBrickSpec: typeof specGeneration.generate;
+    completeBrickSpecGeneration: typeof specGeneration.complete;
+    configureInstagram: typeof configureInstagram;
+    completeInstagram: typeof completeInstagram;
+    configureGithubActivity: typeof configureGithubActivity;
+    completeGithubActivity: typeof completeGithubActivity;
+    configureGithubProfile: typeof configureGithubProfile;
+    completeGithubProfile: typeof completeGithubProfile;
+    configureGithubRepo: typeof configureGithubRepo;
+    completeGithubRepo: typeof completeGithubRepo;
+    configureFigmaThumbnail: typeof configureFigmaThumbnail;
+    completeFigmaThumbnail: typeof completeFigmaThumbnail;
+    configureLink: typeof configureLink;
+    completeLink: typeof completeLink;
+    configureMapPlace: typeof configureMapPlace;
+    completeMapPlace: typeof completeMapPlace;
+    addBrick: typeof addBrick;
+    updateLayoutAtBreakpoint: typeof updateLayoutAtBreakpoint;
+    setBrickVisibilityAtBreakpoint: typeof setBrickVisibilityAtBreakpoint;
+    removeBrick: typeof removeBrick;
+    compactLayoutAtBreakpoint: typeof compactLayoutAtBreakpoint;
+    updateBrick: typeof updateBrick;
+    updateFigmaThumbnailSpecAtBreakpoint: typeof moduleContracts.updateFigmaThumbnailSpecAtBreakpoint;
+    updateGithubActivitySpecAtBreakpoint: typeof moduleContracts.updateGithubActivitySpecAtBreakpoint;
+    updateGithubProfileSpecAtBreakpoint: typeof moduleContracts.updateGithubProfileSpecAtBreakpoint;
+    updateGithubRepoSpecAtBreakpoint: typeof moduleContracts.updateGithubRepoSpecAtBreakpoint;
+    updateImageSpecAtBreakpoint: typeof moduleContracts.updateImageSpecAtBreakpoint;
+    updateInstagramSpecAtBreakpoint: typeof moduleContracts.updateInstagramSpecAtBreakpoint;
+    updateLinkSpecAtBreakpoint: typeof moduleContracts.updateLinkSpecAtBreakpoint;
+    updateMapPlaceSpecAtBreakpoint: typeof moduleContracts.updateMapPlaceSpecAtBreakpoint;
+    updateSwatchAndIconSpecAtBreakpoint: typeof moduleContracts.updateSwatchAndIconSpecAtBreakpoint;
+    updateArticleSpecAtBreakpoint: typeof moduleContracts.updateArticleSpecAtBreakpoint;
+  };
+} = {
   models: {
     wall,
     brick,
     placement,
   },
   contracts: {
+    measureFigmaThumbnail,
+    generateBrickSpec: specGeneration.generate,
+    completeBrickSpecGeneration: specGeneration.complete,
+    configureInstagram,
+    completeInstagram,
+    configureGithubActivity,
+    completeGithubActivity,
+    configureGithubProfile,
+    completeGithubProfile,
+    configureGithubRepo,
+    completeGithubRepo,
+    configureFigmaThumbnail,
+    completeFigmaThumbnail,
+    configureLink,
+    completeLink,
+    configureMapPlace,
+    completeMapPlace,
+
     addBrick,
     updateLayoutAtBreakpoint,
     setBrickVisibilityAtBreakpoint,

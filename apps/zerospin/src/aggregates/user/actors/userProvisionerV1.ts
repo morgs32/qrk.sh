@@ -60,7 +60,7 @@ export const userProvisionerV1 = makeAggregateActorVersion(
             }),
         });
         return {
-          aggregateId: `acct_${verifiedToken.sub}`,
+          aggregateId: verifiedToken.sub,
           clerkUserId: verifiedToken.sub,
         };
       }),

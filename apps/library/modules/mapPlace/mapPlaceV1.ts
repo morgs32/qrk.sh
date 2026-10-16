@@ -1,3 +1,4 @@
+import { Schema } from "effect";
 import { makeEffectSchema, primitives } from "@zerospin/shapes";
 
 import {
@@ -45,10 +46,20 @@ export const mapPlaceV1 = makeModuleVersion(mapPlace, {
   },
   stateShape: {
     payload: primitives.json({ schema: makeEffectSchema(payloadShape) }),
-    data: primitives.json({ schema: makeEffectSchema(dataShape) }),
+    data: primitives.json({ nullable: true, schema: makeEffectSchema(dataShape) }),
+    resolution: primitives.json({
+      schema: Schema.Struct({
+        requestId: Schema.String,
+        status: Schema.Literals(["resolving", "ready", "failed"]),
+        error: Schema.NullOr(
+          Schema.Struct({ code: Schema.String, message: Schema.String, retryable: Schema.Boolean }),
+        ),
+      }),
+    }),
   },
   defaultState: {
     payload: { googlePlaceId: "ChIJ7cv00DwsDogRAMDACa2m4K8" },
     data: defaultData,
+    resolution: { requestId: "", status: "ready", error: null },
   },
 });

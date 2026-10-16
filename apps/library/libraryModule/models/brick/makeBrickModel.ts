@@ -7,7 +7,8 @@ import { wallModelV1 } from "../wall/wallModelV1";
 import { brick } from "./brick";
 
 export function makeBrickModel(props: { library: IBackendLibrary; wall: typeof wallModelV1 }) {
-  const moduleIdValues = Object.keys(props.library) as [
+  const { library, wall } = props;
+  const moduleIdValues = Object.keys(library) as [
     keyof IBackendLibrary,
     ...Array<keyof IBackendLibrary>,
   ];
@@ -15,13 +16,14 @@ export function makeBrickModel(props: { library: IBackendLibrary; wall: typeof w
   return makeModelVersion(brick, {
     attributes: {
       wallId: primitives.ref({
-        table: props.wall.table,
+        table: wall.table,
         relation: "wall",
         inverse: "bricks",
       }),
       moduleId: primitives.enum({
         values: moduleIdValues,
       }),
+      stateRevision: primitives.integer({ defaultValue: 0 }),
       state: primitives.json({ schema: Schema.Unknown }),
     },
     indexes: [],

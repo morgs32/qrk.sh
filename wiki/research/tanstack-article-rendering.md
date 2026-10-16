@@ -1,0 +1,72 @@
+# TanStack Markdown and Highlight for Article rendering
+
+Researched 2026-10-14 against QRK's current working tree, official documentation, source, and npm metadata. The initial source review is followed by the isolated Storybook comparison below; production integration remains unchanged. TanStack source snapshots: [Markdown `d9b5ef7`](https://github.com/TanStack/markdown/tree/d9b5ef7133ba514f7269cd8f29b5719cd34f5836) and [Highlight `0541f2f`](https://github.com/TanStack/highlight/tree/0541f2fdc7f96fb6245c82c739f0d816afdb670a).
+
+## Recommendation
+
+**Yes: consider TanStack Markdown for the read-only Article renderer, while retaining Meowdown for editing.** Its synchronous React renderer and standalone HTML renderer fit that responsibility. The main reason to evaluate it here is simpler rendering and potential server-rendered article bodies; QRK-specific performance and compatibility remain unverified. Highlight is a separate, optional decision. See the [React rendering contract](https://github.com/TanStack/markdown/blob/d9b5ef7133ba514f7269cd8f29b5719cd34f5836/docs/guides/react.md) and [HTML API](https://github.com/TanStack/markdown/blob/d9b5ef7133ba514f7269cd8f29b5719cd34f5836/docs/reference/html.md).
+
+## The current QRK boundary
+
+Article persists nullable Markdown content, and its editor saves `getMarkdown()`. The read-only path uses Meowdown's `MarkdownView`; generated Article specs use the same content component. This is a renderer comparison over stored Markdown, rather than a proposal to replace the editor or feed existing HTML into a Markdown parser. Sources: [state schema](/Users/morgs32/GitHub/qrk.sh/apps/library/modules/article/articleV1.ts:14), [editor callback](/Users/morgs32/GitHub/qrk.sh/apps/library/modules/article/ArticleEditorControl.tsx:42), [viewer](/Users/morgs32/GitHub/qrk.sh/apps/library/modules/article/ArticleBrickContent.tsx:45), [registry](/Users/morgs32/GitHub/qrk.sh/apps/library/modules/article/generator/ArticleJsonRenderRegistry.tsx:7).
+
+The current component explicitly waits for client mounting, based on `MarkdownView`'s documented DOM requirement. Its initial markup therefore contains the title/subtitle but omits the body. It also opens links in a new tab and disables task inputs. This application mount gate does not establish that Meowdown cannot produce DOM-free HTML: the direct Node follow-up below succeeded. Sources: [mount gate](/Users/morgs32/GitHub/qrk.sh/apps/library/modules/article/ArticleBrickContent.tsx:23), [link and task behavior](/Users/morgs32/GitHub/qrk.sh/apps/library/modules/article/ArticleBrickContent.tsx:18), [documented DOM requirement](/Users/morgs32/GitHub/qrk.sh/apps/library/node_modules/@meowdown/react/dist/index.d.ts:676).
+
+## What TanStack provides
+
+| Capability | Verified contract and implication |
+| --- | --- |
+| HTML | `renderHtml(sourceOrDocument, options)` synchronously returns a string. Input is Markdown source or its own AST, not arbitrary HTML to process. [API](https://github.com/TanStack/markdown/blob/d9b5ef7133ba514f7269cd8f29b5719cd34f5836/docs/reference/html.md) |
+| React | `<Markdown>{sourceOrDocument}</Markdown>` renders ordinary React nodes without an intermediate HTML string, returns a fragment, and accepts element replacements through `components`. [Guide](https://github.com/TanStack/markdown/blob/d9b5ef7133ba514f7269cd8f29b5719cd34f5836/docs/guides/react.md) |
+| Parsing | `parseMarkdown` produces serializable data that can be cached or rendered later. Frontmatter extraction and duplicate-safe heading IDs default on; either can be disabled. Visible heading-anchor links default off. [Parsing](https://github.com/TanStack/markdown/blob/d9b5ef7133ba514f7269cd8f29b5719cd34f5836/docs/core-concepts/parsing.md), [rendering](https://github.com/TanStack/markdown/blob/d9b5ef7133ba514f7269cd8f29b5719cd34f5836/docs/core-concepts/rendering.md) |
+| Runtime | Markdown is ESM with no runtime dependencies; React is an optional peer. V1 checks Node 22/24 and modern browsers with React 18/19. Other ESM runtimes are explicitly outside its tested support promise, so a future Workers build needs its own verification. [Manifest](https://github.com/TanStack/markdown/blob/d9b5ef7133ba514f7269cd8f29b5719cd34f5836/package.json), [v1 support](https://github.com/TanStack/markdown/blob/d9b5ef7133ba514f7269cd8f29b5719cd34f5836/docs/project/version-one.md) |
+
+## Compatibility is the deciding issue
+
+TanStack deliberately implements a docs-oriented subset, not complete CommonMark/GFM. It supports headings, emphasis, lists/tasks, tables, references, images, footnotes, and fenced code. It omits Setext headings, indented code blocks, automatic URL linking, and complete entity behavior. Soft line breaks remain text newlines. Those differences can affect ordinary authored articles. [Syntax profile](https://github.com/TanStack/markdown/blob/d9b5ef7133ba514f7269cd8f29b5719cd34f5836/docs/core-concepts/syntax-profile.md)
+
+QRK already promises saved image dimensions, which Meowdown writes into a trailing Markdown comment. TanStack's standard image output has `src`, `alt`, and optional `title`, with no corresponding dimension-comment interpretation in its renderer. Preserving this behavior needs deliberate adaptation; enabling raw HTML does not supply it. Sources: [QRK behavior](/Users/morgs32/GitHub/qrk.sh/apps/library/README.md:697), [dimension persistence](/Users/morgs32/GitHub/qrk.sh/apps/library/README.md:724), [TanStack image output](https://github.com/TanStack/markdown/blob/d9b5ef7133ba514f7269cd8f29b5719cd34f5836/src/html.ts#L71-L78).
+
+TanStack offers optional block/inline parsing, document transforms, and portable custom components. Math parsing/rendering is not bundled; extensions could supply it. That is a capability to implement missing syntax, not evidence of Meowdown parity. [Extension contract](https://github.com/TanStack/markdown/blob/d9b5ef7133ba514f7269cd8f29b5719cd34f5836/docs/guides/extensions.md)
+
+Its DOM also differs: fences use `pre.tm-code > code.language-*`; titled fences add `figure.tm-code-frame`. Links have no default `target`/`rel`; task checkboxes are disabled by the renderer. Existing Meowdown-specific styling and QRK link behavior require review. [Renderer source](https://github.com/TanStack/markdown/blob/d9b5ef7133ba514f7269cd8f29b5719cd34f5836/src/html.ts#L59-L120)
+
+## Security boundaries
+
+Raw HTML is escaped by default. Markdown URL screening allows relative/fragment URLs and HTTP(S), email, and telephone protocols; other explicit protocols, including `data:`, are removed. `urlTransform` can replace that policy, but its returned URLs are trusted. Supplied AST URLs, extension output, and highlighter HTML are also trusted; screening occurs during Markdown parsing. `allowHtml: true` emits/injects raw HTML and supplies no sanitizer. Remote-image policy and outbound-link behavior remain application responsibilities. These are useful explicit defaults, not proof of a security improvement over QRK's existing viewer. [Security contract](https://github.com/TanStack/markdown/blob/d9b5ef7133ba514f7269cd8f29b5719cd34f5836/docs/core-concepts/security.md), [URL implementation](https://github.com/TanStack/markdown/blob/d9b5ef7133ba514f7269cd8f29b5719cd34f5836/src/utils.ts#L70-L73)
+
+## Highlight can be adopted independently
+
+Meowdown's current viewer already highlights fenced code through CodeMirror/Lezer and renders special math/Mermaid blocks. A renderer switch needs an explicit decision about retaining that output; adding Highlight would replace existing highlighting. Sources: [installed highlighter API](/Users/morgs32/GitHub/qrk.sh/apps/library/node_modules/@meowdown/core/dist/index.d.ts:1345), [current code rendering](/Users/morgs32/GitHub/qrk.sh/apps/library/node_modules/@meowdown/react/dist/index.js:2553), [math/Mermaid rendering](/Users/morgs32/GitHub/qrk.sh/apps/library/node_modules/@meowdown/react/dist/index.js:2770).
+
+Highlight is a synchronous, dependency-free ESM highlighter with selective language imports and class-based escaped output. Its TanStack Markdown adapter supplies inner token markup while Markdown owns the code containers; it imports neither Markdown nor a language registry. Themes use CSS, and unknown languages fall back to plaintext. Highlight is optional: TanStack Markdown also renders escaped plain code. [Installation](https://github.com/TanStack/highlight/blob/0541f2fdc7f96fb6245c82c739f0d816afdb670a/docs/installation.md), [adapter guide](https://github.com/TanStack/highlight/blob/0541f2fdc7f96fb6245c82c739f0d816afdb670a/docs/guides/markdown-pipelines.md), [adapter source](https://github.com/TanStack/highlight/blob/0541f2fdc7f96fb6245c82c739f0d816afdb670a/src/markdown.ts#L79-L98)
+
+## Maturity and performance evidence
+
+The announcement is dated **July 24, 2026**. Current npm metadata reports Markdown **1.0.0**, published October 1, and Highlight **1.1.0**, published October 8. Both now document v1 compatibility promises; this is newer than the launch post's initial-release framing. Sources: [announcement](https://tanstack.com/blog/introducing-tanstack-markdown-and-highlight), [Markdown registry](https://registry.npmjs.org/@tanstack%2Fmarkdown), [Highlight registry](https://registry.npmjs.org/@tanstack%2Fhighlight), [Markdown v1 policy](https://github.com/TanStack/markdown/blob/d9b5ef7133ba514f7269cd8f29b5719cd34f5836/docs/project/version-one.md), [Highlight v1 policy](https://github.com/TanStack/highlight/blob/0541f2fdc7f96fb6245c82c739f0d816afdb670a/docs/guides/migrating-to-v1.md).
+
+TanStack's October 1 bundle report measures parser-plus-HTML at **7,048 gzip bytes**, and React rendering at **6,998**, excluding the framework and highlighter. Its benchmarks are maintainer Node microbenchmarks and exclude browser layout, framework updates, and network costs. Neither establishes QRK savings against Meowdown, especially while editing still retains Meowdown. [Bundle methodology/results](https://github.com/TanStack/markdown/blob/d9b5ef7133ba514f7269cd8f29b5719cd34f5836/reports/sizes.md), [benchmark methodology/results](https://github.com/TanStack/markdown/blob/d9b5ef7133ba514f7269cd8f29b5719cd34f5836/reports/benchmarks.md)
+
+The initial proposed evaluation was to manually compare representative Article Markdown: image-size comments, links/autolinks, line breaks, tables/tasks, nested lists, raw HTML, and any wiki links, highlights, math, or Mermaid content in use. Body SSR/hydration, styling, link behavior, and actual route bundles also need checking before production adoption. The isolated comparison below records the checks completed so far.
+
+## Storybook comparison and Node HTML generation
+
+The user subsequently confirmed that server-side HTML generation is required. [Renderer comparison](http://127.0.0.1:6007/?path=/story/library-article-renderer-comparison--side-by-side) now pairs the existing Article view with TanStack's HTML output. Both receive the same Markdown; an expandable Meowdown editor updates both, with shared source and generated HTML available below. Raw HTML stays escaped, frontmatter extraction and heading IDs/anchors are disabled, and no additional highlighter is installed. Sources: [story](/Users/morgs32/GitHub/qrk.sh/apps/library/modules/article/ArticleRendererComparison.stories.tsx), [fixture](/Users/morgs32/GitHub/qrk.sh/apps/library/modules/article/articleRendererComparisonMarkdown.ts).
+
+Manual verification on 2026-10-14 established:
+
+- Node 24.13.1 generated the fixture's 1,936-byte body HTML with `window` and `document` both absent. The same fixture and renderer options were used as the story. The [reproducible command](/Users/morgs32/GitHub/qrk.sh/apps/library/README.md:185) imports only the HTML entry point and fixture.
+- In Chrome, live Meowdown editing and undo updated both read-only panels. Both panels' task inputs stayed disabled. At desktop width, the panels were equal widths; at a 320px Storybook viewport, they stacked with document width equal to viewport width.
+- The saved image rendered at 320 × 120 in Meowdown and 640 × 240 in TanStack; TanStack also displayed the escaped dimension comment. Bare URLs remained plaintext in TanStack, while Meowdown linked them. TanStack retained the highlight/wiki-link/math delimiters as text and rendered the math fence as plain code. Meowdown rendered math and highlighted its TypeScript fence; TanStack's code output was deliberately unhighlighted.
+
+Library typechecking, lint, and the static Storybook build passed. Scoped formatting and whitespace checks passed.
+
+These observations validate an isolated comparison and DOM-free Node body generation. They do not establish a published-page pipeline, Workers compatibility, server rendering of QRK's complete component tree, or bundle savings. Production adoption still needs a deliberate decision about the observed Markdown differences and link/image behavior.
+
+## Correction: Meowdown also generated HTML without a DOM
+
+A subsequent direct manual check on 2026-10-14 rendered the complete shared fixture with `renderToStaticMarkup(createElement(MarkdownView, ...))` in Node 24.13.1, with `window` and `document` both absent. With `interactive: true`, ordinary links remained anchors and the saved image width remained 320px. Calling `await getCodeTokens(..., 'ts')` before rendering loaded the grammar; the resulting HTML included highlighted token spans. The earlier inference that Meowdown cannot generate DOM-free HTML was too broad, despite its API documentation saying a DOM is required.
+
+The installed versions expose no standalone `renderHtml` API; this path uses React's server renderer. Math and Mermaid preview loaders run in effects, so the server output retains formula/code fallbacks rather than the complete browser previews. Sources: [React element walker](/Users/morgs32/GitHub/qrk.sh/apps/library/node_modules/@meowdown/react/dist/index.js:2780), [shared tokenizer](/Users/morgs32/GitHub/qrk.sh/apps/library/node_modules/@meowdown/core/dist/index.js:2251), [effect-based math loader](/Users/morgs32/GitHub/qrk.sh/apps/library/node_modules/@meowdown/react/dist/index.js:55), [math/Mermaid fallbacks](/Users/morgs32/GitHub/qrk.sh/apps/library/node_modules/@meowdown/react/dist/index.js:2606).
+
+TanStack's distinction here is a standalone synchronous HTML-string API. DOM-free HTML generation itself is not unique to TanStack. Full production server rendering remains deferred at the user's request; no production renderer or mount gate was changed.

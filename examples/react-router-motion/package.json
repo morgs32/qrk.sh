@@ -4,14 +4,10 @@
   "type": "module",
   "scripts": {
     "typegen": "react-router typegen",
-    "typecheck": "react-router typegen && tsc --noEmit",
     "dev": "react-router dev --host 127.0.0.1 --port 4319 --strictPort",
     "build": "react-router build",
     "preview": "vp preview --outDir build/client --host 127.0.0.1 --port 4319 --strictPort",
-    "format": "vp fmt --config ../../.oxfmtrc.json src",
-    "test:e2e": "playwright test",
-    "test:e2e:cold": "COLD_DEV=1 playwright test",
-    "test:e2e:preview": "PREVIEW=1 playwright test"
+    "format": "vp fmt --config ../../.oxfmtrc.json src"
   },
   "dependencies": {
     "@react-router/node": "8.3.1",
@@ -22,7 +18,6 @@
     "react-router": "8.3.1"
   },
   "devDependencies": {
-    "@playwright/test": "^1.59.1",
     "@react-router/dev": "8.3.1",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",

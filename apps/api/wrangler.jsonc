@@ -28,7 +28,6 @@
       { "name": "FIGMA_BACKEND", "class_name": "FigmaBackend" },
       { "name": "GOOGLE_PLACES_BACKEND", "class_name": "GooglePlacesBackend" },
       { "name": "LINK_BACKEND", "class_name": "LinkBackend" },
-      { "name": "STREAMLINE_BACKEND", "class_name": "StreamlineBackend" },
     ],
   },
   "migrations": [
@@ -37,6 +36,10 @@
       "tag": "v1",
       "new_classes": ["BrowserHost", "StreamlineBackend"],
       "new_sqlite_classes": ["BackendRepo", "FigmaBackend", "GooglePlacesBackend", "LinkBackend"],
+    },
+    {
+      "tag": "v2",
+      "deleted_classes": ["StreamlineBackend"],
     },
   ],
 }

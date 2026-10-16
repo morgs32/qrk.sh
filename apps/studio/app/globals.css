@@ -226,15 +226,6 @@ html body[data-scroll-locked] {
   opacity: 0.8;
 }
 
-/* Tiptap placeholder */
-.tiptap p.is-editor-empty:first-child::before {
-  color: var(--muted-foreground);
-  content: attr(data-placeholder);
-  float: left;
-  height: 0;
-  pointer-events: none;
-}
-
 /* Only outgoing drawer content is snapshotted; the persistent shell uses CSS. */
 ::view-transition {
   pointer-events: none;

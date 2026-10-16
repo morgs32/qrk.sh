@@ -9,5 +9,5 @@ export const swatchAndIconColorComponent = defineComponent({
   },
   slots: ["default"],
   description:
-    'Solid color field shell. Bind color with { "$state": "/color" } (from module options).',
+    'Solid color field shell. Bind color with { "$state": "/payload/color" }; saved module color is shared across breakpoints.',
 });

@@ -24,9 +24,6 @@
     "dist",
     "build",
     "storybook-static",
-    "node_modules",
-    "test-results",
-    "cloudflare-test.d.ts",
-    "vitest.worker.config.ts"
+    "node_modules"
   ]
 }

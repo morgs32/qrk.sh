@@ -1,18 +1,18 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useContext } from "react";
 import type { ReactNode, RefCallback } from "react";
 import { cn } from "cn";
 
+import { BrickCardStyleContext } from "../../lib/BrickCardStyleContext";
 import { brickStackGapClass } from "./brickTokens";
 
-export function MeasuredBrickWrapper({
-  children,
-  onChange,
-}: {
+export function MeasuredBrickWrapper(props: {
   children?: ReactNode;
   onChange?: (dimensions: { widthPx: number; heightPx: number }) => void;
 }) {
+  const { children, onChange } = props;
+  const cardStyle = useContext(BrickCardStyleContext);
   const rootRef = useCallback<RefCallback<HTMLDivElement>>(
     (element) => {
       if (!element) return;
@@ -34,15 +34,26 @@ export function MeasuredBrickWrapper({
 
   return (
     <div
-      ref={rootRef}
-      data-brick-measure=""
-      className={cn(
-        "qrk-bricks relative flex flex-col items-start shadow-[0_8px_28px_rgb(0_0_0/0.06),0_1px_6px_rgb(0_0_0/0.04)] [&_svg]:select-none",
-        brickStackGapClass,
-      )}
-      style={{ width: "max-content", height: "max-content", overflow: "visible" }}
+      data-brick-surface=""
+      data-card-style={cardStyle}
+      data-brick-intrinsic=""
+      className="brick-hover-target relative"
+      style={{ width: "max-content", height: "max-content" }}
     >
-      {children}
+      <div className="brick-hover-surface">
+        {/* Measure content independently of the decorative card gutter. */}
+        <div
+          ref={rootRef}
+          data-brick-measure=""
+          className={cn(
+            "qrk-bricks relative flex flex-col items-start [&_svg]:select-none",
+            brickStackGapClass,
+          )}
+          style={{ width: "max-content", height: "max-content", overflow: "visible" }}
+        >
+          {children}
+        </div>
+      </div>
     </div>
   );
 }

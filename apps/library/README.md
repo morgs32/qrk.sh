@@ -39,23 +39,21 @@ become part of the brick library's public declarations. Linktree scraping stays
 in the separate `@qrk.sh/scraper` Worker (`apps/scraper`).
 
 API retains the `ASSETS` bucket for `/assets/library/*` and serves other asset
-keys from `QRKSH`. Uploads now require Clerk authentication. Existing image bytes
+keys from `QRKSH`. Studio uploads require Clerk authentication; standalone Library
+Image forms use the anonymous `/image/upload` endpoint. Existing image bytes
 and local state directories remain preserved, with local `ASSETS` data copied
 to API's state. Saved absolute port-4101 URLs need their origin updated
 separately; authored documents are not rewritten.
 
-## Checks and builds
+## Builds
 
 ```sh
-pnpm nx run @qrk.sh/library:ts
-pnpm nx run @qrk.sh/library:lint
 pnpm nx run @qrk.sh/library:build:app
 pnpm nx run @qrk.sh/library:build
 ```
 
-`ts` checks Library browser and shared module code. API checks its Worker code
-separately. Library tests are intentionally not maintained or run (see root
-`AGENTS.md`).
+Repository tests and standalone automated checks are deferred until a test
+structure is agreed (see root `AGENTS.md`).
 
 `build:app` produces the Next app in `.next`.
 `build` produces the reusable brick library in `dist`, including its public
@@ -78,47 +76,56 @@ remains `QRK.SH Library`, with diagnostic error and not-found screens.
 
 The root layout mounts the shared `ZerospinDevtoolsLoader` in every environment with the panel initially closed. It stays mounted across route navigation and standalone-session resets, and owns cleanup when the application unmounts.
 
-The GitHub Profile and GitHub Activity brick drawers accept a profile URL or username and show the
-full `https://github.com/<username>` URL as feedback for usernames. Save is enabled
-only when the normalized profile URL differs from the saved URL. Saving fetches
-`getGitHubProfile` through an explicit SWR mutation, then stages one
-`updateBrick` command containing both `state.payload.url` and `state.data`.
-Activity keeps only the fetched contribution calendar in `state.data`.
+## Brick forms
 
-The GitHub Repo drawer accepts a full `https://github.com/<owner>/<repo>` URL only.
-It removes a trailing `.git`, lowercases the owner, preserves the repository name's
-case, and ignores query strings, fragments, and trailing slashes. Save fetches
-`getGitHubRepo` through an explicit SWR mutation when the normalized URL changes,
-then stages one `updateBrick` command containing the URL and repository data.
+All ten modules own their form. The shared form receives the queried state,
+initialized session, brick identity, synchronous `onSave(state): IResult`, and
+Cancel. Hosts render forms directly; saved presentation always comes from the
+brick query, including optimism and rejection rollback. Forms retain only unsaved
+drafts. Article and Image saves call `updateBrick` synchronously; image upload
+remains a separate cancellable browser prerequisite.
 
-The Figma Thumbnail drawer accepts HTTPS Figma document URLs for designs, files,
-boards, slides, decks, and prototypes. It normalizes the host to `www.figma.com`,
-maps `file` to `design` and `deck` to `slides`, and ignores document names, query
-strings, and fragments. Save is enabled only when the normalized document URL
-changes. Saving fetches `figmaBackend().getThumbnail` through an explicit SWR
-mutation, then stages one `updateBrick` containing `state.payload.url` and
-the fetched title, document URL, and thumbnail metadata in `state.data`.
-Node selections use the whole document's thumbnail.
+Instagram, GitHub Profile/Activity/Repo, Figma Thumbnail, Link and Map Place stage
+their module's `configure…` command synchronously. The transaction records canonical
+input, request identity and `resolution: resolving`, clears old computed data,
+increments `stateRevision`, and invalidates measurements and active spec generation.
+The query displays resolving, ready or failed state. Input correction stays
+available while resolving; an identical resolving input is refused. Failed input
+can be retried with a new request identity. Cancel discards only the unsaved draft.
 
-The Instagram drawer accepts usernames, `@usernames`, and HTTPS Instagram profile
-URLs, normalizing them to `https://www.instagram.com/<username>`. Save remains
-enabled for any valid profile, including the saved URL, so each Save explicitly
-refreshes the profile. `getInstagramProfile` scrapes fresh data and stores its
-avatar and zero to four ordered post images in API's R2 bucket before returning.
-The form validates the complete module state and stages one `updateBrick`.
-State, authored views, and generated grid specs use `data.postImageUrls` directly;
-the grid keeps its two-by-two layout and is omitted for an empty array. The old
-four separate post-image fields are no longer accepted.
-Existing local Instagram grid specs were converted once, preserving fixture IDs,
-placement geometry, null states, and unrelated data. The previous standalone
-backup was retained. Runtime code performs no conversion of legacy state or specs.
+`startLibrarySessionWork` composes module-owned provider executors at the Library
+session lifetime and Studio's authenticated user-session lifetime. Each executor
+observes its module's retained intents, calls the existing same-origin API, decodes
+module data and stages a guarded completion. Brick/module/request/revision checks
+make stale or duplicate completions harmless. Closing an editor leaves submitted
+work running; disposing or replacing its session closes requests and rejects late
+results. A browser reload can rediscover resolving work in retained local state.
+This is local execution while an editing session is open; no new backend owner or
+server durability guarantee is introduced. Existing API provider credentials,
+caches and identity validation retain their ownership.
 
-Each URL form's explicit SWR mutation fetches metadata, validates the complete
-state, and awaits its `onSave` callback. Input and Save remain disabled through
-fetching, optional measurement, and staging. Fetch, validation, measurement, or
-command failures retain the draft, saved state, and saved measurements. Successful
-Save keeps the drawer open; closing discards unsaved input and prevents a pending
-Save from staging after the editor unmounts.
+GitHub accounts accept URLs or usernames. Repository input accepts an HTTPS URL
+or owner/repository, strips `.git`, lowercases the owner and preserves repository
+spelling. Figma normalizes supported document kinds and file identity. Instagram
+normalizes usernames/profile URLs. Link removes fragments and retains its submitted
+URL separately from resolved redirect metadata. Map Place keeps autocomplete as
+transient search and stages the selected nonempty place ID.
+
+Figma measures all four ready breakpoint renders with the existing rounded,
+unconstrained DOM wrapper. Its measurement command checks state and spec revisions
+before writing all four dimensions atomically. Admin's raw JSON path retains its
+separate real pre-save measurement; it compares both state and placement specs
+immediately before staging. Other ordinary form saves have no measurement wait.
+
+Swatch and Icon retains the selected `{ hash, name, svg }` from paged icon search.
+SVG data URLs are derived for presentation. Save validates a complete hex color
+and stages the selected icon and color directly, including the existing/default
+icon when no search runs. There is no Save-time icon request.
+
+The fixed-schema cutover uses `/qrk-library-command-query-v1` for Library's local
+backup and a corresponding namespace for standalone preview sessions. Previous
+backups remain intact. Studio also requires fresh isolated storage for the new
+state/spec revision fields; no migration or reset is performed automatically.
 
 ## Storybook
 
@@ -133,6 +140,40 @@ app's global styles and fonts. Stories live alongside their components in
 `components/`, `lib/`, and `modules/`. The static build goes to
 `apps/library/storybook-static/`. Storybook configuration and stories are
 excluded from the reusable package's declaration build.
+
+**Library / Article / Meowdown spike** pairs an editable Markdown fixture with
+live Markdown output. Its **Hide / Hybrid / Show** radio control changes syntax
+visibility while preserving edits. This story uses local state only.
+It shares Article's production typography and ordered/nested-list spacing.
+
+**Library / Article / Renderer comparison** shows the current Meowdown article
+view beside HTML returned by `@tanstack/markdown/html`'s `renderHtml`. A shared
+Meowdown editor updates both previews; expandable panels expose the Markdown
+source and generated HTML. The fixture includes ordinary article syntax,
+image-size comments, raw HTML, and Meowdown extensions so rendering differences
+remain visible. TanStack uses escaped raw HTML, with frontmatter extraction and
+heading IDs disabled. Storybook invokes the synchronous HTML API in the browser;
+the same API can generate body HTML in a server process without React or a DOM.
+This comparison retains the production Meowdown editor and article renderer.
+
+To generate the comparison fixture's body HTML in Node, without React or a DOM:
+
+```sh
+cd apps/library
+node --input-type=module <<'JS'
+import { renderHtml } from '@tanstack/markdown/html';
+import { articleRendererComparisonMarkdown } from './modules/article/articleRendererComparisonMarkdown.ts';
+process.stdout.write(renderHtml(articleRendererComparisonMarkdown, {
+  allowHtml: false,
+  frontmatter: false,
+  headingIds: false,
+  headingAnchors: false,
+}));
+JS
+```
+
+This command uses Node's native TypeScript support (verified with Node 24).
+The result is a body fragment; full page composition and publication are separate.
 
 **Library / Brick hover transitions** compares background tint with five hard-shadow
 options: the original, tight, bold, tinted, and position-aware shadows. Hover or
@@ -150,26 +191,29 @@ UI uses an immediate inset border.
 its defining source. `build` emits their JavaScript and declaration files; `app/`
 contains the Library-only routes and layout, not exported application screens.
 
-Reusable builds keep `@tiptap/*` external so Article forms and their consumers
-share one Tiptap/ProseMirror runtime, including plugin keys.
+Reusable builds bundle Meowdown while keeping React external. Article state and
+form callbacks exchange Markdown strings; consumers share no editor instances.
 
-| Import under `@qrk.sh/library`    | Defining source                             | Purpose                                                   |
-| --------------------------------- | ------------------------------------------- | --------------------------------------------------------- |
-| package root                      | `lib/index.ts`                              | Small barrel: `modulesHash`, `IModule`, `IModuleBrickDef` |
-| `/backendLibrary`                 | `backendLibrary.ts`                         | Module catalog registry used by API generation            |
-| `/ModuleFilmstrip`                | `lib/ModuleFilmstrip.tsx`                   | Shared horizontal module catalog                          |
-| `/Drawer`                         | `lib/Drawer.tsx`                            | Shared Drawer and existing DrawerPresence                 |
-| `/BrickWall`                      | `lib/BrickWall.tsx`                         | Interactive wall                                          |
-| `/GridItemPreview`                | `lib/GridItemPreview.tsx`                   | Preview geometry                                          |
-| `/WallViewportProvider`           | `lib/WallViewportProvider.tsx`              | Viewport provider and hooks                               |
-| `/WallBreakpointPane`             | `lib/WallBreakpointPane.tsx`                | Shared fixed-width wall pane with browser chrome          |
-| `/breakpoints`                    | `lib/breakpoints.ts`                        | Breakpoint definitions and sizing                         |
-| `/brickDragStore`                 | `lib/brickDragStore.ts`                     | Shared drag state                                         |
-| `/TiptapDocSchema`                | `lib/TiptapDocSchema.ts`                    | Article document schema                                   |
-| `/MeasuredBrickWrapper`           | `components/brick/MeasuredBrickWrapper.tsx` | Content measurement                                       |
-| `/libraryModule`                  | `libraryModule/libraryModule.ts`            | Models and command contracts                              |
-| `/createLibraryStandaloneSession` | `session/createLibraryStandaloneSession.ts` | Session factory, context, hook, and type                  |
-| `/bricks.css`                     | `bricks.css`                                | Shared brick styles                                       |
+| Import under `@qrk.sh/library`    | Defining source                              | Purpose                                                     |
+| --------------------------------- | -------------------------------------------- | ----------------------------------------------------------- |
+| package root                      | `lib/index.ts`                               | Small barrel: `modulesHash`, `IModule`, `IModuleBrickDef`   |
+| `/backendLibrary`                 | `backendLibrary.ts`                          | Module catalog registry used by API generation              |
+| `/ModuleFilmstrip`                | `lib/ModuleFilmstrip.tsx`                    | Shared horizontal module catalog                            |
+| `/Drawer`                         | `lib/Drawer.tsx`                             | Shared Drawer and existing DrawerPresence                   |
+| `/BrickWall`                      | `lib/BrickWall.tsx`                          | Interactive wall                                            |
+| `/BrickCardStyleContext`          | `lib/BrickCardStyleContext.ts`               | Local boolean appearance shared by wall and previews        |
+| `/GridItemPreview`                | `lib/GridItemPreview.tsx`                    | Preview geometry                                            |
+| `/WallViewportProvider`           | `lib/WallViewportProvider.tsx`               | Viewport provider and hooks                                 |
+| `/WallBreakpointPane`             | `lib/WallBreakpointPane.tsx`                 | Shared fixed-width wall pane with browser chrome            |
+| `/breakpoints`                    | `lib/breakpoints.ts`                         | Breakpoint definitions and sizing                           |
+| `/brickDragStore`                 | `lib/brickDragStore.ts`                      | Shared drag state                                           |
+| `/ImageUploadEnvironment`         | `modules/image/ImageUploadEnvironment.ts`    | Image's upload URL, site grouping, and authorization Effect |
+| `/ImageUploadRuntimeContext`      | `modules/image/ImageUploadRuntimeContext.ts` | Image's runner bound to the existing app session            |
+| `/MeasuredBrickWrapper`           | `components/brick/MeasuredBrickWrapper.tsx`  | Content measurement                                         |
+| `/libraryModule`                  | `libraryModule/libraryModule.ts`             | Models and command contracts                                |
+| `/createLibraryStandaloneSession` | `session/createLibraryStandaloneSession.ts`  | Session factory, context, hook, and type                    |
+| `/bricks.css`                     | `bricks.css`                                 | Shared brick styles                                         |
+| `/article-editor.css`             | `modules/article/article-editor.scss`        | Meowdown, Article typography, and portaled controls         |
 
 Studio imports `Drawer` directly from `@qrk.sh/library/Drawer`; Library's own app
 imports `../lib/Drawer`. Supplying `open` keeps the shared shell mounted and uses a
@@ -197,6 +241,34 @@ measurement, and `DraggableBrick`. Each app supplies its own module links throug
 vertically within a horizontal strip. Module headings span their columns edge
 to edge and stick to the top while previews scroll underneath. Module detail
 screens remain app-owned.
+
+## Local card appearance spike
+
+The **Cards** button in Library's grid controls and Studio's upper-right corner
+toggles one local boolean through `BrickCardStyleContext`. Its provider covers
+the wall and drawer previews; no module catalog or registry appearance props are
+added. The flag starts `false`, survives drawer navigation while its layout stays
+mounted, and is not persisted on Site, Page, or in localStorage.
+
+The default mode draws touching bricks with one opaque 1px `#282824` shared rule.
+Overlapping strokes use the same pixels; the wall's right/bottom perimeter and
+standalone preview frames stay inside their boxes. Card mode uses RGL's native
+16px margins and 16px container padding, producing one 16px gap between cards
+and at the wall perimeter. Each card surface fills its RGL slot, with no extra
+inset. Cards use an 8px radius, white background, and the preview shadow on the
+surface. Module content retains its own padding, backgrounds, and media layout.
+See [the shared-border research](../../wiki/research/react-grid-layout-shared-borders.md)
+and [card geometry](../../wiki/research/page-brick-card-styling.md).
+
+For wall width `W`, card-mode pitch is `(W - 16) / 8` and row height is
+`pitch - 16`, keeping unit cards square. Fixed previews use
+`round(w * pitch - 16)` by `round(h * pitch - 16)`; default mode retains `W / 8`
+pitch with zero margins/padding. Drag hit targets, resize outlines, and handles
+follow the native RGL card slot. Stored logical coordinates and dimensions,
+minimum-unit conversion, and measurement callbacks remain unchanged. Intrinsic
+previews measure the original content root with no extra decorative padding.
+Existing fixed-size content can clip in the smaller card-mode slot. This remains
+a local visual spike.
 
 ## Modules and interaction
 
@@ -230,6 +302,16 @@ and `defaultState`. `makeModuleView` infers authored callback props from that st
 shape and decodes incoming state before rendering, discarding undeclared fields.
 Its authored wrappers are created once and reused by previews and placed bricks.
 It also attaches a json-render `generator` (`registry` + `defaultSpec`).
+
+`defineModule` accepts optional `maxPerPage`, a positive integer; omission means
+unlimited. Article declares `1` and Instagram declares `2`. The limit counts brick
+records with the same `wallId` and module ID, including hidden and unconfigured
+bricks, once across all breakpoints. Catalog and module detail previews show the
+limit and disable dragging when it is reached; the wall also refuses excess
+drops. `addBrick` enforces the same rule with
+`add-brick-module-limit-reached` (409). Removing a brick frees capacity. Existing
+over-limit pages keep their content and cannot add that module until below its
+limit.
 
 Modules can opt into unconfigured bricks with `hasPlaceholder: true` in
 `makeModuleVersion` and a matching display-only `default.placeholder` in
@@ -364,14 +446,14 @@ Existing bricks are normalized on their next state update; there is no bulk migr
 
 A module view may set `measureOnSave: true`; the default is false, and Figma
 Thumbnail opts in. `useUpdateBrick({ brickId })` owns an explicit SWR mutation and
-returns `updateBrick(state)`, `measurementHost`, and `isMutating`. The brick drawer
+returns `updateBrick(state)`, `measurementHost`, `isMutating`, and `cancelSave`. The brick drawer
 and Admin render the hidden host and await the mutation. It renders proposed state
 against each placement's actual Spec and breakpoint, including hidden placements,
 using the existing `MeasuredBrickWrapper` and unconstrained CSS. It captures the
 wrapper's rounded dimensions without adding image-specific sizing or load waits.
 Before staging it rereads the brick and placement specs, rejecting changed specs
-or deleted bricks. Closing cancels pending measurement. The forms keep their
-module-specific fetching and state schemas; their mutations await this shared Save.
+or deleted bricks. Cancel and closing invalidate pending measurement. The forms keep their
+module-specific fetching and state schemas; their Save handlers await this shared Save.
 
 Each placement stores nullable `measured: { widthPx, heightPx }`, with positive
 integer CSS-pixel values and a null default. The brick stores shared state rather
@@ -451,8 +533,9 @@ for completion. Below 360px, the insufficient-width message appears as soon as
 the gesture ends; a fitting wall returns immediately when space recovers.
 
 Library and Studio use a white wall canvas at all four breakpoints. `BrickWall`
-has no horizontal grid padding, so bricks meet both wall edges. Row heights use
-the full grid width divided by eight to keep cells square.
+uses zero margins/padding in default mode, so placement boxes meet both wall
+edges; row height is the full width divided by eight. Card mode uses equal 16px
+interior/perimeter gaps and the square-cell formula described above.
 Its optional `selectedBrickId` keeps the matching brick's outline and resize handles
 visible in the idle active wall. Studio supplies the brick-detail route ID; hover,
 focus, and drag/resize suppression retain their existing behavior.
@@ -488,7 +571,7 @@ from its viewport minimum height, with 3.5rem and zero fallbacks respectively, s
 empty wall remains one viewport tall without extra scrolling.
 
 Library and Studio resolve browser SQLite WASM from the installed Zerospin
-`7.0.0` package exports. Next's webpack build emits the standalone session's
+`11.1.0` package exports. Next's webpack build emits the standalone session's
 synchronous asset and the connected SharedWorker's async asset. Persistent Node
 storage belongs to the SharedWorker's IndexedDB-backed SQLite namespace;
 no separate backup worker or public backup-worker assets remain.
@@ -517,25 +600,28 @@ also drag from their entire surface.
 ## Image editing in the brick drawer
 
 Image exposes its module-owned `ImageForm` through the shared module registry.
-The form edits the existing Image URL and Title fields; the drawer owns local
-drafts, Save, and Cancel. Unconfigured bricks initialize from the module's
+The form owns its Image URL and Title drafts, pending state, errors, Save, and
+Cancel. Unconfigured bricks initialize from the module's
 default state. Save stages the complete state through `updateBrick`. Studio
 reuses this same Form in its authenticated brick detail drawer.
-Both drawers own one centered form column around fields and actions; Image's
+Both drawers provide one centered column around the module form; Image's
 field groups fill that column, with Save/Cancel aligned to the fields' left edge.
 
 Image also offers a single-file dropzone and picker for nonempty PNG, JPEG,
 WebP, or SVG images up to 5 MiB. Selection uploads immediately; success changes
-only the draft Image URL until Save. Library uploads anonymously through
-`POST /image/upload`; Studio supplies its authenticated `/upload` operation.
-The host's SWR mutation supplies `isUploadingImage` to the form and blocks Save
-while uploading. Image owns validation, feedback, and cancellation. Cancel or
+only the draft Image URL until Save. Image owns the `uploadImage` Effect and its
+`ImageUploadEnvironment` dependency. App composition binds an Effect Layer to the
+existing session runner through `ImageUploadRuntimeContext`: Library supplies
+anonymous `POST /image/upload`, while Studio supplies `/upload`, its site ID,
+and fresh Clerk authorization. The shared form contract has no Image-specific
+upload props. Image owns validation, the request, response decoding, feedback,
+and cancellation; its fields and Save stay disabled during upload. Cancel or
 leaving the brick aborts unfinished requests and ignores late results; completed
 R2 objects remain stored. File bytes are not included in the local backup.
 
 ## Article editing in the brick drawer
 
-The rich text module uses **Article** and the `article` module ID.
+The Markdown module uses **Article** and the `article` module ID.
 Its default size is 8 columns by 8 rows on sm, 6 columns by 6 rows on md, and
 4 columns by 4 rows on lg/xl.
 Article titles and subtitles use the platform system sans-serif font (San
@@ -549,8 +635,10 @@ legacy aliases or data migration; old `text` bricks,
 `TextBrick` specs, and Text command history may no longer load.
 
 Article state stores required `title` and `subtitle` strings separately from the
-nullable Tiptap body `content`. The module form uses plain text title/subtitle
-inputs in a centered writing column, with a flat, centered toolbar.
+nullable Markdown body `content`. The module form uses plain text title/subtitle
+inputs in a centered writing column. Meowdown runs in Hybrid (`focus`) mode,
+revealing Markdown syntax near the cursor. Native shortcuts, slash menus, link
+controls, and block handles replace the formatting toolbar; there is no mode switcher.
 Article content has no horizontal padding. Read-only documents use the shared
 `qrk-responsive-insets` class from `bricks.css`: `--qrk-inset-inline` supplies
 16px outer gutters and `--qrk-inset-block` supplies 16px vertical padding.
@@ -563,19 +651,26 @@ Titles use 32px/36px bold text; subtitles use 18px/24px muted text, with a 12px
 title-to-subtitle gap and 36px before the body. The drawer retains its smaller
 mobile title. These fonts and spacing follow the
 [Experimental History article](https://www.experimental-history.com/p/the-strangest-idea-in-the-world).
-Body headings are H2–H4. Standard HTML form validation blocks Save when either
+The body supports Meowdown's native Markdown headings, lists, tasks, quotes,
+code, tables, links, images, and inline formatting. Underline, colored highlights,
+and text alignment are not retained. Standard HTML form validation blocks Save when either
 metadata field is empty or contains only whitespace; Admin retains schema-based
 JSON validation. This is a hard schema change without migration or fallback:
-old content-only Article state and specs may no longer load. Standalone persistence
-uses the definition reset described above.
+old Tiptap Article state, specs, and command history may no longer load. The approved
+local cutover backs up backend storage and uses fresh browser origins, leaving old
+origin databases and Clerk cookies untouched. The installed browser runtime can
+reset incompatible node tables during initialization; preserve old stores before
+opening a rebuilt application. There is no JSON converter or compatibility reader.
 The bundled example uses “Actually good advice” as its title and the introductory
 paragraph as its subtitle, retaining all four numbered criteria and the closing
 paragraph in its body. Generated `ArticleBrick` specs bind `/title`, `/subtitle`,
 and `/content` separately.
 
-Article bricks and previews render their title and subtitle above HTML generated
-in the browser from committed Tiptap JSON. Serialization errors reach the existing error boundary, saved image
-widths are retained, and task checkboxes are disabled. Placed bricks remain read-only.
+Article bricks and previews render their title and subtitle above a client-mounted
+Meowdown MarkdownView in Hide mode. They mount no editor. Links open in a new tab,
+saved image dimensions are retained, and task checkboxes are disabled. Placed bricks
+remain read-only. Raw HTML remains literal Markdown content; arbitrary Markdown
+round trips can normalize source.
 Double-click or the **Edit article** pencil opens `/bricks/<brickId>`, which shows
 only the module form and Save/Cancel controls, without headings or an outline.
 Modules without forms have an empty drawer body.
@@ -585,19 +680,24 @@ spec, Options, Shared state JSON, and Brick Definition. Admin's brick-ID breadcr
 returns to the form page. Both routes retain the persistent wall and drawer shell.
 Admin is a UI route, not an authorization boundary.
 
-Form and JSON drafts belong to their respective routes. Save stages one complete
+Module forms own their drafts and Save/Cancel controls; Admin's JSON draft belongs
+to its route. Save stages one complete
 `updateBrick` command and leaves the current page open; Cancel discards that
-page's draft. Save awaits optional placement measurements through SWR before staging;
+draft and errors, and invalidates pending submissions. Save awaits optional
+placement measurements through the host before staging;
 its pending controls cover the whole operation. Failed saves retain the draft and
-show an error. Article's Admin JSON
+show an error. Article validates Markdown strings and the complete state, keeps
+unsaved drafts across session echoes, and follows saved props when clean. Cancel
+remounts its editor to discard Markdown edits and canceled undo history. Article's Admin JSON
 editor validates state, disables Save for invalid or unchanged values, and keeps
 invalid input visible. Placeholder-capable modules still accept null. Closing,
 navigating between form and Admin, changing brick, or deleting the brick discards
 unsaved drafts. Breakpoint switches retain the form draft.
 
-The drawer toolbar sticks to the top of the scrolling form and retains formatting,
-selection, undo/redo, block dragging, and image resizing. Escape first dismisses
-an editor popover, then closes the drawer.
+Native Meowdown controls retain formatting, selection, undo/redo, block dragging,
+and image resizing. Resizing writes width/height into a trailing Markdown comment.
+Portaled menus appear above the drawer; their link form cannot submit Article.
+Escape first dismisses an editor control or selection, then closes the drawer.
 Studio suppresses the shared edit action with `BrickWall.showArticleEditAction`;
 `ArticleEditorControl` remains drawer-only.
 
@@ -607,4 +707,12 @@ the normal grid handles. The module-owned shell fills the brick with a white
 background and clips overflowing content; the editor surface does not paint the
 background.
 
-Article uploads are temporarily disabled inside the Article module. All Tiptap extensions remain registered, Add image is disabled, and existing upload placeholders show “Uploads temporarily disabled” without a file picker or dropzone. Existing images still display and can be resized in the drawer. The Article form and editor receive their state and change callbacks; Image's optional shared upload capability does not enable Article uploads. Upload endpoints remain available for Image and Site Settings. The existing standalone backup lifecycle provides local durability after Save. Consumers of the built package load `@qrk.sh/library/article-editor.css` alongside `bricks.css` for editor and portaled-control styles.
+Article uploads remain disabled: Meowdown receives no file-persistence handler,
+so it exposes no attachment picker or upload slash command. HTTP(S) images display
+and can be resized in the drawer. Automatic YouTube/X paste conversion and provider
+resolution are disabled in both editor and viewer; ordinary URL pastes remain links.
+Explicit media syntax can display native placeholders. `ArticleForm` owns drafts
+and Save/Cancel. Image's upload environment does not enable Article uploads; Image
+and Site Settings retain their endpoints. The standalone backup lifecycle provides
+local durability after Save. Consumers load `@qrk.sh/library/article-editor.css`
+alongside `bricks.css` for editor and portaled-control styles.

@@ -7,6 +7,7 @@ import { generateSpec } from "./generateSpec";
 import { getGitHubProfile } from "./githubProfile/getGitHubProfile";
 import { getGitHubRepo } from "./githubRepo/getGitHubRepo";
 import { getInstagramProfile } from "./instagram/getInstagramProfile";
+import { searchIcons } from "./swatchAndIcon/searchIcons";
 import type {
   IGitHubRepoPayload,
   IGitHubScrapePayload,
@@ -30,7 +31,7 @@ export class LibraryApi extends RpcTarget {
       getInstagramProfile({
         url,
         request: this.request,
-        browserHost: this.workerEnv.BROWSER_HOST,
+        token: this.workerEnv.APIFY_API_TOKEN,
         bucket: this.workerEnv.QRKSH,
         publicBaseUrl: this.workerEnv.R2_PUBLIC_BASE_URL,
       }).pipe(encodeRpc),
@@ -61,8 +62,8 @@ export class LibraryApi extends RpcTarget {
     return this.workerEnv.LINK_BACKEND.getByName(GLOBAL_BACKEND_NAME);
   }
 
-  streamlineBackend() {
-    return this.workerEnv.STREAMLINE_BACKEND.getByName(GLOBAL_BACKEND_NAME);
+  searchIcons(query: string, offset: number, limit: number) {
+    return managedRuntime.runPromise(searchIcons({ query, offset, limit }).pipe(encodeRpc));
   }
 
   generateSpec(moduleId: string, prompt: string, state: unknown, currentSpec: Spec | null) {

@@ -59,8 +59,8 @@ const retainedLock = db.query.connectionLocks
 
 ## Verification
 
-1. Build Library's public output, then typecheck and lint Library, Studio, and backend through Nx. Do not write, change, or run Library tests.
-2. Run backend workerd tests covering page/wall creation, Library commands, ownership selections, authentication, and site/page settings.
+1. Build Library's public output as required by the app. Repository tests and standalone automated checks are deferred under root `AGENTS.md`.
+2. Defer automated backend verification until the future end-to-end compatibility suite is agreed. Do not scaffold integration tests.
 3. Check live Studio edits, layout changes, reload persistence, tab synchronization, page isolation, drawers, and failure behavior manually.
 4. Reset only incompatible development state if needed; leave old standalone backups and deployed data untouched.
 

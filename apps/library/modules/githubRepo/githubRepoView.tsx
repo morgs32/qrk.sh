@@ -2,6 +2,7 @@ import { makeModuleView } from "../../make/makeModuleView";
 import { registry } from "./generator/GitHubRepoJsonRenderRegistry";
 import { defaultSpec } from "./generator/defaultSpec";
 import { githubRepoV1 } from "./githubRepoV1";
+import { GitHubRepoForm } from "./GitHubRepoForm";
 import { BrickBody } from "../../components/brick/BrickBody";
 import { BrickFooter } from "../../components/brick/BrickFooter";
 import { BrickShell } from "../../components/brick/BrickShell";
@@ -14,12 +15,15 @@ import { repoLanguageView } from "./GitHubRepo/components/RepoLanguage";
 import { GitHubRepoPlaceholder } from "./GitHubRepoPlaceholder";
 
 export const githubRepoView = makeModuleView(githubRepoV1, {
+  form: GitHubRepoForm,
   default: {
     placeholder() {
       return <GitHubRepoPlaceholder />;
     },
     component(props) {
       const { state } = props;
+      if (state.data === null)
+        return <p role="status">{state.resolution.error?.message ?? "Resolving…"}</p>;
       return (
         <BrickShell className="bg-white">
           <BrickBody>

@@ -9,21 +9,25 @@ Run from the repository root:
 ```sh
 pnpm nx run @qrk.sh/studio:dev
 pnpm nx run @qrk.sh/studio:build
-pnpm nx run @qrk.sh/studio:ts
-pnpm nx run @qrk.sh/studio:lint
 pnpm nx run @qrk.sh/studio:start
 pnpm nx run @qrk.sh/studio:storybook
 pnpm nx run @qrk.sh/studio:build-storybook
 ```
 
-Web listens on port 3000 and proxies Studio routes to `APP_ORIGIN` (default `http://localhost:3001`). Studio runs on port 3001. Development and production builds use webpack so the existing native `SharedWorker(new URL(...))` factory retains its identity and bundles its SQLite WASM. Vite is retained only for Storybook.
+Storybook's **Studio / CSS Grid Background Generator / Default** shows the
+generator body without its branding header. Color and square-width controls
+update a local preview and CSS output; **Copy CSS** copies the generated styles.
+The story has no session or backend dependencies.
+
+Web listens on port 3000 and proxies Studio routes to `APP_ORIGIN` (default `http://localhost:3001`). Studio runs on port 3001. Development and production builds use webpack to bundle the framework's connected SharedWorker and its SQLite WASM. Vite is retained only for Storybook.
 
 Studio's Next chunks, fonts, worker, and WASM use `/studio-static/_next/`. Web excludes that namespace from authentication and proxies it to Studio. Referenced `/assets/` public files have explicit mappings in Studio's Next configuration; missing files return 404. There is no Vite module or HMR routing.
 
 Studio resolves the SharedWorker and browser SQLite WASM from installed
-`7.0.0` package exports. The worker owns its IndexedDB-backed SQLite namespace;
-no separate backup-worker asset is served. Its Nx builds and checks build QRK's reusable
-Library first; they never build or change installed Zerospin artifacts. Fresh
+`11.1.0` package exports. `makeAggregateBrowserRelease` supplies the connected
+worker; Studio does not author a worker entrypoint. The worker owns its IndexedDB-backed SQLite namespace;
+no separate backup-worker asset is served. Nx builds QRK's reusable Library
+before Studio; it never builds or changes installed Zerospin artifacts. Fresh
 checkout installation requires the populated local registry described in the
 [root README](../../README.md#zerospin-packages).
 
@@ -45,6 +49,12 @@ Place local values in `apps/studio/.env.local`:
 
 Clerk uses its Next.js integration; nuqs uses its Next App Router adapter. Sign-in and sign-up remain web-owned routes and retain `/replace` as their fallback destination. Web performs signed-out redirects, Studio retains its client guard, and Zerospin retains backend authorization. No server-side Zerospin queries or new authentication rules are introduced.
 
+Studio uses `clerkUserId` directly as the user `aggregateId`, matching the backend's verified Clerk token subject.
+
+QRK.SH's Clerk development instance has **Sign-up with username** and **Require username** enabled under **User & authentication → Username**, and **Allow users to change their username** disabled under **User model**. The existing web `<SignUp />` collects the required username, including during social sign-up completion; `/replace` then redirects to `/<username>`. Users choose their username once. Clerk owns this username; the setting does not populate QRK's currently null backend username field.
+
+`lib/getClerkToken.ts` retrieves tokens through the current Clerk hook getter. It maps `ClerkOfflineError` to a typed `ZerospinError` with code `clerk-offline-error`, preserves other rejections as defects, and returns `null` unchanged for signed-out callers. Session credentials and Image/Site Settings uploads use this helper.
+
 ## Server shell and browser state
 
 `app/layout.tsx` owns the document, global/reset styles, metadata, and Library's shared article stylesheet. Studio's global CSS loads Fragment Mono through Library's Google Fonts import and uses it for UI text and controls. The dashboard's `QRK.SH` wordmark matches the homepage: Silkscreen 400 at 18px, loaded through `next/font/google` in `Header`. The article stylesheet owns the system font for article titles and subtitles and Spectral for body text and headings. Studio adds no heading font override. Storybook imports the same global and article styles. `App` holds the client providers. The username layout keeps one session initializer mounted across Studio navigation; `UserLayout` gates only data-dependent content.
@@ -54,6 +64,17 @@ The root layout mounts the shared `ZerospinDevtoolsLoader` in development with t
 The dashboard layout renders the fixed 64 px `QRK.SH` header in the initial HTML and reserves a 40 px account slot with a shadcn skeleton. The header is a query container; its inner flex element uses Library's shared `qrk-responsive-insets` class and `--qrk-inset-inline`: 16px gutters become 30px when both the document viewport and header reach 720px. The site editor, including its 64 px navbar, appears only once the browser session is ready; the initial HTML has no site navbar or site-name skeleton. Each breakpoint pane owns the complete navbar inside its browser frame, beneath the address bar and above `BrickWall`. `Grid` makes the existing navbar wrapper a query container. `SiteHeader` uses the same shared responsive gutters when both the document viewport and wrapper reach 720px, preserving its 64px height and chrome offset. The existing `Wordmark` subscribes to site data and preserves settings draft previews. Site data, drafts, SQLite, and editing remain browser-owned.
 
 ## Routes and transitions
+
+The dashboard's **Create site** dialog includes Name and Slug. An empty Slug
+uses its name-derived lowercase ASCII kebab-case placeholder; accents are
+removed and spaces/punctuation become hyphens. If that suggestion is already
+used by this user, the first available `-1`, `-2`, etc. suffix is suggested.
+Custom slugs are preserved and must use lowercase letters/digits separated by
+single internal hyphens. The user's live sites provide inline availability
+feedback; the creation contract enforces the same format and ownership-scoped
+uniqueness. Another user may use the same slug. Local refusals keep the dialog's
+values; later creation failures show a toast. Closing or cancelling resets both
+inputs. Creation continues to add the initial `home` page.
 
 Filesystem routes preserve dashboards, base editors, module catalogs, module details, brick details, breakpoints, page settings, and site settings. Unknown paths render Next's not-found screen. The local error boundary preserves client diagnostics and reload behavior.
 
@@ -98,47 +119,47 @@ Studio supplies Next links to its
 page editor, with a **Drag a brick onto your page** breadcrumb and the **Add bricks** toolbar action.
 The previous catalog URLs are removed without redirects.
 
-## Browser checks
+Module definitions own per-page brick limits: Article allows one and Instagram
+allows two. Catalog and module detail previews show the maximum and disable new
+drags when reached. Counts use all bricks on the page's wall, including hidden
+and unconfigured bricks, independently of the active breakpoint. Removing a
+brick frees capacity; the shared `addBrick` guard also rejects excess additions.
 
-Playwright builds and starts Next on port 3333 by default. The shell checks disable JavaScript to verify the initial dashboard navbar, the absence of the session-dependent site navbar, deep links, refresh, not-found behavior, styles, and asset MIME types in Chromium, Firefox, and WebKit:
+## Verification
 
-```sh
-pnpm nx run @qrk.sh/studio:test:e2e -- tests/shell.playwright.spec.ts
-```
+Repository tests and standalone automated checks are deferred until a test
+structure is agreed (see root `AGENTS.md`). Storybook and the running app remain
+available for manual review.
 
-For an already running Studio server:
+## Article editing in the detail drawer
 
-```sh
-PLAYWRIGHT_EXTERNAL_SERVER=1 PLAYWRIGHT_BASE_URL=http://127.0.0.1:3001 pnpm nx run @qrk.sh/studio:test:e2e -- tests/shell.playwright.spec.ts
-```
+Studio routes brick activation to the detail drawer and renders the selected Library module's `Form` without an enclosing form. All ten registered bricks expose a form: Image, Article, GitHub Profile, GitHub Repo, GitHub Activity, Figma Thumbnail, Instagram, Link, Map Place, and Swatch and Icon. The shared contract supplies decoded `state` or `null`, initialized session and brick identity, synchronous `onSave(state): IResult`, and `onCancel(): void`. Unconfigured provider bricks receive genuine `null` and show blank source inputs. Image provides a dropzone and file picker above its Image URL and Title fields. Article uses Meowdown in Hybrid mode with native shortcuts, slash/link controls, and block handles in the existing centered writing column; it has no formatting toolbar or mode switcher. Studio still suppresses the shared **Edit article** wall action and has no brick visibility control. Article state has separate required title/subtitle strings and nullable Markdown content; generated ArticleBrick specs bind all three fields. This hard cutover adds no JSON conversion or compatibility reader. Catalog previews use Meowdown's read-only MarkdownView without an editor.
 
-Authenticated drawer checks require `PLAYWRIGHT_STORAGE_STATE` pointing to a valid Clerk storage-state file, `PLAYWRIGHT_EDITOR_PATH` pointing to an existing editor, and a working Zerospin backend. Keep session files outside version control. Through web, also set `PLAYWRIGHT_BASE_URL=http://localhost:3000` and `PLAYWRIGHT_EXTERNAL_SERVER=1`. Run `Drawers.playwright.spec.ts` with `--workers=1` when sharing one editor across browser projects. The checks cover shell identity, persistent editor state, history, interrupted navigation, and reduced motion; snapshot exits need not retain outgoing DOM. The module catalog checks require the Library module registry to be available.
+Modules own unsaved drafts and validation. Provider forms stage their module's configuration command synchronously and render resolution status/error from the brick query. The user-session owner composes module-owned local executors, which call the existing same-origin API and stage revision-guarded completions. Closing an editor discards its draft while accepted work continues for the session lifetime; session replacement ignores late results. No server durability guarantee is added. Ordinary Article/Image/Swatch saves preserve the actual local staging result, clear drafts only on success, and render optimism/rollback through the query. Article remounts its editor on Cancel; its portaled link form does not submit the Article form. Page and Site Settings retain their existing commands.
 
-The separate React Router/Motion example remains an independent example, not an acceptance gate for Studio's Next navigation.
-
-## Inline Article editing
-
-Studio routes brick activation to the detail drawer and renders the selected Library module's `Form` when available. Image provides a dropzone and file picker above its Image URL and Title fields; Article provides its shared editor with a flat toolbar, centered writing column, and block reordering. Unconfigured bricks initialize their form from the module's default state. Modules without a Form retain their read-only detail preview. Studio still suppresses the shared **Edit article** wall action and has no brick visibility control. Article state has separate required title and subtitle strings and a Tiptap body; generated ArticleBrick specs bind all three fields. This hard schema change does not migrate existing content-only articles. Catalog previews remain read-only.
-
-Form edits remain local until Save stages `updateBrick` through Studio's authenticated `UserApp` initialized session and its live push and synchronization lifecycle. Failed staging retains the draft and shows an error; Cancel restores the committed state. Closing or changing the selected brick discards unsaved edits, while breakpoint switches retain the draft. Page and Site Settings continue to save through their existing commands.
-
-The detail form owns one centered column around module fields and Save/Cancel.
+The detail drawer provides one centered column around the module-owned form and Save/Cancel.
 Image uses stacked shadcn inputs that fill that column; its actions sit below
 the fields at the same left edge and wrap when needed.
 
 Each Page references its own Library wall, created atomically by `createPage` with ID `prefixId(libraryModule.models.wall, pageId)`. The grid and brick drawer scope queries to that wall. `ZerospinUserProvider` owns session initialization and disposal, and `UserLayout` waits for initialization before mounting the editor. Changing pages does not dispose the user session.
 
-This is a fresh-content cutover: legacy grid/brick rows and standalone Studio backups are not migrated. Old standalone backups remain untouched. Incompatible development backend and live-session storage must be reset separately; no automatic reset or lazy wall creation is performed.
+This is a fresh-content cutover: legacy grid/brick rows and old Article JSON are
+not migrated. Back up local backend storage before starting current declarations;
+use a fresh local browser origin while preserving existing origin databases and
+Clerk cookies. Installed Zerospin browser runtimes can reset incompatible node
+tables during initialization, so do not reopen rebuilt apps on preserved origins.
 
 Article bricks use normal grid resizing and keep their saved height regardless of
 content, image loads, or width changes. Their module-owned white shell fills the
 placement and clips overflowing content. Content remains shared across breakpoints;
 placement sizes remain separate per breakpoint.
 
+Provider forms edit sources rather than fetched metadata. Link retains submitted input separately from the resolved URL. Map Place stages a chosen suggestion ID while autocomplete remains transient. Swatch and Icon saves the selected search result's SVG and hex color with no additional lookup. Figma measures ready content at all four breakpoints and writes dimensions only when captured state/spec revisions still match.
+
 ## Image uploads
 
-Drop or choose one nonempty PNG, JPEG, WebP, or SVG up to 5 MiB in the Image drawer. Upload starts immediately and updates only the draft Image URL on success; Save persists the brick state. The host supplies Clerk authentication and transport through `useSWRMutation`, and its `isMutating` flag supplies `isUploadingImage` to the module and Save button. Image owns validation, feedback, errors, and request cancellation. Fields and Save are disabled during upload; Cancel stays available, restores committed state, and aborts unfinished requests. Switching bricks or leaving the drawer also aborts pending uploads and ignores late results. Breakpoint switches retain the draft and its upload.
+Drop or choose one nonempty PNG, JPEG, WebP, or SVG up to 5 MiB in the Image drawer. Upload starts immediately and updates only the module-owned draft Image URL on success; Save persists the brick state. `EditorLayout` binds Image's `ImageUploadEnvironment` Layer to the existing session runner through `ImageUploadRuntimeContext`, supplying the upload URL, current site ID, and authorization Effect. Each upload retrieves fresh Clerk credentials through `getClerkToken`; a signed-out result fails visibly. Image owns the upload Effect, multipart request, response decoding, validation, feedback, pending state, errors, and cancellation. The shared form contract carries no Image-specific upload props. Fields and Save are disabled during upload; Cancel stays available, restores saved state, and aborts unfinished requests. Switching bricks or leaving the drawer also aborts pending uploads and ignores late results. Breakpoint switches retain the draft and its upload.
 
 Set `NEXT_PUBLIC_API_URL` to the unified `api` Worker origin; local development uses `http://127.0.0.1:8787`. Run `pnpm nx run @qrk.sh/api:dev` separately. The API Worker verifies the Clerk bearer token using `CLERK_SECRET_KEY` and `CLERK_AUTHORIZED_PARTY`, stores the bytes in its `QRKSH` R2 binding, and returns a URL built from `R2_PUBLIC_BASE_URL`. The configured authorized party and CORS origins must match the browser origin. `/assets` serves local R2 objects through the Worker; `/assets/library/*` uses the retained Library `ASSETS` bucket. Production can use the configured public R2 host. Clerk secrets stay on the Worker.
 
-Uploads write assets to R2 immediately. Cancel after an upload completes, or removing an image, does not delete the R2 object. File bytes and upload status are not part of the local brick backup. Article uploads remain disabled because its editor has no upload handler; existing Article image nodes continue to render and persist. Article documents are not converted, and incompatible existing page storage is reported rather than reset automatically.
+Uploads write assets to R2 immediately. Cancel after an upload completes, or removing an image, does not delete the R2 object. File bytes and upload status are not part of the local brick backup. Article uploads remain disabled because its editor has no file-persistence handler; HTTP(S) Markdown images render and native resizing saves dimensions in Markdown comments. Automatic YouTube/X embeds and provider requests are disabled. Article documents are not converted; preserve old browser stores before the approved fresh-origin cutover.

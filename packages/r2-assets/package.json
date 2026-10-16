@@ -6,14 +6,8 @@
   "exports": {
     ".": "./src/index.ts"
   },
-  "scripts": {
-    "lint": "vp lint --config ../../.oxlintrc.json .",
-    "ts": "tsc -p tsconfig.json --noEmit",
-    "test": "vp test run"
-  },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250913.0",
-    "typescript": "^6.0.2",
-    "vite-plus": "1.0.0"
+    "typescript": "^6.0.2"
   }
 }

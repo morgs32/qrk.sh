@@ -1,12 +1,10 @@
 "use client";
 
-import { stageAggregateSessionCommand } from "@zerospin/core/aggregateSession/stageCommand/stageAggregateSessionCommand";
-
 import Link from "next/link";
 
-import { makeId } from "@zerospin/sdk/browser";
+import { makeId, stageAggregateSessionCommand } from "@zerospin/sdk/browser";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Schema } from "effect";
 import { toast } from "sonner";
 import { useLiveQuery } from "@zerospin/react";
@@ -37,6 +35,7 @@ export default function UsernameDashboardPage() {
   const session = UserApp.useInitializedSession();
   const [createSiteOpen, setCreateSiteOpen] = useState(false);
   const [siteName, setSiteName] = useState("");
+  const [siteSlug, setSiteSlug] = useState("");
   const { data: user, error } = useLiveQuery({
     session,
     query: (db) => {
@@ -51,6 +50,19 @@ export default function UsernameDashboardPage() {
     },
   });
 
+  useEffect(
+    () =>
+      session.failures.subscribe((event) => {
+        if (
+          (event._tag === "AdmissionFailure" || event._tag === "ExecutionFailure") &&
+          event.commandName === "createSite"
+        ) {
+          toast.error(event.failure.message);
+        }
+      }),
+    [session],
+  );
+
   if (error !== undefined) {
     throw error;
   }
@@ -58,6 +70,30 @@ export default function UsernameDashboardPage() {
   if (user === undefined) {
     return <p role="alert">User not found</p>;
   }
+
+  const slugBase = siteName
+    .normalize("NFKD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  const usedSlugs = new Set(user.sites.map((site) => site.slug));
+  let suggestedSlug = slugBase;
+  let suffix = 1;
+  while (suggestedSlug !== "" && usedSlugs.has(suggestedSlug)) {
+    suggestedSlug = `${slugBase}-${suffix}`;
+    suffix += 1;
+  }
+  const slug = siteSlug === "" ? suggestedSlug : siteSlug;
+  const slugError =
+    slug === ""
+      ? "Enter a slug or a name that uses letters or numbers."
+      : !/^[a-z0-9]+(?:-[a-z0-9]+)*(?![\s\S])/.test(slug)
+        ? "Use lowercase letters and numbers separated by single hyphens."
+        : usedSlugs.has(slug)
+          ? "You already have a site with this slug."
+          : null;
+  const showSlugError = slugError !== null && (siteName !== "" || siteSlug !== "");
 
   return (
     <div className="flex flex-col">
@@ -80,6 +116,7 @@ export default function UsernameDashboardPage() {
                   setCreateSiteOpen(open);
                   if (!open) {
                     setSiteName("");
+                    setSiteSlug("");
                   }
                 }}
               >
@@ -96,6 +133,10 @@ export default function UsernameDashboardPage() {
                         toast.error("Name is required");
                         return;
                       }
+                      if (slugError !== null) {
+                        toast.error(slugError);
+                        return;
+                      }
                       const state = session.store.getState();
                       if (state.initialized === null) {
                         toast.error("Your session is not ready");
@@ -108,6 +149,7 @@ export default function UsernameDashboardPage() {
                           id: session.runSync(makeId(Site)),
                           userId: user.id,
                           name,
+                          slug,
                         },
                       });
                       if (siteResult._tag === "Failure") {
@@ -131,6 +173,7 @@ export default function UsernameDashboardPage() {
                       }
 
                       setSiteName("");
+                      setSiteSlug("");
                       setCreateSiteOpen(false);
                     }}
                   >
@@ -148,13 +191,48 @@ export default function UsernameDashboardPage() {
                         autoFocus
                       />
                     </div>
+                    <div className="flex flex-col gap-2">
+                      <label htmlFor="create-site-slug" className="text-sm font-medium">
+                        Slug
+                      </label>
+                      <Input
+                        id="create-site-slug"
+                        name="slug"
+                        value={siteSlug}
+                        placeholder={suggestedSlug}
+                        onChange={(event) => {
+                          setSiteSlug(event.target.value);
+                        }}
+                        autoCapitalize="none"
+                        autoCorrect="off"
+                        spellCheck={false}
+                        pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
+                        aria-invalid={showSlugError}
+                        aria-describedby="create-site-slug-feedback"
+                      />
+                      <p
+                        id="create-site-slug-feedback"
+                        className={`text-sm ${showSlugError ? "text-destructive" : "text-muted-foreground"}`}
+                        role="status"
+                      >
+                        {slugError === null
+                          ? siteSlug === ""
+                            ? `Available. We'll use ${suggestedSlug} unless you enter your own.`
+                            : "Available."
+                          : siteName === "" && siteSlug === ""
+                            ? "Use lowercase letters and numbers separated by single hyphens."
+                            : slugError}
+                      </p>
+                    </div>
                     <DialogFooter>
                       <DialogClose asChild>
                         <Button type="button" variant="outline">
                           Cancel
                         </Button>
                       </DialogClose>
-                      <Button type="submit">Create site</Button>
+                      <Button type="submit" disabled={siteName.trim() === "" || slugError !== null}>
+                        Create site
+                      </Button>
                     </DialogFooter>
                   </form>
                 </DialogContent>

@@ -21,6 +21,10 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return [
       {
+        source: "/rpc",
+        destination: `${(process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8787").replace(/\/$/, "")}/rpc`,
+      },
+      {
         source: "/assets/site-settings-social-preview.png",
         destination: "/site-settings-social-preview.png",
       },

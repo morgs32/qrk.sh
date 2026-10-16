@@ -1,12 +1,6 @@
-@use "./tiptap/styles/variables";
-@use "./tiptap/styles/keyframe-animations";
-@use "./tiptap/node/blockquote-node/blockquote-node";
-@use "./tiptap/node/code-block-node/code-block-node";
-@use "./tiptap/node/horizontal-rule-node/horizontal-rule-node";
-@use "./tiptap/node/list-node/list-node";
-@use "./tiptap/node/image-node/image-node";
-@use "./tiptap/node/heading-node/heading-node";
-@use "./tiptap/node/paragraph-node/paragraph-node";
+@layer theme, base, components, meowdown, utilities;
+@import "@meowdown/core/style.css";
+@import "@meowdown/react/style.css";
 
 .qrk-article-surface {
   width: 100%;
@@ -30,36 +24,57 @@
   min-height: 48px;
   overflow-wrap: anywhere;
 
-  &.tiptap.ProseMirror p:not(td p):not(th p) {
+  p:not(td p):not(th p) {
     font-size: inherit;
     line-height: inherit;
   }
-}
-.qrk-article-editor p.is-editor-empty:first-child::before {
-  content: attr(data-placeholder);
-  float: left;
-  height: 0;
-  color: var(--muted-foreground);
-  pointer-events: none;
-}
-.qrk-article-controls {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  background: var(--background);
-  overflow: visible;
-}
-.qrk-article-controls .tiptap-toolbar {
-  position: relative;
-  flex-wrap: wrap;
-  max-width: calc(100vw - 16px);
-}
-.qrk-article-block-handle {
-  cursor: grab;
-  padding: 2px;
-  border-radius: 4px;
-  background: var(--background);
-  color: var(--foreground);
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    color: inherit;
+    font-style: inherit;
+  }
+
+  h1 {
+    font-size: 1.5em;
+    font-weight: 700;
+    margin-top: 3em;
+  }
+
+  h2 {
+    font-size: 1.25em;
+    font-weight: 700;
+    margin-top: 2.5em;
+  }
+
+  h3 {
+    font-size: 1.125em;
+    font-weight: 600;
+    margin-top: 2em;
+  }
+
+  h4 {
+    font-size: 1em;
+    font-weight: 600;
+    margin-top: 2em;
+  }
+
+  > :is(h1, h2, h3, h4):first-child {
+    margin-top: 0;
+  }
+
+  .prosemirror-flat-list[data-list-kind="ordered"]::before {
+    inset-inline-start: 0;
+    inset-inline-end: auto;
+    width: 1lh;
+    text-align: center;
+  }
+
+  .list-content > * + .prosemirror-flat-list {
+    margin-top: 0.85em;
+  }
 }
 .qrk-article-edit {
   position: absolute;
@@ -146,11 +161,6 @@
   line-height: 24px;
   color: #868787;
 }
-.qrk-article-controls .qrk-article-toolbar .tiptap-toolbar[data-plain="true"] {
-  justify-content: center;
-  min-height: 44px;
-  padding: 10px 0;
-}
 .qrk-article-readonly {
   width: calc(100% - 2 * var(--qrk-inset-inline));
   margin: 0 var(--qrk-inset-inline);
@@ -188,6 +198,21 @@
   .qrk-article-editor {
     padding: 0;
   }
+}
+
+// The pinned Meowdown version portals native controls above the Article drawer (z-index 60).
+.meow_Positioner_D3j_9q,
+.meow_Positioner_EvUpOG,
+.meow_Positioner_IjcqKG,
+.meow_Positioner_DPJ5ia,
+.meow_Positioner_2_4Zjq,
+.meow_AffordancePositioner_2_4Zjq,
+.meow_Positioner_Dqll0G,
+.meow_Positioner_hpZLgq,
+.meow_MenuPositioner_hpZLgq,
+.meow_Positioner_HMEwgW,
+.meow_DropIndicator_urNIwW {
+  z-index: 70;
 }
 @media (min-width: 720px) {
   .qrk-article-writing-column {

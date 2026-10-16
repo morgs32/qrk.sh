@@ -86,11 +86,25 @@ export function makeModuleSpecContractVersion<
       }
     }),
     program: (props) => {
-      const { operations, payload: programPayload } = props;
+      const { operations, payload: programPayload, db } = props;
       return Effect.gen(function* () {
+        const currentPlacement = yield* findFirst({
+          db,
+          model: placement,
+          where: { id: { eq: makePlacementId(programPayload.brickId, programPayload.breakpoint) } },
+        });
+        if (currentPlacement === undefined) return;
         yield* operations.updatePlacement({
           resourceId: makePlacementId(programPayload.brickId, programPayload.breakpoint),
-          attributes: { spec: structuredClone(programPayload.spec), measured: null },
+          attributes: {
+            spec: structuredClone(programPayload.spec),
+            specRevision: currentPlacement.specRevision + 1,
+            measured: null,
+            generation:
+              currentPlacement.generation?.status === "generating"
+                ? { ...currentPlacement.generation, status: "superseded" }
+                : currentPlacement.generation,
+          },
         });
       });
     },

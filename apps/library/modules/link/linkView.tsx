@@ -6,14 +6,21 @@ import { linkCardView } from "./LinkCard";
 import { linkCopyView } from "./LinkCopy";
 import { linkHeroImageView } from "./LinkHeroImage";
 import { LinkPlaceholder } from "./LinkPlaceholder";
+import { LinkForm } from "./LinkForm";
 
 export const linkView = makeModuleView(linkV1, {
+  form(props) {
+    const { state, session, brickId, onCancel } = props;
+    return <LinkForm state={state} session={session} brickId={brickId} onCancel={onCancel} />;
+  },
   default: {
     placeholder() {
       return <LinkPlaceholder />;
     },
     component(props) {
       const { state } = props;
+      if (state.data === null)
+        return <p role="status">{state.resolution.error?.message ?? "Resolving…"}</p>;
       return (
         <linkCardView.Component>
           <linkCopyView.Component

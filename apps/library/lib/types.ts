@@ -1,3 +1,5 @@
+import type { ILibrarySession } from "../session/createLibraryStandaloneSession";
+import type { IResult } from "@zerospin/error";
 import type { ReactNode } from "react";
 
 import type { Catalog, Spec } from "@json-render/core";
@@ -12,6 +14,8 @@ export type IModule<MODULE extends string> = {
   abbreviation: string;
   label: string;
   description: string;
+  /** Maximum bricks of this module per page, including hidden and unconfigured bricks. */
+  maxPerPage?: number;
   catalog?: Catalog;
   registry?: ComponentRegistry;
   defaultSpec: Spec;
@@ -22,9 +26,10 @@ export type IModule<MODULE extends string> = {
   placeholder?: () => ReactNode;
   Form?: (props: {
     state: unknown;
-    onChange: (state: unknown) => void;
-    uploadImage?: (props: { file: File; signal: AbortSignal }) => Promise<string>;
-    isUploadingImage?: boolean;
+    session: ILibrarySession;
+    brickId: `brk_${string}`;
+    onSave: (state: unknown) => IResult<unknown, { message: string }>;
+    onCancel: () => void;
   }) => ReactNode;
   def: IModuleBrickDef<MODULE>;
   /**

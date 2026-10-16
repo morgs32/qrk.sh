@@ -11,24 +11,8 @@
       ],
       "outputs": ["{projectRoot}/dist"]
     },
-    "test:workerd": {
-      "dependsOn": [
-        {
-          "projects": ["@qrk.sh/library"],
-          "target": "build"
-        }
-      ]
-    },
     "dev": {
       "continuous": true,
-      "dependsOn": [
-        {
-          "projects": ["@qrk.sh/library"],
-          "target": "build"
-        }
-      ]
-    },
-    "ts": {
       "dependsOn": [
         {
           "projects": ["@qrk.sh/library"],

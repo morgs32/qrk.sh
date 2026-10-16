@@ -2,6 +2,7 @@ import { makeModuleView } from "../../make/makeModuleView";
 import { registry } from "./generator/GitHubProfileJsonRenderRegistry";
 import { defaultSpec } from "./generator/defaultSpec";
 import { githubProfileV1 } from "./githubProfileV1";
+import { GitHubProfileForm } from "./GitHubProfileForm";
 import { BrickBody } from "../../components/brick/BrickBody";
 import { BrickFooter } from "../../components/brick/BrickFooter";
 import { BrickShell } from "../../components/brick/BrickShell";
@@ -17,12 +18,15 @@ import { publicReposView } from "./GitHubProfile/components/PublicRepos";
 import { GitHubProfilePlaceholder } from "./GitHubProfilePlaceholder";
 
 export const githubProfileView = makeModuleView(githubProfileV1, {
+  form: GitHubProfileForm,
   default: {
     placeholder() {
       return <GitHubProfilePlaceholder />;
     },
     component(props) {
       const { state } = props;
+      if (state.data === null)
+        return <p role="status">{state.resolution.error?.message ?? "Resolving…"}</p>;
       return (
         <BrickShell className="bg-white">
           <BrickBody>

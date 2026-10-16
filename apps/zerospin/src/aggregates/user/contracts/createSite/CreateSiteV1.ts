@@ -2,7 +2,7 @@ import { ContractError } from "@zerospin/error";
 import * as sdk from "@zerospin/sdk/browser";
 
 import { makeAggregateContractVersion, primitives } from "@zerospin/sdk/browser";
-import { Effect } from "effect";
+import { Effect, Schema } from "effect";
 import { siteV1 as Site } from "../../models/site/SiteV1";
 import { userV1 as User } from "../../models/user/UserV1";
 
@@ -11,10 +11,7 @@ import { createSite } from "./createSite";
 const createSitePayload = {
   id: primitives.foreignKey({ abbreviation: Site.abbreviation }),
   userId: primitives.foreignKey({ abbreviation: User.abbreviation }),
-  slug: primitives.text({
-    nullable: true,
-    defaultValue: null,
-  }),
+  slug: primitives.text(),
   name: primitives.text({
     nullable: true,
     defaultValue: null,
@@ -29,6 +26,8 @@ export const createSiteV1 = makeAggregateContractVersion(createSite, {
   operations: { createSite: Site.operations.create },
   failures: {
     createSiteUserMismatch: ContractError.schema({ code: "create-site-user-mismatch" }),
+    siteSlugInvalid: ContractError.schema({ code: "site-slug-invalid" }),
+    siteSlugTaken: ContractError.schema({ code: "site-slug-taken" }),
   },
 
   payload: createSitePayload,
@@ -55,6 +54,29 @@ export const createSiteV1 = makeAggregateContractVersion(createSite, {
         return yield* failures.createSiteUserMismatch.make({
           message: `User ${payload.userId} was not found for authenticated identity ${clerkUserId}`,
           status: 403,
+        });
+      }
+
+      const SlugSchema = Schema.String.check(
+        Schema.isPattern(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+        Schema.isTrimmed(),
+      );
+      if (!Schema.is(SlugSchema)(payload.slug)) {
+        return yield* failures.siteSlugInvalid.make({
+          message: "Use lowercase letters, numbers, and single hyphens between words",
+          status: 400,
+        });
+      }
+
+      const existingSite = yield* sdk.findFirst({
+        db,
+        model: Site,
+        where: { userId: { eq: payload.userId }, slug: { eq: payload.slug } },
+      });
+      if (existingSite !== undefined) {
+        return yield* failures.siteSlugTaken.make({
+          message: `You already have a site with the slug ${payload.slug}`,
+          status: 409,
         });
       }
     });

@@ -31,18 +31,6 @@
         }
       ]
     },
-    "typecheck": {
-      "command": "pnpm run ts",
-      "options": {
-        "cwd": "apps/studio"
-      },
-      "dependsOn": [
-        {
-          "projects": ["@qrk.sh/library"],
-          "target": "build"
-        }
-      ]
-    },
     "storybook": {
       "continuous": true,
       "dependsOn": [
@@ -53,14 +41,6 @@
       ]
     },
     "build-storybook": {
-      "dependsOn": [
-        {
-          "projects": ["@qrk.sh/library"],
-          "target": "build"
-        }
-      ]
-    },
-    "ts": {
       "dependsOn": [
         {
           "projects": ["@qrk.sh/library"],

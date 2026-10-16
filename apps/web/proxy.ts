@@ -1,6 +1,7 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
 import { NextResponse } from "next/server";
+import type { NextFetchEvent, NextRequest } from "next/server";
 
 const isPublicRoute = createRouteMatcher([
   "/",
@@ -10,7 +11,7 @@ const isPublicRoute = createRouteMatcher([
   "/ordered-outline",
 ]);
 
-export default clerkMiddleware(async (auth, request) => {
+const clerkProxy = clerkMiddleware(async (auth, request) => {
   const pathname = request.nextUrl.pathname;
   if (
     isPublicRoute(request) ||
@@ -22,6 +23,26 @@ export default clerkMiddleware(async (auth, request) => {
   if (!userId) return NextResponse.redirect(new URL("/sign-in", request.url));
   return NextResponse.next();
 });
+
+export default function proxy(request: NextRequest, event: NextFetchEvent) {
+  const pathname = request.nextUrl.pathname;
+  if (
+    process.env.NODE_ENV === "development" &&
+    (request.method === "GET" || request.method === "HEAD") &&
+    !/^\/(api|trpc|rpc)(\/|$)/.test(pathname)
+  ) {
+    const hostname = request.headers.get("host")?.toLowerCase().replace(/:\d+$/, "");
+    const subdomain = hostname?.match(
+      /^([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)\.qrk\.localhost$/,
+    )?.[1];
+    if (subdomain) {
+      const destination = request.nextUrl.clone();
+      destination.pathname = `/subdomain-proof/${subdomain}${pathname}`;
+      return NextResponse.rewrite(destination);
+    }
+  }
+  return clerkProxy(request, event);
+}
 
 export const config = {
   matcher: [

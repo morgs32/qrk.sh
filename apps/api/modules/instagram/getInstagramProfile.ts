@@ -1,45 +1,166 @@
 import { makePublicObjectUrl } from "@qrk.sh/r2-assets";
 import { readRpcEnvelope } from "@zerospin/core/utils/readRpcEnvelope";
 import { catchZerospinError } from "@zerospin/error";
-import { Effect } from "effect";
+import { Effect, Schema } from "effect";
 
 import { BackendRepo } from "../../BackendRepo";
 import { ScrapeError } from "../ScrapeError";
-import type { BrowserHost } from "./BrowserHost";
 import { normalizeInstagramUrl } from "./normalizeInstagramUrl";
 import { parseInstagramPayload } from "./scrapeInstagram";
 
 export const getInstagramProfile = Effect.fn("getInstagramProfile")(function* (props: {
   url: string;
   request: Request;
-  browserHost: DurableObjectNamespace<BrowserHost>;
+  token: string;
   bucket: R2Bucket;
   publicBaseUrl: string;
 }) {
-  const { url, request, browserHost, bucket, publicBaseUrl } = props;
+  const { url, request, token, bucket, publicBaseUrl } = props;
   const canonicalUrl = yield* normalizeInstagramUrl(url);
   const username = new URL(canonicalUrl).pathname.slice(1);
-  const scrapeResult = yield* Effect.tryPromise({
-    try: async () => await browserHost.getByName("global").scrapeInstagram(canonicalUrl),
-    catch: (cause) =>
+  if (typeof token !== "string" || token.trim().length === 0) {
+    return yield* new ScrapeError({
+      code: "provider-configuration-error",
+      message: "Instagram provider is not configured",
+      retryable: false,
+    });
+  }
+  const signal = AbortSignal.timeout(20_000);
+  const response = yield* Effect.tryPromise({
+    try: () =>
+      fetch(
+        "https://api.apify.com/v2/acts/apify~instagram-profile-scraper/run-sync-get-dataset-items?timeout=20",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token.trim()}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ usernames: [username], includeAboutSection: false }),
+          signal,
+        },
+      ),
+    catch: () =>
       new ScrapeError({
         code: "scrape-transient-failure",
-        message: `Instagram scrape failed: ${String(cause)}`,
+        message: signal.aborted
+          ? "Instagram provider request timed out"
+          : "Instagram provider request failed",
         retryable: true,
       }),
   });
-  if (scrapeResult._tag === "Left") {
-    return yield* new ScrapeError(scrapeResult.left);
+  if (!response.ok) {
+    if (response.status === 401 || response.status === 402 || response.status === 403) {
+      return yield* new ScrapeError({
+        code: "provider-configuration-error",
+        message: "Instagram provider credentials or billing require configuration",
+        retryable: false,
+      });
+    }
+    return yield* new ScrapeError({
+      code: "scrape-transient-failure",
+      message: `Instagram provider request failed with HTTP ${response.status}`,
+      retryable: response.status === 429 || response.status >= 500,
+    });
   }
-  const rawPayload = yield* Effect.try({
-    try: (): unknown => JSON.parse(scrapeResult.right),
-    catch: () =>
-      new ScrapeError({
-        code: "unsupported-page-shape",
-        message: "BrowserHost returned an invalid Instagram payload",
-      }),
+  const rawPayload = yield* Effect.tryPromise({
+    try: (): Promise<unknown> => response.json(),
+    catch: (cause) =>
+      signal.aborted
+        ? new ScrapeError({
+            code: "scrape-transient-failure",
+            message: "Instagram provider request timed out",
+            retryable: true,
+          })
+        : cause instanceof SyntaxError
+          ? new ScrapeError({
+              code: "unsupported-page-shape",
+              message: "Instagram provider returned invalid profile data",
+            })
+          : new ScrapeError({
+              code: "scrape-transient-failure",
+              message: "Instagram provider response could not be read",
+              retryable: true,
+            }),
   });
-  const scrapedPayload = yield* parseInstagramPayload({ payload: rawPayload, username });
+  const profiles = yield* Schema.decodeUnknownEffect(Schema.Array(Schema.Unknown))(rawPayload).pipe(
+    Effect.mapError(
+      () =>
+        new ScrapeError({
+          code: "unsupported-page-shape",
+          message: "Instagram provider returned invalid profile data",
+        }),
+    ),
+  );
+  const rawProfile = profiles[0];
+  if (rawProfile === undefined) {
+    return yield* new ScrapeError({
+      code: "unsupported-page-shape",
+      message: "Instagram provider returned no profile data",
+    });
+  }
+  const identity = yield* Schema.decodeUnknownEffect(
+    Schema.Struct({ username: Schema.NonEmptyString, private: Schema.Boolean }),
+  )(rawProfile, { onExcessProperty: "ignore" }).pipe(
+    Effect.mapError(
+      () =>
+        new ScrapeError({
+          code: "unsupported-page-shape",
+          message: "Instagram provider profile identity was incomplete",
+        }),
+    ),
+  );
+  if (identity.username.toLowerCase() !== username) {
+    return yield* new ScrapeError({
+      code: "profile-identity-mismatch",
+      message: "Instagram provider returned a different profile",
+    });
+  }
+  if (identity.private) {
+    return yield* new ScrapeError({
+      code: "profile-unavailable",
+      message: "Instagram profile is private",
+    });
+  }
+  const profile = yield* Schema.decodeUnknownEffect(
+    Schema.Struct({
+      followersCount: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
+      profilePicUrlHD: Schema.optional(Schema.NullOr(Schema.NonEmptyString)),
+      profilePicUrl: Schema.optional(Schema.Unknown),
+      latestPosts: Schema.Array(Schema.Unknown),
+    }),
+  )(rawProfile, { onExcessProperty: "ignore" }).pipe(
+    Effect.mapError(
+      () =>
+        new ScrapeError({
+          code: "unsupported-page-shape",
+          message: "Instagram provider profile data was incomplete",
+        }),
+    ),
+  );
+  const posts = yield* Schema.decodeUnknownEffect(
+    Schema.Array(Schema.Struct({ displayUrl: Schema.NonEmptyString })),
+  )(profile.latestPosts.slice(0, 4), { onExcessProperty: "ignore" }).pipe(
+    Effect.mapError(
+      () =>
+        new ScrapeError({
+          code: "unsupported-page-shape",
+          message: "Instagram provider post image data was incomplete",
+        }),
+    ),
+  );
+  const scrapedPayload = yield* parseInstagramPayload({
+    payload: {
+      username: identity.username,
+      profileImageUrl: profile.profilePicUrlHD ?? profile.profilePicUrl,
+      followersText: new Intl.NumberFormat("en-US", {
+        notation: "compact",
+        maximumFractionDigits: 1,
+      }).format(profile.followersCount),
+      postImageUrls: posts.map((post) => post.displayUrl),
+    },
+    username,
+  });
   const fetchPrefix = `instagram/${username}/${crypto.randomUUID()}`;
   const imageUrls: string[] = [];
   for (const [index, sourceUrl] of [

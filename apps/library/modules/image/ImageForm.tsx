@@ -1,16 +1,30 @@
 "use client";
 
-import { useId, useLayoutEffect, useRef, useState } from "react";
+import type { IResult } from "@zerospin/error";
+
+import { useContext, useId, useLayoutEffect, useRef, useState } from "react";
+import { Schema } from "effect";
+import { makeEffectSchema } from "@zerospin/shapes";
 
 import { Input } from "../../components/ui/input";
+import { Button } from "../../components/ui/button";
+import { ImageUploadRuntimeContext } from "./ImageUploadRuntimeContext";
+import { imageV1 } from "./imageV1";
+import { uploadImage } from "./uploadImage";
 
 export function ImageForm(props: {
-  state: { imageUrl: string; title: string };
-  onChange: (state: { imageUrl: string; title: string }) => void;
-  uploadImage?: (props: { file: File; signal: AbortSignal }) => Promise<string>;
-  isUploadingImage?: boolean;
+  state: { imageUrl: string; title: string } | null;
+  onSave: (state: { imageUrl: string; title: string }) => IResult<unknown, { message: string }>;
+  onCancel: () => void;
 }) {
-  const { state, onChange, uploadImage, isUploadingImage = false } = props;
+  const { state, onSave, onCancel } = props;
+  const runtime = useContext(ImageUploadRuntimeContext);
+  const initialState = state ?? imageV1.defaultState;
+  const [formDraft, setDraft] = useState<{ imageUrl: string; title: string } | null>(null);
+  const draft = formDraft ?? initialState;
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const isBusy = isUploadingImage;
+  const isDirty = state === null || JSON.stringify(draft) !== JSON.stringify(initialState);
   const inputId = useId();
   const fileInput = useRef<HTMLInputElement>(null);
   const activeUpload = useRef<AbortController | null>(null);
@@ -25,7 +39,7 @@ export function ImageForm(props: {
   }, []);
 
   async function uploadFiles(files: File[]) {
-    if (uploadImage === undefined || isUploadingImage || activeUpload.current !== null) return;
+    if (runtime === null || isBusy || activeUpload.current !== null) return;
     setUploadError(null);
     if (files.length !== 1) {
       setUploadError("Choose one image at a time.");
@@ -47,26 +61,53 @@ export function ImageForm(props: {
 
     const controller = new AbortController();
     activeUpload.current = controller;
+    setIsUploadingImage(true);
     try {
-      const imageUrl = await uploadImage({ file, signal: controller.signal });
+      const imageUrl = await runtime.runPromise(uploadImage({ file }), {
+        signal: controller.signal,
+      });
       if (controller.signal.aborted || activeUpload.current !== controller) return;
-      onChange({ ...state, imageUrl });
+      setDraft((current) => ({ ...(current ?? initialState), imageUrl }));
     } catch (cause) {
       if (controller.signal.aborted || activeUpload.current !== controller) return;
       setUploadError(cause instanceof Error ? cause.message : "Image upload failed.");
     } finally {
-      if (activeUpload.current === controller) activeUpload.current = null;
+      if (activeUpload.current === controller) {
+        activeUpload.current = null;
+        setIsUploadingImage(false);
+      }
     }
   }
 
   return (
-    <div className="flex w-full flex-col gap-6">
-      {uploadImage !== undefined ? (
+    <form
+      className="flex w-full flex-col gap-6"
+      aria-busy={isBusy}
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (!isDirty || activeUpload.current !== null) return;
+        setUploadError(null);
+        try {
+          const nextState = Schema.decodeUnknownSync(
+            Schema.toType(makeEffectSchema(imageV1.stateShape)),
+          )(draft);
+          const result = onSave(nextState);
+          if (result._tag === "Failure") {
+            setUploadError(result.failure.message ?? "Brick save was refused");
+            return;
+          }
+          setDraft(null);
+        } catch (cause) {
+          setUploadError(cause instanceof Error ? cause.message : "Failed to save image");
+        }
+      }}
+    >
+      {runtime !== null ? (
         <div className="flex flex-col gap-2">
           <input
             accept="image/png,image/jpeg,image/webp,image/svg+xml"
             aria-label="Choose image"
-            disabled={isUploadingImage}
+            disabled={isBusy}
             hidden
             onChange={(event) => {
               const files = Array.from(event.currentTarget.files ?? []);
@@ -79,13 +120,13 @@ export function ImageForm(props: {
           <button
             aria-describedby={`${inputId}-upload-help`}
             className={`flex min-h-36 w-full flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed p-6 text-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-wait disabled:opacity-60 ${isDragging ? "border-primary bg-muted" : "border-input hover:bg-muted/50"}`}
-            disabled={isUploadingImage}
+            disabled={isBusy}
             onClick={() => fileInput.current?.click()}
             onDragEnter={(event) => {
               if (!event.dataTransfer.types.includes("Files")) return;
               event.preventDefault();
               event.stopPropagation();
-              if (!isUploadingImage) setIsDragging(true);
+              if (!isBusy) setIsDragging(true);
             }}
             onDragLeave={(event) => {
               event.stopPropagation();
@@ -101,7 +142,7 @@ export function ImageForm(props: {
               if (!event.dataTransfer.types.includes("Files")) return;
               event.preventDefault();
               event.stopPropagation();
-              event.dataTransfer.dropEffect = isUploadingImage ? "none" : "copy";
+              event.dataTransfer.dropEffect = isBusy ? "none" : "copy";
             }}
             onDrop={(event) => {
               if (!event.dataTransfer.types.includes("Files")) return;
@@ -124,11 +165,6 @@ export function ImageForm(props: {
               Uploading image…
             </p>
           ) : null}
-          {uploadError !== null ? (
-            <p className="m-0" role="alert">
-              {uploadError}
-            </p>
-          ) : null}
         </div>
       ) : null}
       <div className="flex flex-col gap-2">
@@ -139,13 +175,13 @@ export function ImageForm(props: {
           autoCapitalize="none"
           autoComplete="off"
           autoCorrect="off"
-          disabled={isUploadingImage}
+          disabled={isBusy}
           id={`${inputId}-image-url`}
-          onChange={(event) => onChange({ ...state, imageUrl: event.target.value })}
+          onChange={(event) => setDraft({ ...draft, imageUrl: event.target.value })}
           placeholder="https://example.com/image.jpg"
           spellCheck={false}
           type="url"
-          value={state.imageUrl}
+          value={draft.imageUrl}
         />
       </div>
       <div className="flex flex-col gap-2">
@@ -153,13 +189,38 @@ export function ImageForm(props: {
           Title
         </label>
         <Input
-          disabled={isUploadingImage}
+          disabled={isBusy}
           id={`${inputId}-title`}
-          onChange={(event) => onChange({ ...state, title: event.target.value })}
+          onChange={(event) => setDraft({ ...draft, title: event.target.value })}
           type="text"
-          value={state.title}
+          value={draft.title}
         />
       </div>
-    </div>
+      {uploadError !== null ? (
+        <p className="m-0" role="alert">
+          {uploadError}
+        </p>
+      ) : null}
+      <div className="flex flex-wrap gap-2">
+        <Button type="submit" disabled={!isDirty || isBusy}>
+          Save
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => {
+            activeUpload.current?.abort();
+            activeUpload.current = null;
+            setIsUploadingImage(false);
+            setIsDragging(false);
+            setUploadError(null);
+            setDraft(null);
+            onCancel();
+          }}
+        >
+          Cancel
+        </Button>
+      </div>
+    </form>
   );
 }

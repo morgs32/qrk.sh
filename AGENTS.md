@@ -48,9 +48,18 @@ release a new package version, and update QRK's dependencies and lockfile.
 Treat any `vendor/**` paths as read-only and use `$update-vendor` for configured
 vendor operations. Keep consumer integrations outside vendors.
 
-## Verification
+# Testing and checks
 
-- For `@qrk.sh/library` / `apps/library`, never write, run, restore, or maintain tests; use typechecking, lint, and manual checks only.
+And we'll never need. Let's avoid integration testing of our Zerospin backend.
+
+All repository tests and standalone automated checks are removed until we agree
+on a solid test structure. Do not add or require client-side integration tests
+for the Zerospin backend or reintroduce test suites and check gates before that
+structure is agreed.
+
+The future test structure will use end-to-end tests before deploying changes to
+verify compatibility with the existing system, including contracts, sessions,
+aggregates, and models. That suite is deferred; do not scaffold it now.
 
 ## Plans
 

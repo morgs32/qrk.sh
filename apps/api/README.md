@@ -23,9 +23,9 @@ The root development command starts the same API Worker. These commands do not d
 Put private provider credentials in `apps/api/.env.local`:
 
 - `GITHUB_TOKEN`
+- `APIFY_API_TOKEN`
 - `FIGMA_TOKEN`
 - `GOOGLE_PLACES_API_KEY`
-- `STREAMLINE_API_KEY`
 - `OPENAI_API_KEY`
 
 Wrangler loads these as Worker bindings. Studio upload authentication additionally uses
@@ -39,21 +39,21 @@ origin. Public Mapbox settings
 remain in Library's `.env.local`. Do not expose provider or Clerk secrets in
 browser configuration.
 
-Instagram's `BROWSER` binding uses `remote: true` for live local scraping, as
-documented by [Cloudflare](https://developers.cloudflare.com/browser-run/reference/wrangler/).
-Wrangler must be authenticated to an account with Browser Run access. The Worker,
-Durable Objects, and both R2 buckets remain local; this setting only sends browser
-work to Cloudflare. No Instagram login is configured.
+Instagram's normal lookup uses the server-side `APIFY_API_TOKEN` from the existing
+ignored `apps/api/.env.local`. Restart API after changing local credentials.
+The historical `BrowserHost`, `BROWSER` binding, and migration registrations remain
+intact, but normal Instagram lookups do not invoke them. `BROWSER` retains
+`remote: true`; no Instagram login is configured.
 
 ## Routes and ownership
 
-| Route                | Behavior                                                  |
-| -------------------- | --------------------------------------------------------- |
-| `/rpc`               | Existing `LibraryApi` methods and authentication behavior |
+| Route                | Behavior                                                     |
+| -------------------- | ------------------------------------------------------------ |
+| `/rpc`               | Existing `LibraryApi` methods and authentication behavior    |
 | `POST /upload`       | Studio: Clerk bearer-token authentication; writes to `QRKSH` |
-| `POST /image/upload` | Library: anonymous image uploads; writes to `QRKSH`       |
-| `/assets/library/*`  | Reads original Library image keys from `ASSETS`           |
-| Other `/assets/*`    | Reads API upload keys from `QRKSH`                        |
+| `POST /image/upload` | Library: anonymous image uploads; writes to `QRKSH`          |
+| `/assets/library/*`  | Reads original Library image keys from `ASSETS`              |
+| Other `/assets/*`    | Reads API upload keys from `QRKSH`                           |
 
 `OPTIONS` retains API preflight handling. CORS allows the existing application
 origins, Studio's web frontend at `http://localhost:3000`, and Library's localhost
@@ -74,12 +74,25 @@ fields. Only a fully successful response is retained. Upstream errors return the
 existing error and leave the previous response untouched.
 
 `getInstagramProfile(url)` also fetches fresh data on every call. The Instagram
-module normalizes HTTPS profile URLs, delegates scraping to `BrowserHost`, and
-validates required username, avatar, and follower data plus an ordered array of
-zero to four supported post images from the public page's embedded profile feed.
-Image posts and video thumbnails use their feed image URLs in feed order.
-An empty feed succeeds; malformed feed data fails validation.
-It downloads the avatar and selected posts,
+module normalizes HTTPS profile URLs and makes one authenticated POST to Apify's
+maintained `apify/instagram-profile-scraper` synchronous dataset endpoint, using
+the normalized username and `includeAboutSection: false`. The actor's
+`timeout=20` and a 20-second HTTP deadline bound provider execution, fetching,
+and response-body reading. There are no automatic retries or browser fallback;
+this deadline does not bound the subsequent image downloads and R2 writes.
+
+The provider response must identify the requested username, supply an explicit
+`private` flag, a nonnegative integer follower count, a usable avatar, and a
+present `latestPosts` array. Explicitly private profiles fail; an empty public
+feed succeeds. The module prefers `profilePicUrlHD`, falls back to
+`profilePicUrl`, formats followers with English compact notation and up to one
+decimal place, and validates the first four `displayUrl` thumbnails in provider
+order. Video posts use their image covers. Configuration, authentication, and
+billing failures are distinct from transport, timeout, rate-limit, malformed
+payload, and identity failures; provider errors do not imply a private profile.
+Raw provider errors and credentials are excluded from messages and logs.
+
+The existing importer downloads the avatar and selected posts sequentially,
 requires successful nonempty image responses, and awaits writes to `QRKSH` with
 their content types. Each fetch uses immutable
 `instagram/<username>/<fetch-uuid>/…` keys. Returned image URLs use
@@ -92,6 +105,34 @@ Spec generation accepts a full spec or JSONL patches. Edits apply patches to a
 copy of the supplied current spec, retaining its root and unchanged elements;
 the resulting spec must pass the module catalog's validation before returning.
 
+### Material Symbols
+
+`searchIcons(query, offset, limit)` serves Google's bundled
+Material Symbols Sharp Line catalog through `/rpc`. The icon module owns input
+validation and lookup; these operations make no provider requests, need no API
+key, and write no storage. Search matches every word in the icon name, treating
+case, spaces, and underscores consistently. Exact matches precede prefixes and
+then alphabetical matches. Queries shorter than two characters return no icons;
+pagination requires an integer offset of zero or greater and a limit of 1–100.
+Search results contain `{ hash, name, svg }`; browser presentation derives SVG
+data URLs from that field and retains the selected SVG for synchronous saving.
+The Google icon slug is `hash`. Invalid search input returns
+`invalid-scrape-request` through the existing RPC envelope.
+
+The checked-in catalog uses the standard 24px unfilled Sharp SVGs from pinned
+Google revision `49d4db35df873165d6bd6ba09b063c7dafbac2f4`. Its generated header
+records the imported count and source; the adjacent `LICENSE` retains Google's
+Apache 2.0 license. Regenerate the snapshot without additional dependencies:
+
+```sh
+python3 apps/api/modules/swatchAndIcon/downloadMaterialSymbols.py
+```
+
+The downloader validates every SVG and only replaces the generated catalog after
+the complete pinned snapshot succeeds. Catalog updates are manual. The catalog
+is bundled into API, not Library's browser output. Existing bricks render their
+saved SVGs, including historical Streamline icons, without a provider lookup.
+
 `BACKEND_REPO` binds the storage-only `BackendRepo` singleton named `global`.
 Its initial SQL migration creates `responses(key TEXT NOT NULL UNIQUE, payload
 TEXT NOT NULL)`. `storeResponse` validates JSON, encodes through the table codec,
@@ -103,8 +144,9 @@ rejections log `backend-response-retention-failed` and still return fetched data
 Stored responses never satisfy a fetch request, and have no TTL or timestamps.
 
 Other provider Backends retain their existing methods and caching behavior in
-their matching `modules` folders. `BrowserHost` stays with Instagram's browser
-scraping; the former `InstagramBackend` cache and binding are removed. The other
+their matching `modules` folders. Historical Instagram browser scraping and
+`BrowserHost` remain registered but are bypassed by the normal Apify path;
+the former `InstagramBackend` cache and binding are removed. The other
 providers' consolidation follows separate migrations.
 Linktree scraping continues in `@qrk.sh/scraper`.
 
@@ -115,25 +157,24 @@ Instagram is also removed from this local bootstrap's class list. Rewriting this
 local baseline does not reset a deployed namespace: Cloudflare applies each migration tag once
 per environment ([migration reference](https://developers.cloudflare.com/durable-objects/reference/durable-object-class-migrations-legacy/#migration-wrangler-configuration)).
 Existing local state directories and uploaded R2 bytes are preserved.
+The append-only `v2` migration retires the stateless `StreamlineBackend`; its
+binding and implementation are removed. Deployment would apply that deletion;
+local development and dry-run builds do not deploy it. Historical `v1` remains
+unchanged. Ignored credentials are preserved; `STREAMLINE_API_KEY` is no longer
+used even if it remains in locally generated environment declarations.
 Local Library `ASSETS` data is copied into API's `.wrangler/state/v3/r2` using
 SQLite backup and blob copies; its original state remains intact. API's existing
 `QRKSH` data stays in place. Documents containing absolute
 `http://127.0.0.1:4101` asset URLs require their origin updated separately; this
 move does not rewrite authored documents.
 
-## Checks and builds
+## Bindings and builds
 
 ```sh
 pnpm nx run @qrk.sh/api:types
-pnpm nx run @qrk.sh/api:ts
-pnpm nx run @qrk.sh/api:lint
 pnpm nx run @qrk.sh/api:build
-pnpm nx run @qrk.sh/api:test:workerd
 ```
 
-`types` regenerates Worker bindings. `build` checks Wrangler bundling without
-deployment. API's Workerd tests cover uploads, GitHub fetch/retention, and
-Instagram's image persistence, asset retrieval, fresh fetches, and failure paths.
-The owning system-worker `repo-lifecycle:check` uses disposable Workerd state for
-standalone migrations, restarts, rollback, and fixed-repo admission. Library's tests
-are not written, modified, or run as part of this migration.
+`types` regenerates Worker bindings. `build` bundles the Worker without
+deployment. Repository tests and standalone automated checks are deferred until
+a test structure is agreed (see root `AGENTS.md`).

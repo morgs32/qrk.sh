@@ -3,27 +3,31 @@
 ## Zerospin packages
 
 Zerospin owns its source, builds, and releases in the sibling `../zerospin`
-checkout. QRK installs exact `9.0.2` packages from the local Verdaccio registry;
+checkout. QRK installs exact `11.1.0` packages from the local Verdaccio registry;
 there is no vendored Zerospin source or consumer-side Zerospin build.
 
 The credential-free project `.npmrc` routes all dependencies through
 `http://127.0.0.1:4873/`, including the unscoped `system-worker`. The registry
 serves Zerospin packages locally and proxies ordinary third-party packages to
-npm. The framework supplies its SQL.js runtime. The existing Workerd initializer
-resolves the asm build for in-memory test databases, without host filesystem access.
+npm. The framework supplies its SQL.js runtime.
 Cloudflare Worker types and Zod peers match across Library and the backend so
 they resolve the same Core and Drizzle package instances.
-The workspace pins Effect, `@effect/platform-node-shared`, and `@effect/vitest`
-to `4.0.2`; their versions must stay aligned for the Zerospin CLI and tests.
+The workspace pins Effect and `@effect/platform-node-shared` to `4.0.2` for the
+Zerospin CLI.
 Effect is installed from the registry; no Effect source is vendored.
 
-Consumer skills ship inside the installed SDK, Browser, and React packages.
-Intent `0.5.5` is pinned in this workspace; the root permission policy enables
-those packages and the managed `AGENTS.md` block discovers their seven skills.
+Repository tests and standalone automated checks are deferred until a test
+structure is agreed. See [Testing and checks](./AGENTS.md#testing-and-checks).
+
+Three consumer skills ship inside the installed SDK package: feature authoring,
+external work, and command submission. The browser and React packages do not
+currently include Intent skills. Intent `0.5.5` is pinned in this workspace; the
+root permission policy enables those packages and the managed `AGENTS.md` block
+discovers the available guidance.
 After a dependency upgrade, use `pnpm exec intent install` to refresh guidance.
 Inspect available skills with `pnpm exec intent list` and load task guidance with
-`pnpm exec intent load '@zerospin/sdk#zerospin-author-feature'` (or the listed
-Browser/React skill ID). Skill content follows the installed package version.
+`pnpm exec intent load '@zerospin/sdk#zerospin-author-feature'` (or another listed
+SDK skill ID). Skill content follows the installed package version.
 
 Two Next.js apps with App Router:
 
@@ -82,7 +86,7 @@ More detail and test patterns: [docs/styleguide/component-and-file-naming.md](do
    On the first registry bootstrap, install, build, verify, and publish the
    release in Zerospin before installing QRK. Follow Zerospin's package release
    instructions. Existing registry storage survives restarts. A fresh checkout
-   requires the running registry with the locked `9.0.2` packages; hosted
+   requires the running registry with the locked `11.1.0` packages; hosted
    distribution and deployment-machine bootstrap are not configured here.
 
 2. Start the homepage:
@@ -124,11 +128,11 @@ across drawers; native React View Transitions animate drawer entry and snapshot
 exit for 300 ms, with reduced-motion and immediate-navigation fallbacks.
 See [Studio's README](apps/studio/README.md) for routes and browser checks.
 
-The signed-in Clerk user supplies expected claims using the same `makeAggregateId`
-construction as the server. Zerospin verifies those expectations online before
-attachment. Offline reopening requires that exact previously verified identity
-and session lock. Runtime versions use separate storage; pending commands in an
-older version are not migrated or deleted.
+The signed-in Clerk user supplies its Clerk user ID directly as `aggregateId`,
+matching the verified token subject on the server. Zerospin verifies those
+expectations online before attachment. Offline reopening requires that exact
+previously verified identity and session lock. Runtime versions use separate
+storage; pending commands in an older version are not migrated or deleted.
 
 The `api` Worker runs on port 8787 (inspector 9231) and Zerospin on port 8788. API
 owns module RPCs, Clerk-authenticated uploads, and asset serving. See
@@ -165,6 +169,41 @@ For Library, run `pnpm nx run @qrk.sh/library:build:app`, then
 starts the local API Worker. See [Library's README](apps/library/README.md)
 for the backend-origin setting. API retains the existing R2 buckets; previously
 saved absolute URLs using port 4101 need their origin updated separately.
+
+## Local subdomain routing proof
+
+Web's development-only proof displays the subdomain and path without a site
+query. Run Web with `pnpm nx run @qrk.sh/web:dev`, then use the standalone
+Portless CLI (verified with 0.15.8):
+
+```sh
+npm install -g portless
+portless proxy start --port 443 --https --wildcard
+portless alias qrk 3000
+```
+
+Portless's first setup trusts a local CA, and port 443 requests an interactive
+sudo prompt. Open `https://alpha.qrk.localhost/` or
+`https://beta.qrk.localhost/about/team?from=proof`. The page's Home/About links
+exercise Next navigation while the browser retains the selected hostname.
+
+The current verified listener uses the unprivileged HTTPS port 1355, pending
+interactive port 443 setup: [alpha](https://alpha.qrk.localhost:1355/) and
+[beta](https://beta.qrk.localhost:1355/about/team?from=proof). To run that mode
+explicitly, use `portless proxy start --port 1355 --https --wildcard`.
+Check registrations with `portless list`; stop the current listener before
+switching ports.
+
+Only one DNS label before `.qrk.localhost` is recognized. Next internals,
+static files, and `/api`, `/trpc`, and `/rpc` endpoints retain their existing
+routing. Ordinary localhost authentication and Studio forwarding stay on the
+existing origins. These proof labels do not yet identify sites or users.
+
+Optional cleanup: `portless alias --remove qrk`, then `portless proxy stop` if
+the proxy is used only for this trial. Keep shared state and other aliases.
+See [routing research](wiki/research/nextjs-subdomain-routing.md) and
+[Plan 024](wiki/plans/024-plan-nextjs-subdomain-routing.md) for evidence and
+the remaining port 443 verification.
 
 ## Deployment
 

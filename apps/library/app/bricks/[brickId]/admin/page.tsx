@@ -9,7 +9,6 @@ import { makeModelIdSchema } from "@zerospin/core/models/make/makeModelIdSchema"
 import { isNonEmptySpec } from "@json-render/core";
 import { Result, Schema } from "effect";
 import { makeEffectSchema } from "@zerospin/shapes";
-import { newSyncRpcSession } from "@zerospin/core/utils/getApi/newSyncRpcSession/newSyncRpcSession";
 import { useLiveQuery } from "@zerospin/react";
 import { collapseAllNested, defaultStyles, JsonView } from "react-json-view-lite";
 
@@ -24,22 +23,7 @@ import { modulesHash } from "../../../../lib/modulesHash";
 import type { IModule } from "../../../../lib/types";
 import { useWallViewport } from "../../../../lib/WallViewportProvider";
 import { useUpdateBrick } from "../../../../lib/useUpdateBrick";
-import type { LibraryApi } from "../../../../worker/LibraryApi.public";
-import type { IScrapeError } from "../../../../worker/types.public";
 import { useLibrarySession } from "../../../../session/createLibraryStandaloneSession";
-
-const specContractByModuleId = {
-  "figma-thumbnail": "updateFigmaThumbnailSpecAtBreakpoint",
-  "github-activity": "updateGithubActivitySpecAtBreakpoint",
-  "github-profile": "updateGithubProfileSpecAtBreakpoint",
-  "github-repo": "updateGithubRepoSpecAtBreakpoint",
-  image: "updateImageSpecAtBreakpoint",
-  instagram: "updateInstagramSpecAtBreakpoint",
-  link: "updateLinkSpecAtBreakpoint",
-  "map-place": "updateMapPlaceSpecAtBreakpoint",
-  "swatch-and-icon": "updateSwatchAndIconSpecAtBreakpoint",
-  article: "updateArticleSpecAtBreakpoint",
-} as const;
 
 export default function BrickAdmin() {
   const params = useParams();
@@ -55,15 +39,13 @@ function BrickAdminContent(props: { brickId: `brk_${string}` }) {
   const { activeBreakpoint } = useWallViewport();
   const breakpoint = activeBreakpoint ?? "sm";
   const session = useLibrarySession();
-  const { updateBrick, measurementHost, isMutating } = useUpdateBrick({ brickId });
+  const { updateBrick, measureAndUpdateBrick, measurementHost, isMeasuring } = useUpdateBrick({
+    brickId,
+  });
   const [generatePrompt, setGeneratePrompt] = useState("");
-  const [isGeneratingSpec, setIsGeneratingSpec] = useState(false);
-  const [generateError, setGenerateError] = useState<IScrapeError>();
-  const [generateRequestError, setGenerateRequestError] = useState<string>();
   const [commandError, setCommandError] = useState<string | null>(null);
   const [stateDraft, setStateDraft] = useState<string | null>(null);
   const [jsonCommandError, setJsonCommandError] = useState<string | null>(null);
-  const [acceptedState, setAcceptedState] = useState<{ state: unknown } | null>(null);
 
   const brickQuery = useLiveQuery({
     session,
@@ -94,13 +76,6 @@ function BrickAdminContent(props: { brickId: `brk_${string}` }) {
   });
 
   const brickRow = brickQuery.data;
-  if (
-    acceptedState !== null &&
-    brickRow !== undefined &&
-    JSON.stringify(brickRow.state) === JSON.stringify(acceptedState.state)
-  ) {
-    setAcceptedState(null);
-  }
 
   if (brickRow === undefined) {
     notFound();
@@ -114,7 +89,7 @@ function BrickAdminContent(props: { brickId: `brk_${string}` }) {
   const brickModule: IModule<typeof brickRow.moduleId> = modulesHash[brickRow.moduleId];
 
   const brickState = brickRow.state;
-  const committedState = acceptedState?.state ?? brickState;
+  const committedState = brickState;
   const committedStateJson = JSON.stringify(committedState, null, 2);
   const stateEditorValue = stateDraft ?? committedStateJson;
   const StateSchema = Schema.toType(makeEffectSchema(brickModule.stateShape));
@@ -172,52 +147,17 @@ function BrickAdminContent(props: { brickId: `brk_${string}` }) {
                   className="flex flex-col items-start gap-2 py-5"
                   onSubmit={(event) => {
                     event.preventDefault();
-                    void (async () => {
-                      const targetBrickId = brickRow.id;
-                      const targetBreakpoint = breakpoint;
-                      const targetModuleId = brickRow.moduleId;
-                      setIsGeneratingSpec(true);
-                      setGenerateError(undefined);
-                      setGenerateRequestError(undefined);
-                      setCommandError(null);
-                      try {
-                        using api = newSyncRpcSession<LibraryApi>("/rpc");
-                        const result = await api.generateSpec(
-                          brickRow.moduleId,
-                          generatePrompt,
-                          brickState,
-                          placementSpec,
-                        );
-                        if (result._tag === "Left") {
-                          setGenerateError(result.left);
-                          return;
-                        }
-                        const specContractName = specContractByModuleId[targetModuleId];
-                        const commandResult = stageAggregateSessionCommand({
-                          session,
-                          contractName: specContractName,
-                          payload: {
-                            brickId: targetBrickId,
-                            breakpoint: targetBreakpoint,
-                            spec: result.right,
-                          },
-                        });
-                        if (commandResult._tag === "Failure") {
-                          setCommandError(
-                            commandResult.failure.message ??
-                              commandResult.failure.code ??
-                              "Failed to save generated spec",
-                          );
-                          return;
-                        }
-                      } catch (cause) {
-                        setGenerateRequestError(
-                          cause instanceof Error ? cause.message : String(cause),
-                        );
-                      } finally {
-                        setIsGeneratingSpec(false);
-                      }
-                    })();
+                    const result = stageAggregateSessionCommand({
+                      session,
+                      contractName: "generateBrickSpec",
+                      payload: {
+                        brickId,
+                        breakpoint,
+                        requestId: crypto.randomUUID(),
+                        prompt: generatePrompt,
+                      },
+                    });
+                    setCommandError(result._tag === "Failure" ? result.failure.message : null);
                   }}
                 >
                   <label className="block font-medium" htmlFor="generate-spec-prompt">
@@ -232,20 +172,38 @@ function BrickAdminContent(props: { brickId: `brk_${string}` }) {
                     type="text"
                     value={generatePrompt}
                   />
-                  <Button disabled={isGeneratingSpec} type="submit">
-                    Generate
-                  </Button>
+                  <Button type="submit">Generate</Button>
                 </form>
-                {isGeneratingSpec ? <p role="status">Generating spec…</p> : null}
-                {generateError !== undefined ? (
-                  <div className="rounded-md border border-red-200 bg-red-50 p-4" role="alert">
-                    <p className="m-0 font-mono">{generateError.code}</p>
-                    <p className="mb-0 mt-2">{generateError.message}</p>
-                  </div>
+                {placement.generation?.status === "generating" ? (
+                  <p role="status">Generating spec…</p>
                 ) : null}
-                {generateRequestError !== undefined ? (
+                {placement.generation?.status === "superseded" ? (
+                  <p role="status">Generation was superseded by a newer edit.</p>
+                ) : null}
+                {placement.generation?.status === "failed" &&
+                placement.generation.error !== null ? (
                   <div className="rounded-md border border-red-200 bg-red-50 p-4" role="alert">
-                    {generateRequestError}
+                    <p>{placement.generation.error.message}</p>
+                    {placement.generation.error.retryable ? (
+                      <Button
+                        type="button"
+                        onClick={() => {
+                          const result = stageAggregateSessionCommand({
+                            session,
+                            contractName: "generateBrickSpec",
+                            payload: {
+                              brickId,
+                              breakpoint,
+                              requestId: crypto.randomUUID(),
+                              prompt: placement.generation?.prompt ?? generatePrompt,
+                            },
+                          });
+                          setCommandError(result._tag === "Failure" ? result.failure.message : null);
+                        }}
+                      >
+                        Retry
+                      </Button>
+                    ) : null}
                   </div>
                 ) : null}
               </OrderedSection>
@@ -294,10 +252,10 @@ function BrickAdminContent(props: { brickId: `brk_${string}` }) {
             <OrderedSection className="mt-10" label="Shared state">
               <form
                 className="flex flex-col gap-2 py-4"
-                aria-busy={isMutating}
+                aria-busy={isMeasuring}
                 onSubmit={async (event) => {
                   event.preventDefault();
-                  if (isMutating || (Form !== undefined && (jsonError !== null || !jsonDirty)))
+                  if (isMeasuring || (Form !== undefined && (jsonError !== null || !jsonDirty)))
                     return;
                   let parsed: unknown;
                   if (Form !== undefined) {
@@ -311,9 +269,14 @@ function BrickAdminContent(props: { brickId: `brk_${string}` }) {
                     }
                   }
                   try {
-                    await updateBrick(parsed);
+                    const result = brickModule.measureOnSave
+                      ? await measureAndUpdateBrick(parsed)
+                      : updateBrick(parsed);
+                    if (result._tag === "Failure") {
+                      setJsonCommandError(result.failure.message ?? "Brick save was refused");
+                      return;
+                    }
                     if (Form !== undefined) {
-                      setAcceptedState({ state: parsed });
                       setJsonCommandError(null);
                     } else setCommandError(null);
                     setStateDraft(null);
@@ -330,7 +293,7 @@ function BrickAdminContent(props: { brickId: `brk_${string}` }) {
                 </label>
                 <textarea
                   id="shared-state-editor"
-                  disabled={isMutating}
+                  disabled={isMeasuring}
                   className="min-h-48 w-full rounded border border-border bg-white p-2 font-mono text-sm"
                   value={stateEditorValue}
                   onChange={(event) => {
@@ -349,14 +312,17 @@ function BrickAdminContent(props: { brickId: `brk_${string}` }) {
                   </div>
                 ) : null}
                 <div className="flex gap-2">
-                  <Button type="submit" disabled={isMutating || (Form !== undefined && !jsonDirty)}>
-                    {isMutating ? "Saving…" : "Save state"}
+                  <Button
+                    type="submit"
+                    disabled={isMeasuring || (Form !== undefined && !jsonDirty)}
+                  >
+                    {isMeasuring ? "Saving…" : "Save state"}
                   </Button>
                   {Form !== undefined ? (
                     <Button
                       type="button"
                       variant="outline"
-                      disabled={isMutating}
+                      disabled={isMeasuring}
                       onClick={() => {
                         setStateDraft(null);
                         setJsonCommandError(null);

@@ -119,8 +119,14 @@ export function makeUpdateBrickContract<
       }
     }),
     program: (props) => {
-      const { operations, payload } = props;
+      const { operations, payload, db } = props;
       return Effect.gen(function* () {
+        const currentBrick = yield* findFirst({
+          db,
+          model: brick,
+          where: { id: { eq: payload.brickId } },
+        });
+        if (currentBrick === undefined) return;
         const brickModule = library[payload.moduleId];
         const StateSchema = Schema.toType(makeEffectSchema(brickModule.stateShape));
         const decodedState = yield* Schema.decodeUnknownEffect(
@@ -135,12 +141,23 @@ export function makeUpdateBrickContract<
           resourceId: payload.brickId,
           attributes: {
             state: structuredClone(decodedState),
+            stateRevision: currentBrick.stateRevision + 1,
           },
         });
         for (const breakpoint of breakpoints) {
+          const currentPlacement = yield* findFirst({
+            db,
+            model: placement,
+            where: { id: { eq: makePlacementId(payload.brickId, breakpoint) } },
+          });
+          if (currentPlacement === undefined) continue;
           yield* operations.updatePlacement({
             resourceId: makePlacementId(payload.brickId, breakpoint),
             attributes: {
+              generation:
+                currentPlacement.generation?.status === "generating"
+                  ? { ...currentPlacement.generation, status: "superseded" }
+                  : currentPlacement.generation,
               measured:
                 payload.measurements === null
                   ? null

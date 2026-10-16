@@ -4,29 +4,19 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "lint": "vp lint --config ../../.oxlintrc.json .",
-    "ts": "tsc -p tsconfig.json --noEmit",
-    "types": "wrangler types ./worker-configuration.d.ts",
-    "test:workerd": "vitest run --config vitest.worker.config.ts",
-    "test:live": "SCRAPER_LIVE_TESTS=1 vitest run --config vitest.live.config.ts"
+    "types": "wrangler types ./worker-configuration.d.ts"
   },
   "dependencies": {
     "@cloudflare/puppeteer": "^1.1.0",
-    "@zerospin/core": "9.0.2",
+    "@zerospin/core": "11.1.0",
     "capnweb": "^0.12.0",
     "drizzle-orm": "1.0.0-rc.4",
     "effect": "4.0.2"
   },
   "devDependencies": {
-    "@cloudflare/vitest-pool-workers": "^0.16.3",
-    "@effect/vitest": "4.0.2",
     "@types/node": "^25.5.2",
-    "@vitest/snapshot": "4.1.11",
-    "@vitest/utils": "4.1.11",
     "dotenv": "^17.4.2",
     "typescript": "^6.0.2",
-    "vite-plus": "1.0.0",
-    "vitest": "4.1.11",
     "wrangler": "4.131.2"
   }
 }

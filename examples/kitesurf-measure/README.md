@@ -44,8 +44,6 @@ Local `/measure` still scrapes **`PUBLIC_EXAMPLE_ORIGIN`**, not localhost — de
 ```bash
 pnpm nx run @qrk.sh/kitesurf-measure:dev
 pnpm nx run @qrk.sh/kitesurf-measure:build
-pnpm nx run @qrk.sh/kitesurf-measure:typecheck
-pnpm nx run @qrk.sh/kitesurf-measure:lint
 pnpm nx run @qrk.sh/kitesurf-measure:deploy
 ```
 

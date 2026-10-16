@@ -99,6 +99,41 @@
   --ring: oklch(0.552 0.016 285.938);
 }
 
+[data-brick-surface] {
+  --brick-edge: 1px;
+}
+
+/* Shared strokes occupy the same pixels; content keeps its own clipping. */
+[data-brick-surface][data-card-style="false"]::before {
+  content: "";
+  position: absolute;
+  inset: 0 calc(0px - var(--brick-edge)) calc(0px - var(--brick-edge)) 0;
+  box-sizing: border-box;
+  border: var(--brick-edge) solid #282824;
+  z-index: 19;
+  pointer-events: none;
+}
+
+/* Keep the wall perimeter and standalone preview frames inside their boxes. */
+[data-brick-surface][data-card-style="false"][data-wall-right-edge="true"]::before,
+[data-brick-surface][data-card-style="false"]:not(.react-grid-item)::before {
+  right: 0;
+}
+
+[data-brick-surface][data-card-style="false"][data-wall-bottom-edge="true"]::before,
+[data-brick-surface][data-card-style="false"]:not(.react-grid-item)::before {
+  bottom: 0;
+}
+
+[data-brick-surface][data-card-style="true"] > .brick-hover-surface {
+  border-radius: 8px;
+  background: white;
+  box-shadow:
+    0 8px 28px rgb(0 0 0 / 6%),
+    0 1px 6px rgb(0 0 0 / 4%);
+  overflow: hidden;
+}
+
 /* The outline follows the active surface during dragging and resizing. */
 .grid-layout > .react-grid-item.brick-drag-surface::after {
   content: "";
@@ -109,6 +144,10 @@
   border-radius: 0;
   opacity: 0;
   pointer-events: none;
+}
+
+.grid-layout > .react-grid-item.brick-drag-surface[data-card-style="true"]::after {
+  border-radius: 8px;
 }
 
 .grid-layout > .react-grid-item.brick-drag-surface > .react-resizable-handle {
@@ -213,6 +252,7 @@
   content: "";
   position: absolute;
   inset: 0;
+  border-radius: inherit;
   z-index: 20;
   box-shadow: inset 0 0 0 calc(var(--brick-hover-active, 0) * 2px) #282824;
   pointer-events: none;

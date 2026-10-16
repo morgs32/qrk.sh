@@ -44,6 +44,7 @@ export function makeAddBrickContract<
     {
       readonly stateShape: IShape;
       readonly hasPlaceholder: boolean;
+      readonly maxPerPage?: number;
       readonly components: Record<string, ReturnType<typeof defineComponent>>;
     }
   >,
@@ -92,6 +93,7 @@ export function makeAddBrickContract<
     failures: {
       addBrickWallNotFound: ContractError.schema({ code: "add-brick-wall-not-found" }),
       addBrickBrickExists: ContractError.schema({ code: "add-brick-brick-exists" }),
+      addBrickModuleLimitReached: ContractError.schema({ code: "add-brick-module-limit-reached" }),
       addBrickPlacementExists: ContractError.schema({ code: "add-brick-placement-exists" }),
       addBrickDropPositionInvalid: ContractError.schema({
         code: "add-brick-drop-position-invalid",
@@ -206,6 +208,17 @@ export function makeAddBrickContract<
         model: brick,
         where: { wallId: { eq: payload.wallId } },
       });
+      const { maxPerPage } = brickModule;
+      if (
+        maxPerPage !== undefined &&
+        wallBricks.filter((wallBrick) => wallBrick.moduleId === payload.moduleId).length >=
+          maxPerPage
+      ) {
+        return yield* failures.addBrickModuleLimitReached.make({
+          message: `The ${payload.moduleId} limit of ${maxPerPage} per page has been reached`,
+          status: 409,
+        });
+      }
 
       for (const breakpoint of ["sm", "md", "lg", "xl"] as Array<"sm" | "md" | "lg" | "xl">) {
         const visibleItems = [];
@@ -299,6 +312,7 @@ export function makeAddBrickContract<
             wallId: payload.wallId as InferIdFromAbbreviation<"wal">,
             moduleId: payload.moduleId,
             state: clonedState,
+            stateRevision: 0,
           },
         });
 
@@ -316,6 +330,8 @@ export function makeAddBrickContract<
                   brickId: payload.brickId as InferIdFromAbbreviation<"brk">,
                   breakpoint,
                   spec: structuredClone(clonedSpec),
+                  specRevision: 0,
+                  generation: null,
                   measured: null,
                   gridItem: item,
                   isVisible: true,

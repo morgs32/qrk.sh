@@ -17,11 +17,15 @@ export function BreakpointPreviewRow(props: {
   moduleId: keyof typeof modulesHash;
   brick: (typeof modulesHash)[keyof typeof modulesHash];
   moduleState: unknown;
+  moduleCount: number;
   BrickComponent: (typeof modulesHash)[keyof typeof modulesHash]["component"];
   className?: string;
   specs: Record<(typeof BREAKPOINTS)[number]["id"], Spec>;
 }) {
-  const { entry, moduleId, brick, moduleState, BrickComponent, className, specs } = props;
+  const { entry, moduleId, brick, moduleState, moduleCount, BrickComponent, className, specs } =
+    props;
+  const maxPerPage = brick.maxPerPage;
+  const limitReached = maxPerPage !== undefined && moduleCount >= maxPerPage;
   const [measurement, setMeasurement] = useState<{
     state: unknown;
     specs: typeof specs;
@@ -119,9 +123,11 @@ export function BreakpointPreviewRow(props: {
       className="size-full qrk-bricks brick-drag-surface overflow-hidden"
       data-module-brick={moduleId}
       data-testid="brick-preview"
-      draggable={placementSizes !== null}
+      aria-disabled={limitReached}
+      title={limitReached ? "Limit reached. Remove one to add another." : undefined}
+      draggable={placementSizes !== null && !limitReached}
       onDragStart={(event) => {
-        if (placementSizes === null) {
+        if (placementSizes === null || limitReached) {
           event.preventDefault();
           return;
         }
@@ -164,6 +170,12 @@ export function BreakpointPreviewRow(props: {
         <div className="flex w-max items-start gap-4">
           <div>
             <p className="m-0 mb-2 font-mono text-neutral-500">gridItem</p>
+            {maxPerPage !== undefined ? (
+              <p className="mb-3 mt-0 max-w-64 text-sm text-neutral-500">
+                Limit: {maxPerPage} per page.
+                {limitReached ? " Limit reached. Remove one to add another." : ""}
+              </p>
+            ) : null}
             <GridItemPreview breakpoint={entry.id} w={dragW} h={dragH}>
               {previewSurface}
             </GridItemPreview>

@@ -1,3 +1,4 @@
+import type { Layer } from "effect";
 import { RoutePattern } from "@remix-run/route-pattern";
 import { createContext, useContext } from "react";
 
@@ -13,7 +14,21 @@ import { librarySessionDeclaration } from "./librarySessionDeclaration";
 
 const fixtureDate = new Date("2026-01-01T00:00:00.000Z");
 
-export const librarySessionRelease = makeStandaloneSessionRelease({
+export const librarySessionRelease: IAggregateSessionRelease<
+  "standalone",
+  "library",
+  "library",
+  typeof libraryModule.contracts,
+  typeof libraryModule.models,
+  "1.0.0",
+  typeof librarySessionDeclaration.claimsSchema
+> & {
+  actorName: "library";
+  actorVersion: "1.0.0";
+  sessionType: "standalone";
+  layer: Layer.Layer<never> | undefined;
+  sharedWorker: (props: { name: string }) => SharedWorker;
+} = makeStandaloneSessionRelease({
   ...librarySessionDeclaration,
   sharedWorker: (props) => {
     const { name } = props;
@@ -31,7 +46,7 @@ export function createLibraryStandaloneSession(props: {
   const { key, wallId } = props;
   return makeBrowserSession({
     sessionRelease: librarySessionRelease,
-    backupPath: RoutePattern.parse("/" + encodeURIComponent(key)),
+    backupPath: RoutePattern.parse("/" + encodeURIComponent(key) + "-command-query-v1"),
     claims: { aggregateId: "acct_1" },
     resources: {
       wall: [

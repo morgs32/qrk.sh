@@ -1,6 +1,0 @@
-{
-  "extends": ["../../.oxlintrc.json"],
-  "rules": {
-    "nextjs/no-img-element": "off"
-  }
-}

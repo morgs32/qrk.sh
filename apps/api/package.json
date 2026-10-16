@@ -6,10 +6,7 @@
   "scripts": {
     "dev": "wrangler dev --ip 127.0.0.1 --port 8787 --inspector-port 9231",
     "build": "wrangler deploy --dry-run --outdir dist",
-    "lint": "vp lint --config ../../.oxlintrc.json .",
-    "ts": "tsc -p tsconfig.json --noEmit",
-    "types": "wrangler types ./worker-configuration.d.ts",
-    "test:workerd": "vitest run --config vitest.worker.config.ts"
+    "types": "wrangler types ./worker-configuration.d.ts"
   },
   "dependencies": {
     "@clerk/backend": "^3.8.5",
@@ -18,23 +15,19 @@
     "@qrk.sh/library": "workspace:*",
     "@qrk.sh/r2-assets": "workspace:*",
     "@remix-run/route-pattern": "^0.22.1",
-    "@zerospin/core": "9.0.2",
-    "@zerospin/error": "9.0.2",
-    "@zerospin/logger": "9.0.2",
-    "@zerospin/shapes": "9.0.2",
+    "@zerospin/core": "11.1.0",
+    "@zerospin/error": "11.1.0",
+    "@zerospin/logger": "11.1.0",
+    "@zerospin/shapes": "11.1.0",
     "capnweb": "^0.12.0",
     "drizzle-orm": "1.0.0-rc.4",
     "effect": "4.0.2",
-    "system-worker": "9.0.2"
+    "es-toolkit": "^1.52.0",
+    "system-worker": "11.1.0"
   },
   "devDependencies": {
-    "@cloudflare/vitest-pool-workers": "^0.16.3",
     "@types/node": "^25.5.2",
-    "@vitest/snapshot": "4.1.11",
-    "@vitest/utils": "4.1.11",
     "typescript": "^6.0.2",
-    "vite-plus": "1.0.0",
-    "vitest": "4.1.11",
     "wrangler": "4.131.2"
   }
 }

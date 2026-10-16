@@ -31,6 +31,25 @@ export function makePlacementModel(props: { brick: ReturnType<typeof makeBrickMo
       breakpoint: primitives.enum({
         values: ["sm", "md", "lg", "xl"],
       }),
+      specRevision: primitives.integer({ defaultValue: 0 }),
+      generation: primitives.json({
+        nullable: true,
+        defaultValue: null,
+        schema: Schema.Struct({
+          requestId: Schema.String,
+          prompt: Schema.String,
+          baseStateRevision: Schema.Int,
+          baseSpecRevision: Schema.Int,
+          status: Schema.Literals(["generating", "ready", "failed", "superseded"]),
+          error: Schema.NullOr(
+            Schema.Struct({
+              code: Schema.String,
+              message: Schema.String,
+              retryable: Schema.Boolean,
+            }),
+          ),
+        }),
+      }),
       spec: primitives.json({ schema: placementSpecSchema }),
       measured: primitives.json({
         nullable: true,

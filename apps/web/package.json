@@ -10,11 +10,7 @@
     "dev": "next dev --turbopack --port 3000",
     "build": "next build",
     "start": "next start",
-    "ts": "tsc --noEmit",
-    "lint": "vp lint --config ../../.oxlintrc.json .",
-    "lint:fix": "vp lint --config ../../.oxlintrc.json --fix .",
-    "format": "vp fmt --config ../../.oxfmtrc.json .",
-    "format:check": "vp fmt --config ../../.oxfmtrc.json --check ."
+    "format": "vp fmt --config ../../.oxfmtrc.json ."
   },
   "dependencies": {
     "@clerk/nextjs": "^7.1.0",

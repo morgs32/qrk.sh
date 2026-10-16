@@ -6,7 +6,7 @@ export const defaultSpec: Spec = {
     "swatch-1": {
       type: "SwatchAndIconColor",
       props: {
-        color: "#4A7C59",
+        color: { $state: "/payload/color" },
       },
       children: ["icon-1"],
     },

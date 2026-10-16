@@ -2,12 +2,14 @@ import { makeModuleView } from "../../make/makeModuleView";
 import { registry } from "./generator/FigmaThumbnailJsonRenderRegistry";
 import { defaultSpec } from "./generator/defaultSpec";
 import { figmaThumbnailV1 } from "./figmaThumbnailV1";
+import { FigmaThumbnailForm } from "./FigmaThumbnailForm";
 import { figmaCardView } from "./FigmaCard";
 import { figmaThumbnailBandView } from "./FigmaThumbnailBand";
 import { figmaMediaFooterView } from "./FigmaMediaFooter";
 import { FigmaThumbnailPlaceholder } from "./FigmaThumbnailPlaceholder";
 
 export const figmaThumbnailView = makeModuleView(figmaThumbnailV1, {
+  form: FigmaThumbnailForm,
   measureOnSave: true,
   default: {
     placeholder() {
@@ -15,6 +17,8 @@ export const figmaThumbnailView = makeModuleView(figmaThumbnailV1, {
     },
     component(props) {
       const { state } = props;
+      if (state.data === null)
+        return <p role="status">{state.resolution.error?.message ?? "Resolving…"}</p>;
       return (
         <figmaCardView.Component>
           <figmaThumbnailBandView.Component

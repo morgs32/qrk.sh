@@ -1,6 +1,6 @@
 "use client";
 
-import { makeAggregateSessionRelease } from "@zerospin/browser";
+import { makeAggregateBrowserRelease } from "@zerospin/browser";
 import { makeReactApp } from "@zerospin/react";
 import { PublishableKey } from "@zerospin/core/services/PublishableKey";
 import { ZerospinApiUrl } from "@zerospin/core/services/ZerospinApiUrl";
@@ -14,14 +14,7 @@ if (!apiUrl) throw new Error("NEXT_PUBLIC_ZEROSPIN_API_URL is required for the a
 if (!publishableKey)
   throw new Error("NEXT_PUBLIC_ZEROSPIN_PUBLISHABLE_KEY is required for the app.");
 
-export const userSessionRelease = makeAggregateSessionRelease({
-  sharedWorker: (props) => {
-    const { name } = props;
-    return new SharedWorker(new URL("./zerospin.worker.ts", import.meta.url), {
-      type: "module",
-      name,
-    });
-  },
+export const userSessionRelease = makeAggregateBrowserRelease({
   systemName: "qrk-sh",
   aggregateName: "user",
   aggregateVersion: "1.0.0",

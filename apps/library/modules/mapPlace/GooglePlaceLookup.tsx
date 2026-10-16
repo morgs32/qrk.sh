@@ -2,7 +2,7 @@
 
 import { newSyncRpcSession } from "@zerospin/core/utils/getApi/newSyncRpcSession/newSyncRpcSession";
 import { Loader2, MapPin, Search, X } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { LibraryApi } from "../../worker/LibraryApi.public";
 import type { IGooglePlaceSuggestion } from "../../worker/types.public";
 
@@ -10,16 +10,29 @@ import { Input } from "../../components/ui/input";
 import { cn } from "cn";
 
 export function GooglePlaceLookup(props: { value: string; onChange: (value: string) => void }) {
+  const { value, onChange } = props;
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState<ReadonlyArray<IGooglePlaceSuggestion>>([]);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
-  const [isLoadingInitialPlace, setIsLoadingInitialPlace] = useState(props.value.length > 0);
-  const [isSelected, setIsSelected] = useState(props.value.length > 0);
+  const [isLoadingInitialPlace, setIsLoadingInitialPlace] = useState(value.length > 0);
+  const [isSelected, setIsSelected] = useState(value.length > 0);
   const [isOpen, setIsOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [lookupError, setLookupError] = useState<string>();
   const containerRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(null);
+  const activeSuggestions = useRef<AbortController | null>(null);
+  const activeInitialPlace = useRef<AbortController | null>(null);
+
+  useLayoutEffect(() => {
+    return () => {
+      activeSuggestions.current?.abort();
+      activeSuggestions.current = null;
+      activeInitialPlace.current?.abort();
+      activeInitialPlace.current = null;
+      if (debounceRef.current !== null) clearTimeout(debounceRef.current);
+    };
+  }, []);
 
   const fetchSuggestions = useCallback(async (input: string) => {
     const normalizedInput = input.trim();
@@ -29,12 +42,16 @@ export function GooglePlaceLookup(props: { value: string; onChange: (value: stri
       return;
     }
 
+    activeSuggestions.current?.abort();
+    const controller = new AbortController();
+    activeSuggestions.current = controller;
     setIsLoadingSuggestions(true);
     setLookupError(undefined);
 
     try {
       using api = newSyncRpcSession<LibraryApi>("/rpc");
       const result = await api.googlePlacesBackend().autocomplete(normalizedInput);
+      if (controller.signal.aborted || activeSuggestions.current !== controller) return;
 
       if (result._tag === "Left") {
         setSuggestions([]);
@@ -46,35 +63,40 @@ export function GooglePlaceLookup(props: { value: string; onChange: (value: stri
       setSuggestions(result.right);
       setIsOpen(true);
     } catch (cause) {
+      if (controller.signal.aborted || activeSuggestions.current !== controller) return;
       setSuggestions([]);
       setLookupError(cause instanceof Error ? cause.message : String(cause));
       setIsOpen(true);
     } finally {
-      setIsLoadingSuggestions(false);
+      if (activeSuggestions.current === controller) {
+        activeSuggestions.current = null;
+        setIsLoadingSuggestions(false);
+      }
     }
   }, []);
 
-  useEffect(() => {
-    if (props.value.length === 0) {
+  useLayoutEffect(() => {
+    if (value.length === 0) {
       setIsLoadingInitialPlace(false);
       return;
     }
 
-    let isCancelled = false;
+    const controller = new AbortController();
+    activeInitialPlace.current = controller;
     setIsLoadingInitialPlace(true);
 
     void (async () => {
       try {
         using api = newSyncRpcSession<LibraryApi>("/rpc");
-        const result = await api.googlePlacesBackend().getPlace(props.value);
+        const result = await api.googlePlacesBackend().getPlace(value);
 
-        if (isCancelled) {
+        if (controller.signal.aborted || activeInitialPlace.current !== controller) {
           return;
         }
 
         if (result._tag === "Left") {
           setLookupError(result.left.message);
-          setQuery(props.value);
+          setQuery(value);
           return;
         }
 
@@ -82,21 +104,23 @@ export function GooglePlaceLookup(props: { value: string; onChange: (value: stri
         setQuery(result.right.name);
         setIsSelected(true);
       } catch (cause) {
-        if (!isCancelled) {
+        if (!controller.signal.aborted && activeInitialPlace.current === controller) {
           setLookupError(cause instanceof Error ? cause.message : String(cause));
-          setQuery(props.value);
+          setQuery(value);
         }
       } finally {
-        if (!isCancelled) {
+        if (activeInitialPlace.current === controller) {
+          activeInitialPlace.current = null;
           setIsLoadingInitialPlace(false);
         }
       }
     })();
 
     return () => {
-      isCancelled = true;
+      controller.abort();
+      if (activeInitialPlace.current === controller) activeInitialPlace.current = null;
     };
-  }, [props.value]);
+  }, [value]);
 
   useEffect(() => {
     if (debounceRef.current !== null) {
@@ -128,9 +152,9 @@ export function GooglePlaceLookup(props: { value: string; onChange: (value: stri
       }
     };
 
-    document.addEventListener("mousedown", closeOnOutsidePointer);
+    document.addEventListener("click", closeOnOutsidePointer);
     return () => {
-      document.removeEventListener("mousedown", closeOnOutsidePointer);
+      document.removeEventListener("click", closeOnOutsidePointer);
     };
   }, []);
 
@@ -152,20 +176,32 @@ export function GooglePlaceLookup(props: { value: string; onChange: (value: stri
           autoComplete="off"
           className="h-9 pl-8 pr-8"
           onChange={(event) => {
+            activeSuggestions.current?.abort();
+            activeSuggestions.current = null;
+            activeInitialPlace.current?.abort();
+            activeInitialPlace.current = null;
+            setIsLoadingSuggestions(false);
+            setIsLoadingInitialPlace(false);
+            setSuggestions([]);
+            setIsOpen(false);
             setQuery(event.target.value);
             setIsSelected(false);
             setLookupError(undefined);
             setActiveIndex(-1);
 
-            if (props.value.length > 0) {
-              props.onChange("");
+            if (value.length > 0) {
+              onChange("");
             }
           }}
           onKeyDown={(event) => {
+            if (event.key === "Escape" && isOpen) {
+              event.preventDefault();
+              setIsOpen(false);
+              setActiveIndex(-1);
+              return;
+            }
+
             if (!isOpen || suggestions.length === 0) {
-              if (event.key === "Escape") {
-                setIsOpen(false);
-              }
               return;
             }
 
@@ -189,19 +225,17 @@ export function GooglePlaceLookup(props: { value: string; onChange: (value: stri
               event.preventDefault();
               const suggestion = suggestions[activeIndex];
               if (suggestion !== undefined) {
+                activeSuggestions.current?.abort();
+                activeSuggestions.current = null;
+                setIsLoadingSuggestions(false);
                 setQuery(suggestion.mainText);
                 setSuggestions([]);
                 setIsOpen(false);
                 setIsSelected(true);
                 setActiveIndex(-1);
-                props.onChange(suggestion.placeId);
+                onChange(suggestion.placeId);
               }
               return;
-            }
-
-            if (event.key === "Escape") {
-              setIsOpen(false);
-              setActiveIndex(-1);
             }
           }}
           placeholder="Search for a place..."
@@ -213,13 +247,19 @@ export function GooglePlaceLookup(props: { value: string; onChange: (value: stri
             aria-label="Clear place search"
             className="absolute inset-y-0 right-0 flex items-center pr-2.5"
             onClick={() => {
+              activeSuggestions.current?.abort();
+              activeSuggestions.current = null;
+              activeInitialPlace.current?.abort();
+              activeInitialPlace.current = null;
+              setIsLoadingSuggestions(false);
+              setIsLoadingInitialPlace(false);
               setQuery("");
               setSuggestions([]);
               setLookupError(undefined);
               setIsOpen(false);
               setIsSelected(false);
               setActiveIndex(-1);
-              props.onChange("");
+              onChange("");
             }}
             type="button"
           >
@@ -230,7 +270,7 @@ export function GooglePlaceLookup(props: { value: string; onChange: (value: stri
 
       {isOpen ? (
         <div
-          className="absolute left-0 right-0 z-50 mt-2 overflow-hidden rounded-md border border-border bg-background shadow-lg"
+          className="relative z-50 mt-2 overflow-hidden rounded-md border border-border bg-background shadow-lg"
           id="google-places-listbox"
           role="listbox"
         >
@@ -251,12 +291,15 @@ export function GooglePlaceLookup(props: { value: string; onChange: (value: stri
                   key={suggestion.placeId}
                   onMouseDown={(event) => {
                     event.preventDefault();
+                    activeSuggestions.current?.abort();
+                    activeSuggestions.current = null;
+                    setIsLoadingSuggestions(false);
                     setQuery(suggestion.mainText);
                     setSuggestions([]);
                     setIsOpen(false);
                     setIsSelected(true);
                     setActiveIndex(-1);
-                    props.onChange(suggestion.placeId);
+                    onChange(suggestion.placeId);
                   }}
                   onMouseEnter={() => {
                     setActiveIndex(index);

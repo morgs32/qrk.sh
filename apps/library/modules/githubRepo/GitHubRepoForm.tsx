@@ -1,94 +1,48 @@
 "use client";
 
-import { newSyncRpcSession } from "@zerospin/core/utils/getApi/newSyncRpcSession/newSyncRpcSession";
-import { makeEffectSchema } from "@zerospin/shapes";
-import { Schema } from "effect";
+import { stageAggregateSessionCommand } from "@zerospin/core/aggregateSession/stageCommand/stageAggregateSessionCommand";
+import type { ILibrarySession } from "../../session/createLibraryStandaloneSession";
+import { normalizeGithubRepoInput } from "./normalizeGithubRepoInput";
+
+import { type InferDecodedRow } from "@zerospin/shapes";
 import { useId, useState } from "react";
-import useSWRMutation from "swr/mutation";
 
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
-import type { LibraryApi } from "../../worker/LibraryApi.public";
 import { githubRepoV1 } from "./githubRepoV1";
 
 export function GitHubRepoForm(props: {
-  state: unknown;
-  onSave: (state: unknown) => Promise<void>;
+  state: InferDecodedRow<typeof githubRepoV1.stateShape> | null;
+  session: ILibrarySession;
+  brickId: `brk_${string}`;
+  onCancel: () => void;
 }) {
-  const { state, onSave } = props;
-  const StateSchema = Schema.NullOr(Schema.toType(makeEffectSchema(githubRepoV1.stateShape)));
-  const savedState = Schema.decodeUnknownSync(StateSchema)(state, {
-    onExcessProperty: "ignore",
-  });
+  const { state, session, brickId, onCancel } = props;
   const inputId = useId();
   const feedbackId = `${inputId}-feedback`;
-  const [repository, setRepository] = useState(savedState?.payload.url ?? "");
+  const [repositoryDraft, setRepository] = useState<string | null>(null);
+  const repository = repositoryDraft ?? state?.payload.url ?? "";
   const [saveError, setSaveError] = useState<string>();
-  const [normalizedUrl, savedUrl] = [repository.trim(), savedState?.payload.url ?? ""].map(
-    (input, index) => {
-      try {
-        const parsed = new URL(input);
-        const pathSegments = parsed.pathname.split("/").filter((segment) => segment.length > 0);
-        const owner = pathSegments[0];
-        const repoSegment = pathSegments[1];
-        const repo =
-          repoSegment === undefined || index === 1 || input === savedState?.payload.url
-            ? repoSegment
-            : repoSegment.replace(/\.git$/i, "");
-        if (
-          parsed.protocol !== "https:" ||
-          parsed.hostname !== "github.com" ||
-          pathSegments.length !== 2 ||
-          owner === undefined ||
-          repo === undefined ||
-          !/^[a-z\d](?:[a-z\d-]{0,37}[a-z\d])?$/i.test(owner) ||
-          !/^[A-Za-z0-9._-]+$/.test(repo)
-        ) {
-          return undefined;
-        }
-        return `https://github.com/${owner.toLowerCase()}/${repo}`;
-      } catch {
-        return undefined;
-      }
-    },
-  );
-  const { trigger, isMutating } = useSWRMutation(
-    "/rpc:getGitHubRepo",
-    async (_key, options: { arg: { submittedInput: string; submittedUrl: string } }) => {
-      const { arg } = options;
-      const { submittedInput, submittedUrl } = arg;
-      using api = newSyncRpcSession<LibraryApi>("/rpc");
-      const result = await api.getGitHubRepo(submittedInput);
-      if (result._tag === "Left") {
-        throw new Error(result.left.message);
-      }
-      const nextState = Schema.decodeUnknownSync(StateSchema)(
-        { payload: { url: submittedUrl }, data: result.right },
-        { onExcessProperty: "ignore" },
-      );
-      await onSave(nextState);
-    },
-    { revalidate: false },
-  );
-  const canSave = normalizedUrl !== undefined && normalizedUrl !== savedUrl && !isMutating;
+
+  const normalizedUrl = normalizeGithubRepoInput(repository);
+  const canSave =
+    normalizedUrl !== undefined &&
+    (normalizedUrl !== state?.payload.url || state?.resolution.status === "failed");
 
   return (
     <form
-      aria-busy={isMutating}
       className="mx-auto flex max-w-md flex-col gap-2 p-4"
-      onSubmit={async (event) => {
+      onSubmit={(event) => {
         event.preventDefault();
-        if (!canSave || normalizedUrl === undefined) {
-          return;
-        }
-        const submittedInput = repository.trim();
-        const submittedUrl = normalizedUrl;
+        if (!canSave || normalizedUrl === undefined) return;
         setSaveError(undefined);
-        try {
-          await trigger({ submittedInput, submittedUrl });
-        } catch (cause) {
-          setSaveError(cause instanceof Error ? cause.message : String(cause));
-        }
+        const result = stageAggregateSessionCommand({
+          session,
+          contractName: "configureGithubRepo",
+          payload: { brickId, requestId: crypto.randomUUID(), url: normalizedUrl },
+        });
+        if (result._tag === "Failure") setSaveError(result.failure.message);
+        else setRepository(null);
       }}
     >
       <label className="font-medium" htmlFor={inputId}>
@@ -99,7 +53,6 @@ export function GitHubRepoForm(props: {
         autoCapitalize="none"
         autoComplete="off"
         autoCorrect="off"
-        disabled={isMutating}
         id={inputId}
         onChange={(event) => {
           setRepository(event.target.value);
@@ -115,14 +68,31 @@ export function GitHubRepoForm(props: {
           ? `Repository URL: ${normalizedUrl}`
           : "Enter a GitHub repository URL."}
       </p>
+      {state?.resolution.status === "resolving" ? <p role="status">Resolving…</p> : null}
+      {state?.resolution.error !== null && state?.resolution.error !== undefined ? (
+        <p role="alert">{state.resolution.error.message}</p>
+      ) : null}
       {saveError !== undefined ? (
         <p className="m-0 break-words" role="alert">
           {saveError}
         </p>
       ) : null}
-      <Button className="self-end" disabled={!canSave} type="submit">
-        {isMutating ? "Saving…" : "Save"}
-      </Button>
+      <div className="flex self-end gap-2">
+        <Button
+          onClick={() => {
+            setRepository(null);
+            setSaveError(undefined);
+            onCancel();
+          }}
+          type="button"
+          variant="outline"
+        >
+          Cancel
+        </Button>
+        <Button disabled={!canSave} type="submit">
+          Save
+        </Button>
+      </div>
     </form>
   );
 }

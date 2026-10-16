@@ -1,11 +1,14 @@
 "use client";
 
-import { prettyUnknownFailure } from "@zerospin/error";
-
 import { RedirectToSignIn, useAuth, useUser } from "@clerk/nextjs";
-import { ZerospinError } from "@zerospin/sdk/browser";
+import { ZerospinError } from "@zerospin/error";
 import { Effect } from "effect";
-import { useSyncExternalStore, type ReactNode } from "react";
+import { useEffect, useSyncExternalStore, type ReactNode } from "react";
+import { getClerkToken } from "@/lib/getClerkToken";
+import { toast } from "sonner";
+import { libraryModule } from "@qrk.sh/library/libraryModule";
+import { FigmaReadyMeasurements } from "@qrk.sh/library/FigmaReadyMeasurements";
+import { startLibrarySessionWork } from "@qrk.sh/library/startLibrarySessionWork";
 import { UserApp } from "@/zerospin/userSession";
 
 export function useZerospinUserInitializedState() {
@@ -22,28 +25,23 @@ export function useZerospinUserInitializedState() {
 function ZerospinUserInitializedStateProvider(props: { clerkUserId: string; children: ReactNode }) {
   const { clerkUserId, children } = props;
   const { getToken } = useAuth();
-  const aggregateId = `acct_${clerkUserId}`;
+  const aggregateId = clerkUserId;
   return (
     <UserApp.Initializer
       aggregateId={aggregateId}
       expectedClaims={{ aggregateId, clerkUserId }}
-      getCredentials={() =>
-        Effect.tryPromise({
-          try: async () => {
-            const sessionToken = await getToken();
-            if (sessionToken === null) throw new Error("Clerk did not return a session token");
-            return { sessionToken };
-          },
-          catch: (cause) =>
-            new ZerospinError({
-              code: "user-session-token-unavailable",
-              message: "The Clerk session token could not be loaded",
-              cause: prettyUnknownFailure(cause),
-            }),
-        })
-      }
+      getCredentials={Effect.fn("Studio.getCredentials")(function* () {
+        const sessionToken = yield* getClerkToken({ getToken });
+        if (sessionToken === null) {
+          return yield* new ZerospinError({
+            code: "user-session-token-unavailable",
+            message: "The Clerk session token could not be loaded",
+          });
+        }
+        return { sessionToken };
+      })}
     >
-      {children}
+      <UserSessionWork>{children}</UserSessionWork>
     </UserApp.Initializer>
   );
 }
@@ -62,6 +60,36 @@ export function ZerospinUserProvider(props: { children: ReactNode }) {
   return (
     <>
       {isLoaded ? <RedirectToSignIn /> : null}
+      {children}
+    </>
+  );
+}
+
+function UserSessionWork(props: { children: ReactNode }) {
+  const { children } = props;
+  const session = UserApp.useInitializedSession();
+  const initialized = useSyncExternalStore(
+    session.store.subscribe,
+    () => session.store.getState().initialized,
+    () => session.store.getState().initialized,
+  );
+  useEffect(() => {
+    const stopWork = startLibrarySessionWork(session);
+    const stopFailures = session.failures.subscribe((event) => {
+      if (
+        (event._tag === "AdmissionFailure" || event._tag === "ExecutionFailure") &&
+        Object.hasOwn(libraryModule.contracts, event.commandName)
+      )
+        toast.error(event.failure.message);
+    });
+    return () => {
+      stopWork();
+      stopFailures();
+    };
+  }, [session, initialized?.db]);
+  return (
+    <>
+      <FigmaReadyMeasurements session={session} />
       {children}
     </>
   );

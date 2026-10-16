@@ -1,6 +1,5 @@
 import { primitives } from "@zerospin/shapes";
 
-import { TiptapDocSchema } from "../../lib/TiptapDocSchema";
 import {
   brickBodyComponent,
   brickFooterComponent,
@@ -15,10 +14,9 @@ import { article } from "./article";
 const dataShape = {
   title: primitives.text(),
   subtitle: primitives.text(),
-  content: primitives.json({
+  content: primitives.text({
     nullable: true,
     defaultValue: null,
-    schema: TiptapDocSchema,
   }),
 };
 
@@ -36,63 +34,11 @@ export const articleV1 = makeModuleVersion(article, {
   defaultState: {
     title: "Actually good advice",
     subtitle: "For a long time, I’ve been collecting pieces of advice that are:",
-    content: {
-      type: "doc",
-      content: [
-        {
-          type: "orderedList",
-          attrs: { start: 1 },
-          content: [
-            {
-              type: "listItem",
-              content: [
-                {
-                  type: "paragraph",
-                  content: [{ type: "text", text: "Applicable to anybody" }],
-                },
-              ],
-            },
-            {
-              type: "listItem",
-              content: [
-                {
-                  type: "paragraph",
-                  content: [{ type: "text", text: "Likely to help and unlikely to harm" }],
-                },
-              ],
-            },
-            {
-              type: "listItem",
-              content: [
-                {
-                  type: "paragraph",
-                  content: [
-                    {
-                      type: "text",
-                      text: "Things I have actually tried and worked for me/things I have seen work for other people",
-                    },
-                  ],
-                },
-              ],
-            },
-            {
-              type: "listItem",
-              content: [
-                {
-                  type: "paragraph",
-                  content: [
-                    { type: "text", text: "Useful even without lots of context and wisdom" },
-                  ],
-                },
-              ],
-            },
-          ],
-        },
-        {
-          type: "paragraph",
-          content: [{ type: "text", text: "Here’s what I got." }],
-        },
-      ],
-    },
+    content: `1. Applicable to anybody
+2. Likely to help and unlikely to harm
+3. Things I have actually tried and worked for me/things I have seen work for other people
+4. Useful even without lots of context and wisdom
+
+Here’s what I got.`,
   },
 });

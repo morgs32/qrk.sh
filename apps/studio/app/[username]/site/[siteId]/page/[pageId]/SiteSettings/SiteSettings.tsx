@@ -29,6 +29,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useUsername } from "@/hooks/useUsername";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
+import { getClerkToken } from "@/lib/getClerkToken";
 
 const ParamsSchema = Schema.Struct({
   username: Schema.String,
@@ -192,23 +193,24 @@ export function SiteSettings() {
     draft.faviconDarkUrl !== baseline.faviconDarkUrl;
 
   const runUpload = async (props: { file: File | undefined; onUrl: (url: string) => void }) => {
-    if (props.file === undefined) {
+    const { file, onUrl } = props;
+    if (file === undefined) {
       return;
     }
 
     setIsUploading(true);
     try {
-      const sessionToken = await getToken();
+      const sessionToken = await session.runPromise(getClerkToken({ getToken }));
       if (sessionToken === null) {
         toast.error("Sign in to upload images");
         return;
       }
       const result = await uploadSiteImage({
-        file: props.file,
+        file,
         siteId: params.siteId,
         sessionToken,
       });
-      props.onUrl(result.url);
+      onUrl(result.url);
     } catch (cause) {
       toast.error(cause instanceof Error ? cause.message : "Upload failed");
     } finally {

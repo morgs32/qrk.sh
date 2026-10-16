@@ -32,31 +32,28 @@ export declare class LibraryApi extends RpcTarget {
     getPreview(url: string): Promise<IRpcEither<ILinkPreview>>;
   };
 
-  streamlineBackend(): RpcTarget & {
-    search(
-      query: string,
-      offset: number,
-      limit: number,
-    ): Promise<
-      IRpcEither<{
-        query: string;
-        results: ReadonlyArray<{
-          hash: string;
-          name: string;
-          imagePreviewUrl: string;
-          familyName: string;
-          isFree: boolean;
-        }>;
-        pagination: {
-          total: number;
-          hasMore: boolean;
-          offset: number;
-          nextOffset: number;
-        };
-      }>
-    >;
-    getSvg(hash: string): Promise<IRpcEither<{ hash: string; name: string; svg: string }>>;
-  };
+  searchIcons(
+    query: string,
+    offset: number,
+    limit: number,
+  ): Promise<
+    IRpcEither<{
+      query: string;
+      results: ReadonlyArray<{
+        hash: string;
+        name: string;
+        svg: string;
+        familyName: string;
+        isFree: boolean;
+      }>;
+      pagination: {
+        total: number;
+        hasMore: boolean;
+        offset: number;
+        nextOffset: number;
+      };
+    }>
+  >;
 
   generateSpec(
     moduleId: string,

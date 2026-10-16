@@ -1,7 +1,6 @@
 "use client";
 
 import { modulesHash } from "@qrk.sh/library";
-import { useAuth } from "@clerk/nextjs";
 import { UserApp } from "@/zerospin/userSession";
 import { pageV1 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
 import { GridItemPreview } from "@qrk.sh/library/GridItemPreview";
@@ -12,10 +11,8 @@ import { makeModelIdSchema } from "@zerospin/core/models/make/makeModelIdSchema"
 import { stageAggregateSessionCommand } from "@zerospin/core/aggregateSession/stageCommand/stageAggregateSessionCommand";
 import { useLiveQuery } from "@zerospin/react";
 import { Schema } from "effect";
-import { useLayoutEffect, useState } from "react";
-import useSWRMutation from "swr/mutation";
+import { useLayoutEffect, useRef, useState } from "react";
 
-import { Button } from "@/components/ui/button";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 
 const ParamsSchema = Schema.Struct({
@@ -33,61 +30,44 @@ export function BrickDetail() {
   const { activeBreakpoint } = useWallViewport();
   const breakpoint = activeBreakpoint ?? "sm";
   const params = useValidatedParams(ParamsSchema);
-  const { getToken } = useAuth();
   const session = UserApp.useInitializedSession();
-  const [formDraft, setFormDraft] = useState<{ brickId: string; state: unknown } | null>(null);
-  const [acceptedState, setAcceptedState] = useState<{ brickId: string; state: unknown } | null>(
-    null,
-  );
-  const [formError, setFormError] = useState<{ brickId: string; message: string } | null>(null);
   const [editorEpoch, setEditorEpoch] = useState(0);
+  const navigationPending = useRef(false);
+  useLayoutEffect(() => {
+    navigationPending.current = false;
+    function invalidateEditor() {
+      navigationPending.current = true;
+      setEditorEpoch((epoch) => epoch + 1);
+    }
+    function navigate(event: MouseEvent) {
+      if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+        return;
+      }
+      const anchor = event.target instanceof Element ? event.target.closest("a[href]") : null;
+      if (!(anchor instanceof HTMLAnchorElement) || anchor.target === "_blank") return;
+      const destination = new URL(anchor.href);
+      if (
+        destination.origin === window.location.origin &&
+        (destination.pathname !== window.location.pathname ||
+          destination.search !== window.location.search)
+      ) {
+        invalidateEditor();
+      }
+    }
+    document.addEventListener("click", navigate, true);
+    window.addEventListener("popstate", invalidateEditor);
+    return () => {
+      navigationPending.current = true;
+      document.removeEventListener("click", navigate, true);
+      window.removeEventListener("popstate", invalidateEditor);
+    };
+  }, [params.brickId]);
   const { data: page } = useLiveQuery({
     session,
     key: params.pageId,
     query: (db, pageId) => db.query.page.findFirst({ where: { id: { eq: pageId } } }),
   });
   const brickId = isBrickId(params.brickId) ? params.brickId : null;
-  const {
-    trigger: uploadImage,
-    isMutating: isUploadingImage,
-    reset: resetImageUpload,
-  } = useSWRMutation(
-    ["imageUpload", params.siteId, brickId],
-    async (_key, options: { arg: { file: File; signal: AbortSignal } }) => {
-      const { file, signal } = options.arg;
-      signal.throwIfAborted();
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
-      if (!apiBaseUrl) throw new Error("NEXT_PUBLIC_API_URL is required");
-      const sessionToken = await getToken();
-      signal.throwIfAborted();
-      if (sessionToken === null) throw new Error("Sign in to upload images");
-      const formData = new FormData();
-      formData.set("file", file);
-      formData.set("siteId", params.siteId);
-      const response = await fetch(`${apiBaseUrl.replace(/\/$/, "")}/upload`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${sessionToken}` },
-        body: formData,
-        signal,
-      });
-      const body: unknown = await response.json();
-      if (!response.ok) {
-        const error = Schema.decodeUnknownSync(
-          Schema.Struct({ code: Schema.String, message: Schema.String }),
-        )(body);
-        throw new Error(error.message);
-      }
-      const result = Schema.decodeUnknownSync(
-        Schema.Struct({ key: Schema.String, url: Schema.String, contentType: Schema.String }),
-      )(body);
-      return result.url;
-    },
-    { revalidate: false },
-  );
-  useLayoutEffect(() => {
-    resetImageUpload();
-  }, [brickId, params.siteId, resetImageUpload]);
-
   const brickQuery = useLiveQuery({
     session,
     key: { brickId, wallId: page?.wallId },
@@ -116,23 +96,7 @@ export function BrickDetail() {
   const brick = brickRow !== undefined ? modulesHash[brickRow.moduleId] : undefined;
   const BrickComponent = brick?.component;
   const Form = brick?.Form;
-  if (
-    acceptedState !== null &&
-    brickRow !== undefined &&
-    acceptedState.brickId === brickRow.id &&
-    JSON.stringify(brickRow.state) === JSON.stringify(acceptedState.state)
-  ) {
-    setAcceptedState(null);
-  }
-  const committedState =
-    acceptedState !== null && acceptedState.brickId === brickRow?.id
-      ? acceptedState.state
-      : brickRow?.state;
-  const formState =
-    formDraft !== null && formDraft.brickId === brickRow?.id
-      ? formDraft.state
-      : (committedState ?? brick?.defaultState);
-  const formDirty = JSON.stringify(formState) !== JSON.stringify(committedState);
+  const formState = brickRow?.state === undefined ? brick?.defaultState : brickRow.state;
   const rawSpec: unknown =
     placement === undefined
       ? undefined
@@ -175,70 +139,33 @@ export function BrickDetail() {
         ) : (
           <section data-testid="brick-detail-pane">
             {Form !== undefined ? (
-              <form
-                className="mx-auto mt-8 w-full max-w-3xl px-6"
-                aria-busy={isUploadingImage}
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  if (!formDirty || isUploadingImage) return;
-                  const result = stageAggregateSessionCommand({
-                    session,
-                    contractName: "updateBrick",
-                    payload: {
-                      brickId: brickRow.id,
-                      moduleId: brickRow.moduleId,
-                      state: formState,
-                      measurements: null,
-                    },
-                  });
-                  if (result._tag === "Failure") {
-                    setFormError({
-                      brickId: brickRow.id,
-                      message:
-                        result.failure.message ?? result.failure.code ?? "Failed to save brick",
+              <div className="mx-auto mt-8 w-full max-w-3xl px-6">
+                <Form
+                  session={session}
+                  brickId={brickRow.id}
+                  key={`${brickRow.id}:${editorEpoch}`}
+                  state={formState}
+                  onSave={(state) => {
+                    if (navigationPending.current) {
+                      throw new DOMException("Brick editor navigation started", "AbortError");
+                    }
+                    return stageAggregateSessionCommand({
+                      session,
+                      contractName: "updateBrick",
+                      payload: {
+                        brickId: brickRow.id,
+                        moduleId: brickRow.moduleId,
+                        state,
+                        measurements: null,
+                      },
                     });
-                    return;
-                  }
-                  setAcceptedState({ brickId: brickRow.id, state: formState });
-                  setFormDraft(null);
-                  setFormError(null);
-                }}
-              >
-                <div className="flex flex-col gap-6">
-                  <Form
-                    key={`${brickRow.id}:${editorEpoch}`}
-                    state={formState}
-                    uploadImage={uploadImage}
-                    isUploadingImage={isUploadingImage}
-                    onChange={(state) => {
-                      setFormDraft({ brickId: brickRow.id, state });
-                      setFormError(null);
-                    }}
-                  />
-                  {formError !== null && formError.brickId === brickRow.id ? (
-                    <div className="rounded-md border border-red-200 bg-red-50 p-3" role="alert">
-                      {formError.message}
-                    </div>
-                  ) : null}
-                  <div className="flex flex-wrap gap-2">
-                    <Button type="submit" disabled={!formDirty || isUploadingImage}>
-                      Save
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => {
-                        resetImageUpload();
-                        setFormDraft(null);
-                        setFormError(null);
-                        setEditorEpoch((epoch) => epoch + 1);
-                      }}
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                </div>
-              </form>
+                  }}
+                  onCancel={() => {
+                    navigationPending.current = false;
+                    setEditorEpoch((epoch) => epoch + 1);
+                  }}
+                />
+              </div>
             ) : (
               <div className="mt-8 overflow-auto">
                 <GridItemPreview breakpoint={breakpoint} w={gridItem?.w ?? 1} h={gridItem?.h ?? 1}>

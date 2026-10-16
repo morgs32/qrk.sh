@@ -6,22 +6,58 @@ Worker entrypoint, and bindings. The derived Worker name is `zerospin-qrk-sh`.
 
 Put local authentication settings in this directory's `.env.local` (see
 `.env.example`). The CLI discovers environment files from this project root.
-Workerd tests provide isolated test credentials in `vitest.workerd.config.ts`
-and generate their configuration without a prior CLI run.
-Session fixtures instantiate a precompiled wa-sqlite module. The test loader uses
-that module's own URL instead of its generated browser-only `self.location` lookup.
-
-Run the checks from the repository root:
+Run local development from the repository root:
 
 ```sh
-pnpm nx run @qrk.sh/zerospin:ts
-pnpm nx run @qrk.sh/zerospin:test:workerd
+pnpm nx run @qrk.sh/zerospin:dev
 ```
 
-QRK installs the CLI and runtime packages at `7.0.0` from the populated local
+QRK installs the CLI and runtime packages at `11.1.0` from the populated local
 registry described in the [root README](../../README.md#zerospin-packages). Nx
-builds QRK's reusable Library before backend checks and development; it does not
+builds QRK's reusable Library before backend development; it does not
 rebuild installed Zerospin files.
+
+Repository tests and standalone automated checks are deferred until a test
+structure is agreed. Avoid integration testing of this Zerospin backend; the
+future end-to-end compatibility suite is deferred (see root `AGENTS.md`).
+
+## Server aggregate reads
+
+Core `11.1.0` provides the server-only
+`@zerospin/core/utils/getSystemApi/getSystemApi` client. Supply
+`ZerospinApiUrl` and `SecretKey` (`Redacted<string>`) in the application's Effect
+layer, then acquire it with `yield* getSystemApi()`. Construct a connection-free
+query with `makeQueryDbVersion({ models: userSessionDefinition.models })` and pass
+the selection to `systemApi.executeAggregateQuery` with user aggregate identity:
+
+```ts
+const systemApi = yield* getSystemApi();
+const db = makeQueryDbVersion({ models: userSessionDefinition.models });
+const site = yield* systemApi.executeAggregateQuery({
+  aggregateName: 'user',
+  aggregateVersion: '1.0.0',
+  aggregateId,
+  query: db.query.site.findFirst({
+    where: { id: { eq: siteId } },
+    with: {
+      pages: {
+        with: {
+          wall: {
+            with: { bricks: { with: { placements: true } } },
+          },
+        },
+      },
+    },
+  }),
+});
+```
+
+The inferred result preserves nested columns, JSON, and dates; missing first
+results are `undefined`, and empty many results are `[]`. The Worker reads
+canonical resource state after catching up materialization. These administrative
+reads use the server secret and have no actor visibility filter.
+See the [core layer example and transport boundary](../../../zerospin/packages/core/src/utils/README.md#administrative-aggregate-reads).
+Aggregate-ID resolution and website rendering remain separate application work.
 
 The package cutover requires empty storage for superseded retained command and
 SQLite schemas. The regular `dev` target does not reset storage. Stop development
@@ -30,16 +66,22 @@ directory under `.wrangler/zerospin/backups/`. Starting the normal Nx `dev`
 target then creates current storage while preserving the old directory for
 recovery. Do not use `--clean` when the old data must be preserved.
 
-Browser backups are scoped by origin. Verification can use a fresh loopback
-hostname in the existing Chrome profile, preserving its login and all previous
-origin databases. Old backend or browser rows have no compatibility decoder or
-migration; restoring an old directory does not make those rows readable by the
-new packages.
+Browser backups are scoped by origin. The Article Markdown cutover uses a fresh
+local origin in the existing Chrome profile, preserving login cookies and previous
+origin databases. Close affected tabs and workers before rebuilding. Installed
+browser runtimes may reset incompatible node tables during initialization, so do
+not reopen the rebuilt app on an origin being preserved. Old backend or browser
+rows have no compatibility decoder or migration; restoring an old directory does
+not make its rows readable by the current declarations.
 
 ## Source layout
 
 `src/system.ts` registers only user aggregate `1.0.0`. All current models and
 contracts start at `1.0.0`; older declaration versions have been removed.
+
+The user aggregate ID is the verified Clerk token subject (`clerkUserId`), with
+no added prefix. This starts fresh aggregate storage; existing `acct_…`
+aggregates remain under their old IDs and are not migrated or deleted.
 
 `userActorV1` verifies Clerk through `userProvisionerV1`, then its authorization awaits `createUser`
 under that provisioner actor and verified identity. Each attempt generates an
@@ -70,3 +112,21 @@ settle optimism even when their selected resource delta is empty. Canonical
 provisioning command results retain server finalization. Node storage schema 14
 and native session schema 3 require empty affected storage when upgrading to 7.0.0;
 the package update does not reset or translate existing storage.
+
+## Site creation slugs
+
+`createSite` requires a slug containing lowercase ASCII letters/digits separated
+by single internal hyphens. After checking the authenticated owner, its guard
+rejects invalid format with `site-slug-invalid` (400), or a slug already used by
+that user's Site with `site-slug-taken` (409). These checks and the site write run
+in the existing aggregate transaction. Different users may reuse a slug.
+The stored Site model remains nullable; no slug-editing command is added.
+
+This declaration change uses fresh development data, without retained-history
+migration. Stop the dev worker, then move the whole
+`.wrangler/zerospin/dev-worker/sys_qrk_sh_1` directory into a uniquely timestamped
+`.wrangler/zerospin/backups/sys_qrk_sh_1-<UTC timestamp>-pre-site-slugs` directory.
+Restart the normal Nx `dev` target and require system-spec acceptance. The changed
+browser session lock produces a new browser Node namespace on the same origin;
+old IndexedDB databases and cookies remain untouched. Do not reset the API's R2
+stores or the package registry.

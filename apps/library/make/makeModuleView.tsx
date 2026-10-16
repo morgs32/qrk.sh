@@ -1,3 +1,5 @@
+import type { ILibrarySession } from "../session/createLibraryStandaloneSession";
+import type { IResult } from "@zerospin/error";
 import type { ReactNode } from "react";
 
 import type { Catalog, Spec } from "@json-render/core";
@@ -20,9 +22,9 @@ const emptySpec: Spec = {
 function makeInitialState(state: unknown): Record<string, unknown> {
   if (state !== null && typeof state === "object" && !Array.isArray(state)) {
     const initialState: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(state)) {
+    mapValues(state, (value, key) => {
       initialState[key] = value;
-    }
+    });
     return initialState;
   }
   return {};
@@ -114,10 +116,13 @@ export function makeModuleView<
   view: {
     measureOnSave?: boolean;
     form?: (props: {
-      state: InferDecodedRow<MODULE["stateShape"]>;
-      onChange: (state: InferDecodedRow<MODULE["stateShape"]>) => void;
-      uploadImage?: (props: { file: File; signal: AbortSignal }) => Promise<string>;
-      isUploadingImage?: boolean;
+      state: InferDecodedRow<MODULE["stateShape"]> | null;
+      session: ILibrarySession;
+      brickId: `brk_${string}`;
+      onSave: (
+        state: InferDecodedRow<MODULE["stateShape"]>,
+      ) => IResult<unknown, { message: string }>;
+      onCancel: () => void;
     }) => ReactNode;
     default: {
       component: (props: { state: InferDecodedRow<MODULE["stateShape"]> }) => ReactNode;
@@ -184,14 +189,15 @@ export function makeModuleView<
 
   function Form(props: {
     state: unknown;
-    onChange: (state: unknown) => void;
-    uploadImage?: (props: { file: File; signal: AbortSignal }) => Promise<string>;
-    isUploadingImage?: boolean;
+    session: ILibrarySession;
+    brickId: `brk_${string}`;
+    onSave: (state: unknown) => IResult<unknown, { message: string }>;
+    onCancel: () => void;
   }) {
-    const { state, onChange, uploadImage, isUploadingImage } = props;
+    const { state, session, brickId, onSave, onCancel } = props;
     if (view.form === undefined) return null;
-    const decoded = decodeFormState(state, { onExcessProperty: "ignore" });
-    return view.form({ state: decoded, onChange, uploadImage, isUploadingImage });
+    const decoded = state === null ? null : decodeFormState(state, { onExcessProperty: "ignore" });
+    return view.form({ state: decoded, session, brickId, onSave, onCancel });
   }
 
   function viewFor(breakpoint: "sm" | "md" | "lg" | "xl") {
@@ -219,6 +225,29 @@ export function makeModuleView<
     const Placeholder = view.default.placeholder;
     if (state === null && Placeholder !== undefined) {
       return <Placeholder />;
+    }
+    if (
+      state !== null &&
+      typeof state === "object" &&
+      "data" in state &&
+      state.data === null &&
+      "resolution" in state
+    ) {
+      const resolution = state.resolution;
+      const error =
+        resolution !== null && typeof resolution === "object" && "error" in resolution
+          ? resolution.error
+          : null;
+      return (
+        <p role="status">
+          {error !== null &&
+          typeof error === "object" &&
+          "message" in error &&
+          typeof error.message === "string"
+            ? error.message
+            : "Resolving…"}
+        </p>
+      );
     }
     const resolved = viewFor(breakpoint);
     const Authored = resolved.component;

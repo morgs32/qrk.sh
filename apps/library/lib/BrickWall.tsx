@@ -1,5 +1,12 @@
 import { stageAggregateSessionCommand } from "@zerospin/core/aggregateSession/stageCommand/stageAggregateSessionCommand";
-import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
+import {
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { Pencil } from "lucide-react";
 
 import { isNonEmptySpec } from "@json-render/core";
@@ -12,6 +19,7 @@ import { libraryModule } from "../libraryModule/libraryModule";
 import { makeCompactLayout } from "../libraryModule/resolveVisibleCollisions";
 import type { ILibrarySession } from "../session/createLibraryStandaloneSession";
 import { BrickWrapper } from "../components/brick/BrickWrapper";
+import { BrickCardStyleContext } from "./BrickCardStyleContext";
 import { brickDragStore } from "./brickDragStore";
 import { modulesHash } from "./modulesHash";
 
@@ -63,6 +71,7 @@ export function BrickWall(props: {
     onBrickActivate,
     onCommandError,
   } = props;
+  const cardStyle = useContext(BrickCardStyleContext);
   const catalogDragActive = useSyncExternalStore(
     brickDragStore.subscribe,
     () => brickDragStore.getState().brickDef !== null,
@@ -203,7 +212,10 @@ export function BrickWall(props: {
   }
 
   const layout = visibleLayoutAt(breakpoint);
-  const rowHeight = gridWidth / 8;
+  const bottomRow = Math.max(0, ...layout.map((item) => item.y + item.h));
+  const gap = cardStyle ? 16 : 0;
+  const pitch = (gridWidth - gap) / 8;
+  const rowHeight = pitch - gap;
 
   function beginGesture() {
     gesture.current = true;
@@ -258,8 +270,8 @@ export function BrickWall(props: {
           gridConfig={{
             cols: 8,
             rowHeight,
-            margin: [0, 0],
-            containerPadding: [0, 0],
+            margin: [gap, gap],
+            containerPadding: [gap, gap],
             maxRows: Number.POSITIVE_INFINITY,
           }}
           dragConfig={{
@@ -295,6 +307,14 @@ export function BrickWall(props: {
             onDragOver: () => {
               const brickDef = brickDragStore.getState().brickDef;
               if (!brickDef) {
+                return false;
+              }
+
+              const { maxPerPage } = modulesHash[brickDef.moduleId];
+              if (
+                maxPerPage !== undefined &&
+                bricks.filter((brick) => brick.moduleId === brickDef.moduleId).length >= maxPerPage
+              ) {
                 return false;
               }
 
@@ -484,6 +504,8 @@ export function BrickWall(props: {
                     opacity: outsideBrickId === layoutItem.i ? 0.4 : 1,
                   }}
                   className="brick-drag-surface brick-hover-target size-full"
+                  data-brick-surface=""
+                  data-card-style={cardStyle}
                   data-brick={catalog.def.moduleId}
                   data-brick-id={layoutItem.i}
                   data-selected={isActive && selectedBrickId === layoutItem.i}
@@ -492,6 +514,7 @@ export function BrickWall(props: {
                   data-grid-w={layoutItem.w}
                   data-grid-h={layoutItem.h}
                   data-wall-right-edge={layoutItem.x + layoutItem.w === 8}
+                  data-wall-bottom-edge={layoutItem.y + layoutItem.h === bottomRow}
                   onDoubleClick={() => {
                     if (!isActive) return;
                     onBrickActivate?.({

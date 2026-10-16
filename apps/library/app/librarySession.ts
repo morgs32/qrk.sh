@@ -11,7 +11,7 @@ const fixtureDate = new Date("2026-01-01T00:00:00.000Z");
 export const LibraryApp = makeReactApp(librarySessionRelease);
 
 export const librarySessionInputs = {
-  backupPath: RoutePattern.parse("/qrk-library"),
+  backupPath: RoutePattern.parse("/qrk-library-command-query-v1"),
   claims: { aggregateId: "acct_1" },
   resources: {
     wall: [

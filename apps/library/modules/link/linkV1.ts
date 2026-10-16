@@ -1,3 +1,4 @@
+import { Schema } from "effect";
 import { makeEffectSchema, primitives } from "@zerospin/shapes";
 
 import {
@@ -53,10 +54,20 @@ export const linkV1 = makeModuleVersion(link, {
   },
   stateShape: {
     payload: primitives.json({ schema: makeEffectSchema(payloadShape) }),
-    data: primitives.json({ schema: makeEffectSchema(dataShape) }),
+    data: primitives.json({ nullable: true, schema: makeEffectSchema(dataShape) }),
+    resolution: primitives.json({
+      schema: Schema.Struct({
+        requestId: Schema.String,
+        status: Schema.Literals(["resolving", "ready", "failed"]),
+        error: Schema.NullOr(
+          Schema.Struct({ code: Schema.String, message: Schema.String, retryable: Schema.Boolean }),
+        ),
+      }),
+    }),
   },
   defaultState: {
     payload: { url: "https://apps.apple.com/us/app/apple-store/id375380948" },
     data: defaultData,
+    resolution: { requestId: "", status: "ready", error: null },
   },
 });

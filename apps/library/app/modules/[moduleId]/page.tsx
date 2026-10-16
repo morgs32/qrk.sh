@@ -13,6 +13,7 @@ import { OrderedDoc, OrderedSection } from "@qrk.sh/web/library/OrderedDoc";
 import { OrderedOutline } from "@qrk.sh/web/library/OrderedOutline";
 import { makeEffectSchema } from "@zerospin/shapes";
 import { Result, Schema } from "effect";
+import { useLiveQuery } from "@zerospin/react";
 
 import { libraryModule } from "../../../libraryModule/libraryModule";
 
@@ -24,6 +25,8 @@ import type { LibraryApi } from "../../../worker/LibraryApi.public";
 import type { IScrapeError } from "../../../worker/types.public";
 import { TableData } from "../../TableData";
 import { useModuleState } from "../../useModuleState";
+import { useLibrarySession } from "../../../session/createLibraryStandaloneSession";
+import { librarySessionInputs } from "../../librarySession";
 import { BreakpointPreviewRow } from "./BreakpointPreviewRow";
 
 export default function ModulePage() {
@@ -57,6 +60,15 @@ export default function ModulePage() {
 function ModuleDetail(props: { moduleId: keyof typeof modulesHash }) {
   const { moduleId } = props;
   const brickModule = modulesHash[moduleId];
+  const session = useLibrarySession();
+  const bricksQuery = useLiveQuery({
+    session,
+    query: (db) =>
+      db.query.brick.findMany({
+        where: { wallId: { eq: librarySessionInputs.resources.wall[0].id } },
+      }),
+  });
+  const moduleCount = bricksQuery.data.filter((brick) => brick.moduleId === moduleId).length;
 
   const [moduleState] = useModuleState(moduleId);
   const [generatePrompt, setGeneratePrompt] = useState("");
@@ -177,6 +189,7 @@ function ModuleDetail(props: { moduleId: keyof typeof modulesHash }) {
                 entry={entry}
                 key={entry.id}
                 moduleState={moduleState}
+                moduleCount={moduleCount}
                 moduleId={moduleId}
                 specs={generatedSpecs}
               />
@@ -193,6 +206,7 @@ function ModuleDetail(props: { moduleId: keyof typeof modulesHash }) {
               entry={entry}
               key={entry.id}
               moduleState={moduleState}
+              moduleCount={moduleCount}
               moduleId={moduleId}
               specs={defaultSpecs}
               className={index === 0 ? undefined : "mt-10"}

@@ -6,8 +6,6 @@
     "dev": "vp dev --host 127.0.0.1 --port 4320 --strictPort",
     "build": "vp build",
     "preview": "vp preview --host 127.0.0.1 --port 4320 --strictPort",
-    "typecheck": "tsc --noEmit",
-    "lint": "vp lint --config ../../.oxlintrc.json .",
     "format": "vp fmt --config ../../.oxfmtrc.json .",
     "deploy": "wrangler deploy",
     "types": "wrangler types ./worker-configuration.d.ts"

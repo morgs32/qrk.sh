@@ -1,8 +1,10 @@
 "use client";
 
+import { useContext } from "react";
 import type { ReactNode } from "react";
 
 import { BrickWrapper } from "../components/brick/BrickWrapper";
+import { BrickCardStyleContext } from "./BrickCardStyleContext";
 import { BREAKPOINTS } from "./breakpoints";
 
 export function GridItemPreview(props: {
@@ -12,17 +14,21 @@ export function GridItemPreview(props: {
   children: ReactNode;
 }) {
   const { breakpoint, w, h, children } = props;
+  const cardStyle = useContext(BrickCardStyleContext);
   const breakpointEntry = BREAKPOINTS.find((row) => row.id === breakpoint);
   if (!breakpointEntry) {
     throw new Error(`Unknown breakpoint: ${breakpoint}`);
   }
-  const gridItemWidth = breakpointEntry.gridItemWidth;
-  const fullW = Math.round(gridItemWidth * w);
-  const fullH = Math.round(gridItemWidth * h);
+  const gap = cardStyle ? 16 : 0;
+  const pitch = (breakpointEntry.previewWidth - gap) / 8;
+  const fullW = Math.round(w * pitch - gap);
+  const fullH = Math.round(h * pitch - gap);
 
   return (
     <div
-      className="brick-hover-target relative shrink-0 shadow-[0_8px_28px_rgb(0_0_0/0.06),0_1px_6px_rgb(0_0_0/0.04)]"
+      data-brick-surface=""
+      data-card-style={cardStyle}
+      className="brick-hover-target relative shrink-0"
       style={{
         width: fullW,
         height: fullH,

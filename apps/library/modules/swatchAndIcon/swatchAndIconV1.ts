@@ -7,6 +7,7 @@ import { swatchAndIcon } from "./swatchAndIcon";
 
 const payloadShape = {
   hash: primitives.text({ defaultValue: "" }),
+  color: primitives.text(),
 };
 
 const dataShape = {
@@ -30,7 +31,7 @@ export const swatchAndIconV1 = makeModuleVersion(swatchAndIcon, {
     data: primitives.json({ schema: makeEffectSchema(dataShape) }),
   },
   defaultState: {
-    payload: { hash: "" },
+    payload: { hash: "", color: "#4A7C59" },
     data: defaultData,
   },
 });

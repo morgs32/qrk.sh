@@ -1,8 +1,4 @@
 {
   "name": "@qrk.sh/r2-assets",
-  "$schema": "../../node_modules/nx/schemas/project-schema.json",
-  "targets": {
-    "tsc": {},
-    "test": {}
-  }
+  "$schema": "../../node_modules/nx/schemas/project-schema.json"
 }

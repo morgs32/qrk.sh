@@ -4,16 +4,27 @@ function assertKebabCaseId(id: string) {
   }
 }
 
-/** Module identity: stable kebab id, Zerospin abbreviation, label, and description. */
+/** Module identity and optional page-wide brick limit. */
 export function defineModule<
   const MODULE extends string,
   const ABBREVIATION extends string,
->(props: { id: MODULE; abbreviation: ABBREVIATION; label: string; description: string }) {
-  assertKebabCaseId(props.id);
+>(props: {
+  id: MODULE;
+  abbreviation: ABBREVIATION;
+  label: string;
+  description: string;
+  maxPerPage?: number;
+}) {
+  const { id, abbreviation, label, description, maxPerPage } = props;
+  assertKebabCaseId(id);
+  if (maxPerPage !== undefined && (!Number.isInteger(maxPerPage) || maxPerPage < 1)) {
+    throw new Error("defineModule: maxPerPage must be a positive integer");
+  }
   return {
-    id: props.id,
-    abbreviation: props.abbreviation,
-    label: props.label,
-    description: props.description,
+    id,
+    abbreviation,
+    label,
+    description,
+    maxPerPage,
   };
 }

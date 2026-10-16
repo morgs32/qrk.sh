@@ -21,8 +21,8 @@ const dataShape = {
     schema: Schema.mutable(
       Schema.Array(
         Schema.Struct({
-          date: Schema.String,
-          count: Schema.Int,
+          date: Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}-\d{2}$/)),
+          count: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
           level: Schema.Literals([0, 1, 2, 3, 4]),
         }),
       ),
@@ -60,10 +60,20 @@ export const githubActivityV1 = makeModuleVersion(githubActivity, {
   },
   stateShape: {
     payload: primitives.json({ schema: makeEffectSchema(payloadShape) }),
-    data: primitives.json({ schema: makeEffectSchema(dataShape) }),
+    data: primitives.json({ nullable: true, schema: makeEffectSchema(dataShape) }),
+    resolution: primitives.json({
+      schema: Schema.Struct({
+        requestId: Schema.String,
+        status: Schema.Literals(["resolving", "ready", "failed"]),
+        error: Schema.NullOr(
+          Schema.Struct({ code: Schema.String, message: Schema.String, retryable: Schema.Boolean }),
+        ),
+      }),
+    }),
   },
   defaultState: {
     payload: { url: "https://github.com/morgs32" },
     data: defaultData,
+    resolution: { requestId: "", status: "ready", error: null },
   },
 });

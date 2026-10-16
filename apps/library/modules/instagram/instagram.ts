@@ -5,4 +5,5 @@ export const instagram = defineModule({
   abbreviation: "ins",
   label: "Instagram",
   description: "A public Instagram profile and its latest posts.",
+  maxPerPage: 2,
 });

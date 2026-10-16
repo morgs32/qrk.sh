@@ -15,16 +15,8 @@ import { BrowserHost } from "./modules/instagram/BrowserHost";
 import { LibraryApi } from "./modules/LibraryApi";
 import { LinkBackend } from "./modules/link/LinkBackend";
 import { GooglePlacesBackend } from "./modules/mapPlace/GooglePlacesBackend";
-import { StreamlineBackend } from "./modules/swatchAndIcon/StreamlineBackend";
 
-export {
-  BackendRepo,
-  BrowserHost,
-  FigmaBackend,
-  GooglePlacesBackend,
-  LinkBackend,
-  StreamlineBackend,
-};
+export { BackendRepo, BrowserHost, FigmaBackend, GooglePlacesBackend, LinkBackend };
 
 async function handleRequest(request: Request, env: Env): Promise<Response> {
   const url = new URL(request.url);

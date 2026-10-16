@@ -4,5 +4,6 @@ export const article = defineModule({
   id: "article",
   abbreviation: "art",
   label: "Article",
-  description: "Rich text articles authored with Tiptap.",
+  description: "Markdown articles authored with Meowdown.",
+  maxPerPage: 1,
 });

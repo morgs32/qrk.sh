@@ -1,6 +1,7 @@
 import { fileURLToPath, URL } from "node:url";
 
 import react from "@vitejs/plugin-react";
+import { esmExternalRequirePlugin } from "vite/rolldown/plugins";
 import { defineConfig, loadEnv } from "vite-plus";
 
 const packageRoot = fileURLToPath(new URL(".", import.meta.url));
@@ -30,21 +31,25 @@ export default defineConfig(({ mode }) => {
           WallBreakpointPane: "lib/WallBreakpointPane.tsx",
           breakpoints: "lib/breakpoints.ts",
           BrickWall: "lib/BrickWall.tsx",
+          BrickCardStyleContext: "lib/BrickCardStyleContext.ts",
           brickDragStore: "lib/brickDragStore.ts",
           libraryModule: "libraryModule/libraryModule.ts",
           backendLibrary: "backendLibrary.ts",
+          FigmaReadyMeasurements: "modules/figmaThumbnail/FigmaReadyMeasurements.tsx",
+          startLibrarySessionWork: "session/startLibrarySessionWork.ts",
           createLibraryStandaloneSession: "session/createLibraryStandaloneSession.ts",
-          TiptapDocSchema: "lib/TiptapDocSchema.ts",
+          ImageUploadEnvironment: "modules/image/ImageUploadEnvironment.ts",
+          ImageUploadRuntimeContext: "modules/image/ImageUploadRuntimeContext.ts",
         },
         formats: ["es"],
         cssFileName: "article-editor",
         fileName: (_format, entryName) => `${entryName}.js`,
       },
       rollupOptions: {
+        plugins: [esmExternalRequirePlugin({ external: ["react"] })],
         external: [
           "@json-render/core",
           "@radix-ui/react-slot",
-          /^@tiptap\//,
           "@unpic/react",
           // Share runtime classes with consumers by keeping Zerospin packages
           // and their subpath imports external.

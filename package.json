@@ -1,8 +1,7 @@
 {
   "private": true,
   "scripts": {
-    "dev": "nx run-many -t dev -p @qrk.sh/zerospin @qrk.sh/library @qrk.sh/studio @qrk.sh/api @qrk.sh/web --parallel=5",
-    "ts": "nx run-many -t ts --all --nxBail"
+    "dev": "nx run-many -t dev -p @qrk.sh/zerospin @qrk.sh/library @qrk.sh/studio @qrk.sh/api @qrk.sh/web --parallel=5"
   },
   "dependencies": {
     "framer-motion": "13.2.0"

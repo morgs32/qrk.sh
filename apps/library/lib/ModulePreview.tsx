@@ -11,10 +11,13 @@ export function ModulePreview(props: {
   brickModule: (typeof modulesHash)[keyof typeof modulesHash];
   breakpoint: (typeof BREAKPOINTS)[number]["id"];
   displayPlaceholders: boolean;
+  moduleCount: number;
   moduleLink: ReactNode;
 }) {
-  const { brickModule, breakpoint, displayPlaceholders, moduleLink } = props;
+  const { brickModule, breakpoint, displayPlaceholders, moduleCount, moduleLink } = props;
   const { def, component: BrickComponent } = brickModule;
+  const maxPerPage = brickModule.maxPerPage;
+  const limitReached = maxPerPage !== undefined && moduleCount >= maxPerPage;
   const view = brickModule.viewFor(breakpoint);
   const spec = view.spec;
   const declaredW = view.w;
@@ -61,7 +64,7 @@ export function ModulePreview(props: {
   const dragW = activeSize?.w ?? view.minW ?? 1;
   const dragH = activeSize?.h ?? view.minH ?? 1;
   const brickDefForDrag =
-    placementSizes === null
+    placementSizes === null || limitReached
       ? null
       : {
           ...def,
@@ -79,13 +82,21 @@ export function ModulePreview(props: {
       data-module-entry={brickModule.id}
       className={cn(
         "flex h-full min-h-0 w-max shrink-0 flex-col overflow-y-auto overscroll-y-contain",
-        exceedsWallWidth ? "border border-red-200 bg-red-50" : "border-r border-zinc-200 bg-zinc-100",
+        exceedsWallWidth
+          ? "border border-red-200 bg-red-50"
+          : "border-r border-zinc-200 bg-zinc-100",
       )}
     >
       <h2 className="sticky top-0 z-10 m-0 shrink-0 bg-inherit px-8 py-4 font-normal">
         {moduleLink}
       </h2>
       <div className="relative px-8 pb-16">
+        {maxPerPage !== undefined ? (
+          <p className="mb-3 mt-0 max-w-64 text-sm text-zinc-500">
+            Limit: {maxPerPage} per page.
+            {limitReached ? " Limit reached. Remove one to add another." : ""}
+          </p>
+        ) : null}
         <div
           aria-hidden
           className="pointer-events-none absolute overflow-hidden"
@@ -107,6 +118,8 @@ export function ModulePreview(props: {
         <GridItemPreview breakpoint={breakpoint} w={dragW} h={dragH}>
           <DraggableBrick
             brickDef={brickDefForDrag}
+            aria-disabled={limitReached}
+            title={limitReached ? "Limit reached. Remove one to add another." : undefined}
             className="size-full qrk-bricks overflow-hidden"
             data-module-representative={def.moduleId}
             data-brick-drawer-brick-slot

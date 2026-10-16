@@ -74,6 +74,7 @@ export function makeModuleVersion<
     abbreviation: ABBREVIATION;
     label: string;
     description: string;
+    maxPerPage?: number;
   }>,
   props: {
     version: VERSION;
@@ -90,7 +91,7 @@ export function makeModuleVersion<
     defaultState: suppliedDefaultState,
     hasPlaceholder = false,
   } = props;
-  const { id, abbreviation, label, description } = defineModule(identity);
+  const { id, abbreviation, label, description, maxPerPage } = defineModule(identity);
   assertSemVer(version);
 
   const catalog = makeCatalogFromComponents(components);
@@ -106,6 +107,7 @@ export function makeModuleVersion<
     abbreviation,
     label,
     description,
+    maxPerPage,
     version,
     hasPlaceholder,
     catalog,

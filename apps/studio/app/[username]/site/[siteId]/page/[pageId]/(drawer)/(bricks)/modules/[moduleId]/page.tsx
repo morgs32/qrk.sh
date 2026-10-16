@@ -7,6 +7,9 @@ import { modulesHash } from "@qrk.sh/library";
 import { libraryModule } from "@qrk.sh/library/libraryModule";
 import { makeEffectSchema } from "@zerospin/shapes";
 import { Result, Schema } from "effect";
+import { useLiveQuery } from "@zerospin/react";
+import { makeModelIdSchema } from "@zerospin/core/models/make/makeModelIdSchema";
+import { pageV1 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
 import { useWallViewport } from "@qrk.sh/library/WallViewportProvider";
 import { BREAKPOINTS, minGridUnits } from "@qrk.sh/library/breakpoints";
 import { GridItemPreview } from "@qrk.sh/library/GridItemPreview";
@@ -19,6 +22,7 @@ import { CodeText } from "@/app/[username]/site/[siteId]/page/[pageId]/Modules/C
 import { MetadataField } from "@/app/[username]/site/[siteId]/page/[pageId]/Modules/MetadataField";
 
 import { BRICK_DRAG_MIME } from "@/components/home/useBrickDrawerStore";
+import { UserApp } from "@/zerospin/userSession";
 
 export default function ModuleRoute() {
   const { activeBreakpoint } = useWallViewport();
@@ -36,8 +40,9 @@ export default function ModuleRoute() {
   const decoded = Schema.decodeUnknownResult(
     makeEffectSchema({ moduleId: libraryModule.models.brick.attributes.moduleId }),
   )({ moduleId: moduleId });
+  const decodedPageId = Schema.decodeUnknownResult(makeModelIdSchema(Page))(pageId);
 
-  if (Result.isFailure(decoded)) {
+  if (Result.isFailure(decoded) || Result.isFailure(decodedPageId)) {
     return (
       <div className="p-6" data-testid="module-not-found">
         <h1>Module not found</h1>
@@ -46,14 +51,36 @@ export default function ModuleRoute() {
   }
 
   const brickModule = modulesHash[decoded.success.moduleId];
-  return <ModuleRouteBody brickModule={brickModule} breakpoint={breakpoint} />;
+  return (
+    <ModuleRouteBody
+      brickModule={brickModule}
+      breakpoint={breakpoint}
+      pageId={decodedPageId.success}
+    />
+  );
 }
 
 function ModuleRouteBody(props: {
   brickModule: (typeof modulesHash)[keyof typeof modulesHash];
   breakpoint: "sm" | "md" | "lg" | "xl";
+  pageId: `pag_${string}`;
 }) {
-  const { brickModule, breakpoint } = props;
+  const { brickModule, breakpoint, pageId } = props;
+  const session = UserApp.useInitializedSession();
+  const { data: page } = useLiveQuery({
+    session,
+    key: pageId,
+    query: (db, queriedPageId) => db.query.page.findFirst({ where: { id: { eq: queriedPageId } } }),
+  });
+  const bricksQuery = useLiveQuery({
+    session,
+    key: page?.wallId,
+    query: (db, wallId) =>
+      db.query.brick.findMany({ where: { wallId: { eq: wallId ?? "wal_missing" } } }),
+  });
+  const maxPerPage = brickModule.maxPerPage;
+  const moduleCount = bricksQuery.data.filter((brick) => brick.moduleId === brickModule.id).length;
+  const limitReached = maxPerPage !== undefined && moduleCount >= maxPerPage;
   const published = useRef<IDraggedBrick | null>(null);
   useEffect(
     () => () => {
@@ -112,7 +139,7 @@ function ModuleRouteBody(props: {
   const w = activeSize?.w ?? view.minW ?? 1;
   const h = activeSize?.h ?? view.minH ?? 1;
   const brickDefForDrag =
-    placementSizes === null
+    placementSizes === null || limitReached
       ? null
       : {
           ...brickModule.def,
@@ -125,10 +152,12 @@ function ModuleRouteBody(props: {
 
   const surface = (
     <div
-      className="size-full qrk-bricks brick-drag-surface cursor-grab overflow-hidden active:cursor-grabbing"
+      className={`size-full qrk-bricks brick-drag-surface overflow-hidden ${limitReached ? "cursor-not-allowed" : "cursor-grab active:cursor-grabbing"}`}
       data-brick-full-view={brickModule.def.moduleId}
       data-brick-drawer-brick-slot
       data-brick-drawer-module-id={brickModule.def.moduleId}
+      aria-disabled={limitReached}
+      title={limitReached ? "Limit reached. Remove one to add another." : undefined}
       draggable={brickDefForDrag !== null}
       onDragStart={(event) => {
         if (brickDefForDrag === null) {
@@ -172,6 +201,12 @@ function ModuleRouteBody(props: {
               <div>
                 <h2 className="m-0 text-2xl">{brickModule.label}</h2>
                 <p className="mb-0 mt-1 text-sm text-zinc-500">{brickModule.description}</p>
+                {maxPerPage !== undefined ? (
+                  <p className="mb-0 mt-1 text-sm text-zinc-500">
+                    Limit: {maxPerPage} per page.
+                    {limitReached ? " Limit reached. Remove one to add another." : ""}
+                  </p>
+                ) : null}
               </div>
               <div className="flex shrink-0 items-baseline gap-2">
                 <Tabs.List

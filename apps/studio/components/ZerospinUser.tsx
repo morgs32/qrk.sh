@@ -3,7 +3,7 @@
 import { RedirectToSignIn, useAuth, useUser } from "@clerk/nextjs";
 import { ZerospinError } from "@zerospin/error";
 import { Effect } from "effect";
-import { useEffect, useSyncExternalStore, type ReactNode } from "react";
+import { Suspense, useEffect, useSyncExternalStore, type ReactNode } from "react";
 import { getClerkToken } from "@/lib/getClerkToken";
 import { toast } from "sonner";
 import { libraryModule } from "@qrk.sh/library/libraryModule";
@@ -41,7 +41,9 @@ function ZerospinUserInitializedStateProvider(props: { clerkUserId: string; chil
         return { sessionToken };
       })}
     >
-      <UserSessionWork>{children}</UserSessionWork>
+      <Suspense fallback={null}>
+        <UserSessionWork>{children}</UserSessionWork>
+      </Suspense>
     </UserApp.Initializer>
   );
 }
@@ -78,7 +80,11 @@ function UserSessionWork(props: { children: ReactNode }) {
     const stopFailures = session.failures.subscribe((event) => {
       if (
         (event._tag === "AdmissionFailure" || event._tag === "ExecutionFailure") &&
-        Object.hasOwn(libraryModule.contracts, event.commandName)
+        (Object.hasOwn(libraryModule.contracts, event.commandName) ||
+          event.commandName === "publishSite" ||
+          event.commandName === "publishPage" ||
+          event.commandName === "publishPageUpdates" ||
+          event.commandName === "unpublishSite")
       )
         toast.error(event.failure.message);
     });

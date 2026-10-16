@@ -97,7 +97,7 @@ More detail and test patterns: [docs/styleguide/component-and-file-naming.md](do
 
 3. Open http://localhost:3000
 
-To run all five app development servers and build QRK's reusable Library:
+To run all five app development servers:
 
 ```bash
 pnpm dev
@@ -108,16 +108,19 @@ and [Library fresh-origin check](apps/library/README.md) instructions. Supersede
 retained commands and SQLite schemas require empty storage; old data is preserved
 separately and has no compatibility migration.
 
-Studio owns `apps/studio/zerospin/zerospin.worker.ts`, which calls
-`makeSharedWorker({ sqliteWasmUrl })`. `userSessionRelease` supplies a lazy worker factory;
+Studio's `userSessionRelease` uses the installed browser package's
+`makeAggregateBrowserRelease` to supply its connected SharedWorker.
 Zerospin chooses its name from the runtime version and persistent session identity.
-Studio uses webpack in Next development and production builds to bundle the
+Studio uses Turbopack in Next development and production builds to bundle the
 worker and its `new URL(..., import.meta.url)` SQLite WASM asset. Studio listens
 on port 3001 behind web on port 3000. Web proxies Studio's isolated
 `/studio-static/_next/` asset namespace. Next bundles the SharedWorker and its
 SQLite WASM from the installed browser package. Existing `/assets/` public-file URLs have explicit
 Studio mappings.
-Vite remains only for Studio Storybook.
+Library exports its source directly to Studio, API, and Zerospin; startup does
+not build a separate Library package. Vite remains for Storybook and examples.
+Keep each app's `.next` directory between runs: Next's default Turbopack
+filesystem cache persists development compilation in `.next/dev/cache/turbopack`.
 
 Studio server-renders the document, fonts, and navigation before its browser
 session initializes. `UserApp.Initializer` owns a fresh facade for its Clerk binding;
@@ -145,10 +148,11 @@ To run the Library app and its API Worker:
 pnpm nx run @qrk.sh/library:dev
 ```
 
-Library uses Next.js App Router with webpack on port 4100. Its Nx target starts
+Library uses Next.js App Router with Turbopack on port 4100. Its Nx target starts
 the unified API Worker on port 8787. Next forwards `/rpc`, `/upload`, and
-`/assets/*` to API, preserving same-origin client URLs. Its reusable Vite library
-build remains separate for Studio consumers and API's catalog registry.
+`/assets/*` to API, preserving same-origin client URLs. The private Library package
+maps its existing imports directly to TypeScript, TSX, and stylesheet source;
+each consumer compiles the source it uses.
 
 To run the dashboard and site app instead:
 
@@ -160,15 +164,15 @@ pnpm nx run @qrk.sh/studio:dev
 
 Build and start either app with Nx: `pnpm nx run @qrk.sh/web:build` and
 `pnpm nx run @qrk.sh/web:start`, or the equivalent `@qrk.sh/studio` targets.
-Studio uses webpack and writes `.next`; its production server defaults to port
+Studio uses Turbopack and writes `.next`; its production server defaults to port
 3001 (`PORT` overrides it). Keep web on port 3000 with `APP_ORIGIN` pointing to
 Studio.
 
-For Library, run `pnpm nx run @qrk.sh/library:build:app`, then
-`pnpm nx run @qrk.sh/library:preview`. Preview serves `.next` on port 4100 and
-starts the local API Worker. See [Library's README](apps/library/README.md)
-for the backend-origin setting. API retains the existing R2 buckets; previously
-saved absolute URLs using port 4101 need their origin updated separately.
+Library retains its development server and Storybook; it has no package build,
+Next production build, or production preview target. See
+[Library's README](apps/library/README.md) for the backend-origin setting. API
+retains the existing R2 buckets; previously saved absolute URLs using port 4101
+need their origin updated separately.
 
 ## Local subdomain routing proof
 

@@ -10,8 +10,8 @@ import { toast } from "sonner";
 import { useLiveQuery } from "@zerospin/react";
 import { ZerospinError } from "@zerospin/sdk/browser";
 
-import { siteV1 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV1";
-import { pageV1 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
+import { siteV2 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV2";
+import { pageV2 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV2";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -55,7 +55,7 @@ export default function UsernameDashboardPage() {
       session.failures.subscribe((event) => {
         if (
           (event._tag === "AdmissionFailure" || event._tag === "ExecutionFailure") &&
-          event.commandName === "createSite"
+          (event.commandName === "createSite" || event.commandName === "createPage")
         ) {
           toast.error(event.failure.message);
         }
@@ -164,7 +164,7 @@ export default function UsernameDashboardPage() {
                         payload: {
                           id: session.runSync(makeId(Page)),
                           siteId,
-                          slug: "home",
+                          slug: null,
                         },
                       });
                       if (pageResult._tag === "Failure") {
@@ -242,7 +242,7 @@ export default function UsernameDashboardPage() {
           {user.sites.length > 0 ? (
             <ul className="flex flex-col gap-3">
               {user.sites.map((site) => {
-                const page = site.pages.find((page) => page.slug === "home") ?? site.pages[0];
+                const page = site.pages.find((page) => page.slug === null) ?? site.pages[0];
                 return (
                   <li key={site.id} className="rounded-lg border p-4">
                     {page === undefined ? (

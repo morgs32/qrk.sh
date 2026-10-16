@@ -30,15 +30,7 @@
   "nx": {
     "targets": {
       "dev": {
-        "continuous": true,
-        "dependsOn": [
-          {
-            "projects": [
-              "@qrk.sh/library"
-            ],
-            "target": "build"
-          }
-        ]
+        "continuous": true
       }
     }
   }

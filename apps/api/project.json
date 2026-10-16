@@ -3,22 +3,10 @@
   "name": "@qrk.sh/api",
   "targets": {
     "build": {
-      "dependsOn": [
-        {
-          "projects": ["@qrk.sh/library"],
-          "target": "build"
-        }
-      ],
       "outputs": ["{projectRoot}/dist"]
     },
     "dev": {
-      "continuous": true,
-      "dependsOn": [
-        {
-          "projects": ["@qrk.sh/library"],
-          "target": "build"
-        }
-      ]
+      "continuous": true
     }
   }
 }

@@ -19,15 +19,16 @@ generator body without its branding header. Color and square-width controls
 update a local preview and CSS output; **Copy CSS** copies the generated styles.
 The story has no session or backend dependencies.
 
-Web listens on port 3000 and proxies Studio routes to `APP_ORIGIN` (default `http://localhost:3001`). Studio runs on port 3001. Development and production builds use webpack to bundle the framework's connected SharedWorker and its SQLite WASM. Vite is retained only for Storybook.
+Web listens on port 3000 and proxies Studio routes to `APP_ORIGIN` (default `http://localhost:3001`). Studio runs on port 3001. Development and production builds use Turbopack to bundle the framework's connected SharedWorker and its SQLite WASM. Vite is retained only for Storybook.
 
 Studio's Next chunks, fonts, worker, and WASM use `/studio-static/_next/`. Web excludes that namespace from authentication and proxies it to Studio. Referenced `/assets/` public files have explicit mappings in Studio's Next configuration; missing files return 404. There is no Vite module or HMR routing.
 
 Studio resolves the SharedWorker and browser SQLite WASM from installed
 `11.1.0` package exports. `makeAggregateBrowserRelease` supplies the connected
 worker; Studio does not author a worker entrypoint. The worker owns its IndexedDB-backed SQLite namespace;
-no separate backup-worker asset is served. Nx builds QRK's reusable Library
-before Studio; it never builds or changes installed Zerospin artifacts. Fresh
+no separate backup-worker asset is served. Studio compiles the private Library
+package's source exports directly; no Library build runs before Studio targets.
+It never builds or changes installed Zerospin artifacts. Fresh
 checkout installation requires the populated local registry described in the
 [root README](../../README.md#zerospin-packages).
 
@@ -36,6 +37,11 @@ directory using the quarantine procedure in the [backend README](../zerospin/REA
 before starting the current runtime. Existing browser backups remain untouched.
 
 `build` writes `.next`; `start` runs the Next production server on port 3001 (`PORT` overrides it). Production must run both Next applications and preserve these proxy routes. Deployment is not configured here.
+
+Keep `.next` between development runs. Next's default Turbopack filesystem cache
+persists compilation in `.next/dev/cache/turbopack` for subsequent restarts.
+Existing Library stylesheet imports retain their order; `/article-editor.css`
+resolves directly to Article's SCSS source.
 
 ## Environment
 
@@ -74,13 +80,20 @@ single internal hyphens. The user's live sites provide inline availability
 feedback; the creation contract enforces the same format and ownership-scoped
 uniqueness. Another user may use the same slug. Local refusals keep the dialog's
 values; later creation failures show a toast. Closing or cancelling resets both
-inputs. Creation continues to add the initial `home` page.
+inputs. Creation stages `createSite` followed by `createPage` with `slug: null`
+for the site's index page. Page creation requires an explicit string slug or
+`null`, with at most one null-slug page per site; Site slugs retain their existing
+rules. Admission and execution failures for either creation command show a toast.
+The dashboard opens the null-slug page when present, otherwise its existing
+first-page fallback. Existing `"home"` rows retain their string slug; no backfill
+or storage reset is performed. Folders and published pathname resolution remain
+outside this change.
 
 Filesystem routes preserve dashboards, base editors, module catalogs, module details, brick details, breakpoints, page settings, and site settings. Unknown paths render Next's not-found screen. The local error boundary preserves client diagnostics and reload behavior.
 
 The brick-detail route keeps its brick selected in the active wall, with the existing outline and resize handles visible while focus or the pointer moves into the drawer. A successful catalog drop activates the new brick and opens its detail drawer for editing. Selection follows the route across refresh and breakpoint changes, and clears when leaving brick detail.
 
-The page layout keeps site/page drafts, `MainColumns`, the grid, and the library session mounted. `EditorLayout` also owns the persistent bottom drawer shell. Next's `useSelectedLayoutSegments()` supplies its `open` state through membership in the pathless `(drawer)` group. Its `(bricks)` child layout owns catalog breadcrumbs, the brick-detail heading **Update your {collectionName} brick**, a left-side underlined **← New brick** link returning to the catalog with a **/** separator before the heading, and the close link; settings retain their own Save/Cancel headers. `Toolbars` reads selected layout segments to choose the route's controls.
+The page layout keeps site/page drafts, `MainColumns`, the grid, and the library session mounted. `EditorLayout` also owns the persistent bottom drawer shell. Next's `useSelectedLayoutSegments()` supplies its `open` state through membership in the pathless `(drawer)` group. The common drawer layout renders `DrawerHeader`, which owns catalog breadcrumbs, the brick-detail heading **Update your {collectionName} brick**, the left-side underlined **← New brick** catalog link and **/** separator, publication actions, and Close or settings Save/Cancel. `Toolbars` reads selected layout segments to choose the route's controls.
 
 The drawer overlays the bottom `50dvh` on desktop and mobile. The editor stays full-height; a trailing element adds the same amount of real padding without changing the wall's minimum height. On opening, closing, and reserved-height changes, scrollable editors within 1px of the bottom follow the new bottom; other offsets are preserved and clamped. Initial deep links do not force a bottom scroll. Padding and scroll corrections are immediate, and later content growth does not trigger bottom following.
 
@@ -110,6 +123,26 @@ with 3.5rem and zero fallbacks respectively, so an empty wall adds no scrolling
 and drawer scroll anchoring is preserved.
 
 Studio imports the shared `Drawer` from `@qrk.sh/library/Drawer` and passes `open`. Its shell slides with a 300ms CSS transform; editor height and padding do not animate. The route-level React `ViewTransition` preserves only outgoing content for exit, with matching translation and easing. Opening and navigation between drawer routes have no snapshot entrance. Browsers without native View Transitions close immediately. Reduced motion skips positional animation. Closed drawers are inert, hidden from assistive technology, and release their content after exit; focus returns to the opener when it is still appropriate. The transition overlay allows pointer events through. This supersedes plan 007's animated grid-row reservation and snapshot entrance; its unrelated verification items remain separate.
+
+The common drawer layout renders one `DrawerHeader` for brick browsing/editing
+and Page/Site Settings. Settings Save/Cancel keep their opening baselines and
+discard behavior. Publication status comes from live models rather than settings
+draft stores.
+
+**Publish Site** appears immediately before the page action and Close/Cancel
+while the site is unpublished. Its modal reuses `SiteTree` with checkboxes,
+preselecting previously published pages and locking the index page at `/`.
+One command publishes the checked set and enables the site. Unchecked pages keep
+their previous snapshots but become unpublished.
+
+Within a published site, an unpublished page offers **Publish Page**. A published
+page offers **Publish Updates** only when its saved metadata, bricks, or layouts
+differ from its current snapshot. Unsaved forms still require Save. Every page
+publication retains a new historical snapshot. **Unpublish Site** belongs only
+in Site Settings and preserves page flags/history. Site Settings changes remain
+immediate on Save. Staging is optimistic; immediate and later originating-command
+failures show their actual errors without a premature server-success message.
+Public website rendering and history browsing/restoration are deferred.
 
 The modules catalog uses `@qrk.sh/library/ModuleFilmstrip`, the same horizontal
 filmstrip as Library. Each module column scrolls vertically beneath its full-width
@@ -141,7 +174,7 @@ The detail drawer provides one centered column around the module-owned form and 
 Image uses stacked shadcn inputs that fill that column; its actions sit below
 the fields at the same left edge and wrap when needed.
 
-Each Page references its own Library wall, created atomically by `createPage` with ID `prefixId(libraryModule.models.wall, pageId)`. The grid and brick drawer scope queries to that wall. `ZerospinUserProvider` owns session initialization and disposal, and `UserLayout` waits for initialization before mounting the editor. Changing pages does not dispose the user session.
+Each Page references its own Library wall, created atomically by `createPage` with ID `prefixId(libraryModule.models.wall, pageId)`. The grid and brick drawer scope queries to that wall. `ZerospinUserProvider` owns session initialization and disposal. Its inner Suspense boundary encloses every session reader so the initializer can commit and start while readers wait; `UserLayout` also gates editor content. Changing pages does not dispose the user session.
 
 This is a fresh-content cutover: legacy grid/brick rows and old Article JSON are
 not migrated. Back up local backend storage before starting current declarations;

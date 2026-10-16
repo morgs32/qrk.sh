@@ -2,9 +2,15 @@ export type ISiteTreeNode = {
   label: string;
   kind?: "asset" | "liability" | "income";
   children?: readonly ISiteTreeNode[];
+  checkbox?: {
+    checked: boolean;
+    disabled?: boolean;
+    onCheckedChange?: (checked: boolean) => void;
+  };
 };
 
-function AccountTypeIcon({ kind }: { kind: "asset" | "liability" | "income" }) {
+function AccountTypeIcon(props: { kind: "asset" | "liability" | "income" }) {
+  const { kind } = props;
   if (kind === "asset") {
     return (
       <svg
@@ -70,19 +76,18 @@ function AccountTypeIcon({ kind }: { kind: "asset" | "liability" | "income" }) {
 function flattenRows(
   nodes: readonly ISiteTreeNode[],
   ancestors: readonly string[],
-): Array<{ label: string; kind?: ISiteTreeNode["kind"]; prefix: string | null }> {
-  const rows: Array<{ label: string; kind?: ISiteTreeNode["kind"]; prefix: string | null }> = [];
+): Array<{ node: ISiteTreeNode; prefix: string | null }> {
+  const rows: Array<{ node: ISiteTreeNode; prefix: string | null }> = [];
 
   nodes.forEach((node, index) => {
     const isLast = index === nodes.length - 1;
     const isKindRoot = ancestors.length === 0 && node.kind != null;
 
     if (isKindRoot) {
-      rows.push({ label: node.label, kind: node.kind, prefix: null });
+      rows.push({ node, prefix: null });
     } else {
       rows.push({
-        label: node.label,
-        kind: node.kind,
+        node,
         prefix: `${ancestors.join("")}${isLast ? "└" : "├"}`,
       });
     }
@@ -96,13 +101,8 @@ function flattenRows(
   return rows;
 }
 
-export function SiteTree({
-  nodes,
-  highlightIndex,
-}: {
-  nodes: readonly ISiteTreeNode[];
-  highlightIndex?: number;
-}) {
+export function SiteTree(props: { nodes: readonly ISiteTreeNode[]; highlightIndex?: number }) {
+  const { nodes, highlightIndex } = props;
   const rows = flattenRows(nodes, []);
 
   return (
@@ -117,11 +117,11 @@ export function SiteTree({
       <div className="divide-y-[0.5px] overflow-hidden border-[0.5px] border-border bg-background">
         {rows.map((row, index) => (
           <div
-            key={`${row.label}-${index}`}
+            key={`${row.node.label}-${index}`}
             className="flex h-[1lh] items-center bg-background pl-[2px]"
           >
-            {row.prefix === null && row.kind !== undefined ? (
-              <AccountTypeIcon kind={row.kind} />
+            {row.prefix === null && row.node.kind !== undefined ? (
+              <AccountTypeIcon kind={row.node.kind} />
             ) : (
               <span
                 aria-hidden="true"
@@ -130,7 +130,19 @@ export function SiteTree({
                 {row.prefix}
               </span>
             )}
-            <span className="truncate">{row.label}</span>
+            {row.node.checkbox === undefined ? (
+              <span className="truncate">{row.node.label}</span>
+            ) : (
+              <label className="flex min-w-0 items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={row.node.checkbox.checked}
+                  disabled={row.node.checkbox.disabled}
+                  onChange={(event) => row.node.checkbox?.onCheckedChange?.(event.target.checked)}
+                />
+                <span className="truncate">{row.node.label}</span>
+              </label>
+            )}
           </div>
         ))}
       </div>

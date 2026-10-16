@@ -35,7 +35,7 @@ const systemApi = yield* getSystemApi();
 const db = makeQueryDbVersion({ models: userSessionDefinition.models });
 const site = yield* systemApi.executeAggregateQuery({
   aggregateName: 'user',
-  aggregateVersion: '1.0.0',
+  aggregateVersion: '2.0.0',
   aggregateId,
   query: db.query.site.findFirst({
     where: { id: { eq: siteId } },
@@ -76,14 +76,17 @@ not make its rows readable by the current declarations.
 
 ## Source layout
 
-`src/system.ts` registers only user aggregate `1.0.0`. All current models and
-contracts start at `1.0.0`; older declaration versions have been removed.
+`src/system.ts` registers user aggregate `2.0.0` alongside retained `1.0.0`.
+The current release uses Site/Page `2.0.0`, PageSnapshot `1.0.0`, and web actor
+`2.0.0`; unchanged User, provisioner, and Library declarations are reused.
+The four Site/Page editing contracts have successor declarations with identity
+payload adapters in both directions and explicit successor guards/programs.
 
 The user aggregate ID is the verified Clerk token subject (`clerkUserId`), with
 no added prefix. This starts fresh aggregate storage; existing `acct_…`
 aggregates remain under their old IDs and are not migrated or deleted.
 
-`userActorV1` verifies Clerk through `userProvisionerV1`, then its authorization awaits `createUser`
+The web actors verify Clerk through `userProvisionerV1`, then authorization awaits `createUser`
 under that provisioner actor and verified identity. Each attempt generates an
 independent User resource ID (`usr_…`); `identity.clerkUserId` remains the Clerk
 subject. The provisioner guard runs inside the aggregate command transaction and
@@ -91,15 +94,17 @@ rejects duplicate subjects with `user-already-exists`, which authorization
 accepts as successful provisioning.
 Other admission or execution failures prevent session initialization.
 
-The web actor selects User → Site → Page → Wall → Brick → Placement rows by Clerk
-identity and explicitly exposes those six model schemas. The provisioner exposes
+The current web actor selects User → Site → Page → Wall → Brick → Placement rows by Clerk
+identity and exposes PageSnapshot rows only while a Page points to them as its
+current snapshot. Historical contents remain canonical without synchronizing the
+whole history into Studio. The provisioner exposes
 only User. Each actor declares its exposed models separately from its canonical
 query database and row selections. Wall, Brick, Placement, and their editing contracts are supplied by
 `@qrk.sh/library/libraryModule`. QRK owns the Page's `wallId` reference; `createPage`
 creates that deterministic wall and the Page in one command. Legacy Grid/Brick
 snapshot contracts have been removed. There is no migration or lazy wall provisioning.
 Existing Studio browser databases remain untouched by this code cutover.
-Studio's `userSessionRelease` uses the matching V1 web actor. Its `UserApp.Initializer`
+Studio's `userSessionRelease` uses the matching V2 web actor. Its `UserApp.Initializer`
 owns initialization and disposal for each Clerk identity. Models live under `aggregates/user/models/<model>/`,
 and contracts under `aggregates/user/contracts/<command>/`.
 
@@ -130,3 +135,48 @@ Restart the normal Nx `dev` target and require system-spec acceptance. The chang
 browser session lock produces a new browser Node namespace on the same origin;
 old IndexedDB databases and cookies remain untouched. Do not reset the API's R2
 stores or the package registry.
+
+## Page index slugs
+
+The Page model and `createPage` require an explicit `slug` value, with no default.
+`null` identifies the site's index page at `/`; non-null slugs keep their existing
+behavior. After authenticating the site's owner, the `createPage` guard rejects
+a second null-slug Page for the same site with `create-page-index-taken` (409)
+before recording the Page or its Library wall. Each site can have one index page.
+
+This nullable Page slug change adds no migration, storage reset, or backfill.
+Existing pages with the `home` slug remain unchanged. The fresh-data instructions
+above apply to the earlier Site slug cutover, not this Page index change.
+
+## Publishing and page history
+
+Site's `isPublished` controls site availability. Page's independent `isPublished`
+and nullable `publishedSnapshotId` identify whether the page is published and
+which immutable PageSnapshot supplies its published content. A snapshot contains
+saved page metadata and Library brick state, specs, visibility, and layouts at
+every breakpoint. It excludes generation requests/errors, revisions, and
+measurement bookkeeping. Each publication creates a new row; publishing contracts
+grant snapshot creation only, with no update/delete operation.
+
+`publishSite({ siteId, pages: [{ pageId, snapshotId }] })` checks ownership and
+the required index page, snapshots all checked pages, marks unchecked pages
+unpublished while retaining their snapshot pointers, and enables the site in one
+checked operation batch. `publishPage` requires a published site and unpublished
+page. `publishPageUpdates` requires a published site and published page; it
+creates another snapshot and advances the pointer. `unpublishSite` changes only
+the site's availability flag. All four contracts enforce ownership.
+
+Snapshot IDs are generated once before staging and retained in command payloads;
+programs read the saved content rather than accepting browser-supplied snapshots.
+Library owns its wall schema/projection; QRK adds page metadata in separate schema
+and projection files. Stable brick/breakpoint ordering supports structural dirty
+comparison independently of query ordering. Saved Site Settings changes remain
+immediate and are not part of page publication history.
+
+The publication release preserves storage: its version-specific model database
+replays retained history through successor programs, initializing existing sites
+and pages as unpublished. Retain V1 releases and contract lineage, deliver pending
+V1 commands before switching browser namespaces, and preserve the prior browser
+stores. The historical reset instructions above do not apply to publishing.
+Public website rendering and browsing/restoring publication history remain later
+application work.

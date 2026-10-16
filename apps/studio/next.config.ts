@@ -1,8 +1,5 @@
 import type { NextConfig } from "next";
-import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
-
-const require = createRequire(import.meta.url);
 
 const nextConfig: NextConfig = {
   assetPrefix: "/studio-static",
@@ -11,12 +8,11 @@ const nextConfig: NextConfig = {
     PUBLIC_MAPBOX_TOKEN: process.env.PUBLIC_MAPBOX_TOKEN ?? "",
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8787",
   },
-  webpack(config) {
-    // The prebundled SQLite loader contains a fallback URL as well as our explicit URL.
-    // Both must resolve to the exact WASM bytes paired with this worker runtime.
-    config.resolve.alias["wa-sqlite-async.wasm$"] =
-      require.resolve("@zerospin/browser/sqlite.wasm");
-    return config;
+  turbopack: {
+    resolveAlias: {
+      // Match the async loader's fallback to the WASM paired with this worker runtime.
+      "wa-sqlite-async.wasm": "@zerospin/browser/sqlite.wasm",
+    },
   },
   async rewrites() {
     return [

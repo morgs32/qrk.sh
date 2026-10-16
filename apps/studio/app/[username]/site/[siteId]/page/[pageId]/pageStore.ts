@@ -4,14 +4,14 @@ export const usePageStore = create<{
   readonly page: {
     readonly id: string;
     readonly siteId: string;
-    readonly slug: string;
+    readonly slug: string | null;
     readonly title: string;
     readonly description: string;
   } | null;
   readonly initializePage: (page: {
     readonly id: string;
     readonly siteId: string;
-    readonly slug: string;
+    readonly slug: string | null;
     readonly title: string | null;
     readonly description: string | null;
   }) => void;

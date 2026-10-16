@@ -17,7 +17,7 @@ export const pageV1 = makeModelVersion(page, {
       relation: "site",
       inverse: "pages",
     }),
-    slug: primitives.text(),
+    slug: primitives.text({ nullable: true }),
     title: primitives.text({
       nullable: true,
       defaultValue: null,

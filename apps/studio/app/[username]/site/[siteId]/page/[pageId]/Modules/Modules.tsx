@@ -4,7 +4,7 @@ import Link from "next/link";
 
 import { ModuleFilmstrip } from "@qrk.sh/library/ModuleFilmstrip";
 import { useWallViewport } from "@qrk.sh/library/WallViewportProvider";
-import { pageV1 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
+import { pageV2 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV2";
 import { makeModelIdSchema } from "@zerospin/core/models/make/makeModelIdSchema";
 import { useLiveQuery } from "@zerospin/react";
 import { Schema } from "effect";

@@ -6,10 +6,6 @@
       "continuous": true,
       "dependsOn": [
         {
-          "projects": ["@qrk.sh/library"],
-          "target": "build"
-        },
-        {
           "projects": ["@qrk.sh/web"],
           "target": "dev"
         },
@@ -23,30 +19,8 @@
         }
       ]
     },
-    "build": {
-      "dependsOn": [
-        {
-          "projects": ["@qrk.sh/library"],
-          "target": "build"
-        }
-      ]
-    },
     "storybook": {
-      "continuous": true,
-      "dependsOn": [
-        {
-          "projects": ["@qrk.sh/library"],
-          "target": "build"
-        }
-      ]
-    },
-    "build-storybook": {
-      "dependsOn": [
-        {
-          "projects": ["@qrk.sh/library"],
-          "target": "build"
-        }
-      ]
+      "continuous": true
     }
   }
 }

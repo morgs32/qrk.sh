@@ -11,7 +11,7 @@ import { BrickWall } from "@qrk.sh/library/BrickWall";
 import { BREAKPOINTS } from "@qrk.sh/library/breakpoints";
 import { WallBreakpointPane } from "@qrk.sh/library/WallBreakpointPane";
 import { UserApp } from "@/zerospin/userSession";
-import { pageV1 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
+import { pageV2 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV2";
 import { useWallViewport } from "@qrk.sh/library/WallViewportProvider";
 import { makeModelIdSchema } from "@zerospin/core/models/make/makeModelIdSchema";
 import { useLiveQuery } from "@zerospin/react";

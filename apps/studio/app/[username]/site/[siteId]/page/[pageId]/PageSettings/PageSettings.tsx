@@ -1,24 +1,13 @@
 "use client";
 
-import { stageAggregateSessionCommand } from "@zerospin/core/aggregateSession/stageCommand/stageAggregateSessionCommand";
-
-import { useRouter } from "next/navigation";
-
-import { ZerospinError } from "@zerospin/sdk/browser";
+import { Globe } from "lucide-react";
 import { Schema } from "effect";
-import { FileText, Globe, X } from "lucide-react";
-import { useState } from "react";
-import { toast } from "sonner";
 
 import { usePageStore } from "../pageStore";
 
-import { useZerospinUserInitializedState } from "@/components/ZerospinUser";
-import { UserApp } from "@/zerospin/userSession";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 
@@ -28,138 +17,15 @@ const ParamsSchema = Schema.Struct({
   pageId: Schema.TemplateLiteral(["pag_", Schema.String]),
 });
 
-function pickSerializablePage(page: { title: string; description: string }) {
-  return {
-    title: page.title,
-    description: page.description,
-  };
-}
-
-function emptyToNull(value: string): string | null {
-  return value.length > 0 ? value : null;
-}
-
 export function PageSettings() {
   const params = useValidatedParams(ParamsSchema);
-  const router = useRouter();
-  const session = UserApp.useInitializedSession();
-  const { db } = useZerospinUserInitializedState();
   const pageDraft = usePageStore((state) => state.page);
   const setTitle = usePageStore((state) => state.setTitle);
   const setDescription = usePageStore((state) => state.setDescription);
-  const [baselineState, setBaselineState] = useState(() => {
-    const page = db.query.page
-      .findFirst({
-        where: { id: { eq: params.pageId }, siteId: { eq: params.siteId } },
-      })
-      .sync();
-    if (page === undefined) {
-      throw new Error(`Page ${params.pageId} not found`);
-    }
-    return {
-      pageId: params.pageId,
-      baseline: {
-        title: page.title ?? "",
-        description: page.description ?? "",
-      },
-    };
-  });
-
-  // Re-query when the page changes without remount; do not refresh when draft fields update.
-  if (baselineState.pageId !== params.pageId) {
-    const page = db.query.page
-      .findFirst({
-        where: { id: { eq: params.pageId }, siteId: { eq: params.siteId } },
-      })
-      .sync();
-    if (page === undefined) {
-      throw new Error(`Page ${params.pageId} not found`);
-    }
-    setBaselineState({
-      pageId: params.pageId,
-      baseline: {
-        title: page.title ?? "",
-        description: page.description ?? "",
-      },
-    });
-  }
-
-  if (
-    pageDraft === null ||
-    pageDraft.id !== params.pageId ||
-    baselineState.pageId !== params.pageId
-  ) {
-    return null;
-  }
-
-  const baseline = baselineState.baseline;
-  const draft = pickSerializablePage(pageDraft);
-  const isDirty = draft.title !== baseline.title || draft.description !== baseline.description;
+  if (pageDraft === null || pageDraft.id !== params.pageId) return null;
 
   return (
     <div className="w-full">
-      <header className="sticky top-0 z-10 flex w-full items-center gap-2 border-b border-border bg-muted/95 px-4 py-2.5 backdrop-blur-sm">
-        <FileText className="size-5 shrink-0 text-foreground" strokeWidth={2} aria-hidden />
-        <h1 className="min-w-0 flex-1 text-base tracking-tight">Page Settings</h1>
-        <div className="flex shrink-0 items-center gap-1">
-          {isDirty ? (
-            <Button
-              type="button"
-              size="sm"
-              onClick={() => {
-                const state = session.store.getState();
-                if (state.initialized === null) {
-                  toast.error("Your session is not ready");
-                  return;
-                }
-
-                const result = stageAggregateSessionCommand({
-                  session,
-                  contractName: "updatePageSettings",
-                  payload: {
-                    id: params.pageId,
-                    title: emptyToNull(draft.title),
-                    description: emptyToNull(draft.description),
-                  },
-                });
-
-                if (result._tag === "Failure") {
-                  toast.error(new ZerospinError(result.failure).message);
-                  return;
-                }
-
-                setBaselineState({
-                  pageId: params.pageId,
-                  baseline: structuredClone(draft),
-                });
-              }}
-            >
-              Save
-            </Button>
-          ) : null}
-          <Button
-            type="button"
-            variant={isDirty ? "destructive" : "ghost"}
-            size={isDirty ? "sm" : "icon"}
-            className={isDirty ? "h-8 cursor-pointer" : "size-8 cursor-pointer"}
-            aria-label={isDirty ? "Cancel" : "Close drawer"}
-            onClick={() => {
-              if (isDirty) {
-                setTitle(baseline.title);
-                setDescription(baseline.description);
-              }
-              router.push(
-                `/${encodeURIComponent(params.username)}/site/${encodeURIComponent(params.siteId)}/page/${encodeURIComponent(params.pageId)}`,
-                { scroll: false },
-              );
-            }}
-          >
-            <X className="size-3.5" />
-            {isDirty ? "Cancel" : null}
-          </Button>
-        </div>
-      </header>
-
       <div className="space-y-8 px-4 py-6">
         <div className="space-y-6">
           <div className="space-y-2">
@@ -205,20 +71,6 @@ export function PageSettings() {
               </Card>
             </div>
           </div>
-        </div>
-
-        <Separator />
-
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="min-w-0 space-y-1">
-            <div className="font-medium">Danger Zone</div>
-            <p className="text-sm text-muted-foreground">
-              Unpublish your website from all domains.
-            </p>
-          </div>
-          <Button type="button" variant="destructive" className="shrink-0">
-            Unpublish
-          </Button>
         </div>
       </div>
     </div>

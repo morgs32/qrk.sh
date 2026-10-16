@@ -2,7 +2,7 @@
 
 import { modulesHash } from "@qrk.sh/library";
 import { UserApp } from "@/zerospin/userSession";
-import { pageV1 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
+import { pageV2 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV2";
 import { GridItemPreview } from "@qrk.sh/library/GridItemPreview";
 import { libraryModule } from "@qrk.sh/library/libraryModule";
 import { useWallViewport } from "@qrk.sh/library/WallViewportProvider";

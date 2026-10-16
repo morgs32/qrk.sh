@@ -9,7 +9,7 @@ import { makeEffectSchema } from "@zerospin/shapes";
 import { Result, Schema } from "effect";
 import { useLiveQuery } from "@zerospin/react";
 import { makeModelIdSchema } from "@zerospin/core/models/make/makeModelIdSchema";
-import { pageV1 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
+import { pageV2 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV2";
 import { useWallViewport } from "@qrk.sh/library/WallViewportProvider";
 import { BREAKPOINTS, minGridUnits } from "@qrk.sh/library/breakpoints";
 import { GridItemPreview } from "@qrk.sh/library/GridItemPreview";

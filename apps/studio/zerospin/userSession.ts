@@ -17,9 +17,9 @@ if (!publishableKey)
 export const userSessionRelease = makeAggregateBrowserRelease({
   systemName: "qrk-sh",
   aggregateName: "user",
-  aggregateVersion: "1.0.0",
+  aggregateVersion: "2.0.0",
   actorName: "web",
-  actorVersion: "1.0.0",
+  actorVersion: "2.0.0",
   sessionName: "userSession",
   claimsSchema: userSessionDefinition.claimsSchema,
   credentialsSchema: signature,

@@ -1,92 +1,35 @@
 {
   "name": "@qrk.sh/library",
   "version": "0.0.0",
-  "files": [
-    "dist"
-  ],
+  "private": true,
   "type": "module",
   "exports": {
-    ".": {
-      "types": "./dist/lib/index.d.ts",
-      "import": "./dist/index.js"
-    },
-    "./ModuleFilmstrip": {
-      "types": "./dist/lib/ModuleFilmstrip.d.ts",
-      "import": "./dist/ModuleFilmstrip.js"
-    },
-    "./Drawer": {
-      "types": "./dist/lib/Drawer.d.ts",
-      "import": "./dist/Drawer.js"
-    },
-    "./WallViewportProvider": {
-      "types": "./dist/lib/WallViewportProvider.d.ts",
-      "import": "./dist/WallViewportProvider.js"
-    },
-    "./WallBreakpointPane": {
-      "types": "./dist/lib/WallBreakpointPane.d.ts",
-      "import": "./dist/WallBreakpointPane.js"
-    },
-    "./breakpoints": {
-      "types": "./dist/lib/breakpoints.d.ts",
-      "import": "./dist/breakpoints.js"
-    },
-    "./GridItemPreview": {
-      "types": "./dist/lib/GridItemPreview.d.ts",
-      "import": "./dist/GridItemPreview.js"
-    },
-    "./MeasuredBrickWrapper": {
-      "types": "./dist/components/brick/MeasuredBrickWrapper.d.ts",
-      "import": "./dist/MeasuredBrickWrapper.js"
-    },
-    "./BrickWall": {
-      "types": "./dist/lib/BrickWall.d.ts",
-      "import": "./dist/BrickWall.js"
-    },
-    "./BrickCardStyleContext": {
-      "types": "./dist/lib/BrickCardStyleContext.d.ts",
-      "import": "./dist/BrickCardStyleContext.js"
-    },
-    "./brickDragStore": {
-      "types": "./dist/lib/brickDragStore.d.ts",
-      "import": "./dist/brickDragStore.js"
-    },
-    "./libraryModule": {
-      "types": "./dist/libraryModule/libraryModule.d.ts",
-      "import": "./dist/libraryModule.js"
-    },
-    "./backendLibrary": {
-      "types": "./dist/backendLibrary.d.ts",
-      "import": "./dist/backendLibrary.js"
-    },
-    "./createLibraryStandaloneSession": {
-      "types": "./dist/session/createLibraryStandaloneSession.d.ts",
-      "import": "./dist/createLibraryStandaloneSession.js"
-    },
-    "./bricks.css": "./dist/bricks.css",
-    "./article-editor.css": "./dist/article-editor.css",
-    "./ImageUploadEnvironment": {
-      "types": "./dist/modules/image/ImageUploadEnvironment.d.ts",
-      "import": "./dist/ImageUploadEnvironment.js"
-    },
-    "./ImageUploadRuntimeContext": {
-      "types": "./dist/modules/image/ImageUploadRuntimeContext.d.ts",
-      "import": "./dist/ImageUploadRuntimeContext.js"
-    },
-    "./startLibrarySessionWork": {
-      "types": "./dist/session/startLibrarySessionWork.d.ts",
-      "import": "./dist/startLibrarySessionWork.js"
-    },
-    "./FigmaReadyMeasurements": {
-      "types": "./dist/modules/figmaThumbnail/FigmaReadyMeasurements.d.ts",
-      "import": "./dist/FigmaReadyMeasurements.js"
-    }
+    ".": "./lib/index.ts",
+    "./ModuleFilmstrip": "./lib/ModuleFilmstrip.tsx",
+    "./Drawer": "./lib/Drawer.tsx",
+    "./WallViewportProvider": "./lib/WallViewportProvider.tsx",
+    "./WallBreakpointPane": "./lib/WallBreakpointPane.tsx",
+    "./breakpoints": "./lib/breakpoints.ts",
+    "./GridItemPreview": "./lib/GridItemPreview.tsx",
+    "./MeasuredBrickWrapper": "./components/brick/MeasuredBrickWrapper.tsx",
+    "./BrickWall": "./lib/BrickWall.tsx",
+    "./BrickCardStyleContext": "./lib/BrickCardStyleContext.ts",
+    "./brickDragStore": "./lib/brickDragStore.ts",
+    "./libraryModule": "./libraryModule/libraryModule.ts",
+    "./wallSnapshotSchema": "./libraryModule/snapshots/wallSnapshotSchema.ts",
+    "./makeWallSnapshot": "./libraryModule/snapshots/makeWallSnapshot.ts",
+    "./backendLibrary": "./backendLibrary.ts",
+    "./createLibraryStandaloneSession": "./session/createLibraryStandaloneSession.ts",
+    "./bricks.css": "./bricks.css",
+    "./article-editor.css": "./modules/article/article-editor.scss",
+    "./ImageUploadEnvironment": "./modules/image/ImageUploadEnvironment.ts",
+    "./ImageUploadRuntimeContext": "./modules/image/ImageUploadRuntimeContext.ts",
+    "./startLibrarySessionWork": "./session/startLibrarySessionWork.ts",
+    "./FigmaReadyMeasurements": "./modules/figmaThumbnail/FigmaReadyMeasurements.tsx"
   },
   "scripts": {
-    "dev": "next dev --webpack --hostname 127.0.0.1 --port 4100",
-    "preview": "next start --hostname 127.0.0.1 --port 4100",
-    "build": "vp build --config vite.lib.config.ts && cp bricks.css dist/ && mkdir -p dist/worker && cp worker/*.public.d.ts dist/worker/ && tsc -p tsconfig.build.json --emitDeclarationOnly",
+    "dev": "next dev --turbopack --hostname 127.0.0.1 --port 4100",
     "format": "vp fmt --config ../../.oxfmtrc.json .",
-    "build:app": "next build --webpack",
     "storybook": "storybook dev -p 6007 --host 127.0.0.1",
     "build-storybook": "storybook build"
   },

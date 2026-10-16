@@ -11,15 +11,6 @@
         }
       ]
     },
-    "preview": {
-      "continuous": true,
-      "dependsOn": [
-        {
-          "projects": ["@qrk.sh/api"],
-          "target": "dev"
-        }
-      ]
-    },
     "storybook": {
       "continuous": true
     }

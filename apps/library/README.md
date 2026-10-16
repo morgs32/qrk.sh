@@ -1,9 +1,9 @@
 # Library
 
-This package owns the reusable brick library and Next.js App Router UI. Next
-uses webpack, matching Studio. The Cloudflare Worker backend lives in
-[`apps/api`](../api/README.md); Nx starts both development servers and builds
-their dependencies.
+This private package owns the reusable brick library and Next.js App Router UI.
+Next uses Turbopack, matching Studio. The Cloudflare Worker backend lives in
+[`apps/api`](../api/README.md); Nx starts both development servers. Consumers
+compile Library source directly, without a package build.
 
 From the repository root:
 
@@ -22,12 +22,12 @@ Put local settings in `apps/library/.env.local`:
 
 - `PUBLIC_MAPBOX_TOKEN` is required for the library app and is exposed to the browser.
 - `LIBRARY_WORKER_ORIGIN` optionally changes Next's backend destination; it defaults
-  to `http://127.0.0.1:8787` and is server-only. Set it before building the app when
-  using a different backend origin in production.
+  to `http://127.0.0.1:8787` and is server-only. Set it before starting development
+  when using a different backend origin.
 
 Private provider credentials belong in `apps/api/.env.local`, where Wrangler
 loads them as Worker bindings. Only the Mapbox token is explicitly included in
-the Library browser build.
+the Library browser bundle.
 
 Module definitions, catalogs, views, aggregate behavior, and browser RPC
 declarations stay here. API owns `LibraryApi`, `BrowserHost`, generation,
@@ -45,20 +45,16 @@ and local state directories remain preserved, with local `ASSETS` data copied
 to API's state. Saved absolute port-4101 URLs need their origin updated
 separately; authored documents are not rewritten.
 
-## Builds
-
-```sh
-pnpm nx run @qrk.sh/library:build:app
-pnpm nx run @qrk.sh/library:build
-```
+## Development
 
 Repository tests and standalone automated checks are deferred until a test
 structure is agreed (see root `AGENTS.md`).
 
-`build:app` produces the Next app in `.next`.
-`build` produces the reusable brick library in `dist`, including its public
-Worker/RPC declarations. Neither build deploys the app or rebuilds installed Zerospin packages. Fresh
-checkout installation requires the populated local registry described in the
+Library has no package build, Next production build, or production preview
+target. Its development server and Storybook remain available. Next's default
+Turbopack filesystem cache persists development compilation in
+`.next/dev/cache/turbopack`; keep `.next` between runs. Fresh checkout
+installation requires the populated local registry described in the
 [root README](../../README.md#zerospin-packages).
 
 Old standalone backups can reject the current SQLite schema. For manual checks
@@ -66,8 +62,7 @@ with empty storage, use `http://qrk-package-cutover.localhost:4100/` in the exis
 Chrome profile. This gives Library a separate local origin while preserving
 backups on `localhost:4100` and `127.0.0.1:4100`; it does not migrate their rows.
 
-After `build:app`, run `pnpm nx run @qrk.sh/library:preview` to serve the built
-Next app on port 4100 alongside the local API Worker. The UI routes are
+The development UI routes are
 `/`, `/modules`, `/modules/[moduleId]`, `/bricks/[brickId]`, and
 `/bricks/[brickId]/admin`. App Router navigation
 retains the wall, drawer, standalone session, and viewport providers; route-specific
@@ -138,8 +133,7 @@ Open `http://127.0.0.1:6007`; Studio's Storybook uses port 6006. Library Storybo
 runs independently of the Next app and API Worker, using Vite and the Library
 app's global styles and fonts. Stories live alongside their components in
 `components/`, `lib/`, and `modules/`. The static build goes to
-`apps/library/storybook-static/`. Storybook configuration and stories are
-excluded from the reusable package's declaration build.
+`apps/library/storybook-static/`.
 
 **Library / Article / Meowdown spike** pairs an editable Markdown fixture with
 live Markdown output. Its **Hide / Hybrid / Show** radio control changes syntax
@@ -187,12 +181,16 @@ UI uses an immediate inset border.
 
 ## Public exports and shared UI
 
-`package.json` lists the public subpaths and `vite.lib.config.ts` maps each one to
-its defining source. `build` emits their JavaScript and declaration files; `app/`
-contains the Library-only routes and layout, not exported application screens.
+`package.json` maps every existing public subpath directly to its defining
+TypeScript, TSX, or stylesheet source. Studio, API, and Zerospin compile their
+reachable imports without generated `dist` files. `app/` contains the
+Library-only routes and layout, not exported application screens.
 
-Reusable builds bundle Meowdown while keeping React external. Article state and
-form callbacks exchange Markdown strings; consumers share no editor instances.
+Consumers bundle Meowdown and React with their own dependencies. The retained
+`/article-editor.css` import maps to Article's SCSS, including Meowdown styles;
+`/bricks.css` maps to the existing brick stylesheet. Keep stylesheet import order
+and Article components' font imports. Article state and form callbacks exchange
+Markdown strings; consumers share no editor instances.
 
 | Import under `@qrk.sh/library`    | Defining source                              | Purpose                                                     |
 | --------------------------------- | -------------------------------------------- | ----------------------------------------------------------- |
@@ -571,7 +569,7 @@ from its viewport minimum height, with 3.5rem and zero fallbacks respectively, s
 empty wall remains one viewport tall without extra scrolling.
 
 Library and Studio resolve browser SQLite WASM from the installed Zerospin
-`11.1.0` package exports. Next's webpack build emits the standalone session's
+`11.1.0` package exports. Turbopack emits the standalone session's
 synchronous asset and the connected SharedWorker's async asset. Persistent Node
 storage belongs to the SharedWorker's IndexedDB-backed SQLite namespace;
 no separate backup worker or public backup-worker assets remain.
@@ -716,3 +714,18 @@ and Save/Cancel. Image's upload environment does not enable Article uploads; Ima
 and Site Settings retain their endpoints. The standalone backup lifecycle provides
 local durability after Save. Consumers load `@qrk.sh/library/article-editor.css`
 alongside `bricks.css` for editor and portaled-control styles.
+
+## Wall publication snapshots
+
+`WallSnapshotSchema` and `makeWallSnapshot` have separate defining files and
+direct package subpaths, `@qrk.sh/library/wallSnapshotSchema` and
+`@qrk.sh/library/makeWallSnapshot`. They describe/project saved brick IDs, module
+state, and every placement's breakpoint, spec, grid item, and visibility. Brick
+and placement arrays have stable ordering. Existing model codecs define the
+decoded JSON shapes; generation requests/errors, revisions, and measurements
+are excluded.
+
+QRK composes this wall content with page metadata in its PageSnapshot records.
+Library does not store a separate WallSnapshot model or own site/page publication
+flags and history. Snapshot projection performs no provider request or generation
+work and reads only the supplied saved content.

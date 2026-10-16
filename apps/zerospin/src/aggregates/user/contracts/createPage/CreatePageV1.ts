@@ -13,7 +13,7 @@ import { createPage } from "./createPage";
 const createPagePayload = {
   id: primitives.foreignKey({ abbreviation: Page.abbreviation }),
   siteId: primitives.foreignKey({ abbreviation: Site.abbreviation }),
-  slug: primitives.text(),
+  slug: primitives.text({ nullable: true }),
   title: primitives.text({
     nullable: true,
     defaultValue: null,
@@ -32,6 +32,7 @@ export const createPageV1 = makeAggregateContractVersion(createPage, {
   failures: {
     createPageUserMismatch: ContractError.schema({ code: "create-page-user-mismatch" }),
     createPageSiteNotFound: ContractError.schema({ code: "create-page-site-not-found" }),
+    createPageIndexTaken: ContractError.schema({ code: "create-page-index-taken" }),
   },
 
   payload: createPagePayload,
@@ -66,6 +67,21 @@ export const createPageV1 = makeAggregateContractVersion(createPage, {
           message: `Site ${payload.siteId} does not belong to identity ${clerkUserId}`,
           status: 403,
         });
+      }
+
+      if (payload.slug === null) {
+        const indexPage = yield* sdk.findFirst({
+          db,
+          model: Page,
+          where: { siteId: { eq: payload.siteId }, slug: { isNull: true } },
+        });
+
+        if (indexPage !== undefined) {
+          return yield* failures.createPageIndexTaken.make({
+            message: `Site ${payload.siteId} already has an index page`,
+            status: 409,
+          });
+        }
       }
     });
   },

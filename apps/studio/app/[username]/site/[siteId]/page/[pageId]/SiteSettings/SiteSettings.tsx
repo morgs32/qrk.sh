@@ -1,16 +1,13 @@
 "use client";
 
-import { stageAggregateSessionCommand } from "@zerospin/core/aggregateSession/stageCommand/stageAggregateSessionCommand";
-
-import { useRouter } from "next/navigation";
+import { stageAggregateSessionCommand, ZerospinError } from "@zerospin/sdk/browser";
 
 /* oxlint-disable next/no-img-element -- Studio uses Vite, so Next image optimization is unavailable. */
 
 import { useAuth } from "@clerk/nextjs";
 
-import { ZerospinError } from "@zerospin/sdk/browser";
 import { Schema } from "effect";
-import { Globe, X } from "lucide-react";
+import { useLiveQuery } from "@zerospin/react";
 import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import useSWR from "swr";
@@ -19,7 +16,6 @@ import { useSiteStore } from "../../../siteStore";
 import { CopyButton } from "./CopyButton";
 import { SearchPreviewCard } from "../SearchPreviewCard";
 
-import { useZerospinUserInitializedState } from "@/components/ZerospinUser";
 import { UserApp } from "@/zerospin/userSession";
 import { Button } from "@/components/ui/button";
 import { FieldLabel } from "@/components/ui/field-label";
@@ -39,44 +35,25 @@ const ParamsSchema = Schema.Struct({
 
 const IMAGE_ACCEPT = "image/png,image/jpeg,image/webp,image/svg+xml";
 
-function pickSerializableSite(site: {
-  name: string;
-  description: string;
-  logoUrl: string;
-  faviconLightUrl: string;
-  faviconDarkUrl: string;
-}) {
-  return {
-    name: site.name,
-    description: site.description,
-    logoUrl: site.logoUrl,
-    faviconLightUrl: site.faviconLightUrl,
-    faviconDarkUrl: site.faviconDarkUrl,
-  };
-}
-
-function emptyToNull(value: string): string | null {
-  return value.length > 0 ? value : null;
-}
-
 async function uploadSiteImage(props: {
   file: File;
   siteId: string;
   sessionToken: string;
 }): Promise<{ url: string }> {
+  const { file, siteId, sessionToken } = props;
   const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
   if (!apiBaseUrl) {
     throw new Error("NEXT_PUBLIC_API_URL is required");
   }
 
   const formData = new FormData();
-  formData.set("file", props.file);
-  formData.set("siteId", props.siteId);
+  formData.set("file", file);
+  formData.set("siteId", siteId);
 
   const response = await fetch(`${apiBaseUrl.replace(/\/$/, "")}/upload`, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${props.sessionToken}`,
+      Authorization: `Bearer ${sessionToken}`,
     },
     body: formData,
   });
@@ -96,12 +73,15 @@ async function uploadSiteImage(props: {
 
 export function SiteSettings() {
   const params = useValidatedParams(ParamsSchema);
-  const router = useRouter();
   const username = useUsername();
   const { getToken } = useAuth();
   const session = UserApp.useInitializedSession();
   const siteId = params.siteId;
-  const { db } = useZerospinUserInitializedState();
+  const { data: site, error } = useLiveQuery({
+    session,
+    key: params.siteId,
+    query: (db, siteId) => db.query.site.findFirst({ where: { id: { eq: siteId } } }),
+  });
   const siteDraft = useSiteStore((state) => state.site);
   const setName = useSiteStore((state) => state.setName);
   const setDescription = useSiteStore((state) => state.setDescription);
@@ -112,49 +92,6 @@ export function SiteSettings() {
   const faviconLightInputRef = useRef<HTMLInputElement>(null);
   const faviconDarkInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [baselineState, setBaselineState] = useState(() => {
-    const site = db.query.site
-      .findFirst({
-        where: { id: { eq: params.siteId } },
-      })
-      .sync();
-    if (site === undefined) {
-      throw new Error(`Site ${params.siteId} not found`);
-    }
-    return {
-      siteId: params.siteId,
-      baseline: {
-        name: site.name ?? "",
-        description: site.description ?? "",
-        logoUrl: site.logoUrl ?? "",
-        faviconLightUrl: site.faviconLightUrl ?? "",
-        faviconDarkUrl: site.faviconDarkUrl ?? "",
-      },
-    };
-  });
-
-  // Re-query when the site changes without remount; do not refresh when draft fields update.
-  if (baselineState.siteId !== params.siteId) {
-    const site = db.query.site
-      .findFirst({
-        where: { id: { eq: params.siteId } },
-      })
-      .sync();
-    if (site === undefined) {
-      throw new Error(`Site ${params.siteId} not found`);
-    }
-    setBaselineState({
-      siteId: params.siteId,
-      baseline: {
-        name: site.name ?? "",
-        description: site.description ?? "",
-        logoUrl: site.logoUrl ?? "",
-        faviconLightUrl: site.faviconLightUrl ?? "",
-        faviconDarkUrl: site.faviconDarkUrl ?? "",
-      },
-    });
-  }
-
   const publishedUrl = useMemo(() => {
     const pathname = `/${encodeURIComponent(username)}/${encodeURIComponent(siteId)}`;
     return `https://www.qrk.sh${pathname}`;
@@ -175,22 +112,10 @@ export function SiteSettings() {
     });
   });
 
-  if (
-    siteDraft === null ||
-    siteDraft.id !== params.siteId ||
-    baselineState.siteId !== params.siteId
-  ) {
-    return null;
-  }
+  if (error !== undefined) throw error;
+  if (siteDraft === null || siteDraft.id !== params.siteId) return null;
 
-  const baseline = baselineState.baseline;
-  const draft = pickSerializableSite(siteDraft);
-  const isDirty =
-    draft.name !== baseline.name ||
-    draft.description !== baseline.description ||
-    draft.logoUrl !== baseline.logoUrl ||
-    draft.faviconLightUrl !== baseline.faviconLightUrl ||
-    draft.faviconDarkUrl !== baseline.faviconDarkUrl;
+  const draft = siteDraft;
 
   const runUpload = async (props: { file: File | undefined; onUrl: (url: string) => void }) => {
     const { file, onUrl } = props;
@@ -220,77 +145,6 @@ export function SiteSettings() {
 
   return (
     <div className="w-full">
-      <header className="sticky top-0 z-10 flex w-full items-center gap-2 border-b border-border bg-muted/95 px-4 py-2.5 backdrop-blur-sm">
-        <Globe className="size-5 shrink-0 text-foreground" strokeWidth={2} aria-hidden />
-        <h1 className="min-w-0 flex-1 text-base tracking-tight">Site Settings</h1>
-        <div className="flex shrink-0 items-center gap-1">
-          {isDirty ? (
-            <Button
-              type="button"
-              size="sm"
-              onClick={() => {
-                const state = session.store.getState();
-                if (state.initialized === null) {
-                  toast.error("Your session is not ready");
-                  return;
-                }
-
-                const result = stageAggregateSessionCommand({
-                  session,
-                  contractName: "updateSiteSettings",
-                  payload: {
-                    id: params.siteId,
-                    name: emptyToNull(draft.name),
-                    description: emptyToNull(draft.description),
-                    logoUrl: emptyToNull(draft.logoUrl),
-                    faviconLightUrl: emptyToNull(draft.faviconLightUrl),
-                    faviconDarkUrl: emptyToNull(draft.faviconDarkUrl),
-                  },
-                });
-
-                if (result._tag === "Failure") {
-                  toast.error(new ZerospinError(result.failure).message);
-                  return;
-                }
-
-                setBaselineState({
-                  siteId: params.siteId,
-                  baseline: structuredClone(draft),
-                });
-              }}
-            >
-              Save
-            </Button>
-          ) : null}
-          <Button type="button" size="sm">
-            Publish
-          </Button>
-          <Button
-            type="button"
-            variant={isDirty ? "destructive" : "ghost"}
-            size={isDirty ? "sm" : "icon"}
-            className={isDirty ? "h-8 cursor-pointer" : "size-8 cursor-pointer"}
-            aria-label={isDirty ? "Cancel" : "Close drawer"}
-            onClick={() => {
-              if (isDirty) {
-                setName(baseline.name);
-                setDescription(baseline.description);
-                setLogoUrl(baseline.logoUrl);
-                setFaviconLightUrl(baseline.faviconLightUrl);
-                setFaviconDarkUrl(baseline.faviconDarkUrl);
-              }
-              router.push(
-                `/${encodeURIComponent(params.username)}/site/${encodeURIComponent(params.siteId)}/page/${encodeURIComponent(params.pageId)}`,
-                { scroll: false },
-              );
-            }}
-          >
-            <X className="size-3.5" />
-            {isDirty ? "Cancel" : null}
-          </Button>
-        </div>
-      </header>
-
       <div className="space-y-8 px-4 py-6">
         <div className="grid grid-cols-2 items-start gap-6 md:gap-8">
           <div className="flex min-w-0 flex-col gap-4">
@@ -506,9 +360,25 @@ export function SiteSettings() {
               Danger Zone
             </FieldLabel>
           </div>
-          <Button type="button" variant="destructive" className="shrink-0">
-            Unpublish
-          </Button>
+          {site?.isPublished ? (
+            <Button
+              type="button"
+              variant="destructive"
+              className="shrink-0"
+              onClick={() => {
+                const result = stageAggregateSessionCommand({
+                  session,
+                  contractName: "unpublishSite",
+                  payload: { siteId: params.siteId },
+                });
+                if (result._tag === "Failure") {
+                  toast.error(new ZerospinError(result.failure).message);
+                }
+              }}
+            >
+              Unpublish Site
+            </Button>
+          ) : null}
         </div>
       </div>
     </div>

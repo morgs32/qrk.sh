@@ -36,7 +36,7 @@ export default function UsernameDashboardPage() {
   const [createSiteOpen, setCreateSiteOpen] = useState(false);
   const [siteName, setSiteName] = useState("");
   const [siteSlug, setSiteSlug] = useState("");
-  const { data: user, error } = useLiveQuery({
+  const { data: user } = useLiveQuery({
     session,
     query: (db) => {
       const state = session.store.getState();
@@ -63,9 +63,6 @@ export default function UsernameDashboardPage() {
     [session],
   );
 
-  if (error !== undefined) {
-    throw error;
-  }
 
   if (user === undefined) {
     return <p role="alert">User not found</p>;

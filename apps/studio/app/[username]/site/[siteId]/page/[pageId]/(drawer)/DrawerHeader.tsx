@@ -63,12 +63,12 @@ export function DrawerHeader() {
       page: { title: page.title ?? "", description: page.description ?? "" },
     };
   });
-  const { data: site, error: siteError } = useLiveQuery({
+  const { data: site } = useLiveQuery({
     session,
     key: params.siteId,
     query: (db, id) => db.query.site.findFirst({ where: { id: { eq: id } } }),
   });
-  const { data: page, error: pageError } = useLiveQuery({
+  const { data: page } = useLiveQuery({
     session,
     key: { pageId: params.pageId, siteId: params.siteId },
     query: (db, { pageId, siteId }) =>
@@ -77,7 +77,7 @@ export function DrawerHeader() {
         with: { wall: { with: { bricks: { with: { placements: true } } } } },
       }),
   });
-  const { data: publishedSnapshot, error: snapshotError } = useLiveQuery({
+  const { data: publishedSnapshot } = useLiveQuery({
     session,
     key: page?.publishedSnapshotId,
     query: (db, id) =>
@@ -86,7 +86,7 @@ export function DrawerHeader() {
   const decodedBrickId = Schema.decodeUnknownResult(makeModelIdSchema(libraryModule.models.brick))(
     params.brickId,
   );
-  const { data: brick, error: brickError } = useLiveQuery({
+  const { data: brick } = useLiveQuery({
     session,
     key: {
       brickId: Result.isSuccess(decodedBrickId) ? decodedBrickId.success : null,
@@ -101,10 +101,6 @@ export function DrawerHeader() {
       }),
   });
 
-  if (siteError !== undefined) throw siteError;
-  if (pageError !== undefined) throw pageError;
-  if (snapshotError !== undefined) throw snapshotError;
-  if (brickError !== undefined) throw brickError;
 
   const draftSite =
     siteDraft?.id === params.siteId

@@ -77,7 +77,7 @@ export function SiteSettings() {
   const { getToken } = useAuth();
   const session = UserApp.useInitializedSession();
   const siteId = params.siteId;
-  const { data: site, error } = useLiveQuery({
+  const { data: site } = useLiveQuery({
     session,
     key: params.siteId,
     query: (db, siteId) => db.query.site.findFirst({ where: { id: { eq: siteId } } }),
@@ -112,7 +112,6 @@ export function SiteSettings() {
     });
   });
 
-  if (error !== undefined) throw error;
   if (siteDraft === null || siteDraft.id !== params.siteId) return null;
 
   const draft = siteDraft;

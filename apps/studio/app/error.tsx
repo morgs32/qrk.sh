@@ -7,7 +7,7 @@ import { Copy, RefreshCw } from "lucide-react";
 
 import "./error.css";
 
-export default function StudioError(props: { error: Error & { digest?: string } }) {
+export default function StudioError(props: { error: unknown }) {
   const { error } = props;
   const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
   const [detailsOpen, setDetailsOpen] = useState(process.env.NODE_ENV === "development");

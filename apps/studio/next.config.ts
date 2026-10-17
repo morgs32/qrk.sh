@@ -8,11 +8,15 @@ const nextConfig: NextConfig = {
     PUBLIC_MAPBOX_TOKEN: process.env.PUBLIC_MAPBOX_TOKEN ?? "",
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8787",
   },
-  turbopack: {
-    resolveAlias: {
-      // Match the async loader's fallback to the WASM paired with this worker runtime.
-      "wa-sqlite-async.wasm": "@zerospin/browser/sqlite.wasm",
-    },
+  webpack: (config) => {
+    config.module.parser ??= {};
+    config.module.parser.javascript ??= {};
+    config.module.parser.javascript.worker = [
+      "*applicationWorker.create()",
+      "...",
+    ];
+    config.resolve.alias["wa-sqlite-async.wasm"] = "@zerospin/browser/sqlite.wasm";
+    return config;
   },
   async rewrites() {
     return [

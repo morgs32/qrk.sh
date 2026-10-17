@@ -43,6 +43,7 @@ import { FigmaReadyMeasurements } from "../modules/figmaThumbnail/FigmaReadyMeas
 import { startLibrarySessionWork } from "../session/startLibrarySessionWork";
 
 import { LibraryApp, librarySessionInputs } from "./librarySession";
+import LibraryError from "./error";
 import { ImageUploadEnvironment } from "../modules/image/ImageUploadEnvironment";
 import { ImageUploadRuntimeContext } from "../modules/image/ImageUploadRuntimeContext";
 
@@ -106,7 +107,10 @@ export function LibraryLayout(props: { children: ReactNode }) {
   const { children } = props;
   const mounted = useSyncExternalStore(subscribeToClientMount, readClientMount, readServerMount);
   return (
-    <LibraryApp.Initializer {...librarySessionInputs}>
+    <LibraryApp.Initializer
+      {...librarySessionInputs}
+      renderError={(error) => <LibraryError error={error} />}
+    >
       <Suspense fallback={null}>
         {mounted ? <InitializedLibraryLayout>{children}</InitializedLibraryLayout> : null}
       </Suspense>

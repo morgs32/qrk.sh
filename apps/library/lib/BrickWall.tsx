@@ -88,9 +88,10 @@ export function BrickWall(props: {
 
   const bricksQuery = useLiveQuery({
     session,
-    query: (db) =>
+    key: wallId,
+    query: (db, id) =>
       db.query.brick.findMany({
-        where: { wallId: { eq: wallId } },
+        where: { wallId: { eq: id } },
       }),
   });
   const placementsQuery = useLiveQuery({
@@ -104,9 +105,7 @@ export function BrickWall(props: {
       gridGestureActive ||
       gesture.current ||
       catalogDragActive ||
-      brickDragStore.getState().brickDef !== null ||
-      bricksQuery.error ||
-      placementsQuery.error
+      brickDragStore.getState().brickDef !== null
     ) {
       return;
     }
@@ -168,9 +167,7 @@ export function BrickWall(props: {
     wallId,
     breakpoint,
     bricksQuery.data,
-    bricksQuery.error,
     placementsQuery.data,
-    placementsQuery.error,
     gestureActive,
     gridGestureActive,
     catalogDragActive,

@@ -19,13 +19,17 @@ generator body without its branding header. Color and square-width controls
 update a local preview and CSS output; **Copy CSS** copies the generated styles.
 The story has no session or backend dependencies.
 
-Web listens on port 3000 and proxies Studio routes to `APP_ORIGIN` (default `http://localhost:3001`). Studio runs on port 3001. Development and production builds use Turbopack to bundle the framework's connected SharedWorker and its SQLite WASM. Vite is retained only for Storybook.
+Web listens on port 3000 and proxies Studio routes to `APP_ORIGIN` (default `http://localhost:3001`). Studio runs on port 3001. Development and production builds use Webpack to bundle the framework's connected SharedWorker and its SQLite WASM. Vite is retained only for Storybook.
 
 Studio's Next chunks, fonts, worker, and WASM use `/studio-static/_next/`. Web excludes that namespace from authentication and proxies it to Studio. Referenced `/assets/` public files have explicit mappings in Studio's Next configuration; missing files return 404. There is no Vite module or HMR routing.
 
 Studio resolves the SharedWorker and browser SQLite WASM from installed
-`11.1.0` package exports. `makeAggregateBrowserRelease` supplies the connected
-worker; Studio does not author a worker entrypoint. The worker owns its IndexedDB-backed SQLite namespace;
+`12.0.1` package exports. `userSessionDeclaration` is shared by
+`makeAggregateBrowserRelease` and the authored `node.worker.ts` entrypoint.
+`makeApplicationSharedWorker` binds that emitted worker artifact to the session.
+The Next configuration recognizes the local `applicationWorker.create` method
+as a worker entrypoint, compiling its full dependency graph. The method binds
+`makeApplicationSharedWorker` so Webpack can also supply the worker type. The worker owns its IndexedDB-backed SQLite namespace;
 no separate backup-worker asset is served. Studio compiles the private Library
 package's source exports directly; no Library build runs before Studio targets.
 It never builds or changes installed Zerospin artifacts. Fresh
@@ -38,8 +42,7 @@ before starting the current runtime. Existing browser backups remain untouched.
 
 `build` writes `.next`; `start` runs the Next production server on port 3001 (`PORT` overrides it). Production must run both Next applications and preserve these proxy routes. Deployment is not configured here.
 
-Keep `.next` between development runs. Next's default Turbopack filesystem cache
-persists compilation in `.next/dev/cache/turbopack` for subsequent restarts.
+Keep `.next` between development runs so Webpack can reuse its filesystem cache.
 Existing Library stylesheet imports retain their order; `/article-editor.css`
 resolves directly to Article's SCSS source.
 

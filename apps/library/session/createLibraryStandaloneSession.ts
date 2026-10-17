@@ -1,4 +1,4 @@
-import type { Layer } from "effect";
+import { makeApplicationSharedWorker } from "@zerospin/browser/makeApplicationSharedWorker";
 import { RoutePattern } from "@remix-run/route-pattern";
 import { createContext, useContext } from "react";
 
@@ -14,29 +14,13 @@ import { librarySessionDeclaration } from "./librarySessionDeclaration";
 
 const fixtureDate = new Date("2026-01-01T00:00:00.000Z");
 
-export const librarySessionRelease: IAggregateSessionRelease<
-  "standalone",
-  "library",
-  "library",
-  typeof libraryModule.contracts,
-  typeof libraryModule.models,
-  "1.0.0",
-  typeof librarySessionDeclaration.claimsSchema
-> & {
-  actorName: "library";
-  actorVersion: "1.0.0";
-  sessionType: "standalone";
-  layer: Layer.Layer<never> | undefined;
-  sharedWorker: (props: { name: string }) => SharedWorker;
-} = makeStandaloneSessionRelease({
-  ...librarySessionDeclaration,
-  sharedWorker: (props) => {
-    const { name } = props;
-    return new SharedWorker(new URL("./librarySession.worker.ts", import.meta.url), {
-      type: "module",
-      name,
-    });
-  },
+// Webpack recognizes this local method as the application worker entrypoint.
+const applicationWorker = { create: makeApplicationSharedWorker };
+
+export const librarySessionRelease = makeStandaloneSessionRelease({
+  declaration: librarySessionDeclaration,
+  sharedWorker: (props) =>
+    applicationWorker.create(new URL("./librarySession.worker.ts", import.meta.url), props),
 });
 
 export function createLibraryStandaloneSession(props: {

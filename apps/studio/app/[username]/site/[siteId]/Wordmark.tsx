@@ -23,7 +23,7 @@ export function Wordmark() {
   const draftName = useSiteStore((state) => state.site?.name);
   const settingsOpen = usePathname().endsWith("/site-settings");
 
-  const { data: site, error } = useLiveQuery({
+  const { data: site } = useLiveQuery({
     session,
     key: [siteId],
     query: (db) =>
@@ -32,9 +32,6 @@ export function Wordmark() {
       }),
   });
 
-  if (error !== undefined) {
-    throw error;
-  }
 
   const siteName = settingsOpen ? (draftName ?? "") : (site?.name ?? "");
 

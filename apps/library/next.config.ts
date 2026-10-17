@@ -14,11 +14,15 @@ const nextConfig: NextConfig = {
   outputFileTracingRoot: fileURLToPath(new URL("../../", import.meta.url)),
   env: { PUBLIC_MAPBOX_TOKEN: mapboxToken },
   sassOptions: { implementation: "sass-embedded" },
-  turbopack: {
-    resolveAlias: {
-      // Preserve the async loader's WASM fallback without aliasing the synchronous asset.
-      "wa-sqlite-async.wasm": "@zerospin/browser/sqlite.wasm",
-    },
+  webpack: (config) => {
+    config.module.parser ??= {};
+    config.module.parser.javascript ??= {};
+    config.module.parser.javascript.worker = [
+      "*applicationWorker.create()",
+      "...",
+    ];
+    config.resolve.alias["wa-sqlite-async.wasm"] = "@zerospin/browser/sqlite.wasm";
+    return config;
   },
   async rewrites() {
     return {

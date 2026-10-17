@@ -45,7 +45,7 @@ export const userActorV2 = makeAggregateActorVersion(defineAggregateActor({ name
   version: "2.0.0",
   identity,
   db,
-  models: {
+  exposedModels: {
     ...libraryModule.models,
     page: Page,
     site: Site,
@@ -72,7 +72,6 @@ export const userActorV2 = makeAggregateActorVersion(defineAggregateActor({ name
     });
     yield* provisionAuthenticatedUser({
       chain,
-      systemName: config.system.name,
       aggregateId,
       claims,
     });

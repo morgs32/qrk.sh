@@ -16,11 +16,10 @@ import { userV1 } from "../models/user/UserV1";
 export const provisionAuthenticatedUser = Effect.fn("provisionAuthenticatedUser")(
   function* (props: {
     chain: Pick<AggregateChain, "executeAggregateCommand">;
-    systemName: string;
     aggregateId: string;
     claims: typeof userClaims.Type;
   }) {
-    const { chain, systemName, aggregateId, claims } = props;
+    const { chain, aggregateId, claims } = props;
     yield* Effect.gen(function* () {
       const original = yield* makeCommand({
         contract: createUserV1,
@@ -35,7 +34,6 @@ export const provisionAuthenticatedUser = Effect.fn("provisionAuthenticatedUser"
         contract: createUserV1,
         command: {
           ...original,
-          systemName,
           aggregateName: "user",
           aggregateVersion: "1.0.0",
           aggregateId,
@@ -60,8 +58,8 @@ export const provisionAuthenticatedUser = Effect.fn("provisionAuthenticatedUser"
               }),
         ),
       );
-      if (result.finalization._tag === "ZerospinSuccess") return;
-      const failure = yield* resolveFailure(createUserV1, result.finalization);
+      if (result.outcome.result._tag === "Success") return;
+      const failure = yield* resolveFailure(createUserV1, result.outcome.result.failure);
       if ("code" in failure && failure.code === "user-already-exists") return;
       return yield* new ZerospinError({
         code: "user-provisioning-failed",

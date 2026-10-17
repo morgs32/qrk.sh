@@ -10,6 +10,7 @@ import { libraryModule } from "@qrk.sh/library/libraryModule";
 import { FigmaReadyMeasurements } from "@qrk.sh/library/FigmaReadyMeasurements";
 import { startLibrarySessionWork } from "@qrk.sh/library/startLibrarySessionWork";
 import { UserApp } from "@/zerospin/userSession";
+import StudioError from "@/app/error";
 
 export function useZerospinUserInitializedState() {
   const session = UserApp.useInitializedSession();
@@ -28,6 +29,7 @@ function ZerospinUserInitializedStateProvider(props: { clerkUserId: string; chil
   const aggregateId = clerkUserId;
   return (
     <UserApp.Initializer
+      renderError={(error) => <StudioError error={error} />}
       aggregateId={aggregateId}
       expectedClaims={{ aggregateId, clerkUserId }}
       getCredentials={Effect.fn("Studio.getCredentials")(function* () {

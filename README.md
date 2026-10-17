@@ -3,7 +3,7 @@
 ## Zerospin packages
 
 Zerospin owns its source, builds, and releases in the sibling `../zerospin`
-checkout. QRK installs exact `11.1.0` packages from the local Verdaccio registry;
+checkout. QRK installs exact `12.0.1` packages from the local Verdaccio registry;
 there is no vendored Zerospin source or consumer-side Zerospin build.
 
 The credential-free project `.npmrc` routes all dependencies through
@@ -86,7 +86,7 @@ More detail and test patterns: [docs/styleguide/component-and-file-naming.md](do
    On the first registry bootstrap, install, build, verify, and publish the
    release in Zerospin before installing QRK. Follow Zerospin's package release
    instructions. Existing registry storage survives restarts. A fresh checkout
-   requires the running registry with the locked `11.1.0` packages; hosted
+   requires the running registry with the locked `12.0.1` packages; hosted
    distribution and deployment-machine bootstrap are not configured here.
 
 2. Start the homepage:
@@ -109,18 +109,19 @@ retained commands and SQLite schemas require empty storage; old data is preserve
 separately and has no compatibility migration.
 
 Studio's `userSessionRelease` uses the installed browser package's
-`makeAggregateBrowserRelease` to supply its connected SharedWorker.
+`makeAggregateBrowserRelease` with its pure `userSessionDeclaration` and authored
+`node.worker.ts` entrypoint. `makeApplicationSharedWorker` binds the worker artifact
+to the connected session.
 Zerospin chooses its name from the runtime version and persistent session identity.
-Studio uses Turbopack in Next development and production builds to bundle the
+Studio uses Webpack in Next development and production builds to bundle the
 worker and its `new URL(..., import.meta.url)` SQLite WASM asset. Studio listens
 on port 3001 behind web on port 3000. Web proxies Studio's isolated
 `/studio-static/_next/` asset namespace. Next bundles the SharedWorker and its
-SQLite WASM from the installed browser package. Existing `/assets/` public-file URLs have explicit
+SQLite WASM from the installed browser package and the application worker entrypoint. Existing `/assets/` public-file URLs have explicit
 Studio mappings.
 Library exports its source directly to Studio, API, and Zerospin; startup does
 not build a separate Library package. Vite remains for Storybook and examples.
-Keep each app's `.next` directory between runs: Next's default Turbopack
-filesystem cache persists development compilation in `.next/dev/cache/turbopack`.
+Keep each app's `.next` directory between runs so Webpack can reuse its filesystem cache.
 
 Studio server-renders the document, fonts, and navigation before its browser
 session initializes. `UserApp.Initializer` owns a fresh facade for its Clerk binding;
@@ -148,7 +149,7 @@ To run the Library app and its API Worker:
 pnpm nx run @qrk.sh/library:dev
 ```
 
-Library uses Next.js App Router with Turbopack on port 4100. Its Nx target starts
+Library uses Next.js App Router with Webpack on port 4100. Its Nx target starts
 the unified API Worker on port 8787. Next forwards `/rpc`, `/upload`, and
 `/assets/*` to API, preserving same-origin client URLs. The private Library package
 maps its existing imports directly to TypeScript, TSX, and stylesheet source;
@@ -164,7 +165,7 @@ pnpm nx run @qrk.sh/studio:dev
 
 Build and start either app with Nx: `pnpm nx run @qrk.sh/web:build` and
 `pnpm nx run @qrk.sh/web:start`, or the equivalent `@qrk.sh/studio` targets.
-Studio uses Turbopack and writes `.next`; its production server defaults to port
+Studio uses Webpack and writes `.next`; its production server defaults to port
 3001 (`PORT` overrides it). Keep web on port 3000 with `APP_ORIGIN` pointing to
 Studio.
 

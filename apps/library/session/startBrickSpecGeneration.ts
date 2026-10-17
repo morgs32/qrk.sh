@@ -106,7 +106,7 @@ export function startBrickSpecGeneration(session: ILibrarySession) {
           if (!disposed)
             session.failures.emit({
               _tag: "SessionDefect",
-              message: error instanceof Error ? error.message : String(error),
+              error,
             });
         });
     }

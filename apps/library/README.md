@@ -1,7 +1,7 @@
 # Library
 
 This private package owns the reusable brick library and Next.js App Router UI.
-Next uses Turbopack, matching Studio. The Cloudflare Worker backend lives in
+Next uses Webpack, matching Studio. The Cloudflare Worker backend lives in
 [`apps/api`](../api/README.md); Nx starts both development servers. Consumers
 compile Library source directly, without a package build.
 
@@ -52,7 +52,7 @@ structure is agreed (see root `AGENTS.md`).
 
 Library has no package build, Next production build, or production preview
 target. Its development server and Storybook remain available. Next's default
-Turbopack filesystem cache persists development compilation in
+Webpack filesystem cache persists development compilation in
 `.next/dev/cache/turbopack`; keep `.next` between runs. Fresh checkout
 installation requires the populated local registry described in the
 [root README](../../README.md#zerospin-packages).
@@ -569,8 +569,11 @@ from its viewport minimum height, with 3.5rem and zero fallbacks respectively, s
 empty wall remains one viewport tall without extra scrolling.
 
 Library and Studio resolve browser SQLite WASM from the installed Zerospin
-`11.1.0` package exports. Turbopack emits the standalone session's
-synchronous asset and the connected SharedWorker's async asset. Persistent Node
+`12.0.1` package exports. The Library standalone worker imports the same pure
+`librarySessionDeclaration` as its host release. Studio authors its connected
+`node.worker.ts` entrypoint, and both hosts use `makeApplicationSharedWorker`
+to identify the emitted executable artifact. Webpack emits each worker
+and its SQLite WASM asset. Persistent Node
 storage belongs to the SharedWorker's IndexedDB-backed SQLite namespace;
 no separate backup worker or public backup-worker assets remain.
 

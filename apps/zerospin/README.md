@@ -12,7 +12,7 @@ Run local development from the repository root:
 pnpm nx run @qrk.sh/zerospin:dev
 ```
 
-QRK installs the CLI and runtime packages at `11.1.0` from the populated local
+QRK installs the CLI and runtime packages at `12.0.1` from the populated local
 registry described in the [root README](../../README.md#zerospin-packages). Nx
 builds QRK's reusable Library before backend development; it does not
 rebuild installed Zerospin files.
@@ -23,7 +23,7 @@ future end-to-end compatibility suite is deferred (see root `AGENTS.md`).
 
 ## Server aggregate reads
 
-Core `11.1.0` provides the server-only
+Core `12.0.1` provides the server-only
 `@zerospin/core/utils/getSystemApi/getSystemApi` client. Supply
 `ZerospinApiUrl` and `SecretKey` (`Redacted<string>`) in the application's Effect
 layer, then acquire it with `yield* getSystemApi()`. Construct a connection-free

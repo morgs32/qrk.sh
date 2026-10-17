@@ -25,12 +25,11 @@ export function PublishSiteDialog(props: { siteId: `sit_${string}` }) {
   const session = UserApp.useInitializedSession();
   const [open, setOpen] = useState(false);
   const [selectedPageIds, setSelectedPageIds] = useState<Array<`pag_${string}`>>([]);
-  const { data: pages, error } = useLiveQuery({
+  const { data: pages } = useLiveQuery({
     session,
     key: siteId,
     query: (db, id) => db.query.page.findMany({ where: { siteId: { eq: id } } }),
   });
-  if (error !== undefined) throw error;
 
   const rootPages = pages.filter((page) => page.slug === null);
   const rootPage = rootPages.length === 1 ? rootPages[0] : undefined;

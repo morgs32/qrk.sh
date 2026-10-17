@@ -125,12 +125,9 @@ function InitializedLibraryLayout(props: { children: ReactNode }) {
   const session = LibraryApp.useInitializedSession();
   useEffect(() => {
     const stopWork = startLibrarySessionWork(session);
-    const stopFailures = session.failures.subscribe((event) => {
-      if (
-        (event._tag === "AdmissionFailure" || event._tag === "ExecutionFailure") &&
-        Object.hasOwn(libraryModule.contracts, event.commandName)
-      )
-        toast.error(event.failure.message);
+    const stopFailures = session.store.subscribe((state, previous) => {
+      if (state.status !== "failed" && state.failure !== null && state.failure !== previous.failure)
+        toast.error(state.failure.message);
     });
     return () => {
       stopWork();

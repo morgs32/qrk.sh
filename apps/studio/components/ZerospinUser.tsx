@@ -6,7 +6,6 @@ import { Effect } from "effect";
 import { Suspense, useEffect, useSyncExternalStore, type ReactNode } from "react";
 import { getClerkToken } from "@/lib/getClerkToken";
 import { toast } from "sonner";
-import { libraryModule } from "@qrk.sh/library/libraryModule";
 import { FigmaReadyMeasurements } from "@qrk.sh/library/FigmaReadyMeasurements";
 import { startLibrarySessionWork } from "@qrk.sh/library/startLibrarySessionWork";
 import { UserApp } from "@/zerospin/userSession";
@@ -79,16 +78,9 @@ function UserSessionWork(props: { children: ReactNode }) {
   );
   useEffect(() => {
     const stopWork = startLibrarySessionWork(session);
-    const stopFailures = session.failures.subscribe((event) => {
-      if (
-        (event._tag === "AdmissionFailure" || event._tag === "ExecutionFailure") &&
-        (Object.hasOwn(libraryModule.contracts, event.commandName) ||
-          event.commandName === "publishSite" ||
-          event.commandName === "publishPage" ||
-          event.commandName === "publishPageUpdates" ||
-          event.commandName === "unpublishSite")
-      )
-        toast.error(event.failure.message);
+    const stopFailures = session.store.subscribe((state, previous) => {
+      if (state.status !== "failed" && state.failure !== null && state.failure !== previous.failure)
+        toast.error(state.failure.message);
     });
     return () => {
       stopWork();

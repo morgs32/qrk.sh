@@ -151,16 +151,11 @@ export function BrickWall(props: {
       return;
     }
     normalizationAttempt.current = { session, snapshot };
-    const result = executeCommand({
+    executeCommand({
       session,
       contractName: "compactLayoutAtBreakpoint",
       payload: { wallId, breakpoint, visibleLayout },
     });
-    if (result._tag === "Failure") {
-      const message = commandErrorMessage(result.failure);
-      if (onCommandError) onCommandError(message);
-      else window.alert(message);
-    }
   }, [
     session,
     executeCommand,
@@ -171,7 +166,6 @@ export function BrickWall(props: {
     gestureActive,
     gridGestureActive,
     catalogDragActive,
-    onCommandError,
   ]);
 
   useLayoutEffect(() => {
@@ -284,7 +278,7 @@ export function BrickWall(props: {
           onResizeStart={beginGesture}
           onResizeStop={(nextLayout) => {
             try {
-              const result = executeCommand({
+              executeCommand({
                 session,
                 contractName: "updateLayoutAtBreakpoint",
                 payload: {
@@ -293,7 +287,6 @@ export function BrickWall(props: {
                   layout: nextLayout.map(makeGridItem),
                 },
               });
-              if (result._tag === "Failure") reportCommandError(result.failure);
             } finally {
               endGesture();
             }
@@ -353,9 +346,8 @@ export function BrickWall(props: {
                   visibleLayouts,
                 },
               });
-              if (result._tag === "Failure") {
-                reportCommandError(result.failure);
-              } else if ("failure" in result.success && result.success.failure != null) {
+              if (result._tag === "Failure") return;
+              if ("failure" in result.success && result.success.failure != null) {
                 const failure = result.success.failure;
                 reportCommandError(
                   typeof failure === "object" && failure !== null && "message" in failure
@@ -426,7 +418,7 @@ export function BrickWall(props: {
               if (outside && item) {
                 const brickRow = bricks.find((candidate) => candidate.id === item.i);
                 if (brickRow !== undefined) {
-                  const result = executeCommand({
+                  executeCommand({
                     session,
                     contractName: "removeBrick",
                     payload: {
@@ -434,12 +426,9 @@ export function BrickWall(props: {
                       wallId,
                     },
                   });
-                  if (result._tag === "Failure") {
-                    reportCommandError(result.failure);
-                  }
                 }
               } else {
-                const result = executeCommand({
+                executeCommand({
                   session,
                   contractName: "updateLayoutAtBreakpoint",
                   payload: {
@@ -448,9 +437,6 @@ export function BrickWall(props: {
                     layout: nextLayout.map(makeGridItem),
                   },
                 });
-                if (result._tag === "Failure") {
-                  reportCommandError(result.failure);
-                }
               }
             } finally {
               if (scrollRootRef.current) {

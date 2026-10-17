@@ -4,7 +4,7 @@ import { stageAggregateSessionCommand } from "@zerospin/core/aggregateSession/st
 import type { ILibrarySession } from "../../session/createLibraryStandaloneSession";
 import { normalizeGithubActivityInput } from "./normalizeGithubActivityInput";
 
-import { type InferDecodedRow } from "@zerospin/shapes";
+import { type IInferDecodedRow } from "@zerospin/shapes";
 import { useId, useState } from "react";
 
 import { Button } from "../../components/ui/button";
@@ -12,7 +12,7 @@ import { Input } from "../../components/ui/input";
 import { githubActivityV1 } from "./githubActivityV1";
 
 export function GitHubActivityForm(props: {
-  state: InferDecodedRow<typeof githubActivityV1.stateShape> | null;
+  state: IInferDecodedRow<typeof githubActivityV1.stateShape> | null;
   session: ILibrarySession;
   brickId: `brk_${string}`;
   onCancel: () => void;

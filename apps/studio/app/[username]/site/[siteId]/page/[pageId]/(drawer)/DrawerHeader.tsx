@@ -6,9 +6,8 @@ import { useState } from "react";
 import { Result, Schema } from "effect";
 import { isEqual } from "es-toolkit";
 import { ArrowLeft, FileText, Globe, X } from "lucide-react";
-import { toast } from "sonner";
 import { useLiveQuery } from "@zerospin/react";
-import { makeId, stageAggregateSessionCommand, ZerospinError } from "@zerospin/sdk/browser";
+import { makeId, stageAggregateSessionCommand } from "@zerospin/sdk/browser";
 import { makeModelIdSchema } from "@zerospin/core/models/make/makeModelIdSchema";
 import { makeEffectSchema } from "@zerospin/shapes";
 import { modulesHash } from "@qrk.sh/library";
@@ -100,7 +99,6 @@ export function DrawerHeader() {
         },
       }),
   });
-
 
   const draftSite =
     siteDraft?.id === params.siteId
@@ -220,10 +218,7 @@ export function DrawerHeader() {
                       description: draftPage.description.length > 0 ? draftPage.description : null,
                     },
                   });
-              if (result._tag === "Failure") {
-                toast.error(new ZerospinError(result.failure).message);
-                return;
-              }
+              if (result._tag === "Failure") return;
               setBaseline({ site: structuredClone(draftSite), page: structuredClone(draftPage) });
             }}
           >
@@ -237,14 +232,11 @@ export function DrawerHeader() {
             size="sm"
             onClick={() => {
               const snapshotId = session.runSync(makeId(PageSnapshot));
-              const result = stageAggregateSessionCommand({
+              stageAggregateSessionCommand({
                 session,
                 contractName: canPublishPage ? "publishPage" : "publishPageUpdates",
                 payload: { pageId: params.pageId, snapshotId },
               });
-              if (result._tag === "Failure") {
-                toast.error(new ZerospinError(result.failure).message);
-              }
             }}
           >
             {canPublishPage ? "Publish Page" : "Publish Updates"}

@@ -103,11 +103,7 @@ export function startBrickSpecGeneration(session: ILibrarySession) {
           });
         })
         .catch((error: unknown) => {
-          if (!disposed)
-            session.failures.emit({
-              _tag: "SessionDefect",
-              error,
-            });
+          if (!disposed) session.reportFailure({ origin: "session", error });
         });
     }
   }

@@ -4,7 +4,7 @@ import { stageAggregateSessionCommand } from "@zerospin/core/aggregateSession/st
 import type { ILibrarySession } from "../../session/createLibraryStandaloneSession";
 import { normalizeMapPlaceInput } from "./normalizeMapPlaceInput";
 
-import { type InferDecodedRow } from "@zerospin/shapes";
+import { type IInferDecodedRow } from "@zerospin/shapes";
 import { useState } from "react";
 
 import { Button } from "../../components/ui/button";
@@ -12,7 +12,7 @@ import { GooglePlaceLookup } from "./GooglePlaceLookup";
 import { mapPlaceV1 } from "./mapPlaceV1";
 
 export function MapPlaceForm(props: {
-  state: InferDecodedRow<typeof mapPlaceV1.stateShape> | null;
+  state: IInferDecodedRow<typeof mapPlaceV1.stateShape> | null;
   session: ILibrarySession;
   brickId: `brk_${string}`;
   onCancel: () => void;

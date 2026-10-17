@@ -1,5 +1,5 @@
 import type { newSyncRpcSession } from "@zerospin/core/utils/getApi/newSyncRpcSession/newSyncRpcSession";
-import { makeEffectSchema, type InferDecodedRow, type IShape } from "@zerospin/shapes";
+import { makeEffectSchema, type IInferDecodedRow, type IShape } from "@zerospin/shapes";
 import { Effect, Schema } from "effect";
 
 import type { LibraryApi } from "../worker/LibraryApi.public";
@@ -13,10 +13,10 @@ export function makeDataFetcher<
 >(props: {
   payloadShape: PAYLOAD_SHAPE;
   dataShape: DATA_SHAPE;
-  defaultData: InferDecodedRow<DATA_SHAPE> & Readonly<Record<string, IJsonValue>>;
+  defaultData: IInferDecodedRow<DATA_SHAPE> & Readonly<Record<string, IJsonValue>>;
   fetcher?: (props: {
     api: ReturnType<typeof newSyncRpcSession<LibraryApi>>;
-    payload: InferDecodedRow<PAYLOAD_SHAPE>;
+    payload: IInferDecodedRow<PAYLOAD_SHAPE>;
     setData: (data: unknown) => void;
   }) => Promise<IRpcEither<void>>;
 }) {

@@ -10,7 +10,7 @@ import {
   VisibilityProvider,
   type ComponentRegistry,
 } from "@json-render/react";
-import { makeEffectSchema, type InferDecodedRow, type IShape } from "@zerospin/shapes";
+import { makeEffectSchema, type IInferDecodedRow, type IShape } from "@zerospin/shapes";
 import { Schema } from "effect";
 import { mapValues } from "es-toolkit";
 
@@ -116,16 +116,16 @@ export function makeModuleView<
   view: {
     measureOnSave?: boolean;
     form?: (props: {
-      state: InferDecodedRow<MODULE["stateShape"]> | null;
+      state: IInferDecodedRow<MODULE["stateShape"]> | null;
       session: ILibrarySession;
       brickId: `brk_${string}`;
       onSave: (
-        state: InferDecodedRow<MODULE["stateShape"]>,
+        state: IInferDecodedRow<MODULE["stateShape"]>,
       ) => IResult<unknown, { message: string }>;
       onCancel: () => void;
     }) => ReactNode;
     default: {
-      component: (props: { state: InferDecodedRow<MODULE["stateShape"]> }) => ReactNode;
+      component: (props: { state: IInferDecodedRow<MODULE["stateShape"]> }) => ReactNode;
       placeholder?: () => ReactNode;
       generator?: {
         registry: ComponentRegistry;
@@ -134,7 +134,7 @@ export function makeModuleView<
     };
   } & {
     [K in "sm" | "md" | "lg" | "xl"]?: {
-      component?: (props: { state: InferDecodedRow<MODULE["stateShape"]> }) => ReactNode;
+      component?: (props: { state: IInferDecodedRow<MODULE["stateShape"]> }) => ReactNode;
       generator?: {
         registry?: ComponentRegistry;
         defaultSpec?: Spec;

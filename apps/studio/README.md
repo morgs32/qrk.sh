@@ -24,7 +24,7 @@ Web listens on port 3000 and proxies Studio routes to `APP_ORIGIN` (default `htt
 Studio's Next chunks, fonts, worker, and WASM use `/studio-static/_next/`. Web excludes that namespace from authentication and proxies it to Studio. Referenced `/assets/` public files have explicit mappings in Studio's Next configuration; missing files return 404. There is no Vite module or HMR routing.
 
 Studio resolves the SharedWorker and browser SQLite WASM from installed
-`12.0.1` package exports. `userSessionDeclaration` is shared by
+`13.0.0` package exports. `userSessionDeclaration` is shared by
 `makeAggregateBrowserRelease` and the authored `node.worker.ts` entrypoint.
 `makeApplicationSharedWorker` binds that emitted worker artifact to the session.
 The Next configuration recognizes the local `applicationWorker.create` method
@@ -68,6 +68,8 @@ QRK.SH's Clerk development instance has **Sign-up with username** and **Require 
 
 `app/layout.tsx` owns the document, global/reset styles, metadata, and Library's shared article stylesheet. Studio's global CSS loads Fragment Mono through Library's Google Fonts import and uses it for UI text and controls. The dashboard's `QRK.SH` wordmark matches the homepage: Silkscreen 400 at 18px, loaded through `next/font/google` in `Header`. The article stylesheet owns the system font for article titles and subtitles and Spectral for body text and headings. Studio adds no heading font override. Storybook imports the same global and article styles. `App` holds the client providers. The username layout keeps one session initializer mounted across Studio navigation; `UserLayout` gates only data-dependent content.
 
+`UserApp.Initializer` owns construction and descendant error boundaries. Its `renderError` displays the session error when `session.store.getState().status` is `failed`; live-query failures stop that owning session. `UserSessionWork` scopes one store subscription to the mounted session and displays nonterminal reported failures when `failure` changes by reference. Staging, admission and execution refusals share that notification path; command-result guards still prevent follow-up actions.
+
 The root layout mounts the shared `ZerospinDevtoolsLoader` in development with the panel initially closed. Its lifetime spans route navigation and authentication changes; the loader owns cleanup when the application unmounts.
 
 The dashboard layout renders the fixed 64 px `QRK.SH` header in the initial HTML and reserves a 40 px account slot with a shadcn skeleton. The header is a query container; its inner flex element uses Library's shared `qrk-responsive-insets` class and `--qrk-inset-inline`: 16px gutters become 30px when both the document viewport and header reach 720px. The site editor, including its 64 px navbar, appears only once the browser session is ready; the initial HTML has no site navbar or site-name skeleton. Each breakpoint pane owns the complete navbar inside its browser frame, beneath the address bar and above `BrickWall`. `Grid` makes the existing navbar wrapper a query container. `SiteHeader` uses the same shared responsive gutters when both the document viewport and wrapper reach 720px, preserving its 64px height and chrome offset. The existing `Wordmark` subscribes to site data and preserves settings draft previews. Site data, drafts, SQLite, and editing remain browser-owned.
@@ -86,7 +88,7 @@ values; later creation failures show a toast. Closing or cancelling resets both
 inputs. Creation stages `createSite` followed by `createPage` with `slug: null`
 for the site's index page. Page creation requires an explicit string slug or
 `null`, with at most one null-slug page per site; Site slugs retain their existing
-rules. Admission and execution failures for either creation command show a toast.
+rules. Staging, admission and execution refusals for either creation command show a toast.
 The dashboard opens the null-slug page when present, otherwise its existing
 first-page fallback. Existing `"home"` rows retain their string slug; no backfill
 or storage reset is performed. Folders and published pathname resolution remain

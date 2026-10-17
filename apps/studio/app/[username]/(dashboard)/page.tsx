@@ -4,11 +4,10 @@ import Link from "next/link";
 
 import { makeId, stageAggregateSessionCommand } from "@zerospin/sdk/browser";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Schema } from "effect";
 import { toast } from "sonner";
 import { useLiveQuery } from "@zerospin/react";
-import { ZerospinError } from "@zerospin/sdk/browser";
 
 import { siteV2 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV2";
 import { pageV2 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV2";
@@ -49,20 +48,6 @@ export default function UsernameDashboardPage() {
       });
     },
   });
-
-  useEffect(
-    () =>
-      session.failures.subscribe((event) => {
-        if (
-          (event._tag === "AdmissionFailure" || event._tag === "ExecutionFailure") &&
-          (event.commandName === "createSite" || event.commandName === "createPage")
-        ) {
-          toast.error(event.failure.message);
-        }
-      }),
-    [session],
-  );
-
 
   if (user === undefined) {
     return <p role="alert">User not found</p>;
@@ -149,10 +134,7 @@ export default function UsernameDashboardPage() {
                           slug,
                         },
                       });
-                      if (siteResult._tag === "Failure") {
-                        toast.error(new ZerospinError(siteResult.failure).message);
-                        return;
-                      }
+                      if (siteResult._tag === "Failure") return;
 
                       const siteId = siteResult.success.payload.id;
                       const pageResult = stageAggregateSessionCommand({
@@ -164,10 +146,7 @@ export default function UsernameDashboardPage() {
                           slug: null,
                         },
                       });
-                      if (pageResult._tag === "Failure") {
-                        toast.error(new ZerospinError(pageResult.failure).message);
-                        return;
-                      }
+                      if (pageResult._tag === "Failure") return;
 
                       setSiteName("");
                       setSiteSlug("");

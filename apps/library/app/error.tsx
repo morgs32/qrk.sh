@@ -3,12 +3,14 @@
 import { useState } from "react";
 
 import { isZerospinError } from "@zerospin/error";
+import { SessionQueryError } from "@zerospin/react/SessionQueryError";
 import { Copy, RefreshCw } from "lucide-react";
 
 import "./error.css";
 
 export default function LibraryError(props: { error: unknown }) {
   const { error } = props;
+  if (error instanceof SessionQueryError) throw error;
   const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
   const [detailsOpen, setDetailsOpen] = useState(process.env.NODE_ENV === "development");
 

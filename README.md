@@ -3,7 +3,7 @@
 ## Zerospin packages
 
 Zerospin owns its source, builds, and releases in the sibling `../zerospin`
-checkout. QRK installs exact `12.0.1` packages from the local Verdaccio registry;
+checkout. QRK installs exact `13.0.0` packages from the local Verdaccio registry;
 there is no vendored Zerospin source or consumer-side Zerospin build.
 
 The credential-free project `.npmrc` routes all dependencies through
@@ -19,9 +19,9 @@ Effect is installed from the registry; no Effect source is vendored.
 Repository tests and standalone automated checks are deferred until a test
 structure is agreed. See [Testing and checks](./AGENTS.md#testing-and-checks).
 
-Three consumer skills ship inside the installed SDK package: feature authoring,
-external work, and command submission. The browser and React packages do not
-currently include Intent skills. Intent `0.5.5` is pinned in this workspace; the
+The installed SDK package supplies five consumer skills: feature authoring,
+actor authorization, declaration evolution, external work, and command submission.
+The browser and React packages supply session ownership and React integration skills. Intent `0.5.5` is pinned in this workspace; the
 root permission policy enables those packages and the managed `AGENTS.md` block
 discovers the available guidance.
 After a dependency upgrade, use `pnpm exec intent install` to refresh guidance.
@@ -86,7 +86,7 @@ More detail and test patterns: [docs/styleguide/component-and-file-naming.md](do
    On the first registry bootstrap, install, build, verify, and publish the
    release in Zerospin before installing QRK. Follow Zerospin's package release
    instructions. Existing registry storage survives restarts. A fresh checkout
-   requires the running registry with the locked `12.0.1` packages; hosted
+   requires the running registry with the locked `13.0.0` packages; hosted
    distribution and deployment-machine bootstrap are not configured here.
 
 2. Start the homepage:

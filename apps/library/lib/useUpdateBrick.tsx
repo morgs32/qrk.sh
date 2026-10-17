@@ -4,7 +4,7 @@ import { stageAggregateSessionCommand } from "@zerospin/core/aggregateSession/st
 
 import type { Spec } from "@json-render/core";
 import { isNonEmptySpec } from "@json-render/core";
-import type { InferCommandPayload } from "@zerospin/core/models/types";
+import type { IInferCommandPayload } from "@zerospin/core/models/types";
 
 import { makeEffectSchema } from "@zerospin/shapes";
 import { Schema } from "effect";
@@ -95,7 +95,7 @@ export function useUpdateBrick(props: { brickId: `brk_${string}` }) {
     }
     const brickModule = modulesHash[brick.moduleId];
     let state = arg;
-    let measurements: InferCommandPayload<
+    let measurements: IInferCommandPayload<
       typeof libraryModule.contracts.updateBrick.payload
     >["measurements"] = null;
 
@@ -129,7 +129,7 @@ export function useUpdateBrick(props: { brickId: `brk_${string}` }) {
       try {
         measurements = await new Promise<
           NonNullable<
-            InferCommandPayload<typeof libraryModule.contracts.updateBrick.payload>["measurements"]
+            IInferCommandPayload<typeof libraryModule.contracts.updateBrick.payload>["measurements"]
           >
         >((resolve, reject) => {
           const measured = new Map<

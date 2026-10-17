@@ -1,6 +1,6 @@
 "use client";
 
-import { stageAggregateSessionCommand, ZerospinError } from "@zerospin/sdk/browser";
+import { stageAggregateSessionCommand } from "@zerospin/sdk/browser";
 
 /* oxlint-disable next/no-img-element -- Studio uses Vite, so Next image optimization is unavailable. */
 
@@ -365,14 +365,11 @@ export function SiteSettings() {
               variant="destructive"
               className="shrink-0"
               onClick={() => {
-                const result = stageAggregateSessionCommand({
+                stageAggregateSessionCommand({
                   session,
                   contractName: "unpublishSite",
                   payload: { siteId: params.siteId },
                 });
-                if (result._tag === "Failure") {
-                  toast.error(new ZerospinError(result.failure).message);
-                }
               }}
             >
               Unpublish Site

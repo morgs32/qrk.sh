@@ -2,7 +2,7 @@
 
 import type { IResult } from "@zerospin/error";
 
-import { makeEffectSchema, type InferDecodedRow } from "@zerospin/shapes";
+import { makeEffectSchema, type IInferDecodedRow } from "@zerospin/shapes";
 import { Schema } from "effect";
 import { useState } from "react";
 
@@ -11,15 +11,15 @@ import { ArticleEditorControl } from "./ArticleEditorControl";
 import { articleV1 } from "./articleV1";
 
 export function ArticleForm(props: {
-  state: InferDecodedRow<typeof articleV1.stateShape> | null;
+  state: IInferDecodedRow<typeof articleV1.stateShape> | null;
   onSave: (
-    state: InferDecodedRow<typeof articleV1.stateShape>,
+    state: IInferDecodedRow<typeof articleV1.stateShape>,
   ) => IResult<unknown, { message: string }>;
   onCancel: () => void;
 }) {
   const { state, onSave, onCancel } = props;
   const savedState = state ?? articleV1.defaultState;
-  const [draft, setDraft] = useState<InferDecodedRow<typeof articleV1.stateShape> | null>(null);
+  const [draft, setDraft] = useState<IInferDecodedRow<typeof articleV1.stateShape> | null>(null);
   const [editorKey, setEditorKey] = useState(0);
   const [saveError, setSaveError] = useState<string>();
   const editedState = draft ?? savedState;

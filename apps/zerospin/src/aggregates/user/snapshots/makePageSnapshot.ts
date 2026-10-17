@@ -1,13 +1,13 @@
 import type { libraryModule } from "@qrk.sh/library/libraryModule";
 import type { IContractReadResult } from "@zerospin/core/contracts/make/makeContractReadDb";
-import type { InferDecodedRow } from "@zerospin/shapes";
+import type { IInferDecodedRow } from "@zerospin/shapes";
 
 import type { PageSnapshotSchema } from "./pageSnapshotSchema";
 
 export function makePageSnapshot(props: {
   page: Pick<typeof PageSnapshotSchema.Type, "slug" | "title" | "description">;
   bricks: readonly Pick<
-    InferDecodedRow<typeof libraryModule.models.brick.table.shape>,
+    IInferDecodedRow<typeof libraryModule.models.brick.table.shape>,
     "id" | "moduleId" | "state"
   >[];
   placements: readonly Pick<

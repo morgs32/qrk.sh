@@ -12,7 +12,7 @@ Run local development from the repository root:
 pnpm nx run @qrk.sh/zerospin:dev
 ```
 
-QRK installs the CLI and runtime packages at `12.0.1` from the populated local
+QRK installs the CLI and runtime packages at `13.0.0` from the populated local
 registry described in the [root README](../../README.md#zerospin-packages). Nx
 builds QRK's reusable Library before backend development; it does not
 rebuild installed Zerospin files.
@@ -23,7 +23,7 @@ future end-to-end compatibility suite is deferred (see root `AGENTS.md`).
 
 ## Server aggregate reads
 
-Core `12.0.1` provides the server-only
+Core `13.0.0` provides the server-only
 `@zerospin/core/utils/getSystemApi/getSystemApi` client. Supply
 `ZerospinApiUrl` and `SecretKey` (`Redacted<string>`) in the application's Effect
 layer, then acquire it with `yield* getSystemApi()`. Construct a connection-free
@@ -31,25 +31,27 @@ query with `makeQueryDbVersion({ models: userSessionDefinition.models })` and pa
 the selection to `systemApi.executeAggregateQuery` with user aggregate identity:
 
 ```ts
-const systemApi = yield* getSystemApi();
+const systemApi = yield * getSystemApi();
 const db = makeQueryDbVersion({ models: userSessionDefinition.models });
-const site = yield* systemApi.executeAggregateQuery({
-  aggregateName: 'user',
-  aggregateVersion: '2.0.0',
-  aggregateId,
-  query: db.query.site.findFirst({
-    where: { id: { eq: siteId } },
-    with: {
-      pages: {
-        with: {
-          wall: {
-            with: { bricks: { with: { placements: true } } },
+const site =
+  yield *
+  systemApi.executeAggregateQuery({
+    aggregateName: "user",
+    aggregateVersion: "2.0.0",
+    aggregateId,
+    query: db.query.site.findFirst({
+      where: { id: { eq: siteId } },
+      with: {
+        pages: {
+          with: {
+            wall: {
+              with: { bricks: { with: { placements: true } } },
+            },
           },
         },
       },
-    },
-  }),
-});
+    }),
+  });
 ```
 
 The inferred result preserves nested columns, JSON, and dates; missing first

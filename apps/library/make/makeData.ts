@@ -1,4 +1,4 @@
-import type { InferDecodedRow, IShape } from "@zerospin/shapes";
+import type { IInferDecodedRow, IShape } from "@zerospin/shapes";
 
 import type { IJsonValue } from "../worker/types.public";
 import { decodeDefaultData } from "./decodeDefaultData";
@@ -6,7 +6,7 @@ import { decodeDefaultData } from "./decodeDefaultData";
 /** Static seeded data with no in-place editor and no fetcher. */
 export function makeData<const DATA_SHAPE extends IShape>(props: {
   dataShape: DATA_SHAPE;
-  defaultData: InferDecodedRow<DATA_SHAPE> & Readonly<Record<string, IJsonValue>>;
+  defaultData: IInferDecodedRow<DATA_SHAPE> & Readonly<Record<string, IJsonValue>>;
 }) {
   return {
     dataType: "static" as const,

@@ -18,7 +18,7 @@ const fixtureDate = new Date("2026-01-01T00:00:00.000Z");
 const applicationWorker = { create: makeApplicationSharedWorker };
 
 export const librarySessionRelease = makeStandaloneSessionRelease({
-  declaration: librarySessionDeclaration,
+  sessionRelease: librarySessionDeclaration,
   sharedWorker: (props) =>
     applicationWorker.create(new URL("./librarySession.worker.ts", import.meta.url), props),
 });

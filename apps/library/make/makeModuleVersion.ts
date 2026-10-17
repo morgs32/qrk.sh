@@ -1,6 +1,6 @@
 import { defineCatalog, type Catalog } from "@json-render/core";
 import { schema } from "@json-render/react/schema";
-import { primitives, type InferDecodedRow, type IShape } from "@zerospin/shapes";
+import { primitives, type IInferDecodedRow, type IShape } from "@zerospin/shapes";
 import { descriptorToZod, makeZodSchema } from "@zerospin/zod";
 import { mapValues } from "es-toolkit";
 
@@ -81,7 +81,7 @@ export function makeModuleVersion<
     hasPlaceholder?: boolean;
     components: Record<string, ReturnType<typeof defineComponent>>;
     stateShape: STATE_SHAPE;
-    defaultState: InferDecodedRow<STATE_SHAPE> & Readonly<Record<string, IJsonValue>>;
+    defaultState: IInferDecodedRow<STATE_SHAPE> & Readonly<Record<string, IJsonValue>>;
   },
 ) {
   const {

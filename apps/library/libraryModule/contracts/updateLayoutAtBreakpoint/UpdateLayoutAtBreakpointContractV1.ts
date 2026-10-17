@@ -2,7 +2,7 @@ import { ContractError } from "@zerospin/error";
 import { findMany } from "@zerospin/core/contracts/findMany";
 import { findFirst } from "@zerospin/core/contracts/findFirst";
 import { makeAggregateContractVersion } from "@zerospin/core/contracts/make/makeAggregateContractVersion";
-import { primitives, type InferDecodedRow, type InferIdFromAbbreviation } from "@zerospin/shapes";
+import { primitives, type IInferDecodedRow, type IInferIdFromAbbreviation } from "@zerospin/shapes";
 import { Effect, Schema } from "effect";
 
 import { makePlacementId } from "../../models/placement/makePlacementId";
@@ -167,10 +167,10 @@ export function makeUpdateLayoutAtBreakpointContract(props: {
             resourceId: makePlacementId(
               item.i,
               payload.breakpoint,
-            ) as InferIdFromAbbreviation<"plc">,
+            ) as IInferIdFromAbbreviation<"plc">,
             attributes: {
               gridItem: structuredClone(item),
-            } as Partial<InferDecodedRow<(typeof placement)["attributes"]>>,
+            } as Partial<IInferDecodedRow<(typeof placement)["attributes"]>>,
           });
         }
       });

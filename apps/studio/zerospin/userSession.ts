@@ -20,7 +20,7 @@ if (!publishableKey)
 const applicationWorker = { create: makeApplicationSharedWorker };
 
 export const userSessionRelease = makeAggregateBrowserRelease({
-  declaration: userSessionDeclaration,
+  sessionRelease: userSessionDeclaration,
   credentialsSchema: signature,
   sharedWorker: (props) =>
     applicationWorker.create(new URL("./node.worker.ts", import.meta.url), props),

@@ -6,8 +6,8 @@ import { mapParseError } from "@zerospin/error";
 import {
   makeEffectSchema,
   primitives,
-  type InferDecodedRow,
-  type InferIdFromAbbreviation,
+  type IInferDecodedRow,
+  type IInferIdFromAbbreviation,
   type IShape,
 } from "@zerospin/shapes";
 import { Effect, Schema } from "effect";
@@ -307,9 +307,9 @@ export function makeAddBrickContract<
         const clonedSpec = structuredClone(payload.spec);
 
         yield* operations.createBrick({
-          resourceId: payload.brickId as InferIdFromAbbreviation<"brk">,
+          resourceId: payload.brickId as IInferIdFromAbbreviation<"brk">,
           attributes: {
-            wallId: payload.wallId as InferIdFromAbbreviation<"wal">,
+            wallId: payload.wallId as IInferIdFromAbbreviation<"wal">,
             moduleId: payload.moduleId,
             state: clonedState,
             stateRevision: 0,
@@ -325,9 +325,9 @@ export function makeAddBrickContract<
                 resourceId: makePlacementId(
                   payload.brickId,
                   breakpoint,
-                ) as InferIdFromAbbreviation<"plc">,
+                ) as IInferIdFromAbbreviation<"plc">,
                 attributes: {
-                  brickId: payload.brickId as InferIdFromAbbreviation<"brk">,
+                  brickId: payload.brickId as IInferIdFromAbbreviation<"brk">,
                   breakpoint,
                   spec: structuredClone(clonedSpec),
                   specRevision: 0,
@@ -335,7 +335,7 @@ export function makeAddBrickContract<
                   measured: null,
                   gridItem: item,
                   isVisible: true,
-                } as InferDecodedRow<(typeof placement)["attributes"]>,
+                } as IInferDecodedRow<(typeof placement)["attributes"]>,
               });
               continue;
             }
@@ -353,10 +353,10 @@ export function makeAddBrickContract<
             }
 
             yield* operations.updatePlacement({
-              resourceId: makePlacementId(item.i, breakpoint) as InferIdFromAbbreviation<"plc">,
+              resourceId: makePlacementId(item.i, breakpoint) as IInferIdFromAbbreviation<"plc">,
               attributes: {
                 gridItem: item,
-              } as Partial<InferDecodedRow<(typeof placement)["attributes"]>>,
+              } as Partial<IInferDecodedRow<(typeof placement)["attributes"]>>,
             });
           }
         }

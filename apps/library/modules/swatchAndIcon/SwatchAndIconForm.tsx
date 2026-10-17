@@ -2,7 +2,7 @@
 
 import type { IResult } from "@zerospin/error";
 
-import { makeEffectSchema, type InferDecodedRow } from "@zerospin/shapes";
+import { makeEffectSchema, type IInferDecodedRow } from "@zerospin/shapes";
 import { Schema } from "effect";
 import { useState } from "react";
 
@@ -12,9 +12,9 @@ import { SwatchAndIconColorForm } from "./SwatchAndIconColorForm";
 import { swatchAndIconV1 } from "./swatchAndIconV1";
 
 export function SwatchAndIconForm(props: {
-  state: InferDecodedRow<typeof swatchAndIconV1.stateShape> | null;
+  state: IInferDecodedRow<typeof swatchAndIconV1.stateShape> | null;
   onSave: (
-    state: InferDecodedRow<typeof swatchAndIconV1.stateShape>,
+    state: IInferDecodedRow<typeof swatchAndIconV1.stateShape>,
   ) => IResult<unknown, { message: string }>;
   onCancel: () => void;
 }) {

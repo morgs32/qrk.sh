@@ -69,6 +69,8 @@ retains the wall, drawer, standalone session, and viewport providers; route-spec
 module and brick drafts keep their existing remount boundaries. The document title
 remains `QRK.SH Library`, with diagnostic error and not-found screens.
 
+`LibraryApp.Initializer` owns session construction and descendant error boundaries. Its `renderError` uses the shared diagnostic presentation for a terminal session failure; `session.store.getState().status === 'failed'` controls replacement of the content. The existing Next route error view rethrows `SessionQueryError` so the owning Initializer receives query failures. Missing query rows remain normal data. `InitializedLibraryLayout` scopes its store subscription to the session lifetime, displaying a changed non-null `failure` only while status is not `failed`; remounting does not replay a previous error. Unexpected spec-generation executor failures report through `session.reportFailure`.
+
 The root layout mounts the shared `ZerospinDevtoolsLoader` in every environment with the panel initially closed. It stays mounted across route navigation and standalone-session resets, and owns cleanup when the application unmounts.
 
 ## Brick forms
@@ -192,26 +194,26 @@ Consumers bundle Meowdown and React with their own dependencies. The retained
 and Article components' font imports. Article state and form callbacks exchange
 Markdown strings; consumers share no editor instances.
 
-| Import under `@qrk.sh/library`    | Defining source                              | Purpose                                                     |
-| --------------------------------- | -------------------------------------------- | ----------------------------------------------------------- |
-| package root                      | `lib/index.ts`                               | Small barrel: `modulesHash`, `IModule`, `IModuleBrickDef`   |
-| `/backendLibrary`                 | `backendLibrary.ts`                          | Module catalog registry used by API generation              |
-| `/ModuleFilmstrip`                | `lib/ModuleFilmstrip.tsx`                    | Shared horizontal module catalog                            |
-| `/Drawer`                         | `lib/Drawer.tsx`                             | Shared Drawer and existing DrawerPresence                   |
-| `/BrickWall`                      | `lib/BrickWall.tsx`                          | Interactive wall                                            |
-| `/BrickCardStyleContext`          | `lib/BrickCardStyleContext.ts`               | Local boolean appearance shared by wall and previews        |
-| `/GridItemPreview`                | `lib/GridItemPreview.tsx`                    | Preview geometry                                            |
-| `/WallViewportProvider`           | `lib/WallViewportProvider.tsx`               | Viewport provider and hooks                                 |
-| `/WallBreakpointPane`             | `lib/WallBreakpointPane.tsx`                 | Shared fixed-width wall pane with browser chrome            |
-| `/breakpoints`                    | `lib/breakpoints.ts`                         | Breakpoint definitions and sizing                           |
-| `/brickDragStore`                 | `lib/brickDragStore.ts`                      | Shared drag state                                           |
-| `/ImageUploadEnvironment`         | `modules/image/ImageUploadEnvironment.ts`    | Host-supplied file upload Effect returning an image URL      |
-| `/ImageUploadRuntimeContext`      | `modules/image/ImageUploadRuntimeContext.ts` | Image's runner bound to the existing app session            |
-| `/MeasuredBrickWrapper`           | `components/brick/MeasuredBrickWrapper.tsx`  | Content measurement                                         |
-| `/libraryModule`                  | `libraryModule/libraryModule.ts`             | Models and command contracts                                |
-| `/createLibraryStandaloneSession` | `session/createLibraryStandaloneSession.ts`  | Session factory, context, hook, and type                    |
-| `/bricks.css`                     | `bricks.css`                                 | Shared brick styles                                         |
-| `/article-editor.css`             | `modules/article/article-editor.scss`        | Meowdown, Article typography, and portaled controls         |
+| Import under `@qrk.sh/library`    | Defining source                              | Purpose                                                   |
+| --------------------------------- | -------------------------------------------- | --------------------------------------------------------- |
+| package root                      | `lib/index.ts`                               | Small barrel: `modulesHash`, `IModule`, `IModuleBrickDef` |
+| `/backendLibrary`                 | `backendLibrary.ts`                          | Module catalog registry used by API generation            |
+| `/ModuleFilmstrip`                | `lib/ModuleFilmstrip.tsx`                    | Shared horizontal module catalog                          |
+| `/Drawer`                         | `lib/Drawer.tsx`                             | Shared Drawer and existing DrawerPresence                 |
+| `/BrickWall`                      | `lib/BrickWall.tsx`                          | Interactive wall                                          |
+| `/BrickCardStyleContext`          | `lib/BrickCardStyleContext.ts`               | Local boolean appearance shared by wall and previews      |
+| `/GridItemPreview`                | `lib/GridItemPreview.tsx`                    | Preview geometry                                          |
+| `/WallViewportProvider`           | `lib/WallViewportProvider.tsx`               | Viewport provider and hooks                               |
+| `/WallBreakpointPane`             | `lib/WallBreakpointPane.tsx`                 | Shared fixed-width wall pane with browser chrome          |
+| `/breakpoints`                    | `lib/breakpoints.ts`                         | Breakpoint definitions and sizing                         |
+| `/brickDragStore`                 | `lib/brickDragStore.ts`                      | Shared drag state                                         |
+| `/ImageUploadEnvironment`         | `modules/image/ImageUploadEnvironment.ts`    | Host-supplied file upload Effect returning an image URL   |
+| `/ImageUploadRuntimeContext`      | `modules/image/ImageUploadRuntimeContext.ts` | Image's runner bound to the existing app session          |
+| `/MeasuredBrickWrapper`           | `components/brick/MeasuredBrickWrapper.tsx`  | Content measurement                                       |
+| `/libraryModule`                  | `libraryModule/libraryModule.ts`             | Models and command contracts                              |
+| `/createLibraryStandaloneSession` | `session/createLibraryStandaloneSession.ts`  | Session factory, context, hook, and type                  |
+| `/bricks.css`                     | `bricks.css`                                 | Shared brick styles                                       |
+| `/article-editor.css`             | `modules/article/article-editor.scss`        | Meowdown, Article typography, and portaled controls       |
 
 Studio imports `Drawer` directly from `@qrk.sh/library/Drawer`; Library's own app
 imports `../lib/Drawer`. Supplying `open` keeps the shared shell mounted and uses a
@@ -569,7 +571,7 @@ from its viewport minimum height, with 3.5rem and zero fallbacks respectively, s
 empty wall remains one viewport tall without extra scrolling.
 
 Library and Studio resolve browser SQLite WASM from the installed Zerospin
-`12.0.1` package exports. The Library standalone worker imports the same pure
+`13.0.0` package exports. The Library standalone worker imports the same pure
 `librarySessionDeclaration` as its host release. Studio authors its connected
 `node.worker.ts` entrypoint, and both hosts use `makeApplicationSharedWorker`
 to identify the emitted executable artifact. Webpack emits each worker

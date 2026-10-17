@@ -3,7 +3,7 @@ import { findMany } from "@zerospin/core/contracts/findMany";
 import { findFirst } from "@zerospin/core/contracts/findFirst";
 import { makeAggregateContractVersion } from "@zerospin/core/contracts/make/makeAggregateContractVersion";
 import { mapParseError } from "@zerospin/error";
-import { primitives, type InferDecodedRow, type InferIdFromAbbreviation } from "@zerospin/shapes";
+import { primitives, type IInferDecodedRow, type IInferIdFromAbbreviation } from "@zerospin/shapes";
 import { Effect, Schema } from "effect";
 
 import { makePlacementId } from "../../models/placement/makePlacementId";
@@ -252,7 +252,7 @@ export function makeSetBrickVisibilityAtBreakpointContract(props: {
             resourceId: makePlacementId(
               payload.brickId,
               payload.breakpoint,
-            ) as InferIdFromAbbreviation<"plc">,
+            ) as IInferIdFromAbbreviation<"plc">,
             attributes: {
               isVisible: false,
             },
@@ -308,10 +308,10 @@ export function makeSetBrickVisibilityAtBreakpointContract(props: {
               resourceId: makePlacementId(
                 item.i,
                 payload.breakpoint,
-              ) as InferIdFromAbbreviation<"plc">,
+              ) as IInferIdFromAbbreviation<"plc">,
               attributes: {
                 gridItem: item,
-              } as Partial<InferDecodedRow<(typeof placement)["attributes"]>>,
+              } as Partial<IInferDecodedRow<(typeof placement)["attributes"]>>,
             });
           }
           return;
@@ -328,11 +328,11 @@ export function makeSetBrickVisibilityAtBreakpointContract(props: {
               resourceId: makePlacementId(
                 payload.brickId,
                 payload.breakpoint,
-              ) as InferIdFromAbbreviation<"plc">,
+              ) as IInferIdFromAbbreviation<"plc">,
               attributes: {
                 isVisible: true,
                 gridItem: item,
-              } as Partial<InferDecodedRow<(typeof placement)["attributes"]>>,
+              } as Partial<IInferDecodedRow<(typeof placement)["attributes"]>>,
             });
             continue;
           }
@@ -356,10 +356,10 @@ export function makeSetBrickVisibilityAtBreakpointContract(props: {
             resourceId: makePlacementId(
               item.i,
               payload.breakpoint,
-            ) as InferIdFromAbbreviation<"plc">,
+            ) as IInferIdFromAbbreviation<"plc">,
             attributes: {
               gridItem: item,
-            } as Partial<InferDecodedRow<(typeof placement)["attributes"]>>,
+            } as Partial<IInferDecodedRow<(typeof placement)["attributes"]>>,
           });
         }
       });

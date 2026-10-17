@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { useLiveQuery } from "@zerospin/react";
-import { makeId, stageAggregateSessionCommand, ZerospinError } from "@zerospin/sdk/browser";
+import { makeId, stageAggregateSessionCommand } from "@zerospin/sdk/browser";
 import { pageSnapshotV1 as PageSnapshot } from "@qrk.sh/zerospin/src/aggregates/user/models/pageSnapshot/PageSnapshotV1";
 
 import { SiteTree, type ISiteTreeNode } from "@/components/SiteTree";
@@ -126,10 +126,7 @@ export function PublishSiteDialog(props: { siteId: `sit_${string}` }) {
                   })),
               },
             });
-            if (result._tag === "Failure") {
-              toast.error(new ZerospinError(result.failure).message);
-              return;
-            }
+            if (result._tag === "Failure") return;
             setOpen(false);
           }}
         >

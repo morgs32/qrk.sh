@@ -168,10 +168,14 @@ the site's availability flag. All four contracts enforce ownership.
 
 Snapshot IDs are generated once before staging and retained in command payloads;
 programs read the saved content rather than accepting browser-supplied snapshots.
-Library owns its wall schema/projection; QRK adds page metadata in separate schema
-and projection files. Stable brick/breakpoint ordering supports structural dirty
-comparison independently of query ordering. Saved Site Settings changes remain
-immediate and are not part of page publication history.
+QRK's existing `snapshots/pageSnapshotSchema.ts` and `snapshots/makePageSnapshot.ts`
+own the whole publication shape and projection, including the saved Library
+brick/placement subset. They derive field codecs from `libraryModule` while
+choosing publication exclusions, nesting, and stable brick/breakpoint ordering.
+The same projection serves publishing commands and Studio's structural dirty
+comparison independently of query ordering; Library exposes no publication
+snapshot API. Saved Site Settings changes remain immediate and are not part of
+page publication history.
 
 The publication release preserves storage: its version-specific model database
 replays retained history through successor programs, initializing existing sites

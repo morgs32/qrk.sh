@@ -44,12 +44,31 @@ export default function EditorLayout(props: { children: ReactNode }) {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL;
   if (!apiUrl) throw new Error("NEXT_PUBLIC_API_URL is required");
   const imageLayer = Layer.succeed(ImageUploadEnvironment, {
-    uploadUrl: `${apiUrl.replace(/\/$/, "")}/upload`,
-    siteId: params.siteId,
-    authorization: Effect.gen(function* () {
+    upload: Effect.fn("Studio.Image.upload")(function* (file: File) {
       const token = yield* getClerkToken({ getToken });
       if (token === null) return yield* Effect.fail(new Error("Sign in to upload images"));
-      return `Bearer ${token}`;
+      const body = new FormData();
+      body.set("file", file);
+      body.set("siteId", params.siteId);
+      const response = yield* Effect.tryPromise((signal) =>
+        fetch(`${apiUrl.replace(/\/$/, "")}/upload`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+          body,
+          signal,
+        }),
+      );
+      const result: unknown = yield* Effect.tryPromise(() => response.json());
+      if (!response.ok) {
+        const error = yield* Schema.decodeUnknownEffect(
+          Schema.Struct({ code: Schema.String, message: Schema.String }),
+        )(result);
+        return yield* Effect.fail(new Error(error.message));
+      }
+      const uploaded = yield* Schema.decodeUnknownEffect(
+        Schema.Struct({ key: Schema.String, url: Schema.String, contentType: Schema.String }),
+      )(result);
+      return uploaded.url;
     }),
   });
 

@@ -16,8 +16,6 @@
     "./BrickCardStyleContext": "./lib/BrickCardStyleContext.ts",
     "./brickDragStore": "./lib/brickDragStore.ts",
     "./libraryModule": "./libraryModule/libraryModule.ts",
-    "./wallSnapshotSchema": "./libraryModule/snapshots/wallSnapshotSchema.ts",
-    "./makeWallSnapshot": "./libraryModule/snapshots/makeWallSnapshot.ts",
     "./backendLibrary": "./backendLibrary.ts",
     "./createLibraryStandaloneSession": "./session/createLibraryStandaloneSession.ts",
     "./bricks.css": "./bricks.css",

@@ -134,9 +134,29 @@ function InitializedLibraryLayout(props: { children: ReactNode }) {
     };
   }, [session, sessionKey]);
   const imageLayer = Layer.succeed(ImageUploadEnvironment, {
-    uploadUrl: "/image/upload",
-    siteId: null,
-    authorization: Effect.succeed(null),
+    upload: Effect.fn("Library.Image.upload")(function* (file: File) {
+      const body = new FormData();
+      body.set("file", file);
+      const response = yield* Effect.tryPromise((signal) =>
+        fetch("/image/upload", {
+          method: "POST",
+          headers: {},
+          body,
+          signal,
+        }),
+      );
+      const result: unknown = yield* Effect.tryPromise(() => response.json());
+      if (!response.ok) {
+        const error = yield* Schema.decodeUnknownEffect(
+          Schema.Struct({ code: Schema.String, message: Schema.String }),
+        )(result);
+        return yield* Effect.fail(new Error(error.message));
+      }
+      const uploaded = yield* Schema.decodeUnknownEffect(
+        Schema.Struct({ key: Schema.String, url: Schema.String, contentType: Schema.String }),
+      )(result);
+      return uploaded.url;
+    }),
   });
   if (resetError !== null) throw resetError;
 

@@ -3,14 +3,14 @@
 import type { IResult } from "@zerospin/error";
 
 import { useContext, useId, useLayoutEffect, useRef, useState } from "react";
-import { Schema } from "effect";
+import { Effect, Schema } from "effect";
 import { makeEffectSchema } from "@zerospin/shapes";
 
 import { Input } from "../../components/ui/input";
 import { Button } from "../../components/ui/button";
 import { ImageUploadRuntimeContext } from "./ImageUploadRuntimeContext";
 import { imageV1 } from "./imageV1";
-import { uploadImage } from "./uploadImage";
+import { ImageUploadEnvironment } from "./ImageUploadEnvironment";
 
 export function ImageForm(props: {
   state: { imageUrl: string; title: string } | null;
@@ -63,9 +63,13 @@ export function ImageForm(props: {
     activeUpload.current = controller;
     setIsUploadingImage(true);
     try {
-      const imageUrl = await runtime.runPromise(uploadImage({ file }), {
-        signal: controller.signal,
-      });
+      const imageUrl = await runtime.runPromise(
+        Effect.gen(function* () {
+          const { upload } = yield* ImageUploadEnvironment;
+          return yield* upload(file);
+        }),
+        { signal: controller.signal },
+      );
       if (controller.signal.aborted || activeUpload.current !== controller) return;
       setDraft((current) => ({ ...(current ?? initialState), imageUrl }));
     } catch (cause) {

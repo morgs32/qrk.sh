@@ -205,7 +205,7 @@ Markdown strings; consumers share no editor instances.
 | `/WallBreakpointPane`             | `lib/WallBreakpointPane.tsx`                 | Shared fixed-width wall pane with browser chrome            |
 | `/breakpoints`                    | `lib/breakpoints.ts`                         | Breakpoint definitions and sizing                           |
 | `/brickDragStore`                 | `lib/brickDragStore.ts`                      | Shared drag state                                           |
-| `/ImageUploadEnvironment`         | `modules/image/ImageUploadEnvironment.ts`    | Image's upload URL, site grouping, and authorization Effect |
+| `/ImageUploadEnvironment`         | `modules/image/ImageUploadEnvironment.ts`    | Host-supplied file upload Effect returning an image URL      |
 | `/ImageUploadRuntimeContext`      | `modules/image/ImageUploadRuntimeContext.ts` | Image's runner bound to the existing app session            |
 | `/MeasuredBrickWrapper`           | `components/brick/MeasuredBrickWrapper.tsx`  | Content measurement                                         |
 | `/libraryModule`                  | `libraryModule/libraryModule.ts`             | Models and command contracts                                |
@@ -607,15 +607,21 @@ field groups fill that column, with Save/Cancel aligned to the fields' left edge
 
 Image also offers a single-file dropzone and picker for nonempty PNG, JPEG,
 WebP, or SVG images up to 5 MiB. Selection uploads immediately; success changes
-only the draft Image URL until Save. Image owns the `uploadImage` Effect and its
-`ImageUploadEnvironment` dependency. App composition binds an Effect Layer to the
-existing session runner through `ImageUploadRuntimeContext`: Library supplies
-anonymous `POST /image/upload`, while Studio supplies `/upload`, its site ID,
-and fresh Clerk authorization. The shared form contract has no Image-specific
-upload props. Image owns validation, the request, response decoding, feedback,
-and cancellation; its fields and Save stay disabled during upload. Cancel or
-leaving the brick aborts unfinished requests and ignores late results; completed
-R2 objects remain stored. File bytes are not included in the local backup.
+only the draft Image URL until Save. `ImageUploadEnvironment` supplies one
+host-owned operation, `upload(file): Effect.Effect<string, Error>`, returning the
+uploaded URL. Each app binds that operation through the existing Effect Layer,
+session runner, and `ImageUploadRuntimeContext`; the shared form contract has no
+Image-specific upload props.
+
+Each host owns HTTP, endpoint configuration, multipart fields, credentials, and
+response decoding. Library's standalone host performs anonymous
+`POST /image/upload`; Studio's host performs `/upload` with its current site ID
+and fresh Clerk authorization. Both forward Effect interruption into `fetch`.
+Image retains file validation, picker/drop behavior, drafts, pending/error
+feedback, Save gating, and cancellation. Fields and Save stay disabled during
+upload. Cancel or leaving the brick aborts unfinished requests and ignores late
+results; completed R2 objects remain stored. File bytes are not included in the
+local backup.
 
 ## Article editing in the brick drawer
 
@@ -717,15 +723,14 @@ alongside `bricks.css` for editor and portaled-control styles.
 
 ## Wall publication snapshots
 
-`WallSnapshotSchema` and `makeWallSnapshot` have separate defining files and
-direct package subpaths, `@qrk.sh/library/wallSnapshotSchema` and
-`@qrk.sh/library/makeWallSnapshot`. They describe/project saved brick IDs, module
-state, and every placement's breakpoint, spec, grid item, and visibility. Brick
-and placement arrays have stable ordering. Existing model codecs define the
-decoded JSON shapes; generation requests/errors, revisions, and measurements
-are excluded.
+QRK owns publication serialization in its existing `PageSnapshotSchema` and
+`makePageSnapshot` files under `apps/zerospin/src/aggregates/user/snapshots/`.
+Those files select saved page metadata, brick IDs/module state, and placement
+breakpoint/spec/geometry/visibility; they exclude editing bookkeeping and define
+stable array ordering.
 
-QRK composes this wall content with page metadata in its PageSnapshot records.
-Library does not store a separate WallSnapshot model or own site/page publication
-flags and history. Snapshot projection performs no provider request or generation
-work and reads only the supplied saved content.
+Library owns editable Brick/Placement models and their field codecs, exposed
+through `libraryModule`. It exposes no publication snapshot schema/projection API
+and stores no separate WallSnapshot model. Its shared wall renderer reads live
+models, and standalone durability uses the regular session backup mechanism.
+QRK owns site/page publication flags, current snapshot pointers, and history.

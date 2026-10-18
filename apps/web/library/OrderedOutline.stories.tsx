@@ -3,7 +3,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { OrderedOutline } from "./OrderedOutline";
 
 const meta = {
-  title: "Web/Outline Links",
+  title: "Web/OrderedOutline",
   component: OrderedOutline,
   parameters: {
     layout: "centered",

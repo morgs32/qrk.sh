@@ -1,13 +1,8 @@
-import { Space_Mono, Silkscreen } from "next/font/google";
+import { Space_Mono } from "next/font/google";
 import { Show } from "@clerk/nextjs";
 
 import { UnderlinedLink } from "@/components/UnderlinedLink";
 import { Wordmark } from "@/components/Wordmark";
-
-const silkscreen = Silkscreen({
-  subsets: ["latin"],
-  weight: "400",
-});
 
 const spaceMono = Space_Mono({
   subsets: ["latin"],
@@ -98,12 +93,8 @@ export default function HomePage() {
           }
           when="signed-in"
         >
-          <UnderlinedLink
-            className={`${silkscreen.className} font-bold text-[#E86F3A] no-underline! hover:underline! underline-offset-auto!`}
-            href="/replace"
-            size="lg"
-          >
-            DASHBOARD
+          <UnderlinedLink href="/replace" size="lg" variant="accent">
+            Dashboard
           </UnderlinedLink>
         </Show>
       </header>

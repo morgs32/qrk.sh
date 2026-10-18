@@ -8,6 +8,7 @@ import {
   Link,
 } from "@tanstack/react-router";
 import { Drawers } from "./Drawers";
+import "./styles.css";
 window.events = [];
 const root = createRootRoute({
   component: () => (

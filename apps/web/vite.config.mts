@@ -2,24 +2,15 @@ import { defineConfig } from "vite-plus";
 
 export default defineConfig({
   lint: {
+    jsPlugins: ["./lint/nextLinkPlugin.mjs"],
     rules: {
-      "no-restricted-imports": [
-        "error",
-        {
-          paths: [
-            {
-              name: "next/link",
-              message: "Use Wordmark or UnderlinedLink instead.",
-            },
-          ],
-        },
-      ],
+      "qrk/next-link-composition": "error",
     },
     overrides: [
       {
         files: ["components/Wordmark.tsx", "components/UnderlinedLink.tsx"],
         rules: {
-          "no-restricted-imports": "off",
+          "qrk/next-link-composition": "off",
         },
       },
     ],

@@ -1,6 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-
-import { UnderlinedLink } from "../UnderlinedLink";
+import Link from "next/link";
 
 import { Button } from "./button";
 
@@ -12,7 +11,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "Reusable `Button` from `components/ui/button.tsx`. Use `asChild` with `UnderlinedLink` and override its text size and underline to retain the button styles.",
+          "Reusable `Button` from `components/ui/button.tsx`. Use `asChild` with Next.js `Link` for navigation with button styles.",
       },
     },
   },
@@ -37,16 +36,7 @@ const meta = {
     const { children, ...buttonProps } = props;
     return (
       <Button {...buttonProps} asChild>
-        <UnderlinedLink
-          className={
-            buttonProps.variant === "link"
-              ? "text-sm! no-underline! hover:underline!"
-              : "text-sm! no-underline!"
-          }
-          href="/replace"
-        >
-          {children}
-        </UnderlinedLink>
+        <Link href="/replace">{children}</Link>
       </Button>
     );
   },
@@ -59,27 +49,27 @@ export const AllVariants = {
     docs: {
       source: {
         language: "tsx",
-        code: `import { UnderlinedLink } from "@/components/UnderlinedLink";
+        code: `import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
 <div className="flex flex-wrap items-center gap-4">
   <Button asChild>
-    <UnderlinedLink className="text-sm! no-underline!" href="/replace">Default</UnderlinedLink>
+    <Link href="/replace">Default</Link>
   </Button>
   <Button asChild variant="destructive">
-    <UnderlinedLink className="text-sm! no-underline!" href="/replace">Destructive</UnderlinedLink>
+    <Link href="/replace">Destructive</Link>
   </Button>
   <Button asChild variant="outline">
-    <UnderlinedLink className="text-sm! no-underline!" href="/replace">Outline</UnderlinedLink>
+    <Link href="/replace">Outline</Link>
   </Button>
   <Button asChild variant="secondary">
-    <UnderlinedLink className="text-sm! no-underline!" href="/replace">Secondary</UnderlinedLink>
+    <Link href="/replace">Secondary</Link>
   </Button>
   <Button asChild variant="ghost">
-    <UnderlinedLink className="text-sm! no-underline!" href="/replace">Ghost</UnderlinedLink>
+    <Link href="/replace">Ghost</Link>
   </Button>
   <Button asChild variant="link">
-    <UnderlinedLink className="text-sm! no-underline! hover:underline!" href="/replace">Link</UnderlinedLink>
+    <Link href="/replace">Link</Link>
   </Button>
 </div>`,
       },
@@ -88,34 +78,22 @@ import { Button } from "@/components/ui/button";
   render: () => (
     <div className="flex flex-wrap items-center gap-4">
       <Button asChild>
-        <UnderlinedLink className="text-sm! no-underline!" href="/replace">
-          Default
-        </UnderlinedLink>
+        <Link href="/replace">Default</Link>
       </Button>
       <Button asChild variant="destructive">
-        <UnderlinedLink className="text-sm! no-underline!" href="/replace">
-          Destructive
-        </UnderlinedLink>
+        <Link href="/replace">Destructive</Link>
       </Button>
       <Button asChild variant="outline">
-        <UnderlinedLink className="text-sm! no-underline!" href="/replace">
-          Outline
-        </UnderlinedLink>
+        <Link href="/replace">Outline</Link>
       </Button>
       <Button asChild variant="secondary">
-        <UnderlinedLink className="text-sm! no-underline!" href="/replace">
-          Secondary
-        </UnderlinedLink>
+        <Link href="/replace">Secondary</Link>
       </Button>
       <Button asChild variant="ghost">
-        <UnderlinedLink className="text-sm! no-underline!" href="/replace">
-          Ghost
-        </UnderlinedLink>
+        <Link href="/replace">Ghost</Link>
       </Button>
       <Button asChild variant="link">
-        <UnderlinedLink className="text-sm! no-underline! hover:underline!" href="/replace">
-          Link
-        </UnderlinedLink>
+        <Link href="/replace">Link</Link>
       </Button>
     </div>
   ),
@@ -126,23 +104,23 @@ export const Sizes = {
     docs: {
       source: {
         language: "tsx",
-        code: `import { UnderlinedLink } from "@/components/UnderlinedLink";
+        code: `import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
 <div className="flex flex-wrap items-center gap-4">
   <Button asChild size="sm">
-    <UnderlinedLink className="text-sm! no-underline!" href="/replace">Small</UnderlinedLink>
+    <Link href="/replace">Small</Link>
   </Button>
   <Button asChild>
-    <UnderlinedLink className="text-sm! no-underline!" href="/replace">Default</UnderlinedLink>
+    <Link href="/replace">Default</Link>
   </Button>
   <Button asChild size="lg">
-    <UnderlinedLink className="text-sm! no-underline!" href="/replace">Large</UnderlinedLink>
+    <Link href="/replace">Large</Link>
   </Button>
   <Button asChild size="icon">
-    <UnderlinedLink aria-label="Open Dashboard" className="text-sm! no-underline!" href="/replace">
+    <Link aria-label="Open Dashboard" href="/replace">
       →
-    </UnderlinedLink>
+    </Link>
   </Button>
 </div>`,
       },
@@ -151,28 +129,18 @@ import { Button } from "@/components/ui/button";
   render: () => (
     <div className="flex flex-wrap items-center gap-4">
       <Button asChild size="sm">
-        <UnderlinedLink className="text-sm! no-underline!" href="/replace">
-          Small
-        </UnderlinedLink>
+        <Link href="/replace">Small</Link>
       </Button>
       <Button asChild>
-        <UnderlinedLink className="text-sm! no-underline!" href="/replace">
-          Default
-        </UnderlinedLink>
+        <Link href="/replace">Default</Link>
       </Button>
       <Button asChild size="lg">
-        <UnderlinedLink className="text-sm! no-underline!" href="/replace">
-          Large
-        </UnderlinedLink>
+        <Link href="/replace">Large</Link>
       </Button>
       <Button asChild size="icon">
-        <UnderlinedLink
-          aria-label="Open Dashboard"
-          className="text-sm! no-underline!"
-          href="/replace"
-        >
+        <Link aria-label="Open Dashboard" href="/replace">
           →
-        </UnderlinedLink>
+        </Link>
       </Button>
     </div>
   ),
@@ -183,11 +151,11 @@ export const Playground = {
     docs: {
       source: {
         language: "tsx",
-        code: `import { UnderlinedLink } from "@/components/UnderlinedLink";
+        code: `import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
 <Button asChild variant="default" size="default">
-  <UnderlinedLink className="text-sm! no-underline!" href="/replace">Dashboard</UnderlinedLink>
+  <Link href="/replace">Dashboard</Link>
 </Button>`,
       },
     },

@@ -5,7 +5,7 @@ import { UnderlinedLink } from "../components/UnderlinedLink";
 import { OrderedBody, OrderedBodyHeading } from "./OrderedBody";
 
 const meta = {
-  title: "Web/Ordered Body",
+  title: "Web/OrderedBody",
   component: OrderedBody,
   parameters: {
     layout: "padded",

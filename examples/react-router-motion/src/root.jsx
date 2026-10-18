@@ -1,6 +1,7 @@
 import React from "react";
 import { Links, Meta, Scripts } from "react-router";
 import { Workspace } from "./Workspace";
+import "./styles.css";
 
 export function Layout({ children }) {
   return (

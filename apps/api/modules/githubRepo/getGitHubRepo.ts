@@ -1,5 +1,5 @@
 import { readRpcEnvelope } from "@zerospin/core/utils/readRpcEnvelope";
-import { catchZerospinError } from "@zerospin/error";
+import { ensureZerospinError } from "@zerospin/error";
 import { Effect } from "effect";
 
 import { BackendRepo } from "../../BackendRepo";
@@ -18,7 +18,7 @@ export const getGitHubRepo = Effect.fn("getGitHubRepo")(function* (props: {
     Effect.flatMap((backend) =>
       Effect.tryPromise({
         try: () => backend.storeResponse({ key, payload }),
-        catch: catchZerospinError({ code: "backend-response-retention-failed" }),
+        catch: (error) => ensureZerospinError({ code: "backend-response-retention-failed", error }),
       }),
     ),
     Effect.flatMap(readRpcEnvelope),

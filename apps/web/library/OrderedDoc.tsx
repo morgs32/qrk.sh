@@ -13,13 +13,13 @@ import { cn } from "cn";
 
 import { OrderedBodyHeading } from "./OrderedBody";
 
-export type OrderedDocSection = {
+export type IOrderedDocSection = {
   label: string;
   tone: string;
-  children?: Array<OrderedDocSection>;
+  children?: Array<IOrderedDocSection>;
 };
 
-type OrderedDocEntry = {
+type IOrderedDocEntry = {
   id: string;
   parentId: string | null;
   label: string;
@@ -27,17 +27,17 @@ type OrderedDocEntry = {
   order: number;
 };
 
-export type OrderedDocStore = {
+export type IOrderedDocStore = {
   register: (id: string, parentId: string | null, label: string, tone: string) => void;
   unregister: (id: string) => void;
   subscribe: (listener: () => void) => () => void;
-  getSnapshot: () => Array<OrderedDocSection>;
+  getSnapshot: () => Array<IOrderedDocSection>;
 };
 
-const OrderedDocStoreContext = createContext<OrderedDocStore | null>(null);
+const OrderedDocStoreContext = createContext<IOrderedDocStore | null>(null);
 const OrderedSectionParentContext = createContext<string | null>(null);
 
-const emptySections: Array<OrderedDocSection> = [];
+const emptySections: Array<IOrderedDocSection> = [];
 
 function subscribeNoop() {
   return () => {};
@@ -47,8 +47,8 @@ function getEmptySections() {
   return emptySections;
 }
 
-function buildSectionTree(entries: Map<string, OrderedDocEntry>): Array<OrderedDocSection> {
-  const byParent = new Map<string | null, Array<OrderedDocEntry>>();
+function buildSectionTree(entries: Map<string, IOrderedDocEntry>): Array<IOrderedDocSection> {
+  const byParent = new Map<string | null, Array<IOrderedDocEntry>>();
   for (const entry of entries.values()) {
     const siblings = byParent.get(entry.parentId);
     if (siblings === undefined) {
@@ -61,7 +61,7 @@ function buildSectionTree(entries: Map<string, OrderedDocEntry>): Array<OrderedD
     siblings.sort((left, right) => left.order - right.order);
   }
 
-  function walk(parentId: string | null): Array<OrderedDocSection> {
+  function walk(parentId: string | null): Array<IOrderedDocSection> {
     const siblings = byParent.get(parentId);
     if (siblings === undefined) {
       return [];
@@ -78,11 +78,11 @@ function buildSectionTree(entries: Map<string, OrderedDocEntry>): Array<OrderedD
   return walk(null);
 }
 
-function createOrderedDocStore(): OrderedDocStore {
-  const entries = new Map<string, OrderedDocEntry>();
+function createOrderedDocStore(): IOrderedDocStore {
+  const entries = new Map<string, IOrderedDocEntry>();
   const listeners = new Set<() => void>();
   let orderCounter = 0;
-  let snapshot: Array<OrderedDocSection> = emptySections;
+  let snapshot: Array<IOrderedDocSection> = emptySections;
   let notifyScheduled = false;
 
   function rebuildSnapshot() {
@@ -151,7 +151,7 @@ export function OrderedDoc(props: { children: ReactNode }) {
   return <OrderedDocStoreContext value={store}>{props.children}</OrderedDocStoreContext>;
 }
 
-export function useOrderedDocSections(): Array<OrderedDocSection> {
+export function useOrderedDocSections(): Array<IOrderedDocSection> {
   const store = useContext(OrderedDocStoreContext);
   return useSyncExternalStore(
     store === null ? subscribeNoop : store.subscribe,

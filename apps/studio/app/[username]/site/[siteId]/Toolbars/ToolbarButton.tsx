@@ -10,14 +10,14 @@ import { cn } from "cn";
 const toolbarButtonClassName =
   "inline-flex h-8 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-2 text-sm font-medium text-muted-foreground transition-colors outline-none hover:text-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0";
 
-type ToolbarButtonLegacyProps = {
+type IToolbarButtonLegacyProps = {
   tooltip?: string;
   children: React.ReactNode;
   label?: never;
   icon?: never;
 } & Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "children">;
 
-type ToolbarButtonLabeledProps = {
+type IToolbarButtonLabeledProps = {
   label: string;
   icon: React.ReactNode;
   isActive?: boolean;
@@ -30,9 +30,9 @@ type ToolbarButtonLabeledProps = {
   children?: never;
 } & Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "children">;
 
-type ToolbarButtonProps = ToolbarButtonLegacyProps | ToolbarButtonLabeledProps;
+type IToolbarButtonProps = IToolbarButtonLegacyProps | IToolbarButtonLabeledProps;
 
-function isLabeledToolbarButton(props: ToolbarButtonProps): props is ToolbarButtonLabeledProps {
+function isLabeledToolbarButton(props: IToolbarButtonProps): props is IToolbarButtonLabeledProps {
   return "label" in props && "icon" in props;
 }
 
@@ -48,7 +48,7 @@ function ToolbarLabeledButton({
   showTooltip = false,
   className,
   ...rest
-}: ToolbarButtonLabeledProps) {
+}: IToolbarButtonLabeledProps) {
   const displayLabel = isActive && activeLabel !== undefined ? activeLabel : label;
   const displayIcon = isActive && activeIcon !== undefined ? activeIcon : icon;
   const tip = tooltip ?? displayLabel;
@@ -94,7 +94,7 @@ function ToolbarLabeledButton({
   );
 }
 
-export function ToolbarButton(props: ToolbarButtonProps) {
+export function ToolbarButton(props: IToolbarButtonProps) {
   if (isLabeledToolbarButton(props)) {
     return <ToolbarLabeledButton {...props} />;
   }

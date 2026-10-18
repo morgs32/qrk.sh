@@ -2,7 +2,9 @@
 
 `zerospin.config.ts` exports the authored system with its existing
 `sys_qrk_sh_1` identity. Zerospin generates the backend Wrangler configuration,
-Worker entrypoint, and bindings. The derived Worker name is `zerospin-qrk-sh`.
+Worker entrypoint, and bindings. The installed CLI's default Worker name is
+`qrk-sh-zerospin`; production explicitly uses `qrk-zerospin` without changing
+the logical system name.
 
 Put local authentication settings in this directory's `.env.local` (see
 `.env.example`). The CLI discovers environment files from this project root.
@@ -12,7 +14,7 @@ Run local development from the repository root:
 pnpm nx run @qrk.sh/zerospin:dev
 ```
 
-QRK installs the CLI and runtime packages at `13.0.0` from the populated local
+QRK installs the CLI and runtime packages at `14.0.0` from the populated local
 registry described in the [root README](../../README.md#zerospin-packages). Nx
 builds QRK's reusable Library before backend development; it does not
 rebuild installed Zerospin files.
@@ -21,9 +23,66 @@ Repository tests and standalone automated checks are deferred until a test
 structure is agreed. Avoid integration testing of this Zerospin backend; the
 future end-to-end compatibility suite is deferred (see root `AGENTS.md`).
 
+## Production
+
+Cloudflare account **Morgan at Work** hosts Worker `qrk-zerospin` at
+`https://qrk-zerospin.morganatwork.workers.dev`. It retains logical system
+`qrk-sh` and system ID `sys_qrk_sh_1`. This is fresh production Durable Object
+storage, separate from local `.wrangler` state. The first deployment accepted
+the authored specification, initialized the system, and returned `healthy`
+from the administrative healthcheck on October 18, 2026.
+
+The Custom Domain `https://zerospin.qrk.sh` routes directly to this Worker.
+Cloudflare manages its DNS and certificate.
+
+The ignored `.env.production` stores production framework and Clerk keys with
+file mode `0600`; keep it separate from local development settings. The Worker
+has these bindings:
+
+- `ZEROSPIN_ENVIRONMENT=production` and `ZEROSPIN_SYSTEM_ID=sys_qrk_sh_1`.
+- `CLERK_AUTHORIZED_PARTY=https://qrk.sh`.
+- Secrets `ZEROSPIN_PUBLISHABLE_KEY`, `ZEROSPIN_SECRET_KEY`, and `CLERK_SECRET_KEY`.
+
+Studio's production build uses `https://zerospin.qrk.sh` and the matching
+publishable key. Keep the server secret and Clerk secret out of frontend public
+variables.
+The separate uploads/module API is deployed as `qrk-api`; see its
+[production configuration](../api/README.md#production).
+
+The installed `zerospin deploy` command has no Worker-name override. For this
+production name, load the authored config and generate a temporary Wrangler
+configuration with the public `@zerospin/dev-worker/makeWranglerConfig` export,
+using the installed `@zerospin/production-worker/ProductionWorker` entrypoint
+and `environment: "production"`. Preserve its generated aliases, version
+metadata, migrations, and Durable Object bindings. Set only its deployment
+`name` to `qrk-zerospin`, the account ID to
+`4b0ca6b8e3a6fe721318c9de65b5f29d`, `workers_dev` to `true`, and the Clerk
+authorized-party variable above. Preserve
+`routes: [{ pattern: "zerospin.qrk.sh", custom_domain: true }]` in the generated
+production configuration so future deployments retain the Custom Domain.
+Upload the three secrets from a protected JSON
+file with Wrangler's additive `--secrets-file` option:
+
+```sh
+pnpm exec wrangler deploy --config <generated-production-config.json> \
+  --env-file <empty-env-file> --secrets-file <protected-secrets.json>
+```
+
+Run from this package in an isolated copy matching the frontend source. The
+explicit empty environment file keeps local environment files out of the
+deployment. Do not use the default CLI deployment name for this Worker.
+
+Complete installation through the public administrative `getSystemApi`,
+providing `ZerospinApiUrl` and a redacted `SecretKey`: accept the specification
+with `acceptSystemSpec()`, wait for `getExecutingWorkerVersion()` to match the
+uploaded version, then call `initialize()` and `healthcheck()`. These are
+deployment lifecycle operations; no application data or integration-test
+fixtures are created. Accepted definition locks remain durable if a later
+initialization step fails. Do not reset or seed production storage to retry.
+
 ## Server aggregate reads
 
-Core `13.0.0` provides the server-only
+Core `14.0.0` provides the server-only
 `@zerospin/core/utils/getSystemApi/getSystemApi` client. Supply
 `ZerospinApiUrl` and `SecretKey` (`Redacted<string>`) in the application's Effect
 layer, then acquire it with `yield* getSystemApi()`. Construct a connection-free
@@ -106,7 +165,7 @@ query database and row selections. Wall, Brick, Placement, and their editing con
 creates that deterministic wall and the Page in one command. Legacy Grid/Brick
 snapshot contracts have been removed. There is no migration or lazy wall provisioning.
 Existing Studio browser databases remain untouched by this code cutover.
-Studio's `userSessionRelease` uses the matching V2 web actor. Its `UserApp.Initializer`
+Studio's `userBrowserRelease` uses the matching V2 web actor. Its `UserApp.Initializer`
 owns initialization and disposal for each Clerk identity. Models live under `aggregates/user/models/<model>/`,
 and contracts under `aggregates/user/contracts/<command>/`.
 

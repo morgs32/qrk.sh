@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 
 import { followOrderedBodyHash, orderedBodyHeadingId } from "./OrderedBody";
-import { useOrderedDocSections, type OrderedDocSection } from "./OrderedDoc";
+import { useOrderedDocSections, type IOrderedDocSection } from "./OrderedDoc";
 
 const listItemBaseClassName =
   "relative whitespace-nowrap [counter-increment:item] before:absolute before:right-[calc(100%+0.65rem)] before:text-neutral-400";
@@ -24,7 +24,7 @@ function ListItem(props: { children: ReactNode; tone: string; level: 1 | 2 | 3 }
   );
 }
 
-function OutlineSections(props: { sections: Array<OrderedDocSection> }) {
+function OutlineSections(props: { sections: Array<IOrderedDocSection> }) {
   return (
     <ol className="m-0 list-none p-0 [counter-reset:item]">
       {props.sections.map((section) => {
@@ -60,7 +60,7 @@ function OutlineSections(props: { sections: Array<OrderedDocSection> }) {
   );
 }
 
-export function OrderedOutline(props: { sections?: Array<OrderedDocSection> }) {
+export function OrderedOutline(props: { sections?: Array<IOrderedDocSection> }) {
   const registeredSections = useOrderedDocSections();
   const sections = props.sections ?? registeredSections;
 

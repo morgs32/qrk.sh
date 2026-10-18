@@ -16,7 +16,7 @@
   ],
   "vars": {
     // Local/Miniflare: path is resolved against the Worker origin → GET /assets/*.
-    // Production deploy must set the real public R2 host (e.g. https://pub-….r2.dev).
+    // Production serves public objects through the API Worker's /assets route.
     "R2_PUBLIC_BASE_URL": "/assets",
     "CLERK_AUTHORIZED_PARTY": "http://127.0.0.1:3001",
   },
@@ -42,4 +42,43 @@
       "deleted_classes": ["StreamlineBackend"],
     },
   ],
+  "env": {
+    "production": {
+      "name": "qrk-api",
+      "account_id": "4b0ca6b8e3a6fe721318c9de65b5f29d",
+      "workers_dev": true,
+      "routes": [{ "pattern": "api.qrk.sh", "custom_domain": true }],
+      "vars": {
+        "R2_PUBLIC_BASE_URL": "https://api.qrk.sh/assets",
+        "CLERK_AUTHORIZED_PARTY": "https://qrk.sh",
+      },
+      "r2_buckets": [
+        { "binding": "QRKSH", "bucket_name": "qrksh" },
+        { "binding": "ASSETS", "bucket_name": "assets" },
+      ],
+      "browser": { "binding": "BROWSER", "remote": true },
+      "durable_objects": {
+        "bindings": [
+          { "name": "BROWSER_HOST", "class_name": "BrowserHost" },
+          { "name": "BACKEND_REPO", "class_name": "BackendRepo" },
+          { "name": "FIGMA_BACKEND", "class_name": "FigmaBackend" },
+          { "name": "GOOGLE_PLACES_BACKEND", "class_name": "GooglePlacesBackend" },
+          { "name": "LINK_BACKEND", "class_name": "LinkBackend" },
+        ],
+      },
+      "migrations": [
+        {
+          // Fresh production namespaces use SQLite; local migration history stays above.
+          "tag": "v1",
+          "new_sqlite_classes": [
+            "BrowserHost",
+            "BackendRepo",
+            "FigmaBackend",
+            "GooglePlacesBackend",
+            "LinkBackend",
+          ],
+        },
+      ],
+    },
+  },
 }

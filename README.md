@@ -3,7 +3,7 @@
 ## Zerospin packages
 
 Zerospin owns its source, builds, and releases in the sibling `../zerospin`
-checkout. QRK installs exact `13.0.0` packages from the local Verdaccio registry;
+checkout. QRK installs exact `14.0.0` packages from the local Verdaccio registry;
 there is no vendored Zerospin source or consumer-side Zerospin build.
 
 The credential-free project `.npmrc` routes all dependencies through
@@ -86,7 +86,7 @@ More detail and test patterns: [docs/styleguide/component-and-file-naming.md](do
    On the first registry bootstrap, install, build, verify, and publish the
    release in Zerospin before installing QRK. Follow Zerospin's package release
    instructions. Existing registry storage survives restarts. A fresh checkout
-   requires the running registry with the locked `13.0.0` packages; hosted
+   requires the running registry with the locked `14.0.0` packages; hosted
    distribution and deployment-machine bootstrap are not configured here.
 
 2. Start the homepage:
@@ -108,7 +108,7 @@ and [Library fresh-origin check](apps/library/README.md) instructions. Supersede
 retained commands and SQLite schemas require empty storage; old data is preserved
 separately and has no compatibility migration.
 
-Studio's `userSessionRelease` uses the installed browser package's
+Studio's `userBrowserRelease` uses the installed browser package's
 `makeAggregateBrowserRelease` with its pure `userSessionDeclaration` and authored
 `node.worker.ts` entrypoint. `makeApplicationSharedWorker` binds the worker artifact
 to the connected session.
@@ -212,6 +212,109 @@ the remaining port 443 verification.
 
 ## Deployment
 
-Deploy both Next.js apps and route `/`, `/sign-in(.*)`, `/sign-up(.*)`, `/replace`, `/ordered-body`, and `/ordered-outline` to `@qrk.sh/web`; route the remaining application paths to `@qrk.sh/studio`.
+Deploy both Next.js apps and route `/`, `/sign-in(.*)`, `/sign-up(.*)`, `/privacy`, `/terms`, `/replace`, `/ordered-body`, and `/ordered-outline` to `@qrk.sh/web`; route the remaining application paths to `@qrk.sh/studio`.
 
 Preserve the `/studio-static/` and `/assets/` proxy routes in production.
+
+Vercel hosts the frontends in the `morganatwork` team:
+
+- Web: [qrk-web.vercel.app](https://qrk-web.vercel.app), project `qrk-web`, root `apps/web`.
+- Studio: [qrk-studio.vercel.app](https://qrk-studio.vercel.app), project `qrk-studio`, root `apps/studio`.
+
+The custom domain [qrk.sh](https://qrk.sh) is attached to `qrk-web`. Cloudflare
+remains authoritative for DNS: its apex `CNAME` points to
+`e9746fc558e89321.vercel-dns-017.com` with **DNS only** proxy status and automatic
+TTL. Cloudflare flattens the apex alias; Vercel serves the site and manages HTTPS.
+
+Web's production `APP_ORIGIN` points to `https://qrk-studio.vercel.app`.
+Each project's build command runs its existing Nx `build` target, retaining
+Studio's Webpack configuration.
+
+Deploy locally built output because Vercel cannot reach the local package
+registry. Use an isolated checkout copy containing the current source, installed
+dependencies, and each app's `.env.local` so builds leave running development
+apps intact. From that copy's monorepo root, select one project:
+
+```sh
+vercel pull --project qrk-studio --environment production --yes
+```
+
+With dependencies already installed, set `settings.installCommand` to `""` in
+the copy's ignored `.vercel/project.json`, then run:
+
+```sh
+vercel build --prod --yes
+vercel deploy --prebuilt --prod --yes
+```
+
+Repeat with `--project qrk-web` in the pull command. Always use `--prebuilt`;
+hosted dependency installation is not configured.
+
+When saving or restoring `.vercel` output, preserve symlinks (`cp -a` or
+`shutil.copytree(..., symlinks=True)`). Next's shared function aliases must remain
+links; dereferencing them creates duplicate functions and can exceed Vercel's
+Hobby function limit. Ensure the snapshot's app-local environment files and
+Vercel production variables both use production Clerk keys before building.
+
+The deployed frontends use production Clerk credentials. Studio's production
+Zerospin endpoint is `https://zerospin.qrk.sh`, backed by
+Cloudflare Worker `qrk-zerospin` with logical system `qrk-sh` and system ID
+`sys_qrk_sh_1`. Its system specification is accepted and initialized; the
+administrative healthcheck returns `healthy`. Studio's production publishable
+key matches the Worker binding. See the [backend deployment notes](apps/zerospin/README.md#production).
+Cloudflare routes `https://zerospin.qrk.sh` directly to this Worker as a
+Custom Domain with managed DNS and HTTPS. The Worker's original
+`https://qrk-zerospin.morganatwork.workers.dev` endpoint remains available.
+
+The API is deployed as Cloudflare Worker `qrk-api` at
+`https://api.qrk.sh`, a Custom Domain with managed DNS and HTTPS. Studio's production
+`NEXT_PUBLIC_API_URL` uses that origin for uploads and `/rpc` forwarding.
+New public asset URLs use `https://api.qrk.sh/assets`; the original
+`https://qrk-api.morganatwork.workers.dev` endpoint remains available.
+Production Clerk authentication, provider secrets, R2 bindings, and SQLite
+Durable Object namespaces are configured. See [API's production deployment notes](apps/api/README.md#production).
+
+### Production authentication
+
+The existing **QRK.SH** Clerk application has a production instance for `qrk.sh`,
+cloned from development with required, immutable usernames. Its Frontend API is
+`https://clerk.qrk.sh`; its account portal is `https://accounts.qrk.sh`.
+Production Paths use `/sign-in`, `/sign-up`, and `/` for home/sign-out; the
+application retains `/replace` as its post-authentication destination.
+
+Cloudflare has these additional DNS-only CNAME records:
+
+| Host | Target |
+| --- | --- |
+| `clerk` | `frontend-api.clerk.services` |
+| `accounts` | `accounts.clerk.services` |
+| `clkmail` | `mail.jilsy98ve8hd.clerk.services` |
+| `clk._domainkey` | `dkim1.jilsy98ve8hd.clerk.services` |
+| `clk2._domainkey` | `dkim2.jilsy98ve8hd.clerk.services` |
+
+Clerk's production DNS, email configuration, and both certificates are verified.
+Google OAuth uses the existing `qrksh-com` project and the
+`QRK.SH Production (Clerk)` Web client, configured with JavaScript origin
+`https://qrk.sh` and redirect URI `https://clerk.qrk.sh/v1/oauth_callback`.
+Its credentials are saved in Clerk. The live `https://qrk.sh/sign-in` Google
+redirect was verified against that client and callback with only `openid`,
+email, and profile scopes; no Google account was selected or production user
+created during verification.
+
+Google's API Services User Data Policy was accepted with authorization, using
+the approved support/contact email. Its OAuth app is **In production** with an
+External audience. Branding uses homepage `https://qrk.sh`, privacy policy
+`https://qrk.sh/privacy`, and terms `https://qrk.sh/terms`. The approved legal
+pages are published and effective October 18, 2026, with links and a service
+description on the homepage.
+
+The legal pages, Google developer contact, and Clerk support email use
+`me@morganatwork.com`. Google's restricted user-support dropdown retains
+`morgan.intrator@gmail.com` with approval, because only that signed-in Google
+account is available. Clerk's public display configuration also contains the
+privacy and terms URLs; mandatory signup consent remains unchanged.
+
+Both Vercel projects' production variables and live builds use production Clerk
+keys. Their local prebuilt outputs passed and were deployed to production on
+October 18, 2026. OAuth client secrets belong in Clerk; do not commit them or
+put them in public frontend environment variables.

@@ -1,6 +1,6 @@
 import { RoutePattern } from "@remix-run/route-pattern";
 import { makeDbConfig } from "@zerospin/core/drizzle/make/makeDbConfig/makeDbConfig";
-import { catchZerospinError, type IZerospinErrorJson } from "@zerospin/error";
+import { ensureZerospinError, type IZerospinErrorJson } from "@zerospin/error";
 import { makeRpcEnvelope, type IRpcEnvelope } from "@zerospin/logger";
 import { makeTable, primitives } from "@zerospin/shapes";
 import { Effect, Layer, ManagedRuntime, Schema } from "effect";
@@ -54,10 +54,12 @@ export class BackendRepo extends backendRepo {
               })
               .run();
           },
-          catch: catchZerospinError({ code: "backend-response-store-failed" }),
+          catch: (error) => ensureZerospinError({ code: "backend-response-store-failed", error }),
         });
       }).pipe(
-        Effect.mapError(catchZerospinError({ code: "backend-response-store-failed" })),
+        Effect.mapError((error) =>
+          ensureZerospinError({ code: "backend-response-store-failed", error }),
+        ),
         (program) => makeRpcEnvelope(program),
       ),
     );

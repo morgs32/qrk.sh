@@ -1,7 +1,7 @@
 import { isBreakpointId, resolveBreakpointEntry } from "./breakpoints";
 
 /** Env vars and secrets for the measurement Worker. */
-interface Env {
+interface IEnv {
   CLOUDFLARE_ACCOUNT_ID: string;
   PUBLIC_EXAMPLE_ORIGIN: string;
   BROWSER_RENDERING_API_TOKEN?: string;
@@ -22,7 +22,7 @@ function readFiniteNumber(value: unknown) {
   return value;
 }
 
-async function measureWithKitesurf(env: Env, breakpoint: string) {
+async function measureWithKitesurf(env: IEnv, breakpoint: string) {
   const entry = resolveBreakpointEntry(breakpoint);
   if (entry === undefined || !isBreakpointId(breakpoint)) {
     return jsonResponse(
@@ -197,7 +197,7 @@ async function measureWithKitesurf(env: Env, breakpoint: string) {
 
 // oxlint-disable-next-line import/no-default-export -- Cloudflare Worker entrypoint
 export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
+  async fetch(request: Request, env: IEnv): Promise<Response> {
     const url = new URL(request.url);
     if (url.pathname !== "/measure") {
       return new Response("Not found", { status: 404 });

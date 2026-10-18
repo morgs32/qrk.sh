@@ -45,6 +45,53 @@ The historical `BrowserHost`, `BROWSER` binding, and migration registrations rem
 intact, but normal Instagram lookups do not invoke them. `BROWSER` retains
 `remote: true`; no Instagram login is configured.
 
+## Production
+
+Cloudflare account **Morgan at Work** hosts `qrk-api` at
+`https://api.qrk.sh`. Its Custom Domain supplies managed DNS and HTTPS;
+`https://qrk-api.morganatwork.workers.dev` remains available. Studio's production
+build uses the custom origin as `NEXT_PUBLIC_API_URL`, both for direct authenticated uploads and for
+its same-origin `/rpc` rewrite. Web forwards application requests to Studio's
+stable Vercel alias. The existing production Clerk and Zerospin configuration
+remains separate.
+
+`wrangler.jsonc` has a `production` environment with the explicit Worker name,
+an `api.qrk.sh` route with `custom_domain: true`,
+`CLERK_AUTHORIZED_PARTY=https://qrk.sh`, and
+`R2_PUBLIC_BASE_URL=https://api.qrk.sh/assets`. It binds the
+existing `qrksh` R2 bucket and the `assets` bucket created for this deployment.
+The Worker serves public asset URLs; no public R2 hostname is enabled or needed.
+Local uploads and local R2 state were not copied or changed.
+
+The production environment creates all five current Durable Object classes with
+a SQLite `v1` migration. The default environment retains its historical local
+`v1`/`v2` migrations. Production's first namespace creation uses SQLite because
+this account cannot create legacy key-value namespaces; see
+[Cloudflare's storage-backend requirement](https://developers.cloudflare.com/changelog/post/2026-07-09-restrict-new-kv-backed-namespaces/).
+No production `StreamlineBackend` namespace is created or deleted.
+
+The ignored, mode-`0600` `.env.production` holds the production Clerk secret and
+the five active provider secrets listed above. `STREAMLINE_API_KEY` is unused
+and was not uploaded. Deploy from an isolated copy of the current source:
+
+```sh
+pnpm exec wrangler deploy --env production \
+  --env-file <empty-env-file> --secrets-file <protected-secrets.json>
+```
+
+The protected JSON file supplies `CLERK_SECRET_KEY`, `GITHUB_TOKEN`,
+`APIFY_API_TOKEN`, `FIGMA_TOKEN`, `GOOGLE_PLACES_API_KEY`, and `OPENAI_API_KEY`.
+The explicit empty environment file prevents local development credentials
+from entering the production deployment. Regenerate bindings with the existing
+Nx `types` target after changing configuration. Rebuild and redeploy Studio
+after changing its production API URL; retain its other production variables.
+
+Deployment verification used the bundled, read-only icon lookup directly and
+through Studio's `/rpc` rewrite, QRK's upload preflight, missing-authorization
+rejection, and an R2 missing-object read. No user account, uploaded fixture, or
+provider request was created. Provider credential validity and quota, and a
+signed-in upload, were not exercised by these probes.
+
 ## Routes and ownership
 
 | Route                | Behavior                                                     |

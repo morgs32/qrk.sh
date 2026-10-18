@@ -4,7 +4,7 @@ import { encodeCommand } from "@zerospin/core/contracts/encodeCommand";
 import { resolveFailure } from "@zerospin/core/contracts/failureCodec";
 import { makeId } from "@zerospin/core/models/make/makeId";
 import { readRpcEnvelope } from "@zerospin/core/utils/readRpcEnvelope";
-import { catchZerospinError, ZerospinError } from "@zerospin/error";
+import { ensureZerospinError, ZerospinError } from "@zerospin/error";
 import { Effect } from "effect";
 import type { AggregateChain } from "system-worker";
 
@@ -45,7 +45,7 @@ export const provisionAuthenticatedUser = Effect.fn("provisionAuthenticatedUser"
       });
       const envelope = yield* Effect.tryPromise({
         try: () => chain.executeAggregateCommand({ command }),
-        catch: catchZerospinError({ code: "user-provisioning-failed" }),
+        catch: (error) => ensureZerospinError({ code: "user-provisioning-failed", error }),
       });
       const result = yield* readRpcEnvelope(envelope).pipe(
         Effect.mapError((failure) =>

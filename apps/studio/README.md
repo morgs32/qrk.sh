@@ -24,7 +24,7 @@ Web listens on port 3000 and proxies Studio routes to `APP_ORIGIN` (default `htt
 Studio's Next chunks, fonts, worker, and WASM use `/studio-static/_next/`. Web excludes that namespace from authentication and proxies it to Studio. Referenced `/assets/` public files have explicit mappings in Studio's Next configuration; missing files return 404. There is no Vite module or HMR routing.
 
 Studio resolves the SharedWorker and browser SQLite WASM from installed
-`13.0.0` package exports. `userSessionDeclaration` is shared by
+`14.0.0` package exports. `userSessionDeclaration` is shared by
 `makeAggregateBrowserRelease` and the authored `node.worker.ts` entrypoint.
 `makeApplicationSharedWorker` binds that emitted worker artifact to the session.
 The Next configuration recognizes the local `applicationWorker.create` method
@@ -40,7 +40,7 @@ Superseded retained command rows require empty backend storage. Preserve the old
 directory using the quarantine procedure in the [backend README](../zerospin/README.md)
 before starting the current runtime. Existing browser backups remain untouched.
 
-`build` writes `.next`; `start` runs the Next production server on port 3001 (`PORT` overrides it). Production must run both Next applications and preserve these proxy routes. Deployment is not configured here.
+`build` writes `.next`; `start` runs the Next production server on port 3001 (`PORT` overrides it). Vercel hosts Studio at [qrk-studio.vercel.app](https://qrk-studio.vercel.app), with Web forwarding application and asset routes to it. Follow the [local prebuilt deployment procedure](../../README.md#deployment); hosted dependency installation remains unconfigured. The production API and Zerospin backends are deployed as described below.
 
 Keep `.next` between development runs so Webpack can reuse its filesystem cache.
 Existing Library stylesheet imports retain their order; `/article-editor.css`
@@ -60,7 +60,18 @@ Clerk uses its Next.js integration; nuqs uses its Next App Router adapter. Sign-
 
 Studio uses `clerkUserId` directly as the user `aggregateId`, matching the backend's verified Clerk token subject.
 
-QRK.SH's Clerk development instance has **Sign-up with username** and **Require username** enabled under **User & authentication → Username**, and **Allow users to change their username** disabled under **User model**. The existing web `<SignUp />` collects the required username, including during social sign-up completion; `/replace` then redirects to `/<username>`. Users choose their username once. Clerk owns this username; the setting does not populate QRK's currently null backend username field.
+Production builds use `NEXT_PUBLIC_ZEROSPIN_API_URL=https://zerospin.qrk.sh`
+and a `NEXT_PUBLIC_ZEROSPIN_PUBLISHABLE_KEY` matching that Worker's
+`ZEROSPIN_PUBLISHABLE_KEY`. Vercel's production variables and the isolated build
+environment supply both values; local development settings remain separate.
+The backend retains logical system `qrk-sh`, system ID `sys_qrk_sh_1`, and
+`CLERK_AUTHORIZED_PARTY=https://qrk.sh`. Its specification is accepted and the
+production system is initialized. Production `NEXT_PUBLIC_API_URL` is
+`https://api.qrk.sh`, supplying direct uploads and Studio's
+`/rpc` rewrite. Web continues forwarding to the stable Studio alias. Local
+development API settings remain unchanged.
+
+QRK.SH's Clerk development and production instances have **Sign-up with username** and **Require username** enabled under **User & authentication → Username**, and **Allow users to change their username** disabled under **User model**. The existing web `<SignUp />` collects the required username, including during social sign-up completion; `/replace` then redirects to `/<username>`. Users choose their username once. Clerk owns this username; the setting does not populate QRK's currently null backend username field. Production uses `clerk.qrk.sh`; its DNS/certificates and Google OAuth credentials are configured. Google is published to an External production audience, and both deployed frontends use production Clerk keys. The support email is `me@morganatwork.com`; see the [production authentication setup](../../README.md#production-authentication) for legal links and Google's restricted support-email exception.
 
 `lib/getClerkToken.ts` retrieves tokens through the current Clerk hook getter. It maps `ClerkOfflineError` to a typed `ZerospinError` with code `clerk-offline-error`, preserves other rejections as defects, and returns `null` unchanged for signed-out callers. Session credentials and Image/Site Settings uploads use this helper.
 
@@ -200,6 +211,6 @@ Drop or choose one nonempty PNG, JPEG, WebP, or SVG up to 5 MiB in the Image dra
 
 `EditorLayout` supplies `ImageUploadEnvironment.upload(file): Effect.Effect<string, Error>` through the existing Layer, session runner, and `ImageUploadRuntimeContext`. Studio owns the HTTP request: each invocation retrieves fresh Clerk credentials through `getClerkToken`, sends multipart file and current site ID to `/upload`, and decodes the untrusted success/error response before returning the image URL. A signed-out result fails visibly. Effect interruption reaches `fetch` through its AbortSignal. Image passes only its validated file and receives the URL, without knowing the endpoint, site ID, authorization header, multipart protocol, or response shape. The shared form contract carries no Image-specific upload props.
 
-Set `NEXT_PUBLIC_API_URL` to the unified `api` Worker origin; local development uses `http://127.0.0.1:8787`. Run `pnpm nx run @qrk.sh/api:dev` separately. The API Worker verifies the Clerk bearer token using `CLERK_SECRET_KEY` and `CLERK_AUTHORIZED_PARTY`, stores the bytes in its `QRKSH` R2 binding, and returns a URL built from `R2_PUBLIC_BASE_URL`. The configured authorized party and CORS origins must match the browser origin. `/assets` serves local R2 objects through the Worker; `/assets/library/*` uses the retained Library `ASSETS` bucket. Production can use the configured public R2 host. Clerk secrets stay on the Worker.
+Set `NEXT_PUBLIC_API_URL` to the unified API Worker origin; production uses `https://api.qrk.sh`, and local development uses `http://127.0.0.1:8787`. Run `pnpm nx run @qrk.sh/api:dev` separately for local development. The API Worker verifies the Clerk bearer token using `CLERK_SECRET_KEY` and `CLERK_AUTHORIZED_PARTY`, stores the bytes in its `QRKSH` R2 binding, and returns a URL built from `R2_PUBLIC_BASE_URL`. The configured authorized party and CORS origins must match the browser origin; production uses `https://qrk.sh`. Production upload URLs use `https://api.qrk.sh/assets`; `/assets/library/*` uses its `ASSETS` bucket. No public R2 bucket hostname is required. Clerk secrets stay on the Worker.
 
 Uploads write assets to R2 immediately. Cancel after an upload completes, or removing an image, does not delete the R2 object. File bytes and upload status are not part of the local brick backup. Article uploads remain disabled because its editor has no file-persistence handler; HTTP(S) Markdown images render and native resizing saves dimensions in Markdown comments. Automatic YouTube/X embeds and provider requests are disabled. Article documents are not converted; preserve old browser stores before the approved fresh-origin cutover.

@@ -1,6 +1,6 @@
 import { makePublicObjectUrl } from "@qrk.sh/r2-assets";
 import { readRpcEnvelope } from "@zerospin/core/utils/readRpcEnvelope";
-import { catchZerospinError } from "@zerospin/error";
+import { ensureZerospinError } from "@zerospin/error";
 import { Effect, Schema } from "effect";
 
 import { BackendRepo } from "../../BackendRepo";
@@ -231,7 +231,7 @@ export const getInstagramProfile = Effect.fn("getInstagramProfile")(function* (p
     Effect.flatMap((repo) =>
       Effect.tryPromise({
         try: () => repo.storeResponse({ key, payload }),
-        catch: catchZerospinError({ code: "backend-response-retention-failed" }),
+        catch: (error) => ensureZerospinError({ code: "backend-response-retention-failed", error }),
       }),
     ),
     Effect.flatMap(readRpcEnvelope),

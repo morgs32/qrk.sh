@@ -2,13 +2,13 @@
 
 import { RoutePattern } from "@remix-run/route-pattern";
 import { makeReactApp } from "@zerospin/react";
-import { librarySessionRelease } from "../session/createLibraryStandaloneSession";
+import { libraryBrowserRelease } from "../session/createLibraryStandaloneSession";
 import { prefixId } from "@zerospin/core/models/prefixId";
 import { libraryModule } from "../libraryModule/libraryModule";
 
 const fixtureDate = new Date("2026-01-01T00:00:00.000Z");
 
-export const LibraryApp = makeReactApp(librarySessionRelease);
+export const LibraryApp = makeReactApp(libraryBrowserRelease);
 
 export const librarySessionInputs = {
   backupPath: RoutePattern.parse("/qrk-library-command-query-v1"),

@@ -17,7 +17,7 @@ const fixtureDate = new Date("2026-01-01T00:00:00.000Z");
 // Webpack recognizes this local method as the application worker entrypoint.
 const applicationWorker = { create: makeApplicationSharedWorker };
 
-export const librarySessionRelease = makeStandaloneSessionRelease({
+export const libraryBrowserRelease = makeStandaloneSessionRelease({
   sessionRelease: librarySessionDeclaration,
   sharedWorker: (props) =>
     applicationWorker.create(new URL("./librarySession.worker.ts", import.meta.url), props),
@@ -26,10 +26,10 @@ export const librarySessionRelease = makeStandaloneSessionRelease({
 export function createLibraryStandaloneSession(props: {
   key: string;
   wallId: `wal_${string}`;
-}): IBrowserSession<typeof librarySessionRelease> {
+}): IBrowserSession<typeof libraryBrowserRelease> {
   const { key, wallId } = props;
   return makeBrowserSession({
-    sessionRelease: librarySessionRelease,
+    sessionRelease: libraryBrowserRelease,
     backupPath: RoutePattern.parse("/" + encodeURIComponent(key) + "-command-query-v1"),
     claims: { aggregateId: "acct_1" },
     resources: {

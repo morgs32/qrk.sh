@@ -129,12 +129,12 @@ const trimClassByBreakpoint = {
   },
 } as const;
 
-type TextSize = keyof (typeof sizeClassByBreakpoint)["initial"];
-type TextAlign = keyof (typeof alignClassByBreakpoint)["initial"];
-type TextWrap = keyof (typeof wrapClassByBreakpoint)["initial"];
-type TextTrim = keyof (typeof trimClassByBreakpoint)["initial"];
+type ITextSize = keyof (typeof sizeClassByBreakpoint)["initial"];
+type ITextAlign = keyof (typeof alignClassByBreakpoint)["initial"];
+type ITextWrap = keyof (typeof wrapClassByBreakpoint)["initial"];
+type ITextTrim = keyof (typeof trimClassByBreakpoint)["initial"];
 
-type ResponsiveValue<T extends string> =
+type IResponsiveValue<T extends string> =
   | T
   | {
       initial?: T;
@@ -144,7 +144,7 @@ type ResponsiveValue<T extends string> =
     };
 
 function responsiveClasses<T extends string>(
-  value: ResponsiveValue<T> | undefined,
+  value: IResponsiveValue<T> | undefined,
   map: {
     initial: Record<T, string>;
     md: Record<T, string>;
@@ -170,10 +170,10 @@ function responsiveClasses<T extends string>(
 
 export function Text(props: {
   as?: "span" | "div" | "label" | "p";
-  size?: ResponsiveValue<TextSize>;
-  align?: ResponsiveValue<TextAlign>;
-  wrap?: ResponsiveValue<TextWrap>;
-  trim?: ResponsiveValue<TextTrim>;
+  size?: IResponsiveValue<ITextSize>;
+  align?: IResponsiveValue<ITextAlign>;
+  wrap?: IResponsiveValue<ITextWrap>;
+  trim?: IResponsiveValue<ITextTrim>;
   className?: string;
   children?: ReactNode;
 }) {

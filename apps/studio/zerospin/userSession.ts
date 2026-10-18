@@ -19,7 +19,7 @@ if (!publishableKey)
 // Webpack recognizes this local method as the application worker entrypoint.
 const applicationWorker = { create: makeApplicationSharedWorker };
 
-export const userSessionRelease = makeAggregateBrowserRelease({
+export const userBrowserRelease = makeAggregateBrowserRelease({
   sessionRelease: userSessionDeclaration,
   credentialsSchema: signature,
   sharedWorker: (props) =>
@@ -30,4 +30,4 @@ export const userSessionRelease = makeAggregateBrowserRelease({
   ),
 });
 
-export const UserApp = makeReactApp(userSessionRelease);
+export const UserApp = makeReactApp(userBrowserRelease);

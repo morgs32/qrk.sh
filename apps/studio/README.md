@@ -37,8 +37,8 @@ Web listens on port 3000 and proxies Studio routes to `APP_ORIGIN` (default `htt
 Studio's Next chunks, fonts, worker, and WASM use `/studio-static/_next/`. Web excludes that namespace from authentication and proxies it to Studio. Referenced `/assets/` public files have explicit mappings in Studio's Next configuration; missing files return 404. There is no Vite module or HMR routing.
 
 Studio resolves the SharedWorker and browser SQLite WASM from installed
-`14.0.0` package exports. `userSessionDeclaration` is shared by
-`makeAggregateBrowserRelease` and the authored `node.worker.ts` entrypoint.
+`15.0.0` package exports. `userSessionDefinition` is shared by
+`makeAggregateBrowserDefinition` and the authored `node.worker.ts` entrypoint.
 `makeApplicationSharedWorker` binds that emitted worker artifact to the session.
 The Next configuration recognizes the local `applicationWorker.create` method
 as a worker entrypoint, compiling its full dependency graph. The method binds

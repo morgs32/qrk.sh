@@ -1,12 +1,11 @@
-import { makeAggregateSessionRelease } from "@zerospin/browser";
+import { makeAggregateSessionDefinition } from "@zerospin/browser";
 import { Schema } from "effect";
 
 import { libraryModule } from "../libraryModule/libraryModule";
 
 const claimsSchema = Schema.Struct({ aggregateId: Schema.String });
 
-export const librarySessionDeclaration = makeAggregateSessionRelease({
-  kind: "aggregate",
+export const librarySessionDefinition = makeAggregateSessionDefinition({
   systemName: "standalone",
   aggregateName: "library",
   aggregateVersion: "1.0.0",

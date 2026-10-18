@@ -4,21 +4,21 @@ import { createContext, useContext } from "react";
 
 import type {
   IAggregateSession,
-  IAggregateSessionRelease,
+  IAggregateSessionDefinition,
 } from "@zerospin/core/aggregateSession/types";
-import { makeBrowserSession, makeStandaloneSessionRelease } from "@zerospin/browser";
+import { makeBrowserSession, makeStandaloneSessionDefinition } from "@zerospin/browser";
 import type { IBrowserSession } from "@zerospin/browser/makeBrowserSession/types";
 
 import { libraryModule } from "../libraryModule/libraryModule";
-import { librarySessionDeclaration } from "./librarySessionDeclaration";
+import { librarySessionDefinition } from "./librarySessionDefinition";
 
 const fixtureDate = new Date("2026-01-01T00:00:00.000Z");
 
 // Webpack recognizes this local method as the application worker entrypoint.
 const applicationWorker = { create: makeApplicationSharedWorker };
 
-export const libraryBrowserRelease = makeStandaloneSessionRelease({
-  sessionRelease: librarySessionDeclaration,
+export const libraryBrowserDefinition = makeStandaloneSessionDefinition({
+  sessionDefinition: librarySessionDefinition,
   sharedWorker: (props) =>
     applicationWorker.create(new URL("./librarySession.worker.ts", import.meta.url), props),
 });
@@ -26,10 +26,10 @@ export const libraryBrowserRelease = makeStandaloneSessionRelease({
 export function createLibraryStandaloneSession(props: {
   key: string;
   wallId: `wal_${string}`;
-}): IBrowserSession<typeof libraryBrowserRelease> {
+}): IBrowserSession<typeof libraryBrowserDefinition> {
   const { key, wallId } = props;
   return makeBrowserSession({
-    sessionRelease: libraryBrowserRelease,
+    sessionDefinition: libraryBrowserDefinition,
     backupPath: RoutePattern.parse("/" + encodeURIComponent(key) + "-command-query-v1"),
     claims: { aggregateId: "acct_1" },
     resources: {
@@ -48,7 +48,7 @@ export function createLibraryStandaloneSession(props: {
 }
 
 export type ILibrarySession = IAggregateSession<
-  IAggregateSessionRelease<
+  IAggregateSessionDefinition<
     string,
     string,
     string,

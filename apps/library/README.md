@@ -491,12 +491,12 @@ with null, and spec-at-breakpoint commands clear the affected placement's measur
 }
 ```
 
-`LibraryApp` is created from `libraryBrowserRelease`. `LibraryLayout` mounts
+`LibraryApp` is created from `libraryBrowserDefinition`. `LibraryLayout` mounts
 its `Initializer`, which owns a fresh browser facade and starts it after commit.
 The initialized content suspends until SQLite is ready; server rendering does
 not wait for a browser-only initialization Promise. The `qrk-library` namespace
 persists the seeded `wal_library` through the SharedWorker's owned IndexedDB VFS.
-Worker identity includes the exact session release; changed fixed schemas require
+Worker identity includes the exact session definition; changed fixed schemas require
 empty storage and do not read or translate deprecated rows. Preserve earlier
 origins and use the fresh-origin check above before the first current start.
 
@@ -590,8 +590,8 @@ from its viewport minimum height, with 3.5rem and zero fallbacks respectively, s
 empty wall remains one viewport tall without extra scrolling.
 
 Library and Studio resolve browser SQLite WASM from the installed Zerospin
-`14.0.0` package exports. The Library standalone worker imports the same pure
-`librarySessionDeclaration` as its host release. Studio authors its connected
+`15.0.0` package exports. The Library standalone worker imports the same pure
+`librarySessionDefinition` as its host definition. Studio authors its connected
 `node.worker.ts` entrypoint, and both hosts use `makeApplicationSharedWorker`
 to identify the emitted executable artifact. Webpack emits each worker
 and its SQLite WASM asset. Persistent Node

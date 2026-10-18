@@ -22,7 +22,7 @@ The root `pnpm dev` command starts this Worker through Portless at
 `dev:portless` script skips Nx task dependencies because the root command starts
 the app processes together.
 
-QRK installs the CLI and runtime packages at `14.0.0` from the populated local
+QRK installs the CLI and runtime packages at `15.0.0` from the populated local
 registry described in the [root README](../../README.md#zerospin-packages). Nx
 builds QRK's reusable Library before backend development; it does not
 rebuild installed Zerospin files.
@@ -90,16 +90,16 @@ initialization step fails. Do not reset or seed production storage to retry.
 
 ## Server aggregate reads
 
-Core `14.0.0` provides the server-only
+Core `15.0.0` provides the server-only
 `@zerospin/core/utils/getSystemApi/getSystemApi` client. Supply
 `ZerospinApiUrl` and `SecretKey` (`Redacted<string>`) in the application's Effect
 layer, then acquire it with `yield* getSystemApi()`. Construct a connection-free
-query with `makeQueryDbVersion({ models: userSessionDefinition.models })` and pass
+query with `makeQueryDbVersion({ models: userSessionDefinitionProps.models })` and pass
 the selection to `systemApi.executeAggregateQuery` with user aggregate identity:
 
 ```ts
 const systemApi = yield * getSystemApi();
-const db = makeQueryDbVersion({ models: userSessionDefinition.models });
+const db = makeQueryDbVersion({ models: userSessionDefinitionProps.models });
 const site =
   yield *
   systemApi.executeAggregateQuery({
@@ -173,7 +173,7 @@ query database and row selections. Wall, Brick, Placement, and their editing con
 creates that deterministic wall and the Page in one command. Legacy Grid/Brick
 snapshot contracts have been removed. There is no migration or lazy wall provisioning.
 Existing Studio browser databases remain untouched by this code cutover.
-Studio's `userBrowserRelease` uses the matching V2 web actor. Its `UserApp.Initializer`
+Studio's `userBrowserDefinition` uses the matching V2 web actor. Its `UserApp.Initializer`
 owns initialization and disposal for each Clerk identity. Models live under `aggregates/user/models/<model>/`,
 and contracts under `aggregates/user/contracts/<command>/`.
 

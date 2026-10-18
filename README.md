@@ -3,7 +3,7 @@
 ## Zerospin packages
 
 Zerospin owns its source, builds, and releases in the sibling `../zerospin`
-checkout. QRK installs exact `14.0.0` packages from the local Verdaccio registry;
+checkout. QRK installs exact `15.0.0` packages from the local Verdaccio registry;
 there is no vendored Zerospin source or consumer-side Zerospin build.
 
 The credential-free project `.npmrc` routes all dependencies through
@@ -48,7 +48,7 @@ Brick groups are defined under `apps/library/groups/`.
 
 This is a hard terminology cutover: old backend state must be reset before reuse.
 `libraryModule` exports the shared models and flat command contracts. Library
-uses its standalone release; Studio uses the authenticated user release.
+uses its standalone definition; Studio uses the authenticated user definition.
 
 Model and contract versions remain unchanged. Library viewport preference
 uses `qrk-bricks-library-viewport-v1`. Wall rows live in each initialized session's
@@ -86,7 +86,7 @@ More detail and test patterns: [docs/styleguide/component-and-file-naming.md](do
    On the first registry bootstrap, install, build, verify, and publish the
    release in Zerospin before installing QRK. Follow Zerospin's package release
    instructions. Existing registry storage survives restarts. A fresh checkout
-   requires the running registry with the locked `14.0.0` packages; hosted
+   requires the running registry with the locked `15.0.0` packages; hosted
    distribution and deployment-machine bootstrap are not configured here.
 
 2. Start all five application development servers through Portless:
@@ -128,8 +128,8 @@ and [Library fresh-origin check](apps/library/README.md) instructions. Supersede
 retained commands and SQLite schemas require empty storage; old data is preserved
 separately and has no compatibility migration.
 
-Studio's `userBrowserRelease` uses the installed browser package's
-`makeAggregateBrowserRelease` with its pure `userSessionDeclaration` and authored
+Studio's `userBrowserDefinition` uses the installed browser package's
+`makeAggregateBrowserDefinition` with its pure `userSessionDefinition` and authored
 `node.worker.ts` entrypoint. `makeApplicationSharedWorker` binds the worker artifact
 to the connected session.
 Zerospin chooses its name from the runtime version and persistent session identity.

@@ -1,7 +1,7 @@
 import { makeSharedWorker } from "@zerospin/browser/makeSharedWorker";
-import { userSessionDeclaration } from "./userSessionDeclaration";
+import { userSessionDefinition } from "./userSessionDefinition";
 
 makeSharedWorker({
   sqliteWasmUrl: new URL("@zerospin/browser/sqlite.wasm", import.meta.url).href,
-  aggregateSessions: [{ sessionRelease: userSessionDeclaration }],
+  aggregateSessions: [{ sessionDefinition: userSessionDefinition }],
 });

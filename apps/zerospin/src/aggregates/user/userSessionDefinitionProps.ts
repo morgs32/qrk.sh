@@ -14,8 +14,7 @@ import { pageV2 as Page } from "./models/page/PageV2";
 import { siteV2 as Site } from "./models/site/SiteV2";
 import { userV1 as User } from "./models/user/UserV1";
 
-export const userSessionDefinition = {
-  kind: "aggregate" as const,
+export const userSessionDefinitionProps = {
   claimsSchema: userClaims,
   contracts: {
     ...libraryModule.contracts,

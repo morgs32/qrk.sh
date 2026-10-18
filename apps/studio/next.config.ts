@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 import { fileURLToPath } from "node:url";
 
 const nextConfig: NextConfig = {
+  deploymentId: process.env.NODE_ENV === "development" ? "qrk-studio" : undefined,
   assetPrefix: "/studio-static",
   outputFileTracingRoot: fileURLToPath(new URL("../../", import.meta.url)),
   env: {

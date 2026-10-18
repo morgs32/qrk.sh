@@ -15,6 +15,8 @@ export function SwatchAndIconColorForm(props: {
         style={{ width: "100%" }}
       />
       <HexColorInput
+        autoComplete="off"
+        data-1p-ignore="true"
         color={value.color}
         onChange={(color) => onChange({ color })}
         onInput={(event) => {

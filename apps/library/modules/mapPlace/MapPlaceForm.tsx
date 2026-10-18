@@ -29,6 +29,7 @@ export function MapPlaceForm(props: {
 
   return (
     <form
+      autoComplete="off"
       className="mx-auto flex w-full max-w-md flex-col gap-2 p-4"
       onSubmit={(event) => {
         event.preventDefault();

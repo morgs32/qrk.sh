@@ -30,6 +30,7 @@ export function SwatchAndIconForm(props: {
 
   return (
     <form
+      autoComplete="off"
       className="flex w-full flex-col gap-4"
       noValidate
       onSubmit={(event) => {

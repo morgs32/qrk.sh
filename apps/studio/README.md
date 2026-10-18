@@ -56,7 +56,16 @@ Place local values in `apps/studio/.env.local`:
 - `PUBLIC_MAPBOX_TOKEN`
 - `NEXT_PUBLIC_API_URL` (Image and Site Settings upload API URL)
 
-Clerk uses its Next.js integration; nuqs uses its Next App Router adapter. Sign-in and sign-up remain web-owned routes and retain `/replace` as their fallback destination. Web performs signed-out redirects, Studio retains its client guard, and Zerospin retains backend authorization. No server-side Zerospin queries or new authentication rules are introduced.
+Clerk uses its Next.js integration; nuqs uses its Next App Router adapter. Sign-in and sign-up remain web-owned routes and retain `/replace` as their fallback destination. Studio's Clerk provider sets `afterSignOutUrl="/"` as the public homepage destination for completed sign-outs on the current Web origin. Web and Studio use distinct development deployment IDs so Next performs a full document navigation between the two apps, including after sign-out. Web performs signed-out redirects, Studio retains its client guard, and Zerospin retains backend authorization. No server-side Zerospin queries or new authentication rules are introduced.
+
+QRK-owned content fields use `autocomplete="off"` and `data-1p-ignore="true"`
+to suppress browser and 1Password autofill suggestions. Shared Input/Textarea
+controls enforce these attributes after forwarded props, and QRK-owned forms
+disable autocomplete. Clerk login, signup, account, and password flows retain
+autofill. Private Meowdown popup fields, including link editing and code-language
+search, remain unchanged. These attributes are hints whose behavior depends on
+the browser or extension; application-owned place and icon suggestions remain
+available.
 
 Studio uses `clerkUserId` directly as the user `aggregateId`, matching the backend's verified Clerk token subject.
 

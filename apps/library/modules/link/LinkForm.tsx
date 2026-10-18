@@ -30,6 +30,7 @@ export function LinkForm(props: {
 
   return (
     <form
+      autoComplete="off"
       className="mx-auto flex w-full max-w-md flex-col gap-2 p-4"
       noValidate
       onSubmit={(event) => {

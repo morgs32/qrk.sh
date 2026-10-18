@@ -85,6 +85,7 @@ export function ImageForm(props: {
 
   return (
     <form
+      autoComplete="off"
       className="flex w-full flex-col gap-6"
       aria-busy={isBusy}
       onSubmit={(event) => {

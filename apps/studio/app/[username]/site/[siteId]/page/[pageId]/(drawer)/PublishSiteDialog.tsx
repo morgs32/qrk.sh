@@ -106,6 +106,7 @@ export function PublishSiteDialog(props: { siteId: `sit_${string}` }) {
           </DialogDescription>
         </DialogHeader>
         <form
+          autoComplete="off"
           className="flex min-h-0 flex-col gap-4"
           onSubmit={(event) => {
             event.preventDefault();

@@ -75,6 +75,15 @@ The root layout mounts the shared `ZerospinDevtoolsLoader` in every environment 
 
 ## Brick forms
 
+QRK-owned forms set `autoComplete="off"`. The shared Input and native article
+title/subtitle, hex color, and State JSON fields also set `autoComplete="off"`
+and `data-1p-ignore="true"` to suppress browser and 1Password suggestions. The
+shared Input applies these attributes after forwarded props. These are opt-out
+hints; browsers and extensions control whether they honor them. Clerk-owned
+login, signup, account, and password flows retain autofill. Private Meowdown popup
+fields, including link editing and code-language search, remain unchanged. The
+application's place and icon search suggestions remain available.
+
 All ten modules own their form. The shared form receives the queried state,
 initialized session, brick identity, synchronous `onSave(state): IResult`, and
 Cancel. Hosts render forms directly; saved presentation always comes from the

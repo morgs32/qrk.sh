@@ -113,6 +113,7 @@ function ModuleDetail(props: { moduleId: keyof typeof modulesHash }) {
           <OrderedBody level={2}>
             <OrderedSection label="Generate spec input">
               <form
+                autoComplete="off"
                 className="flex flex-col items-start gap-2 py-5"
                 onSubmit={(event) => {
                   event.preventDefault();

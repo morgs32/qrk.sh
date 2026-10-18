@@ -94,8 +94,8 @@ export default function HomePage() {
 
         <Show
           fallback={
-            <Button asChild variant="outline">
-              <Link href="/sign-in">LOGIN</Link>
+            <Button asChild variant="link">
+              <Link href="/sign-in">Login</Link>
             </Button>
           }
           when="signed-in"
@@ -146,7 +146,7 @@ export default function HomePage() {
       </div>
 
       <footer className="sticky bottom-0 left-0 z-20 flex h-20 w-screen items-center justify-between gap-4 bg-background px-6 text-xs md:px-8 lg:px-10">
-        <p>Build sites and pages from content blocks.</p>
+        <p>Like legos... but websites</p>
         <nav aria-label="Legal pages" className="flex shrink-0 gap-4">
           <Link className="underline underline-offset-4" href="/privacy">Privacy</Link>
           <Link className="underline underline-offset-4" href="/terms">Terms</Link>

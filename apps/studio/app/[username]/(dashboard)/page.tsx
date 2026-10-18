@@ -107,6 +107,7 @@ export default function UsernameDashboardPage() {
                     <DialogTitle>Create site</DialogTitle>
                   </DialogHeader>
                   <form
+                    autoComplete="off"
                     className="flex flex-col gap-4"
                     onSubmit={(event) => {
                       event.preventDefault();

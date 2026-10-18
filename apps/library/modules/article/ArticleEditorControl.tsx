@@ -82,6 +82,8 @@ export function ArticleEditorControl(props: {
     <div className="qrk-article-surface qrk-article-writing-column">
       <input
         className="qrk-article-title-input"
+        autoComplete="off"
+        data-1p-ignore="true"
         aria-label="Article title"
         placeholder="Title"
         required
@@ -92,6 +94,8 @@ export function ArticleEditorControl(props: {
       />
       <input
         className="qrk-article-subtitle-input"
+        autoComplete="off"
+        data-1p-ignore="true"
         aria-label="Article subtitle"
         placeholder="Add a subtitle…"
         required

@@ -27,6 +27,7 @@ export function ArticleForm(props: {
 
   return (
     <form
+      autoComplete="off"
       className="flex w-full flex-col gap-6"
       onSubmit={(event) => {
         // Native Meowdown link forms submit through their React portal owner.

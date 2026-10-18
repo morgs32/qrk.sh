@@ -13,6 +13,7 @@ export default function App(props: { children: ReactNode }) {
     <ClerkProvider
       signInUrl="/sign-in"
       signUpUrl="/sign-up"
+      afterSignOutUrl="/"
       signInFallbackRedirectUrl="/replace"
       signUpFallbackRedirectUrl="/replace"
       appearance={{

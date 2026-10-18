@@ -144,6 +144,7 @@ function BrickAdminContent(props: { brickId: `brk_${string}` }) {
             {hasJsonRender ? (
               <OrderedSection data-testid="brick-detail-pane" label="Generate spec">
                 <form
+                  autoComplete="off"
                   className="flex flex-col items-start gap-2 py-5"
                   onSubmit={(event) => {
                     event.preventDefault();
@@ -251,6 +252,7 @@ function BrickAdminContent(props: { brickId: `brk_${string}` }) {
             </OrderedSection>
             <OrderedSection className="mt-10" label="Shared state">
               <form
+                autoComplete="off"
                 className="flex flex-col gap-2 py-4"
                 aria-busy={isMeasuring}
                 onSubmit={async (event) => {
@@ -292,6 +294,8 @@ function BrickAdminContent(props: { brickId: `brk_${string}` }) {
                   State JSON
                 </label>
                 <textarea
+                  autoComplete="off"
+                  data-1p-ignore="true"
                   id="shared-state-editor"
                   disabled={isMeasuring}
                   className="min-h-48 w-full rounded border border-border bg-white p-2 font-mono text-sm"

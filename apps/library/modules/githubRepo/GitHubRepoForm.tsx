@@ -31,6 +31,7 @@ export function GitHubRepoForm(props: {
 
   return (
     <form
+      autoComplete="off"
       className="mx-auto flex max-w-md flex-col gap-2 p-4"
       onSubmit={(event) => {
         event.preventDefault();

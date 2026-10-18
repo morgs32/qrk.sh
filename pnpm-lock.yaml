@@ -66,17 +66,17 @@ importers:
         specifier: ^0.22.1
         version: 0.22.1
       '@zerospin/core':
-        specifier: 15.0.0
-        version: 15.0.0(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+        specifier: 15.0.1
+        version: 15.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       '@zerospin/error':
-        specifier: 15.0.0
-        version: 15.0.0(effect@4.0.2)
+        specifier: 15.0.1
+        version: 15.0.1(effect@4.0.2)
       '@zerospin/logger':
-        specifier: 15.0.0
-        version: 15.0.0(effect@4.0.2)
+        specifier: 15.0.1
+        version: 15.0.1(effect@4.0.2)
       '@zerospin/shapes':
-        specifier: 15.0.0
-        version: 15.0.0(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.0)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+        specifier: 15.0.1
+        version: 15.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.0)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       capnweb:
         specifier: ^0.12.0
         version: 0.12.0
@@ -90,8 +90,8 @@ importers:
         specifier: ^1.52.0
         version: 1.52.0
       system-worker:
-        specifier: 15.0.0
-        version: 15.0.0(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.9.5)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(sql.js@1.15.0)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+        specifier: 15.0.1
+        version: 15.0.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.9.5)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(sql.js@1.15.0)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
     devDependencies:
       '@types/node':
         specifier: ^25.5.2
@@ -154,26 +154,26 @@ importers:
         specifier: 1.0.2
         version: 1.0.2(next@16.3.4(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass@1.104.1))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@zerospin/browser':
-        specifier: 15.0.0
-        version: 15.0.0(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.9.5)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.0)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+        specifier: 15.0.1
+        version: 15.0.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.9.5)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.0)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       '@zerospin/core':
-        specifier: 15.0.0
-        version: 15.0.0(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+        specifier: 15.0.1
+        version: 15.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       '@zerospin/devtools':
-        specifier: 15.0.0
-        version: 15.0.0(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(sql.js@1.15.0)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+        specifier: 15.0.1
+        version: 15.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(sql.js@1.15.0)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       '@zerospin/error':
-        specifier: 15.0.0
-        version: 15.0.0(effect@4.0.2)
+        specifier: 15.0.1
+        version: 15.0.1(effect@4.0.2)
       '@zerospin/react':
-        specifier: 15.0.0
-        version: 15.0.0(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.9.5)(@types/react@19.2.17)(date-fns@4.4.0)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.0)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+        specifier: 15.0.1
+        version: 15.0.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.9.5)(@types/react@19.2.17)(date-fns@4.4.0)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.0)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       '@zerospin/shapes':
-        specifier: 15.0.0
-        version: 15.0.0(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.0)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+        specifier: 15.0.1
+        version: 15.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.0)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       '@zerospin/zod':
-        specifier: 15.0.0
-        version: 15.0.0(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.0)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+        specifier: 15.0.1
+        version: 15.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.0)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       capnweb:
         specifier: ^0.12.0
         version: 0.12.0
@@ -305,8 +305,8 @@ importers:
         specifier: ^1.1.0
         version: 1.1.0
       '@zerospin/core':
-        specifier: 15.0.0
-        version: 15.0.0(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+        specifier: 15.0.1
+        version: 15.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       capnweb:
         specifier: ^0.12.0
         version: 0.12.0
@@ -381,26 +381,26 @@ importers:
         specifier: ^2.0.0
         version: 2.0.0(next@16.3.4(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass@1.104.1))(react@19.2.7)
       '@zerospin/browser':
-        specifier: 15.0.0
-        version: 15.0.0(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.9.5)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.0)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+        specifier: 15.0.1
+        version: 15.0.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.9.5)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.0)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       '@zerospin/core':
-        specifier: 15.0.0
-        version: 15.0.0(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+        specifier: 15.0.1
+        version: 15.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       '@zerospin/devtools':
-        specifier: 15.0.0
-        version: 15.0.0(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(sql.js@1.15.0)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+        specifier: 15.0.1
+        version: 15.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(sql.js@1.15.0)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       '@zerospin/error':
-        specifier: 15.0.0
-        version: 15.0.0(effect@4.0.2)
+        specifier: 15.0.1
+        version: 15.0.1(effect@4.0.2)
       '@zerospin/react':
-        specifier: 15.0.0
-        version: 15.0.0(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.9.5)(@types/react@19.2.17)(date-fns@4.4.0)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.0)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+        specifier: 15.0.1
+        version: 15.0.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.9.5)(@types/react@19.2.17)(date-fns@4.4.0)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.0)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       '@zerospin/sdk':
-        specifier: 15.0.0
-        version: 15.0.0(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(sql.js@1.15.0)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+        specifier: 15.0.1
+        version: 15.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(sql.js@1.15.0)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       '@zerospin/shapes':
-        specifier: 15.0.0
-        version: 15.0.0(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.0)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+        specifier: 15.0.1
+        version: 15.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.0)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -614,20 +614,20 @@ importers:
         specifier: ^0.22.1
         version: 0.22.1
       '@zerospin/core':
-        specifier: 15.0.0
-        version: 15.0.0(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+        specifier: 15.0.1
+        version: 15.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       '@zerospin/error':
-        specifier: 15.0.0
-        version: 15.0.0(effect@4.0.2)
+        specifier: 15.0.1
+        version: 15.0.1(effect@4.0.2)
       '@zerospin/logger':
-        specifier: 15.0.0
-        version: 15.0.0(effect@4.0.2)
+        specifier: 15.0.1
+        version: 15.0.1(effect@4.0.2)
       '@zerospin/sdk':
-        specifier: 15.0.0
-        version: 15.0.0(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(sql.js@1.15.0)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+        specifier: 15.0.1
+        version: 15.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(sql.js@1.15.0)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       '@zerospin/shapes':
-        specifier: 15.0.0
-        version: 15.0.0(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.0)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+        specifier: 15.0.1
+        version: 15.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.0)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       capnweb:
         specifier: ^0.12.0
         version: 0.12.0
@@ -635,18 +635,18 @@ importers:
         specifier: 4.0.2
         version: 4.0.2
       system-worker:
-        specifier: 15.0.0
-        version: 15.0.0(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.5.2)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(sql.js@1.15.0)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+        specifier: 15.0.1
+        version: 15.0.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.5.2)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(sql.js@1.15.0)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
     devDependencies:
       '@types/node':
         specifier: ^25.5.2
         version: 25.5.2
       '@zerospin/cli':
-        specifier: 15.0.0
-        version: 15.0.0(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@rolldown/plugin-babel@0.2.4(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@types/node@25.5.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))(@types/node@25.5.2)(@types/react@19.2.17)(date-fns@4.4.0)(effect@4.0.2)(esbuild@0.28.2)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.0)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(yaml@2.9.1)
+        specifier: 15.0.1
+        version: 15.0.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@rolldown/plugin-babel@0.2.4(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@types/node@25.5.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))(@types/node@25.5.2)(@types/react@19.2.17)(date-fns@4.4.0)(effect@4.0.2)(esbuild@0.28.2)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.0)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(yaml@2.9.1)
       '@zerospin/dev-worker':
-        specifier: 15.0.0
-        version: 15.0.0(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.5.2)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.0)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+        specifier: 15.0.1
+        version: 15.0.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.5.2)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.0)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       cloudflare:
         specifier: ^6.1.0
         version: 6.5.0
@@ -5166,75 +5166,75 @@ packages:
   '@zag-js/utils@1.46.0':
     resolution: {integrity: sha512-SOKa832hWCoXaYB2Pcdb0c+ZcyNSuAAPpL5YRnVHskuc0BEsHPWOhxSIxuGF1gvz4RsfBKiAHrDoFDl8JLSOEg==}
 
-  '@zerospin/browser@15.0.0':
-    resolution: {integrity: sha512-13e5pbItpunFFj2ewpwouLjBB/dglBMYPEqwN4Yk7hmHun5H3eZ+czyG3QffUZoCPEYtrqtxnrgEndThxfwCrA==}
+  '@zerospin/browser@15.0.1':
+    resolution: {integrity: sha512-QNjAawf82DRMN6nWE6Es7xBpdjFOQ6jV91RpHdixIQa4mHOx+B8q79x2eFGS1nm2m9aRKg3YLhR+KrGITlFzzg==}
     peerDependencies:
       effect: 4.0.2
 
-  '@zerospin/cli@15.0.0':
-    resolution: {integrity: sha512-yyz9Qq2Xi+O1al5F8EMBJoLWxJlVQus8AifrdS2xinau7XbblCnBXvRJdgyr12yM2I+PM16BrO4FfMAJJijLaA==}
+  '@zerospin/cli@15.0.1':
+    resolution: {integrity: sha512-w1mXsYqehvA8CkCsWBqpeECXgDkuVNs53+xEuVoLFtgkIgwL7WAnrKsahb4FFu9twdwSGmDFWLmt7myLICuPUQ==}
     engines: {node: '>=18'}
     hasBin: true
     peerDependencies:
       effect: 4.0.2
 
-  '@zerospin/core@15.0.0':
-    resolution: {integrity: sha512-RDTZf5Jz1teq6oEG9bjjJ/tnGs1lX/dsQt3BYFYxbF8QR0cc5eZ/tco8iKue/hjkcXfy2rnsz0VNYciZ3U3stA==}
+  '@zerospin/core@15.0.1':
+    resolution: {integrity: sha512-e2dxG+Sj3RGUkwXrzvDuu06uN1KNY2oYd4MWD4ofYkMY68HAqGJWUUchGyAgJE76snvHw2noGODDDGl5waLSag==}
     peerDependencies:
       effect: 4.0.2
       react: 19.2.7
       react-dom: 19.2.7
       solid-js: '>=1.9.7'
 
-  '@zerospin/dev-worker@15.0.0':
-    resolution: {integrity: sha512-ytdQ1UJZAA5XZj+BUg/aW5ETyt8HAKDPjh3C/uSkk8gYRDUf5JTpvaem2pQxtKUGDoEvhZx9jvpvkBp7dFAy1g==}
+  '@zerospin/dev-worker@15.0.1':
+    resolution: {integrity: sha512-oiO8y64QBN2c5w6nYzRq3mqmOek4tQkOy+yThgQd7LHte1oi7QVLoWntsrxF84Tu7B8K2S7JaQDD2gBt5Sm2Tg==}
     peerDependencies:
       effect: 4.0.2
 
-  '@zerospin/devtools@15.0.0':
-    resolution: {integrity: sha512-4j9ZeyNkJvv9tGTSye8+SYqXx6xeemE/aRCeDWV2OUrPpArpjJ2GlA5xGw0zAR/yvvLJfOQh68GSlo99MJJxVQ==}
+  '@zerospin/devtools@15.0.1':
+    resolution: {integrity: sha512-Xu/f+IvPrM7XgriGGorKNLIyLrfmelJHi202xSm0MexgPBQ32PjvkUMV2Vde9QGJSHjwYXNXLDJ7+aLRthr0ng==}
     peerDependencies:
       effect: 4.0.2
       react: 19.2.7
       react-dom: 19.2.7
 
-  '@zerospin/error-boundary@15.0.0':
-    resolution: {integrity: sha512-ZPQwO6MHuzfRol7j2T716O3hv/CZgjjjfffhB764ewZUkcUUotz/Qcvf2xFMtGrvLMaaAIJuB9B0gthnfuHpPw==}
+  '@zerospin/error-boundary@15.0.1':
+    resolution: {integrity: sha512-bfhdFa3lnkbyYBriJTglmr3SkzzrPATe3umqjF9VYNsPZI93ohL38+brN4nmdCwbNJT6YCCdz0tjO7vpRBX8Jw==}
     peerDependencies:
       react: 19.2.7
       react-dom: 19.2.7
       react-router: '>=7'
 
-  '@zerospin/error@15.0.0':
-    resolution: {integrity: sha512-lbBQECA7A46HI34mFgl9V/Av9F1TBbwcchYX6j5wAq9OUz0TFkr3+3Pmvy2UG7HAyDKJoIg4crVhnTD+tAf44g==}
+  '@zerospin/error@15.0.1':
+    resolution: {integrity: sha512-jmA15CK0U1eSeSjt9B1VW3a3dTjorB6vNC5/tBBYCh8M67/O5s/aCUqo+Z1gIjST58kg6xLCzX01dcEOXfpHFg==}
     peerDependencies:
       effect: 4.0.2
 
-  '@zerospin/fragment-ui@15.0.0':
-    resolution: {integrity: sha512-crs/p5Od1WFrDfTacmQi1F8yeVQV5MpLmBimlDWbmZvxVyofL1WY9i6z/XjJdOIar7mbGWAoeLVZNUNp/9lmbg==}
+  '@zerospin/fragment-ui@15.0.1':
+    resolution: {integrity: sha512-Fc5+tsTodx78VF2xSJBH5LPqozfmpSFhlgQ5Vgc/SURbO+jn6eooBySuwBK/GL0GKDvOh4ATkScPsBxX085+rA==}
     peerDependencies:
       react: 19.2.7
 
-  '@zerospin/live-query@15.0.0':
-    resolution: {integrity: sha512-XpzGNuFmlPPDbgYeI4/zS0gp28ZR3Q6D+MHy641KHrDeS83nDZkHY+3uwfsmGPYPmpXTPyX2+PV+5KGWDMblZw==}
+  '@zerospin/live-query@15.0.1':
+    resolution: {integrity: sha512-sjmzhfKFv7iomGm6+PhNuWARYCl/f/3SCJd7G7wPiPvYzMNq+OxDhoYDjxTHYALrNiL1DRcJPpQ6cTBtkUM8gA==}
 
-  '@zerospin/logger@15.0.0':
-    resolution: {integrity: sha512-8qw2VK+f1orP0DrOuYc+Y6Gz10HTClTyJXVQW7FOXiCxQJ+Nxz4TXnmC8uCAQCJaxUXOdkB/tTUSozivqUAKjQ==}
+  '@zerospin/logger@15.0.1':
+    resolution: {integrity: sha512-czKXpDt5+Mqvmc5RXPw+U+8mqh9oppnxRI4+nY/6cPzmtihWmkcZjylk3WeGeslSMvRVDhxqlH6llSnNceGzBA==}
     peerDependencies:
       effect: 4.0.2
 
-  '@zerospin/machine@15.0.0':
-    resolution: {integrity: sha512-unjxwMmAGOibtLc4/F3oKKrtggNaS35mucYL7IoEf6Ph3/cXERreZvIk2NR5DAWBHCEWu0q4lUCACrHxxR3Cqw==}
+  '@zerospin/machine@15.0.1':
+    resolution: {integrity: sha512-c2equV/6SmlFkgbqiRgWAGRZtdYS51pWYPdsbDqS8Mj/w+DichonbLZdUqJikJUNl9PZI+PnvDWRFmciJvoc5w==}
     peerDependencies:
       effect: 4.0.2
 
-  '@zerospin/production-worker@15.0.0':
-    resolution: {integrity: sha512-WgIsr7kBuIT6suEk2c/aBQZfrdnKbJQDjQFyeKzrvIEboARFbfr1oXWDWyfmZchQNgrP8ZW7xXajbVUVjS6kyA==}
+  '@zerospin/production-worker@15.0.1':
+    resolution: {integrity: sha512-jRKuL7l4xzntA010jduTwJa2h/c/C9GqkdbMQrzjHG4Ct3pbrDAy17L4KNW7I8BpRXNs5AzcIupil3A287QF+w==}
     peerDependencies:
       effect: 4.0.2
 
-  '@zerospin/react@15.0.0':
-    resolution: {integrity: sha512-mr9Sayf1Dj6smE6kT4h8H97X0etZOJnHftH4Em263+Fw5rGrXfYQJE+Q0ApspFA6C7bdO4yL/MHRG8Lbj9PwcA==}
+  '@zerospin/react@15.0.1':
+    resolution: {integrity: sha512-uJQJtof+Pim3n6lcTm4EVDapPOBr/3jD3BQCBTzMiDYFlAdYCGnsK8gj2i1WPlu98tH4EbjbtTn8G+l05i7/Nw==}
     peerDependencies:
       '@effect/opentelemetry': ^4.0.2
       '@opentelemetry/sdk-trace-base': ^2.0.1
@@ -5242,26 +5242,26 @@ packages:
       react: 19.2.7
       react-dom: 19.2.7
 
-  '@zerospin/sdk@15.0.0':
-    resolution: {integrity: sha512-GiAcX+wJ0Sh7SFW8A2PDYAiLBWS/wmUhr7Oq2H7MHwMFNvXSjwO2j+T56TonyTKqW3/e6NvRm0qncyQPlnG3bg==}
+  '@zerospin/sdk@15.0.1':
+    resolution: {integrity: sha512-/cN10FR3QZK6kh9kgc/8SkwwKCOKmVlULPbgiIywFUBvHskCHQk2XhmcFJGgdynd4GGqDFdwQTTPLPOPhL/TaA==}
     peerDependencies:
       effect: 4.0.2
 
-  '@zerospin/server-only@15.0.0':
-    resolution: {integrity: sha512-lzUrVnazonhm0fMxIa78pI4fy8dgmg3jMNGao7faCJbdphEG7+heYicciYxX2An3RxuzwDACnCHoB9HfLOR4Og==}
+  '@zerospin/server-only@15.0.1':
+    resolution: {integrity: sha512-lgerAN4euwCXlTXyOIOkK6ntpvugZXqe+flyMbkgq/nrOW/y2LHjalW0Pdm8G+S0KLTokt+1lvkfEb9YoRzfyg==}
 
-  '@zerospin/shapes@15.0.0':
-    resolution: {integrity: sha512-hxVVVzjftahlMOfX+PVjEw/kRRfq0P5b3m++9GOvDMGOlLXwufTUKW1x6eZBzzOT+0qdHLCRFhzkrCaJikzkow==}
+  '@zerospin/shapes@15.0.1':
+    resolution: {integrity: sha512-YpCmF4ut50qI2RU3fhIttXisYgSoh6HrD7a373lUB0pWYCmSwqSdKRaRhrzRbqc2pH0oXfSh38hZv69JfGLkFA==}
     peerDependencies:
       effect: 4.0.2
 
-  '@zerospin/studio@15.0.0':
-    resolution: {integrity: sha512-3jHKY4XwKxZI4Be+s64CzDbuL5VhaVb7BJ7SdLoJJ1yqAsgwCe/ZPfgDNugVq0Ck1XTrfhLgYwVnRpI7pflT0w==}
+  '@zerospin/studio@15.0.1':
+    resolution: {integrity: sha512-6cCxDGij6UTvta6Li+S9gKaNJ55byDc/X3fCLab97DP8s/wuRfQjjQm6eLRt1zY8AxCjx5wvNkp0NJBfRx6Kcg==}
     peerDependencies:
       effect: 4.0.2
 
-  '@zerospin/zod@15.0.0':
-    resolution: {integrity: sha512-YC6wGEys5hqCpXHW7z8Fg3m/KQSOxQ6ZZhmjbKEV7suGcLcAkUgXWTaogQ+esi+90P7gu16fSGPGPwaXKqUjxA==}
+  '@zerospin/zod@15.0.1':
+    resolution: {integrity: sha512-+DkmyT4gFXXDfO1wRNEkyOLeSKCVHxOufBRZAaD5p+G5fIzAgtOxhODSxry05Zt3djMVtHD4GuZ4t3QFxlH3YA==}
     peerDependencies:
       effect: 4.0.2
       zod: 4.6.6
@@ -8294,8 +8294,8 @@ packages:
     resolution: {integrity: sha512-gAQ9qrUN/UCypHtGFbbe7Rc/f9bzO88IwrG8TDo/aMKAApKyD6E3W4Cm0EfhfBb6Z6SKt59tTCTfD+n1xmAvMg==}
     engines: {node: '>=16.0.0'}
 
-  system-worker@15.0.0:
-    resolution: {integrity: sha512-F9cni+YYY4zC5Ttxb4eDoc09hI4EEvgfT7hKJwADGkuoq1/qYaRWI4EZ+wn32BpZy6nGJcER2pGYzPzIb+9Plg==}
+  system-worker@15.0.1:
+    resolution: {integrity: sha512-GNFsmjnA1efZZbV54yZOUhjeFrxJI2v7jR3xXXGQ7AWOfFccfAbhknfrqCPekfTR79b8SuU2aR779tsduGrtqw==}
     peerDependencies:
       '@effect/opentelemetry': ^4.0.2
       '@opentelemetry/sdk-trace-base': ^2.0.1
@@ -13211,20 +13211,20 @@ snapshots:
 
   '@zag-js/utils@1.46.0': {}
 
-  '@zerospin/browser@15.0.0(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.5.2)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.0)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)':
+  '@zerospin/browser@15.0.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.5.2)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.0)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)':
     dependencies:
       '@remix-run/route-pattern': 0.22.1
-      '@zerospin/core': 15.0.0(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
-      '@zerospin/devtools': 15.0.0(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(sql.js@1.15.0)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
-      '@zerospin/error': 15.0.0(effect@4.0.2)
-      '@zerospin/logger': 15.0.0(effect@4.0.2)
-      '@zerospin/machine': 15.0.0(effect@4.0.2)
-      '@zerospin/shapes': 15.0.0(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.0)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/core': 15.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/devtools': 15.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(sql.js@1.15.0)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/error': 15.0.1(effect@4.0.2)
+      '@zerospin/logger': 15.0.1(effect@4.0.2)
+      '@zerospin/machine': 15.0.1(effect@4.0.2)
+      '@zerospin/shapes': 15.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.0)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       capnweb: 0.12.0
       drizzle-orm: 1.0.0-rc.4(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.0)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       effect: 4.0.2
       es-toolkit: 1.52.0
-      system-worker: 15.0.0(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.5.2)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(sql.js@1.15.0)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      system-worker: 15.0.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.5.2)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(sql.js@1.15.0)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       wa-sqlite: https://codeload.github.com/rhashimoto/wa-sqlite/tar.gz/07ad48cf2f682d279f9cd69818cc1d39b2ccda86
       zustand: 5.0.15(@types/react@19.2.17)(react@19.2.7)(use-sync-external-store@1.7.0(react@19.2.7))
     transitivePeerDependencies:
@@ -13311,20 +13311,20 @@ snapshots:
       - valibot
       - zod
 
-  '@zerospin/browser@15.0.0(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.9.5)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.0)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)':
+  '@zerospin/browser@15.0.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.9.5)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.0)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)':
     dependencies:
       '@remix-run/route-pattern': 0.22.1
-      '@zerospin/core': 15.0.0(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
-      '@zerospin/devtools': 15.0.0(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(sql.js@1.15.0)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
-      '@zerospin/error': 15.0.0(effect@4.0.2)
-      '@zerospin/logger': 15.0.0(effect@4.0.2)
-      '@zerospin/machine': 15.0.0(effect@4.0.2)
-      '@zerospin/shapes': 15.0.0(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.0)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/core': 15.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/devtools': 15.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(sql.js@1.15.0)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/error': 15.0.1(effect@4.0.2)
+      '@zerospin/logger': 15.0.1(effect@4.0.2)
+      '@zerospin/machine': 15.0.1(effect@4.0.2)
+      '@zerospin/shapes': 15.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.0)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       capnweb: 0.12.0
       drizzle-orm: 1.0.0-rc.4(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.0)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       effect: 4.0.2
       es-toolkit: 1.52.0
-      system-worker: 15.0.0(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.9.5)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(sql.js@1.15.0)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      system-worker: 15.0.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.9.5)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(sql.js@1.15.0)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       wa-sqlite: https://codeload.github.com/rhashimoto/wa-sqlite/tar.gz/07ad48cf2f682d279f9cd69818cc1d39b2ccda86
       zustand: 5.0.15(@types/react@19.2.17)(react@19.2.7)(use-sync-external-store@1.7.0(react@19.2.7))
     transitivePeerDependencies:
@@ -13411,17 +13411,17 @@ snapshots:
       - valibot
       - zod
 
-  '@zerospin/cli@15.0.0(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@rolldown/plugin-babel@0.2.4(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@types/node@25.5.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))(@types/node@25.5.2)(@types/react@19.2.17)(date-fns@4.4.0)(effect@4.0.2)(esbuild@0.28.2)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.0)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(yaml@2.9.1)':
+  '@zerospin/cli@15.0.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@rolldown/plugin-babel@0.2.4(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@types/node@25.5.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))(@types/node@25.5.2)(@types/react@19.2.17)(date-fns@4.4.0)(effect@4.0.2)(esbuild@0.28.2)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.0)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(yaml@2.9.1)':
     dependencies:
       '@effect/platform-node-shared': 4.0.2(effect@4.0.2)
       '@inkjs/ui': 2.0.0(ink@7.1.1(@types/react@19.2.17)(react@19.2.7))
-      '@zerospin/core': 15.0.0(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
-      '@zerospin/dev-worker': 15.0.0(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.5.2)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.0)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
-      '@zerospin/error': 15.0.0(effect@4.0.2)
-      '@zerospin/logger': 15.0.0(effect@4.0.2)
-      '@zerospin/production-worker': 15.0.0(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.5.2)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.0)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
-      '@zerospin/shapes': 15.0.0(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.0)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
-      '@zerospin/studio': 15.0.0(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@rolldown/plugin-babel@0.2.4(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@types/node@25.5.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))(@types/node@25.5.2)(@types/react@19.2.17)(date-fns@4.4.0)(effect@4.0.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.0)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(yaml@2.9.1)(zod@4.6.6)
+      '@zerospin/core': 15.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/dev-worker': 15.0.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.5.2)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.0)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/error': 15.0.1(effect@4.0.2)
+      '@zerospin/logger': 15.0.1(effect@4.0.2)
+      '@zerospin/production-worker': 15.0.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.5.2)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.0)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/shapes': 15.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.0)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/studio': 15.0.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@rolldown/plugin-babel@0.2.4(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@types/node@25.5.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))(@types/node@25.5.2)(@types/react@19.2.17)(date-fns@4.4.0)(effect@4.0.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.0)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(yaml@2.9.1)(zod@4.6.6)
       capnweb: 0.12.0
       cfonts: 2.10.1
       dotenv: 17.4.2
@@ -13434,7 +13434,7 @@ snapshots:
       pastel: 4.0.1(ink@7.1.1(@types/react@19.2.17)(react@19.2.7))(react@19.2.7)(zod@4.6.6)
       react: 19.2.7
       react-dom: 19.2.7(react@19.2.7)
-      system-worker: 15.0.0(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.5.2)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(sql.js@1.15.0)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      system-worker: 15.0.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.5.2)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(sql.js@1.15.0)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       zod: 4.6.6
     transitivePeerDependencies:
       - '@ai-sdk/react'
@@ -13526,14 +13526,14 @@ snapshots:
       - valibot
       - yaml
 
-  '@zerospin/core@15.0.0(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)':
+  '@zerospin/core@15.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)':
     dependencies:
       '@livestore/wa-sqlite': 1.0.5
       '@remix-run/route-pattern': 0.22.1
-      '@zerospin/error': 15.0.0(effect@4.0.2)
-      '@zerospin/logger': 15.0.0(effect@4.0.2)
-      '@zerospin/server-only': 15.0.0
-      '@zerospin/shapes': 15.0.0(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.0)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/error': 15.0.1(effect@4.0.2)
+      '@zerospin/logger': 15.0.1(effect@4.0.2)
+      '@zerospin/server-only': 15.0.1
+      '@zerospin/shapes': 15.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.0)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       capnweb: 0.12.0
       dotenv: 17.4.2
       drizzle-orm: 1.0.0-rc.4(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.0)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
@@ -13599,17 +13599,17 @@ snapshots:
       - valibot
       - zod
 
-  '@zerospin/dev-worker@15.0.0(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.5.2)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.0)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)':
+  '@zerospin/dev-worker@15.0.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.5.2)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.0)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)':
     dependencies:
       '@remix-run/route-pattern': 0.22.1
-      '@zerospin/core': 15.0.0(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
-      '@zerospin/error': 15.0.0(effect@4.0.2)
-      '@zerospin/logger': 15.0.0(effect@4.0.2)
-      '@zerospin/shapes': 15.0.0(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.0)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/core': 15.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/error': 15.0.1(effect@4.0.2)
+      '@zerospin/logger': 15.0.1(effect@4.0.2)
+      '@zerospin/shapes': 15.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.0)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       capnweb: 0.12.0
       cloudflare: 6.5.0
       effect: 4.0.2
-      system-worker: 15.0.0(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.5.2)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(sql.js@1.15.0)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      system-worker: 15.0.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.5.2)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(sql.js@1.15.0)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       wrangler: 4.127.1(@cloudflare/workers-types@5.20260828.1)
     transitivePeerDependencies:
       - '@ai-sdk/react'
@@ -13697,13 +13697,13 @@ snapshots:
       - valibot
       - zod
 
-  '@zerospin/devtools@15.0.0(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(sql.js@1.15.0)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)':
+  '@zerospin/devtools@15.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(sql.js@1.15.0)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)':
     dependencies:
       '@tanstack/react-table': 8.21.3(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
-      '@zerospin/core': 15.0.0(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
-      '@zerospin/error': 15.0.0(effect@4.0.2)
-      '@zerospin/live-query': 15.0.0(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(sql.js@1.15.0)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
-      '@zerospin/logger': 15.0.0(effect@4.0.2)
+      '@zerospin/core': 15.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/error': 15.0.1(effect@4.0.2)
+      '@zerospin/live-query': 15.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(sql.js@1.15.0)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/logger': 15.0.1(effect@4.0.2)
       effect: 4.0.2
       react: 19.2.7
       react-dom: 19.2.7(react@19.2.7)
@@ -13761,9 +13761,9 @@ snapshots:
       - valibot
       - zod
 
-  '@zerospin/error-boundary@15.0.0(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react-router@8.3.1(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)':
+  '@zerospin/error-boundary@15.0.1(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react-router@8.3.1(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)':
     dependencies:
-      '@zerospin/error': 15.0.0(effect@4.0.2)
+      '@zerospin/error': 15.0.1(effect@4.0.2)
       lucide-react: 1.59.0(@types/react@19.2.17)(react@19.2.7)
       react: 19.2.7
       react-dom: 19.2.7(react@19.2.7)
@@ -13772,11 +13772,11 @@ snapshots:
       - '@types/react'
       - effect
 
-  '@zerospin/error@15.0.0(effect@4.0.2)':
+  '@zerospin/error@15.0.1(effect@4.0.2)':
     dependencies:
       effect: 4.0.2
 
-  '@zerospin/fragment-ui@15.0.0(@types/react@19.2.17)(date-fns@4.4.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
+  '@zerospin/fragment-ui@15.0.1(@types/react@19.2.17)(date-fns@4.4.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
     dependencies:
       '@base-ui/react': 1.9.0(@types/react@19.2.17)(date-fns@4.4.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       react: 19.2.7
@@ -13786,9 +13786,9 @@ snapshots:
       - date-fns
       - react-dom
 
-  '@zerospin/live-query@15.0.0(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(sql.js@1.15.0)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)':
+  '@zerospin/live-query@15.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(sql.js@1.15.0)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)':
     dependencies:
-      '@zerospin/core': 15.0.0(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/core': 15.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       drizzle-orm: 1.0.0-rc.4(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.0)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       zustand: 5.0.15(@types/react@19.2.17)(react@19.2.7)(use-sync-external-store@1.7.0(react@19.2.7))
     transitivePeerDependencies:
@@ -13846,26 +13846,26 @@ snapshots:
       - valibot
       - zod
 
-  '@zerospin/logger@15.0.0(effect@4.0.2)':
+  '@zerospin/logger@15.0.1(effect@4.0.2)':
     dependencies:
-      '@zerospin/error': 15.0.0(effect@4.0.2)
+      '@zerospin/error': 15.0.1(effect@4.0.2)
       effect: 4.0.2
 
-  '@zerospin/machine@15.0.0(effect@4.0.2)':
+  '@zerospin/machine@15.0.1(effect@4.0.2)':
     dependencies:
       effect: 4.0.2
       es-toolkit: 1.52.0
 
-  '@zerospin/production-worker@15.0.0(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.5.2)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.0)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)':
+  '@zerospin/production-worker@15.0.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.5.2)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.0)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)':
     dependencies:
-      '@zerospin/core': 15.0.0(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
-      '@zerospin/error': 15.0.0(effect@4.0.2)
-      '@zerospin/logger': 15.0.0(effect@4.0.2)
-      '@zerospin/shapes': 15.0.0(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.0)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/core': 15.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/error': 15.0.1(effect@4.0.2)
+      '@zerospin/logger': 15.0.1(effect@4.0.2)
+      '@zerospin/shapes': 15.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.0)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       capnweb: 0.12.0
       cloudflare: 6.5.0
       effect: 4.0.2
-      system-worker: 15.0.0(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.5.2)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(sql.js@1.15.0)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      system-worker: 15.0.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.5.2)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(sql.js@1.15.0)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
     transitivePeerDependencies:
       - '@ai-sdk/react'
       - '@arethetypeswrong/core'
@@ -13950,7 +13950,7 @@ snapshots:
       - valibot
       - zod
 
-  '@zerospin/react@15.0.0(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.5.2)(@types/react@19.2.17)(date-fns@4.4.0)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.0)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)':
+  '@zerospin/react@15.0.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.5.2)(@types/react@19.2.17)(date-fns@4.4.0)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.0)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)':
     dependencies:
       '@base-ui/react': 1.9.0(@types/react@19.2.17)(date-fns@4.4.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@opentelemetry/api': 1.9.1
@@ -13960,14 +13960,14 @@ snapshots:
       '@remix-run/route-pattern': 0.22.1
       '@stylexjs/stylex': 0.19.1
       '@tanstack/react-form': 1.33.5(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
-      '@zerospin/browser': 15.0.0(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.5.2)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.0)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
-      '@zerospin/core': 15.0.0(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
-      '@zerospin/devtools': 15.0.0(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(sql.js@1.15.0)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
-      '@zerospin/error': 15.0.0(effect@4.0.2)
-      '@zerospin/live-query': 15.0.0(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(sql.js@1.15.0)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
-      '@zerospin/logger': 15.0.0(effect@4.0.2)
-      '@zerospin/sdk': 15.0.0(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(sql.js@1.15.0)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
-      '@zerospin/shapes': 15.0.0(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.0)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/browser': 15.0.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.5.2)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.0)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/core': 15.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/devtools': 15.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(sql.js@1.15.0)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/error': 15.0.1(effect@4.0.2)
+      '@zerospin/live-query': 15.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(sql.js@1.15.0)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/logger': 15.0.1(effect@4.0.2)
+      '@zerospin/sdk': 15.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(sql.js@1.15.0)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/shapes': 15.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.0)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       capnweb: 0.12.0
       client-only: 0.0.1
       dotenv: 17.4.2
@@ -14060,7 +14060,7 @@ snapshots:
       - valibot
       - zod
 
-  '@zerospin/react@15.0.0(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.9.5)(@types/react@19.2.17)(date-fns@4.4.0)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.0)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)':
+  '@zerospin/react@15.0.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.9.5)(@types/react@19.2.17)(date-fns@4.4.0)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.0)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)':
     dependencies:
       '@base-ui/react': 1.9.0(@types/react@19.2.17)(date-fns@4.4.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@opentelemetry/api': 1.9.1
@@ -14070,14 +14070,14 @@ snapshots:
       '@remix-run/route-pattern': 0.22.1
       '@stylexjs/stylex': 0.19.1
       '@tanstack/react-form': 1.33.5(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
-      '@zerospin/browser': 15.0.0(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.9.5)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.0)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
-      '@zerospin/core': 15.0.0(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
-      '@zerospin/devtools': 15.0.0(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(sql.js@1.15.0)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
-      '@zerospin/error': 15.0.0(effect@4.0.2)
-      '@zerospin/live-query': 15.0.0(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(sql.js@1.15.0)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
-      '@zerospin/logger': 15.0.0(effect@4.0.2)
-      '@zerospin/sdk': 15.0.0(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(sql.js@1.15.0)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
-      '@zerospin/shapes': 15.0.0(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.0)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/browser': 15.0.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.9.5)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.0)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/core': 15.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/devtools': 15.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(sql.js@1.15.0)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/error': 15.0.1(effect@4.0.2)
+      '@zerospin/live-query': 15.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(sql.js@1.15.0)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/logger': 15.0.1(effect@4.0.2)
+      '@zerospin/sdk': 15.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(sql.js@1.15.0)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/shapes': 15.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.0)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       capnweb: 0.12.0
       client-only: 0.0.1
       dotenv: 17.4.2
@@ -14170,11 +14170,11 @@ snapshots:
       - valibot
       - zod
 
-  '@zerospin/sdk@15.0.0(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(sql.js@1.15.0)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)':
+  '@zerospin/sdk@15.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(sql.js@1.15.0)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)':
     dependencies:
-      '@zerospin/core': 15.0.0(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
-      '@zerospin/error': 15.0.0(effect@4.0.2)
-      '@zerospin/shapes': 15.0.0(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.0)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/core': 15.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/error': 15.0.1(effect@4.0.2)
+      '@zerospin/shapes': 15.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.0)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       effect: 4.0.2
     transitivePeerDependencies:
       - '@aws-sdk/client-rds-data'
@@ -14230,11 +14230,11 @@ snapshots:
       - valibot
       - zod
 
-  '@zerospin/server-only@15.0.0': {}
+  '@zerospin/server-only@15.0.1': {}
 
-  '@zerospin/shapes@15.0.0(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.0)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)':
+  '@zerospin/shapes@15.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.0)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)':
     dependencies:
-      '@zerospin/error': 15.0.0(effect@4.0.2)
+      '@zerospin/error': 15.0.1(effect@4.0.2)
       drizzle-orm: 1.0.0-rc.4(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.0)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       effect: 4.0.2
       es-toolkit: 1.52.0
@@ -14287,20 +14287,20 @@ snapshots:
       - valibot
       - zod
 
-  '@zerospin/studio@15.0.0(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@rolldown/plugin-babel@0.2.4(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@types/node@25.5.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))(@types/node@25.5.2)(@types/react@19.2.17)(date-fns@4.4.0)(effect@4.0.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.0)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(yaml@2.9.1)(zod@4.6.6)':
+  '@zerospin/studio@15.0.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@rolldown/plugin-babel@0.2.4(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@types/node@25.5.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))(@types/node@25.5.2)(@types/react@19.2.17)(date-fns@4.4.0)(effect@4.0.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.0)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(yaml@2.9.1)(zod@4.6.6)':
     dependencies:
       '@base-ui/react': 1.9.0(@types/react@19.2.17)(date-fns@4.4.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@radix-ui/react-slot': 1.5.0(@types/react@19.2.17)(react@19.2.7)
       '@tailwindcss/vite': 4.3.3(@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.5.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))
       '@vitejs/plugin-react': 6.0.3(@rolldown/plugin-babel@0.2.4(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@types/node@25.5.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))(@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.5.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))
-      '@zerospin/browser': 15.0.0(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.5.2)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.0)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
-      '@zerospin/core': 15.0.0(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
-      '@zerospin/error': 15.0.0(effect@4.0.2)
-      '@zerospin/error-boundary': 15.0.0(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react-router@8.3.1(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)
-      '@zerospin/fragment-ui': 15.0.0(@types/react@19.2.17)(date-fns@4.4.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
-      '@zerospin/logger': 15.0.0(effect@4.0.2)
-      '@zerospin/react': 15.0.0(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.5.2)(@types/react@19.2.17)(date-fns@4.4.0)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.0)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
-      '@zerospin/shapes': 15.0.0(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.0)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/browser': 15.0.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.5.2)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.0)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/core': 15.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/error': 15.0.1(effect@4.0.2)
+      '@zerospin/error-boundary': 15.0.1(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react-router@8.3.1(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)
+      '@zerospin/fragment-ui': 15.0.1(@types/react@19.2.17)(date-fns@4.4.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      '@zerospin/logger': 15.0.1(effect@4.0.2)
+      '@zerospin/react': 15.0.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.5.2)(@types/react@19.2.17)(date-fns@4.4.0)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.0)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/shapes': 15.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.0)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       capnweb: 0.12.0
       class-variance-authority: 0.7.1
       clsx: 2.1.1
@@ -14313,7 +14313,7 @@ snapshots:
       react-resizable-panels: 4.14.5(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       react-router: 8.3.1(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       swr: 2.3.4(react@19.2.7)
-      system-worker: 15.0.0(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.5.2)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(sql.js@1.15.0)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      system-worker: 15.0.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.5.2)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(sql.js@1.15.0)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       tailwind-merge: 3.7.0
       tailwindcss: 4.3.3
       vite: '@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.5.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)'
@@ -14406,9 +14406,9 @@ snapshots:
       - yaml
       - zod
 
-  '@zerospin/zod@15.0.0(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.0)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)':
+  '@zerospin/zod@15.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.0)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)':
     dependencies:
-      '@zerospin/shapes': 15.0.0(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.0)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/shapes': 15.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.0)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       effect: 4.0.2
       es-toolkit: 1.52.0
       zod: 4.6.6
@@ -17980,17 +17980,17 @@ snapshots:
 
   sync-message-port@1.2.0: {}
 
-  system-worker@15.0.0(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.5.2)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(sql.js@1.15.0)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6):
+  system-worker@15.0.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.5.2)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(sql.js@1.15.0)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6):
     dependencies:
       '@opentelemetry/api': 1.9.1
       '@opentelemetry/core': 2.12.0(@opentelemetry/api@1.9.1)
       '@opentelemetry/sdk-trace-base': 2.12.0(@opentelemetry/api@1.9.1)
       '@opentelemetry/sdk-trace-node': 2.12.0(@opentelemetry/api@1.9.1)
       '@remix-run/route-pattern': 0.22.1
-      '@zerospin/core': 15.0.0(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
-      '@zerospin/error': 15.0.0(effect@4.0.2)
-      '@zerospin/logger': 15.0.0(effect@4.0.2)
-      '@zerospin/shapes': 15.0.0(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.0)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/core': 15.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/error': 15.0.1(effect@4.0.2)
+      '@zerospin/logger': 15.0.1(effect@4.0.2)
+      '@zerospin/shapes': 15.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.0)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       agents: 0.17.4(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@types/node@25.5.2)(jiti@2.7.0)(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(zod@4.6.6)
       capnweb: 0.12.0
       cloudflare: 6.5.0
@@ -18081,17 +18081,17 @@ snapshots:
       - valibot
       - zod
 
-  system-worker@15.0.0(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.9.5)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(sql.js@1.15.0)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6):
+  system-worker@15.0.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.9.5)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(sql.js@1.15.0)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6):
     dependencies:
       '@opentelemetry/api': 1.9.1
       '@opentelemetry/core': 2.12.0(@opentelemetry/api@1.9.1)
       '@opentelemetry/sdk-trace-base': 2.12.0(@opentelemetry/api@1.9.1)
       '@opentelemetry/sdk-trace-node': 2.12.0(@opentelemetry/api@1.9.1)
       '@remix-run/route-pattern': 0.22.1
-      '@zerospin/core': 15.0.0(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
-      '@zerospin/error': 15.0.0(effect@4.0.2)
-      '@zerospin/logger': 15.0.0(effect@4.0.2)
-      '@zerospin/shapes': 15.0.0(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.0)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/core': 15.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/error': 15.0.1(effect@4.0.2)
+      '@zerospin/logger': 15.0.1(effect@4.0.2)
+      '@zerospin/shapes': 15.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.0)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       agents: 0.17.4(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@types/node@25.9.5)(jiti@2.7.0)(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(zod@4.6.6)
       capnweb: 0.12.0
       cloudflare: 6.5.0

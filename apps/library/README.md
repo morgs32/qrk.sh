@@ -590,7 +590,7 @@ from its viewport minimum height, with 3.5rem and zero fallbacks respectively, s
 empty wall remains one viewport tall without extra scrolling.
 
 Library and Studio resolve browser SQLite WASM from the installed Zerospin
-`15.0.0` package exports. The Library standalone worker imports the same pure
+`15.0.1` package exports. The Library standalone worker imports the same pure
 `librarySessionDefinition` as its host definition. Studio authors its connected
 `node.worker.ts` entrypoint, and both hosts use `makeApplicationSharedWorker`
 to identify the emitted executable artifact. Webpack emits each worker

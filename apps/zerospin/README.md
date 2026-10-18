@@ -22,7 +22,7 @@ The root `pnpm dev` command starts this Worker through Portless at
 `dev:portless` script skips Nx task dependencies because the root command starts
 the app processes together.
 
-QRK installs the CLI and runtime packages at `15.0.0` from the populated local
+QRK installs the CLI and runtime packages at `15.0.1` from the populated local
 registry described in the [root README](../../README.md#zerospin-packages). Nx
 builds QRK's reusable Library before backend development; it does not
 rebuild installed Zerospin files.
@@ -90,7 +90,7 @@ initialization step fails. Do not reset or seed production storage to retry.
 
 ## Server aggregate reads
 
-Core `15.0.0` provides the server-only
+Core `15.0.1` provides the server-only
 `@zerospin/core/utils/getSystemApi/getSystemApi` client. Supply
 `ZerospinApiUrl` and `SecretKey` (`Redacted<string>`) in the application's Effect
 layer, then acquire it with `yield* getSystemApi()`. Construct a connection-free

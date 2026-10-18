@@ -1,0 +1,12 @@
+{
+  "name": "qrk",
+  "script": "dev:portless",
+  "turbo": false,
+  "apps": {
+    "apps/web": { "name": "qrk", "appPort": 3000, "proxy": true },
+    "apps/studio": { "name": "studio.qrk", "appPort": 3001, "proxy": true },
+    "apps/library": { "name": "library.qrk", "appPort": 4100, "proxy": true },
+    "apps/api": { "name": "api.qrk", "appPort": 8787, "proxy": true },
+    "apps/zerospin": { "name": "zerospin.qrk", "appPort": 8788, "proxy": true }
+  }
+}

@@ -1,8 +1,8 @@
-import Link from "next/link";
 import { Space_Mono, Silkscreen } from "next/font/google";
 import { Show } from "@clerk/nextjs";
 
-import { Button } from "@/components/ui/button";
+import { UnderlinedLink } from "@/components/UnderlinedLink";
+import { Wordmark } from "@/components/Wordmark";
 
 const silkscreen = Silkscreen({
   subsets: ["latin"],
@@ -88,24 +88,23 @@ export default function HomePage() {
   return (
     <main className="relative h-svh overflow-x-auto overflow-y-hidden">
       <header className="sticky top-0 left-0 z-20 flex h-16 w-screen items-center justify-between bg-background px-6 md:px-8 lg:px-10">
-        <Link aria-label="QRK.SH home" className={`${silkscreen.className} text-lg`} href="/">
-          QRK.SH
-        </Link>
+        <Wordmark />
 
         <Show
           fallback={
-            <Button asChild variant="link">
-              <Link href="/sign-in">Login</Link>
-            </Button>
+            <UnderlinedLink href="/sign-in" size="lg">
+              Login
+            </UnderlinedLink>
           }
           when="signed-in"
         >
-          <Link
-            className={`${silkscreen.className} font-bold text-[#E86F3A] hover:underline`}
+          <UnderlinedLink
+            className={`${silkscreen.className} font-bold text-[#E86F3A] no-underline! hover:underline! underline-offset-auto!`}
             href="/replace"
+            size="lg"
           >
             DASHBOARD
-          </Link>
+          </UnderlinedLink>
         </Show>
       </header>
 
@@ -148,8 +147,12 @@ export default function HomePage() {
       <footer className="sticky bottom-0 left-0 z-20 flex h-20 w-screen items-center justify-between gap-4 bg-background px-6 text-xs md:px-8 lg:px-10">
         <p>Like legos... but websites</p>
         <nav aria-label="Legal pages" className="flex shrink-0 gap-4">
-          <Link className="underline underline-offset-4" href="/privacy">Privacy</Link>
-          <Link className="underline underline-offset-4" href="/terms">Terms</Link>
+          <UnderlinedLink href="/privacy" size="sm">
+            Privacy
+          </UnderlinedLink>
+          <UnderlinedLink href="/terms" size="sm">
+            Terms
+          </UnderlinedLink>
         </nav>
       </footer>
     </main>

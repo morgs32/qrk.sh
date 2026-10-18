@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { UnderlinedLink } from "@/components/UnderlinedLink";
+import { Wordmark } from "@/components/Wordmark";
 
 export const metadata: Metadata = {
   title: "Terms of service | QRK.SH",
@@ -10,8 +11,8 @@ export default function TermsPage() {
   return (
     <main className="mx-auto max-w-3xl px-6 py-8 text-sm leading-7 sm:px-10 sm:py-12">
       <nav aria-label="Legal pages" className="mb-16 flex flex-wrap items-center justify-between gap-4">
-        <Link className="font-bold tracking-tight" href="/">QRK.SH</Link>
-        <Link className="underline underline-offset-4" href="/privacy">Privacy policy →</Link>
+        <Wordmark />
+        <UnderlinedLink className="text-[length:inherit]! leading-[inherit]!" href="/privacy">Privacy policy →</UnderlinedLink>
       </nav>
 
       <header className="mb-10">
@@ -59,7 +60,7 @@ export default function TermsPage() {
             unpublishing, or deleting an authentication account does not automatically erase
             stored files or historical snapshots. The hosting permission continues for retained
             copies only as needed for the service and the retention described in our{" "}
-            <Link className="underline underline-offset-4" href="/privacy">privacy policy</Link>.
+            <UnderlinedLink className="text-[length:inherit]! leading-[inherit]!" href="/privacy">privacy policy</UnderlinedLink>.
             Keep your own copies of important content.
           </p>
         </section>
@@ -115,7 +116,7 @@ export default function TermsPage() {
       </article>
 
       <footer className="mt-16 border-t pt-6 text-muted-foreground">
-        <Link className="underline underline-offset-4" href="/privacy">Read the privacy policy</Link>
+        <UnderlinedLink className="text-[length:inherit]! leading-[inherit]!" href="/privacy">Read the privacy policy</UnderlinedLink>
       </footer>
     </main>
   );

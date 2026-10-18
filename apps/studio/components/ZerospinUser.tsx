@@ -43,8 +43,9 @@ function ZerospinUserInitializedStateProvider(props: { clerkUserId: string; chil
       })}
     >
       <Suspense fallback={null}>
-        <UserSessionWork>{children}</UserSessionWork>
+        <UserSessionWork />
       </Suspense>
+      {children}
     </UserApp.Initializer>
   );
 }
@@ -68,8 +69,7 @@ export function ZerospinUserProvider(props: { children: ReactNode }) {
   );
 }
 
-function UserSessionWork(props: { children: ReactNode }) {
-  const { children } = props;
+function UserSessionWork() {
   const session = UserApp.useInitializedSession();
   const initialized = useSyncExternalStore(
     session.store.subscribe,
@@ -87,10 +87,5 @@ function UserSessionWork(props: { children: ReactNode }) {
       stopFailures();
     };
   }, [session, initialized?.db]);
-  return (
-    <>
-      <FigmaReadyMeasurements session={session} />
-      {children}
-    </>
-  );
+  return <FigmaReadyMeasurements session={session} />;
 }

@@ -1,7 +1,7 @@
 {
   "private": true,
   "scripts": {
-    "dev": "nx run-many -t dev -p @qrk.sh/zerospin @qrk.sh/library @qrk.sh/studio @qrk.sh/api @qrk.sh/web --parallel=5"
+    "dev": "PORTLESS_PORT=1355 PORTLESS_HTTPS=1 PORTLESS_WILDCARD=1 portless"
   },
   "dependencies": {
     "framer-motion": "13.2.0"
@@ -12,6 +12,7 @@
     "@typescript/native": "npm:typescript@^7.0.2",
     "effect": "4.0.2",
     "nx": "23.1.0",
+    "portless": "0.15.8",
     "typescript": "^6.0.2",
     "zod": "4.6.6"
   },

@@ -8,9 +8,12 @@
   },
   "scripts": {
     "dev": "next dev --turbopack --port 3000",
+    "dev:portless": "pnpm nx run @qrk.sh/web:dev --excludeTaskDependencies",
     "build": "next build",
     "start": "next start",
-    "format": "vp fmt --config ../../.oxfmtrc.json ."
+    "format": "vp fmt --config ../../.oxfmtrc.json .",
+    "storybook": "storybook dev -p 6008 --host 127.0.0.1",
+    "build-storybook": "storybook build"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.1.0",
@@ -25,12 +28,20 @@
     "react-dom": "19.2.7"
   },
   "devDependencies": {
+    "@fontsource/silkscreen": "^5.2.7",
+    "@fontsource/space-mono": "^5.2.7",
+    "@storybook/addon-docs": "^10.6.0",
+    "@storybook/react-vite": "^10.6.0",
     "@tailwindcss/postcss": "^4.2.2",
+    "@tailwindcss/vite": "4.2.2",
     "@types/node": "^25.5.2",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "6.0.3",
+    "storybook": "^10.6.0",
     "tailwindcss": "^4.2.2",
     "typescript": "^6.0.2",
+    "vite": "npm:@voidzero-dev/vite-plus-core@1.0.0",
     "vite-plus": "1.0.0"
   }
 }

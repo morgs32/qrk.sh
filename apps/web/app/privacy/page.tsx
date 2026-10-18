@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { UnderlinedLink } from "@/components/UnderlinedLink";
+import { Wordmark } from "@/components/Wordmark";
 
 export const metadata: Metadata = {
   title: "Privacy policy | QRK.SH",
@@ -10,8 +11,8 @@ export default function PrivacyPage() {
   return (
     <main className="mx-auto max-w-3xl px-6 py-8 text-sm leading-7 sm:px-10 sm:py-12">
       <nav aria-label="Legal pages" className="mb-16 flex flex-wrap items-center justify-between gap-4">
-        <Link className="font-bold tracking-tight" href="/">QRK.SH</Link>
-        <Link className="underline underline-offset-4" href="/terms">Terms of service →</Link>
+        <Wordmark />
+        <UnderlinedLink className="text-[length:inherit]! leading-[inherit]!" href="/terms">Terms of service →</UnderlinedLink>
       </nav>
 
       <header className="mb-10">
@@ -123,7 +124,7 @@ export default function PrivacyPage() {
       </article>
 
       <footer className="mt-16 border-t pt-6 text-muted-foreground">
-        <Link className="underline underline-offset-4" href="/terms">Read the terms of service</Link>
+        <UnderlinedLink className="text-[length:inherit]! leading-[inherit]!" href="/terms">Read the terms of service</UnderlinedLink>
       </footer>
     </main>
   );

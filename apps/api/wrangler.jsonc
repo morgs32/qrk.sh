@@ -15,10 +15,9 @@
     },
   ],
   "vars": {
-    // Local/Miniflare: path is resolved against the Worker origin → GET /assets/*.
-    // Production serves public objects through the API Worker's /assets route.
-    "R2_PUBLIC_BASE_URL": "/assets",
-    "CLERK_AUTHORIZED_PARTY": "http://127.0.0.1:3001",
+    // Portless exposes local public objects through the API Worker's /assets route.
+    "R2_PUBLIC_BASE_URL": "https://api.qrk.localhost:1355/assets",
+    "CLERK_AUTHORIZED_PARTY": "https://qrk.localhost:1355",
   },
   "browser": { "binding": "BROWSER", "remote": true },
   "durable_objects": {

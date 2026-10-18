@@ -8,11 +8,19 @@ the logical system name.
 
 Put local authentication settings in this directory's `.env.local` (see
 `.env.example`). The CLI discovers environment files from this project root.
+Set `CLERK_AUTHORIZED_PARTY=https://qrk.localhost:1355` to match the Web gateway
+where normal authentication occurs; keep existing secrets in their current local
+environment file.
 Run local development from the repository root:
 
 ```sh
 pnpm nx run @qrk.sh/zerospin:dev
 ```
+
+The root `pnpm dev` command starts this Worker through Portless at
+`https://zerospin.qrk.localhost:1355`, retaining internal port 8788. Its selected
+`dev:portless` script skips Nx task dependencies because the root command starts
+the app processes together.
 
 QRK installs the CLI and runtime packages at `14.0.0` from the populated local
 registry described in the [root README](../../README.md#zerospin-packages). Nx

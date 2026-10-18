@@ -2,19 +2,27 @@
 
 This private package owns the reusable brick library and Next.js App Router UI.
 Next uses Webpack, matching Studio. The Cloudflare Worker backend lives in
-[`apps/api`](../api/README.md); Nx starts both development servers. Consumers
+[`apps/api`](../api/README.md). Consumers
 compile Library source directly, without a package build.
 
 From the repository root:
 
 ```sh
-pnpm nx run @qrk.sh/library:dev
+pnpm dev
 ```
 
-Open `http://127.0.0.1:4100`. Next forwards `/rpc`, `/upload`, and `/assets/*` to
+Open [https://library.qrk.localhost:1355/](https://library.qrk.localhost:1355/).
+Portless starts all five apps through their `dev:portless` scripts, registering
+HTTPS hostnames on the shared wildcard proxy. It removes each app's route when
+that process stops; leave the shared proxy and other projects running. See the
+[root startup instructions](../../README.md#getting-started) for proxy setup.
+
+Library listens internally on port 4100. Next forwards `/rpc`, `/upload`, and `/assets/*` to
 the API Worker at `http://127.0.0.1:8787`; its inspector listens on port 9231.
-Browser callers keep their same-origin URLs. This command runs locally and does
-not deploy anything. `pnpm nx run @qrk.sh/api:dev` runs the backend alone.
+Browser callers keep their same-origin URLs. New public asset URLs use
+`https://api.qrk.localhost:1355/assets`.
+For direct HTTP development, `pnpm nx run @qrk.sh/library:dev` starts Library
+and API on their internal ports. `pnpm nx run @qrk.sh/api:dev` runs the backend alone.
 
 ## Configuration
 
@@ -58,9 +66,11 @@ installation requires the populated local registry described in the
 [root README](../../README.md#zerospin-packages).
 
 Old standalone backups can reject the current SQLite schema. For manual checks
-with empty storage, use `http://qrk-package-cutover.localhost:4100/` in the existing
-Chrome profile. This gives Library a separate local origin while preserving
-backups on `localhost:4100` and `127.0.0.1:4100`; it does not migrate their rows.
+with empty storage, the Portless origin
+`https://library.qrk.localhost:1355/` is separate from earlier HTTP origins in the
+existing Chrome profile. It preserves backups on `localhost:4100`,
+`127.0.0.1:4100`, and `qrk-package-cutover.localhost:4100`; it does not migrate
+their rows. Once used, the HTTPS origin retains its own storage between runs.
 
 The development UI routes are
 `/`, `/modules`, `/modules/[moduleId]`, `/bricks/[brickId]`, and

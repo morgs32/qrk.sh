@@ -1,5 +1,5 @@
 import { headers } from "next/headers";
-import Link from "next/link";
+import { UnderlinedLink } from "@/components/UnderlinedLink";
 import { notFound } from "next/navigation";
 
 export default async function SubdomainProofPage(props: {
@@ -20,8 +20,8 @@ export default async function SubdomainProofPage(props: {
       <p>Subdomain: {subdomain}</p>
       <p>Path: /{(path ?? []).join("/")}</p>
       <nav className="flex gap-4">
-        <Link href="/">Home</Link>
-        <Link href="/about">About</Link>
+        <UnderlinedLink className="no-underline!" href="/" size="lg">Home</UnderlinedLink>
+        <UnderlinedLink className="no-underline!" href="/about" size="lg">About</UnderlinedLink>
       </nav>
     </main>
   );

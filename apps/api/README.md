@@ -18,7 +18,10 @@ Wrangler listens at `http://127.0.0.1:8787`, with its inspector on port 9231.
 Nx builds Library's reusable catalog output before starting API. Library's
 `dev` and `preview` targets also start this API target; Library Next runs on
 port 4100 and forwards `/rpc`, `/upload`, `/image/upload`, and `/assets/*` to API.
-The root development command starts the same API Worker. These commands do not deploy it.
+The root `pnpm dev` command starts the same API Worker through Portless at
+`https://api.qrk.localhost:1355`. Its selected `dev:portless` script skips Nx task
+dependencies because the root command starts the app processes together. The fixed
+Worker port and Library forwarding remain unchanged. These commands do not deploy it.
 
 Put private provider credentials in `apps/api/.env.local`:
 
@@ -30,12 +33,10 @@ Put private provider credentials in `apps/api/.env.local`:
 
 Wrangler loads these as Worker bindings. Studio upload authentication additionally uses
 `CLERK_SECRET_KEY` and `CLERK_AUTHORIZED_PARTY`. The authorized party must match
-the browser origin. For Studio through the web frontend at `http://localhost:3000`,
-set `CLERK_AUTHORIZED_PARTY=http://localhost:3000` in `apps/api/.env.local`;
-Wrangler's default `http://127.0.0.1:3001` supports direct Studio access when that
-origin is configured as the authorized party. `R2_PUBLIC_BASE_URL` defaults to
-`/assets` for local serving; production configuration can supply the public R2
-origin. Public Mapbox settings
+the browser origin. For Studio through the web frontend, set
+`CLERK_AUTHORIZED_PARTY=https://qrk.localhost:1355` in `apps/api/.env.local`, matching
+Wrangler's local default. `R2_PUBLIC_BASE_URL` defaults to
+`https://api.qrk.localhost:1355/assets` for local serving. Public Mapbox settings
 remain in Library's `.env.local`. Do not expose provider or Clerk secrets in
 browser configuration.
 
@@ -103,8 +104,8 @@ signed-in upload, were not exercised by these probes.
 | Other `/assets/*`    | Reads API upload keys from `QRKSH`                           |
 
 `OPTIONS` retains API preflight handling. CORS allows the existing application
-origins, Studio's web frontend at `http://localhost:3000`, and Library's localhost
-and loopback origins on port 4100. Uploads
+origins, including Portless's Web, Studio, and Library HTTPS origins on port 1355,
+and the existing localhost and loopback origins. Uploads
 retain the existing multipart `file` contract, PNG/JPEG/WebP/SVG support, 5 MiB limit,
 error responses, and returned asset URL. Studio keys are
 `<verified Clerk subject>/<siteId or _>/<uuid>.<ext>`; Library Image uploads

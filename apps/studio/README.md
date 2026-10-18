@@ -7,6 +7,19 @@ Studio is a Next.js App Router application. The separate Next.js application in 
 Run from the repository root:
 
 ```sh
+pnpm dev
+```
+
+Open [https://qrk.localhost:1355/](https://qrk.localhost:1355/) and sign in through
+Web. Root Portless startup runs all five apps, registers their HTTPS hostnames,
+and removes their routes when the processes stop. Studio also has
+[studio.qrk.localhost:1355](https://studio.qrk.localhost:1355/); normal
+authentication remains through Web. See the [root startup instructions](../../README.md#getting-started)
+for the shared wildcard proxy and service URLs.
+
+Direct Nx targets retain the internal HTTP ports:
+
+```sh
 pnpm nx run @qrk.sh/studio:dev
 pnpm nx run @qrk.sh/studio:build
 pnpm nx run @qrk.sh/studio:start
@@ -56,6 +69,12 @@ Place local values in `apps/studio/.env.local`:
 - `PUBLIC_MAPBOX_TOKEN`
 - `NEXT_PUBLIC_API_URL` (Image and Site Settings upload API URL)
 
+For Portless development, set
+`NEXT_PUBLIC_API_URL=https://api.qrk.localhost:1355` and
+`NEXT_PUBLIC_ZEROSPIN_API_URL=https://zerospin.qrk.localhost:1355`. Worker
+authorized parties use `https://qrk.localhost:1355`, where the browser signs in.
+The internal Web-to-Studio forwarding destination remains port 3001.
+
 Clerk uses its Next.js integration; nuqs uses its Next App Router adapter. Sign-in and sign-up remain web-owned routes and retain `/replace` as their fallback destination. Studio's Clerk provider sets `afterSignOutUrl="/"` as the public homepage destination for completed sign-outs on the current Web origin. Web and Studio use distinct development deployment IDs so Next performs a full document navigation between the two apps, including after sign-out. Web performs signed-out redirects, Studio retains its client guard, and Zerospin retains backend authorization. No server-side Zerospin queries or new authentication rules are introduced.
 
 QRK-owned content fields use `autocomplete="off"` and `data-1p-ignore="true"`
@@ -77,8 +96,7 @@ The backend retains logical system `qrk-sh`, system ID `sys_qrk_sh_1`, and
 `CLERK_AUTHORIZED_PARTY=https://qrk.sh`. Its specification is accepted and the
 production system is initialized. Production `NEXT_PUBLIC_API_URL` is
 `https://api.qrk.sh`, supplying direct uploads and Studio's
-`/rpc` rewrite. Web continues forwarding to the stable Studio alias. Local
-development API settings remain unchanged.
+`/rpc` rewrite. Web continues forwarding to the stable Studio alias.
 
 QRK.SH's Clerk development and production instances have **Sign-up with username** and **Require username** enabled under **User & authentication → Username**, and **Allow users to change their username** disabled under **User model**. The existing web `<SignUp />` collects the required username, including during social sign-up completion; `/replace` then redirects to `/<username>`. Users choose their username once. Clerk owns this username; the setting does not populate QRK's currently null backend username field. Production uses `clerk.qrk.sh`; its DNS/certificates and Google OAuth credentials are configured. Google is published to an External production audience, and both deployed frontends use production Clerk keys. The support email is `me@morganatwork.com`; see the [production authentication setup](../../README.md#production-authentication) for legal links and Google's restricted support-email exception.
 
@@ -88,7 +106,7 @@ QRK.SH's Clerk development and production instances have **Sign-up with username
 
 `app/layout.tsx` owns the document, global/reset styles, metadata, and Library's shared article stylesheet. Studio's global CSS loads Fragment Mono through Library's Google Fonts import and uses it for UI text and controls. The dashboard's `QRK.SH` wordmark matches the homepage: Silkscreen 400 at 18px, loaded through `next/font/google` in `Header`. The article stylesheet owns the system font for article titles and subtitles and Spectral for body text and headings. Studio adds no heading font override. Storybook imports the same global and article styles. `App` holds the client providers. The username layout keeps one session initializer mounted across Studio navigation; `UserLayout` gates only data-dependent content.
 
-`UserApp.Initializer` owns construction and descendant error boundaries. Its `renderError` displays the session error when `session.store.getState().status` is `failed`; live-query failures stop that owning session. `UserSessionWork` scopes one store subscription to the mounted session and displays nonterminal reported failures when `failure` changes by reference. Staging, admission and execution refusals share that notification path; command-result guards still prevent follow-up actions.
+`UserApp.Initializer` owns construction and descendant error boundaries. Its `renderError` displays the session error when `session.store.getState().status` is `failed`; live-query failures stop that owning session. `UserSessionWork` has its own Suspense boundary inside the initializer, separate from the route children, so background work and Figma measurements can wait for session readiness without hiding the dashboard header during hydration. `UserLayout` gates the data-dependent route content. `UserSessionWork` scopes one store subscription to the mounted session and displays nonterminal reported failures when `failure` changes by reference. Staging, admission and execution refusals share that notification path; command-result guards still prevent follow-up actions.
 
 The root layout mounts the shared `ZerospinDevtoolsLoader` in development with the panel initially closed. Its lifetime spans route navigation and authentication changes; the loader owns cleanup when the application unmounts.
 
@@ -220,6 +238,6 @@ Drop or choose one nonempty PNG, JPEG, WebP, or SVG up to 5 MiB in the Image dra
 
 `EditorLayout` supplies `ImageUploadEnvironment.upload(file): Effect.Effect<string, Error>` through the existing Layer, session runner, and `ImageUploadRuntimeContext`. Studio owns the HTTP request: each invocation retrieves fresh Clerk credentials through `getClerkToken`, sends multipart file and current site ID to `/upload`, and decodes the untrusted success/error response before returning the image URL. A signed-out result fails visibly. Effect interruption reaches `fetch` through its AbortSignal. Image passes only its validated file and receives the URL, without knowing the endpoint, site ID, authorization header, multipart protocol, or response shape. The shared form contract carries no Image-specific upload props.
 
-Set `NEXT_PUBLIC_API_URL` to the unified API Worker origin; production uses `https://api.qrk.sh`, and local development uses `http://127.0.0.1:8787`. Run `pnpm nx run @qrk.sh/api:dev` separately for local development. The API Worker verifies the Clerk bearer token using `CLERK_SECRET_KEY` and `CLERK_AUTHORIZED_PARTY`, stores the bytes in its `QRKSH` R2 binding, and returns a URL built from `R2_PUBLIC_BASE_URL`. The configured authorized party and CORS origins must match the browser origin; production uses `https://qrk.sh`. Production upload URLs use `https://api.qrk.sh/assets`; `/assets/library/*` uses its `ASSETS` bucket. No public R2 bucket hostname is required. Clerk secrets stay on the Worker.
+Set `NEXT_PUBLIC_API_URL` to the unified API Worker origin; production uses `https://api.qrk.sh`, and local development uses `https://api.qrk.localhost:1355`. Root `pnpm dev` starts API alongside Studio. The API Worker verifies the Clerk bearer token using `CLERK_SECRET_KEY` and `CLERK_AUTHORIZED_PARTY`, stores the bytes in its `QRKSH` R2 binding, and returns a URL built from `R2_PUBLIC_BASE_URL`. The configured authorized party and CORS origins must match the browser origin: `https://qrk.localhost:1355` locally and `https://qrk.sh` in production. New local upload URLs use `https://api.qrk.localhost:1355/assets`; production uses `https://api.qrk.sh/assets`. `/assets/library/*` uses its `ASSETS` bucket. No public R2 bucket hostname is required. Clerk secrets stay on the Worker.
 
 Uploads write assets to R2 immediately. Cancel after an upload completes, or removing an image, does not delete the R2 object. File bytes and upload status are not part of the local brick backup. Article uploads remain disabled because its editor has no file-persistence handler; HTTP(S) Markdown images render and native resizing saves dimensions in Markdown comments. Automatic YouTube/X embeds and provider requests are disabled. Article documents are not converted; preserve old browser stores before the approved fresh-origin cutover.

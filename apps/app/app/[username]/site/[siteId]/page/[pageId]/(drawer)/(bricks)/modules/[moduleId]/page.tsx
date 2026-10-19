@@ -1,0 +1,256 @@
+"use client";
+
+import { useParams } from "@tanstack/react-router";
+import { useCallback, useEffect, useRef, useState } from "react";
+
+import { modulesHash } from "@qrk.sh/library";
+import { libraryModule } from "@qrk.sh/library/libraryModule";
+import { makeEffectSchema } from "@zerospin/shapes";
+import { Result, Schema } from "effect";
+import { useLiveQuery } from "@zerospin/react";
+import { makeModelIdSchema } from "@zerospin/core/models/make/makeModelIdSchema";
+import { pageV2 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV2";
+import { useWallViewport } from "@qrk.sh/library/WallViewportProvider";
+import { BREAKPOINTS, minGridUnits } from "@qrk.sh/library/breakpoints";
+import { GridItemPreview } from "@qrk.sh/library/GridItemPreview";
+import { MeasuredBrickWrapper } from "@qrk.sh/library/MeasuredBrickWrapper";
+import { brickDragStore } from "@qrk.sh/library/brickDragStore";
+import type { IDraggedBrick } from "@qrk.sh/library/brickDragStore";
+import { Tabs } from "radix-ui";
+
+import { CodeText } from "@/app/[username]/site/[siteId]/page/[pageId]/Modules/CodeText";
+import { MetadataField } from "@/app/[username]/site/[siteId]/page/[pageId]/Modules/MetadataField";
+
+import { BRICK_DRAG_MIME } from "@/components/home/useBrickDrawerStore";
+import { UserApp } from "@/zerospin/userSession";
+
+export default function ModuleRoute() {
+  const { activeBreakpoint } = useWallViewport();
+  const breakpoint = activeBreakpoint ?? "sm";
+  const params = useParams({ from: "/$username/site/$siteId/page/$pageId/_drawer/modules/$moduleId" });
+  const { username, siteId, pageId } = params;
+  if (!username || !siteId || !pageId) throw new Error("Missing editor route params");
+  const { moduleId } = params;
+
+  const decoded = Schema.decodeUnknownResult(
+    makeEffectSchema({ moduleId: libraryModule.models.brick.attributes.moduleId }),
+  )({ moduleId: moduleId });
+  const decodedPageId = Schema.decodeUnknownResult(makeModelIdSchema(Page))(pageId);
+
+  if (Result.isFailure(decoded) || Result.isFailure(decodedPageId)) {
+    return (
+      <div className="p-6" data-testid="module-not-found">
+        <h1>Module not found</h1>
+      </div>
+    );
+  }
+
+  const brickModule = modulesHash[decoded.success.moduleId];
+  return (
+    <ModuleRouteBody
+      brickModule={brickModule}
+      breakpoint={breakpoint}
+      pageId={decodedPageId.success}
+    />
+  );
+}
+
+function ModuleRouteBody(props: {
+  brickModule: (typeof modulesHash)[keyof typeof modulesHash];
+  breakpoint: "sm" | "md" | "lg" | "xl";
+  pageId: `pag_${string}`;
+}) {
+  const { brickModule, breakpoint, pageId } = props;
+  const session = UserApp.useInitializedSession();
+  const { data: page } = useLiveQuery({
+    session,
+    key: pageId,
+    query: (db, queriedPageId) => db.query.page.findFirst({ where: { id: { eq: queriedPageId } } }),
+  });
+  const bricksQuery = useLiveQuery({
+    session,
+    key: page?.wallId,
+    query: (db, wallId) =>
+      db.query.brick.findMany({ where: { wallId: { eq: wallId ?? "wal_missing" } } }),
+  });
+  const maxPerPage = brickModule.maxPerPage;
+  const moduleCount = bricksQuery.data.filter((brick) => brick.moduleId === brickModule.id).length;
+  const limitReached = maxPerPage !== undefined && moduleCount >= maxPerPage;
+  const published = useRef<IDraggedBrick | null>(null);
+  useEffect(
+    () => () => {
+      if (published.current !== null && brickDragStore.getState().brickDef === published.current) {
+        brickDragStore.getState().setBrickDef(null);
+      }
+    },
+    [],
+  );
+  function clearPublished() {
+    if (published.current !== null && brickDragStore.getState().brickDef === published.current) {
+      brickDragStore.getState().setBrickDef(null);
+    }
+    published.current = null;
+  }
+  const BrickComponent = brickModule.component;
+  const view = brickModule.viewFor(breakpoint);
+  const [measuredUnits, setMeasuredUnits] = useState<
+    Partial<Record<(typeof BREAKPOINTS)[number]["id"], { w: number; h: number }>>
+  >({});
+  const onSizeChange = useCallback(
+    (
+      targetBreakpoint: (typeof BREAKPOINTS)[number]["id"],
+      dimensions: { widthPx: number; heightPx: number },
+    ) => {
+      const entry = BREAKPOINTS.find((row) => row.id === targetBreakpoint);
+      if (entry === undefined) return;
+      const nextW = Math.min(8, minGridUnits(entry.gridItemWidth, dimensions.widthPx));
+      const nextH = minGridUnits(entry.gridItemWidth, dimensions.heightPx);
+      setMeasuredUnits((current) => {
+        const measured = current[targetBreakpoint];
+        if (measured?.w === nextW && measured.h === nextH) return current;
+        return { ...current, [targetBreakpoint]: { w: nextW, h: nextH } };
+      });
+    },
+    [],
+  );
+
+  const sizes = BREAKPOINTS.map((entry) => {
+    const entryView = brickModule.viewFor(entry.id);
+    const measured = measuredUnits[entry.id];
+    return entryView.w !== undefined && entryView.h !== undefined
+      ? { w: entryView.w, h: entryView.h }
+      : measured === undefined
+        ? undefined
+        : {
+            w: Math.min(8, Math.max(measured.w, entryView.minW ?? 1)),
+            h: Math.max(measured.h, entryView.minH ?? 1),
+          };
+  });
+  const placementSizes =
+    sizes[0] && sizes[1] && sizes[2] && sizes[3]
+      ? { sm: sizes[0], md: sizes[1], lg: sizes[2], xl: sizes[3] }
+      : null;
+  const activeSize = placementSizes?.[breakpoint];
+  const w = activeSize?.w ?? view.minW ?? 1;
+  const h = activeSize?.h ?? view.minH ?? 1;
+  const brickDefForDrag =
+    placementSizes === null || limitReached
+      ? null
+      : {
+          ...brickModule.def,
+          w,
+          h,
+          placementSizes,
+          state: structuredClone(brickModule.defaultState),
+          spec: structuredClone(view.spec),
+        };
+
+  const surface = (
+    <div
+      className={`size-full qrk-bricks brick-drag-surface overflow-hidden ${limitReached ? "cursor-not-allowed" : "cursor-grab active:cursor-grabbing"}`}
+      data-brick-full-view={brickModule.def.moduleId}
+      data-brick-drawer-brick-slot
+      data-brick-drawer-module-id={brickModule.def.moduleId}
+      aria-disabled={limitReached}
+      title={limitReached ? "Limit reached. Remove one to add another." : undefined}
+      draggable={brickDefForDrag !== null}
+      onDragStart={(event) => {
+        if (brickDefForDrag === null) {
+          event.preventDefault();
+          return;
+        }
+        const payload = structuredClone(brickDefForDrag);
+        published.current = payload;
+        brickDragStore.getState().setBrickDef(payload);
+        event.dataTransfer.setData(BRICK_DRAG_MIME, JSON.stringify(brickDefForDrag));
+        event.dataTransfer.effectAllowed = "copy";
+        event.dataTransfer.setData("text/plain", brickModule.def.moduleId);
+      }}
+      onDragEnd={() => {
+        clearPublished();
+      }}
+    >
+      <div className="brick-drag-content size-full">
+        <BrickComponent breakpoint={breakpoint} state={brickModule.defaultState} spec={view.spec} />
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="min-h-0 flex-1 overflow-y-auto pb-6">
+      <div className="px-6 pt-6">
+        <dl className="mt-5 grid max-w-[500px] grid-cols-2 gap-x-6 gap-y-3 text-sm">
+          <MetadataField label="Module name">{brickModule.label}</MetadataField>
+          <MetadataField label="Module ID" className="text-right">
+            <CodeText>{brickModule.id}</CodeText>
+          </MetadataField>
+          <MetadataField label="Module description" className="col-span-2">
+            {brickModule.description}
+          </MetadataField>
+        </dl>
+      </div>
+      <div className="mt-8 flex flex-col gap-10">
+        <section key={brickModule.def.moduleId}>
+          <Tabs.Root value={`${brickModule.def.moduleId}-preview`}>
+            <div className="flex items-baseline justify-between gap-4 px-6">
+              <div>
+                <h2 className="m-0 text-2xl">{brickModule.label}</h2>
+                <p className="mb-0 mt-1 text-sm text-zinc-500">{brickModule.description}</p>
+                {maxPerPage !== undefined ? (
+                  <p className="mb-0 mt-1 text-sm text-zinc-500">
+                    Limit: {maxPerPage} per page.
+                    {limitReached ? " Limit reached. Remove one to add another." : ""}
+                  </p>
+                ) : null}
+              </div>
+              <div className="flex shrink-0 items-baseline gap-2">
+                <Tabs.List
+                  className="flex gap-2 text-sm"
+                  aria-label={`${brickModule.def.moduleId} preview`}
+                >
+                  <Tabs.Trigger
+                    value={`${brickModule.def.moduleId}-preview`}
+                    className="cursor-pointer border-0 bg-transparent p-0 text-sm font-medium text-zinc-950"
+                  >
+                    {brickModule.label}
+                  </Tabs.Trigger>
+                </Tabs.List>
+              </div>
+            </div>
+            <Tabs.Content value={`${brickModule.def.moduleId}-preview`}>
+              <div className="mt-6 overflow-auto">
+                <div className={w === 8 ? "relative" : "relative ml-6"}>
+                  <div
+                    aria-hidden
+                    className="pointer-events-none absolute overflow-hidden"
+                    style={{ width: 0, height: 0 }}
+                  >
+                    {BREAKPOINTS.map((entry) => {
+                      const entryView = brickModule.viewFor(entry.id);
+                      if (entryView.w !== undefined && entryView.h !== undefined) return null;
+                      return (
+                        <MeasuredBrickWrapper
+                          key={entry.id}
+                          onChange={(dimensions) => onSizeChange(entry.id, dimensions)}
+                        >
+                          <BrickComponent
+                            breakpoint={entry.id}
+                            state={brickModule.defaultState}
+                            spec={entryView.spec}
+                          />
+                        </MeasuredBrickWrapper>
+                      );
+                    })}
+                  </div>
+                  <GridItemPreview breakpoint={breakpoint} w={w} h={h}>
+                    {surface}
+                  </GridItemPreview>
+                </div>
+              </div>
+            </Tabs.Content>
+          </Tabs.Root>
+        </section>
+      </div>
+    </div>
+  );
+}

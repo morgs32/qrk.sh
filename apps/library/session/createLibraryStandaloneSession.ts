@@ -11,16 +11,16 @@ import type { IBrowserSession } from "@zerospin/browser/makeBrowserSession/types
 
 import { libraryModule } from "../libraryModule/libraryModule";
 import { librarySessionDefinition } from "./librarySessionDefinition";
+import libraryWorkerUrl from "./librarySession.worker?sharedworker&url";
 
 const fixtureDate = new Date("2026-01-01T00:00:00.000Z");
 
-// Webpack recognizes this local method as the application worker entrypoint.
-const applicationWorker = { create: makeApplicationSharedWorker };
-
 export const libraryBrowserDefinition = makeStandaloneSessionDefinition({
   sessionDefinition: librarySessionDefinition,
-  sharedWorker: (props) =>
-    applicationWorker.create(new URL("./librarySession.worker.ts", import.meta.url), props),
+  sharedWorker: (props) => {
+    const { name } = props;
+    return makeApplicationSharedWorker(libraryWorkerUrl, { name });
+  },
 });
 
 export function createLibraryStandaloneSession(props: {

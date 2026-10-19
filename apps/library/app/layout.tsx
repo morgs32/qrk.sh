@@ -1,23 +1,20 @@
-import type { Metadata } from "next";
-import { Suspense, type ReactNode } from "react";
+import { HeadContent, Scripts } from "@tanstack/react-router";
+import type { ReactNode } from "react";
 import { ZerospinDevtoolsLoader } from "@zerospin/react/ZerospinDevtoolsLoader";
 
-import { LibraryLayout } from "./LibraryLayout";
 import "./globals.css";
-
-export const metadata: Metadata = { title: "QRK.SH Library" };
 
 export default function RootLayout(props: { children: ReactNode }) {
   const { children } = props;
   return (
     <html lang="en">
+      <head>
+        <HeadContent />
+      </head>
       <body>
-        <div className="qrk-bricks min-h-screen">
-          <Suspense fallback={null}>
-            <LibraryLayout>{children}</LibraryLayout>
-          </Suspense>
-        </div>
+        <div className="qrk-bricks min-h-screen">{children}</div>
         <ZerospinDevtoolsLoader defaultOpen={false} />
+        <Scripts />
       </body>
     </html>
   );

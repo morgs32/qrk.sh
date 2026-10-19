@@ -25,7 +25,7 @@ export default function PrivacyPage() {
           <h2 id="privacy-about" className="mb-3 text-lg font-bold">1. About this policy</h2>
           <p>
             QRK.SH helps you create and edit sites and pages from content blocks. This policy
-            explains how QRK.SH handles information when you use its website, Studio, and related
+            explains how QRK.SH handles information when you use its website, App, and related
             features. Contact us at{" "}
             <a className="underline underline-offset-4" href="mailto:me@morganatwork.com">me@morganatwork.com</a>
             {" "}with privacy questions or requests.

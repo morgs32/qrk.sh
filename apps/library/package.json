@@ -27,16 +27,10 @@
   },
   "scripts": {
     "dev": "portless",
-    "dev:app": "next dev --webpack --hostname 127.0.0.1 --port 4100",
+    "dev:app": "vp dev --host 127.0.0.1 --port 4100 --strictPort",
     "format": "vp fmt --config ../../.oxfmtrc.json .",
     "storybook": "storybook dev -p 6007 --host 127.0.0.1",
     "build-storybook": "storybook build"
-  },
-  "portless": {
-    "name": "library.qrk",
-    "script": "dev:app",
-    "appPort": 4100,
-    "proxy": true
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
@@ -54,6 +48,8 @@
     "@radix-ui/react-toggle-group": "^1.1.19",
     "@remix-run/route-pattern": "^0.22.1",
     "@tanstack/markdown": "1.0.0",
+    "@tanstack/react-router": "1.170.45",
+    "@tanstack/react-start": "1.169.3",
     "@unpic/react": "1.0.2",
     "@zerospin/browser": "15.0.1",
     "@zerospin/core": "15.0.1",
@@ -72,7 +68,6 @@
     "json-edit-react": "^1.30.2",
     "lucide-react": "^1.7.0",
     "mapbox-gl": "^3.18.1",
-    "next": "16.3.4",
     "react-activity-calendar": "^3.2.1",
     "react-colorful": "^5.8.1",
     "react-grid-layout": "^2.2.3",
@@ -109,5 +104,11 @@
   "peerDependencies": {
     "react": "19.2.7",
     "react-dom": "19.2.7"
+  },
+  "portless": {
+    "name": "library.qrk",
+    "script": "dev:app",
+    "appPort": 4100,
+    "proxy": true
   }
 }

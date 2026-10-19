@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { Link } from "@tanstack/react-router";
 import { useLiveQuery } from "@zerospin/react";
 
 import { ModuleFilmstrip } from "../../lib/ModuleFilmstrip";
@@ -26,7 +26,12 @@ export default function ModulesPage() {
       displayPlaceholders={displayPlaceholders}
       wallBricks={bricksQuery.data}
       renderModuleLink={(brickModule) => (
-        <Link href={`/modules/${brickModule.id}`} scroll={false} data-module-link={brickModule.id}>
+        <Link
+          to="/modules/$moduleId"
+          params={{ moduleId: brickModule.id }}
+          resetScroll={false}
+          data-module-link={brickModule.id}
+        >
           {brickModule.label}
         </Link>
       )}

@@ -6,7 +6,7 @@ updated: 2026-10-12
 # Library brick drop
 
 Catalog tiles place a brick onto `BrickWall` through Library's persisted standalone
-session or Studio's live user session and the shared `addBrick` contract. HTML5 `dragover` cannot read
+session or App's live user session and the shared `addBrick` contract. HTML5 `dragover` cannot read
 custom MIME, so the live payload is the module-level Zustand singleton
 `brickDragStore` (`brickDef` / `setBrickDef` only). Placement column shape is
 [LibraryGridItem](LibraryGridItem.md).
@@ -32,20 +32,20 @@ JSON state column stores the encoded JSON null without a storage migration.
 1. Each app waits for its session and wall before rendering the shared grid.
    1. Library workbench: module-level `librarySession` + `useInitializeStandaloneSession`,
       then `LibrarySessionContext`; reset replaces the `qrk-library` backup with
-      the empty seeded wall and clears its command history. Studio document keys
+      the empty seeded wall and clears its command history. App document keys
       and backend storage are outside this reset.
-   2. Studio: authenticated `userSession` owns user/site/page and Library rows.
+   2. App: authenticated `userSession` owns user/site/page and Library rows.
       `Grid` reads the current page with `useLiveQuery` and uses its `wallId`.
-      The document key `JSON.stringify(["studio", user.id, siteId, pageId])`
-      keys the viewport provider; Studio does not construct a standalone session.
+      The document key `JSON.stringify(["app", user.id, siteId, pageId])`
+      keys the viewport provider; App does not construct a standalone session.
 2. A catalog tile starts an HTML5 drag and writes `brickDragStore` before
    RGL sees `dragover`. Each source first resolves the declared or measured
    default `{ w, h }` for all four breakpoints using its current state and spec.
    Measured widths are limited to the wall's eight columns.
    Dragging remains disabled until every size is available.
-   1. Library and Studio filmstrip: shared `ModuleFilmstrip` → `ModulePreview` → `DraggableBrick`.
+   1. Library and App filmstrip: shared `ModuleFilmstrip` → `ModulePreview` → `DraggableBrick`.
    2. Library module breakpoint preview: `-BreakpointPreviewRow`.
-   3. Studio module detail: `ModuleRoute`.
+   3. App module detail: `ModuleRoute`.
 
 `addBrick` is a fresh `1.0.0` baseline with no historical payload adapter.
 The payload contains `wallId`, `brickId`, `moduleId`, `state`, `spec`,
@@ -148,5 +148,5 @@ placeholder() {
 
 Library's existing JSON state editor calls `updateBrickState`: saving a valid Image
 state replaces the skeleton, and saving null restores it without changing specs or
-placement. Other modules reject null. Studio's brick detail consumes the same
+placement. Other modules reject null. App's brick detail consumes the same
 renderer; this feature adds no editing UI there.

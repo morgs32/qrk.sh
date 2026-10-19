@@ -13,8 +13,7 @@ import {
 } from "react";
 
 import { Drawer } from "../lib/Drawer";
-import Link from "next/link";
-import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Link, useLocation, useMatches, useNavigate, useParams } from "@tanstack/react-router";
 import { Effect, Layer, Result, Schema } from "effect";
 import { makeEffectSchema } from "@zerospin/shapes";
 import { prefixId } from "@zerospin/core/models/prefixId";
@@ -198,10 +197,12 @@ function LayoutBody(props: {
 }) {
   const { children, session, onResetSession } = props;
   const [cardStyle, setCardStyle] = useState(false);
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const params = useParams();
+  const { pathname, searchStr } = useLocation();
+  const navigate = useNavigate();
+  const params = useParams({ strict: false });
+  const isBrickAdmin = useMatches({
+    select: (matches) => matches.some((match) => match.routeId === "/bricks/$brickId_/admin"),
+  });
   const wallViewportStore = useWallViewportStoreApi();
   const {
     regionRef,
@@ -219,8 +220,8 @@ function LayoutBody(props: {
   )({ moduleId: params.moduleId });
   const moduleId = Result.isSuccess(decodedModule) ? decodedModule.success.moduleId : undefined;
   const brickId = typeof params.brickId === "string" ? params.brickId : undefined;
-  const search = searchParams.toString();
-  const locationKey = `${pathname}${search.length > 0 ? `?${search}` : ""}`;
+  const search = searchStr.slice(1);
+  const locationKey = `${pathname}${searchStr}`;
   const [drawerOpen, setDrawerOpen] = useState(() => pathname !== "/" || search.length > 0);
   const [drawerOpenForLocationKey, setDrawerOpenForLocationKey] = useState(locationKey);
 
@@ -323,7 +324,6 @@ function LayoutBody(props: {
   const breadcrumbModuleId = moduleId ?? brickRow?.moduleId;
   const moduleLabel =
     breadcrumbModuleId !== undefined ? modulesHash[breadcrumbModuleId].label : undefined;
-  const isBrickAdmin = brickId !== undefined && pathname === `/bricks/${brickId}/admin`;
   const drawerTitle =
     moduleLabel !== undefined
       ? `Bricks / ${moduleLabel}${isBrickAdmin ? " / Admin" : ""}`
@@ -351,23 +351,23 @@ function LayoutBody(props: {
   function openDrawer() {
     setDrawerOpen(true);
     if (pathname === "/") {
-      router.push("/modules", { scroll: false });
+      void navigate({ to: "/modules", resetScroll: false });
     }
   }
 
   function closeDrawer() {
     setDrawerOpen(false);
-    if (brickId !== undefined) router.push("/", { scroll: false });
+    if (brickId !== undefined) void navigate({ to: "/", resetScroll: false });
   }
 
   useEffect(() => {
     if (brickId !== undefined && bricksQuery.data !== undefined && brickRow === undefined) {
       queueMicrotask(() => {
         setDrawerOpen(false);
-        router.push("/", { scroll: false });
+        void navigate({ to: "/", resetScroll: false });
       });
     }
-  }, [brickId, brickRow, bricksQuery.data, router]);
+  }, [brickId, brickRow, bricksQuery.data, navigate]);
 
   useEffect(() => {
     if (!drawerOpen || brickId === undefined) return;
@@ -376,13 +376,13 @@ function LayoutBody(props: {
       setTimeout(() => {
         if (!event.defaultPrevented) {
           setDrawerOpen(false);
-          router.push("/", { scroll: false });
+          void navigate({ to: "/", resetScroll: false });
         }
       }, 0);
     }
     document.addEventListener("keydown", escape, true);
     return () => document.removeEventListener("keydown", escape, true);
-  }, [drawerOpen, brickId, router]);
+  }, [drawerOpen, brickId, navigate]);
 
   return (
     <BrickCardStyleContext value={cardStyle}>
@@ -447,7 +447,11 @@ function LayoutBody(props: {
                         onCommandError={(message) => toast.error(message)}
                         onBrickActivate={({ brickId: activatedBrickId }) => {
                           setDrawerOpen(true);
-                          router.push(`/bricks/${activatedBrickId}`, { scroll: false });
+                          void navigate({
+                            to: "/bricks/$brickId",
+                            params: { brickId: activatedBrickId },
+                            resetScroll: false,
+                          });
                         }}
                       />
                     </div>
@@ -466,7 +470,7 @@ function LayoutBody(props: {
             >
               <div className="flex shrink-0 items-center justify-between gap-4 border-b border-border/60 px-4 py-2.5">
                 <nav aria-label="Drawer breadcrumbs" className="flex min-w-0 items-center gap-2">
-                  <Link href="/modules" scroll={false}>
+                  <Link to="/modules" resetScroll={false}>
                     Bricks
                   </Link>
                   {moduleLabel !== undefined && breadcrumbModuleId !== undefined ? (
@@ -476,8 +480,9 @@ function LayoutBody(props: {
                       </span>
                       {brickId !== undefined ? (
                         <Link
-                          href={`/modules/${breadcrumbModuleId}`}
-                          scroll={false}
+                          to="/modules/$moduleId"
+                          params={{ moduleId: breadcrumbModuleId }}
+                          resetScroll={false}
                           className="truncate"
                         >
                           {moduleLabel}
@@ -491,7 +496,12 @@ function LayoutBody(props: {
                             /
                           </span>
                           {isBrickAdmin ? (
-                            <Link href={`/bricks/${brickId}`} scroll={false} className="truncate">
+                            <Link
+                              to="/bricks/$brickId"
+                              params={{ brickId }}
+                              resetScroll={false}
+                              className="truncate"
+                            >
                               {`~${brickId.slice(-5)}`}
                             </Link>
                           ) : (
@@ -503,7 +513,11 @@ function LayoutBody(props: {
                           {isBrickAdmin ? (
                             <span aria-current="page">Admin</span>
                           ) : (
-                            <Link href={`/bricks/${brickId}/admin`} scroll={false}>
+                            <Link
+                              to="/bricks/$brickId/admin"
+                              params={{ brickId }}
+                              resetScroll={false}
+                            >
                               Admin
                             </Link>
                           )}
@@ -593,7 +607,7 @@ function LayoutBody(props: {
                 toast.dismiss();
                 onResetSession();
                 if (brickId !== undefined) {
-                  router.push("/modules", { scroll: false });
+                  void navigate({ to: "/modules", resetScroll: false });
                 }
               }}
             >

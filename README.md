@@ -29,10 +29,11 @@ Inspect available skills with `pnpm exec intent list` and load task guidance wit
 `pnpm exec intent load '@zerospin/sdk#zerospin-author-feature'` (or another listed
 SDK skill ID). Skill content follows the installed package version.
 
-Two Next.js apps with App Router:
+The frontends have separate framework owners:
 
-- `apps/web` owns the public homepage at `/` and the `/sign-in`, `/sign-up`, `/replace`, and `/ordered-outline` routes.
-- `apps/studio` owns dashboards at `/:username` and site workspaces under `/:username/site`.
+- `apps/web` uses Next.js App Router at `qrk.sh` and owns the public homepage at `/` and the `/sign-in`, `/sign-up`, `/replace`, and `/ordered-outline` routes.
+- `apps/app` uses TanStack Start in SPA mode at `app.qrk.sh` and owns dashboards at `/:username` and site workspaces under `/:username/site`.
+- `apps/library` uses TanStack Start in SPA mode for its standalone development UI and exports source directly to its consumers.
 
 ## Features
 
@@ -48,7 +49,7 @@ Brick groups are defined under `apps/library/groups/`.
 
 This is a hard terminology cutover: old backend state must be reset before reuse.
 `libraryModule` exports the shared models and flat command contracts. Library
-uses its standalone definition; Studio uses the authenticated user definition.
+uses its standalone definition; App uses the authenticated user definition.
 
 Model and contract versions remain unchanged. Library viewport preference
 uses `qrk-bricks-library-viewport-v1`. Wall rows live in each initialized session's
@@ -58,7 +59,9 @@ More detail and test patterns: [docs/styleguide/component-and-file-naming.md](do
 
 ## Tech Stack
 
-- [Next.js 16.3.4](https://nextjs.org/) with App Router
+- [TanStack Start 1.169.3](https://tanstack.com/start/latest) and [TanStack Router 1.170.45](https://tanstack.com/router/latest) for App and Library
+- [Next.js 16.3.4](https://nextjs.org/) with App Router for Web
+- Vite Plus `1.0.0` for App, Library, and their independent Storybooks
 - [React 19](https://react.dev/)
 - [Tailwind 4](https://tailwindcss.com/) for styling
 - [shadcn/ui](https://ui.shadcn.com/) for the design system
@@ -98,7 +101,7 @@ More detail and test patterns: [docs/styleguide/component-and-file-naming.md](do
 3. Open [https://qrk.localhost/](https://qrk.localhost/).
 
 The root `portless.json` uses Portless's native monorepo discovery with the
-`dev:app` script. Only Web, Studio, Library, API, and Zerospin expose that
+`dev:app` script. Only Web, App, Library, API, and Zerospin expose that
 script, so examples and Storybooks do not start. Each app's `dev` script runs
 `portless`; `dev:app` holds its server command. Package-level `portless` metadata
 owns its hostname and fixed internal port. Portless starts the five processes;
@@ -107,13 +110,14 @@ Nx development targets have no startup dependencies.
 | App | Development URL | Internal port |
 | --- | --- | --- |
 | Web | [qrk.localhost](https://qrk.localhost/) | 3000 |
-| Studio | [studio.qrk.localhost](https://studio.qrk.localhost/) | 3001 |
+| App | [app.qrk.localhost](https://app.qrk.localhost/) | 3001 |
 | Library | [library.qrk.localhost](https://library.qrk.localhost/) | 4100 |
 | API | [api.qrk.localhost](https://api.qrk.localhost/) | 8787 |
 | Zerospin | [zerospin.qrk.localhost](https://zerospin.qrk.localhost/) | 8788 |
 
-Web has no `web.` prefix. Sign in through Web; it continues forwarding
-application routes to Studio. The trusted HTTPS wildcard proxy on port 443 is
+Web has no `web.` prefix. Sign in through Web; `/replace` redirects to the
+authenticated username at `https://app.qrk.localhost`. App is served
+directly on its own hostname. The trusted HTTPS wildcard proxy on port 443 is
 shared with other projects. The root command pins HTTPS on port 443 and
 auto-starts that listener if needed; an explicit start uses
 `pnpm exec portless proxy start --port 443 --https --wildcard`. Portless's first
@@ -131,29 +135,33 @@ and [Library fresh-origin check](apps/library/README.md) instructions. Supersede
 retained commands and SQLite schemas require empty storage; old data is preserved
 separately and has no compatibility migration.
 
-Studio's `userBrowserDefinition` uses the installed browser package's
+App's `userBrowserDefinition` uses the installed browser package's
 `makeAggregateBrowserDefinition` with its pure `userSessionDefinition` and authored
 `node.worker.ts` entrypoint. `makeApplicationSharedWorker` binds the worker artifact
 to the connected session.
 Zerospin chooses its name from the runtime version and persistent session identity.
-Studio uses Webpack in Next development and production builds to bundle the
-worker and its `new URL(..., import.meta.url)` SQLite WASM asset. Studio listens
-on port 3001 behind web on port 3000. Web proxies Studio's isolated
-`/studio-static/_next/` asset namespace. Next bundles the SharedWorker and its
-SQLite WASM from the installed browser package and the application worker entrypoint. Existing `/assets/` public-file URLs have explicit
-Studio mappings.
-Library exports its source directly to Studio, API, and Zerospin; startup does
-not build a separate Library package. Vite remains for Storybook and examples.
-Keep each app's `.next` directory between runs so Webpack can reuse its filesystem cache.
+App and Library use Vite's `?sharedworker&url` import for the authored worker
+and `@zerospin/browser/sqlite.wasm?url` for the matching installed SQLite asset.
+App listens on port 3001 at `https://app.qrk.localhost`, independently of
+Web on port 3000. Application routes and assets use Vite's default root base;
+development modules, workers, WASM, and HMR use App's origin through Portless.
+Web has no App proxy or asset-prefix routing. Existing `/assets/` public-file
+URLs retain explicit App mappings.
+Library exports its source directly to App, API, and Zerospin; startup does
+not build a separate Library package. Storybook uses its own Vite configuration
+without the Start server plugin.
+Both Start configurations bundle installed Zerospin packages with
+`ssr.noExternal` so their extensionless ESM imports resolve through Vite.
 
-Studio server-renders the document, fonts, and navigation before its browser
-session initializes. `UserApp.Initializer` owns a fresh facade for its Clerk binding;
-ready readers suspend until that facade publishes its initialized database. The dashboard shows the homepage's Silkscreen `QRK.SH` wordmark; the site navbar reserves its
-custom wordmark with a skeleton. Browser-owned data and editor drafts stay under
-the content readiness gate. Persistent App Router layouts retain the editor
-across drawers; native React View Transitions animate drawer entry and snapshot
-exit for 300 ms, with reduced-motion and immediate-navigation fallbacks.
-See [Studio's README](apps/studio/README.md) for routes and browser checks.
+App prerenders a static document shell and initializes its routes in the
+browser. `UserApp.Initializer` owns a fresh facade for its Clerk binding; ready
+readers suspend until that facade publishes its initialized database. The
+dashboard uses the installed Silkscreen font for its `QRK.SH` wordmark.
+Browser-owned data and editor drafts stay under the content readiness gate.
+Persistent Router layouts retain the editor across drawers; the drawer shell
+and Router-managed native View Transitions retain their 300 ms exit, reduced-motion behavior,
+and focus restoration.
+See [App's README](apps/app/README.md) for routes and browser checks.
 
 The signed-in Clerk user supplies its Clerk user ID directly as `aggregateId`,
 matching the verified token subject on the server. Zerospin verifies those
@@ -161,14 +169,34 @@ expectations online before attachment. Offline reopening requires that exact
 previously verified identity and session lock. Runtime versions use separate
 storage; pending commands in an older version are not migrated or deleted.
 
+The App hostname change is a hard cutover. Browser stores on previous
+origins remain untouched; App initializes its own origin-scoped Node and
+synchronizes accepted backend data for the same Clerk identity. Old-origin
+local-only drafts, preferences, and unsent commands are not migrated. There is
+no storage bridge, backend reset, or compatibility route for the former
+Web-hosted App paths.
+
 The `api` Worker runs on port 8787 (inspector 9231) and Zerospin on port 8788. API
 owns module RPCs, Clerk-authenticated uploads, and asset serving. See
 [API's README](apps/api/README.md) for bindings and private provider settings. Set
 `NEXT_PUBLIC_API_URL=https://api.qrk.localhost` and
 `NEXT_PUBLIC_ZEROSPIN_API_URL=https://zerospin.qrk.localhost` in
-`apps/studio/.env.local`. Worker authorized-party settings use
-`https://qrk.localhost`, matching the browser's Web origin. New public
+`apps/app/.env.local`. Worker authorized-party settings use
+`https://app.qrk.localhost`, matching App's browser origin. New public
 asset URLs use `https://api.qrk.localhost/assets`.
+App's optional `NEXT_PUBLIC_WEB_ORIGIN` defaults to `https://qrk.localhost`
+in development and `https://qrk.sh` in production. Its authentication links use
+that absolute Web origin, including when App is opened on its own hostname.
+Web's optional `NEXT_PUBLIC_APP_ORIGIN` defaults to
+`https://app.qrk.localhost` in development and `https://app.qrk.sh` in
+production. Web permits this exact redirect origin and `/replace` sends the
+authenticated username there. Explicit App return URLs survive the Web
+sign-in flow. App enables Clerk satellite synchronization only in development;
+production uses the shared `qrk.sh` Clerk domain without the development satellite.
+App's development and static-preview RPC proxies use the server-only
+`APP_WORKER_ORIGIN` override, defaulting to `http://127.0.0.1:8787`.
+`NEXT_PUBLIC_API_URL` remains the browser's HTTPS API origin; local Node proxy
+requests do not depend on trusting Portless's TLS certificate.
 
 To run only the Library app through Portless:
 
@@ -176,30 +204,31 @@ To run only the Library app through Portless:
 pnpm --dir apps/library dev
 ```
 
-Library uses Next.js App Router with Webpack on port 4100. API runs separately
-on port 8787; root `pnpm dev` starts both. Next forwards `/rpc`, `/upload`, and
+Library uses TanStack Start in SPA mode on port 4100. API runs separately
+on port 8787; root `pnpm dev` starts both. Vite forwards `/rpc`, `/upload`, and
 `/assets/*` to API, preserving same-origin client URLs. The private Library package
 maps its existing imports directly to TypeScript, TSX, and stylesheet source;
 each consumer compiles the source it uses.
 
-To run only Studio through Portless:
+To run only App through Portless:
 
 ```bash
-pnpm --dir apps/studio dev
+pnpm --dir apps/app dev
 ```
 
 This does not start Web, API, or Zerospin; use root `pnpm dev` for the full stack.
 
-### Production server
+### Production output and local preview
 
-Build and start either app with Nx: `pnpm nx run @qrk.sh/web:build` and
-`pnpm nx run @qrk.sh/web:start`, or the equivalent `@qrk.sh/studio` targets.
-Studio uses Webpack and writes `.next`; its production server defaults to port
-3001 (`PORT` overrides it). Keep web on port 3000 with `APP_ORIGIN` pointing to
-Studio.
+Web retains `pnpm nx run @qrk.sh/web:build` and
+`pnpm nx run @qrk.sh/web:start`. App's `pnpm nx run @qrk.sh/app:build`
+writes static output to `apps/app/dist/client`, including `index.html` as
+the SPA shell. Run `pnpm nx run @qrk.sh/app:preview` for its local static
+preview on port 3001. The separate preview configuration has no Start server
+plugin. Open App's own hostname; Web remains available for authentication.
 
 Library retains its development server and Storybook; it has no package build,
-Next production build, or production preview target. See
+production build, or production preview target. See
 [Library's README](apps/library/README.md) for the backend-origin setting. API
 retains the existing R2 buckets; previously saved absolute URLs using port 4101
 need their origin updated separately.
@@ -213,7 +242,7 @@ Home/About links exercise Next navigation while the browser retains the
 selected hostname. `PORTLESS_WILDCARD=1` on the root `dev` script sends these
 tenant labels through Web's process-owned `qrk` registration.
 
-Only one DNS label before `.qrk.localhost` is recognized. The explicit Studio,
+Only one DNS label before `.qrk.localhost` is recognized. The explicit App,
 Library, API, and Zerospin registrations own their service hostnames. Next
 internals, static files, and `/api`, `/trpc`, and `/rpc` endpoints retain their
 existing routing. Proof labels do not yet identify sites or users.
@@ -229,23 +258,33 @@ distinguished by hostname.
 
 ## Deployment
 
-Deploy both Next.js apps and route `/`, `/sign-in(.*)`, `/sign-up(.*)`, `/privacy`, `/terms`, `/replace`, and `/ordered-outline` to `@qrk.sh/web`; route the remaining application paths to `@qrk.sh/studio`.
+Web remains a Next.js deployment at `qrk.sh`; App's static TanStack Start SPA
+targets `app.qrk.sh`. Route each hostname to its own Vercel project. Web
+retains its public and authentication routes; it does not proxy App paths.
 
-Preserve the `/studio-static/` and `/assets/` proxy routes in production.
+App's Vercel configuration serves `dist/client`, resolves assets and RPC
+forwarding before falling back to `index.html` for application deep links.
+The standalone-host configuration does not itself attach DNS, change Vercel
+domains, or deploy production output. Attach `app.qrk.sh` to the App
+project and apply the production frontend and Worker origin settings when
+rolling out the cutover.
 
 Vercel hosts the frontends in the `morganatwork` team:
 
 - Web: [qrk-web.vercel.app](https://qrk-web.vercel.app), project `qrk-web`, root `apps/web`.
-- Studio: [qrk-studio.vercel.app](https://qrk-studio.vercel.app), project `qrk-studio`, root `apps/studio`.
+- App: existing [qrk-studio.vercel.app](https://qrk-studio.vercel.app), project `qrk-studio`. Set its root to `apps/app` before the next deployment; the local rename does not change the remote project.
 
 The custom domain [qrk.sh](https://qrk.sh) is attached to `qrk-web`. Cloudflare
 remains authoritative for DNS: its apex `CNAME` points to
 `e9746fc558e89321.vercel-dns-017.com` with **DNS only** proxy status and automatic
 TTL. Cloudflare flattens the apex alias; Vercel serves the site and manages HTTPS.
 
-Web's production `APP_ORIGIN` points to `https://qrk-studio.vercel.app`.
-Each project's build command runs its existing Nx `build` target, retaining
-Studio's Webpack configuration.
+Web's optional `NEXT_PUBLIC_APP_ORIGIN`
+defaults to `https://app.qrk.sh`; App's `NEXT_PUBLIC_WEB_ORIGIN` defaults
+to `https://qrk.sh`. API CORS and the API/Zerospin authorized-party settings
+use `https://app.qrk.sh` for the App browser client.
+Each project's build command runs its existing Nx `build` target. App's
+target emits static output; Web retains its Next build.
 
 Deploy locally built output because Vercel cannot reach the local package
 registry. Use an isolated checkout copy containing the current source, installed
@@ -268,23 +307,23 @@ Repeat with `--project qrk-web` in the pull command. Always use `--prebuilt`;
 hosted dependency installation is not configured.
 
 When saving or restoring `.vercel` output, preserve symlinks (`cp -a` or
-`shutil.copytree(..., symlinks=True)`). Next's shared function aliases must remain
+`shutil.copytree(..., symlinks=True)`). Web's Next shared function aliases must remain
 links; dereferencing them creates duplicate functions and can exceed Vercel's
 Hobby function limit. Ensure the snapshot's app-local environment files and
 Vercel production variables both use production Clerk keys before building.
 
-The deployed frontends use production Clerk credentials. Studio's production
+The deployed frontends use production Clerk credentials. App's production
 Zerospin endpoint is `https://zerospin.qrk.sh`, backed by
 Cloudflare Worker `qrk-zerospin` with logical system `qrk-sh` and system ID
 `sys_qrk_sh_1`. Its system specification is accepted and initialized; the
-administrative healthcheck returns `healthy`. Studio's production publishable
+administrative healthcheck returns `healthy`. App's production publishable
 key matches the Worker binding. See the [backend deployment notes](apps/zerospin/README.md#production).
 Cloudflare routes `https://zerospin.qrk.sh` directly to this Worker as a
 Custom Domain with managed DNS and HTTPS. The Worker's original
 `https://qrk-zerospin.morganatwork.workers.dev` endpoint remains available.
 
 The API is deployed as Cloudflare Worker `qrk-api` at
-`https://api.qrk.sh`, a Custom Domain with managed DNS and HTTPS. Studio's production
+`https://api.qrk.sh`, a Custom Domain with managed DNS and HTTPS. App's production
 `NEXT_PUBLIC_API_URL` uses that origin for uploads and `/rpc` forwarding.
 New public asset URLs use `https://api.qrk.sh/assets`; the original
 `https://qrk-api.morganatwork.workers.dev` endpoint remains available.

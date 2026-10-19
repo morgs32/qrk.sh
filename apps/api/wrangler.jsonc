@@ -17,7 +17,7 @@
   "vars": {
     // Portless exposes local public objects through the API Worker's /assets route.
     "R2_PUBLIC_BASE_URL": "https://api.qrk.localhost/assets",
-    "CLERK_AUTHORIZED_PARTY": "https://qrk.localhost",
+    "CLERK_AUTHORIZED_PARTY": "https://app.qrk.localhost",
   },
   "browser": { "binding": "BROWSER", "remote": true },
   "durable_objects": {
@@ -49,7 +49,7 @@
       "routes": [{ "pattern": "api.qrk.sh", "custom_domain": true }],
       "vars": {
         "R2_PUBLIC_BASE_URL": "https://api.qrk.sh/assets",
-        "CLERK_AUTHORIZED_PARTY": "https://qrk.sh",
+        "CLERK_AUTHORIZED_PARTY": "https://app.qrk.sh",
       },
       "r2_buckets": [
         { "binding": "QRKSH", "bucket_name": "qrksh" },

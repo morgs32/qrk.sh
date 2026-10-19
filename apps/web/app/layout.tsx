@@ -22,11 +22,19 @@ export const metadata: Metadata = {
   description: "Loud and proud, right? Right.",
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout(
+  props: Readonly<{
+    children: React.ReactNode;
+  }>,
+) {
+  const { children } = props;
+  const appOrigin = new URL(
+    process.env.NEXT_PUBLIC_APP_ORIGIN ??
+      (process.env.NODE_ENV === "production"
+        ? "https://app.qrk.sh"
+        : "https://app.qrk.localhost"),
+  ).origin;
+
   return (
     <html lang="en">
       <body className={`${spaceMono.variable} ${silkscreen.variable} font-sans antialiased`}>
@@ -41,6 +49,7 @@ export default function RootLayout({
           }}
           signInFallbackRedirectUrl="/replace"
           signUpFallbackRedirectUrl="/replace"
+          allowedRedirectOrigins={[appOrigin]}
         >
           {children}
         </ClerkProvider>

@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 
-import { notFound, useParams, usePathname, useSearchParams } from "next/navigation";
+import { notFound, useLocation, useParams } from "@tanstack/react-router";
 
 import { newSyncRpcSession } from "@zerospin/core/utils/getApi/newSyncRpcSession/newSyncRpcSession";
 import type { Spec } from "@json-render/core";
@@ -30,13 +30,12 @@ import { librarySessionInputs } from "../../librarySession";
 import { BreakpointPreviewRow } from "./BreakpointPreviewRow";
 
 export default function ModulePage() {
-  const params = useParams();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
+  const params = useParams({ from: "/modules_/$moduleId" });
+  const location = useLocation();
   const decoded = Schema.decodeUnknownResult(
     makeEffectSchema({ moduleId: libraryModule.models.brick.attributes.moduleId }),
   )(params);
-  if (Result.isFailure(decoded)) notFound();
+  if (Result.isFailure(decoded)) throw notFound();
 
   return (
     <OrderedDoc>
@@ -47,7 +46,7 @@ export default function ModulePage() {
         <div className="min-w-0 flex-1 py-6 lg:py-8">
           <OrderedBody showAnchors>
             <ModuleDetail
-              key={`${pathname}?${searchParams.toString()}`}
+              key={`${location.pathname}${location.searchStr}`}
               moduleId={decoded.success.moduleId}
             />
           </OrderedBody>

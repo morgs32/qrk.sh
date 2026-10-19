@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { notFound, useParams } from "next/navigation";
+import { notFound, useParams } from "@tanstack/react-router";
 import { makeModelIdSchema } from "@zerospin/core/models/make/makeModelIdSchema";
 import { Result, Schema } from "effect";
 import { useLiveQuery } from "@zerospin/react";
@@ -13,11 +13,11 @@ import { useUpdateBrick } from "../../../lib/useUpdateBrick";
 import { useLibrarySession } from "../../../session/createLibraryStandaloneSession";
 
 export default function BrickDetail() {
-  const params = useParams();
+  const params = useParams({ from: "/bricks/$brickId" });
   const decoded = Schema.decodeUnknownResult(
     Schema.Struct({ brickId: makeModelIdSchema(libraryModule.models.brick) }),
   )(params);
-  if (Result.isFailure(decoded)) notFound();
+  if (Result.isFailure(decoded)) throw notFound();
   return <BrickDetailContent key={decoded.success.brickId} brickId={decoded.success.brickId} />;
 }
 
@@ -46,7 +46,7 @@ function BrickDetailContent(props: { brickId: `brk_${string}` }) {
       }),
   });
   const brickRow = brickQuery.data;
-  if (brickRow === undefined || placementQuery.data === undefined) notFound();
+  if (brickRow === undefined || placementQuery.data === undefined) throw notFound();
   const Form = modulesHash[brickRow.moduleId].Form;
   if (Form === undefined) return null;
   return (

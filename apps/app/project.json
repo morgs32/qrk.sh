@@ -1,0 +1,12 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "@qrk.sh/app",
+  "targets": {
+    "dev": {
+      "continuous": true
+    },
+    "storybook": {
+      "continuous": true
+    }
+  }
+}

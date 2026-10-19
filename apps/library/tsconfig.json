@@ -15,21 +15,8 @@
     "incremental": true,
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
-    "types": ["node", "react/canary"],
-    "plugins": [{ "name": "next" }]
+    "types": ["node", "react/canary", "vite/client"]
   },
-  "include": [
-    "next-env.d.ts",
-    "**/*.ts",
-    "**/*.tsx",
-    ".next/types/**/*.ts",
-    ".next/dev/types/**/*.ts"
-  ],
-  "exclude": [
-    "worker/**",
-    "dist",
-    "build",
-    "storybook-static",
-    "node_modules"
-  ]
+  "include": ["**/*.ts", "**/*.tsx"],
+  "exclude": ["worker/**", "dist", "build", "storybook-static", "node_modules"]
 }

@@ -11,7 +11,7 @@
 
 ## Session-backed walls
 
-Library `LibraryLayout` and Studio's page editor render
+Library `LibraryLayout` and App's page editor render
 [`BrickWall`](../apps/library/lib/BrickWall.tsx) against sessions exposing
 `libraryModule` models and contracts:
 
@@ -19,11 +19,11 @@ Library `LibraryLayout` and Studio's page editor render
   `useInitializeStandaloneSession` and gates on `isInitialized`. Its
   `qrk-library` backup stores `wal_library`, seeded through
   `prefixId(libraryModule.models.wall, "library")`.
-- Studio uses authenticated live `userSession` and the current page's `wallId`.
-  `JSON.stringify(["studio", user.id, siteId, pageId])` keys its viewport provider,
+- App uses authenticated live `userSession` and the current page's `wallId`.
+  `JSON.stringify(["app", user.id, siteId, pageId])` keys its viewport provider,
   not a standalone session or per-page backup.
 - Library reset calls `session.reset()` to replace its saved document with
-  the original seeds; Studio data remains separate.
+  the original seeds; App data remains separate.
 - Drop / move / resize / remove / compact: aggregate contracts via
   `stageCommand`. No Zustand `bricksById` wall state.
 - `verticalCompactor` on the grid packs drag/resize feedback. Module contracts
@@ -47,7 +47,7 @@ Placement `gridItem` decode/strip: [LibraryGridItem](./architecture/browser/Libr
 `sm` / `md` / `lg` / `xl` each have their own placement row (grid item + Spec +
 visibility). Shared module state lives on the brick row.
 
-## Studio detail
+## App detail
 
 Brick detail reads brick + placement with `useLiveQuery` on the same live
 `userSession` as the page wall.

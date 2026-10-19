@@ -79,7 +79,7 @@ sequenceDiagram
 Every mounted wall checks its current database baseline, independent of `isActive`.
 The effect waits for grid gestures and catalog drags to finish, compares compacted
 geometry by brick ID, and stages the existing compact contract only when changed.
-Library and Studio pass their shared viewport `gridGesture` as `gridGestureActive`,
+Library and App pass their shared viewport `gridGesture` as `gridGestureActive`,
 so a gesture in the active wall also defers normalization in the inactive panes.
 It records the sorted snapshot before staging, so a failed attempt reports through
 `onCommandError` (or the existing alert fallback) without repeated retries on the
@@ -89,7 +89,7 @@ or restored layout to normalize again.
 - [`BrickWall.tsx:92-117`](../../../apps/library/lib/BrickWall.tsx#L92-L117) — defers active gestures/drags, then selects current wall-visible placements from stored rows. (`apps/library/lib/BrickWall.tsx:92-117`)
 - [`BrickWall.tsx:118-154`](../../../apps/library/lib/BrickWall.tsx#L118-L154) — compares geometry, suppresses repeated snapshots, stages compaction, and reports failures. (`apps/library/lib/BrickWall.tsx:118-154`)
 - [`LibraryLayout.tsx:373`](../../../apps/library/app/LibraryLayout.tsx#L373) — passes the viewport's shared grid gesture to every wall. (`apps/library/app/LibraryLayout.tsx:373`)
-- [`Grid.tsx:92`](../../../apps/studio/app/[username]/site/[siteId]/page/[pageId]/Grid.tsx#L92) — passes Studio's shared grid gesture to every wall. (`apps/studio/app/[username]/site/[siteId]/page/[pageId]/Grid.tsx:92`)
+- [`Grid.tsx:92`](../../../apps/app/app/[username]/site/[siteId]/page/[pageId]/Grid.tsx#L92) — passes App's shared grid gesture to every wall. (`apps/app/app/[username]/site/[siteId]/page/[pageId]/Grid.tsx:92`)
 
 ```mermaid
 sequenceDiagram

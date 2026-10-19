@@ -4,7 +4,7 @@ import { Wordmark } from "@/components/Wordmark";
 
 export const metadata: Metadata = {
   title: "Terms of service | QRK.SH",
-  description: "Terms for using QRK.SH, its Studio editor, and related features.",
+  description: "Terms for using QRK.SH, its App editor, and related features.",
 };
 
 export default function TermsPage() {
@@ -24,7 +24,7 @@ export default function TermsPage() {
         <section aria-labelledby="terms-service">
           <h2 id="terms-service" className="mb-3 text-lg font-bold">1. Using QRK.SH</h2>
           <p>
-            These terms govern your use of QRK.SH, its Studio editor, and related features.
+            These terms govern your use of QRK.SH, its App editor, and related features.
             QRK lets you create and edit sites and pages using content blocks, uploads, and
             optional third-party content. Features are under active development and may change.
             By using QRK, you agree to these terms. If you do not agree,

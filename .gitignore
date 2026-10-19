@@ -28,7 +28,7 @@ playwright/.cache/
 
 # next.js
 .next/
-apps/studio/public/__zerospin/
+apps/app/public/__zerospin/
 apps/library/public/__zerospin/
 out/
 

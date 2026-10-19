@@ -1,0 +1,19 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "buildCommand": "pnpm build",
+  "outputDirectory": "dist/client",
+  "routes": [
+    { "src": "^/rpc$", "dest": "https://api.qrk.sh/rpc" },
+    {
+      "src": "^/assets/site-settings-social-preview\\.png$",
+      "dest": "/site-settings-social-preview.png"
+    },
+    { "src": "^/assets/favicon\\.ico$", "dest": "/favicon.ico" },
+    { "src": "^/assets/favicon-light\\.png$", "dest": "/favicon-light.png" },
+    { "src": "^/assets/qrk-sh\\.svg$", "dest": "/qrk-sh.svg" },
+    { "src": "^/assets/(.*)$", "dest": "/assets/$1" },
+    { "handle": "filesystem" },
+    { "src": "^/(.*)$", "dest": "/index.html" }
+  ]
+}

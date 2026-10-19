@@ -17,20 +17,20 @@ completed native editor verification. Library tests must not be written or run.
 - [ ] Force failed Article and JSON `updateBrickState` staging and verify each section retains its draft, stays open, and shows its own error.
 - [ ] Verify Generate spec and visibility actions remain independent of unsaved Article and JSON drafts.
 
-## Studio and Library drawer
+## App and Library drawer
 
 Deferred checks from [archived plan 007](wiki/archive/plans/007-plan-shared-bottom-drawer.md) and [archived spec 012](wiki/archive/specs/012-spec-persistent-overlay-drawer.md).
 
 - [ ] Recheck the Library `queryDb`/`db` contract-guard blocker recorded in plan 007. If it remains, resolve it in separate work; rerun Library build and manually verify a module-preview drop creates a brick and placed-brick navigation works.
 - [ ] On a ready Library app, manually check its drawer, including placement and navigation.
-- [ ] With valid Playwright storage state and an existing editor URL, run the complete affected Studio drawer, modules, and brick-detail suites across configured browsers. Check persistent shell identity, route-to-route navigation, Back/Forward and interrupted history, focus, reduced motion, and behavior without View Transitions.
-- [ ] In the authenticated Studio editor, check the remaining drawers and Back/Forward navigation; visit and refresh the old `/compose` URL to confirm the not-found screen. This carries the live navigation check from [archived plan 004](wiki/archive/plans/004-plan-remove-compose.md).
+- [ ] With valid Playwright storage state and an existing editor URL, run the complete affected App drawer, modules, and brick-detail suites across configured browsers. Check persistent shell identity, route-to-route navigation, Back/Forward and interrupted history, focus, reduced motion, and behavior without View Transitions.
+- [ ] In the authenticated App editor, check the remaining drawers and Back/Forward navigation; visit and refresh the old `/compose` URL to confirm the not-found screen. This carries the live navigation check from [archived plan 004](wiki/archive/plans/004-plan-remove-compose.md).
 
-## Studio modules naming
+## App modules naming
 
 Deferred checks from [archived plan 008](wiki/archive/plans/008-plan-modules-naming.md).
 
-- [ ] With authenticated Studio Playwright fixtures, run the catalog, detail, drawer, grid, and history checks. Verify placed-brick navigation back to module detail and shell identity/history behavior.
+- [ ] With authenticated App Playwright fixtures, run the catalog, detail, drawer, grid, and history checks. Verify placed-brick navigation back to module detail and shell identity/history behavior.
 
 ## Article uploads temporarily disabled
 
@@ -38,7 +38,7 @@ Deferred checks from [archived plan 008](wiki/archive/plans/008-plan-modules-nam
 
 - [ ] Implement future Article uploads inside the module without application upload callbacks, request tracking, or upload-specific Save gating. Warn before proposing new module-specific application coupling.
 
-## Studio Article editing and uploads
+## App Article editing and uploads
 
 Historical checks from [archived plan 011](wiki/archive/plans/011-plan-text-brick-editing.md).
 Current Article editing uses the shared module form in the detail drawer;
@@ -54,7 +54,7 @@ legacy Article JSON compatibility is intentionally outside scope.
 
 Deferred checks from [archived plan 013](wiki/archive/plans/013-plan-fixed-width-breakpoint-walls.md).
 
-- [ ] With an authenticated Studio editor, manually review fixed widths and centering, mounted wall identity, transition direction/reversal and reduced motion, selection fallback/recovery, below-360px behavior, and native drag/resize/drop cancellation and cleanup. Automated suites are deferred under root `AGENTS.md`.
+- [ ] With an authenticated App editor, manually review fixed widths and centering, mounted wall identity, transition direction/reversal and reduced motion, selection fallback/recovery, below-360px behavior, and native drag/resize/drop cancellation and cleanup. Automated suites are deferred under root `AGENTS.md`.
 - [ ] Verify drawer anchoring and scroll after drag, Article activation and exit across breakpoint changes.
 - [ ] Manually verify Library gesture deferral, cancellation, drop, resize, scroll, and transition behavior across breakpoint changes. Do not write or run Library tests.
 
@@ -63,7 +63,7 @@ Deferred checks from [archived plan 013](wiki/archive/plans/013-plan-fixed-width
 Deferred acceptance from [archived spec 003](wiki/archive/specs/003-spec-breakpoint-default-placement-size.md). Do not write or run Library tests.
 
 - [ ] In a ready Library app, drop a module at XL from the filmstrip and module detail, including a generated spec. Compare all four new placement sizes with their declared or measured preview defaults and check that a drag waits for all four sizes.
-- [ ] Repeat from the Studio module drawer in an authenticated editor. Check that the drop X/Y starts at the chosen grid cell, subject to bounds and collision resolution, and that existing bricks keep their geometry.
+- [ ] Repeat from the App module drawer in an authenticated editor. Check that the drop X/Y starts at the chosen grid cell, subject to bounds and collision resolution, and that existing bricks keep their geometry.
 - [ ] Confirm a stale visible-layout snapshot rejects the drop before mutation.
 
 ## Placement layout constructors
@@ -75,4 +75,4 @@ Deferred verification from [archived spec 001](wiki/archive/specs/001-spec-place
 
 ## Article hard rename verification
 
-- [x] Verified a new Article drop, drawer edit/Save, generated spec updates through `updateArticleSpecAtBreakpoint`, and manual grid resizing without automatic height adjustment. The complete example retains its heading, paragraphs, and four ordered items. Library build and Library/Studio typecheck and lint passed; final Library/API typecheck and lint also passed. Original configured Article content and geometry were preserved.
+- [x] Verified a new Article drop, drawer edit/Save, generated spec updates through `updateArticleSpecAtBreakpoint`, and manual grid resizing without automatic height adjustment. The complete example retains its heading, paragraphs, and four ordered items. Library build and Library/App typecheck and lint passed; final Library/API typecheck and lint also passed. Original configured Article content and geometry were preserved.

@@ -10,7 +10,7 @@ Sources: [released setup example](https://github.com/livestorejs/livestore/blob/
 
 QRK currently has Next on port 3000 forwarding to Vite on 3001 with `/assets/` as its base. Zerospin's browser connection instead creates a SharedWorker at `/__zerospin/node-worker.js`; its Vite plugin serves that exact root path. Forwarding it to `/assets/__zerospin/node-worker.js` produced HTML. The explicit worker/WASM rewrites repair this mismatch. LiveStore's bundler-owned entry avoids that particular hidden URL contract, but an app retaining a Next-to-Vite proxy must still forward the generated assets correctly. That last statement is an integration inference, not a claim that LiveStore supports this exact QRK topology automatically.
 
-Local evidence: `apps/web/next.config.ts`, `apps/studio/vite.config.ts`, `vendor/zerospin/packages/browser/src/connectBrowserNode.ts`, and `vendor/zerospin/packages/browser/src/nodeWorkerPlugin.ts`.
+Local evidence: `apps/web/next.config.ts`, `apps/app/vite.config.ts`, `vendor/zerospin/packages/browser/src/connectBrowserNode.ts`, and `vendor/zerospin/packages/browser/src/nodeWorkerPlugin.ts`.
 
 ## SQLite runtime separation
 

@@ -4,7 +4,7 @@ import { stageAggregateSessionCommand } from "@zerospin/core/aggregateSession/st
 
 import { useState } from "react";
 
-import { notFound, useParams } from "next/navigation";
+import { notFound, useParams } from "@tanstack/react-router";
 import { makeModelIdSchema } from "@zerospin/core/models/make/makeModelIdSchema";
 import { isNonEmptySpec } from "@json-render/core";
 import { Result, Schema } from "effect";
@@ -26,11 +26,11 @@ import { useUpdateBrick } from "../../../../lib/useUpdateBrick";
 import { useLibrarySession } from "../../../../session/createLibraryStandaloneSession";
 
 export default function BrickAdmin() {
-  const params = useParams();
+  const params = useParams({ from: "/bricks/$brickId_/admin" });
   const decoded = Schema.decodeUnknownResult(
     Schema.Struct({ brickId: makeModelIdSchema(libraryModule.models.brick) }),
   )(params);
-  if (Result.isFailure(decoded)) notFound();
+  if (Result.isFailure(decoded)) throw notFound();
   return <BrickAdminContent key={decoded.success.brickId} brickId={decoded.success.brickId} />;
 }
 
@@ -78,12 +78,12 @@ function BrickAdminContent(props: { brickId: `brk_${string}` }) {
   const brickRow = brickQuery.data;
 
   if (brickRow === undefined) {
-    notFound();
+    throw notFound();
   }
 
   const placement = placementQuery.data;
   if (placement === undefined) {
-    notFound();
+    throw notFound();
   }
 
   const brickModule: IModule<typeof brickRow.moduleId> = modulesHash[brickRow.moduleId];
@@ -123,7 +123,7 @@ function BrickAdminContent(props: { brickId: `brk_${string}` }) {
       ? rawSpec
       : undefined;
   if (placementSpec === undefined) {
-    notFound();
+    throw notFound();
   }
   const savedGridItem = placement.gridItem;
 

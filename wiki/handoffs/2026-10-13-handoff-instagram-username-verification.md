@@ -58,8 +58,8 @@ Illustrative proof data; final storage schema is unsettled:
 ## Pointers
 
 1. [AGENTS.md](../../AGENTS.md)
-2. [Studio dashboard](../../apps/studio/app/[username]/(dashboard)/page.tsx)
-3. [Studio README](../../apps/studio/README.md)
+2. [Studio dashboard](../../apps/app/app/[username]/(dashboard)/page.tsx)
+3. [Studio README](../../apps/app/README.md)
 4. [API routing](../../apps/api/Worker.ts)
 5. [Current authenticated HTTP boundary](../../apps/api/http.ts)
 6. [Existing response-retention store](../../apps/api/BackendRepo.ts)

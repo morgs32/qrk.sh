@@ -1,7 +1,8 @@
 import { makeSharedWorker } from "@zerospin/browser/makeSharedWorker";
+import sqliteWasmUrl from "@zerospin/browser/sqlite.wasm?url";
 import { librarySessionDefinition } from "./librarySessionDefinition";
 
 makeSharedWorker({
-  sqliteWasmUrl: new URL("@zerospin/browser/sqlite.wasm", import.meta.url).href,
+  sqliteWasmUrl,
   standaloneSessions: { library: { sessionDefinition: librarySessionDefinition } },
 });

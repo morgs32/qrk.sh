@@ -8,9 +8,9 @@ the logical system name.
 
 Put local authentication settings in this directory's `.env.local` (see
 `.env.example`). The CLI discovers environment files from this project root.
-Set `CLERK_AUTHORIZED_PARTY=https://qrk.localhost` to match the Web gateway
-where normal authentication occurs; keep existing secrets in their current local
-environment file.
+Set `CLERK_AUTHORIZED_PARTY=https://app.qrk.localhost` to match App's
+browser origin. Web still owns the sign-in UI; keep existing secrets in their
+current local environment file.
 Run local development from the repository root:
 
 ```sh
@@ -45,16 +45,21 @@ The Custom Domain `https://zerospin.qrk.sh` routes directly to this Worker.
 Cloudflare manages its DNS and certificate.
 
 The ignored `.env.production` stores production framework and Clerk keys with
-file mode `0600`; keep it separate from local development settings. The Worker
-has these bindings:
+file mode `0600`; keep it separate from local development settings. The
+production rollout uses these bindings:
 
 - `ZEROSPIN_ENVIRONMENT=production` and `ZEROSPIN_SYSTEM_ID=sys_qrk_sh_1`.
-- `CLERK_AUTHORIZED_PARTY=https://qrk.sh`.
+- `CLERK_AUTHORIZED_PARTY=https://app.qrk.sh` for the standalone App rollout.
 - Secrets `ZEROSPIN_PUBLISHABLE_KEY`, `ZEROSPIN_SECRET_KEY`, and `CLERK_SECRET_KEY`.
 
-Studio's production build uses `https://zerospin.qrk.sh` and the matching
+App's production build uses `https://zerospin.qrk.sh` and the matching
 publishable key. Keep the server secret and Clerk secret out of frontend public
 variables.
+
+Apply the authorized-party binding with the standalone App deployment;
+changing the local production settings does not update the live Worker. Token
+verification and the system/aggregate identities remain unchanged.
+
 The separate uploads/module API is deployed as `qrk-api`; see its
 [production configuration](../api/README.md#production).
 
@@ -136,7 +141,13 @@ directory under `.wrangler/zerospin/backups/`. Starting
 `pnpm --dir apps/zerospin dev` then creates current storage while preserving the old directory for
 recovery. Do not use `--clean` when the old data must be preserved.
 
-Browser backups are scoped by origin. The Article Markdown cutover uses a fresh
+App's move from Web to its own hostname is a hard origin cutover. The new
+origin initializes its own Node and synchronizes accepted backend data for the
+same Clerk identity. Old-origin databases and backups remain untouched;
+local-only drafts and unsent commands stay on the old origin and are not
+migrated. No backend reset or cross-origin storage bridge is part of this move.
+
+Browser backups are scoped by origin. The earlier Article Markdown cutover uses a fresh
 local origin in the existing Chrome profile, preserving login cookies and previous
 origin databases. Close affected tabs and workers before rebuilding. Installed
 browser runtimes may reset incompatible node tables during initialization, so do
@@ -167,14 +178,14 @@ Other admission or execution failures prevent session initialization.
 The current web actor selects User → Site → Page → Wall → Brick → Placement rows by Clerk
 identity and exposes PageSnapshot rows only while a Page points to them as its
 current snapshot. Historical contents remain canonical without synchronizing the
-whole history into Studio. The provisioner exposes
+whole history into App. The provisioner exposes
 only User. Each actor declares its exposed models separately from its canonical
 query database and row selections. Wall, Brick, Placement, and their editing contracts are supplied by
 `@qrk.sh/library/libraryModule`. QRK owns the Page's `wallId` reference; `createPage`
 creates that deterministic wall and the Page in one command. Legacy Grid/Brick
 snapshot contracts have been removed. There is no migration or lazy wall provisioning.
-Existing Studio browser databases remain untouched by this code cutover.
-Studio's `userBrowserDefinition` uses the matching V2 web actor. Its `UserApp.Initializer`
+Existing App browser databases remain untouched by this code cutover.
+App's `userBrowserDefinition` uses the matching V2 web actor. Its `UserApp.Initializer`
 owns initialization and disposal for each Clerk identity. Models live under `aggregates/user/models/<model>/`,
 and contracts under `aggregates/user/contracts/<command>/`.
 
@@ -242,7 +253,7 @@ QRK's existing `snapshots/pageSnapshotSchema.ts` and `snapshots/makePageSnapshot
 own the whole publication shape and projection, including the saved Library
 brick/placement subset. They derive field codecs from `libraryModule` while
 choosing publication exclusions, nesting, and stable brick/breakpoint ordering.
-The same projection serves publishing commands and Studio's structural dirty
+The same projection serves publishing commands and App's structural dirty
 comparison independently of query ordering; Library exposes no publication
 snapshot API. Saved Site Settings changes remain immediate and are not part of
 page publication history.

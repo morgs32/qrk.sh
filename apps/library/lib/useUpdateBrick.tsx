@@ -8,8 +8,7 @@ import type { IInferCommandPayload } from "@zerospin/core/models/types";
 
 import { makeEffectSchema } from "@zerospin/shapes";
 import { Schema } from "effect";
-import { catchError, type ErrorInfo } from "next/error";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Component, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 
 import { MeasuredBrickWrapper } from "../components/brick/MeasuredBrickWrapper";
 import { libraryModule } from "../libraryModule/libraryModule";
@@ -17,15 +16,26 @@ import { useLibrarySession } from "../session/createLibraryStandaloneSession";
 import { BREAKPOINTS } from "./breakpoints";
 import { modulesHash } from "./modulesHash";
 
-const MeasurementBoundary = catchError(function MeasurementFailure(
-  props: { onError: (cause: unknown) => void },
-  errorInfo: ErrorInfo,
-) {
-  const { onError } = props;
-  const { error } = errorInfo;
-  useEffect(() => onError(error), [error, onError]);
-  return null;
-});
+class MeasurementBoundary extends Component<
+  { children: ReactNode; onError: (cause: unknown) => void },
+  { failed: boolean }
+> {
+  state = { failed: false };
+
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+
+  componentDidCatch(error: unknown) {
+    const { onError } = this.props;
+    onError(error);
+  }
+
+  render() {
+    const { children } = this.props;
+    return this.state.failed ? null : children;
+  }
+}
 
 export function useUpdateBrick(props: { brickId: `brk_${string}` }) {
   const { brickId } = props;

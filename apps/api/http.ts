@@ -5,10 +5,11 @@ export const ALLOWED_ORIGINS: readonly string[] = [
   "http://127.0.0.1:4100",
   "http://localhost:4100",
   "https://qrk.localhost",
-  "https://studio.qrk.localhost",
+  "https://app.qrk.localhost",
   "https://library.qrk.localhost",
   "https://www.qrk.sh",
   "https://qrk.sh",
+  "https://app.qrk.sh",
 ];
 
 export function corsHeaders(request: Request): Headers {

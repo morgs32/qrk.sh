@@ -228,7 +228,7 @@ For Library, use typechecking, lint, builds when needed for consumer imports, an
 15. [apps/api/modules/LibraryApi.ts](../../apps/api/modules/LibraryApi.ts)
 16. [apps/library/app/routes/bricks/$brickId.tsx](../../apps/library/app/routes/bricks/$brickId.tsx)
 17. [apps/library/session/createLibraryStandaloneSession.ts](../../apps/library/session/createLibraryStandaloneSession.ts)
-18. [apps/studio/zerospin/userSession.ts](../../apps/studio/zerospin/userSession.ts)
+18. [apps/app/zerospin/userSession.ts](../../apps/app/zerospin/userSession.ts)
 19. [apps/zerospin/src/aggregates/user/UserV1.ts](../../apps/zerospin/src/aggregates/user/UserV1.ts)
 20. [apps/zerospin/src/system.ts](../../apps/zerospin/src/system.ts)
 21. [../zerospin/wiki/architecture/server/machineServices.md](../../../zerospin/wiki/architecture/server/machineServices.md)

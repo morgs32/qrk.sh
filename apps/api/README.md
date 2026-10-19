@@ -31,10 +31,10 @@ Put private provider credentials in `apps/api/.env.local`:
 - `GOOGLE_PLACES_API_KEY`
 - `OPENAI_API_KEY`
 
-Wrangler loads these as Worker bindings. Studio upload authentication additionally uses
+Wrangler loads these as Worker bindings. App upload authentication additionally uses
 `CLERK_SECRET_KEY` and `CLERK_AUTHORIZED_PARTY`. The authorized party must match
-the browser origin. For Studio through the web frontend, set
-`CLERK_AUTHORIZED_PARTY=https://qrk.localhost` in `apps/api/.env.local`, matching
+the App browser origin. Set
+`CLERK_AUTHORIZED_PARTY=https://app.qrk.localhost` in `apps/api/.env.local`, matching
 Wrangler's local default. `R2_PUBLIC_BASE_URL` defaults to
 `https://api.qrk.localhost/assets` for local serving. Public Mapbox settings
 remain in Library's `.env.local`. Do not expose provider or Clerk secrets in
@@ -50,19 +50,22 @@ intact, but normal Instagram lookups do not invoke them. `BROWSER` retains
 
 Cloudflare account **Morgan at Work** hosts `qrk-api` at
 `https://api.qrk.sh`. Its Custom Domain supplies managed DNS and HTTPS;
-`https://qrk-api.morganatwork.workers.dev` remains available. Studio's production
+`https://qrk-api.morganatwork.workers.dev` remains available. App's production
 build uses the custom origin as `NEXT_PUBLIC_API_URL`, both for direct authenticated uploads and for
-its same-origin `/rpc` rewrite. Web forwards application requests to Studio's
-stable Vercel alias. The existing production Clerk and Zerospin configuration
-remains separate.
+its same-origin `/rpc` forwarding. App targets `https://app.qrk.sh`
+directly; Web retains sign-in and redirects back to App.
 
 `wrangler.jsonc` has a `production` environment with the explicit Worker name,
 an `api.qrk.sh` route with `custom_domain: true`,
-`CLERK_AUTHORIZED_PARTY=https://qrk.sh`, and
+`CLERK_AUTHORIZED_PARTY=https://app.qrk.sh`, and
 `R2_PUBLIC_BASE_URL=https://api.qrk.sh/assets`. It binds the
 existing `qrksh` R2 bucket and the `assets` bucket created for this deployment.
 The Worker serves public asset URLs; no public R2 hostname is enabled or needed.
 Local uploads and local R2 state were not copied or changed.
+The configured authorized party and API CORS origin must be deployed alongside
+the standalone App rollout; editing this configuration does not update the
+live Worker. Token verification still uses `verifyToken` with the configured
+authorized party.
 
 The production environment creates all five current Durable Object classes with
 a SQLite `v1` migration. The default environment retains its historical local
@@ -84,11 +87,11 @@ The protected JSON file supplies `CLERK_SECRET_KEY`, `GITHUB_TOKEN`,
 `APIFY_API_TOKEN`, `FIGMA_TOKEN`, `GOOGLE_PLACES_API_KEY`, and `OPENAI_API_KEY`.
 The explicit empty environment file prevents local development credentials
 from entering the production deployment. Regenerate bindings with the existing
-Nx `types` target after changing configuration. Rebuild and redeploy Studio
+Nx `types` target after changing configuration. Rebuild and redeploy App
 after changing its production API URL; retain its other production variables.
 
 Deployment verification used the bundled, read-only icon lookup directly and
-through Studio's `/rpc` rewrite, QRK's upload preflight, missing-authorization
+through App's `/rpc` rewrite, QRK's upload preflight, missing-authorization
 rejection, and an R2 missing-object read. No user account, uploaded fixture, or
 provider request was created. Provider credential validity and quota, and a
 signed-in upload, were not exercised by these probes.
@@ -98,16 +101,17 @@ signed-in upload, were not exercised by these probes.
 | Route                | Behavior                                                     |
 | -------------------- | ------------------------------------------------------------ |
 | `/rpc`               | Existing `LibraryApi` methods and authentication behavior    |
-| `POST /upload`       | Studio: Clerk bearer-token authentication; writes to `QRKSH` |
+| `POST /upload`       | App: Clerk bearer-token authentication; writes to `QRKSH` |
 | `POST /image/upload` | Library: anonymous image uploads; writes to `QRKSH`          |
 | `/assets/library/*`  | Reads original Library image keys from `ASSETS`              |
 | Other `/assets/*`    | Reads API upload keys from `QRKSH`                           |
 
 `OPTIONS` retains API preflight handling. CORS allows the existing application
-origins, including Portless's Web, Studio, and Library HTTPS origins on standard port 443,
+origins, including production `https://app.qrk.sh`, Portless's Web, App,
+and Library HTTPS origins on standard port 443,
 and the existing localhost and loopback origins. Uploads
 retain the existing multipart `file` contract, PNG/JPEG/WebP/SVG support, 5 MiB limit,
-error responses, and returned asset URL. Studio keys are
+error responses, and returned asset URL. App keys are
 `<verified Clerk subject>/<siteId or _>/<uuid>.<ext>`; Library Image uploads
 omit `siteId` and use `image/_/<uuid>.<ext>`. Both routes return
 `{ key, url, contentType }` and use the same validation and asset serving.

@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "ES2017",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "incremental": true,
+    "paths": {
+      "@/*": ["./*"]
+    },
+    "types": ["node", "react/canary", "vite/client"]
+  },
+  "include": ["**/*.ts", "**/*.tsx", "../zerospin/cloudflare-test.d.ts"],
+  "exclude": ["node_modules", "build", "storybook-static", "dist"]
+}

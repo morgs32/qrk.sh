@@ -14,12 +14,7 @@ const isPublicRoute = createRouteMatcher([
 
 const clerkProxy = clerkMiddleware(async (auth, request) => {
   const pathname = request.nextUrl.pathname;
-  if (
-    isPublicRoute(request) ||
-    pathname.startsWith("/assets/") ||
-    pathname.startsWith("/studio-static/")
-  )
-    return NextResponse.next();
+  if (isPublicRoute(request) || pathname.startsWith("/assets/")) return NextResponse.next();
   const { userId } = await auth();
   if (!userId) return NextResponse.redirect(new URL("/sign-in", request.url));
   return NextResponse.next();
@@ -48,7 +43,7 @@ export default function proxy(request: NextRequest, event: NextFetchEvent) {
 export const config = {
   matcher: [
     // Skip Next.js internals and static files, unless found in search params
-    "/((?!_next|studio-static/|assets/|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|wasm|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
+    "/((?!_next|assets/|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|wasm|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
     // Always run for API routes
     "/(api|trpc)(.*)",
   ],

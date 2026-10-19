@@ -1,0 +1,382 @@
+"use client";
+
+import { stageAggregateSessionCommand } from "@zerospin/sdk/browser";
+
+/* oxlint-disable next/no-img-element -- App uses Vite, so Next image optimization is unavailable. */
+
+import { useAuth } from "@clerk/react";
+
+import { Schema } from "effect";
+import { useLiveQuery } from "@zerospin/react";
+import { useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
+import useSWR from "swr";
+
+import { useSiteStore } from "../../../siteStore";
+import { CopyButton } from "./CopyButton";
+import { SearchPreviewCard } from "../SearchPreviewCard";
+
+import { UserApp } from "@/zerospin/userSession";
+import { Button } from "@/components/ui/button";
+import { FieldLabel } from "@/components/ui/field-label";
+import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { useUsername } from "@/hooks/useUsername";
+import { useValidatedParams } from "@/hooks/useValidatedParams";
+import { getClerkToken } from "@/lib/getClerkToken";
+
+const ParamsSchema = Schema.Struct({
+  username: Schema.String,
+  siteId: Schema.TemplateLiteral(["sit_", Schema.String]),
+  pageId: Schema.String,
+});
+
+const IMAGE_ACCEPT = "image/png,image/jpeg,image/webp,image/svg+xml";
+
+async function uploadSiteImage(props: {
+  file: File;
+  siteId: string;
+  sessionToken: string;
+}): Promise<{ url: string }> {
+  const { file, siteId, sessionToken } = props;
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
+  if (!apiBaseUrl) {
+    throw new Error("NEXT_PUBLIC_API_URL is required");
+  }
+
+  const formData = new FormData();
+  formData.set("file", file);
+  formData.set("siteId", siteId);
+
+  const response = await fetch(`${apiBaseUrl.replace(/\/$/, "")}/upload`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${sessionToken}`,
+    },
+    body: formData,
+  });
+
+  const body = (await response.json().catch(() => null)) as {
+    url?: string;
+    message?: string;
+    code?: string;
+  } | null;
+
+  if (!response.ok || body === null || typeof body.url !== "string") {
+    throw new Error(body?.message ?? `Upload failed (${response.status})`);
+  }
+
+  return { url: body.url };
+}
+
+export function SiteSettings() {
+  const params = useValidatedParams(ParamsSchema);
+  const username = useUsername();
+  const { getToken } = useAuth();
+  const session = UserApp.useInitializedSession();
+  const siteId = params.siteId;
+  const { data: site } = useLiveQuery({
+    session,
+    key: params.siteId,
+    query: (db, siteId) => db.query.site.findFirst({ where: { id: { eq: siteId } } }),
+  });
+  const siteDraft = useSiteStore((state) => state.site);
+  const setName = useSiteStore((state) => state.setName);
+  const setDescription = useSiteStore((state) => state.setDescription);
+  const setLogoUrl = useSiteStore((state) => state.setLogoUrl);
+  const setFaviconLightUrl = useSiteStore((state) => state.setFaviconLightUrl);
+  const setFaviconDarkUrl = useSiteStore((state) => state.setFaviconDarkUrl);
+  const logoInputRef = useRef<HTMLInputElement>(null);
+  const faviconLightInputRef = useRef<HTMLInputElement>(null);
+  const faviconDarkInputRef = useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const publishedUrl = useMemo(() => {
+    const pathname = `/${encodeURIComponent(username)}/${encodeURIComponent(siteId)}`;
+    return `https://www.qrk.sh${pathname}`;
+  }, [siteId, username]);
+  const publishedUrlDisplay = useMemo(
+    () => publishedUrl.replace(/^https?:\/\//, ""),
+    [publishedUrl],
+  );
+
+  const { data: qrDataUrl } = useSWR([username, siteId], async ([username, siteId]) => {
+    const pathname = `/${encodeURIComponent(username)}/${encodeURIComponent(siteId)}`;
+    const url = `https://www.qrk.sh${pathname}`;
+    const { toDataURL } = await import("qrcode");
+    return toDataURL(url, {
+      errorCorrectionLevel: "M",
+      margin: 1,
+      width: 256,
+    });
+  });
+
+  if (siteDraft === null || siteDraft.id !== params.siteId) return null;
+
+  const draft = siteDraft;
+
+  const runUpload = async (props: { file: File | undefined; onUrl: (url: string) => void }) => {
+    const { file, onUrl } = props;
+    if (file === undefined) {
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const sessionToken = await session.runPromise(getClerkToken({ getToken }));
+      if (sessionToken === null) {
+        toast.error("Sign in to upload images");
+        return;
+      }
+      const result = await uploadSiteImage({
+        file,
+        siteId: params.siteId,
+        sessionToken,
+      });
+      onUrl(result.url);
+    } catch (cause) {
+      toast.error(cause instanceof Error ? cause.message : "Upload failed");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  return (
+    <div className="w-full">
+      <div className="space-y-8 px-4 py-6">
+        <div className="grid grid-cols-2 items-start gap-6 md:gap-8">
+          <div className="flex min-w-0 flex-col gap-4">
+            <FieldLabel description="PNG or SVG; height up to 48px recommended">Logo</FieldLabel>
+            <div className="flex flex-col items-start gap-4">
+              <input
+                ref={logoInputRef}
+                type="file"
+                accept={IMAGE_ACCEPT}
+                className="hidden"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  event.target.value = "";
+                  void runUpload({ file, onUrl: setLogoUrl });
+                }}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                disabled={isUploading}
+                onClick={() => logoInputRef.current?.click()}
+              >
+                Upload
+              </Button>
+              <div className="relative flex w-full max-w-[375px] min-h-16 items-center justify-center overflow-hidden rounded-md border bg-muted">
+                {draft.logoUrl.length > 0 ? (
+                  <img
+                    src={draft.logoUrl}
+                    alt="Site logo"
+                    className="max-h-12 w-auto object-contain"
+                  />
+                ) : (
+                  <span className="text-sm text-muted-foreground">Logo</span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex min-w-0 flex-col gap-4">
+            <FieldLabel description="64 × 64 pixels">Favicon</FieldLabel>
+            <div className="flex flex-wrap justify-start gap-4">
+              <div className="flex flex-col items-start gap-2">
+                <span className="text-xs text-muted-foreground">Light</span>
+                <input
+                  ref={faviconLightInputRef}
+                  type="file"
+                  accept={IMAGE_ACCEPT}
+                  className="hidden"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    event.target.value = "";
+                    void runUpload({ file, onUrl: setFaviconLightUrl });
+                  }}
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={isUploading}
+                  onClick={() => faviconLightInputRef.current?.click()}
+                >
+                  Upload
+                </Button>
+                <div className="flex w-36 flex-col overflow-hidden rounded-md border bg-muted/30">
+                  <div className="flex items-center gap-1 border-b bg-background px-2 py-1.5">
+                    {draft.faviconLightUrl.length > 0 ? (
+                      <img
+                        src={draft.faviconLightUrl}
+                        alt="Light favicon"
+                        className="size-4 shrink-0 rounded-sm object-cover"
+                      />
+                    ) : (
+                      <div className="size-4 shrink-0 rounded-sm bg-muted" />
+                    )}
+                    <div className="h-2 min-w-0 flex-1 rounded bg-muted/80" />
+                  </div>
+                  <div className="h-16 bg-background" />
+                </div>
+              </div>
+              <div className="flex flex-col items-start gap-2">
+                <span className="text-xs text-muted-foreground">Dark</span>
+                <input
+                  ref={faviconDarkInputRef}
+                  type="file"
+                  accept={IMAGE_ACCEPT}
+                  className="hidden"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    event.target.value = "";
+                    void runUpload({ file, onUrl: setFaviconDarkUrl });
+                  }}
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={isUploading}
+                  onClick={() => faviconDarkInputRef.current?.click()}
+                >
+                  Upload
+                </Button>
+                <div className="flex w-36 flex-col overflow-hidden rounded-md border bg-muted/30">
+                  <div className="flex items-center gap-1 border-b bg-zinc-900 px-2 py-1.5">
+                    {draft.faviconDarkUrl.length > 0 ? (
+                      <img
+                        src={draft.faviconDarkUrl}
+                        alt="Dark favicon"
+                        className="size-4 shrink-0 rounded-sm object-cover"
+                      />
+                    ) : (
+                      <div className="size-4 shrink-0 rounded-sm bg-zinc-700" />
+                    )}
+                    <div className="h-2 min-w-0 flex-1 rounded bg-zinc-600" />
+                  </div>
+                  <div className="h-16 bg-zinc-950" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 items-start gap-6 md:gap-8">
+          <div className="flex min-w-0 flex-col gap-2">
+            <FieldLabel htmlFor="site-name-and-wordmark">Site name and wordmark</FieldLabel>
+            <Input
+              id="site-name-and-wordmark"
+              value={siteDraft.name}
+              onChange={(event) => setName(event.target.value)}
+            />
+          </div>
+
+          <div className="flex min-w-0 flex-col gap-2">
+            <FieldLabel htmlFor="site-description">Description</FieldLabel>
+            <Textarea
+              id="site-description"
+              value={siteDraft.description}
+              onChange={(event) => setDescription(event.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="flex min-w-0 flex-col gap-4">
+          <FieldLabel description="1200 × 630 pixels">Social Preview</FieldLabel>
+          <div className="flex flex-col items-start gap-4">
+            <Button type="button" variant="outline">
+              Upload
+            </Button>
+            <div className="relative w-full max-w-[375px] overflow-hidden rounded-md border bg-muted">
+              <div className="relative aspect-[375/197] w-full">
+                <img
+                  src="/assets/site-settings-social-preview.png"
+                  alt="Social preview"
+                  style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
+                  className="object-cover"
+                  sizes="(max-width: 767px) 100vw, 375px"
+                  loading="eager"
+                  fetchPriority="high"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 items-start gap-6 md:gap-8">
+          <div className="flex min-w-0 flex-col gap-2">
+            <FieldLabel>QR Code</FieldLabel>
+            <div className="relative h-40 w-40 shrink-0 overflow-hidden rounded-md border bg-background">
+              {qrDataUrl ? (
+                <img
+                  loading="lazy"
+                  src={qrDataUrl}
+                  alt="Published URL QR code"
+                  className="h-full w-full object-contain"
+                  width={256}
+                  height={256}
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground">
+                  Generating…
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="flex min-w-0 flex-col gap-2">
+            <FieldLabel>Share URL</FieldLabel>
+            <div className="flex min-w-0 items-center gap-2">
+              <div className="min-w-0 flex-1 truncate rounded-md border bg-muted/30 px-3 py-2 font-mono text-xs text-foreground">
+                {publishedUrl}
+              </div>
+              <TooltipProvider delayDuration={0}>
+                <CopyButton text={publishedUrl} />
+              </TooltipProvider>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <FieldLabel>Preview</FieldLabel>
+          <SearchPreviewCard
+            title={siteDraft.name}
+            url={publishedUrlDisplay}
+            description={siteDraft.description}
+            faviconSrc={draft.faviconLightUrl.length > 0 ? draft.faviconLightUrl : undefined}
+          />
+        </div>
+
+        <Separator />
+
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <FieldLabel description="Unpublish your website from all domains.">
+              Danger Zone
+            </FieldLabel>
+          </div>
+          {site?.isPublished ? (
+            <Button
+              type="button"
+              variant="destructive"
+              className="shrink-0"
+              onClick={() => {
+                stageAggregateSessionCommand({
+                  session,
+                  contractName: "unpublishSite",
+                  payload: { siteId: params.siteId },
+                });
+              }}
+            >
+              Unpublish Site
+            </Button>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}

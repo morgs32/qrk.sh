@@ -1,7 +1,8 @@
 # Library
 
-This private package owns the reusable brick library and Next.js App Router UI.
-Next uses Webpack, matching Studio. The Cloudflare Worker backend lives in
+This private package owns the reusable brick library and a TanStack Start
+`1.169.3` SPA with TanStack Router `1.170.45`, using Vite Plus `1.0.0`.
+The Cloudflare Worker backend lives in
 [`apps/api`](../api/README.md). Consumers
 compile Library source directly, without a package build.
 
@@ -17,12 +18,12 @@ HTTPS hostnames on the shared wildcard proxy. It removes each app's route when
 that process stops; leave the shared proxy and other projects running. See the
 [root startup instructions](../../README.md#getting-started) for proxy setup.
 
-Library listens internally on port 4100. Next forwards `/rpc`, `/upload`, and `/assets/*` to
+Library listens internally on port 4100. Vite forwards `/rpc`, `/upload`, and `/assets/*` to
 the API Worker at `http://127.0.0.1:8787`; its inspector listens on port 9231.
 Browser callers keep their same-origin URLs. New public asset URLs use
 `https://api.qrk.localhost/assets`.
 To start only Library through Portless, run `pnpm --dir apps/library dev`.
-Its `dev` script invokes Portless, which runs the Next command in `dev:app`;
+Its `dev` script invokes Portless, which runs `vp dev` in `dev:app`;
 package metadata retains its hostname and port. API starts separately with
 `pnpm --dir apps/api dev`, or alongside Library through root `pnpm dev`.
 
@@ -31,13 +32,14 @@ package metadata retains its hostname and port. API starts separately with
 Put local settings in `apps/library/.env.local`:
 
 - `PUBLIC_MAPBOX_TOKEN` is required for the library app and is exposed to the browser.
-- `LIBRARY_WORKER_ORIGIN` optionally changes Next's backend destination; it defaults
+- `LIBRARY_WORKER_ORIGIN` optionally changes Vite's backend destination; it defaults
   to `http://127.0.0.1:8787` and is server-only. Set it before starting development
   when using a different backend origin.
 
 Private provider credentials belong in `apps/api/.env.local`, where Wrangler
-loads them as Worker bindings. Only the Mapbox token is explicitly included in
-the Library browser bundle.
+loads them as Worker bindings. Vite explicitly defines `PUBLIC_MAPBOX_TOKEN`
+for the Library browser bundle; its name is retained rather than converted to
+`VITE_*`. Other environment values are not exposed by prefix.
 
 Module definitions, catalogs, views, aggregate behavior, and browser RPC
 declarations stay here. API owns `LibraryApi`, `BrowserHost`, generation,
@@ -49,7 +51,7 @@ become part of the brick library's public declarations. Linktree scraping stays
 in the separate `@qrk.sh/scraper` Worker (`apps/scraper`).
 
 API retains the `ASSETS` bucket for `/assets/library/*` and serves other asset
-keys from `QRKSH`. Studio uploads require Clerk authentication; standalone Library
+keys from `QRKSH`. App uploads require Clerk authentication; standalone Library
 Image forms use the anonymous `/image/upload` endpoint. Existing image bytes
 and local state directories remain preserved, with local `ASSETS` data copied
 to API's state. Saved absolute port-4101 URLs need their origin updated
@@ -60,12 +62,26 @@ separately; authored documents are not rewritten.
 Repository tests and standalone automated checks are deferred until a test
 structure is agreed (see root `AGENTS.md`).
 
-Library has no package build, Next production build, or production preview
-target. Its development server and Storybook remain available. Next's default
-Webpack filesystem cache persists development compilation in
-`.next/dev/cache/turbopack`; keep `.next` between runs. Fresh checkout
+Library has no package build, production build, or production preview target.
+Its development server and Storybook remain available. `vite.config.ts`
+enables Start's SPA mode; `router.tsx` registers generated file routes from
+`routes/`. Its Vite configuration bundles installed Zerospin packages through
+`ssr.noExternal` so their extensionless ESM imports resolve through the
+bundler. Fresh checkout
 installation requires the populated local registry described in the
 [root README](../../README.md#zerospin-packages).
+
+The migration's Library Storybook build passed, and the standalone catalog
+and module-detail routes initialized in the existing Chrome session without
+resetting browser storage or cookies. A migration-created Swatch saved a
+color change, Cancel restored its saved state, reload retained the saved
+color, and removing that temporary brick succeeded. A scoped temporary
+measurement render fault displayed its error, rejected Save while retaining
+the draft, and cleared on Cancel; the injection was immediately removed.
+Both migration-created Swatch and Figma bricks were removed, restoring the
+empty wall. Query-only draft keys and cancellation on unmount were reviewed
+in source. Completed migration verification is recorded in
+[Plan 029](../../wiki/archive/plans/029-plan-tanstack-start.md).
 
 Old standalone backups can reject the current SQLite schema. For manual checks
 with empty storage, the Portless origin
@@ -76,13 +92,28 @@ existing Chrome profile. It preserves backups on `localhost:4100`,
 their rows. Once used, the HTTPS origin retains its own storage between runs.
 
 The development UI routes are
-`/`, `/modules`, `/modules/[moduleId]`, `/bricks/[brickId]`, and
-`/bricks/[brickId]/admin`. App Router navigation
+`/`, `/modules`, `/modules/$moduleId`, `/bricks/$brickId`, and
+`/bricks/$brickId/admin`. Typed Router navigation
 retains the wall, drawer, standalone session, and viewport providers; route-specific
 module and brick drafts keep their existing remount boundaries. The document title
 remains `QRK.SH Library`, with diagnostic error and not-found screens.
 
-`LibraryApp.Initializer` owns session construction and descendant error boundaries. Its `renderError` uses the shared diagnostic presentation for a terminal session failure; `session.store.getState().status === 'failed'` controls replacement of the content. The existing Next route error view rethrows `SessionQueryError` so the owning Initializer receives query failures. Missing query rows remain normal data. `InitializedLibraryLayout` scopes its store subscription to the session lifetime, displaying a changed non-null `failure` only while status is not `failed`; remounting does not replay a previous error. Unexpected spec-generation executor failures report through `session.reportFailure`.
+`LibraryApp.Initializer` owns session construction and descendant error
+boundaries. Its `renderError` uses the shared diagnostic presentation for a
+terminal session failure; `session.store.getState().status === 'failed'`
+controls replacement of the content. The route error view rethrows
+`SessionQueryError` so the owning Initializer receives query failures. Missing
+query rows remain normal data. `InitializedLibraryLayout` scopes its store
+subscription to the session lifetime, displaying a changed non-null `failure`
+only while status is not `failed`; remounting does not replay a previous error.
+Unexpected spec-generation executor failures report through
+`session.reportFailure`.
+
+The initializer, wall, and viewport owners sit above the route outlet and stay
+mounted across child navigation. Route params keep their Effect Schema
+validation and draft keys. A local React measurement error boundary replaces
+the Next boundary in admin pre-save measurement; rendering failures reject
+Save and cancellation still disposes the pending measurement.
 
 The root layout mounts the shared `ZerospinDevtoolsLoader` in every environment with the panel initially closed. It stays mounted across route navigation and standalone-session resets, and owns cleanup when the application unmounts.
 
@@ -113,7 +144,7 @@ available while resolving; an identical resolving input is refused. Failed input
 can be retried with a new request identity. Cancel discards only the unsaved draft.
 
 `startLibrarySessionWork` composes module-owned provider executors at the Library
-session lifetime and Studio's authenticated user-session lifetime. Each executor
+session lifetime and App's authenticated user-session lifetime. Each executor
 observes its module's retained intents, calls the existing same-origin API, decodes
 module data and stages a guarded completion. Brick/module/request/revision checks
 make stale or duplicate completions harmless. Closing an editor leaves submitted
@@ -143,7 +174,7 @@ icon when no search runs. There is no Save-time icon request.
 
 The fixed-schema cutover uses `/qrk-library-command-query-v1` for Library's local
 backup and a corresponding namespace for standalone preview sessions. Previous
-backups remain intact. Studio also requires fresh isolated storage for the new
+backups remain intact. App also requires fresh isolated storage for the new
 state/spec revision fields; no migration or reset is performed automatically.
 
 ## Storybook
@@ -153,8 +184,8 @@ pnpm nx run @qrk.sh/library:storybook
 pnpm nx run @qrk.sh/library:build-storybook
 ```
 
-Open `http://127.0.0.1:6007`; Studio's Storybook uses port 6006. Library Storybook
-runs independently of the Next app and API Worker, using Vite and the Library
+Open `http://127.0.0.1:6007`; App's Storybook uses port 6006. Library Storybook
+runs independently of the Start app and API Worker, using Vite and the Library
 app's global styles and fonts. Stories live alongside their components in
 `components/`, `lib/`, and `modules/`. The static build goes to
 `apps/library/storybook-static/`.
@@ -206,7 +237,7 @@ UI uses an immediate dark border.
 ## Public exports and shared UI
 
 `package.json` maps every existing public subpath directly to its defining
-TypeScript, TSX, or stylesheet source. Studio, API, and Zerospin compile their
+TypeScript, TSX, or stylesheet source. App, API, and Zerospin compile their
 reachable imports without generated `dist` files. `app/` contains the
 Library-only routes and layout, not exported application screens.
 
@@ -216,7 +247,7 @@ Consumers bundle Meowdown and React with their own dependencies. The retained
 and Article components' font imports. Article state and form callbacks exchange
 Markdown strings; consumers share no editor instances.
 
-Article's stylesheet and both Library and Studio globals declare
+Article's stylesheet and both Library and App globals declare
 `@layer theme, base, components, meowdown, utilities` before their imports.
 This places Tailwind Preflight before Meowdown's native rules and keeps utilities
 in the final named layer.
@@ -242,7 +273,7 @@ in the final named layer.
 | `/bricks.css`                     | `bricks.css`                                 | Shared brick styles                                       |
 | `/article-editor.css`             | `modules/article/article-editor.css`         | Meowdown, Article typography, and portaled controls       |
 
-Studio imports `Drawer` directly from `@qrk.sh/library/Drawer`; Library's own app
+App imports `Drawer` directly from `@qrk.sh/library/Drawer`; Library's own app
 imports `../lib/Drawer`. Supplying `open` keeps the shared shell mounted and uses a
 300ms CSS transform for visibility. Library passes its existing local open state,
 including closing without changing the URL. The bottom drawer overlays `50dvh`;
@@ -253,8 +284,8 @@ Viewport-height changes use the same rule; ordinary content growth does not.
 
 Library retains live drawer content through exit, then releases it. Reopening
 interrupts cleanup. Closed shells are inert and hidden from assistive technology;
-reduced motion skips the animation. Studio preserves outgoing route pixels with
-its exit-only ViewTransition. Existing Drawer callers without `open` retain the
+reduced motion skips the animation. App preserves outgoing route pixels with
+its exit-only native View Transition managed by TanStack Router. Existing Drawer callers without `open` retain the
 optional Motion/flow behavior. Drawer does not own routing, breadcrumbs, or
 settings actions. This replaces plan 007's animated grid-row reservation.
 
@@ -262,7 +293,7 @@ Library's grid controls float 24px above the open drawer. Closing the drawer
 restores their usual position; their desktop movement follows the drawer's
 300ms transition and skips animation for reduced motion.
 
-Library and Studio share `ModuleFilmstrip`, including module previews, four-breakpoint
+Library and App share `ModuleFilmstrip`, including module previews, four-breakpoint
 measurement, and `DraggableBrick`. Each app supplies its own module links through
 `renderModuleLink`; the shared catalog has no router dependency. Columns scroll
 vertically within a horizontal strip. Module headings span their columns edge
@@ -271,7 +302,7 @@ screens remain app-owned.
 
 ## Local card appearance spike
 
-The **Cards** button in Library's grid controls and Studio's upper-right corner
+The **Cards** button in Library's grid controls and App's upper-right corner
 toggles one local boolean through `BrickCardStyleContext`. Its provider covers
 the wall and drawer previews; no module catalog or registry appearance props are
 added. The flag starts `false`, survives drawer navigation while its layout stays
@@ -442,7 +473,7 @@ Minimums apply to measured initial sizes and wall resizing, with a one-unit floo
 when omitted. They do not inherit between breakpoints. Minimums must be positive
 integers, `minW` cannot exceed eight columns, and declared `w`/`h` cannot be below
 their corresponding minimum. Invalid configuration throws during view construction.
-All Library and Studio previews apply the same sizing rules. The wall derives
+All Library and App previews apply the same sizing rules. The wall derives
 resize constraints from the active module view. Placement grid geometry remains
 separate from its saved pixel measurements.
 Link's default width is six columns on sm/md and four on lg/xl. Its heights
@@ -505,22 +536,29 @@ with null, and spec-at-breakpoint commands clear the affected placement's measur
 
 `LibraryApp` is created from `libraryBrowserDefinition`. `LibraryLayout` mounts
 its `Initializer`, which owns a fresh browser facade and starts it after commit.
-The initialized content suspends until SQLite is ready; server rendering does
-not wait for a browser-only initialization Promise. The `qrk-library` namespace
+The initialized content suspends until SQLite is ready. The SPA shell contains
+no initialized session data. The `qrk-library` namespace
 persists the seeded `wal_library` through the SharedWorker's owned IndexedDB VFS.
 Worker identity includes the exact session definition; changed fixed schemas require
 empty storage and do not read or translate deprecated rows. Preserve earlier
 origins and use the fresh-origin check above before the first current start.
 
+The authored worker is imported through Vite's `?sharedworker&url` query and
+bound through `makeApplicationSharedWorker`. Its entrypoint imports
+`@zerospin/browser/sqlite.wasm?url` from the installed `15.0.1` browser package
+and registers the existing session definition with `makeSharedWorker`.
+Worker identity, backup paths, source exports, and backend contracts are
+unchanged by the framework migration.
+
 Closing the last connection drains the owned Node and closes its SQLite storage
 before releasing the namespace lease. Restored resources take precedence over
 the initial seed. DevTools defaults to closed and retains its visibility preference.
-Studio uses its authenticated `UserApp` initialized session, with a separate wall
+App uses its authenticated `UserApp` initialized session, with a separate wall
 referenced by each Page.
 
 Shared consumers (`LibrarySessionContext`, `useLibrarySession`, and `BrickWall`)
 use `ILibrarySession`, the aggregate-session surface with Library models and contracts.
-It accepts both the standalone Library session and Studio's larger live user session,
+It accepts both the standalone Library session and App's larger live user session,
 without requiring standalone initialization or reset methods. The shared
 `libraryModule` exports only models and flat command contracts. Session construction
 owns identity, claims, initialization, and disposal.
@@ -528,7 +566,7 @@ owns identity, claims, initialization, and disposal.
 Command execution belongs to each app's session lifecycle. Both apps pass
 `stageAggregateSessionCommand` into the shared `BrickWall`. The wall calls that required
 `executeCommand` prop directly. The Library worker executes staged originals locally;
-Studio's worker admits and synchronizes them with the authenticated owner.
+App's worker admits and synchronizes them with the authenticated owner.
 
 `useLiveQuery` reads the session's `initialized.db`, returning model-decoded `state`,
 `spec`, `measured`, and `gridItem` values. Components consume these values directly. Explicit writes and backups use encoded SQLite values; relational queries decode model fields.
@@ -536,7 +574,7 @@ Studio's worker admits and synchronizes them with the authenticated owner.
 Committed layout is Wall → Brick → Placement via aggregate contracts
 (`addBrick`, layout/visibility/remove/compact, `updateBrick`, and per-module
 spec-at-breakpoint). Commands run synchronously: Library commits completed local
-execution, while Studio stages optimism and pushes through its live user session.
+execution, while App stages optimism and pushes through its live user session.
 Local staging durability and server finalization are distinct. Shared state lives
 on the brick row; each placement stores a
 complete Spec, nullable pixel measurement, grid item, and visibility. `BrickWall` uses `verticalCompactor` for
@@ -563,12 +601,12 @@ gestures, selection and available width update while the displayed wall waits
 for completion. Below 360px, the insufficient-width message appears as soon as
 the gesture ends; a fitting wall returns immediately when space recovers.
 
-Library and Studio use a white wall canvas at all four breakpoints. `BrickWall`
+Library and App use a white wall canvas at all four breakpoints. `BrickWall`
 uses zero margins/padding in default mode, so placement boxes meet both wall
 edges; row height is the full width divided by eight. Card mode uses equal 16px
 interior/perimeter gaps and the square-cell formula described above.
 Its optional `selectedBrickId` keeps the matching brick's outline and resize handles
-visible in the idle active wall. Studio supplies the brick-detail route ID; hover,
+visible in the idle active wall. App supplies the brick-detail route ID; hover,
 focus, and drag/resize suppression retain their existing behavior.
 Shared `bricks.css` styles the grid placeholder during brick dragging, catalog drops,
 and resizing with a light-gray background, square corners, and a subtle
@@ -584,40 +622,41 @@ the 360/720/1080/1440px frame widths unchanged. The frame allows resize handles
 and dragged surfaces to overflow into surrounding gutters; each brick's content
 remains clipped by its own wrapper. Editor boundaries still clip overflow when
 a wall fills the available width; breakpoint fitting reserves no extra gutters.
-Library adds a decorative 64px navbar below the address bar, matching Studio's
+Library adds a decorative 64px navbar below the address bar, matching App's
 complete page navbar in the same position above `BrickWall` and showing a static
 `qrk.sh` label. Library's navbar is noninteractive and hidden from assistive
-technology; Studio's appears with the initialized editor and preserves its
+technology; App's appears with the initialized editor and preserves its
 navigation and site-name draft previews. Library's chrome and navbar slide and
 scroll with their wall, including the existing scroll compensation while dragging.
-Studio keeps the chrome outside an inner page scroller with a hidden scrollbar;
+App keeps the chrome outside an inner page scroller with a hidden scrollbar;
 its navbar scrolls with the wall, and the complete frame slides between breakpoints.
 Library reserves 6rem above the
 wall below lg, keeping wrapped controls clear of the chrome, and 3.5rem at lg.
 The scroll root uses inherited `--wall-top-offset` for this padding; the pane
 sets `--wall-chrome-height: 3rem`. Both apps override that value to `7rem` around
-their navbar and wall to account for both bars; Studio adds 32px above the frame
+their navbar and wall to account for both bars; App adds 32px above the frame
 and, with its drawer closed, 86px below it, leaving 24px above and below its 38px
 toolbar. Its external `--wall-top-offset: calc(7.25rem + 2px)` accounts for both
-padding amounts. Opening Studio's drawer changes the offset to
+padding amounts. Opening App's drawer changes the offset to
 `calc(50dvh + 4rem)`, shortening the frame to keep a matching 32px gap above the
 drawer.
 `BrickWall` subtracts both offsets
 from its viewport minimum height, with 3.5rem and zero fallbacks respectively, so an
 empty wall remains one viewport tall without extra scrolling.
 
-Library and Studio resolve browser SQLite WASM from the installed Zerospin
+Library and App resolve browser SQLite WASM from the installed Zerospin
 `15.0.1` package exports. The Library standalone worker imports the same pure
-`librarySessionDefinition` as its host definition. Studio authors its connected
+`librarySessionDefinition` as its host definition. App authors its connected
 `node.worker.ts` entrypoint, and both hosts use `makeApplicationSharedWorker`
-to identify the emitted executable artifact. Webpack emits each worker
-and its SQLite WASM asset. Persistent Node
+to identify the emitted executable artifact. Vite emits each worker from its
+`?sharedworker&url` import and its SQLite WASM from the installed package's
+`?url` import. Persistent Node
 storage belongs to the SharedWorker's IndexedDB-backed SQLite namespace;
 no separate backup worker or public backup-worker assets remain.
 
 HTML5 catalog drag is a module-level `brickDragStore` (`brickDef` / `setBrickDef`
 only). Its shared `IDraggedBrick` payload preserves the registered module ID
-from both Library previews and both Studio drawer views through to `addBrick`.
+from both Library previews and both App drawer views through to `addBrick`.
 `makeModuleViewLibrary` ties each registry key to its module and definition IDs;
 known keys return a module, while arbitrary route strings can return `undefined`.
 The wall uses this trusted identity directly; the contract validates the dragged state.
@@ -641,7 +680,7 @@ also drag from their entire surface.
 Image exposes its module-owned `ImageForm` through the shared module registry.
 The form owns its Image URL and Title drafts, pending state, errors, Save, and
 Cancel. Unconfigured bricks initialize from the module's
-default state. Save stages the complete state through `updateBrick`. Studio
+default state. Save stages the complete state through `updateBrick`. App
 reuses this same Form in its authenticated brick detail drawer.
 Both drawers provide one centered column around the module form; Image's
 field groups fill that column, with Save/Cancel aligned to the fields' left edge.
@@ -656,7 +695,7 @@ Image-specific upload props.
 
 Each host owns HTTP, endpoint configuration, multipart fields, credentials, and
 response decoding. Library's standalone host performs anonymous
-`POST /image/upload`; Studio's host performs `/upload` with its current site ID
+`POST /image/upload`; App's host performs `/upload` with its current site ID
 and fresh Clerk authorization. Both forward Effect interruption into `fetch`.
 Image retains file validation, picker/drop behavior, drafts, pending/error
 feedback, Save gating, and cancellation. Fields and Save stay disabled during
@@ -688,7 +727,7 @@ Article content has no horizontal padding. Read-only documents use the shared
 `qrk-responsive-insets` class from `bricks.css`: `--qrk-inset-inline` supplies
 16px outer gutters and `--qrk-inset-block` supplies 16px vertical padding.
 When both the document viewport and nearest query container reach 720px, those
-values become 30px and 32px respectively. Studio's site navbar consumes the
+values become 30px and 32px respectively. App's site navbar consumes the
 inline inset only; Library's decorative navbar keeps its existing spacing.
 The drawer retains its separate viewport-based insets and existing 660px
 desktop text measure.
@@ -746,7 +785,7 @@ Native Meowdown controls retain formatting, selection, undo/redo, block dragging
 and image resizing. Resizing writes width/height into a trailing Markdown comment.
 Portaled menus appear above the drawer; their link form cannot submit Article.
 Escape first dismisses an editor control or selection, then closes the drawer.
-Studio suppresses the shared edit action with `BrickWall.showArticleEditAction`;
+App suppresses the shared edit action with `BrickWall.showArticleEditAction`;
 `ArticleEditorControl` remains drawer-only.
 
 Article brick height stays at its saved placement size. Content changes, image loads,

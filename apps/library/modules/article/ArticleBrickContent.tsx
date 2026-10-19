@@ -6,7 +6,7 @@ import { makeComponentView } from "../../make/makeComponentView";
 import { articleBrickComponent } from "./generator/ArticleBrickComponent";
 import { BrickShell } from "../../components/brick/BrickShell";
 import "./article-font.css";
-import "./article-editor.scss";
+import "./article-editor.css";
 
 export const articleBrickContentView = makeComponentView(articleBrickComponent, {
   component(props) {

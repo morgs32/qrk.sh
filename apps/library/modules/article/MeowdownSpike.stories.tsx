@@ -4,7 +4,7 @@ import { useCallback, useRef, useState } from "react";
 import { ArticleForm } from "./ArticleForm";
 import { articleV1 } from "./articleV1";
 import "./article-font.css";
-import "./article-editor.scss";
+import "./article-editor.css";
 
 const meta: Meta<{ mode: "hide" | "focus" | "show"; failSave: boolean }> = {
   title: "Library/Article/Meowdown spike",

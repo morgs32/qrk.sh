@@ -5,7 +5,7 @@ import { useCallback, useRef, useState } from "react";
 import { articleBrickContentView } from "./ArticleBrickContent";
 import { articleRendererComparisonMarkdown } from "./articleRendererComparisonMarkdown";
 import "./article-font.css";
-import "./article-editor.scss";
+import "./article-editor.css";
 
 const meta: Meta = {
   title: "Library/Article/Renderer comparison",

@@ -66,7 +66,11 @@ before starting the current runtime. Existing browser backups remain untouched.
 
 Keep `.next` between development runs so Webpack can reuse its filesystem cache.
 Existing Library stylesheet imports retain their order; `/article-editor.css`
-resolves directly to Article's SCSS source.
+resolves directly to Article's plain CSS source. Studio globals and the shared
+Article stylesheet declare `@layer theme, base, components, meowdown, utilities`
+before their imports, matching Library. Tailwind Preflight precedes Meowdown's
+native rules, including its list marker gutter; utilities retain the final named
+layer.
 
 ## Environment
 

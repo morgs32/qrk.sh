@@ -201,7 +201,7 @@ the surface toward it; direction updates on scroll, resize, layout changes, and
 pointer entry or focus. Each option has browser chrome around a clipped viewport,
 with the bricks flush against its edges. Reduced motion removes lift and
 animation. These treatments remain available for comparison; the shared brick
-UI uses an immediate inset border.
+UI uses an immediate dark border.
 
 ## Public exports and shared UI
 
@@ -211,10 +211,15 @@ reachable imports without generated `dist` files. `app/` contains the
 Library-only routes and layout, not exported application screens.
 
 Consumers bundle Meowdown and React with their own dependencies. The retained
-`/article-editor.css` import maps to Article's SCSS, including Meowdown styles;
+`/article-editor.css` import maps to Article's plain CSS, including Meowdown styles;
 `/bricks.css` maps to the existing brick stylesheet. Keep stylesheet import order
 and Article components' font imports. Article state and form callbacks exchange
 Markdown strings; consumers share no editor instances.
+
+Article's stylesheet and both Library and Studio globals declare
+`@layer theme, base, components, meowdown, utilities` before their imports.
+This places Tailwind Preflight before Meowdown's native rules and keeps utilities
+in the final named layer.
 
 | Import under `@qrk.sh/library`    | Defining source                              | Purpose                                                   |
 | --------------------------------- | -------------------------------------------- | --------------------------------------------------------- |
@@ -235,7 +240,7 @@ Markdown strings; consumers share no editor instances.
 | `/libraryModule`                  | `libraryModule/libraryModule.ts`             | Models and command contracts                              |
 | `/createLibraryStandaloneSession` | `session/createLibraryStandaloneSession.ts`  | Session factory, context, hook, and type                  |
 | `/bricks.css`                     | `bricks.css`                                 | Shared brick styles                                       |
-| `/article-editor.css`             | `modules/article/article-editor.scss`        | Meowdown, Article typography, and portaled controls       |
+| `/article-editor.css`             | `modules/article/article-editor.css`         | Meowdown, Article typography, and portaled controls       |
 
 Studio imports `Drawer` directly from `@qrk.sh/library/Drawer`; Library's own app
 imports `../lib/Drawer`. Supplying `open` keeps the shared shell mounted and uses a
@@ -295,9 +300,12 @@ a local visual spike.
 
 ## Modules and interaction
 
-Wall bricks and fixed-size catalog/detail previews show a 2px dark inset border
-immediately on pointer hover or keyboard focus. Their cells, surfaces, and resize
-handles stay stationary, with no hover lift, outward shadow, or transition.
+Wall bricks and fixed-size catalog/detail previews show a 2px dark border
+immediately on pointer hover or keyboard focus. Flat wall hover outlines follow
+the shared grid border's 1px right/bottom extension, keeping the wall perimeter
+inside its box. Cards and standalone previews keep their inset outline. Their
+cells, surfaces, and resize handles stay stationary, with no hover lift, outward
+shadow, or transition.
 Wall hover pauses during grid dragging or resizing. The active brick keeps its
 black outline; resize handles stay hidden during dragging, and only the resizing
 brick keeps its handles until the gesture ends.
@@ -621,7 +629,7 @@ with a thin black border at the four edge midpoints, aligned parallel to each ed
 The anchors remain visible during resizing and on idle touch devices. Dragging
 hides all anchors; resizing hides other bricks' anchors.
 The square outline stays visible during dragging and resizing; hover uses the
-surface's inset border. Every edge keeps its anchor, including at the grid boundaries.
+surface's border. Every edge keeps its anchor, including at the grid boundaries.
 Resizing clamps to the grid's left, right, and top boundaries and the module's
 minimum width and height; the bottom edge can grow the wall. These controls belong
 to the active wall and retain grid snapping, module minimum sizes, vertical
@@ -689,8 +697,11 @@ title-to-subtitle gap and 36px before the body. The drawer retains its smaller
 mobile title. These fonts and spacing follow the
 [Experimental History article](https://www.experimental-history.com/p/the-strangest-idea-in-the-world).
 The body supports Meowdown's native Markdown headings, lists, tasks, quotes,
-code, tables, links, images, and inline formatting. Underline, colored highlights,
-and text alignment are not retained. Standard HTML form validation blocks Save when either
+code, tables, links, images, and inline formatting. Meowdown's native
+`margin-inline-start: 1lh` reserves the list marker gutter in previews and the
+editor; the shared layer order gives it priority over Tailwind Preflight.
+Underline, colored highlights, and text alignment are not retained. Standard HTML
+form validation blocks Save when either
 metadata field is empty or contains only whitespace; Admin retains schema-based
 JSON validation. This is a hard schema change without migration or fallback:
 old Tiptap Article state, specs, and command history may no longer load. The approved

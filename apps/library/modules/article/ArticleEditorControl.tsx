@@ -4,7 +4,7 @@ import { MeowdownEditor, type EditorHandle } from "@meowdown/react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import "./article-font.css";
-import "./article-editor.scss";
+import "./article-editor.css";
 
 export function ArticleEditorControl(props: {
   title: string;

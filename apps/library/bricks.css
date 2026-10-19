@@ -247,7 +247,7 @@
   position: relative;
 }
 
-/* Paint the inset border above opaque module content without catching input. */
+/* Paint the hover border above opaque module content without catching input. */
 .brick-hover-target > .brick-hover-surface::after {
   content: "";
   position: absolute;
@@ -256,6 +256,17 @@
   z-index: 20;
   box-shadow: inset 0 0 0 calc(var(--brick-hover-active, 0) * 2px) #282824;
   pointer-events: none;
+}
+
+/* Flat wall hover strokes follow the shared border, including perimeter edges. */
+.react-grid-item[data-card-style="false"]:not([data-wall-right-edge="true"])
+  > .brick-hover-surface::after {
+  right: calc(0px - var(--brick-edge));
+}
+
+.react-grid-item[data-card-style="false"]:not([data-wall-bottom-edge="true"])
+  > .brick-hover-surface::after {
+  bottom: calc(0px - var(--brick-edge));
 }
 
 .brick-hover-target:not(.react-draggable-dragging):not(.resizing)[data-selected="true"],

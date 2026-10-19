@@ -75,12 +75,12 @@ export function Grid() {
       max: Math.max(0, scroll.scrollHeight - scroll.clientHeight),
       viewportHeight: scroll.clientHeight,
     };
-    function rememberScroll() {
+    const rememberScroll = () => {
       // A resize may clamp scrollTop before its observer runs. Keep the old anchor.
       if (scroll.clientHeight !== position.viewportHeight) return;
       position.top = scroll.scrollTop;
       position.max = Math.max(0, scroll.scrollHeight - scroll.clientHeight);
-    }
+    };
     const observer = new ResizeObserver(() => {
       const viewportHeight = scroll.clientHeight;
       if (viewportHeight === position.viewportHeight) {

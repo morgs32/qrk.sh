@@ -19,7 +19,7 @@
     "./backendLibrary": "./backendLibrary.ts",
     "./createLibraryStandaloneSession": "./session/createLibraryStandaloneSession.ts",
     "./bricks.css": "./bricks.css",
-    "./article-editor.css": "./modules/article/article-editor.scss",
+    "./article-editor.css": "./modules/article/article-editor.css",
     "./ImageUploadEnvironment": "./modules/image/ImageUploadEnvironment.ts",
     "./ImageUploadRuntimeContext": "./modules/image/ImageUploadRuntimeContext.ts",
     "./startLibrarySessionWork": "./session/startLibrarySessionWork.ts",

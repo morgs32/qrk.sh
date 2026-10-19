@@ -1,3 +1,5 @@
+@layer theme, base, components, meowdown, utilities;
+
 @import url("https://fonts.googleapis.com/css2?family=Fragment+Mono:ital@0;1&display=swap");
 @import "tailwindcss";
 @import "../bricks.css";

@@ -3,8 +3,14 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "zerospin dev --port 8788",
-    "dev:portless": "pnpm nx run @qrk.sh/zerospin:dev --excludeTaskDependencies"
+    "dev": "portless",
+    "dev:app": "zerospin dev --port 8788"
+  },
+  "portless": {
+    "name": "zerospin.qrk",
+    "script": "dev:app",
+    "appPort": 8788,
+    "proxy": true
   },
   "dependencies": {
     "@clerk/backend": "^3.8.5",

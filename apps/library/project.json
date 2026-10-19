@@ -3,13 +3,7 @@
   "name": "@qrk.sh/library",
   "targets": {
     "dev": {
-      "continuous": true,
-      "dependsOn": [
-        {
-          "projects": ["@qrk.sh/api"],
-          "target": "dev"
-        }
-      ]
+      "continuous": true
     },
     "storybook": {
       "continuous": true

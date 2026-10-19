@@ -10,17 +10,26 @@ Run from the repository root:
 pnpm dev
 ```
 
-Open [https://qrk.localhost:1355/](https://qrk.localhost:1355/) and sign in through
+Open [https://qrk.localhost/](https://qrk.localhost/) and sign in through
 Web. Root Portless startup runs all five apps, registers their HTTPS hostnames,
 and removes their routes when the processes stop. Studio also has
-[studio.qrk.localhost:1355](https://studio.qrk.localhost:1355/); normal
+[studio.qrk.localhost](https://studio.qrk.localhost/); normal
 authentication remains through Web. See the [root startup instructions](../../README.md#getting-started)
 for the shared wildcard proxy and service URLs.
 
-Direct Nx targets retain the internal HTTP ports:
+To start only Studio through Portless:
 
 ```sh
-pnpm nx run @qrk.sh/studio:dev
+pnpm --dir apps/studio dev
+```
+
+Its `dev` script invokes Portless, which runs the Next command in `dev:app`.
+Package metadata retains its hostname and internal port. This does not start
+Web, API, or Zerospin; root `pnpm dev` starts the full stack.
+
+Other Nx targets remain available:
+
+```sh
 pnpm nx run @qrk.sh/studio:build
 pnpm nx run @qrk.sh/studio:start
 pnpm nx run @qrk.sh/studio:storybook
@@ -70,9 +79,9 @@ Place local values in `apps/studio/.env.local`:
 - `NEXT_PUBLIC_API_URL` (Image and Site Settings upload API URL)
 
 For Portless development, set
-`NEXT_PUBLIC_API_URL=https://api.qrk.localhost:1355` and
-`NEXT_PUBLIC_ZEROSPIN_API_URL=https://zerospin.qrk.localhost:1355`. Worker
-authorized parties use `https://qrk.localhost:1355`, where the browser signs in.
+`NEXT_PUBLIC_API_URL=https://api.qrk.localhost` and
+`NEXT_PUBLIC_ZEROSPIN_API_URL=https://zerospin.qrk.localhost`. Worker
+authorized parties use `https://qrk.localhost`, where the browser signs in.
 The internal Web-to-Studio forwarding destination remains port 3001.
 
 Clerk uses its Next.js integration; nuqs uses its Next App Router adapter. Sign-in and sign-up remain web-owned routes and retain `/replace` as their fallback destination. Studio's Clerk provider sets `afterSignOutUrl="/"` as the public homepage destination for completed sign-outs on the current Web origin. Web and Studio use distinct development deployment IDs so Next performs a full document navigation between the two apps, including after sign-out. Web performs signed-out redirects, Studio retains its client guard, and Zerospin retains backend authorization. No server-side Zerospin queries or new authentication rules are introduced.
@@ -114,13 +123,17 @@ The dashboard layout renders the fixed 64 px `QRK.SH` header in the initial HTML
 
 ## Routes and transitions
 
-The dashboard's **Create site** dialog includes Name and Slug. An empty Slug
+The dashboard's **Create site** dialog includes Name and Subdomain. The Subdomain
+uses shadcn's Input Group to edit the slug before a fixed `.qrk.sh` text addon.
+An empty input
 uses its name-derived lowercase ASCII kebab-case placeholder; accents are
 removed and spaces/punctuation become hyphens. If that suggestion is already
 used by this user, the first available `-1`, `-2`, etc. suffix is suggested.
 Custom slugs are preserved and must use lowercase letters/digits separated by
-single internal hyphens. The user's live sites provide inline availability
-feedback; the creation contract enforces the same format and ownership-scoped
+single internal hyphens. Beside the Subdomain label, the user's live sites drive a
+checkmark for an available slug or a red X for an invalid or taken slug, with
+descriptive feedback for screen readers; the creation contract enforces the same
+format and ownership-scoped
 uniqueness. Another user may use the same slug. Local refusals keep the dialog's
 values; later creation failures show a toast. Closing or cancelling resets both
 inputs. Creation stages `createSite` followed by `createPage` with `slug: null`
@@ -138,27 +151,43 @@ The brick-detail route keeps its brick selected in the active wall, with the exi
 
 The page layout keeps site/page drafts, `MainColumns`, the grid, and the library session mounted. `EditorLayout` also owns the persistent bottom drawer shell. Next's `useSelectedLayoutSegments()` supplies its `open` state through membership in the pathless `(drawer)` group. The common drawer layout renders `DrawerHeader`, which owns catalog breadcrumbs, the brick-detail heading **Update your {collectionName} brick**, the left-side underlined **← New brick** catalog link and **/** separator, publication actions, and Close or settings Save/Cancel. `Toolbars` reads selected layout segments to choose the route's controls.
 
-The drawer overlays the bottom `50dvh` on desktop and mobile. The editor stays full-height; a trailing element adds the same amount of real padding without changing the wall's minimum height. On opening, closing, and reserved-height changes, scrollable editors within 1px of the bottom follow the new bottom; other offsets are preserved and clamped. Initial deep links do not force a bottom scroll. Padding and scroll corrections are immediate, and later content growth does not trigger bottom following.
+The drawer overlays the bottom `50dvh` on desktop and mobile. The editor stays full-height; a trailing element inside each browser's page adds the same amount of real padding without changing the wall's minimum height. On opening, closing, and reserved-height changes, the active page within 1px of the bottom follows the new bottom; other offsets are preserved and clamped. Initial deep links do not force a bottom scroll. Padding and scroll corrections are immediate, and later content growth does not trigger bottom following.
 
-On every `(bricks)` route, a breakpoint-only toolbar sits `1.5rem` above the drawer, centered over the complete wall composition. **sm / md / lg / xl** select **360 / 720 / 1080 / 1440px** fixed-width walls; widths larger than the available composition are disabled. The four walls stay mounted around one editor session on every editor route. Page Settings displays no breakpoint toolbar. The separate `/breakpoints` route retains its close action. Selection survives drawer navigation and returns when it fits again; otherwise the largest fitting wall is displayed. Catalog drags and wall drag/resize gestures defer the displayed change until completion. Below 360px, the insufficient-width message appears after any active gesture ends and a fitting wall returns immediately when space recovers.
+On every `(bricks)` route, **sm / md / lg / xl** sit on the right side of the drawer
+header beside the publication controls. The header wraps its actions onto a second
+row when needed. These select **360 / 720 / 1080 / 1440px** fixed-width walls;
+widths larger than the available composition are disabled. The four walls stay
+mounted around one editor session on every editor route. Page and Site Settings
+display no breakpoint selector. The separate `/breakpoints` route retains its
+floating controls and close action. Selection survives drawer navigation and
+returns when it fits again; otherwise the largest fitting wall is displayed.
+Catalog drags and wall drag/resize gestures defer the displayed change until
+completion. Below 360px, the insufficient-width message appears after any active
+gesture ends and a fitting wall returns immediately when space recovers.
 
-The page contains one full-width scroll region and four centered fixed-width walls. Page Settings retains title/description Save/Cancel, and Site Settings keeps its existing persistence. Brick previews follow the active wall width. There is no article, Compose route, or scrolling-mode setting.
+The preview area contains four centered fixed-width walls. Each browser frame owns
+its page's vertical scroll region, with the scrollbar hidden and scroll chaining
+contained. The surrounding workspace and browser chrome stay in place. Each
+breakpoint retains its own scroll position. Page Settings retains title/description
+Save/Cancel, and Site Settings keeps its existing persistence. Brick previews follow
+the active wall width. There is no article, Compose route, or scrolling-mode setting.
 
 The shared `WallBreakpointPane` adds a 48px muted-gray browser header and thin
 inset frame. sm/md show a Safari-like mobile address pill; lg/xl show desktop
 window dots and a centered address bar. Both display static `qrk.sh` and remain
-noninteractive and hidden from assistive technology. Chrome slides and scrolls
-with the wall, including scroll compensation while dragging, preserves its
+noninteractive and hidden from assistive technology. Chrome slides with its
+breakpoint pane but stays outside the page's scroll region. It preserves its
 exact 360/720/1080/1440px content width, and allows resize handles and dragged
 surfaces to overflow into surrounding gutters. Brick content stays clipped by
 its own wrapper. Editor boundaries still clip overflow at exact-fit widths;
-breakpoint fitting reserves no extra gutters. The 64px site navbar slides and scrolls with the
-frame, including drag-scroll compensation. Inactive panes keep their navbar
-copies hidden or inert with the rest of the pane. The scroll root adds 32px
-above the frame and 86px below it, leaving 24px between the frame and the 38px
-toolbar, matching the toolbar's 24px bottom gap. It sets
+breakpoint fitting reserves no extra gutters. The 64px site navbar scrolls with the
+page inside the frame, including drag-scroll compensation. Inactive panes keep their navbar
+copies hidden or inert with the rest of the pane. The frame holder adds 32px
+above the frame and 86px below it, reserving space for the standalone floating
+toolbars. It sets
 `--wall-top-offset: calc(7.25rem + 2px)` to account for the combined padding;
-Studio overrides the pane's default
+The page scroll region subtracts that spacing and the 48px browser bar from the
+viewport height. Studio overrides the pane's default
 `--wall-chrome-height: 3rem` to `7rem` around the navbar and wall, accounting for
 the 48px browser bar and 64px navbar.
 `BrickWall` subtracts both inherited offsets from its viewport minimum height,
@@ -238,6 +267,6 @@ Drop or choose one nonempty PNG, JPEG, WebP, or SVG up to 5 MiB in the Image dra
 
 `EditorLayout` supplies `ImageUploadEnvironment.upload(file): Effect.Effect<string, Error>` through the existing Layer, session runner, and `ImageUploadRuntimeContext`. Studio owns the HTTP request: each invocation retrieves fresh Clerk credentials through `getClerkToken`, sends multipart file and current site ID to `/upload`, and decodes the untrusted success/error response before returning the image URL. A signed-out result fails visibly. Effect interruption reaches `fetch` through its AbortSignal. Image passes only its validated file and receives the URL, without knowing the endpoint, site ID, authorization header, multipart protocol, or response shape. The shared form contract carries no Image-specific upload props.
 
-Set `NEXT_PUBLIC_API_URL` to the unified API Worker origin; production uses `https://api.qrk.sh`, and local development uses `https://api.qrk.localhost:1355`. Root `pnpm dev` starts API alongside Studio. The API Worker verifies the Clerk bearer token using `CLERK_SECRET_KEY` and `CLERK_AUTHORIZED_PARTY`, stores the bytes in its `QRKSH` R2 binding, and returns a URL built from `R2_PUBLIC_BASE_URL`. The configured authorized party and CORS origins must match the browser origin: `https://qrk.localhost:1355` locally and `https://qrk.sh` in production. New local upload URLs use `https://api.qrk.localhost:1355/assets`; production uses `https://api.qrk.sh/assets`. `/assets/library/*` uses its `ASSETS` bucket. No public R2 bucket hostname is required. Clerk secrets stay on the Worker.
+Set `NEXT_PUBLIC_API_URL` to the unified API Worker origin; production uses `https://api.qrk.sh`, and local development uses `https://api.qrk.localhost`. Root `pnpm dev` starts API alongside Studio. The API Worker verifies the Clerk bearer token using `CLERK_SECRET_KEY` and `CLERK_AUTHORIZED_PARTY`, stores the bytes in its `QRKSH` R2 binding, and returns a URL built from `R2_PUBLIC_BASE_URL`. The configured authorized party and CORS origins must match the browser origin: `https://qrk.localhost` locally and `https://qrk.sh` in production. New local upload URLs use `https://api.qrk.localhost/assets`; production uses `https://api.qrk.sh/assets`. `/assets/library/*` uses its `ASSETS` bucket. No public R2 bucket hostname is required. Clerk secrets stay on the Worker.
 
 Uploads write assets to R2 immediately. Cancel after an upload completes, or removing an image, does not delete the R2 object. File bytes and upload status are not part of the local brick backup. Article uploads remain disabled because its editor has no file-persistence handler; HTTP(S) Markdown images render and native resizing saves dimensions in Markdown comments. Automatic YouTube/X embeds and provider requests are disabled. Article documents are not converted; preserve old browser stores before the approved fresh-origin cutover.

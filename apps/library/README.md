@@ -11,8 +11,8 @@ From the repository root:
 pnpm dev
 ```
 
-Open [https://library.qrk.localhost:1355/](https://library.qrk.localhost:1355/).
-Portless starts all five apps through their `dev:portless` scripts, registering
+Open [https://library.qrk.localhost/](https://library.qrk.localhost/).
+Portless starts all five apps through their `dev:app` scripts, registering
 HTTPS hostnames on the shared wildcard proxy. It removes each app's route when
 that process stops; leave the shared proxy and other projects running. See the
 [root startup instructions](../../README.md#getting-started) for proxy setup.
@@ -20,9 +20,11 @@ that process stops; leave the shared proxy and other projects running. See the
 Library listens internally on port 4100. Next forwards `/rpc`, `/upload`, and `/assets/*` to
 the API Worker at `http://127.0.0.1:8787`; its inspector listens on port 9231.
 Browser callers keep their same-origin URLs. New public asset URLs use
-`https://api.qrk.localhost:1355/assets`.
-For direct HTTP development, `pnpm nx run @qrk.sh/library:dev` starts Library
-and API on their internal ports. `pnpm nx run @qrk.sh/api:dev` runs the backend alone.
+`https://api.qrk.localhost/assets`.
+To start only Library through Portless, run `pnpm --dir apps/library dev`.
+Its `dev` script invokes Portless, which runs the Next command in `dev:app`;
+package metadata retains its hostname and port. API starts separately with
+`pnpm --dir apps/api dev`, or alongside Library through root `pnpm dev`.
 
 ## Configuration
 
@@ -67,9 +69,10 @@ installation requires the populated local registry described in the
 
 Old standalone backups can reject the current SQLite schema. For manual checks
 with empty storage, the Portless origin
-`https://library.qrk.localhost:1355/` is separate from earlier HTTP origins in the
+`https://library.qrk.localhost/` is separate from earlier HTTP origins in the
 existing Chrome profile. It preserves backups on `localhost:4100`,
-`127.0.0.1:4100`, and `qrk-package-cutover.localhost:4100`; it does not migrate
+`127.0.0.1:4100`, `qrk-package-cutover.localhost:4100`, and the earlier
+`https://library.qrk.localhost:1355` origin; it does not migrate
 their rows. Once used, the HTTPS origin retains its own storage between runs.
 
 The development UI routes are
@@ -269,7 +272,8 @@ the wall and drawer previews; no module catalog or registry appearance props are
 added. The flag starts `false`, survives drawer navigation while its layout stays
 mounted, and is not persisted on Site, Page, or in localStorage.
 
-The default mode draws touching bricks with one opaque 1px `#282824` shared rule.
+The default mode draws touching bricks with one shared 1px `var(--border)` rule,
+matching the site navbar's bottom border color.
 Overlapping strokes use the same pixels; the wall's right/bottom perimeter and
 standalone preview frames stay inside their boxes. Card mode uses RGL's native
 16px margins and 16px container padding, producing one 16px gap between cards
@@ -576,8 +580,10 @@ Library adds a decorative 64px navbar below the address bar, matching Studio's
 complete page navbar in the same position above `BrickWall` and showing a static
 `qrk.sh` label. Library's navbar is noninteractive and hidden from assistive
 technology; Studio's appears with the initialized editor and preserves its
-navigation and site-name draft previews. The chrome and navbar slide and scroll
-with their wall, including the existing scroll compensation while dragging.
+navigation and site-name draft previews. Library's chrome and navbar slide and
+scroll with their wall, including the existing scroll compensation while dragging.
+Studio keeps the chrome outside an inner page scroller with a hidden scrollbar;
+its navbar scrolls with the wall, and the complete frame slides between breakpoints.
 Library reserves 6rem above the
 wall below lg, keeping wrapped controls clear of the chrome, and 3.5rem at lg.
 The scroll root uses inherited `--wall-top-offset` for this padding; the pane

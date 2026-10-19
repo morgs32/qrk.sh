@@ -3,13 +3,19 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "next dev --webpack --hostname 127.0.0.1 --port 3001",
-    "dev:portless": "NEXT_PUBLIC_API_URL=https://api.qrk.localhost:1355 NEXT_PUBLIC_ZEROSPIN_API_URL=https://zerospin.qrk.localhost:1355/ pnpm nx run @qrk.sh/studio:dev --excludeTaskDependencies",
+    "dev": "portless",
+    "dev:app": "NEXT_PUBLIC_API_URL=https://api.qrk.localhost NEXT_PUBLIC_ZEROSPIN_API_URL=https://zerospin.qrk.localhost/ next dev --webpack --hostname 127.0.0.1 --port 3001",
     "build": "next build --webpack",
     "start": "next start --hostname 127.0.0.1 --port ${PORT:-3001}",
     "format": "vp fmt --config ../../.oxfmtrc.json .",
     "storybook": "storybook dev -p 6006 --host 127.0.0.1",
     "build-storybook": "storybook build"
+  },
+  "portless": {
+    "name": "studio.qrk",
+    "script": "dev:app",
+    "appPort": 3001,
+    "proxy": true
   },
   "dependencies": {
     "@clerk/nextjs": "7.1.0",

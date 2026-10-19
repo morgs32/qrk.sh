@@ -3,21 +3,7 @@
   "name": "@qrk.sh/studio",
   "targets": {
     "dev": {
-      "continuous": true,
-      "dependsOn": [
-        {
-          "projects": ["@qrk.sh/web"],
-          "target": "dev"
-        },
-        {
-          "projects": ["@qrk.sh/zerospin"],
-          "target": "dev"
-        },
-        {
-          "projects": ["@qrk.sh/library"],
-          "target": "dev"
-        }
-      ]
+      "continuous": true
     },
     "storybook": {
       "continuous": true

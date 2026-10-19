@@ -24,19 +24,15 @@ const toolbarPresenceTransition = {
   ease: [0, 0, 0.2, 1] as const,
 };
 
-/** Figma: floating breakpoints preview toolbar (sm/md/lg/xl). */
-export function BreakpointsToolbar(props: { aboveDrawer?: boolean }) {
-  const { aboveDrawer = false } = props;
+/** Standalone breakpoint preview controls for the /breakpoints route. */
+export function BreakpointsToolbar() {
   const reducedMotion = useReducedMotion();
   const params = useValidatedParams(ParamsSchema);
   const router = useRouter();
   const { availableWidth, activeBreakpoint, setSelectedBreakpoint } = useWallViewport();
 
   return (
-    <div
-      className="pointer-events-none fixed bottom-6 left-1/2 z-30 -translate-x-1/2"
-      style={aboveDrawer ? { bottom: "calc(50dvh + 1.5rem)" } : undefined}
-    >
+    <div className="pointer-events-none fixed bottom-6 left-1/2 z-30 -translate-x-1/2">
       <div className="pointer-events-auto" role="toolbar" aria-label="Breakpoints">
         <motion.div
           layout
@@ -65,25 +61,21 @@ export function BreakpointsToolbar(props: { aboveDrawer?: boolean }) {
               </ToolbarButton>
             ))}
 
-            {!aboveDrawer ? (
-              <>
-                <ToolbarSeparator />
+            <ToolbarSeparator />
 
-                <ToolbarButton
-                  tooltip="Close"
-                  aria-label="Close"
-                  onClick={() =>
-                    router.push(
-                      `/${encodeURIComponent(params.username)}/site/${encodeURIComponent(params.siteId)}/page/${encodeURIComponent(params.pageId)}`,
-                      { scroll: false },
-                    )
-                  }
-                  className="h-7 px-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                >
-                  <X className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
-                </ToolbarButton>
-              </>
-            ) : null}
+            <ToolbarButton
+              tooltip="Close"
+              aria-label="Close"
+              onClick={() =>
+                router.push(
+                  `/${encodeURIComponent(params.username)}/site/${encodeURIComponent(params.siteId)}/page/${encodeURIComponent(params.pageId)}`,
+                  { scroll: false },
+                )
+              }
+              className="h-7 px-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
+            >
+              <X className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
+            </ToolbarButton>
           </BottomToolbar>
         </motion.div>
       </div>

@@ -7,11 +7,10 @@ import { BreakpointsToolbar } from "./BreakpointsToolbar";
 
 export function Toolbars() {
   const segments = useSelectedLayoutSegments();
-  const isBrickDrawer = segments.includes("(bricks)");
   const route = segments.find((segment) => !segment.startsWith("("));
   const toolbar =
-    route === "breakpoints" || isBrickDrawer ? (
-      <BreakpointsToolbar key="Breakpoints" aboveDrawer={isBrickDrawer} />
+    route === "breakpoints" ? (
+      <BreakpointsToolbar key="Breakpoints" />
     ) : route === undefined ? (
       <SiteToolbar key="Site" />
     ) : null;

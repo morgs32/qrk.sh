@@ -26,11 +26,17 @@
     "./FigmaReadyMeasurements": "./modules/figmaThumbnail/FigmaReadyMeasurements.tsx"
   },
   "scripts": {
-    "dev": "next dev --webpack --hostname 127.0.0.1 --port 4100",
-    "dev:portless": "pnpm nx run @qrk.sh/library:dev --excludeTaskDependencies",
+    "dev": "portless",
+    "dev:app": "next dev --webpack --hostname 127.0.0.1 --port 4100",
     "format": "vp fmt --config ../../.oxfmtrc.json .",
     "storybook": "storybook dev -p 6007 --host 127.0.0.1",
     "build-storybook": "storybook build"
+  },
+  "portless": {
+    "name": "library.qrk",
+    "script": "dev:app",
+    "appPort": 4100,
+    "proxy": true
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",

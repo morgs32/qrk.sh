@@ -8,6 +8,7 @@ import { useState } from "react";
 import { Schema } from "effect";
 import { toast } from "sonner";
 import { useLiveQuery } from "@zerospin/react";
+import { Check, X } from "lucide-react";
 
 import { siteV2 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV2";
 import { pageV2 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV2";
@@ -22,6 +23,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  InputGroupText,
+} from "@/components/ui/input-group";
 import { UserApp } from "@/zerospin/userSession";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 
@@ -169,33 +176,39 @@ export default function UsernameDashboardPage() {
                       />
                     </div>
                     <div className="flex flex-col gap-2">
-                      <label htmlFor="create-site-slug" className="text-sm font-medium">
-                        Slug
-                      </label>
-                      <Input
-                        id="create-site-slug"
-                        name="slug"
-                        value={siteSlug}
-                        placeholder={suggestedSlug}
-                        onChange={(event) => {
-                          setSiteSlug(event.target.value);
-                        }}
-                        autoCapitalize="none"
-                        autoCorrect="off"
-                        spellCheck={false}
-                        pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
-                        aria-invalid={showSlugError}
-                        aria-describedby="create-site-slug-feedback"
-                      />
-                      <p
-                        id="create-site-slug-feedback"
-                        className={`text-sm ${showSlugError ? "text-destructive" : "text-muted-foreground"}`}
-                        role="status"
-                      >
+                      <div className="flex items-center gap-2">
+                        <label htmlFor="create-site-slug" className="text-sm font-medium">
+                          Subdomain
+                        </label>
+                        {slugError === null ? (
+                          <Check className="size-4" aria-hidden="true" />
+                        ) : showSlugError ? (
+                          <X className="size-4 text-destructive" aria-hidden="true" />
+                        ) : null}
+                      </div>
+                      <InputGroup>
+                        <InputGroupInput
+                          id="create-site-slug"
+                          name="slug"
+                          value={siteSlug}
+                          placeholder={suggestedSlug}
+                          onChange={(event) => {
+                            setSiteSlug(event.target.value);
+                          }}
+                          autoCapitalize="none"
+                          autoCorrect="off"
+                          spellCheck={false}
+                          pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
+                          aria-invalid={showSlugError}
+                          aria-describedby="create-site-slug-domain create-site-slug-feedback"
+                        />
+                        <InputGroupAddon align="inline-end">
+                          <InputGroupText id="create-site-slug-domain">.qrk.sh</InputGroupText>
+                        </InputGroupAddon>
+                      </InputGroup>
+                      <p id="create-site-slug-feedback" className="sr-only" role="status">
                         {slugError === null
-                          ? siteSlug === ""
-                            ? `Available. We'll use ${suggestedSlug} unless you enter your own.`
-                            : "Available."
+                          ? "Slug available."
                           : siteName === "" && siteSlug === ""
                             ? "Use lowercase letters and numbers separated by single hyphens."
                             : slugError}

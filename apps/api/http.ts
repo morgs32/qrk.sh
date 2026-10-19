@@ -4,9 +4,9 @@ export const ALLOWED_ORIGINS: readonly string[] = [
   "http://localhost:3001",
   "http://127.0.0.1:4100",
   "http://localhost:4100",
-  "https://qrk.localhost:1355",
-  "https://studio.qrk.localhost:1355",
-  "https://library.qrk.localhost:1355",
+  "https://qrk.localhost",
+  "https://studio.qrk.localhost",
+  "https://library.qrk.localhost",
   "https://www.qrk.sh",
   "https://qrk.sh",
 ];

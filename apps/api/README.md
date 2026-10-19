@@ -11,17 +11,17 @@ declarations; API imports its catalog registry from
 From the repository root:
 
 ```sh
-pnpm nx run @qrk.sh/api:dev
+pnpm dev
 ```
 
-Wrangler listens at `http://127.0.0.1:8787`, with its inspector on port 9231.
-Nx builds Library's reusable catalog output before starting API. Library's
-`dev` and `preview` targets also start this API target; Library Next runs on
-port 4100 and forwards `/rpc`, `/upload`, `/image/upload`, and `/assets/*` to API.
-The root `pnpm dev` command starts the same API Worker through Portless at
-`https://api.qrk.localhost:1355`. Its selected `dev:portless` script skips Nx task
-dependencies because the root command starts the app processes together. The fixed
-Worker port and Library forwarding remain unchanged. These commands do not deploy it.
+Root Portless startup runs all five apps, including API at
+`https://api.qrk.localhost`. To start only API, run `pnpm --dir apps/api dev`;
+its `dev` script invokes Portless, which runs the Wrangler command in `dev:app`.
+Package metadata retains the hostname and internal port. Wrangler listens at
+`http://127.0.0.1:8787`, with its inspector on port 9231. Library runs separately
+on port 4100 and forwards `/rpc`, `/upload`, `/image/upload`, and `/assets/*` to
+API. Consumers compile Library source directly; development startup needs no
+Library build. These commands do not deploy it.
 
 Put private provider credentials in `apps/api/.env.local`:
 
@@ -34,9 +34,9 @@ Put private provider credentials in `apps/api/.env.local`:
 Wrangler loads these as Worker bindings. Studio upload authentication additionally uses
 `CLERK_SECRET_KEY` and `CLERK_AUTHORIZED_PARTY`. The authorized party must match
 the browser origin. For Studio through the web frontend, set
-`CLERK_AUTHORIZED_PARTY=https://qrk.localhost:1355` in `apps/api/.env.local`, matching
+`CLERK_AUTHORIZED_PARTY=https://qrk.localhost` in `apps/api/.env.local`, matching
 Wrangler's local default. `R2_PUBLIC_BASE_URL` defaults to
-`https://api.qrk.localhost:1355/assets` for local serving. Public Mapbox settings
+`https://api.qrk.localhost/assets` for local serving. Public Mapbox settings
 remain in Library's `.env.local`. Do not expose provider or Clerk secrets in
 browser configuration.
 
@@ -104,7 +104,7 @@ signed-in upload, were not exercised by these probes.
 | Other `/assets/*`    | Reads API upload keys from `QRKSH`                           |
 
 `OPTIONS` retains API preflight handling. CORS allows the existing application
-origins, including Portless's Web, Studio, and Library HTTPS origins on port 1355,
+origins, including Portless's Web, Studio, and Library HTTPS origins on standard port 443,
 and the existing localhost and loopback origins. Uploads
 retain the existing multipart `file` contract, PNG/JPEG/WebP/SVG support, 5 MiB limit,
 error responses, and returned asset URL. Studio keys are

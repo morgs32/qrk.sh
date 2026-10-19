@@ -109,7 +109,7 @@
   position: absolute;
   inset: 0 calc(0px - var(--brick-edge)) calc(0px - var(--brick-edge)) 0;
   box-sizing: border-box;
-  border: var(--brick-edge) solid #282824;
+  border: var(--brick-edge) solid var(--border);
   z-index: 19;
   pointer-events: none;
 }

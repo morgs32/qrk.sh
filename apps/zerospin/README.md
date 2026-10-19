@@ -8,24 +8,25 @@ the logical system name.
 
 Put local authentication settings in this directory's `.env.local` (see
 `.env.example`). The CLI discovers environment files from this project root.
-Set `CLERK_AUTHORIZED_PARTY=https://qrk.localhost:1355` to match the Web gateway
+Set `CLERK_AUTHORIZED_PARTY=https://qrk.localhost` to match the Web gateway
 where normal authentication occurs; keep existing secrets in their current local
 environment file.
 Run local development from the repository root:
 
 ```sh
-pnpm nx run @qrk.sh/zerospin:dev
+pnpm dev
 ```
 
 The root `pnpm dev` command starts this Worker through Portless at
-`https://zerospin.qrk.localhost:1355`, retaining internal port 8788. Its selected
-`dev:portless` script skips Nx task dependencies because the root command starts
-the app processes together.
+`https://zerospin.qrk.localhost`, retaining internal port 8788, alongside the
+other four apps. To start only this Worker, run `pnpm --dir apps/zerospin dev`.
+Its `dev` script invokes Portless, which runs the CLI command in `dev:app`;
+package metadata retains its hostname and port.
 
 QRK installs the CLI and runtime packages at `15.0.1` from the populated local
-registry described in the [root README](../../README.md#zerospin-packages). Nx
-builds QRK's reusable Library before backend development; it does not
-rebuild installed Zerospin files.
+registry described in the [root README](../../README.md#zerospin-packages).
+Backend development compiles Library source directly; it does not build a
+separate Library package or rebuild installed Zerospin files.
 
 Repository tests and standalone automated checks are deferred until a test
 structure is agreed. Avoid integration testing of this Zerospin backend; the
@@ -129,10 +130,10 @@ See the [core layer example and transport boundary](../../../zerospin/packages/c
 Aggregate-ID resolution and website rendering remain separate application work.
 
 The package cutover requires empty storage for superseded retained command and
-SQLite schemas. The regular `dev` target does not reset storage. Stop development
+SQLite schemas. The regular development command does not reset storage. Stop development
 before moving `.wrangler/zerospin/dev-worker/sys_qrk_sh_1` into a uniquely named
-directory under `.wrangler/zerospin/backups/`. Starting the normal Nx `dev`
-target then creates current storage while preserving the old directory for
+directory under `.wrangler/zerospin/backups/`. Starting
+`pnpm --dir apps/zerospin dev` then creates current storage while preserving the old directory for
 recovery. Do not use `--clean` when the old data must be preserved.
 
 Browser backups are scoped by origin. The Article Markdown cutover uses a fresh
@@ -200,7 +201,7 @@ This declaration change uses fresh development data, without retained-history
 migration. Stop the dev worker, then move the whole
 `.wrangler/zerospin/dev-worker/sys_qrk_sh_1` directory into a uniquely timestamped
 `.wrangler/zerospin/backups/sys_qrk_sh_1-<UTC timestamp>-pre-site-slugs` directory.
-Restart the normal Nx `dev` target and require system-spec acceptance. The changed
+Restart with `pnpm --dir apps/zerospin dev` and require system-spec acceptance. The changed
 browser session lock produces a new browser Node namespace on the same origin;
 old IndexedDB databases and cookies remain untouched. Do not reset the API's R2
 stores or the package registry.

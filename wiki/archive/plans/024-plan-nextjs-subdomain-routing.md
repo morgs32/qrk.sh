@@ -1,6 +1,6 @@
 # Local Next.js subdomain routing proof
 
-Status: Implementation complete. HTTPS routing verified on port 1355; clean port 443 URLs await interactive sudo startup and verification.
+Status: Complete. Standard HTTPS on port 443, wildcard routing, development WebSockets, sign-in, and authenticated API access verified on October 18, 2026.
 
 ## Goal and agreed behavior
 
@@ -17,8 +17,9 @@ Status: Implementation complete. HTTPS routing verified on port 1355; clean port
 3. Read the preserved `Host` header, lowercase it, remove an optional numeric port, and match exactly one valid DNS label before `.qrk.localhost`. Do not use forwarded-host headers or introduce a host resolver, named type, or shared routing abstraction.
 4. Clone `request.nextUrl` and change only its pathname. Use the existing static-file matcher; additionally exclude `/api`, `/trpc`, and `/rpc` and their descendants from hostname dispatch. Keep RSC and prefetch requests eligible for the same rewrite as ordinary page requests.
 5. Use one explicit internal route, `/subdomain-proof/[subdomain]/[[...path]]`, rather than a root catch-all that could intercept Studio routes. Guard its page with development mode and a matching request hostname; direct base-host access must not render proof content. Next already allows `**.localhost` for development assets, so add no `allowedDevOrigins` setting.
+6. The approved October 18 HTTPS follow-up pins the repository's Portless monorepo startup to standard HTTPS port 443. Update development public URLs, local environment values, CORS origins, and Clerk authorized parties to omit `:1355`; preserve fixed internal ports, the existing CA, production configuration, and all existing browser/backend data. This supersedes the standalone startup arrangement in decision 1. Startup-script simplification occurred separately in the main chat; this HTTPS migration preserves that work, and the root README documents the current startup interface.
 
-Evidence: [research and primary sources](../research/nextjs-subdomain-routing.md), [current Proxy](../../apps/web/proxy.ts), and [current rewrites](../../apps/web/next.config.ts). No existing ADR governs this proof.
+Evidence: [research and primary sources](../../research/nextjs-subdomain-routing.md), [current Proxy](../../../apps/web/proxy.ts), and [current rewrites](../../../apps/web/next.config.ts). No existing ADR governs this proof.
 
 ## Implementation steps
 
@@ -97,9 +98,12 @@ qrk.sh/
 3. Existing Chrome profile verified alpha `/`, beta `/about/team?from=proof`, reload, Next Links, and Back/Forward. Visible host/path/query remain intact. Beta's document has HTTP/2 200 and Chrome security state `secure`; captured fonts/CSS/JS/favicon return 200, no network loads fail, and no QRK backend query is issued. HMR over WSS applied a temporary heading edit and its restoration without navigation. Screenshot: `/tmp/qrk-subdomain-proof.png`.
 4. Base localhost and Portless homepages return 200. Existing Google sign-in returns to `/morgs32` and reaches the authenticated Studio shell. Authenticated direct base-host proof access returns 404; reserved API/RPC paths keep their existing sign-in behavior. Studio data loading remains blocked by the unrelated existing Zerospin `zerospin-dev-system-spec-check-failed` error during startup; backend health is not claimed and no storage was reset.
 5. README and research now record setup, evidence, cleanup and the port 443 prerequisite. No new domain term was introduced, so the existing glossary needs no change; this reversible local proof warrants no ADR. Code remains ready for review; no repository tests or standalone check gates were introduced or run.
+6. October 18: root startup pins `PORTLESS_PORT=443`; active application URLs, API defaults/CORS, local Clerk authorized parties, Studio endpoints, environment examples, and startup documentation omit the nonstandard port. Existing local environment files were updated without exposing credentials. This migration changed no internal port, production setting, local data, or installed service. The initial noninteractive sudo attempt failed; the user completed Portless's normal administrator authentication and started the replacement HTTPS wildcard proxy.
+7. Stopped only the old port 1355 listener and started the stack once with root `pnpm dev`. All five servers reached their actual ready messages; Zerospin reported `system spec accepted`. `portless list` shows `qrk`, `studio.qrk`, `library.qrk`, `api.qrk`, and `zerospin.qrk` on HTTPS without an explicit port, forwarding to 3000, 3001, 4100, 8787, and 8788. No port 1355 listener remains. The CLI stop command requested sudo, so the identified user-owned process explicitly listening on 1355 was stopped with SIGTERM; the port 443 proxy remained running.
+8. Trusted curl checks on all five hostnames report TLS verification result 0. Web `/`, Library `/`, and Studio `/morgs32` return 200. API `/` returns its expected 404 and Zerospin `/` returns its expected 400; neither is treated as a frontend page. Existing Chrome sign-in through `https://qrk.localhost` returns to `/morgs32` and loads the user's existing site list. The first attempt overlapped a development Worker reload and displayed `node-subscription-closed`; one page reload after Worker readiness completed synchronization successfully.
+9. API preflight from `https://qrk.localhost` returns 204 with that exact allowed origin. An authenticated empty multipart POST to `/upload` returns `400 missing-file`, proving Clerk authorization passed before file validation. The corresponding unsigned request returns `401 missing-authorization`. The session token stayed inside the browser and was not printed; neither request created an uploaded object.
+10. Chrome verifies alpha root, About navigation, Back/Forward, and beta `/about/team?from=proof` including reload. Hostname, path, and query remain public and have no internal rewrite prefix or explicit port. Captured local documents, fonts, CSS, scripts, and navigation requests have successful HTTP/2 responses. `wss://alpha.qrk.localhost/_next/hmr` and `wss://qrk.localhost/studio-static/_next/hmr` complete HTTP/2 WebSocket handshakes and receive messages with no frame errors. Screenshot of the loaded authenticated dashboard: `/tmp/qrk-https-443-dashboard.png`.
 
 ## Remaining work
 
-1. In an interactive terminal, stop this trial's proxy and run `portless proxy start --port 443 --https --wildcard`, accepting the sudo prompt. The existing `qrk` alias is retained. A working trusted listener on 1355 remains available until then.
-2. Recheck the clean `https://alpha.qrk.localhost/` and `https://beta.qrk.localhost/about/team?from=proof` URLs and navigation on port 443. No further code change is currently indicated.
-3. Update evidence and README to the final listener, then archive this plan. Keep it active while port 443 verification remains pending.
+None.

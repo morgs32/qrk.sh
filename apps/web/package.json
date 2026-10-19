@@ -7,13 +7,19 @@
     "./library/OrderedOutline": "./library/OrderedOutline.tsx"
   },
   "scripts": {
-    "dev": "next dev --turbopack --port 3000",
-    "dev:portless": "pnpm nx run @qrk.sh/web:dev --excludeTaskDependencies",
+    "dev": "portless",
+    "dev:app": "next dev --turbopack --port 3000",
     "build": "next build",
     "start": "next start",
     "format": "vp fmt --config ../../.oxfmtrc.json .",
     "storybook": "storybook dev -p 6008 --host 127.0.0.1",
     "build-storybook": "storybook build"
+  },
+  "portless": {
+    "name": "qrk",
+    "script": "dev:app",
+    "appPort": 3000,
+    "proxy": true
   },
   "dependencies": {
     "@clerk/nextjs": "^7.1.0",

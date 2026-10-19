@@ -2,9 +2,9 @@
 
 import { stageAggregateSessionCommand } from "@zerospin/core/aggregateSession/stageCommand/stageAggregateSessionCommand";
 
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
+import { useRouter, useSelectedLayoutSegments } from "next/navigation";
 import { useReducedMotion } from "framer-motion";
 
 import { BrickWall } from "@qrk.sh/library/BrickWall";
@@ -29,6 +29,9 @@ const ParamsSchema = Schema.Struct({
 
 export function Grid() {
   const { activeBreakpoint, gridGesture, setGridGesture } = useWallViewport();
+  const drawerOpen = useSelectedLayoutSegments().includes("(drawer)");
+  const gridRef = useRef<HTMLDivElement>(null);
+  const hasReservedDrawerSpace = useRef(false);
   const session = UserApp.useInitializedSession();
   const params = useValidatedParams(ParamsSchema);
   const { data: page } = useLiveQuery({
@@ -61,9 +64,69 @@ export function Grid() {
   const fromBreakpoint = transition.active === activeBreakpoint ? transition.from : null;
   const direction = transition.active === activeBreakpoint ? transition.direction : 0;
   const wallId = page?.wallId;
+
+  useLayoutEffect(() => {
+    const scroll = gridRef.current?.querySelector<HTMLDivElement>(
+      '[data-wall-active="true"] [data-site-right-scroll]',
+    );
+    const space = scroll?.querySelector<HTMLDivElement>("[data-editor-drawer-space]");
+    if (scroll == null || space == null) return;
+
+    // Change only trailing space, leaving the wall's percentage height intact.
+    const previousTop = scroll.scrollTop;
+    const previousMax = Math.max(0, scroll.scrollHeight - scroll.clientHeight);
+    const wasAtBottom =
+      hasReservedDrawerSpace.current && previousMax > 0 && Math.abs(previousMax - previousTop) <= 1;
+    space.style.paddingBottom = drawerOpen ? "50dvh" : "0px";
+    const nextMax = Math.max(0, scroll.scrollHeight - scroll.clientHeight);
+    scroll.scrollTop = wasAtBottom ? nextMax : Math.min(Math.max(previousTop, 0), nextMax);
+    hasReservedDrawerSpace.current = true;
+
+    let position = {
+      top: scroll.scrollTop,
+      max: nextMax,
+      viewportHeight: scroll.clientHeight,
+      reservedHeight: space.getBoundingClientRect().height,
+    };
+    function rememberScroll() {
+      // A resize may clamp scrollTop before its observer runs. Keep the old anchor.
+      if (
+        scroll.clientHeight !== position.viewportHeight ||
+        space.getBoundingClientRect().height !== position.reservedHeight
+      )
+        return;
+      position.top = scroll.scrollTop;
+      position.max = Math.max(0, scroll.scrollHeight - scroll.clientHeight);
+    }
+    const observer = new ResizeObserver(() => {
+      const viewportHeight = scroll.clientHeight;
+      const reservedHeight = space.getBoundingClientRect().height;
+      if (
+        viewportHeight === position.viewportHeight &&
+        reservedHeight === position.reservedHeight
+      ) {
+        // Content growth updates the anchor measurement without following it.
+        rememberScroll();
+        return;
+      }
+      const max = Math.max(0, scroll.scrollHeight - viewportHeight);
+      const atBottom = position.max > 0 && Math.abs(position.max - position.top) <= 1;
+      scroll.scrollTop = atBottom ? max : Math.min(Math.max(position.top, 0), max);
+      position = { top: scroll.scrollTop, max, viewportHeight, reservedHeight };
+    });
+    scroll.addEventListener("scroll", rememberScroll, { passive: true });
+    observer.observe(scroll);
+    observer.observe(space);
+    if (space.previousElementSibling !== null) observer.observe(space.previousElementSibling);
+    return () => {
+      scroll.removeEventListener("scroll", rememberScroll);
+      observer.disconnect();
+    };
+  }, [activeBreakpoint, drawerOpen, wallId]);
+
   if (wallId === undefined || wallId === null) return null;
   return (
-    <div className="min-h-full w-full" data-testid="grid-region">
+    <div ref={gridRef} className="min-h-full w-full" data-testid="grid-region">
       <div className="relative min-h-full w-full" data-testid="grid-layout">
         {BREAKPOINTS.map((row) => {
           const isActive = activeBreakpoint === row.id;
@@ -87,7 +150,14 @@ export function Grid() {
                 );
               }}
             >
-              <div className="[--wall-chrome-height:7rem]">
+              <div
+                className="[--wall-chrome-height:7rem]"
+                data-site-right-scroll
+                data-brick-scroll-root
+                role="region"
+                aria-label={`${row.id} page preview`}
+                tabIndex={0}
+              >
                 <div className="@container translate-y-[var(--wall-drag-scroll-offset,0px)]">
                   <SiteHeader />
                 </div>
@@ -110,6 +180,7 @@ export function Grid() {
                     );
                   }}
                 />
+                <div data-editor-drawer-space aria-hidden />
               </div>
             </WallBreakpointPane>
           );

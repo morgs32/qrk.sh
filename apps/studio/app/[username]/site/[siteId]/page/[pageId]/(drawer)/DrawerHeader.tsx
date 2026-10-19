@@ -12,6 +12,8 @@ import { makeModelIdSchema } from "@zerospin/core/models/make/makeModelIdSchema"
 import { makeEffectSchema } from "@zerospin/shapes";
 import { modulesHash } from "@qrk.sh/library";
 import { libraryModule } from "@qrk.sh/library/libraryModule";
+import { BREAKPOINTS } from "@qrk.sh/library/breakpoints";
+import { useWallViewport } from "@qrk.sh/library/WallViewportProvider";
 import { pageV2 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV2";
 import { siteV2 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV2";
 import { pageSnapshotV1 as PageSnapshot } from "@qrk.sh/zerospin/src/aggregates/user/models/pageSnapshot/PageSnapshotV1";
@@ -19,9 +21,11 @@ import { makePageSnapshot } from "@qrk.sh/zerospin/src/aggregates/user/snapshots
 
 import { useZerospinUserInitializedState } from "@/components/ZerospinUser";
 import { Button } from "@/components/ui/button";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 import { UserApp } from "@/zerospin/userSession";
 import { useSiteStore } from "../../../siteStore";
+import { ToolbarButton } from "../../../Toolbars/ToolbarButton";
 import { usePageStore } from "../pageStore";
 import { PublishSiteDialog } from "./PublishSiteDialog";
 
@@ -37,6 +41,7 @@ export function DrawerHeader() {
   const params = useValidatedParams(ParamsSchema);
   const pathname = usePathname();
   const router = useRouter();
+  const { availableWidth, activeBreakpoint, setSelectedBreakpoint } = useWallViewport();
   const session = UserApp.useInitializedSession();
   const { db } = useZerospinUserInitializedState();
   const siteDraft = useSiteStore((state) => state.site);
@@ -140,7 +145,7 @@ export function DrawerHeader() {
   const base = `/${encodeURIComponent(params.username)}/site/${encodeURIComponent(params.siteId)}/page/${encodeURIComponent(params.pageId)}`;
 
   return (
-    <header className="flex shrink-0 items-center justify-between gap-4 border-b border-border/60 px-4 py-2.5">
+    <header className="flex shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-border/60 px-4 py-2.5">
       {isSiteSettings || isPageSettings ? (
         <div className="flex min-w-0 items-center gap-2">
           {isSiteSettings ? (
@@ -188,7 +193,34 @@ export function DrawerHeader() {
           )}
         </nav>
       )}
-      <div className="flex shrink-0 items-center gap-1">
+      <div className="ml-auto flex shrink-0 items-center gap-1">
+        {!isSiteSettings && !isPageSettings ? (
+          <TooltipProvider>
+            <div
+              role="group"
+              aria-label="Preview breakpoint"
+              className="mr-1 flex items-center rounded-md border border-input p-0.5"
+            >
+              {BREAKPOINTS.map((row) => (
+                <ToolbarButton
+                  key={row.id}
+                  tooltip={`${row.id} (${row.previewWidth}px)`}
+                  aria-label={`${row.id} preview width`}
+                  aria-pressed={activeBreakpoint === row.id}
+                  disabled={row.previewWidth > availableWidth}
+                  onClick={() => setSelectedBreakpoint(row.id)}
+                  className={
+                    activeBreakpoint === row.id
+                      ? "h-7 px-2 text-[13px] font-normal text-foreground"
+                      : "h-7 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
+                  }
+                >
+                  {row.id}
+                </ToolbarButton>
+              ))}
+            </div>
+          </TooltipProvider>
+        ) : null}
         {isDirty ? (
           <Button
             type="button"

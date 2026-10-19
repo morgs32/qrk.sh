@@ -127,6 +127,38 @@ unregistered wildcard children require separate DNS consideration there.
    remains at `Loading account`: the existing Zerospin dev process rejected its
    stored system spec with `zerospin-dev-system-spec-check-failed` during the Nx
    startup graph. No backend state was reset or repaired by this proof.
-6. **Still required:** start the planned port 443 listener from an interactive
-   terminal, then recheck the clean HTTPS URLs without `:1355`. The routing proof
-   on 1355 is verified; port 443 is not. [Active plan](../plans/024-plan-nextjs-subdomain-routing.md).
+6. At the end of the original trial, port 443 startup and clean-URL verification
+   remained pending. The October 18 follow-up below completes those checks.
+   [Completed plan](../archive/plans/024-plan-nextjs-subdomain-routing.md).
+
+## Standard HTTPS follow-up, 2026-10-18
+
+The repository now pins its existing Portless monorepo startup to port 443.
+Active development endpoints, API CORS origins, Clerk authorized parties, local
+environment values, and documentation use hostnames without an explicit port.
+App processes retain their existing internal ports. The root README documents
+the current startup scripts, including their separately implemented cleanup.
+Existing local data, the trusted CA, production settings, and other repos are
+preserved; no OS startup service is installed.
+
+The normal `pnpm exec portless proxy start --port 443 --https --wildcard`
+attempt first reached a sudo prompt unavailable to the noninteractive terminal.
+The user completed administrator authentication, starting the trusted port 443
+wildcard proxy with the existing CA. The old user-owned port 1355 listener was
+then stopped; root `pnpm dev` started all five apps, and Zerospin accepted the
+system spec. All five process-owned registrations now have clean HTTPS URLs.
+
+Trusted curl checks pass for all five hostnames. Web, Library, and Studio's user
+route return 200; API and Zerospin root paths retain their expected 404 and 400
+responses. Chrome verifies alpha navigation and history, beta's nested path and
+query through reload, and successful local HTTP/2 assets. Web and forwarded
+Studio HMR WebSockets establish HTTP/2 connections and receive messages without
+frame errors.
+
+Google sign-in through `https://qrk.localhost` reaches `/morgs32` and loads the
+existing site list. A transient `node-subscription-closed` during development
+Worker reload resolved after one page reload following backend readiness. API
+preflight returns 204 with `Access-Control-Allow-Origin: https://qrk.localhost`.
+An authenticated empty multipart POST to `/upload` returns `400 missing-file`;
+the unsigned request returns `401 missing-authorization`. No upload was created
+and no session token was printed. Screenshot: `/tmp/qrk-https-443-dashboard.png`.

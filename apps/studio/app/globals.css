@@ -9,6 +9,17 @@
 @source "../../web/library/**/*.{ts,tsx}";
 @source "../../library/{app,components,lib,make,modules,registry}/**/*.{ts,tsx}";
 
+[data-site-right-scroll] {
+  height: calc(100dvh - var(--wall-top-offset) - 3rem);
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scrollbar-width: none;
+}
+
+[data-site-right-scroll]::-webkit-scrollbar {
+  display: none;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {

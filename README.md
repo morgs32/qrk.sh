@@ -95,33 +95,36 @@ More detail and test patterns: [docs/styleguide/component-and-file-naming.md](do
    pnpm dev
    ```
 
-3. Open [https://qrk.localhost:1355/](https://qrk.localhost:1355/).
+3. Open [https://qrk.localhost/](https://qrk.localhost/).
 
 The root `portless.json` uses Portless's native monorepo discovery with the
-`dev:portless` script. Only Web, Studio, Library, API, and Zerospin expose that
-script, so examples and Storybooks do not start. Each script runs its existing
-Nx `dev` target with `--excludeTaskDependencies`; Portless owns starting the
-five processes without duplicate dependency launches.
+`dev:app` script. Only Web, Studio, Library, API, and Zerospin expose that
+script, so examples and Storybooks do not start. Each app's `dev` script runs
+`portless`; `dev:app` holds its server command. Package-level `portless` metadata
+owns its hostname and fixed internal port. Portless starts the five processes;
+Nx development targets have no startup dependencies.
 
 | App | Development URL | Internal port |
 | --- | --- | --- |
-| Web | [qrk.localhost:1355](https://qrk.localhost:1355/) | 3000 |
-| Studio | [studio.qrk.localhost:1355](https://studio.qrk.localhost:1355/) | 3001 |
-| Library | [library.qrk.localhost:1355](https://library.qrk.localhost:1355/) | 4100 |
-| API | [api.qrk.localhost:1355](https://api.qrk.localhost:1355/) | 8787 |
-| Zerospin | [zerospin.qrk.localhost:1355](https://zerospin.qrk.localhost:1355/) | 8788 |
+| Web | [qrk.localhost](https://qrk.localhost/) | 3000 |
+| Studio | [studio.qrk.localhost](https://studio.qrk.localhost/) | 3001 |
+| Library | [library.qrk.localhost](https://library.qrk.localhost/) | 4100 |
+| API | [api.qrk.localhost](https://api.qrk.localhost/) | 8787 |
+| Zerospin | [zerospin.qrk.localhost](https://zerospin.qrk.localhost/) | 8788 |
 
 Web has no `web.` prefix. Sign in through Web; it continues forwarding
-application routes to Studio. The trusted HTTPS wildcard proxy on port 1355 is
-shared with other projects. The root command pins HTTPS on port 1355 and
+application routes to Studio. The trusted HTTPS wildcard proxy on port 443 is
+shared with other projects. The root command pins HTTPS on port 443 and
 auto-starts that listener if needed; an explicit start uses
-`pnpm exec portless proxy start --port 1355 --https --wildcard`. Portless's first
-HTTPS setup trusts its local CA. Inspect registrations with
+`pnpm exec portless proxy start --port 443 --https --wildcard`. Portless's first
+HTTPS setup trusts its local CA; binding port 443 may prompt for administrator
+authentication. Inspect registrations with
 `pnpm exec portless list`. App routes belong to their processes and are removed
 when `pnpm dev` stops; leave the shared proxy and other projects' routes running.
 
-Direct Nx development targets remain available on their internal HTTP ports.
-Use `pnpm dev` for the complete HTTPS setup.
+Use `pnpm dev` for the complete HTTPS setup. To start one app through Portless,
+run `pnpm --dir apps/<app> dev`; this starts only that app. Its `dev:app` script
+runs the underlying HTTP server directly when needed.
 
 For pre-cutover development data, follow the [backend storage quarantine](apps/zerospin/README.md)
 and [Library fresh-origin check](apps/library/README.md) instructions. Superseded
@@ -161,29 +164,31 @@ storage; pending commands in an older version are not migrated or deleted.
 The `api` Worker runs on port 8787 (inspector 9231) and Zerospin on port 8788. API
 owns module RPCs, Clerk-authenticated uploads, and asset serving. See
 [API's README](apps/api/README.md) for bindings and private provider settings. Set
-`NEXT_PUBLIC_API_URL=https://api.qrk.localhost:1355` and
-`NEXT_PUBLIC_ZEROSPIN_API_URL=https://zerospin.qrk.localhost:1355` in
+`NEXT_PUBLIC_API_URL=https://api.qrk.localhost` and
+`NEXT_PUBLIC_ZEROSPIN_API_URL=https://zerospin.qrk.localhost` in
 `apps/studio/.env.local`. Worker authorized-party settings use
-`https://qrk.localhost:1355`, matching the browser's Web origin. New public
-asset URLs use `https://api.qrk.localhost:1355/assets`.
+`https://qrk.localhost`, matching the browser's Web origin. New public
+asset URLs use `https://api.qrk.localhost/assets`.
 
-To run the Library app and its API Worker:
+To run only the Library app through Portless:
 
 ```bash
-pnpm nx run @qrk.sh/library:dev
+pnpm --dir apps/library dev
 ```
 
-Library uses Next.js App Router with Webpack on port 4100. Its Nx target starts
-the unified API Worker on port 8787. Next forwards `/rpc`, `/upload`, and
+Library uses Next.js App Router with Webpack on port 4100. API runs separately
+on port 8787; root `pnpm dev` starts both. Next forwards `/rpc`, `/upload`, and
 `/assets/*` to API, preserving same-origin client URLs. The private Library package
 maps its existing imports directly to TypeScript, TSX, and stylesheet source;
 each consumer compiles the source it uses.
 
-To run the dashboard and site app instead:
+To run only Studio through Portless:
 
 ```bash
-pnpm nx run @qrk.sh/studio:dev
+pnpm --dir apps/studio dev
 ```
+
+This does not start Web, API, or Zerospin; use root `pnpm dev` for the full stack.
 
 ### Production server
 
@@ -202,8 +207,8 @@ need their origin updated separately.
 ## Local subdomain routing proof
 
 With `pnpm dev` running, Web's development-only proof displays the subdomain
-and path without a site query. Open [alpha](https://alpha.qrk.localhost:1355/)
-or [beta](https://beta.qrk.localhost:1355/about/team?from=proof). The page's
+and path without a site query. Open [alpha](https://alpha.qrk.localhost/)
+or [beta](https://beta.qrk.localhost/about/team?from=proof). The page's
 Home/About links exercise Next navigation while the browser retains the
 selected hostname. `PORTLESS_WILDCARD=1` on the root `dev` script sends these
 tenant labels through Web's process-owned `qrk` registration.
@@ -218,9 +223,9 @@ registration. If migrating an existing trial setup, remove that static alias
 once with `pnpm exec portless alias --remove qrk` before starting `pnpm dev`.
 Normal startup needs no manual alias. Keep the shared proxy and other aliases.
 The [routing research](wiki/research/nextjs-subdomain-routing.md) and
-[Plan 024](wiki/plans/024-plan-nextjs-subdomain-routing.md) retain historical
-trial evidence and the earlier port 443 proposal; everyday development uses
-port 1355.
+[Plan 024](wiki/archive/plans/024-plan-nextjs-subdomain-routing.md) retain historical
+trial evidence; everyday development uses standard HTTPS port 443, with apps
+distinguished by hostname.
 
 ## Deployment
 

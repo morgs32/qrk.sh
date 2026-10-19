@@ -17,6 +17,7 @@
 
 [data-site-right-scroll] {
   height: calc(100dvh - var(--wall-top-offset) - 3rem);
+  overflow-x: clip;
   overflow-y: auto;
   overscroll-behavior-y: contain;
   scrollbar-width: none;

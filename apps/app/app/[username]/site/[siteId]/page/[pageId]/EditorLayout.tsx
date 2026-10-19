@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import { useMatches } from "@tanstack/react-router";
 import { Drawer } from "@qrk.sh/library/Drawer";
 
@@ -9,6 +9,9 @@ import { WallViewportProvider } from "@qrk.sh/library/WallViewportProvider";
 import { ImageUploadEnvironment } from "@qrk.sh/library/ImageUploadEnvironment";
 import { ImageUploadRuntimeContext } from "@qrk.sh/library/ImageUploadRuntimeContext";
 import { BrickCardStyleContext } from "@qrk.sh/library/BrickCardStyleContext";
+import { makeModelIdSchema } from "@zerospin/core/models/make/makeModelIdSchema";
+import { useLiveQuery } from "@zerospin/react";
+import { siteV3 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV3";
 import { Effect, Layer, Schema } from "effect";
 
 import { Toolbars } from "../../Toolbars/Toolbars";
@@ -18,17 +21,15 @@ import { MainColumns } from "./MainColumns";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 import { getClerkToken } from "@/lib/getClerkToken";
 import { UserApp } from "@/zerospin/userSession";
-import { Button } from "@/components/ui/button";
 
 const ParamsSchema = Schema.Struct({
   username: Schema.String,
-  siteId: Schema.String,
+  siteId: makeModelIdSchema(Site),
   pageId: Schema.String,
 });
 
 export default function EditorLayout(props: { children: ReactNode }) {
   const { children } = props;
-  const [cardStyle, setCardStyle] = useState(false);
   const params = useValidatedParams(ParamsSchema);
   const drawerOpen = useMatches({
     select: (matches) =>
@@ -37,6 +38,11 @@ export default function EditorLayout(props: { children: ReactNode }) {
   const { user } = useUser();
   const { getToken } = useAuth();
   const session = UserApp.useInitializedSession();
+  const { data: site } = useLiveQuery({
+    session,
+    key: params.siteId,
+    query: (db, siteId) => db.query.site.findFirst({ where: { id: { eq: siteId } } }),
+  });
 
   if (user === null || user === undefined) {
     return null;
@@ -75,7 +81,7 @@ export default function EditorLayout(props: { children: ReactNode }) {
   });
 
   return (
-    <BrickCardStyleContext value={cardStyle}>
+    <BrickCardStyleContext value={site?.cardStyle ?? false}>
       <ImageUploadRuntimeContext
         value={{
           runPromise: (program, options) =>
@@ -101,16 +107,6 @@ export default function EditorLayout(props: { children: ReactNode }) {
             </Drawer>
           </div>
           <Toolbars />
-          <Button
-            type="button"
-            variant={cardStyle ? "secondary" : "outline"}
-            size="sm"
-            className="fixed right-3 top-3 z-80 shadow-sm"
-            aria-pressed={cardStyle}
-            onClick={() => setCardStyle((current) => !current)}
-          >
-            Cards
-          </Button>
         </WallViewportProvider>
       </ImageUploadRuntimeContext>
     </BrickCardStyleContext>

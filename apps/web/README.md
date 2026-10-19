@@ -21,12 +21,18 @@ link styles at <http://127.0.0.1:10022>.
 Shared components have their own stories; Dashboard appears as the `Accent`
 story under **Web / UnderlinedLink**.
 
+`UnderlinedLink` owns its underline styles. Pass `asChild` and a single direct
+`next/link` child for client navigation. Without `asChild` it renders an anchor,
+which Storybook and external URLs use. The app composes the same component with
+TanStack Router's `Link`.
+
 Web's `qrk/next-link-composition` Oxlint rule in `lint/nextLinkPlugin.mjs` allows
-`next/link` in `Wordmark.tsx` and `UnderlinedLink.tsx`, or as the single direct
-child of the shared `Button` with explicit `asChild` or `asChild={true}`. It
-resolves imported bindings, including aliases, and rejects shadowed or unrelated
-buttons. A spread after `asChild` must be followed by an explicit true `asChild`
-because the spread could override it. Other navigation uses the shared link
-components. Run `pnpm exec vp lint .` from `apps/web` to apply the rule.
+`next/link` only as the single direct child of the shared `Button` or
+`UnderlinedLink` with explicit `asChild` or `asChild={true}`. It resolves
+imported bindings, including aliases, and rejects shadowed or unrelated parents.
+A spread after `asChild` must be followed by an explicit true `asChild` because
+the spread could override it. `vite.config.mts` turns the rule off for
+`Wordmark.tsx`, which owns its own `next/link`. Run `pnpm exec vp lint .` from
+`apps/web` to apply the rule.
 
 Use `pnpm nx run @qrk.sh/web:build-storybook` to produce a static Storybook.

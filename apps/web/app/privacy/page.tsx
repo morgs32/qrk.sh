@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { UnderlinedLink } from "@/components/UnderlinedLink";
 import { Wordmark } from "@/components/Wordmark";
 
@@ -12,7 +13,9 @@ export default function PrivacyPage() {
     <main className="mx-auto max-w-3xl px-6 py-8 text-sm leading-7 sm:px-10 sm:py-12">
       <nav aria-label="Legal pages" className="mb-16 flex flex-wrap items-center justify-between gap-4">
         <Wordmark />
-        <UnderlinedLink className="text-[length:inherit]! leading-[inherit]!" href="/terms">Terms of service →</UnderlinedLink>
+        <UnderlinedLink asChild className="text-[length:inherit]! leading-[inherit]!">
+          <Link href="/terms">Terms of service →</Link>
+        </UnderlinedLink>
       </nav>
 
       <header className="mb-10">
@@ -124,7 +127,9 @@ export default function PrivacyPage() {
       </article>
 
       <footer className="mt-16 border-t pt-6 text-muted-foreground">
-        <UnderlinedLink className="text-[length:inherit]! leading-[inherit]!" href="/terms">Read the terms of service</UnderlinedLink>
+        <UnderlinedLink asChild className="text-[length:inherit]! leading-[inherit]!">
+          <Link href="/terms">Read the terms of service</Link>
+        </UnderlinedLink>
       </footer>
     </main>
   );

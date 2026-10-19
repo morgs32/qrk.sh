@@ -3,7 +3,10 @@ import { fileURLToPath } from "node:url";
 import { definePlugin, defineRule } from "vite-plus/lint/plugins";
 
 const webRoot = fileURLToPath(new URL("..", import.meta.url));
-const buttonModule = resolve(webRoot, "components/ui/button");
+const parentModules = new Map([
+  [resolve(webRoot, "components/ui/button"), "Button"],
+  [resolve(webRoot, "components/UnderlinedLink"), "UnderlinedLink"],
+]);
 
 function isNextLinkSource(node) {
   return (
@@ -23,13 +26,13 @@ export default definePlugin({
         schema: [],
         messages: {
           composition:
-            "Use Wordmark or UnderlinedLink, or place Link directly inside the shared Button with asChild enabled.",
+            "Place Link directly inside Button or UnderlinedLink with asChild enabled.",
         },
       },
       create(context) {
         const { sourceCode, filename } = context;
         const linkBindings = [];
-        const buttonBindings = new Set();
+        const parentBindings = new Set();
 
         return {
           ImportDeclaration(node) {
@@ -56,19 +59,16 @@ export default definePlugin({
               : source.startsWith(".")
                 ? resolve(dirname(filename), source)
                 : null;
-            if (
-              modulePath?.replace(/\.(?:[cm]?[jt]sx?)$/, "") !== buttonModule ||
-              node.importKind === "type"
-            )
-              return;
+            const exportName = parentModules.get(modulePath?.replace(/\.(?:[cm]?[jt]sx?)$/, ""));
+            if (exportName === undefined || node.importKind === "type") return;
 
             for (const specifier of node.specifiers) {
               if (
                 specifier.type === "ImportSpecifier" &&
-                specifier.imported.name === "Button" &&
+                specifier.imported.name === exportName &&
                 specifier.importKind !== "type"
               )
-                buttonBindings.add(sourceCode.getDeclaredVariables(specifier)[0]);
+                parentBindings.add(sourceCode.getDeclaredVariables(specifier)[0]);
             }
           },
           "Program:exit"() {
@@ -80,12 +80,12 @@ export default definePlugin({
 
                 const element = opening.parent;
                 const parent = element?.parent;
-                const buttonName = parent?.openingElement?.name;
-                let buttonBinding;
-                if (buttonName?.type === "JSXIdentifier") {
-                  let scope = sourceCode.getScope(buttonName);
-                  while (scope && !buttonBinding) {
-                    buttonBinding = scope.set.get(buttonName.name);
+                const parentName = parent?.openingElement?.name;
+                let parentBinding;
+                if (parentName?.type === "JSXIdentifier") {
+                  let scope = sourceCode.getScope(parentName);
+                  while (scope && !parentBinding) {
+                    parentBinding = scope.set.get(parentName.name);
                     scope = scope.upper;
                   }
                 }
@@ -115,7 +115,7 @@ export default definePlugin({
                   opening.type !== "JSXOpeningElement" ||
                   opening.name !== name ||
                   parent?.type !== "JSXElement" ||
-                  !buttonBindings.has(buttonBinding) ||
+                  !parentBindings.has(parentBinding) ||
                   !asChild ||
                   children.length !== 1 ||
                   children[0] !== element

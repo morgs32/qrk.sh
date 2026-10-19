@@ -62,6 +62,7 @@ export function DrawerHeader() {
         logoUrl: site.logoUrl ?? "",
         faviconLightUrl: site.faviconLightUrl ?? "",
         faviconDarkUrl: site.faviconDarkUrl ?? "",
+        cardStyle: site.cardStyle,
       },
       page: { title: page.title ?? "", description: page.description ?? "" },
     };
@@ -112,6 +113,7 @@ export function DrawerHeader() {
           logoUrl: siteDraft.logoUrl,
           faviconLightUrl: siteDraft.faviconLightUrl,
           faviconDarkUrl: siteDraft.faviconDarkUrl,
+          cardStyle: siteDraft.cardStyle,
         }
       : baseline.site;
   const draftPage =
@@ -238,6 +240,7 @@ export function DrawerHeader() {
                         draftSite.faviconLightUrl.length > 0 ? draftSite.faviconLightUrl : null,
                       faviconDarkUrl:
                         draftSite.faviconDarkUrl.length > 0 ? draftSite.faviconDarkUrl : null,
+                      cardStyle: draftSite.cardStyle,
                     },
                   })
                 : stageAggregateSessionCommand({
@@ -287,6 +290,7 @@ export function DrawerHeader() {
               store.setLogoUrl(baseline.site.logoUrl);
               store.setFaviconLightUrl(baseline.site.faviconLightUrl);
               store.setFaviconDarkUrl(baseline.site.faviconDarkUrl);
+              store.setCardStyle(baseline.site.cardStyle);
             }
             if (isDirty && isPageSettings) {
               const store = usePageStore.getState();

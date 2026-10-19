@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { UnderlinedLink } from "@/components/UnderlinedLink";
 import { Wordmark } from "@/components/Wordmark";
 
@@ -12,7 +13,9 @@ export default function TermsPage() {
     <main className="mx-auto max-w-3xl px-6 py-8 text-sm leading-7 sm:px-10 sm:py-12">
       <nav aria-label="Legal pages" className="mb-16 flex flex-wrap items-center justify-between gap-4">
         <Wordmark />
-        <UnderlinedLink className="text-[length:inherit]! leading-[inherit]!" href="/privacy">Privacy policy →</UnderlinedLink>
+        <UnderlinedLink asChild className="text-[length:inherit]! leading-[inherit]!">
+          <Link href="/privacy">Privacy policy →</Link>
+        </UnderlinedLink>
       </nav>
 
       <header className="mb-10">
@@ -60,7 +63,9 @@ export default function TermsPage() {
             unpublishing, or deleting an authentication account does not automatically erase
             stored files or historical snapshots. The hosting permission continues for retained
             copies only as needed for the service and the retention described in our{" "}
-            <UnderlinedLink className="text-[length:inherit]! leading-[inherit]!" href="/privacy">privacy policy</UnderlinedLink>.
+            <UnderlinedLink asChild className="text-[length:inherit]! leading-[inherit]!">
+              <Link href="/privacy">privacy policy</Link>
+            </UnderlinedLink>.
             Keep your own copies of important content.
           </p>
         </section>
@@ -116,7 +121,9 @@ export default function TermsPage() {
       </article>
 
       <footer className="mt-16 border-t pt-6 text-muted-foreground">
-        <UnderlinedLink className="text-[length:inherit]! leading-[inherit]!" href="/privacy">Read the privacy policy</UnderlinedLink>
+        <UnderlinedLink asChild className="text-[length:inherit]! leading-[inherit]!">
+          <Link href="/privacy">Read the privacy policy</Link>
+        </UnderlinedLink>
       </footer>
     </main>
   );

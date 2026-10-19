@@ -1,6 +1,7 @@
 "use client";
 
 import { Link } from "@tanstack/react-router";
+import { UnderlinedLink } from "@qrk.sh/web/components/UnderlinedLink";
 
 import { makeId, stageAggregateSessionCommand } from "@zerospin/sdk/browser";
 
@@ -238,13 +239,14 @@ export default function UsernameDashboardPage() {
                     {page === undefined ? (
                       <span>{site.name ?? site.slug ?? "Untitled site"}</span>
                     ) : (
-                      <Link
-                        className="font-medium underline-offset-4 hover:underline"
-                        to="/$username/site/$siteId/page/$pageId"
-                        params={{ username, siteId: site.id, pageId: page.id }}
-                      >
-                        {site.name ?? site.slug ?? "Untitled site"}
-                      </Link>
+                      <UnderlinedLink asChild className="font-medium" size="lg">
+                        <Link
+                          to="/$username/site/$siteId/page/$pageId"
+                          params={{ username, siteId: site.id, pageId: page.id }}
+                        >
+                          {site.name ?? site.slug ?? "Untitled site"}
+                        </Link>
+                      </UnderlinedLink>
                     )}
                     {site.description ? (
                       <p className="mt-2 text-sm text-muted-foreground">{site.description}</p>

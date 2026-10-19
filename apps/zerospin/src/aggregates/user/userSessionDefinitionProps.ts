@@ -1,17 +1,17 @@
-import { publishSiteV1 as publishSite } from "./contracts/publishSite/PublishSiteV1";
-import { publishPageV1 as publishPage } from "./contracts/publishPage/PublishPageV1";
-import { publishPageUpdatesV1 as publishPageUpdates } from "./contracts/publishPageUpdates/PublishPageUpdatesV1";
-import { unpublishSiteV1 as unpublishSite } from "./contracts/unpublishSite/UnpublishSiteV1";
-import { pageSnapshotV1 as PageSnapshot } from "./models/pageSnapshot/PageSnapshotV1";
+import { publishSiteV2 as publishSite } from "./contracts/publishSite/PublishSiteV2";
+import { publishPageV2 as publishPage } from "./contracts/publishPage/PublishPageV2";
+import { publishPageUpdatesV2 as publishPageUpdates } from "./contracts/publishPageUpdates/PublishPageUpdatesV2";
+import { unpublishSiteV2 as unpublishSite } from "./contracts/unpublishSite/UnpublishSiteV2";
+import { pageSnapshotV2 as PageSnapshot } from "./models/pageSnapshot/PageSnapshotV2";
 import { libraryModule } from "@qrk.sh/library/libraryModule";
 import { userClaims } from "../../claims";
 
-import { createPageV2 as createPage } from "./contracts/createPage/CreatePageV2";
-import { createSiteV2 as createSite } from "./contracts/createSite/CreateSiteV2";
-import { updatePageSettingsV2 as updatePageSettings } from "./contracts/updatePageSettings/UpdatePageSettingsV2";
-import { updateSiteSettingsV2 as updateSiteSettings } from "./contracts/updateSiteSettings/UpdateSiteSettingsV2";
-import { pageV2 as Page } from "./models/page/PageV2";
-import { siteV2 as Site } from "./models/site/SiteV2";
+import { createPageV3 as createPage } from "./contracts/createPage/CreatePageV3";
+import { createSiteV3 as createSite } from "./contracts/createSite/CreateSiteV3";
+import { updatePageSettingsV3 as updatePageSettings } from "./contracts/updatePageSettings/UpdatePageSettingsV3";
+import { updateSiteSettingsV3 as updateSiteSettings } from "./contracts/updateSiteSettings/UpdateSiteSettingsV3";
+import { pageV3 as Page } from "./models/page/PageV3";
+import { siteV3 as Site } from "./models/site/SiteV3";
 import { userV1 as User } from "./models/user/UserV1";
 
 export const userSessionDefinitionProps = {
@@ -30,8 +30,8 @@ export const userSessionDefinitionProps = {
   aggregateName: "user",
   sessionName: "userSession",
   actorName: "web",
-  actorVersion: "2.0.0",
-  aggregateVersion: "2.0.0",
+  actorVersion: "3.0.0",
+  aggregateVersion: "3.0.0",
   models: {
     ...libraryModule.models,
     page: Page,

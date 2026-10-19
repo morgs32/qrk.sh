@@ -76,6 +76,7 @@ export default function SiteLayout(props: { children: ReactNode }) {
       logoUrl: site.logoUrl,
       faviconLightUrl: site.faviconLightUrl,
       faviconDarkUrl: site.faviconDarkUrl,
+      cardStyle: site.cardStyle,
     });
   }
 

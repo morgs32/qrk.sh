@@ -18,6 +18,7 @@ import { SearchPreviewCard } from "../SearchPreviewCard";
 
 import { UserApp } from "@/zerospin/userSession";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { FieldLabel } from "@/components/ui/field-label";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
@@ -88,6 +89,7 @@ export function SiteSettings() {
   const setLogoUrl = useSiteStore((state) => state.setLogoUrl);
   const setFaviconLightUrl = useSiteStore((state) => state.setFaviconLightUrl);
   const setFaviconDarkUrl = useSiteStore((state) => state.setFaviconDarkUrl);
+  const setCardStyle = useSiteStore((state) => state.setCardStyle);
   const logoInputRef = useRef<HTMLInputElement>(null);
   const faviconLightInputRef = useRef<HTMLInputElement>(null);
   const faviconDarkInputRef = useRef<HTMLInputElement>(null);
@@ -145,6 +147,17 @@ export function SiteSettings() {
   return (
     <div className="w-full">
       <div className="space-y-8 px-4 py-6">
+        <div className="flex items-center justify-between gap-4">
+          <FieldLabel htmlFor="site-card-style" description="Show each brick as a card">
+            Cards
+          </FieldLabel>
+          <Switch
+            id="site-card-style"
+            checked={draft.cardStyle}
+            onCheckedChange={setCardStyle}
+          />
+        </div>
+
         <div className="grid grid-cols-2 items-start gap-6 md:gap-8">
           <div className="flex min-w-0 flex-col gap-4">
             <FieldLabel description="PNG or SVG; height up to 48px recommended">Logo</FieldLabel>

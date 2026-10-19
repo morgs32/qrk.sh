@@ -86,7 +86,10 @@ export function WallBreakpointPane(props: {
       className={cn(isOutgoing && "absolute inset-x-0 top-0", isActive && "relative w-full")}
     >
       <div
-        className="relative mx-auto [--wall-chrome-height:3rem]"
+        className={cn(
+          "relative mx-auto overflow-clip [--wall-chrome-height:3rem]",
+          isMobile ? "rounded-2xl" : "rounded-xl",
+        )}
         style={{ width: previewWidth }}
         data-wall-breakpoint={breakpoint}
         data-wall-active={isActive}

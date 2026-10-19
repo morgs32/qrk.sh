@@ -1,7 +1,8 @@
 {
   "private": true,
   "scripts": {
-    "dev": "PORTLESS_PORT=443 PORTLESS_HTTPS=1 PORTLESS_WILDCARD=1 portless"
+    "dev": "PORTLESS_PORT=443 PORTLESS_HTTPS=1 PORTLESS_WILDCARD=1 portless",
+    "list": "portless list"
   },
   "dependencies": {
     "framer-motion": "13.2.0"

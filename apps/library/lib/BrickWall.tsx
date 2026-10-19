@@ -81,6 +81,7 @@ export function BrickWall(props: {
   const normalizationAttempt = useRef<{ session: ILibrarySession; snapshot: string } | null>(null);
   const containerRef = useRef<HTMLElement>(null);
   const scrollRootRef = useRef<HTMLElement | null>(null);
+  const wallBreakpointRef = useRef<HTMLElement | null>(null);
   const [gestureActive, setGestureActive] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [outsideBrickId, setOutsideBrickId] = useState<string | null>(null);
@@ -172,6 +173,7 @@ export function BrickWall(props: {
     if (!dragging && scrollRootRef.current) {
       scrollRootRef.current.scrollTop = dragScrollTop;
       scrollRootRef.current.style.overflow = "";
+      wallBreakpointRef.current?.style.removeProperty("overflow");
     }
   }, [dragging, dragScrollTop]);
 
@@ -224,6 +226,7 @@ export function BrickWall(props: {
     () => () => {
       if (gesture.current) {
         scrollRootRef.current?.style.removeProperty("--wall-drag-scroll-offset");
+        wallBreakpointRef.current?.style.removeProperty("overflow");
         onGestureChange?.(false);
       }
     },
@@ -370,6 +373,9 @@ export function BrickWall(props: {
             beginGesture();
             const scrollRoot = containerRef.current?.closest("[data-brick-scroll-root]");
             scrollRootRef.current = scrollRoot instanceof HTMLElement ? scrollRoot : null;
+            const wallBreakpoint = containerRef.current?.closest("[data-wall-breakpoint]");
+            wallBreakpointRef.current =
+              wallBreakpoint instanceof HTMLElement ? wallBreakpoint : null;
             const scrollTop = scrollRootRef.current?.scrollTop ?? 0;
             setDragScrollTop(scrollTop);
             if (scrollRootRef.current) {
@@ -378,6 +384,9 @@ export function BrickWall(props: {
                 `${-scrollTop}px`,
               );
               scrollRootRef.current.style.overflow = "visible";
+            }
+            if (wallBreakpointRef.current) {
+              wallBreakpointRef.current.style.overflow = "visible";
             }
             setDragging(true);
           }}
@@ -444,6 +453,7 @@ export function BrickWall(props: {
                 scrollRootRef.current.style.overflow = "";
                 scrollRootRef.current.style.removeProperty("--wall-drag-scroll-offset");
               }
+              wallBreakpointRef.current?.style.removeProperty("overflow");
               setOutsideBrickId(null);
               setDragging(false);
               endGesture();

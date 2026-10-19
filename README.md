@@ -124,7 +124,7 @@ auto-starts that listener if needed; an explicit start uses
 `pnpm exec portless proxy start --port 443 --https --wildcard`. Portless's first
 HTTPS setup trusts its local CA; binding port 443 may prompt for administrator
 authentication. Inspect registrations with
-`pnpm exec portless list`. App routes belong to their processes and are removed
+`pnpm run list`. App routes belong to their processes and are removed
 when `pnpm dev` stops; leave the shared proxy and other projects' routes running.
 
 Use `pnpm dev` for the complete HTTPS setup. To start one app through Portless,

@@ -2,6 +2,7 @@
   "name": "@qrk.sh/web",
   "private": true,
   "exports": {
+    "./components/UnderlinedLink": "./components/UnderlinedLink.tsx",
     "./library/OrderedBody": "./library/OrderedBody.tsx",
     "./library/OrderedDoc": "./library/OrderedDoc.tsx",
     "./library/OrderedOutline": "./library/OrderedOutline.tsx"

@@ -1,4 +1,5 @@
 import { Space_Mono } from "next/font/google";
+import Link from "next/link";
 import { Show } from "@clerk/nextjs";
 
 import { UnderlinedLink } from "@/components/UnderlinedLink";
@@ -87,14 +88,14 @@ export default function HomePage() {
 
         <Show
           fallback={
-            <UnderlinedLink href="/sign-in" size="lg">
-              Login
+            <UnderlinedLink asChild size="lg">
+              <Link href="/sign-in">Login</Link>
             </UnderlinedLink>
           }
           when="signed-in"
         >
-          <UnderlinedLink href="/replace" size="lg" variant="accent">
-            Dashboard
+          <UnderlinedLink asChild size="lg" variant="accent">
+            <Link href="/replace">Dashboard</Link>
           </UnderlinedLink>
         </Show>
       </header>
@@ -138,11 +139,11 @@ export default function HomePage() {
       <footer className="sticky bottom-0 left-0 z-20 flex h-20 w-screen items-center justify-between gap-4 bg-background px-6 text-xs md:px-8 lg:px-10">
         <p>Like legos... but websites</p>
         <nav aria-label="Legal pages" className="flex shrink-0 gap-4">
-          <UnderlinedLink href="/privacy" size="sm">
-            Privacy
+          <UnderlinedLink asChild size="sm">
+            <Link href="/privacy">Privacy</Link>
           </UnderlinedLink>
-          <UnderlinedLink href="/terms" size="sm">
-            Terms
+          <UnderlinedLink asChild size="sm">
+            <Link href="/terms">Terms</Link>
           </UnderlinedLink>
         </nav>
       </footer>

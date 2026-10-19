@@ -8,7 +8,7 @@ export default defineConfig({
     },
     overrides: [
       {
-        files: ["components/Wordmark.tsx", "components/UnderlinedLink.tsx"],
+        files: ["components/Wordmark.tsx"],
         rules: {
           "qrk/next-link-composition": "off",
         },

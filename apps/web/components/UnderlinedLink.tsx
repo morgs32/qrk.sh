@@ -1,14 +1,19 @@
 import type { ComponentProps } from "react";
-import Link from "next/link";
+import { Slot } from "@radix-ui/react-slot";
 import { cn } from "cn";
 
 export function UnderlinedLink(
-  props: ComponentProps<typeof Link> & { size?: "lg" | "sm"; variant?: "default" | "accent" },
+  props: ComponentProps<"a"> & {
+    asChild?: boolean;
+    size?: "lg" | "sm";
+    variant?: "default" | "accent";
+  },
 ) {
-  const { className, size = "sm", variant = "default", ...linkProps } = props;
+  const { asChild = false, className, size = "sm", variant = "default", ...linkProps } = props;
+  const Comp = asChild ? Slot : "a";
 
   return (
-    <Link
+    <Comp
       {...linkProps}
       className={cn(
         variant === "accent"

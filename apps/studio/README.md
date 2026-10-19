@@ -151,7 +151,7 @@ The brick-detail route keeps its brick selected in the active wall, with the exi
 
 The page layout keeps site/page drafts, `MainColumns`, the grid, and the library session mounted. `EditorLayout` also owns the persistent bottom drawer shell. Next's `useSelectedLayoutSegments()` supplies its `open` state through membership in the pathless `(drawer)` group. The common drawer layout renders `DrawerHeader`, which owns catalog breadcrumbs, the brick-detail heading **Update your {collectionName} brick**, the left-side underlined **← New brick** catalog link and **/** separator, publication actions, and Close or settings Save/Cancel. `Toolbars` reads selected layout segments to choose the route's controls.
 
-The drawer overlays the bottom `50dvh` on desktop and mobile. The editor stays full-height; a trailing element inside each browser's page adds the same amount of real padding without changing the wall's minimum height. On opening, closing, and reserved-height changes, the active page within 1px of the bottom follows the new bottom; other offsets are preserved and clamped. Initial deep links do not force a bottom scroll. Padding and scroll corrections are immediate, and later content growth does not trigger bottom following.
+The drawer occupies the bottom `50dvh` on desktop and mobile. While it is open, the browser frame ends 32px above it, matching the frame's 32px top gap. The page scroll region and wall minimum height shrink with the frame. On opening, closing, and viewport-height changes, the active page within 1px of the bottom follows the new bottom; other offsets are preserved and clamped. Initial deep links do not force a bottom scroll. Height and scroll corrections are immediate, and later content growth does not trigger bottom following.
 
 On every `(bricks)` route, **sm / md / lg / xl** sit on the right side of the drawer
 header beside the publication controls. The header wraps its actions onto a second
@@ -183,11 +183,12 @@ its own wrapper. Editor boundaries still clip overflow at exact-fit widths;
 breakpoint fitting reserves no extra gutters. The 64px site navbar scrolls with the
 page inside the frame, including drag-scroll compensation. Inactive panes keep their navbar
 copies hidden or inert with the rest of the pane. The frame holder adds 32px
-above the frame and 86px below it, reserving space for the standalone floating
-toolbars. It sets
+above the frame and, while the drawer is closed, 86px below it, reserving space for
+the standalone floating toolbars. It sets
 `--wall-top-offset: calc(7.25rem + 2px)` to account for the combined padding;
-The page scroll region subtracts that spacing and the 48px browser bar from the
-viewport height. Studio overrides the pane's default
+opening the drawer overrides this to `calc(50dvh + 4rem)` for the drawer and equal
+32px gaps. The page scroll region subtracts that spacing and the 48px browser bar
+from the viewport height. Studio overrides the pane's default
 `--wall-chrome-height: 3rem` to `7rem` around the navbar and wall, accounting for
 the 48px browser bar and 64px navbar.
 `BrickWall` subtracts both inherited offsets from its viewport minimum height,

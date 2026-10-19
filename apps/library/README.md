@@ -589,8 +589,11 @@ wall below lg, keeping wrapped controls clear of the chrome, and 3.5rem at lg.
 The scroll root uses inherited `--wall-top-offset` for this padding; the pane
 sets `--wall-chrome-height: 3rem`. Both apps override that value to `7rem` around
 their navbar and wall to account for both bars; Studio adds 32px above the frame
-and 86px below it, leaving 24px above and below its 38px toolbar. Its external
-`--wall-top-offset: calc(7.25rem + 2px)` accounts for both padding amounts.
+and, with its drawer closed, 86px below it, leaving 24px above and below its 38px
+toolbar. Its external `--wall-top-offset: calc(7.25rem + 2px)` accounts for both
+padding amounts. Opening Studio's drawer changes the offset to
+`calc(50dvh + 4rem)`, shortening the frame to keep a matching 32px gap above the
+drawer.
 `BrickWall` subtracts both offsets
 from its viewport minimum height, with 3.5rem and zero fallbacks respectively, so an
 empty wall remains one viewport tall without extra scrolling.

@@ -31,7 +31,6 @@ export function Grid() {
   const { activeBreakpoint, gridGesture, setGridGesture } = useWallViewport();
   const drawerOpen = useSelectedLayoutSegments().includes("(drawer)");
   const gridRef = useRef<HTMLDivElement>(null);
-  const hasReservedDrawerSpace = useRef(false);
   const session = UserApp.useInitializedSession();
   const params = useValidatedParams(ParamsSchema);
   const { data: page } = useLiveQuery({
@@ -69,42 +68,22 @@ export function Grid() {
     const scroll = gridRef.current?.querySelector<HTMLDivElement>(
       '[data-wall-active="true"] [data-site-right-scroll]',
     );
-    const space = scroll?.querySelector<HTMLDivElement>("[data-editor-drawer-space]");
-    if (scroll == null || space == null) return;
-
-    // Change only trailing space, leaving the wall's percentage height intact.
-    const previousTop = scroll.scrollTop;
-    const previousMax = Math.max(0, scroll.scrollHeight - scroll.clientHeight);
-    const wasAtBottom =
-      hasReservedDrawerSpace.current && previousMax > 0 && Math.abs(previousMax - previousTop) <= 1;
-    space.style.paddingBottom = drawerOpen ? "50dvh" : "0px";
-    const nextMax = Math.max(0, scroll.scrollHeight - scroll.clientHeight);
-    scroll.scrollTop = wasAtBottom ? nextMax : Math.min(Math.max(previousTop, 0), nextMax);
-    hasReservedDrawerSpace.current = true;
+    if (scroll == null) return;
 
     let position = {
       top: scroll.scrollTop,
-      max: nextMax,
+      max: Math.max(0, scroll.scrollHeight - scroll.clientHeight),
       viewportHeight: scroll.clientHeight,
-      reservedHeight: space.getBoundingClientRect().height,
     };
     function rememberScroll() {
       // A resize may clamp scrollTop before its observer runs. Keep the old anchor.
-      if (
-        scroll.clientHeight !== position.viewportHeight ||
-        space.getBoundingClientRect().height !== position.reservedHeight
-      )
-        return;
+      if (scroll.clientHeight !== position.viewportHeight) return;
       position.top = scroll.scrollTop;
       position.max = Math.max(0, scroll.scrollHeight - scroll.clientHeight);
     }
     const observer = new ResizeObserver(() => {
       const viewportHeight = scroll.clientHeight;
-      const reservedHeight = space.getBoundingClientRect().height;
-      if (
-        viewportHeight === position.viewportHeight &&
-        reservedHeight === position.reservedHeight
-      ) {
+      if (viewportHeight === position.viewportHeight) {
         // Content growth updates the anchor measurement without following it.
         rememberScroll();
         return;
@@ -112,21 +91,25 @@ export function Grid() {
       const max = Math.max(0, scroll.scrollHeight - viewportHeight);
       const atBottom = position.max > 0 && Math.abs(position.max - position.top) <= 1;
       scroll.scrollTop = atBottom ? max : Math.min(Math.max(position.top, 0), max);
-      position = { top: scroll.scrollTop, max, viewportHeight, reservedHeight };
+      position = { top: scroll.scrollTop, max, viewportHeight };
     });
     scroll.addEventListener("scroll", rememberScroll, { passive: true });
     observer.observe(scroll);
-    observer.observe(space);
-    if (space.previousElementSibling !== null) observer.observe(space.previousElementSibling);
+    if (scroll.lastElementChild !== null) observer.observe(scroll.lastElementChild);
     return () => {
       scroll.removeEventListener("scroll", rememberScroll);
       observer.disconnect();
     };
-  }, [activeBreakpoint, drawerOpen, wallId]);
+  }, [activeBreakpoint, wallId]);
 
   if (wallId === undefined || wallId === null) return null;
   return (
-    <div ref={gridRef} className="min-h-full w-full" data-testid="grid-region">
+    <div
+      ref={gridRef}
+      className="min-h-full w-full"
+      data-editor-drawer-open={drawerOpen}
+      data-testid="grid-region"
+    >
       <div className="relative min-h-full w-full" data-testid="grid-layout">
         {BREAKPOINTS.map((row) => {
           const isActive = activeBreakpoint === row.id;
@@ -180,7 +163,6 @@ export function Grid() {
                     );
                   }}
                 />
-                <div data-editor-drawer-space aria-hidden />
               </div>
             </WallBreakpointPane>
           );

@@ -298,9 +298,10 @@ its own wrapper. Editor boundaries still clip overflow at exact-fit widths;
 breakpoint fitting reserves no extra gutters. The 64px site navbar scrolls with the
 page inside the frame, including drag-scroll compensation. Inactive panes keep their navbar
 copies hidden or inert with the rest of the pane. The frame holder adds 32px
-above the frame and, while the drawer is closed, 86px below it, reserving space for
-the standalone floating toolbars. It sets
-`--wall-top-offset: calc(7.25rem + 2px)` to account for the combined padding;
+above the frame and, while the drawer is closed, 43px below it, so the frame
+bottom bisects the 38px floating toolbar (which remains 24px from the viewport
+bottom). It sets
+`--wall-top-offset: calc(2rem + 1.5rem + (1.75rem + 0.5rem + 2px) / 2)` to account for the combined padding;
 opening the drawer overrides this to `calc(50dvh + 4rem)` for the drawer and equal
 32px gaps. The page scroll region subtracts that spacing and the 48px browser bar
 from the viewport height. App overrides the pane's default

@@ -21,7 +21,7 @@ export function MainColumns() {
       ) : null}
       <div hidden={insufficientWidth} className="h-full w-full" data-testid="page-composition">
         <div
-          className="h-full min-h-0 overflow-hidden pt-8 pb-[calc(5.25rem+2px)] [--wall-top-offset:calc(7.25rem+2px)]"
+          className="h-full min-h-0 overflow-hidden pt-8 pb-[calc(1.5rem+(1.75rem+0.5rem+2px)/2)] [--wall-top-offset:calc(2rem+1.5rem+(1.75rem+0.5rem+2px)/2)]"
         >
           <Grid />
         </div>

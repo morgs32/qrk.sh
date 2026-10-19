@@ -223,8 +223,7 @@
 .grid-layout
   > .react-grid-item.brick-drag-surface:not(.react-resizable-hide):is(
     :hover,
-    .resizing,
-    [data-selected="true"]
+    .resizing
   )
   > .react-resizable-handle {
   opacity: 1;
@@ -247,7 +246,7 @@
   position: relative;
 }
 
-/* Paint the hover border above opaque module content without catching input. */
+/* Paint the selection border above opaque module content without catching input. */
 .brick-hover-target > .brick-hover-surface::after {
   content: "";
   position: absolute;
@@ -258,7 +257,7 @@
   pointer-events: none;
 }
 
-/* Flat wall hover strokes follow the shared border, including perimeter edges. */
+/* Flat wall selection strokes follow the shared border, including perimeter edges. */
 .react-grid-item[data-card-style="false"]:not([data-wall-right-edge="true"])
   > .brick-hover-surface::after {
   right: calc(0px - var(--brick-edge));
@@ -279,8 +278,6 @@
 
 @media (hover: hover) and (pointer: fine) {
   .brick-hover-target:not(.react-draggable-dragging):not(.resizing):hover {
-    --brick-hover-active: 1;
-
     z-index: 1;
   }
 }

@@ -637,8 +637,9 @@ wall below lg, keeping wrapped controls clear of the chrome, and 3.5rem at lg.
 The scroll root uses inherited `--wall-top-offset` for this padding; the pane
 sets `--wall-chrome-height: 3rem`. Both apps override that value to `7rem` around
 their navbar and wall to account for both bars; App adds 32px above the frame
-and, with its drawer closed, 86px below it, leaving 24px above and below its 38px
-toolbar. Its external `--wall-top-offset: calc(7.25rem + 2px)` accounts for both
+and, with its drawer closed, 43px below it, so the frame bottom bisects the 38px
+toolbar (which remains 24px from the viewport bottom). Its external
+`--wall-top-offset: calc(2rem + 1.5rem + (1.75rem + 0.5rem + 2px) / 2)` accounts for both
 padding amounts. Opening App's drawer changes the offset to
 `calc(50dvh + 4rem)`, shortening the frame to keep a matching 32px gap above the
 drawer.

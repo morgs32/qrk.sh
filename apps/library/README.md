@@ -18,8 +18,9 @@ HTTPS hostnames on the shared wildcard proxy. It removes each app's route when
 that process stops; leave the shared proxy and other projects running. See the
 [root startup instructions](../../README.md#getting-started) for proxy setup.
 
-Library listens internally on port 4100. Vite forwards `/rpc`, `/upload`, and `/assets/*` to
-the API Worker at `http://127.0.0.1:8787`; its inspector listens on port 9231.
+Portless allocates Library's internal port; direct startup defaults to 10004
+and honors `PORT`. Vite forwards `/rpc`, `/upload`, and `/assets/*` to
+the API Worker at `http://127.0.0.1:8787`; its inspector uses an automatically allocated port.
 Browser callers keep their same-origin URLs. New public asset URLs use
 `https://api.qrk.localhost/assets`.
 To start only Library through Portless, run `pnpm --dir apps/library dev`.
@@ -184,7 +185,8 @@ pnpm nx run @qrk.sh/library:storybook
 pnpm nx run @qrk.sh/library:build-storybook
 ```
 
-Open `http://127.0.0.1:6007`; App's Storybook uses port 6006. Library Storybook
+Open `http://127.0.0.1:10021`; App's Storybook uses port 10020.
+`PORT` overrides either default. Library Storybook
 runs independently of the Start app and API Worker, using Vite and the Library
 app's global styles and fonts. Stories live alongside their components in
 `components/`, `lib/`, and `modules/`. The static build goes to

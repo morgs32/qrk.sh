@@ -29,7 +29,7 @@ export default defineConfig(({ mode }) => {
     worker: { format: "es" },
     server: {
       host: "127.0.0.1",
-      port: 4100,
+      port: Number(process.env.PORT ?? 10004),
       strictPort: true,
       allowedHosts: ["library.qrk.localhost"],
       proxy: {

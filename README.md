@@ -102,16 +102,17 @@ More detail and test patterns: [docs/styleguide/component-and-file-naming.md](do
 
 The root `portless.json` uses Portless's native monorepo discovery with the
 `dev:app` script. Only Web, App, Library, API, and Zerospin expose that
-script, so examples and Storybooks do not start. Each app's `dev` script runs
+script, so Storybooks do not start. Each app's `dev` script runs
 `portless`; `dev:app` holds its server command. Package-level `portless` metadata
-owns its hostname and fixed internal port. Portless starts the five processes;
+owns its hostname. Portless selects an unused internal frontend port; API and
+Zerospin keep ports 8787 and 8788. Portless starts the five processes;
 Nx development targets have no startup dependencies.
 
-| App | Development URL | Internal port |
+| App | Development URL | Direct fallback port |
 | --- | --- | --- |
-| Web | [qrk.localhost](https://qrk.localhost/) | 3000 |
-| App | [app.qrk.localhost](https://app.qrk.localhost/) | 3001 |
-| Library | [library.qrk.localhost](https://library.qrk.localhost/) | 4100 |
+| Web | [qrk.localhost](https://qrk.localhost/) | 10000 |
+| App | [app.qrk.localhost](https://app.qrk.localhost/) | 10001 |
+| Library | [library.qrk.localhost](https://library.qrk.localhost/) | 10004 |
 | API | [api.qrk.localhost](https://api.qrk.localhost/) | 8787 |
 | Zerospin | [zerospin.qrk.localhost](https://zerospin.qrk.localhost/) | 8788 |
 
@@ -128,7 +129,9 @@ when `pnpm dev` stops; leave the shared proxy and other projects' routes running
 
 Use `pnpm dev` for the complete HTTPS setup. To start one app through Portless,
 run `pnpm --dir apps/<app> dev`; this starts only that app. Its `dev:app` script
-runs the underlying HTTP server directly when needed.
+runs the underlying HTTP server directly when needed. Frontend scripts honor
+`PORT`; direct defaults are listed above. Storybooks use 10020 for App, 10021
+for Library, and 10022 for Web, also overridable with `PORT`.
 
 For pre-cutover development data, follow the [backend storage quarantine](apps/zerospin/README.md)
 and [Library fresh-origin check](apps/library/README.md) instructions. Superseded
@@ -142,8 +145,8 @@ to the connected session.
 Zerospin chooses its name from the runtime version and persistent session identity.
 App and Library use Vite's `?sharedworker&url` import for the authored worker
 and `@zerospin/browser/sqlite.wasm?url` for the matching installed SQLite asset.
-App listens on port 3001 at `https://app.qrk.localhost`, independently of
-Web on port 3000. Application routes and assets use Vite's default root base;
+App and Web use independently allocated internal ports at their existing HTTPS
+hostnames. Direct `dev:app` startup defaults to 10001 for App and 10000 for Web. Application routes and assets use Vite's default root base;
 development modules, workers, WASM, and HMR use App's origin through Portless.
 Web has no App proxy or asset-prefix routing. Existing `/assets/` public-file
 URLs retain explicit App mappings.
@@ -176,7 +179,8 @@ local-only drafts, preferences, and unsent commands are not migrated. There is
 no storage bridge, backend reset, or compatibility route for the former
 Web-hosted App paths.
 
-The `api` Worker runs on port 8787 (inspector 9231) and Zerospin on port 8788. API
+The `api` Worker runs on port 8787 with an automatically allocated inspector
+port, and Zerospin runs on port 8788. API
 owns module RPCs, Clerk-authenticated uploads, and asset serving. See
 [API's README](apps/api/README.md) for bindings and private provider settings. Set
 `NEXT_PUBLIC_API_URL=https://api.qrk.localhost` and
@@ -204,7 +208,7 @@ To run only the Library app through Portless:
 pnpm --dir apps/library dev
 ```
 
-Library uses TanStack Start in SPA mode on port 4100. API runs separately
+Library uses TanStack Start in SPA mode; direct startup defaults to port 10004. API runs separately
 on port 8787; root `pnpm dev` starts both. Vite forwards `/rpc`, `/upload`, and
 `/assets/*` to API, preserving same-origin client URLs. The private Library package
 maps its existing imports directly to TypeScript, TSX, and stylesheet source;
@@ -224,7 +228,8 @@ Web retains `pnpm nx run @qrk.sh/web:build` and
 `pnpm nx run @qrk.sh/web:start`. App's `pnpm nx run @qrk.sh/app:build`
 writes static output to `apps/app/dist/client`, including `index.html` as
 the SPA shell. Run `pnpm nx run @qrk.sh/app:preview` for its local static
-preview on port 3001. The separate preview configuration has no Start server
+preview on port 10010 (`PORT` overrides it). Web
+production startup defaults to port 10011. The separate preview configuration has no Start server
 plugin. Open App's own hostname; Web remains available for authentication.
 
 Library retains its development server and Storybook; it has no package build,

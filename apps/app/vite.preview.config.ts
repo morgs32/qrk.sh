@@ -11,7 +11,7 @@ export default defineConfig(({ mode }) => {
     build: { outDir: "dist/client" },
     preview: {
       host: "127.0.0.1",
-      port: 3001,
+      port: Number(process.env.PORT ?? 10010),
       strictPort: true,
       allowedHosts: ["app.qrk.localhost"],
       proxy: {

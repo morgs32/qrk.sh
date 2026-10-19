@@ -17,14 +17,14 @@ There are two useful patterns: give the selected scripts a distinct name, or kee
 
 | Runner | First-party pattern | Implication |
 | --- | --- | --- |
-| pnpm 10 | Filter packages by name or directory, then run a script. `--parallel` starts matching scripts without topological ordering and is recommended for long-running processes. | Ordinary `dev` can remain available in examples without making them part of the root stack. [Filtering](https://pnpm.io/10.x/filtering), [parallel scripts](https://pnpm.io/10.x/cli/run#--parallel). |
+| pnpm 10 | Filter packages by name or directory, then run a script. `--parallel` starts matching scripts without topological ordering and is recommended for long-running processes. | Ordinary `dev` can remain available in other packages without making them part of the root stack. [Filtering](https://pnpm.io/10.x/filtering), [parallel scripts](https://pnpm.io/10.x/cli/run#--parallel). |
 | Turborepo | The development guide uses `turbo dev --filter=web`; development tasks use `persistent: true` and `cache: false`. | App selection belongs in filters, independently of `dev`. Current docs deprecate `--parallel`; persistent tasks and `with` preserve dependency behavior. [Development guide](https://turborepo.dev/docs/crafting-your-repository/developing-applications), [run reference](https://turborepo.dev/docs/reference/run). |
 | Nx | `run-many` selects projects through `--projects`/`-p`, including project tags, independently of the target. | A shared `dev` target can be selected by project or tag. `--parallel` sets concurrency; skipping task dependencies is a separate option. [Command reference](https://nx.dev/docs/reference/nx-commands#nx-run-many). |
 
 For example, this command is constructed from pnpm's documented filtering and parallel-run options:
 
 ```sh
-# Select packages under apps/; examples/ can retain their own dev scripts.
+# Select only packages under apps/.
 pnpm --filter './apps/*' --parallel run dev
 ```
 
@@ -48,7 +48,7 @@ For a native Portless root runner, **`dev:app` is a reasonable neutral replaceme
 
 If avoiding special selector scripts is the stronger priority, **ordinary `dev` scripts wrapping direct Portless commands, selected by filtered pnpm**, is the more explicit selection model. No extra `dev:app` script is required. It changes startup ownership and configuration placement, so it is larger than renaming the current selector. Use one root runner and let each selected app start its own process; avoid reinstating a second startup dependency graph merely for selection. This is a recommendation from the compared interfaces, not an upstream requirement.
 
-QRK's immediate discovery collision is with `examples/*`, which have `dev` scripts. Storybooks already use the separate `storybook` script name. No configuration was changed during this research. [Workspace membership](../../pnpm-workspace.yaml), [example scripts](../../examples/tanstack-router-motion/package.json), [Studio scripts](../../apps/app/package.json), [Web scripts](../../apps/web/package.json), [Library scripts](../../apps/library/package.json).
+At research time, QRK's discovery collision was with example packages that had `dev` scripts; those packages have since been removed. Storybooks use the separate `storybook` script name. No configuration was changed during this research. [Workspace membership](../../pnpm-workspace.yaml), [Studio scripts](../../apps/app/package.json), [Web scripts](../../apps/web/package.json), [Library scripts](../../apps/library/package.json).
 
 ## Chosen implementation
 

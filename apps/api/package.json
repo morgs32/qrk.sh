@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "portless",
-    "dev:app": "wrangler dev --ip 127.0.0.1 --port 8787 --inspector-port 9231",
+    "dev:app": "wrangler dev --ip 127.0.0.1 --port ${PORT:-8787} --inspector-port 0",
     "build": "wrangler deploy --dry-run --outdir dist",
     "types": "wrangler types ./worker-configuration.d.ts"
   },

@@ -1,7 +1,7 @@
 # Web
 
 Run `pnpm nx run @qrk.sh/web:storybook` from the workspace root to browse the web
-link styles at <http://127.0.0.1:6008>.
+link styles at <http://127.0.0.1:10022>.
 
 - **Docs** shows each link example with a copyable JSX snippet expanded below it.
   Individual stories also have a **Code** panel.

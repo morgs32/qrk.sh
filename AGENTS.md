@@ -19,6 +19,7 @@ Before editing files for a substantial task:
 - Prefer targeted edits, reuse current context, and skip files over 100 KB unless required. Keep control flow simple and explicit; do not change unrelated component props or function arguments.
 - Be terse, concrete, and accurate. Treat the user as an expert, label uncertainty, and show only relevant code excerpts. Every question is blocking until explicitly answered or withdrawn.
 - Keep affected documentation current. User instructions override this file.
+- When the user says "sibs" or "sibling repos", scope the work to repositories using Zerospin. Other adjacent repositories are outside that scope unless explicitly named.
 
 ## Approval and code conventions
 
@@ -41,6 +42,10 @@ Use `$use-morgs32-wiki-patterns` for TypeScript, Effect, RPC, React/Next.js, Clo
 <!-- patterns configuration end-->
 
 ## Zerospin packages and vendors
+
+This project is in development. Do not backport fixes or maintain older-release
+branches. Fix the current development line and move in-scope consumers forward.
+This does not authorize deleting or resetting persisted data.
 
 Zerospin source and releases belong to the sibling `../zerospin` checkout.
 QRK consumes exact package versions from the local registry; never edit installed

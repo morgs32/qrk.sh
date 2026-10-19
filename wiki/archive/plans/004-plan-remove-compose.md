@@ -65,7 +65,7 @@ Remove the Compose feature completely: its bottom-toolbar button, `/compose` URL
    .annotate({ parseOptions: { onExcessProperty: "ignore" } })
    ```
 
-4. Delete the `.compose-preview` rules in `apps/studio/app/globals.css`. Keep the shared Tiptap implementation and dependencies used by the main article editor. Keep generic drawer support in `apps/web`, and the separate `examples/react-router-motion` demonstration. These are independently used code, not the Studio Compose feature.
+4. Delete the `.compose-preview` rules in `apps/studio/app/globals.css`. Keep the shared Tiptap implementation and dependencies used by the main article editor. Keep generic drawer support in `apps/web`. These are independently used code, not the Studio Compose feature.
 
 5. Update affected Studio checks and documentation.
    In `Drawers/Drawers.playwright.spec.ts`, remove the Compose-specific persistence test and right-drawer navigation segment. Retain existing left/bottom drawer history and identity coverage, and change the post-close toolbar assertion to Add bricks. Include absence of the Compose link and the old URL’s not-found behavior in the focused routing checks. Update `apps/studio/README.md` to describe left and bottom shells and the removed Compose URL; remove the empty-compose-page prerequisite from its browser-test instructions. Do not modify unrelated Library, Studio, or vendor WIP.

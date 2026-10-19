@@ -26,7 +26,8 @@ pnpm --dir apps/app dev
 ```
 
 Its `dev` script invokes Portless, which runs `vp dev` in `dev:app`.
-Package metadata retains its hostname and internal port. This does not start
+Package metadata retains its hostname; Portless allocates an unused internal
+port and passes it through `PORT`. Direct startup defaults to 10001. This does not start
 Web, API, or Zerospin; root `pnpm dev` starts the full stack.
 
 Other Nx targets remain available:
@@ -41,10 +42,12 @@ pnpm nx run @qrk.sh/app:build-storybook
 Storybook's **App / CSS Grid Background Generator / Default** shows the
 generator body without its branding header. Color and square-width controls
 update a local preview and CSS output; **Copy CSS** copies the generated styles.
-The story has no session or backend dependencies.
+The story has no session or backend dependencies. App Storybook defaults to
+port 10020; `PORT` overrides it.
 
-App runs directly on port 3001 behind its own Portless hostname; Web runs
-separately on port 3000. `vite.config.ts` configures Start's SPA mode,
+App and Web run independently behind their own Portless hostnames. Direct
+startup defaults to 10001 for App and 10000 for Web; Portless allocates their
+proxied ports. `vite.config.ts` configures Start's SPA mode,
 application bundling, and development proxies. Storybook uses an independent
 Vite configuration without the Start server plugin.
 
@@ -76,7 +79,7 @@ directory using the quarantine procedure in the [backend README](../zerospin/REA
 before starting the current runtime. Existing browser backups remain untouched.
 
 `build` writes static output to `dist/client`, with `index.html` as the SPA
-shell. `preview` serves that output on port 3001 using
+shell. `preview` serves that output on port 10010 (`PORT` overrides it) using
 `vite.preview.config.ts`, without the Start server plugin. It replaces the old
 `start` target. The static Vercel configuration resolves terminal asset
 mappings and RPC forwarding before filesystem lookup and the SPA deep-link

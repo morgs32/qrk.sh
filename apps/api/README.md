@@ -18,8 +18,9 @@ Root Portless startup runs all five apps, including API at
 `https://api.qrk.localhost`. To start only API, run `pnpm --dir apps/api dev`;
 its `dev` script invokes Portless, which runs the Wrangler command in `dev:app`.
 Package metadata retains the hostname and internal port. Wrangler listens at
-`http://127.0.0.1:8787`, with its inspector on port 9231. Library runs separately
-on port 4100 and forwards `/rpc`, `/upload`, `/image/upload`, and `/assets/*` to
+`http://127.0.0.1:8787`, with an automatically allocated inspector port.
+Library runs separately on a Portless-allocated internal port (direct fallback
+10004) and forwards `/rpc`, `/upload`, `/image/upload`, and `/assets/*` to
 API. Consumers compile Library source directly; development startup needs no
 Library build. These commands do not deploy it.
 

@@ -4,12 +4,12 @@
   "type": "module",
   "scripts": {
     "dev": "portless",
-    "dev:app": "NEXT_PUBLIC_API_URL=https://api.qrk.localhost NEXT_PUBLIC_ZEROSPIN_API_URL=https://zerospin.qrk.localhost/ vp dev --host 127.0.0.1 --port 3001 --strictPort",
+    "dev:app": "NEXT_PUBLIC_API_URL=https://api.qrk.localhost NEXT_PUBLIC_ZEROSPIN_API_URL=https://zerospin.qrk.localhost/ vp dev --host 127.0.0.1 --port ${PORT:-10001} --strictPort",
     "build": "vp build",
     "format": "vp fmt --config ../../.oxfmtrc.json .",
-    "storybook": "storybook dev -p 6006 --host 127.0.0.1",
+    "storybook": "storybook dev -p ${PORT:-10020} --host 127.0.0.1",
     "build-storybook": "storybook build",
-    "preview": "vp preview --config vite.preview.config.ts --host 127.0.0.1 --port 3001 --strictPort"
+    "preview": "vp preview --config vite.preview.config.ts --host 127.0.0.1 --port ${PORT:-10010} --strictPort"
   },
   "dependencies": {
     "@clerk/react": "6.17.8",
@@ -81,7 +81,6 @@
   "portless": {
     "name": "app.qrk",
     "script": "dev:app",
-    "appPort": 3001,
     "proxy": true
   }
 }

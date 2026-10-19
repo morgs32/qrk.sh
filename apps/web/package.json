@@ -8,17 +8,16 @@
   },
   "scripts": {
     "dev": "portless",
-    "dev:app": "next dev --turbopack --port 3000",
+    "dev:app": "next dev --turbopack --port ${PORT:-10000}",
     "build": "next build",
-    "start": "next start",
+    "start": "next start --port ${PORT:-10011}",
     "format": "vp fmt --config ../../.oxfmtrc.json .",
-    "storybook": "storybook dev -p 6008 --host 127.0.0.1",
+    "storybook": "storybook dev -p ${PORT:-10022} --host 127.0.0.1",
     "build-storybook": "storybook build"
   },
   "portless": {
     "name": "qrk",
     "script": "dev:app",
-    "appPort": 3000,
     "proxy": true
   },
   "dependencies": {

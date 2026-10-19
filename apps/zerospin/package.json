@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "portless",
-    "dev:app": "zerospin dev --port 8788"
+    "dev:app": "zerospin dev --port ${PORT:-8788}"
   },
   "portless": {
     "name": "zerospin.qrk",

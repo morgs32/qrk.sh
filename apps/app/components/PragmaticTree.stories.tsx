@@ -262,7 +262,12 @@ const meta = {
           const hasChildren = items.some((child) => child.parentId === item.id);
           const isOpen = item.isOpen && draggingId !== item.id;
           return (
-            <div key={item.id}>
+            <div
+              key={item.id}
+              className={
+                parentId === null ? "rounded-sm border border-border bg-background" : undefined
+              }
+            >
               <div className="relative rounded-sm hover:bg-black/5">
                 <Button
                   id={`tree-row-${item.id}`}
@@ -339,7 +344,7 @@ const meta = {
         <GroupDropIndicator isActive={activeGroup === "root"}>
           <div
             ref={rootRef}
-            className="rounded-sm bg-muted/50 p-2 text-sm"
+            className="flex flex-col gap-2 rounded-sm bg-muted/50 p-2 text-sm"
             data-tree-group="root"
             role="group"
             aria-label="Draggable tree"

@@ -1,6 +1,6 @@
 # Studio live Library session
 
-Status: implemented and verified through available Studio controls; manual brick state-edit/hide checks remain unavailable because Studio does not expose those controls.
+Status: implemented. Phase 1 of the Studio overhaul supersedes the remaining grid state-edit/hide verification; the historical results below are not evidence for the new empty-frame UI.
 
 ## Agreed behavior
 
@@ -61,10 +61,10 @@ const retainedLock = db.query.connectionLocks
 
 1. Build Library's public output as required by the app. Repository tests and standalone automated checks are deferred under root `AGENTS.md`.
 2. Defer automated backend verification until the future end-to-end compatibility suite is agreed. Do not scaffold integration tests.
-3. Check live Studio edits, layout changes, reload persistence, tab synchronization, page isolation, drawers, and failure behavior manually.
+3. The original live grid/layout verification below is historical. The Studio overhaul removes those controls; current verification follows its approved phase-1 plan in chat.
 4. Reset only incompatible development state if needed; leave old standalone backups and deployed data untouched.
 
-## Verification results and remaining manual checks
+## Historical verification results
 
 1. Library public build passed. Scoped Nx typechecking and lint passed for Library, Studio, and backend, including Library worker typechecking. No Library tests were written, modified, or run.
 2. Backend workerd suite passed: 12 tests in 2 files, including Library command staging, state updates and invalid-state rejection, breakpoint visibility, removal, wrong-wall rejection, distinct page walls, actual actor ownership selections, Clerk authentication, and site/page settings. No Library tests were written, modified, or run.
@@ -73,4 +73,8 @@ const retainedLock = db.query.connectionLocks
 5. Zerospin's focused onMessage suite passed **17 tests**, including a lock larger than the attachment limit, resume from durable storage, and missing-lock rejection. `system-worker:ts` and scoped native upstream lint passed. The six changed source/test/doc files match `../zerospin` byte-for-byte. Sync is local and uncommitted; no subtree operation, commit, or push was performed because both checkouts contain unrelated WIP. The full vendor dependency graph encountered unrelated fulfillment type errors; focused verification used already-built dependencies.
 6. In the existing authenticated Chrome session, verified adding a swatch brick, moving it, resizing it, reload persistence, synchronization in a second tab, detail drawer navigation, removal by dragging outside the canvas, and Page/Site Settings saves. A new page was empty, and opening the first page's brick ID under the second page displayed **Brick not found**, including scoped breadcrumbs.
 7. Initialization failure was observed before the vendor fix: the route displayed the initialization error instead of mounting an unusable editor. Existing command failure callbacks/toasts remain wired, and backend tests verify failed staging leaves state unchanged. A browser command-failure toast was not deliberately induced.
-8. Studio currently routes activation to a read-only detail and passes `showArticleEditAction={false}`; it also has no visibility control. State editing and hiding passed backend integration coverage but could not be exercised manually through Studio. Do not add controls as part of this session cutover. Keep this plan active for those manual checks once the existing UI work exposes them, or until the user explicitly supersedes them.
+8. At this plan's original verification, state-edit/hide checks were unavailable through Studio. The approved phase-1 overhaul removes the grid, visibility contract, and placed-brick activation; those remaining checks are superseded. Retained module forms and session ownership are documented in the App and Library READMEs. No phase-1 runtime verification is claimed here.
+
+## Remaining work
+
+None for this session cutover. Phase-1 implementation and verification are tracked in its active chat.

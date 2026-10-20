@@ -1,10 +1,9 @@
 "use client";
 
-import { useUser } from "@clerk/react";
 import { makeModelIdSchema } from "@zerospin/core/models/make/makeModelIdSchema";
 import { useLiveQuery } from "@zerospin/react";
 import { Schema } from "effect";
-import { useEffect, type ReactNode } from "react";
+import type { ReactNode } from "react";
 
 import { pageV2 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV2";
 import { siteV2 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV2";
@@ -14,7 +13,6 @@ import { UserApp } from "@/zerospin/userSession";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 
 import { usePageStore } from "./page/[pageId]/pageStore";
-import { useSitePageDraftStore } from "./sitePageDraftStore";
 import { useSiteStore } from "./siteStore";
 
 const ParamsSchema = Schema.Struct({
@@ -26,7 +24,6 @@ export default function SiteLayout(props: { children: ReactNode }) {
   const { children } = props;
   const session = UserApp.useInitializedSession();
   const { siteId, pageId } = useValidatedParams(ParamsSchema);
-  const { user } = useUser();
   const { db } = useZerospinUserInitializedState();
   const initializeSite = useSiteStore((state) => state.initializeSite);
   const siteDraftId = useSiteStore((state) => state.site?.id);
@@ -34,13 +31,6 @@ export default function SiteLayout(props: { children: ReactNode }) {
   const initializePage = usePageStore((state) => state.initializePage);
   const pageDraftId = usePageStore((state) => state.page?.id);
   const pageDraftTitle = usePageStore((state) => state.page?.title ?? "");
-  const initializeSitePageDraft = useSitePageDraftStore((state) => state.initializePageDraft);
-  const identityKey = user?.id;
-  const pageDraft = useSitePageDraftStore((state) =>
-    identityKey === undefined || pageId === undefined
-      ? undefined
-      : state.owners[identityKey]?.sites[siteId]?.pages[pageId],
-  );
 
   const { data: page } = useLiveQuery({
     session,
@@ -108,20 +98,7 @@ export default function SiteLayout(props: { children: ReactNode }) {
     });
   }
 
-  useEffect(() => {
-    if (identityKey === undefined || pageId === undefined) {
-      return;
-    }
-
-    if (!useSitePageDraftStore.persist.hasHydrated()) {
-      useSitePageDraftStore.persist.rehydrate();
-    }
-
-    initializeSitePageDraft(identityKey, siteId, pageId);
-  }, [initializeSitePageDraft, pageId, siteId, identityKey]);
-
-  const isCurrentRouteReady =
-    pageDraft !== undefined && siteDraftId === siteId && pageDraftId === pageId;
+  const isCurrentRouteReady = siteDraftId === siteId && pageDraftId === pageId;
 
   return isCurrentRouteReady ? (
     <div className="flex h-full flex-col overflow-hidden">

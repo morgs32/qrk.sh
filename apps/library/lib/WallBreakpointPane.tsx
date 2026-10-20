@@ -97,7 +97,7 @@ export function WallBreakpointPane(props: {
         <div
           aria-hidden="true"
           className={cn(
-            "pointer-events-none relative flex h-12 translate-y-[var(--wall-drag-scroll-offset,0px)] items-center justify-center border-b border-zinc-300/70 bg-zinc-100 px-3",
+            "pointer-events-none relative flex h-12 items-center justify-center border-b border-zinc-300/70 bg-zinc-100 px-3",
             isMobile ? "rounded-t-2xl" : "rounded-t-xl",
           )}
         >
@@ -122,7 +122,7 @@ export function WallBreakpointPane(props: {
         <div
           aria-hidden="true"
           className={cn(
-            "pointer-events-none absolute inset-0 z-10 translate-y-[var(--wall-drag-scroll-offset,0px)] shadow-[inset_0_0_0_1px_rgba(161,161,170,0.5)]",
+            "pointer-events-none absolute inset-0 z-10 shadow-[inset_0_0_0_1px_rgba(161,161,170,0.5)]",
             isMobile ? "rounded-2xl" : "rounded-xl",
           )}
         />

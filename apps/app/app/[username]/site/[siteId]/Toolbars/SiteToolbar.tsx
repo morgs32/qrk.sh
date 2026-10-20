@@ -54,7 +54,7 @@ export function SiteToolbar() {
               <ToolbarSeparator />
 
               <ToolbarButton
-                label="Add bricks"
+                label="Bricks"
                 icon={<Plus className="h-3.5 w-3.5" />}
                 link={{ to: "/$username/site/$siteId/page/$pageId/modules", params: hrefParams }}
                 className="h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
@@ -66,7 +66,10 @@ export function SiteToolbar() {
                 label="Set breakpoints"
                 icon={<RectangleHorizontal className="h-3.5 w-3.5" />}
                 tooltip="Set breakpoints"
-                link={{ to: "/$username/site/$siteId/page/$pageId/breakpoints", params: hrefParams }}
+                link={{
+                  to: "/$username/site/$siteId/page/$pageId/breakpoints",
+                  params: hrefParams,
+                }}
                 className="h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
               />
 
@@ -76,7 +79,10 @@ export function SiteToolbar() {
                 label="Page settings"
                 icon={<File className="h-3.5 w-3.5" />}
                 tooltip="Page settings"
-                link={{ to: "/$username/site/$siteId/page/$pageId/page-settings", params: hrefParams }}
+                link={{
+                  to: "/$username/site/$siteId/page/$pageId/page-settings",
+                  params: hrefParams,
+                }}
                 className="h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
               />
 
@@ -86,7 +92,10 @@ export function SiteToolbar() {
                 label="Site settings"
                 icon={<Globe className="h-3.5 w-3.5" />}
                 tooltip="Site settings"
-                link={{ to: "/$username/site/$siteId/page/$pageId/site-settings", params: hrefParams }}
+                link={{
+                  to: "/$username/site/$siteId/page/$pageId/site-settings",
+                  params: hrefParams,
+                }}
                 className="h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
               />
             </>

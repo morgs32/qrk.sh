@@ -20,6 +20,8 @@ export function LinkForm(props: {
   const { state, session, brickId, onCancel } = props;
   const inputId = useId();
   const feedbackId = `${inputId}-feedback`;
+  const resolutionErrorId = `${inputId}-resolution-error`;
+  const saveErrorId = `${inputId}-save-error`;
   const [urlDraft, setUrl] = useState<string | null>(null);
   const url = urlDraft ?? state?.payload.url ?? "";
   const [saveError, setSaveError] = useState<string>();
@@ -27,6 +29,19 @@ export function LinkForm(props: {
   const canSave =
     normalizedUrl !== undefined &&
     (normalizedUrl !== state?.payload.url || state?.resolution.status === "failed");
+  const hasMalformedUrl = url.trim().length > 0 && normalizedUrl === undefined;
+  const resolutionError =
+    state?.resolution.error !== null && state?.resolution.error !== undefined
+      ? state.resolution.error.message
+      : undefined;
+  const hasError = hasMalformedUrl || resolutionError !== undefined || saveError !== undefined;
+  const describedBy = [
+    feedbackId,
+    resolutionError !== undefined ? resolutionErrorId : undefined,
+    saveError !== undefined ? saveErrorId : undefined,
+  ]
+    .filter((id): id is string => id !== undefined)
+    .join(" ");
 
   return (
     <form
@@ -46,12 +61,12 @@ export function LinkForm(props: {
         else setUrl(null);
       }}
     >
-      <label className="font-medium" htmlFor={inputId}>
+      <label className="text-sm font-medium leading-none" htmlFor={inputId}>
         Link URL
       </label>
       <Input
-        aria-describedby={feedbackId}
-        aria-invalid={url.trim().length > 0 && normalizedUrl === undefined}
+        aria-describedby={describedBy}
+        aria-invalid={hasError}
         autoCapitalize="none"
         autoComplete="off"
         autoCorrect="off"
@@ -65,15 +80,25 @@ export function LinkForm(props: {
         type="url"
         value={url}
       />
-      <p aria-live="polite" className="m-0 break-words" id={feedbackId}>
+      <p
+        aria-live="polite"
+        className="m-0 break-words text-sm leading-normal text-muted-foreground"
+        id={feedbackId}
+      >
         Enter an HTTP or HTTPS URL. Save fetches its link preview.
       </p>
-      {state?.resolution.status === "resolving" ? <p role="status">Resolving…</p> : null}
-      {state?.resolution.error !== null && state?.resolution.error !== undefined ? (
-        <p role="alert">{state.resolution.error.message}</p>
+      {state?.resolution.status === "resolving" ? (
+        <p className="m-0 text-sm text-muted-foreground" role="status">
+          Resolving…
+        </p>
+      ) : null}
+      {resolutionError !== undefined ? (
+        <p className="m-0 break-words text-sm text-destructive" id={resolutionErrorId} role="alert">
+          {resolutionError}
+        </p>
       ) : null}
       {saveError !== undefined ? (
-        <p className="m-0 break-words" role="alert">
+        <p className="m-0 break-words text-sm text-destructive" id={saveErrorId} role="alert">
           {saveError}
         </p>
       ) : null}

@@ -1,7 +1,5 @@
 "use client";
 
-import { stageAggregateSessionCommand } from "@zerospin/core/aggregateSession/stageCommand/stageAggregateSessionCommand";
-
 import {
   useEffect,
   useLayoutEffect,
@@ -16,19 +14,17 @@ import { Drawer } from "../lib/Drawer";
 import { Link, useLocation, useMatches, useNavigate, useParams } from "@tanstack/react-router";
 import { Effect, Layer, Result, Schema } from "effect";
 import { makeEffectSchema } from "@zerospin/shapes";
-import { prefixId } from "@zerospin/core/models/prefixId";
+import { makeModelIdSchema } from "@zerospin/core/models/make/makeModelIdSchema";
 import { useLiveQuery } from "@zerospin/react";
 import { useReducedMotion } from "framer-motion";
-import { RotateCcw, X } from "lucide-react";
+import { X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "../components/ui/button";
 import { Toaster } from "../components/ui/sonner";
 import { BREAKPOINTS } from "../lib/breakpoints";
-import { BrickWall } from "../lib/BrickWall";
 import { BrickCardStyleContext } from "../lib/BrickCardStyleContext";
 import { WallBreakpointPane } from "../lib/WallBreakpointPane";
-import { brickDragStore } from "../lib/brickDragStore";
 import { modulesHash } from "../lib/modulesHash";
 import {
   useWallViewport,
@@ -46,7 +42,6 @@ import LibraryError from "./error";
 import { ImageUploadEnvironment } from "../modules/image/ImageUploadEnvironment";
 import { ImageUploadRuntimeContext } from "../modules/image/ImageUploadRuntimeContext";
 
-const WALL_ID = prefixId(libraryModule.models.wall, "library");
 const LIBRARY_VIEWPORT_STORAGE_NAME = "qrk-bricks-library-viewport-v1";
 
 function readSelectedBreakpoint(persistedState: object): (typeof BREAKPOINTS)[number]["id"] | null {
@@ -119,8 +114,6 @@ export function LibraryLayout(props: { children: ReactNode }) {
 
 function InitializedLibraryLayout(props: { children: ReactNode }) {
   const { children } = props;
-  const [sessionKey, setSessionKey] = useState(0);
-  const [resetError, setResetError] = useState<unknown>(null);
   const session = LibraryApp.useInitializedSession();
   useEffect(() => {
     const stopWork = startLibrarySessionWork(session);
@@ -132,7 +125,7 @@ function InitializedLibraryLayout(props: { children: ReactNode }) {
       stopWork();
       stopFailures();
     };
-  }, [session, sessionKey]);
+  }, [session]);
   const imageLayer = Layer.succeed(ImageUploadEnvironment, {
     upload: Effect.fn("Library.Image.upload")(function* (file: File) {
       const body = new FormData();
@@ -158,8 +151,6 @@ function InitializedLibraryLayout(props: { children: ReactNode }) {
       return uploaded.url;
     }),
   });
-  if (resetError !== null) throw resetError;
-
   return (
     <ImageUploadRuntimeContext
       value={{
@@ -170,20 +161,9 @@ function InitializedLibraryLayout(props: { children: ReactNode }) {
       <LibrarySessionContext value={session}>
         <FigmaReadyMeasurements session={session} />
         <WallViewportProvider
-          key={sessionKey}
           selectedBreakpoint={readLibraryViewportState()?.selectedBreakpoint ?? null}
         >
-          <LayoutBody
-            session={session}
-            onResetSession={() => {
-              void session
-                .reset()
-                .then(() => setSessionKey((key) => key + 1))
-                .catch(setResetError);
-            }}
-          >
-            {children}
-          </LayoutBody>
+          <LayoutBody session={session}>{children}</LayoutBody>
         </WallViewportProvider>
       </LibrarySessionContext>
     </ImageUploadRuntimeContext>
@@ -193,9 +173,8 @@ function InitializedLibraryLayout(props: { children: ReactNode }) {
 function LayoutBody(props: {
   children: ReactNode;
   session: ReturnType<typeof LibraryApp.useInitializedSession>;
-  onResetSession: () => void;
 }) {
-  const { children, session, onResetSession } = props;
+  const { children, session } = props;
   const [cardStyle, setCardStyle] = useState(false);
   const { pathname, searchStr } = useLocation();
   const navigate = useNavigate();
@@ -208,8 +187,6 @@ function LayoutBody(props: {
     regionRef,
     availableWidth,
     activeBreakpoint,
-    gridGesture,
-    setGridGesture,
     setSelectedBreakpoint,
     displayPlaceholders,
     setDisplayPlaceholders,
@@ -219,7 +196,10 @@ function LayoutBody(props: {
     makeEffectSchema({ moduleId: libraryModule.models.brick.attributes.moduleId }),
   )({ moduleId: params.moduleId });
   const moduleId = Result.isSuccess(decodedModule) ? decodedModule.success.moduleId : undefined;
-  const brickId = typeof params.brickId === "string" ? params.brickId : undefined;
+  const decodedBrickId = Schema.decodeUnknownResult(makeModelIdSchema(libraryModule.models.brick))(
+    params.brickId,
+  );
+  const brickId = Result.isSuccess(decodedBrickId) ? decodedBrickId.success : undefined;
   const search = searchStr.slice(1);
   const locationKey = `${pathname}${searchStr}`;
   const [drawerOpen, setDrawerOpen] = useState(() => pathname !== "/" || search.length > 0);
@@ -234,7 +214,7 @@ function LayoutBody(props: {
     const space = drawerSpace.current;
     if (scroll === null || space === null) return;
 
-    // Change only trailing space, leaving the wall's percentage height intact.
+    // Change only trailing space, leaving the preview frame height intact.
     const previousTop = scroll.scrollTop;
     const previousMax = Math.max(0, scroll.scrollHeight - scroll.clientHeight);
     const wasAtBottom =
@@ -310,17 +290,15 @@ function LayoutBody(props: {
   const fromBreakpoint = transition.active === activeBreakpoint ? transition.from : null;
   const direction = transition.active === activeBreakpoint ? transition.direction : 0;
 
-  const bricksQuery = useLiveQuery({
+  const brickQuery = useLiveQuery({
     session,
-    query: (db) =>
-      db.query.brick.findMany({
-        where: { wallId: { eq: WALL_ID } },
+    key: brickId,
+    query: (db, id) =>
+      db.query.brick.findFirst({
+        where: { id: { eq: id ?? "brk_missing" } },
       }),
   });
-  const brickRow =
-    brickId === undefined
-      ? undefined
-      : (bricksQuery.data ?? []).find((candidate) => candidate.id === brickId);
+  const brickRow = brickQuery.data;
   const breadcrumbModuleId = moduleId ?? brickRow?.moduleId;
   const moduleLabel =
     breadcrumbModuleId !== undefined ? modulesHash[breadcrumbModuleId].label : undefined;
@@ -361,13 +339,13 @@ function LayoutBody(props: {
   }
 
   useEffect(() => {
-    if (brickId !== undefined && bricksQuery.data !== undefined && brickRow === undefined) {
+    if (brickId !== undefined && brickRow === undefined) {
       queueMicrotask(() => {
         setDrawerOpen(false);
         void navigate({ to: "/", resetScroll: false });
       });
     }
-  }, [brickId, brickRow, bricksQuery.data, navigate]);
+  }, [brickId, brickRow, navigate]);
 
   useEffect(() => {
     if (!drawerOpen || brickId === undefined) return;
@@ -394,13 +372,12 @@ function LayoutBody(props: {
               editorScroll.current = element;
               return regionRef(element);
             }}
-            data-testid="grid-region"
-            data-brick-scroll-root=""
+            data-testid="preview-region"
             className="relative h-full min-h-0 min-w-0 overflow-x-hidden overflow-y-auto pt-[var(--wall-top-offset)] [--wall-top-offset:6rem] lg:[--wall-top-offset:3.5rem]"
           >
             {availableWidth > 0 && activeBreakpoint === null && (
               <p className="p-4" role="status">
-                At least {BREAKPOINTS[0].previewWidth}px is needed to preview the grid.
+                At least {BREAKPOINTS[0].previewWidth}px is needed to preview the page.
               </p>
             )}
             <div className="relative">
@@ -428,33 +405,12 @@ function LayoutBody(props: {
                       );
                     }}
                   >
-                    <div className="[--wall-chrome-height:7rem]">
-                      <div
-                        aria-hidden="true"
-                        className="pointer-events-none relative flex h-16 translate-y-[var(--wall-drag-scroll-offset,0px)] items-center border-b border-border bg-background px-6"
-                      >
-                        <span className="text-sm font-medium">qrk.sh</span>
-                      </div>
-                      <BrickWall
-                        session={session}
-                        executeCommand={stageAggregateSessionCommand}
-                        wallId={WALL_ID}
-                        breakpoint={row.id}
-                        gridWidth={row.previewWidth}
-                        isActive={isActive}
-                        gridGestureActive={gridGesture}
-                        onGestureChange={setGridGesture}
-                        onCommandError={(message) => toast.error(message)}
-                        onBrickActivate={({ brickId: activatedBrickId }) => {
-                          setDrawerOpen(true);
-                          void navigate({
-                            to: "/bricks/$brickId",
-                            params: { brickId: activatedBrickId },
-                            resetScroll: false,
-                          });
-                        }}
-                      />
-                    </div>
+                    <div
+                      className="min-h-[calc(100dvh-var(--wall-top-offset,3.5rem)-3rem)] bg-white"
+                      data-site-right-scroll
+                      role="region"
+                      aria-label={`${row.id} page preview`}
+                    />
                   </WallBreakpointPane>
                 );
               })}
@@ -566,7 +522,7 @@ function LayoutBody(props: {
         >
           <div
             role="toolbar"
-            aria-label="Grid controls"
+            aria-label="Preview controls"
             className="pointer-events-auto flex max-w-full flex-wrap items-center justify-center rounded-sm border border-border/80 bg-background px-1 py-1 shadow-md"
           >
             <Button
@@ -595,24 +551,6 @@ function LayoutBody(props: {
             >
               Cards
             </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="size-8"
-              aria-label="Reset grid layout"
-              title="Reset grid layout"
-              onClick={() => {
-                brickDragStore.getState().setBrickDef(null);
-                toast.dismiss();
-                onResetSession();
-                if (brickId !== undefined) {
-                  void navigate({ to: "/modules", resetScroll: false });
-                }
-              }}
-            >
-              <RotateCcw aria-hidden />
-            </Button>
             <div className="mx-1 h-5 w-px shrink-0 bg-border" aria-hidden />
             {BREAKPOINTS.map((row) => (
               <Button
@@ -621,7 +559,7 @@ function LayoutBody(props: {
                 variant={activeBreakpoint === row.id ? "secondary" : "ghost"}
                 size="sm"
                 className="h-8 px-2"
-                aria-label={`${row.previewWidth}px grid width`}
+                aria-label={`${row.previewWidth}px preview width`}
                 aria-pressed={activeBreakpoint === row.id}
                 disabled={row.previewWidth > availableWidth}
                 onClick={() => setSelectedBreakpoint(row.id)}

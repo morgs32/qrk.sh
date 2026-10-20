@@ -66,15 +66,6 @@ function BrickAdminContent(props: { brickId: `brk_${string}` }) {
         },
       }),
   });
-  const placementsQuery = useLiveQuery({
-    session,
-    key: breakpoint,
-    query: (db, queriedBreakpoint) =>
-      db.query.placement.findMany({
-        where: { breakpoint: { eq: queriedBreakpoint } },
-      }),
-  });
-
   const brickRow = brickQuery.data;
 
   if (brickRow === undefined) {
@@ -125,7 +116,6 @@ function BrickAdminContent(props: { brickId: `brk_${string}` }) {
   if (placementSpec === undefined) {
     throw notFound();
   }
-  const savedGridItem = placement.gridItem;
 
   return (
     <OrderedDoc>
@@ -199,7 +189,9 @@ function BrickAdminContent(props: { brickId: `brk_${string}` }) {
                               prompt: placement.generation?.prompt ?? generatePrompt,
                             },
                           });
-                          setCommandError(result._tag === "Failure" ? result.failure.message : null);
+                          setCommandError(
+                            result._tag === "Failure" ? result.failure.message : null,
+                          );
                         }}
                       >
                         Retry
@@ -209,47 +201,6 @@ function BrickAdminContent(props: { brickId: `brk_${string}` }) {
                 ) : null}
               </OrderedSection>
             ) : null}
-            <OrderedSection className={hasJsonRender ? "mt-10" : undefined} label="Options">
-              <div className="flex flex-wrap gap-2 py-4">
-                <Button
-                  type="button"
-                  aria-pressed={placement.isVisible}
-                  onClick={() => {
-                    const otherVisibleLayout = (placementsQuery.data ?? []).flatMap(
-                      (otherPlacement) => {
-                        if (!otherPlacement.isVisible || otherPlacement.brickId === brickRow.id) {
-                          return [];
-                        }
-                        return [otherPlacement.gridItem];
-                      },
-                    );
-                    const result = stageAggregateSessionCommand({
-                      session,
-                      contractName: "setBrickVisibilityAtBreakpoint",
-                      payload: {
-                        brickId: brickRow.id,
-                        breakpoint,
-                        isVisible: !placement.isVisible,
-                        currentlyVisible: placement.isVisible,
-                        savedGridItem,
-                        otherVisibleLayout,
-                      },
-                    });
-                    if (result._tag === "Failure") {
-                      setCommandError(
-                        result.failure.message ??
-                          result.failure.code ??
-                          "Failed to update visibility",
-                      );
-                      return;
-                    }
-                    setCommandError(null);
-                  }}
-                >
-                  {placement.isVisible ? "Hide brick" : "Show brick"}
-                </Button>
-              </div>
-            </OrderedSection>
             <OrderedSection className="mt-10" label="Shared state">
               <form
                 autoComplete="off"

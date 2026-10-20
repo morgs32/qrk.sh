@@ -168,7 +168,7 @@ export function DrawerHeader() {
                 className="inline-flex shrink-0 items-center gap-1.5 underline underline-offset-4"
               >
                 <ArrowLeft aria-hidden className="size-4" />
-                New brick
+                Bricks
               </Link>
               <span aria-hidden className="text-muted-foreground">
                 /
@@ -181,7 +181,7 @@ export function DrawerHeader() {
             </>
           ) : (
             <>
-              <span>Drag a brick onto your page</span>
+              <span>Bricks</span>
               {moduleLabel === undefined ? null : (
                 <>
                   <span aria-hidden className="text-muted-foreground">

@@ -14,19 +14,6 @@
   }
 }
 
-.grid-layout .react-grid-item.react-grid-placeholder {
-  background: #f7f7f7;
-  opacity: 1;
-  border-radius: 0;
-  /* Recessed edge matching the reference. */
-  box-shadow: inset 0 1px 4px rgb(0 0 0 / 5%);
-}
-
-/* Keep the resizing brick above RGL's placeholder at z-index: 2. */
-.grid-layout > .react-grid-item.brick-drag-surface.resizing {
-  z-index: 3;
-}
-
 .qrk-bricks {
   --background: oklch(1 0 0);
   --foreground: oklch(0.141 0.005 285.823);
@@ -107,22 +94,11 @@
 [data-brick-surface][data-card-style="false"]::before {
   content: "";
   position: absolute;
-  inset: 0 calc(0px - var(--brick-edge)) calc(0px - var(--brick-edge)) 0;
+  inset: 0;
   box-sizing: border-box;
   border: var(--brick-edge) solid var(--border);
   z-index: 19;
   pointer-events: none;
-}
-
-/* Keep the wall perimeter and standalone preview frames inside their boxes. */
-[data-brick-surface][data-card-style="false"][data-wall-right-edge="true"]::before,
-[data-brick-surface][data-card-style="false"]:not(.react-grid-item)::before {
-  right: 0;
-}
-
-[data-brick-surface][data-card-style="false"][data-wall-bottom-edge="true"]::before,
-[data-brick-surface][data-card-style="false"]:not(.react-grid-item)::before {
-  bottom: 0;
 }
 
 [data-brick-surface][data-card-style="true"] > .brick-hover-surface {
@@ -134,115 +110,7 @@
   overflow: hidden;
 }
 
-/* The outline follows the active surface during dragging and resizing. */
-.grid-layout > .react-grid-item.brick-drag-surface::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 21;
-  border: 2px solid #000;
-  border-radius: 0;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.grid-layout > .react-grid-item.brick-drag-surface[data-card-style="true"]::after {
-  border-radius: 8px;
-}
-
-.grid-layout > .react-grid-item.brick-drag-surface > .react-resizable-handle {
-  z-index: 22;
-  width: 24px;
-  height: 24px;
-  margin: 0;
-  transform: none;
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-}
-
-.grid-layout > .react-grid-item.brick-drag-surface > .react-resizable-handle::after {
-  inset: 2px 7px;
-  width: 10px;
-  height: 36px;
-  box-sizing: border-box;
-  border: 2px solid #000;
-  border-radius: 999px;
-  background: #fff;
-}
-
-.grid-layout > .react-grid-item.brick-drag-surface > .react-resizable-handle-n,
-.grid-layout > .react-grid-item.brick-drag-surface > .react-resizable-handle-s {
-  width: 40px;
-}
-
-.grid-layout > .react-grid-item.brick-drag-surface > .react-resizable-handle-n::after,
-.grid-layout > .react-grid-item.brick-drag-surface > .react-resizable-handle-s::after {
-  inset: 7px 2px;
-  width: 36px;
-  height: 10px;
-}
-
-.grid-layout > .react-grid-item.brick-drag-surface > .react-resizable-handle-w,
-.grid-layout > .react-grid-item.brick-drag-surface > .react-resizable-handle-e {
-  height: 40px;
-}
-
-.grid-layout > .react-grid-item.brick-drag-surface > .react-resizable-handle-n {
-  top: -12px;
-  left: calc(50% - 20px);
-  cursor: ns-resize;
-}
-
-.grid-layout > .react-grid-item.brick-drag-surface > .react-resizable-handle-s {
-  bottom: -12px;
-  left: calc(50% - 20px);
-  cursor: ns-resize;
-}
-
-.grid-layout > .react-grid-item.brick-drag-surface > .react-resizable-handle-w {
-  top: calc(50% - 20px);
-  left: -12px;
-  cursor: ew-resize;
-}
-
-.grid-layout > .react-grid-item.brick-drag-surface > .react-resizable-handle-e {
-  top: calc(50% - 20px);
-  right: -12px;
-  cursor: ew-resize;
-}
-
-/* Drag outline waits for BrickWall's real gesture; RGL adds
-   .react-draggable-dragging on mousedown before the drag threshold. */
-.grid-layout.brick-gesture
-  > .react-grid-item.brick-drag-surface:not(.react-resizable-hide).react-draggable-dragging::after,
-.grid-layout
-  > .react-grid-item.brick-drag-surface:not(.react-resizable-hide).resizing::after {
-  opacity: 1;
-}
-
-.grid-layout
-  > .react-grid-item.brick-drag-surface:not(.react-resizable-hide):is(
-    :hover,
-    .resizing
-  )
-  > .react-resizable-handle {
-  opacity: 1;
-  visibility: visible;
-  pointer-events: auto;
-}
-
-@media (hover: none), (pointer: coarse) {
-  .grid-layout
-    > .react-grid-item.brick-drag-surface:not(.react-resizable-hide)
-    > .react-resizable-handle {
-    opacity: 1;
-    visibility: visible;
-    pointer-events: auto;
-  }
-}
-
-/* Keep the drag hit target and its direct visual surface stationary on hover. */
+/* Keep the preview surface stationary on hover. */
 .brick-hover-target > .brick-hover-surface {
   position: relative;
 }
@@ -258,17 +126,6 @@
   pointer-events: none;
 }
 
-/* Flat wall selection strokes follow the shared border, including perimeter edges. */
-.react-grid-item[data-card-style="false"]:not([data-wall-right-edge="true"])
-  > .brick-hover-surface::after {
-  right: calc(0px - var(--brick-edge));
-}
-
-.react-grid-item[data-card-style="false"]:not([data-wall-bottom-edge="true"])
-  > .brick-hover-surface::after {
-  bottom: calc(0px - var(--brick-edge));
-}
-
 .brick-hover-target[data-selected="true"] {
   --brick-hover-active: 1;
 
@@ -276,58 +133,7 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .brick-hover-target:not(.react-draggable-dragging):not(.resizing):hover {
+  .brick-hover-target:hover {
     z-index: 1;
   }
-}
-
-/* Idle neighbors lose hover elevation during a real grid gesture. */
-.grid-layout.brick-gesture
-  > .brick-hover-target:not(.react-draggable-dragging):not(.resizing) {
-  z-index: auto;
-}
-
-.grid-layout.brick-gesture > .brick-hover-target {
-  --brick-hover-active: 0;
-}
-
-.grid-layout.brick-gesture
-  > .brick-hover-target
-  > .react-resizable-handle,
-.grid-layout.brick-gesture
-  > .brick-hover-target
-  > .brick-hover-surface,
-.grid-layout.brick-gesture
-  > .brick-hover-target:not(.react-draggable-dragging):not(.resizing)
-  > .brick-hover-surface {
-  --brick-hover-active: 0;
-}
-
-/* Only the resizing brick keeps its handles during a grid gesture. */
-.grid-layout.brick-gesture
-  > .react-grid-item.brick-hover-target:not(.resizing)
-  > .react-resizable-handle {
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-}
-
-/* Catalog drag sources own HTML5 drag. Nested <a>/<img> must not start a
-   native link or image drag. Wall cells are not [draggable="true"]; RGL owns
-   those drags. */
-.brick-drag-surface[draggable="true"] .brick-drag-content,
-.brick-drag-surface[draggable="true"] .brick-drag-content * {
-  pointer-events: none;
-  -webkit-user-drag: none;
-  user-select: none;
-}
-
-/* Group previews and placed Grid bricks reserve pointer movement for their
-   existing drag interactions. Direct, configuration, and detail previews keep
-   normal Mapbox pan and zoom behavior. */
-[draggable="true"] [data-map-place-id],
-[draggable="true"] [data-map-place-id] *,
-.react-grid-item [data-map-place-id],
-.react-grid-item [data-map-place-id] * {
-  pointer-events: none !important;
 }

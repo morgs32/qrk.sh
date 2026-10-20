@@ -45,6 +45,12 @@ update a local preview and CSS output; **Copy CSS** copies the generated styles.
 The story has no session or backend dependencies. App Storybook defaults to
 port 10020; `PORT` overrides it.
 
+**App / Studio / Pragmatic Tree / Default** isolates the current Atlassian
+Pragmatic Drag and Drop Tree example with local sample items. Drag to reorder
+or nest items; the row's Move button provides parent and position controls for
+keyboard use. All levels share the same left edge; width and row height are
+Storybook controls. This phase is Storybook-only.
+
 App and Web run independently behind their own Portless hostnames. Direct
 startup defaults to 10001 for App and 10000 for Web; Portless allocates their
 proxied ports. `vite.config.ts` configures Start's SPA mode,
@@ -74,9 +80,12 @@ It never builds or changes installed Zerospin artifacts. Fresh
 checkout installation requires the populated local registry described in the
 [root README](../../README.md#zerospin-packages).
 
-Superseded retained command rows require empty backend storage. Preserve the old
-directory using the quarantine procedure in the [backend README](../zerospin/README.md)
-before starting the current runtime. Existing browser backups remain untouched.
+Phase 1 removes the grid contracts against fresh local content. The approved
+one-time cutover deletes the local `sys_qrk_sh_1` backend store and only the
+matching App `qrk-sh` / `user` / `userSession` node databases and discovery records,
+without backups. Library's local standalone database is reset separately;
+authentication, cookies, localStorage preferences, unrelated databases, uploads,
+and deployed storage remain outside that deletion. This does not authorize future resets.
 
 `build` writes static output to `dist/client`, with `index.html` as the SPA
 shell. `preview` serves that output on port 10010 (`PORT` overrides it) using
@@ -214,14 +223,10 @@ The dashboard layout renders the fixed 64 px `QRK.SH` header and reserves a
 SPA shell does not prerender authenticated route data. The header is a query
 container; its inner flex element uses Library's shared `qrk-responsive-insets`
 class and `--qrk-inset-inline`: 16px gutters become 30px when both the document
-viewport and header reach 720px. The site editor, including its 64 px navbar,
-appears only once the browser session is ready. Each breakpoint pane owns the
-complete navbar inside its browser frame, beneath the address bar and above
-`BrickWall`. `Grid` makes the existing navbar wrapper a query container.
-`SiteHeader` uses the same shared responsive gutters when both the document
-viewport and wrapper reach 720px, preserving its 64px height and chrome offset.
-The existing `Wordmark` subscribes to site data and preserves settings draft
-previews. Site data, drafts, SQLite, and editing remain browser-owned.
+viewport and header reach 720px. The editor appears once the browser session is
+ready. Its four browser frames contain only empty white page previews; the
+site navbar and placed-brick wall are removed. Site data, settings drafts,
+SQLite, and editing remain browser-owned.
 
 ## Routes and transitions
 
@@ -254,62 +259,44 @@ Effect Schema validation, form keys, and navigation without scroll resets are
 retained. Unknown paths render the Router not-found screen. The local error
 boundary preserves client diagnostics and reload behavior.
 
-The brick-detail route keeps its brick selected in the active wall, with the existing outline and resize handles visible while focus or the pointer moves into the drawer. A successful catalog drop activates the new brick and opens its detail drawer for editing. Selection follows the route across refresh and breakpoint changes, and clears when leaving brick detail.
-
-The page layout keeps site/page drafts, `MainColumns`, the grid, and the Library
-session mounted. `EditorLayout` also owns the persistent bottom drawer shell.
+The page layout keeps site/page settings drafts, `MainColumns`, the empty
+preview frames, and the authenticated user session mounted. `EditorLayout` also
+owns the persistent bottom drawer shell.
 Matched route IDs determine its `open` state through a pathless drawer layout;
 catalog and module-detail routes are sibling leaves. The common drawer layout
 renders `DrawerHeader`, which owns catalog breadcrumbs, the brick-detail
 heading **Update your {collectionName} brick**, the left-side underlined
-**← New brick** catalog link and **/** separator, publication actions, and
+**← Bricks** catalog link and **/** separator, publication actions, and
 Close or settings Save/Cancel. `Toolbars` uses matched route IDs to choose the
 route's controls.
 
-The drawer occupies the bottom `50dvh` on desktop and mobile. While it is open, the browser frame ends 32px above it, matching the frame's 32px top gap. The page scroll region and wall minimum height shrink with the frame. On opening, closing, and viewport-height changes, the active page within 1px of the bottom follows the new bottom; other offsets are preserved and clamped. Initial deep links do not force a bottom scroll. Height and scroll corrections are immediate, and later content growth does not trigger bottom following.
+The drawer occupies the bottom `50dvh` on desktop and mobile. While it is open,
+the browser frame ends 32px above it, matching the frame's 32px top gap. The
+empty page preview shrinks with the frame. Grid gesture and scroll-compensation
+handling is removed.
 
-On catalog, module-detail, and brick-detail routes, **sm / md / lg / xl** sit on the right side of the drawer
-header beside the publication controls. The header wraps its actions onto a second
-row when needed. These select **360 / 720 / 1080 / 1440px** fixed-width walls;
-widths larger than the available composition are disabled. The four walls stay
+On catalog, module-detail, and brick-detail routes, **sm / md / lg / xl** sit on
+the right side of the drawer header beside publication controls. The header wraps
+its actions when needed. These select **360 / 720 / 1080 / 1440px** browser frames;
+widths larger than the available composition are disabled. Four frames stay
 mounted around one editor session on every editor route. Page and Site Settings
 display no breakpoint selector. The separate `/breakpoints` route retains its
-floating controls and close action. Selection survives drawer navigation and
-returns when it fits again; otherwise the largest fitting wall is displayed.
-Catalog drags and wall drag/resize gestures defer the displayed change until
-completion. Below 360px, the insufficient-width message appears after any active
-gesture ends and a fitting wall returns immediately when space recovers.
+floating controls and close action. The selected breakpoint returns when it fits;
+otherwise the largest fitting frame is displayed. Below 360px, the
+insufficient-width message appears. Catalog previews follow the active width.
 
-The preview area contains four centered fixed-width walls. Each browser frame owns
-its page's vertical scroll region, with the scrollbar hidden and scroll chaining
-contained. The surrounding workspace and browser chrome stay in place. Each
-breakpoint retains its own scroll position. Page Settings retains title/description
-Save/Cancel, and Site Settings keeps its existing persistence. Brick previews follow
-the active wall width. There is no article, Compose route, or scrolling-mode setting.
+`WallBreakpointPane` adds a 48px muted-gray browser header and thin inset frame.
+sm/md show a Safari-like mobile address pill; lg/xl show desktop window dots and a
+centered address bar. Both display static `qrk.sh`, remain noninteractive, and
+are hidden from assistive technology. Chrome slides with its breakpoint pane;
+reduced motion skips the slide. Every frame body is an empty white region with
+no navbar, brick renderer, Tree, placeholder, or page-name node.
 
-The shared `WallBreakpointPane` adds a 48px muted-gray browser header and thin
-inset frame. sm/md show a Safari-like mobile address pill; lg/xl show desktop
-window dots and a centered address bar. Both display static `qrk.sh` and remain
-noninteractive and hidden from assistive technology. Chrome slides with its
-breakpoint pane but stays outside the page's scroll region. It preserves its
-exact 360/720/1080/1440px content width, and allows resize handles and dragged
-surfaces to overflow into surrounding gutters. Brick content stays clipped by
-its own wrapper. Editor boundaries still clip overflow at exact-fit widths;
-breakpoint fitting reserves no extra gutters. The 64px site navbar scrolls with the
-page inside the frame, including drag-scroll compensation. Inactive panes keep their navbar
-copies hidden or inert with the rest of the pane. The frame holder adds 32px
-above the frame and, while the drawer is closed, 43px below it, so the frame
-bottom bisects the 38px floating toolbar (which remains 24px from the viewport
-bottom). It sets
-`--wall-top-offset: calc(2rem + 1.5rem + (1.75rem + 0.5rem + 2px) / 2)` to account for the combined padding;
-opening the drawer overrides this to `calc(50dvh + 4rem)` for the drawer and equal
-32px gaps. The page scroll region subtracts that spacing and the 48px browser bar
-from the viewport height. App overrides the pane's default
-`--wall-chrome-height: 3rem` to `7rem` around the navbar and wall, accounting for
-the 48px browser bar and 64px navbar.
-`BrickWall` subtracts both inherited offsets from its viewport minimum height,
-with 3.5rem and zero fallbacks respectively, so an empty wall adds no scrolling
-and drawer scroll anchoring is preserved.
+The frame holder adds 32px above the frame and, while the drawer is closed, 43px
+below it, so the frame bottom bisects the 38px floating toolbar, which remains
+24px from the viewport bottom. `--wall-top-offset` accounts for that spacing;
+opening the drawer changes it to `calc(50dvh + 4rem)`. The page preview height
+subtracts this offset and only the 48px browser header. No navbar offset remains.
 
 App imports the shared `Drawer` from `@qrk.sh/library/Drawer` and passes
 `open`. Its shell slides with a 300ms CSS transform; editor height and padding
@@ -350,17 +337,17 @@ Public website rendering and history browsing/restoration are deferred.
 
 The modules catalog uses `@qrk.sh/library/ModuleFilmstrip`, the same horizontal
 filmstrip as Library. Each module column scrolls vertically beneath its full-width
-sticky heading; previews use the active breakpoint and shared drag payload.
+sticky heading; previews use the active breakpoint and retain their sizing.
 App supplies typed Router links to its
 `/modules/$moduleId` detail routes. The catalog lives at `/modules` under the
-page editor, with a **Drag a brick onto your page** breadcrumb and the **Add bricks** toolbar action.
+page editor, with a **Bricks** breadcrumb and **Bricks** toolbar action.
+Catalogs and module details are browsing surfaces with no insertion or drag behavior.
 The previous catalog URLs are removed without redirects.
 
-Module definitions own per-page brick limits: Article allows one and Instagram
-allows two. Catalog and module detail previews show the maximum and disable new
-drags when reached. Counts use all bricks on the page's wall, including hidden
-and unconfigured bricks, independently of the active breakpoint. Removing a
-brick frees capacity; the shared `addBrick` guard also rejects excess additions.
+Module definitions retain per-page limit metadata: Article declares one and
+Instagram two. Catalog and module detail previews display that metadata without
+querying page counts or gating browsing. The grid insertion, removal, layout,
+compaction, and visibility commands are removed; no replacement API is introduced.
 
 ## Verification
 
@@ -434,7 +421,7 @@ evidence is recorded in
 
 ## Article editing in the detail drawer
 
-App routes brick activation to the detail drawer and renders the selected Library module's `Form` without an enclosing form. All ten registered bricks expose a form: Image, Article, GitHub Profile, GitHub Repo, GitHub Activity, Figma Thumbnail, Instagram, Link, Map Place, and Swatch and Icon. The shared contract supplies decoded `state` or `null`, initialized session and brick identity, synchronous `onSave(state): IResult`, and `onCancel(): void`. Unconfigured provider bricks receive genuine `null` and show blank source inputs. Image provides a dropzone and file picker above its Image URL and Title fields. Article uses Meowdown in Hybrid mode with native shortcuts, slash/link controls, and block handles in the existing centered writing column; it has no formatting toolbar or mode switcher. App still suppresses the shared **Edit article** wall action and has no brick visibility control. Article state has separate required title/subtitle strings and nullable Markdown content; generated ArticleBrick specs bind all three fields. This hard cutover adds no JSON conversion or compatibility reader. Catalog previews use Meowdown's read-only MarkdownView without an editor.
+App retains the brick-detail route and renders the selected Library module's `Form` without an enclosing form. All ten registered bricks expose a form: Image, Article, GitHub Profile, GitHub Repo, GitHub Activity, Figma Thumbnail, Instagram, Link, Map Place, and Swatch and Icon. The shared contract supplies decoded `state` or `null`, initialized session and brick identity, synchronous `onSave(state): IResult`, and `onCancel(): void`. Unconfigured provider bricks receive genuine `null` and show blank source inputs. Image provides a dropzone and file picker above its Image URL and Title fields. Article uses Meowdown in Hybrid mode with native shortcuts, slash/link controls, and block handles in the existing centered writing column; it has no formatting toolbar or mode switcher. Article state has separate required title/subtitle strings and nullable Markdown content; generated ArticleBrick specs bind all three fields. This hard cutover adds no JSON conversion or compatibility reader. Catalog previews use Meowdown's read-only MarkdownView without an editor.
 
 Modules own unsaved drafts and validation. Provider forms stage their module's configuration command synchronously and render resolution status/error from the brick query. The user-session owner composes module-owned local executors, which call the existing same-origin API and stage revision-guarded completions. Closing an editor discards its draft while accepted work continues for the session lifetime; session replacement ignores late results. No server durability guarantee is added. Ordinary Article/Image/Swatch saves preserve the actual local staging result, clear drafts only on success, and render optimism/rollback through the query. Article remounts its editor on Cancel; its portaled link form does not submit the Article form. Page and Site Settings retain their existing commands.
 
@@ -442,18 +429,13 @@ The detail drawer provides one centered column around the module-owned form and 
 Image uses stacked shadcn inputs that fill that column; its actions sit below
 the fields at the same left edge and wrap when needed.
 
-Each Page references its own Library wall, created atomically by `createPage` with ID `prefixId(libraryModule.models.wall, pageId)`. The grid and brick drawer scope queries to that wall. `ZerospinUserProvider` owns session initialization and disposal. Its inner Suspense boundary encloses every session reader so the initializer can commit and start while readers wait; `UserLayout` also gates editor content. Changing pages does not dispose the user session.
+Each Page references its own Library wall, created atomically by `createPage` with ID `prefixId(libraryModule.models.wall, pageId)`. The brick drawer scopes its queries to that wall; the empty frames query no wall content. `ZerospinUserProvider` owns session initialization and disposal. Its inner Suspense boundary encloses every session reader so the initializer can commit and start while readers wait; `UserLayout` also gates editor content. Changing pages does not dispose the user session.
 
-This is a fresh-content cutover: legacy grid/brick rows and old Article JSON are
-not migrated. Back up local backend storage before starting current declarations;
-use a fresh local browser origin while preserving existing origin databases and
-Clerk cookies. Installed Zerospin browser runtimes can reset incompatible node
-tables during initialization, so do not reopen rebuilt apps on preserved origins.
-
-Article bricks use normal grid resizing and keep their saved height regardless of
-content, image loads, or width changes. Their module-owned white shell fills the
-placement and clips overflowing content. Content remains shared across breakpoints;
-placement sizes remain separate per breakpoint.
+Wall, Brick, and Placement schemas and publication snapshots remain unchanged.
+Shared module content and breakpoint-specific placement data remain available to
+editing and publication; phase 1 supplies no placed-brick rendering or resizing.
+Old Article JSON has no converter or compatibility reader. The approved local
+fresh start is described above; deployed data is not migrated or reset.
 
 Provider forms edit sources rather than fetched metadata. Link retains submitted input separately from the resolved URL. Map Place stages a chosen suggestion ID while autocomplete remains transient. Swatch and Icon saves the selected search result's SVG and hex color with no additional lookup. Figma measures ready content at all four breakpoints and writes dimensions only when captured state/spec revisions still match.
 
@@ -465,4 +447,4 @@ Drop or choose one nonempty PNG, JPEG, WebP, or SVG up to 5 MiB in the Image dra
 
 Set `NEXT_PUBLIC_API_URL` to the unified API Worker origin; production uses `https://api.qrk.sh`, and local development uses `https://api.qrk.localhost`. Root `pnpm dev` starts API alongside App. The API Worker verifies the Clerk bearer token using `CLERK_SECRET_KEY` and `CLERK_AUTHORIZED_PARTY`, stores the bytes in its `QRKSH` R2 binding, and returns a URL built from `R2_PUBLIC_BASE_URL`. The configured authorized party and CORS origins must match the browser origin: `https://app.qrk.localhost` locally and `https://app.qrk.sh` in production. New local upload URLs use `https://api.qrk.localhost/assets`; production uses `https://api.qrk.sh/assets`. `/assets/library/*` uses its `ASSETS` bucket. No public R2 bucket hostname is required. Clerk secrets stay on the Worker.
 
-Uploads write assets to R2 immediately. Cancel after an upload completes, or removing an image, does not delete the R2 object. File bytes and upload status are not part of the local brick backup. Article uploads remain disabled because its editor has no file-persistence handler; HTTP(S) Markdown images render and native resizing saves dimensions in Markdown comments. Automatic YouTube/X embeds and provider requests are disabled. Article documents are not converted; preserve old browser stores before the approved fresh-origin cutover.
+Uploads write assets to R2 immediately. Cancel after an upload completes, or removing an image, does not delete the R2 object. File bytes and upload status are not part of the local brick backup. Article uploads remain disabled because its editor has no file-persistence handler; HTTP(S) Markdown images render and native resizing saves dimensions in Markdown comments. Automatic YouTube/X embeds and provider requests are disabled. Article documents are not converted.

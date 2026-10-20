@@ -1,53 +1,44 @@
-# Brick layout conventions
+# Brick preview and editor conventions
 
-**updated:** 2026-10-03
+**updated:** 2026-10-20
 
-## Grid identity
+## Empty browser frames
 
-- Placed bricks expose `data-brick="{moduleId}"` and `data-brick-id="{brickId}"`.
-- Drawer / filmstrip drag sources use `data-brick-drawer-brick-slot` and
-  `data-brick-drawer-module-id`.
-- Scroll containers that freeze during RGL drag use `data-brick-scroll-root`.
+App's page editor and standalone Library keep four browser frames at
+360 / 720 / 1080 / 1440px for `sm` / `md` / `lg` / `xl`. Their shared
+`WallBreakpointPane` owns the 48px decorative browser bar and breakpoint slide.
+Every frame body is an empty white region. No site navbar, placed-brick renderer,
+Tree, placeholder, or page-name node is included in phase 1.
 
-## Session-backed walls
+The viewport provider retains breakpoint fitting and selection. Catalog previews
+follow the active breakpoint. Drag gesture state, grid scroll compensation, and
+navbar offsets are removed; drawer sizing and transitions remain.
 
-Library `LibraryLayout` and App's page editor render
-[`BrickWall`](../apps/library/lib/BrickWall.tsx) against sessions exposing
-`libraryModule` models and contracts:
+## Browse-only catalogs
 
-- Library initializes module-level `librarySession` with
-  `useInitializeStandaloneSession` and gates on `isInitialized`. Its
-  `qrk-library` backup stores `wal_library`, seeded through
-  `prefixId(libraryModule.models.wall, "library")`.
-- App uses authenticated live `userSession` and the current page's `wallId`.
-  `JSON.stringify(["app", user.id, siteId, pageId])` keys its viewport provider,
-  not a standalone session or per-page backup.
-- Library reset calls `session.reset()` to replace its saved document with
-  the original seeds; App data remains separate.
-- Drop / move / resize / remove / compact: aggregate contracts via
-  `stageCommand`. No Zustand `bricksById` wall state.
-- `verticalCompactor` on the grid packs drag/resize feedback. Module contracts
-  compact saved geometry: add/show after collision resolution, layout updates
-  before saving, hide at its breakpoint, and remove at all four breakpoints.
-- Mounted walls normalize existing gaps through `compactLayoutAtBreakpoint`,
-  including inactive panes. Compare geometry by brick ID and stage only changes;
-  defer during grid gestures or catalog drags and report failures without retrying
-  unchanged input. There is no manual **Compact layout** toolbar action.
-- Add snapshots retain stored geometry, not compacted grid-preview positions.
-  Hide/remove derive visible survivors from stored rows, explicitly excluding
-  the target because emitted operations accumulate before application.
-  Skip unchanged placement writes and preserve hidden geometry and Specs.
+The **Bricks** catalog and module detail routes retain previews, module metadata,
+forms, and links. Active-breakpoint measurement and declared/minimum sizing
+remain for previews. They have no drag attributes, payload store, insertion
+gating, or all-breakpoint drag measurements.
 
-Transient HTML5 drag payload only: `brickDragStore` (`brickDef` /
-`setBrickDef`). See [LibraryBrickDrop](./architecture/browser/LibraryBrickDrop.md).
-Placement `gridItem` decode/strip: [LibraryGridItem](./architecture/browser/LibraryGridItem.md).
+`GridItemPreview` remains a sizing primitive; its name does not imply an installed
+grid renderer. Module-owned interactions, including image-upload drag/drop, remain.
 
-## Breakpoints
+## Retained models and ownership
 
-`sm` / `md` / `lg` / `xl` each have their own placement row (grid item + Spec +
-visibility). Shared module state lives on the brick row.
+- Each Page references a Library Wall created atomically by `createPage`.
+- Shared module state lives on Brick. Placement retains breakpoint-specific
+  `gridItem`, Spec, visibility, and nullable pixel measurements.
+- App's brick detail scopes live queries to the current page's wall and uses
+  the authenticated user session. Frame rendering queries no wall content.
+- Library retains its standalone session and the
+  `/qrk-library-command-query-v1` backup path. Session owners stay mounted
+  across child routes; settings drafts and viewport preferences remain separate.
+- `updateBrick`, module configuration/completion, spec generation, and measurement
+  behavior remain. Grid insertion, removal, layout, compaction, and visibility
+  commands are removed without replacement APIs.
+- QRK owns publication snapshots and history; the retained placement schemas
+  continue to participate in serialization.
 
-## App detail
-
-Brick detail reads brick + placement with `useLiveQuery` on the same live
-`userSession` as the page wall.
+The obsolete grid drop and grid-item workflow documents are retired. Historical
+research and archived plans remain records of the former implementation.

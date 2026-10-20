@@ -3,7 +3,6 @@
 @import url("https://fonts.googleapis.com/css2?family=Fragment+Mono:ital@0;1&display=swap");
 @import "tailwindcss";
 @import "../bricks.css";
-@import "react-grid-layout/css/styles.css";
 @source "../**/*.{ts,tsx}";
 @source "../../web/library/**/*.{ts,tsx}";
 
@@ -118,15 +117,4 @@ body {
 a {
   text-decoration: underline;
   text-underline-offset: 0.2em;
-}
-
-/* Keep every brick's content below drag/resize chrome. */
-.brick-drag-surface {
-  position: relative;
-  isolation: isolate;
-  cursor: grab;
-}
-
-.brick-drag-surface:active {
-  cursor: grabbing;
 }

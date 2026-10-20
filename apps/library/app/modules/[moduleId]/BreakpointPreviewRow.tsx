@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 
 import type { Spec } from "@json-render/core";
 import { cn } from "cn";
@@ -8,8 +8,6 @@ import { OrderedSection } from "@qrk.sh/web/library/OrderedDoc";
 import { MeasuredBrickWrapper } from "../../../components/brick/MeasuredBrickWrapper";
 import { GridItemPreview } from "../../../lib/GridItemPreview";
 import { BREAKPOINTS, minGridUnits } from "../../../lib/breakpoints";
-import { brickDragStore } from "../../../lib/brickDragStore";
-import type { IDraggedBrick } from "../../../lib/brickDragStore";
 import { modulesHash } from "../../../lib/modulesHash";
 
 export function BreakpointPreviewRow(props: {
@@ -17,15 +15,12 @@ export function BreakpointPreviewRow(props: {
   moduleId: keyof typeof modulesHash;
   brick: (typeof modulesHash)[keyof typeof modulesHash];
   moduleState: unknown;
-  moduleCount: number;
   BrickComponent: (typeof modulesHash)[keyof typeof modulesHash]["component"];
   className?: string;
   specs: Record<(typeof BREAKPOINTS)[number]["id"], Spec>;
 }) {
-  const { entry, moduleId, brick, moduleState, moduleCount, BrickComponent, className, specs } =
-    props;
+  const { entry, moduleId, brick, moduleState, BrickComponent, className, specs } = props;
   const maxPerPage = brick.maxPerPage;
-  const limitReached = maxPerPage !== undefined && moduleCount >= maxPerPage;
   const [measurement, setMeasurement] = useState<{
     state: unknown;
     specs: typeof specs;
@@ -33,21 +28,6 @@ export function BreakpointPreviewRow(props: {
       Record<(typeof BREAKPOINTS)[number]["id"], { widthPx: number; heightPx: number }>
     >;
   }>();
-  const published = useRef<IDraggedBrick | null>(null);
-  useEffect(
-    () => () => {
-      if (published.current !== null && brickDragStore.getState().brickDef === published.current) {
-        brickDragStore.getState().setBrickDef(null);
-      }
-    },
-    [],
-  );
-  function clearPublished() {
-    if (published.current !== null && brickDragStore.getState().brickDef === published.current) {
-      brickDragStore.getState().setBrickDef(null);
-    }
-    published.current = null;
-  }
   const dimensions =
     measurement !== undefined && measurement.state === moduleState && measurement.specs === specs
       ? measurement.dimensions
@@ -87,77 +67,21 @@ export function BreakpointPreviewRow(props: {
   const measuredH = intrinsicSize
     ? minGridUnits(entry.gridItemWidth, intrinsicSize.heightPx)
     : undefined;
-  const dragW = hasDeclaredSize ? declaredW : Math.min(8, Math.max(measuredW ?? 1, view.minW ?? 1));
-  const dragH = hasDeclaredSize ? declaredH : Math.max(measuredH ?? 1, view.minH ?? 1);
-  const sizes = BREAKPOINTS.map((breakpointEntry) => {
-    const breakpointView = brick.viewFor(breakpointEntry.id);
-    const measured = dimensions[breakpointEntry.id];
-    return breakpointView.w !== undefined && breakpointView.h !== undefined
-      ? { w: breakpointView.w, h: breakpointView.h }
-      : measured === undefined
-        ? undefined
-        : {
-            w: Math.min(
-              8,
-              Math.max(
-                minGridUnits(breakpointEntry.gridItemWidth, measured.widthPx),
-                breakpointView.minW ?? 1,
-              ),
-            ),
-            h: Math.max(
-              minGridUnits(breakpointEntry.gridItemWidth, measured.heightPx),
-              breakpointView.minH ?? 1,
-            ),
-          };
-  });
-  const placementSizes =
-    sizes[0] && sizes[1] && sizes[2] && sizes[3]
-      ? { sm: sizes[0], md: sizes[1], lg: sizes[2], xl: sizes[3] }
-      : null;
+  const previewW = hasDeclaredSize
+    ? declaredW
+    : Math.min(8, Math.max(measuredW ?? 1, view.minW ?? 1));
+  const previewH = hasDeclaredSize ? declaredH : Math.max(measuredH ?? 1, view.minH ?? 1);
   const exceedsWallWidth = hasDeclaredSize
     ? declaredW > 8
     : measuredW !== undefined && measuredW > 8;
 
   const previewSurface = (
     <div
-      className="size-full qrk-bricks brick-drag-surface overflow-hidden"
+      className="size-full qrk-bricks overflow-hidden"
       data-module-brick={moduleId}
       data-testid="brick-preview"
-      aria-disabled={limitReached}
-      title={limitReached ? "Limit reached. Remove one to add another." : undefined}
-      draggable={placementSizes !== null && !limitReached}
-      onDragStart={(event) => {
-        if (placementSizes === null || limitReached) {
-          event.preventDefault();
-          return;
-        }
-        const payload = {
-          ...brick.def,
-          w: dragW,
-          h: dragH,
-          placementSizes,
-          state: structuredClone(moduleState),
-          spec: structuredClone(spec),
-        };
-        published.current = payload;
-        brickDragStore.getState().setBrickDef(payload);
-        const surface = event.currentTarget;
-        if (surface) {
-          const bounds = surface.getBoundingClientRect();
-          event.dataTransfer.setDragImage(
-            surface,
-            event.clientX - bounds.left,
-            event.clientY - bounds.top,
-          );
-        }
-        event.dataTransfer.effectAllowed = "copy";
-        event.dataTransfer.setData("text/plain", brick.def.moduleId);
-      }}
-      onDragEnd={clearPublished}
     >
-      <div className="brick-drag-content size-full select-none">
-        <BrickComponent breakpoint={entry.id} state={moduleState} spec={spec} />
-      </div>
+      <BrickComponent breakpoint={entry.id} state={moduleState} spec={spec} />
     </div>
   );
 
@@ -173,15 +97,14 @@ export function BreakpointPreviewRow(props: {
             {maxPerPage !== undefined ? (
               <p className="mb-3 mt-0 max-w-64 text-sm text-neutral-500">
                 Limit: {maxPerPage} per page.
-                {limitReached ? " Limit reached. Remove one to add another." : ""}
               </p>
             ) : null}
-            <GridItemPreview breakpoint={entry.id} w={dragW} h={dragH}>
+            <GridItemPreview breakpoint={entry.id} w={previewW} h={previewH}>
               {previewSurface}
             </GridItemPreview>
             {hasDeclaredSize || (measuredW !== undefined && measuredH !== undefined) ? (
               <p className="m-0 pt-2 font-mono text-neutral-500">
-                w={dragW} h={dragH}
+                w={previewW} h={previewH}
               </p>
             ) : null}
           </div>
@@ -190,29 +113,6 @@ export function BreakpointPreviewRow(props: {
             <MeasuredBrickWrapper onChange={(size) => onSizeChange(entry.id, size)}>
               <BrickComponent breakpoint={entry.id} state={moduleState} spec={spec} />
             </MeasuredBrickWrapper>
-            <div
-              aria-hidden
-              className="pointer-events-none absolute overflow-hidden"
-              style={{ width: 0, height: 0 }}
-            >
-              {BREAKPOINTS.map((breakpointEntry) => {
-                if (breakpointEntry.id === entry.id) return null;
-                const breakpointView = brick.viewFor(breakpointEntry.id);
-                if (breakpointView.w !== undefined && breakpointView.h !== undefined) return null;
-                return (
-                  <MeasuredBrickWrapper
-                    key={breakpointEntry.id}
-                    onChange={(size) => onSizeChange(breakpointEntry.id, size)}
-                  >
-                    <BrickComponent
-                      breakpoint={breakpointEntry.id}
-                      state={moduleState}
-                      spec={specs[breakpointEntry.id]}
-                    />
-                  </MeasuredBrickWrapper>
-                );
-              })}
-            </div>
             {intrinsicSize !== undefined ? (
               <p className="m-0 pt-2 font-mono text-neutral-500">
                 {intrinsicSize.widthPx}×{intrinsicSize.heightPx}px

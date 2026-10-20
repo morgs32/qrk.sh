@@ -84,18 +84,17 @@ empty wall. Query-only draft keys and cancellation on unmount were reviewed
 in source. Completed migration verification is recorded in
 [Plan 029](../../wiki/archive/plans/029-plan-tanstack-start.md).
 
-Old standalone backups can reject the current SQLite schema. For manual checks
-with empty storage, the Portless origin
-`https://library.qrk.localhost/` is separate from earlier HTTP origins in the
-existing Chrome profile. It preserves backups on `localhost:4100`,
-`127.0.0.1:4100`, `qrk-package-cutover.localhost:4100`, and the earlier
-`https://library.qrk.localhost:1355` origin; it does not migrate
-their rows. Once used, the HTTPS origin retains its own storage between runs.
+Phase 1 removes the grid contracts against fresh local content. Its approved
+one-time local cutover deletes only the standalone IndexedDB database derived
+from `/qrk-library-command-query-v1`, without a backup or a backup-path change.
+App's matching local session databases and backend state are reset separately.
+Earlier origins, unrelated databases, cookies, localStorage preferences, uploads,
+and deployed storage are preserved. This does not authorize future resets.
 
 The development UI routes are
 `/`, `/modules`, `/modules/$moduleId`, `/bricks/$brickId`, and
 `/bricks/$brickId/admin`. Typed Router navigation
-retains the wall, drawer, standalone session, and viewport providers; route-specific
+retains the empty browser frames, drawer, standalone session, and viewport providers; route-specific
 module and brick drafts keep their existing remount boundaries. The document title
 remains `QRK.SH Library`, with diagnostic error and not-found screens.
 
@@ -110,13 +109,13 @@ only while status is not `failed`; remounting does not replay a previous error.
 Unexpected spec-generation executor failures report through
 `session.reportFailure`.
 
-The initializer, wall, and viewport owners sit above the route outlet and stay
+The initializer, browser frames, and viewport owners sit above the route outlet and stay
 mounted across child navigation. Route params keep their Effect Schema
 validation and draft keys. A local React measurement error boundary replaces
 the Next boundary in admin pre-save measurement; rendering failures reject
 Save and cancellation still disposes the pending measurement.
 
-The root layout mounts the shared `ZerospinDevtoolsLoader` in every environment with the panel initially closed. It stays mounted across route navigation and standalone-session resets, and owns cleanup when the application unmounts.
+The root layout mounts the shared `ZerospinDevtoolsLoader` in every environment with the panel initially closed. It stays mounted across route navigation, and owns cleanup when the application unmounts.
 
 ## Brick forms
 
@@ -260,13 +259,11 @@ in the final named layer.
 | `/backendLibrary`                 | `backendLibrary.ts`                          | Module catalog registry used by API generation            |
 | `/ModuleFilmstrip`                | `lib/ModuleFilmstrip.tsx`                    | Shared horizontal module catalog                          |
 | `/Drawer`                         | `lib/Drawer.tsx`                             | Shared Drawer and existing DrawerPresence                 |
-| `/BrickWall`                      | `lib/BrickWall.tsx`                          | Interactive wall                                          |
-| `/BrickCardStyleContext`          | `lib/BrickCardStyleContext.ts`               | Local boolean appearance shared by wall and previews      |
+| `/BrickCardStyleContext`          | `lib/BrickCardStyleContext.ts`               | Local boolean catalog-preview appearance                  |
 | `/GridItemPreview`                | `lib/GridItemPreview.tsx`                    | Preview geometry                                          |
 | `/WallViewportProvider`           | `lib/WallViewportProvider.tsx`               | Viewport provider and hooks                               |
-| `/WallBreakpointPane`             | `lib/WallBreakpointPane.tsx`                 | Shared fixed-width wall pane with browser chrome          |
+| `/WallBreakpointPane`             | `lib/WallBreakpointPane.tsx`                 | Shared fixed-width browser frame                          |
 | `/breakpoints`                    | `lib/breakpoints.ts`                         | Breakpoint definitions and sizing                         |
-| `/brickDragStore`                 | `lib/brickDragStore.ts`                      | Shared drag state                                         |
 | `/ImageUploadEnvironment`         | `modules/image/ImageUploadEnvironment.ts`    | Host-supplied file upload Effect returning an image URL   |
 | `/ImageUploadRuntimeContext`      | `modules/image/ImageUploadRuntimeContext.ts` | Image's runner bound to the existing app session          |
 | `/MeasuredBrickWrapper`           | `components/brick/MeasuredBrickWrapper.tsx`  | Content measurement                                       |
@@ -291,62 +288,39 @@ its exit-only native View Transition managed by TanStack Router. Existing Drawer
 optional Motion/flow behavior. Drawer does not own routing, breadcrumbs, or
 settings actions. This replaces plan 007's animated grid-row reservation.
 
-Library's grid controls float 24px above the open drawer. Closing the drawer
+Library's preview controls float 24px above the open drawer. Closing the drawer
 restores their usual position; their desktop movement follows the drawer's
 300ms transition and skips animation for reduced motion.
 
-Library and App share `ModuleFilmstrip`, including module previews, four-breakpoint
-measurement, and `DraggableBrick`. Each app supplies its own module links through
-`renderModuleLink`; the shared catalog has no router dependency. Columns scroll
-vertically within a horizontal strip. Module headings span their columns edge
-to edge and stick to the top while previews scroll underneath. Module detail
-screens remain app-owned.
+Library and App share `ModuleFilmstrip` and browse-only module previews. Each app
+supplies its own module links through `renderModuleLink`; the shared catalog has
+no router dependency. Columns scroll vertically within a horizontal strip.
+Module headings span their columns and stick to the top while previews scroll
+underneath. The active breakpoint's measurement remains for preview sizing;
+drag-only measurements, drag sources, payloads, and insertion gating are removed.
+Module detail screens remain app-owned. Their catalog label is **Bricks**.
 
 ## Local card appearance spike
 
-The **Cards** button in Library's grid controls and App's upper-right corner
-toggles one local boolean through `BrickCardStyleContext`. Its provider covers
-the wall and drawer previews; no module catalog or registry appearance props are
-added. The flag starts `false`, survives drawer navigation while its layout stays
-mounted, and is not persisted on Site, Page, or in localStorage.
+The **Cards** button in Library's preview controls and App's upper-right corner
+toggles one local boolean through `BrickCardStyleContext`. It affects catalog
+previews without adding module catalog or registry props. The flag starts
+`false`, survives drawer navigation while its layout stays mounted, and is not
+persisted on Site, Page, or in localStorage.
 
-The default mode draws touching bricks with one shared 1px `var(--border)` rule,
-matching the site navbar's bottom border color.
-Overlapping strokes use the same pixels; the wall's right/bottom perimeter and
-standalone preview frames stay inside their boxes. Card mode uses RGL's native
-16px margins and 16px container padding, producing one 16px gap between cards
-and at the wall perimeter. Each card surface fills its RGL slot, with no extra
-inset. Cards use an 8px radius, white background, and the preview shadow on the
-surface. Module content retains its own padding, backgrounds, and media layout.
-See [the shared-border research](../../wiki/research/react-grid-layout-shared-borders.md)
-and [card geometry](../../wiki/research/page-brick-card-styling.md).
-
-For wall width `W`, card-mode pitch is `(W - 16) / 8` and row height is
-`pitch - 16`, keeping unit cards square. Fixed previews use
-`round(w * pitch - 16)` by `round(h * pitch - 16)`; default mode retains `W / 8`
-pitch with zero margins/padding. Drag hit targets, resize outlines, and handles
-follow the native RGL card slot. Stored logical coordinates and dimensions,
-minimum-unit conversion, and measurement callbacks remain unchanged. Intrinsic
-previews measure the original content root with no extra decorative padding.
-Existing fixed-size content can clip in the smaller card-mode slot. This remains
-a local visual spike.
+Fixed previews retain their sizing: for breakpoint width `W`, card-mode pitch
+is `(W - 16) / 8`, and a `w` by `h` preview is
+`round(w * pitch - 16)` by `round(h * pitch - 16)`. Default mode uses `W / 8`
+with no gap. Cards use an 8px radius, white background, and preview shadow.
+Intrinsic probes measure undecorated module content. Historical grid-border
+and card-layout research remains under `wiki/research/`; no placed-brick wall
+or React Grid Layout renderer remains.
 
 ## Modules and interaction
 
-Wall bricks show a 2px dark border when selected. Flat wall selection outlines
-follow the shared grid border's 1px right/bottom extension, keeping the wall
-perimeter inside its box. Cards and standalone previews keep their inset outline.
-Their cells, surfaces, and resize handles stay stationary, with no hover lift,
-outward shadow, or transition. Pointer hover shows resize handles without the
-border. Keyboard focus inside a brick does not draw the brick border.
-A real drag or resize shows the black square outline on the active brick; idle
-neighbors pause selection chrome and hide their handles until the gesture ends.
-Resize handles stay hidden during dragging, and only the resizing brick keeps
-its handles until the gesture ends.
-Intrinsic measurement hosts retain their existing sizing behavior.
-
-A successful catalog drop calls `BrickWall.onBrickActivate` for the new brick,
-opening the consuming app's detail drawer. Failed drops do not activate a brick.
+Catalog previews retain module rendering and intrinsic measurement. They do not
+insert, select, drag, or resize placed bricks. Ordinary links, forms, image
+upload drag/drop, and module-owned interactions remain available.
 
 GitHub Activity constrains its calendar to the brick shell's available width.
 Only the contribution grid and month labels scroll horizontally; Mon/Wed/Fri
@@ -360,22 +334,17 @@ manual scrolling keeps the chosen position.
 `modulesHash` exposes each library module by its registered kebab-case id, with
 no arbitrary-string index signature. Module URLs decode their ID against the
 brick model enum before rendering the module page; unknown IDs remain 404s.
-Internal previews, state updates, and drag callbacks retain the registered ID union.
+Internal previews and state updates retain the registered ID union.
 `defineModule` declares identity; `makeModuleVersion` owns the catalog, `stateShape`,
 and `defaultState`. `makeModuleView` infers authored callback props from that state
 shape and decodes incoming state before rendering, discarding undeclared fields.
-Its authored wrappers are created once and reused by previews and placed bricks.
+Its authored wrappers are created once and reused by module rendering and previews.
 It also attaches a json-render `generator` (`registry` + `defaultSpec`).
 
-`defineModule` accepts optional `maxPerPage`, a positive integer; omission means
-unlimited. Article declares `1` and Instagram declares `2`. The limit counts brick
-records with the same `wallId` and module ID, including hidden and unconfigured
-bricks, once across all breakpoints. Catalog and module detail previews show the
-limit and disable dragging when it is reached; the wall also refuses excess
-drops. `addBrick` enforces the same rule with
-`add-brick-module-limit-reached` (409). Removing a brick frees capacity. Existing
-over-limit pages keep their content and cannot add that module until below its
-limit.
+`defineModule` retains optional `maxPerPage` metadata, a positive integer;
+omission means unlimited. Article declares `1` and Instagram declares `2`.
+Catalog and module detail previews display the limit. Phase 1 has no insertion
+path, page-count query, or limit-based interaction gating.
 
 Modules can opt into unconfigured bricks with `hasPlaceholder: true` in
 `makeModuleVersion` and a matching display-only `default.placeholder` in
@@ -405,38 +374,36 @@ placeholder() {
 Image, GitHub Activity, GitHub Profile, GitHub Repo, Instagram, Link, and Figma
 Thumbnail opt in. Figma Thumbnail uses its module-owned
 `FigmaThumbnailPlaceholder` with skeleton thumbnail and title, keeping the Figma
-icon and label visible. New drops store `state: null`, while its populated
+icon and label visible. Null state uses this placeholder, while its populated
 `defaultState` remains for catalog previews. Its skeleton respects reduced motion
 and contains no outbound link.
 Link uses its module-owned `LinkPlaceholder` with skeleton icon, URL, title,
-and hero image. New drops store `state: null`, while its populated `defaultState`
+and hero image. Null state uses this placeholder, while its populated `defaultState`
 remains for catalog previews. Its skeleton respects reduced motion and contains
 no outbound link.
 Instagram uses its module-owned `InstagramPlaceholder` with a skeleton four-post
-grid, icon, username, follower count, and follow button. New drops store
-`state: null`, while its populated `defaultState` remains for catalog previews.
+grid, icon, username, follower count, and follow button. Null state uses the
+placeholder, while its populated `defaultState` remains for catalog previews.
 Its skeleton respects reduced motion and contains no outbound link.
 GitHub Repo uses
 its module-owned `GitHubRepoPlaceholder` with skeleton repository name,
-description, stars, forks, and language. New drops store `state: null`, while its
+description, stars, forks, and language. Null state uses the placeholder, while its
 populated `defaultState` remains for catalog previews. Its skeleton respects
 reduced motion.
 GitHub Profile uses its
 module-owned `GitHubProfilePlaceholder` with skeleton avatar, username, profile
-details, and statistics. New drops store `state: null`, while its populated
+details, and statistics. Null state uses this placeholder, while its populated
 `defaultState` remains for catalog previews. Its skeleton respects reduced motion.
 GitHub Activity uses its module-owned
 `GitHubActivityPlaceholder` with skeleton month and weekday labels, contribution
-squares, and legend. New GitHub Activity drops store `state: null`, with no payload
-or contribution data until configured; its populated `defaultState` remains for
+squares, and legend. Null state has no payload or contribution data until
+configured; its populated `defaultState` remains for
 catalog previews. The skeleton respects reduced motion.
 
 The Library drawer's **Display placeholders** checkbox
 starts unchecked and switches eligible catalog previews between their example state
-and placeholder without changing preview measurements or drag data. The choice lasts
-until reload. On a new drop, `BrickWall` stores null for modules with a placeholder
-while preserving the dragged spec and placement sizes; other modules copy the
-dragged state. The shared renderer selects the placeholder only for exact null, before
+and placeholder without changing preview measurements. The choice lasts until
+reload. The shared renderer selects the placeholder only for exact null, before
 state decoding or JSON-render execution. Empty strings, objects, and collections
 still take the normal rendering path. Valid empty specs do not hide placeholders.
 Existing configured bricks are not reset.
@@ -462,48 +429,34 @@ export const bioView = makeComponentView(bioComponent, {
 
 Descriptors stay separate from React implementations so backend module imports
 remain independent of view code. Optional `sm` / `md` / `lg` / `xl` overlays merge onto `default`
-(component, generator, declared `w`/`h`). Grid sizing is measured at preview/drag
-time unless both `w` and `h` are declared on that overlay. Each overlay also accepts
-independently optional `minW` and `minH` in grid units:
+(component, generator, declared `w`/`h`). Preview sizing is measured unless both
+`w` and `h` are declared on that overlay. Each overlay also accepts independently
+optional `minW` and `minH` in the existing sizing units:
 
 ```ts
-sm: { w: 8, h: 4, minW: 4, minH: 2 }, // Initial size and resize minimums.
+sm: { w: 8, h: 4, minW: 4, minH: 2 }, // Declared preview size and minimums.
 md: { minW: 3 }, // Measured width starts at three columns or wider.
 ```
 
-Minimums apply to measured initial sizes and wall resizing, with a one-unit floor
+Minimums apply to measured previews, with a one-unit floor
 when omitted. They do not inherit between breakpoints. Minimums must be positive
 integers, `minW` cannot exceed eight columns, and declared `w`/`h` cannot be below
 their corresponding minimum. Invalid configuration throws during view construction.
-All Library and App previews apply the same sizing rules. The wall derives
-resize constraints from the active module view. Placement grid geometry remains
-separate from its saved pixel measurements.
+All Library and App previews apply the same sizing rules. Retained Placement
+geometry remains separate from saved pixel measurements; there are no wall
+resize controls.
 Link's default width is six columns on sm/md and four on lg/xl. Its heights
 remain four rows on sm/md, two on lg, and one on xl.
 Map Place defaults to four rows at every breakpoint. Article defaults to 8×8
 on sm, 6×6 on md, and 4×4 on lg/xl.
-Existing saved sizes remain unchanged until the user resizes; configuring minimums
-does not automatically enlarge or migrate saved bricks.
+Preview minimums do not enlarge or migrate saved Placement rows.
 
-A new drag waits for
-all four breakpoint defaults; measured widths are limited to the wall's eight
-columns. `addBrick.program` resolves all four layouts using the drop X/Y and each
-breakpoint's own size. The caller supplies `dropPosition`, `placementSizes`, and
-`visibleLayouts` snapshots from session placements; grid-proposed neighbor positions
-are ignored. The guard requires snapshots to match stored visible geometry exactly,
-regardless of array order, and rejects stale snapshots with conflict 409 before mutation.
-The program resolves collisions and vertically compacts each breakpoint before
-validating its output, then creates the brick and four placements and updates only
-visible neighbors whose geometry changed. Hidden and unaffected placements retain
-their geometry. This is a fresh `addBrick` version `1.0.0` baseline with no historical adapter;
-old payloads and pending commands require the authorized document reset. Module defaults,
-preview state, and authored rendering discard undeclared fields during decoding.
-`addBrick` and `updateBrick` validate declared state fields while ignoring extras;
-their programs decode again and persist the decoded state. Both accept and persist
-null only for modules declaring `hasPlaceholder: true`. The existing Library JSON
-state editor can save valid state to replace a placeholder, or null to restore it.
-Invalid declared fields and null for other modules still reject the command before
-mutation. Spec validation remains strict.
+Module defaults, preview state, and authored rendering discard undeclared fields
+during decoding. `updateBrick` validates declared state fields while ignoring
+extras, then persists decoded state. It accepts null only for modules declaring
+`hasPlaceholder: true`. The Library JSON state editor can save valid state to
+replace a placeholder, or null to restore it. Invalid declared fields and null
+for other modules reject the command before mutation. Spec validation remains strict.
 `updateBrick` requires `moduleId`, checked against the stored brick before decoding.
 Pending updates without it must be resubmitted against the current `1.0.0` baseline.
 Existing bricks are normalized on their next state update; there is no bulk migration.
@@ -542,8 +495,8 @@ The initialized content suspends until SQLite is ready. The SPA shell contains
 no initialized session data. The `qrk-library` namespace
 persists the seeded `wal_library` through the SharedWorker's owned IndexedDB VFS.
 Worker identity includes the exact session definition; changed fixed schemas require
-empty storage and do not read or translate deprecated rows. Preserve earlier
-origins and use the fresh-origin check above before the first current start.
+empty affected storage and do not read or translate deprecated rows. The approved
+local phase-1 cutover is described above; the backup path remains unchanged.
 
 The authored worker is imported through Vite's `?sharedworker&url` query and
 bound through `makeApplicationSharedWorker`. Its entrypoint imports
@@ -558,95 +511,46 @@ the initial seed. DevTools defaults to closed and retains its visibility prefere
 App uses its authenticated `UserApp` initialized session, with a separate wall
 referenced by each Page.
 
-Shared consumers (`LibrarySessionContext`, `useLibrarySession`, and `BrickWall`)
+Shared consumers (`LibrarySessionContext` and `useLibrarySession`)
 use `ILibrarySession`, the aggregate-session surface with Library models and contracts.
 It accepts both the standalone Library session and App's larger live user session,
 without requiring standalone initialization or reset methods. The shared
 `libraryModule` exports only models and flat command contracts. Session construction
 owns identity, claims, initialization, and disposal.
 
-Command execution belongs to each app's session lifecycle. Both apps pass
-`stageAggregateSessionCommand` into the shared `BrickWall`. The wall calls that required
-`executeCommand` prop directly. The Library worker executes staged originals locally;
-App's worker admits and synchronizes them with the authenticated owner.
+Command execution belongs to each app's session lifecycle. Retained forms stage
+`updateBrick`, module configuration/completion, spec generation, and measurement
+commands through the owning session. Library executes locally; App stages
+optimism and synchronizes with the authenticated owner. Local staging durability
+and server finalization are distinct.
 
-`useLiveQuery` reads the session's `initialized.db`, returning model-decoded `state`,
-`spec`, `measured`, and `gridItem` values. Components consume these values directly. Explicit writes and backups use encoded SQLite values; relational queries decode model fields.
+`useLiveQuery` returns model-decoded `state`, `spec`, `measured`, and `gridItem`
+values. Explicit writes and backups use encoded SQLite values. Wall, Brick, and
+Placement schemas are retained: shared state lives on Brick; each Placement
+stores breakpoint-specific Spec, nullable pixel measurement, geometry, and
+visibility. The old add, remove, layout-update, compact, and visibility contracts
+are deleted without replacement geometry or insertion APIs.
 
-Committed layout is Wall → Brick → Placement via aggregate contracts
-(`addBrick`, layout/visibility/remove/compact, `updateBrick`, and per-module
-spec-at-breakpoint). Commands run synchronously: Library commits completed local
-execution, while App stages optimism and pushes through its live user session.
-Local staging durability and server finalization are distinct. Shared state lives
-on the brick row; each placement stores a
-complete Spec, nullable pixel measurement, grid item, and visibility. `BrickWall` uses `verticalCompactor` for
-packed drag/resize feedback. Module contracts compact before persisting geometry:
-add/show resolve collisions first, layout updates compact their payload, hide compacts
-visible survivors at its breakpoint, and remove compacts survivors at all four
-breakpoints. Hide/remove read stored rows and explicitly exclude the target because
-emitted operations are not applied during the contract program. Geometry updates skip
-unchanged placements; hiding retains the hidden brick's saved geometry and Spec.
+Four browser frames (360, 720, 1080, and 1440px) remain mounted around one
+session. The selected breakpoint returns when it fits; otherwise the largest
+fitting frame is displayed. Below 360px, the insufficient-width message appears.
+Catalog drags and grid gestures no longer defer breakpoint changes. Library's
+localStorage viewport preference (`qrk-bricks-library-viewport-v1`) is retained;
+the grid reset control is removed.
 
-Each mounted wall, including inactive breakpoint panes, normalizes existing gaps
-through `compactLayoutAtBreakpoint`. It compares stored geometry by brick ID, defers
-during grid gestures or catalog drags, and stages only changed layouts. Failed attempts
-use the existing command error callback and do not repeatedly retry unchanged input.
-The Library toolbar no longer has a **Compact layout** button. Library reset calls the
-standalone session's `reset()` to replace its
-backup with the original seed and remounts the viewport. Viewport preference persists in
-localStorage (`qrk-bricks-library-viewport-v1`).
+`WallBreakpointPane` provides decorative browser chrome: sm/md use a Safari-like
+mobile address pill; lg/xl use desktop window dots and a centered address bar.
+Both display static `qrk.sh`, remain noninteractive, and are hidden from
+assistive technology. The 48px muted-gray header and thin inset frame preserve
+the 360/720/1080/1440px widths. Breakpoint transitions and reduced-motion behavior
+remain. Every frame body is an empty white region. There is no site navbar,
+placed-brick renderer, Tree, placeholder, or page-name node.
 
-Four fixed-width walls (360, 720, 1080, and 1440px) remain mounted around one
-session. The selected breakpoint returns when it fits again; otherwise the
-largest fitting wall is displayed. During catalog drags and grid drag/resize
-gestures, selection and available width update while the displayed wall waits
-for completion. Below 360px, the insufficient-width message appears as soon as
-the gesture ends; a fitting wall returns immediately when space recovers.
-
-Library and App use a white wall canvas at all four breakpoints. `BrickWall`
-uses zero margins/padding in default mode, so placement boxes meet both wall
-edges; row height is the full width divided by eight. Card mode uses equal 16px
-interior/perimeter gaps and the square-cell formula described above.
-Its optional `selectedBrickId` keeps the matching brick's selection border
-visible in the idle active wall. App supplies the brick-detail route ID; resize
-handles still appear on pointer hover, and a real drag or resize suppresses
-selection chrome on idle neighbors.
-Shared `bricks.css` styles the grid placeholder during brick dragging, catalog drops,
-and resizing with a light-gray background, square corners, and a subtle
-inset shadow. Placeholder dimensions, positioning, and transitions retain the
-grid's existing behavior. During resizing, the active brick and its anchors stay
-above the placeholder.
-
-`WallBreakpointPane` frames each wall with decorative browser chrome: sm/md use
-a Safari-like mobile address pill; lg/xl use desktop window dots and a centered
-address bar. Both display static `qrk.sh` and remain noninteractive and hidden
-from assistive technology. The 48px muted-gray header and thin inset frame leave
-the 360/720/1080/1440px frame widths unchanged. The frame allows resize handles
-and dragged surfaces to overflow into surrounding gutters; each brick's content
-remains clipped by its own wrapper. Editor boundaries still clip overflow when
-a wall fills the available width; breakpoint fitting reserves no extra gutters.
-Library adds a decorative 64px navbar below the address bar, matching App's
-complete page navbar in the same position above `BrickWall` and showing a static
-`qrk.sh` label. Library's navbar is noninteractive and hidden from assistive
-technology; App's appears with the initialized editor and preserves its
-navigation and site-name draft previews. Library's chrome and navbar slide and
-scroll with their wall, including the existing scroll compensation while dragging.
-App keeps the chrome outside an inner page scroller with a hidden scrollbar;
-its navbar scrolls with the wall, and the complete frame slides between breakpoints.
-Library reserves 6rem above the
-wall below lg, keeping wrapped controls clear of the chrome, and 3.5rem at lg.
-The scroll root uses inherited `--wall-top-offset` for this padding; the pane
-sets `--wall-chrome-height: 3rem`. Both apps override that value to `7rem` around
-their navbar and wall to account for both bars; App adds 32px above the frame
-and, with its drawer closed, 43px below it, so the frame bottom bisects the 38px
-toolbar (which remains 24px from the viewport bottom). Its external
-`--wall-top-offset: calc(2rem + 1.5rem + (1.75rem + 0.5rem + 2px) / 2)` accounts for both
-padding amounts. Opening App's drawer changes the offset to
-`calc(50dvh + 4rem)`, shortening the frame to keep a matching 32px gap above the
-drawer.
-`BrickWall` subtracts both offsets
-from its viewport minimum height, with 3.5rem and zero fallbacks respectively, so an
-empty wall remains one viewport tall without extra scrolling.
+Library reserves 6rem above its frame below lg and 3.5rem at lg. Its empty body
+uses the viewport height minus that spacing and the 48px browser header. The
+existing bottom drawer remains `50dvh` with its sizing and transition behavior.
+App separately reserves 32px above the frame and an equal gap above its open
+drawer. No navbar offset or grid drag-scroll compensation remains.
 
 Library and App resolve browser SQLite WASM from the installed Zerospin
 `15.0.1` package exports. The Library standalone worker imports the same pure
@@ -657,28 +561,6 @@ to identify the emitted executable artifact. Vite emits each worker from its
 `?url` import. Persistent Node
 storage belongs to the SharedWorker's IndexedDB-backed SQLite namespace;
 no separate backup worker or public backup-worker assets remain.
-
-HTML5 catalog drag is a module-level `brickDragStore` (`brickDef` / `setBrickDef`
-only). Its shared `IDraggedBrick` payload preserves the registered module ID
-from both Library previews and both App drawer views through to `addBrick`.
-`makeModuleViewLibrary` ties each registry key to its module and definition IDs;
-known keys return a module, while arbitrary route strings can return `undefined`.
-The wall uses this trusted identity directly; the contract validates the dragged state.
-Drop / resize / remove go through contracts on the owning session — not
-Zustand `bricksById`.
-
-Placed bricks drag from their entire surface and resize using white pill anchors
-with a thin black border at the four edge midpoints, aligned parallel to each edge.
-The anchors remain visible during resizing and on idle touch devices. Dragging
-hides all anchors; resizing hides other bricks' anchors.
-The square outline stays visible during a real drag or resize; selection uses the
-surface's inset border. A press that never crosses the drag threshold leaves the
-outline off. Every edge keeps its anchor, including at the grid boundaries.
-Resizing clamps to the grid's left, right, and top boundaries and the module's
-minimum width and height; the bottom edge can grow the wall. These controls belong
-to the active wall and retain grid snapping, module minimum sizes, vertical
-compaction, and the existing layout persistence. Module and configuration previews
-also drag from their entire surface.
 
 ## Image editing in the brick drawer
 
@@ -717,8 +599,7 @@ Article titles and subtitles use the platform system sans-serif font (San
 Francisco on macOS). Body text uses Spectral at 19px with 1.6 line spacing in
 brick previews and the drawer editor, loaded through the module's stylesheet.
 Code blocks retain their monospace font.
-Placed bricks expose a small pencil icon button labelled **Edit article**.
-Its catalog example and new drops start with “Actually good advice,” including
+Its catalog example starts with “Actually good advice,” including
 the introductory paragraphs and numbered criteria. This is a hard rename without
 legacy aliases or data migration; old `text` bricks,
 `TextBrick` specs, and Text command history may no longer load.
@@ -732,8 +613,7 @@ Article content has no horizontal padding. Read-only documents use the shared
 `qrk-responsive-insets` class from `bricks.css`: `--qrk-inset-inline` supplies
 16px outer gutters and `--qrk-inset-block` supplies 16px vertical padding.
 When both the document viewport and nearest query container reach 720px, those
-values become 30px and 32px respectively. App's site navbar consumes the
-inline inset only; Library's decorative navbar keeps its existing spacing.
+values become 30px and 32px respectively.
 The drawer retains its separate viewport-based insets and existing 660px
 desktop text measure.
 Titles use 32px/36px bold text; subtitles use 18px/24px muted text, with a 12px
@@ -749,10 +629,8 @@ form validation blocks Save when either
 metadata field is empty or contains only whitespace; Admin retains schema-based
 JSON validation. This is a hard schema change without migration or fallback:
 old Tiptap Article state, specs, and command history may no longer load. The approved
-local cutover backs up backend storage and uses fresh browser origins, leaving old
-origin databases and Clerk cookies untouched. The installed browser runtime can
-reset incompatible node tables during initialization; preserve old stores before
-opening a rebuilt application. There is no JSON converter or compatibility reader.
+local phase-1 cutover uses fresh affected storage as described above. There is
+no JSON converter or compatibility reader.
 The bundled example uses “Actually good advice” as its title and the introductory
 paragraph as its subtitle, retaining all four numbered criteria and the closing
 paragraph in its body. Generated `ArticleBrick` specs bind `/title`, `/subtitle`,
@@ -760,16 +638,16 @@ and `/content` separately.
 
 Article bricks and previews render their title and subtitle above a client-mounted
 Meowdown MarkdownView in Hide mode. They mount no editor. Links open in a new tab,
-saved image dimensions are retained, and task checkboxes are disabled. Placed bricks
-remain read-only. Raw HTML remains literal Markdown content; arbitrary Markdown
-round trips can normalize source.
-Double-click or the **Edit article** pencil opens `/bricks/<brickId>`, which shows
-only the module form and Save/Cancel controls, without headings or an outline.
+saved image dimensions are retained, and task checkboxes are disabled. Raw HTML
+remains literal Markdown content; arbitrary Markdown round trips can normalize
+source. The retained `/bricks/<brickId>` route shows only the module form and
+Save/Cancel controls, without headings or an outline.
 Modules without forms have an empty drawer body.
 
 The **Admin** breadcrumb links to `/bricks/<brickId>/admin`, containing Generate
-spec, Options, Shared state JSON, and Brick Definition. Admin's brick-ID breadcrumb
-returns to the form page. Both routes retain the persistent wall and drawer shell.
+spec, Shared state JSON, and Brick Definition. The Hide/Show Options are removed.
+Admin's brick-ID breadcrumb returns to the form page. Both routes retain the empty
+browser frames and persistent drawer shell.
 Admin is a UI route, not an authorization boundary.
 
 Module forms own their drafts and Save/Cancel controls; Admin's JSON draft belongs
@@ -790,14 +668,12 @@ Native Meowdown controls retain formatting, selection, undo/redo, block dragging
 and image resizing. Resizing writes width/height into a trailing Markdown comment.
 Portaled menus appear above the drawer; their link form cannot submit Article.
 Escape first dismisses an editor control or selection, then closes the drawer.
-App suppresses the shared edit action with `BrickWall.showArticleEditAction`;
 `ArticleEditorControl` remains drawer-only.
 
-Article brick height stays at its saved placement size. Content changes, image loads,
-and width changes do not measure or update grid height. Users resize bricks through
-the normal grid handles. The module-owned shell fills the brick with a white
-background and clips overflowing content; the editor surface does not paint the
-background.
+Article module rendering retains its white shell and clips overflowing content;
+the editor surface does not paint the background. Content changes, image loads,
+and width changes do not update retained Placement geometry. Phase 1 has no
+placed-brick display or grid resize handles.
 
 Article uploads remain disabled: Meowdown receives no file-persistence handler,
 so it exposes no attachment picker or upload slash command. HTTP(S) images display
@@ -819,6 +695,6 @@ stable array ordering.
 
 Library owns editable Brick/Placement models and their field codecs, exposed
 through `libraryModule`. It exposes no publication snapshot schema/projection API
-and stores no separate WallSnapshot model. Its shared wall renderer reads live
-models, and standalone durability uses the regular session backup mechanism.
+and stores no separate WallSnapshot model. Editing reads live models, and
+standalone durability uses the regular session backup mechanism.
 QRK owns site/page publication flags, current snapshot pointers, and history.

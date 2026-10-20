@@ -16,12 +16,7 @@ import { makeConfigureMapPlaceContract } from "../modules/mapPlace/makeConfigure
 import { makeCompleteMapPlaceContract } from "../modules/mapPlace/makeCompleteMapPlaceContract";
 import { backendLibrary } from "../backendLibrary";
 import { makeModuleContracts } from "../make/makeModuleContracts";
-import { makeAddBrickContract } from "./contracts/addBrick/AddBrickContractV1";
-import { makeCompactLayoutAtBreakpointContract } from "./contracts/compactLayoutAtBreakpoint/CompactLayoutAtBreakpointContractV1";
-import { makeRemoveBrickContract } from "./contracts/removeBrick/RemoveBrickContractV1";
-import { makeSetBrickVisibilityAtBreakpointContract } from "./contracts/setBrickVisibilityAtBreakpoint/SetBrickVisibilityAtBreakpointContractV1";
 import { makeUpdateBrickContract } from "./contracts/updateBrick/UpdateBrickContractV1";
-import { makeUpdateLayoutAtBreakpointContract } from "./contracts/updateLayoutAtBreakpoint/UpdateLayoutAtBreakpointContractV1";
 import { makeBrickModel } from "./models/brick/makeBrickModel";
 import { makePlacementModel } from "./models/placement/placementModelV1";
 import { wallModelV1 } from "./models/wall/wallModelV1";
@@ -29,27 +24,6 @@ import { wallModelV1 } from "./models/wall/wallModelV1";
 const wall = wallModelV1;
 const brick = makeBrickModel({ library: backendLibrary, wall });
 const placement = makePlacementModel({ brick });
-const addBrick = makeAddBrickContract({
-  library: backendLibrary,
-  wall,
-  brick,
-  placement,
-});
-const removeBrick = makeRemoveBrickContract({ wall, brick, placement });
-const updateLayoutAtBreakpoint = makeUpdateLayoutAtBreakpointContract({
-  wall,
-  brick,
-  placement,
-});
-const setBrickVisibilityAtBreakpoint = makeSetBrickVisibilityAtBreakpointContract({
-  brick,
-  placement,
-});
-const compactLayoutAtBreakpoint = makeCompactLayoutAtBreakpointContract({
-  wall,
-  brick,
-  placement,
-});
 const updateBrick = makeUpdateBrickContract({
   library: backendLibrary,
   brick,
@@ -106,11 +80,6 @@ export const libraryModule: {
     completeLink: typeof completeLink;
     configureMapPlace: typeof configureMapPlace;
     completeMapPlace: typeof completeMapPlace;
-    addBrick: typeof addBrick;
-    updateLayoutAtBreakpoint: typeof updateLayoutAtBreakpoint;
-    setBrickVisibilityAtBreakpoint: typeof setBrickVisibilityAtBreakpoint;
-    removeBrick: typeof removeBrick;
-    compactLayoutAtBreakpoint: typeof compactLayoutAtBreakpoint;
     updateBrick: typeof updateBrick;
     updateFigmaThumbnailSpecAtBreakpoint: typeof moduleContracts.updateFigmaThumbnailSpecAtBreakpoint;
     updateGithubActivitySpecAtBreakpoint: typeof moduleContracts.updateGithubActivitySpecAtBreakpoint;
@@ -147,12 +116,6 @@ export const libraryModule: {
     completeLink,
     configureMapPlace,
     completeMapPlace,
-
-    addBrick,
-    updateLayoutAtBreakpoint,
-    setBrickVisibilityAtBreakpoint,
-    removeBrick,
-    compactLayoutAtBreakpoint,
     updateBrick,
     updateFigmaThumbnailSpecAtBreakpoint: moduleContracts.updateFigmaThumbnailSpecAtBreakpoint,
     updateGithubActivitySpecAtBreakpoint: moduleContracts.updateGithubActivitySpecAtBreakpoint,

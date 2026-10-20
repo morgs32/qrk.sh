@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useMatches } from "@tanstack/react-router";
 import { useReducedMotion } from "framer-motion";
 
 import { BREAKPOINTS } from "@qrk.sh/library/breakpoints";
@@ -10,10 +9,6 @@ import { useWallViewport } from "@qrk.sh/library/WallViewportProvider";
 
 export function Grid() {
   const { activeBreakpoint } = useWallViewport();
-  const drawerOpen = useMatches({
-    select: (matches) =>
-      matches.some((match) => match.routeId === "/$username/site/$siteId/page/$pageId/_drawer"),
-  });
   const reducedMotion = useReducedMotion() ?? false;
   const [transition, setTransition] = useState<{
     active: (typeof BREAKPOINTS)[number]["id"] | null;
@@ -39,12 +34,8 @@ export function Grid() {
   const direction = transition.active === activeBreakpoint ? transition.direction : 0;
 
   return (
-    <div
-      className="min-h-full w-full"
-      data-editor-drawer-open={drawerOpen}
-      data-testid="grid-region"
-    >
-      <div className="relative min-h-full w-full" data-testid="grid-layout">
+    <div className="w-full" data-testid="grid-region">
+      <div className="relative w-full" data-testid="grid-layout">
         {BREAKPOINTS.map((row) => {
           const isActive = activeBreakpoint === row.id;
           const isOutgoing = fromBreakpoint === row.id && !isActive;

@@ -6,6 +6,7 @@ import { Drawer } from "@qrk.sh/library/Drawer";
 
 import { useAuth, useUser } from "@clerk/react";
 import { WallViewportProvider } from "@qrk.sh/library/WallViewportProvider";
+import { WallPreviewViewport } from "@qrk.sh/library/WallPreviewViewport";
 import { ImageUploadEnvironment } from "@qrk.sh/library/ImageUploadEnvironment";
 import { ImageUploadRuntimeContext } from "@qrk.sh/library/ImageUploadRuntimeContext";
 import { BrickCardStyleContext } from "@qrk.sh/library/BrickCardStyleContext";
@@ -90,9 +91,9 @@ export default function EditorLayout(props: { children: ReactNode }) {
       >
         <WallViewportProvider key={documentKey}>
           <div data-editor-split className="relative h-full min-h-0 overflow-hidden">
-            <div data-editor-region className="h-full min-h-0 overflow-hidden">
+            <WallPreviewViewport toolbar={<Toolbars />} drawerOpen={drawerOpen}>
               <MainColumns />
-            </div>
+            </WallPreviewViewport>
             <Drawer
               side="bottom"
               open={drawerOpen}
@@ -106,7 +107,6 @@ export default function EditorLayout(props: { children: ReactNode }) {
               {children}
             </Drawer>
           </div>
-          <Toolbars />
         </WallViewportProvider>
       </ImageUploadRuntimeContext>
     </BrickCardStyleContext>

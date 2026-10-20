@@ -1,14 +1,6 @@
 "use client";
 
-import {
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-  useSyncExternalStore,
-  Suspense,
-  type ReactNode,
-} from "react";
+import { useEffect, useState, useSyncExternalStore, Suspense, type ReactNode } from "react";
 
 import { Drawer } from "../lib/Drawer";
 import { Link, useLocation, useMatches, useNavigate, useParams } from "@tanstack/react-router";
@@ -25,6 +17,8 @@ import { Toaster } from "../components/ui/sonner";
 import { BREAKPOINTS } from "../lib/breakpoints";
 import { BrickCardStyleContext } from "../lib/BrickCardStyleContext";
 import { WallBreakpointPane } from "../lib/WallBreakpointPane";
+import { WallPreviewViewport } from "../lib/WallPreviewViewport";
+import { WallPreviewToolbar } from "../lib/WallPreviewToolbar";
 import { modulesHash } from "../lib/modulesHash";
 import {
   useWallViewport,
@@ -184,7 +178,6 @@ function LayoutBody(props: {
   });
   const wallViewportStore = useWallViewportStoreApi();
   const {
-    regionRef,
     availableWidth,
     activeBreakpoint,
     setSelectedBreakpoint,
@@ -204,69 +197,6 @@ function LayoutBody(props: {
   const locationKey = `${pathname}${searchStr}`;
   const [drawerOpen, setDrawerOpen] = useState(() => pathname !== "/" || search.length > 0);
   const [drawerOpenForLocationKey, setDrawerOpenForLocationKey] = useState(locationKey);
-
-  const editorScroll = useRef<HTMLDivElement>(null);
-  const drawerSpace = useRef<HTMLDivElement>(null);
-  const hasReservedDrawerSpace = useRef(false);
-
-  useLayoutEffect(() => {
-    const scroll = editorScroll.current;
-    const space = drawerSpace.current;
-    if (scroll === null || space === null) return;
-
-    // Change only trailing space, leaving the preview frame height intact.
-    const previousTop = scroll.scrollTop;
-    const previousMax = Math.max(0, scroll.scrollHeight - scroll.clientHeight);
-    const wasAtBottom =
-      hasReservedDrawerSpace.current && previousMax > 0 && Math.abs(previousMax - previousTop) <= 1;
-    space.style.paddingBottom = drawerOpen ? "50dvh" : "0px";
-    const nextMax = Math.max(0, scroll.scrollHeight - scroll.clientHeight);
-    scroll.scrollTop = wasAtBottom ? nextMax : Math.min(Math.max(previousTop, 0), nextMax);
-    hasReservedDrawerSpace.current = true;
-
-    let position = {
-      top: scroll.scrollTop,
-      max: nextMax,
-      viewportHeight: scroll.clientHeight,
-      reservedHeight: space.getBoundingClientRect().height,
-    };
-    function rememberScroll() {
-      // A resize may clamp scrollTop before its observer runs. Keep the old anchor.
-      if (
-        scroll === null ||
-        space === null ||
-        scroll.clientHeight !== position.viewportHeight ||
-        space.getBoundingClientRect().height !== position.reservedHeight
-      )
-        return;
-      position.top = scroll.scrollTop;
-      position.max = Math.max(0, scroll.scrollHeight - scroll.clientHeight);
-    }
-    const observer = new ResizeObserver(() => {
-      const viewportHeight = scroll.clientHeight;
-      const reservedHeight = space.getBoundingClientRect().height;
-      if (
-        viewportHeight === position.viewportHeight &&
-        reservedHeight === position.reservedHeight
-      ) {
-        // Content growth updates the anchor measurement without following it.
-        rememberScroll();
-        return;
-      }
-      const max = Math.max(0, scroll.scrollHeight - viewportHeight);
-      const atBottom = position.max > 0 && Math.abs(position.max - position.top) <= 1;
-      scroll.scrollTop = atBottom ? max : Math.min(Math.max(position.top, 0), max);
-      position = { top: scroll.scrollTop, max, viewportHeight, reservedHeight };
-    });
-    scroll.addEventListener("scroll", rememberScroll, { passive: true });
-    observer.observe(scroll);
-    observer.observe(space);
-    if (space.previousElementSibling !== null) observer.observe(space.previousElementSibling);
-    return () => {
-      scroll.removeEventListener("scroll", rememberScroll);
-      observer.disconnect();
-    };
-  }, [drawerOpen]);
 
   const [transition, setTransition] = useState<{
     active: (typeof BREAKPOINTS)[number]["id"] | null;
@@ -362,19 +292,59 @@ function LayoutBody(props: {
     return () => document.removeEventListener("keydown", escape, true);
   }, [drawerOpen, brickId, navigate]);
 
+  const toolbar = (
+    <WallPreviewToolbar aria-label="Preview controls">
+      <Button
+        type="button"
+        variant={drawerOpen ? "secondary" : "ghost"}
+        size="sm"
+        className="px-2"
+        aria-expanded={drawerOpen}
+        onClick={() => {
+          if (drawerOpen) {
+            closeDrawer();
+          } else {
+            openDrawer();
+          }
+        }}
+      >
+        Bricks
+      </Button>
+      <Button
+        type="button"
+        variant={cardStyle ? "secondary" : "ghost"}
+        size="sm"
+        className="px-2"
+        aria-pressed={cardStyle}
+        onClick={() => setCardStyle((current) => !current)}
+      >
+        Cards
+      </Button>
+      <div className="mx-1 h-5 w-px shrink-0 bg-border" aria-hidden />
+      {BREAKPOINTS.map((row) => (
+        <Button
+          key={row.id}
+          type="button"
+          variant={activeBreakpoint === row.id ? "secondary" : "ghost"}
+          size="sm"
+          className="px-2"
+          aria-label={`${row.previewWidth}px preview width`}
+          aria-pressed={activeBreakpoint === row.id}
+          disabled={row.previewWidth > availableWidth}
+          onClick={() => setSelectedBreakpoint(row.id)}
+        >
+          {row.previewWidth}
+        </Button>
+      ))}
+    </WallPreviewToolbar>
+  );
+
   return (
     <BrickCardStyleContext value={cardStyle}>
       <main className="relative h-dvh overflow-hidden">
         <Toaster />
         <div className="h-full overflow-hidden">
-          <div
-            ref={(element) => {
-              editorScroll.current = element;
-              return regionRef(element);
-            }}
-            data-testid="preview-region"
-            className="relative h-full min-h-0 min-w-0 overflow-x-hidden overflow-y-auto pt-[var(--wall-top-offset)] [--wall-top-offset:6rem] lg:[--wall-top-offset:3.5rem]"
-          >
+          <WallPreviewViewport drawerOpen={drawerOpen} toolbar={toolbar}>
             {availableWidth > 0 && activeBreakpoint === null && (
               <p className="p-4" role="status">
                 At least {BREAKPOINTS[0].previewWidth}px is needed to preview the page.
@@ -406,7 +376,7 @@ function LayoutBody(props: {
                     }}
                   >
                     <div
-                      className="min-h-[calc(100dvh-var(--wall-top-offset,3.5rem)-3rem)] bg-white"
+                      className="bg-white"
                       data-site-right-scroll
                       role="region"
                       aria-label={`${row.id} page preview`}
@@ -415,8 +385,7 @@ function LayoutBody(props: {
                 );
               })}
             </div>
-            <div ref={drawerSpace} data-editor-drawer-space aria-hidden />
-          </div>
+          </WallPreviewViewport>
           <div className="min-h-0 overflow-hidden">
             <Drawer
               side="bottom"
@@ -511,62 +480,6 @@ function LayoutBody(props: {
                 </div>
               </div>
             </Drawer>
-          </div>
-        </div>
-        <div
-          className="pointer-events-none fixed inset-x-0 top-3 z-80 flex justify-center px-2 lg:bottom-6 lg:top-auto"
-          style={{
-            ...(drawerOpen ? { top: "auto", bottom: "calc(50dvh + 1.5rem)" } : {}),
-            transition: reducedMotion ? "none" : "bottom 300ms cubic-bezier(0, 0, 0.2, 1)",
-          }}
-        >
-          <div
-            role="toolbar"
-            aria-label="Preview controls"
-            className="pointer-events-auto flex max-w-full flex-wrap items-center justify-center rounded-sm border border-border/80 bg-background px-1 py-1 shadow-md"
-          >
-            <Button
-              type="button"
-              variant={drawerOpen ? "secondary" : "ghost"}
-              size="sm"
-              className="h-8 px-2"
-              aria-expanded={drawerOpen}
-              onClick={() => {
-                if (drawerOpen) {
-                  closeDrawer();
-                } else {
-                  openDrawer();
-                }
-              }}
-            >
-              Bricks
-            </Button>
-            <Button
-              type="button"
-              variant={cardStyle ? "secondary" : "ghost"}
-              size="sm"
-              className="h-8 px-2"
-              aria-pressed={cardStyle}
-              onClick={() => setCardStyle((current) => !current)}
-            >
-              Cards
-            </Button>
-            <div className="mx-1 h-5 w-px shrink-0 bg-border" aria-hidden />
-            {BREAKPOINTS.map((row) => (
-              <Button
-                key={row.id}
-                type="button"
-                variant={activeBreakpoint === row.id ? "secondary" : "ghost"}
-                size="sm"
-                className="h-8 px-2"
-                aria-label={`${row.previewWidth}px preview width`}
-                aria-pressed={activeBreakpoint === row.id}
-                disabled={row.previewWidth > availableWidth}
-                onClick={() => setSelectedBreakpoint(row.id)}
-              >
-                {row.previewWidth}
-              </Button>
-            ))}
           </div>
         </div>
       </main>

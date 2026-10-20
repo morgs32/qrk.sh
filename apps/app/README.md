@@ -46,29 +46,27 @@ The story has no session or backend dependencies. App Storybook defaults to
 port 10020; `PORT` overrides it.
 
 **App / Studio / Pragmatic Tree / Default** isolates the current Atlassian
-Pragmatic Drag and Drop Tree example with local sample items. Drag to reorder
-or nest items within or across sections; the row's Move button provides Section,
-Parent, and position controls for keyboard use. Two sections start the story:
-the first contains two stacks with children below their parents without
-indentation; the second contains one empty full-width stack. Children always
-remain visible, including during dragging; stacks have no collapse controls.
-Items use consecutive numbers starting at 1, without bullets or hierarchical labels.
-A section with one
-stack uses its full width; multiple stacks use two columns and wrap. One gray
-box contains all sections. Compact 1px shadcn Separators with centered ghost
-plus buttons sit between sections and at the bottom, with the buttons slightly
-overlapping stack edges. The whole line-and-plus row is clickable, with shared
-violet hover and keyboard-focus colors without a background fill.
-Between sections they insert at that boundary; the
-bottom control appends. Both **Add section** controls create one empty stack
-in the new section.
-Empty sections remain visible drop areas. Only root items
-can receive children, and populated stacks stay at the root; both dragging and
-Move enforce this two-level limit. Each stack has an **Add item** footer,
-including empty stacks. It appends a numbered mock item and announces the
-addition while retaining button focus. Adding a
-section also announces the addition and retains button focus. Width and row
-height are Storybook controls. This phase is Storybook-only.
+Pragmatic Drag and Drop example with local sections, stacks, and peer items.
+Sections contain stacks; stacks contain items with no further nesting or visible
+stack headers. The first section starts with Items 1–3 in one stack and Items 4–5
+in another; the second starts with Item 6 in one full-width stack. Multiple
+stacks use two columns and wrap. Items always remain visible, including during
+dragging, with consecutive numbers and no bullets or hierarchical labels.
+Drag items within or across stacks; dropping on a stack or its footer appends
+the item, and dropping on a section background creates a stack for it. The item
+Move dialog offers Section, Stack or **New stack**, and position controls.
+Each stack footer separates **Add item** from a grip: dragging the grip moves
+the whole stack, and clicking it opens the stack Move dialog with Section and
+position controls. Empty stacks and empty section drop areas remain visible.
+Source drops have no effect. One gray box contains all sections. Compact 1px
+shadcn Separators with centered ghost plus buttons sit between sections and at
+the bottom, slightly overlapping stack edges. The whole line-and-plus row is
+clickable, with shared violet hover and keyboard-focus colors and no background
+fill. Between sections it inserts at that boundary; the bottom control appends.
+**Add section** creates one empty stack without consuming an item number.
+**Add item** appends a numbered mock item; both additions announce the result
+and retain button focus. Width and row height are Storybook controls. This
+phase is Storybook-only.
 
 App and Web run independently behind their own Portless hostnames. Direct
 startup defaults to 10001 for App and 10000 for Web; Portless allocates their
@@ -289,10 +287,11 @@ heading **Update your {collectionName} brick**, the left-side underlined
 Close or settings Save/Cancel. `Toolbars` uses matched route IDs to choose the
 route's controls.
 
-The drawer occupies the bottom `50dvh` on desktop and mobile. While it is open,
-the browser frame ends 32px above it, matching the frame's 32px top gap. The
-empty page preview shrinks with the frame. Grid gesture and scroll-compensation
-handling is removed.
+The drawer occupies the bottom `50dvh` on desktop and mobile. Opening it keeps
+the browser frame's height and adds `50dvh` of trailing scroll space, so the
+frame bottom remains reachable above the drawer. Scroll position is preserved
+on opening and clamped on closing; an already bottom-anchored preview stays at
+the end during resizing. Grid gesture handling is removed.
 
 On catalog, module-detail, and brick-detail routes, **sm / md / lg / xl** sit on
 the right side of the drawer header beside publication controls. The header wraps
@@ -311,11 +310,12 @@ are hidden from assistive technology. Chrome slides with its breakpoint pane;
 reduced motion skips the slide. Every frame body is an empty white region with
 no navbar, brick renderer, Tree, placeholder, or page-name node.
 
-The frame holder adds 32px above the frame and, while the drawer is closed, 43px
-below it, so the frame bottom bisects the 38px floating toolbar, which remains
-24px from the viewport bottom. `--wall-top-offset` accounts for that spacing;
-opening the drawer changes it to `calc(50dvh + 4rem)`. The page preview height
-subtracts this offset and only the 48px browser header. No navbar offset remains.
+App and Library share `WallPreviewViewport` and `WallPreviewToolbar`. The
+viewport adds 32px above the frame and 43px below it, making every frame
+`calc(100dvh - 75px)` high, including its 48px browser header. The frame bottom
+bisects the 38px floating toolbar, positioned 24px from the viewport bottom;
+toolbar controls are 28px high. App's floating toolbar remains visible only on
+the editor index and `/breakpoints` routes, while drawer routes show none.
 
 App imports the shared `Drawer` from `@qrk.sh/library/Drawer` and passes
 `open`. Its shell slides with a 300ms CSS transform; editor height and padding

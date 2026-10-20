@@ -2,6 +2,9 @@
 
 import { AnimatePresence, LayoutGroup } from "framer-motion";
 import { useMatches } from "@tanstack/react-router";
+
+import { TooltipProvider } from "@/components/ui/tooltip";
+
 import { SiteToolbar } from "./SiteToolbar";
 import { BreakpointsToolbar } from "./BreakpointsToolbar";
 
@@ -14,8 +17,12 @@ export function Toolbars() {
       <SiteToolbar key="Site" />
     ) : null;
   return (
-    <LayoutGroup>
-      <AnimatePresence mode="sync">{toolbar}</AnimatePresence>
-    </LayoutGroup>
+    <TooltipProvider delayDuration={0}>
+      <LayoutGroup>
+        <div className="grid place-items-center">
+          <AnimatePresence mode="sync">{toolbar}</AnimatePresence>
+        </div>
+      </LayoutGroup>
+    </TooltipProvider>
   );
 }

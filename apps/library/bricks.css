@@ -1,5 +1,27 @@
 @import "mapbox-gl/dist/mapbox-gl.css";
 
+[data-wall-preview-viewport] {
+  --wall-preview-top-gap: 32px;
+  --wall-preview-toolbar-height: 38px;
+  --wall-preview-toolbar-gap: 24px;
+  --wall-preview-bottom-gap: calc(
+    var(--wall-preview-toolbar-gap) + var(--wall-preview-toolbar-height) / 2
+  );
+  --wall-frame-height: calc(100dvh - var(--wall-preview-top-gap) - var(--wall-preview-bottom-gap));
+}
+
+[data-wall-breakpoint] > [data-site-right-scroll] {
+  min-height: 0;
+  flex: 1;
+  overflow-x: clip;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+[data-wall-breakpoint] > [data-site-right-scroll]::-webkit-scrollbar {
+  display: none;
+}
+
 .qrk-responsive-insets {
   --qrk-inset-inline: 16px;
   --qrk-inset-block: 16px;

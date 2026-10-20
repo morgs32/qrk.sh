@@ -87,7 +87,7 @@ export function WallBreakpointPane(props: {
     >
       <div
         className={cn(
-          "relative mx-auto overflow-clip [--wall-chrome-height:3rem]",
+          "relative mx-auto flex h-[var(--wall-frame-height)] flex-col overflow-clip",
           isMobile ? "rounded-2xl" : "rounded-xl",
         )}
         style={{ width: previewWidth }}
@@ -97,7 +97,7 @@ export function WallBreakpointPane(props: {
         <div
           aria-hidden="true"
           className={cn(
-            "pointer-events-none relative flex h-12 items-center justify-center border-b border-zinc-300/70 bg-zinc-100 px-3",
+            "pointer-events-none relative flex h-12 shrink-0 items-center justify-center border-b border-zinc-300/70 bg-zinc-100 px-3",
             isMobile ? "rounded-t-2xl" : "rounded-t-xl",
           )}
         >

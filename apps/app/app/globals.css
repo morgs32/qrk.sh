@@ -10,22 +10,6 @@
 @source "../../web/library/**/*.{ts,tsx}";
 @source "../../library/{app,components,lib,make,modules,registry}/**/*.{ts,tsx}";
 
-[data-editor-drawer-open="true"] {
-  --wall-top-offset: calc(50dvh + 4rem);
-}
-
-[data-site-right-scroll] {
-  height: calc(100dvh - var(--wall-top-offset) - 3rem);
-  overflow-x: clip;
-  overflow-y: auto;
-  overscroll-behavior-y: contain;
-  scrollbar-width: none;
-}
-
-[data-site-right-scroll]::-webkit-scrollbar {
-  display: none;
-}
-
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {

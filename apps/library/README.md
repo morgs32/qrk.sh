@@ -263,6 +263,8 @@ in the final named layer.
 | `/GridItemPreview`                | `lib/GridItemPreview.tsx`                    | Preview geometry                                          |
 | `/WallViewportProvider`           | `lib/WallViewportProvider.tsx`               | Viewport provider and hooks                               |
 | `/WallBreakpointPane`             | `lib/WallBreakpointPane.tsx`                 | Shared fixed-width browser frame                          |
+| `/WallPreviewViewport`            | `lib/WallPreviewViewport.tsx`                | Shared frame spacing, scrolling, and toolbar placement     |
+| `/WallPreviewToolbar`             | `lib/WallPreviewToolbar.tsx`                 | Shared 38px toolbar shell with 28px controls                |
 | `/breakpoints`                    | `lib/breakpoints.ts`                         | Breakpoint definitions and sizing                         |
 | `/ImageUploadEnvironment`         | `modules/image/ImageUploadEnvironment.ts`    | Host-supplied file upload Effect returning an image URL   |
 | `/ImageUploadRuntimeContext`      | `modules/image/ImageUploadRuntimeContext.ts` | Image's runner bound to the existing app session          |
@@ -288,8 +290,8 @@ its exit-only native View Transition managed by TanStack Router. Existing Drawer
 optional Motion/flow behavior. Drawer does not own routing, breadcrumbs, or
 settings actions. This replaces plan 007's animated grid-row reservation.
 
-Library's preview controls float 24px above the open drawer. Closing the drawer
-restores their usual position; their desktop movement follows the drawer's
+Library's preview controls float 24px above the open drawer at every screen width.
+Closing the drawer restores their position 24px above the viewport bottom; movement follows the drawer's
 300ms transition and skips animation for reduced motion.
 
 Library and App share `ModuleFilmstrip` and browse-only module previews. Each app
@@ -555,11 +557,18 @@ the 360/720/1080/1440px widths. Breakpoint transitions and reduced-motion behavi
 remain. Every frame body is an empty white region. There is no site navbar,
 placed-brick renderer, Tree, placeholder, or page-name node.
 
-Library reserves 6rem above its frame below lg and 3.5rem at lg. Its empty body
-uses the viewport height minus that spacing and the 48px browser header. The
-existing bottom drawer remains `50dvh` with its sizing and transition behavior.
-App separately reserves 32px above the frame and an equal gap above its open
-drawer. No navbar offset or grid drag-scroll compensation remains.
+Library and App use `WallPreviewViewport` for a 32px top gap and a 43px bottom
+gap. The frame's fixed `calc(100dvh - 75px)` height includes its 48px browser
+header. Its bottom edge bisects `WallPreviewToolbar`, whose shared 38px shell
+contains 28px controls and sits 24px above the viewport bottom on desktop and
+mobile. Each host retains its toolbar actions and shape.
+
+Opening the `50dvh` bottom drawer preserves the frame height and adds `50dvh`
+of trailing scroll space. Both apps preserve the current scroll position or
+follow the end when already bottom-anchored, with clamping on close. Library's
+toolbar moves 24px above its open drawer; scrolling the preview to the end
+aligns the frame bottom with the raised toolbar's center. App retains its
+route-based toolbar visibility, with no floating toolbar on drawer routes.
 
 Library and App resolve browser SQLite WASM from the installed Zerospin
 `15.0.1` package exports. The Library standalone worker imports the same pure

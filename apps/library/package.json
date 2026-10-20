@@ -9,6 +9,8 @@
     "./Drawer": "./lib/Drawer.tsx",
     "./WallViewportProvider": "./lib/WallViewportProvider.tsx",
     "./WallBreakpointPane": "./lib/WallBreakpointPane.tsx",
+    "./WallPreviewViewport": "./lib/WallPreviewViewport.tsx",
+    "./WallPreviewToolbar": "./lib/WallPreviewToolbar.tsx",
     "./breakpoints": "./lib/breakpoints.ts",
     "./GridItemPreview": "./lib/GridItemPreview.tsx",
     "./MeasuredBrickWrapper": "./components/brick/MeasuredBrickWrapper.tsx",

@@ -101,6 +101,8 @@ export function makeModuleView<
     default: {
       /** Preferred preview width in pixels, capped by the selected breakpoint's width. */
       defaultWidth: number;
+      /** Minimum rendered width in pixels, shared by every breakpoint. */
+      minWidth: 160 | 320;
       component: (props: { state: IInferDecodedRow<MODULE["stateShape"]> }) => ReactNode;
       placeholder?: () => ReactNode;
       generator?: {
@@ -180,6 +182,7 @@ export function makeModuleView<
     );
     return {
       defaultWidth: overlay?.defaultWidth ?? view.default.defaultWidth,
+      minWidth: view.default.minWidth,
       component: authoredComponents[breakpoint],
       spec: generator?.defaultSpec ?? emptySpec,
       registry: generator?.registry,

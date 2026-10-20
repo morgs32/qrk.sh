@@ -230,13 +230,16 @@ layout or preview width. Existing hover/shadow studies remain available.
 
 ## Modules and interaction
 
-Every module's `makeModuleView` declaration requires `default.defaultWidth` in
-pixels. Optional `sm`, `md`, `lg`, and `xl` overlays can override `defaultWidth`;
+Every module's `makeModuleView` declaration requires `default.defaultWidth` and
+`default.minWidth` in pixels. Optional `sm`, `md`, `lg`, and `xl` overlays can
+override `defaultWidth`;
 an omitted override uses the default directly. `viewFor(breakpoint)` returns the
-resolved preferred width alongside the component, spec, and registry. Catalog,
-Storybook, and App catalog previews cap that width at the chosen
+resolved preferred width and the module's minimum alongside the component, spec,
+and registry. Catalog, Storybook, and App catalog previews cap that width at the chosen
 breakpoint's canonical width. Browser frames retain their canonical widths.
-This preference does not impose a minimum width or change persisted brick state.
+The minimum is 320px for every module except Swatch and Icon at 160px, and is
+shared across all breakpoints. Preview surfaces and placed Row cells respect it;
+neither width setting changes persisted brick state.
 
 | Module                                               | Default width | Breakpoint overrides     |
 | ---------------------------------------------------- | ------------- | ------------------------ |
@@ -327,10 +330,13 @@ export const bioView = makeComponentView(bioComponent, {
 Descriptors stay separate from React implementations so backend module imports
 remain independent of view code. Optional `sm` / `md` / `lg` / `xl` overlays
 select authored components and generators on top of `default`. View declarations
-and `viewFor` expose no `w`, `h`, `minW`, `minH`, or measurement flags. Canonical
-preview widths belong to `BREAKPOINTS`; modules own their ordinary CSS layout.
+and `viewFor` expose preferred `defaultWidth` and minimum `minWidth`, with no
+`w`, `h`, `minW`, `minH`, or measurement flags. Canonical preview widths belong to
+`BREAKPOINTS`; modules own their ordinary CSS layout.
 Placements hold ordering and a spec, with natural content dimensions supplied by
-the Row cell. Content or preview dimension changes do not write model geometry.
+the Row cell. Rows share available width subject to module minimums and scroll
+horizontally when those minimums do not fit. Content or preview dimension changes
+do not write model geometry.
 
 Module defaults, preview state, and authored rendering discard undeclared fields
 during decoding. App's `updateBrick` validates the selected module's state, checks

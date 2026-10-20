@@ -14,6 +14,7 @@ export const instagramView = makeModuleView(instagramV1, {
   form: InstagramForm,
   default: {
     defaultWidth: 400,
+    minWidth: 320,
     placeholder() {
       return <InstagramPlaceholder />;
     },

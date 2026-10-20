@@ -15,7 +15,13 @@ export function WallRow(props: {
   const { row, wallId, scope, selectedBrickId, onEditBrick, onRequestMove, onRequestDelete } =
     props;
   return (
-    <div data-wall-row={row.id} className="flex min-w-0 items-start">
+    <div
+      data-wall-row={row.id}
+      role="group"
+      aria-label={`Row ${row.id}`}
+      tabIndex={0}
+      className="flex min-w-0 items-start overflow-x-auto overflow-y-hidden"
+    >
       {row.placements.map((placement) => (
         <Fragment key={placement.id}>
           <InsertionSeparator

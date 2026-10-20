@@ -214,6 +214,7 @@ export function BrickDetail() {
                   className="brick-hover-target relative shrink-0"
                   style={{
                     width: Math.min(brick.viewFor(breakpoint).defaultWidth, entry.previewWidth),
+                    minWidth: brick.viewFor(breakpoint).minWidth,
                   }}
                 >
                   <BrickWrapper

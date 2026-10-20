@@ -38,6 +38,7 @@ const meta = {
                   {
                     id: "placement-1",
                     brickId: "brick-1",
+                    minWidth: 320,
                     content: (
                       <button
                         type="button"
@@ -51,6 +52,7 @@ const meta = {
                   {
                     id: "placement-2",
                     brickId: "brick-2",
+                    minWidth: 160,
                     content: <div className="bg-amber-100 p-5">Brick 2</div>,
                   },
                 ],
@@ -61,6 +63,7 @@ const meta = {
                   {
                     id: "placement-3",
                     brickId: "brick-3",
+                    minWidth: 320,
                     content: <div className="bg-sky-100 p-5">Brick 3</div>,
                   },
                 ],
@@ -77,6 +80,7 @@ const meta = {
                   {
                     id: "placement-4",
                     brickId: "brick-4",
+                    minWidth: 160,
                     content: (
                       <label className="grid gap-2 bg-violet-100 p-5 text-sm">
                         Live input
@@ -124,6 +128,7 @@ const meta = {
       const placement = source ?? {
         id: `placement-${number}`,
         brickId: `brick-${number}`,
+        minWidth: 320,
         content: (
           <div className="bg-rose-100 p-5">
             {moduleId} {number}

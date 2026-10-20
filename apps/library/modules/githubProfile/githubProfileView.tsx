@@ -23,6 +23,7 @@ export const githubProfileView = makeModuleView(githubProfileV1, {
   form: GitHubProfileForm,
   default: {
     defaultWidth: 360,
+    minWidth: 320,
     placeholder() {
       return <GitHubProfilePlaceholder />;
     },

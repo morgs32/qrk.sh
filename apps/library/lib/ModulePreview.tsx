@@ -37,7 +37,7 @@ export function ModulePreview(props: {
           data-brick-surface=""
           data-card-style={cardStyle}
           className="brick-hover-target relative shrink-0"
-          style={{ width: Math.min(view.defaultWidth, entry.previewWidth) }}
+          style={{ width: Math.min(view.defaultWidth, entry.previewWidth), minWidth: view.minWidth }}
         >
           <div className="absolute right-2 top-2 z-20">{moduleAction}</div>
           <BrickWrapper

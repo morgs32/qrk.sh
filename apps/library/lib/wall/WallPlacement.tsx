@@ -22,7 +22,8 @@ export function WallPlacement(props: {
       data-wall-placement={placement.id}
       data-selected={selected}
       data-menu-open={menuOpen}
-      className="group/placement relative min-w-0 flex-1 outline outline-1 -outline-offset-1 outline-transparent hover:outline-zinc-300 focus-within:outline-blue-500 data-[selected=true]:outline-blue-500 data-[menu-open=true]:outline-blue-500"
+      style={{ minWidth: placement.minWidth }}
+      className="group/placement relative flex-1 outline outline-1 -outline-offset-1 outline-transparent hover:outline-zinc-300 focus-within:outline-blue-500 data-[selected=true]:outline-blue-500 data-[menu-open=true]:outline-blue-500"
     >
       <div className="absolute right-0 top-0 z-20 flex bg-background/95 opacity-0 shadow-sm transition-opacity group-hover/placement:opacity-100 group-focus-within/placement:opacity-100 group-data-[selected=true]/placement:opacity-100 group-data-[menu-open=true]/placement:opacity-100 motion-reduce:transition-none [@media(hover:none)]:opacity-100 [@media(pointer:coarse)]:opacity-100">
         <Button

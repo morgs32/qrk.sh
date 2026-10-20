@@ -12,6 +12,7 @@ export const articleView = makeModuleView(articleV1, {
   default: {
     placeholder: ArticlePlaceholder,
     defaultWidth: 720,
+    minWidth: 320,
     component(props) {
       const { state } = props;
       return (

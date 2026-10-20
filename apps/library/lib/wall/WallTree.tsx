@@ -26,7 +26,10 @@ export function WallTree(props: {
     stacks: {
       id: string;
       name: string;
-      rows: { id: string; placements: { id: string; brickId: string; content: ReactNode }[] }[];
+      rows: {
+        id: string;
+        placements: { id: string; brickId: string; minWidth: number; content: ReactNode }[];
+      }[];
     }[];
   }[];
   selectedBrickId?: string | null;

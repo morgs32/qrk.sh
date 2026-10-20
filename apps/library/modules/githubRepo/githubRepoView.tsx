@@ -20,6 +20,7 @@ export const githubRepoView = makeModuleView(githubRepoV1, {
   form: GitHubRepoForm,
   default: {
     defaultWidth: 480,
+    minWidth: 320,
     placeholder() {
       return <GitHubRepoPlaceholder />;
     },

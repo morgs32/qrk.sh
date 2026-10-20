@@ -351,7 +351,10 @@ reduced motion skips the slide. The active frame body renders the site navbar an
 Stacks, Rows, and placed Bricks through the shared controlled components. Only
 the active pane registers drag targets and interactions. Placement cells use the
 Wall's logical breakpoint and fill their Row cell; catalog `defaultWidth` is
-not applied to placed content.
+not applied to placed content. Cells respect the module's `minWidth`: 320px for
+every module except Swatch and Icon at 160px, at every breakpoint. Each Row
+scrolls horizontally when its minimums exceed the available width, preserving
+neighboring Stack widths and saved arrangement.
 Wall, Section, Stack, and Row layout has no outer padding or inter-item gutters.
 Stack controls overlay content rather than reserving a toolbar row. The Wall has
 no Add/plus buttons; drop indicators appear during dragging. Empty saved Rows
@@ -405,7 +408,7 @@ Public website rendering and history browsing/restoration are deferred.
 The production modules catalog keeps `@qrk.sh/library/ModuleFilmstrip`. Each module column scrolls vertically beneath its full-width
 sticky heading. Catalogs show the authored Component at its resolved module
 `defaultWidth`, capped at the active canonical breakpoint width, with content
-supplying its height.
+supplying its height and `minWidth` providing its minimum width.
 App supplies typed Router links to its
 `/modules/$moduleId` detail routes. The catalog lives at `/modules` under the
 page editor, with a **Bricks** breadcrumb and **Bricks** toolbar action.
@@ -422,6 +425,7 @@ breakpoints. Each pair uses the module's resolved `defaultWidth`, capped at 360,
 scroll horizontally. Saved-brick fallback previews use the same width rule and
 content height. Widths come from the module's required default view declaration
 and optional breakpoint overrides; browser frames retain their canonical widths.
+All preview surfaces also respect the module's breakpoint-independent `minWidth`.
 No preview renders a grid-item comparison, intrinsic probe, or
 pixel/grid-unit sizing diagnostic. Library Storybook hosts the developer Generate spec
 controls, which affect only its JsonRender previews.

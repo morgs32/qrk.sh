@@ -135,6 +135,7 @@ export function WallEditorProvider(props: { children: ReactNode }) {
                               return {
                                 id: placement.id,
                                 brickId: brick?.id ?? "",
+                                minWidth: module?.viewFor(breakpoint).minWidth ?? 160,
                                 content:
                                   Component === undefined ||
                                   brick === null ||

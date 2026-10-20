@@ -10,6 +10,7 @@ export const articleView = makeModuleView(articleV1, {
   LineIcon: ArticleLineIcon,
   form: ArticleForm,
   default: {
+    defaultWidth: 720,
     component(props) {
       const { state } = props;
       return (
@@ -22,4 +23,6 @@ export const articleView = makeModuleView(articleV1, {
     },
     generator: { registry, defaultSpec },
   },
+  lg: { defaultWidth: 800 },
+  xl: { defaultWidth: 800 },
 });

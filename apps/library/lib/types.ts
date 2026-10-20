@@ -44,6 +44,8 @@ export type IModule<MODULE extends string> = {
     }): ReactNode;
   }["bivarianceHack"];
   viewFor: (breakpoint: "sm" | "md" | "lg" | "xl") => {
+    /** Preferred preview width in pixels, after applying the breakpoint override. */
+    defaultWidth: number;
     component: {
       bivarianceHack(props: { state: unknown }): ReactNode;
     }["bivarianceHack"];

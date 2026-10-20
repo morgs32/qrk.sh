@@ -12,6 +12,7 @@ export const githubActivityView = makeModuleView(githubActivityV1, {
   LineIcon: GitHubActivityLineIcon,
   form: GitHubActivityForm,
   default: {
+    defaultWidth: 656,
     placeholder() {
       return <GitHubActivityPlaceholder />;
     },

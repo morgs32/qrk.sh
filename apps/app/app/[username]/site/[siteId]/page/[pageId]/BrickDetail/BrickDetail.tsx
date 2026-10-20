@@ -170,7 +170,9 @@ export function BrickDetail() {
                   data-brick-surface=""
                   data-card-style={cardStyle}
                   className="brick-hover-target relative shrink-0"
-                  style={{ width: entry.previewWidth }}
+                  style={{
+                    width: Math.min(brick.viewFor(breakpoint).defaultWidth, entry.previewWidth),
+                  }}
                 >
                   <BrickWrapper
                     className="brick-hover-surface"

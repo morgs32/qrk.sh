@@ -72,6 +72,7 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "6.0.3",
+    "react-zoom-pan-pinch": "4.2.0",
     "sass-embedded": "^1.104.1",
     "storybook": "^10.6.0",
     "tailwindcss": "^4.2.2",

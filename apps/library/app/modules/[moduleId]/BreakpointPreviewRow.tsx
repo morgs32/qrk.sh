@@ -20,8 +20,10 @@ export function BreakpointPreviewRow(props: {
   const { entry, moduleId, brick, moduleState, className, specs } = props;
   const cardStyle = useContext(BrickCardStyleContext);
   const maxPerPage = brick.maxPerPage;
-  const Component = brick.viewFor(entry.id).component;
+  const view = brick.viewFor(entry.id);
+  const Component = view.component;
   const JsonRender = brick.component;
+  const previewWidth = Math.min(view.defaultWidth, entry.previewWidth);
 
   return (
     <OrderedSection className={className} label={entry.id}>
@@ -36,7 +38,7 @@ export function BreakpointPreviewRow(props: {
               data-brick-surface=""
               data-card-style={cardStyle}
               className="brick-hover-target relative shrink-0"
-              style={{ width: entry.previewWidth }}
+              style={{ width: previewWidth }}
             >
               <BrickWrapper
                 className="brick-hover-surface"
@@ -53,7 +55,7 @@ export function BreakpointPreviewRow(props: {
               data-brick-surface=""
               data-card-style={cardStyle}
               className="brick-hover-target relative shrink-0"
-              style={{ width: entry.previewWidth }}
+              style={{ width: previewWidth }}
             >
               <BrickWrapper
                 className="brick-hover-surface"

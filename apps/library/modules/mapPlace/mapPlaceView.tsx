@@ -13,6 +13,7 @@ export const mapPlaceView = makeModuleView(mapPlaceV1, {
     return <MapPlaceForm state={state} session={session} brickId={brickId} onCancel={onCancel} />;
   },
   default: {
+    defaultWidth: 480,
     component(props) {
       const { state } = props;
       if (state.data === null)

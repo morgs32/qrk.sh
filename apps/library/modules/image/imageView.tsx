@@ -12,6 +12,7 @@ export const imageView = makeModuleView(imageV1, {
   LineIcon: ImageLineIcon,
   form: ImageForm,
   default: {
+    defaultWidth: 480,
     placeholder() {
       return (
         <imageCardView.Component>

@@ -14,7 +14,8 @@ export function ModulePreview(props: {
   const { brickModule, breakpoint, displayPlaceholders, moduleLink } = props;
   const cardStyle = useContext(BrickCardStyleContext);
   const maxPerPage = brickModule.maxPerPage;
-  const Component = brickModule.viewFor(breakpoint).component;
+  const view = brickModule.viewFor(breakpoint);
+  const Component = view.component;
   const Placeholder = brickModule.placeholder;
   const entry = BREAKPOINTS.find((row) => row.id === breakpoint);
   if (entry === undefined) throw new Error(`Unknown breakpoint: ${breakpoint}`);
@@ -35,7 +36,7 @@ export function ModulePreview(props: {
           data-brick-surface=""
           data-card-style={cardStyle}
           className="brick-hover-target relative shrink-0"
-          style={{ width: entry.previewWidth }}
+          style={{ width: Math.min(view.defaultWidth, entry.previewWidth) }}
         >
           <BrickWrapper
             className="brick-hover-surface"

@@ -16,16 +16,22 @@ navbar offsets are removed; drawer sizing and transitions remain.
 
 ## Browse-only catalogs
 
-The **Bricks** catalogs render only the authored Component at the active
-breakpoint's canonical width. Library and App module details compare **Component**
-and **JsonRender** at all four canonical widths, with height supplied by content.
+The **Bricks** catalogs render only the authored Component at the module's
+resolved preferred width, capped at the active breakpoint's canonical width.
+Library and App module details compare **Component** and **JsonRender** at all
+four breakpoints, using the same resolved width for each pair and height supplied
+by content. App saved-brick fallback previews use the same width rule.
 Wide rows scroll horizontally. Library retains Generate spec and generated JSON;
 generation changes only its JsonRender previews.
 
 Previews retain module metadata, forms, links, card appearance, and module-owned
 interactions, including image-upload drag/drop. They have no grid sizing, intrinsic
-probe, size diagnostic, drag payload, or insertion gating. View declarations have
-no `w`, `h`, `minW`, `minH`, or measurement flags. Link uses a CSS half-width copy
+probe, size diagnostic, drag payload, or insertion gating. Each view declaration
+requires `default.defaultWidth` in pixels; optional `sm`/`md`/`lg`/`xl` overrides
+resolve through `viewFor(breakpoint)`. Missing overrides use the default directly.
+The preferred width imposes no minimum or persisted geometry. Browser frames
+retain their canonical widths. Views have no `w`, `h`, `minW`, `minH`, or
+measurement flags. Link uses a CSS half-width copy
 column with normal wrapping. Map Place owns a 200px CSS minimum height and keeps
 Mapbox resizing; GitHub Activity keeps calendar scrolling and fades.
 
@@ -49,20 +55,23 @@ Mapbox resizing; GitHub Activity keeps calendar scrolling and fades.
 The obsolete grid drop and grid-item workflow documents are retired. Historical
 research and archived plans remain records of the former implementation.
 
-## Local cutover status
+## Local cutover outcome
 
-[Plan 031](./plans/031-plan-component-jsonrender-previews.md) records the approved
+[Plan 031](./archive/plans/031-plan-component-jsonrender-previews.md) records the approved
 discard of affected local Library/App browser data and the local `sys_qrk_sh_1`
-backend store, without backups or an authored namespace change. Source changes
-are implemented. Chrome Library/App data and the backend were explicitly reset,
-and fresh authenticated App and Library initialization passed. The in-app browser
-Library deletion remains blocked by an old SharedWorker; fully quitting/reopening
-the desktop app is required before exact deletion is retried. Only Library remains
-paused so its worker cannot reopen on restoration; other local services remain running. Generation
+backend store, without backups or an authored namespace change. Chrome Library/App
+data and the backend were explicitly reset, and fresh Library and authenticated
+App initialization passed. An old SharedWorker initially blocked the in-app
+browser's legacy Library deletion. After the desktop app was restarted, that exact
+legacy database was already absent; explicit deletion completed successfully.
+Library reopened its current 19.0.0 partition, preserving it and the unrelated
+debug database. All four Component/JsonRender comparisons initialized. Generation
 passed after the user refreshed the API credential and only API was restarted:
 JsonRender and generated JSON changed while the authored Component stayed unchanged.
-Library's unchanged standalone path hashes authored scope rather than the schema,
-so a changed schema does not isolate its old database. Connected App identities
-include the session lock; only matching local nodes/discovery entries are deleted.
+At the original 15.0.1 cutover, Library's standalone key excluded the session lock.
+The later 18.0.0 adoption added the complete canonical session lock to partition
+identity, and 19.0.0 retains that storage model. The authored backup path remains
+unchanged. Connected App identities include the session lock; only matching local
+nodes/discovery entries were deleted.
 Earlier origins, unrelated databases, cookies, preferences, uploads, and deployed
-storage remain outside this cutover.
+storage were preserved.

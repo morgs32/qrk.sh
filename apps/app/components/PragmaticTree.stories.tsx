@@ -14,9 +14,11 @@ import {
 import { combine } from "@atlaskit/pragmatic-drag-and-drop/utils/combine";
 import { setCustomNativeDragPreview } from "@atlaskit/pragmatic-drag-and-drop/utils/set-custom-native-drag-preview";
 import { pointerOutsideOfPreview } from "@atlaskit/pragmatic-drag-and-drop/utils/pointer-outside-of-preview";
+import { WallBreakpointPane } from "@qrk.sh/library/WallBreakpointPane";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Ellipsis, GripVertical, Plus } from "lucide-react";
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
+import { TransformComponent, TransformWrapper } from "react-zoom-pan-pinch";
 
 import { makeId } from "../lib/makeId";
 import { Button } from "./ui/button";
@@ -159,6 +161,7 @@ const meta = {
     const nextSectionId = useRef(3);
     const nextStackNumber = useRef(4);
     const rootRef = useRef<HTMLDivElement>(null);
+    const sectionsRef = useRef<HTMLDivElement>(null);
     const moveTriggerId = useRef<string | null>(null);
     const [contextId] = useState(() => Symbol("storybook-stacks"));
     const [dragging, setDragging] = useState<{ kind: "item" | "stack" | "palette-item"; id: string } | null>(null);
@@ -166,6 +169,7 @@ const meta = {
       | { kind: "item" | "stack"; id: string; instruction: Instruction }
       | { kind: "item-insertion"; stackId: string; beforeItemId: string | null }
       | { kind: "section-insertion"; beforeSectionId: string; targetStackId: string }
+      | { kind: "canvas-section-insertion"; beforeSectionId: string | null }
       | null
     >(null);
     const [activeGroup, setActiveGroup] = useState<string | null>(null);
@@ -308,14 +312,14 @@ const meta = {
     const moveStack = useCallback(
       (move:
         | { stackId: string; sectionId: string; index: number }
-        | { stackId: string; beforeSectionId: string }
+        | { stackId: string; beforeSectionId: string | null }
       ) => {
         const sourceStack = stacks.find((stack) => stack.id === move.stackId);
         if (!sourceStack) return false;
 
         if ("beforeSectionId" in move) {
           // 1. Resolve the live anchor before allocating only a Section identity.
-          const beforeIndex = sections.indexOf(move.beforeSectionId);
+          const beforeIndex = move.beforeSectionId === null ? sections.length : sections.indexOf(move.beforeSectionId);
           if (beforeIndex < 0) return false;
           const sectionId = String(nextSectionId.current++);
           const nextSections = [...sections];
@@ -327,7 +331,9 @@ const meta = {
             sections: nextSections,
             stacks: stacks.map((stack) => stack.id === sourceStack.id ? { ...stack, sectionId } : stack),
           });
-          announce(`Moved ${sourceStack.name} to new Section ${sectionId} before Section ${move.beforeSectionId}.`);
+          announce(move.beforeSectionId === null
+            ? `Moved ${sourceStack.name} to new Section ${sectionId} at the end.`
+            : `Moved ${sourceStack.name} to new Section ${sectionId} before Section ${move.beforeSectionId}.`);
           return true;
         }
 
@@ -356,8 +362,45 @@ const meta = {
 
     useEffect(() => {
       const root = rootRef.current;
-      if (!root) return;
+      const sectionList = sectionsRef.current;
+      if (!root || !sectionList) return;
       const disposers: (() => void)[] = [];
+
+      // The preview canvas owns the outer edges and a 16px band at each internal boundary.
+      // Resolve these boundaries before ordinary Stack targets, including over a full row.
+      disposers.push(dropTargetForElements({
+        element: root.ownerDocument.documentElement,
+        canDrop: ({ source, input }) => {
+          if (
+            source.data.contextId !== contextId || source.data.kind !== "stack" ||
+            typeof source.data.id !== "string" || sections.length === 0 ||
+            !stacks.some((stack) => stack.id === source.data.id)
+          ) return false;
+          const bounds = sectionList.getBoundingClientRect();
+          if (input.clientY < bounds.top || input.clientY > bounds.bottom) return true;
+          for (const sectionElement of sectionList.querySelectorAll<HTMLDivElement>("[data-section-id]")) {
+            if (sectionElement.dataset.sectionId === sections[0]) continue;
+            if (Math.abs(input.clientY - sectionElement.getBoundingClientRect().top) <= 8) return true;
+          }
+          return false;
+        },
+        getData: ({ input }) => {
+          const bounds = sectionList.getBoundingClientRect();
+          let beforeSectionId: string | null = null;
+          if (input.clientY < bounds.top) {
+            beforeSectionId = sections[0] ?? null;
+          } else if (input.clientY <= bounds.bottom) {
+            for (const sectionElement of sectionList.querySelectorAll<HTMLDivElement>("[data-section-id]")) {
+              if (sectionElement.dataset.sectionId === sections[0]) continue;
+              if (Math.abs(input.clientY - sectionElement.getBoundingClientRect().top) <= 8) {
+                beforeSectionId = sectionElement.dataset.sectionId ?? null;
+                break;
+              }
+            }
+          }
+          return { kind: "canvas-section-insertion", beforeSectionId };
+        },
+      }));
 
       const paletteItem = root.querySelector<HTMLButtonElement>("[data-palette-item]");
       if (paletteItem) {
@@ -523,12 +566,25 @@ const meta = {
       }
 
       const updateTarget = ({ source, location }: Pick<ElementDropTargetEventBasePayload, "source" | "location">) => {
-        const target = location.current.dropTargets[0];
+        const target = location.current.dropTargets.find((entry) => entry.data.kind === "canvas-section-insertion")
+          ?? location.current.dropTargets[0];
         const instruction = target && extractInstruction(target.data);
         const kind = target?.data.kind;
         const id = target?.data.id;
         const stackId = target?.data.stackId;
         const beforeItemId = target?.data.beforeItemId;
+        if (kind === "canvas-section-insertion") {
+          const beforeSectionId = target?.data.beforeSectionId;
+          setDrop(
+            source.data.kind === "stack" && typeof source.data.id === "string" &&
+            stacks.some((stack) => stack.id === source.data.id) &&
+            (beforeSectionId === null || (typeof beforeSectionId === "string" && sections.includes(beforeSectionId)))
+              ? { kind, beforeSectionId }
+              : null,
+          );
+          setActiveGroup(null);
+          return;
+        }
         if (kind === "section-insertion") {
           const beforeSectionId = target?.data.beforeSectionId;
           const targetStackId = target?.data.targetStackId;
@@ -571,7 +627,8 @@ const meta = {
             setActiveGroup(null);
             const sourceId = source.data.id;
             const kind = source.data.kind;
-            const target = location.current.dropTargets[0];
+            const target = location.current.dropTargets.find((entry) => entry.data.kind === "canvas-section-insertion")
+              ?? location.current.dropTargets[0];
             if (!target) return;
 
             const instruction = extractInstruction(target.data);
@@ -626,6 +683,12 @@ const meta = {
             }
 
             if (kind !== "stack" || typeof sourceId !== "string") return;
+            if (target.data.kind === "canvas-section-insertion") {
+              const beforeSectionId = target.data.beforeSectionId;
+              if (beforeSectionId !== null && typeof beforeSectionId !== "string") return;
+              moveStack({ stackId: sourceId, beforeSectionId });
+              return;
+            }
             if (target.data.kind === "section-insertion") {
               const beforeSectionId = target.data.beforeSectionId;
               const targetStackId = target.data.targetStackId;
@@ -674,7 +737,8 @@ const meta = {
       ? stackDestination === "existing" && stacks.find((stack) => stack.id === moving.id)?.sectionId !== section && destinationSectionFull
       : destinationStack === "new" && destinationSectionFull;
     const moveUnavailable = !moving || moveAtCapacity || (moving.kind === "stack" && (
-      !sections.includes(section) || !stacks.some((stack) => stack.id === moving.id)
+      !(sections.includes(section) || (stackDestination === "new-section" && section === "end")) ||
+      !stacks.some((stack) => stack.id === moving.id)
     ));
 
     const sectionInsertion = drop?.kind === "section-insertion" && dragging?.kind === "stack" &&
@@ -684,12 +748,21 @@ const meta = {
         ? drop
         : null;
 
+    const canvasSectionInsertion = drop?.kind === "canvas-section-insertion" && dragging?.kind === "stack" &&
+      stacks.some((stack) => stack.id === dragging.id) &&
+      (drop.beforeSectionId === null || sections.includes(drop.beforeSectionId))
+        ? drop
+        : null;
+
     useEffect(() => {
-      if (drop?.kind === "section-insertion" && sectionInsertion === null) {
+      if (
+        (drop?.kind === "section-insertion" && sectionInsertion === null) ||
+        (drop?.kind === "canvas-section-insertion" && canvasSectionInsertion === null)
+      ) {
         setDrop(null);
         setActiveGroup(null);
       }
-    }, [drop, sectionInsertion]);
+    }, [drop, sectionInsertion, canvasSectionInsertion]);
 
     let dragInsertion: { stackId: string; beforeItemId: string | null } | null = null;
     if (dragging?.kind === "item" || dragging?.kind === "palette-item") {
@@ -739,6 +812,7 @@ const meta = {
           role="group"
           aria-label="Draggable sections and stacks"
         >
+          <div ref={sectionsRef} className="relative">
           <div className="divide-y divide-zinc-200 border border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800">
             {sections.map((sectionId) => {
               const sectionStacks = stacks.filter((stack) => stack.sectionId === sectionId);
@@ -894,7 +968,7 @@ const meta = {
                         );
                       })}
                       </div>
-                      {sectionInsertion?.beforeSectionId === sectionId && (
+                      {(sectionInsertion?.beforeSectionId === sectionId || canvasSectionInsertion?.beforeSectionId === sectionId) && (
                         <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 z-[60]">
                           <BoxDropIndicator edge="top" />
                         </div>
@@ -904,6 +978,15 @@ const meta = {
                 </Fragment>
               );
             })}
+          </div>
+          {canvasSectionInsertion?.beforeSectionId === null && (
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-x-0 bottom-0 z-[60]"
+            >
+              <BoxDropIndicator edge="bottom" />
+            </div>
+          )}
           </div>
           <div data-add-section className="pointer-events-none relative z-10 mt-2 flex h-4 w-full">
             <InsertionSeparator
@@ -953,6 +1036,10 @@ const meta = {
                     onValueChange={(value) => {
                       if (value !== "existing" && value !== "new-section") return;
                       setStackDestination(value);
+                      if (value === "existing" && section === "end") {
+                        const sourceStack = stacks.find((stack) => stack.id === moving.id);
+                        if (sourceStack) setSection(sourceStack.sectionId);
+                      }
                       setPosition("0");
                     }}
                   >
@@ -967,7 +1054,7 @@ const meta = {
                 </>
               )}
               <Label htmlFor="tree-section">
-                {moving?.kind === "stack" && stackDestination === "new-section" ? "Before Section" : "Section"}
+                {moving?.kind === "stack" && stackDestination === "new-section" ? "New Section position" : "Section"}
               </Label>
               <Select
                 value={section}
@@ -989,9 +1076,12 @@ const meta = {
                         stacks.find((stack) => stack.id === moving.id)?.sectionId !== sectionId &&
                         stacks.filter((stack) => stack.sectionId === sectionId).length >= stackLimit}
                     >
-                      Section {sectionId}
+                      {moving?.kind === "stack" && stackDestination === "new-section" ? `Before Section ${sectionId}` : `Section ${sectionId}`}
                     </SelectItem>
                   ))}
+                  {moving?.kind === "stack" && stackDestination === "new-section" && (
+                    <SelectItem value="end">At end</SelectItem>
+                  )}
                 </SelectContent>
               </Select>
               {moving?.kind === "item" && (
@@ -1048,7 +1138,7 @@ const meta = {
                   if (!moving || moveUnavailable) return;
                   if (moving.kind === "stack") {
                     const accepted = stackDestination === "new-section"
-                      ? moveStack({ stackId: moving.id, beforeSectionId: section })
+                      ? moveStack({ stackId: moving.id, beforeSectionId: section === "end" ? null : section })
                       : moveStack({ stackId: moving.id, sectionId: section, index: Number(position) });
                     if (!accepted) return;
                   } else {
@@ -1075,3 +1165,35 @@ const meta = {
 export default meta;
 
 export const Default: StoryObj<typeof meta> = {};
+
+export const ZoomedOut: StoryObj<typeof meta> = {
+  parameters: { layout: "fullscreen" },
+  decorators: [
+    (Story) => (
+      <div className="grid min-h-dvh place-items-center overflow-auto bg-muted/30 p-8 [--wall-frame-height:640px]">
+        <TransformWrapper disabled initialScale={0.5} minScale={0.5} maxScale={0.5}>
+          <TransformComponent
+            wrapperStyle={{ width: 512, height: 320 }}
+            contentStyle={{ width: 1024, height: 640 }}
+          >
+            <WallBreakpointPane
+              breakpoint="lg"
+              previewWidth={1024}
+              isActive
+              isOutgoing={false}
+              isOnStage
+              isTransitioning={false}
+              direction={0}
+              reducedMotion
+              onOutgoingComplete={() => {}}
+            >
+              <div className="min-h-0 flex-1 overflow-auto bg-background p-8">
+                <Story />
+              </div>
+            </WallBreakpointPane>
+          </TransformComponent>
+        </TransformWrapper>
+      </div>
+    ),
+  ],
+};

@@ -13,6 +13,7 @@ export const figmaThumbnailView = makeModuleView(figmaThumbnailV1, {
   LineIcon: FigmaThumbnailLineIcon,
   form: FigmaThumbnailForm,
   default: {
+    defaultWidth: 480,
     placeholder() {
       return <FigmaThumbnailPlaceholder />;
     },

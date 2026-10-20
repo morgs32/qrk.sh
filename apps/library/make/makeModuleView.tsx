@@ -93,6 +93,8 @@ export function makeModuleView<
       onCancel: () => void;
     }) => ReactNode;
     default: {
+      /** Preferred preview width in pixels, capped by the selected breakpoint's width. */
+      defaultWidth: number;
       component: (props: { state: IInferDecodedRow<MODULE["stateShape"]> }) => ReactNode;
       placeholder?: () => ReactNode;
       generator?: {
@@ -102,6 +104,7 @@ export function makeModuleView<
     };
   } & {
     [K in "sm" | "md" | "lg" | "xl"]?: {
+      defaultWidth?: number;
       component?: (props: { state: IInferDecodedRow<MODULE["stateShape"]> }) => ReactNode;
       generator?: {
         registry?: ComponentRegistry;
@@ -169,6 +172,7 @@ export function makeModuleView<
       overlay?.generator,
     );
     return {
+      defaultWidth: overlay?.defaultWidth ?? view.default.defaultWidth,
       component: authoredComponents[breakpoint],
       spec: generator?.defaultSpec ?? emptySpec,
       registry: generator?.registry,

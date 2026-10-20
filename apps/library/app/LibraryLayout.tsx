@@ -308,16 +308,6 @@ function LayoutBody(props: {
       >
         Bricks
       </Button>
-      <Button
-        type="button"
-        variant={cardStyle ? "secondary" : "ghost"}
-        size="sm"
-        className="px-2"
-        aria-pressed={cardStyle}
-        onClick={() => setCardStyle((current) => !current)}
-      >
-        Cards
-      </Button>
       <div className="mx-1 h-5 w-px shrink-0 bg-border" aria-hidden />
       {BREAKPOINTS.map((row) => (
         <Button
@@ -450,6 +440,14 @@ function LayoutBody(props: {
                   ) : null}
                 </nav>
                 <div className="flex shrink-0 items-center gap-3">
+                  <label className="flex cursor-pointer items-center gap-2 text-xs">
+                    <input
+                      type="checkbox"
+                      checked={cardStyle}
+                      onChange={(event) => setCardStyle(event.target.checked)}
+                    />
+                    Cards
+                  </label>
                   <label className="flex cursor-pointer items-center gap-2 text-xs">
                     <input
                       type="checkbox"

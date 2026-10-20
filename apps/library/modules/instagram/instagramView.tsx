@@ -13,6 +13,7 @@ export const instagramView = makeModuleView(instagramV1, {
   LineIcon: InstagramLineIcon,
   form: InstagramForm,
   default: {
+    defaultWidth: 400,
     placeholder() {
       return <InstagramPlaceholder />;
     },

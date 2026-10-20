@@ -11,6 +11,7 @@ export const swatchAndIconView = makeModuleView(swatchAndIconV1, {
   LineIcon: SwatchAndIconLineIcon,
   form: SwatchAndIconForm,
   default: {
+    defaultWidth: 240,
     component(props) {
       const { state } = props;
       return (

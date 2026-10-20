@@ -180,15 +180,17 @@ migration, deletion or fallback. Later, the same scope, path and lock reopen the
 partition; changing the lock selects separate storage. The 19.0.0 cleanup change
 preserves those partitions and their data.
 
-[Plan 031](../../wiki/plans/031-plan-component-jsonrender-previews.md) records the
+[Plan 031](../../wiki/archive/plans/031-plan-component-jsonrender-previews.md) records the
 preceding 15.0.1 cutover: explicit deletion of only affected local Library/App node
 databases and local `sys_qrk_sh_1` backend state, without backups or an authored
 namespace change. Chrome Library/App and local backend reset/initialization
-succeeded. Its in-app browser legacy deletion was blocked by an old SharedWorker,
-and Library was paused at that time. That legacy deletion and pause are not
-prerequisites for initializing the new 18.0.0 partition; this adoption does not
-delete the legacy database or resolve its owner's lifecycle. Earlier successful
-generation verification followed an API-key refresh and API restart: generated
+succeeded. An old SharedWorker initially blocked its in-app browser legacy
+deletion. After the desktop app was restarted, that exact legacy database was
+already absent; an explicit deletion completed successfully, and Library
+reopened its current 19.0.0 partition. The current partition and unrelated debug
+database were preserved. Legacy deletion was not a prerequisite for initializing
+the new 18.0.0 partition, and neither adoption deleted legacy storage. Earlier
+successful generation verification followed an API-key refresh and API restart: generated
 JSON appeared, JsonRender changed, and authored markup stayed unchanged. These
 are preceding-cutover observations, not verification of the 18.0.0 adoption.
 Earlier origins, unrelated data, cookies, preferences, uploads, and deployed
@@ -313,33 +315,53 @@ Library and App share `ModuleFilmstrip` and browse-only module previews. Each ap
 supplies its own module links through `renderModuleLink`; the shared catalog has
 no router dependency. Columns scroll vertically within a horizontal strip.
 Module headings span their columns and stick to the top while previews scroll
-underneath. Catalogs render only the authored Component at the active breakpoint's
-canonical width, with height supplied by its content. They have no grid sizing,
-dimension probes, drag sources, payloads, or insertion gating. Module detail screens
-remain app-owned. Their catalog label is **Bricks**.
+underneath. Catalogs render only the authored Component at the module's resolved
+preferred width, capped at the active breakpoint's canonical width, with height
+supplied by its content. They have no grid sizing, dimension probes, drag sources,
+payloads, or insertion gating. Module detail screens remain app-owned. Their
+catalog label is **Bricks**.
 
 Both hosts' module details show **Component** and **JsonRender** side by side for
-`sm`, `md`, `lg`, and `xl`, at 360, 720, 1080, and 1440px respectively. Each preview
-has content height; a row scrolls horizontally when needed. Library retains its
-Generate spec controls and generated JSON display. Generation changes only the
-JsonRender previews; the authored Component remains independent of the spec.
+`sm`, `md`, `lg`, and `xl`. Each pair uses the same resolved module width, capped
+at 360, 720, 1080, and 1440px respectively. Each preview has content height; a row
+scrolls horizontally when needed. Library retains its Generate spec controls and
+generated JSON display. Generation changes only the JsonRender previews; the
+authored Component remains independent of the spec.
 
 ## Local card appearance spike
 
-The **Cards** button in Library's preview controls and App's upper-right corner
-toggles one local boolean through `BrickCardStyleContext`. It affects catalog
-previews without adding module catalog or registry props. The flag starts
+The **Cards** checkbox in Library's drawer navigation beside **Display placeholders**
+and the **Cards** button in App's upper-right corner toggle one local boolean through
+`BrickCardStyleContext`. It affects catalog previews without adding module catalog
+or registry props. The flag starts
 `false`, survives drawer navigation while its layout stays mounted, and is not
 persisted on Site, Page, or in localStorage.
 
 Cards use an 8px radius, white background, and preview shadow. This decoration
-does not alter a preview's canonical width or derive grid spans or dimensions.
+does not alter a preview's resolved width or derive grid spans or dimensions.
 Historical grid-border and card-layout research remains under `wiki/research/`;
 no placed-brick wall or React Grid Layout renderer remains.
 
 ## Modules and interaction
 
-Catalog previews render authored module content at the active canonical width.
+Every module's `makeModuleView` declaration requires `default.defaultWidth` in
+pixels. Optional `sm`, `md`, `lg`, and `xl` overlays can override `defaultWidth`;
+an omitted override uses the default directly. `viewFor(breakpoint)` returns the
+resolved preferred width alongside the component, spec, and registry. Catalog,
+module detail, and App saved-brick fallback previews cap that width at the chosen
+breakpoint's canonical width. Browser frames retain their canonical widths.
+This preference does not impose a minimum width or change persisted brick state.
+
+| Module | Default width | Breakpoint overrides |
+| --- | --- | --- |
+| Article | 720px | `lg`: 800px; `xl`: 800px |
+| GitHub Activity | 656px | — |
+| GitHub Profile | 360px | — |
+| GitHub Repo, Figma Thumbnail, Image, Link, Map Place | 480px | — |
+| Instagram | 400px | — |
+| Swatch and Icon | 240px | — |
+
+Catalog previews render authored module content at that resolved preview width.
 They do not insert, select, drag, or resize placed bricks. Ordinary links, forms, image
 upload drag/drop, and module-owned interactions remain available.
 
@@ -437,7 +459,7 @@ catalog previews. The skeleton respects reduced motion.
 
 The Library drawer's **Display placeholders** checkbox
 starts unchecked and switches eligible catalog previews between their example state
-and placeholder at the same canonical width. The choice lasts until
+and placeholder at the same resolved preview width. The choice lasts until
 reload. The shared renderer selects the placeholder only for exact null, before
 state decoding or JSON-render execution. Empty strings, objects, and collections
 still take the normal rendering path. Valid empty specs do not hide placeholders.

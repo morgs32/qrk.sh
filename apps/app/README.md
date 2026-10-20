@@ -73,6 +73,15 @@ left/right Stack reordering remains available under existing-section capacity
 rules. A full target section still accepts the top-band operation because the
 destination is a separate section. The existing Stack ID and name, Item IDs,
 and Item order survive; the source section remains even when empty.
+Stack drags anywhere in the Storybook preview canvas above the first section
+or below the last show a section-wide target at that layout edge. Dropping
+prepends or appends a new section containing the existing stack and all its
+items. A 16px band centered on each internal section boundary spans the preview
+canvas width. Inside that band, a full-width insertion target takes priority
+over ordinary Stack reordering; dropping moves the existing stack and all its
+items into a new section at that boundary. Outside the bands, existing behavior
+and inner-target priority remain; left or right whitespace qualifies only when
+vertically above or below the section list.
 While `activeGroup` identifies a stack append target, its existing outer wrapper
 uses `z-50` to raise the outline, items, and insertion indicator above neighboring
 stacks. Other targets and drag cleanup restore `z-index: auto`; ordinary
@@ -88,8 +97,9 @@ section. Any drag hides these headers and disables their pointer interaction
 so item insertion and drop targets remain reachable.
 The 20px grip button has a 12px icon: dragging it moves the whole stack, and
 clicking it opens Stack Move. Its Destination choice offers **Existing Section**
-with Section and Position controls, or **New Section** with **Before Section**.
-New Section performs the same move as a top-band drop. A private story-local
+with Section and Position controls, or **New Section** with **Before Section**
+and an **At end** option. New Section performs the same move as a top-band,
+internal-boundary, or layout-edge drop. A private story-local
 `InsertionSeparator` supplies item
 and section insertion controls. Item controls sit above the first item,
 between items, and below the last item. All item controls span the stack's
@@ -142,6 +152,14 @@ stacks remain allowed. Lowering the limit preserves current stacks and blocks
 further growth without deleting anything. Width and row height are also
 Storybook controls. This phase is Storybook-only.
 
+**App / Studio / Pragmatic Tree / Zoomed Out** reuses the same palette, tree,
+and controls inside the Library browser preview frame. The 1024×640 desktop
+frame and all its contents render at a fixed 50% scale (512×320) through
+`react-zoom-pan-pinch`. Zoom and pan gestures are disabled; tree dragging,
+insertion, and Move actions remain active. Content scrolls inside the frame
+when it grows, and small Storybook canvases scroll without changing the scale.
+Portaled menus and dialogs retain their normal size outside the scaled frame.
+
 App and Web run independently behind their own Portless hostnames. Direct
 startup defaults to 10001 for App and 10000 for Web; Portless allocates their
 proxied ports. `vite.config.ts` configures Start's SPA mode,
@@ -178,15 +196,17 @@ without backups. Library's local standalone database is reset separately;
 authentication, cookies, localStorage preferences, unrelated databases, uploads,
 and deployed storage remain outside that deletion. This does not authorize future resets.
 
-[Plan 031](../../wiki/plans/031-plan-component-jsonrender-previews.md) removes preview
+[Plan 031](../../wiki/archive/plans/031-plan-component-jsonrender-previews.md) removes preview
 sizing and persisted measurements. Its separately approved local discard covers
 the affected Library/App browser databases and local `sys_qrk_sh_1` backend store,
-with no backup, migration, or authored namespace change. The implementation is in
-source. Chrome Library/App data and local backend storage were reset; the backend
+with no backup, migration, or authored namespace change. The implementation is
+complete. Chrome Library/App data and local backend storage were reset; the backend
 accepted the system spec and App initialized with the existing authenticated user.
-At that cutover, the in-app browser Library reset was blocked by its old
-SharedWorker, and Library was paused while the other apps remained running.
-The 19.0.0 cleanup adoption preserves storage and does not require that legacy
+At that cutover, an old SharedWorker initially blocked the in-app browser Library
+reset. After the desktop app was restarted, the exact legacy database was already
+absent; an explicit deletion completed successfully, and Library reopened its
+current 19.0.0 partition without deleting it or the unrelated debug database.
+The 19.0.0 cleanup adoption preserves storage and did not require that legacy
 deletion. Library generation passed after an API-only restart with
 the refreshed credential: JsonRender and generated JSON changed while authored
 markup stayed unchanged. Connected browser identity includes the exact session
@@ -447,8 +467,9 @@ Public website rendering and history browsing/restoration are deferred.
 
 The modules catalog uses `@qrk.sh/library/ModuleFilmstrip`, the same horizontal
 filmstrip as Library. Each module column scrolls vertically beneath its full-width
-sticky heading. Catalogs show the authored Component at the active canonical
-breakpoint width, with content supplying its height.
+sticky heading. Catalogs show the authored Component at its resolved module
+`defaultWidth`, capped at the active canonical breakpoint width, with content
+supplying its height.
 App supplies typed Router links to its
 `/modules/$moduleId` detail routes. The catalog lives at `/modules` under the
 page editor, with a **Bricks** breadcrumb and **Bricks** toolbar action.
@@ -456,9 +477,12 @@ Catalogs and module details are browsing surfaces with no insertion or drag beha
 The previous catalog URLs are removed without redirects.
 
 Module details show **Component** and **JsonRender** side by side for all four
-breakpoints: 360, 720, 1080, and 1440px. Each preview has content height; wide rows
-scroll horizontally. Saved-brick fallback previews also use canonical width and
-content height. No preview renders a grid-item comparison, intrinsic probe, or
+breakpoints. Each pair uses the module's resolved `defaultWidth`, capped at 360,
+720, 1080, and 1440px respectively. Each preview has content height; wide rows
+scroll horizontally. Saved-brick fallback previews use the same width rule and
+content height. Widths come from the module's required default view declaration
+and optional breakpoint overrides; browser frames retain their canonical widths.
+No preview renders a grid-item comparison, intrinsic probe, or
 pixel/grid-unit sizing diagnostic. Library retains its separate Generate spec
 controls, which affect only its JsonRender previews.
 

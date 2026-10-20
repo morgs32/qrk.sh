@@ -69,6 +69,7 @@ function ModuleRouteBody(props: {
         {BREAKPOINTS.map((entry) => {
           const view = brickModule.viewFor(entry.id);
           const Component = view.component;
+          const previewWidth = Math.min(view.defaultWidth, entry.previewWidth);
           return (
             <section key={entry.id}>
               <h2 className="m-0 px-6 text-2xl">{entry.id}</h2>
@@ -80,7 +81,7 @@ function ModuleRouteBody(props: {
                       data-brick-surface=""
                       data-card-style={cardStyle}
                       className="brick-hover-target relative shrink-0"
-                      style={{ width: entry.previewWidth }}
+                      style={{ width: previewWidth }}
                     >
                       <BrickWrapper
                         className="brick-hover-surface"
@@ -97,7 +98,7 @@ function ModuleRouteBody(props: {
                       data-brick-surface=""
                       data-card-style={cardStyle}
                       className="brick-hover-target relative shrink-0"
-                      style={{ width: entry.previewWidth }}
+                      style={{ width: previewWidth }}
                     >
                       <BrickWrapper
                         className="brick-hover-surface"

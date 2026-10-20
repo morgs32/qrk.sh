@@ -16,6 +16,7 @@ export const linkView = makeModuleView(linkV1, {
     return <LinkForm state={state} session={session} brickId={brickId} onCancel={onCancel} />;
   },
   default: {
+    defaultWidth: 480,
     placeholder() {
       return <LinkPlaceholder />;
     },

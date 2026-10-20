@@ -14,7 +14,7 @@ import { combine } from "@atlaskit/pragmatic-drag-and-drop/utils/combine";
 import { setCustomNativeDragPreview } from "@atlaskit/pragmatic-drag-and-drop/utils/set-custom-native-drag-preview";
 import { pointerOutsideOfPreview } from "@atlaskit/pragmatic-drag-and-drop/utils/pointer-outside-of-preview";
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { ChevronDown, ChevronRight, Circle, Ellipsis } from "lucide-react";
+import { ChevronDown, ChevronRight, Circle, Ellipsis, Plus } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 
 import { Button } from "./ui/button";
@@ -56,6 +56,7 @@ const meta = {
       { id: "2", parentId: null, isOpen: true, isDraft: false },
       { id: "2.1", parentId: "2", isOpen: false, isDraft: false },
     ]);
+    const nextItemId = useRef(3);
     const rootRef = useRef<HTMLDivElement>(null);
     const moveTriggerId = useRef<string | null>(null);
     const [contextId] = useState(() => Symbol("storybook-tree"));
@@ -339,6 +340,33 @@ const meta = {
                     </div>
                   </GroupDropIndicator>
                 </div>
+              )}
+              {item.parentId === null && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="w-full justify-start gap-0 rounded-sm px-2 font-normal text-muted-foreground"
+                  style={{ height: rowHeight }}
+                  aria-label={`Add item to Item ${item.id}`}
+                  onClick={() => {
+                    const id = String(nextItemId.current++);
+                    setItems((current) => [
+                      ...current.map((entry) =>
+                        entry.id === item.id ? { ...entry, isOpen: true } : entry,
+                      ),
+                      { id, parentId: item.id, isOpen: false, isDraft: false },
+                    ]);
+                    announce(`Added Item ${id} to Item ${item.id}.`);
+                  }}
+                >
+                  <span
+                    className="flex size-6 shrink-0 items-center justify-center"
+                    aria-hidden="true"
+                  >
+                    <Plus className="size-4" />
+                  </span>
+                  Add item
+                </Button>
               )}
             </div>
           );

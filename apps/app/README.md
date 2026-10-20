@@ -51,8 +51,10 @@ or nest items; the row's Move button provides parent and position controls for
 keyboard use. Top-level groups sit side by side, each bordered around its parent
 and children. Children appear below their parent without indentation. Only root
 items can receive children, and populated groups stay at the root; both dragging
-and the Move dialog enforce this two-level limit. Width and row height are
-Storybook controls. This phase is Storybook-only.
+and the Move dialog enforce this two-level limit. Each stack has an **Add item**
+footer, including empty and collapsed stacks. It appends a numbered mock item,
+expands that stack, and announces the addition while retaining button focus.
+Width and row height are Storybook controls. This phase is Storybook-only.
 
 App and Web run independently behind their own Portless hostnames. Direct
 startup defaults to 10001 for App and 10000 for Web; Portless allocates their

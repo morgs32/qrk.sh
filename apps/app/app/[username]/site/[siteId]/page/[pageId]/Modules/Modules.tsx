@@ -22,7 +22,7 @@ const ParamsSchema = Schema.Struct({
 });
 
 export function Modules() {
-  const { activeBreakpoint, displayPlaceholders } = useWallViewport();
+  const { activeBreakpoint } = useWallViewport();
   const breakpoint = activeBreakpoint ?? "sm";
   const params = useValidatedParams(ParamsSchema);
   const editor = useContext(WallEditorContext);
@@ -42,7 +42,6 @@ export function Modules() {
       <div className="min-h-0 flex-1 font-mono text-sm leading-5 text-zinc-900">
         <ModuleFilmstrip
           breakpoint={breakpoint}
-          displayPlaceholders={displayPlaceholders}
           renderModuleAction={(brickModule) =>
             wall === undefined ? null : (
               <WallModuleAction

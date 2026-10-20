@@ -331,12 +331,12 @@ on opening and clamped on closing; an already bottom-anchored preview stays at
 the end during resizing. Shared Wall controls own drag gestures in the active pane.
 
 On browsing/editor routes, **sm / md / lg / xl** sit on the
-right side of the drawer header beside **Cards**, **Display placeholders**, and
-publication controls. Cards and Display placeholders are adjacent local preview
-toggles and remain usable while closed. Cards starts from the saved Site style
-and changes the Wall/catalog preview without saving Site Settings; Display
-placeholders switches catalog examples to their module placeholders. The toggles
-survive drawer navigation in the mounted editor. Breakpoints select **360 / 720 / 1080 / 1440px** browser frames;
+right side of the drawer header beside **Cards** and publication controls.
+Cards remains usable while closed, starts from the saved Site style, and changes
+the Wall/catalog preview without saving Site Settings. Its state survives drawer
+navigation in the mounted editor. Catalog previews always display configured
+examples; module placeholders remain available in the Unconfigured brick stories.
+Breakpoints select **360 / 720 / 1080 / 1440px** browser frames;
 widths larger than the available composition are disabled. Four frames stay
 mounted around one editor session on every editor route. Page and Site Settings
 display no breakpoint selector. The separate `/breakpoints` route retains its

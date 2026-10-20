@@ -8,16 +8,14 @@ import { modulesHash } from "./modulesHash";
 export function ModulePreview(props: {
   brickModule: (typeof modulesHash)[keyof typeof modulesHash];
   breakpoint: (typeof BREAKPOINTS)[number]["id"];
-  displayPlaceholders: boolean;
   moduleLink: ReactNode;
   moduleAction?: ReactNode;
 }) {
-  const { brickModule, breakpoint, displayPlaceholders, moduleLink, moduleAction } = props;
+  const { brickModule, breakpoint, moduleLink, moduleAction } = props;
   const cardStyle = useContext(BrickCardStyleContext);
   const maxPerPage = brickModule.maxPerPage;
   const view = brickModule.viewFor(breakpoint);
   const Component = view.component;
-  const Placeholder = brickModule.placeholder;
   const entry = BREAKPOINTS.find((row) => row.id === breakpoint);
   if (entry === undefined) throw new Error(`Unknown breakpoint: ${breakpoint}`);
 
@@ -44,11 +42,7 @@ export function ModulePreview(props: {
             className="brick-hover-surface"
             data-module-representative={brickModule.def.moduleId}
           >
-            {displayPlaceholders && Placeholder !== undefined ? (
-              <Placeholder />
-            ) : (
-              <Component state={brickModule.def.state} />
-            )}
+            <Component state={brickModule.def.state} />
           </BrickWrapper>
         </div>
       </div>

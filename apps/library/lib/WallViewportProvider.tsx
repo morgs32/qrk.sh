@@ -13,21 +13,17 @@ function createWallViewportStore(initialState?: {
     selectedBreakpoint: (typeof BREAKPOINTS)[number]["id"] | null;
     activeBreakpoint: (typeof BREAKPOINTS)[number]["id"] | null;
     availableWidth: number;
-    displayPlaceholders: boolean;
     setSelectedBreakpoint: (breakpoint: (typeof BREAKPOINTS)[number]["id"] | null) => void;
-    setDisplayPlaceholders: (displayPlaceholders: boolean) => void;
     setAvailableWidth: (width: number) => void;
   }>()((set) => ({
     selectedBreakpoint: initialState?.selectedBreakpoint ?? null,
     activeBreakpoint: null,
     availableWidth: 0,
-    displayPlaceholders: false,
     setSelectedBreakpoint: (selectedBreakpoint) =>
       set((state) => ({
         selectedBreakpoint,
         activeBreakpoint: resolveActiveBreakpoint(selectedBreakpoint, state.availableWidth),
       })),
-    setDisplayPlaceholders: (displayPlaceholders) => set({ displayPlaceholders }),
     setAvailableWidth: (availableWidth) =>
       set((state) => ({
         availableWidth,
@@ -89,15 +85,11 @@ export function useWallViewport() {
   const selectedBreakpoint = useStore(value.store, (state) => state.selectedBreakpoint);
   const availableWidth = useStore(value.store, (state) => state.availableWidth);
   const activeBreakpoint = useStore(value.store, (state) => state.activeBreakpoint);
-  const displayPlaceholders = useStore(value.store, (state) => state.displayPlaceholders);
   const setSelectedBreakpoint = useStore(value.store, (state) => state.setSelectedBreakpoint);
-  const setDisplayPlaceholders = useStore(value.store, (state) => state.setDisplayPlaceholders);
 
   return {
     selectedBreakpoint,
     setSelectedBreakpoint,
-    displayPlaceholders,
-    setDisplayPlaceholders,
     availableWidth,
     activeBreakpoint,
     regionRef: value.regionRef,

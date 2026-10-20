@@ -45,13 +45,7 @@ export function DrawerHeader(props: {
   const params = useValidatedParams(ParamsSchema);
   const routeId = useMatches({ select: (matches) => matches.at(-1)?.routeId });
   const navigate = useNavigate();
-  const {
-    availableWidth,
-    activeBreakpoint,
-    setSelectedBreakpoint,
-    displayPlaceholders,
-    setDisplayPlaceholders,
-  } = useWallViewport();
+  const { availableWidth, activeBreakpoint, setSelectedBreakpoint } = useWallViewport();
   const session = UserApp.useInitializedSession();
   const { db } = useZerospinUserInitializedState();
   const siteDraft = useSiteStore((state) => state.site);
@@ -265,14 +259,6 @@ export function DrawerHeader(props: {
             onChange={(event) => onCardStyleChange(event.target.checked)}
           />
           Cards
-        </label>
-        <label className="flex cursor-pointer items-center gap-2 text-xs">
-          <input
-            type="checkbox"
-            checked={displayPlaceholders}
-            onChange={(event) => setDisplayPlaceholders(event.target.checked)}
-          />
-          Display placeholders
         </label>
         {isDirty ? (
           <Button

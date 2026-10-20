@@ -1,4 +1,3 @@
-import type { ILibrarySession } from "../session/createLibraryStandaloneSession";
 import type { IResult } from "@zerospin/error";
 import type { ComponentType, ReactNode, SVGProps } from "react";
 
@@ -83,10 +82,17 @@ export function makeModuleView<
   module: MODULE,
   view: {
     LineIcon: ComponentType<SVGProps<SVGSVGElement>>;
+    configureCommand?:
+      | "configureInstagram"
+      | "configureGithubActivity"
+      | "configureGithubProfile"
+      | "configureGithubRepo"
+      | "configureFigmaThumbnail"
+      | "configureLink"
+      | "configureMapPlace";
     form?: (props: {
       state: IInferDecodedRow<MODULE["stateShape"]> | null;
-      session: ILibrarySession;
-      brickId: `brk_${string}`;
+      onConfigure: (input: unknown) => IResult<unknown, { message: string }>;
       onSave: (
         state: IInferDecodedRow<MODULE["stateShape"]>,
       ) => IResult<unknown, { message: string }>;
@@ -141,6 +147,8 @@ export function makeModuleView<
       }
       function Authored(props: { state: unknown }) {
         const { state } = props;
+        const Placeholder = view.default.placeholder;
+        if (state === null && Placeholder !== undefined) return <Placeholder />;
         const decoded = decodeState(state, { onExcessProperty: "ignore" });
         return <Component state={decoded} />;
       }
@@ -151,15 +159,14 @@ export function makeModuleView<
 
   function Form(props: {
     state: unknown;
-    session: ILibrarySession;
-    brickId: `brk_${string}`;
+    onConfigure: (input: unknown) => IResult<unknown, { message: string }>;
     onSave: (state: unknown) => IResult<unknown, { message: string }>;
     onCancel: () => void;
   }) {
-    const { state, session, brickId, onSave, onCancel } = props;
+    const { state, onConfigure, onSave, onCancel } = props;
     if (view.form === undefined) return null;
     const decoded = state === null ? null : decodeFormState(state, { onExcessProperty: "ignore" });
-    return view.form({ state: decoded, session, brickId, onSave, onCancel });
+    return view.form({ state: decoded, onConfigure, onSave, onCancel });
   }
 
   function viewFor(breakpoint: "sm" | "md" | "lg" | "xl") {
@@ -231,6 +238,7 @@ export function makeModuleView<
   return {
     ...module,
     LineIcon: view.LineIcon,
+    configureCommand: view.configureCommand,
     stateShape: module.stateShape,
     defaultState: module.defaultState,
     defaultSpec,

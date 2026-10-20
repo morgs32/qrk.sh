@@ -2,7 +2,7 @@
 
 | Term              | Meaning                                                                                                                                                                          |
 | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Article           | A brick with a title, subtitle, and Markdown body. Its content is shared across breakpoints; its placement and size are chosen separately for each breakpoint.                   |
+| Article           | A brick with a title, subtitle, and Markdown body. Its content is shared across breakpoints; its Placements are arranged independently in each breakpoint Wall.                   |
 | Article body      | The formatted text below an Article's title and subtitle. An empty or null body contains no body text.                                                                           |
 | Article draft     | Unsaved edits to an Article's title, subtitle, or body. A draft stays in the open form and does not change the wall's committed Article until Save succeeds. Cancel discards it. |
 | Committed Article | The saved Article shown on the wall and in previews. Failed saves retain the draft and leave committed content unchanged.                                                        |
@@ -11,6 +11,15 @@
 | Published page | A page marked for public access when its site is available. Visitors use its current published snapshot while saved editing changes remain private. |
 | Page snapshot | An immutable version of saved page metadata, brick content, and layouts captured by a publication. Each publication retains a new snapshot in the page's history. |
 | Publish updates | Replace a published page's current snapshot with a new snapshot of its saved content, retaining the previous snapshot. |
-| Section | An ordered layout row containing Stacks. A Section can remain empty. |
-| Stack | An independently movable, named container of ordered peer Items within one Section. It retains its identity and Items when moved, and remains when empty. |
-| Item | A content row belonging to one Stack. Items can move between Stacks but cannot contain other Items. |
+| Page | A site's editable document. It owns shared Brick content and four breakpoint Walls, plus metadata and publication state. |
+| Breakpoint | One of the four canonical page widths: sm (360), md (720), lg (1080), or xl (1440). Each has its own Wall arrangement. |
+| Wall | The saved arrangement of one Page at one breakpoint. It contains ordered Sections and has no user-facing label. |
+| Section | An ordered horizontal band containing Stacks. A Section can remain empty. |
+| Stack | An independently movable, named container of vertical Rows within one Section. It retains its Rows and identity when moved, and remains when empty. |
+| Row | An ordered container within a Stack whose Placements sit side by side. A Row remains when empty. |
+| Placement | One appearance of a shared Brick in a breakpoint Wall. It belongs to a Row and owns its rendering spec; movement changes arrangement without changing shared content. |
+| Brick | Page-owned content configured through a module. Its content is shared by one Placement in each of the Page's four Walls. Null content means unconfigured. |
+| Selected Brick | A Brick whose edit form is open. Selection is distinct from focus. |
+| Active | DOM focus, including keyboard focus, within the wall editor. |
+| Module playground | An interactive Storybook view of a module's configuration, generation controls, four-width previews, and Brick Definition JSON, using local example state. |
+| Item (historical) | The earlier tree prototype's content row. Current editor terminology uses Placement inside a Row. |

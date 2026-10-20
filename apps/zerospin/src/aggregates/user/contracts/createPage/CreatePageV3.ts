@@ -1,29 +1,43 @@
 import * as sdk from "@zerospin/sdk/browser";
-import { libraryModule } from "@qrk.sh/library/libraryModule";
 
-import { upgradeAggregateContractVersion, prefixId } from "@zerospin/sdk/browser";
+import {
+  makeAggregateContractVersion,
+  prefixId,
+  primitives,
+  ContractError,
+} from "@zerospin/sdk/browser";
 import { Effect } from "effect";
 import { pageV3 as Page } from "../../models/page/PageV3";
 import { siteV3 as Site } from "../../models/site/SiteV3";
 import { userV1 as User } from "../../models/user/UserV1";
 
-import { createPageV2 } from "./CreatePageV2";
+import { createPage } from "./createPage";
+import { userClaims } from "../../../../claims";
+import { wallV1 as Wall } from "../../models/wall/WallV1";
+import { sectionV1 as Section } from "../../models/section/SectionV1";
+import { stackV1 as Stack } from "../../models/stack/StackV1";
 
-export const createPageV3 = upgradeAggregateContractVersion(createPageV2, {
+export const createPageV3 = makeAggregateContractVersion(createPage, {
+  claims: userClaims,
   operations: {
-    createWall: libraryModule.models.wall.operations.create,
+    createWall: Wall.operations.create,
+    createSection: Section.operations.create,
+    createStack: Stack.operations.create,
     createPage: Page.operations.create,
   },
-  payload: {},
-  up: Effect.fn("createPageV3.up")(function* (props) {
-    const { payload } = props;
-    return payload;
-  }),
-  down: Effect.fn("createPageV3.down")(function* (props) {
-    const { payload } = props;
-    return payload;
-  }),
-  models: { site: Site, user: User, page: Page, wall: libraryModule.models.wall },
+  payload: {
+    id: primitives.foreignKey({ abbreviation: Page.abbreviation }),
+    siteId: primitives.foreignKey({ abbreviation: Site.abbreviation }),
+    slug: primitives.text({ nullable: true }),
+    title: primitives.text({ nullable: true, defaultValue: null }),
+    description: primitives.text({ nullable: true, defaultValue: null }),
+  },
+  failures: {
+    createPageUserMismatch: ContractError.schema({ code: "create-page-user-mismatch" }),
+    createPageSiteNotFound: ContractError.schema({ code: "create-page-site-not-found" }),
+    createPageIndexTaken: ContractError.schema({ code: "create-page-index-taken" }),
+  },
+  models: { site: Site, user: User, page: Page, wall: Wall, section: Section, stack: Stack },
   guard: Effect.fn("createPageV3.guard")(function* (props) {
     const { failures, claims, db, payload } = props;
     const clerkUserId = claims?.clerkUserId;
@@ -73,16 +87,9 @@ export const createPageV3 = upgradeAggregateContractVersion(createPageV2, {
   program: Effect.fn("createPageV3")(function* (props) {
     const { operations, payload } = props;
     const { id, siteId, slug, title, description } = payload;
-    // Create the wall before the page that references it in the same command.
-    const wallId = prefixId(libraryModule.models.wall, id);
-    yield* operations.createWall({
-      resourceId: wallId,
-      attributes: { label: "Library" },
-    });
     yield* operations.createPage({
       resourceId: id,
       attributes: {
-        wallId,
         siteId,
         slug,
         title,
@@ -91,6 +98,21 @@ export const createPageV3 = upgradeAggregateContractVersion(createPageV2, {
         publishedSnapshotId: null,
       },
     });
+    // Each Page starts with four independent empty layouts.
+    const breakpoints: Array<"sm" | "md" | "lg" | "xl"> = ["sm", "md", "lg", "xl"];
+    for (const breakpoint of breakpoints) {
+      const wallId = prefixId(Wall, `${id}_${breakpoint}`);
+      const sectionId = prefixId(Section, `${id}_${breakpoint}`);
+      yield* operations.createWall({ resourceId: wallId, attributes: { pageId: id, breakpoint } });
+      yield* operations.createSection({
+        resourceId: sectionId,
+        attributes: { wallId, position: 0 },
+      });
+      yield* operations.createStack({
+        resourceId: prefixId(Stack, `${id}_${breakpoint}`),
+        attributes: { sectionId, name: "Stack", position: 0 },
+      });
+    }
   }),
   version: "3.0.0",
 });

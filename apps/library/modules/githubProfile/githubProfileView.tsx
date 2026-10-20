@@ -1,6 +1,5 @@
 import { makeModuleView } from "../../make/makeModuleView";
 import { registry } from "./generator/GitHubProfileJsonRenderRegistry";
-import { defaultSpec } from "./generator/defaultSpec";
 import { githubProfileV1 } from "./githubProfileV1";
 import { GitHubProfileForm } from "./GitHubProfileForm";
 import { BrickBody } from "../../components/brick/BrickBody";
@@ -20,6 +19,7 @@ import { GitHubProfileLineIcon } from "./GitHubProfileLineIcon";
 
 export const githubProfileView = makeModuleView(githubProfileV1, {
   LineIcon: GitHubProfileLineIcon,
+  configureCommand: "configureGithubProfile",
   form: GitHubProfileForm,
   default: {
     defaultWidth: 360,
@@ -53,6 +53,6 @@ export const githubProfileView = makeModuleView(githubProfileV1, {
         </BrickShell>
       );
     },
-    generator: { registry, defaultSpec },
+    generator: { registry, defaultSpec: githubProfileV1.defaultSpec },
   },
 });

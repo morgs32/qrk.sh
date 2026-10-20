@@ -1,7 +1,6 @@
 "use client";
 
-import { stageAggregateSessionCommand } from "@zerospin/core/aggregateSession/stageCommand/stageAggregateSessionCommand";
-import type { ILibrarySession } from "../../session/createLibraryStandaloneSession";
+import type { IResult } from "@zerospin/error";
 import { normalizeFigmaThumbnailInput } from "./normalizeFigmaThumbnailInput";
 
 import { type IInferDecodedRow } from "@zerospin/shapes";
@@ -13,11 +12,10 @@ import { figmaThumbnailV1 } from "./figmaThumbnailV1";
 
 export function FigmaThumbnailForm(props: {
   state: IInferDecodedRow<typeof figmaThumbnailV1.stateShape> | null;
-  session: ILibrarySession;
-  brickId: `brk_${string}`;
+  onConfigure: (input: { url: string }) => IResult<unknown, { message: string }>;
   onCancel: () => void;
 }) {
-  const { state, session, brickId, onCancel } = props;
+  const { state, onConfigure, onCancel } = props;
   const inputId = useId();
   const feedbackId = `${inputId}-feedback`;
   const [documentUrlDraft, setDocumentUrl] = useState<string | null>(null);
@@ -37,11 +35,7 @@ export function FigmaThumbnailForm(props: {
         event.preventDefault();
         if (!canSave || normalizedUrl === undefined) return;
         setSaveError(undefined);
-        const result = stageAggregateSessionCommand({
-          session,
-          contractName: "configureFigmaThumbnail",
-          payload: { brickId, requestId: crypto.randomUUID(), url: normalizedUrl },
-        });
+        const result = onConfigure({ url: normalizedUrl });
         if (result._tag === "Failure") setSaveError(result.failure.message);
         else setDocumentUrl(null);
       }}

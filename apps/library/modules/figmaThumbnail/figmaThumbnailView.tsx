@@ -1,6 +1,5 @@
 import { makeModuleView } from "../../make/makeModuleView";
 import { registry } from "./generator/FigmaThumbnailJsonRenderRegistry";
-import { defaultSpec } from "./generator/defaultSpec";
 import { figmaThumbnailV1 } from "./figmaThumbnailV1";
 import { FigmaThumbnailForm } from "./FigmaThumbnailForm";
 import { figmaCardView } from "./FigmaCard";
@@ -11,6 +10,7 @@ import { FigmaThumbnailLineIcon } from "./FigmaThumbnailLineIcon";
 
 export const figmaThumbnailView = makeModuleView(figmaThumbnailV1, {
   LineIcon: FigmaThumbnailLineIcon,
+  configureCommand: "configureFigmaThumbnail",
   form: FigmaThumbnailForm,
   default: {
     defaultWidth: 480,
@@ -34,6 +34,6 @@ export const figmaThumbnailView = makeModuleView(figmaThumbnailV1, {
         </figmaCardView.Component>
       );
     },
-    generator: { registry, defaultSpec },
+    generator: { registry, defaultSpec: figmaThumbnailV1.defaultSpec },
   },
 });

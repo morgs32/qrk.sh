@@ -1,4 +1,3 @@
-import type { ILibrarySession } from "../session/createLibraryStandaloneSession";
 import type { IResult } from "@zerospin/error";
 import type { ComponentType, ReactNode, SVGProps } from "react";
 
@@ -16,6 +15,14 @@ export type IModule<MODULE extends string> = {
   description: string;
   /** Module-owned line icon; accepts native SVG sizing, styling, and accessibility props. */
   LineIcon: ComponentType<SVGProps<SVGSVGElement>>;
+  configureCommand?:
+    | "configureInstagram"
+    | "configureGithubActivity"
+    | "configureGithubProfile"
+    | "configureGithubRepo"
+    | "configureFigmaThumbnail"
+    | "configureLink"
+    | "configureMapPlace";
   /** Maximum bricks of this module per page, including hidden and unconfigured bricks. */
   maxPerPage?: number;
   catalog?: Catalog;
@@ -26,8 +33,7 @@ export type IModule<MODULE extends string> = {
   placeholder?: () => ReactNode;
   Form?: (props: {
     state: unknown;
-    session: ILibrarySession;
-    brickId: `brk_${string}`;
+    onConfigure: (input: unknown) => IResult<unknown, { message: string }>;
     onSave: (state: unknown) => IResult<unknown, { message: string }>;
     onCancel: () => void;
   }) => ReactNode;

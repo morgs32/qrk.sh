@@ -3,7 +3,7 @@
 ## Zerospin packages
 
 Zerospin owns its source, builds, and releases in the sibling `../zerospin`
-checkout. QRK installs exact `15.0.1` packages from the local Verdaccio registry;
+checkout. QRK installs exact `19.0.0` packages from the local Verdaccio registry;
 there is no vendored Zerospin source or consumer-side Zerospin build.
 
 The credential-free project `.npmrc` routes all dependencies through
@@ -19,8 +19,9 @@ Effect is installed from the registry; no Effect source is vendored.
 Repository tests and standalone automated checks are deferred until a test
 structure is agreed. See [Testing and checks](./AGENTS.md#testing-and-checks).
 
-The installed SDK package supplies five consumer skills: feature authoring,
-actor authorization, declaration evolution, external work, and command submission.
+The installed SDK package supplies six consumer skills: parallel-model data
+ownership, feature authoring, actor authorization, declaration evolution,
+external work, and command submission.
 The browser and React packages supply session ownership and React integration skills. Intent `0.5.5` is pinned in this workspace; the
 root permission policy enables those packages and the managed `AGENTS.md` block
 discovers the available guidance.
@@ -33,35 +34,28 @@ The frontends have separate framework owners:
 
 - `apps/web` uses Next.js App Router at `qrk.sh` and owns the public homepage at `/` and the `/sign-in`, `/sign-up`, `/replace`, and `/ordered-outline` routes.
 - `apps/app` uses TanStack Start in SPA mode at `app.qrk.sh` and owns dashboards at `/:username` and site workspaces under `/:username/site`.
-- `apps/library` uses TanStack Start in SPA mode for its standalone development UI and exports source directly to its consumers.
+- `apps/library` exports shared module source to App/API/Zerospin and hosts the module playgrounds in Storybook. Its standalone application and session are retired.
 
-## Features
+## Editor model and ownership
 
-- Brick grid and groups (see **Brick group identity** below)
+App owns the persisted editor. The user aggregate defines Page, Wall, Section,
+Stack, Row, Placement, and Brick directly. A Page has four breakpoint Walls;
+Sections hold ordered Stacks, Stacks hold vertical Rows, and Rows hold side-by-side
+Placements. Each Placement references a shared Page-owned Brick. Layout changes
+belong to one Wall; Brick content is shared across widths.
 
-## Brick group identity
-
-Brick groups are defined under `apps/library/groups/`.
-
-1. **`groupName`** identifies a group; **`catalog`** identifies a data/configuration and responsive presentation definition within it.
-2. **`(groupName, catalog)`** uniquely identifies a group brick, independently of dimensions. Views are no longer a separate selection.
-3. Placed bricks retain their own **`brickId`**. Library bricks and backend brick records store **`groupId`** and **`catalogId`**.
-
-This is a hard terminology cutover: old backend state must be reset before reuse.
-`libraryModule` exports the shared models and flat command contracts. Library
-uses its standalone definition; App uses the authenticated user definition.
-
-Model and contract versions remain unchanged. Library viewport preference
-uses `qrk-bricks-library-viewport-v1`. Wall rows live in each initialized session's
-SQLite replica, with SharedWorker-owned IndexedDB persistence.
-
-More detail and test patterns: [docs/styleguide/component-and-file-naming.md](docs/styleguide/component-and-file-naming.md).
+`@qrk.sh/library` retains module definitions, forms, renderers, generators,
+provider behavior, and controlled wall components. App supplies the initialized
+user session and command callbacks. Storybook supplies local examples and fixtures;
+it creates no persisted Page or standalone session. The old `libraryModule` and
+standalone Library application are retired. See [Library](apps/library/README.md)
+and [App](apps/app/README.md) for their respective ownership.
 
 ## Tech Stack
 
-- [TanStack Start 1.169.3](https://tanstack.com/start/latest) and [TanStack Router 1.170.45](https://tanstack.com/router/latest) for App and Library
+- [TanStack Start 1.169.3](https://tanstack.com/start/latest) and [TanStack Router 1.170.45](https://tanstack.com/router/latest) for App
 - [Next.js 16.3.4](https://nextjs.org/) with App Router for Web
-- Vite Plus `1.0.0` for App, Library, and their independent Storybooks
+- Vite Plus `1.0.0` for App and the independent App/Library Storybooks
 - [React 19](https://react.dev/)
 - [Tailwind 4](https://tailwindcss.com/) for styling
 - [shadcn/ui](https://ui.shadcn.com/) for the design system
@@ -89,10 +83,10 @@ More detail and test patterns: [docs/styleguide/component-and-file-naming.md](do
    On the first registry bootstrap, install, build, verify, and publish the
    release in Zerospin before installing QRK. Follow Zerospin's package release
    instructions. Existing registry storage survives restarts. A fresh checkout
-   requires the running registry with the locked `15.0.1` packages; hosted
+   requires the running registry with the locked `19.0.0` packages; hosted
    distribution and deployment-machine bootstrap are not configured here.
 
-2. Start all five application development servers through Portless:
+2. Start the four application development servers through Portless:
 
    ```bash
    pnpm dev
@@ -101,20 +95,19 @@ More detail and test patterns: [docs/styleguide/component-and-file-naming.md](do
 3. Open [https://qrk.localhost/](https://qrk.localhost/).
 
 The root `portless.json` uses Portless's native monorepo discovery with the
-`dev:app` script. Only Web, App, Library, API, and Zerospin expose that
+`dev:app` script. Only Web, App, API, and Zerospin expose that
 script, so Storybooks do not start. Each app's `dev` script runs
 `portless`; `dev:app` holds its server command. Package-level `portless` metadata
 owns its hostname. Portless selects an unused internal frontend port; API and
-Zerospin keep ports 8787 and 8788. Portless starts the five processes;
+Zerospin keep ports 8787 and 8788. Portless starts the four processes;
 Nx development targets have no startup dependencies.
 
-| App | Development URL | Direct fallback port |
-| --- | --- | --- |
-| Web | [qrk.localhost](https://qrk.localhost/) | 10000 |
-| App | [app.qrk.localhost](https://app.qrk.localhost/) | 10001 |
-| Library | [library.qrk.localhost](https://library.qrk.localhost/) | 10004 |
-| API | [api.qrk.localhost](https://api.qrk.localhost/) | 8787 |
-| Zerospin | [zerospin.qrk.localhost](https://zerospin.qrk.localhost/) | 8788 |
+| App      | Development URL                                           | Direct fallback port |
+| -------- | --------------------------------------------------------- | -------------------- |
+| Web      | [qrk.localhost](https://qrk.localhost/)                   | 10000                |
+| App      | [app.qrk.localhost](https://app.qrk.localhost/)           | 10001                |
+| API      | [api.qrk.localhost](https://api.qrk.localhost/)           | 8787                 |
+| Zerospin | [zerospin.qrk.localhost](https://zerospin.qrk.localhost/) | 8788                 |
 
 Web has no `web.` prefix. Sign in through Web; `/replace` redirects to the
 authenticated username at `https://app.qrk.localhost`. App is served
@@ -134,7 +127,7 @@ runs the underlying HTTP server directly when needed. Frontend scripts honor
 for Library, and 10022 for Web, also overridable with `PORT`.
 
 For pre-cutover development data, follow the [backend storage quarantine](apps/zerospin/README.md)
-and [Library fresh-origin check](apps/library/README.md) instructions. Superseded
+instructions. Superseded
 retained commands and SQLite schemas require empty storage; old data is preserved
 separately and has no compatibility migration.
 
@@ -143,7 +136,7 @@ App's `userBrowserDefinition` uses the installed browser package's
 `node.worker.ts` entrypoint. `makeApplicationSharedWorker` binds the worker artifact
 to the connected session.
 Zerospin chooses its name from the runtime version and persistent session identity.
-App and Library use Vite's `?sharedworker&url` import for the authored worker
+App uses Vite's `?sharedworker&url` import for the authored worker
 and `@zerospin/browser/sqlite.wasm?url` for the matching installed SQLite asset.
 App and Web use independently allocated internal ports at their existing HTTPS
 hostnames. Direct `dev:app` startup defaults to 10001 for App and 10000 for Web. Application routes and assets use Vite's default root base;
@@ -153,7 +146,7 @@ URLs retain explicit App mappings.
 Library exports its source directly to App, API, and Zerospin; startup does
 not build a separate Library package. Storybook uses its own Vite configuration
 without the Start server plugin.
-Both Start configurations bundle installed Zerospin packages with
+App bundles installed Zerospin packages with
 `ssr.noExternal` so their extensionless ESM imports resolve through Vite.
 
 App prerenders a static document shell and initializes its routes in the
@@ -202,17 +195,19 @@ App's development and static-preview RPC proxies use the server-only
 `NEXT_PUBLIC_API_URL` remains the browser's HTTPS API origin; local Node proxy
 requests do not depend on trusting Portless's TLS certificate.
 
-To run only the Library app through Portless:
+To open the module playgrounds separately:
 
 ```bash
-pnpm --dir apps/library dev
+pnpm nx run @qrk.sh/library:storybook
 ```
 
-Library uses TanStack Start in SPA mode; direct startup defaults to port 10004. API runs separately
-on port 8787; root `pnpm dev` starts both. Vite forwards `/rpc`, `/upload`, and
-`/assets/*` to API, preserving same-origin client URLs. The private Library package
-maps its existing imports directly to TypeScript, TSX, and stylesheet source;
-each consumer compiles the source it uses.
+Open `http://127.0.0.1:10021`. Each module story includes metadata, local
+configuration, live Generate spec input, four breakpoint Component/JsonRender
+previews, and Brick Definition JSON. Fixture previews need no persisted user
+session; live generation/lookups/uploads use the API Worker through Storybook's
+same-origin proxies. See [Library's README](apps/library/README.md) for its public
+Mapbox setting and server-only `LIBRARY_WORKER_ORIGIN` override.
+The package exports source directly and has no separate development application.
 
 To run only App through Portless:
 
@@ -232,8 +227,8 @@ preview on port 10010 (`PORT` overrides it). Web
 production startup defaults to port 10011. The separate preview configuration has no Start server
 plugin. Open App's own hostname; Web remains available for authentication.
 
-Library retains its development server and Storybook; it has no package build,
-production build, or production preview target. See
+Library retains Storybook and shared source exports; it has no standalone app,
+package build, production build, or production preview target. See
 [Library's README](apps/library/README.md) for the backend-origin setting. API
 retains the existing R2 buckets; previously saved absolute URLs using port 4101
 need their origin updated separately.
@@ -248,7 +243,7 @@ selected hostname. `PORTLESS_WILDCARD=1` on the root `dev` script sends these
 tenant labels through Web's process-owned `qrk` registration.
 
 Only one DNS label before `.qrk.localhost` is recognized. The explicit App,
-Library, API, and Zerospin registrations own their service hostnames. Next
+API, and Zerospin registrations own their service hostnames. Next
 internals, static files, and `/api`, `/trpc`, and `/rpc` endpoints retain their
 existing routing. Proof labels do not yet identify sites or users.
 
@@ -345,12 +340,12 @@ application retains `/replace` as its post-authentication destination.
 
 Cloudflare has these additional DNS-only CNAME records:
 
-| Host | Target |
-| --- | --- |
-| `clerk` | `frontend-api.clerk.services` |
-| `accounts` | `accounts.clerk.services` |
-| `clkmail` | `mail.jilsy98ve8hd.clerk.services` |
-| `clk._domainkey` | `dkim1.jilsy98ve8hd.clerk.services` |
+| Host              | Target                              |
+| ----------------- | ----------------------------------- |
+| `clerk`           | `frontend-api.clerk.services`       |
+| `accounts`        | `accounts.clerk.services`           |
+| `clkmail`         | `mail.jilsy98ve8hd.clerk.services`  |
+| `clk._domainkey`  | `dkim1.jilsy98ve8hd.clerk.services` |
 | `clk2._domainkey` | `dkim2.jilsy98ve8hd.clerk.services` |
 
 Clerk's production DNS, email configuration, and both certificates are verified.

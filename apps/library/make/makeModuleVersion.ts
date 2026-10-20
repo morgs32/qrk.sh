@@ -1,4 +1,4 @@
-import { defineCatalog, type Catalog } from "@json-render/core";
+import { defineCatalog, type Catalog, type Spec } from "@json-render/core";
 import { schema } from "@json-render/react/schema";
 import { primitives, type IInferDecodedRow, type IShape } from "@zerospin/shapes";
 import { descriptorToZod, makeZodSchema } from "@zerospin/zod";
@@ -78,6 +78,7 @@ export function makeModuleVersion<
   }>,
   props: {
     version: VERSION;
+    defaultSpec: Spec;
     hasPlaceholder?: boolean;
     components: Record<string, ReturnType<typeof defineComponent>>;
     stateShape: STATE_SHAPE;
@@ -86,6 +87,7 @@ export function makeModuleVersion<
 ) {
   const {
     version,
+    defaultSpec,
     components,
     stateShape,
     defaultState: suppliedDefaultState,
@@ -109,6 +111,7 @@ export function makeModuleVersion<
     description,
     maxPerPage,
     version,
+    defaultSpec,
     hasPlaceholder,
     catalog,
     components,

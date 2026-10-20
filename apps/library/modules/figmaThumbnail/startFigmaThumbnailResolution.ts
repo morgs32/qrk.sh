@@ -1,17 +1,24 @@
-import { stageAggregateSessionCommand } from "@zerospin/core/aggregateSession/stageCommand/stageAggregateSessionCommand";
 import { newSyncRpcSession } from "@zerospin/core/utils/getApi/newSyncRpcSession/newSyncRpcSession";
-import { makeEffectSchema } from "@zerospin/shapes";
+import { makeEffectSchema, type IInferDecodedRow } from "@zerospin/shapes";
 import { Schema } from "effect";
-import type { ILibrarySession } from "../../session/createLibraryStandaloneSession";
 import type { LibraryApi } from "../../worker/LibraryApi.public";
 import { figmaThumbnailV1 } from "./figmaThumbnailV1";
 import { normalizeFigmaThumbnailInput } from "./normalizeFigmaThumbnailInput";
 
 /** Session-owned provider work; editor unmount never cancels a submitted intent. */
-export function startFigmaThumbnailResolution(session: ILibrarySession) {
-  const initialized = session.store.getState().initialized;
-  if (initialized === null) return () => {};
-  const { db } = initialized;
+export function startFigmaThumbnailResolution(props: {
+  readBricks: () => Array<{ id: `brk_${string}`; state: unknown; stateRevision: number }>;
+  readBrick: (id: `brk_${string}`) => { state: unknown; stateRevision: number } | undefined;
+  isCurrent: () => boolean;
+  subscribe: (listener: () => void) => () => void;
+  complete: (payload: {
+    brickId: `brk_${string}`;
+    requestId: string;
+    baseStateRevision: number;
+    state: IInferDecodedRow<typeof figmaThumbnailV1.stateShape>;
+  }) => void;
+}) {
+  const { readBricks, readBrick, isCurrent, subscribe, complete } = props;
   const State = Schema.toType(makeEffectSchema(figmaThumbnailV1.stateShape));
   const attempted = new Set<string>();
   const closeRequests = new Set<() => void>();
@@ -20,8 +27,8 @@ export function startFigmaThumbnailResolution(session: ILibrarySession) {
 
   function scan() {
     scheduled = false;
-    if (disposed || session.store.getState().initialized?.db !== db) return;
-    const rows = db.query.brick.findMany({ where: { moduleId: { eq: "figma-thumbnail" } } }).sync();
+    if (disposed || !isCurrent()) return;
+    const rows = readBricks();
     for (const row of rows) {
       const decoded = Schema.decodeUnknownResult(State)(row.state);
       if (decoded._tag === "Failure" || decoded.success.resolution.status !== "resolving") continue;
@@ -32,8 +39,8 @@ export function startFigmaThumbnailResolution(session: ILibrarySession) {
       attempted.add(key);
       void navigator.locks
         .request(`qrk:figma-thumbnail:${key}`, async () => {
-          if (disposed || session.store.getState().initialized?.db !== db) return;
-          const current = db.query.brick.findFirst({ where: { id: { eq: row.id } } }).sync();
+          if (disposed || !isCurrent()) return;
+          const current = readBrick(row.id);
           if (current?.stateRevision !== row.stateRevision) return;
           const currentState = Schema.decodeUnknownResult(State)(current.state);
           if (
@@ -93,38 +100,30 @@ export function startFigmaThumbnailResolution(session: ILibrarySession) {
               },
             };
           }
-          if (disposed || session.store.getState().initialized?.db !== db) return;
-          stageAggregateSessionCommand({
-            session,
-            contractName: "completeFigmaThumbnail",
-            payload: {
-              brickId: row.id,
-              requestId,
-              baseStateRevision: row.stateRevision,
-              state: outcome,
-            },
+          if (disposed || !isCurrent()) return;
+          complete({
+            brickId: row.id,
+            requestId,
+            baseStateRevision: row.stateRevision,
+            state: outcome,
           });
         })
         .catch(() => {
-          if (disposed || session.store.getState().initialized?.db !== db) return;
-          stageAggregateSessionCommand({
-            session,
-            contractName: "completeFigmaThumbnail",
-            payload: {
-              brickId: row.id,
-              requestId,
-              baseStateRevision: row.stateRevision,
-              state: {
-                payload: state.payload,
-                data: null,
-                resolution: {
-                  requestId,
-                  status: "failed",
-                  error: {
-                    code: "local-resolution-failed",
-                    message: "Unable to run this request; try again.",
-                    retryable: true,
-                  },
+          if (disposed || !isCurrent()) return;
+          complete({
+            brickId: row.id,
+            requestId,
+            baseStateRevision: row.stateRevision,
+            state: {
+              payload: state.payload,
+              data: null,
+              resolution: {
+                requestId,
+                status: "failed",
+                error: {
+                  code: "local-resolution-failed",
+                  message: "Unable to run this request; try again.",
+                  retryable: true,
                 },
               },
             },
@@ -137,7 +136,7 @@ export function startFigmaThumbnailResolution(session: ILibrarySession) {
     scheduled = true;
     queueMicrotask(scan);
   }
-  const unsubscribe = db.$client.subscribeToTableChanges(schedule);
+  const unsubscribe = subscribe(schedule);
   schedule();
   return () => {
     disposed = true;

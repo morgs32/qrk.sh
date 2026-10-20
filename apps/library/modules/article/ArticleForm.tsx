@@ -18,7 +18,7 @@ export function ArticleForm(props: {
   onCancel: () => void;
 }) {
   const { state, onSave, onCancel } = props;
-  const savedState = state ?? articleV1.defaultState;
+  const savedState = state ?? { title: "", subtitle: "", content: null };
   const [draft, setDraft] = useState<IInferDecodedRow<typeof articleV1.stateShape> | null>(null);
   const [editorKey, setEditorKey] = useState(0);
   const [saveError, setSaveError] = useState<string>();

@@ -2,60 +2,111 @@
 
 **updated:** 2026-10-20
 
-## Empty browser frames
+## App owns saved editing
 
-App's page editor and standalone Library keep four browser frames at
-360 / 720 / 1080 / 1440px for `sm` / `md` / `lg` / `xl`. Their shared
-`WallBreakpointPane` owns the 48px decorative browser bar and breakpoint slide.
-Every frame body is an empty white region. No site navbar, placed-brick renderer,
-Tree, placeholder, or page-name node is included in phase 1.
+App is the persisted editor. A Page owns shared Bricks and four Walls at
+360 / 720 / 1080 / 1440px (`sm` / `md` / `lg` / `xl`). Wall contains ordered
+Sections, Section contains ordered Stacks, Stack contains vertical Rows, and
+Row contains side-by-side Placements. Each Brick has one deterministic Placement
+per breakpoint. Canonical declarations and commands live in the QRK user aggregate.
+Wall and Brick bind directly to its final Page table.
 
-The viewport provider retains breakpoint fitting and selection. Catalog previews
-follow the active breakpoint. Drag gesture state, grid scroll compensation, and
-navbar offsets are removed; drawer sizing and transitions remain.
+Each new Page starts with four Walls, each with one Section and an empty Stack.
+Empty Rows, Stacks, and Sections persist after movement/deletion. Stack capacity
+is 1 / 2 / 3 / 4 per Section at sm / md / lg / xl. Rows use equal-width horizontal
+cells with natural content height and have no arbitrary Placement-count cap.
+The former `Page.wallId`, `Wall.label`, `Brick.wallId`, Placement grid geometry,
+visibility, and duplicated breakpoint attribute are removed. Placement derives
+its breakpoint through Row → Stack → Section → Wall.
 
-## Browse-only catalogs
+## Frame and content rendering
 
-The **Bricks** catalogs render only the authored Component at the module's
-resolved preferred width, capped at the active breakpoint's canonical width.
-Library and App module details compare **Component** and **JsonRender** at all
-four breakpoints, using the same resolved width for each pair and height supplied
-by content. App saved-brick fallback previews use the same width rule.
-Wide rows scroll horizontally. Library retains Generate spec and generated JSON;
-generation changes only its JsonRender previews.
+The shared `WallBreakpointPane` retains the 48px decorative browser bar,
+breakpoint fitting/selection, and reduced-motion behavior. Four panes remain
+mounted; only the active Wall registers drag sources and targets. App's
+`WallEditorProvider` queries saved models and stages commands through the existing
+initialized user session. Shared `WallTree` components receive controlled
+presentation and callbacks, allowing Storybook to use local fixtures.
 
-Previews retain module metadata, forms, links, card appearance, and module-owned
-interactions, including image-upload drag/drop. They have no grid sizing, intrinsic
-probe, size diagnostic, drag payload, or insertion gating. Each view declaration
-requires `default.defaultWidth` in pixels; optional `sm`/`md`/`lg`/`xl` overrides
-resolve through `viewFor(breakpoint)`. Missing overrides use the default directly.
-The preferred width imposes no minimum or persisted geometry. Browser frames
-retain their canonical widths. Views have no `w`, `h`, `minW`, `minH`, or
-measurement flags. Link uses a CSS half-width copy
-column with normal wrapping. Map Place owns a 200px CSS minimum height and keeps
-Mapbox resizing; GitHub Activity keeps calendar scrolling and fades.
+A placed Brick fills its Row cell with `w-full min-w-0`. It uses the containing
+Wall's logical breakpoint and Placement spec, regardless of cell width. Catalog
+preferred widths do not constrain placed content. Module links, inputs, forms,
+and provider states remain interactive. Drag grips and menus are siblings of
+content rather than a wrapping button or selection overlay.
 
-## Retained models and ownership
+Every module accepts null as unconfigured content and provides its module-owned
+placeholder and blank form draft. Catalog/Storybook example defaults remain
+separate. Editing shared content affects all four Placements; arrangement and
+spec changes affect only their Wall/Placement.
 
-- Each Page references a Library Wall created atomically by `createPage`.
-- Shared module state lives on Brick. Placement retains breakpoint-specific
-  `gridItem`, Spec, visibility, and generation/revisions; pixel measurements are removed.
-- App's brick detail scopes live queries to the current page's wall and uses
-  the authenticated user session. Frame rendering queries no wall content.
-- Library retains its standalone session and the
-  `/qrk-library-command-query-v1` backup path. Session owners stay mounted
-  across child routes; settings drafts and viewport preferences remain separate.
-- `updateBrick`, module configuration/completion, and spec generation remain.
-  State saves stage synchronously without hidden rendering or measurement waits.
-  Grid insertion, removal, layout, compaction, and visibility
-  commands are removed without replacement APIs.
-- QRK owns publication snapshots and history; the retained placement schemas
-  continue to participate in serialization.
+## Insertion, movement, and selection
 
-The obsolete grid drop and grid-item workflow documents are retired. Historical
-research and archived plans remain records of the former implementation.
+Insertion targets carry Wall identity and stable before-sibling IDs. A Row target
+inserts horizontally; a Stack boundary creates a Row; Section/Wall targets create
+required containers. Nullable before IDs append. The Bricks drawer opens in add
+mode without persisting a reservation. Cancelling/leaving/changing breakpoint
+clears that mode; stale or malformed targets refuse rather than append elsewhere.
 
-## Local cutover outcome
+Adding creates shared null Brick content and all four Placements atomically.
+The active Wall follows the target; other Walls append a new Row to the last
+Stack, creating missing parents when needed. A successful local stage opens the
+new Brick form; cancelling that form leaves the created null Brick.
+Moves keep Placement identity/specs or carry the complete Stack's Rows. Delete
+Brick confirms removal from all four widths and retains containers. Sibling
+positions are ordinary integer indexes renumbered in the same command.
+
+Selected means a Brick's edit form is open. Active means DOM focus, including
+keyboard focus. Controls appear on hover, focus, selection, and open menus, with
+touch access. Keyboard Move dialogs use the same stable destinations as dragging,
+announce accepted actions, and restore focus to surviving controls. Whole-Row
+and Section dragging, container deletion, hiding, resizing, and production zoom
+remain outside the feature.
+
+## Shared modules and Storybook
+
+The `@qrk.sh/library` package keeps production module definitions, forms,
+renderers, generators, components, and CSS. Its standalone application, routes,
+seeded session, worker, and startup are retired. App's Bricks catalog and Brick
+forms remain production routes. Shared visual forms use supplied submission
+callbacks; App stages commands and Storybook edits local examples. Module-owned
+normalization/provider logic stays in its module; session orchestration belongs
+to App and survives form unmount until the session ends.
+
+Each of the ten module playgrounds preserves Module metadata, Generate spec and
+its prompt input, sm/md/lg/xl Component-versus-JsonRender previews, and Brick
+Definition JSON. Example state, drafts, generated specs, errors, and loading are
+local to the story. Live Generate spec uses the existing API Worker and a
+server-held credential; fixture previews need no persisted user session. Existing
+lookup/upload controls retain their API/environment wiring.
+
+App catalog previews use the module's resolved preferred `defaultWidth`, capped
+at the active breakpoint width. Optional per-breakpoint preferred-width overrides
+resolve through `viewFor`. Component/JsonRender comparisons share the resolved
+width and natural content height; wide rows scroll. Preferred widths impose no
+persisted geometry. Map Place retains its 200px CSS minimum height/Mapbox resizing,
+GitHub Activity its calendar scrolling/fades, and Link its wrapping copy column.
+
+## Persistence and publication
+
+All saved creates, updates, moves, and deletes occur through registered commands.
+App initialization/disposal, optimistic queries, refusals, and provider completion
+retain their existing session owner. Local staging Success is distinct from a
+finalized canonical outcome. Spec/provider completions retain revision/request
+checks and tolerate deleted Bricks.
+
+Immutable publication snapshots contain shared Bricks once and all four ordered
+Wall → Section → Stack → Row → Placement/spec hierarchies. The same builder drives
+saved-versus-published comparison, so movement changes dirty state. Generation,
+revisions, and editor bookkeeping stay outside snapshots. Public website rendering
+remains deferred.
+
+Plan 036 uses the approved scoped backup-and-fresh-development cutover. Old
+App/Library browser partitions, authentication, preferences, uploads, unrelated
+stores, and production data remain preserved. Current implementation/verification
+evidence belongs to [Plan 036](./archive/plans/036-plan-wall-tree-editor.md); the older
+reset below records a separate historical authorization.
+
+## Historical Plan 031 cutover outcome
 
 [Plan 031](./archive/plans/031-plan-component-jsonrender-previews.md) records the approved
 discard of affected local Library/App browser data and the local `sys_qrk_sh_1`

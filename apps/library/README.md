@@ -1,120 +1,50 @@
 # Library
 
-This private package owns the reusable brick library and a TanStack Start
-`1.169.3` SPA with TanStack Router `1.170.45`, using Vite Plus `1.0.0`.
-The Cloudflare Worker backend lives in
-[`apps/api`](../api/README.md). Consumers
-compile Library source directly, without a package build.
+`@qrk.sh/library` is shared module/UI source and a Storybook workbench. App, API,
+and Zerospin compile source imports directly, without a package build. The
+standalone Library application, routes, and session are retired. App owns the
+persisted editor; the Cloudflare API Worker remains in [`apps/api`](../api/README.md).
+
+## Development and configuration
 
 From the repository root:
 
 ```sh
-pnpm dev
+pnpm nx run @qrk.sh/library:storybook
 ```
 
-Open [https://library.qrk.localhost/](https://library.qrk.localhost/).
-Portless starts all five apps through their `dev:app` scripts, registering
-HTTPS hostnames on the shared wildcard proxy. It removes each app's route when
-that process stops; leave the shared proxy and other projects running. See the
-[root startup instructions](../../README.md#getting-started) for proxy setup.
+Open `http://127.0.0.1:10021`; `PORT` overrides that default. Root `pnpm dev`
+starts Web, App, API, and Zerospin, and starts no Storybooks. Library has no
+standalone `dev:app`, Portless route, package build, or production preview target.
+Consumers compile the shared source they import. Installation requires the
+populated local registry described in the [root README](../../README.md#zerospin-packages).
+Repository tests and standalone automated checks remain deferred until a test
+structure is agreed. [Plan 036](../../wiki/archive/plans/036-plan-wall-tree-editor.md)
+records manual browser verification, canonical outcomes, and source-review limits.
 
-Portless allocates Library's internal port; direct startup defaults to 10004
-and honors `PORT`. Vite forwards `/rpc`, `/upload`, and `/assets/*` to
-the API Worker at `http://127.0.0.1:8787`; its inspector uses an automatically allocated port.
-Browser callers keep their same-origin URLs. New public asset URLs use
-`https://api.qrk.localhost/assets`.
-To start only Library through Portless, run `pnpm --dir apps/library dev`.
-Its `dev` script invokes Portless, which runs `vp dev` in `dev:app`;
-package metadata retains its hostname and port. API starts separately with
-`pnpm --dir apps/api dev`, or alongside Library through root `pnpm dev`.
+Put public/local workbench configuration in `apps/library/.env.local`:
 
-## Configuration
+1. `PUBLIC_MAPBOX_TOKEN` is exposed to the browser for Map Place previews.
+2. `LIBRARY_WORKER_ORIGIN` optionally changes Storybook's server-side API proxy
+   destination; it defaults to `http://127.0.0.1:8787`.
 
-Put local settings in `apps/library/.env.local`:
+`.storybook/main.ts` installs `/rpc`, `/upload`, `/image/upload`, and `/assets/*`
+proxies through `viteFinal`; Storybook replaces the base Vite server block before
+that hook. `vite.storybook.config.ts` retains Vite plugins and the public Mapbox
+definition. Browser callers keep same-origin URLs. Private
+provider credentials stay in `apps/api/.env.local`; only the public Mapbox value
+is defined in the workbench browser bundle. API retains generation, provider
+helpers/backends, upload validation, and asset serving. `worker/*.public.d.ts`
+contains shared browser RPC declarations, not the removed standalone session worker.
+Linktree scraping stays in `@qrk.sh/scraper`.
 
-- `PUBLIC_MAPBOX_TOKEN` is required for the library app and is exposed to the browser.
-- `LIBRARY_WORKER_ORIGIN` optionally changes Vite's backend destination; it defaults
-  to `http://127.0.0.1:8787` and is server-only. Set it before starting development
-  when using a different backend origin.
-
-Private provider credentials belong in `apps/api/.env.local`, where Wrangler
-loads them as Worker bindings. Vite explicitly defines `PUBLIC_MAPBOX_TOKEN`
-for the Library browser bundle; its name is retained rather than converted to
-`VITE_*`. Other environment values are not exposed by prefix.
-
-Module definitions, catalogs, views, aggregate behavior, and browser RPC
-declarations stay here. API owns `LibraryApi`, `BrowserHost`, generation,
-provider helpers, and module backend Durable Objects. GitHub uses direct
-`getGitHubProfile` and `getGitHubRepo` methods, with successful upstream responses
-retained by API's storage-only `BackendRepo`. Client imports retain the
-existing `worker/*.public.d.ts` paths, so Worker implementation types do not
-become part of the brick library's public declarations. Linktree scraping stays
-in the separate `@qrk.sh/scraper` Worker (`apps/scraper`).
-
-API retains the `ASSETS` bucket for `/assets/library/*` and serves other asset
-keys from `QRKSH`. App uploads require Clerk authentication; standalone Library
-Image forms use the anonymous `/image/upload` endpoint. Existing image bytes
-and local state directories remain preserved, with local `ASSETS` data copied
-to API's state. Saved absolute port-4101 URLs need their origin updated
-separately; authored documents are not rewritten.
-
-## Development
-
-Repository tests and standalone automated checks are deferred until a test
-structure is agreed (see root `AGENTS.md`).
-
-Library has no package build, production build, or production preview target.
-Its development server and Storybook remain available. `vite.config.ts`
-enables Start's SPA mode; `router.tsx` registers generated file routes from
-`routes/`. Its Vite configuration bundles installed Zerospin packages through
-`ssr.noExternal` so their extensionless ESM imports resolve through the
-bundler. Fresh checkout
-installation requires the populated local registry described in the
-[root README](../../README.md#zerospin-packages).
-
-The migration's Library Storybook build passed, and the standalone catalog
-and module-detail routes initialized in the existing Chrome session without
-resetting browser storage or cookies. A migration-created Swatch saved a
-color change, Cancel restored its saved state, reload retained the saved
-color, and removing that temporary brick succeeded. A scoped temporary
-measurement render fault displayed its error, rejected Save while retaining
-the draft, and cleared on Cancel; the injection was immediately removed.
-Both migration-created Swatch and Figma bricks were removed, restoring the
-empty wall. Query-only draft keys and cancellation on unmount were reviewed
-in source. Completed migration verification is recorded in
-[Plan 029](../../wiki/archive/plans/029-plan-tanstack-start.md).
-
-Before Zerospin 18.0.0, Phase 1 removed the grid contracts against fresh local
-content. Its approved one-time local cutover covered only the standalone IndexedDB database derived
-from `/qrk-library-command-query-v1`, without a backup or a backup-path change.
-App's matching local session databases and backend state were covered separately.
-Earlier origins, unrelated databases, cookies, localStorage preferences, uploads,
-and deployed storage are preserved. This does not authorize future resets.
-
-The development UI routes are
-`/`, `/modules`, `/modules/$moduleId`, `/bricks/$brickId`, and
-`/bricks/$brickId/admin`. Typed Router navigation
-retains the empty browser frames, drawer, standalone session, and viewport providers; route-specific
-module and brick drafts keep their existing remount boundaries. The document title
-remains `QRK.SH Library`, with diagnostic error and not-found screens.
-
-`LibraryApp.Initializer` owns session construction and descendant error
-boundaries. Its `renderError` uses the shared diagnostic presentation for a
-terminal session failure; `session.store.getState().status === 'failed'`
-controls replacement of the content. The route error view rethrows
-`SessionQueryError` so the owning Initializer receives query failures. Missing
-query rows remain normal data. `InitializedLibraryLayout` scopes its store
-subscription to the session lifetime, displaying a changed non-null `failure`
-only while status is not `failed`; remounting does not replay a previous error.
-Unexpected spec-generation executor failures report through
-`session.reportFailure`.
-
-The initializer, browser frames, and viewport owners sit above the route outlet and stay
-mounted across child navigation. Route params keep their Effect Schema
-validation and draft keys. Admin stages state saves synchronously; it mounts no
-hidden measurement render or measurement error boundary.
-
-The root layout mounts the shared `ZerospinDevtoolsLoader` in every environment with the panel initially closed. It stays mounted across route navigation, and owns cleanup when the application unmounts.
+API retains original `/assets/library/*` keys in `ASSETS` and other uploaded keys
+in `QRKSH`. Existing bytes and browser partitions are preserved. Retiring the UI
+does not reset databases, remove preferences, delete uploads, or migrate authored
+absolute asset URLs. Earlier standalone storage/cutover observations remain
+historical evidence in [Plan 029](../../wiki/archive/plans/029-plan-tanstack-start.md)
+and [Plan 031](../../wiki/archive/plans/031-plan-component-jsonrender-previews.md);
+they do not establish verification of the current editor.
 
 ## Brick forms
 
@@ -127,23 +57,26 @@ login, signup, account, and password flows retain autofill. Private Meowdown pop
 fields, including link editing and code-language search, remain unchanged. The
 application's place and icon search suggestions remain available.
 
-All ten modules own their form. The shared form receives the queried state,
-initialized session, brick identity, synchronous `onSave(state): IResult`, and
-Cancel. Hosts render forms directly; saved presentation always comes from the
-brick query, including optimism and rejection rollback. Forms retain only unsaved
-drafts. Article and Image saves call `updateBrick` synchronously; image upload
-remains a separate cancellable browser prerequisite.
+All ten modules own their form. Shared forms receive state, synchronous
+`onSave(state): IResult`, module-specific `onConfigure(input): IResult`, and Cancel
+callbacks. They receive no standalone session or Brick identity. App supplies real
+command callbacks and renders saved query state, including optimism and rejection
+rollback. Storybook supplies local example state. Forms retain only unsaved drafts.
+Article, Image, and Swatch saves use `onSave`; image upload remains a separate
+cancellable browser prerequisite. Null Image/Article/Swatch forms start with blank
+drafts rather than catalog examples.
 
-Instagram, GitHub Profile/Activity/Repo, Figma Thumbnail, Link and Map Place stage
-their module's `configure…` command synchronously. The transaction records canonical
+Instagram, GitHub Profile/Activity/Repo, Figma Thumbnail, Link and Map Place
+normalize input in their own forms and call `onConfigure`. Their module view owns
+the existing `configureCommand` name; App stages that command synchronously. The transaction records canonical
 input, request identity and `resolution: resolving`, clears old computed data,
 increments `stateRevision`, and supersedes active spec generation.
 The query displays resolving, ready or failed state. Input correction stays
 available while resolving; an identical resolving input is refused. Failed input
 can be retried with a new request identity. Cancel discards only the unsaved draft.
 
-`startLibrarySessionWork` composes module-owned provider executors at the Library
-session lifetime and App's authenticated user-session lifetime. Each executor
+`startLibrarySessionWork` now belongs to App and composes module-owned provider
+executors at its authenticated user-session lifetime. Each executor
 observes its module's retained intents, calls the existing same-origin API, decodes
 module data and stages a guarded completion. Brick/module/request/revision checks
 make stale or duplicate completions harmless. Closing an editor leaves submitted
@@ -161,40 +94,13 @@ URL separately from resolved redirect metadata. Map Place keeps autocomplete as
 transient search and stages the selected nonempty place ID.
 
 Figma provider completion persists its resolved state without rendering hidden
-breakpoint probes. Admin's raw JSON path stages the same synchronous state-update
-command as ordinary state saves. Neither path captures or persists preview dimensions.
+breakpoint probes. State saves do not capture or persist preview dimensions.
 
 Swatch and Icon retains the selected `{ hash, name, svg }` from paged icon search.
 SVG data URLs are derived for presentation. Save validates a complete hex color
-and stages the selected icon and color directly, including the existing/default
-icon when no search runs. There is no Save-time icon request.
-
-Library retains `/qrk-library-command-query-v1` as its standalone backup path.
-Zerospin 19.0.0 retains the storage key introduced in 18.0.0: that path, the
-existing authored session scope and the complete canonical `aggregateSessionLock`,
-including locked models, public contracts and the claims schema. Incidental claims values
-outside the resolved path and runtime/build identity do not split storage. The
-18.0.0 adoption changed every existing standalone key and initialized a fresh
-partition from configured seeds, leaving old databases untouched without lookup,
-migration, deletion or fallback. Later, the same scope, path and lock reopen their retained
-partition; changing the lock selects separate storage. The 19.0.0 cleanup change
-preserves those partitions and their data.
-
-[Plan 031](../../wiki/archive/plans/031-plan-component-jsonrender-previews.md) records the
-preceding 15.0.1 cutover: explicit deletion of only affected local Library/App node
-databases and local `sys_qrk_sh_1` backend state, without backups or an authored
-namespace change. Chrome Library/App and local backend reset/initialization
-succeeded. An old SharedWorker initially blocked its in-app browser legacy
-deletion. After the desktop app was restarted, that exact legacy database was
-already absent; an explicit deletion completed successfully, and Library
-reopened its current 19.0.0 partition. The current partition and unrelated debug
-database were preserved. Legacy deletion was not a prerequisite for initializing
-the new 18.0.0 partition, and neither adoption deleted legacy storage. Earlier
-successful generation verification followed an API-key refresh and API restart: generated
-JSON appeared, JsonRender changed, and authored markup stayed unchanged. These
-are preceding-cutover observations, not verification of the 18.0.0 adoption.
-Earlier origins, unrelated data, cookies, preferences, uploads, and deployed
-storage remain outside the cutover. No compatibility reader is added.
+and stages the selected icon and color directly, including the saved icon when no
+search runs. A new Swatch draft has no sample icon; an empty SVG renders no graphic,
+so a saved color can stand alone at a minimum height of 64px. There is no Save-time icon request.
 
 ## Storybook
 
@@ -205,10 +111,25 @@ pnpm nx run @qrk.sh/library:build-storybook
 
 Open `http://127.0.0.1:10021`; App's Storybook uses port 10020.
 `PORT` overrides either default. Library Storybook
-runs independently of the Start app and API Worker, using Vite and the Library
-app's global styles and fonts. Stories live alongside their components in
+uses its own Vite configuration, `storybook.css`, and retained module styles/fonts.
+Fixture previews require no persisted editor or API Worker; live actions require
+the existing API services. Stories live alongside their components in
 `components/`, `lib/`, and `modules/`. The static build goes to
 `apps/library/storybook-static/`.
+
+Each **Modules / <module> / Playground** story preserves the former module page's
+Module metadata, Generate spec and input, sm/md/lg/xl Component/JsonRender previews,
+and Brick Definition JSON. **Configure example** edits local state. Save changes
+the example JSON/previews; Cancel discards the draft. **Unconfigured** displays null
+and blank forms/placeholders. The seven provider modules also have explicit
+**Resolving** and **Failed** fixture stories. Provider previews use example data;
+configuring a story does not start a persisted provider workflow.
+
+Live Generate spec calls the existing `/rpc` operation with the current example
+state/spec. It changes JsonRender while the authored Component stays independent
+of that spec. Requests retain loading and error presentation. API credentials stay
+server-owned. Story remount restores its declared fixture, and no Storybook action
+creates a Page, Brick, or Placement in App.
 
 **Library / Article / Meowdown spike** pairs an editable Markdown fixture with
 live Markdown output. Its **Hide / Hybrid / Show** radio control changes syntax
@@ -256,91 +177,56 @@ UI uses an immediate dark border.
 
 ## Public exports and shared UI
 
-`package.json` maps every existing public subpath directly to its defining
-TypeScript, TSX, or stylesheet source. App, API, and Zerospin compile their
-reachable imports without generated `dist` files. `app/` contains the
-Library-only routes and layout, not exported application screens.
+`package.json` maps retained public subpaths directly to defining TypeScript,
+TSX, or stylesheet source. App, API, and Zerospin compile reachable imports
+without generated `dist` files. Canonical persisted models/contracts live under
+`apps/zerospin/src/aggregates/user/`; shared module code accepts supplied inputs
+and does not import that aggregate.
 
-Consumers bundle Meowdown and React with their own dependencies. The retained
-`/article-editor.css` import maps to Article's plain CSS, including Meowdown styles;
-`/bricks.css` maps to the existing brick stylesheet. Keep stylesheet import order
-and Article components' font imports. Article state and form callbacks exchange
-Markdown strings; consumers share no editor instances.
+| Import under `@qrk.sh/library` | Defining source                              | Purpose                                  |
+| ------------------------------ | -------------------------------------------- | ---------------------------------------- |
+| `/backendLibrary`              | `backendLibrary.ts`                          | Worker-safe module catalog/default specs |
+| `/modulesHash`                 | `lib/modulesHash.ts`                         | React module registry                    |
+| `/ModuleFilmstrip`             | `lib/ModuleFilmstrip.tsx`                    | Shared horizontal catalog                |
+| `/Drawer`                      | `lib/Drawer.tsx`                             | Shared drawer/presence behavior          |
+| `/BrickCardStyleContext`       | `lib/BrickCardStyleContext.ts`               | Local preview appearance                 |
+| `/WallViewportProvider`        | `lib/WallViewportProvider.tsx`               | Viewport state and hooks                 |
+| `/WallBreakpointPane`          | `lib/WallBreakpointPane.tsx`                 | Fixed-width browser frame                |
+| `/WallPreviewViewport`         | `lib/WallPreviewViewport.tsx`                | Frame spacing/scrolling/toolbar          |
+| `/WallPreviewToolbar`          | `lib/WallPreviewToolbar.tsx`                 | Preview toolbar shell                    |
+| `/breakpoints`                 | `lib/breakpoints.ts`                         | Breakpoint IDs and widths                |
+| `/WallTree`                    | `lib/wall/WallTree.tsx`                      | Controlled wall presentation             |
+| `/WallModuleAction`            | `lib/wall/WallModuleAction.tsx`              | Catalog insertion/drag action            |
+| `/wallInsertionTargetSchema`   | `lib/wall/wallInsertionTargetSchema.ts`      | Explicit insertion destinations          |
+| `/ImageUploadEnvironment`      | `modules/image/ImageUploadEnvironment.ts`    | Host-supplied upload Effect              |
+| `/ImageUploadRuntimeContext`   | `modules/image/ImageUploadRuntimeContext.ts` | Form's host-supplied runner              |
+| `/bricks.css`                  | `bricks.css`                                 | Shared brick styles                      |
+| `/article-editor.css`          | `modules/article/article-editor.css`         | Meowdown typography/portaled controls    |
 
-Article's stylesheet and both Library and App globals declare
-`@layer theme, base, components, meowdown, utilities` before their imports.
-This places Tailwind Preflight before Meowdown's native rules and keeps utilities
-in the final named layer.
+Consumers bundle Meowdown and React themselves and share no editor instances.
+Import Article's stylesheet alongside `bricks.css`, retaining its font imports.
+Article's stylesheet, Storybook, and App declare
+`@layer theme, base, components, meowdown, utilities` before imports so Preflight
+precedes Meowdown rules and utilities remain last.
 
-| Import under `@qrk.sh/library`    | Defining source                              | Purpose                                                   |
-| --------------------------------- | -------------------------------------------- | --------------------------------------------------------- |
-| package root                      | `lib/index.ts`                               | Small barrel: `modulesHash`, `IModule`, `IModuleBrickDef` |
-| `/backendLibrary`                 | `backendLibrary.ts`                          | Module catalog registry used by API generation            |
-| `/ModuleFilmstrip`                | `lib/ModuleFilmstrip.tsx`                    | Shared horizontal module catalog                          |
-| `/Drawer`                         | `lib/Drawer.tsx`                             | Shared Drawer and existing DrawerPresence                 |
-| `/BrickCardStyleContext`          | `lib/BrickCardStyleContext.ts`               | Local boolean catalog-preview appearance                  |
-| `/WallViewportProvider`           | `lib/WallViewportProvider.tsx`               | Viewport provider and hooks                               |
-| `/WallBreakpointPane`             | `lib/WallBreakpointPane.tsx`                 | Shared fixed-width browser frame                          |
-| `/WallPreviewViewport`            | `lib/WallPreviewViewport.tsx`                | Shared frame spacing, scrolling, and toolbar placement     |
-| `/WallPreviewToolbar`             | `lib/WallPreviewToolbar.tsx`                 | Shared 38px toolbar shell with 28px controls                |
-| `/breakpoints`                    | `lib/breakpoints.ts`                         | Breakpoint IDs and canonical preview widths                |
-| `/ImageUploadEnvironment`         | `modules/image/ImageUploadEnvironment.ts`    | Host-supplied file upload Effect returning an image URL   |
-| `/ImageUploadRuntimeContext`      | `modules/image/ImageUploadRuntimeContext.ts` | Image's runner bound to the existing app session          |
-| `/libraryModule`                  | `libraryModule/libraryModule.ts`             | Models and command contracts                              |
-| `/createLibraryStandaloneSession` | `session/createLibraryStandaloneSession.ts`  | Session factory, context, hook, and type                  |
-| `/bricks.css`                     | `bricks.css`                                 | Shared brick styles                                       |
-| `/article-editor.css`             | `modules/article/article-editor.css`         | Meowdown, Article typography, and portaled controls       |
+The shared `Drawer` preserves its optional controlled `open` behavior and 300ms
+visibility transform. Its optional `persistentHeader` retains a 56px navigation
+bar while a controlled bottom drawer's body closes; reduced motion skips the
+animation and the closed body is inert. These are retained shared capabilities,
+not a requirement to recreate the retired Library shell in App. Drawer owns no
+routing, breadcrumbs, or settings actions. App retains its own route-owned
+transitions and drawer lifecycle.
 
-App imports `Drawer` directly from `@qrk.sh/library/Drawer`; Library's own app
-imports `../lib/Drawer`. Supplying `open` keeps the shared shell mounted and uses a
-300ms CSS transform for visibility. Library passes its existing local open state,
-including closing without changing the URL. The bottom drawer overlays `50dvh`;
-the editor remains full-height with matching trailing padding. Padding changes
-preserve the current offset, or follow the new bottom when already within 1px of
-it, with clamping on close. Initial deep links do not force a bottom scroll.
-Viewport-height changes use the same rule; ordinary content growth does not.
+`ModuleFilmstrip` is router-independent and receives host links through
+`renderModuleLink`. Columns scroll vertically inside a horizontal strip, with
+headings pinned above their previews. App supplies catalog/insertion actions;
+Storybook supplies its own module examples. Live preview content stays interactive.
 
-Library retains live drawer content through exit, then releases it. Reopening
-interrupts cleanup. Closed shells are inert and hidden from assistive technology;
-reduced motion skips the animation. App preserves outgoing route pixels with
-its exit-only native View Transition managed by TanStack Router. Existing Drawer callers without `open` retain the
-optional Motion/flow behavior. Drawer does not own routing, breadcrumbs, or
-settings actions. This replaces plan 007's animated grid-row reservation.
-
-Library's preview controls float 24px above the open drawer at every screen width.
-Closing the drawer restores their position 24px above the viewport bottom; movement follows the drawer's
-300ms transition and skips animation for reduced motion.
-
-Library and App share `ModuleFilmstrip` and browse-only module previews. Each app
-supplies its own module links through `renderModuleLink`; the shared catalog has
-no router dependency. Columns scroll vertically within a horizontal strip.
-Module headings span their columns and stick to the top while previews scroll
-underneath. Catalogs render only the authored Component at the module's resolved
-preferred width, capped at the active breakpoint's canonical width, with height
-supplied by its content. They have no grid sizing, dimension probes, drag sources,
-payloads, or insertion gating. Module detail screens remain app-owned. Their
-catalog label is **Bricks**.
-
-Both hosts' module details show **Component** and **JsonRender** side by side for
-`sm`, `md`, `lg`, and `xl`. Each pair uses the same resolved module width, capped
-at 360, 720, 1080, and 1440px respectively. Each preview has content height; a row
-scrolls horizontally when needed. Library retains its Generate spec controls and
-generated JSON display. Generation changes only the JsonRender previews; the
-authored Component remains independent of the spec.
-
-## Local card appearance spike
-
-The **Cards** checkbox in Library's drawer navigation beside **Display placeholders**
-and the **Cards** button in App's upper-right corner toggle one local boolean through
-`BrickCardStyleContext`. It affects catalog previews without adding module catalog
-or registry props. The flag starts
-`false`, survives drawer navigation while its layout stays mounted, and is not
-persisted on Site, Page, or in localStorage.
-
-Cards use an 8px radius, white background, and preview shadow. This decoration
-does not alter a preview's resolved width or derive grid spans or dimensions.
-Historical grid-border and card-layout research remains under `wiki/research/`;
-no placed-brick wall or React Grid Layout renderer remains.
+The local **Cards** choice is supplied through `BrickCardStyleContext`. In module
+playgrounds the checkbox appears in the Module section; App retains its existing
+appearance control. Cards use an 8px radius, white background, and preview shadow.
+The local flag starts false, writes no Page/Site preference, and changes no model
+layout or preview width. Existing hover/shadow studies remain available.
 
 ## Modules and interaction
 
@@ -348,22 +234,24 @@ Every module's `makeModuleView` declaration requires `default.defaultWidth` in
 pixels. Optional `sm`, `md`, `lg`, and `xl` overlays can override `defaultWidth`;
 an omitted override uses the default directly. `viewFor(breakpoint)` returns the
 resolved preferred width alongside the component, spec, and registry. Catalog,
-module detail, and App saved-brick fallback previews cap that width at the chosen
+Storybook, and App catalog previews cap that width at the chosen
 breakpoint's canonical width. Browser frames retain their canonical widths.
 This preference does not impose a minimum width or change persisted brick state.
 
-| Module | Default width | Breakpoint overrides |
-| --- | --- | --- |
-| Article | 720px | `lg`: 800px; `xl`: 800px |
-| GitHub Activity | 656px | — |
-| GitHub Profile | 360px | — |
-| GitHub Repo, Figma Thumbnail, Image, Link, Map Place | 480px | — |
-| Instagram | 400px | — |
-| Swatch and Icon | 240px | — |
+| Module                                               | Default width | Breakpoint overrides     |
+| ---------------------------------------------------- | ------------- | ------------------------ |
+| Article                                              | 720px         | `lg`: 800px; `xl`: 800px |
+| GitHub Activity                                      | 656px         | —                        |
+| GitHub Profile                                       | 360px         | —                        |
+| GitHub Repo, Figma Thumbnail, Image, Link, Map Place | 480px         | —                        |
+| Instagram                                            | 400px         | —                        |
+| Swatch and Icon                                      | 240px         | —                        |
 
 Catalog previews render authored module content at that resolved preview width.
-They do not insert, select, drag, or resize placed bricks. Ordinary links, forms, image
-upload drag/drop, and module-owned interactions remain available.
+The App catalog keeps its module selection/insertion controls separate from live
+preview content. Ordinary links, forms, Image upload drag/drop, and module-owned
+interactions remain available. Placed Bricks fill their Row cells with natural
+height rather than applying the catalog preferred width.
 
 Link's copy column uses CSS half width and ordinary URL/title wrapping; no
 font-size or column-width fitting runs. Map Place owns a 200px CSS minimum height
@@ -380,11 +268,11 @@ The calendar initially scrolls to the rightmost, most recent activity; subsequen
 manual scrolling keeps the chosen position.
 
 `modulesHash` exposes each library module by its registered kebab-case id, with
-no arbitrary-string index signature. Module URLs decode their ID against the
-brick model enum before rendering the module page; unknown IDs remain 404s.
+no arbitrary-string index signature. App validates route module IDs against the
+registered module/Brick identity; Storybook binds an explicit registered module ID.
 Internal previews and state updates retain the registered ID union.
 `defineModule` declares identity; `makeModuleVersion` owns the catalog, `stateShape`,
-and `defaultState`. `makeModuleView` infers authored callback props from that state
+canonical worker-safe `defaultSpec`, and `defaultState`. `makeModuleView` infers authored callback props from that state
 shape and decodes incoming state before rendering, discarding undeclared fields.
 Its authored wrappers are created once and reused by module rendering and previews.
 It also attaches a json-render `generator` (`registry` + `defaultSpec`).
@@ -400,8 +288,8 @@ and persisted brick state.
 
 `defineModule` retains optional `maxPerPage` metadata, a positive integer;
 omission means unlimited. Article declares `1` and Instagram declares `2`.
-Catalog and module detail previews display the limit. Phase 1 has no insertion
-path, page-count query, or limit-based interaction gating.
+Catalog and playground previews display the limit. App enforces it against the
+Page's shared Bricks during creation, counting a Brick once across four Placements.
 
 Modules can opt into unconfigured bricks with `hasPlaceholder: true` in
 `makeModuleVersion` and a matching display-only `default.placeholder` in
@@ -410,60 +298,12 @@ both mismatches, so the backend declaration and markup must agree. The returned
 module exposes `hasPlaceholder` and `placeholder`; one placeholder is shared across
 all breakpoints and receives no props.
 
-```tsx
-// In imageV1: the backend accepts null as an unconfigured Image brick.
-hasPlaceholder: true,
-
-// In imageView.default: display the sample image until state is supplied.
-placeholder() {
-  return (
-    <imageCardView.Component>
-      <imageCoverView.Component
-        imagePosition="center"
-        imageUrl={imageV1.defaultState.imageUrl}
-        title={imageV1.defaultState.title}
-      />
-    </imageCardView.Component>
-  );
-},
-```
-
-Image, GitHub Activity, GitHub Profile, GitHub Repo, Instagram, Link, and Figma
-Thumbnail opt in. Figma Thumbnail uses its module-owned
-`FigmaThumbnailPlaceholder` with skeleton thumbnail and title, keeping the Figma
-icon and label visible. Null state uses this placeholder, while its populated
-`defaultState` remains for catalog previews. Its skeleton respects reduced motion
-and contains no outbound link.
-Link uses its module-owned `LinkPlaceholder` with skeleton icon, URL, title,
-and hero image. Null state uses this placeholder, while its populated `defaultState`
-remains for catalog previews. Its skeleton respects reduced motion and contains
-no outbound link.
-Instagram uses its module-owned `InstagramPlaceholder` with a skeleton four-post
-grid, icon, username, follower count, and follow button. Null state uses the
-placeholder, while its populated `defaultState` remains for catalog previews.
-Its skeleton respects reduced motion and contains no outbound link.
-GitHub Repo uses
-its module-owned `GitHubRepoPlaceholder` with skeleton repository name,
-description, stars, forks, and language. Null state uses the placeholder, while its
-populated `defaultState` remains for catalog previews. Its skeleton respects
-reduced motion.
-GitHub Profile uses its
-module-owned `GitHubProfilePlaceholder` with skeleton avatar, username, profile
-details, and statistics. Null state uses this placeholder, while its populated
-`defaultState` remains for catalog previews. Its skeleton respects reduced motion.
-GitHub Activity uses its module-owned
-`GitHubActivityPlaceholder` with skeleton month and weekday labels, contribution
-squares, and legend. Null state has no payload or contribution data until
-configured; its populated `defaultState` remains for
-catalog previews. The skeleton respects reduced motion.
-
-The Library drawer's **Display placeholders** checkbox
-starts unchecked and switches eligible catalog previews between their example state
-and placeholder at the same resolved preview width. The choice lasts until
-reload. The shared renderer selects the placeholder only for exact null, before
-state decoding or JSON-render execution. Empty strings, objects, and collections
-still take the normal rendering path. Valid empty specs do not hide placeholders.
-Existing configured bricks are not reset.
+All ten modules declare a module-owned placeholder. Exact null selects it before
+state decoding or JsonRender execution; empty strings, objects, and collections
+still use the normal schema/rendering path. Article, Map Place, Swatch and Icon,
+and Image use explicit unconfigured presentations. Catalog `defaultState`
+examples remain separate. Placeholder skeletons respect reduced motion and contain
+no outbound interactions; a configured Brick is never reset by preview controls.
 
 `makeComponentView` binds display markup to a `defineComponent` descriptor. Its
 `.Component` accepts inferred flat props; its `.RegistryComponent` decodes resolved
@@ -489,184 +329,67 @@ remain independent of view code. Optional `sm` / `md` / `lg` / `xl` overlays
 select authored components and generators on top of `default`. View declarations
 and `viewFor` expose no `w`, `h`, `minW`, `minH`, or measurement flags. Canonical
 preview widths belong to `BREAKPOINTS`; modules own their ordinary CSS layout.
-Retained Placement geometry is independent of those previews and is not rewritten
-when content or preview dimensions change.
+Placements hold ordering and a spec, with natural content dimensions supplied by
+the Row cell. Content or preview dimension changes do not write model geometry.
 
 Module defaults, preview state, and authored rendering discard undeclared fields
-during decoding. `updateBrick` validates declared state fields while ignoring
-extras, then persists decoded state. It accepts null only for modules declaring
-`hasPlaceholder: true`. The Library JSON state editor can save valid state to
-replace a placeholder, or null to restore it. Invalid declared fields and null
-for other modules reject the command before mutation. Spec validation remains strict.
-`updateBrick` requires `moduleId`, checked against the stored brick before decoding.
-Pending updates without it must be resubmitted against the current `1.0.0` baseline.
-Existing bricks are normalized on their next state update; there is no bulk migration.
+during decoding. App's `updateBrick` validates the selected module's state, checks
+`moduleId` against the stored Brick, and persists shared content while advancing
+its revision and superseding active spec generation. Null is accepted for all ten
+modules. Spec validation remains strict. The command preserves each Placement's
+identity, ordering, and spec; it stores no pixel dimensions, `gridItem`, or visibility.
 
-`useUpdateBrick({ brickId })` returns synchronous `updateBrick(state)`. It checks
-the mounted editor, initialized session, and current brick before staging. The
-brick drawer and Admin render no hidden measurement host and have no measurement
-wait or measurement-only pending controls. Forms retain their own validation,
-provider resolution, uploads, and draft/error handling.
+## App-owned persisted editor
 
-`updateBrick` accepts `{ brickId, moduleId, state }`, persists decoded shared state,
-increments its revision, and supersedes active placement spec generations. It
-preserves each placement's `gridItem`, visibility, and Spec. Placement has no
-`measured` field, and no command accepts or stores a pixel-measurement map.
+App's user aggregate owns the final Page and directly referenced Wall/Brick
+models, plus Section, Stack, Row, and Placement. A Page has sm/md/lg/xl Walls;
+Sections arrange Stacks horizontally, Stacks arrange Rows vertically, and Rows
+arrange Placements side by side. Brick content is shared across all four Walls.
+Placements retain stable identities and per-width specs, while ordering uses
+integer sibling positions. Breakpoint derives from the containing Wall.
 
-```ts
-{
-  // Retained placement geometry remains in grid units, independent of previews.
-  gridItem: { i: brickId, x: 0, y: 0, w: 4, h: 3 },
-}
-```
+The shared controlled wall components render supplied data and action callbacks.
+App's `WallEditorProvider` supplies live queries, command staging, insertion
+navigation, selected Brick routing, and drag scope. Local wall stories use fixtures
+without that provider or any persisted session. New-Brick creation, layout moves,
+and global Brick deletion are ordinary App commands. Empty containers survive
+moves/deletion; no pixel grid geometry or visibility state is persisted.
 
-`LibraryApp` is created from `libraryBrowserDefinition`. `LibraryLayout` mounts
-its `Initializer`, which owns a fresh browser facade and starts it after commit.
-The initialized content suspends until SQLite is ready. The SPA shell contains
-no initialized session data. The standalone session persists seeded `wal_library`
-through the SharedWorker's owned IndexedDB VFS. Its storage namespace and namespace
-lease are derived from the authored scope, `/qrk-library-command-query-v1` path
-and complete canonical session lock. Changed locked definitions open separate
-partitions; the same lock and path reopen their retained data. Reset acts only
-within the current definition's partition. The fresh 18.0.0 partition needs no
-legacy deletion, and the backup path remains unchanged.
-
-The 18.0.0 browser check displayed seeded `wal_library` before and after reload,
-while an independent browser document held the legacy namespace lease and an open
-legacy IndexedDB handle. Read-only before/after fingerprints matched; the legacy
-database was preserved, and the temporary inspection handle and lease were released.
-
-The authored worker is imported through Vite's `?sharedworker&url` query and
-bound through `makeApplicationSharedWorker`. Its entrypoint imports
-`@zerospin/browser/sqlite.wasm?url` from the installed `19.0.0` browser package
-and registers the existing session definition with `makeSharedWorker`.
-The worker name includes the session-lock storage key. Backup paths, source
-exports, and backend contracts are unchanged by this adoption.
-
-Session disposal detaches that facade and waits for its local cleanup. Its Promise
-does not acknowledge shared-owner drainage. With 19.0.0, the last live client's
-departure starts asynchronous cleanup of the Node, application/synchronization
-resources and SQLite/VFS, then releases the namespace lease. The lightweight
-SharedWorker host remains reusable. A client arriving during cleanup waits for
-complete closure before a fresh owner reopens the same database.
-
-The 19.0.0 browser check confirmed that disposing one of two Library clients left
-the other ready, while the last client's departure released the physical namespace.
-Reinitialization reused the same SharedWorker host; a distinct worker artifact URL
-waited for ownership and reopened the same partition. Abrupt document reload,
-immediate facade reinitialization and keyed React initializer replacement also
-returned `ready` with `wal_library`. Read-only snapshots of actual stored bytes
-matched before adoption and after these observations for both the current and
-legacy databases. These are Standalone browser observations; App and Library
-Storybook compilation were checked separately.
-
-Each connection holds a document-owned Web Lock before worker construction.
-Release of that lock detects abrupt document loss independently of the namespace
-lease. Hidden, frozen and cached documents remain live clients while the browser
-retains their locks. Cleanup failure retains namespace exclusion and rejects
-replacement acquisition; it does not open over uncertain resources.
-
-An existing 18.0.0 or older worker cannot gain cleanup retroactively. Its owner
-must release before 19.0.0 can initialize the same namespace. A browser restart
-preserving its profile may be needed to release that old host; preserve existing
-databases throughout adoption.
-
-Within a retained partition, restored resources take precedence over the initial
-seed. DevTools defaults to closed and retains its visibility preference.
-App uses its authenticated `UserApp` initialized session, with a separate wall
-referenced by each Page.
-
-Shared consumers (`LibrarySessionContext` and `useLibrarySession`)
-use `ILibrarySession`, the aggregate-session surface with Library models and contracts.
-It accepts both the standalone Library session and App's larger live user session,
-without requiring standalone initialization or reset methods. The shared
-`libraryModule` exports only models and flat command contracts. Session construction
-owns identity, claims, initialization, and disposal.
-
-Command execution belongs to each app's session lifecycle. Retained forms stage
-`updateBrick`, module configuration/completion, and spec generation
-commands through the owning session. Library executes locally; App stages
-optimism and synchronizes with the authenticated owner. Local staging durability
-and server finalization are distinct.
-
-`useLiveQuery` returns model-decoded `state`, `spec`, and `gridItem`
-values. Explicit writes and backups use encoded SQLite values. Wall, Brick, and
-Placement relationships are retained: shared state lives on Brick; each Placement
-stores breakpoint-specific Spec, generation/revisions, geometry, and
-visibility. The old add, remove, layout-update, compact, and visibility contracts
-are deleted without replacement geometry or insertion APIs.
-
-Four browser frames (360, 720, 1080, and 1440px) remain mounted around one
-session. The selected breakpoint returns when it fits; otherwise the largest
-fitting frame is displayed. Below 360px, the insufficient-width message appears.
-Catalog drags and grid gestures no longer defer breakpoint changes. Library's
-localStorage viewport preference (`qrk-bricks-library-viewport-v1`) is retained;
-the grid reset control is removed.
-
-`WallBreakpointPane` provides decorative browser chrome: sm/md use a Safari-like
-mobile address pill; lg/xl use desktop window dots and a centered address bar.
-Both display static `qrk.sh`, remain noninteractive, and are hidden from
-assistive technology. The 48px muted-gray header and thin inset frame preserve
-the 360/720/1080/1440px widths. Breakpoint transitions and reduced-motion behavior
-remain. Every frame body is an empty white region. There is no site navbar,
-placed-brick renderer, Tree, placeholder, or page-name node.
-
-Library and App use `WallPreviewViewport` for a 32px top gap and a 43px bottom
-gap. The frame's fixed `calc(100dvh - 75px)` height includes its 48px browser
-header. Its bottom edge bisects `WallPreviewToolbar`, whose shared 38px shell
-contains 28px controls and sits 24px above the viewport bottom on desktop and
-mobile. Each host retains its toolbar actions and shape.
-
-Opening the `50dvh` bottom drawer preserves the frame height and adds `50dvh`
-of trailing scroll space. Both apps preserve the current scroll position or
-follow the end when already bottom-anchored, with clamping on close. Library's
-toolbar moves 24px above its open drawer; scrolling the preview to the end
-aligns the frame bottom with the raised toolbar's center. App retains its
-route-based toolbar visibility, with no floating toolbar on drawer routes.
-
-Library and App resolve browser SQLite WASM from the installed Zerospin
-`19.0.0` package exports. The Library standalone worker imports the same pure
-`librarySessionDefinition` as its host definition. App authors its connected
-`node.worker.ts` entrypoint, and both hosts use `makeApplicationSharedWorker`
-to identify the emitted executable artifact. Vite emits each worker from its
-`?sharedworker&url` import and its SQLite WASM from the installed package's
-`?url` import. Persistent Node
-storage belongs to the SharedWorker's IndexedDB-backed SQLite namespace;
-no separate backup worker or public backup-worker assets remain.
+**Selected** means the Brick's edit form is open; **active** means DOM focus.
+Separate grip/menu controls leave links/forms interactive. Placements support
+Edit, Move, and Delete Brick actions. App's initialized session and actor guards
+own persistence, errors, and authorization; no standalone Library session or
+host-binding Page factory remains.
 
 ## Image editing in the brick drawer
 
 Image exposes its module-owned `ImageForm` through the shared module registry.
 The form owns its Image URL and Title drafts, pending state, errors, Save, and
-Cancel. Unconfigured bricks initialize from the module's
-default state. Save stages the complete state through `updateBrick`. App
-reuses this same Form in its authenticated brick detail drawer.
-Both drawers provide one centered column around the module form; Image's
-field groups fill that column, with Save/Cancel aligned to the fields' left edge.
+Cancel. Unconfigured Bricks start with blank Image URL/Title drafts. App
+uses the Form in its authenticated Brick detail drawer and stages complete state
+through `updateBrick`; Storybook uses the same Form with local Save/Cancel.
+Image's field groups fill the supplied column, with Save/Cancel aligned to its fields.
 
 Image also offers a single-file dropzone and picker for nonempty PNG, JPEG,
 WebP, or SVG images up to 5 MiB. Selection uploads immediately; success changes
 only the draft Image URL until Save. `ImageUploadEnvironment` supplies one
 host-owned operation, `upload(file): Effect.Effect<string, Error>`, returning the
-uploaded URL. Each app binds that operation through the existing Effect Layer,
-session runner, and `ImageUploadRuntimeContext`; the shared form contract has no
+uploaded URL. Each host binds that operation through its Effect Layer,
+runner, and `ImageUploadRuntimeContext`; the shared form contract has no
 Image-specific upload props.
 
 Each host owns HTTP, endpoint configuration, multipart fields, credentials, and
-response decoding. Library's standalone host performs anonymous
-`POST /image/upload`; App's host performs `/upload` with its current site ID
+response decoding. Storybook performs anonymous `POST /image/upload`; App's
+host performs `/upload` with its current site ID
 and fresh Clerk authorization. Both forward Effect interruption into `fetch`.
 Image retains file validation, picker/drop behavior, drafts, pending/error
 feedback, Save gating, and cancellation. Fields and Save stay disabled during
 upload. Cancel or leaving the brick aborts unfinished requests and ignores late
-results; completed R2 objects remain stored. File bytes are not included in the
-local backup.
+results; completed R2 objects remain stored. Uploaded file bytes remain API-owned and are not included in browser session storage.
 
 ## Article editing in the brick drawer
 
 The Markdown module uses **Article** and the `article` module ID.
-Its default size is 8 columns by 8 rows on sm, 6 columns by 6 rows on md, and
-4 columns by 4 rows on lg/xl.
 Article titles and subtitles use the platform system sans-serif font (San
 Francisco on macOS). Body text uses Spectral at 19px with 1.6 line spacing in
 brick previews and the drawer editor, loaded through the module's stylesheet.
@@ -689,61 +412,44 @@ values become 30px and 32px respectively.
 The drawer retains its separate viewport-based insets and existing 660px
 desktop text measure.
 Titles use 32px/36px bold text; subtitles use 18px/24px muted text, with a 12px
-title-to-subtitle gap and 36px before the body. The drawer retains its smaller
+title-to-subtitle gap and 24px before the body. The drawer retains its smaller
 mobile title. These fonts and spacing follow the
 [Experimental History article](https://www.experimental-history.com/p/the-strangest-idea-in-the-world).
 The body supports Meowdown's native Markdown headings, lists, tasks, quotes,
 code, tables, links, images, and inline formatting. Meowdown's native
 `margin-inline-start: 1lh` reserves the list marker gutter in previews and the
 editor; the shared layer order gives it priority over Tailwind Preflight.
-Underline, colored highlights, and text alignment are not retained. Standard HTML
-form validation blocks Save when either
-metadata field is empty or contains only whitespace; Admin retains schema-based
-JSON validation. This is a hard schema change without migration or fallback:
-old Tiptap Article state, specs, and command history may no longer load. The approved
-local phase-1 cutover uses fresh affected storage as described above. There is
+Underline, colored highlights, and text alignment are not retained. Save decodes the complete state against the module schema. This is a hard schema change without migration or fallback:
+old Tiptap Article state, specs, and command history may no longer load. Historical schema cutovers used explicitly approved fresh affected storage;
+retiring the standalone application does not itself authorize further deletion. There is
 no JSON converter or compatibility reader.
-The bundled example uses “Actually good advice” as its title and the introductory
-paragraph as its subtitle, retaining all four numbered criteria and the closing
-paragraph in its body. Generated `ArticleBrick` specs bind `/title`, `/subtitle`,
-and `/content` separately.
+The bundled example uses “Actually good advice” as its title and “Take it or leave
+it” as its subtitle. Its body opens with the introductory paragraph, followed by
+all four numbered criteria and the closing paragraph. Generated `ArticleBrick`
+specs bind `/title`, `/subtitle`, and `/content` separately.
 
 Article bricks and previews render their title and subtitle above a client-mounted
 Meowdown MarkdownView in Hide mode. They mount no editor. Links open in a new tab,
 saved image dimensions are retained, and task checkboxes are disabled. Raw HTML
 remains literal Markdown content; arbitrary Markdown round trips can normalize
-source. The retained `/bricks/<brickId>` route shows only the module form and
-Save/Cancel controls, without headings or an outline.
-Modules without forms have an empty drawer body.
-
-The **Admin** breadcrumb links to `/bricks/<brickId>/admin`, containing Generate
-spec, Shared state JSON, and Brick Definition. The Hide/Show Options are removed.
-Admin's brick-ID breadcrumb returns to the form page. Both routes retain the empty
-browser frames and persistent drawer shell.
-Admin is a UI route, not an authorization boundary.
-
-Module forms own their drafts and Save/Cancel controls; Admin's JSON draft belongs
-to its route. Save stages one complete
-`updateBrick` command synchronously and leaves the current page open; Cancel discards
-that draft and errors. Save captures no dimensions. Failed saves retain the draft and
-show an error. Article validates Markdown strings and the complete state, keeps
-unsaved drafts across session echoes, and follows saved props when clean. Cancel
-remounts its editor to discard Markdown edits and canceled undo history. Article's Admin JSON
-editor validates state, disables Save for invalid or unchanged values, and keeps
-invalid input visible. Placeholder-capable modules still accept null. Closing,
-navigating between form and Admin, changing brick, or deleting the brick discards
-unsaved drafts. Breakpoint switches retain the form draft.
+source. App's Brick drawer and Storybook's configuration example reuse `ArticleForm`.
+It starts null state from blank title/subtitle/content drafts, owns its Save/Cancel
+controls, and validates Markdown strings plus complete state before the callback.
+Failed saves retain the draft and show an error. Unsaved edits survive session
+echoes; clean forms follow saved props. Cancel remounts the editor to discard
+Markdown edits and canceled undo history. Leaving the Brick discards unsaved
+drafts; breakpoint switches retain the form draft.
 
 Native Meowdown controls retain formatting, selection, undo/redo, block dragging,
 and image resizing. Resizing writes width/height into a trailing Markdown comment.
 Portaled menus appear above the drawer; their link form cannot submit Article.
 Escape first dismisses an editor control or selection, then closes the drawer.
-`ArticleEditorControl` remains drawer-only.
+`ArticleEditorControl` belongs to the editable module form; read-only previews
+mount no editor.
 
 Article module rendering retains its white shell and clips overflowing content;
 the editor surface does not paint the background. Content changes, image loads,
-and width changes do not update retained Placement geometry. Phase 1 has no
-placed-brick display or grid resize handles.
+and width changes do not write Placement geometry; Rows use natural content height.
 
 Article uploads remain disabled: Meowdown receives no file-persistence handler,
 so it exposes no attachment picker or upload slash command. HTTP(S) images display
@@ -751,20 +457,17 @@ and can be resized in the drawer. Automatic YouTube/X paste conversion and provi
 resolution are disabled in both editor and viewer; ordinary URL pastes remain links.
 Explicit media syntax can display native placeholders. `ArticleForm` owns drafts
 and Save/Cancel. Image's upload environment does not enable Article uploads; Image
-and Site Settings retain their endpoints. The standalone backup lifecycle provides
-local durability after Save. Consumers load `@qrk.sh/library/article-editor.css`
+and Site Settings retain their endpoints. App's initialized session owns saved
+durability; Storybook example state lasts only for its mounted story. Consumers load `@qrk.sh/library/article-editor.css`
 alongside `bricks.css` for editor and portaled-control styles.
 
 ## Wall publication snapshots
 
-QRK owns publication serialization in its existing `PageSnapshotSchema` and
-`makePageSnapshot` files under `apps/zerospin/src/aggregates/user/snapshots/`.
-Those files select saved page metadata, brick IDs/module state, and placement
-breakpoint/spec/geometry/visibility; they exclude editing bookkeeping and define
-stable array ordering.
-
-Library owns editable Brick/Placement models and their field codecs, exposed
-through `libraryModule`. It exposes no publication snapshot schema/projection API
-and stores no separate WallSnapshot model. Editing reads live models, and
-standalone durability uses the regular session backup mechanism.
-QRK owns site/page publication flags, current snapshot pointers, and history.
+QRK owns editable models, publication serialization, and snapshot history under
+`apps/zerospin/src/aggregates/user/`. Snapshots retain shared Brick content once and
+four ordered Wall hierarchies containing Sections, Stacks, Rows, and Placements
+with their specs. Array order follows saved sibling positions; publication dirty
+comparison includes arrangement. Editing bookkeeping and former grid geometry are
+excluded. Shared module source supplies schemas/default specs and rendering, not
+an independent persisted owner or WallSnapshot model. Public-site rendering remains
+outside this editor change.

@@ -1,7 +1,6 @@
 "use client";
 
-import { stageAggregateSessionCommand } from "@zerospin/core/aggregateSession/stageCommand/stageAggregateSessionCommand";
-import type { ILibrarySession } from "../../session/createLibraryStandaloneSession";
+import type { IResult } from "@zerospin/error";
 import { normalizeMapPlaceInput } from "./normalizeMapPlaceInput";
 
 import { type IInferDecodedRow } from "@zerospin/shapes";
@@ -13,11 +12,10 @@ import { mapPlaceV1 } from "./mapPlaceV1";
 
 export function MapPlaceForm(props: {
   state: IInferDecodedRow<typeof mapPlaceV1.stateShape> | null;
-  session: ILibrarySession;
-  brickId: `brk_${string}`;
+  onConfigure: (input: { googlePlaceId: string }) => IResult<unknown, { message: string }>;
   onCancel: () => void;
 }) {
-  const { state, session, brickId, onCancel } = props;
+  const { state, onConfigure, onCancel } = props;
   const [googlePlaceIdDraft, setGooglePlaceId] = useState<string | null>(null);
   const googlePlaceId = googlePlaceIdDraft ?? state?.payload.googlePlaceId ?? "";
   const [lookupRevision, setLookupRevision] = useState(0);
@@ -35,11 +33,7 @@ export function MapPlaceForm(props: {
         event.preventDefault();
         if (!canSave || normalizedPlaceId === undefined) return;
         setSaveError(undefined);
-        const result = stageAggregateSessionCommand({
-          session,
-          contractName: "configureMapPlace",
-          payload: { brickId, requestId: crypto.randomUUID(), googlePlaceId: normalizedPlaceId },
-        });
+        const result = onConfigure({ googlePlaceId: normalizedPlaceId });
         if (result._tag === "Failure") setSaveError(result.failure.message);
         else setGooglePlaceId(null);
       }}

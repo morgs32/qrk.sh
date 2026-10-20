@@ -1,7 +1,6 @@
 import { makeModuleView } from "../../make/makeModuleView";
 import { BrickShell } from "../../components/brick/BrickShell";
 import { registry } from "./generator/GitHubActivityJsonRenderRegistry";
-import { defaultSpec } from "./generator/defaultSpec";
 import { githubActivityV1 } from "./githubActivityV1";
 import { GitHubActivityForm } from "./GitHubActivityForm";
 import { activityCalendarView } from "./ActivityCalendar";
@@ -10,6 +9,7 @@ import { GitHubActivityLineIcon } from "./GitHubActivityLineIcon";
 
 export const githubActivityView = makeModuleView(githubActivityV1, {
   LineIcon: GitHubActivityLineIcon,
+  configureCommand: "configureGithubActivity",
   form: GitHubActivityForm,
   default: {
     defaultWidth: 656,
@@ -26,6 +26,6 @@ export const githubActivityView = makeModuleView(githubActivityV1, {
         </BrickShell>
       );
     },
-    generator: { registry, defaultSpec },
+    generator: { registry, defaultSpec: githubActivityV1.defaultSpec },
   },
 });

@@ -6,7 +6,7 @@ export const swatchAndIconColorView = makeComponentView(swatchAndIconColorCompon
     const { color, children } = props;
     return (
       <div
-        className="flex h-full w-full items-center justify-center"
+        className="flex h-full min-h-16 w-full items-center justify-center"
         style={{ backgroundColor: color }}
       >
         {children}

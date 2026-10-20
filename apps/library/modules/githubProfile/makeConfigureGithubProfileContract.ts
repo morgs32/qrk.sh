@@ -4,9 +4,9 @@ import { makeAggregateContractVersion } from "@zerospin/core/contracts/make/make
 import { ContractError } from "@zerospin/error";
 import { makeEffectSchema, primitives } from "@zerospin/shapes";
 import { Effect, Schema } from "effect";
-import type { makeBrickModel } from "../../libraryModule/models/brick/makeBrickModel";
-import type { makePlacementModel } from "../../libraryModule/models/placement/placementModelV1";
-import { makePlacementId } from "../../libraryModule/models/placement/makePlacementId";
+import type { makeBrickModel } from "../../make/makeBrickModel";
+import type { makePlacementModel } from "../../make/makePlacementModel";
+import { makePlacementId } from "../../lib/makePlacementId";
 import { githubProfileV1 } from "./githubProfileV1";
 import { normalizeGithubProfileInput } from "./normalizeGithubProfileInput";
 

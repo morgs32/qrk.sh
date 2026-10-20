@@ -1,7 +1,6 @@
 "use client";
 
-import { stageAggregateSessionCommand } from "@zerospin/core/aggregateSession/stageCommand/stageAggregateSessionCommand";
-import type { ILibrarySession } from "../../session/createLibraryStandaloneSession";
+import type { IResult } from "@zerospin/error";
 import { normalizeLinkInput } from "./normalizeLinkInput";
 
 import { type IInferDecodedRow } from "@zerospin/shapes";
@@ -13,11 +12,10 @@ import { linkV1 } from "./linkV1";
 
 export function LinkForm(props: {
   state: IInferDecodedRow<typeof linkV1.stateShape> | null;
-  session: ILibrarySession;
-  brickId: `brk_${string}`;
+  onConfigure: (input: { url: string }) => IResult<unknown, { message: string }>;
   onCancel: () => void;
 }) {
-  const { state, session, brickId, onCancel } = props;
+  const { state, onConfigure, onCancel } = props;
   const inputId = useId();
   const feedbackId = `${inputId}-feedback`;
   const resolutionErrorId = `${inputId}-resolution-error`;
@@ -52,11 +50,7 @@ export function LinkForm(props: {
         event.preventDefault();
         if (!canSave || normalizedUrl === undefined) return;
         setSaveError(undefined);
-        const result = stageAggregateSessionCommand({
-          session,
-          contractName: "configureLink",
-          payload: { brickId, requestId: crypto.randomUUID(), url: normalizedUrl },
-        });
+        const result = onConfigure({ url: normalizedUrl });
         if (result._tag === "Failure") setSaveError(result.failure.message);
         else setUrl(null);
       }}

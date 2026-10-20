@@ -10,8 +10,9 @@ export function ModulePreview(props: {
   breakpoint: (typeof BREAKPOINTS)[number]["id"];
   displayPlaceholders: boolean;
   moduleLink: ReactNode;
+  moduleAction?: ReactNode;
 }) {
-  const { brickModule, breakpoint, displayPlaceholders, moduleLink } = props;
+  const { brickModule, breakpoint, displayPlaceholders, moduleLink, moduleAction } = props;
   const cardStyle = useContext(BrickCardStyleContext);
   const maxPerPage = brickModule.maxPerPage;
   const view = brickModule.viewFor(breakpoint);
@@ -38,6 +39,7 @@ export function ModulePreview(props: {
           className="brick-hover-target relative shrink-0"
           style={{ width: Math.min(view.defaultWidth, entry.previewWidth) }}
         >
+          <div className="absolute right-2 top-2 z-20">{moduleAction}</div>
           <BrickWrapper
             className="brick-hover-surface"
             data-module-representative={brickModule.def.moduleId}

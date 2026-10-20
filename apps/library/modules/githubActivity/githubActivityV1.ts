@@ -1,3 +1,4 @@
+import { defaultSpec } from "./generator/defaultSpec";
 import { makeEffectSchema, primitives } from "@zerospin/shapes";
 import { Schema } from "effect";
 
@@ -49,6 +50,7 @@ const defaultData = {
 
 export const githubActivityV1 = makeModuleVersion(githubActivity, {
   version: "1.0.0",
+  defaultSpec,
   hasPlaceholder: true,
   components: {
     BrickShell: brickShellComponent,

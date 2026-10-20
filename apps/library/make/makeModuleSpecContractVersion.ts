@@ -6,9 +6,9 @@ import { ZerospinError } from "@zerospin/error";
 import { primitives } from "@zerospin/shapes";
 import { Effect } from "effect";
 
-import { makeBrickModel } from "../libraryModule/models/brick/makeBrickModel";
-import { makePlacementId } from "../libraryModule/models/placement/makePlacementId";
-import { makePlacementModel } from "../libraryModule/models/placement/placementModelV1";
+import { makeBrickModel } from "./makeBrickModel";
+import { makePlacementId } from "../lib/makePlacementId";
+import { makePlacementModel } from "./makePlacementModel";
 import type { defineComponent } from "./defineComponent";
 import { makeModuleSpecDocumentSchema } from "./makeModuleSpecDocumentSchema";
 

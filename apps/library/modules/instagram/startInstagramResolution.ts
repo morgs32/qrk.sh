@@ -1,16 +1,23 @@
-import { stageAggregateSessionCommand } from "@zerospin/core/aggregateSession/stageCommand/stageAggregateSessionCommand";
 import { newSyncRpcSession } from "@zerospin/core/utils/getApi/newSyncRpcSession/newSyncRpcSession";
-import { makeEffectSchema } from "@zerospin/shapes";
+import { makeEffectSchema, type IInferDecodedRow } from "@zerospin/shapes";
 import { Schema } from "effect";
-import type { ILibrarySession } from "../../session/createLibraryStandaloneSession";
 import type { LibraryApi } from "../../worker/LibraryApi.public";
 import { instagramV1 } from "./instagramV1";
 
 /** Session-owned provider work; editor unmount never cancels a submitted intent. */
-export function startInstagramResolution(session: ILibrarySession) {
-  const initialized = session.store.getState().initialized;
-  if (initialized === null) return () => {};
-  const { db } = initialized;
+export function startInstagramResolution(props: {
+  readBricks: () => Array<{ id: `brk_${string}`; state: unknown; stateRevision: number }>;
+  readBrick: (id: `brk_${string}`) => { state: unknown; stateRevision: number } | undefined;
+  isCurrent: () => boolean;
+  subscribe: (listener: () => void) => () => void;
+  complete: (payload: {
+    brickId: `brk_${string}`;
+    requestId: string;
+    baseStateRevision: number;
+    state: IInferDecodedRow<typeof instagramV1.stateShape>;
+  }) => void;
+}) {
+  const { readBricks, readBrick, isCurrent, subscribe, complete } = props;
   const State = Schema.toType(makeEffectSchema(instagramV1.stateShape));
   const attempted = new Set<string>();
   const closeRequests = new Set<() => void>();
@@ -19,8 +26,8 @@ export function startInstagramResolution(session: ILibrarySession) {
 
   function scan() {
     scheduled = false;
-    if (disposed || session.store.getState().initialized?.db !== db) return;
-    const rows = db.query.brick.findMany({ where: { moduleId: { eq: "instagram" } } }).sync();
+    if (disposed || !isCurrent()) return;
+    const rows = readBricks();
     for (const row of rows) {
       const decoded = Schema.decodeUnknownResult(State)(row.state);
       if (decoded._tag === "Failure" || decoded.success.resolution.status !== "resolving") continue;
@@ -31,8 +38,8 @@ export function startInstagramResolution(session: ILibrarySession) {
       attempted.add(key);
       void navigator.locks
         .request(`qrk:instagram:${key}`, async () => {
-          if (disposed || session.store.getState().initialized?.db !== db) return;
-          const current = db.query.brick.findFirst({ where: { id: { eq: row.id } } }).sync();
+          if (disposed || !isCurrent()) return;
+          const current = readBrick(row.id);
           if (current?.stateRevision !== row.stateRevision) return;
           const currentState = Schema.decodeUnknownResult(State)(current.state);
           if (
@@ -95,38 +102,30 @@ export function startInstagramResolution(session: ILibrarySession) {
               },
             };
           }
-          if (disposed || session.store.getState().initialized?.db !== db) return;
-          stageAggregateSessionCommand({
-            session,
-            contractName: "completeInstagram",
-            payload: {
-              brickId: row.id,
-              requestId,
-              baseStateRevision: row.stateRevision,
-              state: outcome,
-            },
+          if (disposed || !isCurrent()) return;
+          complete({
+            brickId: row.id,
+            requestId,
+            baseStateRevision: row.stateRevision,
+            state: outcome,
           });
         })
         .catch(() => {
-          if (disposed || session.store.getState().initialized?.db !== db) return;
-          stageAggregateSessionCommand({
-            session,
-            contractName: "completeInstagram",
-            payload: {
-              brickId: row.id,
-              requestId,
-              baseStateRevision: row.stateRevision,
-              state: {
-                payload: state.payload,
-                data: null,
-                resolution: {
-                  requestId,
-                  status: "failed",
-                  error: {
-                    code: "local-resolution-failed",
-                    message: "Unable to run this request; try again.",
-                    retryable: true,
-                  },
+          if (disposed || !isCurrent()) return;
+          complete({
+            brickId: row.id,
+            requestId,
+            baseStateRevision: row.stateRevision,
+            state: {
+              payload: state.payload,
+              data: null,
+              resolution: {
+                requestId,
+                status: "failed",
+                error: {
+                  code: "local-resolution-failed",
+                  message: "Unable to run this request; try again.",
+                  retryable: true,
                 },
               },
             },
@@ -139,7 +138,7 @@ export function startInstagramResolution(session: ILibrarySession) {
     scheduled = true;
     queueMicrotask(scan);
   }
-  const unsubscribe = db.$client.subscribeToTableChanges(schedule);
+  const unsubscribe = subscribe(schedule);
   schedule();
   return () => {
     disposed = true;

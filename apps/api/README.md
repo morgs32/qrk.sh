@@ -2,7 +2,7 @@
 
 The `api` Cloudflare Worker owns module RPCs, image uploads, and
 asset serving. Its Nx project is `@qrk.sh/api`. The Library package retains
-module definitions, catalogs, views, aggregate behavior, and browser RPC
+module definitions, catalogs, views, module-owned behavior, and browser RPC
 declarations; API imports its catalog registry from
 `@qrk.sh/library/backendLibrary` for spec generation.
 
@@ -14,15 +14,18 @@ From the repository root:
 pnpm dev
 ```
 
-Root Portless startup runs all five apps, including API at
+Root Portless startup runs Web, App, API, and Zerospin, including API at
 `https://api.qrk.localhost`. To start only API, run `pnpm --dir apps/api dev`;
 its `dev` script invokes Portless, which runs the Wrangler command in `dev:app`.
 Package metadata retains the hostname and internal port. Wrangler listens at
 `http://127.0.0.1:8787`, with an automatically allocated inspector port.
-Library runs separately on a Portless-allocated internal port (direct fallback
-10004) and forwards `/rpc`, `/upload`, `/image/upload`, and `/assets/*` to
-API. Consumers compile Library source directly; development startup needs no
-Library build. These commands do not deploy it.
+Library's module playgrounds run separately through
+`pnpm nx run @qrk.sh/library:storybook` at `http://127.0.0.1:10021`.
+Storybook forwards `/rpc`, `/upload`, `/image/upload`, and `/assets/*` to API.
+Fixture previews use local state; live generation, lookups, and Image uploads use
+the existing API services. App owns persisted editing and its session.
+Consumers compile Library source directly; development startup needs no Library
+build. These commands do not deploy it.
 
 Put private provider credentials in `apps/api/.env.local`:
 
@@ -99,25 +102,25 @@ signed-in upload, were not exercised by these probes.
 
 ## Routes and ownership
 
-| Route                | Behavior                                                     |
-| -------------------- | ------------------------------------------------------------ |
-| `/rpc`               | Existing `LibraryApi` methods and authentication behavior    |
-| `POST /upload`       | App: Clerk bearer-token authentication; writes to `QRKSH` |
-| `POST /image/upload` | Library: anonymous image uploads; writes to `QRKSH`          |
-| `/assets/library/*`  | Reads original Library image keys from `ASSETS`              |
-| Other `/assets/*`    | Reads API upload keys from `QRKSH`                           |
+| Route                | Behavior                                                         |
+| -------------------- | ---------------------------------------------------------------- |
+| `/rpc`               | Existing `LibraryApi` methods and authentication behavior        |
+| `POST /upload`       | App: Clerk bearer-token authentication; writes to `QRKSH`        |
+| `POST /image/upload` | Storybook Image playground: anonymous uploads; writes to `QRKSH` |
+| `/assets/library/*`  | Reads original Library image keys from `ASSETS`                  |
+| Other `/assets/*`    | Reads API upload keys from `QRKSH`                               |
 
 `OPTIONS` retains API preflight handling. CORS allows the existing application
-origins, including production `https://app.qrk.sh`, Portless's Web, App,
-and Library HTTPS origins on standard port 443,
-and the existing localhost and loopback origins. Uploads
+origins, including production `https://app.qrk.sh`, Portless's Web and App
+HTTPS origins on standard port 443, Storybook's localhost/loopback development
+origins, and the existing direct App/Web origins. Uploads
 retain the existing multipart `file` contract, PNG/JPEG/WebP/SVG support, 5 MiB limit,
 error responses, and returned asset URL. App keys are
-`<verified Clerk subject>/<siteId or _>/<uuid>.<ext>`; Library Image uploads
+`<verified Clerk subject>/<siteId or _>/<uuid>.<ext>`; Storybook Image uploads
 omit `siteId` and use `image/_/<uuid>.<ext>`. Both routes return
 `{ key, url, contentType }` and use the same validation and asset serving.
 Completed objects remain stored when an editor cancels or replaces an image.
-The Library Article upload controls remain disabled.
+Article upload controls remain disabled in App and Storybook.
 
 `LibraryApi` and generation live in API. `getGitHubProfile(url)` and
 `getGitHubRepo(url)` fetch upstream on every call. GitHub module programs own URL

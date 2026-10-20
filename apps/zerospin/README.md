@@ -19,7 +19,8 @@ pnpm dev
 
 The root `pnpm dev` command starts this Worker through Portless at
 `https://zerospin.qrk.localhost`, retaining internal port 8788, alongside the
-other four apps. To start only this Worker, run `pnpm --dir apps/zerospin dev`.
+other three applications (App, Web, and API). Library now runs only as a
+separately started Storybook. To start only this Worker, run `pnpm --dir apps/zerospin dev`.
 Its `dev` script invokes Portless, which runs the CLI command in `dev:app`;
 package metadata retains its hostname and port.
 
@@ -110,16 +111,15 @@ const site =
   yield *
   systemApi.executeAggregateQuery({
     aggregateName: "user",
-    aggregateVersion: "2.0.0",
+    aggregateVersion: "3.0.0",
     aggregateId,
     query: db.query.site.findFirst({
       where: { id: { eq: siteId } },
       with: {
         pages: {
           with: {
-            wall: {
-              with: { bricks: { with: { placements: true } } },
-            },
+            bricks: true,
+            walls: { with: { sections: { with: { stacks: { with: { rows: { with: { placements: true } } } } } } } },
           },
         },
       },
@@ -157,47 +157,55 @@ not make its rows readable by the current declarations.
 
 ## Source layout
 
-`src/system.ts` registers user aggregate `2.0.0` alongside retained `1.0.0`.
-The current release uses Site/Page `2.0.0`, PageSnapshot `1.0.0`, and web actor
-`2.0.0`; unchanged User, provisioner, and Library declarations are reused.
-The four Site/Page editing contracts have successor declarations with identity
-payload adapters in both directions and explicit successor guards/programs.
+`src/system.ts` registers the current user aggregate `3.0.0` and web actor
+`3.0.0`. The affected older user releases/actors and obsolete editor declarations
+are retired during Plan 036's fresh-development cutover; the unchanged provisioner
+and User model remain `1.0.0`. App's browser definition imports the same canonical
+models/contracts through `userSessionDefinitionProps`.
 
 The user aggregate ID is the verified Clerk token subject (`clerkUserId`), with
-no added prefix. This starts fresh aggregate storage; existing `acct_…`
-aggregates remain under their old IDs and are not migrated or deleted.
+no added prefix. The web actor verifies Clerk through `userProvisionerV1`, then
+its authorization provisions through `createUser` in the current `3.0.0` release.
+Each attempt allocates an independent `usr_…` resource ID. The provisioner owner
+guard rejects duplicate subjects with `user-already-exists`; authorization treats
+that refusal as successful provisioning. Other admission/execution failures stop
+initialization. The web actor never exposes `createUser`.
 
-The web actors verify Clerk through `userProvisionerV1`, then authorization awaits `createUser`
-under that provisioner actor and verified identity. Each attempt generates an
-independent User resource ID (`usr_…`); `identity.clerkUserId` remains the Clerk
-subject. The provisioner guard runs inside the aggregate command transaction and
-rejects duplicate subjects with `user-already-exists`, which authorization
-accepts as successful provisioning.
-Other admission or execution failures prevent session initialization.
+App owns the persisted editor. Its Page owns shared Bricks and four Walls,
+one per `sm`/`md`/`lg`/`xl` breakpoint. Walls own ordered Sections; Sections own
+ordered Stacks; Stacks own vertical Rows; Rows own horizontal Placements.
+Placements reference shared Bricks and keep per-breakpoint specs and generation
+revisions. Model and canonical contract declarations live directly under
+`src/aggregates/user/models/` and `contracts/`. Wall/Brick references bind to the
+final Page table. Module-specific configure/complete programs stay in their
+shared module source and accept the App's model declarations. There is no
+standalone Library database, seeded Page, or host-binding declaration assembly.
 
-The current web actor selects User → Site → Page → Wall → Brick → Placement rows by Clerk
-identity and exposes PageSnapshot rows only while a Page points to them as its
-current snapshot. Historical contents remain canonical without synchronizing the
-whole history into App. The provisioner exposes
-only User. Each actor declares its exposed models separately from its canonical
-query database and row selections. Wall, Brick, Placement, and their editing contracts are supplied by
-`@qrk.sh/library/libraryModule`. QRK owns the Page's `wallId` reference; `createPage`
-creates that deterministic wall and the Page in one command. Legacy Grid/Brick
-snapshot contracts have been removed. There is no migration or lazy wall provisioning.
-Existing App browser databases remain untouched by this code cutover.
-App's `userBrowserDefinition` uses the matching V2 web actor. Its `UserApp.Initializer`
-owns initialization and disposal for each Clerk identity. Models live under `aggregates/user/models/<model>/`,
-and contracts under `aggregates/user/contracts/<command>/`.
+`createPage` records the Page and all four Walls with one initial Section and
+empty Stack each. `addBrick` records shared null content and four deterministic
+Placements; the active Wall follows its explicit insertion target and other
+Walls append a new Row to their last Stack. Move commands renumber affected
+siblings atomically and retain empty containers. Delete Brick removes all its
+Placements and content while keeping containers. Ordinary programs only record
+named operations; evaluation reads pre-application state and the transaction
+applies the complete checked batch.
 
-The private provisioner owner guard owns identity and duplicate-user decisions in
-one admission transaction. Its declared aggregate failures retain their domain
-codes. Browser editing guards declare contract failures; programs record deferred operations through their named descriptor map and return only their domain result. Checked evaluation produces the ordered batch and result together; reads remain on pre-application state. The web actor does not expose `createUser`.
+The web actor selects editor rows through Page → Site → User and the actual
+container parent chains. Write commands also validate ownership, membership,
+before-sibling references, capacity, and module limits. A Placement derives its
+breakpoint from its containing Wall. Generation/update programs preserve request
+and revision guards; late provider completions safely ignore deleted content.
+PageSnapshot rows are exposed only while a Page identifies them as its current
+published snapshot, leaving historical content canonical without syncing its
+entire history into App. Session lifetime, local query/staging work, and failure
+presentation remain App-owned.
 
-Browser command occurrences carry nullable private failures. Confirmed occurrences
-settle optimism even when their selected resource delta is empty. Canonical
-provisioning command results retain server finalization. Node storage schema 14
-and native session schema 3 require empty affected storage when upgrading to 7.0.0;
-the package update does not reset or translate existing storage.
+Plan 036 requires the separately approved empty affected development state.
+Stopping the backend and moving only `dev-worker/sys_qrk_sh_1` under the existing
+backup directory preserves the previous data. Matching browser definition locks
+open new App partitions; previous App/Library partitions, cookies, uploads,
+unrelated stores, and production data remain untouched. This source change does
+not itself perform that cutover or verify live command finalization.
 
 ## Site creation slugs
 
@@ -223,7 +231,7 @@ The Page model and `createPage` require an explicit `slug` value, with no defaul
 `null` identifies the site's index page at `/`; non-null slugs keep their existing
 behavior. After authenticating the site's owner, the `createPage` guard rejects
 a second null-slug Page for the same site with `create-page-index-taken` (409)
-before recording the Page or its Library wall. Each site can have one index page.
+before recording the Page or its four Walls. Each site can have one index page.
 
 This nullable Page slug change adds no migration, storage reset, or backfill.
 Existing pages with the `home` slug remain unchanged. The fresh-data instructions
@@ -234,10 +242,11 @@ above apply to the earlier Site slug cutover, not this Page index change.
 Site's `isPublished` controls site availability. Page's independent `isPublished`
 and nullable `publishedSnapshotId` identify whether the page is published and
 which immutable PageSnapshot supplies its published content. A snapshot contains
-saved page metadata and Library brick state, specs, visibility, and layouts at
-every breakpoint. It excludes generation requests/errors, revisions, and
-measurement bookkeeping. Each publication creates a new row; publishing contracts
-grant snapshot creation only, with no update/delete operation.
+page metadata, shared Brick content once, and all four ordered Walls with their
+Sections, Stacks, Rows, and Placements/specs. Container arrays preserve sibling
+position order; shared Bricks have a stable identity order. Generation state,
+revisions, and editor bookkeeping are excluded. Publication creates immutable
+rows and grants no snapshot update/delete operation.
 
 `publishSite({ siteId, pages: [{ pageId, snapshotId }] })` checks ownership and
 the required index page, snapshots all checked pages, marks unchecked pages
@@ -249,19 +258,14 @@ the site's availability flag. All four contracts enforce ownership.
 
 Snapshot IDs are generated once before staging and retained in command payloads;
 programs read the saved content rather than accepting browser-supplied snapshots.
-QRK's existing `snapshots/pageSnapshotSchema.ts` and `snapshots/makePageSnapshot.ts`
-own the whole publication shape and projection, including the saved Library
-brick/placement subset. They derive field codecs from `libraryModule` while
-choosing publication exclusions, nesting, and stable brick/breakpoint ordering.
-The same projection serves publishing commands and App's structural dirty
-comparison independently of query ordering; Library exposes no publication
-snapshot API. Saved Site Settings changes remain immediate and are not part of
-page publication history.
+QRK's `snapshots/pageSnapshotSchema.ts` and `snapshots/makePageSnapshot.ts`
+own this publication shape and projection. The same builder serves publication
+commands and App's saved-versus-published comparison, so movement and horizontal
+Row grouping mark the Page dirty. Each command reads all relevant parent and
+Placement models; browser callers cannot submit replacement snapshot content.
+Saved Site Settings remain immediate and outside Page publication history.
 
-The publication release preserves storage: its version-specific model database
-replays retained history through successor programs, initializing existing sites
-and pages as unpublished. Retain V1 releases and contract lineage, deliver pending
-V1 commands before switching browser namespaces, and preserve the prior browser
-stores. The historical reset instructions above do not apply to publishing.
-Public website rendering and browsing/restoring publication history remain later
-application work.
+The editor schema change is a hard development cutover rather than a retained
+history adapter. Follow the scoped backup procedure above; old affected releases
+are not registered to backport the new hierarchy. Public website rendering and
+browsing/restoring publication history remain later application work.

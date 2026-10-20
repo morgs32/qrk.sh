@@ -1,3 +1,4 @@
+import { defaultSpec } from "./generator/defaultSpec";
 import { primitives } from "@zerospin/shapes";
 
 import {
@@ -26,6 +27,7 @@ const defaultData = {
 
 export const imageV1 = makeModuleVersion(image, {
   version: "1.0.0",
+  defaultSpec,
   hasPlaceholder: true,
   components: {
     BrickShell: brickShellComponent,

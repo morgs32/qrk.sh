@@ -35,7 +35,7 @@ export const provisionAuthenticatedUser = Effect.fn("provisionAuthenticatedUser"
         command: {
           ...original,
           aggregateName: "user",
-          aggregateVersion: "1.0.0",
+          aggregateVersion: "3.0.0",
           aggregateId,
           origin: { kind: "actor", actorName: "provisioner", actorVersion: "1.0.0", claims },
           nodeId: null,

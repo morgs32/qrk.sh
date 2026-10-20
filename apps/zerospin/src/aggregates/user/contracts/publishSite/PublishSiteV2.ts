@@ -1,26 +1,45 @@
-import { libraryModule } from "@qrk.sh/library/libraryModule";
-import { findFirst, findMany, upgradeAggregateContractVersion } from "@zerospin/sdk/browser";
-import { Effect } from "effect";
+import { wallV1 as Wall } from "../../models/wall/WallV1";
+import { sectionV1 as Section } from "../../models/section/SectionV1";
+import { stackV1 as Stack } from "../../models/stack/StackV1";
+import { rowV1 as Row } from "../../models/row/RowV1";
+import { brickV1 as Brick } from "../../models/brick/BrickV1";
+import { placementV1 as Placement } from "../../models/placement/PlacementV1";
+import {
+  ContractError,
+  findFirst,
+  findMany,
+  makeAggregateContractVersion,
+  primitives,
+} from "@zerospin/sdk/browser";
+import { makeAbbreviationIdSchema } from "@zerospin/shapes";
+import { Effect, Schema } from "effect";
 import { pageV3 as Page } from "../../models/page/PageV3";
 import { pageSnapshotV2 as PageSnapshot } from "../../models/pageSnapshot/PageSnapshotV2";
 import { siteV3 as Site } from "../../models/site/SiteV3";
 import { userV1 as User } from "../../models/user/UserV1";
 import { makePageSnapshot } from "../../snapshots/makePageSnapshot";
-import { publishSiteV1 } from "./PublishSiteV1";
+import { publishSite } from "./publishSite";
 
-export const publishSiteV2 = upgradeAggregateContractVersion(publishSiteV1, {
+export const publishSiteV2 = makeAggregateContractVersion(publishSite, {
   version: "2.0.0",
-  payload: {},
-  up: Effect.fn("publishSiteV2.up")(function* (props) {
-    const { payload } = props;
-    return payload;
-  }),
-  down: Effect.fn("publishSiteV2.down")(function* (props) {
-    const { payload } = props;
-    return payload;
-  }),
+  payload: {
+    siteId: primitives.foreignKey({ abbreviation: Site.abbreviation }),
+    pages: primitives.json({
+      schema: Schema.Array(
+        Schema.Struct({
+          pageId: makeAbbreviationIdSchema(Page.abbreviation),
+          snapshotId: makeAbbreviationIdSchema(PageSnapshot.abbreviation),
+        }),
+      ),
+    }),
+  },
   models: {
-    ...libraryModule.models,
+    wall: Wall,
+    section: Section,
+    stack: Stack,
+    row: Row,
+    brick: Brick,
+    placement: Placement,
     page: Page,
     pageSnapshot: PageSnapshot,
     site: Site,
@@ -31,7 +50,13 @@ export const publishSiteV2 = upgradeAggregateContractVersion(publishSiteV1, {
     updatePage: Page.operations.update,
     updateSite: Site.operations.update,
   },
-  guard: Effect.fn("publishSiteV2.guard")(function* (props) {
+  failures: {
+    publishSiteUserMismatch: ContractError.schema({ code: "publish-site-user-mismatch" }),
+    publishSiteNotFound: ContractError.schema({ code: "publish-site-not-found" }),
+    publishSiteUnavailable: ContractError.schema({ code: "publish-site-unavailable" }),
+    publishSitePagesInvalid: ContractError.schema({ code: "publish-site-pages-invalid" }),
+  },
+  guard: Effect.fn("publishSite.guard")(function* (props) {
     const { payload, claims, failures, db } = props;
     const clerkUserId = claims?.clerkUserId;
     if (typeof clerkUserId !== "string") {
@@ -75,7 +100,7 @@ export const publishSiteV2 = upgradeAggregateContractVersion(publishSiteV1, {
     const sitePages = yield* findMany({ db, model: Page, where: { siteId: { eq: site.id } } });
     for (const selection of payload.pages) {
       const page = sitePages.find((page) => page.id === selection.pageId);
-      if (page === undefined || page.wallId === null) {
+      if (page === undefined) {
         return yield* failures.publishSitePagesInvalid.make({
           message: `Page ${selection.pageId} does not belong to this site or has no wall`,
           status: 400,
@@ -93,7 +118,7 @@ export const publishSiteV2 = upgradeAggregateContractVersion(publishSiteV1, {
       });
     }
   }),
-  program: Effect.fn("publishSiteV2")(function* (props) {
+  program: Effect.fn("publishSite")(function* (props) {
     const { payload, operations, failures, db } = props;
     const sitePages = yield* findMany({
       db,
@@ -106,25 +131,34 @@ export const publishSiteV2 = upgradeAggregateContractVersion(publishSiteV1, {
         yield* operations.updatePage({ resourceId: page.id, attributes: { isPublished: false } });
         continue;
       }
-      if (page.wallId === null) {
-        return yield* failures.publishSitePagesInvalid.make({
-          message: `Page ${page.id} has no wall`,
-          status: 400,
-        });
-      }
-      const bricks = yield* findMany({
+      const bricks = yield* findMany({ db, model: Brick, where: { pageId: { eq: page.id } } });
+      const walls = yield* findMany({ db, model: Wall, where: { pageId: { eq: page.id } } });
+      const sections = yield* findMany({
         db,
-        model: libraryModule.models.brick,
-        where: { wallId: { eq: page.wallId } },
+        model: Section,
+        where: { wall: { pageId: { eq: page.id } } },
+      });
+      const stacks = yield* findMany({
+        db,
+        model: Stack,
+        where: { section: { wall: { pageId: { eq: page.id } } } },
+      });
+      const rows = yield* findMany({
+        db,
+        model: Row,
+        where: { stack: { section: { wall: { pageId: { eq: page.id } } } } },
       });
       const placements = yield* findMany({
         db,
-        model: libraryModule.models.placement,
-        where: { brick: { wallId: { eq: page.wallId } } },
+        model: Placement,
+        where: { brick: { pageId: { eq: page.id } } },
       });
       yield* operations.createPageSnapshot({
         resourceId: selection.snapshotId,
-        attributes: { pageId: page.id, content: makePageSnapshot({ page, bricks, placements }) },
+        attributes: {
+          pageId: page.id,
+          content: makePageSnapshot({ page, bricks, walls, sections, stacks, rows, placements }),
+        },
       });
       yield* operations.updatePage({
         resourceId: page.id,

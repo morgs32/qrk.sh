@@ -1,6 +1,6 @@
+import { ArticlePlaceholder } from "./ArticlePlaceholder";
 import { makeModuleView } from "../../make/makeModuleView";
 import { registry } from "./generator/ArticleJsonRenderRegistry";
-import { defaultSpec } from "./generator/defaultSpec";
 import { articleV1 } from "./articleV1";
 import { articleBrickContentView } from "./ArticleBrickContent";
 import { ArticleForm } from "./ArticleForm";
@@ -10,6 +10,7 @@ export const articleView = makeModuleView(articleV1, {
   LineIcon: ArticleLineIcon,
   form: ArticleForm,
   default: {
+    placeholder: ArticlePlaceholder,
     defaultWidth: 720,
     component(props) {
       const { state } = props;
@@ -21,7 +22,7 @@ export const articleView = makeModuleView(articleV1, {
         />
       );
     },
-    generator: { registry, defaultSpec },
+    generator: { registry, defaultSpec: articleV1.defaultSpec },
   },
   lg: { defaultWidth: 800 },
   xl: { defaultWidth: 800 },

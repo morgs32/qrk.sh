@@ -198,7 +198,7 @@ const meta = {
                           Actually good advice
                         </span>
                         <span className="brick-hover-study-article-subtitle">
-                          Somebody shoulda told me
+                          Take it or leave it
                         </span>
                         <span className="brick-hover-study-article-body">
                           For a long time, I’ve been collecting pieces of advice that are:

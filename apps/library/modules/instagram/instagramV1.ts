@@ -1,3 +1,4 @@
+import { defaultSpec } from "./generator/defaultSpec";
 import { makeEffectSchema, primitives } from "@zerospin/shapes";
 import { Schema } from "effect";
 
@@ -43,6 +44,7 @@ const defaultData = {
 
 export const instagramV1 = makeModuleVersion(instagram, {
   version: "1.0.0",
+  defaultSpec,
   hasPlaceholder: true,
   components: {
     BrickShell: brickShellComponent,

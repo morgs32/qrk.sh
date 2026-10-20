@@ -9,8 +9,9 @@ export function WallPreviewViewport(props: {
   children: ReactNode;
   toolbar: ReactNode;
   drawerOpen: boolean;
+  closedDrawerHeight?: number;
 }) {
-  const { children, toolbar, drawerOpen } = props;
+  const { children, toolbar, drawerOpen, closedDrawerHeight = 0 } = props;
   const { regionRef } = useWallViewport();
   const reducedMotion = useReducedMotion();
   const editorScroll = useRef<HTMLDivElement>(null);
@@ -27,7 +28,7 @@ export function WallPreviewViewport(props: {
     const previousMax = Math.max(0, scroll.scrollHeight - scroll.clientHeight);
     const wasAtBottom =
       hasReservedDrawerSpace.current && previousMax > 0 && Math.abs(previousMax - previousTop) <= 1;
-    space.style.paddingBottom = drawerOpen ? "50dvh" : "0px";
+    space.style.paddingBottom = drawerOpen ? "50dvh" : `${closedDrawerHeight}px`;
     const nextMax = Math.max(0, scroll.scrollHeight - scroll.clientHeight);
     scroll.scrollTop = wasAtBottom ? nextMax : Math.min(Math.max(previousTop, 0), nextMax);
     hasReservedDrawerSpace.current = true;
@@ -74,7 +75,7 @@ export function WallPreviewViewport(props: {
       scroll.removeEventListener("scroll", rememberScroll);
       observer.disconnect();
     };
-  }, [drawerOpen]);
+  }, [drawerOpen, closedDrawerHeight]);
 
   return (
     <div data-wall-preview-viewport className="relative h-full min-h-0 min-w-0 overflow-hidden">
@@ -94,7 +95,7 @@ export function WallPreviewViewport(props: {
         style={{
           bottom: drawerOpen
             ? "calc(50dvh + var(--wall-preview-toolbar-gap))"
-            : "var(--wall-preview-toolbar-gap)",
+            : `calc(${closedDrawerHeight}px + var(--wall-preview-toolbar-gap))`,
           transition: reducedMotion ? "none" : "bottom 300ms cubic-bezier(0, 0, 0.2, 1)",
         }}
       >

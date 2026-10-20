@@ -1,6 +1,6 @@
+import { SwatchAndIconPlaceholder } from "./SwatchAndIconPlaceholder";
 import { makeModuleView } from "../../make/makeModuleView";
 import { registry } from "./generator/SwatchAndIconJsonRenderRegistry";
-import { defaultSpec } from "./generator/defaultSpec";
 import { swatchAndIconV1 } from "./swatchAndIconV1";
 import { SwatchAndIconForm } from "./SwatchAndIconForm";
 import { iconSvgGraphicView } from "./SwatchAndIcon/components/IconSvgGraphic";
@@ -11,6 +11,7 @@ export const swatchAndIconView = makeModuleView(swatchAndIconV1, {
   LineIcon: SwatchAndIconLineIcon,
   form: SwatchAndIconForm,
   default: {
+    placeholder: SwatchAndIconPlaceholder,
     defaultWidth: 240,
     component(props) {
       const { state } = props;
@@ -20,6 +21,6 @@ export const swatchAndIconView = makeModuleView(swatchAndIconV1, {
         </swatchAndIconColorView.Component>
       );
     },
-    generator: { registry, defaultSpec },
+    generator: { registry, defaultSpec: swatchAndIconV1.defaultSpec },
   },
 });

@@ -1,6 +1,6 @@
+import { ImagePlaceholder } from "./ImagePlaceholder";
 import { makeModuleView } from "../../make/makeModuleView";
 import { registry } from "./generator/ImageJsonRenderRegistry";
-import { defaultSpec } from "./generator/defaultSpec";
 import { imageV1 } from "./imageV1";
 import { MediaFooter } from "../../components/brick/MediaFooter";
 import { imageCardView } from "./ImageCard";
@@ -13,17 +13,7 @@ export const imageView = makeModuleView(imageV1, {
   form: ImageForm,
   default: {
     defaultWidth: 480,
-    placeholder() {
-      return (
-        <imageCardView.Component>
-          <imageCoverView.Component
-            imagePosition="center"
-            imageUrl={imageV1.defaultState.imageUrl}
-            title={imageV1.defaultState.title}
-          />
-        </imageCardView.Component>
-      );
-    },
+    placeholder: ImagePlaceholder,
     component(props) {
       const { state } = props;
       return (
@@ -37,6 +27,6 @@ export const imageView = makeModuleView(imageV1, {
         </imageCardView.Component>
       );
     },
-    generator: { registry, defaultSpec },
+    generator: { registry, defaultSpec: imageV1.defaultSpec },
   },
 });

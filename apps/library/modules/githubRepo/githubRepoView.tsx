@@ -1,6 +1,5 @@
 import { makeModuleView } from "../../make/makeModuleView";
 import { registry } from "./generator/GitHubRepoJsonRenderRegistry";
-import { defaultSpec } from "./generator/defaultSpec";
 import { githubRepoV1 } from "./githubRepoV1";
 import { GitHubRepoForm } from "./GitHubRepoForm";
 import { BrickBody } from "../../components/brick/BrickBody";
@@ -17,6 +16,7 @@ import { GitHubRepoLineIcon } from "./GitHubRepoLineIcon";
 
 export const githubRepoView = makeModuleView(githubRepoV1, {
   LineIcon: GitHubRepoLineIcon,
+  configureCommand: "configureGithubRepo",
   form: GitHubRepoForm,
   default: {
     defaultWidth: 480,
@@ -43,6 +43,6 @@ export const githubRepoView = makeModuleView(githubRepoV1, {
         </BrickShell>
       );
     },
-    generator: { registry, defaultSpec },
+    generator: { registry, defaultSpec: githubRepoV1.defaultSpec },
   },
 });

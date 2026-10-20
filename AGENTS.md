@@ -31,6 +31,7 @@ Before editing files for a substantial task:
 - Fix types at their actual model, factory, annotation, or call-site boundary; do not bolt on fields or intersection types to silence errors.
 - Every function that accepts `props` must destructure it as the first statement (`const { foo, bar } = props;`) before doing anything else. Keep `props` as the parameter rather than destructuring in the parameter list, and use the destructured names throughout the body.
 - Use PascalCase component filenames matching the primary component, except shadcn and framework special files. Prefer one primary component per file; keep single-use route logic in its owning `page.tsx`. Preserve existing brick identity, drag, grid, and group conventions.
+- In the wall editor, **selected** means a Brick's edit form is open. **Active** means DOM focus, including keyboard focus. Keep these states distinct.
 - Prefer named `Effect.fn` programs for domain behavior and thin Promise boundaries. Use Effect Schema at untrusted boundaries, preserving local naming and decoding conventions. Ask before moving validation or trust boundaries between browser, server, packages, or Workers. Do not parenthesize `yield*`.
 
 <!-- patterns configuration start-->

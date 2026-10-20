@@ -1,0 +1,12 @@
+import { makeModelVersion, primitives } from "@zerospin/sdk/browser";
+import { stackV1 } from "../stack/StackV1";
+import { row } from "./row";
+
+export const rowV1 = makeModelVersion(row, {
+  version: "1.0.0",
+  attributes: {
+    stackId: primitives.ref({ table: stackV1.table, relation: "stack", inverse: "rows" }),
+    position: primitives.integer(),
+  },
+  indexes: [{ name: "stack_position", columns: ["stackId", "position"] }],
+});

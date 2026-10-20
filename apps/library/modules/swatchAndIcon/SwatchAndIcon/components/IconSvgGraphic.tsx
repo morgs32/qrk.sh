@@ -5,6 +5,7 @@ import { iconSvgGraphicComponent } from "../../generator/IconSvgGraphicComponent
 export const iconSvgGraphicView = makeComponentView(iconSvgGraphicComponent, {
   component(props) {
     const { name, svg } = props;
+    if (svg.trim().length === 0) return null;
     return (
       <Image
         alt={name}

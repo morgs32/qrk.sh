@@ -1,6 +1,6 @@
 import type { IBackendLibrary } from "../backendLibrary";
-import { makeBrickModel } from "../libraryModule/models/brick/makeBrickModel";
-import { makePlacementModel } from "../libraryModule/models/placement/placementModelV1";
+import { makeBrickModel } from "./makeBrickModel";
+import { makePlacementModel } from "./makePlacementModel";
 import { makeModuleSpecContractVersion } from "./makeModuleSpecContractVersion";
 
 export function makeModuleContracts(props: {
@@ -8,76 +8,77 @@ export function makeModuleContracts(props: {
   brick: ReturnType<typeof makeBrickModel>;
   placement: ReturnType<typeof makePlacementModel>;
 }) {
+  const { library, brick, placement } = props;
   return {
     updateFigmaThumbnailSpecAtBreakpoint: makeModuleSpecContractVersion({
       commandName: "updateFigmaThumbnailSpecAtBreakpoint",
       moduleId: "figma-thumbnail",
-      brick: props.brick,
-      placement: props.placement,
-      components: props.library["figma-thumbnail"].components,
+      brick: brick,
+      placement: placement,
+      components: library["figma-thumbnail"].components,
     }),
     updateGithubActivitySpecAtBreakpoint: makeModuleSpecContractVersion({
       commandName: "updateGithubActivitySpecAtBreakpoint",
       moduleId: "github-activity",
-      brick: props.brick,
-      placement: props.placement,
-      components: props.library["github-activity"].components,
+      brick: brick,
+      placement: placement,
+      components: library["github-activity"].components,
     }),
     updateGithubProfileSpecAtBreakpoint: makeModuleSpecContractVersion({
       commandName: "updateGithubProfileSpecAtBreakpoint",
       moduleId: "github-profile",
-      brick: props.brick,
-      placement: props.placement,
-      components: props.library["github-profile"].components,
+      brick: brick,
+      placement: placement,
+      components: library["github-profile"].components,
     }),
     updateGithubRepoSpecAtBreakpoint: makeModuleSpecContractVersion({
       commandName: "updateGithubRepoSpecAtBreakpoint",
       moduleId: "github-repo",
-      brick: props.brick,
-      placement: props.placement,
-      components: props.library["github-repo"].components,
+      brick: brick,
+      placement: placement,
+      components: library["github-repo"].components,
     }),
     updateImageSpecAtBreakpoint: makeModuleSpecContractVersion({
       commandName: "updateImageSpecAtBreakpoint",
       moduleId: "image",
-      brick: props.brick,
-      placement: props.placement,
-      components: props.library["image"].components,
+      brick: brick,
+      placement: placement,
+      components: library["image"].components,
     }),
     updateInstagramSpecAtBreakpoint: makeModuleSpecContractVersion({
       commandName: "updateInstagramSpecAtBreakpoint",
       moduleId: "instagram",
-      brick: props.brick,
-      placement: props.placement,
-      components: props.library["instagram"].components,
+      brick: brick,
+      placement: placement,
+      components: library["instagram"].components,
     }),
     updateLinkSpecAtBreakpoint: makeModuleSpecContractVersion({
       commandName: "updateLinkSpecAtBreakpoint",
       moduleId: "link",
-      brick: props.brick,
-      placement: props.placement,
-      components: props.library["link"].components,
+      brick: brick,
+      placement: placement,
+      components: library["link"].components,
     }),
     updateMapPlaceSpecAtBreakpoint: makeModuleSpecContractVersion({
       commandName: "updateMapPlaceSpecAtBreakpoint",
       moduleId: "map-place",
-      brick: props.brick,
-      placement: props.placement,
-      components: props.library["map-place"].components,
+      brick: brick,
+      placement: placement,
+      components: library["map-place"].components,
     }),
     updateSwatchAndIconSpecAtBreakpoint: makeModuleSpecContractVersion({
       commandName: "updateSwatchAndIconSpecAtBreakpoint",
       moduleId: "swatch-and-icon",
-      brick: props.brick,
-      placement: props.placement,
-      components: props.library["swatch-and-icon"].components,
+      brick: brick,
+      placement: placement,
+      components: library["swatch-and-icon"].components,
     }),
     updateArticleSpecAtBreakpoint: makeModuleSpecContractVersion({
       commandName: "updateArticleSpecAtBreakpoint",
       moduleId: "article",
-      brick: props.brick,
-      placement: props.placement,
-      components: props.library["article"].components,
+      brick: brick,
+      placement: placement,
+      components: library["article"].components,
     }),
   };
 }

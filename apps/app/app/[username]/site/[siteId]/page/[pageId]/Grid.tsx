@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useContext, useState } from "react";
+import { WallEditorContext } from "./WallEditorContext";
 import { useReducedMotion } from "framer-motion";
 
 import { BREAKPOINTS } from "@qrk.sh/library/breakpoints";
@@ -9,6 +10,8 @@ import { useWallViewport } from "@qrk.sh/library/WallViewportProvider";
 
 export function Grid() {
   const { activeBreakpoint } = useWallViewport();
+  const editor = useContext(WallEditorContext);
+  if (editor === null) throw new Error("Grid requires WallEditorContext");
   const reducedMotion = useReducedMotion() ?? false;
   const [transition, setTransition] = useState<{
     active: (typeof BREAKPOINTS)[number]["id"] | null;
@@ -59,11 +62,13 @@ export function Grid() {
               }}
             >
               <div
-                className="bg-white"
+                className="min-h-0 flex-1 overflow-y-auto bg-white"
                 data-site-right-scroll
                 role="region"
                 aria-label={`${row.id} page preview`}
-              />
+              >
+                {isActive ? editor.renderWall(row.id) : null}
+              </div>
             </WallBreakpointPane>
           );
         })}

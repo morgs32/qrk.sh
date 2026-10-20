@@ -1,16 +1,13 @@
-import { primitives, upgradeModelVersion } from "@zerospin/sdk/browser";
+import { makeModelVersion, primitives } from "@zerospin/sdk/browser";
+import { pageV3 } from "../page/PageV3";
+import { PageSnapshotSchema } from "../../snapshots/pageSnapshotSchema";
+import { pageSnapshot } from "./pageSnapshot";
 
-import { pageV3 as Page } from "../page/PageV3";
-
-import { pageSnapshotV1 } from "./PageSnapshotV1";
-
-export const pageSnapshotV2 = upgradeModelVersion(pageSnapshotV1, {
+export const pageSnapshotV2 = makeModelVersion(pageSnapshot, {
   version: "2.0.0",
   attributes: {
-    pageId: primitives.ref({
-      table: Page.table,
-      relation: "page",
-      inverse: "snapshots",
-    }),
+    pageId: primitives.ref({ table: pageV3.table, relation: "page", inverse: "snapshots" }),
+    content: primitives.json({ schema: PageSnapshotSchema }),
   },
+  indexes: [],
 });

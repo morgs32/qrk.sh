@@ -9,13 +9,13 @@ import { useLiveQuery } from "@zerospin/react";
 import { makeId, stageAggregateSessionCommand } from "@zerospin/sdk/browser";
 import { makeModelIdSchema } from "@zerospin/core/models/make/makeModelIdSchema";
 import { makeEffectSchema } from "@zerospin/shapes";
-import { modulesHash } from "@qrk.sh/library";
-import { libraryModule } from "@qrk.sh/library/libraryModule";
+import { modulesHash } from "@qrk.sh/library/modulesHash";
+import { brickV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/brick/BrickV1";
 import { BREAKPOINTS } from "@qrk.sh/library/breakpoints";
 import { useWallViewport } from "@qrk.sh/library/WallViewportProvider";
-import { pageV2 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV2";
-import { siteV2 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV2";
-import { pageSnapshotV1 as PageSnapshot } from "@qrk.sh/zerospin/src/aggregates/user/models/pageSnapshot/PageSnapshotV1";
+import { pageV3 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV3";
+import { siteV3 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV3";
+import { pageSnapshotV2 as PageSnapshot } from "@qrk.sh/zerospin/src/aggregates/user/models/pageSnapshot/PageSnapshotV2";
 import { makePageSnapshot } from "@qrk.sh/zerospin/src/aggregates/user/snapshots/makePageSnapshot";
 
 import { useZerospinUserInitializedState } from "@/components/ZerospinUser";
@@ -78,7 +78,14 @@ export function DrawerHeader() {
     query: (db, { pageId, siteId }) =>
       db.query.page.findFirst({
         where: { id: { eq: pageId }, siteId: { eq: siteId } },
-        with: { wall: { with: { bricks: { with: { placements: true } } } } },
+        with: {
+          bricks: true,
+          walls: {
+            with: {
+              sections: { with: { stacks: { with: { rows: { with: { placements: true } } } } } },
+            },
+          },
+        },
       }),
   });
   const { data: publishedSnapshot } = useLiveQuery({
@@ -87,20 +94,18 @@ export function DrawerHeader() {
     query: (db, id) =>
       db.query.pageSnapshot.findFirst({ where: { id: { eq: id ?? "psn_missing" } } }),
   });
-  const decodedBrickId = Schema.decodeUnknownResult(makeModelIdSchema(libraryModule.models.brick))(
-    params.brickId,
-  );
+  const decodedBrickId = Schema.decodeUnknownResult(makeModelIdSchema(brickV1))(params.brickId);
   const { data: brick } = useLiveQuery({
     session,
     key: {
       brickId: Result.isSuccess(decodedBrickId) ? decodedBrickId.success : null,
-      wallId: page?.wallId,
+      pageId: params.pageId,
     },
-    query: (db, { brickId, wallId }) =>
+    query: (db, { brickId, pageId }) =>
       db.query.brick.findFirst({
         where: {
           id: { eq: brickId ?? "brk_missing" },
-          wallId: { eq: wallId ?? "wal_missing" },
+          pageId: { eq: pageId },
         },
       }),
   });
@@ -124,12 +129,22 @@ export function DrawerHeader() {
     (isSiteSettings && !isEqual(draftSite, baseline.site)) ||
     (isPageSettings && !isEqual(draftPage, baseline.page));
   const savedContent =
-    page?.wall === null || page?.wall === undefined
+    page === undefined
       ? null
       : makePageSnapshot({
           page,
-          bricks: page.wall.bricks,
-          placements: page.wall.bricks.flatMap((row) => row.placements),
+          bricks: page.bricks,
+          walls: page.walls,
+          sections: page.walls.flatMap((wall) => wall.sections),
+          stacks: page.walls.flatMap((wall) => wall.sections.flatMap((section) => section.stacks)),
+          rows: page.walls.flatMap((wall) =>
+            wall.sections.flatMap((section) => section.stacks.flatMap((stack) => stack.rows)),
+          ),
+          placements: page.walls.flatMap((wall) =>
+            wall.sections.flatMap((section) =>
+              section.stacks.flatMap((stack) => stack.rows.flatMap((row) => row.placements)),
+            ),
+          ),
         });
   const canPublishPage = site?.isPublished === true && page?.isPublished === false;
   const canPublishUpdates =
@@ -139,7 +154,7 @@ export function DrawerHeader() {
     publishedSnapshot !== undefined &&
     !isEqual(savedContent, publishedSnapshot.content);
   const decodedModule = Schema.decodeUnknownResult(
-    makeEffectSchema({ moduleId: libraryModule.models.brick.attributes.moduleId }),
+    makeEffectSchema({ moduleId: brickV1.attributes.moduleId }),
   )({ moduleId: params.brickId === undefined ? params.moduleId : brick?.moduleId });
   const moduleId = Result.isSuccess(decodedModule) ? decodedModule.success.moduleId : undefined;
   const moduleLabel = moduleId === undefined ? undefined : modulesHash[moduleId].label;

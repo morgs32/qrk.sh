@@ -1,6 +1,5 @@
 import { makeModuleView } from "../../make/makeModuleView";
 import { registry } from "./generator/InstagramJsonRenderRegistry";
-import { defaultSpec } from "./generator/defaultSpec";
 import { instagramV1 } from "./instagramV1";
 import { InstagramForm } from "./InstagramForm";
 import { instagramCardView } from "./InstagramCard";
@@ -11,6 +10,7 @@ import { InstagramLineIcon } from "./InstagramLineIcon";
 
 export const instagramView = makeModuleView(instagramV1, {
   LineIcon: InstagramLineIcon,
+  configureCommand: "configureInstagram",
   form: InstagramForm,
   default: {
     defaultWidth: 400,
@@ -34,6 +34,6 @@ export const instagramView = makeModuleView(instagramV1, {
         </instagramCardView.Component>
       );
     },
-    generator: { registry, defaultSpec },
+    generator: { registry, defaultSpec: instagramV1.defaultSpec },
   },
 });

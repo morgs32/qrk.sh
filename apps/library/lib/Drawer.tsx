@@ -39,6 +39,7 @@ export function Drawer(props: {
   side: "left" | "right" | "bottom";
   animated?: boolean;
   open?: boolean;
+  persistentHeader?: ReactNode;
   children: ReactNode;
   className?: string;
   layoutMode?: "overlay" | "flow";
@@ -51,10 +52,14 @@ export function Drawer(props: {
     layoutMode = "overlay",
     animated = true,
     open,
+    persistentHeader,
     "aria-label": ariaLabel,
   } = props;
+  const hasPersistentHeader =
+    side === "bottom" && open !== undefined && persistentHeader !== undefined;
   const reducedMotion = useReducedMotion();
   const surface = useRef<HTMLDivElement>(null);
+  const header = useRef<HTMLDivElement>(null);
   const returnFocus = useRef<HTMLElement | null>(null);
   const hadFocus = useRef(false);
   const [present, setPresent] = useState(open ?? true);
@@ -65,7 +70,11 @@ export function Drawer(props: {
     if (open === undefined || element === null) return;
     if (open) {
       const active = document.activeElement;
-      if (active instanceof HTMLElement && active !== document.body && !element.contains(active)) {
+      if (
+        active instanceof HTMLElement &&
+        active !== document.body &&
+        (!element.contains(active) || (hasPersistentHeader && header.current?.contains(active)))
+      ) {
         returnFocus.current = active;
       }
       return;
@@ -82,7 +91,9 @@ export function Drawer(props: {
         : previous instanceof HTMLAnchorElement
           ? [...document.querySelectorAll("a")].find((link) => link.href === previous.href)
           : undefined;
-      target?.focus({ preventScroll: true });
+      const opener =
+        target ?? (hasPersistentHeader ? header.current?.querySelector("a[href]") : null);
+      if (opener instanceof HTMLElement) opener.focus({ preventScroll: true });
     }
     hadFocus.current = false;
 
@@ -98,7 +109,7 @@ export function Drawer(props: {
         )
     )
       setPresent(false);
-  }, [open, animated, reducedMotion]);
+  }, [open, animated, reducedMotion, hasPersistentHeader]);
 
   const isFlow = layoutMode === "flow";
   const motionProps = open !== undefined || isFlow || !animated ? undefined : sideMotion[side];
@@ -108,11 +119,11 @@ export function Drawer(props: {
       ref={surface}
       key={`${side}-drawer`}
       data-drawer={side}
-      role="dialog"
-      aria-label={ariaLabel}
+      role={hasPersistentHeader && !open ? undefined : "dialog"}
+      aria-label={hasPersistentHeader && !open ? undefined : ariaLabel}
       data-state={open === undefined ? undefined : open ? "open" : "closed"}
-      aria-hidden={open === false}
-      inert={open === false}
+      aria-hidden={open === false && !hasPersistentHeader}
+      inert={open === false && !hasPersistentHeader}
       onFocusCapture={() => {
         hadFocus.current = true;
       }}
@@ -141,14 +152,16 @@ export function Drawer(props: {
               transform: open
                 ? "translate(0, 0)"
                 : side === "bottom"
-                  ? "translateY(100%)"
+                  ? hasPersistentHeader
+                    ? "translateY(calc(100% - 56px))"
+                    : "translateY(100%)"
                   : side === "left"
                     ? "translateX(-100%)"
                     : "translateX(100%)",
               transition:
                 animated && !reducedMotion ? "transform 300ms cubic-bezier(0, 0, 0.2, 1)" : "none",
-              visibility: open || present ? "visible" : "hidden",
-              pointerEvents: open ? undefined : "none",
+              visibility: open || present || hasPersistentHeader ? "visible" : "hidden",
+              pointerEvents: open || hasPersistentHeader ? undefined : "none",
             }
       }
       initial={motionProps?.initial}
@@ -157,11 +170,21 @@ export function Drawer(props: {
       transition={reducedMotion ? { duration: 0 } : drawerTransition}
       className={cn(
         sideClassName[side],
+        hasPersistentHeader && "border-t-0",
         isFlow && "relative inset-auto top-auto z-60 h-full max-md:w-full shadow-none md:h-full",
         className,
       )}
     >
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+      {hasPersistentHeader ? (
+        <div ref={header} className="h-[56px] shrink-0 border-t border-inherit">
+          {persistentHeader}
+        </div>
+      ) : null}
+      <div
+        aria-hidden={hasPersistentHeader && open === false ? true : undefined}
+        inert={hasPersistentHeader && open === false}
+        className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
+      >
         {open === undefined || open || present ? children : null}
       </div>
     </motion.div>

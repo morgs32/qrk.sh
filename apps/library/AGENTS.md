@@ -1,12 +1,18 @@
 # Library
 
-Library's standalone UI uses TanStack Start in SPA mode. File routes live in
-`routes/`; `router.tsx` registers their generated tree. `vite.config.ts` owns
-development configuration. Storybook has its own Vite configuration and does
-not load the Start server plugin. Library has no production build or preview
-target; consumers compile its source exports directly.
+Library is shared module/UI source and a Storybook workbench. Its standalone
+application, file routes, router, and session are retired. Consumers compile source
+exports directly; there is no separate package build or production preview.
 
-The standalone initializer, wall, and viewport owners remain above the route
-outlet so child navigation retains their session and state.
+Module playgrounds and component studies run through the existing Storybook target.
+`vite.storybook.config.ts` owns its Vite/public Mapbox configuration;
+`.storybook/main.ts` installs API/upload/asset proxies through `viteFinal`, after
+Storybook replaces the base server configuration. `.storybook/preview.ts` imports
+`storybook.css`.
+
+App owns persisted editor models, its initialized user session, queries, and
+command staging. Shared forms receive callbacks; module-specific validation,
+rendering, and provider algorithms remain in their owning modules. Storybook uses
+local fixtures and the existing API for explicit live actions.
 
 Follow the repository root instructions and the [Library README](./README.md).

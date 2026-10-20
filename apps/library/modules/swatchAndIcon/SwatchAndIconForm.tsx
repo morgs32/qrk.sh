@@ -19,7 +19,10 @@ export function SwatchAndIconForm(props: {
   onCancel: () => void;
 }) {
   const { state, onSave, onCancel } = props;
-  const savedState = state ?? swatchAndIconV1.defaultState;
+  const savedState = state ?? {
+    payload: { color: "", hash: "" },
+    data: { name: "", svg: "" },
+  };
   const [draft, setDraft] = useState<{
     color: string;
     icon: { hash: string; name: string; svg: string };

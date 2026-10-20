@@ -1,6 +1,5 @@
 import { makeModuleView } from "../../make/makeModuleView";
 import { registry } from "./generator/LinkJsonRenderRegistry";
-import { defaultSpec } from "./generator/defaultSpec";
 import { linkV1 } from "./linkV1";
 import { linkCardView } from "./LinkCard";
 import { linkCopyView } from "./LinkCopy";
@@ -11,9 +10,10 @@ import { LinkLineIcon } from "./LinkLineIcon";
 
 export const linkView = makeModuleView(linkV1, {
   LineIcon: LinkLineIcon,
+  configureCommand: "configureLink",
   form(props) {
-    const { state, session, brickId, onCancel } = props;
-    return <LinkForm state={state} session={session} brickId={brickId} onCancel={onCancel} />;
+    const { state, onConfigure, onCancel } = props;
+    return <LinkForm state={state} onConfigure={onConfigure} onCancel={onCancel} />;
   },
   default: {
     defaultWidth: 480,
@@ -36,6 +36,6 @@ export const linkView = makeModuleView(linkV1, {
         </linkCardView.Component>
       );
     },
-    generator: { registry, defaultSpec },
+    generator: { registry, defaultSpec: linkV1.defaultSpec },
   },
 });

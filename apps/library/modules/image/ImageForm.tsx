@@ -19,7 +19,7 @@ export function ImageForm(props: {
 }) {
   const { state, onSave, onCancel } = props;
   const runtime = useContext(ImageUploadRuntimeContext);
-  const initialState = state ?? imageV1.defaultState;
+  const initialState = state ?? { imageUrl: "", title: "" };
   const [formDraft, setDraft] = useState<{ imageUrl: string; title: string } | null>(null);
   const draft = formDraft ?? initialState;
   const [isUploadingImage, setIsUploadingImage] = useState(false);

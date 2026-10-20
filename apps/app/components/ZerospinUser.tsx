@@ -6,7 +6,7 @@ import { Effect } from "effect";
 import { Suspense, useEffect, useSyncExternalStore, type ReactNode } from "react";
 import { getClerkToken } from "@/lib/getClerkToken";
 import { toast } from "sonner";
-import { startLibrarySessionWork } from "@qrk.sh/library/startLibrarySessionWork";
+import { startLibrarySessionWork } from "@/zerospin/startLibrarySessionWork";
 import { UserApp } from "@/zerospin/userSession";
 import AppError from "@/app/error";
 

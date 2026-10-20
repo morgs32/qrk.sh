@@ -2,13 +2,15 @@
 
 import { useParams } from "@tanstack/react-router";
 import { useContext } from "react";
+import { WallEditorContext } from "../../../../WallEditorContext";
+import { WallModuleAction } from "@qrk.sh/library/WallModuleAction";
 
-import { modulesHash } from "@qrk.sh/library";
-import { libraryModule } from "@qrk.sh/library/libraryModule";
+import { modulesHash } from "@qrk.sh/library/modulesHash";
+import { brickV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/brick/BrickV1";
 import { makeEffectSchema } from "@zerospin/shapes";
 import { Result, Schema } from "effect";
 import { makeModelIdSchema } from "@zerospin/core/models/make/makeModelIdSchema";
-import { pageV2 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV2";
+import { pageV3 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV3";
 import { BREAKPOINTS } from "@qrk.sh/library/breakpoints";
 import { BrickCardStyleContext } from "@qrk.sh/library/BrickCardStyleContext";
 
@@ -25,7 +27,7 @@ export default function ModuleRoute() {
   const { moduleId } = params;
 
   const decoded = Schema.decodeUnknownResult(
-    makeEffectSchema({ moduleId: libraryModule.models.brick.attributes.moduleId }),
+    makeEffectSchema({ moduleId: brickV1.attributes.moduleId }),
   )({ moduleId: moduleId });
   const decodedPageId = Schema.decodeUnknownResult(makeModelIdSchema(Page))(pageId);
 
@@ -41,17 +43,28 @@ export default function ModuleRoute() {
   return <ModuleRouteBody brickModule={brickModule} />;
 }
 
-function ModuleRouteBody(props: {
-  brickModule: (typeof modulesHash)[keyof typeof modulesHash];
-}) {
+function ModuleRouteBody(props: { brickModule: (typeof modulesHash)[keyof typeof modulesHash] }) {
   const { brickModule } = props;
   const cardStyle = useContext(BrickCardStyleContext);
+  const editor = useContext(WallEditorContext);
+  if (editor === null) throw new Error("ModuleRoute requires WallEditorContext");
   const maxPerPage = brickModule.maxPerPage;
   const JsonRender = brickModule.component;
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto pb-6">
-      <div className="px-6 pt-6">
+      <div className="relative px-6 pt-6">
+        {editor.activeWallId === null ? null : (
+          <div className="absolute right-6 top-6">
+            <WallModuleAction
+              wallId={editor.activeWallId}
+              moduleId={brickModule.id}
+              onAdd={
+                editor.insertionTarget === null ? undefined : () => editor.addBrick(brickModule.id)
+              }
+            />
+          </div>
+        )}
         <dl className="mt-5 grid max-w-[500px] grid-cols-2 gap-x-6 gap-y-3 text-sm">
           <MetadataField label="Module name">{brickModule.label}</MetadataField>
           <MetadataField label="Module ID" className="text-right">

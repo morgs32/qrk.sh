@@ -1,3 +1,4 @@
+import { defaultSpec } from "./generator/defaultSpec";
 import { makeEffectSchema, primitives } from "@zerospin/shapes";
 
 import { makeModuleVersion } from "../../make/makeModuleVersion";
@@ -22,6 +23,8 @@ const defaultData = {
 
 export const swatchAndIconV1 = makeModuleVersion(swatchAndIcon, {
   version: "1.0.0",
+  defaultSpec,
+  hasPlaceholder: true,
   components: {
     SwatchAndIconColor: swatchAndIconColorComponent,
     IconSvgGraphic: iconSvgGraphicComponent,

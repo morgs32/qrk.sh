@@ -51,14 +51,10 @@ const meta = {
       }[]
     >([
       { id: "1", parentId: null, isOpen: true, isDraft: false },
-      { id: "1.1", parentId: "1", isOpen: true, isDraft: false },
-      { id: "1.1.1", parentId: "1.1", isOpen: false, isDraft: false },
-      { id: "1.1.2", parentId: "1.1", isOpen: false, isDraft: true },
+      { id: "1.1", parentId: "1", isOpen: false, isDraft: false },
       { id: "1.2", parentId: "1", isOpen: false, isDraft: false },
       { id: "2", parentId: null, isOpen: true, isDraft: false },
-      { id: "2.1", parentId: "2", isOpen: true, isDraft: false },
-      { id: "2.1.1", parentId: "2.1", isOpen: false, isDraft: false },
-      { id: "2.1.2", parentId: "2.1", isOpen: false, isDraft: false },
+      { id: "2.1", parentId: "2", isOpen: false, isDraft: false },
     ]);
     const rootRef = useRef<HTMLDivElement>(null);
     const moveTriggerId = useRef<string | null>(null);
@@ -82,13 +78,17 @@ const meta = {
       [items],
     );
 
-    // Pointer drops and the keyboard Move dialog change the same sibling ordering.
+    // Both movement paths enforce two levels: root groups and childless items.
     const moveItem = useCallback(
       (move: { itemId: string; parentId: string | null; index: number }) => {
         const { itemId, parentId, index } = move;
         const item = items.find((entry) => entry.id === itemId);
         if (!item || (parentId !== null && isWithin(parentId, itemId))) return;
-        if (parentId !== null && items.find((entry) => entry.id === parentId)?.isDraft) return;
+        if (parentId !== null) {
+          const parentItem = items.find((entry) => entry.id === parentId);
+          if (!parentItem || parentItem.parentId !== null || parentItem.isDraft) return;
+          if (items.some((entry) => entry.parentId === itemId)) return;
+        }
 
         const remaining = items.filter((entry) => entry.id !== itemId);
         const siblings = remaining.filter((entry) => entry.parentId === parentId);
@@ -169,8 +169,9 @@ const meta = {
               canDrop: ({ source }) =>
                 source.data.contextId === contextId &&
                 typeof source.data.id === "string" &&
-                !isWithin(item.id, source.data.id),
-              getData: ({ input, element }) =>
+                !isWithin(item.id, source.data.id) &&
+                (item.parentId === null || !items.some((entry) => entry.parentId === source.data.id)),
+              getData: ({ input, element, source }) =>
                 attachInstruction(
                   { id: item.id },
                   {
@@ -179,7 +180,11 @@ const meta = {
                     operations: item.isDraft
                       ? { combine: "blocked" }
                       : {
-                          combine: "available",
+                          combine:
+                            item.parentId === null &&
+                            !items.some((entry) => entry.parentId === source.data.id)
+                              ? "available"
+                              : "not-available",
                           "reorder-before": "available",
                           "reorder-after":
                             item.isOpen && items.some((child) => child.parentId === item.id)
@@ -213,7 +218,10 @@ const meta = {
             canDrop: ({ source }) =>
               source.data.contextId === contextId &&
               typeof source.data.id === "string" &&
-              (id === "root" || !isWithin(id, source.data.id)),
+              (id === "root" ||
+                (items.some((entry) => entry.id === id && entry.parentId === null) &&
+                  !items.some((entry) => entry.parentId === source.data.id) &&
+                  !isWithin(id, source.data.id))),
             getData: () => ({ groupId: id }),
             onDragEnter: onChange,
             onDropTargetChange: onChange,
@@ -386,7 +394,12 @@ const meta = {
                   <SelectItem value="root">No parent</SelectItem>
                   {items
                     .filter(
-                      (item) => !item.isDraft && movingId !== null && !isWithin(item.id, movingId),
+                      (item) =>
+                        item.parentId === null &&
+                        !item.isDraft &&
+                        movingId !== null &&
+                        !isWithin(item.id, movingId) &&
+                        !items.some((entry) => entry.parentId === movingId),
                     )
                     .map((item) => (
                       <SelectItem key={item.id} value={item.id}>

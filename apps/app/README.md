@@ -49,8 +49,10 @@ port 10020; `PORT` overrides it.
 Pragmatic Drag and Drop Tree example with local sample items. Drag to reorder
 or nest items; the row's Move button provides parent and position controls for
 keyboard use. Top-level groups sit side by side, each bordered around its parent
-and children. Children appear below their parent without indentation. Width and
-row height are Storybook controls. This phase is Storybook-only.
+and children. Children appear below their parent without indentation. Only root
+items can receive children, and populated groups stay at the root; both dragging
+and the Move dialog enforce this two-level limit. Width and row height are
+Storybook controls. This phase is Storybook-only.
 
 App and Web run independently behind their own Portless hostnames. Direct
 startup defaults to 10001 for App and 10000 for Web; Portless allocates their

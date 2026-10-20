@@ -48,9 +48,9 @@ port 10020; `PORT` overrides it.
 **App / Studio / Pragmatic Tree / Default** isolates the current Atlassian
 Pragmatic Drag and Drop Tree example with local sample items. Drag to reorder
 or nest items; the row's Move button provides parent and position controls for
-keyboard use. All levels share the same left edge, with a border enclosing each
-top-level item and its children. Width and row height are Storybook controls.
-This phase is Storybook-only.
+keyboard use. Top-level groups sit side by side, each bordered around its parent
+and children. Children appear below their parent without indentation. Width and
+row height are Storybook controls. This phase is Storybook-only.
 
 App and Web run independently behind their own Portless hostnames. Direct
 startup defaults to 10001 for App and 10000 for Web; Portless allocates their

@@ -35,7 +35,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 const meta = {
   title: "App/Studio/Pragmatic Tree",
   parameters: { layout: "centered" },
-  args: { width: 280, rowHeight: 40 },
+  args: { width: 480, rowHeight: 40 },
   argTypes: {
     width: { control: { type: "range", min: 240, max: 640, step: 20 } },
     rowHeight: { control: { type: "range", min: 28, max: 56, step: 4 } },
@@ -265,7 +265,9 @@ const meta = {
             <div
               key={item.id}
               className={
-                parentId === null ? "rounded-sm border border-border bg-background" : undefined
+                parentId === null
+                  ? "min-w-0 rounded-sm border border-border bg-background"
+                  : undefined
               }
             >
               <div className="relative rounded-sm hover:bg-black/5">
@@ -344,7 +346,7 @@ const meta = {
         <GroupDropIndicator isActive={activeGroup === "root"}>
           <div
             ref={rootRef}
-            className="flex flex-col gap-2 rounded-sm bg-muted/50 p-2 text-sm"
+            className="grid grid-cols-2 items-start gap-2 rounded-sm bg-muted/50 p-2 text-sm"
             data-tree-group="root"
             role="group"
             aria-label="Draggable tree"

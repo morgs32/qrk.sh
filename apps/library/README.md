@@ -341,6 +341,15 @@ shape and decodes incoming state before rendering, discarding undeclared fields.
 Its authored wrappers are created once and reused by module rendering and previews.
 It also attaches a json-render `generator` (`registry` + `defaultSpec`).
 
+Every module view supplies a required `LineIcon`, exposed on its `modulesHash`
+entry. Each module owns its SVG component, sourced from
+[Untitled UI's free icons](https://www.untitledui.com/free-icons), with the source
+linked beside the component. Icons default to 24×24, use `currentColor`, and accept
+native SVG props for sizing, styling, and accessibility. Registering an icon does
+not render it; consumers can use `<brickModule.LineIcon className="size-5" />`.
+Icons belong to the React view declaration and stay out of backend module identity
+and persisted brick state.
+
 `defineModule` retains optional `maxPerPage` metadata, a positive integer;
 omission means unlimited. Article declares `1` and Instagram declares `2`.
 Catalog and module detail previews display the limit. Phase 1 has no insertion

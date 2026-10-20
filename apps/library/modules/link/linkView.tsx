@@ -7,8 +7,10 @@ import { linkCopyView } from "./LinkCopy";
 import { linkHeroImageView } from "./LinkHeroImage";
 import { LinkPlaceholder } from "./LinkPlaceholder";
 import { LinkForm } from "./LinkForm";
+import { LinkLineIcon } from "./LinkLineIcon";
 
 export const linkView = makeModuleView(linkV1, {
+  LineIcon: LinkLineIcon,
   form(props) {
     const { state, session, brickId, onCancel } = props;
     return <LinkForm state={state} session={session} brickId={brickId} onCancel={onCancel} />;

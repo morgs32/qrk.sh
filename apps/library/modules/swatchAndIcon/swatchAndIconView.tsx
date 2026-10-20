@@ -5,8 +5,10 @@ import { swatchAndIconV1 } from "./swatchAndIconV1";
 import { SwatchAndIconForm } from "./SwatchAndIconForm";
 import { iconSvgGraphicView } from "./SwatchAndIcon/components/IconSvgGraphic";
 import { swatchAndIconColorView } from "./SwatchAndIcon/components/SwatchAndIconColor";
+import { SwatchAndIconLineIcon } from "./SwatchAndIconLineIcon";
 
 export const swatchAndIconView = makeModuleView(swatchAndIconV1, {
+  LineIcon: SwatchAndIconLineIcon,
   form: SwatchAndIconForm,
   default: {
     component(props) {

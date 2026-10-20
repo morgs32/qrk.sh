@@ -1,6 +1,6 @@
 import type { ILibrarySession } from "../session/createLibraryStandaloneSession";
 import type { IResult } from "@zerospin/error";
-import type { ReactNode } from "react";
+import type { ComponentType, ReactNode, SVGProps } from "react";
 
 import type { Catalog, Spec } from "@json-render/core";
 import type { ComponentRegistry } from "@json-render/react";
@@ -14,6 +14,8 @@ export type IModule<MODULE extends string> = {
   abbreviation: string;
   label: string;
   description: string;
+  /** Module-owned line icon; accepts native SVG sizing, styling, and accessibility props. */
+  LineIcon: ComponentType<SVGProps<SVGSVGElement>>;
   /** Maximum bricks of this module per page, including hidden and unconfigured bricks. */
   maxPerPage?: number;
   catalog?: Catalog;

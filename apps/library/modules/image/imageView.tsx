@@ -6,8 +6,10 @@ import { MediaFooter } from "../../components/brick/MediaFooter";
 import { imageCardView } from "./ImageCard";
 import { imageCoverView } from "./ImageCover";
 import { ImageForm } from "./ImageForm";
+import { ImageLineIcon } from "./ImageLineIcon";
 
 export const imageView = makeModuleView(imageV1, {
+  LineIcon: ImageLineIcon,
   form: ImageForm,
   default: {
     placeholder() {

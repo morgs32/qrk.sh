@@ -1,6 +1,6 @@
 import type { ILibrarySession } from "../session/createLibraryStandaloneSession";
 import type { IResult } from "@zerospin/error";
-import type { ReactNode } from "react";
+import type { ComponentType, ReactNode, SVGProps } from "react";
 
 import type { Catalog, Spec } from "@json-render/core";
 import {
@@ -114,6 +114,7 @@ export function makeModuleView<
 >(
   module: MODULE,
   view: {
+    LineIcon: ComponentType<SVGProps<SVGSVGElement>>;
     measureOnSave?: boolean;
     form?: (props: {
       state: IInferDecodedRow<MODULE["stateShape"]> | null;
@@ -271,6 +272,7 @@ export function makeModuleView<
 
   return {
     ...module,
+    LineIcon: view.LineIcon,
     stateShape: module.stateShape,
     defaultState: module.defaultState,
     defaultSpec,

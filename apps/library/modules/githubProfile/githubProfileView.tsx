@@ -16,8 +16,10 @@ import { followingView } from "./GitHubProfile/components/Following";
 import { locationView } from "./GitHubProfile/components/Location";
 import { publicReposView } from "./GitHubProfile/components/PublicRepos";
 import { GitHubProfilePlaceholder } from "./GitHubProfilePlaceholder";
+import { GitHubProfileLineIcon } from "./GitHubProfileLineIcon";
 
 export const githubProfileView = makeModuleView(githubProfileV1, {
+  LineIcon: GitHubProfileLineIcon,
   form: GitHubProfileForm,
   default: {
     placeholder() {

@@ -13,8 +13,10 @@ import { repoStarsView } from "./GitHubRepo/components/RepoStars";
 import { repoForksView } from "./GitHubRepo/components/RepoForks";
 import { repoLanguageView } from "./GitHubRepo/components/RepoLanguage";
 import { GitHubRepoPlaceholder } from "./GitHubRepoPlaceholder";
+import { GitHubRepoLineIcon } from "./GitHubRepoLineIcon";
 
 export const githubRepoView = makeModuleView(githubRepoV1, {
+  LineIcon: GitHubRepoLineIcon,
   form: GitHubRepoForm,
   default: {
     placeholder() {

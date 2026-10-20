@@ -55,6 +55,7 @@ export const movePlacement = makeAggregateContractVersion(
       updateStack: stack.operations.update,
       createRow: row.operations.create,
       updateRow: row.operations.update,
+      deleteRow: row.operations.delete,
       updatePlacement: placement.operations.update,
     },
     payload: {
@@ -199,6 +200,7 @@ export const movePlacement = makeAggregateContractVersion(
           message: "The Row insertion point no longer exists",
           status: 409,
         });
+      const destinationRowIds = rows.map((entry) => entry.id);
       const placements =
         destinationRow === undefined
           ? []
@@ -266,20 +268,21 @@ export const movePlacement = makeAggregateContractVersion(
           attributes: { stackId: destinationStack.id, position },
         });
         destinationRow = { id, stackId: destinationStack.id, position };
+        destinationRowIds.splice(position, 0, id);
       }
       const destinationSiblings = placements.filter((entry) => entry.id !== moving.id);
       const position =
         beforePlacementId === null
           ? destinationSiblings.length
           : destinationSiblings.findIndex((entry) => entry.id === beforePlacementId);
+      const sourceSiblings = (yield* findMany({
+        db,
+        model: placement,
+        where: { rowId: { eq: moving.rowId } },
+      }))
+        .filter((entry) => entry.id !== moving.id)
+        .sort((a, b) => a.position - b.position);
       if (moving.rowId !== destinationRow.id) {
-        const sourceSiblings = (yield* findMany({
-          db,
-          model: placement,
-          where: { rowId: { eq: moving.rowId } },
-        }))
-          .filter((entry) => entry.id !== moving.id)
-          .sort((a, b) => a.position - b.position);
         for (let index = 0; index < sourceSiblings.length; index++)
           yield* operations.updatePlacement({
             resourceId: sourceSiblings[index].id,
@@ -295,6 +298,30 @@ export const movePlacement = makeAggregateContractVersion(
         resourceId: moving.id,
         attributes: { rowId: destinationRow.id, position },
       });
+      if (
+        moving.rowId !== destinationRow.id &&
+        sourceSiblings.length === 0 &&
+        sourceRow !== undefined
+      ) {
+        yield* operations.deleteRow({ resourceId: sourceRow.id });
+        // Reads precede recorded operations; include a newly inserted destination Row.
+        const sourceRowIds =
+          sourceRow.stackId === destinationStack.id
+            ? destinationRowIds
+            : (yield* findMany({
+                db,
+                model: row,
+                where: { stackId: { eq: sourceRow.stackId } },
+              }))
+                .sort((a, b) => a.position - b.position)
+                .map((entry) => entry.id);
+        const remainingRowIds = sourceRowIds.filter((id) => id !== sourceRow.id);
+        for (let index = 0; index < remainingRowIds.length; index++)
+          yield* operations.updateRow({
+            resourceId: remainingRowIds[index],
+            attributes: { position: index },
+          });
+      }
     }),
   },
 );

@@ -12,7 +12,8 @@ per breakpoint. Canonical declarations and commands live in the QRK user aggrega
 Wall and Brick bind directly to its final Page table.
 
 Each new Page starts with four Walls, each with one Section and an empty Stack.
-Empty Rows, Stacks, and Sections persist after movement/deletion. Stack capacity
+Rows are deleted when their last Placement moves away or their last Brick is
+deleted. Empty Stacks and Sections persist after movement/deletion. Stack capacity
 is 1 / 2 / 3 / 4 per Section at sm / md / lg / xl. Rows use equal-width horizontal
 cells with natural content height and have no arbitrary Placement-count cap.
 The former `Page.wallId`, `Wall.label`, `Brick.wallId`, Placement grid geometry,
@@ -53,12 +54,16 @@ The active Wall follows the target; other Walls append a new Row to the last
 Stack, creating missing parents when needed. A successful local stage opens the
 new Brick form; cancelling that form leaves the created null Brick.
 Moves keep Placement identity/specs or carry the complete Stack's Rows. Delete
-Brick confirms removal from all four widths and retains containers. Sibling
+Brick confirms removal from all four widths and removes emptied Rows, retaining
+Stacks and Sections. Sibling
 positions are ordinary integer indexes renumbered in the same command.
 
 Wall layout containers have zero padding and no gaps between adjacent content.
 Stack chrome and drag insertion boundaries overlay the layout. Empty persisted
-Rows/Stacks retain visible drop placeholders; spacing is not used to host controls.
+Stacks retain visible drop placeholders; spacing is not used to host controls.
+The ownership-checked `removeEmptyRows({ pageId })` command removes previously
+saved empty Rows across a Page's four Walls and compacts each Stack's Row positions.
+It is explicit, safe to repeat, and never runs automatically on editor startup.
 At coincident flush boundaries, Brick/module drops use the Row edge centrally
 and the outer corners for a new Section. Whole-Stack drops retain Section-boundary precedence.
 

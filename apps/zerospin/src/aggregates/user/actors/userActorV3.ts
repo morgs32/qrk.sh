@@ -13,6 +13,7 @@ import { addWallSection } from "../contracts/wall/AddWallSectionContractV1";
 import { movePlacement } from "../contracts/wall/MovePlacementContractV1";
 import { moveStack } from "../contracts/wall/MoveStackContractV1";
 import { deleteBrick } from "../contracts/wall/DeleteBrickContractV1";
+import { removeEmptyRows } from "../contracts/wall/RemoveEmptyRowsContractV1";
 import { updateBrick } from "../contracts/brick/UpdateBrickV1";
 import { generateBrickSpec } from "../contracts/brick/GenerateBrickSpecV1";
 import { completeBrickSpecGeneration } from "../contracts/brick/GenerateBrickSpecV1";
@@ -130,6 +131,7 @@ export const userActorV3 = makeAggregateActorVersion(defineAggregateActor({ name
     movePlacement,
     moveStack,
     deleteBrick,
+    removeEmptyRows,
     updateBrick,
     generateBrickSpec,
     completeBrickSpecGeneration,

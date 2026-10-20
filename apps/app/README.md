@@ -47,14 +47,25 @@ port 10020; `PORT` overrides it.
 
 **App / Studio / Pragmatic Tree / Default** isolates the current Atlassian
 Pragmatic Drag and Drop Tree example with local sample items. Drag to reorder
-or nest items; the row's Move button provides parent and position controls for
-keyboard use. Top-level groups sit side by side, each bordered around its parent
-and children. Children appear below their parent without indentation. Only root
-items can receive children, and populated groups stay at the root; both dragging
-and the Move dialog enforce this two-level limit. Each stack has an **Add item**
-footer, including empty and collapsed stacks. It appends a numbered mock item,
-expands that stack, and announces the addition while retaining button focus.
-Width and row height are Storybook controls. This phase is Storybook-only.
+or nest items within or across sections; the row's Move button provides Section,
+Parent, and position controls for keyboard use. Two sections start the story:
+the first contains two stacks with children below their parents without
+indentation; the second contains one empty full-width stack. A section with one
+stack uses its full width; multiple stacks use two columns and wrap. One gray
+box contains all sections. Compact 1px shadcn Separators with centered ghost
+plus buttons sit between sections and at the bottom, with the buttons slightly
+overlapping stack edges. The whole line-and-plus row is clickable, with shared
+violet hover and keyboard-focus colors without a background fill.
+Between sections they insert at that boundary; the
+bottom control appends. Both **Add section** controls create one empty stack
+in the new section.
+Empty sections remain visible drop areas. Only root items
+can receive children, and populated stacks stay at the root; both dragging and
+Move enforce this two-level limit. Each stack has an **Add item** footer,
+including empty and collapsed stacks. It appends a numbered mock item, expands
+that stack, and announces the addition while retaining button focus. Adding a
+section also announces the addition and retains button focus. Width and row
+height are Storybook controls. This phase is Storybook-only.
 
 App and Web run independently behind their own Portless hostnames. Direct
 startup defaults to 10001 for App and 10000 for Web; Portless allocates their

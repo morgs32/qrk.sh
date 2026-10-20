@@ -51,6 +51,7 @@ function InsertionSeparator(props: {
           width: "calc(var(--ds-border-width-selected, 2px) * 8)",
           height: "calc(var(--ds-border-width-selected, 2px) * 8)",
           borderWidth: variant === "item" ? "var(--ds-border-width-selected, 2px)" : 0,
+          backgroundColor: variant === "item" ? "#fff" : undefined,
         }}
       >
         <Plus
@@ -679,7 +680,7 @@ const meta = {
                         <div className="rounded-none p-6 text-center text-muted-foreground">
                           Empty section
                         </div>
-                      ) : sectionStacks.map((stack) => {
+                      ) : sectionStacks.map((stack, stackIndex) => {
                         const stackItems = items.filter((item) => item.stackId === stack.id);
                         return (
                           <div key={stack.id} className="relative min-w-0 [&>div]:h-full">
@@ -694,21 +695,20 @@ const meta = {
                               aria-label={stack.name}
                             >
                               <div
-                                className="pointer-events-none absolute inset-x-0 bottom-full z-30 flex items-center gap-2 border border-zinc-200 bg-muted pl-2 pr-1 font-medium text-muted-foreground opacity-0 transition-opacity duration-[140ms] group-hover/stack:pointer-events-auto group-hover/stack:opacity-100 group-focus-within/stack:pointer-events-auto group-focus-within/stack:opacity-100 motion-reduce:transition-none dark:border-zinc-800"
+                                className="pointer-events-none absolute -left-px bottom-full z-30 flex w-max items-center gap-0 border border-zinc-200 bg-muted font-medium text-muted-foreground opacity-0 transition-opacity duration-[140ms] group-hover/stack:pointer-events-auto group-hover/stack:opacity-100 group-focus-within/stack:pointer-events-auto group-focus-within/stack:opacity-100 motion-reduce:transition-none dark:border-zinc-800"
                                 style={{
-                                  height: rowHeight,
+                                  maxWidth: `calc(${(sectionStacks.length - stackIndex) * 100}% + 2px)`,
                                   opacity: dragging !== null ? 0 : undefined,
                                   pointerEvents: dragging !== null ? "none" : undefined,
                                 }}
                               >
-                                <span className="min-w-0 flex-1 truncate">{stack.name}</span>
                                 <Button
                                   id={`stack-move-${stack.id}`}
                                   data-stack-grip
                                   type="button"
                                   variant="ghost"
                                   size="icon"
-                                  className="relative z-20 size-7 shrink-0 cursor-grab rounded-none text-muted-foreground active:cursor-grabbing"
+                                  className="relative z-20 size-5 shrink-0 cursor-grab rounded-none p-0 text-muted-foreground hover:bg-muted active:cursor-grabbing dark:hover:bg-muted"
                                   aria-label={`Move ${stack.name}`}
                                   aria-haspopup="dialog"
                                   onClick={(event) => {
@@ -718,12 +718,15 @@ const meta = {
                                     setPosition(String(sectionStacks.indexOf(stack)));
                                   }}
                                 >
-                                  <GripVertical className="size-4" aria-hidden="true" />
+                                  <GripVertical className="size-3" aria-hidden="true" />
                                 </Button>
+                                <span className="min-w-0 truncate px-1.5 py-0.5 text-xs leading-4">
+                                  {stack.name}
+                                </span>
                               </div>
                               {stackItems.map((item, itemIndex) => (
                                 <Fragment key={item.id}>
-                                  <div className="pointer-events-none relative z-10 h-0">
+                                  <div className={`pointer-events-none relative h-0 ${itemIndex === 0 ? "z-40" : "z-10"}`}>
                                     <div
                                       data-item-insertion
                                       data-stack-id={stack.id}
@@ -780,7 +783,7 @@ const meta = {
                                 </div>
                                 </Fragment>
                               ))}
-                              <div className="pointer-events-none relative z-10 h-0">
+                              <div className={`pointer-events-none relative h-0 ${stackItems.length === 0 ? "z-40" : "z-10"}`}>
                                 <div
                                   data-item-insertion
                                   data-stack-id={stack.id}

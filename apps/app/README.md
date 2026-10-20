@@ -67,13 +67,16 @@ dragging, with consecutive numbers and no bullets or hierarchical labels.
 Drag items within or across stacks; dropping on a stack appends
 the item, and dropping on a section background creates a stack for it. The item
 Move dialog offers Section, Stack or **New stack**, and position controls.
-Each stack's name and grip float absolutely just above it without consuming
-layout height. The opaque gray header has a 1px zinc border and appears only
+Each stack has one compact header containing the grip on the left and name
+on the right, floated absolutely above it without consuming layout height.
+The header has an opaque zinc background and one shared 1px border, flush
+against the stack's top and left edges. Its content width is capped at the
+remaining section width; long names shrink and ellipsize. The controls appear only
 on its stack's hover or focus-within, staying interactive as the pointer enters
 it. Its high stacking layer lets a later section's header overlap the previous
 section. Any drag hides these headers and disables their pointer interaction
 so item insertion and drop targets remain reachable.
-The grip sits at the top right beside the name: dragging the grip moves
+The 20px grip button has a 12px icon: dragging it moves
 the whole stack, and clicking it opens the stack Move dialog with Section and
 position controls. A private story-local `InsertionSeparator` supplies item
 and section insertion controls. Item controls sit above the first item,
@@ -83,8 +86,9 @@ a subtle zinc shadow, with the plus centered on the Stack's left edge and
 half its square plus area extending outside the Stack. The full area remains clickable.
 Item insertion controls use Pragmatic's stroke token (`2px` fallback).
 Full-opacity lines join a `16px` plus area with a `10px` icon at the default
-stroke. Item plus icons have a square border. Item controls use Pragmatic's
-selected-border blue token (`#1868DB` fallback), without fill on hover or keyboard focus.
+stroke. Item plus icons have a square border and white background. Item controls
+use Pragmatic's selected-border blue token (`#1868DB` fallback), with transparent
+line hit areas on hover or keyboard focus.
 Color and opacity transitions take 140ms and respect reduced motion. The entire 16px band is
 clickable; item hit areas overlay each boundary without adding layout height.
 Item boundaries add no space after the last item; an empty stack retains one
@@ -95,7 +99,8 @@ full-width 16px-high bar with a light zinc fill, 1px zinc border, and centered
 and keyboard focus. It spans the full layout width with 8px of space above its
 16px slot and hit band, keeping item-end hit zones distinct. It appends a section containing one
 empty stack.
-Stack grips and Move controls remain above insertion hit areas.
+The first Item boundary, including an empty Stack's append control, layers
+above the floating header. Other insertion hit areas remain below Move controls.
 Pointer hover reveals only the nearby item or section control, with a
 150ms dismissal delay; keyboard focus also reveals a control. Touch,
 coarse-pointer, and no-hover users see the controls persistently. Item

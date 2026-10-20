@@ -528,6 +528,16 @@ resources and SQLite/VFS, then releases the namespace lease. The lightweight
 SharedWorker host remains reusable. A client arriving during cleanup waits for
 complete closure before a fresh owner reopens the same database.
 
+The 19.0.0 browser check confirmed that disposing one of two Library clients left
+the other ready, while the last client's departure released the physical namespace.
+Reinitialization reused the same SharedWorker host; a distinct worker artifact URL
+waited for ownership and reopened the same partition. Abrupt document reload,
+immediate facade reinitialization and keyed React initializer replacement also
+returned `ready` with `wal_library`. Read-only snapshots of actual stored bytes
+matched before adoption and after these observations for both the current and
+legacy databases. These are Standalone browser observations; App and Library
+Storybook compilation were checked separately.
+
 Each connection holds a document-owned Web Lock before worker construction.
 Release of that lock detects abrupt document loss independently of the namespace
 lease. Hidden, frozen and cached documents remain live clients while the browser

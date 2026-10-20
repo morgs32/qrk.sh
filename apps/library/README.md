@@ -413,6 +413,10 @@ nullable Markdown body `content`. The module form uses plain text title/subtitle
 inputs in a centered writing column. Meowdown runs in Hybrid (`focus`) mode,
 revealing Markdown syntax near the cursor. Native shortcuts, slash menus, link
 controls, and block handles replace the formatting toolbar; there is no mode switcher.
+Workspace overrides keep `prosemirror-model`, `prosemirror-transform`, and
+`prosemirror-view` on one version each. Editor plugins share node and decoration
+runtime identities; duplicate versions can fail decoration rendering and prevent
+the ProseKit editor from mounting on a clean install.
 Article content has no horizontal padding. Read-only documents use the shared
 `qrk-responsive-insets` class from `bricks.css`: `--qrk-inset-inline` supplies
 16px outer gutters and `--qrk-inset-block` supplies 16px vertical padding.

@@ -13,93 +13,97 @@ const meta = {
     // The controlled fixture contains React content; don't serialize its owner graph.
     docs: { source: { type: "code", code: "<WallTree sections={sections} {...actions} />" } },
   },
-  args: { width: 480, rowHeight: 40 },
+  args: { width: 480, rowHeight: 40, emptyWall: false },
   argTypes: {
     width: { control: { type: "range", min: 240, max: 640, step: 20 } },
     rowHeight: { control: { type: "range", min: 28, max: 56, step: 4 } },
   },
-  render: function Render(props: { width: number; rowHeight: number }) {
-    const { width, rowHeight } = props;
+  render: function Render(props: { width: number; rowHeight: number; emptyWall: boolean }) {
+    const { width, rowHeight, emptyWall } = props;
     const wallId = "story-wall-xl";
     const [selectedBrickId, setSelectedBrickId] = useState<string | null>(null);
     const [clicks, setClicks] = useState(0);
     const nextNumber = useRef(7);
-    const [sections, setSections] = useState<ComponentProps<typeof WallTree>["sections"]>(() => [
-      {
-        id: "section-1",
-        stacks: [
-          {
-            id: "stack-1",
-            name: "Stack 1",
-            rows: [
-              {
-                id: "row-1",
-                placements: [
-                  {
-                    id: "placement-1",
-                    brickId: "brick-1",
-                    minWidth: 320,
-                    content: (
-                      <button
-                        type="button"
-                        className="w-full bg-emerald-100 p-5 text-left"
-                        onClick={() => setClicks((count) => count + 1)}
-                      >
-                        Live Brick 1
-                      </button>
-                    ),
-                  },
-                  {
-                    id: "placement-2",
-                    brickId: "brick-2",
-                    minWidth: 160,
-                    content: <div className="bg-amber-100 p-5">Brick 2</div>,
-                  },
-                ],
-              },
-              {
-                id: "row-2",
-                placements: [
-                  {
-                    id: "placement-3",
-                    brickId: "brick-3",
-                    minWidth: 320,
-                    content: <div className="bg-sky-100 p-5">Brick 3</div>,
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            id: "stack-2",
-            name: "Stack 2",
-            rows: [
-              {
-                id: "row-3",
-                placements: [
-                  {
-                    id: "placement-4",
-                    brickId: "brick-4",
-                    minWidth: 160,
-                    content: (
-                      <label className="grid gap-2 bg-violet-100 p-5 text-sm">
-                        Live input
-                        <input
-                          className="w-full min-w-0 border bg-white px-2 py-1"
-                          placeholder="Type here"
-                        />
-                      </label>
-                    ),
-                  },
-                ],
-              },
-              { id: "row-4", placements: [] },
-            ],
-          },
-        ],
-      },
-      { id: "section-2", stacks: [{ id: "stack-3", name: "Stack 3", rows: [] }] },
-    ]);
+    const [sections, setSections] = useState<ComponentProps<typeof WallTree>["sections"]>(() =>
+      emptyWall
+        ? []
+        : [
+            {
+              id: "section-1",
+              stacks: [
+                {
+                  id: "stack-1",
+                  name: "Stack 1",
+                  rows: [
+                    {
+                      id: "row-1",
+                      placements: [
+                        {
+                          id: "placement-1",
+                          brickId: "brick-1",
+                          minWidth: 320,
+                          content: (
+                            <button
+                              type="button"
+                              className="w-full bg-emerald-100 p-5 text-left"
+                              onClick={() => setClicks((count) => count + 1)}
+                            >
+                              Live Brick 1
+                            </button>
+                          ),
+                        },
+                        {
+                          id: "placement-2",
+                          brickId: "brick-2",
+                          minWidth: 160,
+                          content: <div className="bg-amber-100 p-5">Brick 2</div>,
+                        },
+                      ],
+                    },
+                    {
+                      id: "row-2",
+                      placements: [
+                        {
+                          id: "placement-3",
+                          brickId: "brick-3",
+                          minWidth: 320,
+                          content: <div className="bg-sky-100 p-5">Brick 3</div>,
+                        },
+                      ],
+                    },
+                  ],
+                },
+                {
+                  id: "stack-2",
+                  name: "Stack 2",
+                  rows: [
+                    {
+                      id: "row-3",
+                      placements: [
+                        {
+                          id: "placement-4",
+                          brickId: "brick-4",
+                          minWidth: 160,
+                          content: (
+                            <label className="grid gap-2 bg-violet-100 p-5 text-sm">
+                              Live input
+                              <input
+                                className="w-full min-w-0 border bg-white px-2 py-1"
+                                placeholder="Type here"
+                              />
+                            </label>
+                          ),
+                        },
+                      ],
+                    },
+                    { id: "row-4", placements: [] },
+                  ],
+                },
+              ],
+            },
+            { id: "section-2", stacks: [{ id: "stack-3", name: "Stack 3", rows: [] }] },
+          ],
+    );
 
     // Resolve stable anchors first; preserve empty source containers in every move.
     function insertPlacement(
@@ -198,7 +202,7 @@ const meta = {
           fixtures.
         </p>
         <style>{`[data-wall-editor="${wallId}"] [data-wall-placement] { min-height: ${rowHeight}px; }`}</style>
-        <div className="bg-background text-foreground">
+        <div className="h-[480px] bg-background text-foreground">
           <WallTree
             wallId={wallId}
             breakpoint="xl"
@@ -277,10 +281,11 @@ const meta = {
       </div>
     );
   },
-} satisfies Meta<{ width: number; rowHeight: number }>;
+} satisfies Meta<{ width: number; rowHeight: number; emptyWall: boolean }>;
 
 export default meta;
 export const Default: StoryObj<typeof meta> = {};
+export const EmptyWall: StoryObj<typeof meta> = { args: { emptyWall: true } };
 
 export const ZoomedOut: StoryObj<typeof meta> = {
   parameters: { layout: "fullscreen" },

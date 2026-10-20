@@ -63,8 +63,11 @@ positions are ordinary integer indexes renumbered in the same command.
 Wall layout containers have zero padding and no gaps between adjacent content.
 Stack chrome and drag insertion boundaries overlay the layout. Empty persisted
 Rows/Stacks retain visible drop placeholders; spacing is not used to host controls.
-At coincident flush boundaries, Brick/module drops use the Row edge centrally
-and the outer corners for a new Section. Whole-Stack drops retain Section-boundary precedence.
+Row before/after drop zones create Rows; the middle resolves horizontal
+Placement insertion. Each Row's content scrolls inside its indicator host, so
+Row before/after indicators remain visible outside the scrollport. Stock drop
+instructions use the innermost eligible container, and blocked destinations do
+not fall through. Blank Wall below the last Section creates a Section.
 
 Selected means a Brick's edit form is open. Active means DOM focus, including
 keyboard focus. Controls appear on hover, focus, selection, and open menus, with

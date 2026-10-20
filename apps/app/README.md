@@ -47,8 +47,9 @@ port 10020; `PORT` overrides it.
 
 **App / Studio / Pragmatic Tree / Default** uses the same controlled `WallTree`
 components as the saved App editor, with local Sections, Stacks, Rows, and
-Placements. Rows arrange equal-width cells side by side; Stacks arrange Rows
-vertically. The fixture includes a live button and input, horizontal Placements,
+Placements. Rows share available width subject to each Placement's minimum and
+scroll horizontally when necessary; Stacks arrange Rows vertically. The fixture
+includes a live button and input, horizontal Placements,
 an empty Row, and an empty Stack. Width and row-height controls affect the
 fixture only. It uses the xl capacity of four Stacks per Section.
 

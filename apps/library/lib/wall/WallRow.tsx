@@ -1,35 +1,27 @@
-import { Fragment, type ComponentProps } from "react";
-import { InsertionSeparator } from "./InsertionSeparator";
+import type { ComponentProps } from "react";
 import { WallPlacement } from "./WallPlacement";
 import type { WallTree } from "./WallTree";
 
 export function WallRow(props: {
   row: ComponentProps<typeof WallTree>["sections"][number]["stacks"][number]["rows"][number];
-  wallId: string;
   scope: string;
   selectedBrickId: ComponentProps<typeof WallTree>["selectedBrickId"];
   onEditBrick: ComponentProps<typeof WallTree>["onEditBrick"];
   onRequestMove: ComponentProps<typeof WallPlacement>["onRequestMove"];
   onRequestDelete: ComponentProps<typeof WallPlacement>["onRequestDelete"];
 }) {
-  const { row, wallId, scope, selectedBrickId, onEditBrick, onRequestMove, onRequestDelete } =
-    props;
+  const { row, scope, selectedBrickId, onEditBrick, onRequestMove, onRequestDelete } = props;
   return (
-    <div
-      data-wall-row={row.id}
-      role="group"
-      aria-label={`Row ${row.id}`}
-      tabIndex={0}
-      className="flex min-w-0 items-start overflow-x-auto overflow-y-hidden"
-    >
-      {row.placements.map((placement) => (
-        <Fragment key={placement.id}>
-          <InsertionSeparator
-            label={`Insert Brick before ${placement.brickId}`}
-            orientation="vertical"
-            target={{ wallId, kind: "row", rowId: row.id, beforePlacementId: placement.id }}
-          />
+    <div data-wall-row={row.id} className="relative min-w-0">
+      <div
+        role="group"
+        aria-label={`Row ${row.id}`}
+        tabIndex={0}
+        className="flex min-w-0 w-full items-start overflow-x-auto overflow-y-hidden"
+      >
+        {row.placements.map((placement) => (
           <WallPlacement
+            key={placement.id}
             placement={placement}
             scope={scope}
             selected={selectedBrickId === placement.brickId}
@@ -37,19 +29,14 @@ export function WallRow(props: {
             onRequestMove={onRequestMove}
             onRequestDelete={onRequestDelete}
           />
-        </Fragment>
-      ))}
-      {row.placements.length === 0 && (
-        <div
-          className="min-h-12 flex-1 border border-dashed border-zinc-200"
-          aria-label="Empty Row"
-        />
-      )}
-      <InsertionSeparator
-        label="Insert Brick at end of Row"
-        orientation="vertical"
-        target={{ wallId, kind: "row", rowId: row.id, beforePlacementId: null }}
-      />
+        ))}
+        {row.placements.length === 0 && (
+          <div
+            className="min-h-12 flex-1 border border-dashed border-zinc-200"
+            aria-label="Empty Row"
+          />
+        )}
+      </div>
     </div>
   );
 }

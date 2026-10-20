@@ -37,7 +37,9 @@
   },
   "dependencies": {
     "@atlaskit/pragmatic-drag-and-drop": "4.0.0",
+    "@atlaskit/pragmatic-drag-and-drop-hitbox": "3.0.0",
     "@atlaskit/pragmatic-drag-and-drop-live-region": "2.1.0",
+    "@atlaskit/pragmatic-drag-and-drop-react-drop-indicator": "4.2.4",
     "@base-ui/react": "^1.6.0",
     "@floating-ui/react": "^0.27.20",
     "@json-render/core": "^0.20.0",

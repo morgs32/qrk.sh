@@ -1,5 +1,4 @@
 import type { ComponentProps } from "react";
-import { Button } from "../../components/ui/button";
 import { WallStack } from "./WallStack";
 import type { WallTree } from "./WallTree";
 
@@ -9,7 +8,6 @@ export function WallSection(props: {
   scope: string;
   stackLimit: number;
   selectedBrickId: ComponentProps<typeof WallTree>["selectedBrickId"];
-  onAdd: ComponentProps<typeof WallTree>["onAdd"];
   onEditBrick: ComponentProps<typeof WallTree>["onEditBrick"];
   onRequestMovePlacement: ComponentProps<typeof WallStack>["onRequestMovePlacement"];
   onRequestMoveStack: ComponentProps<typeof WallStack>["onRequestMoveStack"];
@@ -21,7 +19,6 @@ export function WallSection(props: {
     scope,
     stackLimit,
     selectedBrickId,
-    onAdd,
     onEditBrick,
     onRequestMovePlacement,
     onRequestMoveStack,
@@ -46,7 +43,6 @@ export function WallSection(props: {
             wallId={wallId}
             scope={scope}
             selectedBrickId={selectedBrickId}
-            onAdd={onAdd}
             onEditBrick={onEditBrick}
             onRequestMovePlacement={onRequestMovePlacement}
             onRequestMoveStack={onRequestMoveStack}
@@ -55,14 +51,12 @@ export function WallSection(props: {
         ))}
       </div>
       {section.stacks.length < stackLimit && (
-        <Button
-          variant="ghost"
-          className={`absolute bottom-0 right-0 z-20 h-7 rounded-none border border-dashed border-zinc-200 bg-background/95 px-2 text-xs text-muted-foreground transition-opacity focus-visible:opacity-100 data-[drop-active=true]:opacity-100 motion-reduce:transition-none [@media(hover:none)]:opacity-100 [@media(pointer:coarse)]:opacity-100 ${section.stacks.length === 0 ? "opacity-100" : "opacity-0 group-hover/section:opacity-100 group-focus-within/section:opacity-100"}`}
+        <div
+          aria-hidden="true"
+          aria-label="New Stack drop target"
+          className="pointer-events-none absolute inset-y-0 right-0 z-10 w-3 opacity-0 group-data-[dragging=true]/wall:pointer-events-auto data-[drop-active=true]:bg-blue-500/20 data-[drop-active=true]:opacity-100"
           data-wall-insertion={JSON.stringify({ wallId, kind: "section", sectionId: section.id })}
-          onClick={() => onAdd({ wallId, kind: "section", sectionId: section.id })}
-        >
-          + Brick in new Stack
-        </Button>
+        />
       )}
     </section>
   );

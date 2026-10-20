@@ -13,7 +13,6 @@ import { wallInsertionTargetSchema } from "@qrk.sh/library/wallInsertionTargetSc
 import { useWallViewport } from "@qrk.sh/library/WallViewportProvider";
 import { brickV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/brick/BrickV1";
 import { placementV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/placement/PlacementV1";
-import { sectionV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/section/SectionV1";
 import { stackV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/stack/StackV1";
 import { pageV3 } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV3";
 import { WallEditorContext } from "./WallEditorContext";
@@ -168,36 +167,12 @@ export function WallEditorProvider(props: { children: ReactNode }) {
                         })),
                     })),
                 }))}
-              onAdd={(target) => {
-                void navigate({
-                  to: "/$username/site/$siteId/page/$pageId/modules",
-                  params,
-                  search: { insertion: JSON.stringify(target) },
-                  resetScroll: false,
-                });
-              }}
               onAddModule={(moduleId, target) => {
                 if (Object.hasOwn(modulesHash, moduleId)) {
                   const module = Object.values(modulesHash).find((entry) => entry.id === moduleId);
                   if (module !== undefined) return addBrick(module.id, target);
                 }
                 return false;
-              }}
-              onAddSection={(beforeSectionId) => {
-                return (
-                  stageAggregateSessionCommand({
-                    session,
-                    contractName: "addWallSection",
-                    payload: {
-                      wallId: wall.id,
-                      id: crypto.randomUUID(),
-                      beforeSectionId:
-                        beforeSectionId === null
-                          ? null
-                          : Schema.decodeUnknownSync(makeModelIdSchema(sectionV1))(beforeSectionId),
-                    },
-                  })._tag === "Success"
-                );
               }}
               onMovePlacement={(id, target) => {
                 const placementId = Schema.decodeUnknownSync(makeModelIdSchema(placementV1))(id);

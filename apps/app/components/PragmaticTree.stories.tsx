@@ -199,25 +199,7 @@ const meta = {
             breakpoint="xl"
             sections={sections}
             selectedBrickId={selectedBrickId}
-            onAdd={(target) => {
-              insertPlacement(target);
-            }}
             onAddModule={(moduleId, target) => insertPlacement(target, undefined, moduleId)}
-            onAddSection={(beforeSectionId) => {
-              const index =
-                beforeSectionId === null
-                  ? sections.length
-                  : sections.findIndex((section) => section.id === beforeSectionId);
-              if (index < 0) return false;
-              const number = nextNumber.current++;
-              const next = [...sections];
-              next.splice(index, 0, {
-                id: `section-${number}`,
-                stacks: [{ id: `stack-${number}`, name: `Stack ${number}`, rows: [] }],
-              });
-              setSections(next);
-              return true;
-            }}
             onMovePlacement={(id, target) => insertPlacement(target, id)}
             onMoveStack={(stackId, target) => {
               if (target.wallId !== wallId) return false;

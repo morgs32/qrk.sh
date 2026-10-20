@@ -10,7 +10,6 @@ export function WallStack(props: {
   wallId: string;
   scope: string;
   selectedBrickId: ComponentProps<typeof WallTree>["selectedBrickId"];
-  onAdd: ComponentProps<typeof WallTree>["onAdd"];
   onEditBrick: ComponentProps<typeof WallTree>["onEditBrick"];
   onRequestMovePlacement: ComponentProps<typeof WallRow>["onRequestMove"];
   onRequestDelete: ComponentProps<typeof WallRow>["onRequestDelete"];
@@ -21,7 +20,6 @@ export function WallStack(props: {
     wallId,
     scope,
     selectedBrickId,
-    onAdd,
     onEditBrick,
     onRequestMovePlacement,
     onRequestDelete,
@@ -30,7 +28,7 @@ export function WallStack(props: {
   return (
     <div
       data-wall-stack={stack.id}
-      className="group/stack relative min-w-0 outline outline-1 -outline-offset-1 outline-transparent hover:outline-zinc-200 focus-within:outline-zinc-200 data-[drop-active=true]:outline-blue-500"
+      className="group/stack relative min-w-0 outline outline-1 -outline-offset-1 outline-transparent hover:outline-zinc-200 focus-within:outline-zinc-200 data-[drop-active=true]:outline-blue-500 before:pointer-events-none before:absolute before:inset-y-0 before:z-40 before:w-0.5 data-[drop-side=left]:before:left-0 data-[drop-side=left]:before:bg-blue-500 data-[drop-side=right]:before:right-0 data-[drop-side=right]:before:bg-blue-500"
     >
       <div className="absolute left-0 top-0 z-30 flex h-7 max-w-[calc(100%-3.5rem)] items-center gap-1 bg-background/95 text-xs text-muted-foreground opacity-0 transition-opacity group-hover/stack:opacity-100 group-focus-within/stack:opacity-100 motion-reduce:transition-none [@media(hover:none)]:opacity-100 [@media(pointer:coarse)]:opacity-100">
         <Button
@@ -57,14 +55,12 @@ export function WallStack(props: {
           <InsertionSeparator
             label={`Insert Row before ${row.id}`}
             target={{ wallId, kind: "stack", stackId: stack.id, beforeRowId: row.id }}
-            onAdd={onAdd}
           />
           <WallRow
             row={row}
             wallId={wallId}
             scope={scope}
             selectedBrickId={selectedBrickId}
-            onAdd={onAdd}
             onEditBrick={onEditBrick}
             onRequestMove={onRequestMovePlacement}
             onRequestDelete={onRequestDelete}
@@ -77,7 +73,6 @@ export function WallStack(props: {
       <InsertionSeparator
         label={`Insert Row at end of ${stack.name}`}
         target={{ wallId, kind: "stack", stackId: stack.id, beforeRowId: null }}
-        onAdd={onAdd}
       />
     </div>
   );

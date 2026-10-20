@@ -43,7 +43,8 @@ spec changes affect only their Wall/Placement.
 
 Insertion targets carry Wall identity and stable before-sibling IDs. A Row target
 inserts horizontally; a Stack boundary creates a Row; Section/Wall targets create
-required containers. Nullable before IDs append. The Bricks drawer opens in add
+required containers. Nullable before IDs append. The Wall has no Add/plus buttons;
+modules enter through catalog drag grips. Targeted catalog URLs still open add
 mode without persisting a reservation. Cancelling/leaving/changing breakpoint
 clears that mode; stale or malformed targets refuse rather than append elsewhere.
 
@@ -54,6 +55,12 @@ new Brick form; cancelling that form leaves the created null Brick.
 Moves keep Placement identity/specs or carry the complete Stack's Rows. Delete
 Brick confirms removal from all four widths and retains containers. Sibling
 positions are ordinary integer indexes renumbered in the same command.
+
+Wall layout containers have zero padding and no gaps between adjacent content.
+Stack chrome and drag insertion boundaries overlay the layout. Empty persisted
+Rows/Stacks retain visible drop placeholders; spacing is not used to host controls.
+At coincident flush boundaries, Brick/module drops use the Row edge centrally
+and the outer corners for a new Section. Whole-Stack drops retain Section-boundary precedence.
 
 Selected means a Brick's edit form is open. Active means DOM focus, including
 keyboard focus. Controls appear on hover, focus, selection, and open menus, with

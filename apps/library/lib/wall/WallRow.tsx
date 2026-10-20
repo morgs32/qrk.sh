@@ -8,21 +8,12 @@ export function WallRow(props: {
   wallId: string;
   scope: string;
   selectedBrickId: ComponentProps<typeof WallTree>["selectedBrickId"];
-  onAdd: ComponentProps<typeof WallTree>["onAdd"];
   onEditBrick: ComponentProps<typeof WallTree>["onEditBrick"];
   onRequestMove: ComponentProps<typeof WallPlacement>["onRequestMove"];
   onRequestDelete: ComponentProps<typeof WallPlacement>["onRequestDelete"];
 }) {
-  const {
-    row,
-    wallId,
-    scope,
-    selectedBrickId,
-    onAdd,
-    onEditBrick,
-    onRequestMove,
-    onRequestDelete,
-  } = props;
+  const { row, wallId, scope, selectedBrickId, onEditBrick, onRequestMove, onRequestDelete } =
+    props;
   return (
     <div data-wall-row={row.id} className="flex min-w-0 items-start">
       {row.placements.map((placement) => (
@@ -31,7 +22,6 @@ export function WallRow(props: {
             label={`Insert Brick before ${placement.brickId}`}
             orientation="vertical"
             target={{ wallId, kind: "row", rowId: row.id, beforePlacementId: placement.id }}
-            onAdd={onAdd}
           />
           <WallPlacement
             placement={placement}
@@ -53,7 +43,6 @@ export function WallRow(props: {
         label="Insert Brick at end of Row"
         orientation="vertical"
         target={{ wallId, kind: "row", rowId: row.id, beforePlacementId: null }}
-        onAdd={onAdd}
       />
     </div>
   );

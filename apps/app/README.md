@@ -352,6 +352,10 @@ Stacks, Rows, and placed Bricks through the shared controlled components. Only
 the active pane registers drag targets and interactions. Placement cells use the
 Wall's logical breakpoint and fill their Row cell; catalog `defaultWidth` is
 not applied to placed content.
+Wall, Section, Stack, and Row layout has no outer padding or inter-item gutters.
+Stack controls overlay content rather than reserving a toolbar row. The Wall has
+no Add/plus buttons; drop indicators appear during dragging. Empty saved Rows
+and Stacks retain their visible drop placeholders.
 
 App consumes shared `WallPreviewViewport` and `WallPreviewToolbar` source. The
 viewport adds 32px above the frame and 43px below it, making every frame
@@ -406,8 +410,9 @@ App supplies typed Router links to its
 `/modules/$moduleId` detail routes. The catalog lives at `/modules` under the
 page editor, with a **Bricks** breadcrumb and **Bricks** toolbar action.
 Normal catalog links remain browsing actions, with separate module drag grips.
-Wall insertion controls open the same drawer with a query-encoded destination;
-targeted mode exposes a prominent + action while preview content stays live.
+Drag a module grip from the catalog into the Wall to create its Brick. There are
+no Add controls in the Wall. Existing query-encoded targeted catalog URLs retain
+their + action in the drawer while preview content stays live.
 Closing, leaving the chooser, or changing breakpoint cancels insertion without a
 saved reservation. The previous catalog URLs remain retired without redirects.
 

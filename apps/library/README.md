@@ -349,11 +349,14 @@ Placements retain stable identities and per-width specs, while ordering uses
 integer sibling positions. Breakpoint derives from the containing Wall.
 
 The shared controlled wall components render supplied data and action callbacks.
-App's `WallEditorProvider` supplies live queries, command staging, insertion
-navigation, selected Brick routing, and drag scope. Local wall stories use fixtures
+App's `WallEditorProvider` supplies live queries, command staging,
+selected Brick routing, and drag scope. Local wall stories use fixtures
 without that provider or any persisted session. New-Brick creation, layout moves,
 and global Brick deletion are ordinary App commands. Empty containers survive
 moves/deletion; no pixel grid geometry or visibility state is persisted.
+Layout containers have no padding or gutters. Drag/Move controls overlay the
+content, and insertion boundaries appear only during dragging; the Wall renders
+no Add or plus buttons. Empty Rows/Stacks retain their drop placeholders.
 
 **Selected** means the Brick's edit form is open; **active** means DOM focus.
 Separate grip/menu controls leave links/forms interactive. Placements support

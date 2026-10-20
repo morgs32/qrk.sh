@@ -31,8 +31,6 @@ export function WallTree(props: {
   }[];
   selectedBrickId?: string | null;
   isActive?: boolean;
-  onAdd: (target: typeof wallInsertionTargetSchema.Type) => void;
-  onAddSection?: (beforeSectionId: string | null) => boolean | void;
   onAddModule?: (moduleId: string, target: typeof wallInsertionTargetSchema.Type) => boolean | void;
   onMovePlacement: (
     placementId: string,
@@ -48,8 +46,6 @@ export function WallTree(props: {
     sections,
     selectedBrickId,
     isActive = true,
-    onAdd,
-    onAddSection,
     onAddModule,
     onMovePlacement,
     onMoveStack,
@@ -274,13 +270,21 @@ export function WallTree(props: {
         canDrop: ({ source, input }) => {
           if (!accepts(source.data)) return false;
           const bounds = sectionList.getBoundingClientRect();
-          return (
+          const atBoundary =
             sections.length === 0 ||
             input.clientY < bounds.top + 8 ||
             input.clientY > bounds.bottom - 8 ||
             Array.from(sectionList.querySelectorAll<HTMLElement>("[data-wall-section]")).some(
               (section) => Math.abs(input.clientY - section.getBoundingClientRect().top) <= 8,
-            )
+            );
+          // Flush Row and Section edges coincide; reserve outer corners for new Sections.
+          return (
+            atBoundary &&
+            (source.data.kind === "stack" ||
+              sections.length === 0 ||
+              input.clientY > bounds.bottom + 8 ||
+              input.clientX < bounds.left + 12 ||
+              input.clientX > bounds.right - 12)
           );
         },
         getData: ({ input }) => {
@@ -328,10 +332,14 @@ export function WallTree(props: {
     disposers.push(
       monitorForElements({
         canMonitor: ({ source }) => accepts(source.data),
-        onDragStart: updateDropIndicator,
+        onDragStart: (event) => {
+          root.dataset.dragging = "true";
+          updateDropIndicator(event);
+        },
         onDrag: updateDropIndicator,
         onDropTargetChange: updateDropIndicator,
         onDrop: ({ source, location }) => {
+          delete root.dataset.dragging;
           for (const element of root.querySelectorAll<HTMLElement>(
             "[data-drop-active], [data-drop-side]",
           )) {
@@ -366,7 +374,9 @@ export function WallTree(props: {
         },
       }),
     );
-    return combine(...disposers);
+    return combine(...disposers, () => {
+      delete root.dataset.dragging;
+    });
   }, [wallId, sections, scope, isActive, stackLimit, onAddModule, onMovePlacement, onMoveStack]);
 
   const finalFocus = () =>
@@ -380,7 +390,7 @@ export function WallTree(props: {
       ref={rootRef}
       data-wall-editor={wallId}
       tabIndex={-1}
-      className="relative min-h-full min-w-0 w-full outline-none"
+      className="group/wall relative min-h-full min-w-0 w-full outline-none"
       aria-label={`${breakpoint} Wall editor`}
     >
       <div ref={sectionsRef}>
@@ -389,7 +399,6 @@ export function WallTree(props: {
             <InsertionSeparator
               label={`Insert Brick in a new Section before ${section.id}`}
               target={{ wallId, kind: "wall", beforeSectionId: section.id }}
-              onAdd={onAdd}
             />
             <WallSection
               section={section}
@@ -397,7 +406,6 @@ export function WallTree(props: {
               scope={scope}
               stackLimit={stackLimit}
               selectedBrickId={selectedBrickId}
-              onAdd={onAdd}
               onEditBrick={onEditBrick}
               onRequestMovePlacement={(id, triggerId) => {
                 returnFocusId.current = triggerId;
@@ -418,22 +426,7 @@ export function WallTree(props: {
       <InsertionSeparator
         label="Insert Brick in a new Section at end"
         target={{ wallId, kind: "wall", beforeSectionId: null }}
-        onAdd={onAdd}
       />
-      {onAddSection && (
-        <div className="relative h-0">
-          <Button
-            type="button"
-            variant="ghost"
-            className="absolute right-0 top-0 z-20 h-7 rounded-none border border-dashed border-zinc-200 bg-background/95 text-xs text-muted-foreground"
-            onClick={() => {
-              if (onAddSection(null) !== false) announce("Section added with an empty Stack.");
-            }}
-          >
-            + Add Section
-          </Button>
-        </div>
-      )}
       {moving && (
         <WallMoveDialog
           key={`${moving.kind}-${moving.id}`}

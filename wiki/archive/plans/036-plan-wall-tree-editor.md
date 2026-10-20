@@ -329,6 +329,13 @@ qrk.sh/
 2. Restored the historical `SiteHeader` and `Wordmark` inside the active breakpoint frame, above Wall content. The header retains its 64px height, saved site-name link, and Site Settings draft/Cancel behavior. This is editor preview presentation; public rendering remains outside scope.
 3. Browser verification covered catalog/module/form navigation, close/reopen and focus restoration, working card styling and catalog placeholders, site-name draft/Cancel, and unsaved Brick-form close/reopen. At 390×844 the navigation slot stays 56px, scrolls horizontally, and the open drawer is 422px. Viewport/media overrides were restored. No persisted data or declarations changed.
 
+## Flush layout and wall controls follow-up, October 20, 2026
+
+1. Removed Wall/Section/Stack padding, Stack gutters, reserved Stack-toolbar space, and insertion-control flow space. Controls/drop indicators overlay the layout; empty model placeholders remain visible. No persisted layout data changed.
+2. At the user's next request, removed every Wall Add/plus button, including Section/Stack creation and insertion controls. Removed their unused controlled callbacks and App/story call sites. Catalog drag grips, layout drop targets, and Move dialogs remain.
+3. Manual fixture measurements confirmed zero padding, zero gap between side-by-side Placements and Stacks, and zero gap between populated Rows. Live button/input actions, native module drop into an empty Stack, and native Placement movement into another Row worked. App rendered zero Add buttons in the Wall.
+4. Distinguished coincident first-Row/Section edges after removing gutters: non-Stack drops use Row insertion centrally and Section creation at outer corners. Native fixture drops before the first Row retained two Sections and inserted its Row first; a subsequent corner drop created the expected third Section. Drag-only targets clear their pointer handling after drop and on cleanup.
+
 ## Remaining work
 
 None.

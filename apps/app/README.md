@@ -67,6 +67,16 @@ dragging, with consecutive numbers and no bullets or hierarchical labels.
 Drag items within or across stacks; dropping on a stack appends
 the item, and dropping on a section background creates a stack for it. The item
 Move dialog offers Section, Stack or **New stack**, and position controls.
+For Stack drags, another stack's top 16px creates a new section before its
+entire section, with one blue indicator across the target row. Below that band,
+left/right Stack reordering remains available under existing-section capacity
+rules. A full target section still accepts the top-band operation because the
+destination is a separate section. The existing Stack ID and name, Item IDs,
+and Item order survive; the source section remains even when empty.
+While `activeGroup` identifies a stack append target, its existing outer wrapper
+uses `z-50` to raise the outline, items, and insertion indicator above neighboring
+stacks. Other targets and drag cleanup restore `z-index: auto`; ordinary
+hover/focus keeps the existing inner layers.
 Each stack has one compact header containing the grip on the left and name
 on the right, floated absolutely above it without consuming layout height.
 The header has an opaque zinc background and one shared 1px border, flush
@@ -76,9 +86,11 @@ on its stack's hover or focus-within, staying interactive as the pointer enters
 it. Its high stacking layer lets a later section's header overlap the previous
 section. Any drag hides these headers and disables their pointer interaction
 so item insertion and drop targets remain reachable.
-The 20px grip button has a 12px icon: dragging it moves
-the whole stack, and clicking it opens the stack Move dialog with Section and
-position controls. A private story-local `InsertionSeparator` supplies item
+The 20px grip button has a 12px icon: dragging it moves the whole stack, and
+clicking it opens Stack Move. Its Destination choice offers **Existing Section**
+with Section and Position controls, or **New Section** with **Before Section**.
+New Section performs the same move as a top-band drop. A private story-local
+`InsertionSeparator` supplies item
 and section insertion controls. Item controls sit above the first item,
 between items, and below the last item. All item controls span the stack's
 full inner width, including the bottom separator. Item separator lines have
@@ -123,7 +135,7 @@ Empty stacks and empty section drop areas remain visible; source drops have
 no effect. **Add section** creates one empty stack without consuming an item
 number. Item and section button additions announce the result and retain
 button focus. The `maxStacksPerSection` Storybook control defaults to 4 and
-ranges from 1 to 6. The limit applies to incoming cross-section Stack drag/Move
+ranges from 1 to 6. The limit applies to incoming Stack drag/Move into existing sections
 and item moves that create stacks through **New stack** or a
 section background. Same-section Stack reordering and item moves into existing
 stacks remain allowed. Lowering the limit preserves current stacks and blocks

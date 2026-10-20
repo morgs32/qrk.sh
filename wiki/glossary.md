@@ -11,6 +11,6 @@
 | Published page | A page marked for public access when its site is available. Visitors use its current published snapshot while saved editing changes remain private. |
 | Page snapshot | An immutable version of saved page metadata, brick content, and layouts captured by a publication. Each publication retains a new snapshot in the page's history. |
 | Publish updates | Replace a published page's current snapshot with a new snapshot of its saved content, retaining the previous snapshot. |
-| Section | In Studio's Storybook prototype, an ordered layout row containing stacks. One stack fills the row; multiple stacks use two columns and wrap. |
-| Stack | In Studio's Storybook prototype, an independently movable container of peer items within one section. It has an opaque identity, no visible header, and remains when empty. |
-| Item | In Studio's Storybook prototype, a numbered mock content row belonging to one stack. Items can move between stacks but cannot contain other items. |
+| Section | An ordered layout row containing Stacks. A Section can remain empty. |
+| Stack | An independently movable, named container of ordered peer Items within one Section. It retains its identity and Items when moved, and remains when empty. |
+| Item | A content row belonging to one Stack. Items can move between Stacks but cannot contain other Items. |

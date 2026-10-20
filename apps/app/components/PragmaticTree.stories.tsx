@@ -165,10 +165,12 @@ const meta = {
     const [drop, setDrop] = useState<
       | { kind: "item" | "stack"; id: string; instruction: Instruction }
       | { kind: "item-insertion"; stackId: string; beforeItemId: string | null }
+      | { kind: "section-insertion"; beforeSectionId: string; targetStackId: string }
       | null
     >(null);
     const [activeGroup, setActiveGroup] = useState<string | null>(null);
     const [moving, setMoving] = useState<{ kind: "item" | "stack"; id: string } | null>(null);
+    const [stackDestination, setStackDestination] = useState<"existing" | "new-section">("existing");
     const [section, setSection] = useState("1");
     const [destinationStack, setDestinationStack] = useState("new");
     const [position, setPosition] = useState("0");
@@ -304,13 +306,36 @@ const meta = {
     );
 
     const moveStack = useCallback(
-      (move: { stackId: string; sectionId: string; index: number }) => {
+      (move:
+        | { stackId: string; sectionId: string; index: number }
+        | { stackId: string; beforeSectionId: string }
+      ) => {
+        const sourceStack = stacks.find((stack) => stack.id === move.stackId);
+        if (!sourceStack) return false;
+
+        if ("beforeSectionId" in move) {
+          // 1. Resolve the live anchor before allocating only a Section identity.
+          const beforeIndex = sections.indexOf(move.beforeSectionId);
+          if (beforeIndex < 0) return false;
+          const sectionId = String(nextSectionId.current++);
+          const nextSections = [...sections];
+          nextSections.splice(beforeIndex, 0, sectionId);
+
+          // 2. Move the existing Stack atomically; its Items and source Section remain.
+          setLayout({
+            ...layout,
+            sections: nextSections,
+            stacks: stacks.map((stack) => stack.id === sourceStack.id ? { ...stack, sectionId } : stack),
+          });
+          announce(`Moved ${sourceStack.name} to new Section ${sectionId} before Section ${move.beforeSectionId}.`);
+          return true;
+        }
+
         const { stackId, sectionId, index } = move;
-        const sourceStack = stacks.find((stack) => stack.id === stackId);
         if (
-          !sourceStack || !sections.includes(sectionId) ||
+          !sections.includes(sectionId) ||
           (sourceStack.sectionId !== sectionId && stacks.filter((stack) => stack.sectionId === sectionId).length >= stackLimit)
-        ) return;
+        ) return false;
         setLayout((current) => {
           const stack = current.stacks.find((entry) => entry.id === stackId);
           if (!stack) return current;
@@ -322,8 +347,9 @@ const meta = {
           return { ...current, stacks: remaining };
         });
         announce(`Moved ${sourceStack.name} to position ${index + 1} in Section ${sectionId}.`);
+        return true;
       },
-      [sections, stacks, stackLimit],
+      [layout, sections, stacks, stackLimit],
     );
 
     useEffect(() => cleanup, []);
@@ -435,31 +461,38 @@ const meta = {
                 if (source.data.kind === "palette-item") return true;
                 if (typeof source.data.id !== "string") return false;
                 if (source.data.kind === "stack") {
-                  return source.data.id !== stack.id && (
-                    stacks.some((entry) => entry.id === source.data.id && entry.sectionId === stack.sectionId) ||
-                    stacks.filter((entry) => entry.sectionId === stack.sectionId).length < stackLimit
-                  );
+                  const sourceStack = stacks.find((entry) => entry.id === source.data.id);
+                  if (!sourceStack || sourceStack.id === stack.id || !sections.includes(stack.sectionId)) return false;
+                  const y = input.clientY - element.getBoundingClientRect().top;
+                  // A fresh Section is available even when the existing row is full.
+                  if (y >= 0 && y < 16) return true;
+                  return sourceStack.sectionId === stack.sectionId ||
+                    stacks.filter((entry) => entry.sectionId === stack.sectionId).length < stackLimit;
                 }
                 if (source.data.kind !== "item") return false;
                 const hovered = element.ownerDocument.elementFromPoint(input.clientX, input.clientY);
                 // A rejected self-row drop must not fall through to append in its Stack.
                 return hovered?.closest("[data-item-id]")?.getAttribute("data-item-id") !== source.data.id;
               },
-              getData: ({ source, input, element }) =>
-                source.data.kind === "stack"
-                  ? attachInstruction(
-                      { kind: "stack", id: stack.id },
-                      {
-                        input,
-                        element,
-                        axis: "horizontal",
-                        operations: {
-                          "reorder-before": "available",
-                          "reorder-after": "available",
-                        },
-                      },
-                    )
-                  : { groupId: `stack-${stack.id}`, stackId: stack.id },
+              getData: ({ source, input, element }) => {
+                if (source.data.kind !== "stack") return { groupId: `stack-${stack.id}`, stackId: stack.id };
+                const y = input.clientY - element.getBoundingClientRect().top;
+                if (y >= 0 && y < 16) {
+                  return { kind: "section-insertion", beforeSectionId: stack.sectionId, targetStackId: stack.id };
+                }
+                return attachInstruction(
+                  { kind: "stack", id: stack.id },
+                  {
+                    input,
+                    element,
+                    axis: "horizontal",
+                    operations: {
+                      "reorder-before": "available",
+                      "reorder-after": "available",
+                    },
+                  },
+                );
+              },
             }),
           ),
         );
@@ -489,13 +522,28 @@ const meta = {
         );
       }
 
-      const updateTarget = ({ location }: Pick<ElementDropTargetEventBasePayload, "location">) => {
+      const updateTarget = ({ source, location }: Pick<ElementDropTargetEventBasePayload, "source" | "location">) => {
         const target = location.current.dropTargets[0];
         const instruction = target && extractInstruction(target.data);
         const kind = target?.data.kind;
         const id = target?.data.id;
         const stackId = target?.data.stackId;
         const beforeItemId = target?.data.beforeItemId;
+        if (kind === "section-insertion") {
+          const beforeSectionId = target?.data.beforeSectionId;
+          const targetStackId = target?.data.targetStackId;
+          setDrop(
+            source.data.kind === "stack" && typeof source.data.id === "string" &&
+            typeof beforeSectionId === "string" && typeof targetStackId === "string" &&
+            source.data.id !== targetStackId && sections.includes(beforeSectionId) &&
+            stacks.some((stack) => stack.id === source.data.id) &&
+            stacks.some((stack) => stack.id === targetStackId && stack.sectionId === beforeSectionId)
+              ? { kind, beforeSectionId, targetStackId }
+              : null,
+          );
+          setActiveGroup(null);
+          return;
+        }
         setDrop(
           kind === "item-insertion" && typeof stackId === "string" &&
           (beforeItemId === null || typeof beforeItemId === "string")
@@ -578,6 +626,17 @@ const meta = {
             }
 
             if (kind !== "stack" || typeof sourceId !== "string") return;
+            if (target.data.kind === "section-insertion") {
+              const beforeSectionId = target.data.beforeSectionId;
+              const targetStackId = target.data.targetStackId;
+              if (
+                typeof beforeSectionId !== "string" || typeof targetStackId !== "string" ||
+                targetStackId === sourceId ||
+                !stacks.some((stack) => stack.id === targetStackId && stack.sectionId === beforeSectionId)
+              ) return;
+              moveStack({ stackId: sourceId, beforeSectionId });
+              return;
+            }
             if (instruction) {
               if (
                 instruction.blocked || instruction.operation === "combine" ||
@@ -612,8 +671,25 @@ const meta = {
         ).length + 1;
     const destinationSectionFull = stacks.filter((stack) => stack.sectionId === section).length >= stackLimit;
     const moveAtCapacity = moving?.kind === "stack"
-      ? stacks.find((stack) => stack.id === moving.id)?.sectionId !== section && destinationSectionFull
+      ? stackDestination === "existing" && stacks.find((stack) => stack.id === moving.id)?.sectionId !== section && destinationSectionFull
       : destinationStack === "new" && destinationSectionFull;
+    const moveUnavailable = !moving || moveAtCapacity || (moving.kind === "stack" && (
+      !sections.includes(section) || !stacks.some((stack) => stack.id === moving.id)
+    ));
+
+    const sectionInsertion = drop?.kind === "section-insertion" && dragging?.kind === "stack" &&
+      drop.targetStackId !== dragging.id && sections.includes(drop.beforeSectionId) &&
+      stacks.some((stack) => stack.id === dragging.id) &&
+      stacks.some((stack) => stack.id === drop.targetStackId && stack.sectionId === drop.beforeSectionId)
+        ? drop
+        : null;
+
+    useEffect(() => {
+      if (drop?.kind === "section-insertion" && sectionInsertion === null) {
+        setDrop(null);
+        setActiveGroup(null);
+      }
+    }, [drop, sectionInsertion]);
 
     let dragInsertion: { stackId: string; beforeItemId: string | null } | null = null;
     if (dragging?.kind === "item" || dragging?.kind === "palette-item") {
@@ -670,12 +746,15 @@ const meta = {
                 <Fragment key={sectionId}>
                   <GroupDropIndicator isActive={activeGroup === `section-${sectionId}`}>
                     <div
-                      className="relative grid items-stretch divide-x divide-zinc-200 dark:divide-zinc-800"
-                      style={{ gridTemplateColumns: `repeat(${Math.max(1, sectionStacks.length)}, minmax(0, 1fr))` }}
+                      className="relative"
                       data-section-id={sectionId}
                       role="group"
                       aria-label={`Section ${sectionId}`}
                     >
+                      <div
+                        className="grid items-stretch divide-x divide-zinc-200 dark:divide-zinc-800"
+                        style={{ gridTemplateColumns: `repeat(${Math.max(1, sectionStacks.length)}, minmax(0, 1fr))` }}
+                      >
                       {sectionStacks.length === 0 ? (
                         <div className="rounded-none p-6 text-center text-muted-foreground">
                           Empty section
@@ -683,7 +762,10 @@ const meta = {
                       ) : sectionStacks.map((stack, stackIndex) => {
                         const stackItems = items.filter((item) => item.stackId === stack.id);
                         return (
-                          <div key={stack.id} className="relative min-w-0 [&>div]:h-full">
+                          <div
+                            key={stack.id}
+                            className={`relative min-w-0 [&>div]:h-full ${activeGroup === `stack-${stack.id}` ? "z-50" : ""}`}
+                          >
                           <GroupDropIndicator
                             isActive={activeGroup === `stack-${stack.id}`}
                           >
@@ -714,6 +796,7 @@ const meta = {
                                   onClick={(event) => {
                                     moveTriggerId.current = event.currentTarget.id;
                                     setMoving({ kind: "stack", id: stack.id });
+                                    setStackDestination("existing");
                                     setSection(sectionId);
                                     setPosition(String(sectionStacks.indexOf(stack)));
                                   }}
@@ -810,6 +893,12 @@ const meta = {
                           </div>
                         );
                       })}
+                      </div>
+                      {sectionInsertion?.beforeSectionId === sectionId && (
+                        <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 z-[60]">
+                          <BoxDropIndicator edge="top" />
+                        </div>
+                      )}
                     </div>
                   </GroupDropIndicator>
                 </Fragment>
@@ -849,12 +938,37 @@ const meta = {
               </DialogTitle>
               <DialogDescription>
                 {moving?.kind === "stack"
-                  ? "Choose a section and position."
+                  ? stackDestination === "new-section"
+                    ? "Choose where to place the new Section."
+                    : "Choose a section and position."
                   : "Choose a section, stack, and position."}
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-2">
-              <Label htmlFor="tree-section">Section</Label>
+              {moving?.kind === "stack" && (
+                <>
+                  <Label htmlFor="tree-stack-destination">Destination</Label>
+                  <Select
+                    value={stackDestination}
+                    onValueChange={(value) => {
+                      if (value !== "existing" && value !== "new-section") return;
+                      setStackDestination(value);
+                      setPosition("0");
+                    }}
+                  >
+                    <SelectTrigger id="tree-stack-destination" className="w-full rounded-none">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-none [&_*]:rounded-none!">
+                      <SelectItem value="existing">Existing Section</SelectItem>
+                      <SelectItem value="new-section">New Section</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </>
+              )}
+              <Label htmlFor="tree-section">
+                {moving?.kind === "stack" && stackDestination === "new-section" ? "Before Section" : "Section"}
+              </Label>
               <Select
                 value={section}
                 onValueChange={(value) => {
@@ -871,7 +985,7 @@ const meta = {
                     <SelectItem
                       key={sectionId}
                       value={sectionId}
-                      disabled={moving?.kind === "stack" &&
+                      disabled={moving?.kind === "stack" && stackDestination === "existing" &&
                         stacks.find((stack) => stack.id === moving.id)?.sectionId !== sectionId &&
                         stacks.filter((stack) => stack.sectionId === sectionId).length >= stackLimit}
                     >
@@ -904,19 +1018,23 @@ const meta = {
                   </Select>
                 </>
               )}
-              <Label htmlFor="tree-position">Position</Label>
-              <Select value={position} onValueChange={setPosition}>
-                <SelectTrigger id="tree-position" className="w-full rounded-none">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="rounded-none [&_*]:rounded-none!">
-                  {Array.from({ length: positionCount }, (_, index) => (
-                    <SelectItem key={index} value={String(index)}>
-                      {index + 1}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {(moving?.kind !== "stack" || stackDestination === "existing") && (
+                <>
+                  <Label htmlFor="tree-position">Position</Label>
+                  <Select value={position} onValueChange={setPosition}>
+                    <SelectTrigger id="tree-position" className="w-full rounded-none">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-none [&_*]:rounded-none!">
+                      {Array.from({ length: positionCount }, (_, index) => (
+                        <SelectItem key={index} value={String(index)}>
+                          {index + 1}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </>
+              )}
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" className="rounded-none" onClick={() => setMoving(null)}>
@@ -925,11 +1043,14 @@ const meta = {
               <Button
                 type="button"
                 className="rounded-none"
-                disabled={!moving || moveAtCapacity}
+                disabled={moveUnavailable}
                 onClick={() => {
-                  if (!moving || moveAtCapacity) return;
+                  if (!moving || moveUnavailable) return;
                   if (moving.kind === "stack") {
-                    moveStack({ stackId: moving.id, sectionId: section, index: Number(position) });
+                    const accepted = stackDestination === "new-section"
+                      ? moveStack({ stackId: moving.id, beforeSectionId: section })
+                      : moveStack({ stackId: moving.id, sectionId: section, index: Number(position) });
+                    if (!accepted) return;
                   } else {
                     moveItem({
                       itemId: moving.id,

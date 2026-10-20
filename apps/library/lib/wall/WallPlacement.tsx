@@ -2,6 +2,7 @@ import { Menu } from "@base-ui/react/menu";
 import { Ellipsis, GripVertical } from "lucide-react";
 import { useState, type ComponentProps } from "react";
 import { Button } from "../../components/ui/button";
+import { ScreenReaderOnly } from "../../components/ui/ScreenReaderOnly";
 import type { WallTree } from "./WallTree";
 
 export function WallPlacement(props: {
@@ -52,12 +53,14 @@ export function WallPlacement(props: {
                 >
                   Edit
                 </Menu.Item>
-                <Menu.Item
-                  className="cursor-pointer px-3 py-2 outline-none data-[highlighted]:bg-muted"
-                  onClick={() => onRequestMove(placement.id, triggerId)}
-                >
-                  Move…
-                </Menu.Item>
+                <ScreenReaderOnly>
+                  <Menu.Item
+                    className="cursor-pointer px-3 py-2 outline-none data-[highlighted]:bg-muted"
+                    onClick={() => onRequestMove(placement.id, triggerId)}
+                  >
+                    Move…
+                  </Menu.Item>
+                </ScreenReaderOnly>
                 <Menu.Item
                   className="cursor-pointer px-3 py-2 text-destructive outline-none data-[highlighted]:bg-muted"
                   onClick={() => onRequestDelete(placement.brickId, triggerId)}

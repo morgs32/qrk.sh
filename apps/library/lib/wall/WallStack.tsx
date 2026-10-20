@@ -1,6 +1,7 @@
 import { Fragment, type ComponentProps } from "react";
 import { GripVertical } from "lucide-react";
 import { Button } from "../../components/ui/button";
+import { ScreenReaderOnly } from "../../components/ui/ScreenReaderOnly";
 import { InsertionSeparator } from "./InsertionSeparator";
 import { WallRow } from "./WallRow";
 import type { WallTree } from "./WallTree";
@@ -41,14 +42,16 @@ export function WallStack(props: {
           <GripVertical className="size-4" aria-hidden="true" />
         </Button>
         <span className="min-w-0 truncate">{stack.name}</span>
-        <Button
-          id={`${scope}-stack-move-${stack.id}`}
-          variant="ghost"
-          className="h-7 rounded-none px-2 text-xs"
-          onClick={() => onRequestMoveStack(stack.id, `${scope}-stack-move-${stack.id}`)}
-        >
-          Move…
-        </Button>
+        <ScreenReaderOnly>
+          <Button
+            id={`${scope}-stack-move-${stack.id}`}
+            variant="ghost"
+            className="h-7 rounded-none px-2 text-xs"
+            onClick={() => onRequestMoveStack(stack.id, `${scope}-stack-move-${stack.id}`)}
+          >
+            Move…
+          </Button>
+        </ScreenReaderOnly>
       </div>
       {stack.rows.map((row) => (
         <Fragment key={row.id}>

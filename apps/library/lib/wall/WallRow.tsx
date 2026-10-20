@@ -9,11 +9,9 @@ export function WallRow(props: {
   scope: string;
   selectedBrickId: ComponentProps<typeof WallTree>["selectedBrickId"];
   onEditBrick: ComponentProps<typeof WallTree>["onEditBrick"];
-  onRequestMove: ComponentProps<typeof WallPlacement>["onRequestMove"];
   onRequestDelete: ComponentProps<typeof WallPlacement>["onRequestDelete"];
 }) {
-  const { row, wallId, scope, selectedBrickId, onEditBrick, onRequestMove, onRequestDelete } =
-    props;
+  const { row, wallId, scope, selectedBrickId, onEditBrick, onRequestDelete } = props;
   return (
     <div data-wall-row={row.id} className="flex min-w-0 items-start">
       {row.placements.map((placement) => (
@@ -28,7 +26,6 @@ export function WallRow(props: {
             scope={scope}
             selected={selectedBrickId === placement.brickId}
             onEditBrick={onEditBrick}
-            onRequestMove={onRequestMove}
             onRequestDelete={onRequestDelete}
           />
         </Fragment>

@@ -7,8 +7,10 @@ import { instagramCardView } from "./InstagramCard";
 import { instagramPostGridView } from "./InstagramPostGrid";
 import { instagramMediaFooterView } from "./InstagramMediaFooter";
 import { InstagramPlaceholder } from "./InstagramPlaceholder";
+import { InstagramLineIcon } from "./InstagramLineIcon";
 
 export const instagramView = makeModuleView(instagramV1, {
+  LineIcon: InstagramLineIcon,
   form: InstagramForm,
   default: {
     placeholder() {

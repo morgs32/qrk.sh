@@ -6,8 +6,10 @@ import { githubActivityV1 } from "./githubActivityV1";
 import { GitHubActivityForm } from "./GitHubActivityForm";
 import { activityCalendarView } from "./ActivityCalendar";
 import { GitHubActivityPlaceholder } from "./GitHubActivityPlaceholder";
+import { GitHubActivityLineIcon } from "./GitHubActivityLineIcon";
 
 export const githubActivityView = makeModuleView(githubActivityV1, {
+  LineIcon: GitHubActivityLineIcon,
   form: GitHubActivityForm,
   default: {
     placeholder() {

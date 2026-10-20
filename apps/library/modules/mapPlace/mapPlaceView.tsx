@@ -4,8 +4,10 @@ import { defaultSpec } from "./generator/defaultSpec";
 import { mapPlaceV1 } from "./mapPlaceV1";
 import { mapCanvasView } from "./MapCanvas";
 import { MapPlaceForm } from "./MapPlaceForm";
+import { MapPlaceLineIcon } from "./MapPlaceLineIcon";
 
 export const mapPlaceView = makeModuleView(mapPlaceV1, {
+  LineIcon: MapPlaceLineIcon,
   form(props) {
     const { state, session, brickId, onCancel } = props;
     return <MapPlaceForm state={state} session={session} brickId={brickId} onCancel={onCancel} />;

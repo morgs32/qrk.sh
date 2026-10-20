@@ -36,11 +36,22 @@ const ParamsSchema = Schema.Struct({
   brickId: Schema.optional(Schema.String),
 });
 
-export function DrawerHeader() {
+export function DrawerHeader(props: {
+  open: boolean;
+  cardStyle: boolean;
+  onCardStyleChange: (value: boolean) => void;
+}) {
+  const { open, cardStyle, onCardStyleChange } = props;
   const params = useValidatedParams(ParamsSchema);
   const routeId = useMatches({ select: (matches) => matches.at(-1)?.routeId });
   const navigate = useNavigate();
-  const { availableWidth, activeBreakpoint, setSelectedBreakpoint } = useWallViewport();
+  const {
+    availableWidth,
+    activeBreakpoint,
+    setSelectedBreakpoint,
+    displayPlaceholders,
+    setDisplayPlaceholders,
+  } = useWallViewport();
   const session = UserApp.useInitializedSession();
   const { db } = useZerospinUserInitializedState();
   const siteDraft = useSiteStore((state) => state.site);
@@ -160,7 +171,10 @@ export function DrawerHeader() {
   const moduleLabel = moduleId === undefined ? undefined : modulesHash[moduleId].label;
 
   return (
-    <header className="flex shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-border/60 px-4 py-2.5">
+    <header
+      data-testid="drawer-navbar"
+      className="flex h-full min-w-0 shrink-0 items-center gap-4 overflow-x-auto whitespace-nowrap px-4 pr-16"
+    >
       {isSiteSettings || isPageSettings ? (
         <div className="flex min-w-0 items-center gap-2">
           {isSiteSettings ? (
@@ -173,7 +187,7 @@ export function DrawerHeader() {
           </h1>
         </div>
       ) : (
-        <nav aria-label="Drawer breadcrumbs" className="flex min-w-0 items-center gap-2">
+        <nav aria-label="Drawer breadcrumbs" className="flex shrink-0 items-center gap-2">
           {params.brickId !== undefined ? (
             <>
               <Link
@@ -196,7 +210,14 @@ export function DrawerHeader() {
             </>
           ) : (
             <>
-              <span>Bricks</span>
+              <Link
+                to="/$username/site/$siteId/page/$pageId/modules"
+                params={params}
+                resetScroll={false}
+                className="underline underline-offset-4"
+              >
+                Bricks
+              </Link>
               {moduleLabel === undefined ? null : (
                 <>
                   <span aria-hidden className="text-muted-foreground">
@@ -209,7 +230,7 @@ export function DrawerHeader() {
           )}
         </nav>
       )}
-      <div className="ml-auto flex shrink-0 items-center gap-1">
+      <div className="ml-auto flex shrink-0 items-center gap-3">
         {!isSiteSettings && !isPageSettings ? (
           <TooltipProvider>
             <div
@@ -237,6 +258,22 @@ export function DrawerHeader() {
             </div>
           </TooltipProvider>
         ) : null}
+        <label className="flex cursor-pointer items-center gap-2 text-xs">
+          <input
+            type="checkbox"
+            checked={cardStyle}
+            onChange={(event) => onCardStyleChange(event.target.checked)}
+          />
+          Cards
+        </label>
+        <label className="flex cursor-pointer items-center gap-2 text-xs">
+          <input
+            type="checkbox"
+            checked={displayPlaceholders}
+            onChange={(event) => setDisplayPlaceholders(event.target.checked)}
+          />
+          Display placeholders
+        </label>
         {isDirty ? (
           <Button
             type="button"
@@ -291,37 +328,39 @@ export function DrawerHeader() {
             {canPublishPage ? "Publish Page" : "Publish Updates"}
           </Button>
         ) : null}
-        <Button
-          type="button"
-          variant={isDirty ? "destructive" : "ghost"}
-          size={isDirty ? "sm" : "icon"}
-          className={isDirty ? "h-8 cursor-pointer" : "size-8 cursor-pointer"}
-          aria-label={isDirty ? "Cancel" : "Close drawer"}
-          onClick={() => {
-            if (isDirty && isSiteSettings) {
-              const store = useSiteStore.getState();
-              store.setName(baseline.site.name);
-              store.setDescription(baseline.site.description);
-              store.setLogoUrl(baseline.site.logoUrl);
-              store.setFaviconLightUrl(baseline.site.faviconLightUrl);
-              store.setFaviconDarkUrl(baseline.site.faviconDarkUrl);
-              store.setCardStyle(baseline.site.cardStyle);
-            }
-            if (isDirty && isPageSettings) {
-              const store = usePageStore.getState();
-              store.setTitle(baseline.page.title);
-              store.setDescription(baseline.page.description);
-            }
-            void navigate({
-              to: "/$username/site/$siteId/page/$pageId",
-              params,
-              resetScroll: false,
-            });
-          }}
-        >
-          <X className="size-3.5" aria-hidden />
-          {isDirty ? "Cancel" : null}
-        </Button>
+        {open ? (
+          <Button
+            type="button"
+            variant={isDirty ? "destructive" : "ghost"}
+            size={isDirty ? "sm" : "icon"}
+            className={isDirty ? "h-8 cursor-pointer" : "size-8 cursor-pointer"}
+            aria-label={isDirty ? "Cancel" : "Close drawer"}
+            onClick={() => {
+              if (isDirty && isSiteSettings) {
+                const store = useSiteStore.getState();
+                store.setName(baseline.site.name);
+                store.setDescription(baseline.site.description);
+                store.setLogoUrl(baseline.site.logoUrl);
+                store.setFaviconLightUrl(baseline.site.faviconLightUrl);
+                store.setFaviconDarkUrl(baseline.site.faviconDarkUrl);
+                store.setCardStyle(baseline.site.cardStyle);
+              }
+              if (isDirty && isPageSettings) {
+                const store = usePageStore.getState();
+                store.setTitle(baseline.page.title);
+                store.setDescription(baseline.page.description);
+              }
+              void navigate({
+                to: "/$username/site/$siteId/page/$pageId",
+                params,
+                resetScroll: false,
+              });
+            }}
+          >
+            <X className="size-3.5" aria-hidden />
+            {isDirty ? "Cancel" : null}
+          </Button>
+        ) : null}
       </div>
     </header>
   );

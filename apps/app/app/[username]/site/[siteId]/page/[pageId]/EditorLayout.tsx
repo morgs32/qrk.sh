@@ -1,7 +1,7 @@
 "use client";
 
-import { type ReactNode } from "react";
-import { useMatches } from "@tanstack/react-router";
+import { useState, type ReactNode } from "react";
+import { useLocation, useMatches } from "@tanstack/react-router";
 import { Drawer } from "@qrk.sh/library/Drawer";
 
 import { useAuth, useUser } from "@clerk/react";
@@ -19,6 +19,7 @@ import { Toolbars } from "../../Toolbars/Toolbars";
 
 import { MainColumns } from "./MainColumns";
 import { WallEditorProvider } from "./WallEditorProvider";
+import { DrawerHeader } from "./(drawer)/DrawerHeader";
 
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 import { getClerkToken } from "@/lib/getClerkToken";
@@ -37,6 +38,8 @@ export default function EditorLayout(props: { children: ReactNode }) {
     select: (matches) =>
       matches.some((match) => match.routeId === "/$username/site/$siteId/page/$pageId/_drawer"),
   });
+  const pathname = useLocation({ select: (location) => location.pathname });
+  const [previewCards, setPreviewCards] = useState<boolean | null>(null);
   const { user } = useUser();
   const { getToken } = useAuth();
   const session = UserApp.useInitializedSession();
@@ -83,7 +86,7 @@ export default function EditorLayout(props: { children: ReactNode }) {
   });
 
   return (
-    <BrickCardStyleContext value={site?.cardStyle ?? false}>
+    <BrickCardStyleContext value={previewCards ?? site?.cardStyle ?? false}>
       <ImageUploadRuntimeContext
         value={{
           runPromise: (program, options) =>
@@ -93,12 +96,24 @@ export default function EditorLayout(props: { children: ReactNode }) {
         <WallViewportProvider key={documentKey}>
           <WallEditorProvider>
             <div data-editor-split className="relative h-full min-h-0 overflow-hidden">
-              <WallPreviewViewport toolbar={<Toolbars />} drawerOpen={drawerOpen}>
+              <WallPreviewViewport
+                toolbar={<Toolbars />}
+                drawerOpen={drawerOpen}
+                closedDrawerHeight={56}
+              >
                 <MainColumns />
               </WallPreviewViewport>
               <Drawer
                 side="bottom"
                 open={drawerOpen}
+                persistentHeader={
+                  <DrawerHeader
+                    key={pathname}
+                    open={drawerOpen}
+                    cardStyle={previewCards ?? site?.cardStyle ?? false}
+                    onCardStyleChange={setPreviewCards}
+                  />
+                }
                 animated={
                   drawerOpen ||
                   (typeof document !== "undefined" &&

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, type ReactNode } from "react";
+import { useContext, useEffect, type ReactNode } from "react";
 import { useNavigate, useParams, useSearch } from "@tanstack/react-router";
 import { useLiveQuery } from "@zerospin/react";
 import { makeId, stageAggregateSessionCommand } from "@zerospin/sdk/browser";
@@ -19,10 +19,12 @@ import { pageV3 } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV3"
 import { WallEditorContext } from "./WallEditorContext";
 import { UserApp } from "@/zerospin/userSession";
 import { BrickWrapper } from "@qrk.sh/library/BrickWrapper";
+import { BrickCardStyleContext } from "@qrk.sh/library/BrickCardStyleContext";
 
 /** App owns saved rows and commands; shared wall controls receive presentation and callbacks. */
 export function WallEditorProvider(props: { children: ReactNode }) {
   const { children } = props;
+  const cardStyle = useContext(BrickCardStyleContext);
   const params = useParams({ from: "/$username/site/$siteId/page/$pageId" });
   const pageId = Schema.decodeUnknownSync(makeModelIdSchema(pageV3))(params.pageId);
   const search = useSearch({ from: "/$username/site/$siteId/page/$pageId" });
@@ -141,17 +143,23 @@ export function WallEditorProvider(props: { children: ReactNode }) {
                                   module === undefined ? (
                                     <p role="alert">Brick unavailable</p>
                                   ) : brick.state === null || isNonEmptySpec(placement.spec) ? (
-                                    <BrickWrapper className="h-auto w-full min-w-0">
-                                      <Component
-                                        state={brick.state}
-                                        breakpoint={breakpoint}
-                                        spec={
-                                          isNonEmptySpec(placement.spec)
-                                            ? placement.spec
-                                            : module.defaultSpec
-                                        }
-                                      />
-                                    </BrickWrapper>
+                                    <div
+                                      data-brick-surface=""
+                                      data-card-style={cardStyle}
+                                      className="brick-hover-target relative min-w-0"
+                                    >
+                                      <BrickWrapper className="brick-hover-surface h-auto w-full min-w-0">
+                                        <Component
+                                          state={brick.state}
+                                          breakpoint={breakpoint}
+                                          spec={
+                                            isNonEmptySpec(placement.spec)
+                                              ? placement.spec
+                                              : module.defaultSpec
+                                          }
+                                        />
+                                      </BrickWrapper>
+                                    </div>
                                   ) : (
                                     <p role="alert">Invalid Brick spec</p>
                                   ),

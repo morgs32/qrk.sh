@@ -30,9 +30,9 @@ export function WallStack(props: {
   return (
     <div
       data-wall-stack={stack.id}
-      className="group/stack relative min-w-0 border border-transparent px-1 pb-1 pt-7 hover:border-zinc-200 focus-within:border-zinc-200 data-[drop-active=true]:border-blue-500 data-[drop-side=left]:border-l-2 data-[drop-side=left]:border-l-blue-500 data-[drop-side=right]:border-r-2 data-[drop-side=right]:border-r-blue-500"
+      className="group/stack relative min-w-0 outline outline-1 -outline-offset-1 outline-transparent hover:outline-zinc-200 focus-within:outline-zinc-200 data-[drop-active=true]:outline-blue-500"
     >
-      <div className="absolute inset-x-0 top-0 flex h-7 items-center gap-1 text-xs text-muted-foreground opacity-0 transition-opacity group-hover/stack:opacity-100 group-focus-within/stack:opacity-100 motion-reduce:transition-none [@media(hover:none)]:opacity-100 [@media(pointer:coarse)]:opacity-100">
+      <div className="absolute left-0 top-0 z-30 flex h-7 max-w-[calc(100%-3.5rem)] items-center gap-1 bg-background/95 text-xs text-muted-foreground opacity-0 transition-opacity group-hover/stack:opacity-100 group-focus-within/stack:opacity-100 motion-reduce:transition-none [@media(hover:none)]:opacity-100 [@media(pointer:coarse)]:opacity-100">
         <Button
           id={`${scope}-stack-grip-${stack.id}`}
           variant="ghost"
@@ -42,7 +42,7 @@ export function WallStack(props: {
         >
           <GripVertical className="size-4" aria-hidden="true" />
         </Button>
-        <span className="min-w-0 flex-1 truncate">{stack.name}</span>
+        <span className="min-w-0 truncate">{stack.name}</span>
         <Button
           id={`${scope}-stack-move-${stack.id}`}
           variant="ghost"

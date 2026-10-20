@@ -380,7 +380,7 @@ export function WallTree(props: {
       ref={rootRef}
       data-wall-editor={wallId}
       tabIndex={-1}
-      className="relative min-h-full min-w-0 w-full p-3 outline-none"
+      className="relative min-h-full min-w-0 w-full outline-none"
       aria-label={`${breakpoint} Wall editor`}
     >
       <div ref={sectionsRef}>
@@ -421,16 +421,18 @@ export function WallTree(props: {
         onAdd={onAdd}
       />
       {onAddSection && (
-        <Button
-          type="button"
-          variant="ghost"
-          className="mt-2 h-7 w-full rounded-none border border-dashed border-zinc-200 text-xs text-muted-foreground"
-          onClick={() => {
-            if (onAddSection(null) !== false) announce("Section added with an empty Stack.");
-          }}
-        >
-          + Add Section
-        </Button>
+        <div className="relative h-0">
+          <Button
+            type="button"
+            variant="ghost"
+            className="absolute right-0 top-0 z-20 h-7 rounded-none border border-dashed border-zinc-200 bg-background/95 text-xs text-muted-foreground"
+            onClick={() => {
+              if (onAddSection(null) !== false) announce("Section added with an empty Stack.");
+            }}
+          >
+            + Add Section
+          </Button>
+        </div>
       )}
       {moving && (
         <WallMoveDialog

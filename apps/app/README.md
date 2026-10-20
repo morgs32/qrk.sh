@@ -273,8 +273,10 @@ class and `--qrk-inset-inline`: 16px gutters become 30px when both the document
 viewport and header reach 720px. The editor appears once the browser session is
 ready. Its four browser frames render the Page's independent breakpoint Walls.
 App owns optimistic session editing and form drafts; commands materialize the
-same saved models authoritatively in the user aggregate. Public website rendering
-and a production site navbar remain deferred.
+same saved models authoritatively in the user aggregate. The active preview includes
+the restored 64px site navbar below its browser chrome and above Wall content.
+Its wordmark shows the saved site name, or the current name draft while Site
+Settings is open. Cancel restores the saved name. Public website rendering remains deferred.
 
 ## Routes and transitions
 
@@ -311,22 +313,29 @@ The page layout keeps site/page settings drafts, `MainColumns`, the four saved
 Wall previews, and the authenticated user session mounted. `EditorLayout` also
 owns the persistent bottom drawer shell.
 Matched route IDs determine its `open` state through a pathless drawer layout;
-catalog and module-detail routes are sibling leaves. The common drawer layout
-renders `DrawerHeader`, which owns catalog breadcrumbs, the brick-detail
+catalog and module-detail routes are sibling leaves. `EditorLayout` supplies
+`DrawerHeader` through the shared Drawer's `persistentHeader` slot. It owns catalog breadcrumbs, the brick-detail
 heading **Update your {collectionName} brick**, the left-side underlined
 **← Bricks** catalog link and **/** separator, publication actions, and
-Close or settings Save/Cancel. `Toolbars` uses matched route IDs to choose the
-route's controls.
+Close or settings Save/Cancel. The fixed 56px navigation remains visible when
+closed, stays on one line, and scrolls horizontally on narrow screens. Bricks
+opens the catalog; Close/Cancel appears only while the drawer is open.
+`Toolbars` retains the separate floating Page controls and breakpoint controls.
 
 The drawer occupies the bottom `50dvh` on desktop and mobile. Opening it keeps
 the browser frame's height and adds `50dvh` of trailing scroll space, so the
-frame bottom remains reachable above the drawer. Scroll position is preserved
+frame bottom remains reachable above the drawer. Closed state reserves 56px
+for persistent navigation. Scroll position is preserved
 on opening and clamped on closing; an already bottom-anchored preview stays at
 the end during resizing. Shared Wall controls own drag gestures in the active pane.
 
-On catalog, module-detail, and brick-detail routes, **sm / md / lg / xl** sit on
-the right side of the drawer header beside publication controls. The header wraps
-its actions when needed. These select **360 / 720 / 1080 / 1440px** browser frames;
+On browsing/editor routes, **sm / md / lg / xl** sit on the
+right side of the drawer header beside **Cards**, **Display placeholders**, and
+publication controls. Cards and Display placeholders are adjacent local preview
+toggles and remain usable while closed. Cards starts from the saved Site style
+and changes the Wall/catalog preview without saving Site Settings; Display
+placeholders switches catalog examples to their module placeholders. The toggles
+survive drawer navigation in the mounted editor. Breakpoints select **360 / 720 / 1080 / 1440px** browser frames;
 widths larger than the available composition are disabled. Four frames stay
 mounted around one editor session on every editor route. Page and Site Settings
 display no breakpoint selector. The separate `/breakpoints` route retains its
@@ -338,7 +347,7 @@ insufficient-width message appears. Catalog previews follow the active width.
 sm/md show a Safari-like mobile address pill; lg/xl show desktop window dots and a
 centered address bar. Both display static `qrk.sh`, remain noninteractive, and
 are hidden from assistive technology. Chrome slides with its breakpoint pane;
-reduced motion skips the slide. Each frame body renders its Wall's Sections,
+reduced motion skips the slide. The active frame body renders the site navbar and its Wall's Sections,
 Stacks, Rows, and placed Bricks through the shared controlled components. Only
 the active pane registers drag targets and interactions. Placement cells use the
 Wall's logical breakpoint and fill their Row cell; catalog `defaultWidth` is
@@ -346,13 +355,14 @@ not applied to placed content.
 
 App consumes shared `WallPreviewViewport` and `WallPreviewToolbar` source. The
 viewport adds 32px above the frame and 43px below it, making every frame
-`calc(100dvh - 75px)` high, including its 48px browser header. The frame bottom
-bisects the 38px floating toolbar, positioned 24px from the viewport bottom;
+`calc(100dvh - 75px)` high, including its 48px browser header. Frame dimensions
+stay fixed while the 38px floating toolbar sits 24px above the persistent
+bar when closed, or above the open drawer;
 toolbar controls are 28px high. App's floating toolbar remains visible only on
 the editor index and `/breakpoints` routes, while drawer routes show none.
 
 App imports the shared `Drawer` from `@qrk.sh/library/Drawer` and passes
-`open`. Its shell slides with a 300ms CSS transform; editor height and padding
+`open` and `persistentHeader`. Its shell slides with a 300ms CSS transform; editor height and padding
 do not animate. TanStack Router's `defaultViewTransition` owns native document
 transitions during regular and history navigation. The drawer route marks its
 DOM with `viewTransitionName: "app-drawer"`; CSS animates only an outgoing
@@ -361,15 +371,15 @@ matched drawer snapshots have no animation, so opening and navigation between
 drawer routes have no snapshot entrance. This preserves the existing React
 `19.2.7` version without relying on an unavailable React `ViewTransition`
 export. Browsers without native View Transitions close immediately. Reduced
-motion skips positional animation. The shared Drawer keeps closed content
+motion skips positional animation. The shared Drawer keeps its closed body
 inert and hidden from assistive technology, releases it after exit, and
 restores focus to the opener when appropriate. The transition overlay allows
 pointer events through. This supersedes plan 007's animated grid-row
 reservation and snapshot entrance; its unrelated verification items remain
 separate.
 
-The common drawer layout renders one `DrawerHeader` for brick browsing/editing
-and Page/Site Settings. Settings Save/Cancel keep their opening baselines and
+One persistent `DrawerHeader` serves brick browsing/editing
+and Page/Site Settings; the route layout renders only its body. Settings Save/Cancel keep their opening baselines and
 discard behavior. Publication status comes from live models rather than settings
 draft stores.
 

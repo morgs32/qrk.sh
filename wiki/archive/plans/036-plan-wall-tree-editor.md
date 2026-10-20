@@ -323,6 +323,12 @@ qrk.sh/
 7. **Source-reviewed seams.** Focused review confirmed canonical ownership, stable-anchor membership, cross-Wall restrictions, Stack capacity, missing/deleted-resource guards, and request/revision checks. Provider completions and spec completion cannot recreate deleted records. App spec generation derives breakpoint through Row → Stack → Section → Wall. Session replacement/disposal unsubscribes, closes requests, and prevents late completion. These race/refusal paths and persisted spec generation were reviewed in source; they were not injected as runtime scenarios. Ordinary provider completion, moves, deletion, and the local module-limit refusal were exercised as described above.
 8. **Verification scope.** Used existing Nx development/Storybook targets, manual browser interaction, read-only canonical inspection, and focused source review. Scoped formatting covered changed source. No test suite, backend integration test, build/typecheck gate, or standalone automated check was added or required. Public rendering, production deployment, and the explicitly excluded editor capabilities remain outside this plan.
 
+## Navbar follow-up, October 20, 2026
+
+1. The user requested App adoption of the persistent drawer navbar after this plan's initial completion. App now supplies its existing `DrawerHeader` through `persistentHeader`, reserves 56px while closed, and keeps Cards beside Display placeholders. The original floating Page controls remain available. Local preview toggles do not write Site settings.
+2. Restored the historical `SiteHeader` and `Wordmark` inside the active breakpoint frame, above Wall content. The header retains its 64px height, saved site-name link, and Site Settings draft/Cancel behavior. This is editor preview presentation; public rendering remains outside scope.
+3. Browser verification covered catalog/module/form navigation, close/reopen and focus restoration, working card styling and catalog placeholders, site-name draft/Cancel, and unsaved Brick-form close/reopen. At 390×844 the navigation slot stays 56px, scrolls horizontally, and the open drawer is 422px. Viewport/media overrides were restored. No persisted data or declarations changed.
+
 ## Remaining work
 
 None.

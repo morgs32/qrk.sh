@@ -7,6 +7,7 @@ import { useReducedMotion } from "framer-motion";
 import { BREAKPOINTS } from "@qrk.sh/library/breakpoints";
 import { WallBreakpointPane } from "@qrk.sh/library/WallBreakpointPane";
 import { useWallViewport } from "@qrk.sh/library/WallViewportProvider";
+import { SiteHeader } from "../../SiteHeader";
 
 export function Grid() {
   const { activeBreakpoint } = useWallViewport();
@@ -67,7 +68,14 @@ export function Grid() {
                 role="region"
                 aria-label={`${row.id} page preview`}
               >
-                {isActive ? editor.renderWall(row.id) : null}
+                {isActive ? (
+                  <>
+                    <div className="@container">
+                      <SiteHeader />
+                    </div>
+                    {editor.renderWall(row.id)}
+                  </>
+                ) : null}
               </div>
             </WallBreakpointPane>
           );

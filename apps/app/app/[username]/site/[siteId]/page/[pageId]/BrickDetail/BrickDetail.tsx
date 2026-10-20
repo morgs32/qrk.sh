@@ -3,7 +3,8 @@
 import { modulesHash } from "@qrk.sh/library";
 import { UserApp } from "@/zerospin/userSession";
 import { pageV2 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV2";
-import { GridItemPreview } from "@qrk.sh/library/GridItemPreview";
+import { BREAKPOINTS } from "@qrk.sh/library/breakpoints";
+import { BrickCardStyleContext } from "@qrk.sh/library/BrickCardStyleContext";
 import { libraryModule } from "@qrk.sh/library/libraryModule";
 import { useWallViewport } from "@qrk.sh/library/WallViewportProvider";
 import { isNonEmptySpec } from "@json-render/core";
@@ -11,9 +12,10 @@ import { makeModelIdSchema } from "@zerospin/core/models/make/makeModelIdSchema"
 import { stageAggregateSessionCommand } from "@zerospin/core/aggregateSession/stageCommand/stageAggregateSessionCommand";
 import { useLiveQuery } from "@zerospin/react";
 import { Schema } from "effect";
-import { useLayoutEffect, useRef, useState } from "react";
+import { useContext, useLayoutEffect, useRef, useState } from "react";
 
 import { useValidatedParams } from "@/hooks/useValidatedParams";
+import { BrickWrapper } from "../../../../../../../../library/components/brick/BrickWrapper";
 
 const ParamsSchema = Schema.Struct({
   username: Schema.String,
@@ -29,6 +31,9 @@ function isBrickId(value: string): value is `brk_${string}` {
 export function BrickDetail() {
   const { activeBreakpoint } = useWallViewport();
   const breakpoint = activeBreakpoint ?? "sm";
+  const cardStyle = useContext(BrickCardStyleContext);
+  const entry = BREAKPOINTS.find((row) => row.id === breakpoint);
+  if (entry === undefined) throw new Error(`Unknown breakpoint: ${breakpoint}`);
   const params = useValidatedParams(ParamsSchema);
   const session = UserApp.useInitializedSession();
   const [editorEpoch, setEditorEpoch] = useState(0);
@@ -116,12 +121,6 @@ export function BrickDetail() {
       )(rawSpec))
       ? rawSpec
       : undefined;
-  const gridItem =
-    placement === undefined
-      ? undefined
-      : typeof placement.gridItem === "string"
-        ? (JSON.parse(placement.gridItem) as { w: number; h: number })
-        : (placement.gridItem as { w: number; h: number });
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
       <div className="min-h-0 flex-1 overflow-y-auto pb-6">
@@ -156,7 +155,6 @@ export function BrickDetail() {
                         brickId: brickRow.id,
                         moduleId: brickRow.moduleId,
                         state,
-                        measurements: null,
                       },
                     });
                   }}
@@ -168,14 +166,19 @@ export function BrickDetail() {
               </div>
             ) : (
               <div className="mt-8 overflow-auto">
-                <GridItemPreview breakpoint={breakpoint} w={gridItem?.w ?? 1} h={gridItem?.h ?? 1}>
-                  <div
-                    className="size-full qrk-bricks overflow-hidden"
+                <div
+                  data-brick-surface=""
+                  data-card-style={cardStyle}
+                  className="brick-hover-target relative shrink-0"
+                  style={{ width: entry.previewWidth }}
+                >
+                  <BrickWrapper
+                    className="brick-hover-surface"
                     data-testid="selected-brick-preview"
                   >
                     <BrickComponent breakpoint={breakpoint} state={brickRow.state} spec={spec} />
-                  </div>
-                </GridItemPreview>
+                  </BrickWrapper>
+                </div>
               </div>
             )}
           </section>

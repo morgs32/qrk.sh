@@ -12,7 +12,6 @@ import { FigmaThumbnailLineIcon } from "./FigmaThumbnailLineIcon";
 export const figmaThumbnailView = makeModuleView(figmaThumbnailV1, {
   LineIcon: FigmaThumbnailLineIcon,
   form: FigmaThumbnailForm,
-  measureOnSave: true,
   default: {
     placeholder() {
       return <FigmaThumbnailPlaceholder />;

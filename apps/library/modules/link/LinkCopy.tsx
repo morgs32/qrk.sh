@@ -1,6 +1,4 @@
-import { layout, prepare } from "@chenglou/pretext";
 import { Image } from "@unpic/react";
-import { useLayoutEffect, useRef, useState } from "react";
 import { Link } from "../../components/Link";
 import { makeComponentView } from "../../make/makeComponentView";
 import { linkCopyComponent } from "./generator/LinkCopyComponent";
@@ -8,88 +6,11 @@ import { linkCopyComponent } from "./generator/LinkCopyComponent";
 export const linkCopyView = makeComponentView(linkCopyComponent, {
   component(props) {
     const { url, iconUrl, title } = props;
-    const copyRef = useRef<HTMLDivElement>(null);
-    const headerRef = useRef<HTMLDivElement>(null);
-    const urlRef = useRef<HTMLDivElement>(null);
-    const titleRef = useRef<HTMLHeadingElement>(null);
-    const [copyWidth, setCopyWidth] = useState<number>();
-    const [fontSize, setFontSize] = useState<number>();
     const href = url.length > 0 ? url : undefined;
 
-    useLayoutEffect(() => {
-      const copy = copyRef.current;
-      const header = headerRef.current;
-      const urlElement = urlRef.current;
-      const heading = titleRef.current;
-      const card = copy?.parentElement;
-      if (!copy || !header || !urlElement || !heading || !card) return;
-
-      const updateFontSize = () => {
-        const copyStyle = getComputedStyle(copy);
-        const headingStyle = getComputedStyle(heading);
-        const horizontalPadding =
-          parseFloat(copyStyle.paddingLeft) + parseFloat(copyStyle.paddingRight);
-        const nextCopyWidth = Math.min(
-          Math.ceil(urlElement.scrollWidth + horizontalPadding),
-          (card.clientWidth * 2) / 3,
-        );
-        setCopyWidth(nextCopyWidth);
-        const width = nextCopyWidth - horizontalPadding;
-        const height =
-          copy.clientHeight -
-          parseFloat(copyStyle.paddingTop) -
-          parseFloat(copyStyle.paddingBottom) -
-          header.offsetHeight -
-          parseFloat(copyStyle.rowGap);
-        const maxSize = parseFloat(copyStyle.fontSize);
-        if (width <= 0 || height <= 0 || !Number.isFinite(maxSize)) return;
-
-        const fits = (size: number) => {
-          const font = `${headingStyle.fontWeight} ${size}px ${headingStyle.fontFamily}`;
-          const prepared = prepare(title, font, {
-            letterSpacing: parseFloat(headingStyle.letterSpacing) || 0,
-          });
-          return layout(prepared, width, size * 1.5).height <= height;
-        };
-
-        let low = 12;
-        let high = Math.max(low, maxSize);
-        if (fits(high)) {
-          setFontSize(high);
-          return;
-        }
-        while (high - low > 0.25) {
-          const middle = (low + high) / 2;
-          if (fits(middle)) low = middle;
-          else high = middle;
-        }
-        setFontSize(low);
-      };
-
-      updateFontSize();
-      const observer = new ResizeObserver(updateFontSize);
-      observer.observe(card);
-      observer.observe(copy);
-      observer.observe(header);
-      document.fonts.addEventListener("loadingdone", updateFontSize);
-      let active = true;
-      void document.fonts.ready.then(() => {
-        if (active) updateFontSize();
-      });
-      return () => {
-        active = false;
-        observer.disconnect();
-        document.fonts.removeEventListener("loadingdone", updateFontSize);
-      };
-    }, [title, url]);
-
     return (
-      <div
-        ref={copyRef}
-        className="flex min-w-0 shrink-0 flex-col gap-4 p-4"
-        style={{ width: copyWidth ?? "50%" }}
-      >
-        <div ref={headerRef} className="flex min-w-0 flex-col gap-1">
+      <div className="flex w-1/2 min-w-0 shrink-0 flex-col gap-4 p-4">
+        <div className="flex min-w-0 flex-col gap-1">
           {iconUrl.length > 0 ? (
             <Image
               alt=""
@@ -103,17 +24,13 @@ export const linkCopyView = makeComponentView(linkCopyComponent, {
               width={32}
             />
           ) : null}
-          <div ref={urlRef} className="min-w-0 truncate">
+          <div className="min-w-0 wrap-break-word">
             <Link href={href}>
               <small className="m-0">{url}</small>
             </Link>
           </div>
         </div>
-        <h2
-          ref={titleRef}
-          className="m-0 min-h-0 overflow-hidden leading-normal"
-          style={fontSize === undefined ? undefined : { fontSize }}
-        >
+        <h2 className="m-0 wrap-break-word leading-normal">
           <Link href={href}>{title}</Link>
         </h2>
       </div>

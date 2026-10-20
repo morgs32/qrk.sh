@@ -22,8 +22,6 @@ export type IModule<MODULE extends string> = {
   registry?: ComponentRegistry;
   defaultSpec: Spec;
   hasPlaceholder: boolean;
-  /** Capture unconstrained placement dimensions before saving brick state. */
-  measureOnSave: boolean;
   /** Display-only markup for an explicitly unconfigured brick (state === null). */
   placeholder?: () => ReactNode;
   Form?: (props: {
@@ -51,10 +49,6 @@ export type IModule<MODULE extends string> = {
     }["bivarianceHack"];
     spec: Spec;
     registry?: ComponentRegistry;
-    w?: number;
-    h?: number;
-    minW?: number;
-    minH?: number;
   };
   stateShape: IShape;
   defaultState: unknown;

@@ -1,21 +1,7 @@
-/** Shared breakpoint ids, preview widths, and grid-width resolution. */
+/** Shared breakpoint ids and preview widths. */
 export const BREAKPOINTS = [
-  { id: "sm", minWidth: 0, previewWidth: 360, gridItemWidth: 45 },
-  { id: "md", minWidth: 720, previewWidth: 720, gridItemWidth: 90 },
-  { id: "lg", minWidth: 1080, previewWidth: 1080, gridItemWidth: 135 },
-  { id: "xl", minWidth: 1440, previewWidth: 1440, gridItemWidth: 180 },
+  { id: "sm", minWidth: 0, previewWidth: 360 },
+  { id: "md", minWidth: 720, previewWidth: 720 },
+  { id: "lg", minWidth: 1080, previewWidth: 1080 },
+  { id: "xl", minWidth: 1440, previewWidth: 1440 },
 ] as const;
-
-/** Smallest integer grid units whose pixel size is ≥ intrinsicPx. */
-export function minGridUnits(gridItemWidth: number, intrinsicPx: number): number {
-  if (intrinsicPx <= 0) return 1;
-  return Math.max(1, Math.ceil(intrinsicPx / gridItemWidth));
-}
-
-/** Map measured grid width to the active breakpoint id. */
-export function resolveBreakpoint(gridWidth: number): (typeof BREAKPOINTS)[number]["id"] {
-  if (gridWidth < BREAKPOINTS[1].minWidth) return "sm";
-  if (gridWidth < BREAKPOINTS[2].minWidth) return "md";
-  if (gridWidth < BREAKPOINTS[3].minWidth) return "lg";
-  return "xl";
-}

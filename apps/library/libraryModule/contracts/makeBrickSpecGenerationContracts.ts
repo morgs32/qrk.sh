@@ -163,7 +163,6 @@ export function makeBrickSpecGenerationContracts(props: {
           attributes: {
             spec: structuredClone(decoded.success),
             specRevision: placementRow.specRevision + 1,
-            measured: null,
             generation: { ...generation, status: "ready", error: null },
           },
         });

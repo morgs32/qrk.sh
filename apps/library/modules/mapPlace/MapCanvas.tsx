@@ -50,10 +50,10 @@ export const mapCanvasView = makeComponentView(mapCanvasComponent, {
     }, [googlePlaceId, latitude, longitude]);
 
     return (
-      <div className="absolute inset-0 overflow-hidden bg-muted">
+      <div className="relative min-h-[200px] w-full overflow-hidden bg-muted">
         <div
           aria-label={`Map of ${name}`}
-          className="size-full"
+          className="absolute! inset-0"
           data-map-place-id={googlePlaceId}
           ref={mapContainerRef}
         />

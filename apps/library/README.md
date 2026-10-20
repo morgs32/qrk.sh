@@ -84,10 +84,10 @@ empty wall. Query-only draft keys and cancellation on unmount were reviewed
 in source. Completed migration verification is recorded in
 [Plan 029](../../wiki/archive/plans/029-plan-tanstack-start.md).
 
-Phase 1 removes the grid contracts against fresh local content. Its approved
-one-time local cutover deletes only the standalone IndexedDB database derived
+Before Zerospin 18.0.0, Phase 1 removed the grid contracts against fresh local
+content. Its approved one-time local cutover covered only the standalone IndexedDB database derived
 from `/qrk-library-command-query-v1`, without a backup or a backup-path change.
-App's matching local session databases and backend state are reset separately.
+App's matching local session databases and backend state were covered separately.
 Earlier origins, unrelated databases, cookies, localStorage preferences, uploads,
 and deployed storage are preserved. This does not authorize future resets.
 
@@ -111,9 +111,8 @@ Unexpected spec-generation executor failures report through
 
 The initializer, browser frames, and viewport owners sit above the route outlet and stay
 mounted across child navigation. Route params keep their Effect Schema
-validation and draft keys. A local React measurement error boundary replaces
-the Next boundary in admin pre-save measurement; rendering failures reject
-Save and cancellation still disposes the pending measurement.
+validation and draft keys. Admin stages state saves synchronously; it mounts no
+hidden measurement render or measurement error boundary.
 
 The root layout mounts the shared `ZerospinDevtoolsLoader` in every environment with the panel initially closed. It stays mounted across route navigation, and owns cleanup when the application unmounts.
 
@@ -138,7 +137,7 @@ remains a separate cancellable browser prerequisite.
 Instagram, GitHub Profile/Activity/Repo, Figma Thumbnail, Link and Map Place stage
 their module's `configure…` command synchronously. The transaction records canonical
 input, request identity and `resolution: resolving`, clears old computed data,
-increments `stateRevision`, and invalidates measurements and active spec generation.
+increments `stateRevision`, and supersedes active spec generation.
 The query displays resolving, ready or failed state. Input correction stays
 available while resolving; an identical resolving input is refused. Failed input
 can be retried with a new request identity. Cancel discards only the unsaved draft.
@@ -161,21 +160,38 @@ normalizes usernames/profile URLs. Link removes fragments and retains its submit
 URL separately from resolved redirect metadata. Map Place keeps autocomplete as
 transient search and stages the selected nonempty place ID.
 
-Figma measures all four ready breakpoint renders with the existing rounded,
-unconstrained DOM wrapper. Its measurement command checks state and spec revisions
-before writing all four dimensions atomically. Admin's raw JSON path retains its
-separate real pre-save measurement; it compares both state and placement specs
-immediately before staging. Other ordinary form saves have no measurement wait.
+Figma provider completion persists its resolved state without rendering hidden
+breakpoint probes. Admin's raw JSON path stages the same synchronous state-update
+command as ordinary state saves. Neither path captures or persists preview dimensions.
 
 Swatch and Icon retains the selected `{ hash, name, svg }` from paged icon search.
 SVG data URLs are derived for presentation. Save validates a complete hex color
 and stages the selected icon and color directly, including the existing/default
 icon when no search runs. There is no Save-time icon request.
 
-The fixed-schema cutover uses `/qrk-library-command-query-v1` for Library's local
-backup and a corresponding namespace for standalone preview sessions. Previous
-backups remain intact. App also requires fresh isolated storage for the new
-state/spec revision fields; no migration or reset is performed automatically.
+Library retains `/qrk-library-command-query-v1` as its standalone backup path.
+Zerospin 18.0.0 derives its storage key from that path, the existing authored
+session scope and the complete canonical `aggregateSessionLock`, including
+locked models, public contracts and the claims schema. Incidental claims values
+outside the resolved path and runtime/build identity do not split storage. First
+adoption changes every existing standalone key and initializes a fresh partition
+from configured seeds, leaving old databases untouched without lookup, migration,
+deletion or fallback. Later, the same scope, path and lock reopen their retained
+partition; changing the lock selects separate storage.
+
+[Plan 031](../../wiki/plans/031-plan-component-jsonrender-previews.md) records the
+preceding 15.0.1 cutover: explicit deletion of only affected local Library/App node
+databases and local `sys_qrk_sh_1` backend state, without backups or an authored
+namespace change. Chrome Library/App and local backend reset/initialization
+succeeded. Its in-app browser legacy deletion was blocked by an old SharedWorker,
+and Library was paused at that time. That legacy deletion and pause are not
+prerequisites for initializing the new 18.0.0 partition; this adoption does not
+delete the legacy database or resolve its owner's lifecycle. Earlier successful
+generation verification followed an API-key refresh and API restart: generated
+JSON appeared, JsonRender changed, and authored markup stayed unchanged. These
+are preceding-cutover observations, not verification of the 18.0.0 adoption.
+Earlier origins, unrelated data, cookies, preferences, uploads, and deployed
+storage remain outside the cutover. No compatibility reader is added.
 
 ## Storybook
 
@@ -260,15 +276,13 @@ in the final named layer.
 | `/ModuleFilmstrip`                | `lib/ModuleFilmstrip.tsx`                    | Shared horizontal module catalog                          |
 | `/Drawer`                         | `lib/Drawer.tsx`                             | Shared Drawer and existing DrawerPresence                 |
 | `/BrickCardStyleContext`          | `lib/BrickCardStyleContext.ts`               | Local boolean catalog-preview appearance                  |
-| `/GridItemPreview`                | `lib/GridItemPreview.tsx`                    | Preview geometry                                          |
 | `/WallViewportProvider`           | `lib/WallViewportProvider.tsx`               | Viewport provider and hooks                               |
 | `/WallBreakpointPane`             | `lib/WallBreakpointPane.tsx`                 | Shared fixed-width browser frame                          |
 | `/WallPreviewViewport`            | `lib/WallPreviewViewport.tsx`                | Shared frame spacing, scrolling, and toolbar placement     |
 | `/WallPreviewToolbar`             | `lib/WallPreviewToolbar.tsx`                 | Shared 38px toolbar shell with 28px controls                |
-| `/breakpoints`                    | `lib/breakpoints.ts`                         | Breakpoint definitions and sizing                         |
+| `/breakpoints`                    | `lib/breakpoints.ts`                         | Breakpoint IDs and canonical preview widths                |
 | `/ImageUploadEnvironment`         | `modules/image/ImageUploadEnvironment.ts`    | Host-supplied file upload Effect returning an image URL   |
 | `/ImageUploadRuntimeContext`      | `modules/image/ImageUploadRuntimeContext.ts` | Image's runner bound to the existing app session          |
-| `/MeasuredBrickWrapper`           | `components/brick/MeasuredBrickWrapper.tsx`  | Content measurement                                       |
 | `/libraryModule`                  | `libraryModule/libraryModule.ts`             | Models and command contracts                              |
 | `/createLibraryStandaloneSession` | `session/createLibraryStandaloneSession.ts`  | Session factory, context, hook, and type                  |
 | `/bricks.css`                     | `bricks.css`                                 | Shared brick styles                                       |
@@ -298,9 +312,16 @@ Library and App share `ModuleFilmstrip` and browse-only module previews. Each ap
 supplies its own module links through `renderModuleLink`; the shared catalog has
 no router dependency. Columns scroll vertically within a horizontal strip.
 Module headings span their columns and stick to the top while previews scroll
-underneath. The active breakpoint's measurement remains for preview sizing;
-drag-only measurements, drag sources, payloads, and insertion gating are removed.
-Module detail screens remain app-owned. Their catalog label is **Bricks**.
+underneath. Catalogs render only the authored Component at the active breakpoint's
+canonical width, with height supplied by its content. They have no grid sizing,
+dimension probes, drag sources, payloads, or insertion gating. Module detail screens
+remain app-owned. Their catalog label is **Bricks**.
+
+Both hosts' module details show **Component** and **JsonRender** side by side for
+`sm`, `md`, `lg`, and `xl`, at 360, 720, 1080, and 1440px respectively. Each preview
+has content height; a row scrolls horizontally when needed. Library retains its
+Generate spec controls and generated JSON display. Generation changes only the
+JsonRender previews; the authored Component remains independent of the spec.
 
 ## Local card appearance spike
 
@@ -310,19 +331,21 @@ previews without adding module catalog or registry props. The flag starts
 `false`, survives drawer navigation while its layout stays mounted, and is not
 persisted on Site, Page, or in localStorage.
 
-Fixed previews retain their sizing: for breakpoint width `W`, card-mode pitch
-is `(W - 16) / 8`, and a `w` by `h` preview is
-`round(w * pitch - 16)` by `round(h * pitch - 16)`. Default mode uses `W / 8`
-with no gap. Cards use an 8px radius, white background, and preview shadow.
-Intrinsic probes measure undecorated module content. Historical grid-border
-and card-layout research remains under `wiki/research/`; no placed-brick wall
-or React Grid Layout renderer remains.
+Cards use an 8px radius, white background, and preview shadow. This decoration
+does not alter a preview's canonical width or derive grid spans or dimensions.
+Historical grid-border and card-layout research remains under `wiki/research/`;
+no placed-brick wall or React Grid Layout renderer remains.
 
 ## Modules and interaction
 
-Catalog previews retain module rendering and intrinsic measurement. They do not
-insert, select, drag, or resize placed bricks. Ordinary links, forms, image
+Catalog previews render authored module content at the active canonical width.
+They do not insert, select, drag, or resize placed bricks. Ordinary links, forms, image
 upload drag/drop, and module-owned interactions remain available.
+
+Link's copy column uses CSS half width and ordinary URL/title wrapping; no
+font-size or column-width fitting runs. Map Place owns a 200px CSS minimum height
+and keeps Mapbox's container-resize observer. These module styles do not measure
+or update Placement geometry.
 
 GitHub Activity constrains its calendar to the brick shell's available width.
 Only the contribution grid and month labels scroll horizontally; Mon/Wed/Fri
@@ -413,7 +436,7 @@ catalog previews. The skeleton respects reduced motion.
 
 The Library drawer's **Display placeholders** checkbox
 starts unchecked and switches eligible catalog previews between their example state
-and placeholder without changing preview measurements. The choice lasts until
+and placeholder at the same canonical width. The choice lasts until
 reload. The shared renderer selects the placeholder only for exact null, before
 state decoding or JSON-render execution. Empty strings, objects, and collections
 still take the normal rendering path. Valid empty specs do not hide placeholders.
@@ -439,28 +462,12 @@ export const bioView = makeComponentView(bioComponent, {
 ```
 
 Descriptors stay separate from React implementations so backend module imports
-remain independent of view code. Optional `sm` / `md` / `lg` / `xl` overlays merge onto `default`
-(component, generator, declared `w`/`h`). Preview sizing is measured unless both
-`w` and `h` are declared on that overlay. Each overlay also accepts independently
-optional `minW` and `minH` in the existing sizing units:
-
-```ts
-sm: { w: 8, h: 4, minW: 4, minH: 2 }, // Declared preview size and minimums.
-md: { minW: 3 }, // Measured width starts at three columns or wider.
-```
-
-Minimums apply to measured previews, with a one-unit floor
-when omitted. They do not inherit between breakpoints. Minimums must be positive
-integers, `minW` cannot exceed eight columns, and declared `w`/`h` cannot be below
-their corresponding minimum. Invalid configuration throws during view construction.
-All Library and App previews apply the same sizing rules. Retained Placement
-geometry remains separate from saved pixel measurements; there are no wall
-resize controls.
-Link's default width is six columns on sm/md and four on lg/xl. Its heights
-remain four rows on sm/md, two on lg, and one on xl.
-Map Place defaults to four rows at every breakpoint. Article defaults to 8×8
-on sm, 6×6 on md, and 4×4 on lg/xl.
-Preview minimums do not enlarge or migrate saved Placement rows.
+remain independent of view code. Optional `sm` / `md` / `lg` / `xl` overlays
+select authored components and generators on top of `default`. View declarations
+and `viewFor` expose no `w`, `h`, `minW`, `minH`, or measurement flags. Canonical
+preview widths belong to `BREAKPOINTS`; modules own their ordinary CSS layout.
+Retained Placement geometry is independent of those previews and is not rewritten
+when content or preview dimensions change.
 
 Module defaults, preview state, and authored rendering discard undeclared fields
 during decoding. `updateBrick` validates declared state fields while ignoring
@@ -472,30 +479,20 @@ for other modules reject the command before mutation. Spec validation remains st
 Pending updates without it must be resubmitted against the current `1.0.0` baseline.
 Existing bricks are normalized on their next state update; there is no bulk migration.
 
-A module view may set `measureOnSave: true`; the default is false, and Figma
-Thumbnail opts in. `useUpdateBrick({ brickId })` owns an explicit SWR mutation and
-returns `updateBrick(state)`, `measurementHost`, `isMutating`, and `cancelSave`. The brick drawer
-and Admin render the hidden host and await the mutation. It renders proposed state
-against each placement's actual Spec and breakpoint, including hidden placements,
-using the existing `MeasuredBrickWrapper` and unconstrained CSS. It captures the
-wrapper's rounded dimensions without adding image-specific sizing or load waits.
-Before staging it rereads the brick and placement specs, rejecting changed specs
-or deleted bricks. Cancel and closing invalidate pending measurement. The forms keep their
-module-specific fetching and state schemas; their Save handlers await this shared Save.
+`useUpdateBrick({ brickId })` returns synchronous `updateBrick(state)`. It checks
+the mounted editor, initialized session, and current brick before staging. The
+brick drawer and Admin render no hidden measurement host and have no measurement
+wait or measurement-only pending controls. Forms retain their own validation,
+provider resolution, uploads, and draft/error handling.
 
-Each placement stores nullable `measured: { widthPx, heightPx }`, with positive
-integer CSS-pixel values and a null default. The brick stores shared state rather
-than a breakpoint map. `updateBrick` accepts `measurements: null` or a complete
-`sm`/`md`/`lg`/`xl` map; the map is transport-only. One command atomically writes
-the decoded brick state and each placement's measurement, preserving `gridItem`,
-visibility, and Spec. A null map clears all four measurements. New placements start
-with null, and spec-at-breakpoint commands clear the affected placement's measurement.
+`updateBrick` accepts `{ brickId, moduleId, state }`, persists decoded shared state,
+increments its revision, and supersedes active placement spec generations. It
+preserves each placement's `gridItem`, visibility, and Spec. Placement has no
+`measured` field, and no command accepts or stores a pixel-measurement map.
 
 ```ts
 {
-  // Measured content size in CSS pixels.
-  measured: { widthPx: 320, heightPx: 268 },
-  // Placement geometry remains in grid units.
+  // Retained placement geometry remains in grid units, independent of previews.
   gridItem: { i: brickId, x: 0, y: 0, w: 4, h: 3 },
 }
 ```
@@ -503,22 +500,32 @@ with null, and spec-at-breakpoint commands clear the affected placement's measur
 `LibraryApp` is created from `libraryBrowserDefinition`. `LibraryLayout` mounts
 its `Initializer`, which owns a fresh browser facade and starts it after commit.
 The initialized content suspends until SQLite is ready. The SPA shell contains
-no initialized session data. The `qrk-library` namespace
-persists the seeded `wal_library` through the SharedWorker's owned IndexedDB VFS.
-Worker identity includes the exact session definition; changed fixed schemas require
-empty affected storage and do not read or translate deprecated rows. The approved
-local phase-1 cutover is described above; the backup path remains unchanged.
+no initialized session data. The standalone session persists seeded `wal_library`
+through the SharedWorker's owned IndexedDB VFS. Its storage namespace and namespace
+lease are derived from the authored scope, `/qrk-library-command-query-v1` path
+and complete canonical session lock. Changed locked definitions open separate
+partitions; the same lock and path reopen their retained data. Reset acts only
+within the current definition's partition. The fresh 18.0.0 partition needs no
+legacy deletion, and the backup path remains unchanged.
+
+The 18.0.0 browser check displayed seeded `wal_library` before and after reload,
+while an independent browser document held the legacy namespace lease and an open
+legacy IndexedDB handle. Read-only before/after fingerprints matched; the legacy
+database was preserved, and the temporary inspection handle and lease were released.
 
 The authored worker is imported through Vite's `?sharedworker&url` query and
 bound through `makeApplicationSharedWorker`. Its entrypoint imports
-`@zerospin/browser/sqlite.wasm?url` from the installed `15.0.1` browser package
+`@zerospin/browser/sqlite.wasm?url` from the installed `18.0.0` browser package
 and registers the existing session definition with `makeSharedWorker`.
-Worker identity, backup paths, source exports, and backend contracts are
-unchanged by the framework migration.
+The worker name includes the session-lock storage key. Backup paths, source
+exports, and backend contracts are unchanged by this adoption.
 
-Closing the last connection drains the owned Node and closes its SQLite storage
-before releasing the namespace lease. Restored resources take precedence over
-the initial seed. DevTools defaults to closed and retains its visibility preference.
+Session disposal detaches that facade. The standalone worker owner's `close()`
+path drains its Node and closes SQLite before releasing the namespace lease;
+last-attachment cleanup does not currently invoke that owner close. Automatic
+last-client shutdown and abrupt tab-death handling remain separate Plan 2 work.
+Within a retained partition, restored resources take precedence over the initial
+seed. DevTools defaults to closed and retains its visibility preference.
 App uses its authenticated `UserApp` initialized session, with a separate wall
 referenced by each Page.
 
@@ -530,15 +537,15 @@ without requiring standalone initialization or reset methods. The shared
 owns identity, claims, initialization, and disposal.
 
 Command execution belongs to each app's session lifecycle. Retained forms stage
-`updateBrick`, module configuration/completion, spec generation, and measurement
+`updateBrick`, module configuration/completion, and spec generation
 commands through the owning session. Library executes locally; App stages
 optimism and synchronizes with the authenticated owner. Local staging durability
 and server finalization are distinct.
 
-`useLiveQuery` returns model-decoded `state`, `spec`, `measured`, and `gridItem`
+`useLiveQuery` returns model-decoded `state`, `spec`, and `gridItem`
 values. Explicit writes and backups use encoded SQLite values. Wall, Brick, and
-Placement schemas are retained: shared state lives on Brick; each Placement
-stores breakpoint-specific Spec, nullable pixel measurement, geometry, and
+Placement relationships are retained: shared state lives on Brick; each Placement
+stores breakpoint-specific Spec, generation/revisions, geometry, and
 visibility. The old add, remove, layout-update, compact, and visibility contracts
 are deleted without replacement geometry or insertion APIs.
 
@@ -571,7 +578,7 @@ aligns the frame bottom with the raised toolbar's center. App retains its
 route-based toolbar visibility, with no floating toolbar on drawer routes.
 
 Library and App resolve browser SQLite WASM from the installed Zerospin
-`15.0.1` package exports. The Library standalone worker imports the same pure
+`18.0.0` package exports. The Library standalone worker imports the same pure
 `librarySessionDefinition` as its host definition. App authors its connected
 `node.worker.ts` entrypoint, and both hosts use `makeApplicationSharedWorker`
 to identify the emitted executable artifact. Vite emits each worker from its
@@ -670,10 +677,8 @@ Admin is a UI route, not an authorization boundary.
 
 Module forms own their drafts and Save/Cancel controls; Admin's JSON draft belongs
 to its route. Save stages one complete
-`updateBrick` command and leaves the current page open; Cancel discards that
-draft and errors, and invalidates pending submissions. Save awaits optional
-placement measurements through the host before staging;
-its pending controls cover the whole operation. Failed saves retain the draft and
+`updateBrick` command synchronously and leaves the current page open; Cancel discards
+that draft and errors. Save captures no dimensions. Failed saves retain the draft and
 show an error. Article validates Markdown strings and the complete state, keeps
 unsaved drafts across session echoes, and follows saved props when clean. Cancel
 remounts its editor to discard Markdown edits and canceled undo history. Article's Admin JSON

@@ -86,7 +86,6 @@ export function makeConfigureGithubProfileContract(props: {
           yield* operations.updatePlacement({
             resourceId: currentPlacement.id,
             attributes: {
-              measured: null,
               generation:
                 currentPlacement.generation?.status === "generating"
                   ? { ...currentPlacement.generation, status: "superseded" }

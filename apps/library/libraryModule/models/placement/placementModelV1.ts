@@ -51,14 +51,6 @@ export function makePlacementModel(props: { brick: ReturnType<typeof makeBrickMo
         }),
       }),
       spec: primitives.json({ schema: placementSpecSchema }),
-      measured: primitives.json({
-        nullable: true,
-        defaultValue: null,
-        schema: Schema.Struct({
-          widthPx: Schema.Int.check(Schema.isGreaterThan(0)),
-          heightPx: Schema.Int.check(Schema.isGreaterThan(0)),
-        }),
-      }),
       gridItem: primitives.json({ schema: gridItemSchema }),
       isVisible: primitives.boolean(),
     },

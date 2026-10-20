@@ -1,4 +1,3 @@
-import { makeFigmaMeasurementContract } from "../modules/figmaThumbnail/makeFigmaMeasurementContract";
 import { makeBrickSpecGenerationContracts } from "./contracts/makeBrickSpecGenerationContracts";
 import { makeConfigureInstagramContract } from "../modules/instagram/makeConfigureInstagramContract";
 import { makeCompleteInstagramContract } from "../modules/instagram/makeCompleteInstagramContract";
@@ -40,7 +39,6 @@ const specGeneration = makeBrickSpecGenerationContracts({
   brick,
   placement,
 });
-const measureFigmaThumbnail = makeFigmaMeasurementContract({ brick, placement });
 const configureInstagram = makeConfigureInstagramContract({ brick, placement });
 const completeInstagram = makeCompleteInstagramContract({ brick, placement });
 const configureGithubActivity = makeConfigureGithubActivityContract({ brick, placement });
@@ -63,7 +61,6 @@ export const libraryModule: {
     placement: typeof placement;
   };
   contracts: {
-    measureFigmaThumbnail: typeof measureFigmaThumbnail;
     generateBrickSpec: typeof specGeneration.generate;
     completeBrickSpecGeneration: typeof specGeneration.complete;
     configureInstagram: typeof configureInstagram;
@@ -99,7 +96,6 @@ export const libraryModule: {
     placement,
   },
   contracts: {
-    measureFigmaThumbnail,
     generateBrickSpec: specGeneration.generate,
     completeBrickSpecGeneration: specGeneration.complete,
     configureInstagram,

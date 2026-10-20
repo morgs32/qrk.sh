@@ -22,8 +22,4 @@ export const articleView = makeModuleView(articleV1, {
     },
     generator: { registry, defaultSpec },
   },
-  sm: { w: 8, h: 8 },
-  md: { w: 6, h: 6 },
-  lg: { w: 4, h: 4 },
-  xl: { w: 4, h: 4 },
 });

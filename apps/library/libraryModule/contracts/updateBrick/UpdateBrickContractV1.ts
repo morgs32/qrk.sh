@@ -31,15 +31,6 @@ export function makeUpdateBrickContract<
     }),
     moduleId: brick.attributes.moduleId,
     state: primitives.json({ schema: Schema.Unknown }),
-    measurements: primitives.json({
-      nullable: true,
-      schema: Schema.Struct({
-        sm: placement.attributes.measured.schema,
-        md: placement.attributes.measured.schema,
-        lg: placement.attributes.measured.schema,
-        xl: placement.attributes.measured.schema,
-      }),
-    }),
   };
 
   return makeAggregateContractVersion(updateBrick, {
@@ -158,10 +149,6 @@ export function makeUpdateBrickContract<
                 currentPlacement.generation?.status === "generating"
                   ? { ...currentPlacement.generation, status: "superseded" }
                   : currentPlacement.generation,
-              measured:
-                payload.measurements === null
-                  ? null
-                  : structuredClone(payload.measurements[breakpoint]),
             },
           });
         }

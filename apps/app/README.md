@@ -47,26 +47,55 @@ port 10020; `PORT` overrides it.
 
 **App / Studio / Pragmatic Tree / Default** isolates the current Atlassian
 Pragmatic Drag and Drop example with local sections, stacks, and peer items.
-Sections contain stacks; stacks contain items with no further nesting or visible
-stack headers. The first section starts with Items 1–3 in one stack and Items 4–5
-in another; the second starts with Item 6 in one full-width stack. Multiple
-stacks use two columns and wrap. Items always remain visible, including during
+Sections contain named stacks; stacks contain peer items with no further
+nesting. The first section starts with Items 1–3 in Stack 1 and Items 4–5 in
+Stack 2; the second starts with Item 6 in full-width Stack 3. New stacks receive
+the next sequential Stack name. Visible headers, accessible labels, and Move
+destination choices use these names; opaque IDs remain internal. Multiple
+stacks use two columns and wrap. Each stack has its own gray container behind
+its name; items use the normal background and touch one another and the
+container sides without gaps. Items always remain visible, including during
 dragging, with consecutive numbers and no bullets or hierarchical labels.
-Drag items within or across stacks; dropping on a stack or its footer appends
+Drag items within or across stacks; dropping on a stack appends
 the item, and dropping on a section background creates a stack for it. The item
 Move dialog offers Section, Stack or **New stack**, and position controls.
-Each stack footer separates **Add item** from a grip: dragging the grip moves
+Each stack has a grip at the top right beside its name: dragging the grip moves
 the whole stack, and clicking it opens the stack Move dialog with Section and
-position controls. Empty stacks and empty section drop areas remain visible.
-Source drops have no effect. One gray box contains all sections. Compact 1px
-shadcn Separators with centered ghost plus buttons sit between sections and at
-the bottom, slightly overlapping stack edges. The whole line-and-plus row is
-clickable, with shared violet hover and keyboard-focus colors and no background
-fill. Between sections it inserts at that boundary; the bottom control appends.
-**Add section** creates one empty stack without consuming an item number.
-**Add item** appends a numbered mock item; both additions announce the result
-and retain button focus. Width and row height are Storybook controls. This
-phase is Storybook-only.
+position controls. A private story-local `InsertionSeparator` supplies both
+item and section insertion controls. Item controls sit above the first item,
+between items, and below the last item. All item controls span the stack's
+full inner width, including the bottom separator.
+Both item and section controls use Pragmatic's default selected-border blue
+token (`#1868DB` fallback) and stroke token (`2px` fallback). Full-opacity lines
+join the centered plus circle, whose diameter is four times the stroke
+(`8px` fallback). Hover and keyboard focus retain no fill, with 140ms color
+and opacity transitions that respect reduced motion. The entire 16px band is
+clickable; item hit areas overlay each boundary without adding layout height.
+Stacks end flush with
+their last item; an empty stack retains its header and one bottom-edge control.
+Section controls sit between sections and at the end, using a 16px slot and
+hit band with the existing 8px section padding to avoid overlapping content.
+Stack grips and Move controls remain above insertion hit areas.
+Pointer reveal is shared across item and section boundaries, with a 150ms
+dismissal delay; keyboard focus also reveals a control. Touch, coarse-pointer,
+and no-hover users see the controls persistently. Boundaries use stable
+following-item or following-section IDs, with a null end anchor for append.
+Activations validate the current destination before allocating identities;
+obsolete boundaries do nothing. Focus stays on its boundary so repeated
+insertions preserve order. Hover state and its timer clear on window blur,
+drag start, and unmount. Internal dragging disables all click insertion
+controls and pointer zones. While dragging, `InsertionSeparator` renders
+Pragmatic Drag and Drop's default blue Item drop indicator with the library's
+default stroke, terminal, and offset, while Add actions remain disabled.
+A reusable mock Item palette outside the stacks creates a new
+sequentially numbered item only after a successful drop on a stack boundary
+or append target, using the same separators and creation action as button
+insertion. Cancelled drags allocate nothing; existing items still move, and
+the palette template remains available for another drag.
+Empty stacks and empty section drop areas remain visible; source drops have
+no effect. **Add section** creates one empty stack without consuming an item
+number. Item and section button additions announce the result and retain button
+focus. Width and row height are Storybook controls. This phase is Storybook-only.
 
 App and Web run independently behind their own Portless hostnames. Direct
 startup defaults to 10001 for App and 10000 for Web; Portless allocates their
@@ -85,7 +114,7 @@ their extensionless ESM imports. Referenced `/assets/` public files retain
 explicit legacy mappings.
 
 App resolves the SharedWorker and browser SQLite WASM from installed
-`15.0.1` package exports. `userSessionDefinition` is shared by
+`18.0.0` package exports. `userSessionDefinition` is shared by
 `makeAggregateBrowserDefinition` and the authored `node.worker.ts` entrypoint.
 `makeApplicationSharedWorker` binds that emitted worker artifact to the session.
 The host imports `node.worker.ts` through Vite's `?sharedworker&url` query;
@@ -103,6 +132,23 @@ matching App `qrk-sh` / `user` / `userSession` node databases and discovery reco
 without backups. Library's local standalone database is reset separately;
 authentication, cookies, localStorage preferences, unrelated databases, uploads,
 and deployed storage remain outside that deletion. This does not authorize future resets.
+
+[Plan 031](../../wiki/plans/031-plan-component-jsonrender-previews.md) removes preview
+sizing and persisted measurements. Its separately approved local discard covers
+the affected Library/App browser databases and local `sys_qrk_sh_1` backend store,
+with no backup, migration, or authored namespace change. The implementation is in
+source. Chrome Library/App data and local backend storage were reset; the backend
+accepted the system spec and App initialized with the existing authenticated user.
+The in-app browser Library reset remains blocked by its old SharedWorker and
+requires fully quitting/reopening the desktop app before exact deletion is retried.
+Only Library is paused to prevent its worker reopening; API, App, backend, and Web
+remain running. Library generation passed after an API-only restart with
+the refreshed credential: JsonRender and generated JSON changed while authored
+markup stayed unchanged. Connected browser identity includes the exact session
+lock; old matching local nodes and their
+discovery entries are explicitly deleted rather than kept as a fallback. Earlier
+origins, unrelated identities, authentication, preferences, uploads, and production
+storage remain outside the cutover.
 
 `build` writes static output to `dist/client`, with `index.html` as the SPA
 shell. `preview` serves that output on port 10010 (`PORT` overrides it) using
@@ -225,7 +271,7 @@ App navigation; `UserLayout` gates only data-dependent content.
 `session.store.getState().status` is `failed`; live-query failures stop that
 owning session. Separate inner Suspense boundaries contain `UserSessionWork`
 and the route children, letting the initializer commit and start independently
-of a cold lazy route. Background work and Figma measurements can wait for
+of a cold lazy route. Background provider work can wait for
 session readiness while the dashboard header remains visible. `UserLayout`
 gates the data-dependent route content. `UserSessionWork` scopes one store
 subscription to the mounted session and displays nonterminal reported
@@ -356,12 +402,20 @@ Public website rendering and history browsing/restoration are deferred.
 
 The modules catalog uses `@qrk.sh/library/ModuleFilmstrip`, the same horizontal
 filmstrip as Library. Each module column scrolls vertically beneath its full-width
-sticky heading; previews use the active breakpoint and retain their sizing.
+sticky heading. Catalogs show the authored Component at the active canonical
+breakpoint width, with content supplying its height.
 App supplies typed Router links to its
 `/modules/$moduleId` detail routes. The catalog lives at `/modules` under the
 page editor, with a **Bricks** breadcrumb and **Bricks** toolbar action.
 Catalogs and module details are browsing surfaces with no insertion or drag behavior.
 The previous catalog URLs are removed without redirects.
+
+Module details show **Component** and **JsonRender** side by side for all four
+breakpoints: 360, 720, 1080, and 1440px. Each preview has content height; wide rows
+scroll horizontally. Saved-brick fallback previews also use canonical width and
+content height. No preview renders a grid-item comparison, intrinsic probe, or
+pixel/grid-unit sizing diagnostic. Library retains its separate Generate spec
+controls, which affect only its JsonRender previews.
 
 Module definitions retain per-page limit metadata: Article declares one and
 Instagram two. Catalog and module detail previews display that metadata without
@@ -450,13 +504,14 @@ the fields at the same left edge and wrap when needed.
 
 Each Page references its own Library wall, created atomically by `createPage` with ID `prefixId(libraryModule.models.wall, pageId)`. The brick drawer scopes its queries to that wall; the empty frames query no wall content. `ZerospinUserProvider` owns session initialization and disposal. Its inner Suspense boundary encloses every session reader so the initializer can commit and start while readers wait; `UserLayout` also gates editor content. Changing pages does not dispose the user session.
 
-Wall, Brick, and Placement schemas and publication snapshots remain unchanged.
-Shared module content and breakpoint-specific placement data remain available to
-editing and publication; phase 1 supplies no placed-brick rendering or resizing.
+Wall and Brick models, Placement geometry, and publication snapshots remain.
+Placement no longer stores pixel measurements. Shared module content and
+breakpoint-specific Spec, geometry, and visibility remain available to editing and
+publication; no placed-brick rendering or resizing is supplied.
 Old Article JSON has no converter or compatibility reader. The approved local
 fresh start is described above; deployed data is not migrated or reset.
 
-Provider forms edit sources rather than fetched metadata. Link retains submitted input separately from the resolved URL. Map Place stages a chosen suggestion ID while autocomplete remains transient. Swatch and Icon saves the selected search result's SVG and hex color with no additional lookup. Figma measures ready content at all four breakpoints and writes dimensions only when captured state/spec revisions still match.
+Provider forms edit sources rather than fetched metadata. Link retains submitted input separately from the resolved URL. Map Place stages a chosen suggestion ID while autocomplete remains transient. Swatch and Icon saves the selected search result's SVG and hex color with no additional lookup. Figma resolution and ordinary state saves perform no hidden render or pixel-measurement command. Link uses a CSS half-width copy column with normal wrapping; Map Place owns a 200px CSS minimum height and keeps Mapbox resizing. The GitHub calendar retains its scrolling and fades.
 
 ## Image uploads
 

@@ -99,7 +99,6 @@ export function makeModuleSpecContractVersion<
           attributes: {
             spec: structuredClone(programPayload.spec),
             specRevision: currentPlacement.specRevision + 1,
-            measured: null,
             generation:
               currentPlacement.generation?.status === "generating"
                 ? { ...currentPlacement.generation, status: "superseded" }

@@ -2,6 +2,7 @@ import { attachInstruction } from "@atlaskit/pragmatic-drag-and-drop-hitbox/list
 import { extractInstruction } from "@atlaskit/pragmatic-drag-and-drop-hitbox/list-item/extract-instruction";
 import type { Instruction } from "@atlaskit/pragmatic-drag-and-drop-hitbox/list-item";
 import { announce, cleanup } from "@atlaskit/pragmatic-drag-and-drop-live-region";
+import { DropIndicator as BoxDropIndicator } from "@atlaskit/pragmatic-drag-and-drop-react-drop-indicator/box";
 import { DropIndicator } from "@atlaskit/pragmatic-drag-and-drop-react-drop-indicator/list-item";
 import { GroupDropIndicator } from "@atlaskit/pragmatic-drag-and-drop-react-drop-indicator/group";
 import {
@@ -31,6 +32,87 @@ import { Label } from "./ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Separator } from "./ui/separator";
 
+function InsertionSeparator(props: {
+  variant: "item" | "section";
+  label: string;
+  active: boolean;
+  disabled: boolean;
+  dropActive?: boolean;
+  onClick: () => void;
+  onPointerEnter: () => void;
+  onPointerLeave: () => void;
+}) {
+  const { variant, label, active, disabled, dropActive, onClick, onPointerEnter, onPointerLeave } = props;
+  const decoration = (
+    <>
+      <Separator
+        asChild
+        className="pointer-events-none min-w-0 flex-1 bg-current"
+        style={{ height: "var(--ds-border-width-selected, 2px)" }}
+      >
+        <span />
+      </Separator>
+      <span
+        className="pointer-events-none flex shrink-0 items-center justify-center rounded-full border-solid border-current"
+        style={{
+          width: "calc(var(--ds-border-width-selected, 2px) * 4)",
+          height: "calc(var(--ds-border-width-selected, 2px) * 4)",
+          borderWidth: "var(--ds-border-width-selected, 2px)",
+        }}
+      >
+        <Plus
+          className="size-1"
+          style={{
+            width: "calc(var(--ds-border-width-selected, 2px) * 2)",
+            height: "calc(var(--ds-border-width-selected, 2px) * 2)",
+          }}
+          aria-hidden="true"
+        />
+      </span>
+      <Separator
+        asChild
+        className="pointer-events-none min-w-0 flex-1 bg-current"
+        style={{ height: "var(--ds-border-width-selected, 2px)" }}
+      >
+        <span />
+      </Separator>
+    </>
+  );
+
+  // Keep the shared boundary, using Pragmatic Drag and Drop's default drag appearance.
+  if (dropActive) {
+    return (
+      <div aria-hidden="true" className="pointer-events-none relative h-4 w-full">
+        <div className="absolute inset-x-0 top-1/2">
+          <BoxDropIndicator edge="top" />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      data-active={active}
+      disabled={disabled}
+      aria-label={label}
+      onClick={onClick}
+      onPointerEnter={onPointerEnter}
+      onPointerLeave={onPointerLeave}
+      style={{
+        color: "var(--ds-border-selected, #1868DB)",
+        opacity: disabled ? 0 : undefined,
+        pointerEvents: disabled ? "none" : undefined,
+        transition: disabled ? "none" : undefined,
+      }}
+      className={`pointer-events-auto h-4 w-full gap-0 rounded-none p-0 transition-opacity duration-[140ms] hover:bg-transparent motion-reduce:transition-none dark:hover:bg-transparent ${variant === "item" ? "opacity-0 data-[active=true]:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100 [@media(pointer:coarse)]:opacity-100" : ""}`}
+    >
+      {decoration}
+    </Button>
+  );
+}
+
 // Adapted from Atlassian's current Tree example using list-item hitboxes.
 // https://github.com/atlassian/pragmatic-drag-and-drop/blob/main/packages/documentation/examples/tree.vr.ap.tsx
 // Sections own Stacks, and Stacks own Items. This stays in Storybook until phase 3.
@@ -46,7 +128,7 @@ const meta = {
     const { width, rowHeight } = props;
     const [layout, setLayout] = useState<{
       sections: string[];
-      stacks: { id: string; sectionId: string }[];
+      stacks: { id: string; name: string; sectionId: string }[];
       items: { id: string; stackId: string; isDraft: boolean }[];
     }>(() => {
       const firstStackId = makeId();
@@ -55,9 +137,9 @@ const meta = {
       return {
         sections: ["1", "2"],
         stacks: [
-          { id: firstStackId, sectionId: "1" },
-          { id: secondStackId, sectionId: "1" },
-          { id: thirdStackId, sectionId: "2" },
+          { id: firstStackId, name: "Stack 1", sectionId: "1" },
+          { id: secondStackId, name: "Stack 2", sectionId: "1" },
+          { id: thirdStackId, name: "Stack 3", sectionId: "2" },
         ],
         items: [
           { id: "1", stackId: firstStackId, isDraft: false },
@@ -72,53 +154,146 @@ const meta = {
     const { sections, stacks, items } = layout;
     const nextItemId = useRef(7);
     const nextSectionId = useRef(3);
-    const addSectionRef = useRef<HTMLButtonElement>(null);
+    const nextStackNumber = useRef(4);
     const rootRef = useRef<HTMLDivElement>(null);
     const moveTriggerId = useRef<string | null>(null);
     const [contextId] = useState(() => Symbol("storybook-stacks"));
-    const [dragging, setDragging] = useState<{ kind: "item" | "stack"; id: string } | null>(null);
-    const [drop, setDrop] = useState<{
-      kind: "item" | "stack";
-      id: string;
-      instruction: Instruction;
-    } | null>(null);
+    const [dragging, setDragging] = useState<{ kind: "item" | "stack" | "palette-item"; id: string } | null>(null);
+    const [drop, setDrop] = useState<
+      | { kind: "item" | "stack"; id: string; instruction: Instruction }
+      | { kind: "item-insertion"; stackId: string; beforeItemId: string | null }
+      | null
+    >(null);
     const [activeGroup, setActiveGroup] = useState<string | null>(null);
     const [moving, setMoving] = useState<{ kind: "item" | "stack"; id: string } | null>(null);
     const [section, setSection] = useState("1");
     const [destinationStack, setDestinationStack] = useState("new");
     const [position, setPosition] = useState("0");
+    const [pointerInsertion, setPointerInsertion] = useState<
+      | { kind: "item"; stackId: string; beforeItemId: string | null }
+      | { kind: "section"; beforeSectionId: string | null }
+      | null
+    >(null);
+    const insertionTimer = useRef<number | null>(null);
+
+    const clearInsertion = useCallback(() => {
+      if (insertionTimer.current !== null) {
+        window.clearTimeout(insertionTimer.current);
+        insertionTimer.current = null;
+      }
+      setPointerInsertion(null);
+    }, []);
+
+    function activateInsertion(target:
+      | { kind: "item"; stackId: string; beforeItemId: string | null }
+      | { kind: "section"; beforeSectionId: string | null }
+    ) {
+      if (dragging !== null) return;
+      if (insertionTimer.current !== null) {
+        window.clearTimeout(insertionTimer.current);
+        insertionTimer.current = null;
+      }
+      setPointerInsertion(target);
+    }
+
+    function dismissInsertion() {
+      if (insertionTimer.current !== null) window.clearTimeout(insertionTimer.current);
+      insertionTimer.current = window.setTimeout(() => {
+        insertionTimer.current = null;
+        setPointerInsertion(null);
+      }, 150);
+    }
+
+    const insertAt = useCallback((target:
+      | { kind: "item"; stackId: string; beforeItemId: string | null }
+      | { kind: "section"; beforeSectionId: string | null }
+    ) => {
+      if (target.kind === "item") {
+        const stack = stacks.find((entry) => entry.id === target.stackId);
+        const index = target.beforeItemId === null
+          ? items.length
+          : items.findIndex((item) => item.id === target.beforeItemId && item.stackId === target.stackId);
+        if (!stack || index < 0) return;
+
+        // Resolve the live anchor before allocating identity, once per activation.
+        const id = String(nextItemId.current++);
+        const nextItems = [...items];
+        nextItems.splice(index, 0, { id, stackId: stack.id, isDraft: false });
+        setLayout({ ...layout, items: nextItems });
+        announce(target.beforeItemId === null
+          ? `Added Item ${id} to ${stack.name}.`
+          : `Added Item ${id} before Item ${target.beforeItemId} in ${stack.name}.`);
+        return;
+      }
+
+      const index = target.beforeSectionId === null
+        ? sections.length
+        : sections.indexOf(target.beforeSectionId);
+      if (index < 0) return;
+      const sectionId = String(nextSectionId.current++);
+      const stack = { id: makeId(), name: `Stack ${nextStackNumber.current++}`, sectionId };
+      const nextSections = [...sections];
+      nextSections.splice(index, 0, sectionId);
+      setLayout({ ...layout, sections: nextSections, stacks: [...stacks, stack] });
+      announce(target.beforeSectionId === null
+        ? `Added Section ${sectionId}.`
+        : `Added Section ${sectionId} before Section ${target.beforeSectionId}.`);
+    }, [layout, items, stacks, sections]);
+
+    useEffect(() => {
+      window.addEventListener("blur", clearInsertion);
+      return () => {
+        window.removeEventListener("blur", clearInsertion);
+        if (insertionTimer.current !== null) window.clearTimeout(insertionTimer.current);
+      };
+    }, [clearInsertion]);
+
+    useEffect(() => {
+      if (pointerInsertion?.kind === "item") {
+        if (
+          !stacks.some((stack) => stack.id === pointerInsertion.stackId) ||
+          (pointerInsertion.beforeItemId !== null && !items.some((item) =>
+            item.id === pointerInsertion.beforeItemId && item.stackId === pointerInsertion.stackId,
+          ))
+        ) clearInsertion();
+      } else if (
+        pointerInsertion?.kind === "section" &&
+        pointerInsertion.beforeSectionId !== null &&
+        !sections.includes(pointerInsertion.beforeSectionId)
+      ) clearInsertion();
+    }, [pointerInsertion, items, stacks, sections, clearInsertion]);
 
     const moveItem = useCallback(
       (move: { itemId: string; sectionId: string; stackId: string | null; index: number }) => {
         const { itemId, sectionId, stackId, index } = move;
         if (
           !items.some((item) => item.id === itemId) ||
-          !sections.includes(sectionId) ||
-          (stackId !== null && !stacks.some((stack) =>
-            stack.id === stackId && stack.sectionId === sectionId,
-          ))
+          !sections.includes(sectionId)
         ) return;
 
         // Allocate once; a background drop and New stack move create ownership atomically.
-        const destinationId = stackId ?? makeId();
+        const targetStack = stackId === null
+          ? { id: makeId(), name: `Stack ${nextStackNumber.current++}`, sectionId }
+          : stacks.find((stack) => stack.id === stackId && stack.sectionId === sectionId);
+        if (!targetStack) return;
         setLayout((current) => {
           const item = current.items.find((entry) => entry.id === itemId);
           if (!item) return current;
           const remaining = current.items.filter((entry) => entry.id !== itemId);
-          const siblings = remaining.filter((entry) => entry.stackId === destinationId);
+          const siblings = remaining.filter((entry) => entry.stackId === targetStack.id);
           const before = siblings[index];
           const insertion = before ? remaining.indexOf(before) : remaining.length;
-          remaining.splice(insertion, 0, { ...item, stackId: destinationId });
+          remaining.splice(insertion, 0, { ...item, stackId: targetStack.id });
           return {
             ...current,
             stacks: stackId === null
-              ? [...current.stacks, { id: destinationId, sectionId }]
+              ? [...current.stacks, targetStack]
               : current.stacks,
             items: remaining,
           };
         });
         announce(
-          `Moved Item ${itemId} to position ${index + 1} in Stack ${destinationId}, Section ${sectionId}.`,
+          `Moved Item ${itemId} to position ${index + 1} in ${targetStack.name}, Section ${sectionId}.`,
         );
       },
       [items, sections, stacks],
@@ -127,7 +302,8 @@ const meta = {
     const moveStack = useCallback(
       (move: { stackId: string; sectionId: string; index: number }) => {
         const { stackId, sectionId, index } = move;
-        if (!stacks.some((stack) => stack.id === stackId) || !sections.includes(sectionId)) return;
+        const sourceStack = stacks.find((stack) => stack.id === stackId);
+        if (!sourceStack || !sections.includes(sectionId)) return;
         setLayout((current) => {
           const stack = current.stacks.find((entry) => entry.id === stackId);
           if (!stack) return current;
@@ -138,7 +314,7 @@ const meta = {
           remaining.splice(insertion, 0, { ...stack, sectionId });
           return { ...current, stacks: remaining };
         });
-        announce(`Moved Stack ${stackId} to position ${index + 1} in Section ${sectionId}.`);
+        announce(`Moved ${sourceStack.name} to position ${index + 1} in Section ${sectionId}.`);
       },
       [sections, stacks],
     );
@@ -149,6 +325,42 @@ const meta = {
       const root = rootRef.current;
       if (!root) return;
       const disposers: (() => void)[] = [];
+
+      const paletteItem = root.querySelector<HTMLButtonElement>("[data-palette-item]");
+      if (paletteItem) {
+        disposers.push(draggable({
+          element: paletteItem,
+          getInitialData: () => ({ kind: "palette-item", contextId }),
+          onGenerateDragPreview: ({ nativeSetDragImage }) => {
+            setCustomNativeDragPreview({
+              nativeSetDragImage,
+              getOffset: pointerOutsideOfPreview({ x: "16px", y: "8px" }),
+              render: ({ container }) => {
+                const preview = document.createElement("div");
+                preview.className = "rounded-sm border bg-background px-3 py-2 text-sm text-foreground shadow-md";
+                preview.textContent = "New Item";
+                container.append(preview);
+              },
+            });
+          },
+          onDragStart: () => setDragging({ kind: "palette-item", id: "mock-item" }),
+        }));
+      }
+
+      // The same anchored boundary accepts a new template or an existing Item.
+      for (const element of root.querySelectorAll<HTMLDivElement>("[data-item-insertion]")) {
+        const stackId = element.dataset.stackId;
+        const beforeItemId = element.dataset.beforeItemId || null;
+        if (!stackId) continue;
+        disposers.push(dropTargetForElements({
+          element,
+          canDrop: ({ source }) =>
+            source.data.contextId === contextId &&
+            (source.data.kind === "palette-item" ||
+              (source.data.kind === "item" && typeof source.data.id === "string")),
+          getData: () => ({ kind: "item-insertion", stackId, beforeItemId }),
+        }));
+      }
 
       for (const element of root.querySelectorAll<HTMLButtonElement>("[data-tree-row]")) {
         const item = items.find((entry) => entry.id === element.dataset.treeRow);
@@ -177,9 +389,9 @@ const meta = {
               element,
               canDrop: ({ source }) =>
                 source.data.contextId === contextId &&
-                source.data.kind === "item" &&
-                typeof source.data.id === "string" &&
-                source.data.id !== item.id,
+                (source.data.kind === "palette-item" ||
+                  (source.data.kind === "item" &&
+                    typeof source.data.id === "string" && source.data.id !== item.id)),
               getData: ({ input, element }) =>
                 attachInstruction(
                   { kind: "item", id: item.id },
@@ -212,9 +424,9 @@ const meta = {
             dropTargetForElements({
               element,
               canDrop: ({ source, input }) => {
-                if (source.data.contextId !== contextId || typeof source.data.id !== "string") {
-                  return false;
-                }
+                if (source.data.contextId !== contextId) return false;
+                if (source.data.kind === "palette-item") return true;
+                if (typeof source.data.id !== "string") return false;
                 if (source.data.kind === "stack") return source.data.id !== stack.id;
                 if (source.data.kind !== "item") return false;
                 const hovered = element.ownerDocument.elementFromPoint(input.clientX, input.clientY);
@@ -266,11 +478,16 @@ const meta = {
         const instruction = target && extractInstruction(target.data);
         const kind = target?.data.kind;
         const id = target?.data.id;
+        const stackId = target?.data.stackId;
+        const beforeItemId = target?.data.beforeItemId;
         setDrop(
-          instruction && !instruction.blocked && typeof id === "string" &&
-          (kind === "item" || kind === "stack")
-            ? { kind, id, instruction }
-            : null,
+          kind === "item-insertion" && typeof stackId === "string" &&
+          (beforeItemId === null || typeof beforeItemId === "string")
+            ? { kind, stackId, beforeItemId }
+            : instruction && !instruction.blocked && typeof id === "string" &&
+              (kind === "item" || kind === "stack")
+              ? { kind, id, instruction }
+              : null,
         );
         setActiveGroup(typeof target?.data.groupId === "string" ? target.data.groupId : null);
       };
@@ -278,7 +495,10 @@ const meta = {
       disposers.push(
         monitorForElements({
           canMonitor: ({ source }) => source.data.contextId === contextId,
-          onDragStart: updateTarget,
+          onDragStart: (event) => {
+            clearInsertion();
+            updateTarget(event);
+          },
           onDrag: updateTarget,
           onDropTargetChange: updateTarget,
           onDrop: ({ source, location }) => {
@@ -288,79 +508,86 @@ const meta = {
             const sourceId = source.data.id;
             const kind = source.data.kind;
             const target = location.current.dropTargets[0];
-            if (
-              typeof sourceId !== "string" ||
-              (kind !== "item" && kind !== "stack") ||
-              !target
-            ) return;
+            if (!target) return;
 
             const instruction = extractInstruction(target.data);
-            if (instruction) {
+            if (kind === "item" || kind === "palette-item") {
+              if (kind === "item" && typeof sourceId !== "string") return;
+              let insertion: { stackId: string; beforeItemId: string | null } | null = null;
               if (
-                instruction.blocked ||
-                instruction.operation === "combine" ||
-                typeof target.data.id !== "string" ||
-                target.data.id === sourceId
-              ) return;
-              const after = instruction.operation === "reorder-after" ? 1 : 0;
-              if (kind === "item" && target.data.kind === "item") {
+                target.data.kind === "item-insertion" &&
+                typeof target.data.stackId === "string" &&
+                (target.data.beforeItemId === null || typeof target.data.beforeItemId === "string")
+              ) {
+                insertion = { stackId: target.data.stackId, beforeItemId: target.data.beforeItemId };
+              } else if (instruction && target.data.kind === "item") {
+                if (instruction.blocked || instruction.operation === "combine" || target.data.id === sourceId) return;
                 const targetItem = items.find((item) => item.id === target.data.id);
-                const stack = stacks.find((entry) => entry.id === targetItem?.stackId);
-                if (!targetItem || !stack) return;
-                const siblings = items.filter((item) =>
-                  item.stackId === stack.id && item.id !== sourceId,
-                );
+                if (!targetItem) return;
+                const siblings = items.filter((item) => item.stackId === targetItem.stackId);
+                const nextItem = siblings[siblings.indexOf(targetItem) + 1];
+                insertion = {
+                  stackId: targetItem.stackId,
+                  beforeItemId: instruction.operation === "reorder-before" ? targetItem.id : nextItem?.id ?? null,
+                };
+              } else if (typeof target.data.stackId === "string") {
+                insertion = { stackId: target.data.stackId, beforeItemId: null };
+              }
+
+              if (insertion) {
+                const { stackId, beforeItemId } = insertion;
+                if (kind === "palette-item") {
+                  // Allocate an Item only after a successful drop, through the click action.
+                  insertAt({ kind: "item", ...insertion });
+                  return;
+                }
+                if (typeof sourceId !== "string" || beforeItemId === sourceId) return;
+                const stack = stacks.find((entry) => entry.id === stackId);
+                if (!stack) return;
+                const siblings = items.filter((item) => item.stackId === stack.id && item.id !== sourceId);
+                const index = beforeItemId === null
+                  ? siblings.length
+                  : siblings.findIndex((item) => item.id === beforeItemId);
+                if (index < 0) return;
                 moveItem({
                   itemId: sourceId,
                   sectionId: stack.sectionId,
                   stackId: stack.id,
-                  index: siblings.findIndex((item) => item.id === targetItem.id) + after,
+                  index,
                 });
-              } else if (kind === "stack" && target.data.kind === "stack") {
-                const targetStack = stacks.find((stack) => stack.id === target.data.id);
-                if (!targetStack) return;
-                const siblings = stacks.filter((stack) =>
-                  stack.sectionId === targetStack.sectionId && stack.id !== sourceId,
-                );
-                moveStack({
-                  stackId: sourceId,
-                  sectionId: targetStack.sectionId,
-                  index: siblings.findIndex((stack) => stack.id === targetStack.id) + after,
-                });
+              } else if (kind === "item" && typeof sourceId === "string" && typeof target.data.sectionId === "string") {
+                moveItem({ itemId: sourceId, sectionId: target.data.sectionId, stackId: null, index: 0 });
               }
               return;
             }
 
-            if (kind === "item" && typeof target.data.stackId === "string") {
-              const stack = stacks.find((entry) => entry.id === target.data.stackId);
-              if (!stack) return;
-              moveItem({
-                itemId: sourceId,
-                sectionId: stack.sectionId,
-                stackId: stack.id,
-                index: items.filter((item) =>
-                  item.stackId === stack.id && item.id !== sourceId,
-                ).length,
+            if (kind !== "stack" || typeof sourceId !== "string") return;
+            if (instruction) {
+              if (
+                instruction.blocked || instruction.operation === "combine" ||
+                target.data.kind !== "stack" || typeof target.data.id !== "string" || target.data.id === sourceId
+              ) return;
+              const targetStack = stacks.find((stack) => stack.id === target.data.id);
+              if (!targetStack) return;
+              const siblings = stacks.filter((stack) => stack.sectionId === targetStack.sectionId && stack.id !== sourceId);
+              moveStack({
+                stackId: sourceId,
+                sectionId: targetStack.sectionId,
+                index: siblings.findIndex((stack) => stack.id === targetStack.id) + (instruction.operation === "reorder-after" ? 1 : 0),
               });
             } else if (typeof target.data.sectionId === "string") {
               const sectionId = target.data.sectionId;
-              if (kind === "item") {
-                moveItem({ itemId: sourceId, sectionId, stackId: null, index: 0 });
-              } else {
-                moveStack({
-                  stackId: sourceId,
-                  sectionId,
-                  index: stacks.filter((stack) =>
-                    stack.sectionId === sectionId && stack.id !== sourceId,
-                  ).length,
-                });
-              }
+              moveStack({
+                stackId: sourceId,
+                sectionId,
+                index: stacks.filter((stack) => stack.sectionId === sectionId && stack.id !== sourceId).length,
+              });
             }
           },
         }),
       );
       return combine(...disposers);
-    }, [items, stacks, sections, contextId, moveItem, moveStack]);
+    }, [items, stacks, sections, contextId, moveItem, moveStack, insertAt, clearInsertion]);
 
     const positionCount = moving?.kind === "stack"
       ? stacks.filter((stack) => stack.sectionId === section && stack.id !== moving.id).length + 1
@@ -368,11 +595,51 @@ const meta = {
           item.stackId === destinationStack && item.id !== moving?.id,
         ).length + 1;
 
+    let dragInsertion: { stackId: string; beforeItemId: string | null } | null = null;
+    if (dragging?.kind === "item" || dragging?.kind === "palette-item") {
+      if (drop?.kind === "item-insertion") {
+        dragInsertion = { stackId: drop.stackId, beforeItemId: drop.beforeItemId };
+      } else if (drop?.kind === "item" && !drop.instruction.blocked) {
+        const target = items.find((item) => item.id === drop.id);
+        if (target && drop.instruction.operation !== "combine") {
+          const stackItems = items.filter((item) => item.stackId === target.stackId);
+          const nextItem = stackItems[stackItems.indexOf(target) + 1];
+          dragInsertion = {
+            stackId: target.stackId,
+            beforeItemId: drop.instruction.operation === "reorder-before" ? target.id : nextItem?.id ?? null,
+          };
+        }
+      } else {
+        const stack = stacks.find((entry) => activeGroup === `stack-${entry.id}`);
+        if (stack) dragInsertion = { stackId: stack.id, beforeItemId: null };
+      }
+    }
+
     return (
-      <div style={{ width, maxWidth: "calc(100vw - 32px)" }}>
+      <div
+        ref={rootRef}
+        className="flex flex-wrap items-start justify-center gap-6 text-sm"
+        style={{ maxWidth: "calc(100vw - 32px)" }}
+      >
+        <aside className="w-40 shrink-0 rounded-md border border-border bg-muted/30 p-3" aria-label="Mock Item palette">
+          <p className="mb-2 font-medium">Items</p>
+          <Button
+            data-palette-item
+            type="button"
+            variant="outline"
+            className="w-full cursor-grab justify-start active:cursor-grabbing"
+            aria-label="Drag a new Item into a Stack"
+            aria-describedby="palette-item-hint"
+            style={{ opacity: dragging?.kind === "palette-item" ? 0.4 : 1 }}
+          >
+            <GripVertical className="size-4 text-muted-foreground" aria-hidden="true" />
+            New item
+          </Button>
+          <p id="palette-item-hint" className="mt-2 text-xs text-muted-foreground">Drag onto a separator to add an Item.</p>
+        </aside>
         <div
-          ref={rootRef}
-          className="rounded-sm bg-muted/50 pb-3 text-sm"
+          className="pb-3"
+          style={{ width, maxWidth: "calc(100vw - 32px)" }}
           role="group"
           aria-label="Draggable sections and stacks"
         >
@@ -382,41 +649,16 @@ const meta = {
               return (
                 <Fragment key={sectionId}>
                   {sectionIndex > 0 && (
-                    <div data-add-section className="relative z-10 h-1 w-full">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        className="group absolute inset-x-2 top-1/2 h-6 -translate-y-1/2 gap-1 rounded-sm p-0 text-muted-foreground hover:bg-transparent hover:text-violet-600 focus-visible:text-violet-600 dark:hover:bg-transparent dark:hover:text-violet-400 dark:focus-visible:text-violet-400"
-                        aria-label={`Add section before Section ${sectionId}`}
-                        onClick={() => {
-                          const newSectionId = String(nextSectionId.current++);
-                          const stackId = makeId();
-                          setLayout((current) => ({
-                            ...current,
-                            sections: current.sections.flatMap((entry) =>
-                              entry === sectionId ? [newSectionId, entry] : [entry],
-                            ),
-                            stacks: [...current.stacks, { id: stackId, sectionId: newSectionId }],
-                          }));
-                          announce(`Added Section ${newSectionId} before Section ${sectionId}.`);
-                        }}
-                      >
-                        <Separator
-                          asChild
-                          className="pointer-events-none flex-1 transition-colors group-hover:bg-current group-focus-visible:bg-current"
-                        >
-                          <span />
-                        </Separator>
-                        <span className="flex size-4 shrink-0 items-center justify-center rounded-full border border-transparent transition-colors group-hover:border-current group-focus-visible:border-current">
-                          <Plus className="size-3" aria-hidden="true" />
-                        </span>
-                        <Separator
-                          asChild
-                          className="pointer-events-none flex-1 transition-colors group-hover:bg-current group-focus-visible:bg-current"
-                        >
-                          <span />
-                        </Separator>
-                      </Button>
+                    <div data-add-section className="pointer-events-none relative z-10 flex h-4 w-full px-2">
+                      <InsertionSeparator
+                        variant="section"
+                        label={`Add section before Section ${sectionId}`}
+                        active={pointerInsertion?.kind === "section" && pointerInsertion.beforeSectionId === sectionId}
+                        disabled={dragging !== null}
+                        onClick={() => insertAt({ kind: "section", beforeSectionId: sectionId })}
+                        onPointerEnter={() => activateInsertion({ kind: "section", beforeSectionId: sectionId })}
+                        onPointerLeave={dismissInsertion}
+                      />
                     </div>
                   )}
                   <GroupDropIndicator isActive={activeGroup === `section-${sectionId}`}>
@@ -439,39 +681,79 @@ const meta = {
                           >
                             <div
                               data-layout-stack={stack.id}
-                              className="relative min-w-0 rounded-sm bg-background"
+                              className="relative min-w-0 rounded-sm border border-zinc-200 bg-muted/50 dark:border-zinc-800"
                               style={{ opacity: dragging?.kind === "stack" && dragging.id === stack.id ? 0.4 : 1 }}
                               role="group"
-                              aria-label={`Stack ${stack.id}`}
+                              aria-label={stack.name}
                             >
+                              <div
+                                className="flex items-center gap-2 pl-2 pr-1 font-medium text-muted-foreground"
+                                style={{ height: rowHeight }}
+                              >
+                                <span className="min-w-0 flex-1 truncate">{stack.name}</span>
+                                <Button
+                                  id={`stack-move-${stack.id}`}
+                                  data-stack-grip
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="relative z-20 size-7 shrink-0 cursor-grab rounded-sm text-muted-foreground active:cursor-grabbing"
+                                  aria-label={`Move ${stack.name}`}
+                                  aria-haspopup="dialog"
+                                  onClick={(event) => {
+                                    moveTriggerId.current = event.currentTarget.id;
+                                    setMoving({ kind: "stack", id: stack.id });
+                                    setSection(sectionId);
+                                    setPosition(String(sectionStacks.indexOf(stack)));
+                                  }}
+                                >
+                                  <GripVertical className="size-4" aria-hidden="true" />
+                                </Button>
+                              </div>
                               {stackItems.map((item, itemIndex) => (
+                                <Fragment key={item.id}>
+                                  <div className="pointer-events-none relative z-10 h-0">
+                                    <div
+                                      data-item-insertion
+                                      data-stack-id={stack.id}
+                                      data-before-item-id={item.id}
+                                      className={`${dragging !== null && dragging.kind !== "stack" ? "pointer-events-auto" : "pointer-events-none"} absolute inset-x-0 top-0 flex h-4 -translate-y-1/2`}
+                                    >
+                                      <InsertionSeparator
+                                        variant="item"
+                                        label={`Add item before Item ${item.id} in ${stack.name}`}
+                                        active={pointerInsertion?.kind === "item" && pointerInsertion.stackId === stack.id && pointerInsertion.beforeItemId === item.id}
+                                        disabled={dragging !== null}
+                                        dropActive={dragInsertion?.stackId === stack.id && dragInsertion.beforeItemId === item.id}
+                                        onClick={() => insertAt({ kind: "item", stackId: stack.id, beforeItemId: item.id })}
+                                        onPointerEnter={() => activateInsertion({ kind: "item", stackId: stack.id, beforeItemId: item.id })}
+                                        onPointerLeave={dismissInsertion}
+                                      />
+                                    </div>
+                                  </div>
                                 <div
-                                  key={item.id}
                                   data-item-id={item.id}
-                                  className="relative rounded-sm hover:bg-black/5"
+                                  className={`relative bg-background ${itemIndex === stackItems.length - 1 ? "rounded-b-[calc(var(--radius)-5px)]" : ""}`}
                                 >
                                   <Button
                                     id={`tree-row-${item.id}`}
                                     data-tree-row={item.id}
                                     type="button"
                                     variant="ghost"
-                                    className="relative w-full justify-start gap-0 rounded-sm px-2 pr-10 font-normal"
+                                    className={`relative w-full justify-start gap-0 rounded-none px-2 pr-10 font-normal ${itemIndex === stackItems.length - 1 ? "rounded-b-[calc(var(--radius)-5px)]" : ""}`}
                                     style={{ height: rowHeight, opacity: dragging?.kind === "item" && dragging.id === item.id ? 0.4 : 1 }}
                                   >
                                     <span className="min-w-0 flex-1 truncate text-left">
                                       Item {item.id}
                                     </span>
                                     {item.isDraft && <code className="text-xs text-muted-foreground">Draft</code>}
-                                    {drop?.kind === "item" && drop.id === item.id && (
-                                      <DropIndicator instruction={drop.instruction} />
-                                    )}
                                   </Button>
                                   <Button
                                     id={`tree-move-${item.id}`}
                                     type="button"
                                     variant="ghost"
                                     size="icon"
-                                    className="absolute top-1/2 right-1 size-7 -translate-y-1/2 rounded-sm text-muted-foreground"
+                                    className="absolute top-1/2 right-1 z-20 size-7 -translate-y-1/2 rounded-sm text-muted-foreground"
                                     aria-label={`Move Item ${item.id}`}
                                     aria-haspopup="dialog"
                                     onClick={(event) => {
@@ -485,52 +767,26 @@ const meta = {
                                     <Ellipsis className="size-4" aria-hidden="true" />
                                   </Button>
                                 </div>
+                                </Fragment>
                               ))}
-                              <div className="flex items-center">
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  className="min-w-0 flex-1 justify-start gap-0 rounded-sm px-2 font-normal text-muted-foreground"
-                                  style={{ height: rowHeight }}
-                                  aria-label={`Add item to Stack ${stack.id}`}
-                                  onClick={() => {
-                                    const id = String(nextItemId.current++);
-                                    setLayout((current) => ({
-                                      ...current,
-                                      items: [
-                                        ...current.items,
-                                        { id, stackId: stack.id, isDraft: false },
-                                      ],
-                                    }));
-                                    announce(`Added Item ${id} to Stack ${stack.id}.`);
-                                  }}
+                              <div className="pointer-events-none relative z-10 h-0">
+                                <div
+                                  data-item-insertion
+                                  data-stack-id={stack.id}
+                                  data-before-item-id=""
+                                  className={`${dragging !== null && dragging.kind !== "stack" ? "pointer-events-auto" : "pointer-events-none"} absolute inset-x-0 top-0 flex h-4 -translate-y-1/2`}
                                 >
-                                  <span
-                                    className="flex size-6 shrink-0 items-center justify-center"
-                                    aria-hidden="true"
-                                  >
-                                    <Plus className="size-4" />
-                                  </span>
-                                  Add item
-                                </Button>
-                                <Button
-                                  id={`stack-move-${stack.id}`}
-                                  data-stack-grip
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  className="mr-1 size-7 shrink-0 cursor-grab rounded-sm text-muted-foreground active:cursor-grabbing"
-                                  aria-label={`Move Stack ${stack.id}`}
-                                  aria-haspopup="dialog"
-                                  onClick={(event) => {
-                                    moveTriggerId.current = event.currentTarget.id;
-                                    setMoving({ kind: "stack", id: stack.id });
-                                    setSection(sectionId);
-                                    setPosition(String(sectionStacks.indexOf(stack)));
-                                  }}
-                                >
-                                  <GripVertical className="size-4" aria-hidden="true" />
-                                </Button>
+                                  <InsertionSeparator
+                                    variant="item"
+                                    label={`Add item to ${stack.name}`}
+                                    active={pointerInsertion?.kind === "item" && pointerInsertion.stackId === stack.id && pointerInsertion.beforeItemId === null}
+                                    disabled={dragging !== null}
+                                    dropActive={dragInsertion?.stackId === stack.id && dragInsertion.beforeItemId === null}
+                                    onClick={() => insertAt({ kind: "item", stackId: stack.id, beforeItemId: null })}
+                                    onPointerEnter={() => activateInsertion({ kind: "item", stackId: stack.id, beforeItemId: null })}
+                                    onPointerLeave={dismissInsertion}
+                                  />
+                                </div>
                               </div>
                               {drop?.kind === "stack" && drop.id === stack.id && (
                                 <DropIndicator instruction={drop.instruction} />
@@ -545,41 +801,16 @@ const meta = {
               );
             })}
           </div>
-          <div data-add-section className="relative z-10 h-1 w-full">
-            <Button
-              ref={addSectionRef}
-              type="button"
-              variant="ghost"
-              className="group absolute inset-x-2 top-1/2 h-6 -translate-y-1/2 gap-1 rounded-sm p-0 text-muted-foreground hover:bg-transparent hover:text-violet-600 focus-visible:text-violet-600 dark:hover:bg-transparent dark:hover:text-violet-400 dark:focus-visible:text-violet-400"
-              aria-label="Add section"
-              onClick={() => {
-                const sectionId = String(nextSectionId.current++);
-                const stackId = makeId();
-                setLayout((current) => ({
-                  ...current,
-                  sections: [...current.sections, sectionId],
-                  stacks: [...current.stacks, { id: stackId, sectionId }],
-                }));
-                announce(`Added Section ${sectionId}.`);
-                requestAnimationFrame(() => addSectionRef.current?.focus());
-              }}
-            >
-              <Separator
-                asChild
-                className="pointer-events-none flex-1 transition-colors group-hover:bg-current group-focus-visible:bg-current"
-              >
-                <span />
-              </Separator>
-              <span className="flex size-4 shrink-0 items-center justify-center rounded-full border border-transparent transition-colors group-hover:border-current group-focus-visible:border-current">
-                <Plus className="size-3" aria-hidden="true" />
-              </span>
-              <Separator
-                asChild
-                className="pointer-events-none flex-1 transition-colors group-hover:bg-current group-focus-visible:bg-current"
-              >
-                <span />
-              </Separator>
-            </Button>
+          <div data-add-section className="pointer-events-none relative z-10 flex h-4 w-full px-2">
+            <InsertionSeparator
+              variant="section"
+              label="Add section"
+              active={pointerInsertion?.kind === "section" && pointerInsertion.beforeSectionId === null}
+              disabled={dragging !== null}
+              onClick={() => insertAt({ kind: "section", beforeSectionId: null })}
+              onPointerEnter={() => activateInsertion({ kind: "section", beforeSectionId: null })}
+              onPointerLeave={dismissInsertion}
+            />
           </div>
         </div>
         <Dialog
@@ -595,7 +826,11 @@ const meta = {
             }}
           >
             <DialogHeader>
-              <DialogTitle>Move {moving?.kind === "stack" ? "Stack" : "Item"} {moving?.id}</DialogTitle>
+              <DialogTitle>
+                Move {moving?.kind === "stack"
+                  ? stacks.find((stack) => stack.id === moving.id)?.name
+                  : `Item ${moving?.id ?? ""}`}
+              </DialogTitle>
               <DialogDescription>
                 {moving?.kind === "stack"
                   ? "Choose a section and position."
@@ -639,7 +874,7 @@ const meta = {
                     <SelectContent>
                       {stacks.filter((stack) => stack.sectionId === section).map((stack) => (
                         <SelectItem key={stack.id} value={stack.id}>
-                          Stack {stack.id}
+                          {stack.name}
                         </SelectItem>
                       ))}
                       <SelectItem value="new">New stack</SelectItem>

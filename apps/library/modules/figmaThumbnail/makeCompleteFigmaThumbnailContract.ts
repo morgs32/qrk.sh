@@ -77,7 +77,6 @@ export function makeCompleteFigmaThumbnailContract(props: {
           yield* operations.updatePlacement({
             resourceId: currentPlacement.id,
             attributes: {
-              measured: null,
               generation:
                 currentPlacement.generation?.status === "generating"
                   ? { ...currentPlacement.generation, status: "superseded" }

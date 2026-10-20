@@ -28,7 +28,6 @@ import {
 import { LibrarySessionContext } from "../session/createLibraryStandaloneSession";
 import { libraryModule } from "../libraryModule/libraryModule";
 
-import { FigmaReadyMeasurements } from "../modules/figmaThumbnail/FigmaReadyMeasurements";
 import { startLibrarySessionWork } from "../session/startLibrarySessionWork";
 
 import { LibraryApp, librarySessionInputs } from "./librarySession";
@@ -153,7 +152,6 @@ function InitializedLibraryLayout(props: { children: ReactNode }) {
       }}
     >
       <LibrarySessionContext value={session}>
-        <FigmaReadyMeasurements session={session} />
         <WallViewportProvider
           selectedBreakpoint={readLibraryViewportState()?.selectedBreakpoint ?? null}
         >

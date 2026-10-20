@@ -6,7 +6,6 @@ import { Effect } from "effect";
 import { Suspense, useEffect, useSyncExternalStore, type ReactNode } from "react";
 import { getClerkToken } from "@/lib/getClerkToken";
 import { toast } from "sonner";
-import { FigmaReadyMeasurements } from "@qrk.sh/library/FigmaReadyMeasurements";
 import { startLibrarySessionWork } from "@qrk.sh/library/startLibrarySessionWork";
 import { UserApp } from "@/zerospin/userSession";
 import AppError from "@/app/error";
@@ -87,5 +86,5 @@ function UserSessionWork() {
       stopFailures();
     };
   }, [session, initialized?.db]);
-  return <FigmaReadyMeasurements session={session} />;
+  return null;
 }

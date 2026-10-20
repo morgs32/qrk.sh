@@ -64,7 +64,6 @@ function ModuleDetail(props: { moduleId: keyof typeof modulesHash }) {
   const [generateError, setGenerateError] = useState<IScrapeError>();
   const [generateRequestError, setGenerateRequestError] = useState<string>();
   const brick = brickModule;
-  const BrickComponent = brick.component;
   const hasJsonRender = brickModule.registry !== undefined;
   const defaultSpecs = useMemo(
     () => ({
@@ -96,7 +95,7 @@ function ModuleDetail(props: { moduleId: keyof typeof modulesHash }) {
         </div>
       </OrderedSection>
       {hasJsonRender ? (
-        <OrderedSection className="mt-10" label="Generative Previews">
+        <OrderedSection className="mt-10" label="Generate spec">
           <OrderedBody level={2}>
             <OrderedSection label="Generate spec input">
               <form
@@ -169,32 +168,19 @@ function ModuleDetail(props: { moduleId: keyof typeof modulesHash }) {
                 </div>
               ) : null}
             </OrderedSection>
-            {BREAKPOINTS.map((entry) => (
-              <BreakpointPreviewRow
-                BrickComponent={BrickComponent}
-                brick={brick}
-                className="mt-10"
-                entry={entry}
-                key={entry.id}
-                moduleState={moduleState}
-                moduleId={moduleId}
-                specs={generatedSpecs}
-              />
-            ))}
           </OrderedBody>
         </OrderedSection>
       ) : null}
-      <OrderedSection className="mt-10" label="Component Previews">
+      <OrderedSection className="mt-10" label="Previews">
         <OrderedBody level={2}>
           {BREAKPOINTS.map((entry, index) => (
             <BreakpointPreviewRow
-              BrickComponent={BrickComponent}
               brick={brick}
               entry={entry}
               key={entry.id}
               moduleState={moduleState}
               moduleId={moduleId}
-              specs={defaultSpecs}
+              specs={generatedSpecs}
               className={index === 0 ? undefined : "mt-10"}
             />
           ))}

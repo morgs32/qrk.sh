@@ -30,38 +30,6 @@ function makeInitialState(state: unknown): Record<string, unknown> {
   return {};
 }
 
-function assertBreakpointSize(
-  context: string,
-  overlay: { w?: number; h?: number; minW?: number; minH?: number },
-) {
-  const hasW = overlay.w !== undefined;
-  const hasH = overlay.h !== undefined;
-  if (hasW !== hasH) {
-    throw new Error(`makeModuleView: ${context} w and h must both be set or both omitted`);
-  }
-  if (hasW && (overlay.w === undefined || overlay.w < 1 || !Number.isInteger(overlay.w))) {
-    throw new Error(`makeModuleView: ${context} w must be an integer ≥ 1`);
-  }
-  if (hasH && (overlay.h === undefined || overlay.h < 1 || !Number.isInteger(overlay.h))) {
-    throw new Error(`makeModuleView: ${context} h must be an integer ≥ 1`);
-  }
-  if (
-    overlay.minW !== undefined &&
-    (!Number.isInteger(overlay.minW) || overlay.minW < 1 || overlay.minW > 8)
-  ) {
-    throw new Error(`makeModuleView: ${context} minW must be an integer between 1 and 8`);
-  }
-  if (overlay.minH !== undefined && (!Number.isInteger(overlay.minH) || overlay.minH < 1)) {
-    throw new Error(`makeModuleView: ${context} minH must be an integer ≥ 1`);
-  }
-  if (overlay.w !== undefined && overlay.minW !== undefined && overlay.w < overlay.minW) {
-    throw new Error(`makeModuleView: ${context} w must be ≥ minW`);
-  }
-  if (overlay.h !== undefined && overlay.minH !== undefined && overlay.h < overlay.minH) {
-    throw new Error(`makeModuleView: ${context} h must be ≥ minH`);
-  }
-}
-
 function resolvedGenerator(
   moduleId: string,
   slot: string,
@@ -115,7 +83,6 @@ export function makeModuleView<
   module: MODULE,
   view: {
     LineIcon: ComponentType<SVGProps<SVGSVGElement>>;
-    measureOnSave?: boolean;
     form?: (props: {
       state: IInferDecodedRow<MODULE["stateShape"]> | null;
       session: ILibrarySession;
@@ -140,10 +107,6 @@ export function makeModuleView<
         registry?: ComponentRegistry;
         defaultSpec?: Spec;
       };
-      w?: number;
-      h?: number;
-      minW?: number;
-      minH?: number;
     };
   },
 ) {
@@ -155,13 +118,8 @@ export function makeModuleView<
   if (view.default.generator !== undefined && module.catalog === undefined) {
     throw new Error(`makeModuleView: ${JSON.stringify(module.id)} has no catalog; omit generator`);
   }
-  assertBreakpointSize(`${JSON.stringify(module.id)}.sm`, view.sm ?? {});
-  assertBreakpointSize(`${JSON.stringify(module.id)}.md`, view.md ?? {});
-  assertBreakpointSize(`${JSON.stringify(module.id)}.lg`, view.lg ?? {});
-  assertBreakpointSize(`${JSON.stringify(module.id)}.xl`, view.xl ?? {});
-
   const decodeState = Schema.decodeUnknownSync(
-    makeEffectSchema<MODULE["stateShape"]>(module.stateShape),
+    Schema.toType(makeEffectSchema<MODULE["stateShape"]>(module.stateShape)),
   );
   const decodeFormState = Schema.decodeUnknownSync(
     Schema.toType(makeEffectSchema<MODULE["stateShape"]>(module.stateShape)),
@@ -214,10 +172,6 @@ export function makeModuleView<
       component: authoredComponents[breakpoint],
       spec: generator?.defaultSpec ?? emptySpec,
       registry: generator?.registry,
-      w: overlay?.w,
-      h: overlay?.h,
-      minW: overlay?.minW,
-      minH: overlay?.minH,
     };
   }
 
@@ -276,7 +230,6 @@ export function makeModuleView<
     stateShape: module.stateShape,
     defaultState: module.defaultState,
     defaultSpec,
-    measureOnSave: view.measureOnSave ?? false,
     placeholder: view.default.placeholder,
     ...(view.form === undefined ? {} : { Form }),
     ...(registry === undefined ? {} : { registry }),

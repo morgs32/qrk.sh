@@ -47,46 +47,68 @@ port 10020; `PORT` overrides it.
 
 **App / Studio / Pragmatic Tree / Default** isolates the current Atlassian
 Pragmatic Drag and Drop example with local sections, stacks, and peer items.
+Square corners apply throughout the story: palette, stacks, items, insertion
+controls, drag previews and indicator endpoint, Move dialog, and select
+controls and popups.
 Sections contain named stacks; stacks contain peer items with no further
 nesting. The first section starts with Items 1–3 in Stack 1 and Items 4–5 in
 Stack 2; the second starts with Item 6 in full-width Stack 3. New stacks receive
-the next sequential Stack name. Visible headers, accessible labels, and Move
-destination choices use these names; opaque IDs remain internal. Multiple
-stacks use two columns and wrap. Each stack has its own gray container behind
-its name; items use the normal background and touch one another and the
-container sides without gaps. Items always remain visible, including during
+the next sequential Stack name. Stack headers, accessible labels, and Move
+destination choices use these names; opaque IDs remain internal. Each section
+shows all its stacks in one equal-width row, without section padding or gaps
+between stacks. One 1px zinc border encloses the section list, with shared
+horizontal dividers between sections and vertical dividers between stack cells,
+avoiding doubled adjacent borders. Each stack fills its section's row height
+and keeps at least the configured row height so empty stacks remain hoverable
+and appendable; items use the normal background and touch
+one another and the container sides without gaps. Empty sections use the
+enclosing border without a nested dashed border. Items always remain visible, including during
 dragging, with consecutive numbers and no bullets or hierarchical labels.
 Drag items within or across stacks; dropping on a stack appends
 the item, and dropping on a section background creates a stack for it. The item
 Move dialog offers Section, Stack or **New stack**, and position controls.
-Each stack has a grip at the top right beside its name: dragging the grip moves
+Each stack's name and grip float absolutely just above it without consuming
+layout height. The opaque gray header has a 1px zinc border and appears only
+on its stack's hover or focus-within, staying interactive as the pointer enters
+it. Its high stacking layer lets a later section's header overlap the previous
+section. Any drag hides these headers and disables their pointer interaction
+so item insertion and drop targets remain reachable.
+The grip sits at the top right beside the name: dragging the grip moves
 the whole stack, and clicking it opens the stack Move dialog with Section and
-position controls. A private story-local `InsertionSeparator` supplies both
-item and section insertion controls. Item controls sit above the first item,
+position controls. A private story-local `InsertionSeparator` supplies item
+and section insertion controls. Item controls sit above the first item,
 between items, and below the last item. All item controls span the stack's
-full inner width, including the bottom separator.
-Both item and section controls use Pragmatic's default selected-border blue
-token (`#1868DB` fallback) and stroke token (`2px` fallback). Full-opacity lines
-join the centered plus circle, whose diameter is four times the stroke
-(`8px` fallback). Hover and keyboard focus retain no fill, with 140ms color
-and opacity transitions that respect reduced motion. The entire 16px band is
+full inner width, including the bottom separator. Item separator lines have
+a subtle zinc shadow, with the plus centered on the Stack's left edge and
+half its square plus area extending outside the Stack. The full area remains clickable.
+Item insertion controls use Pragmatic's stroke token (`2px` fallback).
+Full-opacity lines join a `16px` plus area with a `10px` icon at the default
+stroke. Item plus icons have a square border. Item controls use Pragmatic's
+selected-border blue token (`#1868DB` fallback), without fill on hover or keyboard focus.
+Color and opacity transitions take 140ms and respect reduced motion. The entire 16px band is
 clickable; item hit areas overlay each boundary without adding layout height.
-Stacks end flush with
-their last item; an empty stack retains its header and one bottom-edge control.
-Section controls sit between sections and at the end, using a 16px slot and
-hit band with the existing 8px section padding to avoid overlapping content.
+Item boundaries add no space after the last item; an empty stack retains one
+append control.
+One Section insertion control sits only after the last section: a compact
+full-width 16px-high bar with a light zinc fill, 1px zinc border, and centered
+10px plus, without separator rules inside. The plus stays zinc gray on hover
+and keyboard focus. It spans the full layout width with 8px of space above its
+16px slot and hit band, keeping item-end hit zones distinct. It appends a section containing one
+empty stack.
 Stack grips and Move controls remain above insertion hit areas.
-Pointer reveal is shared across item and section boundaries, with a 150ms
-dismissal delay; keyboard focus also reveals a control. Touch, coarse-pointer,
-and no-hover users see the controls persistently. Boundaries use stable
-following-item or following-section IDs, with a null end anchor for append.
+Pointer hover reveals only the nearby item or section control, with a
+150ms dismissal delay; keyboard focus also reveals a control. Touch,
+coarse-pointer, and no-hover users see the controls persistently. Item
+boundaries use stable following-item IDs or a null end anchor. The Section
+control remains mounted and uses a null append anchor.
 Activations validate the current destination before allocating identities;
-obsolete boundaries do nothing. Focus stays on its boundary so repeated
-insertions preserve order. Hover state and its timer clear on window blur,
+obsolete boundaries do nothing. Item focus stays anchored so repeated
+insertions preserve order; the Section control retains focus after additions.
+Hover state and its timer clear on window blur,
 drag start, and unmount. Internal dragging disables all click insertion
 controls and pointer zones. While dragging, `InsertionSeparator` renders
 Pragmatic Drag and Drop's default blue Item drop indicator with the library's
-default stroke, terminal, and offset, while Add actions remain disabled.
+default stroke and offset with a square terminal, while Add actions remain disabled.
 A reusable mock Item palette outside the stacks creates a new
 sequentially numbered item only after a successful drop on a stack boundary
 or append target, using the same separators and creation action as button
@@ -94,8 +116,14 @@ insertion. Cancelled drags allocate nothing; existing items still move, and
 the palette template remains available for another drag.
 Empty stacks and empty section drop areas remain visible; source drops have
 no effect. **Add section** creates one empty stack without consuming an item
-number. Item and section button additions announce the result and retain button
-focus. Width and row height are Storybook controls. This phase is Storybook-only.
+number. Item and section button additions announce the result and retain
+button focus. The `maxStacksPerSection` Storybook control defaults to 4 and
+ranges from 1 to 6. The limit applies to incoming cross-section Stack drag/Move
+and item moves that create stacks through **New stack** or a
+section background. Same-section Stack reordering and item moves into existing
+stacks remain allowed. Lowering the limit preserves current stacks and blocks
+further growth without deleting anything. Width and row height are also
+Storybook controls. This phase is Storybook-only.
 
 App and Web run independently behind their own Portless hostnames. Direct
 startup defaults to 10001 for App and 10000 for Web; Portless allocates their
@@ -114,7 +142,7 @@ their extensionless ESM imports. Referenced `/assets/` public files retain
 explicit legacy mappings.
 
 App resolves the SharedWorker and browser SQLite WASM from installed
-`18.0.0` package exports. `userSessionDefinition` is shared by
+`19.0.0` package exports. `userSessionDefinition` is shared by
 `makeAggregateBrowserDefinition` and the authored `node.worker.ts` entrypoint.
 `makeApplicationSharedWorker` binds that emitted worker artifact to the session.
 The host imports `node.worker.ts` through Vite's `?sharedworker&url` query;
@@ -139,10 +167,10 @@ the affected Library/App browser databases and local `sys_qrk_sh_1` backend stor
 with no backup, migration, or authored namespace change. The implementation is in
 source. Chrome Library/App data and local backend storage were reset; the backend
 accepted the system spec and App initialized with the existing authenticated user.
-The in-app browser Library reset remains blocked by its old SharedWorker and
-requires fully quitting/reopening the desktop app before exact deletion is retried.
-Only Library is paused to prevent its worker reopening; API, App, backend, and Web
-remain running. Library generation passed after an API-only restart with
+At that cutover, the in-app browser Library reset was blocked by its old
+SharedWorker, and Library was paused while the other apps remained running.
+The 19.0.0 cleanup adoption preserves storage and does not require that legacy
+deletion. Library generation passed after an API-only restart with
 the refreshed credential: JsonRender and generated JSON changed while authored
 markup stayed unchanged. Connected browser identity includes the exact session
 lock; old matching local nodes and their

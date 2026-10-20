@@ -170,14 +170,15 @@ and stages the selected icon and color directly, including the existing/default
 icon when no search runs. There is no Save-time icon request.
 
 Library retains `/qrk-library-command-query-v1` as its standalone backup path.
-Zerospin 18.0.0 derives its storage key from that path, the existing authored
-session scope and the complete canonical `aggregateSessionLock`, including
-locked models, public contracts and the claims schema. Incidental claims values
-outside the resolved path and runtime/build identity do not split storage. First
-adoption changes every existing standalone key and initializes a fresh partition
-from configured seeds, leaving old databases untouched without lookup, migration,
-deletion or fallback. Later, the same scope, path and lock reopen their retained
-partition; changing the lock selects separate storage.
+Zerospin 19.0.0 retains the storage key introduced in 18.0.0: that path, the
+existing authored session scope and the complete canonical `aggregateSessionLock`,
+including locked models, public contracts and the claims schema. Incidental claims values
+outside the resolved path and runtime/build identity do not split storage. The
+18.0.0 adoption changed every existing standalone key and initialized a fresh
+partition from configured seeds, leaving old databases untouched without lookup,
+migration, deletion or fallback. Later, the same scope, path and lock reopen their retained
+partition; changing the lock selects separate storage. The 19.0.0 cleanup change
+preserves those partitions and their data.
 
 [Plan 031](../../wiki/plans/031-plan-component-jsonrender-previews.md) records the
 preceding 15.0.1 cutover: explicit deletion of only affected local Library/App node
@@ -515,15 +516,29 @@ database was preserved, and the temporary inspection handle and lease were relea
 
 The authored worker is imported through Vite's `?sharedworker&url` query and
 bound through `makeApplicationSharedWorker`. Its entrypoint imports
-`@zerospin/browser/sqlite.wasm?url` from the installed `18.0.0` browser package
+`@zerospin/browser/sqlite.wasm?url` from the installed `19.0.0` browser package
 and registers the existing session definition with `makeSharedWorker`.
 The worker name includes the session-lock storage key. Backup paths, source
 exports, and backend contracts are unchanged by this adoption.
 
-Session disposal detaches that facade. The standalone worker owner's `close()`
-path drains its Node and closes SQLite before releasing the namespace lease;
-last-attachment cleanup does not currently invoke that owner close. Automatic
-last-client shutdown and abrupt tab-death handling remain separate Plan 2 work.
+Session disposal detaches that facade and waits for its local cleanup. Its Promise
+does not acknowledge shared-owner drainage. With 19.0.0, the last live client's
+departure starts asynchronous cleanup of the Node, application/synchronization
+resources and SQLite/VFS, then releases the namespace lease. The lightweight
+SharedWorker host remains reusable. A client arriving during cleanup waits for
+complete closure before a fresh owner reopens the same database.
+
+Each connection holds a document-owned Web Lock before worker construction.
+Release of that lock detects abrupt document loss independently of the namespace
+lease. Hidden, frozen and cached documents remain live clients while the browser
+retains their locks. Cleanup failure retains namespace exclusion and rejects
+replacement acquisition; it does not open over uncertain resources.
+
+An existing 18.0.0 or older worker cannot gain cleanup retroactively. Its owner
+must release before 19.0.0 can initialize the same namespace. A browser restart
+preserving its profile may be needed to release that old host; preserve existing
+databases throughout adoption.
+
 Within a retained partition, restored resources take precedence over the initial
 seed. DevTools defaults to closed and retains its visibility preference.
 App uses its authenticated `UserApp` initialized session, with a separate wall
@@ -578,7 +593,7 @@ aligns the frame bottom with the raised toolbar's center. App retains its
 route-based toolbar visibility, with no floating toolbar on drawer routes.
 
 Library and App resolve browser SQLite WASM from the installed Zerospin
-`18.0.0` package exports. The Library standalone worker imports the same pure
+`19.0.0` package exports. The Library standalone worker imports the same pure
 `librarySessionDefinition` as its host definition. App authors its connected
 `node.worker.ts` entrypoint, and both hosts use `makeApplicationSharedWorker`
 to identify the emitted executable artifact. Vite emits each worker from its

@@ -8,6 +8,7 @@ import {
   useSyncExternalStore,
 } from "react";
 import { Pencil } from "lucide-react";
+import { cn } from "cn";
 
 import { isNonEmptySpec } from "@json-render/core";
 import { Schema } from "effect";
@@ -259,7 +260,10 @@ export function BrickWall(props: {
             };
           })}
           autoSize
-          className="grid-layout bg-white min-h-[calc(100dvh-var(--wall-top-offset,3.5rem)-var(--wall-chrome-height,0px))]"
+          className={cn(
+            "grid-layout bg-white min-h-[calc(100dvh-var(--wall-top-offset,3.5rem)-var(--wall-chrome-height,0px))]",
+            gestureActive && "brick-gesture",
+          )}
           compactor={verticalCompactor}
           gridConfig={{
             cols: 8,

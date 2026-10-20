@@ -212,11 +212,12 @@
   cursor: ew-resize;
 }
 
+/* Drag outline waits for BrickWall's real gesture; RGL adds
+   .react-draggable-dragging on mousedown before the drag threshold. */
+.grid-layout.brick-gesture
+  > .react-grid-item.brick-drag-surface:not(.react-resizable-hide).react-draggable-dragging::after,
 .grid-layout
-  > .react-grid-item.brick-drag-surface:not(.react-resizable-hide):is(
-    .react-draggable-dragging,
-    .resizing
-  )::after {
+  > .react-grid-item.brick-drag-surface:not(.react-resizable-hide).resizing::after {
   opacity: 1;
 }
 
@@ -268,9 +269,7 @@
   bottom: calc(0px - var(--brick-edge));
 }
 
-.brick-hover-target:not(.react-draggable-dragging):not(.resizing)[data-selected="true"],
-.brick-hover-target:not(.react-draggable-dragging):not(.resizing):focus-visible,
-.brick-hover-target:not(.react-draggable-dragging):not(.resizing):has(:focus-visible) {
+.brick-hover-target[data-selected="true"] {
   --brick-hover-active: 1;
 
   z-index: 1;
@@ -282,30 +281,30 @@
   }
 }
 
-/* Idle neighbors lose hover elevation during grid dragging or resizing. */
-.grid-layout:has(> .react-draggable-dragging, > .resizing)
+/* Idle neighbors lose hover elevation during a real grid gesture. */
+.grid-layout.brick-gesture
   > .brick-hover-target:not(.react-draggable-dragging):not(.resizing) {
   z-index: auto;
 }
 
-.grid-layout:has(> .react-draggable-dragging, > .resizing) > .brick-hover-target {
+.grid-layout.brick-gesture > .brick-hover-target {
   --brick-hover-active: 0;
 }
 
-.grid-layout:has(> .react-draggable-dragging, > .resizing)
+.grid-layout.brick-gesture
   > .brick-hover-target
   > .react-resizable-handle,
-.grid-layout:has(> .react-draggable-dragging, > .resizing)
+.grid-layout.brick-gesture
   > .brick-hover-target
   > .brick-hover-surface,
-.grid-layout:has(> .react-draggable-dragging, > .resizing)
+.grid-layout.brick-gesture
   > .brick-hover-target:not(.react-draggable-dragging):not(.resizing)
   > .brick-hover-surface {
   --brick-hover-active: 0;
 }
 
 /* Only the resizing brick keeps its handles during a grid gesture. */
-.grid-layout:has(> .react-draggable-dragging, > .resizing)
+.grid-layout.brick-gesture
   > .react-grid-item.brick-hover-target:not(.resizing)
   > .react-resizable-handle {
   opacity: 0;

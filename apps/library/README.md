@@ -333,16 +333,16 @@ a local visual spike.
 
 ## Modules and interaction
 
-Wall bricks and fixed-size catalog/detail previews show a 2px dark border
-immediately on pointer hover or keyboard focus. Flat wall hover outlines follow
-the shared grid border's 1px right/bottom extension, keeping the wall perimeter
-inside its box. Cards and standalone previews keep their inset outline. Their
-cells, surfaces, and resize handles stay stationary, with no hover lift, outward
-shadow, or transition.
-Wall hover pauses during grid dragging or resizing. The active brick keeps its
-black outline; resize handles stay hidden during dragging, and only the resizing
-brick keeps its handles until the gesture ends.
-Reduced motion uses the same immediate border.
+Wall bricks show a 2px dark border when selected. Flat wall selection outlines
+follow the shared grid border's 1px right/bottom extension, keeping the wall
+perimeter inside its box. Cards and standalone previews keep their inset outline.
+Their cells, surfaces, and resize handles stay stationary, with no hover lift,
+outward shadow, or transition. Pointer hover shows resize handles without the
+border. Keyboard focus inside a brick does not draw the brick border.
+A real drag or resize shows the black square outline on the active brick; idle
+neighbors pause selection chrome and hide their handles until the gesture ends.
+Resize handles stay hidden during dragging, and only the resizing brick keeps
+its handles until the gesture ends.
 Intrinsic measurement hosts retain their existing sizing behavior.
 
 A successful catalog drop calls `BrickWall.onBrickActivate` for the new brick,
@@ -607,9 +607,10 @@ Library and App use a white wall canvas at all four breakpoints. `BrickWall`
 uses zero margins/padding in default mode, so placement boxes meet both wall
 edges; row height is the full width divided by eight. Card mode uses equal 16px
 interior/perimeter gaps and the square-cell formula described above.
-Its optional `selectedBrickId` keeps the matching brick's outline and resize handles
-visible in the idle active wall. App supplies the brick-detail route ID; hover,
-focus, and drag/resize suppression retain their existing behavior.
+Its optional `selectedBrickId` keeps the matching brick's selection border
+visible in the idle active wall. App supplies the brick-detail route ID; resize
+handles still appear on pointer hover, and a real drag or resize suppresses
+selection chrome on idle neighbors.
 Shared `bricks.css` styles the grid placeholder during brick dragging, catalog drops,
 and resizing with a light-gray background, square corners, and a subtle
 inset shadow. Placeholder dimensions, positioning, and transitions retain the
@@ -670,8 +671,9 @@ Placed bricks drag from their entire surface and resize using white pill anchors
 with a thin black border at the four edge midpoints, aligned parallel to each edge.
 The anchors remain visible during resizing and on idle touch devices. Dragging
 hides all anchors; resizing hides other bricks' anchors.
-The square outline stays visible during dragging and resizing; hover uses the
-surface's border. Every edge keeps its anchor, including at the grid boundaries.
+The square outline stays visible during a real drag or resize; selection uses the
+surface's inset border. A press that never crosses the drag threshold leaves the
+outline off. Every edge keeps its anchor, including at the grid boundaries.
 Resizing clamps to the grid's left, right, and top boundaries and the module's
 minimum width and height; the bottom edge can grow the wall. These controls belong
 to the active wall and retain grid snapping, module minimum sizes, vertical

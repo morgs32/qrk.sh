@@ -50,7 +50,10 @@ Pragmatic Drag and Drop Tree example with local sample items. Drag to reorder
 or nest items within or across sections; the row's Move button provides Section,
 Parent, and position controls for keyboard use. Two sections start the story:
 the first contains two stacks with children below their parents without
-indentation; the second contains one empty full-width stack. A section with one
+indentation; the second contains one empty full-width stack. Children always
+remain visible, including during dragging; stacks have no collapse controls.
+Items use consecutive numbers starting at 1, without bullets or hierarchical labels.
+A section with one
 stack uses its full width; multiple stacks use two columns and wrap. One gray
 box contains all sections. Compact 1px shadcn Separators with centered ghost
 plus buttons sit between sections and at the bottom, with the buttons slightly
@@ -62,8 +65,8 @@ in the new section.
 Empty sections remain visible drop areas. Only root items
 can receive children, and populated stacks stay at the root; both dragging and
 Move enforce this two-level limit. Each stack has an **Add item** footer,
-including empty and collapsed stacks. It appends a numbered mock item, expands
-that stack, and announces the addition while retaining button focus. Adding a
+including empty stacks. It appends a numbered mock item and announces the
+addition while retaining button focus. Adding a
 section also announces the addition and retains button focus. Width and row
 height are Storybook controls. This phase is Storybook-only.
 

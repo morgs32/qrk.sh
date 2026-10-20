@@ -14,7 +14,7 @@ import { combine } from "@atlaskit/pragmatic-drag-and-drop/utils/combine";
 import { setCustomNativeDragPreview } from "@atlaskit/pragmatic-drag-and-drop/utils/set-custom-native-drag-preview";
 import { pointerOutsideOfPreview } from "@atlaskit/pragmatic-drag-and-drop/utils/pointer-outside-of-preview";
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { ChevronDown, ChevronRight, Circle, Ellipsis, Plus } from "lucide-react";
+import { Ellipsis, GripVertical, Plus } from "lucide-react";
 import { Fragment, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 
 import { Button } from "./ui/button";
@@ -49,18 +49,17 @@ const meta = {
         id: string;
         parentId: string | null;
         sectionId: string | null;
-        isOpen: boolean;
         isDraft: boolean;
       }[]
     >([
-      { id: "1", parentId: null, sectionId: "1", isOpen: true, isDraft: false },
-      { id: "1.1", parentId: "1", sectionId: null, isOpen: false, isDraft: false },
-      { id: "1.2", parentId: "1", sectionId: null, isOpen: false, isDraft: false },
-      { id: "2", parentId: null, sectionId: "1", isOpen: true, isDraft: false },
-      { id: "2.1", parentId: "2", sectionId: null, isOpen: false, isDraft: false },
-      { id: "3", parentId: null, sectionId: "2", isOpen: true, isDraft: false },
+      { id: "1", parentId: null, sectionId: "1", isDraft: false },
+      { id: "2", parentId: "1", sectionId: null, isDraft: false },
+      { id: "3", parentId: "1", sectionId: null, isDraft: false },
+      { id: "4", parentId: null, sectionId: "1", isDraft: false },
+      { id: "5", parentId: "4", sectionId: null, isDraft: false },
+      { id: "6", parentId: null, sectionId: "2", isDraft: false },
     ]);
-    const nextItemId = useRef(4);
+    const nextItemId = useRef(7);
     const nextSectionId = useRef(3);
     const addSectionRef = useRef<HTMLButtonElement>(null);
     const rootRef = useRef<HTMLDivElement>(null);
@@ -118,11 +117,7 @@ const meta = {
           parentId,
           sectionId: parentId === null ? sectionId : null,
         });
-        setItems(
-          remaining.map((entry) =>
-            parentId !== null && isWithin(parentId, entry.id) ? { ...entry, isOpen: true } : entry,
-          ),
-        );
+        setItems(remaining);
         announce(
           `Moved Item ${itemId} to position ${index + 1} in ${parentId ? `Item ${parentId}` : `Section ${sectionId}`}.`,
         );
@@ -140,35 +135,13 @@ const meta = {
       for (const element of root.querySelectorAll<HTMLButtonElement>("[data-tree-row]")) {
         const item = items.find((entry) => entry.id === element.dataset.treeRow);
         if (!item) continue;
-        let expandTimer: ReturnType<typeof setTimeout> | undefined;
-        const cancelExpand = () => {
-          clearTimeout(expandTimer);
-          expandTimer = undefined;
-        };
         const onChange = ({ self }: ElementDropTargetEventBasePayload) => {
           const instruction = extractInstruction(self.data);
           setDrop(instruction ? { id: item.id, instruction } : null);
-          if (
-            instruction?.operation === "combine" &&
-            !instruction.blocked &&
-            !item.isOpen &&
-            items.some((child) => child.parentId === item.id)
-          ) {
-            if (expandTimer === undefined) {
-              expandTimer = setTimeout(() => {
-                setItems((current) =>
-                  current.map((entry) =>
-                    entry.id === item.id ? { ...entry, isOpen: true } : entry,
-                  ),
-                );
-              }, 500);
-            }
-          } else cancelExpand();
         };
 
         disposers.push(
           combine(
-            cancelExpand,
             draggable({
               element,
               getInitialData: () => ({ id: item.id, contextId }),
@@ -210,7 +183,7 @@ const meta = {
                               : "not-available",
                           "reorder-before": "available",
                           "reorder-after":
-                            item.isOpen && items.some((child) => child.parentId === item.id)
+                            items.some((child) => child.parentId === item.id)
                               ? "not-available"
                               : "available",
                         },
@@ -218,11 +191,7 @@ const meta = {
                 ),
               onDragEnter: onChange,
               onDrag: onChange,
-              onDragLeave: () => {
-                cancelExpand();
-                setDrop(null);
-              },
-              onDrop: cancelExpand,
+              onDragLeave: () => setDrop(null),
             }),
           ),
         );
@@ -313,7 +282,7 @@ const meta = {
         }),
       );
       return combine(...disposers);
-    }, [items, contextId, draggingId, isWithin, moveItem]);
+    }, [items, contextId, isWithin, moveItem]);
 
     function renderItems(parentId: string | null, sectionId: string): ReactNode {
       return items
@@ -322,7 +291,6 @@ const meta = {
         )
         .map((item) => {
           const hasChildren = items.some((child) => child.parentId === item.id);
-          const isOpen = item.isOpen && draggingId !== item.id;
           return (
             <div
               key={item.id}
@@ -341,30 +309,7 @@ const meta = {
                   variant="ghost"
                   className="relative w-full justify-start gap-0 rounded-sm px-2 pr-10 font-normal"
                   style={{ height: rowHeight, opacity: draggingId === item.id ? 0.4 : 1 }}
-                  aria-expanded={hasChildren ? isOpen : undefined}
-                  aria-controls={hasChildren ? `tree-group-${item.id}` : undefined}
-                  onClick={() =>
-                    setItems((current) =>
-                      current.map((entry) =>
-                        entry.id === item.id ? { ...entry, isOpen: !entry.isOpen } : entry,
-                      ),
-                    )
-                  }
                 >
-                  <span
-                    className="flex size-6 shrink-0 items-center justify-center"
-                    aria-hidden="true"
-                  >
-                    {hasChildren ? (
-                      isOpen ? (
-                        <ChevronDown className="size-4" />
-                      ) : (
-                        <ChevronRight className="size-4" />
-                      )
-                    ) : (
-                      <Circle className="size-1 fill-current" />
-                    )}
-                  </span>
                   <span className="min-w-0 flex-1 truncate text-left">Item {item.id}</span>
                   {item.isDraft && <code className="text-xs text-muted-foreground">Draft</code>}
                   {drop?.id === item.id && <DropIndicator instruction={drop.instruction} />}
@@ -387,7 +332,7 @@ const meta = {
                   <Ellipsis className="size-4" />
                 </Button>
               </div>
-              {hasChildren && isOpen && (
+              {hasChildren && (
                 <div>
                   <GroupDropIndicator isActive={activeGroup === item.id}>
                     <div id={`tree-group-${item.id}`} data-tree-group={item.id}>
@@ -406,10 +351,8 @@ const meta = {
                   onClick={() => {
                     const id = String(nextItemId.current++);
                     setItems((current) => [
-                      ...current.map((entry) =>
-                        entry.id === item.id ? { ...entry, isOpen: true } : entry,
-                      ),
-                      { id, parentId: item.id, sectionId: null, isOpen: false, isDraft: false },
+                      ...current,
+                      { id, parentId: item.id, sectionId: null, isDraft: false },
                     ]);
                     announce(`Added Item ${id} to Item ${item.id}.`);
                   }}
@@ -421,6 +364,7 @@ const meta = {
                     <Plus className="size-4" />
                   </span>
                   Add item
+                  <GripVertical className="ml-auto size-4" aria-hidden="true" />
                 </Button>
               )}
             </div>
@@ -464,7 +408,7 @@ const meta = {
                           ));
                           setItems((current) => [
                             ...current,
-                            { id, parentId: null, sectionId: newSectionId, isOpen: true, isDraft: false },
+                            { id, parentId: null, sectionId: newSectionId, isDraft: false },
                           ]);
                           announce(`Added Section ${newSectionId} before Section ${sectionId}.`);
                         }}
@@ -519,7 +463,7 @@ const meta = {
                 setSections((current) => [...current, sectionId]);
                 setItems((current) => [
                   ...current,
-                  { id, parentId: null, sectionId, isOpen: true, isDraft: false },
+                  { id, parentId: null, sectionId, isDraft: false },
                 ]);
                 announce(`Added Section ${sectionId}.`);
                 requestAnimationFrame(() => addSectionRef.current?.focus());

@@ -2,8 +2,8 @@ import { brick as brickIdentity } from "../../models/brick/brick";
 import { modelId } from "@zerospin/sdk/browser";
 import { findFirst } from "@zerospin/core/contracts/findFirst";
 import { Effect, Schema } from "effect";
-import { makePlacementId } from "@qrk.sh/library/makePlacementId";
-import { githubRepoV1 } from "@qrk.sh/library/modules/githubRepo/githubRepoV1";
+import { makePlacementId } from "../../../../modules/lib/makePlacementId";
+import { githubRepoV1 } from "../../../../modules/githubRepo/githubRepoV1";
 import { defineAggregateContract } from "@zerospin/core/contracts/defineAggregateContract";
 import { makeAggregateContractVersion } from "@zerospin/core/contracts/make/makeAggregateContractVersion";
 import { ContractError } from "@zerospin/error";
@@ -47,7 +47,7 @@ export const completeGithubRepo = makeAggregateContractVersion(
     }),
     program: Effect.fn("completeGithubRepo.program")(function* (props) {
       const { db, payload, operations } = props;
-      const row = yield* findFirst({ db, model: brick, where: { id: { eq: payload.brickId } } });
+      const row = yield* findFirst({ db, model: db.models.brick, where: { id: { eq: payload.brickId } } });
       if (
         row === undefined ||
         row.moduleId !== "github-repo" ||
@@ -69,7 +69,7 @@ export const completeGithubRepo = makeAggregateContractVersion(
       for (const breakpoint of breakpoints) {
         const currentPlacement = yield* findFirst({
           db,
-          model: placement,
+          model: db.models.placement,
           where: { id: { eq: makePlacementId(row.id, breakpoint) } },
         });
         if (currentPlacement !== undefined)

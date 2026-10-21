@@ -28,7 +28,7 @@ export const unpublishSiteV1 = makeAggregateContractVersion(unpublishSite, {
         status: 403,
       });
     }
-    const site = yield* findFirst({ db, model: Site, where: { id: { eq: payload.siteId } } });
+    const site = yield* findFirst({ db, model: db.models.site, where: { id: { eq: payload.siteId } } });
     if (site === undefined) {
       return yield* failures.unpublishSiteNotFound.make({
         message: `Site ${payload.siteId} was not found`,
@@ -38,7 +38,7 @@ export const unpublishSiteV1 = makeAggregateContractVersion(unpublishSite, {
     const user =
       site.userId === null
         ? undefined
-        : yield* findFirst({ db, model: User, where: { id: { eq: site.userId } } });
+        : yield* findFirst({ db, model: db.models.user, where: { id: { eq: site.userId } } });
     if (user === undefined || user.clerkUserId !== clerkUserId) {
       return yield* failures.unpublishSiteUserMismatch.make({
         message: `Site ${site.id} does not belong to identity ${clerkUserId}`,

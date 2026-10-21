@@ -38,22 +38,22 @@ export const deleteBrick = makeAggregateContractVersion(defineAggregateContract(
   failures: { invalidLayout: ContractError.schema({ code: "delete-brick-invalid-layout" }) },
   program: Effect.fn("deleteBrick.program")(function* (props) {
     const { db, payload, operations, failures, claims } = props;
-    const content = yield* findFirst({ db, model: brick, where: { id: { eq: payload.brickId } } });
+    const content = yield* findFirst({ db, model: db.models.brick, where: { id: { eq: payload.brickId } } });
     if (content === undefined)
       return yield* failures.invalidLayout.make({
         message: "The Brick no longer exists",
         status: 404,
       });
     const pageId = content.pageId;
-    const pageRow = yield* findFirst({ db, model: page, where: { id: { eq: pageId } } });
+    const pageRow = yield* findFirst({ db, model: db.models.page, where: { id: { eq: pageId } } });
     const siteRow =
       pageRow === undefined || pageRow.siteId === null
         ? undefined
-        : yield* findFirst({ db, model: site, where: { id: { eq: pageRow.siteId } } });
+        : yield* findFirst({ db, model: db.models.site, where: { id: { eq: pageRow.siteId } } });
     const userRow =
       siteRow === undefined || siteRow.userId === null
         ? undefined
-        : yield* findFirst({ db, model: user, where: { id: { eq: siteRow.userId } } });
+        : yield* findFirst({ db, model: db.models.user, where: { id: { eq: siteRow.userId } } });
     if (userRow === undefined || userRow.clerkUserId !== claims?.clerkUserId)
       return yield* failures.invalidLayout.make({
         message: "This Page is unavailable",
@@ -61,12 +61,12 @@ export const deleteBrick = makeAggregateContractVersion(defineAggregateContract(
       });
     const placements = yield* findMany({
       db,
-      model: placement,
+      model: db.models.placement,
       where: { brickId: { eq: content.id } },
     });
     const walls = yield* findMany({
       db,
-      model: wall,
+      model: db.models.wall,
       where: { pageId: { eq: pageId } },
       columns: { id: true },
       with: {

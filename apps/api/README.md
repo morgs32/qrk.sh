@@ -1,10 +1,9 @@
 # API
 
-The `api` Cloudflare Worker owns module RPCs, image uploads, and
-asset serving. Its Nx project is `@qrk.sh/api`. The Library package retains
-module definitions, catalogs, views, module-owned behavior, and browser RPC
-declarations; API imports its catalog registry from
-`@qrk.sh/library/backendLibrary` for spec generation.
+The `api` Cloudflare Worker owns module RPCs, image uploads, asset serving,
+and browser RPC declarations. Its Nx project is `@qrk.sh/api`. API imports the
+catalog registry from `@qrk.sh/zerospin/src/modules/backendLibrary` for spec
+generation. App owns module UI and its consolidated Storybook.
 
 ## Local development
 
@@ -19,13 +18,12 @@ Root Portless startup runs Web, App, API, and Zerospin, including API at
 its `dev` script invokes Portless, which runs the Wrangler command in `dev:app`.
 Package metadata retains the hostname and internal port. Wrangler listens at
 `http://127.0.0.1:8787`, with an automatically allocated inspector port.
-Library's module playgrounds run separately through
-`pnpm nx run @qrk.sh/library:storybook` at `http://127.0.0.1:10021`.
+Module playgrounds run in App Storybook through
+`pnpm nx run @qrk.sh/app:storybook` at `http://127.0.0.1:10020`.
 Storybook forwards `/rpc`, `/upload`, `/image/upload`, and `/assets/*` to API.
 Fixture previews use local state; live generation, lookups, and Image uploads use
 the existing API services. App owns persisted editing and its session.
-Consumers compile Library source directly; development startup needs no Library
-build. These commands do not deploy it.
+Consumers compile Zerospin module source directly; no Library package remains. These commands do not deploy it.
 
 Put private provider credentials in `apps/api/.env.local`:
 
@@ -41,7 +39,7 @@ the App browser origin. Set
 `CLERK_AUTHORIZED_PARTY=https://app.qrk.localhost` in `apps/api/.env.local`, matching
 Wrangler's local default. `R2_PUBLIC_BASE_URL` defaults to
 `https://api.qrk.localhost/assets` for local serving. Public Mapbox settings
-remain in Library's `.env.local`. Do not expose provider or Clerk secrets in
+remain in App's `.env.local`. Do not expose provider or Clerk secrets in
 browser configuration.
 
 Instagram's normal lookup uses the server-side `APIFY_API_TOKEN` from the existing
@@ -186,7 +184,7 @@ python3 apps/api/modules/swatchAndIcon/downloadMaterialSymbols.py
 
 The downloader validates every SVG and only replaces the generated catalog after
 the complete pinned snapshot succeeds. Catalog updates are manual. The catalog
-is bundled into API, not Library's browser output. Existing bricks render their
+is bundled into API, not App's browser output. Existing bricks render their
 saved SVGs, including historical Streamline icons, without a provider lookup.
 
 `BACKEND_REPO` binds the storage-only `BackendRepo` singleton named `global`.

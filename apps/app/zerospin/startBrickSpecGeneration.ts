@@ -2,10 +2,10 @@ import { stageAggregateSessionCommand } from "@zerospin/sdk/browser";
 import { newSyncRpcSession } from "@zerospin/core/utils/getApi/newSyncRpcSession/newSyncRpcSession";
 import { isNonEmptySpec } from "@json-render/core";
 
-import type { LibraryApi } from "../../library/worker/LibraryApi.public";
+import type { LibraryApi } from "@qrk.sh/api/modules/LibraryApi.public";
 import type { UserUI } from "./UserUI";
 
-/** Provider work belongs to the session lifetime; the saved form only stages intent. */
+/** Layout generation belongs to the initialized user session, independently of open content forms. */
 export function startBrickSpecGeneration(
   session: ReturnType<typeof UserUI.useSession>,
 ) {

@@ -1,10 +1,4 @@
-export type IJsonValue =
-  | null
-  | boolean
-  | number
-  | string
-  | ReadonlyArray<null | boolean | number | string | object>
-  | Readonly<{ [key: string]: null | boolean | number | string | object }>;
+import type { IJsonValue } from "@qrk.sh/zerospin/src/modules/types";
 
 export type IInstagramScrapePayload = Readonly<{
   username: string;

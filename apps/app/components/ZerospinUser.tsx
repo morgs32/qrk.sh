@@ -6,7 +6,7 @@ import { Effect } from "effect";
 import { useEffect, useSyncExternalStore, type ReactNode } from "react";
 import { getClerkToken } from "@/lib/getClerkToken";
 import { toast } from "sonner";
-import { startLibrarySessionWork } from "@/zerospin/startLibrarySessionWork";
+import { startBrickSpecGeneration } from "@/zerospin/startBrickSpecGeneration";
 import { Initializer } from "@zerospin/react";
 import { userConnection } from "@/zerospin/userConnection";
 import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
@@ -85,7 +85,7 @@ function UserSessionWork() {
     () => session.store.getState().initialized,
   );
   useEffect(() => {
-    const stopWork = startLibrarySessionWork(session);
+    const stopWork = startBrickSpecGeneration(session);
     const stopFailures = session.store.subscribe((state, previous) => {
       if (state.status !== "failed" && state.failure !== null && state.failure !== previous.failure)
         toast.error(state.failure.message);

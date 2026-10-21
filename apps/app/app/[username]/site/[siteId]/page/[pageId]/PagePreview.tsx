@@ -4,9 +4,9 @@ import { useContext, useState } from "react";
 import { WallEditorContext } from "./WallEditorContext";
 import { useReducedMotion } from "framer-motion";
 
-import { BREAKPOINTS } from "@qrk.sh/library/breakpoints";
-import { WallBreakpointPane } from "@qrk.sh/library/WallBreakpointPane";
-import { useWallViewport } from "@qrk.sh/library/WallViewportProvider";
+import { BREAKPOINTS } from "../../../../../../modules/lib/breakpoints";
+import { WallBreakpointPane } from "../../../../../../modules/lib/WallBreakpointPane";
+import { useWallViewport } from "../../../../../../modules/lib/WallViewportProvider";
 import { SiteHeader } from "../../SiteHeader";
 
 export function PagePreview() {

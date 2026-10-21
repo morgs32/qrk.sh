@@ -1,6 +1,6 @@
 import { buildUserPrompt, compileSpecStream, isNonEmptySpec, type Spec } from "@json-render/core";
 
-import { backendLibrary } from "@qrk.sh/library/backendLibrary";
+import { backendLibrary } from "@qrk.sh/zerospin/src/modules/backendLibrary";
 import type { IRpcEither } from "./types";
 
 const GENERATE_MODEL = "gpt-5.6-luna";

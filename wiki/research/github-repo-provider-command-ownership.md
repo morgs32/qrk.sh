@@ -2,6 +2,10 @@
 
 Researched 2026-10-21 from QRK source, installed Zerospin SDK 20.1.2, and the sibling Zerospin source/examples. This is a source review and proposal. No implementation changes, data operations, or verification runs were performed.
 
+This architecture recommendation was superseded for QRK by the approved and implemented
+[fetch-then-save plan](../archive/plans/037-plan-simple-provider-state-save.md).
+The source findings below describe the earlier workflow.
+
 ## Conclusion
 
 **QRK does not need two public commands for configuring a GitHub Repo brick.** One public `configureGithubRepo` command can record the intent, with the server fetching repository metadata and recording the result through a private continuation. The existing SDK supports that execution model. This conclusion follows from its ordinary-contract adapter and external-contract APIs, plus the existing aggregate tracking-label example. [Installed SDK guidance][sdk-external], [tracking adapter][tracking-adapter], [tracking continuation][tracking-external].
@@ -66,7 +70,7 @@ Recommendation only: no contract removal, actor capability change, provider move
 [complete]: ../../apps/zerospin/src/aggregates/user/contracts/brick/CompleteGithubRepoV2.ts#L28-L79
 [browser-resolution]: ../../apps/library/modules/githubRepo/startGithubRepoResolution.ts#L20-L143
 [session-work]: ../../apps/app/zerospin/startLibrarySessionWork.ts#L53-L62
-[session-contracts]: ../../apps/zerospin/src/aggregates/user/userSessionDefinitionProps.ts#L87-L88
+[session-contracts]: ../../apps/app/zerospin/userSessionDefinitionV4.ts
 [actor-contracts]: ../../apps/zerospin/src/aggregates/user/actors/userActorV4.ts#L119-L120
 [provider-rpc]: ../../apps/api/modules/LibraryApi.ts#L47-L50
 [provider-operation]: ../../apps/api/modules/githubRepo/getGitHubRepo.ts#L9-L34

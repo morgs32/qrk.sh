@@ -75,34 +75,34 @@ export const movePlacement = makeAggregateContractVersion(
       const actionId = payload.id;
       const moving = yield* findFirst({
         db,
-        model: placement,
+        model: db.models.placement,
         where: { id: { eq: payload.placementId } },
       });
       const content =
         moving === undefined
           ? undefined
-          : yield* findFirst({ db, model: brick, where: { id: { eq: moving.brickId } } });
+          : yield* findFirst({ db, model: db.models.brick, where: { id: { eq: moving.brickId } } });
       if (moving === undefined || content === undefined)
         return yield* failures.invalidLayout.make({
           message: "The Placement no longer exists",
           status: 404,
         });
       const pageId = content.pageId;
-      const pageRow = yield* findFirst({ db, model: page, where: { id: { eq: pageId } } });
+      const pageRow = yield* findFirst({ db, model: db.models.page, where: { id: { eq: pageId } } });
       const siteRow =
         pageRow === undefined || pageRow.siteId === null
           ? undefined
-          : yield* findFirst({ db, model: site, where: { id: { eq: pageRow.siteId } } });
+          : yield* findFirst({ db, model: db.models.site, where: { id: { eq: pageRow.siteId } } });
       const userRow =
         siteRow === undefined || siteRow.userId === null
           ? undefined
-          : yield* findFirst({ db, model: user, where: { id: { eq: siteRow.userId } } });
+          : yield* findFirst({ db, model: db.models.user, where: { id: { eq: siteRow.userId } } });
       if (userRow === undefined || userRow.clerkUserId !== claims?.clerkUserId)
         return yield* failures.invalidLayout.make({
           message: "This Page is unavailable",
           status: 403,
         });
-      const wallRow = yield* findFirst({ db, model: wall, where: { id: { eq: target.wallId } } });
+      const wallRow = yield* findFirst({ db, model: db.models.wall, where: { id: { eq: target.wallId } } });
       if (wallRow === undefined || wallRow.pageId !== pageId)
         return yield* failures.invalidLayout.make({
           message: "Placements can only move within their Wall",
@@ -110,7 +110,7 @@ export const movePlacement = makeAggregateContractVersion(
         });
       const sections = yield* findMany({
         db,
-        model: section,
+        model: db.models.section,
         where: { wallId: { eq: wallRow.id } },
         columns: { id: true, position: true },
         orderBy: { position: "asc" },

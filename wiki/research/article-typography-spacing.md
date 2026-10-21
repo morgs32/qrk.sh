@@ -13,9 +13,9 @@ At a 1476 × 1314 viewport with a 360px-wide catalog Article, live computed styl
 | Body first/last edges | 0 additional margin or padding | Meowdown body and boundary blocks |
 | Between body blocks | 16.15px (`0.85em` at 19px) | Body block top margins |
 
-The body uses 19px text with a 30.4px line height. The first paragraph has no margins; the final paragraph has a 16.15px top margin and no bottom margin. The measured bottom inset is therefore already 16px, rather than padding plus an untrimmed paragraph margin. The visible difference is the 36px subtitle/body separation versus the 16px exterior inset. Sources: [Article markup](/Users/morgs32/GitHub/qrk.sh/apps/library/modules/article/ArticleBrickContent.tsx:47), [subtitle and body CSS](/Users/morgs32/GitHub/qrk.sh/apps/library/modules/article/article-editor.css:164), and live browser measurements on the date above.
+The body uses 19px text with a 30.4px line height. The first paragraph has no margins; the final paragraph has a 16.15px top margin and no bottom margin. The measured bottom inset is therefore already 16px, rather than padding plus an untrimmed paragraph margin. The visible difference is the 36px subtitle/body separation versus the 16px exterior inset. Sources: [Article markup](/Users/morgs32/GitHub/qrk.sh/apps/app/modules/article/ArticleBrickContent.tsx:47), [subtitle and body CSS](/Users/morgs32/GitHub/qrk.sh/apps/app/modules/article/article-editor.css:164), and live browser measurements on the date above.
 
-QRK's shared responsive inset changes from 16px to 32px at the wider breakpoint; that outer layout rule is separate from article typography. [Shared insets](/Users/morgs32/GitHub/qrk.sh/apps/library/bricks.css:25)
+QRK's shared responsive inset changes from 16px to 32px at the wider breakpoint; that outer layout rule is separate from article typography. [Shared insets](/Users/morgs32/GitHub/qrk.sh/apps/app/modules/bricks.css:25)
 
 ## Tailwind defaults
 

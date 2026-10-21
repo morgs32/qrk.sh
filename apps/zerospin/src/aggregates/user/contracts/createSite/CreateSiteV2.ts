@@ -1,31 +1,19 @@
-import { ContractError } from "@zerospin/error";
 import * as sdk from "@zerospin/sdk/browser";
 
 import { upgradeAggregateContractVersion } from "@zerospin/sdk/browser";
 import { Effect, Schema } from "effect";
 import { siteV2 as Site } from "../../models/site/SiteV2";
-import { userV1 as User } from "../../models/user/UserV1";
 
 import { createSiteV1 } from "./CreateSiteV1";
 
 export const createSiteV2 = upgradeAggregateContractVersion(createSiteV1, {
   operations: { createSite: Site.operations.create },
-  failures: {
-    createSiteUserMismatch: ContractError.schema({ code: "create-site-user-mismatch" }),
-    siteSlugInvalid: ContractError.schema({ code: "site-slug-invalid" }),
-    siteSlugTaken: ContractError.schema({ code: "site-slug-taken" }),
-  },
 
-  payload: {},
-  up: Effect.fn("createSiteV2.up")(function* (props) {
-    const { payload } = props;
-    return payload;
-  }),
   down: Effect.fn("createSiteV2.down")(function* (props) {
     const { payload } = props;
     return payload;
   }),
-  models: { user: User, site: Site },
+  models: { site: Site },
   guard: Effect.fn("createSiteV2.guard")(function* (props) {
     const { failures, claims, db, payload } = props;
     const clerkUserId = claims?.clerkUserId;
@@ -39,7 +27,7 @@ export const createSiteV2 = upgradeAggregateContractVersion(createSiteV1, {
 
     const user = yield* sdk.findFirst({
       db,
-      model: User,
+      model: db.models.user,
       where: { id: { eq: payload.userId }, clerkUserId: { eq: clerkUserId } },
     });
 
@@ -63,7 +51,7 @@ export const createSiteV2 = upgradeAggregateContractVersion(createSiteV1, {
 
     const existingSite = yield* sdk.findFirst({
       db,
-      model: Site,
+      model: db.models.site,
       where: { userId: { eq: payload.userId }, slug: { eq: payload.slug } },
     });
     if (existingSite !== undefined) {

@@ -5,19 +5,19 @@ import { makeIdSchema } from "@zerospin/sdk/browser";
 import { useParams } from "@tanstack/react-router";
 import { useContext } from "react";
 import { WallEditorContext } from "../../../../WallEditorContext";
-import { WallModuleAction } from "@qrk.sh/library/WallModuleAction";
+import { WallModuleAction } from "../../../../../../../../../../modules/lib/wall/WallModuleAction";
 
-import { modulesHash } from "@qrk.sh/library/modulesHash";
+import { modulesHash } from "../../../../../../../../../../modules/lib/modulesHash";
 import { brickV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/brick/BrickV1";
 import { makeEffectSchema } from "@zerospin/shapes";
 import { Result, Schema } from "effect";
 import { pageV3 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV3";
-import { BREAKPOINTS } from "@qrk.sh/library/breakpoints";
-import { BrickCardStyleContext } from "@qrk.sh/library/BrickCardStyleContext";
+import { BREAKPOINTS } from "../../../../../../../../../../modules/lib/breakpoints";
+import { BrickCardStyleContext } from "../../../../../../../../../../modules/lib/BrickCardStyleContext";
 
 import { CodeText } from "@/app/[username]/site/[siteId]/page/[pageId]/Modules/CodeText";
 import { MetadataField } from "@/app/[username]/site/[siteId]/page/[pageId]/Modules/MetadataField";
-import { BrickWrapper } from "../../../../../../../../../../../library/components/brick/BrickWrapper";
+import { BrickWrapper } from "../../../../../../../../../../modules/components/brick/BrickWrapper";
 
 export default function ModuleRoute() {
   const params = useParams({

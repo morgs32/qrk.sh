@@ -17,7 +17,7 @@ export const provisionAuthenticatedUser = Effect.fn("provisionAuthenticatedUser"
   function* (props: {
     chain: Pick<AggregateChain, "executeAggregateCommand">;
     aggregateId: string;
-    aggregateVersion?: "3.0.0" | "4.0.0";
+    aggregateVersion?: "3.0.0" | "4.0.0" | "5.0.0";
     claims: typeof userClaims.Type;
   }) {
     const { chain, aggregateId, aggregateVersion = "3.0.0", claims } = props;

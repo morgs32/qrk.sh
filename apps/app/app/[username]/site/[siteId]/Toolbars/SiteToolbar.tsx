@@ -4,7 +4,7 @@ import { Schema } from "effect";
 import { motion, useReducedMotion } from "framer-motion";
 import { useMemo } from "react";
 import { ArrowLeft, File, Globe, Plus, RectangleHorizontal } from "lucide-react";
-import { WallPreviewToolbar } from "@qrk.sh/library/WallPreviewToolbar";
+import { WallPreviewToolbar } from "../../../../../modules/lib/WallPreviewToolbar";
 
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 

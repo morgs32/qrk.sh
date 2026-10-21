@@ -4,14 +4,14 @@ import { makeIdSchema } from "@zerospin/sdk/browser";
 
 import { useState, type ReactNode } from "react";
 import { useLocation, useMatches } from "@tanstack/react-router";
-import { Drawer } from "@qrk.sh/library/Drawer";
+import { Drawer } from "../../../../../../modules/lib/Drawer";
 
 import { useAuth, useUser } from "@clerk/react";
-import { WallViewportProvider } from "@qrk.sh/library/WallViewportProvider";
-import { WallPreviewViewport } from "@qrk.sh/library/WallPreviewViewport";
-import { ImageUploadEnvironment } from "@qrk.sh/library/ImageUploadEnvironment";
-import { ImageUploadRuntimeContext } from "@qrk.sh/library/ImageUploadRuntimeContext";
-import { BrickCardStyleContext } from "@qrk.sh/library/BrickCardStyleContext";
+import { WallViewportProvider } from "../../../../../../modules/lib/WallViewportProvider";
+import { WallPreviewViewport } from "../../../../../../modules/lib/WallPreviewViewport";
+import { ImageUploadEnvironment } from "../../../../../../modules/image/ImageUploadEnvironment";
+import { ImageUploadRuntimeContext } from "../../../../../../modules/image/ImageUploadRuntimeContext";
+import { BrickCardStyleContext } from "../../../../../../modules/lib/BrickCardStyleContext";
 import { useLiveQuery } from "@zerospin/react";
 import { siteV3 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV3";
 import { Effect, Layer, Schema } from "effect";

@@ -1,8 +1,8 @@
 import { brick as brickIdentity } from "../../models/brick/brick";
 import { modelId } from "@zerospin/sdk/browser";
-import { backendLibrary } from "@qrk.sh/library/backendLibrary";
-import { makeModuleSpecDocumentSchema } from "@qrk.sh/library/makeModuleSpecDocumentSchema";
-import { makePlacementId } from "@qrk.sh/library/makePlacementId";
+import { backendLibrary } from "../../../../modules/backendLibrary";
+import { makeModuleSpecDocumentSchema } from "../../../../modules/make/makeModuleSpecDocumentSchema";
+import { makePlacementId } from "../../../../modules/lib/makePlacementId";
 import { findFirst } from "@zerospin/core/contracts/findFirst";
 import { primitives } from "@zerospin/shapes";
 import { defineAggregateContract } from "@zerospin/core/contracts/defineAggregateContract";
@@ -30,7 +30,7 @@ export const updateSwatchAndIconSpecAtBreakpoint = makeAggregateContractVersion(
 
       const brickRow = yield* findFirst({
         db: db,
-        model: brick,
+        model: db.models.brick,
         where: { id: { eq: guardPayload.brickId } },
       });
 
@@ -53,7 +53,7 @@ export const updateSwatchAndIconSpecAtBreakpoint = makeAggregateContractVersion(
       const expectedPlacementId = makePlacementId(guardPayload.brickId, guardPayload.breakpoint);
       const placementRow = yield* findFirst({
         db: db,
-        model: placement,
+        model: db.models.placement,
         where: { id: { eq: expectedPlacementId } },
       });
 
@@ -70,7 +70,7 @@ export const updateSwatchAndIconSpecAtBreakpoint = makeAggregateContractVersion(
       return Effect.gen(function* () {
         const currentPlacement = yield* findFirst({
           db,
-          model: placement,
+          model: db.models.placement,
           where: { id: { eq: makePlacementId(programPayload.brickId, programPayload.breakpoint) } },
         });
         if (currentPlacement === undefined) return;

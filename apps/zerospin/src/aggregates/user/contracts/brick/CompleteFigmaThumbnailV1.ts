@@ -2,12 +2,12 @@ import { brick as brickIdentity } from "../../models/brick/brick";
 import { modelId } from "@zerospin/sdk/browser";
 import { findFirst } from "@zerospin/core/contracts/findFirst";
 import { Effect, Schema } from "effect";
-import { makePlacementId } from "@qrk.sh/library/makePlacementId";
+import { makePlacementId } from "../../../../modules/lib/makePlacementId";
 import { defineAggregateContract } from "@zerospin/core/contracts/defineAggregateContract";
 import { makeAggregateContractVersion } from "@zerospin/core/contracts/make/makeAggregateContractVersion";
 import { ContractError } from "@zerospin/error";
 import { makeEffectSchema, primitives } from "@zerospin/shapes";
-import { figmaThumbnailV1 } from "@qrk.sh/library/modules/figmaThumbnail/figmaThumbnailV1";
+import { figmaThumbnailV1 } from "../../../../modules/figmaThumbnail/figmaThumbnailV1";
 import { brickV1 as brick } from "../../models/brick/BrickV1";
 import { placementV1 as placement } from "../../models/placement/PlacementV1";
 
@@ -45,7 +45,7 @@ export const completeFigmaThumbnail = makeAggregateContractVersion(defineAggrega
   }),
   program: Effect.fn("completeFigmaThumbnail.program")(function* (props) {
     const { db, payload, operations } = props;
-    const row = yield* findFirst({ db, model: brick, where: { id: { eq: payload.brickId } } });
+    const row = yield* findFirst({ db, model: db.models.brick, where: { id: { eq: payload.brickId } } });
     if (
       row === undefined ||
       row.moduleId !== "figma-thumbnail" ||
@@ -67,7 +67,7 @@ export const completeFigmaThumbnail = makeAggregateContractVersion(defineAggrega
     for (const breakpoint of breakpoints) {
       const currentPlacement = yield* findFirst({
         db,
-        model: placement,
+        model: db.models.placement,
         where: { id: { eq: makePlacementId(row.id, breakpoint) } },
       });
       if (currentPlacement !== undefined)

@@ -1,6 +1,6 @@
 "use client";
 
-import { useWallViewport } from "@qrk.sh/library/WallViewportProvider";
+import { useWallViewport } from "../../../../../../modules/lib/WallViewportProvider";
 
 import { PagePreview } from "./PagePreview";
 

@@ -13,12 +13,12 @@ import { Schema } from "effect";
 import { useContext, useState } from "react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { TransformComponent, TransformWrapper } from "react-zoom-pan-pinch";
-import { WallBreakpointPane } from "@qrk.sh/library/WallBreakpointPane";
-import { WallModuleAction } from "@qrk.sh/library/WallModuleAction";
-import { WallViewportProvider, useWallViewport } from "@qrk.sh/library/WallViewportProvider";
-import { BREAKPOINTS } from "@qrk.sh/library/breakpoints";
-import { makePlacementId } from "@qrk.sh/library/makePlacementId";
-import { modulesHash } from "@qrk.sh/library/modulesHash";
+import { WallBreakpointPane } from "../modules/lib/WallBreakpointPane";
+import { WallModuleAction } from "../modules/lib/wall/WallModuleAction";
+import { WallViewportProvider, useWallViewport } from "../modules/lib/WallViewportProvider";
+import { BREAKPOINTS } from "../modules/lib/breakpoints";
+import { makePlacementId } from "@qrk.sh/zerospin/src/modules/lib/makePlacementId";
+import { modulesHash } from "../modules/lib/modulesHash";
 import { UserUI } from "@/zerospin/UserUI";
 import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
 import { WallEditorProvider } from "@/app/[username]/site/[siteId]/page/[pageId]/WallEditorProvider";
@@ -81,6 +81,7 @@ function makeResources(emptyWall: boolean) {
         faviconDarkUrl: null,
         isPublished: false,
         cardStyle: false,
+        stickyNavbar: true,
       }),
     ],
     page: [

@@ -14,23 +14,9 @@ import { addWallSectionV2 as addWallSection } from "@qrk.sh/zerospin/src/aggrega
 import { movePlacementV2 as movePlacement } from "@qrk.sh/zerospin/src/aggregates/user/contracts/wall/MovePlacementContractV2";
 import { moveStackV2 as moveStack } from "@qrk.sh/zerospin/src/aggregates/user/contracts/wall/MoveStackContractV2";
 import { deleteBrickV2 as deleteBrick } from "@qrk.sh/zerospin/src/aggregates/user/contracts/wall/DeleteBrickContractV2";
-import { updateBrickV2 as updateBrick } from "@qrk.sh/zerospin/src/aggregates/user/contracts/brick/UpdateBrickV2";
+import { updateBrickV3 as updateBrick } from "@qrk.sh/zerospin/src/aggregates/user/contracts/brick/UpdateBrickV3";
 import { generateBrickSpecV2 as generateBrickSpec } from "@qrk.sh/zerospin/src/aggregates/user/contracts/brick/GenerateBrickSpecV2";
 import { completeBrickSpecGenerationV2 as completeBrickSpecGeneration } from "@qrk.sh/zerospin/src/aggregates/user/contracts/brick/GenerateBrickSpecV2";
-import { configureInstagramV2 as configureInstagram } from "@qrk.sh/zerospin/src/aggregates/user/contracts/brick/ConfigureInstagramV2";
-import { completeInstagramV2 as completeInstagram } from "@qrk.sh/zerospin/src/aggregates/user/contracts/brick/CompleteInstagramV2";
-import { configureGithubActivityV2 as configureGithubActivity } from "@qrk.sh/zerospin/src/aggregates/user/contracts/brick/ConfigureGithubActivityV2";
-import { completeGithubActivityV2 as completeGithubActivity } from "@qrk.sh/zerospin/src/aggregates/user/contracts/brick/CompleteGithubActivityV2";
-import { configureGithubProfileV2 as configureGithubProfile } from "@qrk.sh/zerospin/src/aggregates/user/contracts/brick/ConfigureGithubProfileV2";
-import { completeGithubProfileV2 as completeGithubProfile } from "@qrk.sh/zerospin/src/aggregates/user/contracts/brick/CompleteGithubProfileV2";
-import { configureGithubRepoV2 as configureGithubRepo } from "@qrk.sh/zerospin/src/aggregates/user/contracts/brick/ConfigureGithubRepoV2";
-import { completeGithubRepoV2 as completeGithubRepo } from "@qrk.sh/zerospin/src/aggregates/user/contracts/brick/CompleteGithubRepoV2";
-import { configureFigmaThumbnailV2 as configureFigmaThumbnail } from "@qrk.sh/zerospin/src/aggregates/user/contracts/brick/ConfigureFigmaThumbnailV2";
-import { completeFigmaThumbnailV2 as completeFigmaThumbnail } from "@qrk.sh/zerospin/src/aggregates/user/contracts/brick/CompleteFigmaThumbnailV2";
-import { configureLinkV2 as configureLink } from "@qrk.sh/zerospin/src/aggregates/user/contracts/brick/ConfigureLinkV2";
-import { completeLinkV2 as completeLink } from "@qrk.sh/zerospin/src/aggregates/user/contracts/brick/CompleteLinkV2";
-import { configureMapPlaceV2 as configureMapPlace } from "@qrk.sh/zerospin/src/aggregates/user/contracts/brick/ConfigureMapPlaceV2";
-import { completeMapPlaceV2 as completeMapPlace } from "@qrk.sh/zerospin/src/aggregates/user/contracts/brick/CompleteMapPlaceV2";
 import { updateArticleSpecAtBreakpointV2 as updateArticleSpecAtBreakpoint } from "@qrk.sh/zerospin/src/aggregates/user/contracts/brick/UpdateArticleSpecAtBreakpointV2";
 import { updateFigmaThumbnailSpecAtBreakpointV2 as updateFigmaThumbnailSpecAtBreakpoint } from "@qrk.sh/zerospin/src/aggregates/user/contracts/brick/UpdateFigmaThumbnailSpecAtBreakpointV2";
 import { updateGithubActivitySpecAtBreakpointV2 as updateGithubActivitySpecAtBreakpoint } from "@qrk.sh/zerospin/src/aggregates/user/contracts/brick/UpdateGithubActivitySpecAtBreakpointV2";
@@ -57,8 +43,8 @@ export const userSessionDefinition = makeAggregateSessionDefinition({
   aggregateName: "user",
   sessionName: "userSession",
   actorName: "web",
-  actorVersion: "4.0.0",
-  aggregateVersion: "4.0.0",
+  actorVersion: "5.0.0",
+  aggregateVersion: "5.0.0",
   models: {
     wall: Wall,
     section: Section,
@@ -80,20 +66,6 @@ export const userSessionDefinition = makeAggregateSessionDefinition({
     updateBrick,
     generateBrickSpec,
     completeBrickSpecGeneration,
-    configureInstagram,
-    completeInstagram,
-    configureGithubActivity,
-    completeGithubActivity,
-    configureGithubProfile,
-    completeGithubProfile,
-    configureGithubRepo,
-    completeGithubRepo,
-    configureFigmaThumbnail,
-    completeFigmaThumbnail,
-    configureLink,
-    completeLink,
-    configureMapPlace,
-    completeMapPlace,
     updateArticleSpecAtBreakpoint,
     updateFigmaThumbnailSpecAtBreakpoint,
     updateGithubActivitySpecAtBreakpoint,

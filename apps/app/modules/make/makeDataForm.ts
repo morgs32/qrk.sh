@@ -1,0 +1,16 @@
+import type { IInferDecodedRow, IShape } from "@zerospin/shapes";
+
+import type { IJsonValue } from "@qrk.sh/zerospin/src/modules/types";
+import { decodeDefaultData } from "@qrk.sh/zerospin/src/modules/make/decodeDefaultData";
+
+/** In-place editable data. The React form is attached in `makeModuleView.data`. */
+export function makeDataForm<const DATA_SHAPE extends IShape>(props: {
+  dataShape: DATA_SHAPE;
+  defaultData: IInferDecodedRow<DATA_SHAPE> & Readonly<Record<string, IJsonValue>>;
+}) {
+  return {
+    dataType: "form" as const,
+    dataShape: props.dataShape,
+    defaultData: decodeDefaultData(props.dataShape, props.defaultData),
+  };
+}

@@ -10,7 +10,7 @@ The credential-free project `.npmrc` routes all dependencies through
 `http://127.0.0.1:4873/`, including the unscoped `system-worker`. The registry
 serves Zerospin packages locally and proxies ordinary third-party packages to
 npm. The framework supplies its SQL.js runtime.
-Cloudflare Worker types and Zod peers match across Library and the backend so
+Cloudflare Worker types and Zod peers match across App and the backend so
 they resolve the same Core and Drizzle package instances.
 The workspace pins Effect and `@effect/platform-node-shared` to `4.0.2` for the
 Zerospin CLI.
@@ -34,7 +34,7 @@ The frontends have separate framework owners:
 
 - `apps/web` uses Next.js App Router at `qrk.sh` and owns the public homepage at `/` and the `/sign-in`, `/sign-up`, `/replace`, and `/ordered-outline` routes.
 - `apps/app` uses TanStack Start in SPA mode at `app.qrk.sh` and owns dashboards at `/:username` and site workspaces under `/:username/site`.
-- `apps/library` exports shared module source to App/API/Zerospin and hosts the module playgrounds in Storybook. Its standalone application and session are retired.
+- `apps/app/modules` owns module UI and playground stories. `apps/zerospin/src/modules` owns shared module definitions and schemas. The Library package is removed.
 
 ## Editor model and ownership
 
@@ -44,18 +44,17 @@ Sections hold ordered Stacks, Stacks hold vertical Rows, and Rows hold side-by-s
 Placements. Each Placement references a shared Page-owned Brick. Layout changes
 belong to one Wall; Brick content is shared across widths.
 
-`@qrk.sh/library` retains module definitions, forms, renderers, generators,
-provider behavior, and controlled wall components. App supplies the initialized
-user session and command callbacks. Storybook supplies local examples and fixtures;
-it creates no persisted Page or standalone session. The old `libraryModule` and
-standalone Library application are retired. See [Library](apps/library/README.md)
-and [App](apps/app/README.md) for their respective ownership.
+App owns module forms, renderers, React generators, and controlled wall components.
+Zerospin owns module versions, schemas, default specs, catalogs, and model factories.
+API owns provider operations and browser RPC declarations. App supplies the initialized
+user session and command callbacks; its consolidated Storybook supplies local fixtures.
+See [Modules](apps/app/modules/README.md) and [App](apps/app/README.md).
 
 ## Tech Stack
 
 - [TanStack Start 1.169.3](https://tanstack.com/start/latest) and [TanStack Router 1.170.45](https://tanstack.com/router/latest) for App
 - [Next.js 16.3.4](https://nextjs.org/) with App Router for Web
-- Vite Plus `1.0.0` for App and the independent App/Library Storybooks
+- Vite Plus `1.0.0` for App and the App/Web Storybooks
 - [React 19](https://react.dev/)
 - [Tailwind 4](https://tailwindcss.com/) for styling
 - [shadcn/ui](https://ui.shadcn.com/) for the design system
@@ -123,8 +122,7 @@ when `pnpm dev` stops; leave the shared proxy and other projects' routes running
 Use `pnpm dev` for the complete HTTPS setup. To start one app through Portless,
 run `pnpm --dir apps/<app> dev`; this starts only that app. Its `dev:app` script
 runs the underlying HTTP server directly when needed. Frontend scripts honor
-`PORT`; direct defaults are listed above. Storybooks use 10020 for App, 10021
-for Library, and 10022 for Web, also overridable with `PORT`.
+`PORT`; direct defaults are listed above. Storybooks use 10020 for App and 10022 for Web, also overridable with `PORT`.
 
 For pre-cutover development data, follow the [backend storage quarantine](apps/zerospin/README.md)
 instructions. Superseded
@@ -142,8 +140,7 @@ hostnames. Direct `dev:app` startup defaults to 10001 for App and 10000 for Web.
 development modules, workers, WASM, and HMR use App's origin through Portless.
 Web has no App proxy or asset-prefix routing. Existing `/assets/` public-file
 URLs retain explicit App mappings.
-Library exports its source directly to App, API, and Zerospin; startup does
-not build a separate Library package. Storybook uses its own Vite configuration
+App and API compile shared module definitions directly from Zerospin source. Storybook uses its own Vite configuration
 without the Start server plugin.
 App bundles installed Zerospin packages with
 `ssr.noExternal` so their extensionless ESM imports resolve through Vite.
@@ -194,19 +191,19 @@ App's development and static-preview RPC proxies use the server-only
 `NEXT_PUBLIC_API_URL` remains the browser's HTTPS API origin; local Node proxy
 requests do not depend on trusting Portless's TLS certificate.
 
-To open the module playgrounds separately:
+To open the module playgrounds in App Storybook:
 
 ```bash
-pnpm nx run @qrk.sh/library:storybook
+pnpm nx run @qrk.sh/app:storybook
 ```
 
-Open `http://127.0.0.1:10021`. Each module story includes metadata, local
+Open `http://127.0.0.1:10020`. Each module story includes metadata, local
 configuration, live Generate spec input, four breakpoint Component/JsonRender
 previews, and Brick Definition JSON. Fixture previews need no persisted user
 session; live generation/lookups/uploads use the API Worker through Storybook's
-same-origin proxies. See [Library's README](apps/library/README.md) for its public
-Mapbox setting and server-only `LIBRARY_WORKER_ORIGIN` override.
-The package exports source directly and has no separate development application.
+same-origin proxies. See [Modules README](apps/app/modules/README.md) for its public
+Mapbox setting and server-only `API_WORKER_ORIGIN` override.
+The Library package and its separate Storybook target are removed.
 
 To run only App through Portless:
 
@@ -226,9 +223,8 @@ preview on port 10010 (`PORT` overrides it). Web
 production startup defaults to port 10011. The separate preview configuration has no Start server
 plugin. Open App's own hostname; Web remains available for authentication.
 
-Library retains Storybook and shared source exports; it has no standalone app,
-package build, production build, or production preview target. See
-[Library's README](apps/library/README.md) for the backend-origin setting. API
+App Storybook includes the module playgrounds alongside editor stories. See
+[Modules README](apps/app/modules/README.md) for the backend-origin setting. API
 retains the existing R2 buckets; previously saved absolute URLs using port 4101
 need their origin updated separately.
 

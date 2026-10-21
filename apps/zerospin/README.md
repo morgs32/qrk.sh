@@ -19,15 +19,14 @@ pnpm dev
 
 The root `pnpm dev` command starts this Worker through Portless at
 `https://zerospin.qrk.localhost`, retaining internal port 8788, alongside the
-other three applications (App, Web, and API). Library now runs only as a
-separately started Storybook. To start only this Worker, run `pnpm --dir apps/zerospin dev`.
+other three applications (App, Web, and API). Module playgrounds run in App Storybook. To start only this Worker, run `pnpm --dir apps/zerospin dev`.
 Its `dev` script invokes Portless, which runs the CLI command in `dev:app`;
 package metadata retains its hostname and port.
 
 QRK installs the CLI and runtime packages at `23.0.0` from the populated local
 registry described in the [root README](../../README.md#zerospin-packages).
-Backend development compiles Library source directly; it does not build a
-separate Library package or rebuild installed Zerospin files.
+Shared module definitions live in `src/modules/`; App and API compile their source
+directly. Backend development does not rebuild installed Zerospin files.
 
 Repository tests and standalone automated checks are deferred until a test
 structure is agreed. Avoid integration testing of this Zerospin backend; the
@@ -101,19 +100,19 @@ Core `23.0.0` provides the server-only
 `@zerospin/core/utils/getSystemApi/getSystemApi` client. Supply
 `ZerospinApiUrl` and `SecretKey` (`Redacted<string>`) in the application's Effect
 layer, then acquire it with `yield* getSystemApi()`. Construct a connection-free
-query with `makeQueryDbVersion({ models: userAggregateV4.models })` and pass
+query with `makeQueryDbVersion({ models: userAggregateV5.models })` and pass
 the selection to `systemApi.executeAggregateQuery` with user aggregate identity:
 
 ```ts
-import { userAggregateV4 } from "./src/aggregates/user/UserV4";
+import { userAggregateV5 } from "./src/aggregates/user/UserV5";
 
 const systemApi = yield * getSystemApi();
-const db = makeQueryDbVersion({ models: userAggregateV4.models });
+const db = makeQueryDbVersion({ models: userAggregateV5.models });
 const site =
   yield *
   systemApi.executeAggregateQuery({
     aggregateName: "user",
-    aggregateVersion: "4.0.0",
+    aggregateVersion: "5.0.0",
     aggregateId,
     query: db.query.site.findFirst({
       where: { id: { eq: siteId } },
@@ -159,12 +158,14 @@ not make its rows readable by the current declarations.
 
 ## Source layout
 
-`src/system.ts` retains user aggregate `3.0.0` and registers `4.0.0` alongside it.
-App's current session selects aggregate/web actor `4.0.0`; the unchanged
-provisioner and User model remain `1.0.0`. App's browser definition imports the
-same canonical models/contracts directly in complete session definitions owned by
-`apps/app/zerospin`. The tab and worker import each definition from its defining
-module. Server queries use the server-owned aggregate declaration.
+`src/system.ts` retains user aggregates `3.0.0` and `4.0.0` and registers `5.0.0`.
+App's current session selects aggregate/web actor `5.0.0`; the unchanged
+provisioner and User model remain `1.0.0`. App owns one complete pure session
+definition per file in `apps/app/zerospin`: `userSessionDefinition.ts` for V5,
+`userSessionDefinitionV3.ts`, and `userSessionDefinitionV4.ts`. Each imports its
+canonical model and public contract versions directly. App and its SharedWorker
+import those definitions directly; server queries use the server-owned aggregate
+declaration.
 
 The user aggregate ID is the verified Clerk token subject (`clerkUserId`), with
 no added prefix. The web actor verifies Clerk through `userProvisionerV1`, then
@@ -205,6 +206,13 @@ models keep their existing versions. The previous commands and User `3.0.0`
 remain registered through the retained release. Versioned command files declare
 their concrete model bindings and explicit lineage directly.
 
+Zerospin `22.0.1` lets those upgrades inherit unchanged payloads, guards,
+programs and schemas. Versioned declarations supply only changed models,
+operation bindings and payload validators. Base programs read through
+`db.models` so the inherited callback uses the executing version's model graph.
+Omitted `up` keeps the decoded value and validates the destination schema;
+invalid history still fails, while its stored commands remain intact.
+
 The new release materializes through command replay; this change does not copy,
 repair, reset, or delete stored rows or command history. Invalid historical
 payloads or specs can fail strict adaptation, execution, or query decoding.
@@ -217,16 +225,39 @@ reconnect and drain their pending commands. V4 does not transfer that local queu
 pending V3 commands remain in the retained partition until a V3 client submits
 them. Admitted commands become part of the shared backend history.
 
+### Provider forms save complete state
+
+User `5.0.0` keeps the existing model graph. Its fresh web actor and browser
+session expose `updateBrick` V3 for content saves and remove all seven provider
+configure/complete pairs. The owner still registers their historical declarations
+to materialize admitted history; current callers have no fallback write path.
+Retained User V3/V4 releases and browser namespaces are unchanged.
+
+The seven current module V2 definitions contain `{ payload, data }`. Their V1
+codecs and older `updateBrick` versions remain pinned to `backendLibraryV1` for
+history. The new save command validates current module state, advances the shared
+Brick state revision, and supersedes active spec generation while preserving
+placement identities, specs, and ordering. No model versions, storage reset,
+row migration, or history rewrite are required for removing resolution fields.
+
+Each module form fetches and validates before staging its one state save. Provider
+failures leave previous content intact. Cancellation closes local RPC and blocks
+late saves; it does not reverse remote side effects. Pending status and errors are
+not persisted and nothing resumes on mount. App's provider runners are deleted;
+its separate layout generation remains. Storybook uses the same fetch-then-save
+forms with local example state. No verification runs were performed.
+
 App owns the persisted editor. Its Page owns shared Bricks and four Walls,
 one per `sm`/`md`/`lg`/`xl` breakpoint. Walls own ordered Sections; Sections own
 ordered Stacks; Stacks own vertical Rows; Rows own horizontal Placements.
 Placements reference shared Bricks and keep per-breakpoint specs and generation
 revisions. Model and canonical contract declarations live directly under
 `src/aggregates/user/models/` and `contracts/`. Wall/Brick references bind to the
-final Page table. Configure, completion, and spec-update commands live directly
+final Page table. State-save and spec-update commands live directly
 in their versioned backend files, where concrete model versions are selected.
-Library retains module state/component schemas, normalization, provider fetches,
-and rendering. There is no contract-binding factory, standalone Library database,
+Zerospin owns module state/component schemas, versions, catalogs, default specs,
+and normalization under `src/modules/`. App owns forms and rendering; API owns
+provider operations. There is no contract-binding factory, standalone Library database,
 seeded Page, or host-binding declaration assembly.
 
 `createPage` records the Page and all four Walls with one initial Section and
@@ -256,7 +287,8 @@ The web actor selects editor rows through Page → Site → User and the actual
 container parent chains. Write commands also validate ownership, membership,
 before-sibling references, capacity, and module limits. A Placement derives its
 breakpoint from its containing Wall. Generation/update programs preserve request
-and revision guards; late provider completions safely ignore deleted content.
+and revision guards. Provider lookups belong to the open form and cannot save
+after cancellation or navigation.
 PageSnapshot rows are exposed only while a Page identifies them as its current
 published snapshot, leaving historical content canonical without syncing its
 entire history into App. Session lifetime, local query/staging work, and failure

@@ -2,9 +2,9 @@
 
 import { useNavigate } from "@tanstack/react-router";
 
-import { BREAKPOINTS } from "@qrk.sh/library/breakpoints";
-import { WallPreviewToolbar } from "@qrk.sh/library/WallPreviewToolbar";
-import { useWallViewport } from "@qrk.sh/library/WallViewportProvider";
+import { BREAKPOINTS } from "../../../../../modules/lib/breakpoints";
+import { WallPreviewToolbar } from "../../../../../modules/lib/WallPreviewToolbar";
+import { useWallViewport } from "../../../../../modules/lib/WallViewportProvider";
 import { Schema } from "effect";
 import { motion, useReducedMotion } from "framer-motion";
 import { X } from "lucide-react";

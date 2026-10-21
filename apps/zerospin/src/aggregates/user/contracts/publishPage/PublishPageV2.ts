@@ -57,14 +57,14 @@ export const publishPageV2 = makeAggregateContractVersion(publishPage, {
         status: 403,
       });
     }
-    const page = yield* findFirst({ db, model: Page, where: { id: { eq: payload.pageId } } });
+    const page = yield* findFirst({ db, model: db.models.page, where: { id: { eq: payload.pageId } } });
     if (page === undefined || page.siteId === null) {
       return yield* failures.publishPageNotFound.make({
         message: `Page ${payload.pageId} was not found`,
         status: 404,
       });
     }
-    const site = yield* findFirst({ db, model: Site, where: { id: { eq: page.siteId } } });
+    const site = yield* findFirst({ db, model: db.models.site, where: { id: { eq: page.siteId } } });
     if (site === undefined) {
       return yield* failures.publishPageNotFound.make({
         message: `Site ${page.siteId} was not found`,
@@ -74,7 +74,7 @@ export const publishPageV2 = makeAggregateContractVersion(publishPage, {
     const user =
       site.userId === null
         ? undefined
-        : yield* findFirst({ db, model: User, where: { id: { eq: site.userId } } });
+        : yield* findFirst({ db, model: db.models.user, where: { id: { eq: site.userId } } });
     if (user === undefined || user.clerkUserId !== clerkUserId) {
       return yield* failures.publishPageUserMismatch.make({
         message: `Page ${page.id} does not belong to identity ${clerkUserId}`,
@@ -90,33 +90,33 @@ export const publishPageV2 = makeAggregateContractVersion(publishPage, {
   }),
   program: Effect.fn("publishPage")(function* (props) {
     const { payload, operations, failures, db } = props;
-    const page = yield* findFirst({ db, model: Page, where: { id: { eq: payload.pageId } } });
+    const page = yield* findFirst({ db, model: db.models.page, where: { id: { eq: payload.pageId } } });
     if (page === undefined) {
       return yield* failures.publishPageNotFound.make({
         message: `Page ${payload.pageId} was not found`,
         status: 404,
       });
     }
-    const bricks = yield* findMany({ db, model: Brick, where: { pageId: { eq: page.id } } });
-    const walls = yield* findMany({ db, model: Wall, where: { pageId: { eq: page.id } } });
+    const bricks = yield* findMany({ db, model: db.models.brick, where: { pageId: { eq: page.id } } });
+    const walls = yield* findMany({ db, model: db.models.wall, where: { pageId: { eq: page.id } } });
     const sections = yield* findMany({
       db,
-      model: Section,
+      model: db.models.section,
       where: { wall: { pageId: { eq: page.id } } },
     });
     const stacks = yield* findMany({
       db,
-      model: Stack,
+      model: db.models.stack,
       where: { section: { wall: { pageId: { eq: page.id } } } },
     });
     const rows = yield* findMany({
       db,
-      model: Row,
+      model: db.models.row,
       where: { stack: { section: { wall: { pageId: { eq: page.id } } } } },
     });
     const placements = yield* findMany({
       db,
-      model: Placement,
+      model: db.models.placement,
       where: { brick: { pageId: { eq: page.id } } },
     });
     yield* operations.createPageSnapshot({

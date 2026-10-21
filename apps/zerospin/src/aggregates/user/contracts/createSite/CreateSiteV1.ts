@@ -48,7 +48,7 @@ export const createSiteV1 = makeAggregateContractVersion(createSite, {
 
       const user = yield* sdk.findFirst({
         db,
-        model: User,
+        model: db.models.user,
         where: { id: { eq: payload.userId }, clerkUserId: { eq: clerkUserId } },
       });
 
@@ -72,7 +72,7 @@ export const createSiteV1 = makeAggregateContractVersion(createSite, {
 
       const existingSite = yield* sdk.findFirst({
         db,
-        model: Site,
+        model: db.models.site,
         where: { userId: { eq: payload.userId }, slug: { eq: payload.slug } },
       });
       if (existingSite !== undefined) {

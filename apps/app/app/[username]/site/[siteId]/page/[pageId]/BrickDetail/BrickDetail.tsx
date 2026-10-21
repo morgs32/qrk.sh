@@ -1,29 +1,21 @@
 "use client";
 
-import { modulesHash } from "@qrk.sh/library/modulesHash";
-import { makePlacementId } from "@qrk.sh/library/makePlacementId";
+import { modulesHash } from "../../../../../../../modules/lib/modulesHash";
+import { makePlacementId } from "@qrk.sh/zerospin/src/modules/lib/makePlacementId";
 import { brickV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/brick/BrickV1";
 import { UserUI } from "@/zerospin/UserUI";
 import { pageV3 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV3";
-import { BREAKPOINTS } from "@qrk.sh/library/breakpoints";
-import { BrickCardStyleContext } from "@qrk.sh/library/BrickCardStyleContext";
-import { useWallViewport } from "@qrk.sh/library/WallViewportProvider";
+import { BREAKPOINTS } from "../../../../../../../modules/lib/breakpoints";
+import { BrickCardStyleContext } from "../../../../../../../modules/lib/BrickCardStyleContext";
+import { useWallViewport } from "../../../../../../../modules/lib/WallViewportProvider";
 import { isNonEmptySpec } from "@json-render/core";
 import { makeIdSchema, stageAggregateSessionCommand } from "@zerospin/sdk/browser";
 import { useLiveQuery } from "@zerospin/react";
 import { Schema } from "effect";
-import { makeEffectSchema } from "@zerospin/shapes";
-import { configureInstagram } from "@qrk.sh/zerospin/src/aggregates/user/contracts/brick/ConfigureInstagramV1";
-import { configureGithubActivity } from "@qrk.sh/zerospin/src/aggregates/user/contracts/brick/ConfigureGithubActivityV1";
-import { configureGithubProfile } from "@qrk.sh/zerospin/src/aggregates/user/contracts/brick/ConfigureGithubProfileV1";
-import { configureGithubRepo } from "@qrk.sh/zerospin/src/aggregates/user/contracts/brick/ConfigureGithubRepoV1";
-import { configureFigmaThumbnail } from "@qrk.sh/zerospin/src/aggregates/user/contracts/brick/ConfigureFigmaThumbnailV1";
-import { configureLink } from "@qrk.sh/zerospin/src/aggregates/user/contracts/brick/ConfigureLinkV1";
-import { configureMapPlace } from "@qrk.sh/zerospin/src/aggregates/user/contracts/brick/ConfigureMapPlaceV1";
 import { useContext, useLayoutEffect, useRef, useState } from "react";
 
 import { useValidatedParams } from "@/hooks/useValidatedParams";
-import { BrickWrapper } from "../../../../../../../../library/components/brick/BrickWrapper";
+import { BrickWrapper } from "../../../../../../../modules/components/brick/BrickWrapper";
 
 const ParamsSchema = Schema.Struct({
   username: Schema.String,
@@ -155,48 +147,6 @@ export function BrickDetail() {
                         moduleId: brickRow.moduleId,
                         state,
                       },
-                    });
-                  }}
-                  onConfigure={(input) => {
-                    if (navigationPending.current)
-                      throw new DOMException("Brick editor navigation started", "AbortError");
-                    const commands = {
-                      configureInstagram,
-                      configureGithubActivity,
-                      configureGithubProfile,
-                      configureGithubRepo,
-                      configureFigmaThumbnail,
-                      configureLink,
-                      configureMapPlace,
-                    };
-                    const commandName = brick.configureCommand;
-                    if (
-                      commandName === undefined ||
-                      input === null ||
-                      typeof input !== "object" ||
-                      Array.isArray(input)
-                    ) {
-                      return {
-                        _tag: "Failure",
-                        failure: { message: "Invalid module configuration" },
-                      };
-                    }
-                    const decoded = Schema.decodeUnknownResult(
-                      makeEffectSchema(commands[commandName].payload),
-                    )({
-                      ...input,
-                      brickId: brickRow.id,
-                      requestId: crypto.randomUUID(),
-                    });
-                    if (decoded._tag === "Failure")
-                      return {
-                        _tag: "Failure",
-                        failure: { message: "Invalid module configuration" },
-                      };
-                    return stageAggregateSessionCommand({
-                      session,
-                      contractName: commandName,
-                      payload: decoded.success,
                     });
                   }}
                   onCancel={() => {

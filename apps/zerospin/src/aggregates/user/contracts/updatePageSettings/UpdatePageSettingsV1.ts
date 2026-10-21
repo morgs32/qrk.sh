@@ -48,7 +48,7 @@ export const updatePageSettingsV1 = makeAggregateContractVersion(updatePageSetti
         });
       }
 
-      const page = yield* sdk.findFirst({ db, model: Page, where: { id: { eq: payload.id } } });
+      const page = yield* sdk.findFirst({ db, model: db.models.page, where: { id: { eq: payload.id } } });
 
       if (page === undefined) {
         return yield* failures.updatePageSettingsNotFound.make({
@@ -64,7 +64,7 @@ export const updatePageSettingsV1 = makeAggregateContractVersion(updatePageSetti
         });
       }
 
-      const site = yield* sdk.findFirst({ db, model: Site, where: { id: { eq: page.siteId } } });
+      const site = yield* sdk.findFirst({ db, model: db.models.site, where: { id: { eq: page.siteId } } });
 
       if (site === undefined) {
         return yield* failures.updatePageSettingsSiteNotFound.make({
@@ -76,7 +76,7 @@ export const updatePageSettingsV1 = makeAggregateContractVersion(updatePageSetti
       const user =
         site.userId === null
           ? undefined
-          : yield* sdk.findFirst({ db, model: User, where: { id: { eq: site.userId } } });
+          : yield* sdk.findFirst({ db, model: db.models.user, where: { id: { eq: site.userId } } });
 
       if (user === undefined || user.clerkUserId !== clerkUserId) {
         return yield* failures.updatePageSettingsUserMismatch.make({

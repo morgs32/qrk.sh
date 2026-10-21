@@ -6,9 +6,9 @@ import { makeAggregateContractVersion } from "@zerospin/core/contracts/make/make
 import { ContractError } from "@zerospin/error";
 import { makeEffectSchema, primitives } from "@zerospin/shapes";
 import { Effect, Schema } from "effect";
-import { makePlacementId } from "@qrk.sh/library/makePlacementId";
-import { mapPlaceV1 } from "@qrk.sh/library/modules/mapPlace/mapPlaceV1";
-import { normalizeMapPlaceInput } from "@qrk.sh/library/modules/mapPlace/normalizeMapPlaceInput";
+import { makePlacementId } from "../../../../modules/lib/makePlacementId";
+import { mapPlaceV1 } from "../../../../modules/mapPlace/mapPlaceV1";
+import { normalizeMapPlaceInput } from "../../../../modules/mapPlace/normalizeMapPlaceInput";
 import { brickV1 as brick } from "../../models/brick/BrickV1";
 import { placementV1 as placement } from "../../models/placement/PlacementV1";
 
@@ -40,7 +40,7 @@ export const configureMapPlace = makeAggregateContractVersion(defineAggregateCon
         message: "Enter a valid map-place input",
         status: 400,
       });
-    const row = yield* findFirst({ db, model: brick, where: { id: { eq: payload.brickId } } });
+    const row = yield* findFirst({ db, model: db.models.brick, where: { id: { eq: payload.brickId } } });
     if (row === undefined || row.moduleId !== "map-place")
       return yield* failures.invalidBrick.make({
         message: "The brick is unavailable for this module",
@@ -59,7 +59,7 @@ export const configureMapPlace = makeAggregateContractVersion(defineAggregateCon
   }),
   program: Effect.fn("configureMapPlace.program")(function* (props) {
     const { db, payload, operations } = props;
-    const row = yield* findFirst({ db, model: brick, where: { id: { eq: payload.brickId } } });
+    const row = yield* findFirst({ db, model: db.models.brick, where: { id: { eq: payload.brickId } } });
     if (row === undefined) return;
     yield* operations.updateBrick({
       resourceId: row.id,
@@ -75,7 +75,7 @@ export const configureMapPlace = makeAggregateContractVersion(defineAggregateCon
     for (const breakpoint of breakpoints) {
       const currentPlacement = yield* findFirst({
         db,
-        model: placement,
+        model: db.models.placement,
         where: { id: { eq: makePlacementId(row.id, breakpoint) } },
       });
       if (currentPlacement !== undefined)

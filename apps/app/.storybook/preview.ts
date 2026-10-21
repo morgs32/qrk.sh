@@ -1,5 +1,5 @@
 import type { Preview } from "@storybook/react-vite";
-import "@qrk.sh/library/article-editor.css";
+import "../modules/article/article-editor.css";
 import "../app/globals.css";
 
 const preview: Preview = {

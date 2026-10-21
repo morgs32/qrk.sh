@@ -57,12 +57,12 @@ export const moveStack = makeAggregateContractVersion(defineAggregateContract("m
   program: Effect.fn("moveStack.program")(function* (props) {
     const { db, payload, operations, failures, claims } = props;
     const { target } = payload;
-    const moving = yield* findFirst({ db, model: stack, where: { id: { eq: payload.stackId } } });
+    const moving = yield* findFirst({ db, model: db.models.stack, where: { id: { eq: payload.stackId } } });
     const sourceSection =
       moving === undefined
         ? undefined
-        : yield* findFirst({ db, model: section, where: { id: { eq: moving.sectionId } } });
-    const wallRow = yield* findFirst({ db, model: wall, where: { id: { eq: target.wallId } } });
+        : yield* findFirst({ db, model: db.models.section, where: { id: { eq: moving.sectionId } } });
+    const wallRow = yield* findFirst({ db, model: db.models.wall, where: { id: { eq: target.wallId } } });
     if (
       moving === undefined ||
       sourceSection === undefined ||
@@ -74,15 +74,15 @@ export const moveStack = makeAggregateContractVersion(defineAggregateContract("m
         status: 409,
       });
     const pageId = wallRow.pageId;
-    const pageRow = yield* findFirst({ db, model: page, where: { id: { eq: pageId } } });
+    const pageRow = yield* findFirst({ db, model: db.models.page, where: { id: { eq: pageId } } });
     const siteRow =
       pageRow === undefined || pageRow.siteId === null
         ? undefined
-        : yield* findFirst({ db, model: site, where: { id: { eq: pageRow.siteId } } });
+        : yield* findFirst({ db, model: db.models.site, where: { id: { eq: pageRow.siteId } } });
     const userRow =
       siteRow === undefined || siteRow.userId === null
         ? undefined
-        : yield* findFirst({ db, model: user, where: { id: { eq: siteRow.userId } } });
+        : yield* findFirst({ db, model: db.models.user, where: { id: { eq: siteRow.userId } } });
     if (userRow === undefined || userRow.clerkUserId !== claims?.clerkUserId)
       return yield* failures.invalidLayout.make({
         message: "This Page is unavailable",
@@ -90,7 +90,7 @@ export const moveStack = makeAggregateContractVersion(defineAggregateContract("m
       });
     const sections = yield* findMany({
       db,
-      model: section,
+      model: db.models.section,
       where: { wallId: { eq: wallRow.id } },
       columns: { id: true, position: true },
       orderBy: { position: "asc" },

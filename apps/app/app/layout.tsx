@@ -1,4 +1,4 @@
-import "@qrk.sh/library/article-editor.css";
+import "../modules/article/article-editor.css";
 import { HeadContent, Scripts } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import "./globals.css";

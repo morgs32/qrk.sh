@@ -2,13 +2,13 @@ import { brick as brickIdentity } from "../../models/brick/brick";
 import { modelId } from "@zerospin/sdk/browser";
 import { findFirst } from "@zerospin/core/contracts/findFirst";
 import { Effect, Schema } from "effect";
-import { makePlacementId } from "@qrk.sh/library/makePlacementId";
+import { makePlacementId } from "../../../../modules/lib/makePlacementId";
 import { defineAggregateContract } from "@zerospin/core/contracts/defineAggregateContract";
 import { makeAggregateContractVersion } from "@zerospin/core/contracts/make/makeAggregateContractVersion";
 import { ContractError } from "@zerospin/error";
 import { makeEffectSchema, primitives } from "@zerospin/shapes";
-import { instagramV1 } from "@qrk.sh/library/modules/instagram/instagramV1";
-import { normalizeInstagramInput } from "@qrk.sh/library/modules/instagram/normalizeInstagramInput";
+import { instagramV1 } from "../../../../modules/instagram/instagramV1";
+import { normalizeInstagramInput } from "../../../../modules/instagram/normalizeInstagramInput";
 import { brickV1 as brick } from "../../models/brick/BrickV1";
 import { placementV1 as placement } from "../../models/placement/PlacementV1";
 
@@ -40,7 +40,7 @@ export const configureInstagram = makeAggregateContractVersion(defineAggregateCo
         message: "Enter a valid instagram input",
         status: 400,
       });
-    const row = yield* findFirst({ db, model: brick, where: { id: { eq: payload.brickId } } });
+    const row = yield* findFirst({ db, model: db.models.brick, where: { id: { eq: payload.brickId } } });
     if (row === undefined || row.moduleId !== "instagram")
       return yield* failures.invalidBrick.make({
         message: "The brick is unavailable for this module",
@@ -59,7 +59,7 @@ export const configureInstagram = makeAggregateContractVersion(defineAggregateCo
   }),
   program: Effect.fn("configureInstagram.program")(function* (props) {
     const { db, payload, operations } = props;
-    const row = yield* findFirst({ db, model: brick, where: { id: { eq: payload.brickId } } });
+    const row = yield* findFirst({ db, model: db.models.brick, where: { id: { eq: payload.brickId } } });
     if (row === undefined) return;
     yield* operations.updateBrick({
       resourceId: row.id,
@@ -75,7 +75,7 @@ export const configureInstagram = makeAggregateContractVersion(defineAggregateCo
     for (const breakpoint of breakpoints) {
       const currentPlacement = yield* findFirst({
         db,
-        model: placement,
+        model: db.models.placement,
         where: { id: { eq: makePlacementId(row.id, breakpoint) } },
       });
       if (currentPlacement !== undefined)

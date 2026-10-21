@@ -6,9 +6,9 @@ import { makeAggregateContractVersion } from "@zerospin/core/contracts/make/make
 import { ContractError } from "@zerospin/error";
 import { makeEffectSchema, primitives } from "@zerospin/shapes";
 import { Effect, Schema } from "effect";
-import { makePlacementId } from "@qrk.sh/library/makePlacementId";
-import { linkV1 } from "@qrk.sh/library/modules/link/linkV1";
-import { normalizeLinkInput } from "@qrk.sh/library/modules/link/normalizeLinkInput";
+import { makePlacementId } from "../../../../modules/lib/makePlacementId";
+import { linkV1 } from "../../../../modules/link/linkV1";
+import { normalizeLinkInput } from "../../../../modules/link/normalizeLinkInput";
 import { brickV1 as brick } from "../../models/brick/BrickV1";
 import { placementV1 as placement } from "../../models/placement/PlacementV1";
 
@@ -40,7 +40,7 @@ export const configureLink = makeAggregateContractVersion(defineAggregateContrac
         message: "Enter a valid link input",
         status: 400,
       });
-    const row = yield* findFirst({ db, model: brick, where: { id: { eq: payload.brickId } } });
+    const row = yield* findFirst({ db, model: db.models.brick, where: { id: { eq: payload.brickId } } });
     if (row === undefined || row.moduleId !== "link")
       return yield* failures.invalidBrick.make({
         message: "The brick is unavailable for this module",
@@ -59,7 +59,7 @@ export const configureLink = makeAggregateContractVersion(defineAggregateContrac
   }),
   program: Effect.fn("configureLink.program")(function* (props) {
     const { db, payload, operations } = props;
-    const row = yield* findFirst({ db, model: brick, where: { id: { eq: payload.brickId } } });
+    const row = yield* findFirst({ db, model: db.models.brick, where: { id: { eq: payload.brickId } } });
     if (row === undefined) return;
     yield* operations.updateBrick({
       resourceId: row.id,
@@ -75,7 +75,7 @@ export const configureLink = makeAggregateContractVersion(defineAggregateContrac
     for (const breakpoint of breakpoints) {
       const currentPlacement = yield* findFirst({
         db,
-        model: placement,
+        model: db.models.placement,
         where: { id: { eq: makePlacementId(row.id, breakpoint) } },
       });
       if (currentPlacement !== undefined)

@@ -1,4 +1,4 @@
-import { makeBrickModel } from "@qrk.sh/library/makeBrickModel";
+import { makeBrickModel } from "../../../../modules/make/makeBrickModel";
 import { brick } from "./brick";
 import { page } from "../page/page";
 

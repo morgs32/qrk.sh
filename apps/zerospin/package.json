@@ -14,15 +14,18 @@
   },
   "dependencies": {
     "@clerk/backend": "^3.8.5",
-    "@qrk.sh/library": "workspace:*",
+    "@json-render/core": "^0.20.0",
+    "@json-render/react": "^0.20.0",
     "@remix-run/route-pattern": "^0.22.1",
     "@zerospin/core": "23.0.0",
     "@zerospin/error": "23.0.0",
     "@zerospin/logger": "23.0.0",
     "@zerospin/sdk": "23.0.0",
     "@zerospin/shapes": "23.0.0",
+    "@zerospin/zod": "23.0.0",
     "capnweb": "^0.12.0",
     "effect": "4.0.2",
+    "es-toolkit": "^1.52.0",
     "system-worker": "23.0.0"
   },
   "devDependencies": {

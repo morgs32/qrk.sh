@@ -55,11 +55,11 @@ fixture-array mutations. Width selects the active breakpoint; row-height affects
 presentation only. Empty Wall and Zoomed Out scenarios use the same editor.
 Zoom/pan gestures remain disabled in the 50% presentation study.
 
-Module development playgrounds live in the separate Library Storybook. They
+Module development playgrounds live in App Storybook under `modules/`. They
 reuse production module forms/renderers and show metadata, local configuration,
 live Generate spec/input, Component/JsonRender comparisons at all four widths,
-and Brick Definition JSON. The shared `@qrk.sh/library` package remains App's
-module source; its standalone routed application and persisted session are retired.
+and Brick Definition JSON. App owns the UI source; Zerospin owns shared definitions and schemas.
+The Library package is removed. See [Modules](./modules/README.md).
 
 App and Web run independently behind their own Portless hostnames. Direct
 startup defaults to 10001 for App and 10000 for Web; Portless allocates their
@@ -80,12 +80,14 @@ explicit legacy mappings.
 App resolves the SharedWorker and browser SQLite WASM from installed
 `23.0.0` package exports. `userSessionDefinition` is shared by
 `Initializer` and the authored `node.worker.ts` entrypoint.
+It owns the complete V5 declaration with explicit canonical model and public
+contract imports. V3 and V4 each have a separate complete session-definition file;
+the worker imports every definition from its defining module.
 `makeApplicationSharedWorker` binds that emitted worker artifact to the session.
 The host imports `node.worker.ts` through Vite's `?sharedworker&url` query;
 the worker imports `@zerospin/browser/sqlite.wasm?url`. Vite emits both assets
 from the installed package and application source. The worker owns its IndexedDB-backed SQLite namespace;
-no separate backup-worker asset is served. App compiles the private Library
-package's source exports directly; no Library build runs before App targets.
+no separate backup-worker asset is served. App compiles shared module definitions directly from Zerospin source.
 It never builds or changes installed Zerospin artifacts. Fresh
 checkout installation requires the populated local registry described in the
 [root README](../../README.md#zerospin-packages).
@@ -135,10 +137,10 @@ must attach `app.qrk.sh` to that project. See the [local prebuilt deployment
 procedure](../../README.md#deployment); hosted dependency installation remains
 unconfigured. Deployment is outside the framework migration.
 
-Existing Library stylesheet imports retain their order; `/article-editor.css`
+Existing module stylesheet imports retain their order; `/article-editor.css`
 resolves directly to Article's plain CSS source. App globals and the shared
 Article stylesheet declare `@layer theme, base, components, meowdown, utilities`
-before their imports, matching Library. Tailwind Preflight precedes Meowdown's
+before their imports, matching the module styles. Tailwind Preflight precedes Meowdown's
 native rules, including its list marker gutter; utilities retain the final named
 layer.
 
@@ -227,8 +229,8 @@ and unsent commands remain there and are not migrated. The origin change does
 not reset backend storage or alter the existing aggregate/session definitions.
 
 `routes/__root.tsx` owns the document, global/reset styles, metadata, and
-Library's shared article stylesheet. `router.tsx` registers the generated file
-routes. App's global CSS loads Fragment Mono through Library's Google Fonts
+App's module article stylesheet. `router.tsx` registers the generated file
+routes. App's global CSS loads Fragment Mono through its Google Fonts
 import and uses it for UI text and controls. The dashboard's `QRK.SH` wordmark
 matches the homepage: Silkscreen 400 at 18px, loaded from installed
 `@fontsource/silkscreen` CSS. The article stylesheet owns the system font for
@@ -253,7 +255,7 @@ The root layout mounts the shared `ZerospinDevtoolsLoader` in development with t
 The dashboard layout renders the fixed 64 px `QRK.SH` header and reserves a
 40 px account slot with a shadcn skeleton while credentials load. The static
 SPA shell does not prerender authenticated route data. The header is a query
-container; its inner flex element uses Library's shared `qrk-responsive-insets`
+container; its inner flex element uses the module `qrk-responsive-insets`
 class and `--qrk-inset-inline`: 16px gutters become 30px when both the document
 viewport and header reach 720px. The editor appears once the browser session is
 ready. Its four browser frames render the Page's independent breakpoint Walls.
@@ -362,7 +364,7 @@ bar when closed, or above the open drawer;
 toolbar controls are 28px high. App's floating toolbar remains visible only on
 the editor index and `/breakpoints` routes, while drawer routes show none.
 
-App imports the shared `Drawer` from `@qrk.sh/library/Drawer` and passes
+App imports the shared `Drawer` from `modules/lib/Drawer.tsx` and passes
 `open` and `persistentHeader`. Its shell slides with a 300ms CSS transform; editor height and padding
 do not animate. TanStack Router's `defaultViewTransition` owns native document
 transitions during regular and history navigation. The drawer route marks its
@@ -399,7 +401,7 @@ immediate on Save. Staging is optimistic; immediate and later originating-comman
 failures show their actual errors without a premature server-success message.
 Public website rendering and history browsing/restoration are deferred.
 
-The production modules catalog keeps `@qrk.sh/library/ModuleFilmstrip`. Each module column scrolls vertically beneath its full-width
+The production modules catalog keeps `modules/lib/ModuleFilmstrip.tsx`. Each module column scrolls vertically beneath its full-width
 sticky heading. Catalogs show the authored Component at its resolved module
 `defaultWidth`, capped at the active canonical breakpoint width, with content
 supplying its height and `minWidth` providing its minimum width.
@@ -421,7 +423,7 @@ content height. Widths come from the module's required default view declaration
 and optional breakpoint overrides; browser frames retain their canonical widths.
 All preview surfaces also respect the module's breakpoint-independent `minWidth`.
 No preview renders a grid-item comparison, intrinsic probe, or
-pixel/grid-unit sizing diagnostic. Library Storybook hosts the developer Generate spec
+pixel/grid-unit sizing diagnostic. App Storybook hosts the developer Generate spec
 controls, which affect only its JsonRender previews.
 
 Module definitions retain per-page limit metadata: Article declares one and
@@ -503,7 +505,7 @@ evidence is recorded in
 
 ## Article editing in the detail drawer
 
-App retains the brick-detail route and renders the selected Library module's `Form` without an enclosing form. All ten registered bricks expose a form: Image, Article, GitHub Profile, GitHub Repo, GitHub Activity, Figma Thumbnail, Instagram, Link, Map Place, and Swatch and Icon. Shared forms receive decoded `state` or `null`, synchronous `onSave`/module-specific configuration callbacks, and `onCancel`; the standalone session/Brick identity props are removed. App supplies real command callbacks; Storybook supplies local example behavior. Unconfigured provider bricks receive genuine `null` and show blank source inputs. Image provides a dropzone and file picker above its Image URL and Title fields. Article uses Meowdown in Hybrid mode with native shortcuts, slash/link controls, and block handles in the existing centered writing column; it has no formatting toolbar or mode switcher. Article state has separate required title/subtitle strings and nullable Markdown content; generated ArticleBrick specs bind all three fields. This hard cutover adds no JSON conversion or compatibility reader. Catalog previews use Meowdown's read-only MarkdownView without an editor.
+App retains the brick-detail route and renders the selected module's `Form` without an enclosing form. All ten registered bricks expose a form: Image, Article, GitHub Profile, GitHub Repo, GitHub Activity, Figma Thumbnail, Instagram, Link, Map Place, and Swatch and Icon. Shared forms receive decoded `state` or `null`, synchronous `onSave`/module-specific configuration callbacks, and `onCancel`; the standalone session/Brick identity props are removed. App supplies real command callbacks; Storybook supplies local example behavior. Unconfigured provider bricks receive genuine `null` and show blank source inputs. Image provides a dropzone and file picker above its Image URL and Title fields. Article uses Meowdown in Hybrid mode with native shortcuts, slash/link controls, and block handles in the existing centered writing column; it has no formatting toolbar or mode switcher. Article state has separate required title/subtitle strings and nullable Markdown content; generated ArticleBrick specs bind all three fields. This hard cutover adds no JSON conversion or compatibility reader. Catalog previews use Meowdown's read-only MarkdownView without an editor.
 
 Modules own unsaved drafts and validation. Provider forms invoke their module's configuration callback and render resolution status/error from the Brick query; App stages the canonical command synchronously. The user-session owner composes module-owned local executors, which call the existing same-origin API and stage revision-guarded completions. Closing an editor discards its draft while accepted work continues for the session lifetime; session replacement ignores late results. No server durability guarantee is added. Ordinary Article/Image/Swatch saves preserve the actual local staging result, clear drafts only on success, and render optimism/rollback through the query. Article remounts its editor on Cancel; its portaled link form does not submit the Article form. Page and Site Settings retain their existing commands.
 

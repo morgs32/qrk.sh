@@ -8,9 +8,9 @@ Declare optional `maxPerPage` on the stable `defineModule` identity. Article
 sets `1`; Instagram sets `2`. Omitted means unlimited, and supplied values must
 be positive integers. The module owns its maximum; the shared Library contract
 owns generic enforcement. This policy applies everywhere the module is used.
-[Module identity](../../apps/library/make/defineModule.ts),
-[Article](../../apps/library/modules/article/article.ts),
-[Instagram](../../apps/library/modules/instagram/instagram.ts).
+[Module identity](../../apps/zerospin/src/modules/make/defineModule.ts),
+[Article](../../apps/zerospin/src/modules/article/article.ts),
+[Instagram](../../apps/zerospin/src/modules/instagram/instagram.ts).
 
 ```ts
 // Add to Article's existing defineModule declaration.
@@ -23,8 +23,8 @@ maxPerPage: 2,
 `makeModuleVersion` explicitly reconstructs identity metadata, so it must preserve
 the maximum for both backend and view consumers. The limit belongs to the stable
 module ID rather than its state-schema or rendering version.
-[Module version factory](../../apps/library/make/makeModuleVersion.ts),
-[View factory](../../apps/library/make/makeModuleView.tsx).
+[Module version factory](../../apps/zerospin/src/modules/make/makeModuleVersion.ts),
+[View factory](../../apps/app/modules/make/makeModuleView.tsx).
 
 ## Enforcement and counting
 
@@ -43,7 +43,7 @@ rejects a matching count greater than or equal to the module maximum with
 the same metadata to show the limit and disable dragging; the wall refuses
 excess drops. UI feedback supplements contract enforcement.
 [Add contract](../../apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts),
-[Catalog preview](../../apps/library/lib/ModulePreview.tsx),
+[Catalog preview](../../apps/app/modules/lib/ModulePreview.tsx),
 [Wall](../../apps/library/lib/BrickWall.tsx).
 
 ## Primary-source comparisons

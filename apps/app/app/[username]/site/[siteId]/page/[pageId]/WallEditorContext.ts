@@ -1,6 +1,6 @@
 import { createContext, type ReactNode } from "react";
-import type { modulesHash } from "@qrk.sh/library/modulesHash";
-import type { wallInsertionTargetSchema } from "@qrk.sh/library/wallInsertionTargetSchema";
+import type { modulesHash } from "../../../../../../modules/lib/modulesHash";
+import type { wallInsertionTargetSchema } from "../../../../../../modules/lib/wall/wallInsertionTargetSchema";
 
 export const WallEditorContext = createContext<{
   insertionTarget: typeof wallInsertionTargetSchema.Type | null;

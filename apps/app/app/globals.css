@@ -3,12 +3,12 @@
 @import url("https://fonts.googleapis.com/css2?family=Fragment+Mono:ital@0;1&display=swap");
 @import "tailwindcss" source(none);
 @import "tw-animate-css";
-@import "@qrk.sh/library/bricks.css";
+@import "../modules/bricks.css";
 
 @source "./**/*.{ts,tsx}";
 @source "../components/**/*.{ts,tsx}";
 @source "../../web/library/**/*.{ts,tsx}";
-@source "../../library/{app,components,lib,make,modules,registry}/**/*.{ts,tsx}";
+@source "../modules/**/*.{ts,tsx}";
 
 @custom-variant dark (&:is(.dark *));
 

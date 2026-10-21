@@ -1,0 +1,16 @@
+import type { IInferDecodedRow, IShape } from "@zerospin/shapes";
+
+import type { IJsonValue } from "@qrk.sh/zerospin/src/modules/types";
+import { decodeDefaultData } from "@qrk.sh/zerospin/src/modules/make/decodeDefaultData";
+
+/** Static seeded data with no in-place editor and no fetcher. */
+export function makeData<const DATA_SHAPE extends IShape>(props: {
+  dataShape: DATA_SHAPE;
+  defaultData: IInferDecodedRow<DATA_SHAPE> & Readonly<Record<string, IJsonValue>>;
+}) {
+  return {
+    dataType: "static" as const,
+    dataShape: props.dataShape,
+    defaultData: decodeDefaultData(props.dataShape, props.defaultData),
+  };
+}

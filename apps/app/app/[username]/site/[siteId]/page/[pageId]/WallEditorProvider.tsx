@@ -6,18 +6,18 @@ import { useLiveQuery } from "@zerospin/react";
 import { makeIdSchema, makeId, stageAggregateSessionCommand } from "@zerospin/sdk/browser";
 import { Schema } from "effect";
 import { isNonEmptySpec } from "@json-render/core";
-import { modulesHash } from "@qrk.sh/library/modulesHash";
-import { WallTree } from "@qrk.sh/library/WallTree";
-import { wallInsertionTargetSchema } from "@qrk.sh/library/wallInsertionTargetSchema";
-import { useWallViewport } from "@qrk.sh/library/WallViewportProvider";
+import { modulesHash } from "../../../../../../modules/lib/modulesHash";
+import { WallTree } from "../../../../../../modules/lib/wall/WallTree";
+import { wallInsertionTargetSchema } from "../../../../../../modules/lib/wall/wallInsertionTargetSchema";
+import { useWallViewport } from "../../../../../../modules/lib/WallViewportProvider";
 import { brickV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/brick/BrickV1";
 import { placementV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/placement/PlacementV1";
 import { stackV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/stack/StackV1";
 import { pageV3 } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV3";
 import { WallEditorContext } from "./WallEditorContext";
 import { UserUI } from "@/zerospin/UserUI";
-import { BrickWrapper } from "@qrk.sh/library/BrickWrapper";
-import { BrickCardStyleContext } from "@qrk.sh/library/BrickCardStyleContext";
+import { BrickWrapper } from "../../../../../../modules/components/brick/BrickWrapper";
+import { BrickCardStyleContext } from "../../../../../../modules/lib/BrickCardStyleContext";
 
 /** App owns saved rows and commands; shared wall controls receive presentation and callbacks. */
 export function WallEditorProvider(props: { children: ReactNode }) {

@@ -56,7 +56,7 @@ export const updateSiteSettingsV1 = makeAggregateContractVersion(updateSiteSetti
         });
       }
 
-      const site = yield* sdk.findFirst({ db, model: Site, where: { id: { eq: payload.id } } });
+      const site = yield* sdk.findFirst({ db, model: db.models.site, where: { id: { eq: payload.id } } });
 
       if (site === undefined) {
         return yield* failures.updateSiteSettingsNotFound.make({
@@ -68,7 +68,7 @@ export const updateSiteSettingsV1 = makeAggregateContractVersion(updateSiteSetti
       const user =
         site.userId === null
           ? undefined
-          : yield* sdk.findFirst({ db, model: User, where: { id: { eq: site.userId } } });
+          : yield* sdk.findFirst({ db, model: db.models.user, where: { id: { eq: site.userId } } });
 
       if (user === undefined || user.clerkUserId !== clerkUserId) {
         return yield* failures.updateSiteSettingsUserMismatch.make({

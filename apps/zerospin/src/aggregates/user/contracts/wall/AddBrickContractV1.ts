@@ -21,8 +21,8 @@ import { stackV1 as stack } from "../../models/stack/StackV1";
 import { rowV1 as row } from "../../models/row/RowV1";
 import { brickV1 as brick } from "../../models/brick/BrickV1";
 import { placementV1 as placement } from "../../models/placement/PlacementV1";
-import { backendLibrary } from "@qrk.sh/library/backendLibrary";
-import { makePlacementId } from "@qrk.sh/library/makePlacementId";
+import { backendLibrary } from "../../../../modules/backendLibrary";
+import { makePlacementId } from "../../../../modules/lib/makePlacementId";
 const targetSchema = Schema.Union([
   Schema.Struct({
     kind: Schema.Literal("row"),
@@ -73,28 +73,28 @@ export const addBrick = makeAggregateContractVersion(defineAggregateContract("ad
     const { db, payload, operations, failures, claims } = props;
     const { pageId, target } = payload;
     const actionId = payload.id;
-    const pageRow = yield* findFirst({ db, model: page, where: { id: { eq: pageId } } });
+    const pageRow = yield* findFirst({ db, model: db.models.page, where: { id: { eq: pageId } } });
     const siteRow =
       pageRow === undefined || pageRow.siteId === null
         ? undefined
-        : yield* findFirst({ db, model: site, where: { id: { eq: pageRow.siteId } } });
+        : yield* findFirst({ db, model: db.models.site, where: { id: { eq: pageRow.siteId } } });
     const userRow =
       siteRow === undefined || siteRow.userId === null
         ? undefined
-        : yield* findFirst({ db, model: user, where: { id: { eq: siteRow.userId } } });
+        : yield* findFirst({ db, model: db.models.user, where: { id: { eq: siteRow.userId } } });
     if (userRow === undefined || userRow.clerkUserId !== claims?.clerkUserId)
       return yield* failures.invalidLayout.make({
         message: "This Page is unavailable",
         status: 403,
       });
-    const wallRow = yield* findFirst({ db, model: wall, where: { id: { eq: target.wallId } } });
+    const wallRow = yield* findFirst({ db, model: db.models.wall, where: { id: { eq: target.wallId } } });
     if (wallRow === undefined || wallRow.pageId !== pageId)
       return yield* failures.invalidLayout.make({
         message: "The Wall does not belong to this Page",
         status: 409,
       });
     const module = backendLibrary[payload.moduleId];
-    const existingBricks = yield* findMany({ db, model: brick, where: { pageId: { eq: pageId } } });
+    const existingBricks = yield* findMany({ db, model: db.models.brick, where: { pageId: { eq: pageId } } });
     if (existingBricks.some((entry) => entry.id === payload.id))
       return yield* failures.invalidLayout.make({
         message: "This Brick already exists",
@@ -111,7 +111,7 @@ export const addBrick = makeAggregateContractVersion(defineAggregateContract("ad
       });
     const sections = (yield* findMany({
       db,
-      model: section,
+      model: db.models.section,
       where: { wallId: { eq: wallRow.id } },
     })).sort((a, b) => a.position - b.position);
     let destinationStack:
@@ -123,16 +123,16 @@ export const addBrick = makeAggregateContractVersion(defineAggregateContract("ad
     let beforePlacementId: string | null = null;
     let beforeRowId: string | null = null;
     if (target.kind === "row") {
-      destinationRow = yield* findFirst({ db, model: row, where: { id: { eq: target.rowId } } });
+      destinationRow = yield* findFirst({ db, model: db.models.row, where: { id: { eq: target.rowId } } });
       destinationStack =
         destinationRow === undefined
           ? undefined
-          : yield* findFirst({ db, model: stack, where: { id: { eq: destinationRow.stackId } } });
+          : yield* findFirst({ db, model: db.models.stack, where: { id: { eq: destinationRow.stackId } } });
       beforePlacementId = target.beforePlacementId;
     } else if (target.kind === "stack") {
       destinationStack = yield* findFirst({
         db,
-        model: stack,
+        model: db.models.stack,
         where: { id: { eq: target.stackId } },
       });
       beforeRowId = target.beforeRowId;
@@ -170,7 +170,7 @@ export const addBrick = makeAggregateContractVersion(defineAggregateContract("ad
     if (destinationSection !== undefined && destinationStack === undefined) {
       const siblings = yield* findMany({
         db,
-        model: stack,
+        model: db.models.stack,
         where: { sectionId: { eq: destinationSection.id } },
       });
       const capacity = { sm: 1, md: 2, lg: 3, xl: 4 }[wallRow.breakpoint];
@@ -185,7 +185,7 @@ export const addBrick = makeAggregateContractVersion(defineAggregateContract("ad
         ? []
         : (yield* findMany({
             db,
-            model: row,
+            model: db.models.row,
             where: { stackId: { eq: destinationStack.id } },
           })).sort((a, b) => a.position - b.position);
     if (beforeRowId !== null && !rows.some((entry) => entry.id === beforeRowId))
@@ -198,7 +198,7 @@ export const addBrick = makeAggregateContractVersion(defineAggregateContract("ad
         ? []
         : (yield* findMany({
             db,
-            model: placement,
+            model: db.models.placement,
             where: { rowId: { eq: destinationRow.id } },
           })).sort((a, b) => a.position - b.position);
     if (beforePlacementId !== null && !placements.some((entry) => entry.id === beforePlacementId))
@@ -227,7 +227,7 @@ export const addBrick = makeAggregateContractVersion(defineAggregateContract("ad
       const id = prefixId(stack, `${actionId}_${wallRow.id}`);
       const siblings = yield* findMany({
         db,
-        model: stack,
+        model: db.models.stack,
         where: { sectionId: { eq: destinationSection.id } },
       });
       yield* operations.createStack({
@@ -280,7 +280,7 @@ export const addBrick = makeAggregateContractVersion(defineAggregateContract("ad
         generation: null,
       },
     });
-    const otherWalls = yield* findMany({ db, model: wall, where: { pageId: { eq: pageId } } });
+    const otherWalls = yield* findMany({ db, model: db.models.wall, where: { pageId: { eq: pageId } } });
     if (otherWalls.length !== 4)
       return yield* failures.invalidLayout.make({
         message: "A Page requires all four breakpoint Walls",
@@ -290,7 +290,7 @@ export const addBrick = makeAggregateContractVersion(defineAggregateContract("ad
       if (otherWall.id === wallRow.id) continue;
       const otherSections = (yield* findMany({
         db,
-        model: section,
+        model: db.models.section,
         where: { wallId: { eq: otherWall.id } },
       })).sort((a, b) => a.position - b.position);
       let lastSection:
@@ -302,7 +302,7 @@ export const addBrick = makeAggregateContractVersion(defineAggregateContract("ad
       for (const candidate of otherSections) {
         const stacks = (yield* findMany({
           db,
-          model: stack,
+          model: db.models.stack,
           where: { sectionId: { eq: candidate.id } },
         })).sort((a, b) => a.position - b.position);
         if (stacks.length > 0) {
@@ -328,7 +328,7 @@ export const addBrick = makeAggregateContractVersion(defineAggregateContract("ad
       }
       const otherRows = yield* findMany({
         db,
-        model: row,
+        model: db.models.row,
         where: { stackId: { eq: lastStack.id } },
       });
       const rowId = prefixId(row, `${actionId}_${otherWall.id}`);

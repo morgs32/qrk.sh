@@ -88,9 +88,10 @@ remain outside the feature.
 
 ## Shared modules and Storybook
 
-The `@qrk.sh/library` package keeps production module definitions, forms,
-renderers, generators, components, and CSS. Its standalone application, routes,
-seeded session, worker, and startup are retired. App's Bricks catalog and Brick
+App owns module forms, renderers, React generators, components, CSS, and stories
+under `apps/app/modules`. Zerospin owns shared module definitions, schemas,
+catalogs, and model factories under `apps/zerospin/src/modules`. The Library
+package is removed; API owns provider operations and browser RPC declarations. App's Bricks catalog and Brick
 forms remain production routes. Shared visual forms use supplied submission
 callbacks; App stages commands and Storybook edits local examples. Module-owned
 normalization/provider logic stays in its module; session orchestration belongs

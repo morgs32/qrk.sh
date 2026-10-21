@@ -10,7 +10,7 @@ import {
   prefixId,
   primitives,
 } from "@zerospin/sdk/browser";
-import { Effect, Schema } from "effect";
+import { Effect } from "effect";
 import { userClaims } from "../../../../claims";
 import { pageV3 as page } from "../../models/page/PageV3";
 import { siteV3 as site } from "../../models/site/SiteV3";
@@ -40,22 +40,22 @@ export const addWallSection = makeAggregateContractVersion(
     failures: { invalidLayout: ContractError.schema({ code: "add-wall-section-invalid-layout" }) },
     program: Effect.fn("addWallSection.program")(function* (props) {
       const { db, payload, operations, failures, claims } = props;
-      const wallRow = yield* findFirst({ db, model: wall, where: { id: { eq: payload.wallId } } });
+      const wallRow = yield* findFirst({ db, model: db.models.wall, where: { id: { eq: payload.wallId } } });
       if (wallRow === undefined)
         return yield* failures.invalidLayout.make({
           message: "This Wall no longer exists",
           status: 404,
         });
       const pageId = wallRow.pageId;
-      const pageRow = yield* findFirst({ db, model: page, where: { id: { eq: pageId } } });
+      const pageRow = yield* findFirst({ db, model: db.models.page, where: { id: { eq: pageId } } });
       const siteRow =
         pageRow === undefined || pageRow.siteId === null
           ? undefined
-          : yield* findFirst({ db, model: site, where: { id: { eq: pageRow.siteId } } });
+          : yield* findFirst({ db, model: db.models.site, where: { id: { eq: pageRow.siteId } } });
       const userRow =
         siteRow === undefined || siteRow.userId === null
           ? undefined
-          : yield* findFirst({ db, model: user, where: { id: { eq: siteRow.userId } } });
+          : yield* findFirst({ db, model: db.models.user, where: { id: { eq: siteRow.userId } } });
       if (userRow === undefined || userRow.clerkUserId !== claims?.clerkUserId)
         return yield* failures.invalidLayout.make({
           message: "This Page is unavailable",
@@ -63,7 +63,7 @@ export const addWallSection = makeAggregateContractVersion(
         });
       const sections = (yield* findMany({
         db,
-        model: section,
+        model: db.models.section,
         where: { wallId: { eq: wallRow.id } },
       })).sort((a, b) => a.position - b.position);
       const position =

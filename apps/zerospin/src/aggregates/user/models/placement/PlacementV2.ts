@@ -1,4 +1,4 @@
-import { placementSpecSchemaV2 } from "@qrk.sh/library/makePlacementModel";
+import { placementSpecSchemaV2 } from "../../../../modules/make/makePlacementModel";
 import { primitives, upgradeModelVersion } from "@zerospin/sdk/browser";
 
 import { placementV1 } from "./PlacementV1";

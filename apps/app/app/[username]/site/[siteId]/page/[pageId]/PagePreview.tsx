@@ -1,7 +1,7 @@
 "use client";
 
-import { useContext, useState } from "react";
-import { WallEditorContext } from "./WallEditorContext";
+import { useState } from "react";
+import { WallEditor } from "./WallEditor";
 import { useReducedMotion } from "framer-motion";
 
 import { BREAKPOINTS } from "@qrk.sh/library/breakpoints";
@@ -11,8 +11,6 @@ import { SiteHeader } from "../../SiteHeader";
 
 export function PagePreview() {
   const { activeBreakpoint } = useWallViewport();
-  const editor = useContext(WallEditorContext);
-  if (editor === null) throw new Error("PagePreview requires WallEditorContext");
   const reducedMotion = useReducedMotion() ?? false;
   const [transition, setTransition] = useState<{
     active: (typeof BREAKPOINTS)[number]["id"] | null;
@@ -71,7 +69,7 @@ export function PagePreview() {
                 {isActive ? (
                   <div className="@container grid min-h-full grid-rows-[auto_1fr]">
                     <SiteHeader />
-                    {editor.renderWall(row.id)}
+                    <WallEditor breakpoint={row.id} />
                   </div>
                 ) : null}
               </div>

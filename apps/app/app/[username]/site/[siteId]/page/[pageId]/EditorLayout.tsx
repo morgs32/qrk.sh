@@ -18,7 +18,6 @@ import { Effect, Layer, Schema } from "effect";
 import { Toolbars } from "../../Toolbars/Toolbars";
 
 import { MainColumns } from "./MainColumns";
-import { WallEditorProvider } from "./WallEditorProvider";
 import { DrawerHeader } from "./(drawer)/DrawerHeader";
 
 import { useValidatedParams } from "@/hooks/useValidatedParams";
@@ -94,37 +93,35 @@ export default function EditorLayout(props: { children: ReactNode }) {
         }}
       >
         <WallViewportProvider key={documentKey}>
-          <WallEditorProvider>
-            <div data-editor-split className="relative h-full min-h-0 overflow-hidden">
-              <WallPreviewViewport
-                toolbar={<Toolbars />}
-                drawerOpen={drawerOpen}
-                closedDrawerHeight={56}
-              >
-                <MainColumns />
-              </WallPreviewViewport>
-              <Drawer
-                side="bottom"
-                open={drawerOpen}
-                persistentHeader={
-                  <DrawerHeader
-                    key={pathname}
-                    open={drawerOpen}
-                    cardStyle={previewCards ?? site?.cardStyle ?? false}
-                    onCardStyleChange={setPreviewCards}
-                  />
-                }
-                animated={
-                  drawerOpen ||
-                  (typeof document !== "undefined" &&
-                    typeof document.startViewTransition === "function")
-                }
-                aria-label="Workspace drawer"
-              >
-                {children}
-              </Drawer>
-            </div>
-          </WallEditorProvider>
+          <div data-editor-split className="relative h-full min-h-0 overflow-hidden">
+            <WallPreviewViewport
+              toolbar={<Toolbars />}
+              drawerOpen={drawerOpen}
+              closedDrawerHeight={56}
+            >
+              <MainColumns />
+            </WallPreviewViewport>
+            <Drawer
+              side="bottom"
+              open={drawerOpen}
+              persistentHeader={
+                <DrawerHeader
+                  key={pathname}
+                  open={drawerOpen}
+                  cardStyle={previewCards ?? site?.cardStyle ?? false}
+                  onCardStyleChange={setPreviewCards}
+                />
+              }
+              animated={
+                drawerOpen ||
+                (typeof document !== "undefined" &&
+                  typeof document.startViewTransition === "function")
+              }
+              aria-label="Workspace drawer"
+            >
+              {children}
+            </Drawer>
+          </div>
         </WallViewportProvider>
       </ImageUploadRuntimeContext>
     </BrickCardStyleContext>

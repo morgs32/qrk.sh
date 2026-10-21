@@ -1,12 +1,11 @@
 import type { ComponentProps } from "react";
 import { WallStack } from "./WallStack";
-import type { WallTree } from "./WallTree";
 
 export function WallSection(props: {
-  section: ComponentProps<typeof WallTree>["sections"][number];
+  section: { id: string; stacks: ComponentProps<typeof WallStack>["stack"][] };
   scope: string;
-  selectedBrickId: ComponentProps<typeof WallTree>["selectedBrickId"];
-  onEditBrick: ComponentProps<typeof WallTree>["onEditBrick"];
+  selectedBrickId: ComponentProps<typeof WallStack>["selectedBrickId"];
+  onEditBrick: ComponentProps<typeof WallStack>["onEditBrick"];
   onRequestDelete: ComponentProps<typeof WallStack>["onRequestDelete"];
 }) {
   const {

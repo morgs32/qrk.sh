@@ -1,9 +1,13 @@
 "use client";
 
-import { useParams } from "@tanstack/react-router";
+import { useNavigate, useParams, useSearch } from "@tanstack/react-router";
 import { useContext } from "react";
-import { WallEditorContext } from "../../../../WallEditorContext";
 import { WallModuleAction } from "@qrk.sh/library/WallModuleAction";
+import { wallInsertionTargetSchema } from "@qrk.sh/library/wallInsertionTargetSchema";
+import { useWallViewport } from "@qrk.sh/library/WallViewportProvider";
+import { useLiveQuery } from "@zerospin/react";
+import { makeId, stageAggregateSessionCommand } from "@zerospin/sdk/browser";
+import { UserUI } from "@/zerospin/UserUI";
 
 import { modulesHash } from "@qrk.sh/library/modulesHash";
 import { brickV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/brick/BrickV1";
@@ -40,27 +44,84 @@ export default function ModuleRoute() {
   }
 
   const brickModule = modulesHash[decoded.success.moduleId];
-  return <ModuleRouteBody brickModule={brickModule} />;
+  return <ModuleRouteBody brickModule={brickModule} pageId={decodedPageId.success} />;
 }
 
-function ModuleRouteBody(props: { brickModule: (typeof modulesHash)[keyof typeof modulesHash] }) {
-  const { brickModule } = props;
+function ModuleRouteBody(props: {
+  brickModule: (typeof modulesHash)[keyof typeof modulesHash];
+  pageId: (typeof Page.resourceJsonCodec.Type)["id"];
+}) {
+  const { brickModule, pageId } = props;
   const cardStyle = useContext(BrickCardStyleContext);
-  const editor = useContext(WallEditorContext);
-  if (editor === null) throw new Error("ModuleRoute requires WallEditorContext");
+  const params = useParams({
+    from: "/$username/site/$siteId/page/$pageId/_drawer/modules/$moduleId",
+  });
+  const search = useSearch({ from: "/$username/site/$siteId/page/$pageId" });
+  const navigate = useNavigate();
+  const { activeBreakpoint } = useWallViewport();
+  const breakpoint = activeBreakpoint ?? "sm";
+  const session = UserUI.useSession();
+  const { data: wall } = useLiveQuery({
+    session,
+    key: { pageId, breakpoint },
+    query: (db, key) =>
+      db.query.wall.findFirst({
+        where: { pageId: { eq: key.pageId }, breakpoint: { eq: key.breakpoint } },
+      }),
+  });
+  let insertionTarget: typeof wallInsertionTargetSchema.Type | null = null;
+  if (search.insertion !== undefined) {
+    try {
+      const target = Schema.decodeUnknownSync(wallInsertionTargetSchema)(
+        JSON.parse(search.insertion),
+      );
+      if (
+        activeBreakpoint !== null &&
+        wall !== undefined &&
+        wall.breakpoint === activeBreakpoint &&
+        target.wallId === wall.id
+      )
+        insertionTarget = target;
+    } catch {
+      // Invalid route input never becomes an append target.
+    }
+  }
   const maxPerPage = brickModule.maxPerPage;
   const JsonRender = brickModule.component;
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto pb-6">
       <div className="relative px-6 pt-6">
-        {editor.activeWallId === null ? null : (
+        {activeBreakpoint === null || wall === undefined ? null : (
           <div className="absolute right-6 top-6">
             <WallModuleAction
-              wallId={editor.activeWallId}
+              wallId={wall.id}
               moduleId={brickModule.id}
               onAdd={
-                editor.insertionTarget === null ? undefined : () => editor.addBrick(brickModule.id)
+                insertionTarget === null
+                  ? undefined
+                  : () => {
+                      if (insertionTarget === null || insertionTarget.wallId !== wall.id) return;
+                      const id = session.runSync(makeId(brickV1));
+                      const result = stageAggregateSessionCommand({
+                        session,
+                        contractName: "addBrick",
+                        payload: { id, pageId, moduleId: brickModule.id, target: insertionTarget },
+                      });
+                      if (result._tag === "Success") {
+                        void navigate({
+                          to: "/$username/site/$siteId/page/$pageId/brick/$brickId",
+                          params: {
+                            username: params.username,
+                            siteId: params.siteId,
+                            pageId,
+                            brickId: id,
+                          },
+                          search: {},
+                          resetScroll: false,
+                        });
+                      }
+                    }
               }
             />
           </div>

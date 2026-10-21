@@ -2,13 +2,12 @@ import type { ComponentProps } from "react";
 import { GripVertical } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { WallRow } from "./WallRow";
-import type { WallTree } from "./WallTree";
 
 export function WallStack(props: {
-  stack: ComponentProps<typeof WallTree>["sections"][number]["stacks"][number];
+  stack: { id: string; name: string; rows: ComponentProps<typeof WallRow>["row"][] };
   scope: string;
-  selectedBrickId: ComponentProps<typeof WallTree>["selectedBrickId"];
-  onEditBrick: ComponentProps<typeof WallTree>["onEditBrick"];
+  selectedBrickId: ComponentProps<typeof WallRow>["selectedBrickId"];
+  onEditBrick: ComponentProps<typeof WallRow>["onEditBrick"];
   onRequestDelete: ComponentProps<typeof WallRow>["onRequestDelete"];
 }) {
   const {

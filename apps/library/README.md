@@ -195,7 +195,7 @@ and does not import that aggregate.
 | `/WallPreviewViewport`         | `lib/WallPreviewViewport.tsx`                | Frame spacing/scrolling/toolbar          |
 | `/WallPreviewToolbar`          | `lib/WallPreviewToolbar.tsx`                 | Preview toolbar shell                    |
 | `/breakpoints`                 | `lib/breakpoints.ts`                         | Breakpoint IDs and widths                |
-| `/WallTree`                    | `lib/wall/WallTree.tsx`                      | Controlled wall presentation             |
+| `/WallSection`                 | `lib/wall/WallSection.tsx`                   | Shared wall layout presentation          |
 | `/WallModuleAction`            | `lib/wall/WallModuleAction.tsx`              | Catalog insertion/drag action            |
 | `/wallInsertionTargetSchema`   | `lib/wall/wallInsertionTargetSchema.ts`      | Explicit insertion destinations          |
 | `/ImageUploadEnvironment`      | `modules/image/ImageUploadEnvironment.ts`    | Host-supplied upload Effect              |
@@ -354,10 +354,11 @@ arrange Placements side by side. Brick content is shared across all four Walls.
 Placements retain stable identities and per-width specs, while ordering uses
 integer sibling positions. Breakpoint derives from the containing Wall.
 
-The shared controlled wall components render supplied data and action callbacks.
-App's `WallEditorProvider` supplies live queries, command staging,
-selected Brick routing, and drag scope. Local wall stories use fixtures
-without that provider or any persisted session. New-Brick creation, layout moves,
+The shared `WallSection`, `WallStack`, `WallRow`, and `WallPlacement` components
+render supplied layout data and action callbacks. App's `WallEditor` owns live
+queries, command staging, selected Brick routing, drag scope, and deletion
+confirmation. App and Storybook use that same editor through `UserUI`; Storybook
+seeds a mock session and exercises the real queries and commands. New-Brick creation, layout moves,
 and global Brick deletion are ordinary App commands. Moves normalize their
 affected Wall; Brick deletion normalizes all four Page Walls. Internal
 `cleanupWall` prunes empty Rows, Stacks, and Sections and compacts sibling

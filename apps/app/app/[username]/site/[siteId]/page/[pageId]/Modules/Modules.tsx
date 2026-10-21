@@ -1,15 +1,16 @@
 "use client";
 
-import { useContext } from "react";
-import { WallEditorContext } from "../WallEditorContext";
 import { WallModuleAction } from "@qrk.sh/library/WallModuleAction";
+import { wallInsertionTargetSchema } from "@qrk.sh/library/wallInsertionTargetSchema";
 import { UserUI } from "@/zerospin/UserUI";
 import { useLiveQuery } from "@zerospin/react";
-import { Link } from "@tanstack/react-router";
+import { makeId, stageAggregateSessionCommand } from "@zerospin/sdk/browser";
+import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 
 import { ModuleFilmstrip } from "@qrk.sh/library/ModuleFilmstrip";
 import { useWallViewport } from "@qrk.sh/library/WallViewportProvider";
 import { pageV3 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV3";
+import { brickV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/brick/BrickV1";
 import { makeModelIdSchema } from "@zerospin/core/models/make/makeModelIdSchema";
 import { Schema } from "effect";
 
@@ -25,8 +26,8 @@ export function Modules() {
   const { activeBreakpoint } = useWallViewport();
   const breakpoint = activeBreakpoint ?? "sm";
   const params = useValidatedParams(ParamsSchema);
-  const editor = useContext(WallEditorContext);
-  if (editor === null) throw new Error("Modules requires WallEditorContext");
+  const search = useSearch({ from: "/$username/site/$siteId/page/$pageId" });
+  const navigate = useNavigate();
   const session = UserUI.useSession();
   const { data: wall } = useLiveQuery({
     session,
@@ -36,6 +37,23 @@ export function Modules() {
         where: { pageId: { eq: key.pageId }, breakpoint: { eq: key.breakpoint } },
       }),
   });
+  let insertionTarget: typeof wallInsertionTargetSchema.Type | null = null;
+  if (search.insertion !== undefined) {
+    try {
+      const target = Schema.decodeUnknownSync(wallInsertionTargetSchema)(
+        JSON.parse(search.insertion),
+      );
+      if (
+        activeBreakpoint !== null &&
+        wall !== undefined &&
+        wall.breakpoint === activeBreakpoint &&
+        target.wallId === wall.id
+      )
+        insertionTarget = target;
+    } catch {
+      // Invalid route input never becomes an append target.
+    }
+  }
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
@@ -48,9 +66,35 @@ export function Modules() {
                 wallId={wall.id}
                 moduleId={brickModule.id}
                 onAdd={
-                  editor.insertionTarget === null
+                  insertionTarget === null
                     ? undefined
-                    : () => editor.addBrick(brickModule.id)
+                    : () => {
+                        if (
+                          activeBreakpoint === null ||
+                          insertionTarget === null ||
+                          insertionTarget.wallId !== wall.id
+                        )
+                          return;
+                        const id = session.runSync(makeId(brickV1));
+                        const result = stageAggregateSessionCommand({
+                          session,
+                          contractName: "addBrick",
+                          payload: {
+                            id,
+                            pageId: params.pageId,
+                            moduleId: brickModule.id,
+                            target: insertionTarget,
+                          },
+                        });
+                        if (result._tag === "Success") {
+                          void navigate({
+                            to: "/$username/site/$siteId/page/$pageId/brick/$brickId",
+                            params: { ...params, brickId: id },
+                            search: {},
+                            resetScroll: false,
+                          });
+                        }
+                      }
                 }
               />
             )
@@ -60,9 +104,7 @@ export function Modules() {
               to="/$username/site/$siteId/page/$pageId/modules/$moduleId"
               params={{ ...params, moduleId: brickModule.id }}
               search={
-                editor.insertionTarget === null
-                  ? {}
-                  : { insertion: JSON.stringify(editor.insertionTarget) }
+                insertionTarget === null ? {} : { insertion: JSON.stringify(insertionTarget) }
               }
               resetScroll={false}
               data-module-link={brickModule.id}

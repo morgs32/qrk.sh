@@ -18,6 +18,7 @@ import { stackV1 as stack } from "../../models/stack/StackV1";
 import { rowV1 as row } from "../../models/row/RowV1";
 import { brickV1 as brick } from "../../models/brick/BrickV1";
 import { placementV1 as placement } from "../../models/placement/PlacementV1";
+import { cleanupWall } from "./utils/cleanupWall";
 const targetSchema = Schema.Union([
   Schema.Struct({
     kind: Schema.Literal("row"),
@@ -51,10 +52,13 @@ export const movePlacement = makeAggregateContractVersion(
     operations: {
       createSection: section.operations.create,
       updateSection: section.operations.update,
+      deleteSection: section.operations.delete,
       createStack: stack.operations.create,
       updateStack: stack.operations.update,
+      deleteStack: stack.operations.delete,
       createRow: row.operations.create,
       updateRow: row.operations.update,
+      deleteRow: row.operations.delete,
       updatePlacement: placement.operations.update,
     },
     payload: {
@@ -96,61 +100,77 @@ export const movePlacement = makeAggregateContractVersion(
           message: "This Page is unavailable",
           status: 403,
         });
-      const sourceRow = yield* findFirst({ db, model: row, where: { id: { eq: moving.rowId } } });
-      const sourceStack =
-        sourceRow === undefined
-          ? undefined
-          : yield* findFirst({ db, model: stack, where: { id: { eq: sourceRow.stackId } } });
-      const sourceSection =
-        sourceStack === undefined
-          ? undefined
-          : yield* findFirst({ db, model: section, where: { id: { eq: sourceStack.sectionId } } });
       const wallRow = yield* findFirst({ db, model: wall, where: { id: { eq: target.wallId } } });
-      if (
-        wallRow === undefined ||
-        wallRow.pageId !== pageId ||
-        sourceSection?.wallId !== wallRow.id
-      )
+      if (wallRow === undefined || wallRow.pageId !== pageId)
         return yield* failures.invalidLayout.make({
           message: "Placements can only move within their Wall",
           status: 409,
         });
-      const sections = (yield* findMany({
+      const sections = yield* findMany({
         db,
         model: section,
         where: { wallId: { eq: wallRow.id } },
-      })).sort((a, b) => a.position - b.position);
-      let destinationStack:
-        | { id: `stk_${string}`; sectionId: `sec_${string}`; name: string; position: number }
-        | undefined;
-      let destinationRow:
-        | { id: `row_${string}`; stackId: `stk_${string}`; position: number }
-        | undefined;
+        columns: { id: true, position: true },
+        orderBy: { position: "asc" },
+        with: {
+          stacks: {
+            columns: { id: true, position: true },
+            orderBy: { position: "asc" },
+            with: {
+              rows: {
+                columns: { id: true, position: true },
+                orderBy: { position: "asc" },
+                with: {
+                  placements: {
+                    columns: { id: true, position: true },
+                    orderBy: { position: "asc" },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+      const sourceSection = sections.find((entry) =>
+        entry.stacks.some((stack) =>
+          stack.rows.some((row) => row.placements.some((entry) => entry.id === moving.id)),
+        ),
+      );
+      const sourceStack = sourceSection?.stacks.find((entry) =>
+        entry.rows.some((row) => row.placements.some((entry) => entry.id === moving.id)),
+      );
+      const sourceRow = sourceStack?.rows.find((entry) =>
+        entry.placements.some((entry) => entry.id === moving.id),
+      );
+      const movingPlacement = sourceRow?.placements.find((entry) => entry.id === moving.id);
+      if (sourceRow === undefined || movingPlacement === undefined)
+        return yield* failures.invalidLayout.make({
+          message: "Placements can only move within their Wall",
+          status: 409,
+        });
+      let destinationSection: (typeof sections)[number] | undefined;
+      let destinationStack: (typeof sections)[number]["stacks"][number] | undefined;
+      let destinationRow: (typeof sections)[number]["stacks"][number]["rows"][number] | undefined;
       let beforePlacementId: string | null = null;
       let beforeRowId: string | null = null;
       if (target.kind === "row") {
-        destinationRow = yield* findFirst({ db, model: row, where: { id: { eq: target.rowId } } });
-        destinationStack =
-          destinationRow === undefined
-            ? undefined
-            : yield* findFirst({ db, model: stack, where: { id: { eq: destinationRow.stackId } } });
+        destinationSection = sections.find((entry) =>
+          entry.stacks.some((stack) => stack.rows.some((entry) => entry.id === target.rowId)),
+        );
+        destinationStack = destinationSection?.stacks.find((entry) =>
+          entry.rows.some((entry) => entry.id === target.rowId),
+        );
+        destinationRow = destinationStack?.rows.find((entry) => entry.id === target.rowId);
         beforePlacementId = target.beforePlacementId;
       } else if (target.kind === "stack") {
-        destinationStack = yield* findFirst({
-          db,
-          model: stack,
-          where: { id: { eq: target.stackId } },
-        });
+        destinationSection = sections.find((entry) =>
+          entry.stacks.some((entry) => entry.id === target.stackId),
+        );
+        destinationStack = destinationSection?.stacks.find((entry) => entry.id === target.stackId);
         beforeRowId = target.beforeRowId;
+      } else if (target.kind === "section") {
+        destinationSection = sections.find((entry) => entry.id === target.sectionId);
       }
-      let destinationSection:
-        | { id: `sec_${string}`; wallId: `wal_${string}`; position: number }
-        | undefined =
-        target.kind === "section"
-          ? sections.find((entry) => entry.id === target.sectionId)
-          : destinationStack === undefined
-            ? undefined
-            : sections.find((entry) => entry.id === destinationStack.sectionId);
       if (target.kind !== "wall" && destinationSection === undefined)
         return yield* failures.invalidLayout.make({
           message: "The insertion target no longer belongs to this Wall",
@@ -173,41 +193,15 @@ export const movePlacement = makeAggregateContractVersion(
           message: "The Section insertion point no longer exists",
           status: 409,
         });
-      if (destinationSection !== undefined && destinationStack === undefined) {
-        const siblings = yield* findMany({
-          db,
-          model: stack,
-          where: { sectionId: { eq: destinationSection.id } },
-        });
-        const capacity = { sm: 1, md: 2, lg: 3, xl: 4 }[wallRow.breakpoint];
-        if (siblings.length >= capacity)
-          return yield* failures.invalidLayout.make({
-            message: "This Section has reached its Stack limit",
-            status: 409,
-          });
-      }
-      const rows =
-        destinationStack === undefined
-          ? []
-          : (yield* findMany({
-              db,
-              model: row,
-              where: { stackId: { eq: destinationStack.id } },
-            })).sort((a, b) => a.position - b.position);
-      if (beforeRowId !== null && !rows.some((entry) => entry.id === beforeRowId))
+      if (beforeRowId !== null && !destinationStack?.rows.some((entry) => entry.id === beforeRowId))
         return yield* failures.invalidLayout.make({
           message: "The Row insertion point no longer exists",
           status: 409,
         });
-      const placements =
-        destinationRow === undefined
-          ? []
-          : (yield* findMany({
-              db,
-              model: placement,
-              where: { rowId: { eq: destinationRow.id } },
-            })).sort((a, b) => a.position - b.position);
-      if (beforePlacementId !== null && !placements.some((entry) => entry.id === beforePlacementId))
+      if (
+        beforePlacementId !== null &&
+        !destinationRow?.placements.some((entry) => entry.id === beforePlacementId)
+      )
         return yield* failures.invalidLayout.make({
           message: "The Placement insertion point no longer exists",
           status: 409,
@@ -219,82 +213,53 @@ export const movePlacement = makeAggregateContractVersion(
           target.kind === "wall" && target.beforeSectionId !== null
             ? sections.findIndex((entry) => entry.id === target.beforeSectionId)
             : sections.length;
-        for (let index = position; index < sections.length; index++)
-          yield* operations.updateSection({
-            resourceId: sections[index].id,
-            attributes: { position: index + 1 },
-          });
         yield* operations.createSection({
           resourceId: id,
           attributes: { wallId: wallRow.id, position },
         });
-        destinationSection = { id, wallId: wallRow.id, position };
+        destinationSection = { id, position, stacks: [] };
+        sections.splice(position, 0, destinationSection);
       }
       if (destinationStack === undefined) {
         const id = prefixId(stack, `${actionId}_${wallRow.id}`);
-        const siblings = yield* findMany({
-          db,
-          model: stack,
-          where: { sectionId: { eq: destinationSection.id } },
-        });
+        const position = destinationSection.stacks.length;
         yield* operations.createStack({
           resourceId: id,
-          attributes: {
-            sectionId: destinationSection.id,
-            name: "Stack",
-            position: siblings.length,
-          },
+          attributes: { sectionId: destinationSection.id, name: "Stack", position },
         });
-        destinationStack = {
-          id,
-          sectionId: destinationSection.id,
-          name: "Stack",
-          position: siblings.length,
-        };
+        destinationStack = { id, position, rows: [] };
+        destinationSection.stacks.push(destinationStack);
       }
       if (destinationRow === undefined) {
         const id = prefixId(row, `${actionId}_${wallRow.id}`);
         const position =
-          beforeRowId === null ? rows.length : rows.findIndex((entry) => entry.id === beforeRowId);
-        for (let index = position; index < rows.length; index++)
-          yield* operations.updateRow({
-            resourceId: rows[index].id,
-            attributes: { position: index + 1 },
-          });
+          beforeRowId === null
+            ? destinationStack.rows.length
+            : destinationStack.rows.findIndex((entry) => entry.id === beforeRowId);
         yield* operations.createRow({
           resourceId: id,
           attributes: { stackId: destinationStack.id, position },
         });
-        destinationRow = { id, stackId: destinationStack.id, position };
+        destinationRow = { id, position, placements: [] };
+        destinationStack.rows.splice(position, 0, destinationRow);
       }
-      const destinationSiblings = placements.filter((entry) => entry.id !== moving.id);
+      sourceRow.placements = sourceRow.placements.filter((entry) => entry.id !== moving.id);
       const position =
         beforePlacementId === null
-          ? destinationSiblings.length
-          : destinationSiblings.findIndex((entry) => entry.id === beforePlacementId);
-      if (moving.rowId !== destinationRow.id) {
-        const sourceSiblings = (yield* findMany({
-          db,
-          model: placement,
-          where: { rowId: { eq: moving.rowId } },
-        }))
-          .filter((entry) => entry.id !== moving.id)
-          .sort((a, b) => a.position - b.position);
-        for (let index = 0; index < sourceSiblings.length; index++)
-          yield* operations.updatePlacement({
-            resourceId: sourceSiblings[index].id,
-            attributes: { position: index },
-          });
-      }
-      for (let index = 0; index < destinationSiblings.length; index++)
-        yield* operations.updatePlacement({
-          resourceId: destinationSiblings[index].id,
-          attributes: { position: index < position ? index : index + 1 },
-        });
+          ? destinationRow.placements.length
+          : destinationRow.placements.findIndex((entry) => entry.id === beforePlacementId);
+      destinationRow.placements.splice(position, 0, movingPlacement);
       yield* operations.updatePlacement({
         resourceId: moving.id,
-        attributes: { rowId: destinationRow.id, position },
+        attributes: { rowId: destinationRow.id },
       });
+      yield* cleanupWall({ sections, operations });
+      const capacity = { sm: 1, md: 2, lg: 3, xl: 4 }[wallRow.breakpoint];
+      if (sections.some((entry) => entry.stacks.length > capacity))
+        return yield* failures.invalidLayout.make({
+          message: "This Section has reached its Stack limit",
+          status: 409,
+        });
     }),
   },
 );

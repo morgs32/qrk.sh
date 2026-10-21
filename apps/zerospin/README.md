@@ -185,10 +185,24 @@ standalone Library database, seeded Page, or host-binding declaration assembly.
 empty Stack each. `addBrick` records shared null content and four deterministic
 Placements; the active Wall follows its explicit insertion target and other
 Walls append a new Row to their last Stack. Move commands renumber affected
-siblings atomically and retain empty containers. Delete Brick removes all its
-Placements and content while keeping containers. Ordinary programs only record
-named operations; evaluation reads pre-application state and the transaction
-applies the complete checked batch.
+siblings atomically through internal `cleanupWall`. It prunes empty Rows, then
+Stacks, then Sections, and compacts all surviving sibling positions, including
+Placements. Movement cleans the whole affected Wall; Delete Brick removes its
+Placements and content and cleans all four Page Walls. Empty Walls remain usable
+drop targets. Move capacity is checked after cleanup. Initial Page scaffolds and
+explicit container creation retain their current semantics.
+
+Each command edits a narrow ordered candidate hierarchy before cleanup. Ordinary
+programs only record named operations; evaluation reads pre-application state
+and the transaction applies the complete checked batch. Stable insertion anchors
+are validated before candidate mutation, and genuine self-before moves return
+without cleanup.
+
+The cleanup operation capabilities change the accepted declarations in place as
+part of the fresh-development cutover. Adoption requires empty affected backend
+definition/materialization storage and fresh matching browser session state.
+Retained environments need versioned release evolution before rollout; normal
+development startup preserves storage.
 
 The web actor selects editor rows through Page → Site → User and the actual
 container parent chains. Write commands also validate ownership, membership,

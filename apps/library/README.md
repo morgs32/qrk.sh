@@ -358,12 +358,18 @@ The shared controlled wall components render supplied data and action callbacks.
 App's `WallEditorProvider` supplies live queries, command staging,
 selected Brick routing, and drag scope. Local wall stories use fixtures
 without that provider or any persisted session. New-Brick creation, layout moves,
-and global Brick deletion are ordinary App commands. Empty containers survive
-moves/deletion; no pixel grid geometry or visibility state is persisted.
+and global Brick deletion are ordinary App commands. Moves normalize their
+affected Wall; Brick deletion normalizes all four Page Walls. Internal
+`cleanupWall` prunes empty Rows, Stacks, and Sections and compacts sibling
+positions, including Placements, within the command. The Wall remains usable
+when empty; no pixel grid geometry or visibility state is persisted. Move drop
+eligibility counts Stacks that survive cleanup; catalog additions retain their
+existing capacity rules.
 Layout containers have no padding or gutters. Drag controls overlay the
 content. Layout moves use the separate drag grips.
 Insertion boundaries appear only during dragging; the Wall renders
-no Add or plus buttons. Empty Rows/Stacks retain their drop placeholders.
+no Add or plus buttons. Empty Rows/Stacks in initial scaffolds or local fixtures
+show drop placeholders; persisted moves/deletion remove them through cleanup.
 
 **Selected** means the Brick's edit form is open; **active** means DOM focus.
 Separate grip/menu controls leave links/forms interactive. Placements support

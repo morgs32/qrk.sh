@@ -23,6 +23,8 @@ Before editing files for a substantial task:
 
 ## Approval and code conventions
 
+- NEVER iterate a record with `for (const [key, value] of Object.entries(record))`. Use `mapValues` from `es-toolkit` with `(value, key)` callbacks for record traversal and validation.
+
 - All authored TypeScript type aliases and interfaces use `I` followed by PascalCase, including exported, internal, local, props, helper, and inference types (for example, `IPaymentsSession`, `IProps`, and `IInferPayload`). Generic type parameters, imported third-party names, runtime classes and schema constants, generated/vendor code, and required framework augmentation names retain their existing conventions.
 - Modules own their module-specific behavior. Before adding module-specific logic or dependencies to application code or shared module contracts, warn the user, identify the proposed coupling, and explain why the module cannot own it.
 - Ask before introducing abstractions, single-call wrappers, barrels, re-exports, or concision refactors; provide the proposed name, purpose, and exact call sites. Import symbols from their defining modules.

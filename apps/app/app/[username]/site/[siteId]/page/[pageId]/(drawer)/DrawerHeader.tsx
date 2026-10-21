@@ -68,6 +68,7 @@ export function DrawerHeader(props: {
         faviconLightUrl: site.faviconLightUrl ?? "",
         faviconDarkUrl: site.faviconDarkUrl ?? "",
         cardStyle: site.cardStyle,
+        stickyNavbar: site.stickyNavbar,
       },
       page: { title: page.title ?? "", description: page.description ?? "" },
     };
@@ -124,6 +125,7 @@ export function DrawerHeader(props: {
           faviconLightUrl: siteDraft.faviconLightUrl,
           faviconDarkUrl: siteDraft.faviconDarkUrl,
           cardStyle: siteDraft.cardStyle,
+          stickyNavbar: siteDraft.stickyNavbar,
         }
       : baseline.site;
   const draftPage =
@@ -279,6 +281,7 @@ export function DrawerHeader(props: {
                       faviconDarkUrl:
                         draftSite.faviconDarkUrl.length > 0 ? draftSite.faviconDarkUrl : null,
                       cardStyle: draftSite.cardStyle,
+                      stickyNavbar: draftSite.stickyNavbar,
                     },
                   })
                 : stageAggregateSessionCommand({
@@ -330,6 +333,7 @@ export function DrawerHeader(props: {
                 store.setFaviconLightUrl(baseline.site.faviconLightUrl);
                 store.setFaviconDarkUrl(baseline.site.faviconDarkUrl);
                 store.setCardStyle(baseline.site.cardStyle);
+                store.setStickyNavbar(baseline.site.stickyNavbar);
               }
               if (isDirty && isPageSettings) {
                 const store = usePageStore.getState();

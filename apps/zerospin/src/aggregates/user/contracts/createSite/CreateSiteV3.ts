@@ -87,6 +87,7 @@ export const createSiteV3 = upgradeAggregateContractVersion(createSiteV2, {
         faviconDarkUrl: null,
         isPublished: false,
         cardStyle: false,
+        stickyNavbar: true,
       },
     });
   }),

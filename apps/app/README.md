@@ -312,6 +312,11 @@ Effect Schema validation, form keys, and navigation without scroll resets are
 retained. Unknown paths render the Router not-found screen. The local error
 boundary preserves client diagnostics and reload behavior.
 
+Site Settings includes a **Sticky navbar** checkbox, enabled by default. It
+previews the draft while settings are open, persists through Save, and restores
+its opening value on Cancel. The navbar's containing element spans the whole
+scrolling page so sticky positioning remains effective through page content.
+
 The page layout keeps site/page settings drafts, `MainColumns`, the four saved
 Wall previews, and the authenticated user session mounted. `EditorLayout` also
 owns the persistent bottom drawer shell.

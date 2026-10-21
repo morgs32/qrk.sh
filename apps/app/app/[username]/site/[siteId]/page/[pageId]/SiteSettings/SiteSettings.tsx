@@ -89,6 +89,7 @@ export function SiteSettings() {
   const setLogoUrl = useSiteStore((state) => state.setLogoUrl);
   const setFaviconLightUrl = useSiteStore((state) => state.setFaviconLightUrl);
   const setFaviconDarkUrl = useSiteStore((state) => state.setFaviconDarkUrl);
+  const setStickyNavbar = useSiteStore((state) => state.setStickyNavbar);
   const setCardStyle = useSiteStore((state) => state.setCardStyle);
   const logoInputRef = useRef<HTMLInputElement>(null);
   const faviconLightInputRef = useRef<HTMLInputElement>(null);
@@ -155,6 +156,18 @@ export function SiteSettings() {
             id="site-card-style"
             checked={draft.cardStyle}
             onCheckedChange={setCardStyle}
+          />
+        </div>
+
+        <div className="flex items-center justify-between gap-4">
+          <FieldLabel htmlFor="site-sticky-navbar" description="Keep the navbar visible while scrolling">
+            Sticky navbar
+          </FieldLabel>
+          <input
+            id="site-sticky-navbar"
+            type="checkbox"
+            checked={draft.stickyNavbar}
+            onChange={(event) => setStickyNavbar(event.target.checked)}
           />
         </div>
 

@@ -1,8 +1,7 @@
+import { modelRef } from "@zerospin/sdk/browser";
 import { makeModelVersion } from "@zerospin/core/models/make/makeModelVersion";
-import type { IModel } from "@zerospin/core/models/types";
 import { primitives } from "@zerospin/shapes";
 import { Schema } from "effect";
-import { makeBrickModel } from "./makeBrickModel";
 
 const placementSpecSchema = Schema.Struct({
   root: Schema.String,
@@ -10,20 +9,20 @@ const placementSpecSchema = Schema.Struct({
   state: Schema.optional(Schema.Record(Schema.String, Schema.Unknown)),
 });
 
-export function makePlacementModel<const ROW extends Pick<IModel, "table">>(props: {
-  brick: ReturnType<typeof makeBrickModel>;
-  row: ROW;
+export function makePlacementModel(props: {
+  brick: { name: "brick"; abbreviation: "brk" };
+  row: { name: "row"; abbreviation: "row" };
   identity: { name: "placement"; abbreviation: "plc" };
 }) {
   const { brick, row, identity } = props;
   return makeModelVersion(identity, {
     attributes: {
-      brickId: primitives.ref({
-        table: brick.table,
+      brickId: modelRef({
+        model: brick,
         relation: "brick",
         inverse: "placements",
       }),
-      rowId: primitives.ref({ table: row.table, relation: "row", inverse: "placements" }),
+      rowId: modelRef({ model: row, relation: "row", inverse: "placements" }),
       position: primitives.integer(),
       specRevision: primitives.integer({ defaultValue: 0 }),
       generation: primitives.json({

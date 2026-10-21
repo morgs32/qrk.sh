@@ -1,13 +1,13 @@
-import { primitives, upgradeModelVersion } from "@zerospin/sdk/browser";
-import { siteV2 as Site } from "../site/SiteV2";
+import { modelRef, primitives, upgradeModelVersion } from "@zerospin/sdk/browser";
+import { site as Site } from "../site/site";
 import { pageSnapshot } from "../pageSnapshot/pageSnapshot";
 import { pageV1 } from "./PageV1";
 
 export const pageV2 = upgradeModelVersion(pageV1, {
   version: "2.0.0",
   attributes: {
-    siteId: primitives.ref({
-      table: Site.table,
+    siteId: modelRef({
+      model: Site,
       relation: "site",
       inverse: "pages",
     }),

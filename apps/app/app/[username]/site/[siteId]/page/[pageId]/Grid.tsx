@@ -72,8 +72,8 @@ export function Grid() {
                   <>
                     <div className="@container">
                       <SiteHeader />
+                      {editor.renderWall(row.id)}
                     </div>
-                    {editor.renderWall(row.id)}
                   </>
                 ) : null}
               </div>

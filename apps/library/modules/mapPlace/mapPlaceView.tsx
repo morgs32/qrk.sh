@@ -16,6 +16,7 @@ export const mapPlaceView = makeModuleView(mapPlaceV1, {
   default: {
     placeholder: MapPlacePlaceholder,
     defaultWidth: 480,
+    minWidth: 320,
     component(props) {
       const { state } = props;
       if (state.data === null)

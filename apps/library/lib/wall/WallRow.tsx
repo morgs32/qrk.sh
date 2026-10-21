@@ -12,24 +12,31 @@ export function WallRow(props: {
 }) {
   const { row, scope, selectedBrickId, onEditBrick, onRequestMove, onRequestDelete } = props;
   return (
-    <div data-wall-row={row.id} className="relative flex min-w-0 items-start">
-      {row.placements.map((placement) => (
-        <WallPlacement
-          key={placement.id}
-          placement={placement}
-          scope={scope}
-          selected={selectedBrickId === placement.brickId}
-          onEditBrick={onEditBrick}
-          onRequestMove={onRequestMove}
-          onRequestDelete={onRequestDelete}
-        />
-      ))}
-      {row.placements.length === 0 && (
-        <div
-          className="min-h-12 flex-1 border border-dashed border-zinc-200"
-          aria-label="Empty Row"
-        />
-      )}
+    <div data-wall-row={row.id} className="relative min-w-0">
+      <div
+        role="group"
+        aria-label={`Row ${row.id}`}
+        tabIndex={0}
+        className="flex min-w-0 w-full items-start overflow-x-auto overflow-y-hidden"
+      >
+        {row.placements.map((placement) => (
+          <WallPlacement
+            key={placement.id}
+            placement={placement}
+            scope={scope}
+            selected={selectedBrickId === placement.brickId}
+            onEditBrick={onEditBrick}
+            onRequestMove={onRequestMove}
+            onRequestDelete={onRequestDelete}
+          />
+        ))}
+        {row.placements.length === 0 && (
+          <div
+            className="min-h-12 flex-1 border border-dashed border-zinc-200"
+            aria-label="Empty Row"
+          />
+        )}
+      </div>
     </div>
   );
 }

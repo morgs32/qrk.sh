@@ -13,6 +13,7 @@ export const swatchAndIconView = makeModuleView(swatchAndIconV1, {
   default: {
     placeholder: SwatchAndIconPlaceholder,
     defaultWidth: 240,
+    minWidth: 160,
     component(props) {
       const { state } = props;
       return (

@@ -14,6 +14,7 @@ export const figmaThumbnailView = makeModuleView(figmaThumbnailV1, {
   form: FigmaThumbnailForm,
   default: {
     defaultWidth: 480,
+    minWidth: 320,
     placeholder() {
       return <FigmaThumbnailPlaceholder />;
     },

@@ -13,8 +13,10 @@ Wall and Brick bind directly to its final Page table.
 
 Each new Page starts with four Walls, each with one Section and an empty Stack.
 Empty Rows, Stacks, and Sections persist after movement/deletion. Stack capacity
-is 1 / 2 / 3 / 4 per Section at sm / md / lg / xl. Rows use equal-width horizontal
-cells with natural content height and have no arbitrary Placement-count cap.
+is 1 / 2 / 3 / 4 per Section at sm / md / lg / xl. Rows share available horizontal
+space subject to module minimum widths, with natural content height and no
+arbitrary Placement-count cap. Each Row scrolls horizontally when its minimums
+do not fit, without widening neighboring Stacks or changing saved order.
 The former `Page.wallId`, `Wall.label`, `Brick.wallId`, Placement grid geometry,
 visibility, and duplicated breakpoint attribute are removed. Placement derives
 its breakpoint through Row → Stack → Section → Wall.
@@ -28,10 +30,12 @@ mounted; only the active Wall registers drag sources and targets. App's
 initialized user session. Shared `WallTree` components receive controlled
 presentation and callbacks, allowing Storybook to use local fixtures.
 
-A placed Brick fills its Row cell with `w-full min-w-0`. It uses the containing
-Wall's logical breakpoint and Placement spec, regardless of cell width. Catalog
-preferred widths do not constrain placed content. Module links, inputs, forms,
-and provider states remain interactive. Drag grips and menus are siblings of
+A placed Brick fills its Row cell, whose minimum width comes from its module.
+It uses the containing Wall's logical breakpoint and Placement spec, regardless
+of cell width. Catalog
+preferred widths do not constrain placed content. Every module has a 320px
+minimum except Swatch and Icon at 160px, constant across all breakpoints.
+Module links, inputs, forms, and provider states remain interactive. Drag grips and menus are siblings of
 content rather than a wrapping button or selection overlay.
 
 Every module accepts null as unconfigured content and provides its module-owned
@@ -59,8 +63,11 @@ positions are ordinary integer indexes renumbered in the same command.
 Wall layout containers have zero padding and no gaps between adjacent content.
 Stack chrome and drag insertion boundaries overlay the layout. Empty persisted
 Rows/Stacks retain visible drop placeholders; spacing is not used to host controls.
-At coincident flush boundaries, Brick/module drops use the Row edge centrally
-and the outer corners for a new Section. Whole-Stack drops retain Section-boundary precedence.
+Row before/after drop zones create Rows; the middle resolves horizontal
+Placement insertion. Each Row's content scrolls inside its indicator host, so
+Row before/after indicators remain visible outside the scrollport. Stock drop
+instructions use the innermost eligible container, and blocked destinations do
+not fall through. Blank Wall below the last Section creates a Section.
 
 Selected means a Brick's edit form is open. Active means DOM focus, including
 keyboard focus. Controls appear on hover, focus, selection, and open menus, with
@@ -89,8 +96,9 @@ lookup/upload controls retain their API/environment wiring.
 App catalog previews use the module's resolved preferred `defaultWidth`, capped
 at the active breakpoint width. Optional per-breakpoint preferred-width overrides
 resolve through `viewFor`. Component/JsonRender comparisons share the resolved
-width and natural content height; wide rows scroll. Preferred widths impose no
-persisted geometry. Map Place retains its 200px CSS minimum height/Mapbox resizing,
+width and natural content height and respect the module's `minWidth`; wide rows
+scroll. Preferred widths impose no persisted geometry. Map Place retains its
+200px CSS minimum height/Mapbox resizing,
 GitHub Activity its calendar scrolling/fades, and Link its wrapping copy column.
 
 ## Persistence and publication

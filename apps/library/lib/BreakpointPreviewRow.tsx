@@ -38,7 +38,7 @@ export function BreakpointPreviewRow(props: {
               data-brick-surface=""
               data-card-style={cardStyle}
               className="brick-hover-target relative shrink-0"
-              style={{ width: previewWidth }}
+              style={{ width: previewWidth, minWidth: view.minWidth }}
             >
               <BrickWrapper
                 className="brick-hover-surface"
@@ -55,7 +55,7 @@ export function BreakpointPreviewRow(props: {
               data-brick-surface=""
               data-card-style={cardStyle}
               className="brick-hover-target relative shrink-0"
-              style={{ width: previewWidth }}
+              style={{ width: previewWidth, minWidth: view.minWidth }}
             >
               <BrickWrapper
                 className="brick-hover-surface"

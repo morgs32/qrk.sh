@@ -69,12 +69,10 @@ export function Grid() {
                 aria-label={`${row.id} page preview`}
               >
                 {isActive ? (
-                  <>
-                    <div className="@container">
-                      <SiteHeader />
-                      {editor.renderWall(row.id)}
-                    </div>
-                  </>
+                  <div className="@container grid min-h-full grid-rows-[auto_1fr]">
+                    <SiteHeader />
+                    {editor.renderWall(row.id)}
+                  </div>
                 ) : null}
               </div>
             </WallBreakpointPane>

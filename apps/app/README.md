@@ -45,28 +45,15 @@ update a local preview and CSS output; **Copy CSS** copies the generated styles.
 The story has no session or backend dependencies. App Storybook defaults to
 port 10020; `PORT` overrides it.
 
-**App / Studio / Pragmatic Tree / Default** uses the same controlled `WallTree`
-components as the saved App editor, with local Sections, Stacks, Rows, and
-Placements. Rows share available width subject to each Placement's minimum and
-scroll horizontally when necessary; Stacks arrange Rows vertically. The fixture
-includes a live button and input, horizontal Placements,
-an empty Row, and an empty Stack. Width and row-height controls affect the
-fixture only. It uses the xl capacity of four Stacks per Section.
-
-Separate grips drag Placements or complete Stacks; live Brick content remains
-interactive. The mock module palette and insertion controls use stable
-before-sibling anchors. Insertion into a Row adds a horizontal cell; a Stack
-boundary adds a Row; Section and Wall targets create the required containers.
-Moves preserve identity and empty source containers. Keyboard Move dialogs,
-announcements, focus restoration, selected-form chrome, and global Brick-delete
-confirmation use the shared presentation callbacks. Story actions mutate local
-fixtures rather than creating a persisted Page or session.
-
-**App / Studio / Pragmatic Tree / Zoomed Out** renders the same controlled
-fixture in the shared browser frame at a fixed 50% scale through
-`react-zoom-pan-pinch`. Zoom and pan gestures remain disabled; drag, insertion,
-Move, and live-content actions remain available. Menus/dialogs portal outside
-the scaled frame. This remains a Storybook study, with no production zoom feature.
+**App / Studio / Wall Editor / Default** mounts the production wall editor and
+Brick form with a real in-memory mock session. It uses `MockInitializer`, the same
+`UserUI` context, queries, and commands as App. Complete resources seed the
+User/Site/Page ownership graph and four breakpoint layouts. Storybook provides
+memory routing and viewport context; it needs no Clerk credentials, API connection,
+or SharedWorker. Add, move, edit and delete use production behavior rather than
+fixture-array mutations. Width selects the active breakpoint; row-height affects
+presentation only. Empty Wall and Zoomed Out scenarios use the same editor.
+Zoom/pan gestures remain disabled in the 50% presentation study.
 
 Module development playgrounds live in the separate Library Storybook. They
 reuse production module forms/renderers and show metadata, local configuration,
@@ -251,18 +238,15 @@ styles. `App` holds the client providers and the React Speed Insights
 integration. The username layout keeps one session initializer mounted across
 App navigation; `UserLayout` gates only data-dependent content.
 
-`UserApp.Initializer` owns construction and descendant error boundaries. Its
-`renderError` displays the session error when
-`session.store.getState().status` is `failed`; live-query failures stop that
-owning session. Separate inner Suspense boundaries contain `UserSessionWork`
-and the route children, letting the initializer commit and start independently
-of a cold lazy route. Background provider work can wait for
-session readiness while the dashboard header remains visible. `UserLayout`
-gates the data-dependent route content. `UserSessionWork` scopes one store
-subscription to the mounted session and displays nonterminal reported
-failures when `failure` changes by reference. Staging, admission and execution
-refusals share that notification path; command-result guards still prevent
-follow-up actions.
+Standalone `Initializer` owns construction and descendant error boundaries.
+Its `{ session, isLoaded }` callback explicitly gates the session-dependent subtree,
+then provides the session with `<UserUI session={session}>`. `UserUI.useSession()`
+is a synchronous context lookup with a missing-provider guard; readiness does not
+use Suspense. Pure declarations, UI context, and connected configuration live in
+separate, consistently named modules. `renderError` displays terminal failures;
+retry is owned by the initializer. `UserSessionWork` scopes background work and
+one nonterminal failure subscription to the ready session. Command-result guards
+still prevent follow-up actions after local refusal.
 
 The root layout mounts the shared `ZerospinDevtoolsLoader` in development with the panel initially closed. Its lifetime spans route navigation and authentication changes; the loader owns cleanup when the application unmounts.
 

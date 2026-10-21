@@ -3,7 +3,7 @@
 import { modulesHash } from "@qrk.sh/library/modulesHash";
 import { makePlacementId } from "@qrk.sh/library/makePlacementId";
 import { brickV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/brick/BrickV1";
-import { UserApp } from "@/zerospin/userSession";
+import { UserUI } from "@/zerospin/UserUI";
 import { pageV3 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV3";
 import { BREAKPOINTS } from "@qrk.sh/library/breakpoints";
 import { BrickCardStyleContext } from "@qrk.sh/library/BrickCardStyleContext";
@@ -44,7 +44,7 @@ export function BrickDetail() {
   const entry = BREAKPOINTS.find((row) => row.id === breakpoint);
   if (entry === undefined) throw new Error(`Unknown breakpoint: ${breakpoint}`);
   const params = useValidatedParams(ParamsSchema);
-  const session = UserApp.useInitializedSession();
+  const session = UserUI.useSession();
   const [editorEpoch, setEditorEpoch] = useState(0);
   const navigationPending = useRef(false);
   useLayoutEffect(() => {

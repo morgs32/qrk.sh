@@ -16,7 +16,7 @@ import { useSiteStore } from "../../../siteStore";
 import { CopyButton } from "./CopyButton";
 import { SearchPreviewCard } from "../SearchPreviewCard";
 
-import { UserApp } from "@/zerospin/userSession";
+import { UserUI } from "@/zerospin/UserUI";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { FieldLabel } from "@/components/ui/field-label";
@@ -76,7 +76,7 @@ export function SiteSettings() {
   const params = useValidatedParams(ParamsSchema);
   const username = useUsername();
   const { getToken } = useAuth();
-  const session = UserApp.useInitializedSession();
+  const session = UserUI.useSession();
   const siteId = params.siteId;
   const { data: site } = useLiveQuery({
     session,

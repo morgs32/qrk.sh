@@ -2,13 +2,10 @@
 
 import { makeApplicationSharedWorker } from "@zerospin/browser/makeApplicationSharedWorker";
 
-import { makeAggregateBrowserDefinition } from "@zerospin/browser";
-import { makeReactApp } from "@zerospin/react";
 import { PublishableKey } from "@zerospin/core/services/PublishableKey";
 import { ZerospinApiUrl } from "@zerospin/core/services/ZerospinApiUrl";
 import { Layer, Redacted } from "effect";
 import { signature } from "@qrk.sh/zerospin/src/signature";
-import { userSessionDefinition } from "./userSessionDefinition";
 import workerUrl from "./node.worker?sharedworker&url";
 
 const apiUrl = process.env.NEXT_PUBLIC_ZEROSPIN_API_URL;
@@ -17,10 +14,10 @@ if (!apiUrl) throw new Error("NEXT_PUBLIC_ZEROSPIN_API_URL is required for the a
 if (!publishableKey)
   throw new Error("NEXT_PUBLIC_ZEROSPIN_PUBLISHABLE_KEY is required for the app.");
 
-export const userBrowserDefinition = makeAggregateBrowserDefinition({
-  sessionDefinition: userSessionDefinition,
+export const userConnection = Object.freeze({
+  sessionType: "aggregate",
   credentialsSchema: signature,
-  sharedWorker: (props) => {
+  sharedWorker: (props: { name: string }) => {
     const { ...workerProps } = props;
     return makeApplicationSharedWorker(workerUrl, workerProps);
   },
@@ -29,5 +26,3 @@ export const userBrowserDefinition = makeAggregateBrowserDefinition({
     Layer.succeed(PublishableKey, Redacted.make(publishableKey)),
   ),
 });
-
-export const UserApp = makeReactApp(userBrowserDefinition);

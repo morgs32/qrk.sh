@@ -22,7 +22,7 @@ import { useZerospinUserInitializedState } from "@/components/ZerospinUser";
 import { Button } from "@/components/ui/button";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
-import { UserApp } from "@/zerospin/userSession";
+import { UserUI } from "@/zerospin/UserUI";
 import { useSiteStore } from "../../../siteStore";
 import { ToolbarButton } from "../../../Toolbars/ToolbarButton";
 import { usePageStore } from "../pageStore";
@@ -46,7 +46,7 @@ export function DrawerHeader(props: {
   const routeId = useMatches({ select: (matches) => matches.at(-1)?.routeId });
   const navigate = useNavigate();
   const { availableWidth, activeBreakpoint, setSelectedBreakpoint } = useWallViewport();
-  const session = UserApp.useInitializedSession();
+  const session = UserUI.useSession();
   const { db } = useZerospinUserInitializedState();
   const siteDraft = useSiteStore((state) => state.site);
   const pageDraft = usePageStore((state) => state.page);

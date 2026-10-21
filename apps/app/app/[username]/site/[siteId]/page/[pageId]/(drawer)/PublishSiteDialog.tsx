@@ -18,11 +18,11 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { UserApp } from "@/zerospin/userSession";
+import { UserUI } from "@/zerospin/UserUI";
 
 export function PublishSiteDialog(props: { siteId: `sit_${string}` }) {
   const { siteId } = props;
-  const session = UserApp.useInitializedSession();
+  const session = UserUI.useSession();
   const [open, setOpen] = useState(false);
   const [selectedPageIds, setSelectedPageIds] = useState<Array<`pag_${string}`>>([]);
   const { data: pages } = useLiveQuery({

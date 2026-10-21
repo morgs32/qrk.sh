@@ -4,9 +4,9 @@ import { layoutRegistryComponents } from "../../lib/jsonRender/layoutRegistryCom
 import { figmaCardView } from "../FigmaCard";
 import { figmaThumbnailBandView } from "../FigmaThumbnailBand";
 import { figmaMediaFooterView } from "../FigmaMediaFooter";
-import { figmaThumbnailV2 } from "@qrk.sh/zerospin/src/modules/figmaThumbnail/figmaThumbnailV2";
+import { figmaThumbnailV1 } from "@qrk.sh/zerospin/src/modules/figmaThumbnail/figmaThumbnailV1";
 
-export const { registry } = defineRegistry(figmaThumbnailV2.catalog, {
+export const { registry } = defineRegistry(figmaThumbnailV1.catalog, {
   components: {
     ...layoutRegistryComponents,
     FigmaCard: figmaCardView.RegistryComponent,

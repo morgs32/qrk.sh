@@ -13,27 +13,15 @@ const stateRefSchema = makeZodSchema({
   $state: primitives.text(),
 });
 
-const semVerPattern =
-  /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/;
-
-function assertSemVer(version: string) {
-  if (!semVerPattern.test(version)) {
-    throw new Error(`makeModuleVersion: version must be SemVer; got ${JSON.stringify(version)}`);
-  }
-}
-
 function makeCatalogFromComponents(
   components: Record<string, ReturnType<typeof defineComponent>>,
 ): Catalog {
-  for (const [key, component] of Object.entries(components)) {
+  const catalogComponents = mapValues(components, (component, key) => {
     if (key !== component.type) {
       throw new Error(
         `makeModuleVersion: components key ${JSON.stringify(key)} must equal type ${JSON.stringify(component.type)}`,
       );
     }
-  }
-
-  const catalogComponents = mapValues(components, (component) => {
     const dynamicProps = makeZodSchema({}).extend(
       mapValues(component.props, (descriptor) => {
         const dynamicField = descriptorToZod(descriptor).or(stateRefSchema);
@@ -66,7 +54,7 @@ function makeCatalogFromComponents(
 export function makeModuleVersion<
   const MODULE extends string,
   const ABBREVIATION extends string,
-  const VERSION extends string,
+  const VERSION extends number,
   const STATE_SHAPE extends IShape,
 >(
   identity: Readonly<{
@@ -94,7 +82,9 @@ export function makeModuleVersion<
     hasPlaceholder = false,
   } = props;
   const { id, abbreviation, label, description, maxPerPage } = defineModule(identity);
-  assertSemVer(version);
+  if (!Number.isSafeInteger(version) || version < 1) {
+    throw new Error("makeModuleVersion: version must be a positive safe integer");
+  }
 
   const catalog = makeCatalogFromComponents(components);
   const defaultState = decodeDefaultData(stateShape, suppliedDefaultState);

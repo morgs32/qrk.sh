@@ -11,7 +11,7 @@ import { Link } from "@tanstack/react-router";
 
 import { ModuleFilmstrip } from "../../../../../../../modules/lib/ModuleFilmstrip";
 import { useWallViewport } from "../../../../../../../modules/lib/WallViewportProvider";
-import { pageV3 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV3";
+import { pageV1 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
 import { Schema } from "effect";
 
 import { useValidatedParams } from "@/hooks/useValidatedParams";

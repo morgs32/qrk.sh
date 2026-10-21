@@ -29,18 +29,13 @@
       { "name": "LINK_BACKEND", "class_name": "LinkBackend" },
     ],
   },
-  "migrations": [
-    {
-      // Local bootstrap: BackendRepo replaces GitHubBackend.
-      "tag": "v1",
-      "new_classes": ["BrowserHost", "StreamlineBackend"],
-      "new_sqlite_classes": ["BackendRepo", "FigmaBackend", "GooglePlacesBackend", "LinkBackend"],
-    },
-    {
-      "tag": "v2",
-      "deleted_classes": ["StreamlineBackend"],
-    },
-  ],
+  "exports": {
+    "BrowserHost": { "type": "durable-object", "storage": "sqlite" },
+    "BackendRepo": { "type": "durable-object", "storage": "sqlite" },
+    "FigmaBackend": { "type": "durable-object", "storage": "sqlite" },
+    "GooglePlacesBackend": { "type": "durable-object", "storage": "sqlite" },
+    "LinkBackend": { "type": "durable-object", "storage": "sqlite" },
+  },
   "env": {
     "production": {
       "name": "qrk-api",
@@ -65,19 +60,13 @@
           { "name": "LINK_BACKEND", "class_name": "LinkBackend" },
         ],
       },
-      "migrations": [
-        {
-          // Fresh production namespaces use SQLite; local migration history stays above.
-          "tag": "v1",
-          "new_sqlite_classes": [
-            "BrowserHost",
-            "BackendRepo",
-            "FigmaBackend",
-            "GooglePlacesBackend",
-            "LinkBackend",
-          ],
-        },
-      ],
+      "exports": {
+        "BrowserHost": { "type": "durable-object", "storage": "sqlite" },
+        "BackendRepo": { "type": "durable-object", "storage": "sqlite" },
+        "FigmaBackend": { "type": "durable-object", "storage": "sqlite" },
+        "GooglePlacesBackend": { "type": "durable-object", "storage": "sqlite" },
+        "LinkBackend": { "type": "durable-object", "storage": "sqlite" },
+      },
     },
   },
 }

@@ -11,12 +11,12 @@ import { useLayoutEffect, useId, useRef, useState } from "react";
 
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
-import { linkV2 } from "@qrk.sh/zerospin/src/modules/link/linkV2";
+import { linkV1 } from "@qrk.sh/zerospin/src/modules/link/linkV1";
 
 export function LinkForm(props: {
-  state: IInferDecodedRow<typeof linkV2.stateShape> | null;
+  state: IInferDecodedRow<typeof linkV1.stateShape> | null;
   onSave: (
-    state: IInferDecodedRow<typeof linkV2.stateShape>,
+    state: IInferDecodedRow<typeof linkV1.stateShape>,
   ) => IResult<unknown, { message: string }>;
   onCancel: () => void;
 }) {
@@ -42,10 +42,7 @@ export function LinkForm(props: {
     (normalizedUrl !== state?.payload.url || state?.data === null || saveError !== undefined);
   const hasMalformedUrl = url.trim().length > 0 && normalizedUrl === undefined;
   const hasError = hasMalformedUrl || saveError !== undefined;
-  const describedBy = [
-    feedbackId,
-    saveError !== undefined ? saveErrorId : undefined,
-  ]
+  const describedBy = [feedbackId, saveError !== undefined ? saveErrorId : undefined]
     .filter((id): id is string => id !== undefined)
     .join(" ");
 
@@ -75,8 +72,8 @@ export function LinkForm(props: {
             const nextState = Schema.decodeUnknownSync(
               Schema.toType(
                 makeEffectSchema({
-                  ...linkV2.stateShape,
-                  data: { ...linkV2.stateShape.data, nullable: false },
+                  ...linkV1.stateShape,
+                  data: { ...linkV1.stateShape.data, nullable: false },
                 }),
               ),
             )(
@@ -94,7 +91,11 @@ export function LinkForm(props: {
             !submission.signal.aborted &&
             !(error instanceof DOMException && error.name === "AbortError")
           ) {
-            setSaveError(error instanceof Error ? error.message : "Unable to fetch this link preview; try again.");
+            setSaveError(
+              error instanceof Error
+                ? error.message
+                : "Unable to fetch this link preview; try again.",
+            );
           }
         } finally {
           if (activeSubmission.current === submission) {

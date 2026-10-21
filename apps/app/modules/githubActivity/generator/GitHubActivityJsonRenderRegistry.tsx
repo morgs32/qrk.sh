@@ -6,9 +6,9 @@ import type { ReactNode } from "react";
 import { BrickShell } from "../../components/brick/BrickShell";
 import { layoutRegistryComponents } from "../../lib/jsonRender/layoutRegistryComponents";
 import { activityCalendarView } from "../ActivityCalendar";
-import { githubActivityV2 } from "@qrk.sh/zerospin/src/modules/githubActivity/githubActivityV2";
+import { githubActivityV1 } from "@qrk.sh/zerospin/src/modules/githubActivity/githubActivityV1";
 
-export const { registry } = defineRegistry(githubActivityV2.catalog, {
+export const { registry } = defineRegistry(githubActivityV1.catalog, {
   components: {
     ...layoutRegistryComponents,
     BrickShell: (props: { children?: ReactNode }) => {

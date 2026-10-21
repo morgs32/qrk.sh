@@ -13,7 +13,7 @@ import { useWallViewport } from "../../../../../../modules/lib/WallViewportProvi
 import { brickV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/brick/BrickV1";
 import { placementV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/placement/PlacementV1";
 import { stackV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/stack/StackV1";
-import { pageV3 } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV3";
+import { pageV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
 import { WallEditorContext } from "./WallEditorContext";
 import { UserUI } from "@/zerospin/UserUI";
 import { BrickWrapper } from "../../../../../../modules/components/brick/BrickWrapper";
@@ -24,7 +24,7 @@ export function WallEditorProvider(props: { children: ReactNode }) {
   const { children } = props;
   const cardStyle = useContext(BrickCardStyleContext);
   const params = useParams({ from: "/$username/site/$siteId/page/$pageId" });
-  const pageId = Schema.decodeUnknownSync(makeIdSchema(pageV3))(params.pageId);
+  const pageId = Schema.decodeUnknownSync(makeIdSchema(pageV1))(params.pageId);
   const search = useSearch({ from: "/$username/site/$siteId/page/$pageId" });
   const navigate = useNavigate();
   const session = UserUI.useSession();
@@ -134,7 +134,7 @@ export function WallEditorProvider(props: { children: ReactNode }) {
                               return {
                                 id: placement.id,
                                 brickId: brick?.id ?? "",
-                                minWidth: module?.viewFor(breakpoint).minWidth ?? 160,
+                                minWidth: module?.variants[placement.variantId].minWidth ?? 160,
                                 content:
                                   Component === undefined ||
                                   brick === null ||
@@ -150,11 +150,11 @@ export function WallEditorProvider(props: { children: ReactNode }) {
                                       <BrickWrapper className="brick-hover-surface h-auto w-full min-w-0">
                                         <Component
                                           state={brick.state}
-                                          breakpoint={breakpoint}
+                                          variantId={placement.variantId}
                                           spec={
                                             isNonEmptySpec(placement.spec)
                                               ? placement.spec
-                                              : module.defaultSpec
+                                              : module.variants[placement.variantId].spec
                                           }
                                         />
                                       </BrickWrapper>

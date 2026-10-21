@@ -11,7 +11,7 @@ import { modulesHash } from "../../../../../../../../../../modules/lib/modulesHa
 import { brickV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/brick/BrickV1";
 import { makeEffectSchema } from "@zerospin/shapes";
 import { Result, Schema } from "effect";
-import { pageV3 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV3";
+import { pageV1 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
 import { BREAKPOINTS } from "../../../../../../../../../../modules/lib/breakpoints";
 import { BrickCardStyleContext } from "../../../../../../../../../../modules/lib/BrickCardStyleContext";
 
@@ -81,7 +81,7 @@ function ModuleRouteBody(props: { brickModule: (typeof modulesHash)[keyof typeof
       </div>
       <div className="mt-8 flex flex-col gap-10">
         {BREAKPOINTS.map((entry) => {
-          const view = brickModule.viewFor(entry.id);
+          const view = brickModule.variants.default;
           const Component = view.component;
           const previewWidth = Math.min(view.defaultWidth, entry.previewWidth);
           return (
@@ -120,7 +120,7 @@ function ModuleRouteBody(props: { brickModule: (typeof modulesHash)[keyof typeof
                         data-testid="json-render-preview"
                       >
                         <JsonRender
-                          breakpoint={entry.id}
+                          variantId="default"
                           state={brickModule.defaultState}
                           spec={view.spec}
                         />

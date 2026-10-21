@@ -11,12 +11,12 @@ import { useLayoutEffect, useId, useRef, useState } from "react";
 
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
-import { githubRepoV2 } from "@qrk.sh/zerospin/src/modules/githubRepo/githubRepoV2";
+import { githubRepoV1 } from "@qrk.sh/zerospin/src/modules/githubRepo/githubRepoV1";
 
 export function GitHubRepoForm(props: {
-  state: IInferDecodedRow<typeof githubRepoV2.stateShape> | null;
+  state: IInferDecodedRow<typeof githubRepoV1.stateShape> | null;
   onSave: (
-    state: IInferDecodedRow<typeof githubRepoV2.stateShape>,
+    state: IInferDecodedRow<typeof githubRepoV1.stateShape>,
   ) => IResult<unknown, { message: string }>;
   onCancel: () => void;
 }) {
@@ -66,8 +66,8 @@ export function GitHubRepoForm(props: {
             const nextState = Schema.decodeUnknownSync(
               Schema.toType(
                 makeEffectSchema({
-                  ...githubRepoV2.stateShape,
-                  data: { ...githubRepoV2.stateShape.data, nullable: false },
+                  ...githubRepoV1.stateShape,
+                  data: { ...githubRepoV1.stateShape.data, nullable: false },
                 }),
               ),
             )(
@@ -85,7 +85,11 @@ export function GitHubRepoForm(props: {
             !submission.signal.aborted &&
             !(error instanceof DOMException && error.name === "AbortError")
           ) {
-            setSaveError(error instanceof Error ? error.message : "Unable to fetch this GitHub repository; try again.");
+            setSaveError(
+              error instanceof Error
+                ? error.message
+                : "Unable to fetch this GitHub repository; try again.",
+            );
           }
         } finally {
           if (activeSubmission.current === submission) {

@@ -1,6 +1,6 @@
 import { makeModuleView } from "../make/makeModuleView";
 import { registry } from "./generator/GitHubProfileJsonRenderRegistry";
-import { githubProfileV2 } from "@qrk.sh/zerospin/src/modules/githubProfile/githubProfileV2";
+import { githubProfileV1 } from "@qrk.sh/zerospin/src/modules/githubProfile/githubProfileV1";
 import { GitHubProfileForm } from "./GitHubProfileForm";
 import { BrickBody } from "../components/brick/BrickBody";
 import { BrickFooter } from "../components/brick/BrickFooter";
@@ -17,42 +17,44 @@ import { publicReposView } from "./GitHubProfile/components/PublicRepos";
 import { GitHubProfilePlaceholder } from "./GitHubProfilePlaceholder";
 import { GitHubProfileLineIcon } from "./GitHubProfileLineIcon";
 
-export const githubProfileView = makeModuleView(githubProfileV2, {
+export const githubProfileView = makeModuleView(githubProfileV1, {
   LineIcon: GitHubProfileLineIcon,
   form: GitHubProfileForm,
-  default: {
-    defaultWidth: 360,
-    minWidth: 320,
-    placeholder() {
-      return <GitHubProfilePlaceholder />;
+  variants: {
+    default: {
+      defaultWidth: 360,
+      minWidth: 320,
+      defaultHeight: 360,
+      placeholder() {
+        return <GitHubProfilePlaceholder />;
+      },
+      component(props) {
+        const { state } = props;
+        if (state.data === null) return <p role="status">This brick has no saved content.</p>;
+        return (
+          <BrickShell className="bg-white">
+            <BrickBody>
+              <Column gap={2}>
+                <avatarAndUsernameView.Component
+                  avatar_url={state.data.avatar_url}
+                  login={state.data.login}
+                />
+                <bioView.Component bio={state.data.bio} />
+                <locationView.Component location={state.data.location} />
+                <blogView.Component blog={state.data.blog} />
+              </Column>
+            </BrickBody>
+            <BrickFooter>
+              <Row className="w-full" gap={2} justifyContent="flex-end">
+                <followersView.Component followers={state.data.followers} />
+                <followingView.Component following={state.data.following} />
+                <publicReposView.Component public_repos={state.data.public_repos} />
+              </Row>
+            </BrickFooter>
+          </BrickShell>
+        );
+      },
+      generator: { registry, defaultSpec: githubProfileV1.defaultSpec },
     },
-    component(props) {
-      const { state } = props;
-      if (state.data === null)
-        return <p role="status">This brick has no saved content.</p>;
-      return (
-        <BrickShell className="bg-white">
-          <BrickBody>
-            <Column gap={2}>
-              <avatarAndUsernameView.Component
-                avatar_url={state.data.avatar_url}
-                login={state.data.login}
-              />
-              <bioView.Component bio={state.data.bio} />
-              <locationView.Component location={state.data.location} />
-              <blogView.Component blog={state.data.blog} />
-            </Column>
-          </BrickBody>
-          <BrickFooter>
-            <Row className="w-full" gap={2} justifyContent="flex-end">
-              <followersView.Component followers={state.data.followers} />
-              <followingView.Component following={state.data.following} />
-              <publicReposView.Component public_repos={state.data.public_repos} />
-            </Row>
-          </BrickFooter>
-        </BrickShell>
-      );
-    },
-    generator: { registry, defaultSpec: githubProfileV2.defaultSpec },
   },
 });

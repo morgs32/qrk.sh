@@ -1,4 +1,5 @@
 import { brick as brickIdentity } from "../../models/brick/brick";
+
 import {
   modelId,
   ContractError,
@@ -7,21 +8,44 @@ import {
   findFirst,
   findMany,
 } from "@zerospin/sdk/browser";
+
 import { Effect } from "effect";
+
 import { userClaims } from "../../../../claims";
-import { pageV3 as page } from "../../models/page/PageV3";
-import { siteV3 as site } from "../../models/site/SiteV3";
+
+import { pageV1 as page } from "../../models/page/PageV1";
+
+import { siteV1 as site } from "../../models/site/SiteV1";
+
 import { userV1 as user } from "../../models/user/UserV1";
+
 import { wallV1 as wall } from "../../models/wall/WallV1";
+
 import { sectionV1 as section } from "../../models/section/SectionV1";
+
 import { stackV1 as stack } from "../../models/stack/StackV1";
+
 import { rowV1 as row } from "../../models/row/RowV1";
+
 import { brickV1 as brick } from "../../models/brick/BrickV1";
+
 import { placementV1 as placement } from "../../models/placement/PlacementV1";
+
 import { cleanupWall } from "./utils/cleanupWall";
-export const deleteBrick = makeAggregateContractVersion(defineAggregateContract("deleteBrick"), {
-  version: "1.0.0",
-  models: { page, site, user, wall, section, stack, row, brick, placement },
+
+export const deleteBrickV1 = makeAggregateContractVersion(defineAggregateContract("deleteBrick"), {
+  version: 1,
+  models: {
+    page,
+    site,
+    user,
+    wall,
+    section,
+    stack,
+    row,
+    brick,
+    placement,
+  },
   claims: userClaims,
   operations: {
     deleteBrick: brick.operations.delete,
@@ -38,7 +62,11 @@ export const deleteBrick = makeAggregateContractVersion(defineAggregateContract(
   failures: { invalidLayout: ContractError.schema({ code: "delete-brick-invalid-layout" }) },
   program: Effect.fn("deleteBrick.program")(function* (props) {
     const { db, payload, operations, failures, claims } = props;
-    const content = yield* findFirst({ db, model: db.models.brick, where: { id: { eq: payload.brickId } } });
+    const content = yield* findFirst({
+      db,
+      model: db.models.brick,
+      where: { id: { eq: payload.brickId } },
+    });
     if (content === undefined)
       return yield* failures.invalidLayout.make({
         message: "The Brick no longer exists",

@@ -1,13 +1,13 @@
 import { Schema } from "effect";
-import { pageV3 } from "../models/page/PageV3";
+import { pageV1 } from "../models/page/PageV1";
 import { brickV1 } from "../models/brick/BrickV1";
 import { placementV1 } from "../models/placement/PlacementV1";
 import { wallV1 } from "../models/wall/WallV1";
 
 export const PageSnapshotSchema = Schema.Struct({
-  slug: Schema.toType(pageV3.attributesSchema.fields.slug),
-  title: Schema.toType(pageV3.attributesSchema.fields.title),
-  description: Schema.toType(pageV3.attributesSchema.fields.description),
+  slug: Schema.toType(pageV1.attributesSchema.fields.slug),
+  title: Schema.toType(pageV1.attributesSchema.fields.title),
+  description: Schema.toType(pageV1.attributesSchema.fields.description),
   bricks: Schema.Array(
     Schema.Struct({
       id: Schema.String,
@@ -33,6 +33,7 @@ export const PageSnapshotSchema = Schema.Struct({
                     Schema.Struct({
                       id: Schema.String,
                       brickId: Schema.String,
+                      variantId: Schema.toType(placementV1.attributesSchema.fields.variantId),
                       spec: Schema.toType(placementV1.attributesSchema.fields.spec),
                     }),
                   ),

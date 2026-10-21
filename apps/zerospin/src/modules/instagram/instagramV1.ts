@@ -1,5 +1,7 @@
 import { defaultSpec } from "./generator/defaultSpec";
+
 import { makeEffectSchema, primitives } from "@zerospin/shapes";
+
 import { Schema } from "effect";
 
 import {
@@ -9,10 +11,15 @@ import {
   columnComponent,
   rowComponent,
 } from "../lib/jsonRender/layoutComponents";
+
 import { makeModuleVersion } from "../make/makeModuleVersion";
+
 import { instagramCardComponent } from "./generator/InstagramCardComponent";
+
 import { instagramMediaFooterComponent } from "./generator/InstagramMediaFooterComponent";
+
 import { instagramPostGridComponent } from "./generator/InstagramPostGridComponent";
+
 import { instagram } from "./instagram";
 
 const payloadShape = {
@@ -43,7 +50,7 @@ const defaultData = {
 };
 
 export const instagramV1 = makeModuleVersion(instagram, {
-  version: "1.0.0",
+  version: 1,
   defaultSpec,
   hasPlaceholder: true,
   components: {
@@ -59,19 +66,9 @@ export const instagramV1 = makeModuleVersion(instagram, {
   stateShape: {
     payload: primitives.json({ schema: makeEffectSchema(payloadShape) }),
     data: primitives.json({ nullable: true, schema: makeEffectSchema(dataShape) }),
-    resolution: primitives.json({
-      schema: Schema.Struct({
-        requestId: Schema.String,
-        status: Schema.Literals(["resolving", "ready", "failed"]),
-        error: Schema.NullOr(
-          Schema.Struct({ code: Schema.String, message: Schema.String, retryable: Schema.Boolean }),
-        ),
-      }),
-    }),
   },
   defaultState: {
     payload: { url: "https://www.instagram.com/theonion" },
     data: defaultData,
-    resolution: { requestId: "", status: "ready", error: null },
   },
 });

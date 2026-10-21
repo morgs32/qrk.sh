@@ -1,9 +1,11 @@
 import { modelRef, makeModelVersion, primitives } from "@zerospin/sdk/browser";
+
 import { wall } from "../wall/wall";
+
 import { section } from "./section";
 
 export const sectionV1 = makeModelVersion(section, {
-  version: "1.0.0",
+  version: 1,
   attributes: {
     wallId: modelRef({ model: wall, relation: "wall", inverse: "sections" }),
     position: primitives.integer(),

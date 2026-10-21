@@ -4,7 +4,7 @@ import { modulesHash } from "../../../../../../../modules/lib/modulesHash";
 import { makePlacementId } from "@qrk.sh/zerospin/src/modules/lib/makePlacementId";
 import { brickV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/brick/BrickV1";
 import { UserUI } from "@/zerospin/UserUI";
-import { pageV3 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV3";
+import { pageV1 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
 import { BREAKPOINTS } from "../../../../../../../modules/lib/breakpoints";
 import { BrickCardStyleContext } from "../../../../../../../modules/lib/BrickCardStyleContext";
 import { useWallViewport } from "../../../../../../../modules/lib/WallViewportProvider";
@@ -92,6 +92,7 @@ export function BrickDetail() {
   const brickRow = brickQuery.data;
   const placement = placementQuery.data;
   const brick = brickRow !== undefined ? modulesHash[brickRow.moduleId] : undefined;
+  const view = placement === undefined ? undefined : brick?.variants[placement.variantId];
   const BrickComponent = brick?.component;
   const Form = brick?.Form;
   const formState = brickRow?.state === undefined ? brick?.defaultState : brickRow.state;
@@ -104,7 +105,7 @@ export function BrickDetail() {
   const spec =
     isNonEmptySpec(rawSpec) ||
     (brickRow?.state === null &&
-      brick?.placeholder !== undefined &&
+      view?.placeholder !== undefined &&
       Schema.is(
         Schema.Struct({
           root: Schema.String,
@@ -121,6 +122,7 @@ export function BrickDetail() {
         !BrickComponent ||
         brickRow === undefined ||
         placement === undefined ||
+        view === undefined ||
         spec === undefined ? (
           <div className="px-6 pt-6" data-testid="brick-not-found">
             <h1 className="mb-2 mt-8 text-4xl tracking-tight">Brick not found</h1>
@@ -162,15 +164,19 @@ export function BrickDetail() {
                   data-card-style={cardStyle}
                   className="brick-hover-target relative shrink-0"
                   style={{
-                    width: Math.min(brick.viewFor(breakpoint).defaultWidth, entry.previewWidth),
-                    minWidth: brick.viewFor(breakpoint).minWidth,
+                    width: Math.min(view.defaultWidth, entry.previewWidth),
+                    minWidth: view.minWidth,
                   }}
                 >
                   <BrickWrapper
                     className="brick-hover-surface"
                     data-testid="selected-brick-preview"
                   >
-                    <BrickComponent breakpoint={breakpoint} state={brickRow.state} spec={spec} />
+                    <BrickComponent
+                      variantId={placement.variantId}
+                      state={brickRow.state}
+                      spec={spec}
+                    />
                   </BrickWrapper>
                 </div>
               </div>

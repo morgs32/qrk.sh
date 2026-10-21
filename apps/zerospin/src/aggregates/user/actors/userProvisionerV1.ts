@@ -25,7 +25,7 @@ const db = makeQueryDbVersion({ models: { user: userV1 } });
 export const userProvisionerV1 = makeAggregateActorVersion(
   defineAggregateActor({ name: "provisioner" }),
   {
-    version: "1.0.0",
+    version: 1,
     identity,
     db,
     exposedModels: { user: userV1 },

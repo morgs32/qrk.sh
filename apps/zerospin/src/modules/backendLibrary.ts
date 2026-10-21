@@ -1,25 +1,25 @@
 import { makeBackendLibrary } from "./make/makeBackendLibrary";
-import { figmaThumbnailV2 } from "./figmaThumbnail/figmaThumbnailV2";
-import { githubActivityV2 } from "./githubActivity/githubActivityV2";
-import { githubProfileV2 } from "./githubProfile/githubProfileV2";
-import { githubRepoV2 } from "./githubRepo/githubRepoV2";
+import { figmaThumbnailV1 } from "./figmaThumbnail/figmaThumbnailV1";
+import { githubActivityV1 } from "./githubActivity/githubActivityV1";
+import { githubProfileV1 } from "./githubProfile/githubProfileV1";
+import { githubRepoV1 } from "./githubRepo/githubRepoV1";
 import { imageV1 } from "./image/imageV1";
-import { instagramV2 } from "./instagram/instagramV2";
-import { linkV2 } from "./link/linkV2";
-import { mapPlaceV2 } from "./mapPlace/mapPlaceV2";
+import { instagramV1 } from "./instagram/instagramV1";
+import { linkV1 } from "./link/linkV1";
+import { mapPlaceV1 } from "./mapPlace/mapPlaceV1";
 import { swatchAndIconV1 } from "./swatchAndIcon/swatchAndIconV1";
 import { articleV1 } from "./article/articleV1";
 
 export const backendLibrary = makeBackendLibrary({
   "swatch-and-icon": swatchAndIconV1,
-  "github-activity": githubActivityV2,
-  "github-profile": githubProfileV2,
-  "github-repo": githubRepoV2,
-  "figma-thumbnail": figmaThumbnailV2,
+  "github-activity": githubActivityV1,
+  "github-profile": githubProfileV1,
+  "github-repo": githubRepoV1,
+  "figma-thumbnail": figmaThumbnailV1,
   image: imageV1,
-  instagram: instagramV2,
-  link: linkV2,
-  "map-place": mapPlaceV2,
+  instagram: instagramV1,
+  link: linkV1,
+  "map-place": mapPlaceV1,
   article: articleV1,
 });
 

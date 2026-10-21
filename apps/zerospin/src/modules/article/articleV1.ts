@@ -1,4 +1,5 @@
 import { defaultSpec } from "./generator/defaultSpec";
+
 import { primitives } from "@zerospin/shapes";
 
 import {
@@ -8,8 +9,11 @@ import {
   columnComponent,
   rowComponent,
 } from "../lib/jsonRender/layoutComponents";
+
 import { makeModuleVersion } from "../make/makeModuleVersion";
+
 import { articleBrickComponent } from "./generator/ArticleBrickComponent";
+
 import { article } from "./article";
 
 const dataShape = {
@@ -22,7 +26,7 @@ const dataShape = {
 };
 
 export const articleV1 = makeModuleVersion(article, {
-  version: "1.0.0",
+  version: 1,
   defaultSpec,
   hasPlaceholder: true,
   components: {

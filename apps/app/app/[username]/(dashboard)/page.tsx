@@ -11,8 +11,8 @@ import { toast } from "sonner";
 import { useLiveQuery } from "@zerospin/react";
 import { Check, X } from "lucide-react";
 
-import { siteV2 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV2";
-import { pageV2 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV2";
+import { siteV1 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV1";
+import { pageV1 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -248,7 +248,9 @@ export default function UsernameDashboardPage() {
                       <Button
                         type="submit"
                         disabled={
-                          siteName.trim() === "" || siteDescription.trim() === "" || slugError !== null
+                          siteName.trim() === "" ||
+                          siteDescription.trim() === "" ||
+                          slugError !== null
                         }
                       >
                         Create site

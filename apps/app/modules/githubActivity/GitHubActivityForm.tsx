@@ -11,12 +11,12 @@ import { useLayoutEffect, useId, useRef, useState } from "react";
 
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
-import { githubActivityV2 } from "@qrk.sh/zerospin/src/modules/githubActivity/githubActivityV2";
+import { githubActivityV1 } from "@qrk.sh/zerospin/src/modules/githubActivity/githubActivityV1";
 
 export function GitHubActivityForm(props: {
-  state: IInferDecodedRow<typeof githubActivityV2.stateShape> | null;
+  state: IInferDecodedRow<typeof githubActivityV1.stateShape> | null;
   onSave: (
-    state: IInferDecodedRow<typeof githubActivityV2.stateShape>,
+    state: IInferDecodedRow<typeof githubActivityV1.stateShape>,
   ) => IResult<unknown, { message: string }>;
   onCancel: () => void;
 }) {
@@ -72,8 +72,8 @@ export function GitHubActivityForm(props: {
             const nextState = Schema.decodeUnknownSync(
               Schema.toType(
                 makeEffectSchema({
-                  ...githubActivityV2.stateShape,
-                  data: { ...githubActivityV2.stateShape.data, nullable: false },
+                  ...githubActivityV1.stateShape,
+                  data: { ...githubActivityV1.stateShape.data, nullable: false },
                 }),
               ),
             )(
@@ -81,11 +81,13 @@ export function GitHubActivityForm(props: {
               { onExcessProperty: "ignore" },
             );
             if (
-              nextState.data.contributions.some((day) =>
-                !Number.isFinite(Date.parse(day.date)) ||
-                new Date(day.date).toISOString().slice(0, 10) !== day.date
+              nextState.data.contributions.some(
+                (day) =>
+                  !Number.isFinite(Date.parse(day.date)) ||
+                  new Date(day.date).toISOString().slice(0, 10) !== day.date,
               )
-            ) throw new Error("Invalid contribution date");
+            )
+              throw new Error("Invalid contribution date");
             const result = onSave(nextState);
             if (result._tag === "Failure") setSaveError(result.failure.message);
             else setProfile(null);
@@ -97,7 +99,11 @@ export function GitHubActivityForm(props: {
             !submission.signal.aborted &&
             !(error instanceof DOMException && error.name === "AbortError")
           ) {
-            setSaveError(error instanceof Error ? error.message : "Unable to fetch this GitHub activity; try again.");
+            setSaveError(
+              error instanceof Error
+                ? error.message
+                : "Unable to fetch this GitHub activity; try again.",
+            );
           }
         } finally {
           if (activeSubmission.current === submission) {

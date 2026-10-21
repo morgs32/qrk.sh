@@ -1,20 +1,30 @@
 import { site as siteIdentity } from "../../models/site/site";
+
 import {
   modelId,
   ContractError,
   findFirst,
   makeAggregateContractVersion,
 } from "@zerospin/sdk/browser";
+
 import { Effect } from "effect";
-import { siteV2 as Site } from "../../models/site/SiteV2";
+
+import { siteV1 as Site } from "../../models/site/SiteV1";
+
 import { userV1 as User } from "../../models/user/UserV1";
+
 import { unpublishSite } from "./unpublishSite";
 
 export const unpublishSiteV1 = makeAggregateContractVersion(unpublishSite, {
-  version: "1.0.0",
+  version: 1,
   payload: { siteId: modelId({ model: siteIdentity }) },
-  models: { site: Site, user: User },
-  operations: { updateSite: Site.operations.update },
+  models: {
+    site: Site,
+    user: User,
+  },
+  operations: {
+    updateSite: Site.operations.update,
+  },
   failures: {
     unpublishSiteUserMismatch: ContractError.schema({ code: "unpublish-site-user-mismatch" }),
     unpublishSiteNotFound: ContractError.schema({ code: "unpublish-site-not-found" }),
@@ -28,7 +38,11 @@ export const unpublishSiteV1 = makeAggregateContractVersion(unpublishSite, {
         status: 403,
       });
     }
-    const site = yield* findFirst({ db, model: db.models.site, where: { id: { eq: payload.siteId } } });
+    const site = yield* findFirst({
+      db,
+      model: db.models.site,
+      where: { id: { eq: payload.siteId } },
+    });
     if (site === undefined) {
       return yield* failures.unpublishSiteNotFound.make({
         message: `Site ${payload.siteId} was not found`,

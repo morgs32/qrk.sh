@@ -4,12 +4,6 @@ import { primitives } from "@zerospin/shapes";
 import { Schema } from "effect";
 import type { VisibilityCondition } from "@json-render/core";
 
-const placementSpecSchema = Schema.Struct({
-  root: Schema.String,
-  elements: Schema.Record(Schema.String, Schema.Unknown),
-  state: Schema.optional(Schema.Record(Schema.String, Schema.Unknown)),
-});
-
 const comparisonFields = {
   eq: Schema.optionalKey(Schema.Unknown),
   neq: Schema.optionalKey(Schema.Unknown),
@@ -32,7 +26,7 @@ const visibilityConditionSchema: Schema.Codec<VisibilityCondition> = Schema.susp
     Schema.Struct({ $and: Schema.mutable(Schema.Array(visibilityConditionSchema)) }),
     Schema.Struct({ $or: Schema.mutable(Schema.Array(visibilityConditionSchema)) }),
   ]),
-).annotate({ identifier: "PlacementSpecVisibilityConditionV2" });
+).annotate({ identifier: "PlacementSpecVisibilityConditionV1" });
 const actionInvocationFields = {
   action: Schema.String,
   params: Schema.optionalKey(Schema.Record(Schema.String, Schema.Unknown)),
@@ -68,8 +62,8 @@ const actionBindingsSchema = Schema.Record(
   Schema.Union([actionBindingSchema, Schema.mutable(Schema.Array(actionBindingSchema))]),
 );
 
-/** V2 validates stored Spec structure; V1 remains unchanged for retained history. */
-export const placementSpecSchemaV2 = Schema.Struct({
+/** Validate the stored Spec structure for the current placement model. */
+export const placementSpecSchema = Schema.Struct({
   root: Schema.NonEmptyString,
   elements: Schema.Record(
     Schema.String,
@@ -113,6 +107,7 @@ export function makePlacementModel(props: {
       }),
       rowId: modelRef({ model: row, relation: "row", inverse: "placements" }),
       position: primitives.integer(),
+      variantId: primitives.enum({ values: ["default"] }),
       specRevision: primitives.integer({ defaultValue: 0 }),
       generation: primitives.json({
         nullable: true,
@@ -135,6 +130,6 @@ export function makePlacementModel(props: {
       spec: primitives.json({ schema: placementSpecSchema }),
     },
     indexes: [{ name: "row_position", columns: ["rowId", "position"] }],
-    version: "1.0.0",
+    version: 1,
   });
 }

@@ -11,12 +11,12 @@ import { useLayoutEffect, useId, useRef, useState } from "react";
 
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
-import { instagramV2 } from "@qrk.sh/zerospin/src/modules/instagram/instagramV2";
+import { instagramV1 } from "@qrk.sh/zerospin/src/modules/instagram/instagramV1";
 
 export function InstagramForm(props: {
-  state: IInferDecodedRow<typeof instagramV2.stateShape> | null;
+  state: IInferDecodedRow<typeof instagramV1.stateShape> | null;
   onSave: (
-    state: IInferDecodedRow<typeof instagramV2.stateShape>,
+    state: IInferDecodedRow<typeof instagramV1.stateShape>,
   ) => IResult<unknown, { message: string }>;
   onCancel: () => void;
 }) {
@@ -71,8 +71,8 @@ export function InstagramForm(props: {
             const nextState = Schema.decodeUnknownSync(
               Schema.toType(
                 makeEffectSchema({
-                  ...instagramV2.stateShape,
-                  data: { ...instagramV2.stateShape.data, nullable: false },
+                  ...instagramV1.stateShape,
+                  data: { ...instagramV1.stateShape.data, nullable: false },
                 }),
               ),
             )(
@@ -90,7 +90,11 @@ export function InstagramForm(props: {
             !submission.signal.aborted &&
             !(error instanceof DOMException && error.name === "AbortError")
           ) {
-            setSaveError(error instanceof Error ? error.message : "Unable to fetch this Instagram profile; try again.");
+            setSaveError(
+              error instanceof Error
+                ? error.message
+                : "Unable to fetch this Instagram profile; try again.",
+            );
           }
         } finally {
           if (activeSubmission.current === submission) {

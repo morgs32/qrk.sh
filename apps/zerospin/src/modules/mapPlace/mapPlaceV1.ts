@@ -1,5 +1,7 @@
 import { defaultSpec } from "./generator/defaultSpec";
+
 import { Schema } from "effect";
+
 import { makeEffectSchema, primitives } from "@zerospin/shapes";
 
 import {
@@ -9,8 +11,11 @@ import {
   columnComponent,
   rowComponent,
 } from "../lib/jsonRender/layoutComponents";
+
 import { makeModuleVersion } from "../make/makeModuleVersion";
+
 import { mapCanvasComponent } from "./generator/MapCanvasComponent";
+
 import { mapPlace } from "./mapPlace";
 
 const payloadShape = {
@@ -36,7 +41,7 @@ const defaultData = {
 };
 
 export const mapPlaceV1 = makeModuleVersion(mapPlace, {
-  version: "1.0.0",
+  version: 1,
   defaultSpec,
   hasPlaceholder: true,
   components: {
@@ -50,19 +55,9 @@ export const mapPlaceV1 = makeModuleVersion(mapPlace, {
   stateShape: {
     payload: primitives.json({ schema: makeEffectSchema(payloadShape) }),
     data: primitives.json({ nullable: true, schema: makeEffectSchema(dataShape) }),
-    resolution: primitives.json({
-      schema: Schema.Struct({
-        requestId: Schema.String,
-        status: Schema.Literals(["resolving", "ready", "failed"]),
-        error: Schema.NullOr(
-          Schema.Struct({ code: Schema.String, message: Schema.String, retryable: Schema.Boolean }),
-        ),
-      }),
-    }),
   },
   defaultState: {
     payload: { googlePlaceId: "ChIJ7cv00DwsDogRAMDACa2m4K8" },
     data: defaultData,
-    resolution: { requestId: "", status: "ready", error: null },
   },
 });

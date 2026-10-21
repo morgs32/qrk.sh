@@ -17,10 +17,10 @@ export const provisionAuthenticatedUser = Effect.fn("provisionAuthenticatedUser"
   function* (props: {
     chain: Pick<AggregateChain, "executeAggregateCommand">;
     aggregateId: string;
-    aggregateVersion?: "3.0.0" | "4.0.0" | "5.0.0";
+    aggregateVersion?: 1;
     claims: typeof userClaims.Type;
   }) {
-    const { chain, aggregateId, aggregateVersion = "3.0.0", claims } = props;
+    const { chain, aggregateId, aggregateVersion = 1, claims } = props;
     yield* Effect.gen(function* () {
       const original = yield* makeCommand({
         contract: createUserV1,
@@ -38,7 +38,7 @@ export const provisionAuthenticatedUser = Effect.fn("provisionAuthenticatedUser"
           aggregateName: "user",
           aggregateVersion,
           aggregateId,
-          origin: { kind: "actor", actorName: "provisioner", actorVersion: "1.0.0", claims },
+          origin: { kind: "actor", actorName: "provisioner", actorVersion: 1, claims },
           nodeId: null,
           sessionName: null,
           pushIndex: null,

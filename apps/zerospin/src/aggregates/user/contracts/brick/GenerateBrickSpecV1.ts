@@ -1,28 +1,52 @@
 import { brick as brickIdentity } from "../../models/brick/brick";
+
 import { modelId } from "@zerospin/sdk/browser";
+
 import { backendLibrary as library } from "../../../../modules/backendLibrary";
+
 import { brickV1 as brick } from "../../models/brick/BrickV1";
+
 import { placementV1 as placement } from "../../models/placement/PlacementV1";
+
 import { rowV1 as row } from "../../models/row/RowV1";
+
 import { stackV1 as stack } from "../../models/stack/StackV1";
+
 import { sectionV1 as section } from "../../models/section/SectionV1";
+
 import { wallV1 as wall } from "../../models/wall/WallV1";
+
 import { defineAggregateContract } from "@zerospin/core/contracts/defineAggregateContract";
+
 import { findFirst } from "@zerospin/core/contracts/findFirst";
+
 import { makeAggregateContractVersion } from "@zerospin/core/contracts/make/makeAggregateContractVersion";
+
 import { ContractError } from "@zerospin/error";
+
 import { primitives } from "@zerospin/shapes";
+
 import { Effect, Schema } from "effect";
 
 import { makeModuleSpecDocumentSchema } from "../../../../modules/make/makeModuleSpecDocumentSchema";
+
 import { makePlacementId } from "../../../../modules/lib/makePlacementId";
 
-export const generateBrickSpec = makeAggregateContractVersion(
+export const generateBrickSpecV1 = makeAggregateContractVersion(
   defineAggregateContract("generateBrickSpec"),
   {
-    version: "1.0.0",
-    models: { brick, placement, row, stack, section, wall },
-    operations: { updatePlacement: placement.operations.update },
+    version: 1,
+    models: {
+      brick,
+      placement,
+      row,
+      stack,
+      section,
+      wall,
+    },
+    operations: {
+      updatePlacement: placement.operations.update,
+    },
     payload: {
       brickId: modelId({ model: brickIdentity }),
       breakpoint: wall.attributes.breakpoint,
@@ -69,15 +93,27 @@ export const generateBrickSpec = makeAggregateContractVersion(
       const stackEntry =
         rowEntry === undefined
           ? undefined
-          : yield* findFirst({ db, model: db.models.stack, where: { id: { eq: rowEntry.stackId } } });
+          : yield* findFirst({
+              db,
+              model: db.models.stack,
+              where: { id: { eq: rowEntry.stackId } },
+            });
       const sectionEntry =
         stackEntry === undefined
           ? undefined
-          : yield* findFirst({ db, model: db.models.section, where: { id: { eq: stackEntry.sectionId } } });
+          : yield* findFirst({
+              db,
+              model: db.models.section,
+              where: { id: { eq: stackEntry.sectionId } },
+            });
       const wallEntry =
         sectionEntry === undefined
           ? undefined
-          : yield* findFirst({ db, model: db.models.wall, where: { id: { eq: sectionEntry.wallId } } });
+          : yield* findFirst({
+              db,
+              model: db.models.wall,
+              where: { id: { eq: sectionEntry.wallId } },
+            });
       if (wallEntry?.breakpoint !== payload.breakpoint || wallEntry.pageId !== brickRow.pageId)
         return yield* failures.unavailable.make({
           message: "The placement is not in this Page's breakpoint Wall",
@@ -99,12 +135,22 @@ export const generateBrickSpec = makeAggregateContractVersion(
     }),
   },
 );
-export const completeBrickSpecGeneration = makeAggregateContractVersion(
+
+export const completeBrickSpecGenerationV1 = makeAggregateContractVersion(
   defineAggregateContract("completeBrickSpecGeneration"),
   {
-    version: "1.0.0",
-    models: { brick, placement, row, stack, section, wall },
-    operations: { updatePlacement: placement.operations.update },
+    version: 1,
+    models: {
+      brick,
+      placement,
+      row,
+      stack,
+      section,
+      wall,
+    },
+    operations: {
+      updatePlacement: placement.operations.update,
+    },
     payload: {
       brickId: modelId({ model: brickIdentity }),
       breakpoint: wall.attributes.breakpoint,
@@ -163,10 +209,7 @@ export const completeBrickSpecGeneration = makeAggregateContractVersion(
       const decoded = Schema.decodeUnknownResult(
         makeModuleSpecDocumentSchema(library[brickRow.moduleId].components),
       )(payload.outcome.spec);
-      if (
-        decoded._tag === "Failure" ||
-        !Object.hasOwn(decoded.success.elements, decoded.success.root)
-      ) {
+      if (decoded._tag === "Failure") {
         yield* operations.updatePlacement({
           resourceId: placementRow.id,
           attributes: {

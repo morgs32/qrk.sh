@@ -4,7 +4,7 @@ import { Effect } from "effect";
 import { sectionV1 as section } from "../../../models/section/SectionV1";
 import { stackV1 as stack } from "../../../models/stack/StackV1";
 import { rowV1 as row } from "../../../models/row/RowV1";
-import type { placementV2 as placement } from "../../../models/placement/PlacementV2";
+import type { placementV1 as placement } from "../../../models/placement/PlacementV1";
 
 /** Normalize the command's post-edit hierarchy; database reads still describe its pre-edit state. */
 export const cleanupWall = Effect.fn("cleanupWall")(function* (props: {

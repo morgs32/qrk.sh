@@ -1,5 +1,7 @@
 import { page as pageIdentity } from "../../models/page/page";
+
 import { site as siteIdentity } from "../../models/site/site";
+
 import * as sdk from "@zerospin/sdk/browser";
 
 import {
@@ -9,18 +11,26 @@ import {
   primitives,
   ContractError,
 } from "@zerospin/sdk/browser";
+
 import { Effect } from "effect";
-import { pageV3 as Page } from "../../models/page/PageV3";
-import { siteV3 as Site } from "../../models/site/SiteV3";
+
+import { pageV1 as Page } from "../../models/page/PageV1";
+
+import { siteV1 as Site } from "../../models/site/SiteV1";
+
 import { userV1 as User } from "../../models/user/UserV1";
 
 import { createPage } from "./createPage";
+
 import { userClaims } from "../../../../claims";
+
 import { wallV1 as Wall } from "../../models/wall/WallV1";
+
 import { sectionV1 as Section } from "../../models/section/SectionV1";
+
 import { stackV1 as Stack } from "../../models/stack/StackV1";
 
-export const createPageV3 = makeAggregateContractVersion(createPage, {
+export const createPageV1 = makeAggregateContractVersion(createPage, {
   claims: userClaims,
   operations: {
     createWall: Wall.operations.create,
@@ -41,7 +51,7 @@ export const createPageV3 = makeAggregateContractVersion(createPage, {
     createPageIndexTaken: ContractError.schema({ code: "create-page-index-taken" }),
   },
   models: { site: Site, user: User, page: Page, wall: Wall, section: Section, stack: Stack },
-  guard: Effect.fn("createPageV3.guard")(function* (props) {
+  guard: Effect.fn("createPageV1.guard")(function* (props) {
     const { failures, claims, db, payload } = props;
     const clerkUserId = claims?.clerkUserId;
     if (typeof clerkUserId !== "string") {
@@ -87,7 +97,7 @@ export const createPageV3 = makeAggregateContractVersion(createPage, {
       }
     }
   }),
-  program: Effect.fn("createPageV3")(function* (props) {
+  program: Effect.fn("createPageV1")(function* (props) {
     const { operations, payload } = props;
     const { id, siteId, slug, title, description } = payload;
     yield* operations.createPage({
@@ -117,5 +127,5 @@ export const createPageV3 = makeAggregateContractVersion(createPage, {
       });
     }
   }),
-  version: "3.0.0",
+  version: 1,
 });

@@ -1,4 +1,5 @@
 import { modelRef, makeModelVersion, primitives } from "@zerospin/sdk/browser";
+
 import { user as User } from "../user/user";
 
 import { site } from "./site";
@@ -34,7 +35,10 @@ export const siteV1 = makeModelVersion(site, {
       nullable: true,
       defaultValue: null,
     }),
+    isPublished: primitives.boolean({ defaultValue: false }),
+    stickyNavbar: primitives.boolean({ defaultValue: true }),
+    cardStyle: primitives.boolean({ defaultValue: false }),
   },
   indexes: [],
-  version: "1.0.0",
+  version: 1,
 });

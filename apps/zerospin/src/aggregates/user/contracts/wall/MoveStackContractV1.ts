@@ -1,4 +1,5 @@
 import { stack as stackIdentity } from "../../models/stack/stack";
+
 import {
   modelId,
   ContractError,
@@ -9,18 +10,31 @@ import {
   prefixId,
   primitives,
 } from "@zerospin/sdk/browser";
+
 import { Effect, Schema } from "effect";
+
 import { userClaims } from "../../../../claims";
-import { pageV3 as page } from "../../models/page/PageV3";
-import { siteV3 as site } from "../../models/site/SiteV3";
+
+import { pageV1 as page } from "../../models/page/PageV1";
+
+import { siteV1 as site } from "../../models/site/SiteV1";
+
 import { userV1 as user } from "../../models/user/UserV1";
+
 import { wallV1 as wall } from "../../models/wall/WallV1";
+
 import { sectionV1 as section } from "../../models/section/SectionV1";
+
 import { stackV1 as stack } from "../../models/stack/StackV1";
+
 import { rowV1 as row } from "../../models/row/RowV1";
+
 import { brickV1 as brick } from "../../models/brick/BrickV1";
+
 import { placementV1 as placement } from "../../models/placement/PlacementV1";
+
 import { cleanupWall } from "./utils/cleanupWall";
+
 const targetSchema = Schema.Union([
   Schema.Struct({
     kind: Schema.Literal("section"),
@@ -34,9 +48,20 @@ const targetSchema = Schema.Union([
     beforeSectionId: Schema.NullOr(Schema.String),
   }),
 ]);
-export const moveStack = makeAggregateContractVersion(defineAggregateContract("moveStack"), {
-  version: "1.0.0",
-  models: { page, site, user, wall, section, stack, row, brick, placement },
+
+export const moveStackV1 = makeAggregateContractVersion(defineAggregateContract("moveStack"), {
+  version: 1,
+  models: {
+    page,
+    site,
+    user,
+    wall,
+    section,
+    stack,
+    row,
+    brick,
+    placement,
+  },
   claims: userClaims,
   operations: {
     createSection: section.operations.create,
@@ -57,12 +82,24 @@ export const moveStack = makeAggregateContractVersion(defineAggregateContract("m
   program: Effect.fn("moveStack.program")(function* (props) {
     const { db, payload, operations, failures, claims } = props;
     const { target } = payload;
-    const moving = yield* findFirst({ db, model: db.models.stack, where: { id: { eq: payload.stackId } } });
+    const moving = yield* findFirst({
+      db,
+      model: db.models.stack,
+      where: { id: { eq: payload.stackId } },
+    });
     const sourceSection =
       moving === undefined
         ? undefined
-        : yield* findFirst({ db, model: db.models.section, where: { id: { eq: moving.sectionId } } });
-    const wallRow = yield* findFirst({ db, model: db.models.wall, where: { id: { eq: target.wallId } } });
+        : yield* findFirst({
+            db,
+            model: db.models.section,
+            where: { id: { eq: moving.sectionId } },
+          });
+    const wallRow = yield* findFirst({
+      db,
+      model: db.models.wall,
+      where: { id: { eq: target.wallId } },
+    });
     if (
       moving === undefined ||
       sourceSection === undefined ||

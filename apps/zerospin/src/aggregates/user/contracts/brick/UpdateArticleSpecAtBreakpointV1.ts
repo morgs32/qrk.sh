@@ -1,25 +1,42 @@
 import { brick as brickIdentity } from "../../models/brick/brick";
+
 import { modelId } from "@zerospin/sdk/browser";
+
 import { backendLibrary } from "../../../../modules/backendLibrary";
+
 import { makeModuleSpecDocumentSchema } from "../../../../modules/make/makeModuleSpecDocumentSchema";
+
 import { makePlacementId } from "../../../../modules/lib/makePlacementId";
+
 import { findFirst } from "@zerospin/core/contracts/findFirst";
+
 import { primitives } from "@zerospin/shapes";
+
 import { defineAggregateContract } from "@zerospin/core/contracts/defineAggregateContract";
+
 import { makeAggregateContractVersion } from "@zerospin/core/contracts/make/makeAggregateContractVersion";
+
 import { ZerospinError } from "@zerospin/error";
+
 import { Effect } from "effect";
+
 import { brickV1 as brick } from "../../models/brick/BrickV1";
+
 import { placementV1 as placement } from "../../models/placement/PlacementV1";
 
 const SpecDocumentSchema = makeModuleSpecDocumentSchema(backendLibrary["article"].components);
 
-export const updateArticleSpecAtBreakpoint = makeAggregateContractVersion(
+export const updateArticleSpecAtBreakpointV1 = makeAggregateContractVersion(
   defineAggregateContract("updateArticleSpecAtBreakpoint"),
   {
-    version: "1.0.0",
-    operations: { updatePlacement: placement.operations.update },
-    models: { brick, placement },
+    version: 1,
+    operations: {
+      updatePlacement: placement.operations.update,
+    },
+    models: {
+      brick,
+      placement,
+    },
     payload: {
       brickId: modelId({ model: brickIdentity }),
       breakpoint: primitives.enum({ values: ["sm", "md", "lg", "xl"] }),

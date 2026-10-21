@@ -1,7 +1,10 @@
-import { modelRef, makeModelVersion, primitives } from "@zerospin/sdk/browser";
+import { modelRef, makeModelVersion, primitives, modelId } from "@zerospin/sdk/browser";
+
 import { site as Site } from "../site/site";
 
 import { page } from "./page";
+
+import { pageSnapshot } from "../pageSnapshot/pageSnapshot";
 
 export const pageV1 = makeModelVersion(page, {
   attributes: {
@@ -19,7 +22,12 @@ export const pageV1 = makeModelVersion(page, {
       nullable: true,
       defaultValue: null,
     }),
+    isPublished: primitives.boolean({ defaultValue: false }),
+    publishedSnapshotId: modelId({
+      model: pageSnapshot,
+      nullable: true,
+    }),
   },
   indexes: [],
-  version: "1.0.0",
+  version: 1,
 });

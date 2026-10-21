@@ -1,21 +1,37 @@
 import { brick as brickIdentity } from "../../models/brick/brick";
-import { backendLibraryV1 as library } from "../../../../modules/backendLibraryV1";
+
+import { backendLibrary as library } from "../../../../modules/backendLibrary";
+
 import { brickV1 as brick } from "../../models/brick/BrickV1";
+
 import { placementV1 as placement } from "../../models/placement/PlacementV1";
+
 import { rowV1 as row } from "../../models/row/RowV1";
+
 import { stackV1 as stack } from "../../models/stack/StackV1";
+
 import { sectionV1 as section } from "../../models/section/SectionV1";
+
 import { wallV1 as wall } from "../../models/wall/WallV1";
-import { ContractError } from "@zerospin/error";
+
+import { ContractError, mapParseError } from "@zerospin/error";
+
 import { findFirst } from "@zerospin/core/contracts/findFirst";
-import { modelId, makeAggregateContractVersion, defineAggregateContract } from "@zerospin/sdk/browser";
-import { mapParseError } from "@zerospin/error";
+
+import {
+  modelId,
+  makeAggregateContractVersion,
+  defineAggregateContract,
+} from "@zerospin/sdk/browser";
+
 import { makeEffectSchema, primitives } from "@zerospin/shapes";
+
 import { Effect, Schema } from "effect";
 
 import { makePlacementId } from "../../../../modules/lib/makePlacementId";
 
 const breakpoints: Array<"sm" | "md" | "lg" | "xl"> = ["sm", "md", "lg", "xl"];
+
 const updateBrickPayload = {
   brickId: modelId({
     model: brickIdentity,
@@ -24,7 +40,7 @@ const updateBrickPayload = {
   state: primitives.json({ schema: Schema.Unknown }),
 };
 
-export const updateBrick = makeAggregateContractVersion(defineAggregateContract("updateBrick"), {
+export const updateBrickV1 = makeAggregateContractVersion(defineAggregateContract("updateBrick"), {
   operations: {
     updateBrick: brick.operations.update,
     updatePlacement: placement.operations.update,
@@ -39,7 +55,6 @@ export const updateBrick = makeAggregateContractVersion(defineAggregateContract(
       code: "update-brick-placement-mismatch",
     }),
   },
-
   payload: updateBrickPayload,
   models: {
     brick,
@@ -49,7 +64,7 @@ export const updateBrick = makeAggregateContractVersion(defineAggregateContract(
     section,
     wall,
   },
-  version: "1.0.0",
+  version: 1,
   guard: Effect.fn("updateBrick.guard")(function* (props) {
     const { failures, db, payload } = props;
     const brickRow = yield* findFirst({
@@ -104,15 +119,27 @@ export const updateBrick = makeAggregateContractVersion(defineAggregateContract(
       const stackEntry =
         rowEntry === undefined
           ? undefined
-          : yield* findFirst({ db, model: db.models.stack, where: { id: { eq: rowEntry.stackId } } });
+          : yield* findFirst({
+              db,
+              model: db.models.stack,
+              where: { id: { eq: rowEntry.stackId } },
+            });
       const sectionEntry =
         stackEntry === undefined
           ? undefined
-          : yield* findFirst({ db, model: db.models.section, where: { id: { eq: stackEntry.sectionId } } });
+          : yield* findFirst({
+              db,
+              model: db.models.section,
+              where: { id: { eq: stackEntry.sectionId } },
+            });
       const wallEntry =
         sectionEntry === undefined
           ? undefined
-          : yield* findFirst({ db, model: db.models.wall, where: { id: { eq: sectionEntry.wallId } } });
+          : yield* findFirst({
+              db,
+              model: db.models.wall,
+              where: { id: { eq: sectionEntry.wallId } },
+            });
       if (
         placementRow.brickId !== payload.brickId ||
         wallEntry?.breakpoint !== breakpoint ||

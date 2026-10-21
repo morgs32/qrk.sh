@@ -1,4 +1,5 @@
 import { placement as placementIdentity } from "../../models/placement/placement";
+
 import {
   modelId,
   ContractError,
@@ -9,18 +10,31 @@ import {
   prefixId,
   primitives,
 } from "@zerospin/sdk/browser";
+
 import { Effect, Schema } from "effect";
+
 import { userClaims } from "../../../../claims";
-import { pageV3 as page } from "../../models/page/PageV3";
-import { siteV3 as site } from "../../models/site/SiteV3";
+
+import { pageV1 as page } from "../../models/page/PageV1";
+
+import { siteV1 as site } from "../../models/site/SiteV1";
+
 import { userV1 as user } from "../../models/user/UserV1";
+
 import { wallV1 as wall } from "../../models/wall/WallV1";
+
 import { sectionV1 as section } from "../../models/section/SectionV1";
+
 import { stackV1 as stack } from "../../models/stack/StackV1";
+
 import { rowV1 as row } from "../../models/row/RowV1";
+
 import { brickV1 as brick } from "../../models/brick/BrickV1";
+
 import { placementV1 as placement } from "../../models/placement/PlacementV1";
+
 import { cleanupWall } from "./utils/cleanupWall";
+
 const targetSchema = Schema.Union([
   Schema.Struct({
     kind: Schema.Literal("row"),
@@ -45,11 +59,22 @@ const targetSchema = Schema.Union([
     beforeSectionId: Schema.NullOr(Schema.String),
   }),
 ]);
-export const movePlacement = makeAggregateContractVersion(
+
+export const movePlacementV1 = makeAggregateContractVersion(
   defineAggregateContract("movePlacement"),
   {
-    version: "1.0.0",
-    models: { page, site, user, wall, section, stack, row, brick, placement },
+    version: 1,
+    models: {
+      page,
+      site,
+      user,
+      wall,
+      section,
+      stack,
+      row,
+      brick,
+      placement,
+    },
     claims: userClaims,
     operations: {
       createSection: section.operations.create,
@@ -88,7 +113,11 @@ export const movePlacement = makeAggregateContractVersion(
           status: 404,
         });
       const pageId = content.pageId;
-      const pageRow = yield* findFirst({ db, model: db.models.page, where: { id: { eq: pageId } } });
+      const pageRow = yield* findFirst({
+        db,
+        model: db.models.page,
+        where: { id: { eq: pageId } },
+      });
       const siteRow =
         pageRow === undefined || pageRow.siteId === null
           ? undefined
@@ -102,7 +131,11 @@ export const movePlacement = makeAggregateContractVersion(
           message: "This Page is unavailable",
           status: 403,
         });
-      const wallRow = yield* findFirst({ db, model: db.models.wall, where: { id: { eq: target.wallId } } });
+      const wallRow = yield* findFirst({
+        db,
+        model: db.models.wall,
+        where: { id: { eq: target.wallId } },
+      });
       if (wallRow === undefined || wallRow.pageId !== pageId)
         return yield* failures.invalidLayout.make({
           message: "Placements can only move within their Wall",

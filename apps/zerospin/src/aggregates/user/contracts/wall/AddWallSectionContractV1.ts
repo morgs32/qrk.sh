@@ -1,5 +1,7 @@
 import { wall as wallIdentity } from "../../models/wall/wall";
+
 import { section as sectionIdentity } from "../../models/section/section";
+
 import {
   modelId,
   ContractError,
@@ -10,22 +12,44 @@ import {
   prefixId,
   primitives,
 } from "@zerospin/sdk/browser";
+
 import { Effect } from "effect";
+
 import { userClaims } from "../../../../claims";
-import { pageV3 as page } from "../../models/page/PageV3";
-import { siteV3 as site } from "../../models/site/SiteV3";
+
+import { pageV1 as page } from "../../models/page/PageV1";
+
+import { siteV1 as site } from "../../models/site/SiteV1";
+
 import { userV1 as user } from "../../models/user/UserV1";
+
 import { wallV1 as wall } from "../../models/wall/WallV1";
+
 import { sectionV1 as section } from "../../models/section/SectionV1";
+
 import { stackV1 as stack } from "../../models/stack/StackV1";
+
 import { rowV1 as row } from "../../models/row/RowV1";
+
 import { brickV1 as brick } from "../../models/brick/BrickV1";
+
 import { placementV1 as placement } from "../../models/placement/PlacementV1";
-export const addWallSection = makeAggregateContractVersion(
+
+export const addWallSectionV1 = makeAggregateContractVersion(
   defineAggregateContract("addWallSection"),
   {
-    version: "1.0.0",
-    models: { page, site, user, wall, section, stack, row, brick, placement },
+    version: 1,
+    models: {
+      page,
+      site,
+      user,
+      wall,
+      section,
+      stack,
+      row,
+      brick,
+      placement,
+    },
     claims: userClaims,
     operations: {
       createSection: section.operations.create,
@@ -40,14 +64,22 @@ export const addWallSection = makeAggregateContractVersion(
     failures: { invalidLayout: ContractError.schema({ code: "add-wall-section-invalid-layout" }) },
     program: Effect.fn("addWallSection.program")(function* (props) {
       const { db, payload, operations, failures, claims } = props;
-      const wallRow = yield* findFirst({ db, model: db.models.wall, where: { id: { eq: payload.wallId } } });
+      const wallRow = yield* findFirst({
+        db,
+        model: db.models.wall,
+        where: { id: { eq: payload.wallId } },
+      });
       if (wallRow === undefined)
         return yield* failures.invalidLayout.make({
           message: "This Wall no longer exists",
           status: 404,
         });
       const pageId = wallRow.pageId;
-      const pageRow = yield* findFirst({ db, model: db.models.page, where: { id: { eq: pageId } } });
+      const pageRow = yield* findFirst({
+        db,
+        model: db.models.page,
+        where: { id: { eq: pageId } },
+      });
       const siteRow =
         pageRow === undefined || pageRow.siteId === null
           ? undefined

@@ -78,11 +78,10 @@ their extensionless ESM imports. Referenced `/assets/` public files retain
 explicit legacy mappings.
 
 App resolves the SharedWorker and browser SQLite WASM from installed
-`23.0.0` package exports. `userSessionDefinition` is shared by
+`24.0.1` package exports. `userSessionDefinition` is shared by
 `Initializer` and the authored `node.worker.ts` entrypoint.
-It owns the complete V5 declaration with explicit canonical model and public
-contract imports. V3 and V4 each have a separate complete session-definition file;
-the worker imports every definition from its defining module.
+It owns the complete revision `1` declaration with explicit canonical model and
+public contract imports. The worker imports that single defining module.
 `makeApplicationSharedWorker` binds that emitted worker artifact to the session.
 The host imports `node.worker.ts` through Vite's `?sharedworker&url` query;
 the worker imports `@zerospin/browser/sqlite.wasm?url`. Vite emits both assets
@@ -346,7 +345,7 @@ reduced motion skips the slide. The active frame body renders the site navbar an
 Stacks, Rows, and placed Bricks through the shared controlled components. Only
 the active pane registers drag targets and interactions. Placement cells use the
 Wall's logical breakpoint and fill their Row cell; catalog `defaultWidth` is
-not applied to placed content. Cells respect the module's `minWidth`: 320px for
+not applied to placed content. Cells respect the selected variant's `minWidth`: 320px for
 every module except Swatch and Icon at 160px, at every breakpoint. Each Row
 scrolls horizontally when its minimums exceed the available width, preserving
 neighboring Stack widths and saved arrangement.
@@ -402,9 +401,13 @@ failures show their actual errors without a premature server-success message.
 Public website rendering and history browsing/restoration are deferred.
 
 The production modules catalog keeps `modules/lib/ModuleFilmstrip.tsx`. Each module column scrolls vertically beneath its full-width
-sticky heading. Catalogs show the authored Component at its resolved module
+sticky heading. Catalogs show the default variant's authored Component at its
 `defaultWidth`, capped at the active canonical breakpoint width, with content
-supplying its height and `minWidth` providing its minimum width.
+supplying its height and `minWidth` providing its minimum width. All ten modules
+declare one flat `default` variant. Variant `defaultHeight` uses
+`45 | 90 | 180 | 360 | 720 | null`, with Article alone using `null`. The shared
+height floor is 45px; optional `minHeight` is reserved for higher floors and is
+omitted by every current variant. Heights remain metadata only in this phase.
 App supplies typed Router links to its
 `/modules/$moduleId` detail routes. The catalog lives at `/modules` under the
 page editor, with a **Bricks** breadcrumb and **Bricks** toolbar action.
@@ -416,12 +419,12 @@ Closing, leaving the chooser, or changing breakpoint cancels insertion without a
 saved reservation. The previous catalog URLs remain retired without redirects.
 
 Module details show **Component** and **JsonRender** side by side for all four
-breakpoints. Each pair uses the module's resolved `defaultWidth`, capped at 360,
+breakpoints. Each pair uses the default variant's `defaultWidth`, capped at 360,
 720, 1080, and 1440px respectively. Each preview has content height; wide rows
 scroll horizontally. Saved-brick fallback previews use the same width rule and
-content height. Widths come from the module's required default view declaration
-and optional breakpoint overrides; browser frames retain their canonical widths.
-All preview surfaces also respect the module's breakpoint-independent `minWidth`.
+content height. Widths come directly from the selected variant, without
+breakpoint overrides; browser frames retain their canonical widths.
+All preview surfaces also respect the variant's `minWidth`.
 No preview renders a grid-item comparison, intrinsic probe, or
 pixel/grid-unit sizing diagnostic. App Storybook hosts the developer Generate spec
 controls, which affect only its JsonRender previews.
@@ -517,7 +520,11 @@ Each Page owns four Walls, one per `sm`/`md`/`lg`/`xl` breakpoint. The normal
 `createPage` command creates each Wall with one Section and an empty Stack.
 Sections contain ordered Stacks, Stacks contain vertical Rows, and Rows contain
 ordered horizontal Placements. Shared content lives once on Page-owned Brick;
-each Brick has a deterministic Placement at every breakpoint. Wall and Brick
+each Brick has a deterministic Placement at every breakpoint. Each Placement
+persists its own required `variantId`, currently `"default"`, alongside its spec;
+published snapshots retain it. The field uses the fresh development baseline
+without a missing-field fallback. No storage reset is part of this source change.
+Wall and Brick
 reference the final App Page directly. Canonical declarations/commands live in
 QRK's user aggregate; no second persisted Library host or declaration-binding
 factory exists.

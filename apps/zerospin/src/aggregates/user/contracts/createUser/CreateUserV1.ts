@@ -1,8 +1,11 @@
 import { user as userIdentity } from "../../models/user/user";
 
 import { modelId, makeAggregateContractVersion, primitives } from "@zerospin/sdk/browser";
+
 import { AggregateError } from "@zerospin/error";
+
 import { Effect } from "effect";
+
 import { userV1 as User } from "../../models/user/UserV1";
 
 import { createUser } from "./createUser";
@@ -36,5 +39,5 @@ export const createUserV1 = makeAggregateContractVersion(createUser, {
       });
     });
   },
-  version: "1.0.0",
+  version: 1,
 });

@@ -1,10 +1,17 @@
 import { site as siteIdentity } from "../../models/site/site";
+
 import { wallV1 as Wall } from "../../models/wall/WallV1";
+
 import { sectionV1 as Section } from "../../models/section/SectionV1";
+
 import { stackV1 as Stack } from "../../models/stack/StackV1";
+
 import { rowV1 as Row } from "../../models/row/RowV1";
+
 import { brickV1 as Brick } from "../../models/brick/BrickV1";
+
 import { placementV1 as Placement } from "../../models/placement/PlacementV1";
+
 import {
   modelId,
   ContractError,
@@ -13,17 +20,25 @@ import {
   makeAggregateContractVersion,
   primitives,
 } from "@zerospin/sdk/browser";
+
 import { makeAbbreviationIdSchema } from "@zerospin/shapes";
+
 import { Effect, Schema } from "effect";
-import { pageV3 as Page } from "../../models/page/PageV3";
-import { pageSnapshotV2 as PageSnapshot } from "../../models/pageSnapshot/PageSnapshotV2";
-import { siteV3 as Site } from "../../models/site/SiteV3";
+
+import { pageV1 as Page } from "../../models/page/PageV1";
+
+import { pageSnapshotV1 as PageSnapshot } from "../../models/pageSnapshot/PageSnapshotV1";
+
+import { siteV1 as Site } from "../../models/site/SiteV1";
+
 import { userV1 as User } from "../../models/user/UserV1";
+
 import { makePageSnapshot } from "../../snapshots/makePageSnapshot";
+
 import { publishSite } from "./publishSite";
 
-export const publishSiteV2 = makeAggregateContractVersion(publishSite, {
-  version: "2.0.0",
+export const publishSiteV1 = makeAggregateContractVersion(publishSite, {
+  version: 1,
   payload: {
     siteId: modelId({ model: siteIdentity }),
     pages: primitives.json({
@@ -67,7 +82,11 @@ export const publishSiteV2 = makeAggregateContractVersion(publishSite, {
         status: 403,
       });
     }
-    const site = yield* findFirst({ db, model: db.models.site, where: { id: { eq: payload.siteId } } });
+    const site = yield* findFirst({
+      db,
+      model: db.models.site,
+      where: { id: { eq: payload.siteId } },
+    });
     if (site === undefined) {
       return yield* failures.publishSiteNotFound.make({
         message: `Site ${payload.siteId} was not found`,
@@ -99,7 +118,11 @@ export const publishSiteV2 = makeAggregateContractVersion(publishSite, {
         status: 400,
       });
     }
-    const sitePages = yield* findMany({ db, model: db.models.page, where: { siteId: { eq: site.id } } });
+    const sitePages = yield* findMany({
+      db,
+      model: db.models.page,
+      where: { siteId: { eq: site.id } },
+    });
     for (const selection of payload.pages) {
       const page = sitePages.find((page) => page.id === selection.pageId);
       if (page === undefined) {
@@ -133,8 +156,16 @@ export const publishSiteV2 = makeAggregateContractVersion(publishSite, {
         yield* operations.updatePage({ resourceId: page.id, attributes: { isPublished: false } });
         continue;
       }
-      const bricks = yield* findMany({ db, model: db.models.brick, where: { pageId: { eq: page.id } } });
-      const walls = yield* findMany({ db, model: db.models.wall, where: { pageId: { eq: page.id } } });
+      const bricks = yield* findMany({
+        db,
+        model: db.models.brick,
+        where: { pageId: { eq: page.id } },
+      });
+      const walls = yield* findMany({
+        db,
+        model: db.models.wall,
+        where: { pageId: { eq: page.id } },
+      });
       const sections = yield* findMany({
         db,
         model: db.models.section,

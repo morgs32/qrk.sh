@@ -8,9 +8,9 @@ import { repoDescriptionView } from "../GitHubRepo/components/RepoDescription";
 import { repoStarsView } from "../GitHubRepo/components/RepoStars";
 import { repoForksView } from "../GitHubRepo/components/RepoForks";
 import { repoLanguageView } from "../GitHubRepo/components/RepoLanguage";
-import { githubRepoV2 } from "@qrk.sh/zerospin/src/modules/githubRepo/githubRepoV2";
+import { githubRepoV1 } from "@qrk.sh/zerospin/src/modules/githubRepo/githubRepoV1";
 
-export const { registry } = defineRegistry(githubRepoV2.catalog, {
+export const { registry } = defineRegistry(githubRepoV1.catalog, {
   components: {
     ...layoutRegistryComponents,
     BrickShell: (props: { children?: ReactNode }) => {

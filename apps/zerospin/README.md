@@ -23,7 +23,7 @@ other three applications (App, Web, and API). Module playgrounds run in App Stor
 Its `dev` script invokes Portless, which runs the CLI command in `dev:app`;
 package metadata retains its hostname and port.
 
-QRK installs the CLI and runtime packages at `23.0.0` from the populated local
+QRK installs the CLI and runtime packages at `24.0.1` from the populated local
 registry described in the [root README](../../README.md#zerospin-packages).
 Shared module definitions live in `src/modules/`; App and API compile their source
 directly. Backend development does not rebuild installed Zerospin files.
@@ -96,23 +96,23 @@ initialization step fails. Do not reset or seed production storage to retry.
 
 ## Server aggregate reads
 
-Core `23.0.0` provides the server-only
+Core `24.0.1` provides the server-only
 `@zerospin/core/utils/getSystemApi/getSystemApi` client. Supply
 `ZerospinApiUrl` and `SecretKey` (`Redacted<string>`) in the application's Effect
 layer, then acquire it with `yield* getSystemApi()`. Construct a connection-free
-query with `makeQueryDbVersion({ models: userAggregateV5.models })` and pass
+query with `makeQueryDbVersion({ models: userAggregateV1.models })` and pass
 the selection to `systemApi.executeAggregateQuery` with user aggregate identity:
 
 ```ts
-import { userAggregateV5 } from "./src/aggregates/user/UserV5";
+import { userAggregateV1 } from "./src/aggregates/user/UserV1";
 
 const systemApi = yield * getSystemApi();
-const db = makeQueryDbVersion({ models: userAggregateV5.models });
+const db = makeQueryDbVersion({ models: userAggregateV1.models });
 const site =
   yield *
   systemApi.executeAggregateQuery({
     aggregateName: "user",
-    aggregateVersion: "5.0.0",
+    aggregateVersion: 1,
     aggregateId,
     query: db.query.site.findFirst({
       where: { id: { eq: siteId } },
@@ -120,7 +120,11 @@ const site =
         pages: {
           with: {
             bricks: true,
-            walls: { with: { sections: { with: { stacks: { with: { rows: { with: { placements: true } } } } } } } },
+            walls: {
+              with: {
+                sections: { with: { stacks: { with: { rows: { with: { placements: true } } } } } },
+              },
+            },
           },
         },
       },
@@ -135,12 +139,11 @@ reads use the server secret and have no actor visibility filter.
 See the [core layer example and transport boundary](../../../zerospin/packages/core/src/utils/README.md#administrative-aggregate-reads).
 Aggregate-ID resolution and website rendering remain separate application work.
 
-The package cutover requires empty storage for superseded retained command and
-SQLite schemas. The regular development command does not reset storage. Stop development
-before moving `.wrangler/zerospin/dev-worker/sys_qrk_sh_1` into a uniquely named
-directory under `.wrangler/zerospin/backups/`. Starting
-`pnpm --dir apps/zerospin dev` then creates current storage while preserving the old directory for
-recovery. Do not use `--clean` when the old data must be preserved.
+The integer revision cutover requires empty affected development and production
+storage. Regular development startup does not delete stores. The maintainer has
+authorized erasing this system's obsolete data for the new baseline; reset
+completion is recorded separately from source migration. No decoder or payload
+adapter imports older data.
 
 App's move from Web to its own hostname is a hard origin cutover. The new
 origin initializes its own Node and synchronizes accepted backend data for the
@@ -158,14 +161,13 @@ not make its rows readable by the current declarations.
 
 ## Source layout
 
-`src/system.ts` retains user aggregates `3.0.0` and `4.0.0` and registers `5.0.0`.
-App's current session selects aggregate/web actor `5.0.0`; the unchanged
-provisioner and User model remain `1.0.0`. App owns one complete pure session
-definition per file in `apps/app/zerospin`: `userSessionDefinition.ts` for V5,
-`userSessionDefinitionV3.ts`, and `userSessionDefinitionV4.ts`. Each imports its
-canonical model and public contract versions directly. App and its SharedWorker
-import those definitions directly; server queries use the server-owned aggregate
-declaration.
+`src/system.ts` registers one fresh User aggregate at integer revision `1`.
+The web actor, provisioner, models, ordinary contracts, and module definitions
+also use their own integer revision `1`. App owns one complete pure session
+definition, `apps/app/zerospin/userSessionDefinition.ts`, which its initializer
+and SharedWorker import directly. Older release declarations, payload adapter
+edges, browser session registrations, and replay-only provider contracts are
+removed. Server queries use the canonical `userAggregateV1` declaration.
 
 The user aggregate ID is the verified Clerk token subject (`clerkUserId`), with
 no added prefix. The web actor verifies Clerk through `userProvisionerV1`, then
@@ -188,7 +190,7 @@ No verification runs were performed for this change, as requested.
 
 ### Placement spec validity
 
-Placement `2.0.0` requires a nonempty root, at least one element, and structured
+Placement revision `1` requires a nonempty root, at least one element, and structured
 json-render elements. Its Effect schema also requires the root to name an existing
 element. Model operations and authored query decoding use this schema, so invalid
 specs raise errors instead of rendering an empty-layout fallback. Manual spec
@@ -200,45 +202,20 @@ consumers do not enforce that filter. Generated and manually edited specs are
 validated before their placement update, and authored query decoding applies the
 same persisted spec schema.
 
-User `4.0.0` selects Placement `2.0.0` and new versions of the 35 commands that
-directly read or write Placement. Page, Wall, Brick, and the other unchanged
-models keep their existing versions. The previous commands and User `3.0.0`
-remain registered through the retained release. Versioned command files declare
-their concrete model bindings and explicit lineage directly.
-
-Zerospin `22.0.1` lets those upgrades inherit unchanged payloads, guards,
-programs and schemas. Versioned declarations supply only changed models,
-operation bindings and payload validators. Base programs read through
-`db.models` so the inherited callback uses the executing version's model graph.
-Omitted `up` keeps the decoded value and validates the destination schema;
-invalid history still fails, while its stored commands remain intact.
-
-The new release materializes through command replay; this change does not copy,
-repair, reset, or delete stored rows or command history. Invalid historical
-payloads or specs can fail strict adaptation, execution, or query decoding.
-They are not silently rewritten, and the retained release remains available.
-No verification runs or storage operations were performed for this upgrade.
-
-The new browser definition selects a separate versioned storage namespace.
-The worker also registers the retained V3 definition, so existing V3 clients can
-reconnect and drain their pending commands. V4 does not transfer that local queue;
-pending V3 commands remain in the retained partition until a V3 client submits
-them. Admitted commands become part of the shared backend history.
+The fresh baseline registers the current strict Placement schema directly.
+Each command declares its current models, operation bindings, and payload
+validators without a predecessor or payload-translation edge. The cutover
+requires empty affected development and production stores; stored commands and
+resources from former releases cannot be imported into this baseline.
 
 ### Provider forms save complete state
 
-User `5.0.0` keeps the existing model graph. Its fresh web actor and browser
-session expose `updateBrick` V3 for content saves and remove all seven provider
-configure/complete pairs. The owner still registers their historical declarations
-to materialize admitted history; current callers have no fallback write path.
-Retained User V3/V4 releases and browser namespaces are unchanged.
-
-The seven current module V2 definitions contain `{ payload, data }`. Their V1
-codecs and older `updateBrick` versions remain pinned to `backendLibraryV1` for
-history. The new save command validates current module state, advances the shared
-Brick state revision, and supersedes active spec generation while preserving
-placement identities, specs, and ordering. No model versions, storage reset,
-row migration, or history rewrite are required for removing resolution fields.
+User revision `1` exposes `updateBrickV1` for content saves. The seven
+provider configure/complete pairs are removed from both the owner and web actor.
+Current module definitions contain `{ payload, data }` and have no retained
+legacy registry. The save command validates current module state, advances the
+shared Brick state revision, and supersedes active spec generation while
+preserving placement identities, specs, and ordering.
 
 Each module form fetches and validates before staging its one state save. Provider
 failures leave previous content intact. Cancellation closes local RPC and blocks
@@ -250,8 +227,15 @@ forms with local example state. No verification runs were performed.
 App owns the persisted editor. Its Page owns shared Bricks and four Walls,
 one per `sm`/`md`/`lg`/`xl` breakpoint. Walls own ordered Sections; Sections own
 ordered Stacks; Stacks own vertical Rows; Rows own horizontal Placements.
-Placements reference shared Bricks and keep per-breakpoint specs and generation
-revisions. Model and canonical contract declarations live directly under
+Placements reference shared Bricks and keep per-breakpoint variant identities,
+specs, and generation revisions. The required `variantId` currently accepts only
+`"default"`; each breakpoint placement owns its choice independently. Published
+placement snapshots retain that identity. The field is part of the fresh
+development baseline, without a missing-field fallback or backfill. Existing
+affected stores require a separately authorized cutover before adoption; this
+source change performs no storage reset.
+
+Model and canonical contract declarations live directly under
 `src/aggregates/user/models/` and `contracts/`. Wall/Brick references bind to the
 final Page table. State-save and spec-update commands live directly
 in their versioned backend files, where concrete model versions are selected.
@@ -262,8 +246,9 @@ seeded Page, or host-binding declaration assembly.
 
 `createPage` records the Page and all four Walls with one initial Section and
 empty Stack each. `addBrick` records shared null content and four deterministic
-Placements; the active Wall follows its explicit insertion target and other
-Walls append a new Row to their last Stack. Move commands renumber affected
+Placements, explicitly selecting the `"default"` variant for each; the active
+Wall follows its explicit insertion target and other Walls append a new Row to
+their last Stack. Move commands renumber affected
 siblings atomically through internal `cleanupWall`. It prunes empty Rows, then
 Stacks, then Sections, and compacts all surviving sibling positions, including
 Placements. Movement cleans the whole affected Wall; Delete Brick removes its
@@ -366,4 +351,4 @@ browsing/restoring publication history remain later application work.
 
 ## Complete session declarations
 
-Each authored session has one complete checked definition, including `systemName`, with explicit model and contract entries. Host wiring, UI owners, and SharedWorkers import that defining module directly. Credentials remain in authentication and host wiring. Zerospin packages are pinned to `23.0.0`; React UI contexts use `makeReactUI`.
+Each authored session has one complete checked definition, including `systemName`, with explicit model and contract entries. Host wiring, UI owners, and SharedWorkers import that defining module directly. Credentials remain in authentication and host wiring. Zerospin packages are pinned to `24.0.1`; React UI contexts use `makeReactUI`.

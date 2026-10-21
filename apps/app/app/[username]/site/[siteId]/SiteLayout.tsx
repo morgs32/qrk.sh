@@ -6,8 +6,8 @@ import { useLiveQuery } from "@zerospin/react";
 import { Schema } from "effect";
 import type { ReactNode } from "react";
 
-import { pageV2 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV2";
-import { siteV2 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV2";
+import { pageV1 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
+import { siteV1 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV1";
 
 import { useZerospinUserInitializedState } from "@/components/ZerospinUser";
 import { UserUI } from "@/zerospin/UserUI";

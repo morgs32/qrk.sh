@@ -3,7 +3,7 @@
 ## Zerospin packages
 
 Zerospin owns its source, builds, and releases in the sibling `../zerospin`
-checkout. QRK installs exact `23.0.0` packages from the local Verdaccio registry;
+checkout. QRK installs exact `24.0.1` packages from the local Verdaccio registry;
 there is no vendored Zerospin source or consumer-side Zerospin build.
 
 The credential-free project `.npmrc` routes all dependencies through
@@ -82,7 +82,7 @@ See [Modules](apps/app/modules/README.md) and [App](apps/app/README.md).
    On the first registry bootstrap, install, build, verify, and publish the
    release in Zerospin before installing QRK. Follow Zerospin's package release
    instructions. Existing registry storage survives restarts. A fresh checkout
-   requires the running registry with the locked `23.0.0` packages; hosted
+   requires the running registry with the locked `24.0.1` packages; hosted
    distribution and deployment-machine bootstrap are not configured here.
 
 2. Start the four application development servers through Portless:
@@ -124,10 +124,11 @@ run `pnpm --dir apps/<app> dev`; this starts only that app. Its `dev:app` script
 runs the underlying HTTP server directly when needed. Frontend scripts honor
 `PORT`; direct defaults are listed above. Storybooks use 10020 for App and 10022 for Web, also overridable with `PORT`.
 
-For pre-cutover development data, follow the [backend storage quarantine](apps/zerospin/README.md)
-instructions. Superseded
-retained commands and SQLite schemas require empty storage; old data is preserved
-separately and has no compatibility migration.
+The current integer-version baseline starts every authored declaration at `1`.
+Older release declarations and browser session registrations are removed.
+Development and production storage must be empty for this cutover, and the
+maintainer has authorized erasing this system's obsolete data. Source migration
+and storage reset completion are tracked separately.
 
 App's `Initializer` receives its pure `userSessionDefinition` and
 `userConnection`. The connection uses `makeApplicationSharedWorker` to bind the
@@ -259,15 +260,16 @@ retains its public and authentication routes; it does not proxy App paths.
 
 App's Vercel configuration serves `dist/client`, resolves assets and RPC
 forwarding before falling back to `index.html` for application deep links.
-The standalone-host configuration does not itself attach DNS, change Vercel
-domains, or deploy production output. Attach `app.qrk.sh` to the App
-project and apply the production frontend and Worker origin settings when
-rolling out the cutover.
+The 2026-10-21 integer-V1 cutover deployed both existing frontend projects.
+`app.qrk.sh` is attached to the existing App project, with a DNS-only Cloudflare
+`A` record at `76.76.21.21`, automatic TTL and a Vercel-managed certificate.
+Its root, sign-in, JavaScript, SharedWorker and SQLite WASM URLs returned HTTPS
+200 with certificate validation. The existing `qrk-studio.vercel.app` alias remains.
 
 Vercel hosts the frontends in the `morganatwork` team:
 
 - Web: [qrk-web.vercel.app](https://qrk-web.vercel.app), project `qrk-web`, root `apps/web`.
-- App: existing [qrk-studio.vercel.app](https://qrk-studio.vercel.app), project `qrk-studio`. Set its root to `apps/app` before the next deployment; the local rename does not change the remote project.
+- App: existing [qrk-studio.vercel.app](https://qrk-studio.vercel.app), project `qrk-studio`, root `apps/app`, static output `dist/client`.
 
 The custom domain [qrk.sh](https://qrk.sh) is attached to `qrk-web`. Cloudflare
 remains authoritative for DNS: its apex `CNAME` points to
@@ -276,15 +278,17 @@ TTL. Cloudflare flattens the apex alias; Vercel serves the site and manages HTTP
 
 Web's optional `NEXT_PUBLIC_APP_ORIGIN`
 defaults to `https://app.qrk.sh`; App's `NEXT_PUBLIC_WEB_ORIGIN` defaults
-to `https://qrk.sh`. API CORS and the API/Zerospin authorized-party settings
-use `https://app.qrk.sh` for the App browser client.
-Each project's build command runs its existing Nx `build` target. App's
-target emits static output; Web retains its Next build.
+to `https://qrk.sh`. API CORS and both `qrk-api` and `qrk-zerospin`
+`CLERK_AUTHORIZED_PARTY` bindings use exactly `https://app.qrk.sh`. The origin
+cutover preserved every Durable Object namespace identity and all other protected
+bindings. App's package build emits static output; Web's saved build command runs
+its Nx `build` target and retains the Next build.
 
 Deploy locally built output because Vercel cannot reach the local package
-registry. Use an isolated checkout copy containing the current source, installed
-dependencies, and each app's `.env.local` so builds leave running development
-apps intact. From that copy's monorepo root, select one project:
+registry. Use an isolated checkout copy containing the current source and installed
+dependencies, excluding development `.env*` files. Keep traced Next dependencies
+inside the copy; an external `.pnpm` symlink is rejected by prebuilt upload.
+From that copy's monorepo root, pull production settings and values securely:
 
 ```sh
 vercel pull --project qrk-studio --environment production --yes
@@ -304,8 +308,10 @@ hosted dependency installation is not configured.
 When saving or restoring `.vercel` output, preserve symlinks (`cp -a` or
 `shutil.copytree(..., symlinks=True)`). Web's Next shared function aliases must remain
 links; dereferencing them creates duplicate functions and can exceed Vercel's
-Hobby function limit. Ensure the snapshot's app-local environment files and
-Vercel production variables both use production Clerk keys before building.
+Hobby function limit. Build with the pulled production Clerk values and remove
+the downloaded environment copy afterward. The 2026-10-21 deployments passed
+public route and JavaScript/CSS checks; App's SharedWorker and SQLite WASM assets
+also returned HTTP 200. These checks do not establish authenticated command execution.
 
 The deployed frontends use production Clerk credentials. App's production
 Zerospin endpoint is `https://zerospin.qrk.sh`, backed by

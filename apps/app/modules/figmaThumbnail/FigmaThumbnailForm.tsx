@@ -11,12 +11,12 @@ import { useLayoutEffect, useId, useRef, useState } from "react";
 
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
-import { figmaThumbnailV2 } from "@qrk.sh/zerospin/src/modules/figmaThumbnail/figmaThumbnailV2";
+import { figmaThumbnailV1 } from "@qrk.sh/zerospin/src/modules/figmaThumbnail/figmaThumbnailV1";
 
 export function FigmaThumbnailForm(props: {
-  state: IInferDecodedRow<typeof figmaThumbnailV2.stateShape> | null;
+  state: IInferDecodedRow<typeof figmaThumbnailV1.stateShape> | null;
   onSave: (
-    state: IInferDecodedRow<typeof figmaThumbnailV2.stateShape>,
+    state: IInferDecodedRow<typeof figmaThumbnailV1.stateShape>,
   ) => IResult<unknown, { message: string }>;
   onCancel: () => void;
 }) {
@@ -68,8 +68,8 @@ export function FigmaThumbnailForm(props: {
             const nextState = Schema.decodeUnknownSync(
               Schema.toType(
                 makeEffectSchema({
-                  ...figmaThumbnailV2.stateShape,
-                  data: { ...figmaThumbnailV2.stateShape.data, nullable: false },
+                  ...figmaThumbnailV1.stateShape,
+                  data: { ...figmaThumbnailV1.stateShape.data, nullable: false },
                 }),
               ),
             )(
@@ -87,7 +87,11 @@ export function FigmaThumbnailForm(props: {
             !submission.signal.aborted &&
             !(error instanceof DOMException && error.name === "AbortError")
           ) {
-            setSaveError(error instanceof Error ? error.message : "Unable to fetch this Figma document; try again.");
+            setSaveError(
+              error instanceof Error
+                ? error.message
+                : "Unable to fetch this Figma document; try again.",
+            );
           }
         } finally {
           if (activeSubmission.current === submission) {

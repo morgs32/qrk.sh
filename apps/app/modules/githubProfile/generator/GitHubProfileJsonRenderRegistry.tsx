@@ -10,9 +10,9 @@ import { followersView } from "../GitHubProfile/components/Followers";
 import { followingView } from "../GitHubProfile/components/Following";
 import { locationView } from "../GitHubProfile/components/Location";
 import { publicReposView } from "../GitHubProfile/components/PublicRepos";
-import { githubProfileV2 } from "@qrk.sh/zerospin/src/modules/githubProfile/githubProfileV2";
+import { githubProfileV1 } from "@qrk.sh/zerospin/src/modules/githubProfile/githubProfileV1";
 
-export const { registry } = defineRegistry(githubProfileV2.catalog, {
+export const { registry } = defineRegistry(githubProfileV1.catalog, {
   components: {
     ...layoutRegistryComponents,
     BrickShell: (props: { children?: ReactNode }) => {

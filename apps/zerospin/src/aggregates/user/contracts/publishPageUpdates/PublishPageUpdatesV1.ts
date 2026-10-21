@@ -1,11 +1,19 @@
 import { page as pageIdentity } from "../../models/page/page";
+
 import { pageSnapshot as pageSnapshotIdentity } from "../../models/pageSnapshot/pageSnapshot";
+
 import { wallV1 as Wall } from "../../models/wall/WallV1";
+
 import { sectionV1 as Section } from "../../models/section/SectionV1";
+
 import { stackV1 as Stack } from "../../models/stack/StackV1";
+
 import { rowV1 as Row } from "../../models/row/RowV1";
+
 import { brickV1 as Brick } from "../../models/brick/BrickV1";
+
 import { placementV1 as Placement } from "../../models/placement/PlacementV1";
+
 import {
   modelId,
   ContractError,
@@ -13,16 +21,23 @@ import {
   findMany,
   makeAggregateContractVersion,
 } from "@zerospin/sdk/browser";
-import { Effect } from "effect";
-import { pageV3 as Page } from "../../models/page/PageV3";
-import { pageSnapshotV2 as PageSnapshot } from "../../models/pageSnapshot/PageSnapshotV2";
-import { siteV3 as Site } from "../../models/site/SiteV3";
-import { userV1 as User } from "../../models/user/UserV1";
-import { makePageSnapshot } from "../../snapshots/makePageSnapshot";
-import { publishPage } from "./publishPage";
 
-export const publishPageV2 = makeAggregateContractVersion(publishPage, {
-  version: "2.0.0",
+import { Effect } from "effect";
+
+import { pageV1 as Page } from "../../models/page/PageV1";
+
+import { pageSnapshotV1 as PageSnapshot } from "../../models/pageSnapshot/PageSnapshotV1";
+
+import { siteV1 as Site } from "../../models/site/SiteV1";
+
+import { userV1 as User } from "../../models/user/UserV1";
+
+import { makePageSnapshot } from "../../snapshots/makePageSnapshot";
+
+import { publishPageUpdates } from "./publishPageUpdates";
+
+export const publishPageUpdatesV1 = makeAggregateContractVersion(publishPageUpdates, {
+  version: 1,
   payload: {
     pageId: modelId({ model: pageIdentity }),
     snapshotId: modelId({ model: pageSnapshotIdentity }),
@@ -44,29 +59,41 @@ export const publishPageV2 = makeAggregateContractVersion(publishPage, {
     updatePage: Page.operations.update,
   },
   failures: {
-    publishPageUserMismatch: ContractError.schema({ code: "publish-page-user-mismatch" }),
-    publishPageNotFound: ContractError.schema({ code: "publish-page-not-found" }),
-    publishPageUnavailable: ContractError.schema({ code: "publish-page-unavailable" }),
+    publishPageUpdatesUserMismatch: ContractError.schema({
+      code: "publish-page-updates-user-mismatch",
+    }),
+    publishPageUpdatesNotFound: ContractError.schema({ code: "publish-page-updates-not-found" }),
+    publishPageUpdatesUnavailable: ContractError.schema({
+      code: "publish-page-updates-unavailable",
+    }),
   },
-  guard: Effect.fn("publishPage.guard")(function* (props) {
+  guard: Effect.fn("publishPageUpdates.guard")(function* (props) {
     const { payload, claims, failures, db } = props;
     const clerkUserId = claims?.clerkUserId;
     if (typeof clerkUserId !== "string") {
-      return yield* failures.publishPageUserMismatch.make({
+      return yield* failures.publishPageUpdatesUserMismatch.make({
         message: "Publishing requires an authenticated user",
         status: 403,
       });
     }
-    const page = yield* findFirst({ db, model: db.models.page, where: { id: { eq: payload.pageId } } });
+    const page = yield* findFirst({
+      db,
+      model: db.models.page,
+      where: { id: { eq: payload.pageId } },
+    });
     if (page === undefined || page.siteId === null) {
-      return yield* failures.publishPageNotFound.make({
+      return yield* failures.publishPageUpdatesNotFound.make({
         message: `Page ${payload.pageId} was not found`,
         status: 404,
       });
     }
-    const site = yield* findFirst({ db, model: db.models.site, where: { id: { eq: page.siteId } } });
+    const site = yield* findFirst({
+      db,
+      model: db.models.site,
+      where: { id: { eq: page.siteId } },
+    });
     if (site === undefined) {
-      return yield* failures.publishPageNotFound.make({
+      return yield* failures.publishPageUpdatesNotFound.make({
         message: `Site ${page.siteId} was not found`,
         status: 404,
       });
@@ -76,29 +103,41 @@ export const publishPageV2 = makeAggregateContractVersion(publishPage, {
         ? undefined
         : yield* findFirst({ db, model: db.models.user, where: { id: { eq: site.userId } } });
     if (user === undefined || user.clerkUserId !== clerkUserId) {
-      return yield* failures.publishPageUserMismatch.make({
+      return yield* failures.publishPageUpdatesUserMismatch.make({
         message: `Page ${page.id} does not belong to identity ${clerkUserId}`,
         status: 403,
       });
     }
-    if (!site.isPublished || page.isPublished !== false) {
-      return yield* failures.publishPageUnavailable.make({
-        message: "Publishing a page requires an unpublished page in a published site",
+    if (!site.isPublished || page.isPublished !== true) {
+      return yield* failures.publishPageUpdatesUnavailable.make({
+        message: "Publish updates requires a published page in a published site",
         status: 409,
       });
     }
   }),
-  program: Effect.fn("publishPage")(function* (props) {
+  program: Effect.fn("publishPageUpdates")(function* (props) {
     const { payload, operations, failures, db } = props;
-    const page = yield* findFirst({ db, model: db.models.page, where: { id: { eq: payload.pageId } } });
+    const page = yield* findFirst({
+      db,
+      model: db.models.page,
+      where: { id: { eq: payload.pageId } },
+    });
     if (page === undefined) {
-      return yield* failures.publishPageNotFound.make({
+      return yield* failures.publishPageUpdatesNotFound.make({
         message: `Page ${payload.pageId} was not found`,
         status: 404,
       });
     }
-    const bricks = yield* findMany({ db, model: db.models.brick, where: { pageId: { eq: page.id } } });
-    const walls = yield* findMany({ db, model: db.models.wall, where: { pageId: { eq: page.id } } });
+    const bricks = yield* findMany({
+      db,
+      model: db.models.brick,
+      where: { pageId: { eq: page.id } },
+    });
+    const walls = yield* findMany({
+      db,
+      model: db.models.wall,
+      where: { pageId: { eq: page.id } },
+    });
     const sections = yield* findMany({
       db,
       model: db.models.section,

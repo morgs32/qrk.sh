@@ -5,7 +5,7 @@ import { makeIdSchema } from "@zerospin/sdk/browser";
 import { Link, useMatches } from "@tanstack/react-router";
 import { useLiveQuery } from "@zerospin/react";
 import { Schema } from "effect";
-import { siteV3 } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV3";
+import { siteV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV1";
 
 import { UserUI } from "@/zerospin/UserUI";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
@@ -14,7 +14,7 @@ import { useSiteStore } from "./siteStore";
 
 const ParamsSchema = Schema.Struct({
   username: Schema.String,
-  siteId: makeIdSchema(siteV3),
+  siteId: makeIdSchema(siteV1),
   pageId: Schema.optional(Schema.String),
 });
 

@@ -4,9 +4,9 @@ import { layoutRegistryComponents } from "../../lib/jsonRender/layoutRegistryCom
 import { linkCardView } from "../LinkCard";
 import { linkCopyView } from "../LinkCopy";
 import { linkHeroImageView } from "../LinkHeroImage";
-import { linkV2 } from "@qrk.sh/zerospin/src/modules/link/linkV2";
+import { linkV1 } from "@qrk.sh/zerospin/src/modules/link/linkV1";
 
-export const { registry } = defineRegistry(linkV2.catalog, {
+export const { registry } = defineRegistry(linkV1.catalog, {
   components: {
     ...layoutRegistryComponents,
     LinkCard: linkCardView.RegistryComponent,

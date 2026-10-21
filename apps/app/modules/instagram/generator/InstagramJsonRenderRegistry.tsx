@@ -4,9 +4,9 @@ import { layoutRegistryComponents } from "../../lib/jsonRender/layoutRegistryCom
 import { instagramCardView } from "../InstagramCard";
 import { instagramPostGridView } from "../InstagramPostGrid";
 import { instagramMediaFooterView } from "../InstagramMediaFooter";
-import { instagramV2 } from "@qrk.sh/zerospin/src/modules/instagram/instagramV2";
+import { instagramV1 } from "@qrk.sh/zerospin/src/modules/instagram/instagramV1";
 
-export const { registry } = defineRegistry(instagramV2.catalog, {
+export const { registry } = defineRegistry(instagramV1.catalog, {
   components: {
     ...layoutRegistryComponents,
     InstagramCard: instagramCardView.RegistryComponent,

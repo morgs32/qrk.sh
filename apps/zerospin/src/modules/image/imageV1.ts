@@ -1,4 +1,5 @@
 import { defaultSpec } from "./generator/defaultSpec";
+
 import { primitives } from "@zerospin/shapes";
 
 import {
@@ -8,10 +9,15 @@ import {
   columnComponent,
   rowComponent,
 } from "../lib/jsonRender/layoutComponents";
+
 import { makeModuleVersion } from "../make/makeModuleVersion";
+
 import { imageCardComponent } from "./generator/ImageCardComponent";
+
 import { imageCoverComponent } from "./generator/ImageCoverComponent";
+
 import { mediaFooterComponent } from "./generator/MediaFooterComponent";
+
 import { image } from "./image";
 
 const dataShape = {
@@ -26,7 +32,7 @@ const defaultData = {
 };
 
 export const imageV1 = makeModuleVersion(image, {
-  version: "1.0.0",
+  version: 1,
   defaultSpec,
   hasPlaceholder: true,
   components: {

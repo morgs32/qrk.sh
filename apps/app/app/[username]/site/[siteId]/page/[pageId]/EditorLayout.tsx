@@ -13,7 +13,7 @@ import { ImageUploadEnvironment } from "../../../../../../modules/image/ImageUpl
 import { ImageUploadRuntimeContext } from "../../../../../../modules/image/ImageUploadRuntimeContext";
 import { BrickCardStyleContext } from "../../../../../../modules/lib/BrickCardStyleContext";
 import { useLiveQuery } from "@zerospin/react";
-import { siteV3 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV3";
+import { siteV1 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV1";
 import { Effect, Layer, Schema } from "effect";
 
 import { Toolbars } from "../../Toolbars/Toolbars";

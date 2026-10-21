@@ -11,12 +11,12 @@ import { useLayoutEffect, useRef, useState } from "react";
 
 import { Button } from "../components/ui/button";
 import { GooglePlaceLookup } from "./GooglePlaceLookup";
-import { mapPlaceV2 } from "@qrk.sh/zerospin/src/modules/mapPlace/mapPlaceV2";
+import { mapPlaceV1 } from "@qrk.sh/zerospin/src/modules/mapPlace/mapPlaceV1";
 
 export function MapPlaceForm(props: {
-  state: IInferDecodedRow<typeof mapPlaceV2.stateShape> | null;
+  state: IInferDecodedRow<typeof mapPlaceV1.stateShape> | null;
   onSave: (
-    state: IInferDecodedRow<typeof mapPlaceV2.stateShape>,
+    state: IInferDecodedRow<typeof mapPlaceV1.stateShape>,
   ) => IResult<unknown, { message: string }>;
   onCancel: () => void;
 }) {
@@ -47,7 +47,8 @@ export function MapPlaceForm(props: {
       className="mx-auto flex w-full max-w-md flex-col gap-2 p-4"
       onSubmit={async (event) => {
         event.preventDefault();
-        if (!canSave || normalizedPlaceId === undefined || activeSubmission.current !== null) return;
+        if (!canSave || normalizedPlaceId === undefined || activeSubmission.current !== null)
+          return;
         const submission = new AbortController();
         activeSubmission.current = submission;
         setIsSaving(true);
@@ -69,12 +70,13 @@ export function MapPlaceForm(props: {
               !Number.isFinite(response.right.longitude) ||
               Math.abs(response.right.latitude) > 90 ||
               Math.abs(response.right.longitude) > 180
-            ) throw new Error("Invalid place response");
+            )
+              throw new Error("Invalid place response");
             const nextState = Schema.decodeUnknownSync(
               Schema.toType(
                 makeEffectSchema({
-                  ...mapPlaceV2.stateShape,
-                  data: { ...mapPlaceV2.stateShape.data, nullable: false },
+                  ...mapPlaceV1.stateShape,
+                  data: { ...mapPlaceV1.stateShape.data, nullable: false },
                 }),
               ),
             )(
@@ -92,7 +94,9 @@ export function MapPlaceForm(props: {
             !submission.signal.aborted &&
             !(error instanceof DOMException && error.name === "AbortError")
           ) {
-            setSaveError(error instanceof Error ? error.message : "Unable to fetch this place; try again.");
+            setSaveError(
+              error instanceof Error ? error.message : "Unable to fetch this place; try again.",
+            );
           }
         } finally {
           if (activeSubmission.current === submission) {

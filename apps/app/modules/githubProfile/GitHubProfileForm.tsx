@@ -11,12 +11,12 @@ import { useLayoutEffect, useId, useRef, useState } from "react";
 
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
-import { githubProfileV2 } from "@qrk.sh/zerospin/src/modules/githubProfile/githubProfileV2";
+import { githubProfileV1 } from "@qrk.sh/zerospin/src/modules/githubProfile/githubProfileV1";
 
 export function GitHubProfileForm(props: {
-  state: IInferDecodedRow<typeof githubProfileV2.stateShape> | null;
+  state: IInferDecodedRow<typeof githubProfileV1.stateShape> | null;
   onSave: (
-    state: IInferDecodedRow<typeof githubProfileV2.stateShape>,
+    state: IInferDecodedRow<typeof githubProfileV1.stateShape>,
   ) => IResult<unknown, { message: string }>;
   onCancel: () => void;
 }) {
@@ -72,8 +72,8 @@ export function GitHubProfileForm(props: {
             const nextState = Schema.decodeUnknownSync(
               Schema.toType(
                 makeEffectSchema({
-                  ...githubProfileV2.stateShape,
-                  data: { ...githubProfileV2.stateShape.data, nullable: false },
+                  ...githubProfileV1.stateShape,
+                  data: { ...githubProfileV1.stateShape.data, nullable: false },
                 }),
               ),
             )(
@@ -91,7 +91,11 @@ export function GitHubProfileForm(props: {
             !submission.signal.aborted &&
             !(error instanceof DOMException && error.name === "AbortError")
           ) {
-            setSaveError(error instanceof Error ? error.message : "Unable to fetch this GitHub profile; try again.");
+            setSaveError(
+              error instanceof Error
+                ? error.message
+                : "Unable to fetch this GitHub profile; try again.",
+            );
           }
         } finally {
           if (activeSubmission.current === submission) {

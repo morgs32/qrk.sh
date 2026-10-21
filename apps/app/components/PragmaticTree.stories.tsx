@@ -198,7 +198,7 @@ const meta = {
           <WallModuleAction wallId={wallId} moduleId="Example" />
         </div>
         <p className="text-xs text-muted-foreground">
-          Rows hold Bricks side by side. Drag the separate grips or use Move. This story edits local
+          Rows hold Bricks side by side. Drag the separate grips. This story edits local
           fixtures.
         </p>
         <style>{`[data-wall-editor="${wallId}"] [data-wall-placement] { min-height: ${rowHeight}px; }`}</style>

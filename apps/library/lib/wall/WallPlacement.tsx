@@ -11,10 +11,9 @@ export function WallPlacement(props: {
   scope: string;
   selected: boolean;
   onEditBrick: ComponentProps<typeof WallTree>["onEditBrick"];
-  onRequestMove: (id: string, triggerId: string) => void;
   onRequestDelete: (brickId: string, triggerId: string) => void;
 }) {
-  const { placement, scope, selected, onEditBrick, onRequestMove, onRequestDelete } = props;
+  const { placement, scope, selected, onEditBrick, onRequestDelete } = props;
   const [menuOpen, setMenuOpen] = useState(false);
   const triggerId = `${scope}-placement-menu-${placement.id}`;
   return (
@@ -52,12 +51,6 @@ export function WallPlacement(props: {
                   onClick={() => onEditBrick(placement.brickId)}
                 >
                   Edit
-                </Menu.Item>
-                <Menu.Item
-                  className="cursor-pointer px-3 py-2 outline-none data-[highlighted]:bg-muted"
-                  onClick={() => onRequestMove(placement.id, triggerId)}
-                >
-                  Move…
                 </Menu.Item>
                 <Menu.Item
                   className="cursor-pointer px-3 py-2 text-destructive outline-none data-[highlighted]:bg-muted"

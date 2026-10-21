@@ -7,8 +7,6 @@ export function WallSection(props: {
   scope: string;
   selectedBrickId: ComponentProps<typeof WallTree>["selectedBrickId"];
   onEditBrick: ComponentProps<typeof WallTree>["onEditBrick"];
-  onRequestMovePlacement: ComponentProps<typeof WallStack>["onRequestMovePlacement"];
-  onRequestMoveStack: ComponentProps<typeof WallStack>["onRequestMoveStack"];
   onRequestDelete: ComponentProps<typeof WallStack>["onRequestDelete"];
 }) {
   const {
@@ -16,8 +14,6 @@ export function WallSection(props: {
     scope,
     selectedBrickId,
     onEditBrick,
-    onRequestMovePlacement,
-    onRequestMoveStack,
     onRequestDelete,
   } = props;
   return (
@@ -39,8 +35,6 @@ export function WallSection(props: {
             scope={scope}
             selectedBrickId={selectedBrickId}
             onEditBrick={onEditBrick}
-            onRequestMovePlacement={onRequestMovePlacement}
-            onRequestMoveStack={onRequestMoveStack}
             onRequestDelete={onRequestDelete}
           />
         ))}

@@ -360,13 +360,14 @@ selected Brick routing, and drag scope. Local wall stories use fixtures
 without that provider or any persisted session. New-Brick creation, layout moves,
 and global Brick deletion are ordinary App commands. Empty containers survive
 moves/deletion; no pixel grid geometry or visibility state is persisted.
-Layout containers have no padding or gutters. Drag/Move controls overlay the
-content, and insertion boundaries appear only during dragging; the Wall renders
+Layout containers have no padding or gutters. Drag controls overlay the
+content. Layout moves use the separate drag grips.
+Insertion boundaries appear only during dragging; the Wall renders
 no Add or plus buttons. Empty Rows/Stacks retain their drop placeholders.
 
 **Selected** means the Brick's edit form is open; **active** means DOM focus.
 Separate grip/menu controls leave links/forms interactive. Placements support
-Edit, Move, and Delete Brick actions. App's initialized session and actor guards
+Edit and Delete Brick actions. App's initialized session and actor guards
 own persistence, errors, and authorization; no standalone Library session or
 host-binding Page factory remains.
 

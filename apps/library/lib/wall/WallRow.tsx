@@ -7,10 +7,9 @@ export function WallRow(props: {
   scope: string;
   selectedBrickId: ComponentProps<typeof WallTree>["selectedBrickId"];
   onEditBrick: ComponentProps<typeof WallTree>["onEditBrick"];
-  onRequestMove: ComponentProps<typeof WallPlacement>["onRequestMove"];
   onRequestDelete: ComponentProps<typeof WallPlacement>["onRequestDelete"];
 }) {
-  const { row, scope, selectedBrickId, onEditBrick, onRequestMove, onRequestDelete } = props;
+  const { row, scope, selectedBrickId, onEditBrick, onRequestDelete } = props;
   return (
     <div data-wall-row={row.id} className="relative min-w-0">
       <div
@@ -26,7 +25,6 @@ export function WallRow(props: {
             scope={scope}
             selected={selectedBrickId === placement.brickId}
             onEditBrick={onEditBrick}
-            onRequestMove={onRequestMove}
             onRequestDelete={onRequestDelete}
           />
         ))}

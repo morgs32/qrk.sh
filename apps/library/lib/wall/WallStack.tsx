@@ -9,18 +9,14 @@ export function WallStack(props: {
   scope: string;
   selectedBrickId: ComponentProps<typeof WallTree>["selectedBrickId"];
   onEditBrick: ComponentProps<typeof WallTree>["onEditBrick"];
-  onRequestMovePlacement: ComponentProps<typeof WallRow>["onRequestMove"];
   onRequestDelete: ComponentProps<typeof WallRow>["onRequestDelete"];
-  onRequestMoveStack: (id: string, triggerId: string) => void;
 }) {
   const {
     stack,
     scope,
     selectedBrickId,
     onEditBrick,
-    onRequestMovePlacement,
     onRequestDelete,
-    onRequestMoveStack,
   } = props;
   return (
     <div
@@ -38,14 +34,6 @@ export function WallStack(props: {
           <GripVertical className="size-4" aria-hidden="true" />
         </Button>
         <span className="min-w-0 truncate">{stack.name}</span>
-        <Button
-          id={`${scope}-stack-move-${stack.id}`}
-          variant="ghost"
-          className="h-7 rounded-none px-2 text-xs"
-          onClick={() => onRequestMoveStack(stack.id, `${scope}-stack-move-${stack.id}`)}
-        >
-          Move…
-        </Button>
       </div>
       {stack.rows.map((row) => (
         <WallRow
@@ -54,7 +42,6 @@ export function WallStack(props: {
           scope={scope}
           selectedBrickId={selectedBrickId}
           onEditBrick={onEditBrick}
-          onRequestMove={onRequestMovePlacement}
           onRequestDelete={onRequestDelete}
         />
       ))}

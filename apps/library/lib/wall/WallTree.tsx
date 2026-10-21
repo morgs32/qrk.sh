@@ -19,7 +19,6 @@ import {
 } from "@atlaskit/pragmatic-drag-and-drop-hitbox/list-item";
 import { DropIndicator } from "@atlaskit/pragmatic-drag-and-drop-react-drop-indicator/list-item";
 import { Button } from "../../components/ui/button";
-import { WallMoveDialog } from "./WallMoveDialog";
 import { WallSection } from "./WallSection";
 import { stackMoveTargetSchema, wallInsertionTargetSchema } from "./wallInsertionTargetSchema";
 
@@ -65,7 +64,6 @@ export function WallTree(props: {
   const rootRef = useRef<HTMLDivElement>(null);
   const sectionsRef = useRef<HTMLDivElement>(null);
   const returnFocusId = useRef<string | null>(null);
-  const [moving, setMoving] = useState<{ kind: "placement" | "stack"; id: string } | null>(null);
   const [deletingBrickId, setDeletingBrickId] = useState<string | null>(null);
   const [indicator, setIndicator] = useState<{
     element: HTMLElement;
@@ -76,7 +74,6 @@ export function WallTree(props: {
   useEffect(() => cleanup, []);
   useEffect(() => {
     if (!isActive) {
-      setMoving(null);
       setDeletingBrickId(null);
     }
   }, [isActive]);
@@ -395,14 +392,6 @@ export function WallTree(props: {
             scope={scope}
             selectedBrickId={selectedBrickId}
             onEditBrick={onEditBrick}
-            onRequestMovePlacement={(id, triggerId) => {
-              returnFocusId.current = triggerId;
-              setMoving({ kind: "placement", id });
-            }}
-            onRequestMoveStack={(id, triggerId) => {
-              returnFocusId.current = triggerId;
-              setMoving({ kind: "stack", id });
-            }}
             onRequestDelete={(brickId, triggerId) => {
               returnFocusId.current = triggerId;
               setDeletingBrickId(brickId);
@@ -422,31 +411,6 @@ export function WallTree(props: {
           />,
           indicator.element,
         )}
-      {moving && (
-        <WallMoveDialog
-          key={`${moving.kind}-${moving.id}`}
-          wallId={wallId}
-          sections={sections}
-          moving={moving}
-          stackLimit={stackLimit}
-          onMovePlacement={(id, target) => {
-            const accepted = onMovePlacement(id, target);
-            if (accepted !== false) announce("Brick moved in this Wall.");
-            return accepted;
-          }}
-          onMoveStack={(id, target) => {
-            const accepted = onMoveStack(id, target);
-            if (accepted !== false) announce("Stack moved in this Wall.");
-            return accepted;
-          }}
-          onClose={() => {
-            setMoving(null);
-            // Moving can reparent the trigger; resolve its new DOM node after commit.
-            requestAnimationFrame(() => finalFocus()?.focus());
-          }}
-          finalFocus={finalFocus}
-        />
-      )}
       <Dialog.Root
         open={deletingBrickId !== null}
         onOpenChange={(open) => {

@@ -14,7 +14,7 @@ There is also a separate `sitePageDraftStore` containing seeded title/descriptio
 
 ## Current rendering entry points
 
-Studio's client `PagePreview` renders responsive breakpoint panes, the site header, and the active Wall supplied by `WallEditorProvider`. The provider owns the saved Wall rows and passes their presentation and editing callbacks into shared `WallTree` rendering. Appearance settings can enter that shared rendering subtree from the containing application. [PagePreview](../../apps/app/app/[username]/site/[siteId]/page/[pageId]/PagePreview.tsx), [WallEditorProvider](../../apps/app/app/[username]/site/[siteId]/page/[pageId]/WallEditorProvider.tsx).
+Studio's client `PagePreview` renders responsive breakpoint panes, the site header, and App's `WallEditor`. The editor reads `UserUI` directly for the saved Wall rows and commands, and composes shared `WallSection`, `WallStack`, `WallRow`, and `WallPlacement` presentation. App and Storybook use this same session-backed editor. Appearance settings enter its rendering subtree from the containing application. [PagePreview](../../apps/app/app/[username]/site/[siteId]/page/[pageId]/PagePreview.tsx), [WallEditor](../../apps/app/app/[username]/site/[siteId]/page/[pageId]/WallEditor.tsx).
 
 The current standalone `/bricks/[brickId]` route is the module Form drawer, while the surrounding Library layout renders the wall. It does not load a QRK Site/Page record. [brick detail page, lines 24–79](../../apps/library/app/bricks/[brickId]/page.tsx#L24-L79), [Library wall](../../apps/library/app/LibraryLayout.tsx#L399).
 

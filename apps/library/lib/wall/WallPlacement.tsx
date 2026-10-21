@@ -1,16 +1,13 @@
 import { Menu } from "@base-ui/react/menu";
 import { Ellipsis, GripVertical } from "lucide-react";
-import { useState, type ComponentProps } from "react";
+import { useState, type ReactNode } from "react";
 import { Button } from "../../components/ui/button";
-import type { WallTree } from "./WallTree";
 
 export function WallPlacement(props: {
-  placement: ComponentProps<
-    typeof WallTree
-  >["sections"][number]["stacks"][number]["rows"][number]["placements"][number];
+  placement: { id: string; brickId: string; minWidth: number; content: ReactNode };
   scope: string;
   selected: boolean;
-  onEditBrick: ComponentProps<typeof WallTree>["onEditBrick"];
+  onEditBrick: (brickId: string) => void;
   onRequestDelete: (brickId: string, triggerId: string) => void;
 }) {
   const { placement, scope, selected, onEditBrick, onRequestDelete } = props;

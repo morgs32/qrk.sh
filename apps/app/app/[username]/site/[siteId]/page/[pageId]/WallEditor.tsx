@@ -1,3 +1,5 @@
+"use client";
+
 import { Dialog } from "@base-ui/react/dialog";
 import { announce, cleanup } from "@atlaskit/pragmatic-drag-and-drop-live-region";
 import {
@@ -10,7 +12,7 @@ import { combine } from "@atlaskit/pragmatic-drag-and-drop/utils/combine";
 import { pointerOutsideOfPreview } from "@atlaskit/pragmatic-drag-and-drop/utils/pointer-outside-of-preview";
 import { setCustomNativeDragPreview } from "@atlaskit/pragmatic-drag-and-drop/utils/set-custom-native-drag-preview";
 import { Result, Schema } from "effect";
-import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { useContext, useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   attachInstruction,
@@ -18,48 +20,195 @@ import {
   type Instruction,
 } from "@atlaskit/pragmatic-drag-and-drop-hitbox/list-item";
 import { DropIndicator } from "@atlaskit/pragmatic-drag-and-drop-react-drop-indicator/list-item";
-import { Button } from "../../components/ui/button";
-import { WallSection } from "./WallSection";
-import { stackMoveTargetSchema, wallInsertionTargetSchema } from "./wallInsertionTargetSchema";
+import { Button } from "@/components/ui/button";
+import { WallSection } from "@qrk.sh/library/WallSection";
+import {
+  stackMoveTargetSchema,
+  wallInsertionTargetSchema,
+} from "@qrk.sh/library/wallInsertionTargetSchema";
+import { useNavigate, useParams, useSearch } from "@tanstack/react-router";
+import { useLiveQuery } from "@zerospin/react";
+import { makeId, stageAggregateSessionCommand } from "@zerospin/sdk/browser";
+import { makeModelIdSchema } from "@zerospin/core/models/make/makeModelIdSchema";
+import { isNonEmptySpec } from "@json-render/core";
+import { modulesHash } from "@qrk.sh/library/modulesHash";
+import { useWallViewport } from "@qrk.sh/library/WallViewportProvider";
+import { BrickWrapper } from "@qrk.sh/library/BrickWrapper";
+import { BrickCardStyleContext } from "@qrk.sh/library/BrickCardStyleContext";
+import { brickV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/brick/BrickV1";
+import { placementV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/placement/PlacementV1";
+import { stackV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/stack/StackV1";
+import { pageV3 } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV3";
+import { UserUI } from "@/zerospin/UserUI";
 
-/** Controlled wall presentation: the caller owns persistence or local story fixtures. */
-export function WallTree(props: {
-  wallId: string;
-  breakpoint: "sm" | "md" | "lg" | "xl";
-  sections: {
-    id: string;
-    stacks: {
-      id: string;
-      name: string;
-      rows: {
-        id: string;
-        placements: { id: string; brickId: string; minWidth: number; content: ReactNode }[];
-      }[];
-    }[];
-  }[];
-  selectedBrickId?: string | null;
-  isActive?: boolean;
-  onAddModule?: (moduleId: string, target: typeof wallInsertionTargetSchema.Type) => boolean | void;
-  onMovePlacement: (
-    placementId: string,
-    target: typeof wallInsertionTargetSchema.Type,
-  ) => boolean | void;
-  onMoveStack: (stackId: string, target: typeof stackMoveTargetSchema.Type) => boolean | void;
-  onEditBrick: (brickId: string) => void;
-  onDeleteBrick: (brickId: string) => boolean | void;
-}) {
-  const {
-    wallId,
-    breakpoint,
-    sections,
-    selectedBrickId,
-    isActive = true,
-    onAddModule,
-    onMovePlacement,
-    onMoveStack,
-    onEditBrick,
-    onDeleteBrick,
-  } = props;
+/** Session-backed wall editor shared by the connected app and mock-session stories. */
+export function WallEditor(props: { breakpoint: "sm" | "md" | "lg" | "xl" }) {
+  const { breakpoint } = props;
+  const cardStyle = useContext(BrickCardStyleContext);
+  const params = useParams({ from: "/$username/site/$siteId/page/$pageId" });
+  const pageId = Schema.decodeUnknownSync(makeModelIdSchema(pageV3))(params.pageId);
+  const search = useSearch({ from: "/$username/site/$siteId/page/$pageId" });
+  const navigate = useNavigate();
+  const session = UserUI.useSession();
+  const { activeBreakpoint } = useWallViewport();
+  const isActive = breakpoint === activeBreakpoint;
+  const { data: wall } = useLiveQuery({
+    session,
+    key: { pageId, breakpoint },
+    query: (db, key) =>
+      db.query.wall.findFirst({
+        where: { pageId: { eq: key.pageId }, breakpoint: { eq: key.breakpoint } },
+        with: {
+          sections: {
+            with: {
+              stacks: { with: { rows: { with: { placements: { with: { brick: true } } } } } },
+            },
+          },
+        },
+      }),
+  });
+  const wallId = wall?.id;
+  const { brickId: selectedBrickId } = useParams({ strict: false });
+  let insertionTarget: typeof wallInsertionTargetSchema.Type | null = null;
+  if (search.insertion !== undefined) {
+    try {
+      insertionTarget = Schema.decodeUnknownSync(wallInsertionTargetSchema)(
+        JSON.parse(search.insertion),
+      );
+    } catch {
+      // Invalid route input stays a refusal; it must never become an append target.
+    }
+  }
+  const targetWallId = insertionTarget?.wallId;
+  const insertionValue = search.insertion;
+  useEffect(() => {
+    if (!isActive) return;
+    if (insertionValue !== undefined && (targetWallId === undefined || targetWallId !== wallId)) {
+      void navigate({ to: ".", replace: true, search: {}, resetScroll: false });
+    }
+  }, [isActive, wallId, insertionValue, targetWallId, navigate]);
+
+  function onEditBrick(brickId: string) {
+    void navigate({
+      to: "/$username/site/$siteId/page/$pageId/brick/$brickId",
+      params: { ...params, brickId },
+      search: {},
+      resetScroll: false,
+    });
+  }
+
+  function onAddModule(moduleId: string, target: typeof wallInsertionTargetSchema.Type) {
+    if (!isActive || target.wallId !== wallId) return false;
+    const module = Object.values(modulesHash).find((entry) => entry.id === moduleId);
+    if (module === undefined) return false;
+    const id = session.runSync(makeId(brickV1));
+    const result = stageAggregateSessionCommand({
+      session,
+      contractName: "addBrick",
+      payload: { id, pageId, moduleId: module.id, target },
+    });
+    if (result._tag === "Success") onEditBrick(id);
+    return result._tag === "Success";
+  }
+
+  function onMovePlacement(id: string, target: typeof wallInsertionTargetSchema.Type) {
+    const placementId = Schema.decodeUnknownSync(makeModelIdSchema(placementV1))(id);
+    return (
+      stageAggregateSessionCommand({
+        session,
+        contractName: "movePlacement",
+        payload: { id: crypto.randomUUID(), placementId, target },
+      })._tag === "Success"
+    );
+  }
+
+  function onMoveStack(id: string, target: typeof stackMoveTargetSchema.Type) {
+    const stackId = Schema.decodeUnknownSync(makeModelIdSchema(stackV1))(id);
+    return (
+      stageAggregateSessionCommand({
+        session,
+        contractName: "moveStack",
+        payload: { id: crypto.randomUUID(), stackId, target },
+      })._tag === "Success"
+    );
+  }
+
+  function onDeleteBrick(id: string) {
+    const brickId = Schema.decodeUnknownSync(makeModelIdSchema(brickV1))(id);
+    const result = stageAggregateSessionCommand({
+      session,
+      contractName: "deleteBrick",
+      payload: { brickId },
+    });
+    if (result._tag === "Success" && selectedBrickId === brickId) {
+      void navigate({
+        to: "/$username/site/$siteId/page/$pageId",
+        params,
+        search: {},
+        resetScroll: false,
+      });
+    }
+    return result._tag === "Success";
+  }
+
+  const sections = [...(wall?.sections ?? [])]
+    .sort((a, b) => a.position - b.position)
+    .map((section) => ({
+      id: section.id,
+      stacks: [...section.stacks]
+        .sort((a, b) => a.position - b.position)
+        .map((stack) => ({
+          id: stack.id,
+          name: stack.name,
+          rows: [...stack.rows]
+            .sort((a, b) => a.position - b.position)
+            .map((row) => ({
+              id: row.id,
+              placements: [...row.placements]
+                .sort((a, b) => a.position - b.position)
+                .map((placement) => {
+                  const brick = placement.brick;
+                  const module =
+                    brick === null || brick === undefined
+                      ? undefined
+                      : modulesHash[brick.moduleId];
+                  const Component = module?.component;
+                  return {
+                    id: placement.id,
+                    brickId: brick?.id ?? "",
+                    minWidth: module?.viewFor(breakpoint).minWidth ?? 160,
+                    content:
+                      Component === undefined ||
+                      brick === null ||
+                      brick === undefined ||
+                      module === undefined ? (
+                        <p role="alert">Brick unavailable</p>
+                      ) : brick.state === null || isNonEmptySpec(placement.spec) ? (
+                        <div
+                          data-brick-surface=""
+                          data-card-style={cardStyle}
+                          className="brick-hover-target relative min-w-0"
+                        >
+                          <BrickWrapper className="brick-hover-surface h-auto w-full min-w-0">
+                            <Component
+                              state={brick.state}
+                              breakpoint={breakpoint}
+                              spec={
+                                isNonEmptySpec(placement.spec)
+                                  ? placement.spec
+                                  : module.defaultSpec
+                              }
+                            />
+                          </BrickWrapper>
+                        </div>
+                      ) : (
+                        <p role="alert">Invalid Brick spec</p>
+                      ),
+                  };
+                }),
+            })),
+        })),
+    }));
   const scope = useId();
   const rootRef = useRef<HTMLDivElement>(null);
   const sectionsRef = useRef<HTMLDivElement>(null);
@@ -82,7 +231,7 @@ export function WallTree(props: {
   useEffect(() => {
     const root = rootRef.current;
     const sectionList = sectionsRef.current;
-    if (!root || !sectionList || !isActive) return;
+    if (!root || !sectionList || !isActive || wallId === undefined) return;
     const disposers: (() => void)[] = [];
     const stacks = sections.flatMap((section) =>
       section.stacks.map((stack) => ({ ...stack, sectionId: section.id })),
@@ -96,7 +245,7 @@ export function WallTree(props: {
     const accepts = (data: Record<string | symbol, unknown>) =>
       data.wallId === wallId &&
       (data.kind === "wall-module"
-        ? onAddModule !== undefined && typeof data.moduleId === "string"
+        ? typeof data.moduleId === "string"
         : data.scope === scope &&
           ((data.kind === "placement" && placements.some((entry) => entry.id === data.id)) ||
             (data.kind === "stack" && stacks.some((entry) => entry.id === data.id))));
@@ -375,7 +524,7 @@ export function WallTree(props: {
           const decoded = Schema.decodeUnknownResult(wallInsertionTargetSchema)(target.data.target);
           if (Result.isFailure(decoded)) return;
           if (source.data.kind === "wall-module" && typeof source.data.moduleId === "string") {
-            if (onAddModule?.(source.data.moduleId, decoded.success) !== false)
+            if (onAddModule(source.data.moduleId, decoded.success) !== false)
               announce("Brick added to the Wall.");
           } else if (
             source.data.kind === "placement" &&
@@ -395,6 +544,14 @@ export function WallTree(props: {
       setIndicator(null);
     });
   }, [wallId, sections, scope, isActive, stackLimit, onAddModule, onMovePlacement, onMoveStack]);
+
+  if (wall === undefined) {
+    return (
+      <p role="status" className="p-6">
+        This page's wall is unavailable.
+      </p>
+    );
+  }
 
   const finalFocus = () =>
     rootRef.current?.ownerDocument.getElementById(returnFocusId.current ?? "") ??

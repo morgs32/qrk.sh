@@ -303,8 +303,9 @@ scrolling page so sticky positioning remains effective through page content.
 
 The page layout keeps site/page settings drafts, `MainColumns`, `PagePreview`,
 and the authenticated user session mounted. `PagePreview` owns responsive preview
-frames, breakpoint transitions, and scrolling; `WallEditorProvider` supplies the
-saved Wall contents. `EditorLayout` owns the persistent bottom drawer shell.
+frames, breakpoint transitions, and scrolling. App's `WallEditor` reads `UserUI`
+directly to query the active Wall and issue editor commands. `EditorLayout` owns
+the persistent bottom drawer shell.
 Matched route IDs determine its `open` state through a pathless drawer layout;
 catalog and module-detail routes are sibling leaves. `EditorLayout` supplies
 `DrawerHeader` through the shared Drawer's `persistentHeader` slot. It owns catalog breadcrumbs, the brick-detail
@@ -520,10 +521,15 @@ reference the final App Page directly. Canonical declarations/commands live in
 QRK's user aggregate; no second persisted Library host or declaration-binding
 factory exists.
 
-`WallEditorProvider` uses the initialized App session to query the Page's layouts
-and supplies shared `WallTree` presentation and action callbacks. Selected means
-the Brick form is open; active means DOM focus. Grip/menu controls stay separate
-from live module content. Adding at a stable insertion target creates the Brick,
+App's `WallEditor` queries its breakpoint's Wall through `UserUI.useSession()`
+and owns drag/drop, command staging, selected Brick routing, and deletion
+confirmation. Shared `WallSection`, `WallStack`, `WallRow`, and `WallPlacement`
+components render the resulting layout. The app and Storybook mount this same
+editor under connected and mock initializers respectively; stories seed a mock
+session and use the real queries and commands rather than fixture mutations.
+The module chooser reads its session and URL insertion inputs directly. Selected
+means the Brick form is open; active means DOM focus. Grip/menu controls stay
+separate from live module content. Adding at a stable insertion target creates the Brick,
 all four Placements, and required parent containers atomically, then opens its
 form after local staging succeeds. Other widths append a new Row to their last
 Stack. Cancelling the chooser creates nothing; cancelling a created Brick's

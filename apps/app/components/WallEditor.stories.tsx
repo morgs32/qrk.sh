@@ -7,10 +7,10 @@ import {
   RouterProvider,
   useNavigate,
 } from "@tanstack/react-router";
-import { MockInitializer } from "@zerospin/react";
+import { MockInitializer, useLiveQuery } from "@zerospin/react";
 import { prefixId } from "@zerospin/sdk/browser";
 import { Schema } from "effect";
-import { useContext, useState } from "react";
+import { useState } from "react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { TransformComponent, TransformWrapper } from "react-zoom-pan-pinch";
 import { WallBreakpointPane } from "@qrk.sh/library/WallBreakpointPane";
@@ -21,8 +21,7 @@ import { makePlacementId } from "@qrk.sh/library/makePlacementId";
 import { modulesHash } from "@qrk.sh/library/modulesHash";
 import { UserUI } from "@/zerospin/UserUI";
 import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
-import { WallEditorProvider } from "@/app/[username]/site/[siteId]/page/[pageId]/WallEditorProvider";
-import { WallEditorContext } from "@/app/[username]/site/[siteId]/page/[pageId]/WallEditorContext";
+import { WallEditor } from "@/app/[username]/site/[siteId]/page/[pageId]/WallEditor";
 import { BrickDetail } from "@/app/[username]/site/[siteId]/page/[pageId]/BrickDetail/BrickDetail";
 
 const { user, site, page, wall, section, stack, row, brick, placement } =
@@ -170,24 +169,29 @@ function WallStoryPage() {
   const { regionRef } = useWallViewport();
   return (
     <div ref={regionRef} className="w-full">
-      <WallEditorProvider>
-        <WallStoryContent />
-      </WallEditorProvider>
+      <WallStoryContent />
     </div>
   );
 }
 
 function WallStoryContent() {
-  const editor = useContext(WallEditorContext);
   const { activeBreakpoint } = useWallViewport();
   const navigate = useNavigate();
-  if (editor === null) throw new Error("Wall story requires WallEditorProvider");
+  const session = UserUI.useSession();
+  const { data: activeWall } = useLiveQuery({
+    session,
+    key: { pageId, breakpoint: activeBreakpoint ?? "sm" },
+    query: (db, key) =>
+      db.query.wall.findFirst({
+        where: { pageId: { eq: key.pageId }, breakpoint: { eq: key.breakpoint } },
+      }),
+  });
   return (
     <div className="grid gap-3">
       <div className="flex items-center gap-3 border bg-background p-2 text-sm">
         <span>Drag a module into the wall</span>
-        {editor.activeWallId !== null ? (
-          <WallModuleAction wallId={editor.activeWallId} moduleId="swatch-and-icon" />
+        {activeBreakpoint !== null && activeWall !== undefined ? (
+          <WallModuleAction wallId={activeWall.id} moduleId="swatch-and-icon" />
         ) : null}
       </div>
       <p className="text-xs text-muted-foreground">
@@ -197,7 +201,7 @@ function WallStoryContent() {
         {activeBreakpoint === null ? (
           <p>At least 360px is needed.</p>
         ) : (
-          editor.renderWall(activeBreakpoint)
+          <WallEditor breakpoint={activeBreakpoint} />
         )}
       </div>
       <button

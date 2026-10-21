@@ -1,14 +1,14 @@
+import { modelRef } from "@zerospin/sdk/browser";
 import { makeModelVersion } from "@zerospin/core/models/make/makeModelVersion";
 import { primitives } from "@zerospin/shapes";
-import type { IModel } from "@zerospin/core/models/types";
 import { Schema } from "effect";
 
-export function makeBrickModel<const PAGE extends Pick<IModel, "table">>(props: { page: PAGE; identity: { name: "brick"; abbreviation: "brk" } }) {
+export function makeBrickModel(props: { page: { name: "page"; abbreviation: "pag" }; identity: { name: "brick"; abbreviation: "brk" } }) {
   const { page, identity } = props;
   return makeModelVersion(identity, {
     version: "1.0.0",
     attributes: {
-      pageId: primitives.ref({ table: page.table, relation: "page", inverse: "bricks" }),
+      pageId: modelRef({ model: page, relation: "page", inverse: "bricks" }),
       moduleId: primitives.enum({
         values: [
           "article",

@@ -58,7 +58,7 @@ importers:
         version: 1.1.0
       '@json-render/core':
         specifier: ^0.20.0
-        version: 0.20.0(zod@4.6.6)
+        version: 0.20.0
       '@qrk.sh/library':
         specifier: workspace:*
         version: link:../library
@@ -69,23 +69,23 @@ importers:
         specifier: ^0.22.1
         version: 0.22.1
       '@zerospin/core':
-        specifier: 20.0.1
-        version: 20.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+        specifier: 20.1.1
+        version: 20.1.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       '@zerospin/error':
-        specifier: 20.0.1
-        version: 20.0.1(effect@4.0.2)
+        specifier: 20.1.1
+        version: 20.1.1(effect@4.0.2)
       '@zerospin/logger':
-        specifier: 20.0.1
-        version: 20.0.1(effect@4.0.2)
+        specifier: 20.1.1
+        version: 20.1.1(effect@4.0.2)
       '@zerospin/shapes':
-        specifier: 20.0.1
-        version: 20.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.1)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+        specifier: 20.1.1
+        version: 20.1.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(effect@4.0.2)(sql.js@1.15.1)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       capnweb:
         specifier: ^0.12.0
         version: 0.12.0
       drizzle-orm:
         specifier: 1.0.0-rc.4
-        version: 1.0.0-rc.4(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.1)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+        version: 1.0.0-rc.4(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(effect@4.0.2)(sql.js@1.15.1)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       effect:
         specifier: 4.0.2
         version: 4.0.2
@@ -93,8 +93,8 @@ importers:
         specifier: ^1.52.0
         version: 1.52.0
       system-worker:
-        specifier: 20.0.1
-        version: 20.0.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.9.5)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(sql.js@1.15.1)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+        specifier: 20.1.1
+        version: 20.1.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.10.0))(@types/node@25.9.5)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(sql.js@1.15.1)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
     devDependencies:
       '@types/node':
         specifier: ^25.5.2
@@ -122,7 +122,7 @@ importers:
         version: 5.3.0
       '@json-render/core':
         specifier: ^0.20.0
-        version: 0.20.0(zod@4.6.6)
+        version: 0.20.0
       '@qrk.sh/library':
         specifier: workspace:*
         version: link:../library
@@ -158,31 +158,31 @@ importers:
         version: 1.169.3(@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.9.5)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))(esbuild@0.28.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@vercel/analytics':
         specifier: ^2.0.1
-        version: 2.0.1(next@16.3.4(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass@1.104.1))(react@19.2.7)
+        version: 2.0.1(next@16.3.4(@babel/core@7.29.7)(@opentelemetry/api@1.10.0)(@types/node@25.9.5)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass@1.104.1))(react@19.2.7)
       '@vercel/speed-insights':
         specifier: ^2.0.0
-        version: 2.0.0(next@16.3.4(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass@1.104.1))(react@19.2.7)
+        version: 2.0.0(next@16.3.4(@babel/core@7.29.7)(@opentelemetry/api@1.10.0)(@types/node@25.9.5)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass@1.104.1))(react@19.2.7)
       '@zerospin/browser':
-        specifier: 20.0.1
-        version: 20.0.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.9.5)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.1)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+        specifier: 20.1.1
+        version: 20.1.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.10.0))(@types/node@25.9.5)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.1)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       '@zerospin/core':
-        specifier: 20.0.1
-        version: 20.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+        specifier: 20.1.1
+        version: 20.1.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       '@zerospin/devtools':
-        specifier: 20.0.1
-        version: 20.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(sql.js@1.15.1)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+        specifier: 20.1.1
+        version: 20.1.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(sql.js@1.15.1)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       '@zerospin/error':
-        specifier: 20.0.1
-        version: 20.0.1(effect@4.0.2)
+        specifier: 20.1.1
+        version: 20.1.1(effect@4.0.2)
       '@zerospin/react':
-        specifier: 20.0.1
-        version: 20.0.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@tanstack/react-start@1.169.3(@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.9.5)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))(esbuild@0.28.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(@types/node@25.9.5)(@types/react@19.2.17)(date-fns@4.4.0)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.1)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+        specifier: 20.1.1
+        version: 20.1.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.10.0))(@tanstack/react-start@1.169.3(@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.9.5)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))(esbuild@0.28.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(@types/node@25.9.5)(@types/react@19.2.17)(date-fns@4.4.0)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.1)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       '@zerospin/sdk':
-        specifier: 20.0.1
-        version: 20.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(sql.js@1.15.1)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+        specifier: 20.1.1
+        version: 20.1.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(sql.js@1.15.1)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       '@zerospin/shapes':
-        specifier: 20.0.1
-        version: 20.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.1)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+        specifier: 20.1.1
+        version: 20.1.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(effect@4.0.2)(sql.js@1.15.1)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -243,13 +243,13 @@ importers:
         version: 1.6.0(@types/react@19.2.17)(date-fns@4.4.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@storybook/addon-a11y':
         specifier: ^10.6.0
-        version: 10.6.0(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)))
+        version: 10.6.0(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)))
       '@storybook/addon-docs':
         specifier: ^10.6.0
-        version: 10.6.0(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)))
+        version: 10.6.0(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)))
       '@storybook/react-vite':
         specifier: ^10.6.0
-        version: 10.6.0(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.9.5)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)))(typescript@6.0.2)
+        version: 10.6.0(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.9.5)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)))(typescript@6.0.2)
       '@tailwindcss/postcss':
         specifier: 4.2.2
         version: 4.2.2
@@ -279,7 +279,7 @@ importers:
         version: 1.104.1
       storybook:
         specifier: ^10.6.0
-        version: 10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))
+        version: 10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))
       tailwindcss:
         specifier: ^4.2.2
         version: 4.3.3
@@ -294,7 +294,7 @@ importers:
         version: '@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.9.5)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)'
       vite-plus:
         specifier: 1.0.0
-        version: 1.0.0(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)
+        version: 1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)
       wrangler:
         specifier: ^4.127.1
         version: 4.131.2(@cloudflare/workers-types@5.20260828.1)(@types/node@25.9.5)
@@ -321,10 +321,10 @@ importers:
         version: 0.27.20(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@json-render/core':
         specifier: ^0.20.0
-        version: 0.20.0(zod@4.6.6)
+        version: 0.20.0
       '@json-render/react':
         specifier: ^0.20.0
-        version: 0.20.0(react@19.2.7)(zod@4.6.6)
+        version: 0.20.0(react@19.2.7)
       '@meowdown/core':
         specifier: 0.72.1
         version: 0.72.1(@lezer/common@1.5.3)(@shikijs/types@4.5.0)(@types/hast@3.0.5)(prosemirror-model@1.25.12)(prosemirror-state@1.4.4)(prosemirror-transform@1.12.2)(prosemirror-view@1.42.6)(typescript@6.0.2)(yjs@13.6.33)
@@ -354,22 +354,22 @@ importers:
         version: 1.0.0(react@19.2.7)
       '@unpic/react':
         specifier: 1.0.2
-        version: 1.0.2(next@16.3.4(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass@1.104.1))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+        version: 1.0.2(next@16.3.4(@babel/core@7.29.7)(@opentelemetry/api@1.10.0)(@types/node@25.9.5)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass@1.104.1))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@zerospin/core':
-        specifier: 20.0.1
-        version: 20.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+        specifier: 20.1.1
+        version: 20.1.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       '@zerospin/error':
-        specifier: 20.0.1
-        version: 20.0.1(effect@4.0.2)
+        specifier: 20.1.1
+        version: 20.1.1(effect@4.0.2)
       '@zerospin/sdk':
-        specifier: 20.0.1
-        version: 20.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(sql.js@1.15.1)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+        specifier: 20.1.1
+        version: 20.1.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(sql.js@1.15.1)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       '@zerospin/shapes':
-        specifier: 20.0.1
-        version: 20.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.1)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+        specifier: 20.1.1
+        version: 20.1.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(effect@4.0.2)(sql.js@1.15.1)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       '@zerospin/zod':
-        specifier: 20.0.1
-        version: 20.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.1)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+        specifier: 20.1.1
+        version: 20.1.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(effect@4.0.2)(sql.js@1.15.1)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       capnweb:
         specifier: ^0.12.0
         version: 0.12.0
@@ -430,13 +430,13 @@ importers:
         version: 5.20260828.1
       '@storybook/addon-a11y':
         specifier: ^10.6.0
-        version: 10.6.0(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)))
+        version: 10.6.0(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)))
       '@storybook/addon-docs':
         specifier: ^10.6.0
-        version: 10.6.0(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)))
+        version: 10.6.0(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)))
       '@storybook/react-vite':
         specifier: ^10.6.0
-        version: 10.6.0(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.9.5)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)))(typescript@6.0.2)
+        version: 10.6.0(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.9.5)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)))(typescript@6.0.2)
       '@tailwindcss/cli':
         specifier: 4.3.3
         version: 4.3.3
@@ -475,7 +475,7 @@ importers:
         version: 1.104.1
       storybook:
         specifier: ^10.6.0
-        version: 10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))
+        version: 10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))
       tailwindcss:
         specifier: 4.3.3
         version: 4.3.3
@@ -487,7 +487,7 @@ importers:
         version: '@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.9.5)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)'
       vite-plus:
         specifier: 1.0.0
-        version: 1.0.0(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)
+        version: 1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)
 
   apps/scraper:
     dependencies:
@@ -495,14 +495,14 @@ importers:
         specifier: ^1.1.0
         version: 1.1.0
       '@zerospin/core':
-        specifier: 20.0.1
-        version: 20.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+        specifier: 20.1.1
+        version: 20.1.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       capnweb:
         specifier: ^0.12.0
         version: 0.12.0
       drizzle-orm:
         specifier: 1.0.0-rc.4
-        version: 1.0.0-rc.4(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.1)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+        version: 1.0.0-rc.4(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(effect@4.0.2)(sql.js@1.15.1)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       effect:
         specifier: 4.0.2
         version: 4.0.2
@@ -524,16 +524,16 @@ importers:
     dependencies:
       '@clerk/nextjs':
         specifier: ^7.1.0
-        version: 7.1.0(next@16.3.4(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@types/node@25.5.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass@1.104.1))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+        version: 7.1.0(next@16.3.4(@babel/core@7.29.7)(@opentelemetry/api@1.10.0)(@types/node@25.5.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass@1.104.1))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@radix-ui/react-slot':
         specifier: ^1.2.4
         version: 1.2.4(@types/react@19.2.17)(react@19.2.7)
       '@vercel/analytics':
         specifier: ^2.0.1
-        version: 2.0.1(next@16.3.4(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@types/node@25.5.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass@1.104.1))(react@19.2.7)
+        version: 2.0.1(next@16.3.4(@babel/core@7.29.7)(@opentelemetry/api@1.10.0)(@types/node@25.5.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass@1.104.1))(react@19.2.7)
       '@vercel/speed-insights':
         specifier: ^2.0.0
-        version: 2.0.0(next@16.3.4(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@types/node@25.5.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass@1.104.1))(react@19.2.7)
+        version: 2.0.0(next@16.3.4(@babel/core@7.29.7)(@opentelemetry/api@1.10.0)(@types/node@25.5.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass@1.104.1))(react@19.2.7)
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -545,7 +545,7 @@ importers:
         version: 13.2.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       next:
         specifier: ^16.3.4
-        version: 16.3.4(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@types/node@25.5.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass@1.104.1)
+        version: 16.3.4(@babel/core@7.29.7)(@opentelemetry/api@1.10.0)(@types/node@25.5.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass@1.104.1)
       react:
         specifier: 19.2.7
         version: 19.2.7
@@ -561,10 +561,10 @@ importers:
         version: 5.3.0
       '@storybook/addon-docs':
         specifier: ^10.6.0
-        version: 10.6.0(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.9.1)(@types/node@25.5.2)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)))
+        version: 10.6.0(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.5.2)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)))
       '@storybook/react-vite':
         specifier: ^10.6.0
-        version: 10.6.0(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.5.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.9.1)(@types/node@25.5.2)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)))(typescript@6.0.2)
+        version: 10.6.0(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.5.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.5.2)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)))(typescript@6.0.2)
       '@tailwindcss/postcss':
         specifier: ^4.2.2
         version: 4.2.2
@@ -585,7 +585,7 @@ importers:
         version: 6.0.3(@rolldown/plugin-babel@0.2.4(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@types/node@25.5.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))(@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.5.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))
       storybook:
         specifier: ^10.6.0
-        version: 10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.9.1)(@types/node@25.5.2)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))
+        version: 10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.5.2)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))
       tailwindcss:
         specifier: ^4.2.2
         version: 4.2.2
@@ -597,7 +597,7 @@ importers:
         version: '@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.5.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)'
       vite-plus:
         specifier: 1.0.0
-        version: 1.0.0(@opentelemetry/api@1.9.1)(@types/node@25.5.2)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)
+        version: 1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.5.2)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)
 
   apps/zerospin:
     dependencies:
@@ -611,20 +611,20 @@ importers:
         specifier: ^0.22.1
         version: 0.22.1
       '@zerospin/core':
-        specifier: 20.0.1
-        version: 20.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+        specifier: 20.1.1
+        version: 20.1.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       '@zerospin/error':
-        specifier: 20.0.1
-        version: 20.0.1(effect@4.0.2)
+        specifier: 20.1.1
+        version: 20.1.1(effect@4.0.2)
       '@zerospin/logger':
-        specifier: 20.0.1
-        version: 20.0.1(effect@4.0.2)
+        specifier: 20.1.1
+        version: 20.1.1(effect@4.0.2)
       '@zerospin/sdk':
-        specifier: 20.0.1
-        version: 20.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(sql.js@1.15.1)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+        specifier: 20.1.1
+        version: 20.1.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(sql.js@1.15.1)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       '@zerospin/shapes':
-        specifier: 20.0.1
-        version: 20.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.1)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+        specifier: 20.1.1
+        version: 20.1.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(effect@4.0.2)(sql.js@1.15.1)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       capnweb:
         specifier: ^0.12.0
         version: 0.12.0
@@ -632,24 +632,24 @@ importers:
         specifier: 4.0.2
         version: 4.0.2
       system-worker:
-        specifier: 20.0.1
-        version: 20.0.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.5.2)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(sql.js@1.15.1)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+        specifier: 20.1.1
+        version: 20.1.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.10.0))(@types/node@25.5.2)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(sql.js@1.15.1)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
     devDependencies:
       '@types/node':
         specifier: ^25.5.2
         version: 25.5.2
       '@zerospin/cli':
-        specifier: 20.0.1
-        version: 20.0.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@rolldown/plugin-babel@0.2.4(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@types/node@25.5.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))(@types/node@25.5.2)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(date-fns@4.4.0)(effect@4.0.2)(esbuild@0.28.2)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.1)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(yaml@2.9.1)
+        specifier: 20.1.1
+        version: 20.1.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.10.0))(@rolldown/plugin-babel@0.2.4(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@types/node@25.5.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))(@types/node@25.5.2)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(date-fns@4.4.0)(effect@4.0.2)(esbuild@0.28.2)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.1)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(yaml@2.9.1)
       '@zerospin/dev-worker':
-        specifier: 20.0.1
-        version: 20.0.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.5.2)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.1)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+        specifier: 20.1.1
+        version: 20.1.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.10.0))(@types/node@25.5.2)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.1)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       cloudflare:
         specifier: ^6.1.0
         version: 6.5.0
       drizzle-orm:
         specifier: 1.0.0-rc.4
-        version: 1.0.0-rc.4(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.1)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+        version: 1.0.0-rc.4(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(effect@4.0.2)(sql.js@1.15.1)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       typescript:
         specifier: ^6.0.2
         version: 6.0.2
@@ -1992,8 +1992,6 @@ packages:
 
   '@json-render/core@0.20.0':
     resolution: {integrity: sha512-cXAXn7h3QaylefQgh85AEGPuVq4C8SJ3k9JqigWLJhaBSozF1Fmsrm43DP16RmkqNiVgj5pBRdmB48lEO5qlow==}
-    peerDependencies:
-      zod: 4.6.6
 
   '@json-render/react@0.20.0':
     resolution: {integrity: sha512-arRrlf7zeIJYM6i2JHcTBKW5Kl+ErBtoNR29h4i6rG4AtTzLmaWDgPTs35pr3MdSCTp0UxKwY4O3vWMdUihpRQ==}
@@ -2229,8 +2227,8 @@ packages:
     resolution: {integrity: sha512-hAX0pT/73190NLqBPPWSdBVGtbY6VOhWYK3qqHqtXQ1gK7kS2yz4+ivsN07hpJ6I3aeMtKP6J6npsEKOAzuTLA==}
     engines: {node: '>=20.0'}
 
-  '@opentelemetry/api@1.9.1':
-    resolution: {integrity: sha512-gLyJlPHPZYdAk1JENA9LeHejZe1Ti77/pTeFm/nMXmQH/HFZlcS/O2XJB+L8fkbrNSqhdtlvjBVjxwUYanNH5Q==}
+  '@opentelemetry/api@1.10.0':
+    resolution: {integrity: sha512-lMkyes8iHrG+mk6WH7X70MdCLI2RS0FwNBY1PyQ8UemaijE2m5mv5A0Niy3HtbYTFrgkUEQjFMXmSAk2hQDuPQ==}
     engines: {node: '>=8.0.0'}
 
   '@opentelemetry/context-async-hooks@2.12.0':
@@ -4852,6 +4850,21 @@ packages:
       babel-plugin-react-compiler:
         optional: true
 
+  '@vitejs/plugin-react@6.1.2':
+    resolution: {integrity: sha512-fhJNGUdscQa4HkI0xFxwonWyhnVReCPDbXI7FH7jmzpnVCrFQI7PRrhWecO263610vOrs9tr2Y4xcf8uAdFxbw==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    peerDependencies:
+      '@rolldown/plugin-babel': ^0.1.7 || ^0.2.0
+      babel-plugin-react-compiler: ^1.0.0
+      oxc-transform-react: ^0.152.0
+    peerDependenciesMeta:
+      '@rolldown/plugin-babel':
+        optional: true
+      babel-plugin-react-compiler:
+        optional: true
+      oxc-transform-react:
+        optional: true
+
   '@vitest/browser-preview@5.0.1':
     resolution: {integrity: sha512-NagNnZD6A8ccl+pycLWX2b/e9YJtH5NuDUyiiadQjptMRuZVBAB9r9I3itdKm6exxtcl+rOTv2rWt6vu5uOm1A==}
     peerDependencies:
@@ -5191,40 +5204,40 @@ packages:
   '@zag-js/utils@1.46.0':
     resolution: {integrity: sha512-SOKa832hWCoXaYB2Pcdb0c+ZcyNSuAAPpL5YRnVHskuc0BEsHPWOhxSIxuGF1gvz4RsfBKiAHrDoFDl8JLSOEg==}
 
-  '@zerospin/browser@20.0.1':
-    resolution: {integrity: sha512-Jd2rJi8LcJ0pVAvz8vkShBWsqLxHPm1m7uiNHJBTZ3XW8rVwkswR8WLZfBcZKNRHCMXHI+rT8MQJhWREpaRVfg==}
+  '@zerospin/browser@20.1.1':
+    resolution: {integrity: sha512-+Jja44ozhe0ZW2JiKt4Mt7y4e+WCuJCQPo2Nn2Ru8A9Ola0Gjp8Jjt7vibwEMGsa8gzXXoaMvrm6HsvpqnpvTQ==}
     peerDependencies:
       effect: 4.0.2
 
-  '@zerospin/cli@20.0.1':
-    resolution: {integrity: sha512-3Qw9+OSYykjRZvbis1kJmUuPnA+Exy+/jq6RJFslW50lStIyXZRnCd7GD0Ovrah8qLZ41p5KUN7Sgzpr57uqvw==}
+  '@zerospin/cli@20.1.1':
+    resolution: {integrity: sha512-YKBtvcWISaUCoX8aV+ZGmRkc3r2YMwGOWd0AjICVEDh2XeSXdx3ZS02xVrOByeBgnfBNsGPveTCWNnsBImdGdA==}
     engines: {node: '>=18'}
     hasBin: true
     peerDependencies:
       effect: 4.0.2
 
-  '@zerospin/core@20.0.1':
-    resolution: {integrity: sha512-ytHXOpQUnnm9h1vk1lpun7EqmxFoOsITignrAV1Vgi00xLKoc+EBKhqc1BhixTMlO7eRtVkwhViUgNSWgBvzbQ==}
+  '@zerospin/core@20.1.1':
+    resolution: {integrity: sha512-dhbMEFH6QTTyN6sF11cZP0BEKABNhqpf+btYHGP+rimzQtcYE+3C16bwiuFEJ2hDcZPlI4M8dsEhAjTAdejJRw==}
     peerDependencies:
       effect: 4.0.2
       react: 19.2.7
       react-dom: 19.2.7
       solid-js: '>=1.9.7'
 
-  '@zerospin/dev-worker@20.0.1':
-    resolution: {integrity: sha512-FNloOuWC+tGkaQZePSbUtPRqugEkHZrhUPaDiECnVn6e5C185xVma9QbY7rPLWi6GCRb2Xep0h0drfNHzTk3PQ==}
+  '@zerospin/dev-worker@20.1.1':
+    resolution: {integrity: sha512-Pe1k+Nwz40UiySRd+8Vy4QwTnhVGXu09iCzfAy8zLR1EvwAOD4ygLFkXk9adguLWoesZa3yMbxejXj0dqqxeeA==}
     peerDependencies:
       effect: 4.0.2
 
-  '@zerospin/devtools@20.0.1':
-    resolution: {integrity: sha512-Wo8HbKdvxloLMzGqMlVV9VR3lUG/BHeAJa7lacwoyS3IHLq7MMnfkga3JipvjXyKajqnsn0NiVaREgZQBDdMSA==}
+  '@zerospin/devtools@20.1.1':
+    resolution: {integrity: sha512-1OLuaxRg9RnNd16DGIkIyIzjwgz2Mw9UdyJzy5vrAi4rCi8EwCpJzxtj/IA3y8VyOWW7fELr6ZpyvF2BApBiWQ==}
     peerDependencies:
       effect: 4.0.2
       react: 19.2.7
       react-dom: 19.2.7
 
-  '@zerospin/error-boundary@20.0.1':
-    resolution: {integrity: sha512-YgyP5osAcRzUVIwA+RlguIbnfWs81R/r7fE5mj7i8yneE8FCSIxRod3rlex93Bip2ftdmQoALKanLHE/nAC+yA==}
+  '@zerospin/error-boundary@20.1.1':
+    resolution: {integrity: sha512-kqclfbI6Ejk+AqCVFz3g3zv9lAdSmSaYkL1iuhE9S3r+lBfNH9U43fkUKegLykJn/YAdGiqKtjISSJ2d2qRkew==}
     peerDependencies:
       effect: 4.0.2
       react: 19.2.7
@@ -5234,36 +5247,36 @@ packages:
       react-router:
         optional: true
 
-  '@zerospin/error@20.0.1':
-    resolution: {integrity: sha512-bzPr4L8zC6H3wnfRsxyACrGqA2I4ejk+E/rFMTkJRut98kDqB8M6l99rrlYWQjLLrrfRntQMkfWCz/GrsEiEVw==}
+  '@zerospin/error@20.1.1':
+    resolution: {integrity: sha512-mYUnduySVFRi4EhkC8/oYCUlqb2tcXEIV59CRMIdNJp6WikJBqLlLaTK4R+OVXqDRlNgVAtB9QX/IYNUHiG/MA==}
     peerDependencies:
       effect: 4.0.2
 
-  '@zerospin/fragment-ui@20.0.1':
-    resolution: {integrity: sha512-lyORbk57gsEAQ5Hm/acVsgVVXZMi/iaDSRxNiY3+/U/fkE6FLC1jOCcMhBqCTOGGzE8eST2ih/X9q9a7XCn2BQ==}
+  '@zerospin/fragment-ui@20.1.1':
+    resolution: {integrity: sha512-k0YtpyhTUJkYT05JNjyzJhaowdpDyzkH4itX4vgsIALg2fjHmvKQMeQnaoOEySXFz08mJh9bRr7VH38ZRY+U7Q==}
     peerDependencies:
       react: 19.2.7
 
-  '@zerospin/live-query@20.0.1':
-    resolution: {integrity: sha512-OwXA9kjDd5r1tuO+OjmnaAOdxQMRFCDe0pbUKUzO26zQm19wSVpDRW0FMs6PSqylXLwnU7ugBc+bplhF2+WvDA==}
+  '@zerospin/live-query@20.1.1':
+    resolution: {integrity: sha512-ZWOMBe2dDjal65e1lvzT/dQKvJZxImtWCseWUUZrpXuh0hx9tUsXw+0JBB505xKxvvKwYDGN54bHqYXpWFc5ug==}
 
-  '@zerospin/logger@20.0.1':
-    resolution: {integrity: sha512-0k/qcNFWDJKgzGmOdWRwzC7izOKOsVDZ1R2htWjoSWgww1p3rFIvPG7UuvbO8/pV82LI6rrWb5sOEVfqx2FLMg==}
+  '@zerospin/logger@20.1.1':
+    resolution: {integrity: sha512-M41Xu5evSJDiqS6LYed1bJDeDMbUDVNHmp8soYkbgVclnIGiXMV9vfuS78jF8maE4xFbuYHl8icmSjvat0Yagw==}
     peerDependencies:
       effect: 4.0.2
 
-  '@zerospin/machine@20.0.1':
-    resolution: {integrity: sha512-o7wSHF9RQY83IUYtZi8Zpod6UjzE5BSp3OQTozxAcO7TB7rhHK85R+viVkMWtEVBI8QrVEdFvgC+pVHllRYJ8g==}
+  '@zerospin/machine@20.1.1':
+    resolution: {integrity: sha512-IOuUtdz0iy0YiJkCWU9Tp8XBNQiurMRaYjtv3+g0vuyvO/Z0iZP8u4qkMe8+VlOq5hXQj7chUYZTgjH4if39AA==}
     peerDependencies:
       effect: 4.0.2
 
-  '@zerospin/production-worker@20.0.1':
-    resolution: {integrity: sha512-QuqZN1vJICwgPDvZsZHU7jtq0Q15pTMqnHwUkh/FWgnf3mdPzDecI84YB1fXSTEc0y0iSvSpA6O3qYulRiDGEw==}
+  '@zerospin/production-worker@20.1.1':
+    resolution: {integrity: sha512-5RKyttlBpuBCHcUyHpugLbeVVw4MqMdwYtKI9FCc+PxqJ0RSiN1frLicuaRi/2tHtPwLlhBSz/4ohQ0YDeCC8g==}
     peerDependencies:
       effect: 4.0.2
 
-  '@zerospin/react@20.0.1':
-    resolution: {integrity: sha512-gGTCEjbroJ62vSRnn1RgYHCrWYR2mPFH0i1DTNvn0vS2PAczSlBTiceaiIqpclQplXXu1DMWRib+LySzMNuaag==}
+  '@zerospin/react@20.1.1':
+    resolution: {integrity: sha512-F/ARv47nxtSecONnO2BiQMBF3NVNBHi5SptcyqHT742/AvHkE34X8jCF/T0qCTarQPhgJoWw7oWcUDd0wAwIKg==}
     peerDependencies:
       '@effect/opentelemetry': ^4.0.2
       '@opentelemetry/sdk-trace-base': ^2.0.1
@@ -5271,26 +5284,26 @@ packages:
       react: 19.2.7
       react-dom: 19.2.7
 
-  '@zerospin/sdk@20.0.1':
-    resolution: {integrity: sha512-wXp7c2l+kKxJmIIlsRnoTCui+9nQ/3MXXtZRkG/0DJel69zf1VCRZsikoCykGmGLyZ6CwLNQcG/KxNPQbctHFg==}
+  '@zerospin/sdk@20.1.1':
+    resolution: {integrity: sha512-jHwWnTqHJqq3efvOLWhUSH0j8UIxokg7UkdrRsD9jTouMT7RAm+ew/d6jye4fL5DOXOofybWKMFCFAbNRKrTnQ==}
     peerDependencies:
       effect: 4.0.2
 
-  '@zerospin/server-only@20.0.1':
-    resolution: {integrity: sha512-DDe3qdn8yBJ3WjAPwUHvSGatO8QzekSYxTgPH9aG3yiy5kHpGpBDuwubIkc3k7Vw4hoHystOnQy1lUtIJWfI3w==}
+  '@zerospin/server-only@20.1.1':
+    resolution: {integrity: sha512-ykykhaB/j98pyXkgnIoUTACdGh70gitwppr5HrWyiZrBwn3v9spMmdtTZuCjbjz9qvBPGxqwDkf/lzB7TeXKtQ==}
 
-  '@zerospin/shapes@20.0.1':
-    resolution: {integrity: sha512-n6aqcnv79PPkcE1oXW1pMOPjXwKUWYOpiGEDYm8dfiDor+wbWI4cjoF5ihmduKKJt/QQxcs6bv9JpHROv9VVWg==}
+  '@zerospin/shapes@20.1.1':
+    resolution: {integrity: sha512-EPHSA2ikP7WXJNxHnw0YcWpbiNmKyQPu3P69N6NlfycGuCPLYxmNXn1cEgPYIP7nt2SoO9CgLqqf2qnAdpXZTQ==}
     peerDependencies:
       effect: 4.0.2
 
-  '@zerospin/studio@20.0.1':
-    resolution: {integrity: sha512-7uASIC/ZKORv3TM0xHn7TXq/HXjwc0PIssFrHnGjbWvqTa86vAn6hi+w1/NjpZTuy6Hc7KYVNzUphgQd+LiXfg==}
+  '@zerospin/studio@20.1.1':
+    resolution: {integrity: sha512-PPVIYJ+LuaQ2zRxobcPPe1rpTRQD0oCTZUI3AJztQj+wC40El5+z/jq0lalwyJ8BVBb4YEwy0kKiyjkv/hvxDg==}
     peerDependencies:
       effect: 4.0.2
 
-  '@zerospin/zod@20.0.1':
-    resolution: {integrity: sha512-o226wMppko9uPrzh4yqnwK04KjcQJPPQrUctMLdyNWDqrccnLAOMK4YX89s6UR07ADGoPu67cM9dFRyAbCSJpA==}
+  '@zerospin/zod@20.1.1':
+    resolution: {integrity: sha512-HgeMjjC1+ZM+/guT1gN8HVVlrVL0HaEQTLdf/emLs+PVteUVfyShI6UOJYGWE1DwQDlr1oMXuyM600yitZor5w==}
     peerDependencies:
       effect: 4.0.2
       zod: 4.6.6
@@ -7696,8 +7709,8 @@ packages:
       '@types/react':
         optional: true
 
-  react-resizable-panels@4.14.7:
-    resolution: {integrity: sha512-UP8lccy1yGA8p8c6UvPaMDnqYePv/CWOv3R6rTAJ9f+UmuaeiTFDJlvcp5rFu5GJcQ1ofCmkjbzp0HceJXZRbw==}
+  react-resizable-panels@4.14.8:
+    resolution: {integrity: sha512-kVot7JCIZct85ZY87vww95R7tI25VSTjHpEAIIy2YcsOtbtwG6l1+vDD6TCYgmgE/JSp0ADqNooHn97Y6dMOFw==}
     peerDependencies:
       react: 19.2.7
       react-dom: 19.2.7
@@ -8281,8 +8294,8 @@ packages:
     resolution: {integrity: sha512-gAQ9qrUN/UCypHtGFbbe7Rc/f9bzO88IwrG8TDo/aMKAApKyD6E3W4Cm0EfhfBb6Z6SKt59tTCTfD+n1xmAvMg==}
     engines: {node: '>=16.0.0'}
 
-  system-worker@20.0.1:
-    resolution: {integrity: sha512-jkk0kwiK1TyYcTtI3cLFbppTn6uTnrf6Bz5aTCsixqKSiP3LHXNNtyXV35eX7oyamJiiLJIkecvs9sgHagYeLg==}
+  system-worker@20.1.1:
+    resolution: {integrity: sha512-fPGxybpSD55Qjw3YDaS1H6EAjJWD9kMnaUgx8ErHLU4v0KQFMw56YQlsZmcKwMx+uSUrhWLJPpg1HHju9ZISig==}
     peerDependencies:
       '@effect/opentelemetry': ^4.0.2
       '@opentelemetry/sdk-trace-base': ^2.0.1
@@ -9332,12 +9345,12 @@ snapshots:
       - react
       - react-dom
 
-  '@clerk/nextjs@7.1.0(next@16.3.4(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@types/node@25.5.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass@1.104.1))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
+  '@clerk/nextjs@7.1.0(next@16.3.4(@babel/core@7.29.7)(@opentelemetry/api@1.10.0)(@types/node@25.5.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass@1.104.1))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
     dependencies:
       '@clerk/backend': 3.8.5(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@clerk/react': 6.17.8(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@clerk/shared': 4.22.1(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
-      next: 16.3.4(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@types/node@25.5.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass@1.104.1)
+      next: 16.3.4(@babel/core@7.29.7)(@opentelemetry/api@1.10.0)(@types/node@25.5.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass@1.104.1)
       react: 19.2.7
       react-dom: 19.2.7(react@19.2.7)
       server-only: 0.0.1
@@ -10236,16 +10249,14 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
 
-  '@json-render/core@0.20.0(zod@4.6.6)':
+  '@json-render/core@0.20.0':
     dependencies:
       zod: 4.6.6
 
-  '@json-render/react@0.20.0(react@19.2.7)(zod@4.6.6)':
+  '@json-render/react@0.20.0(react@19.2.7)':
     dependencies:
-      '@json-render/core': 0.20.0(zod@4.6.6)
+      '@json-render/core': 0.20.0
       react: 19.2.7
-    transitivePeerDependencies:
-      - zod
 
   '@lezer/common@1.5.3': {}
 
@@ -10571,43 +10582,43 @@ snapshots:
 
   '@oozcitak/util@10.0.0': {}
 
-  '@opentelemetry/api@1.9.1': {}
+  '@opentelemetry/api@1.10.0': {}
 
-  '@opentelemetry/context-async-hooks@2.12.0(@opentelemetry/api@1.9.1)':
+  '@opentelemetry/context-async-hooks@2.12.0(@opentelemetry/api@1.10.0)':
     dependencies:
-      '@opentelemetry/api': 1.9.1
+      '@opentelemetry/api': 1.10.0
 
-  '@opentelemetry/core@2.12.0(@opentelemetry/api@1.9.1)':
+  '@opentelemetry/core@2.12.0(@opentelemetry/api@1.10.0)':
     dependencies:
-      '@opentelemetry/api': 1.9.1
+      '@opentelemetry/api': 1.10.0
       '@opentelemetry/semantic-conventions': 1.43.0
 
-  '@opentelemetry/resources@2.12.0(@opentelemetry/api@1.9.1)':
+  '@opentelemetry/resources@2.12.0(@opentelemetry/api@1.10.0)':
     dependencies:
-      '@opentelemetry/api': 1.9.1
-      '@opentelemetry/core': 2.12.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/api': 1.10.0
+      '@opentelemetry/core': 2.12.0(@opentelemetry/api@1.10.0)
       '@opentelemetry/semantic-conventions': 1.43.0
 
-  '@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1)':
+  '@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.10.0)':
     dependencies:
-      '@opentelemetry/api': 1.9.1
-      '@opentelemetry/core': 2.12.0(@opentelemetry/api@1.9.1)
-      '@opentelemetry/resources': 2.12.0(@opentelemetry/api@1.9.1)
-      '@opentelemetry/sdk-trace': 2.12.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/api': 1.10.0
+      '@opentelemetry/core': 2.12.0(@opentelemetry/api@1.10.0)
+      '@opentelemetry/resources': 2.12.0(@opentelemetry/api@1.10.0)
+      '@opentelemetry/sdk-trace': 2.12.0(@opentelemetry/api@1.10.0)
       '@opentelemetry/semantic-conventions': 1.43.0
 
-  '@opentelemetry/sdk-trace-node@2.12.0(@opentelemetry/api@1.9.1)':
+  '@opentelemetry/sdk-trace-node@2.12.0(@opentelemetry/api@1.10.0)':
     dependencies:
-      '@opentelemetry/api': 1.9.1
-      '@opentelemetry/context-async-hooks': 2.12.0(@opentelemetry/api@1.9.1)
-      '@opentelemetry/core': 2.12.0(@opentelemetry/api@1.9.1)
-      '@opentelemetry/sdk-trace-base': 2.12.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/api': 1.10.0
+      '@opentelemetry/context-async-hooks': 2.12.0(@opentelemetry/api@1.10.0)
+      '@opentelemetry/core': 2.12.0(@opentelemetry/api@1.10.0)
+      '@opentelemetry/sdk-trace-base': 2.12.0(@opentelemetry/api@1.10.0)
 
-  '@opentelemetry/sdk-trace@2.12.0(@opentelemetry/api@1.9.1)':
+  '@opentelemetry/sdk-trace@2.12.0(@opentelemetry/api@1.10.0)':
     dependencies:
-      '@opentelemetry/api': 1.9.1
-      '@opentelemetry/core': 2.12.0(@opentelemetry/api@1.9.1)
-      '@opentelemetry/resources': 2.12.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/api': 1.10.0
+      '@opentelemetry/core': 2.12.0(@opentelemetry/api@1.10.0)
+      '@opentelemetry/resources': 2.12.0(@opentelemetry/api@1.10.0)
       '@opentelemetry/semantic-conventions': 1.43.0
 
   '@opentelemetry/semantic-conventions@1.43.0': {}
@@ -12292,20 +12303,20 @@ snapshots:
     dependencies:
       '@statsig/client-core': 3.30.2
 
-  '@storybook/addon-a11y@10.6.0(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)))':
+  '@storybook/addon-a11y@10.6.0(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)))':
     dependencies:
       '@storybook/global': 5.0.0
       axe-core: 4.13.0
-      storybook: 10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))
+      storybook: 10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))
 
-  '@storybook/addon-docs@10.6.0(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.9.1)(@types/node@25.5.2)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)))':
+  '@storybook/addon-docs@10.6.0(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.5.2)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)))':
     dependencies:
       '@mdx-js/react': 3.1.1(@types/react@19.2.17)(react@19.2.7)
       '@storybook/icons': 2.1.0(react@19.2.7)
-      '@storybook/react-dom-shim': 10.6.0(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.9.1)(@types/node@25.5.2)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)))
+      '@storybook/react-dom-shim': 10.6.0(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.5.2)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)))
       react: 19.2.7
       react-dom: 19.2.7(react@19.2.7)
-      storybook: 10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.9.1)(@types/node@25.5.2)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))
+      storybook: 10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.5.2)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))
       ts-dedent: 2.3.0
       unplugin: 2.3.11
     optionalDependencies:
@@ -12313,14 +12324,14 @@ snapshots:
     transitivePeerDependencies:
       - '@types/react-dom'
 
-  '@storybook/addon-docs@10.6.0(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)))':
+  '@storybook/addon-docs@10.6.0(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)))':
     dependencies:
       '@mdx-js/react': 3.1.1(@types/react@19.2.17)(react@19.2.7)
       '@storybook/icons': 2.1.0(react@19.2.7)
-      '@storybook/react-dom-shim': 10.6.0(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)))
+      '@storybook/react-dom-shim': 10.6.0(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)))
       react: 19.2.7
       react-dom: 19.2.7(react@19.2.7)
-      storybook: 10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))
+      storybook: 10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))
       ts-dedent: 2.3.0
       unplugin: 2.3.11
     optionalDependencies:
@@ -12328,15 +12339,15 @@ snapshots:
     transitivePeerDependencies:
       - '@types/react-dom'
 
-  '@storybook/builder-vite@10.6.0(@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.5.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.9.1)(@types/node@25.5.2)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)))':
+  '@storybook/builder-vite@10.6.0(@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.5.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.5.2)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)))':
     dependencies:
-      storybook: 10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.9.1)(@types/node@25.5.2)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))
+      storybook: 10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.5.2)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))
       ts-dedent: 2.3.0
       vite: '@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.5.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)'
 
-  '@storybook/builder-vite@10.6.0(@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.9.5)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)))':
+  '@storybook/builder-vite@10.6.0(@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.9.5)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)))':
     dependencies:
-      storybook: 10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))
+      storybook: 10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))
       ts-dedent: 2.3.0
       vite: '@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.9.5)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)'
 
@@ -12346,37 +12357,37 @@ snapshots:
     dependencies:
       react: 19.2.7
 
-  '@storybook/react-dom-shim@10.6.0(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.9.1)(@types/node@25.5.2)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)))':
+  '@storybook/react-dom-shim@10.6.0(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.5.2)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)))':
     dependencies:
       react: 19.2.7
       react-dom: 19.2.7(react@19.2.7)
-      storybook: 10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.9.1)(@types/node@25.5.2)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))
+      storybook: 10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.5.2)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))
     optionalDependencies:
       '@types/react': 19.2.17
       '@types/react-dom': 19.2.3(@types/react@19.2.17)
 
-  '@storybook/react-dom-shim@10.6.0(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)))':
+  '@storybook/react-dom-shim@10.6.0(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)))':
     dependencies:
       react: 19.2.7
       react-dom: 19.2.7(react@19.2.7)
-      storybook: 10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))
+      storybook: 10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))
     optionalDependencies:
       '@types/react': 19.2.17
       '@types/react-dom': 19.2.3(@types/react@19.2.17)
 
-  '@storybook/react-vite@10.6.0(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.5.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.9.1)(@types/node@25.5.2)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)))(typescript@6.0.2)':
+  '@storybook/react-vite@10.6.0(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.5.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.5.2)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)))(typescript@6.0.2)':
     dependencies:
       '@joshwooding/vite-plugin-react-docgen-typescript': 0.7.0(@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.5.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))(typescript@6.0.2)
       '@rollup/pluginutils': 5.4.0
-      '@storybook/builder-vite': 10.6.0(@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.5.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.9.1)(@types/node@25.5.2)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)))
-      '@storybook/react': 10.6.0(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.9.1)(@types/node@25.5.2)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)))(typescript@6.0.2)
+      '@storybook/builder-vite': 10.6.0(@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.5.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.5.2)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)))
+      '@storybook/react': 10.6.0(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.5.2)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)))(typescript@6.0.2)
       empathic: 2.0.1
       magic-string: 1.4.1
       react: 19.2.7
       react-docgen: 8.0.3
       react-dom: 19.2.7(react@19.2.7)
       resolve: 1.22.12
-      storybook: 10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.9.1)(@types/node@25.5.2)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))
+      storybook: 10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.5.2)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))
       tsconfig-paths: 4.2.0
       vite: '@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.5.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)'
     optionalDependencies:
@@ -12387,19 +12398,19 @@ snapshots:
       - rollup
       - supports-color
 
-  '@storybook/react-vite@10.6.0(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.9.5)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)))(typescript@6.0.2)':
+  '@storybook/react-vite@10.6.0(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.9.5)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)))(typescript@6.0.2)':
     dependencies:
       '@joshwooding/vite-plugin-react-docgen-typescript': 0.7.0(@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.9.5)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))(typescript@6.0.2)
       '@rollup/pluginutils': 5.4.0
-      '@storybook/builder-vite': 10.6.0(@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.9.5)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)))
-      '@storybook/react': 10.6.0(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)))(typescript@6.0.2)
+      '@storybook/builder-vite': 10.6.0(@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.9.5)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)))
+      '@storybook/react': 10.6.0(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)))(typescript@6.0.2)
       empathic: 2.0.1
       magic-string: 1.4.1
       react: 19.2.7
       react-docgen: 8.0.3
       react-dom: 19.2.7(react@19.2.7)
       resolve: 1.22.12
-      storybook: 10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))
+      storybook: 10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))
       tsconfig-paths: 4.2.0
       vite: '@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.9.5)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)'
     optionalDependencies:
@@ -12410,15 +12421,15 @@ snapshots:
       - rollup
       - supports-color
 
-  '@storybook/react@10.6.0(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.9.1)(@types/node@25.5.2)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)))(typescript@6.0.2)':
+  '@storybook/react@10.6.0(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.5.2)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)))(typescript@6.0.2)':
     dependencies:
       '@storybook/global': 5.0.0
-      '@storybook/react-dom-shim': 10.6.0(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.9.1)(@types/node@25.5.2)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)))
+      '@storybook/react-dom-shim': 10.6.0(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.5.2)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)))
       react: 19.2.7
       react-docgen: 8.0.3
       react-docgen-typescript: 2.4.0(typescript@6.0.2)
       react-dom: 19.2.7(react@19.2.7)
-      storybook: 10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.9.1)(@types/node@25.5.2)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))
+      storybook: 10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.5.2)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))
     optionalDependencies:
       '@types/react': 19.2.17
       '@types/react-dom': 19.2.3(@types/react@19.2.17)
@@ -12426,15 +12437,15 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@storybook/react@10.6.0(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)))(typescript@6.0.2)':
+  '@storybook/react@10.6.0(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)))(typescript@6.0.2)':
     dependencies:
       '@storybook/global': 5.0.0
-      '@storybook/react-dom-shim': 10.6.0(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)))
+      '@storybook/react-dom-shim': 10.6.0(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)))
       react: 19.2.7
       react-docgen: 8.0.3
       react-docgen-typescript: 2.4.0(typescript@6.0.2)
       react-dom: 19.2.7(react@19.2.7)
-      storybook: 10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))
+      storybook: 10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))
     optionalDependencies:
       '@types/react': 19.2.17
       '@types/react-dom': 19.2.3(@types/react@19.2.17)
@@ -13011,7 +13022,7 @@ snapshots:
 
   '@types/ws@8.18.2':
     dependencies:
-      '@types/node': 25.9.5
+      '@types/node': 25.5.2
 
   '@types/yauzl@2.10.3':
     dependencies:
@@ -13084,32 +13095,32 @@ snapshots:
     dependencies:
       unpic: 4.2.2
 
-  '@unpic/react@1.0.2(next@16.3.4(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass@1.104.1))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
+  '@unpic/react@1.0.2(next@16.3.4(@babel/core@7.29.7)(@opentelemetry/api@1.10.0)(@types/node@25.9.5)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass@1.104.1))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
     dependencies:
       '@unpic/core': 1.0.3
       react: 19.2.7
       react-dom: 19.2.7(react@19.2.7)
     optionalDependencies:
-      next: 16.3.4(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass@1.104.1)
+      next: 16.3.4(@babel/core@7.29.7)(@opentelemetry/api@1.10.0)(@types/node@25.9.5)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass@1.104.1)
 
-  '@vercel/analytics@2.0.1(next@16.3.4(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@types/node@25.5.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass@1.104.1))(react@19.2.7)':
+  '@vercel/analytics@2.0.1(next@16.3.4(@babel/core@7.29.7)(@opentelemetry/api@1.10.0)(@types/node@25.5.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass@1.104.1))(react@19.2.7)':
     optionalDependencies:
-      next: 16.3.4(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@types/node@25.5.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass@1.104.1)
+      next: 16.3.4(@babel/core@7.29.7)(@opentelemetry/api@1.10.0)(@types/node@25.5.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass@1.104.1)
       react: 19.2.7
 
-  '@vercel/analytics@2.0.1(next@16.3.4(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass@1.104.1))(react@19.2.7)':
+  '@vercel/analytics@2.0.1(next@16.3.4(@babel/core@7.29.7)(@opentelemetry/api@1.10.0)(@types/node@25.9.5)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass@1.104.1))(react@19.2.7)':
     optionalDependencies:
-      next: 16.3.4(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass@1.104.1)
+      next: 16.3.4(@babel/core@7.29.7)(@opentelemetry/api@1.10.0)(@types/node@25.9.5)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass@1.104.1)
       react: 19.2.7
 
-  '@vercel/speed-insights@2.0.0(next@16.3.4(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@types/node@25.5.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass@1.104.1))(react@19.2.7)':
+  '@vercel/speed-insights@2.0.0(next@16.3.4(@babel/core@7.29.7)(@opentelemetry/api@1.10.0)(@types/node@25.5.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass@1.104.1))(react@19.2.7)':
     optionalDependencies:
-      next: 16.3.4(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@types/node@25.5.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass@1.104.1)
+      next: 16.3.4(@babel/core@7.29.7)(@opentelemetry/api@1.10.0)(@types/node@25.5.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass@1.104.1)
       react: 19.2.7
 
-  '@vercel/speed-insights@2.0.0(next@16.3.4(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass@1.104.1))(react@19.2.7)':
+  '@vercel/speed-insights@2.0.0(next@16.3.4(@babel/core@7.29.7)(@opentelemetry/api@1.10.0)(@types/node@25.9.5)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass@1.104.1))(react@19.2.7)':
     optionalDependencies:
-      next: 16.3.4(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass@1.104.1)
+      next: 16.3.4(@babel/core@7.29.7)(@opentelemetry/api@1.10.0)(@types/node@25.9.5)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass@1.104.1)
       react: 19.2.7
 
   '@vitejs/plugin-react@6.0.3(@rolldown/plugin-babel@0.2.4(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@types/node@25.5.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))(@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.5.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))':
@@ -13126,12 +13137,37 @@ snapshots:
     optionalDependencies:
       '@rolldown/plugin-babel': 0.2.4(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@types/node@25.9.5)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)
 
+  '@vitejs/plugin-react@6.1.2(@rolldown/plugin-babel@0.2.4(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@types/node@25.5.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))(@types/node@25.5.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)':
+    dependencies:
+      '@rolldown/pluginutils': 1.0.1
+      vite: '@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.5.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)'
+    optionalDependencies:
+      '@rolldown/plugin-babel': 0.2.4(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@types/node@25.5.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)
+    transitivePeerDependencies:
+      - '@arethetypeswrong/core'
+      - '@types/node'
+      - '@vitejs/devtools'
+      - esbuild
+      - jiti
+      - less
+      - publint
+      - sass
+      - sass-embedded
+      - stylus
+      - sugarss
+      - terser
+      - tsx
+      - typescript
+      - unplugin-unused
+      - unrun
+      - yaml
+
   '@vitest/browser-preview@5.0.1(@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.5.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))(vitest@5.0.1)':
     dependencies:
       '@testing-library/dom': 10.4.2
       '@testing-library/user-event': 14.6.7(@testing-library/dom@10.4.2)
       '@vitest/browser': 5.0.1(@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.5.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))(vitest@5.0.1)
-      vitest: 5.0.1(@opentelemetry/api@1.9.1)(@types/node@25.5.2)(@vitest/browser-preview@5.0.1)(@vitest/ui@5.0.1(vitest@5.0.1))(@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.5.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))
+      vitest: 5.0.1(@opentelemetry/api@1.10.0)(@types/node@25.5.2)(@vitest/browser-preview@5.0.1)(@vitest/ui@5.0.1(vitest@5.0.1))(@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.5.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))
     transitivePeerDependencies:
       - bufferutil
       - msw
@@ -13143,7 +13179,7 @@ snapshots:
       '@testing-library/dom': 10.4.2
       '@testing-library/user-event': 14.6.7(@testing-library/dom@10.4.2)
       '@vitest/browser': 5.0.1(@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.9.5)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))(vitest@5.0.1)
-      vitest: 5.0.1(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(@vitest/browser-preview@5.0.1)(@vitest/ui@5.0.1(vitest@5.0.1))(@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.9.5)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))
+      vitest: 5.0.1(@opentelemetry/api@1.10.0)(@types/node@25.9.5)(@vitest/browser-preview@5.0.1)(@vitest/ui@5.0.1(vitest@5.0.1))(@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.9.5)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))
     transitivePeerDependencies:
       - bufferutil
       - msw
@@ -13160,7 +13196,7 @@ snapshots:
       pngjs: 7.0.0
       sirv: 3.0.2
       tinyrainbow: 3.1.1
-      vitest: 5.0.1(@opentelemetry/api@1.9.1)(@types/node@25.5.2)(@vitest/browser-preview@5.0.1)(@vitest/ui@5.0.1(vitest@5.0.1))(@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.5.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))
+      vitest: 5.0.1(@opentelemetry/api@1.10.0)(@types/node@25.5.2)(@vitest/browser-preview@5.0.1)(@vitest/ui@5.0.1(vitest@5.0.1))(@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.5.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))
       ws: 8.21.3
     transitivePeerDependencies:
       - bufferutil
@@ -13178,7 +13214,7 @@ snapshots:
       pngjs: 7.0.0
       sirv: 3.0.2
       tinyrainbow: 3.1.1
-      vitest: 5.0.1(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(@vitest/browser-preview@5.0.1)(@vitest/ui@5.0.1(vitest@5.0.1))(@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.9.5)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))
+      vitest: 5.0.1(@opentelemetry/api@1.10.0)(@types/node@25.9.5)(@vitest/browser-preview@5.0.1)(@vitest/ui@5.0.1(vitest@5.0.1))(@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.9.5)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))
       ws: 8.21.3
     transitivePeerDependencies:
       - bufferutil
@@ -13241,7 +13277,7 @@ snapshots:
       pathe: 2.0.3
       sirv: 3.0.2
       tinyrainbow: 3.1.1
-      vitest: 5.0.1(@opentelemetry/api@1.9.1)(@types/node@25.5.2)(@vitest/browser-preview@5.0.1)(@vitest/ui@5.0.1(vitest@5.0.1))(@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.5.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))
+      vitest: 5.0.1(@opentelemetry/api@1.10.0)(@types/node@25.9.5)(@vitest/browser-preview@5.0.1)(@vitest/ui@5.0.1(vitest@5.0.1))(@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.9.5)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))
 
   '@vitest/utils@3.2.4':
     dependencies:
@@ -13430,20 +13466,20 @@ snapshots:
 
   '@zag-js/utils@1.46.0': {}
 
-  '@zerospin/browser@20.0.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.5.2)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.1)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)':
+  '@zerospin/browser@20.1.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.10.0))(@types/node@25.5.2)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.1)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)':
     dependencies:
       '@remix-run/route-pattern': 0.22.1
-      '@zerospin/core': 20.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
-      '@zerospin/devtools': 20.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(sql.js@1.15.1)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
-      '@zerospin/error': 20.0.1(effect@4.0.2)
-      '@zerospin/logger': 20.0.1(effect@4.0.2)
-      '@zerospin/machine': 20.0.1(effect@4.0.2)
-      '@zerospin/shapes': 20.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.1)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/core': 20.1.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/devtools': 20.1.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(sql.js@1.15.1)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/error': 20.1.1(effect@4.0.2)
+      '@zerospin/logger': 20.1.1(effect@4.0.2)
+      '@zerospin/machine': 20.1.1(effect@4.0.2)
+      '@zerospin/shapes': 20.1.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(effect@4.0.2)(sql.js@1.15.1)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       capnweb: 0.12.0
-      drizzle-orm: 1.0.0-rc.4(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.1)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      drizzle-orm: 1.0.0-rc.4(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(effect@4.0.2)(sql.js@1.15.1)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       effect: 4.0.2
       es-toolkit: 1.52.0
-      system-worker: 20.0.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.5.2)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(sql.js@1.15.1)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      system-worker: 20.1.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.10.0))(@types/node@25.5.2)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(sql.js@1.15.1)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       wa-sqlite: https://codeload.github.com/rhashimoto/wa-sqlite/tar.gz/07ad48cf2f682d279f9cd69818cc1d39b2ccda86
       zustand: 5.0.15(@types/react@19.2.17)(react@19.2.7)(use-sync-external-store@1.7.0(react@19.2.7))
     transitivePeerDependencies:
@@ -13530,20 +13566,20 @@ snapshots:
       - valibot
       - zod
 
-  '@zerospin/browser@20.0.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.9.5)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.1)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)':
+  '@zerospin/browser@20.1.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.10.0))(@types/node@25.9.5)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.1)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)':
     dependencies:
       '@remix-run/route-pattern': 0.22.1
-      '@zerospin/core': 20.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
-      '@zerospin/devtools': 20.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(sql.js@1.15.1)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
-      '@zerospin/error': 20.0.1(effect@4.0.2)
-      '@zerospin/logger': 20.0.1(effect@4.0.2)
-      '@zerospin/machine': 20.0.1(effect@4.0.2)
-      '@zerospin/shapes': 20.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.1)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/core': 20.1.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/devtools': 20.1.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(sql.js@1.15.1)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/error': 20.1.1(effect@4.0.2)
+      '@zerospin/logger': 20.1.1(effect@4.0.2)
+      '@zerospin/machine': 20.1.1(effect@4.0.2)
+      '@zerospin/shapes': 20.1.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(effect@4.0.2)(sql.js@1.15.1)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       capnweb: 0.12.0
-      drizzle-orm: 1.0.0-rc.4(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.1)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      drizzle-orm: 1.0.0-rc.4(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(effect@4.0.2)(sql.js@1.15.1)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       effect: 4.0.2
       es-toolkit: 1.52.0
-      system-worker: 20.0.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.9.5)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(sql.js@1.15.1)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      system-worker: 20.1.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.10.0))(@types/node@25.9.5)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(sql.js@1.15.1)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       wa-sqlite: https://codeload.github.com/rhashimoto/wa-sqlite/tar.gz/07ad48cf2f682d279f9cd69818cc1d39b2ccda86
       zustand: 5.0.15(@types/react@19.2.17)(react@19.2.7)(use-sync-external-store@1.7.0(react@19.2.7))
     transitivePeerDependencies:
@@ -13630,17 +13666,17 @@ snapshots:
       - valibot
       - zod
 
-  '@zerospin/cli@20.0.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@rolldown/plugin-babel@0.2.4(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@types/node@25.5.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))(@types/node@25.5.2)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(date-fns@4.4.0)(effect@4.0.2)(esbuild@0.28.2)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.1)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(yaml@2.9.1)':
+  '@zerospin/cli@20.1.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.10.0))(@rolldown/plugin-babel@0.2.4(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@types/node@25.5.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))(@types/node@25.5.2)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(date-fns@4.4.0)(effect@4.0.2)(esbuild@0.28.2)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.1)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(yaml@2.9.1)':
     dependencies:
       '@effect/platform-node-shared': 4.0.2(effect@4.0.2)
       '@inkjs/ui': 2.0.0(ink@7.1.1(@types/react@19.2.17)(react@19.2.7))
-      '@zerospin/core': 20.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
-      '@zerospin/dev-worker': 20.0.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.5.2)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.1)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
-      '@zerospin/error': 20.0.1(effect@4.0.2)
-      '@zerospin/logger': 20.0.1(effect@4.0.2)
-      '@zerospin/production-worker': 20.0.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.5.2)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.1)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
-      '@zerospin/shapes': 20.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.1)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
-      '@zerospin/studio': 20.0.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@rolldown/plugin-babel@0.2.4(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@types/node@25.5.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))(@types/node@25.5.2)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(date-fns@4.4.0)(effect@4.0.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.1)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(yaml@2.9.1)(zod@4.6.6)
+      '@zerospin/core': 20.1.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/dev-worker': 20.1.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.10.0))(@types/node@25.5.2)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.1)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/error': 20.1.1(effect@4.0.2)
+      '@zerospin/logger': 20.1.1(effect@4.0.2)
+      '@zerospin/production-worker': 20.1.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.10.0))(@types/node@25.5.2)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.1)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/shapes': 20.1.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(effect@4.0.2)(sql.js@1.15.1)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/studio': 20.1.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.10.0))(@rolldown/plugin-babel@0.2.4(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@types/node@25.5.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))(@types/node@25.5.2)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(date-fns@4.4.0)(effect@4.0.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.1)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(yaml@2.9.1)(zod@4.6.6)
       capnweb: 0.12.0
       cfonts: 2.10.1
       dotenv: 17.4.2
@@ -13653,7 +13689,7 @@ snapshots:
       pastel: 4.0.1(ink@7.1.1(@types/react@19.2.17)(react@19.2.7))(react@19.2.7)(zod@4.6.6)
       react: 19.2.7
       react-dom: 19.2.7(react@19.2.7)
-      system-worker: 20.0.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.5.2)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(sql.js@1.15.1)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      system-worker: 20.1.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.10.0))(@types/node@25.5.2)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(sql.js@1.15.1)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       zod: 4.6.6
     transitivePeerDependencies:
       - '@ai-sdk/react'
@@ -13722,6 +13758,7 @@ snapshots:
       - less
       - mssql
       - mysql2
+      - oxc-transform-react
       - pg
       - postgres
       - publint
@@ -13746,17 +13783,17 @@ snapshots:
       - valibot
       - yaml
 
-  '@zerospin/core@20.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)':
+  '@zerospin/core@20.1.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)':
     dependencies:
       '@livestore/wa-sqlite': 1.0.5
       '@remix-run/route-pattern': 0.22.1
-      '@zerospin/error': 20.0.1(effect@4.0.2)
-      '@zerospin/logger': 20.0.1(effect@4.0.2)
-      '@zerospin/server-only': 20.0.1
-      '@zerospin/shapes': 20.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.1)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/error': 20.1.1(effect@4.0.2)
+      '@zerospin/logger': 20.1.1(effect@4.0.2)
+      '@zerospin/server-only': 20.1.1
+      '@zerospin/shapes': 20.1.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(effect@4.0.2)(sql.js@1.15.1)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       capnweb: 0.12.0
       dotenv: 17.4.2
-      drizzle-orm: 1.0.0-rc.4(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.1)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      drizzle-orm: 1.0.0-rc.4(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(effect@4.0.2)(sql.js@1.15.1)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       effect: 4.0.2
       es-toolkit: 1.52.0
       mutative: 1.3.0
@@ -13819,17 +13856,17 @@ snapshots:
       - valibot
       - zod
 
-  '@zerospin/dev-worker@20.0.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.5.2)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.1)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)':
+  '@zerospin/dev-worker@20.1.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.10.0))(@types/node@25.5.2)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.1)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)':
     dependencies:
       '@remix-run/route-pattern': 0.22.1
-      '@zerospin/core': 20.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
-      '@zerospin/error': 20.0.1(effect@4.0.2)
-      '@zerospin/logger': 20.0.1(effect@4.0.2)
-      '@zerospin/shapes': 20.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.1)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/core': 20.1.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/error': 20.1.1(effect@4.0.2)
+      '@zerospin/logger': 20.1.1(effect@4.0.2)
+      '@zerospin/shapes': 20.1.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(effect@4.0.2)(sql.js@1.15.1)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       capnweb: 0.12.0
       cloudflare: 6.5.0
       effect: 4.0.2
-      system-worker: 20.0.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.5.2)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(sql.js@1.15.1)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      system-worker: 20.1.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.10.0))(@types/node@25.5.2)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(sql.js@1.15.1)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       wrangler: 4.127.1(@cloudflare/workers-types@5.20260828.1)
     transitivePeerDependencies:
       - '@ai-sdk/react'
@@ -13917,13 +13954,13 @@ snapshots:
       - valibot
       - zod
 
-  '@zerospin/devtools@20.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(sql.js@1.15.1)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)':
+  '@zerospin/devtools@20.1.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(sql.js@1.15.1)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)':
     dependencies:
       '@tanstack/react-table': 8.21.3(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
-      '@zerospin/core': 20.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
-      '@zerospin/error': 20.0.1(effect@4.0.2)
-      '@zerospin/live-query': 20.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(sql.js@1.15.1)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
-      '@zerospin/logger': 20.0.1(effect@4.0.2)
+      '@zerospin/core': 20.1.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/error': 20.1.1(effect@4.0.2)
+      '@zerospin/live-query': 20.1.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(sql.js@1.15.1)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/logger': 20.1.1(effect@4.0.2)
       effect: 4.0.2
       react: 19.2.7
       react-dom: 19.2.7(react@19.2.7)
@@ -13981,9 +14018,9 @@ snapshots:
       - valibot
       - zod
 
-  '@zerospin/error-boundary@20.0.1(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react-router@8.5.0(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)':
+  '@zerospin/error-boundary@20.1.1(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react-router@8.5.0(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)':
     dependencies:
-      '@zerospin/error': 20.0.1(effect@4.0.2)
+      '@zerospin/error': 20.1.1(effect@4.0.2)
       effect: 4.0.2
       lucide-react: 1.60.0(@types/react@19.2.17)(react@19.2.7)
       react: 19.2.7
@@ -13993,11 +14030,11 @@ snapshots:
     transitivePeerDependencies:
       - '@types/react'
 
-  '@zerospin/error@20.0.1(effect@4.0.2)':
+  '@zerospin/error@20.1.1(effect@4.0.2)':
     dependencies:
       effect: 4.0.2
 
-  '@zerospin/fragment-ui@20.0.1(@types/react@19.2.17)(date-fns@4.4.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
+  '@zerospin/fragment-ui@20.1.1(@types/react@19.2.17)(date-fns@4.4.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
     dependencies:
       '@base-ui/react': 1.9.0(@types/react@19.2.17)(date-fns@4.4.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       react: 19.2.7
@@ -14007,10 +14044,10 @@ snapshots:
       - date-fns
       - react-dom
 
-  '@zerospin/live-query@20.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(sql.js@1.15.1)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)':
+  '@zerospin/live-query@20.1.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(sql.js@1.15.1)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)':
     dependencies:
-      '@zerospin/core': 20.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
-      drizzle-orm: 1.0.0-rc.4(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.1)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/core': 20.1.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      drizzle-orm: 1.0.0-rc.4(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(effect@4.0.2)(sql.js@1.15.1)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       zustand: 5.0.15(@types/react@19.2.17)(react@19.2.7)(use-sync-external-store@1.7.0(react@19.2.7))
     transitivePeerDependencies:
       - '@aws-sdk/client-rds-data'
@@ -14067,26 +14104,26 @@ snapshots:
       - valibot
       - zod
 
-  '@zerospin/logger@20.0.1(effect@4.0.2)':
+  '@zerospin/logger@20.1.1(effect@4.0.2)':
     dependencies:
-      '@zerospin/error': 20.0.1(effect@4.0.2)
+      '@zerospin/error': 20.1.1(effect@4.0.2)
       effect: 4.0.2
 
-  '@zerospin/machine@20.0.1(effect@4.0.2)':
+  '@zerospin/machine@20.1.1(effect@4.0.2)':
     dependencies:
       effect: 4.0.2
       es-toolkit: 1.52.0
 
-  '@zerospin/production-worker@20.0.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.5.2)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.1)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)':
+  '@zerospin/production-worker@20.1.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.10.0))(@types/node@25.5.2)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.1)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)':
     dependencies:
-      '@zerospin/core': 20.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
-      '@zerospin/error': 20.0.1(effect@4.0.2)
-      '@zerospin/logger': 20.0.1(effect@4.0.2)
-      '@zerospin/shapes': 20.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.1)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/core': 20.1.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/error': 20.1.1(effect@4.0.2)
+      '@zerospin/logger': 20.1.1(effect@4.0.2)
+      '@zerospin/shapes': 20.1.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(effect@4.0.2)(sql.js@1.15.1)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       capnweb: 0.12.0
       cloudflare: 6.5.0
       effect: 4.0.2
-      system-worker: 20.0.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.5.2)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(sql.js@1.15.1)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      system-worker: 20.1.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.10.0))(@types/node@25.5.2)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(sql.js@1.15.1)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
     transitivePeerDependencies:
       - '@ai-sdk/react'
       - '@arethetypeswrong/core'
@@ -14171,31 +14208,31 @@ snapshots:
       - valibot
       - zod
 
-  '@zerospin/react@20.0.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@tanstack/react-start@1.169.3(@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.9.5)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))(esbuild@0.28.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(@types/node@25.9.5)(@types/react@19.2.17)(date-fns@4.4.0)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.1)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)':
+  '@zerospin/react@20.1.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.10.0))(@tanstack/react-start@1.169.3(@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.9.5)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))(esbuild@0.28.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(@types/node@25.9.5)(@types/react@19.2.17)(date-fns@4.4.0)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.1)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)':
     dependencies:
-      '@base-ui/react': 1.9.0(@types/react@19.2.17)(date-fns@4.4.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
-      '@opentelemetry/api': 1.9.1
-      '@opentelemetry/core': 2.12.0(@opentelemetry/api@1.9.1)
-      '@opentelemetry/sdk-trace-base': 2.12.0(@opentelemetry/api@1.9.1)
-      '@opentelemetry/sdk-trace-node': 2.12.0(@opentelemetry/api@1.9.1)
+      '@base-ui/react': 1.6.0(@types/react@19.2.17)(date-fns@4.4.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      '@opentelemetry/api': 1.10.0
+      '@opentelemetry/core': 2.12.0(@opentelemetry/api@1.10.0)
+      '@opentelemetry/sdk-trace-base': 2.12.0(@opentelemetry/api@1.10.0)
+      '@opentelemetry/sdk-trace-node': 2.12.0(@opentelemetry/api@1.10.0)
       '@remix-run/route-pattern': 0.22.1
       '@stylexjs/stylex': 0.19.1
       '@tanstack/react-form': 1.33.5(@tanstack/react-start@1.169.3(@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.9.5)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))(esbuild@0.28.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
-      '@zerospin/browser': 20.0.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.9.5)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.1)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
-      '@zerospin/core': 20.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
-      '@zerospin/devtools': 20.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(sql.js@1.15.1)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
-      '@zerospin/error': 20.0.1(effect@4.0.2)
-      '@zerospin/live-query': 20.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(sql.js@1.15.1)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
-      '@zerospin/logger': 20.0.1(effect@4.0.2)
-      '@zerospin/sdk': 20.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(sql.js@1.15.1)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
-      '@zerospin/shapes': 20.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.1)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/browser': 20.1.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.10.0))(@types/node@25.9.5)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.1)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/core': 20.1.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/devtools': 20.1.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(sql.js@1.15.1)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/error': 20.1.1(effect@4.0.2)
+      '@zerospin/live-query': 20.1.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(sql.js@1.15.1)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/logger': 20.1.1(effect@4.0.2)
+      '@zerospin/sdk': 20.1.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(sql.js@1.15.1)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/shapes': 20.1.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(effect@4.0.2)(sql.js@1.15.1)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       capnweb: 0.12.0
       client-only: 0.0.1
       dotenv: 17.4.2
-      drizzle-orm: 1.0.0-rc.4(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.1)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      drizzle-orm: 1.0.0-rc.4(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(effect@4.0.2)(sql.js@1.15.1)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       effect: 4.0.2
       es-toolkit: 1.52.0
-      lucide-react: 1.60.0(@types/react@19.2.17)(react@19.2.7)
+      lucide-react: 1.24.0(react@19.2.7)
       react: 19.2.7
       react-dom: 19.2.7(react@19.2.7)
       zustand: 5.0.15(@types/react@19.2.17)(react@19.2.7)(use-sync-external-store@1.7.0(react@19.2.7))
@@ -14281,31 +14318,31 @@ snapshots:
       - valibot
       - zod
 
-  '@zerospin/react@20.0.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.5.2)(@types/react@19.2.17)(date-fns@4.4.0)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.1)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)':
+  '@zerospin/react@20.1.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.10.0))(@types/node@25.5.2)(@types/react@19.2.17)(date-fns@4.4.0)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.1)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)':
     dependencies:
-      '@base-ui/react': 1.9.0(@types/react@19.2.17)(date-fns@4.4.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
-      '@opentelemetry/api': 1.9.1
-      '@opentelemetry/core': 2.12.0(@opentelemetry/api@1.9.1)
-      '@opentelemetry/sdk-trace-base': 2.12.0(@opentelemetry/api@1.9.1)
-      '@opentelemetry/sdk-trace-node': 2.12.0(@opentelemetry/api@1.9.1)
+      '@base-ui/react': 1.6.0(@types/react@19.2.17)(date-fns@4.4.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      '@opentelemetry/api': 1.10.0
+      '@opentelemetry/core': 2.12.0(@opentelemetry/api@1.10.0)
+      '@opentelemetry/sdk-trace-base': 2.12.0(@opentelemetry/api@1.10.0)
+      '@opentelemetry/sdk-trace-node': 2.12.0(@opentelemetry/api@1.10.0)
       '@remix-run/route-pattern': 0.22.1
       '@stylexjs/stylex': 0.19.1
       '@tanstack/react-form': 1.33.5(@tanstack/react-start@1.169.3(@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.9.5)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))(esbuild@0.28.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
-      '@zerospin/browser': 20.0.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.5.2)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.1)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
-      '@zerospin/core': 20.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
-      '@zerospin/devtools': 20.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(sql.js@1.15.1)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
-      '@zerospin/error': 20.0.1(effect@4.0.2)
-      '@zerospin/live-query': 20.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(sql.js@1.15.1)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
-      '@zerospin/logger': 20.0.1(effect@4.0.2)
-      '@zerospin/sdk': 20.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(sql.js@1.15.1)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
-      '@zerospin/shapes': 20.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.1)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/browser': 20.1.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.10.0))(@types/node@25.5.2)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.1)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/core': 20.1.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/devtools': 20.1.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(sql.js@1.15.1)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/error': 20.1.1(effect@4.0.2)
+      '@zerospin/live-query': 20.1.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(sql.js@1.15.1)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/logger': 20.1.1(effect@4.0.2)
+      '@zerospin/sdk': 20.1.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(sql.js@1.15.1)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/shapes': 20.1.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(effect@4.0.2)(sql.js@1.15.1)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       capnweb: 0.12.0
       client-only: 0.0.1
       dotenv: 17.4.2
-      drizzle-orm: 1.0.0-rc.4(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.1)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      drizzle-orm: 1.0.0-rc.4(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(effect@4.0.2)(sql.js@1.15.1)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       effect: 4.0.2
       es-toolkit: 1.52.0
-      lucide-react: 1.60.0(@types/react@19.2.17)(react@19.2.7)
+      lucide-react: 1.24.0(react@19.2.7)
       react: 19.2.7
       react-dom: 19.2.7(react@19.2.7)
       zustand: 5.0.15(@types/react@19.2.17)(react@19.2.7)(use-sync-external-store@1.7.0(react@19.2.7))
@@ -14391,11 +14428,11 @@ snapshots:
       - valibot
       - zod
 
-  '@zerospin/sdk@20.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(sql.js@1.15.1)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)':
+  '@zerospin/sdk@20.1.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(sql.js@1.15.1)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)':
     dependencies:
-      '@zerospin/core': 20.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
-      '@zerospin/error': 20.0.1(effect@4.0.2)
-      '@zerospin/shapes': 20.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.1)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/core': 20.1.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/error': 20.1.1(effect@4.0.2)
+      '@zerospin/shapes': 20.1.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(effect@4.0.2)(sql.js@1.15.1)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       effect: 4.0.2
     transitivePeerDependencies:
       - '@aws-sdk/client-rds-data'
@@ -14451,12 +14488,12 @@ snapshots:
       - valibot
       - zod
 
-  '@zerospin/server-only@20.0.1': {}
+  '@zerospin/server-only@20.1.1': {}
 
-  '@zerospin/shapes@20.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.1)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)':
+  '@zerospin/shapes@20.1.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(effect@4.0.2)(sql.js@1.15.1)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)':
     dependencies:
-      '@zerospin/error': 20.0.1(effect@4.0.2)
-      drizzle-orm: 1.0.0-rc.4(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.1)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/error': 20.1.1(effect@4.0.2)
+      drizzle-orm: 1.0.0-rc.4(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(effect@4.0.2)(sql.js@1.15.1)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       effect: 4.0.2
       es-toolkit: 1.52.0
       type-fest: 5.10.0
@@ -14508,33 +14545,33 @@ snapshots:
       - valibot
       - zod
 
-  '@zerospin/studio@20.0.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@rolldown/plugin-babel@0.2.4(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@types/node@25.5.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))(@types/node@25.5.2)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(date-fns@4.4.0)(effect@4.0.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.1)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(yaml@2.9.1)(zod@4.6.6)':
+  '@zerospin/studio@20.1.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.10.0))(@rolldown/plugin-babel@0.2.4(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@types/node@25.5.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))(@types/node@25.5.2)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(date-fns@4.4.0)(effect@4.0.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.1)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(yaml@2.9.1)(zod@4.6.6)':
     dependencies:
       '@base-ui/react': 1.9.0(@types/react@19.2.17)(date-fns@4.4.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@radix-ui/react-slot': 1.5.0(@types/react@19.2.17)(react@19.2.7)
       '@tailwindcss/vite': 4.3.3(@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.5.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))
-      '@vitejs/plugin-react': 6.0.3(@rolldown/plugin-babel@0.2.4(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@types/node@25.5.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))(@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.5.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))
-      '@zerospin/browser': 20.0.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.5.2)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.1)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
-      '@zerospin/core': 20.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
-      '@zerospin/error': 20.0.1(effect@4.0.2)
-      '@zerospin/error-boundary': 20.0.1(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react-router@8.5.0(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)
-      '@zerospin/fragment-ui': 20.0.1(@types/react@19.2.17)(date-fns@4.4.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
-      '@zerospin/logger': 20.0.1(effect@4.0.2)
-      '@zerospin/react': 20.0.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.5.2)(@types/react@19.2.17)(date-fns@4.4.0)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.1)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
-      '@zerospin/shapes': 20.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.1)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@vitejs/plugin-react': 6.1.2(@rolldown/plugin-babel@0.2.4(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@types/node@25.5.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))(@types/node@25.5.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)
+      '@zerospin/browser': 20.1.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.10.0))(@types/node@25.5.2)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.1)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/core': 20.1.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/error': 20.1.1(effect@4.0.2)
+      '@zerospin/error-boundary': 20.1.1(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react-router@8.5.0(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)
+      '@zerospin/fragment-ui': 20.1.1(@types/react@19.2.17)(date-fns@4.4.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      '@zerospin/logger': 20.1.1(effect@4.0.2)
+      '@zerospin/react': 20.1.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.10.0))(@types/node@25.5.2)(@types/react@19.2.17)(date-fns@4.4.0)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(solid-js@1.9.17)(sql.js@1.15.1)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/shapes': 20.1.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(effect@4.0.2)(sql.js@1.15.1)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       capnweb: 0.12.0
       class-variance-authority: 0.7.1
       clsx: 2.1.1
-      drizzle-orm: 1.0.0-rc.4(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.1)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      drizzle-orm: 1.0.0-rc.4(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(effect@4.0.2)(sql.js@1.15.1)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       effect: 4.0.2
       lucide-react: 1.60.0(@types/react@19.2.17)(react@19.2.7)
       react: 19.2.7
       react-dom: 19.2.7(react@19.2.7)
       react-json-view-lite: 2.5.0(react@19.2.7)
-      react-resizable-panels: 4.14.7(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      react-resizable-panels: 4.14.8(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       react-router: 8.5.0(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       swr: 2.3.4(react@19.2.7)
-      system-worker: 20.0.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.5.2)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(sql.js@1.15.1)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      system-worker: 20.1.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.10.0))(@types/node@25.5.2)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(sql.js@1.15.1)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       tailwind-merge: 3.7.0
       tailwindcss: 4.3.3
       vite: '@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.5.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)'
@@ -14605,6 +14642,7 @@ snapshots:
       - less
       - mssql
       - mysql2
+      - oxc-transform-react
       - pg
       - postgres
       - publint
@@ -14628,9 +14666,9 @@ snapshots:
       - yaml
       - zod
 
-  '@zerospin/zod@20.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.1)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)':
+  '@zerospin/zod@20.1.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(effect@4.0.2)(sql.js@1.15.1)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)':
     dependencies:
-      '@zerospin/shapes': 20.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.1)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/shapes': 20.1.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(effect@4.0.2)(sql.js@1.15.1)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       effect: 4.0.2
       es-toolkit: 1.52.0
       zod: 4.6.6
@@ -15234,10 +15272,10 @@ snapshots:
 
   dotenv@17.4.2: {}
 
-  drizzle-orm@1.0.0-rc.4(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.1)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6):
+  drizzle-orm@1.0.0-rc.4(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(effect@4.0.2)(sql.js@1.15.1)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6):
     optionalDependencies:
       '@cloudflare/workers-types': 5.20260828.1
-      '@opentelemetry/api': 1.9.1
+      '@opentelemetry/api': 1.10.0
       effect: 4.0.2
       sql.js: 1.15.1
       valibot: 1.5.0(typescript@6.0.2)
@@ -16554,7 +16592,7 @@ snapshots:
 
   netmask@2.1.1: {}
 
-  next@16.3.4(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@types/node@25.5.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass@1.104.1):
+  next@16.3.4(@babel/core@7.29.7)(@opentelemetry/api@1.10.0)(@types/node@25.5.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass@1.104.1):
     dependencies:
       '@next/env': 16.3.4
       '@swc/helpers': 0.5.23
@@ -16573,7 +16611,7 @@ snapshots:
       '@next/swc-linux-x64-musl': 16.3.4
       '@next/swc-win32-arm64-msvc': 16.3.4
       '@next/swc-win32-x64-msvc': 16.3.4
-      '@opentelemetry/api': 1.9.1
+      '@opentelemetry/api': 1.10.0
       sass: 1.104.1
       sharp: 0.35.4(@types/node@25.5.2)
     transitivePeerDependencies:
@@ -16581,7 +16619,7 @@ snapshots:
       - '@types/node'
       - babel-plugin-macros
 
-  next@16.3.4(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass@1.104.1):
+  next@16.3.4(@babel/core@7.29.7)(@opentelemetry/api@1.10.0)(@types/node@25.9.5)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass@1.104.1):
     dependencies:
       '@next/env': 16.3.4
       '@swc/helpers': 0.5.23
@@ -16600,7 +16638,7 @@ snapshots:
       '@next/swc-linux-x64-musl': 16.3.4
       '@next/swc-win32-arm64-msvc': 16.3.4
       '@next/swc-win32-x64-msvc': 16.3.4
-      '@opentelemetry/api': 1.9.1
+      '@opentelemetry/api': 1.10.0
       sass: 1.104.1
       sharp: 0.35.4(@types/node@25.9.5)
     transitivePeerDependencies:
@@ -16860,7 +16898,7 @@ snapshots:
       '@oxc-resolver/binding-win32-arm64-msvc': 11.21.2
       '@oxc-resolver/binding-win32-x64-msvc': 11.21.2
 
-  oxfmt@0.70.0(vite-plus@1.0.0(@opentelemetry/api@1.9.1)(@types/node@25.5.2)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)):
+  oxfmt@0.70.0(vite-plus@1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.5.2)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)):
     dependencies:
       tinypool: 2.1.2
     optionalDependencies:
@@ -16883,9 +16921,9 @@ snapshots:
       '@oxfmt/binding-win32-arm64-msvc': 0.70.0
       '@oxfmt/binding-win32-ia32-msvc': 0.70.0
       '@oxfmt/binding-win32-x64-msvc': 0.70.0
-      vite-plus: 1.0.0(@opentelemetry/api@1.9.1)(@types/node@25.5.2)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)
+      vite-plus: 1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.5.2)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)
 
-  oxfmt@0.70.0(vite-plus@1.0.0(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)):
+  oxfmt@0.70.0(vite-plus@1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)):
     dependencies:
       tinypool: 2.1.2
     optionalDependencies:
@@ -16908,7 +16946,7 @@ snapshots:
       '@oxfmt/binding-win32-arm64-msvc': 0.70.0
       '@oxfmt/binding-win32-ia32-msvc': 0.70.0
       '@oxfmt/binding-win32-x64-msvc': 0.70.0
-      vite-plus: 1.0.0(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)
+      vite-plus: 1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)
 
   oxlint-tsgolint@7.0.2003:
     optionalDependencies:
@@ -16919,7 +16957,7 @@ snapshots:
       '@oxlint-tsgolint/win32-arm64': 7.0.2003
       '@oxlint-tsgolint/win32-x64': 7.0.2003
 
-  oxlint@1.85.0(oxlint-tsgolint@7.0.2003)(vite-plus@1.0.0(@opentelemetry/api@1.9.1)(@types/node@25.5.2)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)):
+  oxlint@1.85.0(oxlint-tsgolint@7.0.2003)(vite-plus@1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.5.2)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)):
     optionalDependencies:
       '@oxlint/binding-android-arm-eabi': 1.85.0
       '@oxlint/binding-android-arm64': 1.85.0
@@ -16941,9 +16979,9 @@ snapshots:
       '@oxlint/binding-win32-ia32-msvc': 1.85.0
       '@oxlint/binding-win32-x64-msvc': 1.85.0
       oxlint-tsgolint: 7.0.2003
-      vite-plus: 1.0.0(@opentelemetry/api@1.9.1)(@types/node@25.5.2)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)
+      vite-plus: 1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.5.2)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)
 
-  oxlint@1.85.0(oxlint-tsgolint@7.0.2003)(vite-plus@1.0.0(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)):
+  oxlint@1.85.0(oxlint-tsgolint@7.0.2003)(vite-plus@1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)):
     optionalDependencies:
       '@oxlint/binding-android-arm-eabi': 1.85.0
       '@oxlint/binding-android-arm64': 1.85.0
@@ -16965,7 +17003,7 @@ snapshots:
       '@oxlint/binding-win32-ia32-msvc': 1.85.0
       '@oxlint/binding-win32-x64-msvc': 1.85.0
       oxlint-tsgolint: 7.0.2003
-      vite-plus: 1.0.0(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)
+      vite-plus: 1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)
 
   p-limit@2.3.0:
     dependencies:
@@ -17425,7 +17463,7 @@ snapshots:
     optionalDependencies:
       '@types/react': 19.2.17
 
-  react-resizable-panels@4.14.7(react-dom@19.2.7(react@19.2.7))(react@19.2.7):
+  react-resizable-panels@4.14.8(react-dom@19.2.7(react@19.2.7))(react@19.2.7):
     dependencies:
       react: 19.2.7
       react-dom: 19.2.7(react@19.2.7)
@@ -17987,7 +18025,7 @@ snapshots:
 
   std-env@4.2.0: {}
 
-  storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.9.1)(@types/node@25.5.2)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)):
+  storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.5.2)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)):
     dependencies:
       '@storybook/global': 5.0.0
       '@storybook/icons': 2.1.0(react@19.2.7)
@@ -18009,13 +18047,13 @@ snapshots:
     optionalDependencies:
       '@types/react': 19.2.17
       prettier: 3.9.10
-      vite-plus: 1.0.0(@opentelemetry/api@1.9.1)(@types/node@25.5.2)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)
+      vite-plus: 1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.5.2)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)
     transitivePeerDependencies:
       - bufferutil
       - react
       - utf-8-validate
 
-  storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)):
+  storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)):
     dependencies:
       '@storybook/global': 5.0.0
       '@storybook/icons': 2.1.0(react@19.2.7)
@@ -18037,7 +18075,7 @@ snapshots:
     optionalDependencies:
       '@types/react': 19.2.17
       prettier: 3.9.10
-      vite-plus: 1.0.0(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)
+      vite-plus: 1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)
     transitivePeerDependencies:
       - bufferutil
       - react
@@ -18135,22 +18173,22 @@ snapshots:
 
   sync-message-port@1.2.0: {}
 
-  system-worker@20.0.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.5.2)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(sql.js@1.15.1)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6):
+  system-worker@20.1.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.10.0))(@types/node@25.5.2)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(sql.js@1.15.1)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6):
     dependencies:
-      '@opentelemetry/api': 1.9.1
-      '@opentelemetry/core': 2.12.0(@opentelemetry/api@1.9.1)
-      '@opentelemetry/sdk-trace-base': 2.12.0(@opentelemetry/api@1.9.1)
-      '@opentelemetry/sdk-trace-node': 2.12.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/api': 1.10.0
+      '@opentelemetry/core': 2.12.0(@opentelemetry/api@1.10.0)
+      '@opentelemetry/sdk-trace-base': 2.12.0(@opentelemetry/api@1.10.0)
+      '@opentelemetry/sdk-trace-node': 2.12.0(@opentelemetry/api@1.10.0)
       '@remix-run/route-pattern': 0.22.1
-      '@zerospin/core': 20.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
-      '@zerospin/error': 20.0.1(effect@4.0.2)
-      '@zerospin/logger': 20.0.1(effect@4.0.2)
-      '@zerospin/shapes': 20.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.1)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/core': 20.1.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/error': 20.1.1(effect@4.0.2)
+      '@zerospin/logger': 20.1.1(effect@4.0.2)
+      '@zerospin/shapes': 20.1.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(effect@4.0.2)(sql.js@1.15.1)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       agents: 0.17.4(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@types/node@25.5.2)(jiti@2.7.0)(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(zod@4.6.6)
       capnweb: 0.12.0
       cloudflare: 6.5.0
       dotenv: 17.4.2
-      drizzle-orm: 1.0.0-rc.4(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.1)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      drizzle-orm: 1.0.0-rc.4(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(effect@4.0.2)(sql.js@1.15.1)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       effect: 4.0.2
       es-toolkit: 1.52.0
       partyserver: 0.5.10(@cloudflare/workers-types@5.20260828.1)
@@ -18236,22 +18274,22 @@ snapshots:
       - valibot
       - zod
 
-  system-worker@20.0.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@types/node@25.9.5)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(sql.js@1.15.1)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6):
+  system-worker@20.1.1(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.10.0))(@types/node@25.9.5)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(sql.js@1.15.1)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6):
     dependencies:
-      '@opentelemetry/api': 1.9.1
-      '@opentelemetry/core': 2.12.0(@opentelemetry/api@1.9.1)
-      '@opentelemetry/sdk-trace-base': 2.12.0(@opentelemetry/api@1.9.1)
-      '@opentelemetry/sdk-trace-node': 2.12.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/api': 1.10.0
+      '@opentelemetry/core': 2.12.0(@opentelemetry/api@1.10.0)
+      '@opentelemetry/sdk-trace-base': 2.12.0(@opentelemetry/api@1.10.0)
+      '@opentelemetry/sdk-trace-node': 2.12.0(@opentelemetry/api@1.10.0)
       '@remix-run/route-pattern': 0.22.1
-      '@zerospin/core': 20.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
-      '@zerospin/error': 20.0.1(effect@4.0.2)
-      '@zerospin/logger': 20.0.1(effect@4.0.2)
-      '@zerospin/shapes': 20.0.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.1)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/core': 20.1.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.17)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/error': 20.1.1(effect@4.0.2)
+      '@zerospin/logger': 20.1.1(effect@4.0.2)
+      '@zerospin/shapes': 20.1.1(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(effect@4.0.2)(sql.js@1.15.1)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       agents: 0.17.4(@babel/core@7.29.7)(@babel/runtime@8.0.7)(@cloudflare/workers-types@5.20260828.1)(@types/node@25.9.5)(jiti@2.7.0)(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(zod@4.6.6)
       capnweb: 0.12.0
       cloudflare: 6.5.0
       dotenv: 17.4.2
-      drizzle-orm: 1.0.0-rc.4(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.9.1)(effect@4.0.2)(sql.js@1.15.1)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      drizzle-orm: 1.0.0-rc.4(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(effect@4.0.2)(sql.js@1.15.1)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
       effect: 4.0.2
       es-toolkit: 1.52.0
       partyserver: 0.5.10(@cloudflare/workers-types@5.20260828.1)
@@ -18634,7 +18672,7 @@ snapshots:
       '@types/unist': 3.0.3
       vfile-message: 4.0.3
 
-  vite-plus@1.0.0(@opentelemetry/api@1.9.1)(@types/node@25.5.2)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1):
+  vite-plus@1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.5.2)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1):
     dependencies:
       '@oxc-project/types': 0.151.0
       '@oxlint/plugins': 1.79.0
@@ -18645,11 +18683,11 @@ snapshots:
       '@vitest/snapshot': 5.0.1
       '@vitest/spy': 5.0.1
       '@vitest/utils': 5.0.1
-      oxfmt: 0.70.0(vite-plus@1.0.0(@opentelemetry/api@1.9.1)(@types/node@25.5.2)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))
-      oxlint: 1.85.0(oxlint-tsgolint@7.0.2003)(vite-plus@1.0.0(@opentelemetry/api@1.9.1)(@types/node@25.5.2)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))
+      oxfmt: 0.70.0(vite-plus@1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.5.2)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))
+      oxlint: 1.85.0(oxlint-tsgolint@7.0.2003)(vite-plus@1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.5.2)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))
       oxlint-tsgolint: 7.0.2003
       vite: '@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.5.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)'
-      vitest: 5.0.1(@opentelemetry/api@1.9.1)(@types/node@25.5.2)(@vitest/browser-preview@5.0.1)(@vitest/ui@5.0.1(vitest@5.0.1))(@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.5.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))
+      vitest: 5.0.1(@opentelemetry/api@1.10.0)(@types/node@25.5.2)(@vitest/browser-preview@5.0.1)(@vitest/ui@5.0.1(vitest@5.0.1))(@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.5.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))
     optionalDependencies:
       '@voidzero-dev/vite-plus-darwin-arm64': 1.0.0
       '@voidzero-dev/vite-plus-darwin-x64': 1.0.0
@@ -18689,7 +18727,7 @@ snapshots:
       - utf-8-validate
       - yaml
 
-  vite-plus@1.0.0(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1):
+  vite-plus@1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1):
     dependencies:
       '@oxc-project/types': 0.151.0
       '@oxlint/plugins': 1.79.0
@@ -18700,11 +18738,11 @@ snapshots:
       '@vitest/snapshot': 5.0.1
       '@vitest/spy': 5.0.1
       '@vitest/utils': 5.0.1
-      oxfmt: 0.70.0(vite-plus@1.0.0(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))
-      oxlint: 1.85.0(oxlint-tsgolint@7.0.2003)(vite-plus@1.0.0(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))
+      oxfmt: 0.70.0(vite-plus@1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))
+      oxlint: 1.85.0(oxlint-tsgolint@7.0.2003)(vite-plus@1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))
       oxlint-tsgolint: 7.0.2003
       vite: '@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.9.5)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)'
-      vitest: 5.0.1(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(@vitest/browser-preview@5.0.1)(@vitest/ui@5.0.1(vitest@5.0.1))(@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.9.5)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))
+      vitest: 5.0.1(@opentelemetry/api@1.10.0)(@types/node@25.9.5)(@vitest/browser-preview@5.0.1)(@vitest/ui@5.0.1(vitest@5.0.1))(@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.9.5)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))
     optionalDependencies:
       '@voidzero-dev/vite-plus-darwin-arm64': 1.0.0
       '@voidzero-dev/vite-plus-darwin-x64': 1.0.0
@@ -18748,7 +18786,7 @@ snapshots:
     optionalDependencies:
       vite: '@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.9.5)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)'
 
-  vitest@5.0.1(@opentelemetry/api@1.9.1)(@types/node@25.5.2)(@vitest/browser-preview@5.0.1)(@vitest/ui@5.0.1(vitest@5.0.1))(@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.5.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)):
+  vitest@5.0.1(@opentelemetry/api@1.10.0)(@types/node@25.5.2)(@vitest/browser-preview@5.0.1)(@vitest/ui@5.0.1(vitest@5.0.1))(@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.5.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)):
     dependencies:
       '@types/chai': 5.2.3
       '@vitest/mocker': 5.0.1(@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.5.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))
@@ -18765,14 +18803,14 @@ snapshots:
       vite: '@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.5.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)'
       why-is-node-running: 2.3.0
     optionalDependencies:
-      '@opentelemetry/api': 1.9.1
+      '@opentelemetry/api': 1.10.0
       '@types/node': 25.5.2
       '@vitest/browser-preview': 5.0.1(@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.5.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))(vitest@5.0.1)
       '@vitest/ui': 5.0.1(vitest@5.0.1)
     transitivePeerDependencies:
       - msw
 
-  vitest@5.0.1(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(@vitest/browser-preview@5.0.1)(@vitest/ui@5.0.1(vitest@5.0.1))(@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.9.5)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)):
+  vitest@5.0.1(@opentelemetry/api@1.10.0)(@types/node@25.9.5)(@vitest/browser-preview@5.0.1)(@vitest/ui@5.0.1(vitest@5.0.1))(@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.9.5)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)):
     dependencies:
       '@types/chai': 5.2.3
       '@vitest/mocker': 5.0.1(@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.9.5)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))
@@ -18789,7 +18827,7 @@ snapshots:
       vite: '@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.9.5)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1)'
       why-is-node-running: 2.3.0
     optionalDependencies:
-      '@opentelemetry/api': 1.9.1
+      '@opentelemetry/api': 1.10.0
       '@types/node': 25.9.5
       '@vitest/browser-preview': 5.0.1(@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.9.5)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))(vitest@5.0.1)
       '@vitest/ui': 5.0.1(vitest@5.0.1)

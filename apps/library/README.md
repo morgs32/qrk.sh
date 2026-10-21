@@ -491,3 +491,8 @@ comparison includes arrangement. Editing bookkeeping and former grid geometry ar
 excluded. Shared module source supplies schemas/default specs and rendering, not
 an independent persisted owner or WallSnapshot model. Public-site rendering remains
 outside this editor change.
+
+Brick and Placement model factories accept stable model definitions (name and ID
+abbreviation), and declare their relationships with SDK `modelRef`. They do not
+require the parent model version's Table object. The host aggregate owns the
+selected versions and the complete relation graph.

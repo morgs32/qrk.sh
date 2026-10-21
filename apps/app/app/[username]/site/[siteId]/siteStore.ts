@@ -11,6 +11,7 @@ export const useSiteStore = create<{
     readonly faviconLightUrl: string;
     readonly faviconDarkUrl: string;
     readonly cardStyle: boolean;
+    readonly stickyNavbar: boolean;
   } | null;
   readonly initializeSite: (site: {
     readonly id: string;
@@ -22,12 +23,14 @@ export const useSiteStore = create<{
     readonly faviconLightUrl: string | null;
     readonly faviconDarkUrl: string | null;
     readonly cardStyle: boolean;
+    readonly stickyNavbar: boolean;
   }) => void;
   readonly setName: (name: string) => void;
   readonly setDescription: (description: string) => void;
   readonly setLogoUrl: (logoUrl: string) => void;
   readonly setFaviconLightUrl: (faviconLightUrl: string) => void;
   readonly setFaviconDarkUrl: (faviconDarkUrl: string) => void;
+  readonly setStickyNavbar: (stickyNavbar: boolean) => void;
   readonly setCardStyle: (cardStyle: boolean) => void;
 }>()((set) => ({
   site: null,
@@ -43,6 +46,7 @@ export const useSiteStore = create<{
         faviconLightUrl: site.faviconLightUrl ?? "",
         faviconDarkUrl: site.faviconDarkUrl ?? "",
         cardStyle: site.cardStyle,
+        stickyNavbar: site.stickyNavbar,
       },
     });
   },
@@ -114,6 +118,12 @@ export const useSiteStore = create<{
           faviconDarkUrl,
         },
       };
+    });
+  },
+  setStickyNavbar: (stickyNavbar) => {
+    set((state) => {
+      if (state.site === null) return state;
+      return { site: { ...state.site, stickyNavbar } };
     });
   },
   setCardStyle: (cardStyle) => {

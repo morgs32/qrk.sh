@@ -171,6 +171,17 @@ guard rejects duplicate subjects with `user-already-exists`; authorization treat
 that refusal as successful provisioning. Other admission/execution failures stop
 initialization. The web actor never exposes `createUser`.
 
+Model relationships use `modelRef` with the stable `defineModel` identity.
+The aggregate selects model versions, and Zerospin binds the references against
+that selected graph after checking ID compatibility. Adding a non-key Site field
+therefore does not require new Page, Brick, Placement or unrelated contract versions.
+
+Site `stickyNavbar` is a non-null boolean defaulting to `true`. Site creation
+records it enabled; `updateSiteSettings` saves the checkbox value. This change
+uses the explicitly authorized reset of local `sys_qrk_sh_1` storage; no new
+aggregate/model/contract versions are introduced for the former reference cascade.
+No verification runs were performed for this change, as requested.
+
 App owns the persisted editor. Its Page owns shared Bricks and four Walls,
 one per `sm`/`md`/`lg`/`xl` breakpoint. Walls own ordered Sections; Sections own
 ordered Stacks; Stacks own vertical Rows; Rows own horizontal Placements.

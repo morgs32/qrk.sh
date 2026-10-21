@@ -1,6 +1,6 @@
 import { makePlacementModel } from "@qrk.sh/library/makePlacementModel";
-import { brickV1 } from "../brick/BrickV1";
+import { brick } from "../brick/brick";
 import { placement } from "./placement";
-import { rowV1 } from "../row/RowV1";
+import { row } from "../row/row";
 
-export const placementV1 = makePlacementModel({ brick: brickV1, row: rowV1, identity: placement });
+export const placementV1 = makePlacementModel({ brick, row, identity: placement });

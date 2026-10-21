@@ -1,13 +1,12 @@
-import { makeModelVersion, primitives } from "@zerospin/sdk/browser";
-
-import { userV1 as User } from "../user/UserV1";
+import { modelRef, makeModelVersion, primitives } from "@zerospin/sdk/browser";
+import { user as User } from "../user/user";
 
 import { site } from "./site";
 
 export const siteV1 = makeModelVersion(site, {
   attributes: {
-    userId: primitives.ref({
-      table: User.table,
+    userId: modelRef({
+      model: User,
       relation: "user",
       inverse: "sites",
     }),

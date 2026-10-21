@@ -67,6 +67,7 @@ export default function SiteLayout(props: { children: ReactNode }) {
       faviconLightUrl: site.faviconLightUrl,
       faviconDarkUrl: site.faviconDarkUrl,
       cardStyle: site.cardStyle,
+      stickyNavbar: site.stickyNavbar,
     });
   }
 

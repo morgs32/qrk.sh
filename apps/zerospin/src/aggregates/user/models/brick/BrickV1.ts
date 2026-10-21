@@ -1,5 +1,5 @@
 import { makeBrickModel } from "@qrk.sh/library/makeBrickModel";
 import { brick } from "./brick";
-import { pageV3 } from "../page/PageV3";
+import { page } from "../page/page";
 
-export const brickV1 = makeBrickModel({ page: pageV3, identity: brick });
+export const brickV1 = makeBrickModel({ page, identity: brick });

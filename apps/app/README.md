@@ -296,9 +296,15 @@ Effect Schema validation, form keys, and navigation without scroll resets are
 retained. Unknown paths render the Router not-found screen. The local error
 boundary preserves client diagnostics and reload behavior.
 
-The page layout keeps site/page settings drafts, `MainColumns`, the four saved
-Wall previews, and the authenticated user session mounted. `EditorLayout` also
-owns the persistent bottom drawer shell.
+Site Settings includes a **Sticky navbar** checkbox, enabled by default. It
+previews the draft while settings are open, persists through Save, and restores
+its opening value on Cancel. The navbar's containing element spans the whole
+scrolling page so sticky positioning remains effective through page content.
+
+The page layout keeps site/page settings drafts, `MainColumns`, `PagePreview`,
+and the authenticated user session mounted. `PagePreview` owns responsive preview
+frames, breakpoint transitions, and scrolling; `WallEditorProvider` supplies the
+saved Wall contents. `EditorLayout` owns the persistent bottom drawer shell.
 Matched route IDs determine its `open` state through a pathless drawer layout;
 catalog and module-detail routes are sibling leaves. `EditorLayout` supplies
 `DrawerHeader` through the shared Drawer's `persistentHeader` slot. It owns catalog breadcrumbs, the brick-detail

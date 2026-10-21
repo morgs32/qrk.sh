@@ -11,15 +11,17 @@ export const updateSiteSettingsV3 = upgradeAggregateContractVersion(updateSiteSe
   operations: { updateSite: Site.operations.update },
   payload: {
     cardStyle: primitives.boolean({ defaultValue: false }),
+    stickyNavbar: primitives.boolean({ defaultValue: true }),
   },
   up: Effect.fn("updateSiteSettingsV3.up")(function* (props) {
     const { payload } = props;
-    return { ...payload, cardStyle: false };
+    return { ...payload, cardStyle: false, stickyNavbar: true };
   }),
   down: Effect.fn("updateSiteSettingsV3.down")(function* (props) {
     const { payload } = props;
-    const { cardStyle, ...previous } = payload;
+    const { cardStyle, stickyNavbar, ...previous } = payload;
     void cardStyle;
+    void stickyNavbar;
     return previous;
   }),
   models: { user: User, site: Site },
@@ -66,6 +68,7 @@ export const updateSiteSettingsV3 = upgradeAggregateContractVersion(updateSiteSe
         faviconLightUrl: payload.faviconLightUrl,
         faviconDarkUrl: payload.faviconDarkUrl,
         cardStyle: payload.cardStyle,
+        stickyNavbar: payload.stickyNavbar,
       },
     });
   }),

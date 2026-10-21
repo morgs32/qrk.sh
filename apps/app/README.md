@@ -281,7 +281,9 @@ Settings is open. Cancel restores the saved name. Public website rendering remai
 
 ## Routes and transitions
 
-The dashboard's **Create site** dialog includes Name and Subdomain. The Subdomain
+The dashboard's **Create site** dialog requires Name, Description, and Subdomain.
+Description must contain non-whitespace text and is trimmed before being saved
+through `createSite`. The Subdomain
 uses shadcn's Input Group to edit the slug before a fixed `.qrk.sh` text addon.
 An empty input
 uses its name-derived lowercase ASCII kebab-case placeholder; accents are
@@ -293,7 +295,7 @@ checkmark for an available slug or a red X for an invalid or taken slug, with
 descriptive feedback for screen readers; the creation contract enforces the same
 format and ownership-scoped
 uniqueness. Another user may use the same slug. Local refusals keep the dialog's
-values; later creation failures show a toast. Closing or cancelling resets both
+values; later creation failures show a toast. Closing or cancelling resets all
 inputs. Creation stages `createSite` followed by `createPage` with `slug: null`
 for the site's index page. Page creation requires an explicit string slug or
 `null`, with at most one null-slug page per site; Site slugs retain their existing

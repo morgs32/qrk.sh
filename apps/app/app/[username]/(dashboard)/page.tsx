@@ -24,6 +24,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   InputGroup,
   InputGroupAddon,
@@ -42,6 +43,7 @@ export default function UsernameDashboardPage() {
   const session = UserApp.useInitializedSession();
   const [createSiteOpen, setCreateSiteOpen] = useState(false);
   const [siteName, setSiteName] = useState("");
+  const [siteDescription, setSiteDescription] = useState("");
   const [siteSlug, setSiteSlug] = useState("");
   const { data: user } = useLiveQuery({
     session,
@@ -106,6 +108,7 @@ export default function UsernameDashboardPage() {
                   setCreateSiteOpen(open);
                   if (!open) {
                     setSiteName("");
+                    setSiteDescription("");
                     setSiteSlug("");
                   }
                 }}
@@ -124,6 +127,11 @@ export default function UsernameDashboardPage() {
                         toast.error("Name is required");
                         return;
                       }
+                      const description = siteDescription.trim();
+                      if (description === "") {
+                        toast.error("Description is required");
+                        return;
+                      }
                       if (slugError !== null) {
                         toast.error(slugError);
                         return;
@@ -140,6 +148,7 @@ export default function UsernameDashboardPage() {
                           id: session.runSync(makeId(Site)),
                           userId: user.id,
                           name,
+                          description,
                           slug,
                         },
                       });
@@ -158,6 +167,7 @@ export default function UsernameDashboardPage() {
                       if (pageResult._tag === "Failure") return;
 
                       setSiteName("");
+                      setSiteDescription("");
                       setSiteSlug("");
                       setCreateSiteOpen(false);
                     }}
@@ -174,6 +184,20 @@ export default function UsernameDashboardPage() {
                           setSiteName(event.target.value);
                         }}
                         autoFocus
+                      />
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <label htmlFor="create-site-description" className="text-sm font-medium">
+                        Description
+                      </label>
+                      <Textarea
+                        id="create-site-description"
+                        name="description"
+                        value={siteDescription}
+                        onChange={(event) => {
+                          setSiteDescription(event.target.value);
+                        }}
+                        required
                       />
                     </div>
                     <div className="flex flex-col gap-2">
@@ -221,7 +245,12 @@ export default function UsernameDashboardPage() {
                           Cancel
                         </Button>
                       </DialogClose>
-                      <Button type="submit" disabled={siteName.trim() === "" || slugError !== null}>
+                      <Button
+                        type="submit"
+                        disabled={
+                          siteName.trim() === "" || siteDescription.trim() === "" || slugError !== null
+                        }
+                      >
                         Create site
                       </Button>
                     </DialogFooter>

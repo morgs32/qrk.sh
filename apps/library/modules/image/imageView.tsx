@@ -13,6 +13,7 @@ export const imageView = makeModuleView(imageV1, {
   form: ImageForm,
   default: {
     defaultWidth: 480,
+    minWidth: 320,
     placeholder: ImagePlaceholder,
     component(props) {
       const { state } = props;

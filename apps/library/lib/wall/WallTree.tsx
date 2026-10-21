@@ -31,7 +31,10 @@ export function WallTree(props: {
     stacks: {
       id: string;
       name: string;
-      rows: { id: string; placements: { id: string; brickId: string; content: ReactNode }[] }[];
+      rows: {
+        id: string;
+        placements: { id: string; brickId: string; minWidth: number; content: ReactNode }[];
+      }[];
     }[];
   }[];
   selectedBrickId?: string | null;
@@ -397,7 +400,17 @@ export function WallTree(props: {
         ))}
       </div>
       {indicator &&
-        createPortal(<DropIndicator instruction={indicator.instruction} />, indicator.element)}
+        createPortal(
+          <DropIndicator
+            instruction={indicator.instruction}
+            lineType={
+              indicator.element.hasAttribute("data-wall-placement")
+                ? "terminal-no-bleed"
+                : undefined
+            }
+          />,
+          indicator.element,
+        )}
       <Dialog.Root
         open={deletingBrickId !== null}
         onOpenChange={(open) => {

@@ -31,7 +31,7 @@ import {
   InputGroupInput,
   InputGroupText,
 } from "@/components/ui/input-group";
-import { UserApp } from "@/zerospin/userSession";
+import { UserUI } from "@/zerospin/UserUI";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 
 const ParamsSchema = Schema.Struct({
@@ -40,7 +40,7 @@ const ParamsSchema = Schema.Struct({
 
 export default function UsernameDashboardPage() {
   const { username } = useValidatedParams(ParamsSchema);
-  const session = UserApp.useInitializedSession();
+  const session = UserUI.useSession();
   const [createSiteOpen, setCreateSiteOpen] = useState(false);
   const [siteName, setSiteName] = useState("");
   const [siteDescription, setSiteDescription] = useState("");

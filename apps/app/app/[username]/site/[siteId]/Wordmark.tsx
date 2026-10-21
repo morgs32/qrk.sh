@@ -6,7 +6,7 @@ import { useLiveQuery } from "@zerospin/react";
 import { Schema } from "effect";
 import { siteV3 } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV3";
 
-import { UserApp } from "@/zerospin/userSession";
+import { UserUI } from "@/zerospin/UserUI";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 
 import { useSiteStore } from "./siteStore";
@@ -18,7 +18,7 @@ const ParamsSchema = Schema.Struct({
 });
 
 export function Wordmark() {
-  const session = UserApp.useInitializedSession();
+  const session = UserUI.useSession();
   const { username, siteId, pageId } = useValidatedParams(ParamsSchema);
   const draftName = useSiteStore((state) => state.site?.name);
   const settingsOpen = useMatches({

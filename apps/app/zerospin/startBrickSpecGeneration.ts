@@ -3,11 +3,11 @@ import { newSyncRpcSession } from "@zerospin/core/utils/getApi/newSyncRpcSession
 import { isNonEmptySpec } from "@json-render/core";
 
 import type { LibraryApi } from "../../library/worker/LibraryApi.public";
-import type { UserApp } from "./userSession";
+import type { UserUI } from "./UserUI";
 
 /** Provider work belongs to the session lifetime; the saved form only stages intent. */
 export function startBrickSpecGeneration(
-  session: ReturnType<typeof UserApp.useInitializedSession>,
+  session: ReturnType<typeof UserUI.useSession>,
 ) {
   const initialized = session.store.getState().initialized;
   if (initialized === null) return () => {};

@@ -1,5 +1,5 @@
 import { stageAggregateSessionCommand } from "@zerospin/sdk/browser";
-import type { UserApp } from "./userSession";
+import type { UserUI } from "./UserUI";
 import { startBrickSpecGeneration } from "./startBrickSpecGeneration";
 import { startInstagramResolution } from "@qrk.sh/library/modules/instagram/startInstagramResolution";
 import { startGithubActivityResolution } from "@qrk.sh/library/modules/githubActivity/startGithubActivityResolution";
@@ -10,7 +10,7 @@ import { startLinkResolution } from "@qrk.sh/library/modules/link/startLinkResol
 import { startMapPlaceResolution } from "@qrk.sh/library/modules/mapPlace/startMapPlaceResolution";
 
 /** Keep pending provider work alive for the initialized App session. */
-export function startLibrarySessionWork(session: ReturnType<typeof UserApp.useInitializedSession>) {
+export function startLibrarySessionWork(session: ReturnType<typeof UserUI.useSession>) {
   const initialized = session.store.getState().initialized;
   if (initialized === null) return () => {};
   const { db } = initialized;

@@ -1,6 +1,7 @@
 "use client";
 
-import { makeModelIdSchema } from "@zerospin/core/models/make/makeModelIdSchema";
+import { makeIdSchema } from "@zerospin/sdk/browser";
+
 import { useLiveQuery } from "@zerospin/react";
 import { Schema } from "effect";
 import type { ReactNode } from "react";
@@ -16,8 +17,8 @@ import { usePageStore } from "./page/[pageId]/pageStore";
 import { useSiteStore } from "./siteStore";
 
 const ParamsSchema = Schema.Struct({
-  siteId: makeModelIdSchema(Site),
-  pageId: Schema.optional(makeModelIdSchema(Page)),
+  siteId: makeIdSchema(Site),
+  pageId: Schema.optional(makeIdSchema(Page)),
 });
 
 export default function SiteLayout(props: { children: ReactNode }) {

@@ -3,8 +3,7 @@
 import { useContext, useEffect, type ReactNode } from "react";
 import { useNavigate, useParams, useSearch } from "@tanstack/react-router";
 import { useLiveQuery } from "@zerospin/react";
-import { makeId, stageAggregateSessionCommand } from "@zerospin/sdk/browser";
-import { makeModelIdSchema } from "@zerospin/core/models/make/makeModelIdSchema";
+import { makeIdSchema, makeId, stageAggregateSessionCommand } from "@zerospin/sdk/browser";
 import { Schema } from "effect";
 import { isNonEmptySpec } from "@json-render/core";
 import { modulesHash } from "@qrk.sh/library/modulesHash";
@@ -25,7 +24,7 @@ export function WallEditorProvider(props: { children: ReactNode }) {
   const { children } = props;
   const cardStyle = useContext(BrickCardStyleContext);
   const params = useParams({ from: "/$username/site/$siteId/page/$pageId" });
-  const pageId = Schema.decodeUnknownSync(makeModelIdSchema(pageV3))(params.pageId);
+  const pageId = Schema.decodeUnknownSync(makeIdSchema(pageV3))(params.pageId);
   const search = useSearch({ from: "/$username/site/$siteId/page/$pageId" });
   const navigate = useNavigate();
   const session = UserUI.useSession();
@@ -176,7 +175,7 @@ export function WallEditorProvider(props: { children: ReactNode }) {
                 return false;
               }}
               onMovePlacement={(id, target) => {
-                const placementId = Schema.decodeUnknownSync(makeModelIdSchema(placementV1))(id);
+                const placementId = Schema.decodeUnknownSync(makeIdSchema(placementV1))(id);
                 return (
                   stageAggregateSessionCommand({
                     session,
@@ -190,7 +189,7 @@ export function WallEditorProvider(props: { children: ReactNode }) {
                 );
               }}
               onMoveStack={(id, target) => {
-                const stackId = Schema.decodeUnknownSync(makeModelIdSchema(stackV1))(id);
+                const stackId = Schema.decodeUnknownSync(makeIdSchema(stackV1))(id);
                 return (
                   stageAggregateSessionCommand({
                     session,
@@ -205,7 +204,7 @@ export function WallEditorProvider(props: { children: ReactNode }) {
               }}
               onEditBrick={editBrick}
               onDeleteBrick={(id) => {
-                const brickId = Schema.decodeUnknownSync(makeModelIdSchema(brickV1))(id);
+                const brickId = Schema.decodeUnknownSync(makeIdSchema(brickV1))(id);
                 const result = stageAggregateSessionCommand({
                   session,
                   contractName: "deleteBrick",

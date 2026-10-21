@@ -1,8 +1,9 @@
+import { site as siteIdentity } from "../../models/site/site";
 import {
+  modelId,
   ContractError,
   findFirst,
   makeAggregateContractVersion,
-  primitives,
 } from "@zerospin/sdk/browser";
 import { Effect } from "effect";
 import { siteV2 as Site } from "../../models/site/SiteV2";
@@ -11,7 +12,7 @@ import { unpublishSite } from "./unpublishSite";
 
 export const unpublishSiteV1 = makeAggregateContractVersion(unpublishSite, {
   version: "1.0.0",
-  payload: { siteId: primitives.foreignKey({ abbreviation: Site.abbreviation }) },
+  payload: { siteId: modelId({ model: siteIdentity }) },
   models: { site: Site, user: User },
   operations: { updateSite: Site.operations.update },
   failures: {

@@ -1,5 +1,6 @@
+import { user as userIdentity } from "../../models/user/user";
 
-import { makeAggregateContractVersion, primitives } from "@zerospin/sdk/browser";
+import { modelId, makeAggregateContractVersion, primitives } from "@zerospin/sdk/browser";
 import { AggregateError } from "@zerospin/error";
 import { Effect } from "effect";
 import { userV1 as User } from "../../models/user/UserV1";
@@ -7,7 +8,7 @@ import { userV1 as User } from "../../models/user/UserV1";
 import { createUser } from "./createUser";
 
 const createUserPayload = {
-  id: primitives.foreignKey({ abbreviation: User.abbreviation }),
+  id: modelId({ model: userIdentity }),
   clerkUserId: primitives.text(),
   username: primitives.text({
     nullable: true,

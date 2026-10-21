@@ -1,3 +1,4 @@
+import { site as siteIdentity } from "../../models/site/site";
 import { wallV1 as Wall } from "../../models/wall/WallV1";
 import { sectionV1 as Section } from "../../models/section/SectionV1";
 import { stackV1 as Stack } from "../../models/stack/StackV1";
@@ -5,6 +6,7 @@ import { rowV1 as Row } from "../../models/row/RowV1";
 import { brickV1 as Brick } from "../../models/brick/BrickV1";
 import { placementV1 as Placement } from "../../models/placement/PlacementV1";
 import {
+  modelId,
   ContractError,
   findFirst,
   findMany,
@@ -23,7 +25,7 @@ import { publishSite } from "./publishSite";
 export const publishSiteV2 = makeAggregateContractVersion(publishSite, {
   version: "2.0.0",
   payload: {
-    siteId: primitives.foreignKey({ abbreviation: Site.abbreviation }),
+    siteId: modelId({ model: siteIdentity }),
     pages: primitives.json({
       schema: Schema.Array(
         Schema.Struct({

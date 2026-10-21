@@ -24,7 +24,7 @@ separately started Storybook. To start only this Worker, run `pnpm --dir apps/ze
 Its `dev` script invokes Portless, which runs the CLI command in `dev:app`;
 package metadata retains its hostname and port.
 
-QRK installs the CLI and runtime packages at `19.0.0` from the populated local
+QRK installs the CLI and runtime packages at `21.0.0` from the populated local
 registry described in the [root README](../../README.md#zerospin-packages).
 Backend development compiles Library source directly; it does not build a
 separate Library package or rebuild installed Zerospin files.
@@ -97,7 +97,7 @@ initialization step fails. Do not reset or seed production storage to retry.
 
 ## Server aggregate reads
 
-Core `19.0.0` provides the server-only
+Core `21.0.0` provides the server-only
 `@zerospin/core/utils/getSystemApi/getSystemApi` client. Supply
 `ZerospinApiUrl` and `SecretKey` (`Redacted<string>`) in the application's Effect
 layer, then acquire it with `yield* getSystemApi()`. Construct a connection-free

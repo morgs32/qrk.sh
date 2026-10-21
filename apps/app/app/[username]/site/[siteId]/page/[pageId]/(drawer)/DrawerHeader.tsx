@@ -6,8 +6,7 @@ import { Result, Schema } from "effect";
 import { isEqual } from "es-toolkit";
 import { ArrowLeft, FileText, Globe, X } from "lucide-react";
 import { useLiveQuery } from "@zerospin/react";
-import { makeId, stageAggregateSessionCommand } from "@zerospin/sdk/browser";
-import { makeModelIdSchema } from "@zerospin/core/models/make/makeModelIdSchema";
+import { makeIdSchema, makeId, stageAggregateSessionCommand } from "@zerospin/sdk/browser";
 import { makeEffectSchema } from "@zerospin/shapes";
 import { modulesHash } from "@qrk.sh/library/modulesHash";
 import { brickV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/brick/BrickV1";
@@ -30,8 +29,8 @@ import { PublishSiteDialog } from "./PublishSiteDialog";
 
 const ParamsSchema = Schema.Struct({
   username: Schema.String,
-  siteId: makeModelIdSchema(Site),
-  pageId: makeModelIdSchema(Page),
+  siteId: makeIdSchema(Site),
+  pageId: makeIdSchema(Page),
   moduleId: Schema.optional(Schema.String),
   brickId: Schema.optional(Schema.String),
 });
@@ -100,7 +99,7 @@ export function DrawerHeader(props: {
     query: (db, id) =>
       db.query.pageSnapshot.findFirst({ where: { id: { eq: id ?? "psn_missing" } } }),
   });
-  const decodedBrickId = Schema.decodeUnknownResult(makeModelIdSchema(brickV1))(params.brickId);
+  const decodedBrickId = Schema.decodeUnknownResult(makeIdSchema(brickV1))(params.brickId);
   const { data: brick } = useLiveQuery({
     session,
     key: {

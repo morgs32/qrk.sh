@@ -1,3 +1,5 @@
+import { page as pageIdentity } from "../../models/page/page";
+import { pageSnapshot as pageSnapshotIdentity } from "../../models/pageSnapshot/pageSnapshot";
 import { wallV1 as Wall } from "../../models/wall/WallV1";
 import { sectionV1 as Section } from "../../models/section/SectionV1";
 import { stackV1 as Stack } from "../../models/stack/StackV1";
@@ -5,11 +7,11 @@ import { rowV1 as Row } from "../../models/row/RowV1";
 import { brickV1 as Brick } from "../../models/brick/BrickV1";
 import { placementV1 as Placement } from "../../models/placement/PlacementV1";
 import {
+  modelId,
   ContractError,
   findFirst,
   findMany,
   makeAggregateContractVersion,
-  primitives,
 } from "@zerospin/sdk/browser";
 import { Effect } from "effect";
 import { pageV3 as Page } from "../../models/page/PageV3";
@@ -22,8 +24,8 @@ import { publishPage } from "./publishPage";
 export const publishPageV2 = makeAggregateContractVersion(publishPage, {
   version: "2.0.0",
   payload: {
-    pageId: primitives.foreignKey({ abbreviation: Page.abbreviation }),
-    snapshotId: primitives.foreignKey({ abbreviation: PageSnapshot.abbreviation }),
+    pageId: modelId({ model: pageIdentity }),
+    snapshotId: modelId({ model: pageSnapshotIdentity }),
   },
   models: {
     wall: Wall,

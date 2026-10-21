@@ -1,3 +1,5 @@
+import { brick as brickIdentity } from "../../models/brick/brick";
+import { modelId } from "@zerospin/sdk/browser";
 import { findFirst } from "@zerospin/core/contracts/findFirst";
 import { defineAggregateContract } from "@zerospin/core/contracts/defineAggregateContract";
 import { makeAggregateContractVersion } from "@zerospin/core/contracts/make/makeAggregateContractVersion";
@@ -21,7 +23,7 @@ export const configureLink = makeAggregateContractVersion(defineAggregateContrac
     updatePlacement: placement.operations.update,
   },
   payload: {
-    brickId: primitives.foreignKey({ abbreviation: brick.abbreviation }),
+    brickId: modelId({ model: brickIdentity }),
     requestId: primitives.text(),
     url: primitives.text(),
   },

@@ -3,7 +3,7 @@
 ## Zerospin packages
 
 Zerospin owns its source, builds, and releases in the sibling `../zerospin`
-checkout. QRK installs exact `19.0.0` packages from the local Verdaccio registry;
+checkout. QRK installs exact `21.0.0` packages from the local Verdaccio registry;
 there is no vendored Zerospin source or consumer-side Zerospin build.
 
 The credential-free project `.npmrc` routes all dependencies through
@@ -83,7 +83,7 @@ and [App](apps/app/README.md) for their respective ownership.
    On the first registry bootstrap, install, build, verify, and publish the
    release in Zerospin before installing QRK. Follow Zerospin's package release
    instructions. Existing registry storage survives restarts. A fresh checkout
-   requires the running registry with the locked `19.0.0` packages; hosted
+   requires the running registry with the locked `21.0.0` packages; hosted
    distribution and deployment-machine bootstrap are not configured here.
 
 2. Start the four application development servers through Portless:
@@ -131,10 +131,9 @@ instructions. Superseded
 retained commands and SQLite schemas require empty storage; old data is preserved
 separately and has no compatibility migration.
 
-App's `userBrowserDefinition` uses the installed browser package's
-`makeAggregateBrowserDefinition` with its pure `userSessionDefinition` and authored
-`node.worker.ts` entrypoint. `makeApplicationSharedWorker` binds the worker artifact
-to the connected session.
+App's `Initializer` receives its pure `userSessionDefinition` and
+`userConnection`. The connection uses `makeApplicationSharedWorker` to bind the
+authored `node.worker.ts` artifact to the connected session.
 Zerospin chooses its name from the runtime version and persistent session identity.
 App uses Vite's `?sharedworker&url` import for the authored worker
 and `@zerospin/browser/sqlite.wasm?url` for the matching installed SQLite asset.

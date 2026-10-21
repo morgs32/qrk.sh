@@ -1,3 +1,5 @@
+import { brick as brickIdentity } from "../../models/brick/brick";
+import { modelId } from "@zerospin/sdk/browser";
 import { backendLibrary } from "@qrk.sh/library/backendLibrary";
 import { makeModuleSpecDocumentSchema } from "@qrk.sh/library/makeModuleSpecDocumentSchema";
 import { makePlacementId } from "@qrk.sh/library/makePlacementId";
@@ -19,7 +21,7 @@ export const updateSwatchAndIconSpecAtBreakpoint = makeAggregateContractVersion(
     operations: { updatePlacement: placement.operations.update },
     models: { brick, placement },
     payload: {
-      brickId: primitives.foreignKey({ abbreviation: brick.abbreviation }),
+      brickId: modelId({ model: brickIdentity }),
       breakpoint: primitives.enum({ values: ["sm", "md", "lg", "xl"] }),
       spec: primitives.json({ schema: SpecDocumentSchema }),
     },

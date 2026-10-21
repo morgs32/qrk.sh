@@ -1,10 +1,11 @@
+import { brick as brickIdentity } from "../../models/brick/brick";
 import {
+  modelId,
   ContractError,
   defineAggregateContract,
   makeAggregateContractVersion,
   findFirst,
   findMany,
-  primitives,
 } from "@zerospin/sdk/browser";
 import { Effect } from "effect";
 import { userClaims } from "../../../../claims";
@@ -33,7 +34,7 @@ export const deleteBrick = makeAggregateContractVersion(defineAggregateContract(
     updateSection: section.operations.update,
     deleteSection: section.operations.delete,
   },
-  payload: { brickId: primitives.foreignKey({ abbreviation: "brk" }) },
+  payload: { brickId: modelId({ model: brickIdentity }) },
   failures: { invalidLayout: ContractError.schema({ code: "delete-brick-invalid-layout" }) },
   program: Effect.fn("deleteBrick.program")(function* (props) {
     const { db, payload, operations, failures, claims } = props;

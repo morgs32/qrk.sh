@@ -1,3 +1,4 @@
+import { brick as brickIdentity } from "../../models/brick/brick";
 import { backendLibrary as library } from "@qrk.sh/library/backendLibrary";
 import { brickV1 as brick } from "../../models/brick/BrickV1";
 import { placementV1 as placement } from "../../models/placement/PlacementV1";
@@ -7,7 +8,7 @@ import { sectionV1 as section } from "../../models/section/SectionV1";
 import { wallV1 as wall } from "../../models/wall/WallV1";
 import { ContractError } from "@zerospin/error";
 import { findFirst } from "@zerospin/core/contracts/findFirst";
-import { makeAggregateContractVersion, defineAggregateContract } from "@zerospin/sdk/browser";
+import { modelId, makeAggregateContractVersion, defineAggregateContract } from "@zerospin/sdk/browser";
 import { mapParseError } from "@zerospin/error";
 import { makeEffectSchema, primitives, type IShape } from "@zerospin/shapes";
 import { Effect, Schema } from "effect";
@@ -16,8 +17,8 @@ import { makePlacementId } from "@qrk.sh/library/makePlacementId";
 
 const breakpoints: Array<"sm" | "md" | "lg" | "xl"> = ["sm", "md", "lg", "xl"];
 const updateBrickPayload = {
-  brickId: primitives.foreignKey({
-    abbreviation: brick.abbreviation,
+  brickId: modelId({
+    model: brickIdentity,
   }),
   moduleId: brick.attributes.moduleId,
   state: primitives.json({ schema: Schema.Unknown }),

@@ -1,4 +1,6 @@
+import { stack as stackIdentity } from "../../models/stack/stack";
 import {
+  modelId,
   ContractError,
   defineAggregateContract,
   makeAggregateContractVersion,
@@ -48,7 +50,7 @@ export const moveStack = makeAggregateContractVersion(defineAggregateContract("m
   },
   payload: {
     id: primitives.text(),
-    stackId: primitives.foreignKey({ abbreviation: "stk" }),
+    stackId: modelId({ model: stackIdentity }),
     target: primitives.json({ schema: targetSchema }),
   },
   failures: { invalidLayout: ContractError.schema({ code: "move-stack-invalid-layout" }) },

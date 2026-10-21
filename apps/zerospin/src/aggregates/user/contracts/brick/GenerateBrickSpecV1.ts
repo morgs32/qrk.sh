@@ -1,3 +1,5 @@
+import { brick as brickIdentity } from "../../models/brick/brick";
+import { modelId } from "@zerospin/sdk/browser";
 import { backendLibrary as library } from "@qrk.sh/library/backendLibrary";
 import { brickV1 as brick } from "../../models/brick/BrickV1";
 import { placementV1 as placement } from "../../models/placement/PlacementV1";
@@ -22,7 +24,7 @@ export const generateBrickSpec = makeAggregateContractVersion(
     models: { brick, placement, row, stack, section, wall },
     operations: { updatePlacement: placement.operations.update },
     payload: {
-      brickId: primitives.foreignKey({ abbreviation: brick.abbreviation }),
+      brickId: modelId({ model: brickIdentity }),
       breakpoint: wall.attributes.breakpoint,
       requestId: primitives.text(),
       prompt: primitives.text(),
@@ -104,7 +106,7 @@ export const completeBrickSpecGeneration = makeAggregateContractVersion(
     models: { brick, placement, row, stack, section, wall },
     operations: { updatePlacement: placement.operations.update },
     payload: {
-      brickId: primitives.foreignKey({ abbreviation: brick.abbreviation }),
+      brickId: modelId({ model: brickIdentity }),
       breakpoint: wall.attributes.breakpoint,
       moduleId: brick.attributes.moduleId,
       requestId: primitives.text(),

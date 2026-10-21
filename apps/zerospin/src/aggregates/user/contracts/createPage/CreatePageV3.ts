@@ -1,6 +1,9 @@
+import { page as pageIdentity } from "../../models/page/page";
+import { site as siteIdentity } from "../../models/site/site";
 import * as sdk from "@zerospin/sdk/browser";
 
 import {
+  modelId,
   makeAggregateContractVersion,
   prefixId,
   primitives,
@@ -26,8 +29,8 @@ export const createPageV3 = makeAggregateContractVersion(createPage, {
     createPage: Page.operations.create,
   },
   payload: {
-    id: primitives.foreignKey({ abbreviation: Page.abbreviation }),
-    siteId: primitives.foreignKey({ abbreviation: Site.abbreviation }),
+    id: modelId({ model: pageIdentity }),
+    siteId: modelId({ model: siteIdentity }),
     slug: primitives.text({ nullable: true }),
     title: primitives.text({ nullable: true, defaultValue: null }),
     description: primitives.text({ nullable: true, defaultValue: null }),

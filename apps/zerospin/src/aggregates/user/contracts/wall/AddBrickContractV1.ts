@@ -1,4 +1,7 @@
+import { brick as brickIdentity } from "../../models/brick/brick";
+import { page as pageIdentity } from "../../models/page/page";
 import {
+  modelId,
   ContractError,
   defineAggregateContract,
   makeAggregateContractVersion,
@@ -60,8 +63,8 @@ export const addBrick = makeAggregateContractVersion(defineAggregateContract("ad
     createPlacement: placement.operations.create,
   },
   payload: {
-    id: primitives.foreignKey({ abbreviation: "brk" }),
-    pageId: primitives.foreignKey({ abbreviation: "pag" }),
+    id: modelId({ model: brickIdentity }),
+    pageId: modelId({ model: pageIdentity }),
     moduleId: brick.attributes.moduleId,
     target: primitives.json({ schema: targetSchema }),
   },

@@ -1,5 +1,7 @@
 "use client";
 
+import { makeIdSchema } from "@zerospin/sdk/browser";
+
 import { useContext } from "react";
 import { WallEditorContext } from "../WallEditorContext";
 import { WallModuleAction } from "@qrk.sh/library/WallModuleAction";
@@ -10,7 +12,6 @@ import { Link } from "@tanstack/react-router";
 import { ModuleFilmstrip } from "@qrk.sh/library/ModuleFilmstrip";
 import { useWallViewport } from "@qrk.sh/library/WallViewportProvider";
 import { pageV3 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV3";
-import { makeModelIdSchema } from "@zerospin/core/models/make/makeModelIdSchema";
 import { Schema } from "effect";
 
 import { useValidatedParams } from "@/hooks/useValidatedParams";
@@ -18,7 +19,7 @@ import { useValidatedParams } from "@/hooks/useValidatedParams";
 const ParamsSchema = Schema.Struct({
   username: Schema.String,
   siteId: Schema.String,
-  pageId: makeModelIdSchema(Page),
+  pageId: makeIdSchema(Page),
 });
 
 export function Modules() {

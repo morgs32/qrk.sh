@@ -1,7 +1,8 @@
 "use client";
 
+import { makeIdSchema } from "@zerospin/sdk/browser";
+
 import { Link, useMatches } from "@tanstack/react-router";
-import { makeModelIdSchema } from "@zerospin/core/models/make/makeModelIdSchema";
 import { useLiveQuery } from "@zerospin/react";
 import { Schema } from "effect";
 import { siteV3 } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV3";
@@ -13,7 +14,7 @@ import { useSiteStore } from "./siteStore";
 
 const ParamsSchema = Schema.Struct({
   username: Schema.String,
-  siteId: makeModelIdSchema(siteV3),
+  siteId: makeIdSchema(siteV3),
   pageId: Schema.optional(Schema.String),
 });
 

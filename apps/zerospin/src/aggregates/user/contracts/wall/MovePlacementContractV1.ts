@@ -1,4 +1,6 @@
+import { placement as placementIdentity } from "../../models/placement/placement";
 import {
+  modelId,
   ContractError,
   defineAggregateContract,
   makeAggregateContractVersion,
@@ -63,7 +65,7 @@ export const movePlacement = makeAggregateContractVersion(
     },
     payload: {
       id: primitives.text(),
-      placementId: primitives.foreignKey({ abbreviation: "plc" }),
+      placementId: modelId({ model: placementIdentity }),
       target: primitives.json({ schema: targetSchema }),
     },
     failures: { invalidLayout: ContractError.schema({ code: "move-placement-invalid-layout" }) },

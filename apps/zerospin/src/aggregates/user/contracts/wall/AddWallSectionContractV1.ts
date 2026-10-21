@@ -1,4 +1,7 @@
+import { wall as wallIdentity } from "../../models/wall/wall";
+import { section as sectionIdentity } from "../../models/section/section";
 import {
+  modelId,
   ContractError,
   defineAggregateContract,
   makeAggregateContractVersion,
@@ -31,8 +34,8 @@ export const addWallSection = makeAggregateContractVersion(
     },
     payload: {
       id: primitives.text(),
-      wallId: primitives.foreignKey({ abbreviation: "wal" }),
-      beforeSectionId: primitives.foreignKey({ abbreviation: "sec", nullable: true }),
+      wallId: modelId({ model: wallIdentity }),
+      beforeSectionId: modelId({ model: sectionIdentity, nullable: true }),
     },
     failures: { invalidLayout: ContractError.schema({ code: "add-wall-section-invalid-layout" }) },
     program: Effect.fn("addWallSection.program")(function* (props) {

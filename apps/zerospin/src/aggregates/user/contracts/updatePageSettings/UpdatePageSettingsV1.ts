@@ -1,7 +1,8 @@
+import { page as pageIdentity } from "../../models/page/page";
 import { ContractError } from "@zerospin/error";
 import * as sdk from "@zerospin/sdk/browser";
 
-import { makeAggregateContractVersion, primitives } from "@zerospin/sdk/browser";
+import { modelId, makeAggregateContractVersion, primitives } from "@zerospin/sdk/browser";
 import { Effect } from "effect";
 import { pageV1 as Page } from "../../models/page/PageV1";
 import { siteV1 as Site } from "../../models/site/SiteV1";
@@ -10,7 +11,7 @@ import { userV1 as User } from "../../models/user/UserV1";
 import { updatePageSettings } from "./updatePageSettings";
 
 const updatePageSettingsPayload = {
-  id: primitives.foreignKey({ abbreviation: Page.abbreviation }),
+  id: modelId({ model: pageIdentity }),
   title: primitives.text({
     nullable: true,
     defaultValue: null,

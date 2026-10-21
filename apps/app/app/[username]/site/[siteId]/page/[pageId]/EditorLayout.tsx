@@ -1,5 +1,7 @@
 "use client";
 
+import { makeIdSchema } from "@zerospin/sdk/browser";
+
 import { useState, type ReactNode } from "react";
 import { useLocation, useMatches } from "@tanstack/react-router";
 import { Drawer } from "@qrk.sh/library/Drawer";
@@ -10,7 +12,6 @@ import { WallPreviewViewport } from "@qrk.sh/library/WallPreviewViewport";
 import { ImageUploadEnvironment } from "@qrk.sh/library/ImageUploadEnvironment";
 import { ImageUploadRuntimeContext } from "@qrk.sh/library/ImageUploadRuntimeContext";
 import { BrickCardStyleContext } from "@qrk.sh/library/BrickCardStyleContext";
-import { makeModelIdSchema } from "@zerospin/core/models/make/makeModelIdSchema";
 import { useLiveQuery } from "@zerospin/react";
 import { siteV3 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV3";
 import { Effect, Layer, Schema } from "effect";
@@ -27,7 +28,7 @@ import { UserUI } from "@/zerospin/UserUI";
 
 const ParamsSchema = Schema.Struct({
   username: Schema.String,
-  siteId: makeModelIdSchema(Site),
+  siteId: makeIdSchema(Site),
   pageId: Schema.String,
 });
 

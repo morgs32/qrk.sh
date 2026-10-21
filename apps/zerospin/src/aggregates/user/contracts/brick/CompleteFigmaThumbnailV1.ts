@@ -1,3 +1,5 @@
+import { brick as brickIdentity } from "../../models/brick/brick";
+import { modelId } from "@zerospin/sdk/browser";
 import { findFirst } from "@zerospin/core/contracts/findFirst";
 import { Effect, Schema } from "effect";
 import { makePlacementId } from "@qrk.sh/library/makePlacementId";
@@ -20,7 +22,7 @@ export const completeFigmaThumbnail = makeAggregateContractVersion(defineAggrega
     updatePlacement: placement.operations.update,
   },
   payload: {
-    brickId: primitives.foreignKey({ abbreviation: brick.abbreviation }),
+    brickId: modelId({ model: brickIdentity }),
     requestId: primitives.text(),
     baseStateRevision: primitives.integer(),
     state: primitives.json({ schema: State }),

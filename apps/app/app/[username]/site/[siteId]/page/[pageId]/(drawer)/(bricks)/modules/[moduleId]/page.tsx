@@ -1,5 +1,7 @@
 "use client";
 
+import { makeIdSchema } from "@zerospin/sdk/browser";
+
 import { useParams } from "@tanstack/react-router";
 import { useContext } from "react";
 import { WallEditorContext } from "../../../../WallEditorContext";
@@ -9,7 +11,6 @@ import { modulesHash } from "@qrk.sh/library/modulesHash";
 import { brickV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/brick/BrickV1";
 import { makeEffectSchema } from "@zerospin/shapes";
 import { Result, Schema } from "effect";
-import { makeModelIdSchema } from "@zerospin/core/models/make/makeModelIdSchema";
 import { pageV3 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV3";
 import { BREAKPOINTS } from "@qrk.sh/library/breakpoints";
 import { BrickCardStyleContext } from "@qrk.sh/library/BrickCardStyleContext";
@@ -29,7 +30,7 @@ export default function ModuleRoute() {
   const decoded = Schema.decodeUnknownResult(
     makeEffectSchema({ moduleId: brickV1.attributes.moduleId }),
   )({ moduleId: moduleId });
-  const decodedPageId = Schema.decodeUnknownResult(makeModelIdSchema(Page))(pageId);
+  const decodedPageId = Schema.decodeUnknownResult(makeIdSchema(Page))(pageId);
 
   if (Result.isFailure(decoded) || Result.isFailure(decodedPageId)) {
     return (

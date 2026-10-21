@@ -9,8 +9,7 @@ import { BREAKPOINTS } from "@qrk.sh/library/breakpoints";
 import { BrickCardStyleContext } from "@qrk.sh/library/BrickCardStyleContext";
 import { useWallViewport } from "@qrk.sh/library/WallViewportProvider";
 import { isNonEmptySpec } from "@json-render/core";
-import { makeModelIdSchema } from "@zerospin/core/models/make/makeModelIdSchema";
-import { stageAggregateSessionCommand } from "@zerospin/sdk/browser";
+import { makeIdSchema, stageAggregateSessionCommand } from "@zerospin/sdk/browser";
 import { useLiveQuery } from "@zerospin/react";
 import { Schema } from "effect";
 import { makeEffectSchema } from "@zerospin/shapes";
@@ -29,7 +28,7 @@ import { BrickWrapper } from "../../../../../../../../library/components/brick/B
 const ParamsSchema = Schema.Struct({
   username: Schema.String,
   siteId: Schema.String,
-  pageId: makeModelIdSchema(Page),
+  pageId: makeIdSchema(Page),
   brickId: Schema.String,
 });
 

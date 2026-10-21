@@ -23,7 +23,7 @@ import { DrawerHeader } from "./(drawer)/DrawerHeader";
 
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 import { getClerkToken } from "@/lib/getClerkToken";
-import { UserApp } from "@/zerospin/userSession";
+import { UserUI } from "@/zerospin/UserUI";
 
 const ParamsSchema = Schema.Struct({
   username: Schema.String,
@@ -42,7 +42,7 @@ export default function EditorLayout(props: { children: ReactNode }) {
   const [previewCards, setPreviewCards] = useState<boolean | null>(null);
   const { user } = useUser();
   const { getToken } = useAuth();
-  const session = UserApp.useInitializedSession();
+  const session = UserUI.useSession();
   const { data: site } = useLiveQuery({
     session,
     key: params.siteId,

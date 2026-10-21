@@ -28,8 +28,11 @@ The shared `WallBreakpointPane` retains the 48px decorative browser bar,
 breakpoint fitting/selection, and reduced-motion behavior. Four panes remain
 mounted; only the active Wall registers drag sources and targets. App's
 `WallEditorProvider` queries saved models and stages commands through the existing
-initialized user session. Shared `WallTree` components receive controlled
-presentation and callbacks, allowing Storybook to use local fixtures.
+session from `UserUI.useSession()`. App initializes a connected session;
+Storybook initializes a real local mock with complete seed resources. Both mount
+the same `WallEditorProvider`, shared `WallTree`, and Brick form. Storybook's
+memory router and viewport contexts supply route/visual inputs; edits use ordinary
+commands and reactive queries rather than local fixture mutations.
 
 A placed Brick fills its Row cell, whose minimum width comes from its module.
 It uses the containing Wall's logical breakpoint and Placement spec, regardless

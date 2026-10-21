@@ -3,7 +3,7 @@
 import { useContext } from "react";
 import { WallEditorContext } from "../WallEditorContext";
 import { WallModuleAction } from "@qrk.sh/library/WallModuleAction";
-import { UserApp } from "@/zerospin/userSession";
+import { UserUI } from "@/zerospin/UserUI";
 import { useLiveQuery } from "@zerospin/react";
 import { Link } from "@tanstack/react-router";
 
@@ -27,7 +27,7 @@ export function Modules() {
   const params = useValidatedParams(ParamsSchema);
   const editor = useContext(WallEditorContext);
   if (editor === null) throw new Error("Modules requires WallEditorContext");
-  const session = UserApp.useInitializedSession();
+  const session = UserUI.useSession();
   const { data: wall } = useLiveQuery({
     session,
     key: { pageId: params.pageId, breakpoint },

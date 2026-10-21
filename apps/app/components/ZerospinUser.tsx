@@ -3,15 +3,18 @@
 import { RedirectToSignIn, useAuth, useUser } from "@clerk/react";
 import { ZerospinError } from "@zerospin/error";
 import { Effect } from "effect";
-import { Suspense, useEffect, useSyncExternalStore, type ReactNode } from "react";
+import { useEffect, useSyncExternalStore, type ReactNode } from "react";
 import { getClerkToken } from "@/lib/getClerkToken";
 import { toast } from "sonner";
 import { startLibrarySessionWork } from "@/zerospin/startLibrarySessionWork";
-import { UserApp } from "@/zerospin/userSession";
+import { Initializer } from "@zerospin/react";
+import { userConnection } from "@/zerospin/userConnection";
+import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
+import { UserUI } from "@/zerospin/UserUI";
 import AppError from "@/app/error";
 
 export function useZerospinUserInitializedState() {
-  const session = UserApp.useInitializedSession();
+  const session = UserUI.useSession();
   const state = useSyncExternalStore(
     session.store.subscribe,
     session.store.getState,
@@ -26,7 +29,9 @@ function ZerospinUserInitializedStateProvider(props: { clerkUserId: string; chil
   const { getToken } = useAuth();
   const aggregateId = clerkUserId;
   return (
-    <UserApp.Initializer
+    <Initializer
+      definition={userSessionDefinition}
+      connection={userConnection}
       renderError={(error) => <AppError error={error} />}
       aggregateId={aggregateId}
       expectedClaims={{ aggregateId, clerkUserId }}
@@ -41,18 +46,22 @@ function ZerospinUserInitializedStateProvider(props: { clerkUserId: string; chil
         return { sessionToken };
       })}
     >
-      <Suspense fallback={null}>
-        <UserSessionWork />
-      </Suspense>
-      <Suspense fallback={null}>{children}</Suspense>
-    </UserApp.Initializer>
+      {({ session, isLoaded }) =>
+        isLoaded ? (
+          <UserUI session={session}>
+            <UserSessionWork />
+            {children}
+          </UserUI>
+        ) : null
+      }
+    </Initializer>
   );
 }
 
 export function ZerospinUserProvider(props: { children: ReactNode }) {
   const { children } = props;
   const { isLoaded, user } = useUser();
-  // The initializer is cold during SSR; each data reader suspends independently.
+  // The initializer is cold during SSR; its callback gates session-dependent content.
   if (isLoaded && user) {
     return (
       <ZerospinUserInitializedStateProvider key={user.id} clerkUserId={user.id}>
@@ -69,7 +78,7 @@ export function ZerospinUserProvider(props: { children: ReactNode }) {
 }
 
 function UserSessionWork() {
-  const session = UserApp.useInitializedSession();
+  const session = UserUI.useSession();
   const initialized = useSyncExternalStore(
     session.store.subscribe,
     () => session.store.getState().initialized,

@@ -9,7 +9,7 @@ import { pageV2 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page
 import { siteV2 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV2";
 
 import { useZerospinUserInitializedState } from "@/components/ZerospinUser";
-import { UserApp } from "@/zerospin/userSession";
+import { UserUI } from "@/zerospin/UserUI";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 
 import { usePageStore } from "./page/[pageId]/pageStore";
@@ -22,7 +22,7 @@ const ParamsSchema = Schema.Struct({
 
 export default function SiteLayout(props: { children: ReactNode }) {
   const { children } = props;
-  const session = UserApp.useInitializedSession();
+  const session = UserUI.useSession();
   const { siteId, pageId } = useValidatedParams(ParamsSchema);
   const { db } = useZerospinUserInitializedState();
   const initializeSite = useSiteStore((state) => state.initializeSite);

@@ -2,7 +2,7 @@
 
 import { useWallViewport } from "@qrk.sh/library/WallViewportProvider";
 
-import { Grid } from "./Grid";
+import { PagePreview } from "./PagePreview";
 
 export function MainColumns() {
   const { availableWidth, activeBreakpoint } = useWallViewport();
@@ -16,7 +16,7 @@ export function MainColumns() {
         </p>
       ) : null}
       <div hidden={insufficientWidth} className="w-full" data-testid="page-composition">
-        <Grid />
+        <PagePreview />
       </div>
     </div>
   );

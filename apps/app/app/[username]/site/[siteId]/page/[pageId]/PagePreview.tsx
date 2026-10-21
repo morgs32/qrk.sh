@@ -9,10 +9,10 @@ import { WallBreakpointPane } from "@qrk.sh/library/WallBreakpointPane";
 import { useWallViewport } from "@qrk.sh/library/WallViewportProvider";
 import { SiteHeader } from "../../SiteHeader";
 
-export function Grid() {
+export function PagePreview() {
   const { activeBreakpoint } = useWallViewport();
   const editor = useContext(WallEditorContext);
-  if (editor === null) throw new Error("Grid requires WallEditorContext");
+  if (editor === null) throw new Error("PagePreview requires WallEditorContext");
   const reducedMotion = useReducedMotion() ?? false;
   const [transition, setTransition] = useState<{
     active: (typeof BREAKPOINTS)[number]["id"] | null;
@@ -38,8 +38,8 @@ export function Grid() {
   const direction = transition.active === activeBreakpoint ? transition.direction : 0;
 
   return (
-    <div className="w-full" data-testid="grid-region">
-      <div className="relative w-full" data-testid="grid-layout">
+    <div className="w-full" data-testid="page-preview">
+      <div className="relative w-full" data-testid="page-preview-layout">
         {BREAKPOINTS.map((row) => {
           const isActive = activeBreakpoint === row.id;
           const isOutgoing = fromBreakpoint === row.id && !isActive;

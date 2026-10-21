@@ -7,7 +7,7 @@ import { useLiveQuery } from "@zerospin/react";
 import { Schema } from "effect";
 import { cn } from "cn";
 import { Skeleton } from "@/components/ui/skeleton";
-import { UserApp } from "@/zerospin/userSession";
+import { UserUI } from "@/zerospin/UserUI";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 import { Wordmark } from "./Wordmark";
 import { useSiteStore } from "./siteStore";
@@ -17,7 +17,7 @@ const ParamsSchema = Schema.Struct({ siteId: Schema.TemplateLiteral(["sit_", Sch
 export function SiteHeader() {
   const { isLoaded, user } = useUser();
   const { siteId } = useValidatedParams(ParamsSchema);
-  const session = UserApp.useInitializedSession();
+  const session = UserUI.useSession();
   const { data: site } = useLiveQuery({
     session,
     key: siteId,

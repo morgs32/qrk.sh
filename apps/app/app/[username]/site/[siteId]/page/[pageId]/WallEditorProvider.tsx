@@ -16,7 +16,7 @@ import { placementV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/placeme
 import { stackV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/stack/StackV1";
 import { pageV3 } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV3";
 import { WallEditorContext } from "./WallEditorContext";
-import { UserApp } from "@/zerospin/userSession";
+import { UserUI } from "@/zerospin/UserUI";
 import { BrickWrapper } from "@qrk.sh/library/BrickWrapper";
 import { BrickCardStyleContext } from "@qrk.sh/library/BrickCardStyleContext";
 
@@ -28,7 +28,7 @@ export function WallEditorProvider(props: { children: ReactNode }) {
   const pageId = Schema.decodeUnknownSync(makeModelIdSchema(pageV3))(params.pageId);
   const search = useSearch({ from: "/$username/site/$siteId/page/$pageId" });
   const navigate = useNavigate();
-  const session = UserApp.useInitializedSession();
+  const session = UserUI.useSession();
   const { activeBreakpoint } = useWallViewport();
   const { data: walls } = useLiveQuery({
     session,

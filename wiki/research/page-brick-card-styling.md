@@ -14,7 +14,7 @@ There is also a separate `sitePageDraftStore` containing seeded title/descriptio
 
 ## Current rendering entry points
 
-Studio's client `Grid` queries Page to get `wallId`, then renders a shared Library `BrickWall` for each breakpoint. The standalone Library also renders `BrickWall`, using its own fixed wall and session. A resolved boolean can therefore enter the Library rendering subtree from either application. [Grid.tsx, lines 30–38 and 63–112](../../apps/app/app/[username]/site/[siteId]/page/[pageId]/Grid.tsx#L30-L38), [Library wall](../../apps/library/app/LibraryLayout.tsx#L399).
+Studio's client `PagePreview` renders responsive breakpoint panes, the site header, and the active Wall supplied by `WallEditorProvider`. The provider owns the saved Wall rows and passes their presentation and editing callbacks into shared `WallTree` rendering. Appearance settings can enter that shared rendering subtree from the containing application. [PagePreview](../../apps/app/app/[username]/site/[siteId]/page/[pageId]/PagePreview.tsx), [WallEditorProvider](../../apps/app/app/[username]/site/[siteId]/page/[pageId]/WallEditorProvider.tsx).
 
 The current standalone `/bricks/[brickId]` route is the module Form drawer, while the surrounding Library layout renders the wall. It does not load a QRK Site/Page record. [brick detail page, lines 24–79](../../apps/library/app/bricks/[brickId]/page.tsx#L24-L79), [Library wall](../../apps/library/app/LibraryLayout.tsx#L399).
 
@@ -30,7 +30,7 @@ React recommends trying explicit props or composition before Context. Context fi
 
 Context transports a value; the Context object does not store the durable choice. Its default is a static fallback when no provider exists. The live spike assigns `false` to the default shared-border mode and `true` to cards with gutters. [React: createContext](https://react.dev/reference/react/createContext#parameters), [BrickCardStyleContext.ts](../../apps/library/lib/BrickCardStyleContext.ts#L14).
 
-React classifies `createContext` and `useContext` as client APIs for React Server Components. A boolean is serializable across a Server-to-Client prop boundary, so a future server-loaded setting can be passed to a client provider or client wall. Current Studio Grid and standalone Library rendering are already client code. [React: client APIs](https://react.dev/reference/rsc/use-client#using-third-party-libraries), [Serializable props](https://react.dev/reference/rsc/use-client#serializable-types-returned-by-server-components), [Grid.tsx, line 1](../../apps/app/app/[username]/site/[siteId]/page/[pageId]/Grid.tsx#L1), [GridItemPreview.tsx, line 1](../../apps/library/lib/GridItemPreview.tsx#L1).
+React classifies `createContext` and `useContext` as client APIs for React Server Components. A boolean is serializable across a Server-to-Client prop boundary, so a future server-loaded setting can be passed to a client provider or client wall. Current Studio PagePreview and standalone Library rendering are already client code. [React: client APIs](https://react.dev/reference/rsc/use-client#using-third-party-libraries), [Serializable props](https://react.dev/reference/rsc/use-client#serializable-types-returned-by-server-components), [PagePreview.tsx, line 1](../../apps/app/app/[username]/site/[siteId]/page/[pageId]/PagePreview.tsx#L1), [GridItemPreview.tsx, line 1](../../apps/library/lib/GridItemPreview.tsx#L1).
 
 ## Rendering ownership
 

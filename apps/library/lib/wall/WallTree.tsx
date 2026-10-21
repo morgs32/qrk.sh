@@ -10,9 +10,15 @@ import { combine } from "@atlaskit/pragmatic-drag-and-drop/utils/combine";
 import { pointerOutsideOfPreview } from "@atlaskit/pragmatic-drag-and-drop/utils/pointer-outside-of-preview";
 import { setCustomNativeDragPreview } from "@atlaskit/pragmatic-drag-and-drop/utils/set-custom-native-drag-preview";
 import { Result, Schema } from "effect";
-import { Fragment, useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
+import {
+  attachInstruction,
+  extractInstruction,
+  type Instruction,
+} from "@atlaskit/pragmatic-drag-and-drop-hitbox/list-item";
+import { DropIndicator } from "@atlaskit/pragmatic-drag-and-drop-react-drop-indicator/list-item";
 import { Button } from "../../components/ui/button";
-import { InsertionSeparator } from "./InsertionSeparator";
 import { WallSection } from "./WallSection";
 import { stackMoveTargetSchema, wallInsertionTargetSchema } from "./wallInsertionTargetSchema";
 
@@ -56,6 +62,10 @@ export function WallTree(props: {
   const sectionsRef = useRef<HTMLDivElement>(null);
   const returnFocusId = useRef<string | null>(null);
   const [deletingBrickId, setDeletingBrickId] = useState<string | null>(null);
+  const [indicator, setIndicator] = useState<{
+    element: HTMLElement;
+    instruction: Instruction;
+  } | null>(null);
   const stackLimit = { sm: 1, md: 2, lg: 3, xl: 4 }[breakpoint];
 
   useEffect(() => cleanup, []);
@@ -120,31 +130,8 @@ export function WallTree(props: {
       );
     }
 
-    // 2. Stable insertion anchors support horizontal cells, vertical Rows, and containers.
-    for (const element of root.querySelectorAll<HTMLElement>("[data-wall-insertion]")) {
-      const target = Schema.decodeUnknownResult(wallInsertionTargetSchema)(
-        JSON.parse(element.dataset.wallInsertion ?? "null"),
-      );
-      if (Result.isFailure(target)) continue;
-      disposers.push(
-        dropTargetForElements({
-          element,
-          canDrop: ({ source }) =>
-            accepts(source.data) &&
-            (source.data.kind !== "stack" || target.success.kind === "wall"),
-          getData: () => ({ kind: "wall-insertion", target: target.success }),
-          onDragEnter: () => {
-            element.dataset.dropActive = "true";
-          },
-          onDragLeave: () => {
-            delete element.dataset.dropActive;
-          },
-          onDrop: () => {
-            delete element.dataset.dropActive;
-          },
-        }),
-      );
-    }
+    // 2. Rows use the stock vertical before/combine/after zones. Only the middle
+    // resolves a horizontal Placement insertion; it cannot steal a Row's edges.
     for (const element of root.querySelectorAll<HTMLElement>("[data-wall-row]")) {
       const row = rows.find((entry) => entry.id === element.dataset.wallRow);
       if (!row) continue;
@@ -152,73 +139,124 @@ export function WallTree(props: {
         dropTargetForElements({
           element,
           canDrop: ({ source }) => accepts(source.data) && source.data.kind !== "stack",
-          getData: ({ input }) => {
-            let beforePlacementId: string | null = null;
-            for (const cell of element.querySelectorAll<HTMLElement>("[data-wall-placement]")) {
-              const bounds = cell.getBoundingClientRect();
-              if (input.clientX < bounds.left + bounds.width / 2) {
-                beforePlacementId = cell.dataset.wallPlacement ?? null;
-                break;
-              }
+          getData: ({ input, source }) => {
+            const data = attachInstruction(
+              {},
+              {
+                element,
+                input,
+                operations: {
+                  "reorder-before": "available",
+                  combine: "available",
+                  "reorder-after": "available",
+                },
+              },
+            );
+            const instruction = extractInstruction(data);
+            if (instruction?.operation !== "combine") {
+              const siblings = rows.filter((entry) => entry.stackId === row.stackId);
+              return {
+                ...data,
+                indicatorElement: element,
+                target: {
+                  wallId,
+                  kind: "stack",
+                  stackId: row.stackId,
+                  beforeRowId:
+                    instruction?.operation === "reorder-before"
+                      ? row.id
+                      : (siblings[siblings.indexOf(row) + 1]?.id ?? null),
+                },
+              };
             }
+            const cells = Array.from(
+              element.querySelectorAll<HTMLElement>("[data-wall-placement]"),
+            );
+            const cell =
+              cells.find((entry) => input.clientX <= entry.getBoundingClientRect().right) ??
+              cells.at(-1);
+            if (!cell)
+              return {
+                ...data,
+                indicatorElement: element,
+                target: { wallId, kind: "row", rowId: row.id, beforePlacementId: null },
+              };
+            const horizontal = attachInstruction(
+              {},
+              {
+                element: cell,
+                input,
+                axis: "horizontal",
+                operations: { "reorder-before": "available", "reorder-after": "available" },
+              },
+            );
+            const index = row.placements.findIndex(
+              (entry) => entry.id === cell.dataset.wallPlacement,
+            );
+            const beforePlacementId =
+              extractInstruction(horizontal)?.operation === "reorder-before"
+                ? cell.dataset.wallPlacement
+                : (row.placements.slice(index + 1).find((entry) => entry.id !== source.data.id)
+                    ?.id ?? null);
             return {
-              kind: "wall-insertion",
+              ...horizontal,
+              indicatorElement: cell,
               target: { wallId, kind: "row", rowId: row.id, beforePlacementId },
             };
           },
         }),
       );
     }
+    // 3. The innermost eligible container owns background drops. Full Sections
+    // stay blocked instead of falling through and silently creating a Section.
     for (const element of root.querySelectorAll<HTMLElement>("[data-wall-stack]")) {
       const stack = stacks.find((entry) => entry.id === element.dataset.wallStack);
       if (!stack) continue;
       disposers.push(
         dropTargetForElements({
           element,
-          canDrop: ({ source, input }) => {
-            if (!accepts(source.data)) return false;
-            if (source.data.kind === "stack")
-              return (
-                source.data.id !== stack.id &&
-                (stacks.find((entry) => entry.id === source.data.id)?.sectionId ===
-                  stack.sectionId ||
-                  stacks.filter((entry) => entry.sectionId === stack.sectionId).length < stackLimit)
-              );
-            return (
-              source.data.kind !== "placement" ||
-              root.ownerDocument
-                .elementFromPoint(input.clientX, input.clientY)
-                ?.closest("[data-wall-placement]")
-                ?.getAttribute("data-wall-placement") !== source.data.id
-            );
-          },
+          canDrop: ({ source }) => accepts(source.data),
           getData: ({ source, input }) => {
             if (source.data.kind !== "stack")
-              return {
-                kind: "wall-insertion",
-                target: { wallId, kind: "stack", stackId: stack.id, beforeRowId: null },
-              };
-            const bounds = element.getBoundingClientRect();
-            const siblings = stacks.filter(
-              (entry) => entry.sectionId === stack.sectionId && entry.id !== source.data.id,
+              return attachInstruction(
+                {
+                  indicatorElement: element,
+                  target: { wallId, kind: "stack", stackId: stack.id, beforeRowId: null },
+                },
+                { element, input, operations: { combine: "available" } },
+              );
+            const siblings = stacks.filter((entry) => entry.sectionId === stack.sectionId);
+            const allowed =
+              source.data.id !== stack.id &&
+              (siblings.some((entry) => entry.id === source.data.id) ||
+                siblings.length < stackLimit);
+            const data = attachInstruction(
+              {},
+              {
+                element,
+                input,
+                axis: "horizontal",
+                operations: {
+                  "reorder-before": allowed ? "available" : "blocked",
+                  "reorder-after": allowed ? "available" : "blocked",
+                },
+              },
             );
-            const beforeStackId =
-              input.clientX < bounds.left + bounds.width / 2
-                ? stack.id
-                : (siblings[siblings.findIndex((entry) => entry.id === stack.id) + 1]?.id ?? null);
             return {
-              kind: "stack-insertion",
-              target: { wallId, kind: "section", sectionId: stack.sectionId, beforeStackId },
+              ...data,
+              indicatorElement: element,
+              target: {
+                wallId,
+                kind: "section",
+                sectionId: stack.sectionId,
+                beforeStackId:
+                  extractInstruction(data)?.operation === "reorder-before"
+                    ? stack.id
+                    : (siblings
+                        .slice(siblings.indexOf(stack) + 1)
+                        .find((entry) => entry.id !== source.data.id)?.id ?? null),
+              },
             };
-          },
-          onDragEnter: () => {
-            element.dataset.dropActive = "true";
-          },
-          onDragLeave: () => {
-            delete element.dataset.dropActive;
-          },
-          onDrop: () => {
-            delete element.dataset.dropActive;
           },
         }),
       );
@@ -229,102 +267,56 @@ export function WallTree(props: {
       disposers.push(
         dropTargetForElements({
           element,
-          canDrop: ({ source, input }) =>
-            accepts(source.data) &&
-            (section.stacks.length < stackLimit ||
-              (source.data.kind === "stack" &&
-                section.stacks.some((stack) => stack.id === source.data.id))) &&
-            !root.ownerDocument
-              .elementFromPoint(input.clientX, input.clientY)
-              ?.closest("[data-wall-stack]"),
-          getData: ({ source }) =>
-            source.data.kind === "stack"
-              ? {
-                  kind: "stack-insertion",
-                  target: { wallId, kind: "section", sectionId: section.id, beforeStackId: null },
-                }
-              : {
-                  kind: "wall-insertion",
-                  target: { wallId, kind: "section", sectionId: section.id },
+          canDrop: ({ source }) => accepts(source.data),
+          getData: ({ source, input }) =>
+            attachInstruction(
+              {
+                indicatorElement: element,
+                target:
+                  source.data.kind === "stack"
+                    ? { wallId, kind: "section", sectionId: section.id, beforeStackId: null }
+                    : { wallId, kind: "section", sectionId: section.id },
+              },
+              {
+                element,
+                input,
+                operations: {
+                  combine:
+                    section.stacks.length < stackLimit ||
+                    (source.data.kind === "stack" &&
+                      section.stacks.some((stack) => stack.id === source.data.id))
+                      ? "available"
+                      : "blocked",
                 },
-          onDragEnter: () => {
-            element.dataset.dropActive = "true";
-          },
-          onDragLeave: () => {
-            delete element.dataset.dropActive;
-          },
-          onDrop: () => {
-            delete element.dataset.dropActive;
-          },
+              },
+            ),
         }),
       );
     }
-
-    // 3. The active preview canvas owns Section boundaries, including full Sections.
     disposers.push(
       dropTargetForElements({
         element: root,
-        canDrop: ({ source, input }) => {
-          if (!accepts(source.data)) return false;
-          const bounds = sectionList.getBoundingClientRect();
-          const atBoundary =
-            sections.length === 0 ||
-            input.clientY < bounds.top + 8 ||
-            input.clientY > bounds.bottom - 8 ||
-            Array.from(sectionList.querySelectorAll<HTMLElement>("[data-wall-section]")).some(
-              (section) => Math.abs(input.clientY - section.getBoundingClientRect().top) <= 8,
-            );
-          // Flush Row and Section edges coincide; reserve outer corners for new Sections.
-          return (
-            atBoundary &&
-            (source.data.kind === "stack" ||
-              sections.length === 0 ||
-              input.clientY > bounds.bottom + 8 ||
-              input.clientX < bounds.left + 12 ||
-              input.clientX > bounds.right - 12)
-          );
-        },
-        getData: ({ input }) => {
-          let beforeSectionId: string | null = null;
-          for (const element of sectionList.querySelectorAll<HTMLElement>("[data-wall-section]")) {
-            if (input.clientY < element.getBoundingClientRect().top + 8) {
-              beforeSectionId = element.dataset.wallSection ?? null;
-              break;
-            }
-          }
-          return { kind: "wall-boundary", target: { wallId, kind: "wall", beforeSectionId } };
-        },
+        canDrop: ({ source, input }) =>
+          accepts(source.data) &&
+          (sections.length === 0 || input.clientY >= sectionList.getBoundingClientRect().bottom),
+        getData: ({ input }) =>
+          attachInstruction(
+            {
+              indicatorElement: root,
+              target: { wallId, kind: "wall", beforeSectionId: null },
+            },
+            { element: root, input, operations: { combine: "available" } },
+          ),
       }),
     );
     function updateDropIndicator(event: ElementDropTargetEventBasePayload) {
-      for (const element of root.querySelectorAll<HTMLElement>(
-        "[data-drop-active], [data-drop-side]",
-      )) {
-        delete element.dataset.dropActive;
-        delete element.dataset.dropSide;
-      }
-      const target =
-        event.location.current.dropTargets.find((entry) => entry.data.kind === "wall-boundary") ??
-        event.location.current.dropTargets[0];
-      if (!target) return;
-      const insertion = Schema.decodeUnknownResult(wallInsertionTargetSchema)(target.data.target);
-      if (
-        (event.source.data.kind !== "stack" && Result.isSuccess(insertion)) ||
-        target.data.kind === "wall-boundary"
-      ) {
-        const anchor = JSON.stringify(target.data.target);
-        for (const element of root.querySelectorAll<HTMLElement>("[data-wall-insertion]"))
-          if (element.dataset.wallInsertion === anchor) element.dataset.dropActive = "true";
-      } else {
-        const destination = Schema.decodeUnknownResult(stackMoveTargetSchema)(target.data.target);
-        if (Result.isFailure(destination) || destination.success.kind !== "section") return;
-        const { sectionId, beforeStackId } = destination.success;
-        const section = sections.find((entry) => entry.id === sectionId);
-        const targetStackId = beforeStackId ?? section?.stacks.at(-1)?.id;
-        for (const element of root.querySelectorAll<HTMLElement>("[data-wall-stack]"))
-          if (element.dataset.wallStack === targetStackId)
-            element.dataset.dropSide = beforeStackId === null ? "right" : "left";
-      }
+      const target = event.location.current.dropTargets[0];
+      const instruction = target ? extractInstruction(target.data) : null;
+      setIndicator(
+        target?.data.indicatorElement instanceof HTMLElement && instruction
+          ? { element: target.data.indicatorElement, instruction }
+          : null,
+      );
     }
     disposers.push(
       monitorForElements({
@@ -337,16 +329,14 @@ export function WallTree(props: {
         onDropTargetChange: updateDropIndicator,
         onDrop: ({ source, location }) => {
           delete root.dataset.dragging;
-          for (const element of root.querySelectorAll<HTMLElement>(
-            "[data-drop-active], [data-drop-side]",
-          )) {
-            delete element.dataset.dropActive;
-            delete element.dataset.dropSide;
-          }
-          const target =
-            location.current.dropTargets.find((entry) => entry.data.kind === "wall-boundary") ??
-            location.current.dropTargets[0];
-          if (!target) return;
+          setIndicator(null);
+          const target = location.current.dropTargets[0];
+          if (
+            !target ||
+            !extractInstruction(target.data) ||
+            extractInstruction(target.data)?.blocked
+          )
+            return;
           if (source.data.kind === "stack" && typeof source.data.id === "string") {
             const decoded = Schema.decodeUnknownResult(stackMoveTargetSchema)(target.data.target);
             if (Result.isSuccess(decoded) && onMoveStack(source.data.id, decoded.success) !== false)
@@ -373,6 +363,7 @@ export function WallTree(props: {
     );
     return combine(...disposers, () => {
       delete root.dataset.dragging;
+      setIndicator(null);
     });
   }, [wallId, sections, scope, isActive, stackLimit, onAddModule, onMovePlacement, onMoveStack]);
 
@@ -392,30 +383,21 @@ export function WallTree(props: {
     >
       <div ref={sectionsRef}>
         {sections.map((section) => (
-          <Fragment key={section.id}>
-            <InsertionSeparator
-              label={`Insert Brick in a new Section before ${section.id}`}
-              target={{ wallId, kind: "wall", beforeSectionId: section.id }}
-            />
-            <WallSection
-              section={section}
-              wallId={wallId}
-              scope={scope}
-              stackLimit={stackLimit}
-              selectedBrickId={selectedBrickId}
-              onEditBrick={onEditBrick}
-              onRequestDelete={(brickId, triggerId) => {
-                returnFocusId.current = triggerId;
-                setDeletingBrickId(brickId);
-              }}
-            />
-          </Fragment>
+          <WallSection
+            key={section.id}
+            section={section}
+            scope={scope}
+            selectedBrickId={selectedBrickId}
+            onEditBrick={onEditBrick}
+            onRequestDelete={(brickId, triggerId) => {
+              returnFocusId.current = triggerId;
+              setDeletingBrickId(brickId);
+            }}
+          />
         ))}
       </div>
-      <InsertionSeparator
-        label="Insert Brick in a new Section at end"
-        target={{ wallId, kind: "wall", beforeSectionId: null }}
-      />
+      {indicator &&
+        createPortal(<DropIndicator instruction={indicator.instruction} />, indicator.element)}
       <Dialog.Root
         open={deletingBrickId !== null}
         onOpenChange={(open) => {

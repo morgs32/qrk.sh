@@ -1,34 +1,26 @@
-import { Fragment, type ComponentProps } from "react";
-import { InsertionSeparator } from "./InsertionSeparator";
+import type { ComponentProps } from "react";
 import { WallPlacement } from "./WallPlacement";
 import type { WallTree } from "./WallTree";
 
 export function WallRow(props: {
   row: ComponentProps<typeof WallTree>["sections"][number]["stacks"][number]["rows"][number];
-  wallId: string;
   scope: string;
   selectedBrickId: ComponentProps<typeof WallTree>["selectedBrickId"];
   onEditBrick: ComponentProps<typeof WallTree>["onEditBrick"];
   onRequestDelete: ComponentProps<typeof WallPlacement>["onRequestDelete"];
 }) {
-  const { row, wallId, scope, selectedBrickId, onEditBrick, onRequestDelete } = props;
+  const { row, scope, selectedBrickId, onEditBrick, onRequestDelete } = props;
   return (
-    <div data-wall-row={row.id} className="flex min-w-0 items-start">
+    <div data-wall-row={row.id} className="relative flex min-w-0 items-start">
       {row.placements.map((placement) => (
-        <Fragment key={placement.id}>
-          <InsertionSeparator
-            label={`Insert Brick before ${placement.brickId}`}
-            orientation="vertical"
-            target={{ wallId, kind: "row", rowId: row.id, beforePlacementId: placement.id }}
-          />
-          <WallPlacement
-            placement={placement}
-            scope={scope}
-            selected={selectedBrickId === placement.brickId}
-            onEditBrick={onEditBrick}
-            onRequestDelete={onRequestDelete}
-          />
-        </Fragment>
+        <WallPlacement
+          key={placement.id}
+          placement={placement}
+          scope={scope}
+          selected={selectedBrickId === placement.brickId}
+          onEditBrick={onEditBrick}
+          onRequestDelete={onRequestDelete}
+        />
       ))}
       {row.placements.length === 0 && (
         <div
@@ -36,11 +28,6 @@ export function WallRow(props: {
           aria-label="Empty Row"
         />
       )}
-      <InsertionSeparator
-        label="Insert Brick at end of Row"
-        orientation="vertical"
-        target={{ wallId, kind: "row", rowId: row.id, beforePlacementId: null }}
-      />
     </div>
   );
 }

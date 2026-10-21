@@ -336,6 +336,32 @@ qrk.sh/
 3. Manual fixture measurements confirmed zero padding, zero gap between side-by-side Placements and Stacks, and zero gap between populated Rows. Live button/input actions, native module drop into an empty Stack, and native Placement movement into another Row worked. App rendered zero Add buttons in the Wall.
 4. Distinguished coincident first-Row/Section edges after removing gutters: non-Stack drops use Row insertion centrally and Section creation at outer corners. Native fixture drops before the first Row retained two Sections and inserted its Row first; a subsequent corner drop created the expected third Section. Drag-only targets clear their pointer handling after drop and on cleanup.
 
+## Pragmatic defaults follow-up, October 20, 2026
+
+1. Supersedes the custom corner-boundary behavior above. Shared Wall presentation
+   now uses Pragmatic `hitbox/list-item` and `react-drop-indicator/list-item`
+   directly. Row outer quarters create Rows; the middle resolves horizontal
+   Placement insertion. Both the indicator and command read the innermost target
+   and its instruction. Removed custom insertion overlays and pseudo-element lines.
+2. Stack background appends a Row; Section background creates a Stack and Row;
+   blank Wall below its final Section creates the complete Section hierarchy.
+   Stacks stretch to Section height, so space below a short Stack remains a Stack
+   destination. Whole-Stack ordering retains breakpoint capacity; full and self
+   targets show the stock blocked indication without ancestor fallback.
+3. Manual browser verification used this change's isolated App Storybook on
+   port 10023. Exercised module and Placement insertion, first/between/last Row
+   positions, empty Row/Stack/Section/Wall, unequal Stack heights, cross-Section
+   Stack moves, full-Section rejection, keyboard Move/focus, live button/input,
+   and native Row insertion at 50% scale. Observed the actual stock circular
+   terminal, zero-gap line, combine border, and capacity warning. The indicated
+   first-Row target matched the resulting insertion. Flush layout and absent Add
+   buttons remain. This follow-up did not mutate persisted App data or rerun
+   backend integration scenarios.
+4. Added an Empty Wall story and an explicit canvas height for blank-background
+   interaction. Research and pinned upstream references are recorded in
+   [Pragmatic tree drop defaults](../../research/pragmatic-tree-drop-behavior.md).
+   No test suite or standalone check gate was introduced.
+
 ## Remaining work
 
 None.

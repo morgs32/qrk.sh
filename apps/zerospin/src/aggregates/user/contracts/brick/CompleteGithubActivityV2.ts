@@ -1,38 +1,30 @@
 import { findFirst } from "@zerospin/core/contracts/findFirst";
-import { defineAggregateContract } from "@zerospin/core/contracts/defineAggregateContract";
-import { makeAggregateContractVersion } from "@zerospin/core/contracts/make/makeAggregateContractVersion";
-import { ContractError } from "@zerospin/error";
-import { makeEffectSchema, primitives } from "@zerospin/shapes";
 import { Effect, Schema } from "effect";
-import type { makeBrickModel } from "../../make/makeBrickModel";
-import type { makePlacementModel } from "../../make/makePlacementModel";
-import { makePlacementId } from "../../lib/makePlacementId";
-import { githubActivityV1 } from "./githubActivityV1";
-import { normalizeGithubActivityInput } from "./normalizeGithubActivityInput";
+import { makePlacementId } from "@qrk.sh/library/makePlacementId";
+import { githubActivityV1 } from "@qrk.sh/library/modules/githubActivity/githubActivityV1";
+import { upgradeAggregateContractVersion } from "@zerospin/sdk/browser";
+import { makeEffectSchema } from "@zerospin/shapes";
+import { brickV1 as brick } from "../../models/brick/BrickV1";
+import { placementV2 as placement } from "../../models/placement/PlacementV2";
+import { completeGithubActivity } from "./CompleteGithubActivityV1";
 
-export function makeCompleteGithubActivityContract(props: {
-  brick: ReturnType<typeof makeBrickModel>;
-  placement: ReturnType<typeof makePlacementModel>;
-}) {
-  const { brick, placement } = props;
-  const breakpoints: Array<"sm" | "md" | "lg" | "xl"> = ["sm", "md", "lg", "xl"];
-  const State = Schema.toType(makeEffectSchema(githubActivityV1.stateShape));
-  return makeAggregateContractVersion(defineAggregateContract("completeGithubActivity"), {
-    version: "1.0.0",
+const breakpoints: Array<"sm" | "md" | "lg" | "xl"> = ["sm", "md", "lg", "xl"];
+const State = Schema.toType(makeEffectSchema(githubActivityV1.stateShape));
+
+export const completeGithubActivityV2 = upgradeAggregateContractVersion(
+  completeGithubActivity,
+  {
+    version: "2.0.0",
+    up: Effect.fn("completeGithubActivity.up")(function* (props) {
+      const { payload } = props;
+      return payload;
+    }),
     models: { brick, placement },
     operations: {
       updateBrick: brick.operations.update,
       updatePlacement: placement.operations.update,
     },
-    payload: {
-      brickId: primitives.foreignKey({ abbreviation: brick.abbreviation }),
-      requestId: primitives.text(),
-      baseStateRevision: primitives.integer(),
-      state: primitives.json({ schema: State }),
-    },
-    failures: {
-      invalidCompletion: ContractError.schema({ code: "complete-github-activity-invalid-state" }),
-    },
+    payload: {},
     guard: Effect.fn("completeGithubActivity.guard")(function* (props) {
       const { payload, failures } = props;
       if (
@@ -85,5 +77,5 @@ export function makeCompleteGithubActivityContract(props: {
           });
       }
     }),
-  });
-}
+  },
+);

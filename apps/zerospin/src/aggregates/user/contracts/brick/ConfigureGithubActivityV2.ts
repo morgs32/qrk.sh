@@ -1,49 +1,41 @@
 import { findFirst } from "@zerospin/core/contracts/findFirst";
-import { defineAggregateContract } from "@zerospin/core/contracts/defineAggregateContract";
-import { makeAggregateContractVersion } from "@zerospin/core/contracts/make/makeAggregateContractVersion";
-import { ContractError } from "@zerospin/error";
-import { makeEffectSchema, primitives } from "@zerospin/shapes";
 import { Effect, Schema } from "effect";
-import type { makeBrickModel } from "../../make/makeBrickModel";
-import type { makePlacementModel } from "../../make/makePlacementModel";
-import { makePlacementId } from "../../lib/makePlacementId";
-import { linkV1 } from "./linkV1";
-import { normalizeLinkInput } from "./normalizeLinkInput";
+import { makePlacementId } from "@qrk.sh/library/makePlacementId";
+import { githubActivityV1 } from "@qrk.sh/library/modules/githubActivity/githubActivityV1";
+import { normalizeGithubActivityInput } from "@qrk.sh/library/modules/githubActivity/normalizeGithubActivityInput";
+import { upgradeAggregateContractVersion } from "@zerospin/sdk/browser";
+import { makeEffectSchema } from "@zerospin/shapes";
+import { brickV1 as brick } from "../../models/brick/BrickV1";
+import { placementV2 as placement } from "../../models/placement/PlacementV2";
+import { configureGithubActivity } from "./ConfigureGithubActivityV1";
 
-export function makeConfigureLinkContract(props: {
-  brick: ReturnType<typeof makeBrickModel>;
-  placement: ReturnType<typeof makePlacementModel>;
-}) {
-  const { brick, placement } = props;
-  const breakpoints: Array<"sm" | "md" | "lg" | "xl"> = ["sm", "md", "lg", "xl"];
-  const State = Schema.toType(makeEffectSchema(linkV1.stateShape));
-  return makeAggregateContractVersion(defineAggregateContract("configureLink"), {
-    version: "1.0.0",
+const breakpoints: Array<"sm" | "md" | "lg" | "xl"> = ["sm", "md", "lg", "xl"];
+const State = Schema.toType(makeEffectSchema(githubActivityV1.stateShape));
+
+export const configureGithubActivityV2 = upgradeAggregateContractVersion(
+  configureGithubActivity,
+  {
+    version: "2.0.0",
+    up: Effect.fn("configureGithubActivity.up")(function* (props) {
+      const { payload } = props;
+      return payload;
+    }),
     models: { brick, placement },
     operations: {
       updateBrick: brick.operations.update,
       updatePlacement: placement.operations.update,
     },
-    payload: {
-      brickId: primitives.foreignKey({ abbreviation: brick.abbreviation }),
-      requestId: primitives.text(),
-      url: primitives.text(),
-    },
-    failures: {
-      invalidInput: ContractError.schema({ code: "configure-link-invalid-input" }),
-      invalidBrick: ContractError.schema({ code: "configure-link-invalid-brick" }),
-      alreadyResolving: ContractError.schema({ code: "configure-link-already-resolving" }),
-    },
-    guard: Effect.fn("configureLink.guard")(function* (props) {
+    payload: {},
+    guard: Effect.fn("configureGithubActivity.guard")(function* (props) {
       const { db, payload, failures } = props;
-      const input = normalizeLinkInput(payload.url);
+      const input = normalizeGithubActivityInput(payload.url);
       if (input === undefined || payload.requestId.trim().length === 0)
         return yield* failures.invalidInput.make({
-          message: "Enter a valid link input",
+          message: "Enter a valid github-activity input",
           status: 400,
         });
       const row = yield* findFirst({ db, model: brick, where: { id: { eq: payload.brickId } } });
-      if (row === undefined || row.moduleId !== "link")
+      if (row === undefined || row.moduleId !== "github-activity")
         return yield* failures.invalidBrick.make({
           message: "The brick is unavailable for this module",
           status: 404,
@@ -59,7 +51,7 @@ export function makeConfigureLinkContract(props: {
           status: 409,
         });
     }),
-    program: Effect.fn("configureLink.program")(function* (props) {
+    program: Effect.fn("configureGithubActivity.program")(function* (props) {
       const { db, payload, operations } = props;
       const row = yield* findFirst({ db, model: brick, where: { id: { eq: payload.brickId } } });
       if (row === undefined) return;
@@ -68,7 +60,7 @@ export function makeConfigureLinkContract(props: {
         attributes: {
           stateRevision: row.stateRevision + 1,
           state: {
-            payload: { url: normalizeLinkInput(payload.url) },
+            payload: { url: normalizeGithubActivityInput(payload.url) },
             data: null,
             resolution: { requestId: payload.requestId, status: "resolving", error: null },
           },
@@ -92,5 +84,5 @@ export function makeConfigureLinkContract(props: {
           });
       }
     }),
-  });
-}
+  },
+);

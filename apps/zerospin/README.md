@@ -111,7 +111,7 @@ const site =
   yield *
   systemApi.executeAggregateQuery({
     aggregateName: "user",
-    aggregateVersion: "3.0.0",
+    aggregateVersion: "4.0.0",
     aggregateId,
     query: db.query.site.findFirst({
       where: { id: { eq: siteId } },
@@ -157,15 +157,14 @@ not make its rows readable by the current declarations.
 
 ## Source layout
 
-`src/system.ts` registers the current user aggregate `3.0.0` and web actor
-`3.0.0`. The affected older user releases/actors and obsolete editor declarations
-are retired during Plan 036's fresh-development cutover; the unchanged provisioner
-and User model remain `1.0.0`. App's browser definition imports the same canonical
-models/contracts through `userSessionDefinitionProps`.
+`src/system.ts` retains user aggregate `3.0.0` and registers `4.0.0` alongside it.
+App's current session selects aggregate/web actor `4.0.0`; the unchanged
+provisioner and User model remain `1.0.0`. App's browser definition imports the
+same canonical models/contracts through `userSessionDefinitionProps`.
 
 The user aggregate ID is the verified Clerk token subject (`clerkUserId`), with
 no added prefix. The web actor verifies Clerk through `userProvisionerV1`, then
-its authorization provisions through `createUser` in the current `3.0.0` release.
+its authorization provisions through `createUser` in its selected release.
 Each attempt allocates an independent `usr_…` resource ID. The provisioner owner
 guard rejects duplicate subjects with `user-already-exists`; authorization treats
 that refusal as successful provisioning. Other admission/execution failures stop
@@ -182,15 +181,49 @@ uses the explicitly authorized reset of local `sys_qrk_sh_1` storage; no new
 aggregate/model/contract versions are introduced for the former reference cascade.
 No verification runs were performed for this change, as requested.
 
+### Placement spec validity
+
+Placement `2.0.0` requires a nonempty root, at least one element, and structured
+json-render elements. Its Effect schema also requires the root to name an existing
+element. Model operations and authored query decoding use this schema, so invalid
+specs raise errors instead of rendering an empty-layout fallback. Manual spec
+commands additionally validate the selected module's components and props.
+
+The nonempty and element-shape constraints serialize into the stored JSON Schema.
+The cross-field root-membership filter runs in Effect; generic JSON Schema
+consumers do not enforce that filter. Generated and manually edited specs are
+validated before their placement update, and authored query decoding applies the
+same persisted spec schema.
+
+User `4.0.0` selects Placement `2.0.0` and new versions of the 35 commands that
+directly read or write Placement. Page, Wall, Brick, and the other unchanged
+models keep their existing versions. The previous commands and User `3.0.0`
+remain registered through the retained release. Versioned command files declare
+their concrete model bindings and explicit lineage directly.
+
+The new release materializes through command replay; this change does not copy,
+repair, reset, or delete stored rows or command history. Invalid historical
+payloads or specs can fail strict adaptation, execution, or query decoding.
+They are not silently rewritten, and the retained release remains available.
+No verification runs or storage operations were performed for this upgrade.
+
+The new browser definition selects a separate versioned storage namespace.
+The worker also registers the retained V3 definition, so existing V3 clients can
+reconnect and drain their pending commands. V4 does not transfer that local queue;
+pending V3 commands remain in the retained partition until a V3 client submits
+them. Admitted commands become part of the shared backend history.
+
 App owns the persisted editor. Its Page owns shared Bricks and four Walls,
 one per `sm`/`md`/`lg`/`xl` breakpoint. Walls own ordered Sections; Sections own
 ordered Stacks; Stacks own vertical Rows; Rows own horizontal Placements.
 Placements reference shared Bricks and keep per-breakpoint specs and generation
 revisions. Model and canonical contract declarations live directly under
 `src/aggregates/user/models/` and `contracts/`. Wall/Brick references bind to the
-final Page table. Module-specific configure/complete programs stay in their
-shared module source and accept the App's model declarations. There is no
-standalone Library database, seeded Page, or host-binding declaration assembly.
+final Page table. Configure, completion, and spec-update commands live directly
+in their versioned backend files, where concrete model versions are selected.
+Library retains module state/component schemas, normalization, provider fetches,
+and rendering. There is no contract-binding factory, standalone Library database,
+seeded Page, or host-binding declaration assembly.
 
 `createPage` records the Page and all four Walls with one initial Section and
 empty Stack each. `addBrick` records shared null content and four deterministic

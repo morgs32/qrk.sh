@@ -1,39 +1,31 @@
 import { findFirst } from "@zerospin/core/contracts/findFirst";
-import { defineAggregateContract } from "@zerospin/core/contracts/defineAggregateContract";
-import { makeAggregateContractVersion } from "@zerospin/core/contracts/make/makeAggregateContractVersion";
-import { ContractError } from "@zerospin/error";
-import { makeEffectSchema, primitives } from "@zerospin/shapes";
 import { Effect, Schema } from "effect";
-import type { makeBrickModel } from "../../make/makeBrickModel";
-import type { makePlacementModel } from "../../make/makePlacementModel";
-import { makePlacementId } from "../../lib/makePlacementId";
-import { mapPlaceV1 } from "./mapPlaceV1";
-import { normalizeMapPlaceInput } from "./normalizeMapPlaceInput";
+import { makePlacementId } from "@qrk.sh/library/makePlacementId";
+import { githubRepoV1 } from "@qrk.sh/library/modules/githubRepo/githubRepoV1";
+import { upgradeAggregateContractVersion } from "@zerospin/sdk/browser";
+import { makeEffectSchema } from "@zerospin/shapes";
+import { brickV1 as brick } from "../../models/brick/BrickV1";
+import { placementV2 as placement } from "../../models/placement/PlacementV2";
+import { completeGithubRepo } from "./CompleteGithubRepoV1";
 
-export function makeCompleteMapPlaceContract(props: {
-  brick: ReturnType<typeof makeBrickModel>;
-  placement: ReturnType<typeof makePlacementModel>;
-}) {
-  const { brick, placement } = props;
-  const breakpoints: Array<"sm" | "md" | "lg" | "xl"> = ["sm", "md", "lg", "xl"];
-  const State = Schema.toType(makeEffectSchema(mapPlaceV1.stateShape));
-  return makeAggregateContractVersion(defineAggregateContract("completeMapPlace"), {
-    version: "1.0.0",
+const breakpoints: Array<"sm" | "md" | "lg" | "xl"> = ["sm", "md", "lg", "xl"];
+const State = Schema.toType(makeEffectSchema(githubRepoV1.stateShape));
+
+export const completeGithubRepoV2 = upgradeAggregateContractVersion(
+  completeGithubRepo,
+  {
+    version: "2.0.0",
+    up: Effect.fn("completeGithubRepo.up")(function* (props) {
+      const { payload } = props;
+      return payload;
+    }),
     models: { brick, placement },
     operations: {
       updateBrick: brick.operations.update,
       updatePlacement: placement.operations.update,
     },
-    payload: {
-      brickId: primitives.foreignKey({ abbreviation: brick.abbreviation }),
-      requestId: primitives.text(),
-      baseStateRevision: primitives.integer(),
-      state: primitives.json({ schema: State }),
-    },
-    failures: {
-      invalidCompletion: ContractError.schema({ code: "complete-map-place-invalid-state" }),
-    },
-    guard: Effect.fn("completeMapPlace.guard")(function* (props) {
+    payload: {},
+    guard: Effect.fn("completeGithubRepo.guard")(function* (props) {
       const { payload, failures } = props;
       if (
         payload.state.resolution.requestId !== payload.requestId ||
@@ -46,12 +38,12 @@ export function makeCompleteMapPlaceContract(props: {
           status: 400,
         });
     }),
-    program: Effect.fn("completeMapPlace.program")(function* (props) {
+    program: Effect.fn("completeGithubRepo.program")(function* (props) {
       const { db, payload, operations } = props;
       const row = yield* findFirst({ db, model: brick, where: { id: { eq: payload.brickId } } });
       if (
         row === undefined ||
-        row.moduleId !== "map-place" ||
+        row.moduleId !== "github-repo" ||
         row.stateRevision !== payload.baseStateRevision
       )
         return;
@@ -60,7 +52,7 @@ export function makeCompleteMapPlaceContract(props: {
         current._tag === "Failure" ||
         current.success.resolution.status !== "resolving" ||
         current.success.resolution.requestId !== payload.requestId ||
-        current.success.payload.googlePlaceId !== payload.state.payload.googlePlaceId
+        current.success.payload.url !== payload.state.payload.url
       )
         return;
       yield* operations.updateBrick({
@@ -85,5 +77,5 @@ export function makeCompleteMapPlaceContract(props: {
           });
       }
     }),
-  });
-}
+  },
+);

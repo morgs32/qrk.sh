@@ -62,7 +62,7 @@ function resolvedGenerator(
   return { registry, defaultSpec };
 }
 
-/** View factory: authored component, optional json-render generator, optional sm/md/lg/xl overlays. */
+/** View factory: authored component and placeholder, optional generator and breakpoint overlays. */
 export function makeModuleView<
   MODULE extends {
     id: string;
@@ -104,7 +104,7 @@ export function makeModuleView<
       /** Minimum rendered width in pixels, shared by every breakpoint. */
       minWidth: 160 | 320;
       component: (props: { state: IInferDecodedRow<MODULE["stateShape"]> }) => ReactNode;
-      placeholder?: () => ReactNode;
+      placeholder: () => ReactNode;
       generator?: {
         registry: ComponentRegistry;
         defaultSpec: Spec;
@@ -121,9 +121,9 @@ export function makeModuleView<
     };
   },
 ) {
-  if (module.hasPlaceholder !== (view.default.placeholder !== undefined)) {
+  if (!module.hasPlaceholder) {
     throw new Error(
-      `makeModuleView: ${JSON.stringify(module.id)} hasPlaceholder must match default.placeholder`,
+      `makeModuleView: ${JSON.stringify(module.id)} must declare hasPlaceholder`,
     );
   }
   if (view.default.generator !== undefined && module.catalog === undefined) {
@@ -150,7 +150,7 @@ export function makeModuleView<
       function Authored(props: { state: unknown }) {
         const { state } = props;
         const Placeholder = view.default.placeholder;
-        if (state === null && Placeholder !== undefined) return <Placeholder />;
+        if (state === null) return <Placeholder />;
         const decoded = decodeState(state, { onExcessProperty: "ignore" });
         return <Component state={decoded} />;
       }
@@ -192,7 +192,7 @@ export function makeModuleView<
   function Brick(props: { state?: unknown; breakpoint: "sm" | "md" | "lg" | "xl"; spec: Spec }) {
     const { state, breakpoint, spec } = props;
     const Placeholder = view.default.placeholder;
-    if (state === null && Placeholder !== undefined) {
+    if (state === null) {
       return <Placeholder />;
     }
     if (

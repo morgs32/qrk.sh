@@ -29,8 +29,8 @@ export type IModule<MODULE extends string> = {
   registry?: ComponentRegistry;
   defaultSpec: Spec;
   hasPlaceholder: boolean;
-  /** Display-only markup for an explicitly unconfigured brick (state === null). */
-  placeholder?: () => ReactNode;
+  /** Required display-only markup for an explicitly unconfigured brick (state === null). */
+  placeholder: () => ReactNode;
   Form?: (props: {
     state: unknown;
     onConfigure: (input: unknown) => IResult<unknown, { message: string }>;

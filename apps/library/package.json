@@ -26,7 +26,6 @@
     "./WallModuleAction": "./lib/wall/WallModuleAction.tsx",
     "./modulesHash": "./lib/modulesHash.ts",
     "./modules/*": "./modules/*.ts",
-    "./makeModuleSpecContractVersion": "./make/makeModuleSpecContractVersion.ts",
     "./makeModuleSpecDocumentSchema": "./make/makeModuleSpecDocumentSchema.ts",
     "./BrickWrapper": "./components/brick/BrickWrapper.tsx"
   },

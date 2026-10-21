@@ -1,49 +1,41 @@
 import { findFirst } from "@zerospin/core/contracts/findFirst";
-import { defineAggregateContract } from "@zerospin/core/contracts/defineAggregateContract";
-import { makeAggregateContractVersion } from "@zerospin/core/contracts/make/makeAggregateContractVersion";
-import { ContractError } from "@zerospin/error";
-import { makeEffectSchema, primitives } from "@zerospin/shapes";
 import { Effect, Schema } from "effect";
-import type { makeBrickModel } from "../../make/makeBrickModel";
-import type { makePlacementModel } from "../../make/makePlacementModel";
-import { makePlacementId } from "../../lib/makePlacementId";
-import { mapPlaceV1 } from "./mapPlaceV1";
-import { normalizeMapPlaceInput } from "./normalizeMapPlaceInput";
+import { makePlacementId } from "@qrk.sh/library/makePlacementId";
+import { githubRepoV1 } from "@qrk.sh/library/modules/githubRepo/githubRepoV1";
+import { normalizeGithubRepoInput } from "@qrk.sh/library/modules/githubRepo/normalizeGithubRepoInput";
+import { upgradeAggregateContractVersion } from "@zerospin/sdk/browser";
+import { makeEffectSchema } from "@zerospin/shapes";
+import { brickV1 as brick } from "../../models/brick/BrickV1";
+import { placementV2 as placement } from "../../models/placement/PlacementV2";
+import { configureGithubRepo } from "./ConfigureGithubRepoV1";
 
-export function makeConfigureMapPlaceContract(props: {
-  brick: ReturnType<typeof makeBrickModel>;
-  placement: ReturnType<typeof makePlacementModel>;
-}) {
-  const { brick, placement } = props;
-  const breakpoints: Array<"sm" | "md" | "lg" | "xl"> = ["sm", "md", "lg", "xl"];
-  const State = Schema.toType(makeEffectSchema(mapPlaceV1.stateShape));
-  return makeAggregateContractVersion(defineAggregateContract("configureMapPlace"), {
-    version: "1.0.0",
+const breakpoints: Array<"sm" | "md" | "lg" | "xl"> = ["sm", "md", "lg", "xl"];
+const State = Schema.toType(makeEffectSchema(githubRepoV1.stateShape));
+
+export const configureGithubRepoV2 = upgradeAggregateContractVersion(
+  configureGithubRepo,
+  {
+    version: "2.0.0",
+    up: Effect.fn("configureGithubRepo.up")(function* (props) {
+      const { payload } = props;
+      return payload;
+    }),
     models: { brick, placement },
     operations: {
       updateBrick: brick.operations.update,
       updatePlacement: placement.operations.update,
     },
-    payload: {
-      brickId: primitives.foreignKey({ abbreviation: brick.abbreviation }),
-      requestId: primitives.text(),
-      googlePlaceId: primitives.text(),
-    },
-    failures: {
-      invalidInput: ContractError.schema({ code: "configure-map-place-invalid-input" }),
-      invalidBrick: ContractError.schema({ code: "configure-map-place-invalid-brick" }),
-      alreadyResolving: ContractError.schema({ code: "configure-map-place-already-resolving" }),
-    },
-    guard: Effect.fn("configureMapPlace.guard")(function* (props) {
+    payload: {},
+    guard: Effect.fn("configureGithubRepo.guard")(function* (props) {
       const { db, payload, failures } = props;
-      const input = normalizeMapPlaceInput(payload.googlePlaceId);
+      const input = normalizeGithubRepoInput(payload.url);
       if (input === undefined || payload.requestId.trim().length === 0)
         return yield* failures.invalidInput.make({
-          message: "Enter a valid map-place input",
+          message: "Enter a valid github-repo input",
           status: 400,
         });
       const row = yield* findFirst({ db, model: brick, where: { id: { eq: payload.brickId } } });
-      if (row === undefined || row.moduleId !== "map-place")
+      if (row === undefined || row.moduleId !== "github-repo")
         return yield* failures.invalidBrick.make({
           message: "The brick is unavailable for this module",
           status: 404,
@@ -52,14 +44,14 @@ export function makeConfigureMapPlaceContract(props: {
       if (
         current._tag === "Success" &&
         current.success.resolution.status === "resolving" &&
-        current.success.payload.googlePlaceId === input
+        current.success.payload.url === input
       )
         return yield* failures.alreadyResolving.make({
           message: "This input is already resolving",
           status: 409,
         });
     }),
-    program: Effect.fn("configureMapPlace.program")(function* (props) {
+    program: Effect.fn("configureGithubRepo.program")(function* (props) {
       const { db, payload, operations } = props;
       const row = yield* findFirst({ db, model: brick, where: { id: { eq: payload.brickId } } });
       if (row === undefined) return;
@@ -68,7 +60,7 @@ export function makeConfigureMapPlaceContract(props: {
         attributes: {
           stateRevision: row.stateRevision + 1,
           state: {
-            payload: { googlePlaceId: normalizeMapPlaceInput(payload.googlePlaceId) },
+            payload: { url: normalizeGithubRepoInput(payload.url) },
             data: null,
             resolution: { requestId: payload.requestId, status: "resolving", error: null },
           },
@@ -92,5 +84,5 @@ export function makeConfigureMapPlaceContract(props: {
           });
       }
     }),
-  });
-}
+  },
+);

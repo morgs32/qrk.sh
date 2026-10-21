@@ -21,6 +21,15 @@ Before editing files for a substantial task:
 - Keep affected documentation current. User instructions override this file.
 - When the user says "sibs" or "sibling repos", scope the work to repositories using Zerospin. Other adjacent repositories are outside that scope unless explicitly named.
 
+## PR reviews
+
+Review changed code and the declarations that define its guarantees:
+
+- Check null/undefined guards against the actual model and inferred query types; relation filters can make a required relation nullable.
+- Keep required invariants required in public contracts and factories instead of repeating optional-field checks at each caller.
+- Flag duplicated module-owned rendering or validation, including placeholder handling, and fallback/default branches that hide invalid trusted data.
+- Distinguish normal route misses from broken session invariants, and route unexpected failures to their owning error boundary.
+
 ## Approval and code conventions
 
 - NEVER iterate a record with `for (const [key, value] of Object.entries(record))`. Use `mapValues` from `es-toolkit` with `(value, key)` callbacks for record traversal and validation.
@@ -28,6 +37,7 @@ Before editing files for a substantial task:
 - All authored TypeScript type aliases and interfaces use `I` followed by PascalCase, including exported, internal, local, props, helper, and inference types (for example, `IPaymentsSession`, `IProps`, and `IInferPayload`). Generic type parameters, imported third-party names, runtime classes and schema constants, generated/vendor code, and required framework augmentation names retain their existing conventions.
 - Modules own their module-specific behavior. Before adding module-specific logic or dependencies to application code or shared module contracts, warn the user, identify the proposed coupling, and explain why the module cannot own it.
 - Ask before introducing abstractions, single-call wrappers, barrels, re-exports, or concision refactors; provide the proposed name, purpose, and exact call sites. Import symbols from their defining modules.
+- Treat API simplicity as a correctness requirement. Routine domain code must stay concrete, readable, and inferred. If a change demands factories, wrappers, elaborate generic signatures, or model/version injection merely to accommodate an API or abstraction, stop: identify and explain the underlying API or ownership problem, and address it at its source within the approved scope. If Zerospin's API is forcing complexity, PROPOSE a fix before implementing it. Never conceal that problem with consumer-side machinery or push its complexity onto callers. Feature approval does not authorize this complexity; warn the user before introducing it.
 - Ask before adding named types or interfaces; provide the name, shape, and use sites. Inline single-use shapes and follow [named-type guidance](./wiki/patterns/typescript/named-types.md); do not export a type just to share a small parent/child shape.
 - Never add `ALLOWED_CAST` without explicit human authorization. Read the relevant code before adding or retaining casts; ask if a necessary cast requires a marker. No assertion chains that hide mismatches; use `as const` only when requested or demonstrably required.
 - Fix types at their actual model, factory, annotation, or call-site boundary; do not bolt on fields or intersection types to silence errors.

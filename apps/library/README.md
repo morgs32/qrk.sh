@@ -294,12 +294,11 @@ omission means unlimited. Article declares `1` and Instagram declares `2`.
 Catalog and playground previews display the limit. App enforces it against the
 Page's shared Bricks during creation, counting a Brick once across four Placements.
 
-Modules can opt into unconfigured bricks with `hasPlaceholder: true` in
-`makeModuleVersion` and a matching display-only `default.placeholder` in
-`makeModuleView`. Omitting the flag defaults it to false. View construction rejects
-both mismatches, so the backend declaration and markup must agree. The returned
-module exposes `hasPlaceholder` and `placeholder`; one placeholder is shared across
-all breakpoints and receives no props.
+Module views require a display-only `default.placeholder` in `makeModuleView`
+and `hasPlaceholder: true` in the backend `makeModuleVersion` declaration.
+The public `placeholder` field is required. One placeholder is shared across
+all breakpoints and receives no props; the module renderer selects it for null
+state, so consuming routes do not repeat placeholder handling.
 
 All ten modules declare a module-owned placeholder. Exact null selects it before
 state decoding or JsonRender execution; empty strings, objects, and collections
@@ -338,6 +337,14 @@ the Row cell. Rows share available width subject to module minimums and scroll
 horizontally when those minimums do not fit. Content or preview dimension changes
 do not write model geometry.
 
+The shared Placement V2 spec schema requires a nonempty root, at least one
+structured element, and a root that exists in the element map. The versioned
+manual spec contracts also check module component types and props. The retained
+V1 schemas remain unchanged; App selects the strict versions through User V4.
+The spec primitive applies validation to model operations and query decoding,
+so consumers do not need an empty-spec rendering fallback. The root-membership
+filter runs in Effect and is not represented in generic JSON Schema.
+
 Module defaults, preview state, and authored rendering discard undeclared fields
 during decoding. App's `updateBrick` validates the selected module's state, checks
 `moduleId` against the stored Brick, and persists shared content while advancing
@@ -353,6 +360,11 @@ Sections arrange Stacks horizontally, Stacks arrange Rows vertically, and Rows
 arrange Placements side by side. Brick content is shared across all four Walls.
 Placements retain stable identities and per-width specs, while ordering uses
 integer sibling positions. Breakpoint derives from the containing Wall.
+
+Configure, completion, and spec-update command declarations belong to QRK's
+user aggregate and bind concrete model versions there. Library supplies module
+schemas, input normalization, and provider operations; it does not construct
+contracts from injected host models or versions.
 
 The shared controlled wall components render supplied data and action callbacks.
 App's `WallEditorProvider` supplies live queries, command staging,

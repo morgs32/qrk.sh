@@ -3,46 +3,46 @@ import { sectionV1 as Section } from "./models/section/SectionV1";
 import { stackV1 as Stack } from "./models/stack/StackV1";
 import { rowV1 as Row } from "./models/row/RowV1";
 import { brickV1 as Brick } from "./models/brick/BrickV1";
-import { placementV1 as Placement } from "./models/placement/PlacementV1";
+import { placementV2 as Placement } from "./models/placement/PlacementV2";
 import { pageV3 as Page } from "./models/page/PageV3";
 import { pageSnapshotV2 as PageSnapshot } from "./models/pageSnapshot/PageSnapshotV2";
 import { siteV3 as Site } from "./models/site/SiteV3";
 import { userV1 as User } from "./models/user/UserV1";
-import { addBrick } from "./contracts/wall/AddBrickContractV1";
-import { addWallSection } from "./contracts/wall/AddWallSectionContractV1";
-import { movePlacement } from "./contracts/wall/MovePlacementContractV1";
-import { moveStack } from "./contracts/wall/MoveStackContractV1";
-import { deleteBrick } from "./contracts/wall/DeleteBrickContractV1";
-import { updateBrick } from "./contracts/brick/UpdateBrickV1";
-import { generateBrickSpec } from "./contracts/brick/GenerateBrickSpecV1";
-import { completeBrickSpecGeneration } from "./contracts/brick/GenerateBrickSpecV1";
-import { configureInstagram } from "./contracts/brick/ConfigureInstagramV1";
-import { completeInstagram } from "./contracts/brick/CompleteInstagramV1";
-import { configureGithubActivity } from "./contracts/brick/ConfigureGithubActivityV1";
-import { completeGithubActivity } from "./contracts/brick/CompleteGithubActivityV1";
-import { configureGithubProfile } from "./contracts/brick/ConfigureGithubProfileV1";
-import { completeGithubProfile } from "./contracts/brick/CompleteGithubProfileV1";
-import { configureGithubRepo } from "./contracts/brick/ConfigureGithubRepoV1";
-import { completeGithubRepo } from "./contracts/brick/CompleteGithubRepoV1";
-import { configureFigmaThumbnail } from "./contracts/brick/ConfigureFigmaThumbnailV1";
-import { completeFigmaThumbnail } from "./contracts/brick/CompleteFigmaThumbnailV1";
-import { configureLink } from "./contracts/brick/ConfigureLinkV1";
-import { completeLink } from "./contracts/brick/CompleteLinkV1";
-import { configureMapPlace } from "./contracts/brick/ConfigureMapPlaceV1";
-import { completeMapPlace } from "./contracts/brick/CompleteMapPlaceV1";
-import { updateArticleSpecAtBreakpoint } from "./contracts/brick/UpdateArticleSpecAtBreakpointV1";
-import { updateFigmaThumbnailSpecAtBreakpoint } from "./contracts/brick/UpdateFigmaThumbnailSpecAtBreakpointV1";
-import { updateGithubActivitySpecAtBreakpoint } from "./contracts/brick/UpdateGithubActivitySpecAtBreakpointV1";
-import { updateGithubProfileSpecAtBreakpoint } from "./contracts/brick/UpdateGithubProfileSpecAtBreakpointV1";
-import { updateGithubRepoSpecAtBreakpoint } from "./contracts/brick/UpdateGithubRepoSpecAtBreakpointV1";
-import { updateImageSpecAtBreakpoint } from "./contracts/brick/UpdateImageSpecAtBreakpointV1";
-import { updateInstagramSpecAtBreakpoint } from "./contracts/brick/UpdateInstagramSpecAtBreakpointV1";
-import { updateLinkSpecAtBreakpoint } from "./contracts/brick/UpdateLinkSpecAtBreakpointV1";
-import { updateMapPlaceSpecAtBreakpoint } from "./contracts/brick/UpdateMapPlaceSpecAtBreakpointV1";
-import { updateSwatchAndIconSpecAtBreakpoint } from "./contracts/brick/UpdateSwatchAndIconSpecAtBreakpointV1";
-import { publishSiteV2 as publishSite } from "./contracts/publishSite/PublishSiteV2";
-import { publishPageV2 as publishPage } from "./contracts/publishPage/PublishPageV2";
-import { publishPageUpdatesV2 as publishPageUpdates } from "./contracts/publishPageUpdates/PublishPageUpdatesV2";
+import { addBrickV2 as addBrick } from "./contracts/wall/AddBrickContractV2";
+import { addWallSectionV2 as addWallSection } from "./contracts/wall/AddWallSectionContractV2";
+import { movePlacementV2 as movePlacement } from "./contracts/wall/MovePlacementContractV2";
+import { moveStackV2 as moveStack } from "./contracts/wall/MoveStackContractV2";
+import { deleteBrickV2 as deleteBrick } from "./contracts/wall/DeleteBrickContractV2";
+import { updateBrickV2 as updateBrick } from "./contracts/brick/UpdateBrickV2";
+import { generateBrickSpecV2 as generateBrickSpec } from "./contracts/brick/GenerateBrickSpecV2";
+import { completeBrickSpecGenerationV2 as completeBrickSpecGeneration } from "./contracts/brick/GenerateBrickSpecV2";
+import { configureInstagramV2 as configureInstagram } from "./contracts/brick/ConfigureInstagramV2";
+import { completeInstagramV2 as completeInstagram } from "./contracts/brick/CompleteInstagramV2";
+import { configureGithubActivityV2 as configureGithubActivity } from "./contracts/brick/ConfigureGithubActivityV2";
+import { completeGithubActivityV2 as completeGithubActivity } from "./contracts/brick/CompleteGithubActivityV2";
+import { configureGithubProfileV2 as configureGithubProfile } from "./contracts/brick/ConfigureGithubProfileV2";
+import { completeGithubProfileV2 as completeGithubProfile } from "./contracts/brick/CompleteGithubProfileV2";
+import { configureGithubRepoV2 as configureGithubRepo } from "./contracts/brick/ConfigureGithubRepoV2";
+import { completeGithubRepoV2 as completeGithubRepo } from "./contracts/brick/CompleteGithubRepoV2";
+import { configureFigmaThumbnailV2 as configureFigmaThumbnail } from "./contracts/brick/ConfigureFigmaThumbnailV2";
+import { completeFigmaThumbnailV2 as completeFigmaThumbnail } from "./contracts/brick/CompleteFigmaThumbnailV2";
+import { configureLinkV2 as configureLink } from "./contracts/brick/ConfigureLinkV2";
+import { completeLinkV2 as completeLink } from "./contracts/brick/CompleteLinkV2";
+import { configureMapPlaceV2 as configureMapPlace } from "./contracts/brick/ConfigureMapPlaceV2";
+import { completeMapPlaceV2 as completeMapPlace } from "./contracts/brick/CompleteMapPlaceV2";
+import { updateArticleSpecAtBreakpointV2 as updateArticleSpecAtBreakpoint } from "./contracts/brick/UpdateArticleSpecAtBreakpointV2";
+import { updateFigmaThumbnailSpecAtBreakpointV2 as updateFigmaThumbnailSpecAtBreakpoint } from "./contracts/brick/UpdateFigmaThumbnailSpecAtBreakpointV2";
+import { updateGithubActivitySpecAtBreakpointV2 as updateGithubActivitySpecAtBreakpoint } from "./contracts/brick/UpdateGithubActivitySpecAtBreakpointV2";
+import { updateGithubProfileSpecAtBreakpointV2 as updateGithubProfileSpecAtBreakpoint } from "./contracts/brick/UpdateGithubProfileSpecAtBreakpointV2";
+import { updateGithubRepoSpecAtBreakpointV2 as updateGithubRepoSpecAtBreakpoint } from "./contracts/brick/UpdateGithubRepoSpecAtBreakpointV2";
+import { updateImageSpecAtBreakpointV2 as updateImageSpecAtBreakpoint } from "./contracts/brick/UpdateImageSpecAtBreakpointV2";
+import { updateInstagramSpecAtBreakpointV2 as updateInstagramSpecAtBreakpoint } from "./contracts/brick/UpdateInstagramSpecAtBreakpointV2";
+import { updateLinkSpecAtBreakpointV2 as updateLinkSpecAtBreakpoint } from "./contracts/brick/UpdateLinkSpecAtBreakpointV2";
+import { updateMapPlaceSpecAtBreakpointV2 as updateMapPlaceSpecAtBreakpoint } from "./contracts/brick/UpdateMapPlaceSpecAtBreakpointV2";
+import { updateSwatchAndIconSpecAtBreakpointV2 as updateSwatchAndIconSpecAtBreakpoint } from "./contracts/brick/UpdateSwatchAndIconSpecAtBreakpointV2";
+import { publishSiteV3 as publishSite } from "./contracts/publishSite/PublishSiteV3";
+import { publishPageV3 as publishPage } from "./contracts/publishPage/PublishPageV3";
+import { publishPageUpdatesV3 as publishPageUpdates } from "./contracts/publishPageUpdates/PublishPageUpdatesV3";
 import { unpublishSiteV2 as unpublishSite } from "./contracts/unpublishSite/UnpublishSiteV2";
 import { createPageV3 as createPage } from "./contracts/createPage/CreatePageV3";
 import { createSiteV3 as createSite } from "./contracts/createSite/CreateSiteV3";
@@ -55,8 +55,8 @@ export const userSessionDefinitionProps = {
   aggregateName: "user",
   sessionName: "userSession",
   actorName: "web",
-  actorVersion: "3.0.0",
-  aggregateVersion: "3.0.0",
+  actorVersion: "4.0.0",
+  aggregateVersion: "4.0.0",
   models: {
     wall: Wall,
     section: Section,

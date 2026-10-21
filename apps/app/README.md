@@ -359,7 +359,8 @@ neighboring Stack widths and saved arrangement.
 Wall, Section, Stack, and Row layout has no outer padding or inter-item gutters.
 Stack controls overlay content rather than reserving a toolbar row. The Wall has
 no Add/plus buttons; drop indicators appear during dragging. Empty saved Rows
-and Stacks retain their visible drop placeholders.
+and Stacks show drop placeholders, including the initial Page scaffold. A move
+or Brick deletion removes empty containers in the affected Walls.
 
 App consumes shared `WallPreviewViewport` and `WallPreviewToolbar` source. The
 viewport adds 32px above the frame and 43px below it, making every frame
@@ -537,10 +538,15 @@ Stack. Cancelling the chooser creates nothing; cancelling a created Brick's
 form leaves its unconfigured null content. Query-encoded destinations are decoded
 and validated again by the command; stale/cross-Wall destinations refuse.
 
-Move commands preserve identity/specs and retain emptied Rows, Stacks, and
-Sections. Deleting a Brick confirms removal at all four breakpoints and preserves
-containers. Sections allow 1/2/3/4 Stacks at sm/md/lg/xl; Rows have no artificial
-Placement cap. Whole-Row dragging, Section dragging, container deletion, hiding,
+Move commands preserve identity/specs and call internal `cleanupWall` on the
+affected Wall's post-edit hierarchy. Deleting a Brick confirms removal at all
+four breakpoints and cleans every Page Wall. Cleanup removes empty Rows, then
+Stacks, then Sections, and compacts all surviving sibling positions, including
+Placements, in the same command. Empty Walls remain usable drop targets.
+Sections allow 1/2/3/4 surviving Stacks at sm/md/lg/xl after move cleanup; drag
+eligibility uses that final count. Catalog additions retain their existing
+capacity rules. Rows have no artificial Placement cap. Whole-Row dragging,
+Section dragging, container deletion, hiding,
 and user resizing remain deferred. Placement's old grid geometry, visibility,
 and duplicated breakpoint fields are removed; the containing Wall supplies its
 breakpoint.

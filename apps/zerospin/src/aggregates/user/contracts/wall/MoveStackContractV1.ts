@@ -18,6 +18,7 @@ import { stackV1 as stack } from "../../models/stack/StackV1";
 import { rowV1 as row } from "../../models/row/RowV1";
 import { brickV1 as brick } from "../../models/brick/BrickV1";
 import { placementV1 as placement } from "../../models/placement/PlacementV1";
+import { cleanupWall } from "./utils/cleanupWall";
 const targetSchema = Schema.Union([
   Schema.Struct({
     kind: Schema.Literal("section"),
@@ -39,6 +40,11 @@ export const moveStack = makeAggregateContractVersion(defineAggregateContract("m
     createSection: section.operations.create,
     updateSection: section.operations.update,
     updateStack: stack.operations.update,
+    deleteStack: stack.operations.delete,
+    deleteSection: section.operations.delete,
+    updateRow: row.operations.update,
+    deleteRow: row.operations.delete,
+    updatePlacement: placement.operations.update,
   },
   payload: {
     id: primitives.text(),
@@ -80,14 +86,39 @@ export const moveStack = makeAggregateContractVersion(defineAggregateContract("m
         message: "This Page is unavailable",
         status: 403,
       });
-    const sections = (yield* findMany({
+    const sections = yield* findMany({
       db,
       model: section,
       where: { wallId: { eq: wallRow.id } },
-    })).sort((a, b) => a.position - b.position);
-    let destinationSection:
-      | { id: `sec_${string}`; wallId: `wal_${string}`; position: number }
-      | undefined =
+      columns: { id: true, position: true },
+      orderBy: { position: "asc" },
+      with: {
+        stacks: {
+          columns: { id: true, position: true },
+          orderBy: { position: "asc" },
+          with: {
+            rows: {
+              columns: { id: true, position: true },
+              orderBy: { position: "asc" },
+              with: {
+                placements: {
+                  columns: { id: true, position: true },
+                  orderBy: { position: "asc" },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+    const source = sections.find((entry) => entry.id === sourceSection.id);
+    const movingStack = source?.stacks.find((entry) => entry.id === moving.id);
+    if (source === undefined || movingStack === undefined)
+      return yield* failures.invalidLayout.make({
+        message: "The Stack no longer belongs to this Wall",
+        status: 409,
+      });
+    let destinationSection: (typeof sections)[number] | undefined =
       target.kind === "section"
         ? sections.find((entry) => entry.id === target.sectionId)
         : undefined;
@@ -105,24 +136,10 @@ export const moveStack = makeAggregateContractVersion(defineAggregateContract("m
         message: "The Section insertion point no longer exists",
         status: 409,
       });
-    const siblings =
-      destinationSection === undefined
-        ? []
-        : (yield* findMany({
-            db,
-            model: stack,
-            where: { sectionId: { eq: destinationSection.id } },
-          }))
-            .filter((entry) => entry.id !== moving.id)
-            .sort((a, b) => a.position - b.position);
-    const capacity = { sm: 1, md: 2, lg: 3, xl: 4 }[wallRow.breakpoint];
-    if (siblings.length >= capacity)
-      return yield* failures.invalidLayout.make({
-        message: "This Section has reached its Stack limit",
-        status: 409,
-      });
     const beforeStackId = target.kind === "section" ? target.beforeStackId : null;
-    if (beforeStackId === moving.id) return;
+    if (destinationSection === source && beforeStackId === movingStack.id) return;
+    const siblings =
+      destinationSection?.stacks.filter((entry) => entry.id !== movingStack.id) ?? [];
     const position =
       beforeStackId === null
         ? siblings.length
@@ -138,39 +155,25 @@ export const moveStack = makeAggregateContractVersion(defineAggregateContract("m
         target.kind === "wall" && target.beforeSectionId !== null
           ? sections.findIndex((entry) => entry.id === target.beforeSectionId)
           : sections.length;
-      for (let index = sectionPosition; index < sections.length; index++)
-        yield* operations.updateSection({
-          resourceId: sections[index].id,
-          attributes: { position: index + 1 },
-        });
       yield* operations.createSection({
         resourceId: id,
         attributes: { wallId: wallRow.id, position: sectionPosition },
       });
-      destinationSection = { id, wallId: wallRow.id, position: sectionPosition };
+      destinationSection = { id, position: sectionPosition, stacks: [] };
+      sections.splice(sectionPosition, 0, destinationSection);
     }
-    if (moving.sectionId !== destinationSection.id) {
-      const sourceSiblings = (yield* findMany({
-        db,
-        model: stack,
-        where: { sectionId: { eq: moving.sectionId } },
-      }))
-        .filter((entry) => entry.id !== moving.id)
-        .sort((a, b) => a.position - b.position);
-      for (let index = 0; index < sourceSiblings.length; index++)
-        yield* operations.updateStack({
-          resourceId: sourceSiblings[index].id,
-          attributes: { position: index },
-        });
-    }
-    for (let index = 0; index < siblings.length; index++)
-      yield* operations.updateStack({
-        resourceId: siblings[index].id,
-        attributes: { position: index < position ? index : index + 1 },
-      });
+    source.stacks = source.stacks.filter((entry) => entry.id !== movingStack.id);
+    destinationSection.stacks.splice(position, 0, movingStack);
     yield* operations.updateStack({
-      resourceId: moving.id,
-      attributes: { sectionId: destinationSection.id, position },
+      resourceId: movingStack.id,
+      attributes: { sectionId: destinationSection.id },
     });
+    yield* cleanupWall({ sections, operations });
+    const capacity = { sm: 1, md: 2, lg: 3, xl: 4 }[wallRow.breakpoint];
+    if (sections.some((entry) => entry.stacks.length > capacity))
+      return yield* failures.invalidLayout.make({
+        message: "This Section has reached its Stack limit",
+        status: 409,
+      });
   }),
 });

@@ -12,9 +12,10 @@ per breakpoint. Canonical declarations and commands live in the QRK user aggrega
 Wall and Brick bind directly to its final Page table.
 
 Each new Page starts with four Walls, each with one Section and an empty Stack.
-Empty Rows, Stacks, and Sections persist after movement/deletion. Stack capacity
-is 1 / 2 / 3 / 4 per Section at sm / md / lg / xl. Rows share available horizontal
-space subject to module minimum widths, with natural content height and no
+Moves and Brick deletion prune empty Rows, Stacks, and Sections. Stack capacity
+is 1 / 2 / 3 / 4 per Section at sm / md / lg / xl, counted after move cleanup.
+Rows share available horizontal space subject to module minimum widths, with
+natural content height and no
 arbitrary Placement-count cap. Each Row scrolls horizontally when its minimums
 do not fit, without widening neighboring Stacks or changing saved order.
 The former `Page.wallId`, `Wall.label`, `Brick.wallId`, Placement grid geometry,
@@ -57,12 +58,18 @@ The active Wall follows the target; other Walls append a new Row to the last
 Stack, creating missing parents when needed. A successful local stage opens the
 new Brick form; cancelling that form leaves the created null Brick.
 Moves keep Placement identity/specs or carry the complete Stack's Rows. Delete
-Brick confirms removal from all four widths and retains containers. Sibling
-positions are ordinary integer indexes renumbered in the same command.
+Brick confirms removal from all four widths. Each command calls internal
+`cleanupWall` on its post-edit hierarchy: movement cleans the affected Wall;
+Brick deletion cleans all four Page Walls. Cleanup removes empty Rows, then
+Stacks, then Sections, and renumbers surviving sibling positions, including
+Placements, in the same command. The Wall remains available as a drop target.
+Stable insertion anchors are validated before cleanup; self-before moves remain
+no-ops.
 
 Wall layout containers have zero padding and no gaps between adjacent content.
 Stack chrome and drag insertion boundaries overlay the layout. Empty persisted
-Rows/Stacks retain visible drop placeholders; spacing is not used to host controls.
+Rows/Stacks, including initial Page scaffolds, show drop placeholders until a
+move or deletion cleans their Wall; spacing is not used to host controls.
 Row before/after drop zones create Rows; the middle resolves horizontal
 Placement insertion. Each Row's content scrolls inside its indicator host, so
 Row before/after indicators remain visible outside the scrollport. Stock drop

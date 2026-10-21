@@ -229,10 +229,17 @@ export function WallTree(props: {
                 { element, input, operations: { combine: "available" } },
               );
             const siblings = stacks.filter((entry) => entry.sectionId === stack.sectionId);
+            const movingStack = stacks.find((entry) => entry.id === source.data.id);
+            const occupiedSiblings = siblings.filter(
+              (entry) =>
+                entry.id !== source.data.id && entry.rows.some((row) => row.placements.length > 0),
+            );
+            const incomingStackCount = movingStack?.rows.some((row) => row.placements.length > 0)
+              ? 1
+              : 0;
             const allowed =
               source.data.id !== stack.id &&
-              (siblings.some((entry) => entry.id === source.data.id) ||
-                siblings.length < stackLimit);
+              occupiedSiblings.length + incomingStackCount <= stackLimit;
             const data = attachInstruction(
               {},
               {
@@ -271,8 +278,31 @@ export function WallTree(props: {
         dropTargetForElements({
           element,
           canDrop: ({ source }) => accepts(source.data),
-          getData: ({ source, input }) =>
-            attachInstruction(
+          getData: ({ source, input }) => {
+            const occupiedStacks = section.stacks.filter(
+              (stack) =>
+                !(source.data.kind === "stack" && stack.id === source.data.id) &&
+                stack.rows.some((row) =>
+                  row.placements.some(
+                    (placement) =>
+                      source.data.kind !== "placement" || placement.id !== source.data.id,
+                  ),
+                ),
+            );
+            const movingStack =
+              source.data.kind === "stack"
+                ? stacks.find((entry) => entry.id === source.data.id)
+                : undefined;
+            const incomingStackCount =
+              source.data.kind === "stack" &&
+              !movingStack?.rows.some((row) => row.placements.length > 0)
+                ? 0
+                : 1;
+            const allowed =
+              source.data.kind === "wall-module"
+                ? section.stacks.length < stackLimit
+                : occupiedStacks.length + incomingStackCount <= stackLimit;
+            return attachInstruction(
               {
                 indicatorElement: element,
                 target:
@@ -284,15 +314,11 @@ export function WallTree(props: {
                 element,
                 input,
                 operations: {
-                  combine:
-                    section.stacks.length < stackLimit ||
-                    (source.data.kind === "stack" &&
-                      section.stacks.some((stack) => stack.id === source.data.id))
-                      ? "available"
-                      : "blocked",
+                  combine: allowed ? "available" : "blocked",
                 },
               },
-            ),
+            );
+          },
         }),
       );
     }
@@ -425,8 +451,8 @@ export function WallTree(props: {
           >
             <Dialog.Title className="text-lg font-medium">Delete Brick?</Dialog.Title>
             <Dialog.Description className="text-sm text-muted-foreground">
-              This deletes the shared Brick and its Placements at all four breakpoints. Empty Rows,
-              Stacks, and Sections remain.
+              This deletes the shared Brick and its Placements at all four breakpoints, then removes
+              empty Rows, Stacks, and Sections.
             </Dialog.Description>
             <div className="flex justify-end gap-2">
               <Dialog.Close render={<Button variant="outline" />}>Cancel</Dialog.Close>

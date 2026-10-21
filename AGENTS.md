@@ -14,6 +14,8 @@ Before editing files for a substantial task:
 
 ## Working rules
 
+- Before substantial design recommendations, reviews, or edits, run the installed Intent discovery and load matching local skills, including for read-only rubber-duck discussions. Do not wait until editing to consult package guidance; if Intent is unavailable, report the missing dependency instead of downloading a replacement.
+
 - Use `$implement` for approved work and unfinished verification. Use mock data when requested; add no unrequested functionality.
 - Preserve intentional local wiring. Do not refactor, prettify, add dependencies, stabilize unfinished glue, or fix adjacent failures outside scope.
 - Prefer targeted edits, reuse current context, and skip files over 100 KB unless required. Keep control flow simple and explicit; do not change unrelated component props or function arguments.

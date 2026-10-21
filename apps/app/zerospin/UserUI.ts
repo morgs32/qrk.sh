@@ -1,6 +1,6 @@
 "use client";
 
-import { createUI } from "@zerospin/react";
+import { makeReactUI } from "@zerospin/react";
 import { userSessionDefinition } from "./userSessionDefinition";
 
-export const UserUI = createUI(userSessionDefinition);
+export const UserUI = makeReactUI(userSessionDefinition);

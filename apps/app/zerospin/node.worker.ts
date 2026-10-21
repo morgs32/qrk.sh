@@ -1,6 +1,7 @@
 import { makeSharedWorker } from "@zerospin/browser/makeSharedWorker";
 import sqliteWasmUrl from "@zerospin/browser/sqlite.wasm?url";
-import { userSessionDefinition, userSessionDefinitionV3 } from "./userSessionDefinition";
+import { userSessionDefinition } from "./userSessionDefinition";
+import { userSessionDefinitionV3 } from "./userSessionDefinitionV3";
 
 makeSharedWorker({
   sqliteWasmUrl,

@@ -78,7 +78,7 @@ their extensionless ESM imports. Referenced `/assets/` public files retain
 explicit legacy mappings.
 
 App resolves the SharedWorker and browser SQLite WASM from installed
-`21.0.0` package exports. `userSessionDefinition` is shared by
+`23.0.0` package exports. `userSessionDefinition` is shared by
 `Initializer` and the authored `node.worker.ts` entrypoint.
 `makeApplicationSharedWorker` binds that emitted worker artifact to the session.
 The host imports `node.worker.ts` through Vite's `?sharedworker&url` query;

@@ -3,7 +3,7 @@
 ## Zerospin packages
 
 Zerospin owns its source, builds, and releases in the sibling `../zerospin`
-checkout. QRK installs exact `21.0.0` packages from the local Verdaccio registry;
+checkout. QRK installs exact `23.0.0` packages from the local Verdaccio registry;
 there is no vendored Zerospin source or consumer-side Zerospin build.
 
 The credential-free project `.npmrc` routes all dependencies through
@@ -83,7 +83,7 @@ and [App](apps/app/README.md) for their respective ownership.
    On the first registry bootstrap, install, build, verify, and publish the
    release in Zerospin before installing QRK. Follow Zerospin's package release
    instructions. Existing registry storage survives restarts. A fresh checkout
-   requires the running registry with the locked `21.0.0` packages; hosted
+   requires the running registry with the locked `23.0.0` packages; hosted
    distribution and deployment-machine bootstrap are not configured here.
 
 2. Start the four application development servers through Portless:

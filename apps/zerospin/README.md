@@ -24,7 +24,7 @@ separately started Storybook. To start only this Worker, run `pnpm --dir apps/ze
 Its `dev` script invokes Portless, which runs the CLI command in `dev:app`;
 package metadata retains its hostname and port.
 
-QRK installs the CLI and runtime packages at `21.0.0` from the populated local
+QRK installs the CLI and runtime packages at `23.0.0` from the populated local
 registry described in the [root README](../../README.md#zerospin-packages).
 Backend development compiles Library source directly; it does not build a
 separate Library package or rebuild installed Zerospin files.
@@ -97,16 +97,18 @@ initialization step fails. Do not reset or seed production storage to retry.
 
 ## Server aggregate reads
 
-Core `21.0.0` provides the server-only
+Core `23.0.0` provides the server-only
 `@zerospin/core/utils/getSystemApi/getSystemApi` client. Supply
 `ZerospinApiUrl` and `SecretKey` (`Redacted<string>`) in the application's Effect
 layer, then acquire it with `yield* getSystemApi()`. Construct a connection-free
-query with `makeQueryDbVersion({ models: userSessionDefinitionProps.models })` and pass
+query with `makeQueryDbVersion({ models: userAggregateV4.models })` and pass
 the selection to `systemApi.executeAggregateQuery` with user aggregate identity:
 
 ```ts
+import { userAggregateV4 } from "./src/aggregates/user/UserV4";
+
 const systemApi = yield * getSystemApi();
-const db = makeQueryDbVersion({ models: userSessionDefinitionProps.models });
+const db = makeQueryDbVersion({ models: userAggregateV4.models });
 const site =
   yield *
   systemApi.executeAggregateQuery({
@@ -160,7 +162,9 @@ not make its rows readable by the current declarations.
 `src/system.ts` retains user aggregate `3.0.0` and registers `4.0.0` alongside it.
 App's current session selects aggregate/web actor `4.0.0`; the unchanged
 provisioner and User model remain `1.0.0`. App's browser definition imports the
-same canonical models/contracts through `userSessionDefinitionProps`.
+same canonical models/contracts directly in complete session definitions owned by
+`apps/app/zerospin`. The tab and worker import each definition from its defining
+module. Server queries use the server-owned aggregate declaration.
 
 The user aggregate ID is the verified Clerk token subject (`clerkUserId`), with
 no added prefix. The web actor verifies Clerk through `userProvisionerV1`, then
@@ -327,3 +331,7 @@ The editor schema change is a hard development cutover rather than a retained
 history adapter. Follow the scoped backup procedure above; old affected releases
 are not registered to backport the new hierarchy. Public website rendering and
 browsing/restoring publication history remain later application work.
+
+## Complete session declarations
+
+Each authored session has one complete checked definition, including `systemName`, with explicit model and contract entries. Host wiring, UI owners, and SharedWorkers import that defining module directly. Credentials remain in authentication and host wiring. Zerospin packages are pinned to `23.0.0`; React UI contexts use `makeReactUI`.

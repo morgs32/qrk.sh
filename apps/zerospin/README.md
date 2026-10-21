@@ -111,7 +111,7 @@ const site =
   yield *
   systemApi.executeAggregateQuery({
     aggregateName: "user",
-    aggregateVersion: "3.0.0",
+    aggregateVersion: "4.0.0",
     aggregateId,
     query: db.query.site.findFirst({
       where: { id: { eq: siteId } },

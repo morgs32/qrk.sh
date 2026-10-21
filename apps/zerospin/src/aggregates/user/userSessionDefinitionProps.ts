@@ -10,9 +10,9 @@ import { siteV3 as Site } from "./models/site/SiteV3";
 import { userV1 as User } from "./models/user/UserV1";
 import { addBrick } from "./contracts/wall/AddBrickContractV1";
 import { addWallSection } from "./contracts/wall/AddWallSectionContractV1";
-import { movePlacement } from "./contracts/wall/MovePlacementContractV1";
+import { movePlacementV2 as movePlacement } from "./contracts/wall/MovePlacementContractV2";
 import { moveStack } from "./contracts/wall/MoveStackContractV1";
-import { deleteBrick } from "./contracts/wall/DeleteBrickContractV1";
+import { deleteBrickV2 as deleteBrick } from "./contracts/wall/DeleteBrickContractV2";
 import { removeEmptyRows } from "./contracts/wall/RemoveEmptyRowsContractV1";
 import { updateBrick } from "./contracts/brick/UpdateBrickV1";
 import { generateBrickSpec } from "./contracts/brick/GenerateBrickSpecV1";
@@ -56,8 +56,8 @@ export const userSessionDefinitionProps = {
   aggregateName: "user",
   sessionName: "userSession",
   actorName: "web",
-  actorVersion: "3.0.0",
-  aggregateVersion: "3.0.0",
+  actorVersion: "4.0.0",
+  aggregateVersion: "4.0.0",
   models: {
     wall: Wall,
     section: Section,

@@ -26,8 +26,6 @@ export const deleteBrick = makeAggregateContractVersion(defineAggregateContract(
     deleteBrick: brick.operations.delete,
     deletePlacement: placement.operations.delete,
     updatePlacement: placement.operations.update,
-    deleteRow: row.operations.delete,
-    updateRow: row.operations.update,
   },
   payload: { brickId: primitives.foreignKey({ abbreviation: "brk" }) },
   failures: { invalidLayout: ContractError.schema({ code: "delete-brick-invalid-layout" }) },
@@ -59,42 +57,18 @@ export const deleteBrick = makeAggregateContractVersion(defineAggregateContract(
       model: placement,
       where: { brickId: { eq: content.id } },
     });
-    for (const entry of placements) yield* operations.deletePlacement({ resourceId: entry.id });
-    const emptiedRowIds = new Set<string>();
-    const affectedStackIds = new Set<string>();
-    for (const rowId of new Set(placements.map((entry) => entry.rowId))) {
+    for (const entry of placements) {
+      yield* operations.deletePlacement({ resourceId: entry.id });
       const siblings = (yield* findMany({
         db,
         model: placement,
-        where: { rowId: { eq: rowId } },
+        where: { rowId: { eq: entry.rowId } },
       }))
-        .filter((sibling) => sibling.brickId !== content.id)
+        .filter((sibling) => sibling.id !== entry.id)
         .sort((a, b) => a.position - b.position);
       for (let index = 0; index < siblings.length; index++)
         yield* operations.updatePlacement({
           resourceId: siblings[index].id,
-          attributes: { position: index },
-        });
-      if (siblings.length === 0) {
-        const emptiedRow = yield* findFirst({ db, model: row, where: { id: { eq: rowId } } });
-        if (emptiedRow !== undefined) {
-          yield* operations.deleteRow({ resourceId: emptiedRow.id });
-          emptiedRowIds.add(emptiedRow.id);
-          affectedStackIds.add(emptiedRow.stackId);
-        }
-      }
-    }
-    for (const stackId of affectedStackIds) {
-      const remainingRows = (yield* findMany({
-        db,
-        model: row,
-        where: { stackId: { eq: stackId } },
-      }))
-        .filter((entry) => !emptiedRowIds.has(entry.id))
-        .sort((a, b) => a.position - b.position);
-      for (let index = 0; index < remainingRows.length; index++)
-        yield* operations.updateRow({
-          resourceId: remainingRows[index].id,
           attributes: { position: index },
         });
     }

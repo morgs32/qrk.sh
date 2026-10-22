@@ -4,6 +4,7 @@ import { ensureZerospinError, type IZerospinErrorJson } from "@zerospin/error";
 import { makeRpcEnvelope, type IRpcEnvelope } from "@zerospin/logger";
 import { makeTable, primitives } from "@zerospin/shapes";
 import { Effect, Layer, ManagedRuntime, Schema } from "effect";
+import { identity } from "es-toolkit";
 import { DurableObject } from "cloudflare:workers";
 import { makeMigratableDORepo } from "system-worker/makeMigratableDORepo/makeMigratableDORepo";
 import { makeMigratableDORepoConfig } from "system-worker/makeMigratableDORepo/makeMigratableDORepoConfig";
@@ -19,9 +20,12 @@ const responses = makeTable({
 
 const backendRepo = makeMigratableDORepo(DurableObject<Cloudflare.Env>, {
   namespaceBinding: "BACKEND_REPO",
+  runInvocation: identity,
+  encodeRpcOutcome: makeRpcEnvelope,
   managedRuntime,
   migratableDORepoConfig: makeMigratableDORepoConfig({
     namePattern: RoutePattern.parse("/global"),
+    keyCodec: Schema.Struct({}),
     dbConfig: makeDbConfig({ tables: { responses } }),
     migrations: [
       {
@@ -68,7 +72,7 @@ export class BackendRepo extends backendRepo {
 
 declare global {
   namespace Cloudflare {
-    interface DORepoNamespaces {
+    interface IDORepoNamespaces {
       BACKEND_REPO: DurableObjectNamespace<BackendRepo>;
     }
   }

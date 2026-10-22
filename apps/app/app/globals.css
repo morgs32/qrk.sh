@@ -9,6 +9,7 @@
 @source "../components/**/*.{ts,tsx}";
 @source "../../web/library/**/*.{ts,tsx}";
 @source "../modules/**/*.{ts,tsx}";
+@source "../routes/$username.site.$siteId.dev.page.$pageId.$breakpoint.tsx";
 
 @custom-variant dark (&:is(.dark *));
 

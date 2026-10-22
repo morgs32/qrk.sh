@@ -23,10 +23,17 @@ other three applications (App, Web, and API). Module playgrounds run in App Stor
 Its `dev` script invokes Portless, which runs the CLI command in `dev:app`;
 package metadata retains its hostname and port.
 
-QRK installs the CLI and runtime packages at `24.0.1` from the populated local
+QRK installs the CLI and runtime packages at `26.0.2` from the populated local
 registry described in the [root README](../../README.md#zerospin-packages).
 Shared module definitions live in `src/modules/`; App and API compile their source
 directly. Backend development does not rebuild installed Zerospin files.
+
+The 26.x selection-definition cutover compares authored filters, identity
+references, ordering, limits, and explicit SQL expression structure. Generated
+SQL is only an execution artifact. It has no catalogue migration or legacy
+comparison path. The authorized local cutover reset development state for
+`sys_qrk_sh_1` and QRK's Zerospin browser databases; login cookies and credentials
+were retained. This work did not deploy or reset production.
 
 Repository tests and standalone automated checks are deferred until a test
 structure is agreed. Avoid integration testing of this Zerospin backend; the
@@ -96,7 +103,7 @@ initialization step fails. Do not reset or seed production storage to retry.
 
 ## Server aggregate reads
 
-Core `24.0.1` provides the server-only
+Core `26.0.2` provides the server-only
 `@zerospin/core/utils/getSystemApi/getSystemApi` client. Supply
 `ZerospinApiUrl` and `SecretKey` (`Redacted<string>`) in the application's Effect
 layer, then acquire it with `yield* getSystemApi()`. Construct a connection-free
@@ -245,46 +252,64 @@ provider operations. There is no contract-binding factory, standalone Library da
 seeded Page, or host-binding declaration assembly.
 
 `createPage` records the Page and all four Walls with one initial Section and
-empty Stack each. `addBrick` records shared null content and four deterministic
+empty Stack each inside `Wall.layout`. The layout contains ordered Section,
+named Stack, and Row nodes; Rows list Placement IDs. Node IDs stay stable while
+arrays supply parentage and order. Section, Stack, and Row are no longer SQL
+models, and no numeric sibling positions are stored.
+
+Placement remains a separate model with direct `wallId`, shared `brickId`,
+variant, spec, spec revision, and generation state. Brick retains shared module
+content and its state revision. The unique Wall/Brick index preserves one
+appearance per Wall. Spec/content updates never rewrite layout JSON.
+
+`addBrick` records shared null content and four deterministic
 Placements, explicitly selecting the `"default"` variant for each; the active
 Wall follows its explicit insertion target and other Walls append a new Row to
-their last Stack. Move commands renumber affected
-siblings atomically through internal `cleanupWall`. It prunes empty Rows, then
-Stacks, then Sections, and compacts all surviving sibling positions, including
-Placements. Movement cleans the whole affected Wall; Delete Brick removes its
-Placements and content and cleans all four Page Walls. Empty Walls remain usable
-drop targets. Move capacity is checked after cleanup. Initial Page scaffolds and
-explicit container creation retain their current semantics.
+their last existing Stack in Section order. The browser-safe layout module under
+`aggregates/user/layout/` owns stable target lookup and pure array transformations.
+Movement prunes all empty Rows, Stacks, and Sections in the edited Wall, then
+checks capacity. Brick deletion removes its four references/Placement records
+and shared content and prunes only ancestors emptied by those removals.
+Unrelated empty containers remain untouched. Empty Walls remain usable drop
+targets. Initial Page scaffolds and explicit container creation retain their
+current semantics.
 
-Each command edits a narrow ordered candidate hierarchy before cleanup. Ordinary
+Commands calculate the next layout from current state and record one Wall update
+per changed Wall alongside the required Brick/Placement operations. Ordinary
 programs only record named operations; evaluation reads pre-application state
-and the transaction applies the complete checked batch. Stable insertion anchors
-are validated before candidate mutation, and genuine self-before moves return
-without cleanup.
+and the transaction applies the complete checked batch. Pure layout functions
+preserve their input and return expected structural refusals through Result.
+Stable insertion anchors are validated before candidate mutation, and genuine
+self-before moves return the original layout without cleanup or a Wall update.
 
-The cleanup operation capabilities change the accepted declarations in place as
-part of the fresh-development cutover. Adoption requires empty affected backend
-definition/materialization storage and fresh matching browser session state.
-Retained environments need versioned release evolution before rollout; normal
-development startup preserves storage.
+The current V1 development baseline replaces the old structural declarations in
+place. The hard cutover includes definitions, admitted history, materialization,
+projections, and checkpoints together; there is no old/new compatibility graph,
+layout migration, or automatic reset. Normal development startup preserves
+storage and must not run changed definitions against the previous graph.
 
-The web actor selects editor rows through Page → Site → User and the actual
-container parent chains. Write commands also validate ownership, membership,
+The web actor selects Walls and Bricks through Page → Site → User and Placements
+through Wall → Page → Site → User. Write commands also validate ownership, membership,
 before-sibling references, capacity, and module limits. A Placement derives its
-breakpoint from its containing Wall. Generation/update programs preserve request
-and revision guards. Provider lookups belong to the open form and cannot save
+breakpoint directly from its Wall. JSON layout references are checked for
+uniqueness and corresponding record membership. Generation/update programs
+preserve request and revision guards. Provider lookups belong to the open form and cannot save
 after cancellation or navigation.
 PageSnapshot rows are exposed only while a Page identifies them as its current
 published snapshot, leaving historical content canonical without syncing its
 entire history into App. Session lifetime, local query/staging work, and failure
 presentation remain App-owned.
 
-Plan 036 requires the separately approved empty affected development state.
-Stopping the backend and moving only `dev-worker/sys_qrk_sh_1` under the existing
-backup directory preserves the previous data. Matching browser definition locks
-open new App partitions; previous App/Library partitions, cookies, uploads,
-unrelated stores, and production data remain untouched. This source change does
-not itself perform that cutover or verify live command finalization.
+[Plan 039](../../wiki/archive/plans/039-plan-wall-owned-layout-tree.md) records the
+authorized local hard cutover. App/Zerospin watchers and affected browser sessions
+were stopped before editing the declarations. The previous local
+`dev-worker/sys_qrk_sh_1` directory is preserved at
+`.wrangler/zerospin/backups/sys_qrk_sh_1-plan039-20261021T222956Z`.
+The new baseline uses empty affected backend storage and a fresh definition-keyed
+App namespace. Old App/Library partitions and their unsent work, cookies, uploads,
+unrelated stores, and production data remain untouched and are not imported into
+the new graph. Runtime readiness and command outcomes are recorded in Plan 039;
+the storage move alone does not verify them.
 
 ## Site creation slugs
 
@@ -322,8 +347,8 @@ Site's `isPublished` controls site availability. Page's independent `isPublished
 and nullable `publishedSnapshotId` identify whether the page is published and
 which immutable PageSnapshot supplies its published content. A snapshot contains
 page metadata, shared Brick content once, and all four ordered Walls with their
-Sections, Stacks, Rows, and Placements/specs. Container arrays preserve sibling
-position order; shared Bricks have a stable identity order. Generation state,
+Sections, Stacks, Rows, and Placements/specs. Container arrays preserve the Wall
+layout's array order; shared Bricks have a stable identity order. Generation state,
 revisions, and editor bookkeeping are excluded. Publication creates immutable
 rows and grants no snapshot update/delete operation.
 
@@ -340,8 +365,10 @@ programs read the saved content rather than accepting browser-supplied snapshots
 QRK's `snapshots/pageSnapshotSchema.ts` and `snapshots/makePageSnapshot.ts`
 own this publication shape and projection. The same builder serves publication
 commands and App's saved-versus-published comparison, so movement and horizontal
-Row grouping mark the Page dirty. Each command reads all relevant parent and
-Placement models; browser callers cannot submit replacement snapshot content.
+Row grouping mark the Page dirty. Each command reads the Walls' structural JSON
+and separate Brick/Placement records; browser callers cannot submit replacement
+snapshot content. Missing layout references are invariant failures, not skipped
+records or reconstructed legacy hierarchies.
 Saved Site Settings remain immediate and outside Page publication history.
 
 The editor schema change is a hard development cutover rather than a retained
@@ -351,4 +378,4 @@ browsing/restoring publication history remain later application work.
 
 ## Complete session declarations
 
-Each authored session has one complete checked definition, including `systemName`, with explicit model and contract entries. Host wiring, UI owners, and SharedWorkers import that defining module directly. Credentials remain in authentication and host wiring. Zerospin packages are pinned to `24.0.1`; React UI contexts use `makeReactUI`.
+Each authored session has one complete checked definition, including `systemName`, with explicit model and contract entries. Host wiring, UI owners, and SharedWorkers import that defining module directly. Credentials remain in authentication and host wiring. Zerospin packages are pinned to `26.0.2`; React UI contexts use `makeReactUI`.

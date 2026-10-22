@@ -3,8 +3,11 @@
 ## Zerospin packages
 
 Zerospin owns its source, builds, and releases in the sibling `../zerospin`
-checkout. QRK installs exact `24.0.1` packages from the local Verdaccio registry;
+checkout. QRK installs exact `26.0.2` packages from the local Verdaccio registry;
 there is no vendored Zerospin source or consumer-side Zerospin build.
+Actor and agent selection identity uses the authored definition rather than
+generated SQL. Existing direct Drizzle dependencies use the same exact local
+fork as Zerospin: `npm:@zerospin/drizzle-orm@1.0.0-rc.5-qrk.3`.
 
 The credential-free project `.npmrc` routes all dependencies through
 `http://127.0.0.1:4873/`, including the unscoped `system-worker`. The registry
@@ -82,7 +85,7 @@ See [Modules](apps/app/modules/README.md) and [App](apps/app/README.md).
    On the first registry bootstrap, install, build, verify, and publish the
    release in Zerospin before installing QRK. Follow Zerospin's package release
    instructions. Existing registry storage survives restarts. A fresh checkout
-   requires the running registry with the locked `24.0.1` packages; hosted
+   requires the running registry with the locked `26.0.2` packages; hosted
    distribution and deployment-machine bootstrap are not configured here.
 
 2. Start the four application development servers through Portless:

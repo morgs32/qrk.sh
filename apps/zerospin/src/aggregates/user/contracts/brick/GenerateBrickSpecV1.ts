@@ -8,12 +8,6 @@ import { brickV1 as brick } from "../../models/brick/BrickV1";
 
 import { placementV1 as placement } from "../../models/placement/PlacementV1";
 
-import { rowV1 as row } from "../../models/row/RowV1";
-
-import { stackV1 as stack } from "../../models/stack/StackV1";
-
-import { sectionV1 as section } from "../../models/section/SectionV1";
-
 import { wallV1 as wall } from "../../models/wall/WallV1";
 
 import { defineAggregateContract } from "@zerospin/core/contracts/defineAggregateContract";
@@ -39,9 +33,6 @@ export const generateBrickSpecV1 = makeAggregateContractVersion(
     models: {
       brick,
       placement,
-      row,
-      stack,
-      section,
       wall,
     },
     operations: {
@@ -85,36 +76,22 @@ export const generateBrickSpecV1 = makeAggregateContractVersion(
           status: 404,
         });
       }
-      const rowEntry = yield* findFirst({
+      const wallEntry = yield* findFirst({
         db,
-        model: db.models.row,
-        where: { id: { eq: placementRow.rowId } },
+        model: db.models.wall,
+        where: { id: { eq: placementRow.wallId } },
       });
-      const stackEntry =
-        rowEntry === undefined
-          ? undefined
-          : yield* findFirst({
-              db,
-              model: db.models.stack,
-              where: { id: { eq: rowEntry.stackId } },
-            });
-      const sectionEntry =
-        stackEntry === undefined
-          ? undefined
-          : yield* findFirst({
-              db,
-              model: db.models.section,
-              where: { id: { eq: stackEntry.sectionId } },
-            });
-      const wallEntry =
-        sectionEntry === undefined
-          ? undefined
-          : yield* findFirst({
-              db,
-              model: db.models.wall,
-              where: { id: { eq: sectionEntry.wallId } },
-            });
-      if (wallEntry?.breakpoint !== payload.breakpoint || wallEntry.pageId !== brickRow.pageId)
+      if (
+        placementRow.brickId !== brickRow.id ||
+        wallEntry === undefined ||
+        wallEntry.breakpoint !== payload.breakpoint ||
+        wallEntry.pageId !== brickRow.pageId ||
+        !wallEntry.layout.sections.some((section) =>
+          section.stacks.some((stack) =>
+            stack.rows.some((row) => row.placementIds.includes(placementRow.id)),
+          ),
+        )
+      )
         return yield* failures.unavailable.make({
           message: "The placement is not in this Page's breakpoint Wall",
           status: 409,
@@ -143,9 +120,6 @@ export const completeBrickSpecGenerationV1 = makeAggregateContractVersion(
     models: {
       brick,
       placement,
-      row,
-      stack,
-      section,
       wall,
     },
     operations: {
@@ -195,6 +169,23 @@ export const completeBrickSpecGenerationV1 = makeAggregateContractVersion(
         generation.requestId !== payload.requestId ||
         generation.baseStateRevision !== payload.baseStateRevision ||
         generation.baseSpecRevision !== payload.baseSpecRevision
+      )
+        return;
+      const wallEntry = yield* findFirst({
+        db,
+        model: db.models.wall,
+        where: { id: { eq: placementRow.wallId } },
+      });
+      if (
+        placementRow.brickId !== brickRow.id ||
+        wallEntry === undefined ||
+        wallEntry.breakpoint !== payload.breakpoint ||
+        wallEntry.pageId !== brickRow.pageId ||
+        !wallEntry.layout.sections.some((section) =>
+          section.stacks.some((stack) =>
+            stack.rows.some((row) => row.placementIds.includes(placementRow.id)),
+          ),
+        )
       )
         return;
       if (payload.outcome.status === "failed") {

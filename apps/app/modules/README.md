@@ -198,25 +198,45 @@ layout or preview width. Existing hover/shadow studies remain available.
 
 ## Modules and interaction
 
-Every module's `makeModuleView` declaration requires `default.defaultWidth` and
-`default.minWidth` in pixels. Optional `sm`, `md`, `lg`, and `xl` overlays can
-override `defaultWidth`;
-an omitted override uses the default directly. `viewFor(breakpoint)` returns the
-resolved preferred width and the module's minimum alongside the component, spec,
-and registry. Catalog, Storybook, and App catalog previews cap that width at the chosen
-breakpoint's canonical width. Browser frames retain their canonical widths.
+Every shared `makeModuleVersion` declaration owns one flat `variants.default`
+sizing record with `defaultWidth`, `minWidth`, `defaultHeight`, and optional
+`minHeight`. `makeModuleView` attaches the authored component, placeholder, and
+optional generator to those shared values without repeating sizing. There are no
+breakpoint overrides inside a variant. `LineIcon` and the content form remain module-level. Catalog,
+Storybook, and App catalog previews select the default variant and cap its
+preferred width at the chosen breakpoint's canonical width. Browser frames
+retain their canonical widths.
 The minimum is 320px for every module except Swatch and Icon at 160px, and is
 shared across all breakpoints. Preview surfaces and placed Row cells respect it;
 neither width setting changes persisted brick state.
 
-| Module                                               | Default width | Breakpoint overrides     |
-| ---------------------------------------------------- | ------------- | ------------------------ |
-| Article                                              | 720px         | `lg`: 800px; `xl`: 800px |
-| GitHub Activity                                      | 656px         | —                        |
-| GitHub Profile                                       | 360px         | —                        |
-| GitHub Repo, Figma Thumbnail, Image, Link, Map Place | 480px         | —                        |
-| Instagram                                            | 400px         | —                        |
-| Swatch and Icon                                      | 240px         | —                        |
+| Module                           | Default width | Default height |
+| -------------------------------- | ------------- | -------------- |
+| Article                          | 720px         | `null`         |
+| GitHub Activity                  | 656px         | 180px          |
+| GitHub Profile                   | 360px         | 360px          |
+| GitHub Repo, Link                 | 480px         | 180px          |
+| Figma Thumbnail, Image, Map Place | 480px         | 360px          |
+| Instagram                        | 400px         | 360px          |
+| Swatch and Icon                   | 240px         | 90px           |
+
+`defaultHeight` uses `45 | 90 | 180 | 360 | 720 | null`; `null` means natural
+content height. The shared height floor is 45px. Optional `minHeight` declares
+a higher floor (`90 | 180 | 360 | 720`), and every current variant omits it.
+`defaultHeight: null` also identifies variable-height content for Row sharing.
+The shared `canShareRow` rule lets an empty Row accept any variant, but a
+nonempty Row can contain only fixed-height variants. The development preview
+combines this rule with minimum-width fitting at the rendered Row width; fixed
+variants with different heights may share. `addBrick` enforces exclusivity before
+recording mutations and refuses rather than choosing another destination.
+`movePlacement` enforcement remains deferred. Applying preferred heights,
+row equalization, and module content fitting remain deferred.
+
+Each Placement persists a required `variantId`, currently `"default"`, alongside
+its spec. Different breakpoint placements own their variant identities
+independently. The module renderer receives that identity explicitly and selects
+the matching view; preview examples select `variants.default` directly. There
+is no variant picker or switching command while every module has one choice.
 
 Catalog previews render authored module content at that resolved preview width.
 The App catalog keeps its module selection/insertion controls separate from live
@@ -242,11 +262,12 @@ manual scrolling keeps the chosen position.
 no arbitrary-string index signature. App validates route module IDs against the
 registered module/Brick identity; Storybook binds an explicit registered module ID.
 Internal previews and state updates retain the registered ID union.
-`defineModule` declares identity; `makeModuleVersion` owns the catalog, `stateShape`,
+`defineModule` declares identity; `makeModuleVersion` owns variant sizing, the catalog, `stateShape`,
 canonical worker-safe `defaultSpec`, and `defaultState`. `makeModuleView` infers authored callback props from that state
 shape and decodes incoming state before rendering, discarding undeclared fields.
-Its authored wrappers are created once and reused by module rendering and previews.
-It also attaches a json-render `generator` (`registry` + `defaultSpec`).
+Its authored wrappers are created once per variant and reused by module rendering
+and previews. Each variant can attach a json-render `generator`
+(`registry` + `defaultSpec`), exposed as the resolved variant's `registry` and `spec`.
 
 Every module view supplies a required `LineIcon`, exposed on its `modulesHash`
 entry. Each module owns its SVG component, sourced from
@@ -262,11 +283,11 @@ omission means unlimited. Article declares `1` and Instagram declares `2`.
 Catalog and playground previews display the limit. App enforces it against the
 Page's shared Bricks during creation, counting a Brick once across four Placements.
 
-Module views require a display-only `default.placeholder` in `makeModuleView`
+Module views require a display-only `variants.default.placeholder` in `makeModuleView`
 and `hasPlaceholder: true` in the backend `makeModuleVersion` declaration.
-The public `placeholder` field is required. One placeholder is shared across
-all breakpoints and receives no props; the module renderer selects it for null
-state, so consuming routes do not repeat placeholder handling.
+Each variant's public `placeholder` field is required and receives no props.
+The module renderer selects the placement variant's placeholder for null state,
+so consuming routes do not repeat placeholder handling.
 
 All ten modules declare a module-owned placeholder. Exact null selects it before
 state decoding or JsonRender execution; empty strings, objects, and collections
@@ -295,20 +316,22 @@ export const bioView = makeComponentView(bioComponent, {
 ```
 
 Descriptors stay separate from React implementations so backend module imports
-remain independent of view code. Optional `sm` / `md` / `lg` / `xl` overlays
-select authored components and generators on top of `default`. View declarations
-and `viewFor` expose preferred `defaultWidth` and minimum `minWidth`, with no
+remain independent of view code. Shared module variants declare sizing, and
+React view variants attach authored components and generators. Both consumers
+use the same preferred `defaultWidth` and minimum `minWidth`, with no
 `w`, `h`, `minW`, `minH`, or measurement flags. Canonical preview widths belong to
 `BREAKPOINTS`; modules own their ordinary CSS layout.
-Placements hold ordering and a spec, with natural content dimensions supplied by
-the Row cell. Rows share available width subject to module minimums and scroll
+Wall layout arrays hold ordering and Placement references. Separate Placement
+records hold specs, variants, revisions, and generation state and reference their
+Wall directly. Natural content dimensions come from the Row cell.
+Rows share available width subject to module minimums and scroll
 horizontally when those minimums do not fit. Content or preview dimension changes
 do not write model geometry.
 
-The shared Placement V2 spec schema requires a nonempty root, at least one
+The current Placement spec schema requires a nonempty root, at least one
 structured element, and a root that exists in the element map. The versioned
-manual spec contracts also check module component types and props. The retained
-V1 schemas remain unchanged; App retains the strict versions in User V5.
+manual spec contracts also check module component types and props. The current
+hard-cutover baseline binds these strict declarations directly.
 The spec primitive applies validation to model operations and query decoding,
 so consumers do not need an empty-spec rendering fallback. The root-membership
 filter runs in Effect and is not represented in generic JSON Schema.
@@ -318,32 +341,34 @@ during decoding. App's `updateBrick` validates the selected module's state, chec
 `moduleId` against the stored Brick, and persists shared content while advancing
 its revision and superseding active spec generation. Null is accepted for all ten
 modules. Spec validation remains strict. The command preserves each Placement's
-identity, ordering, and spec; it stores no pixel dimensions, `gridItem`, or visibility.
+identity, layout membership, and spec; it stores no pixel dimensions, `gridItem`, or visibility.
 
 ## App-owned persisted editor
 
 App's user aggregate owns the final Page and directly referenced Wall/Brick
-models, plus Section, Stack, Row, and Placement. A Page has sm/md/lg/xl Walls;
-Sections arrange Stacks horizontally, Stacks arrange Rows vertically, and Rows
-arrange Placements side by side. Brick content is shared across all four Walls.
-Placements retain stable identities and per-width specs, while ordering uses
-integer sibling positions. Breakpoint derives from the containing Wall.
+models and separate Placement records. A Page has sm/md/lg/xl Walls;
+`Wall.layout` owns ordered Section, named Stack, and Row nodes. Rows list
+Placement IDs side by side. The nodes retain stable IDs without separate tables
+or numeric positions. Brick content is shared across all four Walls. Placements
+retain stable identities, direct `wallId`, and per-width specs/revisions/generation.
+Breakpoint derives from that Wall; content/spec changes leave layout arrays alone.
 
 State-save and spec-update command declarations belong to QRK's user aggregate
-and bind concrete model versions there. Historical provider declarations remain
-registered only for retained releases and replay; the current web actor/session
-exposes no provider configure/complete commands. App supplies module
+and bind concrete model versions there. The current V1 baseline exposes no
+provider configure/complete commands or retained compatibility release. App supplies module
 schemas, input normalization, and provider operations; it does not construct
 contracts from injected host models or versions.
 
 The shared controlled wall components render supplied data and action callbacks.
 App's `WallEditorProvider` supplies live queries, command staging,
-selected Brick routing, and drag scope. Local wall stories use fixtures
-without that provider or any persisted session. New-Brick creation, layout moves,
-and global Brick deletion are ordinary App commands. Moves normalize their
-affected Wall; Brick deletion normalizes all four Page Walls. Internal
-`cleanupWall` prunes empty Rows, Stacks, and Sections and compacts sibling
-positions, including Placements, within the command. The Wall remains usable
+selected Brick routing, and drag scope. The Wall Editor story mounts that provider
+with the existing in-memory MockInitializer and seeds Wall layouts plus separate
+Placement records. New-Brick creation, layout moves,
+and global Brick deletion are ordinary App commands. Pure layout functions edit
+ordered arrays, and each command records the complete atomic change. Moves prune
+all empty containers in their affected Wall after editing; Brick deletion prunes
+only ancestors emptied by its Placement removals. Self-before moves do no cleanup.
+The Wall remains usable
 when empty; no pixel grid geometry or visibility state is persisted. Move drop
 eligibility counts Stacks that survive cleanup; catalog additions retain their
 existing capacity rules.
@@ -351,7 +376,12 @@ Layout containers have no padding or gutters. Drag controls overlay the
 content. Layout moves use the separate drag grips.
 Insertion boundaries appear only during dragging; the Wall renders
 no Add or plus buttons. Empty Rows/Stacks in initial scaffolds or local fixtures
-show drop placeholders; persisted moves/deletion remove them through cleanup.
+show drop placeholders; the applicable movement/deletion policy prunes them.
+
+The hard replacement of the old layout tables is tracked in
+[Plan 039](../../../wiki/archive/plans/039-plan-wall-owned-layout-tree.md). Generation
+request/revision checks and per-Placement spec updates remain independent of the
+structural tree. Runtime verification belongs to that plan.
 
 **Selected** means the Brick's edit form is open; **active** means DOM focus.
 Separate grip/menu controls leave links/forms interactive. Placements support
@@ -468,7 +498,7 @@ alongside `bricks.css` for editor and portaled-control styles.
 QRK owns editable models, publication serialization, and snapshot history under
 `apps/zerospin/src/aggregates/user/`. Snapshots retain shared Brick content once and
 four ordered Wall hierarchies containing Sections, Stacks, Rows, and Placements
-with their specs. Array order follows saved sibling positions; publication dirty
+with their specs. Array order follows `Wall.layout`; publication dirty
 comparison includes arrangement. Editing bookkeeping and former grid geometry are
 excluded. Shared module source supplies schemas/default specs and rendering, not
 an independent persisted owner or WallSnapshot model. Public-site rendering remains

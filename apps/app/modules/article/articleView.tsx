@@ -9,22 +9,20 @@ import { ArticleLineIcon } from "./ArticleLineIcon";
 export const articleView = makeModuleView(articleV1, {
   LineIcon: ArticleLineIcon,
   form: ArticleForm,
-  default: {
-    placeholder: ArticlePlaceholder,
-    defaultWidth: 720,
-    minWidth: 320,
-    component(props) {
-      const { state } = props;
-      return (
-        <articleBrickContentView.Component
-          title={state.title}
-          subtitle={state.subtitle}
-          content={state.content}
-        />
-      );
+  variants: {
+    default: {
+      placeholder: ArticlePlaceholder,
+      component(props) {
+        const { state } = props;
+        return (
+          <articleBrickContentView.Component
+            title={state.title}
+            subtitle={state.subtitle}
+            content={state.content}
+          />
+        );
+      },
+      generator: { registry, defaultSpec: articleV1.defaultSpec },
     },
-    generator: { registry, defaultSpec: articleV1.defaultSpec },
   },
-  lg: { defaultWidth: 800 },
-  xl: { defaultWidth: 800 },
 });

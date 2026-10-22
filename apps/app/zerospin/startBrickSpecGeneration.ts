@@ -6,9 +6,7 @@ import type { LibraryApi } from "@qrk.sh/api/modules/LibraryApi.public";
 import type { UserUI } from "./UserUI";
 
 /** Layout generation belongs to the initialized user session, independently of open content forms. */
-export function startBrickSpecGeneration(
-  session: ReturnType<typeof UserUI.useSession>,
-) {
+export function startBrickSpecGeneration(session: ReturnType<typeof UserUI.useSession>) {
   const initialized = session.store.getState().initialized;
   if (initialized === null) return () => {};
   const { db } = initialized;
@@ -22,19 +20,7 @@ export function startBrickSpecGeneration(
     if (disposed || session.store.getState().initialized?.db !== db) return;
     const placements = db.query.placement.findMany().sync();
     for (const placement of placements) {
-      const row = db.query.row.findFirst({ where: { id: { eq: placement.rowId } } }).sync();
-      const stack =
-        row === undefined
-          ? undefined
-          : db.query.stack.findFirst({ where: { id: { eq: row.stackId } } }).sync();
-      const section =
-        stack === undefined
-          ? undefined
-          : db.query.section.findFirst({ where: { id: { eq: stack.sectionId } } }).sync();
-      const wall =
-        section === undefined
-          ? undefined
-          : db.query.wall.findFirst({ where: { id: { eq: section.wallId } } }).sync();
+      const wall = db.query.wall.findFirst({ where: { id: { eq: placement.wallId } } }).sync();
       if (wall === undefined) continue;
       const generation = placement.generation;
       if (generation?.status !== "generating" || placement.brickId === null) continue;

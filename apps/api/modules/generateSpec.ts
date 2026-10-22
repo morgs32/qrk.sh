@@ -1,6 +1,8 @@
 import { buildUserPrompt, compileSpecStream, isNonEmptySpec, type Spec } from "@json-render/core";
 
 import { backendLibrary } from "@qrk.sh/zerospin/src/modules/backendLibrary";
+import { makeModuleSpecDocumentSchema } from "@qrk.sh/zerospin/src/modules/make/makeModuleSpecDocumentSchema";
+import { Schema } from "effect";
 import type { IRpcEither } from "./types";
 
 const GENERATE_MODEL = "gpt-5.6-luna";
@@ -35,13 +37,27 @@ function contentFromChatCompletion(body: unknown): string {
   if (first === null || typeof first !== "object" || !("message" in first)) {
     throw new Error("OpenAI returned no message content");
   }
+  if (!("finish_reason" in first) || first.finish_reason !== "stop") {
+    throw new Error("OpenAI did not finish generating the spec");
+  }
   const message = first.message;
   if (message === null || typeof message !== "object" || !("content" in message)) {
     throw new Error("OpenAI returned no message content");
   }
-  if (typeof message.content !== "string" || message.content.trim() === "") {
+  if ("refusal" in message && message.refusal !== null && message.refusal !== undefined) {
+    throw new Error("OpenAI refused to generate the spec");
+  }
+  if (
+    "tool_calls" in message &&
+    Array.isArray(message.tool_calls) &&
+    message.tool_calls.length > 0
+  ) {
+    throw new Error("OpenAI returned an unexpected tool call");
+  }
+  if (typeof message.content !== "string") {
     throw new Error("OpenAI returned no message content");
   }
+  // A completed empty patch stream is a no-op; the resulting spec is still validated below.
   return message.content;
 }
 
@@ -156,20 +172,19 @@ export async function generateSpec(props: {
       };
     }
     const spec = specFromModelText(contentFromChatCompletion(responseBody), currentSpec);
-    const validated = catalog.validate(spec);
-    if (!validated.success || validated.data === undefined || !isNonEmptySpec(validated.data)) {
+    const validated = Schema.decodeUnknownResult(
+      makeModuleSpecDocumentSchema(entry.components),
+    )(spec);
+    if (validated._tag === "Failure") {
       return {
         _tag: "Left",
         left: {
           code: "invalid-generated-spec",
-          message:
-            validated.error === undefined
-              ? "Generated spec failed catalog validation."
-              : validated.error.message,
+          message: validated.failure.message,
         },
       };
     }
-    return { _tag: "Right", right: validated.data };
+    return { _tag: "Right", right: validated.success };
   } catch (cause) {
     return {
       _tag: "Left",

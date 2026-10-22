@@ -15,9 +15,6 @@ export const mapPlaceView = makeModuleView(mapPlaceV1, {
   variants: {
     default: {
       placeholder: MapPlacePlaceholder,
-      defaultWidth: 480,
-      minWidth: 320,
-      defaultHeight: 360,
       component(props) {
         const { state } = props;
         if (state.data === null) return <p role="status">This brick has no saved content.</p>;

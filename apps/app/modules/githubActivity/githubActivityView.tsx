@@ -12,9 +12,6 @@ export const githubActivityView = makeModuleView(githubActivityV1, {
   form: GitHubActivityForm,
   variants: {
     default: {
-      defaultWidth: 656,
-      minWidth: 320,
-      defaultHeight: 180,
       placeholder() {
         return <GitHubActivityPlaceholder />;
       },

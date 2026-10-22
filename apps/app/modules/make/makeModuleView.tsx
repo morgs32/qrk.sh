@@ -12,11 +12,7 @@ import {
 import { makeEffectSchema, type IInferDecodedRow, type IShape } from "@zerospin/shapes";
 import { Schema } from "effect";
 import { mapValues } from "es-toolkit";
-
-const emptySpec: Spec = {
-  root: "empty",
-  elements: {},
-};
+import type { makeModuleVersion } from "@qrk.sh/zerospin/src/modules/make/makeModuleVersion";
 
 function makeInitialState(state: unknown): Record<string, unknown> {
   if (state !== null && typeof state === "object" && !Array.isArray(state)) {
@@ -29,50 +25,19 @@ function makeInitialState(state: unknown): Record<string, unknown> {
   return {};
 }
 
-function resolvedGenerator(
-  moduleId: string,
-  slot: string,
-  catalog: Catalog | undefined,
-  base:
-    | {
-        registry: ComponentRegistry;
-        defaultSpec: Spec;
-      }
-    | undefined,
-  overlay:
-    | {
-        registry?: ComponentRegistry;
-        defaultSpec?: Spec;
-      }
-    | undefined,
-) {
-  if (overlay === undefined) {
-    return base;
-  }
-  const registry = overlay.registry ?? base?.registry;
-  const defaultSpec = overlay.defaultSpec ?? base?.defaultSpec;
-  if (registry === undefined || defaultSpec === undefined) {
-    throw new Error(
-      `makeModuleView: ${JSON.stringify(moduleId)} ${slot} generator needs registry and defaultSpec`,
-    );
-  }
-  if (catalog === undefined) {
-    throw new Error(`makeModuleView: ${JSON.stringify(moduleId)} has no catalog; omit generator`);
-  }
-  return { registry, defaultSpec };
-}
-
-/** View factory: authored component and placeholder, optional generator and breakpoint overlays. */
+/** Compose shared variant sizing with React rendering, placeholders, and optional generators. */
 export function makeModuleView<
   MODULE extends {
     id: string;
     abbreviation: string;
     label: string;
     description: string;
+    defaultSpec: Spec;
     catalog?: Catalog;
     stateShape: IShape;
     defaultState: unknown;
     hasPlaceholder: boolean;
+    variants: ReturnType<typeof makeModuleVersion>["variants"];
     def: {
       moduleId: string;
       state: unknown;
@@ -89,36 +54,21 @@ export function makeModuleView<
       ) => IResult<unknown, { message: string }>;
       onCancel: () => void;
     }) => ReactNode;
-    default: {
-      /** Preferred preview width in pixels, capped by the selected breakpoint's width. */
-      defaultWidth: number;
-      /** Minimum rendered width in pixels, shared by every breakpoint. */
-      minWidth: 160 | 320;
-      component: (props: { state: IInferDecodedRow<MODULE["stateShape"]> }) => ReactNode;
-      placeholder: () => ReactNode;
-      generator?: {
-        registry: ComponentRegistry;
-        defaultSpec: Spec;
-      };
-    };
-  } & {
-    [K in "sm" | "md" | "lg" | "xl"]?: {
-      defaultWidth?: number;
-      component?: (props: { state: IInferDecodedRow<MODULE["stateShape"]> }) => ReactNode;
-      generator?: {
-        registry?: ComponentRegistry;
-        defaultSpec?: Spec;
+    variants: {
+      default: {
+        component: (props: { state: IInferDecodedRow<MODULE["stateShape"]> }) => ReactNode;
+        placeholder: () => ReactNode;
+        generator?: {
+          registry: ComponentRegistry;
+          defaultSpec: Spec;
+        };
       };
     };
   },
 ) {
+  const { defaultSpec, ...moduleFields } = module;
   if (!module.hasPlaceholder) {
-    throw new Error(
-      `makeModuleView: ${JSON.stringify(module.id)} must declare hasPlaceholder`,
-    );
-  }
-  if (view.default.generator !== undefined && module.catalog === undefined) {
-    throw new Error(`makeModuleView: ${JSON.stringify(module.id)} has no catalog; omit generator`);
+    throw new Error(`makeModuleView: ${JSON.stringify(module.id)} must declare hasPlaceholder`);
   }
   const decodeState = Schema.decodeUnknownSync(
     Schema.toType(makeEffectSchema<MODULE["stateShape"]>(module.stateShape)),
@@ -126,29 +76,28 @@ export function makeModuleView<
   const decodeFormState = Schema.decodeUnknownSync(
     Schema.toType(makeEffectSchema<MODULE["stateShape"]>(module.stateShape)),
   );
-  const authoredByComponent = new Map<
-    typeof view.default.component,
-    (props: { state: unknown }) => ReactNode
-  >();
-  const authoredComponents = mapValues(
-    { sm: view.sm, md: view.md, lg: view.lg, xl: view.xl },
-    (overlay) => {
-      const Component = overlay?.component ?? view.default.component;
-      const existing = authoredByComponent.get(Component);
-      if (existing !== undefined) {
-        return existing;
-      }
-      function Authored(props: { state: unknown }) {
-        const { state } = props;
-        const Placeholder = view.default.placeholder;
-        if (state === null) return <Placeholder />;
-        const decoded = decodeState(state, { onExcessProperty: "ignore" });
-        return <Component state={decoded} />;
-      }
-      authoredByComponent.set(Component, Authored);
-      return Authored;
-    },
-  );
+  const variants = mapValues(view.variants, (variant, variantId) => {
+    if (variant.generator !== undefined && module.catalog === undefined) {
+      throw new Error(
+        `makeModuleView: ${JSON.stringify(module.id)} has no catalog; omit generator`,
+      );
+    }
+    const Component = variant.component;
+    function Authored(props: { state: unknown }) {
+      const { state } = props;
+      const Placeholder = variant.placeholder;
+      if (state === null) return <Placeholder />;
+      const decoded = decodeState(state, { onExcessProperty: "ignore" });
+      return <Component state={decoded} />;
+    }
+    return {
+      ...module.variants[variantId],
+      component: Authored,
+      placeholder: variant.placeholder,
+      spec: variant.generator?.defaultSpec ?? defaultSpec,
+      registry: variant.generator?.registry,
+    };
+  });
 
   function Form(props: {
     state: unknown;
@@ -161,35 +110,17 @@ export function makeModuleView<
     return view.form({ state: decoded, onSave, onCancel });
   }
 
-  function viewFor(breakpoint: "sm" | "md" | "lg" | "xl") {
-    const overlay = view[breakpoint];
-    const generator = resolvedGenerator(
-      module.id,
-      breakpoint,
-      module.catalog,
-      view.default.generator,
-      overlay?.generator,
-    );
-    return {
-      defaultWidth: overlay?.defaultWidth ?? view.default.defaultWidth,
-      minWidth: view.default.minWidth,
-      component: authoredComponents[breakpoint],
-      spec: generator?.defaultSpec ?? emptySpec,
-      registry: generator?.registry,
-    };
-  }
-
-  function Brick(props: { state?: unknown; breakpoint: "sm" | "md" | "lg" | "xl"; spec: Spec }) {
-    const { state, breakpoint, spec } = props;
-    const Placeholder = view.default.placeholder;
+  function Brick(props: { state?: unknown; variantId: "default"; spec: Spec }) {
+    const { state, variantId, spec } = props;
+    const variant = variants[variantId];
+    const Placeholder = variant.placeholder;
     if (state === null) {
       return <Placeholder />;
     }
-    const resolved = viewFor(breakpoint);
-    const Authored = resolved.component;
+    const Authored = variant.component;
     const decoded = decodeState(state, { onExcessProperty: "ignore" });
     // An empty content snapshot belongs to the module's authored rendering.
-    if (resolved.registry === undefined || ("data" in decoded && decoded.data === null)) {
+    if (variant.registry === undefined || ("data" in decoded && decoded.data === null)) {
       return <Authored state={decoded} />;
     }
     const initialState = makeInitialState(decoded);
@@ -197,26 +128,20 @@ export function makeModuleView<
       <StateProvider initialState={initialState}>
         <VisibilityProvider>
           <ActionProvider handlers={{}}>
-            <Renderer spec={spec} registry={resolved.registry} />
+            <Renderer spec={spec} registry={variant.registry} />
           </ActionProvider>
         </VisibilityProvider>
       </StateProvider>
     );
   }
 
-  const defaultSpec = view.default.generator?.defaultSpec ?? emptySpec;
-  const registry = view.default.generator?.registry;
-
   return {
-    ...module,
+    ...moduleFields,
     LineIcon: view.LineIcon,
     stateShape: module.stateShape,
     defaultState: module.defaultState,
-    defaultSpec,
-    placeholder: view.default.placeholder,
+    variants,
     ...(view.form === undefined ? {} : { Form }),
-    ...(registry === undefined ? {} : { registry }),
-    viewFor,
     component: Brick,
   };
 }

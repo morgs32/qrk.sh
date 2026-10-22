@@ -94,10 +94,10 @@ export const placementSpecSchema = Schema.Struct({
 
 export function makePlacementModel(props: {
   brick: { name: "brick"; abbreviation: "brk" };
-  row: { name: "row"; abbreviation: "row" };
+  wall: { name: "wall"; abbreviation: "wal" };
   identity: { name: "placement"; abbreviation: "plc" };
 }) {
-  const { brick, row, identity } = props;
+  const { brick, wall, identity } = props;
   return makeModelVersion(identity, {
     attributes: {
       brickId: modelRef({
@@ -105,8 +105,7 @@ export function makePlacementModel(props: {
         relation: "brick",
         inverse: "placements",
       }),
-      rowId: modelRef({ model: row, relation: "row", inverse: "placements" }),
-      position: primitives.integer(),
+      wallId: modelRef({ model: wall, relation: "wall", inverse: "placements" }),
       variantId: primitives.enum({ values: ["default"] }),
       specRevision: primitives.integer({ defaultValue: 0 }),
       generation: primitives.json({
@@ -129,7 +128,7 @@ export function makePlacementModel(props: {
       }),
       spec: primitives.json({ schema: placementSpecSchema }),
     },
-    indexes: [{ name: "row_position", columns: ["rowId", "position"] }],
+    indexes: [{ name: "wall_brick", columns: ["wallId", "brickId"], unique: true }],
     version: 1,
   });
 }

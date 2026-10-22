@@ -13,11 +13,13 @@
 | Publish updates | Replace a published page's current snapshot with a new snapshot of its saved content, retaining the previous snapshot. |
 | Page | A site's editable document. It owns shared Brick content and four breakpoint Walls, plus metadata and publication state. |
 | Breakpoint | One of the four canonical page widths: sm (360), md (720), lg (1080), or xl (1440). Each has its own Wall arrangement. |
-| Wall | The saved arrangement of one Page at one breakpoint. It contains ordered Sections and has no user-facing label. |
-| Section | An ordered horizontal band containing Stacks. A Section can remain empty. |
-| Stack | An independently movable, named container of vertical Rows within one Section. It retains its Rows and identity when moved, and remains when empty. |
-| Row | An ordered container within a Stack whose Placements sit side by side. A Row remains when empty. |
-| Placement | One appearance of a shared Brick in a breakpoint Wall. It belongs to a Row and owns its rendering spec; movement changes arrangement without changing shared content. |
+| Wall | The saved arrangement of one Page at one breakpoint. It owns an ordered layout tree of Sections, named Stacks, Rows, and Placement references and has no user-facing label. |
+| Section | An ordered horizontal band containing Stacks. A Section can remain empty; deleting a Brick prunes it only when that deletion removes its last Stack. |
+| Stack | An independently movable, named container of vertical Rows within one Section. It retains its Rows and identity when moved. Deleting a Brick prunes it only when that deletion removes its last Row. |
+| Row | An ordered container within a Stack whose Placements sit side by side. Deleting its last Brick removes the Row; unrelated empty Rows remain untouched. |
+| Compatible Row | For a new Brick, a Row that permits its variant to share and has enough rendered width for the combined variant minimum widths. Compatibility is evaluated at the hovered Row, without searching elsewhere. |
+| Variable-height variant | A module variant whose shared `defaultHeight` is null. It may occupy an empty Row alone; new additions cannot place it beside another Brick or add a Brick beside it. Movement enforcement is deferred. |
+| Placement | One appearance of a shared Brick in a breakpoint Wall. Its separate record owns the variant, rendering spec, revision, and generation state. Its position within a Row comes from the Wall's layout tree; movement preserves its identity and shared content. |
 | Brick | Page-owned content configured through a module. Its content is shared by one Placement in each of the Page's four Walls. Null content means unconfigured. |
 | Selected Brick | A Brick whose edit form is open. Selection is distinct from focus. |
 | Active | DOM focus, including keyboard focus, within the wall editor. |

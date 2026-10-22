@@ -4,9 +4,6 @@ import { createSiteV1 as createSite } from "../contracts/createSite/CreateSiteV1
 import { createPageV1 as createPage } from "../contracts/createPage/CreatePageV1";
 import { unpublishSiteV1 as unpublishSite } from "../contracts/unpublishSite/UnpublishSiteV1";
 import { wallV1 as Wall } from "../models/wall/WallV1";
-import { sectionV1 as Section } from "../models/section/SectionV1";
-import { stackV1 as Stack } from "../models/stack/StackV1";
-import { rowV1 as Row } from "../models/row/RowV1";
 import { brickV1 as Brick } from "../models/brick/BrickV1";
 import { placementV1 as Placement } from "../models/placement/PlacementV1";
 import { pageV1 as Page } from "../models/page/PageV1";
@@ -53,9 +50,6 @@ const identity = makeActorIdentity({
 const db = makeQueryDbVersion({
   models: {
     wall: Wall,
-    section: Section,
-    stack: Stack,
-    row: Row,
     brick: Brick,
     placement: Placement,
     page: Page,
@@ -78,9 +72,6 @@ export const userActorV1 = makeAggregateActorVersion(defineAggregateActor({ name
   },
   exposedModels: {
     wall: Wall,
-    section: Section,
-    stack: Stack,
-    row: Row,
     brick: Brick,
     placement: Placement,
     page: Page,
@@ -141,39 +132,6 @@ export const userActorV1 = makeAggregateActorVersion(defineAggregateActor({ name
         page: { site: { user: { clerkUserId: { eq: identity.sql.placeholder("clerkUserId") } } } },
       },
     }),
-    section: db.query.section.findMany({
-      where: {
-        wall: {
-          page: {
-            site: { user: { clerkUserId: { eq: identity.sql.placeholder("clerkUserId") } } },
-          },
-        },
-      },
-    }),
-    stack: db.query.stack.findMany({
-      where: {
-        section: {
-          wall: {
-            page: {
-              site: { user: { clerkUserId: { eq: identity.sql.placeholder("clerkUserId") } } },
-            },
-          },
-        },
-      },
-    }),
-    row: db.query.row.findMany({
-      where: {
-        stack: {
-          section: {
-            wall: {
-              page: {
-                site: { user: { clerkUserId: { eq: identity.sql.placeholder("clerkUserId") } } },
-              },
-            },
-          },
-        },
-      },
-    }),
     brick: db.query.brick.findMany({
       where: {
         page: { site: { user: { clerkUserId: { eq: identity.sql.placeholder("clerkUserId") } } } },
@@ -181,15 +139,9 @@ export const userActorV1 = makeAggregateActorVersion(defineAggregateActor({ name
     }),
     placement: db.query.placement.findMany({
       where: {
-        row: {
-          stack: {
-            section: {
-              wall: {
-                page: {
-                  site: { user: { clerkUserId: { eq: identity.sql.placeholder("clerkUserId") } } },
-                },
-              },
-            },
+        wall: {
+          page: {
+            site: { user: { clerkUserId: { eq: identity.sql.placeholder("clerkUserId") } } },
           },
         },
       },

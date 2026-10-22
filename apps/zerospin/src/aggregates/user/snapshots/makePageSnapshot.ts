@@ -1,9 +1,6 @@
 import type { IInferDecodedRow } from "@zerospin/shapes";
 import type { brickV1 } from "../models/brick/BrickV1";
 import type { wallV1 } from "../models/wall/WallV1";
-import type { sectionV1 } from "../models/section/SectionV1";
-import type { stackV1 } from "../models/stack/StackV1";
-import type { rowV1 } from "../models/row/RowV1";
 import type { placementV1 } from "../models/placement/PlacementV1";
 import type { PageSnapshotSchema } from "./pageSnapshotSchema";
 
@@ -11,12 +8,11 @@ export function makePageSnapshot(props: {
   page: Pick<typeof PageSnapshotSchema.Type, "slug" | "title" | "description">;
   bricks: readonly IInferDecodedRow<typeof brickV1.table.shape>[];
   walls: readonly IInferDecodedRow<typeof wallV1.table.shape>[];
-  sections: readonly IInferDecodedRow<typeof sectionV1.table.shape>[];
-  stacks: readonly IInferDecodedRow<typeof stackV1.table.shape>[];
-  rows: readonly IInferDecodedRow<typeof rowV1.table.shape>[];
   placements: readonly IInferDecodedRow<typeof placementV1.table.shape>[];
 }): typeof PageSnapshotSchema.Type {
-  const { page, bricks, walls, sections, stacks, rows, placements } = props;
+  const { page, bricks, walls, placements } = props;
+  const placementsById = new Map(placements.map((entry) => [entry.id, entry]));
+  const brickIds = new Set(bricks.map((entry) => entry.id));
   const breakpointOrder = ["sm", "md", "lg", "xl"];
   return {
     slug: page.slug,
@@ -30,29 +26,33 @@ export function makePageSnapshot(props: {
       .map((wall) => ({
         id: wall.id,
         breakpoint: wall.breakpoint,
-        sections: sections
-          .filter((entry) => entry.wallId === wall.id)
-          .sort((a, b) => a.position - b.position)
-          .map((section) => ({
-            id: section.id,
-            stacks: stacks
-              .filter((entry) => entry.sectionId === section.id)
-              .sort((a, b) => a.position - b.position)
-              .map((stack) => ({
-                id: stack.id,
-                name: stack.name,
-                rows: rows
-                  .filter((entry) => entry.stackId === stack.id)
-                  .sort((a, b) => a.position - b.position)
-                  .map((row) => ({
-                    id: row.id,
-                    placements: placements
-                      .filter((entry) => entry.rowId === row.id)
-                      .sort((a, b) => a.position - b.position)
-                      .map((entry) => ({ id: entry.id, brickId: entry.brickId, spec: entry.spec })),
-                  })),
-              })),
+        sections: wall.layout.sections.map((section) => ({
+          id: section.id,
+          stacks: section.stacks.map((stack) => ({
+            id: stack.id,
+            name: stack.name,
+            rows: stack.rows.map((row) => ({
+              id: row.id,
+              placements: row.placementIds.map((placementId) => {
+                const placement = placementsById.get(placementId);
+                if (
+                  placement === undefined ||
+                  placement.wallId !== wall.id ||
+                  !brickIds.has(placement.brickId)
+                )
+                  throw new Error(
+                    `Placement ${placementId} does not belong to snapshot Wall ${wall.id}`,
+                  );
+                return {
+                  id: placement.id,
+                  brickId: placement.brickId,
+                  variantId: placement.variantId,
+                  spec: placement.spec,
+                };
+              }),
+            })),
           })),
+        })),
       })),
   };
 }

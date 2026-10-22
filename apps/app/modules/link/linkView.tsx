@@ -16,9 +16,6 @@ export const linkView = makeModuleView(linkV1, {
   },
   variants: {
     default: {
-      defaultWidth: 480,
-      minWidth: 320,
-      defaultHeight: 180,
       placeholder() {
         return <LinkPlaceholder />;
       },

@@ -6,12 +6,6 @@ import { brickV1 as brick } from "../../models/brick/BrickV1";
 
 import { placementV1 as placement } from "../../models/placement/PlacementV1";
 
-import { rowV1 as row } from "../../models/row/RowV1";
-
-import { stackV1 as stack } from "../../models/stack/StackV1";
-
-import { sectionV1 as section } from "../../models/section/SectionV1";
-
 import { wallV1 as wall } from "../../models/wall/WallV1";
 
 import { ContractError, mapParseError } from "@zerospin/error";
@@ -59,9 +53,6 @@ export const updateBrickV1 = makeAggregateContractVersion(defineAggregateContrac
   models: {
     brick,
     placement,
-    row,
-    stack,
-    section,
     wall,
   },
   version: 1,
@@ -111,39 +102,21 @@ export const updateBrickV1 = makeAggregateContractVersion(defineAggregateContrac
           status: 404,
         });
       }
-      const rowEntry = yield* findFirst({
+      const wallEntry = yield* findFirst({
         db,
-        model: db.models.row,
-        where: { id: { eq: placementRow.rowId } },
+        model: db.models.wall,
+        where: { id: { eq: placementRow.wallId } },
       });
-      const stackEntry =
-        rowEntry === undefined
-          ? undefined
-          : yield* findFirst({
-              db,
-              model: db.models.stack,
-              where: { id: { eq: rowEntry.stackId } },
-            });
-      const sectionEntry =
-        stackEntry === undefined
-          ? undefined
-          : yield* findFirst({
-              db,
-              model: db.models.section,
-              where: { id: { eq: stackEntry.sectionId } },
-            });
-      const wallEntry =
-        sectionEntry === undefined
-          ? undefined
-          : yield* findFirst({
-              db,
-              model: db.models.wall,
-              where: { id: { eq: sectionEntry.wallId } },
-            });
       if (
         placementRow.brickId !== payload.brickId ||
-        wallEntry?.breakpoint !== breakpoint ||
-        wallEntry.pageId !== brickRow.pageId
+        wallEntry === undefined ||
+        wallEntry.breakpoint !== breakpoint ||
+        wallEntry.pageId !== brickRow.pageId ||
+        !wallEntry.layout.sections.some((section) =>
+          section.stacks.some((stack) =>
+            stack.rows.some((row) => row.placementIds.includes(placementId)),
+          ),
+        )
       ) {
         return yield* failures.updateBrickPlacementMismatch.make({
           message: `placement ${placementId} does not belong to brick ${payload.brickId} at ${breakpoint}`,

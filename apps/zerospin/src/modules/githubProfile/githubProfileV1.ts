@@ -84,6 +84,13 @@ const defaultData = {
 
 export const githubProfileV1 = makeModuleVersion(githubProfile, {
   version: 1,
+  variants: {
+    default: {
+      defaultWidth: 360,
+      minWidth: 320,
+      defaultHeight: 360,
+    },
+  },
   defaultSpec,
   hasPlaceholder: true,
   components: {

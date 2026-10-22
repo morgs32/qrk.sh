@@ -49,6 +49,13 @@ const defaultData = {
 
 export const linkV1 = makeModuleVersion(link, {
   version: 1,
+  variants: {
+    default: {
+      defaultWidth: 480,
+      minWidth: 320,
+      defaultHeight: 180,
+    },
+  },
   defaultSpec,
   hasPlaceholder: true,
   components: {

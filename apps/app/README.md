@@ -61,6 +61,54 @@ live Generate spec/input, Component/JsonRender comparisons at all four widths,
 and Brick Definition JSON. App owns the UI source; Zerospin owns shared definitions and schemas.
 The Library package is removed. See [Modules](./modules/README.md).
 
+## Development page preview
+
+Open `/<username>/site/<siteId>/dev/page/<pageId>/<breakpoint>` on App's development
+host to view only the selected saved Wall. Use `sm`, `md`, `lg`, or `xl` for the
+existing preview widths of 360, 720, 1080, or 1440px respectively. The route reuses
+the signed-in user's existing `UserUI` session, requires the page to belong to
+the requested site, and queries Wall directly by page ID, breakpoint, and the
+related Page's site ID, including `page.site`, `Wall.layout`, and separate
+Placements with their Bricks. `makeWallLayoutView` resolves Placement IDs in the
+layout's array order; a missing referenced record is an invariant failure.
+Module renderers handle placeholders
+and saved content, including an explicit empty-content view for old null metadata. Placement's versioned spec primitive validates saved
+specs during query decoding; failures reach the existing session error boundary.
+The Wall query uses `findFirstOrThrow`: a missing Wall or a Page belonging to a
+different site reaches the session error boundary. Invalid breakpoints show the
+not-found view.
+The current session selects User aggregate and web actor revision `1`. Its
+SharedWorker registers this single definition; obsolete session partitions and
+queued commands are excluded from the fresh baseline.
+Provider forms fetch and validate on Save, then stage one `updateBrick`. Pending
+and errors are form-local; Cancel/navigation prevents a late save. No provider
+runner resumes work after the form closes. Layout/spec generation retains its
+session lifetime independently.
+The development preview has a compact palette for adding new default-variant
+Bricks. A compatible Row accepts a horizontal addition; an incompatible Row
+creates a Row immediately below it, blank Stack space appends a Row, and the
+Wall's bottom drop zone creates a Section, Stack, and Row. First insertion reuses
+an existing empty Stack when available. The empty surface fills available height
+with a 320px minimum, and populated Walls retain a full-width bottom drop zone
+with the same minimum.
+
+The route stays separate from the current editor, drawer, and draft stores. It
+stages one ordinary `addBrick` command and stays on the development page; it does
+not open a Brick form. Existing Bricks are not drag sources. Shared variant
+sizing determines Row compatibility, with minimum-width fitting measured in the
+browser and variable-height exclusivity enforced by `addBrick`. `movePlacement`
+enforcement and movement in this preview remain deferred. Opening the route
+does not reset storage.
+Production requests to this route return the not-found view.
+
+The first slice follows the [development-route research](../../wiki/research/wall-editor-development-route.md).
+Implementation and manual verification are tracked in
+[Plan 038](../../wiki/archive/plans/038-plan-development-brick-drops.md).
+The Wall-owned storage replacement and local cutover are tracked separately in
+[Plan 039](../../wiki/archive/plans/039-plan-wall-owned-layout-tree.md).
+
+## Application configuration
+
 App and Web run independently behind their own Portless hostnames. Direct
 startup defaults to 10001 for App and 10000 for Web; Portless allocates their
 proxied ports. `vite.config.ts` configures Start's SPA mode,
@@ -78,7 +126,7 @@ their extensionless ESM imports. Referenced `/assets/` public files retain
 explicit legacy mappings.
 
 App resolves the SharedWorker and browser SQLite WASM from installed
-`24.0.1` package exports. `userSessionDefinition` is shared by
+`26.0.2` package exports. `userSessionDefinition` is shared by
 `Initializer` and the authored `node.worker.ts` entrypoint.
 It owns the complete revision `1` declaration with explicit canonical model and
 public contract imports. The worker imports that single defining module.
@@ -116,12 +164,21 @@ lock; at that historical cutover, matching local nodes and their discovery
 entries were explicitly deleted. Earlier origins, unrelated identities,
 authentication, preferences, uploads, and production storage were preserved.
 
-The current [Plan 036](../../wiki/archive/plans/036-plan-wall-tree-editor.md) cutover uses the approved backend backup procedure instead:
+The earlier [Plan 036](../../wiki/archive/plans/036-plan-wall-tree-editor.md) cutover uses the approved backend backup procedure instead:
 move only the affected `dev-worker/sys_qrk_sh_1` directory aside before restarting
 matching current declarations. Changed App session locks open new partitions;
 previous App/Library partitions, authentication, preferences, uploads, unrelated
 stores, and production data remain preserved. Retirement does not itself delete
 the old standalone Library browser databases.
+
+The [Plan 039](../../wiki/archive/plans/039-plan-wall-owned-layout-tree.md) local hard
+cutover stopped App/Zerospin watchers and affected browser sessions before schema
+edits. The old local backend directory was moved to
+`apps/zerospin/.wrangler/zerospin/backups/sys_qrk_sh_1-plan039-20261021T222956Z`.
+The new baseline requires empty matching backend state and a fresh definition-keyed
+App namespace; old partitions and unsent work are preserved without importing
+them. Production storage and unrelated local stores remain outside this cutover.
+Runtime verification is recorded in Plan 039.
 
 `build` writes static output to `dist/client`, with `index.html` as the SPA
 shell. `preview` serves that output on port 10010 (`PORT` overrides it) using
@@ -353,7 +410,8 @@ Wall, Section, Stack, and Row layout has no outer padding or inter-item gutters.
 Stack controls overlay content rather than reserving a toolbar row. The Wall has
 no Add/plus buttons; drop indicators appear during dragging. Empty saved Rows
 and Stacks show drop placeholders, including the initial Page scaffold. A move
-or Brick deletion removes empty containers in the affected Walls.
+prunes empty containers across its Wall; Brick deletion prunes only ancestors
+emptied by its removed appearances.
 
 App consumes shared `WallPreviewViewport` and `WallPreviewToolbar` source. The
 viewport adds 32px above the frame and 43px below it, making every frame
@@ -518,19 +576,23 @@ the fields at the same left edge and wrap when needed.
 
 Each Page owns four Walls, one per `sm`/`md`/`lg`/`xl` breakpoint. The normal
 `createPage` command creates each Wall with one Section and an empty Stack.
-Sections contain ordered Stacks, Stacks contain vertical Rows, and Rows contain
-ordered horizontal Placements. Shared content lives once on Page-owned Brick;
+`Wall.layout` contains ordered Sections, named Stacks, and Rows whose arrays
+reference Placement IDs. These are structural nodes with stable IDs, rather than
+separate model tables. Array order supplies parentage and order; no sibling
+position fields remain. Shared content lives once on Page-owned Brick;
 each Brick has a deterministic Placement at every breakpoint. Each Placement
-persists its own required `variantId`, currently `"default"`, alongside its spec;
-published snapshots retain it. The field uses the fresh development baseline
-without a missing-field fallback. No storage reset is part of this source change.
-Wall and Brick
+references its Wall directly with `wallId` and persists its own required
+`variantId`, currently `"default"`, spec, spec revision, and generation state.
+Published snapshots retain the variant and spec. Content/spec updates do not
+rewrite the layout. Wall and Brick
 reference the final App Page directly. Canonical declarations/commands live in
 QRK's user aggregate; no second persisted Library host or declaration-binding
 factory exists.
 
-`WallEditorProvider` uses the initialized App session to query the Page's layouts
-and supplies shared `WallTree` presentation and action callbacks. Selected means
+`WallEditorProvider` uses the initialized App session to query Walls with their
+separate Placements and Bricks. `makeWallLayoutView` resolves the ordered tree
+for it and the development route. The provider supplies shared `WallTree`
+presentation and action callbacks. Selected means
 the Brick form is open; active means DOM focus. Grip/menu controls stay separate
 from live module content. Adding at a stable insertion target creates the Brick,
 all four Placements, and required parent containers atomically, then opens its
@@ -539,11 +601,14 @@ Stack. Cancelling the chooser creates nothing; cancelling a created Brick's
 form leaves its unconfigured null content. Query-encoded destinations are decoded
 and validated again by the command; stale/cross-Wall destinations refuse.
 
-Move commands preserve identity/specs and call internal `cleanupWall` on the
-affected Wall's post-edit hierarchy. Deleting a Brick confirms removal at all
-four breakpoints and cleans every Page Wall. Cleanup removes empty Rows, then
-Stacks, then Sections, and compacts all surviving sibling positions, including
-Placements, in the same command. Empty Walls remain usable drop targets.
+The pure layout module edits arrays; commands record one update per changed
+Wall alongside ordinary Brick/Placement operations. Move commands preserve
+identity/specs and prune all empty containers in the affected Wall after editing.
+Genuine self-before moves leave the tree unchanged. Deleting a Brick confirms
+removal at all four breakpoints, removes its Placement references/records and
+shared Brick, and prunes only ancestors emptied by those removals. Unrelated
+empty containers remain untouched; sibling renumbering is unnecessary.
+Empty Walls remain usable drop targets.
 Sections allow 1/2/3/4 surviving Stacks at sm/md/lg/xl after move cleanup; drag
 eligibility uses that final count. Catalog additions retain their existing
 capacity rules. Rows have no artificial Placement cap. Whole-Row dragging,

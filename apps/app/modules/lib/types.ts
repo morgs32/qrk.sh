@@ -4,8 +4,9 @@ import type { ComponentType, ReactNode, SVGProps } from "react";
 import type { Catalog, Spec } from "@json-render/core";
 import type { ComponentRegistry } from "@json-render/react";
 import type { IShape } from "@zerospin/shapes";
+import type { makeModuleVersion } from "@qrk.sh/zerospin/src/modules/make/makeModuleVersion";
 
-/** A library module: state document, authored component, optional json-render. */
+/** A library module: shared state and flat authored variants with optional json-render. */
 export type IModule<MODULE extends string> = {
   /** Kebab-case module id, unique across the library. */
   id: MODULE;
@@ -18,11 +19,7 @@ export type IModule<MODULE extends string> = {
   /** Maximum bricks of this module per page, including hidden and unconfigured bricks. */
   maxPerPage?: number;
   catalog?: Catalog;
-  registry?: ComponentRegistry;
-  defaultSpec: Spec;
   hasPlaceholder: boolean;
-  /** Required display-only markup for an explicitly unconfigured brick (state === null). */
-  placeholder: () => ReactNode;
   Form?: (props: {
     state: unknown;
     onSave: (state: unknown) => IResult<unknown, { message: string }>;
@@ -34,22 +31,18 @@ export type IModule<MODULE extends string> = {
    * state contract ignore the prop.
    */
   component: {
-    bivarianceHack(props: {
-      state?: unknown;
-      spec: Spec;
-      breakpoint: "sm" | "md" | "lg" | "xl";
-    }): ReactNode;
+    bivarianceHack(props: { state?: unknown; spec: Spec; variantId: "default" }): ReactNode;
   }["bivarianceHack"];
-  viewFor: (breakpoint: "sm" | "md" | "lg" | "xl") => {
-    /** Preferred preview width in pixels, after applying the breakpoint override. */
-    defaultWidth: number;
-    /** Minimum rendered width in pixels, shared by every breakpoint. */
-    minWidth: 160 | 320;
-    component: {
-      bivarianceHack(props: { state: unknown }): ReactNode;
-    }["bivarianceHack"];
-    spec: Spec;
-    registry?: ComponentRegistry;
+  variants: {
+    default: ReturnType<typeof makeModuleVersion>["variants"]["default"] & {
+      component: {
+        bivarianceHack(props: { state: unknown }): ReactNode;
+      }["bivarianceHack"];
+      /** Display-only markup for an explicitly unconfigured brick (state === null). */
+      placeholder: () => ReactNode;
+      spec: Spec;
+      registry?: ComponentRegistry;
+    };
   };
   stateShape: IShape;
   defaultState: unknown;

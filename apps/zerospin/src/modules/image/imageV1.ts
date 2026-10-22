@@ -33,6 +33,13 @@ const defaultData = {
 
 export const imageV1 = makeModuleVersion(image, {
   version: 1,
+  variants: {
+    default: {
+      defaultWidth: 480,
+      minWidth: 320,
+      defaultHeight: 360,
+    },
+  },
   defaultSpec,
   hasPlaceholder: true,
   components: {

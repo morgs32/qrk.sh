@@ -1,7 +1,4 @@
 import { wallV1 as Wall } from "./models/wall/WallV1";
-import { sectionV1 as Section } from "./models/section/SectionV1";
-import { stackV1 as Stack } from "./models/stack/StackV1";
-import { rowV1 as Row } from "./models/row/RowV1";
 import { brickV1 as Brick } from "./models/brick/BrickV1";
 import { placementV1 as Placement } from "./models/placement/PlacementV1";
 import { pageV1 as Page } from "./models/page/PageV1";
@@ -47,9 +44,6 @@ export const userAggregateV1 = makeAggregateRelease(user, {
   version: 1,
   models: {
     wall: Wall,
-    section: Section,
-    stack: Stack,
-    row: Row,
     brick: Brick,
     placement: Placement,
     page: Page,

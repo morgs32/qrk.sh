@@ -1,6 +1,6 @@
 import { createContext, type ReactNode } from "react";
 import type { modulesHash } from "../../../../../../modules/lib/modulesHash";
-import type { wallInsertionTargetSchema } from "../../../../../../modules/lib/wall/wallInsertionTargetSchema";
+import type { wallInsertionTargetSchema } from "@qrk.sh/zerospin/src/aggregates/user/layout/wallTargetSchemas";
 
 export const WallEditorContext = createContext<{
   insertionTarget: typeof wallInsertionTargetSchema.Type | null;

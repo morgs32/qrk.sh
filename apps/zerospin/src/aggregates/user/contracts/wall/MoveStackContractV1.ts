@@ -1,110 +1,45 @@
-import { stack as stackIdentity } from "../../models/stack/stack";
-
 import {
-  modelId,
   ContractError,
   defineAggregateContract,
   makeAggregateContractVersion,
   findFirst,
-  findMany,
   prefixId,
   primitives,
 } from "@zerospin/sdk/browser";
-
-import { Effect, Schema } from "effect";
-
+import { Effect, Result } from "effect";
 import { userClaims } from "../../../../claims";
-
 import { pageV1 as page } from "../../models/page/PageV1";
-
 import { siteV1 as site } from "../../models/site/SiteV1";
-
 import { userV1 as user } from "../../models/user/UserV1";
-
 import { wallV1 as wall } from "../../models/wall/WallV1";
-
-import { sectionV1 as section } from "../../models/section/SectionV1";
-
-import { stackV1 as stack } from "../../models/stack/StackV1";
-
-import { rowV1 as row } from "../../models/row/RowV1";
-
-import { brickV1 as brick } from "../../models/brick/BrickV1";
-
-import { placementV1 as placement } from "../../models/placement/PlacementV1";
-
-import { cleanupWall } from "./utils/cleanupWall";
-
-const targetSchema = Schema.Union([
-  Schema.Struct({
-    kind: Schema.Literal("section"),
-    wallId: Schema.String,
-    sectionId: Schema.String,
-    beforeStackId: Schema.NullOr(Schema.String),
-  }),
-  Schema.Struct({
-    kind: Schema.Literal("wall"),
-    wallId: Schema.String,
-    beforeSectionId: Schema.NullOr(Schema.String),
-  }),
-]);
+import { moveStackInLayout } from "../../layout/wallLayout";
+import { stackMoveTargetSchema } from "../../layout/wallTargetSchemas";
+import { stackIdSchema } from "../../layout/wallLayoutSchema";
 
 export const moveStackV1 = makeAggregateContractVersion(defineAggregateContract("moveStack"), {
   version: 1,
-  models: {
-    page,
-    site,
-    user,
-    wall,
-    section,
-    stack,
-    row,
-    brick,
-    placement,
-  },
+  models: { page, site, user, wall },
   claims: userClaims,
-  operations: {
-    createSection: section.operations.create,
-    updateSection: section.operations.update,
-    updateStack: stack.operations.update,
-    deleteStack: stack.operations.delete,
-    deleteSection: section.operations.delete,
-    updateRow: row.operations.update,
-    deleteRow: row.operations.delete,
-    updatePlacement: placement.operations.update,
-  },
+  operations: { updateWall: wall.operations.update },
   payload: {
     id: primitives.text(),
-    stackId: modelId({ model: stackIdentity }),
-    target: primitives.json({ schema: targetSchema }),
+    stackId: primitives.json({ schema: stackIdSchema }),
+    target: primitives.json({ schema: stackMoveTargetSchema }),
   },
   failures: { invalidLayout: ContractError.schema({ code: "move-stack-invalid-layout" }) },
   program: Effect.fn("moveStack.program")(function* (props) {
     const { db, payload, operations, failures, claims } = props;
     const { target } = payload;
-    const moving = yield* findFirst({
-      db,
-      model: db.models.stack,
-      where: { id: { eq: payload.stackId } },
-    });
-    const sourceSection =
-      moving === undefined
-        ? undefined
-        : yield* findFirst({
-            db,
-            model: db.models.section,
-            where: { id: { eq: moving.sectionId } },
-          });
     const wallRow = yield* findFirst({
       db,
       model: db.models.wall,
       where: { id: { eq: target.wallId } },
     });
     if (
-      moving === undefined ||
-      sourceSection === undefined ||
       wallRow === undefined ||
-      sourceSection.wallId !== wallRow.id
+      !wallRow.layout.sections.some((entry) =>
+        entry.stacks.some((entry) => entry.id === payload.stackId),
+      )
     )
       return yield* failures.invalidLayout.make({
         message: "Stacks can only move within their Wall",
@@ -125,94 +60,19 @@ export const moveStackV1 = makeAggregateContractVersion(defineAggregateContract(
         message: "This Page is unavailable",
         status: 403,
       });
-    const sections = yield* findMany({
-      db,
-      model: db.models.section,
-      where: { wallId: { eq: wallRow.id } },
-      columns: { id: true, position: true },
-      orderBy: { position: "asc" },
-      with: {
-        stacks: {
-          columns: { id: true, position: true },
-          orderBy: { position: "asc" },
-          with: {
-            rows: {
-              columns: { id: true, position: true },
-              orderBy: { position: "asc" },
-              with: {
-                placements: {
-                  columns: { id: true, position: true },
-                  orderBy: { position: "asc" },
-                },
-              },
-            },
-          },
-        },
-      },
+    const changed = moveStackInLayout({
+      layout: wallRow.layout,
+      target,
+      stackId: payload.stackId,
+      newSectionId: prefixId({ abbreviation: "sec" }, payload.id),
+      stackLimit: { sm: 1, md: 2, lg: 3, xl: 4 }[wallRow.breakpoint],
     });
-    const source = sections.find((entry) => entry.id === sourceSection.id);
-    const movingStack = source?.stacks.find((entry) => entry.id === moving.id);
-    if (source === undefined || movingStack === undefined)
-      return yield* failures.invalidLayout.make({
-        message: "The Stack no longer belongs to this Wall",
-        status: 409,
-      });
-    let destinationSection: (typeof sections)[number] | undefined =
-      target.kind === "section"
-        ? sections.find((entry) => entry.id === target.sectionId)
-        : undefined;
-    if (target.kind === "section" && destinationSection === undefined)
-      return yield* failures.invalidLayout.make({
-        message: "The destination Section no longer exists",
-        status: 409,
-      });
-    if (
-      target.kind === "wall" &&
-      target.beforeSectionId !== null &&
-      !sections.some((entry) => entry.id === target.beforeSectionId)
-    )
-      return yield* failures.invalidLayout.make({
-        message: "The Section insertion point no longer exists",
-        status: 409,
-      });
-    const beforeStackId = target.kind === "section" ? target.beforeStackId : null;
-    if (destinationSection === source && beforeStackId === movingStack.id) return;
-    const siblings =
-      destinationSection?.stacks.filter((entry) => entry.id !== movingStack.id) ?? [];
-    const position =
-      beforeStackId === null
-        ? siblings.length
-        : siblings.findIndex((entry) => entry.id === beforeStackId);
-    if (position < 0)
-      return yield* failures.invalidLayout.make({
-        message: "The Stack insertion point no longer exists",
-        status: 409,
-      });
-    if (destinationSection === undefined) {
-      const id = prefixId(section, payload.id);
-      const sectionPosition =
-        target.kind === "wall" && target.beforeSectionId !== null
-          ? sections.findIndex((entry) => entry.id === target.beforeSectionId)
-          : sections.length;
-      yield* operations.createSection({
-        resourceId: id,
-        attributes: { wallId: wallRow.id, position: sectionPosition },
-      });
-      destinationSection = { id, position: sectionPosition, stacks: [] };
-      sections.splice(sectionPosition, 0, destinationSection);
-    }
-    source.stacks = source.stacks.filter((entry) => entry.id !== movingStack.id);
-    destinationSection.stacks.splice(position, 0, movingStack);
-    yield* operations.updateStack({
-      resourceId: movingStack.id,
-      attributes: { sectionId: destinationSection.id },
-    });
-    yield* cleanupWall({ sections, operations });
-    const capacity = { sm: 1, md: 2, lg: 3, xl: 4 }[wallRow.breakpoint];
-    if (sections.some((entry) => entry.stacks.length > capacity))
-      return yield* failures.invalidLayout.make({
-        message: "This Section has reached its Stack limit",
-        status: 409,
+    if (Result.isFailure(changed))
+      return yield* failures.invalidLayout.make({ message: changed.failure, status: 409 });
+    if (changed.success !== wallRow.layout)
+      yield* operations.updateWall({
+        resourceId: wallRow.id,
+        attributes: { layout: changed.success },
       });
   }),
 });

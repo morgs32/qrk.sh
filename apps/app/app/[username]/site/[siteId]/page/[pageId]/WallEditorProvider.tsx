@@ -8,11 +8,12 @@ import { Schema } from "effect";
 import { isNonEmptySpec } from "@json-render/core";
 import { modulesHash } from "../../../../../../modules/lib/modulesHash";
 import { WallTree } from "../../../../../../modules/lib/wall/WallTree";
-import { wallInsertionTargetSchema } from "../../../../../../modules/lib/wall/wallInsertionTargetSchema";
+import { wallInsertionTargetSchema } from "@qrk.sh/zerospin/src/aggregates/user/layout/wallTargetSchemas";
 import { useWallViewport } from "../../../../../../modules/lib/WallViewportProvider";
 import { brickV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/brick/BrickV1";
 import { placementV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/placement/PlacementV1";
-import { stackV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/stack/StackV1";
+import { stackIdSchema } from "@qrk.sh/zerospin/src/aggregates/user/layout/wallLayoutSchema";
+import { makeWallLayoutView } from "../../../../../../modules/lib/wall/makeWallLayoutView";
 import { pageV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
 import { WallEditorContext } from "./WallEditorContext";
 import { UserUI } from "@/zerospin/UserUI";
@@ -35,13 +36,7 @@ export function WallEditorProvider(props: { children: ReactNode }) {
     query: (db, id) =>
       db.query.wall.findMany({
         where: { pageId: { eq: id } },
-        with: {
-          sections: {
-            with: {
-              stacks: { with: { rows: { with: { placements: { with: { brick: true } } } } } },
-            },
-          },
-        },
+        with: { placements: { with: { brick: true } } },
       }),
   });
   const { brickId: selectedBrickId } = useParams({ strict: false });
@@ -103,70 +98,55 @@ export function WallEditorProvider(props: { children: ReactNode }) {
                 This page's wall is unavailable.
               </p>
             );
+          const { sections } = makeWallLayoutView({ wall });
           return (
             <WallTree
               wallId={wall.id}
               isActive={breakpoint === activeBreakpoint}
               breakpoint={breakpoint}
               selectedBrickId={selectedBrickId}
-              sections={[...wall.sections]
-                .sort((a, b) => a.position - b.position)
-                .map((section) => ({
-                  id: section.id,
-                  stacks: [...section.stacks]
-                    .sort((a, b) => a.position - b.position)
-                    .map((stack) => ({
-                      id: stack.id,
-                      name: stack.name,
-                      rows: [...stack.rows]
-                        .sort((a, b) => a.position - b.position)
-                        .map((row) => ({
-                          id: row.id,
-                          placements: [...row.placements]
-                            .sort((a, b) => a.position - b.position)
-                            .map((placement) => {
-                              const brick = placement.brick;
-                              const module =
-                                brick === null || brick === undefined
-                                  ? undefined
-                                  : modulesHash[brick.moduleId];
-                              const Component = module?.component;
-                              return {
-                                id: placement.id,
-                                brickId: brick?.id ?? "",
-                                minWidth: module?.variants[placement.variantId].minWidth ?? 160,
-                                content:
-                                  Component === undefined ||
-                                  brick === null ||
-                                  brick === undefined ||
-                                  module === undefined ? (
-                                    <p role="alert">Brick unavailable</p>
-                                  ) : brick.state === null || isNonEmptySpec(placement.spec) ? (
-                                    <div
-                                      data-brick-surface=""
-                                      data-card-style={cardStyle}
-                                      className="brick-hover-target relative min-w-0"
-                                    >
-                                      <BrickWrapper className="brick-hover-surface h-auto w-full min-w-0">
-                                        <Component
-                                          state={brick.state}
-                                          variantId={placement.variantId}
-                                          spec={
-                                            isNonEmptySpec(placement.spec)
-                                              ? placement.spec
-                                              : module.variants[placement.variantId].spec
-                                          }
-                                        />
-                                      </BrickWrapper>
-                                    </div>
-                                  ) : (
-                                    <p role="alert">Invalid Brick spec</p>
-                                  ),
-                              };
-                            }),
-                        })),
-                    })),
-                }))}
+              sections={sections.map((section) => ({
+                id: section.id,
+                stacks: section.stacks.map((stack) => ({
+                  id: stack.id,
+                  name: stack.name,
+                  rows: stack.rows.map((row) => ({
+                    id: row.id,
+                    placements: row.placements.map((placement) => {
+                      const brick = placement.brick;
+                      const module = modulesHash[brick.moduleId];
+                      const Component = module.component;
+                      return {
+                        id: placement.id,
+                        brickId: brick.id,
+                        minWidth: module.variants[placement.variantId].minWidth,
+                        content:
+                          brick.state === null || isNonEmptySpec(placement.spec) ? (
+                            <div
+                              data-brick-surface=""
+                              data-card-style={cardStyle}
+                              className="brick-hover-target relative min-w-0"
+                            >
+                              <BrickWrapper className="brick-hover-surface h-auto w-full min-w-0">
+                                <Component
+                                  state={brick.state}
+                                  variantId={placement.variantId}
+                                  spec={
+                                    isNonEmptySpec(placement.spec)
+                                      ? placement.spec
+                                      : module.variants[placement.variantId].spec
+                                  }
+                                />
+                              </BrickWrapper>
+                            </div>
+                          ) : (
+                            <p role="alert">Invalid Brick spec</p>
+                          ),
+                      };
+                    }),
+                  })),
+                })),
+              }))}
               onAddModule={(moduleId, target) => {
                 if (Object.hasOwn(modulesHash, moduleId)) {
                   const module = Object.values(modulesHash).find((entry) => entry.id === moduleId);
@@ -189,7 +169,7 @@ export function WallEditorProvider(props: { children: ReactNode }) {
                 );
               }}
               onMoveStack={(id, target) => {
-                const stackId = Schema.decodeUnknownSync(makeIdSchema(stackV1))(id);
+                const stackId = Schema.decodeUnknownSync(stackIdSchema)(id);
                 return (
                   stageAggregateSessionCommand({
                     session,

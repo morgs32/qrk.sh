@@ -42,6 +42,13 @@ const defaultData = {
 
 export const mapPlaceV1 = makeModuleVersion(mapPlace, {
   version: 1,
+  variants: {
+    default: {
+      defaultWidth: 480,
+      minWidth: 320,
+      defaultHeight: 360,
+    },
+  },
   defaultSpec,
   hasPlaceholder: true,
   components: {

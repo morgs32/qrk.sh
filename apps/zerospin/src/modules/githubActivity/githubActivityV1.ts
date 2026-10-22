@@ -55,6 +55,13 @@ const defaultData = {
 
 export const githubActivityV1 = makeModuleVersion(githubActivity, {
   version: 1,
+  variants: {
+    default: {
+      defaultWidth: 656,
+      minWidth: 320,
+      defaultHeight: 180,
+    },
+  },
   defaultSpec,
   hasPlaceholder: true,
   components: {

@@ -66,6 +66,18 @@ export function makeModuleVersion<
   }>,
   props: {
     version: VERSION;
+    variants: {
+      default: {
+        /** Preferred preview width in pixels, capped by the selected breakpoint's width. */
+        defaultWidth: number;
+        /** Minimum rendered width in pixels. */
+        minWidth: 160 | 320;
+        /** Preferred height in pixels; null follows content and requires an exclusive Row. */
+        defaultHeight: 45 | 90 | 180 | 360 | 720 | null;
+        /** Optional minimum above the shared 45px floor. */
+        minHeight?: 90 | 180 | 360 | 720;
+      };
+    };
     defaultSpec: Spec;
     hasPlaceholder?: boolean;
     components: Record<string, ReturnType<typeof defineComponent>>;
@@ -75,6 +87,7 @@ export function makeModuleVersion<
 ) {
   const {
     version,
+    variants,
     defaultSpec,
     components,
     stateShape,
@@ -101,6 +114,7 @@ export function makeModuleVersion<
     description,
     maxPerPage,
     version,
+    variants,
     defaultSpec,
     hasPlaceholder,
     catalog,

@@ -14,7 +14,7 @@ export function ModulePreview(props: {
   const { brickModule, breakpoint, moduleLink, moduleAction } = props;
   const cardStyle = useContext(BrickCardStyleContext);
   const maxPerPage = brickModule.maxPerPage;
-  const view = brickModule.viewFor(breakpoint);
+  const view = brickModule.variants.default;
   const Component = view.component;
   const entry = BREAKPOINTS.find((row) => row.id === breakpoint);
   if (entry === undefined) throw new Error(`Unknown breakpoint: ${breakpoint}`);

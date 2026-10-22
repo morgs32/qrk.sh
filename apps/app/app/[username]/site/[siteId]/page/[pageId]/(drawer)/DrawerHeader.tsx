@@ -85,11 +85,7 @@ export function DrawerHeader(props: {
         where: { id: { eq: pageId }, siteId: { eq: siteId } },
         with: {
           bricks: true,
-          walls: {
-            with: {
-              sections: { with: { stacks: { with: { rows: { with: { placements: true } } } } } },
-            },
-          },
+          walls: { with: { placements: true } },
         },
       }),
   });
@@ -141,16 +137,7 @@ export function DrawerHeader(props: {
           page,
           bricks: page.bricks,
           walls: page.walls,
-          sections: page.walls.flatMap((wall) => wall.sections),
-          stacks: page.walls.flatMap((wall) => wall.sections.flatMap((section) => section.stacks)),
-          rows: page.walls.flatMap((wall) =>
-            wall.sections.flatMap((section) => section.stacks.flatMap((stack) => stack.rows)),
-          ),
-          placements: page.walls.flatMap((wall) =>
-            wall.sections.flatMap((section) =>
-              section.stacks.flatMap((stack) => stack.rows.flatMap((row) => row.placements)),
-            ),
-          ),
+          placements: page.walls.flatMap((wall) => wall.placements),
         });
   const canPublishPage = site?.isPublished === true && page?.isPublished === false;
   const canPublishUpdates =

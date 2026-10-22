@@ -27,6 +27,13 @@ const defaultData = {
 
 export const swatchAndIconV1 = makeModuleVersion(swatchAndIcon, {
   version: 1,
+  variants: {
+    default: {
+      defaultWidth: 240,
+      minWidth: 160,
+      defaultHeight: 90,
+    },
+  },
   defaultSpec,
   hasPlaceholder: true,
   components: {

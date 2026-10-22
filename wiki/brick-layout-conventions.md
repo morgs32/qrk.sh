@@ -1,6 +1,6 @@
 # Brick preview and editor conventions
 
-**updated:** 2026-10-20
+**updated:** 2026-10-21
 
 ## App owns saved editing
 
@@ -8,8 +8,12 @@ App is the persisted editor. A Page owns shared Bricks and four Walls at
 360 / 720 / 1080 / 1440px (`sm` / `md` / `lg` / `xl`). Wall contains ordered
 Sections, Section contains ordered Stacks, Stack contains vertical Rows, and
 Row contains side-by-side Placements. Each Brick has one deterministic Placement
-per breakpoint. Canonical declarations and commands live in the QRK user aggregate.
-Wall and Brick bind directly to its final Page table.
+per breakpoint. `Wall.layout` stores Section, named Stack, and Row nodes whose
+ordered arrays reference Placement IDs. The nodes retain stable IDs without
+separate tables, parent columns, or numeric sibling positions. Brick content and
+Placement specs/revisions/generation remain separate records. Placement's direct
+`wallId` identifies its Wall and breakpoint. Canonical declarations and commands
+live in the QRK user aggregate; Wall and Brick bind directly to its Page table.
 
 Each new Page starts with four Walls, each with one Section and an empty Stack.
 Moves and Brick deletion prune empty Rows, Stacks, and Sections. Stack capacity
@@ -20,14 +24,15 @@ arbitrary Placement-count cap. Each Row scrolls horizontally when its minimums
 do not fit, without widening neighboring Stacks or changing saved order.
 The former `Page.wallId`, `Wall.label`, `Brick.wallId`, Placement grid geometry,
 visibility, and duplicated breakpoint attribute are removed. Placement derives
-its breakpoint through Row → Stack → Section → Wall.
+its breakpoint directly from its Wall.
 
 ## Frame and content rendering
 
 The shared `WallBreakpointPane` retains the 48px decorative browser bar,
 breakpoint fitting/selection, and reduced-motion behavior. Four panes remain
 mounted; only the active Wall registers drag sources and targets. App's
-`WallEditorProvider` queries saved models and stages commands through the existing
+`WallEditorProvider` queries Walls with separate Placements/Bricks and resolves
+their layout references through `makeWallLayoutView`. It stages commands through the existing
 session from `UserUI.useSession()`. App initializes a connected session;
 Storybook initializes a real local mock with complete seed resources. Both mount
 the same `WallEditorProvider`, shared `WallTree`, and Brick form. Storybook's
@@ -60,19 +65,22 @@ Adding creates shared null Brick content and all four Placements atomically.
 The active Wall follows the target; other Walls append a new Row to the last
 Stack, creating missing parents when needed. A successful local stage opens the
 new Brick form; cancelling that form leaves the created null Brick.
-Moves keep Placement identity/specs or carry the complete Stack's Rows. Delete
-Brick confirms removal from all four widths. Each command calls internal
-`cleanupWall` on its post-edit hierarchy: movement cleans the affected Wall;
-Brick deletion cleans all four Page Walls. Cleanup removes empty Rows, then
-Stacks, then Sections, and renumbers surviving sibling positions, including
-Placements, in the same command. The Wall remains available as a drop target.
+Moves keep Placement identity/specs or carry the complete Stack's Rows. The pure
+layout module edits ordered arrays; commands record one update per changed Wall
+with the required independent-record operations in an atomic batch. Delete
+Brick confirms removal from all four widths. Movement prunes all empty containers
+in the affected Wall after editing. Brick deletion removes its references and
+records and prunes only ancestors emptied by that deletion. Unrelated empty
+containers remain untouched. Array order needs no sibling renumbering.
+The Wall remains available as a drop target.
 Stable insertion anchors are validated before cleanup; self-before moves remain
 no-ops.
 
 Wall layout containers have zero padding and no gaps between adjacent content.
 Stack chrome and drag insertion boundaries overlay the layout. Empty persisted
 Rows/Stacks, including initial Page scaffolds, show drop placeholders until a
-move or deletion cleans their Wall; spacing is not used to host controls.
+move cleans their Wall or deletion empties their ancestor path; spacing is not
+used to host controls.
 Row before/after drop zones create Rows; the middle resolves horizontal
 Placement insertion. Each Row's content scrolls inside its indicator host, so
 Row before/after indicators remain visible outside the scrollport. Stock drop
@@ -81,10 +89,47 @@ not fall through. Blank Wall below the last Section creates a Section.
 
 Selected means a Brick's edit form is open. Active means DOM focus, including
 keyboard focus. Controls appear on hover, focus, selection, and open menus, with
-touch access. Keyboard Move dialogs use the same stable destinations as dragging,
-announce accepted actions, and restore focus to surviving controls. Whole-Row
+touch access. Edit/Delete menus are keyboard-accessible. The Delete confirmation
+supports cancellation and restores focus to its trigger or a surviving control;
+accepted drag actions are announced. Whole-Row
 and Section dragging, container deletion, hiding, resizing, and production zoom
 remain outside the feature.
+
+## Development preview: new-brick drops
+
+The separate `/dev/page/<pageId>/<breakpoint>` preview accepts only new
+default-variant Bricks from its compact palette. Existing Placements are not
+drag sources. Its empty Wall fills available height with a 320px minimum; a
+populated Wall retains a full-width bottom drop zone with a 320px minimum.
+
+The pointer selects the destination: a compatible Row appends horizontally;
+an incompatible Row creates a Row immediately below itself in the same Stack;
+blank Stack space appends a Row; and the Wall bottom creates a Section, Stack,
+and Row. There is no search for an available Row elsewhere. Initial empty
+Section/Stack scaffolding is reused on the first drop. Side-Stack creation and
+between-Section insertion are deferred for this preview.
+
+Shared module-version declarations own each variant's sizing metadata; React
+views consume it. A Row accepts a new Brick only when its existing contents
+and the incoming variant can share and their combined minimum widths fit the
+rendered Row. An empty Row can accept variable-height content; a nonempty Row
+can contain only fixed-height variants. Different fixed heights may share.
+No persisted exclusive-Row flag or Article-specific branch is needed.
+
+The browser's `resolveBrickDrop` applies compatibility and measured-width rules
+for both feedback and submission. `addBrick` checks the shared `canShareRow`
+rule before mutations, rejecting an incompatible destination rather than
+rerouting it. Pixel-width fitting remains in the browser. These checks apply
+to additions only: `movePlacement` and the production editor's movement
+behavior are unchanged, and existing mixed Rows are not repaired.
+
+A successful local stage stays on the development page without opening a Brick
+form. It retains ordinary creation of shared null Brick content and four
+Placements; the other three Walls append new Rows through the existing command.
+Cancelled, foreign-Wall, malformed, and stale drops create nothing. The same
+destination drives the highlight or insertion line and is recomputed on drop.
+See [Plan 038](./archive/plans/038-plan-development-brick-drops.md) for implementation
+and pending verification.
 
 ## Shared modules and Storybook
 
@@ -105,8 +150,8 @@ server-held credential; fixture previews need no persisted user session. Existin
 lookup/upload controls retain their API/environment wiring.
 
 App catalog previews use the module's resolved preferred `defaultWidth`, capped
-at the active breakpoint width. Optional per-breakpoint preferred-width overrides
-resolve through `viewFor`. Component/JsonRender comparisons share the resolved
+at the active breakpoint width. Shared module-version variant definitions own
+the sizing, and React views consume those same values. Component/JsonRender comparisons share the resolved
 width and natural content height and respect the module's `minWidth`; wide rows
 scroll. Preferred widths impose no persisted geometry. Map Place retains its
 200px CSS minimum height/Mapbox resizing,
@@ -126,11 +171,14 @@ saved-versus-published comparison, so movement changes dirty state. Generation,
 revisions, and editor bookkeeping stay outside snapshots. Public website rendering
 remains deferred.
 
-Plan 036 uses the approved scoped backup-and-fresh-development cutover. Old
-App/Library browser partitions, authentication, preferences, uploads, unrelated
-stores, and production data remain preserved. Current implementation/verification
-evidence belongs to [Plan 036](./archive/plans/036-plan-wall-tree-editor.md); the older
-reset below records a separate historical authorization.
+[Plan 039](./archive/plans/039-plan-wall-owned-layout-tree.md) replaces the old layout
+tables with the Wall-owned tree. The authorized local hard cutover preserves the
+previous backend at
+`apps/zerospin/.wrangler/zerospin/backups/sys_qrk_sh_1-plan039-20261021T222956Z`.
+Old App/Library browser partitions and unsent work, authentication, preferences,
+uploads, unrelated stores, and production data remain preserved without a
+compatibility reader or import. Implementation and runtime verification belong
+to that plan. The older reset below records a separate historical authorization.
 
 ## Historical Plan 031 cutover outcome
 

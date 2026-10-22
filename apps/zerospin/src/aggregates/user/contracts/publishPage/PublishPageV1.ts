@@ -4,12 +4,6 @@ import { pageSnapshot as pageSnapshotIdentity } from "../../models/pageSnapshot/
 
 import { wallV1 as Wall } from "../../models/wall/WallV1";
 
-import { sectionV1 as Section } from "../../models/section/SectionV1";
-
-import { stackV1 as Stack } from "../../models/stack/StackV1";
-
-import { rowV1 as Row } from "../../models/row/RowV1";
-
 import { brickV1 as Brick } from "../../models/brick/BrickV1";
 
 import { placementV1 as Placement } from "../../models/placement/PlacementV1";
@@ -44,9 +38,6 @@ export const publishPageV1 = makeAggregateContractVersion(publishPage, {
   },
   models: {
     wall: Wall,
-    section: Section,
-    stack: Stack,
-    row: Row,
     brick: Brick,
     placement: Placement,
     page: Page,
@@ -134,31 +125,16 @@ export const publishPageV1 = makeAggregateContractVersion(publishPage, {
       model: db.models.wall,
       where: { pageId: { eq: page.id } },
     });
-    const sections = yield* findMany({
-      db,
-      model: db.models.section,
-      where: { wall: { pageId: { eq: page.id } } },
-    });
-    const stacks = yield* findMany({
-      db,
-      model: db.models.stack,
-      where: { section: { wall: { pageId: { eq: page.id } } } },
-    });
-    const rows = yield* findMany({
-      db,
-      model: db.models.row,
-      where: { stack: { section: { wall: { pageId: { eq: page.id } } } } },
-    });
     const placements = yield* findMany({
       db,
       model: db.models.placement,
-      where: { brick: { pageId: { eq: page.id } } },
+      where: { wallId: { in: walls.map((entry) => entry.id) } },
     });
     yield* operations.createPageSnapshot({
       resourceId: payload.snapshotId,
       attributes: {
         pageId: page.id,
-        content: makePageSnapshot({ page, bricks, walls, sections, stacks, rows, placements }),
+        content: makePageSnapshot({ page, bricks, walls, placements }),
       },
     });
     yield* operations.updatePage({

@@ -25,8 +25,7 @@ import { WallEditorProvider } from "@/app/[username]/site/[siteId]/page/[pageId]
 import { WallEditorContext } from "@/app/[username]/site/[siteId]/page/[pageId]/WallEditorContext";
 import { BrickDetail } from "@/app/[username]/site/[siteId]/page/[pageId]/BrickDetail/BrickDetail";
 
-const { user, site, page, wall, section, stack, row, brick, placement } =
-  userSessionDefinition.models;
+const { user, site, page, wall, brick, placement } = userSessionDefinition.models;
 const userId = prefixId(user, "story");
 const siteId = prefixId(site, "story");
 const pageId = prefixId(page, "story");
@@ -106,61 +105,43 @@ function makeResources(emptyWall: boolean) {
         id: prefixId(wall, `story-${id}`),
         pageId,
         breakpoint: id,
+        layout: {
+          sections: emptyWall
+            ? []
+            : [
+                {
+                  id: prefixId({ abbreviation: "sec" }, `story-${id}`),
+                  stacks: [
+                    {
+                      id: prefixId({ abbreviation: "stk" }, `story-${id}`),
+                      name: "Stack 1",
+                      rows: [0, 1, 2].map((position) => ({
+                        id: prefixId({ abbreviation: "row" }, `story-${id}-${position}`),
+                        placementIds: bricks
+                          .filter((_, index) => (index < 2 ? 0 : 1) === position)
+                          .map((entry) => makePlacementId(entry.id, id)),
+                      })),
+                    },
+                  ],
+                },
+              ],
+        },
       }),
     ),
-    section: emptyWall
-      ? []
-      : BREAKPOINTS.map(({ id }) =>
-          Schema.decodeUnknownSync(Schema.toType(section.resourceJsonCodec))({
-            ...timestamps,
-            modelName: section.modelName,
-            version: section.version,
-            id: prefixId(section, `story-${id}`),
-            wallId: prefixId(wall, `story-${id}`),
-            position: 0,
-          }),
-        ),
-    stack: emptyWall
-      ? []
-      : BREAKPOINTS.map(({ id }) =>
-          Schema.decodeUnknownSync(Schema.toType(stack.resourceJsonCodec))({
-            ...timestamps,
-            modelName: stack.modelName,
-            version: stack.version,
-            id: prefixId(stack, `story-${id}`),
-            sectionId: prefixId(section, `story-${id}`),
-            name: "Stack 1",
-            position: 0,
-          }),
-        ),
-    row: emptyWall
-      ? []
-      : BREAKPOINTS.flatMap(({ id }) =>
-          [0, 1, 2].map((position) =>
-            Schema.decodeUnknownSync(Schema.toType(row.resourceJsonCodec))({
-              ...timestamps,
-              modelName: row.modelName,
-              version: row.version,
-              id: prefixId(row, `story-${id}-${position}`),
-              stackId: prefixId(stack, `story-${id}`),
-              position,
-            }),
-          ),
-        ),
     brick: bricks,
     placement: BREAKPOINTS.flatMap(({ id }) =>
-      bricks.map((entry, position) =>
+      bricks.map((entry) =>
         Schema.decodeUnknownSync(Schema.toType(placement.resourceJsonCodec))({
           ...timestamps,
           modelName: placement.modelName,
           version: placement.version,
           id: makePlacementId(entry.id, id),
           brickId: entry.id,
-          rowId: prefixId(row, `story-${id}-${position < 2 ? 0 : 1}`),
-          position: position < 2 ? position : 0,
+          wallId: prefixId(wall, `story-${id}`),
+          variantId: "default",
           specRevision: 0,
           generation: null,
-          spec: modulesHash["swatch-and-icon"].defaultSpec,
+          spec: modulesHash["swatch-and-icon"].variants.default.spec,
         }),
       ),
     ),

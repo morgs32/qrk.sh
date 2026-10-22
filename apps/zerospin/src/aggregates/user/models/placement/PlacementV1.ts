@@ -1,6 +1,6 @@
 import { makePlacementModel } from "../../../../modules/make/makePlacementModel";
 import { brick } from "../brick/brick";
 import { placement } from "./placement";
-import { row } from "../row/row";
+import { wall } from "../wall/wall";
 
-export const placementV1 = makePlacementModel({ brick, row, identity: placement });
+export const placementV1 = makePlacementModel({ brick, wall, identity: placement });

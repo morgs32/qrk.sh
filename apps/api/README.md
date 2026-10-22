@@ -157,7 +157,12 @@ is outside this flow.
 
 Spec generation accepts a full spec or JSONL patches. Edits apply patches to a
 copy of the supplied current spec, retaining its root and unchanged elements;
-the resulting spec must pass the module catalog's validation before returning.
+the result must pass the module's canonical Effect spec-document schema before
+returning. That schema validates the document and module component props without
+requiring optional leaf children. A normally completed empty string is a no-op
+patch stream when a valid current spec exists; fresh blank generation still
+fails validation. Refusals, tool calls, incomplete completions, and non-string
+content fail through the existing `generateSpec` RPC error response.
 
 ### Material Symbols
 

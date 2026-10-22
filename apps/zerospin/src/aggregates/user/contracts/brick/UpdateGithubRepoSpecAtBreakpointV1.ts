@@ -24,6 +24,8 @@ import { brickV1 as brick } from "../../models/brick/BrickV1";
 
 import { placementV1 as placement } from "../../models/placement/PlacementV1";
 
+import { wallV1 as wall } from "../../models/wall/WallV1";
+
 const SpecDocumentSchema = makeModuleSpecDocumentSchema(backendLibrary["github-repo"].components);
 
 export const updateGithubRepoSpecAtBreakpointV1 = makeAggregateContractVersion(
@@ -36,6 +38,7 @@ export const updateGithubRepoSpecAtBreakpointV1 = makeAggregateContractVersion(
     models: {
       brick,
       placement,
+      wall,
     },
     payload: {
       brickId: modelId({ model: brickIdentity }),
@@ -79,6 +82,28 @@ export const updateGithubRepoSpecAtBreakpointV1 = makeAggregateContractVersion(
           code: "update-github-repo-spec-placement-not-found",
           message: `placement ${expectedPlacementId} was not found`,
           status: 404,
+        });
+      }
+      const wallRow = yield* findFirst({
+        db,
+        model: db.models.wall,
+        where: { id: { eq: placementRow.wallId } },
+      });
+      if (
+        placementRow.brickId !== brickRow.id ||
+        wallRow === undefined ||
+        wallRow.pageId !== brickRow.pageId ||
+        wallRow.breakpoint !== guardPayload.breakpoint ||
+        !wallRow.layout.sections.some((section) =>
+          section.stacks.some((stack) =>
+            stack.rows.some((row) => row.placementIds.includes(placementRow.id)),
+          ),
+        )
+      ) {
+        return yield* new ZerospinError({
+          code: "update-github-repo-spec-placement-mismatch",
+          message: `placement ${expectedPlacementId} does not belong to this Page's breakpoint Wall`,
+          status: 400,
         });
       }
     }),

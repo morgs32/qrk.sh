@@ -10,18 +10,18 @@ import { SwatchAndIconLineIcon } from "./SwatchAndIconLineIcon";
 export const swatchAndIconView = makeModuleView(swatchAndIconV1, {
   LineIcon: SwatchAndIconLineIcon,
   form: SwatchAndIconForm,
-  default: {
-    placeholder: SwatchAndIconPlaceholder,
-    defaultWidth: 240,
-    minWidth: 160,
-    component(props) {
-      const { state } = props;
-      return (
-        <swatchAndIconColorView.Component color={state.payload.color}>
-          <iconSvgGraphicView.Component name={state.data.name} svg={state.data.svg} />
-        </swatchAndIconColorView.Component>
-      );
+  variants: {
+    default: {
+      placeholder: SwatchAndIconPlaceholder,
+      component(props) {
+        const { state } = props;
+        return (
+          <swatchAndIconColorView.Component color={state.payload.color}>
+            <iconSvgGraphicView.Component name={state.data.name} svg={state.data.svg} />
+          </swatchAndIconColorView.Component>
+        );
+      },
+      generator: { registry, defaultSpec: swatchAndIconV1.defaultSpec },
     },
-    generator: { registry, defaultSpec: swatchAndIconV1.defaultSpec },
   },
 });

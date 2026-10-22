@@ -20,7 +20,7 @@ export function BreakpointPreviewRow(props: {
   const { entry, moduleId, brick, moduleState, className, specs } = props;
   const cardStyle = useContext(BrickCardStyleContext);
   const maxPerPage = brick.maxPerPage;
-  const view = brick.viewFor(entry.id);
+  const view = brick.variants.default;
   const Component = view.component;
   const JsonRender = brick.component;
   const previewWidth = Math.min(view.defaultWidth, entry.previewWidth);
@@ -62,7 +62,7 @@ export function BreakpointPreviewRow(props: {
                 data-module-brick={moduleId}
                 data-testid="json-render-preview"
               >
-                <JsonRender breakpoint={entry.id} state={moduleState} spec={specs[entry.id]} />
+                <JsonRender variantId="default" state={moduleState} spec={specs[entry.id]} />
               </BrickWrapper>
             </div>
           </div>

@@ -27,6 +27,13 @@ const dataShape = {
 
 export const articleV1 = makeModuleVersion(article, {
   version: 1,
+  variants: {
+    default: {
+      defaultWidth: 720,
+      minWidth: 320,
+      defaultHeight: null,
+    },
+  },
   defaultSpec,
   hasPlaceholder: true,
   components: {

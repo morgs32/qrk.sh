@@ -20,7 +20,10 @@ import {
 import { DropIndicator } from "@atlaskit/pragmatic-drag-and-drop-react-drop-indicator/list-item";
 import { Button } from "../../components/ui/button";
 import { WallSection } from "./WallSection";
-import { stackMoveTargetSchema, wallInsertionTargetSchema } from "./wallInsertionTargetSchema";
+import {
+  stackMoveTargetSchema,
+  wallInsertionTargetSchema,
+} from "@qrk.sh/zerospin/src/aggregates/user/layout/wallTargetSchemas";
 
 /** Controlled wall presentation: the caller owns persistence or local story fixtures. */
 export function WallTree(props: {

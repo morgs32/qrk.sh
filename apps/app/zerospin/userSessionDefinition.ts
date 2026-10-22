@@ -1,8 +1,5 @@
 import { makeAggregateSessionDefinition } from "@zerospin/browser";
 import { wallV1 as Wall } from "@qrk.sh/zerospin/src/aggregates/user/models/wall/WallV1";
-import { sectionV1 as Section } from "@qrk.sh/zerospin/src/aggregates/user/models/section/SectionV1";
-import { stackV1 as Stack } from "@qrk.sh/zerospin/src/aggregates/user/models/stack/StackV1";
-import { rowV1 as Row } from "@qrk.sh/zerospin/src/aggregates/user/models/row/RowV1";
 import { brickV1 as Brick } from "@qrk.sh/zerospin/src/aggregates/user/models/brick/BrickV1";
 import { placementV1 as Placement } from "@qrk.sh/zerospin/src/aggregates/user/models/placement/PlacementV1";
 import { pageV1 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
@@ -47,9 +44,6 @@ export const userSessionDefinition = makeAggregateSessionDefinition({
   aggregateVersion: 1,
   models: {
     wall: Wall,
-    section: Section,
-    stack: Stack,
-    row: Row,
     brick: Brick,
     placement: Placement,
     page: Page,

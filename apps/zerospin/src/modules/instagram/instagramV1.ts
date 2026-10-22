@@ -51,6 +51,13 @@ const defaultData = {
 
 export const instagramV1 = makeModuleVersion(instagram, {
   version: 1,
+  variants: {
+    default: {
+      defaultWidth: 400,
+      minWidth: 320,
+      defaultHeight: 360,
+    },
+  },
   defaultSpec,
   hasPlaceholder: true,
   components: {

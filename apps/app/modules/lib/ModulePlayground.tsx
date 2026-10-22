@@ -40,10 +40,10 @@ export function ModulePlayground(props: {
   const Form = brick.Form;
   const specs = useMemo(
     () => ({
-      sm: generatedSpec ?? brick.viewFor("sm").spec,
-      md: generatedSpec ?? brick.viewFor("md").spec,
-      lg: generatedSpec ?? brick.viewFor("lg").spec,
-      xl: generatedSpec ?? brick.viewFor("xl").spec,
+      sm: generatedSpec ?? brick.variants.default.spec,
+      md: generatedSpec ?? brick.variants.default.spec,
+      lg: generatedSpec ?? brick.variants.default.spec,
+      xl: generatedSpec ?? brick.variants.default.spec,
     }),
     [brick, generatedSpec],
   );
@@ -142,7 +142,7 @@ export function ModulePlayground(props: {
                       ) : null}
                     </div>
                   </OrderedSection>
-                  {brick.registry !== undefined ? (
+                  {brick.variants.default.registry !== undefined ? (
                     <OrderedSection className="mt-10" label="Generate spec">
                       <OrderedBody level={2}>
                         <OrderedSection label="Generate spec input">
@@ -161,7 +161,7 @@ export function ModulePlayground(props: {
                                     moduleId,
                                     generatePrompt,
                                     moduleState,
-                                    generatedSpec ?? brick.defaultSpec,
+                                    generatedSpec ?? brick.variants.default.spec,
                                   );
                                   if (result._tag === "Left") setGenerateError(result.left);
                                   else setGeneratedSpec(result.right);

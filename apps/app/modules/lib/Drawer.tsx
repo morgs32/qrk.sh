@@ -1,7 +1,7 @@
 "use client";
 
-import { Fragment, useLayoutEffect, useRef, useState, type ReactNode } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import { cn } from "cn";
 
 const drawerTransition = {
@@ -188,15 +188,5 @@ export function Drawer(props: {
         {open === undefined || open || present ? children : null}
       </div>
     </motion.div>
-  );
-}
-
-export function DrawerPresence(props: { group: string; children: ReactNode }) {
-  const { group, children } = props;
-
-  return (
-    <AnimatePresence mode="sync">
-      <Fragment key={group}>{children}</Fragment>
-    </AnimatePresence>
   );
 }

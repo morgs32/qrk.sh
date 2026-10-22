@@ -26,16 +26,10 @@ import { userClaims } from "../../../../claims";
 
 import { wallV1 as Wall } from "../../models/wall/WallV1";
 
-import { sectionV1 as Section } from "../../models/section/SectionV1";
-
-import { stackV1 as Stack } from "../../models/stack/StackV1";
-
 export const createPageV1 = makeAggregateContractVersion(createPage, {
   claims: userClaims,
   operations: {
     createWall: Wall.operations.create,
-    createSection: Section.operations.create,
-    createStack: Stack.operations.create,
     createPage: Page.operations.create,
   },
   payload: {
@@ -50,7 +44,7 @@ export const createPageV1 = makeAggregateContractVersion(createPage, {
     createPageSiteNotFound: ContractError.schema({ code: "create-page-site-not-found" }),
     createPageIndexTaken: ContractError.schema({ code: "create-page-index-taken" }),
   },
-  models: { site: Site, user: User, page: Page, wall: Wall, section: Section, stack: Stack },
+  models: { site: Site, user: User, page: Page, wall: Wall },
   guard: Effect.fn("createPageV1.guard")(function* (props) {
     const { failures, claims, db, payload } = props;
     const clerkUserId = claims?.clerkUserId;
@@ -115,15 +109,26 @@ export const createPageV1 = makeAggregateContractVersion(createPage, {
     const breakpoints: Array<"sm" | "md" | "lg" | "xl"> = ["sm", "md", "lg", "xl"];
     for (const breakpoint of breakpoints) {
       const wallId = prefixId(Wall, `${id}_${breakpoint}`);
-      const sectionId = prefixId(Section, `${id}_${breakpoint}`);
-      yield* operations.createWall({ resourceId: wallId, attributes: { pageId: id, breakpoint } });
-      yield* operations.createSection({
-        resourceId: sectionId,
-        attributes: { wallId, position: 0 },
-      });
-      yield* operations.createStack({
-        resourceId: prefixId(Stack, `${id}_${breakpoint}`),
-        attributes: { sectionId, name: "Stack", position: 0 },
+      yield* operations.createWall({
+        resourceId: wallId,
+        attributes: {
+          pageId: id,
+          breakpoint,
+          layout: {
+            sections: [
+              {
+                id: prefixId({ abbreviation: "sec" }, `${id}_${breakpoint}`),
+                stacks: [
+                  {
+                    id: prefixId({ abbreviation: "stk" }, `${id}_${breakpoint}`),
+                    name: "Stack",
+                    rows: [],
+                  },
+                ],
+              },
+            ],
+          },
+        },
       });
     }
   }),

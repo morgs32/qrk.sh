@@ -24,7 +24,7 @@ other three applications (App, Web, and API). Module playgrounds run in App Stor
 Its `dev` script invokes Portless, which runs the CLI command in `dev:app`;
 package metadata retains its hostname and port.
 
-QRK installs the CLI and runtime packages at `26.0.2` from the populated local
+QRK installs the CLI and runtime packages at `27.0.0` from the populated local
 registry described in the [root README](../../README.md#zerospin-packages).
 Shared module definitions live in `src/modules/`; App and API compile their source
 directly. Backend development does not rebuild installed Zerospin files.
@@ -109,7 +109,7 @@ initialization step fails. Do not reset or seed production storage to retry.
 
 ## Server aggregate reads
 
-Core `26.0.2` provides the server-only
+Core `27.0.0` provides the server-only
 `@zerospin/core/utils/getSystemApi/getSystemApi` client. Supply
 `ZerospinApiUrl` and `SecretKey` (`Redacted<string>`) in the application's Effect
 layer, then acquire it with `yield* getSystemApi()`. Construct a connection-free
@@ -414,4 +414,4 @@ browsing/restoring publication history remain later application work.
 
 ## Complete session declarations
 
-Each authored session has one complete checked definition, including `systemName`, with explicit model and contract entries. Host wiring, UI owners, and SharedWorkers import that defining module directly. Credentials remain in authentication and host wiring. Zerospin packages are pinned to `26.0.2`; React UI contexts use `makeReactUI`.
+Each authored session has one complete checked definition, including `systemName`, with explicit model and contract entries. Host wiring, UI owners, and SharedWorkers import that defining module directly. Credentials remain in authentication and host wiring. Zerospin packages are pinned to `27.0.0`; React UI contexts use `makeReactUI`.
